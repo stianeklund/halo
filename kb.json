@@ -62,6 +62,14 @@
         {
           "decl": "void ai_initialize_for_new_map(void);",
           "addr": "0x41090"
+        },
+        {
+          "decl": "void ai_update(void);",
+          "addr": "0x41180"
+        },
+        {
+          "decl": "bool ai_enemies_can_see_player(void);",
+          "addr": "0x425a0"
         }
       ]
     },
@@ -210,6 +218,10 @@
         {
           "decl": "void collision_log_initialize(void);",
           "addr": "0x14d010"
+        },
+        {
+          "decl": "void collision_log_begin_period(__int16 time_period);",
+          "addr": "0x14d100"
         },
         {
           "decl": "void collision_log_continue_period(__int16 time_period);",
@@ -434,6 +446,10 @@
           "addr": "0x97830"
         },
         {
+          "decl": "void editor_update(void);",
+          "addr": "0x97840"
+        },
+        {
           "decl": "void editor_initialize_for_new_map(void);",
           "addr": "0x97850"
         },
@@ -462,6 +478,14 @@
         {
           "decl": "void effects_dispose(void);",
           "addr": "0x9c6e0"
+        },
+        {
+          "decl": "bool dangerous_effects_near_player(void);",
+          "addr": "0x9d000"
+        },
+        {
+          "decl": "bool effects_update(float);",
+          "addr": "0x9f320"
         }
       ]
     },
@@ -504,8 +528,28 @@
       ]
     },
     {
+      "name": "first_person_weapons.obj",
+      "source": "interface/first_person_weapons.c",
+      "functions": [
+        {
+          "decl": "void first_person_weapons_update(void);",
+          "addr": "0xdeb60"
+        }
+      ]
+    },
+    {
       "name": "game.obj",
       "source": "game/game.c",
+      "data": [
+        {
+          "decl": "void* off_2EF800;",
+          "addr": "0x2ef800"
+        },
+        {
+          "decl": "bool byte_2EF808;",
+          "addr": "0x2ef808"
+        }
+      ],
       "functions": [
         {
           "decl": "void game_initialize(void);",
@@ -549,7 +593,7 @@
         },
         {
           "decl": "bool game_options_verify(game_options_t *game_options);",
-          "addr": "0xa73A0"
+          "addr": "0xa73a0"
         },
         {
           "decl": "void game_initial_pulse(void);",
@@ -581,7 +625,7 @@
         },
         {
           "decl": "void game_set_game_engine_index(void);",
-          "addr": "0xa74C0"
+          "addr": "0xa74c0"
         },
         {
           "decl": "bool game_all_quiet(void);",
@@ -636,6 +680,10 @@
         {
           "decl": "void game_allegiance_dispose_from_old_map(void);",
           "addr": "0xa7a20"
+        },
+        {
+          "decl": "void game_allegiance_update(void);",
+          "addr": "0xa7e30"
         }
       ]
     },
@@ -678,6 +726,10 @@
         {
           "decl": "void game_engine_player_added(int player_data_handle);",
           "addr": "0xae7e0"
+        },
+        {
+          "decl": "void game_engine_update(void);",
+          "addr": "0xaf370"
         }
       ]
     },
@@ -849,6 +901,10 @@
           "addr": "0xc3c30"
         },
         {
+          "decl": "void hs_update(void);",
+          "addr": "0xc3c50"
+        },
+        {
           "decl": "void hs_initialize_for_new_map(void);",
           "addr": "0xc4d90"
         },
@@ -886,6 +942,10 @@
         }
       ],
       "functions": [
+        {
+          "decl": "void hud_update(void);",
+          "addr": "0xd0440"
+        },
         {
           "decl": "wchar_t *hud_get_item_string(int a1);",
           "addr": "0xd0ba0"
@@ -977,6 +1037,16 @@
         {
           "decl": "void interface_initialize_for_new_map(void);",
           "addr": "0xdfea0"
+        }
+      ]
+    },
+    {
+      "name": "items.obj",
+      "source": "items/items.c",
+      "functions": [
+        {
+          "decl": "bool dangerous_items_near_player(void);",
+          "addr": "0xf6970"
         }
       ]
     },
@@ -1191,6 +1261,10 @@
         {
           "decl": "void objects_dispose(void);",
           "addr": "0x13fac0"
+        },
+        {
+          "decl": "void objects_update(void);",
+          "addr": "0x145170"
         }
       ]
     },
@@ -1313,6 +1387,10 @@
         {
           "decl": "void player_effect_dispose_from_old_map(void);",
           "addr": "0xa2790"
+        },
+        {
+          "decl": "void player_effect_update(void);",
+          "addr": "0xa2ca0"
         }
       ]
     },
@@ -1357,6 +1435,10 @@
         {
           "decl": "void rumble_dispose_from_old_map(void);",
           "addr": "0xb9dd0"
+        },
+        {
+          "decl": "void rumble_update(void);",
+          "addr": "0xb9fd0"
         }
       ]
     },
@@ -1411,12 +1493,24 @@
           "addr": "0xba4c0"
         },
         {
+          "decl": "bool any_player_is_dead(void);",
+          "addr": "0xba800"
+        },
+        {
           "decl": "int player_new(unsigned __int16 a1, int a2, unsigned __int16 a3, char *a4);",
           "addr": "0xbb2f0"
         },
         {
           "decl": "bool players_respawn_coop(void);",
           "addr": "0xbc750"
+        },
+        {
+          "decl": "void players_update_before_game(void);",
+          "addr": "0xbd100"
+        },
+        {
+          "decl": "void players_update_after_game(void);",
+          "addr": "0xbdbf0"
         }
       ]
     },
@@ -1446,7 +1540,29 @@
     {
       "name": "profile.obj",
       "source": "cseries/profile.c",
+      "data": [
+        {
+          "decl": "bool profile_global_enable;",
+          "addr": "0x449ef1"
+        }
+      ],
       "functions": [
+        {
+          "decl": "void profile_enter_private(void*);",
+          "addr": "0x8fa40"
+        },
+        {
+          "decl": "void profile_exit_private(void*);",
+          "addr": "0x8fac0"
+        },
+        {
+          "decl": "void profile_tick_start(void);",
+          "addr": "0x913e0"
+        },
+        {
+          "decl": "void profile_tick_end(void);",
+          "addr": "0x91470"
+        },
         {
           "decl": "void profile_render_start(void);",
           "addr": "0x91510"
@@ -1470,6 +1586,16 @@
         {
           "decl": "void profile_frame_end(void);",
           "addr": "0x91800"
+        }
+      ]
+    },
+    {
+      "name": "projectiles.obj",
+      "source": "items/projectiles.c",
+      "functions": [
+        {
+          "decl": "bool dangerous_projectiles_near_player(void);",
+          "addr": "0xf7dd0"
         }
       ]
     },
@@ -1596,6 +1722,10 @@
         {
           "decl": "void recorded_animations_dispose_from_old_map(void);",
           "addr": "0x94c60"
+        },
+        {
+          "decl": "void recorded_animations_update(void);",
+          "addr": "0x94cb0"
         },
         {
           "decl": "void recorded_animations_initialize_for_new_map(void);",
@@ -1915,6 +2045,20 @@
         {
           "decl": "wchar_t *ascii_to_wide(const char *ascii, wchar_t *unicode, size_t length);",
           "addr": "0x19f450"
+        }
+      ]
+    },
+    {
+      "name": "units.obj",
+      "source": "units/units.c",
+      "functions": [
+        {
+          "decl": "void units_update(void);",
+          "addr": "0x1a7ff0"
+        },
+        {
+          "decl": "bool any_unit_is_dangerous(void);",
+          "addr": "0x1aa3c0"
         }
       ]
     },
