@@ -1159,6 +1159,12 @@
     {
       "name": "physical_memory_map.obj",
       "source": "cache/physical_memory_map.c",
+      "data": [
+        {
+          "decl": "physical_memory_map_globals_t physical_memory_map_globals;",
+          "addr": "0x4e9254"
+        }
+      ],
       "functions": [
         {
           "decl": "void physical_memory_allocate(void);",
@@ -2066,6 +2072,10 @@
         {
           "decl": "int snprintf(char *str, size_t size, const char *format, ...);",
           "addr": "0x1d9179"
+        },
+        {
+          "decl": "void *XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
+          "addr": "0x1d36d4"
         }
       ]
     }

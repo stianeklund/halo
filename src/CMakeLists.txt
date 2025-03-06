@@ -16,4 +16,5 @@ target_sources(halo PRIVATE
 	halo/render/render.c
 	halo/saved_games/game_state.c
 	halo/shell_xbox.c
+	halo/cache/physical_memory_map.c
 	)

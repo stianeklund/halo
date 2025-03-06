@@ -746,4 +746,16 @@ typedef struct
   char unk_11[17];     ///< offset=0x0B
 } cinematic_globals_t;
 
+#define GAME_STATE_BASE_ADDRESS 0x80061000
+#define TAG_CACHE_BASE_ADDRESS  0x803A6000
+
+/// size=0x10
+typedef struct
+{
+  void *game_state_base_address;    ///< offset=0x00
+  void *tag_cache_base_address;     ///< offset=0x04
+  void *texture_cache_base_address; ///< offset=0x08
+  void *sound_cache_base_address;   ///< offset=0x0C
+} physical_memory_map_globals_t;
+
 #pragma pack()
