@@ -20,6 +20,20 @@ void data_initialize(data_t *data, char *name, __int16 maximum_count,
   data->valid = 0;
 }
 
+void data_verify(data_t *data)
+{
+  assert_halt(data);
+  assert_halt(data->data);
+  assert_halt(data->magic == 0x64407440);
+  assert_halt(data->maximum_count >= 0);
+  assert_halt(data->current_count >= 0);
+  assert_halt(data->current_count <= data->maximum_count);
+  assert_halt(*(int16_t *)data->unk_44 >= 0);
+  assert_halt(*(int16_t *)data->unk_44 <= data->maximum_count);
+  assert_halt(data->unk_48 >= 0);
+  assert_halt(data->unk_48 <= data->current_count);
+}
+
 void data_make_invalid(data_t *data)
 {
   data_verify(data);
