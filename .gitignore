@@ -2,6 +2,7 @@ __pycache__
 .gdbinit
 /build
 /halo-patched
+/tools/xemu.env
 src/decl.h
 src/halo.xbe.def
 src/build_info.c
