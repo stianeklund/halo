@@ -562,7 +562,7 @@
           "addr": "0x119550"
         },
         {
-          "decl": "void data_new_datum(data_t *data, int handle);",
+          "decl": "int data_new_datum(data_t *data, int handle);",
           "addr": "0x119570"
         },
         {
