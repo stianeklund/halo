@@ -1,3 +1,14 @@
+#include <stdarg.h>
+
+char *csprintf(char *buffer, const char *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  vsprintf(buffer, format, (char *)args);
+  va_end(args);
+  return buffer;
+}
+
 void display_assert(const char *reason, const char *filepath, int lineno,
                     bool halt)
 {

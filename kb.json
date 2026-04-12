@@ -161,6 +161,15 @@
       ]
     },
     {
+      "name": "LIBCMT:vsprintf.obj",
+      "functions": [
+        {
+          "decl": "int vsprintf(char *buffer, const char *format, char *arglist);",
+          "addr": "0x1da209"
+        }
+      ]
+    },
+    {
       "name": "ai.obj",
       "source": "ai/ai.c",
       "functions": [
