@@ -20,6 +20,35 @@ void data_initialize(data_t *data, char *name, __int16 maximum_count,
   data->valid = 0;
 }
 
+int datum_absolute_index_to_index(data_t *data, int absolute_index)
+{
+  int16_t identifier;
+  int16_t index;
+  int16_t *datum;
+
+  if (absolute_index == NONE)
+    return 0;
+
+  assert_halt(data->valid);
+
+  identifier = (int16_t)(absolute_index >> 16);
+  if (identifier == 0 && data->identifier_zero_invalid) {
+    assert_halt_msg(0, "identifier || !data->identifier_zero_invalid");
+  }
+
+  index = (int16_t)absolute_index;
+  if (index >= 0 && index < data->current_count) {
+    datum = (int16_t *)((char *)data->data + data->size * index);
+    if (*datum != 0) {
+      if (identifier == 0)
+        return (int)datum;
+      if (*datum == identifier)
+        return (int)datum;
+    }
+  }
+  return 0;
+}
+
 void *datum_get(data_t *data, int datum_handle)
 {
   int16_t identifier; // salt (upper 16 bits)
@@ -66,10 +95,110 @@ void data_verify(data_t *data)
   assert_halt(data->unk_48 <= data->current_count);
 }
 
+data_t *data_new(char *name, int16_t maximum_count, int16_t size)
+{
+  data_t *data;
+
+  data = (data_t *)debug_malloc((int)maximum_count * (int)size + sizeof(data_t),
+                                0, "c:\\halo\\SOURCE\\memory\\data.c", 0x29);
+  if (data)
+    data_initialize(data, name, maximum_count, size);
+  return data;
+}
+
+void data_dispose(data_t *data)
+{
+  data_verify(data);
+  csmemset(data, 0, sizeof(data_t));
+  debug_free(data, "c:\\halo\\SOURCE\\memory\\data.c", 0x59);
+}
+
 void data_make_invalid(data_t *data)
 {
   data_verify(data);
   data->valid = 0;
+}
+
+void data_new_datum(data_t *data, int handle)
+{
+  int16_t index;
+  int16_t identifier;
+  int16_t *datum;
+
+  data_verify(data);
+  assert_halt(data->valid);
+
+  index = (int16_t)handle;
+  identifier = (int16_t)((uint32_t)handle >> 16);
+  if (index >= 0 && index < data->maximum_count && identifier != 0) {
+    datum = (int16_t *)((char *)data->data + data->size * index);
+    if (*datum == 0) {
+      data->unk_48 = data->unk_48 + 1;
+      if (data->current_count <= index)
+        data->current_count = index + 1;
+      csmemset(datum, 0, data->size);
+      *datum = *(int16_t *)data->unk_50;
+      *(int16_t *)data->unk_50 = *(int16_t *)data->unk_50 + 1;
+      if (*(int16_t *)data->unk_50 == 0)
+        *(uint16_t *)data->unk_50 = 0x8000;
+      *datum = identifier;
+      return;
+    }
+  }
+}
+
+int data_new_at_index(data_t *data, int index)
+{
+  int16_t search;
+  int size;
+  int16_t *datum;
+
+  data_verify(data);
+  assert_halt(data->valid);
+
+  search = *(int16_t *)data->unk_44;
+  size = (int)data->size;
+  datum = (int16_t *)((char *)data->data + size * search);
+  if (search < data->maximum_count) {
+    do {
+      if (*datum == 0) {
+        csmemset(datum, 0, size);
+        *datum = *(int16_t *)data->unk_50;
+        *(int16_t *)data->unk_50 = *(int16_t *)data->unk_50 + 1;
+        if (*(int16_t *)data->unk_50 == 0)
+          *(uint16_t *)data->unk_50 = 0x8000;
+        data->unk_48 = data->unk_48 + 1;
+        *(int16_t *)data->unk_44 = search + 1;
+        if (data->current_count <= search)
+          data->current_count = search + 1;
+        return (int)*datum << 16 | (int)search;
+      }
+      search++;
+      datum = (int16_t *)((char *)datum + size);
+    } while (search < data->maximum_count);
+  }
+  return NONE;
+}
+
+void datum_delete(data_t *data, int datum_handle)
+{
+  int16_t *datum;
+  int16_t index;
+
+  datum = (int16_t *)datum_get(data, datum_handle);
+  *datum = 0;
+  index = (int16_t)datum_handle;
+  if (index < *(int16_t *)data->unk_44)
+    *(int16_t *)data->unk_44 = index;
+  if (index + 1 == (int)data->current_count) {
+    do {
+      datum = (int16_t *)((char *)datum - data->size);
+      data->current_count = data->current_count - 1;
+      if (data->current_count < 1)
+        break;
+    } while (*datum == 0);
+  }
+  data->unk_48 = data->unk_48 - 1;
 }
 
 void data_make_valid(data_t *data)
@@ -134,6 +263,27 @@ void *data_iterator_next(data_iter_t *iterator)
     iterator->index = index;
   }
   return result;
+}
+
+int data_next_index(data_t *data, int prev_index)
+{
+  int16_t index;
+  int16_t *datum;
+
+  index = (int16_t)(prev_index + 1);
+  data_verify(data);
+  assert_halt(data->valid);
+
+  if (index >= 0 && index < data->current_count) {
+    datum = (int16_t *)((char *)data->data + data->size * index);
+    do {
+      if (*datum != 0)
+        return (int)*datum << 16 | (int)index;
+      index++;
+      datum = (int16_t *)((char *)datum + data->size);
+    } while (index < data->current_count);
+  }
+  return NONE;
 }
 
 void data_delete_all(data_t *data)

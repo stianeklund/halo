@@ -449,6 +449,20 @@
       ]
     },
     {
+      "name": "debug_memory.obj",
+      "source": "cseries/debug_memory.c",
+      "functions": [
+        {
+          "decl": "void *debug_malloc(uint32_t size, bool zero, const char *file, int line);",
+          "addr": "0x8ee60"
+        },
+        {
+          "decl": "void debug_free(void *ptr, const char *file, int line);",
+          "addr": "0x8ef70"
+        }
+      ]
+    },
+    {
       "name": "cseries.obj",
       "source": "cseries/cseries.c",
       "functions": [
