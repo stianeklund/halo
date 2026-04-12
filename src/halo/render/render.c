@@ -1,4 +1,22 @@
-void render_frame_pregame(pregame_render_info_t *pregame_info, void *main_globals_movie)
+void render_initialize(void)
+{
+  cached_object_render_states =
+    game_state_data_new("cached object render states", 0x100, 0x100);
+  assert_halt(cached_object_render_states);
+}
+
+void render_initialize_for_new_map(void)
+{
+  data_delete_all(cached_object_render_states);
+}
+
+void render_dispose(void)
+{
+  cached_object_render_states = 0;
+}
+
+void render_frame_pregame(pregame_render_info_t *pregame_info,
+                          void *main_globals_movie)
 {
   pregame_render_info_t *pregame_info2; // ebx
   window_parameters_t window_parameters; // [esp+Ch] [ebp-260h] BYREF

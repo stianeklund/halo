@@ -37,6 +37,10 @@
           "addr": "0x46bee0"
         },
         {
+          "decl": "data_t * cached_object_render_states;",
+          "addr": "0x50652c"
+        },
+        {
           "decl": "data_t * object_header_data;",
           "addr": "0x5abc10"
         }
