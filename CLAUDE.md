@@ -88,6 +88,26 @@ and constant references and are not linked into any produced binary.
 - Not a port: the target is still 32-bit Xbox / `i386-pc-win32`. There is no portability layer and no plan to make there be one in this tree.
 - Not a place to add new features: PRs that change game behavior, even "improvements," are out of scope unless they're behind `DECOMP_CUSTOM` / `DEBUG_BUILD` and clearly justified.
 
+## kb.json declaration safety
+
+Every declaration in `kb.json` affects the linker — wrong entries silently corrupt memory at runtime. Treat `kb.json` changes with the same rigor as code changes.
+
+**Data globals (`HDATA`):**
+- `HDATA char *foo;` → compiler generates an indirect load (reads pointer VALUE at the address, then dereferences). Use when Ghidra shows `DAT_XXXX` (the value at the address is a pointer).
+- `HDATA char foo[N];` → compiler uses the address directly. Use when Ghidra shows `&DAT_XXXX` or accesses offsets relative to the address (e.g., `DAT_XXXX + 0x10`).
+- Getting this wrong adds or removes a level of indirection, causing silent memory corruption.
+- **When in doubt, use hardcoded addresses** (`*(int *)0xXXXXXX`) instead of adding a `kb.json` data entry. Hardcoded addresses bypass the import table entirely and are always safe. Reserve `kb.json` data entries for globals used across multiple functions.
+
+**Function declarations:**
+- Verify argument count against the disassembly: count `PUSH` instructions before `CALL`, confirm with `ADD ESP,N` after (N/4 = arg count for cdecl).
+- Verify return type: `void` vs non-void matters — callers may check EAX.
+- Variadic functions (`...`) can be thunked but need extra care.
+- Register-argument functions (`@<reg>`) only support the register arg as the **first** parameter.
+
+**Testing discipline:**
+- Build and test the ISO in xemu after **every** `kb.json` change, not in batches. A single bad declaration can crash the game with no obvious connection to the change.
+- If a batch of changes causes a crash, bisect by reverting `kb.json` entries one at a time — the code implementations are usually correct; the declarations are what break things.
+
 ## When working in this repo
 
 - If you add or rename a symbol, edit `kb.json` first and re-run `tools/maintain.py` so file placement and ordering settle automatically.
