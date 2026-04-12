@@ -165,6 +165,15 @@
       ]
     },
     {
+      "name": "LIBCMT:wcsncpy.obj",
+      "functions": [
+        {
+          "decl": "wchar_t *_wcsncpy(wchar_t *dest, const wchar_t *src, size_t count);",
+          "addr": "0x1dc061"
+        }
+      ]
+    },
+    {
       "name": "LIBCMT:_control87.obj",
       "functions": [
         {
