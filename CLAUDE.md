@@ -52,6 +52,36 @@ CI (`.github/workflows/main.yml`) runs Debug + Release on Ubuntu (Docker/Clang),
 - `gen-build-info.py` — emits `build_info.c` (build date, git rev) on every build.
 - `check_requirements.py` — sanity-checks that the Python deps are importable (`tools/__init__.py` shims them in).
 
+## Xbox platform headers (`third_party/xbox/`)
+
+Vendored Xbox API headers live in `third_party/xbox/` and are on the compiler
+include path for all TUs. **Do not include them from `common.h`** — pull them
+in per `.c` file only where needed.
+
+Use `src/xbox.h` as the include wrapper. It handles `#pragma pack(push/pop)`
+(the global `pack(1)` from `types.h` must not bleed into Xbox structs, which
+use natural MSVC alignment) and gates subsystem headers behind opt-in macros:
+
+```c
+#define XBOX_D3D8     // Direct3D 8 — D3DDevice_*, D3DFORMAT, D3DTexture, etc.
+#define XBOX_XAPI     // XINPUT_GAMEPAD, XInputOpen/GetState/SetState, etc.
+#define XBOX_DSOUND   // DirectSound — CDirectSoundBuffer, DSBUFFERDESC, etc.
+#define XBOX_XACTENG  // XACT audio engine
+#define XBOX_XGRAPHIC // XGIsSwizzledFormat, XGSetTextureHeader, etc.
+#define XBOX_XONLINE  // Xbox Live / networking stubs
+#include "xbox.h"
+```
+
+`xboxkrnl.h` is always included by `xbox.h` and provides the full Xbox kernel
+export list (371+ functions: `ExAllocatePool`, `MmAllocateContiguousMemory`,
+`KeWaitForSingleObject`, `RtlEnterCriticalSection`, `NtCreateFile`, etc.) plus
+NT base types (`LIST_ENTRY`, `RTL_CRITICAL_SECTION`, `LARGE_INTEGER`,
+`NTSTATUS`, `STRING`/`ANSI_STRING`).
+
+See `third_party/xbox/SOURCES.md` for the origin and license of every file.
+Several headers carry GPL v2 (inherited from Cxbx); they are used only as type
+and constant references and are not linked into any produced binary.
+
 ## What this project is *not*
 
 - Not a clean-room reimplementation: it depends on calling into the unported portions of the original XBE, so byte-for-byte fidelity to the original layout matters.
