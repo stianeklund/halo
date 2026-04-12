@@ -1658,6 +1658,10 @@
       "source": "effects/player_effects.c",
       "functions": [
         {
+          "decl": "char *player_effect_get(int16_t local_player_index);",
+          "addr": "0xa2690"
+        },
+        {
           "decl": "void player_effect_initialize(void);",
           "addr": "0xa2700"
         },
@@ -1716,6 +1720,10 @@
         {
           "decl": "void rumble_initialize_for_new_map(void);",
           "addr": "0xb9b60"
+        },
+        {
+          "decl": "void rumble_clear_for_local_player(int16_t local_player_index);",
+          "addr": "0xb9d30"
         },
         {
           "decl": "void rumble_dispose_from_old_map(void);",
