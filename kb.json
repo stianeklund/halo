@@ -724,6 +724,10 @@
           "addr": "0x9c6e0"
         },
         {
+          "decl": "void effect_update(int effect_index, float elapsed);",
+          "addr": "0x9e610"
+        },
+        {
           "decl": "bool dangerous_effects_near_player(void);",
           "addr": "0x9d000"
         },
