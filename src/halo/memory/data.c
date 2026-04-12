@@ -119,7 +119,7 @@ void data_make_invalid(data_t *data)
   data->valid = 0;
 }
 
-void data_new_datum(data_t *data, int handle)
+int data_new_datum(data_t *data, int handle)
 {
   int16_t index;
   int16_t identifier;
@@ -142,9 +142,10 @@ void data_new_datum(data_t *data, int handle)
       if (*(int16_t *)data->unk_50 == 0)
         *(uint16_t *)data->unk_50 = 0x8000;
       *datum = identifier;
-      return;
+      return (int)identifier << 16 | (int)index;
     }
   }
+  return NONE;
 }
 
 int data_new_at_index(data_t *data, int index)
