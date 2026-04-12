@@ -720,6 +720,10 @@
           "addr": "0xdc200"
         },
         {
+          "decl": "void event_manager_dispatch(int16_t *event, int16_t player_index);",
+          "addr": "0xdc320"
+        },
+        {
           "decl": "void event_manager_update(void);",
           "addr": "0xdc620"
         }
