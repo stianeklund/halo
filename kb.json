@@ -21,8 +21,16 @@
           "addr": "0x5aa6d4"
         },
         {
+          "decl": "int16_t game_engine_variant_index;",
+          "addr": "0x5aa730"
+        },
+        {
           "decl": "game_variant_t game_variant_global;",
           "addr": "0x5aa820"
+        },
+        {
+          "decl": "void *current_game_engine;",
+          "addr": "0x456b60"
         },
         {
           "decl": "char local_player_network_indices[64];",
