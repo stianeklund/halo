@@ -51,6 +51,94 @@
         {
           "decl": "data_t * object_header_data;",
           "addr": "0x5abc10"
+        },
+        {
+          "decl": "game_state_globals_t game_state_globals;",
+          "addr": "0x4ea990"
+        },
+        {
+          "decl": "char error_string_buffer[256];",
+          "addr": "0x5ab100"
+        },
+        {
+          "decl": "player_control_globals_t *player_control_globals;",
+          "addr": "0x5aa6c8"
+        },
+        {
+          "decl": "char *breakable_surface_globals;",
+          "addr": "0x46f08c"
+        },
+        {
+          "decl": "data_t *global_decal_data;",
+          "addr": "0x5aa8b8"
+        },
+        {
+          "decl": "char *decal_globals;",
+          "addr": "0x44dfd0"
+        },
+        {
+          "decl": "int16_t decal_counts_0;",
+          "addr": "0x453fd8"
+        },
+        {
+          "decl": "int16_t decal_counts_1;",
+          "addr": "0x4547da"
+        },
+        {
+          "decl": "char event_manager_globals[0x108];",
+          "addr": "0x46bd40"
+        },
+        {
+          "decl": "data_t *particle_data;",
+          "addr": "0x5aa8a0"
+        },
+        {
+          "decl": "data_t *effect_data;",
+          "addr": "0x5aa8b0"
+        },
+        {
+          "decl": "data_t *effect_location_data;",
+          "addr": "0x5aa8ac"
+        },
+        {
+          "decl": "data_t *contrail_data;",
+          "addr": "0x5aa8c0"
+        },
+        {
+          "decl": "data_t *contrail_point_data;",
+          "addr": "0x5aa8bc"
+        },
+        {
+          "decl": "char *player_effect_globals;",
+          "addr": "0x4557ec"
+        },
+        {
+          "decl": "char cheats_globals[0xc80];",
+          "addr": "0x455a68"
+        },
+        {
+          "decl": "char *rumble_globals;",
+          "addr": "0x46b664"
+        },
+        {
+          "decl": "char *game_allegiance_globals;",
+          "addr": "0x4566f0"
+        },
+        {
+          "decl": "data_t *particle_system_data;",
+          "addr": "0x5aa8a4"
+        },
+        {
+          "decl": "data_t *weather_particle_system_data;",
+          "addr": "0x5aa89c"
+        },
+        {
+          "decl": "int16_t weather_particle_system_count;",
+          "addr": "0x4557f0"
+        },
+        {
+          "decl": "data_t *particle_system_header_data;",
+          "addr": "0x5aa8a8"
         }
       ]
     },
@@ -343,6 +431,10 @@
       "source": "cseries/cseries.c",
       "functions": [
         {
+          "decl": "char *csprintf(char *buffer, const char *format, ...);",
+          "addr": "0x8d9d0"
+        },
+        {
           "decl": "void display_assert(const char *reason, const char *filepath, int lineno, bool halt);",
           "addr": "0x8d9f0"
         },
@@ -379,6 +471,16 @@
       ]
     },
     {
+      "name": "crc.obj",
+      "source": "memory/crc.c",
+      "functions": [
+        {
+          "decl": "void crc_checksum_buffer(uint32_t *checksum, void *data, int size);",
+          "addr": "0x119100"
+        }
+      ]
+    },
+    {
       "name": "d3d_intimacy.obj",
       "functions": [
         {
@@ -410,6 +512,10 @@
         {
           "decl": "void data_make_invalid(data_t *data);",
           "addr": "0x119550"
+        },
+        {
+          "decl": "void data_make_valid(data_t *data);",
+          "addr": "0x119720"
         },
         {
           "decl": "void data_delete_all(data_t *data);",
@@ -761,6 +867,10 @@
           "addr": "0xa81c0"
         },
         {
+          "decl": "void game_engine_evaluate_game_complexity(void);",
+          "addr": "0xa8220"
+        },
+        {
           "decl": "void game_engine_dispose_from_old_map(void);",
           "addr": "0xa8340"
         },
@@ -867,6 +977,19 @@
         {
           "decl": "void game_state_load_core(const char *);",
           "addr": "0x1bffd0"
+        }
+      ]
+    },
+    {
+      "name": "game_state_xbox.obj",
+      "functions": [
+        {
+          "decl": "void xbox_game_state_dispose_buffer(void);",
+          "addr": "0x1c0220"
+        },
+        {
+          "decl": "void xbox_game_state_close_file(void);",
+          "addr": "0x1c0330"
         }
       ]
     },
@@ -1809,6 +1932,27 @@
         {
           "decl": "void rasterizer_dispose_from_old_map(void);",
           "addr": "0x155070"
+        }
+      ]
+    },
+    {
+      "name": "rasterizer_decals.obj",
+      "functions": [
+        {
+          "decl": "void rasterizer_decals_initialize_for_new_map(void);",
+          "addr": "0x15b190"
+        },
+        {
+          "decl": "void rasterizer_decals_dispose_from_old_map(void);",
+          "addr": "0x15b1a0"
+        },
+        {
+          "decl": "void rasterizer_decals_initialize(void);",
+          "addr": "0x15b6d0"
+        },
+        {
+          "decl": "void rasterizer_decals_dispose(void);",
+          "addr": "0x15b7e0"
         }
       ]
     },

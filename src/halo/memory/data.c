@@ -20,6 +20,38 @@ void data_initialize(data_t *data, char *name, __int16 maximum_count,
   data->valid = 0;
 }
 
+void *datum_get(data_t *data, int datum_handle)
+{
+  int16_t identifier; // salt (upper 16 bits)
+  int16_t index; // index (lower 16 bits)
+  int16_t *datum;
+
+  assert_halt(data->valid);
+
+  identifier = (int16_t)(datum_handle >> 16);
+  if (identifier == 0 && data->identifier_zero_invalid) {
+    assert_halt_msg(0, "identifier || !data->identifier_zero_invalid");
+  }
+
+  index = (int16_t)datum_handle;
+  if (index >= 0 && index < data->current_count) {
+    datum = (int16_t *)((char *)data->data + data->size * index);
+    if (*datum != 0) {
+      if (identifier == 0)
+        return datum;
+      if (identifier == *datum)
+        return datum;
+    }
+  }
+
+  display_assert(csprintf(error_string_buffer,
+                          "%s index #%d (0x%x) is unused or changed",
+                          data->name, datum_handle & 0xffff, datum_handle),
+                 __FILE__, __LINE__, true);
+  system_exit(-1);
+  return NULL;
+}
+
 void data_verify(data_t *data)
 {
   assert_halt(data);
@@ -38,6 +70,24 @@ void data_make_invalid(data_t *data)
 {
   data_verify(data);
   data->valid = 0;
+}
+
+void data_make_valid(data_t *data)
+{
+  int16_t i;
+
+  data_verify(data);
+  assert_halt(data->valid);
+
+  data->current_count = 0;
+  data->unk_48 = 0;
+  *(int16_t *)data->unk_44 = 0;
+  csstrncpy(data->unk_50, data->name, 2);
+  *(uint16_t *)data->unk_50 |= 0x8000;
+
+  for (i = 0; i < data->maximum_count; i++) {
+    *(int16_t *)((char *)data->data + data->size * i) = 0;
+  }
 }
 
 void data_iterator_new(data_iter_t *iter, data_t *data)
@@ -84,4 +134,11 @@ void *data_iterator_next(data_iter_t *iterator)
     iterator->index = index;
   }
   return result;
+}
+
+void data_delete_all(data_t *data)
+{
+  data_verify(data);
+  data->valid = 1;
+  data_make_valid(data);
 }
