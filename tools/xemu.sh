@@ -79,6 +79,10 @@ fi
 # Translate a WSL /mnt/X/... path into a Windows-style X:/... path. Leaves
 # non-WSL paths untouched. xemu on Windows accepts both forward and back
 # slashes, so we normalize to forward slashes for simpler sed escaping.
+#
+# Only the Windows xemu.exe needs the X:/ form; the Linux qemu-system-i386
+# binary wants the original /mnt/X/... path (it treats `H:` as a QEMU
+# protocol prefix and refuses the drive). Detect by binary suffix.
 to_win_path() {
   local p="$1"
   if [[ "$p" == /mnt/?/* ]]; then
@@ -90,7 +94,10 @@ to_win_path() {
   fi
 }
 
-win_iso=$(to_win_path "$iso")
+case "$XEMU_BIN" in
+  *.exe) win_iso=$(to_win_path "$iso") ;;
+  *)     win_iso="$iso" ;;
+esac
 
 if [[ ! -f "$XEMU_TOML" ]]; then
   echo "error: $XEMU_TOML not found. Launch xemu GUI once to create it." >&2
