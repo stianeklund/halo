@@ -320,7 +320,8 @@ void main_loop(void)
         main_won_map_private();
       }
       if (byte_46DA3C) {
-        if (!(unsigned __int8)game_time_get_paused() && !cinematic_in_progress()) {
+        if (!(unsigned __int8)game_time_get_paused() &&
+            !cinematic_in_progress()) {
           v0 = word_46DA4E++ <= 90;
           if (!v0) {
             if (players_respawn_coop()) {
