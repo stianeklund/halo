@@ -2,6 +2,7 @@ target_sources(halo PRIVATE
 	entrypoint.c
 	inlines.c
 	halo/cseries/cseries.c
+	halo/cseries/cseries_windows.c
 	halo/cutscene/cinematics.c
 	halo/effects/contrails.c
 	halo/effects/decals.c
@@ -33,6 +34,7 @@ target_sources(halo PRIVATE
 	halo/physics/point_physics.c
 	halo/math/random_math.c
 	halo/math/real_math.c
+	halo/rasterizer/rasterizer.c
 	halo/render/render.c
 	halo/saved_games/game_state.c
 	halo/scenario/scenario.c
