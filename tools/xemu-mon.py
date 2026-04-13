@@ -11,7 +11,7 @@ Usage:
   tools/xemu-mon.py --quit "info status"           # terminates xemu after
   echo "info registers" | tools/xemu-mon.py        # commands from stdin
 
-Defaults to 127.0.0.1:4444 to match `tools/xemu.sh -m`.
+Defaults to 127.0.0.1:4445 to match `tools/xemu.sh -m`.
 """
 
 import argparse
@@ -73,7 +73,7 @@ def clean(raw: bytes, command_echo: str = "") -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=4444)
+    ap.add_argument("--port", type=int, default=4445)
     ap.add_argument("--repeat", type=int, default=1,
                     help="repeat the command sequence N times")
     ap.add_argument("--interval", type=float, default=1.0,

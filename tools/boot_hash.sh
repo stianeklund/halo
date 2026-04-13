@@ -61,15 +61,15 @@ echo "boot_hash: iso=$iso addr=$addr nwords=$nwords wait=${wait_secs}s" >&2
 # Launch xemu with monitor in background. Discard its log; we don't need it.
 "$SCRIPT_DIR/xemu.sh" -m "$iso" >/dev/null 2>&1 &
 
-# Wait for the QEMU monitor to start listening on 4444.
+# Wait for the QEMU monitor to start listening on 4445.
 for _ in $(seq 1 30); do
-  if cmd.exe /c "netstat -an | findstr 4444" 2>/dev/null | grep -q LISTENING; then
+  if cmd.exe /c "netstat -an | findstr 4445" 2>/dev/null | grep -q LISTENING; then
     break
   fi
   sleep 0.2
 done
 
-if ! cmd.exe /c "netstat -an | findstr 4444" 2>/dev/null | grep -q LISTENING; then
+if ! cmd.exe /c "netstat -an | findstr 4445" 2>/dev/null | grep -q LISTENING; then
   echo "boot_hash: xemu monitor never came up" >&2
   exit 1
 fi
