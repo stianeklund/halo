@@ -1,8 +1,9 @@
-target_sources(halo PRIVATE
+	target_sources(halo PRIVATE
 	entrypoint.c
 	inlines.c
 	halo/cseries/cseries.c
 	halo/cseries/cseries_windows.c
+	halo/memory/crc.c
 	halo/cutscene/cinematics.c
 	halo/effects/contrails.c
 	halo/effects/decals.c
@@ -27,6 +28,7 @@ target_sources(halo PRIVATE
 	halo/interface/player_ui.c
 	halo/interface/ui_widget.c
 	halo/interface/ui_widget_game_data_input_functions.c
+	halo/networking/network_messages.c
 	halo/main/main.c
 	halo/memory/data.c
 	halo/physics/breakable_surfaces.c
@@ -41,6 +43,7 @@ target_sources(halo PRIVATE
 	halo/shaders/shaders.c
 	halo/sound/sound_classes.c
 	halo/text/unicode.c
+	halo/tag_files/files.c
 	halo/shell_xbox.c
 	halo/cache/physical_memory_map.c
 	)
