@@ -1,3 +1,43 @@
+typedef struct xinput_gamepad {
+  uint16_t wButtons;
+  uint8_t bAnalogButtons[8];
+  int16_t sThumbLX;
+  int16_t sThumbLY;
+  int16_t sThumbRX;
+  int16_t sThumbRY;
+} xinput_gamepad;
+
+typedef struct xinput_state {
+  uint32_t dwPacketNumber;
+  xinput_gamepad Gamepad;
+} xinput_state;
+
+static int16_t input_normalize_stick(int16_t value)
+{
+  int d;
+  int scaled;
+
+  if (value > 9000)
+    return (int16_t)(((int)value - 9000) * 0x7fff / 0x5cd7);
+
+  if (value < -9000) {
+    d = -9000 - (int)value;
+    scaled =
+      (int)((unsigned long long)((long long)(d * 0x8000) * 0x4f880e79LL) >>
+            32) +
+      d * -0x8000;
+    return (int16_t)((scaled >> 14) - (scaled >> 31));
+  }
+
+  return 0;
+}
+
+/*
+ * FUN_000cf830 scales the positive and negative sides slightly differently:
+
+ * * 0x7fff above the deadzone and 0x8000 below it.
+ */
+
 void input_flush(void)
 {
   csmemset(byte_46BA4C, 0, 0xA0u);
@@ -76,7 +116,8 @@ void input_get_device_states(void)
   uint32_t mask;
   int i, j;
   int result;
-  char state[24];
+  xinput_state state;
+  xinput_gamepad *input_state;
   uint8_t *gamepad;
   int16_t *sticks;
   uint8_t raw;
@@ -177,14 +218,16 @@ void input_get_device_states(void)
   sticks = (int16_t *)0x46ba1a;
   for (i = 0; i < 4; i++) {
     if (*handles != 0) {
-      result = ((int(__stdcall *)(int, void *))0x24c3b6)(*handles, state);
+      result = ((int(__stdcall *)(int, void *))0x24c3b6)(*handles, &state);
       if (result < 0) {
         error(2, "XGetState (gamepad) failed (#%d) during input_update()",
               result);
       } else {
+        input_state = &state.Gamepad;
+
         /* analog buttons (8): smoothing with hysteresis */
         for (j = 0; j < 8; j++) {
-          raw = ((uint8_t *)(state + 6))[((uint8_t *)0x281150)[j]];
+          raw = input_state->bAnalogButtons[((uint8_t *)0x281150)[j]];
           gamepad[j] = raw;
           if (raw > gamepad[j + 8]) {
             counter = gamepad[j + 0x10] + 1;
@@ -214,7 +257,7 @@ void input_get_device_states(void)
 
         /* digital buttons (8): press duration */
         for (j = 0; j < 8; j++) {
-          if (((uint8_t *)0x281158)[j] & state[4]) {
+          if ((((uint8_t *)0x281158)[j] & input_state->wButtons) != 0) {
             counter = gamepad[j + 0x18] + 1;
             if (counter > 255)
               counter = 255;
@@ -225,53 +268,25 @@ void input_get_device_states(void)
         }
 
         /* raw stick values */
-        sticks[-1] = *(int16_t *)(state + 14);
-        sticks[0] = *(int16_t *)(state + 16);
-        sticks[1] = *(int16_t *)(state + 18);
-        sticks[2] = *(int16_t *)(state + 20);
+        sticks[-1] = input_state->sThumbLX;
+        sticks[0] = input_state->sThumbLY;
+        sticks[1] = input_state->sThumbRX;
+        sticks[2] = input_state->sThumbRY;
 
-        /* normalize left stick X */
-        value = *(int16_t *)(state + 14);
-        if (value > 9000) {
-          normalized = ((int)(value - 9000) * 0x7fff) / 0x5cd7;
-        } else if (value < -9000) {
-          normalized = -((-9000 - (int)value) * 0x8000 / 0x5cd7);
-        } else {
-          normalized = 0;
-        }
+        value = input_state->sThumbLX;
+        normalized = input_normalize_stick(value);
         *(int16_t *)(gamepad + 0x20) = (int16_t)normalized;
 
-        /* normalize left stick Y */
-        value = *(int16_t *)(state + 16);
-        if (value > 9000) {
-          normalized = ((int)(value - 9000) * 0x7fff) / 0x5cd7;
-        } else if (value < -9000) {
-          normalized = -((-9000 - (int)value) * 0x8000 / 0x5cd7);
-        } else {
-          normalized = 0;
-        }
+        value = input_state->sThumbLY;
+        normalized = input_normalize_stick(value);
         *(int16_t *)(gamepad + 0x22) = (int16_t)normalized;
 
-        /* normalize right stick X */
-        value = *(int16_t *)(state + 18);
-        if (value > 9000) {
-          normalized = ((int)(value - 9000) * 0x7fff) / 0x5cd7;
-        } else if (value < -9000) {
-          normalized = -((-9000 - (int)value) * 0x8000 / 0x5cd7);
-        } else {
-          normalized = 0;
-        }
+        value = input_state->sThumbRX;
+        normalized = input_normalize_stick(value);
         *(int16_t *)(gamepad + 0x24) = (int16_t)normalized;
 
-        /* normalize right stick Y */
-        value = *(int16_t *)(state + 20);
-        if (value > 9000) {
-          normalized = ((int)(value - 9000) * 0x7fff) / 0x5cd7;
-        } else if (value < -9000) {
-          normalized = -((-9000 - (int)value) * 0x8000 / 0x5cd7);
-        } else {
-          normalized = 0;
-        }
+        value = input_state->sThumbRY;
+        normalized = input_normalize_stick(value);
         *(int16_t *)(gamepad + 0x26) = (int16_t)normalized;
       }
     }
