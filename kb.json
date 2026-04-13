@@ -448,8 +448,32 @@
           "addr": "0x978d0"
         },
         {
+          "decl": "void contrail_delete(int datum_handle);",
+          "addr": "0x978f0"
+        },
+        {
+          "decl": "int contrail_compute(int datum_handle@<eax>, float delta_time, int count);",
+          "addr": "0x97a50"
+        },
+        {
+          "decl": "void contrail_validate(int datum_handle@<eax>);",
+          "addr": "0x97ae0"
+        },
+        {
           "decl": "void contrails_initialize(void);",
           "addr": "0x97d40"
+        },
+        {
+          "decl": "void contrail_add_point(char *datum_ptr@<esi>);",
+          "addr": "0x97db0"
+        },
+        {
+          "decl": "void contrail_set_state(int datum_handle@<eax>, int a1, int a2);",
+          "addr": "0x97e40"
+        },
+        {
+          "decl": "void contrail_render_update(int datum_handle, float delta_time);",
+          "addr": "0x98200"
         },
         {
           "decl": "void contrails_update(float);",
