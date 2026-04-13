@@ -14,6 +14,7 @@ target_sources(halo PRIVATE
 	halo/game/game_allegiance.c
 	halo/game/game_engine.c
 	halo/game/game_time.c
+	halo/game/player_control.c
 	halo/game/player_rumble.c
 	halo/game/players.c
 	halo/input/input_xbox.c
@@ -33,6 +34,7 @@ target_sources(halo PRIVATE
 	halo/saved_games/game_state.c
 	halo/scenario/scenario.c
 	halo/shaders/shaders.c
+	halo/sound/sound_classes.c
 	halo/text/unicode.c
 	halo/shell_xbox.c
 	halo/cache/physical_memory_map.c
