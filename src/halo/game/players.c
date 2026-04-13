@@ -44,6 +44,12 @@ void players_dispose(void)
     players_globals = 0;
 }
 
+void *machine_get_player_list(int16_t machine_index)
+{
+  return (char *)&local_player_network_indices +
+         (unsigned short)machine_index * 0x10;
+}
+
 bool local_player_exists(int16_t local_player_index)
 {
   data_iter_t iter;
@@ -65,6 +71,15 @@ void player_delete(int player_index)
 int16_t players_get_respawn_failure(void)
 {
   return *(int16_t *)((char *)players_globals + 0x2c);
+}
+
+int local_player_get_player_index(int16_t local_player_index)
+{
+  assert_halt(local_player_index >= NONE &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  if (local_player_index == NONE)
+    return NONE;
+  return *(int *)&players_globals->unk_0[4 + local_player_index * 4];
 }
 
 int local_player_set_player_index(unsigned __int16 local_player_index,
