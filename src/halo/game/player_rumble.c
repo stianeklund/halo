@@ -32,6 +32,67 @@ void rumble_dispose_from_old_map(void)
   }
 }
 
+uint32_t rumble_calculate(char *slot)
+{
+  float motors[2];
+  float *effect_ptr;
+  float *timer_ptr;
+  float *effect_start;
+  float timer_val;
+  float blend;
+  float scaled;
+  uint16_t left, right;
+  int i, j;
+
+  motors[0] = *(float *)(slot + 0x200);
+  motors[1] = *(float *)(slot + 0x204);
+  effect_ptr = (float *)(slot + 4);
+  timer_ptr = (float *)(slot + 0x1e0);
+
+  for (i = 0; i < 8; i++) {
+    timer_val = *timer_ptr;
+    effect_start = effect_ptr;
+    for (j = 0; j < 2; j++) {
+      if (timer_val < *effect_ptr) {
+        blend = *(float *)0x2533c8 - timer_val / *effect_ptr;
+        if (blend < *(float *)0x2533c0)
+          blend = 0.0f;
+        else if (blend > *(float *)0x2533c8)
+          blend = 1.0f;
+        motors[j] += ((float (*)(uint16_t, float))0x10a710)(
+                       *(uint16_t *)((char *)effect_ptr + 4), blend) *
+                     effect_ptr[-1];
+      }
+      effect_ptr += 5;
+    }
+    effect_ptr = effect_start + 15;
+    timer_ptr++;
+  }
+
+  if (*(float *)(rumble_globals + 0x828) != *(float *)0x2533c0) {
+    motors[0] +=
+      *(float *)(rumble_globals + 0x820) * *(float *)(rumble_globals + 0x828);
+    motors[1] +=
+      *(float *)(rumble_globals + 0x824) * *(float *)(rumble_globals + 0x828);
+  }
+
+  scaled = motors[0] * *(float *)0x2647cc;
+  if (scaled < *(float *)0x2533c0)
+    scaled = 0.0f;
+  else if (scaled > *(float *)0x2647cc)
+    scaled = 65535.0f;
+  left = (uint16_t)(int)scaled;
+
+  scaled = motors[1] * *(float *)0x2647cc;
+  if (scaled < *(float *)0x2533c0)
+    scaled = 0.0f;
+  else if (scaled > *(float *)0x2647cc)
+    scaled = 65535.0f;
+  right = (uint16_t)(int)scaled;
+
+  return ((uint32_t)right << 16) | (uint32_t)left;
+}
+
 void rumble_update(void)
 {
   int i;
