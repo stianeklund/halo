@@ -27,6 +27,7 @@ target_sources(halo PRIVATE
 	halo/physics/breakable_surfaces.c
 	halo/physics/collision_usage.c
 	halo/physics/point_physics.c
+	halo/math/random_math.c
 	halo/math/real_math.c
 	halo/render/render.c
 	halo/saved_games/game_state.c
