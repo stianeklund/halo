@@ -176,8 +176,8 @@ void input_get_device_states(void)
   gamepad = (uint8_t *)0x46ba4c;
   sticks = (int16_t *)0x46ba1a;
   for (i = 0; i < 4; i++) {
-    if (handles[i] != 0) {
-      result = ((int(__stdcall *)(int, void *))0x24c3b6)(handles[i], state);
+    if (*handles != 0) {
+      result = ((int(__stdcall *)(int, void *))0x24c3b6)(*handles, state);
       if (result < 0) {
         error(2, "XGetState (gamepad) failed (#%d) during input_update()",
               result);
