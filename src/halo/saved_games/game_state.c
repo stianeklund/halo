@@ -1,3 +1,5 @@
+#include "xbox.h"
+
 void game_state_dispose(void)
 {
   xbox_game_state_dispose_buffer();
@@ -33,4 +35,18 @@ data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size)
   data = (data_t *)game_state_malloc(name, "data array", allocation_size);
   data_initialize(data, name, maximum_count, size);
   return data;
+}
+
+void xbox_game_state_dispose_buffer(void)
+{
+  assert_halt(*(char *)0x4ea9b0);
+  MmFreeContiguousMemory(*(void **)0x4ea9b4);
+  *(char *)0x4ea9b0 = 0;
+}
+
+void xbox_game_state_close_file(void)
+{
+  assert_halt(*(char *)0x4ea9bc);
+  ((bool (*)(int))0x1cf900)(*(int *)0x4ea9c0);
+  *(char *)0x4ea9bc = 0;
 }

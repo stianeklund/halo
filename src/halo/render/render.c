@@ -48,3 +48,8 @@ void render_frame_pregame(pregame_render_info_t *pregame_info,
   rasterizer_windows_end();
   rasterizer_frame_end();
 }
+
+void render_frame_present(_WORD *a1, void *a2)
+{
+  ((void (*)(_WORD *, void *))0x17c930)(a2, a1);
+}
