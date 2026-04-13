@@ -47,7 +47,8 @@ void player_control_initialize_for_new_map(void)
   *((int *)player_control_globals + 3) = 0;
   for (i = 0; (int16_t)i < 4; i++) {
     scenario = ((int (*)(void))0x18e450)();
-    iVar = ((int (*)(int *, int, int))0x19b210)((int *)(scenario + 0x110), 0, 0x80);
+    iVar =
+      ((int (*)(int *, int, int))0x19b210)((int *)(scenario + 0x110), 0, 0x80);
     player_control_new_unit(i, -1);
     if (*(float *)((char *)0x4570a8 + i * 4) == *(float *)0x2533c0)
       *(int *)((char *)0x4570a8 + i * 4) = *(int *)(iVar + 0x4c);

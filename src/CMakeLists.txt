@@ -11,6 +11,7 @@ target_sources(halo PRIVATE
 	halo/effects/player_effects.c
 	halo/effects/weather_particle_systems.c
 	halo/game/cheats.c
+	halo/game/editor_stubs.c
 	halo/game/game.c
 	halo/game/game_allegiance.c
 	halo/game/game_engine.c

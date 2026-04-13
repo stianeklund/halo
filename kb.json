@@ -725,7 +725,8 @@
           "decl": "void editor_dispose_from_old_map(void);",
           "addr": "0x97860"
         }
-      ]
+      ],
+      "source": "game/editor_stubs.c"
     },
     {
       "name": "effects.obj",
@@ -1386,7 +1387,7 @@
         {
           "decl": "bool debug_game_save;",
           "addr": "0x46e002"
-        },        
+        },
         {
           "decl": "__int16 global_screenshot_count;",
           "addr": "0x46e008"
@@ -1780,6 +1781,10 @@
           "addr": "0xb8e40"
         },
         {
+          "addr": "0xb8f90",
+          "decl": "int update_get_maximum_actions(void);"
+        },
+        {
           "decl": "void update_server_new(void);",
           "addr": "0xb90d0"
         },
@@ -1790,6 +1795,14 @@
         {
           "decl": "void update_server_start(void);",
           "addr": "0xb91b0"
+        },
+        {
+          "addr": "0xb9610",
+          "decl": "int update_get_game_time(void);"
+        },
+        {
+          "addr": "0xb9a70",
+          "decl": "void update_client_apply_actions(int16_t ticks);"
         }
       ]
     },
