@@ -553,7 +553,43 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xdc320": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdc620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa6620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa6820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9e30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9fd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcea90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce9f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcf830": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd0120": {
       "kind": "function",
       "status": "ported"
     },
@@ -562,6 +598,22 @@
       "status": "ported"
     },
     "0xe07c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0c30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x184dc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x185680": {
       "kind": "function",
       "status": "ported"
     },

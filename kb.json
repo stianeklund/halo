@@ -501,27 +501,33 @@
       "functions": [
         {
           "decl": "char *csprintf(char *buffer, const char *format, ...);",
-          "addr": "0x8d9d0"
+          "addr": "0x8d9d0",
+          "ported": true
         },
         {
           "decl": "void display_assert(const char *reason, const char *filepath, int lineno, bool halt);",
-          "addr": "0x8d9f0"
+          "addr": "0x8d9f0",
+          "ported": true
         },
         {
           "decl": "void *csmemset(void *buffer, int c, size_t size);",
-          "addr": "0x8db80"
+          "addr": "0x8db80",
+          "ported": true
         },
         {
           "decl": "void *csstrncpy(char *destination, const char *source, size_t size);",
-          "addr": "0x8de70"
+          "addr": "0x8de70",
+          "ported": true
         },
         {
           "decl": "int csstrlen(const char *s1);",
-          "addr": "0x8df60"
+          "addr": "0x8df60",
+          "ported": true
         },
         {
           "decl": "void *csmemcpy(void *destination, void *source, size_t size);",
-          "addr": "0x8e0b0"
+          "addr": "0x8e0b0",
+          "ported": true
         }
       ]
     },
@@ -2333,6 +2339,10 @@
           "addr": "0x18e3c0"
         },
         {
+          "decl": "void *game_globals_get(void);",
+          "addr": "0x18e450"
+        },
+        {
           "decl": "void scenario_switch_structure_bsp(__int16 a1);",
           "addr": "0x18eb40"
         },
@@ -2443,6 +2453,15 @@
         {
           "decl": "char stack_walk(__int16 a1);",
           "addr": "0x92d60"
+        }
+      ]
+    },
+    {
+      "name": "tag_groups.obj",
+      "functions": [
+        {
+          "decl": "void *tag_block_get_element(void *block, int index, int element_size);",
+          "addr": "0x19b210"
         }
       ]
     },

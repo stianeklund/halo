@@ -53,3 +53,41 @@ void render_frame_present(_WORD *a1, void *a2)
 {
   ((void (*)(_WORD *, void *))0x17c930)(a2, a1);
 }
+
+void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
+                  float a7)
+{
+  int16_t i;
+  float elapsed[2];
+  int16_t *win;
+  int tick;
+  int offset;
+
+  *(int32_t *)0x506540 += 1;
+  *(float *)0x50654c = a7;
+  csmemset(elapsed, 0, 8);
+  tick = game_time_get();
+  elapsed[0] = (float)tick * *(float *)0x2546a4;
+  rasterizer_frame_begin(elapsed);
+  rasterizer_windows_begin();
+  win = (int16_t *)a2;
+  for (i = 0; i < a3; i++) {
+    *(int16_t *)0x50654a = i;
+    if (((char)win[1] == '\0') && (win[0] != -1)) {
+      if (a5 != NULL && a4 != NULL) {
+        offset =
+          (int32_t)(*(int16_t *)a4 * *(int16_t *)0x31fa98 + *(int16_t *)a5) |
+          ((int32_t)(((int16_t *)a4)[1] * *(int16_t *)0x31fa98 +
+                     ((int16_t *)a5)[1])
+           << 16);
+      }
+      ((void (*)(void *))0x185290)(a5 != NULL ? (void *)&offset : NULL);
+    } else {
+      ((void (*)(int16_t *))0x184bc0)(win);
+    }
+    win += 0x56;
+  }
+  ((void (*)(void))0xe28e0)();
+  rasterizer_windows_end();
+  rasterizer_frame_end();
+}

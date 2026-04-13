@@ -58,6 +58,34 @@ INLINE double atan2(double y, double x)
   return r;
 }
 
+INLINE float sinf(float x)
+{
+  float r;
+  asm volatile ("fsin" : "=t"(r) : "0"(x));
+  return r;
+}
+
+INLINE float cosf(float x)
+{
+  float r;
+  asm volatile ("fcos" : "=t"(r) : "0"(x));
+  return r;
+}
+
+INLINE float sqrtf(float x)
+{
+  float r;
+  asm volatile ("fsqrt" : "=t"(r) : "0"(x));
+  return r;
+}
+
+INLINE float fabsf(float x)
+{
+  float r;
+  asm volatile ("fabs" : "=t"(r) : "0"(x));
+  return r;
+}
+
 INLINE void *memcpy(void *s1, const void *s2, size_t n)
 {
   char *dest = (char *)s1;
