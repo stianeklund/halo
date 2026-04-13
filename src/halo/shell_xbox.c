@@ -1,3 +1,7 @@
+void shell_idle(void)
+{
+}
+
 int main(int argc, const char **argv, const char **envp)
 {
 #if DEBUG_BUILD
