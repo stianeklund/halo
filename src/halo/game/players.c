@@ -87,8 +87,40 @@ __int16 local_player_get_next(__int16 local_player_index)
   return result;
 }
 
-// TODO: any_player_is_in_the_air — complex, needs many undeclared object
-// helpers
+int player_index_from_unit_index(int unit_index)
+{
+  data_iter_t iter;
+  char *player;
+  int result;
+
+  result = NONE;
+  data_iterator_new(&iter, player_data);
+  while ((player = (char *)data_iterator_next(&iter)) != NULL) {
+    if (*(int *)(player + 0x34) == unit_index)
+      result = iter.datum_handle;
+  }
+  return result;
+}
+
+void *players_get_combined_pvs_local(void)
+{
+  return (char *)players_globals + 0x70;
+}
+
+void *players_get_combined_pvs(void)
+{
+  return (char *)players_globals + 0x30;
+}
+
+void player_input_enable(bool enable)
+{
+  *((char *)players_globals + 0x29) = !enable;
+}
+
+bool player_input_enabled(void)
+{
+  return *((char *)players_globals + 0x29) == 0;
+}
 
 bool any_player_is_dead(void)
 {
