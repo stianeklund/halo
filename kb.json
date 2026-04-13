@@ -805,7 +805,7 @@
       "source": "tag_files/files.c",
       "functions": [
         {
-          "decl": "void file_reference_create_from_path(file_ref_t *info, const char *directory, bool a4);",
+          "decl": "file_ref_t *file_reference_create_from_path(file_ref_t *info, const char *directory, bool a4);",
           "addr": "0x1999f0"
         }
       ]
@@ -1107,6 +1107,7 @@
     },
     {
       "name": "game_statistics.obj",
+      "source": "game/game_statistics.c",
       "functions": [
         {
           "decl": "void game_statistics_start(void);",
