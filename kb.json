@@ -65,7 +65,7 @@
           "addr": "0x5064e0"
         },
         {
-          "decl": "player_control_globals_t *player_control_globals;",
+          "decl": "data_t *hs_syntax_data;",
           "addr": "0x5aa6c8"
         },
         {
