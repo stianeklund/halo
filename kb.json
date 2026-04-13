@@ -1620,6 +1620,10 @@
           "addr": "0x9f6c0"
         },
         {
+          "decl": "void particle_system_delete(int particle_system_handle);",
+          "addr": "0x9f710"
+        },
+        {
           "decl": "void particle_systems_dispose(void);",
           "addr": "0x9f7c0"
         },
