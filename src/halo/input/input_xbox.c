@@ -67,6 +67,20 @@ void input_set_rumble(int16_t gamepad_index, uint16_t left, uint16_t right)
   }
 }
 
+void input_update(void)
+{
+  *(char *)0x46ba38 = 0;
+  if (!*(char *)0x46ba39) {
+    ((void (__stdcall *)(int))0x1cfaec)(*(int *)0x46bb24);
+    *(char *)0x46ba39 = 1;
+  }
+  ((void (*)(void))0xcfdb0)();
+  ((void (*)(void *))0xce620)((void *)0x46ba4c);
+  ((void (*)(void *))0xce620)((void *)0x46ba74);
+  ((void (*)(void *))0xce620)((void *)0x46ba9c);
+  ((void (*)(void *))0xce620)((void *)0x46bac4);
+}
+
 void input_frame_begin(void)
 {
   input_get_device_states();

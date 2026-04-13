@@ -1778,6 +1778,10 @@
           "addr": "0xb9dd0"
         },
         {
+          "decl": "uint32_t rumble_calculate(char *slot@<eax>);",
+          "addr": "0xb9e30"
+        },
+        {
           "decl": "void rumble_update(void);",
           "addr": "0xb9fd0"
         }
