@@ -115,7 +115,7 @@ void input_abstraction_update(void)
         }
         cVar6 = ((char (*)(void))0xf5640)();
         if (cVar6 != '\0')
-          ((void (*)(void))0xf57a0)();
+          ((void (*)(void))0xf5f90)();
         ((void (*)(int, int, bool, bool))0xe4500)(uVar15, iVar10, bVar16,
                                                   bVar16);
       }
@@ -123,10 +123,12 @@ void input_abstraction_update(void)
       ((char *)0x46b8f4)[local_18] = 0;
     } else {
       iVar13 = local_18 * 0x18;
-      uVar15 = *(uint16_t *)((char *)0x46b824 + local_18 * 6);
-      ((uint8_t *)0x457098)[local_18] =
-        *(uint8_t *)((char *)0x46b820 + local_18 * 6);
-      ((uint16_t *)0x4570a8)[local_18] = (uint16_t)uVar15;
+
+      /* copy per-player look sensitivity and vehicle look speed to output */
+      uVar15 = *(int32_t *)((char *)0x46b824 + iVar13);
+      *(int32_t *)((char *)0x457098 + local_18 * 4) =
+        *(int32_t *)((char *)0x46b820 + iVar13);
+      *(int32_t *)((char *)0x4570a8 + local_18 * 4) = uVar15;
 
       /* normalize left stick via dominant-axis scaling */
       lang = (float)atan2((double)(int)*(int16_t *)(iVar10 + 0x22),
@@ -137,12 +139,12 @@ void input_abstraction_update(void)
       if (ldom <= fVar2)
         ldom = fVar2;
       lx = (float)(int)*(int16_t *)(iVar10 + 0x20) * *(float *)0x280f80 *
-           (*(float *)0x2573d8 / ldom);
+           (*(double *)0x2573d8 / ldom);
       lx = lx < *(float *)0x255e94 ? -1.0f :
            lx > *(float *)0x2533c8 ? 1.0f :
                                      lx;
       ly = (float)(int)*(int16_t *)(iVar10 + 0x22) * *(float *)0x280f80 *
-           (*(float *)0x2573d8 / ldom);
+           (*(double *)0x2573d8 / ldom);
       ly = ly < *(float *)0x255e94 ? -1.0f :
            ly > *(float *)0x2533c8 ? 1.0f :
                                      ly;
@@ -156,12 +158,12 @@ void input_abstraction_update(void)
       if (rdom <= fVar1)
         rdom = fVar1;
       rx = (float)(int)*(int16_t *)(iVar10 + 0x24) * *(float *)0x280f80 *
-           (*(float *)0x2573d8 / rdom);
+           (*(double *)0x2573d8 / rdom);
       rx = rx < *(float *)0x255e94 ? -1.0f :
            rx > *(float *)0x2533c8 ? 1.0f :
                                      rx;
       ry = (float)(int)*(int16_t *)(iVar10 + 0x26) * *(float *)0x280f80 *
-           (*(float *)0x2573d8 / rdom);
+           (*(double *)0x2573d8 / rdom);
       ry = ry < *(float *)0x255e94 ? -1.0f :
            ry > *(float *)0x2533c8 ? 1.0f :
                                      ry;
@@ -185,8 +187,8 @@ void input_abstraction_update(void)
       puVar12[4] = *(uint8_t *)(pbVar11[4] + 0x10 + iVar10);
 
       /* axis snapping for presets 2 and 3 */
-      if (((char *)0x46b834)[local_18 * 0xc] == 2 ||
-          ((char *)0x46b834)[local_18 * 0xc] == 3) {
+      if (*(int16_t *)((char *)0x46b834 + iVar13) == 2 ||
+          *(int16_t *)((char *)0x46b834 + iVar13) == 3) {
         uVar7 = (uint16_t)(*(float *)0x2533c0 <= ly ? 0 : 2);
         uVar8 = (uint16_t)(*(float *)0x2533c0 <= ry ? 0 : 2);
         lmag = sqrtf(lx * lx + ly * ly);
@@ -194,7 +196,7 @@ void input_abstraction_update(void)
         fVar1 = fabsf(
           lang - *(float *)((char *)0x280f84 +
                             (int16_t)((lx < *(float *)0x2533c0) | uVar7) * 4));
-        if (*(float *)0x281148 <= fVar1) {
+        if (*(double *)0x281148 <= fVar1) {
           if (fabsf(lx) <= fabsf(ly)) {
             local_20 = *(float *)0x2533c0 <= ly ? 1 : -1;
             lx = 0.0f;
@@ -210,18 +212,18 @@ void input_abstraction_update(void)
           lx = (float)local_20 * lmag;
           local_20 = *(float *)0x2533c0 <= ly ? 1 : -1;
           ly = (float)local_20 * lmag *
-               (*(float *)0x2573d8 - fVar1 * *(float *)0x281140);
+               (*(double *)0x2573d8 - fVar1 * *(double *)0x281140);
         } else {
           local_20 = *(float *)0x2533c0 <= ly ? 1 : -1;
           ly = (float)local_20 * lmag;
           local_20 = *(float *)0x2533c0 <= lx ? 1 : -1;
           lx = (float)local_20 * lmag *
-               (*(float *)0x2573d8 - fVar1 * *(float *)0x281140);
+               (*(double *)0x2573d8 - fVar1 * *(double *)0x281140);
         }
         fVar2 = fabsf(
           rang - *(float *)((char *)0x280f84 +
                             (int16_t)((rx < *(float *)0x2533c0) | uVar8) * 4));
-        if (*(float *)0x281138 <= fVar2) {
+        if (*(double *)0x281138 <= fVar2) {
           if (fabsf(ry) < fabsf(rx)) {
             local_20 = *(float *)0x2533c0 <= rx ? 1 : -1;
             ry = 0.0f;
@@ -237,23 +239,26 @@ void input_abstraction_update(void)
           rx = (float)local_20 * rmag;
           local_20 = *(float *)0x2533c0 <= ry ? 1 : -1;
           ry = (float)local_20 * rmag *
-               (*(float *)0x2573d8 - fVar2 * *(float *)0x281140);
+               (*(double *)0x2573d8 - fVar2 * *(double *)0x281140);
         } else {
           local_20 = *(float *)0x2533c0 <= ry ? 1 : -1;
           ry = (float)local_20 * rmag;
           local_20 = *(float *)0x2533c0 <= rx ? 1 : -1;
           rx = (float)local_20 * rmag *
-               (*(float *)0x2573d8 - fVar2 * *(float *)0x281140);
+               (*(double *)0x2573d8 - fVar2 * *(double *)0x281140);
         }
       }
 
       /* inversion flags */
       cVar6 = ((char *)0x46b836)[iVar13];
-      if (cVar6 == '\0' && ((char *)0x46b837)[iVar13] != '\0')
+      if (cVar6 == '\0' && ((char *)0x46b837)[iVar13] != '\0') {
+        int _player = local_18;
+        asm volatile("" : "+a"(_player));
         cVar6 = ((char (*)(void))0xce8c0)();
+      }
 
       /* output axes per joystick preset */
-      switch (((char *)0x46b834)[local_18 * 0xc]) {
+      switch (*(int16_t *)((char *)0x46b834 + iVar13)) {
       case 0:
         ((float *)0x46b890)[local_18 * 7] =
           *(char *)(iVar10 + 0x1a) != '\0' ? 1.0f :

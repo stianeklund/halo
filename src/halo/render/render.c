@@ -81,9 +81,9 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
                      ((int16_t *)a5)[1])
            << 16);
       }
-      ((void (*)(void *))0x185290)(a5 != NULL ? (void *)&offset : NULL);
+      render_window(win, a5 != NULL ? (void *)&offset : NULL);
     } else {
-      ((void (*)(int16_t *))0x184bc0)(win);
+      render_window_pregame(win);
     }
     win += 0x56;
   }

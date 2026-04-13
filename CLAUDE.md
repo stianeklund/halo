@@ -29,7 +29,7 @@ Recover code from the original Xbox binary quickly while staying semantically cl
 
 Before writing any code for a target function or global:
 
-1. Locate it in Ghidra by address. Use the Ghidra MCP tools to decompile and inspect it.
+1. Locate it in Ghidra by address. Use the Ghidra MCP tools to **both decompile and disassemble** it.
 2. Record:
    - Address, callers, callees
    - Imports (Xbox kernel / XDK APIs used)
@@ -38,11 +38,16 @@ Before writing any code for a target function or global:
    - Jump tables / switch structure
    - Likely subsystem or `.obj` grouping
 3. Infer the narrowest defensible prototype — verify argument count from `PUSH` count and `ADD ESP,N` cleanup; verify return type from whether callers check `EAX`.
-4. Reuse existing project types and Xbox/XDK types before creating new ones.
-5. Produce a structurally faithful first-pass implementation, even if ugly.
-6. Keep pointer arithmetic, temporaries, branches, and odd logic if they help preserve fidelity.
-7. Update `kb.json` conservatively; mark all inferred names and semantics as provisional unless strongly supported by the binary.
-8. Summarize what is **confirmed**, **inferred**, and **still uncertain** for every non-trivial function.
+4. **Cross-check decompilation against disassembly** (mandatory — the decompiler hides critical details):
+   - **Operand sizes**: `float ptr` (4 bytes) vs `double ptr` (8 bytes); `byte ptr` vs `word ptr` vs `dword ptr`. Reading a double constant as float gives wrong values.
+   - **CALL targets**: Use the actual address in each `CALL` instruction, not the thunk name the decompiler shows.
+   - **Interleaved pushes**: MSVC pre-pushes args for a later CALL before an earlier one. If one `ADD ESP,N` cleans more args than the preceding CALL expects, the earlier PUSHes belong to a different CALL.
+   - **Register parameters**: If a register (ESI, EDI, EAX, etc.) is loaded before a CALL but never PUSHed, the callee reads it as an implicit arg. Needs `@<reg>` in `kb.json`.
+5. Reuse existing project types and Xbox/XDK types before creating new ones.
+6. Produce a structurally faithful first-pass implementation, even if ugly.
+7. Keep pointer arithmetic, temporaries, branches, and odd logic if they help preserve fidelity.
+8. Update `kb.json` conservatively; mark all inferred names and semantics as provisional unless strongly supported by the binary.
+9. Summarize what is **confirmed**, **inferred**, and **still uncertain** for every non-trivial function.
 
 ## Work selection workflow
 
