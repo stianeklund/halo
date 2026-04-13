@@ -10,6 +10,173 @@ void event_manager_dispose(void)
   csmemset(event_manager_globals, 0, 0x108);
 }
 
+void event_manager_dispatch(int16_t *event, int16_t player_index)
+{
+  bool dispatch;
+  int now;
+  int x, y;
+  int ax, ay;
+  int pi;
+
+  if (*(char *)0x46bd41)
+    return;
+
+  now = system_milliseconds();
+
+  if (event[0] == 1) {
+    x = (int)event[2];
+    y = (int)event[3];
+
+    ax = x < 0 ? -x : x;
+    if (ax < 0x7332) {
+      ay = y < 0 ? -y : y;
+      if (ay < 0x7332) {
+        dispatch = false;
+        goto store_stick1;
+      }
+    }
+
+    ax = x < 0 ? -x : x;
+    if (ax >= 0x7332) {
+      pi = (int)player_index * 4;
+      ay = *(int *)(0x46be68 + pi);
+      if (ay < 0)
+        ay = -ay;
+      if (ay < 0x7332)
+        goto record_stick1;
+    }
+
+    ay = y < 0 ? -y : y;
+    if (ay >= 0x7332) {
+      pi = (int)player_index * 4;
+      ax = *(int *)(0x46be78 + pi);
+      if (ax < 0)
+        ax = -ax;
+      if (ax < 0x7332)
+        goto record_stick1;
+    }
+
+    pi = (int)player_index * 4;
+    if ((unsigned int)(now - *(int *)(0x46be48 + pi)) < 0xfa) {
+      dispatch = false;
+      goto store_stick1;
+    }
+
+  record_stick1:
+    *(int *)(0x46be48 + pi) = now;
+    dispatch = true;
+
+    ax = x < 0 ? -x : x;
+    if (ax >= 0x7332) {
+      if (x >= 0) {
+        event[2] = 0x7fff;
+        x = 0x7fff;
+      } else {
+        event[2] = (int16_t)0x8000;
+        x = (int)(int16_t)0x8000;
+      }
+    }
+
+    ay = y < 0 ? -y : y;
+    if (ay >= 0x7332) {
+      if (y >= 0) {
+        event[3] = 0x7fff;
+        y = 0x7fff;
+      } else {
+        event[3] = (int16_t)0x8000;
+        y = (int)(int16_t)0x8000;
+      }
+    }
+
+  store_stick1:
+    *(int *)(0x46be68 + (int)player_index * 4) = x;
+    *(int *)(0x46be78 + (int)player_index * 4) = y;
+  } else if (event[0] == 2) {
+    x = (int)event[2];
+    y = (int)event[3];
+
+    ax = x < 0 ? -x : x;
+    if (ax < 0x7332) {
+      ay = y < 0 ? -y : y;
+      if (ay < 0x7332) {
+        dispatch = false;
+        goto store_stick2;
+      }
+    }
+
+    ax = x < 0 ? -x : x;
+    if (ax >= 0x7332) {
+      pi = (int)player_index * 4;
+      ay = *(int *)(0x46be88 + pi);
+      if (ay < 0)
+        ay = -ay;
+      if (ay < 0x7332)
+        goto record_stick2;
+    }
+
+    ay = y < 0 ? -y : y;
+    if (ay >= 0x7332) {
+      pi = (int)player_index * 4;
+      ax = *(int *)(0x46be98 + pi);
+      if (ax < 0)
+        ax = -ax;
+      if (ax < 0x7332)
+        goto record_stick2;
+    }
+
+    pi = (int)player_index * 4;
+    if ((unsigned int)(now - *(int *)(0x46be58 + pi)) < 0xfa) {
+      dispatch = false;
+      goto store_stick2;
+    }
+
+  record_stick2:
+    *(int *)(0x46be58 + pi) = now;
+    dispatch = true;
+
+    ax = x < 0 ? -x : x;
+    if (ax >= 0x7332) {
+      if (x >= 0) {
+        event[2] = 0x7fff;
+        x = 0x7fff;
+      } else {
+        event[2] = (int16_t)0x8000;
+        x = (int)(int16_t)0x8000;
+      }
+    }
+
+    ay = y < 0 ? -y : y;
+    if (ay >= 0x7332) {
+      if (y >= 0) {
+        event[3] = 0x7fff;
+        y = 0x7fff;
+      } else {
+        event[3] = (int16_t)0x8000;
+        y = (int)(int16_t)0x8000;
+      }
+    }
+
+  store_stick2:
+    *(int *)(0x46be88 + (int)player_index * 4) = x;
+    *(int *)(0x46be98 + (int)player_index * 4) = y;
+  } else {
+    goto record_event;
+  }
+
+  if (!dispatch)
+    return;
+
+record_event:
+  event[1] = player_index;
+  pi = (int)player_index * 0x40;
+  ((void (*)(void *, void *, int))0x8dae0)((void *)(0x46bd48 + pi),
+                                           (void *)(0x46bd50 + pi), 0x38);
+  *(int *)(0x46bd48 + pi) = *(int *)event;
+  *(int *)(0x46bd4c + pi) = *(int *)&event[2];
+  if (event[0] != 0)
+    *(int *)0x46bd44 = now;
+}
+
 void event_manager_update(void)
 {
   int16_t event[4];
