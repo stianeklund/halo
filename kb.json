@@ -1732,6 +1732,10 @@
           "addr": "0xb85c0"
         },
         {
+          "decl": "void player_control_get_facing(int16_t local_player_index@<edi>, float delta_time);",
+          "addr": "0xb8650"
+        },
+        {
           "decl": "void player_control_update(float);",
           "addr": "0xb8c70"
         }
