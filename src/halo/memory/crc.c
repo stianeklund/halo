@@ -9,7 +9,11 @@ void crc_checksum_buffer(uint32_t *checksum, void *data, int size)
     system_exit(-1);
   }
 
+  /* initialize the CRC lookup table on first use;
+   * the init function reads EDX as the table base address */
   if (*(uint8_t *)0x46E800 == 0) {
+    register int _edx asm("edx") = 0x46E400;
+    asm volatile("" : "+r"(_edx));
     ((void (*)(void))0x1190C0)();
     *(uint8_t *)0x46E800 = 1;
   }

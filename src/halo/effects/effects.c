@@ -44,8 +44,7 @@ bool dangerous_effects_near_player(void)
   void *location;
   float position[3];
 
-  for (effect_index = data_next_index(effect_data, NONE);
-       effect_index != NONE;
+  for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
        effect_index = data_next_index(effect_data, effect_index)) {
     effect = datum_get(effect_data, effect_index);
     effect_tag = tag_get(0x65666665, *(int *)((char *)effect + 4));
@@ -94,8 +93,7 @@ bool dangerous_effects_near_player(void)
           void *matrix;
           if ((int16_t)node_index < 0) {
             matrix = ((void *(*)(int, int))0xdd410)(
-              *(uint16_t *)((char *)effect + 0x4c),
-              node_index & 0x7fff);
+              *(uint16_t *)((char *)effect + 0x4c), node_index & 0x7fff);
           } else {
             matrix = ((void *(*)(int, int))0x140eb0)(
               *(int *)((char *)effect + 0x3c), node_index & 0x7fff);
@@ -144,8 +142,8 @@ void effect_update(int effect_index, float elapsed)
     void *parent_obj;
 
     /* if object was deleted, delete the effect too */
-    object = ((void *(*)(int, int))0x13d640)(
-      *(int *)((char *)effect + 0x3c), NONE);
+    object =
+      ((void *(*)(int, int))0x13d640)(*(int *)((char *)effect + 0x3c), NONE);
     if (object == NULL)
       goto delete_effect;
 
@@ -158,16 +156,11 @@ void effect_update(int effect_index, float elapsed)
     if ((*(uint32_t *)((char *)parent_obj + 4) & 0x800) == 0) {
       *(int16_t *)((char *)effect + 0x14) = NONE;
     } else {
-      *(int *)((char *)effect + 0x10) =
-        *(int *)((char *)parent_obj + 0x48);
-      *(int *)((char *)effect + 0x14) =
-        *(int *)((char *)parent_obj + 0x4c);
-      *(int *)((char *)effect + 0x24) =
-        *(int *)((char *)parent_obj + 0x18);
-      *(int *)((char *)effect + 0x28) =
-        *(int *)((char *)parent_obj + 0x1c);
-      *(int *)((char *)effect + 0x2c) =
-        *(int *)((char *)parent_obj + 0x20);
+      *(int *)((char *)effect + 0x10) = *(int *)((char *)parent_obj + 0x48);
+      *(int *)((char *)effect + 0x14) = *(int *)((char *)parent_obj + 0x4c);
+      *(int *)((char *)effect + 0x24) = *(int *)((char *)parent_obj + 0x18);
+      *(int *)((char *)effect + 0x28) = *(int *)((char *)parent_obj + 0x1c);
+      *(int *)((char *)effect + 0x2c) = *(int *)((char *)parent_obj + 0x20);
     }
 
     if ((*(uint8_t *)((char *)effect + 2) & 2) == 0)
@@ -177,8 +170,7 @@ void effect_update(int effect_index, float elapsed)
     {
       char marker_found = ((char (*)(int, int, void *))0x1403a0)(
         *(int *)((char *)effect + 0x3c),
-        (int)*(uint16_t *)((char *)effect + 0x8),
-        (char *)effect + 0x44);
+        (int)*(uint16_t *)((char *)effect + 0x8), (char *)effect + 0x44);
 
       if (!marker_found) {
         if ((*(uint8_t *)effect_tag & 1) != 0) {
@@ -187,8 +179,7 @@ void effect_update(int effect_index, float elapsed)
           int count = *(int *)((char *)obj_tag + 0x140);
           short i;
           for (i = 0; (int)i < count; i++) {
-            if (*(int *)((char *)object + (int)i * 4 + 0xfc) ==
-                effect_index) {
+            if (*(int *)((char *)object + (int)i * 4 + 0xfc) == effect_index) {
               *(int *)((char *)object + (int)i * 4 + 0xfc) = NONE;
               goto delete_effect;
             }
@@ -221,14 +212,12 @@ void effect_update(int effect_index, float elapsed)
       /* resolve marker B */
       ((void (*)(int, int, void *))0x1403a0)(
         *(int *)((char *)effect + 0x3c),
-        (int)*(uint16_t *)((char *)effect + 0xa),
-        (char *)effect + 0x48);
+        (int)*(uint16_t *)((char *)effect + 0xa), (char *)effect + 0x48);
 
       /* inherit color from object node */
       if (*(int16_t *)((char *)effect + 0xc) != NONE) {
         int node_idx = (int)*(int16_t *)((char *)effect + 0xc);
-        float *src =
-          (float *)((char *)object + (node_idx + 0x1e) * 12);
+        float *src = (float *)((char *)object + (node_idx + 0x1e) * 12);
         float *color = (float *)((char *)effect + 0x18);
         color[0] = src[0];
         color[1] = src[1];
@@ -236,8 +225,8 @@ void effect_update(int effect_index, float elapsed)
         if (!((bool (*)(float *))0x7b020)(color)) {
           error(2, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
                 "&effect->color", (double)color[0], (double)color[1],
-                (double)color[2],
-                "c:\\halo\\SOURCE\\effects\\effects.c", 0x4cb, 1);
+                (double)color[2], "c:\\halo\\SOURCE\\effects\\effects.c", 0x4cb,
+                1);
           system_exit(NONE);
         }
       }
@@ -265,15 +254,14 @@ check_location:
     }
   }
 
-check_flags:
-  {
-    uint16_t f = *(uint16_t *)((char *)effect + 2);
-    if (f & 0x10)
-      goto event_loop;
-    if (!(f & 2))
-      goto delete_effect;
-    *(uint16_t *)((char *)effect + 2) = f | 0x10;
-  }
+check_flags: {
+  uint16_t f = *(uint16_t *)((char *)effect + 2);
+  if (f & 0x10)
+    goto event_loop;
+  if (!(f & 2))
+    goto delete_effect;
+  *(uint16_t *)((char *)effect + 2) = f | 0x10;
+}
 
 event_loop:
   /* ---- main event timing loop (up to 8 transitions per frame) ---- */
@@ -291,8 +279,8 @@ event_loop:
     if (loop_count >= 8)
       return;
 
-    time_remaining = *(float *)((char *)effect + 0x54) -
-                     *(float *)((char *)effect + 0x50);
+    time_remaining =
+      *(float *)((char *)effect + 0x54) - *(float *)((char *)effect + 0x50);
     if (time_remaining > elapsed) {
       /* event continues — consume elapsed and stop */
       transitioned = false;
@@ -302,13 +290,13 @@ event_loop:
       /* event completed — advance and keep remaining time */
       transitioned = true;
       elapsed = elapsed - time_remaining;
-      *(float *)((char *)effect + 0x50) =
-        *(float *)((char *)effect + 0x54);
+      *(float *)((char *)effect + 0x50) = *(float *)((char *)effect + 0x54);
     }
 
     if (ef_flags & 1) {
       /* ---- have active event: update it ---- */
       if ((ef_flags & 0x10) == 0) {
+        /* effect_event_update reads EDI as the effect datum */
         int _edi = (int)effect;
         asm volatile("call *%1"
                      : "+D"(_edi)
@@ -330,28 +318,24 @@ event_loop:
         }
 
         /* skip events whose random roll exceeds skip_fraction */
-        while ((int)(int16_t)next_event <
-               *(int *)((char *)effect_tag + 0x34)) {
+        while ((int)(int16_t)next_event < *(int *)((char *)effect_tag + 0x34)) {
           int *seed;
           float rnd;
           void *evt;
-          void *tag2 =
-            tag_get(0x65666665, *(int *)((char *)effect + 4));
+          void *tag2 = tag_get(0x65666665, *(int *)((char *)effect + 4));
           if (*(uint8_t *)tag2 & 2)
             seed = get_global_random_seed_address();
           else
             seed = ((int *(*)(void))0x10b120)();
           rnd = ((float (*)(int *))0x10b240)(seed);
-          evt = tag_block_get_element(
-            (char *)effect_tag + 0x34, (int)(int16_t)next_event,
-            0x44);
+          evt = tag_block_get_element((char *)effect_tag + 0x34,
+                                      (int)(int16_t)next_event, 0x44);
           if (rnd >= *(float *)((char *)evt + 4))
             break;
           next_event++;
         }
 
-        if ((int)(int16_t)next_event >=
-            *(int *)((char *)effect_tag + 0x34)) {
+        if ((int)(int16_t)next_event >= *(int *)((char *)effect_tag + 0x34)) {
           /* past all events */
           if (*(uint16_t *)((char *)effect + 2) & 2) {
             *(uint16_t *)((char *)effect + 2) |= 8;
@@ -382,9 +366,9 @@ event_loop:
         short part_i;
         int part_idx;
 
-        event_elem = tag_block_get_element(
-          (char *)effect_tag + 0x34,
-          (int)*(int16_t *)((char *)effect + 0x4e), 0x44);
+        event_elem =
+          tag_block_get_element((char *)effect_tag + 0x34,
+                                (int)*(int16_t *)((char *)effect + 0x4e), 0x44);
         *(uint8_t *)((char *)effect + 2) |= 1;
         *(int *)((char *)effect + 0x50) = 0;
         *(int *)((char *)effect + 0x58) = 0xbf800000; /* -1.0f */
@@ -437,8 +421,7 @@ event_loop:
           if (flags_b & mask)
             range *= scale_b;
           result =
-            ((float (*)(int *, float, float))0x10b270)(
-              seed2, 0.0f, range) +
+            ((float (*)(int *, float, float))0x10b270)(seed2, 0.0f, range) +
             base;
 
           /* __ftol2: convert float to byte count */
@@ -447,12 +430,10 @@ event_loop:
 
           /* remap values > 6 based on local player count */
           if (byte_val > 6) {
-            float temp =
-              (float)(int)byte_val - *(float *)0x254640;
+            float temp = (float)(int)byte_val - *(float *)0x254640;
             int16_t count = local_player_count();
             temp = temp / (float)(int)count + *(float *)0x254640;
-            *((uint8_t *)effect + 0xdc + part_idx) =
-              (uint8_t)(int)temp;
+            *((uint8_t *)effect + 0xdc + part_idx) = (uint8_t)(int)temp;
           }
         }
 

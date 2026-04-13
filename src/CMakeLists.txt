@@ -1,8 +1,10 @@
 	target_sources(halo PRIVATE
 	entrypoint.c
 	inlines.c
+	halo/bitmaps/bitmaps.c
 	halo/cseries/cseries.c
 	halo/cseries/cseries_windows.c
+	halo/cseries/stack_walk_windows.c
 	halo/memory/crc.c
 	halo/cutscene/cinematics.c
 	halo/effects/contrails.c
@@ -17,6 +19,7 @@
 	halo/game/game.c
 	halo/game/game_allegiance.c
 	halo/game/game_engine.c
+	halo/game/game_statistics.c
 	halo/game/game_time.c
 	halo/game/player_control.c
 	halo/game/player_rumble.c
@@ -24,10 +27,13 @@
 	halo/input/input_abstraction.c
 	halo/input/input_xbox.c
 	halo/interface/event_manager.c
+	halo/interface/first_person_weapons.c
 	halo/interface/hud.c
 	halo/interface/player_ui.c
 	halo/interface/ui_widget.c
 	halo/interface/ui_widget_game_data_input_functions.c
+	halo/items/items.c
+	halo/items/projectiles.c
 	halo/networking/network_messages.c
 	halo/main/main.c
 	halo/memory/data.c
