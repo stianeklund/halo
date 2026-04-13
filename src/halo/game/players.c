@@ -44,6 +44,29 @@ void players_dispose(void)
     players_globals = 0;
 }
 
+bool local_player_exists(int16_t local_player_index)
+{
+  data_iter_t iter;
+  char *player;
+
+  data_iterator_new(&iter, player_data);
+  while ((player = (char *)data_iterator_next(&iter)) != NULL) {
+    if (*(int16_t *)(player + 2) == local_player_index)
+      return true;
+  }
+  return false;
+}
+
+void player_delete(int player_index)
+{
+  datum_delete(player_data, player_index);
+}
+
+int16_t players_get_respawn_failure(void)
+{
+  return *(int16_t *)((char *)players_globals + 0x2c);
+}
+
 int local_player_set_player_index(unsigned __int16 local_player_index,
                                   int player_index)
 {
@@ -100,6 +123,30 @@ int player_index_from_unit_index(int unit_index)
       result = iter.datum_handle;
   }
   return result;
+}
+
+void player_died(int player_handle)
+{
+  char *player;
+  data_iter_t iter;
+
+  player = (char *)datum_get(player_data, player_handle);
+  *(int *)(player + 0x38) = *(int *)(player + 0x34);
+  *(int *)(player + 0x34) = NONE;
+  if (*(int16_t *)(player + 2) != -1)
+    player_control_new_unit(*(int16_t *)(player + 2), NONE);
+
+  *((char *)players_globals + 0x28) = 1;
+  data_iterator_new(&iter, player_data);
+  while ((player = (char *)data_iterator_next(&iter)) != NULL) {
+    if (*(int *)(player + 0x34) != NONE)
+      *((char *)players_globals + 0x28) = 0;
+  }
+}
+
+bool players_are_all_dead(void)
+{
+  return *((char *)players_globals + 0x28);
 }
 
 void *players_get_combined_pvs_local(void)
