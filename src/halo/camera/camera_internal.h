@@ -13,19 +13,11 @@
 #ifndef HALO_CAMERA_INTERNAL_H
 #define HALO_CAMERA_INTERNAL_H
 
-/* 0x86de0  mode-0/1 camera set  (@ax=player, cdecl: reset, mode_flags) */
+/* 0x86de0  mode-0/1 camera set — now ported. */
 static inline void camera_internal_set_mode_0_1(int16_t player, int reset,
                                                 int mode_flags)
 {
-  int _p = player;
-  asm volatile("pushl %[mf]\n\t"
-               "pushl %[rst]\n\t"
-               "movl $0x86de0, %%ecx\n\t"
-               "call *%%ecx\n\t"
-               "addl $8, %%esp"
-               : "+a"(_p)
-               : [rst] "r"(reset), [mf] "r"(mode_flags)
-               : "ecx", "edx", "memory", "cc");
+  director_set_player_camera_normal(player, (char)reset, (char)mode_flags);
 }
 
 /* 0x86fa0  mode-2 camera set — now ported. mode_flags arg is unused by the
@@ -51,6 +43,52 @@ static inline void camera_internal_set_mode_4(int reset_flag, int16_t player,
 static inline void camera_internal_init_player(int16_t player)
 {
   director_init_player_cameras(player);
+}
+
+/* 0x865a0  install camera fn for player (@si=player, cdecl: fn, reset_byte) */
+static inline void camera_internal_set_camera_fn(int16_t player, void *camera_fn,
+                                                 char reset_top_timer)
+{
+  asm volatile("pushl %[r]\n\t"
+               "pushl %[fn]\n\t"
+               "movl $0x865a0, %%eax\n\t"
+               "call *%%eax\n\t"
+               "addl $8, %%esp"
+               :
+               : "S"(player), [fn] "r"(camera_fn), [r] "r"((int)reset_top_timer)
+               : "eax", "ecx", "edx", "memory", "cc");
+}
+
+/* 0x86a50  cycle camera mode (@eax=player, @ebx=mode_table_imm, cdecl: count).
+ * mode_table and count are baked as immediates because Clang on i386 will
+ * not allocate EBX as a general scratch (it's reserved for PIC), so we
+ * cannot use "r" or "b" input constraints — only literals work. */
+#define CAMERA_INTERNAL_CYCLE_MODE(player, mode_table_addr, count_imm)        \
+  do {                                                                        \
+    int _player = (player);                                                   \
+    asm volatile("pushl $" #count_imm "\n\t"                                  \
+                 "movl $" #mode_table_addr ", %%ebx\n\t"                      \
+                 "movl $0x86a50, %%ecx\n\t"                                   \
+                 "call *%%ecx\n\t"                                            \
+                 "addl $4, %%esp"                                             \
+                 : "+a"(_player)                                              \
+                 :                                                            \
+                 : "ebx", "ecx", "edx", "memory", "cc");                      \
+  } while (0)
+
+/* 0x86be0  re-evaluate camera state (@eax=player, @bl=force_flag, no stack).
+ * 0x86be0 reads only BL, so loading the full 32-bit value into EBX is fine
+ * — the high bytes are ignored. Avoids a "Q" byte-register constraint that
+ * would conflict with EAX/ECX/EDX already being in use. */
+static inline void camera_internal_reevaluate(int16_t player, char force_flag)
+{
+  int _player = player;
+  asm volatile("movl %[f], %%ebx\n\t"
+               "movl $0x86be0, %%ecx\n\t"
+               "call *%%ecx"
+               : "+a"(_player)
+               : [f] "r"((int)force_flag)
+               : "ebx", "ecx", "edx", "memory", "cc");
 }
 
 /* 0x87110  build camera input   (@eax=out_buf, cdecl: player) -> bool */

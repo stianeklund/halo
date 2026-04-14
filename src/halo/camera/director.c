@@ -78,6 +78,117 @@ void director_dispose_from_old_map(void)
   **(char **)0x5ab200 = 0;
 }
 
+/* Normal-play camera dispatch for one player (mode-0/1, 0x86de0).
+ *
+ * Three behaviors selected by reset_flag and the player's death state:
+ *
+ *   1. reset_flag != 0 (forced reset):
+ *      Re-init the camera-data block via 0x88c40, install the first-person
+ *      camera fn (0x89270), prime the +0xc0 timer to 1.0f, clear the +0xbc
+ *      byte. Returns immediately.
+ *
+ *   2. reset_flag == 0:
+ *      Compute is_dead from player_data: dead iff player_data[+0x34] == -1
+ *      AND player_data[+0xaa] (signed short) > 0. Then optionally cycle
+ *      camera mode (mode_flags), then if no scripted camera state is active,
+ *      re-evaluate the active camera and either:
+ *        - is_dead && current != debug: install dead/replay state via
+ *          0x85b60 + set debug camera (0x85c80) with timer reset.
+ *        - !is_dead && current == debug: pick first-person (0x89270) or
+ *          dead camera (0x89cd0) based on 0x864b0's verdict and install via
+ *          0x865a0 with no top-timer reset, then store the verdict word at
+ *          base+0x50.
+ *
+ * Original receives player index in AX, plus two byte stack args —
+ * reverse-thunked to plain cdecl by tools/patch.py. */
+void director_set_player_camera_normal(int16_t local_player_index,
+                                       char reset_flag, char mode_flags)
+{
+  char *base;
+  uint8_t is_dead;
+  void *current_camera;
+  int player_handle;
+  char *player_data;
+  int unit_handle;
+  int16_t local_word;
+  int16_t result;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  base = (char *)0x3352b4 + (int)local_player_index * 0xf8;
+
+  if (reset_flag != 0) {
+    /* 0x88c40: zero camera-data first dword. */
+    ((void (*)(void *))0x88c40)((void *)(base + 8));
+
+    assert_halt(local_player_index >= 0 &&
+                local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+    *(uint8_t *)(base + 0xbc) = 0;
+    *(uint32_t *)(base + 4) = 0x89270;
+    *(float *)(base + 0xc0) = 1.0f;
+    return;
+  }
+
+  /* Compute is_dead from the player's data record. */
+  player_handle = local_player_get_player_index(local_player_index);
+  player_data = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
+  if (*(int *)(player_data + 0x34) != -1) {
+    is_dead = 0;
+  } else if (*(int16_t *)(player_data + 0xaa) > 0) {
+    is_dead = 1;
+  } else {
+    is_dead = 0;
+  }
+
+  if (mode_flags != 0)
+    CAMERA_INTERNAL_CYCLE_MODE(local_player_index, 0x266f68, 3);
+
+  /* If a scripted camera is active (script_state[0] != 0), nothing else. */
+  if (**(char **)0x5ab200 != 0)
+    return;
+
+  camera_internal_reevaluate(local_player_index, 0);
+
+  current_camera = *(void **)(base + 4);
+
+  if (is_dead != 0) {
+    if (current_camera == (void *)0x85c80)
+      return; /* already debug — done */
+
+    /* 0x85b60: cdecl(camera_data_ptr, player_index, init_flag=-1). */
+    ((void (*)(void *, int16_t, int))0x85b60)((void *)(base + 8),
+                                              local_player_index, -1);
+    camera_internal_set_camera_fn(local_player_index, (void *)0x85c80, 1);
+    return;
+  }
+
+  /* is_dead == 0: only switch back to gameplay camera if currently debug. */
+  if (current_camera != (void *)0x85c80)
+    return;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  /* 0xb6870: lookup player's unit handle. */
+  unit_handle = ((int (*)(int16_t))0xb6870)(local_player_index);
+
+  /* 0x864b0: classify camera transition; returns 1 for dead-cam, 0/2/3
+   * otherwise; writes a result word to local_word. */
+  result = ((int16_t(*)(int, int16_t *))0x864b0)(unit_handle, &local_word);
+
+  if (result == 1) {
+    ((void (*)(void *))0x89850)((void *)(base + 8));
+    camera_internal_set_camera_fn(local_player_index, (void *)0x89cd0, 0);
+  } else {
+    ((void (*)(void *))0x88c40)((void *)(base + 8));
+    camera_internal_set_camera_fn(local_player_index, (void *)0x89270, 0);
+  }
+
+  *(int16_t *)(base + 0x50) = local_word;
+}
+
 /* Switch player to scripted/editor camera (mode 2 dispatch, 0x86fa0).
  * If reset_flag is set, or the current camera fn is not already the scripted
  * one (0x87f20), call the scripted-camera initializer at 0x87800 with the
@@ -146,19 +257,8 @@ void director_apply_replay_mode_for_player(char reset_flag,
     return;
   }
 
-  if (mode_flags != 0) {
-    /* 0x86a50: cycle camera mode (@eax=player, @ebx=mode_table, stack=count).
-     * Multi-register call — call into the original via inline asm. */
-    int _player = local_player_index;
-    asm volatile("pushl $4\n\t"
-                 "movl $0x266f70, %%ebx\n\t"
-                 "movl $0x86a50, %%ecx\n\t"
-                 "call *%%ecx\n\t"
-                 "addl $4, %%esp"
-                 : "+a"(_player)
-                 :
-                 : "ebx", "ecx", "edx", "memory", "cc");
-  }
+  if (mode_flags != 0)
+    CAMERA_INTERNAL_CYCLE_MODE(local_player_index, 0x266f70, 4);
 }
 
 /* Set director mode and reset per-player camera state for a new map.
