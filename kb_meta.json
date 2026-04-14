@@ -1380,6 +1380,18 @@
     "0x1c3750": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x861a0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x861c0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x86890": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
