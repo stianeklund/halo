@@ -1,10 +1,10 @@
 /* Cache file precaching system for Xbox. Manages background copying of
  * map files from DVD to the hard drive cache partition. */
 
-/* Set the precache thread priority. */
+/* Set the precache thread priority — forwards param to thread handler. */
 void cache_files_precache_set_priority(bool high)
 {
-  ((void (*)(void))0x1ba290)();
+  ((void (*)(bool))0x1ba290)(high);
 }
 
 /* Returns true if a map copy operation is currently in progress. */
@@ -69,13 +69,21 @@ __int16 cache_files_precache_map_status(float *progress)
   }
 }
 
-/* Returns true if the named map has already been precached. */
+/* Returns true if the named map has already been precached.
+ * 0x1bd1b0 reads EDI as the canonical map name (set from 0x19b0d0). */
 bool cache_files_precache_map_loaded(char *map_name)
 {
-  ((char *(*)(char *))0x19b0d0)(map_name);
-  return ((int16_t (*)(void))0x1bd1b0)() != -1;
+  int _edi = (int)((char *(*)(char *))0x19b0d0)(map_name);
+  int16_t result;
+  asm volatile("movl $0x1bd1b0, %%eax\n\t"
+               "call *%%eax"
+               : "+D"(_edi), "=a"(result)
+               :
+               : "ecx", "edx", "memory", "cc");
+  return result != -1;
 }
 
+#if 0 /* bisect: disable map_begin and map_end */
 /* Begin precaching a map from DVD to the cache partition. Returns true
  * if the copy was already done or was successfully started. */
 bool cache_files_precache_map_begin(char *map_name, bool show_error)
@@ -147,3 +155,4 @@ void cache_files_precache_map_end(void)
   *(uint8_t *)0x4e9220 = 0;
   *(int16_t *)0x4e9222 = -1;
 }
+#endif

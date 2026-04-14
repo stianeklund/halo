@@ -37,6 +37,7 @@ data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size)
   return data;
 }
 
+/* game_state functions re-enabled for bisect */
 /* Initialize game state for a new map: set flags, clear the save header,
  * populate it with the scenario name, build version, and tag checksums. */
 void game_state_initialize_for_new_map(void)

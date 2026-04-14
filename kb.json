@@ -1035,12 +1035,20 @@
           "addr": "0x1bf7b0"
         },
         {
-          "decl": "void game_state_initialize_for_new_map(void);",
-          "addr": "0x1bf7c0"
-        },
-        {
           "decl": "void game_state_dispose_from_old_map(void);",
           "addr": "0x1bf870"
+        },
+        {
+          "decl": "void *game_state_malloc(const char *name, const char *a2, int size);",
+          "addr": "0x1bfbf0"
+        },
+        {
+          "decl": "data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size);",
+          "addr": "0x1bfe10"
+        },
+        {
+          "decl": "void game_state_initialize_for_new_map(void);",
+          "addr": "0x1bf7c0"
         },
         {
           "decl": "void game_state_save(void);",
@@ -1053,14 +1061,6 @@
         {
           "decl": "void game_state_save_core(const char *);",
           "addr": "0x1bf990"
-        },
-        {
-          "decl": "void *game_state_malloc(const char *name, const char *a2, int size);",
-          "addr": "0x1bfbf0"
-        },
-        {
-          "decl": "data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size);",
-          "addr": "0x1bfe10"
         },
         {
           "decl": "void game_state_load_core(const char *);",
