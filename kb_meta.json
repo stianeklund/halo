@@ -1076,6 +1076,22 @@
     "0xa1c30": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x978f0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x97a50": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x97ae0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x97db0": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
