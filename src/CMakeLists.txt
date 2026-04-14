@@ -50,9 +50,12 @@
 	halo/math/random_math.c
 	halo/math/real_math.c
 	halo/rasterizer/rasterizer.c
+	halo/rasterizer/common/rasterizer_common.c
 	halo/render/render.c
 	halo/saved_games/game_state.c
 	halo/scenario/scenario.c
+	halo/structures/structures.c
+	halo/interface/interface.c
 	halo/shaders/shaders.c
 	halo/sound/sound_classes.c
 	halo/text/unicode.c

@@ -1232,6 +1232,50 @@
     "0x1bda30": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x1983c0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1983d0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1983e0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1983f0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xdec50": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xdec70": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xdec80": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xdfea0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x154fc0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x155070": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x155090": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
