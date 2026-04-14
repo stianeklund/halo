@@ -16,6 +16,7 @@ Recover code from the original Xbox binary quickly while staying semantically cl
 - Prefer explicit uncertainty over false confidence. If something is unknown, keep it unknown: use names like `unknown`, `field_XX`, `pad_XX`, or `TODO`.
 - Make small, reviewable changes. Do not perform broad speculative refactors.
 - Do not silently replace unclear logic with guessed "equivalent" logic.
+- Always add comments to functions, variables and similar when you have a high confidence your understanding of the decompiled data is correct.
 
 **Primary goals, in order:**
 
@@ -229,7 +230,7 @@ behavior, or runtime declarations.
 - Verify argument count against the disassembly: count `PUSH` instructions before `CALL`, confirm with `ADD ESP,N` after (N/4 = arg count for cdecl).
 - Verify return type: `void` vs non-void matters — callers may check EAX.
 - Variadic functions (`...`) can be thunked but need extra care.
-- Register-argument functions (`@<reg>`) only support the register arg as the **first** parameter.
+- Register-argument functions (`@<reg>`) on the forward-thunk path (calls into unported originals) only support the register arg as the **first** parameter. The reverse-thunk path in `tools/patch.py` (used when the function is ported in C) handles single-register and two-register cases via caller-saved scratch slots; EBX/EDI source registers are not yet supported there.
 
 **Testing discipline:**
 - Build and test the ISO in xemu after **every** `kb.json` change, not in batches. A single bad declaration can crash the game with no obvious connection to the change.
