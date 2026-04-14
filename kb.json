@@ -671,6 +671,10 @@
           "addr": "0x87050"
         },
         {
+          "decl": "bool director_compute_camera_input(short *out_buf@<eax>, int local_player_index);",
+          "addr": "0x87110"
+        },
+        {
           "decl": "void director_initialize(void);",
           "addr": "0x861a0"
         },

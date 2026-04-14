@@ -91,18 +91,27 @@ static inline void camera_internal_reevaluate(int16_t player, char force_flag)
                : "ebx", "ecx", "edx", "memory", "cc");
 }
 
-/* 0x87110  build camera input   (@eax=out_buf, cdecl: player) -> bool */
+/* 0x86670  per-player look/walk integrator (@ax=player, cdecl: mode_flags
+ * byte, fwd float). Updates per-player camera-state floats; large helper
+ * not yet ported. */
+static inline void camera_internal_integrate(int16_t player,
+                                             uint8_t mode_flags, float fwd)
+{
+  int _player = player;
+  asm volatile("pushl %[fwd]\n\t"
+               "pushl %[mf]\n\t"
+               "movl $0x86670, %%ecx\n\t"
+               "call *%%ecx\n\t"
+               "addl $8, %%esp"
+               : "+a"(_player)
+               : [mf] "r"((int)mode_flags), [fwd] "r"(*(uint32_t *)&fwd)
+               : "ecx", "edx", "memory", "cc");
+}
+
+/* 0x87110  build camera input — now ported. */
 static inline uint8_t camera_internal_poll_input(void *out_buf, int player)
 {
-  void *_eax = out_buf;
-  asm volatile("pushl %[pi]\n\t"
-               "movl $0x87110, %%ecx\n\t"
-               "call *%%ecx\n\t"
-               "addl $4, %%esp"
-               : "+a"(_eax)
-               : [pi] "r"(player)
-               : "ecx", "edx", "memory", "cc");
-  return (uint8_t)(uintptr_t)_eax;
+  return (uint8_t)director_compute_camera_input((short *)out_buf, player);
 }
 
 #endif
