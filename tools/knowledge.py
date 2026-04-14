@@ -72,6 +72,43 @@ class Function(Symbol):
 	def requires_reg_thunk(self):
 		return reg_filter_re.search(self.decl) is not None
 
+	@property
+	def register_args(self):
+		"""Return list of (param_index, reg_name) for every @<reg> annotation.
+
+		Parses by walking the comma-separated parameter list and matching the
+		@<reg> regex against each parameter in order. The result is ordered by
+		parameter index, so [(0, 'ax'), (1, 'si')] means param 0 lives in AX
+		and param 1 lives in SI."""
+		open_paren = self.decl.find('(')
+		close_paren = self.decl.rfind(')')
+		if open_paren < 0 or close_paren < 0:
+			return []
+		params_src = self.decl[open_paren + 1:close_paren]
+		depth = 0
+		buf = []
+		params = []
+		for ch in params_src:
+			if ch == '(' or ch == '<':
+				depth += 1
+				buf.append(ch)
+			elif ch == ')' or ch == '>':
+				depth -= 1
+				buf.append(ch)
+			elif ch == ',' and depth == 0:
+				params.append(''.join(buf))
+				buf = []
+			else:
+				buf.append(ch)
+		if buf:
+			params.append(''.join(buf))
+		result = []
+		for i, p in enumerate(params):
+			m = reg_filter_re.search(p)
+			if m is not None:
+				result.append((i, m.group(1).lower()))
+		return result
+
 class KnowledgeBase:
 
 	kb_path: str = os.path.join(root_dir, 'kb.json')

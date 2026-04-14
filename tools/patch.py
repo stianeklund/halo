@@ -28,6 +28,130 @@ def round_up(value, round_to):
     return value
 
 
+# x86-32 register number (r/m or reg field bits) used for ModRM encoding.
+REG32_BITS = {'eax': 0, 'ecx': 1, 'edx': 2, 'ebx': 3,
+              'esp': 4, 'ebp': 5, 'esi': 6, 'edi': 7}
+REG16_BITS = {'ax': 0, 'cx': 1, 'dx': 2, 'bx': 3,
+              'sp': 4, 'bp': 5, 'si': 6, 'di': 7}
+REG8_BITS = {'al': 0, 'cl': 1, 'dl': 2, 'bl': 3,
+             'ah': 4, 'ch': 5, 'dh': 6, 'bh': 7}
+
+# Full-register parent of a 16/8-bit sub-register. Used to pick which 32-bit
+# register to widen into and to emit push-full for injection onto the stack.
+REG_PARENT = {
+    'eax': 'eax', 'ax': 'eax', 'al': 'eax', 'ah': 'eax',
+    'ecx': 'ecx', 'cx': 'ecx', 'cl': 'ecx', 'ch': 'ecx',
+    'edx': 'edx', 'dx': 'edx', 'dl': 'edx', 'dh': 'edx',
+    'ebx': 'ebx', 'bx': 'ebx', 'bl': 'ebx', 'bh': 'ebx',
+    'esi': 'esi', 'si': 'esi',
+    'edi': 'edi', 'di': 'edi',
+}
+
+
+def encode_push_r32(reg32):
+    return bytes([0x50 | REG32_BITS[reg32]])
+
+
+def encode_pop_r32(reg32):
+    return bytes([0x58 | REG32_BITS[reg32]])
+
+
+def encode_movzx_r32_r16(dst32, src16):
+    modrm = 0xC0 | (REG32_BITS[dst32] << 3) | REG16_BITS[src16]
+    return bytes([0x0F, 0xB7, modrm])
+
+
+def encode_movzx_r32_r8(dst32, src8):
+    modrm = 0xC0 | (REG32_BITS[dst32] << 3) | REG8_BITS[src8]
+    return bytes([0x0F, 0xB6, modrm])
+
+
+def encode_mov_r32_r32(dst32, src32):
+    # mov r/m32, r32 (89 /r)  with mod=11
+    modrm = 0xC0 | (REG32_BITS[src32] << 3) | REG32_BITS[dst32]
+    return bytes([0x89, modrm])
+
+
+def encode_add_esp_imm8(imm):
+    assert -128 <= imm <= 127
+    return bytes([0x83, 0xC4, imm & 0xFF])
+
+
+def encode_call_rel32(src_addr_of_call, target_addr):
+    # EIP after the 5-byte call is src_addr_of_call + 5; rel32 = target - (eip_after).
+    rel32 = target_addr - (src_addr_of_call + 5)
+    assert -(2 ** 31) <= rel32 < 2 ** 31
+    return b'\xe8' + struct.pack('<i', rel32)
+
+
+def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
+    """Emit a naked register-to-cdecl trampoline for an implemented @<reg> function.
+
+    Strategy: route every register arg through caller-saved scratch registers
+    (EAX, ECX) so callee-saved regs (ESI/EDI/EBX/EBP) are never modified —
+    cdecl requires we preserve them across the call. EDX is reserved as the
+    return-address scratch.
+
+    Layout:
+      1. Move/widen each register arg into its assigned scratch slot (EAX
+         for arg 0, ECX for arg 1).
+      2. Pop original ret address into EDX.
+      3. Push scratch slots in reverse param order (so arg 0 ends up on top,
+         which is where cdecl's first arg lives).
+      4. Call impl (rel32).
+      5. Clean up the N injected dwords with add esp.
+      6. Push EDX back, ret. The original caller's stack args are untouched
+         beneath the injected slots and the ret addr is restored at the top."""
+    reg_args = sym.register_args
+    assert reg_args, "generate_reverse_thunk called on non-register-arg function"
+
+    # Up to 2 register args supported. EDX is reserved for ret-addr scratch.
+    SCRATCH_FOR_ARG = ['eax', 'ecx']
+    assert len(reg_args) <= len(SCRATCH_FOR_ARG), \
+        f'rvthunk supports at most {len(SCRATCH_FOR_ARG)} register args'
+
+    # Verify reg args occupy contiguous param indices starting at 0 — required
+    # so injected args land in the right cdecl slots.
+    for i, (param_idx, _) in enumerate(reg_args):
+        assert param_idx == i, \
+            'register args must be the first parameters in declaration order'
+
+    code = bytearray()
+
+    # 1. Stage each register arg into its scratch slot, widening as needed.
+    for i, (_, src_reg) in enumerate(reg_args):
+        dst32 = SCRATCH_FOR_ARG[i]
+        if src_reg in REG32_BITS:
+            if src_reg != dst32:
+                code += encode_mov_r32_r32(dst32, src_reg)
+        elif src_reg in REG16_BITS:
+            code += encode_movzx_r32_r16(dst32, src_reg)
+        elif src_reg in REG8_BITS:
+            code += encode_movzx_r32_r8(dst32, src_reg)
+        else:
+            raise ValueError(f'Unsupported register {src_reg!r}')
+
+    # 2. Pop ret addr into EDX (caller-saved scratch).
+    code += encode_pop_r32('edx')
+
+    # 3. Push scratch slots in reverse so the lowest-index arg is on top.
+    for i in reversed(range(len(reg_args))):
+        code += encode_push_r32(SCRATCH_FOR_ARG[i])
+
+    # 4. Call impl. rel32 computed from address of the call instruction itself.
+    call_site = rvthunk_addr + len(code)
+    code += encode_call_rel32(call_site, impl_addr)
+
+    # 5. Clean up our injected args.
+    code += encode_add_esp_imm8(4 * len(reg_args))
+
+    # 6. Restore ret addr and return.
+    code += encode_push_r32('edx')
+    code += b'\xc3'  # ret
+
+    return bytes(code)
+
+
 def ensure_unique_section_name(xbe, name):
     # FIXME: Section names don't actually need to be unique, but pyxbe uses a dict to track them, so we simply tack
     #        on a number to make it unique.
@@ -225,6 +349,44 @@ def main():
 
     # Hook all functions in the XBE that have been re-implemented
     patch_functions = [n for n in export_name_to_addr if n not in special_exports]
+
+    # Resolve each export to its kb.json symbol so we can detect @<reg> funcs.
+    name_to_symbol = {}
+    for s in kb.symbols:
+        name_to_symbol[s.name] = s
+
+    # First pass: build reverse thunks for implemented @<reg> functions. Each
+    # rvthunk adapts the original register-arg ABI into cdecl before calling
+    # the impl. Placed in a new .rvthunks XBE section after the EXE sections.
+    rvthunks_base = round_up(
+        max(s.header.virtual_addr + s.header.virtual_size for s in xbe.sections.values()),
+        0x1000)
+    rvthunks_bytes = bytearray()
+    rvthunks_redirect = {}
+    for n in patch_functions:
+        sym = name_to_symbol.get(n)
+        if sym is None or not getattr(sym, 'requires_reg_thunk', False):
+            continue
+        impl_addr = export_name_to_addr[n]
+        if thunk_section_bounds and thunk_section_bounds[0] <= impl_addr < thunk_section_bounds[1]:
+            # Still just the forward-thunk weak symbol — no real impl.
+            continue
+        rvthunk_addr = rvthunks_base + len(rvthunks_bytes)
+        rvthunks_bytes += generate_reverse_thunk(sym, impl_addr, rvthunk_addr)
+        rvthunks_redirect[n] = rvthunk_addr
+        log.info('Reverse thunk for "%s": impl %x, rvthunk %x', n, impl_addr, rvthunk_addr)
+
+    if rvthunks_bytes:
+        hdr = XbeSectionHeader()
+        hdr.flags = XbeSectionHeader.Flags.PRELOAD | XbeSectionHeader.Flags.EXECUTABLE
+        hdr.virtual_addr = rvthunks_base
+        hdr.virtual_size = round_up(len(rvthunks_bytes), 0x1000)
+        hdr.raw_addr = 0
+        hdr.raw_size = len(rvthunks_bytes)
+        name = ensure_unique_section_name(xbe, '.rvthunks')
+        log.info('Adding .rvthunks section at %x, length %x', hdr.virtual_addr, hdr.raw_size)
+        xbe.sections[name] = XbeSection(name, hdr, bytes(rvthunks_bytes))
+
     for n in patch_functions:
         if n not in kb.name_to_addr:
             log.error('Where is "%s" in the original XBE?', n)
@@ -234,8 +396,11 @@ def main():
         if thunk_section_bounds and thunk_section_bounds[0] <= addr_of_reimplementation < thunk_section_bounds[1]:
             log.info('Skipping thunk "%s" export', n)
             continue
-        log.info('Patching "%s" at %x in XBE with redirect to re-implementation at %x', n, addr_of_original_in_xbe, addr_of_reimplementation)
-        patch_bytes = b'\x68' + struct.pack('<I', addr_of_reimplementation) + b'\xc3'  # push addr, ret
+        hook_target = rvthunks_redirect.get(n, addr_of_reimplementation)
+        log.info('Patching "%s" at %x in XBE with redirect to %x%s',
+                 n, addr_of_original_in_xbe, hook_target,
+                 ' (via rvthunk)' if n in rvthunks_redirect else '')
+        patch_bytes = b'\x68' + struct.pack('<I', hook_target) + b'\xc3'  # push addr, ret
         write_to_vaddr(xbe, addr_of_original_in_xbe, patch_bytes)
 
     log.info('Generating patched XBE (%s)...', args.output_xbe)
