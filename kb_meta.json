@@ -1392,6 +1392,22 @@
     "0x86890": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x8a340": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x8a480": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x8a4d0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x8a4e0": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
