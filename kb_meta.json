@@ -1408,6 +1408,10 @@
     "0x8a4e0": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x822d0": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }

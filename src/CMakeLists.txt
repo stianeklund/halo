@@ -2,6 +2,7 @@
 	entrypoint.c
 	inlines.c
 	halo/bitmaps/bitmaps.c
+	halo/bungie_net/network/transport_endpoint_set_winsock.c
 	halo/bink/bink_playback.c
 	halo/camera/director.c
 	halo/camera/observer.c
