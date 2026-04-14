@@ -3,6 +3,7 @@
 	inlines.c
 	halo/bitmaps/bitmaps.c
 	halo/bink/bink_playback.c
+	halo/camera/director.c
 	halo/cseries/cseries.c
 	halo/cache/cache_files_windows.c
 	halo/cseries/errors.c
