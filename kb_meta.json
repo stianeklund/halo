@@ -1092,6 +1092,26 @@
     "0x97db0": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x18e2a0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x18e300": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x18e450": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x18eb40": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x18f090": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }

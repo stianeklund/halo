@@ -2352,7 +2352,7 @@
           "addr": "0x18e450"
         },
         {
-          "decl": "void scenario_switch_structure_bsp(__int16 a1);",
+          "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
           "addr": "0x18eb40"
         },
         {
