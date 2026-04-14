@@ -1348,6 +1348,18 @@
     "0xca800": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x1cb810": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1cf730": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x136520": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }

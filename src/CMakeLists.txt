@@ -63,6 +63,8 @@
 	halo/shaders/shaders.c
 	halo/sound/game_sound.c
 	halo/sound/sound_classes.c
+	halo/sound/sound_manager.c
+	halo/objects/widgets/widgets.c
 	halo/text/unicode.c
 	halo/tag_files/files.c
 	halo/shell_xbox.c
