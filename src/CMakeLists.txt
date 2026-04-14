@@ -3,6 +3,7 @@
 	inlines.c
 	halo/bitmaps/bitmaps.c
 	halo/cseries/cseries.c
+	halo/cseries/debug_memory.c
 	halo/cseries/cseries_windows.c
 	halo/cseries/stack_walk_windows.c
 	halo/memory/crc.c
@@ -29,12 +30,15 @@
 	halo/interface/event_manager.c
 	halo/interface/first_person_weapons.c
 	halo/interface/hud.c
+	halo/interface/marketing_and_strategic_business_development.c
 	halo/interface/player_ui.c
+	halo/interface/terminal.c
 	halo/interface/ui_widget.c
 	halo/interface/ui_widget_game_data_input_functions.c
 	halo/items/items.c
 	halo/items/projectiles.c
 	halo/networking/network_messages.c
+	halo/main/debug_keys.c
 	halo/main/main.c
 	halo/memory/data.c
 	halo/physics/breakable_surfaces.c
