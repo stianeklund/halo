@@ -50,20 +50,20 @@ void game_state_initialize_for_new_map(void)
   header = *(char **)0x4ea9ac;
   csmemset(header, 0, 0x14c);
 
-  /* copy scenario name into header */
+  /* copy scenario name into header at byte offset 4 */
   {
     char *name = ((char *(*)(int))0x1ba1f0)(*(int *)0x326a08);
-    ((void (*)(char *, char *))0x8dff0)(header + 1, name);
+    ((void (*)(char *, char *))0x8dff0)(header + 0x4, name);
   }
 
-  /* copy build version string */
-  ((void (*)(char *, const char *))0x8dff0)(header + 0x41, "01.10.12.2276");
+  /* copy build version string at byte offset 0x104 */
+  ((void (*)(char *, const char *))0x8dff0)(header + 0x104, "01.10.12.2276");
 
-  /* store map type and tag checksum */
-  *(int16_t *)(header + 0x49) = *(int16_t *)0x31fa94;
+  /* store map type (0x124), tag checksum (0x126), and cache checksum (0x128) */
+  *(int16_t *)(header + 0x124) = *(int16_t *)0x31fa94;
   *(int16_t *)(header + 0x126) = ((int16_t (*)(void))0xa7460)();
   *(int *)(header + 0x128) = ((int (*)(void))0x1b9920)();
-  *(int16_t *)header = *(int16_t *)0x4ea9a0;
+  *(int *)header = *(int *)0x4ea9a0;
 }
 
 /* Save the current game state. Pauses rendering, writes the save file,
