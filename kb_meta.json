@@ -1112,6 +1112,34 @@
     "0x18f090": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x8ee60": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x8ef70": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xe0500": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xe39e0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xffc00": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xffc80": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xffcb0": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
