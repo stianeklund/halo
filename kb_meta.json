@@ -1360,6 +1360,26 @@
     "0x136520": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x186460": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xd5120": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xd51c0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1c2840": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1c3750": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }

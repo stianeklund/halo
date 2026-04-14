@@ -56,6 +56,9 @@
 	halo/rasterizer/rasterizer.c
 	halo/rasterizer/common/rasterizer_common.c
 	halo/render/render.c
+	halo/render/render_cameras.c
+	"halo/saved games/saved_game_files.c"
+	halo/interface/hud_messaging.c
 	halo/saved_games/game_state.c
 	halo/scenario/scenario.c
 	halo/structures/structures.c
