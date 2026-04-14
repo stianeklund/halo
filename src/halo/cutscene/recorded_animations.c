@@ -46,14 +46,15 @@ void recorded_animations_dispose_from_old_map(void)
  *     restoring the unit's animation-driven flags, and deleting the datum;
  *   - otherwise, tick its per-type event stream via vtable dispatch, sanity
  *     check against the recorded debug state, and apply the resulting frame
- *     to the unit.  Sets the finished flag when the stream reports done.
+ *     to the unit. The vtable returns "still has events" — the finished bit
+ *     is set when the vtable reports zero (stream exhausted).
  */
 void recorded_animations_update(void)
 {
   data_iter_t iter;
   char *thread;
   char *dbg_slot;
-  char finished;
+  char stream_active;
   int *relative_ticks;
   uint16_t flags;
   int dbg_index;
@@ -71,15 +72,17 @@ void recorded_animations_update(void)
     } else {
       flags = *(uint16_t *)(thread + 0xa);
       if ((flags & 1) == 0) {
-        /* Active thread: tick the per-type event stream via vtable. */
+        /* Active thread: tick the per-type event stream via vtable. The
+         * callback returns nonzero while events remain in the stream and
+         * zero once the stream is exhausted. */
         *(int16_t *)(thread + 8) = *(int16_t *)(thread + 8) - 1;
         relative_ticks = (int *)(thread + 0xc);
         vtable = (void **)((void **)0x2eebb0)[*(int16_t *)(thread + 0x60)];
-        finished = ((char (*)(char *, char *, int *, int *))vtable[1])(
-                     thread + 0x54, thread + 0x14, relative_ticks,
-                     (int *)(thread + 0x10)) ?
-                     1 :
-                     0;
+        stream_active = ((char (*)(char *, char *, int *, int *))vtable[1])(
+                          thread + 0x54, thread + 0x14, relative_ticks,
+                          (int *)(thread + 0x10)) ?
+                          1 :
+                          0;
         if (*relative_ticks < 0) {
           display_assert("thread->relative_ticks>=0",
                          "c:\\halo\\SOURCE\\cutscene\\recorded_animations.c",
@@ -90,8 +93,11 @@ void recorded_animations_update(void)
         dbg_slot = (char *)(dbg_index + *(int *)0x44df0c);
         if (*dbg_slot != 0) {
           stream_delta = *(int *)(thread + 0x10) - *(int *)(dbg_slot + 4);
+          /* Assert holds when stream_delta is below the recorded length, or
+           * exactly at the end while events are still being produced. */
           if (!(stream_delta < *(int *)(dbg_slot + 8) ||
-                (stream_delta == *(int *)(dbg_slot + 8) && finished != 0))) {
+                (stream_delta == *(int *)(dbg_slot + 8) &&
+                 stream_active != 0))) {
             display_assert(
               "thread->event_stream-thread_debug->event_stream_start<"
               "thread_debug->stream_length||(thread->event_stream-thread_debug"
@@ -102,10 +108,12 @@ void recorded_animations_update(void)
         }
         *relative_ticks = *relative_ticks + 1;
         ((void (*)(int, char *))0x1af990)(*(int *)(thread + 4), thread + 0x14);
-        if (finished != 0)
-          *(uint8_t *)(thread + 0xa) = *(uint8_t *)(thread + 0xa) | 1;
-        else
+        /* Stream exhausted → set finished bit so next tick takes the
+         * cleanup path. Stream still active → keep the thread alive. */
+        if (stream_active != 0)
           *(uint8_t *)(thread + 0xa) = *(uint8_t *)(thread + 0xa) & 0xfe;
+        else
+          *(uint8_t *)(thread + 0xa) = *(uint8_t *)(thread + 0xa) | 1;
       } else {
         /* Finished thread: clean up and delete. */
         dbg_index = (iter.datum_handle & 0xffff) * 0x10;
