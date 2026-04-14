@@ -655,6 +655,18 @@
       "source": "camera/director.c",
       "functions": [
         {
+          "decl": "void director_init_player_cameras(int16_t local_player_index@<ax>);",
+          "addr": "0x86600"
+        },
+        {
+          "decl": "void director_set_player_camera_scripted(int16_t local_player_index@<si>, char reset_flag);",
+          "addr": "0x86fa0"
+        },
+        {
+          "decl": "void director_apply_replay_mode_for_player(char reset_flag@<al>, int16_t local_player_index@<si>, char mode_flags);",
+          "addr": "0x87050"
+        },
+        {
           "decl": "void director_initialize(void);",
           "addr": "0x861a0"
         },
@@ -2440,6 +2452,7 @@
     },
     {
       "name": "tags.obj",
+      "source": "cache/tags.c",
       "functions": [
         {
           "decl": "void *tag_get(int group_tag, int tag_index);",
