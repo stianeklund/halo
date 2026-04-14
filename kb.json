@@ -1694,14 +1694,6 @@
           "addr": "0xa18c0"
         },
         {
-          "decl": "bool particle_step(int datum_handle@<edi>, float delta_time);",
-          "addr": "0xa1b60"
-        },
-        {
-          "decl": "bool particle_move(int datum_handle, float delta_time);",
-          "addr": "0xa1c30"
-        },
-        {
           "decl": "void particles_update(float);",
           "addr": "0xa2570"
         }
