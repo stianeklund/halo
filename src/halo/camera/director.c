@@ -261,6 +261,165 @@ void director_apply_replay_mode_for_player(char reset_flag,
     CAMERA_INTERNAL_CYCLE_MODE(local_player_index, 0x266f70, 4);
 }
 
+/* Build per-player camera input snapshot for one tick (0x87110).
+ *
+ * Output buffer layout (32-bit fields unless noted):
+ *   +0x00 int16  player_index
+ *   +0x02 uint8  valid
+ *   +0x04 float  delta_time
+ *   +0x08 float  forward
+ *   +0x0c float  side
+ *   +0x10 float  pitch_accumulator
+ *   +0x14 float  yaw_accumulator
+ *   +0x18 float  roll_accumulator
+ *   +0x1c float  zoom_accumulator
+ *   +0x20 float  trigger
+ *
+ * Branches on whether the player has a controllable unit:
+ *   - Has unit: derive look/strafe from unit's control state, scaled by
+ *     per-player sensitivity (base+0xc0). Returns "valid" derived from the
+ *     unit's cinematic byte (+0x14).
+ *   - No unit: fall back to gamepad direct-input. The "no unit" branch
+ *     calls 0xcf690 which is stubbed to 0 on Xbox, so the fallback body is
+ *     dead code on retail — kept faithful to the binary anyway.
+ *
+ * Original receives the output-buffer pointer in EAX; reverse-thunked to
+ * plain cdecl by tools/patch.py. */
+bool director_compute_camera_input(short *out_buf, int local_player_index)
+{
+  int16_t player16 = (int16_t)local_player_index;
+  int player_handle;
+  char *player_data;
+  int unit_handle;
+  void *current_camera;
+  char *base;
+
+  assert_halt(player16 >= 0 && player16 < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  csmemset(out_buf, 0, 0x24);
+  *out_buf = player16;
+  *(float *)(out_buf + 2) = *(float *)0x3352a8;
+
+  base = (char *)0x3352b4 + (int)player16 * 0xf8;
+
+  player_handle = local_player_get_player_index(player16);
+  player_data = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
+  unit_handle = (int)*(int16_t *)(player_data + 2);
+
+  if (unit_handle == -1 || input_has_gamepad((int16_t)unit_handle) == 0) {
+    /* No unit / unit not playable: gamepad-direct fallback. On Xbox 0xcf690
+     * is stubbed to 0, so the inner body never runs. */
+    int *gamepad_state = (int *)((void *(*)(void))0xcf690)();
+    if (gamepad_state != NULL) {
+      bool back_pressed;
+
+      gamepad_state = (int *)((void *(*)(void))0xcf690)();
+      back_pressed = input_key_is_down(0x1d);
+
+      if ((current_camera = *(void **)(base + 4),
+           current_camera != (void *)0x89270 &&
+             *((char *)gamepad_state + 0xd) != 0) ||
+          input_key_is_down(0x1e) != 0) {
+        uint8_t mode_flags = (input_key_is_down(0x20) != 0) ? 1 : 0;
+        if (input_key_is_down(0x2e))
+          mode_flags |= 2;
+        if (input_key_is_down(0x2d))
+          mode_flags |= 4;
+        if (input_key_is_down(0x2f))
+          mode_flags |= 8;
+        if (input_key_is_down(0x22))
+          mode_flags |= 0x10;
+        if (input_key_is_down(0x30))
+          mode_flags |= 0x20;
+        if (input_key_is_down(0x23))
+          mode_flags |= 0x40;
+        if (input_key_is_down(0x31))
+          mode_flags |= 0x80;
+
+        camera_internal_integrate(player16, mode_flags,
+                                  (float)gamepad_state[2]);
+
+        *(float *)(out_buf + 4) = (float)gamepad_state[0] * *(float *)0x2670a0;
+        *(float *)(out_buf + 6) = (float)gamepad_state[1] * *(float *)0x2670a0;
+        *(float *)(out_buf + 8) += *(float *)(base + 0xd8);
+        *(float *)(out_buf + 0x10) = (float)gamepad_state[2];
+        *(float *)(out_buf + 10) += *(float *)(base + 0xe4);
+        *(float *)(out_buf + 0xc) += *(float *)(base + 0xf0);
+        *(float *)(out_buf + 0xe) += *(float *)(base + 0xcc);
+        *((uint8_t *)out_buf + 2) = 1;
+
+        ((void (*)(int))0x86220)(local_player_index);
+        ((void (*)(int))0x861d0)(local_player_index);
+      }
+      return back_pressed == 1;
+    }
+    return false;
+  }
+
+  /* Has unit: pull look/strafe from the unit's control struct. */
+  {
+    char *unit_data = (char *)input_get_gamepad_state(unit_handle);
+    bool valid_unit;
+
+    if (*(char *)0x335690 != 0) {
+      valid_unit = (*(char *)(unit_data + 0x14) == 1);
+    } else {
+      uint8_t cb = *(uint8_t *)(unit_data + 0x14);
+      if (cb == 0) {
+        valid_unit = false;
+      } else if ((unsigned)cb % 0x1e != 0) {
+        valid_unit = false;
+      } else {
+        valid_unit = true;
+      }
+    }
+
+    current_camera = *(void **)(base + 4);
+    if (current_camera == (void *)0x89270 || current_camera == (void *)0x89cd0)
+      return valid_unit;
+
+    if (*(char *)(unit_data + 0x1f) == 1)
+      *(char *)(base + 0xbc) = (*(char *)(base + 0xbc) == 0);
+
+    if (*(char *)(base + 0xbc) == 0)
+      return valid_unit;
+
+    {
+      uint8_t mode_flags = (*(char *)(unit_data + 0x17) != 0) ? 0x10 : 0;
+      float trigger;
+
+      if (*(char *)(unit_data + 0x16) != 0)
+        mode_flags |= 0x20;
+
+      trigger = (float)((int)((unsigned)(1 < *(uint8_t *)(unit_data + 0x18)) -
+                              (unsigned)(1 < *(uint8_t *)(unit_data + 0x19)))) *
+                *(float *)0x253524;
+
+      *(float *)(out_buf + 0x10) = trigger;
+      camera_internal_integrate(player16, mode_flags, trigger);
+
+      *(float *)(out_buf + 4) = (float)(int)*(int16_t *)(unit_data + 0x24) *
+                                *(float *)0x3352a8 * *(float *)0x2670b0;
+      *(float *)(out_buf + 6) = (float)(int)*(int16_t *)(unit_data + 0x26) *
+                                *(float *)0x3352a8 * *(float *)0x2670ac;
+      *(float *)(out_buf + 10) = (float)(int)*(int16_t *)(unit_data + 0x22) *
+                                 *(float *)(base + 0xc0) * *(float *)0x3352a8 *
+                                 *(float *)0x2670a8;
+      *(float *)(out_buf + 0xc) = (float)(int)*(int16_t *)(unit_data + 0x20) *
+                                  *(float *)(base + 0xc0) * *(float *)0x3352a8 *
+                                  *(float *)0x2670a4;
+
+      *(float *)(out_buf + 0xe) += *(float *)(base + 0xcc);
+      *((uint8_t *)out_buf + 2) = 1;
+
+      ((void (*)(int))0x86220)(local_player_index);
+      ((void (*)(int))0x861d0)(local_player_index);
+    }
+
+    return valid_unit;
+  }
+}
+
 /* Set director mode and reset per-player camera state for a new map.
  * Director mode is 2 (scripted) in editor, 0 (normal) otherwise.
  * For each player: zeros timer, two unknown fields, then dispatches to the

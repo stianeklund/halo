@@ -25,6 +25,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x87110": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x861a0": {
       "kind": "function",
       "status": "ported"
