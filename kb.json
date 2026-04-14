@@ -659,6 +659,10 @@
           "addr": "0x86600"
         },
         {
+          "decl": "void director_set_player_camera_normal(int16_t local_player_index@<ax>, char reset_flag, char mode_flags);",
+          "addr": "0x86de0"
+        },
+        {
           "decl": "void director_set_player_camera_scripted(int16_t local_player_index@<si>, char reset_flag);",
           "addr": "0x86fa0"
         },
