@@ -155,7 +155,7 @@ bool scenario_load(const char *map_name)
   char *scenario_tag;
   bool result = 0;
 
-  ((void (*)(const char *, void *))0x8e770)("cache\\", (void *)0x326a6c);
+  ((void (*)(void *, const char *))0x8e770)((void *)0x326a6c, "cache\\");
   tag_index = ((int (*)(const char *))0x1b9e70)(map_name);
   *(int *)0x326a08 = tag_index;
 
@@ -187,7 +187,7 @@ bool scenario_load(const char *map_name)
 
   /* load game globals tag ("matg") */
   {
-    int matg_index = ((int (*)(const char *, int))0x1b9930)("globals\\globals", 0x6d617467);
+    int matg_index = ((int (*)(int, const char *))0x1b9930)(0x6d617467, "globals\\globals");
     *(char **)0x5064d4 = (char *)tag_get(0x6d617467, matg_index);
   }
 
