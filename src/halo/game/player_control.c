@@ -83,10 +83,20 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
   /* fill action with sentinel 0xfa, then read actual input */
   csmemset(action, 0xfa, 0x20);
   {
-    /* player_control_get_input reads EBX as the output action struct */
-    register void *_ebx asm("ebx") = (void *)action;
-    asm volatile("" : "+r"(_ebx));
-    ((void (*)(int16_t, float))0xb70b0)(local_player_index, delta_time);
+    /* player_control_get_input reads EBX as the output action struct.
+     * Use register constraints for push operands to avoid ESP-relative
+     * memory references being invalidated by the pushes. */
+    int _dt_bits = *(int *)&delta_time;
+    int _idx = (int)local_player_index;
+    int _ebx = (int)action;
+    asm volatile(
+      "pushl %[dt]\n\t"
+      "pushl %[idx]\n\t"
+      "call *%[fn]\n\t"
+      "addl $8, %%esp"
+      : "+b"(_ebx)
+      : [fn] "r"((void *)0xb70b0), [dt] "r"(_dt_bits), [idx] "r"(_idx)
+      : "eax", "ecx", "edx", "memory", "cc");
   }
 
   player_index = local_player_get_player_index(local_player_index);
@@ -202,10 +212,17 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
     /* apply turning/look input (unless scripted camera) */
     if (!((bool (*)(int16_t))0x86270)(local_player_index)) {
-      register int _eax asm("eax") = (int)local_player_index;
-      asm volatile("" : "+r"(_eax));
-      ((void (*)(int, int))0xb7f90)(*(int *)(action + 0x0c),
-                                    *(int *)(action + 0x10));
+      /* player_control_handle_turning reads EAX as local_player_index */
+      int _a0 = *(int *)(action + 0x0c);
+      int _a1 = *(int *)(action + 0x10);
+      int _eax = (int)local_player_index;
+      asm volatile("pushl %[a1]\n\t"
+                   "pushl %[a0]\n\t"
+                   "call *%[fn]\n\t"
+                   "addl $8, %%esp"
+                   : "+a"(_eax)
+                   : [fn] "r"((void *)0xb7f90), [a0] "r"(_a0), [a1] "r"(_a1)
+                   : "ecx", "edx", "memory", "cc");
     }
 
     /* autoaim idle detection: if the player is looking at an enemy

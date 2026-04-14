@@ -12,9 +12,10 @@ void crc_checksum_buffer(uint32_t *checksum, void *data, int size)
   /* initialize the CRC lookup table on first use;
    * the init function reads EDX as the table base address */
   if (*(uint8_t *)0x46E800 == 0) {
-    register int _edx asm("edx") = 0x46E400;
-    asm volatile("" : "+r"(_edx));
-    ((void (*)(void))0x1190C0)();
+    asm volatile("movl $0x46e400, %%edx\n\t"
+                 "movl $0x1190c0, %%eax\n\t"
+                 "call *%%eax" ::
+                   : "eax", "ecx", "edx", "memory", "cc");
     *(uint8_t *)0x46E800 = 1;
   }
 
