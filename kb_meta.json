@@ -1180,6 +1180,58 @@
     "0x91800": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x1bf7c0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bf880": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bf8a0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bf990": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bffd0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bc6a0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bc6b0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bc6c0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bc6f0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bcf00": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bd8e0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bd910": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x1bda30": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
