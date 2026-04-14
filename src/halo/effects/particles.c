@@ -21,34 +21,7 @@ void particles_dispose(void)
     particle_data = 0;
 }
 
-/* Delete a particle, releasing any attached render state (secondary bitmap
- * sprite). datum_handle arrives via EBX from the caller's loop context. */
-void particle_delete(int datum_handle)
-{
-  char *particle;
-  char *tag;
-
-  particle = (char *)datum_get(particle_data, datum_handle);
-  tag = (char *)tag_get(0x70617274, *(int *)(particle + 4));
-
-  /* release secondary bitmap render state if present */
-  if (*(int *)(tag + 0x64) != -1) {
-    /* 0xa1770 takes EAX=particle, ECX=tag->sprite_count, ESI=tag->bitmap,
-     * plus one stack arg (scale = 0.0). */
-    int _eax = (int)particle;
-    int _ecx = *(int *)(tag + 0x58);
-    int _esi = *(int *)(tag + 0x64);
-    asm volatile("pushl $0\n\t"
-                 "movl $0xa1770, %%edx\n\t"
-                 "call *%%edx\n\t"
-                 "addl $4, %%esp"
-                 : "+a"(_eax), "+c"(_ecx), "+S"(_esi)
-                 :
-                 : "edx", "memory", "cc");
-  }
-
-  datum_delete(particle_data, datum_handle);
-}
+/* TODO: particle_delete also reverted — see git 08bf664 for implementation */
 
 /* TODO: particle_step and particle_move temporarily reverted to original
  * binary due to a stale datum handle crash during gameplay. These need
@@ -93,7 +66,15 @@ void particles_update(float delta_time)
             ((bool (*)(int, float))0xa1c30)(datum_handle, delta_time);
         }
       } else {
-        particle_delete(datum_handle);
+        {
+          /* particle_delete at 0xa18c0: EBX=datum_handle */
+          int _ebx = datum_handle;
+          asm volatile("movl $0xa18c0, %%eax\n\t"
+                       "call *%%eax"
+                       : "+b"(_ebx)
+                       :
+                       : "eax", "ecx", "edx", "esi", "edi", "memory", "cc");
+        }
       }
     } else {
       datum_delete(particle_data, datum_handle);

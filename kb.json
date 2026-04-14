@@ -1690,10 +1690,6 @@
           "addr": "0xa14d0"
         },
         {
-          "decl": "void particle_delete(int datum_handle@<ebx>);",
-          "addr": "0xa18c0"
-        },
-        {
           "decl": "void particles_update(float);",
           "addr": "0xa2570"
         }
