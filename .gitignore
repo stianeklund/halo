@@ -1,15 +1,54 @@
-__pycache__
-.gdbinit
+# Build output
 /build
+
+# Patched game output (contains copyrighted game assets)
 /halo-patched
-/tools/xemu.env
+*.iso
+
+# Generated source files (created from kb.json by tools/knowledge.py)
 src/decl.h
 src/halo.xbe.def
 src/build_info.c
 src/thunks.c
 src/typechecks.c
+
+# Compiled artifacts
 *.d
 *.lib
 *.obj
 *.exe
 *.pdb
+*.o
+*.a
+*.so
+*.dll
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Debug / runtime artifacts
+.gdbinit
+/tools/xemu.env
+KrnlDebug.txt
+debug.txt
+gamestate.txt
+stabbed.txt
+
+# Local config
+opencode.json
+.claude/settings.local.json
