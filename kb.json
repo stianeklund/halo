@@ -2264,7 +2264,7 @@
           "addr": "0x184cd0"
         },
         {
-          "decl": "void render_window_pregame(int16_t *win);",
+          "decl": "void render_window_pregame(int window_type@<ebx>, int16_t *win);",
           "addr": "0x184bc0"
         },
         {

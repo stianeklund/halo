@@ -15,6 +15,52 @@ void render_dispose(void)
   cached_object_render_states = 0;
 }
 
+/* Render a window in pregame mode. window_type selects the render path:
+ *   0 = full pregame UI (loading screen, menus, bink playback)
+ *   1 = inactive window (no player assigned, simpler scene render)
+ * Called from render_frame with window_type passed via EBX register. */
+void render_window_pregame(int window_type, int16_t *win)
+{
+  window_parameters_t window_params;
+
+  profile_render_window_start(0);
+  csmemset(&window_params, 0, sizeof(window_parameters_t));
+
+  /* copy first camera from window to global camera, build frustum */
+  qmemcpy(&unknown_global_camera, (char *)win + 4, sizeof(camera_t));
+  render_camera_build_frustum(&unknown_global_camera, 0, global_frustum, 1);
+
+  /* copy second camera to local params, build frustum */
+  qmemcpy(&window_params.camera, (char *)win + 0x58, sizeof(camera_t));
+  render_camera_build_frustum(&window_params.camera, 0, window_params.frustum,
+                              1);
+
+  /* set up scene parameters */
+  window_params.unk_0[0] = 0;
+  window_params.unk_0[1] = -1;
+  *((uint8_t *)&window_params + 5) = (window_type == 0);
+
+  rasterizer_window_begin(&window_params);
+
+  switch (window_type) {
+  case 0:
+    ((void (*)(void))0x0dff70)();
+    ((void (*)(void))0x17e190)();
+    break;
+  case 1:
+    ((void (*)(void))0x0af9a0)();
+    break;
+  default:
+    display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\render\\render.c",
+                   0x11f, 1);
+    system_exit(-1);
+    break;
+  }
+
+  rasterizer_window_end();
+  profile_render_window_end();
+}
+
 void render_frame_pregame(pregame_render_info_t *pregame_info,
                           void *main_globals_movie)
 {
@@ -54,6 +100,206 @@ void render_frame_present(_WORD *a1, void *a2)
   ((void (*)(_WORD *, void *))0x17c930)(a2, a1);
 }
 
+/* Render a single game window. win is the window struct (passed via ESI in the
+ * original binary). offset_or_null points to a packed (x_tile, y_tile) pair
+ * for split-screen tile subdivision, or NULL for full-screen rendering.
+ * Handles fog distance clamping, camera frustum setup, optional water/sky
+ * reflection rendering, and the main scene render pass. */
+void render_window(int16_t *win, void *offset_or_null)
+{
+  char *esi = (char *)win;
+  char *render_cam = esi + 4;
+  char *rasterizer_cam = esi + 0x58;
+  float bounds[4];
+  int rendered_reflection = 0;
+  char reflection_info[28];
+  camera_t reflection_cam;
+  float render_frustum[99];
+  float rasterizer_frustum[99];
+  float reflection_frustum[99];
+
+  /* initialize render pass for this camera */
+  ((void (*)(void *))0x1965f0)(render_cam);
+
+  /* update render globals from scene */
+  *(int16_t *)0x506732 = 0;
+  ((void (*)(int, int, void *, void *))0x18fbc0)(
+    (int)(uint16_t) * (int16_t *)esi, (int)(uint16_t) * (int16_t *)0x50678a,
+    render_cam, (void *)0x506730);
+  ((void (*)(int, void *))0x198f10)((int)(uint16_t) * (int16_t *)0x506784,
+                                    (void *)0x506730);
+
+  /* track closest fog distance when BSP index is unknown */
+  if (*(float *)0x506748 != *(float *)0x2533c0) {
+    if (*(int16_t *)0x50678a == -1 && *(float *)0x506770 > *(float *)0x506748) {
+      *(float *)0x506770 = *(float *)0x506748;
+    }
+  }
+
+  /* clamp z_far to fog distance when fog type matches */
+  if (*(float *)0x506740 == *(float *)0x2533c8 &&
+      *(float *)0x506748 != *(float *)0x2533c0) {
+    float fog = *(float *)0x506748;
+    if (fog < *(float *)(esi + 0x44))
+      *(float *)(esi + 0x44) = fog;
+  }
+
+  /* clamp z_far to closest fog in mode 2 */
+  if (*(int16_t *)0x50674c == 2 && *(float *)0x506770 != *(float *)0x2533c0) {
+    float fog = *(float *)0x506770;
+    if (fog < *(float *)(esi + 0x44))
+      *(float *)(esi + 0x44) = fog;
+  }
+
+  /* fog sanity: z_far must exceed z_near */
+  if (*(float *)(esi + 0x44) <= *(float *)(esi + 0x40)) {
+    if (!*(uint8_t *)0x4d0d02) {
+      error(2, "### ERROR something is wrong with the fog in the "
+               "sky tag or the fog tag");
+      *(uint8_t *)0x4d0d02 = 1;
+    }
+    *(float *)(esi + 0x44) = *(float *)(esi + 0x40) + *(float *)0x25bb10;
+  }
+
+  /* assert viewport and window bounds match between cameras */
+  if (((int (*)(void *, void *, int))0x8da40)(esi + 0x30, esi + 0x84, 8) != 0) {
+    display_assert("!memcmp(&window->render_camera.viewport_bounds, "
+                   "&window->rasterizer_camera.viewport_bounds, "
+                   "sizeof(rectangle2d))",
+                   "c:\\halo\\SOURCE\\render\\render.c", 0xbb, 1);
+    system_exit(-1);
+  }
+  if (((int (*)(void *, void *, int))0x8da40)(esi + 0x38, esi + 0x8c, 8) != 0) {
+    display_assert("!memcmp(&window->render_camera.window_bounds, "
+                   "&window->rasterizer_camera.window_bounds, "
+                   "sizeof(rectangle2d))",
+                   "c:\\halo\\SOURCE\\render\\render.c", 0xbc, 1);
+    system_exit(-1);
+  }
+
+  /* compute frustum bounds from the render camera */
+  ((void (*)(void *, float *))0x185950)(render_cam, bounds);
+
+  /* split-screen tile adjustment: narrow bounds to this tile */
+  if (offset_or_null != NULL) {
+    int16_t *tile = (int16_t *)offset_or_null;
+    int total = (int)*(int16_t *)0x31fa98 * (int)*(int16_t *)0x46e008;
+    if (total > 0) {
+      float tw = (bounds[1] - bounds[0]) / (float)total;
+      float th = (bounds[3] - bounds[2]) / (float)total;
+      int y_idx = total - (int)tile[1] - 1;
+      float x0 = (float)(int)tile[0] * tw + bounds[0];
+      float y0 = (float)y_idx * th + bounds[2];
+      bounds[0] = x0;
+      bounds[1] = x0 + tw;
+      bounds[2] = y0;
+      bounds[3] = y0 + th;
+    }
+  }
+
+  /* build projection frustums for both cameras */
+  render_camera_build_frustum((camera_t *)render_cam, (_DWORD *)bounds,
+                              render_frustum, 1);
+  render_camera_build_frustum((camera_t *)rasterizer_cam, (_DWORD *)bounds,
+                              rasterizer_frustum, 1);
+
+  /* reflection rendering (single player local only) */
+  if (game_connection() == 1) {
+    char has_refl = ((char (*)(void *, void *, void *))0x1975e0)(
+      render_cam, render_frustum, reflection_info);
+    if (has_refl) {
+      int saved_bsp = *(int *)0x506784;
+
+      /* reflection requires full-screen viewport */
+      if (*(int16_t *)(esi + 0x32) != 0) {
+        display_assert("window->render_camera.viewport_bounds.x0==0",
+                       "c:\\halo\\SOURCE\\render\\render.c", 0xe1, 1);
+        system_exit(-1);
+      }
+      if (*(int16_t *)(esi + 0x30) != 0) {
+        display_assert("window->render_camera.viewport_bounds.y0==0",
+                       "c:\\halo\\SOURCE\\render\\render.c", 0xe2, 1);
+        system_exit(-1);
+      }
+      if (*(int16_t *)(esi + 0x36) != 0x280) {
+        display_assert("window->render_camera.viewport_bounds.x1=="
+                       "RASTERIZER_TARGET_RENDER_PRIMARY_WIDTH",
+                       "c:\\halo\\SOURCE\\render\\render.c", 0xe3, 1);
+        system_exit(-1);
+      }
+      if (*(int16_t *)(esi + 0x34) != 0x1e0) {
+        display_assert("window->render_camera.viewport_bounds.y1=="
+                       "RASTERIZER_TARGET_RENDER_PRIMARY_HEIGHT",
+                       "c:\\halo\\SOURCE\\render\\render.c", 0xe4, 1);
+        system_exit(-1);
+      }
+
+      /* build reflection camera and frustum */
+      ((void (*)(void *, void *, void *))0x186ef0)(render_cam, reflection_info,
+                                                   &reflection_cam);
+      render_camera_build_frustum(&reflection_cam, (_DWORD *)bounds,
+                                  reflection_frustum, 1);
+
+      /* render reflection to secondary target */
+      ((void (*)(int))0x17c960)(0);
+      *(int *)0x506784 = (int)*(int16_t *)(reflection_info + 0x18);
+
+      /* render_scene at 0x184ea0 reads EBX as the player index.
+       * For reflection: player = -1 (NONE).
+       * Args are packed in an array and pushed via a register pointer
+       * to avoid ESP-relative addressing corruption from pushes. */
+      {
+        int _ebx = -1;
+        void *a[6] = {(void *)&reflection_cam, (void *)reflection_frustum,
+                      (void *)&reflection_cam, (void *)reflection_frustum,
+                      (void *)1,               (void *)0};
+        asm volatile("pushl 20(%[a])\n\t"
+                     "pushl 16(%[a])\n\t"
+                     "pushl 12(%[a])\n\t"
+                     "pushl 8(%[a])\n\t"
+                     "pushl 4(%[a])\n\t"
+                     "pushl (%[a])\n\t"
+                     "movl $0x184ea0, %%eax\n\t"
+                     "call *%%eax\n\t"
+                     "addl $24, %%esp"
+                     : "+b"(_ebx)
+                     : [a] "r"(a)
+                     : "eax", "ecx", "edx", "memory", "cc");
+      }
+
+      /* restore BSP and switch back to main render target */
+      *(int *)0x506784 = saved_bsp;
+      ((void (*)(int))0x17c960)(1);
+
+      rendered_reflection = 1;
+    }
+  }
+
+  /* main scene render. EBX = player index from the window struct.
+   * Same args-array approach to avoid ESP-relative corruption. */
+  {
+    int _ebx = (int)*(int16_t *)win;
+    void *a[6] = {(void *)render_cam,
+                  (void *)render_frustum,
+                  (void *)rasterizer_cam,
+                  (void *)rasterizer_frustum,
+                  (void *)0,
+                  (void *)(int)rendered_reflection};
+    asm volatile("pushl 20(%[a])\n\t"
+                 "pushl 16(%[a])\n\t"
+                 "pushl 12(%[a])\n\t"
+                 "pushl 8(%[a])\n\t"
+                 "pushl 4(%[a])\n\t"
+                 "pushl (%[a])\n\t"
+                 "movl $0x184ea0, %%eax\n\t"
+                 "call *%%eax\n\t"
+                 "addl $24, %%esp"
+                 : "+b"(_ebx)
+                 : [a] "r"(a)
+                 : "eax", "ecx", "edx", "memory", "cc");
+  }
+}
+
 void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
                   float a7)
 {
@@ -73,7 +319,11 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
   win = (int16_t *)a2;
   for (i = 0; i < a3; i++) {
     *(int16_t *)0x50654a = i;
-    if (((char)win[1] == '\0') && (win[0] != -1)) {
+    if ((char)win[1] != '\0') {
+      render_window_pregame(0, win);
+    } else if (win[0] == -1) {
+      render_window_pregame(1, win);
+    } else {
       if (a5 != NULL && a4 != NULL) {
         offset =
           (int32_t)(*(int16_t *)a4 * *(int16_t *)0x31fa98 + *(int16_t *)a5) |
@@ -82,8 +332,6 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
            << 16);
       }
       render_window(win, a5 != NULL ? (void *)&offset : NULL);
-    } else {
-      render_window_pregame(win);
     }
     win += 0x56;
   }

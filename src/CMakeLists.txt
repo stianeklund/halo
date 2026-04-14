@@ -3,6 +3,7 @@
 	inlines.c
 	halo/bitmaps/bitmaps.c
 	halo/cseries/cseries.c
+	halo/cseries/errors.c
 	halo/cseries/debug_memory.c
 	halo/cseries/cseries_windows.c
 	halo/cseries/stack_walk_windows.c

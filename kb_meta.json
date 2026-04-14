@@ -1048,6 +1048,34 @@
     "0xa2570": {
       "status": "ported",
       "kind": "function"
+    },
+    "0xb8650": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x184bc0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x185290": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x8f390": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xa18c0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xa1b60": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0xa1c30": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
