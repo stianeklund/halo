@@ -37,6 +37,110 @@ data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size)
   return data;
 }
 
+/* Initialize game state for a new map: set flags, clear the save header,
+ * populate it with the scenario name, build version, and tag checksums. */
+void game_state_initialize_for_new_map(void)
+{
+  char *header;
+
+  *(uint8_t *)0x4ea9a4 = 1;
+  *(uint8_t *)0x4ea9a5 = 0;
+  *(int *)0x4ea9a8 = -1;
+
+  header = *(char **)0x4ea9ac;
+  csmemset(header, 0, 0x14c);
+
+  /* copy scenario name into header */
+  {
+    char *name = ((char *(*)(int))0x1ba1f0)(*(int *)0x326a08);
+    ((void (*)(char *, char *))0x8dff0)(header + 1, name);
+  }
+
+  /* copy build version string */
+  ((void (*)(char *, const char *))0x8dff0)(header + 0x41, "01.10.12.2276");
+
+  /* store map type and tag checksum */
+  *(int16_t *)(header + 0x49) = *(int16_t *)0x31fa94;
+  *(int16_t *)(header + 0x126) = ((int16_t (*)(void))0xa7460)();
+  *(int *)(header + 0x128) = ((int (*)(void))0x1b9920)();
+  *(int16_t *)header = *(int16_t *)0x4ea9a0;
+}
+
+/* Save the current game state. Pauses rendering, writes the save file,
+ * and records whether the save was successful. */
+void game_state_save(void)
+{
+  char saved;
+
+  (*(void (**)())0x32eaa0)();
+  ((void (*)(void))0x101c90)();
+  saved = ((char (*)(void))0x1c0370)();
+  *(uint8_t *)0x4ea9a5 = (saved != 0);
+  ((void (*)(void))0x101ca0)();
+}
+
+/* Revert to the last saved game state. If no save exists or the map is
+ * flagged for restart, calls the restart function instead. Otherwise,
+ * loads the save and calls 13 initialize-for-new-map callbacks. */
+void game_state_revert(void)
+{
+  if (*(uint8_t *)0x4ea9a5 == 0 && *(uint8_t *)0x5054e8 == 0) {
+    ((void (*)(void))0x1002a0)();
+    return;
+  }
+
+  (*(void (**)())0x32eaa4)();
+  ((void (*)(void))0x1c0450)();
+
+  {
+    void (**callbacks)() = (void (**)())0x32eaa8;
+    int i;
+    for (i = 0; i < 13; i++)
+      callbacks[i]();
+  }
+}
+
+/* Save the game state to a named core file. Logs success or failure
+ * to the console. */
+void game_state_save_core(const char *name)
+{
+  char ok = ((char (*)(const char *, void *, void *))0x1c0570)(
+    name, *(void **)0x4ea994, (void *)0x345000);
+  if (ok)
+    ((void (*)(int, const char *, ...))0xff4d0)(0, "saved '%s'", name);
+  else
+    ((void (*)(int, const char *, ...))0xff4d0)(0, "error writing '%s'", name);
+}
+
+/* Load a core save file. Validates the header, then restores game state
+ * and calls 13 initialize-for-new-map callbacks. */
+void game_state_load_core(const char *name)
+{
+  char header[0x14c];
+
+  if (!((char (*)(const char *, void *, int))0x1c0600)(name, header, 0x14c))
+    goto fail;
+
+  if (!((char (*)(void))0x1bfa00)())
+    goto fail;
+
+  (*(void (**)())0x32eaa4)();
+  ((void (*)(const char *, void *, void *))0x1c0680)(
+    name, *(void **)0x4ea994, (void *)0x345000);
+  ((void (*)(int, const char *, ...))0xff4d0)(0, "loaded '%s'", name);
+
+  {
+    void (**callbacks)() = (void (**)())0x32eaa8;
+    int i;
+    for (i = 0; i < 13; i++)
+      callbacks[i]();
+  }
+  return;
+
+fail:
+  ((void (*)(int, const char *, ...))0xff4d0)(0, "couldn't open '%s'", name);
+}
+
 void xbox_game_state_dispose_buffer(void)
 {
   assert_halt(*(char *)0x4ea9b0);
