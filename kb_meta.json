@@ -1140,6 +1140,46 @@
     "0xffcb0": {
       "status": "ported",
       "kind": "function"
+    },
+    "0x8fa40": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x8fac0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x913e0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x91470": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x91510": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x91540": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x915b0": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x91640": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x91780": {
+      "status": "ported",
+      "kind": "function"
+    },
+    "0x91800": {
+      "status": "ported",
+      "kind": "function"
     }
   }
 }
