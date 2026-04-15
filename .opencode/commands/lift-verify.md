@@ -1,3 +1,9 @@
+---
+description: Run lift verification on the deep agent
+agent: deep
+subtask: true
+---
+
 Run structural verification through `tools/lift_pipeline.py` using
 auto-generated verify payloads.
 
