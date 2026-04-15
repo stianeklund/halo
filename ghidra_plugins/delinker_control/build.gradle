@@ -1,0 +1,8 @@
+// Minimal Ghidra extension build wrapper.
+// Requires GHIDRA_INSTALL_DIR to point at the main Ghidra install root.
+
+if (!System.env.GHIDRA_INSTALL_DIR) {
+    throw new GradleException("GHIDRA_INSTALL_DIR is not set")
+}
+
+apply from: new File(System.env.GHIDRA_INSTALL_DIR).toPath().resolve("support/buildExtension.gradle").toFile()
