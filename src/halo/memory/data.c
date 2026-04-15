@@ -148,7 +148,7 @@ int data_new_datum(data_t *data, int handle)
   return NONE;
 }
 
-int data_new_at_index(data_t *data, int index)
+int data_new_at_index(data_t *data)
 {
   int16_t search;
   int size;
