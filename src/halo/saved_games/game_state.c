@@ -6,37 +6,6 @@ void game_state_dispose(void)
   xbox_game_state_close_file();
 }
 
-void game_state_dispose_from_old_map(void)
-{
-}
-
-void *game_state_malloc(const char *name, const char *group_name, int size)
-{
-  void *result;
-
-  assert_halt(!(size & 3));
-  assert_halt(!game_state_globals.locked);
-  assert_halt(game_state_globals.cpu_allocation_size + size <=
-              GAME_STATE_CPU_SIZE);
-
-  result =
-    game_state_globals.base_address + game_state_globals.cpu_allocation_size;
-  game_state_globals.cpu_allocation_size += size;
-  crc_checksum_buffer(&game_state_globals.checksum, &size, 4);
-  return result;
-}
-
-data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size)
-{
-  data_t *data; // esi
-  int allocation_size; // [esp-Ch] [ebp-18h]
-
-  allocation_size = data_allocation_size(maximum_count, size);
-  data = (data_t *)game_state_malloc(name, "data array", allocation_size);
-  data_initialize(data, name, maximum_count, size);
-  return data;
-}
-
 /* game_state functions re-enabled for bisect */
 /* Initialize game state for a new map: set flags, clear the save header,
  * populate it with the scenario name, build version, and tag checksums. */
@@ -62,9 +31,13 @@ void game_state_initialize_for_new_map(void)
 
   /* store map type (0x124), tag checksum (0x126), and cache checksum (0x128) */
   *(int16_t *)(header + 0x124) = *(int16_t *)0x31fa94;
-  *(int16_t *)(header + 0x126) = ((int16_t (*)(void))0xa7460)();
+  *(int16_t *)(header + 0x126) = ((int16_t(*)(void))0xa7460)();
   *(int *)(header + 0x128) = ((int (*)(void))0x1b9920)();
   *(int *)header = *(int *)0x4ea9a0;
+}
+
+void game_state_dispose_from_old_map(void)
+{
 }
 
 /* Save the current game state. Pauses rendering, writes the save file,
@@ -113,6 +86,33 @@ void game_state_save_core(const char *name)
     ((void (*)(int, const char *, ...))0xff4d0)(0, "error writing '%s'", name);
 }
 
+void *game_state_malloc(const char *name, const char *group_name, int size)
+{
+  void *result;
+
+  assert_halt(!(size & 3));
+  assert_halt(!game_state_globals.locked);
+  assert_halt(game_state_globals.cpu_allocation_size + size <=
+              GAME_STATE_CPU_SIZE);
+
+  result =
+    game_state_globals.base_address + game_state_globals.cpu_allocation_size;
+  game_state_globals.cpu_allocation_size += size;
+  crc_checksum_buffer(&game_state_globals.checksum, &size, 4);
+  return result;
+}
+
+data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size)
+{
+  data_t *data; // esi
+  int allocation_size; // [esp-Ch] [ebp-18h]
+
+  allocation_size = data_allocation_size(maximum_count, size);
+  data = (data_t *)game_state_malloc(name, "data array", allocation_size);
+  data_initialize(data, name, maximum_count, size);
+  return data;
+}
+
 /* Load a core save file. Validates the header, then restores game state
  * and calls 13 initialize-for-new-map callbacks. */
 void game_state_load_core(const char *name)
@@ -126,8 +126,8 @@ void game_state_load_core(const char *name)
     goto fail;
 
   (*(void (**)())0x32eaa4)();
-  ((void (*)(const char *, void *, void *))0x1c0680)(
-    name, *(void **)0x4ea994, (void *)0x345000);
+  ((void (*)(const char *, void *, void *))0x1c0680)(name, *(void **)0x4ea994,
+                                                     (void *)0x345000);
   ((void (*)(int, const char *, ...))0xff4d0)(0, "loaded '%s'", name);
 
   {
