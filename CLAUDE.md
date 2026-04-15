@@ -238,6 +238,9 @@ behavior, or runtime declarations.
 
 ## When working in this repo
 
+- Prefer `tools/xemu_qmp.py` over xemu MCP tools for routine xemu control
+  (status, ISO load/eject, reset, stop/continue, HMP passthrough). Use xemu
+  MCP only as a fallback when the script cannot perform the needed action.
 - If you add or rename a symbol, edit `kb.json` first and re-run `tools/maintain.py` so file placement and ordering settle automatically.
 - Use `kb.json` only for declarations, addresses, object membership, and source mapping that the build requires.
 - Use `kb_meta.json` for tentative reverse engineering metadata such as `ported` status, confidence, provenance, and short summaries.
