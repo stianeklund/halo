@@ -62,9 +62,8 @@ void hs_initialize(void)
   char *scenario_tag;
 
   if (*(void **)0x2f1568 == 0) {
-    display_assert(
-      "you can't add an hs type without defining its name.",
-      "c:\\halo\\SOURCE\\hs\\hs.c", 0xf5, 1);
+    display_assert("you can't add an hs type without defining its name.",
+                   "c:\\halo\\SOURCE\\hs\\hs.c", 0xf5, 1);
     system_exit(-1);
   }
 

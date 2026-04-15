@@ -105,15 +105,14 @@ void debug_free(void *ptr, const char *file, int line)
     int _eax = (int)header;
     int _file = (int)file;
     int _line = line;
-    asm volatile("pushl %[line]\n\t"
-                 "pushl %[file]\n\t"
-                 "call *%[fn]\n\t"
-                 "addl $8, %%esp"
-                 : "+a"(_eax)
-                 : [fn] "r"((void *)0x8e9f0),
-                   [file] "r"(_file),
-                   [line] "r"(_line)
-                 : "ecx", "edx", "memory", "cc");
+    asm volatile(
+      "pushl %[line]\n\t"
+      "pushl %[file]\n\t"
+      "call *%[fn]\n\t"
+      "addl $8, %%esp"
+      : "+a"(_eax)
+      : [fn] "r"((void *)0x8e9f0), [file] "r"(_file), [line] "r"(_line)
+      : "ecx", "edx", "memory", "cc");
   }
   header->begin_guard = 0x3c424144;
   ((void (*)(void *))0x8e3e0)(header);

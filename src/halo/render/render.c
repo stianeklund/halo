@@ -250,9 +250,12 @@ void render_window(int16_t *win, void *offset_or_null)
        * to avoid ESP-relative addressing corruption from pushes. */
       {
         int _ebx = -1;
-        void *a[6] = {(void *)&reflection_cam, (void *)reflection_frustum,
-                      (void *)&reflection_cam, (void *)reflection_frustum,
-                      (void *)1,               (void *)0};
+        void *a[6] = { (void *)&reflection_cam,
+                       (void *)reflection_frustum,
+                       (void *)&reflection_cam,
+                       (void *)reflection_frustum,
+                       (void *)1,
+                       (void *)0 };
         asm volatile("pushl 20(%[a])\n\t"
                      "pushl 16(%[a])\n\t"
                      "pushl 12(%[a])\n\t"
@@ -279,12 +282,12 @@ void render_window(int16_t *win, void *offset_or_null)
    * Same args-array approach to avoid ESP-relative corruption. */
   {
     int _ebx = (int)*(int16_t *)win;
-    void *a[6] = {(void *)render_cam,
-                  (void *)render_frustum,
-                  (void *)rasterizer_cam,
-                  (void *)rasterizer_frustum,
-                  (void *)0,
-                  (void *)(int)rendered_reflection};
+    void *a[6] = { (void *)render_cam,
+                   (void *)render_frustum,
+                   (void *)rasterizer_cam,
+                   (void *)rasterizer_frustum,
+                   (void *)0,
+                   (void *)(int)rendered_reflection };
     asm volatile("pushl 20(%[a])\n\t"
                  "pushl 16(%[a])\n\t"
                  "pushl 12(%[a])\n\t"

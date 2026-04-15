@@ -18,9 +18,8 @@ void error(unsigned __int16 priority, const char *format, ...)
 
   /* validate priority range */
   if (priority < 0 || priority >= 4) {
-    display_assert(
-      "priority>=0 && priority<NUMBER_OF_ERROR_MESSAGE_PRIORITIES",
-      "c:\\halo\\SOURCE\\cseries\\errors.c", 0x61, 1);
+    display_assert("priority>=0 && priority<NUMBER_OF_ERROR_MESSAGE_PRIORITIES",
+                   "c:\\halo\\SOURCE\\cseries\\errors.c", 0x61, 1);
     system_exit(-1);
   }
 
@@ -71,8 +70,7 @@ void error(unsigned __int16 priority, const char *format, ...)
 
     if ((int)*(int16_t *)0x5aa8e6 + new_size >= 0x800) {
       /* buffer overflow — truncate old messages */
-      int prefix_size =
-        csstrlen("[...too many errors to print...]\r\n");
+      int prefix_size = csstrlen("[...too many errors to print...]\r\n");
       int skip = prefix_size + 0x400 + new_size;
       int buf_len;
       int copy_size;
@@ -82,9 +80,8 @@ void error(unsigned __int16 priority, const char *format, ...)
       else if (skip > (int)*(int16_t *)0x5aa8e6 - 1)
         skip = (int)*(int16_t *)0x5aa8e6 - 1;
 
-      found =
-        ((char *(*)(const char *, int))0x1d95d0)(
-          (const char *)(0x5aa8e8 + skip), '\n');
+      found = ((char *(*)(const char *, int))0x1d95d0)(
+        (const char *)(0x5aa8e8 + skip), '\n');
       if (found == (char *)0)
         buf_len = (int)*(int16_t *)0x5aa8e6;
       else
@@ -93,16 +90,15 @@ void error(unsigned __int16 priority, const char *format, ...)
       copy_size = (int)*(int16_t *)0x5aa8e6 - buf_len;
 
       if (prefix_size + copy_size + new_size >= 0x800) {
-        display_assert(
-          "prefix_size + copy_size + new_size < "
-          "ERROR_MESSAGE_BUFFER_MAXIMUM_SIZE",
-          "c:\\halo\\SOURCE\\cseries\\errors.c", 0xbf, 1);
+        display_assert("prefix_size + copy_size + new_size < "
+                       "ERROR_MESSAGE_BUFFER_MAXIMUM_SIZE",
+                       "c:\\halo\\SOURCE\\cseries\\errors.c", 0xbf, 1);
         system_exit(-1);
       }
 
       /* prepend truncation marker */
-      csstrncpy((char *)0x5aa8e8,
-                "[...too many errors to print...]\r\n", prefix_size);
+      csstrncpy((char *)0x5aa8e8, "[...too many errors to print...]\r\n",
+                prefix_size);
 
       /* copy remaining old messages after the marker */
       if (copy_size > 0) {

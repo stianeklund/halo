@@ -3,12 +3,12 @@
  * All timing data is accumulated into global profiling structures. */
 
 /* Read the x86 timestamp counter (RDTSC) into a low/high dword pair. */
-#define RDTSC(lo, hi)                                                         \
-  do {                                                                        \
-    uint32_t _lo, _hi;                                                        \
-    asm volatile("rdtsc" : "=a"(_lo), "=d"(_hi));                             \
-    (lo) = _lo;                                                               \
-    (hi) = _hi;                                                               \
+#define RDTSC(lo, hi)                             \
+  do {                                            \
+    uint32_t _lo, _hi;                            \
+    asm volatile("rdtsc" : "=a"(_lo), "=d"(_hi)); \
+    (lo) = _lo;                                   \
+    (hi) = _hi;                                   \
   } while (0)
 
 /* Compute elapsed milliseconds from a 64-bit cycle difference.
@@ -78,8 +78,7 @@ void profile_exit_private(void *section)
 
     old_lo = *(uint32_t *)(s + 0x5d0);
     *(uint32_t *)(s + 0x5d0) = old_lo + diff_lo;
-    *(uint32_t *)(s + 0x5d4) +=
-      diff_hi + (*(uint32_t *)(s + 0x5d0) < old_lo);
+    *(uint32_t *)(s + 0x5d4) += diff_hi + (*(uint32_t *)(s + 0x5d0) < old_lo);
   }
 
   *(int16_t *)(s + 0xa) = -1;
@@ -99,11 +98,10 @@ void profile_tick_start(void)
     *(int16_t *)0x448dd8 += 1;
 
   if (*(int16_t *)0x448dd8 < 1 || *(int16_t *)0x448dd8 > 0x96) {
-    display_assert(
-      "(profile_globals.current_frame.game_tick_count > 0) && "
-      "(profile_globals.current_frame.game_tick_count <= "
-      "MAXIMUM_GAME_TICKS_PER_FRAME)",
-      "c:\\halo\\SOURCE\\cseries\\profile.c", 0x137, 1);
+    display_assert("(profile_globals.current_frame.game_tick_count > 0) && "
+                   "(profile_globals.current_frame.game_tick_count <= "
+                   "MAXIMUM_GAME_TICKS_PER_FRAME)",
+                   "c:\\halo\\SOURCE\\cseries\\profile.c", 0x137, 1);
     system_exit(-1);
   }
 
@@ -121,11 +119,10 @@ void profile_tick_end(void)
   float elapsed;
 
   if (*(int16_t *)0x448dd8 < 1 || *(int16_t *)0x448dd8 > 0x96) {
-    display_assert(
-      "(profile_globals.current_frame.game_tick_count > 0) && "
-      "(profile_globals.current_frame.game_tick_count <= "
-      "MAXIMUM_GAME_TICKS_PER_FRAME)",
-      "c:\\halo\\SOURCE\\cseries\\profile.c", 0x140, 1);
+    display_assert("(profile_globals.current_frame.game_tick_count > 0) && "
+                   "(profile_globals.current_frame.game_tick_count <= "
+                   "MAXIMUM_GAME_TICKS_PER_FRAME)",
+                   "c:\\halo\\SOURCE\\cseries\\profile.c", 0x140, 1);
     system_exit(-1);
   }
 
@@ -278,11 +275,10 @@ void profile_frame_end(void)
 
   /* validate tick count and subtract child tick times */
   if (*(int16_t *)0x448dd8 < 0 || *(int16_t *)0x448dd8 > 0x96) {
-    display_assert(
-      "(profile_globals.current_frame.game_tick_count >= 0) && "
-      "(profile_globals.current_frame.game_tick_count <= "
-      "MAXIMUM_GAME_TICKS_PER_FRAME)",
-      "c:\\halo\\SOURCE\\cseries\\profile.c", 0x1c0, 1);
+    display_assert("(profile_globals.current_frame.game_tick_count >= 0) && "
+                   "(profile_globals.current_frame.game_tick_count <= "
+                   "MAXIMUM_GAME_TICKS_PER_FRAME)",
+                   "c:\\halo\\SOURCE\\cseries\\profile.c", 0x1c0, 1);
     system_exit(-1);
   }
 
@@ -341,7 +337,7 @@ void profile_frame_end(void)
 
   /* copy current frame data to ring buffer */
   qmemcpy((void *)(0x3365c8 + (int)*(int16_t *)0x3365c4 * 0x1128),
-           (void *)0x448dc8, 0x1128);
+          (void *)0x448dc8, 0x1128);
 
   ring_idx = (uint32_t)((int)*(int16_t *)0x3365c4 + 1);
   if (*(int16_t *)0x3365c2 <= (int16_t)ring_idx)
@@ -360,8 +356,7 @@ void profile_frame_end(void)
       goto do_output;
     if (*(int16_t *)0x3365bc > 3 && *(uint8_t *)0x3365c0 != 0) {
       if (*(void **)0x3365b4 != 0) {
-        ((void (*)(void *, const void *))0x1da685)(*(void **)0x3365b4,
-                                                   L"\r\n");
+        ((void (*)(void *, const void *))0x1da685)(*(void **)0x3365b4, L"\r\n");
         ((void (*)(void *))0x1d8f31)(*(void **)0x3365b4);
       }
       *(uint8_t *)0x3365c0 = 0;
@@ -378,14 +373,12 @@ void profile_frame_end(void)
   if (*(int16_t *)0x3365bc > 3)
     return;
 
-do_output:
-  {
-    uint32_t idx =
-      ((int)*(int16_t *)0x3365c4 + 0xfd) & 0xff;
-    do {
-      if ((int16_t)idx < *(int16_t *)0x3365c2)
-        ((void (*)(void))0x906d0)();
-      idx = ((int)(int16_t)idx + 1) & 0xff;
-    } while ((int16_t)idx != *(int16_t *)0x3365c4);
-  }
+do_output: {
+  uint32_t idx = ((int)*(int16_t *)0x3365c4 + 0xfd) & 0xff;
+  do {
+    if ((int16_t)idx < *(int16_t *)0x3365c2)
+      ((void (*)(void))0x906d0)();
+    idx = ((int)(int16_t)idx + 1) & 0xff;
+  } while ((int16_t)idx != *(int16_t *)0x3365c4);
+}
 }

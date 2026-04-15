@@ -35,7 +35,8 @@ void saved_game_files_initialize(void)
   if (!ensure_dir((const char *)0x2bae58))
     error(2, "failed to find/create '%s' directory", "z:\\saved");
   if (!ensure_dir((const char *)0x2bae14))
-    error(2, "failed to find/create '%s' directory", "z:\\saved\\player_profiles");
+    error(2, "failed to find/create '%s' directory",
+          "z:\\saved\\player_profiles");
   if (!ensure_dir((const char *)0x2bade8))
     error(2, "failed to find/create '%s' directory",
           "z:\\saved\\player_profiles\\default_profile");

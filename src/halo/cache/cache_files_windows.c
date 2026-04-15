@@ -48,7 +48,7 @@ __int16 cache_files_precache_map_status(float *progress)
     system_exit(-1);
   }
 
-  status = ((int16_t (*)(float *))0x1badc0)(progress);
+  status = ((int16_t(*)(float *))0x1badc0)(progress);
 
   switch ((int)status) {
   case 0:
