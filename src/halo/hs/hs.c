@@ -11,12 +11,12 @@ void hs_dispose(void)
 void hs_update(void)
 {
   if (*(uint8_t *)0x449ef1 != 0 && *(uint8_t *)0x2f1c18 != 0)
-    profile_enter_private(*(void **)0x2f1c10);
+    profile_enter_private((void *)0x2f1c10);
 
   ((void (*)(void))0xcde00)();
 
   if (*(uint8_t *)0x449ef1 != 0 && *(uint8_t *)0x2f1c18 != 0)
-    profile_exit_private(*(void **)0x2f1c10);
+    profile_exit_private((void *)0x2f1c10);
 }
 
 /* Initialize hs for a new map: set up the script environment from the

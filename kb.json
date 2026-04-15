@@ -1970,7 +1970,7 @@
           "addr": "0xbb2f0"
         },
         {
-          "decl": "void players_update_pvs(bool local_player_only);",
+          "decl": "void players_update_pvs(void *combined_pvs@<edi>, bool local_player_only);",
           "addr": "0xbac80"
         },
         {

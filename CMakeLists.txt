@@ -93,13 +93,19 @@ target_link_libraries(halo ${import_libs})
 add_custom_target(import_libs_target DEPENDS ${import_libs})
 add_dependencies(halo import_libs_target)
 
+if(HALO_SKIP_XNETSTARTUP)
+	set(_patch_extra_flags "--skip-xnetstartup")
+else()
+	set(_patch_extra_flags "")
+endif()
+
 add_custom_target(
 	patched_xbe ALL
 	DEPENDS "$<TARGET_FILE:halo>" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
 	BYPRODUCTS ${CMAKE_CURRENT_LIST_DIR}/halo-patched/default.xbe
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
-			$<$<BOOL:${HALO_SKIP_XNETSTARTUP}>:--skip-xnetstartup>
+			${_patch_extra_flags}
 			"${CMAKE_CURRENT_LIST_DIR}/halo-patched/cachebeta.xbe"
 			"$<TARGET_FILE:halo>"
 			"${CMAKE_CURRENT_LIST_DIR}/halo-patched/default.xbe"
