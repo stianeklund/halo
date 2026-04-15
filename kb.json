@@ -581,7 +581,7 @@
           "addr": "0x119570"
         },
         {
-          "decl": "int data_new_at_index(data_t *data, int index);",
+          "decl": "int data_new_at_index(data_t *data);",
           "addr": "0x119610"
         },
         {
@@ -1792,6 +1792,10 @@
           "decl": "int update_get_game_time(void);"
         },
         {
+          "addr": "0xb9340",
+          "decl": "bool player_control_get_current_actions(void *action_buf);"
+        },
+        {
           "addr": "0xb9a70",
           "decl": "void update_client_apply_actions(int16_t ticks);"
         }
@@ -1878,6 +1882,10 @@
           "addr": "0xba270"
         },
         {
+          "decl": "void player_register_machine(unsigned __int16 local_player_index@<eax>, int player_handle);",
+          "addr": "0xba290"
+        },
+        {
           "decl": "bool local_player_exists(int16_t);",
           "addr": "0xba2e0"
         },
@@ -1950,16 +1958,40 @@
           "addr": "0xbadf0"
         },
         {
-          "decl": "void player_examine_nearby_unit(void);",
-          "addr": "0xbae10"
+          "decl": "bool player_examine_nearby_unit(int player_unit_handle, int nearby_unit_handle);",
+          "addr": "0xbae20"
         },
         {
-          "decl": "void player_reset_action_result(void);",
+          "decl": "void player_reset_action_result(int player_handle@<eax>);",
           "addr": "0xbaeb0"
         },
         {
-          "decl": "int player_new(unsigned __int16 a1, int a2, unsigned __int16 a3, char *a4);",
+          "decl": "int player_new(unsigned __int16 local_player_index, int player_handle_hint, unsigned __int16 local_player_index2, char *player_name);",
           "addr": "0xbb2f0"
+        },
+        {
+          "decl": "void players_update_pvs(bool local_player_only);",
+          "addr": "0xbac80"
+        },
+        {
+          "decl": "int player_try_to_enter_vehicle(void);",
+          "addr": "0xbaed0"
+        },
+        {
+          "decl": "void player_build_action_update(int player_handle, void *control_out, void *action);",
+          "addr": "0xbb560"
+        },
+        {
+          "decl": "void player_spawn(int player_handle);",
+          "addr": "0xbbcb0"
+        },
+        {
+          "decl": "bool player_try_to_spawn_in_vehicle(int player_handle);",
+          "addr": "0xbc0d0"
+        },
+        {
+          "decl": "void player_set_action_result_for_vehicle(int player_handle, int vehicle_handle);",
+          "addr": "0xbcfb0"
         },
         {
           "decl": "bool players_respawn_coop(void);",
@@ -2374,6 +2406,7 @@
     },
     {
       "name": "shell_xbox.obj",
+      "source": "shell_xbox.c",
       "functions": [
         {
           "decl": "void shell_idle(void);",
@@ -2626,6 +2659,26 @@
         {
           "decl": "void units_update(void);",
           "addr": "0x1a7ff0"
+        },
+        {
+          "decl": "bool unit_is_alive(int unit_handle);",
+          "addr": "0x1a9a30"
+        },
+        {
+          "decl": "void unit_clear_seat_tag(int unit_handle);",
+          "addr": "0x1aac40"
+        },
+        {
+          "decl": "int unit_get_weapon(int unit_handle, int16_t weapon_index);",
+          "addr": "0x1adeb0"
+        },
+        {
+          "decl": "bool unit_set_in_vehicle(int unit_handle, int weapon_index);",
+          "addr": "0x1ae600"
+        },
+        {
+          "decl": "void unit_set_control(int unit_handle, void *unit_control);",
+          "addr": "0x1af990"
         },
         {
           "decl": "bool any_unit_is_dangerous(void);",

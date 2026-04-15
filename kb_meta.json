@@ -9,7 +9,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x861a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x861c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x86600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x86890": {
       "kind": "function",
       "status": "ported"
     },
@@ -29,15 +41,11 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x861a0": {
+    "0x87520": {
       "kind": "function",
       "status": "ported"
     },
-    "0x861c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x86890": {
+    "0x875f0": {
       "kind": "function",
       "status": "ported"
     },
@@ -775,7 +783,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xba710": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xba800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbadf0": {
       "kind": "function",
       "status": "ported"
     },
@@ -1279,6 +1295,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x191260": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x191330": {
       "kind": "function",
       "status": "ported"
@@ -1430,6 +1450,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c8140": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c8990": {
       "kind": "function",
       "status": "ported"
@@ -1450,17 +1474,35 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1cf640": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1cf730": {
       "kind": "function",
       "status": "ported"
     },
-    "0x87520": {
+    "0xbaeb0": {
       "kind": "function",
       "status": "ported"
     },
-    "0x875f0": {
+    "0xbae20": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "confidence": "inferred",
+      "note": "Player boarding/examine check. Formerly listed at 0xbae10 (stray RET padding byte). Prototype corrected from void() to bool(int,int)."
+    },
+    "players_update_before_game": {
+      "status": "ported",
+      "confidence": "high",
+      "addr": "0xbd100",
+      "notes": "Full lift: validates player actions, spawns dead players, builds unit control, updates PVS and local player count."
+    },
+    "players_update_after_game": {
+      "status": "ported",
+      "confidence": "high",
+      "addr": "0xbdbf0",
+      "notes": "Full lift: ticks double-speed countdown, handles telefrag effect/kill per player, scans BSP-switch trigger volumes, advances BSP nibble counter, handles all-dead restart flag."
     }
   }
 }
