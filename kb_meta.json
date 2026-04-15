@@ -795,6 +795,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbae20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbaeb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbd100": {
+      "kind": "function",
+      "status": "ported",
+      "name": "players_update_before_game",
+      "comments": {
+        "summary": "Pre-tick player update. Originally reverted in ea68d9e due to ABI bugs; re-ported cleanly in 85d2748 after full disassembly-level audit. Split-screen multiplayer (spawn/move/look/shoot) verified in xemu."
+      }
+    },
+    "0xbdbf0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "players_update_after_game",
+      "comments": {
+        "summary": "Post-tick player update: ticks double-speed countdown, handles telefrag effect/kill, scans BSP-switch trigger volumes, advances BSP nibble counter, SP all-dead restart. Re-ported after pre-audit verified all 9 direct-address cast calls (0xa2ed0, 0xa2930, 0x1a7f80, 0xbc4b0 EBX-reg, 0x13d7f0, 0x18ef00, 0x100500, 0xbdb00 EBX-reg, 0x100380). Split-screen telefrag verified in xemu."
+      }
+    },
     "0xc3c30": {
       "kind": "function",
       "status": "ported"
@@ -1291,6 +1315,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1910f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191170": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x191250": {
       "kind": "function",
       "status": "ported"
@@ -1481,32 +1517,6 @@
     "0x1cf730": {
       "kind": "function",
       "status": "ported"
-    },
-    "0xbaeb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xbae20": {
-      "kind": "function",
-      "status": "ported",
-      "confidence": "inferred",
-      "note": "Player boarding/examine check. Formerly listed at 0xbae10 (stray RET padding byte). Prototype corrected from void() to bool(int,int)."
-    },
-    "0xbd100": {
-      "kind": "function",
-      "name": "players_update_before_game",
-      "status": "ported",
-      "comments": {
-        "summary": "Pre-tick player update. Originally reverted in ea68d9e due to ABI bugs; re-ported cleanly in 85d2748 after full disassembly-level audit. Split-screen multiplayer (spawn/move/look/shoot) verified in xemu."
-      }
-    },
-    "0xbdbf0": {
-      "kind": "function",
-      "name": "players_update_after_game",
-      "status": "ported",
-      "comments": {
-        "summary": "Post-tick player update: ticks double-speed countdown, handles telefrag effect/kill, scans BSP-switch trigger volumes, advances BSP nibble counter, SP all-dead restart. Re-ported after pre-audit verified all 9 direct-address cast calls (0xa2ed0, 0xa2930, 0x1a7f80, 0xbc4b0 EBX-reg, 0x13d7f0, 0x18ef00, 0x100500, 0xbdb00 EBX-reg, 0x100380). Split-screen telefrag verified in xemu."
-      }
     }
   }
 }
