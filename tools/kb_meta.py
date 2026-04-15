@@ -48,7 +48,7 @@ class SymbolMetadata:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> 'SymbolMetadata':
         return cls(
-            kind=data['kind'],
+            kind=data.get('kind', 'function'),
             name=data.get('name'),
             name_confidence=data.get('name_confidence'),
             signature_confidence=data.get('signature_confidence'),

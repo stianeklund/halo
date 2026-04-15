@@ -1492,17 +1492,21 @@
       "confidence": "inferred",
       "note": "Player boarding/examine check. Formerly listed at 0xbae10 (stray RET padding byte). Prototype corrected from void() to bool(int,int)."
     },
-    "players_update_before_game": {
+    "0xbd100": {
+      "kind": "function",
+      "name": "players_update_before_game",
       "status": "typed",
-      "confidence": "medium",
-      "addr": "0xbd100",
-      "notes": "Reverted in ea68d9e after the 4e21549 port shipped four ABI/semantic bugs (startup csmemset(0xFFFFFFFF) crash, broken split-screen movement). Re-port requirements: (1) player_build_action_update arg3 is float* to &action->desired_facing_yaw, not int; (2) player_try_to_enter_vehicle and player_try_to_spawn_in_vehicle take player_handle via EAX; (3) unit_control_t requires explicit 2-byte pad between zoom_level (+0x08) and throttle_x (+0x0c). See memory project_pubg_reverted.md for full notes."
+      "comments": {
+        "summary": "Reverted in ea68d9e after 4e21549 port shipped ABI bugs (startup csmemset(0xFFFFFFFF) crash, broken split-screen). Re-port requirements: player_build_action_update arg3 is float* to &action->desired_facing_yaw; player_try_to_enter_vehicle and player_try_to_spawn_in_vehicle take player_handle via EAX; unit_control_t requires 2-byte pad between zoom_level (+0x08) and throttle_x (+0x0c). See memory project_pubg_reverted.md."
+      }
     },
-    "players_update_after_game": {
+    "0xbdbf0": {
+      "kind": "function",
+      "name": "players_update_after_game",
       "status": "typed",
-      "confidence": "medium",
-      "addr": "0xbdbf0",
-      "notes": "Reverted in ea68d9e alongside players_update_before_game. Original behavior: ticks double-speed countdown, handles telefrag effect/kill per player, scans BSP-switch trigger volumes, advances BSP nibble counter, handles all-dead restart flag. Not independently confirmed buggy but bundled in the revert since it shared the players.c batch commit; re-audit ABI before re-porting."
+      "comments": {
+        "summary": "Reverted in ea68d9e alongside players_update_before_game. Original behavior: ticks double-speed countdown, handles telefrag effect/kill per player, scans BSP-switch trigger volumes, advances BSP nibble counter, handles all-dead restart flag. Not independently confirmed buggy; bundled with the revert of the players.c batch commit."
+      }
     }
   }
 }
