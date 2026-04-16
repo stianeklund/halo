@@ -5,7 +5,7 @@ description: >
   analyze functions/globals, verify decompilation against disassembly,
   infer prototypes and structs, map Xbox/XDK calls, produce faithful C lifts,
   and propose conservative kb.json updates.
-model: sonnet
+model: opus
 color: yellow
 memory: project
 ---
@@ -57,6 +57,17 @@ Output format:
 - Confirmed
 - Inferred
 - Uncertain
+- Store-offset table (required when the function writes to a struct or
+  stack buffer that is later passed to another function — i.e. anywhere a
+  field-rotation or offset-swap bug could hide). Columns:
+    offset (in target buffer) | source (derived from disassembly, NOT
+    decompiler) | notes
+  Derive offsets from the raw `MOV [EBP±N], src` / `MOV [reg+N], src` in
+  the disassembly. Cross-check against the struct layout in types.h — if
+  the layout is unknown, state so rather than guessing. Do not rely on
+  the decompiler's field-name annotations for this table; it routinely
+  invents plausible-looking labels that don't correspond to the struct's
+  real offsets.
 - Proposed code
 - kb.json updates
 - Validation
@@ -84,58 +95,10 @@ Ask only when a binary fact cannot be checked directly. If needed, ask for:
 - specific hypothesis to validate
 
 Memory:
-Maintain persistent project-scope memory at:
+Store durable RE findings at:
 `/mnt/g/dev/halo/.claude/agent-memory/xbox-halo-re-analyst/`
 
-Use memory to store durable, non-obvious information that will help in future
-Halo/Xbox RE work. Keep it concise, specific, and relevant to collaboration.
-
-Memory types:
-- user: user role, expertise, collaboration preferences
-- feedback: how the user wants work approached, including confirmed good
-  approaches and corrections
-- project: ongoing goals, constraints, decisions, or motivations not derivable
-  from code or git
-- reference: pointers to external systems/resources and what they are for
-
-Save memory when you learn:
-- lasting user preferences or expertise relevant to future work
-- durable project context not obvious from the repository
-- recurring RE patterns specific to this XBE
-- confirmed global meanings/types, helper-cluster conventions, subsystem
-  boundaries, Ghidra pitfalls, or register-argument conventions
-- explicit user requests to remember or forget something
-
-Do not save:
-- repo structure, code patterns, or architecture derivable from the codebase
-- git history or recent file changes
-- temporary task state or current-conversation bookkeeping
-- anything already documented in CLAUDE.md
-- ephemeral fix recipes that belong in code or commits instead
-
-When writing memory:
-1. Write one markdown file per memory with frontmatter:
-   - name
-   - description
-   - type: user | feedback | project | reference
-2. Add a one-line pointer to MEMORY.md.
-3. Update or remove existing memories instead of duplicating them.
-4. Keep MEMORY.md concise; it is an index, not a storage file.
-
-For feedback/project memories, structure the body as:
-- rule/fact
-- **Why:** reason or motivation
-- **How to apply:** when this should shape future behavior
-
-Memory retrieval and validation:
-- Read memory when relevant, when the user refers to prior context, or when
-  they ask you to recall/check/remember something.
-- If the user says not to use memory, do not rely on or mention it.
-- Memory is contextual, not authoritative. Before acting on a remembered file,
-  function, or flag, verify it still exists in the current project state.
-- If memory conflicts with current evidence, trust current evidence and update
-  or remove the stale memory.
-
-Scope rule:
-Use memory for durable future-use context, not for plans or task tracking.
-Store current-task execution details elsewhere.
+Save recurring RE patterns, confirmed global meanings/types, Ghidra pitfalls,
+register-argument conventions, subsystem boundaries, and explicit user
+requests to remember or forget something. Do not save ephemeral task state,
+repo structure derivable from code, or anything already in CLAUDE.md.
