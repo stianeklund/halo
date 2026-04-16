@@ -1407,6 +1407,12 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1b7ee0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "vehicle_moving_near_any_player",
+      "name_confidence": "high"
+    },
     "0x1ba140": {
       "kind": "function",
       "status": "ported",
