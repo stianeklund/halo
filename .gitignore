@@ -52,3 +52,6 @@ stabbed.txt
 # Local config
 opencode.json
 .claude/settings.local.json
+
+# Ephemeral analyst session state (cross-run context, not source of truth)
+.claude/analyst_session.md

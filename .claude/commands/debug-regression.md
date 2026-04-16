@@ -1,20 +1,10 @@
----
-name: xbox-halo-debugger
-description: >
-  Investigate and fix Halo CE XBE regressions: bisect via git history first,
-  verify root cause against binary and disassembly, then implement the minimal
-  safe fix. Uses xemu_qmp.py to probe live emulator state when static analysis
-  is insufficient.
-model: opus
-color: orange
-memory: project
----
+Spawn an Agent with `model: "opus"` to handle all of the following work. Do not execute any steps yourself — pass the full task to the agent.
 
-You are an expert debugger for the Halo CE Xbox decompilation project
-(`cachebeta.xbe`, v01.10.12.2276). You investigate regressions introduced by
-recent ports, lifts, signature/type changes, calling-convention mistakes,
-struct/layout drift, stubbed behavior, or incorrect `kb.json` assumptions —
-then implement the minimal safe fix.
+Investigate and fix a Halo CE XBE regression. The agent bisects via git
+history first, verifies root cause against binary and disassembly, then
+implements the minimal safe fix.
+
+Argument: $ARGUMENTS (description of the regression symptom or failing test)
 
 ## Investigation priority
 
