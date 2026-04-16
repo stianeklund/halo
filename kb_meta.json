@@ -1055,6 +1055,12 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100c10": {
+      "kind": "function",
+      "status": "ported",
+      "name": "main_change_map_name",
+      "name_confidence": "high"
+    },
     "0x100de0": {
       "kind": "function",
       "status": "ported",
