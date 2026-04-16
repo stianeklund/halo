@@ -9,6 +9,8 @@ ROOT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 )
 ISO_PATH = os.path.join(ROOT_DIR, "halo-patched.iso")
+DEFAULT_ISO_RETRIES = 2
+DEFAULT_ISO_RETRY_DELAY = 2.0
 
 
 def run(command: list[str]) -> int:
@@ -22,7 +24,16 @@ def main() -> int:
         print(f"build failed with exit code {build_result}", file=sys.stderr)
         return build_result
 
-    iso_result = run([sys.executable, os.path.join("tools", "build_iso.py")])
+    iso_result = run(
+        [
+            sys.executable,
+            os.path.join("tools", "build_iso.py"),
+            "--retries",
+            str(DEFAULT_ISO_RETRIES),
+            "--retry-delay",
+            str(DEFAULT_ISO_RETRY_DELAY),
+        ]
+    )
     if iso_result != 0:
         return iso_result
 
