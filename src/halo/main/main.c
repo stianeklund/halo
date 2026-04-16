@@ -103,6 +103,203 @@ void main_menu_precache_resources(void)
   }
 }
 
+/*
+ * main_rasterizer_throttle - 0x101970
+ *
+ * Confirmed:
+ *  - Reads the hardware vblank/flip counter pair (qword_325678 at
+ *    0x325678/0x32567c) and writes a "frame start" snapshot
+ *    (qword_325678 + 1) into unk_time_globals.unk_24 (0x46d9f8/0x46d9fc).
+ *  - Two enable flags gate framerate control:
+ *      0x31fa96 = master rasterizer vblank enable
+ *      0x32568d = per-frame enable (cleared to 0 on 1000 ms timeout)
+ *  - When enabled, waits in a spin loop for the flip counter to reach
+ *    unk_time_globals.unk_8 - 1 (0x46d9e8/0x46d9ec). Bracketed by
+ *    RDTSC calls at 0x91b70 (start) and 0x91ba0 (end). During the wait,
+ *    if cache_files_precache_in_progress (0x1bc6b0) returns true, the
+ *    loop calls 0x1d0362(1) (stdcall sleep/yield) each iteration.
+ *  - After the wait (or if throttle was skipped), stores a "frame end"
+ *    snapshot (qword_325678 + 1) into unk_time_globals.unk_32
+ *    (0x46da00/0x46da04).
+ *  - Computes frames elapsed since last vblank target as a signed int64
+ *    (frame_end - unk_8), clamped to [0, 0x7fff] → int16_t frames_delta.
+ *    Captures synced = (0x46dd96 == 0x46dd98) at frame-end snapshot time.
+ *  - Appends a debug timing string to the buffer at 0x46ddfc using
+ *    csstrlen (0x8df60, called twice due to MSVC pre-push interleaving)
+ *    and snprintf (0x1d9179). Format: "%6I64d(targ%6I64d %s%2d)" with
+ *    entry flip count, target (unk_8), label, and elapsed ticks.
+ *    Label is "THROTTLE" if we waited, "SYNCED  " if on-time, else
+ *    "LAPSED  ".
+ *  - Writes 0x46dd9a (frame-pacing active flag): 1 iff 0x46dd96 > 0 &&
+ *    frames_delta == 0, else 0.
+ *  - Calls 0x8f880(frames_delta, synced, debug_buf) to store per-frame
+ *    profile counters.
+ */
+void main_rasterizer_throttle(void)
+{
+  /* snapshot of hardware flip counter pair at function entry */
+  unsigned int entry_flip_lo;
+  int entry_flip_hi;
+  /* target: unk_time_globals.unk_8 - 1 (64-bit) */
+  unsigned int target_lo;
+  int target_hi;
+  /* system_milliseconds() at start of wait loop (timeout reference) */
+  unsigned int ms_start;
+  /* true if we actually entered the vblank wait */
+  bool did_throttle;
+  /* return of cache_files_precache_in_progress */
+  bool precache_in_progress;
+  /* frames elapsed since vblank target, clamped to [0, 0x7fff] */
+  int16_t frames_delta;
+  /* whether 0x46dd96 == 0x46dd98 at frame-end snapshot time */
+  bool synced;
+  /* elapsed flip ticks (throttle path) or sign-extended frames_delta */
+  unsigned int elapsed_lo;
+  int elapsed_hi;
+  /* frame-end flip counter snapshot (qword_325678 + 1) */
+  unsigned int end_flip_lo;
+  int end_flip_hi;
+  /* raw 64-bit delta: frame_end - unk_8 */
+  unsigned int udelta_lo;
+  int udelta_hi;
+  /* debug label: "THROTTLE", "SYNCED  ", or "LAPSED  " */
+  const char *label;
+  /* csstrlen return values for debug buffer append (called twice per MSVC
+   * pre-push interleaving: first to compute remaining space, second to
+   * compute end-of-string pointer) */
+  int str_len1;
+  int str_len2;
+
+  typedef unsigned int(__cdecl * fn_system_ms_t)(void);
+  typedef bool(__cdecl * fn_precache_t)(void);
+  typedef void(__stdcall * fn_yield_t)(int);
+  typedef void(__cdecl * fn_warn_t)(const char *);
+  typedef void(__cdecl * fn_rdtsc_t)(void);
+  typedef int(__cdecl * fn_csstrlen_t)(const char *);
+  typedef void(__cdecl * fn_profile_store_t)(int16_t, bool, const char *);
+  typedef int(__cdecl * fn_snprintf_t)(char *, int, const char *, ...);
+
+  /* snapshot hardware flip counter on entry */
+  entry_flip_lo = *(unsigned int *)0x325678;
+  entry_flip_hi = *(int *)0x32567c;
+
+  /* frame-start snapshot = qword_325678 + 1 (64-bit) */
+  *(unsigned int *)0x46d9f8 = entry_flip_lo + 1;
+  *(int *)0x46d9fc = entry_flip_hi + (unsigned int)(0xfffffffe < entry_flip_lo);
+
+  did_throttle = false;
+
+  /* framerate control: master enable (0x31fa96) and per-frame enable
+   * (0x32568d, cleared on timeout) must both be non-zero */
+  if ((*(char *)0x31fa96 != '\0') && (*(char *)0x32568d != '\0')) {
+    /* target = unk_time_globals.unk_8 - 1 (64-bit decrement) */
+    target_lo = *(unsigned int *)0x46d9e8 - 1;
+    target_hi =
+      *(int *)0x46d9ec - (unsigned int)(*(unsigned int *)0x46d9e8 == 0);
+
+    /* enter throttle only if current flip count < target (signed 64-bit) */
+    if (!(*(int *)0x32567c > target_hi) &&
+        !((*(int *)0x32567c == target_hi) &&
+          (*(unsigned int *)0x325678 >= target_lo))) {
+      ms_start = ((fn_system_ms_t)0x8e370)();
+      precache_in_progress = ((fn_precache_t)0x1bc6b0)();
+      did_throttle = true;
+      ((fn_rdtsc_t)0x91b70)(); /* RDTSC timestamp: throttle start */
+
+      /* re-check: still behind? spin-wait for vblank */
+      if (!(*(int *)0x32567c > target_hi) &&
+          !((*(int *)0x32567c == target_hi) &&
+            (*(unsigned int *)0x325678 >= target_lo))) {
+        while (1) {
+          if (precache_in_progress) {
+            ((fn_yield_t)0x1d0362)(1); /* yield during precache */
+          }
+          /* timeout guard: give up after 1000 ms */
+          if (((fn_system_ms_t)0x8e370)() > ms_start + 1000U) {
+            ((fn_warn_t)0xff550)(
+              "stuck waiting for VBLANK callback! disabling rasterizer "
+              "framerate control");
+            *(char *)0x32568d = '\0'; /* disable per-frame throttle */
+            break;
+          }
+          /* exit if flip counter reached target */
+          if ((*(int *)0x32567c > target_hi) ||
+              ((*(int *)0x32567c == target_hi) &&
+               (*(unsigned int *)0x325678 >= target_lo))) {
+            break;
+          }
+        }
+      }
+      ((fn_rdtsc_t)0x91ba0)(); /* RDTSC timestamp: throttle end */
+    }
+  }
+
+  /* frame-end snapshot = qword_325678 + 1 (64-bit) */
+  end_flip_lo = *(unsigned int *)0x325678 + 1;
+  end_flip_hi =
+    *(int *)0x32567c + (unsigned int)(*(unsigned int *)0x325678 > 0xfffffffe);
+
+  /* capture synced flag before clobbering registers */
+  synced = (*(int16_t *)0x46dd96 == *(int16_t *)0x46dd98);
+  *(unsigned int *)0x46da00 = end_flip_lo;
+  *(int *)0x46da04 = end_flip_hi;
+
+  /* frames elapsed = frame_end - unk_time_globals.unk_8 (signed 64-bit),
+   * clamped to int16 range [0, 0x7fff] */
+  udelta_lo = end_flip_lo - *(unsigned int *)0x46d9e8;
+  udelta_hi = end_flip_hi - *(int *)0x46d9ec -
+              (unsigned int)(end_flip_lo < *(unsigned int *)0x46d9e8);
+
+  if (udelta_hi > 0 || (udelta_hi == 0 && udelta_lo > 0x7fff)) {
+    frames_delta = 0x7fff; /* saturate high */
+  } else if (udelta_hi < 0) {
+    frames_delta = 0; /* underflow: treat as 0 */
+  } else {
+    frames_delta = (int16_t)udelta_lo;
+  }
+
+  /* build debug label and elapsed value for the timing string */
+  if (did_throttle) {
+    /* elapsed = current flip count - entry flip count (64-bit sub) */
+    elapsed_lo = *(unsigned int *)0x325678 - entry_flip_lo;
+    elapsed_hi = *(int *)0x32567c - entry_flip_hi -
+                 (unsigned int)(*(unsigned int *)0x325678 < entry_flip_lo);
+    label = "THROTTLE";
+  } else {
+    /* use sign-extended frames_delta as elapsed (matches MOVSX/CDQ) */
+    elapsed_lo = (unsigned int)(int)frames_delta;
+    elapsed_hi = (int)frames_delta >> 0x1f;
+    label = "SYNCED  ";
+    if (frames_delta != 0) {
+      label = "LAPSED  ";
+    }
+  }
+
+  /* append timing info to the debug ring buffer at 0x46ddfc.
+   * csstrlen is called twice due to MSVC pre-push interleaving: the first
+   * call measures the current length to compute remaining space; the
+   * second call (with the same arg) computes the end-of-string pointer.
+   * Both calls produce the same result since the buffer is not modified
+   * between them. */
+  str_len1 = ((fn_csstrlen_t)0x8df60)((const char *)0x46ddfc);
+  str_len2 = ((fn_csstrlen_t)0x8df60)((const char *)0x46ddfc);
+  ((fn_snprintf_t)0x1d9179)((char *)(0x46ddfc + str_len2), 0x200 - str_len1,
+                            "%6I64d(targ%6I64d %s%2d)", entry_flip_lo,
+                            entry_flip_hi, *(unsigned int *)0x46d9e8,
+                            *(int *)0x46d9ec, label, elapsed_lo, elapsed_hi);
+
+  /* frame-pacing active flag: set iff dd96 counter > 0 and no frames
+   * elapsed this tick (i.e., we're running ahead of schedule) */
+  if (*(int16_t *)0x46dd96 > 0 && frames_delta == 0) {
+    *(char *)0x46dd9a = 1;
+  } else {
+    *(char *)0x46dd9a = 0;
+  }
+
+  /* store per-frame profile: delta count, synced flag, debug string */
+  ((fn_profile_store_t)0x8f880)(frames_delta, synced, (const char *)0x46ddfc);
+}
+
 void main_menu_load(void)
 {
   if (!main_globals.main_menu_scenario_loaded) {
