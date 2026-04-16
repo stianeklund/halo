@@ -1055,6 +1055,12 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100de0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "main_skip_private",
+      "name_confidence": "high"
+    },
     "0x101970": {
       "kind": "function",
       "status": "ported",

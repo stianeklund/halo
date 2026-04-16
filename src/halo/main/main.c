@@ -104,6 +104,50 @@ void main_menu_precache_resources(void)
 }
 
 /*
+ * main_skip_private - 0x100de0
+ *
+ * Confirmed:
+ *  - Reads/clears two adjacent globals:
+ *      0x46da4a = int16_t skip counter (how many ticks to fast-forward)
+ *      0x46da49 = bool main_skip_private_pending (cleared on both paths)
+ *  - Guard: counter must be > 0 AND cinematic_in_progress() must be true.
+ *    If not, emits error(2, "manual skipping doesn't work outside of
+ *    cinemtatic start/stop...") [sic — original typo preserved in binary].
+ *  - On success: saves current game speed via game_time_get_speed(), sets
+ *    speed to 1.0f, then loops calling game_time_update(1/30.0f) once per
+ *    tick while the counter is > 0 (counter decremented inside loop).
+ *  - After the loop, decrements the counter once more (goes to -1), restores
+ *    the saved speed via game_time_set_speed(saved_speed), then zeroes both
+ *    globals.
+ *  - Float constant 0x3d088889 = ~0.0333f (1/30 sec, one game tick at 30 Hz).
+ *  - Float constant 0x3f800000 = 1.0f.
+ *  - FSTP/PUSH round-trip: saved speed is stored as float (4 bytes) on the
+ *    stack [EBP-4] and reloaded into EAX before being pushed as a raw dword.
+ */
+void main_skip_private(void)
+{
+  float saved_speed;
+  int16_t *skip_count = (int16_t *)0x46da4a;
+
+  if (*skip_count > 0 && cinematic_in_progress()) {
+    saved_speed = game_time_get_speed();
+    game_time_set_speed(1.0f);
+    while (*skip_count > 0) {
+      (*skip_count)--;
+      game_time_update(0.03333333507180214f);
+    }
+    (*skip_count)--;
+    game_time_set_speed(saved_speed);
+    *skip_count = 0;
+    main_skip_private_pending = 0;
+    return;
+  }
+  error(2, "manual skipping doesn't work outside of cinemtatic start/stop...");
+  *skip_count = 0;
+  main_skip_private_pending = 0;
+}
+
+/*
  * main_rasterizer_throttle - 0x101970
  *
  * Confirmed:
