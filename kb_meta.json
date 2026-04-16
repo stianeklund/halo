@@ -1575,6 +1575,30 @@
     "0x1cf730": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x13d680": {
+      "kind": "function",
+      "status": "ported",
+      "name": "object_get_and_verify_type",
+      "name_confidence": "high"
+    },
+    "0x13f060": {
+      "kind": "function",
+      "status": "ported",
+      "name": "objects_place",
+      "name_confidence": "high"
+    },
+    "0x13f950": {
+      "kind": "function",
+      "status": "ported",
+      "name": "objects_initialize_for_new_map",
+      "name_confidence": "high"
+    },
+    "0x13fac0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "objects_dispose",
+      "name_confidence": "high"
     }
   }
 }
