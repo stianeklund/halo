@@ -147,14 +147,6 @@
       ],
       "functions": [
         {
-          "decl": "void FUN_0003aa50(void);",
-          "addr": "0x3aa50"
-        },
-        {
-          "decl": "void FUN_0003aa90(void);",
-          "addr": "0x3aa90"
-        },
-        {
           "decl": "void FUN_00042b80(void);",
           "addr": "0x42b80"
         },
@@ -258,6 +250,34 @@
         {
           "decl": "int vsprintf(char *buffer, const char *format, char *arglist);",
           "addr": "0x1da209"
+        }
+      ]
+    },
+    {
+      "name": "actors.obj",
+      "source": "ai/actors.c",
+      "data": [
+        {
+          "decl": "data_t *swarm_component_data;",
+          "addr": "0x63259c"
+        },
+        {
+          "decl": "data_t *swarm_data;",
+          "addr": "0x6325a0"
+        },
+        {
+          "decl": "data_t *actor_data;",
+          "addr": "0x6325a4"
+        }
+      ],
+      "functions": [
+        {
+          "decl": "void actors_dispose(void);",
+          "addr": "0x3aa50"
+        },
+        {
+          "decl": "void actors_dispose_from_old_map(void);",
+          "addr": "0x3aa90"
         }
       ]
     },
