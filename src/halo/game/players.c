@@ -412,6 +412,15 @@ int player_new(unsigned __int16 a1, int a2, unsigned __int16 a3, char *a4)
   return player_handle;
 }
 
+__attribute__((noinline)) static bool
+players_respawn_coop_teleport(int player_handle, int anchor_unit_handle,
+                              void *anchor_position)
+{
+  return ((bool (*)(int, int, void *))0xbbb80)(player_handle,
+                                               anchor_unit_handle,
+                                               anchor_position);
+}
+
 /* Attempt to respawn all dead players in co-op by teleporting them to a
  * living player's unit position.
  *
@@ -525,8 +534,8 @@ bool players_respawn_coop(void)
         } else {
           /* Teleport to anchor unit's position (+0x50). */
           live_obj = object_get_and_verify_type(iVar7, 0xffffffff);
-          bVar2 = ((bool (*)(int, int, void *))0xbbb80)(
-            iter.datum_handle, iVar7, (char *)live_obj + 0x50);
+          bVar2 = players_respawn_coop_teleport(iter.datum_handle, iVar7,
+                                                (char *)live_obj + 0x50);
         }
       }
     }
