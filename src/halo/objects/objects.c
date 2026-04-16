@@ -7,6 +7,7 @@
  *   0x13f060  objects_place
  *   0x13f810  objects_initialize
  *   0x13f950  objects_initialize_for_new_map
+ *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
  */
 
@@ -226,6 +227,86 @@ void objects_initialize_for_new_map(void)
   og->unk_8.value = 0xffffffff;
   og->unk_4 = 0;
   og->last_garbage_collection_tick = 0;
+}
+
+/*
+ * objects_dispose_from_old_map — per-map teardown of the object subsystem.
+ *
+ * Called when unloading a map (0x000a70a5 → this function). Counterpart to
+ * objects_initialize_for_new_map (0x13f950). Distinct from objects_dispose
+ * (0x13fac0), which is the one-time full teardown.
+ *
+ * Call order (confirmed from disasm):
+ *   FUN_001365b0  — per-map dispose for type-slot array
+ *   FUN_001360a0  — per-map dispose for 5 object-type slots
+ *   FUN_0013c400  — per-map dispose for object type definition list
+ *   FUN_001392e0  — per-map dispose for BSP cluster data
+ *
+ * Then, if the object header data table is valid (byte at data+0x24 != 0):
+ *   Walk every datum via data_next_index (0x1198f0):
+ *     - datum_get (0x119320) to retrieve element ptr (EBX)
+ *     - if element->field_8 != NULL: memory_pool_free(objects,
+ * &element->field_8)
+ *     - datum_delete (0x1196d0) to remove the datum
+ *     - zero element->field_8 and element->field_2
+ *   After loop: data_make_invalid (0x119550) on the table
+ *
+ * Finally dispose collideable and noncollideable cluster partition structs:
+ *   FUN_00191600(&collideable_cluster_partition)
+ *   FUN_00191600(&noncollideable_cluster_partition)
+ *
+ * Confirmed: no arguments — caller at 0x000a70a5 uses bare CALL with no PUSH.
+ *            Ghidra's __fastcall/param_1 is a misread of the PUSH ECX stack
+ *            slot reservation in the function prologue.
+ * Confirmed: MOV CL, byte ptr [EAX+0x24] / TEST CL,CL — byte guard on data
+ *            valid flag (data_t.valid) before the loop.
+ * Confirmed: ADD ESP,0x8 after datum_get and data_next_index calls (2 cdecl
+ *            args each); ADD ESP,0x10 at loop-end cleans datum_delete (0x8) +
+ *            data_next_index advance call (0x8) together.
+ * Confirmed: ADD ESP,0x8 after memory_pool_free (2 cdecl args).
+ * Confirmed: ADD ESP,0x4 after data_make_invalid (1 cdecl arg).
+ * Confirmed: ADD ESP,0x8 cleans the two FUN_191600 calls at the end.
+ * Confirmed: MOV dword ptr [EBP-4], EAX saves data ptr; reloaded at
+ *            0x13fa5d for datum_delete after the conditional pool-free.
+ * Confirmed: LEA EDI,[EBX+8] — EDI = &element->field_8 — passed as
+ *            arg2 to memory_pool_free; also used to zero field_8 at 0x13fa67.
+ */
+void objects_dispose_from_old_map(void)
+{
+  ((pfn_void_t)0x1365b0)();
+  ((pfn_void_t)0x1360a0)();
+  ((pfn_void_t)0x13c400)();
+  ((pfn_void_t)0x1392e0)();
+
+  data_t *obj_data = *(data_t **)0x5a8d50;
+
+  /* Only walk the table if it has been made valid */
+  if (*(uint8_t *)((uint8_t *)obj_data + 0x24) != 0) {
+    int idx = data_next_index(obj_data, -1);
+    while (idx != -1) {
+      /* datum_get returns a pointer; field at +8 is the object data ptr */
+      uint8_t *elem = (uint8_t *)datum_get(obj_data, idx);
+      void **field_8_ptr = (void **)(elem + 0x8);
+
+      if (*field_8_ptr != 0) {
+        /* Free this object's memory pool allocation */
+        ((void (*)(void *, void **))0x11e7a0)(*(void **)0x46f080, field_8_ptr);
+      }
+
+      datum_delete(obj_data, idx);
+
+      /* Zero out field_8 and field_2 unconditionally after delete */
+      *field_8_ptr = 0;
+      *(uint8_t *)(elem + 0x2) = 0;
+
+      idx = data_next_index(*(data_t **)0x5a8d50, idx);
+    }
+    data_make_invalid(*(data_t **)0x5a8d50);
+  }
+
+  /* Dispose cluster partition sub-tables */
+  ((void (*)(void *))0x191600)((void *)0x5a8d40);
+  ((void (*)(void *))0x191600)((void *)0x5a8d30);
 }
 
 /*
