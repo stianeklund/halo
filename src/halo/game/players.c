@@ -412,13 +412,181 @@ int player_new(unsigned __int16 a1, int a2, unsigned __int16 a3, char *a4)
   return player_handle;
 }
 
+/* Spawn (or respawn) a player.
+ *
+ * Two paths:
+ *   A. Campaign/singleplayer path (game engine NOT running): if the player
+ *      already has a "saved unit" parked in players_globals+0x14+idx*4, try
+ *      to reuse it.  Otherwise fabricate a new unit from the current spawn
+ *      point.
+ *   B. Multiplayer / game-engine path: always allocate a fresh unit via
+ *      object_placement_data_new + object_new_from_placement_data.
+ *
+ * Structurally faithful lift of the original FUN_bbcb0.  Helper addresses
+ * (0xbbbe0, 0xbaae0, 0xbaba0, 0xba5f0, 0x10cc70, 0x13fc20, 0x13fb30,
+ * 0x13ffc0, 0x140cc0, 0x143c80, 0x1adeb0, 0x1adf10, 0xbb410, 0xa99a0,
+ * 0x8aa30) are not yet in kb.json; invoked by address to keep the lift
+ * narrowly scoped.
+ *
+ * Uncertain: exact semantics of players_globals+0x14 (cached-unit table
+ * per local player), scenario+0x348 (starting-equipment count / flags),
+ * globals+0x170 tag block (default unit biped tag), globals+0x164
+ * (MP-specific unit tag), and DAT_5ac9f4 (campaign encounter selector).
+ * Field names for these are deliberately kept as raw offsets. */
+void player_spawn(int player_handle)
+{
+  char *player; /* [EBP-0x4] player datum ptr (EDI)          */
+  int saved_unit; /* ESI: handle of a cached unit to reuse   */
+  int16_t local_player_index;
+  char *unit_data;
+  int prev_weapon;
+  int16_t spawn_slot;
+  char *globals_ptr; /* [EBP-0x8] game_globals_get() result  */
+  char *default_unit_block;
+  void *position; /* vec3 from FUN_baae0                    */
+  int tag_handle; /* biped tag handle fed to placement data */
+  char placement[0x88]; /* [EBP-0xa8] object_placement_data  */
+  float orient_tmp[3]; /* [EBP-0x20] local_24: out-param for FUN_a99a0 */
+  float orient[3]; /* [EBP-0x14] local_18: copied, passed to FUN_baba0 */
+  int new_unit;
+  char *unit_obj;
+  char *player2; /* re-fetched player ptr after object_new  */
+  int scen_starting_count;
+  void *mp_unit_block;
+
+  player = (char *)datum_get(player_data, player_handle);
+  saved_unit = NONE;
+  /* Record the original player pointer for the common tail. */
+
+  /* --- Path A/B selector: campaign code first tries to reuse a cached
+   *     unit stored at players_globals+0x14+lpi*4. ---- */
+  if (!game_engine_running()) {
+    local_player_index = *(int16_t *)(player + 2);
+    if (local_player_index != NONE) {
+      saved_unit =
+        *(int *)&players_globals->unk_0[0x14 + local_player_index * 4];
+      *(int *)&players_globals->unk_0[0x14 + local_player_index * 4] = NONE;
+      if (saved_unit != NONE) {
+        unit_data = (char *)object_get_and_verify_type(saved_unit, 3);
+        if ((unit_data[0xb6] & 4) != 0) {
+          /* Cached unit was deleted/marked-deleted: drop it and fall
+           * through to the fresh-spawn path. */
+          ((void (*)(int))0x140cc0)(saved_unit);
+          saved_unit = NONE;
+        }
+      }
+    }
+  }
+
+  if (!game_engine_running() && saved_unit != NONE) {
+    /* --- Reuse cached unit path. --- */
+    unit_data = (char *)object_get_and_verify_type(saved_unit, 3);
+    prev_weapon = unit_get_weapon(saved_unit, *(int16_t *)(unit_data + 0x2a2));
+    if (*(int16_t *)(player + 2) == NONE) {
+      display_assert("player->local_player_index!=NONE",
+                     "c:\\halo\\SOURCE\\game\\players.c", 0x736, 1);
+      system_exit(-1);
+    }
+    ((void (*)(int))0x13fb30)(saved_unit);
+    ((void (*)(int, char))0x13ffc0)(saved_unit, 1);
+    ((void (*)(uint16_t, int))0xba5f0)((uint16_t) * (int16_t *)(player + 2),
+                                       saved_unit);
+    if (prev_weapon != NONE) {
+      ((void (*)(int, char))0x13ffc0)(prev_weapon, 1);
+    }
+  } else {
+    /* --- Fresh-spawn path. --- */
+    globals_ptr = (char *)global_scenario_get();
+    if (*(int *)0x5ac9f4 != NONE) {
+      /* Touch the campaign-encounter selector entry (side effect unused
+       * here; the original preserves the call). */
+      tag_block_get_element(globals_ptr + 0x42c, *(int *)0x5ac9f4 & 0xffff,
+                            0xb0);
+    }
+    spawn_slot = (int16_t)((int (*)(int))0xbbbe0)(player_handle);
+    if (spawn_slot == NONE) {
+      goto common_tail;
+    }
+    globals_ptr = (char *)game_globals_get();
+    default_unit_block = (char *)tag_block_get_element(
+      (char *)game_globals_get() + 0x170, 0, 0xf4);
+    if (*(int *)(default_unit_block + 0xc) == NONE) {
+      goto common_tail;
+    }
+    position = ((void *(*)(int16_t))0xbaae0)(spawn_slot);
+    if (game_engine_running()) {
+      mp_unit_block = tag_block_get_element(globals_ptr + 0x164, 0, 0xa0);
+      tag_handle = *(int *)((char *)mp_unit_block + 0x1c);
+    } else {
+      tag_handle = *(int *)(default_unit_block + 0xc);
+    }
+    ((void (*)(char *, int, int))0x13fc20)(placement, tag_handle, -1);
+    /* Copy position vec3 from FUN_baae0 into placement+0x18..+0x20. */
+    *(int *)(placement + 0x18) = *(int *)((char *)position + 0x00);
+    *(int *)(placement + 0x1c) = *(int *)((char *)position + 0x04);
+    *(int *)(placement + 0x20) = *(int *)((char *)position + 0x08);
+    /* placement+0x34 = forward vec3 from yaw (position+0xc). */
+    ((void (*)(float *, float))0x10cc70)((float *)(placement + 0x34),
+                                         *(float *)((char *)position + 0xc));
+    /* placement+0x40 = up vec3 copied from global at *(void**)0x31fc44. */
+    *(int *)(placement + 0x40) = *(int *)(*(int *)0x31fc44 + 0);
+    *(int *)(placement + 0x44) = *(int *)(*(int *)0x31fc44 + 4);
+    *(int *)(placement + 0x48) = *(int *)(*(int *)0x31fc44 + 8);
+    /* Compute starting team/color vec3.  The original fetches into
+     * local_24, then copies the three dwords into local_18 before calling
+     * FUN_baba0 — preserve both buffers. */
+    {
+      float *ret =
+        ((float *(*)(float *, int))0xa99a0)(orient_tmp, player_handle);
+      orient[0] = ret[0];
+      orient[1] = ret[1];
+      orient[2] = ret[2];
+    }
+    ((void (*)(char *, float *))0xbaba0)(placement, orient);
+    new_unit = ((int (*)(char *))0x143c80)(placement);
+    if (new_unit == NONE) {
+      goto common_tail;
+    }
+    unit_obj = (char *)((void *(*)(int, int))0x13d640)(new_unit, 3);
+    if (unit_obj == NULL) {
+      goto common_tail;
+    }
+    player2 = (char *)datum_get(player_data, player_handle);
+    *(int *)(unit_obj + 0x70) = player_handle;
+    *(int16_t *)(unit_obj + 0x68) = *(int16_t *)(player2 + 0x20);
+    *(int *)(unit_obj + 0x1c8) = player_handle;
+    *(int *)(player2 + 0x34) = new_unit;
+    ((void (*)(int, char))0x1adf10)(new_unit, 1);
+    if (*(int16_t *)(player2 + 2) != NONE) {
+      player_control_new_unit((uint16_t) * (int16_t *)(player2 + 2), new_unit);
+    }
+    if (!game_engine_running()) {
+      scen_starting_count = *(int *)((char *)global_scenario_get() + 0x348);
+      if (scen_starting_count > 1 && *(int16_t *)(player2 + 0xaa) > 0) {
+        ((void (*)(int, char, char))0xbb410)(*(int *)(player2 + 0x34), 1, 1);
+      } else if (scen_starting_count != 0) {
+        ((void (*)(int, char, char))0xbb410)(*(int *)(player2 + 0x34), 0, 1);
+      }
+    }
+    /* Restore EDI (original player ptr) for the common tail. */
+  }
+
+common_tail:
+  csmemset(player + 0x68, 0, 4);
+  player2 = (char *)datum_get(player_data, player_handle);
+  *(int16_t *)(player2 + 0x28) = 0;
+  *(int *)(player2 + 0x24) = NONE;
+  if (*(int16_t *)(player + 2) != NONE) {
+    ((void (*)(int16_t))0x8aa30)(*(int16_t *)(player + 2));
+  }
+}
+
 __attribute__((noinline)) static bool
 players_respawn_coop_teleport(int player_handle, int anchor_unit_handle,
                               void *anchor_position)
 {
-  return ((bool (*)(int, int, void *))0xbbb80)(player_handle,
-                                               anchor_unit_handle,
-                                               anchor_position);
+  return ((bool (*)(int, int, void *))0xbbb80)(
+    player_handle, anchor_unit_handle, anchor_position);
 }
 
 /* Attempt to respawn all dead players in co-op by teleporting them to a

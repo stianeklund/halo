@@ -837,6 +837,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbbcb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbd100": {
       "kind": "function",
       "status": "ported",
