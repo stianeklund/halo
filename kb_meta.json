@@ -1081,6 +1081,12 @@
       "name": "main_rasterizer_throttle",
       "name_confidence": "high"
     },
+    "0x101d90": {
+      "kind": "function",
+      "status": "ported",
+      "name": "main_save_current_solo_map",
+      "name_confidence": "high"
+    },
     "0x101e00": {
       "kind": "function",
       "status": "ported",
