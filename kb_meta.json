@@ -5,7 +5,15 @@
       "kind": "function",
       "status": "ported",
       "name": "actors_dispose_from_old_map",
-      "name_confidence": "high"
+      "name_confidence": "high",
+      "inferred": [
+        "FUN_0x3aa50 is actors_dispose, the single-function mirror of the dispose-pair convention seen elsewhere in this subsystem.",
+        "FUN_0x3aa50 is actors_dispose, the single-function mirror of the dispose-pair convention seen elsewhere in this subsystem."
+      ],
+      "uncertain": [
+        "Whether actors.obj contains additional unported functions such as actors_initialize_for_new_map at 0x3a990 has not been confirmed.",
+        "Whether actors.obj contains additional unported functions such as actors_initialize_for_new_map at 0x3a990 has not been confirmed."
+      ]
     },
     "0x3f6f0": {
       "kind": "function",
@@ -1091,7 +1099,10 @@
       "kind": "function",
       "status": "ported",
       "name": "main_save_current_solo_map",
-      "name_confidence": "high"
+      "name_confidence": "high",
+      "inferred": [
+        "0x1db2b3 is fwrite, despite Ghidra labelling it FID_conflict:_fread; call context (write mode open, file pointer, fixed-size struct) confirms write semantics."
+      ]
     },
     "0x101e00": {
       "kind": "function",
@@ -1103,7 +1114,16 @@
       "kind": "function",
       "status": "ported",
       "name": "main_load_ui_scenario",
-      "name_confidence": "high"
+      "name_confidence": "high",
+      "inferred": [
+        "0x86cb0 is a camera or director subsystem helper, inferred from the constant argument it receives and its position relative to cinematic calls.",
+        "0x85180 is a cinematic-state initializer, inferred from call order and constant zero argument.",
+        "0xe43d0 is the UI widget flag-2 setter, inferred from its single boolean-like argument and call site immediately after widget lookup."
+      ],
+      "uncertain": [
+        "Exact semantics of 0x86cb0 beyond its observed constant argument are unknown; it may reset or prime a camera track rather than simply disposing state.",
+        "Exact semantics of 0x85180 beyond its observed constant argument are unknown; could be cinematic-state reset or first-frame init."
+      ]
     },
     "0x101fe0": {
       "kind": "function",
