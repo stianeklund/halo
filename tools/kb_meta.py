@@ -44,6 +44,8 @@ class SymbolMetadata:
     provenance: list[dict[str, str]] = field(default_factory=list)
     comments: dict[str, str] = field(default_factory=dict)
     flags: dict[str, bool] = field(default_factory=dict)
+    inferred: list[str] = field(default_factory=list)
+    uncertain: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> 'SymbolMetadata':
@@ -56,6 +58,8 @@ class SymbolMetadata:
             provenance=list(data.get('provenance', [])),
             comments=dict(data.get('comments', {})),
             flags=dict(data.get('flags', {})),
+            inferred=list(data.get('inferred', [])),
+            uncertain=list(data.get('uncertain', [])),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -75,6 +79,10 @@ class SymbolMetadata:
             out['comments'] = self.comments
         if self.flags:
             out['flags'] = self.flags
+        if self.inferred:
+            out['inferred'] = self.inferred
+        if self.uncertain:
+            out['uncertain'] = self.uncertain
         return out
 
 
@@ -131,6 +139,12 @@ class MetadataStore:
             for key, value in symbol.flags.items():
                 if not isinstance(value, bool):
                     errors.append(f'{addr}: flags.{key} must be boolean')
+            for i, entry in enumerate(symbol.inferred):
+                if not isinstance(entry, str):
+                    errors.append(f'{addr}: inferred[{i}] must be a string')
+            for i, entry in enumerate(symbol.uncertain):
+                if not isinstance(entry, str):
+                    errors.append(f'{addr}: uncertain[{i}] must be a string')
         if self.md5 != self.kb.expected_md5:
             errors.append(
                 f'md5 mismatch: kb_meta.json={self.md5} kb.json={self.kb.expected_md5}')
@@ -178,6 +192,10 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser.add_argument('--status', choices=sorted(VALID_STATUS))
     list_parser.add_argument('--kind', choices=sorted(VALID_KIND))
     list_parser.add_argument('--object', default='')
+    list_parser.add_argument('--has-inferred', action='store_true',
+                             help='Only show symbols with non-empty inferred notes')
+    list_parser.add_argument('--has-uncertain', action='store_true',
+                             help='Only show symbols with non-empty uncertain notes')
 
     status_parser = sub.add_parser('set-status', help='Set metadata status for a symbol')
     status_parser.add_argument('--addr', required=True)
@@ -191,6 +209,22 @@ def build_parser() -> argparse.ArgumentParser:
     summary_parser = sub.add_parser('set-summary', help='Store a short summary comment')
     summary_parser.add_argument('--addr', required=True)
     summary_parser.add_argument('--summary', required=True)
+
+    notes_parser = sub.add_parser(
+        'annotate-notes',
+        help='Append, replace, or clear inferred/uncertain notes for a symbol',
+    )
+    notes_parser.add_argument('--addr', required=True)
+    notes_parser.add_argument(
+        '--kind',
+        required=True,
+        choices=['inferred', 'uncertain'],
+        help='Which note list to modify',
+    )
+    notes_parser.add_argument('--append', metavar='NOTE',
+                              help='Append a note string to the list')
+    notes_parser.add_argument('--clear', action='store_true',
+                              help='Clear all notes of this kind')
 
     return ap
 
@@ -224,10 +258,14 @@ def main():
         known = len([row for row in rows if row['status'] != 'unknown'])
         ported = len([row for row in rows if row['status'] == 'ported'])
         verified = len([row for row in rows if row['status'] == 'verified'])
+        with_inferred = len([s for s in store.symbols.values() if s.inferred])
+        with_uncertain = len([s for s in store.symbols.values() if s.uncertain])
         print(f'total symbols: {len(rows)}')
         print(f'annotated symbols: {known}')
         print(f'ported symbols: {ported}')
         print(f'verified symbols: {verified}')
+        print(f'symbols with inferred notes: {with_inferred}')
+        print(f'symbols with uncertain notes: {with_uncertain}')
         return
 
     if args.command == 'list':
@@ -238,6 +276,16 @@ def main():
             rows = [row for row in rows if row['kind'] == args.kind]
         if args.object:
             rows = [row for row in rows if row['object'] == args.object]
+        if args.has_inferred:
+            rows = [
+                row for row in rows
+                if store.symbols.get(row['addr']) and store.symbols[row['addr']].inferred
+            ]
+        if args.has_uncertain:
+            rows = [
+                row for row in rows
+                if store.symbols.get(row['addr']) and store.symbols[row['addr']].uncertain
+            ]
         print_rows(rows)
         return
 
@@ -261,6 +309,22 @@ def main():
         symbol.comments['summary'] = args.summary
         store.save()
         print(f'{normalize_addr(args.addr)} summary updated')
+        return
+
+    if args.command == 'annotate-notes':
+        if not args.clear and not args.append:
+            print('error: one of --append or --clear is required')
+            raise SystemExit(1)
+        symbol = store.ensure_symbol(args.addr)
+        target_list: list[str] = getattr(symbol, args.kind)
+        if args.clear:
+            target_list.clear()
+            store.save()
+            print(f'{normalize_addr(args.addr)} {args.kind} cleared')
+        if args.append:
+            target_list.append(args.append)
+            store.save()
+            print(f'{normalize_addr(args.addr)} {args.kind} appended')
         return
 
 
