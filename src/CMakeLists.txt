@@ -76,6 +76,7 @@
 	halo/objects/widgets/widgets.c
 	halo/text/unicode.c
 	halo/tag_files/files.c
+	halo/tag_files/tag_groups.c
 	halo/shell.c
 	halo/shell_xbox.c
 	halo/cache/physical_memory_map.c

@@ -1395,6 +1395,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x19b210": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19dc90": {
       "kind": "function",
       "status": "ported"

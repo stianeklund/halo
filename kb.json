@@ -2564,6 +2564,7 @@
     },
     {
       "name": "tag_groups.obj",
+      "source": "tag_files/tag_groups.c",
       "functions": [
         {
           "decl": "void *tag_block_get_element(void *block, int index, int element_size);",
