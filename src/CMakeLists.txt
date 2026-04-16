@@ -48,6 +48,7 @@
 	halo/interface/ui_widget_game_data_input_functions.c
 	halo/items/items.c
 	halo/items/projectiles.c
+	halo/units/vehicles.c
 	halo/networking/network_messages.c
 	halo/main/debug_keys.c
 	halo/main/main.c
