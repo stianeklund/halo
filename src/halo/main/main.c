@@ -836,6 +836,94 @@ void main_rasterizer_throttle(void)
   ((fn_profile_store_t)0x8f880)(frames_delta, synced, (const char *)0x46ddfc);
 }
 
+/*
+ * main_load_last_solo_map - 0x101e00
+ *
+ * Called from the main loop when main_load_last_solo_map_pending (0x46da48)
+ * is set. Reads the last-solo-map name from "z:\\last_solo.txt" and queues
+ * that map (or the default "levels\\a10\\a10") for the next change-map pass.
+ *
+ * Confirmed:
+ *  - Pending guard: main_load_last_solo_map_pending must be non-zero.
+ *    A second guard at 0x1c5940 returns non-zero while a saved-film / demo
+ *    playback is active (it reads DAT_0046cc86-adjacent globals 0x4ead58 /
+ *    0x4ead60); when that guard fires, the function bails out without
+ *    clearing either pending flag.
+ *  - File I/O (addresses match the LIBCMT thunks already used by
+ *    main_frame_rate_debug):
+ *      fopen  = 0x1d9e59 with mode "r" (DAT_002658a4)
+ *      fread  = 0x1db3f7 (size_t fread(buf, 1, 0xff, fp))
+ *      fclose = 0x1d9dac
+ *  - 256-byte stack buffer (local_104 at [EBP-0x100]). fread is clamped to
+ *    0xff via a signed compare (JLE) and buf[n] is explicitly nulled.
+ *  - 0x1006f0 maps a map-name string to a level index (0-9) or -1 (0xffff).
+ *    Same helper already used by main_won_map_private. A 0xffff return means
+ *    the loaded path is not a known level; fall back to the default.
+ *  - Default map pointer lives at *(char **)0x31fa9c (points at the string
+ *    "levels\\a10\\a10" — not in kb.json, accessed by hardcoded address).
+ *  - 0xfffa0 is the shared "queue change-map-name" helper: copies the
+ *    argument into map_name[] (0x46da55), clears main_menu_load_pending
+ *    (0x46da43), sets byte_46DA54, and — if the game is in progress with
+ *    word_46DA0C == 0 — arms main_change_map_name_pending.
+ *  - On exit: clears main_change_map_name_pending (0x46da25) and
+ *    main_load_last_solo_map_pending (0x46da48). The 0xfffa0 helper had
+ *    just armed main_change_map_name_pending; this trailing clear undoes
+ *    that, which is intentional — the original binary forgoes the
+ *    change-map path when loading the last-solo map directly.
+ *
+ * Inferred:
+ *  - 0x1c5940 is a "saved-film / demo is being played back" predicate. Its
+ *    body reads DAT_0046ead58 (byte) and DAT_0046ead60 (dword); returns 1
+ *    only when both are set. Exact name not confirmed from strings.
+ *
+ * Uncertain:
+ *  - The paired globals gating 0x1c5940 have no strong semantic label yet.
+ */
+void main_load_last_solo_map(void)
+{
+  char buf[256];
+  void *fp;
+  int n;
+  char *map_path;
+  uint16_t level_index;
+
+  typedef bool(__cdecl * fn_film_active_t)(void);
+  typedef void *(__cdecl * fn_fopen_t)(const char *path, const char *mode);
+  typedef size_t(__cdecl * fn_fread_t)(void *buf, size_t size, size_t count,
+                                       void *fp);
+  typedef int(__cdecl * fn_fclose_t)(void *fp);
+  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
+  typedef void(__cdecl * fn_queue_map_t)(char *map_path);
+
+  if (!main_load_last_solo_map_pending) {
+    return;
+  }
+  if (((fn_film_active_t)0x1c5940)()) {
+    return;
+  }
+
+  /* default: *(char **)0x31fa9c → "levels\\a10\\a10" */
+  map_path = *(char **)0x31fa9c;
+
+  fp = ((fn_fopen_t)0x1d9e59)("z:\\last_solo.txt", "r");
+  if (fp != NULL) {
+    n = (int)((fn_fread_t)0x1db3f7)(buf, 1, 0xff, fp);
+    ((fn_fclose_t)0x1d9dac)(fp);
+    if (n > 0xff) {
+      n = 0xff;
+    }
+    buf[n] = 0;
+    level_index = ((fn_map_to_level_t)0x1006f0)(buf);
+    if (level_index != 0xffff) {
+      map_path = buf;
+    }
+  }
+
+  ((fn_queue_map_t)0xfffa0)(map_path);
+  main_change_map_name_pending = 0;
+  main_load_last_solo_map_pending = 0;
+}
+
 void main_menu_load(void)
 {
   if (!main_globals.main_menu_scenario_loaded) {
