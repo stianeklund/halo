@@ -105,7 +105,8 @@ void rasterizer_preinitialize(void)
   /* 0x1e69f0: D3DDevice_GetDeviceCaps(&d3d_caps) — 1 arg (stdcall, RET 0x4) */
   ((void(__stdcall *)(void *))0x1e69f0)((void *)0x5a59e0);
 
-  /* 0x1ee920: D3DDevice_Present(NULL, NULL, NULL, NULL) — 4 args (stdcall, RET 0x10) */
+  /* 0x1ee920: D3DDevice_Present(NULL, NULL, NULL, NULL) — 4 args (stdcall, RET
+   * 0x10) */
   ((void(__stdcall *)(void *, void *, void *, void *))0x1ee920)(0, 0, 0, 0);
 
   /* Release device if acquired */

@@ -687,7 +687,8 @@ void players_update_before_game(void)
           *(int *)(unit_data + 0xcc) != -1) {
         *(char *)(player + 0x3e) = 0;
       } else if (*(char *)(player + 0x3e) == 0) {
-        *(char *)(player + 0x3e) = (char)player_try_to_enter_vehicle(datum_handle);
+        *(char *)(player + 0x3e) =
+          (char)player_try_to_enter_vehicle(datum_handle);
       }
 
       /* Alt-attack / throw-weapon (sign bit of action->buttons byte 0):

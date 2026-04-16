@@ -139,4 +139,3 @@ void game_state_load_core(const char *name)
 fail:
   ((void (*)(int, const char *, ...))0xff4d0)(0, "couldn't open '%s'", name);
 }
-
