@@ -9,6 +9,7 @@
  *   0x13f950  objects_initialize_for_new_map
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
+ *   0x145170  objects_update
  */
 
 #include "common.h"
@@ -354,4 +355,337 @@ void objects_dispose(void)
   /* Zero out cluster partition structs (3 data_t* fields each) */
   ((void (*)(void *))0x191630)((void *)0x5a8d40);
   ((void (*)(void *))0x191630)((void *)0x5a8d30);
+}
+
+/*
+ * objects_update — per-tick update for all active objects.
+ *
+ * Called once per game tick. Three passes over the object header array, plus
+ * PVS comparison logic and a trailing garbage-collection call.
+ *
+ * Object header array base: *(void**)0x5a8d50 + 0x34.
+ * Each element is 0xc bytes:
+ *   +0x0 (int16_t): salt/generation (0 = slot empty)
+ *   +0x2 (uint8_t): flags byte:
+ *       bit 0 (0x01): collideable
+ *       bit 2 (0x04): pending forced-update then deactivate
+ *       bit 3 (0x08): pending deactivation
+ *       bit 4 (0x10): "updated this tick" — cleared unconditionally each frame
+ *       bit 5 (0x20): active (scheduled for update)
+ *       bit 6 (0x40): PVS-relevant (cluster assigned)
+ *       bit 7 (0x80): non-negative guard for non-collideable activation path
+ *   +0x3 (uint8_t): object type index (used for double-speed skip mask)
+ *   +0x4 (int16_t): cluster_index (-1 = NONE)
+ *   +0x8 (uint32_t*): pointer to object_data_t
+ *
+ * PVS phase (only when PVS changes):
+ *   og+0x4c (curr_pvs) receives this frame's combined player PVS; og+0xc
+ *   (prev_pvs) receives the previous frame's curr_pvs snapshot.
+ *   csmemcmp(prev_pvs, curr_pvs, pvs_size) detects a change.
+ *   When they differ, walks all headers where bits 5 and 6 are both set
+ *   (active + PVS-relevant):
+ *     - Collideable (bit 0): if cluster NOT in curr_pvs:
+ *         if [obj_data+4] & 0x80000 → FUN_140bc0(idx,0) (force-delete)
+ *         else                      → FUN_13fb80(idx)   (deactivate)
+ *     - Non-collideable (bit 0 clear, bit 7 clear), cluster != -1:
+ *         if cluster IS in curr_pvs → FUN_13fb30(idx) (activate)
+ *   Then calls FUN_1963c0(prev_pvs, curr_pvs, cluster_count) to update decals.
+ *
+ * Update phase:
+ *   For each root object (flags & 1 set, flags & 4 clear):
+ *     Asserts parent_object_index == -1 and next_object_index == -1.
+ *     If game_players_are_double_speed() and object type is biped or vehicle
+ *     (type bit 0 or 1 set) AND obj->field_1c8 != -1: skip FUN_1444f0.
+ *     Otherwise: calls FUN_1444f0(handle) — object_update per-tick.
+ *
+ * Post-update phase:
+ *   For each valid slot:
+ *     Unconditionally clears bit 4 (0x10) from flags.
+ *     If bit 2 (0x04) was set: clears bit 2, calls FUN_1444f0(handle) (flush).
+ *     If bit 3 (0x08) set: calls FUN_1449b0(handle, 0) (deactivate/delete).
+ *
+ * Trailing call: FUN_144b50() — garbage-collect dead/stranded objects.
+ *
+ * Profiling markers: profile_enter_private / profile_exit_private around the
+ * whole function, gated on two byte flags at 0x449ef1 and 0x324640.
+ *
+ * Confirmed: stride 0xc — ADD ESI,0xc at every loop-bottom.
+ * Confirmed: element count = *(int16_t*)(obj_data_ptr+0x2e); compared with BX.
+ * Confirmed: datum handle built as (int16_salt << 16) | int16_index via
+ *            MOVSX + SHL 0x10 + OR.
+ * Confirmed: EBX held as -1 sentinel throughout loop 2 (OR EBX,0xffffffff).
+ * Confirmed: csmemcpy (0x8e0b0) copies old PVS to new PVS buffer and vice
+ *            versa; players_get_combined_pvs (0xba6c0) provides current PVS.
+ * Confirmed: ADD ESP,0xc (3 args) after first two csmemcpy calls; ADD ESP,0x18
+ *            (6 args) after csmemcmp + csmemcpy combined cleanup.
+ * Confirmed: MOVSX EAX,word ptr [EAX+0x134] — cluster count from scenario.
+ * Confirmed: MOVSX EBX,BX / MOVSX ECX,DX used to zero-extend the 16-bit loop
+ *            counter before PUSH as datum handle low word.
+ * Confirmed: MOV AL,byte ptr [EBP-0x1] — double-speed bool held in stack slot.
+ * Confirmed: display_assert + system_exit pattern identical to other functions.
+ * Confirmed: FUN_13d680 called as object_get_and_verify_type(handle, -1) for
+ *            the parent/next asserts, and (handle, 3) for the type mask check.
+ * Confirmed: ADD ESP,0x8 after each 2-arg callee; ADD ESP,0x14 after each
+ *            display_assert (4 args) + system_exit (1 arg) block.
+ */
+void objects_update(void)
+{
+  /* --- profiling entry (gated on two flags) --- */
+  if ((*(uint8_t *)0x449ef1 != 0) && (*(uint8_t *)0x324640 != 0)) {
+    profile_enter_private(*(void **)0x324638);
+  }
+
+  /* --- double-speed player flag --- */
+  /* game_time_get() returns the current tick; bit 0 set → odd tick. */
+  bool double_speed = false;
+  if ((game_time_get() & 1) != 0) {
+    /* game_players_are_double_speed: returns bool via AL */
+    if (game_players_are_double_speed()) {
+      double_speed = true;
+    }
+  }
+
+  /* --- PVS setup --- */
+  /* object_globals->pending_update_count (int16 at +0x4) = 0 each frame */
+  object_globals_t *og = object_globals;
+  *(int16_t *)((uint8_t *)og + 0x4) = 0;
+
+  /* prev_pvs = og+0xc  (EBX in disasm; holds previous frame's PVS after copy)
+   * curr_pvs = og+0x4c (EDI in disasm; receives fresh combined PVS each frame)
+   * Confirmed: LEA EBX,[EAX+0xc]; MOV [EBP-0xc],EBX; LEA EDI,[EAX+0x4c]. */
+  uint8_t *prev_pvs = (uint8_t *)og + 0xc;
+  uint8_t *curr_pvs = (uint8_t *)og + 0x4c;
+
+  /* cluster_count = scenario->bsp_cluster_count (int16 at scenario+0x134).
+   * pvs_size = ((cluster_count + 0x1f) >> 5) << 2  (round up to dword).
+   * Confirmed: MOVSX EAX,word [EAX+0x134]; MOVSX ESI,AX; ADD ESI,0x1f;
+   *            SAR ESI,5; SHL ESI,2.
+   * [EBP-8] holds the raw cluster_count_raw as int for later PUSH. */
+  void *scen = scenario_get();
+  int16_t cluster_count_raw = *(int16_t *)((uint8_t *)scen + 0x134);
+  int pvs_size = ((cluster_count_raw + 0x1f) >> 5) << 2;
+
+  /* Step 1: save old curr_pvs into prev_pvs.
+   * Confirmed: PUSH ESI(pvs_size);PUSH EDI(curr_pvs);PUSH EBX(prev_pvs);
+   *            CALL csmemcpy; ADD ESP,0xc. */
+  csmemcpy(prev_pvs, curr_pvs, pvs_size);
+
+  /* Step 2: fetch this frame's combined player PVS; copy into curr_pvs.
+   * players_get_combined_pvs() takes no arguments.
+   * Confirmed: PUSH ESI (pre-push for next csmemcpy, not arg to pvs getter);
+   *            CALL 0xba6c0; PUSH EAX(combined); PUSH EDI(curr_pvs);
+   *            CALL csmemcpy. */
+  void *combined_pvs = players_get_combined_pvs();
+  csmemcpy(curr_pvs, combined_pvs, pvs_size);
+
+  /* Step 3: compare prev vs curr — nonzero means PVS changed this tick.
+   * Confirmed: PUSH ESI;PUSH EDI(curr_pvs);PUSH EBX(prev_pvs);
+   *            CALL 0x8da40 (csmemcmp); ADD ESP,0x18 cleans steps 2+3. */
+  int pvs_changed =
+    ((int (*)(void *, void *, int))0x8da40)(prev_pvs, curr_pvs, pvs_size);
+
+  /* --- PVS-driven activation/deactivation pass --- */
+  if (pvs_changed != 0) {
+    data_t *obj_data = *(data_t **)0x5a8d50;
+    /* Array base: *(void**)(obj_data+0x34); count: *(int16_t*)(obj_data+0x2e).
+     * Confirmed: MOV ESI,[EAX+0x34]; XOR EBX,EBX; CMP word [EAX+0x2e],BX */
+    uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
+    int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
+    for (int16_t i = 0; i < count; i++, hdr += 0xc) {
+      /* Reload count from live pointer at loop bottom.
+       * Confirmed: MOV ECX,[0x5a8d50]; CMP BX,word [ECX+0x2e] at 0x1452d8. */
+      count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
+
+      /* Skip empty slots */
+      if (*(int16_t *)hdr == 0)
+        continue;
+
+      uint8_t flags = *(uint8_t *)(hdr + 0x2);
+
+      /* Must have both PVS-relevant (0x40) and active (0x20) bits set */
+      if ((flags & 0x40) == 0)
+        continue;
+      if ((flags & 0x20) == 0)
+        continue;
+
+      if ((flags & 0x1) != 0) {
+        /* Collideable object: should always have a valid cluster_index.
+         * Binary asserts cluster_index != -1 here. */
+        int16_t cluster_idx = *(int16_t *)(hdr + 0x4);
+        if (cluster_idx == -1) {
+          display_assert("object_header->cluster_index!=NONE",
+                         "c:\\halo\\SOURCE\\objects\\objects.c", 0x171, 1);
+          system_exit(-1);
+        }
+        /* Check if cluster is in the current PVS bitmap (EDI = curr_pvs).
+         * Confirmed: SAR EAX,5; TEST [EDI+EAX*4],EDX; JNZ skip. */
+        if ((*(uint32_t *)(curr_pvs + ((cluster_idx >> 5) * 4)) &
+             (1u << (cluster_idx & 0x1f))) == 0) {
+          /* Cluster is NOT in current PVS — deactivate or force-delete.
+           * [ESI+8] = pointer to object_data; check object_data[1] & 0x80000.
+           * Confirmed: MOV EAX,[ESI+8]; TEST dword [EAX+4],0x80000. */
+          uint32_t *obj_dat = *(uint32_t **)(hdr + 0x8);
+          if ((obj_dat[1] & 0x80000) != 0) {
+            /* Has "always update" flag: force-delete via FUN_140bc0. */
+            ((void (*)(int, int))0x140bc0)((int)i, 0);
+          } else {
+            /* Normal deactivate via FUN_13fb80. */
+            ((void (*)(int))0x13fb80)((int)i);
+          }
+        }
+      } else {
+        /* Non-collideable path: activate if cluster is now in PVS.
+         * Bit 7 of flags guards this path (skip if negative).
+         * Confirmed: TEST AL,AL; JS skip. */
+        if ((flags & 0x80) != 0)
+          continue;
+
+        int16_t cluster_idx = *(int16_t *)(hdr + 0x4);
+        if (cluster_idx == (int16_t)-1)
+          continue;
+
+        /* Check if cluster IS in current PVS.
+         * Confirmed: TEST [EDI+EAX*4],EDX; JZ skip. */
+        if ((*(uint32_t *)(curr_pvs + ((cluster_idx >> 5) * 4)) &
+             (1u << (cluster_idx & 0x1f))) != 0) {
+          ((void (*)(int))0x13fb30)((int)i);
+        }
+      }
+    }
+
+    /* Update structure decals for changed PVS.
+     * FUN_1963c0(prev_pvs, curr_pvs, cluster_count): 3 cdecl args.
+     * Confirmed: PUSH EDX([EBP-8]=cluster_count_raw cast to int),
+     *            PUSH EDI(curr_pvs), PUSH EAX([EBP-0xc]=prev_pvs);
+     *            CALL 0x1963c0; ADD ESP,0xc. */
+    ((void (*)(void *, void *, int))0x1963c0)(prev_pvs, curr_pvs,
+                                              (int)cluster_count_raw);
+  }
+
+  /* --- per-object update pass (root objects only) --- */
+  /* Reload array base — may have been invalidated by the PVS pass.
+   * Confirmed: MOV EAX,[0x5a8d50]; MOV EDI,[EAX+0x34] at 0x1452fd. */
+  {
+    data_t *obj_data = *(data_t **)0x5a8d50;
+    uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
+    int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
+
+    for (int16_t i = 0; i < count; i++, hdr += 0xc) {
+      /* Reload count each iteration (confirmed at 0x1453de-0x1453eb).
+       * Confirmed: MOV EAX,[0x5a8d50]; ... CMP DX,word [EAX+0x2e] */
+      count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
+
+      if (*(int16_t *)hdr == 0)
+        continue;
+
+      uint8_t flags = *(uint8_t *)(hdr + 0x2);
+      /* Must be active (bit 0) and not pending forced-update (bit 2) */
+      if ((flags & 0x1) == 0)
+        continue;
+      if ((flags & 0x4) != 0)
+        continue;
+
+      /* Build datum handle: (salt << 16) | index.
+       * Confirmed: MOVSX ESI,CX (salt); MOVSX ECX,DX (index); SHL ESI,0x10;
+       *            OR EBX,0xffffffff; OR ESI,ECX. */
+      int16_t salt = *(int16_t *)hdr;
+      int handle = ((int)(int16_t)salt << 16) | (int)(int16_t)i;
+
+      /* Assert: object must be a root (parent == -1) */
+      {
+        object_data_t *obj =
+          (object_data_t *)object_get_and_verify_type(handle, 0xffffffff);
+        if (*(int *)((uint8_t *)obj + 0xcc) != -1) {
+          display_assert(
+            "object_get(object_index)->object.parent_object_index==NONE",
+            "c:\\halo\\SOURCE\\objects\\objects.c", 0x1a0, 1);
+          system_exit(-1);
+        }
+      }
+
+      /* Assert: object must not have a next sibling (next == -1) */
+      {
+        object_data_t *obj =
+          (object_data_t *)object_get_and_verify_type(handle, 0xffffffff);
+        if (*(int *)((uint8_t *)obj + 0xc4) != -1) {
+          display_assert(
+            "object_get(object_index)->object.next_object_index==NONE",
+            "c:\\halo\\SOURCE\\objects\\objects.c", 0x1a1, 1);
+          system_exit(-1);
+        }
+      }
+
+      /* Double-speed skip: if double_speed && this object's type is biped or
+       * vehicle (type-bit 0 or 1) && obj->field_1c8 != -1 → skip update.
+       * Confirmed: MOV CL,[EDI+3] (type byte); SHL EDX,CL; TEST DL,0x3. */
+      bool do_update = true;
+      if (double_speed) {
+        uint8_t type_byte = *(uint8_t *)(hdr + 0x3);
+        if (((1u << (type_byte & 0x1f)) & 0x3) != 0) {
+          object_data_t *obj =
+            (object_data_t *)object_get_and_verify_type(handle, 3);
+          if (*(int *)((uint8_t *)obj + 0x1c8) != -1) {
+            do_update = false;
+          }
+        }
+      }
+
+      if (do_update) {
+        ((int (*)(int))0x1444f0)(handle);
+      }
+    }
+  }
+
+  /* --- post-update flag cleanup and deferred operations --- */
+  /* Confirmed: XOR EDI,EDI (index counter); MOV BL,0xef (& mask for bit 4).
+   * Reload base: MOV ESI,[EAX+0x34] at 0x1453f4 after loop 2. */
+  {
+    data_t *obj_data = *(data_t **)0x5a8d50;
+    uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
+    int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
+
+    for (int16_t i = 0; i < count; i++, hdr += 0xc) {
+      /* Reload count each iteration.
+       * Confirmed: MOV ECX,[0x5a8d50]; CMP DI,word [ECX+0x2e] at 0x14544a. */
+      count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
+
+      if (*(int16_t *)hdr == 0)
+        continue;
+
+      /* Read flags, clear bit 4 (0x10) unconditionally ("updated this tick").
+       * Confirmed: MOV AL,[ESI+2]; AND AL,0xef; MOV [ESI+2],AL. */
+      uint8_t flags = *(uint8_t *)(hdr + 0x2);
+      flags &= (uint8_t)0xef;
+      *(uint8_t *)(hdr + 0x2) = flags;
+
+      /* If bit 2 (0x04) was set before the AND (i.e. was set before clearing):
+       * also clear bit 2, then call object_update (0x1444f0).
+       * Confirmed: TEST AL,0x4; JZ ...; AND AL,0xfb; MOV [ESI+2],AL. */
+      if ((flags & 0x4) != 0) {
+        flags &= (uint8_t)0xfb;
+        *(uint8_t *)(hdr + 0x2) = flags;
+        int16_t salt = *(int16_t *)hdr;
+        int handle = ((int)(int16_t)salt << 16) | (int)(int16_t)i;
+        ((int (*)(int))0x1444f0)(handle);
+      }
+
+      /* If bit 3 (0x08) is set: deactivate/delete the object.
+       * Confirmed: TEST byte [ESI+2],0x8; JZ ...; ... CALL 0x1449b0. */
+      if ((*(uint8_t *)(hdr + 0x2) & 0x8) != 0) {
+        int16_t salt = *(int16_t *)hdr;
+        int handle = ((int)(int16_t)salt << 16) | (int)(int16_t)i;
+        ((void (*)(int, int))0x1449b0)(handle, 0);
+      }
+    }
+  }
+
+  /* --- garbage collection --- */
+  /* FUN_144b50: collects dead/stranded objects; no args; no return value.
+   * Confirmed: bare CALL 0x144b50 at 0x14545a. */
+  ((void (*)(void))0x144b50)();
+
+  /* --- profiling exit --- */
+  if ((*(uint8_t *)0x449ef1 != 0) && (*(uint8_t *)0x324640 != 0)) {
+    profile_exit_private(*(void **)0x324638);
+  }
 }
