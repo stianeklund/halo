@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 def main():
 	git_rev = "UNKNOWN"
 	try:
-		run = subprocess.run(["git", "describe", "--always", "--dirty"], stdout=subprocess.PIPE)
+		run = subprocess.run(["git", "describe", "--always"], stdout=subprocess.PIPE)
 		if run.stdout.strip() != "":
 			git_rev = run.stdout.strip().decode("utf-8")
 	except:
@@ -15,7 +15,7 @@ def main():
 #define BUILD_DATE_SHORT "{datetime.now(timezone.utc).strftime('%m/%d/%y')}"
 const char *build_rev = BUILD_REV;
 const char *build_date = BUILD_DATE;
-const char *build_ui_widget_text = "HDP " BUILD_REV " " BUILD_DATE_SHORT;
+const char *build_ui_widget_text = BUILD_REV " " BUILD_DATE_SHORT;
 ''')
 
 if __name__ == '__main__':
