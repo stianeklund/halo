@@ -22,7 +22,11 @@ the top candidate.
 Steps:
 1. Resolve the target in kb.json: address, name, object, source_path.
 2. Analyze via Ghidra MCP — decompile + disassemble + cross-check operand
-   sizes, CALL targets, and register args per the CLAUDE.md procedure.
+   sizes, CALL targets, and register args per the CLAUDE.md procedure. For any
+   `@<reg>` function that original code can still call after the port, audit the
+   reverse-thunk ABI too: lifted C may legitimately clobber caller-saved
+   registers (`EAX`, `ECX`, `EDX`), so return addresses and other critical
+   state must stay on the stack or be preserved explicitly.
 3. Produce a structurally faithful C implementation following CLAUDE.md rules.
 4. Write the implementation directly to the source file at the correct
    address-ordered position.
