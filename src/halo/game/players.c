@@ -514,7 +514,7 @@ void players_update_before_game(void)
   char *unit_data;
   int unit_handle;
   unit_control_t *ctl_ptr;
-  char *def_fwd; /* ptr to default forward vector (*(char**)0x31fc38) */
+  char *def_zero; /* ptr to default zero vector (*(char**)0x31fc38) */
 
   /* Profile enter. */
   if (*(char *)0x449ef1 != 0 && *(char *)0x2f0898 != 0)
@@ -803,8 +803,13 @@ void players_update_before_game(void)
           *(int *)(unit_data + 0x1a4) != -1)
         goto next_player;
 
-      /* Build a null-ish control derived from the unit's stored orientation
-       * vectors. This keeps the unit from jittering when input is locked. */
+      /* Build a neutral control using the unit's own stored orientation
+       * vectors, so unit_set_control's normalization asserts pass.
+       * Original 0xbd6b3-0xbd722 writes:
+       *   ctl2.throttle ← *(char**)0x31fc38 (zero vector)
+       *   ctl2.facing   ← unit[0x1d4..0x1dc] (unit's current facing)
+       *   ctl2.aiming   ← unit[0x1e0..0x1e8] (unit's current aiming)
+       *   ctl2.looking  ← unit[0x204..0x20c] (unit's current looking) */
       csmemset(&ctl2, 0, sizeof(ctl2));
       ctl2.weapon_index = -1;
       ctl2.grenade_index = -1;
@@ -813,24 +818,23 @@ void players_update_before_game(void)
       ctl2.aiming_speed = 0;
       ctl2.control_flags = 0;
 
-      /* Default forward vector: *(char**)0x31fc38 → vec3 at [+0..+8] */
-      def_fwd = *(char **)0x31fc38;
-      ctl2.facing_x = *(float *)(def_fwd + 0);
-      ctl2.facing_y = *(float *)(def_fwd + 4);
-      ctl2.facing_z = *(float *)(def_fwd + 8);
+      /* throttle = zero vector (*(char**)0x31fc38 → vec3 at [+0..+8]) */
+      def_zero = *(char **)0x31fc38;
+      ctl2.throttle_x = *(float *)(def_zero + 0);
+      ctl2.throttle_y = *(float *)(def_zero + 4);
+      ctl2.throttle_z = *(float *)(def_zero + 8);
 
-      /* Copy aiming vector from unit data (offset 0x1d4..0x1dc). */
-      ctl2.aiming_x = *(float *)(unit_data + 0x1d4);
-      ctl2.aiming_y = *(float *)(unit_data + 0x1d8);
-      ctl2.aiming_z = *(float *)(unit_data + 0x1dc);
+      /* facing = unit's current facing vector (unit+0x1d4..0x1dc) */
+      ctl2.facing_x = *(float *)(unit_data + 0x1d4);
+      ctl2.facing_y = *(float *)(unit_data + 0x1d8);
+      ctl2.facing_z = *(float *)(unit_data + 0x1dc);
 
-      /* Secondary aiming copy at unit+0x1e0..0x1e8 (maps to throttle in
-       * the neutral control — matches the decompiler's local_90..local_78). */
-      ctl2.throttle_x = *(float *)(unit_data + 0x1e0);
-      ctl2.throttle_y = *(float *)(unit_data + 0x1e4);
-      ctl2.throttle_z = *(float *)(unit_data + 0x1e8);
+      /* aiming = unit's current aiming vector (unit+0x1e0..0x1e8) */
+      ctl2.aiming_x = *(float *)(unit_data + 0x1e0);
+      ctl2.aiming_y = *(float *)(unit_data + 0x1e4);
+      ctl2.aiming_z = *(float *)(unit_data + 0x1e8);
 
-      /* Looking vector from unit+0x204..0x20c. */
+      /* looking = unit's current looking vector (unit+0x204..0x20c) */
       ctl2.looking_x = *(float *)(unit_data + 0x204);
       ctl2.looking_y = *(float *)(unit_data + 0x208);
       ctl2.looking_z = *(float *)(unit_data + 0x20c);
