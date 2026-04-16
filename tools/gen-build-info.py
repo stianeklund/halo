@@ -12,7 +12,7 @@ def main():
 	print(f'''
 #define BUILD_REV "{git_rev}"
 #define BUILD_DATE "{datetime.now(timezone.utc).isoformat()}"
-#define BUILD_DATE_SHORT "{datetime.now(timezone.utc).strftime('%b %d %Y')}"
+#define BUILD_DATE_SHORT "{datetime.now(timezone.utc).strftime('%m/%d/%y')}"
 const char *build_rev = BUILD_REV;
 const char *build_date = BUILD_DATE;
 const char *build_ui_widget_text = "HDP " BUILD_REV " " BUILD_DATE_SHORT;
