@@ -148,6 +148,59 @@ void main_skip_private(void)
 }
 
 /*
+ * main_won_map_private - 0x101040
+ *
+ * Confirmed:
+ *  - Sets main_menu_load_pending (0x46da43) = 1.
+ *  - Clears main_won_map_private_pending (0x46da3a) = 0.
+ *  - Calls 0x1006f0(&map_name) → returns a short level index (0-8) for
+ *    recognized map names, or -1 for unrecognized. Source path visible in
+ *    the callee: "c:\\halo\\SOURCE\\saved games\\player_profile.c". The
+ *    callee strips the path prefix (FUN_8de70 = csstrncpy-like), lowercases
+ *    (FUN_8d9a0), then does up to 10 strstr comparisons for the 10 SP
+ *    level names. Returns 0-8 for a known level; the 10th path returns 9
+ *    but the expression `(-(uint)(pcVar1 != 0) & 10) - 1` maps it to 9.
+ *  - Zero-extends the 16-bit result (XOR EDI,EDI; MOV DI,AX), then
+ *    increments: level_index = (uint16_t)(result) + 1. If (short)level_index
+ *    >= 10, level_index is set to -1 (OR EDI,0xffffffff).
+ *  - Loops i = 0 .. player_spawn_count-1, calling 0x1c1cc0(i) each
+ *    iteration. Callee source: "player_profile.c" — saves level completion
+ *    for each local player's profile.
+ *  - Calls 0xe4420(level_index) to trigger the inter-level transition:
+ *    level_index == -1 → main menu; -1 < level_index < 10 → load next
+ *    level; else → "unknown level" error + FUN_100620 (main_menu fallback).
+ *  - Loop counter compared as signed 16-bit (CMP SI, word[0x31fa94]).
+ */
+void main_won_map_private(void)
+{
+  uint16_t map_level;
+  int level_index;
+  int i;
+
+  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
+  typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
+  typedef void(__cdecl * fn_level_transition_t)(int level_index);
+
+  main_menu_load_pending = 1;
+  main_won_map_private_pending = 0;
+
+  /* map the current map name to a 0-based level index; unrecognized = -1 */
+  map_level = ((fn_map_to_level_t)0x1006f0)(map_name);
+  level_index = (int)(map_level + 1);
+  if ((int16_t)level_index >= 10) {
+    level_index = -1;
+  }
+
+  /* record level completion in each local player's saved profile */
+  for (i = 0; (int16_t)i < player_spawn_count; i++) {
+    ((fn_save_player_level_t)0x1c1cc0)(i);
+  }
+
+  /* trigger level transition or return to main menu */
+  ((fn_level_transition_t)0xe4420)(level_index);
+}
+
+/*
  * main_rasterizer_throttle - 0x101970
  *
  * Confirmed:
