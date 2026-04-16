@@ -11,6 +11,23 @@ ROOT_DIR = os.path.abspath(
 SOURCE_DIR = "halo-patched"
 OUTPUT_ISO = "halo-patched.iso"
 EXTRACT_XISO = os.path.join(ROOT_DIR, "tools", "extract-xiso.exe")
+XEMU_QMP = os.path.join(ROOT_DIR, "tools", "xemu_qmp.py")
+
+
+def eject_from_xemu() -> None:
+    iso_path = os.path.join(ROOT_DIR, OUTPUT_ISO)
+    if not os.path.exists(iso_path):
+        return
+    try:
+        subprocess.run(
+            [sys.executable, XEMU_QMP, "eject"],
+            check=False,
+            capture_output=True,
+            cwd=ROOT_DIR,
+            timeout=5,
+        )
+    except Exception:
+        pass
 
 
 def main() -> int:
@@ -24,6 +41,8 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    eject_from_xemu()
 
     command = [EXTRACT_XISO, "-c", SOURCE_DIR, OUTPUT_ISO]
 
