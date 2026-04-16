@@ -65,17 +65,26 @@ in `players_update_before_game`) is the canonical example; it wasn't
 visible in the decompiler, passed `-Wall -Werror`, and only surfaced as
 a page fault inside `stack_walk` several frames downstream.
 
-Procedure for a suspect function:
+Procedure for a suspect function (**fully automated, no GUI interaction**):
 
-1. In the Ghidra GUI, select the function's address range.
-2. Call `mcp__ghidra-live__run_relocation_synthesizer` on the range.
-3. Call `mcp__ghidra-live__export_delinked_object` — produces a COFF `.o`.
+1. Resolve the function's body range from Ghidra:
+   `mcp__ghidra__get_function_by_address(addr)` returns `Body: <start> - <end>`.
+   Or take `addr` from `kb.json` and the end from the next address in the
+   sorted listing.
+2. `mcp__ghidra-live__run_relocation_synthesizer(range=<range>)` on the
+   range — no need to set the GUI selection first.
+3. `mcp__ghidra-live__export_delinked_object(export_path=<out.o>, range=<range>)` —
+   also takes `range` directly. Produces a COFF `.o`.
 4. Build normally (`cmake --build build`).
-5. Run `tools/objdiff_lift.py` with the delinked object as
-   `--reference` and our corresponding compiled object as `--candidate`.
+5. Run `tools/objdiff_lift.py` with the delinked object as `--reference`
+   and our corresponding compiled object as `--candidate`.
 6. Scan the diff for systematic `[reg+N]` store-offset mismatches across
    adjacent writes with the same source registers — the signature of a
    rotated assignment.
+
+The only human prerequisite is that a Ghidra GUI session with the live
+MCP plugin enabled is running. Once that's up, the whole loop above is
+driveable from an agent with no clicks.
 
 ### Harm analysis
 
