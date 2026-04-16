@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import subprocess
 import sys
+import time
 
 
 ROOT_DIR = os.path.abspath(
@@ -12,6 +14,8 @@ SOURCE_DIR = "halo-patched"
 OUTPUT_ISO = "halo-patched.iso"
 EXTRACT_XISO = os.path.join(ROOT_DIR, "tools", "extract-xiso.exe")
 XEMU_QMP = os.path.join(ROOT_DIR, "tools", "xemu_qmp.py")
+DEFAULT_RETRIES = 2
+DEFAULT_RETRY_DELAY = 2.0
 
 
 def eject_from_xemu() -> None:
@@ -30,7 +34,65 @@ def eject_from_xemu() -> None:
         pass
 
 
+def run_extract_xiso() -> int:
+    command = [EXTRACT_XISO, "-c", SOURCE_DIR, OUTPUT_ISO]
+
+    try:
+        completed = subprocess.run(command, check=False, cwd=ROOT_DIR)
+    except PermissionError:
+        print("Permission denied. Close xemu and retry.", file=sys.stderr)
+        return 1
+
+    return completed.returncode
+
+
+def build_iso(retries: int, retry_delay: float) -> int:
+    eject_from_xemu()
+
+    for attempt in range(retries + 1):
+        result = run_extract_xiso()
+        if result == 0:
+            print(OUTPUT_ISO)
+            return 0
+
+        if attempt == retries:
+            print(f"extract-xiso failed with exit code {result}", file=sys.stderr)
+            return result
+
+        print(
+            f"extract-xiso failed with exit code {result}; "
+            f"ejecting media from xemu and retrying "
+            f"({attempt + 1}/{retries})",
+            file=sys.stderr,
+        )
+        eject_from_xemu()
+        time.sleep(retry_delay)
+
+    return 1
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Create halo-patched.iso with extract-xiso.",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=DEFAULT_RETRIES,
+        help=f"retry extract-xiso this many times after ejecting xemu media (default: {DEFAULT_RETRIES})",
+    )
+    parser.add_argument(
+        "--retry-delay",
+        type=float,
+        default=DEFAULT_RETRY_DELAY,
+        help=f"seconds to wait after an eject before retrying (default: {DEFAULT_RETRY_DELAY})",
+    )
+    return parser
+
+
 def main() -> int:
+    args = build_parser().parse_args()
+
     if not os.path.exists(EXTRACT_XISO):
         print(f"missing tool: {EXTRACT_XISO}", file=sys.stderr)
         return 1
@@ -42,23 +104,15 @@ def main() -> int:
         )
         return 1
 
-    eject_from_xemu()
-
-    command = [EXTRACT_XISO, "-c", SOURCE_DIR, OUTPUT_ISO]
-
-    try:
-        completed = subprocess.run(command, check=False, cwd=ROOT_DIR)
-    except PermissionError:
-        print("Permission denied. Close xemu and retry.", file=sys.stderr)
+    if args.retries < 0:
+        print("--retries must be >= 0", file=sys.stderr)
         return 1
 
-    if completed.returncode != 0:
-        print(f"extract-xiso failed with exit code {completed.returncode}",
-              file=sys.stderr)
-        return completed.returncode
+    if args.retry_delay < 0:
+        print("--retry-delay must be >= 0", file=sys.stderr)
+        return 1
 
-    print(OUTPUT_ISO)
-    return 0
+    return build_iso(args.retries, args.retry_delay)
 
 
 if __name__ == "__main__":
