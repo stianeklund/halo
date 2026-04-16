@@ -837,6 +837,67 @@ void main_rasterizer_throttle(void)
 }
 
 /*
+ * main_save_current_solo_map - 0x101d90
+ *
+ * Writes the current solo-map name to "z:\\last_solo.txt" so it can be
+ * reloaded later by main_load_last_solo_map. Called from 0xa6dc0 (the
+ * "queue_map" helper) on a successful solo campaign map change.
+ *
+ * Confirmed:
+ *  - Guard: 0x1006f0 maps the map-name string to a campaign level index
+ *    (0..9) or 0xffff when the name is not a known solo level. When the
+ *    guard returns 0xffff the function returns without opening the file.
+ *    Same helper used by main_won_map_private and main_load_last_solo_map.
+ *  - File I/O helpers (addresses reused from main_load_last_solo_map /
+ *    main_frame_rate_debug; not in kb.json):
+ *      fopen  = 0x1d9e59 with mode "w" (DAT_00265938)
+ *      fwrite = 0x1db2b3 (signature fwrite(buf, size, count, fp) — the
+ *               Ghidra symbol "FID_conflict:_fread" at 0x1db2b3 is
+ *               actually fwrite; its body calls the write-buffer helper
+ *               at 0x1db19c which performs MOVSD/MOVSB REP from the
+ *               caller buffer into the FILE's buffer).
+ *      fclose = 0x1d9dac
+ *  - File contents: fwrite(map_name, 1, csstrlen(map_name) + 1, fp) —
+ *    includes the terminating NUL so the reader can read the full path
+ *    as a NUL-terminated C string.
+ *  - On fopen failure: error(2, "Couldn't create a file to write the "
+ *    "current solo map to") — no ABORT, no fallback. The solo progress
+ *    simply isn't persisted.
+ *  - The fopen PUSH ESI just before reserves the fclose fp arg slot,
+ *    and ADD ESP,0x14 at the tail cleans fwrite's 4 args + fclose's
+ *    1 arg together (MSVC pre-push interleaving).
+ *
+ * Uncertain:
+ *  - csstrlen is the size-1 strlen at 0x8df60 (confirmed in kb.json).
+ *    Ghidra's "FUN_0008df60" stub in the decomp was the same helper.
+ */
+void main_save_current_solo_map(char *map_name)
+{
+  uint16_t level_index;
+  void *fp;
+
+  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
+  typedef void *(__cdecl * fn_fopen_t)(const char *path, const char *mode);
+  typedef size_t(__cdecl * fn_fwrite_t)(const void *buf, size_t size,
+                                        size_t count, void *fp);
+  typedef int(__cdecl * fn_fclose_t)(void *fp);
+
+  level_index = ((fn_map_to_level_t)0x1006f0)(map_name);
+  if (level_index == 0xffff) {
+    return;
+  }
+
+  fp = ((fn_fopen_t)0x1d9e59)("z:\\last_solo.txt", "w");
+  if (fp == NULL) {
+    error(2, "Couldn't create a file to write the current solo map to");
+    return;
+  }
+
+  ((fn_fwrite_t)0x1db2b3)(map_name, 1, csstrlen(map_name) + 1, fp);
+  ((fn_fclose_t)0x1d9dac)(fp);
+}
+
+/*
  * main_load_last_solo_map - 0x101e00
  *
  * Called from the main loop when main_load_last_solo_map_pending (0x46da48)
