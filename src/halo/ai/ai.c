@@ -15,7 +15,7 @@ void ai_dispose(void)
   FUN_000540c0();
   FUN_00058fa0();
   FUN_00064140();
-  FUN_0003aa50();
+  actors_dispose();
   FUN_0005df90();
   FUN_00053640();
   FUN_00048f50();
@@ -32,7 +32,7 @@ void ai_dispose_from_old_map(void)
   FUN_000540e0();
   FUN_00058fb0();
   FUN_00064160();
-  FUN_0003aa90();
+  actors_dispose_from_old_map();
   FUN_0005dfb0();
   FUN_00053670();
   FUN_00048fa0();
