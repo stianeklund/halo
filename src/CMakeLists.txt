@@ -36,6 +36,7 @@
 	halo/game/game_time.c
 	halo/game/player_control.c
 	halo/game/player_rumble.c
+	halo/game/player_queues_new.c
 	halo/game/players.c
 	halo/input/input_abstraction.c
 	halo/input/input_xbox.c
