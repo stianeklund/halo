@@ -2605,6 +2605,7 @@
     },
     {
       "name": "telnet_console.obj",
+      "source": "main/telnet_console.c",
       "functions": [
         {
           "decl": "void telnet_console_initialize(void);",

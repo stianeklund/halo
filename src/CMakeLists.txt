@@ -51,6 +51,7 @@
 	halo/networking/network_messages.c
 	halo/main/debug_keys.c
 	halo/main/main.c
+	halo/main/telnet_console.c
 	halo/memory/data.c
 	halo/physics/breakable_surfaces.c
 	halo/physics/collision_usage.c

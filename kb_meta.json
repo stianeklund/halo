@@ -1175,6 +1175,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x130980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x130a60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x130d60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x136520": {
       "kind": "function",
       "status": "ported"
