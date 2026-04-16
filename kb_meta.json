@@ -271,23 +271,7 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x978f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x97a50": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x97ae0": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x97d40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x97db0": {
       "kind": "function",
       "status": "ported"
     },
@@ -376,18 +360,6 @@
       "status": "ported"
     },
     "0xa14d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa18c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa1b60": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa1c30": {
       "kind": "function",
       "status": "ported"
     },
@@ -815,6 +787,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbac80": {
+      "kind": "function",
+      "status": "ported",
+      "name": "players_update_pvs",
+      "name_confidence": "high",
+      "comments": {
+        "summary": "Clears a combined PVS bitvector, OR-folds in per-player/root-cluster visibility rows, and merges the current parent-object cluster. Live GDB during the co-op respawn regression showed the C body returning cleanly; the crash was in the reverse-thunk handoff, not this function logic."
+      }
+    },
     "0xbadf0": {
       "kind": "function",
       "status": "ported"
@@ -1002,6 +983,15 @@
     "0xe3c80": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xe44d0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "display_error_when_main_menu_loaded",
+      "name_confidence": "high",
+      "comments": {
+        "summary": "Checks whether a deferred UI error should be shown once the main menu is ready, then routes through the existing error display path."
+      }
     },
     "0xe46b0": {
       "kind": "function",
@@ -1488,6 +1478,15 @@
     "0x19f450": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1a9a30": {
+      "kind": "function",
+      "status": "ported",
+      "name": "unit_is_alive",
+      "name_confidence": "high",
+      "comments": {
+        "summary": "Resolves a unit handle via object_get_and_verify_type(mask 3) and returns bit 6 of unit_data_t.unk_436 as the alive flag."
+      }
     },
     "0x1b7ee0": {
       "kind": "function",

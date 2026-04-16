@@ -231,6 +231,7 @@ behavior, or runtime declarations.
 - Verify return type: `void` vs non-void matters — callers may check EAX.
 - Variadic functions (`...`) can be thunked but need extra care.
 - Register-argument functions (`@<reg>`) on the forward-thunk path (calls into unported originals) only support the register arg as the **first** parameter. The reverse-thunk path in `tools/patch.py` (used when the function is ported in C) handles single-register and two-register cases via caller-saved scratch slots; EBX/EDI source registers are not yet supported there.
+- Reverse-thunk ABI rule: treat lifted C as free to clobber all caller-saved registers (`EAX`, `ECX`, `EDX`). Never park an original return address or other critical state in a caller-saved register across the call into ported C; keep it on the stack or preserve it explicitly.
 
 **Testing discipline:**
 - Build and test the ISO in xemu after **every** `kb.json` change, not in batches. A single bad declaration can crash the game with no obvious connection to the change.
