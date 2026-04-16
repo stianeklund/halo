@@ -1093,6 +1093,12 @@
       "name": "main_load_last_solo_map",
       "name_confidence": "high"
     },
+    "0x101f00": {
+      "kind": "function",
+      "status": "ported",
+      "name": "main_load_ui_scenario",
+      "name_confidence": "high"
+    },
     "0x101fe0": {
       "kind": "function",
       "status": "ported"
