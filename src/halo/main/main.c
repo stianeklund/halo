@@ -104,6 +104,153 @@ void main_menu_precache_resources(void)
 }
 
 /*
+ * main_change_map_name - 0x100c10
+ *
+ * Called from the main game loop when main_change_map_name_pending (0x46da25)
+ * is set. Fades out the main menu music and UI over 1000 ms, then starts a
+ * new game with the map name queued in the global map_name[255] buffer
+ * (0x46da55).
+ *
+ * Confirmed:
+ *  - Pending guard: main_globals.main_menu_scenario_loaded (0x46da42) == 1.
+ *    If not pending, the function clears the timer deadline (0x46da34) and
+ *    falls through to the timer-expired path.
+ *  - Timer deadline stored as raw uint32 milliseconds at 0x46da34 (not in
+ *    kb.json; used only by this function). Compared against
+ *    unk_time_globals.unk_0 (uint32 ms ticker at 0x46d9e0).
+ *  - Timer not-yet-started path (deadline == 0):
+ *      - FUN_e46a0 returns DAT_0046cc86 (main-menu music-active flag).
+ *      - If music is playing (== 1):
+ *          deadline = current_ms + 1000
+ *          FUN_e5a40(1000) — begin music fade-out over 1000 ms
+ *          FUN_e3e10(1)    — enable UI widget
+ *          FUN_e3c90(0.0f) — set rasterizer fade to 0 (transparent)
+ *        MSVC interleaves: PUSH 0x3e8 (e5a40 arg), then PUSH 0x1 (e3e10 arg),
+ *        then PUSH 0x0 (e3c90 arg), cleaned with a single ADD ESP,0xc.
+ *      - Early-return if deadline not yet reached (current_ms < deadline).
+ *  - Timer-running path (deadline != 0, deadline not yet reached):
+ *      delta = deadline - current_ms (int32; add 4294967296.0f if negative to
+ *      handle uint32 wrap).
+ *      fade = 1.0f - (delta * 0.001f) [constants at 0x2533c8 and 0x255ef8].
+ *      FUN_e3c90(fade) — update rasterizer blend.
+ *  - Timer-expired (or not-pending) path:
+ *      FUN_e3c90(-1.0f)     — set fade to -1.0f (0xbf800000)
+ *      FUN_e4640()          — stop main-menu music
+ *      FUN_e43d0(0)         — clear UI widget flag2
+ *      main_globals.main_menu_scenario_loaded = 0  [cleared mid push-sequence]
+ *      FUN_e3e10(0)         — disable UI widget
+ *        MSVC interleaves: PUSH 0xbf800000 (e3c90), PUSH 0x0 (e43d0), PUSH 0x0
+ *        (e3e10), cleaned with ADD ESP,0xc.
+ *      If game_in_progress() and word_46DA0C == 0:
+ *        - build game_options_t on the stack (0x10c bytes at [EBP-0x110]):
+ *            game_options_new(&game_options)
+ *            csstrncpy(game_options.map_name, map_name, 0xff)
+ *            game_options.map_name[255] = 0   (explicit null-term)
+ *            game_options.difficulty = global_difficulty_level
+ *        - game_dispose_from_old_map()
+ *        - game_precache_new_map(game_options.map_name, 1)
+ *        - game_unload()
+ *        - main_new_map(&game_options)
+ *        - loop i=0 .. player_spawn_count-1: FUN_1c1c00(i) (save player
+ * profile) Loop counter compared as signed int16 against player_spawn_count.
+ *  - Deadline cleared to 0 unconditionally at function exit (0x46da34 = 0).
+ *  - Float constants:
+ *      0x4f800000 = 4294967296.0f (2^32, uint32 wrap correction)
+ *      0x3a83126f = ~0.001f       (1/1000 ms-to-fraction scale, at 0x255ef8)
+ *      0x3f800000 = 1.0f          (at 0x2533c8)
+ *      0xbf800000 = -1.0f
+ *
+ * Inferred:
+ *  - FUN_e46a0 = "main menu music is playing" — reads DAT_0046cc86.
+ *  - FUN_e5a40 = begin UI fade / music fade-out (takes fade duration ms).
+ *  - FUN_e3c90 = rasterizer_set_fade (takes float; stores raw bits to DAT_0046cc4c).
+ *  - FUN_e3e10 = ui_widget_set_flag (bool enable).
+ *  - FUN_e4640 = stop_main_menu_music.
+ *  - FUN_e43d0 = ui_widget_set_flag2 (bool).
+ *  - FUN_1c1c00 = player_profile_save_level (local_player_index).
+ *
+ * Uncertain:
+ *  - Exact semantics of FUN_e5a40, e3c90, e3e10, e43d0 — names are inferred
+ *    from callee bodies and context; not confirmed by source strings.
+ *  - Whether the note "// FIXME: Merge adjacent globals" on main_globals_t
+ *    means 0x46da42 has dual use here vs. in main_menu_load.
+ */
+void main_change_map_name(void)
+{
+  game_options_t game_options;
+  int delta;
+  int i;
+
+  typedef bool(__cdecl * fn_music_playing_t)(void);
+  typedef void(__cdecl * fn_ui_fade_start_t)(int duration_ms);
+  typedef void(__cdecl * fn_set_fade_t)(float fade);
+  typedef void(__cdecl * fn_set_widget_flag_t)(bool enable);
+  typedef void(__cdecl * fn_stop_music_t)(void);
+  typedef void(__cdecl * fn_set_widget_flag2_t)(bool enable);
+  typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
+
+  if (main_globals.main_menu_scenario_loaded) {
+    if (*(int *)0x46da34 == 0) {
+      /* music not yet fading: check if music is still playing */
+      if (((fn_music_playing_t)0xe46a0)()) {
+        /* set deadline and kick off the 1000 ms fade sequence */
+        *(uint32_t *)0x46da34 = (uint32_t)unk_time_globals.unk_0 + 1000;
+        /* MSVC interleaved pre-push: PUSH 0x3e8, PUSH 0x1, PUSH 0x0 */
+        ((fn_ui_fade_start_t)0xe5a40)(1000);
+        ((fn_set_widget_flag_t)0xe3e10)(1);
+        ((fn_set_fade_t)0xe3c90)(0.0f);
+      }
+    } else {
+      /* compute remaining time and update the rasterizer blend */
+      delta = (int)(*(uint32_t *)0x46da34 - (uint32_t)unk_time_globals.unk_0);
+      {
+        float flt_delta = (float)delta;
+        if (delta < 0) {
+          flt_delta = flt_delta + 4294967296.0f; /* uint32 wrap correction */
+        }
+        /* fade = 1.0f - remaining_ms * (1/1000) */
+        ((fn_set_fade_t)0xe3c90)(1.0f - flt_delta * *(float *)0x255ef8);
+      }
+    }
+    /* bail out if deadline has not been reached */
+    if ((uint32_t)unk_time_globals.unk_0 < *(uint32_t *)0x46da34) {
+      return;
+    }
+  } else {
+    /* not pending: clear deadline and fall through to clean-up path */
+    *(int *)0x46da34 = 0;
+  }
+
+  /* timer expired (or was never pending): finalize fade and start new map */
+  /* MSVC interleaved pre-push: PUSH 0xbf800000, PUSH 0x0, PUSH 0x0 */
+  ((fn_set_fade_t)0xe3c90)(-1.0f); /* 0xbf800000 */
+  ((fn_stop_music_t)0xe4640)();
+  ((fn_set_widget_flag2_t)0xe43d0)(0);
+  main_globals.main_menu_scenario_loaded = 0;
+  ((fn_set_widget_flag_t)0xe3e10)(0);
+
+  if (game_in_progress() && word_46DA0C == 0) {
+    /* initialize game_options from queued map name and difficulty */
+    game_options_new(&game_options);
+    csstrncpy(game_options.map_name, map_name, 0xff);
+    game_options.map_name[255] = 0; /* explicit null-terminator */
+    game_options.difficulty = global_difficulty_level;
+
+    game_dispose_from_old_map();
+    game_precache_new_map(game_options.map_name, 1);
+    game_unload();
+    main_new_map(&game_options);
+
+    /* save level progress for each local player (signed int16 compare) */
+    for (i = 0; (int16_t)i < player_spawn_count; i++) {
+      ((fn_save_player_level_t)0x1c1c00)(i);
+    }
+  }
+
+  *(int *)0x46da34 = 0;
+}
+
+/*
  * main_skip_private - 0x100de0
  *
  * Confirmed:
