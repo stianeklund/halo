@@ -689,6 +689,21 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb8e40": {
+      "kind": "function",
+      "status": "ported",
+      "name": "update_client_start",
+      "name_confidence": "high",
+      "comments": {
+        "summary": "Resets client action-queue data and reserves one queue slot per active player handle. Asserts update_client_globals.initialized and queue_index!=NONE."
+      },
+      "inferred": [
+        "update_client_globals struct begins at 0x45b1d0: byte initialized at +0x00, data_t* queue at +0x90 (0x45b260). Struct size ~0x10494 per FUN_000b8d70 csmemset arg."
+      ],
+      "uncertain": [
+        "Globals 0x45b1d0 (initialized byte) and 0x45b260 (queue data_t*) are not yet declared in kb.json; function uses hardcoded addresses. If/when player_queues_new has more functions ported, consider formalising update_client_globals in types.h."
+      ]
+    },
     "0xb9b30": {
       "kind": "function",
       "status": "ported"
