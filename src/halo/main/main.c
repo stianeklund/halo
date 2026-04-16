@@ -985,6 +985,86 @@ void main_load_last_solo_map(void)
   main_load_last_solo_map_pending = 0;
 }
 
+/*
+ * main_load_ui_scenario - 0x101f00
+ *
+ * Loads the main-menu UI scenario "levels\\ui\\ui" and initializes the
+ * game-engine / director state for the menu. Called from main_menu_load
+ * (0x101fe0) when main_globals.main_menu_scenario_loaded is clear, and from
+ * the game-startup path with param_1 = 1 to also precache menu resources.
+ *
+ * Confirmed:
+ *  - Precaches the UI level twice. The first call is with the string
+ *    literal "levels\\ui\\ui"; the second call passes the same string
+ *    after it has been copied into the local game_options.map_name[].
+ *    The original binary emits both calls and we preserve that.
+ *  - Asserts !main_globals.main_menu_scenario_loaded (the function may
+ *    not be re-entered while the menu scenario is already resident).
+ *    Original message / path / line are preserved verbatim.
+ *  - game_options_t is built entirely on the stack (0x10c bytes at
+ *    [EBP-0x10c]); csstrncpy(map_name, "levels\\ui\\ui", 0xff) with an
+ *    explicit map_name[255] = 0 terminator. This matches the layout in
+ *    types.h (map_name at offset 0xC).
+ *  - Tear-down / setup order is: game_dispose_from_old_map, game_unload,
+ *    game_engine_dispose, game_set_game_variant(0),
+ *    main_menu_scenario_loaded = 1, main_new_map(&game_options).
+ *  - Post main_new_map the function calls three director/UI helpers
+ *    (0x86cb0, 0x85180, 0xe43d0) and arms main_load_last_solo_map_pending.
+ *    The trailing `if (a1)` branch calls main_menu_precache_resources.
+ *
+ * Inferred:
+ *  - 0x86cb0 lives in camera/director.c (its asserts reference that file)
+ *    and appears to reset/enable directors for each local player;
+ *    called here with 1.
+ *  - 0x85180 appears to be a cinematic/cutscene state initializer;
+ *    called here with (0, 0, -1).
+ *  - 0xe43d0 is the UI widget-flag-2 setter already used by
+ *    main_change_map_name; called here with 1.
+ *
+ * Uncertain:
+ *  - Exact semantics of 0x86cb0 / 0x85180 arguments beyond the observed
+ *    constant values. Names are withheld pending stronger evidence.
+ */
+void main_load_ui_scenario(bool a1)
+{
+  game_options_t game_options;
+
+  typedef void(__cdecl * fn_director_init_t)(int arg);
+  typedef void(__cdecl * fn_cinematic_reset_t)(int16_t a, int16_t b, int c);
+  typedef void(__cdecl * fn_set_widget_flag2_t)(bool enable);
+
+  game_precache_new_map("levels\\ui\\ui", 1);
+
+  if (main_globals.main_menu_scenario_loaded) {
+    display_assert("!main_globals.main_menu_scenario_loaded",
+                   "c:\\halo\\SOURCE\\main\\main.c", 0x444, 1);
+    system_exit(-1);
+  }
+
+  game_options_new(&game_options);
+  csstrncpy(game_options.map_name, "levels\\ui\\ui", 0xff);
+  game_options.map_name[255] = 0;
+
+  game_precache_new_map(game_options.map_name, 1);
+  game_dispose_from_old_map();
+  game_unload();
+  game_engine_dispose();
+  game_set_game_variant(0);
+
+  main_globals.main_menu_scenario_loaded = 1;
+  main_new_map(&game_options);
+
+  ((fn_director_init_t)0x86cb0)(1);
+  ((fn_cinematic_reset_t)0x85180)(0, 0, -1);
+  ((fn_set_widget_flag2_t)0xe43d0)(1);
+
+  main_load_last_solo_map_pending = 1;
+
+  if (a1) {
+    main_menu_precache_resources();
+  }
+}
+
 void main_menu_load(void)
 {
   if (!main_globals.main_menu_scenario_loaded) {
