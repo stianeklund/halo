@@ -70,11 +70,13 @@ Procedure for a suspect function (**fully automated, no GUI interaction**):
 1. Resolve the function's body range from Ghidra:
    `mcp__ghidra__get_function_by_address(addr)` returns `Body: <start> - <end>`.
    Or take `addr` from `kb.json` and the end from the next address in the
-   sorted listing.
-2. `mcp__ghidra-live__run_relocation_synthesizer(range=<range>)` on the
-   range — no need to set the GUI selection first.
-3. `mcp__ghidra-live__export_delinked_object(export_path=<out.o>, range=<range>)` —
-   also takes `range` directly. Produces a COFF `.o`.
+   sorted listing. Format the range as `"0x<start>-0x<end>"` (hyphen
+   separator).
+2. `mcp__ghidra-live__run_relocation_synthesizer(selection_mode="range", range=<range>)` —
+   synthesize relocations for the range.
+3. `mcp__ghidra-live__export_delinked_object(export_path=<out.o>, selection_mode="range", range=<range>, run_relocation_synthesizer=false)` —
+   produces a COFF `.o`. Pass `run_relocation_synthesizer=false` since
+   step 2 already ran it.
 4. Build normally (`cmake --build build`).
 5. Run `tools/objdiff_lift.py` with the delinked object as `--reference`
    and our corresponding compiled object as `--candidate`.
@@ -82,9 +84,40 @@ Procedure for a suspect function (**fully automated, no GUI interaction**):
    adjacent writes with the same source registers — the signature of a
    rotated assignment.
 
-The only human prerequisite is that a Ghidra GUI session with the live
-MCP plugin enabled is running. Once that's up, the whole loop above is
-driveable from an agent with no clicks.
+### Path gotcha
+
+Ghidra runs on Windows even when the repo lives under WSL. `export_path`
+is opened on the Ghidra process side, so it must be a **Windows-format
+path**, e.g. `G:\dev\halo\artifacts\delinker\foo.o`, not
+`/mnt/g/dev/halo/artifacts/delinker/foo.o`. Pre-create the directory
+from WSL side (`mkdir -p /mnt/g/dev/halo/artifacts/delinker/`) since
+Ghidra won't create intermediate directories for you.
+
+### Tested example
+
+Verified end-to-end against `FUN_000930a0` (`cinematic_in_progress`,
+9 bytes):
+
+```
+run_relocation_synthesizer(
+  selection_mode="range",
+  range="0x930a0-0x930a8"
+)
+export_delinked_object(
+  export_path="G:\\dev\\halo\\artifacts\\delinker\\cinematic_in_progress.o",
+  selection_mode="range",
+  range="0x930a0-0x930a8",
+  run_relocation_synthesizer=false
+)
+```
+
+Produced a valid COFF object with one `dir32` relocation against
+`DAT_0044df00`, exactly what `objdump -r -t` of a clean extract should
+show.
+
+The only human prerequisite is that a Ghidra GUI session with the
+`Halo Delinker Control` plugin enabled (RPC on `127.0.0.1:18080`) is
+running. Once that's up, the whole loop above is agent-driveable.
 
 ### Harm analysis
 
