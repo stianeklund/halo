@@ -224,6 +224,120 @@ bool any_player_is_dead(void)
   return false;
 }
 
+/* Update a combined PVS (potentially-visible-set) bit vector from the current
+ * player set (or, in editor mode, from the debug observer camera).
+ *
+ * combined_pvs       (EDI) -- 0x40-byte bit vector buffer, one bit per cluster
+ *                             in the current structure_bsp. Zeroed at entry
+ *                             then OR-combined with each contributor's PVS.
+ * local_player_only        -- if true, only players with a valid
+ *                             local_player_index (player+0x2 != -1) contribute.
+ *
+ * Caller passes combined_pvs in EDI; see callers at 0xbbacc (player_teleport)
+ * and 0xbd753/0xbd763 (players_update_before_game) which take addresses inside
+ * players_globals (offsets 0x30 and 0x70 -- combined_pvs and
+ * combined_pvs_local respectively).
+ *
+ * Editor branch (game_in_editor() true):
+ *   - Look up the leaf index under the debug camera via the bsp3d, mask off
+ *     the sign bit, fetch the leaf record from scenario+0xE0 (size 0x10),
+ *     read its cluster index at +0x8, and OR that single cluster's
+ *     visibility row into combined_pvs.
+ *
+ * Game branch:
+ *   - For each player datum:
+ *       - if local_player_only and player has no local_player_index, skip
+ *       - if player has a unit, walk to root object and copy its
+ *         object.cluster_index (offset 0x4C) into player+0x3C
+ *       - if player+0x3C is valid, OR that cluster's visibility row into
+ *         combined_pvs.
+ *   - Then OR in the cluster returned by 0x13DCC0 (the "currently focused
+ *     parent object" cluster -- see objects.c FUN_0013DCC0) when valid. */
+void players_update_pvs(void *combined_pvs /* @<edi> */, bool local_player_only)
+{
+  void *structure_bsp;
+  data_iter_t iter;
+  char *player;
+  int16_t saved_cluster;
+  int unit_handle;
+  int root_handle;
+  char *root_object;
+  int16_t root_cluster;
+  int16_t player_cluster;
+  unsigned char *cluster_data;
+  unsigned int cluster_count;
+
+  structure_bsp = ((void *(*)(void))0x18e3c0)(); /* scenario_get */
+  csmemset(combined_pvs, 0, 0x40);
+
+  if (game_in_editor()) {
+    /* Editor: use the leaf under the observer camera. */
+    int leaf_handle;
+    int leaf_index;
+    void *scenario;
+    void *block;
+    char *leaf;
+    int16_t leaf_cluster;
+
+    leaf_handle =
+      ((int (*)(void *))0x18e720)(observer_get_camera(0)); /* bsp3d query */
+    if (leaf_handle == -1)
+      return;
+
+    leaf_index =
+      ((int (*)(void *))0x18e720)(observer_get_camera(0)) & 0x7fffffff;
+    scenario = ((void *(*)(void))0x18e3c0)();
+    block = (char *)scenario + 0xe0;
+    leaf = (char *)tag_block_get_element(block, leaf_index, 0x10);
+    leaf_cluster = *(int16_t *)(leaf + 8);
+    if (leaf_cluster == -1)
+      return;
+
+    cluster_data = (unsigned char *)((void *(*)(void *, int16_t))0x193550)(
+      structure_bsp, leaf_cluster);
+    cluster_count = (unsigned int)*(int *)((char *)structure_bsp + 0x134);
+    ((void (*)(int16_t, void *, void *, void *))0x108f00)(
+      (int16_t)cluster_count, combined_pvs, cluster_data, combined_pvs);
+    return;
+  }
+
+  /* Game: combine PVS from each player + the parent-object cluster. */
+  saved_cluster =
+    (int16_t)((unsigned short (*)(void))0x13dcc0)(); /* parent obj cluster */
+
+  data_iterator_new(&iter, player_data);
+  while ((player = (char *)data_iterator_next(&iter)) != NULL) {
+    if (local_player_only && *(int16_t *)(player + 2) == -1)
+      continue;
+
+    unit_handle = *(int *)(player + 0x34);
+    if (unit_handle != -1) {
+      root_handle = ((int (*)(int))0x13d7f0)(unit_handle); /* object root */
+      root_object = (char *)object_get_and_verify_type(root_handle, -1);
+      root_cluster = *(int16_t *)(root_object + 0x4c);
+      if (root_cluster != -1)
+        *(int16_t *)(player + 0x3c) = root_cluster;
+    }
+
+    player_cluster = *(int16_t *)(player + 0x3c);
+    if (player_cluster != -1) {
+      cluster_data = (unsigned char *)((void *(*)(void *, int16_t))0x193550)(
+        structure_bsp, player_cluster);
+      cluster_count = (unsigned int)*(int *)((char *)structure_bsp + 0x134);
+      ((void (*)(int16_t, void *, void *, void *))0x108f00)(
+        (int16_t)cluster_count, combined_pvs, cluster_data, combined_pvs);
+    }
+  }
+
+  if (saved_cluster != -1) {
+    cluster_data = (unsigned char *)((void *(*)(void *, int16_t))0x193550)(
+      structure_bsp, saved_cluster);
+    cluster_count = (unsigned int)*(int *)((char *)structure_bsp + 0x134);
+    ((void (*)(int16_t, void *, void *, void *))0x108f00)(
+      (int16_t)cluster_count, combined_pvs, cluster_data, combined_pvs);
+  }
+}
+
 /* Allocate and initialise a new player datum.
  *
  * local_player_index  (a1) -- which local player slot to assign; NONE (-1) is
