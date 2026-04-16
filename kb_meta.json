@@ -1067,6 +1067,12 @@
       "name": "main_skip_private",
       "name_confidence": "high"
     },
+    "0x100eb0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "main_save_map_private",
+      "name_confidence": "high"
+    },
     "0x101040": {
       "kind": "function",
       "status": "ported",

@@ -163,7 +163,8 @@ void main_menu_precache_resources(void)
  * Inferred:
  *  - FUN_e46a0 = "main menu music is playing" — reads DAT_0046cc86.
  *  - FUN_e5a40 = begin UI fade / music fade-out (takes fade duration ms).
- *  - FUN_e3c90 = rasterizer_set_fade (takes float; stores raw bits to DAT_0046cc4c).
+ *  - FUN_e3c90 = rasterizer_set_fade (takes float; stores raw bits to
+ * DAT_0046cc4c).
  *  - FUN_e3e10 = ui_widget_set_flag (bool enable).
  *  - FUN_e4640 = stop_main_menu_music.
  *  - FUN_e43d0 = ui_widget_set_flag2 (bool).
@@ -292,6 +293,115 @@ void main_skip_private(void)
   error(2, "manual skipping doesn't work outside of cinemtatic start/stop...");
   *skip_count = 0;
   main_skip_private_pending = 0;
+}
+
+/*
+ * main_save_map_private - 0x100eb0
+ *
+ * Confirmed:
+ *  - Returns immediately if game_time_get_paused() (CALL 0xb5c30; JNZ out).
+ *  - 0x46da29 (byte): save-in-progress flag. When zero the game is NOT
+ *    actively trying to save; when non-zero a save attempt is underway.
+ *  - 0x46da2a (byte): secondary flag checked only when the retry counter
+ *    (0x46da30) has exceeded 0xef ticks.
+ *  - 0x46da2c (dword): cooldown counter. Decremented each tick; save is only
+ *    attempted when it falls to <= 0. Reset to 10 after each attempt.
+ *  - 0x46da30 (dword): total-ticks counter. Incremented on every call while
+ *    the save-pending flag (0x46da29) is set. Used to detect a hung save.
+ *  - 0x46da38 (int16_t): consecutive-success counter for game_safe_to_save().
+ *    Cleared to 0 on failure, incremented on success. When the original value
+ *    reaches >= 3 (i.e. three or more consecutive successes), the save is
+ *    triggered (BL set; hud_autosave + game_state_save_pending armed).
+ *  - 0x46da28 (byte): cleared to 0 whenever the save attempt is resolved
+ *    (success, abort, or overflow). Already in kb.json as byte_46DA28.
+ *  - 0x46da2b = game_state_save_pending: set to 1 to arm the save, then the
+ *    main loop (0x100eb0 caller) handles the actual game_state_save call.
+ *  - CALL 0xd0db0 = hud_autosave(int16_t): notifies HUD; arg is 1.
+ *  - CALL 0xff4d0 = local logging helper (int, const char *, ...): same cast
+ *    pattern used in game_state.c and cheats.c.
+ *  - debug_game_save (0x46e002): when set, enables the "unsafe save" path
+ *    (triggers autosave even when 0x46da29==0) and logs the "gave up" message
+ *    on overflow instead of silently aborting.
+ *  - Overflow path (0x46da30 >= 0xf0 AND 0x46da2a != 0): clears byte_46DA28
+ *    and returns without triggering a save regardless of debug_game_save.
+ *    With debug_game_save set, logs "gave up trying to save" first.
+ *
+ * Inferred:
+ *  - 0x46da29 is probably "main_save_map_private_pending" or similar — the
+ *    name is not confirmed from strings.
+ *  - 0x46da2a is probably a secondary "abort on overflow" sub-flag.
+ *  - 0x46da2c is a retry-cooldown tick counter; 10-tick interval inferred.
+ *  - 0x46da30 is a total-attempt tick counter; 0xf0 = 240 ticks ceiling.
+ *  - 0x46da38 is a run-of-good-frames counter gating the actual save trigger.
+ *
+ * Uncertain:
+ *  - Exact semantic names for 0x46da29, 0x46da2a, 0x46da2c, 0x46da30,
+ *    0x46da38 — all accessed as hardcoded addresses since not in kb.json.
+ */
+void main_save_map_private(void)
+{
+  int orig_ticks;
+  int orig_cooldown;
+  int16_t orig_safe_count;
+  bool trigger;
+
+  if (game_time_get_paused()) {
+    return;
+  }
+
+  trigger = false;
+
+  if (*(uint8_t *)0x46da29 == 0) {
+    /* Not in a pending-save state: only fire if debug_game_save forces it. */
+    if (debug_game_save) {
+      ((void (*)(int, const char *, ...))0xff4d0)(0, "unsafe save");
+    }
+    /* Fall through to shared trigger tail. */
+  } else {
+    /* Increment total-ticks counter and check for overflow. */
+    orig_ticks = *(int *)0x46da30;
+    *(int *)0x46da30 = orig_ticks + 1;
+
+    if (orig_ticks >= 0xf0 && *(uint8_t *)0x46da2a != 0) {
+      /* Hung for too long — abort the save. */
+      if (debug_game_save) {
+        ((void (*)(int, const char *, ...))0xff4d0)(0,
+                                                    "gave up trying to save");
+      }
+      byte_46DA28 = 0;
+      return;
+    }
+
+    /* Decrement cooldown counter; only attempt save when it reaches <= 0. */
+    orig_cooldown = *(int *)0x46da2c;
+    *(int *)0x46da2c = orig_cooldown - 1;
+    if (orig_cooldown > 0) {
+      return;
+    }
+
+    /* Poll game_safe_to_save(); track consecutive successes. */
+    if (game_safe_to_save()) {
+      orig_safe_count = *(int16_t *)0x46da38;
+      *(int16_t *)0x46da38 = orig_safe_count + 1;
+      if (orig_safe_count >= 3) {
+        trigger = true;
+      }
+    } else {
+      *(int16_t *)0x46da38 = 0;
+    }
+
+    /* Reset cooldown regardless of whether the save fires. */
+    *(int *)0x46da2c = 10;
+
+    if (!trigger) {
+      return;
+    }
+  }
+
+  /* Shared trigger tail: arm save and clear pending flag. */
+  hud_autosave(1);
+  game_state_save_pending = 1;
+  byte_46DA28 = 0;
 }
 
 /*
