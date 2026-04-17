@@ -1541,6 +1541,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x187250": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x31fc1c is a pointer to a global forward/identity vector used for plane distance computation in frustum building.",
+        "The frustum output is a packed float array with a well-defined layout: [0..3] bounds, [4..0x10] world_to_view, [0x11..0x1d] view_to_world, [0x1e..0x35] 6 planes, [0x36..0x37] z values, [0x38..0x49] corners/positions, [0x4a..0x4f] AABB, [0x50..0x62] projection."
+      ],
+      "uncertain": [
+        "The FPTAN instruction behavior and FPU stack management in the inv_tan_x/inv_tan_y computation may not be perfectly reproduced by the C version since the compiler may use different FPU instruction sequences."
+      ]
+    },
     "0x18e280": {
       "kind": "function",
       "status": "ported"

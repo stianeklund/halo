@@ -198,9 +198,9 @@ void render_window(int16_t *win, void *offset_or_null)
   }
 
   /* build projection frustums for both cameras */
-  render_camera_build_frustum((camera_t *)render_cam, (_DWORD *)bounds,
+  render_camera_build_frustum((camera_t *)render_cam, bounds,
                               render_frustum, 1);
-  render_camera_build_frustum((camera_t *)rasterizer_cam, (_DWORD *)bounds,
+  render_camera_build_frustum((camera_t *)rasterizer_cam, bounds,
                               rasterizer_frustum, 1);
 
   /* reflection rendering (single player local only) */
@@ -237,7 +237,7 @@ void render_window(int16_t *win, void *offset_or_null)
       /* build reflection camera and frustum */
       ((void (*)(void *, void *, void *))0x186ef0)(render_cam, reflection_info,
                                                    &reflection_cam);
-      render_camera_build_frustum(&reflection_cam, (_DWORD *)bounds,
+      render_camera_build_frustum(&reflection_cam, bounds,
                                   reflection_frustum, 1);
 
       /* render reflection to secondary target */
