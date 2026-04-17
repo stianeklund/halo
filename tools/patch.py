@@ -10,6 +10,7 @@ import os
 import logging
 import hashlib
 import argparse
+from datetime import datetime
 
 import pefile
 from xbe import Xbe, XbeSection, XbeSectionHeader, XbeKernelImage
@@ -20,6 +21,37 @@ from knowledge import KnowledgeBase
 
 log = logging.getLogger(__name__)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+
+
+EXCEPTION_BUILD_AT_STRING_ADDR = 0x28b6f8
+EXCEPTION_BUILD_AT_DATE_OFFSET = 38
+EXCEPTION_BUILD_STRING_ADDR = 0x28b5d4
+EXCEPTION_BUILD_STRING_DATE_OFFSET = 28
+EXCEPTION_BUILD_TIMESTAMP_LENGTH = 20
+
+
+def format_exception_build_timestamp(now: datetime) -> str:
+    month = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ][now.month - 1]
+    return f'{month} {now.day:02d} {now.year:04d} {now.hour:02d}:{now.minute:02d}:{now.second:02d}'
+
+
+def patch_exception_build_timestamp_strings(xbe: Xbe):
+    timestamp = format_exception_build_timestamp(datetime.now())
+    encoded = timestamp.encode('ascii')
+    assert len(encoded) == EXCEPTION_BUILD_TIMESTAMP_LENGTH
+
+    write_to_vaddr(
+        xbe,
+        EXCEPTION_BUILD_AT_STRING_ADDR + EXCEPTION_BUILD_AT_DATE_OFFSET,
+        encoded)
+    write_to_vaddr(
+        xbe,
+        EXCEPTION_BUILD_STRING_ADDR + EXCEPTION_BUILD_STRING_DATE_OFFSET,
+        encoded)
+    log.info('Patched exception-screen build timestamp to "%s"', timestamp)
 
 
 def round_up(value, round_to):
@@ -467,6 +499,8 @@ def main():
                  ' (via rvthunk)' if n in rvthunks_redirect else '')
         patch_bytes = b'\x68' + struct.pack('<I', hook_target) + b'\xc3'  # push addr, ret
         write_to_vaddr(xbe, addr_of_original_in_xbe, patch_bytes)
+
+    patch_exception_build_timestamp_strings(xbe)
 
     log.info('Generating patched XBE (%s)...', args.output_xbe)
     with open(args.output_xbe, 'wb') as f:
