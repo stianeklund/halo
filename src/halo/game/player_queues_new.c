@@ -31,3 +31,10 @@ void update_client_start(void)
     }
   }
 }
+
+/* Return the number of queued action ticks (inclusive range from
+ * first_action_index to last_action_index in the client globals). */
+int update_get_maximum_actions(void)
+{
+  return *(int *)0x45b1d8 - *(int *)0x45b1d4 + 1;
+}
