@@ -719,6 +719,10 @@
         "Globals 0x45b1d0 (initialized byte) and 0x45b260 (queue data_t*) are not yet declared in kb.json; function uses hardcoded addresses. If/when player_queues_new has more functions ported, consider formalising update_client_globals in types.h."
       ]
     },
+    "0xb8f90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb9b30": {
       "kind": "function",
       "status": "ported"
