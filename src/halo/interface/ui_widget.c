@@ -549,6 +549,10 @@ static void ui_widget_pending_load_apply(int a6, int widget, int16_t a7)
     : "ecx", "edx", "memory", "cc");
 }
 
+/* process_ui_widgets — main per-frame UI widget tick. Handles async
+ * filesystem operations, bink video updates, pre-title screen logic,
+ * deferred error display, and the per-stack widget event dispatch loop.
+ * Called once per frame from the main loop. */
 void process_ui_widgets(void)
 {
   uint8_t active_widget_stacks[4];
@@ -569,56 +573,66 @@ void process_ui_widgets(void)
   if (*(uint8_t *)0x46cc82 == 0) {
     display_assert("widget_globals.initialized",
                    "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x284, true);
-    ((void (*)(int))0x8e2f0)(-1);
+    system_exit(-1);
   }
 
-  *(uint32_t *)0x46cc40 = ((uint32_t(*)(void))0x8e370)();
+  /* Record frame timestamp for event throttling. */
+  *(uint32_t *)0x46cc40 = system_milliseconds();
+
+  /* If an async filesystem operation is pending, poll for completion. */
   if (*(int *)0x46cc7c != 0) {
-    if (((char (*)(int))0x81720)(*(int *)0x46cc7c) != 0) {
-      ((void (*)(int))0x81770)(*(int *)0x46cc7c);
+    if (thread_is_done((void *)*(int *)0x46cc7c) != 0) {
+      thread_close((void *)*(int *)0x46cc7c);
       *(int *)0x46cc7c = 0;
-      ((void (*)(int))0xe3e10)(0);
+      ui_widget_set_events_suppressed(false);
       if (*(int16_t *)0x46cc80 == 1) {
-        if (((char (*)(void))0x1c5980)() != 0) {
-          ((void (*)(void))0x1c62a0)();
+        if (bink_playback_has_video()) {
+          bink_playback_stop();
         }
-        ((void (*)(int16_t, int))0xe8c90)(0x21, 1);
+        ui_widget_load_error_screen(0x21, 1);
         return;
       }
       if (*(int16_t *)0x46cc80 == 2) {
-        if (((char (*)(void))0x1c5980)() != 0) {
-          ((void (*)(void))0x1c62a0)();
+        if (bink_playback_has_video()) {
+          bink_playback_stop();
         }
-        ((void (*)(int16_t, int))0xe8c90)(0x22, 1);
+        ui_widget_load_error_screen(0x22, 1);
         return;
       }
     }
     return;
   }
 
-  if (((char (*)(void))0xe1ce0)() != 0) {
-    return;
-  }
-  if (((char (*)(void))0xf5640)() != 0) {
-    ((void (*)(void))0xf6740)();
-    ((void (*)(void))0xdc220)();
-    return;
-  }
-  if (((char (*)(void))0xdc070)() != 0) {
-    ((void (*)(void))0xdc140)();
+  /* If UI automation is driving the menu, skip normal processing. */
+  if (ui_automation_is_active()) {
     return;
   }
 
+  /* If a bink video is playing, update it and flush events. */
+  if (((bool (*)(void))0xf5640)() != 0) {
+    ((void (*)(void))0xf6740)();
+    event_manager_flush();
+    return;
+  }
+
+  /* Pre-title screen (language select / content rating). */
+  if (event_manager_tab_check()) {
+    event_manager_tab_process();
+    return;
+  }
+
+  /* If a pending error screen load is queued, dispatch it now. */
   if (*(int16_t *)0x46cc68 != -1) {
-    ((void (*)(int16_t, int))0xe8c90)(*(int16_t *)0x46cc68,
-                                      *(uint8_t *)0x46cc6a);
+    ui_widget_load_error_screen(*(int16_t *)0x46cc68, *(uint8_t *)0x46cc6a);
     *(int16_t *)0x46cc68 = -1;
     return;
   }
 
+  /* If any deferred error slots are populated, try to show them. */
   if ((*(int16_t *)0x46cc50 == -1) && (*(int16_t *)0x46cc56 == -1) &&
       (*(int16_t *)0x46cc5c == -1) && (*(int16_t *)0x46cc62 == -1)) {
-    blocked_by_pause = ((char (*)(void))0xe9080)() != 0;
+    /* Normal widget event processing path. */
+    blocked_by_pause = ui_widgets_process_pause() != 0;
 
     active_widget_stacks[0] =
       (*(int *)0x46cc20 != 0) && (*(uint8_t *)(*(int *)0x46cc20 + 0x15) == 1);
@@ -656,24 +670,24 @@ void process_ui_widgets(void)
       process_data.unk6 = 0;
 
       if ((*(uint8_t *)0x46cc85 == 0) &&
-          (((char (*)(void *, uint16_t))0xdc250)(
-             &process_data, *(uint16_t *)(widget + 8)) != 0)) {
+          (event_manager_get_next_event(&process_data,
+                                        *(uint16_t *)(widget + 8)) != 0)) {
         do {
           handled = 0;
           if (blocked_by_pause == 0) {
-            ((void (*)(int, void *, void *, uint8_t *))0xe7d00)(
-              widget, widget_tag, &process_data, &handled);
+            ui_widget_process_event((void *)widget, widget_tag, &process_data,
+                                    &handled);
           }
           if ((handled == 1) || (widget != *widget_roots)) {
             break;
           }
-        } while (((char (*)(void *, uint16_t))0xdc250)(
-                   &process_data, *(uint16_t *)(widget + 8)) != 0);
+        } while (event_manager_get_next_event(&process_data,
+                                              *(uint16_t *)(widget + 8)) != 0);
       } else if (blocked_by_pause == 0) {
         process_data.unk2 = *(uint16_t *)(widget + 8);
         handled = 0;
-        ((void (*)(int, void *, void *, uint8_t *))0xe7d00)(
-          widget, widget_tag, &process_data, &handled);
+        ui_widget_process_event((void *)widget, widget_tag, &process_data,
+                                &handled);
       }
 
       did_work = 1;
@@ -692,21 +706,23 @@ void process_ui_widgets(void)
     }
 
     if (did_work != 0) {
-      ((void (*)(void))0xdc220)();
+      event_manager_flush();
       return;
     }
     return;
   }
 
+  /* Deferred error display: wait for game_in_progress and enough
+   * ticks before showing queued error dialogs. */
   deferred_error = (ui_widget_deferred_error_t *)0x46cc50;
   while ((int)deferred_error < 0x46cc68) {
     if (deferred_error->error_handle != -1) {
-      if ((*(uint8_t *)0x46cc88 == 0) && (((char (*)(void))0x12a000)() == 0) &&
-          (((int (*)(void))0xb5aa0)() < 0x1e)) {
+      if ((*(uint8_t *)0x46cc88 == 0) && (!game_in_progress()) &&
+          (game_time_get() < 0x1e)) {
         error(2, "waiting for %d ticks before displaying deferred errors",
               0x1e);
       } else {
-        ((void (*)(int16_t, int16_t, char, char))0xe8910)(
+        ui_widget_display_error(
           deferred_error->error_handle, deferred_error->local_player_index,
           (char)deferred_error->a3, (char)deferred_error->a4);
         deferred_error->error_handle = -1;

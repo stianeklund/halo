@@ -12,7 +12,7 @@ void bink_playback_initialize(void)
 void bink_playback_dispose(void)
 {
   if (*(uint8_t *)0x4ead58 != 0) {
-    ((void (*)(void))0x1c62a0)();
+    bink_playback_stop();
     csmemset((void *)0x4ead58, 0, 0xd8);
   }
 }

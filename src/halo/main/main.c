@@ -219,7 +219,6 @@ void main_change_map_name(void)
   typedef bool(__cdecl * fn_music_playing_t)(void);
   typedef void(__cdecl * fn_ui_fade_start_t)(int duration_ms);
   typedef void(__cdecl * fn_set_fade_t)(float fade);
-  typedef void(__cdecl * fn_set_widget_flag_t)(bool enable);
   typedef void(__cdecl * fn_stop_music_t)(void);
   typedef void(__cdecl * fn_set_widget_flag2_t)(bool enable);
   typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
@@ -232,7 +231,7 @@ void main_change_map_name(void)
         *(uint32_t *)0x46da34 = (uint32_t)unk_time_globals.unk_0 + 1000;
         /* MSVC interleaved pre-push: PUSH 0x3e8, PUSH 0x1, PUSH 0x0 */
         ((fn_ui_fade_start_t)0xe5a40)(1000);
-        ((fn_set_widget_flag_t)0xe3e10)(1);
+        ui_widget_set_events_suppressed(1);
         ((fn_set_fade_t)0xe3c90)(0.0f);
       }
     } else {
@@ -262,7 +261,7 @@ void main_change_map_name(void)
   ((fn_stop_music_t)0xe4640)();
   ((fn_set_widget_flag2_t)0xe43d0)(0);
   main_globals.main_menu_scenario_loaded = 0;
-  ((fn_set_widget_flag_t)0xe3e10)(0);
+  ui_widget_set_events_suppressed(0);
 
   if (game_in_progress() && word_46DA0C == 0) {
     /* initialize game_options from queued map name and difficulty */
