@@ -98,3 +98,17 @@ bool shell_application_is_paused(void)
 {
   return *(bool *)0x4d8a84;
 }
+
+/* shell_get_command_line (0x191240)
+ *
+ * Returns a pointer to the static command-line string buffer at 0x4d8a88.
+ * The shell stores the application's startup command line here during init.
+ *
+ * Disasm:
+ *   00191240: MOV EAX,0x4d8a88
+ *   00191245: RET
+ */
+char *shell_get_command_line(void)
+{
+  return (char *)0x4d8a88;
+}
