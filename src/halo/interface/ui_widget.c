@@ -25,6 +25,39 @@ void ui_widgets_disable_pause_game(int duration_ticks)
   dword_46CC44 = duration_ticks;
 }
 
+/* ui_widgets_close_all — iterates over the 4 UI widget stacks and tears
+ * them down. For each stack, closes the root widget via ui_widget_close
+ * (0xe5620), then walks the linked list at 0x46cc30[i] and deallocates
+ * each widget node from the stack memory pool at [0x31e04c]. The list
+ * is linked through offset +0xc in each widget node. */
+void ui_widgets_close_all(void)
+{
+  int *list_heads;
+  int widget;
+  int next;
+  void *pool;
+
+  list_heads = (int *)0x46cc30;
+  do {
+    /* close the root widget for this stack if present */
+    if (list_heads[-4] != 0) {
+      ui_widget_close((void *)list_heads[-4]);
+    }
+    /* walk the linked list at list_heads[i], freeing each node */
+    widget = *list_heads;
+    if (widget != 0) {
+      while (widget != 0) {
+        pool = *(void **)0x31e04c;
+        next = *(int *)(widget + 0xc);
+        *list_heads = next;
+        stack_memory_pool_deallocate(pool, (void *)widget);
+        widget = *list_heads;
+      }
+    }
+    list_heads++;
+  } while ((int)list_heads < 0x46cc40);
+}
+
 /* ui_widgets_dispose — tears down the UI widget system. Closes all open
  * widgets, frees the widget memory pool allocated by ui_widgets_initialize
  * (0x4000 bytes at [ptr+4]), zeros the pool pointer and size fields, and

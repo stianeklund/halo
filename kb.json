@@ -630,6 +630,15 @@
       ]
     },
     {
+      "name": "stack_memory_pool.obj",
+      "functions": [
+        {
+          "decl": "void stack_memory_pool_deallocate(void *pool, void *block);",
+          "addr": "0x11f620"
+        }
+      ]
+    },
+    {
       "name": "d3d_intimacy.obj",
       "functions": [
         {
@@ -2723,6 +2732,10 @@
         {
           "decl": "void ui_widgets_disable_pause_game(int);",
           "addr": "0xe46b0"
+        },
+        {
+          "decl": "void ui_widget_close(void *widget);",
+          "addr": "0xe5620"
         },
         {
           "decl": "void ui_widgets_close_all(void);",
