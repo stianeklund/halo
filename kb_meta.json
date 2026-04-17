@@ -1710,6 +1710,17 @@
         "FUN_001ae490 computes next weapon index; FUN_000fd360 attempts weapon placement; FUN_000de360 fires a unit event; FUN_001ab990 is a weapon-stow notification; FUN_000faf50 checks if weapon should be kept alive."
       ]
     },
+    "0x1af6b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function at 0x1af620 is unit_verify_vectors, taking unit_handle in EAX and returning bool; it validates 6 direction vectors via assert_valid_real_normal3d.",
+        "The function at 0x49ac0 builds a textual location string for a unit given actor_index, unit_handle, a bool flag, buffer, and size (5 cdecl args)."
+      ],
+      "uncertain": [
+        "The exact prototype of 0x49ac0 is uncertain; arg3 appears to be a bool (PUSH 1) but could be an int flag."
+      ]
+    },
     "0x1af990": {
       "kind": "function",
       "status": "ported",

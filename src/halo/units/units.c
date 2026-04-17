@@ -333,6 +333,141 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
   return true;
 }
 
+/* unit_control_trace (0x1af6b0)
+ *
+ * Validates the unit's internal vectors (facing, aiming, looking, forward, up)
+ * via an internal verify function at 0x1af620. If any vector is invalid, dumps
+ * the unit's position, orientation, facing/aiming/looking vectors both as
+ * float and as raw hex to the error log, then retries verification. If it
+ * still fails, fires a fatal assert ("unit_verify_vectors FAILURE").
+ *
+ * Register arg: unit_handle passed in EDI.
+ * Stack arg: label string (e.g. "unit-control") used in the error header.
+ *
+ * The verify function at 0x1af620 takes unit_handle in EAX, calls
+ * assert_valid_real_normal3d on each direction vector and returns true
+ * if all are valid.
+ *
+ * The function at 0x49ac0 builds a textual location string for the unit
+ * (using the actor or swarm actor index) into a caller-provided buffer.
+ */
+void unit_control_trace(int unit_handle, const char *label)
+{
+  typedef bool(__cdecl * unit_verify_vectors_t)(void);
+  typedef void(__cdecl * build_location_string_t)(int, int, bool, char *, int);
+
+  unit_data_t *unit;
+  int32_t actor;
+  char location_buf[512];
+
+  /* 0x1af6b9: MOV EAX, EDI; CALL 0x1af620 — verify vectors with
+   * unit_handle in EAX. Returns true if all vectors are valid normals. */
+  {
+    bool ok;
+    __asm__ __volatile__("movl %1, %%eax\n\t"
+                         "call *%2\n\t"
+                         : "=a"(ok)
+                         : "r"(unit_handle),
+                           "r"((unit_verify_vectors_t)0x1af620)
+                         : "ecx", "edx", "memory");
+    if (ok)
+      return;
+  }
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  /* 0x1af6d3: choose actor_index; fall back to swarm_actor_index */
+  actor = unit->actor_index.value;
+  if (actor == -1)
+    actor = unit->swarm_actor_index.value;
+
+  /* 0x1af6f7: build location string into stack buffer */
+  ((build_location_string_t)0x49ac0)(actor, unit_handle, true, location_buf,
+                                     512);
+
+  /* header: "unit_verify_vectors: problems with %s at location %s" */
+  error(2, "**** unit_verify_vectors: problems with %s at location %s",
+        location_buf, label);
+
+  /* dump object position, forward, up as floats */
+  error(2, "  object: pos %f %f %f, fwd %f %f %f, up %f %f %f",
+        (double)unit->object.unk_12.x, (double)unit->object.unk_12.y,
+        (double)unit->object.unk_12.z, (double)unit->object.unk_36.x,
+        (double)unit->object.unk_36.y, (double)unit->object.unk_36.z,
+        (double)unit->object.unk_48.x, (double)unit->object.unk_48.y,
+        (double)unit->object.unk_48.z);
+
+  /* dump desired facing, aiming, looking as floats */
+  error(
+    2, "  desired facing %f %f %f, aiming %f %f %f, looking %f %f %f",
+    (double)unit->unk_468.x, (double)unit->unk_468.y, (double)unit->unk_468.z,
+    (double)unit->unk_480.x, (double)unit->unk_480.y, (double)unit->unk_480.z,
+    (double)unit->unk_516.x, (double)unit->unk_516.y, (double)unit->unk_516.z);
+
+  /* dump aiming vector + velocity as floats */
+  error(2, "  aiming vector %f %f %f velocity %f %f %f",
+        (double)unit->unk_492.x, (double)unit->unk_492.y,
+        (double)unit->unk_492.z, (double)unit->unk_504.x,
+        (double)unit->unk_504.y, (double)unit->unk_504.z);
+
+  /* dump looking vector + velocity as floats */
+  error(2, "  looking vector %f %f %f velocity %f %f %f",
+        (double)unit->unk_528.x, (double)unit->unk_528.y,
+        (double)unit->unk_528.z, (double)unit->unk_540.x,
+        (double)unit->unk_540.y, (double)unit->unk_540.z);
+
+  error(2, "  warning, hex dump follows...");
+
+  /* dump object position, forward, up as hex (raw dword reinterpret) */
+  error(
+    2, "  object: pos %08X %08X %08X, fwd %08X %08X %08X, up %08X %08X %08X",
+    *(uint32_t *)&unit->object.unk_12.x, *(uint32_t *)&unit->object.unk_12.y,
+    *(uint32_t *)&unit->object.unk_12.z, *(uint32_t *)&unit->object.unk_36.x,
+    *(uint32_t *)&unit->object.unk_36.y, *(uint32_t *)&unit->object.unk_36.z,
+    *(uint32_t *)&unit->object.unk_48.x, *(uint32_t *)&unit->object.unk_48.y,
+    *(uint32_t *)&unit->object.unk_48.z);
+
+  /* dump desired facing, aiming, looking as hex */
+  error(2,
+        "  desired facing %08X %08X %08X, aiming %08X %08X %08X, looking %08X "
+        "%08X %08X",
+        *(uint32_t *)&unit->unk_468.x, *(uint32_t *)&unit->unk_468.y,
+        *(uint32_t *)&unit->unk_468.z, *(uint32_t *)&unit->unk_480.x,
+        *(uint32_t *)&unit->unk_480.y, *(uint32_t *)&unit->unk_480.z,
+        *(uint32_t *)&unit->unk_516.x, *(uint32_t *)&unit->unk_516.y,
+        *(uint32_t *)&unit->unk_516.z);
+
+  /* dump aiming vector + velocity as hex */
+  error(2, "  aiming vector %08X %08X %08X velocity %08X %08X %08X",
+        *(uint32_t *)&unit->unk_492.x, *(uint32_t *)&unit->unk_492.y,
+        *(uint32_t *)&unit->unk_492.z, *(uint32_t *)&unit->unk_504.x,
+        *(uint32_t *)&unit->unk_504.y, *(uint32_t *)&unit->unk_504.z);
+
+  /* dump looking vector + velocity as hex */
+  error(2, "  looking vector %08X %08X %08X velocity %08X %08X %08X",
+        *(uint32_t *)&unit->unk_528.x, *(uint32_t *)&unit->unk_528.y,
+        *(uint32_t *)&unit->unk_528.z, *(uint32_t *)&unit->unk_540.x,
+        *(uint32_t *)&unit->unk_540.y, *(uint32_t *)&unit->unk_540.z);
+
+  /* retry verification */
+  {
+    bool ok;
+    __asm__ __volatile__("movl %1, %%eax\n\t"
+                         "call *%2\n\t"
+                         : "=a"(ok)
+                         : "r"(unit_handle),
+                           "r"((unit_verify_vectors_t)0x1af620)
+                         : "ecx", "edx", "memory");
+    if (ok)
+      return;
+  }
+
+  /* fatal assert if vectors are still broken */
+  display_assert("unit_verify_vectors FAILURE, see above for details",
+                 "c:\\halo\\SOURCE\\units\\units.c", 0x252, true);
+  system_exit(-1);
+}
+
 /* unit_set_control (0x1af990)
  *
  * Validates and applies a unit_control block to the given unit. The control
