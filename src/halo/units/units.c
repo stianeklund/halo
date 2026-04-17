@@ -163,7 +163,7 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
   tag_get(0x756e6974, *(int *)unit);
   (void)object_get_and_verify_type(unit_handle, 3);
   weapon_handle = unit_get_weapon(unit_handle, unit->unk_674);
-  new_index = ((int16_t(*)(int16_t, int))0x1ae490)(unit->unk_674, 1);
+  new_index = unit_next_weapon_index(unit_handle, unit->unk_674, 1);
 
   if (weapon_handle == -1)
     return false;
@@ -178,12 +178,22 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
     return false;
 
   ((void (*)(int, int))0xde360)(unit_handle, 0xd);
-  ((void (*)(void))0x1ab990)();
+
+  /* 0x1ab990 takes EDI=unit_handle, ESI=weapon_handle as register args
+   * (two register args, can't use kb.json single-reg thunk) */
+  {
+    int _edi = unit_handle;
+    int _esi = weapon_handle;
+    asm volatile("call *%[fn]"
+                 : "+D"(_edi), "+S"(_esi)
+                 : [fn] "r"((void *)0x1ab990)
+                 : "eax", "ecx", "edx", "ebx", "memory", "cc");
+  }
 
   cur_index = (int16_t)unit->unk_674;
   unit->unk_680[cur_index].value = -1;
   unit->unk_674 = (uint16_t)-1;
-  new_index = ((int16_t(*)(int16_t, int))0x1ae490)(-1, 0);
+  new_index = unit_next_weapon_index(unit_handle, -1, 0);
   unit->unk_676 = (uint16_t)new_index;
 
   if (!((bool (*)(int))0xfaf50)(weapon_handle))

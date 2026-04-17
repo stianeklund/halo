@@ -211,6 +211,75 @@ bool player_input_enabled(void)
   return *((char *)players_globals + 0x29) == 0;
 }
 
+/* Check whether any active player's unit is currently airborne.
+ *
+ * Iterates every player datum. For each player with a valid unit handle:
+ *   1. If the root object has flag 0x200000 set (+0x4), return true
+ * immediately.
+ *   2. If the unit is NOT in a vehicle (unit+0xCC == NONE):
+ *      - If unit+0x64 (animation state) == 0: call the biped airborne check
+ *        (0x1a0db0); return true if it reports airborne.
+ *      - If unit+0x64 == 1: fall through to the altitude check.
+ *   3. If the unit IS in a vehicle (unit+0xCC != NONE):
+ *      - Look up the vehicle object via object_try_and_get_type (type 2).
+ *      - Look up the vehicle tag ('vehi') and check if bit 0x40 is set at
+ *        tag+0x17C. If so, fall through to the altitude check.
+ *   4. Altitude check: if byte at object+0x428 > 2, return true.
+ *
+ * Returns false if no player meets any airborne criterion. */
+bool any_player_is_in_the_air(void)
+{
+  data_iter_t iter;
+  char *player;
+  char *unit_obj;
+  int unit_handle;
+  char *root_obj;
+  int root_handle;
+  char *vehicle_obj;
+  char *vehi_tag;
+
+  data_iterator_new(&iter, player_data);
+  while ((player = (char *)data_iterator_next(&iter)) != NULL) {
+    unit_handle = *(int *)(player + 0x34);
+    if (unit_handle == NONE)
+      continue;
+
+    unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+    root_handle = ((int (*)(int))0x13d7f0)(unit_handle);
+    root_obj = (char *)object_get_and_verify_type(root_handle, NONE);
+
+    if ((*(unsigned int *)(root_obj + 0x4) & 0x200000) != 0)
+      return true;
+
+    if (*(int *)(unit_obj + 0xCC) != NONE) {
+      /* Unit is in a vehicle -- ESI becomes the vehicle object */
+      vehicle_obj =
+        (char *)((void *(*)(int, int))0x13d640)(*(int *)(unit_obj + 0xCC), 2);
+      if (vehicle_obj == NULL)
+        continue;
+      vehi_tag = (char *)tag_get(0x76656869, *(int *)vehicle_obj);
+      if ((*(unsigned char *)(vehi_tag + 0x17C) & 0x40) == 0)
+        continue;
+      /* altitude check uses vehicle object (ESI was reassigned) */
+      if (*(unsigned char *)(vehicle_obj + 0x428) > 2)
+        return true;
+    } else {
+      /* Unit is on foot */
+      if (*(short *)(unit_obj + 0x64) == 0) {
+        if (((bool (*)(int))0x1a0db0)(unit_handle))
+          return true;
+        continue;
+      } else if (*(short *)(unit_obj + 0x64) != 1) {
+        continue;
+      }
+      /* animation state 1: altitude check uses unit object */
+      if (*(unsigned char *)(unit_obj + 0x428) > 2)
+        return true;
+    }
+  }
+  return false;
+}
+
 bool any_player_is_dead(void)
 {
   data_iter_t iter;
