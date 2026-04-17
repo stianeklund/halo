@@ -1601,6 +1601,10 @@
           "addr": "0x102510"
         },
         {
+          "decl": "void __noreturn main_halt_entry(void);",
+          "addr": "0x102c40"
+        },
+        {
           "decl": "void main_game_render(double a2);",
           "addr": "0x102c80"
         },
@@ -2731,6 +2735,10 @@
         {
           "decl": "void render_ui_widgets(__int16 a1, viewport_bounds_t *window_bounds);",
           "addr": "0xe78e0"
+        },
+        {
+          "decl": "void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int is_child, int widget_stack, int parent_tag_index, int a6, int a7);",
+          "addr": "0xe84e0"
         },
         {
           "decl": "void main_screen_shell_load(void);",
