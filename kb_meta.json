@@ -1129,6 +1129,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe8d20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "ui_widget_load_by_name_or_tag at 0xe84e0 takes 7 cdecl args; return value is a widget pointer.",
+        "main_halt_entry at 0x102c40 is __noreturn infinite loop calling subsystem ticks (input, rendering, presentation)."
+      ]
+    },
     "0xf0a30": {
       "kind": "function",
       "status": "ported"

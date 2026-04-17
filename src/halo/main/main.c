@@ -1,3 +1,37 @@
+/* Close all UI widgets and display the "damaged media" fatal error screen.
+ *
+ * Loads the "error_abort_to_dashboard_you_have_no_choice" widget by name,
+ * asserts that it is a text box widget (type 1), sets its string_list_index
+ * and the global error_string_index to 0x23, marks the widget as needing
+ * a text update, then flushes input and enters the halt loop forever.
+ * If the widget fails to load, logs an error and enters the halt loop
+ * anyway. This function never returns. */
+void display_error_damaged_media(void)
+{
+  void *widget;
+
+  ui_widgets_close_all();
+  widget = ui_widget_load_by_name_or_tag(
+    "ui\\shell\\error\\error_abort_to_dashboard_you_have_no_choice", -1, 0, -1,
+    -1, -1, -1);
+  if (widget != NULL) {
+    if (*(int16_t *)((char *)widget + 0xe) != 1) {
+      display_assert("expected a text box widget",
+                     "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x90f, 1);
+      system_exit(-1);
+    }
+    *(int16_t *)((char *)widget + 0x40) = 0x23;
+    *(uint8_t *)((char *)widget + 0x15) = 1;
+    *(int16_t *)0x31e054 = 0x23;
+    input_frame_end();
+    main_halt_entry();
+  }
+  error(2, "failed to load '%s' widget",
+        "ui\\shell\\error\\error_abort_to_dashboard_you_have_no_choice");
+  input_frame_end();
+  main_halt_entry();
+}
+
 short game_connection(void)
 {
   return word_46DA0C;
