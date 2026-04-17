@@ -3,6 +3,13 @@ void input_abstraction_dispose(void)
   csmemset((void *)0x46b820, 0, 0xdc);
 }
 
+/* Snapshot the current system time into the input abstraction globals.
+   Called each tick to timestamp when input was last processed. */
+void input_abstraction_mark_time(void)
+{
+  *(unsigned int *)0x46b8f0 = system_milliseconds();
+}
+
 void input_abstraction_initialize(void)
 {
   int i;

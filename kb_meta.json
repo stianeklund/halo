@@ -1026,6 +1026,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xce6b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xce9f0": {
       "kind": "function",
       "status": "ported"
