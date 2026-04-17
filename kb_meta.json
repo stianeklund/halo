@@ -1203,6 +1203,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe4890": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The widget struct field at offset +0x28 is named 'previous' (prev_sibling) based on the assert string 'child->previous == NULL'."
+      ]
+    },
     "0xe5620": {
       "kind": "function",
       "status": "ported",
