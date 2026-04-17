@@ -367,3 +367,47 @@ int update_get_game_time(void)
 done:
   return tick;
 }
+
+/* Apply queued client actions for the given number of simulation ticks.
+ *
+ * Asserts that this is a local (non-networked) game connection and that
+ * the client update globals are initialized. Copies the current 0x80-byte
+ * action state from update_client_globals+0x0C (0x45b1dc) into a local
+ * buffer, then applies those actions to the server queue via
+ * update_server_apply_actions(0, ...).
+ *
+ * For each tick, creates a new server update snapshot via
+ * update_server_create_snapshot(), then retrieves the update data into a
+ * local 0x204-byte buffer via update_server_get_update(0, ..., &ticks).
+ * The ticks parameter is passed by address to update_server_get_update,
+ * which may modify it as the update number. */
+void update_client_apply_actions(int16_t ticks)
+{
+  char local_actions[0x80];
+  char update_buf[0x204];
+  int tick_count;
+
+  if (game_connection() != 0) {
+    display_assert("game_connection()==_game_connection_local",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x20b, 1);
+    system_exit(-1);
+  }
+
+  if (*(uint8_t *)0x45b1d0 == 0) {
+    display_assert("action_collection && update_client_globals.initialized",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x244, 1);
+    system_exit(-1);
+  }
+
+  csmemcpy(local_actions, (void *)0x45b1dc, 0x80);
+  update_server_apply_actions(0, local_actions);
+
+  if (ticks > 0) {
+    tick_count = (uint16_t)ticks;
+    do {
+      update_server_create_snapshot();
+      update_server_get_update(0, update_buf, (int *)&ticks);
+      tick_count--;
+    } while (tick_count != 0);
+  }
+}
