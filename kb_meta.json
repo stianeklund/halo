@@ -1202,11 +1202,25 @@
         "The 0x68-byte block at 0x46cc20 is static UI widget state cleared on both init and dispose."
       ]
     },
+    "0xe78e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The global at 0x5aa45c stores the current rendering player index as uint16_t, clamped so -1 maps to 0.",
+        "The 0xe73c0 callee is a recursive widget renderer taking (widget, bounds, offset_pair, int, int) with 5 stack args."
+      ],
+      "uncertain": [
+        "The float constants at 0x2533c0 (0.0), 0x2533c8 (1.0), 0x255ed4 (0.95), and 0x2602c8 (255.0) are read-only data section floats whose symbolic names are unknown.",
+        "The 0x1b9930 callee is a tag lookup function (tag_group, name, ...) but its full prototype beyond 2 args is not confirmed."
+      ]
+    },
     "0xe8700": {
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "The __stricmp call at 0x1dd801 is an MSVC CRT function; accessed via hardcoded address since no CRT object is tracked."
+        "The __stricmp call at 0x1dd801 is an MSVC CRT function; accessed via hardcoded address since no CRT object is tracked.",
+        "The virtual keyboard init at 0xf53a0 likely belongs to a virtual_keyboard.obj but no such object is yet in kb.json.",
+        "ui_widget_display_error at 0xe8910 prototype: int16_t error_handle, int local_player_index, char is_modal, char pause_game; inferred from disassembly push pattern and switch table."
       ]
     },
     "0xe8d20": {
@@ -1216,6 +1230,10 @@
         "ui_widget_load_by_name_or_tag at 0xe84e0 takes 7 cdecl args; return value is a widget pointer.",
         "main_halt_entry at 0x102c40 is __noreturn infinite loop calling subsystem ticks (input, rendering, presentation)."
       ]
+    },
+    "0xe9450": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xf0a30": {
       "kind": "function",

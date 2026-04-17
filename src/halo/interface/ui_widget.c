@@ -304,6 +304,131 @@ void ui_widgets_dispose(void)
   csmemset((void *)0x46cc20, 0, 0x68);
 }
 
+/* render_ui_widgets — renders all active UI widget stacks and an optional
+ * screen fade overlay. For each of the 4 widget root slots (0x46cc20..2c),
+ * determines whether the widget should render based on its local player index
+ * vs the current player, the "always render" flag at +0x11, and the
+ * "in_game_mode" flag at +0x15. Renders the widget tree via the recursive
+ * helper at 0xe73c0. If the debug overlay flag at 0x46cc84 is set, also
+ * renders the widget's tag name in a small debug font. After all stacks,
+ * checks the global fade value at 0x46cc4c: if it is in [0.0, 1.0], draws
+ * a fullscreen fade rectangle (alpha = fade * 255, shifted to the high byte
+ * of an ARGB color). When fade >= 0.95 it is clamped to 1.0. The fade
+ * value is initialised to -1.0 (inactive). */
+void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
+{
+  int widget;
+  int16_t clamped_player;
+  int i;
+  viewport_bounds_t local_bounds;
+  float color[4];
+  int font_tag;
+  int tag_name;
+  float fade;
+
+  assert_halt(window_bounds != NULL);
+
+  /* store clamped player index: -1 maps to 0, otherwise keep player_index */
+  *(uint16_t *)0x5aa45c =
+    (uint16_t)((player_index == -1 ? 0 : 1) & (uint16_t)player_index);
+
+  /* if network loading screen is active, bail */
+  if (((char (*)(void))0x1c5960)() != 0) {
+    return;
+  }
+
+  /* if virtual keyboard is active, render it and return */
+  if (((char (*)(void))0xf5640)() != 0) {
+    ((void (*)(void))0xf5fa0)();
+    return;
+  }
+
+  /* clamp player_index into [0, 3] range */
+  if (player_index < 0) {
+    clamped_player = 0;
+  } else if (player_index > 3) {
+    clamped_player = 3;
+  } else {
+    clamped_player = player_index;
+  }
+
+  for (i = 0; i < 4; i++) {
+    widget = *(int *)(0x46cc20 + i * 4);
+    if (widget == 0)
+      continue;
+
+    /* always-render flag at widget+0x11 */
+    if (*(uint8_t *)(widget + 0x11) == 1) {
+      goto do_render;
+    }
+
+    /* in-game mode flag at widget+0x15 */
+    if (*(uint8_t *)(widget + 0x15) == 1) {
+      uint16_t widget_player = *(uint16_t *)(widget + 0x8);
+      if (widget_player == (uint16_t)clamped_player)
+        goto do_render;
+      if (widget_player == 0xffff)
+        goto do_render;
+      if ((uint16_t)clamped_player == 0xffff)
+        goto do_render;
+      if (*(uint8_t *)0x46cc88 != 0)
+        goto do_render;
+      continue;
+    } else {
+      /* not in-game: render if player matches or (player == -1 and stack 0) */
+      uint16_t widget_player = *(uint16_t *)(widget + 0x8);
+      if (widget_player == 0xffff && i == 0)
+        goto do_render;
+      if (widget_player == (uint16_t)clamped_player)
+        goto do_render;
+      continue;
+    }
+
+  do_render:
+    local_bounds.x1 = window_bounds->x1 - window_bounds->x0;
+    local_bounds.y1 = window_bounds->y1 - window_bounds->y0;
+    local_bounds.x0 = 0;
+    local_bounds.y0 = 0;
+
+    ((void (*)(int, viewport_bounds_t *, int, int, int))0xe73c0)(
+      widget, &local_bounds, 0, 1, 0);
+
+    /* debug overlay: draw widget tag name */
+    if (*(uint8_t *)0x46cc84 != 0) {
+      local_bounds.x0 += 0x20;
+      local_bounds.x1 += 0x20;
+      local_bounds.y0 += 0x20;
+      local_bounds.y1 += 0x20;
+      color[0] = 1.0f;
+      color[1] = 1.0f;
+      color[2] = 1.0f;
+      color[3] = 1.0f;
+      font_tag = ((int (*)(int, const char *, int, int, int, float *))0x1b9930)(
+        0x666f6e74, "ui\\small_ui", -1, 0, 0, color);
+      ((void (*)(int))0x19b8b0)(font_tag);
+      tag_name = ((int (*)(int))0x1ba1f0)(*(int *)(0x46cc20 + i * 4));
+      ((void (*)(viewport_bounds_t *, int, int, int, int))0x183e60)(
+        &local_bounds, 0, 0, 0, tag_name);
+    }
+  }
+
+  /* screen fade overlay */
+  fade = *(float *)0x46cc4c;
+  if (fade >= 0.0f && fade <= 1.0f) {
+    local_bounds.y0 = 0;
+    local_bounds.x1 = 0x280;
+    local_bounds.x0 = 0;
+    local_bounds.y1 = 0x1e0;
+    if (fade >= *(float *)0x255ed4) { /* 0.95f */
+      *(float *)0x46cc4c = 1.0f;
+    }
+    {
+      int alpha = (int)(*(float *)0x46cc4c * *(float *)0x2602c8); /* * 255.0 */
+      ((void (*)(viewport_bounds_t *, int))0x92ec0)(&local_bounds, alpha << 24);
+    }
+  }
+}
+
 /* main_screen_shell_load — loads the main menu shell UI. On the first boot
  * (when the first-run flag at 0x31e050 is set), plays the intro bink movie
  * and kicks off filesystem checks / saved game enumeration. If the command
