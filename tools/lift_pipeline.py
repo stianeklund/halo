@@ -28,6 +28,7 @@ ARTIFACT_ROOT = ROOT / "artifacts" / "lift_runs"
 class Target:
   addr: str
   name: str
+  decl: str
   object_name: str
   source_path: str
 
@@ -37,6 +38,15 @@ class StageResult:
   name: str
   ran: bool
   ok: bool
+  details: str
+
+
+@dataclass
+class VerifyRiskAssessment:
+  score: int
+  threshold: int
+  must_verify: bool
+  triggers: list[str]
   details: str
 
 
@@ -78,7 +88,7 @@ def load_kb_index() -> tuple[dict[str, Target], dict[str, Target]]:
       name = parse_function_name_from_decl(decl)
       if not addr or not name:
         continue
-      target = Target(addr=addr, name=name, object_name=object_name, source_path=source_path)
+      target = Target(addr=addr, name=name, decl=decl, object_name=object_name, source_path=source_path)
       by_name[name] = target
       by_addr[addr] = target
   return by_name, by_addr
@@ -161,6 +171,230 @@ def render_template(value: str, *, target: Target, artifact_dir: Path) -> str:
   return out
 
 
+def resolve_root_path(path_text: str) -> Path:
+  path = Path(path_text)
+  if not path.is_absolute():
+    path = ROOT / path
+  return path
+
+
+def find_matching_delimiter(text: str, start: int, open_char: str, close_char: str) -> int:
+  depth = 0
+  in_line_comment = False
+  in_block_comment = False
+  in_string: Optional[str] = None
+  escape = False
+
+  i = start
+  while i < len(text):
+    ch = text[i]
+    nxt = text[i + 1] if i + 1 < len(text) else ""
+
+    if in_line_comment:
+      if ch == "\n":
+        in_line_comment = False
+      i += 1
+      continue
+
+    if in_block_comment:
+      if ch == "*" and nxt == "/":
+        in_block_comment = False
+        i += 2
+      else:
+        i += 1
+      continue
+
+    if in_string is not None:
+      if escape:
+        escape = False
+      elif ch == "\\":
+        escape = True
+      elif ch == in_string:
+        in_string = None
+      i += 1
+      continue
+
+    if ch == "/" and nxt == "/":
+      in_line_comment = True
+      i += 2
+      continue
+
+    if ch == "/" and nxt == "*":
+      in_block_comment = True
+      i += 2
+      continue
+
+    if ch == '"' or ch == "'":
+      in_string = ch
+      i += 1
+      continue
+
+    if ch == open_char:
+      depth += 1
+    elif ch == close_char:
+      depth -= 1
+      if depth == 0:
+        return i
+
+    i += 1
+
+  return -1
+
+
+def extract_function_body(source_text: str, function_name: str) -> Optional[str]:
+  pattern = re.compile(rf"\b{re.escape(function_name)}\s*\(")
+  for match in pattern.finditer(source_text):
+    open_paren = source_text.find("(", match.start())
+    if open_paren < 0:
+      continue
+    close_paren = find_matching_delimiter(source_text, open_paren, "(", ")")
+    if close_paren < 0:
+      continue
+
+    search_start = close_paren + 1
+    next_open = source_text.find("{", search_start)
+    next_semi = source_text.find(";", search_start)
+    if next_open < 0:
+      continue
+    if next_semi >= 0 and next_semi < next_open:
+      continue
+
+    close_brace = find_matching_delimiter(source_text, next_open, "{", "}")
+    if close_brace < 0:
+      continue
+
+    return source_text[next_open:close_brace + 1]
+
+  return None
+
+
+def strip_c_comments_and_literals(text: str) -> str:
+  without_block_comments = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+  without_line_comments = re.sub(r"//[^\n]*", " ", without_block_comments)
+  without_strings = re.sub(r'"(?:\\.|[^"\\])*"', " ", without_line_comments)
+  without_chars = re.sub(r"'(?:\\.|[^'\\])'", " ", without_strings)
+  return without_chars
+
+
+def assess_verify_risk(target: Target, threshold: int) -> VerifyRiskAssessment:
+  score = 0
+  triggers: list[str] = []
+
+  source_path = resolve_root_path(target.source_path) if target.source_path else None
+  if not source_path or not source_path.exists():
+    score += 3
+    triggers.append("source-unavailable")
+    details = f"score={score} threshold={threshold} source=unavailable"
+    return VerifyRiskAssessment(
+      score=score,
+      threshold=threshold,
+      must_verify=True,
+      triggers=triggers,
+      details=details,
+    )
+
+  source_text = source_path.read_text(encoding="utf-8", errors="replace")
+  body = extract_function_body(source_text, target.name)
+  if body is None:
+    score += 3
+    triggers.append("function-body-unavailable")
+    details = f"score={score} threshold={threshold} source={target.source_path} body=unavailable"
+    return VerifyRiskAssessment(
+      score=score,
+      threshold=threshold,
+      must_verify=True,
+      triggers=triggers,
+      details=details,
+    )
+
+  cleaned = strip_c_comments_and_literals(body)
+
+  branch_count = len(re.findall(r"\b(?:if|for|while|switch|goto)\b", cleaned))
+  has_loop_or_switch = bool(re.search(r"\b(?:for|while|switch)\b", cleaned))
+
+  call_names = []
+  call_keywords = {
+    "if", "for", "while", "switch", "return", "sizeof", "typeof", "alignof", "do", "else", "case",
+  }
+  for m in re.finditer(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", cleaned):
+    callee = m.group(1)
+    if callee in call_keywords:
+      continue
+    call_names.append(callee)
+  call_count = len(call_names)
+
+  has_pointer_write = bool(re.search(r"\*\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*[+\-]\s*[^=;\n]+)?\s*=", cleaned))
+  has_index_write = bool(re.search(r"[A-Za-z_][A-Za-z0-9_]*\s*\[[^\]]+\]\s*=", cleaned))
+  has_offset_access = bool(
+    re.search(r"\b[A-Za-z_][A-Za-z0-9_]*\s*[+\-]\s*0x[0-9A-Fa-f]+\b", cleaned)
+    or re.search(r"->\s*(?:field|pad|unknown|unk)_[0-9A-Fa-fA-F]+", cleaned)
+  )
+  has_hardcoded_address = bool(re.search(r"0x[0-9A-Fa-f]{5,}", cleaned))
+  has_reg_args = "@<" in target.decl
+
+  if branch_count >= 2:
+    score += 2
+    triggers.append(f"branches={branch_count}")
+  if has_loop_or_switch:
+    score += 2
+    triggers.append("loop-or-switch")
+  if call_count >= 2:
+    score += 1
+    triggers.append(f"calls={call_count}")
+  if has_pointer_write or has_index_write:
+    score += 3
+    triggers.append("pointer-write")
+  if has_offset_access:
+    score += 2
+    triggers.append("offset-access")
+  if has_reg_args:
+    score += 2
+    triggers.append("reg-args")
+  if has_hardcoded_address:
+    score += 1
+    triggers.append("hardcoded-address")
+
+  strong_trigger = has_pointer_write or has_index_write or has_offset_access or has_reg_args
+  must_verify = strong_trigger or (score >= threshold)
+  details = (
+    f"score={score} threshold={threshold} branches={branch_count} calls={call_count} "
+    f"loop_switch={'yes' if has_loop_or_switch else 'no'} "
+    f"ptr_write={'yes' if (has_pointer_write or has_index_write) else 'no'} "
+    f"offset={'yes' if has_offset_access else 'no'} "
+    f"reg_args={'yes' if has_reg_args else 'no'}"
+  )
+
+  return VerifyRiskAssessment(
+    score=score,
+    threshold=threshold,
+    must_verify=must_verify,
+    triggers=triggers,
+    details=details,
+  )
+
+
+def can_auto_generate_verify_payload(args: argparse.Namespace, artifact_dir: Path) -> tuple[bool, list[str]]:
+  missing: list[str] = []
+
+  if not args.verify_new_address:
+    missing.append("--verify-new-address")
+
+  def has_input(file_arg: str, cmd_arg: str, default_name: str) -> bool:
+    if file_arg:
+      return resolve_root_path(file_arg).exists()
+    if cmd_arg:
+      return True
+    return (artifact_dir / default_name).exists()
+
+  if not has_input(args.orig_decompile_file, args.orig_decompile_cmd, "orig_decompile.txt"):
+    missing.append("orig_decompile input")
+
+  if not has_input(args.new_decompile_file, args.new_decompile_cmd, "new_decompile.txt"):
+    missing.append("new_decompile input")
+
+  return (len(missing) == 0), missing
+
+
 def run_pipeline(args: argparse.Namespace) -> int:
   timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
   run_id = args.run_id or timestamp
@@ -239,67 +473,116 @@ def run_pipeline(args: argparse.Namespace) -> int:
     if not build_ok:
       return finalize(summary, stages, artifact_dir, ok=False)
 
-  verify_input_path = args.verify_input
-  if not verify_input_path and args.verify_auto:
-    if not args.verify_new_address:
-      stages.append(StageResult("verify_payload", ran=True, ok=False,
-                                details="--verify-new-address is required with --verify-auto"))
-      return finalize(summary, stages, artifact_dir, ok=False)
+  risk_assessment = assess_verify_risk(target, args.verify_risk_threshold)
+  trigger_text = ",".join(risk_assessment.triggers) if risk_assessment.triggers else "none"
 
-    verify_input_path = args.verify_output or str(artifact_dir / "verify_payload.json")
-    collect_cmd = [
-      "python3",
-      "tools/collect_verify_payload.py",
-      "--name",
-      target.name,
-      "--orig-address",
-      target.addr,
-      "--new-address",
-      args.verify_new_address,
-      "--output",
-      verify_input_path,
-    ]
+  manual_verify_requested = bool(args.verify_input) or bool(args.verify_auto)
+  policy_requires_verify = False
+  verify_auto_from_policy = False
+  policy_missing_inputs: list[str] = []
+  policy_decision = "manual-only"
 
-    if args.orig_decompile_file:
-      collect_cmd.extend(["--orig-decompile-file", args.orig_decompile_file])
-    elif args.orig_decompile_cmd:
-      collect_cmd.extend(["--orig-decompile-cmd", render_template(args.orig_decompile_cmd, target=target, artifact_dir=artifact_dir)])
+  if args.verify_policy == "manual":
+    policy_decision = "manual-only"
+  elif manual_verify_requested:
+    policy_decision = "manual-requested"
+  elif risk_assessment.must_verify and not manual_verify_requested:
+    policy_requires_verify = True
+    can_auto, missing_inputs = can_auto_generate_verify_payload(args, artifact_dir)
+    if can_auto:
+      verify_auto_from_policy = True
+      policy_decision = "auto-verify"
     else:
-      collect_cmd.extend(["--orig-decompile-file", str(artifact_dir / "orig_decompile.txt")])
-
-    if args.new_decompile_file:
-      collect_cmd.extend(["--new-decompile-file", args.new_decompile_file])
-    elif args.new_decompile_cmd:
-      collect_cmd.extend(["--new-decompile-cmd", render_template(args.new_decompile_cmd, target=target, artifact_dir=artifact_dir)])
-    else:
-      collect_cmd.extend(["--new-decompile-file", str(artifact_dir / "new_decompile.txt")])
-
-    if args.orig_callees_file:
-      collect_cmd.extend(["--orig-callees-file", args.orig_callees_file])
-    elif args.orig_callees_cmd:
-      collect_cmd.extend(["--orig-callees-cmd", render_template(args.orig_callees_cmd, target=target, artifact_dir=artifact_dir)])
-    else:
-      default_orig_callees = artifact_dir / "orig_callees.txt"
-      if default_orig_callees.exists():
-        collect_cmd.extend(["--orig-callees-file", str(default_orig_callees)])
-
-    if args.new_callees_file:
-      collect_cmd.extend(["--new-callees-file", args.new_callees_file])
-    elif args.new_callees_cmd:
-      collect_cmd.extend(["--new-callees-cmd", render_template(args.new_callees_cmd, target=target, artifact_dir=artifact_dir)])
-    else:
-      default_new_callees = artifact_dir / "new_callees.txt"
-      if default_new_callees.exists():
-        collect_cmd.extend(["--new-callees-file", str(default_new_callees)])
-
-    proc = run_command(collect_cmd, cwd=ROOT, log_path=artifact_dir / "verify_payload.log")
-    ok = proc.returncode == 0
-    stages.append(StageResult("verify_payload", ran=True, ok=ok, details=verify_input_path))
-    if not ok:
-      return finalize(summary, stages, artifact_dir, ok=False)
+      policy_missing_inputs = missing_inputs
+      policy_decision = "verify-recommended-but-inputs-missing"
   else:
-    stages.append(StageResult("verify_payload", ran=False, ok=True,
-                              details="skipped (no --verify-auto or --verify-input already set)"))
+    policy_decision = "verify-not-required"
+
+  verify_policy_details = (
+    f"mode={args.verify_policy} decision={policy_decision} {risk_assessment.details} "
+    f"triggers={trigger_text}"
+  )
+  if policy_missing_inputs:
+    verify_policy_details += f" missing={','.join(policy_missing_inputs)}"
+
+  if args.verify_policy == "strict" and policy_requires_verify and policy_missing_inputs:
+    stages.append(StageResult("verify_policy", ran=True, ok=False, details=verify_policy_details))
+    return finalize(summary, stages, artifact_dir, ok=False)
+
+  stages.append(StageResult("verify_policy", ran=True, ok=True, details=verify_policy_details))
+
+  verify_input_path = args.verify_input
+  verify_auto_requested = bool(args.verify_auto or verify_auto_from_policy)
+
+  if not verify_input_path and verify_auto_requested:
+    if not args.verify_new_address:
+      if verify_auto_from_policy:
+        stages.append(StageResult("verify_payload", ran=False, ok=True,
+                                  details="skipped (policy requested verify but --verify-new-address is missing)"))
+      else:
+        stages.append(StageResult("verify_payload", ran=True, ok=False,
+                                  details="--verify-new-address is required with --verify-auto"))
+        return finalize(summary, stages, artifact_dir, ok=False)
+    else:
+      verify_input_path = args.verify_output or str(artifact_dir / "verify_payload.json")
+      collect_cmd = [
+        "python3",
+        "tools/collect_verify_payload.py",
+        "--name",
+        target.name,
+        "--orig-address",
+        target.addr,
+        "--new-address",
+        args.verify_new_address,
+        "--output",
+        verify_input_path,
+      ]
+
+      if args.orig_decompile_file:
+        collect_cmd.extend(["--orig-decompile-file", args.orig_decompile_file])
+      elif args.orig_decompile_cmd:
+        collect_cmd.extend(["--orig-decompile-cmd", render_template(args.orig_decompile_cmd, target=target, artifact_dir=artifact_dir)])
+      else:
+        collect_cmd.extend(["--orig-decompile-file", str(artifact_dir / "orig_decompile.txt")])
+
+      if args.new_decompile_file:
+        collect_cmd.extend(["--new-decompile-file", args.new_decompile_file])
+      elif args.new_decompile_cmd:
+        collect_cmd.extend(["--new-decompile-cmd", render_template(args.new_decompile_cmd, target=target, artifact_dir=artifact_dir)])
+      else:
+        collect_cmd.extend(["--new-decompile-file", str(artifact_dir / "new_decompile.txt")])
+
+      if args.orig_callees_file:
+        collect_cmd.extend(["--orig-callees-file", args.orig_callees_file])
+      elif args.orig_callees_cmd:
+        collect_cmd.extend(["--orig-callees-cmd", render_template(args.orig_callees_cmd, target=target, artifact_dir=artifact_dir)])
+      else:
+        default_orig_callees = artifact_dir / "orig_callees.txt"
+        if default_orig_callees.exists():
+          collect_cmd.extend(["--orig-callees-file", str(default_orig_callees)])
+
+      if args.new_callees_file:
+        collect_cmd.extend(["--new-callees-file", args.new_callees_file])
+      elif args.new_callees_cmd:
+        collect_cmd.extend(["--new-callees-cmd", render_template(args.new_callees_cmd, target=target, artifact_dir=artifact_dir)])
+      else:
+        default_new_callees = artifact_dir / "new_callees.txt"
+        if default_new_callees.exists():
+          collect_cmd.extend(["--new-callees-file", str(default_new_callees)])
+
+      proc = run_command(collect_cmd, cwd=ROOT, log_path=artifact_dir / "verify_payload.log")
+      ok = proc.returncode == 0
+      stages.append(StageResult("verify_payload", ran=True, ok=ok, details=verify_input_path))
+      if not ok:
+        return finalize(summary, stages, artifact_dir, ok=False)
+  else:
+    if verify_input_path:
+      details = "skipped (verify payload generation not needed: --verify-input provided)"
+    elif policy_requires_verify and policy_missing_inputs:
+      details = "skipped (verify requested by policy but inputs are missing)"
+    else:
+      details = "skipped (verify not requested)"
+    stages.append(StageResult("verify_payload", ran=False, ok=True, details=details))
 
   structural_enabled = bool(verify_input_path) or bool(args.objdiff_reference and args.objdiff_candidate)
   structural_ok = True
@@ -469,6 +752,10 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Lifted function address (required for --verify-auto).")
   ap.add_argument("--verify-output", default="",
                   help="Output path for generated verify payload (defaults to artifact dir).")
+  ap.add_argument("--verify-policy", choices=["manual", "auto", "strict"], default="auto",
+                  help="Verification policy: manual=only explicit flags, auto=enable verify for risky functions when inputs exist, strict=fail if risky function cannot be verified.")
+  ap.add_argument("--verify-risk-threshold", type=int, default=3,
+                  help="Risk score threshold for policy-driven verify decisions.")
 
   ap.add_argument("--orig-decompile-file", default="",
                   help="Original decompile text file for --verify-auto.")

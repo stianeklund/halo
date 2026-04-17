@@ -106,7 +106,7 @@ After the agent returns:
 2. Check whether the agent already ran a successful build (look for a build
    success message in its output). If it did not, run:
    ```
-   python3 tools/lift_pipeline.py --target <name> --no-metadata-update
+   python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto
    ```
    No `--candidate` is needed — the agent already wrote to the source file.
    If the pipeline build step fails, stop here and report the error — do not
@@ -129,8 +129,9 @@ After the agent returns:
 Notes:
 - If Phase 2 build fails, investigate and fix the build error before re-running.
   Do not re-run Phase 1 unless the implementation itself is wrong.
-- Use `/lift-verify` for structural verification with `--verify-auto` after a
-  successful build.
+- Use `/lift-verify` for explicit verify payload runs when you already have the
+  lifted function address and extraction outputs. `lift_pipeline.py` now runs a
+  `verify_policy` stage by default (`--verify-policy auto`).
 - Use `/maintain` if ordering or formatting needs a standalone cleanup pass.
 - Use `--resume` on the next call to carry forward session context (open
   questions, recent function findings, active type work) without re-analysing

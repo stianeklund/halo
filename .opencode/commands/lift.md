@@ -49,7 +49,7 @@ After Phase 1 completes:
 1. Use the function name from `RESOLVED_TARGET:` above.
 2. Run:
    ```
-   python3 tools/lift_pipeline.py --target <name> --no-metadata-update
+   python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto
    ```
 3. Report:
    - Target: name / address / object / source path
@@ -59,5 +59,7 @@ After Phase 1 completes:
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.
-- Use `/lift-verify` for structural verification with `--verify-auto`.
+- Use `/lift-verify` for explicit verify payload runs when you already have the
+  lifted function address and extraction outputs. `lift_pipeline.py` now runs a
+  `verify_policy` stage by default (`--verify-policy auto`).
 - Use `/maintain` for a standalone sort + format pass.
