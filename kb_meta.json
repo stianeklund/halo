@@ -869,7 +869,8 @@
     },
     "0xba710": {
       "kind": "function",
-      "status": "ported"
+      "status": "thunked",
+      "name": "any_player_is_in_the_air"
     },
     "0xba800": {
       "kind": "function",
@@ -886,15 +887,18 @@
     },
     "0xbadf0": {
       "kind": "function",
-      "status": "ported"
+      "status": "thunked",
+      "name": "players_compute_local_player_count"
     },
     "0xbae20": {
       "kind": "function",
-      "status": "ported"
+      "status": "thunked",
+      "name": "player_examine_nearby_unit"
     },
     "0xbaeb0": {
       "kind": "function",
-      "status": "ported"
+      "status": "thunked",
+      "name": "player_reset_action_result"
     },
     "0xbb2f0": {
       "kind": "function",
@@ -949,6 +953,15 @@
     "0xca800": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xcdb30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "caa80 (hs_get_thread_script_name) takes ESI=thread_index as register arg, returns script name string.",
+        "cd840 (hs_execute_thread) takes EAX=thread_index as register arg.",
+        "cc1d0 (hs_default_value) takes EAX=thread_index as register arg plus two stack args (type, dest)."
+      ]
     },
     "0xce690": {
       "kind": "function",
@@ -1796,7 +1809,8 @@
     },
     "0x1cf730": {
       "kind": "function",
-      "status": "ported"
+      "status": "thunked",
+      "name": "sound_render"
     }
   }
 }
