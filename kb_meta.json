@@ -1665,6 +1665,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ae600": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_001ae490 computes next weapon index; FUN_000fd360 attempts weapon placement; FUN_000de360 fires a unit event; FUN_001ab990 is a weapon-stow notification; FUN_000faf50 checks if weapon should be kept alive."
+      ]
+    },
     "0x1b7ee0": {
       "kind": "function",
       "status": "ported",

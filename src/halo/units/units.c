@@ -133,3 +133,61 @@ int unit_get_weapon(int unit_handle, int16_t weapon_index)
   }
   return result;
 }
+
+/* unit_set_in_vehicle (0x1ae600)
+ *
+ * Attempts to stow/put the unit's current weapon into a vehicle slot.
+ * Returns true (1) if the weapon was successfully placed, false (0) otherwise.
+ *
+ * Steps:
+ * 1. Gets the unit tag definition via tag_get("unit", unit->tag_index).
+ * 2. Looks up the current weapon handle via unit_get_weapon.
+ * 3. Calls FUN_001ae490 to compute the next weapon index.
+ * 4. Skips if weapon is NONE, or if next index equals current and flag is
+ * false.
+ * 5. Checks the weapon object's flags byte (bit 0 must be clear).
+ * 6. Calls FUN_000fd360(weapon_handle, flag) to attempt the placement.
+ * 7. On success: fires unit event 0xd, calls FUN_001ab990, clears the weapon
+ *    slot, resets current/next weapon indices, and optionally deletes the
+ *    weapon object if FUN_000faf50 returns false.
+ */
+bool unit_set_in_vehicle(int unit_handle, bool flag)
+{
+  unit_data_t *unit;
+  int weapon_handle;
+  int16_t new_index;
+  object_data_t *weapon_obj;
+  int16_t cur_index;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  tag_get(0x756e6974, *(int *)unit);
+  (void)object_get_and_verify_type(unit_handle, 3);
+  weapon_handle = unit_get_weapon(unit_handle, unit->unk_674);
+  new_index = ((int16_t(*)(int16_t, int))0x1ae490)(unit->unk_674, 1);
+
+  if (weapon_handle == -1)
+    return false;
+  if (new_index == unit->unk_674 && !flag)
+    return false;
+
+  weapon_obj = (object_data_t *)object_get_and_verify_type(weapon_handle, -1);
+  if (weapon_obj->flags & 1)
+    return false;
+
+  if (!((bool (*)(int, bool))0xfd360)(weapon_handle, flag))
+    return false;
+
+  ((void (*)(int, int))0xde360)(unit_handle, 0xd);
+  ((void (*)(void))0x1ab990)();
+
+  cur_index = (int16_t)unit->unk_674;
+  unit->unk_680[cur_index].value = -1;
+  unit->unk_674 = (uint16_t)-1;
+  new_index = ((int16_t(*)(int16_t, int))0x1ae490)(-1, 0);
+  unit->unk_676 = (uint16_t)new_index;
+
+  if (!((bool (*)(int))0xfaf50)(weapon_handle))
+    ((void (*)(int))0x140cc0)(weapon_handle);
+
+  return true;
+}
