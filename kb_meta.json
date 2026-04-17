@@ -1159,6 +1159,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe6a60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The pointer at 0x31e04c points to a widget system state structure; field at +4 is a debug_malloc'd memory pool (0x4000 bytes), field at +8 is the pool size."
+      ]
+    },
     "0xe8d20": {
       "kind": "function",
       "status": "ported",

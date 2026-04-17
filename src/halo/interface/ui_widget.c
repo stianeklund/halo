@@ -24,3 +24,24 @@ void ui_widgets_disable_pause_game(int duration_ticks)
   assert_halt(duration_ticks >= 0);
   dword_46CC44 = duration_ticks;
 }
+
+/* ui_widgets_dispose — tears down the UI widget system. Closes all open
+ * widgets, frees the widget memory pool allocated by ui_widgets_initialize
+ * (0x4000 bytes at [ptr+4]), zeros the pool pointer and size fields, and
+ * clears the 0x68-byte static widget state block at 0x46cc20. Called during
+ * engine shutdown. */
+void ui_widgets_dispose(void)
+{
+  int *ptr;
+
+  ui_widgets_close_all();
+
+  ptr = *(int **)0x31e04c;
+  if (ptr[1] != 0) {
+    debug_free((void *)ptr[1], "c:\\halo\\SOURCE\\interface\\ui_widget.c",
+               0x76);
+  }
+  ptr[1] = 0;
+  ptr[2] = 0;
+  csmemset((void *)0x46cc20, 0, 0x68);
+}
