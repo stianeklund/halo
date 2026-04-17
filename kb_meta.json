@@ -1142,7 +1142,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe3be0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe3c80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe4470": {
       "kind": "function",
       "status": "ported"
     },

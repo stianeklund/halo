@@ -633,6 +633,10 @@
       "name": "stack_memory_pool.obj",
       "functions": [
         {
+          "decl": "void stack_memory_pool_initialize(void *pool);",
+          "addr": "0x11e9c0"
+        },
+        {
           "decl": "void stack_memory_pool_deallocate(void *pool, void *block);",
           "addr": "0x11f620"
         }
