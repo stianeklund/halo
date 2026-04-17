@@ -2767,6 +2767,10 @@
       "name": "thread_win32.obj",
       "functions": [
         {
+          "decl": "bool thread_new(int priority_flags, void *function, int param, void **thread_reference);",
+          "addr": "0x81630"
+        },
+        {
           "decl": "bool thread_is_done(void *thread_reference);",
           "addr": "0x81720"
         },
