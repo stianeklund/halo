@@ -1690,7 +1690,7 @@
       "source": "networking/network_game_globals.c",
       "functions": [
         {
-          "decl": "bool game_in_progress(void);",
+          "decl": "bool network_game_in_progress(void);",
           "addr": "0x12a000"
         },
         {
