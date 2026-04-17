@@ -2783,6 +2783,10 @@
           "addr": "0x1ae600"
         },
         {
+          "decl": "void unit_control_trace(int unit_handle@<edi>, const char *label);",
+          "addr": "0x1af6b0"
+        },
+        {
           "decl": "void unit_set_control(int unit_handle, void *unit_control);",
           "addr": "0x1af990"
         },

@@ -191,3 +191,202 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
 
   return true;
 }
+
+/* unit_set_control (0x1af990)
+ *
+ * Validates and applies a unit_control block to the given unit. The control
+ * data (param_2) is a 0x40-byte struct containing animation state, aiming
+ * speed, control flags, weapon/grenade/zoom indices, throttle vector,
+ * primary trigger, facing/aiming/looking vectors.
+ *
+ * Validation asserts (with original line numbers):
+ *   - throttle magnitude <= 3.0f (line 0x5e1)
+ *   - animation_state in [0,7) (line 0x5e2)
+ *   - aiming_speed in [0,2) (line 0x5e3)
+ *   - control_flags valid (bit 7 clear) (line 0x5e4)
+ *   - facing/aiming/looking vectors are valid normals (lines 0x5e5-0x5e7)
+ *   - weapon_index NONE or in [0,4) (line 0x5e8)
+ *   - grenade_index NONE or in [0,2) (line 0x5e9)
+ *   - zoom_level NONE or >= 0 (line 0x5ea)
+ *   - primary_trigger is not NaN/Inf (line 0x5eb)
+ *
+ * After validation, copies fields from control_data into unit_data_t at
+ * offsets documented in the store-offset table below.
+ *
+ * Store-offset table (unit <- control_data):
+ *   +0x228 <- +0x0C  throttle (vector3)
+ *   +0x234 <- +0x18  primary_trigger (float)
+ *   +0x238 <- +0x01  aiming_speed (byte)
+ *   +0x2A4 <- +0x04  weapon_index (word, if not NONE)
+ *   +0x2CD <- +0x06  grenade_index (byte, if not NONE)
+ *   +0x2D1 <- +0x08  zoom_level (byte)
+ *   +0x1B8 <- +0x02  control_flags (zext word -> dword)
+ *   +0x204 <- +0x34  looking_vector (vector3)
+ *   +0x1E0 <- +0x28  aiming_vector (vector3)
+ *   +0x1D4 <- +0x1C  facing_vector (vector3)
+ *   +0x256 <- +0x00  animation_state (byte)
+ */
+void unit_set_control(int unit_handle, void *unit_control)
+{
+  unit_data_t *unit;
+  char *cd;
+  float mag;
+  float *looking;
+
+  cd = (char *)unit_control;
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  /* validate throttle magnitude <= 3.0f */
+  mag = sqrtf(*(float *)(cd + 0x14) * *(float *)(cd + 0x14) +
+              *(float *)(cd + 0x10) * *(float *)(cd + 0x10) +
+              *(float *)(cd + 0x0c) * *(float *)(cd + 0x0c));
+  if (!(mag <= *(float *)0x254644)) {
+    display_assert("magnitude3d(&control_data->throttle)<=3.0f",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5e1, 1);
+    system_exit(-1);
+  }
+
+  /* validate animation_state in [0, 7) */
+  if (cd[0] < 0 || cd[0] >= 7) {
+    display_assert("control_data->animation_state>=0 && control_data->"
+                   "animation_state<NUMBER_OF_UNIT_ANIMATION_STATES",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5e2, 1);
+    system_exit(-1);
+  }
+
+  /* validate aiming_speed in [0, 2) */
+  if (cd[1] < 0 || cd[1] >= 2) {
+    display_assert("control_data->aiming_speed>=0 && control_data->"
+                   "aiming_speed<NUMBER_OF_UNIT_AIMING_SPEEDS",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5e3, 1);
+    system_exit(-1);
+  }
+
+  /* validate control_flags (bit 7 must be clear) */
+  if (cd[3] & 0x80) {
+    display_assert("VALID_FLAGS(control_data->control_flags, "
+                   "NUMBER_OF_UNIT_CONTROL_FLAGS)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5e4, 1);
+    system_exit(-1);
+  }
+
+  /* validate facing_vector is a valid normal */
+  if (!((bool (*)(float *))0x21fb0)((float *)(cd + 0x1c))) {
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&control_data->facing_vector", (double)*(float *)(cd + 0x1c),
+               (double)*(float *)(cd + 0x20), (double)*(float *)(cd + 0x24)),
+      "c:\\halo\\SOURCE\\units\\units.c", 0x5e5, 1);
+    system_exit(-1);
+  }
+
+  /* validate aiming_vector is a valid normal */
+  if (!((bool (*)(float *))0x21fb0)((float *)(cd + 0x28))) {
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&control_data->aiming_vector", (double)*(float *)(cd + 0x28),
+               (double)*(float *)(cd + 0x2c), (double)*(float *)(cd + 0x30)),
+      "c:\\halo\\SOURCE\\units\\units.c", 0x5e6, 1);
+    system_exit(-1);
+  }
+
+  /* validate looking_vector is a valid normal */
+  looking = (float *)(cd + 0x34);
+  if (!((bool (*)(float *))0x21fb0)(looking)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&control_data->looking_vector", (double)looking[0],
+                            (double)*(float *)(cd + 0x38),
+                            (double)*(float *)(cd + 0x3c)),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5e7, 1);
+    system_exit(-1);
+  }
+
+  /* validate weapon_index: NONE or in [0, MAXIMUM_WEAPONS_PER_UNIT) */
+  if (*(int16_t *)(cd + 4) != -1 &&
+      (*(int16_t *)(cd + 4) < 0 ||
+       *(int16_t *)(cd + 4) >= MAXIMUM_WEAPONS_PER_UNIT)) {
+    display_assert("control_data->weapon_index==NONE || (control_data->"
+                   "weapon_index>=0 && control_data->"
+                   "weapon_index<MAXIMUM_WEAPONS_PER_UNIT)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5e8, 1);
+    system_exit(-1);
+  }
+
+  /* validate grenade_index: NONE or in [0, NUMBER_OF_UNIT_GRENADE_TYPES) */
+  if (*(int16_t *)(cd + 6) != -1 &&
+      (*(int16_t *)(cd + 6) < 0 ||
+       *(int16_t *)(cd + 6) >= NUMBER_OF_UNIT_GRENADE_TYPES)) {
+    display_assert("control_data->grenade_index==NONE || (control_data->"
+                   "grenade_index>=0 && control_data->"
+                   "grenade_index<NUMBER_OF_UNIT_GRENADE_TYPES)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5e9, 1);
+    system_exit(-1);
+  }
+
+  /* validate zoom_level: NONE or >= 0 */
+  if (*(int16_t *)(cd + 8) != -1 && *(int16_t *)(cd + 8) < 0) {
+    display_assert("control_data->zoom_level==NONE || (control_data->"
+                   "zoom_level>=0)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x5ea, 1);
+    system_exit(-1);
+  }
+
+  /* validate primary_trigger is not NaN/Inf */
+  if ((*(uint32_t *)(cd + 0x18) & 0x7f800000) == 0x7f800000) {
+    display_assert(
+      csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
+               "control_data->primary_trigger", *(uint32_t *)(cd + 0x18),
+               (double)*(float *)(cd + 0x18)),
+      "c:\\halo\\SOURCE\\units\\units.c", 0x5eb, 1);
+    system_exit(-1);
+  }
+
+  /* copy throttle vector (control +0x0C -> unit +0x228) */
+  unit->unk_552.x = *(float *)(cd + 0x0c);
+  unit->unk_552.y = *(float *)(cd + 0x10);
+  unit->unk_552.z = *(float *)(cd + 0x14);
+
+  /* copy primary trigger (control +0x18 -> unit +0x234) */
+  unit->unk_564 = *(float *)(cd + 0x18);
+
+  /* copy aiming speed (control +0x01 -> unit +0x238) */
+  unit->unk_568 = cd[1];
+
+  /* copy weapon index if not NONE (control +0x04 -> unit +0x2A4) */
+  if (*(int16_t *)(cd + 4) != -1)
+    unit->unk_676 = *(uint16_t *)(cd + 4);
+
+  /* copy grenade index if not NONE (control +0x06 -> unit +0x2CD) */
+  if (*(int16_t *)(cd + 6) != -1)
+    unit->unk_717 = cd[6];
+
+  /* copy zoom level (control +0x08 -> unit +0x2D1) */
+  unit->unk_721 = cd[8];
+
+  /* copy control flags (control +0x02 zext word -> unit +0x1B8 dword) */
+  unit->unk_440 = (uint32_t) * (uint16_t *)(cd + 2);
+
+  /* copy looking vector (control +0x34 -> unit +0x204) */
+  unit->unk_516.x = looking[0];
+  unit->unk_516.y = looking[1];
+  unit->unk_516.z = looking[2];
+
+  /* copy aiming vector (control +0x28 -> unit +0x1E0) */
+  unit->unk_480.x = *(float *)(cd + 0x28);
+  unit->unk_480.y = *(float *)(cd + 0x2c);
+  unit->unk_480.z = *(float *)(cd + 0x30);
+
+  /* copy facing vector (control +0x1C -> unit +0x1D4) */
+  unit->unk_468.x = *(float *)(cd + 0x1c);
+  unit->unk_468.y = *(float *)(cd + 0x20);
+  unit->unk_468.z = *(float *)(cd + 0x24);
+
+  /* copy animation state (control +0x00 -> unit +0x256) */
+  unit->unk_598 = cd[0];
+
+  /* trace/profile call */
+  unit_control_trace(unit_handle, "unit-control");
+}
