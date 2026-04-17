@@ -354,6 +354,30 @@ void ui_widgets_close_all(void)
   } while ((int)list_heads < 0x46cc40);
 }
 
+/* ui_widget_begin_filesystem_checks — spawns a background thread to perform
+ * filesystem and saved-game file enumeration. Asserts that no initialization
+ * thread is already running (0x46cc7c == NULL) and that the widget subsystem
+ * is initialized (0x46cc82). Suppresses UI events (0x46cc85 = 1) and resets
+ * the filesystem check result word at 0x46cc80 to 0 before spawning the
+ * thread via thread_new (0x81630). If thread creation fails, runs the check
+ * procedure synchronously (0xe5590) and re-clears the suppress flag. */
+void ui_widget_begin_filesystem_checks(void)
+{
+  assert_halt(*(int *)0x46cc7c == 0);
+  error(2, "begining filesystem checks & saved game file enumeration...");
+  assert_halt(*(uint8_t *)0x46cc82);
+  *(uint8_t *)0x46cc85 = 1;
+  *(int16_t *)0x46cc80 = 0;
+  if (!thread_new(0, (void *)0xe5590, 0, (void **)0x46cc7c)) {
+    error(2, "failed to spawn thread for filesystem checks - running "
+             "synchronously!");
+    *(int *)0x46cc7c = 0;
+    ((void(__stdcall *)(int))0xe5590)(0);
+    assert_halt(*(uint8_t *)0x46cc82);
+    *(uint8_t *)0x46cc85 = 0;
+  }
+}
+
 /* ui_widgets_dispose — tears down the UI widget system. Closes all open
  * widgets, frees the widget memory pool allocated by ui_widgets_initialize
  * (0x4000 bytes at [ptr+4]), zeros the pool pointer and size fields, and
