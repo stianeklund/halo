@@ -206,11 +206,14 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     # 1. Rotate the original ret address below the existing stack args.
     # Keep it on the stack instead of a caller-saved register so the ported C
     # body can freely use EAX/ECX/EDX without corrupting the eventual RET.
+    # Use a scratch register that doesn't collide with any register arg source.
+    reg_arg_sources = {REG_PARENT[r] for _, r in reg_args}
+    fwd_scratch = 'ecx' if 'eax' in reg_arg_sources else 'eax'
     if stack_arg_count > 0:
         code += encode_mov_r32_mesp('edx', 0)
         for i in range(stack_arg_count):
-            code += encode_mov_r32_mesp('eax', 4 * (i + 1))
-            code += encode_mov_mesp_r32(4 * i, 'eax')
+            code += encode_mov_r32_mesp(fwd_scratch, 4 * (i + 1))
+            code += encode_mov_mesp_r32(4 * i, fwd_scratch)
         code += encode_mov_mesp_r32(4 * stack_arg_count, 'edx')
 
     # 2. Stage each register arg into its scratch slot, widening as needed.
@@ -238,15 +241,114 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     code += encode_add_esp_imm8(4 * len(reg_args))
 
     # 6. Rotate the original ret address back to the top and return.
+    # Use ECX as scratch (not EAX) — EAX holds the callee's return value.
     if stack_arg_count > 0:
         code += encode_mov_r32_mesp('edx', 4 * stack_arg_count)
         for i in reversed(range(stack_arg_count)):
-            code += encode_mov_r32_mesp('eax', 4 * i)
-            code += encode_mov_mesp_r32(4 * (i + 1), 'eax')
+            code += encode_mov_r32_mesp('ecx', 4 * i)
+            code += encode_mov_mesp_r32(4 * (i + 1), 'ecx')
         code += encode_mov_mesp_r32(0, 'edx')
     code += b'\xc3'  # ret
 
     return bytes(code)
+
+
+def _test_reverse_thunks():
+    """Self-test: verify generated thunks don't clobber EAX return values
+    or register arg sources. Run via `python tools/patch.py --test-thunks`."""
+    from knowledge import Function
+
+    # Decode all MOV r32,[esp+disp] and MOV [esp+disp],r32 instructions in
+    # the thunk bytes to extract which registers are used as scratch.
+    def extract_mov_esp_regs(code_bytes):
+        r32_names = {v: k for k, v in REG32_BITS.items()}
+        regs_used = set()
+        i = 0
+        while i < len(code_bytes):
+            if code_bytes[i] in (0x89, 0x8B) and i + 2 < len(code_bytes):
+                modrm = code_bytes[i + 1]
+                mod = (modrm >> 6) & 3
+                rm = modrm & 7
+                reg = (modrm >> 3) & 7
+                if rm == 4 and mod in (0, 1, 2):
+                    sib = code_bytes[i + 2] if i + 2 < len(code_bytes) else 0
+                    if sib == 0x24:
+                        if code_bytes[i] == 0x8B:
+                            regs_used.add(r32_names[reg])
+                        else:
+                            regs_used.add(r32_names[reg])
+            i += 1
+        return regs_used
+
+    cases = [
+        # (decl, description, check)
+        ("int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int16_t direction);",
+         "@<ebx> with 2 stack args — backward rotation must not use EAX"),
+        ("void director_compute_camera_input(int handle@<eax>, int output);",
+         "@<eax> with 1 stack arg — forward rotation must not use EAX"),
+        ("int rumble_calculate(int handle@<eax>);",
+         "@<eax> with 0 stack args — no rotation needed"),
+        ("int player_register_machine(int handle@<eax>, int machine);",
+         "@<eax> with 1 stack arg — forward rotation must not use EAX"),
+    ]
+
+    for decl, desc in cases:
+        sym = Function(decl, addr=0x100000)
+        code = generate_reverse_thunk(sym, 0x200000, 0x300000)
+
+        # Find the CALL instruction (E8 xx xx xx xx) — everything after it is
+        # the backward rotation + ret. The backward rotation must not use EAX.
+        call_offset = None
+        for i in range(len(code)):
+            if code[i] == 0xE8 and i + 5 <= len(code):
+                call_offset = i
+                break
+        assert call_offset is not None, f"No CALL found in thunk for: {desc}"
+
+        # After CALL: add esp, N (3 bytes) then the backward rotation
+        post_call = code[call_offset + 5:]
+
+        # The backward rotation section starts after the `add esp, imm8`
+        if len(post_call) > 3 and post_call[0] == 0x83 and post_call[1] == 0xC4:
+            rotate_back = post_call[3:]
+        else:
+            rotate_back = post_call
+
+        # Check: EAX must not appear as a scratch in the backward rotation.
+        # Scan for MOV r32,[esp+disp] where r32 is EAX (opcode 8B with reg=0).
+        for i in range(len(rotate_back)):
+            if rotate_back[i] == 0x8B and i + 2 < len(rotate_back):
+                modrm = rotate_back[i + 1]
+                reg = (modrm >> 3) & 7
+                rm = modrm & 7
+                if reg == REG32_BITS['eax'] and rm == 4:
+                    assert False, (
+                        f"FAIL: backward rotation uses EAX as scratch — "
+                        f"this would destroy the return value. Case: {desc}"
+                    )
+
+        # Check: if the function has @<eax>, the forward rotation (before CALL)
+        # must not use EAX as scratch either.
+        reg_arg_sources = {REG_PARENT[r] for _, r in sym.register_args}
+        if 'eax' in reg_arg_sources:
+            pre_call = code[:call_offset]
+            for i in range(len(pre_call)):
+                if pre_call[i] == 0x8B and i + 2 < len(pre_call):
+                    modrm = pre_call[i + 1]
+                    reg = (modrm >> 3) & 7
+                    rm = modrm & 7
+                    mod = (modrm >> 6) & 3
+                    if reg == REG32_BITS['eax'] and rm == 4 and mod in (0, 1, 2):
+                        sib = pre_call[i + 2] if i + 2 < len(pre_call) else 0
+                        if sib == 0x24:
+                            assert False, (
+                                f"FAIL: forward rotation uses EAX as scratch "
+                                f"for @<eax> function. Case: {desc}"
+                            )
+
+        log.info("PASS: %s", desc)
+
+    log.info("All reverse thunk self-tests passed.")
 
 
 def ensure_unique_section_name(xbe, name):
@@ -279,10 +381,19 @@ def write_to_vaddr(xbe: Xbe, vaddr: int, data: bytes):
 
 def main():
     ap = argparse.ArgumentParser(description='Patches re-implementation EXE into original Halo XBE')
-    ap.add_argument('input_xbe', help='Original input XBE path')
-    ap.add_argument('input_exe', help='Re-implementation EXE path')
-    ap.add_argument('output_xbe', help='Output XBE path')
+    ap.add_argument('input_xbe', nargs='?', help='Original input XBE path')
+    ap.add_argument('input_exe', nargs='?', help='Re-implementation EXE path')
+    ap.add_argument('output_xbe', nargs='?', help='Output XBE path')
+    ap.add_argument('--test-thunks', action='store_true',
+                    help='Run reverse thunk self-tests and exit')
     args = ap.parse_args()
+
+    if args.test_thunks:
+        _test_reverse_thunks()
+        return
+
+    if not args.input_xbe or not args.input_exe or not args.output_xbe:
+        ap.error('input_xbe, input_exe, and output_xbe are required')
 
     if not os.path.isfile(args.input_xbe):
         log.error('Could not find input XBE %s', args.input_xbe)

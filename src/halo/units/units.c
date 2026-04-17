@@ -353,9 +353,6 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
  */
 void unit_control_trace(int unit_handle, const char *label)
 {
-  typedef bool(__cdecl * unit_verify_vectors_t)(void);
-  typedef void(__cdecl * build_location_string_t)(int, int, bool, char *, int);
-
   unit_data_t *unit;
   int32_t actor;
   char location_buf[512];
@@ -363,14 +360,12 @@ void unit_control_trace(int unit_handle, const char *label)
   /* 0x1af6b9: MOV EAX, EDI; CALL 0x1af620 — verify vectors with
    * unit_handle in EAX. Returns true if all vectors are valid normals. */
   {
-    bool ok;
-    __asm__ __volatile__("movl %1, %%eax\n\t"
-                         "call *%2\n\t"
-                         : "=a"(ok)
-                         : "r"(unit_handle),
-                           "r"((unit_verify_vectors_t)0x1af620)
-                         : "ecx", "edx", "memory");
-    if (ok)
+    int _eax = unit_handle;
+    __asm__ __volatile__("call *%[fn]"
+                         : "+a"(_eax)
+                         : [fn] "r"((void *)0x1af620)
+                         : "ecx", "edx", "memory", "cc");
+    if ((bool)_eax)
       return;
   }
 
@@ -382,8 +377,8 @@ void unit_control_trace(int unit_handle, const char *label)
     actor = unit->swarm_actor_index.value;
 
   /* 0x1af6f7: build location string into stack buffer */
-  ((build_location_string_t)0x49ac0)(actor, unit_handle, true, location_buf,
-                                     512);
+  ((void (*)(int, int, int, char *, int))0x49ac0)(actor, unit_handle, 1,
+                                                  location_buf, 512);
 
   /* header: "unit_verify_vectors: problems with %s at location %s" */
   error(2, "**** unit_verify_vectors: problems with %s at location %s",
@@ -451,14 +446,12 @@ void unit_control_trace(int unit_handle, const char *label)
 
   /* retry verification */
   {
-    bool ok;
-    __asm__ __volatile__("movl %1, %%eax\n\t"
-                         "call *%2\n\t"
-                         : "=a"(ok)
-                         : "r"(unit_handle),
-                           "r"((unit_verify_vectors_t)0x1af620)
-                         : "ecx", "edx", "memory");
-    if (ok)
+    int _eax = unit_handle;
+    __asm__ __volatile__("call *%[fn]"
+                         : "+a"(_eax)
+                         : [fn] "r"((void *)0x1af620)
+                         : "ecx", "edx", "memory", "cc");
+    if ((bool)_eax)
       return;
   }
 

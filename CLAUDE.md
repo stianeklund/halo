@@ -180,6 +180,31 @@ and constant references and are not linked into any produced binary.
 - For hard functions, prefer a literal translation over a polished rewrite.
 - Keep decompiler artifacts (`v4`, `pregame_info2`, `// [esp+Ch] [ebp-260h]`) if cleaning them up risks behavior drift. Clean-up is welcome only when it is clearly safe.
 
+## Inline assembly safety
+
+When calling original binary functions via inline asm (`__asm__ __volatile__("call ...")`), **never** use the `"=a"(result)` output-only constraint with a separate `"r"(input)` for another operand. The compiler may assign EAX to both, and writing EAX in the asm body clobbers the input before it is read.
+
+**Dangerous pattern — do not use:**
+```c
+int ok;
+__asm__ __volatile__("movl %1, %%eax\n\tcall *%2"
+                     : "=a"(ok)               // output-only EAX
+                     : "r"(handle), "r"(fn)    // compiler may pick EAX for either
+                     : "ecx", "edx", "memory", "cc");
+```
+
+**Safe pattern — always use this instead:**
+```c
+int _eax = handle;  // pre-load the value into an EAX-tied variable
+__asm__ __volatile__("call *%[fn]"
+                     : "+a"(_eax)              // EAX is both input AND output
+                     : [fn] "r"((void *)0xADDRESS)
+                     : "ecx", "edx", "memory", "cc");
+int result = (bool)_eax;
+```
+
+The `"+a"` constraint ties the variable to EAX for both input and output, so the compiler cannot assign EAX to any other operand. The function pointer gets a different register (typically EDI or ESI).
+
 ## Rules for types and structs
 
 - Reuse existing types from `src/types.h` and Xbox/XDK headers whenever possible.
