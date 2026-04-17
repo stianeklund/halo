@@ -639,6 +639,10 @@
         {
           "decl": "void stack_memory_pool_deallocate(void *pool, void *block);",
           "addr": "0x11f620"
+        },
+        {
+          "decl": "void *stack_memory_pool_realloc(void *pool, int block, unsigned short new_size, const char *file, unsigned int line);",
+          "addr": "0x11fbe0"
         }
       ]
     },
