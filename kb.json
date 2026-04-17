@@ -1538,6 +1538,10 @@
           "addr": "0x100640"
         },
         {
+          "decl": "void main_reset_player_actions(void);",
+          "addr": "0x1006b0"
+        },
+        {
           "decl": "void compute_window_bounds(int player_index, int num_players, viewport_bounds_t *a3, viewport_bounds_t *a4);",
           "addr": "0x100910"
         },
@@ -1834,6 +1838,10 @@
         {
           "decl": "void player_control_dispose(void);",
           "addr": "0xb63f0"
+        },
+        {
+          "decl": "void player_control_set_action_flags(int16_t local_player_index, uint16_t flags, bool persistent);",
+          "addr": "0xb6460"
         },
         {
           "decl": "void player_control_new_unit(uint16_t local_player_index, int player_index);",
@@ -2600,6 +2608,10 @@
           "addr": "0x1cb810"
         },
         {
+          "decl": "void sound_set_music_enabled(int enabled);",
+          "addr": "0x1cb8a0"
+        },
+        {
           "decl": "void sound_dispose_from_old_map(void);",
           "addr": "0x1cf640"
         },
@@ -2742,6 +2754,10 @@
           "addr": "0xe46b0"
         },
         {
+          "decl": "void ui_widget_close_children(void *widget@<eax>);",
+          "addr": "0xe4890"
+        },
+        {
           "decl": "void ui_widget_close(void *widget);",
           "addr": "0xe5620"
         },
@@ -2766,8 +2782,22 @@
           "addr": "0xe8700"
         },
         {
+          "decl": "void *ui_widget_spawn_from_event_handler(void *widget, int tag_index);",
+          "addr": "0xe9320"
+        },
+        {
           "decl": "void process_ui_widgets(void);",
           "addr": "0xe9450"
+        }
+      ]
+    },
+    {
+      "name": "ui_widget_event_handler_functions.obj",
+      "source": "interface/ui_widget_event_handler_functions.c",
+      "functions": [
+        {
+          "decl": "bool ui_widget_event_handler_dispatch(void *widget, int unknown, uint16_t handler_func_index, bool *widget_deleted);",
+          "addr": "0xe9810"
         }
       ]
     },
