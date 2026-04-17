@@ -763,7 +763,8 @@
       "status": "ported",
       "inferred": [
         "The first assert checks game_connection()==0 which corresponds to _game_connection_local enum value.",
-        "The second assert string references both action_collection and update_client_globals.initialized but only the initialized flag at 0x45b1d0 is actually tested."
+        "The second assert string references both action_collection and update_client_globals.initialized but only the initialized flag at 0x45b1d0 is actually tested.",
+        "The ticks parameter is passed by address to update_server_get_update as update_number, which may modify it during the loop."
       ]
     },
     "0xb9b30": {
