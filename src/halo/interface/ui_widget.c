@@ -131,6 +131,38 @@ void ui_widgets_disable_pause_game(int duration_ticks)
   dword_46CC44 = duration_ticks;
 }
 
+/* ui_widget_close_children — walks the first_child linked list of a widget
+ * and closes each child via ui_widget_close. Asserts that each child's
+ * prev_sibling is NULL (since it should be the head of the sibling list)
+ * and that the next sibling's prev_sibling points back correctly. After
+ * closing each child, clears the next sibling's prev_sibling link before
+ * advancing. */
+void ui_widget_close_children(void *widget)
+{
+  int *child;
+  int *next;
+
+  child = *(int **)((char *)widget + 0x34);
+  if (child == NULL)
+    return;
+
+  do {
+    next = *(int **)((char *)child + 0x2c);
+
+    assert_halt_msg(*(int *)((char *)child + 0x28) == 0,
+                    "child->previous == NULL");
+    assert_halt_msg(next == NULL || *(int *)((char *)next + 0x28) == (int)child,
+                    "next->previous == child");
+
+    ui_widget_close(child);
+
+    if (next != NULL)
+      *(int *)((char *)next + 0x28) = 0;
+
+    child = next;
+  } while (child != NULL);
+}
+
 /* ui_widget_close — tears down a single UI widget and frees its memory.
  * Handles the "widget deleted" event handlers (type 0x19) from the widget's
  * DeLa tag definition, firing each matching handler via
