@@ -2031,6 +2031,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1cb8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1cf640": {
       "kind": "function",
       "status": "ported"

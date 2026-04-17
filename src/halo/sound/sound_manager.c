@@ -16,6 +16,27 @@ void sound_initialize_for_new_map(void)
  *      vtable+0x28(0) to stop hardware output, and record the timestamp.
  * Finally, unconditionally stop all channels (FUN_001cd540) and re-validate
  * the looping-sounds table so it is ready for the next map. */
+/* sound_set_music_enabled (0x1cb8a0)
+ *
+ * Sets the sound system's music/fade flag at 0x4eaf42. If the new state
+ * differs from the current one, updates the flag, calls the sound driver's
+ * vtable+0x28 method with the enabled parameter, and -- when disabling
+ * (enabled=0) -- records the current timestamp so the fade-out timing in
+ * sound_dispose_from_old_map has a reference point.
+ */
+void sound_set_music_enabled(int enabled)
+{
+  char cur = *(char *)0x4eaf42;
+  char val = (char)enabled;
+
+  if (val != cur) {
+    *(char *)0x4eaf42 = val;
+    (*(void (**)(int))(*(int *)0x4eaf48 + 0x28))(enabled);
+    if (val == '\0')
+      *(unsigned int *)0x4eaf4c = system_milliseconds();
+  }
+}
+
 void sound_dispose_from_old_map(void)
 {
   unsigned int start_ms;
