@@ -51,6 +51,10 @@
       "kind": "function",
       "status": "named"
     },
+    "0x81770": {
+      "kind": "function",
+      "status": "named"
+    },
     "0x82130": {
       "kind": "function",
       "status": "ported",
@@ -689,6 +693,10 @@
       "status": "ported"
     },
     "0xb63f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb6460": {
       "kind": "function",
       "status": "ported"
     },

@@ -2,6 +2,23 @@ void player_control_dispose(void)
 {
 }
 
+/* Set action flags on a local player's control slot.
+ * ORs the given flags into the player's action_flags field, and
+ * optionally into the persistent_action_flags field as well. */
+void player_control_set_action_flags(int16_t local_player_index, uint16_t flags,
+                                     bool persistent)
+{
+  uint16_t *slot;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  slot = (uint16_t *)((char *)player_control_globals +
+                      local_player_index * 0x40 + 0x10);
+  *(uint16_t *)((char *)slot + 8) |= flags;
+  if (persistent)
+    *(uint16_t *)((char *)slot + 0xa) |= flags;
+}
+
 void player_control_new_unit(uint16_t local_player_index, int player_index)
 {
   int *slot;
