@@ -739,6 +739,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb9340": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Queue datum layout: +0x04=new_action_flags, +0x08=prev_action_flags (persistent mask), +0x0c..+0x24=action fields (facing, throttle, trigger, weapon/grenade/zoom).",
+        "The 0x4D0 mask (bits 4,6,7,10) applied to prev_action_flags likely represents sticky/persistent button flags (e.g. binoculars, zoom, alt_attack)."
+      ],
+      "uncertain": [
+        "The re-read of action_count from memory inside loop 1 (rather than using the local) may be an artifact of the original compiler or may be intentional for volatile-like behavior."
+      ]
+    },
     "0xb9610": {
       "kind": "function",
       "status": "ported",
