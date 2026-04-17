@@ -674,6 +674,285 @@ do_update:
 }
 
 /*
+ * main_update_time - 0x1013d0
+ *
+ * Confirmed:
+ *  - Reads system_milliseconds() at entry and exit, and tracks both the raw
+ *    millisecond delta (unk_time_globals.unk_0) and the hardware flip count
+ *    timeline (unk_time_globals.unk_8 / unk_16 / unk_24 / unk_32).
+ *  - Selects the larger of the previous target time (unk_8) and the most
+ *    recent presented time (unk_32) before adjusting the next frame target.
+ *  - When 0x32568d is clear, uses a 33 ms software frame cap:
+ *      - clears 0x46dd9a
+ *      - if ms_delta < 33, brackets an optional Sleep(33 - ms_delta) with
+ *        0x91b70 / 0x91ba0 markers
+ *      - else reports the overshoot to 0x8f8c0(ms_delta - 33)
+ *  - When 0x32568d is set, optional pacing debug/control is driven by:
+ *      - 0x325690 (requested rate; zero treated as 30)
+ *      - 0x46dd96 (current divisor), 0x46dd98 (requested divisor)
+ *      - failure counters at 0x46dd9e..0x46dda6 (5 x int16)
+ *      - target-history slots at 0x46ddb0..0x46ddd0 (5 x int64)
+ *      - debug buffer at 0x46ddfc
+ *    The control loop evaluates divisors 5..1 (12/15/20/30/60 fps), updates
+ *    the failure history, may keep/restore/fail-down the divisor, then adds
+ *    the chosen divisor to the selected target time.
+ *  - Frame seconds written to flt_46DA08 come from:
+ *      - ms delta * 0.001f when 0x32568d is clear (with uint32 wrap fix), or
+ *      - (target - previous_target) * (1/60) when 0x32568d is set.
+ *  - If main_globals_movie is non-NULL (overlaps smaller timing globals at
+ *    0x46da10 / 0x46da20), the computed frame step is overridden by the float
+ *    at 0x46da20.
+ *  - Non-movie frame seconds are clamped to [0, 1]. In local games
+ *    (word_46DA0C == 0), extra caps apply:
+ *      - normal path: max 1/15 sec (0x3d888889)
+ *      - debug_game_save path: max 1/30 sec (0x3d088889)
+ *  - Exit writes:
+ *      unk_time_globals.unk_0  = end_ms
+ *      unk_time_globals.unk_8  = chosen_target
+ *      flt_46DA08              = frame_seconds
+ *      0x8f870(frame_seconds)
+ *      unk_time_globals.unk_16 = qword_325678
+ *
+ * Inferred:
+ *  - 0x32568d is the per-frame pacing/throttle enable.
+ *  - 0x32568e gates the adaptive divisor debugging/control path.
+ *  - 0x325690 is a requested presentation rate value that maps to divisors
+ *    1..5 via 60 / requested_rate (with 0 meaning 30 fps -> divisor 2).
+ *  - The pooled strings "wt" and "dn" used in the debug trace likely mean
+ *    "wait" and "down", but the exact abbreviations are left as raw string
+ *    references rather than renamed semantics.
+ *
+ * Uncertain:
+ *  - Exact symbolic names for 0x32568d/0x32568e/0x325690, 0x46dd96/0x46dd98,
+ *    0x46dd9e..0x46ddd0, and 0x46dd9a.
+ *  - Exact semantics of 0x8f870 and 0x8f8c0 beyond the observed global writes.
+ *  - No register-argument (`@<reg>`) ABI edges were found in this function or
+ *    its caller path; the reverse-thunk audit for this lift found only cdecl /
+ *    stdcall calls.
+ */
+void main_update_time(void)
+{
+  int end_ms;
+  int ms_delta;
+  int buffer_length;
+  int16_t requested_rate;
+  int16_t desired_divisor;
+  int16_t chosen_divisor;
+  int16_t elapsed_game_ticks;
+  int slot;
+  int64_t chosen_target;
+  int64_t short_target;
+  int64_t present_target;
+  int64_t previous_target;
+  float frame_seconds;
+  char *debug_buffer;
+  int16_t *failure_counts;
+  int64_t *target_history;
+
+  typedef char *(__cdecl * fn_csstrcpy_t)(char *destination,
+                                          const char *source);
+  typedef void(__cdecl * fn_store_frame_seconds_t)(float frame_seconds);
+  typedef void(__cdecl * fn_store_frame_overshoot_t)(int overshoot_ms);
+  typedef void(__cdecl * fn_rdtsc_marker_t)(void);
+  typedef void(__stdcall * fn_sleep_t)(int milliseconds);
+
+  end_ms = system_milliseconds();
+  previous_target = unk_time_globals.unk_8;
+  present_target = unk_time_globals.unk_32;
+  chosen_target = present_target;
+  if (present_target < previous_target) {
+    chosen_target = previous_target;
+  }
+
+  if (*(char *)0x32568d == '\0') {
+    ms_delta = end_ms - (int)unk_time_globals.unk_0;
+    *(char *)0x46dd9a = 0;
+    if (ms_delta < 0x21) {
+      ((fn_rdtsc_marker_t)0x91b70)();
+      if (*(char *)0x31fa96 != '\0') {
+        ((fn_sleep_t)0x1d0362)(0x21 - ms_delta);
+      }
+      ((fn_rdtsc_marker_t)0x91ba0)();
+    } else {
+      ((fn_store_frame_overshoot_t)0x8f8c0)(ms_delta - 0x21);
+    }
+  } else {
+    debug_buffer = (char *)0x46ddfc;
+    failure_counts = (int16_t *)0x46dd9e;
+    target_history = (int64_t *)0x46ddb0;
+
+    ((fn_csstrcpy_t)0x8dff0)(debug_buffer, "");
+    if (*(char *)0x31fa96 != '\0' && *(int16_t *)0x325690 >= 0) {
+      requested_rate = *(int16_t *)0x325690;
+      if (requested_rate == 0) {
+        requested_rate = 0x1e;
+      }
+
+      desired_divisor = (int16_t)(0x3c / requested_rate);
+      chosen_divisor = desired_divisor;
+      *(int16_t *)0x46dd98 = desired_divisor;
+
+      if (*(char *)0x32568e != '\0') {
+        int16_t best_divisor;
+        int16_t current_divisor;
+
+        elapsed_game_ticks = game_time_get_elapsed();
+        current_divisor = *(int16_t *)0x46dd96;
+        short_target = (int64_t)(int16_t)(uint16_t)chosen_target;
+        best_divisor = 5;
+
+        snprintf(debug_buffer, 0x200,
+                 "last%6I64d init%6I64d achv%6I64d pres%6I64d g%d cur%d... ",
+                 unk_time_globals.unk_8, unk_time_globals.unk_16,
+                 unk_time_globals.unk_24, unk_time_globals.unk_32,
+                 (int)elapsed_game_ticks, (int)current_divisor);
+
+        for (slot = 5; slot > 0; slot--) {
+          int index;
+          int16_t failure_count;
+          int16_t clamped_failure_count;
+          int16_t target_age;
+          int16_t slot_bucket;
+          bool ignore_failure;
+          const char *label;
+          int64_t target_age_raw;
+
+          index = slot - 1;
+          failure_count = failure_counts[index];
+          clamped_failure_count = failure_count;
+          if (clamped_failure_count > 99) {
+            clamped_failure_count = 99;
+          }
+
+          target_age_raw = short_target - target_history[index];
+          if (target_age_raw > 99) {
+            target_age = 99;
+          } else {
+            target_age = (int16_t)target_age_raw;
+          }
+
+          slot_bucket = (int16_t)((slot + 1) / 2);
+          ignore_failure = false;
+          if ((int16_t)((current_divisor + 1) / 2) > slot_bucket &&
+              slot_bucket >= (int16_t)(current_divisor / 2) &&
+              elapsed_game_ticks > slot_bucket) {
+            ignore_failure = true;
+          }
+
+          if (unk_time_globals.unk_24 >= unk_time_globals.unk_16 + slot) {
+            if (chosen_target >= target_history[index] + 0xf) {
+              label = (const char *)0x28b48c;
+              if (failure_counts[index] < 4) {
+                label = (const char *)0x28b3fc;
+              }
+
+              buffer_length = csstrlen(debug_buffer);
+              snprintf(debug_buffer + buffer_length, 0x200 - buffer_length,
+                       "(%s%2d/%2d) ", label, (int)clamped_failure_count,
+                       (int)target_age);
+            } else {
+              failure_counts[index] = 0;
+
+              buffer_length = csstrlen(debug_buffer);
+              snprintf(debug_buffer + buffer_length, 0x200 - buffer_length,
+                       "(ok   %2d) ", (int)target_age);
+            }
+          } else {
+            if (ignore_failure) {
+              label = "ignor";
+            } else {
+              failure_counts[index] = failure_count + 1;
+              target_history[index] = chosen_target;
+              label = "fail ";
+            }
+
+            buffer_length = csstrlen(debug_buffer);
+            snprintf(debug_buffer + buffer_length, 0x200 - buffer_length,
+                     "(%s%2d) ", label, (int)clamped_failure_count);
+          }
+
+          if (desired_divisor <= slot && failure_counts[index] < 4) {
+            best_divisor = (int16_t)slot;
+          }
+        }
+
+        if (best_divisor == 0) {
+          requested_rate = 999;
+        } else {
+          requested_rate = (int16_t)(0x3c / best_divisor);
+        }
+
+        if (*(int16_t *)0x46dd96 < best_divisor) {
+          buffer_length = csstrlen(debug_buffer);
+          snprintf(debug_buffer + buffer_length, 0x200 - buffer_length,
+                   " FAILDOWN %d", (int)requested_rate);
+        } else if (best_divisor < *(int16_t *)0x46dd96) {
+          buffer_length = csstrlen(debug_buffer);
+          snprintf(debug_buffer + buffer_length, 0x200 - buffer_length,
+                   " RESTORE  %d", (int)requested_rate);
+        } else {
+          buffer_length = csstrlen(debug_buffer);
+          snprintf(debug_buffer + buffer_length, 0x200 - buffer_length,
+                   " MAINTAIN %d", (int)requested_rate);
+        }
+
+        buffer_length = csstrlen(debug_buffer);
+        snprintf(debug_buffer + buffer_length, 0x200 - buffer_length,
+                 " des %d targ%6I64d", (int)requested_rate,
+                 chosen_target + best_divisor);
+
+        chosen_divisor = best_divisor;
+      }
+
+      chosen_target += chosen_divisor;
+      *(int16_t *)0x46dd96 = chosen_divisor;
+    }
+  }
+
+  end_ms = system_milliseconds();
+  if (chosen_target < qword_325678) {
+    chosen_target = qword_325678;
+  }
+
+  if (*(char *)0x32568d == '\0') {
+    frame_seconds = (float)(end_ms - (int)unk_time_globals.unk_0);
+    if (end_ms - (int)unk_time_globals.unk_0 < 0) {
+      frame_seconds = frame_seconds + 4294967296.0f;
+    }
+    frame_seconds = frame_seconds * 0.001000000047497451f;
+  } else {
+    frame_seconds =
+      (float)(chosen_target - unk_time_globals.unk_8) * 0.01666666753590107f;
+  }
+
+  if (main_globals_movie == NULL) {
+    if (frame_seconds < 0.0f) {
+      frame_seconds = 0.0f;
+    } else if (frame_seconds > 1.0f) {
+      frame_seconds = 1.0f;
+    }
+
+    if (word_46DA0C == 0) {
+      if (!debug_game_save) {
+        if (frame_seconds > 0.06666667014360428f) {
+          frame_seconds = 0.06666667014360428f;
+        }
+      } else if (frame_seconds > 0.03333333507180214f) {
+        frame_seconds = 0.03333333507180214f;
+      }
+    }
+  } else {
+    frame_seconds = *(float *)0x46da20;
+  }
+
+  unk_time_globals.unk_0 = end_ms;
+  unk_time_globals.unk_8 = chosen_target;
+  flt_46DA08 = frame_seconds;
+  ((fn_store_frame_seconds_t)0x8f870)(frame_seconds);
+  unk_time_globals.unk_16 = qword_325678;
+}
+
+/*
  * main_rasterizer_throttle - 0x101970
  *
  * Confirmed:
