@@ -1150,6 +1150,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe3d20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe4470": {
       "kind": "function",
       "status": "ported"

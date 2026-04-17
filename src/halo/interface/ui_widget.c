@@ -48,6 +48,17 @@ void ui_widgets_safe_to_load(bool a1)
 {
 }
 
+/* ui_widget_realloc — thin wrapper around stack_memory_pool_realloc.
+ * Passes the global widget stack memory pool at [0x31e04c] as the
+ * first argument, forwarding the caller's block pointer, new size,
+ * source file path, and line number for debug tracking. Returns the
+ * reallocated block pointer (or NULL on failure). */
+void *ui_widget_realloc(int a1, unsigned short a2, const char *a3,
+                        unsigned int a4)
+{
+  return stack_memory_pool_realloc(*(void **)0x31e04c, a1, a2, a3, a4);
+}
+
 /* ui_widget_load_progress_widget — stub that fires a priority-2 error
  * stating the old loading progress screen was replaced. The original
  * progress widget system was superseded by the "glowy halo gravy"
