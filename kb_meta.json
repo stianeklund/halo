@@ -1159,11 +1159,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe58c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 4-element arrays at 0x46cc20 and 0x46cc30 represent widget stack roots and widget list heads respectively, indexed by stack number (0-3).",
+        "Widget nodes are linked through offset +0xc, which appears to be a next-sibling or next-in-list pointer within each widget structure."
+      ],
+      "uncertain": [
+        "The relationship between the root widget at 0x46cc20[i] and the list at 0x46cc30[i] is unclear; the root is closed via ui_widget_close while the list nodes are only deallocated from the pool without closure."
+      ]
+    },
     "0xe6a60": {
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "The pointer at 0x31e04c points to a widget system state structure; field at +4 is a debug_malloc'd memory pool (0x4000 bytes), field at +8 is the pool size."
+        "The pointer at 0x31e04c points to a widget system state structure; field at +4 is a debug_malloc'd memory pool (0x4000 bytes), field at +8 is the pool size.",
+        "The 0x68-byte block at 0x46cc20 is static UI widget state cleared on both init and dispose."
       ]
     },
     "0xe8d20": {
