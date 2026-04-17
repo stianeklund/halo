@@ -59,6 +59,16 @@ void *ui_widget_realloc(int a1, unsigned short a2, const char *a3,
   return stack_memory_pool_realloc(*(void **)0x31e04c, a1, a2, a3, a4);
 }
 
+/* ui_widget_set_events_suppressed — sets or clears the events-suppressed
+ * flag at 0x46cc85 in the widget globals block. When suppressed, the
+ * per-frame event dispatch in process_ui_widgets skips input processing.
+ * Asserts that the widget subsystem has been initialized (0x46cc82). */
+void ui_widget_set_events_suppressed(bool suppress)
+{
+  assert_halt(*(uint8_t *)0x46cc82);
+  *(uint8_t *)0x46cc85 = (uint8_t)suppress;
+}
+
 /* ui_widget_load_progress_widget — stub that fires a priority-2 error
  * stating the old loading progress screen was replaced. The original
  * progress widget system was superseded by the "glowy halo gravy"
@@ -84,6 +94,35 @@ void display_error_when_main_menu_loaded(int16_t error_handle)
   }
   error(2, "there is already an error message queued for display at the "
            "main menu; ignoring this one");
+}
+
+/* ui_widget_start_title_music — starts the main menu looping music track.
+ * Checks whether title music is already playing (0x46cc86) and whether a
+ * game is in progress (0x1006c0). If neither, looks up the "lsnd" tag
+ * "sound\music\title1\title1" via the tag system (0x1b9930) and starts
+ * it as a looping sound (0x1c8510) with volume 1.0. Sets the
+ * title_music_playing flag on success. */
+void ui_widget_start_title_music(void)
+{
+  int tag_index;
+
+  if (*(uint8_t *)0x46cc86 != 0)
+    return;
+
+  /* 0x1006c0 returns true when a game map is loaded */
+  if (((bool (*)(void))0x1006c0)())
+    return;
+
+  tag_index = ((int (*)(int, const char *))0x1b9930)(
+    0x6c736e64, "sound\\music\\title1\\title1");
+  if (tag_index != -1) {
+    error(2, "starting main menu music");
+    /* sound_looping_start(tag_index, -1, 1.0f) */
+    ((void (*)(int, int, int))0x1c8510)(tag_index, -1, 0x3f800000);
+    *(uint8_t *)0x46cc86 = 1;
+    return;
+  }
+  error(2, "title music tag not found");
 }
 
 void ui_widgets_disable_pause_game(int duration_ticks)

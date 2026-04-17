@@ -1176,7 +1176,7 @@
     },
     "0xe3e10": {
       "kind": "function",
-      "status": "named"
+      "status": "ported"
     },
     "0xe4470": {
       "kind": "function",
@@ -1190,6 +1190,14 @@
       "comments": {
         "summary": "Checks whether a deferred UI error should be shown once the main menu is ready, then routes through the existing error display path."
       }
+    },
+    "0xe45d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function at 0x1006c0 checks whether a game map is loaded by testing global 0x46da34 != 0.",
+        "The function at 0x1c8510 is sound_looping_start in game_sound.c; its third arg is a float (1.0f) passed as dword 0x3f800000 on the stack."
+      ]
     },
     "0xe46b0": {
       "kind": "function",
