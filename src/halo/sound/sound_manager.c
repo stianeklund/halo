@@ -74,3 +74,67 @@ skip_fade:
   if (*(void **)0x4fdba0 != 0)
     ((void (*)(void *))0x119720)(*(void **)0x4fdba0);
 }
+
+/* Per-frame sound rendering tick.
+ *
+ * Guarded by profiling markers (profile_enter/exit_private on "sound_render").
+ * If the sound system is initialized (0x4eaf40) and hardware is present
+ * (0x4eaf41):
+ *   1. Call vtable+0x10 on the sound driver (lock / begin-frame).
+ *   2. If not currently fading (0x4eaf42 == 0):
+ *      a. Compute delta_ms = (current_ms - previous_ms) * 0.03f and store
+ *         to the global sound delta (0x4eaf50). Update previous_ms (0x4eaf4c).
+ *      b. Convert delta to integer ticks and pass to sound_cache_update
+ *         (0x1c8c00) via the sound_listener_update result (0x1d9068).
+ *      c. Run the sound subsystem pipeline: sound_update_channels (0x1ce9c0),
+ *         sound_update_sources (0x1cf100), sound_update_output (0x1cd690),
+ *         sound_update_effects (0x1cf360), sound_update_music (0x1ceda0).
+ *      d. Toggle the per-frame flip flag at 0x4eaf54.
+ *   3. Call vtable+0x14 on the sound driver (unlock / end-frame).
+ * If not fading, also call game_sound_update (0x1bded0). */
+void sound_render(void)
+{
+  int current_ms;
+  float delta;
+
+  /* Profiling: enter "sound_render" section. */
+  if (*(uint8_t *)0x449ef1 != 0 && *(uint8_t *)0x32f6f0 != 0)
+    profile_enter_private((void *)0x32f6e8);
+
+  if (*(uint8_t *)0x4eaf40 != 0 && *(uint8_t *)0x4eaf41 != 0) {
+    /* Lock / begin-frame on the sound driver. */
+    (*(void (**)(void))(*(int *)0x4eaf48 + 0x10))();
+
+    if (*(uint8_t *)0x4eaf42 == 0) {
+      /* Compute time delta in sound-system units (ms * 0.03). */
+      current_ms = system_milliseconds();
+      delta = (float)(current_ms - *(int *)0x4eaf4c) * 0.03f;
+      *(int *)0x4eaf4c = current_ms;
+      *(float *)0x4eaf50 = delta;
+
+      /* Update sound subsystems. The truncated delta is passed to the
+       * cache/listener update chain. Original calls __ftol2 (0x1d9068) to
+       * truncate the float delta; we use a plain C cast. */
+      ((void (*)(int))0x1c8c00)((int)*(float *)0x4eaf50);
+      ((void (*)(void))0x1ce9c0)();
+      ((void (*)(void))0x1cf100)();
+      ((void (*)(void))0x1cd690)();
+      ((void (*)(void))0x1cf360)();
+      ((void (*)(void))0x1ceda0)();
+
+      /* Toggle per-frame flip flag. */
+      *(uint8_t *)0x4eaf54 = *(uint8_t *)0x4eaf54 == 0;
+    }
+
+    /* Unlock / end-frame on the sound driver. */
+    (*(void (**)(void))(*(int *)0x4eaf48 + 0x14))();
+  }
+
+  /* Update game sound (ambient/scripted) when not fading. */
+  if (*(uint8_t *)0x4eaf42 == 0)
+    ((void (*)(void))0x1bded0)();
+
+  /* Profiling: exit "sound_render" section. */
+  if (*(uint8_t *)0x449ef1 != 0 && *(uint8_t *)0x32f6f0 != 0)
+    profile_exit_private((void *)0x32f6e8);
+}
