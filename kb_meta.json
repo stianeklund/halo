@@ -1229,6 +1229,15 @@
         "The relationship between the root widget at 0x46cc20[i] and the list at 0x46cc30[i] is unclear; the root is closed via ui_widget_close while the list nodes are only deallocated from the pool without closure."
       ]
     },
+    "0xe6980": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "thread_new at 0x81630 prototype inferred from push count and CreateThread wrapper pattern in thread_win32.obj.",
+        "0x46cc80 is a 16-bit field (word ptr in disasm) not 32-bit as Ghidra decompiler suggests.",
+        "0xe5590 is a stdcall thread proc (RET 4) used as filesystem check callback."
+      ]
+    },
     "0xe6a60": {
       "kind": "function",
       "status": "ported",
