@@ -148,3 +148,54 @@ void update_server_start(void)
   }
   update_client_start();
 }
+
+/* Scan the client action buffer forward from first_action_index and return
+ * the tick index at which valid contiguous actions end.
+ *
+ * The action buffer at 0x45b264 is organized as 128 circular slots, each
+ * 0x208 bytes. At offset +4 within each slot is a uint16_t action count.
+ * The function walks from first_action_index toward last_action_index,
+ * checking that each slot's action count is in the range [1, 16]. It
+ * stops (and returns the current tick) as soon as a slot is empty (0),
+ * over-full (>16), or the tick exceeds the valid range. The returned
+ * value represents the "game time" — the furthest tick for which the
+ * client has submitted valid action data. */
+int update_get_game_time(void)
+{
+  int first;
+  int last;
+  int tick;
+  int slot_addr;
+  uint16_t action_count;
+
+  first = *(int *)0x45b1d4;
+  last = *(int *)0x45b1d8;
+  tick = first;
+
+  if (first > last)
+    goto done;
+
+  for (;;) {
+    if (tick < first)
+      break;
+    if (tick >= first + 0x80)
+      break;
+
+    slot_addr = (tick & 0x7f) * 0x208 + 0x45b264;
+    if (slot_addr == 0)
+      break;
+
+    action_count = *(uint16_t *)(slot_addr + 4);
+    if (action_count == 0)
+      break;
+    if (action_count > 16)
+      break;
+
+    tick++;
+    if (tick > last)
+      break;
+  }
+
+done:
+  return tick;
+}

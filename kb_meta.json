@@ -739,6 +739,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb9610": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The action buffer at 0x45b264 is organized as 128 circular slots of 0x208 bytes each, with a uint16_t action count at slot offset +4.",
+        "The valid action count range [1, 16] likely corresponds to the maximum number of players (16 slots allocated in update_client_new)."
+      ]
+    },
     "0xb9b30": {
       "kind": "function",
       "status": "ported"
