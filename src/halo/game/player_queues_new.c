@@ -149,6 +149,174 @@ void update_server_start(void)
   update_client_start();
 }
 
+/* Collect current player actions from the client action queue.
+ *
+ * Asserts that update_client_globals is initialized. Reads the next action
+ * buffer slot (circular, indexed by first_action_index & 0x7F) and copies
+ * action data from each slot entry into the corresponding queue datum.
+ *
+ * Loop 1: For each datum in the client queue (data_t at 0x45b260), if the
+ *   datum index is within the slot's action_count, copies the 0x1E-byte
+ *   player action (buttons, facing, throttle, trigger, weapon/grenade/zoom
+ *   indices) from the action buffer slot into the datum at offsets +0x04
+ *   through +0x24. Validates desired_weapon_index (range [0,3] or NONE),
+ *   desired_grenade_index (range [0,1] or NONE), and desired_zoom_level
+ *   (>= 0 or NONE).
+ *
+ * Loop 2: For each datum, computes newly-pressed buttons as ~prev & new
+ *   (where prev = datum+0x08, new = datum+0x04), stores that in the output
+ *   buffer. Updates datum+0x08 = new & 0x4D0 (persistent button mask for
+ *   bits 4,6,7,10). Copies the remaining action fields into the output.
+ *   Re-validates weapon/grenade/zoom on the output copy.
+ *
+ * On success, increments first_action_index and returns true.
+ * Returns false if the action buffer has no valid data available. */
+bool player_control_get_current_actions(void *action_buf)
+{
+  int first;
+  int slot_addr;
+  uint16_t action_count;
+  data_t *queue;
+  char *datum_ptr;
+  char *src;
+  int16_t i;
+  int idx;
+  char *out;
+  int16_t desired_weapon;
+  int16_t desired_grenade;
+  int16_t desired_zoom;
+
+  if (*(uint8_t *)0x45b1d0 == 0) {
+    display_assert("update_client_globals.initialized",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x1af, 1);
+    system_exit(-1);
+  }
+
+  first = *(int *)0x45b1d4;
+  if (first >= first + 0x80)
+    return false;
+
+  slot_addr = (first & 0x7f) * 0x208 + 0x45b264;
+  if (slot_addr == 0)
+    return false;
+
+  if (first > *(int *)0x45b1d8)
+    return false;
+
+  action_count = *(uint16_t *)(slot_addr + 4);
+  if (action_count == 0 || action_count > 0x10)
+    return false;
+
+  /* Loop 1: copy action data from the action buffer slot into queue datums. */
+  queue = *(data_t **)0x45b260;
+  i = 0;
+  if (i < queue->current_count) {
+    datum_ptr = (char *)queue->data + 0x20;
+    do {
+      idx = (int)i;
+      if (idx < (int)(uint16_t)(*(uint16_t *)(slot_addr + 4))) {
+        src = (char *)(slot_addr + 8 + idx * 0x20);
+        *(uint32_t *)(datum_ptr - 0x1c) = *(uint32_t *)(src + 0x00);
+        *(uint32_t *)(datum_ptr - 0x14) = *(uint32_t *)(src + 0x04);
+        *(uint32_t *)(datum_ptr - 0x10) = *(uint32_t *)(src + 0x08);
+        *(uint32_t *)(datum_ptr - 0x0c) = *(uint32_t *)(src + 0x0c);
+        *(uint32_t *)(datum_ptr - 0x08) = *(uint32_t *)(src + 0x10);
+        *(uint32_t *)(datum_ptr - 0x04) = *(uint32_t *)(src + 0x14);
+        *(int16_t *)(datum_ptr + 0x00) = *(int16_t *)(src + 0x18);
+        *(int16_t *)(datum_ptr + 0x02) = *(int16_t *)(src + 0x1a);
+        *(int16_t *)(datum_ptr + 0x04) = *(int16_t *)(src + 0x1c);
+
+        desired_weapon = *(int16_t *)(datum_ptr + 0x00);
+        if (desired_weapon != -1 &&
+            (desired_weapon < 0 || desired_weapon >= 4)) {
+          display_assert(
+            "(NONE == queue->desired_weapon_index) || "
+            "(queue->desired_weapon_index>=0 && "
+            "queue->desired_weapon_index<MAXIMUM_WEAPONS_PER_UNIT)",
+            "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x1c9, 1);
+          system_exit(-1);
+        }
+        desired_grenade = *(int16_t *)(datum_ptr + 0x02);
+        if (desired_grenade != -1 &&
+            (desired_grenade < 0 || desired_grenade >= 2)) {
+          display_assert(
+            "(NONE == queue->desired_grenade_index) || "
+            "(queue->desired_grenade_index>=0 && "
+            "queue->desired_grenade_index<NUMBER_OF_UNIT_GRENADE_TYPES)",
+            "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x1ca, 1);
+          system_exit(-1);
+        }
+        queue = *(data_t **)0x45b260;
+        desired_zoom = *(int16_t *)(datum_ptr + 0x04);
+        if (desired_zoom != -1 && desired_zoom < 0) {
+          display_assert("(NONE == queue->desired_zoom_level) || "
+                         "(queue->desired_zoom_level>=0)",
+                         "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x1cb,
+                         1);
+          system_exit(-1);
+          queue = *(data_t **)0x45b260;
+        }
+      }
+      i++;
+      datum_ptr += 0x28;
+    } while (i < queue->current_count);
+  }
+
+  /* Loop 2: compute newly-pressed buttons, update persistent flags, copy
+   * action data into the output buffer (param_1). */
+  i = 0;
+  if (i < queue->current_count) {
+    char *di = (char *)queue->data + 0x08;
+    do {
+      out = (char *)action_buf + (int)i * 0x20;
+      *(uint32_t *)(out + 0x00) = ~(*(uint32_t *)di) & *(uint32_t *)(di - 0x04);
+      *(uint32_t *)di = *(uint32_t *)(di - 0x04) & 0x4d0;
+      *(uint32_t *)(out + 0x04) = *(uint32_t *)(di + 0x04);
+      *(uint32_t *)(out + 0x08) = *(uint32_t *)(di + 0x08);
+      *(uint32_t *)(out + 0x0c) = *(uint32_t *)(di + 0x0c);
+      *(uint32_t *)(out + 0x10) = *(uint32_t *)(di + 0x10);
+      *(uint32_t *)(out + 0x14) = *(uint32_t *)(di + 0x14);
+      *(int16_t *)(out + 0x18) = *(int16_t *)(di + 0x18);
+      *(int16_t *)(out + 0x1a) = *(int16_t *)(di + 0x1a);
+      *(int16_t *)(out + 0x1c) = *(int16_t *)(di + 0x1c);
+
+      desired_weapon = *(int16_t *)(out + 0x18);
+      if (desired_weapon != -1 && (desired_weapon < 0 || desired_weapon >= 4)) {
+        display_assert(
+          "(NONE == actions[queue_index].desired_weapon_index) || "
+          "(actions[queue_index].desired_weapon_index>=0 && "
+          "actions[queue_index].desired_weapon_index<MAXIMUM_WEAPONS_PER_"
+          "UNIT)",
+          "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x1e6, 1);
+        system_exit(-1);
+      }
+      desired_grenade = *(int16_t *)(out + 0x1a);
+      if (desired_grenade != -1 &&
+          (desired_grenade < 0 || desired_grenade >= 2)) {
+        display_assert(
+          "(NONE == actions[queue_index].desired_grenade_index) || "
+          "(actions[queue_index].desired_grenade_index>=0 && "
+          "actions[queue_index].desired_grenade_index<NUMBER_OF_UNIT_"
+          "GRENADE_TYPES)",
+          "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x1e7, 1);
+        system_exit(-1);
+      }
+      desired_zoom = *(int16_t *)(out + 0x1c);
+      if (desired_zoom != -1 && desired_zoom < 0) {
+        display_assert("(NONE == actions[queue_index].desired_zoom_level) || "
+                       "(actions[queue_index].desired_zoom_level>=0)",
+                       "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x1e8, 1);
+        system_exit(-1);
+      }
+      i++;
+      di += 0x28;
+    } while (i < (*(data_t **)0x45b260)->current_count);
+  }
+
+  *(int *)0x45b1d4 = *(int *)0x45b1d4 + 1;
+  return true;
+}
+
 /* Scan the client action buffer forward from first_action_index and return
  * the tick index at which valid contiguous actions end.
  *
