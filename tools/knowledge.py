@@ -310,6 +310,21 @@ class KnowledgeBase:
 		num_objs_with_source = len([s for o, s in kb.object_to_source.items() if o in kb.object_to_symbols])
 		log.info('%d of %d object files have known source mapping', num_objs_with_source, len(kb.object_to_symbols))
 
+		# Check for duplicate function names across different addresses.
+		# Duplicate names cause the linker to silently merge them, redirecting
+		# one function's callers to a completely different implementation.
+		func_names = {}
+		for s in kb.symbols:
+			if not isinstance(s, Function) or not s.addr:
+				continue
+			name = s.name
+			if name in func_names and func_names[name] != s.addr:
+				raise ValueError(
+					f'Duplicate function name "{name}" at {hex(s.addr)} '
+					f'and {hex(func_names[name])} — this will cause the '
+					f'linker to silently merge them. Rename one.')
+			func_names[name] = s.addr
+
 		return kb
 
 
