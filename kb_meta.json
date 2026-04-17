@@ -704,6 +704,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb8d70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb8e40": {
       "kind": "function",
       "status": "ported",
@@ -720,6 +724,18 @@
       ]
     },
     "0xb8f90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb90d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb91b0": {
       "kind": "function",
       "status": "ported"
     },

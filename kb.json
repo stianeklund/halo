@@ -1867,6 +1867,10 @@
       "source": "game/player_queues_new.c",
       "functions": [
         {
+          "decl": "bool update_client_new(void);",
+          "addr": "0xb8d70"
+        },
+        {
           "decl": "void update_client_start(void);",
           "addr": "0xb8e40"
         },
@@ -1875,7 +1879,7 @@
           "decl": "int update_get_maximum_actions(void);"
         },
         {
-          "decl": "void update_server_new(void);",
+          "decl": "bool update_server_new(void);",
           "addr": "0xb90d0"
         },
         {
