@@ -344,6 +344,14 @@
           "addr": "0x1c5940"
         },
         {
+          "decl": "bool bink_playback_has_video(void);",
+          "addr": "0x1c5980"
+        },
+        {
+          "decl": "void bink_playback_stop(void);",
+          "addr": "0x1c62a0"
+        },
+        {
           "decl": "void bink_playback_start(const char *filename, unsigned int flags);",
           "addr": "0x1c6440"
         },
@@ -902,8 +910,16 @@
       "source": "interface/event_manager.c",
       "functions": [
         {
+          "decl": "bool event_manager_tab_check(void);",
+          "addr": "0xdc070"
+        },
+        {
           "decl": "void event_manager_mark_time(void);",
           "addr": "0xdc130"
+        },
+        {
+          "decl": "void event_manager_tab_process(void);",
+          "addr": "0xdc140"
         },
         {
           "decl": "void event_manager_initialize(void);",
@@ -912,6 +928,14 @@
         {
           "decl": "void event_manager_dispose(void);",
           "addr": "0xdc200"
+        },
+        {
+          "decl": "void event_manager_flush(void);",
+          "addr": "0xdc220"
+        },
+        {
+          "decl": "bool event_manager_get_next_event(void *event_data, int16_t player_index);",
+          "addr": "0xdc250"
         },
         {
           "decl": "void event_manager_dispatch(int16_t *event, int16_t player_index);",
@@ -1666,6 +1690,10 @@
       "source": "networking/network_game_globals.c",
       "functions": [
         {
+          "decl": "bool game_in_progress(void);",
+          "addr": "0x12a000"
+        },
+        {
           "decl": "void dispose_global_network_game_client(void);",
           "addr": "0x12a1e0"
         },
@@ -2273,6 +2301,10 @@
           "addr": "0xe1cc0"
         },
         {
+          "decl": "bool ui_automation_is_active(void);",
+          "addr": "0xe1ce0"
+        },
+        {
           "decl": "void progress_bar_display(float progress);",
           "addr": "0xe3300"
         }
@@ -2732,6 +2764,19 @@
       ]
     },
     {
+      "name": "thread_win32.obj",
+      "functions": [
+        {
+          "decl": "bool thread_is_done(void *thread_reference);",
+          "addr": "0x81720"
+        },
+        {
+          "decl": "void thread_close(void *thread_reference);",
+          "addr": "0x81770"
+        }
+      ]
+    },
+    {
       "name": "transport_endpoint_set_winsock.obj",
       "source": "bungie_net/network/transport_endpoint_set_winsock.c",
       "functions": [
@@ -2760,6 +2805,10 @@
         {
           "decl": "void *ui_widget_realloc(int a1, unsigned short a2, const char *a3, unsigned int a4);",
           "addr": "0xe3d20"
+        },
+        {
+          "decl": "void ui_widget_set_events_suppressed(bool suppress);",
+          "addr": "0xe3e10"
         },
         {
           "decl": "void ui_widget_load_progress_widget(void);",
@@ -2798,6 +2847,10 @@
           "addr": "0xe6a60"
         },
         {
+          "decl": "void ui_widget_process_event(void *widget, void *widget_tag, void *event_data, void *handled);",
+          "addr": "0xe7d00"
+        },
+        {
           "decl": "void render_ui_widgets(__int16 a1, viewport_bounds_t *window_bounds);",
           "addr": "0xe78e0"
         },
@@ -2812,6 +2865,14 @@
         {
           "decl": "void ui_widget_display_error(int16_t error_handle, int local_player_index, char is_modal, char pause_game);",
           "addr": "0xe8910"
+        },
+        {
+          "decl": "void ui_widget_load_error_screen(int16_t error_handle, int local_player_index);",
+          "addr": "0xe8c90"
+        },
+        {
+          "decl": "bool ui_widgets_process_pause(void);",
+          "addr": "0xe9080"
         },
         {
           "decl": "void *ui_widget_spawn_from_event_handler(void *widget, int tag_index);",

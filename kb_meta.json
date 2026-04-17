@@ -47,6 +47,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x81720": {
+      "kind": "function",
+      "status": "named"
+    },
     "0x82130": {
       "kind": "function",
       "status": "ported",
@@ -1158,6 +1162,10 @@
         "stack_memory_pool_realloc at 0x11fbe0 is the name inferred from the stack_memory_pool.c source path in its assert strings and its role as the realloc counterpart to stack_memory_pool_deallocate."
       ]
     },
+    "0xe3e10": {
+      "kind": "function",
+      "status": "named"
+    },
     "0xe4470": {
       "kind": "function",
       "status": "ported"
@@ -1214,6 +1222,10 @@
         "The 0x1b9930 callee is a tag lookup function (tag_group, name, ...) but its full prototype beyond 2 args is not confirmed."
       ]
     },
+    "0xe7d00": {
+      "kind": "function",
+      "status": "named"
+    },
     "0xe8700": {
       "kind": "function",
       "status": "ported",
@@ -1223,6 +1235,10 @@
         "ui_widget_display_error at 0xe8910 prototype: int16_t error_handle, int local_player_index, char is_modal, char pause_game; inferred from disassembly push pattern and switch table."
       ]
     },
+    "0xe8c90": {
+      "kind": "function",
+      "status": "named"
+    },
     "0xe8d20": {
       "kind": "function",
       "status": "ported",
@@ -1231,9 +1247,17 @@
         "main_halt_entry at 0x102c40 is __noreturn infinite loop calling subsystem ticks (input, rendering, presentation)."
       ]
     },
+    "0xe9080": {
+      "kind": "function",
+      "status": "named"
+    },
     "0xe9450": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "0xf5640 and 0xf6740 appear to be bink-video screen update functions but their exact .obj is uncertain.",
+        "The pending_load struct fields at offsets +8 and +10 are read as dword by MSVC but typed as int16_t; the upper bytes are garbage but ignored by callees."
+      ]
     },
     "0xf0a30": {
       "kind": "function",
