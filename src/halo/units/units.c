@@ -134,6 +134,137 @@ int unit_get_weapon(int unit_handle, int16_t weapon_index)
   return result;
 }
 
+/* unit_next_weapon_index (0x1ae490)
+ *
+ * Scans the unit's weapon slots circularly in the given direction to find the
+ * next valid/usable weapon. Uses unit->unk_680[] (offset 0x2A8) as the weapon
+ * handle array and unit->unk_696[] (offset 0x2B8) as a priority/ordering array.
+ *
+ * If weapon_index is NONE (-1), starts scanning from slot 0. If direction is 0,
+ * picks the weapon with the lowest priority value; if direction is nonzero,
+ * picks the first valid weapon found. Returns the index of the best weapon
+ * found, or NONE (-1) if no valid weapon exists.
+ *
+ * Callees (by address, not in kb.json):
+ *   0x1ae290 — get unit animation tag pointer (EAX=unit_handle@<eax>)
+ *   0xfae80  — get weapon tag info pointer (1 stack arg: weapon_handle)
+ *   0x1acd70 — check unit can use weapon (EAX=unit_handle@<eax>, 3 stack args)
+ *   0xa8b30  — weapon usability callback (2 stack args)
+ *   0xfb090  — weapon has must-be-readied flag (1 stack arg)
+ */
+int16_t unit_next_weapon_index(int unit_handle, int16_t weapon_index,
+                               int16_t direction)
+{
+  unit_data_t *unit;
+  int current_index;
+  int best_index;
+  int iter_index;
+  int weapon_handle;
+  int anim_tag;
+  int weapon_tag;
+  char can_use;
+  char usable;
+  char must_be_readied;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  best_index = -1;
+
+  if (weapon_index == (int16_t)-1) {
+    weapon_index = 0;
+  } else if (weapon_index < 0 || weapon_index >= MAXIMUM_WEAPONS_PER_UNIT) {
+    display_assert("current_index>=0 && current_index<MAXIMUM_WEAPONS_PER_UNIT",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1e40, 1);
+    system_exit(-1);
+  }
+
+  current_index = weapon_index;
+
+  do {
+    iter_index = (int)(int16_t)current_index;
+    weapon_handle = unit->unk_680[iter_index].value;
+
+    if (weapon_handle != -1) {
+      /* Validate both the unit and weapon objects */
+      object_get_and_verify_type(unit_handle, 3);
+      object_get_and_verify_type(weapon_handle, 4);
+
+      /* 0x1ae290: get unit animation tag pointer, EAX=unit_handle */
+      {
+        int _eax = unit_handle;
+        asm volatile("call *%[fn]"
+                     : "+a"(_eax)
+                     : [fn] "r"((void *)0x1ae290)
+                     : "ecx", "edx", "memory", "cc");
+        anim_tag = _eax;
+      }
+
+      /* 0xfae80: get weapon tag info pointer, 1 cdecl arg */
+      weapon_tag = ((int (*)(int))0xfae80)(weapon_handle);
+
+      /* 0x1acd70: check unit can use weapon, EAX=unit_handle, 3 stack args */
+      {
+        int _eax = unit_handle;
+        int args[3];
+        args[0] = anim_tag;
+        args[1] = weapon_tag;
+        args[2] = 0;
+        asm volatile("pushl %[a2]\n\t"
+                     "pushl %[a1]\n\t"
+                     "pushl %[a0]\n\t"
+                     "call *%[fn]\n\t"
+                     "addl $12, %%esp"
+                     : "+a"(_eax)
+                     : [fn] "r"((void *)0x1acd70), [a0] "r"(args[0]),
+                       [a1] "r"(args[1]), [a2] "r"(args[2])
+                     : "ecx", "edx", "memory", "cc");
+        can_use = (char)_eax;
+      }
+
+      if (can_use != 0) {
+        /* 0xa8b30: weapon usability callback, 2 cdecl args */
+        usable = (char)((int (*)(int, int))0xa8b30)(unit_handle, weapon_handle);
+        if (usable != 0) {
+          /* direction != 0: pick first valid; direction == 0: pick lowest
+           * priority */
+          if (direction != 0) {
+            best_index = current_index;
+          } else {
+            if ((int16_t)best_index == (int16_t)-1 ||
+                unit->unk_696[(int)(int16_t)best_index].value <
+                  unit->unk_696[iter_index].value) {
+              best_index = current_index;
+            }
+          }
+
+          /* 0xfb090: check weapon must-be-readied flag */
+          must_be_readied =
+            (char)((int (*)(int))0xfb090)(unit->unk_680[iter_index].value);
+          if (must_be_readied != 0)
+            return (int16_t)best_index;
+
+          if ((int16_t)current_index != weapon_index)
+            return (int16_t)best_index;
+        }
+      }
+    }
+
+    /* Advance to next slot, wrapping around */
+    if (direction < 0) {
+      if ((int16_t)current_index == 0)
+        current_index = 3;
+      else
+        current_index = iter_index - 1;
+    } else {
+      if ((int16_t)current_index == 3)
+        current_index = 0;
+      else
+        current_index = iter_index + 1;
+    }
+  } while ((int16_t)current_index != weapon_index);
+
+  return (int16_t)best_index;
+}
+
 /* unit_set_in_vehicle (0x1ae600)
  *
  * Attempts to stow/put the unit's current weapon into a vehicle slot.

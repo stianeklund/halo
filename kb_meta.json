@@ -1692,6 +1692,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ae490": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x1ae290 is a register-arg (EAX) function that retrieves a unit animation tag pointer, used for weapon compatibility checks.",
+        "0x1acd70 is a register-arg (EAX) function with 3 stack args that checks whether a unit can use a given weapon based on animation and weapon tag data."
+      ],
+      "uncertain": [
+        "The unk_696 array at offset 0x2B8 appears to hold weapon priority/ordering values used to select the best weapon when direction==0, but the exact semantics are unconfirmed."
+      ]
+    },
     "0x1ae600": {
       "kind": "function",
       "status": "ported",
