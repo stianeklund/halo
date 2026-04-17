@@ -2791,7 +2791,7 @@
           "addr": "0x1adeb0"
         },
         {
-          "decl": "int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int direction);",
+          "decl": "int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int16_t direction);",
           "addr": "0x1ae490"
         },
         {
