@@ -1152,7 +1152,11 @@
     },
     "0xe3d20": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "stack_memory_pool_realloc at 0x11fbe0 is the name inferred from the stack_memory_pool.c source path in its assert strings and its role as the realloc counterpart to stack_memory_pool_deallocate.",
+        "stack_memory_pool_realloc at 0x11fbe0 is the name inferred from the stack_memory_pool.c source path in its assert strings and its role as the realloc counterpart to stack_memory_pool_deallocate."
+      ]
     },
     "0xe4470": {
       "kind": "function",
@@ -1168,6 +1172,10 @@
       }
     },
     "0xe46b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe5620": {
       "kind": "function",
       "status": "ported"
     },
