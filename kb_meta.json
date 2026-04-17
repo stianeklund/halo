@@ -806,6 +806,11 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xba290": {
+      "kind": "function",
+      "status": "ported",
+      "name": "player_register_machine"
+    },
     "0xba2e0": {
       "kind": "function",
       "status": "ported"
@@ -891,9 +896,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbb2f0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "player_new"
+    },
     "0xbbcb0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xbc750": {
+      "kind": "function",
+      "status": "ported",
+      "name": "players_respawn_coop"
     },
     "0xbd100": {
       "kind": "function",
@@ -1608,6 +1623,15 @@
       "comments": {
         "summary": "Resolves a unit handle via object_get_and_verify_type(mask 3) and returns bit 6 of unit_data_t.unk_436 as the alive flag."
       }
+    },
+    "0x1aa3c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The byte at offset 0x253 (unk_595) likely represents an AI/unit behavior state enum; values 0x21, 0x19, 0x18 correspond to combat-active states.",
+        "The byte at offset 0x23D (unk_573) value 3 likely represents a passive/non-threatening sub-state that suppresses the dangerous classification.",
+        "Bit 2 of offset 0x248 (unk_584) acts as a suppression flag that prevents units in state 0x18/0x19 from being considered dangerous."
+      ]
     },
     "0x1b7ee0": {
       "kind": "function",
