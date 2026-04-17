@@ -1895,8 +1895,20 @@
           "decl": "int update_get_game_time(void);"
         },
         {
+          "addr": "0xb9270",
+          "decl": "void update_server_get_update(int machine_index, void *update_buf, int *update_number);"
+        },
+        {
           "addr": "0xb9340",
           "decl": "bool player_control_get_current_actions(void *action_buf);"
+        },
+        {
+          "addr": "0xb9660",
+          "decl": "void update_server_apply_actions(int16_t machine_index, void *actions);"
+        },
+        {
+          "addr": "0xb9990",
+          "decl": "void update_server_create_snapshot(void);"
         },
         {
           "addr": "0xb9a70",

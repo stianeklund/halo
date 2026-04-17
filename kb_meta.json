@@ -758,6 +758,14 @@
         "The valid action count range [1, 16] likely corresponds to the maximum number of players (16 slots allocated in update_client_new)."
       ]
     },
+    "0xb9a70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The first assert checks game_connection()==0 which corresponds to _game_connection_local enum value.",
+        "The second assert string references both action_collection and update_client_globals.initialized but only the initialized flag at 0x45b1d0 is actually tested."
+      ]
+    },
     "0xb9b30": {
       "kind": "function",
       "status": "ported"
