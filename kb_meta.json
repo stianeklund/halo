@@ -869,8 +869,15 @@
     },
     "0xba710": {
       "kind": "function",
-      "status": "thunked",
-      "name": "any_player_is_in_the_air"
+      "status": "ported",
+      "name": "any_player_is_in_the_air",
+      "inferred": [
+        "Unit offset 0x64 is likely an animation or movement state enum (0=ground, 1=airborne/jumping).",
+        "Vehicle tag offset 0x17C bit 0x40 likely indicates the vehicle type supports airborne detection (e.g. flying vehicles)."
+      ],
+      "uncertain": [
+        "Object+0x428 byte meaning is unclear; compared > 2 as altitude or airtime threshold."
+      ]
     },
     "0xba800": {
       "kind": "function",
