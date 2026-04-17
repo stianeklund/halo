@@ -149,6 +149,72 @@ void update_server_start(void)
   update_client_start();
 }
 
+/* Retrieve the next server update snapshot for a given machine.
+ *
+ * Calls system_milliseconds() for a timing checkpoint (return discarded).
+ * Asserts that update_buf, update_number, and server globals are valid.
+ * If machine_index != -1, looks up the machine's queue datum via datum_get
+ * and compares its stored snapshot counter (datum+4) against the global
+ * snapshot index (0x4570c4). If the datum is already at or past the current
+ * index, sets *update_number = -1 and returns (no update available).
+ * Otherwise, sets *update_number to the datum's counter.
+ *
+ * If *update_number != -1, looks up the server update buffer entry for
+ * that snapshot index (via the internal helper at 0xb9040 with @eax),
+ * and copies 0x204 bytes from entry+4 into update_buf. Then increments
+ * the datum's snapshot counter. */
+void update_server_get_update(int machine_index, void *update_buf,
+                              int *update_number)
+{
+  void *datum_ptr;
+  void *update_entry;
+
+  system_milliseconds();
+
+  datum_ptr = NULL;
+
+  if (update_buf == NULL || update_number == NULL ||
+      *(uint8_t *)0x4570c0 == 0) {
+    display_assert(
+      "update && update_number && update_server_globals.initialized",
+      "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x11a, 1);
+    system_exit(-1);
+  }
+
+  if (machine_index != -1) {
+    if (machine_index >= 4) {
+      display_assert("machine_index<MAXIMUM_NETWORK_MACHINE_COUNT",
+                     "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x11e, 1);
+      system_exit(-1);
+    }
+    datum_ptr = datum_get(*(data_t **)0x4570c8, machine_index);
+    if (*(int *)((char *)datum_ptr + 4) >= *(int *)0x4570c4) {
+      *update_number = -1;
+      return;
+    }
+    *update_number = *(int *)((char *)datum_ptr + 4);
+  }
+
+  if (*update_number != -1) {
+    /* Call internal helper at 0xb9040 with snapshot index in EAX.
+     * Returns pointer to the update buffer entry, or NULL. */
+    {
+      int _eax = *update_number;
+      __asm__ __volatile__("call *%[fn]"
+                           : "+a"(_eax)
+                           : [fn] "r"((void *)0xb9040)
+                           : "ecx", "edx", "memory", "cc");
+      update_entry = (void *)_eax;
+    }
+    if (update_entry != NULL) {
+      csmemcpy(update_buf, (char *)update_entry + 4, 0x204);
+    }
+    if (datum_ptr != NULL) {
+      *(int *)((char *)datum_ptr + 4) = *(int *)((char *)datum_ptr + 4) + 1;
+    }
+  }
+}
+
 /* Collect current player actions from the client action queue.
  *
  * Asserts that update_client_globals is initialized. Reads the next action
@@ -366,6 +432,150 @@ int update_get_game_time(void)
 
 done:
   return tick;
+}
+
+/* Apply player actions from a network machine into the server queue.
+ *
+ * Retrieves the player list for the given machine_index via
+ * machine_get_player_list. Asserts that server globals are initialized.
+ * Iterates over 4 player slots in the machine's player list. For each
+ * valid (non-NONE) player handle, looks up the corresponding datum in the
+ * server queue via datum_get, then copies 0x20 bytes (8 dwords via REP
+ * MOVSD) from the actions buffer into the datum at offset +0x08.
+ *
+ * After each copy, validates the desired_facing.pitch (datum+0x10) and
+ * desired_facing.yaw (datum+0x0c) floats with assert_valid_real checks
+ * (rejects NaN/Inf values where the exponent bits are all 1s).
+ *
+ * The actions pointer advances by 0x20 bytes per player slot. */
+void update_server_apply_actions(int16_t machine_index, void *actions)
+{
+  int *player_list;
+  int player_handle;
+  char *datum_ptr;
+  char *src;
+  char *next_src;
+  int i;
+  uint32_t pitch_bits;
+  uint32_t yaw_bits;
+
+  player_list = (int *)machine_get_player_list(machine_index);
+
+  if (*(uint8_t *)0x4570c0 == 0) {
+    display_assert("update_server_globals.initialized",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x22a, 1);
+    system_exit(-1);
+  }
+
+  i = 0;
+  src = (char *)actions;
+  do {
+    player_handle = player_list[i];
+    if (player_handle != -1) {
+      datum_ptr = (char *)datum_get(*(data_t **)0x4570c8, player_handle);
+      next_src = src + 0x20;
+
+      /* REP MOVSD: copy 8 dwords (0x20 bytes) from src to datum+8 */
+      csmemcpy(datum_ptr + 8, src, 0x20);
+      src = next_src;
+
+      /* assert_valid_real on desired_facing.pitch (datum+0x10) */
+      pitch_bits = *(uint32_t *)(datum_ptr + 0x10);
+      if ((pitch_bits & 0x7f800000u) == 0x7f800000u) {
+        char *msg =
+          csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+                   "queue->current_action.desired_facing.pitch", pitch_bits,
+                   (double)*(float *)(datum_ptr + 0x10));
+        display_assert(msg, "c:\\halo\\SOURCE\\game\\player_queues_new.c",
+                       0x238, 1);
+        system_exit(-1);
+      }
+
+      /* assert_valid_real on desired_facing.yaw (datum+0x0c) */
+      yaw_bits = *(uint32_t *)(datum_ptr + 0x0c);
+      if ((yaw_bits & 0x7f800000u) == 0x7f800000u) {
+        char *msg =
+          csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+                   "queue->current_action.desired_facing.yaw", yaw_bits,
+                   (double)*(float *)(datum_ptr + 0x0c));
+        display_assert(msg, "c:\\halo\\SOURCE\\game\\player_queues_new.c",
+                       0x239, 1);
+        system_exit(-1);
+      }
+    }
+    i++;
+  } while (i < 4);
+}
+
+/* Create a server-side update snapshot from the current server queue state.
+ *
+ * Asserts server globals are initialized. Saves the current snapshot index
+ * from 0x4570c4, then increments it. Looks up the update buffer entry for
+ * the old index via the internal helper at 0xb9040 (@eax register arg).
+ * Asserts the entry is non-null.
+ *
+ * Stores the old snapshot index as the entry's tick number (entry+0x00),
+ * zeros the action count (entry+0x04, word). Then iterates over all datums
+ * in the server queue (data_t at 0x4570c8), copying 0x20 bytes from each
+ * datum's action data (datum+0x08) into sequential 0x20-byte slots in the
+ * update entry starting at entry+0x08. Increments the action count for
+ * each datum copied.
+ *
+ * Finally, calls the internal store function at 0xb97b0 to push the
+ * snapshot into the client-side action buffer. */
+void update_server_create_snapshot(void)
+{
+  int old_index;
+  void *entry;
+  int16_t *action_count_ptr;
+  int16_t i;
+  data_t *queue;
+  char *datum_data;
+
+  if (*(uint8_t *)0x4570c0 == 0) {
+    display_assert("update_server_globals.initialized",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0xfa, 1);
+    system_exit(-1);
+  }
+
+  old_index = *(int *)0x4570c4;
+  *(int *)0x4570c4 = *(int *)0x4570c4 + 1;
+
+  /* Call internal helper at 0xb9040 with old_index in EAX.
+   * Returns pointer to the circular update buffer entry. */
+  {
+    int _eax = old_index;
+    __asm__ __volatile__("call *%[fn]"
+                         : "+a"(_eax)
+                         : [fn] "r"((void *)0xb9040)
+                         : "ecx", "edx", "memory", "cc");
+    entry = (void *)_eax;
+  }
+  if (entry == NULL) {
+    display_assert("update", "c:\\halo\\SOURCE\\game\\player_queues_new.c",
+                   0x100, 1);
+    system_exit(-1);
+  }
+
+  *(int *)entry = old_index;
+  action_count_ptr = (int16_t *)((char *)entry + 4);
+  *action_count_ptr = 0;
+
+  queue = *(data_t **)0x4570c8;
+  i = 0;
+  if (i < queue->current_count) {
+    datum_data = (char *)queue->data + 8;
+    do {
+      csmemcpy((char *)entry + 8 + (int)i * 0x20, datum_data, 0x20);
+      (*action_count_ptr)++;
+      i++;
+      datum_data += 0x28;
+    } while (i < (*(data_t **)0x4570c8)->current_count);
+  }
+
+  /* Call internal store function at 0xb97b0(action_count_ptr, old_index)
+   * to push the snapshot into the client action buffer. */
+  ((void(__cdecl *)(int16_t *, int))0xb97b0)(action_count_ptr, old_index);
 }
 
 /* Apply queued client actions for the given number of simulation ticks.

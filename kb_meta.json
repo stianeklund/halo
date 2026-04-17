@@ -739,6 +739,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb9270": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Retrieve next server update snapshot for a machine; copies 0x204 bytes from server buffer"
+      },
+      "inferred": [
+        "The call to system_milliseconds at function entry is a timing checkpoint with discarded return value."
+      ]
+    },
     "0xb9340": {
       "kind": "function",
       "status": "ported",
@@ -756,6 +766,26 @@
       "inferred": [
         "The action buffer at 0x45b264 is organized as 128 circular slots of 0x208 bytes each, with a uint16_t action count at slot offset +4.",
         "The valid action count range [1, 16] likely corresponds to the maximum number of players (16 slots allocated in update_client_new)."
+      ]
+    },
+    "0xb9660": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Apply player actions from network machine into server queue; validates facing floats"
+      },
+      "inferred": [
+        "The REP MOVSD copies exactly 8 dwords (0x20 bytes) matching the player action structure size."
+      ]
+    },
+    "0xb9990": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Create server-side update snapshot from current queue state; pushes to client buffer"
+      },
+      "inferred": [
+        "The internal helpers at 0xb9040 and 0xb97b0 likely belong to player_queues_new.obj but are not yet in kb.json."
       ]
     },
     "0xb9a70": {
