@@ -1750,6 +1750,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x191240": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x191250": {
       "kind": "function",
       "status": "ported"
