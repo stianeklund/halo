@@ -717,7 +717,7 @@ void process_ui_widgets(void)
   deferred_error = (ui_widget_deferred_error_t *)0x46cc50;
   while ((int)deferred_error < 0x46cc68) {
     if (deferred_error->error_handle != -1) {
-      if ((*(uint8_t *)0x46cc88 == 0) && (!game_in_progress()) &&
+      if ((*(uint8_t *)0x46cc88 == 0) && (!network_game_in_progress()) &&
           (game_time_get() < 0x1e)) {
         error(2, "waiting for %d ticks before displaying deferred errors",
               0x1e);

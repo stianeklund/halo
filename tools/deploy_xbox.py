@@ -216,11 +216,16 @@ def main() -> int:
     print(f"deploying to {dest}" + (f" on {host}" if host else ""))
 
     if args.xbe_only:
-        print(f"  default.xbe ({os.path.getsize(xbe_path):,} bytes)")
-        rc = run_xbcp(src=xbe_src, dest=xbe_dest, **common_kwargs)
-        if rc != 0:
-            print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
-            return rc
+        all_xbes = [f for f in os.listdir(HALO_PATCHED_DIR) if f.endswith('.xbe')]
+        for xbe_name in sorted(all_xbes):
+            xbe_file = os.path.join(HALO_PATCHED_DIR, xbe_name)
+            print(f"  {xbe_name} ({os.path.getsize(xbe_file):,} bytes)")
+            src = to_windows_path(xbe_file)
+            d = f"{dest}\\{xbe_name}"
+            rc = run_xbcp(src=src, dest=d, **common_kwargs)
+            if rc != 0:
+                print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
+                return rc
         print("done.")
         return 0
 
