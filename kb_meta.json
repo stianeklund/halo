@@ -1858,8 +1858,13 @@
     },
     "0x1cf730": {
       "kind": "function",
-      "status": "thunked",
-      "name": "sound_render"
+      "status": "ported",
+      "name": "sound_render",
+      "inferred": [
+        "The constant at 0x25bc08 is 0.03f, used to convert millisecond deltas to sound-system time units.",
+        "The call to 0x1d9068 is MSVC __ftol2 (float-to-long truncation via ST0); replaced with a C cast in the lift.",
+        "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
+      ]
     }
   }
 }
