@@ -802,3 +802,13 @@ void process_ui_widgets(void)
     deferred_error++;
   }
 }
+
+/**
+ * Clears the last error index by resetting it to -1 (no error).
+ * The global at 0x31e4c0 tracks which error was most recently displayed
+ * by the UI widget error system.
+ */
+void ui_widget_clear_last_error_index(void)
+{
+  *(int *)0x31e4c0 = -1;
+}

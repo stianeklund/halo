@@ -1286,6 +1286,10 @@
         "The pending_load struct fields at offsets +8 and +10 are read as dword by MSVC but typed as int16_t; the upper bytes are garbage but ignored by callees."
       ]
     },
+    "0xe98b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf0a30": {
       "kind": "function",
       "status": "ported"
