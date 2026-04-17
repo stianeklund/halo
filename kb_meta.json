@@ -1177,7 +1177,11 @@
     },
     "0xe5620": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "ui_widget_close_children at 0xe4890 takes widget ptr in EAX and recursively closes all first_child chain nodes.",
+        "Widget struct offsets: +0x00 tag_index, +0x08 local_player_index (word), +0x0e widget_type (word), +0x13 pauses_game (byte), +0x14 being_deleted (byte), +0x28 prev_sibling, +0x2c next_sibling, +0x30 parent, +0x34 first_child, +0x3c text_data, +0x40 list_items, +0x48 list_header_widget, +0x4c list_skin_data."
+      ]
     },
     "0xe58c0": {
       "kind": "function",
@@ -1196,6 +1200,13 @@
       "inferred": [
         "The pointer at 0x31e04c points to a widget system state structure; field at +4 is a debug_malloc'd memory pool (0x4000 bytes), field at +8 is the pool size.",
         "The 0x68-byte block at 0x46cc20 is static UI widget state cleared on both init and dispose."
+      ]
+    },
+    "0xe8700": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The __stricmp call at 0x1dd801 is an MSVC CRT function; accessed via hardcoded address since no CRT object is tracked."
       ]
     },
     "0xe8d20": {

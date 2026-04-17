@@ -304,6 +304,74 @@ void ui_widgets_dispose(void)
   csmemset((void *)0x46cc20, 0, 0x68);
 }
 
+/* main_screen_shell_load — loads the main menu shell UI. On the first boot
+ * (when the first-run flag at 0x31e050 is set), plays the intro bink movie
+ * and kicks off filesystem checks / saved game enumeration. If the command
+ * line is "xdemo", the intro movie is skipped. After the bink + fs-check
+ * phase, loads the main menu widget ("ui\shell\main_menu\main_menu"),
+ * displays any queued error message (word_46CC48), starts title music if
+ * not already playing, and initializes the virtual keyboard. The first-run
+ * flag is cleared at the end so subsequent calls skip the intro path. */
+void main_screen_shell_load(void)
+{
+  bool play_main_menu;
+  char *command_line;
+  int widget;
+
+  play_main_menu = true;
+  assert_halt(*(uint8_t *)0x46cc82);
+
+  *(uint8_t *)0x46cc85 = 0;
+
+  if (*(uint8_t *)0x31e050 == 1) {
+    command_line = shell_get_command_line();
+    if (command_line == NULL) {
+      goto play_intro;
+    }
+    if (((int (*)(const char *, const char *))0x1dd801)(command_line,
+                                                        "xdemo") != 0) {
+    play_intro:
+      bink_playback_start("d:\\bink\\intro.bik", 0xe6);
+      play_main_menu = false;
+      if (bink_playback_active() == 0) {
+        play_main_menu = true;
+      }
+    } else {
+      error(2, "xbox command line= '%s'", command_line);
+    }
+    ui_widget_begin_filesystem_checks();
+    input_abstraction_mark_time();
+    if (!play_main_menu)
+      goto done;
+  }
+
+  event_manager_mark_time();
+  ui_widgets_close_all();
+
+  widget = (int)ui_widget_load_by_name_or_tag("ui\\shell\\main_menu\\main_menu",
+                                              -1, 0, -1, -1, -1, -1);
+  if (widget == 0) {
+    error(2, "failed to load main screen shell window");
+  }
+
+  if (word_46CC48 != -1) {
+    ui_widget_display_error(word_46CC48, -1, 1, 0);
+    word_46CC48 = -1;
+  }
+
+  if (*(uint8_t *)0x46cc86 == 0) {
+    ui_widget_start_title_music();
+  }
+
+  ui_widget_clear_last_error_index();
+
+done:
+  if (!((bool (*)(void))0xf53a0)()) {
+    error(2, "failed to initialize the virtual keyboard");
+  }
+  *(uint8_t *)0x31e050 = 0;
+}
+
 typedef struct ui_widget_process_data {
   int16_t unk0;
   int16_t unk2;

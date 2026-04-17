@@ -340,6 +340,14 @@
           "addr": "0x1c63e0"
         },
         {
+          "decl": "bool bink_playback_active(void);",
+          "addr": "0x1c5940"
+        },
+        {
+          "decl": "void bink_playback_start(const char *filename, unsigned int flags);",
+          "addr": "0x1c6440"
+        },
+        {
           "decl": "void bink_playback_update(void);",
           "addr": "0x1c6870"
         }
@@ -894,6 +902,10 @@
       "source": "interface/event_manager.c",
       "functions": [
         {
+          "decl": "void event_manager_mark_time(void);",
+          "addr": "0xdc130"
+        },
+        {
           "decl": "void event_manager_initialize(void);",
           "addr": "0xdc1d0"
         },
@@ -1402,6 +1414,10 @@
         {
           "decl": "void input_abstraction_dispose(void);",
           "addr": "0xce690"
+        },
+        {
+          "decl": "void input_abstraction_mark_time(void);",
+          "addr": "0xce6b0"
         },
         {
           "decl": "void input_abstraction_initialize(void);",
@@ -2546,6 +2562,10 @@
         {
           "decl": "bool shell_application_is_paused(void);",
           "addr": "0x191170"
+        },
+        {
+          "decl": "char *shell_get_command_line(void);",
+          "addr": "0x191240"
         }
       ]
     },
@@ -2750,6 +2770,10 @@
           "addr": "0xe44d0"
         },
         {
+          "decl": "void ui_widget_start_title_music(void);",
+          "addr": "0xe45d0"
+        },
+        {
           "decl": "void ui_widgets_disable_pause_game(int);",
           "addr": "0xe46b0"
         },
@@ -2764,6 +2788,10 @@
         {
           "decl": "void ui_widgets_close_all(void);",
           "addr": "0xe58c0"
+        },
+        {
+          "decl": "void ui_widget_begin_filesystem_checks(void);",
+          "addr": "0xe6980"
         },
         {
           "decl": "void ui_widgets_dispose(void);",
@@ -2782,12 +2810,20 @@
           "addr": "0xe8700"
         },
         {
+          "decl": "void ui_widget_display_error(int16_t error_handle, int local_player_index, char is_modal, char pause_game);",
+          "addr": "0xe8910"
+        },
+        {
           "decl": "void *ui_widget_spawn_from_event_handler(void *widget, int tag_index);",
           "addr": "0xe9320"
         },
         {
           "decl": "void process_ui_widgets(void);",
           "addr": "0xe9450"
+        },
+        {
+          "decl": "void ui_widget_clear_last_error_index(void);",
+          "addr": "0xe98b0"
         }
       ]
     },
