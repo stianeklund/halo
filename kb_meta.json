@@ -1,6 +1,10 @@
 {
   "md5": "c7869590a1c64ad034e49a5ee0c02465",
   "symbols": {
+    "0x3aa50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3aa90": {
       "kind": "function",
       "status": "ported",
@@ -42,6 +46,17 @@
     "0x7c8f0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x82130": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "XNet startup params struct at EBP-0xC is 11 bytes matching XNET_STARTUP_PARAMS: cfgSizeOfStruct=0xB, cfgFlags, cfgSockMaxDgramSockets=24, cfgSockMaxStreamSockets=8, cfgSockDefaultRecvBufsizeInK=4, cfgSockDefaultSendBufsizeInK=8, cfgKeyRegMax=128."
+      ],
+      "uncertain": [
+        "The function at 0x222ecf (stdcall 1 arg) is likely XNetGetEthernetLinkStatus or a wrapper polling network readiness; exact XNet API name unconfirmed.",
+        "The function at 0x222e0e (stdcall 2 args, passes a buffer and size 8) is likely setsockopt or XNetSetSystemLinkPort; exact identity unconfirmed."
+      ]
     },
     "0x822d0": {
       "kind": "function",
