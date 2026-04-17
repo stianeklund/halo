@@ -2421,7 +2421,7 @@
           "addr": "0x186460"
         },
         {
-          "decl": "void render_camera_build_frustum(camera_t *camera, _DWORD *a2, float *frustum, bool a4);",
+          "decl": "void render_camera_build_frustum(camera_t *camera, float *bounds, float *frustum, bool do_projection);",
           "addr": "0x187250"
         }
       ]
