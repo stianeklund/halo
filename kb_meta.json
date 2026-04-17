@@ -960,7 +960,8 @@
       "inferred": [
         "caa80 (hs_get_thread_script_name) takes ESI=thread_index as register arg, returns script name string.",
         "cd840 (hs_execute_thread) takes EAX=thread_index as register arg.",
-        "cc1d0 (hs_default_value) takes EAX=thread_index as register arg plus two stack args (type, dest)."
+        "cc1d0 (hs_default_value) takes EAX=thread_index as register arg plus two stack args (type, dest).",
+        "cb230 (hs_global_value_store) takes EDI=loop_var as register arg, only active when bit 15 set."
       ]
     },
     "0xce690": {
@@ -1628,6 +1629,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a7ff0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Global at 0x4e4cf8 is a pointer to a 5-byte struct {int16_t, int16_t, uint8_t} used for units per-tick update state tracking."
+      ]
+    },
     "0x1a9a30": {
       "kind": "function",
       "status": "ported",
@@ -1645,6 +1653,17 @@
         "The byte at offset 0x23D (unk_573) value 3 likely represents a passive/non-threatening sub-state that suppresses the dangerous classification.",
         "Bit 2 of offset 0x248 (unk_584) acts as a suppression flag that prevents units in state 0x18/0x19 from being considered dangerous."
       ]
+    },
+    "0x1aac40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Callee 0x140cc0 is object_delete (wrapper calling 0x140bc0 with param_2=0, i.e. no sibling recursion)."
+      ]
+    },
+    "0x1adeb0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1b7ee0": {
       "kind": "function",

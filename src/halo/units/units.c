@@ -21,6 +21,23 @@ void unit_delete(int datum_handle)
   obj->unk_183 |= 0x20;
 }
 
+/* units_update (0x1a7ff0)
+ *
+ * Per-tick global update for the units subsystem. Reads the units globals
+ * pointer at 0x4e4cf8 (a small {int16_t, int16_t, uint8_t} struct) and
+ * rotates: copies the "max ticks this frame" (offset +2) into "current
+ * ticks" (offset +0), then zeroes the max-ticks field (+2) and the
+ * ready-flag byte (+4). Called once per game tick from the main update loop.
+ */
+void units_update(void)
+{
+  int16_t *p = *(int16_t **)0x4e4cf8;
+
+  p[0] = p[1];
+  p[1] = 0;
+  *(uint8_t *)&p[2] = 0;
+}
+
 /* unit_is_alive (0x1a9a30)
  *
  * Returns whether the given unit handle refers to a unit that is currently
@@ -70,4 +87,49 @@ bool any_unit_is_dangerous(void)
   }
 
   return false;
+}
+
+/* unit_clear_seat_tag (0x1aac40)
+ *
+ * Clears the unit's equipment/seat tag handle at offset 0x2C8
+ * (unit_data_t.unk_712). If the current value is not NONE (-1), it calls
+ * object_delete (0x140cc0) on that handle to destroy the associated object,
+ * then sets the field to NONE. Resolves the unit via
+ * object_get_and_verify_type with type mask 3 (biped | vehicle).
+ */
+void unit_clear_seat_tag(int unit_handle)
+{
+  unit_data_t *unit;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  if (unit->unk_712.value != -1) {
+    ((void (*)(int))0x140cc0)(unit->unk_712.value);
+    unit->unk_712.value = -1;
+  }
+}
+
+/* unit_get_weapon (0x1adeb0)
+ *
+ * Returns the weapon datum handle stored in the unit's weapon slot array
+ * (unit_data_t.unk_680, offset 0x2A8) at the given weapon_index. If
+ * weapon_index is NONE (-1), returns NONE. Asserts that the index is in
+ * range [0, MAXIMUM_WEAPONS_PER_UNIT=4). Resolves the unit via
+ * object_get_and_verify_type with type mask 3 (biped | vehicle).
+ */
+int unit_get_weapon(int unit_handle, int16_t weapon_index)
+{
+  unit_data_t *unit;
+  int result;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  result = -1;
+  if (weapon_index != -1) {
+    if (weapon_index < 0 || weapon_index >= MAXIMUM_WEAPONS_PER_UNIT) {
+      display_assert("index>=0 && index<MAXIMUM_WEAPONS_PER_UNIT",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x20ac, 1);
+      system_exit(-1);
+    }
+    result = unit->unk_680[weapon_index].value;
+  }
+  return result;
 }
