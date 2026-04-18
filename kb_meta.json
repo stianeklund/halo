@@ -1964,6 +1964,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18e4d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18eb40": {
       "kind": "function",
       "status": "ported"
