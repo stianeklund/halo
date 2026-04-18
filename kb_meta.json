@@ -2131,6 +2131,13 @@
         "Callee 0x140cc0 is object_delete (wrapper calling 0x140bc0 with param_2=0, i.e. no sibling recursion)."
       ]
     },
+    "0x1aac80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The second inner check (i == unit->unk_674) is dead code because the outer condition already excludes i == unk_674; preserved for binary fidelity."
+      ]
+    },
     "0x1aad90": {
       "kind": "function",
       "status": "ported"

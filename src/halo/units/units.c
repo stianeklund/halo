@@ -236,6 +236,38 @@ void unit_clear_seat_tag(int unit_handle)
   }
 }
 
+/* unit_clear_weapons (0x1aac80)
+ *
+ * Deletes all weapons from a unit's weapon slots EXCEPT the one at the
+ * current weapon index (unk_674, offset 0x2A2). For each of the 4 weapon
+ * slots: if the slot is occupied (handle != NONE) and the slot index does
+ * not match the current weapon index, deletes the weapon object and clears
+ * the slot handle to NONE. Also resets the next-weapon index (unk_676,
+ * offset 0x2A4) or current-weapon index (unk_674) to NONE if they matched
+ * the cleared slot. Called by unit_enter_seat when flag==2 to strip all
+ * secondary weapons before seating.
+ */
+void unit_clear_weapons(int unit_handle)
+{
+  unit_data_t *unit;
+  int16_t i;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  for (i = 0; i < MAXIMUM_WEAPONS_PER_UNIT; i++) {
+    if (unit->unk_680[i].value != -1 && i != (int16_t)unit->unk_674) {
+      object_delete(unit->unk_680[i].value);
+      unit->unk_680[i].value = -1;
+      if (i == (int16_t)unit->unk_676) {
+        unit->unk_676 = (uint16_t)-1;
+      }
+      if (i == (int16_t)unit->unk_674) {
+        unit->unk_674 = (uint16_t)-1;
+      }
+    }
+  }
+}
+
 /* unit_count_weapons (0x1aad90)
  *
  * Counts the number of "countable" weapons held by a unit. Iterates all 4
