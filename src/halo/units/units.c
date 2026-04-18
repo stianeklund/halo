@@ -885,3 +885,83 @@ void unit_set_control(int unit_handle, void *unit_control)
   /* trace/profile call */
   unit_control_trace(unit_handle, "unit-control");
 }
+
+/* unit_enter_seat (0x1b1db0)
+ *
+ * Attempts to place a unit into a weapon/item seat. Validates that the seat
+ * object (type 4) has flag bit 0x800 set and has no parent (parent_object_index
+ * == -1). Then checks unit_can_enter_seat and game_engine_unit_can_enter_seat.
+ *
+ * If flag == 2, clears all existing weapons first. Finds an empty weapon slot
+ * via an internal helper (0x1aad60, EAX reg-arg). If a slot is found:
+ *   - disconnects the seat object from the map
+ *   - disables garbage collection on it
+ *   - attaches it to the unit
+ *   - stores the seat object handle in unk_680[slot]
+ *   - clears unk_696[slot]
+ *
+ * Based on the flag value:
+ *   flag 0: sets unk_676 via unit_next_weapon_index(unit, unk_674, 0)
+ *   flag 1: if control_flags bit 0x800 is clear, calls
+ *           player_control_set_unit_seat, then sets unk_676 = slot
+ *   flag 2: sets unk_676 = slot
+ *   default: returns true without changing unk_676
+ *
+ * Returns true if the seat was entered, false otherwise.
+ */
+bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag)
+{
+  object_data_t *seat_obj;
+  unit_data_t *unit;
+  int16_t seat_index;
+  int _eax;
+
+  seat_obj = (object_data_t *)object_get_and_verify_type(seat_object_handle, 4);
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  if (!(seat_obj->flags & 0x800))
+    return false;
+  if (seat_obj->parent_object_index.value != -1)
+    return false;
+  if (!unit_can_enter_seat(unit_handle, seat_object_handle))
+    return false;
+  if (!game_engine_unit_can_enter_seat(unit_handle, seat_object_handle))
+    return false;
+
+  if (flag == 2)
+    unit_clear_weapons(unit_handle);
+
+  /* FUN_001aad60: finds first empty weapon slot. EAX = unit_handle (reg arg),
+   * returns int16_t seat index in AX, or -1 if no slot available. */
+  _eax = unit_handle;
+  __asm__ __volatile__("call *%[fn]"
+                       : "+a"(_eax)
+                       : [fn] "r"((void *)0x1aad60)
+                       : "ecx", "edx", "memory", "cc");
+  seat_index = (int16_t)_eax;
+
+  if (seat_index == -1)
+    return false;
+
+  object_disconnect_from_map(seat_object_handle);
+  object_set_garbage(seat_object_handle, 0);
+  item_attach_to_unit(seat_object_handle, unit_handle);
+
+  unit->unk_680[(int16_t)seat_index].value = seat_object_handle;
+  unit->unk_696[(int16_t)seat_index].value = 0;
+
+  switch (flag) {
+  case 0:
+    unit->unk_676 = unit_next_weapon_index(unit_handle, unit->unk_674, 0);
+    return true;
+  case 1:
+    if (!(unit->unk_440 & 0x800))
+      player_control_set_unit_seat(unit_handle, seat_index);
+    /* fall through */
+  case 2:
+    unit->unk_676 = seat_index;
+    return true;
+  default:
+    return true;
+  }
+}

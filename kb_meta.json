@@ -2168,6 +2168,10 @@
         "FUN_0x21fb0 is assert_valid_real_normal3d (validates unit vector). FUN_0x1af6b0 is a profiling/trace function accepting a string label."
       ]
     },
+    "0x1b1db0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b7ee0": {
       "kind": "function",
       "status": "ported",

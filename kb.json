@@ -1309,6 +1309,10 @@
         {
           "decl": "bool game_engine_can_pick_up_weapon(int player_unit_handle, int weapon_unit_handle);",
           "addr": "0xaba00"
+        },
+        {
+          "decl": "bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle);",
+          "addr": "0xa90b0"
         }
       ]
     },
@@ -2115,6 +2119,10 @@
         {
           "decl": "void player_clear_aim_assist(int unit_handle);",
           "addr": "0xb6a20"
+        },
+        {
+          "decl": "void player_control_set_unit_seat(int unit_handle, int seat_index);",
+          "addr": "0xb7f40"
         }
       ]
     },
@@ -3254,6 +3262,14 @@
         {
           "decl": "bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index);",
           "addr": "0x1b2b80"
+        },
+        {
+          "decl": "bool unit_can_enter_seat(int unit_handle, int seat_object_handle);",
+          "addr": "0x1ae370"
+        },
+        {
+          "decl": "void unit_clear_weapons(int unit_handle);",
+          "addr": "0x1aac80"
         }
       ]
     },
