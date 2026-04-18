@@ -1541,6 +1541,10 @@
         {
           "decl": "void hud_print_message(__int16 player, wchar_t *message);",
           "addr": "0xd51c0"
+        },
+        {
+          "decl": "void hud_messaging_set_vehicle_notification(int16_t local_player_index, int vehicle_tag_handle, int16_t param_3, int param_4);",
+          "addr": "0xd5240"
         }
       ]
     },
