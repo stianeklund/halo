@@ -2235,5 +2235,127 @@
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
     }
+  },
+  "0xba340": {
+    "status": "ported",
+    "confidence": "high",
+    "summary": "Find first unused local player slot (0-3), preferring one with a gamepad"
+  },
+  "0xbadf0": {
+    "status": "ported",
+    "confidence": "high",
+    "summary": "Count local players with valid player indices in players_globals"
+  },
+  "0xbae20": {
+    "status": "ported",
+    "confidence": "medium",
+    "summary": "Check if player should interact with nearby unit (weapon swap/pickup)"
+  },
+  "0xbaeb0": {
+    "status": "ported",
+    "confidence": "high",
+    "summary": "Clear action result fields on a player datum"
+  },
+  "0xbaed0": {
+    "status": "ported",
+    "confidence": "medium",
+    "summary": "Try to enter vehicle based on action result type 6 or 7"
+  },
+  "0xbb560": {
+    "status": "ported",
+    "confidence": "medium",
+    "summary": "Transform aiming vector into vehicle local space when seated"
+  },
+  "0xbc0d0": {
+    "status": "ported",
+    "confidence": "medium",
+    "summary": "Spawn player into vehicle or interact with world object based on action result"
+  },
+  "0xba100": {
+    "status": "ported"
+  },
+  "0xba170": {
+    "status": "ported"
+  },
+  "0xba220": {
+    "status": "ported"
+  },
+  "0xba240": {
+    "status": "ported"
+  },
+  "0xba270": {
+    "status": "ported"
+  },
+  "0xba290": {
+    "status": "ported"
+  },
+  "0xba2e0": {
+    "status": "ported"
+  },
+  "0xba390": {
+    "status": "ported"
+  },
+  "0xba3b0": {
+    "status": "ported"
+  },
+  "0xba3c0": {
+    "status": "ported"
+  },
+  "0xba410": {
+    "status": "ported"
+  },
+  "0xba4b0": {
+    "status": "ported"
+  },
+  "0xba4c0": {
+    "status": "ported"
+  },
+  "0xba500": {
+    "status": "ported"
+  },
+  "0xba550": {
+    "status": "ported"
+  },
+  "0xba5e0": {
+    "status": "ported"
+  },
+  "0xba6b0": {
+    "status": "ported"
+  },
+  "0xba6c0": {
+    "status": "ported"
+  },
+  "0xba6d0": {
+    "status": "ported"
+  },
+  "0xba6f0": {
+    "status": "ported"
+  },
+  "0xba710": {
+    "status": "ported"
+  },
+  "0xba800": {
+    "status": "ported"
+  },
+  "0xbac80": {
+    "status": "ported"
+  },
+  "0xbb2f0": {
+    "status": "ported"
+  },
+  "0xbbcb0": {
+    "status": "ported"
+  },
+  "0xbc750": {
+    "status": "ported"
+  },
+  "0xbcfb0": {
+    "status": "ported"
+  },
+  "0xbd100": {
+    "status": "ported"
+  },
+  "0xbdbf0": {
+    "status": "ported"
   }
 }

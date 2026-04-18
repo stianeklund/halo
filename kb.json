@@ -241,6 +241,18 @@
         {
           "decl": "void FUN_00064160(void);",
           "addr": "0x64160"
+        },
+        {
+          "decl": "float normalize3d(float *v);",
+          "addr": "0x13010"
+        },
+        {
+          "decl": "void cross_product3d(float *a, float *b, float *out);",
+          "addr": "0x178d0"
+        },
+        {
+          "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
+          "addr": "0x966d0"
         }
       ]
     },
@@ -365,6 +377,10 @@
         {
           "decl": "void FUN_000425b0(void);",
           "addr": "0x425b0"
+        },
+        {
+          "decl": "bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag);",
+          "addr": "0x3fdc0"
         }
       ]
     },
@@ -1253,6 +1269,10 @@
         {
           "decl": "void game_engine_update(void);",
           "addr": "0xaf370"
+        },
+        {
+          "decl": "bool game_engine_can_pick_up_weapon(int player_unit_handle, int weapon_unit_handle);",
+          "addr": "0xaba00"
         }
       ]
     },
@@ -1499,6 +1519,14 @@
         {
           "decl": "void hud_autosave(int16_t);",
           "addr": "0xd0db0"
+        },
+        {
+          "decl": "void hud_player_set_vehicle(unsigned __int16 local_player_index, int vehicle_tag_handle);",
+          "addr": "0xd0c40"
+        },
+        {
+          "decl": "void hud_player_set_vehicle_seat(unsigned __int16 local_player_index, int vehicle_tag_handle);",
+          "addr": "0xd0c60"
         }
       ]
     },
@@ -1845,6 +1873,10 @@
       ],
       "functions": [
         {
+          "decl": "void *object_try_and_get_and_verify_type(int datum_handle, int type_mask);",
+          "addr": "0x13d640"
+        },
+        {
           "decl": "void *object_get_and_verify_type(int datum_handle, int type_mask);",
           "addr": "0x13d680"
         },
@@ -1871,6 +1903,10 @@
         {
           "decl": "void objects_update(void);",
           "addr": "0x145170"
+        },
+        {
+          "decl": "void *object_get_world_matrix(int object_handle, void *out_matrix);",
+          "addr": "0x141480"
         }
       ]
     },
@@ -1999,6 +2035,10 @@
         {
           "decl": "void player_control_update(float);",
           "addr": "0xb8c70"
+        },
+        {
+          "decl": "void player_clear_aim_assist(int unit_handle);",
+          "addr": "0xb6a20"
         }
       ]
     },
@@ -2527,6 +2567,18 @@
         {
           "decl": "void real_math_reset_precision(void);",
           "addr": "0x10b5e0"
+        },
+        {
+          "decl": "void angles_to_vector(float *angles, float *out);",
+          "addr": "0x10cc40"
+        },
+        {
+          "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
+          "addr": "0x109e10"
+        },
+        {
+          "decl": "void matrix_transform_vector(float *matrix, float *in, float *out);",
+          "addr": "0x109680"
         }
       ]
     },
@@ -3090,6 +3142,34 @@
         {
           "decl": "bool any_unit_is_dangerous(void);",
           "addr": "0x1aa3c0"
+        },
+        {
+          "decl": "int16_t unit_count_weapons(int unit_handle);",
+          "addr": "0x1aad90"
+        },
+        {
+          "decl": "bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle);",
+          "addr": "0x1aae00"
+        },
+        {
+          "decl": "bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag);",
+          "addr": "0x1b1db0"
+        },
+        {
+          "decl": "void unit_clear_seat_equipment(int unit_handle);",
+          "addr": "0x1ae330"
+        },
+        {
+          "decl": "bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag);",
+          "addr": "0x1aab20"
+        },
+        {
+          "decl": "bool unit_find_nearby_seat(int unit_handle, int target_unit_handle, int16_t seat_index, int *out_unit_handle);",
+          "addr": "0x1a8ce0"
+        },
+        {
+          "decl": "bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index);",
+          "addr": "0x1b2b80"
         }
       ]
     },
