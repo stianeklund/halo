@@ -33,6 +33,28 @@ wchar_t *hud_get_item_string(int index)
   return *(wchar_t **)0x2f66bc;
 }
 
+/* Notify the HUD that a local player has entered a vehicle.
+ * If the local player index is valid (not NONE), forwards to the HUD
+ * vehicle notification handler at 0xd5240 with zeroed extra params. */
+void hud_player_set_vehicle(unsigned __int16 local_player_index,
+                            int vehicle_tag_handle)
+{
+  if ((int16_t)local_player_index != NONE)
+    hud_messaging_set_vehicle_notification(local_player_index,
+                                           vehicle_tag_handle, 0, 0);
+}
+
+/* Notify the HUD that a local player has changed vehicle seat.
+ * If the local player index is valid (not NONE), forwards to the HUD
+ * vehicle notification handler at 0xd5240 with zeroed extra params. */
+void hud_player_set_vehicle_seat(unsigned __int16 local_player_index,
+                                 int vehicle_tag_handle)
+{
+  if ((int16_t)local_player_index != NONE)
+    hud_messaging_set_vehicle_notification(local_player_index,
+                                           vehicle_tag_handle, 0, 0);
+}
+
 void hud_load(bool a1)
 {
   __int16 v1;
