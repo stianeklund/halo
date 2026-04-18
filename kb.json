@@ -1271,6 +1271,10 @@
           "addr": "0xa8380"
         },
         {
+          "decl": "bool game_engine_allow_weapon_pick_up(int unit_handle, int weapon_handle);",
+          "addr": "0xa8b30"
+        },
+        {
           "decl": "bool game_engine_running(void);",
           "addr": "0xa8e30"
         },
@@ -3557,6 +3561,10 @@
         {
           "decl": "void ui_widget_game_data_build_version(int a2);",
           "addr": "0xf0ea0"
+        },
+        {
+          "decl": "char *weapon_get_label(int weapon_handle);",
+          "addr": "0xfae80"
         },
         {
           "decl": "bool weapon_is_flag(int object_index);",

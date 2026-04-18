@@ -392,6 +392,67 @@ void unit_clear_seat_equipment(int unit_handle)
   }
 }
 
+/* unit_can_enter_seat (0x1ae370)
+ *
+ * Checks whether a unit can enter a given seat object. Verifies both object
+ * types (unit=3, seat=4), retrieves the unit's seat label string via 0x1ae290
+ * and the seat object's weapon label string via 0xfae80, then calls 0x1acd70
+ * to attempt seat matching. If the match succeeds, dispatches through the game
+ * engine vtable (current_game_engine->vtable[0x58]) for engine-specific
+ * validation.
+ *
+ * Returns: true if the seat can be entered, false otherwise.
+ */
+bool unit_can_enter_seat(int unit_handle, int seat_object_handle)
+{
+  int seat_label;
+  int weapon_label;
+  char can_enter;
+  int _eax;
+
+  object_get_and_verify_type(unit_handle, 3);
+  object_get_and_verify_type(seat_object_handle, 4);
+
+  /* 0x1ae290: get unit seat label string, EAX=unit_handle */
+  {
+    _eax = unit_handle;
+    asm volatile("call *%[fn]"
+                 : "+a"(_eax)
+                 : [fn] "r"((void *)0x1ae290)
+                 : "ecx", "edx", "memory", "cc");
+    seat_label = _eax;
+  }
+
+  /* 0xfae80: get weapon/item label string */
+  weapon_label = (int)weapon_get_label(seat_object_handle);
+
+  /* 0x1acd70: check unit can use seat, EAX=unit_handle, 3 stack args */
+  {
+    _eax = unit_handle;
+    int args[3];
+    args[0] = seat_label;
+    args[1] = weapon_label;
+    args[2] = 0;
+    asm volatile("pushl %[a2]\n\t"
+                 "pushl %[a1]\n\t"
+                 "pushl %[a0]\n\t"
+                 "call *%[fn]\n\t"
+                 "addl $12, %%esp"
+                 : "+a"(_eax)
+                 : [fn] "r"((void *)0x1acd70), [a0] "r"(args[0]),
+                   [a1] "r"(args[1]), [a2] "r"(args[2])
+                 : "ecx", "edx", "memory", "cc");
+    can_enter = (char)_eax;
+  }
+
+  if (can_enter != 0) {
+    /* 0xa8b30: game engine vtable dispatch */
+    can_enter =
+      (char)game_engine_allow_weapon_pick_up(unit_handle, seat_object_handle);
+  }
+  return can_enter != 0;
+}
+
 /* unit_next_weapon_index (0x1ae490)
  *
  * Scans the unit's weapon slots circularly in the given direction to find the
@@ -456,8 +517,8 @@ int16_t unit_next_weapon_index(int unit_handle, int16_t weapon_index,
         anim_tag = _eax;
       }
 
-      /* 0xfae80: get weapon tag info pointer, 1 cdecl arg */
-      weapon_tag = ((int (*)(int))0xfae80)(weapon_handle);
+      /* 0xfae80: get weapon tag info pointer */
+      weapon_tag = (int)weapon_get_label(weapon_handle);
 
       /* 0x1acd70: check unit can use weapon, EAX=unit_handle, 3 stack args */
       {
@@ -479,8 +540,9 @@ int16_t unit_next_weapon_index(int unit_handle, int16_t weapon_index,
       }
 
       if (can_use != 0) {
-        /* 0xa8b30: weapon usability callback, 2 cdecl args */
-        usable = (char)((int (*)(int, int))0xa8b30)(unit_handle, weapon_handle);
+        /* 0xa8b30: weapon usability callback */
+        usable =
+          (char)game_engine_allow_weapon_pick_up(unit_handle, weapon_handle);
         if (usable != 0) {
           /* direction != 0: pick first valid; direction == 0: pick lowest
            * priority */
