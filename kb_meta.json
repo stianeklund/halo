@@ -708,6 +708,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb6a20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Offset 0x24 in the player control slot is a weapon interaction index, reset to NONE when aim assist is cleared."
+      ]
+    },
     "0xb6fc0": {
       "kind": "function",
       "status": "ported"
@@ -874,6 +881,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xba340": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xba390": {
       "kind": "function",
       "status": "ported"
@@ -966,12 +977,24 @@
       "status": "ported",
       "name": "player_reset_action_result"
     },
+    "0xbaed0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbb2f0": {
       "kind": "function",
       "status": "ported",
       "name": "player_new"
     },
+    "0xbb560": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbbcb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbc0d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2234,30 +2257,6 @@
         "The call to 0x1d9068 is MSVC __ftol2 (float-to-long truncation via ST0); replaced with a C cast in the lift.",
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
-    },
-    "0xba340": {
-      "status": "ported",
-      "confidence": "high",
-      "summary": "Find first unused local player slot (0-3), preferring one with a gamepad",
-      "kind": "function"
-    },
-    "0xbaed0": {
-      "status": "ported",
-      "confidence": "medium",
-      "summary": "Try to enter vehicle based on action result type 6 or 7",
-      "kind": "function"
-    },
-    "0xbb560": {
-      "status": "ported",
-      "confidence": "medium",
-      "summary": "Transform aiming vector into vehicle local space when seated",
-      "kind": "function"
-    },
-    "0xbc0d0": {
-      "status": "ported",
-      "confidence": "medium",
-      "summary": "Spawn player into vehicle or interact with world object based on action result",
-      "kind": "function"
     }
   }
 }
