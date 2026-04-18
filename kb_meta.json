@@ -1196,7 +1196,10 @@
     },
     "0xded20": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "The color_table tag group is 'colo' (0x636f6c6f) with 0x30-byte elements; ARGB float color is at offset 0x20 within each element."
+      ]
     },
     "0xdeda0": {
       "kind": "function",
@@ -1539,12 +1542,16 @@
     },
     "0x10b120": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Name random_math_get_local_seed_address inferred: returns pointer to static seed at 0x46e3f8, used with random_range."
       ]
     },
     "0x10b130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10b2d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2112,7 +2119,15 @@
         "Only checks bink handle (0x4ead60) for non-zero; does not require subsystem initialized."
       ]
     },
+    "0x1c5a80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c5d70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c6100": {
       "kind": "function",
       "status": "ported"
     },

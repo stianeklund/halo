@@ -28,6 +28,30 @@ bool bink_playback_has_video(void)
   return *(int *)0x4ead60 != 0;
 }
 
+/* Returns true if all entries in the bink memory pool allocation table
+ * are zero (i.e. no outstanding allocations). The pool is an array of
+ * dwords at 0x4eacd0 with a count at 0x4eae30. Used by the texture
+ * cache release path to assert that all bink allocations were freed. */
+bool bink_memory_pool_is_empty(void)
+{
+  short i;
+  bool empty;
+
+  i = 0;
+  empty = true;
+  if (0 < *(int *)0x4eae30) {
+    int idx = 0;
+    do {
+      if (*(int *)(idx * 4 + 0x4eacd0) != 0) {
+        empty = false;
+      }
+      i = i + 1;
+      idx = (int)i;
+    } while (idx < *(int *)0x4eae30);
+  }
+  return empty;
+}
+
 /* Render the bink frame quad on screen with optional debug overlay.
  *
  * Builds a 4-vertex textured quad from the current display bounds and
@@ -229,6 +253,45 @@ void bink_playback_render_frame(void)
                            text_buf, text_buf);
     }
   }
+}
+
+/* Poll all 4 gamepad slots and return true if any digital button or
+ * either analog trigger is in the "just pressed" state (value == 1).
+ * Used to detect a skip request during bink video playback.
+ * Checks trigger bytes at offsets 0x1c and 0x1d, and 8 digital
+ * button bytes starting at offset 0x10 in the gamepad state struct. */
+bool bink_playback_check_any_button(void)
+{
+  short pad;
+  bool pressed;
+
+  pressed = false;
+  pad = 0;
+  do {
+    if (pressed) {
+      return pressed;
+    }
+    {
+      void *state = input_get_gamepad_state((int)pad);
+      if (state != NULL) {
+        if (*(char *)((int)state + 0x1c) == 1 ||
+            *(char *)((int)state + 0x1d) == 1) {
+          pressed = true;
+        } else {
+          short btn = 0;
+          do {
+            if (*(char *)((int)btn + 0x10 + (int)state) == 1) {
+              pressed = true;
+              break;
+            }
+            btn = btn + 1;
+          } while (btn < 8);
+        }
+      }
+    }
+    pad = pad + 1;
+  } while (pad < 4);
+  return pressed;
 }
 
 /* Initialize the bink playback globals and register callbacks. */
