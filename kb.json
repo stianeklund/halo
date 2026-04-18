@@ -155,6 +155,10 @@
           "addr": "0x178d0"
         },
         {
+          "decl": "int valid_real_normal3d(float *v);",
+          "addr": "0x21fb0"
+        },
+        {
           "decl": "void FUN_0002b5d0(void);",
           "addr": "0x2b5d0"
         },
@@ -255,8 +259,32 @@
           "addr": "0x966d0"
         },
         {
+          "decl": "float random_math_real(unsigned int *seed);",
+          "addr": "0x10b240"
+        },
+        {
           "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
           "addr": "0x1919a0"
+        },
+        {
+          "decl": "int sound_cache_request_sound(void *permutation, int a2, int a3, int a4);",
+          "addr": "0x1be550"
+        },
+        {
+          "decl": "float sound_get_default_priority(int sound_tag_index);",
+          "addr": "0x1c8d10"
+        },
+        {
+          "decl": "short sound_select_pitch_range(void *sound_tag, float random_scale, int hint_index);",
+          "addr": "0x1c8de0"
+        },
+        {
+          "decl": "short sound_select_permutation(void *sound_tag, short pitch_range_index, short hint_permutation_index);",
+          "addr": "0x1c8f80"
+        },
+        {
+          "decl": "float sound_compute_random_scale(int random_min, int random_max, float bend_min, float bend_max, float source_scale);",
+          "addr": "0x1cc8c0"
         }
       ]
     },

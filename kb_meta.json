@@ -2386,6 +2386,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ce180": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Register-arg callees at 0x1cba20, 0x1cbb00, 0x1ccca0, 0x1cd5a0 are called via inline asm because they take arguments in EAX or EDI.",
+        "The constant at 0x2c1288 (8.9647f) is a time-to-distance conversion factor used to compute delayed sound start timing."
+      ],
+      "uncertain": [
+        "The source struct layout is accessed by offsets (0x0=spatialization_mode, 0x4=scale, 0x18=forward vector) but the full struct type is unknown."
+      ]
+    },
     "0x1cf640": {
       "kind": "function",
       "status": "ported"
