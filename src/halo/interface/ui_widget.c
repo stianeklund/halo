@@ -592,6 +592,45 @@ done:
   *(uint8_t *)0x31e050 = 0;
 }
 
+/* ui_widget_load_error_screen — displays a fatal/abort error overlay that
+ * forces the player back to the Xbox dashboard. If allow_abort is true
+ * (== 1), the "error_abort_to_dashboard" widget is shown (user can confirm);
+ * otherwise "error_abort_to_dashboard_you_have_no_choice" is shown and all
+ * existing widgets are closed first. The loaded widget's text-box child
+ * receives the error_handle string index at +0x40, its in_game_mode flag
+ * (+0x15) is set, and the global "last displayed error" at 0x31e054 is
+ * updated. Asserts that the widget's type (+0x0e) is 1 (text box).
+ * Source line: 0x90f in ui_widget.c. */
+void ui_widget_load_error_screen(int16_t error_handle, int allow_abort)
+{
+  const char *widget_name;
+  void *widget;
+
+  if (allow_abort == 1) {
+    widget_name = "ui\\shell\\error\\error_abort_to_dashboard";
+  } else {
+    widget_name =
+      "ui\\shell\\error\\error_abort_to_dashboard_you_have_no_choice";
+    if (allow_abort == 0) {
+      ui_widgets_close_all();
+    }
+  }
+
+  widget = ui_widget_load_by_name_or_tag(widget_name, -1, 0, -1, -1, -1, -1);
+  if (widget != NULL) {
+    if (*(int16_t *)((char *)widget + 0xe) != 1) {
+      display_assert("expected a text box widget",
+                     "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x90f, true);
+      system_exit(-1);
+    }
+    *(int16_t *)((char *)widget + 0x40) = error_handle;
+    *(uint8_t *)((char *)widget + 0x15) = 1;
+    *(int16_t *)0x31e054 = error_handle;
+    return;
+  }
+  error(2, "failed to load '%s' widget", widget_name);
+}
+
 typedef struct ui_widget_process_data {
   int16_t unk0;
   int16_t unk2;
