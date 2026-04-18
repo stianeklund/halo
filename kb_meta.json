@@ -2027,9 +2027,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c5940": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Checks both bink handle (0x4ead60) and initialized flag (0x4ead58) to determine if bink playback is active."
+      ]
+    },
+    "0x1c5980": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Only checks bink handle (0x4ead60) for non-zero; does not require subsystem initialized."
+      ]
+    },
     "0x1c61a0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1c62a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0xdc240 is a simple byte setter at 0x46bd41 (event suppression toggle). 0x231220 is BinkClose. 0x1c61d0 releases texture cache memory for bink."
+      ]
     },
     "0x1c6310": {
       "kind": "function",
