@@ -2013,6 +2013,10 @@
       "source": "game/player_control.c",
       "functions": [
         {
+          "decl": "void *player_control_get_data(int16_t local_player_index);",
+          "addr": "0xb6380"
+        },
+        {
           "decl": "void player_control_dispose(void);",
           "addr": "0xb63f0"
         },
