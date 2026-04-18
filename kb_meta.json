@@ -1154,9 +1154,14 @@
     },
     "0xd5240": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
-        "Named hud_messaging_set_vehicle_notification based on callers hud_player_set_vehicle and hud_player_set_vehicle_seat; address falls within hud_messaging.obj range."
+        "Named hud_messaging_set_vehicle_notification based on callers hud_player_set_vehicle and hud_player_set_vehicle_seat; address falls within hud_messaging.obj range.",
+        "param_3 is a seat-related counter that accumulates into +0x88 of the message slot structure.",
+        "param_4 low byte stored at +0x8a is likely a notification type or seat index."
+      ],
+      "uncertain": [
+        "The internal helper 0xd5070 uses ESI as a register arg for vehicle tag matching; not yet in kb.json to avoid thunk recursion."
       ]
     },
     "0xdc070": {
