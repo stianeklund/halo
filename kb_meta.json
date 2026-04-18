@@ -1739,6 +1739,14 @@
       "name": "object_get_and_verify_type",
       "name_confidence": "high"
     },
+    "0x13d920": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Bit 0x10000 in object flags is _object_garbage_bit; bit 0x20000 is likely _object_being_deleted_bit based on the 0x30000 mask guard.",
+        "object_data_t+0xC0 (unk_192) is the garbage linked list next-pointer field."
+      ]
+    },
     "0x13f060": {
       "kind": "function",
       "status": "ported",

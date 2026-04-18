@@ -5,6 +5,7 @@
  * Re-implemented functions (by XBE address, ascending):
  *   0x13d640  object_try_and_get_and_verify_type
  *   0x13d680  object_get_and_verify_type
+ *   0x13d920  object_set_garbage_flag
  *   0x13f060  objects_place
  *   0x13f810  objects_initialize
  *   0x13f950  objects_initialize_for_new_map
@@ -84,6 +85,141 @@ void *object_get_and_verify_type(int datum_handle, int type_mask)
     system_exit(-1);
   }
   return obj;
+}
+
+/*
+ * object_set_garbage_flag — add or remove an object from the garbage
+ * collection linked list.
+ *
+ * The garbage list is a singly-linked list threaded through
+ * object_data_t+0xC0 (unk_192), with the head stored at
+ * object_globals+0x08 (unk_8).
+ *
+ * When is_garbage is nonzero (add to garbage list):
+ *   - Bails out if bit 0x10000 (garbage) or 0x20000 is already set.
+ *   - Prepends the object to the garbage list head.
+ *   - Sets bit 0x10000 in object flags.
+ *
+ * When is_garbage is zero (remove from garbage list):
+ *   - Bails out if bit 0x10000 is NOT set.
+ *   - Walks the list to find and unlink the object.
+ *   - Clears bit 0x10000 in object flags.
+ *   - Sets unk_192 to NONE (-1).
+ *
+ * Two debug validation loops walk the entire garbage list before and
+ * after the mutation, asserting that every entry has a valid type and
+ * the garbage bit set. These correspond to lines 0x7a0 and 0x7d6 in
+ * the original objects.c.
+ *
+ * Confirmed: 2 cdecl args — PUSH [EBP+8], PUSH -1 before CALL 0x13d680.
+ * Confirmed: MOV AL, byte ptr [EBP+0xC] — second arg is char-sized.
+ * Confirmed: TEST EAX,0x30000 guards the add path; TEST EAX,0x10000
+ *            guards the remove path.
+ * Confirmed: garbage list next at object+0xC0, head at og+0x08.
+ * Confirmed: assert strings at 0x29b9c4 and line numbers 0x7a0, 0x7d6.
+ */
+void object_set_garbage_flag(int object_handle, int is_garbage)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  object_globals_t *og = object_globals;
+
+  /* Pre-validation: walk the garbage list and assert integrity */
+  {
+    int handle = og->unk_8.value;
+    while (handle != -1) {
+      object_header_data_t *hdr =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+      object_data_t *gobj = hdr->object;
+      int16_t type = gobj->type;
+      if ((1 << (type & 0x1f)) == 0) {
+        char *msg = csprintf(
+          (char *)0x5ab100,
+          "got an object type we didn't expect (expected one of 0x%08x but "
+          "got #%d).",
+          -1, (int)type);
+        display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+        system_exit(-1);
+      }
+      if ((gobj->flags & 0x10000) == 0) {
+        display_assert(
+          "TEST_FLAG(garbage_object->object.flags, _object_garbage_bit)",
+          "c:\\halo\\SOURCE\\objects\\objects.c", 0x7a0, 1);
+        system_exit(-1);
+      }
+      handle = gobj->unk_192;
+    }
+    og = object_globals;
+  }
+
+  if ((char)is_garbage != 0) {
+    /* Add to garbage list */
+    if ((obj->flags & 0x30000) != 0)
+      goto done;
+
+    obj->unk_192 = og->unk_8.value;
+    og->unk_8.value = object_handle;
+    obj->flags |= 0x10000;
+  } else {
+    /* Remove from garbage list */
+    if ((obj->flags & 0x10000) == 0)
+      goto done;
+
+    /* Walk the list to find the previous pointer */
+    uint32_t *prev_ptr = (uint32_t *)&og->unk_8.value;
+    int cur = og->unk_8.value;
+
+    while (cur != object_handle) {
+      object_header_data_t *hdr =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, *prev_ptr);
+      object_data_t *gobj = hdr->object;
+      int16_t type = gobj->type;
+      if ((1 << (type & 0x1f)) == 0) {
+        char *msg = csprintf(
+          (char *)0x5ab100,
+          "got an object type we didn't expect (expected one of 0x%08x but "
+          "got #%d).",
+          -1, (int)type);
+        display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+        system_exit(-1);
+      }
+      prev_ptr = &gobj->unk_192;
+      cur = gobj->unk_192;
+    }
+
+    /* Unlink: *prev_ptr = obj->next; obj->next = NONE */
+    *prev_ptr = obj->unk_192;
+    obj->unk_192 = 0xffffffff;
+    obj->flags &= ~(uint32_t)0x10000;
+  }
+
+done:
+  /* Post-validation: walk the garbage list again */
+  {
+    int handle = og->unk_8.value;
+    while (handle != -1) {
+      object_header_data_t *hdr =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+      object_data_t *gobj = hdr->object;
+      int16_t type = gobj->type;
+      if ((1 << (type & 0x1f)) == 0) {
+        char *msg = csprintf(
+          (char *)0x5ab100,
+          "got an object type we didn't expect (expected one of 0x%08x but "
+          "got #%d).",
+          -1, (int)type);
+        display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+        system_exit(-1);
+      }
+      if ((gobj->flags & 0x10000) == 0) {
+        display_assert(
+          "TEST_FLAG(garbage_object->object.flags, _object_garbage_bit)",
+          "c:\\halo\\SOURCE\\objects\\objects.c", 0x7d6, 1);
+        system_exit(-1);
+      }
+      handle = gobj->unk_192;
+    }
+  }
 }
 
 /*
