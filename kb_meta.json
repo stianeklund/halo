@@ -2202,6 +2202,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1b2b80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Marker struct layout inferred: rotation matrix at offset 0x38 and position at offset 0x60 within the marker output buffer.",
+        "Function names for callees are conservative: object_set_region_count (0x140160), object_adjust_interpolation_position (0x140230), etc. are best guesses based on behavior."
+      ],
+      "uncertain": [
+        "0x1ab7c0 uses three register args (EAX, EDI, BX); current inline asm saves/restores EDI and EBX via push/pop which may cause stack misalignment issues under some calling conventions."
+      ]
+    },
     "0x1b7ee0": {
       "kind": "function",
       "status": "ported",
