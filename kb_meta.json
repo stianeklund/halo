@@ -1,6 +1,14 @@
 {
   "md5": "c7869590a1c64ad034e49a5ee0c02465",
   "symbols": {
+    "0x13010": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The double constant at 0x2533d0 (~0.0001) serves as a minimum magnitude threshold for normalization; vectors shorter than this are treated as zero-length.",
+        "Object name vector_math.obj is provisional; the true .obj name is unknown since the function has no string references or assert paths."
+      ]
+    },
     "0x3aa50": {
       "kind": "function",
       "status": "ported"

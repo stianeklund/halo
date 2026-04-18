@@ -147,10 +147,6 @@
       ],
       "functions": [
         {
-          "decl": "float normalize3d(float *v);",
-          "addr": "0x13010"
-        },
-        {
           "decl": "void cross_product3d(float *a, float *b, float *out);",
           "addr": "0x178d0"
         },
@@ -2641,6 +2637,16 @@
         {
           "decl": "void rasterizer_preinitialize(void);",
           "addr": "0x1553f0"
+        }
+      ]
+    },
+    {
+      "name": "vector_math.obj",
+      "source": "math/vector_math.c",
+      "functions": [
+        {
+          "decl": "float normalize3d(float *v);",
+          "addr": "0x13010"
         }
       ]
     },
