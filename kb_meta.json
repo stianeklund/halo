@@ -1983,6 +1983,14 @@
         "Callee 0x140cc0 is object_delete (wrapper calling 0x140bc0 with param_2=0, i.e. no sibling recursion)."
       ]
     },
+    "0x1aad90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aae00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1adeb0": {
       "kind": "function",
       "status": "ported"
@@ -2258,10 +2266,5 @@
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
     }
-  },
-  "0xb6380": {
-    "status": "ported",
-    "confidence": "high",
-    "summary": "Returns pointer to player control data slot for a local player index"
   }
 }

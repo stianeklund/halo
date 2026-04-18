@@ -108,6 +108,76 @@ void unit_clear_seat_tag(int unit_handle)
   }
 }
 
+/* unit_count_weapons (0x1aad90)
+ *
+ * Counts the number of "countable" weapons held by a unit. Iterates all 4
+ * weapon slots (unit_data_t.unk_680, offset 0x2A8). For each non-NONE slot,
+ * resolves the weapon object, looks up its weapon tag via tag_get("weap"),
+ * and checks byte at tag+0x308 bit 0x10. Weapons without that bit set are
+ * counted. Returns the count as int16_t.
+ */
+int16_t unit_count_weapons(int unit_handle)
+{
+  unit_data_t *unit;
+  int count;
+  int weapon_handle;
+  int *weapon_obj;
+  char *weapon_tag;
+  int i;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  count = 0;
+
+  for (i = 0; i < MAXIMUM_WEAPONS_PER_UNIT; i++) {
+    weapon_handle = unit->unk_680[i].value;
+    if (weapon_handle != -1) {
+      weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+      weapon_tag = (char *)tag_get(0x77656170, *weapon_obj);
+      if ((*(uint8_t *)(weapon_tag + 0x308) & 0x10) == 0) {
+        count++;
+      }
+    }
+  }
+
+  return (int16_t)count;
+}
+
+/* unit_weapon_is_new (0x1aae00)
+ *
+ * Returns true if the given weapon is "new" to the unit — i.e. no existing
+ * weapon in the unit's 4 weapon slots shares the same tag definition (first
+ * dword of the weapon object data, the tag_index). Resolves the target weapon
+ * via object_get_and_verify_type with type mask 4 (weapon), then iterates all
+ * weapon slots comparing tag indices. If any match is found, returns false;
+ * otherwise returns true.
+ */
+bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle)
+{
+  unit_data_t *unit;
+  int *target_weapon_obj;
+  int *slot_weapon_obj;
+  bool is_new;
+  int weapon_handle;
+  int i;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  target_weapon_obj = (int *)object_get_and_verify_type(weapon_unit_handle, 4);
+  tag_get(0x77656170, *target_weapon_obj);
+  is_new = true;
+
+  for (i = 0; i < MAXIMUM_WEAPONS_PER_UNIT; i++) {
+    weapon_handle = unit->unk_680[i].value;
+    if (weapon_handle != -1) {
+      slot_weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+      if (*target_weapon_obj == *slot_weapon_obj) {
+        is_new = false;
+      }
+    }
+  }
+
+  return is_new;
+}
+
 /* unit_get_weapon (0x1adeb0)
  *
  * Returns the weapon datum handle stored in the unit's weapon slot array
@@ -132,6 +202,34 @@ int unit_get_weapon(int unit_handle, int16_t weapon_index)
     result = unit->unk_680[weapon_index].value;
   }
   return result;
+}
+
+/* unit_clear_seat_equipment (0x1ae330)
+ *
+ * Clears the unit's seat equipment handle at offset 0x2C8
+ * (unit_data_t.unk_712). If the current value is not NONE (-1), calls the
+ * dual-register function at 0x1ab990 (EDI=unit_handle, ESI=equipment_handle)
+ * to detach/remove the equipment, then sets the field to NONE.
+ */
+void unit_clear_seat_equipment(int unit_handle)
+{
+  unit_data_t *unit;
+  int equipment_handle;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  equipment_handle = unit->unk_712.value;
+  if (equipment_handle != -1) {
+    /* 0x1ab990: dual-register call, EDI=unit_handle, ESI=equipment_handle */
+    {
+      int _edi = unit_handle;
+      int _esi = equipment_handle;
+      __asm__ __volatile__("call *%[fn]"
+                           : "+D"(_edi), "+S"(_esi)
+                           : [fn] "r"((void *)0x1ab990)
+                           : "eax", "ecx", "edx", "ebx", "memory", "cc");
+    }
+    unit->unk_712.value = -1;
+  }
 }
 
 /* unit_next_weapon_index (0x1ae490)
