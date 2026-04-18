@@ -21,6 +21,21 @@ void interface_dispose(void)
   ((void (*)(void))0xd0340)();
 }
 
+/* Set up font, color, and style for drawing interface text.
+ * Resolves font_index to a tag_index, looks up an ARGB color from the
+ * interface color table (indexed by color_tag_index / color_index), then
+ * configures the draw_string subsystem with those parameters. */
+void interface_draw_text(int font_index, int style, int justify, int flags,
+                         int color_tag_index, short color_index)
+{
+  float color[4];
+  int tag_index;
+
+  tag_index = interface_get_tag_index(font_index);
+  interface_get_color(color_tag_index, color_index, color);
+  draw_string_set_font(tag_index, style, justify, flags, color);
+}
+
 /* Initialize interface for a new map: set up HUD elements and load the
  * first interface globals tag block entry for widget rendering. */
 void interface_initialize_for_new_map(void)

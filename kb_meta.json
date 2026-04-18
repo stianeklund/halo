@@ -1153,7 +1153,10 @@
     },
     "0xdc310": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Name event_manager_get_last_event_time inferred from behavior: returns dword at 0x46bd44 which is written by event_manager_dispatch on non-empty events."
+      ]
     },
     "0xdc320": {
       "kind": "function",
@@ -1178,6 +1181,13 @@
     "0xdec80": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xdeda0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Parameter 5 (color_tag_index) is an interface tag index for color lookup, not alpha; parameter 6 (color_index) is a short color table index, not tab_stop_count."
+      ]
     },
     "0xdfea0": {
       "kind": "function",
@@ -1509,6 +1519,13 @@
     "0x10b0d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x10b120": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Name random_math_get_local_seed_address inferred: returns pointer to static seed at 0x46e3f8, used with random_range."
+      ]
     },
     "0x10b130": {
       "kind": "function",

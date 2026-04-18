@@ -1597,7 +1597,15 @@
           "addr": "0xdec80"
         },
         {
-          "decl": "void interface_draw_text(int font_index, int style, int justify, int flags, int alpha, short tab_stop_count);",
+          "decl": "int interface_get_tag_index(int interface_tag_index);",
+          "addr": "0xdeca0"
+        },
+        {
+          "decl": "void *interface_get_color(int interface_tag_index, short color_index, void *out_color);",
+          "addr": "0xded20"
+        },
+        {
+          "decl": "void interface_draw_text(int font_index, int style, int justify, int flags, int color_tag_index, short color_index);",
           "addr": "0xdeda0"
         },
         {
@@ -3485,6 +3493,10 @@
         {
           "decl": "void draw_string_set_color(const void *color);",
           "addr": "0x19b640"
+        },
+        {
+          "decl": "void draw_string_set_font(int tag_index, int style, int justify, int flags, const void *color);",
+          "addr": "0x19b8b0"
         }
       ]
     },
