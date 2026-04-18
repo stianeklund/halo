@@ -731,6 +731,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb7f40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The name 'seat_index' for param_2 may actually refer to a weapon index since slot+0x20 is used as desired_weapon_index in player_control_get_facing."
+      ]
+    },
     "0xb85c0": {
       "kind": "function",
       "status": "ported"

@@ -85,6 +85,30 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
   }
 }
 
+/* Set the desired weapon index on a unit's controlling player.
+ * Resolves the unit's player handle (unit+0x1c8), looks up the local player
+ * index (player+0x2), retrieves the player control slot, and writes
+ * seat_index into the desired weapon field (slot+0x20). */
+void player_control_set_unit_seat(int unit_handle, int seat_index)
+{
+  char *unit_obj;
+  int player_handle;
+  char *player;
+  int16_t local_player_index;
+  char *slot;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+  player_handle = *(int *)(unit_obj + 0x1c8);
+  if (player_handle != NONE) {
+    player = (char *)datum_get(player_data, player_handle);
+    local_player_index = *(int16_t *)(player + 0x2);
+    if (local_player_index != NONE) {
+      slot = (char *)player_control_get_data(local_player_index);
+      *(int16_t *)(slot + 0x20) = (int16_t)seat_index;
+    }
+  }
+}
+
 void player_control_initialize_for_new_map(void)
 {
   int i;
