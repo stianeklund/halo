@@ -1788,6 +1788,20 @@
         "The re-fetch of header at 0x13fdc8 after the partition-remove call may be needed because the partition-remove could invalidate the cached header pointer, but this is not confirmed."
       ]
     },
+    "0x13ffc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "flag=0 marks the object as garbage (sets obj->flags bit 0, clears datum.unk_2 bit 1); flag!=0 unmarks it. Child propagation via FUN_0013ee60 (0x13ee60) is gated on the tag having a children block (tag+0x34 != -1) and bit 0 of obj->flags being in the wrong state for the requested transition."
+      ]
+    },
+    "0x140cc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Thin wrapper calling FUN_00140bc0 (0x140bc0) with param_2=0; param_2=1 would also delete sibling objects recursively. FUN_00140bc0 is the real implementation: sets datum.unk_2 bit 3 (0x08, pending removal), clears the active bit in obj->flags, and calls FUN_0013eff0 (0x13eff0, EDI=object_handle) to clear the object's name-list entry."
+      ]
+    },
     "0x141480": {
       "kind": "function",
       "status": "ported",
@@ -2323,6 +2337,14 @@
     "0x1c7080": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1c7480": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 64-byte local buffer at EBP-0x40 is a sound source descriptor struct with fields: offset 0x00 int16_t spatialization_mode, offset 0x04 float scale, offset 0x08 float gain.",
+        "sound_start at 0x1ce180 belongs to sound_manager.obj based on assertion path string c:\\halo\\SOURCE\\sound\\sound_manager.c."
+      ]
     },
     "0x1c7e40": {
       "kind": "function",

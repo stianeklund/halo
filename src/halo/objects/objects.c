@@ -12,6 +12,8 @@
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
  *   0x13fd00  object_disconnect_from_map
+ *   0x13ffc0  object_set_garbage
+ *   0x140cc0  object_delete
  *   0x141480  object_get_world_matrix
  *   0x145170  objects_update
  */
@@ -601,6 +603,146 @@ void object_disconnect_from_map(int object_handle)
 
   /* Clear bit 0x20 in header flags byte */
   header->unk_2 &= ~0x20;
+}
+
+/*
+ * object_set_garbage — set or clear the "garbage" activation state for
+ * an object and its attached children.
+ *
+ * param flag: 0 = mark object as garbage (deactivate); non-zero = unmark.
+ *
+ * Reads the object's tag definition via tag_get to check whether the tag
+ * has a children block (tag[0x34] != -1). If it does, and the object's
+ * bit 0 of obj->flags (active/inactive state) is out of sync with the
+ * requested flag, calls FUN_0013ee60 (via EAX register arg) to propagate
+ * the state change to child objects before committing the datum update.
+ *
+ * FUN_0013ee60 (0x13ee60) takes (int object_handle @EAX, char param_1,
+ *   char param_2) — 2 stack args, object_handle in EAX register. Uses
+ *   args-array inline asm pattern to avoid EAX aliasing.
+ *
+ * Final datum update:
+ *   flag==0: set obj->flags bit 0; clear datum byte[2] bit 1 (0x02).
+ *   flag!=0: clear obj->flags bit 0; set datum byte[2] bit 1 (0x02).
+ *
+ * Confirmed: MOV EAX,EDI before CALL 0x13ee60 — EAX = object_handle.
+ * Confirmed: ADD ESP,0x8 after CALL 0x13ee60 — 2 stack args.
+ * Confirmed: ADD ESP,0x10 after tag_get (cleans 4 args: 2 for tag_get +
+ *   2 pre-pushed for object_get_and_verify_type).
+ * Confirmed: OR dword [ESI+4],1 — obj->flags |= 1 for flag==0 path.
+ * Confirmed: AND byte [EAX+2],0xfd — hdr->unk_2 &= ~2 for flag==0 path.
+ * Confirmed: AND dword [ESI+4],~1 — obj->flags &= ~1 for flag!=0 path.
+ * Confirmed: OR byte [EAX+2],2 — hdr->unk_2 |= 2 for flag!=0 path.
+ * Confirmed: DAT_005a8d50 as datum_get first arg.
+ * Confirmed: CMP dword ptr [EBX+0x34],-1 — children block presence check.
+ */
+void object_set_garbage(int object_handle, int flag)
+{
+  /* ESI = object_data_t*, EDI = object_handle (saved for register-arg calls)
+   */
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* Get object tag definition; check if it has an attachments/children block
+   * (non-null block at tag+0x34 == not -1). */
+  void *tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
+  int has_children = (*(int *)((char *)tag_def + 0x34) != -1);
+  int bit0 = (int)(obj->flags & 1);
+
+  if (has_children) {
+    if (bit0 != 0) {
+      /* bit0 is set */
+      if ((char)flag != 0) {
+        /* Already inactive but being asked to unmark: propagate to children
+         * with (param_1=0, param_2=1). */
+        {
+          int args[2];
+          args[0] = 0; /* param_1=0 */
+          args[1] = 1; /* param_2=1 */
+          __asm__ __volatile__("pushl 4(%[a])\n\t"
+                               "pushl 0(%[a])\n\t"
+                               "call *%[fn]\n\t"
+                               "addl $8, %%esp"
+                               :
+                               : [a] "r"(args), [fn] "r"((void *)0x13ee60),
+                                 "a"(object_handle)
+                               : "ecx", "edx", "memory", "cc");
+        }
+        goto lab_0014000a;
+      }
+      /* bit0 set, flag==0: no child propagation needed */
+      goto lab_0014000a;
+    } else {
+      /* bit0 is clear */
+      if ((char)flag == 0) {
+        /* Becoming inactive: propagate to children with (param_1=1,
+         * param_2=0). */
+        {
+          int args[2];
+          args[0] = 1; /* param_1=1 */
+          args[1] = 0; /* param_2=0 */
+          __asm__ __volatile__("pushl 4(%[a])\n\t"
+                               "pushl 0(%[a])\n\t"
+                               "call *%[fn]\n\t"
+                               "addl $8, %%esp"
+                               :
+                               : [a] "r"(args), [fn] "r"((void *)0x13ee60),
+                                 "a"(object_handle)
+                               : "ecx", "edx", "memory", "cc");
+        }
+        goto lab_00140017;
+      } else {
+        /* bit0 clear, flag!=0: re-check children block presence */
+        if (!has_children)
+          return;
+        goto lab_00140017;
+      }
+    }
+  }
+
+lab_0014000a:
+  if ((char)flag == 0)
+    goto lab_00140017;
+  /* flag != 0 and came from "has_children + bit0 set" path: skip datum
+   * update if children block is absent. */
+  if (!has_children)
+    return;
+
+lab_00140017: {
+  /* Commit the datum-level flags. */
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  if ((char)flag == 0) {
+    /* Mark as garbage: set bit 0 of obj->flags, clear hdr->unk_2 bit 1. */
+    obj->flags |= 1;
+    hdr->unk_2 &= (uint8_t)~0x02;
+  } else {
+    /* Unmark garbage: clear bit 0 of obj->flags, set hdr->unk_2 bit 1. */
+    obj->flags &= ~(uint32_t)1;
+    hdr->unk_2 |= 0x02;
+  }
+}
+}
+
+/*
+ * object_delete — delete an object from the world.
+ *
+ * Thin wrapper: calls FUN_00140bc0 (the actual deletion implementation)
+ * with param_2=0, meaning "do not recursively delete sibling objects".
+ *
+ * FUN_00140bc0 (0x140bc0) is a plain cdecl function taking (int object_handle,
+ *   char delete_sibling). It marks the object's datum byte[2] with bit 0x08
+ *   (pending removal), sets the garbage flag, and calls FUN_0013eff0 (via EDI
+ *   register arg) to remove the object from the name list.
+ *
+ * Confirmed: PUSH 0x0 / PUSH EAX / CALL 0x140bc0 / ADD ESP,0x8 — 2 cdecl args.
+ * Confirmed: ADD ESP,0x8 after the call (clean cdecl, no register args).
+ */
+void object_delete(int object_handle)
+{
+  /* Delegate to the full deletion implementation with sibling flag = 0.
+   * FUN_00140bc0 is unported; call via hardcoded address. */
+  ((void (*)(int, int))0x140bc0)(object_handle, 0);
 }
 
 /*
