@@ -1933,6 +1933,10 @@
           "addr": "0x13ffc0"
         },
         {
+          "decl": "void object_delete_internal(int object_handle, int delete_sibling);",
+          "addr": "0x140bc0"
+        },
+        {
           "decl": "void object_delete(int object_handle);",
           "addr": "0x140cc0"
         },
