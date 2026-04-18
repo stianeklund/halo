@@ -89,6 +89,69 @@ bool any_unit_is_dangerous(void)
   return false;
 }
 
+/* unit_pickup_equipment (0x1aab20)
+ *
+ * Attempts to pick up an equipment object for a unit. Validates that the
+ * equipment's powerup_type is neither _equipment_powerup_none (0) nor
+ * _equipment_powerup_grenade (6). If the unit already holds equipment
+ * (unit+0x2C8 != NONE) and flag==1, deletes the existing equipment first.
+ * If the equipment slot is free, detaches the equipment from the map,
+ * hides it, attaches it to the unit, and triggers any pickup sound effect
+ * if the unit has a controlling player. Returns true on success. */
+bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag)
+{
+  int *equipment_obj;
+  int equipment_def;
+  char *unit_obj;
+  int player_handle;
+  char *player;
+
+  equipment_obj = (int *)object_get_and_verify_type(equipment_handle, 8);
+  equipment_def = (int)tag_get(0x65716970, *equipment_obj);
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (*(short *)(equipment_def + 0x308) == 0) {
+    display_assert(
+      "equipment_definition->equipment.powerup_type!=_equipment_powerup_none",
+      "c:\\halo\\SOURCE\\units\\units.c", 0x1ca1, 1);
+    system_exit(NONE);
+  }
+  if (*(short *)(equipment_def + 0x308) == 6) {
+    display_assert("equipment_definition->equipment.powerup_type!=_equipment_"
+                   "powerup_grenade",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1ca2, 1);
+    system_exit(NONE);
+  }
+
+  if (*(int *)(unit_obj + 0x2c8) != NONE && flag == 1) {
+    object_delete(*(int *)(unit_obj + 0x2c8));
+    *(int *)(unit_obj + 0x2c8) = NONE;
+  }
+
+  if (*(int *)(unit_obj + 0x2c8) == NONE) {
+    /* detach equipment from map and hide it */
+    object_disconnect_from_map(equipment_handle);
+    object_set_garbage(equipment_handle, 0);
+
+    /* if the unit has a controlling player, trigger the pickup sound */
+    player_handle = player_index_from_unit_index(unit_handle);
+    if (player_handle != NONE) {
+      player_handle = player_index_from_unit_index(unit_handle);
+      player = (char *)datum_get(player_data, player_handle);
+      if (*(short *)(player + 0x2) != NONE) {
+        item_activate_equipment_effect(equipment_handle);
+      }
+    }
+
+    /* attach equipment to unit */
+    item_attach_to_unit(equipment_handle, unit_handle);
+    *(int *)(unit_obj + 0x2c8) = equipment_handle;
+    return true;
+  }
+
+  return false;
+}
+
 /* unit_clear_seat_tag (0x1aac40)
  *
  * Clears the unit's equipment/seat tag handle at offset 0x2C8
@@ -103,7 +166,7 @@ void unit_clear_seat_tag(int unit_handle)
 
   unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
   if (unit->unk_712.value != -1) {
-    ((void (*)(int))0x140cc0)(unit->unk_712.value);
+    object_delete(unit->unk_712.value);
     unit->unk_712.value = -1;
   }
 }
@@ -426,7 +489,7 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
   unit->unk_676 = (uint16_t)new_index;
 
   if (!((bool (*)(int))0xfaf50)(weapon_handle))
-    ((void (*)(int))0x140cc0)(weapon_handle);
+    object_delete(weapon_handle);
 
   return true;
 }

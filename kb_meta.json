@@ -2034,6 +2034,13 @@
         "Bit 2 of offset 0x248 (unk_584) acts as a suppression flag that prevents units in state 0x18/0x19 from being considered dangerous."
       ]
     },
+    "0x1aab20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Names object_disconnect_from_map (0x13fd00), object_set_garbage (0x13ffc0), object_delete (0x140cc0), item_activate_equipment_effect (0xf67b0), and item_attach_to_unit (0xf69c0) are inferred from context and decompilation, not from assert strings."
+      ]
+    },
     "0x1aac40": {
       "kind": "function",
       "status": "ported",

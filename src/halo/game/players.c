@@ -740,7 +740,7 @@ void player_spawn(int player_handle)
         if ((unit_data[0xb6] & 4) != 0) {
           /* Cached unit was deleted/marked-deleted: drop it and fall
            * through to the fresh-spawn path. */
-          ((void (*)(int))0x140cc0)(saved_unit);
+          object_delete(saved_unit);
           saved_unit = NONE;
         }
       }
@@ -757,11 +757,11 @@ void player_spawn(int player_handle)
       system_exit(-1);
     }
     ((void (*)(int))0x13fb30)(saved_unit);
-    ((void (*)(int, char))0x13ffc0)(saved_unit, 1);
+    object_set_garbage(saved_unit, 1);
     ((void (*)(uint16_t, int))0xba5f0)((uint16_t) * (int16_t *)(player + 2),
                                        saved_unit);
     if (prev_weapon != NONE) {
-      ((void (*)(int, char))0x13ffc0)(prev_weapon, 1);
+      object_set_garbage(prev_weapon, 1);
     }
   } else {
     /* --- Fresh-spawn path. --- */
@@ -1255,9 +1255,9 @@ void player_set_action_result_for_equipment(int player_handle,
                                   *(int *)eqip_obj);
   }
   if (*(int16_t *)(player + 2) != -1) {
-    ((void (*)(int))0xf67b0)(equipment_handle);
+    item_activate_equipment_effect(equipment_handle);
   }
-  ((void (*)(int))0x140cc0)(equipment_handle);
+  object_delete(equipment_handle);
 }
 
 /* Update all player actions before game logic runs for this tick.
