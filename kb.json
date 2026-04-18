@@ -1653,6 +1653,14 @@
         {
           "decl": "bool dangerous_items_near_player(void);",
           "addr": "0xf6970"
+        },
+        {
+          "decl": "void item_activate_equipment_effect(int equipment_handle);",
+          "addr": "0xf67b0"
+        },
+        {
+          "decl": "void item_attach_to_unit(int item_handle, int unit_handle);",
+          "addr": "0xf69c0"
         }
       ]
     },
@@ -1911,6 +1919,18 @@
         {
           "decl": "void *object_get_world_matrix(int object_handle, void *out_matrix);",
           "addr": "0x141480"
+        },
+        {
+          "decl": "void object_disconnect_from_map(int object_handle);",
+          "addr": "0x13fd00"
+        },
+        {
+          "decl": "void object_set_garbage(int object_handle, int flag);",
+          "addr": "0x13ffc0"
+        },
+        {
+          "decl": "void object_delete(int object_handle);",
+          "addr": "0x140cc0"
         }
       ]
     },
