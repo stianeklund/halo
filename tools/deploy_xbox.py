@@ -192,6 +192,19 @@ def main() -> int:
         )
         return 1
 
+    # Always rebuild the patched XBE before deploying to avoid shipping a
+    # stale default.xbe.  The cmake step is a fast no-op when nothing changed.
+    build_dir = os.path.join(ROOT_DIR, "build")
+    if os.path.isdir(build_dir):
+        print("building patched XBE...")
+        rc = subprocess.call(
+            ["cmake", "--build", build_dir, "--target", "patched_xbe"],
+            cwd=ROOT_DIR,
+        )
+        if rc != 0:
+            print("error: build failed", file=sys.stderr)
+            return rc
+
     xbe_path = os.path.join(HALO_PATCHED_DIR, "default.xbe")
     if not os.path.isfile(xbe_path):
         print("error: default.xbe not found in halo-patched/", file=sys.stderr)
