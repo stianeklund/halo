@@ -1,0 +1,11 @@
+$ cmake --build build --target halo
+exit=0
+
+[stdout]
+[  0%] Built target create_gen_dir
+[  3%] Built target import_libs_target
+[  4%] Building C object CMakeFiles/halo.dir/src/halo/game/game_engine.c.obj
+[  5%] Generating generated/build_info.c, generated/.force
+[  6%] Building C object CMakeFiles/halo.dir/generated/build_info.c.obj
+[  7%] Linking C executable halo
+[100%] Built target halo

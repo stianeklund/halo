@@ -1,0 +1,68 @@
+{
+  "run_id": "20260416-065236",
+  "started_utc": "20260416-065236",
+  "stages": [
+    {
+      "name": "target_pick",
+      "ran": true,
+      "ok": true,
+      "details": "0x145170 objects_update (objects.obj)"
+    },
+    {
+      "name": "ghidra_extract",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no --extract-cmd)"
+    },
+    {
+      "name": "source_update",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no --candidate)"
+    },
+    {
+      "name": "build",
+      "ran": true,
+      "ok": true,
+      "details": "cmake --build build --target halo"
+    },
+    {
+      "name": "verify_payload",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no --verify-auto or --verify-input already set)"
+    },
+    {
+      "name": "verify_lift",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no verify payload)"
+    },
+    {
+      "name": "objdiff",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no --objdiff-reference/--objdiff-candidate)"
+    },
+    {
+      "name": "runtime_check",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (--with-runtime not set)"
+    },
+    {
+      "name": "metadata_update",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (--no-metadata-update)"
+    }
+  ],
+  "target": {
+    "addr": "0x145170",
+    "name": "objects_update",
+    "object": "objects.obj",
+    "source": "src/halo/objects/objects.c"
+  },
+  "completed_utc": "20260416-065240",
+  "ok": true
+}

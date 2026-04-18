@@ -129,6 +129,8 @@ After the agent returns:
 Notes:
 - If Phase 2 build fails, investigate and fix the build error before re-running.
   Do not re-run Phase 1 unless the implementation itself is wrong.
+- Use `/verify-option3` for a fast post-lift lane (build/ISO, optional objdiff,
+  optional xemu load/reset, and assertion-tripwire reminder).
 - Use `/lift-verify` for explicit verify payload runs when you already have the
   lifted function address and extraction outputs. `lift_pipeline.py` now runs a
   `verify_policy` stage by default (`--verify-policy auto`).

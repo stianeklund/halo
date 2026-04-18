@@ -1,0 +1,8 @@
+/mnt/g/dev/halo/build_debug/CMakeFiles/create_gen_dir.dir
+/mnt/g/dev/halo/build_debug/CMakeFiles/halo.dir
+/mnt/g/dev/halo/build_debug/CMakeFiles/import_libs_target.dir
+/mnt/g/dev/halo/build_debug/CMakeFiles/patched_xbe.dir
+/mnt/g/dev/halo/build_debug/CMakeFiles/edit_cache.dir
+/mnt/g/dev/halo/build_debug/CMakeFiles/rebuild_cache.dir
+/mnt/g/dev/halo/build_debug/src/CMakeFiles/edit_cache.dir
+/mnt/g/dev/halo/build_debug/src/CMakeFiles/rebuild_cache.dir

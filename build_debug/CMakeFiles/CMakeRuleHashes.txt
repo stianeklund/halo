@@ -1,0 +1,9 @@
+# Hashes of file build rules.
+44b96218da446d8885e251ade3462be1 CMakeFiles/create_gen_dir
+2ac46f37dcdd63680510d972ec6ec1aa CMakeFiles/import_libs_target
+d5c7a05d09bbeb5c33ecfa4fcc31f628 CMakeFiles/patched_xbe
+a00fff71921f2d426568561992f69a10 generated/build_info.c
+fbed93e96088a03f82642148058f515e generated/decl.h
+7d98b9d5fb3e68e32231260365d77d38 generated/halo.xbe.lib
+1d5c54eb6bc3d34e0f30acfd0974dd7c generated/typechecks.c
+151296a6578999fcdae93b277336fae3 generated/xboxkrnl.exe.lib

@@ -1,0 +1,6 @@
+$ python3 tools/collect_verify_payload.py --name game_engine_update --orig-address 0xaf370 --new-address 0xaf370 --output /mnt/g/dev/halo/artifacts/lift_runs/20260417-200012/verify_payload.json --orig-decompile-file /mnt/g/dev/halo/artifacts/lift_runs/20260417-200012/orig_decompile.txt --new-decompile-file /mnt/g/dev/halo/artifacts/lift_runs/20260417-200012/new_decompile.txt
+exit=1
+
+
+[stderr]
+collect_verify_payload: FAIL (orig_decompile: file does not exist: /mnt/g/dev/halo/artifacts/lift_runs/20260417-200012/orig_decompile.txt)

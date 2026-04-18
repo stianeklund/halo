@@ -1,0 +1,5 @@
+$ python3 tools/collect_verify_payload.py --name ai_initialize --orig-address 0x3f670 --new-address 0x600000 --output /mnt/g/dev/halo/artifacts/lift_runs/smoke-verify-auto/verify_payload.json --orig-decompile-cmd 'python3 -c "print('"'"'(param_1 + 0x4) if (x) {}'"'"')"' --new-decompile-cmd 'python3 -c "print('"'"'(param_1 + 0x4) if (x) {}'"'"')"' --orig-callees-cmd 'python3 -c "import json;print(json.dumps(['"'"'FUN_00012345'"'"']))"' --new-callees-cmd 'python3 -c "import json;print(json.dumps(['"'"'FUN_00012345'"'"']))"'
+exit=0
+
+[stdout]
+/mnt/g/dev/halo/artifacts/lift_runs/smoke-verify-auto/verify_payload.json

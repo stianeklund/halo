@@ -1,0 +1,68 @@
+{
+  "run_id": "smoke-verify-auto",
+  "started_utc": "20260413-185259",
+  "stages": [
+    {
+      "name": "target_pick",
+      "ran": true,
+      "ok": true,
+      "details": "0x3f670 ai_initialize (ai.obj)"
+    },
+    {
+      "name": "ghidra_extract",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no --extract-cmd)"
+    },
+    {
+      "name": "source_update",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no --candidate)"
+    },
+    {
+      "name": "build",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (--skip-build)"
+    },
+    {
+      "name": "verify_payload",
+      "ran": true,
+      "ok": true,
+      "details": "/mnt/g/dev/halo/artifacts/lift_runs/smoke-verify-auto/verify_payload.json"
+    },
+    {
+      "name": "verify_lift",
+      "ran": true,
+      "ok": true,
+      "details": "/mnt/g/dev/halo/artifacts/lift_runs/smoke-verify-auto/verify_payload.json"
+    },
+    {
+      "name": "objdiff",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (no --objdiff-reference/--objdiff-candidate)"
+    },
+    {
+      "name": "runtime_check",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (--with-runtime not set)"
+    },
+    {
+      "name": "metadata_update",
+      "ran": false,
+      "ok": true,
+      "details": "skipped (--no-metadata-update)"
+    }
+  ],
+  "target": {
+    "addr": "0x3f670",
+    "name": "ai_initialize",
+    "object": "ai.obj",
+    "source": "src/halo/ai/ai.c"
+  },
+  "completed_utc": "20260413-185300",
+  "ok": true
+}

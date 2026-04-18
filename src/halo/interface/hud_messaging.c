@@ -40,8 +40,7 @@ void hud_print_message(__int16 player, wchar_t *message)
                          "call *%[fn]\n\t"
                          "addl $8, %%esp"
                          : "=a"(_eax)
-                         : [a] "r"(args), [fn] "r"((void *)0xd5070),
-                           "S"(-1)
+                         : [a] "r"(args), [fn] "r"((void *)0xd5070), "S"(-1)
                          : "ecx", "edx", "memory", "cc");
     slot = (char *)_eax;
   }

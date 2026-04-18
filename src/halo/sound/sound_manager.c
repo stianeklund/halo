@@ -117,9 +117,8 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
         !((*(short *)((char *)sound_tag + 0x6c) == 0 &&
            *(short *)((char *)sound_tag + 6) == 0) ||
           *(short *)((char *)sound_tag + 0x6c) == 1)) {
-      error(2,
-            "attempt to play a sound that was not a mono 22k compressed "
-            "sound or a stereo 22k or 44k compressed sound.");
+      error(2, "attempt to play a sound that was not a mono 22k compressed "
+               "sound or a stereo 22k or 44k compressed sound.");
       goto done;
     }
 
@@ -159,11 +158,10 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
          * Returns bool in AL. */
         {
           int _eax = sound_tag_index;
-          __asm__ __volatile__(
-            "call *%[fn]"
-            : "+a"(_eax)
-            : [fn] "r"((void *)0x1cba20)
-            : "ecx", "edx", "esi", "memory", "cc");
+          __asm__ __volatile__("call *%[fn]"
+                               : "+a"(_eax)
+                               : [fn] "r"((void *)0x1cba20)
+                               : "ecx", "edx", "esi", "memory", "cc");
           can_play = (uint8_t)_eax;
         }
         if (!can_play)
@@ -176,14 +174,12 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
           int _eax = (int)source;
           int pri_bits;
           csmemcpy(&pri_bits, &priority, 4);
-          __asm__ __volatile__(
-            "pushl %[pri]\n\t"
-            "call *%[fn]\n\t"
-            "addl $4, %%esp"
-            : "+a"(_eax)
-            : [fn] "r"((void *)0x1cd5a0),
-              [pri] "r"(pri_bits)
-            : "ecx", "edx", "esi", "edi", "memory", "cc");
+          __asm__ __volatile__("pushl %[pri]\n\t"
+                               "call *%[fn]\n\t"
+                               "addl $4, %%esp"
+                               : "+a"(_eax)
+                               : [fn] "r"((void *)0x1cd5a0), [pri] "r"(pri_bits)
+                               : "ecx", "edx", "esi", "edi", "memory", "cc");
           channel_index = (short)_eax;
         }
         if (channel_index == -1)
@@ -193,21 +189,19 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
          * Returns 0=play, 1=promote, 2+=reject. */
         {
           int _eax = sound_tag_index;
-          __asm__ __volatile__(
-            "call *%[fn]"
-            : "+a"(_eax)
-            : [fn] "r"((void *)0x1cbb00)
-            : "ecx", "edx", "esi", "edi", "memory", "cc");
+          __asm__ __volatile__("call *%[fn]"
+                               : "+a"(_eax)
+                               : [fn] "r"((void *)0x1cbb00)
+                               : "ecx", "edx", "esi", "edi", "memory", "cc");
           promotion_result = (short)_eax;
         }
 
         if (promotion_result != 0) {
           if (promotion_result == 1) {
             /* Promote: recurse with the promotion sound tag. */
-            result = sound_start(
-              *(int *)((char *)sound_tag + 0x7c), source,
-              object_handle, track_data, track_data_ptr,
-              track_data_size);
+            result = sound_start(*(int *)((char *)sound_tag + 0x7c), source,
+                                 object_handle, track_data, track_data_ptr,
+                                 track_data_size);
             return result;
           }
           /* Reject (promotion_result >= 2). */
@@ -220,8 +214,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
         if (sound_handle == -1)
           goto done;
 
-        sound_entry =
-          (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+        sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
 
         /* 0x1ccca0: compute distance (EAX = channel_index,
          * EDI = source). Returns float distance in ST(0). Then
@@ -230,12 +223,11 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
           int _eax = (int)(short)channel_index;
           int _edi = (int)source;
           float dist;
-          __asm__ __volatile__(
-            "call *%[fn]\n\t"
-            "fstps %[out]"
-            : "+a"(_eax), "+D"(_edi), [out] "=m"(dist)
-            : [fn] "r"((void *)0x1ccca0)
-            : "ecx", "edx", "esi", "memory", "cc");
+          __asm__ __volatile__("call *%[fn]\n\t"
+                               "fstps %[out]"
+                               : "+a"(_eax), "+D"(_edi), [out] "=m"(dist)
+                               : [fn] "r"((void *)0x1ccca0)
+                               : "ecx", "edx", "esi", "memory", "cc");
           ftol_result = (int)(*(float *)0x2c1288 * dist);
         }
 
@@ -247,12 +239,12 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
 
         /* Compute random scale for this sound instance. */
         {
-          float rscale = sound_compute_random_scale(
-            *(int *)((char *)sound_tag + 0x14),
-            *(int *)((char *)sound_tag + 0x18),
-            *(float *)((char *)sound_tag + 0x44),
-            *(float *)((char *)sound_tag + 0x5c),
-            *(float *)((char *)source + 4));
+          float rscale =
+            sound_compute_random_scale(*(int *)((char *)sound_tag + 0x14),
+                                       *(int *)((char *)sound_tag + 0x18),
+                                       *(float *)((char *)sound_tag + 0x44),
+                                       *(float *)((char *)sound_tag + 0x5c),
+                                       *(float *)((char *)source + 4));
           *(float *)(sound_entry + 0x88) = rscale;
         }
 
@@ -266,10 +258,9 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
         *(int *)(sound_entry + 0x10) = track_data;
         if (track_data != 0) {
           if (sound_entry + 0x54 == 0) {
-            display_assert(
-              "sound->track_data",
-              "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x28e,
-              1);
+            display_assert("sound->track_data",
+                           "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x28e,
+                           1);
             system_exit(-1);
           }
           csmemcpy(sound_entry + 0x54, track_data_ptr,
@@ -281,8 +272,8 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
           sound_tag, *(float *)(sound_entry + 0x88), -1);
         *(short *)(sound_entry + 0x8e) = pitch_range_index;
 
-        permutation_index = sound_select_permutation(
-          sound_tag, pitch_range_index, -1);
+        permutation_index =
+          sound_select_permutation(sound_tag, pitch_range_index, -1);
         *(short *)(sound_entry + 0x90) = permutation_index;
 
         *(int *)(sound_entry + 0xa8) = 0;
@@ -292,14 +283,12 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
         /* Look up the permutation element in the sound tag and
          * request it from the sound cache. */
         {
-          void *tag_data =
-            tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+          void *tag_data = tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
           pitch_range_element = tag_block_get_element(
-            (char *)tag_data + 0x98,
-            (int)pitch_range_index, 0x48);
+            (char *)tag_data + 0x98, (int)pitch_range_index, 0x48);
           perm_block = (char *)pitch_range_element + 0x3c;
-          perm_element = tag_block_get_element(
-            perm_block, (int)permutation_index, 0x7c);
+          perm_element =
+            tag_block_get_element(perm_block, (int)permutation_index, 0x7c);
           sound_cache_request_sound(perm_element, 0, 1, 0);
         }
 
@@ -307,10 +296,8 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
          * amount relative to current timestamp, and set bit 0 of
          * flags. */
         if (ftol_result > 250) {
-          *(uint8_t *)(sound_entry + 4) =
-            *(uint8_t *)(sound_entry + 4) | 1;
-          *(int *)(sound_entry + 0x84) =
-            *(int *)0x4eaf4c + ftol_result;
+          *(uint8_t *)(sound_entry + 4) = *(uint8_t *)(sound_entry + 4) | 1;
+          *(int *)(sound_entry + 0x84) = *(int *)0x4eaf4c + ftol_result;
           return result;
         }
         *(int *)(sound_entry + 0x84) = *(int *)0x4eaf4c;

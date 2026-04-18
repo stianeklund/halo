@@ -1,0 +1,581 @@
+LIBRARY halo.xbe
+EXPORTS
+	breakable_surface_globals DATA
+	byte_2EF808 DATA
+	byte_325714 DATA
+	byte_457068 DATA
+	byte_457069 DATA
+	byte_46BA4C DATA
+	byte_46BB38 DATA
+	byte_46BBA0 DATA
+	byte_46DA28 DATA
+	byte_46DA3B DATA
+	byte_46DA3C DATA
+	byte_46DA45 DATA
+	byte_46DA46 DATA
+	byte_46DA47 DATA
+	byte_46DA50 DATA
+	byte_46DB54 DATA
+	byte_46DC55 DATA
+	cached_object_render_states DATA
+	cheats_globals DATA
+	cinematic_globals DATA
+	contrail_data DATA
+	contrail_point_data DATA
+	core_name DATA
+	current_game_engine DATA
+	debug_game_save DATA
+	debug_no_drawing DATA
+	decal_counts_0 DATA
+	decal_counts_1 DATA
+	decal_globals DATA
+	dword_46BC0C DATA
+	dword_46CC44 DATA
+	effect_data DATA
+	effect_location_data DATA
+	error_string_buffer DATA
+	event_manager_globals DATA
+	flip_count_ptr DATA
+	flt_46DA08 DATA
+	game_allegiance_globals DATA
+	game_engine_variant_index DATA
+	game_globals DATA
+	game_reset_pending DATA
+	game_state_globals DATA
+	game_state_load_core_pending DATA
+	game_state_revert_pending DATA
+	game_state_save_core_pending DATA
+	game_state_save_pending DATA
+	game_time_globals DATA
+	game_variant_global DATA
+	global_decal_data DATA
+	global_difficulty_level DATA
+	global_frustum DATA
+	global_scenario_index DATA
+	global_screenshot_count DATA
+	global_structure_bsp DATA
+	hs_syntax_data DATA
+	hud_globals DATA
+	input_frame_tick DATA
+	local_player_network_indices DATA
+	main_change_map_name_pending DATA
+	main_globals DATA
+	main_globals_movie DATA
+	main_load_last_solo_map_pending DATA
+	main_menu_load_pending DATA
+	main_skip_private_pending DATA
+	main_won_map_private_pending DATA
+	map_name DATA
+	movie_frame_count DATA
+	object_globals DATA
+	object_header_data DATA
+	object_name_list DATA
+	objects DATA
+	off_2EF800 DATA
+	particle_data DATA
+	particle_system_data DATA
+	particle_system_header_data DATA
+	physical_memory_map_globals DATA
+	player_control_globals DATA
+	player_data DATA
+	player_effect_globals DATA
+	player_spawn_count DATA
+	player_ui_globals DATA
+	players_globals DATA
+	pregame_render_info DATA
+	profile_global_enable DATA
+	qword_325678 DATA
+	render DATA
+	rumble_globals DATA
+	should_skip_cinematic DATA
+	team_data DATA
+	ui_widget_game_data_build_version_wide_str DATA
+	ui_widget_game_data_function_table DATA
+	unk_time_globals DATA
+	unknown_global_camera DATA
+	weather_particle_system_count DATA
+	weather_particle_system_data DATA
+	window DATA
+	word_46BC08 DATA
+	word_46BC0A DATA
+	word_46BFC4 DATA
+	word_46DA0C DATA
+	word_46DA40 DATA
+	word_46DA4C DATA
+	word_46DA4E DATA
+	word_46DDDC DATA
+	word_46DDDE DATA
+	xbox_demos_launch_pending DATA
+	XPhysicalAlloc
+	__control87
+	_wcsncpy
+	ai_dispose
+	ai_dispose_from_old_map
+	ai_enemies_can_see_player
+	ai_initialize
+	ai_initialize_for_new_map
+	ai_place
+	ai_update
+	any_player_is_dead
+	any_player_is_in_the_air
+	any_unit_is_dangerous
+	ascii_to_wide
+	bink_playback_dispose
+	bink_playback_initialize
+	bink_playback_render
+	bink_playback_update
+	bitmap_delete
+	breakable_surfaces_dispose
+	breakable_surfaces_dispose_from_old_map
+	breakable_surfaces_initialize
+	breakable_surfaces_initialize_for_new_map
+	cache_files_precache_in_progress
+	cache_files_precache_is_copying_map
+	cache_files_precache_map_begin
+	cache_files_precache_map_end
+	cache_files_precache_map_loaded
+	cache_files_precache_map_queue_end
+	cache_files_precache_map_status
+	cache_files_precache_set_priority
+	cheats_dispose
+	cheats_dispose_from_old_map
+	cheats_initialize
+	cheats_initialize_for_new_map
+	cheats_update
+	cinematic_can_be_skipped
+	cinematic_dispose
+	cinematic_dispose_from_old_map
+	cinematic_in_progress
+	cinematic_initialize
+	cinematic_initialize_for_new_map
+	collision_log_begin_period
+	collision_log_continue_period
+	collision_log_end_period
+	collision_log_initialize
+	compute_window_bounds
+	console_dispose
+	console_initialize
+	console_initialize_for_new_map
+	console_startup
+	console_update
+	console_warning
+	contrails_dispose
+	contrails_dispose_from_old_map
+	contrails_initialize
+	contrails_initialize_for_new_map
+	contrails_update
+	crc_checksum_buffer
+	create_local_players
+	csmemcpy
+	csmemset
+	csprintf
+	csstrlen
+	csstrncpy
+	d3d_find_flipcount
+	dangerous_effects_near_player
+	dangerous_items_near_player
+	dangerous_projectiles_near_player
+	data_allocation_size
+	data_delete_all
+	data_dispose
+	data_initialize
+	data_iterator_new
+	data_iterator_next
+	data_make_invalid
+	data_make_valid
+	data_new
+	data_new_at_index
+	data_new_datum
+	data_next_index
+	data_verify
+	datum_absolute_index_to_index
+	datum_delete
+	datum_get
+	debug_free
+	debug_keys_dispose
+	debug_keys_initialize
+	debug_keys_update
+	debug_malloc
+	decals_dispose
+	decals_dispose_from_old_map
+	decals_initialize
+	decals_initialize_for_new_map
+	director_dispose
+	director_dispose_from_old_map
+	director_initialize
+	director_initialize_for_new_map
+	director_update
+	display_assert
+	display_error_damaged_media
+	display_error_when_main_menu_loaded
+	dispose_global_network_game_client
+	dispose_global_network_game_server
+	editor_dispose
+	editor_dispose_from_old_map
+	editor_initialize
+	editor_initialize_for_new_map
+	editor_should_exit
+	editor_update
+	effect_update
+	effects_dispose
+	effects_dispose_from_old_map
+	effects_initialize
+	effects_initialize_for_new_map
+	effects_update
+	error
+	event_manager_dispatch
+	event_manager_dispose
+	event_manager_initialize
+	event_manager_update
+	file_reference_create_from_path
+	find_unused_local_player_index
+	first_person_weapons_update
+	game_all_quiet
+	game_allegiance_dispose
+	game_allegiance_dispose_from_old_map
+	game_allegiance_initialize
+	game_allegiance_initialize_for_new_map
+	game_allegiance_update
+	game_connection
+	game_difficulty_level_get
+	game_difficulty_level_get_ignore_easy
+	game_difficulty_level_set
+	game_dispose
+	game_dispose_from_old_map
+	game_engine_dispose
+	game_engine_dispose_from_old_map
+	game_engine_evaluate_game_complexity
+	game_engine_force_single_screen
+	game_engine_game_starting
+	game_engine_get_variant_by_name
+	game_engine_initialize
+	game_engine_initialize_for_new_map
+	game_engine_player_added
+	game_engine_running
+	game_engine_update
+	game_engine_update_non_deterministic
+	game_frame
+	game_globals_get
+	game_in_editor
+	game_in_progress
+	game_initial_pulse
+	game_initialize
+	game_initialize_for_new_map
+	game_is_cooperative
+	game_load
+	game_map_loading_in_progress
+	game_options_new
+	game_options_verify
+	game_players_are_double_speed
+	game_precache_new_map
+	game_predicting
+	game_safe_to_save
+	game_safe_to_speak
+	game_set_game_engine_index
+	game_set_game_variant
+	game_set_game_variant_from_name
+	game_set_players_are_double_speed
+	game_sound_dispose
+	game_sound_dispose_from_old_map
+	game_sound_initialize
+	game_sound_initialize_for_new_map
+	game_sound_update
+	game_state_data_new
+	game_state_dispose
+	game_state_dispose_from_old_map
+	game_state_initialize_for_new_map
+	game_state_load_core
+	game_state_malloc
+	game_state_revert
+	game_state_save
+	game_state_save_core
+	game_statistics_start
+	game_tick
+	game_time_dispose
+	game_time_dispose_from_old_map
+	game_time_end
+	game_time_get
+	game_time_get_elapsed
+	game_time_get_paused
+	game_time_get_speed
+	game_time_initialize
+	game_time_initialize_for_new_map
+	game_time_initialized
+	game_time_set_paused
+	game_time_set_speed
+	game_time_start
+	game_time_statistics_frame
+	game_time_statistics_new
+	game_time_update
+	game_unload
+	get_global_random_seed_address
+	global_scenario_get
+	hs_dispose
+	hs_dispose_from_old_map
+	hs_initialize
+	hs_initialize_for_new_map
+	hs_runtime_dispose_from_old_map
+	hs_runtime_initialize_for_new_map
+	hs_update
+	hud_autosave
+	hud_get_item_string
+	hud_load
+	hud_print_message
+	hud_update
+	initialize_network_game_packets
+	input_abstraction_dispose
+	input_abstraction_initialize
+	input_abstraction_update
+	input_flush
+	input_frame_begin
+	input_frame_end
+	input_get_device_states
+	input_get_gamepad_state
+	input_has_gamepad
+	input_key_is_down
+	input_set_rumble
+	input_update
+	interface_dispose
+	interface_dispose_from_old_map
+	interface_initialize
+	interface_initialize_for_new_map
+	j__render_dispose_from_old_map
+	local_player_count
+	local_player_exists
+	local_player_get_next
+	local_player_get_player_index
+	local_player_set_player_index
+	local_time_get
+	local_time_get_elapsed
+	lock_global_random_seed
+	machine_get_player_list
+	main
+	main_change_map_name
+	main_frame_rate_debug
+	main_game_render
+	main_initialize_time
+	main_load_last_solo_map
+	main_load_ui_scenario
+	main_loop
+	main_menu_load
+	main_menu_precache_resources
+	main_new_map
+	main_pregame_render
+	main_present_frame
+	main_queue_map_name
+	main_rasterizer_throttle
+	main_save_current_solo_map
+	main_save_map_private
+	main_screen_shell_load
+	main_setup_connection
+	main_skip_private
+	main_update_time
+	main_vertical_blank_interrupt_handler
+	main_won_map_private
+	network_game_abort
+	network_game_client_end_frame
+	network_game_client_start_frame
+	network_game_server_start_frame
+	numeric_countdown_timer_update
+	object_get_and_verify_type
+	objects_dispose
+	objects_dispose_from_old_map
+	objects_initialize
+	objects_initialize_for_new_map
+	objects_place
+	objects_update
+	observer_dispose_from_old_map
+	observer_get_camera
+	observer_initialize
+	observer_initialize_for_new_map
+	observer_update
+	particle_system_delete
+	particle_systems_dispose
+	particle_systems_dispose_from_old_map
+	particle_systems_initialize
+	particle_systems_initialize_for_new_map
+	particle_systems_update
+	particles_dispose
+	particles_dispose_from_old_map
+	particles_initialize
+	particles_initialize_for_new_map
+	particles_update
+	physical_memory_allocate
+	player_build_action_update
+	player_control_dispose
+	player_control_get_current_actions
+	player_control_initialize_for_new_map
+	player_control_new_unit
+	player_control_update
+	player_delete
+	player_died
+	player_effect_dispose
+	player_effect_dispose_from_old_map
+	player_effect_get
+	player_effect_initialize
+	player_effect_initialize_for_new_map
+	player_effect_update
+	player_examine_nearby_unit
+	player_index_from_unit_index
+	player_input_enable
+	player_input_enabled
+	player_new
+	player_set_action_result_for_vehicle
+	player_spawn
+	player_try_to_enter_vehicle
+	player_try_to_spawn_in_vehicle
+	player_ui_dispose
+	player_ui_get_single_player_local_player_controller
+	player_ui_initialize
+	player_ui_remember_player1_profile
+	players_are_all_dead
+	players_compute_local_player_count
+	players_dispose
+	players_dispose_from_old_map
+	players_get_combined_pvs
+	players_get_combined_pvs_local
+	players_get_respawn_failure
+	players_initialize
+	players_initialize_for_new_map
+	players_respawn_coop
+	players_update_after_game
+	players_update_before_game
+	players_update_pvs
+	point_physics_dispose_from_old_map
+	point_physics_initialize_for_new_map
+	predicted_resources_precache
+	process_ui_widgets
+	profile_enter_private
+	profile_exit_private
+	profile_frame_end
+	profile_frame_start
+	profile_render_end
+	profile_render_start
+	profile_render_window_end
+	profile_render_window_start
+	profile_tick_end
+	profile_tick_start
+	progress_bar_begin
+	progress_bar_display
+	progress_bar_dispose
+	progress_bar_end
+	progress_bar_initialize
+	qsort
+	random_seed_debug_log
+	rasterizer_decals_dispose
+	rasterizer_decals_dispose_from_old_map
+	rasterizer_decals_initialize
+	rasterizer_decals_initialize_for_new_map
+	rasterizer_dispose_from_old_map
+	rasterizer_frame_begin
+	rasterizer_frame_end
+	rasterizer_frame_update
+	rasterizer_initialize_for_new_map
+	rasterizer_preinitialize
+	rasterizer_set_vblank_callback
+	rasterizer_window_begin
+	rasterizer_window_end
+	rasterizer_windows_begin
+	rasterizer_windows_end
+	real_math_reset_precision
+	recorded_animations_dispose
+	recorded_animations_dispose_from_old_map
+	recorded_animations_initialize
+	recorded_animations_initialize_for_new_map
+	recorded_animations_update
+	remove_quitting_players_from_game
+	render_camera_build_frustum
+	render_camera_get_adjusted_field_of_view_tangent
+	render_dispose
+	render_frame
+	render_frame_pregame
+	render_frame_present
+	render_initialize
+	render_initialize_for_new_map
+	render_ui_widgets
+	rumble_clear_for_local_player
+	rumble_dispose
+	rumble_dispose_from_old_map
+	rumble_initialize
+	rumble_initialize_for_new_map
+	rumble_update
+	saved_game_files_dispose
+	saved_game_files_initialize
+	scenario_dispose_from_old_map
+	scenario_frame_update
+	scenario_get
+	scenario_get
+	scenario_initialize
+	scenario_initialize_for_new_map
+	scenario_load
+	scenario_switch_structure_bsp
+	scenario_unload
+	scripted_hud_messages_clear
+	set_random_seed
+	set_window_camera_values
+	shell_application_is_paused
+	shell_dispose
+	shell_idle
+	shell_initialize
+	snprintf
+	sort_desired_local_player_controllers
+	sound_classes_dispose
+	sound_classes_dispose_from_old_map
+	sound_classes_initialize
+	sound_classes_initialize_for_new_map
+	sound_dispose_from_old_map
+	sound_initialize_for_new_map
+	sound_render
+	stack_walk
+	strncpy
+	structures_dispose
+	structures_dispose_from_old_map
+	structures_initialize
+	structures_initialize_for_new_map
+	system_exit
+	system_milliseconds
+	tag_block_get_element
+	tag_get
+	telnet_console_dispose
+	telnet_console_initialize
+	telnet_console_process
+	terminal_update
+	tiff_export
+	transport_dispose
+	transport_initialize
+	ui_widget_game_data_build_version
+	ui_widget_game_data_function_invoke
+	ui_widget_load_progress_widget
+	ui_widget_realloc
+	ui_widgets_close_all
+	ui_widgets_disable_pause_game
+	ui_widgets_dispose
+	ui_widgets_initialize
+	ui_widgets_safe_to_load
+	unit_clear_seat_tag
+	unit_delete
+	unit_get_weapon
+	unit_is_alive
+	unit_set_control
+	unit_set_in_vehicle
+	units_update
+	unlock_global_random_seed
+	update_client_apply_actions
+	update_client_start
+	update_get_game_time
+	update_get_maximum_actions
+	update_loaded_module_section_attributes
+	update_server_delete
+	update_server_new
+	update_server_start
+	ustrncpy
+	vehicle_moving_near_any_player
+	vsprintf
+	weather_particle_systems_dispose
+	weather_particle_systems_dispose_from_old_map
+	weather_particle_systems_initialize
+	weather_particle_systems_initialize_for_new_map
+	widgets_update
+	xbox_demos_launch
+	xbox_game_state_close_file
+	xbox_game_state_dispose_buffer
