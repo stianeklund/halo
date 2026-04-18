@@ -953,17 +953,17 @@
     },
     "0xbadf0": {
       "kind": "function",
-      "status": "thunked",
+      "status": "ported",
       "name": "players_compute_local_player_count"
     },
     "0xbae20": {
       "kind": "function",
-      "status": "thunked",
+      "status": "ported",
       "name": "player_examine_nearby_unit"
     },
     "0xbaeb0": {
       "kind": "function",
-      "status": "thunked",
+      "status": "ported",
       "name": "player_reset_action_result"
     },
     "0xbb2f0": {
