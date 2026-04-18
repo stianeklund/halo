@@ -10,6 +10,7 @@
  *   0x13f950  objects_initialize_for_new_map
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
+ *   0x13fd00  object_disconnect_from_map
  *   0x141480  object_get_world_matrix
  *   0x145170  objects_update
  */
@@ -381,6 +382,89 @@ void objects_dispose(void)
   /* Zero out cluster partition structs (3 data_t* fields each) */
   ((void (*)(void *))0x191630)((void *)0x5a8d40);
   ((void (*)(void *))0x191630)((void *)0x5a8d30);
+}
+
+/*
+ * object_disconnect_from_map — remove an object from the BSP cluster
+ * partition and its parent's child chain, then clear the
+ * _object_connected_to_map_bit (0x800) flag.
+ *
+ * If the object has a parent (parent_object_index != NONE), it unlinks
+ * itself from the parent's child-object linked list starting at
+ * parent_obj+0xC8 (via the list-remove helper at 0x13e510, which walks
+ * next_object_index links at obj+0xC4).
+ *
+ * If the object has no parent, it removes itself from the appropriate
+ * cluster partition (0x5a8d40 for objects with flag 0x2000000 set,
+ * 0x5a8d30 otherwise) via the partition-remove call at 0x1919a0. It
+ * then optionally clears the "outdoor" bit (header byte+2, bit 0x1)
+ * if the header's bit 0x40 flag is set.
+ *
+ * Confirmed: single cdecl arg (object_handle).
+ * Confirmed: assert strings reference objects.c lines 0x3bd and 0x3be.
+ * Confirmed: 0x13e510 reads EAX (ptr to first_child_ref) and EBX
+ *   (object_handle) as register args with 0 stack args.
+ * Confirmed: 0x1919a0 is cdecl with 3 stack args (partition, handle, ptr).
+ */
+void object_disconnect_from_map(int object_handle)
+{
+  object_header_data_t *header;
+  object_data_t *obj;
+
+  header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  obj = header->object;
+
+  /* assert: identifier portion of handle must be nonzero */
+  assert_halt(object_handle & 0xffff0000);
+
+  /* assert: object must be connected to map */
+  assert_halt(obj->flags & 0x800);
+
+  if (obj->parent_object_index.value != NONE) {
+    /* Object has a parent: unlink from parent's child chain.
+     * Get the parent's object data, then call the list-remove helper
+     * at 0x13e510 with EAX = &parent_obj->unk_200 (child list head)
+     * and EBX = object_handle to unlink. */
+    object_data_t *parent_obj = (object_data_t *)object_get_and_verify_type(
+      obj->parent_object_index.value, -1);
+    {
+      int _eax = (int)((char *)parent_obj + 0xc8);
+      int _ebx = object_handle;
+      __asm__ __volatile__("call *%[fn]"
+                           : "+a"(_eax), "+b"(_ebx)
+                           : [fn] "r"((void *)0x13e510)
+                           : "ecx", "edx", "esi", "edi", "memory", "cc");
+    }
+  } else {
+    /* No parent: remove from cluster partition. */
+    object_data_t *self_obj =
+      (object_data_t *)object_get_and_verify_type(object_handle, -1);
+    void *partition;
+    if (self_obj->flags & 0x2000000)
+      partition = (void *)0x5a8d40;
+    else
+      partition = (void *)0x5a8d30;
+
+    cluster_partition_remove_object(partition, object_handle,
+                                    (void *)((char *)obj + 0xbc));
+
+    /* If header bit 0x40 is set, re-fetch header and clear bit 0x1 */
+    if (header->unk_2 & 0x40) {
+      object_header_data_t *header2 =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+      object_get_and_verify_type(object_handle, -1);
+      if (header2->unk_2 & 0x1) {
+        header2->unk_2 &= ~0x1;
+      }
+    }
+  }
+
+  /* Clear _object_connected_to_map_bit (0x800) in object flags */
+  obj->flags &= ~(uint32_t)0x800;
+
+  /* Clear bit 0x20 in header flags byte */
+  header->unk_2 &= ~0x20;
 }
 
 /*
