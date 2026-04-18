@@ -65,6 +65,13 @@ void *game_globals_get(void)
   return *(void **)0x5064d4;
 }
 
+/* Reset a scenario location by setting its cluster_index (offset +6) to
+ * NONE (-1), marking it as unresolved/invalid. */
+void scenario_location_reset(int *location)
+{
+  *(int16_t *)((char *)location + 6) = NONE;
+}
+
 /* Switch the active structure BSP. Calls dispose callbacks on the old BSP,
  * loads the new one from the scenario tag, and calls initialize callbacks.
  * Returns false if the BSP index is invalid or the BSP fails to load. */
