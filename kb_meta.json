@@ -1574,6 +1574,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x109680": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Matrix layout: 4-byte scale at offset 0, followed by 3x3 float rotation at offsets 0x04-0x24."
+      ]
+    },
+    "0x109e10": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Matrix rows: scale, forward, left (forward x up cross product), up, zero translation."
+      ]
+    },
     "0x10b090": {
       "kind": "function",
       "status": "ported"
@@ -1604,6 +1618,13 @@
     "0x10b5e0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x10cc40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "angles[0]=yaw, angles[1]=pitch; standard spherical-to-cartesian conversion."
+      ]
     },
     "0x119100": {
       "kind": "function",
