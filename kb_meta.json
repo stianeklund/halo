@@ -47,6 +47,10 @@
       "name": "ai_enemies_can_see_player",
       "name_confidence": "high"
     },
+    "0x7c840": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7c8f0": {
       "kind": "function",
       "status": "ported"
@@ -1186,7 +1190,8 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "Parameter 5 (color_tag_index) is an interface tag index for color lookup, not alpha; parameter 6 (color_index) is a short color table index, not tab_stop_count."
+        "Parameter 5 (color_tag_index) is an interface tag index for color lookup, not alpha; parameter 6 (color_index) is a short color table index, not tab_stop_count.",
+        "The 16-byte local buffer is a 4-float ARGB color filled by interface_get_color and passed to draw_string_set_font."
       ]
     },
     "0xdfea0": {
