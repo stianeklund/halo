@@ -32,6 +32,27 @@ void game_allegiance_dispose_from_old_map(void)
 {
 }
 
+/**
+ * Returns whether two teams are friendly (not hostile) to each other.
+ *
+ * Checks a 10x10 bitfield at game_allegiance_globals+0xa4. Each bit represents
+ * a team pair (team_a * 10 + team_b). A SET bit means the teams are NOT
+ * friendly; a CLEAR bit means they ARE friendly.
+ *
+ * Out-of-range team indices (negative or >= 10) return true (friendly).
+ */
+bool game_allegiance_get_team_is_friendly(int16_t team_a, int16_t team_b)
+{
+  int bit_index;
+
+  if (team_a < 0 || team_a >= 10 || team_b < 0 || team_b >= 10)
+    return true;
+
+  bit_index = team_a * 10 + team_b;
+  return (*(uint32_t *)(game_allegiance_globals + 0xa4 + (bit_index >> 5) * 4) &
+          (1 << (bit_index & 0x1f))) == 0;
+}
+
 void game_allegiance_update(void)
 {
   int16_t i;
