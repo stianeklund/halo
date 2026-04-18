@@ -1143,19 +1143,14 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
 
   /* 0x1b1ee0: update unit weapon readiness/state.
    * ESI = unit_handle (register arg), 1 stack arg. */
-  {
-    int _esi_save;
-    __asm__ __volatile__("movl %%esi, %0" : "=r"(_esi_save));
-    __asm__ __volatile__("movl %[handle], %%esi\n\t"
-                         "pushl $1\n\t"
-                         "call *%[fn]\n\t"
-                         "addl $4, %%esp\n\t"
-                         "movl %[save], %%esi"
-                         :
-                         : [handle] "r"(unit_handle),
-                           [fn] "r"((void *)0x1b1ee0), [save] "r"(_esi_save)
-                         : "eax", "ecx", "edx", "memory", "cc");
-  }
+  __asm__ __volatile__("movl %[handle], %%esi\n\t"
+                       "pushl $1\n\t"
+                       "call *%[fn]\n\t"
+                       "addl $4, %%esp"
+                       :
+                       : [handle] "r"(unit_handle),
+                         [fn] "r"((void *)0x1b1ee0)
+                       : "eax", "ecx", "edx", "esi", "memory", "cc");
 
   /* Get current weapon */
   unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
@@ -1230,17 +1225,17 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
         int _agtag = anim_graph_tag_index;
         int _animidx = anim_result;
         _eax = unit_handle;
-        __asm__ __volatile__("pushl %%edi\n\t"
-                             "pushl %%ebx\n\t"
-                             "movl %[agtag], %%edi\n\t"
-                             "movw %w[animidx], %%bx\n\t"
-                             "call *%[fn]\n\t"
-                             "popl %%ebx\n\t"
-                             "popl %%edi"
-                             : "+a"(_eax)
-                             : [fn] "r"((void *)0x1ab7c0), [agtag] "r"(_agtag),
-                               [animidx] "r"(_animidx)
-                             : "ecx", "edx", "memory", "cc");
+        {
+          void (*_fn)(void) = (void (*)(void))0x1ab7c0;
+          __asm__ __volatile__("movl %[agtag], %%edi\n\t"
+                               "movw %w[animidx], %%bx\n\t"
+                               "call *%[fn]"
+                               : "+a"(_eax)
+                               : [fn] "m"(_fn), [agtag] "r"(_agtag),
+                                 [animidx] "r"(_animidx)
+                               : "ebx", "ecx", "edx", "edi", "memory",
+                                 "cc");
+        }
       }
 
       /* Set animation state byte */
