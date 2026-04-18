@@ -13,6 +13,7 @@
  *   0x13fac0  objects_dispose
  *   0x13fd00  object_disconnect_from_map
  *   0x13ffc0  object_set_garbage
+ *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
  *   0x141480  object_get_world_matrix
  *   0x145170  objects_update
@@ -725,18 +726,117 @@ lab_00140017: {
 }
 
 /*
+ * object_delete_internal — recursive object deletion implementation.
+ *
+ * Recursively deletes an object's child chain (obj+0xC8), and optionally
+ * its sibling chain (obj+0xC4) when delete_sibling is nonzero. For each
+ * object:
+ *   1. If the game engine is running and the object is a weapon (type==2),
+ *      asserts that it is not a flag (CTF flag weapon).
+ *   2. Recursively deletes children and optionally siblings.
+ *   3. Sets datum header bit 0x08 (pending deletion).
+ *   4. If the object's tag definition has a children block (tag+0x34 != -1)
+ *      and obj->flags bit 0 is clear, propagates deletion to attached
+ *      children via FUN_0013ee60 (EAX=handle, args 1,0).
+ *   5. Sets obj->flags bit 0 (deleted/inactive).
+ *   6. Clears datum header bit 0x02 (active).
+ *   7. Removes the object from the name list via FUN_0013eff0 (EDI=handle).
+ *
+ * Confirmed: cdecl, 2 stack args (PUSH+PUSH, ADD ESP,0x8 at recursive sites).
+ * Confirmed: CALL 0x0013d680 — object_get_and_verify_type(handle, -1).
+ * Confirmed: CALL 0x000a8e30 — game_engine_running(), no args, returns bool.
+ * Confirmed: CMP word ptr [ESI+0x64],0x2 — checks object type == weapon.
+ * Confirmed: CALL 0x000fb0c0 — weapon_is_flag(handle), 1 cdecl arg.
+ * Confirmed: CALL 0x0008d9f0 — display_assert with line 0x33d (829).
+ * Confirmed: CALL 0x0008e2f0 — system_exit(-1), NOT thunk_FUN_001029a0.
+ * Confirmed: [ESI+0xC8] — child object handle for recursive delete.
+ * Confirmed: [ESI+0xC4] — sibling object handle (conditional on
+ * delete_sibling). Confirmed: OR AL,0x8 / MOV [EBX+0x2],AL — sets datum header
+ * bit 0x08. Confirmed: MOV EAX,EDI before CALL 0x0013ee60 — EAX register arg =
+ * handle. Confirmed: PUSH 0x0 / PUSH 0x1 — FUN_0013ee60 stack args (1, 0).
+ * Confirmed: TEST byte ptr [ESI+0x4],0x1 — checks obj->flags bit 0.
+ * Confirmed: OR dword ptr [ESI+0x4],0x1 — sets obj->flags bit 0.
+ * Confirmed: AND CL,0xfd / MOV [EAX+0x2],CL — clears datum header bit 0x02.
+ * Confirmed: CALL 0x0013eff0 — no stack args, EDI register arg = handle.
+ */
+void object_delete_internal(int object_handle, int delete_sibling)
+{
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* If the game engine is running and this is a weapon, assert it's not a
+   * flag (CTF flags should not be deleted this way). */
+  if (game_engine_running() && obj->type == 2) {
+    if (weapon_is_flag(object_handle)) {
+      display_assert("!(weapon_is_flag(object_index))",
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0x33d, 1);
+      system_exit(-1);
+    }
+  }
+
+  /* Recursively delete child objects (obj+0xC8). */
+  if (obj->unk_200.value != -1) {
+    object_delete_internal(obj->unk_200.value, 1);
+  }
+
+  /* Optionally recursively delete sibling objects (obj+0xC4). */
+  if ((char)delete_sibling != 0 && obj->next_object_index.value != -1) {
+    object_delete_internal(obj->next_object_index.value, 1);
+  }
+
+  /* Mark datum header with pending-deletion bit (0x08). */
+  hdr->unk_2 |= 0x08;
+
+  /* Re-fetch object pointer (may have been invalidated by recursive calls). */
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* Check if the object's tag definition has a children block. */
+  void *tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
+  if (*(int *)((char *)tag_def + 0x34) != -1 && (obj->flags & 1) == 0) {
+    /* Propagate deletion to attached children via FUN_0013ee60.
+     * EAX = object_handle (register arg), stack args = (1, 0). */
+    {
+      int args[2];
+      args[0] = 1;
+      args[1] = 0;
+      __asm__ __volatile__("pushl 4(%[a])\n\t"
+                           "pushl 0(%[a])\n\t"
+                           "call *%[fn]\n\t"
+                           "addl $8, %%esp"
+                           :
+                           : [a] "r"(args), [fn] "r"((void *)0x13ee60),
+                             "a"(object_handle)
+                           : "ecx", "edx", "memory", "cc");
+    }
+  }
+
+  /* Re-fetch datum header (recursive calls may have moved pool memory). */
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+
+  /* Set obj->flags bit 0 (deleted/inactive). */
+  obj->flags |= 1;
+
+  /* Clear datum header bit 0x02 (active). */
+  hdr->unk_2 &= (uint8_t)~0x02;
+
+  /* Remove the object from the name list via FUN_0013eff0.
+   * EDI = object_handle (register arg), no stack args. */
+  __asm__ __volatile__("call *%[fn]"
+                       :
+                       : "D"(object_handle), [fn] "r"((void *)0x13eff0)
+                       : "eax", "ecx", "edx", "memory", "cc");
+}
+
+/*
  * object_delete — delete an object from the world.
  *
- * Thin wrapper: calls FUN_00140bc0 (the actual deletion implementation)
- * with param_2=0, meaning "do not recursively delete sibling objects".
- *
- * FUN_00140bc0 (0x140bc0) is a plain cdecl function taking (int object_handle,
- *   char delete_sibling). It marks the object's datum byte[2] with bit 0x08
- *   (pending removal), sets the garbage flag, and calls FUN_0013eff0 (via EDI
- *   register arg) to remove the object from the name list.
+ * Thin wrapper around object_delete_internal with delete_sibling=0,
+ * meaning only the target object and its children are deleted, not
+ * its siblings in the object list.
  *
  * Confirmed: PUSH 0x0 / PUSH EAX / CALL 0x140bc0 / ADD ESP,0x8 — 2 cdecl args.
- * Confirmed: ADD ESP,0x8 after the call (clean cdecl, no register args).
  */
 void object_delete(int object_handle)
 {

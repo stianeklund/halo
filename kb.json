@@ -3537,12 +3537,16 @@
           "addr": "0xf0ea0"
         },
         {
+          "decl": "bool weapon_is_flag(int object_index);",
+          "addr": "0xfb0c0"
+        },
+        {
           "decl": "void j__render_dispose_from_old_map(void);",
           "addr": "0x184ba0"
         },
         {
-          "decl": "int snprintf(char *str, size_t size, const char *format, ...);",
-          "addr": "0x1d9179"
+          "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
+          "addr": "0x1d0da1"
         },
         {
           "decl": "void *XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
@@ -3553,12 +3557,12 @@
           "addr": "0x1d371d"
         },
         {
-          "decl": "int rand(void);",
-          "addr": "0x1d9d06"
+          "decl": "int snprintf(char *str, size_t size, const char *format, ...);",
+          "addr": "0x1d9179"
         },
         {
-          "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
-          "addr": "0x1d0da1"
+          "decl": "int rand(void);",
+          "addr": "0x1d9d06"
         }
       ]
     },
