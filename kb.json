@@ -2871,7 +2871,7 @@
           "addr": "0xe8910"
         },
         {
-          "decl": "void ui_widget_load_error_screen(int16_t error_handle, int local_player_index);",
+          "decl": "void ui_widget_load_error_screen(int16_t error_handle, int allow_abort);",
           "addr": "0xe8c90"
         },
         {
