@@ -1059,3 +1059,202 @@ bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag)
     return true;
   }
 }
+
+/* unit_board_vehicle (0x1b2b80)
+ *
+ * Handles a unit boarding a vehicle at a specific seat. Validates the seat via
+ * unit_find_nearby_seat, attaches the unit to the vehicle at the seat's marker,
+ * sets up weapon state and animations for the boarding sequence. Asserts that
+ * the unit is not already parented. If the unit's tag has a boarding animation
+ * (animation graph entry index > 7 and valid boarding animation), plays it.
+ * Returns true if the boarding succeeds, false if the seat check fails.
+ */
+bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
+{
+  unit_data_t *unit;
+  unit_data_t *vehicle_unit;
+  void *unit_tag;
+  void *seat_def;
+  void *marker_name;
+  vector3_t unit_pos;
+  char markers[0x90]; /* marker output buffer */
+  vector3_t delta;
+  int weapon_handle;
+  char *weapon_label;
+  void *anim_tag;
+  void *anim_entry;
+  int16_t boarding_anim_index;
+  int _eax;
+  int anim_result;
+
+  if (!unit_find_nearby_seat(unit_handle, vehicle_handle, seat_index, 0))
+    return false;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  vehicle_unit = (unit_data_t *)object_get_and_verify_type(vehicle_handle, 3);
+
+  unit_tag = tag_get(0x756e6974, vehicle_unit->object.tag_index);
+  seat_def =
+    tag_block_get_element((char *)unit_tag + 0x2e4, (int)seat_index, 0x11c);
+
+  if (unit->object.parent_object_index.value != -1) {
+    display_assert("unit->object.parent_object_index==NONE",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1095, 1);
+    system_exit(-1);
+  }
+
+  /* Get unit world position */
+  object_get_world_position(unit_handle, &unit_pos);
+
+  /* Find the seat marker on the vehicle */
+  marker_name = (char *)seat_def + 0x24;
+  object_get_markers_by_string_id(vehicle_handle, marker_name, markers, 1);
+
+  /* Compute position delta: unit_pos - marker_pos */
+  /* Marker position is at offset 0x60 in the marker output buffer */
+  delta.x = unit_pos.x - *(float *)(markers + 0x60);
+  delta.y = unit_pos.y - *(float *)(markers + 0x64);
+  delta.z = unit_pos.z - *(float *)(markers + 0x68);
+
+  /* Transform delta through marker's rotation matrix (at offset 0x38) */
+  real_matrix3x3_transform_vector(markers + 0x38, &delta, &delta);
+
+  /* Attach unit to vehicle at seat marker */
+  object_attach_to_marker(vehicle_handle, marker_name, unit_handle,
+                          (void *)0x25386f);
+
+  /* Set seat index and parent */
+  unit->unk_672 = seat_index;
+  unit->object.parent_object_index.value = vehicle_handle;
+
+  /* 0x1aa890: update unit seat occupancy tracking.
+   * EAX = vehicle_handle (register arg). */
+  _eax = vehicle_handle;
+  __asm__ __volatile__("call *%[fn]"
+                       : "+a"(_eax)
+                       : [fn] "r"((void *)0x1aa890)
+                       : "ecx", "edx", "memory", "cc");
+
+  /* Re-fetch unit data after potential reallocation */
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Set next weapon index */
+  unit->unk_676 = unit_next_weapon_index(unit_handle, unit->unk_674, 0);
+
+  /* 0x1b1ee0: update unit weapon readiness/state.
+   * ESI = unit_handle (register arg), 1 stack arg. */
+  {
+    int _esi_save;
+    __asm__ __volatile__("movl %%esi, %0" : "=r"(_esi_save));
+    __asm__ __volatile__("movl %[handle], %%esi\n\t"
+                         "pushl $1\n\t"
+                         "call *%[fn]\n\t"
+                         "addl $4, %%esp\n\t"
+                         "movl %[save], %%esi"
+                         :
+                         : [handle] "r"(unit_handle),
+                           [fn] "r"((void *)0x1b1ee0), [save] "r"(_esi_save)
+                         : "eax", "ecx", "edx", "memory", "cc");
+  }
+
+  /* Get current weapon */
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  weapon_handle = unit_get_weapon(unit_handle, (int16_t)unit->unk_674);
+
+  if (weapon_handle == -1)
+    weapon_label = "unarmed";
+  else
+    weapon_label = weapon_get_label(weapon_handle);
+
+  /* 0x1acd70: set unit animation state.
+   * EAX = unit_handle (register arg), 3 stack args:
+   *   arg0 = seat_def + 4 (seat label string),
+   *   arg1 = weapon_label,
+   *   arg2 = 1 */
+  {
+    int args[3];
+    args[0] = (int)((char *)seat_def + 4);
+    args[1] = (int)weapon_label;
+    args[2] = 1;
+    _eax = unit_handle;
+    __asm__ __volatile__("pushl %[a2]\n\t"
+                         "pushl %[a1]\n\t"
+                         "pushl %[a0]\n\t"
+                         "call *%[fn]\n\t"
+                         "addl $12, %%esp"
+                         : "+a"(_eax)
+                         : [fn] "r"((void *)0x1acd70), [a0] "r"(args[0]),
+                           [a1] "r"(args[1]), [a2] "r"(args[2])
+                         : "ecx", "edx", "memory", "cc");
+    if (!(char)_eax) {
+      /* Retry with NULL weapon label */
+      args[1] = 0;
+      _eax = unit_handle;
+      __asm__ __volatile__("pushl %[a2]\n\t"
+                           "pushl %[a1]\n\t"
+                           "pushl %[a0]\n\t"
+                           "call *%[fn]\n\t"
+                           "addl $12, %%esp"
+                           : "+a"(_eax)
+                           : [fn] "r"((void *)0x1acd70), [a0] "r"(args[0]),
+                             [a1] "r"(args[1]), [a2] "r"(args[2])
+                           : "ecx", "edx", "memory", "cc");
+    }
+  }
+
+  /* Check for boarding animation in the unit's animation graph */
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = tag_get(0x756e6974, unit->object.tag_index);
+  anim_tag = tag_get(0x616e7472, *(uint32_t *)((char *)unit_tag + 0x44));
+  anim_entry = tag_block_get_element((char *)anim_tag + 0xc,
+                                     (int)(int8_t)unit->unk_592, 100);
+
+  if (*(int *)((char *)anim_entry + 0x40) > 7) {
+    boarding_anim_index =
+      *(int16_t *)(*(int *)((char *)anim_entry + 0x44) + 0xe);
+    if (boarding_anim_index != -1) {
+      int anim_graph_tag_index;
+
+      /* Set interpolation */
+      object_set_region_count(unit_handle, 6);
+
+      /* Choose random boarding animation */
+      anim_graph_tag_index = *(uint32_t *)((char *)unit_tag + 0x44);
+      anim_result = model_animation_choose_random(1, anim_graph_tag_index,
+                                                  boarding_anim_index);
+
+      /* 0x1ab7c0: set unit animation.
+       * EAX = unit_handle, EDI = animation_graph_tag_index,
+       * BX = animation_index (lower 16 bits of anim_result). */
+      {
+        int _agtag = anim_graph_tag_index;
+        int _animidx = anim_result;
+        _eax = unit_handle;
+        __asm__ __volatile__("pushl %%edi\n\t"
+                             "pushl %%ebx\n\t"
+                             "movl %[agtag], %%edi\n\t"
+                             "movw %w[animidx], %%bx\n\t"
+                             "call *%[fn]\n\t"
+                             "popl %%ebx\n\t"
+                             "popl %%edi"
+                             : "+a"(_eax)
+                             : [fn] "r"((void *)0x1ab7c0), [agtag] "r"(_agtag),
+                               [animidx] "r"(_animidx)
+                             : "ecx", "edx", "memory", "cc");
+      }
+
+      /* Set animation state byte */
+      *((uint8_t *)unit + 0x253) = 0x1a;
+
+      /* Adjust interpolation position with the delta */
+      object_adjust_interpolation_position(unit_handle, &delta);
+
+      /* Recursively update child object positions */
+      object_update_children_recursive(unit_handle);
+    }
+  }
+
+  unit_vehicle_board_notify(unit_handle, vehicle_handle);
+  unit_reset_weapon_state(unit_handle);
+  return true;
+}

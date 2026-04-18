@@ -163,6 +163,10 @@
           "addr": "0x3a990"
         },
         {
+          "decl": "void unit_vehicle_board_notify(int unit_handle, int vehicle_handle);",
+          "addr": "0x409a0"
+        },
+        {
           "decl": "void FUN_00042a30(void);",
           "addr": "0x42a30"
         },
@@ -257,6 +261,10 @@
         {
           "decl": "float random_math_real(unsigned int *seed);",
           "addr": "0x10b240"
+        },
+        {
+          "decl": "int model_animation_choose_random(int update_kind, int animation_graph_tag_index, int16_t animation_index);",
+          "addr": "0x120f20"
         },
         {
           "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
@@ -1969,6 +1977,14 @@
           "addr": "0x13ffc0"
         },
         {
+          "decl": "void object_set_region_count(int object_handle, int16_t region_count);",
+          "addr": "0x140160"
+        },
+        {
+          "decl": "void object_adjust_interpolation_position(int object_handle, vector3_t *delta);",
+          "addr": "0x140230"
+        },
+        {
           "decl": "void object_delete_internal(int object_handle, int delete_sibling);",
           "addr": "0x140bc0"
         },
@@ -1977,8 +1993,24 @@
           "addr": "0x140cc0"
         },
         {
+          "decl": "int16_t object_get_markers_by_string_id(int object_handle, void *marker_name, void *out_markers, int max_count);",
+          "addr": "0x140f10"
+        },
+        {
+          "decl": "void *object_get_world_position(int object_handle, vector3_t *out_position);",
+          "addr": "0x1412f0"
+        },
+        {
           "decl": "void *object_get_world_matrix(int object_handle, void *out_matrix);",
           "addr": "0x141480"
+        },
+        {
+          "decl": "void object_update_children_recursive(int object_handle);",
+          "addr": "0x1446a0"
+        },
+        {
+          "decl": "void object_attach_to_marker(int parent_handle, void *marker_name, int child_handle, void *child_marker_name);",
+          "addr": "0x144860"
         },
         {
           "decl": "void objects_update(void);",
@@ -2659,20 +2691,24 @@
       "source": "math/real_math.c",
       "functions": [
         {
-          "decl": "void real_math_reset_precision(void);",
-          "addr": "0x10b5e0"
+          "decl": "void matrix_transform_vector(float *matrix, float *in, float *out);",
+          "addr": "0x109680"
         },
         {
-          "decl": "void angles_to_vector(float *out, float *angles);",
-          "addr": "0x10cc40"
+          "decl": "void real_matrix3x3_transform_vector(void *matrix, vector3_t *vec, vector3_t *out);",
+          "addr": "0x109780"
         },
         {
           "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
           "addr": "0x109e10"
         },
         {
-          "decl": "void matrix_transform_vector(float *matrix, float *in, float *out);",
-          "addr": "0x109680"
+          "decl": "void real_math_reset_precision(void);",
+          "addr": "0x10b5e0"
+        },
+        {
+          "decl": "void angles_to_vector(float *out, float *angles);",
+          "addr": "0x10cc40"
         }
       ]
     },
@@ -3214,16 +3250,48 @@
           "addr": "0x1a7ff0"
         },
         {
+          "decl": "bool unit_find_nearby_seat(int unit_handle, int target_unit_handle, int16_t seat_index, int *out_unit_handle);",
+          "addr": "0x1a8ce0"
+        },
+        {
           "decl": "bool unit_is_alive(int unit_handle);",
           "addr": "0x1a9a30"
+        },
+        {
+          "decl": "bool any_unit_is_dangerous(void);",
+          "addr": "0x1aa3c0"
+        },
+        {
+          "decl": "bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag);",
+          "addr": "0x1aab20"
         },
         {
           "decl": "void unit_clear_seat_tag(int unit_handle);",
           "addr": "0x1aac40"
         },
         {
+          "decl": "void unit_clear_weapons(int unit_handle);",
+          "addr": "0x1aac80"
+        },
+        {
+          "decl": "int16_t unit_count_weapons(int unit_handle);",
+          "addr": "0x1aad90"
+        },
+        {
+          "decl": "bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle);",
+          "addr": "0x1aae00"
+        },
+        {
           "decl": "int unit_get_weapon(int unit_handle, int16_t weapon_index);",
           "addr": "0x1adeb0"
+        },
+        {
+          "decl": "void unit_clear_seat_equipment(int unit_handle);",
+          "addr": "0x1ae330"
+        },
+        {
+          "decl": "bool unit_can_enter_seat(int unit_handle, int seat_object_handle);",
+          "addr": "0x1ae370"
         },
         {
           "decl": "int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int16_t direction);",
@@ -3242,44 +3310,16 @@
           "addr": "0x1af990"
         },
         {
-          "decl": "bool any_unit_is_dangerous(void);",
-          "addr": "0x1aa3c0"
-        },
-        {
-          "decl": "int16_t unit_count_weapons(int unit_handle);",
-          "addr": "0x1aad90"
-        },
-        {
-          "decl": "bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle);",
-          "addr": "0x1aae00"
+          "decl": "void unit_reset_weapon_state(int unit_handle);",
+          "addr": "0x1b1290"
         },
         {
           "decl": "bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag);",
           "addr": "0x1b1db0"
         },
         {
-          "decl": "void unit_clear_seat_equipment(int unit_handle);",
-          "addr": "0x1ae330"
-        },
-        {
-          "decl": "bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag);",
-          "addr": "0x1aab20"
-        },
-        {
-          "decl": "bool unit_find_nearby_seat(int unit_handle, int target_unit_handle, int16_t seat_index, int *out_unit_handle);",
-          "addr": "0x1a8ce0"
-        },
-        {
           "decl": "bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index);",
           "addr": "0x1b2b80"
-        },
-        {
-          "decl": "bool unit_can_enter_seat(int unit_handle, int seat_object_handle);",
-          "addr": "0x1ae370"
-        },
-        {
-          "decl": "void unit_clear_weapons(int unit_handle);",
-          "addr": "0x1aac80"
         }
       ]
     },
