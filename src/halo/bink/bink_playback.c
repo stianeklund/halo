@@ -39,7 +39,7 @@ void bink_playback_stop(void)
 
   /* Close the bink handle if one is open. */
   if (*(int *)0x4ead60 != 0) {
-    ((void (*)(int))0x231220)(*(int *)0x4ead60);
+    ((void (__stdcall *)(int))0x231220)(*(int *)0x4ead60);
     *(int *)0x4ead60 = 0;
   }
 
@@ -51,9 +51,14 @@ void bink_playback_stop(void)
     main_menu_load();
   }
 
-  /* Restore the pregame loading flag from saved value and clear flags. */
-  *(uint8_t *)0x31fa96 = *(uint8_t *)0x32eba0;
-  *(uint32_t *)0x4ead5c = 0;
+  /* Restore the pregame loading flag from saved value and clear flags.
+   * The original loads the saved byte, clears the flags dword, then
+   * stores — preserving the load across the clear. */
+  {
+    uint8_t saved = *(uint8_t *)0x32eba0;
+    *(uint32_t *)0x4ead5c = 0;
+    *(uint8_t *)0x31fa96 = saved;
+  }
 
   event_manager_mark_time();
 }
