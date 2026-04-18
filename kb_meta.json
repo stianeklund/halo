@@ -1795,6 +1795,17 @@
         "flag=0 marks the object as garbage (sets obj->flags bit 0, clears datum.unk_2 bit 1); flag!=0 unmarks it. Child propagation via FUN_0013ee60 (0x13ee60) is gated on the tag having a children block (tag+0x34 != -1) and bit 0 of obj->flags being in the wrong state for the requested transition."
       ]
     },
+    "0x140bc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_0013ee60 propagates deletion state to child objects attached via the tag children block at tag+0x34.",
+        "FUN_0013eff0 removes the object from an indexed name list using object+0x6A as the slot index and the array at 0x46f07c."
+      ],
+      "uncertain": [
+        "The weapon_is_flag check may also apply to oddball or skull objects, not just CTF flags."
+      ]
+    },
     "0x140cc0": {
       "kind": "function",
       "status": "ported",
