@@ -1125,6 +1125,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd0c40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Both hud_player_set_vehicle and hud_player_set_vehicle_seat have identical implementations that delegate to 0xd5240 with zeroed extra params."
+      ]
+    },
+    "0xd0c60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd0d50": {
       "kind": "function",
       "status": "ported"
@@ -1140,6 +1151,13 @@
     "0xd51c0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xd5240": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Named hud_messaging_set_vehicle_notification based on callers hud_player_set_vehicle and hud_player_set_vehicle_seat; address falls within hud_messaging.obj range."
+      ]
     },
     "0xdc070": {
       "kind": "function",
@@ -1672,7 +1690,10 @@
     },
     "0x13d640": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "datum_absolute_index_to_index at 0x119270 is functionally a datum_try_and_get; returns datum pointer as int, or 0 on failure."
+      ]
     },
     "0x13d680": {
       "kind": "function",
@@ -1712,7 +1733,10 @@
     },
     "0x141480": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "FUN_0010a110 builds a 4x3 matrix from forward, up, position; FUN_00140eb0 is object_get_node_matrix; FUN_00109850 is 4x3 matrix multiply."
+      ]
     },
     "0x145170": {
       "kind": "function",
