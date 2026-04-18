@@ -38,6 +38,71 @@ void units_update(void)
   *(uint8_t *)&p[2] = 0;
 }
 
+/* unit_find_nearby_seat (0x1a8ce0)
+ *
+ * Searches the child object chain of target_unit for a unit that occupies the
+ * given seat_index, or that belongs to a friendly team (via game_allegiance).
+ *
+ * Walks the linked list starting at target_unit's first_child_object (offset
+ * 0xC8). For each child that is a biped or vehicle (type 0 or 1):
+ *   - If the child unit's seat tag index (offset 0x2A0) matches seat_index,
+ *     records the child's handle in *out_unit_handle.
+ *   - Otherwise, if the searching unit has an active rider/owner (offset 0x1C8
+ *     != NONE) and the child's team is friendly with the searching unit's team,
+ *     clears the "empty" flag but does not update the output handle.
+ *
+ * Returns true only if unit_handle != target_unit_handle AND no matching/
+ * friendly child was found. If out_unit_handle is non-NULL, writes the handle
+ * of the last seat-matching child found (or NONE if none matched).
+ */
+bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
+                           int16_t seat_index, int *out_unit_handle)
+{
+  unit_data_t *unit_data;
+  object_data_t *target_obj;
+  object_data_t *child_obj;
+  unit_data_t *child_unit;
+  int child_handle;
+  int result_handle;
+  bool not_found;
+
+  unit_data = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  target_obj =
+    (object_data_t *)object_get_and_verify_type(target_unit_handle, 3);
+
+  not_found = (unit_handle != target_unit_handle);
+  result_handle = -1;
+
+  child_handle = target_obj->unk_200.value;
+  while (child_handle != -1) {
+    child_obj = (object_data_t *)object_get_and_verify_type(child_handle, -1);
+
+    /* check if child is biped (type 0) or vehicle (type 1) */
+    if ((1 << (*(uint8_t *)&child_obj->type & 0x1f)) & 3) {
+      child_unit = (unit_data_t *)object_get_and_verify_type(child_handle, 3);
+
+      if (child_unit->unk_672 == seat_index) {
+        /* child occupies the requested seat */
+        result_handle = child_handle;
+        not_found = false;
+      } else if (unit_data->unk_456.value != -1 &&
+                 game_allegiance_get_team_is_friendly(
+                   (int16_t)unit_data->object.unk_104,
+                   (uint16_t)child_obj->unk_104)) {
+        /* child is on a friendly team; seat is occupied/blocked */
+        not_found = false;
+      }
+    }
+
+    child_handle = child_obj->next_object_index.value;
+  }
+
+  if (out_unit_handle != NULL) {
+    *out_unit_handle = result_handle;
+  }
+  return not_found;
+}
+
 /* unit_is_alive (0x1a9a30)
  *
  * Returns whether the given unit handle refers to a unit that is currently

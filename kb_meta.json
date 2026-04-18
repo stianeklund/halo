@@ -2065,6 +2065,14 @@
         "Global at 0x4e4cf8 is a pointer to a 5-byte struct {int16_t, int16_t, uint8_t} used for units per-tick update state tracking."
       ]
     },
+    "0x1a8ce0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The unk_456 field (offset 0x1C8) in unit_data_t guards the allegiance check, likely representing a rider or owner handle.",
+        "The return semantics are inverted: returns true when NO matching seat occupant or friendly child was found, meaning the seat is available."
+      ]
+    },
     "0x1a9a30": {
       "kind": "function",
       "status": "ported",

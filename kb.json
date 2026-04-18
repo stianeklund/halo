@@ -1217,6 +1217,10 @@
           "addr": "0xa7a20"
         },
         {
+          "decl": "bool game_allegiance_get_team_is_friendly(int16_t team_a, int16_t team_b);",
+          "addr": "0xa7a30"
+        },
+        {
           "decl": "void game_allegiance_update(void);",
           "addr": "0xa7e30"
         }
