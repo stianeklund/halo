@@ -394,6 +394,26 @@
         {
           "decl": "void bink_playback_update(void);",
           "addr": "0x1c6870"
+        },
+        {
+          "decl": "void bink_playback_trace(const char *msg);",
+          "addr": "0x1c5900"
+        },
+        {
+          "decl": "void bink_playback_release_texture_cache(void);",
+          "addr": "0x1c61d0"
+        },
+        {
+          "decl": "void bink_playback_decode_frame(void);",
+          "addr": "0x1c6230"
+        },
+        {
+          "decl": "void bink_playback_render_frame(void);",
+          "addr": "0x1c5d70"
+        },
+        {
+          "decl": "void bink_playback_check_stop(void);",
+          "addr": "0x1c6340"
         }
       ]
     },
@@ -404,6 +424,10 @@
         {
           "decl": "void bitmap_delete(void *);",
           "addr": "0x7c8f0"
+        },
+        {
+          "decl": "short bitmap_format_bits_per_pixel(short format);",
+          "addr": "0x7c840"
         }
       ]
     },
@@ -980,6 +1004,10 @@
         {
           "decl": "void event_manager_update(void);",
           "addr": "0xdc620"
+        },
+        {
+          "decl": "void event_manager_suppress(int suppress);",
+          "addr": "0xdc240"
         }
       ]
     },
@@ -3298,6 +3326,71 @@
         {
           "decl": "void *XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
           "addr": "0x1d36d4"
+        },
+        {
+          "decl": "void __stdcall physical_memory_protect(void *addr, unsigned int size, unsigned int protect);",
+          "addr": "0x1d371d"
+        },
+        {
+          "decl": "int rand(void);",
+          "addr": "0x1d9d06"
+        },
+        {
+          "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
+          "addr": "0x1d0da1"
+        }
+      ]
+    },
+    {
+      "name": "bink.obj",
+      "functions": [
+        {
+          "decl": "int __stdcall BinkSoundUseDirectSound(void *dsound_proc, void *dsound_handle);",
+          "addr": "0x22df80"
+        },
+        {
+          "decl": "void __stdcall BinkSetMemory(unsigned int size);",
+          "addr": "0x22e320"
+        },
+        {
+          "decl": "void *__stdcall BinkOpen(const char *filename, unsigned int flags);",
+          "addr": "0x230390"
+        },
+        {
+          "decl": "void __stdcall BinkClose(void *bink_handle);",
+          "addr": "0x231220"
+        },
+        {
+          "decl": "void __stdcall BinkSetSoundSystem(void *open_proc, void *close_proc);",
+          "addr": "0x231490"
+        }
+      ]
+    },
+    {
+      "name": "xbox_texture_cache.obj",
+      "source": "cache/xbox_texture_cache.c",
+      "functions": [
+        {
+          "decl": "void *xbox_texture_cache_steal_memory(unsigned int size);",
+          "addr": "0x1bea30"
+        }
+      ]
+    },
+    {
+      "name": "d3d_resource.obj",
+      "functions": [
+        {
+          "decl": "void __stdcall D3DResource_Register(void *resource, void *data);",
+          "addr": "0x1eda30"
+        }
+      ]
+    },
+    {
+      "name": "bink_sound.obj",
+      "functions": [
+        {
+          "decl": "int bink_get_dsound_handle(void);",
+          "addr": "0x1c94b0"
         }
       ]
     }

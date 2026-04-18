@@ -2060,6 +2060,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c6440": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function at 0x1c5990 (bink memory pool allocator) uses two register args: @eax for alignment and @ecx for size, called via inline asm.",
+        "The D3D texture setup at 0x4ead40-0x4ead78 configures an NV2A linear X8R8G8B8 texture resource for the bink frame buffer."
+      ],
+      "uncertain": [
+        "The bitmap header at 0x4ead10 uses format 10 (a8r8g8b8) but this format index mapping is inferred from the bits-per-pixel call and may not match the engine's enum exactly."
+      ]
+    },
     "0x1c6870": {
       "kind": "function",
       "status": "ported"
