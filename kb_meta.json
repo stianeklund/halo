@@ -19,6 +19,10 @@
         "Whether actors.obj contains additional unported functions such as actors_initialize_for_new_map at 0x3a990 has not been confirmed."
       ]
     },
+    "0x3f670": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3f6f0": {
       "kind": "function",
       "status": "ported",

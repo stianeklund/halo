@@ -1,10 +1,37 @@
 /* ai.c — AI subsystem top-level lifecycle and query functions.
  *
  * Corresponds to ai.obj (XBE address range ~0x3f670–0x425b0).
- * Implements the dispose, dispose_from_old_map, place, and
- * enemies_can_see_player entry points. The initialize and
- * initialize_for_new_map functions are not yet ported.
+ * Implements initialize, dispose, dispose_from_old_map, place, and
+ * enemies_can_see_player entry points. The initialize_for_new_map
+ * function is not yet ported.
  */
+
+/* ai_initialize: allocate AI globals and initialize all AI subsystems.
+ * Allocates 0x8dc bytes via game_state_malloc, stores the pointer at
+ * global 0x632574, zeroes the block, then calls 9 subsystem init
+ * functions in order. The last call (FUN_0002b5d0) is a tail-call
+ * (JMP in the original binary).
+ * Confirmed: PUSH order for game_state_malloc("ai globals", NULL, 0x8dc);
+ * assert string "ai_globals" at line 0x8c (140) of ai.c. */
+void ai_initialize(void)
+{
+  void *globals = game_state_malloc("ai globals", 0, 0x8dc);
+  *(void **)0x632574 = globals;
+  if (!globals) {
+    display_assert("ai_globals", "c:\\halo\\SOURCE\\ai\\ai.c", 0x8c, 1);
+    system_exit(-1);
+  }
+  csmemset(*(void **)0x632574, 0, 0x8dc);
+  FUN_00048e90();
+  FUN_00053620();
+  FUN_0005df80();
+  FUN_0003a990();
+  FUN_00064100();
+  FUN_00058eb0();
+  FUN_000540b0();
+  FUN_00042a30();
+  FUN_0002b5d0();
+}
 
 /* ai_dispose: shut down all AI subsystems in reverse-init order.
  * Calls eight subsidiary dispose functions and tail-calls the last one.
