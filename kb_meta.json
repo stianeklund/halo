@@ -1114,11 +1114,44 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xdc070": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Name ui_widget_is_main_menu_loaded for callee at 0xe43f0 inferred from behavior: checks if widget named the_main_menu is loaded.",
+        "Name ui_widget_get_attract_mode_flag for callee at 0xe46a0 inferred from behavior: returns a single byte flag at 0x46cc86.",
+        "Name ui_widget_stop_attract_mode for callee at 0xe4640 inferred from behavior: stops attract music via dsound tag lookup and clears the attract flag."
+      ]
+    },
+    "0xdc130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdc140": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdc1d0": {
       "kind": "function",
       "status": "ported"
     },
     "0xdc200": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdc220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdc240": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdc250": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdc310": {
       "kind": "function",
       "status": "ported"
     },

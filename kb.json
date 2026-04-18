@@ -1025,6 +1025,10 @@
         {
           "decl": "void event_manager_suppress(int suppress);",
           "addr": "0xdc240"
+        },
+        {
+          "decl": "unsigned int event_manager_get_last_event_time(void);",
+          "addr": "0xdc310"
         }
       ]
     },
@@ -2412,8 +2416,16 @@
           "addr": "0x10b0d0"
         },
         {
+          "decl": "unsigned int *random_math_get_local_seed_address(void);",
+          "addr": "0x10b120"
+        },
+        {
           "decl": "void random_seed_debug_log(bool a1);",
           "addr": "0x10b130"
+        },
+        {
+          "decl": "int16_t random_range(unsigned int *seed, int16_t min, int16_t max);",
+          "addr": "0x10b2d0"
         }
       ]
     },
@@ -2904,6 +2916,10 @@
           "addr": "0xe4470"
         },
         {
+          "decl": "bool ui_widget_is_main_menu_loaded(void);",
+          "addr": "0xe43f0"
+        },
+        {
           "decl": "bool ui_widget_initialization_in_progress(void);",
           "addr": "0xe4480"
         },
@@ -2914,6 +2930,14 @@
         {
           "decl": "void ui_widget_start_title_music(void);",
           "addr": "0xe45d0"
+        },
+        {
+          "decl": "void ui_widget_stop_attract_mode(void);",
+          "addr": "0xe4640"
+        },
+        {
+          "decl": "bool ui_widget_get_attract_mode_flag(void);",
+          "addr": "0xe46a0"
         },
         {
           "decl": "void ui_widgets_disable_pause_game(int);",
