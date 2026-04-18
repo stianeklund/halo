@@ -2154,6 +2154,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ae370": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function at 0xa8b30 dispatches through current_game_engine vtable offset 0x58 and is used for both weapon pickup and seat entry validation.",
+        "The function at 0xfae80 returns a char* label from the weapon tag definition at offset 0x30c, returning a default string at 0x25386f when the handle is NONE."
+      ]
+    },
     "0x1ae490": {
       "kind": "function",
       "status": "ported",
