@@ -860,7 +860,7 @@ typedef struct {
  *   4 = full-spectrum — powerup index 1, calls player_try_to_apply_powerup
  * On success, notifies the scoring system, plays the equipment pickup
  * sound, and deactivates the equipment object. */
-void player_set_action_result_for_vehicle(int player_handle,
+void player_set_action_result_for_equipment(int player_handle,
                                           int equipment_handle)
 {
   char *player;
@@ -1149,7 +1149,7 @@ void players_update_before_game(void)
        * invoke the vehicle-action result handler and clear the seat tag. */
       if ((*(char *)&action->buttons & 0x80) != 0 &&
           *(int *)(unit_data + 0x2c8) != -1) {
-        player_set_action_result_for_vehicle(datum_handle,
+        player_set_action_result_for_equipment(datum_handle,
                                              *(int *)(unit_data + 0x2c8));
         unit_clear_seat_tag(*(int *)(player + 0x34));
       }

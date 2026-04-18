@@ -2178,7 +2178,7 @@
           "addr": "0xbc0d0"
         },
         {
-          "decl": "void player_set_action_result_for_vehicle(int player_handle, int vehicle_handle);",
+          "decl": "void player_set_action_result_for_equipment(int player_handle, int equipment_handle);",
           "addr": "0xbcfb0"
         },
         {
