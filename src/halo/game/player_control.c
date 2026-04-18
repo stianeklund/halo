@@ -1,3 +1,12 @@
+/* Return a pointer to the player control data slot for a local player.
+ * Each slot is 0x40 bytes, starting at offset 0x10 in the globals struct. */
+void *player_control_get_data(int16_t local_player_index)
+{
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  return (char *)player_control_globals + local_player_index * 0x40 + 0x10;
+}
+
 void player_control_dispose(void)
 {
 }
