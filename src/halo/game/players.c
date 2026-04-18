@@ -848,6 +848,99 @@ typedef struct {
   char pad[2];
 } player_action_t;
 
+/* Handle the result of a player interacting with an equipment (powerup) object.
+ *
+ * Reads the equipment's tag definition to determine the powerup type
+ * (offset 0x308 in the 'eqip' tag) and the duration (offset 0x30c,
+ * multiplied by 30 ticks/second).  Dispatches by powerup type:
+ *   1 = double speed  — adds ticks to players_globals+0x26, enables flag
+ *   2 = overshield    — checks unit body vitality, triggers shield effect
+ *   5 = health        — checks unit shield vitality, triggers health effect
+ *   3 = active camo   — powerup index 0, calls player_try_to_apply_powerup
+ *   4 = full-spectrum — powerup index 1, calls player_try_to_apply_powerup
+ * On success, notifies the scoring system, plays the equipment pickup
+ * sound, and deactivates the equipment object. */
+void player_set_action_result_for_vehicle(int player_handle,
+                                          int equipment_handle)
+{
+  char *player;
+  char *eqip_obj;
+  char *tag;
+  int16_t powerup_type;
+  int16_t ticks;
+  int powerup_index;
+
+  player = (char *)datum_get(player_data, player_handle);
+  eqip_obj = (char *)object_get_and_verify_type(equipment_handle, 8);
+  tag = (char *)tag_get(0x65716970, *(int *)eqip_obj);
+
+  /* Duration in ticks: tag float * 30.0f, truncated to int16_t. */
+  ticks = (int16_t)(*(float *)(tag + 0x30c) * 30.0f);
+  if (ticks <= 0)
+    return;
+
+  powerup_type = *(int16_t *)(tag + 0x308);
+
+  if (powerup_type == 1) {
+    /* Double speed: accumulate ticks and set flag. */
+    *(int16_t *)((char *)players_globals + 0x26) += ticks;
+    game_set_players_are_double_speed(true);
+  } else if (powerup_type == 2) {
+    /* Overshield: check if unit can receive it. */
+    if (!((bool (*)(int))0x1367e0)(*(int *)(player + 0x34)))
+      return;
+    /* Trigger overshield pickup effect (ESI = player_handle). */
+    {
+      int _ph = player_handle;
+      __asm__ volatile("movl %0, %%esi" : : "r"(_ph) : "esi");
+      ((void (*)(void))0xbaf90)();
+    }
+  } else if (powerup_type == 5) {
+    /* Health: check if unit can receive it. */
+    if (!((bool (*)(int))0x136790)(*(int *)(player + 0x34)))
+      return;
+    /* Trigger health pickup effect (ESI = player_handle). */
+    {
+      int _ph = player_handle;
+      __asm__ volatile("movl %0, %%esi" : : "r"(_ph) : "esi");
+      ((void (*)(void))0xbb0f0)();
+    }
+  } else {
+    /* Active camo (3) or full-spectrum vision (4). */
+    if (powerup_type == 3) {
+      powerup_index = 0;
+    } else if (powerup_type == 4) {
+      powerup_index = 1;
+    } else {
+      display_assert(0, "c:\\halo\\SOURCE\\game\\players.c", 0xac7, 1);
+      system_exit(-1);
+    }
+    /* Try to apply the powerup. */
+    if (!((bool (*)(int, int, int16_t))0xbc320)(player_handle, powerup_index,
+                                                ticks))
+      return;
+    /* Active camo (index 0) triggers a location notification. */
+    if ((int16_t)powerup_index == 0) {
+      int _ph = player_handle;
+      __asm__ volatile("movl %0, %%esi" : : "r"(_ph) : "esi");
+      ((void (*)(void))0xbb040)();
+    }
+  }
+
+  /* Common exit: notify scoring, play pickup sound, deactivate equipment. */
+  eqip_obj = (char *)object_get_and_verify_type(equipment_handle, 8);
+  {
+    int16_t local_player_idx =
+      *(int16_t *)(player + 2); /* player+0x2: local_player_index */
+    ((void (*)(int, int))0xd0c60)((unsigned short)local_player_idx,
+                                  *(int *)eqip_obj);
+  }
+  if (*(int16_t *)(player + 2) != -1) {
+    ((void (*)(int))0xf67b0)(equipment_handle);
+  }
+  ((void (*)(int))0x140cc0)(equipment_handle);
+}
+
 /* Update all player actions before game logic runs for this tick.
  *
  * For each player:

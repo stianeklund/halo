@@ -972,6 +972,18 @@
       "status": "ported",
       "name": "players_respawn_coop"
     },
+    "0xbcfb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The equipment_handle parameter (kb.json says vehicle_handle) actually refers to an equipment/powerup object, not a vehicle, based on type mask 8 and eqip tag group.",
+        "Tag offset 0x308 is the powerup type enum: 1=double_speed, 2=overshield, 3=active_camo, 4=full_spectrum_vision, 5=health.",
+        "Tag offset 0x30c is the duration in seconds as a float, multiplied by 30 to get game ticks."
+      ],
+      "uncertain": [
+        "Functions 0xbaf90, 0xbb040, 0xbb0f0 are player notification helpers taking ESI as player_handle; their exact purpose (sound, visual effect, HUD message) is not confirmed."
+      ]
+    },
     "0xbd100": {
       "kind": "function",
       "status": "ported",
