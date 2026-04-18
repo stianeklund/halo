@@ -22,6 +22,27 @@ void game_sound_initialize_for_new_map(void)
   }
 }
 
+/* Play a one-shot sound impulse at a given volume scale.
+ * Builds a minimal sound source descriptor (spatialization_mode=0,
+ * scale, gain=1.0f) and forwards to sound_start (0x1ce180) with
+ * no object attachment, no track data. */
+void sound_impulse_start(int sound_tag_index, float scale)
+{
+  /* 64-byte sound source descriptor — only first 12 bytes matter here.
+   * offset 0x00: int16_t spatialization_mode
+   * offset 0x04: float   scale
+   * offset 0x08: float   gain */
+  char source[0x40];
+
+  assert_halt(scale >= 0.f && scale <= 1.f);
+
+  *(int16_t *)(source + 0x00) = 0;
+  *(float *)(source + 0x04) = scale;
+  *(float *)(source + 0x08) = 1.0f;
+
+  sound_start(sound_tag_index, source, NONE, 0, 0, 0);
+}
+
 void game_sound_dispose_from_old_map(void)
 {
   if (*(void **)0x5054e4 != 0 && *(uint8_t *)(*(char **)0x5054e4 + 0x24) != 0) {

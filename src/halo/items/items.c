@@ -11,7 +11,7 @@ void item_activate_equipment_effect(int equipment_handle)
   tag_def = (char *)tag_get(0x65716970, *equip_obj);
   sound_tag = *(int *)(tag_def + 0x31c);
   if (sound_tag != NONE) {
-    sound_impulse_start(sound_tag, 0x3f800000);
+    sound_impulse_start(sound_tag, 1.0f);
   }
 }
 

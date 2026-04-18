@@ -1297,7 +1297,7 @@
           "addr": "0x1c7080"
         },
         {
-          "decl": "void sound_impulse_start(int sound_tag_index, int scale);",
+          "decl": "void sound_impulse_start(int sound_tag_index, float scale);",
           "addr": "0x1c7480"
         },
         {
@@ -2863,6 +2863,10 @@
         {
           "decl": "void sound_set_music_enabled(int enabled);",
           "addr": "0x1cb8a0"
+        },
+        {
+          "decl": "int sound_start(int sound_tag_index, void *source, int object_handle, int track_data, void *track_data_ptr, int track_data_size);",
+          "addr": "0x1ce180"
         },
         {
           "decl": "void sound_dispose_from_old_map(void);",
