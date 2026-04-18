@@ -142,7 +142,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
         float max_dist = *(float *)((char *)sound_tag + 0x10);
         float threshold =
           ((skip_max - skip_min) * source_scale + skip_min) * max_dist;
-        if (random_val >= threshold)
+        if (random_val <= threshold)
           goto done;
       }
 
