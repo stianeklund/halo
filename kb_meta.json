@@ -1449,6 +1449,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x102c40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x102c80": {
       "kind": "function",
       "status": "ported"
@@ -2093,10 +2097,5 @@
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
     }
-  },
-  "0xe8c90": {
-    "status": "ported",
-    "confidence": "high",
-    "summary": "Fatal error screen loader; picks dashboard-abort widget based on allow_abort flag"
   }
 }

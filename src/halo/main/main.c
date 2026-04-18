@@ -1508,6 +1508,29 @@ void main_initialize_time(void)
   flip_count_ptr = d3d_find_flipcount();
 }
 
+/*
+ * main_halt_entry — infinite render loop entered after a fatal halt.
+ * Continuously processes input, shell idle, event manager, telnet console,
+ * UI widgets, pregame rendering, rasterizer throttle, and frame presentation.
+ * This keeps the screen alive (e.g. showing an error overlay) even though the
+ * game simulation has stopped.  Never returns.
+ */
+void __noreturn main_halt_entry(void)
+{
+  for (;;) {
+    input_frame_begin();
+    input_update();
+    shell_idle();
+    event_manager_update();
+    telnet_console_process();
+    process_ui_widgets();
+    main_pregame_render();
+    main_rasterizer_throttle();
+    main_present_frame();
+    input_frame_end();
+  }
+}
+
 void main_game_render(double a2)
 {
   bool force_single_screen;
