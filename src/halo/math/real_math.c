@@ -57,7 +57,7 @@ void real_math_reset_precision(void)
  * out[0] = cos(yaw) * cos(pitch)
  * out[1] = sin(yaw) * cos(pitch)
  * out[2] = sin(pitch) */
-void angles_to_vector(float *angles, float *out)
+void angles_to_vector(float *out, float *angles)
 {
   float cos_pitch;
 
