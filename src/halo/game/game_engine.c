@@ -140,7 +140,7 @@ void game_engine_update(void)
 
       ((void (*)(void *, int, int))0x13d6f0)(object_iter, 2, 0);
       while (((void *(*)(void *))0x13d730)(object_iter) != NULL)
-        ((void (*)(int))0x140cc0)(object_iter[2]);
+        object_delete(object_iter[2]);
 
       if (((void *(*)(void))0x12a1d0)() != NULL) {
         ((void (*)(int))0x12c370)((int)((void *(*)(void))0x12a1d0)());
