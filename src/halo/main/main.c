@@ -138,6 +138,21 @@ void main_menu_precache_resources(void)
 }
 
 /*
+ * main_reset_player_actions - 0x1006b0
+ *
+ * Resets the player action queue state by deleting all pending updates,
+ * re-initializing the queue, and restarting the server update pipeline.
+ * Called when closing a UI widget (ui_widget_close) and at the end of
+ * each network client frame (network_game_client_end_frame).
+ */
+void main_reset_player_actions(void)
+{
+  update_server_delete();
+  update_server_new();
+  update_server_start();
+}
+
+/*
  * main_change_map_name - 0x100c10
  *
  * Called from the main game loop when main_change_map_name_pending (0x46da25)

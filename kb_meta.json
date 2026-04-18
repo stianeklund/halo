@@ -1347,6 +1347,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1006b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x100c10": {
       "kind": "function",
       "status": "ported",
