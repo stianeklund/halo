@@ -1186,6 +1186,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xdeca0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The interface globals block element at offset 0x140 contains 16 tag_reference entries (0x10 bytes each); the tag_index is at offset 0xc within each reference.",
+        "NUMBER_OF_INTERFACE_TAGS is 16, matching the CMP SI,0x10 in the assert guard."
+      ]
+    },
+    "0xded20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdeda0": {
       "kind": "function",
       "status": "ported",

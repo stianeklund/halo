@@ -21,6 +21,69 @@ void interface_dispose(void)
   ((void (*)(void))0xd0340)();
 }
 
+#define NUMBER_OF_INTERFACE_TAGS 16
+
+/* Look up a tag_index from the interface globals tag block.
+ * The interface globals element (size 0x130) contains an array of 16
+ * tag_reference entries (each 0x10 bytes) starting at offset 0x0.
+ * The tag_index field is at offset 0xc within each tag_reference.
+ * Returns the tag_index for the given interface_tag_index slot. */
+int interface_get_tag_index(int interface_tag_index)
+{
+  char *globals;
+  char *element;
+
+  assert_halt(interface_tag_index >= 0 &&
+              interface_tag_index < NUMBER_OF_INTERFACE_TAGS);
+
+  globals = (char *)game_globals_get();
+  if (*(int *)(globals + 0x140) != 0) {
+    globals = (char *)game_globals_get();
+    element = (char *)tag_block_get_element(globals + 0x140, 0, 0x130);
+    return *(int *)(element + interface_tag_index * 0x10 + 0xc);
+  }
+
+  return *(int *)((char *)0 + interface_tag_index * 0x10 + 0xc);
+}
+
+/* Look up an ARGB float color from a color_table ('colo') tag.
+ * Uses interface_get_tag_index to resolve the color tag, then
+ * indexes into the color table block (element size 0x30).
+ * Color data is 4 floats (ARGB) at offset 0x20 within each entry.
+ * The color_index is taken modulo the block count (as a short).
+ * Returns out_color. */
+void *interface_get_color(int interface_tag_index, short color_index,
+                          void *out_color)
+{
+  int tag_idx;
+  int *color_tag;
+  int count;
+  char *entry;
+  float *out = (float *)out_color;
+
+  tag_idx = interface_get_tag_index(interface_tag_index);
+
+  out[3] = 1.0f;
+  out[2] = 1.0f;
+  out[1] = 1.0f;
+  out[0] = 1.0f;
+
+  if (tag_idx != -1) {
+    color_tag = (int *)tag_get(0x636f6c6f, tag_idx);
+    count = *color_tag;
+    if (count != 0) {
+      entry = (char *)tag_block_get_element(color_tag,
+                                            (short)(color_index % count), 0x30);
+      out[0] = *(float *)(entry + 0x20);
+      out[1] = *(float *)(entry + 0x24);
+      out[2] = *(float *)(entry + 0x28);
+      out[3] = *(float *)(entry + 0x2c);
+    }
+  }
+
+  return out_color;
+}
+
 /* Set up font, color, and style for drawing interface text.
  * Resolves font_index to a tag_index, looks up an ARGB color from the
  * interface color table (indexed by color_tag_index / color_index), then
