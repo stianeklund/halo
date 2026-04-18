@@ -2577,7 +2577,7 @@
           "addr": "0x10b5e0"
         },
         {
-          "decl": "void angles_to_vector(float *angles, float *out);",
+          "decl": "void angles_to_vector(float *out, float *angles);",
           "addr": "0x10cc40"
         },
         {
