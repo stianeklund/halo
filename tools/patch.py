@@ -522,10 +522,14 @@ def main():
         elif image_name == 'halo.xbe':
             for i in de.imports:
                 name = i.name.decode('ascii')
-                if name not in kb.name_to_addr:
+                lookup_name = name
+                # Strip stdcall decoration: _name@N -> name
+                if lookup_name.startswith('_') and '@' in lookup_name:
+                    lookup_name = lookup_name[1:lookup_name.index('@')]
+                if lookup_name not in kb.name_to_addr:
                     log.error('Where is "%s" in the original XBE?', name)
                     exit(1)
-                addr_of_original_function_in_xbe = kb.name_to_addr[name]
+                addr_of_original_function_in_xbe = kb.name_to_addr[lookup_name]
                 log.info('Patching EXE import of XBE symbol "%s" at %x with %x', name, i.address, addr_of_original_function_in_xbe)
                 write_to_vaddr(xbe, i.address, struct.pack('<I', addr_of_original_function_in_xbe))
 

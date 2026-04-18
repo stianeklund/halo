@@ -235,7 +235,16 @@ class KnowledgeBase:
 			for s in sorted(self.symbols, key=lambda s: (isinstance(s, Function), s.name)):
 				if s.requires_reg_thunk:
 					continue
-				f.write('\t' + s.name)
+				export_name = s.name
+				if isinstance(s, Function) and '__stdcall' in s.decl:
+					# stdcall functions need _name@N decoration in the .def
+					# so the linker can match the compiler-generated _name@N
+					args = list(s.cursor.get_arguments())
+					param_bytes = sum(
+						max(a.type.get_size(), 4) for a in args
+					)
+					export_name = f'_{s.name}@{param_bytes}'
+				f.write('\t' + export_name)
 				if isinstance(s, Data):
 					f.write(' DATA\n')
 				else:
