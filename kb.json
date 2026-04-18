@@ -147,6 +147,14 @@
       ],
       "functions": [
         {
+          "decl": "float normalize3d(float *v);",
+          "addr": "0x13010"
+        },
+        {
+          "decl": "void cross_product3d(float *a, float *b, float *out);",
+          "addr": "0x178d0"
+        },
+        {
           "decl": "void FUN_0002b5d0(void);",
           "addr": "0x2b5d0"
         },
@@ -243,16 +251,12 @@
           "addr": "0x64160"
         },
         {
-          "decl": "float normalize3d(float *v);",
-          "addr": "0x13010"
-        },
-        {
-          "decl": "void cross_product3d(float *a, float *b, float *out);",
-          "addr": "0x178d0"
-        },
-        {
           "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
           "addr": "0x966d0"
+        },
+        {
+          "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
+          "addr": "0x1919a0"
         }
       ]
     },

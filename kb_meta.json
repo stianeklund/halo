@@ -1757,6 +1757,17 @@
       "name": "objects_dispose",
       "name_confidence": "high"
     },
+    "0x13fd00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "cluster_partition_remove_object at 0x1919a0 takes (partition_ptr, object_handle, first_cluster_ref_ptr) based on push order and usage pattern in callers.",
+        "0x13e510 is an object-child-list unlink helper taking EAX=ptr-to-first-child-ref and EBX=object_handle as register args with zero stack args."
+      ],
+      "uncertain": [
+        "The re-fetch of header at 0x13fdc8 after the partition-remove call may be needed because the partition-remove could invalidate the cached header pointer, but this is not confirmed."
+      ]
+    },
     "0x141480": {
       "kind": "function",
       "status": "ported",
