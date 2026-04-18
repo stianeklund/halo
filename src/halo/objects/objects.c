@@ -740,9 +740,7 @@ lab_00140017: {
  */
 void object_delete(int object_handle)
 {
-  /* Delegate to the full deletion implementation with sibling flag = 0.
-   * FUN_00140bc0 is unported; call via hardcoded address. */
-  ((void (*)(int, int))0x140bc0)(object_handle, 0);
+  object_delete_internal(object_handle, 0);
 }
 
 /*
@@ -954,8 +952,8 @@ void objects_update(void)
            * Confirmed: MOV EAX,[ESI+8]; TEST dword [EAX+4],0x80000. */
           uint32_t *obj_dat = *(uint32_t **)(hdr + 0x8);
           if ((obj_dat[1] & 0x80000) != 0) {
-            /* Has "always update" flag: force-delete via FUN_140bc0. */
-            ((void (*)(int, int))0x140bc0)((int)i, 0);
+            /* Has "always update" flag: force-delete. */
+            object_delete_internal((int)i, 0);
           } else {
             /* Normal deactivate via FUN_13fb80. */
             ((void (*)(int))0x13fb80)((int)i);
