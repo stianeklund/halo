@@ -290,6 +290,15 @@
       ]
     },
     {
+      "name": "LIBCMT:sprintf.obj",
+      "functions": [
+        {
+          "decl": "int crt_sprintf(char *buffer, const char *format, ...);",
+          "addr": "0x1d90f0"
+        }
+      ]
+    },
+    {
       "name": "actors.obj",
       "source": "ai/actors.c",
       "data": [
@@ -398,6 +407,14 @@
         {
           "decl": "void bink_playback_trace(const char *msg);",
           "addr": "0x1c5900"
+        },
+        {
+          "decl": "bool bink_memory_pool_is_empty(void);",
+          "addr": "0x1c5a80"
+        },
+        {
+          "decl": "bool bink_playback_check_any_button(void);",
+          "addr": "0x1c6100"
         },
         {
           "decl": "void bink_playback_release_texture_cache(void);",
@@ -1574,6 +1591,10 @@
         {
           "decl": "void interface_dispose(void);",
           "addr": "0xdec80"
+        },
+        {
+          "decl": "void interface_draw_text(int font_index, int style, int justify, int flags, int alpha, short tab_stop_count);",
+          "addr": "0xdeda0"
         },
         {
           "decl": "void interface_initialize_for_new_map(void);",
@@ -2883,6 +2904,10 @@
           "addr": "0xe4470"
         },
         {
+          "decl": "bool ui_widget_initialization_in_progress(void);",
+          "addr": "0xe4480"
+        },
+        {
           "decl": "void display_error_when_main_menu_loaded(int16_t);",
           "addr": "0xe44d0"
         },
@@ -3361,6 +3386,30 @@
           "addr": "0x231220"
         },
         {
+          "decl": "int __stdcall BinkCopyToBuffer(void *bink_handle, void *dest, int pitch, int height, int x, int y, unsigned int flags);",
+          "addr": "0x22e530"
+        },
+        {
+          "decl": "int __stdcall BinkDoFrame(void *bink_handle);",
+          "addr": "0x22eb40"
+        },
+        {
+          "decl": "int __stdcall BinkWait(void *bink_handle);",
+          "addr": "0x22f1e0"
+        },
+        {
+          "decl": "void __stdcall BinkGetSummary(void *bink_handle, void *summary);",
+          "addr": "0x22f480"
+        },
+        {
+          "decl": "void __stdcall BinkGetFrameBuffersInfo(void *bink_handle, void *frame_info, unsigned int frame_count);",
+          "addr": "0x22f650"
+        },
+        {
+          "decl": "int __stdcall BinkNextFrame(void *bink_handle);",
+          "addr": "0x230ff0"
+        },
+        {
           "decl": "void __stdcall BinkSetSoundSystem(void *open_proc, void *close_proc);",
           "addr": "0x231490"
         }
@@ -3373,6 +3422,10 @@
         {
           "decl": "void *xbox_texture_cache_steal_memory(unsigned int size);",
           "addr": "0x1bea30"
+        },
+        {
+          "decl": "void xbox_texture_cache_return_memory(void);",
+          "addr": "0x1beb10"
         }
       ]
     },
@@ -3382,6 +3435,50 @@
         {
           "decl": "void __stdcall D3DResource_Register(void *resource, void *data);",
           "addr": "0x1eda30"
+        },
+        {
+          "decl": "void __stdcall D3DTexture_LockRect(void *texture, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
+          "addr": "0x1edc70"
+        }
+      ]
+    },
+    {
+      "name": "rasterizer_text.obj",
+      "functions": [
+        {
+          "decl": "void rasterizer_text_draw(void *screen_pos, void *bounds, int offset, void *tab_bounds, const char *text);",
+          "addr": "0x183e60"
+        }
+      ]
+    },
+    {
+      "name": "draw_string.obj",
+      "functions": [
+        {
+          "decl": "void draw_string_set_tab_stops(void *stops, short count);",
+          "addr": "0x19b560"
+        },
+        {
+          "decl": "void draw_string_set_color(const void *color);",
+          "addr": "0x19b640"
+        }
+      ]
+    },
+    {
+      "name": "rasterizer_sprites.obj",
+      "functions": [
+        {
+          "decl": "void rasterizer_sprites_render(void *render_data, void *vertices);",
+          "addr": "0x17cfa0"
+        }
+      ]
+    },
+    {
+      "name": "rectangles.obj",
+      "functions": [
+        {
+          "decl": "void rect2d_offset(void *rect, short dx, short dy);",
+          "addr": "0x108a70"
         }
       ]
     },

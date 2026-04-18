@@ -1,7 +1,14 @@
 /* Internal timing/memory checkpoint. Queries memory stats and stores
  * available kilobytes to a global. The string parameter is a debug
  * label unused in retail. */
-void bink_playback_trace(const char *msg);
+void bink_playback_trace(const char *msg)
+{
+  uint32_t mem_status[8];
+  csmemset(mem_status, 0, 0x20);
+  mem_status[0] = 0x20;
+  xbox_query_global_memory_status(mem_status);
+  *(uint32_t *)0x32eb9c = mem_status[3] >> 10;
+}
 
 /* Bink video playback system for cinematics and loading screens. */
 
@@ -21,8 +28,208 @@ bool bink_playback_has_video(void)
   return *(int *)0x4ead60 != 0;
 }
 
-/* Internal: render the bink frame quad on screen with debug overlay. */
-void bink_playback_render_frame(void);
+/* Render the bink frame quad on screen with optional debug overlay.
+ *
+ * Builds a 4-vertex textured quad from the current display bounds and
+ * video dimensions, centered on screen unless flag bit 0x10 is set
+ * (fullscreen stretch). Calls the sprite renderer to draw the quad.
+ *
+ * If the debug flag at 0x4ead54 is set (never in retail), draws
+ * a text overlay with Bink frame timing statistics. */
+void bink_playback_render_frame(void)
+{
+  char text_buf[1024];
+  char summary_buf[256];
+  short screen_pos[4];
+  float vertices[20]; /* 4 verts x 5 floats (x, y, u, v, color) */
+  short top_y, left_x, right_x, bottom_y;
+  short sVar9;
+  int counter;
+  int i;
+  short display_top, display_left, display_bottom, display_right;
+  int horiz_span, vert_span;
+  short video_w, video_h;
+
+  display_top = *(int16_t *)0x325654;
+  display_left = *(int16_t *)0x325656;
+  display_bottom = *(int16_t *)0x325658;
+  display_right = *(int16_t *)0x32565a;
+
+  if ((*(uint32_t *)0x4ead5c & 0x10) != 0) {
+    /* Fullscreen stretch: use display bounds directly. */
+    top_y = display_top;
+    left_x = display_left;
+    bottom_y = display_bottom;
+    right_x = display_right;
+  } else {
+    /* Center the video in the display area. */
+    horiz_span = (int)(display_right - display_left);
+    vert_span = (int)(display_bottom - display_top);
+    video_w = *(int16_t *)0x4ead64;
+    video_h = *(int16_t *)0x4ead66;
+    left_x = (short)((horiz_span - (int)video_w) / 2);
+    right_x = (short)((horiz_span + (int)video_w) / 2);
+    top_y = (short)((vert_span - (int)video_h) / 2);
+    bottom_y = (short)((vert_span + (int)video_h) / 2);
+  }
+
+  sVar9 = 0;
+  counter = 1;
+  i = 0;
+  do {
+    float u_val, v_val, x_val, y_val;
+
+    /* u coordinate: 0 for left side, video_width for right side. */
+    if ((counter & 2) != 0) {
+      u_val = (float)(int)*(int16_t *)0x4ead64;
+    } else {
+      u_val = 0.0f;
+    }
+
+    /* v coordinate: 0 for top, video_height for bottom. */
+    if (sVar9 > 1) {
+      v_val = (float)(int)*(int16_t *)0x4ead66;
+    } else {
+      v_val = 0.0f;
+    }
+
+    /* x position. */
+    if ((counter & 2) != 0) {
+      x_val = (float)(int)right_x;
+    } else {
+      x_val = (float)(int)left_x;
+    }
+
+    /* y position. */
+    if (sVar9 < 2) {
+      y_val = (float)(int)top_y;
+    } else {
+      y_val = (float)(int)bottom_y;
+    }
+
+    vertices[i * 5 + 0] = x_val;
+    vertices[i * 5 + 1] = y_val;
+    vertices[i * 5 + 2] = u_val;
+    vertices[i * 5 + 3] = v_val;
+    *(uint32_t *)&vertices[i * 5 + 4] = 0xffffffff; /* white, full alpha */
+
+    sVar9 = sVar9 + 1;
+    counter = counter + 1;
+    i++;
+  } while (sVar9 < 4);
+
+  rasterizer_sprites_render((void *)0x4ead98, vertices);
+
+  if (*(uint8_t *)0x4ead54 != 0) {
+    /* Debug overlay: gather Bink timing stats and draw on screen. */
+    int bink_handle = *(int *)0x4ead60;
+    int16_t frame_info[14];
+    float scale;
+
+    frame_info[0] = 0xfa; /* max frame count for averaging */
+    frame_info[1] = 0;
+    frame_info[2] = 0;
+    frame_info[3] = 0;
+    frame_info[4] = 0;
+    frame_info[5] = 0;
+    frame_info[9] = 0;
+    frame_info[10] = 0;
+
+    BinkGetFrameBuffersInfo((void *)bink_handle, frame_info, 0);
+
+    /* Compute scale factor: 1.0 / total_time. The decompiler shows
+     * complex unsigned-to-float conversions for each timing field,
+     * then multiplication by scale. Faithfully reproduce this. */
+    {
+      float total_f = (float)(int)frame_info[8]; /* FIXME: uint32 at offset */
+      /* The original reads dword-sized fields from the frame_info struct
+       * at offsets that alias over the short array. These are actually
+       * dword timing fields from BinkGetFrameBuffersInfo. Use hardcoded
+       * pointer arithmetic to match the original exactly. */
+      int *fi = (int *)frame_info;
+      int total_time = fi[8]; /* offset 0x10 from frame_info base */
+
+      if (total_time < 0)
+        total_f = total_f + *(float *)0x25fb8c;
+      scale = 1.0f / total_f;
+
+      /* Format timing stats into text buffer. */
+      crt_sprintf(
+        text_buf,
+        "FramesTime=|t%.02f|nFrameVideoDecompTime=|t%.02f|n"
+        "FrameAudioDecompTime=|t%.02f|nFrameReadTime=|t%.02f|n"
+        "FrameIdleReadTime=|t%.02f|nFrameThreadReadTime=|t%.02f|n"
+        "FramesBlitTime=|t%.02f|n|nFrames=|t%d",
+        (double)((float)fi[7] < 0 ? (float)fi[7] + *(float *)0x25fb8c :
+                                    (float)fi[7]) *
+          scale,
+        (double)((float)fi[6] < 0 ? (float)fi[6] + *(float *)0x25fb8c :
+                                    (float)fi[6]) *
+          scale,
+        (double)((float)fi[5] < 0 ? (float)fi[5] + *(float *)0x25fb8c :
+                                    (float)fi[5]) *
+          scale,
+        (double)((float)fi[4] < 0 ? (float)fi[4] + *(float *)0x25fb8c :
+                                    (float)fi[4]) *
+          scale,
+        (double)((float)fi[3] < 0 ? (float)fi[3] + *(float *)0x25fb8c :
+                                    (float)fi[3]) *
+          scale,
+        (double)((float)fi[2] < 0 ? (float)fi[2] + *(float *)0x25fb8c :
+                                    (float)fi[2]) *
+          scale,
+        (double)((float)fi[1] < 0 ? (float)fi[1] + *(float *)0x25fb8c :
+                                    (float)fi[1]) *
+          scale,
+        total_time);
+    }
+
+    /* Offset screen position by display origin. */
+    {
+      short dx = *(int16_t *)0x32565c;
+      short dy = *(int16_t *)0x325660;
+      screen_pos[0] = dx;
+      screen_pos[1] = dy;
+      screen_pos[2] = dx;
+      screen_pos[3] = dy;
+    }
+    rect2d_offset(screen_pos, 0, 0x20);
+
+    /* Set up text rendering. */
+    interface_draw_text(1, 5, 0, 0, -1, 1);
+    draw_string_set_color(*(const void **)0x2ee6d4);
+    draw_string_set_tab_stops(&screen_pos[2], 1);
+    rasterizer_text_draw(screen_pos, (void *)((int)&screen_pos[2] - 4), 0,
+                         text_buf, text_buf);
+
+    /* Check if enough frames have passed to update stats. */
+    if (*(int *)0x4ead88 - *(int *)0x4ead84 > 0x1c) {
+      BinkGetSummary((void *)*(int *)0x4ead60, summary_buf);
+
+      *(int *)0x4ead8c = *(int *)(summary_buf + 0x2c) - *(int *)0x4ead7c;
+      *(int *)0x4ead90 = *(int *)(summary_buf + 0x30) - *(int *)0x4ead80;
+      *(int *)0x4ead94 = *(int *)0x4ead88 - *(int *)0x4ead84;
+      *(int *)0x4ead7c = *(int *)(summary_buf + 0x2c);
+      *(int *)0x4ead80 = *(int *)(summary_buf + 0x30);
+      *(int *)0x4ead84 = *(int *)0x4ead88;
+    }
+
+    /* Draw skipped frames / blits stats. */
+    {
+      int skipped_frames = *(int *)0x4ead8c;
+      int skipped_blits = *(int *)0x4ead90;
+      int frame_count = *(int *)0x4ead94;
+
+      screen_pos[3] = screen_pos[3] + 0x1f;
+
+      crt_sprintf(text_buf, "SkippedFrames=|t%d (%d)|nSkippedBlits=|t%d|n",
+                  skipped_frames, frame_count, skipped_blits);
+      draw_string_set_color(*(const void **)0x2ee6d0);
+      rasterizer_text_draw(screen_pos, (void *)((int)&screen_pos[2] - 4), 0,
+                           text_buf, text_buf);
+    }
+  }
+}
 
 /* Initialize the bink playback globals and register callbacks. */
 void bink_playback_initialize(void)
@@ -32,11 +239,47 @@ void bink_playback_initialize(void)
   *(uint8_t *)0x4ead58 = 1;
 }
 
-/* Internal: release texture cache memory stolen for bink playback. */
-void bink_playback_release_texture_cache(void);
+/* Release texture cache memory stolen for bink playback. Asserts that
+ * all bink pool allocations have been freed before returning memory
+ * back to the texture cache. Clears pool base, texture pointer, and
+ * pool size globals. */
+void bink_playback_release_texture_cache(void)
+{
+  if (*(uint8_t *)0x4ead58 == 0)
+    return;
+  if (*(int *)0x4eae24 == 0)
+    return;
 
-/* Internal: decode and blit the current bink frame to the texture. */
-void bink_playback_decode_frame(void);
+  if (!bink_memory_pool_is_empty()) {
+    display_assert(
+      "we released the texture cache but we still had memory allocated",
+      "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x299, 1);
+    system_exit(-1);
+  }
+  xbox_texture_cache_return_memory();
+  *(uint32_t *)0x4eae24 = 0;
+  *(uint32_t *)0x4ead78 = 0;
+  *(uint32_t *)0x4eae2c = 0;
+}
+
+/* Decode the current bink frame and blit it to the D3D texture.
+ * Calls BinkDoFrame + BinkNextFrame to advance decoding, then locks
+ * the texture surface and copies the decoded frame data into it
+ * via BinkCopyToBuffer. Temporarily sets the D3D status word to 6
+ * during the lock/copy to signal the GPU. */
+void bink_playback_decode_frame(void)
+{
+  int locked_rect[2]; /* [0]=Pitch, [1]=pBits */
+
+  BinkDoFrame((void *)*(int *)0x4ead60);
+  BinkNextFrame((void *)*(int *)0x4ead60);
+  *(uint16_t *)0x325652 = 6;
+  D3DTexture_LockRect((void *)*(int *)0x4ead78, 0, locked_rect, 0, 0);
+  BinkCopyToBuffer((void *)*(int *)0x4ead60, (void *)locked_rect[1],
+                   locked_rect[0], *(int *)(*(int *)0x4ead60 + 4), 0, 0,
+                   *(uint32_t *)0x4ead70 | 0x80000000);
+  *(uint16_t *)0x325652 = 0;
+}
 
 /* Stop the currently playing bink video. Closes the bink handle,
  * releases texture cache memory, restores the pregame loading flag,
@@ -86,9 +329,61 @@ void bink_playback_dispose(void)
   }
 }
 
-/* Internal: check whether the video should stop (end of file, skip
- * button, etc.) and jump to bink_playback_stop if so. */
-void bink_playback_check_stop(void);
+/* Check whether the video should stop (end of file, user skip, etc.)
+ * and call bink_playback_stop if so.
+ *
+ * When the pregame loading flag is set, BinkWait is called once and
+ * needs_decode is set based on the result. When loading is not active,
+ * BinkWait is called in a busy loop until the frame is ready.
+ *
+ * The video stops if:
+ *  - The user pressed a button (flag bit 2 = skippable), unless
+ *    flag bit 0x40 is set and ui widget initialization is still running.
+ *  - The video reached the last frame and flag bit 1 (loop) is not set. */
+void bink_playback_check_stop(void)
+{
+  int wait_result;
+  uint8_t flags;
+
+  if (*(uint8_t *)0x4ead58 == 0)
+    return;
+  if (*(int *)0x4ead60 == 0)
+    return;
+
+  if (*(uint8_t *)0x31fa96 != 0) {
+    /* Pregame loading active: single BinkWait call. */
+    wait_result = BinkWait((void *)*(int *)0x4ead60);
+    *(uint8_t *)0x4ead59 = (uint8_t)(wait_result == 0);
+  } else {
+    /* Not loading: busy-wait until frame is ready. */
+    do {
+      wait_result = BinkWait((void *)*(int *)0x4ead60);
+    } while (wait_result != 0);
+    *(uint8_t *)0x4ead59 = 1;
+  }
+
+  flags = *(uint8_t *)0x4ead5c;
+
+  /* Check if user wants to skip the video. */
+  if ((flags & 2) != 0) {
+    if ((flags & 0x40) == 0 || !ui_widget_initialization_in_progress()) {
+      if (bink_playback_check_any_button()) {
+        bink_playback_stop();
+        return;
+      }
+    }
+    flags = *(uint8_t *)0x4ead5c;
+  }
+
+  /* Check if video has ended. */
+  if (*(int *)0x4ead60 == 0 || *(int *)(*(int *)0x4ead60 + 0xc) ==
+                                 *(int *)(*(int *)0x4ead60 + 0x8) - 1) {
+    if ((flags & 1) == 0) {
+      bink_playback_stop();
+      return;
+    }
+  }
+}
 
 /* Render the current bink frame if a video is playing. Handles
  * the pregame/loading flag to decide when to flush. */

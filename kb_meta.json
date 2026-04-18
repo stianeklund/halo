@@ -2027,6 +2027,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c5900": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c5940": {
       "kind": "function",
       "status": "ported",
@@ -2041,7 +2045,19 @@
         "Only checks bink handle (0x4ead60) for non-zero; does not require subsystem initialized."
       ]
     },
+    "0x1c5d70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c61a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c61d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c6230": {
       "kind": "function",
       "status": "ported"
     },
@@ -2053,6 +2069,10 @@
       ]
     },
     "0x1c6310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c6340": {
       "kind": "function",
       "status": "ported"
     },
