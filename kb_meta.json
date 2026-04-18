@@ -1670,6 +1670,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13d640": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13d680": {
       "kind": "function",
       "status": "ported",
@@ -1705,6 +1709,10 @@
       "status": "ported",
       "name": "objects_dispose",
       "name_confidence": "high"
+    },
+    "0x141480": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x145170": {
       "kind": "function",
@@ -1992,6 +2000,10 @@
       "status": "ported"
     },
     "0x1adeb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ae330": {
       "kind": "function",
       "status": "ported"
     },

@@ -3,12 +3,14 @@
  * XBE source: c:\halo\SOURCE\objects\objects.c
  *
  * Re-implemented functions (by XBE address, ascending):
+ *   0x13d640  object_try_and_get_and_verify_type
  *   0x13d680  object_get_and_verify_type
  *   0x13f060  objects_place
  *   0x13f810  objects_initialize
  *   0x13f950  objects_initialize_for_new_map
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
+ *   0x141480  object_get_world_matrix
  *   0x145170  objects_update
  */
 
@@ -19,6 +21,30 @@
  * with stubs that would silently override thunks. */
 typedef void (*pfn_void_t)(void);
 typedef void (*pfn_int_t)(int);
+
+/*
+ * object_try_and_get_and_verify_type — resolve a datum handle to its
+ * object_data_t*, returning NULL if the handle is invalid or the object's
+ * type is not among the bits in type_mask.
+ *
+ * Uses datum_absolute_index_to_index (0x119270, a "try-and-get" that returns
+ * 0/NULL on failure) instead of datum_get (which asserts).
+ * Reads the compact type byte at header+0x03, not the int16 at object+0x64.
+ *
+ * Confirmed: CALL 0x119270 with 2 args (ADD ESP,0x8).
+ * Confirmed: byte ptr [EDX+0x3] — reads header->type as uint8_t.
+ * Confirmed: MOV EAX, [EDX+0x8] — returns header->object.
+ * Confirmed: XOR EAX,EAX before both exit paths — returns NULL on failure.
+ */
+void *object_try_and_get_and_verify_type(int datum_handle, int type_mask)
+{
+  object_header_data_t *header =
+    (object_header_data_t *)(int)datum_absolute_index_to_index(
+      *(data_t **)0x5a8d50, datum_handle);
+  if (header != NULL && (type_mask & (1 << (header->type & 0x1f))) != 0)
+    return header->object;
+  return NULL;
+}
 
 /*
  * object_get_and_verify_type — resolve a datum handle to its object_data_t*
@@ -355,6 +381,46 @@ void objects_dispose(void)
   /* Zero out cluster partition structs (3 data_t* fields each) */
   ((void (*)(void *))0x191630)((void *)0x5a8d40);
   ((void (*)(void *))0x191630)((void *)0x5a8d30);
+}
+
+/*
+ * object_get_world_matrix — build a 4x3 world-space matrix for an object.
+ *
+ * Constructs the matrix from the object's position (obj+0xc), forward
+ * vector (obj+0x24), and up vector (obj+0x30) via FUN_0010a110 (which
+ * calls matrix_from_forward_and_up then copies position to offset 0x28).
+ *
+ * If the object has a parent (parent_object_index at obj+0xcc != -1),
+ * retrieves the parent's node matrix via FUN_00140eb0 (using the node
+ * index byte at obj+0xd0) and multiplies it with the local matrix via
+ * FUN_00109850 (matrix_multiply), storing the result in-place.
+ *
+ * Confirmed: PUSH -1, PUSH EAX — object_get_and_verify_type(handle, -1).
+ * Confirmed: ADD ESP,0x18 cleans 6 args (2 + 4 from two cdecl calls).
+ * Confirmed: MOVSX CX, byte ptr [ESI+0xd0] — sign-extends node index.
+ * Confirmed: ADD ESP,0x14 cleans 5 args (2 + 3 from two cdecl calls).
+ * Confirmed: MOV EAX, EDI — returns out_matrix pointer.
+ */
+void *object_get_world_matrix(int object_handle, void *out_matrix)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* Build local matrix from position, forward, up */
+  ((void (*)(void *, float *, float *, float *))0x10a110)(
+    out_matrix, (float *)((char *)obj + 0xc), (float *)((char *)obj + 0x24),
+    (float *)((char *)obj + 0x30));
+
+  /* If parented, multiply by parent's node matrix */
+  if (obj->parent_object_index.value != NONE) {
+    void *node_mat = ((void *(*)(int, int16_t))0x140eb0)(
+      obj->parent_object_index.value,
+      (int16_t) * (int8_t *)((char *)obj + 0xd0));
+    ((void (*)(void *, void *, void *))0x109850)(node_mat, out_matrix,
+                                                 out_matrix);
+  }
+
+  return out_matrix;
 }
 
 /*
