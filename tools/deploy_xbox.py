@@ -144,6 +144,41 @@ def run_xbcp(
         return 1
 
 
+def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
+    """Launch the deployed XBE on the Xbox via xbdm_rdcp.py magicboot."""
+    xbe_xbox_path = xbox_dest.lstrip("x") + "\\default.xbe"
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbdm_rdcp.py")
+    cmd = [
+        sys.executable,
+        rdcp_script,
+        f"magicboot title={xbe_xbox_path} debug",
+    ]
+    if host:
+        cmd += ["-x", host]
+    if dry_run:
+        print(f"  [DRY-RUN] {' '.join(cmd)}")
+        return 0
+    print(f"  launching {xbe_xbox_path}...")
+    try:
+        result = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True)
+        if result.stdout:
+            for line in result.stdout.strip().splitlines():
+                print(f"  | {line}")
+        if result.returncode != 0:
+            if result.stderr:
+                for line in result.stderr.strip().splitlines():
+                    print(f"  | {line}", file=sys.stderr)
+            print(f"  xbdm_rdcp exited with code {result.returncode}", file=sys.stderr)
+            return result.returncode
+        return 0
+    except FileNotFoundError:
+        print(f"error: failed to run {rdcp_script}", file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Deploy patched Halo build to Xbox via xbcp (XDK)"
@@ -167,6 +202,11 @@ def main() -> int:
         "--xbe-only",
         action="store_true",
         help="Only deploy default.xbe (fastest)",
+    )
+    parser.add_argument(
+        "--launch",
+        action="store_true",
+        help="Launch the XBE on the Xbox after deploying (via xbdm_rdcp magicboot)",
     )
     parser.add_argument(
         "--dry-run",
@@ -240,6 +280,10 @@ def main() -> int:
                 print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
                 return rc
         print("done.")
+        if args.launch:
+            rc = launch_xbe(args.dest, host, args.dry_run)
+            if rc != 0:
+                return rc
         return 0
 
     since = args.since
@@ -262,7 +306,51 @@ def main() -> int:
         if any_failed:
             return 1
         print("done.")
+        if args.launch:
+            rc = launch_xbe(args.dest, host, args.dry_run)
+            if rc != 0:
+                return rc
         return 0
+
+    # Default: deploy XBE + anything that looks like it changed (maps, etc.)
+    # First always push the XBE
+    print(f"  default.xbe ({os.path.getsize(xbe_path):,} bytes)")
+    rc = run_xbcp(src=xbe_src, dest=xbe_dest, **common_kwargs)
+    if rc != 0:
+        print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
+        return rc
+
+    # Then push maps/ and bink/ if --full, or just maps/ by default
+    dirs_to_deploy = []
+    maps_dir = os.path.join(HALO_PATCHED_DIR, "maps")
+    if os.path.isdir(maps_dir):
+        dirs_to_deploy.append(("maps", maps_dir))
+
+    if args.full:
+        bink_dir = os.path.join(HALO_PATCHED_DIR, "bink")
+        if os.path.isdir(bink_dir):
+            dirs_to_deploy.append(("bink", bink_dir))
+
+    for label, local_dir in dirs_to_deploy:
+        print(f"  {label}/ (newer files only)")
+        src = to_windows_path(local_dir)
+        d = f"{dest}\\{label}"
+        rc = run_xbcp(
+            src=src + "\\*", 
+            dest=d,
+            recursive=True,
+            **common_kwargs,
+        )
+        if rc != 0:
+            print(f"    xbcp failed with exit code {rc}", file=sys.stderr)
+            return rc
+
+    print("done.")
+    if args.launch:
+        rc = launch_xbe(args.dest, host, args.dry_run)
+        if rc != 0:
+            return rc
+    return 0
 
     # Default: deploy XBE + anything that looks like it changed (maps, etc.)
     # First always push the XBE
