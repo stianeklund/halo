@@ -6,6 +6,8 @@ import subprocess
 import sys
 import time
 
+from local_env import build_windows_python_command
+
 
 ROOT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -23,8 +25,11 @@ def eject_from_xemu() -> None:
     if not os.path.exists(iso_path):
         return
     try:
+        command = build_windows_python_command(XEMU_QMP, ["eject"])
+        if command is None:
+            command = [sys.executable, XEMU_QMP, "eject"]
         subprocess.run(
-            [sys.executable, XEMU_QMP, "eject"],
+            command,
             check=False,
             capture_output=True,
             cwd=ROOT_DIR,

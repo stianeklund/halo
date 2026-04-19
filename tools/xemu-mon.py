@@ -20,6 +20,11 @@ import socket
 import sys
 import time
 
+from local_env import maybe_reexec_on_windows
+
+
+maybe_reexec_on_windows(__file__)
+
 PROMPT = b"(qemu) "
 ANSI_CSI = re.compile(rb"\x1b\[[0-9;]*[a-zA-Z]")
 
