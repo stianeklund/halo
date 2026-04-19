@@ -2628,6 +2628,14 @@
           "addr": "0xe1ce0"
         },
         {
+          "decl": "void progress_bar_screen_initialize(void);",
+          "addr": "0xe29a0"
+        },
+        {
+          "decl": "void progress_bar_render(float normalized_progress);",
+          "addr": "0xe2e50"
+        },
+        {
           "decl": "void progress_bar_display(float progress);",
           "addr": "0xe3300"
         }

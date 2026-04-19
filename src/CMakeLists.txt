@@ -46,6 +46,7 @@
 	halo/interface/hud.c
 	halo/interface/marketing_and_strategic_business_development.c
 	halo/interface/player_ui.c
+	halo/interface/progress_bar.c
 	halo/interface/terminal.c
 	halo/interface/ui_widget.c
 	halo/interface/ui_widget_game_data_input_functions.c
