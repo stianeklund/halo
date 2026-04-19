@@ -13,6 +13,8 @@ Examples:
     python tools/deploy_xbox.py -x 192.168.1.42 --full # full halo-patched dir
     python tools/deploy_xbox.py --dry-run              # show what would be copied
 
+The deployed XBE is automatically launched on the Xbox after deployment.
+
 Requires: XDK installed at "C:\\Program Files (x86)\\RXDK\\xbox\\bin\\xbcp.exe"
           or XBCP_PATH env var pointing to xbcp.exe.
 """
@@ -22,6 +24,11 @@ import os
 import subprocess
 import sys
 import time
+
+from local_env import build_windows_python_command, load_repo_env
+
+
+load_repo_env("xbox.env")
 
 ROOT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -180,13 +187,18 @@ def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
     """Launch the deployed XBE on the Xbox via xbdm_rdcp.py magicboot."""
     xbe_xbox_path = xbox_dest.lstrip("x") + "\\default.xbe"
     rdcp_script = os.path.join(ROOT_DIR, "tools", "xbdm_rdcp.py")
-    cmd = [
-        sys.executable,
+    cmd = build_windows_python_command(
         rdcp_script,
-        f"magicboot title={xbe_xbox_path} debug",
-    ]
+        [f"magicboot title={xbe_xbox_path} debug"],
+    )
+    if cmd is None:
+        cmd = [
+            sys.executable,
+            rdcp_script,
+            f"magicboot title={xbe_xbox_path} debug",
+        ]
     if host:
-        cmd += ["-x", host]
+        cmd += ["--host", host]
     if dry_run:
         print(f"  [DRY-RUN] {' '.join(cmd)}")
         return 0
@@ -236,14 +248,14 @@ def main() -> int:
         help="Only deploy default.xbe (fastest)",
     )
     parser.add_argument(
-        "--launch",
-        action="store_true",
-        help="Launch the XBE on the Xbox after deploying (via xbdm_rdcp magicboot)",
-    )
-    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show commands without executing",
+    )
+    parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="Skip build step and only deploy existing halo-patched files",
     )
     parser.add_argument(
         "--since",
@@ -266,7 +278,7 @@ def main() -> int:
 
     build_dir = os.path.join(ROOT_DIR, "build")
     xbe_path = os.path.join(HALO_PATCHED_DIR, "default.xbe")
-    if os.path.isdir(build_dir):
+    if not args.skip_build and os.path.isdir(build_dir):
         if is_build_current(xbe_path):
             print("build unchanged, skipping rebuild...")
         else:
@@ -282,6 +294,21 @@ def main() -> int:
     if not os.path.isfile(xbe_path):
         print("error: default.xbe not found in halo-patched/", file=sys.stderr)
         return 1
+
+    # Always eject xemu disc first so the XBE isn't locked
+    qmp_script = os.path.join(ROOT_DIR, "tools", "xemu_qmp.py")
+    if os.path.isfile(qmp_script):
+        print("ejecting xemu disc...")
+        eject_rc = subprocess.run(
+            [sys.executable, qmp_script, "eject"],
+            cwd=ROOT_DIR, capture_output=True, text=True,
+        )
+        if eject_rc.returncode == 0:
+            if eject_rc.stdout:
+                for line in eject_rc.stdout.strip().splitlines():
+                    print(f"  | {line}")
+        else:
+            print("  (no xemu instance found, skipping eject)")
 
     dest = args.dest
     host = args.xbox
@@ -313,10 +340,9 @@ def main() -> int:
                 print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
                 return rc
         print("done.")
-        if args.launch:
-            rc = launch_xbe(args.dest, host, args.dry_run)
-            if rc != 0:
-                return rc
+        rc = launch_xbe(args.dest, host, args.dry_run)
+        if rc != 0:
+            return rc
         return 0
 
     since = args.since
@@ -339,10 +365,9 @@ def main() -> int:
         if any_failed:
             return 1
         print("done.")
-        if args.launch:
-            rc = launch_xbe(args.dest, host, args.dry_run)
-            if rc != 0:
-                return rc
+        rc = launch_xbe(args.dest, host, args.dry_run)
+        if rc != 0:
+            return rc
         return 0
 
     # Default: deploy XBE + anything that looks like it changed (maps, etc.)
@@ -379,10 +404,9 @@ def main() -> int:
             return rc
 
     print("done.")
-    if args.launch:
-        rc = launch_xbe(args.dest, host, args.dry_run)
-        if rc != 0:
-            return rc
+    rc = launch_xbe(args.dest, host, args.dry_run)
+    if rc != 0:
+        return rc
     return 0
 
 

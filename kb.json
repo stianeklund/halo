@@ -2740,7 +2740,6 @@
     },
     {
       "name": "vector_math.obj",
-      "source": "math/vector_math.c",
       "functions": [
         {
           "decl": "float normalize3d(float *v);",
@@ -2750,12 +2749,7 @@
     },
     {
       "name": "real_math.obj",
-      "source": "math/real_math.c",
       "functions": [
-        {
-          "decl": "void matrix_inverse(float *src, float *dst);",
-          "addr": "0x109150"
-        },
         {
           "decl": "void matrix_transform_point(float *matrix, float *in, float *out);",
           "addr": "0x109590"
@@ -2769,10 +2763,6 @@
           "addr": "0x109780"
         },
         {
-          "decl": "void matrix4x3_multiply(float *a, float *b, float *out);",
-          "addr": "0x109850"
-        },
-        {
           "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
           "addr": "0x109e10"
         },
@@ -2783,6 +2773,20 @@
         {
           "decl": "void angles_to_vector(float *out, float *angles);",
           "addr": "0x10cc40"
+        }
+      ]
+    },
+    {
+      "name": "real_math_bisect.obj",
+      "source": "math/real_math.c",
+      "functions": [
+        {
+          "decl": "void matrix_inverse(float *src, float *dst);",
+          "addr": "0x109150"
+        },
+        {
+          "decl": "void matrix4x3_multiply(float *a, float *b, float *out);",
+          "addr": "0x109850"
         }
       ]
     },
