@@ -2102,6 +2102,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x19b0d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Assert string references tag_files.c not tag_groups.c, suggesting this function was originally defined in tag_files.c but compiled into tag_groups.obj."
+      ]
+    },
     "0x19b210": {
       "kind": "function",
       "status": "ported"

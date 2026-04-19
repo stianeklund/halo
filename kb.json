@@ -311,6 +311,15 @@
       ]
     },
     {
+      "name": "LIBCMT:strrchr.obj",
+      "functions": [
+        {
+          "decl": "char *strrchr(const char *str, int c);",
+          "addr": "0x1d9710"
+        }
+      ]
+    },
+    {
       "name": "LIBCMT:wcsncpy.obj",
       "functions": [
         {
