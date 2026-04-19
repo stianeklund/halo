@@ -38,18 +38,19 @@ void matrix_inverse(float *src, float *dst)
   *(float *)((char *)dst + 0x20) = *(float *)((char *)src + 0x18);
   *(float *)((char *)dst + 0x18) = tmp;
 
+  /* Original MSVC evaluation order: (tx*col + tz*col) + ty*col */
   *(float *)((char *)dst + 0x28) =
-    (float)(tx * *(float *)((char *)dst + 0x04) +
-            (ty * *(float *)((char *)dst + 0x10) +
-             tz * *(float *)((char *)dst + 0x1c)));
+    (float)((tx * *(float *)((char *)dst + 0x04) +
+             tz * *(float *)((char *)dst + 0x1c)) +
+            ty * *(float *)((char *)dst + 0x10));
   *(float *)((char *)dst + 0x2c) =
-    (float)(tx * *(float *)((char *)dst + 0x08) +
-            (ty * *(float *)((char *)dst + 0x14) +
-             tz * *(float *)((char *)dst + 0x20)));
+    (float)((tx * *(float *)((char *)dst + 0x08) +
+             tz * *(float *)((char *)dst + 0x20)) +
+            ty * *(float *)((char *)dst + 0x14));
   *(float *)((char *)dst + 0x30) =
-    (float)(tx * *(float *)((char *)dst + 0x0c) +
-            (ty * *(float *)((char *)dst + 0x18) +
-             tz * *(float *)((char *)dst + 0x24)));
+    (float)((tx * *(float *)((char *)dst + 0x0c) +
+             tz * *(float *)((char *)dst + 0x24)) +
+            ty * *(float *)((char *)dst + 0x18));
 }
 
 static float matrix4x3_round_to_float(float value)
