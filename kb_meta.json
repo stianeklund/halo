@@ -600,6 +600,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa7c90": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Sets allegiance friendship between two teams, updates incidents and hostility bitfields symmetrically, calls game_allegiance_apply_change"
+      },
+      "inferred": [
+        "The +0x94 bitfield tracks allegiance incidents (set=incident occurred, clear=no incident).",
+        "Function at 0x40010 (game_allegiance_apply_change) propagates allegiance changes to AI encounter state."
+      ],
+      "uncertain": [
+        "The name game_allegiance_apply_change for 0x40010 is inferred from its behavior (logging allegiance broken/reformed and updating AI encounters); the original name is unknown."
+      ]
+    },
     "0xa7e30": {
       "kind": "function",
       "status": "ported"

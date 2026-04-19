@@ -426,6 +426,10 @@
         {
           "decl": "bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag);",
           "addr": "0x3fdc0"
+        },
+        {
+          "decl": "void game_allegiance_apply_change(int16_t team_a, int16_t team_b, char friendship, char force);",
+          "addr": "0x40010"
         }
       ]
     },
@@ -1264,6 +1268,10 @@
         {
           "decl": "bool game_allegiance_get_team_is_friendly(int16_t team_a, int16_t team_b);",
           "addr": "0xa7a30"
+        },
+        {
+          "decl": "void game_allegiance_set(int16_t *entry@<eax>, char friendship@<bl>, char force);",
+          "addr": "0xa7c90"
         },
         {
           "decl": "void game_allegiance_update(void);",
