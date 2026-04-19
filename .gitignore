@@ -51,6 +51,7 @@ desktop.ini
 # Debug / runtime artifacts
 .gdbinit
 /tools/xemu.env
+/tools/xbox.env
 KrnlDebug.txt
 debug.txt
 gamestate.txt

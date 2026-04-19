@@ -14,6 +14,12 @@ import socket
 import sys
 from dataclasses import dataclass
 
+from local_env import load_repo_env, maybe_reexec_on_windows
+
+
+load_repo_env("xbox.env")
+maybe_reexec_on_windows(__file__)
+
 
 DEFAULT_HOST = os.environ.get("XBDM_HOST", "localhost")
 DEFAULT_PORT = int(os.environ.get("XBDM_PORT", "731"))
