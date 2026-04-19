@@ -1615,6 +1615,10 @@
         "Matrix layout: 4-byte scale at offset 0, followed by 3x3 float rotation at offsets 0x04-0x24."
       ]
     },
+    "0x109780": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x109850": {
       "kind": "function",
       "status": "ported",
