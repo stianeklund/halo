@@ -1666,8 +1666,10 @@ void players_update_before_game(void)
  *           HUD message, stop the effect (FUN_a2930), and mark the unit for
  *           deletion (FUN_1a7f80 sets bit 0x20 at unit+0xb6).
  *        c. Clear the telefrag-pending flag.
- *        d. Advance the weapon/vehicle seat timers via FUN_bc4b0 (EBX =
- *           datum_handle register arg).
+ *        d. Advance the player's short weapon/vehicle timers via FUN_bc4b0
+ *           (EBX = datum_handle register arg). Binary comparison shows this
+ *           helper only decrements small player/unit timers and is not where
+ *           the actual camera blend math lives.
  *        e. If the unit exists and its object-type flags don't include
  *           0x200000, scan scenario trigger volumes (tag block at
  *           scenario+0x39c) for BSP-switch triggers that contain the
@@ -1747,7 +1749,7 @@ void players_update_after_game(void)
     /* Clear the telefrag-pending flag. */
     *(char *)(player + 0xd0) = 0;
 
-    /* Advance weapon/vehicle seat timers for this player.
+    /* Advance the player's short weapon/vehicle timers.
      * Original CALL to FUN_bc4b0 with EBX = datum_handle (register arg). */
     if (*(int *)(player + 0x34) != -1) {
       int _dh = datum_handle;
