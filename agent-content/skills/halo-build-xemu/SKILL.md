@@ -26,6 +26,8 @@ patched ISO, or control xemu.
    then retry ISO creation.
 5. Load and reset xemu:
    `python3 tools/xemu_qmp.py --launch-if-missing load-iso halo-patched.iso --reset`
+6. If the build succeeds, run `git rev-parse HEAD` so the report includes the
+   exact commit hash that produced the artifact.
 
 ## xemu control notes
 
@@ -42,6 +44,7 @@ patched ISO, or control xemu.
 Report:
 
 - build status
+- commit hash from `git rev-parse HEAD` when the build succeeds
 - ISO path
 - xemu load or control result
 - any warnings or fallback used

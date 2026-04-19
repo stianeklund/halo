@@ -19,7 +19,9 @@ Steps:
 2. If the build succeeds, run `python3 tools/deploy_xbox.py $ARGUMENTS`.
 3. If no `-x` argument was provided, use `-x $XBOX_HOST` from the environment.
    If that is also unset, warn and stop.
-4. Report: build status, files deployed, and xbcp output.
+4. If both the build and deploy succeed, run `git rev-parse HEAD` and include
+   the full commit hash in the report.
+5. Report: build status, commit hash, files deployed, and xbcp output.
 
 Notes:
 - Default Xbox destination: `xE:\GAMES\halo-patched` (overridable with `--dest`)
