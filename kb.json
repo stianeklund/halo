@@ -2027,7 +2027,8 @@
         },
         {
           "decl": "void object_compute_child_marker_position(void *object, void *child_marker, void *dest_matrix);",
-          "addr": "0x141020"
+          "addr": "0x141020",
+          "ported": true
         },
         {
           "decl": "vector3_t *object_get_world_position(int object_handle, vector3_t *out_position);",

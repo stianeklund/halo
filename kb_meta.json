@@ -1862,6 +1862,14 @@
         "The flags expression (obj->flags >> 12) & 0xffffff01 produces a value where bit 0 indicates mirroring and upper bits may encode additional node/marker flags, but the exact semantics of the upper bits are unclear."
       ]
     },
+    "0x141020": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The child_marker parameter contains a matrix4x3 at offset 0x38 which represents the marker's local-to-world transform.",
+        "The cross-product re-orthogonalization computes left=cross(forward,up) then up_new=cross(left,forward) to ensure orthogonality."
+      ]
+    },
     "0x1412f0": {
       "kind": "function",
       "status": "ported",
