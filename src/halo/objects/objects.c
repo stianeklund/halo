@@ -19,6 +19,7 @@
  *   0x140cc0  object_delete
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
+ *   0x1446a0  object_update_children_recursive
  *   0x145170  objects_update
  */
 
@@ -1028,6 +1029,55 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
   }
 
   return out_matrix;
+}
+
+/*
+ * object_update_children_recursive — recursively compute node matrices for an
+ * object and all of its child objects.
+ *
+ * First computes the node matrices for the given object by calling
+ * object_compute_node_matrices (0x141b70), then walks the child chain starting
+ * at object_data+0xC8 (first child handle). For each child, verifies type via
+ * datum_get + type check, recurses, then advances via next_object_index
+ * (object_data+0xC4).
+ *
+ * Confirmed: CALL 0x13d680 with args (-1, handle) — object_get_and_verify_type.
+ * Confirmed: CALL 0x141b70 with 1 arg (handle) — object_compute_node_matrices.
+ * Confirmed: MOV ESI,[EDI+0xC8] — first child from object data.
+ * Confirmed: datum_get(*(data_t**)0x5a8d50, child_handle) for child lookup.
+ * Confirmed: MOVSX ECX,word ptr [EDI+0x64] — child object type (int16_t).
+ * Confirmed: MOV ESI,[EDI+0xC4] — next sibling from child object data.
+ * Confirmed: recursive self-call at 0x144719.
+ */
+void object_update_children_recursive(int object_handle)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* compute node matrices for this object */
+  object_compute_node_matrices(object_handle);
+
+  /* walk the child object chain */
+  int child_handle = obj->unk_200.value;
+  while (child_handle != -1) {
+    object_header_data_t *child_header =
+      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
+    object_data_t *child_obj = child_header->object;
+    int16_t child_type = child_obj->type;
+
+    if ((1 << ((uint8_t)child_type & 0x1f)) == 0) {
+      char *msg =
+        csprintf((char *)0x5ab100,
+                 "got an object type we didn't expect (expected one of "
+                 "0x%08x but got #%d).",
+                 -1, (int)child_type);
+      display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      system_exit(-1);
+    }
+
+    object_update_children_recursive(child_handle);
+    child_handle = child_obj->next_object_index.value;
+  }
 }
 
 /*

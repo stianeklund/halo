@@ -1850,6 +1850,14 @@
         "FUN_0010a110 builds a 4x3 matrix from forward, up, position; FUN_00140eb0 is object_get_node_matrix; FUN_00109850 is 4x3 matrix multiply."
       ]
     },
+    "0x1446a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "unk_200 at object_data+0xC8 is the first child object handle in a parent-child chain.",
+        "FUN_00141b70 is object_compute_node_matrices, taking a single int object_handle and returning void."
+      ]
+    },
     "0x145170": {
       "kind": "function",
       "status": "ported",
@@ -2500,10 +2508,5 @@
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
     }
-  },
-  "0x140230": {
-    "status": "ported",
-    "confidence": "high",
-    "summary": "Adds delta vector to object interpolation position in block at obj+0x198, offsets +0x10/+0x14/+0x18."
   }
 }
