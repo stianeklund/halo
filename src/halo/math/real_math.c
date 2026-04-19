@@ -49,6 +49,37 @@ void matrix_transform_vector(float *matrix, float *in, float *out)
            z * *(float *)((char *)matrix + 0x24);
 }
 
+/* Transform a 3D vector by the rotation part of a 4x3 matrix, normalizing by
+ * the scale factor. If scale != 1.0, the input vector is divided by scale
+ * before the rotation is applied.
+ * Matrix layout: [scale +0x00][3x3 rotation +0x04..+0x24].
+ * out[i] = dot(normalized_vec, column_i of rotation). */
+void real_matrix3x3_transform_vector(void *matrix, vector3_t *vec,
+                                     vector3_t *out)
+{
+  float *m = (float *)matrix;
+  float x = vec->x;
+  float y = vec->y;
+  float z = vec->z;
+
+  if (*(int *)m != 0x3f800000) {
+    float inv_scale = *(float *)0x2533c8 / *m;
+    x = inv_scale * x;
+    y = inv_scale * y;
+    z = inv_scale * z;
+  }
+
+  out->x = x * *(float *)((char *)matrix + 0x04) +
+           y * *(float *)((char *)matrix + 0x08) +
+           z * *(float *)((char *)matrix + 0x0c);
+  out->y = x * *(float *)((char *)matrix + 0x10) +
+           y * *(float *)((char *)matrix + 0x14) +
+           z * *(float *)((char *)matrix + 0x18);
+  out->z = x * *(float *)((char *)matrix + 0x1c) +
+           y * *(float *)((char *)matrix + 0x20) +
+           z * *(float *)((char *)matrix + 0x24);
+}
+
 /* Multiply two 4x3 matrices: out = b * a.
  * Matrix layout (13 floats each):
  *   [0]       scale
