@@ -1,5 +1,66 @@
 #include <stdarg.h>
 
+/*
+ * debug_string_to_display — write a debug message to d:\debug.txt.
+ *
+ * On the first call, writes a header block with the build version string,
+ * reference function name, and address. Then appends the message to the
+ * debug log file. If include_timestamp is non-zero, prepends a timestamp
+ * in "MM.DD.YY HH:MM:SS  " format.
+ *
+ * Confirmed: first-call flag at 0x2ee76c; recursive calls for header.
+ * Confirmed: fopen with mode "a+b" at 0x267f84.
+ * Confirmed: localtime for timestamp; fprintf with "%02d.%02d.%02d ..." format.
+ * Confirmed: fprintf(stream, "%s", message) for the actual output.
+ * Confirmed: version string at 0x268150.
+ */
+void debug_string_to_display(const char *message, int include_timestamp)
+{
+  void *stream;
+  void *tm;
+  char buf[1024];
+  int timeval;
+
+  if (*(uint8_t *)0x2ee76c != 0) {
+    *(uint8_t *)0x2ee76c = 0;
+    debug_string_to_display((const char *)0x2681a4, 0);
+    debug_string_to_display(
+      (const char *)0x268150, 1);
+    crt_sprintf(buf, (const char *)0x268118,
+                (const char *)0x268134);
+    debug_string_to_display(buf, 1);
+    crt_sprintf(buf, (const char *)0x268100,
+                (void *)0x8f230);
+    debug_string_to_display(buf, 1);
+  }
+
+  if (*(uint8_t *)0x5aa8e1 == 0)
+    return;
+
+  stream = crt_fopen("d:\\debug.txt", (const char *)0x267f84);
+  if (stream == NULL)
+    return;
+
+  if (include_timestamp != 0) {
+    crt_time(&timeval);
+    tm = crt_localtime(&timeval);
+    if (tm == NULL) {
+      crt_fprintf(stream, (const char *)0x2680b8);
+    } else {
+      crt_fprintf(stream, (const char *)0x2680d0,
+                  *(int *)((char *)tm + 0x10) + 1,
+                  *(int *)((char *)tm + 0xc),
+                  *(int *)((char *)tm + 0x14) % 100,
+                  *(int *)((char *)tm + 0x8),
+                  *(int *)((char *)tm + 0x4),
+                  *(int *)((char *)tm + 0x0));
+    }
+  }
+
+  crt_fprintf(stream, (const char *)0x257984, message);
+  crt_fclose(stream);
+}
+
 /* error() — the central error/warning handler for all subsystems.
  * priority levels:
  *   0 = fatal (calls system_exit after logging)
@@ -63,7 +124,7 @@ void error(unsigned __int16 priority, const char *format, ...)
     }
 
     /* write to debug output */
-    ((void (*)(char *, int))0x8f230)(buf, 1);
+    debug_string_to_display(buf, 1);
 
     /* accumulate into global error buffer */
     new_size = csstrlen(buf);
@@ -80,8 +141,7 @@ void error(unsigned __int16 priority, const char *format, ...)
       else if (skip > (int)*(int16_t *)0x5aa8e6 - 1)
         skip = (int)*(int16_t *)0x5aa8e6 - 1;
 
-      found = ((char *(*)(const char *, int))0x1d95d0)(
-        (const char *)(0x5aa8e8 + skip), '\n');
+      found = crt_strchr((const char *)(0x5aa8e8 + skip), '\n');
       if (found == (char *)0)
         buf_len = (int)*(int16_t *)0x5aa8e6;
       else

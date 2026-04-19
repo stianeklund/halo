@@ -4016,6 +4016,33 @@
           "addr": "0x1dab81"
         }
       ]
+    },
+    {
+      "name": "LIBCMT:time.obj",
+      "functions": [
+        {
+          "decl": "void crt_time(int *timer);",
+          "addr": "0x1d9d28"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:localtim.obj",
+      "functions": [
+        {
+          "decl": "void *crt_localtime(int *timer);",
+          "addr": "0x1da92a"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:fprintf.obj",
+      "functions": [
+        {
+          "decl": "int crt_fprintf(void *stream, const char *format, ...);",
+          "addr": "0x1d98ad"
+        }
+      ]
     }
   ]
 }
