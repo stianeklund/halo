@@ -301,6 +301,10 @@
         {
           "decl": "float sound_compute_random_scale(int random_min, int random_max, float bend_min, float bend_max, float source_scale);",
           "addr": "0x1cc8c0"
+        },
+        {
+          "decl": "void edit_text_initialize(void *edit_text);",
+          "addr": "0x97440"
         }
       ]
     },
@@ -3274,6 +3278,10 @@
         {
           "decl": "void terminal_update(void);",
           "addr": "0xe39e0"
+        },
+        {
+          "decl": "int terminal_get_line(void);",
+          "addr": "0xe3940"
         }
       ]
     },
@@ -3969,6 +3977,10 @@
         {
           "decl": "void draw_string_set_font(int tag_index, int style, int justify, int flags, const void *color);",
           "addr": "0x19b8b0"
+        },
+        {
+          "decl": "void terminal_string_process_tabs(const char *text);",
+          "addr": "0x130ab0"
         }
       ]
     },
@@ -4059,6 +4071,24 @@
         {
           "decl": "char *crt_strtok(char *string, const char *delimiters);",
           "addr": "0x1da83e"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:strstr.obj",
+      "functions": [
+        {
+          "decl": "char *crt_strstr(const char *haystack, const char *needle);",
+          "addr": "0x1d9690"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:vsnprint.obj",
+      "functions": [
+        {
+          "decl": "int crt_vsnprintf(char *buffer, size_t count, const char *format, char *arglist);",
+          "addr": "0x1db0c8"
         }
       ]
     }
