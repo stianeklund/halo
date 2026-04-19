@@ -1953,6 +1953,10 @@
           "addr": "0x13d920"
         },
         {
+          "decl": "void *object_header_block_reference_get(int object_handle, void *reference);",
+          "addr": "0x13dfc0"
+        },
+        {
           "decl": "void objects_place(void);",
           "addr": "0x13f060"
         },

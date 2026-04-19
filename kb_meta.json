@@ -1810,6 +1810,14 @@
         "flag=0 marks the object as garbage (sets obj->flags bit 0, clears datum.unk_2 bit 1); flag!=0 unmarks it. Child propagation via FUN_0013ee60 (0x13ee60) is gated on the tag having a children block (tag+0x34 != -1) and bit 0 of obj->flags being in the wrong state for the requested transition."
       ]
     },
+    "0x140160": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "unk_408 and unk_412 at offsets 0x198 and 0x19c are interpolation buffer references used by object_header_block_reference_get.",
+        "Model tag offset 0xb8 is the region count as int16_t."
+      ]
+    },
     "0x140bc0": {
       "kind": "function",
       "status": "ported",

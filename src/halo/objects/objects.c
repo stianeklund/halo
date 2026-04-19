@@ -13,6 +13,7 @@
  *   0x13fac0  objects_dispose
  *   0x13fd00  object_disconnect_from_map
  *   0x13ffc0  object_set_garbage
+ *   0x140160  object_set_region_count
  *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
  *   0x1412f0  object_get_world_position
@@ -724,6 +725,68 @@ lab_00140017: {
     hdr->unk_2 |= 0x02;
   }
 }
+}
+
+/*
+ * object_set_region_count — update an object's interpolation region count.
+ *
+ * Copies the object's region node data from the "new" interpolation buffer
+ * (at object+0x19c) into the "current" buffer (at object+0x198) via
+ * object_header_block_reference_get, using csmemcpy with a size of
+ * model_region_count * 32.
+ *
+ * If the requested region_count is >= (unk_134 - unk_132), it resets
+ * unk_132 to 0 and sets unk_134 to the new region_count.
+ *
+ * Asserts that the object's type is NOT in the "cannot interpolate" mask
+ * (types with bits 5-11 set: 0xFE0).
+ *
+ * Confirmed: 2 cdecl args (PUSH EDI + PUSH [EBP+0xc], ADD ESP via
+ *            interleaved cleanup).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type, type_mask=-1).
+ * Confirmed: CALL 0x1ba140 (tag_get) twice — 'obje' then 'mode'.
+ * Confirmed: CALL 0x13dfc0 twice with pre-pushed args for csmemcpy.
+ * Confirmed: assert string at 0x29bf80:
+ *   "!TEST_FLAG(_object_mask_cannot_interpolate, object->object.type)"
+ * Inferred: unk_408 / unk_412 at offsets 0x198/0x19c are interpolation
+ *           buffer references (4 bytes each: {int16_t size, int16_t offset}).
+ * Inferred: model tag + 0xb8 is the region count (int16_t).
+ */
+void object_set_region_count(int object_handle, int16_t region_count)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* Look up the object definition tag ('obje'), then the model tag ('mode')
+   * to get the number of model regions. */
+  void *obje_tag = tag_get(0x6f626a65, *(int *)obj);
+  void *mode_tag = tag_get(0x6d6f6465, *(int *)((char *)obje_tag + 0x34));
+  int16_t model_region_count = *(int16_t *)((char *)mode_tag + 0xb8);
+
+  /* Assert that this object type can be interpolated.
+   * _object_mask_cannot_interpolate = 0xFE0 (bits 5 through 11). */
+  if ((1 << (*(uint8_t *)((char *)obj + 0x64) & 0x1f)) & 0xfe0u) {
+    display_assert(
+      "!TEST_FLAG(_object_mask_cannot_interpolate, object->object.type)",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x5f3, 1);
+    system_exit(-1);
+  }
+
+  /* Copy region node data from the "new" buffer to the "current" buffer.
+   * The two references at obj+0x19c and obj+0x198 each describe a
+   * {size, offset} pair into the object's dynamic data region. */
+  int copy_size = (int)model_region_count << 5;
+  void *src =
+    object_header_block_reference_get(object_handle, (char *)obj + 0x19c);
+  void *dst =
+    object_header_block_reference_get(object_handle, (char *)obj + 0x198);
+  csmemcpy(dst, src, copy_size);
+
+  /* If the new region_count is large enough, reset unk_132 and store it. */
+  if ((int)region_count >= (int)obj->unk_134 - (int)obj->unk_132) {
+    obj->unk_132 = 0;
+    obj->unk_134 = region_count;
+  }
 }
 
 /*
