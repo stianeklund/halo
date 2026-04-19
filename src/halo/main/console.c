@@ -143,6 +143,68 @@ void console_warning(const char *format, ...)
   }
 }
 
+static char *console_history_ring(void)
+{
+  return (char *)0x46d124;
+}
+
+#define CONSOLE_HISTORY_SLOTS 8
+#define CONSOLE_HISTORY_SLOT_SIZE 255
+
+/*
+ * console_startup — execute commands from the init file on startup.
+ *
+ * Reads either "d:\init.txt" or "editor_d:\init.txt" depending on
+ * whether we're in the editor, and evaluates each line as a HaloScript
+ * console command. Lines are stored in the 8-slot history ring buffer.
+ *
+ * Confirmed: CALL 0x977f0 (game_in_editor) to select init file path.
+ * Confirmed: fopen with mode "r" at 0x2658a4.
+ * Confirmed: fgets(buffer, 0xc7=199, stream) into 200-byte stack buffer.
+ * Confirmed: csstrtok(buffer, "\r\n\t") to strip line endings.
+ * Confirmed: history ring at 0x46d124, 8 slots * 255 bytes each.
+ * Confirmed: head = (head + 1) % 8, count = min(count + 1, 8).
+ * Confirmed: CALL 0xc50c0 (hs_console_evaluate), logs "init: %s" on success.
+ */
+void console_startup(void)
+{
+  char buffer[200];
+  void *stream;
+  const char *init_path;
+
+  if (game_in_editor()) {
+    init_path = "editor_d:\\init.txt";
+  } else {
+    init_path = "d:\\init.txt";
+  }
+
+  stream = crt_fopen(init_path, (const char *)0x2658a4);
+  if (stream == NULL)
+    return;
+
+  while (crt_fgets(buffer, 199, stream) != NULL) {
+    csstrtok(buffer, "\r\n\t");
+
+    int16_t head = (*console_history_head() + 1) & 7;
+    *console_history_head() = head;
+
+    csstrcpy(console_history_ring() + head * CONSOLE_HISTORY_SLOT_SIZE, buffer);
+
+    int16_t count = *console_history_count() + 1;
+    if (count > CONSOLE_HISTORY_SLOTS)
+      count = CONSOLE_HISTORY_SLOTS;
+    *console_history_count() = count;
+
+    *console_history_browse_index() = -1;
+
+    if (hs_console_evaluate(buffer)) {
+      error(3, "init: %s", buffer);
+    }
+  }
+
+  crt_fclose(stream);
+}
+
 /*
  * console_dispose — close the console if it is open.
  *
