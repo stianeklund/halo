@@ -2749,7 +2749,7 @@
           "addr": "0x109780"
         },
         {
-          "decl": "void matrix4x3_multiply(void *a, void *b, void *out);",
+          "decl": "void matrix4x3_multiply(float *a, float *b, float *out);",
           "addr": "0x109850"
         },
         {
