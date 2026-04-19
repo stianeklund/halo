@@ -1615,6 +1615,16 @@
         "Matrix layout: 4-byte scale at offset 0, followed by 3x3 float rotation at offsets 0x04-0x24."
       ]
     },
+    "0x109850": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The multiplication order is out = b * a for the rotation part, with translation incorporating a's scale factor."
+      ],
+      "uncertain": [
+        "The original uses SSE MULPS/ADDPS for the 3x3 and translation parts; the scalar x87 reimplementation may produce slightly different rounding in edge cases."
+      ]
+    },
     "0x109e10": {
       "kind": "function",
       "status": "ported",

@@ -49,6 +49,56 @@ void matrix_transform_vector(float *matrix, float *in, float *out)
            z * *(float *)((char *)matrix + 0x24);
 }
 
+/* Multiply two 4x3 matrices: out = b * a.
+ * Matrix layout (13 floats each):
+ *   [0]       scale
+ *   [1..9]    3x3 rotation (row-major)
+ *   [10..12]  translation
+ *
+ * Result:
+ *   out_rotation    = b_rotation * a_rotation
+ *   out_translation = (b_translation * a_rotation) * a_scale + a_translation
+ *   out_scale       = a_scale * b_scale
+ *
+ * The original uses SSE (MULPS/ADDPS/SHUFPS) for the 3x3 and translation
+ * parts, then x87 FLD/FMUL/FSTP for the scale multiply. */
+void matrix4x3_multiply(float *a, float *b, float *out)
+{
+  float a1 = a[1], a2 = a[2], a3 = a[3];
+  float a4 = a[4], a5 = a[5], a6 = a[6];
+  float a7 = a[7], a8 = a[8], a9 = a[9];
+
+  float b1 = b[1], b2 = b[2], b3 = b[3];
+  float b4 = b[4], b5 = b[5], b6 = b[6];
+  float b7 = b[7], b8 = b[8], b9 = b[9];
+
+  /* 3x3 rotation: out_rot = b_rot * a_rot */
+  out[1] = b1 * a1 + b2 * a4 + b3 * a7;
+  out[2] = b1 * a2 + b2 * a5 + b3 * a8;
+  out[3] = b1 * a3 + b2 * a6 + b3 * a9;
+
+  out[4] = b4 * a1 + b5 * a4 + b6 * a7;
+  out[5] = b4 * a2 + b5 * a5 + b6 * a8;
+  out[6] = b4 * a3 + b5 * a6 + b6 * a9;
+
+  out[7] = b7 * a1 + b8 * a4 + b9 * a7;
+  out[8] = b7 * a2 + b8 * a5 + b9 * a8;
+  out[9] = b7 * a3 + b8 * a6 + b9 * a9;
+
+  /* Translation: out_trans = (b_trans * a_rot) * a_scale + a_trans */
+  {
+    float b10 = b[10], b11 = b[11], b12 = b[12];
+    float scale = a[0];
+
+    out[10] = (b10 * a1 + b11 * a4 + b12 * a7) * scale + a[10];
+    out[11] = (b10 * a2 + b11 * a5 + b12 * a8) * scale + a[11];
+    out[12] = (b10 * a3 + b11 * a6 + b12 * a9) * scale + a[12];
+  }
+
+  /* Scale: out_scale = a_scale * b_scale */
+  out[0] = a[0] * b[0];
+}
+
 /* Build a 4x3 matrix from forward and up direction vectors.
  * Layout: [1.0f scale][forward 3f][left 3f][up 3f][translation 0,0,0].
  * Left is computed as forward x up (cross product). */
