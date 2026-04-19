@@ -1887,6 +1887,14 @@
         "The 0xfe0 type mask (bits 5-11) is labeled _object_mask_cannot_interpolate based on the assertion string; exact bit-to-type mapping not fully verified."
       ]
     },
+    "0x144240": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Bit 11 of object_data_t.flags indicates the object is connected to the map, based on the disconnect/reconnect pattern around the flag test.",
+        "The byte at object_data_t offset 0xD0 stores the parent_node_index as a uint8_t, overlapping with the first byte of the unk_208 float array."
+      ]
+    },
     "0x1446a0": {
       "kind": "function",
       "status": "ported",

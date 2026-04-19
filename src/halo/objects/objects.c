@@ -2128,6 +2128,121 @@ void object_compute_node_matrices(int object_handle)
 }
 
 /*
+ * object_attach_to_parent — attach a child object to a parent at a specific
+ * node, establishing the parent-child relationship in the object hierarchy.
+ *
+ * First walks the parent's own parent chain to verify the child is not already
+ * an ancestor of the parent (prevents circular attachment). Then computes the
+ * inverse of the parent's node matrix and transforms the child's position,
+ * up vector, and forward vector into the parent node's local coordinate space.
+ * Stores the parent handle and node index in the child's object data
+ * (offsets 0xCC and 0xD0). If the child was connected to the map (flag bit 11
+ * of object_data_t.flags), it is disconnected before the transform and
+ * reconnected afterward.
+ *
+ * Finally clears the "collideable" flag (bit 0) on the child's header if set,
+ * sets the "updated this tick" flag (bit 4), and recomputes node matrices.
+ *
+ * Confirmed: 3 cdecl args (parent_handle, child_handle, parent_node_index).
+ * Confirmed: CALL targets 0x13d680, 0x13fef0, 0x13fd00, 0x140eb0, 0x109150,
+ *            0x109590, 0x109680, 0x140ce0, 0x119320, 0x141b70.
+ * Confirmed: parent chain walk uses parent_object_index at offset 0xCC.
+ * Confirmed: stores parent_handle at child+0xCC, node_index byte at child+0xD0.
+ * Confirmed: flag test is (flags >> 0xB) & 1 — bit 11 of object_data_t.flags.
+ * Inferred:  bit 11 means "connected to map" based on disconnect/reconnect
+ * usage.
+ */
+void object_attach_to_parent(int parent_handle, int child_handle,
+                             int parent_node_index)
+{
+  int iter = parent_handle;
+
+  /* Walk the parent chain to verify we are not creating a cycle. */
+  while (iter != -1) {
+    object_header_data_t *hdr =
+      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, iter);
+    object_data_t *obj_iter = hdr->object;
+    int16_t obj_type = obj_iter->type;
+
+    if ((1 << ((uint8_t)obj_type & 0x1f)) == 0) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "got an object type we didn't expect "
+                              "(expected one of 0x%08x but got #%d).",
+                              -1, (int)obj_type),
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      system_exit(-1);
+    }
+
+    if (iter == child_handle)
+      break;
+
+    iter = obj_iter->parent_object_index.value;
+  }
+
+  if (iter != -1) {
+    display_assert("cannot attach an object to one of its children",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x4c9, 1);
+    system_exit(-1);
+    return;
+  }
+
+  /* Get child and parent object pointers. */
+  object_data_t *child_obj =
+    (object_data_t *)object_get_and_verify_type(child_handle, -1);
+  object_get_and_verify_type(parent_handle, -1);
+
+  uint8_t connected_to_map = (uint8_t)((child_obj->flags >> 0xB) & 1);
+
+  if (!object_has_node(parent_handle, (int16_t)parent_node_index)) {
+    display_assert("object_has_node(parent_object_index, parent_node_index)",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x4d3, 1);
+    system_exit(-1);
+  }
+
+  /* Disconnect child from map if it was connected. */
+  if (connected_to_map) {
+    object_disconnect_from_map(child_handle);
+  }
+
+  /* Compute inverse of the parent node matrix, then transform the child's
+     position, up, and forward vectors into the parent node's local space. */
+  float local_matrix[13]; /* 4x3 matrix = 52 bytes */
+  float *node_mat =
+    (float *)object_get_node_matrix(parent_handle, (int16_t)parent_node_index);
+  matrix_inverse(node_mat, local_matrix);
+  matrix_transform_point(local_matrix, (float *)&child_obj->unk_12,
+                         (float *)&child_obj->unk_12);
+  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_36,
+                          (float *)&child_obj->unk_36);
+  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_48,
+                          (float *)&child_obj->unk_48);
+
+  /* Store parent attachment info in the child object. */
+  child_obj->parent_object_index.value = parent_handle;
+  *(uint8_t *)((char *)child_obj + 0xD0) = (uint8_t)parent_node_index;
+
+  /* Reconnect child to map if it was connected. */
+  if (connected_to_map) {
+    object_connect_to_map(child_handle, NULL);
+  }
+
+  /* Update child header flags. */
+  object_header_data_t *child_hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
+  object_get_and_verify_type(child_handle, -1);
+
+  if (child_hdr->unk_2 & 0x01) {
+    child_hdr->unk_2 &= 0xfe;
+  }
+
+  child_hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
+  child_hdr->unk_2 |= 0x10;
+
+  object_compute_node_matrices(child_handle);
+}
+
+/*
  * object_update_children_recursive — recursively compute node matrices for an
  * object and all of its child objects.
  *
