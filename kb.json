@@ -364,6 +364,33 @@
       ]
     },
     {
+      "name": "LIBCMT:fopen.obj",
+      "functions": [
+        {
+          "decl": "void *crt_fopen(const char *filename, const char *mode);",
+          "addr": "0x1d9e59"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:fclose.obj",
+      "functions": [
+        {
+          "decl": "int crt_fclose(void *stream);",
+          "addr": "0x1d9dac"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:fgets.obj",
+      "functions": [
+        {
+          "decl": "char *crt_fgets(char *buffer, int max_count, void *stream);",
+          "addr": "0x1daeec"
+        }
+      ]
+    },
+    {
       "name": "actors.obj",
       "source": "ai/actors.c",
       "data": [
@@ -771,6 +798,10 @@
         {
           "decl": "char *csstrcat(char *destination, const char *source, size_t max_size);",
           "addr": "0x8dd30"
+        },
+        {
+          "decl": "char *csstrtok(char *string, const char *delimiters);",
+          "addr": "0x8df10"
         },
         {
           "decl": "char *csstrcpy(char *destination, const char *source);",
@@ -1582,6 +1613,10 @@
         {
           "decl": "void hs_initialize(void);",
           "addr": "0xc5050"
+        },
+        {
+          "decl": "bool hs_console_evaluate(const char *command);",
+          "addr": "0xc50c0"
         }
       ]
     },
