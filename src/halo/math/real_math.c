@@ -1,3 +1,69 @@
+/* Compute the inverse of a 4x3 matrix (scale + rotation + translation).
+ * Matrix layout (13 floats, 0x34 bytes):
+ *   [0]       scale
+ *   [1..9]    3x3 rotation (row-major)
+ *   [10..12]  translation
+ *
+ * If the scale is zero, the output matrix is zeroed entirely.
+ * Otherwise the inverse is computed as:
+ *   - inverse scale = 1.0 / scale  (or 1.0 if scale == 1.0)
+ *   - rotation part is transposed (orthogonal assumption)
+ *   - translation is negated, scaled by inverse scale, then rotated
+ *     through the transposed rotation matrix. */
+void matrix_inverse(float *src, float *dst)
+{
+  float tx, ty, tz;
+  float tmp;
+
+  if (*(float *)((char *)src + 0x00) == 0.0f) {
+    csmemset(dst, 0, 0x34);
+    return;
+  }
+
+  /* Negate the source translation */
+  tx = -*(float *)((char *)src + 0x28);
+  ty = -*(float *)((char *)src + 0x2c);
+  tz = -*(float *)((char *)src + 0x30);
+
+  /* Compute inverse scale */
+  if (*(int *)src == 0x3f800000) {
+    *(int *)dst = 0x3f800000; /* dst[0] = 1.0 */
+  } else {
+    float inv_scale = 1.0f / *(float *)((char *)src + 0x00);
+    *(float *)((char *)dst + 0x00) = inv_scale;
+    tx = inv_scale * tx;
+    ty = inv_scale * ty;
+    tz = inv_scale * tz;
+  }
+
+  /* Copy diagonal of rotation unchanged */
+  *(float *)((char *)dst + 0x04) = *(float *)((char *)src + 0x04);
+  *(float *)((char *)dst + 0x14) = *(float *)((char *)src + 0x14);
+  *(float *)((char *)dst + 0x24) = *(float *)((char *)src + 0x24);
+
+  /* Transpose off-diagonal elements of the 3x3 rotation */
+  *(float *)((char *)dst + 0x08) = *(float *)((char *)src + 0x10);
+  *(float *)((char *)dst + 0x10) = *(float *)((char *)src + 0x08);
+
+  *(float *)((char *)dst + 0x0c) = *(float *)((char *)src + 0x1c);
+  *(float *)((char *)dst + 0x1c) = *(float *)((char *)src + 0x0c);
+
+  tmp = *(float *)((char *)src + 0x20);
+  *(float *)((char *)dst + 0x20) = *(float *)((char *)src + 0x18);
+  *(float *)((char *)dst + 0x18) = tmp;
+
+  /* Rotate the negated+scaled translation through the transposed rotation */
+  *(float *)((char *)dst + 0x28) = tx * *(float *)((char *)dst + 0x04) +
+                                   ty * *(float *)((char *)dst + 0x10) +
+                                   tz * *(float *)((char *)dst + 0x1c);
+  *(float *)((char *)dst + 0x2c) = tx * *(float *)((char *)dst + 0x08) +
+                                   ty * *(float *)((char *)dst + 0x14) +
+                                   tz * *(float *)((char *)dst + 0x20);
+  *(float *)((char *)dst + 0x30) = tx * *(float *)((char *)dst + 0x0c) +
+                                   ty * *(float *)((char *)dst + 0x18) +
+                                   tz * *(float *)((char *)dst + 0x24);
+}
+
 /* Transform a 3D point by a 4x3 matrix (scale + rotation + translation).
  * If scale != 1.0, input components are pre-multiplied by scale.
  * out = rotation * (scale * in) + translation.

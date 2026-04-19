@@ -1601,6 +1601,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x109150": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Rotation inverse assumes orthogonal matrix (transpose equals inverse); this is standard for rigid-body transforms in game engines."
+      ]
+    },
     "0x109590": {
       "kind": "function",
       "status": "ported",
