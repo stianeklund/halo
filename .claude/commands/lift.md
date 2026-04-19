@@ -111,18 +111,19 @@ After the agent returns:
    No `--candidate` is needed — the agent already wrote to the source file.
    If the pipeline build step fails, stop here and report the error — do not
    proceed to the ISO step.
-3. On build success, run:
+3. On build success, deploy to Xbox:
    ```
-   python3 tools/build_and_iso.py
+   python3 tools/xemu_qmp.py eject        # ignore errors if xemu isn't running
+   python3 tools/deploy_xbox.py --xbe-only
+   python3 tools/xbdm_rdcp.py "magicboot title=E:\\GAMES\\halo-patched\\default.xbe debug"
    ```
-   This builds the ISO and hot-loads it into xemu (launching xemu if not
-   already running). The cmake step is a fast no-op if the agent already
-   compiled. Report whether xemu loaded the ISO successfully.
+   This deploys the patched XBE directly to the debug Xbox and launches it.
+   Report whether the deploy and magicboot succeeded.
 4. Report:
    - Target: name / address / object / source path
    - Agent summary: Confirmed / Inferred / Uncertain items
    - Pipeline stage results (build pass/fail, verify pass/fail)
-   - ISO + xemu result (success / warning if xemu load failed)
+   - Deploy + magicboot result (success / warning if deploy failed)
    - Artifact path from summary.json
    - Session file: confirm `.claude/analyst_session.md` was updated
 

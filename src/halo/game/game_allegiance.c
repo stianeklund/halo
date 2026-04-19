@@ -129,6 +129,38 @@ void game_allegiance_set(int16_t *entry, char friendship, char force)
   game_allegiance_apply_change(entry[0], entry[1], friendship, force);
 }
 
+void game_allegiance_update(void)
+{
+  int16_t i;
+  int16_t *entry;
+
+  i = 0;
+  entry = (int16_t *)(game_allegiance_globals + 2);
+  if (*(int16_t *)game_allegiance_globals > 0) {
+    do {
+      if (entry[8] > 0) {
+        entry[8] = entry[8] - 1;
+        if (entry[8] == 0) {
+          if (entry[7] < 1) {
+            display_assert("allegiance->current_incidents > 0",
+                           "c:\\halo\\SOURCE\\game\\game_allegiance.c", 0x79,
+                           1);
+            system_exit(-1);
+          }
+          entry[7] = entry[7] - 1;
+          if (entry[7] == 0) {
+            game_allegiance_set(entry, 0, 0);
+          } else {
+            entry[8] = entry[3];
+          }
+        }
+      }
+      i++;
+      entry += 9;
+    } while (i < *(int16_t *)game_allegiance_globals);
+  }
+}
+
 /**
  * Creates or reuses an allegiance entry between two teams.
  *
@@ -162,7 +194,8 @@ void game_allegiance_create(int16_t team_a, char is_player, int16_t team_b,
     if (count < 8) {
       globals[0] = count + 1;
     } else {
-      error(2, "game_allegiance_create: too many allegiances (maximum is %d)", 8);
+      error(2, "game_allegiance_create: too many allegiances (maximum is %d)",
+            8);
       globals = (int16_t *)game_allegiance_globals;
     }
   }
@@ -236,7 +269,7 @@ bool game_allegiance_remove(int16_t team_a, int16_t team_b)
  * via game_allegiance_set and returns true.
  */
 bool game_allegiance_bump(int16_t team_a, int16_t team_b, int16_t action,
-                           bool *out_changed)
+                          bool *out_changed)
 {
   int16_t i;
   int16_t count;
@@ -280,36 +313,4 @@ bool game_allegiance_bump(int16_t team_a, int16_t team_b, int16_t action,
     entry += 9;
   }
   return false;
-}
-
-void game_allegiance_update(void)
-{
-  int16_t i;
-  int16_t *entry;
-
-  i = 0;
-  entry = (int16_t *)(game_allegiance_globals + 2);
-  if (*(int16_t *)game_allegiance_globals > 0) {
-    do {
-      if (entry[8] > 0) {
-        entry[8] = entry[8] - 1;
-        if (entry[8] == 0) {
-          if (entry[7] < 1) {
-            display_assert("allegiance->current_incidents > 0",
-                           "c:\\halo\\SOURCE\\game\\game_allegiance.c", 0x79,
-                           1);
-            system_exit(-1);
-          }
-          entry[7] = entry[7] - 1;
-          if (entry[7] == 0) {
-            game_allegiance_set(entry, 0, 0);
-          } else {
-            entry[8] = entry[3];
-          }
-        }
-      }
-      i++;
-      entry += 9;
-    } while (i < *(int16_t *)game_allegiance_globals);
-  }
 }

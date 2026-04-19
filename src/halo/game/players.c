@@ -1667,15 +1667,18 @@ void players_update_before_game(void)
  *           deletion (FUN_1a7f80 sets bit 0x20 at unit+0xb6).
  *        c. Clear the telefrag-pending flag.
  *        d. Advance the player's short weapon/vehicle timers via FUN_bc4b0
- *           (EBX = datum_handle register arg). Binary comparison shows this
- *           helper only decrements small player/unit timers and is not where
- *           the actual camera blend math lives.
- *        e. If the unit exists and its object-type flags don't include
- *           0x200000, scan scenario trigger volumes (tag block at
- *           scenario+0x39c) for BSP-switch triggers that contain the
- *           player's unit, and fire the BSP switch if found.
- *        f. Reset the player's pending-action fields and call the
- *           per-player post-update helper FUN_bdb00 (EBX = datum_handle).
+ *
+ * (EBX = datum_handle register arg). Binary comparison shows this
+ * helper
+ * only decrements small player/unit timers and is not where
+ *           the
+ * actual camera blend math lives.
+ *        e. If the unit exists and its
+ * object-type flags don't include 0x200000, scan scenario trigger volumes (tag
+ * block at scenario+0x39c) for BSP-switch triggers that contain the player's
+ * unit, and fire the BSP switch if found. f. Reset the player's pending-action
+ * fields and call the per-player post-update helper FUN_bdb00 (EBX =
+ * datum_handle).
  *   3. Advance the BSP-transition nibble counter packed into
  *      players_globals+0x2f (high nibble = counter, low nibble = bsp index).
  *   4. Handle the "all players dead" restart flag (players_globals+0x28):
@@ -1750,7 +1753,8 @@ void players_update_after_game(void)
     *(char *)(player + 0xd0) = 0;
 
     /* Advance the player's short weapon/vehicle timers.
-     * Original CALL to FUN_bc4b0 with EBX = datum_handle (register arg). */
+     * Original CALL to
+     * FUN_bc4b0 with EBX = datum_handle (register arg). */
     if (*(int *)(player + 0x34) != -1) {
       int _dh = datum_handle;
       __asm__ volatile("movl %0, %%ebx" : : "r"(_dh) : "ebx");

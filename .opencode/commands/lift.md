@@ -1,6 +1,6 @@
 ---
 description: Two-phase lift — RE analysis by deep agent, then build + verify pipeline
-agent: deep
+agent: xbox-halo-re-analyst
 subtask: true
 ---
 

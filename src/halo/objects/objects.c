@@ -4,23 +4,30 @@
  *
  * Re-implemented functions (by XBE address, ascending):
  *   0x13d640  object_try_and_get_and_verify_type
- *   0x13d680  object_get_and_verify_type
+ *   0x13d680
+ * object_get_and_verify_type
  *   0x13d920  object_set_garbage_flag
+ * 0x13dfc0
+ * object_header_block_reference_get
  *   0x13f060  objects_place
- *   0x13f810  objects_initialize
+ *   0x13f810
+ * objects_initialize
  *   0x13f950  objects_initialize_for_new_map
- *   0x13f9f0  objects_dispose_from_old_map
+ * 0x13f9f0
+ * objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
- *   0x13fd00  object_disconnect_from_map
+ *   0x13fd00
+ * object_disconnect_from_map
  *   0x13fef0  object_has_node
- *   0x13ffc0  object_set_garbage
+ *   0x13ffc0
+ * object_set_garbage
  *   0x140160  object_set_region_count
- *   0x140230  object_adjust_interpolation_position
+ *   0x140230
+ * object_adjust_interpolation_position
  *   0x140bc0  object_delete_internal
- *   0x140cc0  object_delete
- *   0x140eb0  object_get_node_matrix
- *   0x140f10  object_get_markers_by_string_id
- *   0x141020  object_compute_child_marker_position
+ *
+ * 0x140cc0  object_delete 0x140eb0  object_get_node_matrix 0x140f10
+ * object_get_markers_by_string_id 0x141020 object_compute_child_marker_position
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x141b70  object_compute_node_matrices
@@ -236,11 +243,57 @@ done:
 }
 
 /*
+ * object_header_block_reference_get — resolve an object's inline
+ *
+ * block-reference pair ({size, offset}) to a pointer into object data.
+ *
+ *
+ * Confirmed: CALL 0x119320 (datum_get) first, then CALL 0x13d680
+ *
+ * (object_get_and_verify_type).
+ * Confirmed: reference fields are signed
+ * 16-bit reads at +0 (size)
+ * and +2 (offset).
+ * Confirmed: asserts
+ * "reference->offset>0" at line 0x98b and
+ *
+ * "reference->offset+reference->size<=object_header->data_size"
+ * at line
+ * 0x98c, both followed by system_exit(-1).
+ * Confirmed: return value is
+ * object_ptr + reference->offset.
+ */
+void *object_header_block_reference_get(int object_handle, void *reference)
+{
+  object_header_data_t *header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  char *object = (char *)object_get_and_verify_type(object_handle, -1);
+  int16_t ref_size = *(int16_t *)reference;
+  int16_t ref_offset = *(int16_t *)((char *)reference + 2);
+
+  if (ref_offset < 1) {
+    display_assert("reference->offset>0",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x98b, 1);
+    system_exit(-1);
+  }
+
+  if ((int)header->data_size < (int)ref_size + (int)ref_offset) {
+    display_assert(
+      "reference->offset+reference->size<=object_header->data_size",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x98c, 1);
+    system_exit(-1);
+  }
+
+  return object + ref_offset;
+}
+
+/*
  * objects_place — place all scenario objects for the current map.
  *
+ *
  * Sets the object_is_being_placed flag on object_globals, calls the scenario
- * object placer (FUN_0013cdd0, unported), then clears the flag.
- * The flag is at byte offset 0x00 of the object_globals struct.
+ * object placer (FUN_0013cdd0, unported), then clears the flag. The flag is at
+ * byte offset 0x00 of the object_globals struct.
  *
  * Confirmed: MOV byte ptr [EAX], 0x1 / MOV byte ptr [ECX], 0x0
  * Confirmed: global_scenario_get() result (EAX) pushed as sole arg to placer.

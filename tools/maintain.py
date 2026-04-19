@@ -12,7 +12,7 @@ from typing import Mapping, Tuple, Optional, Sequence
 import clang.cindex as clang
 
 import color
-from .knowledge import KnowledgeBase
+from knowledge import KnowledgeBase
 
 
 log = logging.getLogger(__name__)

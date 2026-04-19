@@ -558,10 +558,10 @@ void director_update(float delta_time)
               *(float *)(local_74 + 0x48) = *timer;
           } else {
             /* reset camera when timer underflows threshold with fp camera.
-           * The writes below seed transition flags and timers in the camera
-           * output buffer (local_74) at offsets 0x4c/0x4e (flag bytes = 3)
-           * and 0x54/0x5c (timer floats = 0). The observer consumes these
-           * to drive the smooth third-person-to-first-person blend. */
+             * The writes below seed transition flags and timers in the camera
+             * output buffer (local_74) at offsets 0x4c/0x4e (flag bytes = 3)
+             * and 0x54/0x5c (timer floats = 0). The observer consumes these
+             * to drive the smooth third-person-to-first-person blend. */
             *timer = 0.0f;
             *(uint32_t *)(local_74 + 0x54) = 0;
             *(uint8_t *)(local_74 + 0x4c) = 3;
