@@ -30,61 +30,11 @@
 #define ANALOG_BTN_RELEASE_DECAY \
   0x40 /* 64 — added each frame during release fade */
 
-/* ---- Per-gamepad state layout (0x28 bytes each, 4 total = 0xA0) ----
- *   offset  size  field
- *   0x00    8     raw_analog[8]       latest analog button readings
- *   0x08    8     smoothed_analog[8]  hysteresis-smoothed analog values
- *   0x10    8     analog_hold[8]      press-and-hold counter for analog buttons
- *   0x18    8     digital_hold[8]     press duration counter for digital buttons
- *   0x20    2     stick_lx            normalized left thumb X
- *   0x22    2     stick_ly            normalized left thumb Y
- *   0x24    2     stick_rx            normalized right thumb X
- *   0x26    2     stick_ry            normalized right thumb Y
- *   0x28    -     (next gamepad)
- */
-
-/* ---- Input globals address map ----
- *   0x46BA38  char    input_suppressed
- *   0x46BA39  char    input_initialized
- *   0x46BA3C  int[4]  gamepad_handles
- *   0x46BA4C  char[]  gamepad_states[4][0x28]
- *   0x46BA1A  int16[] raw_stick_values[4][4]  (LX,LY,RX,RY per pad)
- *   0x46BAEC  void*   suppressed_gamepad_state  (returned when input is
- *                    suppressed)
- *   0x46BB14  struct  rumble[4] { uint16_t left; uint16_t right; }
- *   0x46BB24  int     input_update_callback_arg
- *   0x46BB2D  char    input_frame_tick
- *   0x46BB38  char[]  digital_button_states[0x68]
- *   0x46BBA0  char[]  analog_button_states[0x68]
- *   0x46BB70  uint8   left_trigger_a
- *   0x46BB71  uint8   left_trigger_b
- *   0x46BB7C  uint8   right_trigger_a
- *   0x46BB7D  uint8   right_trigger_b
- *   0x46BB7E  uint8   left_shoulder_a
- *   0x46BB7F  uint8   left_shoulder_b
- *   0x46BB81  uint8   right_shoulder_b
- *   0x46BB82  uint8   right_shoulder_a(?)
- *   0x46BB84  uint8   another_trigger_a
- *   0x46BC08  int16   mu_insertion_count
- *   0x46BC0A  int16   mu_removal_count
- *   0x46BC0C  int32   mu_change_events[64]
- */
-
 /* ---- XInput function pointer typedefs ---- */
 typedef int(__stdcall *xinput_get_changes_fn)(void *, uint32_t *, uint32_t *);
 typedef int(__stdcall *xinput_open_fn)(void *, int, int, int);
 typedef int(__stdcall *xinput_get_state_fn)(int, void *);
 typedef void(__stdcall *xinput_close_fn)(int);
-
-/* ---- Key codes for thumbstick axes in input_key_is_down ----
- *   0x69 = left stick X    0x6A = left stick Y
- *   0x6B = right stick X   0x6C = right stick Y                        */
-
-/* ---- Read-only mapping tables ----
- *   0x281150  uint8[8]  analog_button_index_map
- *            maps logical analog channel to XInput bAnalogButtons index
- *   0x281158  uint8[8]  digital_button_bitmask_map
- *            maps logical digital channel to XInput wButtons mask            */
 
 typedef struct xinput_gamepad {
   uint16_t wButtons;
@@ -165,6 +115,16 @@ static const input_change_flag_mapping k_mu_insertion_change_flags[8] = {
   { 0x8, 0x400000 },    { 0x80000, 0x800000 },
 };
 
+static char *input_suppressed(void)
+{
+  return (char *)0x46ba38;
+}
+
+static char *input_initialized(void)
+{
+  return (char *)0x46ba39;
+}
+
 static int *input_gamepad_handles(void)
 {
   return (int *)0x46ba3c;
@@ -180,14 +140,67 @@ static input_raw_stick_state *input_raw_stick_states(void)
   return (input_raw_stick_state *)0x46ba1a;
 }
 
+static void *suppressed_gamepad_state(void)
+{
+  return (void *)0x46baec;
+}
+
 static input_rumble_state *input_rumble_states(void)
 {
   return (input_rumble_state *)0x46bb14;
 }
 
+static int *input_update_callback_arg(void)
+{
+  return (int *)0x46bb24;
+}
+
 static uint8_t *input_digital_button_states(void)
 {
   return (uint8_t *)0x46bb38;
+}
+
+/* Stick-axis-as-key state bytes: each axis is decomposed into positive and
+   negative halves, stored at fixed offsets within the key state region.
+   input_key_is_down returns max(a, b) for each axis pair. */
+static uint8_t *input_stick_axis_key_neg_lx(void)
+{
+  return (uint8_t *)0x46bb71;
+}
+
+static uint8_t *input_stick_axis_key_pos_lx(void)
+{
+  return (uint8_t *)0x46bb7c;
+}
+
+static uint8_t *input_stick_axis_key_neg_ly(void)
+{
+  return (uint8_t *)0x46bb7d;
+}
+
+static uint8_t *input_stick_axis_key_neg_rx(void)
+{
+  return (uint8_t *)0x46bb7e;
+}
+
+static uint8_t *input_stick_axis_key_neg_ry(void)
+{
+  return (uint8_t *)0x46bb7f;
+}
+
+static uint8_t *input_stick_axis_key_pos_ry(void)
+{
+  return (uint8_t *)0x46bb81;
+}
+
+static uint8_t *input_stick_axis_key_pos_rx(void)
+{
+  return (uint8_t *)0x46bb82;
+}
+
+static uint8_t *input_stick_axis_key_pos_ly(void)
+{
+  return (uint8_t *)0x46bb84;
 }
 
 static uint8_t *input_analog_button_states(void)
@@ -310,26 +323,26 @@ bool input_key_is_down(uint16_t key_code)
   int16_t key = (int16_t)key_code;
   uint8_t a, b;
 
-  if (*(char *)0x46ba38) /* input_suppressed */
+  if (*input_suppressed())
     return false;
   switch (key - INPUT_AXIS_KEY_LEFT_X) {
   case 0: /* left stick X */
-    a = *(uint8_t *)0x46bb7c;
-    b = *(uint8_t *)0x46bb71;
+    a = *input_stick_axis_key_pos_lx();
+    b = *input_stick_axis_key_neg_lx();
     return a < b ? b : a;
   case 1: /* left stick Y */
-    a = *(uint8_t *)0x46bb84;
-    b = *(uint8_t *)0x46bb7d;
+    a = *input_stick_axis_key_pos_ly();
+    b = *input_stick_axis_key_neg_ly();
     return a < b ? b : a;
   case 2: /* right stick X */
     /* The binary uses <= here, unlike the left-stick cases. Preserve that tie
      * behavior. */
-    a = *(uint8_t *)0x46bb7e;
-    b = *(uint8_t *)0x46bb82;
+    a = *input_stick_axis_key_neg_rx();
+    b = *input_stick_axis_key_pos_rx();
     return a <= b ? b : a;
   case 3: /* right stick Y */
-    a = *(uint8_t *)0x46bb7f;
-    b = *(uint8_t *)0x46bb81;
+    a = *input_stick_axis_key_neg_ry();
+    b = *input_stick_axis_key_pos_ry();
     return a <= b ? b : a;
   default:
     assert_halt(key >= 0 && key < INPUT_KEY_COUNT);
@@ -350,8 +363,8 @@ void *input_get_gamepad_state(int gamepad_index)
   index = (int16_t)gamepad_index;
   assert_halt(index >= 0 && index < MAXIMUM_GAMEPADS);
   if (input_gamepad_handles()[index] != 0) {
-    if (*(char *)0x46ba38) /* input_suppressed */
-      return (void *)0x46baec; /* suppressed_gamepad_state */
+    if (*input_suppressed())
+      return suppressed_gamepad_state();
     return &input_gamepad_states()[index];
   }
   return NULL;
@@ -492,12 +505,12 @@ void input_update(void)
 {
   int i;
 
-  *(char *)0x46ba38 = 0; /* clear input_suppressed */
-  if (!*(char *)0x46ba39) { /* if not yet initialized */
-    ((void(__stdcall *)(int))0x1cfaec)(*(int *)0x46bb24); /* init callback */
-    *(char *)0x46ba39 = 1; /* mark initialized */
+  *input_suppressed() = 0;
+  if (!*input_initialized()) {
+    ((void(__stdcall *)(int))0x1cfaec)(*input_update_callback_arg());
+    *input_initialized() = 1;
   }
-  ((void (*)(void))0xcfdb0)(); /* poll/update all gamepads */
+  ((void (*)(void))0xcfdb0)();
   for (i = 0; i < MAXIMUM_GAMEPADS; i++)
     ((void (*)(void *))0xce620)(&input_gamepad_states()[i]);
 }
