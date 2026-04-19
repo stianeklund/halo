@@ -259,6 +259,10 @@
           "addr": "0x966d0"
         },
         {
+          "decl": "void edit_text_set_cursor_to_end(void *edit_text);",
+          "addr": "0x97330"
+        },
+        {
           "decl": "float random_math_real(unsigned int *seed);",
           "addr": "0x10b240"
         },
@@ -711,6 +715,14 @@
         {
           "decl": "void console_warning(const char* format, ...);",
           "addr": "0xff550"
+        },
+        {
+          "decl": "void console_submit_command(void);",
+          "addr": "0xff5d0"
+        },
+        {
+          "decl": "void console_process_enter(void);",
+          "addr": "0xff680"
         },
         {
           "decl": "void console_startup(void);",
@@ -3198,6 +3210,10 @@
         {
           "decl": "void terminal_show(void);",
           "addr": "0xe34a0"
+        },
+        {
+          "decl": "bool terminal_open(void *terminal);",
+          "addr": "0xe34e0"
         },
         {
           "decl": "void terminal_dispose(void *terminal);",

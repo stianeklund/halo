@@ -218,3 +218,114 @@ void console_dispose(void)
     *console_is_open() = 0;
   }
 }
+
+static int16_t *console_key_count(void)
+{
+  return (int16_t *)0x46cf64;
+}
+
+static int16_t *console_key_code(int index)
+{
+  return (int16_t *)(0x46cf68 + index * 4);
+}
+
+static void *console_edit_text(void)
+{
+  return (void *)0x46d118;
+}
+
+static char *console_hud_chat_flag(void)
+{
+  return (char *)0x449ef1;
+}
+
+/*
+ * console_update — process keyboard input for the debug console.
+ *
+ * If the console is closed, checks for the tilde key (0x10) to open it.
+ * If open, processes key events from the terminal state: tilde closes,
+ * enter submits a command, escape/backspace cancels or closes, and
+ * up/down arrows browse command history.
+ *
+ * Returns whether the console is currently open.
+ *
+ * Confirmed: input_key_is_down(0x10) to toggle open.
+ * Confirmed: terminal_open(0x46cf64), terminal_dispose(0x46cf64).
+ * Confirmed: key events at 0x46cf68, 4 bytes each, key_code at +2.
+ * Confirmed: switch on key_code: 0x10=close, 0x1e=enter, 0x38/0x66=cancel,
+ *            0x4d=history up, 0x4e=history down.
+ * Confirmed: history ring indexing: (head - browse + 8) % 8 * 255.
+ * Confirmed: CALL 0x97330 (edit_text_set_cursor_to_end) with 0x46d118.
+ */
+bool console_update(void)
+{
+  int16_t i;
+
+  if (*console_is_open() == 0) {
+    if (input_key_is_down(0x10) == 1 && *console_is_open() == 0) {
+      *console_input_buffer() = 0;
+      *console_is_open() = terminal_open(console_terminal_state());
+      *console_hud_chat_flag() = 0;
+    }
+  } else {
+    for (i = 0; i < *console_key_count(); i++) {
+      if (*console_key_code(i) == -1) {
+        display_assert("key->key_code!=NONE",
+                       "c:\\halo\\SOURCE\\main\\console.c", 0xb8, 1);
+        system_exit(-1);
+      }
+
+      switch (*console_key_code(i)) {
+      case 0x10:
+        if (*console_is_open() != 0) {
+          terminal_dispose(console_terminal_state());
+          *console_is_open() = 0;
+        }
+        break;
+
+      case 0x1e:
+        console_process_enter();
+        break;
+
+      case 0x38:
+      case 0x66:
+        if (*console_input_buffer() == 0) {
+          if (*console_is_open() != 0) {
+            terminal_dispose(console_terminal_state());
+            *console_is_open() = 0;
+          }
+        } else {
+          console_submit_command();
+          *console_input_buffer() = 0;
+        }
+        break;
+
+      case 0x4d:
+        *console_history_browse_index() += 2;
+        /* fall through */
+      case 0x4e: {
+        int16_t browse = *console_history_browse_index() - 1;
+        if (browse < 1)
+          browse = 0;
+        int16_t max_idx = *console_history_count() - 1;
+        if (browse > max_idx)
+          browse = max_idx;
+        *console_history_browse_index() = browse;
+
+        if (browse != -1) {
+          int idx = ((int)*console_history_head() - (int)browse + 8) & 7;
+          csstrcpy(console_input_buffer(),
+                   console_history_ring() + idx * CONSOLE_HISTORY_SLOT_SIZE);
+          edit_text_set_cursor_to_end(console_edit_text());
+        }
+        break;
+      }
+
+      default:
+        break;
+      }
+    }
+  }
+
+  return *console_is_open();
+}
