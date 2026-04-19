@@ -249,7 +249,7 @@ static char *console_hud_chat_flag(void)
  *
  * Returns whether the console is currently open.
  *
- * Confirmed: input_key_is_down(0x10) to toggle open.
+ * Confirmed: input_key_is_down(0x10) to toggle open (key 0x10 identity TBD).
  * Confirmed: terminal_open(0x46cf64), terminal_dispose(0x46cf64).
  * Confirmed: key events at 0x46cf68, 4 bytes each, key_code at +2.
  * Confirmed: switch on key_code: 0x10=close, 0x1e=enter, 0x38/0x66=cancel,
