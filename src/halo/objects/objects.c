@@ -21,6 +21,7 @@
  *   0x140f10  object_get_markers_by_string_id
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
+ *   0x141b70  object_compute_node_matrices
  *   0x1446a0  object_update_children_recursive
  *   0x144860  object_attach_to_marker
  *   0x145170  objects_update
@@ -1152,6 +1153,941 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
   }
 
   return out_matrix;
+}
+
+/*
+ * object_compute_node_matrices — compute the full node matrix hierarchy for an
+ * object, transforming each node from local (animation) space into world space.
+ *
+ * If the object definition has no model (tag+0x34 == -1), builds a trivial
+ * single-node matrix from the object's forward, up, and position vectors.
+ *
+ * Otherwise:
+ *  1. Resolves the object type definition and model tag.
+ *  2. Gets the parent node matrix if the object is attached to a parent.
+ *  3. Decompresses the base animation pose into per-node local transforms.
+ *  4. Applies overlay animations from the object definition's animation graph.
+ *  5. Scales the root animation data if the object has a non-zero scale factor.
+ *  6. Calls type-specific overlay adjustments via object_type_definition.
+ *  7. Interpolates node matrices for objects with interpolation data.
+ *  8. Validates the object's position and orientation vectors.
+ *  9. Walks the node hierarchy (BFS via child/sibling indices), composing each
+ *     node's local transform with its parent's world matrix.
+ * 10. Applies an origin offset from the model tag and writes the bounding
+ *     sphere radius.
+ *
+ * The bulk of the assembly is assertion/validation code that checks matrix
+ * components for NaN/Inf and perpendicularity, expanded from the
+ * assert_valid_real_matrix4x3 macro.
+ *
+ * Confirmed: 1 cdecl arg (object_handle). void return.
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (-1, handle).
+ * Confirmed: CALL 0x1ba140 (tag_get) with 'obje' and object definition index.
+ * Confirmed: CALL 0x13dfc0 (object_header_block_reference_get) for node matrix
+ *            and animation data block references.
+ * Confirmed: 0xfe0 type mask = bits 5..11 (_object_mask_cannot_interpolate).
+ * Confirmed: CALL 0x109500 (model_node_matrices_set_default) for default pose.
+ * Confirmed: CALL 0x109850 (matrix_4x3_multiply) for composing transforms.
+ * Confirmed: CALL 0x109280 (matrix_4x3_from_point) for translation matrices.
+ * Confirmed: CALL 0x109e10 (matrix_from_forward_and_up) for orientation.
+ * Confirmed: CALL 0x109590 (matrix_transform_point) for origin offset.
+ * Confirmed: SUB ESP,0xa44 — large stack frame for animation data and node
+ *            queue.
+ */
+void object_compute_node_matrices(int object_handle)
+{
+  /* Type-cast helpers for unported callees */
+  typedef void (*object_type_validate_fn)(int16_t type);
+  typedef void (*animation_set_default_fn)(void *model_tag, void *anim_data);
+  typedef void (*animation_decode_fn)(void *model_tag, void *anim_entry,
+                                      int frame_index, void *anim_data);
+  typedef void (*animation_overlay_keyframe_fn)(
+    void *anim_entry, float frame_value, void *anim_data);
+  typedef void (*animation_overlay_interpolate_fn)(
+    void *anim_entry, int frame_index, void *anim_data, void *node_data);
+  typedef void (*overlay_adjust_fn)(int object_handle, void *anim_data);
+  typedef void (*anim_interpolate_fn)(uint16_t node_count, void *interp_data,
+                                      void *anim_data, int16_t frame_index,
+                                      int16_t frame_count);
+  typedef int (*valid_real_point3d_fn)(float *p);
+  typedef int (*valid_real_vectors_fn)(float *fwd, float *left, float *up);
+  typedef int (*valid_real_matrix4x3_fn)(float *m);
+  typedef int (*valid_fwd_and_up_fn)(float *fwd, float *up);
+  typedef void (*matrix_4x3_multiply_fn)(float *a, float *b, float *out);
+  typedef void (*matrix_4x3_from_point_fn)(float *out, float *point);
+  typedef void (*model_node_set_default_fn)(float *out, void *anim_data);
+
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  void *object_tag = tag_get(0x6f626a65, *(int *)obj);
+  float *node_matrices = (float *)object_header_block_reference_get(
+    object_handle, (void *)((char *)obj + 0x1a0));
+
+  /* Objects with type bits 5..11 set cannot interpolate and use a stack
+   * buffer for animation data; others use the block reference at +0x19c. */
+  uint8_t obj_type_byte = *(uint8_t *)((char *)obj + 0x64);
+  int cannot_interpolate = ((1 << (obj_type_byte & 0x1f)) & 0xfe0u) != 0;
+  void *anim_data;
+  char anim_data_stack[2048];
+
+  if (cannot_interpolate) {
+    anim_data = anim_data_stack;
+  } else {
+    anim_data = object_header_block_reference_get(
+      object_handle, (void *)((char *)obj + 0x19c));
+  }
+
+  if (*(int *)((char *)object_tag + 0x34) == -1) {
+    /* No model — build a trivial matrix from object vectors */
+    node_matrices[0] = 1.0f; /* scale */
+    node_matrices[1] = *(float *)((char *)obj + 0x24); /* forward.x */
+    node_matrices[2] = *(float *)((char *)obj + 0x28); /* forward.y */
+    node_matrices[3] = *(float *)((char *)obj + 0x2c); /* forward.z */
+    node_matrices[7] = *(float *)((char *)obj + 0x30); /* up.x */
+    node_matrices[8] = *(float *)((char *)obj + 0x34); /* up.y */
+    node_matrices[9] = *(float *)((char *)obj + 0x38); /* up.z */
+    /* left = up x forward */
+    node_matrices[4] =
+      node_matrices[8] * node_matrices[3] - node_matrices[9] * node_matrices[2];
+    node_matrices[5] =
+      node_matrices[9] * node_matrices[1] - node_matrices[3] * node_matrices[7];
+    node_matrices[6] =
+      node_matrices[7] * node_matrices[2] - node_matrices[8] * node_matrices[1];
+    /* position */
+    node_matrices[10] = *(float *)((char *)obj + 0x0c);
+    node_matrices[11] = *(float *)((char *)obj + 0x10);
+    node_matrices[12] = *(float *)((char *)obj + 0x14);
+  } else {
+    /* Has a model — full animation pipeline */
+    ((object_type_validate_fn)0x13c100)(*(int16_t *)((char *)obj + 0x64));
+    void *model_tag = tag_get(0x6d6f6465, *(int *)((char *)object_tag + 0x34));
+
+    /* Get parent node matrix if attached to a parent object */
+    float *parent_node_mat = NULL;
+    if (obj->parent_object_index.value != -1) {
+      parent_node_mat = (float *)object_get_node_matrix(
+        obj->parent_object_index.value,
+        (int16_t) * (int8_t *)((char *)obj + 0xd0));
+    }
+
+    uint8_t override_decompressor = 0;
+
+    /* Decode animation pose into anim_data */
+    int anim_tag_index = *(int *)((char *)obj + 0x7c);
+    if (anim_tag_index == -1 || *(int16_t *)((char *)obj + 0x80) == -1) {
+      /* No animation graph or no animation index — use default pose */
+      ((animation_set_default_fn)0x123aa0)(model_tag, anim_data);
+    } else {
+      void *anim_tag = tag_get(0x616e7472, anim_tag_index);
+      void *anim_entry = tag_block_get_element(
+        (char *)anim_tag + 0x74, (int)*(int16_t *)((char *)obj + 0x80), 0xb4);
+
+      if ((*(char *)((char *)obj + 0x4) < 0) &&
+          (0 < *(int16_t *)((char *)anim_entry + 0x22))) {
+        /* Object flag bit 7 set and animation has frames — compute
+         * frame from game_time + object_handle modulo frame count */
+        int time = game_time_get();
+        uint32_t frame_index =
+          (uint32_t)(time + object_handle) %
+          (uint32_t)(int)*(int16_t *)((char *)anim_entry + 0x22);
+        if ((int16_t)frame_index < 0) {
+          display_assert("frame_index>=0",
+                         "c:\\halo\\SOURCE\\objects\\objects.c", 0xa90, 1);
+          system_exit(-1);
+        }
+        ((animation_decode_fn)0x121d60)(model_tag, anim_entry,
+                                        (int)(int16_t)frame_index, anim_data);
+      } else {
+        /* Use the stored frame index at obj+0x82 */
+        int16_t frame_idx = *(int16_t *)((char *)obj + 0x82);
+        ((animation_decode_fn)0x121d60)(model_tag, anim_entry, (int)frame_idx,
+                                        anim_data);
+      }
+      override_decompressor =
+        (*(uint8_t *)((char *)anim_entry + 0x3a) >> 1) & 1;
+    }
+
+    /* Apply overlay animations from object definition's animation graph */
+    if (*(int *)((char *)object_tag + 0x44) != -1) {
+      void *overlay_anim_tag =
+        tag_get(0x616e7472, *(int *)((char *)object_tag + 0x44));
+      int overlay_count = *(int *)overlay_anim_tag;
+      int16_t overlay_idx = 0;
+      if (overlay_count > 0) {
+        int i = 0;
+        do {
+          int16_t *overlay_entry =
+            (int16_t *)tag_block_get_element(overlay_anim_tag, i, 0x14);
+          if (*overlay_entry != -1) {
+            int16_t region_idx = overlay_entry[1];
+            if ((int)region_idx < *(int *)((char *)object_tag + 0x158)) {
+              void *region_block = tag_block_get_element(
+                (char *)object_tag + 0x158, (int)region_idx, 0x168);
+              void *overlay_anim_entry = tag_block_get_element(
+                (char *)overlay_anim_tag + 0x74, (int)*overlay_entry, 0xb4);
+              int16_t mode = overlay_entry[2];
+              float func_value =
+                *(float *)((char *)obj + 0xe4 + region_idx * 4);
+
+              if (mode == 0) {
+                /* Keyframe overlay */
+                float total_frames;
+                if ((*(uint8_t *)region_block & 2) == 0) {
+                  total_frames =
+                    (float)(int)(*(int16_t *)((char *)overlay_anim_entry +
+                                              0x22) -
+                                 1);
+                } else {
+                  total_frames =
+                    (float)(int)*(int16_t *)((char *)overlay_anim_entry + 0x22);
+                }
+                float frame_value = total_frames * func_value;
+                ((animation_overlay_keyframe_fn)0x122690)(
+                  overlay_anim_entry, frame_value, anim_data);
+              } else if (mode == 1) {
+                /* Interpolated overlay */
+                int time = game_time_get();
+                uint32_t frame_mod =
+                  (uint32_t)(time + object_handle) %
+                  (uint32_t)(int)*(int16_t *)((char *)overlay_anim_entry +
+                                              0x22);
+                ((animation_overlay_interpolate_fn)0x122450)(
+                  overlay_anim_entry, (int)frame_mod, anim_data, anim_data);
+              }
+            }
+          }
+          overlay_idx = (int16_t)(overlay_idx + 1);
+          i = (int)overlay_idx;
+        } while (i < overlay_count);
+      }
+    }
+
+    /* Scale animation data if object has a non-zero scale factor */
+    if (*(float *)((char *)obj + 0x60) > *(float *)0x2533c0) {
+      float scale = *(float *)((char *)obj + 0x60);
+      *(float *)((char *)anim_data + 0x1c) =
+        scale * *(float *)((char *)anim_data + 0x1c);
+      *(float *)((char *)anim_data + 0x10) =
+        scale * *(float *)((char *)anim_data + 0x10);
+      *(float *)((char *)anim_data + 0x14) =
+        scale * *(float *)((char *)anim_data + 0x14);
+      *(float *)((char *)anim_data + 0x18) =
+        scale * *(float *)((char *)anim_data + 0x18);
+    }
+
+    /* Call type-specific overlay adjustments */
+    if (*(int *)((char *)object_tag + 0x44) != -1) {
+      ((overlay_adjust_fn)0x13c7a0)(object_handle, anim_data);
+    }
+
+    /* Interpolate node matrices if the object has interpolation data */
+    if (*(int16_t *)((char *)obj + 0x86) > 0) {
+      if (cannot_interpolate) {
+        display_assert("!TEST_FLAG(_object_mask_cannot_interpolate, "
+                       "object->object.type)",
+                       "c:\\halo\\SOURCE\\objects\\objects.c", 0xad9, 1);
+        system_exit(-1);
+      }
+      void *interp_data = object_header_block_reference_get(
+        object_handle, (void *)((char *)obj + 0x198));
+      ((anim_interpolate_fn)0x120ba0)(
+        *(int16_t *)((char *)model_tag + 0xb8), interp_data, anim_data,
+        *(int16_t *)((char *)obj + 0x84), *(int16_t *)((char *)obj + 0x86));
+    }
+
+    /* Validate object position and orientation if not using override */
+    if (!override_decompressor) {
+      if (!((valid_real_point3d_fn)0xa16b0)((float *)((char *)obj + 0x0c))) {
+        char *name = (char *)tag_get_name(*(int *)obj);
+        char *msg =
+          csprintf((char *)0x5ab100,
+                   "%s had a bad position before compute_node_matrices "
+                   "(%f,%f,%f)",
+                   name, (double)*(float *)((char *)obj + 0x0c),
+                   (double)*(float *)((char *)obj + 0x10),
+                   (double)*(float *)((char *)obj + 0x14));
+        display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0xae2, 1);
+        system_exit(-1);
+      }
+      if (!((valid_fwd_and_up_fn)0x84a70)((float *)((char *)obj + 0x24),
+                                          (float *)((char *)obj + 0x30))) {
+        char *name = (char *)tag_get_name(*(int *)obj);
+        char *msg = csprintf((char *)0x5ab100,
+                             "%s had a bad forward and up before "
+                             "compute_node_matrices (%f,%f,%f)x(%f,%f,%f)",
+                             name, (double)*(float *)((char *)obj + 0x24),
+                             (double)*(float *)((char *)obj + 0x28),
+                             (double)*(float *)((char *)obj + 0x2c),
+                             (double)*(float *)((char *)obj + 0x30),
+                             (double)*(float *)((char *)obj + 0x34),
+                             (double)*(float *)((char *)obj + 0x38));
+        display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0xae3, 1);
+        system_exit(-1);
+      }
+    }
+
+    /* Walk the node hierarchy via breadth-first traversal */
+    uint16_t node_queue[64];
+    int queue_read = 0;
+    int queue_write = 1;
+    node_queue[0] = 0;
+    void *model_nodes_block = (char *)model_tag + 0xb8;
+
+    float root_anim[13];
+    float orientation_matrix[13];
+    float translation_matrix[13];
+    float phys_offset_matrix[13];
+    float origin_matrix[13];
+    float parent_copy[13];
+
+    do {
+      int16_t cur_read = (int16_t)queue_read;
+      uint16_t node_idx_u16 = node_queue[cur_read];
+      queue_read++;
+      int node_idx = (int)(int16_t)node_idx_u16;
+      void *node_data =
+        tag_block_get_element(model_nodes_block, node_idx, 0x9c);
+
+      if ((int16_t)node_idx_u16 == 0) {
+        /* Root node processing */
+        ((model_node_set_default_fn)0x109500)(root_anim, anim_data);
+
+        if (!override_decompressor) {
+          /* Build orientation matrix from object's forward and up */
+          ((matrix_4x3_from_point_fn)0x109280)(translation_matrix,
+                                               (float *)((char *)obj + 0x0c));
+          ((void (*)(float *, float *, float *))0x109e10)(
+            orientation_matrix, (float *)((char *)obj + 0x24),
+            (float *)((char *)obj + 0x30));
+
+          /* Negate left column if object flag 0x1000 is set */
+          if ((*(uint32_t *)((char *)obj + 0x4) & 0x1000) != 0) {
+            orientation_matrix[4] = -orientation_matrix[4];
+            orientation_matrix[5] = -orientation_matrix[5];
+            orientation_matrix[6] = -orientation_matrix[6];
+          }
+
+          /* Apply physics center-of-mass offset if present */
+          if (*(int *)((char *)object_tag + 0x8c) != -1) {
+            void *phys_tag =
+              tag_get(0x70687973, *(int *)((char *)object_tag + 0x8c));
+            float neg_com[3];
+            neg_com[0] = -*(float *)((char *)phys_tag + 0x0c);
+            neg_com[1] = -*(float *)((char *)phys_tag + 0x10);
+            neg_com[2] = -*(float *)((char *)phys_tag + 0x14);
+            ((matrix_4x3_from_point_fn)0x109280)(phys_offset_matrix, neg_com);
+            ((matrix_4x3_multiply_fn)0x109850)(
+              orientation_matrix, phys_offset_matrix, orientation_matrix);
+          }
+
+          /* Apply model origin offset */
+          ((matrix_4x3_from_point_fn)0x109280)(
+            origin_matrix, (float *)((char *)object_tag + 0x14));
+          ((matrix_4x3_multiply_fn)0x109850)(orientation_matrix, origin_matrix,
+                                             orientation_matrix);
+
+          if (parent_node_mat == NULL) {
+            /* No parent — compose directly */
+            ((matrix_4x3_multiply_fn)0x109850)(
+              translation_matrix, orientation_matrix, translation_matrix);
+            ((matrix_4x3_multiply_fn)0x109850)(node_matrices, root_anim,
+                                               node_matrices);
+          } else {
+            /* Has parent — may need to scale and adjust */
+            if (*(uint32_t *)parent_node_mat != 0x3f800000) {
+              /* Parent scale != 1.0: scale the orientation position */
+              float pscale = *parent_node_mat;
+              orientation_matrix[10] *= pscale;
+              orientation_matrix[11] *= pscale;
+              orientation_matrix[12] *= pscale;
+              /* Copy parent matrix to local buffer and set scale=1 */
+              int k;
+              float *src = parent_node_mat;
+              float *dst = parent_copy;
+              for (k = 0xd; k != 0; k--) {
+                *dst = *src;
+                src++;
+                dst++;
+              }
+              parent_node_mat = parent_copy;
+              parent_copy[0] = 1.0f;
+              obj = (object_data_t *)object_get_and_verify_type(
+                object_handle, -1); /* decompiler artifact: reload ESI */
+            }
+
+            /* Check if parent object has flag 0x1000 (mirrored) */
+            {
+              void *parent_obj =
+                object_get_and_verify_type(obj->parent_object_index.value, -1);
+              if ((*(uint32_t *)((char *)parent_obj + 0x4) & 0x1000) != 0) {
+                /* Copy parent matrix if not already copied */
+                if (parent_node_mat != parent_copy) {
+                  float *src2 = parent_node_mat;
+                  float *dst2 = parent_copy;
+                  int k2;
+                  for (k2 = 0xd; k2 != 0; k2--) {
+                    *dst2 = *src2;
+                    src2++;
+                    dst2++;
+                  }
+                  parent_node_mat = parent_copy;
+                  obj = (object_data_t *)object_get_and_verify_type(
+                    object_handle, -1);
+                }
+                /* Negate the left column of parent matrix */
+                parent_node_mat[4] = -parent_node_mat[4];
+                parent_node_mat[5] = -parent_node_mat[5];
+                parent_node_mat[6] = -parent_node_mat[6];
+              }
+            }
+
+            /* Validate parent node matrix */
+            {
+              uint32_t scale_bits = *(uint32_t *)parent_node_mat & 0x7f800000;
+              if (scale_bits == 0x7f800000 ||
+                  !((valid_real_vectors_fn)0xf6c40)(parent_node_mat + 1,
+                                                    parent_node_mat + 4,
+                                                    parent_node_mat + 7) ||
+                  !((valid_real_point3d_fn)0xa16b0)(parent_node_mat + 10)) {
+                /* Parent node matrix is invalid — detailed error
+                 * reporting */
+                void *parent_obj_2 = object_get_and_verify_type(
+                  obj->parent_object_index.value, -1);
+                char *obj_name = (char *)tag_get_name(*(int *)obj);
+                char *parent_name = (char *)tag_get_name(*(int *)parent_obj_2);
+                char *context =
+                  csprintf((char *)0x5ab100, "%s as parent node of %s",
+                           parent_name, obj_name);
+
+                /* assert_valid_real_matrix4x3 expanded inline */
+                if ((*(uint32_t *)parent_node_mat & 0x7f800000) == 0x7f800000) {
+                  char *msg =
+                    csprintf((char *)0x5ab100, "%s had a bad scale %f", context,
+                             (double)*parent_node_mat);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb37, 1);
+                  system_exit(-1);
+                }
+                if (!valid_real_normal3d(parent_node_mat + 1)) {
+                  char *msg = csprintf(
+                    (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)",
+                    context, (double)parent_node_mat[1],
+                    (double)parent_node_mat[2], (double)parent_node_mat[3]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb37, 1);
+                  system_exit(-1);
+                }
+                if (!valid_real_normal3d(parent_node_mat + 4)) {
+                  char *msg = csprintf(
+                    (char *)0x5ab100, "%s had a bad left (%f,%f,%f)", context,
+                    (double)parent_node_mat[4], (double)parent_node_mat[5],
+                    (double)parent_node_mat[6]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb37, 1);
+                  system_exit(-1);
+                }
+                if (!valid_real_normal3d(parent_node_mat + 7)) {
+                  char *msg = csprintf(
+                    (char *)0x5ab100, "%s had a bad up (%f,%f,%f)", context,
+                    (double)parent_node_mat[7], (double)parent_node_mat[8],
+                    (double)parent_node_mat[9]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb37, 1);
+                  system_exit(-1);
+                }
+                if (!((valid_real_point3d_fn)0xa16b0)(parent_node_mat + 10)) {
+                  char *msg = csprintf(
+                    (char *)0x5ab100, "%s had a bad position (%f,%f,%f)",
+                    context, (double)parent_node_mat[10],
+                    (double)parent_node_mat[11], (double)parent_node_mat[12]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb37, 1);
+                  system_exit(-1);
+                }
+                {
+                  float dot_fl = parent_node_mat[1] * parent_node_mat[4] +
+                                 parent_node_mat[2] * parent_node_mat[5] +
+                                 parent_node_mat[3] * parent_node_mat[6];
+                  if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
+                      (dot_fl < 0 ? -dot_fl : dot_fl) >= *(float *)0x2549d8) {
+                    char *msg = csprintf(
+                      (char *)0x5ab100,
+                      "%s had a forward (%f,%f,%f) not perpendicular "
+                      "to left (%f,%f,%f)",
+                      context, (double)parent_node_mat[1],
+                      (double)parent_node_mat[2], (double)parent_node_mat[3],
+                      (double)parent_node_mat[4], (double)parent_node_mat[5],
+                      (double)parent_node_mat[6]);
+                    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                   0xb37, 1);
+                    system_exit(-1);
+                  }
+                }
+                {
+                  float dot_ul = parent_node_mat[7] * parent_node_mat[4] +
+                                 parent_node_mat[8] * parent_node_mat[5] +
+                                 parent_node_mat[9] * parent_node_mat[6];
+                  if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
+                      (dot_ul < 0 ? -dot_ul : dot_ul) >= *(float *)0x2549d8) {
+                    char *msg = csprintf(
+                      (char *)0x5ab100,
+                      "%s had a up (%f,%f,%f) not perpendicular to "
+                      "left (%f,%f,%f)",
+                      context, (double)parent_node_mat[7],
+                      (double)parent_node_mat[8], (double)parent_node_mat[9],
+                      (double)parent_node_mat[4], (double)parent_node_mat[5],
+                      (double)parent_node_mat[6]);
+                    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                   0xb37, 1);
+                    system_exit(-1);
+                  }
+                }
+                {
+                  float dot_uf = parent_node_mat[7] * parent_node_mat[1] +
+                                 parent_node_mat[2] * parent_node_mat[8] +
+                                 parent_node_mat[3] * parent_node_mat[9];
+                  if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
+                      (dot_uf < 0 ? -dot_uf : dot_uf) >= *(float *)0x2549d8) {
+                    char *msg = csprintf(
+                      (char *)0x5ab100,
+                      "%s had a forward (%f,%f,%f) not perpendicular "
+                      "to up (%f,%f,%f)",
+                      context, (double)parent_node_mat[1],
+                      (double)parent_node_mat[2], (double)parent_node_mat[3],
+                      (double)parent_node_mat[7], (double)parent_node_mat[8],
+                      (double)parent_node_mat[9]);
+                    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                   0xb37, 1);
+                    system_exit(-1);
+                  }
+                }
+                if (!((valid_real_matrix4x3_fn)0xf6d00)(parent_node_mat)) {
+                  char *msg =
+                    csprintf((char *)0x5ab100,
+                             "%s: assert_valid_real_matrix4x3", context);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb37, 1);
+                  system_exit(-1);
+                }
+              }
+            }
+
+            /* Compose parent * translation, parent * orientation,
+             * then multiply with root anim */
+            ((matrix_4x3_multiply_fn)0x109850)(
+              parent_node_mat, translation_matrix, parent_node_mat);
+            ((matrix_4x3_multiply_fn)0x109850)(
+              node_matrices, orientation_matrix, node_matrices);
+            ((matrix_4x3_multiply_fn)0x109850)(node_matrices, root_anim,
+                                               node_matrices);
+          }
+        } else {
+          /* override_decompressor — just copy root_anim to node_matrices */
+          float *src3 = root_anim;
+          float *dst3 = node_matrices;
+          int k3;
+          for (k3 = 0xd; k3 != 0; k3--) {
+            *dst3 = *src3;
+            src3++;
+            dst3++;
+          }
+        }
+
+        /* Validate root node matrix — first quick check */
+        {
+          float *fwd = node_matrices + 1;
+          float *left = node_matrices + 4;
+          uint32_t scale_bits = *(uint32_t *)node_matrices & 0x7f800000;
+          if (scale_bits == 0x7f800000 ||
+              !((valid_real_vectors_fn)0xf6c40)(fwd, left, node_matrices + 7) ||
+              (*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
+              (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
+              (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
+            /* Root node matrix invalid — dump diagnostic info */
+            obj =
+              (object_data_t *)object_get_and_verify_type(object_handle, -1);
+            char *name = (char *)tag_get_name(*(int *)obj);
+            error(2,
+                  "object_compute_node_matrices FAILURE on root node "
+                  "of %s",
+                  name);
+            error(2, "  object: pos %f %f %f, fwd %f %f %f, up %f %f %f",
+                  (double)*(float *)((char *)obj + 0x0c),
+                  (double)*(float *)((char *)obj + 0x10),
+                  (double)*(float *)((char *)obj + 0x14),
+                  (double)*(float *)((char *)obj + 0x24),
+                  (double)*(float *)((char *)obj + 0x28),
+                  (double)*(float *)((char *)obj + 0x2c),
+                  (double)*(float *)((char *)obj + 0x30),
+                  (double)*(float *)((char *)obj + 0x34),
+                  (double)*(float *)((char *)obj + 0x38));
+
+            if (*(int *)((char *)object_tag + 0x8c) != -1) {
+              void *phys_tag2 =
+                tag_get(0x70687973, *(int *)((char *)object_tag + 0x8c));
+              error(2, "  center-of-mass translation %f %f %f",
+                    (double)-*(float *)((char *)phys_tag2 + 0x0c),
+                    (double)-*(float *)((char *)phys_tag2 + 0x10),
+                    (double)-*(float *)((char *)phys_tag2 + 0x14));
+            }
+            error(2, "  origin-offset %f %f %f",
+                  (double)*(float *)((char *)object_tag + 0x14),
+                  (double)*(float *)((char *)object_tag + 0x18),
+                  (double)*(float *)((char *)object_tag + 0x1c));
+
+            if (parent_node_mat == NULL) {
+              error(2, "  no parent node");
+            } else {
+              error(2, "  parent-node matrix fwd  %f %f %f",
+                    (double)parent_node_mat[1], (double)parent_node_mat[2],
+                    (double)parent_node_mat[3]);
+              error(2, "                     left %f %f %f",
+                    (double)parent_node_mat[4], (double)parent_node_mat[5],
+                    (double)parent_node_mat[6]);
+              error(2, "                     up   %f %f %f",
+                    (double)parent_node_mat[7], (double)parent_node_mat[8],
+                    (double)parent_node_mat[9]);
+              error(2, "                     posn %f %f %f",
+                    (double)parent_node_mat[10], (double)parent_node_mat[11],
+                    (double)parent_node_mat[12]);
+              error(2,
+                    "                     scale (jason's ugly secret) "
+                    "%f",
+                    (double)*parent_node_mat);
+            }
+
+            error(2, "");
+
+            error(2, "computed matrix fwd  %f %f %f", (double)node_matrices[1],
+                  (double)node_matrices[2], (double)node_matrices[3]);
+            error(2, "                left %f %f %f", (double)node_matrices[4],
+                  (double)node_matrices[5], (double)node_matrices[6]);
+            error(2, "                up   %f %f %f", (double)node_matrices[7],
+                  (double)node_matrices[8], (double)node_matrices[9]);
+            error(2, "                posn %f %f %f", (double)node_matrices[10],
+                  (double)node_matrices[11], (double)node_matrices[12]);
+            error(2, "                scale %f", (double)*node_matrices);
+
+            /* assert_valid_real_matrix4x3 on root node (line 0xb69)
+             */
+            if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
+                !((valid_real_vectors_fn)0xf6c40)(fwd, left,
+                                                  node_matrices + 7) ||
+                !((valid_real_point3d_fn)0xa16b0)(node_matrices + 10)) {
+              if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000) {
+                char *msg =
+                  csprintf((char *)0x5ab100, "%s had a bad scale %f",
+                           "object_compute_node_matrices root node matrix",
+                           (double)*node_matrices);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb69, 1);
+                system_exit(-1);
+              }
+              {
+                float mag_fwd = fwd[0] * fwd[0] + fwd[1] * fwd[1] +
+                                fwd[2] * fwd[2] - *(float *)0x2533c8;
+                if ((*(uint32_t *)&mag_fwd & 0x7f800000) == 0x7f800000 ||
+                    (mag_fwd < 0 ? -mag_fwd : mag_fwd) >= *(float *)0x2549d8) {
+                  char *msg = csprintf(
+                    (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)",
+                    "object_compute_node_matrices root node matrix",
+                    (double)fwd[0], (double)fwd[1], (double)fwd[2]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb69, 1);
+                  system_exit(-1);
+                }
+              }
+              {
+                float mag_left = left[0] * left[0] + left[1] * left[1] +
+                                 left[2] * left[2] - *(float *)0x2533c8;
+                if ((*(uint32_t *)&mag_left & 0x7f800000) == 0x7f800000 ||
+                    (mag_left < 0 ? -mag_left : mag_left) >=
+                      *(float *)0x2549d8) {
+                  char *msg =
+                    csprintf((char *)0x5ab100, "%s had a bad left (%f,%f,%f)",
+                             "object_compute_node_matrices root node matrix",
+                             (double)left[0], (double)left[1], (double)left[2]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb69, 1);
+                  system_exit(-1);
+                }
+              }
+              {
+                float mag_up = node_matrices[9] * node_matrices[9] +
+                               node_matrices[8] * node_matrices[8] +
+                               node_matrices[7] * node_matrices[7] -
+                               *(float *)0x2533c8;
+                if ((*(uint32_t *)&mag_up & 0x7f800000) == 0x7f800000 ||
+                    (mag_up < 0 ? -mag_up : mag_up) >= *(float *)0x2549d8) {
+                  char *msg =
+                    csprintf((char *)0x5ab100, "%s had a bad up (%f,%f,%f)",
+                             "object_compute_node_matrices root node matrix",
+                             (double)node_matrices[7], (double)node_matrices[8],
+                             (double)node_matrices[9]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb69, 1);
+                  system_exit(-1);
+                }
+              }
+              if ((*(uint32_t *)&node_matrices[10] & 0x7f800000) ==
+                    0x7f800000 ||
+                  (*(uint32_t *)&node_matrices[11] & 0x7f800000) ==
+                    0x7f800000 ||
+                  (*(uint32_t *)&node_matrices[12] & 0x7f800000) ==
+                    0x7f800000) {
+                char *msg =
+                  csprintf((char *)0x5ab100, "%s had a bad position (%f,%f,%f)",
+                           "object_compute_node_matrices root node matrix",
+                           (double)node_matrices[10], (double)node_matrices[11],
+                           (double)node_matrices[12]);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb69, 1);
+                system_exit(-1);
+              }
+              {
+                float dot_fl =
+                  fwd[0] * left[0] + fwd[1] * left[1] + fwd[2] * left[2];
+                if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
+                    (dot_fl < 0 ? -dot_fl : dot_fl) >= *(float *)0x2549d8) {
+                  char *msg =
+                    csprintf((char *)0x5ab100,
+                             "%s had a forward (%f,%f,%f) not perpendicular "
+                             "to left (%f,%f,%f)",
+                             "object_compute_node_matrices root node matrix",
+                             (double)fwd[0], (double)fwd[1], (double)fwd[2],
+                             (double)left[0], (double)left[1], (double)left[2]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb69, 1);
+                  system_exit(-1);
+                }
+              }
+              {
+                float dot_ul = left[0] * node_matrices[7] +
+                               node_matrices[8] * left[1] +
+                               node_matrices[9] * left[2];
+                if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
+                    (dot_ul < 0 ? -dot_ul : dot_ul) >= *(float *)0x2549d8) {
+                  char *msg =
+                    csprintf((char *)0x5ab100,
+                             "%s had a up (%f,%f,%f) not perpendicular to "
+                             "left (%f,%f,%f)",
+                             "object_compute_node_matrices root node matrix",
+                             (double)node_matrices[7], (double)node_matrices[8],
+                             (double)node_matrices[9], (double)left[0],
+                             (double)left[1], (double)left[2]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb69, 1);
+                  system_exit(-1);
+                }
+              }
+              {
+                float dot_uf = node_matrices[7] * fwd[0] +
+                               node_matrices[8] * fwd[1] +
+                               node_matrices[9] * fwd[2];
+                if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
+                    (dot_uf < 0 ? -dot_uf : dot_uf) >= *(float *)0x2549d8) {
+                  char *msg =
+                    csprintf((char *)0x5ab100,
+                             "%s had a forward (%f,%f,%f) not perpendicular "
+                             "to up (%f,%f,%f)",
+                             "object_compute_node_matrices root node matrix",
+                             (double)fwd[0], (double)fwd[1], (double)fwd[2],
+                             (double)node_matrices[7], (double)node_matrices[8],
+                             (double)node_matrices[9]);
+                  display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                                 0xb69, 1);
+                  system_exit(-1);
+                }
+              }
+              if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
+                  !((valid_real_vectors_fn)0xf6c40)(fwd, left,
+                                                    node_matrices + 7) ||
+                  !((valid_real_point3d_fn)0xa16b0)(node_matrices + 10)) {
+                char *msg =
+                  csprintf((char *)0x5ab100, "%s: assert_valid_real_matrix4x3",
+                           "object_compute_node_matrices root node matrix");
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb69, 1);
+                system_exit(-1);
+              }
+            }
+          }
+        }
+
+        /* Final assert_valid_real_matrix4x3 on root (line 0xb77) */
+        {
+          float *fwd2 = node_matrices + 1;
+          float *left2 = node_matrices + 4;
+          if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
+              !((valid_real_vectors_fn)0xf6c40)(fwd2, left2,
+                                                node_matrices + 7) ||
+              (*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
+              (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
+              (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
+            char *name2 = (char *)tag_get_name(*(int *)obj);
+
+            if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000) {
+              char *msg = csprintf((char *)0x5ab100, "%s had a bad scale %f",
+                                   name2, (double)*node_matrices);
+              display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0xb77,
+                             1);
+              system_exit(-1);
+            }
+            {
+              float mag_fwd = fwd2[0] * fwd2[0] + fwd2[1] * fwd2[1] +
+                              fwd2[2] * fwd2[2] - *(float *)0x2533c8;
+              if ((*(uint32_t *)&mag_fwd & 0x7f800000) == 0x7f800000 ||
+                  (mag_fwd < 0 ? -mag_fwd : mag_fwd) >= *(float *)0x2549d8) {
+                char *msg = csprintf(
+                  (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)", name2,
+                  (double)fwd2[0], (double)fwd2[1], (double)fwd2[2]);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb77, 1);
+                system_exit(-1);
+              }
+            }
+            {
+              float mag_left = left2[0] * left2[0] + left2[1] * left2[1] +
+                               left2[2] * left2[2] - *(float *)0x2533c8;
+              if ((*(uint32_t *)&mag_left & 0x7f800000) == 0x7f800000 ||
+                  (mag_left < 0 ? -mag_left : mag_left) >= *(float *)0x2549d8) {
+                char *msg = csprintf(
+                  (char *)0x5ab100, "%s had a bad left (%f,%f,%f)", name2,
+                  (double)left2[0], (double)left2[1], (double)left2[2]);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb77, 1);
+                system_exit(-1);
+              }
+            }
+            {
+              float mag_up = node_matrices[9] * node_matrices[9] +
+                             node_matrices[8] * node_matrices[8] +
+                             node_matrices[7] * node_matrices[7] -
+                             *(float *)0x2533c8;
+              if ((*(uint32_t *)&mag_up & 0x7f800000) == 0x7f800000 ||
+                  (mag_up < 0 ? -mag_up : mag_up) >= *(float *)0x2549d8) {
+                char *msg =
+                  csprintf((char *)0x5ab100, "%s had a bad up (%f,%f,%f)",
+                           name2, (double)node_matrices[7],
+                           (double)node_matrices[8], (double)node_matrices[9]);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb77, 1);
+                system_exit(-1);
+              }
+            }
+            if ((*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
+                (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
+                (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
+              char *msg =
+                csprintf((char *)0x5ab100, "%s had a bad position (%f,%f,%f)",
+                         name2, (double)node_matrices[10],
+                         (double)node_matrices[11], (double)node_matrices[12]);
+              display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0xb77,
+                             1);
+              system_exit(-1);
+            }
+            {
+              float dot_fl =
+                fwd2[0] * left2[0] + fwd2[1] * left2[1] + fwd2[2] * left2[2];
+              if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
+                  (dot_fl < 0 ? -dot_fl : dot_fl) >= *(float *)0x2549d8) {
+                char *msg = csprintf(
+                  (char *)0x5ab100,
+                  "%s had a forward (%f,%f,%f) not perpendicular "
+                  "to left (%f,%f,%f)",
+                  name2, (double)fwd2[0], (double)fwd2[1], (double)fwd2[2],
+                  (double)left2[0], (double)left2[1], (double)left2[2]);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb77, 1);
+                system_exit(-1);
+              }
+            }
+            {
+              float dot_ul = left2[0] * node_matrices[7] +
+                             node_matrices[8] * left2[1] +
+                             node_matrices[9] * left2[2];
+              if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
+                  (dot_ul < 0 ? -dot_ul : dot_ul) >= *(float *)0x2549d8) {
+                char *msg = csprintf(
+                  (char *)0x5ab100,
+                  "%s had a up (%f,%f,%f) not perpendicular to "
+                  "left (%f,%f,%f)",
+                  name2, (double)node_matrices[7], (double)node_matrices[8],
+                  (double)node_matrices[9], (double)left2[0], (double)left2[1],
+                  (double)left2[2]);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb77, 1);
+                system_exit(-1);
+              }
+            }
+            {
+              float dot_uf = node_matrices[7] * fwd2[0] +
+                             fwd2[1] * node_matrices[8] +
+                             fwd2[2] * node_matrices[9];
+              if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
+                  (dot_uf < 0 ? -dot_uf : dot_uf) >= *(float *)0x2549d8) {
+                char *msg =
+                  csprintf((char *)0x5ab100,
+                           "%s had a forward (%f,%f,%f) not perpendicular "
+                           "to up (%f,%f,%f)",
+                           name2, (double)fwd2[0], (double)fwd2[1],
+                           (double)fwd2[2], (double)node_matrices[7],
+                           (double)node_matrices[8], (double)node_matrices[9]);
+                display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",
+                               0xb77, 1);
+                system_exit(-1);
+              }
+            }
+            if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
+                !((valid_real_vectors_fn)0xf6c40)(fwd2, left2,
+                                                  node_matrices + 7) ||
+                !((valid_real_point3d_fn)0xa16b0)(node_matrices + 10)) {
+              char *msg = csprintf((char *)0x5ab100,
+                                   "%s: assert_valid_real_matrix4x3", name2);
+              display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0xb77,
+                             1);
+              system_exit(-1);
+            }
+          }
+        }
+      } else {
+        /* Non-root node: set default pose then multiply by parent */
+        float *node_mat = node_matrices + node_idx * 13;
+        ((model_node_set_default_fn)0x109500)(node_mat, (char *)anim_data +
+                                                          node_idx * 0x20);
+
+        if (*(int16_t *)((char *)node_data + 0x24) == -1) {
+          display_assert("node->parent_node_index!=NONE",
+                         "c:\\halo\\SOURCE\\objects\\objects.c", 0xb71, 1);
+          system_exit(-1);
+        }
+        int16_t parent_idx = *(int16_t *)((char *)node_data + 0x24);
+        float *parent_mat = node_matrices + parent_idx * 13;
+        ((matrix_4x3_multiply_fn)0x109850)(parent_mat, node_mat, node_mat);
+      }
+
+      /* Enqueue child and sibling nodes */
+      if (*(uint16_t *)((char *)node_data + 0x20) != 0xffff) {
+        node_queue[(int16_t)queue_write] =
+          *(uint16_t *)((char *)node_data + 0x20);
+        queue_write++;
+      }
+      if (*(uint16_t *)((char *)node_data + 0x22) != 0xffff) {
+        node_queue[(int16_t)queue_write] =
+          *(uint16_t *)((char *)node_data + 0x22);
+        queue_write++;
+      }
+    } while ((int16_t)queue_read != (int16_t)queue_write);
+  }
+
+  /* Apply origin offset from model tag and set bounding sphere radius */
+  matrix_transform_point(node_matrices, (float *)((char *)object_tag + 0x08),
+                         (float *)((char *)obj + 0x50));
+  float radius = *(float *)((char *)object_tag + 0x04);
+  *(float *)((char *)obj + 0x5c) = radius;
+  if (*(float *)((char *)obj + 0x60) > *(float *)0x2533c0) {
+    *(float *)((char *)obj + 0x5c) = radius * *(float *)((char *)obj + 0x60);
+  }
 }
 
 /*
