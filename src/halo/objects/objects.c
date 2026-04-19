@@ -14,6 +14,7 @@
  *   0x13fd00  object_disconnect_from_map
  *   0x13ffc0  object_set_garbage
  *   0x140160  object_set_region_count
+ *   0x140230  object_adjust_interpolation_position
  *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
  *   0x1412f0  object_get_world_position
@@ -786,6 +787,52 @@ void object_set_region_count(int object_handle, int16_t region_count)
   if ((int)region_count >= (int)obj->unk_134 - (int)obj->unk_132) {
     obj->unk_132 = 0;
     obj->unk_134 = region_count;
+  }
+}
+
+/*
+ * object_adjust_interpolation_position — adds a delta vector to an object's
+ * interpolation position within its node/region block.
+ *
+ * Validates that the object type is not in the "cannot interpolate" mask
+ * (bits 5-11 = 0xFE0). If the object's unk_134 (int16_t at offset 0x86)
+ * is nonzero, resolves the block reference at obj+0x198 and adds the delta
+ * to the position vector at offsets +0x10, +0x14, +0x18 in that block.
+ *
+ * Confirmed: cdecl, 2 stack args (PUSH+PUSH pattern, ADD ESP cleanup).
+ * Confirmed: CALL 0x0013d680 — object_get_and_verify_type(handle, -1).
+ * Confirmed: TEST EAX,0xfe0 — same _object_mask_cannot_interpolate check as
+ *   object_set_region_count.
+ * Confirmed: CALL 0x0008d9f0 — display_assert with line 0x60a (1546).
+ * Confirmed: CALL 0x0008e2f0 — system_exit(-1).
+ * Confirmed: CMP word ptr [ESI+0x86],0x0 — checks unk_134 != 0.
+ * Confirmed: ADD ESI,0x198 then PUSH ESI — block reference at obj+0x198.
+ * Confirmed: CALL 0x0013dfc0 — object_header_block_reference_get.
+ * Confirmed: FLD/FADD/FSTP float ptr at [EAX+0x10], [EAX+0x14], [EAX+0x18].
+ */
+void object_adjust_interpolation_position(int object_handle, vector3_t *delta)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* Assert that this object type can be interpolated.
+   * _object_mask_cannot_interpolate = 0xFE0 (bits 5 through 11). */
+  if ((1 << (*(uint8_t *)((char *)obj + 0x64) & 0x1f)) & 0xfe0u) {
+    display_assert(
+      "!TEST_FLAG(_object_mask_cannot_interpolate, object->object.type)",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x60a, 1);
+    system_exit(-1);
+  }
+
+  /* Only adjust if the object has interpolation data (unk_134 != 0). */
+  if (obj->unk_134 != 0) {
+    float *block = (float *)object_header_block_reference_get(
+      object_handle, (char *)obj + 0x198);
+    /* Add delta to the position vector at block offsets +0x10, +0x14, +0x18
+     * (float indices 4, 5, 6). */
+    block[4] += delta->x;
+    block[5] += delta->y;
+    block[6] += delta->z;
   }
 }
 
