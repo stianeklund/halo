@@ -13,6 +13,27 @@
  *   +0x0C int32  element_size
  */
 
+/* Strips the directory path from a tag name, returning a pointer to the
+ * basename (the portion after the last backslash). If no backslash is found,
+ * returns the original pointer unchanged. The tag_name must not be NULL.
+ * Source: c:\halo\SOURCE\tag_files\tag_files.c, line 0x55e. */
+const char *tag_name_strip_path(const char *tag_name)
+{
+  char *last_sep;
+
+  if (tag_name == NULL) {
+    display_assert("name", "c:\\halo\\SOURCE\\tag_files\\tag_files.c", 0x55e,
+                   true);
+    system_exit(-1);
+  }
+
+  last_sep = strrchr((char *)tag_name, '\\');
+  if (last_sep != NULL)
+    return last_sep + 1;
+
+  return tag_name;
+}
+
 /* Minimal local struct describing the in-memory tag block header. */
 typedef struct {
   int count; /* +0x00 */
