@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for module-query handling and response reporting.
+
 Query section layout for a loaded module through XBDM.
 
 Argument: `$ARGUMENTS`

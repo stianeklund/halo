@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for standard XBDM thread-query handling.
+
 Query XBDM for the current thread list.
 
 Argument: `$ARGUMENTS` (optional host/port hints only)

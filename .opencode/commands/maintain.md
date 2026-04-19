@@ -4,11 +4,10 @@ agent: fast
 subtask: true
 ---
 
-Run the maintain.py script.
+Run the maintain script and report any resulting worktree changes.
 
 Steps:
-1. Execute the maintain python script: `! python tools/maintain.py`
-2. Once finished, check if there are any new changes in the repository and
-   report them
-3. Report the status of the maintain script and any changes you made
-4. Keep the output concise
+1. If `$ARGUMENTS` is provided, pass it through to `python3 tools/maintain.py`.
+2. Run `python3 tools/maintain.py $ARGUMENTS`.
+3. Check whether the repository gained new modifications after the run.
+4. Report the maintain result and the affected files concisely.

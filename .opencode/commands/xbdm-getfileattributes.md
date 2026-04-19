@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for RDCP argument handling and response reporting.
+
 Inspect file metadata through XBDM.
 
 Argument: `$ARGUMENTS`

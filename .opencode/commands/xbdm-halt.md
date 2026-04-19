@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for standard XBDM execution-state handling.
+
 Stop the current title or target thread through XBDM.
 
 Argument: `$ARGUMENTS` (optional thread-specific parameters plus optional host/port hints)
