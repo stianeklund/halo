@@ -1270,12 +1270,24 @@
           "addr": "0xa7a30"
         },
         {
-          "decl": "void game_allegiance_set(int16_t *entry@<eax>, char friendship@<bl>, char force);",
+          "decl": "void game_allegiance_set(int16_t *entry, char friendship, char force);",
           "addr": "0xa7c90"
         },
         {
           "decl": "void game_allegiance_update(void);",
           "addr": "0xa7e30"
+        },
+        {
+          "decl": "void game_allegiance_create(int16_t team_a, char is_player, int16_t team_b, char is_timer, int16_t threshold, int16_t timer, char is_ally);",
+          "addr": "0xa7eb0"
+        },
+        {
+          "decl": "bool game_allegiance_remove(int16_t team_a, int16_t team_b);",
+          "addr": "0xa7f90"
+        },
+        {
+          "decl": "bool game_allegiance_bump(int16_t team_a, int16_t team_b, int16_t action, bool *out_changed);",
+          "addr": "0xa8040"
         }
       ]
     },
