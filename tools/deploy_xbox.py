@@ -86,6 +86,38 @@ def get_modified_files(directory: str, since: float) -> list[str]:
     return sorted(modified)
 
 
+def get_source_dirs() -> list[str]:
+    """Return list of directories containing build sources."""
+    source_dirs = [
+        os.path.join(ROOT_DIR, "src"),
+        os.path.join(ROOT_DIR, "include"),
+    ]
+    build_cache = os.path.join(ROOT_DIR, "build", ".cmake_cache")
+    if os.path.isfile(build_cache):
+        source_dirs.append(build_cache)
+    return [d for d in source_dirs if os.path.isdir(d)]
+
+
+def is_build_current(xbe_path: str) -> bool:
+    """Return True if xbe_path exists and is newer than all source files."""
+    if not os.path.isfile(xbe_path):
+        return False
+    try:
+        xbe_mtime = os.path.getmtime(xbe_path)
+    except OSError:
+        return False
+    for src_dir in get_source_dirs():
+        for root, _dirs, files in os.walk(src_dir):
+            for fname in files:
+                fpath = os.path.join(root, fname)
+                try:
+                    if os.path.getmtime(fpath) > xbe_mtime:
+                        return False
+                except OSError:
+                    continue
+    return True
+
+
 def run_xbcp(
     xbcp_exe: str,
     xbcp_display: str,
@@ -232,20 +264,21 @@ def main() -> int:
         )
         return 1
 
-    # Always rebuild the patched XBE before deploying to avoid shipping a
-    # stale default.xbe.  The cmake step is a fast no-op when nothing changed.
     build_dir = os.path.join(ROOT_DIR, "build")
-    if os.path.isdir(build_dir):
-        print("building patched XBE...")
-        rc = subprocess.call(
-            ["cmake", "--build", build_dir, "--target", "patched_xbe"],
-            cwd=ROOT_DIR,
-        )
-        if rc != 0:
-            print("error: build failed", file=sys.stderr)
-            return rc
-
     xbe_path = os.path.join(HALO_PATCHED_DIR, "default.xbe")
+    if os.path.isdir(build_dir):
+        if is_build_current(xbe_path):
+            print("build unchanged, skipping rebuild...")
+        else:
+            print("building patched XBE...")
+            rc = subprocess.call(
+                ["cmake", "--build", build_dir, "--target", "patched_xbe"],
+                cwd=ROOT_DIR,
+            )
+            if rc != 0:
+                print("error: build failed", file=sys.stderr)
+                return rc
+
     if not os.path.isfile(xbe_path):
         print("error: default.xbe not found in halo-patched/", file=sys.stderr)
         return 1
@@ -350,42 +383,6 @@ def main() -> int:
         rc = launch_xbe(args.dest, host, args.dry_run)
         if rc != 0:
             return rc
-    return 0
-
-    # Default: deploy XBE + anything that looks like it changed (maps, etc.)
-    # First always push the XBE
-    print(f"  default.xbe ({os.path.getsize(xbe_path):,} bytes)")
-    rc = run_xbcp(src=xbe_src, dest=xbe_dest, **common_kwargs)
-    if rc != 0:
-        print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
-        return rc
-
-    # Then push maps/ and bink/ if --full, or just maps/ by default
-    dirs_to_deploy = []
-    maps_dir = os.path.join(HALO_PATCHED_DIR, "maps")
-    if os.path.isdir(maps_dir):
-        dirs_to_deploy.append(("maps", maps_dir))
-
-    if args.full:
-        bink_dir = os.path.join(HALO_PATCHED_DIR, "bink")
-        if os.path.isdir(bink_dir):
-            dirs_to_deploy.append(("bink", bink_dir))
-
-    for label, local_dir in dirs_to_deploy:
-        print(f"  {label}/ (newer files only)")
-        src = to_windows_path(local_dir)
-        d = f"{dest}\\{label}"
-        rc = run_xbcp(
-            src=src + "\\*", 
-            dest=d,
-            recursive=True,
-            **common_kwargs,
-        )
-        if rc != 0:
-            print(f"    xbcp failed with exit code {rc}", file=sys.stderr)
-            return rc
-
-    print("done.")
     return 0
 
 
