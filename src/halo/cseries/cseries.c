@@ -44,6 +44,16 @@ void *csmemset(void *buffer, int c, size_t size)
   return buffer;
 }
 
+/* csstrcat — bounded string concatenation with assertions. */
+char *csstrcat(char *destination, const char *source, size_t max_size)
+{
+  assert_halt(destination && source);
+  assert_halt(max_size < MAXIMUM_STRING_SIZE);
+
+  crt_strncat(destination, source, max_size);
+  return destination;
+}
+
 #ifdef strncpy
 #undef strncpy
 #endif
@@ -56,6 +66,14 @@ void *csstrncpy(char *destination, const char *source, size_t size)
   strncpy(destination, source, size);
 
   return destination;
+}
+
+/* csstrtok — tokenize a string with an assertion on delimiters. */
+char *csstrtok(char *string, const char *delimiters)
+{
+  assert_halt(delimiters);
+
+  return crt_strtok(string, delimiters);
 }
 
 #ifdef strlen
@@ -71,6 +89,39 @@ int csstrlen(const char *s1)
   assert_halt(size >= 0 && size < MAXIMUM_STRING_SIZE);
 
   return size;
+}
+
+/* csstrcpy — inline string copy with size and overlap assertions.
+ * Measures source length, asserts it's within bounds and non-overlapping,
+ * then copies byte-by-byte. */
+char *csstrcpy(char *destination, const char *source)
+{
+  const char *s;
+  int source_size;
+  char c;
+
+  s = source;
+  do {
+    c = *s;
+    s++;
+  } while (c != 0);
+  source_size = (int)(s - (source + 1));
+
+  assert_halt(source_size >= 0 && source_size < MAXIMUM_STRING_SIZE);
+  assert_halt(source + source_size < destination ||
+              destination + source_size < source);
+
+  {
+    int offset = (int)destination - (int)source;
+    const char *p = source;
+    do {
+      c = *p;
+      *(char *)((int)p + offset) = c;
+      p++;
+    } while (c != 0);
+  }
+
+  return destination;
 }
 
 void *csmemcpy(void *destination, void *source, size_t size)
