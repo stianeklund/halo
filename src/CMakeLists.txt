@@ -5,6 +5,7 @@
 	halo/ai/ai.c
 	halo/bitmaps/bitmaps.c
 	halo/bungie_net/network/transport_endpoint_set_winsock.c
+	halo/bungie_net/thread_win32.c
 	halo/bink/bink_playback.c
 	halo/camera/director.c
 	halo/camera/observer.c
