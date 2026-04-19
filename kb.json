@@ -1629,6 +1629,34 @@
         {
           "decl": "bool hs_console_evaluate(const char *command);",
           "addr": "0xc50c0"
+        },
+        {
+          "decl": "void hs_scripts_initialize(void);",
+          "addr": "0xc3b60"
+        },
+        {
+          "decl": "void hs_scripts_dispose(void);",
+          "addr": "0xc3ca0"
+        },
+        {
+          "decl": "int16_t hs_find_global_by_name(const char *name);",
+          "addr": "0xc3ee0"
+        },
+        {
+          "decl": "bool hs_needs_recompile(void);",
+          "addr": "0xc47c0"
+        },
+        {
+          "decl": "void hs_mark_recompile(void);",
+          "addr": "0xc4970"
+        },
+        {
+          "decl": "void hs_load_scenario_scripts(int a1);",
+          "addr": "0xc4c10"
+        },
+        {
+          "decl": "void hs_syntax_reset(int a1);",
+          "addr": "0xc5680"
         }
       ]
     },
@@ -1643,6 +1671,26 @@
         {
           "decl": "void hs_runtime_initialize_for_new_map(void);",
           "addr": "0xcdb30"
+        },
+        {
+          "decl": "int hs_compile(int source_length, const char *source, int *error_info, char **error_text);",
+          "addr": "0xc9050"
+        },
+        {
+          "decl": "void hs_compile_cleanup(void);",
+          "addr": "0xc94f0"
+        },
+        {
+          "decl": "void hs_runtime_execute(int thread_index);",
+          "addr": "0xcdeb0"
+        },
+        {
+          "decl": "void hs_runtime_initialize(void);",
+          "addr": "0xce1c0"
+        },
+        {
+          "decl": "void hs_runtime_dispose(void);",
+          "addr": "0xce1e0"
         }
       ]
     },
@@ -3948,6 +3996,24 @@
         {
           "decl": "int bink_get_dsound_handle(void);",
           "addr": "0x1c94b0"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:strchr.obj",
+      "functions": [
+        {
+          "decl": "char *crt_strchr(const char *str, int c);",
+          "addr": "0x1d95d0"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:isctype.obj",
+      "functions": [
+        {
+          "decl": "int crt_isspace(int c);",
+          "addr": "0x1dab81"
         }
       ]
     }
