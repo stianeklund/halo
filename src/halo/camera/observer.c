@@ -64,10 +64,16 @@ void *observer_get_camera(unsigned __int16 local_player_index)
  * 0x33571c), verifies the header/trailer OBSERVER_SIGNATURE ('!dar' =
  * 0x72616421) and that updated_for_frame is clear, marks it set, and
  * dispatches the three unported observer sub-updates:
- *   - 0x8b060: observer input/control update (EAX=index)
- *   - 0x8cd40: time-dependent integration, skipped when dt matches the
- *              previous frame time stored at 0x2533c0 (EAX=index)
- *   - 0x8c4b0: post-update derivation (EAX=index)
+ *   - 0x8b060: copies/stages the latest camera block from the director into
+ *              observer state, including the transition parameters emitted by
+ *              camera 0x89cd0 during vehicle-exit blends (EAX=index)
+ *   - 0x8cd40: time-dependent integration; original disassembly shows it
+ *              ticking down five transition floats at observer+0x5c..0x6c,
+ *              which makes it a strong candidate for the actual smoothing
+ *              behavior (skipped when dt matches the previous frame time
+ *              stored at 0x2533c0) (EAX=index)
+ *   - 0x8c4b0: derives the final observer camera result from that staged and
+ *              integrated state (EAX=index)
  * The three callees take the local player index in EAX (register arg),
  * so we dispatch them with inline asm — see cache_files_precache_map_loaded
  * for the established pattern. */
