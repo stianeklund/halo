@@ -29,3 +29,20 @@ void *tag_get(int group_tag, int tag_index)
   }
   return (void *)entry[5];
 }
+
+/* 0x1ba1f0 — tag_get_name: return the name string for a tag by index.
+ * Calls tag_instance_resolve (0x1b9bf0) with the tag index in EDI,
+ * then reads the name pointer at offset +0x10 of the tag instance record. */
+const char *tag_get_name(int tag_index)
+{
+  int _edi = tag_index;
+  int *entry;
+
+  asm volatile("movl $0x1b9bf0, %%ecx\n\t"
+               "call *%%ecx"
+               : "+D"(_edi), "=a"(entry)
+               :
+               : "ecx", "edx", "memory", "cc");
+
+  return (const char *)entry[4];
+}

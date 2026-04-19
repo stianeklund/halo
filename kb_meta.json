@@ -2237,6 +2237,13 @@
         "summary": "Resolve tag handle to base/data pointer; asserts on group mismatch or null data"
       }
     },
+    "0x1ba1f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Offset +0x10 in the tag instance record is the tag name string pointer, accessed as entry[4] (dword at 0x10)."
+      ]
+    },
     "0x1bc6a0": {
       "kind": "function",
       "status": "ported"
