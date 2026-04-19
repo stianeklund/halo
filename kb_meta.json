@@ -2250,6 +2250,14 @@
         "FUN_0x21fb0 is assert_valid_real_normal3d (validates unit vector). FUN_0x1af6b0 is a profiling/trace function accepting a string label."
       ]
     },
+    "0x1b1290": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Weapon tag offset 0x4bc is a sound tag index for zoom-deactivation sound.",
+        "Player datum offset +2 is checked against -1 to verify player validity before playing sound."
+      ]
+    },
     "0x1b1db0": {
       "kind": "function",
       "status": "ported"
