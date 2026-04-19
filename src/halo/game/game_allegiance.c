@@ -129,6 +129,159 @@ void game_allegiance_set(int16_t *entry, char friendship, char force)
   game_allegiance_apply_change(entry[0], entry[1], friendship, force);
 }
 
+/**
+ * Creates or reuses an allegiance entry between two teams.
+ *
+ * Searches for an existing entry matching (team_a, team_b) or (team_b, team_a).
+ * If found, reuses it; otherwise creates a new one (up to 8 entries max).
+ * Populates the entry and transitions it to hostile (friendship=0) via
+ * game_allegiance_set.
+ */
+void game_allegiance_create(int16_t team_a, char is_player, int16_t team_b,
+                            char is_timer, int16_t threshold, int16_t timer,
+                            char is_ally)
+{
+  int16_t i;
+  int16_t count;
+  int16_t *entry;
+  int16_t *globals;
+
+  globals = (int16_t *)game_allegiance_globals;
+  count = globals[0];
+  entry = globals + 1;
+
+  for (i = 0; i < count; i++) {
+    if ((entry[0] == team_a && entry[1] == team_b) ||
+        (entry[1] == team_a && entry[0] == team_b)) {
+      break;
+    }
+    entry += 9;
+  }
+
+  if (i >= count) {
+    if (count < 8) {
+      globals[0] = count + 1;
+    } else {
+      error(2, "game_allegiance_create: too many allegiances (maximum is %d)", 8);
+      globals = (int16_t *)game_allegiance_globals;
+    }
+  }
+
+  if (i < globals[0]) {
+    entry = globals + 1 + i * 9;
+    entry[1] = team_b;
+    entry[0] = team_a;
+    entry[3] = timer;
+    *((char *)entry + 8) = is_player;
+    *((char *)entry + 9) = is_timer;
+    entry[7] = 0;
+    entry[8] = 0;
+    *((char *)entry + 0xa) = 1;
+    game_allegiance_set(entry, 0, 0);
+    *((char *)entry + 0xb) = 0;
+    entry[2] = threshold;
+    *((char *)entry + 0xc) = is_ally;
+  }
+}
+
+/**
+ * Removes the allegiance entry between two teams.
+ *
+ * Finds the matching entry, sets it to friendly (friendship=1, forced),
+ * then removes it by swapping with the last entry and decrementing the count.
+ * Returns true if an entry was found and removed.
+ */
+bool game_allegiance_remove(int16_t team_a, int16_t team_b)
+{
+  int16_t i;
+  int16_t count;
+  int16_t *entry;
+  int16_t *globals;
+
+  globals = (int16_t *)game_allegiance_globals;
+  count = globals[0];
+  entry = globals + 1;
+
+  for (i = 0; i < count; i++) {
+    if ((entry[0] == team_a && entry[1] == team_b) ||
+        (entry[1] == team_a && entry[0] == team_b)) {
+      game_allegiance_set(entry, 1, 1);
+      globals = (int16_t *)game_allegiance_globals;
+      globals[0] = count - 1;
+      if (i < globals[0]) {
+        int16_t *last = globals + 1 + globals[0] * 9;
+        entry[0] = last[0];
+        entry[1] = last[1];
+        entry[2] = last[2];
+        entry[3] = last[3];
+        entry[4] = last[4];
+        entry[5] = last[5];
+        entry[6] = last[6];
+        entry[7] = last[7];
+        entry[8] = last[8];
+      }
+      return true;
+    }
+    entry += 9;
+  }
+  return false;
+}
+
+/**
+ * Bumps the incident count on an allegiance entry, optionally flipping it.
+ *
+ * Searches for an entry matching (team_a, team_b) or (team_b, team_a).
+ * Depending on action: 0 adds +1 incident, 1 adds +3, 2 adds -1.
+ * If current_incidents reaches the threshold, flips the entry to friendly
+ * via game_allegiance_set and returns true.
+ */
+bool game_allegiance_bump(int16_t team_a, int16_t team_b, int16_t action,
+                           bool *out_changed)
+{
+  int16_t i;
+  int16_t count;
+  int16_t delta;
+  int16_t *entry;
+  int16_t *globals;
+
+  globals = (int16_t *)game_allegiance_globals;
+  count = globals[0];
+  entry = globals + 1;
+
+  for (i = 0; i < count; i++) {
+    if ((entry[0] == team_a && entry[1] == team_b &&
+         *((char *)entry + 9) != 0) ||
+        (entry[1] == team_a && entry[0] == team_b &&
+         *((char *)entry + 8) != 0)) {
+      delta = 0;
+      if (action == 0) {
+        delta = 1;
+      } else if (action == 1) {
+        delta = 3;
+      } else if (action == 2) {
+        delta = -1;
+      }
+      entry[7] = entry[7] + delta;
+      if (entry[3] != -1) {
+        entry[8] = entry[3];
+      }
+      if (entry[2] == -1) {
+        return false;
+      }
+      if (entry[7] >= entry[2]) {
+        game_allegiance_set(entry, 1, 0);
+        if (out_changed != NULL) {
+          *out_changed = (*((char *)entry + 0xc) == 0);
+        }
+        return true;
+      }
+      return false;
+    }
+    entry += 9;
+  }
+  return false;
+}
+
 void game_allegiance_update(void)
 {
   int16_t i;
