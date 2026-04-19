@@ -1488,7 +1488,7 @@ void object_compute_node_matrices(int object_handle)
           if (parent_node_mat == NULL) {
             /* No parent — compose directly */
             ((matrix_4x3_multiply_fn)0x109850)(
-              translation_matrix, orientation_matrix, translation_matrix);
+              translation_matrix, orientation_matrix, node_matrices);
             ((matrix_4x3_multiply_fn)0x109850)(node_matrices, root_anim,
                                                node_matrices);
           } else {
@@ -1671,10 +1671,10 @@ void object_compute_node_matrices(int object_handle)
               }
             }
 
-            /* Compose parent * translation, parent * orientation,
+            /* Compose parent * translation, then node * orientation,
              * then multiply with root anim */
             ((matrix_4x3_multiply_fn)0x109850)(
-              parent_node_mat, translation_matrix, parent_node_mat);
+              parent_node_mat, translation_matrix, node_matrices);
             ((matrix_4x3_multiply_fn)0x109850)(
               node_matrices, orientation_matrix, node_matrices);
             ((matrix_4x3_multiply_fn)0x109850)(node_matrices, root_anim,
