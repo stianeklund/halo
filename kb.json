@@ -769,6 +769,14 @@
           "ported": true
         },
         {
+          "decl": "char *csstrcat(char *destination, const char *source, size_t max_size);",
+          "addr": "0x8dd30"
+        },
+        {
+          "decl": "char *csstrcpy(char *destination, const char *source);",
+          "addr": "0x8dff0"
+        },
+        {
           "decl": "void *csmemcpy(void *destination, void *source, size_t size);",
           "addr": "0x8e0b0",
           "ported": true
@@ -1053,6 +1061,10 @@
       "name": "errors.obj",
       "source": "cseries/errors.c",
       "functions": [
+        {
+          "decl": "void debug_string_to_display(const char *message, int severity);",
+          "addr": "0x8f230"
+        },
         {
           "decl": "void error(unsigned __int16 a1, const char *a2, ...);",
           "addr": "0x8f390"
@@ -3148,6 +3160,18 @@
       "name": "terminal.obj",
       "source": "interface/terminal.c",
       "functions": [
+        {
+          "decl": "void terminal_show(void);",
+          "addr": "0xe34a0"
+        },
+        {
+          "decl": "void terminal_dispose(void *terminal);",
+          "addr": "0xe3560"
+        },
+        {
+          "decl": "void terminal_output(void *color, const char *format, const char *text);",
+          "addr": "0xe3a10"
+        },
         {
           "decl": "void terminal_update(void);",
           "addr": "0xe39e0"

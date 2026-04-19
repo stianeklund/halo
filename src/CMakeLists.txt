@@ -55,6 +55,7 @@
 	halo/units/units.c
 	halo/units/vehicles.c
 	halo/networking/network_messages.c
+	halo/main/console.c
 	halo/main/debug_keys.c
 	halo/main/main.c
 	halo/main/telnet_console.c
