@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for standard XBDM thread-query handling.
+
 Query XBDM for detailed information about one thread.
 
 Argument: `$ARGUMENTS`

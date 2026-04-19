@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for RDCP argument handling and response reporting.
+
 Walk the Xbox virtual memory map through XBDM.
 
 Argument: `$ARGUMENTS`

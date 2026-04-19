@@ -4,6 +4,9 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for XBDM memory-read handling and binary response
+rules.
+
 Read Xbox memory through XBDM and save or summarize the bytes.
 
 Argument: `$ARGUMENTS`

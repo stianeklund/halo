@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for module-query handling and response reporting.
+
 Query XBDM for the current loaded module list.
 
 Argument: `$ARGUMENTS` (optional host/port hints only)
