@@ -2500,5 +2500,10 @@
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
     }
+  },
+  "0x140230": {
+    "status": "ported",
+    "confidence": "high",
+    "summary": "Adds delta vector to object interpolation position in block at obj+0x198, offsets +0x10/+0x14/+0x18."
   }
 }
