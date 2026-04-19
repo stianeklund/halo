@@ -1,7 +1,7 @@
 # Agent Content Maintenance
 
 This repo intentionally keeps `.claude/` and `.opencode/` as separate agent
-surfaces.
+surfaces, but the shared source of truth now lives in `agent-content/`.
 
 They should stay separate because:
 - each tool expects different command discovery and agent wiring
@@ -9,41 +9,58 @@ They should stay separate because:
 - repo-local operational guidance still needs to stay aligned
 
 The current state is:
-- there is heavy overlap between the two trees
-- much of the overlap is deliberate and healthy
-- the main risk is silent drift in copied command or skill bodies
-- there is at least one naming alias today: `.claude/commands/load-iso.md`
-  and `.opencode/commands/load-xemu-with-iso.md`
+- the output trees stay separate for tool compatibility
+- shared command and skill content is maintained once under `agent-content/`
+- `tools/sync_agent_content.py` writes the generated outputs to both trees
+- there is one intentional filename alias today:
+  `.claude/commands/load-iso.md` and
+  `.opencode/commands/load-xemu-with-iso.md`
 
 ## Maintenance policy
 
-- Keep `.claude/` and `.opencode/` files separate.
-- Do not make one tree import the other.
+- Keep `.claude/` and `.opencode/` outputs separate.
+- Edit shared command and skill text in `agent-content/`, not in generated
+  outputs.
+- Regenerate outputs with `tools/sync_agent_content.py` after shared edits.
 - Put durable shared doctrine in normal repo docs such as `docs/` or in repo
   tooling under `tools/`.
-- Keep agent-specific wrappers thin when possible.
 - Prefer matching filenames across both trees unless there is a concrete
   platform-specific naming reason.
 
-## Audit tool
+## Workflow
 
 Use:
 
 ```bash
-python3 tools/audit_agent_content.py
+python3 tools/sync_agent_content.py
 ```
 
-Use strict mode in CI or before cleanup commits:
+This copies shared sources from `agent-content/` into the separate generated
+output trees:
+- `.claude/`
+- `.opencode/`
+
+To verify outputs are current without rewriting files:
+
+```bash
+python3 tools/sync_agent_content.py --check
+```
+
+To audit the current overlap or spot unexpected drift between the generated
+trees themselves:
 
 ```bash
 python3 tools/audit_agent_content.py --strict
 ```
 
-The audit distinguishes between:
-- exact matches
-- wrapper-only differences where the body matches but frontmatter or wrapper
-  text differs
-- real content mismatches or missing files
+## Editing rules
+
+- Treat `agent-content/` as canonical for shared commands and skills.
+- Treat `.claude/` and `.opencode/` as generated outputs for shared entries.
+- If a command or skill is intentionally platform-specific, keep it only in the
+  target tree and document why.
+- If a generated file needs a filename alias, keep the alias mapping in
+  `tools/sync_agent_content.py`.
 
 ## Recommended next cleanup steps
 

@@ -4,8 +4,8 @@ agent: deep
 subtask: true
 ---
 
-Use the `halo-verify-debug` skill for the repo's regression investigation and
-validation guardrails.
+Use `halo-xbox-re` for doctrine, evidence rules, and the review checklist.
+Use `halo-verify-debug` for regression-specific workflow and xemu probing.
 
 Investigate and fix a Halo CE XBE regression. Bisect via git history first,
 verify root cause against binary and disassembly, then implement the minimal
@@ -39,23 +39,22 @@ Cross-check any suspect prototype against Ghidra disassembly. The decompiler
 lies about operand sizes, interleaved pushes, and register args. Always verify
 with the raw disassembly for each candidate.
 
-### Phase 3 — Live xemu probing (last resort)
+### Phase 3 — Live probing (last resort)
 
-Only when static analysis leaves the root cause genuinely ambiguous. Use
-`tools/xemu_qmp.py` to probe the running emulator:
+Only when static analysis leaves the root cause genuinely ambiguous.
+
+**Prefer XBDM on real Xbox** over xemu whenever a console is available:
+
+- Build and deploy: `/deploy --xbe-only`
+- Then probe with `/xbdm-isstopped`, `/xbdm-getcontext`, `/xbdm-getmem`
+
+**Fallback — xemu probing** (only if no Xbox is reachable):
 
 ```bash
-# Screenshot — see current game state
 python3 tools/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
-
-# Serial output — read debug/assert output from the game
 python3 tools/xemu_qmp.py --host localhost --port 4444 --serial
-
-# HMP passthrough — QEMU monitor commands
 python3 tools/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
 python3 tools/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
-
-# Pause / resume
 python3 tools/xemu_qmp.py --host localhost --port 4444 --pause
 python3 tools/xemu_qmp.py --host localhost --port 4444 --resume
 ```
@@ -107,10 +106,12 @@ Once the root cause is established:
 
 ## Output format
 
+Follow the `halo-xbox-re` output format. Report:
+
 - **Symptom**: what failed and how it was observed
 - **Commits investigated**: which changes were examined and why
 - **Root cause**: the single most-supported hypothesis
-- **Confirmed / Inferred / Uncertain**: label every claim
+- **Confirmed / Inferred / Uncertain**: label every claim per evidence policy
 - **Fix**: exact change made (prototype, `kb.json` field, struct field, side effect)
 - **Why minimal**: what was deliberately not changed
 - **Validation**: build result, xemu test, callers/callees checked

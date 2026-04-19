@@ -4,8 +4,8 @@ agent: xbox-halo-re-analyst
 subtask: true
 ---
 
-Use `halo-re-lift` for the reverse-engineering and lift rules, plus
-`halo-verify-debug` for the verification lane expectations.
+Use `halo-xbox-re` for doctrine and evidence rules, `halo-re-lift` for the
+lift workflow, and `halo-verify-debug` for the verification lane expectations.
 
 Two-phase lift: RE analysis + implementation, then build and verify.
 
@@ -15,8 +15,8 @@ Argument: $ARGUMENTS (optional target name or 0x... address)
 
 ## Phase 1 — Analysis + Implementation
 
-Using the xbox-halo-re-analyst persona (expert Xbox/Halo CE reverse engineer),
-perform a complete lift for the target:
+Using the xbox-halo-re-analyst persona (bounded RE worker following
+`halo-xbox-re` doctrine), perform a complete lift for the target:
 
 **If $ARGUMENTS is provided:** use it as the target (name or 0x... address).
 **If $ARGUMENTS is empty:** run `python3 tools/frontier.py --limit 5` and pick
@@ -31,9 +31,10 @@ Steps:
 5. If the `kb.json` declaration needs updating, update it conservatively.
 6. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
 
-Output format:
-- Target
-- Confirmed / Inferred / Uncertain
+Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
+
+Report at minimum:
+- Target / Confirmed / Inferred / Uncertain
 - Proposed code (as written)
 - kb.json updates made
 - RESOLVED_TARGET: <function_name>
@@ -57,9 +58,9 @@ After Phase 1 completes:
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.
-- Use `/verify-option3` for a fast post-lift lane (build/ISO, optional objdiff,
-  optional xemu load/reset, and assertion-tripwire reminder).
-- Use `/lift-verify` for explicit verify payload runs when you already have the
-  lifted function address and extraction outputs. `lift_pipeline.py` now runs a
-  `verify_policy` stage by default (`--verify-policy auto`).
+- **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console
+  is available. Use `/deploy --xbe-only` then `/xbdm-*` commands to probe.
+- Use `/verify-option3` for a fast post-lift lane (xemu fallback).
+- Use `/lift-verify` for explicit verify payload runs when you already have
+  the lifted function address and extraction outputs.
 - Use `/maintain` for a standalone sort + format pass.
