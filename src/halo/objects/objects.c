@@ -17,6 +17,7 @@
  *   0x140230  object_adjust_interpolation_position
  *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
+ *   0x140eb0  object_get_node_matrix
  *   0x140f10  object_get_markers_by_string_id
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
@@ -955,6 +956,39 @@ void object_delete_internal(int object_handle, int delete_sibling)
 void object_delete(int object_handle)
 {
   object_delete_internal(object_handle, 0);
+}
+
+/*
+ * object_get_node_matrix — return a pointer to a specific node's 4x3 matrix
+ * within the object's node matrix block.
+ *
+ * Asserts that the object actually has the requested node via object_has_node.
+ * Resolves the node matrix block reference at object+0x1A0, then indexes into
+ * it by node_index * 0x34 (52 bytes per node matrix).
+ *
+ * Confirmed: CALL 0x13fef0 (object_has_node) with 2 stack args, TEST AL,AL.
+ * Confirmed: assert string "object_has_node(object_index, node_index)" at
+ *            0x29c070, file "c:\halo\SOURCE\objects\objects.c" at 0x29b91c,
+ *            line 0x424.
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with PUSH -1.
+ * Confirmed: ADD EAX,0x1A0 — node matrix block reference offset.
+ * Confirmed: CALL 0x13dfc0 (object_header_block_reference_get).
+ * Confirmed: MOVSX ECX,DI / IMUL ECX,ECX,0x34 — sign-extended int16_t index
+ *            multiplied by 52.
+ * Confirmed: ADD EAX,ECX — final pointer = base + node_index * 0x34.
+ */
+void *object_get_node_matrix(int object_handle, int16_t node_index)
+{
+  if (!object_has_node(object_handle, node_index)) {
+    display_assert("object_has_node(object_index, node_index)",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x424, 1);
+    system_exit(-1);
+  }
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  char *nodes = (char *)object_header_block_reference_get(
+    object_handle, (void *)&obj->unk_416);
+  return nodes + (int)node_index * 0x34;
 }
 
 /*

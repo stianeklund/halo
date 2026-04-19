@@ -1990,6 +1990,10 @@
           "addr": "0x13fd00"
         },
         {
+          "decl": "bool object_has_node(int object_handle, int16_t node_index);",
+          "addr": "0x13fef0"
+        },
+        {
           "decl": "void object_set_garbage(int object_handle, int flag);",
           "addr": "0x13ffc0"
         },
