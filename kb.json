@@ -2010,12 +2010,20 @@
           "addr": "0x140cc0"
         },
         {
+          "decl": "void object_connect_to_map(int object_handle, void *location);",
+          "addr": "0x140ce0"
+        },
+        {
           "decl": "void *object_get_node_matrix(int object_handle, int16_t node_index);",
           "addr": "0x140eb0"
         },
         {
           "decl": "int16_t object_get_markers_by_string_id(int object_handle, void *marker_name, void *out_markers, int max_count);",
           "addr": "0x140f10"
+        },
+        {
+          "decl": "void object_compute_child_marker_position(void *object, void *child_marker, void *dest_matrix);",
+          "addr": "0x141020"
         },
         {
           "decl": "vector3_t *object_get_world_position(int object_handle, vector3_t *out_position);",
@@ -2028,6 +2036,10 @@
         {
           "decl": "void object_compute_node_matrices(int object_handle);",
           "addr": "0x141b70"
+        },
+        {
+          "decl": "void object_attach_to_parent(int parent_handle, int child_handle, int parent_node_index);",
+          "addr": "0x144240"
         },
         {
           "decl": "void object_update_children_recursive(int object_handle);",
@@ -2715,6 +2727,10 @@
       "name": "real_math.obj",
       "source": "math/real_math.c",
       "functions": [
+        {
+          "decl": "void matrix_inverse(float *src, float *dst);",
+          "addr": "0x109150"
+        },
         {
           "decl": "void matrix_transform_point(float *matrix, float *in, float *out);",
           "addr": "0x109590"

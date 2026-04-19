@@ -21,6 +21,7 @@
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x1446a0  object_update_children_recursive
+ *   0x144860  object_attach_to_marker
  *   0x145170  objects_update
  */
 
@@ -1166,6 +1167,80 @@ void object_update_children_recursive(int object_handle)
     object_update_children_recursive(child_handle);
     child_handle = child_obj->next_object_index.value;
   }
+}
+
+/*
+ * object_attach_to_marker — attach a child object to a parent at a named
+ * marker position.
+ *
+ * Resolves markers on both parent and child objects via
+ * object_get_markers_by_string_id. Disconnects the child from the map, then:
+ *
+ * - If child_marker_name is NULL or empty: computes an inverse of the child
+ *   marker matrix and transforms the parent marker's position/up/forward
+ *   into the child's local frame, writing directly to the child object's
+ *   position (offset 0x0C), up (0x24), and forward (0x30).
+ *
+ * - If child_marker_name is provided: delegates to
+ *   object_compute_child_marker_position (0x141020) to compute the relative
+ *   transform using both markers.
+ *
+ * Finally reconnects the child to the map and calls object_attach_to_parent
+ * (0x144240) with the parent node index from the parent marker result.
+ *
+ * Confirmed: 4 cdecl args (PUSH count before CALL, ADD ESP,0x2c combined
+ *            cleanup covers first 4 CALLs).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (-1,
+ * child_handle). Confirmed: CALL 0x140f10 (object_get_markers_by_string_id)
+ * twice, max_count=1. Confirmed: CALL 0x13fd00 (object_disconnect_from_map)
+ * with child_handle. Confirmed: TEST EDI,EDI / CMP byte ptr [EDI],0 —
+ * null-or-empty check on child_marker_name. Confirmed: CALL 0x109150
+ * (matrix_inverse) with child_markers+4 as source. Confirmed: CALL 0x109590 /
+ * 0x109680 transform into object+0xC, +0x24, +0x30. Confirmed: CALL 0x141020
+ * (object_compute_child_marker_position) in else branch. Confirmed: CALL
+ * 0x140ce0 (object_connect_to_map) with (child_handle, 0). Confirmed: CALL
+ * 0x144240 (object_attach_to_parent) with (parent_handle, child_handle,
+ * parent_markers[0]). Inferred:  marker result struct is 0x6C (108) bytes;
+ * first dword is node index, matrix at offset +4, position/up/forward within
+ * parent marker at offsets 0x60, 0x3C, 0x54 respectively.
+ */
+void object_attach_to_marker(int parent_handle, void *marker_name,
+                             int child_handle, void *child_marker_name)
+{
+  char parent_markers[0x6C];
+  char child_markers[0x6C];
+  float inverse[13]; /* 4x3 matrix = 52 bytes */
+
+  void *child_obj = object_get_and_verify_type(child_handle, -1);
+
+  object_get_markers_by_string_id(parent_handle, marker_name, parent_markers,
+                                  1);
+  object_get_markers_by_string_id(child_handle, child_marker_name,
+                                  child_markers, 1);
+  object_disconnect_from_map(child_handle);
+
+  if (child_marker_name == NULL || *(char *)child_marker_name == '\0') {
+    /* No child marker name — invert the child marker's matrix and use it to
+       transform the parent marker's position/up/forward into the child's
+       local coordinate space. */
+    matrix_inverse((float *)(child_markers + 4), inverse);
+    matrix_transform_point(inverse, (float *)(parent_markers + 0x60),
+                           (float *)((char *)child_obj + 0xC));
+    matrix_transform_vector(inverse, (float *)(parent_markers + 0x3C),
+                            (float *)((char *)child_obj + 0x24));
+    matrix_transform_vector(inverse, (float *)(parent_markers + 0x54),
+                            (float *)((char *)child_obj + 0x30));
+  } else {
+    /* Child marker name specified — delegate to
+       object_compute_child_marker_position which handles the full
+       relative-transform computation. The destination matrix aliases
+       parent_markers+0x38 (the parent marker's embedded matrix). */
+    object_compute_child_marker_position(child_obj, child_markers,
+                                         parent_markers + 0x38);
+  }
+
+  object_connect_to_map(child_handle, NULL);
+  object_attach_to_parent(parent_handle, child_handle, *(int *)parent_markers);
 }
 
 /*

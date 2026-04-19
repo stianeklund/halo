@@ -1869,6 +1869,16 @@
         "FUN_00141b70 is object_compute_node_matrices, taking a single int object_handle and returning void."
       ]
     },
+    "0x144860": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Marker result struct is 0x6C (108) bytes; first dword is node index, 4x3 matrix at offset +4.",
+        "Parent marker offsets for position/up/forward within the 0x6C struct are 0x60, 0x3C, 0x54 respectively.",
+        "In the else branch, the destination matrix for object_compute_child_marker_position aliases parent_markers+0x38.",
+        "In the else branch, the destination matrix for object_compute_child_marker_position aliases parent_markers+0x38."
+      ]
+    },
     "0x145170": {
       "kind": "function",
       "status": "ported",
