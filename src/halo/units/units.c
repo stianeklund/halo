@@ -1025,6 +1025,49 @@ void unit_set_control(int unit_handle, void *unit_control)
   unit_control_trace(unit_handle, "unit-control");
 }
 
+/* unit_reset_weapon_state (0x1b1290)
+ *
+ * Resets the unit's weapon zoom/ready state. If the unit has an associated
+ * player and that player is valid, and the unit's zoom_level is not 0xFF,
+ * retrieves the unit's current weapon and plays its zoom-deactivation sound
+ * (weapon tag +0x4bc) at scale 1.0. Then clears zoom_level and unk_721 to
+ * 0xFF and zeroes unk_760. Finally calls player_clear_aim_assist.
+ */
+void unit_reset_weapon_state(int unit_handle)
+{
+  unit_data_t *unit;
+  int player_index;
+  char *player;
+  int weapon_handle;
+  weapon_data_t *weapon;
+  void *weapon_tag;
+  int sound_tag_index;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  player_index = player_index_from_unit_index(unit_handle);
+  if (player_index != -1) {
+    player =
+      (char *)datum_get(player_data, player_index_from_unit_index(unit_handle));
+    if (*(short *)(player + 2) != -1 && unit->zoom_level != 0xFF) {
+      unit_data_t *unit2 =
+        (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+      weapon_handle = unit_get_weapon(unit_handle, unit2->unk_674);
+      if (weapon_handle != -1) {
+        weapon = (weapon_data_t *)object_get_and_verify_type(weapon_handle, 4);
+        weapon_tag = tag_get(0x77656170, weapon->item.object.tag_index);
+        sound_tag_index = *(int *)((char *)weapon_tag + 0x4bc);
+        if (sound_tag_index != -1) {
+          sound_impulse_start(sound_tag_index, 1.0f);
+        }
+      }
+    }
+  }
+  unit->zoom_level = 0xFF;
+  unit->unk_721 = 0xFF;
+  unit->unk_760 = 0;
+  player_clear_aim_assist(unit_handle);
+}
+
 /* unit_enter_seat (0x1b1db0)
  *
  * Attempts to place a unit into a weapon/item seat. Validates that the seat
