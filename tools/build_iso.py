@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import fnmatch
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 from local_env import build_windows_python_command
@@ -18,6 +21,14 @@ EXTRACT_XISO = os.path.join(ROOT_DIR, "tools", "extract-xiso.exe")
 XEMU_QMP = os.path.join(ROOT_DIR, "tools", "xemu_qmp.py")
 DEFAULT_RETRIES = 2
 DEFAULT_RETRY_DELAY = 2.0
+
+EXCLUDE_PATTERNS = [
+    "*.id0",
+    "*.id1",
+    "*.id2",
+    "*.nam",
+    "*.til",
+]
 
 
 def eject_from_xemu() -> None:
@@ -39,16 +50,43 @@ def eject_from_xemu() -> None:
         pass
 
 
+def is_excluded(filename: str) -> bool:
+    return any(fnmatch.fnmatch(filename, pat) for pat in EXCLUDE_PATTERNS)
+
+
 def run_extract_xiso() -> int:
-    command = [EXTRACT_XISO, "-c", SOURCE_DIR, OUTPUT_ISO]
+    source_abs = os.path.join(ROOT_DIR, SOURCE_DIR)
+    excluded_files: list[str] = []
+    for root, _dirs, files in os.walk(source_abs):
+        for fname in files:
+            if is_excluded(fname):
+                excluded_files.append(os.path.join(root, fname))
 
+    tmp_dir = None
+    moved: list[tuple[str, str]] = []
     try:
-        completed = subprocess.run(command, check=False, cwd=ROOT_DIR)
-    except PermissionError:
-        print("Permission denied. Close xemu and retry.", file=sys.stderr)
-        return 1
+        if excluded_files:
+            tmp_dir = tempfile.mkdtemp(prefix="build_iso_excl_")
+            for i, fpath in enumerate(excluded_files):
+                tmp_name = f"{i}_{os.path.basename(fpath)}"
+                tmp_path = os.path.join(tmp_dir, tmp_name)
+                shutil.move(fpath, tmp_path)
+                moved.append((fpath, tmp_path))
 
-    return completed.returncode
+        command = [EXTRACT_XISO, "-c", SOURCE_DIR, OUTPUT_ISO]
+        try:
+            completed = subprocess.run(command, check=False, cwd=ROOT_DIR)
+        except PermissionError:
+            print("Permission denied. Close xemu and retry.", file=sys.stderr)
+            return 1
+
+        return completed.returncode
+    finally:
+        for orig_path, tmp_path in moved:
+            if os.path.exists(tmp_path):
+                shutil.move(tmp_path, orig_path)
+        if tmp_dir and os.path.isdir(tmp_dir):
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def build_iso(retries: int, retry_delay: float) -> int:
