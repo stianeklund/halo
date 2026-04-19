@@ -203,3 +203,47 @@ bool scenario_load(const char *map_name)
 
   return result;
 }
+
+/*
+ * scenario_location_from_point — resolve a 3D position to a BSP location.
+ *
+ * Looks up the BSP leaf containing the point via the bsp3d tree, then
+ * reads the cluster index from the leaf entry in the structure BSP tag.
+ * Writes {leaf_index, cluster_index} into the 8-byte location_out struct.
+ *
+ * Confirmed: asserts "global_bsp3d" at line 0xd5, "global_structure_bsp"
+ *            at line 0xc5.
+ * Confirmed: CALL 0x146db0 with 3 args (bsp3d, 0, point) — cdecl.
+ * Confirmed: leaf result masked with 0x7fffffff before indexing.
+ * Confirmed: tag_block_get_element(bsp+0xe0, leaf & 0x7fffffff, 0x10).
+ * Confirmed: cluster_index read as int16 at element+8.
+ */
+void scenario_location_from_point(void *location_out, void *point)
+{
+  uint32_t *loc = (uint32_t *)location_out;
+  uint32_t leaf;
+
+  if (*(void **)0x5064d8 == 0) {
+    display_assert("global_bsp3d", "c:\\halo\\SOURCE\\scenario\\scenario.c",
+                   0xd5, 1);
+    system_exit(-1);
+  }
+
+  leaf = bsp3d_find_leaf(*(void **)0x5064d8, 0, point);
+  loc[0] = leaf;
+
+  if (leaf == 0xffffffff) {
+    *(int16_t *)&loc[1] = -1;
+    return;
+  }
+
+  if (*(void **)0x5064e0 == 0) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+
+  char *element = (char *)tag_block_get_element(
+    (char *)*(void **)0x5064e0 + 0xe0, leaf & 0x7fffffff, 0x10);
+  *(int16_t *)&loc[1] = *(int16_t *)(element + 8);
+}
