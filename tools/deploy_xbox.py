@@ -25,7 +25,7 @@ import subprocess
 import sys
 import time
 
-from local_env import build_windows_python_command, load_repo_env
+from local_env import build_windows_python_command, is_wsl, load_repo_env
 
 
 load_repo_env("xbox.env")
@@ -139,25 +139,30 @@ def run_xbcp(
     force_readonly: bool = True,
     dry_run: bool = False,
 ) -> int:
-    args = [xbcp_exe]
+    xbcp_args = []
     if host:
-        args += ["-x", host]
+        xbcp_args += ["-x", host]
     if recursive:
-        args.append("/r")
+        xbcp_args.append("/r")
     if newer_only:
-        args.append("/d")
+        xbcp_args.append("/d")
     if overwrite:
-        args.append("/y")
+        xbcp_args.append("/y")
     if create_dirs:
-        args.append("/t")
+        xbcp_args.append("/t")
     if quiet:
-        args.append("/q")
+        xbcp_args.append("/q")
     if force_readonly:
-        args.append("/f")
-    args += [src, dest]
+        xbcp_args.append("/f")
+    xbcp_args += [src, dest]
+
+    if is_wsl():
+        args = ["cmd.exe", "/c", to_windows_path(xbcp_exe)] + xbcp_args
+    else:
+        args = [xbcp_exe] + xbcp_args
 
     if dry_run:
-        display_args = [xbcp_display] + args[1:]
+        display_args = [xbcp_display] + xbcp_args
         print(f"  [DRY-RUN] {' '.join(display_args)}")
         return 0
 
