@@ -20,6 +20,7 @@
  *   0x140cc0  object_delete
  *   0x140eb0  object_get_node_matrix
  *   0x140f10  object_get_markers_by_string_id
+ *   0x141020  object_compute_child_marker_position
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x141b70  object_compute_node_matrices
@@ -1115,6 +1116,108 @@ int16_t object_get_markers_by_string_id(int object_handle, void *marker_name,
     return 1;
 
   return 0;
+}
+
+/*
+ * object_compute_child_marker_position — given an object pointer, a child
+ * marker (containing a matrix4x3 at offset 0x38), and a destination matrix,
+ * computes the child marker's position relative to the object and writes the
+ * resulting position, forward, and up vectors back into the object.
+ *
+ * Algorithm:
+ *   1. Build a matrix4x3 from the object's forward, up, position vectors.
+ *   2. Invert it.
+ *   3. Multiply the inverted matrix by the child marker's matrix (at +0x38).
+ *   4. Invert the result.
+ *   5. Multiply destination_matrix by the inverted result.
+ *   6. Extract position, forward, and up from the product back to the object.
+ *   7. Re-orthogonalize up via cross(cross(forward, up), forward).
+ *   8. Normalize forward and up.
+ *
+ * Confirmed: 3 cdecl args (object, child_marker, destination_matrix).
+ * Confirmed: void return — no caller checks EAX.
+ * Confirmed: assert strings match "object", "child_marker",
+ *            "destination_matrix", "valid_real_matrix4x3(destination_matrix)".
+ * Confirmed: source file "c:\\halo\\SOURCE\\objects\\objects.c", lines
+ * 0x495–0x499. Confirmed: CALL 0x10a110 (matrix4x3_from_forward_up_position).
+ * Confirmed: CALL 0x109150 (matrix_inverse) x2.
+ * Confirmed: CALL 0x109850 (matrix4x3_multiply) x2.
+ * Confirmed: CALL 0x13010  (normalize3d) x2.
+ * Confirmed: CALL 0xf6d00  (valid_real_matrix4x3) for dest_matrix assertion.
+ * Confirmed: ADD ESP,0x40 cleans all 16 cdecl arg dwords at once.
+ */
+void object_compute_child_marker_position(void *object, void *child_marker,
+                                          void *dest_matrix)
+{
+  typedef void (*matrix4x3_from_fup_fn)(void *out, float *pos, float *fwd,
+                                        float *up);
+  typedef void (*matrix_inverse_fn)(void *src, void *dst);
+  typedef void (*matrix4x3_multiply_fn)(void *out, void *a, void *b);
+  typedef int (*valid_real_matrix4x3_fn)(void *mat);
+
+  float local_mat[13]; /* 0x34 bytes: scale + forward + left + up + position */
+  float inv_mat[13]; /* 0x34 bytes */
+
+  assert_halt(object != NULL);
+  assert_halt(child_marker != NULL);
+  assert_halt(dest_matrix != NULL);
+  assert_halt(((valid_real_matrix4x3_fn)0xf6d00)(dest_matrix));
+
+  float *obj_position = (float *)((char *)object + 0xc);
+  float *obj_forward = (float *)((char *)object + 0x24);
+  float *obj_up = (float *)((char *)object + 0x30);
+
+  /* Build a matrix4x3 from the object's orientation and position */
+  ((matrix4x3_from_fup_fn)0x10a110)(local_mat, obj_position, obj_forward,
+                                    obj_up);
+
+  /* Invert it */
+  ((matrix_inverse_fn)0x109150)(local_mat, inv_mat);
+
+  /* Multiply by the child marker's matrix at offset 0x38 */
+  ((matrix4x3_multiply_fn)0x109850)(inv_mat, (char *)child_marker + 0x38,
+                                    inv_mat);
+
+  /* Invert the result */
+  ((matrix_inverse_fn)0x109150)(inv_mat, inv_mat);
+
+  /* Multiply dest_matrix by the inverted result, storing in local_mat */
+  ((matrix4x3_multiply_fn)0x109850)(dest_matrix, inv_mat, local_mat);
+
+  /* Extract position back to object (offsets 0x28..0x30 in matrix = indices
+   * 10..12) */
+  obj_position[0] = local_mat[10];
+  obj_position[1] = local_mat[11];
+  obj_position[2] = local_mat[12];
+
+  /* Extract forward back to object (offsets 0x04..0x0c in matrix = indices
+   * 1..3) */
+  obj_forward[0] = local_mat[1];
+  obj_forward[1] = local_mat[2];
+  obj_forward[2] = local_mat[3];
+
+  /* Re-orthogonalize up: left = cross(forward, up_from_matrix),
+   * then up = cross(left, forward).
+   * up_from_matrix is at indices 7..9 (offsets 0x1c..0x24). */
+  float fwd_x = local_mat[1];
+  float fwd_y = local_mat[2];
+  float fwd_z = local_mat[3];
+  float up_x = local_mat[7];
+  float up_y = local_mat[8];
+  float up_z = local_mat[9];
+
+  /* left = cross(forward, up) */
+  float left_x = fwd_y * up_z - fwd_z * up_y;
+  float left_y = fwd_z * up_x - up_z * fwd_x;
+  float left_z = up_y * fwd_x - fwd_y * up_x;
+
+  /* up_new = cross(left, forward) */
+  obj_up[0] = left_y * fwd_z - left_z * fwd_y;
+  obj_up[1] = left_z * fwd_x - fwd_z * left_x;
+  obj_up[2] = fwd_y * left_x - left_y * fwd_x;
+
+  normalize3d(obj_forward);
+  normalize3d(obj_up);
 }
 
 /*
