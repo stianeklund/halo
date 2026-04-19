@@ -1,3 +1,34 @@
+/* Transform a 3D point by a 4x3 matrix (scale + rotation + translation).
+ * If scale != 1.0, input components are pre-multiplied by scale.
+ * out = rotation * (scale * in) + translation.
+ * Matrix layout: [scale +0x00][3x3 rotation +0x04..+0x24][translation
+ * +0x28..+0x30]. */
+void matrix_transform_point(float *matrix, float *in, float *out)
+{
+  float x = in[0];
+  float y = in[1];
+  float z = in[2];
+
+  if (*(int *)matrix != 0x3f800000) {
+    x = x * *matrix;
+    y = y * *matrix;
+    z = z * *matrix;
+  }
+
+  out[0] = x * *(float *)((char *)matrix + 0x04) +
+           y * *(float *)((char *)matrix + 0x10) +
+           z * *(float *)((char *)matrix + 0x1c) +
+           *(float *)((char *)matrix + 0x28);
+  out[1] = x * *(float *)((char *)matrix + 0x08) +
+           y * *(float *)((char *)matrix + 0x14) +
+           z * *(float *)((char *)matrix + 0x20) +
+           *(float *)((char *)matrix + 0x2c);
+  out[2] = x * *(float *)((char *)matrix + 0x0c) +
+           y * *(float *)((char *)matrix + 0x18) +
+           z * *(float *)((char *)matrix + 0x24) +
+           *(float *)((char *)matrix + 0x30);
+}
+
 /* Transform a 3D vector by a 3x3 rotation matrix (stored at matrix+0x4).
  * out[i] = dot(in, column_i of matrix).
  * The matrix layout is: [scale(4 bytes)][3x3 floats row-major at +0x4]. */
