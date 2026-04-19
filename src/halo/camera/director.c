@@ -491,7 +491,6 @@ void director_update(float delta_time)
   uint8_t mode_flags;
   uint8_t local_98[36]; /* camera input buffer (written by 0x87110) */
   uint8_t local_74[0x68]; /* camera output buffer (written by camera_fn) */
-  float local_2c; /* max-timer accumulator (uninit in original) */
   char *ps; /* per-player struct base (0xf8-byte stride) */
 
   *(float *)0x3352a8 = delta_time;
@@ -551,13 +550,23 @@ void director_update(float delta_time)
         if (*timer != 0.0f) {
           if (*(float *)0x2549d4 <= *timer ||
               *(void **)(ps + 4) != (void *)0x89270) {
-            /* track max timer seen (local_2c accumulates the peak) */
-            if (local_2c <= *timer)
-              local_2c = *timer;
+            /* track max timer in local_74[0x48] — this lives inside the
+             * camera output buffer so it's passed to the observer via
+             * the qmemcpy into ps+0x54. The observer uses it to drive
+             * the smooth camera blend. */
+            if (*(float *)(local_74 + 0x48) <= *timer)
+              *(float *)(local_74 + 0x48) = *timer;
           } else {
-            /* reset camera when timer underflows threshold with fp camera */
-            /* original also wrote dead local fields here (local_20/28/18/26) */
+            /* reset camera when timer underflows threshold with fp camera.
+           * The writes below seed transition flags and timers in the camera
+           * output buffer (local_74) at offsets 0x4c/0x4e (flag bytes = 3)
+           * and 0x54/0x5c (timer floats = 0). The observer consumes these
+           * to drive the smooth third-person-to-first-person blend. */
             *timer = 0.0f;
+            *(uint32_t *)(local_74 + 0x54) = 0;
+            *(uint8_t *)(local_74 + 0x4c) = 3;
+            *(uint32_t *)(local_74 + 0x5c) = 0;
+            *(uint8_t *)(local_74 + 0x4e) = 3;
           }
           /* count down timer, clamped to zero */
           {
