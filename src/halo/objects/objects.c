@@ -26,9 +26,9 @@
  * object_adjust_interpolation_position
  *   0x140bc0  object_delete_internal
  *
- * 0x140cc0  object_delete 0x140eb0  object_get_node_matrix 0x140f10
- * object_get_markers_by_string_id 0x141020 object_compute_child_marker_position
- *   0x1412f0  object_get_world_position
+ * 0x140cc0  object_delete 0x140ce0  object_connect_to_map 0x140eb0
+ * object_get_node_matrix 0x140f10 object_get_markers_by_string_id 0x141020
+ * object_compute_child_marker_position 0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x141b70  object_compute_node_matrices
  *   0x1446a0  object_update_children_recursive
@@ -587,6 +587,28 @@ void objects_dispose(void)
 }
 
 /*
+ * object_activate — mark a root object as "outdoor"/visible if it passes
+ * the activation conditions: not already active (bit 0x01), not flagged
+ * 0x100000, and has no parent.
+ *
+ * Confirmed: CALL 0x119320 (datum_get) + CALL 0x13d680 (object_get_and_verify_type).
+ * Confirmed: tests header->unk_2 bit 0x01, obj->flags bit 0x100000,
+ *            obj->parent_object_index == -1.
+ * Confirmed: sets header->unk_2 |= 0x01 on success.
+ */
+void object_activate(int object_handle)
+{
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  if ((hdr->unk_2 & 0x01) == 0 && (obj->flags & 0x100000) == 0 &&
+      obj->parent_object_index.value == -1) {
+    hdr->unk_2 |= 0x01;
+  }
+}
+
+/*
  * object_disconnect_from_map — remove an object from the BSP cluster
  * partition and its parent's child chain, then clear the
  * _object_connected_to_map_bit (0x800) flag.
@@ -1049,6 +1071,104 @@ void object_delete_internal(int object_handle, int delete_sibling)
 void object_delete(int object_handle)
 {
   object_delete_internal(object_handle, 0);
+}
+
+/*
+ * object_connect_to_map — link an object into the BSP/collision world.
+ *
+ * If the object has a parent (parent_object_index != -1), it chains into the
+ * parent's child list via next_object_index/unk_200 and marks the header as
+ * attached. Otherwise, it resolves a BSP location (from the caller or by
+ * probing the object's bounding position), inserts into the collision/BSP
+ * structure, and optionally garbage-collects or activates the object based on
+ * PVS visibility.
+ *
+ * Confirmed: CALL 0x119320 (datum_get) with objects global at 0x5a8d50.
+ * Confirmed: assert "DATUM_INDEX_TO_IDENTIFIER(object_index)" at line 0x36f.
+ * Confirmed: assert "!TEST_FLAG(object->object.flags,
+ * _object_connected_to_map_bit)" at line 0x370. Confirmed: CALL 0x13d680
+ * (object_get_and_verify_type) with PUSH -1. Confirmed: CALL 0x140bc0
+ * (object_delete_internal) with delete_sibling=0. Confirmed: CALL 0xba6c0
+ * (players_get_combined_pvs). Confirmed: offset 0xCC = parent_object_index,
+ * 0xC8 = unk_200, 0xC4 = next_object_index. Confirmed: 0x5a8d40 and 0x5a8d30
+ * are alternate object list pointers selected by flag 0x2000000.
+ */
+void object_connect_to_map(int object_handle, void *location)
+{
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_data_t *obj = hdr->object;
+
+  if ((object_handle & 0xffff0000) == 0) {
+    display_assert("DATUM_INDEX_TO_IDENTIFIER(object_index)",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x36f, 1);
+    system_exit(-1);
+  }
+  if ((obj->flags & 0x800) != 0) {
+    display_assert(
+      "!TEST_FLAG(object->object.flags, _object_connected_to_map_bit)",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x370, 1);
+    system_exit(-1);
+  }
+
+  if (obj->parent_object_index.value != -1) {
+    /* Child object: chain into parent's child linked list. */
+    object_data_t *parent_obj = (object_data_t *)object_get_and_verify_type(
+      obj->parent_object_index.value, -1);
+    object_data_t *self_obj =
+      (object_data_t *)object_get_and_verify_type(object_handle, -1);
+    self_obj->next_object_index.value = parent_obj->unk_200.value;
+    parent_obj->unk_200.value = (uint32_t)object_handle;
+    hdr->unk_2 |= 0x80;
+    *(int16_t *)((char *)obj + 0x4c) = -1;
+  } else {
+    /* Root object: resolve BSP location and insert into collision world. */
+    uint32_t local_loc[2];
+    if (location == NULL) {
+      scenario_location_from_point(local_loc, (char *)obj + 0x50);
+      location = local_loc;
+      if ((int16_t)local_loc[1] == -1) {
+        scenario_location_from_point(local_loc, (char *)obj + 0x0c);
+      }
+    }
+
+    uint32_t *loc = (uint32_t *)location;
+    if ((int16_t)loc[1] == -1) {
+      obj->flags |= 0x200000;
+    } else {
+      obj->unk_72 = loc[0];
+      obj->unk_76.value = loc[1];
+      hdr->unk_4 = (uint16_t)loc[1];
+      obj->flags &= ~0x200000u;
+    }
+
+    hdr->unk_2 &= 0x7f;
+
+    object_data_t *self_obj =
+      (object_data_t *)object_get_and_verify_type(object_handle, -1);
+    void *obj_list =
+      (self_obj->flags & 0x2000000) ? (void *)0x5a8d40 : (void *)0x5a8d30;
+    cluster_partition_add_object(obj_list, object_handle, (char *)obj + 0xbc,
+                                 (char *)obj + 0x50, *(uint32_t *)&obj->unk_92,
+                                 (char *)obj + 0x48);
+
+    if ((hdr->unk_2 & 0x40) != 0) {
+      if (hdr->unk_4 != 0xffff) {
+        int16_t cluster = (int16_t)hdr->unk_4;
+        int *pvs = (int *)players_get_combined_pvs();
+        if ((pvs[cluster >> 5] & (1 << (cluster & 0x1f))) != 0) {
+          object_activate(object_handle);
+          goto done;
+        }
+      }
+      if ((obj->flags & 0x80000) != 0) {
+        object_delete_internal(object_handle, 0);
+      }
+    }
+  }
+done:
+  obj->flags |= 0x800;
+  hdr->unk_2 |= 0x20;
 }
 
 /*
