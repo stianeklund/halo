@@ -1803,6 +1803,14 @@
         "The re-fetch of header at 0x13fdc8 after the partition-remove call may be needed because the partition-remove could invalidate the cached header pointer, but this is not confirmed."
       ]
     },
+    "0x13fef0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Model tag node count is stored at offset 0xb8 in the 'mode' tag data.",
+        "Object tag definition field at offset 0x34 is the model tag index; value -1 means no model."
+      ]
+    },
     "0x13ffc0": {
       "kind": "function",
       "status": "ported",

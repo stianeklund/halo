@@ -12,6 +12,7 @@
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
  *   0x13fd00  object_disconnect_from_map
+ *   0x13fef0  object_has_node
  *   0x13ffc0  object_set_garbage
  *   0x140160  object_set_region_count
  *   0x140230  object_adjust_interpolation_position
@@ -615,6 +616,43 @@ void object_disconnect_from_map(int object_handle)
 }
 
 /*
+ * object_has_node — check whether a given node index is valid for an object.
+ *
+ * Returns true if the object's model tag ('mode') has a nodes block and
+ * node_index falls within [0, node_count). If the object tag definition has
+ * no model reference (tag+0x34 == -1), returns true only when node_index == 0
+ * (the implicit root node).
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type), 2 stack args.
+ * Confirmed: CALL 0x1ba140 (tag_get) twice — first with 'obje', then 'mode'.
+ * Confirmed: CMP word ptr [EBP+0xc],0x0 — node_index is int16_t.
+ * Confirmed: model node count at offset 0xb8 in model tag data.
+ * Confirmed: XOR BL,BL — false default; MOV AL,0x1 for true paths.
+ */
+bool object_has_node(int object_handle, int16_t node_index)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  /* Look up the object's tag definition ('obje') */
+  void *obje_tag = tag_get(0x6f626a65, (int)obj->tag_index);
+  int model_tag_index = *(int *)((char *)obje_tag + 0x34);
+
+  if (model_tag_index == -1) {
+    /* No model — only node 0 (implicit root) is valid */
+    if (node_index == 0)
+      return true;
+  } else {
+    /* Look up the model tag ('mode') and check node count at offset 0xb8 */
+    void *mode_tag = tag_get(0x6d6f6465, model_tag_index);
+    if (node_index >= 0 && (int)node_index < *(int *)((char *)mode_tag + 0xb8))
+      return true;
+  }
+
+  return false;
+}
+
+/*
  * object_set_garbage — set or clear the "garbage" activation state for
  * an object and its attached children.
  *
@@ -1145,9 +1183,9 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
 
   /* If parented, multiply by parent's node matrix */
   if (obj->parent_object_index.value != NONE) {
-    void *node_mat = object_get_node_matrix(
-      obj->parent_object_index.value,
-      (int16_t) * (int8_t *)((char *)obj + 0xd0));
+    void *node_mat =
+      object_get_node_matrix(obj->parent_object_index.value,
+                             (int16_t) * (int8_t *)((char *)obj + 0xd0));
     matrix4x3_multiply(node_mat, out_matrix, out_matrix);
   }
 
