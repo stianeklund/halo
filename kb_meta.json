@@ -1828,6 +1828,13 @@
         "Thin wrapper calling FUN_00140bc0 (0x140bc0) with param_2=0; param_2=1 would also delete sibling objects recursively. FUN_00140bc0 is the real implementation: sets datum.unk_2 bit 3 (0x08, pending removal), clears the active bit in obj->flags, and calls FUN_0013eff0 (0x13eff0, EDI=object_handle) to clear the object's name-list entry."
       ]
     },
+    "0x1412f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The byte at obj+0xD0 is a parent node index, not part of the float array unk_208[5] that the struct declares at that offset \u2014 the struct layout at 0xD0 may need revision."
+      ]
+    },
     "0x141480": {
       "kind": "function",
       "status": "ported",

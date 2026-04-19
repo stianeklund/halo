@@ -1997,11 +1997,15 @@
           "addr": "0x140cc0"
         },
         {
+          "decl": "void *object_get_node_matrix(int object_handle, int16_t node_index);",
+          "addr": "0x140eb0"
+        },
+        {
           "decl": "int16_t object_get_markers_by_string_id(int object_handle, void *marker_name, void *out_markers, int max_count);",
           "addr": "0x140f10"
         },
         {
-          "decl": "void *object_get_world_position(int object_handle, vector3_t *out_position);",
+          "decl": "vector3_t *object_get_world_position(int object_handle, vector3_t *out_position);",
           "addr": "0x1412f0"
         },
         {
@@ -2694,6 +2698,10 @@
       "name": "real_math.obj",
       "source": "math/real_math.c",
       "functions": [
+        {
+          "decl": "void matrix_transform_point(float *matrix, float *in, float *out);",
+          "addr": "0x109590"
+        },
         {
           "decl": "void matrix_transform_vector(float *matrix, float *in, float *out);",
           "addr": "0x109680"

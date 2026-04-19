@@ -15,6 +15,7 @@
  *   0x13ffc0  object_set_garbage
  *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
+ *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x145170  objects_update
  */
@@ -841,6 +842,42 @@ void object_delete_internal(int object_handle, int delete_sibling)
 void object_delete(int object_handle)
 {
   object_delete_internal(object_handle, 0);
+}
+
+/*
+ * object_get_world_position — retrieve the world-space position of an object.
+ *
+ * If the object has no parent (parent_object_index == -1), copies the local
+ * position vector (obj+0x0C) directly to out_position.
+ *
+ * If the object is attached to a parent, retrieves the parent's node matrix
+ * via object_get_node_matrix (using the sign-extended node index byte at
+ * obj+0xD0) and transforms the local position through that matrix via
+ * matrix_transform_point.
+ *
+ * Confirmed: PUSH -1, PUSH EAX — object_get_and_verify_type(handle, -1).
+ * Confirmed: CMP EAX,-1 — checks parent_object_index at obj+0xCC.
+ * Confirmed: MOVSX CX, byte ptr [ESI+0xD0] — sign-extends node index byte.
+ * Confirmed: ADD ESP,0x14 cleans 5 args (2 + 3 from two cdecl calls).
+ * Confirmed: MOV EAX, EDI — returns out_position pointer.
+ */
+vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  if (obj->parent_object_index.value == NONE) {
+    /* No parent — local position is the world position */
+    *out_position = obj->unk_12;
+    return out_position;
+  }
+
+  /* Parented — transform local position through parent's node matrix */
+  void *node_mat = object_get_node_matrix(
+    obj->parent_object_index.value, (int16_t) * (int8_t *)((char *)obj + 0xd0));
+  matrix_transform_point((float *)node_mat, (float *)&obj->unk_12,
+                         (float *)out_position);
+  return out_position;
 }
 
 /*
