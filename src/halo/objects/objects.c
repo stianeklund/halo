@@ -17,6 +17,7 @@
  *   0x140230  object_adjust_interpolation_position
  *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
+ *   0x140f10  object_get_markers_by_string_id
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x1446a0  object_update_children_recursive
@@ -953,6 +954,93 @@ void object_delete_internal(int object_handle, int delete_sibling)
 void object_delete(int object_handle)
 {
   object_delete_internal(object_handle, 0);
+}
+
+/*
+ * object_get_markers_by_string_id — find markers on an object by name string,
+ * returning a count of matched markers.
+ *
+ * Delegates to model_find_markers (0x124730) which searches the object's
+ * animation graph tag for markers matching marker_name. If no markers are
+ * found and marker_name is NULL or empty, fills out_markers[0] with a default
+ * identity transform and the node-0 matrix, returning 1.
+ *
+ * When sVar1 == 0 (no markers found from the model search):
+ *   - Asserts max_count > 0
+ *   - Zeros the node_index at out_markers[0]+0x00
+ *   - Initializes a 52-byte identity transform at out_markers[0]+0x04
+ *   - Copies the 52-byte node-0 matrix into out_markers[0]+0x38
+ *   - If the object has the 0x1000 flag (mirrored), negates the second row
+ *     of the node matrix (offsets +0x48, +0x4C, +0x50 in the marker)
+ *   - Returns 1 if marker_name is non-NULL and points to an empty string
+ *
+ * Confirmed: PUSH -1 / PUSH ESI / CALL 0x13d680 — object_get_and_verify_type.
+ * Confirmed: PUSH 0x6f626a65 — tag_get('obje', ...).
+ * Confirmed: LEA EDX,[EBX+0x130] — object nodes (unk_304) passed to model
+ * search. Confirmed: ADD EAX,0x1A0 — node matrix block reference at
+ * object+0x1A0. Confirmed: SHR ECX,0xC / AND ECX,0xFFFFFF01 — flag extraction
+ * from obj->flags. Confirmed: REP MOVSD with ECX=0xD — copies 52-byte node
+ * matrix (0x34 bytes). Confirmed: TEST AH,0x10 — checks flags bit 12 (0x1000)
+ * for mirroring. Confirmed: FCHS on floats at [EAX+0x48], [EAX+0x4C],
+ * [EAX+0x50]. Confirmed: ADD ESP,0x44 — cleans all 17 dwords across 5 cdecl
+ * calls.
+ */
+int16_t object_get_markers_by_string_id(int object_handle, void *marker_name,
+                                        void *out_markers, int max_count)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  void *tag_data = tag_get(0x6f626a65, obj->tag_index);
+  object_data_t *obj2 =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  void *node_matrices =
+    object_header_block_reference_get(object_handle, (char *)obj2 + 0x1a0);
+
+  /* model_find_markers (0x124730): search animation graph for named markers.
+   * 9 args: anim_graph_data, marker_name, object_nodes, zero, -1,
+   *         node_matrices, flags, out_markers, max_count */
+  uint32_t mirror_flags = (obj->flags >> 12) & 0xffffff01;
+  int16_t result = ((int16_t(*)(int, void *, void *, int, int, void *, uint32_t,
+                                void *, int))0x124730)(
+    *(int *)((char *)tag_data + 0x34), marker_name, (char *)obj + 0x130, 0, -1,
+    node_matrices, mirror_flags, out_markers, max_count);
+
+  if (result != 0)
+    return result;
+
+  /* No markers found — fill in a default marker if possible. */
+  if ((int16_t)max_count < 1) {
+    display_assert("maximum_marker_count>0",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x459, 1);
+    system_exit(-1);
+  }
+
+  /* Zero the node index (int16_t at offset 0x00). */
+  *(int16_t *)out_markers = 0;
+
+  /* Initialize identity transform at out_markers+0x04 (52 bytes). */
+  ((void (*)(void *))0x1090e0)((char *)out_markers + 4);
+
+  /* Copy node-0 matrix (52 bytes / 13 dwords) into out_markers+0x38. */
+  void *node_mat = object_get_node_matrix(object_handle, 0);
+  qmemcpy((char *)out_markers + 0x38, node_mat, 0x34);
+
+  /* If the object is mirrored (flags bit 12), negate the second row of the
+   * node matrix within the marker result (offsets +0x48, +0x4C, +0x50). */
+  if ((obj->flags & 0x1000) != 0) {
+    *(float *)((char *)out_markers + 0x48) =
+      -*(float *)((char *)out_markers + 0x48);
+    *(float *)((char *)out_markers + 0x4c) =
+      -*(float *)((char *)out_markers + 0x4c);
+    *(float *)((char *)out_markers + 0x50) =
+      -*(float *)((char *)out_markers + 0x50);
+  }
+
+  /* If marker_name is non-NULL and points to an empty string, return 1. */
+  if (marker_name != NULL && *(char *)marker_name == '\0')
+    return 1;
+
+  return 0;
 }
 
 /*

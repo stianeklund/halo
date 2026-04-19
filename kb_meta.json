@@ -1836,6 +1836,17 @@
         "Thin wrapper calling FUN_00140bc0 (0x140bc0) with param_2=0; param_2=1 would also delete sibling objects recursively. FUN_00140bc0 is the real implementation: sets datum.unk_2 bit 3 (0x08, pending removal), clears the active bit in obj->flags, and calls FUN_0013eff0 (0x13eff0, EDI=object_handle) to clear the object's name-list entry."
       ]
     },
+    "0x140f10": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function 0x124730 is likely model_find_markers or animation_find_markers, taking 9 cdecl args including animation graph data, marker name, object nodes, node matrices, and flags.",
+        "Function 0x1090e0 initializes a 52-byte identity-like transform (scale=1.0 + identity 3x3 rotation + zero translation), corresponding to the marker local transform."
+      ],
+      "uncertain": [
+        "The flags expression (obj->flags >> 12) & 0xffffff01 produces a value where bit 0 indicates mirroring and upper bits may encode additional node/marker flags, but the exact semantics of the upper bits are unclear."
+      ]
+    },
     "0x1412f0": {
       "kind": "function",
       "status": "ported",
