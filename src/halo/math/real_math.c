@@ -3,7 +3,6 @@
 void matrix_inverse(float *src, float *dst)
 {
   double tx, ty, tz;
-  float tmp;
 
   if (*(float *)((char *)src + 0x00) == 0.0f) {
     csmemset(dst, 0, 0x34);
@@ -28,15 +27,27 @@ void matrix_inverse(float *src, float *dst)
   *(float *)((char *)dst + 0x14) = *(float *)((char *)src + 0x14);
   *(float *)((char *)dst + 0x24) = *(float *)((char *)src + 0x24);
 
-  *(float *)((char *)dst + 0x08) = *(float *)((char *)src + 0x10);
-  *(float *)((char *)dst + 0x10) = *(float *)((char *)src + 0x08);
-
-  *(float *)((char *)dst + 0x0c) = *(float *)((char *)src + 0x1c);
-  *(float *)((char *)dst + 0x1c) = *(float *)((char *)src + 0x0c);
-
-  tmp = *(float *)((char *)src + 0x20);
-  *(float *)((char *)dst + 0x20) = *(float *)((char *)src + 0x18);
-  *(float *)((char *)dst + 0x18) = tmp;
+  /* Load both sides before writing either — the original uses FPU+GPR
+   * pairs so both values are live simultaneously.  Without this, in-place
+   * inversion (src==dst) corrupts the second read. */
+  {
+    float s2 = *(float *)((char *)src + 0x08);
+    float s4 = *(float *)((char *)src + 0x10);
+    *(float *)((char *)dst + 0x08) = s4;
+    *(float *)((char *)dst + 0x10) = s2;
+  }
+  {
+    float s3 = *(float *)((char *)src + 0x0c);
+    float s7 = *(float *)((char *)src + 0x1c);
+    *(float *)((char *)dst + 0x0c) = s7;
+    *(float *)((char *)dst + 0x1c) = s3;
+  }
+  {
+    float s6 = *(float *)((char *)src + 0x18);
+    float s8 = *(float *)((char *)src + 0x20);
+    *(float *)((char *)dst + 0x20) = s6;
+    *(float *)((char *)dst + 0x18) = s8;
+  }
 
   /* Original MSVC evaluation order: (tx*col + tz*col) + ty*col */
   *(float *)((char *)dst + 0x28) =
