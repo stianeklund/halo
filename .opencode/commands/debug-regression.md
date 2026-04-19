@@ -4,6 +4,9 @@ agent: deep
 subtask: true
 ---
 
+Use the `halo-verify-debug` skill for the repo's regression investigation and
+validation guardrails.
+
 Investigate and fix a Halo CE XBE regression. Bisect via git history first,
 verify root cause against binary and disassembly, then implement the minimal
 safe fix.

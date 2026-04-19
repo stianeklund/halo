@@ -4,6 +4,9 @@ agent: deep
 subtask: true
 ---
 
+Use the `halo-verify-debug` skill for delink prerequisites, export guidance,
+and mismatch triage rules.
+
 Export a delinked reference object from the live Ghidra session and
 structurally diff it against our compiled candidate for a target function. Use
 this after a lift when you want structural evidence that the C faithfully

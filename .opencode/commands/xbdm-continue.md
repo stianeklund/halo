@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for standard XBDM execution-state handling.
+
 Resume execution through XBDM.
 
 Argument: `$ARGUMENTS` (optional thread-specific parameters plus optional host/port hints)

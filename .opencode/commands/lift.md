@@ -4,6 +4,9 @@ agent: deep
 subtask: true
 ---
 
+Use `halo-re-lift` for the reverse-engineering and lift rules, plus
+`halo-verify-debug` for the verification lane expectations.
+
 Two-phase lift: RE analysis + implementation, then build and verify.
 
 Argument: $ARGUMENTS (optional target name or 0x... address)
@@ -20,17 +23,12 @@ perform a complete lift for the target:
 the top candidate.
 
 Steps:
-1. Resolve the target in kb.json: address, name, object, source_path.
-2. Analyze via Ghidra MCP — decompile + disassemble + cross-check operand
-   sizes, CALL targets, and register args per the CLAUDE.md procedure. For any
-   `@<reg>` function that original code can still call after the port, audit the
-   reverse-thunk ABI too: lifted C may legitimately clobber caller-saved
-   registers (`EAX`, `ECX`, `EDX`), so return addresses and other critical
-   state must stay on the stack or be preserved explicitly.
-3. Produce a structurally faithful C implementation following CLAUDE.md rules.
+1. Resolve the target in `kb.json`: address, name, object, and `source_path`.
+2. Follow the analysis and ABI checks from `halo-re-lift`.
+3. Produce a structurally faithful C implementation.
 4. Write the implementation directly to the source file at the correct
    address-ordered position.
-5. If the kb.json declaration needs updating, update it.
+5. If the `kb.json` declaration needs updating, update it conservatively.
 6. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
 
 Output format:

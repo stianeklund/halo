@@ -4,6 +4,8 @@ agent: fast
 subtask: true
 ---
 
+Use the `halo-xbdm` skill for standard XBDM register-context handling.
+
 Read thread register context through XBDM.
 
 Argument: `$ARGUMENTS`

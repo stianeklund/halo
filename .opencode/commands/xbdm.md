@@ -4,7 +4,11 @@ agent: fast
 subtask: true
 ---
 
-Send a raw RDCP/XBDM command through `tools/xbdm_rdcp.py` and report the response.
+Use the `halo-xbdm` skill for standard RDCP parsing, host or port handling,
+and response reporting.
+
+Send a raw RDCP/XBDM command through `tools/xbdm_rdcp.py` and report the
+response.
 
 Argument: `$ARGUMENTS`
 
