@@ -57,7 +57,22 @@ def main():
     def get_last_export_status():
         return get_last_export_status_rpc()
 
-    mcp.run()
+    import sys
+    transport = "sse"
+    host = "127.0.0.1"
+    port = 8091
+    for arg in sys.argv[1:]:
+        if arg.startswith("--port="):
+            port = int(arg.split("=", 1)[1])
+        elif arg.startswith("--host="):
+            host = arg.split("=", 1)[1]
+        elif arg == "--stdio":
+            transport = "stdio"
+    mcp.settings.host = host
+    mcp.settings.port = port
+    if transport == "sse":
+        print(f"ghidra-live MCP listening on http://{host}:{port}/sse", file=sys.stderr)
+    mcp.run(transport=transport)
 
 
 if __name__ == "__main__":
