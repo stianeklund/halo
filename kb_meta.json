@@ -1836,6 +1836,13 @@
         "Thin wrapper calling FUN_00140bc0 (0x140bc0) with param_2=0; param_2=1 would also delete sibling objects recursively. FUN_00140bc0 is the real implementation: sets datum.unk_2 bit 3 (0x08, pending removal), clears the active bit in obj->flags, and calls FUN_0013eff0 (0x13eff0, EDI=object_handle) to clear the object's name-list entry."
       ]
     },
+    "0x140eb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The field at object+0x1A0 (unk_416) is a block reference to the object node matrix array, where each node matrix is 0x34 (52) bytes."
+      ]
+    },
     "0x140f10": {
       "kind": "function",
       "status": "ported",
