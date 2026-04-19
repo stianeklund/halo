@@ -2146,6 +2146,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ab7c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name unit_set_animation inferred from behavior: sets animation graph tag index, animation index, and frame counter on a unit object.",
+        "The name tag_get_name for 0x1ba1f0 is inferred from behavior: loads tag_index into EDI, calls tag lookup via 0x1b9bf0 (EDI register arg), and returns the name pointer at offset 0x10 of the tag header."
+      ],
+      "uncertain": [
+        "The debug globals at 0x5054fc (debug animation logging flag) and 0x5ac9f8 (debug unit filter handle) are accessed as hardcoded addresses; their struct membership and exact semantics are not fully confirmed."
+      ]
+    },
     "0x1adeb0": {
       "kind": "function",
       "status": "ported"

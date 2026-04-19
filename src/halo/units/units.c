@@ -338,6 +338,51 @@ bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle)
   return is_new;
 }
 
+/* unit_set_animation (0x1ab7c0)
+ *
+ * Sets the current animation on a unit object. Writes the animation graph
+ * tag index to offset 0x7c, the animation index (int16_t) to offset 0x80,
+ * and zeroes the animation frame counter at offset 0x82. When the debug
+ * flag at 0x5054fc is set, logs the unit name and animation name to the
+ * console via console_printf, optionally filtered by the debug unit handle
+ * at 0x5ac9f8.
+ */
+void unit_set_animation(int unit_handle, int anim_graph_tag_index,
+                        int16_t animation_index)
+{
+  int *unit;
+  const char *anim_name;
+  int debug_filter;
+  void *tag_data;
+
+  unit = (int *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Set animation graph tag index, animation index, and zero frame counter */
+  *(int *)((char *)unit + 0x7c) = anim_graph_tag_index;
+  *(int16_t *)((char *)unit + 0x80) = animation_index;
+  *(int16_t *)((char *)unit + 0x82) = 0;
+
+  /* Debug logging path */
+  if (*(char *)0x5054fc != 0) {
+    anim_name = "<none>";
+    if (anim_graph_tag_index != -1) {
+      tag_data = tag_get(0x616e7472, anim_graph_tag_index);
+      if (animation_index != -1) {
+        anim_name = (const char *)tag_block_get_element(
+          (char *)tag_data + 0x74, (int)animation_index, 0xb4);
+      }
+    }
+
+    debug_filter = *(int *)0x5ac9f8;
+    if (debug_filter == -1 || *(int *)((char *)unit + 0x1a4) == debug_filter ||
+        *(int *)((char *)unit + 0x1a8) == debug_filter) {
+      console_printf(0, "%s: animation %s",
+                     tag_name_strip_path(tag_get_name(*(int *)unit)),
+                     anim_name);
+    }
+  }
+}
+
 /* unit_get_weapon (0x1adeb0)
  *
  * Returns the weapon datum handle stored in the unit's weapon slot array
@@ -1148,8 +1193,7 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
                        "call *%[fn]\n\t"
                        "addl $4, %%esp"
                        :
-                       : [handle] "r"(unit_handle),
-                         [fn] "r"((void *)0x1b1ee0)
+                       : [handle] "r"(unit_handle), [fn] "r"((void *)0x1b1ee0)
                        : "eax", "ecx", "edx", "esi", "memory", "cc");
 
   /* Get current weapon */
@@ -1218,25 +1262,9 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
       anim_result = model_animation_choose_random(1, anim_graph_tag_index,
                                                   boarding_anim_index);
 
-      /* 0x1ab7c0: set unit animation.
-       * EAX = unit_handle, EDI = animation_graph_tag_index,
-       * BX = animation_index (lower 16 bits of anim_result). */
-      {
-        int _agtag = anim_graph_tag_index;
-        int _animidx = anim_result;
-        _eax = unit_handle;
-        {
-          void (*_fn)(void) = (void (*)(void))0x1ab7c0;
-          __asm__ __volatile__("movl %[agtag], %%edi\n\t"
-                               "movw %w[animidx], %%bx\n\t"
-                               "call *%[fn]"
-                               : "+a"(_eax)
-                               : [fn] "m"(_fn), [agtag] "r"(_agtag),
-                                 [animidx] "r"(_animidx)
-                               : "ebx", "ecx", "edx", "edi", "memory",
-                                 "cc");
-        }
-      }
+      /* Set unit animation graph, index, and reset frame counter */
+      unit_set_animation(unit_handle, anim_graph_tag_index,
+                         (int16_t)anim_result);
 
       /* Set animation state byte */
       *((uint8_t *)unit + 0x253) = 0x1a;

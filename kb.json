@@ -657,6 +657,10 @@
           "addr": "0xff460"
         },
         {
+          "decl": "void console_printf(int channel, const char *format, ...);",
+          "addr": "0xff4d0"
+        },
+        {
           "decl": "void console_warning(const char* format, ...);",
           "addr": "0xff550"
         },
@@ -2983,6 +2987,10 @@
       "source": "tag_files/tag_groups.c",
       "functions": [
         {
+          "decl": "const char *tag_name_strip_path(const char *tag_name);",
+          "addr": "0x19b0d0"
+        },
+        {
           "decl": "void *tag_block_get_element(void *block, int index, int element_size);",
           "addr": "0x19b210"
         }
@@ -2995,6 +3003,10 @@
         {
           "decl": "void *tag_get(int group_tag, int tag_index);",
           "addr": "0x1ba140"
+        },
+        {
+          "decl": "const char *tag_get_name(int tag_index);",
+          "addr": "0x1ba1f0"
         }
       ]
     },
@@ -3280,6 +3292,10 @@
         {
           "decl": "bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle);",
           "addr": "0x1aae00"
+        },
+        {
+          "decl": "void unit_set_animation(int unit_handle@<eax>, int anim_graph_tag_index@<edi>, int16_t animation_index@<bx>);",
+          "addr": "0x1ab7c0"
         },
         {
           "decl": "int unit_get_weapon(int unit_handle, int16_t weapon_index);",

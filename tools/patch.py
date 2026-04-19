@@ -161,8 +161,11 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     reg_args = sym.register_args
     assert reg_args, "generate_reverse_thunk called on non-register-arg function"
 
-    # Up to 2 register args supported.
-    SCRATCH_FOR_ARG = ['eax', 'ecx']
+    # Up to 3 register args supported.  EDX is the third scratch slot but is
+    # also used for return-address rotation when stack_arg_count > 0, so 3 reg
+    # args are only legal when every parameter is register-passed (no stack
+    # args).  The assertion below enforces this after param_count is known.
+    SCRATCH_FOR_ARG = ['eax', 'ecx', 'edx']
     assert len(reg_args) <= len(SCRATCH_FOR_ARG), \
         f'rvthunk supports at most {len(SCRATCH_FOR_ARG)} register args'
 
@@ -200,6 +203,12 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
 
     stack_arg_count = param_count - len(reg_args)
     assert stack_arg_count >= 0
+
+    # EDX is used for return-address rotation when stack args exist. If we
+    # also need EDX as a third scratch for register args, there's a conflict.
+    if len(reg_args) >= 3:
+        assert stack_arg_count == 0, \
+            '3 register args require 0 stack args (EDX conflict with rotation)'
 
     code = bytearray()
 
@@ -290,6 +299,8 @@ def _test_reverse_thunks():
          "@<eax> with 0 stack args — no rotation needed"),
         ("int player_register_machine(int handle@<eax>, int machine);",
          "@<eax> with 1 stack arg — forward rotation must not use EAX"),
+        ("void unit_set_animation(int unit_handle@<eax>, int anim_graph_tag_index@<edi>, int16_t animation_index@<bx>);",
+         "@<eax>,@<edi>,@<bx> with 0 stack args — 3 reg args, EDX as third scratch"),
     ]
 
     for decl, desc in cases:
