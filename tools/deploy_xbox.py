@@ -20,6 +20,7 @@ Requires: XDK installed at "C:\\Program Files (x86)\\RXDK\\xbox\\bin\\xbcp.exe"
 """
 
 import argparse
+import fnmatch
 import os
 import subprocess
 import sys
@@ -39,6 +40,18 @@ DEFAULT_XBCP = os.path.join(
 )
 DEFAULT_XBOX_HOST = os.environ.get("XBOX_HOST", "")
 DEFAULT_XBOX_DEST = os.environ.get("XBOX_DEST", "xE:\\GAMES\\halo-patched")
+
+EXCLUDE_PATTERNS = [
+    "*.id0",
+    "*.id1",
+    "*.id2",
+    "*.nam",
+    "*.til",
+]
+
+
+def is_excluded(filename: str) -> bool:
+    return any(fnmatch.fnmatch(filename, pat) for pat in EXCLUDE_PATTERNS)
 
 
 def to_windows_path(path: str) -> str:
@@ -82,6 +95,8 @@ def get_modified_files(directory: str, since: float) -> list[str]:
     modified = []
     for root, _dirs, files in os.walk(directory):
         for fname in files:
+            if is_excluded(fname):
+                continue
             fpath = os.path.join(root, fname)
             try:
                 mtime = os.path.getmtime(fpath)
@@ -334,7 +349,7 @@ def main() -> int:
     print(f"deploying to {dest}" + (f" on {host}" if host else ""))
 
     if args.xbe_only:
-        all_xbes = [f for f in os.listdir(HALO_PATCHED_DIR) if f.endswith('.xbe')]
+        all_xbes = [f for f in os.listdir(HALO_PATCHED_DIR) if f.endswith('.xbe') and not is_excluded(f)]
         for xbe_name in sorted(all_xbes):
             xbe_file = os.path.join(HALO_PATCHED_DIR, xbe_name)
             print(f"  {xbe_name} ({os.path.getsize(xbe_file):,} bytes)")
