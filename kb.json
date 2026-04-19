@@ -267,6 +267,10 @@
           "addr": "0x120f20"
         },
         {
+          "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
+          "addr": "0x1917a0"
+        },
+        {
           "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
           "addr": "0x1919a0"
         },
@@ -2006,6 +2010,10 @@
           "addr": "0x13fac0"
         },
         {
+          "decl": "void object_activate(int object_handle);",
+          "addr": "0x13fb30"
+        },
+        {
           "decl": "void object_disconnect_from_map(int object_handle);",
           "addr": "0x13fd00"
         },
@@ -2931,6 +2939,10 @@
         {
           "decl": "bool scenario_load(const char *map_name);",
           "addr": "0x18f090"
+        },
+        {
+          "decl": "void scenario_location_from_point(void *location_out, void *point);",
+          "addr": "0x18f180"
         }
       ]
     },
@@ -3142,6 +3154,7 @@
     },
     {
       "name": "thread_win32.obj",
+      "source": "bungie_net/thread_win32.c",
       "functions": [
         {
           "decl": "bool thread_new(int priority_flags, void *function, int param, void **thread_reference);",
