@@ -1868,6 +1868,17 @@
         "FUN_0010a110 builds a 4x3 matrix from forward, up, position; FUN_00140eb0 is object_get_node_matrix; FUN_00109850 is 4x3 matrix multiply."
       ]
     },
+    "0x141b70": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The assert_valid_real_matrix4x3 macro expands to ~30 lines of inline validation checking scale, forward/left/up magnitude, perpendicularity dot products, and position for NaN/Inf; repeated 3 times at lines 0xb37, 0xb69, 0xb77.",
+        "Parent node matrix scale adjustment (when scale != 1.0) copies the parent matrix to a local buffer and resets scale to 1.0, then scales the orientation position by the original scale factor."
+      ],
+      "uncertain": [
+        "The 0xfe0 type mask (bits 5-11) is labeled _object_mask_cannot_interpolate based on the assertion string; exact bit-to-type mapping not fully verified."
+      ]
+    },
     "0x1446a0": {
       "kind": "function",
       "status": "ported",
