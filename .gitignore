@@ -1,5 +1,10 @@
 # Build output
 /build
+/build_debug
+/dist
+
+# Package manager output
+/node_modules
 
 # Patched game output (contains copyrighted game assets)
 /halo-patched
@@ -28,6 +33,8 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
+.pytest_cache/
+.mypy_cache/
 
 # IDE / editor
 .vscode/
@@ -48,6 +55,9 @@ KrnlDebug.txt
 debug.txt
 gamestate.txt
 stabbed.txt
+
+# Generated run artifacts (keep named smoke fixtures tracked)
+/artifacts/lift_runs/[0-9]*
 
 # Local config
 opencode.json
