@@ -267,6 +267,10 @@
           "addr": "0x120f20"
         },
         {
+          "decl": "uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point);",
+          "addr": "0x146db0"
+        },
+        {
           "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
           "addr": "0x1917a0"
         },
