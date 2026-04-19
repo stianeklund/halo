@@ -1145,11 +1145,10 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
 
   /* If parented, multiply by parent's node matrix */
   if (obj->parent_object_index.value != NONE) {
-    void *node_mat = ((void *(*)(int, int16_t))0x140eb0)(
+    void *node_mat = object_get_node_matrix(
       obj->parent_object_index.value,
       (int16_t) * (int8_t *)((char *)obj + 0xd0));
-    ((void (*)(void *, void *, void *))0x109850)(node_mat, out_matrix,
-                                                 out_matrix);
+    matrix4x3_multiply(node_mat, out_matrix, out_matrix);
   }
 
   return out_matrix;

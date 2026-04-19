@@ -2748,6 +2748,10 @@
           "addr": "0x109780"
         },
         {
+          "decl": "void matrix4x3_multiply(void *a, void *b, void *out);",
+          "addr": "0x109850"
+        },
+        {
           "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
           "addr": "0x109e10"
         },
