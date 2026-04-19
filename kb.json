@@ -4043,6 +4043,24 @@
           "addr": "0x1d98ad"
         }
       ]
+    },
+    {
+      "name": "LIBCMT:strncat.obj",
+      "functions": [
+        {
+          "decl": "char *crt_strncat(char *dest, const char *src, size_t count);",
+          "addr": "0x1da5d0"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:strtok.obj",
+      "functions": [
+        {
+          "decl": "char *crt_strtok(char *string, const char *delimiters);",
+          "addr": "0x1da83e"
+        }
+      ]
     }
   ]
 }
