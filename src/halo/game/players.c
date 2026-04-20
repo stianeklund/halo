@@ -969,6 +969,107 @@ bool player_try_to_spawn_in_vehicle(int player_handle /* @<eax> */)
   return true;
 }
 
+/* unit_control_t layout as used by unit_set_control (from units.c strings):
+ *   +0x00  animation_state (byte)
+ *   +0x01  aiming_speed (byte)
+ *   +0x02  control_flags (uint16)  — flags field
+ *   +0x04  weapon_index (int16)
+ *   +0x06  grenade_index (int16)
+ *   +0x08  zoom_level (int16)
+ *   +0x0a  pad
+ *   +0x0c  throttle (vec3)
+ *   +0x18  primary_trigger (float)
+ *   +0x1c  facing_vector (vec3)
+ *   +0x28  aiming_vector (vec3)
+ *   +0x34  looking_vector (vec3)
+ * Total: at least 0x40 bytes. */
+typedef struct {
+  char animation_state; /* +0x00 */
+  char aiming_speed; /* +0x01 */
+  int16_t control_flags; /* +0x02 */
+  int16_t weapon_index; /* +0x04 */
+  int16_t grenade_index; /* +0x06 */
+  int16_t zoom_level; /* +0x08 */
+  char pad_a[2]; /* +0x0a */
+  float throttle_x; /* +0x0c */
+  float throttle_y; /* +0x10 */
+  float throttle_z; /* +0x14 */
+  float primary_trigger; /* +0x18 */
+  float facing_x; /* +0x1c */
+  float facing_y; /* +0x20 */
+  float facing_z; /* +0x24 */
+  float aiming_x; /* +0x28 */
+  float aiming_y; /* +0x2c */
+  float aiming_z; /* +0x30 */
+  float looking_x; /* +0x34 */
+  float looking_y; /* +0x38 */
+  float looking_z; /* +0x3c */
+} unit_control_t;
+
+/* player_action_t layout as filled by player_control_get_current_actions:
+ *   +0x00  buttons (uint32 flags, bit 6 = binoculars, bit 14 = zoom, bit 7 =
+ * alt_attack) +0x04  desired_facing_yaw (float) +0x08  desired_facing_pitch
+ * (float) +0x0c  throttle_x (float) +0x10  throttle_y (float) +0x14
+ * primary_trigger (float) +0x18  desired_weapon_index (int16) +0x1a
+ * desired_grenade_index (int16) +0x1c  desired_zoom_level (int16) +0x1e  pad
+ * Total: 0x20 bytes per action entry. */
+typedef struct {
+  uint32_t buttons;
+  float desired_facing_yaw;
+  float desired_facing_pitch;
+  float throttle_x;
+  float throttle_y;
+  float primary_trigger;
+  int16_t desired_weapon_index;
+  int16_t desired_grenade_index;
+  int16_t desired_zoom_level;
+  char pad[2];
+} player_action_t;
+
+/* Apply a powerup timer to a player. Despite the kb.json name "respawn_timer",
+ * the binary assert and source path show this sets the powerup countdown at
+ * player+0x68 (indexed by powerup_type: 0=active_camo, 1=full_spectrum).
+ *
+ * If the slot is currently empty (timer == 0) and powerup_type == 0 (active
+ * camo), also marks the unit at player+0x34 with flag 0x10 in field+0x1b4 and
+ * records the type in field+0x3d2.
+ *
+ * The timer is only ever raised, never lowered: stored = max(current, ticks).
+ */
+void player_set_respawn_timer(int player_handle, int16_t respawn_type,
+                              int16_t respawn_ticks)
+{
+  char *player;
+  char *unit_obj;
+  int powerup_idx;
+
+  player = (char *)datum_get(player_data, player_handle);
+
+  /* powerup_type (respawn_type in kb.json) must be 0 or 1 */
+  assert_halt(respawn_type >= 0 && respawn_type < 2);
+
+  powerup_idx = (int)respawn_type;
+
+  if (*(int16_t *)(player + 0x68 + powerup_idx * 2) == 0) {
+    /* Slot was empty — fetch the unit and mark it. */
+    char *player2 = (char *)datum_get(player_data, player_handle);
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(player2 + 0x34), 3);
+    if (powerup_idx == 0) {
+      /* Active camo: set camo-active flag on the unit object. */
+      *(unsigned int *)(unit_obj + 0x1b4) |= 0x10;
+      *(int16_t *)(unit_obj + 0x3d2) = respawn_type;
+    }
+  }
+
+  /* Raise the timer: store max(current, ticks). */
+  {
+    int16_t cur = *(int16_t *)(player + 0x68 + powerup_idx * 2);
+    if (cur < respawn_ticks)
+      cur = respawn_ticks;
+    *(int16_t *)(player + 0x68 + powerup_idx * 2) = cur;
+  }
+}
+
 __attribute__((noinline)) static bool
 players_respawn_coop_teleport(int player_handle, int anchor_unit_handle,
                               void *anchor_position)
@@ -1109,63 +1210,6 @@ bool players_respawn_coop(void)
   }
   return bVar2;
 }
-
-/* unit_control_t layout as used by unit_set_control (from units.c strings):
- *   +0x00  animation_state (byte)
- *   +0x01  aiming_speed (byte)
- *   +0x02  control_flags (uint16)  — flags field
- *   +0x04  weapon_index (int16)
- *   +0x06  grenade_index (int16)
- *   +0x08  zoom_level (int16)
- *   +0x0a  pad
- *   +0x0c  throttle (vec3)
- *   +0x18  primary_trigger (float)
- *   +0x1c  facing_vector (vec3)
- *   +0x28  aiming_vector (vec3)
- *   +0x34  looking_vector (vec3)
- * Total: at least 0x40 bytes. */
-typedef struct {
-  char animation_state; /* +0x00 */
-  char aiming_speed; /* +0x01 */
-  int16_t control_flags; /* +0x02 */
-  int16_t weapon_index; /* +0x04 */
-  int16_t grenade_index; /* +0x06 */
-  int16_t zoom_level; /* +0x08 */
-  char pad_a[2]; /* +0x0a */
-  float throttle_x; /* +0x0c */
-  float throttle_y; /* +0x10 */
-  float throttle_z; /* +0x14 */
-  float primary_trigger; /* +0x18 */
-  float facing_x; /* +0x1c */
-  float facing_y; /* +0x20 */
-  float facing_z; /* +0x24 */
-  float aiming_x; /* +0x28 */
-  float aiming_y; /* +0x2c */
-  float aiming_z; /* +0x30 */
-  float looking_x; /* +0x34 */
-  float looking_y; /* +0x38 */
-  float looking_z; /* +0x3c */
-} unit_control_t;
-
-/* player_action_t layout as filled by player_control_get_current_actions:
- *   +0x00  buttons (uint32 flags, bit 6 = binoculars, bit 14 = zoom, bit 7 =
- * alt_attack) +0x04  desired_facing_yaw (float) +0x08  desired_facing_pitch
- * (float) +0x0c  throttle_x (float) +0x10  throttle_y (float) +0x14
- * primary_trigger (float) +0x18  desired_weapon_index (int16) +0x1a
- * desired_grenade_index (int16) +0x1c  desired_zoom_level (int16) +0x1e  pad
- * Total: 0x20 bytes per action entry. */
-typedef struct {
-  uint32_t buttons;
-  float desired_facing_yaw;
-  float desired_facing_pitch;
-  float throttle_x;
-  float throttle_y;
-  float primary_trigger;
-  int16_t desired_weapon_index;
-  int16_t desired_grenade_index;
-  int16_t desired_zoom_level;
-  char pad[2];
-} player_action_t;
 
 /* Handle the result of a player interacting with an equipment (powerup) object.
  *
