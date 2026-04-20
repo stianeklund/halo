@@ -590,17 +590,17 @@ static void ui_widget_load_from_tag_call(int tag_data, int widget, int a3,
   args[5] = (unsigned int)widget_stack_base;
 
   __asm__ __volatile__(
-    "movl 0(%[a]), %%eax\n\t"
-    "movl 4(%[a]), %%edx\n\t"
-    "movl 8(%[a]), %%ecx\n\t"
     "pushl 20(%[a])\n\t"
     "pushl 16(%[a])\n\t"
     "pushl 12(%[a])\n\t"
+    "movl 0(%[a]), %%eax\n\t"
+    "movl 4(%[a]), %%edx\n\t"
+    "movl 8(%[a]), %%ecx\n\t"
     "call *%[fn]\n\t"
     "addl $0xc, %%esp"
     :
     : [a] "r"(args), [fn] "r"(ui_widget_load_from_tag_internal)
-    : "ebx", "esi", "edi", "memory", "cc");
+    : "eax", "ecx", "edx", "memory", "cc");
 }
 
 
