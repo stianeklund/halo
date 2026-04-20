@@ -177,3 +177,13 @@ void error(unsigned __int16 priority, const char *format, ...)
 
   *(uint8_t *)0x5aa8e3 = 0;
 }
+
+bool error_occurred(void)
+{
+  bool occurred;
+
+  occurred = *(uint8_t *)0x5aa8e0 != 0;
+  *(uint8_t *)0x5aa8e0 = 0;
+  *(int16_t *)0x5aa8e6 = 0;
+  return occurred;
+}

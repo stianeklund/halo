@@ -4,6 +4,7 @@
 	halo/ai/actors.c
 	halo/ai/ai.c
 	halo/bitmaps/bitmaps.c
+	halo/bitmaps/tiff_file.c
 	halo/bungie_net/network/transport_endpoint_set_winsock.c
 	halo/bungie_net/thread_win32.c
 	halo/bink/bink_playback.c

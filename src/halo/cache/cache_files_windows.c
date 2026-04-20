@@ -156,3 +156,48 @@ void cache_files_precache_map_end(void)
   *(int16_t *)0x4e9222 = -1;
 }
 #endif
+
+/* Load cached game state if the cached map metadata matches the currently
+ * loaded scenario, map type, checksum, and difficulty. */
+void cache_files_precache(void)
+{
+  char header[0x14c];
+  int scratch;
+
+  if (!((char (*)(void *, void *, int, void *, int))0x1c0910)(
+        header, &scratch, sizeof(header), (void *)0x345000, 0)) {
+    return;
+  }
+
+  if (((int (*)(const char *, const char *))0x8dcb0)(header + 0x104,
+                                                     "01.10.12.2276") != 0) {
+    return;
+  }
+
+  {
+    const char *scenario_name =
+      ((const char *(*)(int))0x1ba1f0)(*(int *)0x326a08);
+    if (((int (*)(const char *, const char *))0x8dcb0)(header + 0x4,
+                                                       scenario_name) != 0) {
+      return;
+    }
+  }
+
+  if (*(int *)header != *(int *)0x4ea9a0)
+    return;
+  if (*(int16_t *)(header + 0x124) != *(int16_t *)0x31fa94)
+    return;
+  if (*(int *)(header + 0x128) != ((int (*)(void))0x1b9920)())
+    return;
+  if (*(int16_t *)(header + 0x126) != ((int16_t(*)(void))0x100080)())
+    return;
+
+  (*(void (**)())0x32eaa4)();
+  ((void (*)(void *, void *))0x1c0c20)(*(void **)0x4ea994, (void *)0x345000);
+  ((void (*)(int16_t))0xa7440)(((int16_t(*)(void))0x100080)());
+  ((void (*)(void))0x1bf790)();
+  (*(void (**)())0x32eaa0)();
+  ((void (*)(void))0x101c90)();
+  *(uint8_t *)0x4ea9a5 = ((char (*)(void))0x1c0370)() != 0;
+  ((void (*)(void))0x101ca0)();
+}
