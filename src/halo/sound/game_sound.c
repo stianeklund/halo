@@ -43,6 +43,29 @@ void sound_impulse_start(int sound_tag_index, float scale)
   sound_start(sound_tag_index, source, NONE, 0, 0, 0);
 }
 
+bool sound_cluster_is_audible(void *location)
+{
+  int16_t cluster_index;
+
+  cluster_index = *(int16_t *)((char *)location + 4);
+  if (cluster_index >= -1) {
+    if ((int)cluster_index < *(int *)((char *)scenario_get() + 0x134)) {
+      if (cluster_index != -1 &&
+          ((((uint32_t *)0x5054a0)[(int)cluster_index >> 5] &
+            (1u << ((uint8_t)cluster_index & 0x1f))) != 0)) {
+        return true;
+      }
+      return false;
+    }
+  }
+
+  display_assert(
+    "location->cluster_index>=NONE && "
+    "location->cluster_index<global_structure_bsp_get()->clusters.count",
+    "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x364, 1);
+  system_exit(-1);
+}
+
 void game_sound_dispose_from_old_map(void)
 {
   if (*(void **)0x5054e4 != 0 && *(uint8_t *)(*(char **)0x5054e4 + 0x24) != 0) {

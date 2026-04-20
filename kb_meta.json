@@ -1873,6 +1873,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100000": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x100090": {
       "kind": "function",
       "status": "ported"
@@ -3237,6 +3241,10 @@
         "The 64-byte local buffer at EBP-0x40 is a sound source descriptor struct with fields: offset 0x00 int16_t spatialization_mode, offset 0x04 float scale, offset 0x08 float gain.",
         "sound_start at 0x1ce180 belongs to sound_manager.obj based on assertion path string c:\\halo\\SOURCE\\sound\\sound_manager.c."
       ]
+    },
+    "0x1c7c30": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1c7e40": {
       "kind": "function",

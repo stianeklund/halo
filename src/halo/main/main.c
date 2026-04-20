@@ -37,6 +37,11 @@ short game_connection(void)
   return word_46DA0C;
 }
 
+void FUN_00100000(void)
+{
+  main_change_map_name_pending = 0;
+}
+
 static const short _game_connection_local = 0;
 
 int __cdecl sort_desired_local_player_controllers(const void *a1,
