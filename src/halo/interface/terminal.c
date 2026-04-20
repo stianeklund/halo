@@ -46,8 +46,7 @@ bool terminal_open(void *terminal)
   char *state = (char *)terminal;
 
   if (state == NULL) {
-    display_assert("state",
-                   "c:\\halo\\SOURCE\\interface\\terminal.c", 0xc3, 1);
+    display_assert("state", "c:\\halo\\SOURCE\\interface\\terminal.c", 0xc3, 1);
     system_exit(-1);
   }
 
@@ -122,8 +121,8 @@ void terminal_output(void *color, const char *format, const char *text)
   line_handle = terminal_get_line();
 
   if (format == NULL) {
-    display_assert("format",
-                   "c:\\halo\\SOURCE\\interface\\terminal.c", 0x18d, 1);
+    display_assert("format", "c:\\halo\\SOURCE\\interface\\terminal.c", 0x18d,
+                   1);
     system_exit(-1);
   }
 
