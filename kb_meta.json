@@ -1072,6 +1072,22 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc3ca0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Datum offset +6 bit 0x8 marks a syntax node as persistent (not deleted during dispose)."
+      ]
+    },
+    "0xc3ee0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x2f3708 is an array of pointers to hs_external_global structs whose first field (offset 0) is a char* name.",
+        "0x27d504 is hs_external_global_count as int16_t (observed value 0x1BB = 443 in the static image).",
+        "Scenario globals are at scenario_tag+0x4a8 as a tag_block with element size 0x5c, where offset 0 of each element is the name string."
+      ]
+    },
     "0xc4d90": {
       "kind": "function",
       "status": "ported"
