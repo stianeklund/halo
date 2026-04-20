@@ -100,6 +100,43 @@ void *game_state_malloc(const char *name, const char *group_name, int size)
   return result;
 }
 
+/* Allocate from the GPU-side game state region (fixed base 0x345000).
+ *
+ * GPU allocations grow downward from base_address: the return pointer is
+ * 0x345000 + (base_address - new_gpu_allocation_size). Total GPU region is
+ * GAME_STATE_GPU_SIZE = 0x40000 bytes. Logs each allocation to a debug file
+ * "d:\\gamestate.txt" if the log is enabled. Updates checksum. */
+void *game_state_gpu_alloc(const char *name, int a2, uint32_t size)
+{
+  uint32_t new_gpu_size;
+  int offset;
+
+  assert_halt(!(size & 3));
+  assert_halt(!game_state_globals.locked);
+  assert_halt(game_state_globals.gpu_allocation_size + size <= 0x40000);
+
+  new_gpu_size = game_state_globals.gpu_allocation_size + size;
+
+  /* Open log file on first use; skip logging if open fails. */
+  if (game_state_globals.log_file == NULL) {
+    game_state_globals.log_file = crt_fopen("d:\\gamestate.txt", "w");
+    if (game_state_globals.log_file == NULL)
+      goto done;
+  }
+  /* Format: "% 40s% 20s% 10d%s\n" — name, a2 (used as string), size,
+   * suffix at 0x2686f4 ("*"). Hardcoded suffix: not worth a kb.json entry. */
+  crt_fprintf(game_state_globals.log_file, "% 40s% 20s% 10d%s\n", name,
+              (const char *)(uintptr_t)a2, size, (const char *)0x2686f4);
+  crt_fflush(game_state_globals.log_file);
+
+done:
+  game_state_globals.gpu_allocation_size = new_gpu_size;
+  /* Return pointer: GPU base + (cpu_base - gpu_allocation_size). */
+  offset = (int)(uintptr_t)game_state_globals.base_address - (int)new_gpu_size;
+  crc_checksum_buffer(&game_state_globals.checksum, &size, 4);
+  return (void *)(0x345000 + offset);
+}
+
 data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size)
 {
   data_t *data; // esi
