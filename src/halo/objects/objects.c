@@ -745,14 +745,8 @@ void object_disconnect_from_map(int object_handle)
      * and EBX = object_handle to unlink. */
     object_data_t *parent_obj = (object_data_t *)object_get_and_verify_type(
       obj->parent_object_index.value, -1);
-    {
-      int _eax = (int)((char *)parent_obj + 0xc8);
-      int _ebx = object_handle;
-      __asm__ __volatile__("call *%[fn]"
-                           : "+a"(_eax), "+b"(_ebx)
-                           : [fn] "r"((void *)0x13e510)
-                           : "ecx", "edx", "esi", "edi", "memory", "cc");
-    }
+    object_child_list_remove((void *)((char *)parent_obj + 0xc8),
+                             object_handle);
   } else {
     /* No parent: remove from cluster partition. */
     object_data_t *self_obj =
@@ -871,19 +865,7 @@ void object_set_garbage(int object_handle, int flag)
       if ((char)flag != 0) {
         /* Already inactive but being asked to unmark: propagate to children
          * with (param_1=0, param_2=1). */
-        {
-          int args[2];
-          args[0] = 0; /* param_1=0 */
-          args[1] = 1; /* param_2=1 */
-          __asm__ __volatile__("pushl 4(%[a])\n\t"
-                               "pushl 0(%[a])\n\t"
-                               "call *%[fn]\n\t"
-                               "addl $8, %%esp"
-                               :
-                               : [a] "r"(args), [fn] "r"((void *)0x13ee60),
-                                 "a"(object_handle)
-                               : "ecx", "edx", "memory", "cc");
-        }
+        object_propagate_flag_to_children(object_handle, 0, 1);
         goto lab_0014000a;
       }
       /* bit0 set, flag==0: no child propagation needed */
@@ -893,19 +875,7 @@ void object_set_garbage(int object_handle, int flag)
       if ((char)flag == 0) {
         /* Becoming inactive: propagate to children with (param_1=1,
          * param_2=0). */
-        {
-          int args[2];
-          args[0] = 1; /* param_1=1 */
-          args[1] = 0; /* param_2=0 */
-          __asm__ __volatile__("pushl 4(%[a])\n\t"
-                               "pushl 0(%[a])\n\t"
-                               "call *%[fn]\n\t"
-                               "addl $8, %%esp"
-                               :
-                               : [a] "r"(args), [fn] "r"((void *)0x13ee60),
-                                 "a"(object_handle)
-                               : "ecx", "edx", "memory", "cc");
-        }
+        object_propagate_flag_to_children(object_handle, 1, 0);
         goto lab_00140017;
       } else {
         /* bit0 clear, flag!=0: re-check children block presence */
@@ -1118,21 +1088,8 @@ void object_delete_internal(int object_handle, int delete_sibling)
   /* Check if the object's tag definition has a children block. */
   void *tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
   if (*(int *)((char *)tag_def + 0x34) != -1 && (obj->flags & 1) == 0) {
-    /* Propagate deletion to attached children via FUN_0013ee60.
-     * EAX = object_handle (register arg), stack args = (1, 0). */
-    {
-      int args[2];
-      args[0] = 1;
-      args[1] = 0;
-      __asm__ __volatile__("pushl 4(%[a])\n\t"
-                           "pushl 0(%[a])\n\t"
-                           "call *%[fn]\n\t"
-                           "addl $8, %%esp"
-                           :
-                           : [a] "r"(args), [fn] "r"((void *)0x13ee60),
-                             "a"(object_handle)
-                           : "ecx", "edx", "memory", "cc");
-    }
+    /* Propagate deletion to attached children. */
+    object_propagate_flag_to_children(object_handle, 1, 0);
   }
 
   /* Re-fetch datum header (recursive calls may have moved pool memory). */
@@ -1144,12 +1101,8 @@ void object_delete_internal(int object_handle, int delete_sibling)
   /* Clear datum header bit 0x02 (active). */
   hdr->unk_2 &= (uint8_t)~0x02;
 
-  /* Remove the object from the name list via FUN_0013eff0.
-   * EDI = object_handle (register arg), no stack args. */
-  __asm__ __volatile__("call *%[fn]"
-                       :
-                       : "D"(object_handle), [fn] "r"((void *)0x13eff0)
-                       : "eax", "ecx", "edx", "memory", "cc");
+  /* Remove the object from the name list. */
+  object_remove_from_name_list(object_handle);
 }
 
 /*

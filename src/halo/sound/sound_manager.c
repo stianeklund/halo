@@ -154,47 +154,15 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
           priority = sound_get_default_priority(sound_tag_index);
         }
 
-        /* 0x1cba20: check if sound can play (EAX = sound_tag_index).
-         * Returns bool in AL. */
-        {
-          int _eax = sound_tag_index;
-          __asm__ __volatile__("call *%[fn]"
-                               : "+a"(_eax)
-                               : [fn] "r"((void *)0x1cba20)
-                               : "ecx", "edx", "esi", "memory", "cc");
-          can_play = (uint8_t)_eax;
-        }
+        can_play = sound_can_play(sound_tag_index);
         if (!can_play)
           goto done;
 
-        /* 0x1cd5a0: allocate channel (EAX = source ptr, stack arg =
-         * priority float). Returns channel index (short) in AX, or -1
-         * on failure. */
-        {
-          int _eax = (int)source;
-          int pri_bits;
-          csmemcpy(&pri_bits, &priority, 4);
-          __asm__ __volatile__("pushl %[pri]\n\t"
-                               "call *%[fn]\n\t"
-                               "addl $4, %%esp"
-                               : "+a"(_eax)
-                               : [fn] "r"((void *)0x1cd5a0), [pri] "r"(pri_bits)
-                               : "ecx", "edx", "esi", "edi", "memory", "cc");
-          channel_index = (short)_eax;
-        }
+        channel_index = sound_allocate_channel(source, priority);
         if (channel_index == -1)
           goto done;
 
-        /* 0x1cbb00: check promotion (EAX = sound_tag_index).
-         * Returns 0=play, 1=promote, 2+=reject. */
-        {
-          int _eax = sound_tag_index;
-          __asm__ __volatile__("call *%[fn]"
-                               : "+a"(_eax)
-                               : [fn] "r"((void *)0x1cbb00)
-                               : "ecx", "edx", "esi", "edi", "memory", "cc");
-          promotion_result = (short)_eax;
-        }
+        promotion_result = sound_check_promotion(sound_tag_index);
 
         if (promotion_result != 0) {
           if (promotion_result == 1) {
