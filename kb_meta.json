@@ -2293,9 +2293,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1994a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "find_files_begin at 0x19a040 and find_files_next at 0x19aed0 are files_windows.obj helpers for directory enumeration."
+      ]
+    },
+    "0x199810": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 6th argument to path_split (flags & 1 from ref->unk_4[0]) controls whether paths are treated as having a trailing directory component.",
+        "file_ref_t.unk_4 is a 16-bit flags field where bits 0-3 are name flags (directory, parent_directory, filename, extension)."
+      ]
+    },
     "0x1999f0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x19a640": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The file_error function at 0x19a450 takes file_ref in EAX as a register arg; if a future port adds it to kb.json with @eax, the inline asm call should be replaced."
+      ]
     },
     "0x19b0d0": {
       "kind": "function",
