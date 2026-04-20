@@ -17,6 +17,23 @@ void rumble_clear_for_local_player(int16_t local_player_index)
   csmemset(rumble_globals + local_player_index * 0x208, 0, 0x208);
 }
 
+/* rumble_clear_all_players (0xb9d60)
+ *
+ * Clears the entire rumble globals block (all 4 player slots) and then
+ * calls input_set_rumble(i, 0, 0) for each gamepad that is present.
+ * Unlike rumble_dispose_from_old_map, only checks input_has_gamepad — no
+ * double pass. */
+void rumble_clear_all_players(void)
+{
+  int i;
+
+  csmemset(rumble_globals, 0, 0x82c);
+  for (i = 0; i < 4; i++) {
+    if (input_has_gamepad(i))
+      input_set_rumble(i, 0, 0);
+  }
+}
+
 void rumble_dispose_from_old_map(void)
 {
   int i;
