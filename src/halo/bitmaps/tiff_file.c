@@ -28,13 +28,13 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
     return "invalid bitmap encoding for tiff export.";
   }
 
-  ((char *(*)(file_ref_t *, int, char *))0x199810)(info, 0xd, path);
-  tiff = ((int (*)(const char *, const char *))0x6d8e0)(path, "w");
+  file_reference_get_name(info, 0xd, path);
+  tiff = FUN_0006d8e0(path, "w");
   if (tiff == 0)
     return "failed to open tiff";
 
   {
-    int bits_per_pixel = ((int16_t(*)(int16_t))0x7c840)((int16_t)tiff_format);
+    int bits_per_pixel = bitmap_format_bits_per_pixel((int16_t)tiff_format);
     int width = (int)*(int16_t *)((char *)bitmap + 0x4);
     int row_bits = bits_per_pixel * width;
     row_size = (int)(int16_t)((row_bits + ((row_bits >> 0x1f) & 7)) >> 3);
@@ -43,24 +43,21 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
   row_buffer = (uint8_t *)debug_malloc(
     row_size, 0, "c:\\halo\\SOURCE\\bitmaps\\tiff_file.c", 0x6b);
   if (!row_buffer) {
-    ((void (*)(int))0x64ee0)(tiff);
+    FUN_00064ee0(tiff);
     return "out of memory";
   }
 
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x100,
-                                     (int)*(int16_t *)((char *)bitmap + 0x4));
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x101,
-                                     (int)*(int16_t *)((char *)bitmap + 0x6));
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x103, 5);
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x106, photometric);
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x11c, 1);
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x115, samples_per_pixel);
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x102, 8);
-  ((void (*)(int, int, int))0x659f0)(tiff, 0x112, 1);
+  FUN_000659f0(tiff, 0x100, (int)*(int16_t *)((char *)bitmap + 0x4));
+  FUN_000659f0(tiff, 0x101, (int)*(int16_t *)((char *)bitmap + 0x6));
+  FUN_000659f0(tiff, 0x103, 5);
+  FUN_000659f0(tiff, 0x106, photometric);
+  FUN_000659f0(tiff, 0x11c, 1);
+  FUN_000659f0(tiff, 0x115, samples_per_pixel);
+  FUN_000659f0(tiff, 0x102, 8);
+  FUN_000659f0(tiff, 0x112, 1);
 
   for (y = 0; y < *(int16_t *)((char *)bitmap + 0x6); y++) {
-    uint8_t *src_row =
-      (uint8_t *)((int (*)(__int16 *, int, int, int))0x7c940)(bitmap, 0, y, 0);
+    uint8_t *src_row = (uint8_t *)FUN_0007c940(bitmap, 0, y, 0);
     int x;
 
     switch (*(int16_t *)((char *)bitmap + 0xc)) {
@@ -131,13 +128,13 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
       break;
     }
 
-    if (((int (*)(int, void *, int, int))0x6fea0)(tiff, row_buffer, y, 0) < 0) {
+    if (FUN_0006fea0(tiff, row_buffer, y, 0) < 0) {
       error_message = "failed to write scanline";
       break;
     }
   }
 
   debug_free(row_buffer, "c:\\halo\\SOURCE\\bitmaps\\tiff_file.c", 0xe7);
-  ((void (*)(int))0x64ee0)(tiff);
+  FUN_00064ee0(tiff);
   return error_message;
 }
