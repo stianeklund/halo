@@ -294,21 +294,10 @@ void game_engine_update_non_deterministic(float dt)
     /* Poll four "done" conditions via @edi-indexed
      * game_engine_check_input_button. EDI indices: 0, 0xc, 1, 0xd (matching
      * disassembly order). */
-    int ok0, ok1, ok2, ok3;
+    bool ok0, ok1, ok2, ok3;
 
-    /* edi=0 */
-    __asm__ __volatile__("xorl %%edi, %%edi\n\t"
-                         "call *%[fn]"
-                         : "=a"(ok0)
-                         : [fn] "r"(game_engine_check_input_button)
-                         : "ecx", "edx", "edi", "memory", "cc");
-
-    /* edi=0xc */
-    __asm__ __volatile__("movl $0xc, %%edi\n\t"
-                         "call *%[fn]"
-                         : "=a"(ok1)
-                         : [fn] "r"(game_engine_check_input_button)
-                         : "ecx", "edx", "edi", "memory", "cc");
+    ok0 = game_engine_check_input_button(0);
+    ok1 = game_engine_check_input_button(0xc);
 
     if (ok0 || ok1) {
       /* At least one input is "done": check for network server to reset */
@@ -320,19 +309,8 @@ void game_engine_update_non_deterministic(float dt)
       return;
     }
 
-    /* edi=1 */
-    __asm__ __volatile__("movl $1, %%edi\n\t"
-                         "call *%[fn]"
-                         : "=a"(ok2)
-                         : [fn] "r"(game_engine_check_input_button)
-                         : "ecx", "edx", "edi", "memory", "cc");
-
-    /* edi=0xd */
-    __asm__ __volatile__("movl $0xd, %%edi\n\t"
-                         "call *%[fn]"
-                         : "=a"(ok3)
-                         : [fn] "r"(game_engine_check_input_button)
-                         : "ecx", "edx", "edi", "memory", "cc");
+    ok2 = game_engine_check_input_button(1);
+    ok3 = game_engine_check_input_button(0xd);
 
     if (!ok2 && !ok3)
       return;

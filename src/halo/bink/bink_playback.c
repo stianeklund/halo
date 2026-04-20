@@ -589,18 +589,8 @@ sound_ok:
      * width * height * 4 bytes per pixel, rounded up to 4KB page. */
     frame_buf_size = (unsigned int)(bink[1] * bink[0] * 4 + 0xfff) & 0xfffff000;
 
-    /* Allocate frame buffer from the bink memory pool.
-     * 0x1c5990 takes @eax=alignment(0x80), @ecx=size. */
-    {
-      int _eax = 0x80;
-      int _ecx = (int)frame_buf_size;
-      __asm__ __volatile__("movl %[ecx_in], %%ecx\n\t"
-                           "call *%[fn]\n\t"
-                           : "+a"(_eax), "+c"(_ecx)
-                           : [ecx_in] "g"(_ecx), [fn] "r"((void *)0x1c5990)
-                           : "edx", "memory", "cc");
-      frame_buf = (void *)_eax;
-    }
+    /* Allocate frame buffer from the bink memory pool. */
+    frame_buf = bink_memory_pool_alloc(0x80, (int)frame_buf_size);
 
     /* Set memory protection on the frame buffer (read/write/nocache). */
     bink_playback_trace("begin XPhysicalProtect");

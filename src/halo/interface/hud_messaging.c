@@ -28,25 +28,11 @@ void hud_print_message(__int16 player, wchar_t *message)
     return;
 
   base = (int)player * 0x460 + *(int *)0x46bd18;
-  /* 0xd5070 takes ESI as a register arg (vehicle tag handle to match).
-   * For plain text messages, ESI = -1 means "don't match any vehicle". */
-  {
-    int _eax;
-    int args[2];
-    args[0] = base;
-    args[1] = 0;
-    __asm__ __volatile__("pushl 4(%[a])\n\t"
-                         "pushl 0(%[a])\n\t"
-                         "call *%[fn]\n\t"
-                         "addl $8, %%esp"
-                         : "=a"(_eax)
-                         : [a] "r"(args), [fn] "r"((void *)0xd5070), "S"(-1)
-                         : "ecx", "edx", "memory", "cc");
-    slot = (char *)_eax;
-  }
-  ((void (*)(void *, void *, int))0x19dc90)(slot + 4, message, 0x3f);
+  /* Find a message slot. ESI = -1 means "don't match any vehicle". */
+  slot = (char *)hud_find_message_slot(base, 0, -1);
+  ustrncpy((wchar_t *)(slot + 4), message, 0x3f);
   *(int *)(slot + 0x84) = -1;
-  *(int *)slot = ((int (*)(void))0xb5aa0)();
+  *(int *)slot = game_time_get();
   *(uint8_t *)(slot + 0x82) = 1;
   *(uint8_t *)(slot + 0x83) = *(uint8_t *)(*(char **)0x46bd18 + 0x1185);
   *(uint8_t *)(*(char **)0x46bd18 + 0x1185) += 1;
@@ -69,23 +55,8 @@ void hud_messaging_set_vehicle_notification(int16_t local_player_index,
     return;
 
   base = (int)local_player_index * 0x460 + *(int *)0x46bd18;
-  /* 0xd5070 takes ESI = vehicle_tag_handle as a register arg, plus
-   * two stack args (base, param_4). Use inline asm to set ESI. */
-  {
-    int _eax;
-    int args[2];
-    args[0] = base;
-    args[1] = param_4;
-    __asm__ __volatile__("pushl 4(%[a])\n\t"
-                         "pushl 0(%[a])\n\t"
-                         "call *%[fn]\n\t"
-                         "addl $8, %%esp"
-                         : "=a"(_eax)
-                         : [a] "r"(args), [fn] "r"((void *)0xd5070),
-                           "S"(vehicle_tag_handle)
-                         : "ecx", "edx", "memory", "cc");
-    slot = (char *)_eax;
-  }
+  /* Find a message slot, matching vehicle tag handle via @esi. */
+  slot = (char *)hud_find_message_slot(base, param_4, vehicle_tag_handle);
   if (*(uint8_t *)(slot + 0x82) == 0) {
     *(int16_t *)(slot + 0x88) = 0;
   }
