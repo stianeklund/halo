@@ -936,6 +936,7 @@
     },
     {
       "name": "stack_memory_pool.obj",
+      "source": "memory/stack_memory_pool.c",
       "functions": [
         {
           "decl": "void stack_memory_pool_initialize(void *pool);",

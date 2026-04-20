@@ -3021,6 +3021,31 @@
       "inferred": [
         "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
       ]
+    },
+    "0x11e9c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Pool header layout inferred from field accesses: +0x00 tag/name_ptr, +0x04 base_address, +0x08 pool_size, +0x0c slot_count; slot table at +0x34 (slot_count * 4 bytes).",
+        "table[0] is seeded with a self-pointer via csmemcpy to initialize the free-slot list."
+      ]
+    },
+    "0x11f620": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Internal callees 0x11ef50 (valid_block: EAX=block_hdr,ECX=pool) and 0x11efd0 (unlink_block: ESI=block_hdr,EDI=pool) are called via inline asm due to non-standard register conventions."
+      ]
+    },
+    "0x11fbe0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "alloc_count incremented only when old_size==0 (new alloc, not resize); uses SETLE semantics: TEST EBX,EBX; SETLE DL; ADD ECX,EDX."
+      ],
+      "uncertain": [
+        "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
+      ]
     }
   }
 }
