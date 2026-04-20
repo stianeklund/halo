@@ -3905,8 +3905,12 @@
           "addr": "0xe46b0"
         },
         {
-          "decl": "void ui_widget_pending_load_push_internal(void);",
+          "decl": "void ui_widget_pending_load_push_internal(int *head@<ebx>, void *record@<edi>);",
           "addr": "0xe46f0"
+        },
+        {
+          "decl": "void ui_widget_pending_load_pop(int *head@<edi>, void *record@<esi>);",
+          "addr": "0xe4770"
         },
         {
           "decl": "void FUN_000e5380(void *widget@<ecx>, void *definition);",
@@ -3969,7 +3973,7 @@
           "addr": "0xe78e0"
         },
         {
-          "decl": "void ui_widget_load_from_tag_internal(void);",
+          "decl": "void ui_widget_load_from_tag_internal(void *tag_data@<eax>, void *widget@<edx>, void *parent@<ecx>, int tag_index, int widget_stack, int widget_stack_base);",
           "addr": "0xe7b10"
         },
         {
