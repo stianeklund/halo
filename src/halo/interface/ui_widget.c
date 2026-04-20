@@ -565,43 +565,6 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
   }
 }
 
-static void ui_widget_pending_load_push(int *head, void *record)
-{
-  int *_ebx = head;
-  void *_edi = record;
-
-  __asm__ __volatile__("call *%[fn]"
-                       : "+b"(_ebx), "+D"(_edi)
-                       : [fn] "r"(ui_widget_pending_load_push_internal)
-                       : "eax", "ecx", "edx", "esi", "memory", "cc");
-}
-
-static void ui_widget_load_from_tag_call(int tag_data, int widget, int a3,
-                                         int tag_index, int widget_stack,
-                                         int widget_stack_base)
-{
-  unsigned int args[6];
-
-  args[0] = (unsigned int)tag_data;
-  args[1] = (unsigned int)widget;
-  args[2] = (unsigned int)a3;
-  args[3] = (unsigned int)tag_index;
-  args[4] = (unsigned int)widget_stack;
-  args[5] = (unsigned int)widget_stack_base;
-
-  __asm__ __volatile__(
-    "pushl 20(%[a])\n\t"
-    "pushl 16(%[a])\n\t"
-    "pushl 12(%[a])\n\t"
-    "movl 0(%[a]), %%eax\n\t"
-    "movl 4(%[a]), %%edx\n\t"
-    "movl 8(%[a]), %%ecx\n\t"
-    "call *%[fn]\n\t"
-    "addl $0xc, %%esp"
-    :
-    : [a] "r"(args), [fn] "r"(ui_widget_load_from_tag_internal)
-    : "eax", "ecx", "edx", "memory", "cc");
-}
 
 
 void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
@@ -1100,7 +1063,7 @@ void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int a3,
       pending_load.a6 = a6;
       pending_load.a7 = (int16_t)a7;
       pending_load.widget_stack = previous_stack_player;
-      ui_widget_pending_load_push((int *)(0x46cc30 + (int)stack_index * 4),
+      ui_widget_pending_load_push_internal((int *)(0x46cc30 + (int)stack_index * 4),
                                   &pending_load);
     }
   }
@@ -1127,7 +1090,7 @@ void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int a3,
     }
   }
 
-  ui_widget_load_from_tag_call(tag_data, widget, a3, tag_index, widget_stack,
+  ui_widget_load_from_tag_internal((void *)tag_data, (void *)widget, (void *)a3, tag_index, widget_stack,
                                widget_stack_base);
   return (void *)widget;
 }
@@ -1613,17 +1576,6 @@ typedef struct ui_widget_pending_load {
   int16_t widget_stack;
 } ui_widget_pending_load_t;
 
-static void ui_widget_pending_load_pop(int *head,
-                                       ui_widget_pending_load_t *record)
-{
-  int *_edi = head;
-  ui_widget_pending_load_t *_esi = record;
-
-  __asm__ __volatile__("call *%[fn]"
-                       : "+D"(_edi), "+S"(_esi)
-                       : [fn] "r"((void *)0xe4770)
-                       : "eax", "ecx", "edx", "memory", "cc");
-}
 
 
 /* process_ui_widgets — main per-frame UI widget tick. Handles async
@@ -1769,7 +1721,7 @@ void process_ui_widgets(void)
 
       did_work = 1;
       if ((*widget_roots == 0) && (widget_roots[4] != 0)) {
-        ui_widget_pending_load_pop(&widget_roots[4], &pending_load);
+        ui_widget_pending_load_pop(&widget_roots[4], (void *)&pending_load);
         if (pending_load.tag_index != -1) {
           loaded_widget = ui_widget_load_by_name_or_tag(
             0, pending_load.tag_index, 0, pending_load.widget_stack, -1, -1,

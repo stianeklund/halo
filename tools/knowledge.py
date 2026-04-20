@@ -148,20 +148,66 @@ class KnowledgeBase:
 	def add_symbols(self, symbols: Sequence[Symbol]):
 		self.symbols.extend(symbols)
 
+	CALLEE_SAVED_REGS = {'ebx', 'esi', 'edi', 'ebp', 'bx', 'si', 'di'}
+	REG_32 = {'eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp'}
+	REG_16 = {'ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp'}
+	REG_8 = {'al', 'ah', 'bl', 'bh', 'cl', 'ch', 'dl', 'dh'}
+
+	@staticmethod
+	def _mov_for_reg(reg):
+		"""Return the appropriate mov mnemonic for loading into this register."""
+		if reg in KnowledgeBase.REG_32:
+			return 'movl'
+		elif reg in KnowledgeBase.REG_16:
+			return 'movw'
+		elif reg in KnowledgeBase.REG_8:
+			return 'movb'
+		return 'movl'
+
+	@staticmethod
+	def _push_reg(reg):
+		"""Return push instruction for saving a register (always 32-bit on x86)."""
+		if reg in KnowledgeBase.REG_32:
+			return f'pushl %%{reg}'
+		elif reg in KnowledgeBase.REG_16:
+			# push the full 32-bit parent
+			parent = {'ax': 'eax', 'bx': 'ebx', 'cx': 'ecx', 'dx': 'edx',
+					  'si': 'esi', 'di': 'edi', 'bp': 'ebp'}[reg]
+			return f'pushl %%{parent}'
+		return f'pushl %%{reg}'
+
+	@staticmethod
+	def _pop_reg(reg):
+		"""Return pop instruction for restoring a register."""
+		if reg in KnowledgeBase.REG_32:
+			return f'popl %%{reg}'
+		elif reg in KnowledgeBase.REG_16:
+			parent = {'ax': 'eax', 'bx': 'ebx', 'cx': 'ecx', 'dx': 'edx',
+					  'si': 'esi', 'di': 'edi', 'bp': 'ebp'}[reg]
+			return f'popl %%{parent}'
+		return f'popl %%{reg}'
+
 	def gen_thunk(self, s: Function):
 		match = reg_filter_re.search(s.decl)
 		assert match is not None
 
-		c = match.span()[0]
-		text_before = s.decl[0:c]
-		assert text_before.find(',') < 0, "Can't handle non-first register argument thunks yet"
-		assert text_before.find('(') > 0, "Can't handle return in custom register yet"
-
+		reg_args = s.register_args
 		rtype = s.cursor.result_type.spelling
 		fname = s.cursor.spelling
 		args = list(s.cursor.get_arguments())
-		reg = match.group(1)
-		thunkname = f'thunk'
+		name = s.name
+		mangled_name = s.cursor.mangled_name
+		name_alternate = name + '__thunk'
+		mangled_name_alternate = mangled_name.replace(name, name_alternate)
+
+		if len(reg_args) == 1 and reg_args[0][0] == 0:
+			return self._gen_thunk_single_reg(s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate)
+		else:
+			return self._gen_thunk_multi_reg(s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate)
+
+	def _gen_thunk_single_reg(self, s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate):
+		"""Generate thunk for single first-arg register (original path)."""
+		reg = reg_args[0][1]
 		log.info('Generating %s arg-register thunk for %s', reg, fname)
 
 		new_func_decl = f'{rtype} (*{fname}__xbe)(/* {args[0].type.spelling} {args[0].spelling}@<{reg}>'
@@ -172,12 +218,6 @@ class KnowledgeBase:
 			new_func_decl += ' */ void'
 		new_func_decl += ')'
 
-		# clang apparently avoids clobbering the register we just wrote to. This should really be replaced with something
-		# better though
-		name = s.name
-		mangled_name = s.cursor.mangled_name
-		name_alternate = name + '__thunk'
-		mangled_name_alternate = mangled_name.replace(name, name_alternate)
 		decl = filter_reg_assignments(s.decl)[:-1]
 
 		thunk_functions = f'''\
@@ -193,7 +233,94 @@ class KnowledgeBase:
   { "return " if rtype != 'void' else ''}{fname}__xbe({', '.join(a.spelling for a in args[1:])});
 }}
 '''
-		# FIXME: Generate special XBE->EXE thunker
+		return thunk_functions
+
+	def _gen_thunk_multi_reg(self, s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate):
+		"""Generate naked asm thunk for multi-register-arg functions.
+
+		Emits a naked function that moves C-convention stack args into the
+		required registers, pushes any remaining stack-only args, then calls
+		the raw XBE address.  Callee-saved registers (EBX, ESI, EDI) are
+		saved/restored; caller-saved (EAX, ECX, EDX) are not.
+		"""
+		reg_indices = {idx for idx, _ in reg_args}
+		reg_map = {idx: reg for idx, reg in reg_args}
+		stack_args = [(i, a) for i, a in enumerate(args) if i not in reg_indices]
+
+		regs_used = [reg for _, reg in reg_args]
+		callee_saved_used = [r for r in regs_used if r in self.CALLEE_SAVED_REGS]
+
+		log.info('Generating multi-reg thunk for %s (regs: %s, stack: %d)',
+				 fname, ', '.join(f'{r}' for r in regs_used), len(stack_args))
+
+		# Build the __xbe pointer declaration (takes only stack args, or void)
+		xbe_comment_parts = []
+		for idx, reg in reg_args:
+			xbe_comment_parts.append(f'{args[idx].type.spelling} {args[idx].spelling}@<{reg}>')
+		xbe_comment = ', '.join(xbe_comment_parts)
+
+		if stack_args:
+			xbe_params = ', '.join(f'{args[i].type.spelling} {args[i].spelling}' for i, _ in stack_args)
+		else:
+			xbe_params = 'void'
+
+		xbe_decl = f'{rtype} (*{fname}__xbe)(/* {xbe_comment}, */ {xbe_params})'
+
+		# Build the naked thunk body in inline asm
+		# Stack on entry: [ESP] = ret_addr, [ESP+4] = arg0, [ESP+8] = arg1, ...
+		asm_lines = []
+		num_saves = len(callee_saved_used)
+
+		# Save callee-saved registers (always push/pop the 32-bit parent)
+		for reg in callee_saved_used:
+			asm_lines.append(self._push_reg(reg))
+
+		# After saves, original [ESP+4+i*4] is now at [ESP+4+i*4+num_saves*4]
+		save_offset = num_saves * 4
+
+		# Push stack-only args in reverse order (rightmost first)
+		num_stack_pushes = 0
+		for i, _ in reversed(stack_args):
+			offset = 4 + i * 4 + save_offset + num_stack_pushes * 4
+			asm_lines.append(f'pushl {offset}(%%esp)')
+			num_stack_pushes += 1
+
+		# Load register args using size-appropriate mov
+		extra_offset = save_offset + num_stack_pushes * 4
+		for idx, reg in reg_args:
+			offset = 4 + idx * 4 + extra_offset
+			mov = self._mov_for_reg(reg)
+			asm_lines.append(f'{mov} {offset}(%%esp), %%{reg}')
+
+		# Call the raw XBE address
+		asm_lines.append(f'call *%[fn]')
+
+		# Clean up pushed stack args
+		if num_stack_pushes > 0:
+			asm_lines.append(f'addl ${num_stack_pushes * 4}, %%esp')
+
+		# Restore callee-saved registers (reverse order)
+		for reg in reversed(callee_saved_used):
+			asm_lines.append(self._pop_reg(reg))
+
+		asm_lines.append('ret')
+
+		asm_body = '\\n\\t'.join(asm_lines)
+
+		decl = filter_reg_assignments(s.decl)[:-1]
+
+		thunk_functions = f'''\
+#ifdef MSVC
+#pragma comment(linker, "/alternatename:{mangled_name}={mangled_name_alternate}")
+#endif
+
+{xbe_decl} = (void*){s.addr:#x};
+
+__attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
+{{
+  __asm__ __volatile__("{asm_body}" : : [fn] "m"({fname}__xbe));
+}}
+'''
 		return thunk_functions
 
 	def build_header(self, path: str):
