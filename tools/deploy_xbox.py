@@ -26,7 +26,8 @@ import subprocess
 import sys
 import time
 
-from local_env import build_windows_python_command, is_wsl, load_repo_env
+from build_hash import print_build_hash
+from local_env import build_windows_python_command, is_wsl, load_repo_env, to_windows_path
 
 
 load_repo_env("xbox.env")
@@ -52,20 +53,6 @@ EXCLUDE_PATTERNS = [
 
 def is_excluded(filename: str) -> bool:
     return any(fnmatch.fnmatch(filename, pat) for pat in EXCLUDE_PATTERNS)
-
-
-def to_windows_path(path: str) -> str:
-    path = os.path.abspath(path)
-    if sys.platform != "win32":
-        path = path.replace("\\", "/")
-        if (
-            len(path) >= 7
-            and path.startswith("/mnt/")
-            and path[5].isalpha()
-            and path[6] == "/"
-        ):
-            return f"{path[5].upper()}:{path[6:]}"
-    return path
 
 
 def find_xbcp() -> tuple[str, str]:
@@ -329,6 +316,8 @@ def main() -> int:
                     print(f"  | {line}")
         else:
             print("  (no xemu instance found, skipping eject)")
+
+    print_build_hash(xbe_path)
 
     dest = args.dest
     host = args.xbox

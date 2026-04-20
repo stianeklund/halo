@@ -22,19 +22,42 @@ reg_filter_re = re.compile(r'@<(\w+)>')
 def filter_reg_assignments(s: str) -> str:
 	return reg_filter_re.sub('', s)
 
-with open(os.path.join(root_dir, 'src', 'types.h')) as f:
-	types_file = f.read()
+_types_file: Optional[str] = None
+
+def _get_types_file() -> str:
+	global _types_file
+	if _types_file is None:
+		with open(os.path.join(root_dir, 'src', 'types.h')) as f:
+			_types_file = f.read()
+	return _types_file
 
 def parse_string(s: str) -> str:
-	s = types_file + filter_reg_assignments(s)
+	s = _get_types_file() + filter_reg_assignments(s)
 	index = clang.Index.create()
 	tu = index.parse('tmp.h', args=['-target', 'i386-pc-win32'], unsaved_files=[('tmp.h', s)])
 	return tu
 
 
+_name_from_func_decl_re = re.compile(r'(\w+)\s*\(')
+_name_from_data_decl_re = re.compile(r'[A-Za-z_]\w*')
+
+
+def _extract_name_regex(decl: str, is_function: bool) -> Optional[str]:
+	cleaned = reg_filter_re.sub('', decl)
+	if is_function:
+		m = _name_from_func_decl_re.search(cleaned)
+		return m.group(1) if m else None
+	else:
+		tokens = _name_from_data_decl_re.findall(
+			cleaned.rstrip(';').split('[')[0].split('=')[0]
+		)
+		return tokens[-1] if tokens else None
+
+
 class Symbol:
 	def __init__(self, decl: str, addr: Optional[Union[str, int]] = None, **kwargs):
 		self._parsed = None
+		self._name_cache = None
 		self.decl = decl
 		if type(addr) is str:
 			addr = int(addr, 16)
@@ -48,9 +71,9 @@ class Symbol:
 
 	@property
 	def name(self):
-		if clang is None:
-			return self.decl
-		return self.cursor.spelling
+		if self._name_cache is None:
+			self._name_cache = _extract_name_regex(self.decl, isinstance(self, Function))
+		return self._name_cache
 
 	def serialize(self):
 		return {'decl': self.decl, 'addr': hex(self.addr)}

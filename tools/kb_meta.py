@@ -237,21 +237,81 @@ def print_rows(rows: list[dict[str, str]]):
         )
 
 
+def validate_fast() -> list[str]:
+    """Validate kb_meta.json against kb.json using raw JSON (no clang)."""
+    kb_path = os.path.join(ROOT_DIR, 'kb.json')
+    with open(kb_path) as f:
+        kb_raw = json.load(f)
+
+    kb_addrs: set[str] = set()
+    for obj in kb_raw.get('objects', []):
+        for kind in ('functions', 'data'):
+            for sym in obj.get(kind, []):
+                addr = sym.get('addr')
+                if addr is not None:
+                    kb_addrs.add(normalize_addr(addr))
+    kb_md5 = kb_raw.get('md5')
+
+    if not os.path.exists(KB_META_PATH):
+        return []
+    with open(KB_META_PATH) as f:
+        meta_raw = json.load(f)
+
+    errors = []
+    meta_md5 = meta_raw.get('md5')
+    for addr_str, data in meta_raw.get('symbols', {}).items():
+        addr = normalize_addr(addr_str)
+        if addr not in kb_addrs:
+            errors.append(f'{addr}: metadata address does not exist in kb.json')
+        kind = data.get('kind', 'function')
+        if kind not in VALID_KIND:
+            errors.append(f'{addr}: invalid kind {kind!r}')
+        nc = data.get('name_confidence')
+        if nc and nc not in VALID_CONFIDENCE:
+            errors.append(f'{addr}: invalid name_confidence {nc!r}')
+        sc = data.get('signature_confidence')
+        if sc and sc not in VALID_CONFIDENCE:
+            errors.append(f'{addr}: invalid signature_confidence {sc!r}')
+        status = data.get('status', 'unknown')
+        if status not in VALID_STATUS:
+            errors.append(f'{addr}: invalid status {status!r}')
+        for entry in data.get('provenance', []):
+            pk = entry.get('kind')
+            if pk not in PROVENANCE_KINDS:
+                errors.append(f'{addr}: invalid provenance kind {pk!r}')
+        summary = data.get('comments', {}).get('summary')
+        if summary is not None and not isinstance(summary, str):
+            errors.append(f'{addr}: comments.summary must be a string')
+        for key, value in data.get('flags', {}).items():
+            if not isinstance(value, bool):
+                errors.append(f'{addr}: flags.{key} must be boolean')
+        for i, entry in enumerate(data.get('inferred', [])):
+            if not isinstance(entry, str):
+                errors.append(f'{addr}: inferred[{i}] must be a string')
+        for i, entry in enumerate(data.get('uncertain', [])):
+            if not isinstance(entry, str):
+                errors.append(f'{addr}: uncertain[{i}] must be a string')
+    if meta_md5 != kb_md5:
+        errors.append(f'md5 mismatch: kb_meta.json={meta_md5} kb.json={kb_md5}')
+    return errors
+
+
 def main():
     logging.basicConfig(level=logging.INFO, handlers=[color.ColorLogHandler()])
     args = build_parser().parse_args()
-    kb = KnowledgeBase.deserialize()
-    store = MetadataStore(kb)
-    store.load()
 
     if args.command == 'validate':
-        errors = store.validate()
+        errors = validate_fast()
         if errors:
             for error in errors:
                 print(error)
             raise SystemExit(1)
         print('kb_meta.json is valid')
         return
+
+    kb = KnowledgeBase.deserialize()
+    store = MetadataStore(kb)
+    store.load()
 
     if args.command == 'summary':
         rows = store.kb_symbol_rows()

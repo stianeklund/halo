@@ -8,6 +8,8 @@ import subprocess
 import sys
 import time
 
+from local_env import to_windows_path
+
 
 ROOT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -34,13 +36,6 @@ def repo_path(path: str) -> str:
     if os.path.isabs(path):
         return path
     return os.path.abspath(os.path.join(ROOT_DIR, path))
-
-
-def to_windows_path(path: str) -> str:
-    path = path.replace("\\", "/")
-    if len(path) >= 7 and path.startswith("/mnt/") and path[5].isalpha() and path[6] == "/":
-        return f"{path[5].upper()}:{path[6:]}"
-    return path
 
 
 def iso_path_candidates(path: str) -> list[str]:
@@ -196,6 +191,18 @@ def detect_cdrom_device(session: QmpSession) -> dict | None:
     return None
 
 
+def get_block_info_by_device(session: QmpSession, device: str) -> dict | None:
+    try:
+        devices = session.command("query-block")
+    except RuntimeError:
+        return None
+
+    for entry in devices:
+        if entry.get("device") == device:
+            return entry
+    return None
+
+
 def resolve_device(session: QmpSession, requested_device: str | None) -> tuple[str, dict | None]:
     if requested_device:
         return requested_device, None
@@ -344,7 +351,23 @@ def command_eject(args) -> int:
         return 1
     try:
         device, block_info = resolve_device(session, args.device)
+        if block_info is None:
+            block_info = get_block_info_by_device(session, device)
+
+        if block_info is not None:
+            inserted = block_info.get("inserted")
+            tray_open = block_info.get("tray_open")
+            if not inserted and tray_open:
+                print(f"media already ejected from {device}")
+                return 0
+
         eject_medium(session, device, block_info)
+
+        updated = get_block_info_by_device(session, device)
+        if updated is not None and updated.get("inserted"):
+            print(f"eject command succeeded but media remains inserted in {device}", file=sys.stderr)
+            return 1
+
         print(f"ejected media from {device}")
         return 0
     finally:

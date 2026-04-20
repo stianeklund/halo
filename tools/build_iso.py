@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 
+from build_hash import print_build_hash
 from local_env import build_windows_python_command
 
 
@@ -95,7 +96,9 @@ def build_iso(retries: int, retry_delay: float) -> int:
     for attempt in range(retries + 1):
         result = run_extract_xiso()
         if result == 0:
-            print(OUTPUT_ISO)
+            iso_path = os.path.join(ROOT_DIR, OUTPUT_ISO)
+            print_build_hash(os.path.join(ROOT_DIR, SOURCE_DIR, "default.xbe"))
+            print_build_hash(iso_path)
             return 0
 
         if attempt == retries:
