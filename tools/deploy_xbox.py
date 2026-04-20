@@ -21,6 +21,7 @@ Requires: XDK installed at "C:\\Program Files (x86)\\RXDK\\xbox\\bin\\xbcp.exe"
 
 import argparse
 import fnmatch
+import json
 import os
 import subprocess
 import sys
@@ -230,6 +231,120 @@ def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
         return 1
 
 
+def query_remote_file_attributes(host: str, xbox_path: str) -> dict | None:
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbdm_rdcp.py")
+    cmd = build_windows_python_command(
+        rdcp_script,
+        ["--json", f'getfileattributes name="{xbox_path}"'],
+    )
+    if cmd is None:
+        cmd = [sys.executable, rdcp_script, "--json", f'getfileattributes name="{xbox_path}"']
+    if host:
+        cmd += ["--host", host]
+
+    result = subprocess.run(
+        cmd,
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+    if not payload.get("ok"):
+        return None
+    return payload
+
+
+def extract_remote_size(attributes: dict) -> int | None:
+    lines = attributes.get("lines") or []
+    if not lines:
+        return None
+
+    fields = {}
+    for token in lines[0].split():
+        if "=" not in token:
+            continue
+        key, value = token.split("=", 1)
+        fields[key] = value
+
+    try:
+        size_hi = int(fields["sizehi"], 0)
+        size_lo = int(fields["sizelo"], 0)
+    except (KeyError, ValueError):
+        return None
+    return (size_hi << 32) | size_lo
+
+
+def verify_uploaded_file(host: str, local_path: str, xbox_path: str) -> bool:
+    attributes = query_remote_file_attributes(host, xbox_path)
+    if attributes is None:
+        print(f"  verify failed: could not query {xbox_path}", file=sys.stderr)
+        return False
+
+    remote_size = extract_remote_size(attributes)
+    if remote_size is None:
+        print(f"  verify failed: could not parse size for {xbox_path}", file=sys.stderr)
+        return False
+
+    local_size = os.path.getsize(local_path)
+    if remote_size != local_size:
+        print(
+            f"  verify failed: {xbox_path} size mismatch "
+            f"(local {local_size:,} vs remote {remote_size:,})",
+            file=sys.stderr,
+        )
+        return False
+
+    print(f"  verified {xbox_path} ({remote_size:,} bytes)")
+    return True
+
+
+def run_xemu_qmp_command(qmp_script: str, command: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, qmp_script, command],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+    )
+
+
+def prepare_xemu_for_deploy(qmp_script: str) -> None:
+    print("preparing xemu...")
+
+    eject_rc = run_xemu_qmp_command(qmp_script, "eject")
+    if eject_rc.returncode != 0:
+        print("  (no xemu instance found, skipping xemu prep)")
+        return
+
+    if eject_rc.stdout:
+        for line in eject_rc.stdout.strip().splitlines():
+            print(f"  | {line}")
+
+    reset_rc = run_xemu_qmp_command(qmp_script, "reset")
+    if reset_rc.returncode != 0:
+        print("  (xemu reset failed after eject)")
+        if reset_rc.stdout:
+            for line in reset_rc.stdout.strip().splitlines():
+                print(f"  | {line}")
+        if reset_rc.stderr:
+            for line in reset_rc.stderr.strip().splitlines():
+                print(f"  | {line}", file=sys.stderr)
+        return
+
+    if reset_rc.stdout:
+        for line in reset_rc.stdout.strip().splitlines():
+            print(f"  | {line}")
+
+    print("  | waiting 2.0s for xemu to settle after reset")
+    time.sleep(2.0)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Deploy patched Halo build to Xbox via xbcp (XDK)"
@@ -302,20 +417,10 @@ def main() -> int:
         print("error: default.xbe not found in halo-patched/", file=sys.stderr)
         return 1
 
-    # Always eject xemu disc first so the XBE isn't locked
+    # Reset xemu after eject so the guest stops running the old title.
     qmp_script = os.path.join(ROOT_DIR, "tools", "xemu_qmp.py")
     if os.path.isfile(qmp_script):
-        print("ejecting xemu disc...")
-        eject_rc = subprocess.run(
-            [sys.executable, qmp_script, "eject"],
-            cwd=ROOT_DIR, capture_output=True, text=True,
-        )
-        if eject_rc.returncode == 0:
-            if eject_rc.stdout:
-                for line in eject_rc.stdout.strip().splitlines():
-                    print(f"  | {line}")
-        else:
-            print("  (no xemu instance found, skipping eject)")
+        prepare_xemu_for_deploy(qmp_script)
 
     print_build_hash(xbe_path)
 
@@ -348,6 +453,8 @@ def main() -> int:
             if rc != 0:
                 print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
                 return rc
+            if not args.dry_run and not verify_uploaded_file(host, xbe_file, d.lstrip("x")):
+                return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
         if rc != 0:
@@ -386,6 +493,8 @@ def main() -> int:
     if rc != 0:
         print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
         return rc
+    if not args.dry_run and not verify_uploaded_file(host, xbe_path, xbe_dest.lstrip("x")):
+        return 1
 
     # Then push maps/ and bink/ if --full, or just maps/ by default
     dirs_to_deploy = []
