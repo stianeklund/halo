@@ -798,7 +798,8 @@
         },
         {
           "decl": "int csstrcmp(const char *s1, const char *s2);",
-          "addr": "0x8dcb0"
+          "addr": "0x8dcb0",
+          "ported": true
         },
         {
           "decl": "void *csmemset(void *buffer, int c, size_t size);",
