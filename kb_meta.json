@@ -49,11 +49,54 @@
       "name": "ai_place",
       "name_confidence": "high"
     },
+    "0x3fdc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x40010": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "local_14 in the decompiler output is iter.field_0x14 of the extended AI actor iterator; it holds the current actor handle saved by FUN_00059b50."
+      ],
+      "uncertain": [
+        "0x5ab270 (extended actor iterator data) and 0x5ab23c (clump data_t) are not yet in kb.json; used via raw pointer access."
+      ]
+    },
+    "0x41090": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "All 5 csmemset calls and 8 init helpers confirmed from disasm; ADD ESP,0x3c at 0x41172 accounts for all 15 pushed args."
+      ]
+    },
+    "0x41180": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "globals[0] = first-frame flag, globals[1] = AI active, globals[2] = pending-spawn/scripted flag; semantics inferred from branch structure."
+      ]
+    },
+    "0x42390": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x5ab23c is likely a swarm/clump data_t pointer; used as the data source for data_iterator_new.",
+        "iter.datum_handle (at EBP-0xc, overlapping the standard data_iter_t) is used in the squad check at 0x424f0 as the decompiler's 'local_10' variable."
+      ],
+      "uncertain": [
+        "Float constants 0x2533d8, 0x254cc0, 0x254cc8, 0x254e74 are addresses of game-binary float data; their semantic meaning (range thresholds) is inferred from context only."
+      ]
+    },
     "0x425a0": {
       "kind": "function",
       "status": "ported",
       "name": "ai_enemies_can_see_player",
       "name_confidence": "high"
+    },
+    "0x425b0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x7c840": {
       "kind": "function",
@@ -1481,6 +1524,48 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe3410": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "EDI register arg carries the line_handle; confirmed from PUSH EDI before CALL 0x119320 at 0xe3416 and PUSH EDI before CALL 0x1196d0 at 0xe346e/0xe3483."
+      ]
+    },
+    "0xe34a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe34e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3580": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x46c418 is a byte activity flag set to 1 on each keypress and cleared to 0 by SETZ when the 30-tick timeout fires and the flag was non-zero.",
+        "The keystroke at [state+2+count*4] is a raw 4-byte dword matching the buffered_key_read entries at 0x46bc0c; struct layout is unconfirmed beyond dword size."
+      ]
+    },
+    "0xe3640": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Age counter is at line+0x120 (int); lines are evicted after age exceeds 0x96 (150 ticks), confirmed from CMP ECX,0x96 / JLE in disasm."
+      ]
+    },
+    "0xe3940": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "terminal_remove_line at 0xe3410 takes the line handle via EDI register argument; terminal_get_line sets EDI=[0x46c410] before calling it to evict the tail entry.",
+        "The doubly-linked list uses offsets +0x4 (prev handle) and +0x8 (next handle) within the datum; [0x46c40c] is head and [0x46c410] is tail."
+      ]
+    },
     "0xe39e0": {
       "kind": "function",
       "status": "ported",
@@ -1488,6 +1573,10 @@
         "terminal_update's return in AL (from terminal_process_input) is ignored by its sole caller main_loop; the void return type in kb.json is correct.",
         "console_is_active at 0xff4c0 returns the byte at [0x46cf60], which is the console-open flag; when true, line aging (terminal_age_lines) is skipped."
       ]
+    },
+    "0xe3a10": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xe3be0": {
       "kind": "function",
@@ -1994,6 +2083,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11e9c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Pool header layout inferred from field accesses: +0x00 tag/name_ptr, +0x04 base_address, +0x08 pool_size, +0x0c slot_count; slot table at +0x34 (slot_count * 4 bytes).",
+        "table[0] is seeded with a self-pointer via csmemcpy to initialize the free-slot list."
+      ]
+    },
+    "0x11f620": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Internal callees 0x11ef50 (valid_block: EAX=block_hdr,ECX=pool) and 0x11efd0 (unlink_block: ESI=block_hdr,EDI=pool) are called via inline asm due to non-standard register conventions."
+      ]
+    },
+    "0x11fbe0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "alloc_count incremented only when old_size==0 (new alloc, not resize); uses SETLE semantics: TEST EBX,EBX; SETLE DL; ADD ECX,EDX."
+      ],
+      "uncertain": [
+        "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
+      ]
+    },
     "0x12b640": {
       "kind": "function",
       "status": "ported"
@@ -2005,6 +2119,14 @@
     "0x130a60": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x130ab0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name 'terminal_string_process_tabs' is the binary name; despite being in draw_string.obj, its sole purpose is to forward rendered text out over the telnet debug console (send_endpoint at 0x82f50).",
+        "The CRLF prefix string is a literal two-byte '\\r\\n' at 0x261f2c (not a null-terminated string); the hard-coded length of 2 is confirmed from 'PUSH 0x2' in disassembly."
+      ]
     },
     "0x130d60": {
       "kind": "function",
@@ -2272,6 +2394,35 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x15b190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b1a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "decals_update_for_new_map (0x98e70) name is inferred from its behavior: it iterates all decal data, clears locked/permanent flags, and resets the global lock/permanent counts."
+      ]
+    },
+    "0x15b6d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 12-byte vertex buffer struct layout (+0x0 D3D resource header=1, +0x4 GPU memory pointer from game_state_gpu_alloc, +0x8 lock flags=0) is derived from disassembly offsets MOV [EAX],1 / LEA ESI,[EAX+4] / MOV [EAX+8],0 and matches a minimal D3D resource header.",
+        "game_state_gpu_alloc (0x1bfd00) name is inferred from context: it allocates from the game-state GPU region and logs to gamestate.txt; the second arg is always 0 at this call site."
+      ],
+      "uncertain": [
+        "The lruv_cache entry_size arg 0x800 and capacity arg 0xa00 are confirmed from disassembly pushes but their semantic meaning (bytes per entry vs. entry count) is not independently verified."
+      ]
+    },
+    "0x15b7e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "D3DResource_Release (0x1ed930) is stdcall with RET 0x4, confirmed from disassembly; the call site uses POP ECX after the call which is inconsistent (the RET 0x4 already cleans the arg)."
+      ]
+    },
     "0x17c7e0": {
       "kind": "function",
       "status": "ported"
@@ -2527,6 +2678,31 @@
     "0x19b210": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x19b560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19b640": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Field order in the color struct is alpha at [+0], red at [+4], green at [+8], blue at [+0xc] \u2014 inferred from assertion strings naming alpha/red/green/blue in sequence and confirmed by ESI offsets in disassembly."
+      ]
+    },
+    "0x19b800": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The upper bound check for style uses 'CMP DI,0x4; JL ok' meaning style < 4, implying NUMBER_OF_TEXT_STYLES=4 (styles 0..3); but the boundary value of 4 itself is rejected, consistent with an exclusive upper bound."
+      ]
+    },
+    "0x19b8b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
+      ]
     },
     "0x19dc90": {
       "kind": "function",
@@ -2963,182 +3139,6 @@
     },
     "0x326a08": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0xe34a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe34e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3560": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3940": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "terminal_remove_line at 0xe3410 takes the line handle via EDI register argument; terminal_get_line sets EDI=[0x46c410] before calling it to evict the tail entry.",
-        "The doubly-linked list uses offsets +0x4 (prev handle) and +0x8 (next handle) within the datum; [0x46c40c] is head and [0x46c410] is tail."
-      ]
-    },
-    "0xe3a10": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x130ab0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Function name 'terminal_string_process_tabs' is the binary name; despite being in draw_string.obj, its sole purpose is to forward rendered text out over the telnet debug console (send_endpoint at 0x82f50).",
-        "The CRLF prefix string is a literal two-byte '\\r\\n' at 0x261f2c (not a null-terminated string); the hard-coded length of 2 is confirmed from 'PUSH 0x2' in disassembly."
-      ]
-    },
-    "0x19b560": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x19b640": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Field order in the color struct is alpha at [+0], red at [+4], green at [+8], blue at [+0xc] \u2014 inferred from assertion strings naming alpha/red/green/blue in sequence and confirmed by ESI offsets in disassembly."
-      ]
-    },
-    "0x19b800": {
-      "kind": "function",
-      "status": "ported",
-      "uncertain": [
-        "The upper bound check for style uses 'CMP DI,0x4; JL ok' meaning style < 4, implying NUMBER_OF_TEXT_STYLES=4 (styles 0..3); but the boundary value of 4 itself is rejected, consistent with an exclusive upper bound."
-      ]
-    },
-    "0x19b8b0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
-      ]
-    },
-    "0x11e9c0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Pool header layout inferred from field accesses: +0x00 tag/name_ptr, +0x04 base_address, +0x08 pool_size, +0x0c slot_count; slot table at +0x34 (slot_count * 4 bytes).",
-        "table[0] is seeded with a self-pointer via csmemcpy to initialize the free-slot list."
-      ]
-    },
-    "0x11f620": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Internal callees 0x11ef50 (valid_block: EAX=block_hdr,ECX=pool) and 0x11efd0 (unlink_block: ESI=block_hdr,EDI=pool) are called via inline asm due to non-standard register conventions."
-      ]
-    },
-    "0x11fbe0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "alloc_count incremented only when old_size==0 (new alloc, not resize); uses SETLE semantics: TEST EBX,EBX; SETLE DL; ADD ECX,EDX."
-      ],
-      "uncertain": [
-        "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
-      ]
-    },
-    "0x15b190": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x15b1a0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "decals_update_for_new_map (0x98e70) name is inferred from its behavior: it iterates all decal data, clears locked/permanent flags, and resets the global lock/permanent counts."
-      ]
-    },
-    "0x15b6d0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The 12-byte vertex buffer struct layout (+0x0 D3D resource header=1, +0x4 GPU memory pointer from game_state_gpu_alloc, +0x8 lock flags=0) is derived from disassembly offsets MOV [EAX],1 / LEA ESI,[EAX+4] / MOV [EAX+8],0 and matches a minimal D3D resource header.",
-        "game_state_gpu_alloc (0x1bfd00) name is inferred from context: it allocates from the game-state GPU region and logs to gamestate.txt; the second arg is always 0 at this call site."
-      ],
-      "uncertain": [
-        "The lruv_cache entry_size arg 0x800 and capacity arg 0xa00 are confirmed from disassembly pushes but their semantic meaning (bytes per entry vs. entry count) is not independently verified."
-      ]
-    },
-    "0x15b7e0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "D3DResource_Release (0x1ed930) is stdcall with RET 0x4, confirmed from disassembly; the call site uses POP ECX after the call which is inconsistent (the RET 0x4 already cleans the arg)."
-      ]
-    },
-    "0xe3410": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "EDI register arg carries the line_handle; confirmed from PUSH EDI before CALL 0x119320 at 0xe3416 and PUSH EDI before CALL 0x1196d0 at 0xe346e/0xe3483."
-      ]
-    },
-    "0xe3580": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "0x46c418 is a byte activity flag set to 1 on each keypress and cleared to 0 by SETZ when the 30-tick timeout fires and the flag was non-zero.",
-        "The keystroke at [state+2+count*4] is a raw 4-byte dword matching the buffered_key_read entries at 0x46bc0c; struct layout is unconfirmed beyond dword size."
-      ]
-    },
-    "0xe3640": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Age counter is at line+0x120 (int); lines are evicted after age exceeds 0x96 (150 ticks), confirmed from CMP ECX,0x96 / JLE in disasm."
-      ]
-    },
-    "0x3fdc0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x40010": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "local_14 in the decompiler output is iter.field_0x14 of the extended AI actor iterator; it holds the current actor handle saved by FUN_00059b50."
-      ],
-      "uncertain": [
-        "0x5ab270 (extended actor iterator data) and 0x5ab23c (clump data_t) are not yet in kb.json; used via raw pointer access."
-      ]
-    },
-    "0x41090": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "All 5 csmemset calls and 8 init helpers confirmed from disasm; ADD ESP,0x3c at 0x41172 accounts for all 15 pushed args."
-      ]
-    },
-    "0x41180": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "globals[0] = first-frame flag, globals[1] = AI active, globals[2] = pending-spawn/scripted flag; semantics inferred from branch structure."
-      ]
-    },
-    "0x42390": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "0x5ab23c is likely a swarm/clump data_t pointer; used as the data source for data_iterator_new.",
-        "iter.datum_handle (at EBP-0xc, overlapping the standard data_iter_t) is used in the squad check at 0x424f0 as the decompiler's 'local_10' variable."
-      ],
-      "uncertain": [
-        "Float constants 0x2533d8, 0x254cc0, 0x254cc8, 0x254e74 are addresses of game-binary float data; their semantic meaning (range thresholds) is inferred from context only."
-      ]
-    },
-    "0x425b0": {
-      "kind": "function",
       "status": "ported"
     }
   }

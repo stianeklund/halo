@@ -367,6 +367,10 @@
           "addr": "0x97440"
         },
         {
+          "decl": "void edit_text_process_key(void *edit_text, void *keystroke);",
+          "addr": "0x974a0"
+        },
+        {
           "decl": "void FUN_00036e30(int ai_handle);",
           "addr": "0x36e30"
         },
@@ -1626,6 +1630,14 @@
           "addr": "0xa8380"
         },
         {
+          "decl": "void game_engine_remove_dropped_weapons(void);",
+          "addr": "0xa8680"
+        },
+        {
+          "decl": "void game_engine_spawn_equipment(void);",
+          "addr": "0xa8820"
+        },
+        {
           "decl": "bool game_engine_allow_weapon_pick_up(int unit_handle, int weapon_handle);",
           "addr": "0xa8b30"
         },
@@ -1638,8 +1650,92 @@
           "addr": "0xa8e60"
         },
         {
+          "decl": "bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle);",
+          "addr": "0xa90b0"
+        },
+        {
+          "decl": "game_variant_t *game_engine_slayer_default(game_variant_t *out);",
+          "addr": "0xaa190"
+        },
+        {
+          "decl": "game_variant_t *game_engine_elimination_default(game_variant_t *out);",
+          "addr": "0xaa2b0"
+        },
+        {
+          "decl": "game_variant_t *game_engine_team_slayer_default(game_variant_t *out);",
+          "addr": "0xaa580"
+        },
+        {
+          "decl": "game_variant_t *game_engine_oddball_default(game_variant_t *out);",
+          "addr": "0xaa610"
+        },
+        {
+          "decl": "game_variant_t *game_engine_team_oddball_default(game_variant_t *out);",
+          "addr": "0xaa6a0"
+        },
+        {
+          "decl": "game_variant_t *game_engine_accumulation_default(game_variant_t *out);",
+          "addr": "0xaa7c0"
+        },
+        {
+          "decl": "game_variant_t *game_engine_stalker_default(game_variant_t *out);",
+          "addr": "0xaa900"
+        },
+        {
+          "decl": "game_variant_t *game_engine_king_default(game_variant_t *out);",
+          "addr": "0xaa9a0"
+        },
+        {
+          "decl": "game_variant_t *game_engine_team_king_default(game_variant_t *out);",
+          "addr": "0xaab30"
+        },
+        {
+          "decl": "game_variant_t *game_engine_ctf_default(game_variant_t *out);",
+          "addr": "0xaabc0"
+        },
+        {
+          "decl": "game_variant_t *game_engine_ironctf_default(game_variant_t *out);",
+          "addr": "0xaad70"
+        },
+        {
+          "decl": "game_variant_t *game_engine_race_default(game_variant_t *out);",
+          "addr": "0xaae00"
+        },
+        {
+          "decl": "game_variant_t *game_engine_rally_default(game_variant_t *out);",
+          "addr": "0xaae90"
+        },
+        {
+          "decl": "game_variant_t *game_engine_team_race_default(game_variant_t *out);",
+          "addr": "0xaaf20"
+        },
+        {
+          "decl": "bool game_engine_check_input_button(void);",
+          "addr": "0xab420"
+        },
+        {
+          "decl": "void game_engine_variant_cleanup(game_variant_t *variant);",
+          "addr": "0xab570"
+        },
+        {
+          "decl": "void game_engine_load_sounds(void);",
+          "addr": "0xab730"
+        },
+        {
+          "decl": "bool game_engine_can_pick_up_weapon(int player_unit_handle, int weapon_unit_handle);",
+          "addr": "0xaba00"
+        },
+        {
           "decl": "void game_engine_initialize(game_variant_t *variant);",
           "addr": "0xaba30"
+        },
+        {
+          "decl": "bool game_engine_game_over(void);",
+          "addr": "0xabc80"
+        },
+        {
+          "decl": "void game_engine_periodic_equipment_spawn(void);",
+          "addr": "0xacbb0"
         },
         {
           "decl": "void game_engine_update_non_deterministic(float);",
@@ -1648,6 +1744,10 @@
         {
           "decl": "game_variant_t *game_engine_get_variant_by_name(game_variant_t *variant, const char *name);",
           "addr": "0xadd50"
+        },
+        {
+          "decl": "void game_engine_validate_map_netgame_flags(void);",
+          "addr": "0xae4d0"
         },
         {
           "decl": "void game_engine_initialize_for_new_map(void);",
@@ -1662,12 +1762,25 @@
           "addr": "0xaf370"
         },
         {
-          "decl": "bool game_engine_can_pick_up_weapon(int player_unit_handle, int weapon_unit_handle);",
-          "addr": "0xaba00"
+          "decl": "void game_engine_score_tick(void);",
+          "addr": "0xb2540"
         },
         {
-          "decl": "bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle);",
-          "addr": "0xa90b0"
+          "decl": "void game_engine_score_reset(void);",
+          "addr": "0xb2660"
+        },
+        {
+          "decl": "void game_engine_score_update_player(int player_handle);",
+          "addr": "0xad600"
+        },
+        {
+          "decl": "void game_engine_hud_update_player(int player_handle);",
+          "addr": "0xacef0",
+          "args": "@ecx,@eax"
+        },
+        {
+          "decl": "void game_engine_start_over(void);",
+          "addr": "0xa8b00"
         }
       ]
     },
@@ -1698,6 +1811,10 @@
         {
           "decl": "void game_sound_update(float);",
           "addr": "0x1c8140"
+        },
+        {
+          "decl": "void game_sound_set_music_volume(const char *sound_name, float volume, int16_t transition_ticks);",
+          "addr": "0x1c8c80"
         }
       ]
     },
@@ -2315,8 +2432,16 @@
           "addr": "0x12a000"
         },
         {
+          "decl": "void *network_game_server_get(void);",
+          "addr": "0x12a1d0"
+        },
+        {
           "decl": "void dispose_global_network_game_client(void);",
           "addr": "0x12a1e0"
+        },
+        {
+          "decl": "void *network_game_client_get(void);",
+          "addr": "0x12a240"
         },
         {
           "decl": "bool network_game_server_start_frame(void);",
@@ -2351,6 +2476,19 @@
       ]
     },
     {
+      "name": "network_server_manager.obj",
+      "functions": [
+        {
+          "decl": "void network_server_manager_game_over(void *server);",
+          "addr": "0x12c370"
+        },
+        {
+          "decl": "bool network_server_manager_pregame_start(void *server);",
+          "addr": "0x12eca0"
+        }
+      ]
+    },
+    {
       "name": "objects.obj",
       "source": "objects/objects.c",
       "data": [
@@ -2375,6 +2513,14 @@
         {
           "decl": "void *object_get_and_verify_type(int datum_handle, int type_mask);",
           "addr": "0x13d680"
+        },
+        {
+          "decl": "void object_iterator_new(void *iter, int type_mask, int flags);",
+          "addr": "0x13d6f0"
+        },
+        {
+          "decl": "void *object_iterator_next(void *iter);",
+          "addr": "0x13d730"
         },
         {
           "decl": "void object_set_garbage_flag(int object_handle, int is_garbage);",
@@ -2728,6 +2874,10 @@
           "addr": "0xb9d30"
         },
         {
+          "decl": "void rumble_clear_all_players(void);",
+          "addr": "0xb9d60"
+        },
+        {
           "decl": "void rumble_dispose_from_old_map(void);",
           "addr": "0xb9dd0"
         },
@@ -2894,6 +3044,10 @@
         {
           "decl": "bool player_try_to_spawn_in_vehicle(int player_handle@<eax>);",
           "addr": "0xbc0d0"
+        },
+        {
+          "decl": "void player_set_respawn_timer(int player_handle, int16_t respawn_type, int16_t respawn_ticks);",
+          "addr": "0xbc410"
         },
         {
           "decl": "void player_set_action_result_for_equipment(int player_handle, int equipment_handle);",
@@ -3293,10 +3447,60 @@
     {
       "name": "scenario.obj",
       "source": "scenario/scenario.c",
+      "data": [
+        {
+          "decl": "int global_scenario_index;",
+          "addr": "0x326a08"
+        }
+      ],
       "functions": [
+        {
+          "decl": "void scenario_initialize(void);",
+          "addr": "0x18e280"
+        },
+        {
+          "decl": "void scenario_initialize_for_new_map(void);",
+          "addr": "0x18e2a0"
+        },
+        {
+          "decl": "void scenario_dispose_from_old_map(void);",
+          "addr": "0x18e2f0"
+        },
+        {
+          "decl": "void scenario_frame_update(float);",
+          "addr": "0x18e300"
+        },
+        {
+          "decl": "void scenario_unload(void);",
+          "addr": "0x18e310"
+        },
+        {
+          "decl": "scenario_t *global_scenario_get(void);",
+          "addr": "0x18e380"
+        },
         {
           "decl": "void *scenario_get(void);",
           "addr": "0x18e3c0"
+        },
+        {
+          "decl": "void *game_globals_get(void);",
+          "addr": "0x18e450"
+        },
+        {
+          "decl": "void scenario_location_reset(int *location);",
+          "addr": "0x18e4d0"
+        },
+        {
+          "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
+          "addr": "0x18eb40"
+        },
+        {
+          "decl": "bool scenario_load(const char *map_name);",
+          "addr": "0x18f090"
+        },
+        {
+          "decl": "void scenario_location_from_point(void *location_out, void *point);",
+          "addr": "0x18f180"
         }
       ]
     },
@@ -3743,6 +3947,10 @@
       "source": "units/units.c",
       "functions": [
         {
+          "decl": "void unit_set_actively_controlled_flag(int unit_handle);",
+          "addr": "0x1a7f80"
+        },
+        {
           "decl": "void unit_delete(int datum_handle);",
           "addr": "0x1a7fc0"
         },
@@ -3825,6 +4033,10 @@
         {
           "decl": "bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index);",
           "addr": "0x1b2b80"
+        },
+        {
+          "decl": "bool unit_has_weapon_with_flag(int unit_handle, int flag_index);",
+          "addr": "0x1ac3f0"
         }
       ]
     },
