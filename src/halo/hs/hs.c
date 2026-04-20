@@ -18,6 +18,62 @@ void hs_update(void)
     profile_exit_private((void *)0x2f1c10);
 }
 
+/* Dispose runtime script node data that isn't marked as persistent (bit 3
+ * of the flags byte at datum offset +6).  Iterates over all live datums in
+ * the hs_syntax data table at 0x5aa6c8 and deletes any whose flag byte
+ * does NOT have bit 0x8 set. */
+void hs_scripts_dispose(void)
+{
+  int index;
+
+  for (index = data_next_index(*(data_t *volatile *)0x5aa6c8, NONE);
+       index != NONE;
+       index = data_next_index(*(data_t *volatile *)0x5aa6c8, index)) {
+    void *datum = datum_get(*(data_t *volatile *)0x5aa6c8, index);
+    if ((*(uint8_t *)((char *)datum + 6) & 0x8) == 0)
+      datum_delete(*(data_t *volatile *)0x5aa6c8, index);
+  }
+}
+
+/* Find a HaloScript global variable by name.  Searches external globals
+ * first (table at 0x2f3708, count at 0x27d504), returning the index with
+ * bit 15 set (| 0x8000).  Then searches scenario globals (tag_block at
+ * scenario+0x4a8, element size 0x5c), returning the index with bit 15
+ * clear (& 0x7FFF).  Returns NONE (-1) if not found. */
+int16_t hs_find_global_by_name(const char *name)
+{
+  int16_t external_count = *(int16_t *)0x27d504;
+  int16_t i;
+  char *scenario_tag;
+
+  /* Search external globals */
+  for (i = 0; i < external_count; i++) {
+    if (i < 0 || i >= external_count) {
+      display_assert("global_index>=0 && global_index<hs_external_global_count",
+                     "c:\\halo\\SOURCE\\hs\\hs.c", 0x240, 1);
+      system_exit(-1);
+    }
+    if (crt_stricmp(name,
+                    *(const char **)(((void **)0x2f3708)[i])) == 0) {
+      return (int16_t)((uint16_t)i | 0x8000);
+    }
+  }
+
+  /* Search scenario globals */
+  if (*(int *)0x326a08 != NONE) {
+    scenario_tag = (char *)global_scenario_get();
+    for (i = 0; (int)i < *(int *)(scenario_tag + 0x4a8); i++) {
+      const char *global_name = (const char *)tag_block_get_element(
+        (void *)(scenario_tag + 0x4a8), (int)i, 0x5c);
+      if (crt_stricmp(name, global_name) == 0) {
+        return (int16_t)((uint16_t)i & 0x7FFF);
+      }
+    }
+  }
+
+  return NONE;
+}
+
 /* Initialize hs for a new map: set up the script environment from the
  * scenario's script data if present. */
 void hs_initialize_for_new_map(void)

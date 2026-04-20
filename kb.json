@@ -4091,6 +4091,15 @@
           "addr": "0x1db0c8"
         }
       ]
+    },
+    {
+      "name": "LIBCMT:stricmp.obj",
+      "functions": [
+        {
+          "decl": "int crt_stricmp(const char *a, const char *b);",
+          "addr": "0x1dd801"
+        }
+      ]
     }
   ]
 }
