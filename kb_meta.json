@@ -1064,6 +1064,13 @@
         "summary": "Post-tick player update: ticks double-speed countdown, handles telefrag effect/kill, scans BSP-switch trigger volumes, advances BSP nibble counter, SP all-dead restart. Re-ported after pre-audit verified all 9 direct-address cast calls (0xa2ed0, 0xa2930, 0x1a7f80, 0xbc4b0 EBX-reg, 0x13d7f0, 0x18ef00, 0x100500, 0xbdb00 EBX-reg, 0x100380). Split-screen telefrag verified in xemu."
       }
     },
+    "0xc3b60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The magic value 0x5ccac at scenario+0x474 indicates the syntax data table was already set up for the current scenario."
+      ]
+    },
     "0xc3c30": {
       "kind": "function",
       "status": "ported"
@@ -1088,6 +1095,30 @@
         "Scenario globals are at scenario_tag+0x4a8 as a tag_block with element size 0x5c, where offset 0 of each element is the name string."
       ]
     },
+    "0xc47c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_0xc4660 is hs_load_source_file and takes a file_reference via @EBX register arg."
+      ],
+      "uncertain": [
+        "The csstrcmp at 0x8dcb0 name is inferred from its strcmp-like byte comparison behavior; could be csstrncmp or similar."
+      ]
+    },
+    "0xc4970": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_0xc4900 is hs_report_compile_error taking @ESI=error_text, @EBX=element_ptr, @EDI=source_start, plus 1 stack arg for error_info."
+      ]
+    },
+    "0xc4c10": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The error argument order in the validation failure path may swap error_info and error_text relative to hs_console_evaluate; verified from disassembly push order."
+      ]
+    },
     "0xc4d90": {
       "kind": "function",
       "status": "ported"
@@ -1099,6 +1130,17 @@
     "0xc5050": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xc50c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc5680": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The globals at 0x46b6e0-0x46b805 form the hs_compile_globals structure used by the script compiler."
+      ]
     },
     "0xca800": {
       "kind": "function",

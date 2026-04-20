@@ -797,6 +797,10 @@
           "ported": true
         },
         {
+          "decl": "int csstrcmp(const char *s1, const char *s2);",
+          "addr": "0x8dcb0"
+        },
+        {
           "decl": "void *csmemset(void *buffer, int c, size_t size);",
           "addr": "0x8db80",
           "ported": true
@@ -1173,8 +1177,20 @@
       "source": "tag_files/files.c",
       "functions": [
         {
+          "decl": "int16_t find_files(int flags, file_ref_t *dir, int16_t max_count, void *results);",
+          "addr": "0x1994a0"
+        },
+        {
+          "decl": "void file_reference_get_name(void *file_ref, int flags, char *name_out);",
+          "addr": "0x199810"
+        },
+        {
           "decl": "file_ref_t *file_reference_create_from_path(file_ref_t *info, const char *directory, bool a4);",
           "addr": "0x1999f0"
+        },
+        {
+          "decl": "bool file_exists(file_ref_t *info);",
+          "addr": "0x19a640"
         }
       ]
     },
@@ -1651,11 +1667,11 @@
           "addr": "0xc47c0"
         },
         {
-          "decl": "void hs_mark_recompile(void);",
+          "decl": "bool hs_mark_recompile(void);",
           "addr": "0xc4970"
         },
         {
-          "decl": "void hs_load_scenario_scripts(int a1);",
+          "decl": "bool hs_load_scenario_scripts(int preserve_syntax);",
           "addr": "0xc4c10"
         },
         {
@@ -1677,8 +1693,16 @@
           "addr": "0xcdb30"
         },
         {
+          "decl": "bool hs_validate_syntax(char **error_info, char **error_text);",
+          "addr": "0xc7840"
+        },
+        {
           "decl": "int hs_compile(int source_length, const char *source, int *error_info, char **error_text);",
           "addr": "0xc9050"
+        },
+        {
+          "decl": "bool hs_compile_source(int source_file_size, void *source_ptr, char **error_info, char **error_text);",
+          "addr": "0xc92b0"
         },
         {
           "decl": "void hs_compile_cleanup(void);",
@@ -3194,6 +3218,18 @@
         {
           "decl": "const char *tag_name_strip_path(const char *tag_name);",
           "addr": "0x19b0d0"
+        },
+        {
+          "decl": "bool tag_block_resize(void *block, int count);",
+          "addr": "0x1b9a90"
+        },
+        {
+          "decl": "bool tag_data_resize(void *tag_data, int size);",
+          "addr": "0x1b9ab0"
+        },
+        {
+          "decl": "void *tag_data_get_pointer(void *tag_data, int offset, int size);",
+          "addr": "0x19b1a0"
         },
         {
           "decl": "void *tag_block_get_element(void *block, int index, int element_size);",
