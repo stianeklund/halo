@@ -49,6 +49,7 @@
 	halo/interface/progress_bar.c
 	halo/interface/terminal.c
 	halo/interface/ui_widget.c
+	halo/interface/ui_widget_event_handler_functions.c
 	halo/interface/ui_widget_game_data_input_functions.c
 	halo/items/items.c
 	halo/items/projectiles.c
