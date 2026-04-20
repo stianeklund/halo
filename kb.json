@@ -1178,11 +1178,23 @@
       "source": "tag_files/files.c",
       "functions": [
         {
-          "decl": "int16_t find_files(int flags, file_ref_t *dir, int16_t max_count, void *results);",
+          "decl": "file_ref_t *file_reference_verify(file_ref_t *info);",
+          "addr": "0x199620"
+        },
+        {
+          "decl": "file_ref_t *file_reference_add_directory(file_ref_t *info, const char *directory);",
+          "addr": "0x199700"
+        },
+        {
+          "decl": "file_ref_t *file_reference_set_name(file_ref_t *info, const char *name);",
+          "addr": "0x199780"
+        },
+        {
+          "decl": "int16_t find_files(int flags, file_ref_t *dir, int16_t max_count, file_ref_t *results);",
           "addr": "0x1994a0"
         },
         {
-          "decl": "void file_reference_get_name(void *file_ref, int flags, char *name_out);",
+          "decl": "char *file_reference_get_name(file_ref_t *info, int flags, char *name_out);",
           "addr": "0x199810"
         },
         {
@@ -1192,6 +1204,36 @@
         {
           "decl": "bool file_exists(file_ref_t *info);",
           "addr": "0x19a640"
+        }
+      ]
+    },
+    {
+      "name": "files_windows.obj",
+      "source": null,
+      "functions": [
+        {
+          "decl": "void find_files_begin(int flags, file_ref_t *dir);",
+          "addr": "0x19a040"
+        },
+        {
+          "decl": "void path_add_directory(char *path, const char *directory);",
+          "addr": "0x19a110"
+        },
+        {
+          "decl": "void path_add_extension(char *path, const char *extension);",
+          "addr": "0x19a1a0"
+        },
+        {
+          "decl": "void path_split(const char *path, char **directory, char **parent_directory, char **filename, char **extension, int flags);",
+          "addr": "0x19a290"
+        },
+        {
+          "decl": "void path_from_file_reference(int16_t location, const char *path, char *out);",
+          "addr": "0x19a370"
+        },
+        {
+          "decl": "bool find_files_next(file_ref_t *result, int param2);",
+          "addr": "0x19aed0"
         }
       ]
     },
@@ -3909,6 +3951,14 @@
         {
           "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
           "addr": "0x1d0da1"
+        },
+        {
+          "decl": "int __stdcall file_get_full_attributes(const char *path);",
+          "addr": "0x1d0e96"
+        },
+        {
+          "decl": "int xapi_GetLastError(void);",
+          "addr": "0x1d2240"
         },
         {
           "decl": "void *XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
