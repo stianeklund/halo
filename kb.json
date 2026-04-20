@@ -3447,10 +3447,60 @@
     {
       "name": "scenario.obj",
       "source": "scenario/scenario.c",
+      "data": [
+        {
+          "decl": "int global_scenario_index;",
+          "addr": "0x326a08"
+        }
+      ],
       "functions": [
+        {
+          "decl": "void scenario_initialize(void);",
+          "addr": "0x18e280"
+        },
+        {
+          "decl": "void scenario_initialize_for_new_map(void);",
+          "addr": "0x18e2a0"
+        },
+        {
+          "decl": "void scenario_dispose_from_old_map(void);",
+          "addr": "0x18e2f0"
+        },
+        {
+          "decl": "void scenario_frame_update(float);",
+          "addr": "0x18e300"
+        },
+        {
+          "decl": "void scenario_unload(void);",
+          "addr": "0x18e310"
+        },
+        {
+          "decl": "scenario_t *global_scenario_get(void);",
+          "addr": "0x18e380"
+        },
         {
           "decl": "void *scenario_get(void);",
           "addr": "0x18e3c0"
+        },
+        {
+          "decl": "void *game_globals_get(void);",
+          "addr": "0x18e450"
+        },
+        {
+          "decl": "void scenario_location_reset(int *location);",
+          "addr": "0x18e4d0"
+        },
+        {
+          "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
+          "addr": "0x18eb40"
+        },
+        {
+          "decl": "bool scenario_load(const char *map_name);",
+          "addr": "0x18f090"
+        },
+        {
+          "decl": "void scenario_location_from_point(void *location_out, void *point);",
+          "addr": "0x18f180"
         }
       ]
     },
@@ -4499,6 +4549,15 @@
       ]
     },
     {
+      "name": "LIBCMT:fflush.obj",
+      "functions": [
+        {
+          "decl": "int crt_fflush(void *stream);",
+          "addr": "0x1d9bd2"
+        }
+      ]
+    },
+    {
       "name": "LIBCMT:strncat.obj",
       "functions": [
         {
@@ -4557,15 +4616,6 @@
         {
           "decl": "void *lruv_cache_new(const char *name, int capacity, int max_locked, int entry_size, void (*delete_cb)(int), int (*query_cb)(int));",
           "addr": "0x1bfe90"
-        }
-      ]
-    },
-    {
-      "name": "LIBCMT:fflush.obj",
-      "functions": [
-        {
-          "decl": "int crt_fflush(void *stream);",
-          "addr": "0x1d9bd2"
         }
       ]
     }
