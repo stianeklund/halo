@@ -89,7 +89,7 @@ typedef struct {
   void     *log_file;            ///< offset=0x00
   char     *base_address;        ///< offset=0x04
   int       cpu_allocation_size; ///< offset=0x08
-  uint32_t  unk_0c;              ///< offset=0x0c
+  uint32_t  gpu_allocation_size; ///< offset=0x0c  gpu_alloc grows into GPU buf
   uint32_t  checksum;            ///< offset=0x10
   bool      locked;              ///< offset=0x14
   bool      saved;               ///< offset=0x15
@@ -672,6 +672,25 @@ typedef struct {
   uint32_t datum_handle; ///< offset=0x08
   uint32_t cookie;       ///< offset=0x0c
 } data_iter_t;
+
+/// Object iterator state block, 0x10 bytes.
+/// Initialised by object_iterator_new (0x13d6f0),
+/// advanced by object_iterator_next (0x13d730).
+/// size=0x10
+typedef struct {
+  int32_t  type_mask;     ///< offset=0x00  bitmask of accepted object types (1<<type)
+  uint8_t  flags;         ///< offset=0x04  required header flags byte (AND/CMP filter)
+  char     pad_5[1];      ///< offset=0x05
+  int16_t  current_index; ///< offset=0x06  next slot index to probe
+  int32_t  last_handle;   ///< offset=0x08  handle returned by previous call (or NONE)
+  uint32_t cookie;        ///< offset=0x0c  0x86868686 when initialized
+} object_iter_t;
+cs(object_iter_t, 0x10);
+co(object_iter_t, type_mask, 0x00);
+co(object_iter_t, flags, 0x04);
+co(object_iter_t, current_index, 0x06);
+co(object_iter_t, last_handle, 0x08);
+co(object_iter_t, cookie, 0x0c);
 
 /// size=8
 typedef struct
