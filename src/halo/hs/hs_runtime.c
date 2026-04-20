@@ -1,3 +1,303 @@
+/* Compile a HaloScript expression from source text. Allocates syntax nodes,
+ * copies source into the compiled source buffer, parses one expression,
+ * and wraps it in a begin/void node pair for execution. Returns the root
+ * syntax datum index on success, or -1 on failure.
+ *
+ * If no scenario is loaded, allocates a temporary buffer for the source
+ * (freed later by hs_compile_cleanup). Otherwise uses the scenario's
+ * string constants area offset by 0x400 bytes.
+ *
+ * Globals:
+ *   0x326a08 = global_scenario_index
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ *   0x46b6e4 = hs_compile_globals.source_size
+ *   0x46b6e8 = hs_compile_globals.compiled_source
+ *   0x46b6fc = hs_compile_globals.error_message
+ *   0x46b700 = hs_compile_globals.error_offset
+ *   0x46b804 = hs_compile_globals.source_allocated
+ */
+int hs_compile(int source_length, const char *source, int *error_info,
+               char **error_text)
+{
+  int base_offset;
+  char *src_cursor;
+
+  if (source_length >= 0x400)
+    return -1;
+
+  if (*(int *)0x326a08 == -1) {
+    /* No scenario loaded — allocate temporary buffer. */
+    base_offset = 0;
+    *(int *)0x46b6e8 = (int)debug_malloc(
+      source_length + 1, 0, "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xaf);
+    *(uint8_t *)0x46b804 = 1;
+    if (*(int *)0x46b6e8 == 0) {
+      display_assert("hs_compile_globals.compiled_source",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xb2, true);
+      system_exit(-1);
+    }
+  } else {
+    /* Scenario loaded — use string constants area. */
+    char *scenario = (char *)global_scenario_get();
+    if (*(int *)(scenario + 0x488) < 0x400) {
+      display_assert("global_scenario_get()->hs_string_constants.size>="
+                     "HS_MAXIMUM_DYNAMIC_SOURCE_DATA_BYTES",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xa6, true);
+      system_exit(-1);
+    }
+    scenario = (char *)global_scenario_get();
+    base_offset = *(int *)(scenario + 0x488) - 0x400;
+    scenario = (char *)global_scenario_get();
+    *(int *)0x46b6e8 = *(int *)(scenario + 0x494);
+  }
+
+  /* Copy source into compiled source buffer at the base offset. */
+  csmemcpy((void *)(*(int *)0x46b6e8 + base_offset), (void *)source,
+           source_length);
+  *(int *)0x46b6e4 = base_offset + source_length;
+  *(uint8_t *)(*(int *)0x46b6e4 + *(int *)0x46b6e8) = 0;
+
+  /* Initialize parse state. */
+  src_cursor = (char *)(*(int *)0x46b6e8 + base_offset);
+  *(int *)0x46b6fc = 0;
+  *(int *)error_info = 0;
+  *(int *)error_text = 0;
+  *(int *)0x46b700 = -1;
+
+  /* skip_whitespace (0xc72b0) takes @ESI=&cursor. */
+  {
+    char **_esi = &src_cursor;
+    asm volatile("call *%[fn]"
+                 : "+S"(_esi)
+                 : [fn] "r"((void *)0xc72b0)
+                 : "eax", "ebx", "ecx", "edx", "edi", "memory", "cc");
+  }
+
+  if (*src_cursor == '\0')
+    return -1;
+
+  /* hs_parse_expression (0xc7be0) takes @EAX=&cursor. Returns syntax
+   * datum index in EAX. */
+  int expr_datum;
+  {
+    char **_eax_in = &src_cursor;
+    asm volatile("call *%[fn]"
+                 : "+a"(_eax_in)
+                 : [fn] "r"((void *)0xc7be0)
+                 : "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
+    expr_datum = (int)_eax_in;
+  }
+
+  if (*(int *)0x46b6fc != 0)
+    goto compile_error;
+
+  /* Allocate two new syntax nodes to wrap the expression. */
+  {
+    int node1 = data_new_at_index(*(data_t **)0x5aa6c8);
+    int node2 = data_new_at_index(*(data_t **)0x5aa6c8);
+
+    if (node1 != -1 && node2 != -1) {
+      char *n1 = (char *)datum_get(*(data_t **)0x5aa6c8, node1);
+      char *n2 = (char *)datum_get(*(data_t **)0x5aa6c8, node2);
+
+      *(int *)(n1 + 0x10) = node2;
+      *(int *)(n1 + 0x8) = -1;
+
+      /* Copy source offset from the parsed expression node. */
+      {
+        char *expr_node = (char *)datum_get(*(data_t **)0x5aa6c8, expr_datum);
+        *(int *)(n1 + 0xc) = *(int *)(expr_node + 0xc);
+      }
+
+      *(int16_t *)(n1 + 0x6) = 0;
+      *(int *)(n2 + 0x8) = expr_datum;
+      *(int *)(n2 + 0xc) = -1;
+      *(int16_t *)(n2 + 0x2) = 0x16; /* hs_type_void */
+      *(int16_t *)(n2 + 0x6) = 1;
+      *(int16_t *)(n2 + 0x4) = 2; /* hs_node_type_function_call */
+
+      /* hs_type_check: 2 stack args (datum_index, check_type). */
+      {
+        bool ok = hs_type_check(node1, 4);
+        if (ok)
+          return node1;
+      }
+    }
+  }
+
+compile_error:
+  *(int *)error_info = *(int *)0x46b6fc;
+  if (*(int *)0x46b700 != -1) {
+    *(int *)0x46b700 = *(int *)0x46b700 - base_offset;
+    if (*(int *)0x46b700 < 0 || *(int *)0x46b700 >= source_length) {
+      display_assert("hs_compile_globals.error_offset>=0 && "
+                     "hs_compile_globals.error_offset<source_size",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xeb, true);
+      system_exit(-1);
+    }
+    *error_text = (char *)(*(int *)0x46b700 + (int)source);
+  }
+
+  return -1;
+}
+
+/* Compile a source file into the syntax tree. Parses multiple top-level
+ * expressions from the source, checking each with hs_type_check. On
+ * failure, reports error info and adjusts error offset relative to the
+ * source file.
+ *
+ * 0xc5730 = hs_compile_source_setup (@EDI=source_file_size, stack: source_ptr)
+ * 0xc72b0 = skip_whitespace (@ESI=&cursor)
+ * 0xc7be0 = hs_parse_expression (@EAX=&cursor, returns datum index)
+ */
+bool hs_compile_source(int source_file_size, void *source_ptr,
+                       char **error_info, char **error_text)
+{
+  char *cursor;
+  bool ok;
+  int expr_datum;
+
+  /* hs_compile_source_setup (0xc5730): @EDI=source_file_size, 1 stack arg.
+   * Returns cursor pointer in EAX. */
+  {
+    int _edi = source_file_size;
+    int _result;
+    asm volatile("pushl %[src]\n\t"
+                 "call *%[fn]\n\t"
+                 "addl $4, %%esp"
+                 : "+D"(_edi), "=a"(_result)
+                 : [fn] "r"((void *)0xc5730), [src] "r"(source_ptr)
+                 : "ecx", "edx", "ebx", "esi", "memory", "cc");
+    cursor = (char *)_result;
+  }
+
+  if (cursor == NULL) {
+    *(int *)error_info = (int)"couldn't allocate memory for compiled source.";
+    return false;
+  }
+
+  *(int *)0x46b6fc = 0;
+  *(int *)error_info = 0;
+  *(int *)error_text = 0;
+  ok = true;
+  *(int *)0x46b700 = -1;
+
+  /* skip_whitespace (0xc72b0) takes @ESI=&cursor. */
+  {
+    char **_esi = &cursor;
+    asm volatile("call *%[fn]"
+                 : "+S"(_esi)
+                 : [fn] "r"((void *)0xc72b0)
+                 : "eax", "ebx", "ecx", "edx", "edi", "memory", "cc");
+  }
+
+  while (*cursor != '\0') {
+    /* hs_parse_expression (0xc7be0) takes @EAX=&cursor. */
+    {
+      char **_eax_in = &cursor;
+      asm volatile("call *%[fn]"
+                   : "+a"(_eax_in)
+                   : [fn] "r"((void *)0xc7be0)
+                   : "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
+      expr_datum = (int)_eax_in;
+    }
+
+    /* skip_whitespace again. */
+    {
+      char **_esi = &cursor;
+      asm volatile("call *%[fn]"
+                   : "+S"(_esi)
+                   : [fn] "r"((void *)0xc72b0)
+                   : "eax", "ebx", "ecx", "edx", "edi", "memory", "cc");
+    }
+
+    if (*(int *)0x46b6fc != 0)
+      goto parse_error;
+
+    ok = hs_type_check(expr_datum, 1);
+    if (!ok)
+      goto parse_error;
+  }
+
+  if (ok)
+    return true;
+
+parse_error:
+  if (*(int *)0x46b6fc == 0) {
+    display_assert("tell matt that somebody failed to correctly report a "
+                   "parsing error.",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x131, true);
+    system_exit(-1);
+  }
+
+  *error_info = (char *)*(int *)0x46b6fc;
+  *(uint8_t *)0x46b6f8 = 1;
+
+  if (*(int *)0x46b700 != -1) {
+    *(int *)0x46b700 = *(int *)0x46b700 + (source_file_size - *(int *)0x46b6e4);
+    if (*(int *)0x46b700 < 0 || *(int *)0x46b700 >= source_file_size) {
+      display_assert("hs_compile_globals.error_offset>=0 && "
+                     "hs_compile_globals.error_offset<source_file_size",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x13b, true);
+      system_exit(-1);
+    }
+    *error_text = (char *)(*(int *)0x46b700 + (int)source_ptr);
+  }
+
+  return false;
+}
+
+/* Clean up compile state after hs_compile or hs_compile_source.
+ * If scripts were successfully compiled (hs_compile_globals.dirty),
+ * either recompiles scripts from scratch or resizes the scenario's
+ * tag blocks. Frees any temporarily allocated source buffer.
+ *
+ * Globals:
+ *   0x46b6e0 = hs_compile_globals.initialized
+ *   0x46b6e8 = hs_compile_globals.compiled_source (allocation ptr)
+ *   0x46b6f8 = hs_compile_globals.error_occurred
+ *   0x46b804 = hs_compile_globals.source_allocated
+ *   0x46b805 = hs_compile_globals.dirty
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ */
+void hs_compile_cleanup(void)
+{
+  if (*(uint8_t *)0x46b6e0 == 0) {
+    display_assert("hs_compile_globals.initialized",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x75, true);
+    system_exit(-1);
+  }
+
+  if (*(uint8_t *)0x46b805 != 0) {
+    if (*(uint8_t *)0x46b6f8 == 0) {
+      /* No error — recompile scripts from scratch. */
+      hs_compile_recompile_scripts();
+    } else {
+      /* Error occurred — resize tag blocks to zero and re-validate
+       * syntax data. */
+      char *scenario = (char *)global_scenario_get();
+      tag_block_resize(scenario + 0x49c, 0);
+      tag_block_resize(scenario + 0x4a8, 0);
+      tag_data_resize(scenario + 0x488, 0);
+      data_make_valid(*(data_t **)0x5aa6c8);
+    }
+
+    /* Free the compiled source allocation if it exists. */
+    if (*(int *)0x46b6e8 != 0) {
+      debug_free(*(void **)0x46b6e8, "c:\\halo\\SOURCE\\hs\\hs_compile.c",
+                 0x87);
+    }
+  }
+
+  if (*(uint8_t *)0x46b804 != 0) {
+    debug_free(*(void **)0x46b6e8, "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x8c);
+    *(int *)0x46b6e8 = 0;
+    *(uint8_t *)0x46b804 = 0;
+  }
+
+  *(uint8_t *)0x46b6e0 = 0;
+}
+
 /* HaloScript runtime — thread management and script execution. */
 
 /* Dispose runtime state from old map: invalidate thread data and
@@ -277,4 +577,106 @@ void hs_runtime_initialize_for_new_map(void)
 
   /* Phase 5: clear the return values buffer. */
   csmemset((void *)0x5aa6a0, 0, 0x20);
+}
+
+/* Execute a HaloScript expression at runtime. Allocates a new thread,
+ * initializes it as a runtime thread (type 2), sets up the default value
+ * for the expression type, and either executes it immediately or returns
+ * the result value. Returns -1 if the runtime is not active, the
+ * thread_index is invalid, or no threads are available.
+ *
+ * 0xcc1d0 = hs_default_value (@EAX=thread_handle, stack: expression_index,
+ *           dest_ptr)
+ * 0xcd840 = hs_execute_thread (@EAX=thread_handle)
+ *
+ * Globals:
+ *   0x46b810 = hs_runtime_globals.executing (uint8_t)
+ *   0x5aa6c4 = hs_thread_data (data_t*)
+ */
+int hs_runtime_execute(int thread_index)
+{
+  int thread_handle;
+  char *thread_ptr;
+
+  if (*(uint8_t *)0x46b810 == 0 || thread_index == -1)
+    return -1;
+
+  thread_handle = data_new_at_index(*(data_t *volatile *)0x5aa6c4);
+
+  if (thread_handle == -1) {
+    error(2, "there are not enough threads to execute that command.");
+    return -1;
+  }
+
+  thread_ptr = (char *)datum_get(*(data_t *volatile *)0x5aa6c4, thread_handle);
+
+  /* Initialize thread structure. */
+  *(int *)(thread_ptr + 0x10) = (int)(thread_ptr + 0x18);
+  *(int *)(thread_ptr + 0x18) = 0;
+  {
+    char *sf = *(char **)(thread_ptr + 0x10);
+    *(int16_t *)(sf + 0xc) = 0;
+    *(int *)(sf + 0x4) = -1;
+  }
+  *(uint8_t *)(thread_ptr + 0x2) = 2; /* runtime thread */
+  *(int *)(thread_ptr + 0x4) = -1;
+  *(uint8_t *)(thread_ptr + 0x3) = 0;
+  *(int *)(thread_ptr + 0x8) = 0;
+
+  /* Re-derive thread pointer (original does a second datum_get). */
+  thread_ptr = (char *)datum_get(*(data_t *volatile *)0x5aa6c4, thread_handle);
+
+  /* hs_default_value (0xcc1d0): @EAX=thread_handle, 2 stack args. */
+  {
+    int _eax = thread_handle;
+    int _arg1 = thread_index;
+    int _arg2 = (int)(thread_ptr + 0x14);
+    asm volatile("pushl %[a2]\n\t"
+                 "pushl %[a1]\n\t"
+                 "call *%[fn]\n\t"
+                 "addl $8, %%esp"
+                 : "+a"(_eax)
+                 : [fn] "r"((void *)0xcc1d0), [a1] "r"(_arg1), [a2] "r"(_arg2)
+                 : "ecx", "edx", "memory", "cc");
+  }
+
+  if (*(uint8_t *)(thread_ptr + 0x3) & 1) {
+    /* Thread needs execution — run it. */
+    /* hs_execute_thread (0xcd840): @EAX=thread_handle. */
+    {
+      int _eax = thread_handle;
+      asm volatile("call *%[fn]"
+                   : "+a"(_eax)
+                   : [fn] "r"((void *)0xcd840)
+                   : "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
+    }
+    return -1;
+  }
+
+  /* Return the result value stored at thread+0x14. */
+  return *(int *)(thread_ptr + 0x14);
+}
+
+/* Initialize HaloScript runtime data structures. Calls data_delete_all
+ * on both hs object list data pools.
+ *
+ * 0x5aa698 = hs_object_list_header_data (data_t*)
+ * 0x5aa694 = hs_object_list_reference_data (data_t*)
+ */
+void hs_runtime_initialize(void)
+{
+  data_delete_all(*(data_t **)0x5aa698);
+  data_delete_all(*(data_t **)0x5aa694);
+}
+
+/* Dispose HaloScript runtime data structures. Calls data_make_invalid
+ * on both hs object list data pools.
+ *
+ * 0x5aa698 = hs_object_list_header_data (data_t*)
+ * 0x5aa694 = hs_object_list_reference_data (data_t*)
+ */
+void hs_runtime_dispose(void)
+{
+  data_make_invalid(*(data_t **)0x5aa698);
+  data_make_invalid(*(data_t **)0x5aa694);
 }

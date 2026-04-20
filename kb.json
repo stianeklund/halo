@@ -1682,6 +1682,19 @@
       ]
     },
     {
+      "name": "hs_compile.obj",
+      "functions": [
+        {
+          "decl": "bool hs_type_check(int datum_index, int check_type);",
+          "addr": "0xc7d80"
+        },
+        {
+          "decl": "void hs_compile_recompile_scripts(void);",
+          "addr": "0xc93f0"
+        }
+      ]
+    },
+    {
       "name": "hs_runtime.obj",
       "source": "hs/hs_runtime.c",
       "functions": [
@@ -1710,7 +1723,7 @@
           "addr": "0xc94f0"
         },
         {
-          "decl": "void hs_runtime_execute(int thread_index);",
+          "decl": "int hs_runtime_execute(int thread_index);",
           "addr": "0xcdeb0"
         },
         {
