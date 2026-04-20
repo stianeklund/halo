@@ -1885,11 +1885,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100620": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x100640": {
       "kind": "function",
       "status": "ported"
     },
     "0x1006b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1006c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2207,6 +2215,10 @@
       "inferred": [
         "Internal callees 0x11ef50 (valid_block: EAX=block_hdr,ECX=pool) and 0x11efd0 (unlink_block: ESI=block_hdr,EDI=pool) are called via inline asm due to non-standard register conventions."
       ]
+    },
+    "0x11fa40": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x11fbe0": {
       "kind": "function",
@@ -3002,6 +3014,10 @@
       "name": "vehicle_moving_near_any_player",
       "name_confidence": "high"
     },
+    "0x1b9930": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b9a90": {
       "kind": "function",
       "status": "ported"
@@ -3226,7 +3242,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c80e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c8140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c8510": {
       "kind": "function",
       "status": "ported"
     },
