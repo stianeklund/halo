@@ -128,6 +128,13 @@ void main_queue_map_name(char *map_name)
   }
 }
 
+void FUN_00100620(void)
+{
+  word_46DA40 = -1;
+  byte_46DA28 = 0;
+  main_menu_load_pending = 1;
+}
+
 void main_menu_precache_resources(void)
 {
   scenario_t *scenario = global_scenario_get();
