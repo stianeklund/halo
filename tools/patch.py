@@ -646,6 +646,8 @@ def main():
 
     log.info('Build complete')
     log.info('- Patched XBE: %s', args.output_xbe)
+    from build_hash import print_build_hash
+    print_build_hash(args.output_xbe)
 
 
 if __name__ == '__main__':

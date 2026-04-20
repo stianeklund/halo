@@ -1,14 +1,9 @@
-import subprocess
 from datetime import datetime, timezone
 
+from build_hash import git_rev as _git_rev
+
 def main():
-	git_rev = "UNKNOWN"
-	try:
-		run = subprocess.run(["git", "describe", "--always"], stdout=subprocess.PIPE)
-		if run.stdout.strip() != "":
-			git_rev = run.stdout.strip().decode("utf-8")
-	except:
-		pass
+	git_rev = _git_rev()
 	print(f'''
 #define BUILD_REV "{git_rev}"
 #define BUILD_DATE "{datetime.now(timezone.utc).isoformat()}"

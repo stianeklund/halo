@@ -131,15 +131,20 @@ CI (`.github/workflows/main.yml`) runs Debug + Release on Ubuntu (Docker/Clang),
 ## Tools cheat sheet (`tools/`)
 
 - `knowledge.py` — KB loader and codegen. Reads `kb.json`, emits `decl.h`, `halo.xbe.def`, `thunks.c`. Run by CMake; can be invoked standalone for inspection.
-- `kb_meta.py` — low-risk reverse engineering metadata manager. Validates and updates `kb_meta.json` without affecting code generation or linking.
+- `kb_meta.py` — low-risk reverse engineering metadata manager. Validates and updates `kb_meta.json` without affecting code generation or linking. `validate` subcommand runs as a build check.
 - `frontier.py` — reports coverage and ranks object-first recovery targets from the current source tree and KB metadata.
 - `export_delinked_object.py` — runs Ghidra headless with `DelinkProgram.java` to export a delinked reference object for a symbol or address range.
 - `objdiff_lift.py` — runs `objdiff` against a delinked reference object and a compiled candidate object. Use this as an optional structural validation step outside the normal build.
-- `maintain.py` — automated tree maintenance: relocates misplaced functions per KB, sorts functions by address, re-formats with clang-format. Also does `--update-from <file>` to insert/replace a single function from a snippet. **Run this after touching `kb.json` or adding functions.**
-- `patch.py` — splices the freshly built PE sections into the original XBE and rewrites the entry point.
+- `maintain.py` — automated tree maintenance: relocates misplaced functions per KB, sorts functions by address, re-formats with clang-format. Also does `--update-from <file>` to insert/replace a single function from a snippet. `--check` mode (used by the build) verifies ordering without modifying files. **Run this after touching `kb.json` or adding functions.**
+- `patch.py` — splices the freshly built PE sections into the original XBE and rewrites the entry point. Prints build hash on completion.
 - `gen-struct-checks.py` — emits the runtime `static_assert`s for `types.h` struct sizes/offsets.
 - `gen-build-info.py` — emits `build_info.c` (build date, git rev) on every build.
+- `build_hash.py` — shared helpers for artifact hashing (`sha256_file`, `git_rev`, `print_build_hash`). Used by `patch.py`, `build_iso.py`, and `deploy_xbox.py`.
+- `build_iso.py` — creates `halo-patched.iso` via `extract-xiso`, excluding IDA database files. Handles xemu eject and retries automatically. **Use this instead of calling `extract-xiso` directly.**
+- `build_and_iso.py` — orchestrates build → ISO → xemu load in one command.
+- `check_raw_casts.py` — ratchet check: fails the build if raw function-pointer casts to hex addresses increase. Run `--update` after cleaning up casts to lower the baseline.
 - `check_requirements.py` — sanity-checks that the Python deps are importable (`tools/__init__.py` shims them in).
+- `local_env.py` — shared WSL/Windows path helpers (`to_windows_path`, `is_wsl`, `build_windows_python_command`). Import from here, don't duplicate.
 
 ## Xbox platform headers (`third_party/xbox/`)
 

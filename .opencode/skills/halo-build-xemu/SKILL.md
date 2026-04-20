@@ -11,7 +11,8 @@ patched ISO, or control xemu.
 ## Preferred tools
 
 - Build with `cmake --build build`
-- Create ISO with `tools/extract-xiso.exe -c halo-patched halo-patched.iso`
+- Create ISO with `python3 tools/build_iso.py` (handles xemu eject, retries, and
+  excludes IDA database files automatically)
 - Control xemu with `python3 tools/xemu_qmp.py`
 - Use MCP xemu tools only if `tools/xemu_qmp.py` cannot do the required action
 
@@ -20,14 +21,10 @@ patched ISO, or control xemu.
 1. Run `cmake --build build`.
 2. If the build fails, stop and report the concrete errors.
 3. Create the ISO:
-   `tools/extract-xiso.exe -c halo-patched halo-patched.iso`
-4. If ISO creation fails with `Permission denied`, eject the mounted ISO first:
-   `python3 tools/xemu_qmp.py eject`
-   then retry ISO creation.
-5. Load and reset xemu:
+   `python3 tools/build_iso.py`
+4. Load and reset xemu:
    `python3 tools/xemu_qmp.py --launch-if-missing load-iso halo-patched.iso --reset`
-6. If the build succeeds, run `git rev-parse HEAD` so the report includes the
-   exact commit hash that produced the artifact.
+5. The build hash is printed automatically by `patch.py` and `build_iso.py`.
 
 ## xemu control notes
 
