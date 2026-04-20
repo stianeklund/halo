@@ -1,7 +1,6 @@
 /*
- * tag_block_get_element: returns a pointer to element [index] within a
- * tag_block, performing bounds and validity asserts first.
- * Source: c:\halo\SOURCE\tag_files\tag_groups.c, lines ~0xC0C-0xC12.
+ * tag_groups.c — tag system utility functions.
+ * Source: c:\halo\SOURCE\tag_files\tag_groups.c
  *
  * tag_block_t layout (confirmed from binary accesses at 0x19b210):
  *   +0x00 int32  count
@@ -11,7 +10,34 @@
  * tag_block_definition_t layout (confirmed from binary accesses):
  *   +0x00 char * name          (pointer to name string)
  *   +0x0C int32  element_size
+ *
+ * tag_data_t layout (confirmed from binary accesses at 0x19b1a0):
+ *   +0x00 int32  size
+ *   +0x0C void * address (pointer to raw data buffer)
+ *   Fields at +0x04 and +0x08 are not accessed by these functions.
  */
+
+/* Minimal local struct describing the in-memory tag data header. */
+typedef struct {
+  int size; /* +0x00 */
+  char pad_4[8]; /* +0x04..+0x0B unknown */
+  void *address; /* +0x0C */
+} tag_data_t;
+
+/* Minimal local struct describing the in-memory tag block header. */
+typedef struct {
+  int count; /* +0x00 */
+  void *address; /* +0x04 */
+  void *definition; /* +0x08 */
+} tag_block_t;
+
+/* Minimal local struct describing the block definition. Only the fields
+ * accessed by tag_block_get_element are modelled here. */
+typedef struct {
+  const char *name; /* +0x00 */
+  char pad_4[8]; /* +0x04 unused in this function */
+  int element_size; /* +0x0C */
+} tag_block_definition_t;
 
 /* Strips the directory path from a tag name, returning a pointer to the
  * basename (the portion after the last backslash). If no backslash is found,
@@ -34,20 +60,30 @@ const char *tag_name_strip_path(const char *tag_name)
   return tag_name;
 }
 
-/* Minimal local struct describing the in-memory tag block header. */
-typedef struct {
-  int count; /* +0x00 */
-  void *address; /* +0x04 */
-  void *definition; /* +0x08 */
-} tag_block_t;
+/* Returns a pointer into the raw data buffer of a tag_data at the given
+ * offset. Asserts that size >= 0 and that offset+size fits within the
+ * tag_data's total size. Used to obtain typed pointers into tag data blobs.
+ * Source: c:\halo\SOURCE\tag_files\tag_groups.c, lines ~0xC01-0xC02. */
+void *tag_data_get_pointer(void *tag_data, int offset, int size)
+{
+  tag_data_t *data = (tag_data_t *)tag_data;
 
-/* Minimal local struct describing the block definition. Only the fields
- * accessed by this function are modelled here. */
-typedef struct {
-  const char *name; /* +0x00 */
-  char pad_4[8]; /* +0x04 unused in this function */
-  int element_size; /* +0x0C */
-} tag_block_definition_t;
+  /* assert: size>=0 */
+  if (size < 0) {
+    display_assert("size>=0", "c:\\halo\\SOURCE\\tag_files\\tag_groups.c",
+                   0xc01, true);
+    system_exit(-1);
+  }
+
+  /* assert: offset>=0 && offset+size<=data->size */
+  if (offset < 0 || offset + size > data->size) {
+    display_assert("offset>=0 && offset+size<=data->size",
+                   "c:\\halo\\SOURCE\\tag_files\\tag_groups.c", 0xc02, true);
+    system_exit(-1);
+  }
+
+  return (char *)data->address + offset;
+}
 
 /* Returns a pointer to element [index] within the tag block, or asserts
  * and exits on any invalid input. element_size must match the definition's
@@ -104,4 +140,22 @@ void *tag_block_get_element(void *block, int index, int element_size)
   }
 
   return (char *)b->address + index * element_size;
+}
+
+/* Stub: tag_block_resize is not supported when running from a cache file
+ * (the map is memory-mapped read-only). Logs an error and returns false.
+ * In the tools build this would perform actual reallocation. */
+bool tag_block_resize(void *block, int count)
+{
+  error(2, "tag_block_resize() is not supported with a cache file active");
+  return false;
+}
+
+/* Stub: tag_data_resize is not supported when running from a cache file
+ * (the map is memory-mapped read-only). Logs an error and returns false.
+ * In the tools build this would perform actual reallocation. */
+bool tag_data_resize(void *tag_data, int size)
+{
+  error(2, "tag_data_resize() is not supported with a cache file active");
+  return false;
 }
