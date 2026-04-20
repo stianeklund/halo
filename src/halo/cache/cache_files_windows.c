@@ -164,21 +164,17 @@ void cache_files_precache(void)
   char header[0x14c];
   int scratch;
 
-  if (!((char (*)(void *, void *, int, void *, int))0x1c0910)(
-        header, &scratch, sizeof(header), (void *)0x345000, 0)) {
+  if (!FUN_001c0910(header, &scratch, sizeof(header), (void *)0x345000, 0)) {
     return;
   }
 
-  if (((int (*)(const char *, const char *))0x8dcb0)(header + 0x104,
-                                                     "01.10.12.2276") != 0) {
+  if (csstrcmp(header + 0x104, "01.10.12.2276") != 0) {
     return;
   }
 
   {
-    const char *scenario_name =
-      ((const char *(*)(int))0x1ba1f0)(*(int *)0x326a08);
-    if (((int (*)(const char *, const char *))0x8dcb0)(header + 0x4,
-                                                       scenario_name) != 0) {
+    const char *scenario_name = tag_get_name(*(int *)0x326a08);
+    if (csstrcmp(header + 0x4, scenario_name) != 0) {
       return;
     }
   }
@@ -187,17 +183,17 @@ void cache_files_precache(void)
     return;
   if (*(int16_t *)(header + 0x124) != *(int16_t *)0x31fa94)
     return;
-  if (*(int *)(header + 0x128) != ((int (*)(void))0x1b9920)())
+  if (*(int *)(header + 0x128) != FUN_001b9920())
     return;
-  if (*(int16_t *)(header + 0x126) != ((int16_t(*)(void))0x100080)())
+  if (*(int16_t *)(header + 0x126) != FUN_00100080())
     return;
 
-  (*(void (**)())0x32eaa4)();
-  ((void (*)(void *, void *))0x1c0c20)(*(void **)0x4ea994, (void *)0x345000);
-  ((void (*)(int16_t))0xa7440)(((int16_t(*)(void))0x100080)());
-  ((void (*)(void))0x1bf790)();
-  (*(void (**)())0x32eaa0)();
-  ((void (*)(void))0x101c90)();
-  *(uint8_t *)0x4ea9a5 = ((char (*)(void))0x1c0370)() != 0;
-  ((void (*)(void))0x101ca0)();
+  ((void (*)(void))game_state_callback_32eaa4)();
+  FUN_001c0c20(*(void **)0x4ea994, (void *)0x345000);
+  game_difficulty_level_set(FUN_00100080());
+  FUN_001bf790();
+  ((void (*)(void))game_state_callback_32eaa0)();
+  FUN_00101c90();
+  *(uint8_t *)0x4ea9a5 = FUN_001c0370() != 0;
+  FUN_00101ca0();
 }
