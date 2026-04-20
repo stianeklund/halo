@@ -419,6 +419,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x98e70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Error-once flags at 0x4557de (locked) and 0x4557df (permanent) are function-static-style globals not in kb.json; accessed via hardcoded addresses."
+      ]
+    },
     "0x9c650": {
       "kind": "function",
       "status": "ported"
@@ -722,6 +729,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa8220": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa8340": {
       "kind": "function",
       "status": "ported"
@@ -730,11 +741,74 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa8b30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Tail-call to vtable slot 0x58/4=22; original uses JMP ECX after POP EBP so the vtable entry executes as if it were the original function."
+      ]
+    },
     "0xa8e30": {
       "kind": "function",
       "status": "ported"
     },
     "0xa8e60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa90b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Type mask 4 passed to object_try_and_get_and_verify_type; the function is named unit_can_enter_seat but the object type is a weapon/flag, not a vehicle seat."
+      ],
+      "uncertain": [
+        "The disassembly shows param_2 (seat_object_handle) is passed to FUN_000fb0c0 (weapon_is_flag) which checks for CTF/oddball flags, not vehicle seats. The seat semantics may differ from what the name implies."
+      ]
+    },
+    "0xaba00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaba30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The engine-type table at 0x2eff98 is a vtable-pointer array indexed by variant->engine_type (variant+0x18). Exactly 0x1a dwords (0x68 bytes) are copied via MOVSD.REP matching the game_variant_t size."
+      ]
+    },
+    "0xacdd0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Phase-2 timer comparison against 0x2533c0 (0.0f): the original uses FCOMP + FNSTSW with bits 0x41 \u2014 this is a <= 0 test, reproduced faithfully. Phase-3 polls game_engine_check_input_button with four EDI values in the order seen in disassembly."
+      ],
+      "uncertain": [
+        "The game_engine_check_input_button (@edi) forward thunk only works as a raw function pointer; if the function is ever ported to C the inline asm in game_engine_update_non_deterministic must be revisited."
+      ]
+    },
+    "0xadd50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "String addresses in disassembly (0x26c73c=race, 0x26c730=team_race, etc.) verified against XBE .rdata section via manual VA-to-file-offset mapping; Ghidra flat-read of the file showed wrong values but the XBE section table confirms race/team_race etc."
+      ]
+    },
+    "0xae760": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xae7e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "game_engine_hud_update_player called via inline asm with ECX=player_handle, EAX=-1, EBX=0 matching the exact register state observed at call sites in disassembly."
+      ],
+      "uncertain": [
+        "The MOVSX/AND 0x80000001 sign-extension idiom in the networked team-assignment path exactly matches the original MSVC codegen but is unusual; verify against disassembly if team colors break in networked play."
+      ]
+    },
+    "0xaf370": {
       "kind": "function",
       "status": "ported"
     },
@@ -973,6 +1047,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb9d60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb9dd0": {
       "kind": "function",
       "status": "ported"
@@ -1130,6 +1208,16 @@
     "0xbc0d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xbc410": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Despite the kb.json name 'player_set_respawn_timer', the binary assert string says 'powerup_type>=0 && powerup_type<NUMBER_OF_PLAYER_POWERUPS' \u2014 this function manages powerup countdown timers (active camo, full spectrum vision) stored at player+0x68 as an int16_t array indexed by powerup_type."
+      ],
+      "uncertain": [
+        "The unit fields at +0x1b4 (flag 0x10) and +0x3d2 (powerup type written on timer slot first-fill) are not yet named in types.h; they belong to some unit_data_t subtype retrieved via object_get_and_verify_type with type_mask=3."
+      ]
     },
     "0xbc750": {
       "kind": "function",
@@ -1327,6 +1415,10 @@
       "status": "ported"
     },
     "0xcf560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcf620": {
       "kind": "function",
       "status": "ported"
     },
@@ -2149,6 +2241,17 @@
       "name": "object_get_and_verify_type",
       "name_confidence": "high"
     },
+    "0x13d6f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13d730": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Returns object_data_t* from entry->object (header+0x8); constructs datum handle as (entry->unk_0 salt << 16) | slot_index and stores in iter->last_handle."
+      ]
+    },
     "0x13d920": {
       "kind": "function",
       "status": "ported",
@@ -2712,6 +2815,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a7f80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "OR byte ptr [EAX+0xb6],0x20 confirmed from disassembly \u2014 sets bit 5 of byte at object_data_t+0xb6, one byte before unk_183 (0xb7) used by unit_delete."
+      ]
+    },
     "0x1a7fc0": {
       "kind": "function",
       "status": "ported"
@@ -2788,6 +2898,10 @@
       "uncertain": [
         "The debug globals at 0x5054fc (debug animation logging flag) and 0x5ac9f8 (debug unit filter handle) are accessed as hardcoded addresses; their struct membership and exact semantics are not fully confirmed."
       ]
+    },
+    "0x1ac3f0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1adeb0": {
       "kind": "function",
@@ -2956,6 +3070,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bfd00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "GPU allocations grow downward from base_address: return = 0x345000 + (base_address - new_gpu_allocation_size). The GPU region ceiling is 0x40000 bytes. Log file is opened in 'w' mode on first call to 'd:\\\\gamestate.txt'."
+      ],
+      "uncertain": [
+        "The second argument 'a2' is declared int in kb.json but is used as a %s format specifier in the log fprintf call, suggesting it is actually a const char* group/category name string, analogous to the group_name parameter in game_state_malloc."
+      ]
+    },
     "0x1bfe10": {
       "kind": "function",
       "status": "ported"
@@ -3103,6 +3227,16 @@
     "0x1c8b70": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1c8c80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "sound_class_get (0x1c89d0) takes its class index in SI register and is called via inline asm with +S constraint; return value in EAX is the float* record pointer."
+      ],
+      "uncertain": [
+        "The float store offset is [record+0x0] and int16 store is [record+0x8], confirmed from disassembly; the record is 0xc bytes per class entry."
+      ]
     },
     "0x1cb810": {
       "kind": "function",
