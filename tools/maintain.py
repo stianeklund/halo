@@ -7,6 +7,7 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 from typing import Mapping, Tuple, Optional, Sequence
 
 import clang.cindex as clang
@@ -130,6 +131,37 @@ class SourceManager:
             with open(path, 'w') as f:
                 f.write('\n'.join(lines))
 
+    def check_function_order_in_file(self, path: str) -> list[str]:
+        """
+        Check that functions in `path` are sorted by address.
+        Returns a list of error messages (empty if sorted).
+        """
+        log.debug('Checking function order in %s...', path)
+        name_to_extent_map = self._get_function_extents_in_file(path)
+        names_sorted_by_addr = list(sorted(name_to_extent_map, key=lambda n: self.kb.name_to_addr[n]))
+        names_sorted_by_start = list(sorted(name_to_extent_map, key=lambda n: name_to_extent_map[n][0]))
+        if names_sorted_by_addr == names_sorted_by_start:
+            return []
+        errors = []
+        for i, (by_addr, by_start) in enumerate(zip(names_sorted_by_addr, names_sorted_by_start)):
+            if by_addr != by_start:
+                errors.append(f'{path}: {by_start} is out of address order (expected {by_addr} at position {i})')
+        return errors
+
+    def check_misplaced_functions_in_file(self, path: str) -> list[str]:
+        """
+        Check that all functions in `path` belong there per the KB.
+        Returns a list of error messages (empty if all correct).
+        """
+        path = os.path.normpath(path)
+        name_to_extent_map = self._get_function_extents_in_file(path)
+        errors = []
+        for name in name_to_extent_map:
+            expected_source = self._get_path_for_name(name)
+            if expected_source is not None and expected_source != path:
+                errors.append(f'{path}: {name} should be in {expected_source}')
+        return errors
+
     def sort_functions_by_address_in_file(self, path: str):
         """
         Sorts the functions in `path` by expected address.
@@ -250,6 +282,8 @@ def main():
     ap = argparse.ArgumentParser(description='Performs some automated maintenance on the tree: '
                                              'moving functions into place and re-formatting.')
     ap.add_argument('--update-from', default='', help='File to pull new updates from')
+    ap.add_argument('--check', action='store_true',
+                    help='Check only: report problems and exit non-zero without modifying files')
     ap.add_argument('source', nargs='?', default='', help='File to process, otherwise all files are processed')
     args = ap.parse_args()
     kb = KnowledgeBase.deserialize()
@@ -267,6 +301,30 @@ def main():
             callable(args.source)
         else:
             for_all_source_files(callable)
+
+    if args.check:
+        errors = []
+
+        def collect_misplaced(path):
+            errors.extend(sm.check_misplaced_functions_in_file(path))
+
+        def collect_order(path):
+            errors.extend(sm.check_function_order_in_file(path))
+
+        log.info('Checking for misplaced functions...')
+        for_targeted_source(collect_misplaced)
+
+        log.info('Checking function order...')
+        for_targeted_source(collect_order)
+
+        if errors:
+            for error in errors:
+                print(error, file=sys.stderr)
+            print(f'{len(errors)} issue(s) found. Run maintain.py to fix.', file=sys.stderr)
+            exit(1)
+        else:
+            print('maintain: all functions correctly placed and ordered')
+        return
 
     if args.update_from:
         with open(args.update_from, 'r') as f:
