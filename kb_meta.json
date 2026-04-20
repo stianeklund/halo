@@ -2304,6 +2304,10 @@
         "Assert string references tag_files.c not tag_groups.c, suggesting this function was originally defined in tag_files.c but compiled into tag_groups.obj."
       ]
     },
+    "0x19b1a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19b210": {
       "kind": "function",
       "status": "ported"
@@ -2473,6 +2477,14 @@
       "status": "ported",
       "name": "vehicle_moving_near_any_player",
       "name_confidence": "high"
+    },
+    "0x1b9a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b9ab0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1ba140": {
       "kind": "function",
