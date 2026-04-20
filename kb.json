@@ -1330,6 +1330,10 @@
       "source": "cseries/errors.c",
       "functions": [
         {
+          "decl": "void memory_check(uint32_t *min_max, const char *location);",
+          "addr": "0x8e770"
+        },
+        {
           "decl": "void debug_string_to_display(const char *message, int severity);",
           "addr": "0x8f230"
         },

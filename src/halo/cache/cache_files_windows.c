@@ -162,9 +162,9 @@ void cache_files_precache_map_end(void)
 void cache_files_precache(void)
 {
   char header[0x14c];
-  int scratch;
 
-  if (!FUN_001c0910(header, &scratch, sizeof(header), (void *)0x345000, 0)) {
+  if (!FUN_001c0910(header, (int *)(header + 0x148), sizeof(header),
+                    (void *)0x345000, 0)) {
     return;
   }
 

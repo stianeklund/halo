@@ -1,5 +1,41 @@
 #include <stdarg.h>
 
+/* memory_check (0x8e770) — track min/max physical free memory at a
+ * checkpoint. Warns if the spread exceeds 0x4000 bytes, indicating
+ * non-deterministic allocation between runs. */
+void memory_check(uint32_t *min_max, const char *location)
+{
+  uint32_t status[8];
+  uint32_t avail_phys;
+  uint32_t cur_min, cur_max, diff;
+
+  xbox_query_global_memory_status(status);
+  avail_phys = status[3];
+
+  cur_min = min_max[0];
+  if (avail_phys < cur_min) {
+    cur_min = avail_phys;
+  }
+  min_max[0] = cur_min;
+
+  cur_max = min_max[1];
+  if (avail_phys > cur_max) {
+    cur_max = avail_phys;
+  }
+  min_max[1] = cur_max;
+
+  diff = cur_max - cur_min;
+  if (diff > 0x4000) {
+    error(2,
+          "memory check failed at %s, difference between min and max memory "
+          "free is %d",
+          location, diff);
+    error(2,
+          "  avail_phys=%u min=%u max=%u",
+          avail_phys, cur_min, cur_max);
+  }
+}
+
 /*
  * debug_string_to_display — write a debug message to d:\debug.txt.
  *
