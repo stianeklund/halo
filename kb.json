@@ -3519,6 +3519,14 @@
         {
           "decl": "void transport_dispose(void);",
           "addr": "0x822d0"
+        },
+        {
+          "decl": "int send_endpoint(int *ep, const char *buf, int len);",
+          "addr": "0x82f50"
+        },
+        {
+          "decl": "void destroy_endpoint(int *ep);",
+          "addr": "0x848c0"
         }
       ]
     },
@@ -4170,6 +4178,10 @@
       "name": "draw_string.obj",
       "functions": [
         {
+          "decl": "void terminal_string_process_tabs(const char *text);",
+          "addr": "0x130ab0"
+        },
+        {
           "decl": "void draw_string_set_tab_stops(void *stops, short count);",
           "addr": "0x19b560"
         },
@@ -4178,14 +4190,15 @@
           "addr": "0x19b640"
         },
         {
-          "decl": "void draw_string_set_font(int tag_index, int style, int justify, int flags, const void *color);",
-          "addr": "0x19b8b0"
+          "decl": "void draw_string_set_style_justify_flags(short style, short justify, int flags);",
+          "addr": "0x19b800"
         },
         {
-          "decl": "void terminal_string_process_tabs(const char *text);",
-          "addr": "0x130ab0"
+          "decl": "void draw_string_set_font(int tag_index, int style, int justify, int flags, const void *color);",
+          "addr": "0x19b8b0"
         }
-      ]
+      ],
+      "source": "text/draw_string.c"
     },
     {
       "name": "rasterizer_sprites.obj",
