@@ -69,6 +69,22 @@ void ui_widget_set_events_suppressed(bool suppress)
   *(uint8_t *)0x46cc85 = (uint8_t)suppress;
 }
 
+bool ui_widget_is_main_menu_loaded(void)
+{
+  int root_widget;
+
+  if (*(uint8_t *)0x46cc88 != 1) {
+    return false;
+  }
+
+  root_widget = *(int *)0x46cc20;
+  if (root_widget == 0) {
+    return false;
+  }
+
+  return csstrcmp(*(const char **)(root_widget + 4), "the_main_menu") == 0;
+}
+
 /* ui_widget_load_progress_widget — stub that fires a priority-2 error
  * stating the old loading progress screen was replaced. The original
  * progress widget system was superseded by the "glowy halo gravy"
@@ -77,6 +93,11 @@ void ui_widget_load_progress_widget(void)
 {
   error(2, "the old loading progress screen has been replaced with glowy "
            "halo gravy");
+}
+
+bool ui_widget_initialization_in_progress(void)
+{
+  return *(int *)0x46cc7c != 0;
 }
 
 /* display_error_when_main_menu_loaded — queues a single error message handle
@@ -109,20 +130,42 @@ void ui_widget_start_title_music(void)
   if (*(uint8_t *)0x46cc86 != 0)
     return;
 
-  /* 0x1006c0 returns true when a game map is loaded */
-  if (((bool (*)(void))0x1006c0)())
+  if (main_change_map_name_in_progress())
     return;
 
-  tag_index = ((int (*)(int, const char *))0x1b9930)(
-    0x6c736e64, "sound\\music\\title1\\title1");
+  tag_index = tag_loaded(0x6c736e64, "sound\\music\\title1\\title1");
   if (tag_index != -1) {
     error(2, "starting main menu music");
-    /* sound_looping_start(tag_index, -1, 1.0f) */
-    ((void (*)(int, int, int))0x1c8510)(tag_index, -1, 0x3f800000);
+    sound_looping_start(tag_index, -1, 1.0f);
     *(uint8_t *)0x46cc86 = 1;
     return;
   }
   error(2, "title music tag not found");
+}
+
+void ui_widget_stop_attract_mode(void)
+{
+  int tag_index;
+
+  if (*(uint8_t *)0x46cc86 != 1) {
+    return;
+  }
+
+  tag_index = tag_loaded(0x6c736e64, "sound\\music\\title1\\title1");
+  if (tag_index != -1) {
+    error(2, "stopping main menu music");
+    sound_looping_stop(tag_index);
+    *(uint8_t *)0x46cc86 = 0;
+    return;
+  }
+
+  error(2, "title music tag not found");
+  *(uint8_t *)0x46cc86 = 0;
+}
+
+bool ui_widget_get_attract_mode_flag(void)
+{
+  return *(uint8_t *)0x46cc86 != 0;
 }
 
 void ui_widgets_disable_pause_game(int duration_ticks)
@@ -418,7 +461,7 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
   viewport_bounds_t local_bounds;
   float color[4];
   int font_tag;
-  int tag_name;
+  const char *tag_name;
   float fade;
 
   assert_halt(window_bounds != NULL);
@@ -498,12 +541,10 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
       color[1] = 1.0f;
       color[2] = 1.0f;
       color[3] = 1.0f;
-      font_tag = ((int (*)(int, const char *, int, int, int, float *))0x1b9930)(
-        0x666f6e74, "ui\\small_ui", -1, 0, 0, color);
+      font_tag = tag_loaded(0x666f6e74, "ui\\small_ui", -1, 0, 0, color);
       ((void (*)(int))0x19b8b0)(font_tag);
-      tag_name = ((int (*)(int))0x1ba1f0)(*(int *)(0x46cc20 + i * 4));
-      ((void (*)(viewport_bounds_t *, int, int, int, int))0x183e60)(
-        &local_bounds, 0, 0, 0, tag_name);
+      tag_name = tag_get_name(*(int *)(0x46cc20 + i * 4));
+      rasterizer_text_draw(&local_bounds, 0, 0, 0, tag_name);
     }
   }
 
@@ -522,6 +563,573 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
       ((void (*)(viewport_bounds_t *, int))0x92ec0)(&local_bounds, alpha << 24);
     }
   }
+}
+
+static void ui_widget_pending_load_push(int *head, void *record)
+{
+  int *_ebx = head;
+  void *_edi = record;
+
+  __asm__ __volatile__("call *%[fn]"
+                       : "+b"(_ebx), "+D"(_edi)
+                       : [fn] "r"(ui_widget_pending_load_push_internal)
+                       : "eax", "ecx", "edx", "esi", "memory", "cc");
+}
+
+static void ui_widget_load_from_tag_call(int tag_data, int widget, int a3,
+                                         int tag_index, int widget_stack,
+                                         int widget_stack_base)
+{
+  unsigned int args[6];
+
+  args[0] = (unsigned int)tag_data;
+  args[1] = (unsigned int)widget;
+  args[2] = (unsigned int)a3;
+  args[3] = (unsigned int)tag_index;
+  args[4] = (unsigned int)widget_stack;
+  args[5] = (unsigned int)widget_stack_base;
+
+  __asm__ __volatile__(
+    "movl 0(%[a]), %%eax\n\t"
+    "movl 4(%[a]), %%edx\n\t"
+    "movl 8(%[a]), %%ecx\n\t"
+    "pushl 20(%[a])\n\t"
+    "pushl 16(%[a])\n\t"
+    "pushl 12(%[a])\n\t"
+    "call *%[fn]\n\t"
+    "addl $0xc, %%esp"
+    :
+    : [a] "r"(args), [fn] "r"(ui_widget_load_from_tag_internal)
+    : "ebx", "esi", "edi", "memory", "cc");
+}
+
+
+void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
+                             void *handled)
+{
+  int *w;
+  int *definition;
+  uint8_t *event;
+  uint8_t *handled_out;
+  bool allowed_player;
+  bool consumed;
+  bool widget_deleted;
+  int16_t sound_effect;
+  int i;
+  int offset;
+  int elapsed;
+  int timeout;
+  int fade_ticks;
+  int child;
+  int child_tag;
+  int16_t type;
+  uint32_t flags;
+  const char *sound_name;
+  int sound_tag;
+
+  w = (int *)widget;
+  definition = (int *)widget_tag;
+  event = (uint8_t *)event_data;
+  handled_out = (uint8_t *)handled;
+
+  consumed = false;
+  widget_deleted = false;
+
+  allowed_player = (*(int16_t *)((char *)w + 8) == -1) ||
+                   (*(int16_t *)((char *)w + 8) == *(int16_t *)(event + 2));
+  sound_effect = 0;
+
+  if (w == NULL || definition == NULL || event == NULL || handled_out == NULL) {
+    display_assert("widget && definition && event && return_widget_deleted",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0xbfb, true);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)event == 3 && event[5] > 1 && *(int16_t *)(event + 2) >= 0 &&
+      *(int16_t *)(event + 2) < 4 && event[4] >= 8 && event[4] < 0xc &&
+      (uint32_t)(*(uint32_t *)0x46cc40 -
+                 *(uint32_t *)(0x46cc90 +
+                               ((event[4] - 8) + *(int16_t *)(event + 2) * 4) *
+                                 4)) >= 0xfa) {
+    event[5] = 1;
+  }
+
+  if (*(uint8_t *)((char *)w + 0x16) == 1) {
+    int16_t widget_player = *(int16_t *)((char *)w + 8);
+
+    if (widget_player >= 0 && widget_player < 4) {
+      if (input_has_gamepad(widget_player)) {
+        ui_widget_close(FUN_000e4310(w));
+        widget_deleted = true;
+      }
+    } else {
+      if (widget_player != -1) {
+        display_assert("widget->local_player_index==NONE",
+                       "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0xc23, true);
+        system_exit(-1);
+      }
+
+      for (i = 0; i < 4; i++) {
+        if (input_has_gamepad(i)) {
+          child = (int)w;
+          while (*(int *)(child + 0x30) != 0) {
+            child = *(int *)(child + 0x30);
+          }
+          ui_widget_close((void *)child);
+          widget_deleted = true;
+          break;
+        }
+      }
+    }
+  }
+
+  if (allowed_player && !widget_deleted) {
+    if (*(int16_t *)event == 3 && event[5] == 1) {
+      if ((event[4] == 0xd || event[4] == 1) &&
+          *(int *)(definition + 0x15) > 0) {
+        int found = 0;
+
+        for (i = 0; i < *(int *)(definition + 0x15); i++) {
+          int16_t handler_type =
+            *(int16_t *)(*(int *)(definition + 0x16) + i * 0x48 + 4);
+          if ((event[4] == 0xd && handler_type == 0xd) ||
+              (event[4] == 1 && handler_type == 1)) {
+            found = 1;
+            break;
+          }
+        }
+
+        if (!found) {
+          FUN_000e68e0(w);
+          sound_effect = 3;
+          widget_deleted = true;
+          consumed = true;
+        }
+      }
+    }
+  }
+
+  if (!widget_deleted) {
+    timeout = *(int *)((char *)w + 0x1c);
+    if (timeout > 0) {
+      elapsed = *(int *)0x46cc40 - *(int *)((char *)w + 0x18);
+      fade_ticks = *(int *)((char *)w + 0x20);
+
+      if ((uint32_t)elapsed >= (uint32_t)(timeout + fade_ticks)) {
+        child = (int)w;
+        while (*(int *)(child + 0x30) != 0) {
+          child = *(int *)(child + 0x30);
+        }
+        ui_widget_close((void *)child);
+        widget_deleted = true;
+        goto after_local_handling;
+      }
+
+      if (fade_ticks > 0 && (elapsed - timeout) > 0) {
+        float fade_den = (float)fade_ticks;
+        if (fade_ticks < 0) {
+          fade_den += *(float *)0x25fb8c;
+        }
+        *(float *)((char *)w + 0x24) =
+          1.0f - (float)(elapsed - timeout) / fade_den;
+      }
+    }
+
+    if (*(int16_t *)((char *)w + 0x52) < 0) {
+      *(int16_t *)((char *)w + 0x52) = 0;
+    }
+    if (*(int16_t *)((char *)w + 0x54) < 0) {
+      *(int16_t *)((char *)w + 0x54) = 0;
+    }
+
+    if (*(int16_t *)((char *)w + 0xe) == 2) {
+      for (child = *(int *)((char *)w + 0x34); child != 0;
+           child = *(int *)(child + 0x2c)) {
+        *(int16_t *)(child + 0x50) = 0;
+        if (child == *(int *)((char *)w + 0x38) &&
+            *(int16_t *)(child + 0x56) == 2) {
+          *(int16_t *)(child + 0x50) = 1;
+        }
+      }
+    } else if (*(int16_t *)((char *)w + 0xe) == 3) {
+      FUN_000e5380(w, definition);
+    }
+
+    if (allowed_player) {
+      flags = *(uint32_t *)(definition + 0xb);
+
+      if ((flags & 8) != 0 && *(int *)((char *)w + 0x38) != 0 &&
+          !widget_deleted) {
+        if (*(int16_t *)event == 3 && event[5] == 1) {
+          if (event[4] == 8) {
+            FUN_000e5440(w);
+            sound_effect = 1;
+            consumed = true;
+          } else if (event[4] == 9) {
+            FUN_000e53e0(w);
+            sound_effect = 1;
+            consumed = true;
+          }
+        } else if (*(int16_t *)event == 1) {
+          if (*(int16_t *)(event + 6) == (int16_t)0x8000) {
+            FUN_000e53e0(w);
+            sound_effect = 1;
+            consumed = true;
+          } else if (*(int16_t *)(event + 6) == 0x7fff) {
+            FUN_000e5440(w);
+            sound_effect = 1;
+            consumed = true;
+          }
+        }
+      }
+
+      if (!consumed && (flags & 0x10) != 0 && *(int *)((char *)w + 0x38) != 0 &&
+          !widget_deleted) {
+        if (*(int16_t *)event == 3 && event[5] == 1) {
+          if (event[4] == 0xa) {
+            FUN_000e5440(w);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          } else if (event[4] == 0xb) {
+            FUN_000e53e0(w);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          }
+        } else if (*(int16_t *)event == 1) {
+          if (*(int16_t *)(event + 4) == (int16_t)0x8000) {
+            FUN_000e5440(w);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          } else if (*(int16_t *)(event + 4) == 0x7fff) {
+            FUN_000e53e0(w);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          }
+        }
+      }
+
+      type = *(int16_t *)((char *)w + 0xe);
+      if ((flags & 0x20) != 0 && (type == 2 || type == 3) && !consumed &&
+          !widget_deleted) {
+        if (*(int16_t *)event == 3 && event[5] == 1) {
+          if (event[4] == 8) {
+            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          } else if (event[4] == 9) {
+            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          }
+        } else if (*(int16_t *)event == 1) {
+          if (*(int16_t *)(event + 6) == (int16_t)0x8000) {
+            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          } else if (*(int16_t *)(event + 6) == 0x7fff) {
+            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          }
+        }
+      }
+
+      if ((flags & 0x40) != 0 && (type == 2 || type == 3) && !consumed &&
+          !widget_deleted) {
+        if (*(int16_t *)event == 3 && event[5] == 1) {
+          if (event[4] == 0xa) {
+            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          } else if (event[4] == 0xb) {
+            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          }
+        } else if (*(int16_t *)event == 1) {
+          if (*(int16_t *)(event + 4) == (int16_t)0x8000) {
+            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          } else if (*(int16_t *)(event + 4) == 0x7fff) {
+            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            if (sound_effect == 0) {
+              sound_effect = 1;
+            }
+            consumed = true;
+          }
+        }
+      }
+    }
+  }
+
+after_local_handling:
+  if (allowed_player && *(int *)(definition + 0x15) > 0) {
+    offset = 0;
+    for (i = 0; i < *(int *)(definition + 0x15) && !widget_deleted; i++) {
+      uint8_t *event_handler =
+        (uint8_t *)(*(int *)(definition + 0x16) + offset);
+      bool matches = false;
+
+      type = *(int16_t *)event;
+      if (type == 1) {
+        switch (*(int16_t *)(event_handler + 4)) {
+        case 0x10:
+          matches = *(int16_t *)(event + 6) == 0x7fff;
+          break;
+        case 0x11:
+          matches = *(int16_t *)(event + 6) == (int16_t)0x8000;
+          break;
+        case 0x12:
+          matches = *(int16_t *)(event + 4) == (int16_t)0x8000;
+          break;
+        case 0x13:
+          matches = *(int16_t *)(event + 4) == 0x7fff;
+          break;
+        default:
+          break;
+        }
+      } else if (type == 2) {
+        switch (*(int16_t *)(event_handler + 4)) {
+        case 0x14:
+          matches = *(int16_t *)(event + 6) == 0x7fff;
+          break;
+        case 0x15:
+          matches = *(int16_t *)(event + 6) == (int16_t)0x8000;
+          break;
+        case 0x16:
+          matches = *(int16_t *)(event + 4) == (int16_t)0x8000;
+          break;
+        case 0x17:
+          matches = *(int16_t *)(event + 4) == 0x7fff;
+          break;
+        default:
+          break;
+        }
+      } else if (type == 3 && *(int16_t *)(event_handler + 4) == event[4]) {
+        matches = event[5] == 1;
+      }
+
+      if (matches) {
+        consumed = true;
+        FUN_000e6ed0(w, definition, event, event_handler,
+                     (char *)&widget_deleted);
+      }
+
+      offset += 0x48;
+    }
+  }
+
+  flags = *(uint32_t *)(definition + 0xb);
+  if ((flags & 0x400) != 0 && (flags & 1) == 0) {
+    display_assert("if the _widget_pass_handled_events_to_all_children_bit "
+                   "flag is checked, "
+                   "_widget_pass_unhandled_events_to_children_bit must also "
+                   "be checked for it to work",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0xd95, false);
+  }
+
+  if (!(((flags & 0x400) == 0 && consumed) ||
+        (((flags & 1) == 0 && (flags & 0x100) == 0)) || widget_deleted)) {
+    if ((flags & 0x100) == 0) {
+      child = *(int *)((char *)w + 0x38);
+      if (child != 0) {
+        int16_t child_player = *(int16_t *)(child + 8);
+        if (child_player == -1 || child_player == *(int16_t *)(event + 2)) {
+          child_tag = *(int *)child;
+          ui_widget_process_event((void *)(uintptr_t)child,
+                                  tag_get(0x44654c61, child_tag), event,
+                                  (char *)&widget_deleted);
+        }
+      }
+    } else {
+      child = *(int *)((char *)w + 0x34);
+      while (child != 0) {
+        int16_t child_player = *(int16_t *)(child + 8);
+        if (child_player == -1 || child_player == *(int16_t *)(event + 2)) {
+          child_tag = *(int *)child;
+          ui_widget_process_event((void *)(uintptr_t)child,
+                                  tag_get(0x44654c61, child_tag), event,
+                                  (char *)&widget_deleted);
+          if (widget_deleted) {
+            break;
+          }
+        }
+        child = *(int *)(child + 0x2c);
+      }
+    }
+  }
+
+  if (widget_deleted && (flags & 0x800) != 0) {
+    for (i = 0; i < 4; i++) {
+      if (*(int *)(0x46cc20 + i * 4) != 0) {
+        break;
+      }
+    }
+    if (i == 4) {
+      FUN_00100620();
+    }
+  }
+
+  if (*(int16_t *)event == 3 && event[5] == 1 &&
+      *(int16_t *)(event + 2) >= 0 && *(int16_t *)(event + 2) < 4 &&
+      event[4] >= 8 && event[4] < 0xc) {
+    *(int *)(0x46cc90 + ((event[4] - 8) + *(int16_t *)(event + 2) * 4) * 4) =
+      *(int *)0x46cc40;
+  }
+
+  switch (sound_effect) {
+  case 1:
+    sound_name = "sound\\sfx\\ui\\cursor";
+    break;
+  case 2:
+    sound_name = "sound\\sfx\\ui\\forward";
+    break;
+  case 3:
+    sound_name = "sound\\sfx\\ui\\back";
+    break;
+  default:
+    sound_name = NULL;
+    break;
+  }
+
+  if (sound_name != NULL) {
+    sound_tag = tag_loaded(0x736e6421, sound_name);
+    if (sound_tag != -1) {
+      sound_impulse_start(sound_tag, 1.0f);
+    }
+  }
+
+  *handled_out = (uint8_t)widget_deleted;
+}
+
+void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int a3,
+                                    int widget_stack, int parent_tag_index,
+                                    int a6, int a7)
+{
+  typedef struct ui_widget_pending_load_entry {
+    int tag_index;
+    int a6;
+    int16_t a7;
+    int16_t widget_stack;
+  } ui_widget_pending_load_entry_t;
+
+  int tag_data;
+  int widget;
+  int widget_stack_base;
+  int16_t stack_index;
+  int16_t previous_stack_player;
+  int root_widget;
+  ui_widget_pending_load_entry_t pending_load;
+
+  widget_stack_base = ((int16_t)widget_stack == -1) ? 0 : widget_stack;
+
+  if (*(uint8_t *)0x46cc82 == 0) {
+    display_assert("widget_globals.initialized",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x179, true);
+    system_exit(-1);
+  }
+
+  if (name == NULL && tag_index == -1) {
+    display_assert("(name != NULL) || (tag_index != NONE)",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x17a, true);
+    system_exit(-1);
+  }
+
+  stack_index = (int16_t)widget_stack_base;
+  if (stack_index < 0 || stack_index >= 4) {
+    display_assert("(widget_stack>=0) && (widget_stack<MAXIMUM_GAMEPADS)",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x17b, true);
+    system_exit(-1);
+  }
+
+  if (tag_index == -1) {
+    tag_index = tag_loaded(0x44654c61, name);
+    if (tag_index == -1) {
+      error(2, "ui_widget_definition tag '%s'/%d not loaded", name, -1);
+      return NULL;
+    }
+  }
+
+  tag_data = (int)tag_get(0x44654c61, tag_index);
+  widget = (int)stack_memory_pool_allocate(
+    *(void **)0x31e04c, 0x58, "c:\\halo\\SOURCE\\interface\\ui_widget.c",
+    0x18b);
+  if (widget == 0) {
+    error(2, "failed to create new widget; out of memory!");
+    return NULL;
+  }
+
+  if (a3 == 0) {
+    root_widget = *(int *)(0x46cc20 + (int)stack_index * 4);
+    if (root_widget != 0) {
+      previous_stack_player = *(int16_t *)(root_widget + 8);
+      ui_widget_close((void *)root_widget);
+    } else {
+      previous_stack_player = -1;
+    }
+
+    *(int *)(0x46cc20 + (int)stack_index * 4) = widget;
+
+    if (parent_tag_index != -1 &&
+        (*(uint32_t *)((int)tag_get(0x44654c61, parent_tag_index) + 0x2c) &
+         0x4000) == 0) {
+      pending_load.tag_index = parent_tag_index;
+      pending_load.a6 = a6;
+      pending_load.a7 = (int16_t)a7;
+      pending_load.widget_stack = previous_stack_player;
+      ui_widget_pending_load_push((int *)(0x46cc30 + (int)stack_index * 4),
+                                  &pending_load);
+    }
+  }
+
+  if ((int16_t)widget_stack == -1) {
+    switch (*(int16_t *)(tag_data + 2)) {
+    case 0:
+      widget_stack = 0;
+      break;
+    case 1:
+      widget_stack = 1;
+      break;
+    case 2:
+      widget_stack = 2;
+      break;
+    case 3:
+      widget_stack = 3;
+      break;
+    case 4:
+      widget_stack = -1;
+      break;
+    default:
+      break;
+    }
+  }
+
+  ui_widget_load_from_tag_call(tag_data, widget, a3, tag_index, widget_stack,
+                               widget_stack_base);
+  return (void *)widget;
 }
 
 /* main_screen_shell_load — loads the main menu shell UI. On the first boot
@@ -548,8 +1156,7 @@ void main_screen_shell_load(void)
     if (command_line == NULL) {
       goto play_intro;
     }
-    if (((int (*)(const char *, const char *))0x1dd801)(command_line,
-                                                        "xdemo") != 0) {
+    if (crt_stricmp(command_line, "xdemo") != 0) {
     play_intro:
       bink_playback_start("d:\\bink\\intro.bik", 0xe6);
       play_main_menu = false;
@@ -592,6 +1199,203 @@ done:
   *(uint8_t *)0x31e050 = 0;
 }
 
+void ui_widget_display_error(int16_t error_handle, int local_player_index,
+                             char is_modal, char pause_game)
+{
+  int16_t stack_index;
+  int16_t local_player_count;
+  int16_t local_player;
+  int16_t matched_player;
+  int16_t text_value;
+  bool target_is_primary;
+  const char *widget_name;
+  int root_widget;
+  int root_tag_index;
+  int widget;
+  int text_widget;
+  int widget_stack_index;
+  int16_t deferred_slot;
+
+  if (cinematic_in_progress()) {
+    stack_index = (int16_t)local_player_index;
+    if (stack_index == -1) {
+      stack_index = 0;
+    } else if (stack_index < 0 || stack_index >= 4) {
+      display_assert(
+        "local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_"
+        "PLAYERS",
+        "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x81d, true);
+      system_exit(-1);
+    }
+
+    deferred_slot = *(int16_t *)(0x46cc6c + (int)stack_index * 4);
+    if (deferred_slot != -1) {
+      error(2,
+            "there is already a deferred-for-cinematic error queued for player"
+            " #%d; ignoring this one",
+            (int)stack_index);
+      return;
+    }
+
+    *(int16_t *)(0x46cc6c + (int)stack_index * 4) = error_handle;
+    *(uint8_t *)(0x46cc6e + (int)stack_index * 4) = (uint8_t)is_modal;
+    *(uint8_t *)(0x46cc6f + (int)stack_index * 4) = (uint8_t)pause_game;
+    return;
+  }
+
+  stack_index = (int16_t)local_player_index;
+  local_player_count = 0;
+  local_player = -1;
+  matched_player = -1;
+  target_is_primary = true;
+
+  if (stack_index != -1) {
+    local_player = local_player_get_next(-1);
+    while (local_player != -1) {
+      if (local_player == stack_index) {
+        matched_player = stack_index;
+        if (local_player_count > 0) {
+          target_is_primary = false;
+        }
+      }
+      local_player_count++;
+      local_player = local_player_get_next(local_player);
+    }
+
+    if (*(uint8_t *)0x46cc88 == 0) {
+      if (matched_player == -1) {
+        stack_index = -1;
+      }
+    }
+  }
+
+  switch (local_player_count) {
+  case 0:
+  case 1:
+    widget_name = is_modal ? "ui\\shell\\error\\error_modal_fullscreen" :
+                             "ui\\shell\\error\\error_nonmodal_fullscreen";
+    break;
+  case 2:
+    widget_name = is_modal ? "ui\\shell\\error\\error_modal_halfscreen" :
+                             "ui\\shell\\error\\error_nonmodal_halfscreen";
+    break;
+  case 3:
+    if (target_is_primary) {
+      widget_name = is_modal ? "ui\\shell\\error\\error_modal_halfscreen" :
+                               "ui\\shell\\error\\error_nonmodal_halfscreen";
+    } else {
+      widget_name = is_modal ? "ui\\shell\\error\\error_modal_qtrscreen" :
+                               "ui\\shell\\error\\error_nonmodal_qtrscreen";
+    }
+    break;
+  case 4:
+    widget_name = is_modal ? "ui\\shell\\error\\error_modal_qtrscreen" :
+                             "ui\\shell\\error\\error_nonmodal_qtrscreen";
+    break;
+  default:
+    display_assert("invalid local player count",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x871, true);
+    system_exit(-1);
+    return;
+  }
+
+  if (stack_index == -1) {
+    widget_stack_index = 0;
+  } else {
+    if (stack_index < 0 || stack_index >= 4) {
+      display_assert("(widget_stack>=0) && (widget_stack<MAXIMUM_NUMBER_OF_"
+                     "LOCAL_PLAYERS)",
+                     "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x878, true);
+      system_exit(-1);
+    }
+    widget_stack_index = stack_index;
+  }
+
+  if (*(uint8_t *)0x46cc88 != 0 && *(float *)0x46cc4c <= 1.0f &&
+      *(float *)0x46cc4c >= 0.0f) {
+    error(2, "aborting to the main menu root, for safety's sake");
+    main_screen_shell_load();
+    FUN_00100000();
+    *(float *)0x46cc4c = -1.0f;
+  }
+
+  root_widget = *(int *)(0x46cc20 + widget_stack_index * 4);
+  if (root_widget == 0) {
+    root_tag_index = -1;
+  } else {
+    root_tag_index = *(int *)root_widget;
+    if (*(uint8_t *)(root_widget + 0x15) == 1) {
+      error(2,
+            "there is already an error message displayed for this local player"
+            " index");
+      error(2, "failed to display error message");
+      return;
+    }
+  }
+
+  widget = (int)ui_widget_load_by_name_or_tag(widget_name, -1, 0, stack_index,
+                                              root_tag_index, -1, -1);
+  if (widget == 0) {
+    error(2, "failed to display error message");
+    return;
+  }
+
+  if (*(int *)(widget + 0x34) == 0 ||
+      *(int *)(*(int *)(widget + 0x34) + 0x34) == 0) {
+    display_assert("error screen widget tag not layed out as expected",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x89e, true);
+    system_exit(-1);
+  }
+
+  text_widget = *(int *)(*(int *)(widget + 0x34) + 0x34);
+  if (*(int16_t *)(text_widget + 0xe) != 1) {
+    display_assert("expected a text box widget in the error widget",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x8a0, true);
+    system_exit(-1);
+  }
+
+  if (error_handle < 0) {
+    text_value = 0;
+  } else if (error_handle > 0x27) {
+    text_value = 0x27;
+  } else {
+    text_value = error_handle;
+  }
+  *(int16_t *)(text_widget + 0x40) = text_value;
+
+  *(uint8_t *)(widget + 0x15) = 1;
+  if (*(uint8_t *)(widget + 0x13) == 0) {
+    *(uint8_t *)(widget + 0x13) = (uint8_t)pause_game;
+    if (pause_game == 1) {
+      if (*(int16_t *)0x46cc4a < 0) {
+        display_assert("widget pause counter is out of whack",
+                       "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x8a9, true);
+        system_exit(-1);
+      }
+
+      (*(int16_t *)0x46cc4a)++;
+      if (!game_time_get_paused()) {
+        game_time_set_paused(1);
+      }
+
+      if (*(uint8_t *)0x46cc87 == 0 && *(uint8_t *)0x46cc88 == 0) {
+        sound_set_music_enabled(1);
+        *(uint8_t *)0x46cc87 = 1;
+      }
+    }
+  }
+
+  if (error_handle == 0xd) {
+    *(uint8_t *)(widget + 0x16) = 1;
+  } else if (error_handle != 0xc) {
+    *(uint8_t *)(widget + 0x16) = 0;
+    return;
+  }
+
+  *(int *)(widget + 0x1c) = 0;
+  *(int *)(widget + 0x20) = 0;
+}
+
 /* ui_widget_load_error_screen — displays a fatal/abort error overlay that
  * forces the player back to the Xbox dashboard. If allow_abort is true
  * (== 1), the "error_abort_to_dashboard" widget is shown (user can confirm);
@@ -629,6 +1433,158 @@ void ui_widget_load_error_screen(int16_t error_handle, int allow_abort)
     return;
   }
   error(2, "failed to load '%s' widget", widget_name);
+}
+
+bool ui_widgets_process_pause(void)
+{
+  int stack_index;
+  int i;
+  int root_widget;
+  int pause_ticks;
+  int16_t local_player_count;
+  int16_t local_player;
+  int16_t target_local_player;
+  bool network_game;
+  bool handled;
+  bool target_is_primary;
+  const char *widget_name;
+  void *gamepad_state;
+  void *client;
+
+  handled = false;
+  network_game = network_game_in_progress();
+
+  if (game_in_progress() && !cinematic_in_progress() &&
+      game_connection() != 3 && *(uint8_t *)0x46cc88 == 0 &&
+      dword_46CC44 == 0) {
+    for (stack_index = 0; stack_index < 4; stack_index++) {
+      if (!input_has_gamepad((int16_t)stack_index) ||
+          !local_player_exists((int16_t)stack_index)) {
+        continue;
+      }
+
+      gamepad_state = input_get_gamepad_state(stack_index);
+      if (*(uint8_t *)((char *)gamepad_state + 0x1c) != 1) {
+        continue;
+      }
+
+      handled = true;
+      target_is_primary = true;
+      local_player_count = 0;
+      target_local_player = -1;
+
+      local_player = local_player_get_next(-1);
+      while (local_player != -1) {
+        if (local_player == (int16_t)stack_index) {
+          target_local_player = (int16_t)stack_index;
+          if (local_player_count > 0) {
+            target_is_primary = false;
+          }
+        }
+        local_player_count++;
+        local_player = local_player_get_next(local_player);
+      }
+
+      if (network_game) {
+        if (FUN_000ab720() && target_local_player == (int16_t)stack_index) {
+          root_widget = *(int *)(0x46cc20 + stack_index * 4);
+          if (root_widget == 0) {
+            client = network_game_client_get();
+            FUN_001257a0(client);
+            FUN_00124c40(client);
+
+            switch (local_player_count) {
+            case 1:
+              widget_name =
+                "ui\\shell\\multiplayer_game\\pause_game\\1p_pause_game";
+              break;
+            case 2:
+              widget_name =
+                "ui\\shell\\multiplayer_game\\pause_game\\2p_pause_game";
+              break;
+            case 3:
+              if (target_is_primary) {
+                widget_name =
+                  "ui\\shell\\multiplayer_game\\pause_game\\2p_pause_game";
+              } else {
+                widget_name =
+                  "ui\\shell\\multiplayer_game\\pause_game\\4p_pause_game";
+              }
+              break;
+            case 4:
+              widget_name =
+                "ui\\shell\\multiplayer_game\\pause_game\\4p_pause_game";
+              break;
+            default:
+              error(2, "invalid local player count for multiplayer game");
+              goto done;
+            }
+
+            if (ui_widget_load_by_name_or_tag(widget_name, -1, 0, stack_index,
+                                              -1, -1, -1) == 0) {
+              error(2, "failed to load multiplayer pause game window");
+            }
+          } else {
+            ui_widget_close((void *)root_widget);
+          }
+        }
+      } else {
+        if (local_player_count < 0 || local_player_count > 2) {
+          error(2, "the ui seems to be confused... assuming you are playing "
+                   "full-screen single player?");
+
+          if (*(uint8_t *)0x46cc82 != 0) {
+            for (i = 0; i < 4; i++) {
+              if (*(int *)(0x46cc20 + i * 4) != 0) {
+                ui_widgets_close_all();
+                break;
+              }
+            }
+          }
+
+          if (ui_widget_load_by_name_or_tag(
+                "ui\\shell\\solo_game\\pause_game\\pause_game", -1, 0,
+                stack_index, -1, -1, -1) == 0) {
+            error(2, "failed to load full screen pause game window");
+          }
+          goto done;
+        }
+
+        root_widget = *(int *)(0x46cc20 + stack_index * 4);
+        if (local_player_count == 2 && root_widget == 0) {
+          if (!game_time_get_paused()) {
+            if (ui_widget_load_by_name_or_tag(
+                  "ui\\shell\\solo_game\\pause_game\\pause_game_split_"
+                  "screen",
+                  -1, 0, stack_index, -1, -1, -1) == 0) {
+              error(2, "failed to load split screen pause game window");
+            }
+          }
+          goto done;
+        }
+
+        if (root_widget == 0) {
+          if (ui_widget_load_by_name_or_tag(
+                "ui\\shell\\solo_game\\pause_game\\pause_game", -1, 0,
+                stack_index, -1, -1, -1) == 0) {
+            error(2, "failed to load full screen pause game window");
+          }
+          goto done;
+        }
+
+        if (game_time_get_paused()) {
+          ui_widgets_close_all();
+        }
+      }
+
+    done:
+      break;
+    }
+  }
+
+  pause_ticks = dword_46CC44 - 1;
+  dword_46CC44 = (((pause_ticks < 0) ? 1 : 0) - 1) & pause_ticks;
+  return handled;
 }
 
 typedef struct ui_widget_process_data {
@@ -669,19 +1625,6 @@ static void ui_widget_pending_load_pop(int *head,
                        : "eax", "ecx", "edx", "memory", "cc");
 }
 
-static void ui_widget_pending_load_apply(int a6, int widget, int16_t a7)
-{
-  int _eax = a6;
-
-  __asm__ __volatile__(
-    "pushl %[a7]\n\t"
-    "pushl %[widget]\n\t"
-    "call *%[fn]\n\t"
-    "addl $8, %%esp"
-    : "+a"(_eax)
-    : [a7] "r"((int)a7), [widget] "r"(widget), [fn] "r"((void *)0xe5090)
-    : "ecx", "edx", "memory", "cc");
-}
 
 /* process_ui_widgets — main per-frame UI widget tick. Handles async
  * filesystem operations, bink video updates, pre-title screen logic,

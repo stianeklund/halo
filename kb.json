@@ -1047,6 +1047,10 @@
           "addr": "0x11f620"
         },
         {
+          "decl": "void *stack_memory_pool_allocate(void *pool, int size, const char *file, unsigned int line);",
+          "addr": "0x11fa40"
+        },
+        {
           "decl": "void *stack_memory_pool_realloc(void *pool, int block, unsigned short new_size, const char *file, unsigned int line);",
           "addr": "0x11fbe0"
         }
@@ -1718,6 +1722,10 @@
           "addr": "0xab570"
         },
         {
+          "decl": "bool FUN_000ab720(void);",
+          "addr": "0xab720"
+        },
+        {
           "decl": "void game_engine_load_sounds(void);",
           "addr": "0xab730"
         },
@@ -1809,8 +1817,16 @@
           "addr": "0x1c7e40"
         },
         {
+          "decl": "void sound_looping_stop(int sound_tag_index);",
+          "addr": "0x1c80e0"
+        },
+        {
           "decl": "void game_sound_update(float);",
           "addr": "0x1c8140"
+        },
+        {
+          "decl": "void sound_looping_start(int sound_tag_index, int object_index, float scale);",
+          "addr": "0x1c8510"
         },
         {
           "decl": "void game_sound_set_music_volume(const char *sound_name, float volume, int16_t transition_ticks);",
@@ -2300,6 +2316,10 @@
           "addr": "0xe8d20"
         },
         {
+          "decl": "void FUN_00100000(void);",
+          "addr": "0x100000"
+        },
+        {
           "decl": "int __cdecl sort_desired_local_player_controllers(const void *a1, const void *a2);",
           "addr": "0x100090"
         },
@@ -2312,12 +2332,20 @@
           "addr": "0x100590"
         },
         {
+          "decl": "void FUN_00100620(void);",
+          "addr": "0x100620"
+        },
+        {
           "decl": "void main_menu_precache_resources(void);",
           "addr": "0x100640"
         },
         {
           "decl": "void main_reset_player_actions(void);",
           "addr": "0x1006b0"
+        },
+        {
+          "decl": "bool main_change_map_name_in_progress(void);",
+          "addr": "0x1006c0"
         },
         {
           "decl": "void compute_window_bounds(int player_index, int num_players, viewport_bounds_t *a3, viewport_bounds_t *a4);",
@@ -2462,6 +2490,20 @@
         {
           "decl": "void network_game_abort(void);",
           "addr": "0x12a780"
+        }
+      ]
+    },
+    {
+      "name": "network_client_manager.obj",
+      "source": "networking/network_client_manager.c",
+      "functions": [
+        {
+          "decl": "uint16_t FUN_00124c40(void *client);",
+          "addr": "0x124c40"
+        },
+        {
+          "decl": "void *FUN_001257a0(void *client);",
+          "addr": "0x1257a0"
         }
       ]
     },
@@ -3653,6 +3695,10 @@
       "source": "cache/tags.c",
       "functions": [
         {
+          "decl": "int tag_loaded(int group_tag, const char *name, ...);",
+          "addr": "0x1b9930"
+        },
+        {
           "decl": "void *tag_get(int group_tag, int tag_index);",
           "addr": "0x1ba140"
         },
@@ -3831,6 +3877,10 @@
           "addr": "0xe43f0"
         },
         {
+          "decl": "void *FUN_000e4310(void *widget);",
+          "addr": "0xe4310"
+        },
+        {
           "decl": "bool ui_widget_initialization_in_progress(void);",
           "addr": "0xe4480"
         },
@@ -3855,6 +3905,26 @@
           "addr": "0xe46b0"
         },
         {
+          "decl": "void ui_widget_pending_load_push_internal(void);",
+          "addr": "0xe46f0"
+        },
+        {
+          "decl": "void FUN_000e5380(void *widget@<ecx>, void *definition);",
+          "addr": "0xe5380"
+        },
+        {
+          "decl": "void FUN_000e53e0(void *widget@<edi>);",
+          "addr": "0xe53e0"
+        },
+        {
+          "decl": "void FUN_000e5440(void *widget@<edi>);",
+          "addr": "0xe5440"
+        },
+        {
+          "decl": "void ui_widget_pending_load_apply(int a6@<eax>, int widget, int16_t a7);",
+          "addr": "0xe5090"
+        },
+        {
           "decl": "void ui_widget_close_children(void *widget@<eax>);",
           "addr": "0xe4890"
         },
@@ -3867,6 +3937,10 @@
           "addr": "0xe58c0"
         },
         {
+          "decl": "void FUN_000e68e0(void *widget@<eax>);",
+          "addr": "0xe68e0"
+        },
+        {
           "decl": "void ui_widget_begin_filesystem_checks(void);",
           "addr": "0xe6980"
         },
@@ -3875,12 +3949,28 @@
           "addr": "0xe6a60"
         },
         {
+          "decl": "void FUN_000e6ab0(void *widget, void *event_data, char *widget_deleted);",
+          "addr": "0xe6ab0"
+        },
+        {
+          "decl": "void FUN_000e6cb0(void *widget, void *event_data, char *widget_deleted);",
+          "addr": "0xe6cb0"
+        },
+        {
+          "decl": "void FUN_000e6ed0(void *widget, void *definition, void *event_data, void *event_handler, char *widget_deleted);",
+          "addr": "0xe6ed0"
+        },
+        {
           "decl": "void ui_widget_process_event(void *widget, void *widget_tag, void *event_data, void *handled);",
           "addr": "0xe7d00"
         },
         {
           "decl": "void render_ui_widgets(__int16 a1, viewport_bounds_t *window_bounds);",
           "addr": "0xe78e0"
+        },
+        {
+          "decl": "void ui_widget_load_from_tag_internal(void);",
+          "addr": "0xe7b10"
         },
         {
           "decl": "void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int is_child, int widget_stack, int parent_tag_index, int a6, int a7);",
