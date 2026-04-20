@@ -3785,8 +3785,16 @@
           "addr": "0x822d0"
         },
         {
+          "decl": "void endpoint_pool_cleanup(void);",
+          "addr": "0x82d30"
+        },
+        {
           "decl": "int send_endpoint(int *ep, const char *buf, int len);",
           "addr": "0x82f50"
+        },
+        {
+          "decl": "void close_endpoint(int *ep);",
+          "addr": "0x84000"
         },
         {
           "decl": "void destroy_endpoint(int *ep);",
@@ -4342,6 +4350,10 @@
         {
           "decl": "int xapi_GetLastError(void);",
           "addr": "0x1d2240"
+        },
+        {
+          "decl": "int __stdcall xnet_send(int socket, const char *buf, int len, int flags);",
+          "addr": "0x225c20"
         },
         {
           "decl": "void *XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",

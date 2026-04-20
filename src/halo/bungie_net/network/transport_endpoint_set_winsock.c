@@ -123,3 +123,87 @@ void transport_dispose(void)
     *(uint8_t *)0x335090 = 0;
   }
 }
+
+/* Send data over a transport endpoint.
+ *
+ * Calls xnet_send (0x225c20) with the socket handle stored at ep[0].
+ * On success returns the byte count from send().
+ * On failure, classifies the Winsock error via xapi_GetLastError (0x2235c4):
+ *   WSAECONNRESET (0x2733)                      -> ep status = -4, return -4
+ *   WSAECONNABORTED/disconnect-family            -> ep status = -3, return -3
+ *     (0x2744/0x2745/0x2746/0x2749/0x274a/0x274c,
+ *      also clears connected bit (bit 0) of ep flags byte at offset 4)
+ *   Any other error                              -> ep status = -2, return -2
+ *
+ * ep struct layout (from disassembly):
+ *   [ep+0]  int      socket fd
+ *   [ep+4]  uint8_t  flags (bit 0 = connected)
+ *   [ep+6]  int16_t  status/error code
+ *
+ * Confirmed: xnet_send (0x225c20, __stdcall 4 args, RET 0x10);
+ * xapi_GetLastError (0x2235c4 thunk -> 0x1d2240);
+ * switch jump table at 0x83010; byte redirect table at 0x8301c;
+ * assert strings at 0x26665c, 0x265fe4; source line 0x350/0x351.
+ */
+int send_endpoint(int *ep, const char *buf, int len)
+{
+  int result;
+  int error_code;
+
+  assert_halt(ep && buf && (len > 0));
+  assert_halt(*(uint8_t *)0x335090);
+
+  result = xnet_send(ep[0], buf, len, 0);
+  if (result != -1)
+    return result;
+
+  error_code = xapi_GetLastError();
+  switch (error_code) {
+  case 0x2733:
+    /* WSAECONNRESET — connection reset by peer. */
+    *(int16_t *)((char *)ep + 6) = -4;
+    return -4;
+  case 0x2744:
+  case 0x2745:
+  case 0x2746:
+  case 0x2749:
+  case 0x274a:
+  case 0x274c:
+    /* Various disconnect/abort errors — mark endpoint not connected. */
+    *(uint8_t *)((char *)ep + 4) &= 0xfe;
+    *(int16_t *)((char *)ep + 6) = -3;
+    return -3;
+  default:
+    /* Unknown Winsock error. */
+    *(int16_t *)((char *)ep + 6) = -2;
+    return -2;
+  }
+}
+
+/* Destroy a transport endpoint: close its socket, free memory, cleanup pool.
+ *
+ * Calls close_endpoint (0x84000) to close the underlying socket and clear
+ * the socket handle.  Then frees the endpoint allocation via debug_free
+ * (0x8ef70) with original XBE source path and line.  Finally tail-calls
+ * endpoint_pool_cleanup (0x82d30) to remove the entry from the active table.
+ *
+ * Confirmed: close_endpoint (0x84000, cdecl 1 arg: int *ep);
+ * debug_free (0x8ef70, 3 args); endpoint_pool_cleanup (0x82d30, 0 args);
+ * assert strings at 0x266658, 0x265fe4; source line 0xe4/0xe5/0xe8.
+ */
+void destroy_endpoint(int *ep)
+{
+  assert_halt(ep != NULL);
+  assert_halt(*(uint8_t *)0x335090);
+
+  /* Close the underlying socket and clear handle/flags. */
+  close_endpoint(ep);
+
+  /* Free the endpoint allocation using original XBE source path and line. */
+  debug_free(
+    ep, "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0xe8);
+
+  /* Remove from active endpoint pool. */
+  endpoint_pool_cleanup();
+}
