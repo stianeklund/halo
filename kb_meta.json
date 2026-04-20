@@ -1146,6 +1146,24 @@
         "The globals at 0x46b6e0-0x46b805 form the hs_compile_globals structure used by the script compiler."
       ]
     },
+    "0xc9050": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The hs_parse_expression function at 0xc7be0 takes @EAX as a register arg pointing to the cursor variable; if this function modifies ESI internally the skip_whitespace call pattern may interact."
+      ]
+    },
+    "0xc92b0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The hs_compile_source_setup function at 0xc5730 takes @EDI as source_file_size and one stack arg; the decompiler shows unaff_EDI confirming the register arg pattern."
+      ]
+    },
+    "0xc94f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xca800": {
       "kind": "function",
       "status": "ported"
@@ -1159,6 +1177,27 @@
         "cc1d0 (hs_default_value) takes EAX=thread_index as register arg plus two stack args (type, dest).",
         "cb230 (hs_global_value_store) takes EDI=loop_var as register arg, only active when bit 15 set."
       ]
+    },
+    "0xcdeb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type changed from void to int based on disassembly showing EAX set on all exit paths; callers at 0xc5212 and 0xc4b2f ignore the return value."
+      ],
+      "uncertain": [
+        "The function at 0xcc1d0 (hs_default_value) takes @EAX plus 2 stack args; the exact semantics of the second stack arg (thread_ptr+0x14 vs thread_ptr+0x14 as dest) need verification."
+      ]
+    },
+    "0xce1c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Globals 0x5aa698 and 0x5aa694 are hs_object_list_header_data and hs_object_list_reference_data respectively, created by the function at 0xce150 with names 'object list header' and 'list object reference'."
+      ]
+    },
+    "0xce1e0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xce690": {
       "kind": "function",
