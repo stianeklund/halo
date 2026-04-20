@@ -143,6 +143,14 @@
         {
           "decl": "data_t *particle_system_header_data;",
           "addr": "0x5aa8a8"
+        },
+        {
+          "decl": "void *game_state_callback_32eaa0;",
+          "addr": "0x32eaa0"
+        },
+        {
+          "decl": "void *game_state_callback_32eaa4;",
+          "addr": "0x32eaa4"
         }
       ],
       "functions": [
@@ -255,6 +263,38 @@
           "addr": "0x64160"
         },
         {
+          "decl": "void FUN_00064ee0(int file);",
+          "addr": "0x64ee0"
+        },
+        {
+          "decl": "void FUN_000659f0(int file, int field, int value);",
+          "addr": "0x659f0"
+        },
+        {
+          "decl": "int FUN_0006d8e0(const char *path, const char *mode);",
+          "addr": "0x6d8e0"
+        },
+        {
+          "decl": "int FUN_0006fea0(int file, void *buffer, int row, int sample);",
+          "addr": "0x6fea0"
+        },
+        {
+          "decl": "void *FUN_0007c940(__int16 *bitmap, int a2, int y, int a4);",
+          "addr": "0x7c940"
+        },
+        {
+          "decl": "int16_t FUN_00100080(void);",
+          "addr": "0x100080"
+        },
+        {
+          "decl": "void FUN_00101c90(void);",
+          "addr": "0x101c90"
+        },
+        {
+          "decl": "void FUN_00101ca0(void);",
+          "addr": "0x101ca0"
+        },
+        {
           "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
           "addr": "0x966d0"
         },
@@ -281,6 +321,26 @@
         {
           "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
           "addr": "0x1919a0"
+        },
+        {
+          "decl": "int FUN_001b9920(void);",
+          "addr": "0x1b9920"
+        },
+        {
+          "decl": "void FUN_001bf790(void);",
+          "addr": "0x1bf790"
+        },
+        {
+          "decl": "char FUN_001c0370(void);",
+          "addr": "0x1c0370"
+        },
+        {
+          "decl": "char FUN_001c0910(void *header, void *scratch, int header_size, void *buffer, int flags);",
+          "addr": "0x1c0910"
+        },
+        {
+          "decl": "void FUN_001c0c20(void *dst, void *src);",
+          "addr": "0x1c0c20"
         },
         {
           "decl": "int sound_cache_request_sound(void *permutation, int a2, int a3, int a4);",
