@@ -5,6 +5,24 @@
 
 #include "../../common.h"
 
+/* unit_set_actively_controlled_flag (0x1a7f80)
+ *
+ * Sets bit 5 (0x20) of the byte at object_data_t+0xb6 (offset 182,
+ * the byte just before unk_183) on the resolved unit object.
+ * Distinct from unit_delete (0x1a7fc0) which sets the same bit at
+ * offset 0xb7 (unk_183).
+ *
+ * Confirmed: CALL 0x13d680 with type_mask=3 (biped|vehicle).
+ * Confirmed: OR byte ptr [EAX+0xb6],0x20.
+ */
+void unit_set_actively_controlled_flag(int unit_handle)
+{
+  object_data_t *obj;
+
+  obj = (object_data_t *)object_get_and_verify_type(unit_handle, 3);
+  *(uint8_t *)((char *)obj + 0xb6) |= 0x20;
+}
+
 /* unit_delete (0x1a7fc0)
  *
  * Marks a unit object for deletion by setting bit 5 (0x20) of the
@@ -139,8 +157,8 @@ bool any_unit_is_dangerous(void)
   unit_data_t *unit;
   uint8_t state;
 
-  ((void (*)(void *, int, uint8_t))0x13d6f0)(iter_buf, 3, 1);
-  unit = (unit_data_t *)((void *(*)(void *))0x13d730)(iter_buf);
+  object_iterator_new(iter_buf, 3, 1);
+  unit = (unit_data_t *)object_iterator_next(iter_buf);
 
   while (unit != NULL) {
     state = unit->unk_595;
@@ -148,7 +166,7 @@ bool any_unit_is_dangerous(void)
       return true;
     if ((state == 0x19 || state == 0x18) && (unit->unk_584 & 4) == 0)
       return true;
-    unit = (unit_data_t *)((void *(*)(void *))0x13d730)(iter_buf);
+    unit = (unit_data_t *)object_iterator_next(iter_buf);
   }
 
   return false;
@@ -381,6 +399,40 @@ void unit_set_animation(int unit_handle, int anim_graph_tag_index,
                      anim_name);
     }
   }
+}
+
+/* unit_has_weapon_with_flag (0x1ac3f0)
+ *
+ * Returns true if any of the unit's equipped weapons has the given flag
+ * bit set in its flags field (weapon_data+0x1dc).
+ *
+ * Walks the 4-slot weapon handle array at unit+0x2a8; for each slot that
+ * is not NONE (-1), resolves the weapon object with type_mask=4 and tests
+ * bit (1 << flag_index) against the 32-bit flags at weapon_data+0x1dc.
+ *
+ * Confirmed: LEA ESI,[EAX+0x2a8] — weapon slot array at unit+0x2a8.
+ * Confirmed: PUSH 0x4 for weapon type_mask in inner object_get_and_verify_type.
+ * Confirmed: MOV ECX,BX; SHL EDX,CL — flag_index used as shift count (byte).
+ * Confirmed: CMP EAX,-0x1 / JZ skip — slot NONE guard.
+ * Confirmed: TEST EDX,ECX at [EAX+0x1dc] — flags field at +0x1dc.
+ */
+bool unit_has_weapon_with_flag(int unit_handle, int flag_index)
+{
+  int *unit;
+  int *weapon_slots;
+  int i;
+
+  unit = (int *)object_get_and_verify_type(unit_handle, 3);
+  weapon_slots = (int *)((char *)unit + 0x2a8);
+
+  for (i = 0; i < 4; i++) {
+    if (weapon_slots[i] != NONE) {
+      int *weapon = (int *)object_get_and_verify_type(weapon_slots[i], 4);
+      if ((1 << (flag_index & 0x1f)) & *(uint32_t *)((char *)weapon + 0x1dc))
+        return 1;
+    }
+  }
+  return 0;
 }
 
 /* unit_get_weapon (0x1adeb0)
