@@ -1043,8 +1043,32 @@
           "addr": "0x11e9c0"
         },
         {
+          "decl": "int memory_block_valid(void *block_hdr@<ecx>);",
+          "addr": "0x11ecf0"
+        },
+        {
+          "decl": "int stack_memory_pool_valid_block(void *block_hdr@<eax>, void *pool@<ecx>);",
+          "addr": "0x11ef50"
+        },
+        {
+          "decl": "void stack_memory_pool_unlink_block(void *block_hdr@<esi>, void *pool@<edi>);",
+          "addr": "0x11efd0"
+        },
+        {
+          "decl": "void stack_memory_pool_mark_used(void *block_hdr@<esi>, void *pool@<ecx>);",
+          "addr": "0x11f070"
+        },
+        {
+          "decl": "void *stack_memory_pool_alloc_internal(int alloc_size@<eax>, void *pool, const char *file, unsigned int line);",
+          "addr": "0x11f1e0"
+        },
+        {
           "decl": "void stack_memory_pool_deallocate(void *pool, void *block);",
           "addr": "0x11f620"
+        },
+        {
+          "decl": "void *stack_memory_pool_alloc_or_resize(int new_size@<eax>, void *pool@<ecx>, void *block_hdr, const char *file, unsigned int line);",
+          "addr": "0x11f750"
         },
         {
           "decl": "void *stack_memory_pool_allocate(void *pool, int size, const char *file, unsigned int line);",
