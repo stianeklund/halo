@@ -17,6 +17,8 @@ Recover code from the original Xbox binary quickly while staying semantically cl
 - Make small, reviewable changes. Do not perform broad speculative refactors.
 - Do not silently replace unclear logic with guessed "equivalent" logic.
 - Always add comments to functions, variables and similar when you have a high confidence your understanding of the decompiled data is correct.
+- Before editing any file, read it first. Before modifying a function, grep for all callers.
+- Research before you edit
 
 **Primary goals, in order:**
 
