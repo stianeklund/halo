@@ -781,6 +781,10 @@
           "addr": "0xff4a0"
         },
         {
+          "decl": "bool console_is_active(void);",
+          "addr": "0xff4c0"
+        },
+        {
           "decl": "void console_printf(int channel, const char *format, ...);",
           "addr": "0xff4d0"
         },
@@ -3451,16 +3455,28 @@
           "addr": "0xe3560"
         },
         {
-          "decl": "void terminal_output(void *color, const char *format, const char *text);",
-          "addr": "0xe3a10"
+          "decl": "void terminal_remove_line(int line_handle@<edi>);",
+          "addr": "0xe3410"
+        },
+        {
+          "decl": "bool terminal_process_input(void);",
+          "addr": "0xe3580"
+        },
+        {
+          "decl": "void terminal_age_lines(void);",
+          "addr": "0xe3640"
+        },
+        {
+          "decl": "int terminal_get_line(void);",
+          "addr": "0xe3940"
         },
         {
           "decl": "void terminal_update(void);",
           "addr": "0xe39e0"
         },
         {
-          "decl": "int terminal_get_line(void);",
-          "addr": "0xe3940"
+          "decl": "void terminal_output(void *color, const char *format, const char *text);",
+          "addr": "0xe3a10"
         }
       ]
     },

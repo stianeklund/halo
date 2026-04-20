@@ -1483,7 +1483,11 @@
     },
     "0xe39e0": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "terminal_update's return in AL (from terminal_process_input) is ignored by its sole caller main_loop; the void return type in kb.json is correct.",
+        "console_is_active at 0xff4c0 returns the byte at [0x46cf60], which is the console-open flag; when true, line aging (terminal_age_lines) is skipped."
+      ]
     },
     "0xe3be0": {
       "kind": "function",
@@ -2959,6 +2963,30 @@
     },
     "0x326a08": {
       "kind": "data",
+      "status": "ported"
+    },
+    "0xe34a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe34e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3940": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "terminal_remove_line at 0xe3410 takes the line handle via EDI register argument; terminal_get_line sets EDI=[0x46c410] before calling it to evict the tail entry.",
+        "The doubly-linked list uses offsets +0x4 (prev handle) and +0x8 (next handle) within the datum; [0x46c40c] is head and [0x46c410] is tail."
+      ]
+    },
+    "0xe3a10": {
+      "kind": "function",
       "status": "ported"
     }
   }
