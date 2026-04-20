@@ -3,8 +3,8 @@
 #define FIND_FILES_RECURSIVE_BIT 1
 #define FIND_FILES_DIRECTORIES_BIT 2
 
-typedef int (*find_first_file_fn)(const char *path, void *find_data);
-typedef bool (*find_next_file_fn)(int handle, void *find_data);
+typedef int(__stdcall *find_first_file_fn)(const char *path, void *find_data);
+typedef bool(__stdcall *find_next_file_fn)(int handle, void *find_data);
 typedef bool(__stdcall *close_handle_fn)(int handle);
 
 #define XFindFirstFile ((find_first_file_fn)0x1d3576)
