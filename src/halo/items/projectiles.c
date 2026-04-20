@@ -5,8 +5,8 @@ bool dangerous_projectiles_near_player(void)
   char iter[16];
   void *projectile;
 
-  ((void (*)(void *, int, int))0x13d6f0)(iter, 0x20, 0);
-  projectile = ((void *(*)(void *))0x13d730)(iter);
+  object_iterator_new(iter, 0x20, 0);
+  projectile = object_iterator_next(iter);
   if (projectile != NULL) {
     tag_get(0x70726f6a, *(int *)projectile);
     return true;
