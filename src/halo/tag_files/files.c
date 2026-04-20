@@ -6,10 +6,16 @@
 typedef int(__stdcall *find_first_file_fn)(const char *path, void *find_data);
 typedef bool(__stdcall *find_next_file_fn)(int handle, void *find_data);
 typedef bool(__stdcall *close_handle_fn)(int handle);
+typedef void (*debug_log_fn)(int level, const char *format, ...);
+typedef uint32_t(__stdcall *xget_last_error_fn)(void);
+typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
 
 #define XFindFirstFile ((find_first_file_fn)0x1d3576)
 #define XFindNextFile ((find_next_file_fn)0x1d3683)
 #define XCloseHandle ((close_handle_fn)0x1cf900)
+#define DEBUG_LOG ((debug_log_fn)0x8f390)
+#define XGetLastError ((xget_last_error_fn)0x1d2240)
+#define XSetLastError ((xset_last_error_fn)0x1d2268)
 
 static uint32_t g_find_files_flags;
 static int16_t g_find_files_index = -1;
@@ -424,6 +430,17 @@ void path_from_file_reference(int16_t location, const char *path, char *out)
   csstrcpy(out + csstrlen(out), path);
 }
 
+void file_error(file_ref_t *info, const char *function_name)
+{
+  file_ref_t *ref;
+  uint32_t error;
+
+  ref = file_reference_verify(info);
+  error = XGetLastError();
+  DEBUG_LOG(2, "%s('%s') error 0x%08x", function_name, ref->unk_8, error);
+  XSetLastError(0);
+}
+
 /**
  * file_exists - check whether a file referenced by info exists on disk.
  *
@@ -452,19 +469,7 @@ bool file_exists(file_ref_t *info)
 
   if (xapi_GetLastError() != 2) {
     if (xapi_GetLastError() != 3) {
-      /* file_error takes file_ref in EAX (register arg) and function name
-         on the stack. Since it's not ported and uses @eax, we must use
-         inline asm to call it. */
-      {
-        int _eax = (int)info;
-        __asm__ __volatile__(
-          "pushl %[str]\n\t"
-          "call *%[fn]\n\t"
-          "addl $4, %%esp"
-          : "+a"(_eax)
-          : [str] "r"("file_exists"), [fn] "r"((void *)0x19a450)
-          : "ecx", "edx", "memory", "cc");
-      }
+      file_error(info, "file_exists");
     }
   }
 
