@@ -1,5 +1,23 @@
 #define FILE_REF_MAGIC 0x66696C6F
 
+#define FIND_FILES_RECURSIVE_BIT 1
+#define FIND_FILES_DIRECTORIES_BIT 2
+
+typedef int (*find_first_file_fn)(const char *path, void *find_data);
+typedef bool (*find_next_file_fn)(int handle, void *find_data);
+typedef bool(__stdcall *close_handle_fn)(int handle);
+
+#define XFindFirstFile ((find_first_file_fn)0x1d3576)
+#define XFindNextFile ((find_next_file_fn)0x1d3683)
+#define XCloseHandle ((close_handle_fn)0x1cf900)
+
+static uint32_t g_find_files_flags;
+static int16_t g_find_files_index = -1;
+static int16_t g_find_files_location;
+static char g_find_files_path[260];
+static int g_find_file_handles[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+static unsigned char g_find_file_data[0x148];
+
 /**
  * find_files - enumerate files matching a directory reference.
  *
@@ -35,6 +53,100 @@ int16_t find_files(int flags, file_ref_t *dir, int16_t max_count,
   }
 
   return count;
+}
+
+/**
+ * file_reference_verify - validate a file_ref_t pointer.
+ *
+ * Checks that the pointer is non-NULL, the magic signature matches
+ * FILE_REFERENCE_SIGNATURE (0x66696C6F), flags are valid (only bit 0
+ * allowed in the reference info flags), and the location field is in
+ * the range [-1, 1] (NONE through NUMBER_OF_FILE_REFERENCE_LOCATIONS).
+ *
+ * Returns the validated pointer.
+ */
+file_ref_t *file_reference_verify(file_ref_t *info)
+{
+  if (info == NULL) {
+    display_assert("info", "c:\\halo\\SOURCE\\tag_files\\files.c", 0x1fc, true);
+    system_exit(-1);
+  }
+  if (info->magic != FILE_REF_MAGIC) {
+    display_assert("info->signature==FILE_REFERENCE_SIGNATURE",
+                   "c:\\halo\\SOURCE\\tag_files\\files.c", 0x1fd, true);
+    system_exit(-1);
+  }
+  if ((*(uint16_t *)&info->unk_4[0] & 0xfffe) != 0) {
+    display_assert("VALID_FLAGS(info->flags, NUMBER_OF_REFERENCE_INFO_FLAGS)",
+                   "c:\\halo\\SOURCE\\tag_files\\files.c", 0x1fe, true);
+    system_exit(-1);
+  }
+  if (info->unk_6 < -1 || info->unk_6 > 1) {
+    display_assert("info->location>=NONE && "
+                   "info->location<NUMBER_OF_FILE_REFERENCE_LOCATIONS",
+                   "c:\\halo\\SOURCE\\tag_files\\files.c", 0x1ff, true);
+    system_exit(-1);
+  }
+  return info;
+}
+
+/**
+ * file_reference_add_directory - append a directory component to a file
+ * reference's path.
+ *
+ * Verifies the file reference, asserts that the directory string is
+ * non-NULL and that the _has_filename_bit flag is not set (cannot add a
+ * directory component after a filename has been set), then appends the
+ * directory to the internal path buffer using path_add_directory.
+ *
+ * Returns the file reference pointer.
+ */
+file_ref_t *file_reference_add_directory(file_ref_t *info,
+                                         const char *directory)
+{
+  file_ref_t *ref;
+
+  ref = file_reference_verify(info);
+  if (directory == NULL) {
+    display_assert("directory", "c:\\halo\\SOURCE\\tag_files\\files.c", 0x89,
+                   true);
+    system_exit(-1);
+  }
+  if (ref->unk_4[0] & 1) {
+    display_assert("!TEST_FLAG(info->flags, _has_filename_bit)",
+                   "c:\\halo\\SOURCE\\tag_files\\files.c", 0x8a, true);
+    system_exit(-1);
+  }
+  path_add_directory(ref->unk_8, directory);
+  return info;
+}
+
+/**
+ * file_reference_set_name - set the filename component of a file reference.
+ *
+ * Verifies the file reference and asserts that the name string is
+ * non-NULL. If the _has_filename_bit flag is already set, strips the
+ * existing filename from the path (via path_remove_filename) before
+ * appending the new name with path_add_directory. Sets the
+ * _has_filename_bit flag afterward.
+ *
+ * Returns the file reference pointer.
+ */
+file_ref_t *file_reference_set_name(file_ref_t *info, const char *name)
+{
+  file_ref_t *ref;
+
+  ref = file_reference_verify(info);
+  if (name == NULL) {
+    display_assert("name", "c:\\halo\\SOURCE\\tag_files\\files.c", 0x97, true);
+    system_exit(-1);
+  }
+  if (ref->unk_4[0] & 1) {
+    path_remove_filename(ref->unk_8);
+  }
+  path_add_directory(ref->unk_8, name);
+  ref->unk_4[0] |= 1;
+  return info;
 }
 
 /**
@@ -143,6 +255,175 @@ file_ref_t *file_reference_create_from_path(file_ref_t *info,
   return info;
 }
 
+void find_files_begin(int flags, file_ref_t *dir)
+{
+  file_ref_t *ref;
+
+  ref = file_reference_verify(dir);
+
+  if ((flags & ~3) != 0) {
+    display_assert("VALID_FLAGS(flags, NUMBER_OF_FIND_FILES_FLAGS)",
+                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x224, true);
+    system_exit(-1);
+  }
+  if ((ref->unk_4[0] & 1) != 0) {
+    display_assert("!TEST_FLAG(info->flags, has_filename_bit)",
+                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x225, true);
+    system_exit(-1);
+  }
+
+  while (g_find_files_index >= 0) {
+    int handle = g_find_file_handles[(uint16_t)g_find_files_index];
+    if (handle != -1) {
+      XCloseHandle(handle);
+      g_find_file_handles[(uint16_t)g_find_files_index] = -1;
+    }
+    g_find_files_index--;
+  }
+
+  g_find_files_flags = (uint32_t)flags;
+  g_find_files_index = 0;
+  g_find_files_location = ref->unk_6;
+  csstrcpy(g_find_files_path, ref->unk_8);
+}
+
+void path_add_directory(char *path, const char *directory)
+{
+  int path_length;
+  char *tail;
+
+  if (*directory == '\0') {
+    return;
+  }
+
+  if (csstrlen(path) + 1 + csstrlen(directory) > 0xFF) {
+    display_assert("strlen(path)+1+strlen(name)<=MAXIMUM_FILENAME_LENGTH",
+                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x2A0, true);
+    system_exit(-1);
+  }
+
+  path_length = csstrlen(path);
+  tail = path + path_length;
+  if (tail != path) {
+    *tail = '\\';
+    tail++;
+    *tail = '\0';
+  }
+
+  path_length = csstrlen(path);
+  csstrncpy(tail, directory, 0xFF - path_length);
+  path[0xFF] = '\0';
+}
+
+void path_add_extension(char *path, const char *extension)
+{
+  int path_length;
+  char *tail;
+
+  if (*extension == '\0') {
+    return;
+  }
+
+  if (csstrlen(path) + 1 + csstrlen(extension) > 0xFF) {
+    display_assert("strlen(path)+1+strlen(extension)<=MAXIMUM_FILENAME_LENGTH",
+                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x2b8, true);
+    system_exit(-1);
+  }
+
+  path_length = csstrlen(path);
+  tail = path + path_length;
+  if (tail != path) {
+    *tail = '.';
+    tail++;
+    *tail = '\0';
+  }
+
+  path_length = csstrlen(path);
+  csstrncpy(tail, extension, 0xFF - path_length);
+  path[0xFF] = '\0';
+}
+
+void path_remove_filename(char *path)
+{
+  int i;
+  int length;
+
+  length = csstrlen(path);
+  for (i = length - 1; i >= 0; i--) {
+    if (path[i] == '\\') {
+      path[i] = '\0';
+      return;
+    }
+  }
+
+  *path = '\0';
+}
+
+void path_split(const char *path, char **directory, char **parent_directory,
+                char **filename, char **extension, int flags)
+{
+  char *mutable_path = (char *)path;
+  int path_length = csstrlen(path);
+  char *end = mutable_path + path_length;
+  int i;
+
+  *directory = end;
+  *parent_directory = end;
+  *filename = end;
+  *extension = end;
+
+  for (i = path_length - 1; i >= 0; i--) {
+    char c = mutable_path[i];
+
+    if (c == '.') {
+      if (flags != 0 && **filename == '\0' && **extension == '\0') {
+        mutable_path[i] = '\0';
+        *extension = mutable_path + i + 1;
+      }
+    } else if (c == '\\') {
+      if (flags == 0 || **filename != '\0') {
+        if (**parent_directory == '\0') {
+          *parent_directory = mutable_path + i + 1;
+        }
+      } else {
+        mutable_path[i] = '\0';
+        *filename = mutable_path + i + 1;
+      }
+    }
+  }
+
+  if (flags != 0 && **filename == '\0') {
+    *filename = mutable_path;
+    return;
+  }
+
+  if (*filename != mutable_path) {
+    *directory = mutable_path;
+  }
+}
+
+void path_from_file_reference(int16_t location, const char *path, char *out)
+{
+  (void)location;
+
+  if (path == NULL || out == NULL) {
+    display_assert("path && full_path",
+                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x314, true);
+    system_exit(-1);
+  }
+
+  *out = '\0';
+
+  if (!(path[0] != '\0' && path[1] != '\0' && path[2] != '\0' &&
+        ((path[0] >= 'A' && path[0] <= 'Z') ||
+         (path[0] >= 'a' && path[0] <= 'z')) &&
+        path[1] == ':' && path[2] == '\\')) {
+    csstrcpy(out, "d:\\");
+  }
+
+  csstrcpy(out + csstrlen(out), path);
+}
+
 /**
  * file_exists - check whether a file referenced by info exists on disk.
  *
@@ -184,6 +465,81 @@ bool file_exists(file_ref_t *info)
           : [str] "r"("file_exists"), [fn] "r"((void *)0x19a450)
           : "ecx", "edx", "memory", "cc");
       }
+    }
+  }
+
+  return false;
+}
+
+bool find_files_next(file_ref_t *result, int param2)
+{
+  char full_path[256];
+
+  csmemset(full_path, 0, sizeof(full_path));
+
+  while (g_find_files_index >= 0) {
+    int level = (uint16_t)g_find_files_index;
+    int handle = g_find_file_handles[level];
+
+    if (handle == -1) {
+      path_from_file_reference(g_find_files_location, g_find_files_path,
+                               full_path);
+      path_add_directory(full_path, "*.*");
+
+      handle = XFindFirstFile(full_path, g_find_file_data);
+      g_find_file_handles[level] = handle;
+      if (handle == -1) {
+        path_remove_filename(g_find_files_path);
+        g_find_files_index--;
+        continue;
+      }
+    } else {
+      if (!XFindNextFile(handle, g_find_file_data)) {
+        XCloseHandle(g_find_file_handles[level]);
+        g_find_file_handles[level] = -1;
+        path_remove_filename(g_find_files_path);
+        g_find_files_index--;
+        continue;
+      }
+    }
+
+    if ((*(uint32_t *)&g_find_file_data[0] & 0x10) != 0) {
+      char *entry_name = (char *)&g_find_file_data[0x2C];
+
+      if (csstrcmp(entry_name, ".") != 0 && csstrcmp(entry_name, "..") != 0) {
+        if ((g_find_files_flags & FIND_FILES_DIRECTORIES_BIT) != 0) {
+          csmemset(result, 0, sizeof(*result));
+          result->unk_6 = g_find_files_location;
+          result->magic = FILE_REF_MAGIC;
+          file_reference_add_directory(result, g_find_files_path);
+          file_reference_add_directory(result, entry_name);
+        }
+
+        if ((g_find_files_flags & FIND_FILES_RECURSIVE_BIT) != 0) {
+          if ((g_find_files_flags & FIND_FILES_DIRECTORIES_BIT) == 0) {
+            path_add_directory(g_find_files_path, entry_name);
+          }
+          g_find_files_index++;
+        }
+
+        if ((g_find_files_flags & FIND_FILES_DIRECTORIES_BIT) != 0) {
+          if (param2 != 0) {
+            csmemcpy((void *)param2, &g_find_file_data[0x14], 8);
+          }
+          return true;
+        }
+      }
+    } else if ((g_find_files_flags & FIND_FILES_DIRECTORIES_BIT) == 0) {
+      csmemset(result, 0, sizeof(*result));
+      result->unk_6 = g_find_files_location;
+      result->magic = FILE_REF_MAGIC;
+      file_reference_add_directory(result, g_find_files_path);
+      file_reference_set_name(result, (char *)&g_find_file_data[0x2C]);
+
+      if (param2 != 0) {
+        csmemcpy((void *)param2, &g_find_file_data[0x14], 8);
+      }
+      return true;
     }
   }
 

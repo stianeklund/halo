@@ -18,6 +18,14 @@ binary analysis. It defines the methodology; operational workflows live in
 - Do not add empty stubs.
 - Preserve ABI, stack behavior, field offsets, packing, and side-effect order.
 
+## Efficiency guardrails
+
+- Prefer bounded, evidence-first pulls over broad dumps.
+- Use one strong artifact per claim (decompile snippet, disasm instruction block,
+  or callsite), not redundant copies of all three.
+- Request full-function disassembly only when needed to resolve uncertainty.
+- When touching multiple related functions, prefer batch APIs where available.
+
 ## Evidence policy
 
 Every claim in output must carry an evidence label:
