@@ -24,13 +24,10 @@ void debug_string_to_display(const char *message, int include_timestamp)
   if (*(uint8_t *)0x2ee76c != 0) {
     *(uint8_t *)0x2ee76c = 0;
     debug_string_to_display((const char *)0x2681a4, 0);
-    debug_string_to_display(
-      (const char *)0x268150, 1);
-    crt_sprintf(buf, (const char *)0x268118,
-                (const char *)0x268134);
+    debug_string_to_display((const char *)0x268150, 1);
+    crt_sprintf(buf, (const char *)0x268118, (const char *)0x268134);
     debug_string_to_display(buf, 1);
-    crt_sprintf(buf, (const char *)0x268100,
-                (void *)0x8f230);
+    crt_sprintf(buf, (const char *)0x268100, (void *)0x8f230);
     debug_string_to_display(buf, 1);
   }
 
@@ -48,12 +45,9 @@ void debug_string_to_display(const char *message, int include_timestamp)
       crt_fprintf(stream, (const char *)0x2680b8);
     } else {
       crt_fprintf(stream, (const char *)0x2680d0,
-                  *(int *)((char *)tm + 0x10) + 1,
-                  *(int *)((char *)tm + 0xc),
-                  *(int *)((char *)tm + 0x14) % 100,
-                  *(int *)((char *)tm + 0x8),
-                  *(int *)((char *)tm + 0x4),
-                  *(int *)((char *)tm + 0x0));
+                  *(int *)((char *)tm + 0x10) + 1, *(int *)((char *)tm + 0xc),
+                  *(int *)((char *)tm + 0x14) % 100, *(int *)((char *)tm + 0x8),
+                  *(int *)((char *)tm + 0x4), *(int *)((char *)tm + 0x0));
     }
   }
 
