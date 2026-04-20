@@ -35,6 +35,7 @@ typedef int(__stdcall *xinput_get_changes_fn)(void *, uint32_t *, uint32_t *);
 typedef int(__stdcall *xinput_open_fn)(void *, int, int, int);
 typedef int(__stdcall *xinput_get_state_fn)(int, void *);
 typedef void(__stdcall *xinput_close_fn)(int);
+typedef int(__stdcall *xset_event_fn)(int);
 
 typedef struct xinput_gamepad {
   uint16_t wButtons;
@@ -153,6 +154,16 @@ static input_rumble_state *input_rumble_states(void)
 static int *input_update_callback_arg(void)
 {
   return (int *)0x46bb24;
+}
+
+static int *input_update_event_handle(void)
+{
+  return (int *)0x46bb28;
+}
+
+static uint8_t *input_update_event_pending(void)
+{
+  return (uint8_t *)0x46bb2c;
 }
 
 static uint8_t *input_digital_button_states(void)
@@ -377,6 +388,19 @@ void input_set_rumble(int16_t gamepad_index, uint16_t left, uint16_t right)
     input_rumble_states()[gamepad_index].left = left;
     input_rumble_states()[gamepad_index].right = right;
   }
+}
+
+void input_tick(void)
+{
+  bool pending_cleared;
+
+  pending_cleared = *input_update_event_pending() == 0;
+  if (!pending_cleared) {
+    ((xset_event_fn)0x1cfeaa)(*input_update_event_handle());
+    pending_cleared = *input_update_event_pending() == 0;
+  }
+
+  *input_update_event_pending() = pending_cleared;
 }
 
 void input_get_device_states(void)

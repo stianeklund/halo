@@ -1,3 +1,309 @@
+/* Validate the syntax tree after loading a scenario. Iterates all syntax
+ * nodes and checks for consistency: valid types, valid source offsets,
+ * valid script indices, and correct function references. If any node fails
+ * validation, sets the compile error message and returns false.
+ *
+ * This is the last step before scripts can run — it catches stale compiled
+ * data that no longer matches the current function table or scenario layout.
+ *
+ * Callees (all via hardcoded addresses, not in kb.json):
+ *   0xc3d00 = hs_function_table_get (short function_index) -> void*
+ *   0xc3e60 = hs_script_get_type (uint16 script_ref) -> short
+ *   0xc3fc0 = hs_function_find_by_name (char *name) -> short
+ *   0xc57a0 = hs_source_offset_valid (int offset) -> bool
+ *   0xc73a0 = hs_type_check_expression (@EDI=datum_index) -> bool
+ *   0xcb070 = hs_types_compatible (short actual, short desired) -> bool
+ *
+ * Globals:
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ *   0x46b6e4 = hs_compile_globals.source_size
+ *   0x46b6e8 = hs_compile_globals.compiled_source
+ *   0x46b6fc = hs_compile_globals.error_message
+ *   0x46b700 = hs_compile_globals.error_offset
+ *   0x46b808 = hs_compile_globals.validating (uint8_t)
+ */
+bool hs_validate_syntax(char **error_info, char **error_text)
+{
+  bool ok;
+  int datum_index;
+  char *node;
+  short node_type;
+  short result_type;
+  char *scenario;
+  char *script_element;
+
+  ok = true;
+
+  /* Set up compile globals for validation pass. */
+  scenario = (char *)global_scenario_get();
+  *(int *)0x46b6e8 = *(int *)(scenario + 0x494);
+  scenario = (char *)global_scenario_get();
+  *(int *)0x46b6e4 = *(int *)(scenario + 0x488) - 0x400;
+  *(int *)0x46b6fc = 0;
+  *(uint8_t *)0x46b808 = 1;
+  *(int *)error_info = 0;
+  *(int *)error_text = 0;
+
+  /* Iterate all syntax nodes. */
+  datum_index = data_next_index(*(data_t **)0x5aa6c8, -1);
+  while (datum_index != -1) {
+    if (!ok)
+      break;
+
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+    node_type = *(int16_t *)(node + 0x4);
+
+    /* Check if the node type is valid (4..0x30 inclusive) or type 2. */
+    if (node_type < 4 || node_type > 0x30) {
+      if (node_type != 2) {
+        *(int *)0x46b6fc = (int)"missing type (you need to recompile scripts.)";
+        goto error;
+      }
+      /* Type 2 (function call) — skip to next node. */
+      goto next;
+    }
+
+    /* Check the constant flag (bit 0 of byte at +6). */
+    {
+      char *node2 = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+      if (*(uint8_t *)(node2 + 0x6) & 1) {
+        /* Constant node — check source offset range and type-check. */
+        if (*(int16_t *)(node + 0x4) >= 9 || (*(uint8_t *)(node + 0x6) & 4)) {
+          /* Source offset validation. */
+          bool offset_ok = true;
+          if (*(int *)(node + 0xc) < 0 ||
+              *(int *)(node + 0xc) >= *(int *)0x46b6e4) {
+            *(int *)0x46b6fc =
+              (int)"bad source offset (you need to recompile.)";
+            offset_ok = false;
+          }
+          ok = offset_ok;
+          if (ok) {
+            /* hs_type_check_expression (0xc73a0): @EDI=datum_index. */
+            {
+              int _edi = datum_index;
+              int _result;
+              asm volatile("call *%[fn]"
+                           : "+D"(_edi), "=a"(_result)
+                           : [fn] "r"((void *)0xc73a0)
+                           : "ecx", "edx", "ebx", "esi", "memory", "cc");
+              ok = (bool)(uint8_t)_result;
+            }
+          }
+        }
+
+        if (!ok)
+          goto use_node_type;
+
+        /* If the reparse flag (bit 2) is set, get the script type. */
+        if (*(uint8_t *)(node + 0x6) & 4) {
+          /* hs_script_get_type (0xc3e60): 1 stack arg (uint16). */
+          {
+            int _arg = (int)(uint16_t) * (int16_t *)(node + 0x10);
+            int _result;
+            asm volatile("pushl %[arg]\n\t"
+                         "call *%[fn]\n\t"
+                         "addl $4, %%esp"
+                         : "=a"(_result)
+                         : [fn] "r"((void *)0xc3e60), [arg] "r"(_arg)
+                         : "ecx", "edx", "memory", "cc");
+            result_type = (int16_t)_result;
+          }
+          goto check_type;
+        }
+
+        goto use_node_type;
+      }
+    }
+
+    /* Non-constant node: check the script-reference flag (bit 1). */
+    if (*(uint8_t *)(node + 0x6) & 2) {
+      /* Script reference node. */
+      if (*(int16_t *)(node + 0x2) < 0) {
+        goto check_script_index;
+      }
+
+      {
+        int16_t script_idx = *(int16_t *)(node + 0x2);
+        scenario = (char *)global_scenario_get();
+        if ((int)script_idx >= *(int *)(scenario + 0x49c)) {
+          goto check_script_index;
+        }
+
+        /* tag_block_get_element (0x19b210): 3 stack args. */
+        {
+          char *scenario2 = (char *)global_scenario_get();
+          script_element = (char *)tag_block_get_element(scenario2 + 0x49c,
+                                                         (int)script_idx, 0x5c);
+        }
+
+        if (*(int16_t *)(script_element + 0x20) == 3) {
+          goto script_ok;
+        }
+      }
+
+    check_script_index:
+      if (*(int16_t *)(script_element + 0x20) != 4) {
+        *(int *)0x46b6fc = (int)"bad script index (you need to recompile.)";
+        goto error;
+      }
+
+    script_ok:
+      result_type = *(int16_t *)(script_element + 0x22);
+      goto check_type;
+    }
+
+    /* Non-constant, non-script-reference: function call node. */
+    {
+      char *fn_node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+      int next_expr = *(int *)(fn_node + 0x10);
+
+      if (next_expr == -1) {
+        *(int *)0x46b6fc =
+          (int)"corrupt syntax tree (you need to recompile scripts.)";
+        goto error;
+      }
+
+      {
+        char *inner_node = (char *)datum_get(*(data_t **)0x5aa6c8, next_expr);
+        if (*(int16_t *)(inner_node + 0x4) != 2) {
+          *(int *)0x46b6fc =
+            (int)"corrupt syntax tree (you need to recompile scripts.)";
+          goto error;
+        }
+
+        /* Validate the source offset of the inner node. */
+        {
+          bool src_ok;
+          int src_offset = *(int *)(inner_node + 0xc);
+          {
+            int _arg = src_offset;
+            int _result;
+            asm volatile("pushl %[arg]\n\t"
+                         "call *%[fn]\n\t"
+                         "addl $4, %%esp"
+                         : "=a"(_result)
+                         : [fn] "r"((void *)0xc57a0), [arg] "r"(_arg)
+                         : "ecx", "memory", "cc");
+            src_ok = (bool)(uint8_t)_result;
+          }
+          if (!src_ok)
+            goto error;
+
+          /* Look up the function by name in the compiled source. */
+          {
+            int name_addr = *(int *)(inner_node + 0xc) + *(int *)0x46b6e8;
+            int16_t func_idx;
+            {
+              int _arg = name_addr;
+              int _result;
+              asm volatile("pushl %[arg]\n\t"
+                           "call *%[fn]\n\t"
+                           "addl $4, %%esp"
+                           : "=a"(_result)
+                           : [fn] "r"((void *)0xc3fc0), [arg] "r"(_arg)
+                           : "ecx", "edx", "memory", "cc");
+              func_idx = (int16_t)_result;
+            }
+            if (func_idx == -1) {
+              *(int *)0x46b6fc =
+                (int)"missing function (you need to recompile scripts.)";
+              goto error;
+            }
+
+            /* Update the node's function index and look up the return
+             * type. */
+            *(int16_t *)(node + 0x2) = func_idx;
+
+            /* Call hs_function_table_get twice, matching the original
+             * binary which calls 0xc3d00 with the raw push value first,
+             * then again with the updated node field. */
+            {
+              int _arg = (int)(uint16_t)func_idx;
+              asm volatile("pushl %[arg]\n\t"
+                           "call *%[fn]\n\t"
+                           "addl $4, %%esp"
+                           :
+                           : [fn] "r"((void *)0xc3d00), [arg] "r"(_arg)
+                           : "eax", "ecx", "edx", "memory", "cc");
+            }
+            {
+              int _arg = (int)(uint16_t) * (int16_t *)(node + 0x2);
+              int _result;
+              asm volatile("pushl %[arg]\n\t"
+                           "call *%[fn]\n\t"
+                           "addl $4, %%esp"
+                           : "=a"(_result)
+                           : [fn] "r"((void *)0xc3d00), [arg] "r"(_arg)
+                           : "ecx", "edx", "memory", "cc");
+              result_type = *(int16_t *)_result;
+            }
+            goto check_type;
+          }
+        }
+      }
+    }
+
+  use_node_type:
+    result_type = *(int16_t *)(node + 0x2);
+
+  check_type:
+    if (ok) {
+      /* Validate that result_type is valid (4..0x30) or passthrough
+       * (3). */
+      if ((result_type < 4 || result_type > 0x30) && result_type != 3) {
+        *(int *)0x46b6fc = (int)"type is inconsistent with usage "
+                                "(you need to recompile scripts.)";
+        goto error;
+      }
+
+      /* hs_types_compatible (0xcb070): 2 stack args (result_type,
+       * node_type). */
+      {
+        int _arg1 = (int)(uint16_t)result_type;
+        int _arg2 = (int)(uint16_t) * (int16_t *)(node + 0x4);
+        int _result;
+        asm volatile(
+          "pushl %[a2]\n\t"
+          "pushl %[a1]\n\t"
+          "call *%[fn]\n\t"
+          "addl $8, %%esp"
+          : "=a"(_result)
+          : [fn] "r"((void *)0xcb070), [a1] "r"(_arg1), [a2] "r"(_arg2)
+          : "ecx", "edx", "memory", "cc");
+        if (!(uint8_t)_result) {
+          *(int *)0x46b6fc = (int)"type is inconsistent with usage "
+                                  "(you need to recompile scripts.)";
+          goto error;
+        }
+      }
+      ok = true;
+    }
+    goto next;
+
+  error:
+    ok = false;
+
+  next:
+    datum_index = data_next_index(*(data_t **)0x5aa6c8, datum_index);
+  }
+
+  /* If validation failed, report the error. */
+  if (!ok) {
+    *(int *)error_info = *(int *)0x46b6fc;
+    if (*(int *)0x46b700 != -1) {
+      *(int *)error_text = *(int *)0x46b700 + *(int *)0x46b6e8;
+    }
+  }
+
+  /* Clean up compile globals. */
+  *(int *)0x46b6e8 = 0;
+  *(int *)0x46b6fc = 0;
+  *(uint8_t *)0x46b808 = 0;
+
+  return ok;
+}
+
 /* Compile a HaloScript expression from source text. Allocates syntax nodes,
  * copies source into the compiled source buffer, parses one expression,
  * and wraps it in a begin/void node pair for execution. Returns the root

@@ -591,10 +591,10 @@ void objects_dispose(void)
  * the activation conditions: not already active (bit 0x01), not flagged
  * 0x100000, and has no parent.
  *
- * Confirmed: CALL 0x119320 (datum_get) + CALL 0x13d680 (object_get_and_verify_type).
- * Confirmed: tests header->unk_2 bit 0x01, obj->flags bit 0x100000,
- *            obj->parent_object_index == -1.
- * Confirmed: sets header->unk_2 |= 0x01 on success.
+ * Confirmed: CALL 0x119320 (datum_get) + CALL 0x13d680
+ * (object_get_and_verify_type). Confirmed: tests header->unk_2 bit 0x01,
+ * obj->flags bit 0x100000, obj->parent_object_index == -1. Confirmed: sets
+ * header->unk_2 |= 0x01 on success.
  */
 void object_activate(int object_handle)
 {

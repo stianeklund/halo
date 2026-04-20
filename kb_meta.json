@@ -165,11 +165,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8dd30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8de70": {
       "kind": "function",
       "status": "ported"
     },
+    "0x8df10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8df60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8dff0": {
       "kind": "function",
       "status": "ported"
     },
@@ -190,6 +202,10 @@
       "status": "ported"
     },
     "0x8ef70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f230": {
       "kind": "function",
       "status": "ported"
     },
@@ -604,6 +620,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa7a30": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Returns whether two teams are friendly by checking a 10x10 bitfield at game_allegiance_globals+0xa4"
+      }
+    },
     "0xa7c90": {
       "kind": "function",
       "status": "ported",
@@ -612,7 +635,8 @@
       },
       "inferred": [
         "The +0x94 bitfield tracks allegiance incidents (set=incident occurred, clear=no incident).",
-        "Function at 0x40010 (game_allegiance_apply_change) propagates allegiance changes to AI encounter state."
+        "Function at 0x40010 (game_allegiance_apply_change) propagates allegiance changes to AI encounter state.",
+        "game_allegiance_set uses register args in the original: EAX=entry, BL=friendship, stack param=force. All callers are within game_allegiance.obj so no cross-object thunk is needed."
       ],
       "uncertain": [
         "The name game_allegiance_apply_change for 0x40010 is inferred from its behavior (logging allegiance broken/reformed and updating AI encounters); the original name is unknown."
@@ -621,6 +645,27 @@
     "0xa7e30": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xa7eb0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Creates or reuses an allegiance entry between two teams, populates fields and sets to hostile"
+      }
+    },
+    "0xa7f90": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Removes allegiance entry between two teams, sets to friendly and swaps with last entry"
+      }
+    },
+    "0xa8040": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Bumps incident count on allegiance entry, flips to friendly if threshold reached"
+      }
     },
     "0xa81c0": {
       "kind": "function",
@@ -1146,6 +1191,17 @@
         "The globals at 0x46b6e0-0x46b805 form the hs_compile_globals structure used by the script compiler."
       ]
     },
+    "0xc7840": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0xc73a0 (hs_type_check_expression) takes EDI as an implicit register argument holding the syntax datum index.",
+        "The first call to hs_function_table_get (0xc3d00) at address 0xc7a5c has its return value discarded; the original binary calls it twice, once with the raw func_idx and once re-reading from node+2."
+      ],
+      "uncertain": [
+        "When node[2] < 0 on a script-reference node, script_element is read uninitialized from the stack local at EBP-8; this appears to be original behavior."
+      ]
+    },
     "0xc9050": {
       "kind": "function",
       "status": "ported",
@@ -1554,6 +1610,10 @@
         "The pending_load struct fields at offsets +8 and +10 are read as dword by MSVC but typed as int16_t; the upper bytes are garbage but ignored by callees."
       ]
     },
+    "0xe9810": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe98b0": {
       "kind": "function",
       "status": "ported"
@@ -1618,6 +1678,25 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100910": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Inlined grid dimension helper (originally at 0x1008a0 with EBX register arg) computes smallest (h,v) grid where h*v >= num_players.",
+        "Extra-wide flag gives player 0 a double-width column when grid has spare slots."
+      ],
+      "uncertain": [
+        "Field naming for viewport_bounds_t y0/x0/y1/x1 ordering assumed correct from types.h; disassembly accesses match."
+      ]
+    },
+    "0x100b40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Flag at 0x46da3f is game_state_load_core_pending based on kb.json naming of 0x46da3e.",
+        "The 0x1bfee0 call is cache_files_precache, triggered when byte 0x46da54 is set."
+      ]
+    },
     "0x100c10": {
       "kind": "function",
       "status": "ported",
@@ -1648,11 +1727,25 @@
       "name": "main_frame_rate_debug",
       "name_confidence": "high"
     },
+    "0x1013d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x101970": {
       "kind": "function",
       "status": "ported",
       "name": "main_rasterizer_throttle",
       "name_confidence": "high"
+    },
+    "0x101cd0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Tail-calls input_tick (0xcf7e0) rather than returning directly; C version uses normal call which adds a RET instruction."
+      ],
+      "uncertain": [
+        "Ring buffer modulus is 15 (0xf), not 16; confirmed from IDIV ECX where ECX=0xf."
+      ]
     },
     "0x101d90": {
       "kind": "function",
@@ -1692,6 +1785,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1021c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Global pointers at 0x31fc1c/0x31fc3c/0x31fc44 are default camera position/forward/up vectors.",
+        "0xff4c0 is likely game_in_editor predicate; 0x86410 returns object type."
+      ],
+      "uncertain": [
+        "The REP MOVSD copy from window+0x58 to window+0x04 may be a previous-frame camera snapshot; exact semantic not confirmed."
+      ]
+    },
     "0x102370": {
       "kind": "function",
       "status": "ported"
@@ -1703,6 +1807,16 @@
     "0x1024c0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x102510": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x7e0b0 is bitmap_2d_new; creates a 2D bitmap from width/height/unk/depth."
+      ],
+      "uncertain": [
+        "Tile coordinate layout in the int16_t[4] array inferred from PUSH order; inner_col/inner_row/outer_col/outer_row mapping may need verification."
+      ]
     },
     "0x102c40": {
       "kind": "function",
@@ -1905,6 +2019,10 @@
         "object_data_t+0xC0 (unk_192) is the garbage linked list next-pointer field."
       ]
     },
+    "0x13dfc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13f060": {
       "kind": "function",
       "status": "ported",
@@ -1934,6 +2052,10 @@
       "status": "ported",
       "name": "objects_dispose",
       "name_confidence": "high"
+    },
+    "0x13fb30": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x13fd00": {
       "kind": "function",
@@ -1969,6 +2091,10 @@
         "Model tag offset 0xb8 is the region count as int16_t."
       ]
     },
+    "0x140230": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x140bc0": {
       "kind": "function",
       "status": "ported",
@@ -1986,6 +2112,10 @@
       "inferred": [
         "Thin wrapper calling FUN_00140bc0 (0x140bc0) with param_2=0; param_2=1 would also delete sibling objects recursively. FUN_00140bc0 is the real implementation: sets datum.unk_2 bit 3 (0x08, pending removal), clears the active bit in obj->flags, and calls FUN_0013eff0 (0x13eff0, EDI=object_handle) to clear the object's name-list entry."
       ]
+    },
+    "0x140ce0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x140eb0": {
       "kind": "function",
@@ -2029,7 +2159,7 @@
     },
     "0x141b70": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The assert_valid_real_matrix4x3 macro expands to ~30 lines of inline validation checking scale, forward/left/up magnitude, perpendicularity dot products, and position for NaN/Inf; repeated 3 times at lines 0xb37, 0xb69, 0xb77.",
         "Parent node matrix scale adjustment (when scale != 1.0) copies the parent matrix to a local buffer and resets scale to 1.0, then scales the orientation position by the original scale factor."
@@ -2245,6 +2375,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18f180": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x190db0": {
       "kind": "function",
       "status": "ported"
@@ -2300,6 +2434,18 @@
         "find_files_begin at 0x19a040 and find_files_next at 0x19aed0 are files_windows.obj helpers for directory enumeration."
       ]
     },
+    "0x199620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x199700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x199780": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x199810": {
       "kind": "function",
       "status": "ported",
@@ -2312,12 +2458,44 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x19a040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19a110": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19a1a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19a230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19a290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19a370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19a450": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19a640": {
       "kind": "function",
       "status": "ported",
       "uncertain": [
         "The file_error function at 0x19a450 takes file_ref in EAX as a register arg; if a future port adds it to kb.json with @eax, the inline asm call should be replaced."
       ]
+    },
+    "0x19aed0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x19b0d0": {
       "kind": "function",
@@ -2762,6 +2940,10 @@
         "The call to 0x1d9068 is MSVC __ftol2 (float-to-long truncation via ST0); replaced with a C cast in the lift.",
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
+    },
+    "0x326a08": {
+      "kind": "data",
+      "status": "ported"
     }
   }
 }

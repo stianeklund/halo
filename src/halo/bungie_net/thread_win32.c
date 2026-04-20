@@ -14,8 +14,8 @@
 
 /* XDK XAPI import thunks (stdcall) */
 typedef int(__stdcall *CreateThread_fn)(void *attrs, int stack_size,
-                                       void *start, int param,
-                                       int creation_flags, int *thread_id);
+                                        void *start, int param,
+                                        int creation_flags, int *thread_id);
 typedef int(__stdcall *SetThreadPriority_fn)(int handle, int priority);
 typedef int(__stdcall *ResumeThread_fn)(int handle);
 typedef void(__stdcall *CloseHandle_fn)(int handle);
@@ -50,7 +50,8 @@ static thread_slot_t *thread_slots(void)
  *
  * Confirmed: assert "function" at line 0x6b, "thread_reference" at line 0x6c.
  * Confirmed: CREATE_SUSPENDED (0x4) flag, stack size 0x4000.
- * Confirmed: priority_flags bit 0x2 = below-normal (-1), bit 0x4 = above-normal (+1).
+ * Confirmed: priority_flags bit 0x2 = below-normal (-1), bit 0x4 = above-normal
+ * (+1).
  */
 bool thread_new(int priority_flags, void *function, int param,
                 void **thread_reference)
@@ -64,14 +65,14 @@ bool thread_new(int priority_flags, void *function, int param,
 
   if (function == NULL) {
     display_assert("function",
-                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c",
-                   0x6b, 1);
+                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c", 0x6b,
+                   1);
     system_exit(-1);
   }
   if (thread_reference == NULL) {
     display_assert("thread_reference",
-                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c",
-                   0x6c, 1);
+                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c", 0x6c,
+                   1);
     system_exit(-1);
   }
 
@@ -126,8 +127,8 @@ bool thread_is_done(void *thread_reference)
 
   if (slot == NULL) {
     display_assert("thread_reference",
-                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c",
-                   0x98, 1);
+                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c", 0x98,
+                   1);
     system_exit(-1);
   }
 
@@ -153,14 +154,14 @@ void thread_close(void *thread_reference)
 
   if (slot == NULL) {
     display_assert("thread_reference",
-                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c",
-                   0xa8, 1);
+                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c", 0xa8,
+                   1);
     system_exit(-1);
   }
   if (slot->in_use == 0) {
     display_assert("thread_reference->in_use",
-                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c",
-                   0xa9, 1);
+                   "c:\\halo\\SOURCE\\bungie_net\\common\\thread_win32.c", 0xa9,
+                   1);
     system_exit(-1);
   }
 

@@ -613,6 +613,10 @@
         {
           "decl": "void cache_files_precache_map_end(void);",
           "addr": "0x1bda30"
+        },
+        {
+          "decl": "void cache_files_precache(void);",
+          "addr": "0x1bfee0"
         }
       ]
     },
@@ -711,6 +715,10 @@
         {
           "decl": "void console_initialize_for_new_map(void);",
           "addr": "0xff460"
+        },
+        {
+          "decl": "void console_flush(void);",
+          "addr": "0xff4a0"
         },
         {
           "decl": "void console_printf(int channel, const char *format, ...);",
@@ -818,15 +826,18 @@
         },
         {
           "decl": "char *csstrcat(char *destination, const char *source, size_t max_size);",
-          "addr": "0x8dd30"
+          "addr": "0x8dd30",
+          "ported": true
         },
         {
           "decl": "char *csstrtok(char *string, const char *delimiters);",
-          "addr": "0x8df10"
+          "addr": "0x8df10",
+          "ported": true
         },
         {
           "decl": "char *csstrcpy(char *destination, const char *source);",
-          "addr": "0x8dff0"
+          "addr": "0x8dff0",
+          "ported": true
         },
         {
           "decl": "void *csmemcpy(void *destination, void *source, size_t size);",
@@ -1120,6 +1131,10 @@
         {
           "decl": "void error(unsigned __int16 a1, const char *a2, ...);",
           "addr": "0x8f390"
+        },
+        {
+          "decl": "bool error_occurred(void);",
+          "addr": "0x8f600"
         }
       ]
     },
@@ -1224,12 +1239,20 @@
           "addr": "0x19a1a0"
         },
         {
+          "decl": "void path_remove_filename(char *path);",
+          "addr": "0x19a230"
+        },
+        {
           "decl": "void path_split(const char *path, char **directory, char **parent_directory, char **filename, char **extension, int flags);",
           "addr": "0x19a290"
         },
         {
           "decl": "void path_from_file_reference(int16_t location, const char *path, char *out);",
           "addr": "0x19a370"
+        },
+        {
+          "decl": "void file_error(file_ref_t *info, const char *function_name);",
+          "addr": "0x19a450"
         },
         {
           "decl": "bool find_files_next(file_ref_t *result, int param2);",
@@ -1877,6 +1900,10 @@
         {
           "decl": "void input_set_rumble(int16_t gamepad_index, uint16_t left, uint16_t right);",
           "addr": "0xcf780"
+        },
+        {
+          "decl": "void input_tick(void);",
+          "addr": "0xcf7e0"
         },
         {
           "decl": "void input_get_device_states(void);",

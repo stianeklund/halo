@@ -153,6 +153,198 @@ void main_reset_player_actions(void)
 }
 
 /*
+ * compute_window_bounds - 0x100910
+ *
+ * Computes viewport split bounds for a given player in a multi-player split
+ * screen layout. Divides the screen area (from globals at 0x32565c/0x325660
+ * for x and 0x32565e/0x325662 for y) into a grid, and assigns a sub-rectangle
+ * to the player at player_index. Also computes a "full" bounds (a3) that
+ * extends to the screen edges for border players.
+ *
+ * Calls an inlined grid dimension helper (originally at 0x1008a0) that takes
+ * EBX as a register arg: finds the smallest (horiz, vert) grid such that
+ * horiz * vert >= num_players.
+ *
+ * When num_players > horizontal_count * vertical_count, player 0 is given a
+ * double-wide column (bVar5 flag set), and all other indices are shifted by 1.
+ *
+ * The "gap" value is 4 pixels when num_players >= 2, else 0.
+ *
+ * Confirmed:
+ *  - Assert strings match: "player_index<num_players",
+ *    "vertical_index>=0 && vertical_index<vertical_count",
+ *    "horizontal_index>=0 && horizontal_index<horizontal_count".
+ *  - Source path: "c:\\halo\\SOURCE\\main\\main.c" with lines 0x54f, 0x56e,
+ * 0x56f.
+ *  - All screen bounds are int16_t accessed via MOVSX.
+ *  - Gap padding applied to inner edges; outer edges replaced by full viewport.
+ */
+void compute_window_bounds(int player_index, int num_players,
+                           viewport_bounds_t *a3, viewport_bounds_t *a4)
+{
+  int horizontal_count;
+  int vertical_count;
+  int vertical_index;
+  int horizontal_index;
+  int cell_height;
+  int cell_width;
+  int wide_cell_width;
+  bool extra_wide;
+  uint16_t gap;
+
+  /* --- assert: player_index < num_players --- */
+  assert_halt(player_index < num_players);
+
+  /* gap between sub-windows when more than 1 player */
+  gap = (num_players < 2) ? 0 : 4;
+  extra_wide = false;
+
+  /* --- inlined grid dimension helper (originally at 0x1008a0) ---
+   * Finds the smallest (h, v) such that h * v >= num_players, with h <= v.
+   * EBX = num_players (register arg in original). */
+  {
+    int h = 1, v = 1;
+    assert_halt(num_players > 0);
+    if (num_players > 1) {
+      while (v * h < num_players) {
+        if (h < v)
+          h++;
+        else {
+          h = 1;
+          v++;
+        }
+      }
+    }
+    horizontal_count = h;
+    vertical_count = v;
+  }
+
+  /* When grid has spare slots, player 0 gets a double-wide column.
+   * Other players shift by +1 so they skip player 0's extra slot. */
+  if (horizontal_count * vertical_count - num_players != 0 &&
+      num_players <= horizontal_count * vertical_count) {
+    if (player_index == 0) {
+      extra_wide = true;
+    } else {
+      player_index = player_index + 1;
+    }
+  }
+
+  vertical_index = player_index / horizontal_count;
+  horizontal_index = player_index - vertical_index * horizontal_count;
+
+  assert_halt(vertical_index >= 0 && vertical_index < vertical_count);
+  assert_halt(horizontal_index >= 0 && horizontal_index < horizontal_count);
+
+  /* screen area globals (not in kb.json) */
+  {
+    int16_t scr_y0 = *(int16_t *)0x32565c;
+    int16_t scr_y1 = *(int16_t *)0x325660;
+    int16_t scr_x0 = *(int16_t *)0x32565e;
+    int16_t scr_x1 = *(int16_t *)0x325662;
+
+    cell_height = (int16_t)((scr_y1 - scr_y0) / vertical_count);
+    cell_width = (int16_t)((scr_x1 - scr_x0) / horizontal_count);
+    wide_cell_width = cell_width * (extra_wide ? 2 : 1);
+
+    /* compute sub-window bounds (a4) */
+    a4->x0 = (int16_t)(horizontal_index * wide_cell_width + scr_x0);
+    a4->x1 = (int16_t)((horizontal_index + 1) * wide_cell_width + scr_x0);
+    a4->y0 = (int16_t)(vertical_index * cell_height + scr_y0);
+    a4->y1 = (int16_t)((vertical_index + 1) * cell_height + scr_y0);
+
+    /* copy to full bounds (a3) before gap adjustments */
+    *(int *)&a3->y0 = *(int *)&a4->y0;
+    *(int *)&a3->y1 = *(int *)&a4->y1;
+
+    /* apply gap padding to inner edges of a4 */
+    a4->x0 = a4->x0 + (int16_t)(horizontal_index * gap);
+    a4->x1 = a4->x1 - (int16_t)((horizontal_index == 0) * gap);
+    a4->y0 = a4->y0 + (int16_t)(vertical_index * gap);
+    a4->y1 = a4->y1 - (int16_t)((vertical_index == 0) * gap);
+
+    /* replace outer edges of a3 with full viewport bounds */
+    if (horizontal_index == 0) {
+      a3->x0 = *(int16_t *)0x325656;
+    }
+    if ((extra_wide ? 1 : 0) + horizontal_index + 1 == horizontal_count) {
+      a3->x1 = *(int16_t *)0x32565a;
+    }
+    if (vertical_index == 0) {
+      a3->y0 = *(int16_t *)0x325654;
+    }
+    if (vertical_index + 1 == vertical_count) {
+      a3->y1 = *(int16_t *)0x325658;
+    }
+  }
+}
+
+/*
+ * main_new_map - 0x100b40
+ *
+ * Loads a new map from the given game_options. Flushes input, attempts a
+ * game_load, initializes the map if successful, creates local players and
+ * starts game time, then fires the initial game pulse.
+ *
+ * Confirmed:
+ *  - Calls input_flush (0xcf500), game_load (0xa76b0),
+ * game_initialize_for_new_map (0xa7780), error_occurred (0x8f600),
+ * create_local_players (0x1000d0), game_time_start (0xb5f40),
+ * game_initial_pulse (0xa73c0).
+ *  - On game_load failure: error(0, "game_load() failed.").
+ *  - On error_occurred: error(0, "main_new_map() failed.").
+ *  - Clears many main_globals flags after game_initial_pulse.
+ *  - Copies 0x46da3f to 0x46da3e before clearing 0x46da3f.
+ *  - Sets word at 0x46da40 to 0xffff (-1).
+ *  - If byte at 0x46da54 is set, calls 0x1bfee0 (cache file precache).
+ *  - Calls ui_widgets_disable_pause_game(0x1e) at exit.
+ */
+void main_new_map(game_options_t *game_options)
+{
+  input_flush();
+  if (game_load(game_options)) {
+    game_initialize_for_new_map();
+  } else {
+    error(0, "game_load() failed.");
+  }
+
+  if (error_occurred()) {
+    error(0, "main_new_map() failed.");
+  } else {
+    create_local_players();
+    game_time_start();
+  }
+
+  game_initial_pulse();
+
+  /* Copy game_state_load_core_pending (0x46da3f) to 0x46da3e, then clear
+   * many main_globals flags. Order matches original disassembly. */
+  {
+    uint8_t saved = *(uint8_t *)0x46da3f;
+    uint8_t da54 = *(uint8_t *)0x46da54;
+
+    *(uint8_t *)0x46da24 = 0;
+    main_change_map_name_pending = 0;
+    *(uint8_t *)0x46da26 = 0;
+    *(uint8_t *)0x46da27 = 0;
+    byte_46DA28 = 0;
+    main_won_map_private_pending = 0;
+    byte_46DA3B = 0;
+    byte_46DA3C = 0;
+    *(uint8_t *)0x46da3d = 0;
+    *(uint8_t *)0x46da3f = 0;
+    word_46DA40 = -1;
+    game_state_load_core_pending = saved;
+
+    if (da54 != 0) {
+      cache_files_precache();
+    }
+  }
+
+  ui_widgets_disable_pause_game(0x1e);
+}
+
+/*
  * main_change_map_name - 0x100c10
  *
  * Called from the main game loop when main_change_map_name_pending (0x46da25)
@@ -1164,6 +1356,64 @@ void main_rasterizer_throttle(void)
 }
 
 /*
+ * main_vertical_blank_interrupt_handler - 0x101cd0
+ *
+ * Interrupt-context callback invoked by the D3D vblank interrupt. Increments
+ * the 64-bit hardware flip counter at 0x325678/0x32567c, then optionally
+ * records timing history when a flip-count pointer is available.
+ *
+ * Confirmed:
+ *  - Increments qword at 0x325678 (lo) / 0x32567c (hi) by 1 with carry.
+ *  - If flip_count_ptr (0x46ddd8) is NULL: copies the current flip counter
+ *    to the "presented" snapshot at 0x325680/0x325684, then tail-calls
+ *    input_tick (0xcf7e0).
+ *  - If flip_count_ptr is non-NULL and *flip_count_ptr != DAT_325670:
+ *      - Stores (uint16_t)(flip_lo - presented_lo) into the ring buffer
+ *        at 0x46ddde + word_46DDDC * 2.
+ *      - Advances word_46DDDC = (word_46DDDC + 1) % 15.
+ *      - Copies current flip counter to presented snapshot.
+ *      - Updates DAT_325670 = *flip_count_ptr.
+ *  - Always tail-calls input_tick (0xcf7e0) at exit.
+ *  - No stack frame (no PUSH EBP / MOV EBP,ESP in original — but we emit
+ *    one from C; the function is simple enough that the overhead is fine).
+ */
+void main_vertical_blank_interrupt_handler(void)
+{
+  uint32_t flip_lo;
+  uint32_t presented_lo;
+  int16_t ring_index;
+
+  /* increment 64-bit flip counter with carry */
+  flip_lo = *(uint32_t *)0x325678 + 1;
+  *(uint32_t *)0x325678 = flip_lo;
+  *(uint32_t *)0x32567c = *(uint32_t *)0x32567c + (uint32_t)(flip_lo == 0);
+
+  if (flip_count_ptr == NULL) {
+    /* no flip-count source: just snapshot the counter */
+    *(uint32_t *)0x325680 = *(uint32_t *)0x325678;
+    *(uint32_t *)0x325684 = *(uint32_t *)0x32567c;
+    input_tick();
+    return;
+  }
+
+  if (*flip_count_ptr != *(int *)0x325670) {
+    /* flip count changed: record timing delta in ring buffer */
+    presented_lo = *(uint16_t *)0x325680;
+    ring_index = word_46DDDC;
+    *(int16_t *)(0x46ddde + ring_index * 2) =
+      (int16_t)((uint16_t) * (uint32_t *)0x325678 - (uint16_t)presented_lo);
+
+    word_46DDDC = (int16_t)((ring_index + 1) % 15);
+
+    *(uint32_t *)0x325680 = *(uint32_t *)0x325678;
+    *(uint32_t *)0x325684 = *(uint32_t *)0x32567c;
+    *(int *)0x325670 = *flip_count_ptr;
+  }
+
+  input_tick();
+}
+
+/*
  * main_save_current_solo_map - 0x101d90
  *
  * Writes the current solo-map name to "z:\\last_solo.txt" so it can be
@@ -1450,6 +1700,140 @@ void main_pregame_render(void)
   collision_log_end_period();
 }
 
+/*
+ * set_window_camera_values - 0x1021c0
+ *
+ * Populates the camera fields of a window_t struct (starting at offset 0x58)
+ * from either an observer camera (a3 != NULL) or default global camera
+ * pointers when a3 is NULL.
+ *
+ * Confirmed:
+ *  - window param in EDI (stack arg [EBP+8]), camera param in EBX ([EBP+0xc]).
+ *  - Copies three 12-byte vectors (position, forward, up) into window+0x58,
+ *    window+0x64, window+0x70 respectively.
+ *  - Computes vertical_field_of_view = 2 * atan2(tan(fov_half) * scale, 1.0)
+ *    and stores at window+0x80.
+ *  - When a3 != NULL and window->player != -1, and neither ff4c0 nor
+ *    game_time_get_paused returns true, and object type != 3: applies a
+ *    matrix transform from the player's object matrix to the camera vectors.
+ *  - Sets window+0x7c (unk byte) to 0.
+ *  - Copies globals at 0x325694/0x325698 to window+0x94/0x98.
+ *  - If *(byte*)0x5aa255 == 0: copies 0x54 bytes (21 dwords) from the
+ *    camera area (window+0x58) back to window+0x04 (the previous-frame
+ *    camera snapshot), using REP MOVSD.
+ *
+ * Inferred:
+ *  - 0x31fc1c, 0x31fc3c, 0x31fc44 are global pointers to default camera
+ *    position, forward, and up vectors (used when no observer is active).
+ *  - 0x25afcc is a float scale factor (0.75) for FOV tangent.
+ *  - 0x2573d8 is double 1.0 (used as atan2 denominator).
+ *  - 0x186460 is render_camera_get_adjusted_field_of_view_tangent (tan of
+ *    half FOV).
+ *  - 0xff4c0 is likely "game_in_editor" or similar predicate.
+ *  - 0xa3370 is object_get_world_matrix (extracts a 4x3 matrix for a datum).
+ *  - 0x10a110 builds a 4x3 matrix from position/forward/up vectors.
+ *  - 0x109850 is matrix4x3_multiply.
+ *  - 0x109540 decomposes a 4x3 matrix back into position/forward/up.
+ *  - 0x5aa255 is a "first frame" or "camera not yet initialized" flag.
+ */
+void set_window_camera_values(void *window, float *a3)
+{
+  char *win = (char *)window;
+  float *dest_pos = (float *)(win + 0x58);
+  float *dest_fwd = (float *)(win + 0x64);
+  float *dest_up = (float *)(win + 0x70);
+
+  typedef double(__cdecl * fn_tan_fov_t)(float half_fov);
+  typedef bool(__cdecl * fn_in_editor_t)(void);
+  typedef int16_t(__cdecl * fn_object_type_t)(uint16_t datum);
+  typedef void(__cdecl * fn_get_matrix_t)(uint16_t datum, float *out);
+  typedef void(__cdecl * fn_build_matrix_t)(float *out, float *pos, float *fwd,
+                                            float *up);
+  typedef void(__cdecl * fn_mul_matrix_t)(float *a, float *b, float *out);
+  typedef void(__cdecl * fn_decompose_t)(float *mat, float *pos, float *fwd,
+                                         float *up);
+
+  if (a3 != NULL) {
+    /* copy position (a3+0x00), forward (a3+0x20), up (a3+0x2c) */
+    dest_pos[0] = a3[0];
+    dest_pos[1] = a3[1];
+    dest_pos[2] = a3[2];
+    dest_fwd[0] = a3[8]; /* offset 0x20 / 4 = 8 */
+    dest_fwd[1] = a3[9];
+    dest_fwd[2] = a3[10];
+    dest_up[0] = a3[11]; /* offset 0x2c / 4 = 11 */
+    dest_up[1] = a3[12];
+    dest_up[2] = a3[13];
+
+    /* vertical_field_of_view = 2 * atan2(tan(a3[0xe]) * scale, 1.0) */
+    {
+      double t = ((fn_tan_fov_t)0x186460)(a3[14]);
+      double scaled = t * (double)*(float *)0x25afcc;
+      double angle = atan2(scaled, *(double *)0x2573d8);
+      *(float *)(win + 0x80) = (float)(angle + angle);
+    }
+
+    /* apply object matrix transform if player is valid and not in editor
+     * or paused, and object type != 3 */
+    if (*(int16_t *)win != -1) {
+      if (!((fn_in_editor_t)0xff4c0)()) {
+        if (!game_time_get_paused()) {
+          uint16_t player_datum = *(uint16_t *)win;
+          int16_t obj_type = ((fn_object_type_t)0x86410)(player_datum);
+          if (obj_type != 3) {
+            float obj_matrix[13]; /* 4x3 matrix = 52 bytes */
+            float cam_matrix[13];
+            ((fn_get_matrix_t)0xa3370)(player_datum, obj_matrix);
+            ((fn_build_matrix_t)0x10a110)(cam_matrix, a3, a3 + 8, a3 + 11);
+            ((fn_mul_matrix_t)0x109850)(cam_matrix, obj_matrix, cam_matrix);
+            ((fn_decompose_t)0x109540)(cam_matrix, dest_pos, dest_fwd, dest_up);
+          }
+        }
+      }
+    }
+  } else {
+    /* no observer camera: use global default camera pointers */
+    {
+      float *src = *(float **)0x31fc1c;
+      dest_pos[0] = src[0];
+      dest_pos[1] = src[1];
+      dest_pos[2] = src[2];
+    }
+    {
+      float *src = *(float **)0x31fc3c;
+      dest_fwd[0] = src[0];
+      dest_fwd[1] = src[1];
+      dest_fwd[2] = src[2];
+    }
+    {
+      float *src = *(float **)0x31fc44;
+      dest_up[0] = src[0];
+      dest_up[1] = src[1];
+      dest_up[2] = src[2];
+    }
+
+    /* default FOV: tan(1.3962634) * scale, doubled atan2 */
+    {
+      double t = ((fn_tan_fov_t)0x186460)(1.3962634f);
+      double scaled = t * (double)*(float *)0x25afcc;
+      double angle = atan2(scaled, *(double *)0x2573d8);
+      *(float *)(win + 0x80) = (float)(angle + angle);
+    }
+  }
+
+  /* clear unk byte at offset 0x7c */
+  *(uint8_t *)(win + 0x7c) = 0;
+
+  /* copy timing globals */
+  *(uint32_t *)(win + 0x94) = *(uint32_t *)0x325694;
+  *(uint32_t *)(win + 0x98) = *(uint32_t *)0x325698;
+
+  /* if 0x5aa255 is clear, snapshot camera to previous-frame area */
+  if (*(uint8_t *)0x5aa255 == 0) {
+    qmemcpy(win + 0x04, win + 0x58, 0x54);
+  }
+}
+
 void main_present_frame(void)
 {
   const char *err_msg;
@@ -1496,16 +1880,128 @@ void main_setup_connection(void)
 
 void main_initialize_time(void)
 {
-// FIXME: d3d_find_flipcount checks handler address, so we cannot
-//        provide function reference here until we re-implement it.
-#define main_vertical_blank_interrupt_handler (void *)0x101CD0
+  /* d3d_find_flipcount compares the stored callback pointer against the
+   * original XBE address.  The forward thunk for our ported C function
+   * lives at a different address, so we must pass the raw original
+   * address here.  The reverse thunk at 0x101cd0 redirects into our
+   * ported main_vertical_blank_interrupt_handler. */
+#define VBLANK_HANDLER_ADDR (void *)0x101CD0
 
   unk_time_globals.unk_0 = system_milliseconds();
   unk_time_globals.unk_8 = 0L;
-  rasterizer_set_vblank_callback(main_vertical_blank_interrupt_handler);
+  rasterizer_set_vblank_callback(VBLANK_HANDLER_ADDR);
   word_46DDDC = 0;
   csmemset(word_46DDDE, 0, 0x1Eu);
   flip_count_ptr = d3d_find_flipcount();
+#undef VBLANK_HANDLER_ADDR
+}
+
+/*
+ * screenshot_render - 0x102510
+ *
+ * Renders and saves multi-resolution screenshots. Takes the window array via
+ * EDI (register arg). Clamps the screenshot multiplier (int16 at 0x31fa98)
+ * to [1, 3], creates a scaled bitmap via bitmap_2d_new (0x7e0b0), renders
+ * each tile of each screenshot frame, saves each as a numbered TIF file,
+ * then deletes the bitmap.
+ *
+ * Confirmed:
+ *  - Register arg: EDI = window pointer (void *a1@<edi>).
+ *  - Clamp logic: if multiplier < 1, set 1; if > 3, set 3; else keep.
+ *  - Bitmap created with scaled screen dimensions * multiplier.
+ *  - Nested loop: for each of global_screenshot_count x global_screenshot_count
+ *    outer frames, for each multiplier x multiplier inner tiles.
+ *  - When global_screenshot_count < 2 AND multiplier < 2: single-shot mode
+ *    (render_frame gets NULL tile coords, render_frame_present gets NULL).
+ *  - Otherwise: render_frame and render_frame_present get tile coordinate
+ *    pointers.
+ *  - File format: "%dscreenshot%d%d.tif" with (screenshot_index, row, col).
+ *  - After all frames: increments screenshot_index (0x46da0e), calls
+ *    bitmap_delete (0x7c8f0).
+ *  - Clears global_screenshot_count to 0 at exit.
+ */
+void screenshot_render(void *a1)
+{
+  int16_t multiplier;
+  void *bitmap;
+  int16_t outer_row, outer_col;
+  int16_t inner_row, inner_col;
+  char path[512];
+  file_ref_t file_ref;
+  int16_t tile_coords[4]; /* local_8, local_6, local_4, local_2 */
+  const char *err_msg;
+
+  typedef void *(__cdecl * fn_bitmap_new_t)(int width, int height, int unk,
+                                            int depth);
+  typedef void(__cdecl * fn_render_frame_t)(
+    void *win, int16_t count, int16_t *a4, int16_t *a5, void *bitmap, float a7);
+  typedef void(__cdecl * fn_render_present_t)(int16_t * a1, void *bitmap);
+  typedef const char *(__cdecl * fn_tiff_export_t)(file_ref_t * info,
+                                                   void *bitmap);
+
+  /* clamp multiplier to [1, 3] */
+  multiplier = *(int16_t *)0x31fa98;
+  if (multiplier < 1) {
+    *(int16_t *)0x31fa98 = 1;
+  } else if (multiplier > 3) {
+    *(int16_t *)0x31fa98 = 3;
+  }
+
+  /* create scaled bitmap */
+  {
+    int16_t scr_x0 = *(int16_t *)0x325654;
+    int16_t scr_x1 = *(int16_t *)0x325658;
+    int16_t scr_y0 = *(int16_t *)0x325656;
+    int16_t scr_y1 = *(int16_t *)0x32565a;
+    int w = *(int16_t *)0x31fa98 * (scr_x1 - scr_x0);
+    int h = *(int16_t *)0x31fa98 * (scr_y1 - scr_y0);
+    bitmap = ((fn_bitmap_new_t)0x7e0b0)(w, h, 0, 10);
+  }
+
+  if (bitmap == NULL || *(int *)((char *)bitmap + 0x2c) == 0) {
+    goto done;
+  }
+
+  console_printf(1, "");
+  console_flush();
+
+  for (outer_row = 0; outer_row < global_screenshot_count; outer_row++) {
+    for (outer_col = 0; outer_col < global_screenshot_count; outer_col++) {
+      for (inner_row = 0; inner_row < *(int16_t *)0x31fa98; inner_row++) {
+        for (inner_col = 0; inner_col < *(int16_t *)0x31fa98; inner_col++) {
+          tile_coords[0] = inner_col; /* local_8: x tile */
+          tile_coords[1] = inner_row; /* local_6: y tile */
+          tile_coords[2] = outer_col; /* local_4: outer x */
+          tile_coords[3] = outer_row; /* local_2: outer y */
+
+          if (global_screenshot_count < 2 && *(int16_t *)0x31fa98 < 2) {
+            /* single-shot: no tile coordinates */
+            ((fn_render_frame_t)0x185680)(a1, 1, NULL, NULL, bitmap, 0.0f);
+            ((fn_render_present_t)0x184dc0)(NULL, bitmap);
+          } else {
+            ((fn_render_frame_t)0x185680)(a1, 1, &tile_coords[2],
+                                          &tile_coords[0], bitmap, 0.0f);
+            ((fn_render_present_t)0x184dc0)(&tile_coords[0], bitmap);
+          }
+        }
+      }
+
+      /* save TIF file */
+      crt_sprintf(path, "%dscreenshot%d%d.tif", (int)*(uint16_t *)0x46da0e,
+                  (int)outer_row, (int)outer_col);
+      file_reference_create_from_path(&file_ref, path, 0);
+      err_msg = ((fn_tiff_export_t)0x7f5e0)(&file_ref, bitmap);
+      if (err_msg != NULL) {
+        error(2, err_msg);
+      }
+    }
+  }
+
+  *(int16_t *)0x46da0e = *(int16_t *)0x46da0e + 1;
+  bitmap_delete(bitmap);
+
+done:
+  global_screenshot_count = 0;
 }
 
 /*
