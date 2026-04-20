@@ -1291,6 +1291,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xcf7e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcf830": {
       "kind": "function",
       "status": "ported"
