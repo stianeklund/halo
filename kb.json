@@ -661,6 +661,10 @@
           "addr": "0x1c5980"
         },
         {
+          "decl": "void *bink_memory_pool_alloc(int alignment@<eax>, int alloc_size@<ecx>);",
+          "addr": "0x1c5990"
+        },
+        {
           "decl": "void bink_playback_stop(void);",
           "addr": "0x1c62a0"
         },
@@ -849,6 +853,10 @@
         {
           "decl": "void collision_log_initialize(void);",
           "addr": "0x14d010"
+        },
+        {
+          "decl": "void collision_log_period_helper(int time_period@<esi>, int begin_flag);",
+          "addr": "0x14d080"
         },
         {
           "decl": "void collision_log_begin_period(__int16 time_period);",
@@ -1738,7 +1746,7 @@
           "addr": "0xaaf20"
         },
         {
-          "decl": "bool game_engine_check_input_button(void);",
+          "decl": "bool game_engine_check_input_button(int button_index@<edi>);",
           "addr": "0xab420"
         },
         {
@@ -1835,6 +1843,10 @@
         {
           "decl": "void sound_impulse_start(int sound_tag_index, float scale);",
           "addr": "0x1c7480"
+        },
+        {
+          "decl": "bool sound_cluster_is_audible(void *location@<esi>);",
+          "addr": "0x1c7c30"
         },
         {
           "decl": "void game_sound_dispose_from_old_map(void);",
@@ -2055,8 +2067,16 @@
           "addr": "0xc3ee0"
         },
         {
+          "decl": "bool hs_load_source_file(void *file_ref@<ebx>);",
+          "addr": "0xc4660"
+        },
+        {
           "decl": "bool hs_needs_recompile(void);",
           "addr": "0xc47c0"
+        },
+        {
+          "decl": "void hs_report_compile_error(void *error_info, char *error_text@<esi>, char *script_element@<ebx>, void *source_start@<edi>);",
+          "addr": "0xc4900"
         },
         {
           "decl": "bool hs_mark_recompile(void);",
@@ -2167,6 +2187,10 @@
       "name": "hud_messaging.obj",
       "source": "interface/hud_messaging.c",
       "functions": [
+        {
+          "decl": "void *hud_find_message_slot(int base, int param2, int tag_handle@<esi>);",
+          "addr": "0xd5070"
+        },
         {
           "decl": "_BYTE *scripted_hud_messages_clear(void);",
           "addr": "0xd5120"
@@ -2597,6 +2621,18 @@
           "addr": "0x13dfc0"
         },
         {
+          "decl": "void object_child_list_remove(void *list_head@<eax>, int object_handle@<ebx>);",
+          "addr": "0x13e510"
+        },
+        {
+          "decl": "void object_propagate_flag_to_children(int object_handle@<eax>, int param_1, int param_2);",
+          "addr": "0x13ee60"
+        },
+        {
+          "decl": "void object_remove_from_name_list(int object_handle@<edi>);",
+          "addr": "0x13eff0"
+        },
+        {
           "decl": "void objects_place(void);",
           "addr": "0x13f060"
         },
@@ -2880,6 +2916,10 @@
         {
           "addr": "0xb8f90",
           "decl": "int update_get_maximum_actions(void);"
+        },
+        {
+          "decl": "void *update_get_buffer_entry(int snapshot_index@<eax>);",
+          "addr": "0xb9040"
         },
         {
           "decl": "bool update_server_new(void);",
@@ -3647,6 +3687,10 @@
           "addr": "0x1c89c0"
         },
         {
+          "decl": "void *sound_class_get(int class_index@<si>);",
+          "addr": "0x1c89d0"
+        },
+        {
           "decl": "void sound_classes_initialize_for_new_map(void);",
           "addr": "0x1c8b70"
         }
@@ -3663,6 +3707,18 @@
         {
           "decl": "void sound_set_music_enabled(int enabled);",
           "addr": "0x1cb8a0"
+        },
+        {
+          "decl": "bool sound_can_play(int sound_tag_index@<eax>);",
+          "addr": "0x1cba20"
+        },
+        {
+          "decl": "int16_t sound_check_promotion(int sound_tag_index@<eax>);",
+          "addr": "0x1cbb00"
+        },
+        {
+          "decl": "int16_t sound_allocate_channel(void *source@<eax>, float priority);",
+          "addr": "0x1cd5a0"
         },
         {
           "decl": "int sound_start(int sound_tag_index, void *source, int object_handle, int track_data, void *track_data_ptr, int track_data_size);",
@@ -4097,6 +4153,10 @@
           "addr": "0x1aa3c0"
         },
         {
+          "decl": "void unit_update_seat_occupancy(int vehicle_handle@<eax>);",
+          "addr": "0x1aa890"
+        },
+        {
           "decl": "bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag);",
           "addr": "0x1aab20"
         },
@@ -4107,6 +4167,10 @@
         {
           "decl": "void unit_clear_weapons(int unit_handle);",
           "addr": "0x1aac80"
+        },
+        {
+          "decl": "int16_t unit_find_empty_weapon_slot(int unit_handle@<eax>);",
+          "addr": "0x1aad60"
         },
         {
           "decl": "int16_t unit_count_weapons(int unit_handle);",
@@ -4121,8 +4185,20 @@
           "addr": "0x1ab7c0"
         },
         {
+          "decl": "void unit_detach_weapon(int unit_handle@<edi>, int weapon_handle@<esi>);",
+          "addr": "0x1ab990"
+        },
+        {
+          "decl": "bool unit_try_animation_state(int unit_handle@<eax>, int seat_label, int weapon_label, int reset_flag);",
+          "addr": "0x1acd70"
+        },
+        {
           "decl": "int unit_get_weapon(int unit_handle, int16_t weapon_index);",
           "addr": "0x1adeb0"
+        },
+        {
+          "decl": "int unit_get_seat_label(int unit_handle@<eax>);",
+          "addr": "0x1ae290"
         },
         {
           "decl": "void unit_clear_seat_equipment(int unit_handle);",
@@ -4141,6 +4217,10 @@
           "addr": "0x1ae600"
         },
         {
+          "decl": "bool unit_verify_vectors(int unit_handle@<eax>);",
+          "addr": "0x1af620"
+        },
+        {
           "decl": "void unit_control_trace(int unit_handle@<edi>, const char *label);",
           "addr": "0x1af6b0"
         },
@@ -4155,6 +4235,10 @@
         {
           "decl": "bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag);",
           "addr": "0x1b1db0"
+        },
+        {
+          "decl": "void unit_update_weapon_readiness(int unit_handle@<esi>, int flag);",
+          "addr": "0x1b1ee0"
         },
         {
           "decl": "bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index);",

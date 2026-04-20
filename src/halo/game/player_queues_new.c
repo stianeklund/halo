@@ -196,16 +196,8 @@ void update_server_get_update(int machine_index, void *update_buf,
   }
 
   if (*update_number != -1) {
-    /* Call internal helper at 0xb9040 with snapshot index in EAX.
-     * Returns pointer to the update buffer entry, or NULL. */
-    {
-      int _eax = *update_number;
-      __asm__ __volatile__("call *%[fn]"
-                           : "+a"(_eax)
-                           : [fn] "r"((void *)0xb9040)
-                           : "ecx", "edx", "memory", "cc");
-      update_entry = (void *)_eax;
-    }
+    /* Look up the update buffer entry for this snapshot index. */
+    update_entry = update_get_buffer_entry(*update_number);
     if (update_entry != NULL) {
       csmemcpy(update_buf, (char *)update_entry + 4, 0x204);
     }
@@ -541,16 +533,8 @@ void update_server_create_snapshot(void)
   old_index = *(int *)0x4570c4;
   *(int *)0x4570c4 = *(int *)0x4570c4 + 1;
 
-  /* Call internal helper at 0xb9040 with old_index in EAX.
-   * Returns pointer to the circular update buffer entry. */
-  {
-    int _eax = old_index;
-    __asm__ __volatile__("call *%[fn]"
-                         : "+a"(_eax)
-                         : [fn] "r"((void *)0xb9040)
-                         : "ecx", "edx", "memory", "cc");
-    entry = (void *)_eax;
-  }
+  /* Look up the circular update buffer entry for old_index. */
+  entry = update_get_buffer_entry(old_index);
   if (entry == NULL) {
     display_assert("update", "c:\\halo\\SOURCE\\game\\player_queues_new.c",
                    0x100, 1);

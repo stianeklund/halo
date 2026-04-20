@@ -156,16 +156,7 @@ bool hs_needs_recompile(void)
   file_reference_create_from_path((file_ref_t *)global_ref,
                                   "data\\global_scripts.hsc", 0);
   if (file_exists((file_ref_t *)global_ref)) {
-    /* Call hs_load_source_file with @EBX = &global_ref */
-    {
-      int _ebx = (int)global_ref;
-      int _eax;
-      __asm__ __volatile__("call *%[fn]"
-                           : "+b"(_ebx), "=a"(_eax)
-                           : [fn] "r"((void *)0xc4660)
-                           : "ecx", "edx", "esi", "edi", "memory", "cc");
-      result = (uint8_t)_eax;
-    }
+    result = (uint8_t)hs_load_source_file((void *)global_ref);
   }
 
   /* Find all .hsc files in the scripts directory */
@@ -181,17 +172,8 @@ bool hs_needs_recompile(void)
     for (i = (uint16_t)count; i != 0; i--) {
       file_reference_get_name((void *)ebx_ptr, 8, name_buf);
       if (csstrcmp(name_buf, (const char *)0x27ba34) == 0) {
-        /* Call hs_load_source_file with @EBX = current find result */
-        {
-          int _ebx2 = (int)ebx_ptr;
-          int _eax2;
-          __asm__ __volatile__("call *%[fn]"
-                               : "+b"(_ebx2), "=a"(_eax2)
-                               : [fn] "r"((void *)0xc4660)
-                               : "ecx", "edx", "esi", "edi", "memory", "cc");
-          if ((uint8_t)_eax2 == 0)
-            result = 0;
-        }
+        if (!hs_load_source_file((void *)ebx_ptr))
+          result = 0;
       }
       ebx_ptr += 0x10c;
     }
@@ -244,23 +226,7 @@ bool hs_mark_recompile(void)
         /* Get source start pointer again for error reporting */
         void *src_start =
           tag_data_get_pointer(tag_data_ptr, 0, *(int *)tag_data_ptr);
-        /* Call hs_report_compile_error at 0xc4900:
-         * @ESI = error_text, @EBX = element (script name),
-         * @EDI = source_start, stack arg = error_info.
-         * All 6 GPRs are occupied so we use a direct call address. */
-        {
-          int _esi = (int)error_text;
-          int _ebx = (int)element;
-          int _edi = (int)src_start;
-          int _eax = (int)error_info;
-          __asm__ __volatile__("pushl %%eax\n\t"
-                               "movl $0xc4900, %%eax\n\t"
-                               "call *%%eax\n\t"
-                               "addl $4, %%esp"
-                               : "+S"(_esi), "+b"(_ebx), "+D"(_edi), "+a"(_eax)
-                               :
-                               : "ecx", "edx", "memory", "cc");
-        }
+        hs_report_compile_error(error_info, error_text, element, src_start);
         ok = 0;
       }
 
