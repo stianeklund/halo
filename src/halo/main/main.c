@@ -180,16 +180,18 @@ void main_reset_player_actions(void)
  *  - Gap padding applied to inner edges; outer edges replaced by full viewport.
  */
 void compute_window_bounds(int player_index, int num_players,
-                           viewport_bounds_t *a3, viewport_bounds_t *a4)
+                           viewport_bounds_t *full_bounds,
+                           viewport_bounds_t *split_bounds)
 {
   int horizontal_count;
   int vertical_count;
+  int total_slots;
   int vertical_index;
   int horizontal_index;
   int cell_height;
   int cell_width;
   int wide_cell_width;
-  bool extra_wide;
+  bool has_extra_wide_slot;
   uint16_t gap;
 
   /* --- assert: player_index < num_players --- */
@@ -197,7 +199,7 @@ void compute_window_bounds(int player_index, int num_players,
 
   /* gap between sub-windows when more than 1 player */
   gap = (num_players < 2) ? 0 : 4;
-  extra_wide = false;
+  has_extra_wide_slot = false;
 
   /* --- inlined grid dimension helper (originally at 0x1008a0) ---
    * Finds the smallest (h, v) such that h * v >= num_players, with h <= v.
@@ -219,12 +221,13 @@ void compute_window_bounds(int player_index, int num_players,
     vertical_count = v;
   }
 
+  total_slots = horizontal_count * vertical_count;
+
   /* When grid has spare slots, player 0 gets a double-wide column.
    * Other players shift by +1 so they skip player 0's extra slot. */
-  if (horizontal_count * vertical_count - num_players != 0 &&
-      num_players <= horizontal_count * vertical_count) {
+  if (total_slots - num_players != 0 && num_players <= total_slots) {
     if (player_index == 0) {
-      extra_wide = true;
+      has_extra_wide_slot = true;
     } else {
       player_index = player_index + 1;
     }
@@ -245,36 +248,39 @@ void compute_window_bounds(int player_index, int num_players,
 
     cell_height = (int16_t)((scr_y1 - scr_y0) / vertical_count);
     cell_width = (int16_t)((scr_x1 - scr_x0) / horizontal_count);
-    wide_cell_width = cell_width * (extra_wide ? 2 : 1);
+    wide_cell_width = cell_width * (has_extra_wide_slot ? 2 : 1);
 
-    /* compute sub-window bounds (a4) */
-    a4->x0 = (int16_t)(horizontal_index * wide_cell_width + scr_x0);
-    a4->x1 = (int16_t)((horizontal_index + 1) * wide_cell_width + scr_x0);
-    a4->y0 = (int16_t)(vertical_index * cell_height + scr_y0);
-    a4->y1 = (int16_t)((vertical_index + 1) * cell_height + scr_y0);
+    /* compute per-player split bounds */
+    split_bounds->x0 = (int16_t)(horizontal_index * wide_cell_width + scr_x0);
+    split_bounds->x1 =
+      (int16_t)((horizontal_index + 1) * wide_cell_width + scr_x0);
+    split_bounds->y0 = (int16_t)(vertical_index * cell_height + scr_y0);
+    split_bounds->y1 = (int16_t)((vertical_index + 1) * cell_height + scr_y0);
 
-    /* copy to full bounds (a3) before gap adjustments */
-    *(int *)&a3->y0 = *(int *)&a4->y0;
-    *(int *)&a3->y1 = *(int *)&a4->y1;
+    /* copy to full bounds before gap adjustments */
+    *full_bounds = *split_bounds;
 
-    /* apply gap padding to inner edges of a4 */
-    a4->x0 = a4->x0 + (int16_t)(horizontal_index * gap);
-    a4->x1 = a4->x1 - (int16_t)((horizontal_index == 0) * gap);
-    a4->y0 = a4->y0 + (int16_t)(vertical_index * gap);
-    a4->y1 = a4->y1 - (int16_t)((vertical_index == 0) * gap);
+    /* apply gap padding to inner edges of split bounds */
+    split_bounds->x0 = split_bounds->x0 + (int16_t)(horizontal_index * gap);
+    split_bounds->x1 =
+      split_bounds->x1 - (int16_t)((horizontal_index == 0) * gap);
+    split_bounds->y0 = split_bounds->y0 + (int16_t)(vertical_index * gap);
+    split_bounds->y1 =
+      split_bounds->y1 - (int16_t)((vertical_index == 0) * gap);
 
-    /* replace outer edges of a3 with full viewport bounds */
+    /* replace outer edges of full bounds with full viewport bounds */
     if (horizontal_index == 0) {
-      a3->x0 = *(int16_t *)0x325656;
+      full_bounds->x0 = *(int16_t *)0x325656;
     }
-    if ((extra_wide ? 1 : 0) + horizontal_index + 1 == horizontal_count) {
-      a3->x1 = *(int16_t *)0x32565a;
+    if ((has_extra_wide_slot ? 1 : 0) + horizontal_index + 1 ==
+        horizontal_count) {
+      full_bounds->x1 = *(int16_t *)0x32565a;
     }
     if (vertical_index == 0) {
-      a3->y0 = *(int16_t *)0x325654;
+      full_bounds->y0 = *(int16_t *)0x325654;
     }
     if (vertical_index + 1 == vertical_count) {
-      a3->y1 = *(int16_t *)0x325658;
+      full_bounds->y1 = *(int16_t *)0x325658;
     }
   }
 }
