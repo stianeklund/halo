@@ -3,13 +3,61 @@
  * XBE source: c:\halo\SOURCE\interface\terminal.c
  *
  * Re-implemented functions (by XBE address, ascending):
+ *   0xe3410  terminal_remove_line
  *   0xe34a0  terminal_show
  *   0xe34e0  terminal_open
  *   0xe3560  terminal_dispose
+ *   0xe3580  terminal_process_input
+ *   0xe3640  terminal_age_lines
  *   0xe3940  terminal_get_line
  *   0xe39e0  terminal_update
  *   0xe3a10  terminal_output
  */
+
+/* terminal_remove_line — unlink and free a single terminal line datum.
+ *
+ * Removes the entry identified by line_handle (passed via EDI register arg)
+ * from the doubly-linked list maintained by [0x46c40c] (head) and
+ * [0x46c410] (tail), then calls datum_delete to release the slot.
+ *
+ * Line datum layout (relative to datum base pointer):
+ *   +0x04 = prev handle (int; -1 if this is the head)
+ *   +0x08 = next handle (int; -1 if this is the tail)
+ *
+ * Confirmed: CALL 0x119320 (datum_get) used to resolve both next and prev.
+ * Confirmed: CALL 0x1196d0 (datum_delete) with (pool, EDI=handle).
+ * Confirmed: MOV [0x46c410],EAX when next==-1 (update tail to prev).
+ * Confirmed: MOV [0x46c40c],EAX when prev==-1 (update head to next).
+ */
+void terminal_remove_line(int line_handle)
+{
+  char *line;
+  char *neighbor;
+  int prev;
+  int next;
+
+  line = (char *)datum_get(*(void **)0x46c408, line_handle);
+  next = *(int *)(line + 0x8);
+  prev = *(int *)(line + 0x4);
+
+  /* Patch the next entry's prev link, or update the tail if no next. */
+  if (next != -1) {
+    neighbor = (char *)datum_get(*(void **)0x46c408, next);
+    *(int *)(neighbor + 0x4) = prev;
+  } else {
+    *(int *)0x46c410 = prev;
+  }
+
+  /* Patch the prev entry's next link, or update the head if no prev. */
+  if (prev != -1) {
+    neighbor = (char *)datum_get(*(void **)0x46c408, prev);
+    *(int *)(neighbor + 0x8) = next;
+  } else {
+    *(int *)0x46c40c = next;
+  }
+
+  datum_delete(*(void **)0x46c408, line_handle);
+}
 
 /* terminal_show — force the terminal overlay visible.
  *
@@ -70,6 +118,123 @@ void terminal_dispose(void *terminal)
 {
   if (terminal == *(void **)0x46c414)
     *(void **)0x46c414 = 0;
+}
+
+/* terminal_process_input — drain the keyboard buffer into the terminal state.
+ *
+ * Called each frame while the terminal is active. Reads all pending
+ * buffered keystrokes from the input system, stores up to 32 of them in
+ * the terminal state's key array (at state+2, 4 bytes per entry), and
+ * forwards each one to the edit_text widget at state+0x1b4.
+ *
+ * Also tracks a "key activity" flag at [0x46c418] and the timestamp of
+ * the last keystroke at [0x46c41c]. If no new keys arrived but 30+ ticks
+ * have elapsed since the last one, the activity flag is cleared.
+ *
+ * Terminal state layout (relative to state pointer):
+ *   +0x000 = int16 key_count  (reset to 0 at start, incremented per key)
+ *   +0x002 = int32 key_array[32]  (raw keystroke dwords, up to 0x20 entries)
+ *   +0x1b4 = edit_text substructure
+ *
+ * Globals:
+ *   0x46c414 = terminal_state ptr
+ *   0x46c418 = byte activity flag (set on keypress, cleared on timeout)
+ *   0x46c41c = int last-key local_time_get() value
+ *
+ * Confirmed: XOR AL,AL / TEST ECX,ECX / JZ → returns false (AL=0) if no state.
+ * Confirmed: MOV word ptr [EAX],0 — resets key_count.
+ * Confirmed: CALL 0xcf620 (input_get_buffered_key) returns bool in AL.
+ * Confirmed: CMP CX,0x20 — max 32 keys.
+ * Confirmed: MOV dword ptr [EAX + EDX*4 + 2], ECX — key stored at state+2+i*4.
+ * Confirmed: CALL 0x974a0 (edit_text_process_key) with (state+0x1b4, &key).
+ * Confirmed: MOV byte ptr [0x46c418],1 ; MOV [0x46c41c],ESI.
+ * Confirmed: ADD ECX,0x1e ; CMP ESI,ECX — 30-tick timeout check.
+ * Confirmed: SETZ DL ; MOV [0x46c418],DL — clears flag if it was set.
+ * Confirmed: MOV AL,1 ; RET — always returns true when state != NULL.
+ */
+bool terminal_process_input(void)
+{
+  char *state;
+  int now;
+  int key;
+  int16_t key_count;
+
+  state = *(char **)0x46c414;
+  if (state == NULL)
+    return 0;
+
+  now = local_time_get();
+
+  /* Reset the per-frame key accumulation counter. */
+  *(int16_t *)state = 0;
+
+  /* Drain the keyboard buffer: loop while keystrokes are available. */
+  while (input_get_buffered_key(&key)) {
+    key_count = *(int16_t *)state;
+
+    /* Store in the key array if there is room (max 32 entries). */
+    if (key_count < 0x20) {
+      *(int *)(state + 2 + (int)key_count * 4) = key;
+      *(int16_t *)state = key_count + 1;
+    }
+
+    /* Forward to the edit_text widget for cursor/character handling. */
+    edit_text_process_key(state + 0x1b4, &key);
+
+    /* Mark terminal as active and record the time of this keypress. */
+    *(uint8_t *)0x46c418 = 1;
+    *(int *)0x46c41c = now;
+  }
+
+  /* If no keys were received for 30+ ticks, clear the activity flag. */
+  if (*(int *)0x46c41c + 0x1e < now) {
+    *(uint8_t *)0x46c418 = (*(uint8_t *)0x46c418 == 0);
+    *(int *)0x46c41c = now;
+  }
+
+  return 1;
+}
+
+/* terminal_age_lines — increment age counters and evict stale lines.
+ *
+ * Walks the terminal line list from head ([0x46c40c]) to tail following
+ * the next pointer at line+8.  For each entry the age counter at
+ * line+0x120 is incremented; if it exceeds 0x96 (150) the line is
+ * removed via terminal_remove_line (called with the handle in EDI).
+ *
+ * Confirmed: MOV EDI,[0x0046c40c] — start from head.
+ * Confirmed: CMP EDI,-1 / JZ exit — empty list check.
+ * Confirmed: CALL 0x119320 (datum_get) to resolve current handle.
+ * Confirmed: MOV EDX,[EAX+0x120] ; INC EDX ; MOV [EAX+0x120],EDX — age bump.
+ * Confirmed: CMP ECX,0x96 / JLE — threshold is 150 (0x96).
+ * Confirmed: CALL 0xe3410 (terminal_remove_line) — EDI holds the handle.
+ * Confirmed: MOV ESI,[EAX+8] ; ... MOV EDI,ESI — advance to next.
+ */
+void terminal_age_lines(void)
+{
+  int handle;
+  char *line;
+  int next;
+  int age;
+
+  handle = *(int *)0x46c40c;
+  if (handle == -1)
+    return;
+
+  do {
+    line = (char *)datum_get(*(void **)0x46c408, handle);
+    next = *(int *)(line + 0x8);
+    age = *(int *)(line + 0x120) + 1;
+    *(int *)(line + 0x120) = age;
+
+    if (age > 0x96) {
+      /* terminal_remove_line takes handle via @edi — called directly here.
+       * EDI already holds the current handle from the loop variable. */
+      terminal_remove_line(handle);
+    }
+
+    handle = next;
+  } while (handle != -1);
 }
 
 /* terminal_get_line — allocate a new terminal line at the head of the list.

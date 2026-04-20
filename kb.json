@@ -1963,6 +1963,10 @@
           "addr": "0xcf560"
         },
         {
+          "decl": "bool input_get_buffered_key(void *out_keystroke);",
+          "addr": "0xcf620"
+        },
+        {
           "decl": "bool input_has_gamepad(int16_t gamepad_index);",
           "addr": "0xcf6c0"
         },
