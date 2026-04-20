@@ -4,6 +4,8 @@ import os
 import subprocess
 import sys
 
+from build import build
+
 
 ROOT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -19,7 +21,7 @@ def run(command: list[str]) -> int:
 
 
 def main() -> int:
-    build_result = run(["cmake", "--build", "build"])
+    build_result = build()
     if build_result != 0:
         print(f"build failed with exit code {build_result}", file=sys.stderr)
         return build_result

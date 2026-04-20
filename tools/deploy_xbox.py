@@ -27,6 +27,7 @@ import subprocess
 import sys
 import time
 
+from build import build as run_build
 from build_hash import print_build_hash
 from local_env import build_windows_python_command, is_wsl, load_repo_env, to_windows_path
 
@@ -398,17 +399,13 @@ def main() -> int:
         )
         return 1
 
-    build_dir = os.path.join(ROOT_DIR, "build")
     xbe_path = os.path.join(HALO_PATCHED_DIR, "default.xbe")
-    if not args.skip_build and os.path.isdir(build_dir):
+    if not args.skip_build and os.path.isdir(os.path.join(ROOT_DIR, "build")):
         if is_build_current(xbe_path):
             print("build unchanged, skipping rebuild...")
         else:
             print("building patched XBE...")
-            rc = subprocess.call(
-                ["cmake", "--build", build_dir, "--target", "patched_xbe"],
-                cwd=ROOT_DIR,
-            )
+            rc = run_build(target="patched_xbe")
             if rc != 0:
                 print("error: build failed", file=sys.stderr)
                 return rc
