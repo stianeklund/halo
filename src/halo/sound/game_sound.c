@@ -193,14 +193,7 @@ void game_sound_update(float dt)
         int is_audible;
         ((void (*)(int, int *))0x140130)(*(int *)((char *)entry + 0x10),
                                          location);
-        /* 0x1c7c30 takes its argument in ESI (LEA ESI,[location] in the
-         * original). Pin ESI via the "S" input constraint and route the
-         * call through ECX to keep ESI intact across the call. */
-        asm volatile("movl $0x1c7c30, %%ecx\n\t"
-                     "call *%%ecx"
-                     : "=a"(is_audible)
-                     : "S"((char *)location)
-                     : "ecx", "edx", "memory", "cc");
+        is_audible = sound_cluster_is_audible((void *)location);
         if ((uint8_t)is_audible != 0) {
           ((void (*)(int, int *))0x1c77a0)(looping_sounds_handle, location);
         }
@@ -223,14 +216,60 @@ void game_sound_update(float dt)
   *(int *)(*(int *)0x5054e0) += 1;
 }
 
+/* sound_looping_start (0x1c8510)
+ *
+ * Starts a looping-sound definition
+ * (`lsnd`) for an optional object.
+ * - Resolves the tag definition and first
+ * calls sound_looping_stop to end
+ *   any prior runtime instance for this
+ * definition.
+ * - Asserts that definition+0x1c (runtime_scripting_sound_index)
+ * is NONE.
+ * - If definition flags has bit 0x04 set, calls 0x1c7d70 before
+ * start.
+ * - Calls 0x1c7710(sound_tag_index, object_index, scale), stores
+ * returned
+ *   looping-sound handle into definition+0x1c, and when valid sets
+ * bit 0x10
+ *   in the looping-sound entry flags at entry+0x04.
+ */
+void sound_looping_start(int sound_tag_index, int object_index, float scale)
+{
+  void *definition;
+  int looping_sound_handle;
+  void *entry;
+
+  if (sound_tag_index == -1)
+    return;
+
+  definition = tag_get(0x6c736e64, sound_tag_index);
+  sound_looping_stop(sound_tag_index);
+
+  assert_halt_msg(*(int *)((char *)definition + 0x1c) == -1,
+                  "definition->runtime_scripting_sound_index==NONE");
+
+  if ((*(uint8_t *)definition & 4) != 0)
+    ((void (*)(void))0x1c7d70)();
+
+  looping_sound_handle =
+    ((int (*)(int, int, float))0x1c7710)(sound_tag_index, object_index, scale);
+  *(int *)((char *)definition + 0x1c) = looping_sound_handle;
+
+  if (looping_sound_handle != -1) {
+    entry = datum_get(*(data_t **)0x5054e4, looping_sound_handle);
+    *(uint32_t *)((char *)entry + 4) |= 0x10;
+  }
+}
+
 /* game_sound_set_music_volume (0x1c8c80)
  *
- * For each of the 0x33 sound classes whose name string contains
- * sound_name as a substring, calls sound_class_get(i) (0x1c89d0,
- * register-arg SI) and writes the clamped volume and transition_ticks
- * into the returned record:
- *   float  at [record+0x00] = clamp(volume, 0.0f, 1.0f)
- *   int16_t at [record+0x08] = max(transition_ticks, 0)
+ * For each of the 0x33 sound
+ * classes whose name string contains
+ * sound_name as a substring, calls
+ * sound_class_get(i) (0x1c89d0, register-arg SI) and writes the clamped volume
+ * and transition_ticks into the returned record: float  at [record+0x00] =
+ * clamp(volume, 0.0f, 1.0f) int16_t at [record+0x08] = max(transition_ticks, 0)
  *
  * sound_class_get (0x1c89d0) expects its index in SI and returns a
  * pointer to the 0xc-byte class record in EAX.  Called via inline asm
@@ -255,20 +294,7 @@ void game_sound_set_music_volume(const char *sound_name, float volume,
     if (crt_strstr(table[i], sound_name) == NULL)
       continue;
 
-    /* sound_class_get (0x1c89d0) takes its class index in SI and
-     * returns a pointer to the class record in EAX.  Use "+S" to pin
-     * ESI as the input (the callee reads SI), then capture EAX as the
-     * output pointer.  The "+a" trick avoids compiler aliasing EAX to
-     * the SI input. */
-    {
-      int _esi = i;
-      int _eax = 0;
-      __asm__ __volatile__("call *%[fn]"
-                           : "+S"(_esi), "=a"(_eax)
-                           : [fn] "r"((void *)0x1c89d0)
-                           : "ecx", "edx", "memory", "cc");
-      record = (float *)_eax;
-    }
+    record = (float *)sound_class_get((int16_t)i);
 
     /* Clamp volume to [0.0f, 1.0f]. */
     clamped = volume;

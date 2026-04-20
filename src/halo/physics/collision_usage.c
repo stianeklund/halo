@@ -8,24 +8,12 @@ void collision_log_initialize(void)
 
 void collision_log_begin_period(__int16 time_period)
 {
-  /* helper at 0x14d080 takes time_period in ESI register */
-  __asm__ volatile("pushl $1\n\t"
-                   "call *%0\n\t"
-                   "addl $4, %%esp"
-                   :
-                   : "r"((void *)0x14d080), "S"((int)time_period)
-                   : "eax", "ecx", "edx", "memory");
+  collision_log_period_helper((int)time_period, 1);
 }
 
 void collision_log_continue_period(__int16 time_period)
 {
-  /* helper at 0x14d080 takes time_period in ESI register */
-  __asm__ volatile("pushl $0\n\t"
-                   "call *%0\n\t"
-                   "addl $4, %%esp"
-                   :
-                   : "r"((void *)0x14d080), "S"((int)time_period)
-                   : "eax", "ecx", "edx", "memory");
+  collision_log_period_helper((int)time_period, 0);
 }
 
 void collision_log_end_period(void)
