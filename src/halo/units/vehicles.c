@@ -87,9 +87,9 @@ bool vehicle_moving_near_any_player(void)
     goto done;
 
   /* Phase 2: iterate all vehicle objects (type_mask=2 = bit 1 = vehicle). */
-  ((void (*)(void *, int, uint8_t))0x13d6f0)(iter_buf, 2, 0);
+  object_iterator_new(iter_buf, 2, 0);
 
-  while ((veh_obj = ((void *(*)(void *))0x13d730)(iter_buf)) != NULL) {
+  while ((veh_obj = object_iterator_next(iter_buf)) != NULL) {
     /* iter_buf[2] holds the datum handle of the current vehicle object,
      * written by object_iterator_next at offset 0x08 in the iter buffer. */
     vehicle_datum_handle = iter_buf[2];

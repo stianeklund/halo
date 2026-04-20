@@ -108,6 +108,99 @@ void *object_get_and_verify_type(int datum_handle, int type_mask)
 }
 
 /*
+ * object_iterator_new (0x13d6f0) — initialise an object_iter_t for a walk.
+ *
+ * Calls data_verify on the object data table (sanity check), then writes
+ * the caller-supplied type_mask and flags into the iterator block and
+ * resets its scan state.
+ *
+ * Layout of object_iter_t (confirmed from disassembly):
+ *   +0x00 int32_t  type_mask     — accepted object types (1<<type bit-mask)
+ *   +0x04 uint8_t  flags         — required header flag byte (AND+CMP filter)
+ *   +0x06 int16_t  current_index — next header-table slot to probe
+ *   +0x08 int32_t  last_handle   — handle from last call (NONE = -1 on init)
+ *   +0x0c uint32_t cookie        — 0x86868686 (marks as initialized)
+ *
+ * Confirmed: ADD ESP,0x4 after data_verify (1 arg).
+ * Confirmed: byte ptr [EAX+0x4] = DL (flags, byte-sized arg).
+ * Confirmed: word ptr [EAX+0x6] = 0x0000; dword ptr [EAX+0x8] = -1.
+ * Confirmed: dword ptr [EAX+0xc] = 0x86868686 (cookie, written last).
+ */
+void object_iterator_new(void *iter, int type_mask, int flags)
+{
+  object_iter_t *it = (object_iter_t *)iter;
+  data_verify(*(data_t **)0x5a8d50);
+  it->cookie = 0x86868686;
+  it->type_mask = type_mask;
+  it->flags = (uint8_t)flags;
+  it->current_index = 0;
+  it->last_handle = NONE;
+}
+
+/*
+ * object_iterator_next (0x13d730) — advance iterator, return next match.
+ *
+ * Walks the object header table starting at iter->current_index, scanning
+ * for a non-empty slot (salt != 0) whose header flags satisfy the required
+ * flag mask (entry_flags & iter->flags == iter->flags) and whose type bit
+ * is set in iter->type_mask.  On a match:
+ *   - Stores the composite handle (salt<<16 | index) in iter->last_handle.
+ *   - Advances iter->current_index past the matched slot.
+ *   - Returns the object_data_t* from entry->object (header+0x8).
+ *
+ * Returns NULL when the table is exhausted.
+ *
+ * The header table is an array of 0xc-byte object_header_data_t entries;
+ * pointers start at data_t->data (offset +0x34 from the data_t header).
+ * The live slot count is at data_t->current_count (offset +0x2e, int16_t).
+ *
+ * Confirmed: cookie guard == 0x86868686 (assert "uninitialized iterator").
+ * Confirmed: MOVSX EAX, word ptr [EAX+0x2e] — current_count as signed 16-bit.
+ * Confirmed: MOVSX from DX (current_index) into ECX for OR with shifted salt.
+ * Confirmed: entry stride = 0xc (LEA ESI,[ESI+ECX*4] with ECX=index*3).
+ * Confirmed: return entry->object at entry+0x8.
+ */
+void *object_iterator_next(void *iter)
+{
+  object_iter_t *it = (object_iter_t *)iter;
+  data_t *data;
+  object_header_data_t *entry;
+  int16_t count;
+  int16_t idx;
+
+  if (it->cookie != 0x86868686) {
+    display_assert("uninitialized iterator passed to object_iterator_next()",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x6b8, 1);
+    system_exit(-1);
+  }
+
+  data_verify(*(data_t **)0x5a8d50);
+  data = *(data_t **)0x5a8d50;
+
+  idx = it->current_index;
+  count = data->current_count;
+  entry = (object_header_data_t *)((char *)data->data + (int)idx * 0xc);
+
+  while (idx < count) {
+    int handle = ((int)(uint16_t)entry->unk_0 << 16) | (int)(uint16_t)idx;
+    idx++;
+    if (entry->unk_0 != 0 && (entry->unk_2 & it->flags) == it->flags &&
+        (it->type_mask & (1 << (entry->type & 0x1f))) != 0) {
+      it->last_handle = handle;
+      it->current_index = idx;
+      return entry->object;
+    }
+    entry = (object_header_data_t *)((char *)entry + 0xc);
+    if (idx >= count) {
+      it->current_index = idx;
+      return NULL;
+    }
+  }
+  it->current_index = idx;
+  return NULL;
+}
+
+/*
  * object_set_garbage_flag — add or remove an object from the garbage
  * collection linked list.
  *
