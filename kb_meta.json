@@ -3075,6 +3075,28 @@
       "inferred": [
         "D3DResource_Release (0x1ed930) is stdcall with RET 0x4, confirmed from disassembly; the call site uses POP ECX after the call which is inconsistent (the RET 0x4 already cleans the arg)."
       ]
+    },
+    "0xe3410": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "EDI register arg carries the line_handle; confirmed from PUSH EDI before CALL 0x119320 at 0xe3416 and PUSH EDI before CALL 0x1196d0 at 0xe346e/0xe3483."
+      ]
+    },
+    "0xe3580": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x46c418 is a byte activity flag set to 1 on each keypress and cleared to 0 by SETZ when the 30-tick timeout fires and the flag was non-zero.",
+        "The keystroke at [state+2+count*4] is a raw 4-byte dword matching the buffered_key_read entries at 0x46bc0c; struct layout is unconfirmed beyond dword size."
+      ]
+    },
+    "0xe3640": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Age counter is at line+0x120 (int); lines are evicted after age exceeds 0x96 (150 ticks), confirmed from CMP ECX,0x96 / JLE in disasm."
+      ]
     }
   }
 }
