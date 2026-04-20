@@ -6,6 +6,7 @@
  *   0xe34a0  terminal_show
  *   0xe34e0  terminal_open
  *   0xe3560  terminal_dispose
+ *   0xe3940  terminal_get_line
  *   0xe39e0  terminal_update
  *   0xe3a10  terminal_output
  */
@@ -71,16 +72,84 @@ void terminal_dispose(void *terminal)
     *(void **)0x46c414 = 0;
 }
 
+/* terminal_get_line — allocate a new terminal line at the head of the list.
+ *
+ * If the pool is full (count == 32), the tail entry is removed first to
+ * make room (via terminal_remove_line).  A new datum is then allocated via
+ * data_new_at_index and linked at the head of the doubly-linked list
+ * tracked by [0x46c40c] (head) and [0x46c410] (tail).
+ *
+ * Returns the datum handle of the new line, or asserts/exits if
+ * data_new_at_index unexpectedly returns -1.
+ *
+ * Confirmed: CMP word ptr [EAX+0x2e], 0x20 — pool count check.
+ * Confirmed: MOV EDI,[0x0046c410]; CALL 0xe3410 — remove tail via @edi.
+ * Confirmed: CALL 0x119610 (data_new_at_index).
+ * Confirmed: assert "new_line_index!=NONE" at line 0x7a.
+ * Confirmed: MOV [EAX+0x4],-1; MOV [EAX+0x8],ECX — prev=-1, next=old_head.
+ * Confirmed: MOV [0x46c40c],ESI — update head.
+ * Confirmed: if old_head==-1 then MOV [0x46c410],ESI (tail=new), else
+ *            MOV [old_head+0x4],ESI (old_head->prev = new).
+ */
+int terminal_get_line(void)
+{
+  int new_handle;
+  char *new_line;
+  char *old_head_line;
+  int old_head;
+
+  /* If the pool is full, evict the tail entry to make room. */
+  if (*(int16_t *)(*(char **)0x46c408 + 0x2e) == 0x20) {
+    terminal_remove_line(*(int *)0x46c410);
+  }
+
+  new_handle = data_new_at_index(*(void **)0x46c408);
+
+  if (new_handle == -1) {
+    display_assert("new_line_index!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\terminal.c", 0x7a, 1);
+    system_exit(-1);
+  }
+
+  new_line = (char *)datum_get(*(void **)0x46c408, new_handle);
+
+  /* Initialize doubly-linked list links: no prev, next = current head. */
+  *(int *)(new_line + 0x4) = -1;
+  old_head = *(int *)0x46c40c;
+  *(int *)(new_line + 0x8) = old_head;
+
+  /* Update head pointer to the new entry. */
+  *(int *)0x46c40c = new_handle;
+
+  if (old_head != -1) {
+    /* The list was non-empty: patch old head's prev to point back to new. */
+    old_head_line = (char *)datum_get(*(void **)0x46c408, old_head);
+    *(int *)(old_head_line + 0x4) = new_handle;
+  } else {
+    /* List was empty: new entry is also the tail. */
+    *(int *)0x46c410 = new_handle;
+  }
+
+  return new_handle;
+}
+
 /* terminal_update — per-frame terminal tick.
  *
- * Confirmed: checks flag at 0x46c404, calls 0xe3580 and 0xff4c0.
+ * Processes keyboard input for the terminal and ages displayed lines.
+ * Skips aging when console_is_active() returns true (console is open).
+ *
+ * Confirmed: checks flag at 0x46c404, calls 0xe3580 (terminal_process_input)
+ *            and 0xff4c0 (console_is_active), then 0xe3640
+ * (terminal_age_lines). Confirmed: MOV BL,AL saves process_input result; MOV
+ * AL,BL restores it. Confirmed: return type is void (caller in main_loop
+ * ignores EAX).
  */
 void terminal_update(void)
 {
   if (*(uint8_t *)0x46c404 != 0) {
-    ((bool (*)(void))0xe3580)();
-    if (!((bool (*)(void))0xff4c0)()) {
-      ((void (*)(void))0xe3640)();
+    terminal_process_input();
+    if (!console_is_active()) {
+      terminal_age_lines();
     }
   }
 }
