@@ -189,3 +189,65 @@ void game_sound_update(float dt)
   /* Increment global tick counter. */
   *(int *)(*(int *)0x5054e0) += 1;
 }
+
+/* game_sound_set_music_volume (0x1c8c80)
+ *
+ * For each of the 0x33 sound classes whose name string contains
+ * sound_name as a substring, calls sound_class_get(i) (0x1c89d0,
+ * register-arg SI) and writes the clamped volume and transition_ticks
+ * into the returned record:
+ *   float  at [record+0x00] = clamp(volume, 0.0f, 1.0f)
+ *   int16_t at [record+0x08] = max(transition_ticks, 0)
+ *
+ * sound_class_get (0x1c89d0) expects its index in SI and returns a
+ * pointer to the 0xc-byte class record in EAX.  Called via inline asm
+ * because knowledge.py does not support @si register-arg functions.
+ *
+ * The class name string pointers live in a table at 0x32f5d0
+ * (0x33 pointers, one per sound class).
+ */
+void game_sound_set_music_volume(const char *sound_name, float volume,
+                                 int16_t transition_ticks)
+{
+  int i;
+  const char **table = (const char **)0x32f5d0;
+  float clamped;
+  float *record;
+
+  for (i = 0; i < 0x33; i++) {
+    /* Skip empty class name slots. */
+    if (table[i][0] == '\0')
+      continue;
+    /* Check whether this class name contains sound_name. */
+    if (crt_strstr(table[i], sound_name) == NULL)
+      continue;
+
+    /* sound_class_get (0x1c89d0) takes its class index in SI and
+     * returns a pointer to the class record in EAX.  Use "+S" to pin
+     * ESI as the input (the callee reads SI), then capture EAX as the
+     * output pointer.  The "+a" trick avoids compiler aliasing EAX to
+     * the SI input. */
+    {
+      int _esi = i;
+      int _eax = 0;
+      __asm__ __volatile__("call *%[fn]"
+                           : "+S"(_esi), "=a"(_eax)
+                           : [fn] "r"((void *)0x1c89d0)
+                           : "ecx", "edx", "memory", "cc");
+      record = (float *)_eax;
+    }
+
+    /* Clamp volume to [0.0f, 1.0f]. */
+    clamped = volume;
+    if (clamped < *(float *)0x2533c0)
+      clamped = *(float *)0x2533c0;
+    else if (clamped > *(float *)0x2533c8)
+      clamped = *(float *)0x2533c8;
+
+    *record = clamped;
+
+    /* transition_ticks clamped to >= 0. */
+    *(int16_t *)((char *)record + 0x8) =
+      (transition_ticks < 0) ? 0 : transition_ticks;
+  }
+}
