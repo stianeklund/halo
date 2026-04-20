@@ -1,9 +1,10 @@
 /* ai.c — AI subsystem top-level lifecycle and query functions.
  *
  * Corresponds to ai.obj (XBE address range ~0x3f670–0x425b0).
- * Implements initialize, dispose, dispose_from_old_map, place, and
- * enemies_can_see_player entry points. The initialize_for_new_map
- * function is not yet ported.
+ * Implements initialize, dispose, dispose_from_old_map, place,
+ * ai_handle_unit_approach, game_allegiance_apply_change,
+ * ai_initialize_for_new_map, ai_update, ai_clump, and
+ * enemies_can_see_player entry points.
  */
 
 /* ai_initialize: allocate AI globals and initialize all AI subsystems.
@@ -75,6 +76,352 @@ void ai_place(void)
   FUN_0005ddc0();
 }
 
+/* ai_handle_unit_approach: test whether a unit is approaching a valid
+ * target for an AI actor, and optionally record the approach.
+ * Looks up the actor via actor_data, checks the unit against
+ * object_get_and_verify_type (type 3 = unit), tests team friendship via
+ * game_allegiance_get_team_is_friendly, and returns true (1) when the
+ * teams are NOT friendly (i.e. the unit is an enemy worth approaching).
+ * If flag is non-zero and the check passes, records the approach handle
+ * at actor+0x2ed by calling FUN_00036e30.
+ * Confirmed: 3 args (PUSH count), no ADD ESP after final CALL, bool
+ * return via AL; ADD ESP,8 after each of the two inner calls. */
+bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
+{
+  char *actor;
+  char *unit;
+  bool result;
+
+  actor = datum_get(actor_data, ai_handle);
+  result = 0;
+  if (unit_handle != -1) {
+    unit = object_get_and_verify_type(unit_handle, 3);
+    if (*(int *)(unit + 0x1c8) != -1) {
+      /* game_allegiance_get_team_is_friendly returns true when friendly;
+       * we return true (enemy) only when NOT friendly. */
+      if (!game_allegiance_get_team_is_friendly(
+            *(int16_t *)(unit + 0x68), *(int16_t *)(actor + 0x3e))) {
+        result = 1;
+        if (flag) {
+          /* record the approach target handle at actor+0x2ed */
+          FUN_00036e30(ai_handle);
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/* game_allegiance_apply_change: apply an allegiance change between two
+ * teams, updating all matching actor records in the AI actor iterator.
+ * Iterates over all active player-actors via FUN_00059b10/FUN_00059b50;
+ * for each actor whose team matches team_a or team_b, walks the actor's
+ * clump items via FUN_00064540/FUN_00064570 and applies the friendship
+ * and force flags.
+ * Confirmed: 4 args via PUSH count + ADD ESP,0x18 cleanup at 0x40068.
+ * Operand sizes confirmed: team_a/team_b as int16_t (MOVSX + CMP AX,DI);
+ * friendship/force as char (MOV byte ptr).
+ *
+ * Stack layout (EBP-based, SUB ESP,0x24):
+ *   [EBP-0x24..EBP-0x09]: ai_actor_iter (0x1c bytes extended iterator)
+ *   [EBP-0x08]:           clump_item_iter[0] (current clump-item handle)
+ *   [EBP-0x04]:           clump_item_iter[1] (next clump-item handle)
+ * Note: [EBP-0x10] == ai_actor_iter.field_0x14 (current actor handle);
+ *       the decompiler names it 'local_14' because it overlaps the iter. */
+void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
+                                  char friendship, char force)
+{
+  char iter[0x1c]; /* extended AI actor iterator; see FUN_00059b10 */
+  int clump_iter[2]; /* clump-item walk: [0]=current handle, [1]=next */
+  int16_t matched_team;
+  int actor;
+  int clump_item;
+
+  /* optional debug console print */
+  if (*(char *)0x5aca55) {
+    const char *perm = force ? " permanently" : "";
+    const char *rel = friendship ? "broken" : "reformed";
+    console_printf(0, "allegiance between teams %s and %s %s%s",
+                   ((const char **)0x2efdf8)[team_a],
+                   ((const char **)0x2efdf8)[team_b], rel, perm);
+  }
+
+  /* initialise iterator over all active player-actors (flag=1) */
+  FUN_00059b10(iter, 1);
+  actor = FUN_00059b50(iter);
+  while (actor != 0) {
+    /* check if this actor belongs to team_a or team_b */
+    matched_team = team_b;
+    if (*(int16_t *)(actor + 0x3e) == team_a) {
+      matched_team = team_b;
+    } else if (*(int16_t *)(actor + 0x3e) == team_b) {
+      matched_team = team_a;
+    } else {
+      goto next_actor;
+    }
+    if (matched_team == -1) {
+      goto next_actor;
+    }
+
+    /* walk this actor's clump items, using actor handle from iter.field_0x14 */
+    FUN_00064540(clump_iter, *(int *)(iter + 0x14));
+    clump_item = FUN_00064570(clump_iter);
+    while (clump_item != 0) {
+      if (*(int16_t *)(clump_item + 0x12) == matched_team) {
+        if (!force) {
+          /* mark clump item fields +0x61 and +0x62 */
+          *(char *)(clump_item + 0x61) = 1;
+          *(char *)(clump_item + 0x62) = 1;
+        }
+        if (!friendship || force) {
+          *(char *)(clump_item + 0x60) = friendship;
+          *(char *)(clump_item + 0xa4) =
+            FUN_0002fc20(*(int *)(iter + 0x14), clump_iter[0]);
+          *(float *)(clump_item + 0x50) =
+            FUN_0002fd10(*(int *)(iter + 0x14), clump_iter[0]);
+        }
+      }
+      clump_item = FUN_00064570(clump_iter);
+    }
+
+  next_actor:
+    actor = FUN_00059b50(iter);
+  }
+}
+
+/* ai_initialize_for_new_map: reset the AI globals block and initialise
+ * all per-map AI subsystems.
+ * Zeroes the 0x8dc-byte globals block (at *(int*)0x632574), writes
+ * initial state into known fields, calls 8 per-map init helpers, then
+ * zeroes the scheduling counters and finally sets the AI active flag
+ * (globals[1]) to mark the subsystem ready.
+ *
+ * Store-offset table for writes to *(int*)0x632574 (derived from disasm):
+ *   +0x00 (byte): 1   — first-frame flag
+ *   +0x02 (byte): 1   — second flag
+ *   +0x08 (dword): -1 — initial actor handle sentinel
+ *   +0x10 (byte): 1   — flag
+ *   +0x14..+0x1b: 0xff fill (8 bytes via csmemset)
+ *   +0x1c..+0x23: 0xff fill (8 bytes via csmemset)
+ *   +0x24..+0x2b: 0xff fill (8 bytes via csmemset)
+ *   +0x130 (word): 0  — schedule count
+ *   +0x132 (word): 0  — schedule index
+ *   +0x134..+0x3b3: 0 fill (0x280 bytes via csmemset)
+ *   +0x3b4 (byte): 1  — another flag
+ *   +0x01 (byte): 1   — AI active flag (set last)
+ *
+ * Confirmed: ADD ESP,0x3c at 0x41172 cleans all 5 csmemset call arg
+ * triples (5×3=15 args, 15×4=60=0x3c). */
+void ai_initialize_for_new_map(void)
+{
+  int *g = *(int **)0x632574;
+
+  csmemset(g, 0, 0x8dc);
+  *(char *)((char *)g + 0x00) = 1;
+  *(char *)((char *)g + 0x02) = 1;
+  *(int *)((char *)g + 0x08) = -1;
+  *(char *)((char *)g + 0x3b4) = 1;
+  *(char *)((char *)g + 0x10) = 1;
+  csmemset((char *)g + 0x14, -1, 8);
+  csmemset((char *)g + 0x1c, -1, 8);
+  csmemset((char *)g + 0x24, -1, 8);
+
+  FUN_0004c0f0();
+  FUN_00053650();
+  FUN_0005dfa0();
+  FUN_0003aa60();
+  FUN_00064150();
+  FUN_0005b200();
+  FUN_000540d0();
+  FUN_00042b90();
+
+  *(int16_t *)((char *)g + 0x132) = 0;
+  *(int16_t *)((char *)g + 0x130) = 0;
+  csmemset((char *)g + 0x134, 0, 0x280);
+
+  /* mark AI subsystem active */
+  *(char *)((char *)g + 0x01) = 1;
+}
+
+/* ai_update: per-tick AI update dispatcher.
+ * Reads the AI active flag from globals[1] and the pause flag from
+ * 0x5abaa0 to decide whether to run the main update. If the scheduling
+ * flag 0x5abaa1 (cVar2) is set, runs actor_update_scripted branch;
+ * otherwise branches on globals[0] to run normal actor updates or
+ * process accumulated spawns (globals[2]).
+ * Wraps the update body in profile_enter_private / profile_exit_private
+ * when profile_global_enable (0x449ef1) and the profile enable flag
+ * (0x2c8738) are both set.
+ * Confirmed: ai_active = globals[1], globals[0] = first-frame flag,
+ * globals[2] = pending-spawn flag; all byte accesses verified in disasm. */
+void ai_update(void)
+{
+  bool should_update;
+  char schedule_flag;
+
+  schedule_flag = *(char *)0x5abaa1;
+
+  /* check AI active and not paused */
+  if (*(char *)(*(int *)0x632574 + 1) && !*(char *)0x5abaa0) {
+    should_update = 1;
+  } else {
+    should_update = 0;
+  }
+
+  if (*(bool *)0x449ef1 && *(char *)0x2c8738) {
+    profile_enter_private(*(void **)0x2c8730);
+  }
+
+  if (should_update) {
+    FUN_0004ab10();
+    FUN_00053680();
+    FUN_00040570();
+    if (schedule_flag) {
+      /* scripted/scheduled actor branch */
+      FUN_0003ba00();
+      *(char *)(*(int *)0x632574 + 2) = 1;
+    } else {
+      if (*(char *)*(int *)0x632574) {
+        /* first-frame / map-load branch */
+        FUN_00046cb0();
+        FUN_0005de80();
+        FUN_0003f5f0();
+        *(char *)(*(int *)0x632574 + 2) = 1;
+      } else {
+        /* accumulated-spawn branch */
+        if (*(char *)(*(int *)0x632574 + 2)) {
+          FUN_0003b900();
+          *(char *)(*(int *)0x632574 + 2) = 0;
+        }
+      }
+    }
+  }
+
+  if (*(bool *)0x449ef1 && *(char *)0x2c8738) {
+    profile_exit_private(*(void **)0x2c8730);
+  }
+}
+
+/* ai_clump (FUN_00042390): scan all active player-actor records to find
+ * any actor that should trigger a clump (grouping) response.
+ * Iterates via data_iterator_new/data_iterator_next over the data at
+ * 0x5ab23c. For each record: checks active/valid flags, verifies the
+ * unit is a vehicle occupant, looks up the actor, selects target via
+ * actor->field_6, retrieves the unit tag and checks the 0x80000 flag.
+ * Various clump-eligibility conditions are tested (swarm flag, state
+ * range, timers, squads) with float comparisons from constants embedded
+ * in the binary. Returns 1 (true) if any clump-eligible actor is found,
+ * 0 otherwise.
+ * Confirmed: param_1 is char (PUSH 0 / PUSH 1 at call sites);
+ * return via AL = 0 or 1 (two separate RETs); two exit paths.
+ * Inferred: 0x5ab23c = swarm/clump data_t; 0x2533d8, 0x254cc0,
+ * 0x254cc8, 0x254e74 are float constants embedded in the game binary. */
+bool FUN_00042390(char param_1)
+{
+  int current_time;
+  data_iter_t iter; /* standard 0x10-byte data iterator */
+  char *rec;
+  char *unit;
+  char *actor;
+  char *tag;
+  bool bVar4;
+  int16_t state;
+
+  current_time = game_time_get();
+  data_iterator_new(&iter, *(data_t **)0x5ab23c);
+  rec = data_iterator_next(&iter);
+
+  do {
+    if (rec == 0) {
+      return 0;
+    }
+
+    /* check active (0x12e) and enabled (0x60) flags */
+    if (*(char *)(rec + 0x12e) && *(char *)(rec + 0x60)) {
+      char *unit_rec;
+      /* verify unit is a vehicle occupant (type 3), with a rider (1c8) */
+      unit = object_get_and_verify_type(*(int *)(rec + 0x18), 3);
+      if (*(int *)(unit + 0x1c8) != -1) {
+        /* look up actor for this record */
+        actor = datum_get(actor_data, *(int *)(rec + 0x4));
+
+        /* select target handle based on actor->field_6 */
+        if (*(char *)(actor + 0x6)) {
+          unit_rec = (char *)*(int *)(actor + 0x24);
+        } else {
+          unit_rec = (char *)*(int *)(actor + 0x18);
+        }
+
+        unit_rec = object_get_and_verify_type((int)unit_rec, 3);
+        tag = tag_get(0x756e6974, *(int *)unit_rec);
+
+        /* check unit tag has swarm flag (bit 19 = 0x80000) */
+        bVar4 = 0;
+        if (*(int *)(tag + 0x17c) & 0x80000) {
+          /* compare distance to constant at 0x2533d8 */
+          bVar4 = *(float *)(rec + 0x11c) > *(float *)0x2533d8;
+        }
+
+        /* if param_1 set and actor is not already clumped/in-range,
+         * apply proximity override check against constant at 0x254cc0 */
+        if (param_1 && *(int16_t *)(actor + 0x5f2) == 0 &&
+            *(int16_t *)(actor + 0x6c) != 10) {
+          if (*(float *)(rec + 0x11c) <= *(float *)0x254cc0) {
+            goto next_rec;
+          }
+        }
+
+        if (bVar4) {
+          goto next_rec;
+        }
+
+        state = *(int16_t *)(rec + 0x24);
+
+        /* states outside [4,5]: check timer handle */
+        if ((state < 4 || state > 5) && *(int *)(rec + 0x8c) != -1 &&
+            *(int *)(rec + 0x8c) + 0x5a >= current_time) {
+          return 1;
+        }
+
+        /* states outside [4,5]: compare distance again */
+        if ((state < 4 || state > 5)) {
+          if (*(float *)(rec + 0x11c) < *(float *)0x2533d8) {
+            return 1;
+          }
+        }
+
+        /* squad check: actor->field_0x270 must match iter.datum_handle
+         * (iter.datum_handle = EBP-0xc in disassembly, overlaps the
+         * decompiler's 'local_10' variable) */
+        if (*(int *)(actor + 0x270) == (int)iter.datum_handle) {
+          if (state > 1 && state <= 3) {
+            return 1;
+          }
+          if (state >= 4 && state <= 5) {
+            /* check leading-actor flag and squad membership */
+            if (*(char *)(rec + 0xb8)) {
+              return 1;
+            }
+            /* look up leader actor via record->field_0xc */
+            actor = datum_get(*(data_t **)0x5ab23c, *(int *)(rec + 0xc));
+            if (*(int16_t *)(rec + 0x24) == 4 &&
+                *(float *)(rec + 0x11c) < *(float *)0x254cc8) {
+              /* distance-squared check between two position fields */
+              if (FUN_000121a0((void *)(actor + 0xbc),
+                               (void *)(rec + 0xbc)) < *(float *)0x254e74) {
+                return 1;
+              }
+            }
+          }
+        }
+      }
+    }
+
+  next_rec:
+    rec = data_iterator_next(&iter);
+  } while (1);
+}
+
 /* ai_enemies_can_see_player: query whether any AI enemy can currently see
  * a player. Delegates entirely to FUN_00042390(0). Returns true if any
  * enemy has line-of-sight to a player, false otherwise.
@@ -83,4 +430,13 @@ void ai_place(void)
 bool ai_enemies_can_see_player(void)
 {
   return FUN_00042390(0);
+}
+
+/* FUN_000425b0: unconditionally trigger a clump check with flag=1.
+ * Thin wrapper around ai_clump (FUN_00042390). Return value is discarded
+ * by the caller.
+ * Confirmed: PUSH 1 / CALL 0x42390 / ADD ESP,4 / RET. */
+void FUN_000425b0(void)
+{
+  FUN_00042390(1);
 }

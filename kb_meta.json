@@ -3097,6 +3097,49 @@
       "inferred": [
         "Age counter is at line+0x120 (int); lines are evicted after age exceeds 0x96 (150 ticks), confirmed from CMP ECX,0x96 / JLE in disasm."
       ]
+    },
+    "0x3fdc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x40010": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "local_14 in the decompiler output is iter.field_0x14 of the extended AI actor iterator; it holds the current actor handle saved by FUN_00059b50."
+      ],
+      "uncertain": [
+        "0x5ab270 (extended actor iterator data) and 0x5ab23c (clump data_t) are not yet in kb.json; used via raw pointer access."
+      ]
+    },
+    "0x41090": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "All 5 csmemset calls and 8 init helpers confirmed from disasm; ADD ESP,0x3c at 0x41172 accounts for all 15 pushed args."
+      ]
+    },
+    "0x41180": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "globals[0] = first-frame flag, globals[1] = AI active, globals[2] = pending-spawn/scripted flag; semantics inferred from branch structure."
+      ]
+    },
+    "0x42390": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x5ab23c is likely a swarm/clump data_t pointer; used as the data source for data_iterator_new.",
+        "iter.datum_handle (at EBP-0xc, overlapping the standard data_iter_t) is used in the squad check at 0x424f0 as the decompiler's 'local_10' variable."
+      ],
+      "uncertain": [
+        "Float constants 0x2533d8, 0x254cc0, 0x254cc8, 0x254e74 are addresses of game-binary float data; their semantic meaning (range thresholds) is inferred from context only."
+      ]
+    },
+    "0x425b0": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }

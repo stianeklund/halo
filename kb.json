@@ -365,6 +365,102 @@
         {
           "decl": "void edit_text_initialize(void *edit_text);",
           "addr": "0x97440"
+        },
+        {
+          "decl": "void FUN_00036e30(int ai_handle);",
+          "addr": "0x36e30"
+        },
+        {
+          "decl": "void FUN_00059b10(void *iter, char flag);",
+          "addr": "0x59b10"
+        },
+        {
+          "decl": "int FUN_00059b50(void *iter);",
+          "addr": "0x59b50"
+        },
+        {
+          "decl": "void FUN_00064540(int *out, int actor_handle);",
+          "addr": "0x64540"
+        },
+        {
+          "decl": "int FUN_00064570(int *iter);",
+          "addr": "0x64570"
+        },
+        {
+          "decl": "bool FUN_0002fc20(int actor_handle, int clump_item_handle);",
+          "addr": "0x2fc20"
+        },
+        {
+          "decl": "float FUN_0002fd10(int actor_handle, int clump_item_handle);",
+          "addr": "0x2fd10"
+        },
+        {
+          "decl": "void FUN_0004c0f0(void);",
+          "addr": "0x4c0f0"
+        },
+        {
+          "decl": "void FUN_00053650(void);",
+          "addr": "0x53650"
+        },
+        {
+          "decl": "void FUN_0005dfa0(void);",
+          "addr": "0x5dfa0"
+        },
+        {
+          "decl": "void FUN_0003aa60(void);",
+          "addr": "0x3aa60"
+        },
+        {
+          "decl": "void FUN_00064150(void);",
+          "addr": "0x64150"
+        },
+        {
+          "decl": "void FUN_0005b200(void);",
+          "addr": "0x5b200"
+        },
+        {
+          "decl": "void FUN_000540d0(void);",
+          "addr": "0x540d0"
+        },
+        {
+          "decl": "void FUN_00042b90(void);",
+          "addr": "0x42b90"
+        },
+        {
+          "decl": "void FUN_0004ab10(void);",
+          "addr": "0x4ab10"
+        },
+        {
+          "decl": "void FUN_00053680(void);",
+          "addr": "0x53680"
+        },
+        {
+          "decl": "void FUN_00040570(void);",
+          "addr": "0x40570"
+        },
+        {
+          "decl": "void FUN_0003ba00(void);",
+          "addr": "0x3ba00"
+        },
+        {
+          "decl": "void FUN_00046cb0(void);",
+          "addr": "0x46cb0"
+        },
+        {
+          "decl": "void FUN_0005de80(void);",
+          "addr": "0x5de80"
+        },
+        {
+          "decl": "void FUN_0003f5f0(void);",
+          "addr": "0x3f5f0"
+        },
+        {
+          "decl": "void FUN_0003b900(void);",
+          "addr": "0x3b900"
+        },
+        {
+          "decl": "float FUN_000121a0(void *a, void *b);",
+          "addr": "0x121a0"
         }
       ]
     },
@@ -3197,60 +3293,10 @@
     {
       "name": "scenario.obj",
       "source": "scenario/scenario.c",
-      "data": [
-        {
-          "decl": "int global_scenario_index;",
-          "addr": "0x326a08"
-        }
-      ],
       "functions": [
-        {
-          "decl": "void scenario_initialize(void);",
-          "addr": "0x18e280"
-        },
-        {
-          "decl": "void scenario_initialize_for_new_map(void);",
-          "addr": "0x18e2a0"
-        },
-        {
-          "decl": "void scenario_dispose_from_old_map(void);",
-          "addr": "0x18e2f0"
-        },
-        {
-          "decl": "void scenario_frame_update(float);",
-          "addr": "0x18e300"
-        },
-        {
-          "decl": "void scenario_unload(void);",
-          "addr": "0x18e310"
-        },
-        {
-          "decl": "scenario_t *global_scenario_get(void);",
-          "addr": "0x18e380"
-        },
         {
           "decl": "void *scenario_get(void);",
           "addr": "0x18e3c0"
-        },
-        {
-          "decl": "void *game_globals_get(void);",
-          "addr": "0x18e450"
-        },
-        {
-          "decl": "void scenario_location_reset(int *location);",
-          "addr": "0x18e4d0"
-        },
-        {
-          "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
-          "addr": "0x18eb40"
-        },
-        {
-          "decl": "bool scenario_load(const char *map_name);",
-          "addr": "0x18f090"
-        },
-        {
-          "decl": "void scenario_location_from_point(void *location_out, void *point);",
-          "addr": "0x18f180"
         }
       ]
     },
