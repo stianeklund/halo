@@ -1068,6 +1068,10 @@
         {
           "decl": "void decals_dispose(void);",
           "addr": "0x98e60"
+        },
+        {
+          "decl": "void decals_update_for_new_map(bool full_reset);",
+          "addr": "0x98e70"
         }
       ]
     },
@@ -1640,6 +1644,10 @@
         {
           "decl": "void game_state_load_core(const char *);",
           "addr": "0x1bffd0"
+        },
+        {
+          "decl": "void *game_state_gpu_alloc(const char *name, int a2, uint32_t size);",
+          "addr": "0x1bfd00"
         }
       ]
     },
@@ -3012,6 +3020,7 @@
     },
     {
       "name": "rasterizer_decals.obj",
+      "source": "rasterizer/xbox/rasterizer_xbox_decals.c",
       "functions": [
         {
           "decl": "void rasterizer_decals_initialize_for_new_map(void);",
@@ -4163,6 +4172,10 @@
         {
           "decl": "void __stdcall D3DTexture_LockRect(void *texture, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
           "addr": "0x1edc70"
+        },
+        {
+          "decl": "uint32_t __stdcall D3DResource_Release(void *resource);",
+          "addr": "0x1ed930"
         }
       ]
     },
@@ -4315,6 +4328,23 @@
         {
           "decl": "int crt_stricmp(const char *a, const char *b);",
           "addr": "0x1dd801"
+        }
+      ]
+    },
+    {
+      "name": "lruv_cache.obj",
+      "functions": [
+        {
+          "decl": "void lruv_cache_dispose(void *cache);",
+          "addr": "0x11d890"
+        },
+        {
+          "decl": "void lruv_cache_dispose_all(void *cache);",
+          "addr": "0x11ddc0"
+        },
+        {
+          "decl": "void *lruv_cache_new(const char *name, int capacity, int max_locked, int entry_size, void (*delete_cb)(int), int (*query_cb)(int));",
+          "addr": "0x1bfe90"
         }
       ]
     }
