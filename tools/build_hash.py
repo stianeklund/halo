@@ -17,7 +17,7 @@ def sha256_file(path: str) -> str:
 def git_rev() -> str:
     try:
         result = subprocess.run(
-            ["git", "describe", "--always", "--dirty"],
+            ["git", "describe", "--always"],
             capture_output=True,
             text=True,
         )
