@@ -3046,6 +3046,35 @@
       "uncertain": [
         "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
       ]
+    },
+    "0x15b190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b1a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "decals_update_for_new_map (0x98e70) name is inferred from its behavior: it iterates all decal data, clears locked/permanent flags, and resets the global lock/permanent counts."
+      ]
+    },
+    "0x15b6d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 12-byte vertex buffer struct layout (+0x0 D3D resource header=1, +0x4 GPU memory pointer from game_state_gpu_alloc, +0x8 lock flags=0) is derived from disassembly offsets MOV [EAX],1 / LEA ESI,[EAX+4] / MOV [EAX+8],0 and matches a minimal D3D resource header.",
+        "game_state_gpu_alloc (0x1bfd00) name is inferred from context: it allocates from the game-state GPU region and logs to gamestate.txt; the second arg is always 0 at this call site."
+      ],
+      "uncertain": [
+        "The lruv_cache entry_size arg 0x800 and capacity arg 0xa00 are confirmed from disassembly pushes but their semantic meaning (bytes per entry vs. entry count) is not independently verified."
+      ]
+    },
+    "0x15b7e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "D3DResource_Release (0x1ed930) is stdcall with RET 0x4, confirmed from disassembly; the call site uses POP ECX after the call which is inconsistent (the RET 0x4 already cleans the arg)."
+      ]
     }
   }
 }
