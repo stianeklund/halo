@@ -72,8 +72,7 @@ void game_engine_evaluate_game_complexity(void)
   if ((player_count > 8 && seat_count > 1) || player_count > 12)
     *(uint32_t *)0x5aa720 |= 1;
 
-  if (player_count > 4 || seat_count > 3 ||
-      (*(uint32_t *)0x5aa720 & 1) != 0)
+  if (player_count > 4 || seat_count > 3 || (*(uint32_t *)0x5aa720 & 1) != 0)
     *(uint32_t *)0x5aa720 |= 2;
 
   if (player_count > 4)
@@ -137,8 +136,8 @@ bool game_engine_force_single_screen(void)
  * Checks whether a unit is allowed to enter a vehicle seat under the
  * current game engine.  Steps:
  *   1. Confirm engine is active.
- *   2. Get the seat object's object_data_t via object_try_and_get_and_verify_type
- *      (type mask 4 = vehicle).
+ *   2. Get the seat object's object_data_t via
+ * object_try_and_get_and_verify_type (type mask 4 = vehicle).
  *   3. Check weapon_is_flag on the seat object.
  *   4. If the engine's "seat-entry" vtable slot fires and denies entry,
  *      return false.
@@ -266,10 +265,6 @@ void game_engine_initialize(game_variant_t *variant)
  *
  * game_engine_check_input_button (@edi = button index) is called via
  * inline asm so the correct EDI value is passed.
- *
- * Float constants (from .rdata):
- *   0x2533c0 = 0.0f (comparison floor for phase-2 timer)
- *   0x2533c8 = 1.0f (cap for phase-3 progress value 0x5aa72c)
  */
 void game_engine_update_non_deterministic(float dt)
 {
@@ -296,8 +291,9 @@ void game_engine_update_non_deterministic(float dt)
     if (*(float *)0x5aa72c > 1.0f)
       *(float *)0x5aa72c = 1.0f;
 
-    /* Poll four "done" conditions via @edi-indexed game_engine_check_input_button.
-     * EDI indices: 0, 0xc, 1, 0xd  (matching disassembly order). */
+    /* Poll four "done" conditions via @edi-indexed
+     * game_engine_check_input_button. EDI indices: 0, 0xc, 1, 0xd (matching
+     * disassembly order). */
     int ok0, ok1, ok2, ok3;
 
     /* edi=0 */
@@ -315,7 +311,7 @@ void game_engine_update_non_deterministic(float dt)
                          : "ecx", "edx", "edi", "memory", "cc");
 
     if (ok0 || ok1) {
-      /* At least one input is "done" — check for network server to reset */
+      /* At least one input is "done": check for network server to reset */
       void *server = network_game_server_get();
       if (server) {
         network_server_manager_pregame_start(server);
@@ -416,8 +412,8 @@ game_variant_t *game_engine_get_variant_by_name(game_variant_t *out_variant,
  * Prepares the custom game engine for a newly loaded map.  Validates
  * netgame-flag placement, resets the score/phase state, zeroes the
  * 0x400-byte HUD/scoreboard buffer at 0x4566f8, then calls the engine's
- * per-map init vtable slot (+0x0c).  If the engine reports failure, logs a
- * warning and falls back to no engine.  Finally loads the game-engine
+ * per-map init vtable slot (+0x0c).  If the engine reports failure, logs
+ * a warning and falls back to no engine.  Finally loads the game-engine
  * sound assets.
  */
 void game_engine_initialize_for_new_map(void)
@@ -435,9 +431,8 @@ void game_engine_initialize_for_new_map(void)
   if (init_fn) {
     bool ok = (bool)((bool (*)(void))init_fn)();
     if (!ok) {
-      error(2,
-            "failed to initialize custome game engine for new map, "
-            "reverting to default game engine");
+      error(2, "failed to initialize custome game engine for new map, "
+               "reverting to default game engine");
       if (current_game_engine) {
         void (*dispose_fn)(void) =
           ((void (**)(void))current_game_engine)[0x08 / 4];
@@ -522,15 +517,14 @@ void game_engine_player_added(int player_data_handle)
     data_iterator_new(&iter, player_data);
     while (data_iterator_next(&iter) != NULL) {
       int ph = iter.datum_handle;
-      __asm__ __volatile__("movl %[ph], %%ecx\n\t"
-                           "movl $-1, %%eax\n\t"
-                           "xorl %%ebx, %%ebx\n\t"
-                           "call *%[fn]"
-                           :
-                           : [ph] "m"(ph),
-                             [fn] "r"(game_engine_hud_update_player)
-                           : "eax", "ecx", "edx", "ebx", "esi", "edi",
-                             "memory", "cc");
+      __asm__ __volatile__(
+        "movl %[ph], %%ecx\n\t"
+        "movl $-1, %%eax\n\t"
+        "xorl %%ebx, %%ebx\n\t"
+        "call *%[fn]"
+        :
+        : [ph] "m"(ph), [fn] "r"(game_engine_hud_update_player)
+        : "eax", "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
     }
   } else {
     __asm__ __volatile__(
@@ -539,8 +533,7 @@ void game_engine_player_added(int player_data_handle)
       "xorl %%ebx, %%ebx\n\t"
       "call *%[fn]"
       :
-      : [ph] "m"(player_data_handle),
-        [fn] "r"(game_engine_hud_update_player)
+      : [ph] "m"(player_data_handle), [fn] "r"(game_engine_hud_update_player)
       : "eax", "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
   }
 

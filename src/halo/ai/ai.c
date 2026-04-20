@@ -99,8 +99,8 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
     if (*(int *)(unit + 0x1c8) != -1) {
       /* game_allegiance_get_team_is_friendly returns true when friendly;
        * we return true (enemy) only when NOT friendly. */
-      if (!game_allegiance_get_team_is_friendly(
-            *(int16_t *)(unit + 0x68), *(int16_t *)(actor + 0x3e))) {
+      if (!game_allegiance_get_team_is_friendly(*(int16_t *)(unit + 0x68),
+                                                *(int16_t *)(actor + 0x3e))) {
         result = 1;
         if (flag) {
           /* record the approach target handle at actor+0x2ed */
@@ -407,8 +407,8 @@ bool FUN_00042390(char param_1)
             if (*(int16_t *)(rec + 0x24) == 4 &&
                 *(float *)(rec + 0x11c) < *(float *)0x254cc8) {
               /* distance-squared check between two position fields */
-              if (FUN_000121a0((void *)(actor + 0xbc),
-                               (void *)(rec + 0xbc)) < *(float *)0x254e74) {
+              if (FUN_000121a0((void *)(actor + 0xbc), (void *)(rec + 0xbc)) <
+                  *(float *)0x254e74) {
                 return 1;
               }
             }
