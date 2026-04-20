@@ -3128,6 +3128,18 @@
           "addr": "0xbaeb0"
         },
         {
+          "decl": "void player_apply_overshield_effect(int player_handle@<esi>);",
+          "addr": "0xbaf90"
+        },
+        {
+          "decl": "void player_apply_camo_notification(int player_handle@<esi>);",
+          "addr": "0xbb040"
+        },
+        {
+          "decl": "void player_apply_health_effect(int player_handle@<esi>);",
+          "addr": "0xbb0f0"
+        },
+        {
           "decl": "int player_new(unsigned __int16 local_player_index, int player_handle_hint, unsigned __int16 local_player_index2, char *player_name);",
           "addr": "0xbb2f0"
         },
@@ -3156,6 +3168,10 @@
           "addr": "0xbc410"
         },
         {
+          "decl": "void player_update_weapon_timers(int datum_handle@<ebx>);",
+          "addr": "0xbc4b0"
+        },
+        {
           "decl": "void player_set_action_result_for_equipment(int player_handle, int equipment_handle);",
           "addr": "0xbcfb0"
         },
@@ -3166,6 +3182,10 @@
         {
           "decl": "void players_update_before_game(void);",
           "addr": "0xbd100"
+        },
+        {
+          "decl": "void player_update_spawn_state(int datum_handle@<ebx>);",
+          "addr": "0xbdb00"
         },
         {
           "decl": "void players_update_after_game(void);",

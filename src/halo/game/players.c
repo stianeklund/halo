@@ -1252,22 +1252,12 @@ void player_set_action_result_for_equipment(int player_handle,
     /* Overshield: check if unit can receive it. */
     if (!((bool (*)(int))0x1367e0)(*(int *)(player + 0x34)))
       return;
-    /* Trigger overshield pickup effect (ESI = player_handle). */
-    {
-      int _ph = player_handle;
-      __asm__ volatile("movl %0, %%esi" : : "r"(_ph) : "esi");
-      ((void (*)(void))0xbaf90)();
-    }
+    player_apply_overshield_effect(player_handle);
   } else if (powerup_type == 5) {
     /* Health: check if unit can receive it. */
     if (!((bool (*)(int))0x136790)(*(int *)(player + 0x34)))
       return;
-    /* Trigger health pickup effect (ESI = player_handle). */
-    {
-      int _ph = player_handle;
-      __asm__ volatile("movl %0, %%esi" : : "r"(_ph) : "esi");
-      ((void (*)(void))0xbb0f0)();
-    }
+    player_apply_health_effect(player_handle);
   } else {
     /* Active camo (3) or full-spectrum vision (4). */
     if (powerup_type == 3) {
@@ -1284,9 +1274,7 @@ void player_set_action_result_for_equipment(int player_handle,
       return;
     /* Active camo (index 0) triggers a location notification. */
     if ((int16_t)powerup_index == 0) {
-      int _ph = player_handle;
-      __asm__ volatile("movl %0, %%esi" : : "r"(_ph) : "esi");
-      ((void (*)(void))0xbb040)();
+      player_apply_camo_notification(player_handle);
     }
   }
 
@@ -1800,9 +1788,7 @@ void players_update_after_game(void)
      * Original CALL to
      * FUN_bc4b0 with EBX = datum_handle (register arg). */
     if (*(int *)(player + 0x34) != -1) {
-      int _dh = datum_handle;
-      __asm__ volatile("movl %0, %%ebx" : : "r"(_dh) : "ebx");
-      ((void (*)(void))0xbc4b0)();
+      player_update_weapon_timers(datum_handle);
     }
 
     /* BSP-switch trigger volume scan. */
@@ -1867,12 +1853,7 @@ void players_update_after_game(void)
       *(int16_t *)(pdatum + 0x28) = 0;
       *(int *)(pdatum + 0x24) = -1;
     }
-    /* FUN_bdb00: EBX = datum_handle (register arg). */
-    {
-      int _dh = datum_handle;
-      __asm__ volatile("movl %0, %%ebx" : : "r"(_dh) : "ebx");
-      ((void (*)(void))0xbdb00)();
-    }
+    player_update_spawn_state(datum_handle);
 
     player = (char *)data_iterator_next(&iter);
   }
