@@ -361,6 +361,30 @@ bool input_key_is_down(uint16_t key_code)
   }
 }
 
+/* Dequeue the next keystroke from the ring buffer.
+ *
+ * The buffer holds up to 64 entries (MAXIMUM_BUFFERED_KEYSTROKES = 0x40).
+ * word_46BC08 = read index, word_46BC0A = write index.
+ * Returns true and copies one dword-sized keystroke into *out_keystroke if a
+ * key is available; returns false immediately if the buffer is empty.
+ *
+ * Note: does NOT check input_suppressed — buffered keys always drain even
+ * when input is globally suppressed. */
+bool input_get_buffered_key(void *out_keystroke)
+{
+  int16_t read_idx;
+
+  if (word_46BC08 >= word_46BC0A)
+    return false;
+
+  assert_halt(word_46BC08 >= 0 && word_46BC08 < 0x40);
+
+  read_idx = word_46BC08;
+  *(int *)out_keystroke = dword_46BC0C[read_idx];
+  word_46BC08 = word_46BC08 + 1;
+  return true;
+}
+
 bool input_has_gamepad(int16_t gamepad_index)
 {
   assert_halt(gamepad_index >= 0 && gamepad_index < MAXIMUM_GAMEPADS);
