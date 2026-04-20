@@ -153,6 +153,17 @@ void main_reset_player_actions(void)
 }
 
 /*
+ * main_change_map_name_in_progress - 0x1006c0
+ *
+ * Returns true while the
+ * map-change deadline tick at 0x46da34 is non-zero.
+ */
+bool main_change_map_name_in_progress(void)
+{
+  return *(uint32_t *)0x46da34 != 0;
+}
+
+/*
  * compute_window_bounds - 0x100910
  *
  * Computes viewport split bounds for a given player in a multi-player split

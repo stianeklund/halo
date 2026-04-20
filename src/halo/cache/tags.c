@@ -1,3 +1,44 @@
+/* 0x1b9930 — tag_loaded: linear search for a loaded tag by group/name.
+ * Returns tag index from tag instance +0x0c on match; otherwise -1.
+ * Requires cache tags to be available (byte flag at 0x4e4d00). If the
+ * global tag-instance table pointer (0x5054f0) is NULL while tags are
+ * enabled, asserts and exits. Comparison uses case-insensitive CRT
+ * string compare (__stricmp). */
+int tag_loaded(int group_tag, const char *name, ...)
+{
+  int tag_count;
+  int *entry;
+  short index;
+
+  if (*(uint8_t *)0x4e4d00 == 0) {
+    return -1;
+  }
+
+  if (*(int **)0x5054f0 == 0) {
+    display_assert("global_tag_instances",
+                   "c:\\halo\\SOURCE\\cache\\cache_files.c", 0x127, true);
+    system_exit(-1);
+  }
+
+  tag_count = *(int *)(*(int *)0x4e5504 + 0xc);
+  if (tag_count <= 0) {
+    return -1;
+  }
+
+  index = 0;
+  do {
+    entry = (int *)((int)*(int **)0x5054f0 + ((int)index << 5));
+    if (entry[0] == group_tag &&
+        crt_stricmp(name, (const char *)entry[4]) == 0) {
+      return entry[3];
+    }
+
+    index = (short)(index + 1);
+  } while ((int)index < tag_count);
+
+  return -1;
+}
+
 /* 0x1ba140 — tag_get: resolve a tag handle and return its base/data
  * pointer. Calls 0x1b9bf0 (tag_instance_resolve) with the 16-bit tag
  * index in EDI (hidden register param); that helper returns a pointer

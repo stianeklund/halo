@@ -144,6 +144,104 @@ void stack_memory_pool_deallocate(void *pool, void *block)
   *(int *)(pool_p + 0x1c) -= 1;
 }
 
+/* stack_memory_pool_allocate — allocate a new block from the pool.
+ *
+ * Calls internal allocator 0x11f1e0 with EAX=size and stack args
+ * [pool, file, line]. On success, marks the returned block in-use,
+ * validates it, updates pool accounting, and returns user pointer
+ * (block_hdr + 0x1c). Returns NULL on allocation failure.
+ *
+ * Pool struct offsets touched:
+ *   +0x14: bytes_used
+ *   +0x18: peak_bytes
+ *   +0x1c: alloc_count
+ *   +0x20: peak_alloc_count
+ *   +0x24: largest_alloc
+ */
+void *stack_memory_pool_allocate(void *pool, int size, const char *file,
+                                 unsigned int line)
+{
+  char *pool_p = (char *)pool;
+  char *block_hdr;
+  unsigned int size_flags;
+  unsigned int usable_size;
+  unsigned int alloc_count;
+  unsigned int bytes_used;
+  int valid;
+  int _eax;
+
+  /* Call internal allocator: EAX=size, stack=[pool, file, line]. */
+  {
+    unsigned int args[3];
+    args[0] = (unsigned int)pool;
+    args[1] = (unsigned int)file;
+    args[2] = line;
+    _eax = size;
+    __asm__ __volatile__("pushl 8(%[a])\n\t" /* push line */
+                         "pushl 4(%[a])\n\t" /* push file */
+                         "pushl 0(%[a])\n\t" /* push pool */
+                         "call *%[fn]\n\t"
+                         "addl $0xc, %%esp"
+                         : "+a"(_eax)
+                         : [a] "r"(args), [fn] "r"((void *)0x0011f1e0)
+                         : "ecx", "edx", "memory", "cc");
+  }
+  block_hdr = (char *)_eax;
+
+  if (block_hdr == 0) {
+    return 0;
+  }
+
+  /* mark_used helper consumes ESI=block_hdr and ECX=pool. */
+  {
+    void *_esi = block_hdr;
+    int _ecx = (int)pool;
+    __asm__ __volatile__("call *%[fn]"
+                         : "+S"(_esi), "+c"(_ecx)
+                         : [fn] "r"((void *)0x0011f070)
+                         : "eax", "edx", "edi", "memory", "cc");
+  }
+
+  /* Validate returned block header. */
+  _eax = 0;
+  __asm__ __volatile__("movl %[bh], %%ecx\n\t"
+                       "call *%[fn]"
+                       : "+a"(_eax)
+                       : [bh] "r"(block_hdr), [fn] "r"((void *)0x0011ecf0)
+                       : "ecx", "edx", "memory", "cc");
+  valid = _eax & 0xff;
+
+  if (!valid) {
+    display_assert("memory_block_valid(block)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x23f, 1);
+    system_exit(-1);
+  }
+
+  /* Update pool accounting. */
+  size_flags = *(unsigned int *)block_hdr;
+  usable_size = size_flags & 0x7fffffff;
+
+  bytes_used = *(unsigned int *)(pool_p + 0x14) + usable_size;
+  *(unsigned int *)(pool_p + 0x14) = bytes_used;
+
+  alloc_count = *(unsigned int *)(pool_p + 0x1c) + 1;
+  *(unsigned int *)(pool_p + 0x1c) = alloc_count;
+
+  if ((int)bytes_used > *(int *)(pool_p + 0x18)) {
+    *(unsigned int *)(pool_p + 0x18) = bytes_used;
+  }
+
+  if (alloc_count > *(unsigned int *)(pool_p + 0x20)) {
+    *(unsigned int *)(pool_p + 0x20) = alloc_count;
+  }
+
+  if (usable_size > *(unsigned int *)(pool_p + 0x24)) {
+    *(unsigned int *)(pool_p + 0x24) = usable_size;
+  }
+
+  return (void *)(block_hdr + 0x1c);
+}
+
 /* stack_memory_pool_realloc — resize (or allocate) a block in the pool.
  *
  * If block == NULL: pure allocation (old_size = 0).

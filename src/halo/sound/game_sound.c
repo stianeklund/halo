@@ -51,12 +51,45 @@ void game_sound_dispose_from_old_map(void)
   }
 }
 
+/* sound_looping_stop (0x1c80e0)
+ *
+ * If sound_tag_index is valid, resolves the
+ * `lsnd` tag and checks the
+ * runtime looping-sound handle at tag+0x1c. When
+ * present, clears bit 0x10
+ * and sets bit 0x02 in the looping-sound entry
+ * flags, then clears tag+0x1c
+ * back to NONE (-1). */
+void sound_looping_stop(int sound_tag_index)
+{
+  void *tag;
+  int looping_sounds_handle;
+  void *entry;
+
+  if (sound_tag_index == -1)
+    return;
+
+  tag = tag_get(0x6c736e64, sound_tag_index);
+  looping_sounds_handle = *(int *)((char *)tag + 0x1c);
+
+  if (looping_sounds_handle != -1) {
+    entry = datum_get(*(data_t **)0x5054e4, looping_sounds_handle);
+    *(uint32_t *)((char *)entry + 4) &= 0xffffffef;
+
+    entry = datum_get(*(data_t **)0x5054e4, *(int *)((char *)tag + 0x1c));
+    *(uint32_t *)((char *)entry + 4) |= 2;
+
+    *(int *)((char *)tag + 0x1c) = -1;
+  }
+}
+
 /* Update the game sound subsystem for one tick.
  *
- * - Determines the current sound environment (BSP cluster) via
- *   FUN_0018f600, updates DirectSound EAX/environment state via
- *   FUN_001cb9b0, then recalculates per-cluster audibility via
- *   FUN_001c7b40.
+ * - Determines the current
+ * sound environment (BSP cluster) via
+ *   FUN_0018f600, updates DirectSound
+ * EAX/environment state via FUN_001cb9b0, then recalculates per-cluster
+ * audibility via FUN_001c7b40.
  * - Manages the music looping sound slot (globals[1]): starts, stops,
  *   or replaces it when the ambient sound environment changes.
  * - Iterates every active entry in the object-looping-sounds table and
