@@ -11,6 +11,11 @@ Two-phase lift: RE analysis + implementation, then build and verify.
 
 Argument: $ARGUMENTS (optional target name or 0x... address)
 
+Scope/read-budget guardrails:
+- Start from the narrowest file/function range for the resolved target.
+- Avoid re-reading the same file/range unless the file changed or ambiguity remains.
+- Before reading outside scope, report `NEED <path>:<line-range> because <reason>`.
+
 ---
 
 ## Phase 1 — Analysis + Implementation

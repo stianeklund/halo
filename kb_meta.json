@@ -1708,7 +1708,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe43f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe4470": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe4480": {
       "kind": "function",
       "status": "ported"
     },
@@ -1729,9 +1737,21 @@
         "The function at 0x1c8510 is sound_looping_start in game_sound.c; its third arg is a float (1.0f) passed as dword 0x3f800000 on the stack."
       ]
     },
+    "0xe4640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe46a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe46b0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xe46f0": {
+      "kind": "function",
+      "status": "named"
     },
     "0xe4890": {
       "kind": "function",
@@ -1788,17 +1808,35 @@
         "The 0x1b9930 callee is a tag lookup function (tag_group, name, ...) but its full prototype beyond 2 args is not confirmed."
       ]
     },
-    "0xe7d00": {
+    "0xe7b10": {
       "kind": "function",
       "status": "named"
+    },
+    "0xe7d00": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "FUN_000e5380/FUN_000e53e0/FUN_000e5440/FUN_000e68e0 are called through register-sensitive wrappers; exact semantic names remain unresolved.",
+        "FUN_00100620 at 0x100620 is only confirmed as a no-args helper called when all root widgets are gone."
+      ]
+    },
+    "0xe84e0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xe8700": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "The __stricmp call at 0x1dd801 is an MSVC CRT function; accessed via hardcoded address since no CRT object is tracked.",
-        "The virtual keyboard init at 0xf53a0 likely belongs to a virtual_keyboard.obj but no such object is yet in kb.json.",
-        "ui_widget_display_error at 0xe8910 prototype: int16_t error_handle, int local_player_index, char is_modal, char pause_game; inferred from disassembly push pattern and switch table."
+        "The virtual keyboard init at 0xf53a0 likely belongs to a virtual_keyboard.obj but no such object is yet in kb.json."
+      ]
+    },
+    "0xe8910": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_00100000 at 0x100000 clears byte_46DA25; semantic name remains uncertain."
       ]
     },
     "0xe8c90": {
@@ -1815,7 +1853,11 @@
     },
     "0xe9080": {
       "kind": "function",
-      "status": "named"
+      "status": "ported",
+      "uncertain": [
+        "FUN_000ab720 at 0xab720 is only known as a bool gate used in multiplayer pause handling; semantic name is unresolved.",
+        "FUN_00124c40 and FUN_001257a0 (network_client_manager.c asserts) are called for side-effect parity; their higher-level intent in pause flow is still uncertain."
+      ]
     },
     "0xe9450": {
       "kind": "function",

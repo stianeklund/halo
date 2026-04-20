@@ -3,9 +3,12 @@
 
 > **Scope:** Genuine bugs and behavioral glitches confirmed present in the original 2001 Xbox release (NTSC). Player-initiated tricks that don't expose an underlying engine bug (stunts, grenade jumps for sequence-breaking, out-of-bounds exploration) are excluded.
 
-### 2-player split screen HUD positioning
+### 2-player split screen HUD positioning (overscan / safezone aligned UI elements)
 
-**Description:** In a 2-player multiplayer or coop game, the HUD positions are in different locations for each player respectively, i.e. the screen is divided horizontally but the HUD elements are not in the same relative positions. Player 1 (the top half of the horizontal split) has much more room aove the HUD elements than Player 2 (the bottom half of the the horizontal split). Also interestingly, the motion tracker position is much higher for player 2 than player 1, so it seems maybe that the HUD elements; maybe even the camera positions? are squished slightly from the bottom and top?
+**Description:** The UI elements of the HUD is positioned so that when in 2-player split screen mode
+the HUD UI elements are within the safezone / overscan boundaries.
+
+This looks a bit weird on a normal screen.
 
 **Reproduction:** Split screen, Coop or multiplayer 
 
@@ -14,7 +17,7 @@
 
 ### 2-player split screen camera positions 
 
-**Description:** In a 2-player multiplayer or coop game, the camera position for player 1 and player 2 are not "equal", relatively speaking, player 2 (bottom half of screen)'s camera position seems to be slightly lower or further back resulting in more of the bottom of the gun / assault rifle visible than player 1 (top half of the screen). 
+**Description:** In a 2-player multiplayer or coop game, the camera position for player 1 and player 2 are not "equal", relatively speaking, player 2 (bottom half of screen)'s camera position seems to be slightly lower or further back resulting in more of the bottom of the gun / assault rifle visible than player 1 (top half of the screen), this is probably related to the overscan / safezone HUD alignment issue above but it looks like the camera positions are slightly different.
 
 **Reproduction:** Split screen, Coop or multiplayer 
 
