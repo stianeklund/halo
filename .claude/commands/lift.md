@@ -25,11 +25,15 @@ the top candidate.
 Steps:
 1. Resolve the target in `kb.json`: address, name, object, and `source_path`.
 2. Follow the analysis and ABI checks from `halo-re-lift`.
-3. Produce a structurally faithful C implementation.
-4. Write the implementation directly to the source file at the correct
+3. Apply token-efficient defaults from `halo-re-lift`:
+   - no ad-hoc inline `python3 -c` for kb lookups
+   - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
+   - prefer `batch_decompile` when comparing related helpers
+4. Produce a structurally faithful C implementation.
+5. Write the implementation directly to the source file at the correct
    address-ordered position.
-5. If the `kb.json` declaration needs updating, update it conservatively.
-6. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
+6. If the `kb.json` declaration needs updating, update it conservatively.
+7. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
 
 Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
 
@@ -38,6 +42,7 @@ Report at minimum:
 - Proposed code (as written)
 - kb.json updates made
 - RESOLVED_TARGET: <function_name>
+- A short `Tool efficiency` note (MCP calls used, and why any full disassembly was needed)
 
 ---
 

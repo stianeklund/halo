@@ -35,6 +35,22 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
    `docs/references/kb-update-policy.md`).
 8. Run `python3 tools/maintain.py <source_file>`.
 
+## Token-efficient execution defaults
+
+Use these defaults unless a target requires deeper forensics:
+
+- Prefer existing repo tools over ad-hoc scripts:
+  - `python3 tools/kb_meta.py list --object <obj>` for scoped symbol sets
+  - `python3 tools/lift_pipeline.py --target <name_or_addr> ...` for staged lift/verify
+- Avoid inline `python3 -c` snippets for kb queries and address matching.
+- Keep MCP passes staged:
+  1. Resolve target (`get_function_by_address`).
+  2. Pull pseudocode (`decompile_function` or `batch_decompile` for >1 function).
+  3. Pull callers/callees (`get_function_callers`/`get_function_callees`) with bounded limits.
+  4. Pull full disassembly only when decompiler output is ambiguous or ABI-critical.
+- Prefer one target per run; do not batch unrelated functions in one analysis pass.
+- In reports, summarize evidence and include only the minimum assembly needed to justify claims.
+
 ## ABI cautions
 
 Key reminders (full rules in `docs/references/abi-and-calling-conventions.md`):
