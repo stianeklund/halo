@@ -86,6 +86,7 @@
 	halo/sound/sound_manager.c
 	halo/objects/objects.c
 	halo/objects/widgets/widgets.c
+	halo/text/draw_string.c
 	halo/text/unicode.c
 	halo/tag_files/files.c
 	halo/tag_files/tag_groups.c

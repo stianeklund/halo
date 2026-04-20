@@ -2988,6 +2988,39 @@
     "0xe3a10": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x130ab0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name 'terminal_string_process_tabs' is the binary name; despite being in draw_string.obj, its sole purpose is to forward rendered text out over the telnet debug console (send_endpoint at 0x82f50).",
+        "The CRLF prefix string is a literal two-byte '\\r\\n' at 0x261f2c (not a null-terminated string); the hard-coded length of 2 is confirmed from 'PUSH 0x2' in disassembly."
+      ]
+    },
+    "0x19b560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19b640": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Field order in the color struct is alpha at [+0], red at [+4], green at [+8], blue at [+0xc] \u2014 inferred from assertion strings naming alpha/red/green/blue in sequence and confirmed by ESI offsets in disassembly."
+      ]
+    },
+    "0x19b800": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The upper bound check for style uses 'CMP DI,0x4; JL ok' meaning style < 4, implying NUMBER_OF_TEXT_STYLES=4 (styles 0..3); but the boundary value of 4 itself is rejected, consistent with an exclusive upper bound."
+      ]
+    },
+    "0x19b8b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
+      ]
     }
   }
 }
