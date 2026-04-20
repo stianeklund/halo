@@ -161,6 +161,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8dcb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8de70": {
       "kind": "function",
       "status": "ported"

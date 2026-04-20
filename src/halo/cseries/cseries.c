@@ -44,6 +44,38 @@ void *csmemset(void *buffer, int c, size_t size)
   return buffer;
 }
 
+/* csstrcmp — string comparison with NULL-pointer assertion.
+ * Uses an unrolled-by-2 byte comparison loop matching the original MSVC
+ * codegen. Returns -1 if s1 < s2, 0 if equal, 1 if s1 > s2. */
+int csstrcmp(const char *s1, const char *s2)
+{
+  unsigned char c1, c2;
+
+  assert_halt(s1 && s2);
+
+  for (;;) {
+    c1 = *(unsigned char *)s1;
+    c2 = *(unsigned char *)s2;
+    if (c1 != c2)
+      break;
+    if (c1 == 0)
+      return 0;
+
+    c1 = ((unsigned char *)s1)[1];
+    c2 = ((unsigned char *)s2)[1];
+    if (c1 != c2)
+      break;
+    s1 += 2;
+    s2 += 2;
+    if (c1 == 0)
+      return 0;
+  }
+
+  if (c1 < c2)
+    return -1;
+  return 1;
+}
+
 /* csstrcat — bounded string concatenation with assertions. */
 char *csstrcat(char *destination, const char *source, size_t max_size)
 {
