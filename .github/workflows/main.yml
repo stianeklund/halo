@@ -9,6 +9,17 @@ on:
       - gh-pages
 
 jobs:
+  AgentPolicy:
+    name: Validate agent instruction docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Tree
+        uses: actions/checkout@v3
+
+      - name: Check AGENTS/CLAUDE sync
+        run: |
+          python3 tools/check_agent_docs.py
+
   BuildUbuntu:
     name: Build on Ubuntu with clang (${{ matrix.configuration }})
     runs-on: ubuntu-latest

@@ -193,8 +193,7 @@ bool scenario_load(const char *map_name)
 
   /* load game globals tag ("matg") */
   {
-    int matg_index =
-      ((int (*)(int, const char *))0x1b9930)(0x6d617467, "globals\\globals");
+    int matg_index = tag_loaded(0x6d617467, "globals\\globals");
     *(char **)0x5064d4 = (char *)tag_get(0x6d617467, matg_index);
   }
 

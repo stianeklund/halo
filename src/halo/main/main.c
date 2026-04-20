@@ -452,17 +452,15 @@ void main_change_map_name(void)
   int delta;
   int i;
 
-  typedef bool(__cdecl * fn_music_playing_t)(void);
   typedef void(__cdecl * fn_ui_fade_start_t)(int duration_ms);
   typedef void(__cdecl * fn_set_fade_t)(float fade);
-  typedef void(__cdecl * fn_stop_music_t)(void);
   typedef void(__cdecl * fn_set_widget_flag2_t)(bool enable);
   typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
 
   if (main_globals.main_menu_scenario_loaded) {
     if (*(int *)0x46da34 == 0) {
       /* music not yet fading: check if music is still playing */
-      if (((fn_music_playing_t)0xe46a0)()) {
+      if (ui_widget_get_attract_mode_flag()) {
         /* set deadline and kick off the 1000 ms fade sequence */
         *(uint32_t *)0x46da34 = (uint32_t)unk_time_globals.unk_0 + 1000;
         /* MSVC interleaved pre-push: PUSH 0x3e8, PUSH 0x1, PUSH 0x0 */
@@ -494,7 +492,7 @@ void main_change_map_name(void)
   /* timer expired (or was never pending): finalize fade and start new map */
   /* MSVC interleaved pre-push: PUSH 0xbf800000, PUSH 0x0, PUSH 0x0 */
   ((fn_set_fade_t)0xe3c90)(-1.0f); /* 0xbf800000 */
-  ((fn_stop_music_t)0xe4640)();
+  ui_widget_stop_attract_mode();
   ((fn_set_widget_flag2_t)0xe43d0)(0);
   main_globals.main_menu_scenario_loaded = 0;
   ui_widget_set_events_suppressed(0);

@@ -3,6 +3,7 @@
 /build_debug
 /dist
 build_output.log
+artifacts
 
 # Package manager output
 /node_modules
