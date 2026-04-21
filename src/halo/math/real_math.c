@@ -282,6 +282,36 @@ void real_math_reset_precision(void)
   __control87(0x9001f, 0xfffff);
 }
 
+/* Compute a perpendicular vector to the input 3D vector.
+ * Finds the component with the smallest absolute value and zeros it,
+ * then swaps the other two with one negated.  This produces a vector
+ * orthogonal to `in` without requiring normalization.
+ *
+ * If abs(x) is smallest: out = (0, z, -y)
+ * If abs(y) is smallest: out = (-z, 0, x)
+ * If abs(z) is smallest: out = (y, -x, 0)
+ */
+void perpendicular3d(float *in, float *out)
+{
+  float abs_x = fabsf(in[0]);
+  float abs_y = fabsf(in[1]);
+  float abs_z = fabsf(in[2]);
+
+  if (abs_x <= abs_y && abs_x <= abs_z) {
+    out[0] = 0.0f;
+    out[1] = in[2];
+    out[2] = -in[1];
+  } else if (abs_y <= abs_z) {
+    out[1] = 0.0f;
+    out[0] = -in[2];
+    out[2] = in[0];
+  } else {
+    out[0] = in[1];
+    out[1] = -in[0];
+    out[2] = 0.0f;
+  }
+}
+
 /* Convert yaw/pitch angles to a unit direction vector.
  * angles[0] = yaw, angles[1] = pitch.
  * out[0] = cos(yaw) * cos(pitch)
