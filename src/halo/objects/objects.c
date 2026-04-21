@@ -211,6 +211,7 @@ void object_move_to_limbo(int object_handle)
  *   0x13d920  object_set_garbage_flag
  *   0x13dfc0  object_header_block_reference_get
  *   0x13e510  object_child_list_remove
+ *   0x13eb70  object_reset_markers
  *   0x13ee60  object_propagate_flag_to_children
  *   0x13eff0  object_remove_from_name_list
  *   0x13f060  objects_place
@@ -223,6 +224,7 @@ void object_move_to_limbo(int object_handle)
  *   0x13ffc0  object_set_garbage
  *   0x140160  object_set_region_count
  *   0x140230  object_adjust_interpolation_position
+ *   0x140420  object_find_in_cluster
  *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
  *   0x140ce0  object_connect_to_map
@@ -659,6 +661,29 @@ void object_child_list_remove(void *list_head /* @<eax> */,
         return;
     }
   }
+}
+
+/*
+ * object_reset_markers — begin a marker sweep pass.
+ *
+ * Asserts that no marker pass is in progress, increments the global marker
+ * generation counter (0x5a8d28), and sets
+ * object_globals->object_marker_initialized to true.
+ *
+ * Confirmed: void, no params (no stack args referenced).
+ * Confirmed: TEST byte ptr [EAX+1] — checks object_marker_initialized.
+ * Confirmed: INC dword ptr [0x5a8d28] — increments generation counter.
+ * Confirmed: MOV byte ptr [EAX+1], 1 — sets marker_initialized = true.
+ */
+void object_reset_markers(void)
+{
+  if (object_globals->object_marker_initialized) {
+    display_assert("!object_globals->object_marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0xdaf, 1);
+    system_exit(-1);
+  }
+  *(uint32_t *)0x5a8d28 += 1;
+  object_globals->object_marker_initialized = 1;
 }
 
 /* Propagate flags to all children of an object. For each child slot where
@@ -1410,6 +1435,157 @@ void object_adjust_interpolation_position(int object_handle, vector3_t *delta)
 }
 
 /*
+ * object_find_in_cluster — find objects in clusters matching type criteria.
+ *
+ * Begins a marker pass (object_reset_markers), then iterates over
+ * cluster indices.  For each cluster, walks the collideable partition
+ * (flags & 1 => 0x5a8d40) and/or noncollideable partition (flags & 2 =>
+ * 0x5a8d30) using cluster_partition_iter_first/next (0x191a50/0x191660).
+ *
+ * Each found object is verified as having a valid type bit.  If the object's
+ * marker_generation differs from the current global generation, it's stamped
+ * with the new generation and added to the output array.  Objects whose
+ * marker_generation already matches are skipped (already collected this pass).
+ *
+ * Returns when max_count objects are collected or all clusters are exhausted.
+ * Ends the marker pass by clearing object_globals->marker_initialized.
+ *
+ * Parameters (cdecl, 5 args):
+ *   flags            — bit 0: collideable, bit 1: noncollideable; 0=>all (-1)
+ *   cluster_count    — number of cluster indices
+ *   cluster_indices  — int16_t array of cluster indices
+ *   max_count        — capacity of out_handles array (int16_t)
+ *   out_handles      — output array for found object handles (int*)
+ *
+ * Confirmed: 5 cdecl params at [EBP+0x8..0x18].
+ * Confirmed: CALL 0x13eb70 (object_reset_markers) with 0 pushed args.
+ * Confirmed: flags==0 => overwritten with 0xffffffff.
+ * Confirmed: cluster_partition_iter_first at 0x191a50 (3 cdecl args:
+ *            partition, state, cluster_idx).
+ * Confirmed: cluster_partition_iter_next at 0x191660 (2 cdecl args:
+ *            partition, state).
+ * Confirmed: Both iter functions return handle (int) or -1.
+ * Confirmed: datum_get at 0x119320: result+8 = object_data_t*.
+ * Confirmed: obj+0x64 is type (int16_t), obj+0x08 is marker_generation
+ * (uint32_t). Confirmed: 0x5a8d28 is the global marker generation counter.
+ * Confirmed: End-of-pass clears object_globals+0x01 (marker_initialized).
+ * Confirmed: Returns uint16 count in AX.
+ */
+int16_t object_find_in_cluster(int flags, int16_t cluster_count,
+                               int16_t *cluster_indices, int16_t max_count,
+                               int *out_handles)
+{
+  int16_t found = 0;
+  int i;
+
+  if (flags == 0)
+    flags = 0xFFFFFFFF;
+
+  object_reset_markers();
+
+  for (i = 0; i < cluster_count; i++) {
+    int16_t cluster_idx = cluster_indices[i];
+    int handle;
+    int iter_state[2];
+
+    /* Collideable partition (flags & 1) */
+    if (flags & 1) {
+      handle =
+        cluster_partition_iter_first((void *)0x5a8d40, iter_state, cluster_idx);
+      while (handle != -1) {
+        object_header_data_t *header =
+          (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+        object_data_t *obj = header->object;
+
+        if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
+          char *msg =
+            csprintf((char *)0x5ab100,
+                     "got an object type we didn\\'t expect (expected one of "
+                     "0x%08x but got #%d).",
+                     -1, (int)obj->type);
+          display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+          system_exit(-1);
+        }
+
+        if (!object_globals->object_marker_initialized) {
+          display_assert("object_globals->object_marker_initialized",
+                         "c:\\halo\\SOURCE\\objects\\objects.c", 0xdd7, 1);
+          system_exit(-1);
+        }
+
+        if (obj->marker_generation != *(uint32_t *)0x5a8d28) {
+          obj->marker_generation = *(uint32_t *)0x5a8d28;
+          if (found >= max_count) {
+            if (!object_globals->object_marker_initialized) {
+              display_assert("object_globals->object_marker_initialized",
+                             "c:\\halo\\SOURCE\\objects\\objects.c", 0xdba, 1);
+              system_exit(-1);
+            }
+            object_globals->object_marker_initialized = 0;
+            return found;
+          }
+          out_handles[found] = handle;
+          found++;
+        }
+        handle = cluster_partition_iter_next((void *)0x5a8d40, iter_state);
+      }
+    }
+
+    /* Noncollideable partition (flags & 2) */
+    if (flags & 2) {
+      int iter_state2[2];
+      handle = cluster_partition_iter_first((void *)0x5a8d30, iter_state2,
+                                            cluster_idx);
+      while (handle != -1) {
+        object_header_data_t *header =
+          (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+        object_data_t *obj = header->object;
+
+        if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
+          char *msg =
+            csprintf((char *)0x5ab100,
+                     "got an object type we didn\\'t expect (expected one of "
+                     "0x%08x but got #%d).",
+                     -1, (int)obj->type);
+          display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+          system_exit(-1);
+        }
+
+        if (!object_globals->object_marker_initialized) {
+          display_assert("object_globals->object_marker_initialized",
+                         "c:\\halo\\SOURCE\\objects\\objects.c", 0xdd7, 1);
+          system_exit(-1);
+        }
+
+        if (obj->marker_generation != *(uint32_t *)0x5a8d28) {
+          obj->marker_generation = *(uint32_t *)0x5a8d28;
+          if (found >= max_count) {
+            if (!object_globals->object_marker_initialized) {
+              display_assert("object_globals->object_marker_initialized",
+                             "c:\\halo\\SOURCE\\objects\\objects.c", 0xdba, 1);
+              system_exit(-1);
+            }
+            object_globals->object_marker_initialized = 0;
+            return found;
+          }
+          out_handles[found] = handle;
+          found++;
+        }
+        handle = cluster_partition_iter_next((void *)0x5a8d30, iter_state2);
+      }
+    }
+  }
+
+  if (!object_globals->object_marker_initialized) {
+    display_assert("object_globals->object_marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0xdba, 1);
+    system_exit(-1);
+  }
+  object_globals->object_marker_initialized = 0;
+  return found;
+}
+
+/*
  * object_delete_internal — recursive object deletion implementation.
  *
  * Recursively deletes an object's child chain (obj+0xC8), and optionally
@@ -2049,7 +2225,7 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
       float dz = obj->unk_88 - position[2];
       float effective_radius = obj->unk_92 + radius;
 
-if (dx * dx + dy * dy + dz * dz <= effective_radius * effective_radius) {
+      if (dx * dx + dy * dy + dz * dz <= effective_radius * effective_radius) {
         out_handles[found_count] = handle;
         found_count++;
       }

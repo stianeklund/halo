@@ -138,7 +138,7 @@ typedef struct {
 typedef struct {
   uint32_t tag_index;       ///< offset=0x00
   uint32_t flags;           ///< offset=0x04  .text:00095B7B                 mov     [esi+4], ecx
-  uint32_t unk_8;           ///< offset=0x08  .text:0013EC41                 mov     edx, [esi+8] compared against global object marker
+  uint32_t marker_generation; ///< offset=0x08  .text:0013EC41 compared against global object_marker_generation
   vector3_t unk_12;         ///< offset=0x0C
   vector3_t unk_24;         ///< offset=0x18
   vector3_t unk_36;         ///< offset=0x24

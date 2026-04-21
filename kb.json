@@ -2725,7 +2725,7 @@
           "addr": "0x13e510"
         },
         {
-          "decl": "void object_reset_markers(int flags);",
+          "decl": "void object_reset_markers(void);",
           "addr": "0x13eb70"
         },
         {
@@ -2789,7 +2789,7 @@
           "addr": "0x140230"
         },
         {
-          "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, void *cluster_indices, int max_count, int *out_handles);",
+          "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, int16_t *cluster_indices, int16_t max_count, int *out_handles);",
           "addr": "0x140420"
         },
         {
@@ -3987,6 +3987,14 @@
         {
           "decl": "int16_t structure_find_in_cluster(uint16_t cluster_count, float *position, float radius, int max_count, short *out_indices);",
           "addr": "0x199230"
+        },
+        {
+          "addr": "0x191a50",
+          "decl": "int cluster_partition_iter_first(void *partition, int *state, int16_t cluster_idx);"
+        },
+        {
+          "addr": "0x191660",
+          "decl": "int cluster_partition_iter_next(void *partition, int *state);"
         }
       ]
     },
