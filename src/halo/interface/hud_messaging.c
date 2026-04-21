@@ -1,5 +1,47 @@
 /* HUD message display system. */
 
+/* Find a message slot in the 4-entry array at base (each 0x8c bytes).
+ * Prefers: exact match (tag_handle + param2), then free slot, then oldest.
+ * tag_handle passed in ESI (register arg). */
+void *hud_find_message_slot(int base, int param2, int tag_handle /* @<esi> */)
+{
+  int16_t i;
+  int16_t best_index;
+  int best_time;
+  void *result;
+  char *entry;
+
+  i = 0;
+  best_index = 0;
+  best_time = 0x7fffffff;
+  result = (void *)0;
+
+  do {
+    entry = (char *)(base + (int)i * 0x8c);
+
+    if ((tag_handle == -1 || tag_handle != *(int *)(entry + 0x84) ||
+         (char)param2 != *(char *)(entry + 0x8a)) &&
+        *(char *)(entry + 0x82) != 0) {
+      int time_val = *(int *)entry;
+      if (time_val < best_time) {
+        best_time = time_val;
+        best_index = i;
+      }
+    } else {
+      result = (void *)entry;
+      if (tag_handle == -1 || tag_handle == *(int *)(entry + 0x84))
+        break;
+    }
+
+    i++;
+  } while ((uint16_t)i < 4);
+
+  if (result == (void *)0) {
+    result = (void *)(base + (int)best_index * 0x8c);
+  }
+  return result;
+}
+
 /* Clear all scripted HUD message slots across all 4 players x 4 slots. */
 _BYTE *scripted_hud_messages_clear(void)
 {

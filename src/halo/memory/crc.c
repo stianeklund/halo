@@ -1,3 +1,23 @@
+/* Generate the standard CRC32 lookup table (polynomial 0xEDB88320).
+ * Fills 256 entries at the given table pointer.
+ * table pointer passed in EDX (register arg). */
+void crc_table_init(uint32_t *table /* @<edx> */)
+{
+  uint32_t crc;
+  int i, j;
+
+  for (i = 0; i < 256; i++) {
+    crc = (uint32_t)i;
+    for (j = 0; j < 8; j++) {
+      if (crc & 1)
+        crc = (crc >> 1) ^ 0xEDB88320;
+      else
+        crc = crc >> 1;
+    }
+    *table++ = crc;
+  }
+}
+
 void crc_checksum_buffer(uint32_t *checksum, void *data, int size)
 {
   uint8_t *buffer;
