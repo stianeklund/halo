@@ -5,6 +5,8 @@
 
 #include "../../common.h"
 
+#define NUMBER_OF_UNIT_BASE_SEATS 6
+
 /* unit_set_actively_controlled_flag (0x1a7f80)
  *
  * Sets bit 5 (0x20) of the byte at object_data_t+0xb6 (offset 182,
@@ -172,6 +174,74 @@ bool any_unit_is_dangerous(void)
   return false;
 }
 
+/* unit_update_seat_occupancy (0x1aa890)
+ *
+ * Walks the child object chain of a unit (starting at unk_200, offset 0xC8)
+ * and updates two seat-occupancy handles: unk_724 (offset 0x2D4) for seats
+ * with flag bit 2 (0x4) set, and unk_728 (offset 0x2D8) for seats with flag
+ * bit 3 (0x8) set. For each child that is a biped or vehicle with a valid
+ * seat tag index, retrieves the seat definition flags from the unit tag.
+ *
+ * Bit 2 (0x4): writes child handle to unk_724, but only if the unit's
+ * unk_436 bit 0 is clear AND unk_724 is currently NONE.
+ * Bit 3 (0x8): writes child handle to unk_728, but only if unk_728 is
+ * currently NONE or equals unk_724.
+ *
+ * Register arg: unit_handle passed in EAX (vehicle_handle).
+ *
+ * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type.
+ * Confirmed: child chain via [ESI+0xC8] -> [EBX+0xC4].
+ * Confirmed: seat flags from tag_block_get_element(tag+0x2e4, index, 0x11c).
+ * Confirmed: TEST CL,0x4 and TEST CL,0x8 for seat flag bits.
+ * Confirmed: stores to [ESI+0x2D4] and [ESI+0x2D8].
+ */
+void unit_update_seat_occupancy(int vehicle_handle)
+{
+  char *unit;
+  char *unit_tag;
+  int child_handle;
+  char *child_obj;
+  int *seat_element;
+  int seat_flags;
+
+  unit = (char *)object_get_and_verify_type(vehicle_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+  child_handle = *(int *)(unit + 0xc8);
+
+  while (child_handle != -1) {
+    child_obj = (char *)object_get_and_verify_type(child_handle, -1);
+
+    if (((1 << (*(uint8_t *)(child_obj + 0x64) & 0x1f)) & 3) &&
+        *(int16_t *)(child_obj + 0x2a0) != -1) {
+      seat_element = (int *)tag_block_get_element(
+        unit_tag + 0x2e4, (int)*(int16_t *)(child_obj + 0x2a0), 0x11c);
+      seat_flags = *seat_element;
+
+      if ((seat_flags & 4) == 0 || (*(uint8_t *)(unit + 0x1b4) & 1) ||
+          *(int *)(unit + 0x2d4) != -1) {
+        /* bit 2 not set, or unit already has unk_724 occupied —
+         * check bit 3 only */
+        if (seat_flags & 8) {
+          if (*(int *)(unit + 0x2d8) == -1 ||
+              *(int *)(unit + 0x2d8) == *(int *)(unit + 0x2d4)) {
+            *(int *)(unit + 0x2d8) = child_handle;
+          }
+        }
+      } else {
+        /* bit 2 set and unk_724 is NONE and unk_436 bit 0 clear */
+        *(int *)(unit + 0x2d4) = child_handle;
+        if (seat_flags & 8) {
+          if (*(int *)(unit + 0x2d8) == -1) {
+            *(int *)(unit + 0x2d8) = child_handle;
+          }
+        }
+      }
+    }
+
+    child_handle = *(int *)(child_obj + 0xc4);
+  }
+}
+
 /* unit_pickup_equipment (0x1aab20)
  *
  * Attempts to pick up an equipment object for a unit. Validates that the
@@ -284,6 +354,33 @@ void unit_clear_weapons(int unit_handle)
       }
     }
   }
+}
+
+/* unit_find_empty_weapon_slot (0x1aad60)
+ *
+ * Scans the unit's 4 weapon slots (unit_data_t.unk_680, offset 0x2A8)
+ * for the first slot containing NONE (-1) and returns its index (0-3).
+ * Returns -1 if all slots are occupied.
+ *
+ * Register arg: unit_handle passed in EAX.
+ *
+ * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type(handle, 3).
+ * Confirmed: CMP dword ptr [EAX + ESI*4 + 0x2a8], -1 — weapon slot check.
+ * Confirmed: CMP CX, 0x4 — loop bound is 4 (MAXIMUM_WEAPONS_PER_UNIT).
+ * Confirmed: Returns int16_t (MOV AX,CX / MOV AX,DX).
+ */
+int16_t unit_find_empty_weapon_slot(int unit_handle)
+{
+  unit_data_t *unit;
+  int16_t i;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  for (i = 0; i < MAXIMUM_WEAPONS_PER_UNIT; i++) {
+    if (unit->unk_680[i].value == -1)
+      return i;
+  }
+  return -1;
 }
 
 /* unit_count_weapons (0x1aad90)
@@ -401,6 +498,109 @@ void unit_set_animation(int unit_handle, int anim_graph_tag_index,
   }
 }
 
+/* unit_detach_weapon (0x1ab990)
+ *
+ * Detaches a weapon/item from a unit. If the item has no parent, connects it
+ * to the map and attaches it at the unit's "left hand" marker. If it has a
+ * parent, asserts that the parent is the unit. Then detaches the item from
+ * the unit, clears its velocity, generates a random direction offset based on
+ * the unit's unk_492 facing vector with a small random angle and scale, adds
+ * that to the root position, and attempts to place the item at the new
+ * position. If placement fails and the game engine is not running, deletes
+ * the item. Also deletes if the unit has flag bit 0x100000 set in unk_436.
+ *
+ * Register args: unit_handle in EDI, weapon_handle in ESI.
+ *
+ * Confirmed: PUSH 0x3 / PUSH EDI -> object_get_and_verify_type(unit, 3).
+ * Confirmed: PUSH 0x1c / PUSH ESI -> object_get_and_verify_type(weapon, 0x1c).
+ * Confirmed: parent check at [EBX+0xCC] against -1 and EDI.
+ * Confirmed: object_attach_to_marker(edi, "left hand", esi, "").
+ * Confirmed: item_attach_to_unit(esi, -1) to detach.
+ * Confirmed: global zero vector copied from [0x31fc38].
+ * Confirmed: assert "item->object.parent_object_index==unit_index" at 0x20c5.
+ * Confirmed: random_direction3d with angle 0x3ec90fdb, scale range [0x3cda740e,
+ * 0x3d23d70b]. Confirmed: [EBX+0x1b0] = EDI (weapon remembers its detaching
+ * unit). Confirmed: flag check at unit+0x1b4 bit 0x100000.
+ */
+void unit_detach_weapon(int unit_handle, int weapon_handle)
+{
+  char *unit;
+  char *weapon;
+  int parent;
+  float *global_origin;
+  float direction[3];
+  float position[3];
+  int *seed;
+  float scale;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 0x1c);
+  parent = *(int *)(weapon + 0xcc);
+
+  if (parent == -1) {
+    /* Weapon has no parent — connect to map and attach at marker */
+    object_connect_to_map(weapon_handle, 0);
+    object_set_garbage(weapon_handle, 1);
+    object_attach_to_marker(unit_handle, (void *)0x2b6d2c, weapon_handle,
+                            (void *)0x25386f);
+  } else if (parent != unit_handle) {
+    display_assert("item->object.parent_object_index==unit_index",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x20c5, 1);
+    system_exit(-1);
+  }
+
+  /* Detach weapon from unit and parent */
+  item_attach_to_unit(weapon_handle, -1);
+  object_detach_from_parent(weapon_handle);
+
+  /* Zero the weapon's velocity fields at +0x18 and +0x3c */
+  global_origin = *(float **)0x31fc38;
+  *(float *)(weapon + 0x18) = global_origin[0];
+  *(float *)(weapon + 0x1c) = global_origin[1];
+  *(float *)(weapon + 0x20) = global_origin[2];
+
+  global_origin = *(float **)0x31fc38;
+  *(float *)(weapon + 0x3c) = global_origin[0];
+  *(float *)(weapon + 0x40) = global_origin[1];
+  *(float *)(weapon + 0x44) = global_origin[2];
+
+  /* Generate random throw direction from unit's facing vector (unk_492) */
+  seed = get_global_random_seed_address();
+  random_direction3d(seed, (float *)(unit + 0x1ec), 0.0f, 0.39269909f,
+                     direction);
+
+  /* Scale direction by random amount */
+  seed = get_global_random_seed_address();
+  scale = random_real_range(seed, 0.02666667f, 0.04f);
+  direction[0] *= scale;
+  direction[1] *= scale;
+  direction[2] *= scale;
+
+  /* Get root parent position and offset by scaled direction */
+  object_get_root_location(unit_handle, position, 0);
+  direction[0] = position[0] + direction[0];
+  direction[1] = position[1] + direction[1];
+  direction[2] = position[2] + direction[2];
+
+  /* Record the detaching unit on the weapon */
+  *(int *)(weapon + 0x1b0) = unit_handle;
+
+  /* Set weapon position and try to place it */
+  item_set_position(weapon_handle, direction, 0);
+  unit_set_seat_state(unit_handle, position);
+
+  if (!object_try_place(weapon_handle, position)) {
+    if (!game_engine_running()) {
+      object_delete(weapon_handle);
+    }
+  }
+
+  /* If unit has death/despawn flag, force-delete the weapon */
+  if (*(uint32_t *)(unit + 0x1b4) & 0x100000) {
+    object_delete(weapon_handle);
+  }
+}
+
 /* unit_has_weapon_with_flag (0x1ac3f0)
  *
  * Returns true if any of the unit's equipped weapons has the given flag
@@ -435,6 +635,175 @@ bool unit_has_weapon_with_flag(int unit_handle, int flag_index)
   return 0;
 }
 
+/* unit_try_animation_state (0x1acd70)
+ *
+ * Searches the unit's animation graph for a matching animation mode and
+ * weapon label. The animation graph is resolved via: unit tag -> antr tag
+ * at offset +0x44. The antr tag's animation modes block starts at tag+0xc.
+ *
+ * For each mode:
+ *   - If seat_label is non-NULL, compares it (case-insensitive) against the
+ *     mode's name string; skips non-matching modes.
+ *   - Within the mode, iterates sub-animations at mode+0x58 (size 0xBC each).
+ *   - Within each sub-animation, iterates weapon labels at sub_anim+0xB0
+ *     (size 0x3C each).
+ *   - Matches weapon_label: NULL matches anything; "unarmed" matches empty
+ *     strings; otherwise case-insensitive compare.
+ *
+ * If reset_flag is 0, returns true on first match without updating state.
+ * If reset_flag is non-zero, updates the unit's animation state fields:
+ *   - unk_592 (0x250) = mode index
+ *   - unk_593 (0x251) = sub-animation index
+ *   - unk_594 (0x252) = weapon label index
+ *   - base_seat_index (0x257) = matched base seat label index (-1 if none)
+ *   - unk_595 (0x253) = 0xff if previously != 0x1c
+ *   - unk_584 (0x248) bit 1: set if mode has multi-weapon animation channels
+ *
+ * Register arg: unit_handle passed in EAX.
+ *
+ * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type.
+ * Confirmed: tag_get('unit', *unit) then tag_get('antr', unit_tag+0x44).
+ * Confirmed: stricmp via CALL 0x1dd801.
+ * Confirmed: csstrcmp via CALL 0x8dcb0 for "unarmed" check.
+ * Confirmed: stores to offsets 0x250, 0x251, 0x252, 0x253, 0x257, 0x248.
+ * Confirmed: base_seat_labels table at 0x32e484, 6 entries.
+ */
+bool unit_try_animation_state(int unit_handle, int seat_label, int weapon_label,
+                              int reset_flag)
+{
+  char *unit;
+  char *unit_tag;
+  char *antr_tag;
+  int *anim_block;
+  int mode_count;
+  int mode_index;
+  char *mode;
+  int sub_count;
+  int16_t sub_index;
+  char *sub_anim;
+  int *weapon_block;
+  int weapon_count;
+  int16_t weapon_index;
+  char *weapon_name;
+  bool found;
+  bool has_multi_weapon;
+  int16_t base_seat;
+  int16_t si;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+  anim_block = (int *)(antr_tag + 0xc);
+  mode_count = *anim_block;
+  found = false;
+
+  if (mode_count < 1)
+    return false;
+
+  mode_index = 0;
+  while (1) {
+    mode = (char *)tag_block_get_element(anim_block, mode_index, 0x64);
+
+    if (seat_label != 0 && crt_stricmp((const char *)seat_label, mode) != 0) {
+      goto next_mode;
+    }
+
+    sub_count = *(int *)(mode + 0x58);
+    sub_index = 0;
+    if (sub_count < 1)
+      goto next_mode;
+
+    while (1) {
+      sub_anim =
+        (char *)tag_block_get_element(mode + 0x58, (int)sub_index, 0xbc);
+      weapon_block = (int *)(sub_anim + 0xb0);
+      weapon_count = *weapon_block;
+      weapon_index = 0;
+
+      if (weapon_count < 1)
+        goto next_sub;
+
+      while (1) {
+        weapon_name =
+          (char *)tag_block_get_element(weapon_block, (int)weapon_index, 0x3c);
+
+        if (weapon_label == 0)
+          goto matched;
+        if (csstrcmp((const char *)weapon_label, "unarmed") == 0 &&
+            *weapon_name == '\0')
+          goto matched;
+        if (crt_stricmp((const char *)weapon_label, weapon_name) == 0)
+          goto matched;
+
+        weapon_index++;
+        if ((int)(int16_t)weapon_index >= weapon_count)
+          goto next_sub;
+        continue;
+
+      matched:
+        if (reset_flag == 0)
+          goto found_match;
+
+        /* Check if mode has multi-weapon animation channels */
+        {
+          int num_key_types = *(int *)(mode + 0x40);
+          int *key_data = *(int **)(mode + 0x44);
+          has_multi_weapon = false;
+
+          if ((num_key_types >= 3 && *(int16_t *)(key_data + 1) != -1) ||
+              (num_key_types >= 4 &&
+               *(int16_t *)((char *)key_data + 6) != -1) ||
+              (num_key_types >= 5 &&
+               *(int16_t *)((char *)key_data + 8) != -1)) {
+            has_multi_weapon = true;
+          }
+        }
+
+        if (*(uint8_t *)(unit + 0x253) != 0x1c)
+          *(uint8_t *)(unit + 0x253) = 0xff;
+
+        *(uint8_t *)(unit + 0x250) = (uint8_t)mode_index;
+
+        /* Find base_seat_index by matching seat_label against table */
+        base_seat = -1;
+        for (si = 0; si < NUMBER_OF_UNIT_BASE_SEATS; si++) {
+          if (crt_stricmp((const char *)seat_label,
+                          *(const char **)(0x32e484 + si * 4)) == 0) {
+            base_seat = si;
+            break;
+          }
+        }
+
+        *(uint8_t *)(unit + 0x252) = (uint8_t)weapon_index;
+        *(int8_t *)(unit + 0x257) = (int8_t)base_seat;
+        *(uint8_t *)(unit + 0x251) = (uint8_t)sub_index;
+
+        if (has_multi_weapon) {
+          *(uint8_t *)(unit + 0x248) |= 0x2;
+        } else {
+          *(uint8_t *)(unit + 0x248) &= ~0x2;
+        }
+
+      found_match:
+        found = true;
+        goto next_sub;
+      }
+
+    next_sub:
+      sub_index++;
+      if ((int)(int16_t)sub_index >= *(int *)(mode + 0x58))
+        goto next_mode;
+    }
+
+  next_mode:
+    mode_index++;
+    if ((int)(int16_t)mode_index >= *anim_block)
+      break;
+  }
+
+  return found;
+}
+
 /* unit_get_weapon (0x1adeb0)
  *
  * Returns the weapon datum handle stored in the unit's weapon slot array
@@ -459,6 +828,58 @@ int unit_get_weapon(int unit_handle, int16_t weapon_index)
     result = unit->unk_680[weapon_index].value;
   }
   return result;
+}
+
+/* unit_get_seat_label (0x1ae290)
+ *
+ * Returns the seat label string for a unit. If the unit has a parent object
+ * (offset 0xCC != NONE) and a valid seat tag index (offset 0x2A0 != -1),
+ * retrieves the label from the parent's unit tag seat block at offset +4
+ * within the 0x11C-sized seat element. Otherwise falls back to a base seat
+ * label from the global table at 0x32e484 indexed by base_seat_index
+ * (offset 0x257), asserting it is in range [0, 6).
+ *
+ * Register arg: unit_handle passed in EAX.
+ *
+ * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type.
+ * Confirmed: parent_object_index at [ESI + 0xCC].
+ * Confirmed: seat tag index at [ESI + 0x2A0].
+ * Confirmed: tag_get(0x756e6974, ...) for 'unit' tag.
+ * Confirmed: tag_block_get_element(tag+0x2e4, seat_index, 0x11c).
+ * Confirmed: assert "base_seat_index>=0 &&
+ * base_seat_index<NUMBER_OF_UNIT_BASE_SEATS" at line 0x200f. Confirmed: global
+ * table at 0x32e484, indexed by MOVSX of byte at +0x257.
+ */
+int unit_get_seat_label(int unit_handle)
+{
+  char *unit;
+  int parent_handle;
+  int16_t seat_tag_index;
+  int *parent_obj;
+  char *unit_tag;
+  char *seat_element;
+  int16_t base_seat;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  parent_handle = *(int *)(unit + 0xcc);
+  if (parent_handle != -1 && *(int16_t *)(unit + 0x2a0) != -1) {
+    parent_obj = (int *)object_get_and_verify_type(parent_handle, 3);
+    unit_tag = (char *)tag_get(0x756e6974, *parent_obj);
+    seat_tag_index = *(int16_t *)(unit + 0x2a0);
+    seat_element = (char *)tag_block_get_element(unit_tag + 0x2e4,
+                                                 (int)seat_tag_index, 0x11c);
+    return (int)(seat_element + 4);
+  }
+
+  base_seat = (int16_t) * (int8_t *)(unit + 0x257);
+  if (base_seat < 0 || base_seat >= NUMBER_OF_UNIT_BASE_SEATS) {
+    display_assert(
+      "base_seat_index>=0 && base_seat_index<NUMBER_OF_UNIT_BASE_SEATS",
+      "c:\\halo\\SOURCE\\units\\units.c", 0x200f, 1);
+    system_exit(-1);
+  }
+  return *(int *)(0x32e484 + base_seat * 4);
 }
 
 /* unit_clear_seat_equipment (0x1ae330)
@@ -674,6 +1095,50 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
 
   if (!((bool (*)(int))0xfaf50)(weapon_handle))
     object_delete(weapon_handle);
+
+  return true;
+}
+
+/* unit_verify_vectors (0x1af620)
+ *
+ * Validates 6 directional vectors stored on a unit object:
+ *   - unk_468 (offset 0x1D4) — facing vector
+ *   - unk_480 (offset 0x1E0) — aiming vector
+ *   - unk_516 (offset 0x204) — looking vector
+ *   - unk_36/unk_48 (offsets 0x24/0x30) — forward/up from object_data_t
+ *   - unk_492 (offset 0x1EC) — additional vector
+ *   - unk_528 (offset 0x210) — additional vector
+ *
+ * Each vector is checked via valid_real_normal3d; additionally the
+ * forward/up pair at 0x24/0x30 is checked for perpendicularity via
+ * valid_real_normal3d_perpendicular. Returns true only if all checks pass.
+ *
+ * Register arg: unit_handle passed in EAX.
+ *
+ * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type.
+ * Confirmed: LEA offsets 0x1d4, 0x1e0, 0x204, 0x24, 0x30, 0x1ec, 0x210.
+ * Confirmed: CALL 0x21fb0 (valid_real_normal3d) and 0x84a70 (perpendicular
+ * check). Confirmed: returns bool (MOV AL,1 / XOR AL,AL).
+ */
+bool unit_verify_vectors(int unit_handle)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (!valid_real_normal3d((float *)(obj + 0x1d4)))
+    return false;
+  if (!valid_real_normal3d((float *)(obj + 0x1e0)))
+    return false;
+  if (!valid_real_normal3d((float *)(obj + 0x204)))
+    return false;
+  if (!valid_real_normal3d_perpendicular((float *)(obj + 0x24),
+                                         (float *)(obj + 0x30)))
+    return false;
+  if (!valid_real_normal3d((float *)(obj + 0x1ec)))
+    return false;
+  if (!valid_real_normal3d((float *)(obj + 0x210)))
+    return false;
 
   return true;
 }
@@ -1103,6 +1568,124 @@ bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag)
   default:
     return true;
   }
+}
+
+/* unit_update_weapon_readiness (0x1b1ee0)
+ *
+ * Transitions the unit's active weapon based on its "next weapon" index
+ * (unk_676, offset 0x2A4). If the unit currently holds a weapon (unk_674,
+ * offset 0x2A2), attempts to place/stow it via weapon_try_place. On
+ * success, detaches the current weapon from the parent, disconnects it
+ * from the map, marks it as garbage, re-attaches it to the unit via
+ * item_attach_to_unit, and clears unk_674.
+ *
+ * When unk_674 becomes -1 (no active weapon), looks up the "next" weapon
+ * (EBX). If a next weapon exists, resolves its label, looks up the
+ * animation state, connects the weapon to the map, attaches it at the
+ * appropriate marker, copies unk_676 to unk_674, records game_time in
+ * unk_696[weapon_index], and activates the weapon. If no next weapon,
+ * uses the "unarmed" animation state and sets unk_674 to -1.
+ *
+ * Always calls unit_reset_weapon_state at the end.
+ *
+ * Register arg: unit_handle passed in ESI.
+ *
+ * Confirmed: PUSH 0x3 / PUSH ESI -> object_get_and_verify_type.
+ * Confirmed: XOR ECX,ECX; MOV CX,[EAX+0x2a4] — unk_676.
+ * Confirmed: XOR EDX,EDX; MOV DX,[EAX+0x2a2] — unk_674.
+ * Confirmed: weapon_try_place at 0xfd360, object_detach_from_parent at
+ * 0x1411c0. Confirmed: object_disconnect_from_map at 0x13fd00, FUN_0x13fb30 at
+ * 0x13fb30. Confirmed: object_set_garbage at 0x13ffc0, item_attach_to_unit at
+ * 0xf69c0. Confirmed: weapon_get_label at 0xfae80, unit_get_seat_label at
+ * 0x1ae290. Confirmed: unit_try_animation_state at 0x1acd70. Confirmed:
+ * object_connect_to_map at 0x140ce0, object_attach_to_marker at 0x144860.
+ * Confirmed: weapon_activate at 0xfd2e0, unit_reset_weapon_state at 0x1b1290.
+ * Confirmed: game_time_get at 0xb5aa0.
+ * Confirmed: "unarmed" string at 0x2b6e68.
+ */
+void unit_update_weapon_readiness(int unit_handle, int flag)
+{
+  char *unit;
+  char *unit_tag;
+  int next_weapon_handle;
+  int cur_weapon_handle;
+  int seat_label;
+  int weapon_label;
+  char *antr_tag;
+  char *mode_element;
+  char *sub_anim;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+
+  /* Resolve next weapon from unk_676 */
+  {
+    char *u2 = (char *)object_get_and_verify_type(unit_handle, 3);
+    uint16_t next_idx = *(uint16_t *)(u2 + 0x2a4);
+    next_weapon_handle = unit_get_weapon(unit_handle, (int16_t)next_idx);
+  }
+
+  /* Resolve current weapon from unk_674 */
+  {
+    char *u3 = (char *)object_get_and_verify_type(unit_handle, 3);
+    uint16_t cur_idx = *(uint16_t *)(u3 + 0x2a2);
+    cur_weapon_handle = unit_get_weapon(unit_handle, (int16_t)cur_idx);
+  }
+
+  /* Try to place/stow the current weapon */
+  if (cur_weapon_handle != -1) {
+    if (weapon_try_place(cur_weapon_handle, flag)) {
+      object_detach_from_parent(cur_weapon_handle);
+      object_disconnect_from_map(cur_weapon_handle);
+      object_activate(cur_weapon_handle);
+      object_set_garbage(cur_weapon_handle, 0);
+      item_attach_to_unit(cur_weapon_handle, unit_handle);
+      *(uint16_t *)(unit + 0x2a2) = (uint16_t)-1;
+    }
+  }
+
+  /* If no active weapon, transition to next or unarmed */
+  if (*(int16_t *)(unit + 0x2a2) == -1) {
+    if (next_weapon_handle != -1) {
+      weapon_label = (int)weapon_get_label(next_weapon_handle);
+      seat_label = unit_get_seat_label(unit_handle);
+      unit_try_animation_state(unit_handle, seat_label, weapon_label, 1);
+
+      /* Look up animation sub-element for weapon attachment markers */
+      antr_tag = (char *)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+      mode_element = (char *)tag_block_get_element(
+        antr_tag + 0xc, (int)*(int8_t *)(unit + 0x250), 0x64);
+      sub_anim = (char *)tag_block_get_element(
+        mode_element + 0x58, (int)*(int8_t *)(unit + 0x251), 0xbc);
+
+      /* Connect weapon to map and attach at markers */
+      object_connect_to_map(next_weapon_handle, 0);
+      object_set_garbage(next_weapon_handle, 1);
+      object_attach_to_marker(unit_handle, sub_anim + 0x40, next_weapon_handle,
+                              sub_anim + 0x20);
+
+      /* Copy next weapon index to current */
+      {
+        uint16_t next_idx = *(uint16_t *)(unit + 0x2a4);
+        *(uint16_t *)(unit + 0x2a2) = next_idx;
+        if (next_idx != (uint16_t)-1) {
+          int16_t cur = *(int16_t *)(unit + 0x2a2);
+          ((int *)(unit + 0x2b8))[(int)cur] = game_time_get();
+        }
+      }
+
+      weapon_activate(next_weapon_handle);
+      unit_reset_weapon_state(unit_handle);
+      return;
+    }
+
+    /* No next weapon — use "unarmed" animation */
+    seat_label = unit_get_seat_label(unit_handle);
+    unit_try_animation_state(unit_handle, seat_label, (int)"unarmed", 1);
+    *(uint16_t *)(unit + 0x2a2) = (uint16_t)-1;
+  }
+
+  unit_reset_weapon_state(unit_handle);
 }
 
 /* unit_board_vehicle (0x1b2b80)
