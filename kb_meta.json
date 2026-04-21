@@ -27,6 +27,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2b5d0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Initializes two AI trigonometric lookup table regions (7-float records) from static angle/scale constant tables."
+      },
+      "inferred": [
+        "Table element semantics are inferred from math pattern and write layout; symbolic names for backing globals/constants remain unknown."
+      ]
+    },
     "0x3aa50": {
       "kind": "function",
       "status": "ported"

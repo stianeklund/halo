@@ -214,7 +214,32 @@ void ui_widget_close_children(void *widget)
 
 int ui_widget_load_widget_children(void *definition, void *widget);
 void ui_widget_link_child(void *parent, void *child);
-int *ui_widget_find_by_tag(int *widget, int tag_handle);
+
+/* ui_widget_find_by_tag — depth-first search over a widget subtree for the
+ * first node whose tag handle (offset +0x0) equals tag_handle.  Checks the
+ * current node first, then recurses into each child from first_child (+0x34)
+ * following next_sibling (+0x2c). Returns NULL when no match exists. */
+int *ui_widget_find_by_tag(int *widget, int tag_handle)
+{
+  int *result;
+  int *child;
+
+  if (*widget == tag_handle)
+    return widget;
+
+  result = NULL;
+  child = *(int **)((char *)widget + 0x34);
+  while (child != NULL && result == NULL) {
+    if (*child == tag_handle) {
+      result = child;
+    } else {
+      result = ui_widget_find_by_tag(child, tag_handle);
+    }
+    child = *(int **)((char *)child + 0x2c);
+  }
+
+  return result;
+}
 
 void ui_widget_apply_focus(void *root_widget, void *target_widget);
 
