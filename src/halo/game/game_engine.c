@@ -102,6 +102,119 @@ int game_engine_game_starting(void)
   return 0;
 }
 
+/* Remove dropped weapons older than 900 ticks (30 seconds) and
+ * equipment items whose idle timer exceeds 900 ticks.
+ * Weapons that are CTF flags or attached to vehicles are preserved. */
+void game_engine_remove_dropped_weapons(void)
+{
+  int game_time;
+  int iter_buf[4];
+  int handle;
+  char *obj;
+
+  game_time = game_time_get();
+
+  object_iterator_new(iter_buf, 0x1c, 0);
+  while (object_iterator_next(iter_buf) != NULL) {
+    handle = iter_buf[2];
+    obj = (char *)object_get_and_verify_type(handle, 0x1c);
+    if (*(int *)(obj + 0x1b4) < game_time - 900 &&
+        (*(uint8_t *)(obj + 0x1a4) & 1) == 0) {
+      if (object_try_and_get_and_verify_type(handle, 4) == NULL ||
+          !weapon_is_flag(handle)) {
+        object_delete(handle);
+      }
+    }
+  }
+
+  object_iterator_new(iter_buf, 1, 0);
+  while (object_iterator_next(iter_buf) != NULL) {
+    handle = iter_buf[2];
+    obj = (char *)object_get_and_verify_type(handle, -1);
+    if (*(int16_t *)(obj + 0x6c) > (int16_t)900 &&
+        (*(uint8_t *)(obj + 0xb6) & 4) != 0) {
+      object_delete(handle);
+    }
+  }
+}
+
+/* If the flag weapon is loose (no parent vehicle, no carried bit) and has
+ * bit 0x20 at offset 0x1dc set, clear that bit and notify the game engine
+ * via vtable slot 16. weapon_index passed in ESI (register arg). */
+void game_engine_update_flag_state(int weapon_index /* @<esi> */)
+{
+  char *obj;
+
+  if (weapon_index == -1) {
+    display_assert("weapon_index != NONE",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x78c, 1);
+    system_exit(-1);
+  }
+  if (!weapon_is_flag(weapon_index)) {
+    display_assert("weapon_is_flag(weapon_index)",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x78d, 1);
+    system_exit(-1);
+  }
+
+  obj = (char *)object_get_and_verify_type(weapon_index, 4);
+  if (*(int *)(obj + 0xcc) == -1 && (*(uint8_t *)(obj + 0x1a4) & 1) == 0 &&
+      (*(uint32_t *)(obj + 0x1dc) & 0x20) != 0) {
+    *(uint32_t *)(obj + 0x1dc) &= ~0x20u;
+    if (*(void **)(*(int *)0x456b60 + 0x40) != (void *)0) {
+      ((void (*)(int))(*(int *)(*(int *)0x456b60 + 0x40)))(weapon_index);
+    }
+  }
+}
+
+/* Iterate all weapon objects and set their scale from the item tag definition.
+ * Uses tag field 0x184 as scale (defaults to 0.7f if zero).
+ * For flag weapons with vehicle attachments, notifies the game engine. */
+void game_engine_spawn_equipment(void)
+{
+  int iter_buf[4];
+  int handle;
+  char *obj;
+  char *tag_data;
+  float scale;
+
+  if (*(int *)0x456b60 == 0) {
+    display_assert("NULL != game_engine",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x7aa, 1);
+    system_exit(-1);
+  }
+
+  object_iterator_new(iter_buf, 0x1c, 0);
+  while (object_iterator_next(iter_buf) != NULL) {
+    handle = iter_buf[2];
+    obj = (char *)object_get_and_verify_type(handle, 0x1c);
+
+    if ((*(uint8_t *)(obj + 0x1a4) & 1) == 0) {
+      tag_data = (char *)tag_get(0x6974656d, *(int *)obj);
+      scale = *(float *)(tag_data + 0x184);
+      if (scale == 0.0f)
+        scale = *(float *)0x2533c8;
+      *(float *)(obj + 0x60) = scale;
+      if (scale < *(float *)0x253398 || scale > *(float *)0x254644) {
+        display_assert(
+          "(item->object.scale >= 0.5f) && (item->object.scale <= 3.f)",
+          "c:\\halo\\SOURCE\\game\\game_engine.c", 0x7c0, 1);
+        system_exit(-1);
+      }
+    } else {
+      *(float *)(obj + 0x60) = 1.0f;
+    }
+
+    if (*(void **)(*(int *)0x456b60 + 0x38) != (void *)0) {
+      void *vehicle = object_try_and_get_and_verify_type(handle, 4);
+      if (vehicle != NULL && weapon_is_flag(handle)) {
+        game_engine_update_flag_state(handle);
+        ((void (*)(int, void *))(*(int *)(*(int *)0x456b60 + 0x38)))(handle,
+                                                                     vehicle);
+      }
+    }
+  }
+}
+
 /* game_engine_allow_weapon_pick_up (0xa8b30)
  *
  * Dispatches to vtable slot 0x58/4 = slot 22 of current_game_engine.
