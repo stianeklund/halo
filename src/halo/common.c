@@ -29,6 +29,31 @@ void cross_product3d(float *a, float *b, float *out)
  * Confirmed: PUSH EAX / PUSH 0x77656170 / CALL tag_get.
  * Confirmed: ADD EAX,0x30c — label field offset.
  */
+/* 0x21fb0 — valid_real_normal3d: check whether a 3D vector is a valid
+ * unit normal (length within epsilon of 1.0).
+ *
+ * Computes squared_length = dot(v, v) and returns true if
+ * |squared_length - 1.0f| < 0.0009765625 (1/1024).
+ *
+ * Also rejects NaN/infinity by testing the exponent bits.
+ *
+ * Confirmed: FLD / FMUL / FADDP computes dot(v, v) on x87 stack.
+ * Confirmed: FSUB [0x2533c8] subtracts 1.0f.
+ * Confirmed: FABS / FCOMP [0x2549d8] compares against epsilon double.
+ */
+int valid_real_normal3d(float *v)
+{
+  float sq_len = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  float diff = sq_len - 1.0f;
+
+  /* Reject NaN / infinity: exponent bits must not be all 1s */
+  if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000) {
+    return 0;
+  }
+
+  return fabsf(diff) < 0.0009765625f;
+}
+
 char *weapon_get_label(int weapon_handle)
 {
   if (weapon_handle == -1) {
