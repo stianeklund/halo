@@ -2725,6 +2725,10 @@
           "addr": "0x13e510"
         },
         {
+          "decl": "void object_reset_markers(int flags);",
+          "addr": "0x13eb70"
+        },
+        {
           "decl": "void object_propagate_flag_to_children(int object_handle@<eax>, int param_1, int param_2);",
           "addr": "0x13ee60"
         },
@@ -2783,6 +2787,10 @@
         {
           "decl": "void object_adjust_interpolation_position(int object_handle, vector3_t *delta);",
           "addr": "0x140230"
+        },
+        {
+          "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, void *cluster_indices, int16_t max_count, int *out_handles);",
+          "addr": "0x140420"
         },
         {
           "decl": "void object_delete_internal(int object_handle, int delete_sibling);",
@@ -3593,8 +3601,16 @@
           "addr": "0x109780"
         },
         {
+          "decl": "void matrix4x3_identity_with_position(float *out, float *position);",
+          "addr": "0x109280"
+        },
+        {
           "decl": "void matrix4x3_multiply(float *a, float *b, float *out);",
           "addr": "0x109850"
+        },
+        {
+          "decl": "void matrix4x3_decompose(float *matrix, float *forward, float *up, float *position);",
+          "addr": "0x109540"
         },
         {
           "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
@@ -3967,6 +3983,10 @@
         {
           "decl": "void structures_dispose(void);",
           "addr": "0x1983f0"
+        },
+        {
+          "decl": "int16_t structure_find_in_cluster(int cluster_index, uint16_t cluster_count, float radius, float *position, short *out_indices);",
+          "addr": "0x199230"
         }
       ]
     },

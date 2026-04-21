@@ -432,7 +432,39 @@ void *object_iterator_next(void *iter)
  *            guards the remove path.
  * Confirmed: garbage list next at object+0xC0, head at og+0x08.
  * Confirmed: assert strings at 0x29b9c4 and line numbers 0x7a0, 0x7d6.
+ * Confirmed: object_get_and_verify_type(handle, -1) to resolve.
  */
+
+/*
+ * object_get_root_parent — walk the parent chain to the root object.
+ *
+ * Starting from object_handle, loops through parent_object_index (obj+0xCC)
+ * until it reaches -1.  Each iteration validates the object type against the
+ * full-type mask (0xFFFFFFFF).  Returns the topmost non-null handle, or -1
+ * if the input was already -1.
+ *
+ * Confirmed: datum_get(DAT_005a8d50, handle) -> header at +0x08 -> type at
+ *            +0x64 (int16_t).  Bit-shift check (1 << (type & 0x1f)) against
+ *            0 — in practice always passes since mask is -1.
+ * Confirmed: Loop terminates when obj->parent_object_index == -1.
+ */
+int object_get_root_parent(int object_handle)
+{
+  if (object_handle == -1)
+    return -1;
+
+  int current = object_handle;
+  int result = -1;
+  while (current != -1) {
+    object_header_data_t *header =
+      (object_header_data_t *)datum_get(*(void **)0x5a8d50, current);
+    object_data_t *obj = header->object;
+    result = current;
+    current = obj->parent_object_index.value;
+  }
+  return result;
+}
+
 void object_set_garbage_flag(int object_handle, int is_garbage)
 {
   object_data_t *obj =
@@ -1083,6 +1115,35 @@ void object_disconnect_from_map(int object_handle)
 
   /* Clear bit 0x20 in header flags byte */
   header->unk_2 &= ~0x20;
+}
+
+/*
+ * object_get_child_marker_definition — get a marker definition from the
+ * object's child model tag.
+ *
+ * Resolves the object's tag data via tag_get('obje', obj->tag_index),
+ * then checks if marker_index is in range [0, block_count at tag+0x140).
+ * If valid, returns tag_block_get_element(tag+0x140, marker_index, 0x48) +
+ * 0x10. Returns NULL if index is out of range or negative.
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type), with -1 mask.
+ * Confirmed: CALL 0x1ba140 (tag_get) with 'obje' (0x6f626a65) group tag.
+ * Confirmed: CALL 0x19b210 (tag_block_get_element) with block at tag+0x140,
+ *            element size 0x48, returns pointer + 0x10.
+ * Confirmed: CMP CX,0 / CMP ECX,EDX — signed short check against block count.
+ */
+void *object_get_child_marker_definition(int object_handle,
+                                         int16_t marker_index)
+{
+  uint32_t *obj = (uint32_t *)object_get_and_verify_type(object_handle, -1);
+  int tag = (int)tag_get(0x6f626a65, (int)*obj);
+
+  if (marker_index >= 0 && marker_index < *(int *)(tag + 0x140)) {
+    return (char *)tag_block_get_element((void *)(tag + 0x140), marker_index,
+                                         0x48) +
+           0x10;
+  }
+  return NULL;
 }
 
 /*
@@ -1770,6 +1831,73 @@ void object_compute_child_marker_position(void *object, void *child_marker,
 }
 
 /*
+ * object_detach_from_parent — detach an object from its parent in the
+ * object hierarchy.
+ *
+ * Retrieves both the child and parent object data, disconnects the child
+ * from the map, then re-computes its orientation in world space using the
+ * parent's node matrix.  After updating position/orientation/up vectors from
+ * the parent, clears the node index (0xFF) and parent handle (-1), then
+ * reconnects to the map.
+ *
+ * Finally, sets the "connected to cluster" flag (bit 0 of header+0x02) if
+ * the object is not already connected, doesn't have the 0x100000 flag, and
+ * has no parent.
+ *
+ * Confirmed: object_get_and_verify_type(handle, -1) for both child and parent.
+ * Confirmed: object_disconnect_from_map(handle), then recompute world matrix
+ *            via object_get_node_matrix(parent_handle, node_index).
+ * Confirmed: matrix4x3_identity_with_position, matrix_from_forward_and_up,
+ *            matrix4x3_multiply used to transform orientation.
+ * Confirmed: Copies 3 floats at +0x18, +0x1C, +0x20 and +0x3C, +0x40, +0x44
+ *            from parent to child.
+ * Confirmed: Sets node_index (byte at +0xD0) = 0xFF, parent (int at +0xCC) =
+ * -1. Confirmed: datum_get + flag check on header+0x02 bit 0, object+0x04 &
+ * 0x100000, object+0xCC == -1 to set connected flag.
+ */
+void object_detach_from_parent(int object_handle)
+{
+  object_data_t *child =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  object_data_t *parent = (object_data_t *)object_get_and_verify_type(
+    child->parent_object_index.value, -1);
+
+  object_disconnect_from_map(object_handle);
+
+  void *node_matrix =
+    object_get_node_matrix(child->parent_object_index.value,
+                           (int16_t) * (int8_t *)((char *)child + 0xd0));
+
+  float child_position[13];
+  float child_orientation[13];
+  float result[13];
+
+  matrix4x3_identity_with_position(child_position, (float *)&child->unk_12);
+  matrix_from_forward_and_up(child_orientation, (float *)&child->unk_36,
+                             (float *)&child->unk_48);
+  matrix4x3_multiply((float *)node_matrix, child_position, result);
+  matrix4x3_multiply(result, child_orientation, result);
+  matrix4x3_decompose(result, (float *)&child->unk_12, (float *)&child->unk_36,
+                      (float *)&child->unk_48);
+
+  child->unk_24 = parent->unk_24;
+  child->unk_60 = parent->unk_60;
+
+  *(int8_t *)((char *)child + 0xd0) = -1;
+  child->parent_object_index.value = NONE;
+
+  object_connect_to_map(object_handle, NULL);
+
+  object_header_data_t *header =
+    (object_header_data_t *)datum_get(*(void **)0x5a8d50, object_handle);
+  child = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  if (!(header->unk_2 & 1) && !(child->flags & 0x100000) &&
+      child->parent_object_index.value == NONE) {
+    header->unk_2 |= 1;
+  }
+}
+
+/*
  * object_get_world_position — retrieve the world-space position of an object.
  *
  * If the object has no parent (parent_object_index == -1), copies the local
@@ -1842,6 +1970,90 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
   }
 
   return out_matrix;
+}
+
+/*
+ * object_find_in_radius — find objects of a given type within a spherical area.
+ *
+ * Uses the structure system to identify candidate clusters, then iterates
+ * through objects in those clusters, filtering by type_mask and distance.
+ * Objects within (obj_effective_radius + search_radius) of the search position
+ * are collected into out_handles.  Returns the count of found objects.
+ *
+ * Parameters (cdecl, 7 args):
+ *   flags       — passed to structure_find_in_cluster and
+ * object_find_in_cluster type_mask   — bit mask of object types to include (0 →
+ * all types) position    — float[3] search center (must be non-NULL) forward —
+ * unused (present in signature but only position is used) radius      — search
+ * radius, added to each object's effective radius out_handles — output array
+ * for found object handles (must be non-NULL) max_count   — maximum number of
+ * handles to collect
+ *
+ * Confirmed: 7 cdecl params at [EBP+0x8..0x20].
+ * Confirmed: Stack frame 0x2404 bytes (local_2408[2048] + local_408[972]
+ *            + locals).
+ * Confirmed: CALL 0x199230 (structure_find_in_cluster) with 5 args.
+ * Confirmed: CALL 0x140420 (object_find_in_cluster) with 5 args.
+ * Confirmed: Type check uses `1 << (type_byte & 0x1f) & type_mask`.
+ * Confirmed: Distance check: (unk_80-pos)^2 + (unk_84-pos.y)^2 +
+ *            (unk_88-pos.z)^2 <= (unk_92+radius)^2.
+ * Confirmed: Object position fields at +0x50 (unk_80), +0x54 (unk_84),
+ *            +0x58 (unk_88), effective radius at +0x5C (unk_92).
+ * Confirmed: Returns short (count of found objects).
+ */
+int16_t object_find_in_radius(int flags, unsigned int type_mask,
+                              float *position, float *forward, float radius,
+                              int *out_handles, int16_t max_count)
+{
+  int16_t cluster_count;
+  int16_t found_count = 0;
+  int16_t iter_count;
+  int i;
+
+  static int16_t cluster_indices[2048];
+  static int object_indices[2048];
+
+  if (position == NULL)
+    assert_halt(position != NULL);
+  if (out_handles == NULL)
+    assert_halt(out_handles != NULL);
+  if (position == NULL && forward == NULL)
+    assert_halt(position != NULL);
+
+  if (type_mask == 0)
+    type_mask = 0xFFFFFFFF;
+
+  cluster_count =
+    structure_find_in_cluster(flags, *(uint16_t *)((char *)position + 4),
+                              radius, position, cluster_indices);
+
+  iter_count = object_find_in_cluster(flags, cluster_count, cluster_indices,
+                                      max_count, object_indices);
+
+  for (i = 0; i < iter_count && found_count < max_count; i++) {
+    int handle = object_indices[i];
+    object_header_data_t *header =
+      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+    object_data_t *obj = header->object;
+
+    if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
+      assert_halt_msg(0, "got an object type we didn\\'t expect");
+    }
+
+    if ((type_mask & (1 << (obj->type & 0x1f))) != 0) {
+      float dx = obj->unk_80 - position[0];
+      float dy = obj->unk_84 - position[1];
+      float dz = obj->unk_88 - position[2];
+      float effective_radius = obj->unk_92 + radius;
+
+      if (dx * dx + dy * dy + dz * dz <= effective_radius * effective_radius) {
+        out_handles[found_count] = handle;
+        found_count++;
+      }
+    }
+  }
+
+  return found_count;
 }
 
 /*
