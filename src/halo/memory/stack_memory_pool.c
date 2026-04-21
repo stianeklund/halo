@@ -60,6 +60,278 @@ void stack_memory_pool_initialize(void *pool)
   csmemcpy(table, &table_ptr, 4);
 }
 
+/* memory_block_valid — validate a block header's integrity.
+ *
+ * Checks three conditions on the block header pointed to by block_hdr:
+ *   1. The usable size (low 31 bits of dword at +0x00) must be > 0x20
+ *      (the block must have payload beyond the 0x20-byte header overhead).
+ *   2. The "fryd" sentinel (0x66727964) at block_hdr+0x18 must be intact.
+ *   3. The "chkn" sentinel (0x63686b6e) at block_hdr[usable_size - 4]
+ *      must be intact (end-of-block canary).
+ *
+ * Returns 1 if all checks pass, 0 otherwise (after asserting on failure).
+ *
+ * Register convention: block_hdr passed in ECX (declared @<ecx> in kb.json).
+ */
+int memory_block_valid(void *block_hdr)
+{
+  unsigned int *p = (unsigned int *)block_hdr;
+  unsigned int usable_size;
+
+  if (p == 0) {
+    return 0;
+  }
+
+  usable_size = p[0] & 0x7fffffff;
+
+  if (usable_size == 0x20) {
+    display_assert("!\"pointer has invalid size\"",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x1e4, 1);
+    system_exit(-1);
+    return 0;
+  }
+
+  if (p[6] != 0x66727964) {
+    display_assert("!\"this memory has been corrupted\"",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x1e9, 1);
+    system_exit(-1);
+    return 0;
+  }
+
+  if (*(unsigned int *)((char *)p + usable_size - 4) != 0x63686b6e) {
+    display_assert("!\"wrote beyond the valid address space for this block\"",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x1ee, 1);
+    system_exit(-1);
+    return 0;
+  }
+
+  return 1;
+}
+
+/* stack_memory_pool_valid_block — verify a block belongs to a pool.
+ *
+ * Checks that block_hdr falls within the pool's address range
+ * (base_address <= block_hdr < base_address + pool_size), then validates
+ * the block's integrity via memory_block_valid. Finally, looks up the
+ * block's slot index, fetches the corresponding slot-table entry, and
+ * compares three header fields (dwords at +0, +8, +c) between the
+ * slot-table pointer and block_hdr to ensure they match.
+ *
+ * Returns 1 if all checks pass, 0 otherwise.
+ *
+ * Register convention: block_hdr in EAX, pool in ECX (kb.json @<eax>/@<ecx>).
+ *
+ * Block header layout used:
+ *   +0x00: size_flags (low 31 bits = usable_size, high bit = in-use)
+ *   +0x04: slot_index
+ *   +0x08: field at +8 (prev pointer in linked list)
+ *   +0x0c: field at +c (next pointer in linked list)
+ *
+ * Pool header layout used:
+ *   +0x04: base_address
+ *   +0x08: pool_size
+ *   +0x0c: slot_count
+ *   +0x34: start of slot table (slot_count entries, 4 bytes each)
+ */
+int stack_memory_pool_valid_block(void *block_hdr, void *pool)
+{
+  unsigned int *blk = (unsigned int *)block_hdr;
+  char *pool_p = (char *)pool;
+  unsigned int *base;
+  unsigned int *end;
+  unsigned int slot_index;
+  unsigned int *slot_entry;
+  int valid;
+
+  if (pool == 0 || *(unsigned int *)(pool_p + 4) == 0) {
+    display_assert("pool && pool->base_address",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x3d7, 1);
+    system_exit(-1);
+  }
+
+  base = *(unsigned int **)(pool_p + 4);
+  end = (unsigned int *)((char *)base + *(unsigned int *)(pool_p + 8));
+
+  if (blk < base || blk >= end) {
+    return 0;
+  }
+
+  valid = memory_block_valid(block_hdr) & 0xff;
+  if (!valid) {
+    return 0;
+  }
+
+  /* Inline of block-slot-index getter (0x11eb10): assert block != NULL,
+   * return dword at block_hdr+4. block_hdr is known non-NULL here. */
+  slot_index = blk[1];
+
+  if (slot_index >= *(unsigned int *)(pool_p + 0xc)) {
+    return 0;
+  }
+
+  slot_entry = *(unsigned int **)(pool_p + 0x34 + slot_index * 4);
+  if (slot_entry == 0) {
+    return 0;
+  }
+
+  if (slot_entry[0] != blk[0]) {
+    return 0;
+  }
+  if (slot_entry[2] != blk[2]) {
+    return 0;
+  }
+  if (slot_entry[3] != blk[3]) {
+    return 0;
+  }
+
+  return 1;
+}
+
+/* stack_memory_pool_unlink_block — remove a block from the pool's linked list.
+ *
+ * Validates the block belongs to this pool, then unlinks it from the
+ * doubly-linked block list. Updates pool->first_block (+0x2c) and
+ * pool->last_block (+0x30) if the removed block was at either end.
+ * Clears the slot-table entry and updates pool->next_block_index (+0x10).
+ *
+ * Register convention: block_hdr in ESI, pool in EDI (kb.json @<esi>/@<edi>).
+ *
+ * Block header offsets used:
+ *   +0x04: slot_index
+ *   +0x08: prev pointer
+ *   +0x0c: next pointer
+ *
+ * Pool header offsets used:
+ *   +0x10: next_block_index
+ *   +0x2c: first_block
+ *   +0x30: last_block
+ *   +0x34: slot table base
+ */
+void stack_memory_pool_unlink_block(void *block_hdr, void *pool)
+{
+  char *blk = (char *)block_hdr;
+  char *pool_p = (char *)pool;
+  unsigned int slot_index;
+  unsigned int *prev;
+  unsigned int *next;
+  int valid;
+
+  valid = stack_memory_pool_valid_block(block_hdr, pool) & 0xff;
+  if (!valid) {
+    display_assert("stack_memory_pool_valid_block(pool, reference)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x2d3, 1);
+    system_exit(-1);
+  }
+
+  if (blk == 0) {
+    display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
+                   0x24a, 1);
+    system_exit(-1);
+  }
+
+  slot_index = *(unsigned int *)(blk + 0x4);
+  prev = *(unsigned int **)(blk + 0x8);
+  next = *(unsigned int **)(blk + 0xc);
+
+  /* Patch prev's next pointer. */
+  if (prev != 0) {
+    *(unsigned int *)((char *)prev + 0xc) = (unsigned int)next;
+  }
+
+  /* Patch next's prev pointer. */
+  if (next != 0) {
+    *(unsigned int *)((char *)next + 0x8) = (unsigned int)prev;
+  }
+
+  /* Update first_block if we unlinked it. */
+  if ((unsigned int)blk == *(unsigned int *)(pool_p + 0x2c)) {
+    *(unsigned int *)(pool_p + 0x2c) = (unsigned int)next;
+  }
+
+  /* Update last_block if we unlinked it. */
+  if ((unsigned int)blk == *(unsigned int *)(pool_p + 0x30)) {
+    *(unsigned int *)(pool_p + 0x30) = (unsigned int)prev;
+  }
+
+  /* Clear the slot-table entry. */
+  *(unsigned int *)(pool_p + 0x34 + slot_index * 4) = 0;
+
+  /* Update next_block_index: reuse the freed slot if pool still has blocks,
+   * otherwise set to 0. Pattern: -(first_block != 0) & slot_index. */
+  {
+    unsigned int first_block = *(unsigned int *)(pool_p + 0x2c);
+    unsigned int neg = -(first_block != 0);
+    *(unsigned int *)(pool_p + 0x10) = neg & slot_index;
+  }
+}
+
+/* stack_memory_pool_mark_used — mark a block as in-use and validate it.
+ *
+ * Verifies the block belongs to the pool and is not already locked
+ * (high bit of size_flags at +0x00 must be clear). Then validates with
+ * memory_block_valid, sets the high bit to mark the block in-use, and
+ * validates again. Returns a pointer to the user data area (block_hdr + 0x1c).
+ *
+ * Register convention: block_hdr in ESI, pool in ECX (kb.json @<esi>/@<ecx>).
+ *
+ * Note: the return value (block_hdr + 0x1c) is placed in EAX but the kb.json
+ * prototype declares void return. Callers in the original binary do not
+ * use the return value.
+ */
+void stack_memory_pool_mark_used(void *block_hdr, void *pool)
+{
+  unsigned int *blk = (unsigned int *)block_hdr;
+  int valid;
+
+  valid = stack_memory_pool_valid_block(block_hdr, pool) & 0xff;
+
+  if (!valid) {
+    /* Fall through — but also check memory_block_valid and the locked flag
+     * before reaching the combined assert. */
+    goto combined_assert;
+  }
+
+  valid = memory_block_valid(block_hdr) & 0xff;
+  if (!valid) {
+    display_assert("memory_block_valid(block)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x215, 1);
+    system_exit(-1);
+  }
+
+  /* Check if block is already locked (high bit set). */
+  if ((blk[0] >> 0x1f) & 1) {
+    goto combined_assert;
+  }
+
+  goto do_mark;
+
+combined_assert:
+  display_assert("stack_memory_pool_valid_block(pool, reference) && "
+                 "!memory_block_is_locked(reference)",
+                 "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x2e5, 1);
+  system_exit(-1);
+
+do_mark:
+  /* Validate block integrity before marking. */
+  valid = memory_block_valid(block_hdr) & 0xff;
+  if (!valid) {
+    display_assert("memory_block_valid(block)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x203, 1);
+    system_exit(-1);
+  }
+
+  /* Set the high bit to mark the block as in-use. */
+  blk[0] = blk[0] | 0x80000000;
+
+  /* Validate block integrity after marking. */
+  valid = memory_block_valid(block_hdr) & 0xff;
+  if (!valid) {
+    display_assert("memory_block_valid(block)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x23f, 1);
+    system_exit(-1);
+  }
+}
+
 /* stack_memory_pool_deallocate — free a block back to the pool.
  *
  * Walks back 0x1c bytes from the user pointer to reach the block header,
