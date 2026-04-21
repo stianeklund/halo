@@ -1211,6 +1211,131 @@ bool players_respawn_coop(void)
   return bVar2;
 }
 
+/* Apply the overshield powerup effect to the player.
+ * Builds a player-effect descriptor struct with the overshield parameters
+ * and submits it via player_effect_apply. ESI = player_handle. */
+void player_apply_overshield_effect(int player_handle)
+{
+  char *player;
+  struct {
+    int16_t type;
+    int16_t unk_02;
+    int32_t pad[3];
+    float field_10;
+    int16_t field_14;
+    int16_t pad_16;
+    int32_t pad_18[2];
+    float field_20;
+    int32_t field_24;
+    float field_28;
+    float field_2c;
+    float field_30;
+    float field_34;
+  } effect;
+
+  if (player_handle == -1)
+    return;
+  player = (char *)datum_get(player_data, player_handle);
+  if (*(int16_t *)(player + 2) == -1)
+    return;
+
+  csmemset(&effect, 0, sizeof(effect));
+  effect.type = *(int16_t *)0x2f1480;
+  effect.unk_02 = 2;
+  effect.field_10 = *(float *)0x2f1490;
+  effect.field_14 = *(int16_t *)0x46b6ac;
+  effect.field_20 = *(float *)0x2f1484;
+  effect.field_24 = 0;
+  effect.field_28 = *(float *)0x46b6b0;
+  effect.field_2c = *(float *)0x2f1488;
+  effect.field_30 = *(float *)0x46b6b4;
+  effect.field_34 = *(float *)0x2f148c;
+  player_effect_apply(player_handle, &effect, 1.0f);
+}
+
+/* Notify the game that active camo was activated (triggers a location-based
+ * player effect notification). ESI = player_handle. */
+void player_apply_camo_notification(int player_handle)
+{
+  char *player;
+  struct {
+    int16_t type;
+    int16_t unk_02;
+    int32_t pad[3];
+    float field_10;
+    int16_t field_14;
+    int16_t pad_16;
+    int32_t pad_18[2];
+    float field_20;
+    int32_t field_24;
+    float field_28;
+    float field_2c;
+    float field_30;
+    float field_34;
+  } effect;
+
+  if (player_handle == -1)
+    return;
+  player = (char *)datum_get(player_data, player_handle);
+  if (*(int16_t *)(player + 2) == -1)
+    return;
+
+  csmemset(&effect, 0, sizeof(effect));
+  effect.type = *(int16_t *)0x2f1494;
+  effect.unk_02 = 2;
+  effect.field_10 = *(float *)0x2f14a4;
+  effect.field_14 = *(int16_t *)0x46b6b8;
+  effect.field_20 = *(float *)0x2f1498;
+  effect.field_24 = 0;
+  effect.field_28 = *(float *)0x46b6bc;
+  effect.field_2c = *(float *)0x2f149c;
+  effect.field_30 = *(float *)0x2f14a0;
+  effect.field_34 = *(float *)0x46b6c0;
+  player_effect_apply(player_handle, &effect, 1.0f);
+}
+
+/* Apply the health powerup effect to the player.
+ * Unlike overshield/camo, this uses entirely inline constants
+ * rather than loading from global addresses. ESI = player_handle. */
+void player_apply_health_effect(int player_handle)
+{
+  char *player;
+  struct {
+    int16_t type;
+    int16_t unk_02;
+    int32_t pad[3];
+    float field_10;
+    int16_t field_14;
+    int16_t pad_16;
+    int32_t pad_18[2];
+    float field_20;
+    int32_t field_24;
+    float field_28;
+    float field_2c;
+    float field_30;
+    float field_34;
+  } effect;
+
+  if (player_handle == -1)
+    return;
+  player = (char *)datum_get(player_data, player_handle);
+  if (*(int16_t *)(player + 2) == -1)
+    return;
+
+  csmemset(&effect, 0, sizeof(effect));
+  effect.type = 6;
+  effect.unk_02 = 2;
+  effect.field_10 = 2.0f;
+  effect.field_14 = 1;
+  effect.field_20 = 0.5f;
+  effect.field_24 = 0;
+  effect.field_28 = 1.0f;
+  effect.field_2c = 0.917647f;
+  effect.field_30 = 0.917647f;
+  effect.field_34 = 0.917647f;
+  player_effect_apply(player_handle, &effect, 1.0f);
+}
+
 /* Handle the result of a player interacting with an equipment (powerup) object.
  *
  * Reads the equipment's tag definition to determine the powerup type
