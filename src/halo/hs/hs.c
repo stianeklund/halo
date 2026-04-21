@@ -114,6 +114,68 @@ int16_t hs_find_global_by_name(const char *name)
   return NONE;
 }
 
+/* Load a single HaloScript source file into the scenario's source file list.
+ * The file_ref is passed via EBX (register argument).
+ *
+ * Steps:
+ *   1. Verify the file exists on disk via file_exists.
+ *   2. Add a new element to the scenario's source files tag_block at +0x4c0.
+ *   3. Read the file contents into a temporary memory buffer.
+ *   4. Resize the element's tag_data (at element+0x20) to hold the file.
+ *   5. Copy the file's short name (up to 0x1f chars) into element+0x00.
+ *   6. Copy the file data from the temp buffer into the tag_data region.
+ *
+ * Returns true if the file was loaded successfully, false on any failure.
+ * Error messages are emitted via error() at severity 2. */
+bool hs_load_source_file(void *file_ref)
+{
+  char *scenario_tag;
+  void *scripts_block;
+  int16_t element_index;
+  char *element;
+  void *buffer;
+  int file_size;
+  void *tag_data_ptr;
+  void *dest;
+  char name_buf[256];
+
+  scenario_tag = (char *)global_scenario_get();
+
+  if (!file_exists((file_ref_t *)file_ref))
+    return 0;
+
+  scripts_block = (void *)(scenario_tag + 0x4c0);
+  element_index = tag_block_add_element(scripts_block);
+  if (element_index == -1) {
+    error(2, "maximum source files per scenario exceeded.");
+    return 0;
+  }
+
+  element =
+    (char *)tag_block_get_element(scripts_block, (int)element_index, 0x34);
+
+  buffer = file_read_into_buffer((file_ref_t *)file_ref, &file_size);
+  if (buffer == NULL) {
+    error(2, "couldn't read source file into memory.");
+    return 0;
+  }
+
+  tag_data_ptr = (void *)(element + 0x20);
+  if (!tag_data_resize(tag_data_ptr, file_size)) {
+    error(2, "maximum source file size exceeded.");
+    return 0;
+  }
+
+  file_reference_get_name((file_ref_t *)file_ref, 4, name_buf);
+  csstrncpy(element, name_buf, 0x1f);
+  *(uint8_t *)(element + 0x1f) = 0;
+
+  dest = tag_data_get_pointer(tag_data_ptr, 0, file_size);
+  csmemcpy(dest, buffer, file_size);
+
+  return 1;
+}
+
 /* Check whether the scenario's HaloScript source files have changed on
  * disk since they were last compiled.  Searches for "data\global_scripts.hsc"
  * and all .hsc files in the scenario's "data\<mapname>\scripts\" directory.
@@ -180,6 +242,51 @@ bool hs_needs_recompile(void)
   }
 
   return (bool)result;
+}
+
+/* Report a HaloScript compile error with optional line-number context.
+ *
+ * Register arguments: error_text@ESI, script_element@EBX, source_start@EDI.
+ * Stack argument: error_info (the error description string).
+ *
+ * If error_text is non-NULL, truncates it at the first newline.  If both
+ * script_element and a newline were found, counts newlines backward from the
+ * newline position to source_start to determine the line number, then prints:
+ *   "[<script_element> line <N>] <error_info>: <error_text>"
+ * Otherwise prints the simpler:
+ *   "<error_info>: <error_text>"
+ *
+ * The line counter is treated as int16_t (MOVSX ECX,CX in the original). */
+void hs_report_compile_error(void *error_info, char *error_text,
+                             char *script_element, void *source_start)
+{
+  char *nl;
+  char *ptr;
+  int16_t line;
+
+  nl = NULL;
+  if (error_text != NULL) {
+    nl = crt_strchr(error_text, '\n');
+    if (nl != NULL)
+      *nl = '\0';
+  }
+
+  if (script_element != NULL && nl != NULL) {
+    line = 1;
+    ptr = nl;
+    if (ptr > (char *)source_start) {
+      do {
+        if (*ptr == '\n')
+          line++;
+        ptr--;
+      } while (ptr > (char *)source_start);
+    }
+    error(2, "[%s line %d] %s: %s", script_element, (int)line, error_info,
+          error_text);
+    return;
+  }
+
+  error(2, (const char *)0x259f2c, error_info, error_text);
 }
 
 /* Recompile all scenario scripts.  Iterates over each script source entry
