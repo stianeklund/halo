@@ -42,11 +42,17 @@ Steps:
    - no ad-hoc inline `python3 -c` for kb lookups
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
    - prefer `batch_decompile` when comparing related helpers
-4. Produce a structurally faithful C implementation.
-5. Write the implementation directly to the source file at the correct
+4. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
+   before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
+   and to `tools/kb_reg_baseline.json`, then call by name from C.
+   Do not use inline assembly or raw function pointer casts — the build
+   generates thunks automatically. Never remove or change existing `@<reg>`
+   slot assignments.
+5. Produce a structurally faithful C implementation.
+6. Write the implementation directly to the source file at the correct
    address-ordered position.
-6. If the `kb.json` declaration needs updating, update it conservatively.
-7. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
+7. If the `kb.json` declaration needs updating, update it conservatively.
+8. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
 
 Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
 
