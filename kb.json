@@ -1786,6 +1786,10 @@
           "addr": "0xaba30"
         },
         {
+          "decl": "bool game_engine_teams_still_playing(void);",
+          "addr": "0xaba90"
+        },
+        {
           "decl": "bool game_engine_game_over(void);",
           "addr": "0xabc80"
         },
