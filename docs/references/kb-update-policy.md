@@ -14,7 +14,8 @@ Disallowed or discouraged:
 - broad semantic renames based on vibes
 - speculative struct repacking
 - aggressive type invention
-- @<reg> entries for functions that are not implemented
+- removing or changing `@<reg>` slot assignments (immutable; see
+  `docs/references/abi-and-calling-conventions.md`)
 - project-wide naming changes from weak local evidence
 
 When proposing kb changes, separate:

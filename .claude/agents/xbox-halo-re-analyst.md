@@ -80,7 +80,9 @@ Hard rules:
 - Unknown is better than wrong.
 - Do not reorder or repad structs without corresponding static-assert updates.
 - Do not add empty stubs.
-- Do not add kb.json entries with @<reg> unless the function is implemented.
+- `@<reg>` annotations are immutable. Never remove or change slot assignments.
+  When calling a register-arg XBE function, add it to kb.json with `@<reg>`
+  and also add to `tools/kb_reg_baseline.json`. Do not use raw casts or inline asm.
 - Remember cdecl push order: first PUSH is the last C argument.
 - Avoid broad speculative refactors; prefer small reviewable changes.
 
