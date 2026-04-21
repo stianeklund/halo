@@ -2269,6 +2269,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10b620": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function finds the component with the smallest absolute value and produces a perpendicular vector by zeroing that component and swapping the other two with one negated."
+      ]
+    },
     "0x10cc40": {
       "kind": "function",
       "status": "ported",
@@ -2934,6 +2941,16 @@
         "find_files_begin at 0x19a040 and find_files_next at 0x19aed0 are files_windows.obj helpers for directory enumeration."
       ]
     },
+    "0x199540": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "file_open at 0x19a7a0 identified by error string 'file_open' in its decompilation.",
+        "file_get_eof at 0x19aa70 identified by error string 'file_get_eof' in its decompilation.",
+        "file_read at 0x19ab50 identified by error string 'file_read' in its decompilation.",
+        "file_close at 0x19a930 identified by error string 'file_close' in its decompilation."
+      ]
+    },
     "0x199620": {
       "kind": "function",
       "status": "ported"
@@ -3281,6 +3298,10 @@
       "status": "ported"
     },
     "0x1b9ab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b9ad0": {
       "kind": "function",
       "status": "ported"
     },
