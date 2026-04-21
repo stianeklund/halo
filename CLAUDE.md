@@ -39,7 +39,9 @@ Goal: minimize redundant reads without losing accuracy.
    - `NEED <path>:<line-range> because <type/symbol/call-site>`
 5. For repeat-heavy files (for example `kb.json`, `main.c`), read only the
    required section unless a full-file pass is explicitly justified.
-6. Prefer one target/hypothesis per pass for RE-heavy work.
+6. MUST prefer `jq` over inline Python for querying JSON files (especially
+   `kb.json`) to minimize token usage and boilerplate.
+7. Prefer one target/hypothesis per pass for RE-heavy work.
 
 ## Research before edit
 
@@ -67,6 +69,7 @@ Treat `kb.json` as link/runtime-critical.
 - Verify prototypes from disassembly evidence.
 - Keep updates conservative and auditable.
 - Prefer hardcoded addresses over speculative global entries when uncertain.
+- Use `jq` for all inspections and filtering.
 - Build and verify after each meaningful `kb.json` change.
 
 ## Build and verification
@@ -75,11 +78,34 @@ Treat `kb.json` as link/runtime-critical.
 - Run the narrowest meaningful validation first, then broaden if needed.
 - Prefer real Xbox XBDM verification over xemu when available.
 
+## MCP servers
+
+Expected local Ghidra MCP SSE endpoints:
+
+- `ghidra` at `http://127.0.0.1:8090/sse`
+- `ghidra-live` at `http://127.0.0.1:8091/sse`
+
+Start them with:
+
+- `bash tools/mcp-servers.sh`
+
+Ghidra MCP failure policy (required):
+
+- Before first use of any `ghidra` or `ghidra-live` MCP tool in a task, run
+  `python3 tools/check_ghidra_mcp.py`.
+- If that preflight fails, or if any `ghidra`/`ghidra-live` MCP tool call fails
+  due to connection/timeout/unavailable errors, bail out immediately (no
+  retries in the same response).
+- Tell the user exactly: `You might have forgotten to start
+  tools/mcp-servers.sh or ghidra may not be running?`
+
 Useful commands:
 
+- `python3 tools/check_ghidra_mcp.py`
 - `python3 tools/frontier.py --limit 5`
 - `python3 tools/maintain.py <source_file>`
 - `python3 tools/lift_pipeline.py --target <name_or_addr> --no-metadata-update --verify-policy auto`
+- `jq '.symbols[] | select(.name | contains("foo"))' kb.json`
 
 ## Avoid noisy directories
 

@@ -1,0 +1,12 @@
+# Enforce LF for all text files
+* text=auto eol=lf
+
+# Explicitly mark binary files to avoid corruption
+*.iso binary
+*.bin binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
