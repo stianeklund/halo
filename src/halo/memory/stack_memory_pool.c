@@ -332,6 +332,156 @@ do_mark:
   }
 }
 
+/* stack_memory_pool_alloc_internal — allocate a block header inside the pool.
+ *
+ * Register convention follows kb.json:
+ *   - alloc_size in EAX (@<eax>)
+ *   - pool/file/line on stack (cdecl order)
+ *
+ * Uses internal helpers in the same object to compact blocks, find free space,
+ * choose a slot index, initialize block sentinels, and refresh next index.
+ * Returns block header pointer on success, NULL on failure.
+ */
+void *stack_memory_pool_alloc_internal(int alloc_size, void *pool,
+                                       const char *file, unsigned int line)
+{
+  char *pool_p = (char *)pool;
+  char *free_space_in_pool_previous;
+  char *block_hdr;
+  unsigned int aligned_block_size;
+  unsigned int largest_free;
+  int slot_index;
+  int free_space_found;
+
+  if (pool == 0 || *(int *)(pool_p + 4) == 0) {
+    display_assert("pool && pool->base_address",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x342, 1);
+    system_exit(-1);
+  }
+
+  if (alloc_size == 0 || (unsigned int)alloc_size > 0x7fffffff ||
+      *(unsigned int *)(pool_p + 8) <= (unsigned int)alloc_size) {
+    display_assert("invalid size",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x3a4, 0);
+    return 0;
+  }
+
+  free_space_in_pool_previous = 0;
+  free_space_found = 0;
+
+  aligned_block_size = (unsigned int)alloc_size + 0x20;
+  while ((aligned_block_size & 3) != 0) {
+    aligned_block_size++;
+  }
+
+  largest_free = FUN_0011eb40(pool);
+  if (largest_free < aligned_block_size) {
+    FUN_0011ee80(pool);
+    largest_free = FUN_0011eb40(pool);
+    if (largest_free < aligned_block_size) {
+      free_space_found = (int)FUN_0011ec70(
+        pool, aligned_block_size, (void **)&free_space_in_pool_previous);
+      if (free_space_found == 0) {
+        display_assert(
+          "allocation from memory pool failed; unable to find sufficient space "
+          "in the pool",
+          "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x39f, 0);
+        return 0;
+      }
+    }
+  }
+
+  if (*(int *)(pool_p + 0x10) == -1) {
+    slot_index = FUN_0011ebc0(pool);
+    *(int *)(pool_p + 0x10) = slot_index;
+    if (slot_index == -1) {
+      display_assert("the memory pool has no more unsused master pointers; you "
+                     "need to use a "
+                     "bigger pool",
+                     "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x35f, 0);
+    }
+  }
+
+  slot_index = *(int *)(pool_p + 0x10);
+  if (slot_index == -1) {
+    return 0;
+  }
+
+  if (free_space_found == 0) {
+    if (*(int *)(pool_p + 0x2c) == 0) {
+      *(unsigned int *)(pool_p + 0x34 + slot_index * 4) =
+        *(unsigned int *)(pool_p + 4);
+    } else {
+      if (*(int *)(pool_p + 0x30) == 0) {
+        display_assert("pool->last_block",
+                       "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x370,
+                       1);
+        system_exit(-1);
+      }
+
+      *(int *)(pool_p + 0x34 + *(int *)(pool_p + 0x10) * 4) =
+        FUN_0011ea90(*(void **)(pool_p + 0x30)) + *(int *)(pool_p + 0x30);
+    }
+  } else {
+    *(int *)(pool_p + 0x34 + slot_index * 4) = free_space_found;
+  }
+
+  block_hdr = *(char **)(pool_p + 0x34 + *(int *)(pool_p + 0x10) * 4);
+  FUN_0011ea50(*(int *)(pool_p + 0x10), block_hdr, aligned_block_size);
+  *(const char **)(block_hdr + 0x10) = file;
+  *(unsigned int *)(block_hdr + 0x14) = line;
+
+  if (*(int *)(pool_p + 0x2c) == 0) {
+    if (*(int *)(pool_p + 0x30) != 0 || *(int *)(pool_p + 0x10) != 0) {
+      display_assert(
+        "(pool->last_block == NULL) && (pool->next_block_index == 0)",
+        "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x37d, 1);
+      system_exit(-1);
+    }
+
+    *(char **)(pool_p + 0x30) = block_hdr;
+    *(char **)(pool_p + 0x2c) = block_hdr;
+    *(int *)(block_hdr + 8) = 0;
+    *(int *)(block_hdr + 0xc) = 0;
+    FUN_0011ec10(pool);
+    return block_hdr;
+  }
+
+  if ((unsigned int)block_hdr < *(unsigned int *)(pool_p + 0x2c)) {
+    *(int *)(block_hdr + 8) = 0;
+    *(int *)(block_hdr + 0xc) = *(int *)(pool_p + 0x2c);
+    *(int *)(*(int *)(pool_p + 0x2c) + 8) = (int)block_hdr;
+    *(char **)(pool_p + 0x2c) = block_hdr;
+    FUN_0011ec10(pool);
+    return block_hdr;
+  }
+
+  if ((unsigned int)block_hdr > *(unsigned int *)(pool_p + 0x30)) {
+    *(int *)(block_hdr + 0xc) = 0;
+    *(int *)(block_hdr + 8) = *(int *)(pool_p + 0x30);
+    *(int *)(*(int *)(pool_p + 0x30) + 0xc) = (int)block_hdr;
+    *(char **)(pool_p + 0x30) = block_hdr;
+    FUN_0011ec10(pool);
+    return block_hdr;
+  }
+
+  if (free_space_in_pool_previous == 0) {
+    display_assert("free_space_in_pool_previous",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x394, 1);
+    system_exit(-1);
+  }
+
+  *(char **)(block_hdr + 8) = free_space_in_pool_previous;
+  *(int *)(block_hdr + 0xc) = *(int *)(free_space_in_pool_previous + 0xc);
+  *(char **)(free_space_in_pool_previous + 0xc) = block_hdr;
+  if (*(int *)(block_hdr + 0xc) != 0) {
+    *(int *)(*(int *)(block_hdr + 0xc) + 8) = (int)block_hdr;
+  }
+
+  FUN_0011ec10(pool);
+  return block_hdr;
+}
+
 /* stack_memory_pool_deallocate — free a block back to the pool.
  *
  * Walks back 0x1c bytes from the user pointer to reach the block header,
