@@ -3649,6 +3649,14 @@
     "0x178d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1190c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd5070": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
