@@ -159,3 +159,12 @@ bool tag_data_resize(void *tag_data, int size)
   error(2, "tag_data_resize() is not supported with a cache file active");
   return false;
 }
+
+/* Stub: tag_block_add_element is not supported when running from a cache file
+ * (the map is memory-mapped read-only). Logs an error and returns -1.
+ * In the tools build this would append a new element and return its index. */
+int16_t tag_block_add_element(void *tag_block)
+{
+  error(2, "tag_block_add_element() is not supported with a cache file active");
+  return -1;
+}
