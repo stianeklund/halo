@@ -3006,6 +3006,10 @@
         {
           "decl": "void player_effect_update(void);",
           "addr": "0xa2ca0"
+        },
+        {
+          "decl": "void player_effect_apply(int player_handle, void *effect_descriptor, float intensity);",
+          "addr": "0xa2e80"
         }
       ]
     },
@@ -3278,6 +3282,18 @@
         {
           "decl": "void player_update_weapon_timers(int datum_handle@<ebx>);",
           "addr": "0xbc4b0"
+        },
+        {
+          "decl": "void player_update_nearby_biped(int datum_handle, int object_handle@<esi>);",
+          "addr": "0xbcd40"
+        },
+        {
+          "decl": "void player_update_nearby_vehicle(int datum_handle, int object_handle);",
+          "addr": "0xbd7e0"
+        },
+        {
+          "decl": "void player_update_nearby_weapon(int datum_handle, int object_handle);",
+          "addr": "0xbcf00"
         },
         {
           "decl": "void player_set_action_result_for_equipment(int player_handle, int equipment_handle);",
