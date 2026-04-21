@@ -1105,7 +1105,7 @@ void game_engine_play_score_sound(int event_index /* @<esi> */)
     if (entry != NULL) {
       tag_index = *(int *)((char *)entry + 0xc);
       if (tag_index != -1)
-        sound_impulse_start(tag_index, 0x3f800000);
+        sound_impulse_start(tag_index, 1.0f);
     }
   }
 }
