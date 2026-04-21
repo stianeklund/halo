@@ -60,6 +60,10 @@ If an edit fails, re-read only affected ranges before retrying.
 - Reuse existing types and declarations before creating new ones.
 - Do not reorder/repad structs without matching `cs`/`co` checks.
 - Do not hand-edit generated files in `build/generated/`.
+- Do not use inline assembly in lifted C code. The build system generates
+  forward thunks (C → original XBE) and reverse thunks (original XBE → C)
+  automatically via kb.json `@<reg>` entries. If you think you need inline
+  asm, you are missing a kb.json entry.
 - Keep behavior changes separate from cleanup/formatting whenever possible.
 
 ## kb.json discipline
