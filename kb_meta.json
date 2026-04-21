@@ -3661,6 +3661,14 @@
     "0xa2e80": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x14d080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c89d0": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
