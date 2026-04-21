@@ -1512,6 +1512,22 @@
           "addr": "0x19a450"
         },
         {
+          "decl": "bool file_open(file_ref_t *info, int flags);",
+          "addr": "0x19a7a0"
+        },
+        {
+          "decl": "bool file_close(file_ref_t *info);",
+          "addr": "0x19a930"
+        },
+        {
+          "decl": "int file_get_eof(file_ref_t *info);",
+          "addr": "0x19aa70"
+        },
+        {
+          "decl": "bool file_read(file_ref_t *info, int size, void *buffer);",
+          "addr": "0x19ab50"
+        },
+        {
           "decl": "bool find_files_next(file_ref_t *result, int param2);",
           "addr": "0x19aed0"
         }
