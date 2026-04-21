@@ -1218,6 +1218,29 @@ lab_00140017: {
 }
 
 /*
+ * object_get_location — returns the root object's 8-byte location pair.
+ *
+ * Resolves the topmost parent handle via FUN_0013d7f0(handle), verifies that
+ * object with object_get_and_verify_type(root_handle, -1), then copies dwords
+ * at offsets +0x48 and +0x4c into location_out.
+ *
+ * Confirmed: CALL 0x13d7f0 with object_handle, then CALL 0x13d680 with
+ *            returned handle and mask -1.
+ * Confirmed: MOV [obj+0x48] -> [location_out+0], MOV [obj+0x4c] ->
+ *            [location_out+4].
+ */
+void object_get_location(int object_handle, void *location_out)
+{
+  int root_handle = object_get_root_parent(object_handle);
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(root_handle, -1);
+  uint32_t *out = (uint32_t *)location_out;
+
+  out[0] = obj->unk_72;
+  out[1] = (uint32_t)obj->unk_76.value;
+}
+
+/*
  * object_set_region_count — update an object's interpolation region count.
  *
  * Copies the object's region node data from the "new" interpolation buffer
