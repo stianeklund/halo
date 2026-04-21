@@ -632,6 +632,81 @@ bool game_engine_check_input_button(int button_index /* @<edi> */)
   return false;
 }
 
+/* Validate and clamp all fields of a game variant struct to legal ranges.
+ * Normalizes booleans, clamps integers, and clamps the speed float to
+ * [0.5f, 2.0f]. Logs an error if any field was changed. */
+void game_engine_variant_cleanup(game_variant_t *variant)
+{
+  char saved[0x68];
+  int *v = (int *)variant;
+  int game_type;
+
+  csmemcpy(saved, variant, 0x68);
+
+  *(int16_t *)((char *)v + 0x16) = 0;
+
+  game_type = v[6];
+  if (game_type < 1)
+    game_type = 1;
+  else if (game_type > 5)
+    game_type = 5;
+  v[6] = game_type;
+
+  *(uint8_t *)((char *)v + 0x1c) = (*(uint8_t *)((char *)v + 0x1c) != 0);
+  *(uint8_t *)((char *)v + 0x28) = (*(uint8_t *)((char *)v + 0x28) != 0);
+
+  if (v[0xb] <= 0)
+    v[0xb] = 0;
+  if (v[0xc] <= 0)
+    v[0xc] = 0;
+  if (v[0xd] <= 0)
+    v[0xd] = 0;
+  if (v[0xe] <= 0)
+    v[0xe] = 0;
+
+  {
+    float scale = *(float *)((char *)v + 0x3c);
+    if (scale < *(float *)0x25337c)
+      scale = *(float *)0x25337c;
+    else if (scale > *(float *)0x2533d8)
+      scale = *(float *)0x2533d8;
+    *(float *)((char *)v + 0x3c) = scale;
+  }
+
+  if (v[0x11] < 0)
+    v[0x11] = 0;
+  else if (v[0x11] > 10)
+    v[0x11] = 10;
+
+  if (v[0x12] < 0)
+    v[0x12] = 0;
+  else if (v[0x12] > 4)
+    v[0x12] = 4;
+
+  if (game_type == 1) {
+    *(uint8_t *)((char *)v + 0x4c) = (*(uint8_t *)((char *)v + 0x4c) != 0);
+    *(uint8_t *)((char *)v + 0x4d) = (*(uint8_t *)((char *)v + 0x4d) != 0);
+    *(uint8_t *)((char *)v + 0x4e) = (*(uint8_t *)((char *)v + 0x4e) != 0);
+    *(uint8_t *)((char *)v + 0x1c) = 1;
+    *(uint8_t *)((char *)v + 0x4f) = (*(uint8_t *)((char *)v + 0x4f) != 0);
+    if (v[0x14] < 0)
+      v[0x14] = 0;
+  } else if (game_type == 2) {
+    *(uint8_t *)((char *)v + 0x4c) = (*(uint8_t *)((char *)v + 0x4c) != 0);
+    *(uint8_t *)((char *)v + 0x4d) = (*(uint8_t *)((char *)v + 0x4d) != 0);
+    *(uint8_t *)((char *)v + 0x4e) = (*(uint8_t *)((char *)v + 0x4e) != 0);
+  }
+
+  if (csmemcmp(saved, variant, 0x68) != 0) {
+    char before[0x68];
+    csmemcpy(before, saved, 0x68);
+    csmemcpy(before, variant, 0x68);
+    error(
+      2,
+      "NETGAME CODE FAILURE: game_engine_variant_cleanup changed the variant");
+  }
+}
+
 /* Returns true if the game has not entered a restart/game-over state. */
 bool FUN_000ab720(void)
 {

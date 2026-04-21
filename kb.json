@@ -977,9 +977,8 @@
           "ported": true
         },
         {
-          "decl": "int csstrcmp(const char *s1, const char *s2);",
-          "addr": "0x8dcb0",
-          "ported": true
+          "decl": "int csmemcmp(const void *a, const void *b, int size);",
+          "addr": "0x8da40"
         },
         {
           "decl": "void *csmemset(void *buffer, int c, size_t size);",
@@ -987,13 +986,8 @@
           "ported": true
         },
         {
-          "decl": "void *csstrncpy(char *destination, const char *source, size_t size);",
-          "addr": "0x8de70",
-          "ported": true
-        },
-        {
-          "decl": "int csstrlen(const char *s1);",
-          "addr": "0x8df60",
+          "decl": "int csstrcmp(const char *s1, const char *s2);",
+          "addr": "0x8dcb0",
           "ported": true
         },
         {
@@ -1002,8 +996,18 @@
           "ported": true
         },
         {
+          "decl": "void *csstrncpy(char *destination, const char *source, size_t size);",
+          "addr": "0x8de70",
+          "ported": true
+        },
+        {
           "decl": "char *csstrtok(char *string, const char *delimiters);",
           "addr": "0x8df10",
+          "ported": true
+        },
+        {
+          "decl": "int csstrlen(const char *s1);",
+          "addr": "0x8df60",
           "ported": true
         },
         {
