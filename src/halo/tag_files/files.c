@@ -62,6 +62,35 @@ int16_t find_files(int flags, file_ref_t *dir, int16_t max_count,
 }
 
 /**
+ * file_read_into_buffer - read an entire file into a newly allocated buffer.
+ *
+ * Opens the file for reading, queries its size via file_get_eof, allocates
+ * a buffer with debug_malloc, reads the full contents into it, then closes
+ * the file. On success, writes the file size to *size_out and returns
+ * the allocated buffer. On any failure (open, alloc, or read), returns NULL.
+ * If the read fails after allocation, the buffer is freed before returning.
+ */
+void *file_read_into_buffer(file_ref_t *file_ref, int *size_out)
+{
+  void *buffer;
+
+  buffer = NULL;
+  if (file_open(file_ref, 1)) {
+    *size_out = file_get_eof(file_ref);
+    buffer =
+      debug_malloc(*size_out, 0, "c:\\halo\\SOURCE\\tag_files\\files.c", 0x118);
+    if (buffer != NULL) {
+      if (!file_read(file_ref, *size_out, buffer)) {
+        debug_free(buffer, "c:\\halo\\SOURCE\\tag_files\\files.c", 0x11e);
+        buffer = NULL;
+      }
+    }
+    file_close(file_ref);
+  }
+  return buffer;
+}
+
+/**
  * file_reference_verify - validate a file_ref_t pointer.
  *
  * Checks that the pointer is non-NULL, the magic signature matches
