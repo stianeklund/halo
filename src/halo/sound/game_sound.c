@@ -214,8 +214,7 @@ void game_sound_update(float dt)
         /* Object is in a visible cluster — get its location and maybe
          * update the looping sound. */
         int is_audible;
-        ((void (*)(int, int *))0x140130)(*(int *)((char *)entry + 0x10),
-                                         location);
+        object_get_location(*(int *)((char *)entry + 0x10), (void *)location);
         is_audible = sound_cluster_is_audible((void *)location);
         if ((uint8_t)is_audible != 0) {
           ((void (*)(int, int *))0x1c77a0)(looping_sounds_handle, location);
