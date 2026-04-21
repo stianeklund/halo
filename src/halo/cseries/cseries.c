@@ -19,6 +19,32 @@ void display_assert(const char *reason, const char *filepath, int lineno,
         lineno, reason ? reason : "<no reason given>");
 }
 
+/* Byte-compare two buffers with assertions on non-null pointers and
+ * reasonable size. Returns 0 if equal, non-zero otherwise. */
+int csmemcmp(const void *a, const void *b, int size)
+{
+  const char *pa = (const char *)a;
+  const char *pb = (const char *)b;
+  int i;
+
+  if (pa == NULL || pb == NULL) {
+    error(2, "%s", "csmemcmp: null", "c:\\halo\\SOURCE\\cseries\\cseries.c",
+          0xff, 1);
+    system_exit(-1);
+  }
+  if ((unsigned int)size > 0x10000000) {
+    error(2, "%s", "csmemcmp: size", "c:\\halo\\SOURCE\\cseries\\cseries.c",
+          0x100, 1);
+    system_exit(-1);
+  }
+
+  for (i = 0; i < size; i++) {
+    if (pa[i] != pb[i])
+      return (pa[i] < pb[i]) ? -1 : 1;
+  }
+  return 0;
+}
+
 void *csmemset(void *buffer, int c, size_t size)
 {
   uint32_t *dst32;
