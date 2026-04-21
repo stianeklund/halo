@@ -1058,6 +1058,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb9040": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb90d0": {
       "kind": "function",
       "status": "ported"
@@ -3439,6 +3443,14 @@
         "Only checks bink handle (0x4ead60) for non-zero; does not require subsystem initialized."
       ]
     },
+    "0x1c5990": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function uses a custom register calling convention: alignment in EAX and alloc_size in ECX, with a plain RET (no stack cleanup).",
+        "Globals 0x4eae2c (memory_pool_size) and 0x4eae24 (memory_pool_base) are part of a bink_globals structure starting around 0x4ead58."
+      ]
+    },
     "0x1c5a80": {
       "kind": "function",
       "status": "ported"
@@ -3570,6 +3582,36 @@
     "0x1cb8a0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1cba20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x1c88c0 is sound_get_class_definition, takes cdecl short class_index and returns pointer to a 0x2c-byte class definition struct at 0x32ed08 + index*0x2c.",
+        "Byte at offset 0x28 in the class definition struct is a suppress flag that prevents playback when set."
+      ]
+    },
+    "0x1cbb00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The promotion system uses a time accumulator at tag+0x88 and stores the last check timestamp at tag+0x8c, comparing against the global sound timestamp at 0x4eaf4c."
+      ],
+      "uncertain": [
+        "The MOVSX SI,SI and IMUL pattern suggests promotion_count is sign-extended from short to int before the multiplication with interval."
+      ]
+    },
+    "0x1cd5a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x1ccbe0 takes EAX=channel_index and EDI=source_pointer as register args and returns distance squared in ST(0).",
+        "0x1c8310 is a cdecl function taking (int channel_index, void *source, float sqrt_distance) that evaluates channel suitability.",
+        "Local player listener slots are at 0x4eaf58 with stride 0x44, maximum 4 listeners."
+      ],
+      "uncertain": [
+        "The assert for index bounds at line 0x430 appears unreachable given the loop bounds, suggesting it may be an inlined bounds-check macro."
+      ]
     },
     "0x1ce180": {
       "kind": "function",

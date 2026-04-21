@@ -37,6 +37,190 @@ void sound_set_music_enabled(int enabled)
   }
 }
 
+/* Check whether a sound tag can currently play.
+ *
+ * sound_tag_index is passed in EAX (register argument).
+ *
+ * Loads the sound tag, checks that pitch range 0 has at least one permutation,
+ * then looks up the sound class definition for the tag's class index. If the
+ * class definition's "suppress" byte (offset 0x28) is zero, the sound is
+ * allowed to play. Returns true (1) if playable, false (0) otherwise. */
+bool sound_can_play(int sound_tag_index /* @<eax> */)
+{
+  void *sound_tag;
+  void *pitch_range_element;
+  void *class_def;
+
+  sound_tag = tag_get(0x736e6421, sound_tag_index);
+  if (*(int *)((char *)sound_tag + 0x98) != 0) {
+    pitch_range_element =
+      tag_block_get_element((char *)sound_tag + 0x98, 0, 0x48);
+    if (*(int *)((char *)pitch_range_element + 0x3c) != 0) {
+      class_def = (void *)((int (*)(int))0x1c88c0)(
+        (int)*(unsigned short *)((char *)sound_tag + 4));
+      if (*(char *)((char *)class_def + 0x28) == '\0') {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+/* Check whether a sound should be promoted to its promotion sound.
+ *
+ * sound_tag_index is passed in EAX (register argument).
+ *
+ * Loads the sound tag and checks if it has a promotion count (tag+0x80).
+ * If so, updates the promotion accumulator (tag+0x88) based on the time
+ * elapsed since the last check (tag+0x8c vs global timestamp 0x4eaf4c).
+ * Clamps the accumulator to zero if negative, then adds the promotion
+ * interval (tag+0x84). If the accumulator exceeds
+ * promotion_count * promotion_interval, either:
+ *   - Returns 1 (promote) if a promotion sound tag is set (tag+0x7c != -1),
+ *     resetting the accumulator to zero.
+ *   - Returns 2 (reject) if no promotion sound, subtracting the interval.
+ * Returns 0 if no promotion is needed. */
+int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
+{
+  char *sound_tag;
+  short promotion_count;
+  int delta;
+  int accumulator;
+  int interval;
+  int total;
+
+  sound_tag = (char *)tag_get(0x736e6421, sound_tag_index);
+  promotion_count = *(short *)(sound_tag + 0x80);
+  if (promotion_count == 0)
+    return 0;
+
+  /* Update accumulator: add elapsed time delta. */
+  delta = *(int *)(sound_tag + 0x8c) - *(int *)0x4eaf4c;
+  accumulator = *(int *)(sound_tag + 0x88) + delta;
+  *(int *)(sound_tag + 0x88) = accumulator;
+
+  /* Clamp negative accumulator to zero. */
+  if (accumulator < 0)
+    accumulator = 0;
+  *(int *)(sound_tag + 0x88) = accumulator;
+
+  /* Record current timestamp. */
+  *(int *)(sound_tag + 0x8c) = *(int *)0x4eaf4c;
+
+  /* Add promotion interval. */
+  interval = *(int *)(sound_tag + 0x84);
+  total = accumulator + interval;
+  *(int *)(sound_tag + 0x88) = total;
+
+  /* Check if accumulated time exceeds promotion threshold. */
+  if (total > (int)promotion_count * interval) {
+    if (*(int *)(sound_tag + 0x7c) != -1) {
+      *(int *)(sound_tag + 0x88) = 0;
+      return 1;
+    }
+    *(int *)(sound_tag + 0x88) = total - interval;
+    return 2;
+  }
+
+  return 0;
+}
+
+/* Allocate a sound channel for a source based on its spatialization mode.
+ *
+ * source is passed in EAX (register argument); priority is on the stack.
+ *
+ * Behavior depends on source->spatialization_mode (short at offset 0):
+ *   - Mode 0 (none): returns channel 0 immediately.
+ *   - Mode 2 (single listener): computes distance via 0x1ccbe0 with
+ *     channel=-1 and the source pointer. If distance >= priority, returns
+ *     the channel index; otherwise returns 0.
+ *   - Other modes (1 = listener-relative): iterates over up to 4 local
+ *     player listener slots (0x4eaf58 + i*0x44), computing distance for
+ *     each active listener. Tracks the closest listener. If found, calls
+ *     0x1c8310 to evaluate channel suitability. Returns the best channel
+ *     index, or -1 if priority^2 < min distance or source[0x3c] == 1.0f.
+ */
+int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
+{
+  short spatialization_mode;
+  int best_channel;
+  float best_dist_sq;
+  int i;
+  char *listener_ptr;
+  float sqrt_dist;
+
+  spatialization_mode = *(short *)source;
+  best_channel = -1;
+
+  if (spatialization_mode == 0)
+    return 0;
+
+  if (spatialization_mode == 2) {
+    /* Single listener: compute distance with channel=-1. */
+    {
+      int _eax = -1;
+      int _edi = (int)source;
+      float dist_result;
+      __asm__ __volatile__("call *%[fn]\n\t"
+                           "fstps %[out]"
+                           : "+a"(_eax), "+D"(_edi), [out] "=m"(dist_result)
+                           : [fn] "r"((void *)0x1ccbe0)
+                           : "ecx", "edx", "esi", "memory", "cc");
+      if (dist_result >= priority)
+        return (short)best_channel;
+      return 0;
+    }
+  }
+
+  /* Mode 1 / other: iterate over local player listeners. */
+  best_dist_sq = 3.4028235e+38f; /* FLT_MAX (0x7f7fffff) */
+  listener_ptr = (char *)0x4eaf58;
+
+  for (i = 0; (short)i < 4; i++, listener_ptr += 0x44) {
+    if ((short)i < 0 || (short)i >= 4) {
+      display_assert("index>=0 && index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x430, 1);
+      system_exit(-1);
+    }
+    if (*listener_ptr != '\0') {
+      /* Compute distance squared for this listener. */
+      int _eax2 = i;
+      int _edi2 = (int)source;
+      float this_dist;
+      __asm__ __volatile__("call *%[fn]\n\t"
+                           "fstps %[out]"
+                           : "+a"(_eax2), "+D"(_edi2), [out] "=m"(this_dist)
+                           : [fn] "r"((void *)0x1ccbe0)
+                           : "ecx", "edx", "esi", "memory", "cc");
+      if (this_dist < best_dist_sq) {
+        best_dist_sq = this_dist;
+        best_channel = i;
+      }
+    }
+  }
+
+  if ((short)best_channel != -1) {
+    /* Evaluate channel suitability with sqrt of best distance. */
+    {
+      float _sqrt_in = best_dist_sq;
+      __asm__ __volatile__("flds %[in]\n\t"
+                           "fsqrt\n\t"
+                           "fstps %[out]"
+                           : [out] "=m"(sqrt_dist)
+                           : [in] "m"(_sqrt_in)
+                           : "memory");
+    }
+    ((void (*)(int, void *, float))0x1c8310)(best_channel, source, sqrt_dist);
+  }
+
+  if (priority * priority < best_dist_sq)
+    return -1;
+  if (*(int *)((char *)source + 0x3c) == 0x3f800000)
+    return -1;
+
+  return (short)best_channel;
+}
+
 /* sound_start (0x1ce180)
  *
  * Attempts to start playing a sound from the given sound tag.
