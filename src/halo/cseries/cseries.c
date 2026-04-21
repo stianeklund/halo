@@ -23,20 +23,12 @@ void display_assert(const char *reason, const char *filepath, int lineno,
  * reasonable size. Returns 0 if equal, non-zero otherwise. */
 int csmemcmp(const void *a, const void *b, int size)
 {
-  const char *pa = (const char *)a;
-  const char *pb = (const char *)b;
+  const uint8_t *pa = a;
+  const uint8_t *pb = b;
   int i;
 
-  if (pa == NULL || pb == NULL) {
-    error(2, "%s", "csmemcmp: null", "c:\\halo\\SOURCE\\cseries\\cseries.c",
-          0xff, 1);
-    system_exit(-1);
-  }
-  if ((unsigned int)size > 0x10000000) {
-    error(2, "%s", "csmemcmp: size", "c:\\halo\\SOURCE\\cseries\\cseries.c",
-          0x100, 1);
-    system_exit(-1);
-  }
+  assert_halt(a && b);
+  assert_halt((unsigned int)size <= 0x10000000);
 
   for (i = 0; i < size; i++) {
     if (pa[i] != pb[i])

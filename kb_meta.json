@@ -3641,6 +3641,10 @@
     "0x326a08": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x8da40": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
