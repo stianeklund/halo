@@ -618,6 +618,20 @@ game_variant_t *game_engine_team_race_default(game_variant_t *variant)
   return variant;
 }
 
+/* Check if any of the 4 gamepads has the specified button pressed.
+ * button_index passed in EDI (register arg). Returns true on first hit. */
+bool game_engine_check_input_button(int button_index /* @<edi> */)
+{
+  int i;
+
+  for (i = 0; i < 4; i++) {
+    void *state = input_get_gamepad_state(i);
+    if (state != NULL && *((char *)state + 0x10 + button_index) != 0)
+      return true;
+  }
+  return false;
+}
+
 /* Returns true if the game has not entered a restart/game-over state. */
 bool FUN_000ab720(void)
 {
@@ -1070,6 +1084,109 @@ void game_engine_update(void)
     display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\game\\game_engine.c",
                    0x985, true);
     system_exit(-1);
+  }
+}
+
+/* Play the score sound for the given event index. Looks up the sound
+ * tag from game_globals multiplayer_information sounds block.
+ * event_index passed in ESI (register arg). */
+void game_engine_play_score_sound(int event_index /* @<esi> */)
+{
+  void *globals;
+  void *mp_info;
+  void *entry;
+  int tag_index;
+
+  global_scenario_get();
+  globals = game_globals_get();
+  mp_info = tag_block_get_element((char *)globals + 0x164, 0, 0xa0);
+  if (mp_info != NULL && event_index < *(int *)((char *)mp_info + 0x5c)) {
+    entry = tag_block_get_element((char *)mp_info + 0x5c, event_index, 0x10);
+    if (entry != NULL) {
+      tag_index = *(int *)((char *)entry + 0xc);
+      if (tag_index != -1)
+        sound_impulse_start(tag_index, 0x3f800000);
+    }
+  }
+}
+
+/* Advance the score event queue. When the current entry's delay expires,
+ * shift the queue and play the next sound. */
+void game_engine_score_tick(void)
+{
+  int count = *(int *)0x456dd8;
+
+  if (count == 0)
+    return;
+
+  *(int *)0x456de0 = *(int *)0x456de0 - 1;
+  if (*(int *)0x456de0 != 0)
+    return;
+
+  if (count > 1) {
+    int dwords = ((count - 1) & 0x1fffffff) << 1;
+    int *dst = (int *)0x456ddc;
+    int *src = (int *)0x456de4;
+    int i;
+    for (i = 0; i < dwords; i++)
+      dst[i] = src[i];
+  }
+
+  count--;
+  *(int *)0x456dd8 = count;
+  if (count != 0)
+    game_engine_play_score_sound(*(int *)0x456ddc);
+}
+
+/* Return the duration in ticks of the score sound at event_index.
+ * event_index passed in ESI (register arg). */
+int game_engine_get_score_sound_duration(int event_index /* @<esi> */)
+{
+  void *globals;
+  void *mp_info;
+  void *entry;
+  int tag_index;
+  void *tag_data;
+
+  global_scenario_get();
+  globals = game_globals_get();
+  mp_info = tag_block_get_element((char *)globals + 0x164, 0, 0xa0);
+  if (mp_info != NULL && event_index < *(int *)((char *)mp_info + 0x5c)) {
+    entry = tag_block_get_element((char *)mp_info + 0x5c, event_index, 0x10);
+    if (entry != NULL) {
+      tag_index = *(int *)((char *)entry + 0xc);
+      if (tag_index != -1) {
+        tag_data = tag_get(0x736e6421, tag_index);
+        return (*(int *)((char *)tag_data + 0x84) * 30) / 1000;
+      }
+    }
+  }
+  return 0;
+}
+
+/* Queue a score event. If the event has a sound, enqueue it with a delay
+ * equal to the sound duration + 5 ticks. Plays immediately if it's the
+ * first/only entry. Events not in the lookup table play directly. */
+void game_engine_post_event(int event_type)
+{
+  int count;
+
+  if (*(uint8_t *)(event_type + 0x2effb8) == 0) {
+    game_engine_play_score_sound(event_type);
+    return;
+  }
+
+  {
+    int duration = game_engine_get_score_sound_duration(event_type);
+    count = *(int *)0x456dd8;
+    if (count < 5) {
+      *(int *)(0x456ddc + count * 8) = event_type;
+      *(int *)(0x456de0 + count * 8) = duration + 5;
+      count++;
+      *(int *)0x456dd8 = count;
+    }
+    if (count == 1)
+      game_engine_play_score_sound(event_type);
   }
 }
 
