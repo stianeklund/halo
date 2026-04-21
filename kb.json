@@ -1095,6 +1095,34 @@
           "addr": "0x11e9c0"
         },
         {
+          "decl": "void FUN_0011ea50(int slot_index, void *block_hdr@<esi>, int block_size@<edi>);",
+          "addr": "0x11ea50"
+        },
+        {
+          "decl": "unsigned int FUN_0011ea90(void *block_hdr@<esi>);",
+          "addr": "0x11ea90"
+        },
+        {
+          "decl": "unsigned int FUN_0011eb40(void *pool@<esi>);",
+          "addr": "0x11eb40"
+        },
+        {
+          "decl": "int FUN_0011ebc0(void *pool@<eax>);",
+          "addr": "0x11ebc0"
+        },
+        {
+          "decl": "void FUN_0011ec10(void *pool@<esi>);",
+          "addr": "0x11ec10"
+        },
+        {
+          "decl": "void *FUN_0011ec70(void *pool@<eax>, int alloc_size@<ebx>, void **free_space_in_pool_previous);",
+          "addr": "0x11ec70"
+        },
+        {
+          "decl": "void FUN_0011ee80(void *pool@<eax>);",
+          "addr": "0x11ee80"
+        },
+        {
           "decl": "int memory_block_valid(void *block_hdr@<ecx>);",
           "addr": "0x11ecf0"
         },
