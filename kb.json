@@ -1831,8 +1831,16 @@
           "addr": "0xaf370"
         },
         {
+          "decl": "void game_engine_play_score_sound(int event_index@<esi>);",
+          "addr": "0xb24c0"
+        },
+        {
           "decl": "void game_engine_score_tick(void);",
           "addr": "0xb2540"
+        },
+        {
+          "decl": "int game_engine_get_score_sound_duration(int event_index@<esi>);",
+          "addr": "0xb2590"
         },
         {
           "decl": "void game_engine_post_event(int event_type);",
