@@ -1417,6 +1417,36 @@ void player_set_action_result_for_equipment(int player_handle,
   object_delete(equipment_handle);
 }
 
+/* Decrement the player's short weapon/vehicle timers (at player+0x68,
+ * 2 x int16_t).  When a timer reaches zero the corresponding flag bit
+ * is cleared on the unit object (bit 0x10 at unit+0x1b4).
+ * EBX = datum_handle (register arg). */
+void player_update_weapon_timers(int datum_handle)
+{
+  char *player;
+  char *unit;
+  int16_t *timer;
+  int i;
+  int16_t val;
+
+  player = (char *)datum_get(player_data, datum_handle);
+  timer = (int16_t *)(player + 0x68);
+  for (i = 0; i < 2; i++) {
+    val = timer[i];
+    if (val > 0) {
+      val--;
+      timer[i] = val;
+      if (val == 0) {
+        player = (char *)datum_get(player_data, datum_handle);
+        unit = (char *)object_get_and_verify_type(
+            *(int *)(player + 0x34), 3);
+        if (i == 0)
+          *(unsigned int *)(unit + 0x1b4) &= ~0x10u;
+      }
+    }
+  }
+}
+
 /* Update all player actions before game logic runs for this tick.
  *
  * For each player:
