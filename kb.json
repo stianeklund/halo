@@ -4201,12 +4201,20 @@
           "addr": "0xe4890"
         },
         {
+          "decl": "int *ui_widget_find_by_tag(int *widget, int tag_handle);",
+          "addr": "0xe4910"
+        },
+        {
           "decl": "void ui_widget_close(void *widget);",
           "addr": "0xe5620"
         },
         {
           "decl": "void ui_widgets_close_all(void);",
           "addr": "0xe58c0"
+        },
+        {
+          "decl": "void ui_widget_apply_focus(void *root_widget@<eax>, void *target_widget@<ecx>);",
+          "addr": "0xe4f20"
         },
         {
           "decl": "void ui_widget_close_and_reload(void *widget@<eax>);",

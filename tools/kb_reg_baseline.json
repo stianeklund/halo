@@ -57,6 +57,7 @@
     "0xe4890": "void ui_widget_close_children(void *widget@<eax>);",
     "0xe6890": "void ui_widget_set_focus(void *widget@<eax>, int tag_handle, int16_t player_index);",
     "0xe68e0": "void ui_widget_close_and_reload(void *widget@<eax>);",
+    "0xe4f20": "void ui_widget_apply_focus(void *root_widget@<eax>, void *target_widget@<ecx>);",
     "0xe7b10": "void ui_widget_load_from_tag_internal(void *tag_data@<eax>, void *widget@<edx>, void *parent@<ecx>, int tag_index, int widget_stack, int widget_stack_base);",
     "0x1aa890": "void unit_update_seat_occupancy(int vehicle_handle@<eax>);",
     "0x1aad60": "int16_t unit_find_empty_weapon_slot(int unit_handle@<eax>);",
