@@ -1678,8 +1678,16 @@
           "addr": "0xa8680"
         },
         {
+          "decl": "void game_engine_update_flag_state(int weapon_index@<esi>);",
+          "addr": "0xa8780"
+        },
+        {
           "decl": "void game_engine_spawn_equipment(void);",
           "addr": "0xa8820"
+        },
+        {
+          "decl": "void game_engine_start_over(void);",
+          "addr": "0xa8b00"
         },
         {
           "decl": "bool game_engine_allow_weapon_pick_up(int unit_handle, int weapon_handle);",
@@ -1790,6 +1798,15 @@
           "addr": "0xacdd0"
         },
         {
+          "decl": "void game_engine_hud_update_player(int player_handle);",
+          "addr": "0xacef0",
+          "args": "@ecx,@eax"
+        },
+        {
+          "decl": "void game_engine_score_update_player(int player_handle);",
+          "addr": "0xad600"
+        },
+        {
           "decl": "game_variant_t *game_engine_get_variant_by_name(game_variant_t *variant, const char *name);",
           "addr": "0xadd50"
         },
@@ -1816,19 +1833,6 @@
         {
           "decl": "void game_engine_score_reset(void);",
           "addr": "0xb2660"
-        },
-        {
-          "decl": "void game_engine_score_update_player(int player_handle);",
-          "addr": "0xad600"
-        },
-        {
-          "decl": "void game_engine_hud_update_player(int player_handle);",
-          "addr": "0xacef0",
-          "args": "@ecx,@eax"
-        },
-        {
-          "decl": "void game_engine_start_over(void);",
-          "addr": "0xa8b00"
         }
       ]
     },
