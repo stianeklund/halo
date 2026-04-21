@@ -4145,7 +4145,7 @@
           "addr": "0xe43f0"
         },
         {
-          "decl": "void *FUN_000e4310(void *widget);",
+          "decl": "void *ui_widget_get_last_child(void *widget);",
           "addr": "0xe4310"
         },
         {
@@ -4181,15 +4181,15 @@
           "addr": "0xe4770"
         },
         {
-          "decl": "void FUN_000e5380(void *widget@<ecx>, void *definition);",
+          "decl": "void ui_widget_update_list_selection(void *widget@<ecx>, void *definition);",
           "addr": "0xe5380"
         },
         {
-          "decl": "void FUN_000e53e0(void *widget@<edi>);",
+          "decl": "void ui_widget_list_prev(void *widget@<edi>);",
           "addr": "0xe53e0"
         },
         {
-          "decl": "void FUN_000e5440(void *widget@<edi>);",
+          "decl": "void ui_widget_list_next(void *widget@<edi>);",
           "addr": "0xe5440"
         },
         {
@@ -4209,7 +4209,7 @@
           "addr": "0xe58c0"
         },
         {
-          "decl": "void FUN_000e68e0(void *widget@<eax>);",
+          "decl": "void ui_widget_close_and_reload(void *widget@<eax>);",
           "addr": "0xe68e0"
         },
         {
@@ -4221,15 +4221,15 @@
           "addr": "0xe6a60"
         },
         {
-          "decl": "void FUN_000e6ab0(void *widget, void *event_data, char *widget_deleted);",
+          "decl": "int ui_widget_list_next_item(void *widget, void *event_data, char *widget_deleted);",
           "addr": "0xe6ab0"
         },
         {
-          "decl": "void FUN_000e6cb0(void *widget, void *event_data, char *widget_deleted);",
+          "decl": "int ui_widget_list_prev_item(void *widget, void *event_data, char *widget_deleted);",
           "addr": "0xe6cb0"
         },
         {
-          "decl": "void FUN_000e6ed0(void *widget, void *definition, void *event_data, void *event_handler, char *widget_deleted);",
+          "decl": "void ui_widget_handle_event_handler(void *widget, void *definition, void *event_data, void *event_handler, char *widget_deleted);",
           "addr": "0xe6ed0"
         },
         {
@@ -4275,6 +4275,10 @@
         {
           "decl": "void ui_widget_clear_last_error_index(void);",
           "addr": "0xe98b0"
+        },
+        {
+          "decl": "void ui_widget_set_focus(void *widget@<eax>, int tag_handle, int16_t player_index);",
+          "addr": "0xe6890"
         }
       ]
     },
