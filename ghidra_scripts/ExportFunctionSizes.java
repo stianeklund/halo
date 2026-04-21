@@ -11,7 +11,7 @@ import java.util.*;
 public class ExportFunctionSizes extends GhidraScript {
     @Override
     public void run() throws Exception {
-        String outPath = "G:\\dev\\halo\\build\\function_sizes.json";
+        String outPath = "/mnt/g/dev/halo/build/function_sizes.json";
 
         FunctionManager fm = currentProgram.getFunctionManager();
         Memory mem = currentProgram.getMemory();

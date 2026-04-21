@@ -3657,6 +3657,10 @@
     "0xd5070": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xa2e80": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
