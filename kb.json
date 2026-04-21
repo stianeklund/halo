@@ -4618,6 +4618,14 @@
           "addr": "0x225c20"
         },
         {
+          "decl": "int __stdcall xnet_closesocket(int socket);",
+          "addr": "0x225cc6"
+        },
+        {
+          "decl": "void winsock_error_report(int error_code);",
+          "addr": "0x83310"
+        },
+        {
           "decl": "void *XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
           "addr": "0x1d36d4"
         },
