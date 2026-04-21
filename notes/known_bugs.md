@@ -13,6 +13,7 @@ During ending of the level when the countdown timer is active, slight audio corr
  
 Affected build: NA
 
+---
 
 Level: The Maw
 Description:  You can pick up empty weapons. This shouldn't be possible I think? Double check with unpatched 2276 build.

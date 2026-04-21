@@ -24,7 +24,8 @@ Operating rules:
 - Deliver exactly one output artifact per invocation.
 - Return structured findings, not freeform essays.
 - If evidence is weak or conflicting, say so explicitly rather than guessing.
-- use ghidra mcp to ground your findings when necessary.
+- Use ghidra mcp to ground your findings when necessary.
+- Commit changes in a logical and easy to bisect manner.
 
 Disallowed or discouraged:
 - removing or changing `@<reg>` slot assignments (they are immutable)
