@@ -1981,28 +1981,28 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
  * are collected into out_handles.  Returns the count of found objects.
  *
  * Parameters (cdecl, 7 args):
- *   flags       — passed to structure_find_in_cluster and
- * object_find_in_cluster type_mask   — bit mask of object types to include (0 →
- * all types) position    — float[3] search center (must be non-NULL) forward —
- * unused (present in signature but only position is used) radius      — search
- * radius, added to each object's effective radius out_handles — output array
- * for found object handles (must be non-NULL) max_count   — maximum number of
- * handles to collect
+ *   flags            — passed to object_find_in_cluster
+ *   type_mask        — bit mask of object types to include (0 → all types)
+ *   cluster_info     — pointer to a cluster location struct; word at +4 is
+ *                       the cluster count passed to structure_find_in_cluster
+ *   position         — float[3] search center (must be non-NULL)
+ *   radius           — search radius, added to each object's effective radius
+ *   out_handles      — output array for found object handles (must be non-NULL)
+ *   max_count        — maximum number of handles to collect
  *
  * Confirmed: 7 cdecl params at [EBP+0x8..0x20].
- * Confirmed: Stack frame 0x2404 bytes (local_2408[2048] + local_408[972]
- *            + locals).
- * Confirmed: CALL 0x199230 (structure_find_in_cluster) with 5 args.
- * Confirmed: CALL 0x140420 (object_find_in_cluster) with 5 args.
- * Confirmed: Type check uses `1 << (type_byte & 0x1f) & type_mask`.
- * Confirmed: Distance check: (unk_80-pos)^2 + (unk_84-pos.y)^2 +
- *            (unk_88-pos.z)^2 <= (unk_92+radius)^2.
- * Confirmed: Object position fields at +0x50 (unk_80), +0x54 (unk_84),
- *            +0x58 (unk_88), effective radius at +0x5C (unk_92).
+ * Confirmed: param_3 (EBX) is a struct pointer, word at +4 = cluster count.
+ * Confirmed: param_4 (ESI) is the float* position, used in distance math.
+ * Confirmed: CALL 0x199230 with 5 args: (cluster_count_word, position, radius,
+ *            0x200, cluster_indices_ptr).
+ * Confirmed: CALL 0x140420 with 5 args: (flags, cluster_count, cluster_indices,
+ *            0x800, object_indices_ptr). Max counts are hardcoded 512 and 2048.
+ * Confirmed: Distance check uses obj+0x50/0x54/0x58 vs position, and
+ *            obj+0x5C as effective object radius.
  * Confirmed: Returns short (count of found objects).
  */
 int16_t object_find_in_radius(int flags, unsigned int type_mask,
-                              float *position, float *forward, float radius,
+                              void *cluster_info, float *position, float radius,
                               int *out_handles, int16_t max_count)
 {
   int16_t cluster_count;
@@ -2010,25 +2010,28 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
   int16_t iter_count;
   int i;
 
-  static int16_t cluster_indices[2048];
+  static int16_t cluster_indices[512];
   static int object_indices[2048];
 
+  if (cluster_info == NULL)
+    assert_halt(cluster_info != NULL);
   if (position == NULL)
     assert_halt(position != NULL);
   if (out_handles == NULL)
     assert_halt(out_handles != NULL);
-  if (position == NULL && forward == NULL)
-    assert_halt(position != NULL);
 
   if (type_mask == 0)
     type_mask = 0xFFFFFFFF;
 
+  if (flags == 0)
+    flags = 0xFFFFFFFF;
+
   cluster_count =
-    structure_find_in_cluster(flags, *(uint16_t *)((char *)position + 4),
-                              radius, position, cluster_indices);
+    structure_find_in_cluster(*(uint16_t *)((char *)cluster_info + 4), position,
+                              radius, 512, cluster_indices);
 
   iter_count = object_find_in_cluster(flags, cluster_count, cluster_indices,
-                                      max_count, object_indices);
+                                      2048, object_indices);
 
   for (i = 0; i < iter_count && found_count < max_count; i++) {
     int handle = object_indices[i];
@@ -2046,7 +2049,7 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
       float dz = obj->unk_88 - position[2];
       float effective_radius = obj->unk_92 + radius;
 
-      if (dx * dx + dy * dy + dz * dz <= effective_radius * effective_radius) {
+if (dx * dx + dy * dy + dz * dz <= effective_radius * effective_radius) {
         out_handles[found_count] = handle;
         found_count++;
       }
