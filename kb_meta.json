@@ -133,12 +133,24 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x82d30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82f50": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "xnet_send thunk at 0x225c20 uses __stdcall convention with RET 0x10 (4 dwords) confirmed from 0x2258a4 epilogue; ep flags byte at offset 4 (bit 0=connected) and ep status int16_t at offset 6 derived from MOV/AND disassembly.",
         "Switch jump table at 0x83010 with byte-redirect table at 0x8301c maps WSAECONNRESET (0x2733) to -4, abort-class errors (0x2744/0x2745/0x2746/0x2749/0x274a/0x274c) to -3, all others to -2."
+      ]
+    },
+    "0x84000": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "winsock_error_report at 0x83310 is cdecl with 1 int arg and void return, based on PUSH EAX / CALL / ADD ESP,4 pattern and no use of return value.",
+        "xnet_closesocket at 0x225cc6 is stdcall with 1 int arg returning int, based on PUSH EAX / CALL and callee RET 4."
       ]
     },
     "0x848c0": {
@@ -259,6 +271,10 @@
       "status": "ported"
     },
     "0x8e370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8e770": {
       "kind": "function",
       "status": "ported"
     },
