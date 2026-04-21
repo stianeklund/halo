@@ -160,8 +160,10 @@ void game_engine_update_flag_state(int weapon_index /* @<esi> */)
   if (*(int *)(obj + 0xcc) == -1 && (*(uint8_t *)(obj + 0x1a4) & 1) == 0 &&
       (*(uint32_t *)(obj + 0x1dc) & 0x20) != 0) {
     *(uint32_t *)(obj + 0x1dc) &= ~0x20u;
-    if (*(void **)(*(int *)0x456b60 + 0x40) != (void *)0) {
-      ((void (*)(int))(*(int *)(*(int *)0x456b60 + 0x40)))(weapon_index);
+    {
+      void (*fn)(int) = ((void (**)(int))current_game_engine)[0x40 / 4];
+      if (fn)
+        fn(weapon_index);
     }
   }
 }
@@ -177,7 +179,7 @@ void game_engine_spawn_equipment(void)
   char *tag_data;
   float scale;
 
-  if (*(int *)0x456b60 == 0) {
+  if (current_game_engine == 0) {
     display_assert("NULL != game_engine",
                    "c:\\halo\\SOURCE\\game\\game_engine.c", 0x7aa, 1);
     system_exit(-1);
@@ -204,14 +206,30 @@ void game_engine_spawn_equipment(void)
       *(float *)(obj + 0x60) = 1.0f;
     }
 
-    if (*(void **)(*(int *)0x456b60 + 0x38) != (void *)0) {
-      void *vehicle = object_try_and_get_and_verify_type(handle, 4);
-      if (vehicle != NULL && weapon_is_flag(handle)) {
-        game_engine_update_flag_state(handle);
-        ((void (*)(int, void *))(*(int *)(*(int *)0x456b60 + 0x38)))(handle,
-                                                                     vehicle);
+    {
+      void (*spawn_fn)(int, void *) =
+        ((void (**)(int, void *))current_game_engine)[0x38 / 4];
+      if (spawn_fn != NULL) {
+        void *vehicle = object_try_and_get_and_verify_type(handle, 4);
+        if (vehicle != NULL && weapon_is_flag(handle)) {
+          game_engine_update_flag_state(handle);
+          spawn_fn(handle, vehicle);
+        }
       }
     }
+  }
+}
+
+/* Trigger a game restart. Sets a 7-second countdown timer, posts a
+ * restart event, and closes all UI widgets. Only fires once (guards
+ * against repeated calls via the flag at 0x5aa730). */
+void game_engine_start_over(void)
+{
+  if (*(int *)0x5aa730 == 0) {
+    *(int *)0x5aa730 = 1;
+    *(float *)0x5aa728 = 7.0f;
+    game_engine_post_event(1);
+    ui_widgets_close_all();
   }
 }
 
