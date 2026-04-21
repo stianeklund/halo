@@ -2818,6 +2818,10 @@
           "addr": "0x141480"
         },
         {
+          "decl": "int16_t object_find_in_radius(int flags, unsigned int type_mask, float *position, float *forward, float radius, int *out_handles, int16_t max_count);",
+          "addr": "0x1415f0"
+        },
+        {
           "decl": "void object_compute_node_matrices(int object_handle);",
           "addr": "0x141b70"
         },
