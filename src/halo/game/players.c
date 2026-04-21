@@ -1447,6 +1447,50 @@ void player_update_weapon_timers(int datum_handle)
   }
 }
 
+/* Check nearby objects via spatial query and dispatch spawn-state events.
+ * For each object found within the unit's bounding sphere, switch on the
+ * object type to call the appropriate handler.
+ * EBX = datum_handle (register arg). */
+void player_update_spawn_state(int datum_handle)
+{
+  char *player;
+  char *unit;
+  uint16_t count;
+  int handles[16];
+  int i;
+  char *obj;
+  int16_t obj_type;
+
+  player = (char *)datum_get(player_data, datum_handle);
+  if (*(int *)(player + 0x34) == -1)
+    return;
+  unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+  if (*(int *)(unit + 0xcc) != -1)
+    return;
+
+  count = (uint16_t)object_find_in_radius(0, 0x11f, (float *)(unit + 0x48),
+      (float *)(unit + 0x50), *(float *)(unit + 0x5c), handles, 0x10);
+  if ((int16_t)count <= 0)
+    return;
+
+  for (i = 0; i < (int16_t)count; i++) {
+    obj = (char *)object_get_and_verify_type(handles[i], -1);
+    obj_type = *(int16_t *)(obj + 0x64);
+    switch (obj_type) {
+    case 1:
+      player_update_nearby_biped(datum_handle, handles[i]);
+      break;
+    case 2:
+    case 3:
+      player_update_nearby_vehicle(datum_handle, handles[i]);
+      break;
+    case 8:
+      player_update_nearby_weapon(datum_handle, handles[i]);
+      break;
+    }
+  }
+}
+
 /* Update all player actions before game logic runs for this tick.
  *
  * For each player:
