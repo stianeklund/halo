@@ -1,6 +1,3 @@
-int ui_widget_load_widget_children(void *definition, void *widget);
-void ui_widget_link_child(void *parent, void *child);
-
 /* ui_widgets_initialize — sets up the UI widget subsystem. Allocates a
  * 0x4000-byte block via debug_malloc for the stack memory pool at
  * [0x31e04c], initializes the pool, zeroes the 0x68-byte static widget
@@ -215,6 +212,12 @@ void ui_widget_close_children(void *widget)
   } while (child != NULL);
 }
 
+int ui_widget_load_widget_children(void *definition, void *widget);
+void ui_widget_link_child(void *parent, void *child);
+int *ui_widget_find_by_tag(int *widget, int tag_handle);
+
+void ui_widget_apply_focus(void *root_widget, void *target_widget);
+
 void ui_widget_pending_load_apply(int pending_a6, int widget, int16_t a7);
 
 void ui_widget_update_list_selection(void *widget, void *definition);
@@ -414,7 +417,29 @@ void ui_widgets_close_all(void)
   } while ((int)list_heads < 0x46cc40);
 }
 
-void ui_widget_set_focus(void *widget, int tag_handle, int16_t player_index);
+/* ui_widget_set_focus — walks up the parent chain (field_0x30) from the given
+ * widget to the root, then searches the widget tree for one matching
+ * tag_handle.  If found, calls ui_widget_apply_focus; otherwise logs an error.
+ */
+void ui_widget_set_focus(void *widget, int tag_handle, int16_t player_index)
+{
+  void *root = widget;
+  void *found;
+
+  (void)player_index;
+
+  while (*(void **)((char *)root + 0x30) != NULL)
+    root = *(void **)((char *)root + 0x30);
+
+  found = ui_widget_find_by_tag(root, tag_handle);
+  if (found != NULL) {
+    ui_widget_apply_focus(root, found);
+    return;
+  }
+
+  error(2, "failed to find event focus target widget");
+}
+
 void ui_widget_close_and_reload(void *widget);
 
 /* ui_widget_begin_filesystem_checks — spawns a background thread to perform
