@@ -2709,6 +2709,10 @@
           "addr": "0x13d730"
         },
         {
+          "decl": "int object_get_root_parent(int object_handle);",
+          "addr": "0x13d7f0"
+        },
+        {
           "decl": "void object_set_garbage_flag(int object_handle, int is_garbage);",
           "addr": "0x13d920"
         },
