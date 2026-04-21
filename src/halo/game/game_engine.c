@@ -332,6 +332,12 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
   return result;
 }
 
+/* Returns true if the game has not entered a restart/game-over state. */
+bool FUN_000ab720(void)
+{
+  return *(int *)0x5aa730 == 0;
+}
+
 /* game_engine_can_pick_up_weapon (0xaba00)
  *
  * In Juggernaut (game type index 1) with an active engine, returns true
@@ -779,4 +785,15 @@ void game_engine_update(void)
                    0x985, true);
     system_exit(-1);
   }
+}
+
+/* Reset the score event queue. Clears the 5-entry buffer at 0x456ddc,
+ * sets count to 1, and initializes the first entry with type -1 and
+ * 60-tick delay. */
+void game_engine_score_reset(void)
+{
+  csmemset((void *)0x456ddc, 0, 0x28);
+  *(int *)0x456dd8 = 1;
+  *(int *)0x456ddc = -1;
+  *(int *)0x456de0 = 0x3c;
 }
