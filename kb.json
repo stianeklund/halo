@@ -163,6 +163,42 @@
           "addr": "0x21fb0"
         },
         {
+          "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
+          "addr": "0x84a70"
+        },
+        {
+          "decl": "void weapon_activate(int weapon_handle);",
+          "addr": "0xfd2e0"
+        },
+        {
+          "decl": "bool weapon_try_place(int weapon_handle, int flag);",
+          "addr": "0xfd360"
+        },
+        {
+          "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
+          "addr": "0x10b4c0"
+        },
+        {
+          "decl": "float random_real_range(int *seed, float min, float max);",
+          "addr": "0x10b270"
+        },
+        {
+          "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
+          "addr": "0x140070"
+        },
+        {
+          "decl": "void item_set_position(int item_handle, float *position, int flag);",
+          "addr": "0xf6d60"
+        },
+        {
+          "decl": "void unit_set_seat_state(int unit_handle, float *position);",
+          "addr": "0x1a9240"
+        },
+        {
+          "decl": "bool object_try_place(int object_handle, float *position);",
+          "addr": "0x1443f0"
+        },
+        {
           "decl": "void FUN_0002b5d0(void);",
           "addr": "0x2b5d0"
         },
@@ -2752,6 +2788,10 @@
           "decl": "void object_compute_child_marker_position(void *object, void *child_marker, void *dest_matrix);",
           "addr": "0x141020",
           "ported": true
+        },
+        {
+          "decl": "void object_detach_from_parent(int object_handle);",
+          "addr": "0x1411c0"
         },
         {
           "decl": "vector3_t *object_get_world_position(int object_handle, vector3_t *out_position);",

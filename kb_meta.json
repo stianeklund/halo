@@ -2352,6 +2352,31 @@
         "table[0] is seeded with a self-pointer via csmemcpy to initialize the free-slot list."
       ]
     },
+    "0x11ecf0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The usable_size == 0x20 check (LEA EDX,[EAX-0x20]; TEST EDX,EDX; JA) rejects blocks with no payload beyond the 0x20-byte header overhead."
+      ]
+    },
+    "0x11ef50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The call to 0x11eb10 (block-slot-index getter taking ESI) is inlined as blk[1] since the block is known non-NULL at that point."
+      ]
+    },
+    "0x11efd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11f070": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Returns block_hdr+0x1c in EAX (LEA EAX,[ESI+0x1c]) but kb.json declares void return; callers do not use the return value."
+      ]
+    },
     "0x11f620": {
       "kind": "function",
       "status": "ported",
@@ -3064,6 +3089,13 @@
         "Bit 2 of offset 0x248 (unk_584) acts as a suppression flag that prevents units in state 0x18/0x19 from being considered dangerous."
       ]
     },
+    "0x1aa890": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Seat flag bit 2 (0x4) designates driver/rider occupant slot at unk_724, bit 3 (0x8) designates gunner occupant slot at unk_728."
+      ]
+    },
     "0x1aab20": {
       "kind": "function",
       "status": "ported",
@@ -3085,6 +3117,13 @@
         "The second inner check (i == unit->unk_674) is dead code because the outer condition already excludes i == unk_674; preserved for binary fidelity."
       ]
     },
+    "0x1aad60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function is a simple linear scan of the 4-slot weapon array at unit+0x2A8 for the first NONE slot."
+      ]
+    },
     "0x1aad90": {
       "kind": "function",
       "status": "ported"
@@ -3104,13 +3143,42 @@
         "The debug globals at 0x5054fc (debug animation logging flag) and 0x5ac9f8 (debug unit filter handle) are accessed as hardcoded addresses; their struct membership and exact semantics are not fully confirmed."
       ]
     },
+    "0x1ab990": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The random throw direction uses the unit's unk_492 (offset 0x1EC) as the forward vector, with angle ~pi/8 and scale ~0.027-0.04.",
+        "The weapon remembers the detaching unit via weapon+0x1B0 write."
+      ],
+      "uncertain": [
+        "The exact name of 0x1a9240 (unit_set_seat_state) is uncertain; it receives the unit handle and the root position vector."
+      ]
+    },
     "0x1ac3f0": {
       "kind": "function",
       "status": "ported"
     },
+    "0x1acd70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The mode element at antr_tag+0xc contains animation modes; each mode has sub-animations at +0x58 with weapon labels at sub_anim+0xB0."
+      ],
+      "uncertain": [
+        "The multi-weapon flag logic checks key_data pointers at mode+0x44 offsets +4, +6, +8 for non-NONE int16_t values; exact semantics of these weapon animation channels are unconfirmed."
+      ]
+    },
     "0x1adeb0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1ae290": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Returns int (pointer as int) for ABI compatibility with callers that pass the result to unit_try_animation_state.",
+        "Base seat label table at 0x32e484 contains 6 string pointers: asleep, empty, stand, empty, empty, flaming."
+      ]
     },
     "0x1ae330": {
       "kind": "function",
@@ -3142,6 +3210,13 @@
         "FUN_001ae490 computes next weapon index; FUN_000fd360 attempts weapon placement; FUN_000de360 fires a unit event; FUN_001ab990 is a weapon-stow notification; FUN_000faf50 checks if weapon should be kept alive."
       ]
     },
+    "0x1af620": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Validates 6 direction vectors via valid_real_normal3d and checks forward/up perpendicularity via valid_real_normal3d_perpendicular at 0x84a70."
+      ]
+    },
     "0x1af6b0": {
       "kind": "function",
       "status": "ported",
@@ -3171,6 +3246,14 @@
     "0x1b1db0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1b1ee0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The weapon attachment markers come from the animation sub-element at mode+0x58: parent marker at sub_anim+0x40, weapon marker at sub_anim+0x20.",
+        "When weapon readiness transitions to a new weapon, unk_696[weapon_index] records game_time_get() as a timestamp."
+      ]
     },
     "0x1b2b80": {
       "kind": "function",
