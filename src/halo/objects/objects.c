@@ -380,6 +380,111 @@ void *object_header_block_reference_get(int object_handle, void *reference)
   return object + ref_offset;
 }
 
+/* Remove object_handle from a sibling linked list rooted at list_head.
+ * Walks the chain at offset 0xc4 (next_sibling) until it finds the entry
+ * matching object_handle, then unlinks it.
+ * list_head in EAX, object_handle in EBX (register args). */
+void object_child_list_remove(void *list_head /* @<eax> */,
+                              int object_handle /* @<ebx> */)
+{
+  int *head = (int *)list_head;
+  int *obj_data;
+
+  if (*head == -1)
+    return;
+
+  while (1) {
+    obj_data = (int *)datum_get(*(void **)0x5a8d50, *head);
+    obj_data = (int *)*(int *)((char *)obj_data + 8);
+
+    {
+      int type = (int)*(int16_t *)((char *)obj_data + 0x64);
+      if ((1 << (type & 0x1f)) == 0) {
+        char *msg =
+          csprintf((char *)0x5ab100,
+                   "got an object type we didn't expect (expected one of "
+                   "0x%08x but got #%d).",
+                   -1, type);
+        display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+        system_exit(-1);
+      }
+    }
+
+    if (*head == object_handle) {
+      *head = *(int *)((char *)obj_data + 0xc4);
+      *(int *)((char *)obj_data + 0xc4) = -1;
+      return;
+    }
+
+    head = (int *)((char *)obj_data + 0xc4);
+    if (*head == -1) {
+      display_assert("*first_object_reference!=NONE",
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0xc6b, 1);
+      system_exit(-1);
+      if (*head == -1)
+        return;
+    }
+  }
+}
+
+/* Propagate flags to all children of an object. For each child slot where
+ * the "created" flag at obj+0xf4+i is clear and the child handle is valid,
+ * optionally calls FUN_001396e0 (param_1) and/or FUN_0013aed0 (param_2).
+ * object_handle in EAX (register arg). */
+void object_propagate_flag_to_children(int object_handle /* @<eax> */,
+                                       int param_1, int param_2)
+{
+  int *obj;
+  void *tag_data;
+  int16_t i;
+  int count;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  if ((obj[1] & 0x100) == 0)
+    return;
+
+  tag_data = tag_get(0x6f626a65, obj[0]);
+  count = *(int *)((char *)tag_data + 0x140);
+  i = 0;
+  while ((int)i < count) {
+    if (*((char *)obj + 0xf4 + (int)i) == 0 && obj[(int)i + 0x3f] != -1) {
+      if (param_1 != 0)
+        object_wake(obj[(int)i + 0x3f]);
+      if (param_2 != 0)
+        object_move_to_limbo(obj[(int)i + 0x3f]);
+    }
+    i++;
+  }
+}
+
+/* Remove an object from the scenario object-name lookup table.
+ * Clears the name_index field (obj+0x6a) and removes all references
+ * to object_handle from the name table at 0x46f07c.
+ * object_handle in EDI (register arg). */
+void object_remove_from_name_list(int object_handle /* @<edi> */)
+{
+  char *obj;
+  void *scenario;
+  int count;
+  int *name_table;
+  int16_t i;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if (*(int16_t *)(obj + 0x6a) == -1)
+    return;
+
+  scenario = global_scenario_get();
+  *(int16_t *)(obj + 0x6a) = -1;
+  count = *(int *)((char *)scenario + 0x204);
+  name_table = *(int **)0x46f07c;
+  i = 0;
+  while ((int)i < count) {
+    if (name_table[(int)i] == object_handle)
+      name_table[(int)i] = -1;
+    i++;
+  }
+}
+
 /*
  * objects_place — place all scenario objects for the current map.
  *

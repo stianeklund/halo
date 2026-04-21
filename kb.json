@@ -2625,6 +2625,14 @@
       ],
       "functions": [
         {
+          "decl": "void object_wake(int object_handle);",
+          "addr": "0x1396e0"
+        },
+        {
+          "decl": "void object_move_to_limbo(int object_handle);",
+          "addr": "0x13aed0"
+        },
+        {
           "decl": "void *object_try_and_get_and_verify_type(int datum_handle, int type_mask);",
           "addr": "0x13d640"
         },
