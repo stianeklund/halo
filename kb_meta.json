@@ -1380,6 +1380,14 @@
         "Scenario globals are at scenario_tag+0x4a8 as a tag_block with element size 0x5c, where offset 0 of each element is the name string."
       ]
     },
+    "0xc4660": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "file_read_into_buffer at 0x199540 takes (file_ref_t*, int* size_out) and returns allocated buffer pointer or NULL.",
+        "tag_block_add_element at 0x1b9ad0 takes (void* tag_block) and returns int16_t index or -1 on failure."
+      ]
+    },
     "0xc47c0": {
       "kind": "function",
       "status": "ported",
@@ -1388,6 +1396,16 @@
       ],
       "uncertain": [
         "The csstrcmp at 0x8dcb0 name is inferred from its strcmp-like byte comparison behavior; could be csstrncmp or similar."
+      ]
+    },
+    "0xc4900": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The backward newline counting loop uses MOVSX CX to int, treating the line counter as int16_t."
+      ],
+      "uncertain": [
+        "The second condition checks nl != NULL (EAX from strchr), not error_text != NULL, which means the detailed format is only used when error_text actually contained a newline."
       ]
     },
     "0xc4970": {
@@ -2383,6 +2401,26 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1396e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function is from object_lights.c based on assert path, but grouped in objects.obj.",
+        "The light data table lives at 0x5a90bc; the cluster partition at 0x5a90b0."
+      ]
+    },
+    "0x13aed0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function is from object_lights.c based on assert path, but grouped in objects.obj.",
+        "Float constants at 0x2568bc (pi/2) and 0x254a58 (pi/4) serve as angle thresholds for the light position offset computation."
+      ],
+      "uncertain": [
+        "The marker buffer size is inferred as 0x6c bytes from the highest offset read (0x68); the actual struct layout is unknown.",
+        "Tag offsets 0x14 (falloff_angle), 0x18 (cutoff), 0x20 (forward_modifier), 0x24 (gel_modifier), 0x28 (tertiary_modifier) are named by function, not confirmed by tag definitions."
+      ]
+    },
     "0x13d640": {
       "kind": "function",
       "status": "ported",
@@ -2416,6 +2454,18 @@
       ]
     },
     "0x13dfc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13e510": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13ee60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13eff0": {
       "kind": "function",
       "status": "ported"
     },
