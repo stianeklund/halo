@@ -1,3 +1,6 @@
+int ui_widget_load_widget_children(void *definition, void *widget);
+void ui_widget_link_child(void *parent, void *child);
+
 /* ui_widgets_initialize — sets up the UI widget subsystem. Allocates a
  * 0x4000-byte block via debug_malloc for the stack memory pool at
  * [0x31e04c], initializes the pool, zeroes the 0x68-byte static widget
@@ -68,6 +71,8 @@ void ui_widget_set_events_suppressed(bool suppress)
   assert_halt(*(uint8_t *)0x46cc82);
   *(uint8_t *)0x46cc85 = (uint8_t)suppress;
 }
+
+void *ui_widget_get_last_child(void *widget);
 
 bool ui_widget_is_main_menu_loaded(void)
 {
@@ -174,6 +179,10 @@ void ui_widgets_disable_pause_game(int duration_ticks)
   dword_46CC44 = duration_ticks;
 }
 
+void ui_widget_pending_load_push_internal(int *head, void *record);
+
+void ui_widget_pending_load_pop(int *head, void *output);
+
 /* ui_widget_close_children — walks the first_child linked list of a widget
  * and closes each child via ui_widget_close. Asserts that each child's
  * prev_sibling is NULL (since it should be the head of the sibling list)
@@ -205,6 +214,14 @@ void ui_widget_close_children(void *widget)
     child = next;
   } while (child != NULL);
 }
+
+void ui_widget_pending_load_apply(int pending_a6, int widget, int16_t a7);
+
+void ui_widget_update_list_selection(void *widget, void *definition);
+
+void ui_widget_list_prev(void *widget);
+
+void ui_widget_list_next(void *widget);
 
 /* ui_widget_close — tears down a single UI widget and frees its memory.
  * Handles the "widget deleted" event handlers (type 0x19) from the widget's
@@ -397,6 +414,9 @@ void ui_widgets_close_all(void)
   } while ((int)list_heads < 0x46cc40);
 }
 
+void ui_widget_set_focus(void *widget, int tag_handle, int16_t player_index);
+void ui_widget_close_and_reload(void *widget);
+
 /* ui_widget_begin_filesystem_checks — spawns a background thread to perform
  * filesystem and saved-game file enumeration. Asserts that no initialization
  * thread is already running (0x46cc7c == NULL) and that the widget subsystem
@@ -441,6 +461,16 @@ void ui_widgets_dispose(void)
   ptr[2] = 0;
   csmemset((void *)0x46cc20, 0, 0x68);
 }
+
+int ui_widget_list_next_item(void *widget, void *event_data,
+                             char *widget_deleted);
+
+int ui_widget_list_prev_item(void *widget, void *event_data,
+                             char *widget_deleted);
+
+void ui_widget_handle_event_handler(void *widget, void *definition,
+                                    void *event_data, void *event_handler,
+                                    char *widget_deleted);
 
 /* render_ui_widgets — renders all active UI widget stacks and an optional
  * screen fade overlay. For each of the 4 widget root slots (0x46cc20..2c),
@@ -565,8 +595,6 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
   }
 }
 
-
-
 void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
                              void *handled)
 {
@@ -622,7 +650,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
 
     if (widget_player >= 0 && widget_player < 4) {
       if (input_has_gamepad(widget_player)) {
-        ui_widget_close(FUN_000e4310(w));
+        ui_widget_close(ui_widget_get_last_child(w));
         widget_deleted = true;
       }
     } else {
@@ -663,7 +691,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
         }
 
         if (!found) {
-          FUN_000e68e0(w);
+          ui_widget_close_and_reload(w);
           sound_effect = 3;
           widget_deleted = true;
           consumed = true;
@@ -715,7 +743,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
         }
       }
     } else if (*(int16_t *)((char *)w + 0xe) == 3) {
-      FUN_000e5380(w, definition);
+      ui_widget_update_list_selection(w, definition);
     }
 
     if (allowed_player) {
@@ -725,21 +753,21 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 8) {
-            FUN_000e5440(w);
+            ui_widget_list_next(w);
             sound_effect = 1;
             consumed = true;
           } else if (event[4] == 9) {
-            FUN_000e53e0(w);
+            ui_widget_list_prev(w);
             sound_effect = 1;
             consumed = true;
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 6) == (int16_t)0x8000) {
-            FUN_000e53e0(w);
+            ui_widget_list_prev(w);
             sound_effect = 1;
             consumed = true;
           } else if (*(int16_t *)(event + 6) == 0x7fff) {
-            FUN_000e5440(w);
+            ui_widget_list_next(w);
             sound_effect = 1;
             consumed = true;
           }
@@ -750,13 +778,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 0xa) {
-            FUN_000e5440(w);
+            ui_widget_list_next(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (event[4] == 0xb) {
-            FUN_000e53e0(w);
+            ui_widget_list_prev(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -764,13 +792,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 4) == (int16_t)0x8000) {
-            FUN_000e5440(w);
+            ui_widget_list_next(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (*(int16_t *)(event + 4) == 0x7fff) {
-            FUN_000e53e0(w);
+            ui_widget_list_prev(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -784,13 +812,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 8) {
-            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (event[4] == 9) {
-            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -798,13 +826,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 6) == (int16_t)0x8000) {
-            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (*(int16_t *)(event + 6) == 0x7fff) {
-            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -817,13 +845,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 0xa) {
-            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (event[4] == 0xb) {
-            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -831,13 +859,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 4) == (int16_t)0x8000) {
-            FUN_000e6cb0(w, event, (char *)&widget_deleted);
+            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (*(int16_t *)(event + 4) == 0x7fff) {
-            FUN_000e6ab0(w, event, (char *)&widget_deleted);
+            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -897,8 +925,8 @@ after_local_handling:
 
       if (matches) {
         consumed = true;
-        FUN_000e6ed0(w, definition, event, event_handler,
-                     (char *)&widget_deleted);
+        ui_widget_handle_event_handler(w, definition, event, event_handler,
+                                       (char *)&widget_deleted);
       }
 
       offset += 0x48;
@@ -956,9 +984,8 @@ after_local_handling:
     }
   }
 
-  if (*(int16_t *)event == 3 && event[5] == 1 &&
-      *(int16_t *)(event + 2) >= 0 && *(int16_t *)(event + 2) < 4 &&
-      event[4] >= 8 && event[4] < 0xc) {
+  if (*(int16_t *)event == 3 && event[5] == 1 && *(int16_t *)(event + 2) >= 0 &&
+      *(int16_t *)(event + 2) < 4 && event[4] >= 8 && event[4] < 0xc) {
     *(int *)(0x46cc90 + ((event[4] - 8) + *(int16_t *)(event + 2) * 4) * 4) =
       *(int *)0x46cc40;
   }
@@ -1063,8 +1090,8 @@ void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int a3,
       pending_load.a6 = a6;
       pending_load.a7 = (int16_t)a7;
       pending_load.widget_stack = previous_stack_player;
-      ui_widget_pending_load_push_internal((int *)(0x46cc30 + (int)stack_index * 4),
-                                  &pending_load);
+      ui_widget_pending_load_push_internal(
+        (int *)(0x46cc30 + (int)stack_index * 4), &pending_load);
     }
   }
 
@@ -1090,8 +1117,8 @@ void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int a3,
     }
   }
 
-  ui_widget_load_from_tag_internal((void *)tag_data, (void *)widget, (void *)a3, tag_index, widget_stack,
-                               widget_stack_base);
+  ui_widget_load_from_tag_internal((void *)tag_data, (void *)widget, (void *)a3,
+                                   tag_index, widget_stack, widget_stack_base);
   return (void *)widget;
 }
 
@@ -1550,6 +1577,8 @@ bool ui_widgets_process_pause(void)
   return handled;
 }
 
+void *ui_widget_spawn_from_event_handler(void *widget, int tag_index);
+
 typedef struct ui_widget_process_data {
   int16_t unk0;
   int16_t unk2;
@@ -1575,7 +1604,6 @@ typedef struct ui_widget_pending_load {
   int16_t a7;
   int16_t widget_stack;
 } ui_widget_pending_load_t;
-
 
 
 /* process_ui_widgets — main per-frame UI widget tick. Handles async
