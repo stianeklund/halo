@@ -96,6 +96,21 @@ void console_initialize_for_new_map(void)
  * Confirmed: if telnet flag at 0x46d924, calls csstrcat +
  * debug_string_to_display.
  */
+/* Flush and close the console terminal if it's currently active. */
+void console_flush(void)
+{
+  if (*(uint8_t *)0x46cf60 != 0) {
+    terminal_dispose((void *)0x46cf64);
+    *(uint8_t *)0x46cf60 = 0;
+  }
+}
+
+/* Returns true if the console is currently open/active. */
+bool console_is_active(void)
+{
+  return *(uint8_t *)0x46cf60;
+}
+
 void console_printf(int channel, const char *format, ...)
 {
   char buffer[1024];
@@ -150,6 +165,30 @@ static char *console_history_ring(void)
 
 #define CONSOLE_HISTORY_SLOTS 8
 #define CONSOLE_HISTORY_SLOT_SIZE 255
+
+/* Submit the current console input buffer as a command. Advances the
+ * history ring, copies the input to the new slot, resets the browse
+ * index, and evaluates via hs_console_evaluate. */
+void console_submit_command(void)
+{
+  int16_t head = *console_history_head();
+  head = (head + 1) & 7;
+  *console_history_head() = head;
+
+  csstrcpy(console_history_ring() + head * CONSOLE_HISTORY_SLOT_SIZE,
+           console_input_buffer());
+
+  {
+    int16_t count = *console_history_count();
+    if (count + 1 < 9)
+      *console_history_count() = count + 1;
+    else
+      *console_history_count() = 8;
+  }
+
+  *console_history_browse_index() = -1;
+  hs_console_evaluate(console_input_buffer());
+}
 
 /*
  * console_startup — execute commands from the init file on startup.
