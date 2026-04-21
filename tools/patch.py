@@ -126,9 +126,19 @@ def encode_mov_mesp_r32(disp, src32):
     return bytes([0x89, modrm, 0x24]) + struct.pack('<I', disp)
 
 
-def encode_add_esp_imm8(imm):
-    assert -128 <= imm <= 127
-    return bytes([0x83, 0xC4, imm & 0xFF])
+def encode_push_mesp(disp):
+    if disp == 0:
+        return bytes([0xFF, 0x34, 0x24])
+    if 0 <= disp <= 0x7F:
+        return bytes([0xFF, 0x74, 0x24, disp])
+    return bytes([0xFF, 0xB4, 0x24]) + struct.pack('<I', disp)
+
+
+def encode_add_esp(imm):
+    assert imm >= 0
+    if imm <= 0x7F:
+        return bytes([0x83, 0xC4, imm])
+    return bytes([0x81, 0xC4]) + struct.pack('<I', imm)
 
 
 def encode_call_rel32(src_addr_of_call, target_addr):
@@ -141,39 +151,27 @@ def encode_call_rel32(src_addr_of_call, target_addr):
 def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     """Emit a naked register-to-cdecl trampoline for an implemented @<reg> function.
 
-    Strategy: route every register arg through caller-saved scratch registers
-    (EAX, ECX) so callee-saved regs (ESI/EDI/EBX/EBP) are never modified —
-    cdecl requires we preserve them across the call. The original return
-    address must stay on the stack throughout the call; keeping it in a
-    caller-saved register like EDX is unsafe because the callee may clobber it.
-    That clobber is normal lifted-C behavior: once we call a ported C body, the
-    compiler is free to reuse EAX/ECX/EDX across its own subcalls and temporaries.
+    Strategy: stage every register arg through caller-saved scratch registers
+    (EAX, ECX, EDX) so callee-saved regs (ESI/EDI/EBX/EBP) are never modified.
+    Then rebuild a full cdecl argument list on top of the current stack by
+    pushing parameters right-to-left. Register params are pushed from staged
+    scratch slots; stack params are copied from their original incoming stack
+    locations. This supports any register-param indices, including non-leading
+    ones such as `f(a, b@<esi>, c@<ebx>, d)`.
 
     Layout:
-      1. Rotate the original return address underneath the existing stack args.
-      2. Move/widen each register arg into its assigned scratch slot (EAX
-         for arg 0, ECX for arg 1).
-      3. Push scratch slots in reverse param order (so arg 0 ends up on top,
-         which is where cdecl's first arg lives).
-      4. Call impl (rel32).
-      5. Clean up the N injected dwords with add esp.
-      6. Rotate the original return address back to the top and ret."""
+      1. Move/widen each register arg into its assigned scratch slot.
+      2. Push full argument list in reverse declaration order.
+      3. Call impl (rel32).
+      4. Clean up the injected cdecl args.
+      5. Ret to the original caller using the untouched return address."""
     reg_args = sym.register_args
     assert reg_args, "generate_reverse_thunk called on non-register-arg function"
 
-    # Up to 3 register args supported.  EDX is the third scratch slot but is
-    # also used for return-address rotation when stack_arg_count > 0, so 3 reg
-    # args are only legal when every parameter is register-passed (no stack
-    # args).  The assertion below enforces this after param_count is known.
+    # Up to 3 register args supported via EAX/ECX/EDX scratch staging.
     SCRATCH_FOR_ARG = ['eax', 'ecx', 'edx']
     assert len(reg_args) <= len(SCRATCH_FOR_ARG), \
         f'rvthunk supports at most {len(SCRATCH_FOR_ARG)} register args'
-
-    # Verify reg args occupy contiguous param indices starting at 0 — required
-    # so injected args land in the right cdecl slots.
-    for i, (param_idx, _) in enumerate(reg_args):
-        assert param_idx == i, \
-            'register args must be the first parameters in declaration order'
 
     open_paren = sym.decl.find('(')
     close_paren = sym.decl.rfind(')')
@@ -204,28 +202,9 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     stack_arg_count = param_count - len(reg_args)
     assert stack_arg_count >= 0
 
-    # EDX is used for return-address rotation when stack args exist. If we
-    # also need EDX as a third scratch for register args, there's a conflict.
-    if len(reg_args) >= 3:
-        assert stack_arg_count == 0, \
-            '3 register args require 0 stack args (EDX conflict with rotation)'
-
     code = bytearray()
 
-    # 1. Rotate the original ret address below the existing stack args.
-    # Keep it on the stack instead of a caller-saved register so the ported C
-    # body can freely use EAX/ECX/EDX without corrupting the eventual RET.
-    # Use a scratch register that doesn't collide with any register arg source.
-    reg_arg_sources = {REG_PARENT[r] for _, r in reg_args}
-    fwd_scratch = 'ecx' if 'eax' in reg_arg_sources else 'eax'
-    if stack_arg_count > 0:
-        code += encode_mov_r32_mesp('edx', 0)
-        for i in range(stack_arg_count):
-            code += encode_mov_r32_mesp(fwd_scratch, 4 * (i + 1))
-            code += encode_mov_mesp_r32(4 * i, fwd_scratch)
-        code += encode_mov_mesp_r32(4 * stack_arg_count, 'edx')
-
-    # 2. Stage each register arg into its scratch slot, widening as needed.
+    # 1. Stage each register arg into its scratch slot, widening as needed.
     for i, (_, src_reg) in enumerate(reg_args):
         dst32 = SCRATCH_FOR_ARG[i]
         if src_reg in REG32_BITS:
@@ -238,25 +217,34 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
         else:
             raise ValueError(f'Unsupported register {src_reg!r}')
 
-    # 3. Push scratch slots in reverse so the lowest-index arg is on top.
-    for i in reversed(range(len(reg_args))):
-        code += encode_push_r32(SCRATCH_FOR_ARG[i])
+    # 2. Push full arg list in reverse declaration order.
+    reg_param_to_scratch = {param_idx: SCRATCH_FOR_ARG[i] for i, (param_idx, _) in enumerate(reg_args)}
+    stack_param_to_incoming_slot = {}
+    incoming_slot = 0
+    for param_idx in range(param_count):
+        if param_idx not in reg_param_to_scratch:
+            stack_param_to_incoming_slot[param_idx] = incoming_slot
+            incoming_slot += 1
 
-    # 4. Call impl. rel32 computed from address of the call instruction itself.
+    pushed_count = 0
+    for param_idx in reversed(range(param_count)):
+        if param_idx in reg_param_to_scratch:
+            code += encode_push_r32(reg_param_to_scratch[param_idx])
+        else:
+            src_slot = stack_param_to_incoming_slot[param_idx]
+            # +1 skips return address from original caller.
+            disp = 4 * (1 + src_slot + pushed_count)
+            code += encode_push_mesp(disp)
+        pushed_count += 1
+
+    # 3. Call impl. rel32 computed from address of the call instruction itself.
     call_site = rvthunk_addr + len(code)
     code += encode_call_rel32(call_site, impl_addr)
 
-    # 5. Clean up our injected args.
-    code += encode_add_esp_imm8(4 * len(reg_args))
+    # 4. Clean up injected args, preserving EAX return value.
+    code += encode_add_esp(4 * param_count)
 
-    # 6. Rotate the original ret address back to the top and return.
-    # Use ECX as scratch (not EAX) — EAX holds the callee's return value.
-    if stack_arg_count > 0:
-        code += encode_mov_r32_mesp('edx', 4 * stack_arg_count)
-        for i in reversed(range(stack_arg_count)):
-            code += encode_mov_r32_mesp('ecx', 4 * i)
-            code += encode_mov_mesp_r32(4 * (i + 1), 'ecx')
-        code += encode_mov_mesp_r32(0, 'edx')
+    # 5. Return to original caller.
     code += b'\xc3'  # ret
 
     return bytes(code)
@@ -301,6 +289,8 @@ def _test_reverse_thunks():
          "@<eax> with 1 stack arg — forward rotation must not use EAX"),
         ("void unit_set_animation(int unit_handle@<eax>, int anim_graph_tag_index@<edi>, int16_t animation_index@<bx>);",
          "@<eax>,@<edi>,@<bx> with 0 stack args — 3 reg args, EDX as third scratch"),
+        ("void hs_report_compile_error(void *error_info, char *error_text@<esi>, char *script_element@<ebx>, void *source_start@<edi>);",
+         "non-leading register args with one stack arg"),
     ]
 
     for decl, desc in cases:
