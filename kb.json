@@ -1037,6 +1037,10 @@
       "source": "memory/crc.c",
       "functions": [
         {
+          "decl": "void crc_table_init(uint32_t *table@<edx>);",
+          "addr": "0x1190c0"
+        },
+        {
           "decl": "void crc_checksum_buffer(uint32_t *checksum, void *data, int size);",
           "addr": "0x119100"
         }

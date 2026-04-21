@@ -28,6 +28,54 @@ bool bink_playback_has_video(void)
   return *(int *)0x4ead60 != 0;
 }
 
+/* Bump-allocate from the top of the bink memory pool with alignment.
+ * Computes a candidate pointer at (pool_base + pool_remaining - size),
+ * aligns it down if needed, then decrements the remaining pool size.
+ * alignment is passed in EAX, alloc_size in ECX (register args). */
+void *bink_memory_pool_alloc(int alignment /* @<eax> */,
+                             int alloc_size /* @<ecx> */)
+{
+  unsigned int ptr;
+  unsigned int align = (unsigned int)alignment;
+  unsigned int size = (unsigned int)alloc_size;
+
+  ptr = (*(unsigned int *)0x4eae2c - size) + *(unsigned int *)0x4eae24;
+
+  if (align != 0 && (ptr & (align - 1)) != 0) {
+    if (align == 0 || (align & (align - 1)) != 0) {
+      display_assert("alignment_in_bytes>0 && "
+                     "(alignment_in_bytes&(alignment_in_bytes-1))==0",
+                     "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x2b3, 1);
+      system_exit(-1);
+    }
+    {
+      unsigned int diff = align - ptr;
+      unsigned int padding = diff & (align - 1);
+      size += padding;
+      ptr -= (align - 1) & diff;
+    }
+  }
+
+  if (size == 0) {
+    display_assert("size_in_bytes>0", "c:\\halo\\SOURCE\\bink\\bink_playback.c",
+                   0x2b9, 1);
+    system_exit(-1);
+  }
+  if (*(unsigned int *)0x4eae2c < size) {
+    display_assert("bink_globals.memory_pool_size>=size_in_bytes",
+                   "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x2ba, 1);
+    system_exit(-1);
+  }
+  if (*(unsigned int *)0x4eae24 == 0) {
+    display_assert("bink_globals.memory_pool_base",
+                   "c:\\halo\\SOURCE\\bink\\bink_playback.c", 699, 1);
+    system_exit(-1);
+  }
+
+  *(unsigned int *)0x4eae2c = *(unsigned int *)0x4eae2c - size;
+  return (void *)ptr;
+}
+
 /* Returns true if all entries in the bink memory pool allocation table
  * are zero (i.e. no outstanding allocations). The pool is an array of
  * dwords at 0x4eacd0 with a count at 0x4eae30. Used by the texture

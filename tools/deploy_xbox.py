@@ -142,6 +142,7 @@ def run_xbcp(
     quiet: bool = False,
     force_readonly: bool = True,
     dry_run: bool = False,
+    retries: int = 3,
 ) -> int:
     xbcp_args = []
     if host:
@@ -170,26 +171,36 @@ def run_xbcp(
         print(f"  [DRY-RUN] {' '.join(display_args)}")
         return 0
 
-    try:
-        result = subprocess.run(
-            args, check=False, cwd=ROOT_DIR,
-            capture_output=True, text=True,
-        )
-        if result.stdout:
-            for line in result.stdout.strip().splitlines():
-                print(f"  | {line}")
-        if result.returncode != 0:
+    last_error: int | None = None
+    for attempt in range(retries):
+        if attempt > 0:
+            print(f"  retrying (attempt {attempt + 1}/{retries})...")
+        try:
+            result = subprocess.run(
+                args, check=False, cwd=ROOT_DIR,
+                capture_output=True, text=True,
+            )
+            if result.stdout:
+                for line in result.stdout.strip().splitlines():
+                    print(f"  | {line}")
+            if result.returncode == 0:
+                return 0
+            last_error = result.returncode
             if result.stderr:
                 for line in result.stderr.strip().splitlines():
                     print(f"  | {line}", file=sys.stderr)
-            print(f"  xbcp exited with code {result.returncode}", file=sys.stderr)
-        return result.returncode
-    except FileNotFoundError:
-        print(f"error: failed to run {xbcp_display}", file=sys.stderr)
-        return 1
-    except OSError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
+            if attempt < retries - 1:
+                time.sleep(1.0)
+                continue
+            print(f"  xbcp exited with code {last_error}", file=sys.stderr)
+            return last_error
+        except FileNotFoundError:
+            print(f"error: failed to run {xbcp_display}", file=sys.stderr)
+            return 1
+        except OSError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+    return last_error or 1
 
 
 def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
@@ -440,18 +451,15 @@ def main() -> int:
     print(f"deploying to {dest}" + (f" on {host}" if host else ""))
 
     if args.xbe_only:
-        all_xbes = [f for f in os.listdir(HALO_PATCHED_DIR) if f.endswith('.xbe') and not is_excluded(f)]
-        for xbe_name in sorted(all_xbes):
-            xbe_file = os.path.join(HALO_PATCHED_DIR, xbe_name)
-            print(f"  {xbe_name} ({os.path.getsize(xbe_file):,} bytes)")
-            src = to_windows_path(xbe_file)
-            d = f"{dest}\\{xbe_name}"
-            rc = run_xbcp(src=src, dest=d, **common_kwargs)
-            if rc != 0:
-                print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
-                return rc
-            if not args.dry_run and not verify_uploaded_file(host, xbe_file, d.lstrip("x")):
-                return 1
+        print(f"  default.xbe ({os.path.getsize(xbe_path):,} bytes)")
+        src = to_windows_path(xbe_path)
+        d = f"{dest}\\default.xbe"
+        rc = run_xbcp(src=src, dest=d, **common_kwargs)
+        if rc != 0:
+            print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
+            return rc
+        if not args.dry_run and not verify_uploaded_file(host, xbe_path, d.lstrip("x")):
+            return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
         if rc != 0:

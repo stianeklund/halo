@@ -67,6 +67,25 @@ int update_get_maximum_actions(void)
   return *(int *)0x45b1d8 - *(int *)0x45b1d4 + 1;
 }
 
+/* Look up a snapshot buffer entry by index. Returns a pointer into the
+ * circular buffer at 0x4570cc (32 entries of 0x208 bytes each), or NULL
+ * if the index is outside the valid window [current - 32, current).
+ * snapshot_index is passed in EAX (register arg). */
+void *update_get_buffer_entry(int snapshot_index /* @<eax> */)
+{
+  if (*(uint8_t *)0x4570c0 == 0) {
+    display_assert("update_server_globals.initialized",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x29e, 1);
+    system_exit(-1);
+  }
+
+  if (snapshot_index < *(int *)0x4570c4 &&
+      snapshot_index >= *(int *)0x4570c4 - 0x20) {
+    return (void *)(0x4570cc + (snapshot_index & 0x1f) * 0x208);
+  }
+  return (void *)0;
+}
+
 /* Initialize the server-side update queue subsystem.
  *
  * Asserts that the server globals are NOT already initialized, then zeros
