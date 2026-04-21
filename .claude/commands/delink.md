@@ -22,6 +22,14 @@ Prerequisites (verify and bail early if not met):
 
 Argument: $ARGUMENTS (function name or `0x...` address; required)
 
+Ghidra MCP preflight (required):
+- Before any `ghidra`/`ghidra-live` MCP tool call, run
+  `python3 tools/check_ghidra_mcp.py`.
+- If the preflight fails, or any `ghidra`/`ghidra-live` MCP tool call fails due
+  to connection/timeout/unavailable errors, stop immediately and tell the user
+  exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
+  may not be running?`
+
 Steps:
 1. Resolve the target.
    - If $ARGUMENTS is an address, find the matching `addr` in `kb.json`.

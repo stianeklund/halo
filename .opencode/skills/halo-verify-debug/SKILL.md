@@ -19,6 +19,16 @@ network. The order is:
    with `/xbdm-*` commands. Fastest iteration, real hardware, no ISO needed.
 2. **xemu + ISO** — only if no Xbox is available or XBDM cannot reach it.
 
+## Ghidra MCP availability (required)
+
+- Before the first `ghidra` or `ghidra-live` MCP tool call in a task, run
+  `python3 tools/check_ghidra_mcp.py`.
+- If the preflight fails, or if any `ghidra`/`ghidra-live` MCP tool call fails
+  due to connection/timeout/unavailable errors, stop immediately and do not
+  retry in the same response.
+- Tell the user exactly: `You might have forgotten to start
+  tools/mcp-servers.sh or ghidra may not be running?`
+
 ## Verification lanes
 
 ### Structural verification via lift pipeline

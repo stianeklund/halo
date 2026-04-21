@@ -35,6 +35,16 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
    `docs/references/kb-update-policy.md`).
 8. Run `python3 tools/maintain.py <source_file>`.
 
+## Ghidra MCP availability (required)
+
+- Before the first `ghidra` or `ghidra-live` MCP tool call in a task, run
+  `python3 tools/check_ghidra_mcp.py`.
+- If the preflight fails, or if any `ghidra`/`ghidra-live` MCP tool call fails
+  due to connection/timeout/unavailable errors, stop immediately and do not
+  retry in the same response.
+- Tell the user exactly: `You might have forgotten to start
+  tools/mcp-servers.sh or ghidra may not be running?`
+
 ## Token-efficient execution defaults
 
 Use these defaults unless a target requires deeper forensics:

@@ -11,6 +11,14 @@ Two-phase lift: RE analysis + implementation, then build and verify.
 
 Argument: $ARGUMENTS (optional target name or 0x... address)
 
+Ghidra MCP preflight (required):
+- Before any `ghidra`/`ghidra-live` MCP tool call, run
+  `python3 tools/check_ghidra_mcp.py`.
+- If the preflight fails, or any `ghidra`/`ghidra-live` MCP tool call fails due
+  to connection/timeout/unavailable errors, stop immediately and tell the user
+  exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
+  may not be running?`
+
 Scope/read-budget guardrails:
 - Start from the narrowest file/function range for the resolved target.
 - Avoid re-reading the same file/range unless the file changed or ambiguity remains.
