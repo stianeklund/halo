@@ -1831,6 +1831,10 @@
           "addr": "0xb2540"
         },
         {
+          "decl": "void game_engine_post_event(int event_type);",
+          "addr": "0xb2610"
+        },
+        {
           "decl": "void game_engine_score_reset(void);",
           "addr": "0xb2660"
         }
