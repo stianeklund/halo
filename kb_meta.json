@@ -1,6 +1,16 @@
 {
   "md5": "c7869590a1c64ad034e49a5ee0c02465",
   "symbols": {
+    "0x121a0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Squared 3D distance helper: computes sum of squared component deltas between two float[3] vectors."
+      },
+      "inferred": [
+        "Parameter typing narrowed to const float * from direct [arg+0/4/8] float loads and ai_clump callsite passing actor/record position vectors at +0xbc."
+      ]
+    },
     "0x13010": {
       "kind": "function",
       "status": "ported",
@@ -8,6 +18,14 @@
         "The double constant at 0x2533d0 (~0.0001) serves as a minimum magnitude threshold for normalization; vectors shorter than this are treated as zero-length.",
         "Object name vector_math.obj is provisional; the true .obj name is unknown since the function has no string references or assert paths."
       ]
+    },
+    "0x178d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x21fb0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x3aa50": {
       "kind": "function",
@@ -231,6 +249,10 @@
       "status": "ported"
     },
     "0x8d9f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8da40": {
       "kind": "function",
       "status": "ported"
     },
@@ -553,6 +575,10 @@
       "status": "ported"
     },
     "0xa2ca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa2e80": {
       "kind": "function",
       "status": "ported"
     },
@@ -1600,6 +1626,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd5070": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd5120": {
       "kind": "function",
       "status": "ported"
@@ -1809,6 +1839,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe4310": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe43f0": {
       "kind": "function",
       "status": "ported"
@@ -1854,12 +1888,32 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe4770": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe4890": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "The widget struct field at offset +0x28 is named 'previous' (prev_sibling) based on the assert string 'child->previous == NULL'."
       ]
+    },
+    "0xe5090": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe5380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe53e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe5440": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xe5620": {
       "kind": "function",
@@ -1880,6 +1934,10 @@
         "The relationship between the root widget at 0x46cc20[i] and the list at 0x46cc30[i] is unclear; the root is closed via ui_widget_close while the list nodes are only deallocated from the pool without closure."
       ]
     },
+    "0xe68e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe6980": {
       "kind": "function",
       "status": "ported",
@@ -1896,6 +1954,18 @@
         "The pointer at 0x31e04c points to a widget system state structure; field at +4 is a debug_malloc'd memory pool (0x4000 bytes), field at +8 is the pool size.",
         "The 0x68-byte block at 0x46cc20 is static UI widget state cleared on both init and dispose."
       ]
+    },
+    "0xe6ab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe6cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe6ed0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xe78e0": {
       "kind": "function",
@@ -1960,6 +2030,10 @@
         "FUN_00124c40 and FUN_001257a0 (network_client_manager.c asserts) are called for side-effect parity; their higher-level intent in pause flow is still uncertain."
       ]
     },
+    "0xe9320": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe9450": {
       "kind": "function",
       "status": "ported",
@@ -1997,6 +2071,14 @@
       "status": "ported"
     },
     "0xf7dd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfae80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfb0c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2207,6 +2289,14 @@
         "Rotation inverse assumes orthogonal matrix (transpose equals inverse); this is standard for rigid-body transforms in game engines."
       ]
     },
+    "0x109280": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x109540": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x109590": {
       "kind": "function",
       "status": "ported",
@@ -2286,6 +2376,10 @@
       "inferred": [
         "angles[0]=yaw, angles[1]=pitch; standard spherical-to-cartesian conversion."
       ]
+    },
+    "0x1190c0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x119100": {
       "kind": "function",
@@ -2481,6 +2575,10 @@
         "Returns object_data_t* from entry->object (header+0x8); constructs datum handle as (entry->unk_0 salt << 16) | slot_index and stores in iter->last_handle."
       ]
     },
+    "0x13d7f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13d920": {
       "kind": "function",
       "status": "ported",
@@ -2494,6 +2592,10 @@
       "status": "ported"
     },
     "0x13e510": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13eb70": {
       "kind": "function",
       "status": "ported"
     },
@@ -2550,6 +2652,10 @@
         "The re-fetch of header at 0x13fdc8 after the partition-remove call may be needed because the partition-remove could invalidate the cached header pointer, but this is not confirmed."
       ]
     },
+    "0x13fea0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13fef0": {
       "kind": "function",
       "status": "ported",
@@ -2565,6 +2671,10 @@
         "flag=0 marks the object as garbage (sets obj->flags bit 0, clears datum.unk_2 bit 1); flag!=0 unmarks it. Child propagation via FUN_0013ee60 (0x13ee60) is gated on the tag having a children block (tag+0x34 != -1) and bit 0 of obj->flags being in the wrong state for the requested transition."
       ]
     },
+    "0x140130": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x140160": {
       "kind": "function",
       "status": "ported",
@@ -2574,6 +2684,10 @@
       ]
     },
     "0x140230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x140420": {
       "kind": "function",
       "status": "ported"
     },
@@ -2625,6 +2739,10 @@
         "The cross-product re-orthogonalization computes left=cross(forward,up) then up_new=cross(left,forward) to ensure orthogonality."
       ]
     },
+    "0x1411c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1412f0": {
       "kind": "function",
       "status": "ported",
@@ -2638,6 +2756,10 @@
       "inferred": [
         "FUN_0010a110 builds a 4x3 matrix from forward, up, position; FUN_00140eb0 is object_get_node_matrix; FUN_00109850 is 4x3 matrix multiply."
       ]
+    },
+    "0x1415f0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x141b70": {
       "kind": "function",
@@ -2699,6 +2821,10 @@
       "status": "ported"
     },
     "0x14d010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14d080": {
       "kind": "function",
       "status": "ported"
     },
@@ -3561,6 +3687,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c89d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c8b70": {
       "kind": "function",
       "status": "ported"
@@ -3638,95 +3768,11 @@
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
       ]
     },
-    "0x326a08": {
-      "kind": "data",
-      "status": "ported"
-    },
-    "0x8da40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x178d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1190c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xd5070": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2e80": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x14d080": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c89d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xfae80": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xfb0c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x13d7f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x13eb70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x13fea0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x140130": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x140420": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1411c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1415f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x46f07c": {
-      "kind": "data",
-      "status": "ported"
-    },
-    "0x46f080": {
-      "kind": "data",
-      "status": "ported"
-    },
-    "0x46f084": {
-      "kind": "data",
-      "status": "ported"
-    },
-    "0x109280": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x109540": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x31e500": {
+      "kind": "data",
+      "status": "ported"
+    },
+    "0x326a08": {
       "kind": "data",
       "status": "ported"
     },
@@ -3830,60 +3876,24 @@
       "kind": "data",
       "status": "ported"
     },
+    "0x46f07c": {
+      "kind": "data",
+      "status": "ported"
+    },
+    "0x46f080": {
+      "kind": "data",
+      "status": "ported"
+    },
+    "0x46f084": {
+      "kind": "data",
+      "status": "ported"
+    },
     "0x506550": {
       "kind": "data",
       "status": "ported"
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x21fb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe4310": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe4770": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe5090": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe5380": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe53e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe5440": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe68e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe6ab0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe6cb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe6ed0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe9320": {
-      "kind": "function",
       "status": "ported"
     }
   }
