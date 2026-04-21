@@ -1,3 +1,20 @@
+/* 0x121a0 — FUN_000121a0: squared distance between two 3D points.
+ *
+ * Computes (b[0]-a[0])^2 + (b[1]-a[1])^2 + (b[2]-a[2])^2 and returns it.
+ *
+ * Confirmed: loads from [arg1+0/4/8] and subtracts [arg0+0/4/8].
+ * Confirmed: x87 sequence squares each component delta and sums with FADDP.
+ * Confirmed: returns in ST0; no globals or calls.
+ */
+float FUN_000121a0(const float *a, const float *b)
+{
+  float dx = b[0] - a[0];
+  float dy = b[1] - a[1];
+  float dz = b[2] - a[2];
+
+  return dx * dx + dy * dy + dz * dz;
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b

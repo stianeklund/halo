@@ -499,7 +499,7 @@
           "addr": "0x3b900"
         },
         {
-          "decl": "float FUN_000121a0(void *a, void *b);",
+          "decl": "float FUN_000121a0(const float *a, const float *b);",
           "addr": "0x121a0"
         }
       ]
