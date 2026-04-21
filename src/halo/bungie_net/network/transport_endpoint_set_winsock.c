@@ -124,6 +124,23 @@ void transport_dispose(void)
   }
 }
 
+/* Clean up the endpoint pool. Iterates 64 entries (8 bytes each) at
+ * 0x3350a0. For each entry with a non-zero thread handle and cleanup
+ * flag set, closes the thread and clears the entry. */
+void endpoint_pool_cleanup(void)
+{
+  int *entry = (int *)0x3350a0;
+
+  do {
+    if (entry[0] != 0 && *(char *)(entry + 1) != 0) {
+      thread_close((void *)entry[0]);
+      entry[0] = 0;
+      *(char *)(entry + 1) = 0;
+    }
+    entry += 2;
+  } while ((int)entry < 0x3352a0);
+}
+
 /* Send data over a transport endpoint.
  *
  * Calls xnet_send (0x225c20) with the socket handle stored at ep[0].
