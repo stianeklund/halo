@@ -89,10 +89,9 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
     if (radius > 0.f) {
       int16_t cluster_count_out;
 
-      ((void (*)(void))0x198400)();
-      cluster_count_out =
-        ((int16_t(*)(uint16_t, float *, float, int, int16_t *))0x1989b0)(
-          cluster_count, position, radius, max_count, intersected_indices);
+      FUN_00198400();
+      cluster_count_out = FUN_001989b0(cluster_count, position, radius,
+                                       max_count, intersected_indices);
 
       if (*(uint8_t *)0x4d92e1 == 0) {
         display_assert("structure_globals.cluster_marker_initialized",
