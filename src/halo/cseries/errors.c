@@ -30,9 +30,7 @@ void memory_check(uint32_t *min_max, const char *location)
           "memory check failed at %s, difference between min and max memory "
           "free is %d",
           location, diff);
-    error(2,
-          "  avail_phys=%u min=%u max=%u",
-          avail_phys, cur_min, cur_max);
+    error(2, "  avail_phys=%u min=%u max=%u", avail_phys, cur_min, cur_max);
   }
 }
 
