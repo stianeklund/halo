@@ -104,6 +104,10 @@ add_custom_target(
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/kb_meta.py" validate
 	COMMAND
+		"${CMAKE_COMMAND}" -E env "PYTHONPATH=${CMAKE_CURRENT_LIST_DIR}"
+			"${Python3_EXECUTABLE}" -m unittest
+			tools.test_patch.RegAnnotationBaselineTests
+	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py" --test-thunks
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"

@@ -10,7 +10,6 @@ import os
 import logging
 import hashlib
 import argparse
-from bisect import bisect_right
 from datetime import datetime
 
 import pefile
@@ -61,21 +60,27 @@ def format_register_arg_delta_lines(expected_reg_args, actual_reg_args):
     return lines
 
 
-REG_ANNOTATION_REMOVAL_REQUIREMENTS = [
-    '1. The function itself must be reimplemented and exported by this build.',
-    '2. Every original-XBE code reference to the old address must come only from functions that are also patched to C in this build.',
-    '3. No raw non-code/data references to the old address may remain in the original XBE.',
-    '4. If the build cannot prove (1)-(3) automatically, keep the original @<reg> annotation in kb.json.',
-]
-
-
-def find_reg_annotation_mismatches(kb, baseline_path=KB_REG_BASELINE_PATH):
+def load_reg_annotation_baseline(baseline_path=KB_REG_BASELINE_PATH):
     with open(baseline_path) as f:
         baseline_raw = json.load(f)
 
     baseline_funcs = baseline_raw.get('functions')
     if not isinstance(baseline_funcs, dict):
         raise ValueError(f'{baseline_path} is missing a top-level "functions" object')
+
+    for addr, baseline_decl in baseline_funcs.items():
+        if not isinstance(baseline_decl, str):
+            raise ValueError(f'{baseline_path} entry {addr} must map to a declaration string')
+        baseline_func = Function(baseline_decl, addr=normalize_hex_addr(addr))
+        if not baseline_func.register_args:
+            raise ValueError(f'{baseline_path} entry {addr} has no @<reg> annotation: {baseline_decl}')
+
+    return baseline_funcs
+
+
+def find_reg_annotation_mismatches(kb, baseline_path=KB_REG_BASELINE_PATH, baseline_funcs=None):
+    if baseline_funcs is None:
+        baseline_funcs = load_reg_annotation_baseline(baseline_path)
 
     current_symbols = {
         normalize_hex_addr(symbol.addr): symbol
@@ -85,15 +90,9 @@ def find_reg_annotation_mismatches(kb, baseline_path=KB_REG_BASELINE_PATH):
 
     mismatches = []
     for addr, baseline_decl in sorted(baseline_funcs.items(), key=lambda item: int(item[0], 16)):
-        if not isinstance(baseline_decl, str):
-            raise ValueError(f'{baseline_path} entry {addr} must map to a declaration string')
-
         normalized_addr = normalize_hex_addr(addr)
         baseline_func = Function(baseline_decl, addr=normalized_addr)
         expected_reg_args = baseline_func.register_args
-        if not expected_reg_args:
-            raise ValueError(
-                f'{baseline_path} entry {addr} has no @<reg> annotation: {baseline_decl}')
 
         current_symbol = current_symbols.get(normalized_addr)
         current_decl = current_symbol.decl if current_symbol is not None else None
@@ -112,154 +111,26 @@ def find_reg_annotation_mismatches(kb, baseline_path=KB_REG_BASELINE_PATH):
     return mismatches
 
 
-def build_function_index(kb):
-    functions = sorted(
-        [symbol for symbol in kb.symbols if isinstance(symbol, Function) and symbol.addr is not None],
-        key=lambda symbol: symbol.addr,
-    )
-    return [symbol.addr for symbol in functions], functions
-
-
-def find_containing_function(source_addr, function_starts, functions):
-    idx = bisect_right(function_starts, source_addr) - 1
-    if idx < 0:
-        return None
-    return functions[idx]
-
-
-def import_capstone():
-    try:
-        from capstone import Cs, CS_ARCH_X86, CS_GRP_CALL, CS_GRP_JUMP, CS_MODE_32
-        from capstone.x86 import X86_OP_IMM
-    except ImportError:
-        log.error('capstone is required for register-arg ABI proof. Please install project requirements via requirements.txt.')
-        exit(1)
-    return Cs, CS_ARCH_X86, CS_GRP_CALL, CS_GRP_JUMP, CS_MODE_32, X86_OP_IMM
-
-
-def scan_original_xbe_references(xbe, target_addrs):
-    normalized_targets = [normalize_hex_addr(addr) for addr in target_addrs]
-    code_refs = {addr: [] for addr in normalized_targets}
-    data_refs = {addr: [] for addr in normalized_targets}
-    if not normalized_targets:
-        return code_refs, data_refs
-
-    Cs, CS_ARCH_X86, CS_GRP_CALL, CS_GRP_JUMP, CS_MODE_32, X86_OP_IMM = import_capstone()
-    md = Cs(CS_ARCH_X86, CS_MODE_32)
-    md.detail = True
-
-    target_values = {int(addr, 16): addr for addr in normalized_targets}
-    for section in xbe.sections.values():
-        is_executable = bool(section.header.flags & XbeSectionHeader.Flags.EXECUTABLE)
-        if is_executable:
-            for insn in md.disasm(section.data, section.header.virtual_addr):
-                matches = set()
-                for operand in getattr(insn, 'operands', []):
-                    if operand.type != X86_OP_IMM:
-                        continue
-                    immediate = operand.imm & 0xFFFFFFFF
-                    if immediate in target_values:
-                        matches.add(immediate)
-                for immediate in matches:
-                    ref_kind = 'call' if insn.group(CS_GRP_CALL) else 'jump' if insn.group(CS_GRP_JUMP) else 'imm'
-                    code_refs[target_values[immediate]].append({
-                        'source_addr': normalize_hex_addr(insn.address),
-                        'kind': ref_kind,
-                        'text': f'{insn.mnemonic} {insn.op_str}'.strip(),
-                        'section_name': section.name,
-                    })
+def validate_reg_annotation_baseline_completeness(kb, baseline_funcs, baseline_path=KB_REG_BASELINE_PATH):
+    missing = []
+    for symbol in kb.symbols:
+        if not isinstance(symbol, Function) or symbol.addr is None or not symbol.register_args:
             continue
+        normalized_addr = normalize_hex_addr(symbol.addr)
+        if normalized_addr not in baseline_funcs:
+            missing.append((normalized_addr, symbol.decl))
 
-        for target_value, target_addr in target_values.items():
-            pattern = struct.pack('<I', target_value)
-            search_from = 0
-            while True:
-                match_index = section.data.find(pattern, search_from)
-                if match_index < 0:
-                    break
-                data_refs[target_addr].append({
-                    'address': normalize_hex_addr(section.header.virtual_addr + match_index),
-                    'section_name': section.name,
-                })
-                search_from = match_index + 1
-
-    return code_refs, data_refs
+    if missing:
+        detail = ', '.join(f'{addr} ({decl})' for addr, decl in missing)
+        raise ValueError(
+            f'{baseline_path} is missing {len(missing)} current @<reg> function(s): {detail}')
 
 
-def assess_reg_annotation_mismatch(mismatch, kb, patch_function_names, code_refs, data_refs):
-    function_starts, functions = build_function_index(kb)
-    patched_names = set(patch_function_names)
-
-    blockers = []
-    supporting_refs = []
-    if mismatch['name'] not in patched_names:
-        blockers.append({
-            'kind': 'target_not_patched',
-            'message': 'function is not exported from the current EXE build',
-        })
-
-    for ref in code_refs:
-        source_addr = int(ref['source_addr'], 16)
-        owner = find_containing_function(source_addr, function_starts, functions)
-        if owner is None:
-            blockers.append({
-                'kind': 'unknown_code_ref',
-                'ref': ref,
-            })
-            continue
-
-        ref_info = {
-            'kind': ref['kind'],
-            'ref': ref,
-            'owner_name': owner.name,
-            'owner_addr': normalize_hex_addr(owner.addr),
-        }
-        if owner.name in patched_names:
-            supporting_refs.append(ref_info)
-        else:
-            blockers.append({
-                'kind': 'unpatched_code_ref',
-                'ref': ref,
-                'owner_name': owner.name,
-                'owner_addr': normalize_hex_addr(owner.addr),
-            })
-
-    for ref in data_refs:
-        blockers.append({
-            'kind': 'data_ref',
-            'ref': ref,
-        })
-
-    return {
-        'safe': not blockers,
-        'supporting_refs': supporting_refs,
-        'blockers': blockers,
-    }
-
-
-def format_reg_annotation_blocker(blocker):
-    if blocker['kind'] == 'target_not_patched':
-        return blocker['message']
-
-    if blocker['kind'] == 'unknown_code_ref':
-        ref = blocker['ref']
-        return f"{ref['kind']} reference at {ref['source_addr']} ({ref['text']}) could not be mapped to a known function"
-
-    if blocker['kind'] == 'unpatched_code_ref':
-        ref = blocker['ref']
-        return (f"{ref['kind']} reference from {blocker['owner_name']} @ {blocker['owner_addr']} "
-                f"via {ref['source_addr']} ({ref['text']})")
-
-    if blocker['kind'] == 'data_ref':
-        ref = blocker['ref']
-        return f"raw data reference in section {ref['section_name']} at {ref['address']}"
-
-    return str(blocker)
-
-
-def validate_reg_arg_annotations(kb, xbe, patch_function_names, baseline_path=KB_REG_BASELINE_PATH):
+def validate_reg_arg_annotations(kb, baseline_path=KB_REG_BASELINE_PATH):
     try:
-        mismatches = find_reg_annotation_mismatches(kb, baseline_path)
+        baseline_funcs = load_reg_annotation_baseline(baseline_path)
+        validate_reg_annotation_baseline_completeness(kb, baseline_funcs, baseline_path)
+        mismatches = find_reg_annotation_mismatches(kb, baseline_path, baseline_funcs)
     except FileNotFoundError:
         log.error('Missing register-arg baseline: %s', baseline_path)
         exit(1)
@@ -273,48 +144,23 @@ def validate_reg_arg_annotations(kb, xbe, patch_function_names, baseline_path=KB
     if not mismatches:
         return
 
-    code_refs_by_addr, data_refs_by_addr = scan_original_xbe_references(
-        xbe, [mismatch['addr'] for mismatch in mismatches])
-
-    failures = []
+    log.error('Register-arg baseline mismatch detected — %d protected function(s):',
+              len(mismatches))
     for mismatch in mismatches:
-        verdict = assess_reg_annotation_mismatch(
-            mismatch,
-            kb,
-            patch_function_names,
-            code_refs_by_addr.get(mismatch['addr'], []),
-            data_refs_by_addr.get(mismatch['addr'], []),
-        )
-        if verdict['safe']:
-            log.info('Original register-arg ABI removal proven safe for "%s" @ %s (%d original code refs, no data refs)',
-                     mismatch['name'], mismatch['addr'], len(verdict['supporting_refs']))
-            continue
-        failures.append((mismatch, verdict))
-
-    if failures:
-        log.error('Register-arg baseline mismatch detected — %d function(s) cannot drop the original ABI yet:',
-                  len(failures))
-        for mismatch, verdict in failures:
-            log.error('  "%s" @ %s', mismatch['name'], mismatch['addr'])
-            log.error('    EXPECTED: %s', format_register_args(mismatch['expected_reg_args']))
-            log.error('    BASELINE: %s', mismatch['baseline_decl'])
-            if mismatch['current_decl'] is None:
-                log.error('    CURRENT: missing from kb.json')
-            else:
-                log.error('    CURRENT: %s', mismatch['current_decl'])
-                log.error('    ACTUAL: %s', format_register_args(mismatch['actual_reg_args']))
-            log.error('    DELTA:')
-            for line in format_register_arg_delta_lines(
-                    mismatch['expected_reg_args'], mismatch['actual_reg_args']):
-                log.error('      %s', line)
-            log.error('    REQUIREMENTS:')
-            for requirement in REG_ANNOTATION_REMOVAL_REQUIREMENTS:
-                log.error('      %s', requirement)
-            log.error('    BLOCKERS:')
-            for blocker in verdict['blockers']:
-                log.error('      - %s', format_reg_annotation_blocker(blocker))
-            log.error('    FIX: Restore the original @<reg> annotations in kb.json, or satisfy the requirements above so the build can prove the old ABI is no longer reachable.')
-        exit(1)
+        log.error('  "%s" @ %s', mismatch['name'], mismatch['addr'])
+        log.error('    EXPECTED: %s', format_register_args(mismatch['expected_reg_args']))
+        log.error('    BASELINE: %s', mismatch['baseline_decl'])
+        if mismatch['current_decl'] is None:
+            log.error('    CURRENT: missing from kb.json')
+        else:
+            log.error('    CURRENT: %s', mismatch['current_decl'])
+            log.error('    ACTUAL: %s', format_register_args(mismatch['actual_reg_args']))
+        log.error('    DELTA:')
+        for line in format_register_arg_delta_lines(
+                mismatch['expected_reg_args'], mismatch['actual_reg_args']):
+            log.error('      %s', line)
+        log.error('    FIX: Restore the original @<reg> annotation layout from tools/kb_reg_baseline.json in kb.json.')
+    exit(1)
 
 
 def format_exception_build_timestamp(now: datetime) -> str:
@@ -721,8 +567,7 @@ def main():
         log.debug('- %s @ %x', name, addr)
         export_name_to_addr[name] = addr
 
-    patch_function_names = {name for name in export_name_to_addr if name not in {'exe_base', 'exe_import_table', 'original_xbe_entry', '_start'}}
-    validate_reg_arg_annotations(kb, xbe, patch_function_names)
+    validate_reg_arg_annotations(kb)
 
     pe_original_base = pe.OPTIONAL_HEADER.ImageBase
     if pe_original_base != base_addr:

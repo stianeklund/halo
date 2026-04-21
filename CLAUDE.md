@@ -71,6 +71,10 @@ Treat `kb.json` as link/runtime-critical.
 - Prefer hardcoded addresses over speculative global entries when uncertain.
 - Use `jq` for all inspections and filtering.
 - Build and verify after each meaningful `kb.json` change.
+- Protected `@<reg>` ABI entries are pinned by `tools/kb_reg_baseline.json`:
+  - Any mismatch against the baseline is a hard build failure.
+  - Do not remove or move `@<reg>` slots in routine lift work.
+  - Baseline edits are explicit policy changes and must be justified separately.
 
 ## Build and verification
 

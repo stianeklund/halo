@@ -13,10 +13,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from knowledge import Function
 from patch import (
-    assess_reg_annotation_mismatch,
     find_reg_annotation_mismatches,
     format_register_arg_delta_lines,
     generate_reverse_thunk,
+    validate_reg_annotation_baseline_completeness,
 )
 
 
@@ -124,6 +124,14 @@ class RegAnnotationBaselineTests(unittest.TestCase):
         self.assertEqual(mismatches[0]['expected_reg_args'], [(0, 'eax')])
         self.assertEqual(mismatches[0]['actual_reg_args'], [(1, 'eax')])
 
+    def test_missing_symbol_in_kb_fails(self):
+        baseline_path = self.write_baseline('void test_func(int value@<eax>, int other);')
+        kb = SimpleNamespace(symbols=[])
+
+        mismatches = find_reg_annotation_mismatches(kb, baseline_path)
+        self.assertEqual(len(mismatches), 1)
+        self.assertIsNone(mismatches[0]['current_decl'])
+
     def test_delta_lines_show_removed_and_added_register_slots(self):
         self.assertEqual(
             format_register_arg_delta_lines([(0, 'eax')], [(1, 'eax')]),
@@ -136,74 +144,16 @@ class RegAnnotationBaselineTests(unittest.TestCase):
             ['- arg0@<eax>', '- arg2@<edi>', '+ none'],
         )
 
+    def test_missing_baseline_entry_for_current_reg_function_fails(self):
+        baseline_path = self.write_baseline('void other_func(int value@<eax>);')
+        kb = SimpleNamespace(symbols=[Function('void test_func(int value@<eax>);', addr=0x1000)])
 
-class RegAnnotationSafetyTests(unittest.TestCase):
-    def make_kb(self):
-        return SimpleNamespace(symbols=[
-            Function('void caller_a(void);', addr=0x1000),
-            Function('void caller_b(void);', addr=0x1100),
-            Function('void target(int value@<eax>);', addr=0x1200),
-        ])
-
-    def make_mismatch(self):
-        return {
-            'addr': '0x1200',
-            'name': 'target',
-            'baseline_decl': 'void target(int value@<eax>);',
-            'expected_reg_args': [(0, 'eax')],
-            'current_decl': 'void target(int value);',
-            'actual_reg_args': [],
-        }
-
-    def test_safe_when_target_and_all_original_callers_are_patched(self):
-        verdict = assess_reg_annotation_mismatch(
-            self.make_mismatch(),
-            self.make_kb(),
-            {'target', 'caller_a'},
-            [{'source_addr': '0x1004', 'kind': 'call', 'text': 'call 0x1200', 'section_name': '.text'}],
-            [],
-        )
-
-        self.assertTrue(verdict['safe'])
-        self.assertEqual(len(verdict['blockers']), 0)
-        self.assertEqual(len(verdict['supporting_refs']), 1)
-
-    def test_unpatched_original_caller_blocks_removal(self):
-        verdict = assess_reg_annotation_mismatch(
-            self.make_mismatch(),
-            self.make_kb(),
-            {'target'},
-            [{'source_addr': '0x1108', 'kind': 'call', 'text': 'call 0x1200', 'section_name': '.text'}],
-            [],
-        )
-
-        self.assertFalse(verdict['safe'])
-        self.assertEqual(verdict['blockers'][0]['kind'], 'unpatched_code_ref')
-        self.assertEqual(verdict['blockers'][0]['owner_name'], 'caller_b')
-
-    def test_target_must_be_exported_in_current_build(self):
-        verdict = assess_reg_annotation_mismatch(
-            self.make_mismatch(),
-            self.make_kb(),
-            {'caller_a'},
-            [],
-            [],
-        )
-
-        self.assertFalse(verdict['safe'])
-        self.assertEqual(verdict['blockers'][0]['kind'], 'target_not_patched')
-
-    def test_data_reference_blocks_removal(self):
-        verdict = assess_reg_annotation_mismatch(
-            self.make_mismatch(),
-            self.make_kb(),
-            {'target', 'caller_a'},
-            [],
-            [{'address': '0x3000', 'section_name': '.data'}],
-        )
-
-        self.assertFalse(verdict['safe'])
-        self.assertEqual(verdict['blockers'][0]['kind'], 'data_ref')
+        with self.assertRaisesRegex(ValueError, 'missing 1 current @<reg> function'):
+            validate_reg_annotation_baseline_completeness(
+                kb,
+                {'0x2000': 'void other_func(int value@<eax>);'},
+                baseline_path,
+            )
 
 
 if __name__ == '__main__':
