@@ -3645,6 +3645,10 @@
     "0x8da40": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x178d0": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
