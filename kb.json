@@ -1434,6 +1434,10 @@
           "addr": "0x1999f0"
         },
         {
+          "decl": "void *file_read_into_buffer(file_ref_t *file_ref, int *size_out);",
+          "addr": "0x199540"
+        },
+        {
           "decl": "bool file_exists(file_ref_t *info);",
           "addr": "0x19a640"
         }
@@ -2701,12 +2705,20 @@
           "addr": "0x13fd00"
         },
         {
+          "decl": "void *object_get_child_marker_definition(int object_handle, int16_t marker_index);",
+          "addr": "0x13fea0"
+        },
+        {
           "decl": "bool object_has_node(int object_handle, int16_t node_index);",
           "addr": "0x13fef0"
         },
         {
           "decl": "void object_set_garbage(int object_handle, int flag);",
           "addr": "0x13ffc0"
+        },
+        {
+          "decl": "void object_get_location(int object_handle, void *location_out);",
+          "addr": "0x140130"
         },
         {
           "decl": "void object_set_region_count(int object_handle, int16_t region_count);",
@@ -3513,6 +3525,10 @@
           "addr": "0x10b5e0"
         },
         {
+          "decl": "void perpendicular3d(float *in, float *out);",
+          "addr": "0x10b620"
+        },
+        {
           "decl": "void angles_to_vector(float *out, float *angles);",
           "addr": "0x10cc40"
         }
@@ -3819,6 +3835,10 @@
         {
           "decl": "bool tag_data_resize(void *tag_data, int size);",
           "addr": "0x1b9ab0"
+        },
+        {
+          "decl": "int16_t tag_block_add_element(void *tag_block);",
+          "addr": "0x1b9ad0"
         },
         {
           "decl": "void *tag_data_get_pointer(void *tag_data, int offset, int size);",
