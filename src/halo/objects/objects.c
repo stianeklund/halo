@@ -1,36 +1,238 @@
 /*
+ * object_wake — disconnect a point light from the cluster partition.
+ * (from c:\halo\SOURCE\objects\object_lights.c, line 0x4d0)
+ *
+ * Looks up the light datum in the point-light data table at 0x5a90bc.
+ * If the light is active (flags bit 1) and connected to the map (flags bit 2),
+ * removes it from the cluster partition at 0x5a90b0, then clears the
+ * connected_to_map flag.
+ *
+ * Confirmed: datum_get(*(data_t**)0x5a90bc, object_handle) — 2 cdecl args.
+ * Confirmed: TEST AL,0x2 for active flag, TEST AL,0x4 for connected_to_map.
+ * Confirmed: cluster_partition_remove_object(0x5a90b0, handle, light+0x10).
+ * Confirmed: AND byte ptr [ESI+0x2],0xfb clears bit 2.
+ */
+void object_wake(int object_handle)
+{
+  char *light;
+  uint16_t flags;
+
+  light = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+  flags = *(uint16_t *)(light + 0x2);
+
+  if ((flags & 0x2) == 0)
+    return;
+
+  if ((flags & 0x4) == 0) {
+    display_assert("TEST_FLAG(light->flags, _point_light_connected_to_map_bit)",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x4d0, 1);
+    system_exit(-1);
+  }
+
+  cluster_partition_remove_object((void *)0x5a90b0, object_handle,
+                                  (void *)(light + 0x10));
+  *(uint8_t *)(light + 0x2) &= ~0x4;
+}
+
+/*
+ * object_move_to_limbo — compute a point light's world-space position,
+ * direction, and range from its parent object, then add it to the cluster
+ * partition so it becomes visible.
+ * (from c:\halo\SOURCE\objects\object_lights.c, line ~0x4f9)
+ *
+ * Two paths for computing position/orientation:
+ *   1. No parent (parent_handle == -1): use marker definition from the object
+ *      tag to fill position/forward/up on the light.
+ *   2. Has parent: transform the light's offset point and direction through
+ *      the parent's node matrix.
+ *
+ * Then computes the effective light range from the tag's radius, color
+ * modifier, and optional gel modifier. The range determines a position offset
+ * based on the falloff angle:
+ *   - angle >= pi/2: position unchanged, range = computed range
+ *   - pi/4 <= angle < pi/2: position offset by range * forward_modifier along
+ *     forward, range scaled by tertiary modifier
+ *   - angle < pi/4: position offset by range / forward_modifier along forward
+ *
+ * Finally adds the light to the cluster partition and sets the connected flag.
+ *
+ * Confirmed: SUB ESP,0x84 — 132 bytes of locals.
+ * Confirmed: tag_get(0x6c696768, ...) for 'ligh' tag.
+ * Confirmed: cluster_partition_add_object(0x5a90b0, ...) with 6 args.
+ * Confirmed: OR word ptr [ESI+0x2], BX sets connected_to_map (bit 2).
+ */
+void object_move_to_limbo(int object_handle)
+{
+  char *light;
+  char *parent_obj;
+  char *marker_def;
+  void *node_matrix;
+  char marker_buf[0x6c]; /* output from object_get_markers_by_string_id */
+  char location[8]; /* scenario location (cluster_index etc.) */
+  float local_pos[3]; /* computed light position */
+  float local_range; /* computed effective range */
+  uint8_t tag_flags;
+  float falloff_angle;
+  float offset;
+  int16_t marker_index;
+
+  light = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+  tag_get(0x6c696768, *(int *)(light + 0x4));
+
+  if (*(int *)(light + 0x58) == -1) {
+    /* No parent object index: compute from marker definition in tag. */
+    marker_index = *(int16_t *)(light + 0x5c);
+    marker_def = (char *)object_get_child_marker_definition(
+      *(int *)(light + 0x2c), marker_index);
+    object_get_markers_by_string_id(*(int *)(light + 0x2c), marker_def,
+                                    marker_buf, 1);
+
+    /* Copy position from marker buffer offset 0x60 → light+0x30 */
+    *(float *)(light + 0x30) = *(float *)(marker_buf + 0x60);
+    *(float *)(light + 0x34) = *(float *)(marker_buf + 0x64);
+    *(float *)(light + 0x38) = *(float *)(marker_buf + 0x68);
+    /* Copy forward from marker buffer offset 0x3c → light+0x3c */
+    *(float *)(light + 0x3c) = *(float *)(marker_buf + 0x3c);
+    *(float *)(light + 0x40) = *(float *)(marker_buf + 0x40);
+    *(float *)(light + 0x44) = *(float *)(marker_buf + 0x44);
+    /* Copy up from marker buffer offset 0x54 → light+0x48 */
+    *(float *)(light + 0x48) = *(float *)(marker_buf + 0x54);
+    *(float *)(light + 0x4c) = *(float *)(marker_buf + 0x58);
+    *(float *)(light + 0x50) = *(float *)(marker_buf + 0x5c);
+  } else {
+    /* Has parent: transform offset through parent's node matrix. */
+    parent_obj =
+      (char *)object_try_and_get_and_verify_type(*(int *)(light + 0x2c), -1);
+    if (parent_obj != 0) {
+      marker_index = *(int16_t *)(light + 0x5c);
+      node_matrix =
+        object_get_node_matrix(*(int *)(light + 0x2c), marker_index);
+      matrix_transform_point((float *)node_matrix, (float *)(light + 0x60),
+                             (float *)(light + 0x30));
+      matrix_transform_vector((float *)node_matrix, (float *)(light + 0x6c),
+                              (float *)(light + 0x3c));
+      perpendicular3d((float *)(light + 0x3c), (float *)(light + 0x48));
+      normalize3d((float *)(light + 0x48));
+    }
+  }
+
+  if ((*(uint16_t *)(light + 0x2) & 0x2) == 0)
+    return;
+
+  /* Re-fetch light data (original code re-calls datum_get here). */
+  {
+    char *light2 = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+    char *ligh_tag = (char *)tag_get(0x6c696768, *(int *)(light2 + 0x4));
+
+    tag_flags = *(uint8_t *)ligh_tag;
+    local_range = *(float *)(ligh_tag + 0xc) * *(float *)(ligh_tag + 0x4);
+
+    if ((tag_flags & 0x2) == 0)
+      local_range *= *(float *)(ligh_tag + 0x24);
+
+    if (local_range < *(float *)(ligh_tag + 0x18)) {
+      /* Range below cutoff: use position directly, clamp to cutoff. */
+      local_pos[0] = *(float *)(light2 + 0x30);
+      local_pos[1] = *(float *)(light2 + 0x34);
+      local_pos[2] = *(float *)(light2 + 0x38);
+      local_range = *(float *)(ligh_tag + 0x18);
+    } else {
+      falloff_angle = *(float *)(ligh_tag + 0x14);
+      if (falloff_angle >= *(float *)0x2568bc) {
+        /* angle >= pi/2: use position as-is. */
+        local_pos[0] = *(float *)(light2 + 0x30);
+        local_pos[1] = *(float *)(light2 + 0x34);
+        local_pos[2] = *(float *)(light2 + 0x38);
+      } else if (falloff_angle >= *(float *)0x254a58) {
+        /* pi/4 <= angle < pi/2: offset along forward, scale range. */
+        offset = local_range * *(float *)(ligh_tag + 0x20);
+        local_pos[0] =
+          offset * *(float *)(light2 + 0x3c) + *(float *)(light2 + 0x30);
+        local_pos[1] =
+          offset * *(float *)(light2 + 0x40) + *(float *)(light2 + 0x34);
+        local_pos[2] =
+          offset * *(float *)(light2 + 0x44) + *(float *)(light2 + 0x38);
+        local_range = local_range * *(float *)(ligh_tag + 0x28);
+      } else {
+        /* angle < pi/4: offset = range / forward_modifier. */
+        local_range = local_range / *(float *)(ligh_tag + 0x20);
+        local_pos[0] =
+          local_range * *(float *)(light2 + 0x3c) + *(float *)(light2 + 0x30);
+        local_pos[1] =
+          local_range * *(float *)(light2 + 0x40) + *(float *)(light2 + 0x34);
+        local_pos[2] =
+          local_range * *(float *)(light2 + 0x44) + *(float *)(light2 + 0x38);
+      }
+    }
+
+    /* Assert: light must NOT already be connected to map. */
+    if ((*(uint8_t *)(light + 0x2) & 0x4) != 0) {
+      display_assert(
+        "!TEST_FLAG(light->flags, _point_light_connected_to_map_bit)",
+        "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x4f9, 1);
+      system_exit(-1);
+    }
+
+    /* Determine cluster location for the light. */
+    if (*(int *)(light + 0x2c) == -1 ||
+        object_try_and_get_and_verify_type(*(int *)(light + 0x2c), -1) == 0) {
+      scenario_location_from_point((void *)location, (void *)local_pos);
+    } else {
+      object_get_location(*(int *)(light + 0x2c), (void *)location);
+    }
+
+    /* Add light to cluster partition. Range is passed as raw float bits
+     * reinterpreted as uint32_t (radius_fp convention). */
+    {
+      union {
+        float f;
+        uint32_t u;
+      } range_bits;
+      range_bits.f = local_range;
+      cluster_partition_add_object((void *)0x5a90b0, object_handle,
+                                   (void *)(light + 0x10), (void *)local_pos,
+                                   range_bits.u, (void *)location);
+    }
+
+    *(uint16_t *)(light + 0x2) |= 0x4;
+  }
+}
+
+/*
  * objects/objects.c — object system lifecycle and placement
  * XBE source: c:\halo\SOURCE\objects\objects.c
+ *            + c:\halo\SOURCE\objects\object_lights.c (same .obj)
  *
  * Re-implemented functions (by XBE address, ascending):
+ *   0x1396e0  object_wake (object_lights.c)
+ *   0x13aed0  object_move_to_limbo (object_lights.c)
  *   0x13d640  object_try_and_get_and_verify_type
- *   0x13d680
- * object_get_and_verify_type
+ *   0x13d680  object_get_and_verify_type
  *   0x13d920  object_set_garbage_flag
- * 0x13dfc0
- * object_header_block_reference_get
+ *   0x13dfc0  object_header_block_reference_get
+ *   0x13e510  object_child_list_remove
+ *   0x13ee60  object_propagate_flag_to_children
+ *   0x13eff0  object_remove_from_name_list
  *   0x13f060  objects_place
- *   0x13f810
- * objects_initialize
+ *   0x13f810  objects_initialize
  *   0x13f950  objects_initialize_for_new_map
- * 0x13f9f0
- * objects_dispose_from_old_map
+ *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
- *   0x13fd00
- * object_disconnect_from_map
+ *   0x13fd00  object_disconnect_from_map
  *   0x13fef0  object_has_node
- *   0x13ffc0
- * object_set_garbage
+ *   0x13ffc0  object_set_garbage
  *   0x140160  object_set_region_count
- *   0x140230
- * object_adjust_interpolation_position
+ *   0x140230  object_adjust_interpolation_position
  *   0x140bc0  object_delete_internal
- *
- * 0x140cc0  object_delete 0x140ce0  object_connect_to_map 0x140eb0
- * object_get_node_matrix 0x140f10 object_get_markers_by_string_id 0x141020
- * object_compute_child_marker_position 0x1412f0  object_get_world_position
+ *   0x140cc0  object_delete
+ *   0x140ce0  object_connect_to_map
+ *   0x140eb0  object_get_node_matrix
+ *   0x140f10  object_get_markers_by_string_id
+ *   0x141020  object_compute_child_marker_position
+ *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x141b70  object_compute_node_matrices
+ *   0x144240  object_attach_to_parent
  *   0x1446a0  object_update_children_recursive
  *   0x144860  object_attach_to_marker
  *   0x145170  objects_update
