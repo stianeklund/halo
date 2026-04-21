@@ -784,6 +784,69 @@
         "The disassembly shows param_2 (seat_object_handle) is passed to FUN_000fb0c0 (weapon_is_flag) which checks for CTF/oddball flags, not vehicle seats. The seat semantics may differ from what the name implies."
       ]
     },
+    "0xaa190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaa2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaa580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaa610": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaa6a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Bitmask at offset 0x20 is 0x23 (bits 0,1,5), unlike all other variants which use 3 (bits 0,1 only).",
+        "Original binary does not zero the local buffer before setting fields; relies on caller pre-zeroing the output or individual field stores covering all relevant bytes."
+      ]
+    },
+    "0xaa7c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaa900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaa9a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaab30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaabc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaad70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Iron CTF uses 2.0f speed (0x40000000) instead of the standard 1.0f (0x3f800000) at offset 0x3C."
+      ]
+    },
+    "0xaae00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaae90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaaf20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xaba00": {
       "kind": "function",
       "status": "ported"

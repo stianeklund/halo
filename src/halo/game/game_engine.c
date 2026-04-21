@@ -332,6 +332,292 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
   return result;
 }
 
+/* game_engine_slayer_default (0xaa190)
+ *
+ * Initialise a game_variant_t with default Slayer settings.
+ * Engine type 2 (slayer), score limit 300, 15 lives, 2 weapon sets,
+ * 1.0 speed. */
+game_variant_t *game_engine_slayer_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 2;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x34) = 0x12c;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 0xf;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_elimination_default (0xaa2b0)
+ *
+ * Default Elimination variant. Engine type 2, score limit 300,
+ * 1 round, 25 lives, 2 weapon sets, 1.0 speed. */
+game_variant_t *game_engine_elimination_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 2;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x34) = 0x12c;
+  *(int32_t *)((char *)variant + 0x38) = 1;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 0x19;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_team_slayer_default (0xaa580)
+ *
+ * Default Team Slayer variant. Engine type 2, team play enabled,
+ * score/time limits 300, 50 lives, 2 weapon sets, 1.0 speed. */
+game_variant_t *game_engine_team_slayer_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 2;
+  *(uint8_t *)((char *)variant + 0x1c) = 1;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x30) = 0x12c;
+  *(int32_t *)((char *)variant + 0x34) = 0x12c;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 0x32;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_oddball_default (0xaa610)
+ *
+ * Default Oddball variant. Engine type 3, score/time 150 each,
+ * 2 lives, 1 weapon set, ball indicator on, 1.0 speed. */
+game_variant_t *game_engine_oddball_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 3;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x30) = 0x96;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 2;
+  *(int32_t *)((char *)variant + 0x48) = 1;
+  *(uint8_t *)((char *)variant + 0x4d) = 1;
+  *(int32_t *)((char *)variant + 0x60) = 1;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_team_oddball_default (0xaa6a0)
+ *
+ * Default Team Oddball variant. Engine type 3, team play,
+ * bitmask 0x23, score limit 300, time limit 150, 2 lives,
+ * 1 weapon set, ball indicator on, 1.0 speed. */
+game_variant_t *game_engine_team_oddball_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 3;
+  *(uint8_t *)((char *)variant + 0x1c) = 1;
+  *(int32_t *)((char *)variant + 0x20) = 0x23;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x30) = 0x12c;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 2;
+  *(int32_t *)((char *)variant + 0x48) = 1;
+  *(int32_t *)((char *)variant + 0x60) = 1;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_accumulation_default (0xaa7c0)
+ *
+ * Default Accumulation variant. Engine type 3, bitmask 2,
+ * score/time 150 each, 5 lives, modifier 2, HUD flags 0x10,
+ * 1 score unit, 1.0 speed. */
+game_variant_t *game_engine_accumulation_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 3;
+  *(int32_t *)((char *)variant + 0x20) = 2;
+  *(int32_t *)((char *)variant + 0x24) = 2;
+  *(int32_t *)((char *)variant + 0x30) = 0x96;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 5;
+  *(int32_t *)((char *)variant + 0x48) = 1;
+  *(int32_t *)((char *)variant + 0x5c) = 1;
+  *(int32_t *)((char *)variant + 0x60) = 0x10;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_stalker_default (0xaa900)
+ *
+ * Default Stalker variant. Engine type 3, bitmask 2,
+ * score/time 150 each, 10 lives, multiple weapon/scoring
+ * fields, 1.0 speed. */
+game_variant_t *game_engine_stalker_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 3;
+  *(int32_t *)((char *)variant + 0x20) = 2;
+  *(int32_t *)((char *)variant + 0x30) = 0x96;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 0xa;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int32_t *)((char *)variant + 0x50) = 2;
+  *(int32_t *)((char *)variant + 0x54) = 1;
+  *(int32_t *)((char *)variant + 0x58) = 3;
+  *(int32_t *)((char *)variant + 0x5c) = 2;
+  *(int32_t *)((char *)variant + 0x60) = 1;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_king_default (0xaa9a0)
+ *
+ * Default King of the Hill variant. Engine type 4,
+ * score/time 150 each, 2 lives, modifier 1, 1.0 speed. */
+game_variant_t *game_engine_king_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 4;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x30) = 0x96;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 2;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_team_king_default (0xaab30)
+ *
+ * Default Team King variant. Engine type 4, team play,
+ * score limit 300, time limit 150, 2 lives, modifier 1,
+ * hill indicator on, 1.0 speed. */
+game_variant_t *game_engine_team_king_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 4;
+  *(uint8_t *)((char *)variant + 0x1c) = 1;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x30) = 0x12c;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 2;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(uint8_t *)((char *)variant + 0x4c) = 1;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_ctf_default (0xaabc0)
+ *
+ * Default Capture The Flag variant. Engine type 1, team play,
+ * score limit 300, time limit 150, 3 lives, modifier 1,
+ * 2 weapon sets, 1.0 speed. */
+game_variant_t *game_engine_ctf_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 1;
+  *(uint8_t *)((char *)variant + 0x1c) = 1;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x30) = 0x12c;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 3;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_ironctf_default (0xaad70)
+ *
+ * Default Iron CTF variant. Engine type 1, team play,
+ * score limit 450, time limit 150, 3 lives, modifier 1,
+ * 4 weapon sets, flag indicator on, 2.0 speed. */
+game_variant_t *game_engine_ironctf_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 1;
+  *(uint8_t *)((char *)variant + 0x1c) = 1;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x30) = 0x1c2;
+  *(int32_t *)((char *)variant + 0x34) = 0x96;
+  *(int32_t *)((char *)variant + 0x3c) = 0x40000000;
+  *(int32_t *)((char *)variant + 0x40) = 3;
+  *(int32_t *)((char *)variant + 0x48) = 4;
+  *(uint8_t *)((char *)variant + 0x4e) = 1;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_race_default (0xaae00)
+ *
+ * Default Race variant. Engine type 5, modifier 1,
+ * time limit 300, 3 lives, 2 weapon sets, 1.0 speed. */
+game_variant_t *game_engine_race_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 5;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x34) = 0x12c;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 3;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_rally_default (0xaae90)
+ *
+ * Default Rally variant. Engine type 5, modifier 1,
+ * time limit 300, 15 lives, 2 weapon sets + mode 2,
+ * 1.0 speed. */
+game_variant_t *game_engine_rally_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 5;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x34) = 0x12c;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 0xf;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int32_t *)((char *)variant + 0x4c) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
+/* game_engine_team_race_default (0xaaf20)
+ *
+ * Default Team Race variant. Engine type 5, team play,
+ * modifier 1, time limit 300, 3 lives, 2 weapon sets,
+ * 1.0 speed. */
+game_variant_t *game_engine_team_race_default(game_variant_t *variant)
+{
+  csmemset(variant, 0, 0x68);
+  *(int32_t *)((char *)variant + 0x18) = 5;
+  *(uint8_t *)((char *)variant + 0x1c) = 1;
+  *(int32_t *)((char *)variant + 0x20) = 3;
+  *(int32_t *)((char *)variant + 0x24) = 1;
+  *(int32_t *)((char *)variant + 0x34) = 0x12c;
+  *(int32_t *)((char *)variant + 0x3c) = 0x3f800000;
+  *(int32_t *)((char *)variant + 0x40) = 3;
+  *(int32_t *)((char *)variant + 0x48) = 2;
+  *(int16_t *)((char *)variant + 0x64) = 1;
+  return variant;
+}
+
 /* Returns true if the game has not entered a restart/game-over state. */
 bool FUN_000ab720(void)
 {
