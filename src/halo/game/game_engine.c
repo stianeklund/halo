@@ -382,6 +382,17 @@ void game_engine_initialize(game_variant_t *variant)
   }
 }
 
+/* Returns true if the game is over: the engine exists but all remaining
+ * players/teams are on the same side (no competition left). */
+bool game_engine_game_over(void)
+{
+  if (current_game_engine) {
+    if (!game_engine_teams_still_playing())
+      return true;
+  }
+  return false;
+}
+
 /* game_engine_update_non_deterministic (0xacdd0)
  *
  * Handles the post-game fade-out/score-screen sequence.  The state
