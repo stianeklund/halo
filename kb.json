@@ -2789,7 +2789,7 @@
           "addr": "0x140230"
         },
         {
-          "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, void *cluster_indices, int16_t max_count, int *out_handles);",
+          "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, void *cluster_indices, int max_count, int *out_handles);",
           "addr": "0x140420"
         },
         {
@@ -2830,7 +2830,7 @@
           "addr": "0x141480"
         },
         {
-          "decl": "int16_t object_find_in_radius(int flags, unsigned int type_mask, float *position, float *forward, float radius, int *out_handles, int16_t max_count);",
+          "decl": "int16_t object_find_in_radius(int flags, unsigned int type_mask, void *cluster_info, float *position, float radius, int *out_handles, int16_t max_count);",
           "addr": "0x1415f0"
         },
         {
@@ -3985,7 +3985,7 @@
           "addr": "0x1983f0"
         },
         {
-          "decl": "int16_t structure_find_in_cluster(int cluster_index, uint16_t cluster_count, float radius, float *position, short *out_indices);",
+          "decl": "int16_t structure_find_in_cluster(uint16_t cluster_count, float *position, float radius, int max_count, short *out_indices);",
           "addr": "0x199230"
         }
       ]
