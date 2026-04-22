@@ -57,6 +57,27 @@ void structures_dispose(void)
   ((void (*)(void))0x1963b0)();
 }
 
+/* structures_cluster_marker_begin (0x198400)
+ *
+ * Asserts that the cluster marker is not already initialized,
+ * increments the cluster-marker reference counter, and sets the
+ * initialized flag.
+ *
+ * Confirmed: TEST AL,AL on byte ptr [0x4d92e1].
+ * Confirmed: INC dword ptr [0x4d92e4].
+ * Confirmed: MOV byte ptr [0x4d92e1], 1.
+ */
+void structures_cluster_marker_begin(void)
+{
+  if (*(uint8_t *)0x4d92e1 != 0) {
+    display_assert("!structure_globals.cluster_marker_initialized",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x103, true);
+    system_exit(-1);
+  }
+  *(uint32_t *)0x4d92e4 += 1;
+  *(uint8_t *)0x4d92e1 = 1;
+}
+
 int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
                                   float radius, int max_count,
                                   int16_t *intersected_indices)
@@ -89,7 +110,7 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
     if (radius > 0.f) {
       int16_t cluster_count_out;
 
-      FUN_00198400();
+      structures_cluster_marker_begin();
       cluster_count_out = FUN_001989b0(cluster_count, position, radius,
                                        max_count, intersected_indices);
 

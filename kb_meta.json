@@ -925,7 +925,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "Phase-2 timer comparison against 0x2533c0 (0.0f): the original uses FCOMP + FNSTSW with bits 0x41 \u2014 this is a <= 0 test, reproduced faithfully. Phase-3 polls game_engine_check_input_button with four EDI values in the order seen in disassembly."
+        "Phase-2 timer comparison against 0x2533c0 (0.0f): the original uses FCOMP + FNSTSW with bits 0x41 — this is a <= 0 test, reproduced faithfully. Phase-3 polls game_engine_check_input_button with four EDI values in the order seen in disassembly."
       ],
       "uncertain": [
         "The game_engine_check_input_button (@edi) forward thunk only works as a raw function pointer; if the function is ever ported to C the inline asm in game_engine_update_non_deterministic must be revisited."
@@ -1361,7 +1361,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "Despite the kb.json name 'player_set_respawn_timer', the binary assert string says 'powerup_type>=0 && powerup_type<NUMBER_OF_PLAYER_POWERUPS' \u2014 this function manages powerup countdown timers (active camo, full spectrum vision) stored at player+0x68 as an int16_t array indexed by powerup_type."
+        "Despite the kb.json name 'player_set_respawn_timer', the binary assert string says 'powerup_type>=0 && powerup_type<NUMBER_OF_PLAYER_POWERUPS' — this function manages powerup countdown timers (active camo, full spectrum vision) stored at player+0x68 as an int16_t array indexed by powerup_type."
       ],
       "uncertain": [
         "The unit fields at +0x1b4 (flag 0x10) and +0x3d2 (powerup type written on timer slot first-fill) are not yet named in types.h; they belong to some unit_data_t subtype retrieved via object_get_and_verify_type with type_mask=3."
@@ -2788,7 +2788,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "The byte at obj+0xD0 is a parent node index, not part of the float array unk_208[5] that the struct declares at that offset \u2014 the struct layout at 0xD0 may need revision."
+        "The byte at obj+0xD0 is a parent node index, not part of the float array unk_208[5] that the struct declares at that offset — the struct layout at 0xD0 may need revision."
       ]
     },
     "0x141480": {
@@ -3208,7 +3208,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "Field order in the color struct is alpha at [+0], red at [+4], green at [+8], blue at [+0xc] \u2014 inferred from assertion strings naming alpha/red/green/blue in sequence and confirmed by ESI offsets in disassembly."
+        "Field order in the color struct is alpha at [+0], red at [+4], green at [+8], blue at [+0xc] — inferred from assertion strings naming alpha/red/green/blue in sequence and confirmed by ESI offsets in disassembly."
       ]
     },
     "0x19b800": {
@@ -3222,7 +3222,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
+        "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices — confirmed by absence of any use of EAX after the call at 0x19b8bd."
       ]
     },
     "0x19dc90": {
@@ -3237,7 +3237,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "OR byte ptr [EAX+0xb6],0x20 confirmed from disassembly \u2014 sets bit 5 of byte at object_data_t+0xb6, one byte before unk_183 (0xb7) used by unit_delete."
+        "OR byte ptr [EAX+0xb6],0x20 confirmed from disassembly — sets bit 5 of byte at object_data_t+0xb6, one byte before unk_183 (0xb7) used by unit_delete."
       ]
     },
     "0x1a7fc0": {
@@ -3936,6 +3936,13 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x198400": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Cluster marker begin: asserts marker is not already set, increments ref counter, and sets initialized flag."
+      }
     }
   }
 }
