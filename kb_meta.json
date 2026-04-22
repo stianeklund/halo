@@ -3318,6 +3318,20 @@
         "Seat flag bit 2 (0x4) designates driver/rider occupant slot at unk_724, bit 3 (0x8) designates gunner occupant slot at unk_728."
       ]
     },
+    "0x1aa970": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Returns the equipment datum handle stored in the unit's equipment slot (offset 0x2C8)."
+      }
+    },
+    "0x1aa990": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Attempts to add a grenade (powerup_type 6) to the unit's inventory. Increments grenade count at unit+0x2CE, plays effect for local players, and deletes the equipment object."
+      }
+    },
     "0x1aab20": {
       "kind": "function",
       "status": "ported",
@@ -3390,9 +3404,23 @@
         "The multi-weapon flag logic checks key_data pointers at mode+0x44 offsets +4, +6, +8 for non-NONE int16_t values; exact semantics of these weapon animation channels are unconfirmed."
       ]
     },
+    "0x1ad800": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Finds the best seat for a unit to enter another unit. Iterates seats, checks distances and animation compatibility. Returns seat state (0=none, 1=approach, 2=enter) and writes seat index."
+      }
+    },
     "0x1adeb0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1ae1a0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Checks if the unit's current weapon is in state 2 or 3 (offset 0x211). Returns true if busy, false if no weapon or in another state."
+      }
     },
     "0x1ae290": {
       "kind": "function",
@@ -3413,6 +3441,13 @@
         "The function at 0xa8b30 dispatches through current_game_engine vtable offset 0x58 and is used for both weapon pickup and seat entry validation.",
         "The function at 0xfae80 returns a char* label from the weapon tag definition at offset 0x30c, returning a default string at 0x25386f when the handle is NONE."
       ]
+    },
+    "0x1ae3c0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Determines whether the unit should swap a weapon. Returns true if the new weapon type is not held, or if held in current seat with equal/more ammo and current ammo above threshold."
+      }
     },
     "0x1ae490": {
       "kind": "function",
