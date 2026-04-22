@@ -4043,7 +4043,7 @@
           "addr": "0x1983f0"
         },
         {
-          "decl": "void FUN_00198400(void);",
+          "decl": "void structures_cluster_marker_begin(void);",
           "addr": "0x198400"
         },
         {
