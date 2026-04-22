@@ -2710,6 +2710,20 @@
         {
           "decl": "void initialize_network_game_packets(void);",
           "addr": "0x12b640"
+        },
+        {
+          "decl": "void verify_packet_group_definitions(group_definition *group);",
+          "addr": "0x11a930"
+        },
+        {
+          "decl": "void verify_packet_definition(packet_definition *def);",
+          "addr": "0x11b540"
+        }
+      ],
+      "data": [
+        {
+          "decl": "group_definition s_network_game_messages_group;",
+          "addr": "0x323510"
         }
       ]
     },
@@ -4030,23 +4044,58 @@
       "functions": [
         {
           "decl": "void structures_initialize(void);",
-          "addr": "0x1983c0"
+          "addr": "0x1983c0",
+          "ported": true
         },
         {
           "decl": "void structures_initialize_for_new_map(void);",
-          "addr": "0x1983d0"
+          "addr": "0x1983d0",
+          "ported": true
         },
         {
           "decl": "void structures_dispose_from_old_map(void);",
-          "addr": "0x1983e0"
+          "addr": "0x1983e0",
+          "ported": true
         },
         {
           "decl": "void structures_dispose(void);",
-          "addr": "0x1983f0"
+          "addr": "0x1983f0",
+          "ported": true
+        },
+        {
+          "decl": "void structure_detail_objects_initialize(void);",
+          "addr": "0x193970",
+          "ported": true
+        },
+        {
+          "decl": "void structure_detail_objects_initialize_for_new_map(void);",
+          "addr": "0x193bb0",
+          "ported": true
+        },
+        {
+          "decl": "void structure_runtime_decals_initialize(void);",
+          "addr": "0x196290",
+          "ported": true
+        },
+        {
+          "decl": "void structure_runtime_decals_initialize_for_new_map(void);",
+          "addr": "0x1962d0",
+          "ported": true
+        },
+        {
+          "decl": "void structure_detail_objects_dispose_from_old_map(void);",
+          "addr": "0x1963a0",
+          "ported": true
+        },
+        {
+          "decl": "void structure_runtime_decals_dispose(void);",
+          "addr": "0x1963b0",
+          "ported": true
         },
         {
           "decl": "void structures_cluster_marker_begin(void);",
-          "addr": "0x198400"
+          "addr": "0x198400",
+          "ported": true
         },
         {
           "decl": "short FUN_001989b0(uint16_t cluster_count, float *position, float radius, int max_count, short *out_indices);",
@@ -4054,15 +4103,18 @@
         },
         {
           "decl": "int16_t structure_find_in_cluster(uint16_t cluster_count, float *position, float radius, int max_count, short *out_indices);",
-          "addr": "0x199230"
+          "addr": "0x199230",
+          "ported": true
         },
         {
           "addr": "0x191a50",
-          "decl": "int cluster_partition_iter_first(void *partition, int *state, int16_t cluster_idx);"
+          "decl": "int cluster_partition_iter_first(void *partition, int *state, int16_t cluster_idx);",
+          "ported": true
         },
         {
           "addr": "0x191660",
-          "decl": "int cluster_partition_iter_next(void *partition, int *state);"
+          "decl": "int cluster_partition_iter_next(void *partition, int *state);",
+          "ported": true
         }
       ]
     },
