@@ -58,19 +58,78 @@ void units_update(void)
   *(uint8_t *)&p[2] = 0;
 }
 
-/* unit_get_seat_enter_position (0x1a8200)
- *
- * Computes the entry/exit world-space positions for a given seat index on a
- * target unit. Resolves both units' animation graphs and matches the seat
- * label to find the corresponding animation mode. Uses the animation mode's
- * key-frame data to compute three positions (out_pos_a, out_pos_b, out_pos_c).
- *
- * Not fully lifted; signature inferred from callers. Returns 1 on success,
- * 0 if no matching animation mode is found.
- */
 int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
                                  int16_t seat_index, float *out_pos_a,
-                                 float *out_pos_b, float *out_pos_c);
+                                 float *out_pos_b, float *out_pos_c)
+{
+  char marker_name[256];
+  uint8_t hint_marker_data[0x6c];
+  uint8_t mode_matrix[0x34];
+  uint8_t enter_position_matrix[0x34];
+  uint8_t seat_marker_data[0xa0];
+  char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  char *unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+  void *mode_tag = (void *)tag_get(0x6d6f6465, *(int *)(unit_tag + 0x34));
+  char *antr_tag = (char *)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+  char *target_unit = (char *)object_get_and_verify_type(target_unit_handle, 3);
+  char *target_unit_tag = (char *)tag_get(0x756e6974, *(int *)target_unit);
+  char *seat = (char *)tag_block_get_element(target_unit_tag + 0x2e4,
+                                             (int)seat_index, 0x11c);
+  int *mode_block = (int *)(antr_tag + 0xc);
+  int16_t mode_index = 0;
+
+  while ((int)mode_index < *mode_block) {
+    char *mode =
+      (char *)tag_block_get_element(mode_block, (int)mode_index, 0x64);
+
+    if (crt_stricmp(mode, seat + 4) == 0) {
+      if (*(int *)(mode + 0x40) < 8) {
+        return 0;
+      }
+
+      mode_index = *(int16_t *)(*(int *)(mode + 0x44) + 0xe);
+      if (mode_index == -1) {
+        return 0;
+      }
+
+      mode =
+        (char *)tag_block_get_element(antr_tag + 0x74, (int)mode_index, 0xb4);
+      object_get_markers_by_string_id(target_unit_handle, seat + 0x24,
+                                      seat_marker_data, 1);
+      FUN_00123470(mode_tag, mode, 0, mode_matrix);
+      matrix4x3_multiply((float *)(seat_marker_data + 0x38),
+                         (float *)mode_matrix, (float *)enter_position_matrix);
+      csstrcpy(marker_name, seat + 0x24);
+      FUN_0008dc30((int)marker_name, " enter-hint");
+      object_get_markers_by_string_id(target_unit_handle, marker_name,
+                                      hint_marker_data, 1);
+
+      if (out_pos_b != NULL) {
+        out_pos_b[0] = *(float *)(seat_marker_data + 0x60);
+        out_pos_b[1] = *(float *)(seat_marker_data + 0x64);
+        out_pos_b[2] = *(float *)(seat_marker_data + 0x68);
+      }
+
+      if (out_pos_a != NULL) {
+        out_pos_a[0] = *(float *)(enter_position_matrix + 0x28);
+        out_pos_a[1] = *(float *)(enter_position_matrix + 0x2c);
+        out_pos_a[2] = *(float *)(enter_position_matrix + 0x30);
+      }
+
+      if (out_pos_c != NULL) {
+        out_pos_c[0] = *(float *)(hint_marker_data + 0x60);
+        out_pos_c[1] = *(float *)(hint_marker_data + 0x64);
+        out_pos_c[2] = *(float *)(hint_marker_data + 0x68);
+      }
+
+      return 1;
+    }
+
+    mode_index += 1;
+  }
+
+  return 0;
+}
 
 /* unit_find_nearby_seat (0x1a8ce0)
  *

@@ -3402,6 +3402,13 @@
         "Global at 0x4e4cf8 is a pointer to a 5-byte struct {int16_t, int16_t, uint8_t} used for units per-tick update state tracking."
       ]
     },
+    "0x1a8200": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Resolves seat animation mode for target seat label, computes enter-position matrix and marker positions via animation/marker helpers, and writes up to three output vectors (out_pos_a/out_pos_b/out_pos_c). Returns 1 on success, 0 when no valid mode/path is found."
+      }
+    },
     "0x1a8ce0": {
       "kind": "function",
       "status": "ported",
