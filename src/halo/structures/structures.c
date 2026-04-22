@@ -76,6 +76,106 @@ void structures_cluster_marker_begin(void)
   *(uint8_t *)0x4d92e1 = 1;
 }
 
+bool FUN_00198440(int16_t cluster_index)
+{
+  if (*(uint8_t *)0x4d92e1 == 0) {
+    display_assert("structure_globals.cluster_marker_initialized",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x10e, true);
+    system_exit(-1);
+  }
+
+  if (cluster_index < 0 || cluster_index > 0x1ff) {
+    display_assert("cluster_index>=0 && "
+                   "cluster_index<MAXIMUM_CLUSTERS_PER_STRUCTURE",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x10f, true);
+    system_exit(-1);
+  }
+
+  return ((int *)0x4d92e8)[cluster_index] != *(int *)0x4d92e4;
+}
+
+int FUN_001984c0(int16_t cluster_index)
+{
+  if (*(uint8_t *)0x4d92e1 == 0) {
+    display_assert("structure_globals.cluster_marker_initialized",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x11e, true);
+    system_exit(-1);
+  }
+
+  if (cluster_index < 0 || cluster_index > 0x1ff) {
+    display_assert("cluster_index>=0 && "
+                   "cluster_index<MAXIMUM_CLUSTERS_PER_STRUCTURE",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x11f, true);
+    system_exit(-1);
+  }
+
+  if (((int *)0x4d92e8)[cluster_index] != *(int *)0x4d92e4) {
+    ((int *)0x4d92e8)[cluster_index] = *(int *)0x4d92e4;
+    return 1;
+  }
+
+  return 0;
+}
+
+bool FUN_00198800(void *scenario, int16_t portal_index, float *position,
+                  float radius)
+{
+  uint8_t projected_vertices[1024];
+  uint8_t projected_center[8];
+  float projected_hit[3];
+  char *portal =
+    tag_block_get_element((char *)scenario + 0x154, (int)portal_index, 0x40);
+  char *structure_bsp = tag_block_get_element((char *)scenario + 0xb0, 0, 0x60);
+  float *portal_plane = tag_block_get_element((int *)(structure_bsp + 0xc),
+                                              *(int *)(portal + 4), 0x10);
+  float plane_distance = position[0] * portal_plane[0] +
+                         position[1] * portal_plane[1] +
+                         position[2] * portal_plane[2] - portal_plane[3];
+
+  if (fabsf(plane_distance) < radius) {
+    float dx = *(float *)(portal + 8) - position[0];
+    float dy = *(float *)(portal + 0xc) - position[1];
+    float dz = *(float *)(portal + 0x10) - position[2];
+    float expanded_radius = radius + *(float *)(portal + 0x14);
+
+    if (dx * dx + dy * dy + dz * dz < expanded_radius * expanded_radius) {
+      int portal_plane_index = *(int *)(portal + 4);
+      char *portal_plane_owner = FUN_0018e420(portal_plane_index, 0x10);
+      uint32_t plane_basis;
+      uint8_t plane_axis;
+      int *portal_vertices = (int *)(portal + 0x34);
+      int16_t vertex = 0;
+
+      portal_plane = tag_block_get_element((int *)(portal_plane_owner + 0xc),
+                                           portal_plane_index, 0x10);
+      plane_basis = FUN_00099220(portal_plane);
+      plane_axis = FUN_00099270(portal_plane, plane_basis);
+
+      projected_hit[0] = -plane_distance * portal_plane[0] + position[0];
+      projected_hit[1] = -plane_distance * portal_plane[1] + position[1];
+      projected_hit[2] = -plane_distance * portal_plane[2] + position[2];
+      FUN_00061df0(projected_hit, plane_basis, plane_axis, projected_center);
+
+      if (*portal_vertices > 0) {
+        do {
+          FUN_00061df0(tag_block_get_element(portal_vertices, (int)vertex, 0xc),
+                       plane_basis, plane_axis,
+                       projected_vertices + (int)vertex * 8);
+          vertex += 1;
+        } while ((int)vertex < *portal_vertices);
+      }
+
+      if (FUN_00106130(
+            (uint16_t)*portal_vertices, projected_vertices, projected_center,
+            sqrtf(radius * radius - plane_distance * plane_distance))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
                      int max_count, int16_t *out_indices)
 {

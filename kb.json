@@ -4098,16 +4098,39 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00061df0(void *point, uint32_t basis, uint8_t axis, void *out_projected);",
+          "addr": "0x61df0"
+        },
+        {
+          "decl": "uint32_t FUN_00099220(float *plane);",
+          "addr": "0x99220"
+        },
+        {
+          "decl": "uint8_t FUN_00099270(float *plane, uint32_t basis);",
+          "addr": "0x99270"
+        },
+        {
+          "decl": "bool FUN_00106130(uint16_t point_count, void *points, void *query_point, float radius);",
+          "addr": "0x106130"
+        },
+        {
+          "decl": "void *FUN_0018e420(int index, int element_size);",
+          "addr": "0x18e420"
+        },
+        {
           "decl": "bool FUN_00198440(int16_t cluster_index);",
-          "addr": "0x198440"
+          "addr": "0x198440",
+          "ported": true
         },
         {
           "decl": "int FUN_001984c0(int16_t cluster_index);",
-          "addr": "0x1984c0"
+          "addr": "0x1984c0",
+          "ported": true
         },
         {
           "decl": "bool FUN_00198800(void *scenario, int16_t portal_index, float *position, float radius);",
-          "addr": "0x198800"
+          "addr": "0x198800",
+          "ported": true
         },
         {
           "decl": "int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius, int max_count, int16_t *out_indices);",
