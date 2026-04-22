@@ -776,6 +776,10 @@
       "source": "bitmaps/bitmaps.c",
       "functions": [
         {
+          "decl": "float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound, float *rgb_upper_bound, float blend);",
+          "addr": "0x7c270"
+        },
+        {
           "decl": "void bitmap_delete(void *);",
           "addr": "0x7c8f0"
         },
@@ -1312,6 +1316,30 @@
           "addr": "0x98e70"
         },
         {
+          "decl": "void FUN_00098b20(float *sprite_bounds@<eax>, void *definition, int16_t sequence_index, int16_t sprite_index, float extent, float *out_extent);",
+          "addr": "0x98b20",
+          "ported": true
+        },
+        {
+          "decl": "uint32_t FUN_00099530(float alpha, float *color);",
+          "addr": "0x99530",
+          "ported": true
+        },
+        {
+          "decl": "int FUN_000998b0(int16_t cluster_index, int16_t layer, int old_index, bool randomize);",
+          "addr": "0x998b0",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0009a300(float *bounds, float *projection, float *basis@<ebx>);",
+          "addr": "0x9a300",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0009a5a0(int surface_queue, int surface_queue_write_index, bool allow_deviants, float scale, int16_t type, int geometry, int16_t *deviant_surface_count, int projection, int16_t *deviant_surface_list);",
+          "addr": "0x9a5a0"
+        },
+        {
           "decl": "void FUN_00099fd0(int16_t cluster_index);",
           "addr": "0x99fd0",
           "ported": true
@@ -1319,6 +1347,16 @@
         {
           "decl": "void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction, float scale, bool randomize, int16_t color_index, int flags);",
           "addr": "0x9c4b0",
+          "ported": true
+        },
+        {
+          "decl": "int FUN_0017cae0(uint32_t cache_size);",
+          "addr": "0x17cae0",
+          "ported": true
+        },
+        {
+          "decl": "void *FUN_0017caf0(int cache_index, uint32_t cache_size);",
+          "addr": "0x17caf0",
           "ported": true
         },
         {
@@ -2039,6 +2077,10 @@
       "name": "game_state.obj",
       "source": "saved_games/game_state.c",
       "functions": [
+        {
+          "decl": "int FUN_001bf570(int hardware_format, int block, bool load);",
+          "addr": "0x1bf570"
+        },
         {
           "decl": "void game_state_dispose(void);",
           "addr": "0x1bf7b0"
@@ -3652,9 +3694,17 @@
           "addr": "0x15b1a0"
         },
         {
+          "decl": "int FUN_0015b460(uint32_t cache_size);",
+          "addr": "0x15b460"
+        },
+        {
           "decl": "void FUN_0015b530(int decal_index);",
           "addr": "0x15b530",
           "ported": true
+        },
+        {
+          "decl": "void *FUN_0015b890(int cache_index, uint32_t cache_size);",
+          "addr": "0x15b890"
         },
         {
           "decl": "void rasterizer_decals_initialize(void);",
@@ -3690,6 +3740,11 @@
       "name": "real_math.obj",
       "source": "math/real_math.c",
       "functions": [
+        {
+          "decl": "void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine);",
+          "addr": "0x1092d0",
+          "ported": true
+        },
         {
           "decl": "void matrix_inverse(float *src, float *dst);",
           "addr": "0x109150"
@@ -3730,6 +3785,11 @@
         {
           "decl": "void real_math_reset_precision(void);",
           "addr": "0x10b5e0"
+        },
+        {
+          "decl": "float FUN_0010c600(float *a, float *b);",
+          "addr": "0x10c600",
+          "ported": true
         },
         {
           "decl": "void perpendicular3d(float *in, float *out);",

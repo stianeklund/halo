@@ -22,6 +22,8 @@
     "0x86fa0": "void director_set_player_camera_scripted(int16_t local_player_index@<si>, char reset_flag);",
     "0x87050": "void director_apply_replay_mode_for_player(char reset_flag@<al>, int16_t local_player_index@<si>, char mode_flags);",
     "0x87110": "bool director_compute_camera_input(short *out_buf@<eax>, int local_player_index);",
+    "0x98b20": "void FUN_00098b20(float *sprite_bounds@<eax>, void *definition, int16_t sequence_index, int16_t sprite_index, float extent, float *out_extent);",
+    "0x9a300": "void FUN_0009a300(float *bounds, float *projection, float *basis@<ebx>);",
     "0xa8780": "void game_engine_update_flag_state(int weapon_index@<esi>);",
     "0xab420": "bool game_engine_check_input_button(int button_index@<edi>);",
     "0xb24c0": "void game_engine_play_score_sound(int event_index@<esi>);",
