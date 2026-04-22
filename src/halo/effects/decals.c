@@ -1133,7 +1133,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
     geometry->surface_count = 0;
     geometry->vertex_count = 0;
 
-    surface_queue[0] = *(int *)(collision_result + 0x44);
+    surface_queue[0] = *(int *)((char *)collision_result + 0x44);
     queue_read_index = 0;
     queue_write_index = 1;
     deviant_surface_count = 0;
