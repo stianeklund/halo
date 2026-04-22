@@ -4119,6 +4119,38 @@
       ]
     },
     {
+      "name": "structure_detail_objects.obj",
+      "source": "structures/structure_detail_objects.c",
+      "functions": [
+        {
+          "decl": "float FUN_00193910(float param_1, float param_2);",
+          "addr": "0x193910",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_001939f0(float param_1);",
+          "addr": "0x1939f0",
+          "ported": true
+        },
+        {
+          "decl": "float FUN_00193b80(float *param_1, float *param_2);",
+          "addr": "0x193b80",
+          "ported": true
+        }
+      ]
+    },
+    {
+      "name": "structure_visibility.obj",
+      "source": "structures/structure_visibility.c",
+      "functions": [
+        {
+          "decl": "void FUN_001965d0(uint8_t param_1);",
+          "addr": "0x1965d0",
+          "ported": true
+        }
+      ]
+    },
+    {
       "name": "telnet_console.obj",
       "source": "main/telnet_console.c",
       "functions": [
