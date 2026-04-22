@@ -65,6 +65,73 @@ void matrix_inverse(float *src, float *dst)
             ty * *(float *)((char *)dst + 0x18));
 }
 
+/* 0x109280 — matrix4x3_identity_with_position: build an identity 4x3 matrix
+ * with the given translation.
+ *
+ * Matrix layout (13 floats):
+ *   [0]       scale = 1.0
+ *   [1..3]    row 0 (forward)  = (1, 0, 0)
+ *   [4..6]    row 1 (left)     = (0, 1, 0)
+ *   [7..9]    row 2 (up)       = (0, 0, 1)
+ *   [10..12]  translation      = position
+ *
+ * Confirmed: XOR ECX,ECX zeros out [2],[3],[4],[6],[7],[8].
+ * Confirmed: MOV EDX,0x3f800000 sets scale and diagonal to 1.0.
+ * Confirmed: position copied from param_2 to [EAX+0x28..0x30].
+ */
+void matrix4x3_identity_with_position(float *out, float *position)
+{
+  out[0] = 1.0f;
+  out[1] = 1.0f;
+  out[2] = 0.0f;
+  out[3] = 0.0f;
+  out[4] = 0.0f;
+  out[5] = 1.0f;
+  out[6] = 0.0f;
+  out[7] = 0.0f;
+  out[8] = 0.0f;
+  out[9] = 1.0f;
+  out[10] = position[0];
+  out[11] = position[1];
+  out[12] = position[2];
+}
+
+void FUN_001094d0(float *out_matrix, float *position, float *basis_data)
+{
+  typedef void (*quat_to_matrix_fn)(float *out, float *basis);
+
+  ((quat_to_matrix_fn)0x1093b0)(out_matrix, basis_data);
+  out_matrix[10] = position[0];
+  out_matrix[11] = position[1];
+  out_matrix[12] = position[2];
+}
+
+/* 0x109540 — matrix4x3_decompose: extract forward, up, and translation
+ * vectors from a 4x3 matrix.
+ *
+ *   out_forward = matrix row 0   (offsets +0x04, +0x08, +0x0c)
+ *   out_up      = matrix row 2   (offsets +0x1c, +0x20, +0x24)
+ *   out_pos     = translation    (offsets +0x28, +0x2c, +0x30)
+ *
+ * Confirmed: reads 9 floats from fixed offsets, writes to three
+ * separate output vectors. No scale component is returned.
+ */
+void matrix4x3_decompose(float *matrix, float *out_pos, float *out_forward,
+                         float *out_up)
+{
+  out_forward[0] = *(float *)((char *)matrix + 0x04);
+  out_forward[1] = *(float *)((char *)matrix + 0x08);
+  out_forward[2] = *(float *)((char *)matrix + 0x0c);
+
+  out_up[0] = *(float *)((char *)matrix + 0x1c);
+  out_up[1] = *(float *)((char *)matrix + 0x20);
+  out_up[2] = *(float *)((char *)matrix + 0x24);
+
+  out_pos[0] = *(float *)((char *)matrix + 0x28);
+  out_pos[1] = *(float *)((char *)matrix + 0x2c);
+  out_pos[2] = *(float *)((char *)matrix + 0x30);
+}
+
 /* Transform a 3D point by a 4x3 matrix (scale + rotation + translation).
  * If scale != 1.0, input components are pre-multiplied by scale.
  * out = rotation * (scale * in) + translation.
@@ -275,63 +342,6 @@ void matrix_from_forward_and_up(float *out, float *forward, float *up)
   *(float *)((char *)out + 0x28) = 0.0f;
   *(float *)((char *)out + 0x2c) = 0.0f;
   *(float *)((char *)out + 0x30) = 0.0f;
-}
-
-/* 0x109280 — matrix4x3_identity_with_position: build an identity 4x3 matrix
- * with the given translation.
- *
- * Matrix layout (13 floats):
- *   [0]       scale = 1.0
- *   [1..3]    row 0 (forward)  = (1, 0, 0)
- *   [4..6]    row 1 (left)     = (0, 1, 0)
- *   [7..9]    row 2 (up)       = (0, 0, 1)
- *   [10..12]  translation      = position
- *
- * Confirmed: XOR ECX,ECX zeros out [2],[3],[4],[6],[7],[8].
- * Confirmed: MOV EDX,0x3f800000 sets scale and diagonal to 1.0.
- * Confirmed: position copied from param_2 to [EAX+0x28..0x30].
- */
-void matrix4x3_identity_with_position(float *out, float *position)
-{
-  out[0] = 1.0f;
-  out[1] = 1.0f;
-  out[2] = 0.0f;
-  out[3] = 0.0f;
-  out[4] = 0.0f;
-  out[5] = 1.0f;
-  out[6] = 0.0f;
-  out[7] = 0.0f;
-  out[8] = 0.0f;
-  out[9] = 1.0f;
-  out[10] = position[0];
-  out[11] = position[1];
-  out[12] = position[2];
-}
-
-/* 0x109540 — matrix4x3_decompose: extract forward, up, and translation
- * vectors from a 4x3 matrix.
- *
- *   out_forward = matrix row 0   (offsets +0x04, +0x08, +0x0c)
- *   out_up      = matrix row 2   (offsets +0x1c, +0x20, +0x24)
- *   out_pos     = translation    (offsets +0x28, +0x2c, +0x30)
- *
- * Confirmed: reads 9 floats from fixed offsets, writes to three
- * separate output vectors. No scale component is returned.
- */
-void matrix4x3_decompose(float *matrix, float *out_pos, float *out_forward,
-                         float *out_up)
-{
-  out_forward[0] = *(float *)((char *)matrix + 0x04);
-  out_forward[1] = *(float *)((char *)matrix + 0x08);
-  out_forward[2] = *(float *)((char *)matrix + 0x0c);
-
-  out_up[0] = *(float *)((char *)matrix + 0x1c);
-  out_up[1] = *(float *)((char *)matrix + 0x20);
-  out_up[2] = *(float *)((char *)matrix + 0x24);
-
-  out_pos[0] = *(float *)((char *)matrix + 0x28);
-  out_pos[1] = *(float *)((char *)matrix + 0x2c);
-  out_pos[2] = *(float *)((char *)matrix + 0x30);
 }
 
 void real_math_reset_precision(void)

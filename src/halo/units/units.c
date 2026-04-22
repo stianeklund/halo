@@ -51,7 +51,7 @@ void FUN_00123470(void *mode_tag, void *animation, int animation_index,
   uint8_t node_data[0x800];
 
   FUN_00121d60(mode_tag, animation, animation_index, node_data);
-  FUN_001094d0(out_matrix, node_data + 0x10, node_data);
+  FUN_001094d0(out_matrix, (float *)(node_data + 0x10), (float *)node_data);
 }
 
 /* unit_set_actively_controlled_flag (0x1a7f80)

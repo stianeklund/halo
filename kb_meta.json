@@ -2383,6 +2383,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1094d0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Builds a 4x3 matrix from basis_data via FUN_001093b0, then overwrites translation with the provided position vector."
+      }
+    },
     "0x109540": {
       "kind": "function",
       "status": "ported"
