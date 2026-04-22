@@ -24,6 +24,11 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# Kill any stale MCP server processes before starting
+pkill -f "ghidra-mcp-bridge.py.*--port=8090" 2>/dev/null || true
+pkill -f "ghidra_live_mcp/server.py.*--port=8091" 2>/dev/null || true
+sleep 1
+
 echo "[mcp-servers] Starting ghidra bridge on :8090 ..."
 "$PYTHON_WIN" "$BRIDGE_PY" --port=8090 &
 PID_BRIDGE=$!
