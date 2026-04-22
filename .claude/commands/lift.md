@@ -9,8 +9,6 @@ lift workflow, and `halo-verify-debug` for the verification lane expectations.
 
 Two-phase lift: RE analysis + implementation, then build and verify.
 
-Argument: $ARGUMENTS (optional target name or 0x... address)
-
 Ghidra MCP preflight (required):
 - Before any `ghidra`/`ghidra-live` MCP tool call, run
   `python3 tools/check_ghidra_mcp.py`.
@@ -22,7 +20,9 @@ Ghidra MCP preflight (required):
 Scope/read-budget guardrails:
 - Start from the narrowest file/function range for the resolved target.
 - Avoid re-reading the same file/range unless the file changed or ambiguity remains.
-- Before reading outside scope, report `NEED <path>:<line-range> because <reason>`.
+- Before reading outside scope, report `NEED <path>:<line-range> because <reason>.`
+
+Argument: $ARGUMENTS (optional target name or 0x... address)
 
 ---
 
