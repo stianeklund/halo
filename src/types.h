@@ -803,3 +803,63 @@ typedef struct
 } physical_memory_map_globals_t;
 
 #pragma pack()
+
+/// size=0x14
+/// Original source: c:\halo\SOURCE\memory\data_packets.c
+typedef struct
+{
+    const char *name;        ///< offset=0x00  checked non-NULL
+    uint32_t field_04;       ///< offset=0x04  unknown
+    int16_t size;            ///< offset=0x08  decoded size, checked >= 0
+    int16_t version;         ///< offset=0x0A  checked >= 0
+    int16_t *fields;         ///< offset=0x0C  checked non-NULL
+    uint8_t validated;       ///< offset=0x10  set to 1 after verification
+} packet_definition;
+cs(packet_definition, 0x14);
+co(packet_definition, name, 0x00);
+co(packet_definition, field_04, 0x04);
+co(packet_definition, size, 0x08);
+co(packet_definition, version, 0x0A);
+co(packet_definition, fields, 0x0C);
+co(packet_definition, validated, 0x10);
+
+/// size=0x8
+typedef struct
+{
+    int16_t packet_class;           ///< offset=0x00
+    int16_t field_02;                ///< offset=0x02  always 0, unknown purpose
+    packet_definition *definition;  ///< offset=0x04  can be NULL (skipped if so)
+} packet_entry;
+cs(packet_entry, 0x8);
+co(packet_entry, packet_class, 0x00);
+co(packet_entry, field_02, 0x02);
+co(packet_entry, definition, 0x04);
+
+/// size=0x14
+/// Original source: c:\halo\SOURCE\memory\data_packet_groups.c
+typedef struct
+{
+    const char *name;                      ///< offset=0x00  "network_game_messages_group"
+    int16_t packet_count;                  ///< offset=0x04  35
+    int16_t packet_class_count;            ///< offset=0x06  8
+    int32_t maximum_decoded_packet_size;    ///< offset=0x08  1536
+    int32_t maximum_encoded_packet_size;    ///< offset=0x0C  2048
+    packet_entry *packets;                 ///< offset=0x10
+} group_definition;
+cs(group_definition, 0x14);
+co(group_definition, name, 0x00);
+co(group_definition, packet_count, 0x04);
+co(group_definition, packet_class_count, 0x06);
+co(group_definition, maximum_decoded_packet_size, 0x08);
+co(group_definition, maximum_encoded_packet_size, 0x0C);
+co(group_definition, packets, 0x10);
+
+/// size=0x1
+/// The encoded packet header is a single byte identifying the packet type.
+/// sizeof(packet_header) == 1 per assert string in data_packet_groups.c:0x2a
+typedef struct
+{
+    uint8_t type;
+} packet_header;
+cs(packet_header, 0x1);
+co(packet_header, type, 0x00);
