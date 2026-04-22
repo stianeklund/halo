@@ -3221,6 +3221,13 @@
         "summary": "Cluster marker begin: asserts marker is not already set, increments ref counter, and sets initialized flag."
       }
     },
+    "0x1989b0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Recursive cluster flood helper for structure_find_in_cluster: records current cluster when space remains, marks it visited, walks connected portals, and recurses into unvisited adjacent clusters whose portal sphere test passes."
+      }
+    },
     "0x1994a0": {
       "kind": "function",
       "status": "ported",

@@ -76,6 +76,54 @@ void structures_cluster_marker_begin(void)
   *(uint8_t *)0x4d92e1 = 1;
 }
 
+int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
+                     int max_count, int16_t *out_indices)
+{
+  void *scenario = scenario_get();
+  int16_t current_cluster = (int16_t)cluster_count;
+  char *cluster =
+    tag_block_get_element((char *)scenario + 0x134, (int)current_cluster, 0x68);
+  int remaining_count = max_count - 1;
+  int visited_count = 1;
+
+  if ((int16_t)max_count > 0) {
+    *out_indices = current_cluster;
+    out_indices += 1;
+  }
+
+  FUN_001984c0(cluster_count);
+
+  if (*(int *)(cluster + 0x5c) > 0) {
+    int16_t portal_iter = 0;
+
+    do {
+      int16_t *portal_index_ptr =
+        tag_block_get_element((int *)(cluster + 0x5c), portal_iter, 2);
+      int16_t portal_index = *portal_index_ptr;
+      int16_t *portal = tag_block_get_element((char *)scenario + 0x154,
+                                              (int)portal_index, 0x40);
+      int16_t adjacent_cluster = portal[0];
+
+      if (adjacent_cluster == current_cluster) {
+        adjacent_cluster = portal[1];
+      }
+
+      if (FUN_00198440(adjacent_cluster) &&
+          FUN_00198800(scenario, portal_index, position, radius)) {
+        int recurse_count = FUN_001989b0((uint16_t)adjacent_cluster, position,
+                                         radius, remaining_count, out_indices);
+        visited_count += recurse_count;
+        remaining_count -= recurse_count;
+        out_indices += (int16_t)recurse_count;
+      }
+
+      portal_iter += 1;
+    } while ((int)portal_iter < *(int *)(cluster + 0x5c));
+  }
+
+  return (int16_t)visited_count;
+}
+
 int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
                                   float radius, int max_count,
                                   int16_t *intersected_indices)

@@ -4098,8 +4098,21 @@
           "ported": true
         },
         {
-          "decl": "short FUN_001989b0(uint16_t cluster_count, float *position, float radius, int max_count, short *out_indices);",
-          "addr": "0x1989b0"
+          "decl": "bool FUN_00198440(int16_t cluster_index);",
+          "addr": "0x198440"
+        },
+        {
+          "decl": "int FUN_001984c0(int16_t cluster_index);",
+          "addr": "0x1984c0"
+        },
+        {
+          "decl": "bool FUN_00198800(void *scenario, int16_t portal_index, float *position, float radius);",
+          "addr": "0x198800"
+        },
+        {
+          "decl": "int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius, int max_count, int16_t *out_indices);",
+          "addr": "0x1989b0",
+          "ported": true
         },
         {
           "decl": "int16_t structure_find_in_cluster(uint16_t cluster_count, float *position, float radius, int max_count, short *out_indices);",
