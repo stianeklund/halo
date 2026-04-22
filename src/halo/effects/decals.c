@@ -218,8 +218,15 @@ uint32_t FUN_00099530(float alpha, float *color)
 void FUN_00099640(int structure_bsp, uint32_t plane_reference,
                   float *out_plane);
 
-int FUN_000998b0(int16_t cluster_index, int16_t layer, int old_index,
-                 bool randomize)
+static void decals_log_invalid_decal_type_once(int16_t decal_type,
+                                               int decal_tag_index,
+                                               const char *decal_name,
+                                               int bitmap_tag_index,
+                                               const char *bitmap_name,
+                                               const char *context);
+
+int FUN_000998b0(int new_index_hint, int16_t cluster_index, int16_t layer,
+                 int old_index, bool randomize)
 {
   int decal_index;
   int decal;
@@ -233,7 +240,7 @@ int FUN_000998b0(int16_t cluster_index, int16_t layer, int old_index,
   data_iter_t iter;
   char *candidate;
 
-  decal_index = data_new_datum(global_decal_data, 0);
+  decal_index = data_new_datum(global_decal_data, new_index_hint);
   unlock_passes = 0;
 
   if (cluster_index < 0 || cluster_index >= 0x200) {
@@ -503,9 +510,9 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
   int16_t deviant_count;
 
   if (type < 0 || type >= 4) {
-    display_assert("type>=0 && type<NUMBER_OF_DECAL_TYPES",
-                   "c:\\halo\\SOURCE\\effects\\decals.c", 0x47b, true);
-    system_exit(-1);
+    decals_log_invalid_decal_type_once(type, -1, NULL, -1, NULL,
+                                       "decal_surface_add");
+    return;
   }
 
   if (surface_index == -1) {
@@ -861,6 +868,32 @@ static void decals_build_axis(float *axis_vector, uint32_t basis, float sign,
   }
 }
 
+static void decals_log_invalid_decal_type_once(int16_t decal_type,
+                                               int decal_tag_index,
+                                               const char *decal_name,
+                                               int bitmap_tag_index,
+                                               const char *bitmap_name,
+                                               const char *context)
+{
+  static uint32_t reported_mask;
+
+  if (decal_type >= 0 && decal_type < 32) {
+    uint32_t bit = 1u << decal_type;
+    if ((reported_mask & bit) != 0) {
+      return;
+    }
+    reported_mask |= bit;
+  }
+
+  error(2,
+        "### ERROR decals: invalid decal type %d in %s (decal=%d '%s' bitm=%d "
+        "'%s') -- skipping",
+        decal_type, context, decal_tag_index,
+        decal_name ? tag_name_strip_path((char *)decal_name) : "<null>",
+        bitmap_tag_index,
+        bitmap_name ? tag_name_strip_path((char *)bitmap_name) : "<null>");
+}
+
 void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
                   void *direction, float scale, bool randomize,
                   int16_t color_index, int flags)
@@ -941,7 +974,19 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
     bitmap_tag = (char *)tag_get(0x6269746d, *(int *)(decal_tag + 0xe4));
     direction3 = (float *)direction;
     normal = (float *)(collision_result + 0x12);
-    decal_type = *(int16_t *)(bitmap_tag + 2);
+    decal_type = *(int16_t *)(decal_tag + 2);
+
+    if (decal_type < 0 || decal_type >= 4) {
+      int bitmap_tag_index = *(int *)(decal_tag + 0xe4);
+      const char *decal_name = tag_get_name(decal_tag_index);
+      const char *bitmap_name = tag_get_name(bitmap_tag_index);
+      decals_log_invalid_decal_type_once(
+        decal_type, decal_tag_index, decal_name, bitmap_tag_index, bitmap_name,
+        "decal_new");
+      reuse_previous = (*(uint8_t *)decal_tag & 1) != 0;
+      decal_tag_index = *(int *)(decal_tag + 0x14);
+      continue;
+    }
 
     if (!reuse_previous) {
       float tangent[3];
@@ -970,10 +1015,11 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
           decals_cross3(bitangent, tangent, normal);
         } else {
           float axis_vector[3];
-          uint32_t axis = FUN_00099220(direction3);
-          float axis_sign = FUN_00099270(direction3, axis) ? 1.0f : -1.0f;
+          int16_t axis = (int16_t)FUN_00099220(direction3);
+          float axis_sign =
+            FUN_00099270(direction3, (uint16_t)axis) ? 1.0f : -1.0f;
 
-          decals_build_axis(axis_vector, axis, axis_sign, 0x848);
+          decals_build_axis(axis_vector, (uint16_t)axis, axis_sign, 0x848);
 
           if (decals_dot3(axis_vector, normal) <= *(float *)0x2533c0) {
             axis_vector[0] -= normal[0];
@@ -998,9 +1044,9 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
             reflected[1] = reflected_scale * normal[1] + direction3[1];
             reflected[2] = reflected_scale * normal[2] + direction3[2];
 
-            axis = FUN_00099220(reflected);
-            axis_sign = FUN_00099270(reflected, axis) ? 1.0f : -1.0f;
-            decals_build_axis(axis_vector, axis, axis_sign, 0x868);
+            axis = (int16_t)FUN_00099220(reflected);
+            axis_sign = FUN_00099270(reflected, (uint16_t)axis) ? 1.0f : -1.0f;
+            decals_build_axis(axis_vector, (uint16_t)axis, axis_sign, 0x868);
 
             if (decals_dot3(axis_vector, normal) <= *(float *)0x2533c0) {
               axis_vector[0] -= normal[0];
@@ -1413,8 +1459,9 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       return;
     }
 
-    decal_index = FUN_000998b0(collision_result[8], *(int16_t *)(decal_tag + 4),
-                               -1, randomize);
+    decal_index =
+      FUN_000998b0(cache_index, collision_result[8], *(int16_t *)(decal_tag + 4),
+                   -1, randomize);
     if (decal_index == -1) {
       FUN_0017cb10(cache_index);
 
