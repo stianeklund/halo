@@ -83,6 +83,20 @@ Treat `kb.json` as link/runtime-critical.
     call it by name. Do not use raw function pointer casts or inline assembly.
   - New `@<reg>` entries must also be added to the baseline.
 
+## Commit discipline
+
+- **Never write freeform lift commit messages.**
+- After staging changes, run:
+  ```
+  python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
+  git commit -F /tmp/commit_msg.txt
+  ```
+- The generated message must include:
+  1. Function inventory (name, address, object)
+  2. kb_meta.json update count
+  3. Coverage metric
+- If the script produces no output, ensure `kb.json` and source changes are staged.
+
 ## Build and verification
 
 - Use the repo toolchain and existing scripts.
