@@ -4628,8 +4628,9 @@
           "addr": "0x1acd70"
         },
         {
-          "decl": "char *FUN_0008dc30(int destination, const char *source);",
-          "addr": "0x8dc30"
+          "decl": "char *FUN_0008dc30(char *destination, const char *source);",
+          "addr": "0x8dc30",
+          "ported": true
         },
         {
           "decl": "void FUN_00123470(void *mode_tag, void *animation, int animation_index, void *out_matrix);",

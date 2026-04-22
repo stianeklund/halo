@@ -7,6 +7,44 @@
 
 #define NUMBER_OF_UNIT_BASE_SEATS 6
 
+char *FUN_0008dc30(char *destination, const char *source)
+{
+  const char *source_cursor;
+  char *destination_cursor;
+  unsigned int source_size;
+
+  if (destination == NULL || source == NULL) {
+    display_assert("s1 && s2", "c:\\halo\\SOURCE\\cseries\\cseries.c", 0x122,
+                   true);
+    system_exit(-1);
+  }
+
+  source_cursor = source;
+  while (*source_cursor != '\0') {
+    source_cursor += 1;
+  }
+  source_size = (unsigned int)(source_cursor - source) + 1;
+
+  destination_cursor = destination - 1;
+  do {
+    destination_cursor += 1;
+  } while (*destination_cursor != '\0');
+
+  for (unsigned int i = source_size >> 2; i != 0; i -= 1) {
+    *(uint32_t *)destination_cursor = *(const uint32_t *)source;
+    source += 4;
+    destination_cursor += 4;
+  }
+
+  for (unsigned int i = source_size & 3; i != 0; i -= 1) {
+    *destination_cursor = *source;
+    source += 1;
+    destination_cursor += 1;
+  }
+
+  return destination;
+}
+
 /* unit_set_actively_controlled_flag (0x1a7f80)
  *
  * Sets bit 5 (0x20) of the byte at object_data_t+0xb6 (offset 182,
@@ -100,7 +138,7 @@ int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
       matrix4x3_multiply((float *)(seat_marker_data + 0x38),
                          (float *)mode_matrix, (float *)enter_position_matrix);
       csstrcpy(marker_name, seat + 0x24);
-      FUN_0008dc30((int)marker_name, " enter-hint");
+      FUN_0008dc30(marker_name, " enter-hint");
       object_get_markers_by_string_id(target_unit_handle, marker_name,
                                       hint_marker_data, 1);
 

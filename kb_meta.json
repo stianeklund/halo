@@ -284,6 +284,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8dc30": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Asserting strcat helper: validates destination/source pointers, scans to destination NUL, then appends source including terminator using dword-copy plus tail-byte loops."
+      }
+    },
     "0x8dcb0": {
       "kind": "function",
       "status": "ported"
