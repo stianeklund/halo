@@ -72,6 +72,10 @@ COMMAND_OUTPUTS = {
         "claude": OutputSpec("commands/xbdm-continue.md"),
         "opencode": OutputSpec("commands/xbdm-continue.md"),
     },
+    "xbdm-debug-txt.md": {
+        "claude": OutputSpec("commands/xbdm-debug-txt.md"),
+        "opencode": OutputSpec("commands/xbdm-debug-txt.md"),
+    },
     "xbdm-dirlist.md": {
         "claude": OutputSpec("commands/xbdm-dirlist.md"),
         "opencode": OutputSpec("commands/xbdm-dirlist.md"),

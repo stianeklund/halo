@@ -1,15 +1,13 @@
 ---
 description: Two-phase lift — RE analysis by deep agent, then build + verify pipeline
 agent: xbox-halo-re-analyst
-subtask: false 
+subtask: false
 ---
 
 Use `halo-xbox-re` for doctrine and evidence rules, `halo-re-lift` for the
 lift workflow, and `halo-verify-debug` for the verification lane expectations.
 
 Two-phase lift: RE analysis + implementation, then build and verify.
-
-Argument: $ARGUMENTS (optional target name or 0x... address)
 
 Ghidra MCP preflight (required):
 - Before any `ghidra`/`ghidra-live` MCP tool call, run
@@ -22,7 +20,9 @@ Ghidra MCP preflight (required):
 Scope/read-budget guardrails:
 - Start from the narrowest file/function range for the resolved target.
 - Avoid re-reading the same file/range unless the file changed or ambiguity remains.
-- Before reading outside scope, report `NEED <path>:<line-range> because <reason>`.
+- Before reading outside scope, report `NEED <path>:<line-range> because <reason>.`
+
+Argument: $ARGUMENTS (optional target name or 0x... address)
 
 ---
 
@@ -53,7 +53,6 @@ Steps:
    address-ordered position.
 7. If the `kb.json` declaration needs updating, update it conservatively.
 8. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
-9. Commit changes as you go.
 
 Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
 

@@ -15,10 +15,6 @@ procedures.
 Prefer real Xbox via XBDM/RDCP over xemu+ISO whenever a console is on the
 network. The order is:
 
-1. **XBDM deploy + probe** — build, deploy to Xbox via `/deploy`, then probe
-   with `/xbdm-*` commands. Fastest iteration, real hardware, no ISO needed.
-2. **xemu + ISO** — only if no Xbox is available or XBDM cannot reach it.
-
 ## Ghidra MCP availability (required)
 
 - Before the first `ghidra` or `ghidra-live` MCP tool call in a task, run
@@ -28,6 +24,10 @@ network. The order is:
   retry in the same response.
 - Tell the user exactly: `You might have forgotten to start
   tools/mcp-servers.sh or ghidra may not be running?`
+
+1. **XBDM deploy + probe** — build, deploy to Xbox via `/deploy`, then probe
+   with `/xbdm-*` commands. Fastest iteration, real hardware, no ISO needed.
+2. **xemu + ISO** — only if no Xbox is available or XBDM cannot reach it.
 
 ## Verification lanes
 

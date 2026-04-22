@@ -32,8 +32,19 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
    - preserve pointer arithmetic and odd logic unless disproven
 6. Write implementation in address-ordered position.
 7. Update kb.json conservatively (see
-   `docs/references/kb-update-policy.md`).
+    `docs/references/kb-update-policy.md`).
 8. Run `python3 tools/maintain.py <source_file>`.
+
+9. **Generate the commit message with `tools/generate_lift_commit.py`**.
+   This is mandatory. Do not write freeform commit messages.
+   - Stage all changes (`git add -A`).
+   - Run `python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt`.
+   - Review the generated message. It must include:
+     - Function inventory (name, address, object)
+     - kb_meta.json update count
+     - Coverage metric
+   - Commit with `git commit -F /tmp/commit_msg.txt`.
+   - If the script fails or produces empty output, fix the issue before committing.
 
 ## Ghidra MCP availability (required)
 

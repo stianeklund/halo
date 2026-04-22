@@ -41,7 +41,7 @@ patched ISO, or control xemu.
 Report:
 
 - build status
-- commit hash from `git rev-parse HEAD` when the build succeeds
+- build hash from the build scripts
 - ISO path
 - xemu load or control result
 - any warnings or fallback used

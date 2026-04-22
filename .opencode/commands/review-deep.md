@@ -16,4 +16,4 @@ Behavior:
 5. Keep summaries brief and only after enumerating findings.
 6. If no findings are discovered, say so explicitly and mention residual risks or testing gaps.
 7. Do not re-read the same file/range unless scope changed or the first slice was insufficient.
-8. Before reading outside the initial scope, report `NEED <path>:<line-range> because <reason>`.
+8. Before reading outside the initial scope, report `NEED <path>:<line-range> because <reason>.`

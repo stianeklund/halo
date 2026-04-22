@@ -32,8 +32,9 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
    - preserve pointer arithmetic and odd logic unless disproven
 6. Write implementation in address-ordered position.
 7. Update kb.json conservatively (see
-   `docs/references/kb-update-policy.md`).
+    `docs/references/kb-update-policy.md`).
 8. Run `python3 tools/maintain.py <source_file>`.
+
 9. **Generate the commit message with `tools/generate_lift_commit.py`**.
    This is mandatory. Do not write freeform commit messages.
    - Stage all changes (`git add -A`).

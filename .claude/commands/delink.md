@@ -20,8 +20,6 @@ Prerequisites (verify and bail early if not met):
 - The project has been built at least once (`cmake --build build`), so the
   target object's `.obj` exists for the lifted source file.
 
-Argument: $ARGUMENTS (function name or `0x...` address; required)
-
 Ghidra MCP preflight (required):
 - Before any `ghidra`/`ghidra-live` MCP tool call, run
   `python3 tools/check_ghidra_mcp.py`.
@@ -29,6 +27,8 @@ Ghidra MCP preflight (required):
   to connection/timeout/unavailable errors, stop immediately and tell the user
   exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
   may not be running?`
+
+Argument: $ARGUMENTS (function name or `0x...` address; required)
 
 Steps:
 1. Resolve the target.
