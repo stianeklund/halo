@@ -3652,6 +3652,10 @@
           "addr": "0x15b1a0"
         },
         {
+          "decl": "void FUN_0015b530(int decal_index);",
+          "addr": "0x15b530"
+        },
+        {
           "decl": "void rasterizer_decals_initialize(void);",
           "addr": "0x15b6d0"
         },

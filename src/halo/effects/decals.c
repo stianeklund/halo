@@ -247,5 +247,5 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
 
 void FUN_0017cb10(int decal_index)
 {
-  ((void (*)(int))0x15b530)(decal_index);
+  FUN_0015b530(decal_index);
 }
