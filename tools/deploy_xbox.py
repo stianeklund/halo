@@ -261,16 +261,111 @@ def query_remote_file_attributes(host: str, xbox_path: str) -> dict | None:
         text=True,
         check=False,
     )
-    if result.returncode != 0:
-        return None
-
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError:
         return None
-    if not payload.get("ok"):
-        return None
     return payload
+
+
+def remote_file_missing(attributes: dict) -> bool:
+    if attributes.get("ok"):
+        return False
+
+    if int(attributes.get("code", 0) or 0) == 402:
+        return True
+
+    message = str(attributes.get("message", "")).lower()
+    return any(
+        phrase in message
+        for phrase in (
+            "not found",
+            "does not exist",
+            "no such file",
+            "cannot find",
+            "missing",
+        )
+    )
+
+
+def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbdm_rdcp.py")
+    cmd = build_windows_python_command(
+        rdcp_script,
+        ["--json", f'delete name="{xbox_path}"'],
+    )
+    if cmd is None:
+        cmd = [
+            sys.executable,
+            rdcp_script,
+            "--json",
+            f'delete name="{xbox_path}"',
+        ]
+    if host:
+        cmd += ["--host", host]
+
+    if dry_run:
+        print(f"  [DRY-RUN] {' '.join(cmd)}")
+        return True
+
+    print(f"  deleting {xbox_path}...")
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=ROOT_DIR,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        print(f"error: failed to run {rdcp_script}", file=sys.stderr)
+        return False
+    except OSError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return False
+
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        if result.stderr:
+            for line in result.stderr.strip().splitlines():
+                print(f"  | {line}", file=sys.stderr)
+        print(
+            f"  verify failed: could not parse delete response for {xbox_path}",
+            file=sys.stderr,
+        )
+        return False
+
+    code = int(payload.get("code", 0) or 0)
+    message = str(payload.get("message", "")).strip()
+    if code == 402:
+        print(f"  debug.txt already absent")
+        return True
+
+    if not payload.get("ok"):
+        print(f"  delete failed: {code}- {message}", file=sys.stderr)
+        return False
+
+    attributes = query_remote_file_attributes(host, xbox_path)
+    if attributes is None:
+        print(
+            f"  verify failed: could not confirm deletion of {xbox_path}",
+            file=sys.stderr,
+        )
+        return False
+    if remote_file_missing(attributes):
+        print(f"  deleted {xbox_path}")
+        return True
+
+    if attributes.get("ok"):
+        print(f"  verify failed: {xbox_path} still exists", file=sys.stderr)
+        return False
+
+    print(
+        f"  verify failed: could not confirm deletion of {xbox_path}",
+        file=sys.stderr,
+    )
+    return False
 
 
 def extract_remote_size(attributes: dict) -> int | None:
@@ -447,6 +542,7 @@ def main() -> int:
 
     xbe_src = to_windows_path(xbe_path)
     xbe_dest = f"{dest}\\default.xbe"
+    debug_txt_dest = f"{dest.lstrip('x')}\\debug.txt"
 
     print(f"deploying to {dest}" + (f" on {host}" if host else ""))
 
@@ -459,6 +555,8 @@ def main() -> int:
             print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
             return rc
         if not args.dry_run and not verify_uploaded_file(host, xbe_path, d.lstrip("x")):
+            return 1
+        if not delete_remote_file(host, debug_txt_dest, args.dry_run):
             return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
@@ -485,6 +583,8 @@ def main() -> int:
                 any_failed = True
         if any_failed:
             return 1
+        if not delete_remote_file(host, debug_txt_dest, args.dry_run):
+            return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
         if rc != 0:
@@ -499,6 +599,8 @@ def main() -> int:
         print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
         return rc
     if not args.dry_run and not verify_uploaded_file(host, xbe_path, xbe_dest.lstrip("x")):
+        return 1
+    if not delete_remote_file(host, debug_txt_dest, args.dry_run):
         return 1
 
     # Then push maps/ and bink/ if --full, or just maps/ by default
