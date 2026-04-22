@@ -3653,7 +3653,8 @@
         },
         {
           "decl": "void FUN_0015b530(int decal_index);",
-          "addr": "0x15b530"
+          "addr": "0x15b530",
+          "ported": true
         },
         {
           "decl": "void rasterizer_decals_initialize(void);",
@@ -5309,6 +5310,10 @@
         {
           "decl": "void lruv_cache_dispose(void *cache);",
           "addr": "0x11d890"
+        },
+        {
+          "decl": "void FUN_0011d8f0(void *cache, int block_index);",
+          "addr": "0x11d8f0"
         },
         {
           "decl": "void lruv_cache_dispose_all(void *cache);",

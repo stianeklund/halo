@@ -2990,6 +2990,13 @@
         "decals_update_for_new_map (0x98e70) name is inferred from its behavior: it iterates all decal data, clears locked/permanent flags, and resets the global lock/permanent counts."
       ]
     },
+    "0x15b530": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Validates decal cache index and local_vertex_cache handle, then removes the corresponding LRUV block via FUN_0011d8f0."
+      }
+    },
     "0x15b6d0": {
       "kind": "function",
       "status": "ported",

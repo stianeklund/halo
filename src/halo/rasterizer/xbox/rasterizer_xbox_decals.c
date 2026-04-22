@@ -54,6 +54,31 @@ void rasterizer_decals_dispose_from_old_map(void)
   lruv_cache_dispose_all(*(void **)0x476adc);
 }
 
+/* 0x15b530
+ *
+ * Removes one decal vertex-cache entry from the LRUV cache.
+ * Asserts valid decal index and cache handle before forwarding to the
+ * lruv-cache block removal helper.
+ */
+void FUN_0015b530(int decal_index)
+{
+  if (decal_index == -1) {
+    display_assert(
+      "cache_index!=NONE",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x106, 1);
+    system_exit(-1);
+  }
+
+  if (*(void **)0x476adc == 0) {
+    display_assert(
+      "local_vertex_cache",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x107, 1);
+    system_exit(-1);
+  }
+
+  FUN_0011d8f0(*(void **)0x476adc, decal_index);
+}
+
 /* 0x15afa0
  *
  * rasterizer_decals_vertex_cache_delete  (LRUV eviction callback)
