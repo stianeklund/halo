@@ -1323,7 +1323,8 @@
         },
         {
           "decl": "void FUN_0017cb10(int decal_index);",
-          "addr": "0x17cb10"
+          "addr": "0x17cb10",
+          "ported": true
         },
         {
           "decl": "void FUN_0009ac90(int decal_tag_index, int16_t *collision_result, void *direction, float scale, bool randomize, int16_t color_index, int flags);",

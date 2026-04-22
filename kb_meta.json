@@ -3036,6 +3036,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x17cb10": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Thin cdecl trampoline for decal teardown: forwards decal_index directly to 0x15b530."
+      }
+    },
     "0x184b80": {
       "kind": "function",
       "status": "ported"
