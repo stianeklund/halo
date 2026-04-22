@@ -187,6 +187,26 @@
           "addr": "0x10b270"
         },
         {
+          "decl": "void FUN_000992d0(float *point_2d, float *plane, int16_t projection, uint8_t sign, float *out_point);",
+          "addr": "0x992d0"
+        },
+        {
+          "decl": "float *FUN_00099400(float *out_line, float *point_a, float *point_b);",
+          "addr": "0x99400"
+        },
+        {
+          "decl": "void FUN_00099640(int structure_bsp, uint32_t plane_reference, float *out_plane);",
+          "addr": "0x99640"
+        },
+        {
+          "decl": "int16_t FUN_00106510(int16_t count, float *points, float *line, int16_t max_count, float *out_points, uint32_t *out_bitmask, uint8_t *changed, float epsilon);",
+          "addr": "0x106510"
+        },
+        {
+          "decl": "int FUN_0018e3f0(void);",
+          "addr": "0x18e3f0"
+        },
+        {
           "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
           "addr": "0x140070"
         },
@@ -1336,8 +1356,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0009a5a0(int surface_queue, int surface_queue_write_index, bool allow_deviants, float scale, int16_t type, int geometry, int16_t *deviant_surface_count, int projection, int16_t *deviant_surface_list);",
-          "addr": "0x9a5a0"
+          "decl": "void FUN_0009a5a0(void *geometry@<eax>, float *projection, int surface_index, bool allow_deviants, float scale, int16_t type, int *surface_queue, int16_t *surface_queue_write_index, int *deviant_surface_list, int16_t *deviant_surface_count);",
+          "addr": "0x9a5a0",
+          "ported": true
         },
         {
           "decl": "void FUN_00099fd0(int16_t cluster_index);",
@@ -1360,13 +1381,18 @@
           "ported": true
         },
         {
+          "decl": "void thunk_FUN_0015b960(void);",
+          "addr": "0x17cb00"
+        },
+        {
           "decl": "void FUN_0017cb10(int decal_index);",
           "addr": "0x17cb10",
           "ported": true
         },
         {
           "decl": "void FUN_0009ac90(int decal_tag_index, int16_t *collision_result, void *direction, float scale, bool randomize, int16_t color_index, int flags);",
-          "addr": "0x9ac90"
+          "addr": "0x9ac90",
+          "ported": true
         }
       ]
     },

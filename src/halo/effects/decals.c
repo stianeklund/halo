@@ -181,6 +181,11 @@ void decals_update_for_new_map(bool full_reset)
   decal_counts_1 = 0;
 }
 
+void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
+                  uint8_t sign, float *out_point);
+
+float *FUN_00099400(float *out_line, float *point_a, float *point_b);
+
 uint32_t FUN_00099530(float alpha, float *color)
 {
   uint32_t a;
@@ -209,6 +214,9 @@ uint32_t FUN_00099530(float alpha, float *color)
 
   return b | (g << 8) | (r << 0x10) | (a << 0x18);
 }
+
+void FUN_00099640(int structure_bsp, uint32_t plane_reference,
+                  float *out_plane);
 
 int FUN_000998b0(int16_t cluster_index, int16_t layer, int old_index,
                  bool randomize)
@@ -478,6 +486,1078 @@ void FUN_0009a300(float *bounds, float *projection, float *basis)
                                            projection[0x1f] * projection[0x20]);
 }
 
+void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
+                  bool allow_deviants, float scale, int16_t type,
+                  int *surface_queue, int16_t *surface_queue_write_index,
+                  int *deviant_surface_list, int16_t *deviant_surface_count)
+{
+  char *geometry_data;
+  int structure_bsp;
+  int *surface;
+  int edges_block;
+  int vertices_block;
+  int edge_index;
+  float plane[4];
+  float angle;
+  int16_t queue_write_index;
+  int16_t deviant_count;
+
+  if (type < 0 || type >= 4) {
+    display_assert("type>=0 && type<NUMBER_OF_DECAL_TYPES",
+                   "c:\\halo\\SOURCE\\effects\\decals.c", 0x47b, true);
+    system_exit(-1);
+  }
+
+  if (surface_index == -1) {
+    return;
+  }
+
+  structure_bsp = FUN_0018e3f0();
+  surface = (int *)tag_block_get_element((char *)structure_bsp + 0x3c,
+                                         surface_index, 0xc);
+
+  if (projection == NULL) {
+    display_assert("projection", "c:\\halo\\SOURCE\\effects\\decals.c", 0x488,
+                   true);
+    system_exit(-1);
+  }
+
+  if (geometry == NULL) {
+    display_assert("geometry", "c:\\halo\\SOURCE\\effects\\decals.c", 0x489,
+                   true);
+    system_exit(-1);
+  }
+
+  geometry_data = (char *)geometry;
+
+  queue_write_index = 0;
+  deviant_count = 0;
+  if (allow_deviants) {
+    if (surface_queue == NULL) {
+      display_assert("surface_queue", "c:\\halo\\SOURCE\\effects\\decals.c",
+                     0x48d, true);
+      system_exit(-1);
+    }
+
+    if (surface_queue_write_index == NULL || *surface_queue_write_index < 0 ||
+        *surface_queue_write_index > 0x400) {
+      display_assert(
+        "surface_queue_write_index && *surface_queue_write_index>=0 "
+        "&& *surface_queue_write_index<=MAXIMUM_DECAL_SURFACE_QUE"
+        "UE_SIZE",
+        "c:\\halo\\SOURCE\\effects\\decals.c", 0x48e, true);
+      system_exit(-1);
+    }
+
+    if (deviant_surface_list == NULL) {
+      display_assert("deviant_surface_list",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0x48f, true);
+      system_exit(-1);
+    }
+
+    if (deviant_surface_count == NULL || *deviant_surface_count < 0 ||
+        *deviant_surface_count > 0x400) {
+      display_assert("deviant_surface_count && *deviant_surface_count>=0 && "
+                     "*deviant_surface_count<=MAXIMUM_DECAL_SURFACE_QUEUE_SIZE",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0x490, true);
+      system_exit(-1);
+    }
+
+    queue_write_index = *surface_queue_write_index;
+    deviant_count = *deviant_surface_count;
+  }
+
+  FUN_00099640(structure_bsp, (uint32_t)surface[0], plane);
+  angle = FUN_0010c600(plane, projection + 0x11);
+
+  if (!allow_deviants ||
+      angle <= *(float *)(0x269d80 + type * 0x10) * *(float *)0x253d4c) {
+    int vertex_iteration;
+    int16_t clipped_count;
+    uint32_t clipped_mask;
+    float *input_points;
+    float *output_points;
+    float projected_previous[2];
+    float projected_current[2];
+    float line[3];
+    uint8_t clipped;
+
+    edge_index = surface[1];
+    edges_block = structure_bsp + 0x48;
+    vertices_block = structure_bsp + 0x54;
+    vertex_iteration = 0;
+    clipped_count = 4;
+    clipped_mask = 0;
+    input_points = projection + 0x16;
+    projected_previous[0] = 0.0f;
+    projected_previous[1] = 0.0f;
+
+    do {
+      int *edge =
+        (int *)tag_block_get_element((char *)edges_block, edge_index, 0x18);
+      bool surface_match = edge[5] == surface_index;
+      int remote_vertex_index = edge[surface_match ? 0 : 1];
+      float *remote_vertex = (float *)tag_block_get_element(
+        (char *)vertices_block, remote_vertex_index, 0x10);
+
+      output_points = (float *)(0x44df10 + (vertex_iteration & 1) * 0x60);
+      if (vertex_iteration == 0) {
+        int first_vertex_index = edge[surface_match ? 1 : 0];
+        float *first_vertex = (float *)tag_block_get_element(
+          (char *)vertices_block, first_vertex_index, 0x10);
+        FUN_00061df0(first_vertex, *(int16_t *)((char *)projection + 0x54),
+                     *(uint8_t *)((char *)projection + 0x56),
+                     projected_previous);
+      }
+
+      FUN_00061df0(remote_vertex, *(int16_t *)((char *)projection + 0x54),
+                   *(uint8_t *)((char *)projection + 0x56), projected_current);
+      if (FUN_00099400(line, projected_current, projected_previous) == NULL) {
+        clipped_count = 0;
+      } else {
+        clipped = 0;
+        clipped_count =
+          FUN_00106510(clipped_count, input_points, line, 0xc, output_points,
+                       &clipped_mask, &clipped, 0.0f);
+
+        if (allow_deviants && clipped != 0 && queue_write_index < 0x400) {
+          int current_vertex_index = edge[surface_match ? 1 : 0];
+          float *current_vertex = (float *)tag_block_get_element(
+            (char *)vertices_block, current_vertex_index, 0x10);
+          float segment[3];
+
+          segment[0] = current_vertex[0] - remote_vertex[0];
+          segment[1] = current_vertex[1] - remote_vertex[1];
+          segment[2] = current_vertex[2] - remote_vertex[2];
+          if (FUN_0010bc70(remote_vertex, segment, projection + 0xa,
+                           scale * *(float *)(0x269d88 + type * 0x10))) {
+            int candidate_surface = edge[surface_match ? 4 : 5];
+            int16_t i = 0;
+
+            while (candidate_surface != -1) {
+              if (queue_write_index <= i) {
+                surface_queue[(int)queue_write_index] = candidate_surface;
+                queue_write_index += 1;
+                break;
+              }
+
+              if (surface_queue[(int)i] == candidate_surface) {
+                candidate_surface = -1;
+              }
+
+              i += 1;
+            }
+          }
+        }
+      }
+
+      edge_index = edge[surface_match ? 3 : 2];
+      vertex_iteration += 1;
+      projected_previous[0] = projected_current[0];
+      projected_previous[1] = projected_current[1];
+      input_points = output_points;
+    } while (edge_index != surface[1] && clipped_count > 0);
+
+    if (clipped_count > 2 &&
+        clipped_count <= 0x400 - *(int16_t *)(geometry_data + 0x6000) &&
+        ((*(uint8_t *)(surface + 2) & 0xb) == 0)) {
+      int16_t surface_count;
+
+      if (*(int16_t *)(geometry_data + 0x6802) > 0x3ff) {
+        display_assert(
+          "geometry->decal_surface_count<MAXIMUM_DECAL_SURFACE_QUEU"
+          "E_SIZE",
+          "c:\\halo\\SOURCE\\effects\\decals.c", 0x555, true);
+        system_exit(-1);
+      }
+
+      surface_count = *(int16_t *)(geometry_data + 0x6802);
+      *(int *)(geometry_data + (int)surface_count * 4 + 0x6804) = surface_index;
+      *(int16_t *)(geometry_data + (int)surface_count * 2 + 0x6002) =
+        clipped_count;
+      *(int16_t *)(geometry_data + 0x6802) = surface_count + 1;
+
+      if (clipped_count > 0) {
+        float *point = output_points;
+
+        for (int i = 0; i < clipped_count; ++i) {
+          float dx = point[0] - projection[0x16];
+          float dy = point[1] - projection[0x17];
+          int16_t geometry_vertex_index = *(int16_t *)(geometry_data + 0x6000);
+          char *geometry_vertex =
+            geometry_data + (int)geometry_vertex_index * 0x18 + 0xc;
+          uint32_t bit = 1u << (i & 0x1f);
+
+          *(float *)(geometry_vertex + 0xc) =
+            (dx * projection[0x21] - dy * projection[0x20]) * projection[0x22];
+          *(float *)(geometry_vertex + 0x10) = -(
+            (dx * projection[0x1f] - dy * projection[0x1e]) * projection[0x22]);
+          *(bool *)(geometry_vertex + 0x14) = (clipped_mask & bit) != 0;
+
+          FUN_000992d0(point, plane, *(int16_t *)((char *)projection + 0x54),
+                       *(uint8_t *)((char *)projection + 0x56),
+                       (float *)geometry_vertex);
+
+          if ((clipped_mask & bit) == 0) {
+            *(float *)(geometry_vertex + 0) += plane[0] * *(float *)0x325710;
+            *(float *)(geometry_vertex + 4) += plane[1] * *(float *)0x325710;
+            *(float *)(geometry_vertex + 8) += plane[2] * *(float *)0x325710;
+          }
+
+          *(int16_t *)(geometry_data + 0x6000) = geometry_vertex_index + 1;
+          point += 2;
+        }
+      }
+    }
+  } else {
+    edge_index = surface[1];
+    edges_block = structure_bsp + 0x48;
+    vertices_block = structure_bsp + 0x54;
+
+    do {
+      int *edge =
+        (int *)tag_block_get_element((char *)edges_block, edge_index, 0x18);
+      bool surface_match = edge[5] == surface_index;
+      float *remote_vertex = (float *)tag_block_get_element(
+        (char *)vertices_block, edge[surface_match ? 0 : 1], 0x10);
+
+      if (queue_write_index < 0x400) {
+        float *current_vertex = (float *)tag_block_get_element(
+          (char *)vertices_block, edge[surface_match ? 1 : 0], 0x10);
+        float segment[3];
+
+        segment[0] = current_vertex[0] - remote_vertex[0];
+        segment[1] = current_vertex[1] - remote_vertex[1];
+        segment[2] = current_vertex[2] - remote_vertex[2];
+
+        if (FUN_0010bc70(remote_vertex, segment, projection + 0xa,
+                         scale * *(float *)(0x269d88 + type * 0x10))) {
+          int candidate_surface = edge[surface_match ? 4 : 5];
+          int16_t i = 0;
+
+          while (candidate_surface != -1) {
+            if (queue_write_index <= i) {
+              surface_queue[(int)queue_write_index] = candidate_surface;
+              queue_write_index += 1;
+              break;
+            }
+
+            if (surface_queue[(int)i] == candidate_surface) {
+              candidate_surface = -1;
+            }
+
+            i += 1;
+          }
+        }
+      }
+
+      edge_index = edge[surface_match ? 3 : 2];
+    } while (edge_index != surface[1]);
+
+    if (angle <= *(float *)(0x269d84 + type * 0x10) * *(float *)0x253d4c &&
+        deviant_count < 0x400) {
+      deviant_surface_list[(int)deviant_count] = surface_index;
+      deviant_count += 1;
+    }
+  }
+
+  if (allow_deviants) {
+    *surface_queue_write_index = queue_write_index;
+    *deviant_surface_count = deviant_count;
+  }
+}
+
+typedef struct s_decal_geometry_vertex {
+  float position[3];
+  float uv[2];
+  uint8_t clipped;
+  uint8_t pad[3];
+} s_decal_geometry_vertex;
+
+typedef struct s_decal_geometry_scratch {
+  s_decal_geometry_vertex vertices[0x400];
+  int16_t vertex_count;
+  int16_t surface_vertex_counts[0x400];
+  int16_t surface_count;
+  int surfaces[0x400];
+} s_decal_geometry_scratch;
+
+typedef struct s_decal_staged_vertex {
+  float position[3];
+  int16_t uv[2];
+} s_decal_staged_vertex;
+
+typedef struct s_decal_cached_quad {
+  s_decal_staged_vertex vertices[4];
+} s_decal_cached_quad;
+
+static s_decal_staged_vertex g_decal_staged_vertices[0x400];
+static int g_decal_grouped_surfaces[0x400];
+static int g_decal_deviant_surfaces[0x400];
+static int g_decal_surface_queue[0x400];
+static float g_decal_projection[35];
+static float g_decal_transformed_projection[35];
+
+void thunk_FUN_0015b960(void);
+
+static void decals_assert_or_exit(const char *condition, int line)
+{
+  display_assert(condition, "c:\\halo\\SOURCE\\effects\\decals.c", line, true);
+  system_exit(-1);
+}
+
+static float decals_dot3(const float *a, const float *b)
+{
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+static void decals_cross3(float *out, const float *a, const float *b)
+{
+  out[0] = a[1] * b[2] - a[2] * b[1];
+  out[1] = a[2] * b[0] - a[0] * b[2];
+  out[2] = a[0] * b[1] - a[1] * b[0];
+}
+
+static float decals_random_real(float min, float max)
+{
+  return random_real_range((int *)random_math_get_local_seed_address(), min,
+                           max);
+}
+
+static int16_t decals_random_short(int16_t min, int16_t max)
+{
+  return random_range(random_math_get_local_seed_address(), min, max);
+}
+
+static void decals_get_signed_plane(int structure_bsp, int plane_reference,
+                                    float *out_plane)
+{
+  FUN_00099640(structure_bsp, (uint32_t)plane_reference & 0x7fffffff,
+               out_plane);
+
+  if (plane_reference < 0) {
+    out_plane[0] = -out_plane[0];
+    out_plane[1] = -out_plane[1];
+    out_plane[2] = -out_plane[2];
+    out_plane[3] = -out_plane[3];
+  }
+}
+
+static void decals_build_axis(float *axis_vector, uint32_t basis, float sign,
+                              int assert_line)
+{
+  axis_vector[0] = 0.0f;
+  axis_vector[1] = 0.0f;
+  axis_vector[2] = 0.0f;
+
+  if (basis == 0) {
+    axis_vector[0] = sign;
+  } else if (basis == 1) {
+    axis_vector[1] = sign;
+  } else if (basis == 2) {
+    axis_vector[2] = sign;
+  } else {
+    decals_assert_or_exit((char *)0x26a7e4, assert_line);
+  }
+}
+
+void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
+                  void *direction, float scale, bool randomize,
+                  int16_t color_index, int flags)
+{
+  int structure_bsp;
+  s_decal_geometry_scratch *geometry;
+  s_decal_staged_vertex *staged_vertices;
+  int *grouped_surfaces;
+  int *deviant_surfaces;
+  int *surface_queue;
+  float *projection;
+  float *transformed_projection;
+  float bounds[4];
+  float uv_bounds[4];
+  float basis[13];
+  float rotated_basis[13];
+  float rotation_matrix[13];
+  float center_offset[3];
+  float min_normal[3];
+  float max_normal[3];
+  float color[3];
+  int16_t sprite_index;
+  int16_t selected_color;
+  int16_t sequence_index;
+  float size;
+  bool reuse_previous;
+  float tiny;
+  float tiny_squared;
+
+  structure_bsp = FUN_0018e3f0();
+  geometry = (s_decal_geometry_scratch *)0x44dfd8;
+  staged_vertices = g_decal_staged_vertices;
+  grouped_surfaces = g_decal_grouped_surfaces;
+  deviant_surfaces = g_decal_deviant_surfaces;
+  surface_queue = g_decal_surface_queue;
+  projection = g_decal_projection;
+  transformed_projection = g_decal_transformed_projection;
+  reuse_previous = false;
+  size = 0.0f;
+  sprite_index = 0;
+  selected_color = 0;
+  sequence_index = 0;
+  tiny = (float)*(double *)0x2533d0;
+  tiny_squared = *(float *)0x253f44;
+
+  if (collision_result == NULL) {
+    decals_assert_or_exit("collision_result", 0x7f1);
+  }
+
+  if (direction == NULL) {
+    decals_assert_or_exit("direction", 0x7f2);
+  }
+
+  if (*(uint8_t *)0x2eebd0 == 0) {
+    decals_assert_or_exit((char *)0x26a828, 0x7f3);
+  }
+
+  if (flags != 0) {
+    decals_assert_or_exit((char *)0x26a814, 0x7f5);
+  }
+
+  while (decal_tag_index != -1) {
+    char *decal_tag;
+    char *bitmap_tag;
+    float *normal;
+    float *direction3;
+    int16_t decal_type;
+    int16_t queue_read_index;
+    int16_t queue_write_index;
+    int16_t deviant_surface_count;
+    int16_t primitive_count;
+    int cache_index;
+    int decal_index;
+    int decal;
+    s_decal_cached_quad *cache_quads;
+
+    decal_tag = (char *)tag_get(0x64656361, decal_tag_index);
+    bitmap_tag = (char *)tag_get(0x6269746d, *(int *)(decal_tag + 0xe4));
+    direction3 = (float *)direction;
+    normal = (float *)(collision_result + 0x12);
+    decal_type = *(int16_t *)(bitmap_tag + 2);
+
+    if (!reuse_previous) {
+      float tangent[3];
+      float bitangent[3];
+      float rotated_u[3];
+      float rotated_v[3];
+      float rotation_cos;
+      float rotation_sin;
+      float tangent_length;
+      float bitangent_length;
+
+      if (((*(uint16_t *)decal_tag & 8) == 0) ||
+          (*(float *)0x26a810 <= decals_dot3(direction3, normal))) {
+        float angle = decals_random_real(0.0f, 6.2831855f);
+
+        rotation_cos = cosf(angle);
+        rotation_sin = sinf(angle);
+        perpendicular3d(normal, tangent);
+        decals_cross3(bitangent, tangent, normal);
+      } else {
+        rotation_cos = -1.0f;
+        rotation_sin = 0.0f;
+
+        if ((*(uint16_t *)decal_tag & 0x20) == 0) {
+          decals_cross3(tangent, normal, direction3);
+          decals_cross3(bitangent, tangent, normal);
+        } else {
+          float axis_vector[3];
+          uint32_t axis = FUN_00099220(direction3);
+          float axis_sign = FUN_00099270(direction3, axis) ? 1.0f : -1.0f;
+
+          decals_build_axis(axis_vector, axis, axis_sign, 0x848);
+
+          if (decals_dot3(axis_vector, normal) <= *(float *)0x2533c0) {
+            axis_vector[0] -= normal[0];
+            axis_vector[1] -= normal[1];
+            axis_vector[2] -= normal[2];
+          } else {
+            axis_vector[0] += normal[0];
+            axis_vector[1] += normal[1];
+            axis_vector[2] += normal[2];
+          }
+
+          normalize3d(axis_vector);
+          decals_cross3(tangent, axis_vector, normal);
+          decals_cross3(bitangent, tangent, normal);
+
+          if (decals_dot3(tangent, tangent) < tiny_squared ||
+              decals_dot3(bitangent, bitangent) < tiny_squared) {
+            float reflected[3];
+            float reflected_scale = -decals_dot3(direction3, normal);
+
+            reflected[0] = reflected_scale * normal[0] + direction3[0];
+            reflected[1] = reflected_scale * normal[1] + direction3[1];
+            reflected[2] = reflected_scale * normal[2] + direction3[2];
+
+            axis = FUN_00099220(reflected);
+            axis_sign = FUN_00099270(reflected, axis) ? 1.0f : -1.0f;
+            decals_build_axis(axis_vector, axis, axis_sign, 0x868);
+
+            if (decals_dot3(axis_vector, normal) <= *(float *)0x2533c0) {
+              axis_vector[0] -= normal[0];
+              axis_vector[1] -= normal[1];
+              axis_vector[2] -= normal[2];
+            } else {
+              axis_vector[0] += normal[0];
+              axis_vector[1] += normal[1];
+              axis_vector[2] += normal[2];
+            }
+
+            normalize3d(axis_vector);
+            decals_cross3(tangent, axis_vector, normal);
+            decals_cross3(bitangent, tangent, normal);
+          }
+        }
+      }
+
+      tangent_length = sqrtf(tangent[0] * tangent[0] + tangent[1] * tangent[1] +
+                             tangent[2] * tangent[2]);
+      if (tiny <= fabsf(tangent_length)) {
+        float inv_tangent_length = 1.0f / tangent_length;
+        tangent[0] *= inv_tangent_length;
+        tangent[1] *= inv_tangent_length;
+        tangent[2] *= inv_tangent_length;
+      }
+
+      bitangent_length =
+        sqrtf(bitangent[0] * bitangent[0] + bitangent[1] * bitangent[1] +
+              bitangent[2] * bitangent[2]);
+      if (tiny <= fabsf(bitangent_length)) {
+        float inv_bitangent_length = 1.0f / bitangent_length;
+        bitangent[0] *= inv_bitangent_length;
+        bitangent[1] *= inv_bitangent_length;
+        bitangent[2] *= inv_bitangent_length;
+      }
+
+      rotated_u[0] = rotation_cos * bitangent[0] - tangent[0] * rotation_sin;
+      rotated_u[1] = rotation_cos * bitangent[1] - tangent[1] * rotation_sin;
+      rotated_u[2] = rotation_cos * bitangent[2] - tangent[2] * rotation_sin;
+      rotated_v[0] = tangent[0] * rotation_cos + bitangent[0] * rotation_sin;
+      rotated_v[1] = tangent[1] * rotation_cos + bitangent[1] * rotation_sin;
+      rotated_v[2] = tangent[2] * rotation_cos + bitangent[2] * rotation_sin;
+
+      basis[0] = 1.0f;
+      basis[1] = rotated_u[0];
+      basis[2] = rotated_u[1];
+      basis[3] = rotated_u[2];
+      basis[4] = rotated_v[0];
+      basis[5] = rotated_v[1];
+      basis[6] = rotated_v[2];
+      basis[7] = normal[0];
+      basis[8] = normal[1];
+      basis[9] = normal[2];
+      basis[10] = *(float *)(collision_result + 0xc);
+      basis[11] = *(float *)(collision_result + 0xe);
+      basis[12] = *(float *)(collision_result + 0x10);
+
+      selected_color = color_index;
+      if (selected_color == -1) {
+        selected_color =
+          decals_random_short(0, *(int16_t *)(bitmap_tag + 0x54));
+        if (selected_color >= *(int *)(bitmap_tag + 0x54)) {
+          error(2, (char *)0x26a788);
+          selected_color = *(int16_t *)(bitmap_tag + 0x54) - 1;
+        }
+      }
+
+      sequence_index = 0;
+
+      if (scale == *(float *)0x2533c0) {
+        scale = 1.0f;
+      }
+
+      size = decals_random_real(*(float *)(decal_tag + 0x18),
+                                *(float *)(decal_tag + 0x1c)) *
+             scale;
+    }
+
+    if (*(int16_t *)bitmap_tag == 3) {
+      char *sequence =
+        (char *)tag_block_get_element(bitmap_tag + 0x54, selected_color, 0x40);
+      int16_t *sprite =
+        (int16_t *)tag_block_get_element(sequence + 0x34, sequence_index, 0x20);
+
+      sprite_index = sprite[0];
+      FUN_00098b20(uv_bounds, decal_tag, selected_color, sprite_index, size,
+                   bounds);
+    } else {
+      float aspect = 1.0f;
+
+      sprite_index = 0;
+
+      if ((*(uint16_t *)decal_tag & 0x100) != 0) {
+        char *bitmap =
+          (char *)tag_block_get_element(bitmap_tag + 0x60, 0, 0x30);
+        aspect = (float)(int)*(int16_t *)(bitmap + 6) /
+                 (float)(int)*(int16_t *)(bitmap + 4);
+      }
+
+      bounds[0] = -size;
+      bounds[1] = size;
+      bounds[2] = -(aspect * size);
+      bounds[3] = aspect * size;
+
+      uv_bounds[0] = 0.0f;
+      uv_bounds[1] = 1.0f;
+      uv_bounds[2] = 0.0f;
+      uv_bounds[3] = 1.0f;
+    }
+
+    if (!randomize) {
+      int hardware_format =
+        (int)tag_block_get_element(bitmap_tag + 0x60, sprite_index, 0x30);
+
+      if (!FUN_001bf570(hardware_format, 0, true)) {
+        return;
+      }
+    }
+
+    FUN_0009a300(bounds, projection, basis);
+
+    min_normal[0] = basis[7];
+    max_normal[0] = basis[7];
+    min_normal[1] = basis[8];
+    max_normal[1] = basis[8];
+    min_normal[2] = basis[9];
+    max_normal[2] = basis[9];
+
+    geometry->surface_count = 0;
+    geometry->vertex_count = 0;
+
+    surface_queue[0] = *(int *)(collision_result + 0x44);
+    queue_read_index = 0;
+    queue_write_index = 1;
+    deviant_surface_count = 0;
+
+    while (queue_read_index < queue_write_index) {
+      if (queue_read_index >= 0x400) {
+        decals_assert_or_exit((char *)0x26a74c, 0x931);
+      }
+
+      if (queue_write_index > 0x400) {
+        decals_assert_or_exit((char *)0x26a710, 0x932);
+      }
+
+      FUN_0009a5a0(geometry, projection, surface_queue[queue_read_index], true,
+                   size, decal_type, surface_queue, &queue_write_index,
+                   deviant_surfaces, &deviant_surface_count);
+      queue_read_index += 1;
+    }
+
+    if (*(uint8_t *)(0x269d8c + ((int)decal_type << 4)) != 0) {
+      int16_t remaining = deviant_surface_count;
+
+      while (remaining > 0) {
+        bool processed_group = false;
+
+        for (int list_index = 0; list_index < deviant_surface_count;
+             ++list_index) {
+          int seed_surface = deviant_surfaces[list_index];
+
+          if (seed_surface == -1) {
+            continue;
+          }
+
+          int grouped_count = 0;
+          float collision_plane_distance = decals_dot3(basis + 7, basis + 10);
+          float best_plane[4];
+          float best_start[3] = { 0.0f, 0.0f, 0.0f };
+          float best_end[3] = { 0.0f, 0.0f, 0.0f };
+          float best_near = 0.0f;
+          float best_far = 0.0f;
+          int best_plane_reference = -1;
+
+          if (grouped_count >= 0x400) {
+            decals_assert_or_exit((char *)0x26a6d4, 0x95f);
+          }
+
+          grouped_surfaces[grouped_count++] = seed_surface;
+          deviant_surfaces[list_index] = -1;
+
+          for (int i = list_index + 1; i < deviant_surface_count; ++i) {
+            int candidate_surface = deviant_surfaces[i];
+
+            if (candidate_surface != -1) {
+              int *surface = (int *)tag_block_get_element(
+                (char *)structure_bsp + 0x3c, candidate_surface, 0xc);
+              float candidate_plane[4];
+              float seed_plane[4];
+              float angle;
+
+              decals_get_signed_plane(structure_bsp, *(int *)surface,
+                                      candidate_plane);
+
+              surface = (int *)tag_block_get_element(
+                (char *)structure_bsp + 0x3c, seed_surface, 0xc);
+              decals_get_signed_plane(structure_bsp, *(int *)surface,
+                                      seed_plane);
+
+              angle = FUN_0010c600(seed_plane, candidate_plane);
+              if (angle < *(float *)(0x269d80 + ((int)decal_type << 4)) *
+                            *(float *)0x253d4c) {
+                if (grouped_count >= 0x400) {
+                  decals_assert_or_exit((char *)0x26a6d4, 0x976);
+                }
+
+                grouped_surfaces[grouped_count++] = candidate_surface;
+                deviant_surfaces[i] = -1;
+              }
+            }
+          }
+
+          if (grouped_count < 1) {
+            decals_assert_or_exit((char *)0x26a6b8, 0x9bd);
+          }
+
+          for (int i = 0; i < grouped_count; ++i) {
+            int grouped_surface = grouped_surfaces[i];
+            int *surface = (int *)tag_block_get_element(
+              (char *)structure_bsp + 0x3c, grouped_surface, 0xc);
+            int edge_index = surface[1];
+
+            do {
+              int *edge = (int *)tag_block_get_element(
+                (char *)structure_bsp + 0x48, edge_index, 0x18);
+              bool surface_match = edge[5] == grouped_surface;
+              float *start = (float *)tag_block_get_element(
+                (char *)structure_bsp + 0x54, edge[surface_match ? 0 : 1],
+                0x10);
+              float *end = (float *)tag_block_get_element(
+                (char *)structure_bsp + 0x54, edge[surface_match ? 1 : 0],
+                0x10);
+              float start_distance =
+                fabsf(decals_dot3(basis + 7, start) - collision_plane_distance);
+              float end_distance =
+                fabsf(decals_dot3(basis + 7, end) - collision_plane_distance);
+              float near_distance =
+                start_distance < end_distance ? start_distance : end_distance;
+              float far_distance =
+                start_distance < end_distance ? end_distance : start_distance;
+
+              if (best_plane_reference == -1 ||
+                  (near_distance < best_near && far_distance < best_far)) {
+                best_plane_reference = surface[0];
+                decals_get_signed_plane(structure_bsp, best_plane_reference,
+                                        best_plane);
+                best_near = near_distance;
+                best_far = far_distance;
+                best_start[0] = start[0];
+                best_start[1] = start[1];
+                best_start[2] = start[2];
+                best_end[0] = end[0];
+                best_end[1] = end[1];
+                best_end[2] = end[2];
+              }
+
+              edge_index = edge[surface_match ? 3 : 2];
+            } while (edge_index != surface[1]);
+          }
+
+          for (int i = 0; i < 35; ++i) {
+            transformed_projection[i] = projection[i];
+          }
+
+          if (best_plane_reference == -1) {
+            decals_assert_or_exit((char *)0x26a6b8, 0x9bd);
+          } else {
+            float axis[3];
+            float axis_length;
+
+            axis[0] = best_end[0] - best_start[0];
+            axis[1] = best_end[1] - best_start[1];
+            axis[2] = best_end[2] - best_start[2];
+
+            axis_length =
+              sqrtf(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
+
+            if (fabsf(axis_length) < tiny) {
+              error(2, (char *)0x26a670);
+            } else {
+              float handedness;
+              float sign;
+              float angle;
+              float rotated_origin[3];
+              float sine;
+              float cosine;
+
+              axis[0] /= axis_length;
+              axis[1] /= axis_length;
+              axis[2] /= axis_length;
+
+              if (axis_length > *(float *)0x2533c0) {
+                sign = 1.0f;
+                handedness =
+                  (best_plane[1] * basis[9] - best_plane[2] * basis[8]) *
+                    axis[0] +
+                  (best_plane[2] * basis[7] - basis[9] * best_plane[0]) *
+                    axis[1] +
+                  (basis[8] * best_plane[0] - best_plane[1] * basis[7]) *
+                    axis[2];
+
+                if (*(float *)0x2533c0 <= handedness) {
+                  sign = -1.0f;
+                }
+
+                angle = FUN_0010c600(basis + 7, best_plane) * sign;
+                sine = sinf(angle);
+                cosine = cosf(angle);
+
+                FUN_001092d0(rotation_matrix, axis, sine, cosine);
+
+                rotated_origin[0] = basis[10] - best_start[0];
+                rotated_origin[1] = basis[11] - best_start[1];
+                rotated_origin[2] = basis[12] - best_start[2];
+                matrix_transform_point(rotation_matrix, rotated_origin,
+                                       rotated_origin);
+
+                matrix_transform_vector(rotation_matrix, basis + 1,
+                                        rotated_basis + 1);
+                matrix_transform_vector(rotation_matrix, basis + 4,
+                                        rotated_basis + 4);
+                matrix_transform_vector(rotation_matrix, basis + 7,
+                                        rotated_basis + 7);
+
+                rotated_basis[0] = 1.0f;
+                rotated_basis[10] = rotated_origin[0] + best_start[0];
+                rotated_basis[11] = rotated_origin[1] + best_start[1];
+                rotated_basis[12] = rotated_origin[2] + best_start[2];
+
+                FUN_0009a300(bounds, transformed_projection, rotated_basis);
+
+                if (rotated_basis[7] < min_normal[0]) {
+                  min_normal[0] = rotated_basis[7];
+                }
+                if (max_normal[0] < rotated_basis[7]) {
+                  max_normal[0] = rotated_basis[7];
+                }
+                if (rotated_basis[8] < min_normal[1]) {
+                  min_normal[1] = rotated_basis[8];
+                }
+                if (max_normal[1] < rotated_basis[8]) {
+                  max_normal[1] = rotated_basis[8];
+                }
+                if (rotated_basis[9] < min_normal[2]) {
+                  min_normal[2] = rotated_basis[9];
+                }
+                if (max_normal[2] < rotated_basis[9]) {
+                  max_normal[2] = rotated_basis[9];
+                }
+              }
+            }
+          }
+
+          for (int i = 0; i < grouped_count; ++i) {
+            FUN_0009a5a0(geometry, transformed_projection, grouped_surfaces[i],
+                         false, size, decal_type, NULL, NULL, NULL, NULL);
+          }
+
+          remaining -= (int16_t)grouped_count;
+          processed_group = true;
+          break;
+        }
+
+        if (!processed_group) {
+          break;
+        }
+      }
+    }
+
+    if (geometry->surface_count < 1 || geometry->vertex_count < 1) {
+      return;
+    }
+
+    center_offset[0] = 0.0f;
+    center_offset[1] = 0.0f;
+    center_offset[2] = 0.0f;
+
+    if (max_normal[0] - min_normal[0] < *(float *)0x253398 &&
+        max_normal[1] - min_normal[1] < *(float *)0x253398 &&
+        max_normal[2] - min_normal[2] < *(float *)0x253398) {
+      center_offset[0] = min_normal[0] + max_normal[0];
+      center_offset[1] = min_normal[1] + max_normal[1];
+      center_offset[2] = min_normal[2] + max_normal[2];
+      normalize3d(center_offset);
+      center_offset[0] *= *(float *)0x325710;
+      center_offset[1] *= *(float *)0x325710;
+      center_offset[2] *= *(float *)0x325710;
+    }
+
+    primitive_count = 0;
+    for (int i = 0; i < geometry->surface_count; ++i) {
+      int16_t surface_vertex_count = geometry->surface_vertex_counts[i];
+
+      if (surface_vertex_count < 3) {
+        decals_assert_or_exit((char *)0x26a608, 0xa5a);
+      }
+
+      primitive_count += (int16_t)((surface_vertex_count - 1) / 2);
+    }
+
+    cache_index = FUN_0017cae0((uint32_t)primitive_count << 6);
+    if (cache_index == -1) {
+      if (*(uint8_t *)0x5aa8b4 == 0) {
+        return;
+      }
+
+      error(2, (char *)0x26a498, *(int *)(decal_globals + 0x2804),
+            *(int *)(decal_globals + 0x2808));
+      return;
+    }
+
+    decal_index = FUN_000998b0(collision_result[8], *(int16_t *)(decal_tag + 4),
+                               -1, randomize);
+    if (decal_index == -1) {
+      FUN_0017cb10(cache_index);
+
+      if (*(uint8_t *)0x5aa8b4 == 0) {
+        return;
+      }
+
+      error(2, (char *)0x26a4e0, *(int *)(decal_globals + 0x2804),
+            *(int *)(decal_globals + 0x2808));
+      return;
+    }
+
+    decal = (int)datum_get(global_decal_data, decal_index);
+    cache_quads = (s_decal_cached_quad *)FUN_0017caf0(
+      cache_index, (uint32_t)primitive_count << 6);
+
+    if (cache_quads == NULL) {
+      FUN_0017cb10(cache_index);
+
+      if (*(uint8_t *)0x5aa8b4 == 0) {
+        return;
+      }
+
+      error(2, (char *)0x26a524);
+      return;
+    }
+
+    if (geometry->vertex_count > 0) {
+      float u_range = uv_bounds[1] - uv_bounds[0];
+      float v_range = uv_bounds[3] - uv_bounds[2];
+
+      for (int i = 0; i < geometry->vertex_count; ++i) {
+        s_decal_geometry_vertex *vertex = &geometry->vertices[i];
+        float u = u_range * vertex->uv[0] + uv_bounds[0];
+        float v = v_range * vertex->uv[1] + uv_bounds[2];
+        int32_t packed_u;
+        int32_t packed_v;
+
+        if (u < *(float *)0x2533c0) {
+          u = 0.0f;
+        } else if (*(float *)0x2533c8 < u) {
+          u = 1.0f;
+        }
+
+        if (v < *(float *)0x2533c0) {
+          v = 0.0f;
+        } else if (*(float *)0x2533c8 < v) {
+          v = 1.0f;
+        }
+
+        u *= *(float *)0x26a604;
+        if (u < *(float *)0x2533c0) {
+          u = 0.0f;
+        } else if (*(float *)0x26a600 < u) {
+          u = *(float *)0x26a600;
+        }
+
+        v *= *(float *)0x26a604;
+        if (v < *(float *)0x2533c0) {
+          v = 0.0f;
+        } else if (*(float *)0x26a600 < v) {
+          v = *(float *)0x26a600;
+        }
+
+        packed_u = (int32_t)(u + *(float *)0x253398);
+        packed_v = (int32_t)(v + *(float *)0x253398);
+
+        if (((packed_u & 0x8000) != 0) || ((packed_v & 0x8000) != 0)) {
+          decals_assert_or_exit((char *)0x26a5e0, 0xa88);
+        }
+
+        staged_vertices[i].position[0] = center_offset[0] + vertex->position[0];
+        staged_vertices[i].position[1] = center_offset[1] + vertex->position[1];
+        staged_vertices[i].position[2] = center_offset[2] + vertex->position[2];
+        staged_vertices[i].uv[0] = (int16_t)packed_u;
+        staged_vertices[i].uv[1] = (int16_t)packed_v;
+      }
+    }
+
+    *(float *)(decal + 8) = *(float *)(collision_result + 0xc);
+    *(float *)(decal + 0xc) = *(float *)(collision_result + 0xe);
+    *(float *)(decal + 0x10) = *(float *)(collision_result + 0x10);
+    *(int *)(decal + 0x14) = game_time_get();
+    *(uint8_t *)(decal + 0x1b) = (uint8_t)sprite_index;
+    *(uint8_t *)(decal + 0x18) = (uint8_t)selected_color;
+    *(uint8_t *)(decal + 0x1a) = 0;
+    *(float *)(decal + 0x1c) = decals_random_real(*(float *)(decal_tag + 0x78),
+                                                  *(float *)(decal_tag + 0x7c));
+    *(int *)(decal + 0x2c) = decal_tag_index;
+    *(int16_t *)(decal + 0x2a) = primitive_count;
+    *(float *)(decal + 0x20) = decals_random_real(*(float *)(decal_tag + 0x80),
+                                                  *(float *)(decal_tag + 0x84));
+
+    FUN_0007c270(color, (*(uint8_t *)decal_tag >> 1) & 3,
+                 (float *)(decal_tag + 0x34), (float *)(decal_tag + 0x40),
+                 decals_random_real(0.0f, 1.0f));
+    *(uint32_t *)(decal + 0x24) =
+      FUN_00099530(decals_random_real(*(float *)(decal_tag + 0x2c),
+                                      *(float *)(decal_tag + 0x30)),
+                   color);
+    *(uint8_t *)(decal + 0x28) = 0xff;
+
+    {
+      int16_t produced_quads = 0;
+      int16_t vertex_cursor = 0;
+
+      for (int i = 0; i < geometry->surface_count; ++i) {
+        int16_t surface_vertex_count = geometry->surface_vertex_counts[i];
+
+        if (surface_vertex_count < 3) {
+          decals_assert_or_exit((char *)0x26a5a4, 0xab8);
+        }
+
+        if (surface_vertex_count > 2) {
+          for (int step = 1; step + 1 < surface_vertex_count; step += 2) {
+            int anchor = (step + 2 < surface_vertex_count) ?
+                           vertex_cursor + step + 2 :
+                           vertex_cursor;
+            s_decal_cached_quad *quad = &cache_quads[produced_quads];
+
+            quad->vertices[0] = staged_vertices[vertex_cursor];
+            quad->vertices[1] = staged_vertices[vertex_cursor + step];
+            quad->vertices[2] = staged_vertices[vertex_cursor + step + 1];
+            quad->vertices[3] = staged_vertices[anchor];
+            produced_quads += 1;
+          }
+        }
+
+        vertex_cursor += surface_vertex_count;
+      }
+
+      if (produced_quads != primitive_count) {
+        decals_assert_or_exit((char *)0x26a54c, 0xacc);
+      }
+    }
+
+    thunk_FUN_0015b960();
+
+    reuse_previous = (*(uint8_t *)decal_tag & 1) != 0;
+    decal_tag_index = *(int *)(decal_tag + 0x14);
+  }
+}
+
 void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
                   float scale, bool randomize, int16_t color_index, int flags)
 {
@@ -548,6 +1628,10 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
   }
 }
 
+int16_t FUN_00106510(int16_t count, float *points, float *line,
+                     int16_t max_count, float *out_points,
+                     uint32_t *out_bitmask, uint8_t *changed, float epsilon);
+
 int FUN_0017cae0(uint32_t cache_size)
 {
   return FUN_0015b460(cache_size);
@@ -562,3 +1646,5 @@ void FUN_0017cb10(int decal_index)
 {
   FUN_0015b530(decal_index);
 }
+
+int FUN_0018e3f0(void);
