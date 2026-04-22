@@ -96,6 +96,50 @@ void matrix4x3_identity_with_position(float *out, float *position)
   out[12] = position[2];
 }
 
+void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
+{
+  float x;
+  float y;
+  float z;
+  float xx;
+  float yy;
+  float zz;
+  float one_minus_cosine;
+  float xy_term;
+  float xz_term;
+  float yz_term;
+
+  x = axis[0];
+  y = axis[1];
+  z = axis[2];
+
+  xx = x * x;
+  yy = y * y;
+  zz = z * z;
+  one_minus_cosine = 1.0f - cosine;
+
+  out_matrix[0] = 1.0f;
+  out_matrix[1] = (1.0f - xx) * cosine + xx;
+
+  xy_term = y * x * one_minus_cosine;
+  out_matrix[2] = sine * z + xy_term;
+  out_matrix[4] = xy_term - sine * z;
+  out_matrix[5] = (1.0f - yy) * cosine + yy;
+
+  xz_term = z * x * one_minus_cosine;
+  out_matrix[3] = xz_term - sine * y;
+  out_matrix[7] = xz_term + sine * y;
+  out_matrix[9] = (1.0f - zz) * cosine + zz;
+
+  yz_term = z * y * one_minus_cosine;
+  out_matrix[6] = sine * x + yz_term;
+  out_matrix[8] = yz_term - sine * x;
+
+  out_matrix[10] = 0.0f;
+  out_matrix[11] = 0.0f;
+  out_matrix[12] = 0.0f;
+}
+
 void FUN_001094d0(float *out_matrix, float *position, float *basis_data)
 {
   typedef void (*quat_to_matrix_fn)(float *out, float *basis);
@@ -377,6 +421,31 @@ void perpendicular3d(float *in, float *out)
     out[1] = -in[0];
     out[2] = 0.0f;
   }
+}
+
+float FUN_0010c600(float *a, float *b)
+{
+  float dot;
+  float sine_term;
+
+  if (*(uint32_t *)&a[0] == *(uint32_t *)&b[0] &&
+      *(uint32_t *)&a[1] == *(uint32_t *)&b[1] &&
+      *(uint32_t *)&a[2] == *(uint32_t *)&b[2]) {
+    return 0.0f;
+  }
+
+  dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+  if (dot < -1.0f) {
+    dot = -1.0f;
+  }
+
+  if (dot > 1.0f) {
+    dot = 1.0f;
+  }
+
+  sine_term = sqrtf((1.0f - dot) * (1.0f + dot));
+  return (float)atan2((double)sine_term, (double)dot);
 }
 
 /* Convert yaw/pitch angles to a unit direction vector.
