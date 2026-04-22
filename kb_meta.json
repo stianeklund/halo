@@ -3128,11 +3128,32 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x193910": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Scales byte-space detail-object coordinates into world units: (param_2 * *(float*)0x261518 + param_1) * *(float*)0x253f78."
+      }
+    },
     "0x193970": {
       "kind": "function",
       "status": "ported",
       "comments": {
         "summary": "Allocates 0xa430 bytes via game_state_malloc for structure detail objects, stores pointer at 0x4d8ea0, and inits 4 fields at +0xa420..+0xa42c."
+      }
+    },
+    "0x1939f0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Stores param_1 to 0x4d8eac, sets flag byte 0x4d8ea4, and accumulates delta into 0x4d8ea8 as (param_1 - old_value)."
+      }
+    },
+    "0x193b80": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "4-component dot product helper: returns sum(param_1[i] * param_2[i]) for i=0..3."
       }
     },
     "0x193bb0": {
@@ -3168,6 +3189,13 @@
       "status": "ported",
       "comments": {
         "summary": "Empty function (RET only). No-op dispose for structure runtime decals."
+      }
+    },
+    "0x1965d0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Sets both visibility toggle bytes at 0x505702 and 0x505701 to param_1."
       }
     },
     "0x1983c0": {

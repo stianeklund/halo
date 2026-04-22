@@ -81,6 +81,8 @@
 	halo/saved_games/game_state.c
 	halo/saved_games/game_state_xbox.c
 	halo/scenario/scenario.c
+	halo/structures/structure_detail_objects.c
+	halo/structures/structure_visibility.c
 	halo/structures/structures.c
 	halo/interface/interface.c
 	halo/shaders/shaders.c
