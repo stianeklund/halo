@@ -1121,7 +1121,8 @@
         },
         {
           "decl": "unsigned int FUN_0011ea90(void *block_hdr@<esi>);",
-          "addr": "0x11ea90"
+          "addr": "0x11ea90",
+          "ported": true
         },
         {
           "decl": "unsigned int FUN_0011eb40(void *pool@<esi>);",
@@ -4279,7 +4280,8 @@
         },
         {
           "decl": "void ui_widget_apply_focus(void *root_widget@<eax>, void *target_widget@<ecx>);",
-          "addr": "0xe4f20"
+          "addr": "0xe4f20",
+          "ported": true
         },
         {
           "decl": "void ui_widget_close_and_reload(void *widget@<eax>);",

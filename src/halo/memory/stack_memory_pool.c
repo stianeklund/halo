@@ -60,6 +60,24 @@ void stack_memory_pool_initialize(void *pool)
   csmemcpy(table, &table_ptr, 4);
 }
 
+/* FUN_0011ea90 — return block usable size from header.
+ *
+ * Register convention: block_hdr in ESI (kb.json @<esi>).
+ * Returns low 31 bits of dword at +0x00 (size_flags).
+ */
+unsigned int FUN_0011ea90(void *block_hdr)
+{
+  unsigned int *blk = (unsigned int *)block_hdr;
+
+  if (blk == 0) {
+    display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
+                   0x22f, 1);
+    system_exit(-1);
+  }
+
+  return blk[0] & 0x7fffffff;
+}
+
 /* memory_block_valid — validate a block header's integrity.
  *
  * Checks three conditions on the block header pointed to by block_hdr:

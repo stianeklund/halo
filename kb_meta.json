@@ -1920,6 +1920,16 @@
         "The widget struct field at offset +0x28 is named 'previous' (prev_sibling) based on the assert string 'child->previous == NULL'."
       ]
     },
+    "0xe4f20": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Applies widget focus by retargeting to a focusable candidate when needed, then rewriting parent focused-descendant links."
+      },
+      "inferred": [
+        "Widget +0x38 behaves as the focused-descendant link, and +0x12 gates whether the requested widget is focusable."
+      ]
+    },
     "0xe5090": {
       "kind": "function",
       "status": "ported"
@@ -2476,6 +2486,16 @@
       "inferred": [
         "Pool header layout inferred from field accesses: +0x00 tag/name_ptr, +0x04 base_address, +0x08 pool_size, +0x0c slot_count; slot table at +0x34 (slot_count * 4 bytes).",
         "table[0] is seeded with a self-pointer via csmemcpy to initialize the free-slot list."
+      ]
+    },
+    "0x11ea90": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Returns block size flags masked to low 31 bits after asserting non-null block header."
+      },
+      "inferred": [
+        "The high bit of block_hdr[0] is treated as an in-use flag and cleared by masking with 0x7fffffff."
       ]
     },
     "0x11ecf0": {

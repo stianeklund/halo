@@ -241,7 +241,99 @@ int *ui_widget_find_by_tag(int *widget, int tag_handle)
   return result;
 }
 
-void ui_widget_apply_focus(void *root_widget, void *target_widget);
+/* ui_widget_apply_focus — applies focus to target_widget within the root's
+ * focus chain. Walks to the top-most parent (+0x30), snapshots the current
+ * focused-descendant chain head (+0x38), optionally retargets when the input
+ * widget is disabled (+0x12==1) by scanning sibling/parent lists for a
+ * focusable widget (DeLa handlers>0 or type 2/3), then rewrites ancestor
+ * focused-descendant links (+0x38). If the previous and new focus share the
+ * same direct parent, updates only that parent and exits early. */
+void ui_widget_apply_focus(void *root_widget, void *target_widget)
+{
+  int root;
+  int focused;
+  int parent;
+  int *target;
+  int *candidate;
+  int tag_data;
+
+  root = (int)root_widget;
+  target = (int *)target_widget;
+
+  while (*(int *)(root + 0x30) != 0) {
+    root = *(int *)(root + 0x30);
+  }
+
+  focused = *(int *)(root + 0x38);
+
+  if (*(uint8_t *)((char *)target + 0x12) == 1) {
+    candidate = (int *)target[0xb];
+    while (candidate != NULL) {
+      tag_data = (int)tag_get(0x44654c61, candidate[0]);
+      if (*(uint8_t *)((char *)candidate + 0x12) == 0 &&
+          (*(int *)(tag_data + 0x54) > 0 ||
+           *(int16_t *)((char *)candidate + 0xe) == 2 ||
+           *(int16_t *)((char *)candidate + 0xe) == 3)) {
+        goto set_candidate;
+      }
+      candidate = (int *)candidate[0xb];
+    }
+
+    parent = target[0xc];
+    if (parent != 0) {
+      candidate = *(int **)(parent + 0x34);
+      while (candidate != NULL) {
+        tag_data = (int)tag_get(0x44654c61, candidate[0]);
+        if (*(uint8_t *)((char *)candidate + 0x12) == 0 &&
+            (*(int *)(tag_data + 0x54) > 0 ||
+             *(int16_t *)((char *)candidate + 0xe) == 2 ||
+             *(int16_t *)((char *)candidate + 0xe) == 3)) {
+          break;
+        }
+        candidate = (int *)candidate[0xb];
+      }
+
+      if (candidate == *(int **)(parent + 0x38)) {
+        candidate = (int *)target[0xa];
+        while (candidate != NULL) {
+          tag_data = (int)tag_get(0x44654c61, candidate[0]);
+          if (*(uint8_t *)((char *)candidate + 0x12) == 0 &&
+              (*(int *)(tag_data + 0x54) > 0 ||
+               *(int16_t *)((char *)candidate + 0xe) == 2 ||
+               *(int16_t *)((char *)candidate + 0xe) == 3)) {
+            break;
+          }
+          candidate = (int *)candidate[0xa];
+        }
+      }
+    }
+
+    if (candidate != NULL) {
+    set_candidate:
+      target = candidate;
+    }
+  }
+
+  if (focused != 0) {
+    if (target != NULL && *(int *)(focused + 0x30) == target[0xc] &&
+        *(int *)(focused + 0x30) != 0) {
+      *(int *)(target[0xc] + 0x38) = (int)target;
+      return;
+    }
+
+    do {
+      *(int *)(*(int *)(focused + 0x30) + 0x38) = 0;
+      focused = *(int *)(focused + 0x38);
+    } while (focused != 0);
+  }
+
+  parent = target[0xc];
+  while (parent != 0) {
+    *(int *)(parent + 0x38) = (int)target;
+    target = (int *)target[0xc];
+    parent = target[0xc];
+  }
+}
 
 void ui_widget_pending_load_apply(int pending_a6, int widget, int16_t a7);
 
