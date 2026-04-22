@@ -1305,11 +1305,25 @@
         },
         {
           "decl": "void FUN_00099fd0(int16_t cluster_index);",
-          "addr": "0x99fd0"
+          "addr": "0x99fd0",
+          "ported": true
         },
         {
           "decl": "void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction, float scale, bool randomize, int16_t color_index, int flags);",
-          "addr": "0x9c4b0"
+          "addr": "0x9c4b0",
+          "ported": true
+        },
+        {
+          "decl": "bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",
+          "addr": "0x14df70"
+        },
+        {
+          "decl": "void FUN_0017cb10(int decal_index);",
+          "addr": "0x17cb10"
+        },
+        {
+          "decl": "void FUN_0009ac90(int decal_tag_index, int16_t *collision_result, void *direction, float scale, bool randomize, int16_t color_index, int flags);",
+          "addr": "0x9ac90"
         }
       ]
     },

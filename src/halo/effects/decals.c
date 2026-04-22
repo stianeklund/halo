@@ -112,3 +112,135 @@ void decals_update_for_new_map(bool full_reset)
   decal_counts_0 = 0;
   decal_counts_1 = 0;
 }
+
+void FUN_00099fd0(int16_t cluster_index)
+{
+  if (cluster_index < 0 || cluster_index >= 0x200) {
+    display_assert(
+      "cluster_index>=0 && cluster_index<MAXIMUM_CLUSTERS_PER_STRUCTURE",
+      "c:\\halo\\SOURCE\\effects\\decals.c", 0x377, true);
+    system_exit(-1);
+  }
+
+  if (*(uint8_t *)((char *)global_decal_data + 0x24) != 0) {
+    if (decal_globals == NULL) {
+      display_assert("decal_globals", "c:\\halo\\SOURCE\\effects\\decals.c",
+                     0x37d, true);
+      system_exit(-1);
+    }
+
+    for (int16_t layer = 0; layer < 5; ++layer) {
+      int decal_index = -1;
+
+      if (cluster_index == -1) {
+        if (layer == 0) {
+          decal_index = *(int *)(decal_globals + 0x2800);
+        }
+      } else {
+        decal_index =
+          *(int *)(decal_globals + (layer * 0x200 + (int)cluster_index) * 4);
+      }
+
+      while (decal_index != -1) {
+        int current_decal_index = decal_index;
+        char *decal = (char *)datum_get(global_decal_data, current_decal_index);
+        decal_index = *(int *)(decal + 0x34);
+
+        if (*(int16_t *)(decal + 4) != cluster_index) {
+          display_assert("decal->cluster_index==cluster_index",
+                         "c:\\halo\\SOURCE\\effects\\decals.c", 0x398, true);
+          system_exit(-1);
+        }
+
+        if ((*(uint16_t *)(decal + 2) & 2) != 0) {
+          *(uint16_t *)(decal + 2) &= (uint16_t)~2;
+          *(int *)(decal_globals + 0x2808) -= 1;
+
+          if ((*(uint8_t *)(decal + 2) & 1) != 0) {
+            display_assert("!TEST_FLAG(decal->flags, _decal_locked_bit)",
+                           "c:\\halo\\SOURCE\\effects\\decals.c", 0x39f, true);
+            system_exit(-1);
+          }
+
+          FUN_0017cb10(current_decal_index);
+        }
+      }
+    }
+
+    if (*(int *)(decal_globals + 0x2808) < 0) {
+      display_assert("decal_globals->permanent_count>=0",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0x3a8, true);
+      system_exit(-1);
+    }
+  }
+}
+
+void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
+                  float scale, bool randomize, int16_t color_index, int flags)
+{
+  if (*(uint8_t *)0x2eebd0 != 0) {
+    uint32_t *local_random_seed_address = random_math_get_local_seed_address();
+    uint32_t local_seed = 0;
+    int16_t collision_result[40];
+
+    if (randomize) {
+      if (local_random_seed_address == NULL) {
+        display_assert("local_random_seed_address",
+                       "c:\\halo\\SOURCE\\effects\\decals.c", 0x5fd, true);
+        system_exit(-1);
+      }
+
+      if (origin == NULL) {
+        display_assert("origin", "c:\\halo\\SOURCE\\effects\\decals.c", 0x5fe,
+                       true);
+        system_exit(-1);
+      }
+
+      local_seed = *local_random_seed_address;
+      *local_random_seed_address = ((uint32_t *)origin)[2] ^
+                                   ((uint32_t *)origin)[1] ^
+                                   ((uint32_t *)origin)[0] ^ 0xdeadc0de;
+    }
+
+    if (*(int16_t *)0x4761d8 >= 0x20) {
+      display_assert("global_current_collision_user_depth < "
+                     "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0x60e, true);
+      system_exit(-1);
+    }
+
+    {
+      int depth = (int)*(int16_t *)0x4761d8;
+      *(int16_t *)0x4761d8 += 1;
+      *(int16_t *)(0x5a8c80 + depth * 2) = 9;
+    }
+
+    if (FUN_0014df70(0x100061, (float *)origin, (float *)direction, -1,
+                     collision_result) &&
+        collision_result[0] != 0 && collision_result[0] == 2) {
+      uint8_t *decal_tag = (uint8_t *)tag_get(0x64656361, decal_tag_index);
+      if ((decal_tag[0] & 0x10) == 0) {
+        FUN_0009ac90(decal_tag_index, collision_result, direction, scale,
+                     randomize, color_index, flags);
+      }
+    }
+
+    if (*(int16_t *)0x4761d8 <= 1) {
+      display_assert("global_current_collision_user_depth > 1",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0x632, true);
+      system_exit(-1);
+    }
+
+    *(int16_t *)0x4761d8 -= 1;
+
+    if (randomize) {
+      if (local_random_seed_address == NULL) {
+        display_assert("local_random_seed_address",
+                       "c:\\halo\\SOURCE\\effects\\decals.c", 0x636, true);
+        system_exit(-1);
+      }
+
+      *local_random_seed_address = local_seed;
+    }
+  }
+}

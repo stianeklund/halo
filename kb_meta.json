@@ -506,6 +506,20 @@
         "Error-once flags at 0x4557de (locked) and 0x4557df (permanent) are function-static-style globals not in kb.json; accessed via hardcoded addresses."
       ]
     },
+    "0x99fd0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Clears permanent decal state for a cluster across 5 decal layers: walks per-layer linked lists, validates cluster ownership, unsets permanent flag, decrements permanent_count, and releases matching decals."
+      }
+    },
+    "0x9c4b0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Decal placement gate wrapper: optionally seeds local random from origin, pushes collision-user depth, traces with FUN_0014df70, conditionally emits decal via FUN_0009ac90, then restores collision depth and local seed."
+      }
+    },
     "0x9c650": {
       "kind": "function",
       "status": "ported"
