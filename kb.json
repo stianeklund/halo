@@ -4426,12 +4426,14 @@
           "addr": "0x1aa890"
         },
         {
-          "decl": "int FUN_001aa970(int unit_handle);",
-          "addr": "0x1aa970"
+          "decl": "int unit_get_equipment(int unit_handle);",
+          "addr": "0x1aa970",
+          "ported": true
         },
         {
-          "decl": "bool FUN_001aa990(int unit_handle, int equipment_handle);",
-          "addr": "0x1aa990"
+          "decl": "bool unit_try_add_grenade(int unit_handle, int equipment_handle);",
+          "addr": "0x1aa990",
+          "ported": true
         },
         {
           "decl": "bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag);",
@@ -4470,16 +4472,22 @@
           "addr": "0x1acd70"
         },
         {
-          "decl": "int16_t FUN_001ad800(int unit_handle, int seat_object_handle, int16_t *seat_index);",
-          "addr": "0x1ad800"
+          "decl": "int unit_get_seat_enter_position(int unit_handle, int target_unit_handle, int16_t seat_index, float *out_pos_a, float *out_pos_b, float *out_pos_c);",
+          "addr": "0x1a8200"
+        },
+        {
+          "decl": "uint16_t unit_find_best_enter_seat(int unit_handle, int target_unit_handle, int16_t *out_seat_index);",
+          "addr": "0x1ad800",
+          "ported": true
         },
         {
           "decl": "int unit_get_weapon(int unit_handle, int16_t weapon_index);",
           "addr": "0x1adeb0"
         },
         {
-          "decl": "bool FUN_001ae1a0(int unit_handle);",
-          "addr": "0x1ae1a0"
+          "decl": "bool unit_current_weapon_is_busy(int unit_handle);",
+          "addr": "0x1ae1a0",
+          "ported": true
         },
         {
           "decl": "int unit_get_seat_label(int unit_handle@<eax>);",
@@ -4494,8 +4502,9 @@
           "addr": "0x1ae370"
         },
         {
-          "decl": "bool FUN_001ae3c0(int unit_handle, int object_handle);",
-          "addr": "0x1ae3c0"
+          "decl": "bool unit_should_swap_weapon(int unit_handle, int weapon_handle);",
+          "addr": "0x1ae3c0",
+          "ported": true
         },
         {
           "decl": "int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int16_t direction);",

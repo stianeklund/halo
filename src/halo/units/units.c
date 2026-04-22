@@ -58,6 +58,20 @@ void units_update(void)
   *(uint8_t *)&p[2] = 0;
 }
 
+/* unit_get_seat_enter_position (0x1a8200)
+ *
+ * Computes the entry/exit world-space positions for a given seat index on a
+ * target unit. Resolves both units' animation graphs and matches the seat
+ * label to find the corresponding animation mode. Uses the animation mode's
+ * key-frame data to compute three positions (out_pos_a, out_pos_b, out_pos_c).
+ *
+ * Not fully lifted; signature inferred from callers. Returns 1 on success,
+ * 0 if no matching animation mode is found.
+ */
+int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
+                                 int16_t seat_index, float *out_pos_a,
+                                 float *out_pos_b, float *out_pos_c);
+
 /* unit_find_nearby_seat (0x1a8ce0)
  *
  * Searches the child object chain of target_unit for a unit that occupies the
@@ -240,6 +254,80 @@ void unit_update_seat_occupancy(int vehicle_handle)
 
     child_handle = *(int *)(child_obj + 0xc4);
   }
+}
+
+/* unit_get_equipment (0x1aa970)
+ *
+ * Returns the equipment datum handle stored in the unit's equipment slot
+ * (unit_data_t.unk_712, offset 0x2C8). Resolves the unit via
+ * object_get_and_verify_type with type mask 3 (biped | vehicle).
+ */
+int unit_get_equipment(int unit_handle)
+{
+  unit_data_t *unit;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  return unit->unk_712.value;
+}
+
+/* unit_try_add_grenade (0x1aa990)
+ *
+ * Attempts to add a grenade to the unit's inventory. The equipment object
+ * must be of powerup_type _equipment_powerup_grenade (6). Looks up the
+ * grenade type's maximum count from the game globals tag block at offset
+ * 0x128, then checks the unit's current grenade count array at offset 0x2CE.
+ * If there is room, increments the count, plays an effect if a local player
+ * is carrying the unit, and deletes the equipment object.
+ *
+ * Returns: true if the grenade was added, false if the unit is already at
+ * maximum capacity for that grenade type.
+ */
+bool unit_try_add_grenade(int unit_handle, int equipment_handle)
+{
+  int *equipment_obj;
+  char *equipment_tag;
+  char *unit;
+  int16_t grenade_type;
+  int16_t max_count;
+  char *game_globals;
+  char current_count;
+  int player_index;
+  char *player;
+
+  equipment_obj = (int *)object_get_and_verify_type(equipment_handle, 8);
+  equipment_tag = (char *)tag_get(0x65716970, *equipment_obj);
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (*(int16_t *)(equipment_tag + 0x308) != 6) {
+    display_assert("equipment_definition->equipment.powerup_type==_equipment_"
+                   "powerup_grenade",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1c72, 1);
+    system_exit(-1);
+  }
+
+  grenade_type = *(int16_t *)(equipment_tag + 0x30a);
+  game_globals = (char *)game_globals_get();
+  max_count =
+    *(int16_t *)tag_block_get_element(game_globals + 0x128, grenade_type, 0x44);
+
+  if (max_count == 0)
+    return false;
+
+  current_count = *(char *)(unit + grenade_type + 0x2ce);
+  if ((int16_t)current_count >= max_count)
+    return false;
+
+  *(char *)(unit + grenade_type + 0x2ce) = current_count + 1;
+
+  player_index = player_index_from_unit_index(unit_handle);
+  if (player_index != -1) {
+    player = (char *)datum_get(player_data, player_index);
+    if (*(int16_t *)(player + 2) != -1)
+      item_activate_equipment_effect(equipment_handle);
+  }
+
+  object_delete(equipment_handle);
+  return true;
 }
 
 /* unit_pickup_equipment (0x1aab20)
@@ -804,6 +892,128 @@ bool unit_try_animation_state(int unit_handle, int seat_label, int weapon_label,
   return found;
 }
 
+/* unit_find_best_enter_seat (0x1ad800)
+ *
+ * Iterates over the target unit's seat definitions and finds the best seat
+ * for the given unit to enter. For each seat, computes entry positions via
+ * unit_get_seat_enter_position and checks distances from the unit's world
+ * position. Seats are scored based on whether they are empty (state 2) or
+ * occupied by a unit that can be approached (state 1).
+ *
+ * Returns: seat state (0 = none found, 1 = approach occupied seat,
+ * 2 = enter empty seat). Writes the chosen seat index through out_seat_index.
+ */
+uint16_t unit_find_best_enter_seat(int unit_handle, int target_unit_handle,
+                                   int16_t *out_seat_index)
+{
+  char *unit;
+  char *target_unit;
+  char *target_tag;
+  int seat_count;
+  int *seat_block;
+  int seat_index;
+  int best_seat;
+  uint16_t best_state;
+  float best_distance;
+  float distance;
+  float distance2;
+  float pos_a[3];
+  float pos_b[3];
+  uint8_t found_flag;
+
+  unit = object_get_and_verify_type(unit_handle, 3);
+  target_unit = object_get_and_verify_type(target_unit_handle, 3);
+  target_tag = tag_get(0x756e6974, *(int *)target_unit);
+
+  best_state = 0;
+  best_seat = -1;
+  found_flag = 0;
+
+  if ((*(uint8_t *)(target_unit + 0xb6) & 4) == 0 &&
+      (*(uint32_t *)(target_unit + 0x1b4) & 0x10000) == 0) {
+    seat_block = (int *)(target_tag + 0x2e4);
+    seat_count = *seat_block;
+    best_distance = 3.4028235e+38f;
+
+    for (seat_index = 0; seat_index < seat_count; seat_index++) {
+      unsigned int *seat_element =
+        tag_block_get_element(seat_block, seat_index, 0x11c);
+
+      if (!unit_get_seat_enter_position(unit_handle, target_unit_handle,
+                                        (int16_t)seat_index, pos_a, pos_b,
+                                        NULL))
+        continue;
+
+      distance = sqrtf((*(float *)(unit + 0x50) - pos_b[0]) *
+                         (*(float *)(unit + 0x50) - pos_b[0]) +
+                       (*(float *)(unit + 0x54) - pos_b[1]) *
+                         (*(float *)(unit + 0x54) - pos_b[1]) +
+                       (*(float *)(unit + 0x58) - pos_b[2]) *
+                         (*(float *)(unit + 0x58) - pos_b[2]));
+
+      distance2 = sqrtf((*(float *)(unit + 0x50) - pos_a[0]) *
+                          (*(float *)(unit + 0x50) - pos_a[0]) +
+                        (*(float *)(unit + 0x54) - pos_a[1]) *
+                          (*(float *)(unit + 0x54) - pos_a[1]) +
+                        (*(float *)(unit + 0x58) - pos_a[2]) *
+                          (*(float *)(unit + 0x58) - pos_a[2]));
+
+      if (distance2 < distance)
+        distance = distance2;
+
+      if (distance >= *(float *)0x2533c8)
+        continue;
+
+      if (((*seat_element & 0x200) == 0 ||
+           *(int *)(target_unit + 0x2d4) != -1) &&
+          *(char *)(seat_element + 1) != 0 &&
+          unit_try_animation_state(unit_handle, (int)(seat_element + 1), 0,
+                                   0)) {
+        int blocking_unit = -1;
+        uint16_t seat_state = 0;
+
+        if (!unit_find_nearby_seat(unit_handle, target_unit_handle,
+                                   (int16_t)seat_index, &blocking_unit)) {
+          if (blocking_unit != -1) {
+            char *blocking_obj =
+              (char *)object_get_and_verify_type(blocking_unit, 3);
+            if (*(int *)(blocking_obj + 0x1a4) != -1 &&
+                ai_handle_unit_approach(*(int *)(blocking_obj + 0x1a4),
+                                        unit_handle, 0)) {
+              seat_state = 1;
+            }
+          }
+        } else {
+          seat_state = 2;
+        }
+
+        if (seat_state != 0) {
+          float threshold = *(float *)0x2533c8;
+          if (found_flag && ((*seat_element >> 2) & 1) == 0)
+            threshold = *(float *)0x2533ec;
+
+          if (best_seat == -1 || best_state < seat_state ||
+              distance * threshold < best_distance) {
+            best_distance = distance;
+            best_state = seat_state;
+            best_seat = seat_index;
+            found_flag = ((*seat_element >> 2) & 1);
+          }
+        }
+      }
+    }
+  }
+
+  if (out_seat_index == NULL) {
+    display_assert("parent_seat_index != NULL",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0xff8, 1);
+    system_exit(-1);
+  }
+
+  *out_seat_index = (int16_t)best_seat;
+  return best_state;
+}
+
 /* unit_get_weapon (0x1adeb0)
  *
  * Returns the weapon datum handle stored in the unit's weapon slot array
@@ -828,6 +1038,32 @@ int unit_get_weapon(int unit_handle, int16_t weapon_index)
     result = unit->unk_680[weapon_index].value;
   }
   return result;
+}
+
+/* unit_current_weapon_is_busy (0x1ae1a0)
+ *
+ * Gets the weapon handle in the unit's current seat (via unit_get_weapon
+ * with the seat's weapon_index at offset 0x2A2), then checks whether the
+ * weapon object is in state 2 or 3 at offset 0x211. Returns true if the
+ * weapon is in one of those states, false otherwise (including when there
+ * is no current weapon).
+ */
+bool unit_current_weapon_is_busy(int unit_handle)
+{
+  char *unit;
+  int weapon_handle;
+  char *weapon;
+
+  unit = object_get_and_verify_type(unit_handle, 3);
+  weapon_handle = unit_get_weapon(unit_handle, *(int16_t *)(unit + 0x2a2));
+  if (weapon_handle == -1)
+    return false;
+
+  weapon = object_get_and_verify_type(weapon_handle, 4);
+  if (*(char *)(weapon + 0x211) == 2 || *(char *)(weapon + 0x211) == 3)
+    return true;
+
+  return false;
 }
 
 /* unit_get_seat_label (0x1ae290)
@@ -933,6 +1169,64 @@ bool unit_can_enter_seat(int unit_handle, int seat_object_handle)
       (char)game_engine_allow_weapon_pick_up(unit_handle, seat_object_handle);
   }
   return can_enter != 0;
+}
+
+/* unit_should_swap_weapon (0x1ae3c0)
+ *
+ * Checks whether a unit should swap one of its current weapons for the given
+ * weapon object. Iterates the unit's 4 weapon slots (offset 0x2A8). If any
+ * non-current slot already holds the same weapon tag, returns false. If the
+ * current slot holds the same weapon tag, returns true only when the current
+ * weapon's ammo is above the threshold at 0x2533c0 AND the new weapon has
+ * equal or greater ammo. Otherwise returns true (new weapon type is not
+ * already held).
+ */
+bool unit_should_swap_weapon(int unit_handle, int weapon_handle)
+{
+  char *unit;
+  int *weapon_obj;
+  int weapon_tag;
+  int current_weapon;
+  int seat_index;
+  int *weapon_slot;
+  bool should_swap;
+
+  unit = object_get_and_verify_type(unit_handle, 3);
+  weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+  weapon_tag = *weapon_obj;
+
+  tag_get(0x77656170, weapon_tag);
+
+  current_weapon = unit_get_weapon(unit_handle, *(int16_t *)(unit + 0x2a2));
+  if (current_weapon == -1)
+    return false;
+
+  should_swap = true;
+  seat_index = 0;
+  weapon_slot = (int *)(unit + 0x2a8);
+
+  do {
+    int slot_weapon = *weapon_slot;
+    if (slot_weapon != -1) {
+      int *slot_weapon_obj = (int *)object_get_and_verify_type(slot_weapon, 4);
+      if (weapon_tag == *slot_weapon_obj) {
+        if (seat_index == *(int16_t *)(unit + 0x2a2)) {
+          float slot_ammo = *(float *)((char *)slot_weapon_obj + 0x1f0);
+          if (slot_ammo > *(float *)0x2533c0) {
+            float new_ammo = *(float *)((char *)weapon_obj + 0x1f0);
+            if (new_ammo >= slot_ammo)
+              goto next_seat;
+          }
+        }
+        should_swap = false;
+      }
+    }
+  next_seat:
+    seat_index++;
+    weapon_slot++;
+  } while (seat_index < 4);
+
+  return should_swap;
 }
 
 /* unit_next_weapon_index (0x1ae490)

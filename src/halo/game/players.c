@@ -1441,7 +1441,7 @@ void player_update_nearby_biped(int datum_handle, int object_handle)
 
   nearby_biped = (char *)object_get_and_verify_type(object_handle, 2);
   if (*(float *)(nearby_biped + 0x38) <= __builtin_cosf(angle_delta)) {
-    if (FUN_001ae1a0(*(int *)(player + 0x34)))
+    if (unit_current_weapon_is_busy(*(int *)(player + 0x34)))
       return;
 
     unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
@@ -1456,8 +1456,8 @@ void player_update_nearby_biped(int datum_handle, int object_handle)
       return;
 
     seat_index = -1;
-    seat_state =
-      FUN_001ad800(*(int *)(player + 0x34), object_handle, &seat_index);
+    seat_state = unit_find_best_enter_seat(*(int *)(player + 0x34),
+                                           object_handle, &seat_index);
 
     if (seat_state == 2) {
       if (seat_index == -1) {
@@ -2030,11 +2030,11 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
   if (equipment_obj != NULL) {
     equipment_tag = (char *)tag_get(0x65716970, *equipment_obj);
     if (*(int16_t *)(equipment_tag + 0x308) == 6) {
-      if (FUN_001aa990(*(int *)(player + 0x34), object_handle)) {
+      if (unit_try_add_grenade(*(int *)(player + 0x34), object_handle)) {
         hud_player_set_equipment((uint16_t)local_player_index, *equipment_obj);
       }
     } else if (*(int16_t *)(equipment_tag + 0x308) != 0) {
-      seat_occupant = FUN_001aa970(*(int *)(player + 0x34));
+      seat_occupant = unit_get_equipment(*(int *)(player + 0x34));
       if (seat_occupant == -1) {
         player_set_action_result_for_equipment(datum_handle, object_handle);
       } else {
@@ -2085,7 +2085,7 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
     }
   } else {
     if (!current_is_special &&
-        FUN_001ae3c0(*(int *)(player + 0x34), object_handle)) {
+        unit_should_swap_weapon(*(int *)(player + 0x34), object_handle)) {
       current_weapon_obj =
         (int *)object_try_and_get_and_verify_type(current_weapon_handle, 4);
       if (nearby_weapon_count == 1 && current_weapon_obj != NULL &&
