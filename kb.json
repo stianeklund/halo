@@ -1302,6 +1302,14 @@
         {
           "decl": "void decals_update_for_new_map(bool full_reset);",
           "addr": "0x98e70"
+        },
+        {
+          "decl": "void FUN_00099fd0(int16_t cluster_index);",
+          "addr": "0x99fd0"
+        },
+        {
+          "decl": "void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction, float scale, bool randomize, int16_t color_index, int flags);",
+          "addr": "0x9c4b0"
         }
       ]
     },
@@ -4171,6 +4179,17 @@
         {
           "decl": "float FUN_00193b80(float *param_1, float *param_2);",
           "addr": "0x193b80",
+          "ported": true
+        }
+      ]
+    },
+    {
+      "name": "structure_runtime_decals.obj",
+      "source": "structures/structure_runtime_decals.c",
+      "functions": [
+        {
+          "decl": "void FUN_001963c0(uint32_t *old_cluster_visibility, uint32_t *new_cluster_visibility, int16_t cluster_count);",
+          "addr": "0x1963c0",
           "ported": true
         }
       ]
