@@ -148,13 +148,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x81630": {
+      "kind": "function",
+      "status": "ported",
+      "summary": "thread_new — allocate a thread slot and create an Xbox thread"
+    },
     "0x81720": {
       "kind": "function",
-      "status": "named"
+      "status": "ported",
+      "summary": "thread_is_done — check whether a thread has finished executing"
     },
     "0x81770": {
       "kind": "function",
-      "status": "named"
+      "status": "ported",
+      "summary": "thread_close — close a thread handle and release its slot"
     },
     "0x82130": {
       "kind": "function",
