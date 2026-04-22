@@ -363,6 +363,10 @@
           "addr": "0x120f20"
         },
         {
+          "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
+          "addr": "0x121d60"
+        },
+        {
           "decl": "uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point);",
           "addr": "0x146db0"
         },
@@ -3701,6 +3705,10 @@
           "addr": "0x109280"
         },
         {
+          "decl": "void FUN_001094d0(void *out_matrix, void *position, void *basis_data);",
+          "addr": "0x1094d0"
+        },
+        {
           "decl": "void matrix4x3_multiply(float *a, float *b, float *out);",
           "addr": "0x109850"
         },
@@ -4634,7 +4642,8 @@
         },
         {
           "decl": "void FUN_00123470(void *mode_tag, void *animation, int animation_index, void *out_matrix);",
-          "addr": "0x123470"
+          "addr": "0x123470",
+          "ported": true
         },
         {
           "decl": "int unit_get_seat_enter_position(int unit_handle, int target_unit_handle, int16_t seat_index, float *out_pos_a, float *out_pos_b, float *out_pos_c);",

@@ -21,6 +21,13 @@
         "Parameter typing narrowed to const float * from direct [arg+0/4/8] float loads and ai_clump callsite passing actor/record position vectors at +0xbc."
       ]
     },
+    "0x123470": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
+      }
+    },
     "0x13010": {
       "kind": "function",
       "status": "ported",

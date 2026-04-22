@@ -45,6 +45,15 @@ char *FUN_0008dc30(char *destination, const char *source)
   return destination;
 }
 
+void FUN_00123470(void *mode_tag, void *animation, int animation_index,
+                  void *out_matrix)
+{
+  uint8_t node_data[0x800];
+
+  FUN_00121d60(mode_tag, animation, animation_index, node_data);
+  FUN_001094d0(out_matrix, node_data + 0x10, node_data);
+}
+
 /* unit_set_actively_controlled_flag (0x1a7f80)
  *
  * Sets bit 5 (0x20) of the byte at object_data_t+0xb6 (offset 182,
