@@ -4142,15 +4142,18 @@
       "functions": [
         {
           "decl": "bool thread_new(int priority_flags, void *function, int param, void **thread_reference);",
-          "addr": "0x81630"
+          "addr": "0x81630",
+          "ported": true
         },
         {
           "decl": "bool thread_is_done(void *thread_reference);",
-          "addr": "0x81720"
+          "addr": "0x81720",
+          "ported": true
         },
         {
           "decl": "void thread_close(void *thread_reference);",
-          "addr": "0x81770"
+          "addr": "0x81770",
+          "ported": true
         }
       ]
     },
