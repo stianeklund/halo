@@ -1441,6 +1441,11 @@ void player_update_nearby_biped(int datum_handle, int object_handle)
 
   nearby_biped = (char *)object_get_and_verify_type(object_handle, 2);
   if (*(float *)(nearby_biped + 0x38) <= __builtin_cosf(angle_delta)) {
+    if ((*(unsigned char *)(nearby_biped + 0x424) & 0x10) == 0 &&
+        *(int *)(nearby_biped + 0x2d4) == -1) {
+      player_set_spawn_action_result(datum_handle, 11, object_handle, -1);
+    }
+  } else {
     if (unit_current_weapon_is_busy(*(int *)(player + 0x34)))
       return;
 
@@ -1478,11 +1483,6 @@ void player_update_nearby_biped(int datum_handle, int object_handle)
       player_set_spawn_action_result(datum_handle, 9, object_handle,
                                      seat_index);
       return;
-    }
-  } else {
-    if ((*(unsigned char *)(nearby_biped + 0x424) & 0x10) == 0 &&
-        *(int *)(nearby_biped + 0x2d4) == -1) {
-      player_set_spawn_action_result(datum_handle, 11, object_handle, -1);
     }
   }
 }
