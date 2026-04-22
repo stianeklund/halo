@@ -1434,14 +1434,14 @@ void player_update_nearby_biped(int datum_handle, int object_handle)
   if ((*(unsigned char *)(nearby_biped + 0xb6) & 4) != 0)
     return;
 
-  game_globals = ((void *(*)(int, int))0x18e450)(0, 0x80);
+  game_globals = game_globals_get();
   difficulty_entry =
-    (char *)((void *(*)(void *))0x19b210)((char *)game_globals + 0x110);
+    (char *)tag_block_get_element((char *)game_globals + 0x110, 0, 0x80);
   angle_delta = *(float *)0x2568bc - *(float *)(difficulty_entry + 0x70);
 
   nearby_biped = (char *)object_get_and_verify_type(object_handle, 2);
   if (*(float *)(nearby_biped + 0x38) <= __builtin_cosf(angle_delta)) {
-    if (((bool (*)(int))0x1ae1a0)(*(int *)(player + 0x34)))
+    if (FUN_001ae1a0(*(int *)(player + 0x34)))
       return;
 
     unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
@@ -1452,12 +1452,12 @@ void player_update_nearby_biped(int datum_handle, int object_handle)
       return;
 
     nearby_biped = (char *)object_get_and_verify_type(object_handle, 2);
-    if (((float (*)(void *))0x12170)(nearby_biped + 0x3c) >= *(float *)0x25bb10)
+    if (FUN_00012170((float *)(nearby_biped + 0x3c)) >= *(float *)0x25bb10)
       return;
 
     seat_index = -1;
-    seat_state = ((int16_t(*)(int, int, int16_t *))0x1ad800)(
-      *(int *)(player + 0x34), object_handle, &seat_index);
+    seat_state =
+      FUN_001ad800(*(int *)(player + 0x34), object_handle, &seat_index);
 
     if (seat_state == 2) {
       if (seat_index == -1) {
@@ -1499,14 +1499,12 @@ void player_update_nearby_weapon(int datum_handle, int object_handle)
   weapon = (char *)object_get_and_verify_type(object_handle, 0x380);
 
   unit_set_seat_state(*(int *)(player + 0x34), local_position);
-  if (!((bool (*)(float *, float *, float *, float))0x10bc70)(
-        local_position, (float *)(unit + 0x1ec), (float *)(weapon + 0x50),
-        *(float *)(weapon + 0x5c)))
+  if (!FUN_0010bc70(local_position, (float *)(unit + 0x1ec),
+                    (float *)(weapon + 0x50), *(float *)(weapon + 0x5c)))
     return;
-  if (!((bool (*)(int, float *, float *))0x971a0)(object_handle, local_position,
-                                                  (float *)(unit + 0x1ec)))
+  if (!FUN_000971a0(object_handle, local_position, (float *)(unit + 0x1ec)))
     return;
-  if (!((bool (*)(int))0x96720)(object_handle))
+  if (!FUN_00096720(object_handle))
     return;
 
   player_set_spawn_action_result(datum_handle, 10, object_handle, -1);
@@ -2017,13 +2015,11 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
   for (i = 0; i < 4; i++) {
     seat_occupant = *(int *)(unit + 0x2a8 + (int)i * 4);
     if (seat_occupant != -1 &&
-        ((bool (*)(int, int, uint16_t, int16_t *))0xfc290)(
-          seat_occupant, object_handle, (uint16_t)local_player_index,
-          &seat_index)) {
+        FUN_000fc290(seat_occupant, object_handle, (uint16_t)local_player_index,
+                     &seat_index)) {
       if (seat_index > 0) {
         equipment_obj = (int *)object_get_and_verify_type(seat_occupant, 4);
-        ((void (*)(uint16_t, int, int16_t))0xd0c10)(
-          (uint16_t)local_player_index, *equipment_obj, seat_index);
+        FUN_000d0c10((uint16_t)local_player_index, *equipment_obj, seat_index);
       }
       break;
     }
@@ -2033,13 +2029,11 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
   if (equipment_obj != NULL) {
     equipment_tag = (char *)tag_get(0x65716970, *equipment_obj);
     if (*(int16_t *)(equipment_tag + 0x308) == 6) {
-      if (((bool (*)(int, int))0x1aa990)(*(int *)(player + 0x34),
-                                         object_handle)) {
-        ((void (*)(uint16_t, int))0xd0bf0)((uint16_t)local_player_index,
-                                           *equipment_obj);
+      if (FUN_001aa990(*(int *)(player + 0x34), object_handle)) {
+        FUN_000d0bf0((uint16_t)local_player_index, *equipment_obj);
       }
     } else if (*(int16_t *)(equipment_tag + 0x308) != 0) {
-      seat_occupant = ((int (*)(int))0x1aa970)(*(int *)(player + 0x34));
+      seat_occupant = FUN_001aa970(*(int *)(player + 0x34));
       if (seat_occupant == -1) {
         player_set_action_result_for_equipment(datum_handle, object_handle);
       } else {
@@ -2082,16 +2076,15 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
     return;
 
   if (player_examine_nearby_unit(*(int *)(player + 0x34), object_handle)) {
-    if (((bool (*)(int, int, int16_t))0x1b1db0)(*(int *)(player + 0x34),
-                                                object_handle, 1)) {
+    if (unit_enter_seat(*(int *)(player + 0x34), object_handle, 1)) {
       nearby_weapon_obj = (int *)object_get_and_verify_type(object_handle, 4);
       hud_player_set_vehicle((uint16_t)local_player_index, *nearby_weapon_obj);
       player_clear_aim_assist(*(int *)(player + 0x34));
       return;
     }
   } else {
-    if (!current_is_special && ((bool (*)(int, int))0x1ae3c0)(
-                                 *(int *)(player + 0x34), object_handle)) {
+    if (!current_is_special &&
+        FUN_001ae3c0(*(int *)(player + 0x34), object_handle)) {
       current_weapon_obj =
         (int *)object_try_and_get_and_verify_type(current_weapon_handle, 4);
       if (nearby_weapon_count == 1 && current_weapon_obj != NULL &&

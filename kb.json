@@ -175,6 +175,10 @@
           "addr": "0xfd360"
         },
         {
+          "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
+          "addr": "0xfc290"
+        },
+        {
           "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
           "addr": "0x10b4c0"
         },
@@ -335,12 +339,24 @@
           "addr": "0x966d0"
         },
         {
+          "decl": "bool FUN_00096720(int object_handle);",
+          "addr": "0x96720"
+        },
+        {
+          "decl": "bool FUN_000971a0(int object_handle, float *position, float *aim_position);",
+          "addr": "0x971a0"
+        },
+        {
           "decl": "void edit_text_set_cursor_to_end(void *edit_text);",
           "addr": "0x97330"
         },
         {
           "decl": "float random_math_real(unsigned int *seed);",
           "addr": "0x10b240"
+        },
+        {
+          "decl": "bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
+          "addr": "0x10bc70"
         },
         {
           "decl": "int model_animation_choose_random(int update_kind, int animation_graph_tag_index, int16_t animation_index);",
@@ -497,6 +513,10 @@
         {
           "decl": "void FUN_0003b900(void);",
           "addr": "0x3b900"
+        },
+        {
+          "decl": "float FUN_00012170(float *vector);",
+          "addr": "0x12170"
         },
         {
           "decl": "float FUN_000121a0(const float *a, const float *b);",
@@ -2280,6 +2300,14 @@
         {
           "decl": "wchar_t *hud_get_item_string(int a1);",
           "addr": "0xd0ba0"
+        },
+        {
+          "decl": "void FUN_000d0bf0(uint16_t local_player_index, int equipment_tag_handle);",
+          "addr": "0xd0bf0"
+        },
+        {
+          "decl": "void FUN_000d0c10(uint16_t local_player_index, int equipment_tag_handle, int16_t seat_index);",
+          "addr": "0xd0c10"
         },
         {
           "decl": "void hud_load(bool a1);",
@@ -4393,6 +4421,14 @@
           "addr": "0x1aa890"
         },
         {
+          "decl": "int FUN_001aa970(int unit_handle);",
+          "addr": "0x1aa970"
+        },
+        {
+          "decl": "bool FUN_001aa990(int unit_handle, int equipment_handle);",
+          "addr": "0x1aa990"
+        },
+        {
           "decl": "bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag);",
           "addr": "0x1aab20"
         },
@@ -4429,8 +4465,16 @@
           "addr": "0x1acd70"
         },
         {
+          "decl": "int16_t FUN_001ad800(int unit_handle, int seat_object_handle, int16_t *seat_index);",
+          "addr": "0x1ad800"
+        },
+        {
           "decl": "int unit_get_weapon(int unit_handle, int16_t weapon_index);",
           "addr": "0x1adeb0"
+        },
+        {
+          "decl": "bool FUN_001ae1a0(int unit_handle);",
+          "addr": "0x1ae1a0"
         },
         {
           "decl": "int unit_get_seat_label(int unit_handle@<eax>);",
@@ -4443,6 +4487,10 @@
         {
           "decl": "bool unit_can_enter_seat(int unit_handle, int seat_object_handle);",
           "addr": "0x1ae370"
+        },
+        {
+          "decl": "bool FUN_001ae3c0(int unit_handle, int object_handle);",
+          "addr": "0x1ae3c0"
         },
         {
           "decl": "int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int16_t direction);",
