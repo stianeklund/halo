@@ -3705,8 +3705,9 @@
           "addr": "0x109280"
         },
         {
-          "decl": "void FUN_001094d0(void *out_matrix, void *position, void *basis_data);",
-          "addr": "0x1094d0"
+          "decl": "void FUN_001094d0(float *out_matrix, float *position, float *basis_data);",
+          "addr": "0x1094d0",
+          "ported": true
         },
         {
           "decl": "void matrix4x3_multiply(float *a, float *b, float *out);",
