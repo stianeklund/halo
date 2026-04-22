@@ -4614,8 +4614,17 @@
           "addr": "0x1acd70"
         },
         {
+          "decl": "char *FUN_0008dc30(int destination, const char *source);",
+          "addr": "0x8dc30"
+        },
+        {
+          "decl": "void FUN_00123470(void *mode_tag, void *animation, int animation_index, void *out_matrix);",
+          "addr": "0x123470"
+        },
+        {
           "decl": "int unit_get_seat_enter_position(int unit_handle, int target_unit_handle, int16_t seat_index, float *out_pos_a, float *out_pos_b, float *out_pos_c);",
-          "addr": "0x1a8200"
+          "addr": "0x1a8200",
+          "ported": true
         },
         {
           "decl": "uint16_t unit_find_best_enter_seat(int unit_handle, int target_unit_handle, int16_t *out_seat_index);",
