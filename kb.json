@@ -2304,12 +2304,14 @@
           "addr": "0xd0ba0"
         },
         {
-          "decl": "void FUN_000d0bf0(uint16_t local_player_index, int equipment_tag_handle);",
-          "addr": "0xd0bf0"
+          "decl": "void hud_player_set_equipment(unsigned __int16 local_player_index, int equipment_tag_handle);",
+          "addr": "0xd0bf0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000d0c10(uint16_t local_player_index, int equipment_tag_handle, int16_t seat_index);",
-          "addr": "0xd0c10"
+          "decl": "void hud_player_enter_vehicle(unsigned __int16 local_player_index, int tag_handle, int16_t seat_index);",
+          "addr": "0xd0c10",
+          "ported": true
         },
         {
           "decl": "void hud_load(bool a1);",

@@ -1627,6 +1627,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd0bf0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "If local_player_index is valid, forwards to hud_messaging_set_vehicle_notification with param_3=1 and param_4=-1. Called when player picks up equipment."
+      }
+    },
+    "0xd0c10": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "If local_player_index is valid, forwards to hud_messaging_set_vehicle_notification with seat_index and param_4=1. Called when player enters a vehicle seat."
+      }
+    },
     "0xd0c40": {
       "kind": "function",
       "status": "ported",

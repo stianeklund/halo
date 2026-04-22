@@ -33,6 +33,28 @@ wchar_t *hud_get_item_string(int index)
   return *(wchar_t **)0x2f66bc;
 }
 
+/* Notify the HUD that a local player has picked up equipment.
+ * If the local player index is valid (not NONE), forwards to the HUD
+ * messaging handler at 0xd5240 with param_3=1 and param_4=-1. */
+void hud_player_set_equipment(unsigned __int16 local_player_index,
+                              int equipment_tag_handle)
+{
+  if ((int16_t)local_player_index != NONE)
+    hud_messaging_set_vehicle_notification(local_player_index,
+                                           equipment_tag_handle, 1, -1);
+}
+
+/* Notify the HUD that a local player has entered a vehicle seat.
+ * If the local player index is valid (not NONE), forwards to the HUD
+ * messaging handler at 0xd5240 with the seat index and param_4=1. */
+void hud_player_enter_vehicle(unsigned __int16 local_player_index,
+                              int tag_handle, int16_t seat_index)
+{
+  if ((int16_t)local_player_index != NONE)
+    hud_messaging_set_vehicle_notification(local_player_index, tag_handle,
+                                           seat_index, 1);
+}
+
 /* Notify the HUD that a local player has entered a vehicle.
  * If the local player index is valid (not NONE), forwards to the HUD
  * vehicle notification handler at 0xd5240 with zeroed extra params. */

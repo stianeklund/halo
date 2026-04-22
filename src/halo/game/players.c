@@ -2019,7 +2019,8 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
                      &seat_index)) {
       if (seat_index > 0) {
         equipment_obj = (int *)object_get_and_verify_type(seat_occupant, 4);
-        FUN_000d0c10((uint16_t)local_player_index, *equipment_obj, seat_index);
+        hud_player_enter_vehicle((uint16_t)local_player_index, *equipment_obj,
+                                 seat_index);
       }
       break;
     }
@@ -2030,7 +2031,7 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
     equipment_tag = (char *)tag_get(0x65716970, *equipment_obj);
     if (*(int16_t *)(equipment_tag + 0x308) == 6) {
       if (FUN_001aa990(*(int *)(player + 0x34), object_handle)) {
-        FUN_000d0bf0((uint16_t)local_player_index, *equipment_obj);
+        hud_player_set_equipment((uint16_t)local_player_index, *equipment_obj);
       }
     } else if (*(int16_t *)(equipment_tag + 0x308) != 0) {
       seat_occupant = FUN_001aa970(*(int *)(player + 0x34));
