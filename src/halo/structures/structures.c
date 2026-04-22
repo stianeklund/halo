@@ -37,24 +37,22 @@ int cluster_partition_iter_first(void *partition, int *state,
 
 void structures_initialize(void)
 {
-  ((void (*)(void))0x193970)();
-  ((void (*)(void))0x196290)();
+  structure_detail_objects_initialize();
+  structure_runtime_decals_initialize();
 }
 
 void structures_initialize_for_new_map(void)
 {
-  ((void (*)(void))0x193bb0)();
-  ((void (*)(void))0x1962d0)();
+  structure_detail_objects_initialize_for_new_map();
+  structure_runtime_decals_initialize_for_new_map();
 }
 
 void structures_dispose_from_old_map(void)
 {
-  ((void (*)(void))0x1963a0)();
 }
 
 void structures_dispose(void)
 {
-  ((void (*)(void))0x1963b0)();
 }
 
 /* structures_cluster_marker_begin (0x198400)

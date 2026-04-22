@@ -150,18 +150,15 @@
     },
     "0x81630": {
       "kind": "function",
-      "status": "ported",
-      "summary": "thread_new — allocate a thread slot and create an Xbox thread"
+      "status": "ported"
     },
     "0x81720": {
       "kind": "function",
-      "status": "ported",
-      "summary": "thread_is_done — check whether a thread has finished executing"
+      "status": "ported"
     },
     "0x81770": {
       "kind": "function",
-      "status": "ported",
-      "summary": "thread_close — close a thread handle and release its slot"
+      "status": "ported"
     },
     "0x82130": {
       "kind": "function",
@@ -2514,6 +2511,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11a930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11b540": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11e9c0": {
       "kind": "function",
       "status": "ported",
@@ -3122,6 +3127,48 @@
     "0x191330": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x193970": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Allocates 0xa430 bytes via game_state_malloc for structure detail objects, stores pointer at 0x4d8ea0, and inits 4 fields at +0xa420..+0xa42c."
+      }
+    },
+    "0x193bb0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Asserts 0x4d8ea0 is non-null, zeroes the 0xa430-byte detail object block, and clears byte at +0x520e."
+      }
+    },
+    "0x196290": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Allocates structure runtime decals globals via game_state_malloc with group size 4, stores pointer at 0x4d8ec8. Asserts on failure."
+      }
+    },
+    "0x1962d0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Asserts 0x4d8ec8 is non-null, then zeroes the first byte of the decals globals block."
+      }
+    },
+    "0x1963a0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Empty function (RET only). No-op dispose for structure detail objects."
+      }
+    },
+    "0x1963b0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Empty function (RET only). No-op dispose for structure runtime decals."
+      }
     },
     "0x1983c0": {
       "kind": "function",
