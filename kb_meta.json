@@ -3221,6 +3221,27 @@
         "summary": "Cluster marker begin: asserts marker is not already set, increments ref counter, and sets initialized flag."
       }
     },
+    "0x198440": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Cluster marker query helper: validates marker state and cluster index bounds, then returns whether cluster_marker[cluster_index] differs from current marker id 0x4d92e4."
+      }
+    },
+    "0x1984c0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Cluster marker set helper: validates marker state and bounds, writes current marker id into cluster_marker[cluster_index] when not already marked, and returns whether a new mark occurred."
+      }
+    },
+    "0x198800": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Portal/sphere visibility gate: performs signed-plane distance and portal-center radius tests, projects hit/portal vertices into portal plane space, then runs a 2D inclusion check with sqrt(radius^2 - plane_distance^2)."
+      }
+    },
     "0x1989b0": {
       "kind": "function",
       "status": "ported",
