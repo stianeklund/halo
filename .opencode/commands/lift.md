@@ -1,7 +1,7 @@
 ---
 description: Two-phase lift — RE analysis by deep agent, then build + verify pipeline
 agent: xbox-halo-re-analyst
-subtask: true
+subtask: false 
 ---
 
 Use `halo-xbox-re` for doctrine and evidence rules, `halo-re-lift` for the

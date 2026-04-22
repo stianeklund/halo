@@ -516,7 +516,8 @@
         },
         {
           "decl": "float FUN_00012170(float *vector);",
-          "addr": "0x12170"
+          "addr": "0x12170",
+          "ported": true
         },
         {
           "decl": "float FUN_000121a0(const float *a, const float *b);",
