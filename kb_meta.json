@@ -3191,6 +3191,13 @@
         "summary": "Empty function (RET only). No-op dispose for structure runtime decals."
       }
     },
+    "0x1963c0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Updates structure runtime decals per cluster visibility transition: deletes decals for clusters leaving visibility, emits decals for eligible clusters entering/currently visible, then clears the runtime decals update flag byte at 0x4d8ec8[0]."
+      }
+    },
     "0x1965d0": {
       "kind": "function",
       "status": "ported",
