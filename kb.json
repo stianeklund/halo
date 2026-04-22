@@ -371,6 +371,10 @@
           "addr": "0x146db0"
         },
         {
+          "decl": "bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",
+          "addr": "0x14df70"
+        },
+        {
           "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
           "addr": "0x1917a0"
         },
@@ -1316,10 +1320,6 @@
           "decl": "void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction, float scale, bool randomize, int16_t color_index, int flags);",
           "addr": "0x9c4b0",
           "ported": true
-        },
-        {
-          "decl": "bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",
-          "addr": "0x14df70"
         },
         {
           "decl": "void FUN_0017cb10(int decal_index);",
