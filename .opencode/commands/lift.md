@@ -53,6 +53,7 @@ Steps:
    address-ordered position.
 7. If the `kb.json` declaration needs updating, update it conservatively.
 8. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
+9. Commit changes as you go.
 
 Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
 
