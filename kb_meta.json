@@ -1,6 +1,17 @@
 {
   "md5": "c7869590a1c64ad034e49a5ee0c02465",
   "symbols": {
+    "0x12170": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Squared 3D vector-length helper: computes v[0]^2 + v[1]^2 + v[2]^2 from one float[3] pointer."
+      },
+      "inferred": [
+        "Parameter kept as float * to match existing kb.json declaration; access pattern is read-only and could also be represented as const float *."
+      ],
+      "uncertain": []
+    },
     "0x121a0": {
       "kind": "function",
       "status": "ported",
