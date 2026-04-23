@@ -896,7 +896,7 @@ void game_engine_periodic_equipment_spawn(void)
       player_index = *(int *)(*(int *)0x456b60 + 4);
     }
 
-    if (((char (*)(int, int, void *))0xacb10)(player_index, 4, entry + 4)) {
+    if (FUN_000acb10(player_index, 4, entry + 4)) {
       int16_t period_seconds = *(int16_t *)(entry + 0xe);
       spawn_period = 900;
 
@@ -916,13 +916,13 @@ void game_engine_periodic_equipment_spawn(void)
       if ((game_time_get() % spawn_period) == 0) {
         int tag_index = ((int(__attribute__((regparm(1))) *)(int))0xaca70)(
           *(int *)(entry + 0x5c));
-        ((void (*)(void *, int, int))0x13fc20)(placement, tag_index, -1);
+        FUN_0013fc20(placement, tag_index, -1);
         *(int *)(placement + 0x18) = *(int *)(entry + 0x40);
         *(int *)(placement + 0x1c) = *(int *)(entry + 0x44);
         *(int *)(placement + 0x20) = *(int *)(entry + 0x48);
 
         {
-          int object_handle = ((int (*)(void *))0x143c80)(placement);
+          int object_handle = FUN_00143c80(placement);
           if (object_handle != -1) {
             int object_data =
               (int)object_get_and_verify_type(object_handle, 0x1c);
@@ -1057,7 +1057,7 @@ void game_engine_score_update_player(int player_handle)
   }
 
   selected_goal_index = -1;
-  ((int (*)(float *, float, float, short, short, int, int *))0xad160)(
+  FUN_000ad160(
     (float *)(unit + 0xc), 0.5f, 0.0f, 6, -1, 1, &selected_goal_index);
 
   if (selected_goal_index == -1 ||
@@ -1069,7 +1069,7 @@ void game_engine_score_update_player(int player_handle)
     (char *)scenario + 0x378, selected_goal_index, 0x94);
 
   next_goal_index = -1;
-  ((int (*)(float *, float, float, short, short, int, int *))0xad160)(
+  FUN_000ad160(
     0, 0.0f, 0.0f, 7, *(short *)(goal_entry + 0x12), 1, &next_goal_index);
 
   if (next_goal_index == -1) {
@@ -1088,8 +1088,7 @@ void game_engine_score_update_player(int player_handle)
   unit_pos[2] = *(float *)(unit + 0x2c);
 
   player = (unsigned char *)datum_get(*(void **)0x5aa6d4, player_handle);
-  ((void (*)(int, float *, float *, float *))0x1a0890)(
-    *(int *)(player + 0x34), &search_pos[0], &distance_b, &distance_a);
+  FUN_001a0890(*(int *)(player + 0x34), &search_pos[0], &distance_b, &distance_a);
 
   {
     float candidate_pos[3];
@@ -1097,11 +1096,9 @@ void game_engine_score_update_player(int player_handle)
     candidate_pos[1] = *(float *)(next_goal_entry + 0x4);
     candidate_pos[2] = *(float *)(next_goal_entry + 0x8);
 
-    if (((char (*)(int, float *, void *, float, float, int, void *))0x14ec30)(
-          0x200380, candidate_pos, los_scratch, distance_b, distance_a, -1,
-          los_scratch) &&
-        ((char (*)(void *, float *, void *))0x14bc10)(
-          los_scratch, candidate_pos, hit_info)) {
+    if (FUN_0014ec30(0x200380, candidate_pos, los_scratch, distance_b,
+                       distance_a, -1, los_scratch) &&
+        FUN_0014bc10(los_scratch, candidate_pos, hit_info)) {
       int hit_object = *(int *)(hit_info + 0x20);
       if (hit_object != -1) {
         unsigned char *hit_any =
@@ -1126,7 +1123,7 @@ void game_engine_score_update_player(int player_handle)
 
       *(int *)0x456b64 = 0x78;
       hud_print_message(
-        (int)((short)((int (*)(int))0xb6990)(*(int *)(player + 0x34))),
+        (int)(short)FUN_000b6990(*(int *)(player + 0x34)),
         (wchar_t *)0x26c684);
       return;
     }
@@ -1162,17 +1159,14 @@ void game_engine_score_update_player(int player_handle)
     normalize3d(unit_pos);
   }
 
-  ((void (*)(int, float *, float *, int))0x143ae0)(
-    *(int *)(player + 0x34), (float *)(unit + 0x0c), unit_pos, 0);
+  FUN_00143ae0(*(int *)(player + 0x34), (float *)(unit + 0x0c), unit_pos, 0);
 
   if (*(short *)(player + 2) != -1) {
-    ((void (*)(int, float *))0xb6ea0)((unsigned short)*(short *)(player + 2),
-                                      unit_pos);
+    FUN_000b6ea0((unsigned short)*(short *)(player + 2), unit_pos);
   }
 
   *(int *)(player + 0x70) =
-    ((int (*)(float *, float, float, short, short))0xad270)(
-      (float *)(unit + 0x0c), 1.0f, 0.0f, 6, -1);
+    FUN_000ad270((float *)(unit + 0x0c), 1.0f, 0.0f, 6, -1);
 }
 
 /* game_engine_get_variant_by_name (0xadd50)

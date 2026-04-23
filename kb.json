@@ -554,6 +554,18 @@
         {
           "decl": "void SwitchToThread(void);",
           "addr": "0x1cfb98"
+        },
+        {
+          "decl": "void FUN_001a0890(int unit_handle, float *out_pos, float *out_dist_b, float *out_dist_a);",
+          "addr": "0x1a0890"
+        },
+        {
+          "decl": "bool FUN_0014ec30(int flags, float *pos, void *out_scratch, float dist_b, float dist_a, int param6, void *scratch);",
+          "addr": "0x14ec30"
+        },
+        {
+          "decl": "bool FUN_0014bc10(void *los_data, float *pos, void *out_hit);",
+          "addr": "0x14bc10"
         }
       ]
     },
@@ -2059,6 +2071,18 @@
         {
           "decl": "void game_engine_score_reset(void);",
           "addr": "0xb2660"
+        },
+        {
+          "decl": "bool FUN_000acb10(int player_index, int type, void *entry);",
+          "addr": "0xacb10"
+        },
+        {
+          "decl": "int FUN_000ad160(float *position, float radius, float height, int16_t type, int16_t index, int flags, int *out_index);",
+          "addr": "0xad160"
+        },
+        {
+          "decl": "int FUN_000ad270(float *position, float radius, float height, int16_t type, int16_t index);",
+          "addr": "0xad270"
         }
       ]
     },
@@ -3026,6 +3050,18 @@
         {
           "decl": "void objects_update(void);",
           "addr": "0x145170"
+        },
+        {
+          "decl": "void FUN_0013fc20(void *placement, int tag_index, int parent_handle);",
+          "addr": "0x13fc20"
+        },
+        {
+          "decl": "int FUN_00143c80(void *placement);",
+          "addr": "0x143c80"
+        },
+        {
+          "decl": "void FUN_00143ae0(int object_handle, float *facing, float *target, int flags);",
+          "addr": "0x143ae0"
         }
       ]
     },
@@ -3166,6 +3202,14 @@
         {
           "decl": "void player_control_set_unit_seat(int unit_handle, int seat_index);",
           "addr": "0xb7f40"
+        },
+        {
+          "decl": "int FUN_000b6990(int unit_handle);",
+          "addr": "0xb6990"
+        },
+        {
+          "decl": "void FUN_000b6ea0(uint16_t local_player_index, float *direction);",
+          "addr": "0xb6ea0"
         }
       ]
     },
