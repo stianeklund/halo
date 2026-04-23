@@ -4,8 +4,8 @@
 extern float FUN_001ccbe0(int channel_index, void *source);
 /* Compute distance for random scale checks. */
 extern float FUN_001ccca0(int channel_index, void *source);
-/* Evaluate channel suitability given source and sqrt of distance. */
-extern void FUN_001c8310(int channel_index, void *source, float sqrt_dist);
+/* Compute sound obstruction for an absolute-spatialized source. */
+extern void sound_compute_source_obstruction(int channel_index, void *source, float sqrt_dist);
 
 /* Empty on Xbox — no per-map sound initialization needed. */
 void sound_initialize_for_new_map(void)
@@ -195,7 +195,7 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
   if ((short)best_channel != -1) {
     /* Evaluate channel suitability with sqrt of best distance. */
     sqrt_dist = __builtin_sqrtf(best_dist_sq);
-    FUN_001c8310(best_channel, source, sqrt_dist);
+    sound_compute_source_obstruction(best_channel, source, sqrt_dist);
   }
 
   if (priority * priority < best_dist_sq)

@@ -238,6 +238,128 @@ void game_sound_update(float dt)
   *(int *)(*(int *)0x5054e0) += 1;
 }
 
+/* sound_compute_source_obstruction (0x1c8310)
+ *
+ * Computes sound obstruction/occlusion factors for an absolute-spatialized
+ * sound source relative to a given player's observer camera.
+ *
+ * 1. Gets the observer camera for `channel_index` (a local player index).
+ * 2. Pushes a collision user onto the global collision stack (user type 0x10).
+ * 3. Asserts that `source->spatialization_mode ==
+ * _sound_spatialization_mode_absolute`.
+ * 4. Initialises source+0x38 = 0.6f (default gain), source+0x3C = 1.0f.
+ * 5. If both source and camera have valid cluster indices:
+ *    a. Queries the BSP cluster sound encoding between the two clusters.
+ *    b. Converts the 7-bit encoding to a float distance (0..~256).
+ *    c. If distance < 256.0 (not fully occluded):
+ *       - Looks up cluster audibility data for the camera cluster.
+ *       - If the source cluster is audible from the camera cluster,
+ *         sets source+0x38 = 0.45f and raycasts from camera to source.
+ *       - If the raycast finds no LOS, zeroes both fields.
+ *       - If source+0x38 is non-zero, computes an obstruction factor
+ *         from the cluster distance and sqrt_dist, clamped to [0, 1],
+ *         and stores it in source+0x3C.
+ * 6. Pops the collision user.
+ */
+void sound_compute_source_obstruction(int channel_index, void *source,
+                                      float sqrt_dist)
+{
+  float *camera;
+  int16_t source_cluster;
+  float direction[3];
+  int16_t collision_result[40]; /* 80 bytes */
+  uint8_t sound_encoding;
+  uint32_t encoding_bits;
+  float cluster_distance;
+  void *bsp;
+  uint32_t *audibility;
+  int source_cluster_int;
+  float obstruction;
+  float clamped;
+
+  camera = (float *)observer_get_camera(channel_index);
+
+  /* Push collision user (type 0x10). */
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x370, 1);
+    system_exit(-1);
+  }
+  {
+    int depth = (int)*(int16_t *)0x4761d8;
+    *(int16_t *)0x4761d8 += 1;
+    *(int16_t *)(0x5a8c80 + depth * 2) = 0x10;
+  }
+
+  /* Default gain and obstruction factor.
+   * These stores are placed before the assert in the original binary
+   * (MSVC instruction scheduling interleaves them with the CMP/JZ). */
+  *(float *)((char *)source + 0x38) = 0.6f;
+  *(float *)((char *)source + 0x3c) = 1.0f;
+
+  assert_halt_msg(
+    *(int16_t *)source == 1,
+    "source->spatialization_mode==_sound_spatialization_mode_absolute");
+
+  source_cluster = *(int16_t *)((char *)source + 0x34);
+  if (source_cluster != -1 && *(int16_t *)((char *)camera + 0x10) != -1) {
+    /* Query cluster sound path encoding between camera and source clusters. */
+    bsp = scenario_get();
+    sound_encoding = structure_bsp_cluster_sound_encoding(
+      bsp, *(int16_t *)((char *)camera + 0x10), source_cluster);
+    encoding_bits = (uint32_t)(sound_encoding & 0x7f);
+    cluster_distance = (float)(int)encoding_bits * *(float *)0x256148;
+
+    if (cluster_distance < *(float *)0x2642a0) {
+      source_cluster_int = (int)*(int16_t *)((char *)source + 0x34);
+
+      /* Get cluster audibility bitfield for the camera's cluster. */
+      bsp = scenario_get();
+      audibility = structure_bsp_get_cluster_sound_data(
+        bsp, *(int16_t *)((char *)camera + 0x10));
+
+      /* Check if the source cluster is audible from the camera cluster. */
+      if ((audibility[source_cluster_int >> 5] &
+           (1u << ((uint8_t)source_cluster_int & 0x1f))) != 0) {
+        *(float *)((char *)source + 0x38) = 0.45f;
+
+        /* Raycast from camera to source to check line of sight. */
+        direction[0] = *(float *)((char *)source + 0x0c) - camera[0];
+        direction[1] = *(float *)((char *)source + 0x10) - camera[1];
+        direction[2] = *(float *)((char *)source + 0x14) - camera[2];
+
+        if (!FUN_0014df70(0xc0e1, camera, direction, -1, collision_result)) {
+          /* No line of sight — fully occluded. */
+          *(float *)((char *)source + 0x38) = 0.0f;
+          *(float *)((char *)source + 0x3c) = 0.0f;
+        }
+      }
+
+      /* Compute obstruction factor if gain is non-zero. */
+      if (*(float *)((char *)source + 0x38) != *(float *)0x2533c0) {
+        obstruction =
+          *(float *)0x2533c8 - sqrt_dist / (cluster_distance + sqrt_dist);
+        *(float *)((char *)source + 0x3c) = obstruction;
+        clamped = obstruction * *(float *)0x256870;
+        if (clamped < *(float *)0x2533c0)
+          clamped = *(float *)0x2533c0;
+        else if (clamped > *(float *)0x2533c8)
+          clamped = *(float *)0x2533c8;
+        *(float *)((char *)source + 0x3c) = clamped;
+      }
+    }
+  }
+
+  /* Pop collision user. */
+  if (*(int16_t *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x39c, 1);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 -= 1;
+}
+
 /* sound_looping_start (0x1c8510)
  *
  * Starts a looping-sound definition
