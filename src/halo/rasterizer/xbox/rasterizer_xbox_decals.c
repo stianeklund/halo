@@ -54,6 +54,34 @@ void rasterizer_decals_dispose_from_old_map(void)
   lruv_cache_dispose_all(*(void **)0x476adc);
 }
 
+/* 0x15b460
+ *
+ * Allocate vertex cache space for decal vertices.
+ * Asserts that cache_size exceeds sizeof(struct decal_vertex) (0x10 bytes)
+ * and is aligned to that size, then forwards to the LRUV cache allocator
+ * (FUN_0011de10). Returns the allocated block index, or NONE on failure. */
+int FUN_0015b460(uint32_t cache_size)
+{
+  if (cache_size <= 0x10) {
+    display_assert(
+      "cache_size>sizeof(struct decal_vertex)",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0xcc, 1);
+    system_exit(-1);
+  }
+
+  if ((cache_size & 0xf) != 0) {
+    display_assert(
+      "cache_size%sizeof(struct decal_vertex)==0",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0xcd, 1);
+    system_exit(-1);
+  }
+
+  {
+    int (*lruv_cache_allocate)(void *, uint32_t) = (void *)0x11de10;
+    return lruv_cache_allocate(*(void **)0x476adc, cache_size);
+  }
+}
+
 /* 0x15b530
  *
  * Removes one decal vertex-cache entry from the LRUV cache.
@@ -313,4 +341,53 @@ void rasterizer_decals_dispose(void)
     *(void **)0x476ad8 = 0;
   }
   lruv_cache_dispose(*(void **)0x476adc);
+}
+
+/* 0x15b890
+ *
+ * Lock a region of the decal vertex buffer for writing.
+ * Asserts that cache_index, vertex cache, and D3D device are all valid.
+ * Translates the LRUV cache block index into a byte offset via FUN_0011da00,
+ * then locks that region of the D3D vertex buffer. Sets the GPU lock flag
+ * (0x325652) to 5 during the lock operation, clears it afterward.
+ * Returns a pointer to the locked vertex buffer memory. */
+void *FUN_0015b890(int cache_index, uint32_t cache_size)
+{
+  uint32_t offset;
+  void *locked_data;
+
+  locked_data = 0;
+
+  if (cache_index == -1) {
+    display_assert(
+      "cache_index!=NONE",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0xd9, 1);
+    system_exit(-1);
+  }
+
+  if (*(void **)0x476adc == 0) {
+    display_assert(
+      "local_vertex_cache",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0xda, 1);
+    system_exit(-1);
+  }
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0xdb, 1);
+    system_exit(-1);
+  }
+
+  {
+    uint32_t (*lruv_cache_block_offset)(void *, int) = (void *)0x11da00;
+    offset = lruv_cache_block_offset(*(void **)0x476adc, cache_index);
+  }
+
+  *(uint16_t *)0x325652 = 5;
+  ((void (__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
+    *(void **)0x476ad8, offset, cache_size, &locked_data, 0x80);
+  *(uint16_t *)0x325652 = 0;
+
+  return locked_data;
 }
