@@ -21,14 +21,6 @@
         "Parameter typing narrowed to const float * from direct [arg+0/4/8] float loads and ai_clump callsite passing actor/record position vectors at +0xbc."
       ]
     },
-    "0x124c40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1257a0": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x13010": {
       "kind": "function",
       "status": "ported",
@@ -2649,6 +2641,14 @@
         "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
       }
     },
+    "0x124c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1257a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12b640": {
       "kind": "function",
       "status": "ported"
@@ -3779,6 +3779,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bcb30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Global at 0x4e9250 is a pointer to an array of 0x20-byte cache request structures; field at offset 0x1c is an enable/active flag byte.",
+        "MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS is 0x200 (512), derived from the CMP SI,0x200 bounds check."
+      ]
+    },
     "0x1bcf00": {
       "kind": "function",
       "status": "ported"
@@ -3796,6 +3804,22 @@
       "status": "ported"
     },
     "0x1bdb70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bea30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1beb10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bf180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bf570": {
       "kind": "function",
       "status": "ported"
     },
