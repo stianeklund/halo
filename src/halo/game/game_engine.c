@@ -870,6 +870,76 @@ bool game_engine_game_over(void)
   return false;
 }
 
+/* game_engine_periodic_equipment_spawn (0xacbb0)
+ *
+ * Iterates scenario multiplayer equipment entries (+0x384, element size 0x90),
+ * filters by game-mode rules, and periodically spawns equipment placements.
+ */
+void game_engine_periodic_equipment_spawn(void)
+{
+  int *equip_block;
+  int16_t entry_index;
+  unsigned char placement[0x30];
+  int spawn_period;
+  unsigned char *entry;
+  int player_index;
+
+  equip_block = (int *)((char *)global_scenario_get() + 0x384);
+  entry_index = 0;
+
+  while ((int)entry_index < *equip_block) {
+    entry =
+      (unsigned char *)tag_block_get_element(equip_block, entry_index, 0x90);
+
+    player_index = -1;
+    if (*(int *)0x456b60 != 0) {
+      player_index = *(int *)(*(int *)0x456b60 + 4);
+    }
+
+    if (((char (*)(int, int, void *))0xacb10)(player_index, 4, entry + 4)) {
+      int16_t period_seconds = *(int16_t *)(entry + 0xe);
+      spawn_period = 900;
+
+      if (period_seconds == 0) {
+        int collection_tag = *(int *)(entry + 0x5c);
+        if (collection_tag != -1) {
+          char *collection_data = (char *)tag_get(0x69746d63, collection_tag);
+          period_seconds = *(int16_t *)(collection_data + 0xc);
+          if (period_seconds != 0) {
+            spawn_period = (int)period_seconds * 30;
+          }
+        }
+      } else {
+        spawn_period = (int)period_seconds * 30;
+      }
+
+      if ((game_time_get() % spawn_period) == 0) {
+        int tag_index = ((int(__attribute__((regparm(1))) *)(int))0xaca70)(
+          *(int *)(entry + 0x5c));
+        ((void (*)(void *, int, int))0x13fc20)(placement, tag_index, -1);
+        *(int *)(placement + 0x18) = *(int *)(entry + 0x40);
+        *(int *)(placement + 0x1c) = *(int *)(entry + 0x44);
+        *(int *)(placement + 0x20) = *(int *)(entry + 0x48);
+
+        {
+          int object_handle = ((int (*)(void *))0x143c80)(placement);
+          if (object_handle != -1) {
+            int object_data =
+              (int)object_get_and_verify_type(object_handle, 0x1c);
+            object_set_garbage_flag(object_handle, 0);
+            if ((*entry & 1) != 0) {
+              *(unsigned int *)(object_data + 4) |= 0x20;
+            }
+            *(int *)(object_data + 0x1b4) += spawn_period - 900;
+          }
+        }
+      }
+    }
+
+    entry_index++;
+  }
+}
+
 /* game_engine_update_non_deterministic (0xacdd0)
  *
  * Handles the post-game fade-out/score-screen sequence.  The state
