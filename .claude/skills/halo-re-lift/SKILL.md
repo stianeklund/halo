@@ -23,7 +23,12 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
    existing declarations in source and kb.json.
 3. Cross-check decompilation against raw disassembly (see `halo-xbox-re`
    review checklist; see `docs/references/abi-and-calling-conventions.md`
-   for full ABI rules).
+   for full ABI rules). **Mandatory call-site verification:** for every
+   CALL in the disassembly, trace each PUSH backward and confirm the
+   decompiler mapped it to the correct variable. Watch for:
+   - Register aliasing: EBX/ESI/EDI set far from the call site
+   - Push-then-fstp: `PUSH <dummy>; FSTP [ESP]` replaces arg with float
+   - Struct field rotation: MSVC interleaved stores ≠ decompiler offsets
 4. Infer the narrowest defensible prototype (see
    `docs/references/prototype-inference.md`).
 5. Produce a structurally faithful C lift:

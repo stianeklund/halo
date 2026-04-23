@@ -36,10 +36,33 @@ Procedure for analysis:
    - globals touched and kb.json matches
    - strings, jump tables, switch structures
    - likely subsystem and .obj grouping
-4. Cross-check decompilation against disassembly:
+4. Cross-check decompilation against disassembly — the decompiler is a
+   draft, not a source of truth. Known pitfalls to check for every lift:
+
+   a. **Register aliasing** (critical): Ghidra loses track of callee-saved
+      registers (EBX, ESI, EDI) in long functions. For every CALL in the
+      disassembly, trace each PUSH/register-arg backward to its source and
+      confirm the decompiler mapped it to the correct C variable. If EBX
+      was set 40+ instructions ago, the decompiler may substitute the wrong
+      variable. This is the #1 source of silent lift bugs.
+
+   b. **Push-then-fstp** (MSVC float args): MSVC passes floats on the
+      stack via `PUSH <dummy>; FSTP DWORD PTR [ESP]`. Ghidra sees the
+      LEA/MOV before the PUSH and reports the dummy value (often a pointer)
+      as the argument. The real value is whatever the FPU computed. Look
+      for `FSTP [ESP]` after any PUSH near a CALL — it replaces the pushed
+      value with a float.
+
+   c. **Struct field rotation** (interleaved stores): MSVC reorders stores
+      for pipeline scheduling. Ghidra reassembles them in instruction order,
+      not destination order, producing wrong struct offsets. For any block
+      that fills a struct (memset + series of stores), list every
+      `MOV [EBP±N], src` and its destination offset from the disassembly.
+      Do not trust the decompiler's offset assignments.
+
+   Additionally:
    - verify operand sizes exactly
    - confirm raw CALL targets
-   - watch for interleaved MSVC pre-pushes
    - detect register-passed args
 5. Infer the narrowest defensible prototype:
    - use PUSH count and stack cleanup
@@ -59,6 +82,12 @@ Output format:
 - Confirmed
 - Inferred
 - Uncertain
+- Call-site verification table (required for every function call in the
+  lift). For each CALL instruction, trace the pushes backward in the
+  disassembly and list:
+    arg# | binary source (register/push) | C code expression | match?
+  Flag any mismatch. Pay special attention to callee-saved registers
+  (EBX, ESI, EDI) that were set far from the call site.
 - Store-offset table (required when the function writes to a struct or
   stack buffer that is later passed to another function — i.e. anywhere a
   field-rotation or offset-swap bug could hide). Columns:

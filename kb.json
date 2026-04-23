@@ -560,7 +560,7 @@
           "addr": "0x1a0890"
         },
         {
-          "decl": "bool FUN_0014ec30(int flags, float *pos, void *out_scratch, float dist_b, float dist_a, int param6, void *scratch);",
+          "decl": "bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b, float dist_a, int param6, void *scratch);",
           "addr": "0x14ec30"
         },
         {
@@ -2028,7 +2028,7 @@
           "addr": "0xacef0"
         },
         {
-          "decl": "void game_engine_score_update_player(int player_handle);",
+          "decl": "void game_engine_player_update_netgame_flag(int player_handle);",
           "addr": "0xad600"
         },
         {

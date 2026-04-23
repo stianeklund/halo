@@ -1013,11 +1013,14 @@ void game_engine_update_non_deterministic(float dt)
   }
 }
 
-/* game_engine_score_update_player (0xad600)
+/* game_engine_player_update_netgame_flag (0xad600)
  *
- * Updates per-player scoring target state and feedback cues.
+ * Per-player netgame flag proximity check.  Finds the nearest type-6
+ * flag (teleporter sender / hill), looks up the paired type-7 flag
+ * (teleporter exit / scoring target), runs a LOS check to the
+ * destination, and either scores a point or teleports the player.
  */
-void game_engine_score_update_player(int player_handle)
+void game_engine_player_update_netgame_flag(int player_handle)
 {
   unsigned char *player;
   unsigned char *scenario;
@@ -1055,6 +1058,7 @@ void game_engine_score_update_player(int player_handle)
   }
 
   selected_goal_index = -1;
+  /* netgame_flag_find_nearest: search for type-6 flag near unit */
   FUN_000ad160(
     (float *)(unit + 0xc), 0.5f, 0.0f, 6, -1, 1, &selected_goal_index);
 
@@ -1067,6 +1071,7 @@ void game_engine_score_update_player(int player_handle)
     (char *)scenario + 0x378, selected_goal_index, 0x94);
 
   next_goal_index = -1;
+  /* netgame_flag_find_nearest: find paired type-7 flag by team index */
   FUN_000ad160(
     0, 0.0f, 0.0f, 7, *(short *)(goal_entry + 0x12), 1, &next_goal_index);
 
@@ -1094,8 +1099,8 @@ void game_engine_score_update_player(int player_handle)
     candidate_pos[1] = *(float *)(next_goal_entry + 0x4);
     candidate_pos[2] = *(float *)(next_goal_entry + 0x8);
 
-    if (FUN_0014ec30(0x200380, candidate_pos, los_scratch, distance_b,
-                       distance_a, -1, los_scratch) &&
+    if (FUN_0014ec30(0x200380, candidate_pos, distance_a * 2.0f + distance_b,
+                       distance_b, distance_a, -1, los_scratch) &&
         FUN_0014bc10(los_scratch, candidate_pos, hit_info)) {
       int hit_object = *(int *)(hit_info + 0x20);
       if (hit_object != -1) {
@@ -1132,17 +1137,17 @@ void game_engine_score_update_player(int player_handle)
     if (*(short *)(player + 2) != -1) {
       unsigned char effect_desc[0x64];
 
-      csmemset(effect_desc, 0, 0x34);
+      csmemset(effect_desc + 2, 0, 0x36);
       *(short *)(effect_desc + 0x00) = *(short *)0x2efe68;
       *(short *)(effect_desc + 0x02) = 2;
-      *(short *)(effect_desc + 0x12) = *(short *)0x456b68;
-      *(int *)(effect_desc + 0x10) = *(int *)0x2efe6c;
-      *(int *)(effect_desc + 0x14) = *(int *)0x2efe70;
-      *(int *)(effect_desc + 0x18) = *(int *)0x2efe74;
-      *(int *)(effect_desc + 0x1c) = *(int *)0x2efe78;
-      *(int *)(effect_desc + 0x20) = *(int *)0x2efe7c;
-      *(int *)(effect_desc + 0x24) = *(int *)0x2efe80;
-      *(int *)(effect_desc + 0x28) = 0;
+      *(int *)(effect_desc + 0x10) = *(int *)0x2efe80;
+      *(short *)(effect_desc + 0x14) = *(short *)0x456b68;
+      *(int *)(effect_desc + 0x20) = *(int *)0x2efe6c;
+      *(int *)(effect_desc + 0x24) = 0;
+      *(int *)(effect_desc + 0x28) = *(int *)0x2efe70;
+      *(int *)(effect_desc + 0x2c) = *(int *)0x2efe74;
+      *(int *)(effect_desc + 0x30) = *(int *)0x2efe78;
+      *(int *)(effect_desc + 0x34) = *(int *)0x2efe7c;
 
       player_effect_apply(player_handle, effect_desc, 1.0f);
     }
@@ -1151,13 +1156,14 @@ void game_engine_score_update_player(int player_handle)
   {
     float angle = (float)atan2(unit_pos[1], unit_pos[0]);
     float adjusted =
-      angle + *(float *)(unit + 0x0c) - *(float *)(goal_entry + 0x0c);
+      angle + *(float *)(next_goal_entry + 0x0c) - *(float *)(goal_entry + 0x0c);
     unit_pos[0] = cosf(adjusted);
     unit_pos[1] = sinf(adjusted);
     normalize3d(unit_pos);
   }
 
-  FUN_00143ae0(*(int *)(player + 0x34), (float *)(unit + 0x0c), unit_pos, 0);
+  /* object_place_at_position: teleport player to destination flag */
+  FUN_00143ae0(*(int *)(player + 0x34), (float *)next_goal_entry, unit_pos, 0);
 
   if (*(short *)(player + 2) != -1) {
     FUN_000b6ea0((unsigned short)*(short *)(player + 2), unit_pos);
@@ -1519,7 +1525,7 @@ void game_engine_update(void)
       }
     }
 
-    game_engine_score_update_player(player_handle);
+    game_engine_player_update_netgame_flag(player_handle);
 
     vtable = (void (**)(void))current_game_engine;
     if (vtable[13])
