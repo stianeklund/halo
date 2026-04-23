@@ -541,6 +541,20 @@ bool file_open(file_ref_t *info, int flags)
   return false;
 }
 
+bool file_close(file_ref_t *info)
+{
+  file_ref_t *ref;
+
+  ref = file_reference_verify(info);
+  if (XCloseHandle(*(int *)&ref->unk_8[256])) {
+    *(int *)&ref->unk_8[256] = 0;
+    return true;
+  }
+
+  file_error(info, "file_close");
+  return false;
+}
+
 /**
  * file_exists - check whether a file referenced by info exists on disk.
  *
