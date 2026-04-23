@@ -107,6 +107,39 @@ unsigned int FUN_0011ea90(void *block_hdr)
   return blk[0] & 0x7fffffff;
 }
 
+/* FUN_0011eb40 — compute largest free tail space in pool.
+ *
+ * Register convention: pool in ESI (kb.json @<esi>).
+ *
+ * If pool has no blocks, returns pool_size.
+ * Otherwise returns bytes from end of last block to pool end.
+ */
+unsigned int FUN_0011eb40(void *pool)
+{
+  char *pool_p = (char *)pool;
+  unsigned int *last_block;
+
+  if (pool == 0 || *(unsigned int *)(pool_p + 4) == 0) {
+    display_assert("pool && pool->base_address",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x2fc, 1);
+    system_exit(-1);
+  }
+
+  if (*(unsigned int *)(pool_p + 0x2c) == 0) {
+    return *(unsigned int *)(pool_p + 8);
+  }
+
+  last_block = *(unsigned int **)(pool_p + 0x30);
+  if (last_block == 0) {
+    display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
+                   0x22f, 1);
+    system_exit(-1);
+  }
+
+  return *(unsigned int *)(pool_p + 8) - (last_block[0] & 0x7fffffff) +
+         *(unsigned int *)(pool_p + 4) - (unsigned int)last_block;
+}
+
 /* memory_block_valid — validate a block header's integrity.
  *
  * Checks three conditions on the block header pointed to by block_hdr:
