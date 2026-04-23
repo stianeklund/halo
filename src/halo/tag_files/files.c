@@ -16,6 +16,10 @@ typedef int(__stdcall *set_file_pointer_fn)(int handle, int distance_to_move,
                                              int *distance_high,
                                              uint32_t move_method);
 typedef int(__stdcall *get_file_size_fn)(int handle, int *size_high);
+typedef bool(__stdcall *read_file_fn)(int handle, void *buffer,
+                                       uint32_t number_of_bytes_to_read,
+                                       int *number_of_bytes_read,
+                                       void *overlapped);
 typedef void (*debug_log_fn)(int level, const char *format, ...);
 typedef uint32_t(__stdcall *xget_last_error_fn)(void);
 typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
@@ -26,6 +30,7 @@ typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
 #define XCreateFile ((create_file_fn)0x1d1d85)
 #define XSetFilePointer ((set_file_pointer_fn)0x1d1610)
 #define XGetFileSize ((get_file_size_fn)0x1d1d4a)
+#define XReadFile ((read_file_fn)0x1d13c9)
 #define DEBUG_LOG ((debug_log_fn)0x8f390)
 #define XGetLastError ((xget_last_error_fn)0x1d2240)
 #define XSetLastError ((xset_last_error_fn)0x1d2268)
@@ -569,6 +574,30 @@ int file_get_eof(file_ref_t *info)
   }
 
   return eof;
+}
+
+bool file_read(file_ref_t *info, int size, void *buffer)
+{
+  file_ref_t *ref;
+  int bytes_read;
+
+  ref = file_reference_verify(info);
+  if (buffer == NULL) {
+    display_assert("buffer", "c:\\halo\\SOURCE\\tag_files\\files_windows.c",
+                   0x1a7, true);
+    system_exit(-1);
+  }
+
+  if (XReadFile(*(int *)&ref->unk_8[256], buffer, (uint32_t)size, &bytes_read,
+                NULL)) {
+    if (bytes_read == size) {
+      return true;
+    }
+    XSetLastError(0x26);
+  }
+
+  file_error(info, "file_read");
+  return false;
 }
 
 /**
