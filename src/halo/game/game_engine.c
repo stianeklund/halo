@@ -713,6 +713,102 @@ bool FUN_000ab720(void)
   return *(int *)0x5aa730 == 0;
 }
 
+/* game_engine_load_sounds (0xab730)
+ *
+ * Preloads game-engine related sound tags from game globals.
+ * Selection depends on game_engine_variant_index (0x456b40) and game type
+ * (0x456b10). The final 10 entries are mapped through FUN_000a9770 before
+ * loading.
+ */
+void game_engine_load_sounds(void)
+{
+  char *globals;
+  char *engine_globals;
+  char *entry;
+  int sound_tags[10];
+  int i;
+  void (*load_sound)(int) = (void (*)(int))0x13dda0;
+  int (*map_sound_tag)(int) = (int (*)(int))0x0a9770;
+
+  globals = (char *)game_globals_get();
+  engine_globals = (char *)tag_block_get_element(globals + 0x164, 0, 0xa0);
+
+  if (*(int *)0x456b40 == 2) {
+    entry = (char *)tag_block_get_element(engine_globals + 0x20, 0, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+  } else if (*(int *)0x456b40 == 3) {
+    entry = (char *)tag_block_get_element(engine_globals + 0x20, 1, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+  } else if (*(int *)0x456b40 == 4) {
+    entry = (char *)tag_block_get_element(engine_globals + 0x20, 2, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+  } else {
+    entry = (char *)tag_block_get_element(engine_globals + 0x20, 0, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+    entry = (char *)tag_block_get_element(engine_globals + 0x20, 1, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+    entry = (char *)tag_block_get_element(engine_globals + 0x20, 2, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+  }
+
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 0xc, 0x10);
+  load_sound(*(int *)(entry + 0xc));
+
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 0xd, 0x10);
+  load_sound(*(int *)(entry + 0xc));
+
+  if (*(int *)0x456b10 == 3) {
+    globals = (char *)game_globals_get();
+    entry = (char *)tag_block_get_element(globals + 0x14c, 10, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+  }
+
+  if (*(int *)0x456b10 == 1) {
+    globals = (char *)game_globals_get();
+    entry = (char *)tag_block_get_element(globals + 0x14c, 0xb, 0x10);
+    load_sound(*(int *)(entry + 0xc));
+  }
+
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 0, 0x10);
+  sound_tags[0] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 1, 0x10);
+  sound_tags[1] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 2, 0x10);
+  sound_tags[2] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 3, 0x10);
+  sound_tags[3] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 4, 0x10);
+  sound_tags[4] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 5, 0x10);
+  sound_tags[5] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 6, 0x10);
+  sound_tags[6] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 7, 0x10);
+  sound_tags[7] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 8, 0x10);
+  sound_tags[8] = *(int *)(entry + 0xc);
+  globals = (char *)game_globals_get();
+  entry = (char *)tag_block_get_element(globals + 0x14c, 9, 0x10);
+  sound_tags[9] = *(int *)(entry + 0xc);
+
+  i = 0;
+  while (i < 10) {
+    load_sound(map_sound_tag(sound_tags[i]));
+    i++;
+  }
+}
+
 /* game_engine_can_pick_up_weapon (0xaba00)
  *
  * In Juggernaut (game type index 1) with an active engine, returns true
