@@ -22,9 +22,9 @@ void *xbox_texture_cache_steal_memory(unsigned int size)
   }
 
   FUN_0011db00(*(void **)0x4ea980, remaining_page_count);
-  FUN_001d371d(base + 0x104000, stolen_size, 4);
-  FUN_001d371d(base, 0x104000, 2);
-  FUN_001d371d(base + 0x104000 + stolen_size, 0x104000, 2);
+  physical_memory_protect(base + 0x104000, stolen_size, 4);
+  physical_memory_protect(base, 0x104000, 2);
+  physical_memory_protect(base + 0x104000 + stolen_size, 0x104000, 2);
   *(int8_t *)0x4ea984 = 1;
   return base + 0x104000;
 }
@@ -39,7 +39,7 @@ void xbox_texture_cache_return_memory(void)
   }
 
   FUN_0011db00(*(void **)0x4ea980, 0x580);
-  FUN_001d371d(FUN_001bdd60(0x1600000, 0x404), 0x1600000, 0x404);
+  physical_memory_protect(FUN_001bdd60(), 0x1600000, 0x404);
   *(int8_t *)0x4ea984 = 0;
 }
 
