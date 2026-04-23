@@ -2131,7 +2131,8 @@
         },
         {
           "decl": "void FUN_001c8310(int channel_index, void *source, float sqrt_dist);",
-          "addr": "0x1c8310"
+          "addr": "0x1c8310",
+          "comment": "Evaluate channel suitability given source and sqrt of distance."
         }
       ]
     },
@@ -4167,11 +4168,13 @@
         },
         {
           "decl": "float FUN_001ccbe0(int channel_index@<eax>, void *source@<edi>);",
-          "addr": "0x1ccbe0"
+          "addr": "0x1ccbe0",
+          "comment": "Compute listener distance squared for a channel/source pair."
         },
         {
           "decl": "float FUN_001ccca0(int channel_index@<eax>, void *source@<edi>);",
-          "addr": "0x1ccca0"
+          "addr": "0x1ccca0",
+          "comment": "Compute distance for random scale checks."
         }
       ]
     },
