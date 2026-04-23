@@ -1,7 +1,10 @@
 /* Sound manager — low-level sound system lifecycle and rendering. */
 
+/* Compute listener distance squared for a channel/source pair. */
 extern float FUN_001ccbe0(int channel_index, void *source);
+/* Compute distance for random scale checks. */
 extern float FUN_001ccca0(int channel_index, void *source);
+/* Evaluate channel suitability given source and sqrt of distance. */
 extern void FUN_001c8310(int channel_index, void *source, float sqrt_dist);
 
 /* Empty on Xbox — no per-map sound initialization needed. */
