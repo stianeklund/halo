@@ -219,6 +219,7 @@ void object_move_to_limbo(int object_handle)
  *   0x13f950  objects_initialize_for_new_map
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
+ *   0x13fc20  FUN_0013fc20 (object placement data init)
  *   0x13fd00  object_disconnect_from_map
  *   0x13fef0  object_has_node
  *   0x13ffc0  object_set_garbage
@@ -234,6 +235,8 @@ void object_move_to_limbo(int object_handle)
  *   0x1412f0  object_get_world_position
  *   0x141480  object_get_world_matrix
  *   0x141b70  object_compute_node_matrices
+ *   0x143ae0  FUN_00143ae0 (object reposition)
+ *   0x143c80  FUN_00143c80 (object_new — create from placement)
  *   0x144240  object_attach_to_parent
  *   0x1446a0  object_update_children_recursive
  *   0x144860  object_attach_to_marker
@@ -242,11 +245,26 @@ void object_move_to_limbo(int object_handle)
 
 #include "common.h"
 
-/* Forward declarations for unported callees in the same .obj cluster.
- * These are called via hardcoded addresses to avoid polluting kb.json
- * with stubs that would silently override thunks. */
+/* Forward declarations for unported callees in the same .obj cluster. */
 typedef void (*pfn_void_t)(void);
 typedef void (*pfn_int_t)(int);
+typedef int (*valid_real_point3d_fn)(float *p);
+typedef void (*object_type_validate_fn)(int16_t type);
+
+int FUN_00084a10(float *vector);
+int FUN_000ae0a0(int tag_index);
+void *FUN_0013c100(int16_t object_type);
+void FUN_0013c430(int object_handle, void *placement);
+int FUN_0013c490(int object_handle);
+void FUN_0013c560(int object_handle);
+void FUN_0013c620(int object_handle);
+void FUN_0013df70(data_t *data);
+int FUN_0013e050(int object_handle, int offset, int size);
+void FUN_00136150(int object_handle);
+void FUN_001365d0(int object_handle, int arg1, int arg2);
+void FUN_0013ecb0(int object_handle);
+void FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
+                  int marker, int arg4, int arg5, int arg6, int arg7);
 
 /*
  * object_try_and_get_and_verify_type — resolve a datum handle to its
@@ -1062,6 +1080,84 @@ void object_activate(int object_handle)
   if ((hdr->unk_2 & 0x01) == 0 && (obj->flags & 0x100000) == 0 &&
       obj->parent_object_index.value == -1) {
     hdr->unk_2 |= 0x01;
+  }
+}
+
+/*
+ * FUN_0013fc20 — initialise an object placement data struct.
+ *
+ * Zeroes the 0x88-byte placement buffer, stores the tag index at +0x00,
+ * copies default forward {1,0,0} and up {0,0,1} vectors from constant
+ * tables, then resolves the parent handle through the object header table:
+ *   - If parent is valid: copies parent_object_index (+0x70), cluster
+ *     index (+0x68), and the raw handle into the placement.
+ *   - Otherwise: sets parent/cluster fields to -1/0xFFFF.
+ * Finally fills four scale vectors at +0x58 with {1,1,1} each.
+ *
+ * Confirmed: csmemset(param_1, 0, 0x88) — 136-byte struct.
+ * Confirmed: *(void**)0x31fc3c → {1.0, 0.0, 0.0} default forward.
+ * Confirmed: *(void**)0x31fc44 → {0.0, 0.0, 1.0} default up.
+ * Confirmed: *(void**)0x2ee708 → {1.0, 1.0, 1.0} default scale.
+ * Confirmed: datum_absolute_index_to_index(DAT_005a8d50, parent_handle)
+ *            returns header ptr; +0x3 = type, +0x8 = object ptr.
+ * Confirmed: word at [ESI+0x16] = 0.
+ * Confirmed: 4 iterations of 12-byte copy for scale at [ESI+0x58].
+ */
+void FUN_0013fc20(void *placement, int tag_index, int parent_handle)
+{
+  char *p = (char *)placement;
+  float *src;
+  int header;
+  int obj;
+  int i;
+
+  csmemset(placement, 0, 0x88);
+
+  /* +0x00: tag index */
+  *(int *)(p + 0x00) = tag_index;
+  /* +0x04: flags = 0 (already zeroed) */
+  *(int *)(p + 0x04) = 0;
+
+  /* +0x34: default forward vector {1,0,0} from *(void**)0x31fc3c */
+  src = *(float **)0x31fc3c;
+  *(float *)(p + 0x34) = src[0];
+  *(float *)(p + 0x38) = src[1];
+  *(float *)(p + 0x3c) = src[2];
+
+  /* +0x40: default up vector {0,0,1} from *(void**)0x31fc44 */
+  src = *(float **)0x31fc44;
+  *(float *)(p + 0x40) = src[0];
+  *(float *)(p + 0x44) = src[1];
+  *(float *)(p + 0x48) = src[2];
+
+  /* +0x16: zero (int16) */
+  *(int16_t *)(p + 0x16) = 0;
+
+  /* Resolve parent: datum_absolute_index_to_index returns header or 0 */
+  header = datum_absolute_index_to_index(*(data_t **)0x5a8d50, parent_handle);
+  if (header == 0 || (1 << (*(uint8_t *)(header + 0x3) & 0x1f)) == 0 ||
+      *(int *)(header + 0x8) == 0) {
+    /* No valid parent */
+    *(int *)(p + 0x0c) = -1;
+    *(int *)(p + 0x08) = -1;
+    *(int16_t *)(p + 0x14) = -1;
+  } else {
+    obj = *(int *)(header + 0x8);
+    *(int *)(p + 0x0c) = parent_handle;
+    *(int *)(p + 0x08) = *(int *)(obj + 0x70);
+    *(int16_t *)(p + 0x14) = *(int16_t *)(obj + 0x68);
+  }
+
+  /* +0x58: four {1,1,1} scale vectors from *(void**)0x2ee708 */
+  {
+    char *dst = p + 0x58;
+    for (i = 4; i != 0; i--) {
+      src = *(float **)0x2ee708;
+      *(float *)(dst + 0x0) = src[0];
+      *(float *)(dst + 0x4) = src[1];
+      *(float *)(dst + 0x8) = src[2];
+      dst += 0xc;
+    }
   }
 }
 
@@ -2277,7 +2373,6 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
 void object_compute_node_matrices(int object_handle)
 {
   /* Type-cast helpers for unported callees */
-  typedef void (*object_type_validate_fn)(int16_t type);
   typedef void (*animation_set_default_fn)(void *model_tag, void *anim_data);
   typedef void (*animation_decode_fn)(void *model_tag, void *anim_entry,
                                       int frame_index, void *anim_data);
@@ -2289,7 +2384,6 @@ void object_compute_node_matrices(int object_handle)
   typedef void (*anim_interpolate_fn)(uint16_t node_count, void *interp_data,
                                       void *anim_data, int16_t frame_index,
                                       int16_t frame_count);
-  typedef int (*valid_real_point3d_fn)(float *p);
   typedef int (*valid_real_vectors_fn)(float *fwd, float *left, float *up);
   typedef int (*valid_real_matrix4x3_fn)(float *m);
   typedef int (*valid_fwd_and_up_fn)(float *fwd, float *up);
@@ -3171,6 +3265,378 @@ void object_compute_node_matrices(int object_handle)
 }
 
 /*
+ * FUN_00143ae0 — reposition an object and recompute its orientation.
+ *
+ * Disconnects the object from the map, optionally updates its position
+ * (forward vector at obj+0x0C) and facing direction (at obj+0x24).
+ * If a target (up) vector is provided, it is copied directly to obj+0x30.
+ * Otherwise, a perpendicular up vector is computed from the facing via:
+ *   temp = {facing.y, -facing.x, 0.0}
+ *   normalize(temp)
+ *   if degenerate: temp = {1, 0, 0}
+ *   up = cross(temp, facing)
+ * Then recomputes node matrices and reconnects to the map.
+ *
+ * Confirmed: 4 cdecl args (object_handle, facing, target, flags).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x13fd00 (object_disconnect_from_map) with 1 stack arg.
+ * Confirmed: CALL 0x13010 (normalize3d) for perpendicular temp vector.
+ * Confirmed: cross product computed via x87 FPU in-line (not a function call).
+ * Confirmed: CALL 0x141b70 (object_compute_node_matrices).
+ * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
+ * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
+ */
+void FUN_00143ae0(int object_handle, float *position, float *forward, float *up)
+{
+  char *obj;
+  float temp[3];
+  float mag;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  object_disconnect_from_map(object_handle);
+
+  /* Copy position if provided */
+  if (position != NULL) {
+    *(float *)(obj + 0x0c) = position[0];
+    *(float *)(obj + 0x10) = position[1];
+    *(float *)(obj + 0x14) = position[2];
+  }
+
+  /* Copy forward direction and compute/set up vector */
+  if (forward != NULL) {
+    *(float *)(obj + 0x24) = forward[0];
+    *(float *)(obj + 0x28) = forward[1];
+    *(float *)(obj + 0x2c) = forward[2];
+
+    if (up != NULL) {
+      /* Up vector provided directly */
+      *(float *)(obj + 0x30) = up[0];
+      *(float *)(obj + 0x34) = up[1];
+      *(float *)(obj + 0x38) = up[2];
+    } else {
+      /* Compute perpendicular up from forward direction:
+       * temp = {forward.y, -forward.x, 0.0} */
+      temp[0] = forward[1];
+      temp[1] = -forward[0];
+      temp[2] = 0.0f;
+
+      mag = normalize3d(temp);
+      if (mag == *(float *)0x2533c0) {
+        /* Degenerate (forward is along Z) — use X axis */
+        temp[0] = 1.0f;
+        temp[2] = 0.0f;
+        temp[1] = 0.0f;
+      }
+
+      /* up = cross(temp, forward) */
+      *(float *)(obj + 0x30) = temp[1] * forward[2] - temp[2] * forward[1];
+      *(float *)(obj + 0x34) = temp[2] * forward[0] - temp[0] * forward[2];
+      *(float *)(obj + 0x38) = temp[0] * forward[1] - temp[1] * forward[0];
+    }
+  }
+
+  object_compute_node_matrices(object_handle);
+  object_connect_to_map(object_handle, 0);
+}
+
+/*
+ * FUN_00143c80 — create a new object from a placement data struct.
+ *
+ * This is the core object creation function. Validates the placement data,
+ * allocates a datum in the object header table, initialises the object's
+ * fields from the placement struct and the object definition tag, then runs
+ * the full chain of type-specific initialisers, node matrix computation,
+ * map connection, widget creation, and child attachment.
+ *
+ * On failure (no free slots or type init failure), the datum is freed and
+ * an "OUT OF OBJECTS" error is logged. Returns -1 on failure, or the new
+ * object's datum handle on success.
+ *
+ * Confirmed: SUB ESP,0x210 — 528 bytes of locals (includes 512-byte sprintf
+ * buffer). Confirmed: tag_get(0x6f626a65, tag_index) for 'obje' tag. Confirmed:
+ * FUN_0013ded0 with EAX=-1 for datum allocation. Confirmed: datum_get +
+ * object_get_and_verify_type for header/obj access. Confirmed: header->unk_2 |=
+ * 0x44 sets active+type flags. Confirmed: position += scale * up_vector
+ * (placement+0x24 multiplied through). Confirmed: tag_get(0x6d6f6465, ...) for
+ * 'mode' model tag, node count at +0xb8. Confirmed: FUN_0013e050 for block
+ * reference allocation (3 calls). Confirmed: FUN_0009ec30 creation effect (8
+ * args) if tag_data+0xac != -1. Confirmed: return EBX (object_handle or -1).
+ */
+int FUN_00143c80(void *placement)
+{
+  char *p = (char *)placement;
+  int tag_index;
+  char *tag_data;
+  char *obj;
+  char *header;
+  int object_handle;
+  uint32_t node_count;
+  uint8_t saved_active_bit;
+  uint8_t success;
+  char local_buf[512];
+
+  tag_index = *(int *)p;
+
+  /* --- Validation: position --- */
+  if (!((valid_real_point3d_fn)0xa16b0)((float *)(p + 0x18))) {
+    char *msg =
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
+               "&data->position", (double)*(float *)(p + 0x18),
+               (double)*(float *)(p + 0x1c), (double)*(float *)(p + 0x20));
+    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x26a, 1);
+    system_exit(-1);
+  }
+
+  /* --- Validation: forward/up axes perpendicularity --- */
+  if (!valid_real_normal3d_perpendicular((float *)(p + 0x34),
+                                         (float *)(p + 0x40))) {
+    char *msg = csprintf(
+      (char *)0x5ab100,
+      "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
+      "&data->forward", "&data->up", (double)*(float *)(p + 0x34),
+      (double)*(float *)(p + 0x38), (double)*(float *)(p + 0x3c),
+      (double)*(float *)(p + 0x40), (double)*(float *)(p + 0x44),
+      (double)*(float *)(p + 0x48));
+    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x26b, 1);
+    system_exit(-1);
+  }
+
+  /* --- Validation: angular velocity --- */
+  if (!FUN_00084a10((float *)(p + 0x4c))) {
+    char *msg =
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+               "&data->angular_velocity", (double)*(float *)(p + 0x4c),
+               (double)*(float *)(p + 0x50), (double)*(float *)(p + 0x54));
+    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x26c, 1);
+    system_exit(-1);
+  }
+
+  /* --- Validation: translational velocity --- */
+  if (!FUN_00084a10((float *)(p + 0x28))) {
+    char *msg =
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+               "&data->translational_velocity", (double)*(float *)(p + 0x28),
+               (double)*(float *)(p + 0x2c), (double)*(float *)(p + 0x30));
+    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x26d, 1);
+    system_exit(-1);
+  }
+
+  /* --- Game engine tag remapping --- */
+  if (game_engine_running()) {
+    if (tag_index == -1)
+      return -1;
+    tag_index = FUN_000ae0a0(tag_index);
+  }
+
+  if (tag_index == -1)
+    return -1;
+
+  /* --- Get object definition tag --- */
+  tag_data = (char *)tag_get(0x6f626a65, tag_index);
+
+  /* --- Get type definition and allocate datum --- */
+  {
+    uint16_t type_word = *(uint16_t *)tag_data;
+    char *type_def = (char *)FUN_0013c100((int16_t)type_word);
+    int16_t datum_size = *(int16_t *)(type_def + 0x8);
+
+    object_handle = FUN_0013ded0(*(data_t **)0x5a8d50, datum_size, -1);
+  }
+
+  if (object_handle == -1)
+    goto out_of_objects;
+
+  /* --- Get header and object pointers --- */
+  header = (char *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+
+  /* Set header flags and type */
+  *(uint8_t *)(header + 0x2) |= 0x44;
+  *(uint8_t *)(header + 0x3) = *(uint8_t *)tag_data;
+
+  /* Store tag index and type in object */
+  *(int *)obj = tag_index;
+  success = 1;
+  *(int16_t *)(obj + 0x64) = *(int16_t *)tag_data;
+
+  /* --- Type-specific init callback (FUN_0013c430) --- */
+  FUN_0013c430(object_handle, placement);
+
+  /* --- Copy fields from placement to object --- */
+  /* position: placement+0x18 → obj+0x0c */
+  *(float *)(obj + 0x0c) = *(float *)(p + 0x18);
+  *(float *)(obj + 0x10) = *(float *)(p + 0x1c);
+  *(float *)(obj + 0x14) = *(float *)(p + 0x20);
+
+  /* forward: placement+0x34 → obj+0x24 */
+  *(float *)(obj + 0x24) = *(float *)(p + 0x34);
+  *(float *)(obj + 0x28) = *(float *)(p + 0x38);
+  *(float *)(obj + 0x2c) = *(float *)(p + 0x3c);
+
+  /* up: placement+0x40 → obj+0x30 */
+  *(float *)(obj + 0x30) = *(float *)(p + 0x40);
+  *(float *)(obj + 0x34) = *(float *)(p + 0x44);
+  *(float *)(obj + 0x38) = *(float *)(p + 0x48);
+
+  /* velocity: placement+0x28 → obj+0x18 */
+  *(float *)(obj + 0x18) = *(float *)(p + 0x28);
+  *(float *)(obj + 0x1c) = *(float *)(p + 0x2c);
+  *(float *)(obj + 0x20) = *(float *)(p + 0x30);
+
+  /* angular velocity: placement+0x4c → obj+0x3c */
+  *(float *)(obj + 0x3c) = *(float *)(p + 0x4c);
+  *(float *)(obj + 0x40) = *(float *)(p + 0x50);
+  *(float *)(obj + 0x44) = *(float *)(p + 0x54);
+
+  /* position += scale * up_vector (placement+0x24 is the scale factor) */
+  {
+    float scale = *(float *)(p + 0x24);
+    *(float *)(obj + 0x0c) += scale * *(float *)(obj + 0x30);
+    *(float *)(obj + 0x10) += scale * *(float *)(obj + 0x34);
+    *(float *)(obj + 0x14) += scale * *(float *)(obj + 0x38);
+  }
+
+  /* --- Set flag bit 12 based on placement flags bit 0 --- */
+  {
+    uint32_t flags = *(uint32_t *)(obj + 0x4);
+    if (*(uint8_t *)(p + 0x4) & 0x1)
+      flags |= 0x1000;
+    else
+      flags &= ~(uint32_t)0x1000;
+    *(uint32_t *)(obj + 0x4) = flags;
+  }
+
+  /* --- Initialise various fields to defaults --- */
+  *(int16_t *)(obj + 0x4c) = -1;
+  *(int16_t *)(header + 0x4) = -1;
+  *(uint32_t *)(obj + 0x8) = *(uint32_t *)0x5a8d28 - 1;
+  *(int *)(obj + 0xa0) = -1;
+  *(int *)(obj + 0xbc) = -1;
+  *(int16_t *)(obj + 0x80) = -1;
+  *(int *)(obj + 0x7c) = *(int *)(tag_data + 0x44);
+  *(int *)(obj + 0x120) = -1;
+  *(int *)(obj + 0xcc) = -1;
+  *(int *)(obj + 0xc4) = -1;
+  *(int *)(obj + 0xc8) = -1;
+  *(int16_t *)(obj + 0x6a) = -1;
+  *(int *)(obj + 0xac) = -1;
+  *(int *)(obj + 0xb0) = -1;
+
+  /* --- Tag flag propagation --- */
+  if (*(uint8_t *)(tag_data + 0x2) & 0x1)
+    *(uint32_t *)(obj + 0x4) |= 0x40000;
+
+  {
+    uint32_t oflags = *(uint32_t *)(obj + 0x4);
+    if (*(int *)(tag_data + 0x7c) != -1)
+      oflags |= 0x2000000;
+    else
+      oflags &= ~(uint32_t)0x2000000;
+    *(uint32_t *)(obj + 0x4) = oflags;
+  }
+
+  /* --- Set garbage flag (1 if model tag exists, 0 if not) --- */
+  object_set_garbage(object_handle, (uint8_t)(*(int *)(tag_data + 0x34) != -1));
+
+  /* --- Copy remaining placement fields --- */
+  *(int16_t *)(obj + 0x68) = *(int16_t *)(p + 0x14);
+  *(int *)(obj + 0x70) = *(int *)(p + 0x08);
+  *(int *)(obj + 0x74) = *(int *)(p + 0x0c);
+  *(int16_t *)(obj + 0x6e) = *(int16_t *)(p + 0x16);
+  *(int16_t *)(obj + 0x126) = *(int16_t *)(tag_data + 0x13e);
+
+  /* --- Get node count from model tag --- */
+  if (*(int *)(tag_data + 0x34) == -1) {
+    node_count = 1;
+  } else {
+    char *model_tag = (char *)tag_get(0x6d6f6465, *(int *)(tag_data + 0x34));
+    node_count = *(uint16_t *)(model_tag + 0xb8);
+  }
+
+  /* --- Allocate block references for node matrices --- */
+  if (!FUN_0013e050(object_handle, 0x1a0, node_count * 0x34)) {
+    success = 0;
+  } else if (((1 << (*(uint8_t *)tag_data & 0x1f)) & 0xfe0) == 0) {
+    /* Non-standard types need additional allocations */
+    if (!FUN_0013e050(object_handle, 0x19c, node_count << 5) ||
+        !FUN_0013e050(object_handle, 0x198, node_count << 5)) {
+      success = 0;
+    }
+  }
+
+  /* --- Re-acquire object pointer (may have moved due to allocation) --- */
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+
+  if (success && FUN_0013c490(object_handle)) {
+    /* --- Save and optionally clear the active (bit 19) flag --- */
+    saved_active_bit = (uint8_t)((*(uint32_t *)(obj + 0x4) >> 19) & 1);
+    if (saved_active_bit && (*(uint8_t *)(p + 0x4) & 0x2)) {
+      *(uint32_t *)(obj + 0x4) &= ~(uint32_t)0x80000;
+    }
+
+    /* --- Run initialisation chain --- */
+    FUN_0013e1f0(object_handle, p + 0x58);
+    FUN_00140ad0(object_handle);
+    FUN_001365d0(object_handle, 0, 0);
+    object_compute_node_matrices(object_handle);
+    object_connect_to_map(object_handle, 0);
+    FUN_0013e1a0(object_handle);
+    FUN_0013c620(object_handle);
+    FUN_0013e7b0(object_handle);
+    FUN_0013e5d0(object_handle);
+
+    /* --- Widget and child attachment --- */
+    {
+      char *obj2 = (char *)object_get_and_verify_type(object_handle, -1);
+      int obj_tag_idx = *(int *)obj2;
+      tag_get(0x6f626a65, obj_tag_idx);
+      FUN_00136150(object_handle);
+    }
+    FUN_0013ecb0(object_handle);
+
+    /* --- Restore the active flag --- */
+    obj = (char *)object_get_and_verify_type(object_handle, -1);
+    {
+      uint32_t flags2 = *(uint32_t *)(obj + 0x4);
+      if (saved_active_bit)
+        flags2 |= 0x80000;
+      else
+        flags2 &= ~(uint32_t)0x80000;
+      *(uint32_t *)(obj + 0x4) = flags2;
+    }
+
+    /* --- Conditionally wake the object --- */
+    if ((*(uint8_t *)(header + 0x2) & 0x1) == 0 &&
+        (*(uint32_t *)(obj + 0x4) & 0x80000) != 0 &&
+        ((*(uint8_t *)(p + 0x4) & 0x2) == 0 ||
+         *(int16_t *)(obj + 0x4c) != -1)) {
+      object_delete(object_handle);
+    }
+
+    /* --- Creation effect --- */
+    if (*(int *)(tag_data + 0xac) != -1) {
+      FUN_0009ec30(*(int *)(tag_data + 0xac), object_handle, /* dup-args-ok */
+                   object_handle, -1, 0, 0, 0, 0);
+    }
+
+    return object_handle;
+  }
+
+  /* --- Failure: free the allocated datum --- */
+  FUN_0013c560(object_handle);
+  FUN_0013df70(*(data_t **)0x5a8d50);
+  object_handle = -1;
+
+out_of_objects: {
+  const char *name = tag_name_strip_path(tag_get_name(tag_index));
+  crt_sprintf(local_buf, "OUT OF OBJECTS: cannot create %s", name);
+  console_printf(0, "%s", local_buf);
+  error(3, "%s", local_buf);
+}
+  return object_handle;
+}
+
+/*
  * object_attach_to_parent — attach a child object to a parent at a specific
  * node, establishing the parent-child relationship in the object hierarchy.
  *
@@ -3253,11 +3719,14 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   float *node_mat =
     (float *)object_get_node_matrix(parent_handle, (int16_t)parent_node_index);
   matrix_inverse(node_mat, local_matrix);
-  matrix_transform_point(local_matrix, (float *)&child_obj->unk_12, /* dup-args-ok */
+  matrix_transform_point(local_matrix,
+                         (float *)&child_obj->unk_12, /* dup-args-ok */
                          (float *)&child_obj->unk_12);
-  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_36, /* dup-args-ok */
+  matrix_transform_vector(local_matrix,
+                          (float *)&child_obj->unk_36, /* dup-args-ok */
                           (float *)&child_obj->unk_36);
-  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_48, /* dup-args-ok */
+  matrix_transform_vector(local_matrix,
+                          (float *)&child_obj->unk_48, /* dup-args-ok */
                           (float *)&child_obj->unk_48);
 
   /* Store parent attachment info in the child object. */
