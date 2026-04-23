@@ -10,3 +10,12 @@ bool network_game_in_progress(void)
 
   return true;
 }
+
+/* network_game_server_get (0x12a1d0)
+ *
+ * Returns the global network game server pointer.
+ */
+void *network_game_server_get(void)
+{
+  return *(void **)0x46e8bc;
+}
