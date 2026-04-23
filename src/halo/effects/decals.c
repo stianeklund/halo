@@ -804,6 +804,8 @@ static int g_decal_deviant_surfaces[0x400];
 static int g_decal_surface_queue[0x400];
 static float g_decal_projection[35];
 static float g_decal_transformed_projection[35];
+static bool g_warned_decal_vertex_overflow;
+static bool g_warned_decal_quad_overflow;
 
 void thunk_FUN_0015b960(void);
 
@@ -1421,6 +1423,16 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       return;
     }
 
+    if (geometry->vertex_count > 0x400) {
+      if (!g_warned_decal_vertex_overflow) {
+        error(2,
+              "### ERROR decals: vertex overflow (count=%d) -- skipping decal",
+              geometry->vertex_count);
+        g_warned_decal_vertex_overflow = true;
+      }
+      return;
+    }
+
     center_offset[0] = 0.0f;
     center_offset[1] = 0.0f;
     center_offset[2] = 0.0f;
@@ -1446,6 +1458,16 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       }
 
       primitive_count += (int16_t)((surface_vertex_count - 1) / 2);
+    }
+
+    if (primitive_count < 0 || primitive_count > 0x400) {
+      if (!g_warned_decal_quad_overflow) {
+        error(2,
+              "### ERROR decals: quad overflow (count=%d) -- skipping decal",
+              primitive_count);
+        g_warned_decal_quad_overflow = true;
+      }
+      return;
     }
 
     cache_index = FUN_0017cae0((uint32_t)primitive_count << 6);
@@ -1580,6 +1602,17 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
             int anchor = (step + 2 < surface_vertex_count) ?
                            vertex_cursor + step + 2 :
                            vertex_cursor;
+
+            if (produced_quads >= primitive_count) {
+              if (!g_warned_decal_quad_overflow) {
+                error(2,
+                      "### ERROR decals: produced quad overflow (produced=%d expected=%d) -- skipping decal",
+                      produced_quads, primitive_count);
+                g_warned_decal_quad_overflow = true;
+              }
+              return;
+            }
+
             s_decal_cached_quad *quad = &cache_quads[produced_quads];
 
             quad->vertices[0] = staged_vertices[vertex_cursor];
