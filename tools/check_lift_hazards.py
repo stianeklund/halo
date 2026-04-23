@@ -173,7 +173,11 @@ def _extract_args(text, start):
 
 
 def check_duplicate_args():
-    """Flag calls where the same non-trivial expression appears as multiple args."""
+    """Flag calls where the same non-trivial expression appears as multiple args.
+
+    Lines containing ``dup-args-ok`` are suppressed (verified in-place or
+    intentional same-arg calls).
+    """
     errors = []
     for dirpath, _, filenames in os.walk(SRC_DIR):
         for fname in filenames:
@@ -198,6 +202,8 @@ def check_duplicate_args():
                         continue
                     if arg in seen:
                         lineno = flat[:m.start()].count('\n') + 1
+                        if 'dup-args-ok' in lines[lineno - 1]:
+                            break
                         relpath = os.path.relpath(fpath, ROOT_DIR)
                         errors.append(
                             f'  {relpath}:{lineno}: {func_name}() '

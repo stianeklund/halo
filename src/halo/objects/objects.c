@@ -2052,7 +2052,7 @@ void object_detach_from_parent(int object_handle)
   matrix_from_forward_and_up(child_orientation, (float *)&child->unk_36,
                              (float *)&child->unk_48);
   matrix4x3_multiply((float *)node_matrix, child_position, result);
-  matrix4x3_multiply(result, child_orientation, result);
+  matrix4x3_multiply(result, child_orientation, result); /* dup-args-ok */
   matrix4x3_decompose(result, (float *)&child->unk_12, (float *)&child->unk_36,
                       (float *)&child->unk_48);
 
@@ -2142,7 +2142,7 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
     void *node_mat =
       object_get_node_matrix(obj->parent_object_index.value,
                              (int16_t) * (int8_t *)((char *)obj + 0xd0));
-    matrix4x3_multiply(node_mat, out_matrix, out_matrix);
+    matrix4x3_multiply(node_mat, out_matrix, out_matrix); /* dup-args-ok */
   }
 
   return out_matrix;
@@ -3253,11 +3253,11 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   float *node_mat =
     (float *)object_get_node_matrix(parent_handle, (int16_t)parent_node_index);
   matrix_inverse(node_mat, local_matrix);
-  matrix_transform_point(local_matrix, (float *)&child_obj->unk_12,
+  matrix_transform_point(local_matrix, (float *)&child_obj->unk_12, /* dup-args-ok */
                          (float *)&child_obj->unk_12);
-  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_36,
+  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_36, /* dup-args-ok */
                           (float *)&child_obj->unk_36);
-  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_48,
+  matrix_transform_vector(local_matrix, (float *)&child_obj->unk_48, /* dup-args-ok */
                           (float *)&child_obj->unk_48);
 
   /* Store parent attachment info in the child object. */

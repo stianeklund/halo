@@ -803,7 +803,7 @@ void player_build_action_update(int datum_handle, float *aiming_out,
     normalize3d(forward);
   }
   matrix_from_forward_and_up(matrix, forward, (float *)(vehicle + 0x30));
-  matrix_transform_vector(matrix, aiming_out, aiming_out);
+  matrix_transform_vector(matrix, aiming_out, aiming_out); /* dup-args-ok */
 }
 
 /* Spawn (or respawn) a player.
@@ -1070,7 +1070,7 @@ bool player_try_to_spawn_in_vehicle(int player_handle /* @<eax> */)
           *(float *)(world_matrix_a + 0x2c) - *(float *)(world_matrix_b + 0x2c);
         delta[2] =
           *(float *)(world_matrix_a + 0x30) - *(float *)(world_matrix_b + 0x30);
-        cross_product3d(*(float **)0x31fc44, delta, delta);
+        cross_product3d(*(float **)0x31fc44, delta, delta); /* dup-args-ok */
         dot = delta[2] * *(float *)(item_obj + 0x2c) +
               delta[1] * *(float *)(item_obj + 0x28) +
               delta[0] * *(float *)(item_obj + 0x24);

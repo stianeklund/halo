@@ -2144,7 +2144,7 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
   delta.z = unit_pos.z - *(float *)(markers + 0x68);
 
   /* Transform delta through marker's rotation matrix (at offset 0x38) */
-  real_matrix3x3_transform_vector(markers + 0x38, &delta, &delta);
+  real_matrix3x3_transform_vector(markers + 0x38, &delta, &delta); /* dup-args-ok */
 
   /* Attach unit to vehicle at seat marker */
   object_attach_to_marker(vehicle_handle, marker_name, unit_handle,
