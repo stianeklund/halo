@@ -1,187 +1,70 @@
 # Agent Instructions
 
-These rules apply to any coding agent used in this repo (Claude, OpenCode,
-subagents). Keep `AGENTS.md` and `CLAUDE.md` aligned.
+These rules apply to any coding agent used in this repo (Claude, OpenCode, subagents). Keep `AGENTS.md` and `CLAUDE.md` aligned.
 
 ## Mission
 
 Recover Halo CE Xbox behavior faithfully and incrementally.
 
-- Binary is source of truth.
-- Prefer explicit unknowns over plausible guesses.
-- Make small, reviewable changes.
-- Preserve ABI, layout, side effects, and control-flow shape.
+- **Binary is source of truth:** Evidence-based lifting only.
+- **Explicit Unknowns:** Prefer `unknown` or `field_XX` over plausible guesses.
+- **Small Changes:** Make small, reviewable commits.
+- **Preserve Shape:** Maintain original ABI, layout, side effects, and control-flow.
 
-## Scope-first requests
+## Workflow
 
-When possible, start tasks with:
+### 1. Research & Analysis
+- **Scope-first:** Start tasks with exact path(s), symbol(s), and line range(s).
+- **Token Discipline:** Minimize redundant reads. Use line-ranged reads and `rtk read`.
+- **JSON Mastery:** ALWAYS use `rtk jq` for querying/parsing `kb.json`. Never use `python -c`.
+- **Ghidra Pre-flight:** Before using any `ghidra` or `ghidra-live` MCP tool, run `python3 tools/check_ghidra_mcp.py`. If it fails, alert the user and stop.
+- **Tooling:** Always prefix with `rtk`. Use `rtk fd` (files), `rtk rg` (text), `rtk ast-grep` (structure), `rtk fzf` (selecting).
 
-- Exact file path(s)
-- Function/symbol name(s)
-- Line range(s)
-- Expected validation command(s)
+### 2. Implementation & kb.json Discipline
+- **No Speculation:** Do not invent behavior or names without binary evidence.
+- **ABI Stability:** `@<reg>` annotations in `kb.json` are **immutable**. Never remove or change register assignments.
+- **New Symbols:** Register-arg callees must be added to `kb.json` with `@<reg>` and called by name.
+- **No Inline ASM:** The build system handles thunks via `kb.json`. Do not use inline assembly in C.
+- **Separation:** Keep logic changes separate from cleanup/formatting.
+- **Never transcribe MSVC intrinsics as C function calls.** Ghidra shows them as regular calls but they have non-standard ABIs that corrupt the stack or registers when called from C. Use the equivalent C idiom — the compiler generates the intrinsic automatically:
 
-Prompt example:
+  | Address | Intrinsic | Refs | Ghidra shows | Write in C instead |
+  |---------|-----------|------|--------------|-------------------|
+  | 0x1d90e0 | `_chkstk` | 71 | `regparm(1)` call | declare locals normally (or `static` for large buffers) |
+  | 0x1d9068 | `_ftol2` | 228 | `_ftol2(var)` or cast | `(int)float_expr` |
+  | 0x1dd5c8 | `__SEH_prolog` | 74 | mangled params | `__try/__except` (or skip SEH functions) |
+  | 0x1dd601 | `__SEH_epilog` | 73 | mangled return | (paired with prolog) |
+  | 0x1dd620 | `_allmul` | 10 | 4-arg call | `(int64_t)a * b` |
+  | 0x1dd660 | `_aullshr` | 1 | register call | `(uint64_t)val >> shift` |
+  | 0x1dd680 | `_aullrem` | 1 | 4-arg call | `(uint64_t)a % b` |
+  | 0x1dd770 | `_aulldiv` | 1 | 4-arg call | `(uint64_t)a / b` |
 
-`In src/halo/main/main.c:120-210, analyze foo_bar(). Validate with: cmake --build build`
+  Never add these to kb.json. They are compiler runtime, not game functions.
 
-## Context and token discipline (required)
+- **Verify callee buffer sizes.** Ghidra may under-size local buffers. When a lifted function passes a stack buffer to a callee, check the callee's `memset`/init size in disassembly — it reveals the true required size. Example: `FUN_0013fc20` (object placement init) writes 0x88 bytes; Ghidra showed the caller's buffer as 0x30, causing a stack overflow.
 
-Goal: minimize redundant reads without losing accuracy.
+### 3. Build & Verification
+- **RTK Build:** Use `rtk cmake --build build`.
+- **Validation:** Run the narrowest meaningful validation first.
+- **XBDM Priority:** Prefer real Xbox XBDM verification over xemu when available.
+- **Failure Policy:** If an edit fails, re-read only affected ranges before retrying.
 
-1. Start with the narrowest scope that can answer the task.
-2. Prefer line-ranged reads and symbol lookups over full-file reads.
-3. Do not re-read the same file/range in the same task unless one is true:
-   - file changed since last read
-   - prior slice was too small to resolve ambiguity
-   - a new task phase requires different nearby context
-4. Before expanding scope, state exactly what is missing:
-   - `NEED <path>:<line-range> because <type/symbol/call-site>`
-5. For repeat-heavy files (for example `kb.json`, `main.c`), read only the
-   required section unless a full-file pass is explicitly justified.
-6. MUST prefer `jq` over inline Python for querying or parsing JSON files
-   anywhere in this repo; do not use `python -c` for JSON parsing when `jq`
-   can do the job.
-7. Prefer one target/hypothesis per pass for RE-heavy work.
-
-## Research before edit
-
-Before editing:
-
-1. Read target function/file context.
-2. Identify callers/callees and touched globals/types.
-3. Make a minimal patch plan scoped to the request.
-
-If an edit fails, re-read only affected ranges before retrying.
-
-## Repo safety rules
-
-- Do not invent behavior, names, or types without binary evidence.
-- Keep unresolved semantics visible (`unknown`, `field_XX`, `TODO`).
-- Reuse existing types and declarations before creating new ones.
-- Do not reorder/repad structs without matching `cs`/`co` checks.
-- Do not hand-edit generated files in `build/generated/`.
-- Do not use inline assembly in lifted C code. The build system generates
-  forward thunks (C → original XBE) and reverse thunks (original XBE → C)
-  automatically via kb.json `@<reg>` entries. If you think you need inline
-  asm, you are missing a kb.json entry.
-- Keep behavior changes separate from cleanup/formatting whenever possible.
-
-## kb.json discipline
-
-Treat `kb.json` as link/runtime-critical.
-
-- Verify prototypes from disassembly evidence.
-- Keep updates conservative and auditable.
-- Prefer hardcoded addresses over speculative global entries when uncertain.
-- Use `jq` for all inspections and filtering.
-- Build and verify after each meaningful `kb.json` change.
-- `@<reg>` annotations are **immutable** — they describe the original XBE ABI,
-  not the C implementation. See `docs/references/abi-and-calling-conventions.md`.
-  - Never remove or change `@<reg>` slot assignments. Renaming and retyping are fine.
-  - `tools/kb_reg_baseline.json` enforces this: any mismatch is a hard build failure.
-  - When you encounter a register-arg callee, add it to kb.json with `@<reg>` and
-    call it by name. Do not use raw function pointer casts or inline assembly.
-  - New `@<reg>` entries must also be added to the baseline.
-
-## Commit discipline
-
-- **Never write freeform lift commit messages.**
-- After staging changes, run:
+### 4. Commit Discipline
+- **No Freeform Messages:** Never write freeform lift commit messages.
+- **Standard Command:** After staging changes, run:
+  ```bash
+  rtk python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
+  rtk git commit -F /tmp/commit_msg.txt
   ```
-  python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
-  git commit -F /tmp/commit_msg.txt
-  ```
-- The generated message must include:
-  1. Function inventory (name, address, object)
-  2. kb_meta.json update count
-  3. Coverage metric
-- If the script produces no output, ensure `kb.json` and source changes are staged.
 
-## Build and verification
+## Repo Guardrails
+- **Noisy Dirs:** Avoid `build/`, `node_modules/`, `.git/`, `halo-patched/`.
+- **RTK Always:** Prefix ALL shell commands with `rtk` (e.g., `rtk git status`, `rtk pytest`).
+- **Output Schema:** For non-trivial work, report: Target, Confirmed, Inferred, Uncertain, Proposed Code, kb.json updates.
 
-- Use the repo toolchain and existing scripts.
-- Run the narrowest meaningful validation first, then broaden if needed.
-- Prefer real Xbox XBDM verification over xemu when available.
-
-## RTK (token optimization)
-
-RTK is active on this project via the OpenCode plugin. Bash tool calls are
-transparently rewritten to strip noise:
-
-- `python3 tools/frontier.py`, `maintain.py`, `kb_meta.py` — INFO logs stripped
-- `python3 tools/build_iso.py` — extract-xiso progress stripped, summary kept
-- `cmake --build build` — XBE section-writing noise stripped
-- `python3 tools/lift_pipeline.py`, `verify_option3.py` — INFO logs stripped
-- Standard commands (`git status`, `git diff`, `git log`) are also compacted
-
-Commands that must stay raw (binary data, serial streams) are excluded in
-`~/.config/rtk/config.toml`. Project-local filters live in `.rtk/filters.toml`;
-run `rtk trust` in the repo root after editing them.
-
-## MCP servers
-
-Expected local Ghidra MCP SSE endpoints:
-
-- `ghidra` at `http://127.0.0.1:8090/sse`
-- `ghidra-live` at `http://127.0.0.1:8091/sse`
-
-Start them with:
-
-- `bash tools/mcp-servers.sh`
-
-Ghidra MCP failure policy (required):
-
-- Before first use of any `ghidra` or `ghidra-live` MCP tool in a task, run
-  `python3 tools/check_ghidra_mcp.py`.
-- If that preflight fails, or if any `ghidra`/`ghidra-live` MCP tool call fails
-  due to connection/timeout/unavailable errors, bail out immediately (no
-  retries in the same response).
-- Tell the user exactly: `You might have forgotten to start
-  tools/mcp-servers.sh or ghidra may not be running?`
-
-Useful commands:
-
-- `python3 tools/check_ghidra_mcp.py`
-- `python3 tools/frontier.py --limit 5`
-- `python3 tools/maintain.py <source_file>`
-- `python3 tools/lift_pipeline.py --target <name_or_addr> --no-metadata-update --verify-policy auto`
-- `jq '.symbols[] | select(.name | contains("foo"))' kb.json`
-
-## Avoid noisy directories
-
-Do not read/search these unless explicitly requested:
-
-- `build/`
-- `build_debug/`
-- `node_modules/`
-- `.git/`
-- `dist/`
-- `__pycache__/`
-- `halo-patched/`
-
-## Output discipline
-
-- Prefer focused output over broad logs.
-- Use narrow paths and targeted commands.
-- For non-trivial RE/lift work, report:
-  - Target
-  - Confirmed
-  - Inferred
-  - Uncertain
-  - Proposed code
-  - kb.json updates
-  - Validation
-  - Next steps
-
-## Architecture and skills
-
-- `halo-xbox-re`: RE doctrine and evidence rules (source of truth)
-- `halo-re-lift`: lift workflow and ABI-specific execution
-- `halo-verify-debug`: verification lanes and regression debugging
-- `halo-page-fault`: investigate page faults (kb.json ABI/signature mismatches)
-- `halo-build-xemu`: build/ISO/xemu workflow
-- `halo-xbdm`: RDCP/XBDM workflow for real Xbox
-- `xbox-halo-re-analyst`: bounded one-target worker following doctrine
-
-Deep references live in `docs/references/`.
+## Architecture and Skills
+- `halo-xbox-re`: RE doctrine and evidence rules.
+- `halo-re-lift`: Lift workflow and ABI-specific execution.
+- `halo-verify-debug`: Verification lanes and regression debugging.
+- `halo-build-xemu`: Build/ISO/xemu workflow.
+- `halo-xbdm`: RDCP/XBDM workflow for real Xbox.
