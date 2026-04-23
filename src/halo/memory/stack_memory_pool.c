@@ -806,6 +806,69 @@ void stack_memory_pool_deallocate(void *pool, void *block)
   *(int *)(pool_p + 0x1c) -= 1;
 }
 
+/* stack_memory_pool_alloc_or_resize — allocate new or grow existing block.
+ *
+ * Register convention (kb.json):
+ *   - new_size in EAX (@<eax>)
+ *   - pool in ECX (@<ecx>)
+ *   - block_hdr/file/line on stack
+ *
+ * Returns block header pointer (not user pointer), or NULL on failure.
+ */
+void *stack_memory_pool_alloc_or_resize(int new_size, void *pool,
+                                        void *block_hdr, const char *file,
+                                        unsigned int line)
+{
+  char *old_hdr = (char *)block_hdr;
+  char *new_hdr;
+  unsigned int old_payload_size;
+  int valid;
+
+  if (new_size == 0) {
+    return 0;
+  }
+
+  if (old_hdr == 0) {
+    return stack_memory_pool_alloc_internal(new_size, pool, file, line);
+  }
+
+  valid = stack_memory_pool_valid_block(old_hdr, pool) & 0xff;
+  if (!valid) {
+    display_assert("stack_memory_pool_valid_block(pool, reference)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x2b4, 1);
+    system_exit(-1);
+  }
+
+  old_payload_size = FUN_0011ea90(old_hdr) - 0x20;
+  if ((unsigned int)new_size <= old_payload_size) {
+    return old_hdr;
+  }
+
+  new_hdr =
+    (char *)stack_memory_pool_alloc_internal(new_size, pool, file, line);
+  if (new_hdr == 0) {
+    return 0;
+  }
+
+  valid = memory_block_valid(old_hdr) & 0xff;
+  if (!valid) {
+    display_assert("memory_block_valid(block)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x23f, 1);
+    system_exit(-1);
+  }
+
+  valid = memory_block_valid(new_hdr) & 0xff;
+  if (!valid) {
+    display_assert("memory_block_valid(block)",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x23f, 1);
+    system_exit(-1);
+  }
+
+  csmemcpy(new_hdr + 0x1c, old_hdr + 0x1c, old_payload_size);
+  stack_memory_pool_unlink_block(old_hdr, pool);
+  return new_hdr;
+}
+
 /* stack_memory_pool_allocate — allocate a new block from the pool.
  *
  * Calls internal allocator 0x11f1e0 with EAX=size and stack args
