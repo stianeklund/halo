@@ -181,10 +181,91 @@ void decals_update_for_new_map(bool full_reset)
   decal_counts_1 = 0;
 }
 
-void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
-                  uint8_t sign, float *out_point);
+/* Projection axis remapping table at 0x28cb10.
+ * Indexed by (sign + projection * 2), each entry is a pair of int16_t
+ * giving the two coordinate axes to use when projecting/unprojecting
+ * a 3D point along the given projection axis.
+ *
+ * proj=0(x): sign=0->(2,1), sign=1->(1,2)
+ * proj=1(y): sign=0->(0,2), sign=1->(2,0)
+ * proj=2(z): sign=0->(1,0), sign=1->(0,1)
+ */
+static const int16_t g_projection_axes[6][2] = {
+  { 2, 1 }, /* proj=0, sign=0 */
+  { 1, 2 }, /* proj=0, sign=1 */
+  { 0, 2 }, /* proj=1, sign=0 */
+  { 2, 0 }, /* proj=1, sign=1 */
+  { 1, 0 }, /* proj=2, sign=0 */
+  { 0, 1 }, /* proj=2, sign=1 */
+};
 
-float *FUN_00099400(float *out_line, float *point_a, float *point_b);
+void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
+                  uint8_t sign, float *out_point)
+{
+  int proj_i;
+  int table_index;
+  int16_t axis_a;
+  int16_t axis_b;
+
+  proj_i = (int)projection;
+  table_index = (uint32_t)sign + proj_i * 2;
+  axis_a = g_projection_axes[table_index][0];
+  axis_b = g_projection_axes[table_index][1];
+
+  if (projection < 0 || projection > 2) {
+    display_assert("projection>=_x && projection<=_z", "..\\math\\real_math.h",
+                   0x36f, true);
+    system_exit(-1);
+  }
+
+  if (~(sign & ~1) == 0) {
+    display_assert("~(sign&~1)", "..\\math\\real_math.h", 0x370, true);
+    system_exit(-1);
+  }
+
+  out_point[(int)axis_a] = point_2d[0];
+  out_point[(int)axis_b] = point_2d[1];
+
+  if (fabsf(plane[proj_i]) < (float)*(double *)0x2533d0) {
+    out_point[proj_i] = *(float *)0x2533c0;
+    return;
+  }
+
+  out_point[proj_i] = (plane[3] - plane[(int)axis_a] * point_2d[0] -
+                       plane[(int)axis_b] * point_2d[1]) /
+                      plane[proj_i];
+}
+
+float *FUN_00099400(float *out_line, float *point_a, float *point_b)
+{
+  float dx;
+  float length;
+  float inv_length;
+  float norm_a;
+  float norm_b;
+
+  out_line[0] = point_a[1] - point_b[1];
+  dx = point_b[0] - point_a[0];
+  out_line[1] = dx;
+
+  length = sqrtf(dx * dx + out_line[0] * out_line[0]);
+
+  if ((float)*(double *)0x2533d0 <= fabsf(length)) {
+    inv_length = *(float *)0x2533c8 / length;
+    norm_a = inv_length * out_line[0];
+    out_line[0] = norm_a;
+    norm_b = inv_length * out_line[1];
+    out_line[1] = norm_b;
+
+    if (length != *(float *)0x2533c0) {
+      out_line[2] = norm_a * point_b[0] + norm_b * point_b[1];
+      return out_line;
+    }
+  }
+
+  out_line[2] = 0.0f;
+  return NULL;
+}
 
 uint32_t FUN_00099530(float alpha, float *color)
 {
@@ -215,15 +296,29 @@ uint32_t FUN_00099530(float alpha, float *color)
   return b | (g << 8) | (r << 0x10) | (a << 0x18);
 }
 
-void FUN_00099640(int structure_bsp, uint32_t plane_reference,
-                  float *out_plane);
+void FUN_00099640(int structure_bsp, uint32_t plane_reference, float *out_plane)
+{
+  float *plane_data;
 
-static void decals_log_invalid_decal_type_once(int16_t decal_type,
-                                               int decal_tag_index,
-                                               const char *decal_name,
-                                               int bitmap_tag_index,
-                                               const char *bitmap_name,
-                                               const char *context);
+  plane_data = (float *)tag_block_get_element(
+    (char *)structure_bsp + 0xc, (int)(plane_reference & 0x7fffffff), 0x10);
+
+  if ((int)plane_reference < 0) {
+    out_plane[0] = -plane_data[0];
+    out_plane[1] = -plane_data[1];
+    out_plane[2] = -plane_data[2];
+    out_plane[3] = -plane_data[3];
+  } else {
+    out_plane[0] = plane_data[0];
+    out_plane[1] = plane_data[1];
+    out_plane[2] = plane_data[2];
+    out_plane[3] = plane_data[3];
+  }
+}
+
+static void decals_log_invalid_decal_type_once(
+  int16_t decal_type, int decal_tag_index, const char *decal_name,
+  int bitmap_tag_index, const char *bitmap_name, const char *context);
 
 int FUN_000998b0(int new_index_hint, int16_t cluster_index, int16_t layer,
                  int old_index, bool randomize)
@@ -774,41 +869,6 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
   }
 }
 
-typedef struct s_decal_geometry_vertex {
-  float position[3];
-  float uv[2];
-  uint8_t clipped;
-  uint8_t pad[3];
-} s_decal_geometry_vertex;
-
-typedef struct s_decal_geometry_scratch {
-  s_decal_geometry_vertex vertices[0x400];
-  int16_t vertex_count;
-  int16_t surface_vertex_counts[0x400];
-  int16_t surface_count;
-  int surfaces[0x400];
-} s_decal_geometry_scratch;
-
-typedef struct s_decal_staged_vertex {
-  float position[3];
-  int16_t uv[2];
-} s_decal_staged_vertex;
-
-typedef struct s_decal_cached_quad {
-  s_decal_staged_vertex vertices[4];
-} s_decal_cached_quad;
-
-static s_decal_staged_vertex g_decal_staged_vertices[0x400];
-static int g_decal_grouped_surfaces[0x400];
-static int g_decal_deviant_surfaces[0x400];
-static int g_decal_surface_queue[0x400];
-static float g_decal_projection[35];
-static float g_decal_transformed_projection[35];
-static bool g_warned_decal_vertex_overflow;
-static bool g_warned_decal_quad_overflow;
-
-void thunk_FUN_0015b960(void);
-
 static void decals_assert_or_exit(const char *condition, int line)
 {
   display_assert(condition, "c:\\halo\\SOURCE\\effects\\decals.c", line, true);
@@ -870,12 +930,10 @@ static void decals_build_axis(float *axis_vector, uint32_t basis, float sign,
   }
 }
 
-static void decals_log_invalid_decal_type_once(int16_t decal_type,
-                                               int decal_tag_index,
-                                               const char *decal_name,
-                                               int bitmap_tag_index,
-                                               const char *bitmap_name,
-                                               const char *context)
+static void
+decals_log_invalid_decal_type_once(int16_t decal_type, int decal_tag_index,
+                                   const char *decal_name, int bitmap_tag_index,
+                                   const char *bitmap_name, const char *context)
 {
   static uint32_t reported_mask;
 
@@ -895,6 +953,39 @@ static void decals_log_invalid_decal_type_once(int16_t decal_type,
         bitmap_tag_index,
         bitmap_name ? tag_name_strip_path((char *)bitmap_name) : "<null>");
 }
+
+typedef struct s_decal_geometry_vertex {
+  float position[3];
+  float uv[2];
+  uint8_t clipped;
+  uint8_t pad[3];
+} s_decal_geometry_vertex;
+
+typedef struct s_decal_geometry_scratch {
+  s_decal_geometry_vertex vertices[0x400];
+  int16_t vertex_count;
+  int16_t surface_vertex_counts[0x400];
+  int16_t surface_count;
+  int surfaces[0x400];
+} s_decal_geometry_scratch;
+
+typedef struct s_decal_staged_vertex {
+  float position[3];
+  int16_t uv[2];
+} s_decal_staged_vertex;
+
+typedef struct s_decal_cached_quad {
+  s_decal_staged_vertex vertices[4];
+} s_decal_cached_quad;
+
+static s_decal_staged_vertex g_decal_staged_vertices[0x400];
+static int g_decal_grouped_surfaces[0x400];
+static int g_decal_deviant_surfaces[0x400];
+static int g_decal_surface_queue[0x400];
+static float g_decal_projection[35];
+static float g_decal_transformed_projection[35];
+static bool g_warned_decal_vertex_overflow;
+static bool g_warned_decal_quad_overflow;
 
 void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
                   void *direction, float scale, bool randomize,
@@ -982,9 +1073,9 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       int bitmap_tag_index = *(int *)(decal_tag + 0xe4);
       const char *decal_name = tag_get_name(decal_tag_index);
       const char *bitmap_name = tag_get_name(bitmap_tag_index);
-      decals_log_invalid_decal_type_once(
-        decal_type, decal_tag_index, decal_name, bitmap_tag_index, bitmap_name,
-        "decal_new");
+      decals_log_invalid_decal_type_once(decal_type, decal_tag_index,
+                                         decal_name, bitmap_tag_index,
+                                         bitmap_name, "decal_new");
       reuse_previous = (*(uint8_t *)decal_tag & 1) != 0;
       decal_tag_index = *(int *)(decal_tag + 0x14);
       continue;
@@ -1164,7 +1255,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       int hardware_format =
         (int)tag_block_get_element(bitmap_tag + 0x60, sprite_index, 0x30);
 
-      if (!xbox_texture_cache_get_hardware_format((void *)hardware_format, 0, true)) {
+      if (!xbox_texture_cache_get_hardware_format((void *)hardware_format, 0,
+                                                  true)) {
         return;
       }
     }
@@ -1462,8 +1554,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
 
     if (primitive_count < 0 || primitive_count > 0x400) {
       if (!g_warned_decal_quad_overflow) {
-        error(2,
-              "### ERROR decals: quad overflow (count=%d) -- skipping decal",
+        error(2, "### ERROR decals: quad overflow (count=%d) -- skipping decal",
               primitive_count);
         g_warned_decal_quad_overflow = true;
       }
@@ -1481,9 +1572,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       return;
     }
 
-    decal_index =
-      FUN_000998b0(cache_index, collision_result[8], *(int16_t *)(decal_tag + 4),
-                   -1, randomize);
+    decal_index = FUN_000998b0(cache_index, collision_result[8],
+                               *(int16_t *)(decal_tag + 4), -1, randomize);
     if (decal_index == -1) {
       FUN_0017cb10(cache_index);
 
@@ -1606,7 +1696,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
             if (produced_quads >= primitive_count) {
               if (!g_warned_decal_quad_overflow) {
                 error(2,
-                      "### ERROR decals: produced quad overflow (produced=%d expected=%d) -- skipping decal",
+                      "### ERROR decals: produced quad overflow (produced=%d "
+                      "expected=%d) -- skipping decal",
                       produced_quads, primitive_count);
                 g_warned_decal_quad_overflow = true;
               }
@@ -1708,9 +1799,214 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
   }
 }
 
+/* Sutherland-Hodgman style 2D polygon clip against a line.
+ * Source: c:\halo\SOURCE\math\geometry.c
+ *
+ * Clips a 2D polygon (count points, each 2 floats) against 'line' (a,b,d where
+ * a*x + b*y = d). Returns the clipped count in out_points. out_bitmask tracks
+ * which output vertices were generated by clipping (interpolated) vs copied.
+ * 'changed' is set to 1 if any interpolation occurred. epsilon controls
+ * degenerate-vertex removal and classifies points above/below the line.
+ *
+ * CLIP_BUFFER_SIZE = 0x200 (512)
+ * NUMBER_OF_VERTICES_PER_TRIANGLE = 3
+ */
 int16_t FUN_00106510(int16_t count, float *points, float *line,
                      int16_t max_count, float *out_points,
-                     uint32_t *out_bitmask, uint8_t *changed, float epsilon);
+                     uint32_t *out_bitmask, uint8_t *changed, float epsilon)
+{
+  static float clip_buffer[0x200 * 2];
+  int16_t out_count;
+  uint32_t mask;
+  bool any_above;
+  bool any_below;
+  bool previous_inside;
+  int16_t i;
+  int byte_size;
+  float *previous_point;
+
+  if (count < 3) {
+    display_assert("count>=NUMBER_OF_VERTICES_PER_TRIANGLE",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x546, true);
+    system_exit(-1);
+  }
+
+  if (changed != NULL) {
+    *changed = 0;
+  }
+
+  /* If input and output buffers are the same, copy input to temp buffer. */
+  if (points == out_points) {
+    if (count > 0x200) {
+      display_assert("count<=CLIP_BUFFER_SIZE",
+                     "c:\\halo\\SOURCE\\math\\geometry.c", 0x54d, true);
+      system_exit(-1);
+    }
+    csmemcpy(clip_buffer, points, (int)count << 3);
+    points = clip_buffer;
+  }
+
+  byte_size = (int)count * 8;
+
+  /* Classify last point (wrap-around for polygon closure). */
+  previous_point = points + (int)count * 2 - 2;
+  previous_inside =
+    *(float *)0x2533c0 <=
+    (previous_point[0] * line[0] + previous_point[1] * line[1]) - line[2];
+
+  any_above = false;
+  any_below = false;
+  out_count = 0;
+  mask = 0;
+
+  if (count < 1) {
+    goto zero_result;
+  }
+
+  for (i = 0; i < count; ++i) {
+    float *current_point = points + (int)i * 2;
+    float distance =
+      (line[0] * current_point[0] + current_point[1] * line[1]) - line[2];
+    bool current_inside = *(float *)0x2533c0 <= distance;
+
+    if (distance > epsilon) {
+      any_above = true;
+    } else if (distance < -epsilon) {
+      any_below = true;
+    }
+
+    if (current_inside != previous_inside) {
+      /* Edge crosses the line -- compute intersection. */
+      if (out_count == max_count) {
+        goto overflow;
+      }
+
+      if (changed != NULL) {
+        *changed = 1;
+      }
+
+      {
+        float t;
+        float clamped_t;
+        int out_idx;
+
+        t = -((line[0] * current_point[0] + current_point[1] * line[1]) -
+              line[2]) /
+            ((previous_point[1] - current_point[1]) * line[1] +
+             (previous_point[0] - current_point[0]) * line[0]);
+
+        clamped_t = *(float *)0x2533c0;
+        if (*(float *)0x2533c0 <= t) {
+          clamped_t = t;
+          if (*(float *)0x2533c8 < t) {
+            clamped_t = *(float *)0x2533c8;
+          }
+        }
+
+        out_points[(int)out_count * 2] =
+          clamped_t * (previous_point[0] - current_point[0]) +
+          current_point[0];
+        mask |= (uint32_t)1 << ((uint8_t)out_count & 0x1f);
+        out_count += 1;
+        out_points[((int)out_count - 1) * 2 + 1] =
+          clamped_t * (previous_point[1] - current_point[1]) +
+          current_point[1];
+
+        /* Degenerate vertex removal: if the new vertex duplicates the first
+         * or previous vertex, discard it. */
+        if (out_count != 1) {
+          out_idx = (int)out_count;
+          if ((fabsf(out_points[out_idx * 2 - 2] - out_points[0]) < epsilon &&
+               fabsf(out_points[out_idx * 2 - 1] - out_points[1]) < epsilon) ||
+              (fabsf(out_points[out_idx * 2 - 2] - out_points[out_idx * 2 - 4]) <
+                 epsilon &&
+               fabsf(out_points[out_idx * 2 - 1] - out_points[out_idx * 2 - 3]) <
+                 epsilon)) {
+            out_count -= 1;
+          }
+        }
+      }
+    }
+
+    if (current_inside) {
+      /* Current point is inside -- emit it. */
+      if (out_count == max_count) {
+        goto overflow;
+      }
+
+      out_points[(int)out_count * 2] = current_point[0];
+      out_points[(int)out_count * 2 + 1] = current_point[1];
+
+      /* Propagate bitmask from input. */
+      if (out_bitmask == NULL ||
+          ((uint32_t)1 << ((uint8_t)i & 0x1f) & *out_bitmask) == 0) {
+        mask &= ~((uint32_t)1 << ((uint8_t)out_count & 0x1f));
+      } else {
+        mask |= (uint32_t)1 << ((uint8_t)out_count & 0x1f);
+      }
+      out_count += 1;
+
+      /* Degenerate vertex removal. */
+      if (out_count != 1) {
+        int out_idx = (int)out_count;
+        if ((fabsf(out_points[out_idx * 2 - 2] - out_points[0]) < epsilon &&
+             fabsf(out_points[out_idx * 2 - 1] - out_points[1]) < epsilon) ||
+            (fabsf(out_points[out_idx * 2 - 2] - out_points[out_idx * 2 - 4]) <
+               epsilon &&
+             fabsf(out_points[out_idx * 2 - 1] - out_points[out_idx * 2 - 3]) <
+               epsilon)) {
+          out_count -= 1;
+        }
+      }
+    }
+
+    previous_point = current_point;
+    previous_inside = current_inside;
+  }
+
+  if (out_count == -1) {
+    goto overflow;
+  }
+
+  if (out_count < 3) {
+  zero_result:
+    out_count = 0;
+  }
+
+  if (any_above) {
+    if (!any_below) {
+      /* All points are above the line -- copy input unchanged. */
+      if (count < 0 || count > max_count) {
+        display_assert("count>=0 && count<=maximum_count",
+                       "c:\\halo\\SOURCE\\math\\geometry.c", 0x5a1, true);
+        system_exit(-1);
+      }
+      csmemcpy(out_points, points, byte_size);
+      out_count = count;
+    }
+  } else {
+    /* All points are below or on the line -- result is empty. */
+    out_count = 0;
+  }
+
+  goto done;
+
+overflow:
+  out_count = -1;
+  if (count < 0 || count > max_count) {
+    display_assert("count>=0 && count<=maximum_count",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x5a8, true);
+    system_exit(-1);
+  }
+  csmemcpy(out_points, points, byte_size);
+
+done:
+  if (out_bitmask != NULL) {
+    *out_bitmask = mask;
+  }
+
+  return out_count;
+}
 
 int FUN_0017cae0(uint32_t cache_size)
 {
@@ -1722,9 +2018,26 @@ void *FUN_0017caf0(int cache_index, uint32_t cache_size)
   return FUN_0015b890(cache_index, cache_size);
 }
 
+void thunk_FUN_0015b960(void)
+{
+  /* 0x17cb00: JMP 0x15b960; 0x15b960: RET -- no-op thunk */
+}
+
 void FUN_0017cb10(int decal_index)
 {
   FUN_0015b530(decal_index);
 }
 
-int FUN_0018e3f0(void);
+/* Returns the current structure BSP collision data pointer.
+ * Source: c:\halo\SOURCE\scenario\scenario.c
+ * Asserts that the global is non-null before returning.
+ */
+int FUN_0018e3f0(void)
+{
+  if (*(int *)0x5064dc == 0) {
+    display_assert("global_collision_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xcd, true);
+    system_exit(-1);
+  }
+  return *(int *)0x5064dc;
+}
