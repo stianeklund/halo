@@ -21,6 +21,14 @@
         "Parameter typing narrowed to const float * from direct [arg+0/4/8] float loads and ai_clump callsite passing actor/record position vectors at +0xbc."
       ]
     },
+    "0x124c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1257a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13010": {
       "kind": "function",
       "status": "ported",
@@ -133,6 +141,18 @@
       "name_confidence": "high"
     },
     "0x425b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7ab50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7ace0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7b020": {
       "kind": "function",
       "status": "ported"
     },
