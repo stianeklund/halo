@@ -1,7 +1,6 @@
 ---
 description: Copy or tail debug.txt through XBDM
-agent: fast
-subtask: true
+subtask: false
 ---
 
 Use the `halo-xbdm` skill for RDCP argument handling and response reporting.

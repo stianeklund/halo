@@ -25,7 +25,7 @@ from xbdm_rdcp import RdcpClient, RdcpError, parse_int
 ROOT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 )
-DEFAULT_REMOTE_PATH = r"E:\GAMES\halo-pathed\debug.txt"
+DEFAULT_REMOTE_PATH = r"E:\GAMES\halo-patched\debug.txt"
 DEFAULT_OUTPUT_PATH = os.path.join(ROOT_DIR, "xbdm", "debug.txt")
 DEFAULT_CHUNK_SIZE = 4096
 
@@ -86,29 +86,50 @@ def parse_size(lines: list[str]) -> int:
         raise RdcpError("getfileattributes returned no data")
 
     fields: dict[str, str] = {}
-    for token in lines[0].split():
-        if "=" not in token:
-            continue
-        key, value = token.split("=", 1)
-        fields[key.lower()] = value
+    for line in lines:
+        for token in line.replace(",", " ").split():
+            if "=" not in token:
+                continue
+            key, value = token.split("=", 1)
+            fields[key.lower()] = value
 
-    if "size" in fields:
-        return int(fields["size"], 0)
+    for key in ("size", "filesize", "file_size", "length"):
+        if key in fields:
+            return int(fields[key], 0)
 
-    try:
-        size_hi = int(fields["sizehi"], 0)
-        size_lo = int(fields["sizelo"], 0)
-    except KeyError as exc:
-        raise RdcpError("getfileattributes did not include sizehi/sizelo") from exc
+    for key, value in fields.items():
+        if key.endswith("size") or key.endswith("length"):
+            try:
+                return int(value, 0)
+            except ValueError:
+                continue
 
-    return (size_hi << 32) | size_lo
+    if "sizehi" in fields and "sizelo" in fields:
+        try:
+            size_hi = int(fields["sizehi"], 0)
+            size_lo = int(fields["sizelo"], 0)
+        except ValueError as exc:
+            raise RdcpError("getfileattributes sizehi/sizelo were not numeric") from exc
+        return (size_hi << 32) | size_lo
+
+    raise RdcpError(f"getfileattributes did not expose a size field: {lines[0]}")
+
+
+def size_lines_from_response(response) -> list[str]:
+    if response.lines is not None:
+        return response.lines
+    if response.message:
+        return [response.message]
+    return []
 
 
 def read_remote_size(client: RdcpClient, remote_path: str) -> int:
     response = client.command(build_file_command("getfileattributes", remote_path))
-    if response.lines is None:
-        raise RdcpError("getfileattributes did not return multiline data")
-    return parse_size(response.lines)
+    if not response.is_success:
+        raise RdcpError(
+            f"getfileattributes failed: {response.code}- {response.message}"
+        )
+    return parse_size(size_lines_from_response(response))
 
 
 def read_remote_file(
@@ -122,6 +143,8 @@ def read_remote_file(
         build_file_command("getfile", remote_path, offset=offset, size=actual_size),
         binary_length=actual_size + 4,
     )
+    if not response.is_success:
+        raise RdcpError(f"getfile failed: {response.code}- {response.message}")
     if response.binary is None:
         raise RdcpError("getfile did not return binary data")
     if len(response.binary) < 4:

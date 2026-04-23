@@ -4,10 +4,9 @@ agent: fast
 subtask: true
 ---
 
-Use the `halo-build-xemu` skill for the standard build expectations before
-deployment. This is the **preferred verification path** — always deploy to a
-real Xbox via XBDM rather than building an ISO for xemu when a console is
-available.
+Use the `halo-deploy-xbdm` skill for the standard build-and-deploy workflow.
+This is the **preferred verification path** — always deploy to a real Xbox via
+XBDM rather than building an ISO for xemu when a console is available.
 
 Build the project, then deploy recently modified files to a real Xbox using
 `tools/deploy_xbox.py` (which wraps the XDK `xbcp.exe` file transfer tool).
@@ -15,7 +14,7 @@ Build the project, then deploy recently modified files to a real Xbox using
 Argument: $ARGUMENTS (optional flags passed to deploy_xbox.py, e.g. `-x 192.168.1.42`, `--full`, `--xbe-only`)
 
 Steps:
-1. Run the build portion of the standard flow from `halo-build-xemu`.
+1. Run the standard build-and-deploy flow from `halo-deploy-xbdm`.
 2. If the build succeeds, run `python3 tools/deploy_xbox.py $ARGUMENTS`.
 3. If no `-x` argument was provided, use `-x $XBOX_HOST` from the environment.
    If that is also unset, warn and stop.

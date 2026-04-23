@@ -39,8 +39,9 @@ Goal: minimize redundant reads without losing accuracy.
    - `NEED <path>:<line-range> because <type/symbol/call-site>`
 5. For repeat-heavy files (for example `kb.json`, `main.c`), read only the
    required section unless a full-file pass is explicitly justified.
-6. MUST prefer `jq` over inline Python for querying JSON files (especially
-   `kb.json`) to minimize token usage and boilerplate.
+6. MUST prefer `jq` over inline Python for querying or parsing JSON files
+   anywhere in this repo; do not use `python -c` for JSON parsing when `jq`
+   can do the job.
 7. Prefer one target/hypothesis per pass for RE-heavy work.
 
 ## Research before edit
@@ -103,6 +104,21 @@ Treat `kb.json` as link/runtime-critical.
 - Run the narrowest meaningful validation first, then broaden if needed.
 - Prefer real Xbox XBDM verification over xemu when available.
 
+## RTK (token optimization)
+
+RTK is active on this project via the OpenCode plugin. Bash tool calls are
+transparently rewritten to strip noise:
+
+- `python3 tools/frontier.py`, `maintain.py`, `kb_meta.py` — INFO logs stripped
+- `python3 tools/build_iso.py` — extract-xiso progress stripped, summary kept
+- `cmake --build build` — XBE section-writing noise stripped
+- `python3 tools/lift_pipeline.py`, `verify_option3.py` — INFO logs stripped
+- Standard commands (`git status`, `git diff`, `git log`) are also compacted
+
+Commands that must stay raw (binary data, serial streams) are excluded in
+`~/.config/rtk/config.toml`. Project-local filters live in `.rtk/filters.toml`;
+run `rtk trust` in the repo root after editing them.
+
 ## MCP servers
 
 Expected local Ghidra MCP SSE endpoints:
@@ -163,6 +179,7 @@ Do not read/search these unless explicitly requested:
 - `halo-xbox-re`: RE doctrine and evidence rules (source of truth)
 - `halo-re-lift`: lift workflow and ABI-specific execution
 - `halo-verify-debug`: verification lanes and regression debugging
+- `halo-page-fault`: investigate page faults (kb.json ABI/signature mismatches)
 - `halo-build-xemu`: build/ISO/xemu workflow
 - `halo-xbdm`: RDCP/XBDM workflow for real Xbox
 - `xbox-halo-re-analyst`: bounded one-target worker following doctrine
