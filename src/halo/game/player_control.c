@@ -28,6 +28,25 @@ void player_control_set_action_flags(int16_t local_player_index, uint16_t flags,
     *(uint16_t *)((char *)slot + 0xa) |= flags;
 }
 
+/* Get the local player index for the player controlling a unit.
+ * Looks up the unit's player handle (unit+0x1c8), then reads the local
+ * player index (player+0x2) from the player datum. Returns NONE (0xffff)
+ * if the unit has no controlling player. */
+int16_t FUN_000b6990(int unit_handle)
+{
+  char *unit_obj;
+  int player_handle;
+  char *player;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+  player_handle = *(int *)(unit_obj + 0x1c8);
+  if (player_handle != NONE) {
+    player = (char *)datum_get(player_data, player_handle);
+    return *(int16_t *)(player + 0x2);
+  }
+  return (int16_t)NONE;
+}
+
 /* Clear the aim-assist weapon interaction slot for a unit's controlling player.
  * Looks up the player datum via the unit's player handle (unit+0x1c8), then
  * finds the local player index (player+0x2), retrieves the player control slot,
@@ -107,6 +126,55 @@ void player_control_set_unit_seat(int unit_handle, int seat_index)
       *(int16_t *)(slot + 0x20) = (int16_t)seat_index;
     }
   }
+}
+
+/* Set a player control slot's desired facing angles from a 3D direction vector.
+ * Converts the direction vector to yaw+pitch via FUN_0010cc00 (atan2-based
+ * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
+ * to [0, 2*pi) by adding 2*pi if negative. */
+void FUN_000b6ea0(uint16_t local_player_index, float *direction)
+{
+  char *player_slot;
+  float *desired_yaw;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  player_slot =
+    (char *)player_control_globals + (int)(int16_t)local_player_index * 0x40 + 0x10;
+  desired_yaw = (float *)(player_slot + 0xc);
+
+  /* Convert direction vector to yaw/pitch angles */
+  {
+    void (*vector_to_angles)(float *, float *) = (void *)0x10cc00;
+    vector_to_angles(desired_yaw, direction);
+  }
+
+  /* assert_valid_real on desired_angles.pitch (slot+0x10) */
+  if ((*(uint32_t *)(player_slot + 0x10) & 0x7f800000u) == 0x7f800000u) {
+    char *msg =
+      csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+               "player_control->desired_angles.pitch",
+               *(uint32_t *)(player_slot + 0x10),
+               (double)*(float *)(player_slot + 0x10));
+    display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbb, 1);
+    system_exit(NONE);
+  }
+
+  /* assert_valid_real on desired_angles.yaw (slot+0xc) */
+  if ((*(uint32_t *)desired_yaw & 0x7f800000u) == 0x7f800000u) {
+    char *msg =
+      csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+               "player_control->desired_angles.yaw",
+               *(uint32_t *)desired_yaw,
+               (double)*desired_yaw);
+    display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbc, 1);
+    system_exit(NONE);
+  }
+
+  /* Normalize yaw to [0, 2*pi) */
+  if (*desired_yaw < *(float *)0x2533c0)
+    *desired_yaw += *(float *)0x255a54;
 }
 
 void player_control_initialize_for_new_map(void)
