@@ -1,6 +1,5 @@
 ---
 description: Copy or tail debug.txt through XBDM
-agent: fast
 subtask: true
 ---
 

@@ -40,6 +40,10 @@ COMMAND_OUTPUTS = {
         "claude": OutputSpec("commands/deploy.md"),
         "opencode": OutputSpec("commands/deploy.md"),
     },
+    "xbdm-debug.md": {
+        "claude": OutputSpec("commands/xbdm-debug.md"),
+        "opencode": OutputSpec("commands/xbdm-debug.md"),
+    },
     "frontier.md": {
         "claude": OutputSpec("commands/frontier.md"),
         "opencode": OutputSpec("commands/frontier.md"),
@@ -135,6 +139,10 @@ COMMAND_OUTPUTS = {
 }
 
 SKILL_OUTPUTS = {
+    "halo-deploy-xbdm": {
+        "claude": OutputSpec("skills/halo-deploy-xbdm/SKILL.md"),
+        "opencode": OutputSpec("skills/halo-deploy-xbdm/SKILL.md"),
+    },
     "halo-build-xemu": {
         "claude": OutputSpec("skills/halo-build-xemu/SKILL.md"),
         "opencode": OutputSpec("skills/halo-build-xemu/SKILL.md"),
