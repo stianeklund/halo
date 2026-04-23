@@ -3093,6 +3093,58 @@
         {
           "decl": "void FUN_0013e1a0(int object_handle@<edi>);",
           "addr": "0x13e1a0"
+        },
+        {
+          "decl": "int FUN_00084a10(float *vector);",
+          "addr": "0x84a10"
+        },
+        {
+          "decl": "int FUN_000ae0a0(int tag_index);",
+          "addr": "0xae0a0"
+        },
+        {
+          "decl": "void *FUN_0013c100(int16_t object_type);",
+          "addr": "0x13c100"
+        },
+        {
+          "decl": "void FUN_0013c430(int object_handle, void *placement);",
+          "addr": "0x13c430"
+        },
+        {
+          "decl": "int FUN_0013c490(int object_handle);",
+          "addr": "0x13c490"
+        },
+        {
+          "decl": "void FUN_0013c560(int object_handle);",
+          "addr": "0x13c560"
+        },
+        {
+          "decl": "void FUN_0013c620(int object_handle);",
+          "addr": "0x13c620"
+        },
+        {
+          "decl": "void FUN_0013df70(data_t *data);",
+          "addr": "0x13df70"
+        },
+        {
+          "decl": "int FUN_0013e050(int object_handle, int offset, int size);",
+          "addr": "0x13e050"
+        },
+        {
+          "decl": "void FUN_00136150(int object_handle);",
+          "addr": "0x136150"
+        },
+        {
+          "decl": "void FUN_001365d0(int object_handle, int arg1, int arg2);",
+          "addr": "0x1365d0"
+        },
+        {
+          "decl": "void FUN_0013ecb0(int object_handle);",
+          "addr": "0x13ecb0"
+        },
+        {
+          "decl": "void FUN_0009ec30(int effect_index, int object_handle, int parent_handle, int marker, int arg4, int arg5, int arg6, int arg7);",
+          "addr": "0x9ec30"
         }
       ]
     },

@@ -84,6 +84,12 @@
         "0x1bf180": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);",
         "0xacef0": "void game_engine_hud_update_player(int player_handle@<ecx>, int hud_player@<eax>, int param3@<ebx>);",
         "0x1ccbe0": "float FUN_001ccbe0(int channel_index@<eax>, void *source@<edi>);",
-        "0x1ccca0": "float FUN_001ccca0(int channel_index@<eax>, void *source@<edi>);"
+        "0x1ccca0": "float FUN_001ccca0(int channel_index@<eax>, void *source@<edi>);",
+        "0x13ded0": "int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint@<eax>);",
+        "0x13e1f0": "void FUN_0013e1f0(int object_handle@<eax>, void *color_data);",
+        "0x140ad0": "void FUN_00140ad0(int object_handle@<edi>);",
+        "0x13e7b0": "void FUN_0013e7b0(int object_handle@<eax>);",
+        "0x13e5d0": "void FUN_0013e5d0(int object_handle@<eax>);",
+        "0x13e1a0": "void FUN_0013e1a0(int object_handle@<edi>);"
     }
 }
