@@ -19,3 +19,12 @@ void *network_game_server_get(void)
 {
   return *(void **)0x46e8bc;
 }
+
+/* network_game_client_get (0x12a240)
+ *
+ * Returns the global network game client pointer.
+ */
+void *network_game_client_get(void)
+{
+  return *(void **)0x46e8c0;
+}
