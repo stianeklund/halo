@@ -692,7 +692,7 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
           float dy = point[1] - projection[0x17];
           int16_t geometry_vertex_index = *(int16_t *)(geometry_data + 0x6000);
           char *geometry_vertex =
-            geometry_data + (int)geometry_vertex_index * 0x18 + 0xc;
+            geometry_data + (int)geometry_vertex_index * 0x18;
           uint32_t bit = 1u << (i & 0x1f);
 
           *(float *)(geometry_vertex + 0xc) =
