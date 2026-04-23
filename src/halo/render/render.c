@@ -1,7 +1,7 @@
 void render_initialize(void)
 {
   cached_object_render_states =
-    game_state_data_new("cached object render states", 0x100, 0x100);
+    game_state_data_new("cached object render states", 0x100, 0x100); /* dup-args-ok */
   assert_halt(cached_object_render_states);
 }
 
