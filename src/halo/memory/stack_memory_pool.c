@@ -245,6 +245,62 @@ int memory_block_valid(void *block_hdr)
   return 1;
 }
 
+/* FUN_0011ee80 — compact unlocked blocks toward pool base.
+ *
+ * Register convention: pool in EAX (kb.json @<eax>).
+ *
+ * Walks blocks in address order and moves unlocked blocks down to remove gaps.
+ */
+void FUN_0011ee80(void *pool)
+{
+  char *pool_p = (char *)pool;
+  unsigned int *block;
+  char *previous_block;
+  unsigned int previous_size;
+
+  if (pool == 0 || *(unsigned int *)(pool_p + 4) == 0 || (pool_p + 0x34) == 0) {
+    display_assert("pool && pool->base_address && pool->blocks",
+                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x3ad, 1);
+    system_exit(-1);
+  }
+
+  block = *(unsigned int **)(pool_p + 0x2c);
+  if (block == 0 || *(unsigned char *)(pool_p + 0x28) != 0) {
+    return;
+  }
+
+  previous_block = *(char **)(pool_p + 4);
+  previous_size = 0;
+
+  do {
+    if (!(memory_block_valid(block) & 0xff)) {
+      display_assert("memory_block_valid(block)",
+                     "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x215, 1);
+      system_exit(-1);
+    }
+
+    if ((int)block[0] >= 0) {
+      int gap = (int)((char *)block - previous_size - previous_block);
+
+      if (gap > 0) {
+        unsigned int size = block[0] & 0x7fffffff;
+        unsigned int *moved = (unsigned int *)(previous_block + previous_size);
+
+        qmemcpy(moved, block, size);
+        block = moved;
+
+        if (block[2] != 0) {
+          *(unsigned int **)(block[2] + 0xc) = block;
+        }
+      }
+    }
+
+    previous_size = block[0] & 0x7fffffff;
+    previous_block = (char *)block;
+    block = *(unsigned int **)((char *)block + 0xc);
+  } while (block != 0);
+}
+
 /* stack_memory_pool_valid_block — verify a block belongs to a pool.
  *
  * Checks that block_hdr falls within the pool's address range
