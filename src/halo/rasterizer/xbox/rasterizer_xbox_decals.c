@@ -92,7 +92,7 @@ void FUN_0015b530(int decal_index)
 static void rasterizer_decals_vertex_cache_delete(int decal_index)
 {
   char cVar1;
-  char *iVar2;
+  char *decal;
   char *pcVar3;
   int uVar4;
 
@@ -124,8 +124,16 @@ static void rasterizer_decals_vertex_cache_delete(int decal_index)
   system_exit(-1);
 
 LAB_0015b018:
-  iVar2 = datum_get(*(void **)0x5aa8b8, decal_index);
-  if (((*(unsigned char *)(iVar2 + 2) & 1) != 0) &&
+  decal = (char *)datum_absolute_index_to_index(*(void **)0x5aa8b8, decal_index);
+  if (decal == 0) {
+    error(2,
+          "### ERROR decals: stale cache->decal handle (#%d) in rasterizer -- "
+          "tell Bernie!!",
+          decal_index);
+    return;
+  }
+
+  if (((*(unsigned char *)(decal + 2) & 1) != 0) &&
       (*(char *)0x476ae0 == '\0')) {
     error(2,
           "### ERROR decals: deleting locked decal (#%d, queried=#%d) in "
@@ -133,8 +141,8 @@ LAB_0015b018:
           decal_index, *(int *)0x32516c);
     *(char *)0x476ae0 = '\x01';
   }
-  iVar2 = datum_get(*(void **)0x5aa8b8, decal_index);
-  if (((*(unsigned char *)(iVar2 + 2) & 2) != 0) &&
+
+  if (((*(unsigned char *)(decal + 2) & 2) != 0) &&
       (*(char *)0x476ae1 == '\0')) {
     error(2,
           "### ERROR decals: deleting permanent decal (#%d, queried=#%d) in "
