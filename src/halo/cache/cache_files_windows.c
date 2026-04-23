@@ -36,6 +36,20 @@ void cache_files_precache_map_queue_end(void)
   ((void (*)(void))0x1ba5d0)();
 }
 
+/* Enable an async cache I/O request. Validates request_index is within
+ * [0, 512) and sets the enable byte (offset 0x1c) in the request's
+ * 0x20-byte entry in the global cache request array at 0x4e9250. */
+void cache_files_io_request_enable(int16_t request_index)
+{
+  if (request_index < 0 || request_index >= 0x200) {
+    display_assert(
+      "request_index>=0 && request_index<MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x260, 1);
+    system_exit(-1);
+  }
+  *(uint8_t *)(*(int *)0x4e9250 + (int)request_index * 0x20 + 0x1c) = 1;
+}
+
 /* Query the status of the current precache operation. Returns a status
  * code and optionally writes the progress fraction to *progress. */
 __int16 cache_files_precache_map_status(float *progress)
