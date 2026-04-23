@@ -1236,6 +1236,124 @@ game_variant_t *game_engine_get_variant_by_name(game_variant_t *out_variant,
   return out_variant;
 }
 
+/* game_engine_validate_map_netgame_flags (0xae4d0)
+ *
+ * Validates required netgame flags/spawns/equipment and emits warnings when
+ * map metadata is missing or insufficient for multiplayer modes.
+ */
+void game_engine_validate_map_netgame_flags(void)
+{
+  int found_index;
+  int (*find_flag_indices)(float *, float, float, short, short, int, int *) =
+    (int (*)(float *, float, float, short, short, int, int *))0xad160;
+  void (*validate_duplicate_flags)(short, const char *) =
+    (void (*)(short, const char *))0xaa010;
+  void (*validate_flag_out_of_range)(short, short, const char *) =
+    (void (*)(short, short, const char *))0xaa0b0;
+  void (*validate_spawn_points)(short, int, short, const char *) =
+    (void (*)(short, int, short, const char *))0xae400;
+  int (*matches_game_type)(int, int, void *) = (int (*)(int, int, void *))0xacb10;
+  int game_types[5] = {1, 2, 3, 4, 5};
+  const char *equipment_msgs[5] = {
+    "NETGAME MAP FAILURE: failed to find any equipment for ctf",
+    "NETGAME MAP FAILURE: failed to find any equipment for slayer",
+    "NETGAME MAP FAILURE: failed to find any equipment for oddball",
+    "NETGAME MAP FAILURE: failed to find any equipment for king",
+    "NETGAME MAP FAILURE: failed to find any equipment for race",
+  };
+  int i;
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 0, 0, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing ctf flag [team %d]", 0);
+  }
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 0, 1, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing ctf flag [team %d]", 1);
+  }
+
+  validate_duplicate_flags(0, "NETGAME MAP FAILURE: duplicate ctf flag [team %d]");
+  validate_flag_out_of_range(
+    0, 1, "NETGAME MAP FAILURE: ctf flag out of range [team %d]");
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 8, 0, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing hill flag [team %d]", 0);
+  }
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 8, 1, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing hill flag [team %d]", 1);
+  }
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 2, 0, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing oddball flag [team %d]", 0);
+  }
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 2, 1, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing oddball flag [team %d]", 1);
+  }
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 3, 0, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing race flag [team %d]", 0);
+  }
+
+  found_index = -1;
+  find_flag_indices(0, 0.0f, 0.0f, 3, 1, 1, &found_index);
+  if (found_index == -1) {
+    error(2, "NETGAME MAP FAILURE: missing race flag [team %d]", 1);
+  }
+
+  validate_duplicate_flags(3,
+                           "NETGAME MAP FAILURE: duplicate race track flag [team %d]");
+
+  validate_spawn_points(
+    1, 0, 4,
+    "NETGAME MAP FAILURE: failed to find enough spawn points for ctf team 0 (%d/%d)");
+  validate_spawn_points(
+    1, 0, 4,
+    "NETGAME MAP FAILURE: failed to find enough spawn points for ctf team 1 (%d/%d)");
+  validate_spawn_points(
+    2, 0, 4, "NETGAME MAP FAILURE: failed to find enough spawn points for slayer %d/%d");
+  validate_spawn_points(
+    3, 0, 4,
+    "NETGAME MAP FAILURE: failed to find enough spawn points for oddball %d/%d");
+  validate_spawn_points(
+    4, 0, 4, "NETGAME MAP FAILURE: failed to find enough spawn points for king %d/%d");
+  validate_spawn_points(
+    5, 0, 4, "NETGAME MAP FAILURE: failed to find enough spawn points for race %d/%d");
+
+  for (i = 0; i < 5; i++) {
+    int count = 0;
+    int game_type = game_types[i];
+    int *equipment_block = (int *)((char *)global_scenario_get() + 0x384);
+    int j;
+
+    for (j = 0; j < *equipment_block; j++) {
+      unsigned char *entry =
+        (unsigned char *)tag_block_get_element(equipment_block, j, 0x90);
+      if (matches_game_type(game_type, 4, entry + 4)) {
+        count++;
+      }
+    }
+
+    if (count == 0) {
+      error(2, equipment_msgs[i]);
+    }
+  }
+}
+
 /* game_engine_initialize_for_new_map (0xae760)
  *
  * Prepares the custom game engine for a newly loaded map.  Validates
