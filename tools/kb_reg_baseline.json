@@ -23,6 +23,7 @@
     "0x87050": "void director_apply_replay_mode_for_player(char reset_flag@<al>, int16_t local_player_index@<si>, char mode_flags);",
     "0x87110": "bool director_compute_camera_input(short *out_buf@<eax>, int local_player_index);",
     "0x98b20": "void FUN_00098b20(float *sprite_bounds@<eax>, void *definition, int16_t sequence_index, int16_t sprite_index, float extent, float *out_extent);",
+    "0x998b0": "int FUN_000998b0(int new_index_hint@<eax>, int16_t cluster_index, int16_t layer, int old_index, bool randomize);",
     "0x9a300": "void FUN_0009a300(float *bounds, float *projection, float *basis@<ebx>);",
     "0x9a5a0": "void FUN_0009a5a0(void *geometry@<eax>, float *projection, int surface_index, bool allow_deviants, float scale, int16_t type, int *surface_queue, int16_t *surface_queue_write_index, int *deviant_surface_list, int16_t *deviant_surface_count);",
     "0xa8780": "void game_engine_update_flag_state(int weapon_index@<esi>);",
@@ -78,6 +79,7 @@
     "0x1ae490": "int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int16_t direction);",
     "0x1af620": "bool unit_verify_vectors(int unit_handle@<eax>);",
     "0x1af6b0": "void unit_control_trace(int unit_handle@<edi>, const char *label);",
-    "0x1b1ee0": "void unit_update_weapon_readiness(int unit_handle@<esi>, int flag);"
+    "0x1b1ee0": "void unit_update_weapon_readiness(int unit_handle@<esi>, int flag);",
+    "0x1bf180": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);"
   }
 }

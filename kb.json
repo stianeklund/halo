@@ -550,6 +550,10 @@
         {
           "decl": "float FUN_000121a0(const float *a, const float *b);",
           "addr": "0x121a0"
+        },
+        {
+          "decl": "void SwitchToThread(void);",
+          "addr": "0x1cfb98"
         }
       ]
     },
@@ -870,6 +874,10 @@
         {
           "decl": "void cache_files_precache(void);",
           "addr": "0x1bfee0"
+        },
+        {
+          "decl": "void cache_files_io_request_enable(int16_t request_index);",
+          "addr": "0x1bcb30"
         }
       ]
     },
@@ -1346,7 +1354,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_000998b0(int16_t cluster_index, int16_t layer, int old_index, bool randomize);",
+          "decl": "int FUN_000998b0(int new_index_hint@<eax>, int16_t cluster_index, int16_t layer, int old_index, bool randomize);",
           "addr": "0x998b0",
           "ported": true
         },
@@ -2103,10 +2111,6 @@
       "name": "game_state.obj",
       "source": "saved_games/game_state.c",
       "functions": [
-        {
-          "decl": "int FUN_001bf570(int hardware_format, int block, bool load);",
-          "addr": "0x1bf570"
-        },
         {
           "decl": "void game_state_dispose(void);",
           "addr": "0x1bf7b0"
@@ -3749,6 +3753,10 @@
         {
           "decl": "void rasterizer_preinitialize(void);",
           "addr": "0x1553f0"
+        },
+        {
+          "decl": "void *FUN_00155580(void *hardware_format);",
+          "addr": "0x155580"
         }
       ]
     },
@@ -4100,6 +4108,14 @@
         {
           "decl": "void sound_render(void);",
           "addr": "0x1cf730"
+        },
+        {
+          "decl": "unsigned int FUN_001cb8e0(void);",
+          "addr": "0x1cb8e0"
+        },
+        {
+          "decl": "void FUN_001cf2f0(void);",
+          "addr": "0x1cf2f0"
         }
       ]
     },
@@ -5209,6 +5225,14 @@
         {
           "decl": "void xbox_texture_cache_return_memory(void);",
           "addr": "0x1beb10"
+        },
+        {
+          "decl": "void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block, bool load);",
+          "addr": "0x1bf570"
+        },
+        {
+          "decl": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);",
+          "addr": "0x1bf180"
         }
       ]
     },
@@ -5408,6 +5432,14 @@
         {
           "decl": "void *lruv_cache_new(const char *name, int capacity, int max_locked, int entry_size, void (*delete_cb)(int), int (*query_cb)(int));",
           "addr": "0x1bfe90"
+        },
+        {
+          "decl": "void FUN_0011d9d0(void *cache, int datum_handle);",
+          "addr": "0x11d9d0"
+        },
+        {
+          "decl": "void FUN_0011db90(const char *path, const char *tag_name, int a3, void *cache, void *fn1, void *fn2);",
+          "addr": "0x11db90"
         }
       ]
     }
