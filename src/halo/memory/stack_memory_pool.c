@@ -140,6 +140,63 @@ unsigned int FUN_0011eb40(void *pool)
          *(unsigned int *)(pool_p + 4) - (unsigned int)last_block;
 }
 
+/* FUN_0011ec70 — find a free gap large enough for alloc_size.
+ *
+ * Register convention (kb.json):
+ *   - pool in EAX (@<eax>)
+ *   - alloc_size in EBX (@<ebx>)
+ *   - free_space_in_pool_previous on stack
+ *
+ * Returns start address of a suitable free span, or NULL.
+ * If the free span is between two blocks, writes the previous block header to
+ * *free_space_in_pool_previous.
+ */
+void *FUN_0011ec70(void *pool, int alloc_size,
+                   void **free_space_in_pool_previous)
+{
+  char *pool_p = (char *)pool;
+  unsigned int *block;
+  unsigned int *next;
+
+  block = *(unsigned int **)(pool_p + 0x2c);
+  if (block == 0) {
+    return 0;
+  }
+
+  if ((unsigned int)alloc_size <=
+      (unsigned int)((char *)block - *(char **)(pool_p + 4))) {
+    return *(void **)(pool_p + 4);
+  }
+
+  next = *(unsigned int **)((char *)block + 0xc);
+  if (next == 0) {
+    return 0;
+  }
+
+  while (1) {
+    if (block == 0) {
+      display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
+                     0x22f, 1);
+      system_exit(-1);
+    }
+
+    if ((unsigned int)alloc_size <=
+        (unsigned int)((char *)next -
+                       ((char *)block + (block[0] & 0x7fffffff)))) {
+      break;
+    }
+
+    block = next;
+    next = *(unsigned int **)((char *)next + 0xc);
+    if (next == 0) {
+      return 0;
+    }
+  }
+
+  *free_space_in_pool_previous = block;
+  return (char *)block + (block[0] & 0x7fffffff);
+}
+
 /* memory_block_valid — validate a block header's integrity.
  *
  * Checks three conditions on the block header pointed to by block_hdr:
