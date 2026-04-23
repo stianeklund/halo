@@ -1457,25 +1457,10 @@ void game_engine_player_added(int player_data_handle)
     data_iter_t iter;
     data_iterator_new(&iter, player_data);
     while (data_iterator_next(&iter) != NULL) {
-      int ph = iter.datum_handle;
-      __asm__ __volatile__(
-        "movl %[ph], %%ecx\n\t"
-        "movl $-1, %%eax\n\t"
-        "xorl %%ebx, %%ebx\n\t"
-        "call *%[fn]"
-        :
-        : [ph] "m"(ph), [fn] "r"(game_engine_hud_update_player)
-        : "eax", "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
+      game_engine_hud_update_player(iter.datum_handle, -1, 0);
     }
   } else {
-    __asm__ __volatile__(
-      "movl %[ph], %%ecx\n\t"
-      "movl $-1, %%eax\n\t"
-      "xorl %%ebx, %%ebx\n\t"
-      "call *%[fn]"
-      :
-      : [ph] "m"(player_data_handle), [fn] "r"(game_engine_hud_update_player)
-      : "eax", "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
+    game_engine_hud_update_player(player_data_handle, -1, 0);
   }
 
   /* Dispatch vtable slot +0x14 (player_added callback) */
