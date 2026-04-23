@@ -1162,7 +1162,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       int hardware_format =
         (int)tag_block_get_element(bitmap_tag + 0x60, sprite_index, 0x30);
 
-      if (!FUN_001bf570(hardware_format, 0, true)) {
+      if (!xbox_texture_cache_get_hardware_format((void *)hardware_format, 0, true)) {
         return;
       }
     }
