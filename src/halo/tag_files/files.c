@@ -15,6 +15,7 @@ typedef int(__stdcall *create_file_fn)(const char *path, uint32_t desired_access
 typedef int(__stdcall *set_file_pointer_fn)(int handle, int distance_to_move,
                                              int *distance_high,
                                              uint32_t move_method);
+typedef int(__stdcall *get_file_size_fn)(int handle, int *size_high);
 typedef void (*debug_log_fn)(int level, const char *format, ...);
 typedef uint32_t(__stdcall *xget_last_error_fn)(void);
 typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
@@ -24,6 +25,7 @@ typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
 #define XCloseHandle ((close_handle_fn)0x1cf900)
 #define XCreateFile ((create_file_fn)0x1d1d85)
 #define XSetFilePointer ((set_file_pointer_fn)0x1d1610)
+#define XGetFileSize ((get_file_size_fn)0x1d1d4a)
 #define DEBUG_LOG ((debug_log_fn)0x8f390)
 #define XGetLastError ((xget_last_error_fn)0x1d2240)
 #define XSetLastError ((xset_last_error_fn)0x1d2268)
@@ -553,6 +555,20 @@ bool file_close(file_ref_t *info)
 
   file_error(info, "file_close");
   return false;
+}
+
+int file_get_eof(file_ref_t *info)
+{
+  file_ref_t *ref;
+  int eof;
+
+  ref = file_reference_verify(info);
+  eof = XGetFileSize(*(int *)&ref->unk_8[256], NULL);
+  if (eof == -1) {
+    file_error(info, "file_get_eof");
+  }
+
+  return eof;
 }
 
 /**
