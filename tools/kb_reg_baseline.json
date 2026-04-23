@@ -80,6 +80,7 @@
     "0x1af620": "bool unit_verify_vectors(int unit_handle@<eax>);",
     "0x1af6b0": "void unit_control_trace(int unit_handle@<edi>, const char *label);",
     "0x1b1ee0": "void unit_update_weapon_readiness(int unit_handle@<esi>, int flag);",
-    "0x1bf180": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);"
+    "0x1bf180": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);",
+    "0xacef0": "void game_engine_hud_update_player(int player_handle@<ecx>, int hud_player@<eax>, int param3@<ebx>);"
   }
 }

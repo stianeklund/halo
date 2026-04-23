@@ -2024,9 +2024,8 @@
           "addr": "0xacdd0"
         },
         {
-          "decl": "void game_engine_hud_update_player(int player_handle);",
-          "addr": "0xacef0",
-          "args": "@ecx,@eax"
+          "decl": "void game_engine_hud_update_player(int player_handle@<ecx>, int hud_player@<eax>, int param3@<ebx>);",
+          "addr": "0xacef0"
         },
         {
           "decl": "void game_engine_score_update_player(int player_handle);",
