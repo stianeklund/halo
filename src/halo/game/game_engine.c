@@ -1013,6 +1013,168 @@ void game_engine_update_non_deterministic(float dt)
   }
 }
 
+/* game_engine_score_update_player (0xad600)
+ *
+ * Updates per-player scoring target state and feedback cues.
+ */
+void game_engine_score_update_player(int player_handle)
+{
+  unsigned char *player;
+  unsigned char *scenario;
+  unsigned char *unit;
+  unsigned char *goal_entry;
+  unsigned char *next_goal_entry;
+  int selected_goal_index;
+  int next_goal_index;
+  float unit_pos[3];
+  float search_pos[3];
+  float distance_a;
+  float distance_b;
+  static unsigned char los_scratch[0xac6c];
+  unsigned char hit_info[0x2c];
+
+  ((void(__attribute__((regparm(1))) *)(int))0x1d90e0)(0xac6c);
+
+  scenario = (unsigned char *)global_scenario_get();
+  player = (unsigned char *)datum_get(*(void **)0x5aa6d4, player_handle);
+
+  if (*(int *)(player + 0x34) == -1) {
+    return;
+  }
+
+  unit =
+    (unsigned char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+
+  if (*(int *)(player + 0x70) != -1) {
+    float *goal_pos = (float *)tag_block_get_element(
+      (char *)scenario + 0x378, *(int *)(player + 0x70), 0x94);
+    float dx = *(float *)(unit + 0xc) - goal_pos[0];
+    float dy = *(float *)(unit + 0x10) - goal_pos[1];
+    float dz = *(float *)(unit + 0x14) - goal_pos[2];
+    if (dx * dx + dy * dy + dz * dz > *(float *)0x2533c8) {
+      *(int *)(player + 0x70) = -1;
+    }
+  }
+
+  selected_goal_index = -1;
+  ((int (*)(float *, float, float, short, short, int, int *))0xad160)(
+    (float *)(unit + 0xc), 0.5f, 0.0f, 6, -1, 1, &selected_goal_index);
+
+  if (selected_goal_index == -1 ||
+      selected_goal_index == *(int *)(player + 0x70)) {
+    return;
+  }
+
+  goal_entry = (unsigned char *)tag_block_get_element(
+    (char *)scenario + 0x378, selected_goal_index, 0x94);
+
+  next_goal_index = -1;
+  ((int (*)(float *, float, float, short, short, int, int *))0xad160)(
+    0, 0.0f, 0.0f, 7, *(short *)(goal_entry + 0x12), 1, &next_goal_index);
+
+  if (next_goal_index == -1) {
+    console_printf(0, (const char *)0x26c66c,
+                   (int)*(short *)(goal_entry + 0x12));
+    return;
+  }
+
+  next_goal_entry = (unsigned char *)tag_block_get_element(
+    (char *)scenario + 0x378, next_goal_index, 0x94);
+
+  unit =
+    (unsigned char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+  unit_pos[0] = *(float *)(unit + 0x24);
+  unit_pos[1] = *(float *)(unit + 0x28);
+  unit_pos[2] = *(float *)(unit + 0x2c);
+
+  player = (unsigned char *)datum_get(*(void **)0x5aa6d4, player_handle);
+  ((void (*)(int, float *, float *, float *))0x1a0890)(
+    *(int *)(player + 0x34), &search_pos[0], &distance_b, &distance_a);
+
+  {
+    float candidate_pos[3];
+    candidate_pos[0] = *(float *)(next_goal_entry + 0x0);
+    candidate_pos[1] = *(float *)(next_goal_entry + 0x4);
+    candidate_pos[2] = *(float *)(next_goal_entry + 0x8);
+
+    if (((char (*)(int, float *, void *, float, float, int, void *))0x14ec30)(
+          0x200380, candidate_pos, los_scratch, distance_b, distance_a, -1,
+          los_scratch) &&
+        ((char (*)(void *, float *, void *))0x14bc10)(
+          los_scratch, candidate_pos, hit_info)) {
+      int hit_object = *(int *)(hit_info + 0x20);
+      if (hit_object != -1) {
+        unsigned char *hit_any =
+          (unsigned char *)object_get_and_verify_type(hit_object, -1);
+        if (((1 << (*(unsigned char *)(hit_any + 0x64) & 0x1f)) & 3) != 0) {
+          unsigned char *hit_unit =
+            (unsigned char *)object_get_and_verify_type(hit_object, 3);
+          if (*(int *)(hit_unit + 0x1c8) != -1) {
+            unsigned char *carrier_player = (unsigned char *)datum_get(
+              *(void **)0x5aa6d4, *(int *)(hit_unit + 0x1c8));
+            *(int *)(carrier_player + 0xc8) =
+              *(int *)(carrier_player + 0xc8) + 1;
+            *(unsigned char *)(carrier_player + 0xd0) = 1;
+          }
+        }
+      }
+
+      if (*(int *)0x456b64 > 0) {
+        *(int *)0x456b64 = *(int *)0x456b64 - 1;
+        return;
+      }
+
+      *(int *)0x456b64 = 0x78;
+      hud_print_message(
+        (int)((short)((int (*)(int))0xb6990)(*(int *)(player + 0x34))),
+        (wchar_t *)0x26c684);
+      return;
+    }
+  }
+
+  if (*(short *)(player + 2) != -1) {
+    game_engine_post_event(0x1b);
+    if (*(short *)(player + 2) != -1) {
+      unsigned char effect_desc[0x64];
+
+      csmemset(effect_desc, 0, 0x34);
+      *(short *)(effect_desc + 0x00) = *(short *)0x2efe68;
+      *(short *)(effect_desc + 0x02) = 2;
+      *(short *)(effect_desc + 0x12) = *(short *)0x456b68;
+      *(int *)(effect_desc + 0x10) = *(int *)0x2efe6c;
+      *(int *)(effect_desc + 0x14) = *(int *)0x2efe70;
+      *(int *)(effect_desc + 0x18) = *(int *)0x2efe74;
+      *(int *)(effect_desc + 0x1c) = *(int *)0x2efe78;
+      *(int *)(effect_desc + 0x20) = *(int *)0x2efe7c;
+      *(int *)(effect_desc + 0x24) = *(int *)0x2efe80;
+      *(int *)(effect_desc + 0x28) = 0;
+
+      player_effect_apply(player_handle, effect_desc, 1.0f);
+    }
+  }
+
+  {
+    float angle = (float)atan2(unit_pos[1], unit_pos[0]);
+    float adjusted =
+      angle + *(float *)(unit + 0x0c) - *(float *)(goal_entry + 0x0c);
+    unit_pos[0] = cosf(adjusted);
+    unit_pos[1] = sinf(adjusted);
+    normalize3d(unit_pos);
+  }
+
+  ((void (*)(int, float *, float *, int))0x143ae0)(
+    *(int *)(player + 0x34), (float *)(unit + 0x0c), unit_pos, 0);
+
+  if (*(short *)(player + 2) != -1) {
+    ((void (*)(int, float *))0xb6ea0)((unsigned short)*(short *)(player + 2),
+                                      unit_pos);
+  }
+
+  *(int *)(player + 0x70) =
+    ((int (*)(float *, float, float, short, short))0xad270)(
+      (float *)(unit + 0x0c), 1.0f, 0.0f, 6, -1);
+}
+
 /* game_engine_get_variant_by_name (0xadd50)
  *
  * Looks up a default game_variant_t by string name and copies it into
