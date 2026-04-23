@@ -879,7 +879,7 @@ void game_engine_periodic_equipment_spawn(void)
 {
   int *equip_block;
   int16_t entry_index;
-  unsigned char placement[0x30];
+  unsigned char placement[0x88];
   int spawn_period;
   unsigned char *entry;
   int player_index;
@@ -1032,8 +1032,6 @@ void game_engine_score_update_player(int player_handle)
   float distance_b;
   static unsigned char los_scratch[0xac6c];
   unsigned char hit_info[0x2c];
-
-  ((void(__attribute__((regparm(1))) *)(int))0x1d90e0)(0xac6c);
 
   scenario = (unsigned char *)global_scenario_get();
   player = (unsigned char *)datum_get(*(void **)0x5aa6d4, player_handle);
