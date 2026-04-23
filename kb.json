@@ -817,12 +817,16 @@
           "ported": true
         },
         {
+          "decl": "short bitmap_format_bits_per_pixel(short format);",
+          "addr": "0x7c840"
+        },
+        {
           "decl": "void bitmap_delete(void *);",
           "addr": "0x7c8f0"
         },
         {
-          "decl": "short bitmap_format_bits_per_pixel(short format);",
-          "addr": "0x7c840"
+          "decl": "int FUN_0007d9f0(void *bitmap, int mipmap_index);",
+          "addr": "0x7d9f0"
         }
       ]
     },
@@ -3063,8 +3067,32 @@
           "addr": "0x143c80"
         },
         {
-          "decl": "void FUN_00143ae0(int object_handle, float *facing, float *target, int flags);",
+          "decl": "void FUN_00143ae0(int object_handle, float *position, float *forward, float *up);",
           "addr": "0x143ae0"
+        },
+        {
+          "decl": "int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint@<eax>);",
+          "addr": "0x13ded0"
+        },
+        {
+          "decl": "void FUN_0013e1f0(int object_handle@<eax>, void *color_data);",
+          "addr": "0x13e1f0"
+        },
+        {
+          "decl": "void FUN_00140ad0(int object_handle@<edi>);",
+          "addr": "0x140ad0"
+        },
+        {
+          "decl": "void FUN_0013e7b0(int object_handle@<eax>);",
+          "addr": "0x13e7b0"
+        },
+        {
+          "decl": "void FUN_0013e5d0(int object_handle@<eax>);",
+          "addr": "0x13e5d0"
+        },
+        {
+          "decl": "void FUN_0013e1a0(int object_handle@<edi>);",
+          "addr": "0x13e1a0"
         }
       ]
     },
@@ -3207,7 +3235,7 @@
           "addr": "0xb7f40"
         },
         {
-          "decl": "int FUN_000b6990(int unit_handle);",
+          "decl": "int16_t FUN_000b6990(int unit_handle);",
           "addr": "0xb6990"
         },
         {
@@ -5299,8 +5327,12 @@
           "addr": "0x1beb10"
         },
         {
-          "decl": "void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block, bool load);",
-          "addr": "0x1bf570"
+          "decl": "int FUN_001beba0(int16_t format, uint16_t flags);",
+          "addr": "0x1beba0"
+        },
+        {
+          "decl": "int FUN_001bec30(int16_t format, uint16_t flags);",
+          "addr": "0x1bec30"
         },
         {
           "decl": "void xbox_texture_cache_setup_d3d_texture(void *bitmap@<esi>, void *texture@<edi>);",
@@ -5309,6 +5341,10 @@
         {
           "decl": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);",
           "addr": "0x1bf180"
+        },
+        {
+          "decl": "void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block, bool load);",
+          "addr": "0x1bf570"
         }
       ]
     },
@@ -5332,6 +5368,10 @@
     {
       "name": "rasterizer_text.obj",
       "functions": [
+        {
+          "decl": "int16_t FUN_00183120(void *bitmap);",
+          "addr": "0x183120"
+        },
         {
           "decl": "void rasterizer_text_draw(void *screen_pos, short *bounds, void *out_cursor, int flags, const char *text);",
           "addr": "0x183e60"
@@ -5379,6 +5419,10 @@
         {
           "decl": "void rect2d_offset(void *rect, short dx, short dy);",
           "addr": "0x108a70"
+        },
+        {
+          "decl": "int16_t FUN_00108db0(int value);",
+          "addr": "0x108db0"
         }
       ]
     },
