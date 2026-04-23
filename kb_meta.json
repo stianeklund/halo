@@ -21,13 +21,6 @@
         "Parameter typing narrowed to const float * from direct [arg+0/4/8] float loads and ai_clump callsite passing actor/record position vectors at +0xbc."
       ]
     },
-    "0x123470": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
-      }
-    },
     "0x13010": {
       "kind": "function",
       "status": "ported",
@@ -2383,6 +2376,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1092d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Original x87 codegen stores intermediate products to out[2], out[3], out[6] before adding/subtracting sine*axis components via FADD/FSUB [EAX+N]; the C version collapses each pair into a single store of the final value which is behaviorally identical but not instruction-for-instruction identical."
+      ]
+    },
     "0x1094d0": {
       "kind": "function",
       "status": "ported",
@@ -2466,6 +2466,10 @@
       "inferred": [
         "The function finds the component with the smallest absolute value and produces a perpendicular vector by zeroing that component and swapping the other two with one negated."
       ]
+    },
+    "0x10c600": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x10cc40": {
       "kind": "function",
@@ -2617,6 +2621,13 @@
       "uncertain": [
         "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
       ]
+    },
+    "0x123470": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
+      }
     },
     "0x12b640": {
       "kind": "function",

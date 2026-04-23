@@ -801,7 +801,8 @@
       "functions": [
         {
           "decl": "float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound, float *rgb_upper_bound, float blend);",
-          "addr": "0x7c270"
+          "addr": "0x7c270",
+          "ported": true
         },
         {
           "decl": "void bitmap_delete(void *);",
@@ -5440,6 +5441,24 @@
         {
           "decl": "void FUN_0011db90(const char *path, const char *tag_name, int a3, void *cache, void *fn1, void *fn2);",
           "addr": "0x11db90"
+        }
+      ]
+    },
+    {
+      "name": "bitmap_utilities.obj",
+      "source": "bitmaps/bitmap_utilities.c",
+      "functions": [
+        {
+          "decl": "float *FUN_0007ab50(float *rgb, float *hsv_out);",
+          "addr": "0x7ab50"
+        },
+        {
+          "decl": "float *FUN_0007ace0(float *hsv, float *rgb_out);",
+          "addr": "0x7ace0"
+        },
+        {
+          "decl": "bool FUN_0007b020(float *rgb);",
+          "addr": "0x7b020"
         }
       ]
     }
