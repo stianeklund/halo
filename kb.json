@@ -5303,6 +5303,10 @@
           "addr": "0x1bf570"
         },
         {
+          "decl": "void xbox_texture_cache_setup_d3d_texture(void *bitmap@<esi>, void *texture@<edi>);",
+          "addr": "0x1bee30"
+        },
+        {
           "decl": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);",
           "addr": "0x1bf180"
         }
@@ -5329,7 +5333,7 @@
       "name": "rasterizer_text.obj",
       "functions": [
         {
-          "decl": "void rasterizer_text_draw(void *screen_pos, void *bounds, int offset, void *tab_bounds, const char *text);",
+          "decl": "void rasterizer_text_draw(void *screen_pos, short *bounds, void *out_cursor, int flags, const char *text);",
           "addr": "0x183e60"
         }
       ]

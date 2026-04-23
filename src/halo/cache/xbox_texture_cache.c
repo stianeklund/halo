@@ -68,7 +68,7 @@ bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
     *(int32_t *)((char *)hardware_format + 0x24) = cache_block_index;
     *(int32_t *)((char *)hardware_format + 0x2c) = cache_page_index;
     *(void **)(cache_entry + 8) = hardware_format;
-    FUN_001bee30();
+    xbox_texture_cache_setup_d3d_texture(hardware_format, cache_entry + 0xc);
     *(int16_t *)(cache_entry + 2) =
       FUN_001bc9e0(*(int32_t *)((char *)hardware_format + 0x20),
                    *(int32_t *)((char *)hardware_format + 0x18),
