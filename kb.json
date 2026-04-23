@@ -2128,6 +2128,10 @@
         {
           "decl": "void game_sound_set_music_volume(const char *sound_name, float volume, int16_t transition_ticks);",
           "addr": "0x1c8c80"
+        },
+        {
+          "decl": "void FUN_001c8310(int channel_index, void *source, float sqrt_dist);",
+          "addr": "0x1c8310"
         }
       ]
     },
@@ -4160,6 +4164,14 @@
         {
           "decl": "void FUN_001cf2f0(void);",
           "addr": "0x1cf2f0"
+        },
+        {
+          "decl": "float FUN_001ccbe0(int channel_index@<eax>, void *source@<edi>);",
+          "addr": "0x1ccbe0"
+        },
+        {
+          "decl": "float FUN_001ccca0(int channel_index@<eax>, void *source@<edi>);",
+          "addr": "0x1ccca0"
         }
       ]
     },

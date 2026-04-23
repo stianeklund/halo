@@ -1,5 +1,9 @@
 /* Sound manager — low-level sound system lifecycle and rendering. */
 
+extern float FUN_001ccbe0(int channel_index, void *source);
+extern float FUN_001ccca0(int channel_index, void *source);
+extern void FUN_001c8310(int channel_index, void *source, float sqrt_dist);
+
 /* Empty on Xbox — no per-map sound initialization needed. */
 void sound_initialize_for_new_map(void)
 {
@@ -158,14 +162,7 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
   if (spatialization_mode == 2) {
     /* Single listener: compute distance with channel=-1. */
     {
-      int _eax = -1;
-      int _edi = (int)source;
-      float dist_result;
-      __asm__ __volatile__("call *%[fn]\n\t"
-                           "fstps %[out]"
-                           : "+a"(_eax), "+D"(_edi), [out] "=m"(dist_result)
-                           : [fn] "r"((void *)0x1ccbe0)
-                           : "ecx", "edx", "esi", "memory", "cc");
+      float dist_result = FUN_001ccbe0(-1, source);
       if (dist_result >= priority)
         return (short)best_channel;
       return 0;
@@ -184,14 +181,7 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
     }
     if (*listener_ptr != '\0') {
       /* Compute distance squared for this listener. */
-      int _eax2 = i;
-      int _edi2 = (int)source;
-      float this_dist;
-      __asm__ __volatile__("call *%[fn]\n\t"
-                           "fstps %[out]"
-                           : "+a"(_eax2), "+D"(_edi2), [out] "=m"(this_dist)
-                           : [fn] "r"((void *)0x1ccbe0)
-                           : "ecx", "edx", "esi", "memory", "cc");
+      float this_dist = FUN_001ccbe0(i, source);
       if (this_dist < best_dist_sq) {
         best_dist_sq = this_dist;
         best_channel = i;
@@ -201,16 +191,8 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
 
   if ((short)best_channel != -1) {
     /* Evaluate channel suitability with sqrt of best distance. */
-    {
-      float _sqrt_in = best_dist_sq;
-      __asm__ __volatile__("flds %[in]\n\t"
-                           "fsqrt\n\t"
-                           "fstps %[out]"
-                           : [out] "=m"(sqrt_dist)
-                           : [in] "m"(_sqrt_in)
-                           : "memory");
-    }
-    ((void (*)(int, void *, float))0x1c8310)(best_channel, source, sqrt_dist);
+    sqrt_dist = __builtin_sqrtf(best_dist_sq);
+    FUN_001c8310(best_channel, source, sqrt_dist);
   }
 
   if (priority * priority < best_dist_sq)
@@ -372,14 +354,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
          * EDI = source). Returns float distance in ST(0). Then
          * multiply by constant 8.9647 and convert to int. */
         {
-          int _eax = (int)(short)channel_index;
-          int _edi = (int)source;
-          float dist;
-          __asm__ __volatile__("call *%[fn]\n\t"
-                               "fstps %[out]"
-                               : "+a"(_eax), "+D"(_edi), [out] "=m"(dist)
-                               : [fn] "r"((void *)0x1ccca0)
-                               : "ecx", "edx", "esi", "memory", "cc");
+          float dist = FUN_001ccca0(channel_index, source);
           ftol_result = (int)(*(float *)0x2c1288 * dist);
         }
 
