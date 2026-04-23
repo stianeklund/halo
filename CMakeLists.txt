@@ -91,6 +91,13 @@ target_link_libraries(halo ${import_libs})
 add_custom_target(import_libs_target DEPENDS ${import_libs})
 add_dependencies(halo import_libs_target)
 
+add_custom_command(TARGET halo POST_BUILD
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_lift_hazards.py"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_raw_casts.py"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_asm_thunk_conflicts.py"
+	VERBATIM
+)
+
 add_custom_target(
 	patched_xbe ALL
 	DEPENDS "$<TARGET_FILE:halo>" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
@@ -99,6 +106,8 @@ add_custom_target(
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_asm_thunk_conflicts.py"
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_raw_casts.py"
+	COMMAND
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_lift_hazards.py"
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/maintain.py" --check
 	COMMAND
