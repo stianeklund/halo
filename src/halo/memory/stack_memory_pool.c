@@ -140,6 +140,42 @@ unsigned int FUN_0011eb40(void *pool)
          *(unsigned int *)(pool_p + 4) - (unsigned int)last_block;
 }
 
+/* FUN_0011ebc0 — find first free slot index in pool slot table.
+ *
+ * Register convention: pool in EAX (kb.json @<eax>).
+ * Returns slot index, or -1 if table is full.
+ */
+int FUN_0011ebc0(void *pool)
+{
+  char *pool_p = (char *)pool;
+  unsigned int slot_count;
+  unsigned int slot_index;
+  unsigned int *slot_entry;
+
+  if (pool == 0) {
+    display_assert("pool", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
+                   0x310, 1);
+    system_exit(-1);
+  }
+
+  slot_count = *(unsigned int *)(pool_p + 0xc);
+  if (slot_count == 0) {
+    return -1;
+  }
+
+  slot_index = 0;
+  slot_entry = (unsigned int *)(pool_p + 0x34);
+  while (*slot_entry != 0) {
+    slot_index++;
+    slot_entry++;
+    if (slot_index >= slot_count) {
+      return -1;
+    }
+  }
+
+  return (int)slot_index;
+}
+
 /* FUN_0011ec70 — find a free gap large enough for alloc_size.
  *
  * Register convention (kb.json):
