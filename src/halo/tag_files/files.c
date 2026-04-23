@@ -21,6 +21,7 @@ typedef bool(__stdcall *read_file_fn)(int handle, void *buffer,
                                        int *number_of_bytes_read,
                                        void *overlapped);
 typedef uint16_t (*intl_string_prev_char_fn)(const char *str, int16_t *index);
+typedef int (*is_alpha_fn)(int c);
 typedef void (*debug_log_fn)(int level, const char *format, ...);
 typedef uint32_t(__stdcall *xget_last_error_fn)(void);
 typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
@@ -33,6 +34,7 @@ typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
 #define XGetFileSize ((get_file_size_fn)0x1d1d4a)
 #define XReadFile ((read_file_fn)0x1d13c9)
 #define IntlStringPrevChar ((intl_string_prev_char_fn)0x19d240)
+#define XIsAlpha ((is_alpha_fn)0x1daaaa)
 #define DEBUG_LOG ((debug_log_fn)0x8f390)
 #define XGetLastError ((xget_last_error_fn)0x1d2240)
 #define XSetLastError ((xset_last_error_fn)0x1d2268)
@@ -470,9 +472,8 @@ void path_from_file_reference(int16_t location, const char *path, char *out)
   *out = '\0';
 
   if (!(path[0] != '\0' && path[1] != '\0' && path[2] != '\0' &&
-        ((path[0] >= 'A' && path[0] <= 'Z') ||
-         (path[0] >= 'a' && path[0] <= 'z')) &&
-        path[1] == ':' && path[2] == '\\')) {
+        XIsAlpha((unsigned char)path[0]) != 0 && path[1] == ':' &&
+        path[2] == '\\')) {
     csstrcpy(out, "d:\\");
   }
 
