@@ -40,9 +40,14 @@ float FUN_000121a0(const float *a, const float *b)
  */
 void cross_product3d(float *a, float *b, float *out)
 {
-  out[0] = a[1] * b[2] - a[2] * b[1];
-  out[1] = a[2] * b[0] - a[0] * b[2];
-  out[2] = a[0] * b[1] - a[1] * b[0];
+  /* Load all inputs before any store so b==out (in-place) is safe.
+   * The binary (0x178d0) holds all three FPU results on the x87 stack
+   * before the first FSTP, giving the same aliasing guarantee. */
+  float a0 = a[0], a1 = a[1], a2 = a[2];
+  float b0 = b[0], b1 = b[1], b2 = b[2];
+  out[0] = a1 * b2 - a2 * b1;
+  out[1] = a2 * b0 - a0 * b2;
+  out[2] = a0 * b1 - a1 * b0;
 }
 
 /* 0xfae80 — weapon_get_label: resolve a weapon handle to its label string.
