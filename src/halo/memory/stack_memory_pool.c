@@ -60,6 +60,35 @@ void stack_memory_pool_initialize(void *pool)
   csmemcpy(table, &table_ptr, 4);
 }
 
+/* FUN_0011ea50 — initialize a freshly allocated block header.
+ *
+ * Register convention (kb.json):
+ *   - slot_index on stack (cdecl first arg)
+ *   - block_hdr in ESI (@<esi>)
+ *   - block_size in EDI (@<edi>)
+ *
+ * Writes header fields:
+ *   +0x00 size_flags = block_size
+ *   +0x04 slot_index
+ *   +0x18 "fryd" sentinel (0x66727964)
+ *   +block_size-4 "chkn" sentinel (0x63686b6e)
+ */
+void FUN_0011ea50(int slot_index, void *block_hdr, int block_size)
+{
+  int *blk = (int *)block_hdr;
+
+  if (blk == 0) {
+    display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
+                   0x21f, 1);
+    system_exit(-1);
+  }
+
+  blk[0] = block_size;
+  blk[1] = slot_index;
+  blk[6] = 0x66727964;
+  *(int *)((char *)blk + block_size - 4) = 0x63686b6e;
+}
+
 /* FUN_0011ea90 — return block usable size from header.
  *
  * Register convention: block_hdr in ESI (kb.json @<esi>).
