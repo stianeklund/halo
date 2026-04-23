@@ -176,6 +176,51 @@ int FUN_0011ebc0(void *pool)
   return (int)slot_index;
 }
 
+/* FUN_0011ec10 — refresh pool->next_block_index from current table state.
+ *
+ * Register convention: pool in ESI (kb.json @<esi>).
+ *
+ * If next_block_index is set, scans forward for the next empty slot and stores
+ * it; stores -1 when no empty slot remains.
+ */
+void FUN_0011ec10(void *pool)
+{
+  char *pool_p = (char *)pool;
+  int slot_index;
+  unsigned int slot_count;
+  int *slot_entry;
+
+  if (pool == 0) {
+    display_assert("pool", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
+                   0x321, 1);
+    system_exit(-1);
+  }
+
+  slot_index = *(int *)(pool_p + 0x10);
+  if (slot_index == -1) {
+    return;
+  }
+
+  slot_count = *(unsigned int *)(pool_p + 0xc);
+  slot_index++;
+  *(int *)(pool_p + 0x10) = -1;
+
+  if ((unsigned int)slot_index >= slot_count) {
+    return;
+  }
+
+  slot_entry = (int *)(pool_p + 0x34 + slot_index * 4);
+  while (*slot_entry != 0) {
+    slot_index++;
+    slot_entry++;
+    if ((unsigned int)slot_index >= slot_count) {
+      return;
+    }
+  }
+
+  *(int *)(pool_p + 0x10) = slot_index;
+}
+
 /* FUN_0011ec70 — find a free gap large enough for alloc_size.
  *
  * Register convention (kb.json):
