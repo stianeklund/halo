@@ -39,7 +39,8 @@ Steps:
 1. Resolve the target in `kb.json`: address, name, object, and `source_path`.
 2. Follow the analysis and ABI checks from `halo-re-lift`.
 3. Apply token-efficient defaults from `halo-re-lift`:
-   - no ad-hoc inline `python3 -c` for kb lookups
+   - no ad-hoc inline `python3 -c` for JSON parsing; use `jq` for any JSON
+     lookup or filter
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
    - prefer `batch_decompile` when comparing related helpers
 4. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
