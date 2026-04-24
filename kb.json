@@ -5108,8 +5108,9 @@
           "addr": "0x106130"
         },
         {
-          "decl": "void *FUN_0018e420(int index, int element_size);",
-          "addr": "0x18e420"
+          "decl": "void *FUN_0018e420(void);",
+          "addr": "0x18e420",
+          "ported": true
         },
         {
           "decl": "bool FUN_00198440(int16_t cluster_index);",
