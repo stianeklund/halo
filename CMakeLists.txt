@@ -51,6 +51,16 @@ add_custom_command(
 	VERBATIM
 )
 
+add_custom_target(
+	reverse_thunk_tests ALL
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py" --test-thunks
+	DEPENDS
+		"${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
+		"${CMAKE_CURRENT_LIST_DIR}/tools/knowledge.py"
+		"${CMAKE_CURRENT_LIST_DIR}/kb.json"
+	VERBATIM
+)
+
 include_directories(${gen_dir} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/third_party/xbox)
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
@@ -89,7 +99,7 @@ target_sources(halo PRIVATE
 set(import_libs ${gen_dir}/halo.xbe.lib ${gen_dir}/xboxkrnl.exe.lib)
 target_link_libraries(halo ${import_libs})
 add_custom_target(import_libs_target DEPENDS ${import_libs})
-add_dependencies(halo import_libs_target)
+add_dependencies(halo import_libs_target reverse_thunk_tests)
 
 add_custom_command(TARGET halo POST_BUILD
 	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_lift_hazards.py"
@@ -116,8 +126,6 @@ add_custom_target(
 		"${CMAKE_COMMAND}" -E env "PYTHONPATH=${CMAKE_CURRENT_LIST_DIR}"
 			"${Python3_EXECUTABLE}" -m unittest
 			tools.test_patch.RegAnnotationBaselineTests
-	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py" --test-thunks
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
 			"${CMAKE_CURRENT_LIST_DIR}/halo-patched/cachebeta.xbe"
