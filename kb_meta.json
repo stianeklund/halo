@@ -553,6 +553,14 @@
         "Error-once flags at 0x4557de (locked) and 0x4557df (permanent) are function-static-style globals not in kb.json; accessed via hardcoded addresses."
       ]
     },
+    "0x99220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x99270": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x99530": {
       "kind": "function",
       "status": "ported"
@@ -2682,6 +2690,10 @@
       "status": "ported"
     },
     "0x102e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x106130": {
       "kind": "function",
       "status": "ported"
     },
