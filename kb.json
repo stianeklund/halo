@@ -806,6 +806,24 @@
       ]
     },
     {
+      "name": "LIBCMT:wcslen.obj",
+      "functions": [
+        {
+          "decl": "size_t _wcslen(const wchar_t *str);",
+          "addr": "0x1db11e"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:vsnwprint.obj",
+      "functions": [
+        {
+          "decl": "int _vsnwprintf(wchar_t *buffer, size_t count, const wchar_t *format, char *argptr);",
+          "addr": "0x1dca5f"
+        }
+      ]
+    },
+    {
       "name": "LIBCMT:_control87.obj",
       "functions": [
         {
@@ -5874,7 +5892,8 @@
         },
         {
           "decl": "void unicode_sprintf(wchar_t *buffer, int buffer_size, const wchar_t *format, ...);",
-          "addr": "0x19e9f0"
+          "addr": "0x19e9f0",
+          "ported": true
         }
       ]
     },

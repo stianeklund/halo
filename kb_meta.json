@@ -4000,6 +4000,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x19e9f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19f450": {
       "kind": "function",
       "status": "ported"
