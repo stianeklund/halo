@@ -690,6 +690,10 @@
         {
           "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
           "addr": "0x204f3f"
+        },
+        {
+          "decl": "void xbox_sound_cache_idle(void);",
+          "addr": "0x1bded0"
         }
       ]
     },
@@ -5120,11 +5124,13 @@
         },
         {
           "decl": "unsigned int FUN_001cb8e0(void);",
-          "addr": "0x1cb8e0"
+          "addr": "0x1cb8e0",
+          "ported": true
         },
         {
           "decl": "void FUN_001cf2f0(void);",
-          "addr": "0x1cf2f0"
+          "addr": "0x1cf2f0",
+          "ported": true
         },
         {
           "decl": "float FUN_001ccbe0(int channel_index@<eax>, void *source@<edi>);",
@@ -5137,6 +5143,10 @@
           "addr": "0x1ccca0",
           "comment": "Compute distance for random scale checks.",
           "ported": true
+        },
+        {
+          "decl": "void sound_update_music(void);",
+          "addr": "0x1ceda0"
         }
       ]
     },
