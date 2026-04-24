@@ -281,6 +281,102 @@ def encode_call_rel32(src_addr_of_call, target_addr):
     return b'\xe8' + struct.pack('<i', rel32)
 
 
+def _verify_staging_correctness(sym, reg_args, thunk_code):
+    """Simulate the staging portion of a reverse thunk on a virtual register
+    file and verify that each scratch register ends up holding the value that
+    was originally in the corresponding source register.
+
+    This catches any register clobbering bug regardless of the specific
+    register combination — cycles, sub-register widening, arbitrary orderings.
+    Runs at build time for every generated reverse thunk."""
+    SCRATCH = ['eax', 'ecx', 'edx']
+    ALL_REGS = {'eax': 0, 'ecx': 1, 'edx': 2, 'ebx': 3,
+                'esp': 4, 'ebp': 5, 'esi': 6, 'edi': 7}
+    PARENT = {'ax': 'eax', 'al': 'eax', 'ah': 'eax',
+              'bx': 'ebx', 'bl': 'ebx', 'bh': 'ebx',
+              'cx': 'ecx', 'cl': 'ecx', 'ch': 'ecx',
+              'dx': 'edx', 'dl': 'edx', 'dh': 'edx',
+              'si': 'esi', 'di': 'edi', 'bp': 'ebp'}
+
+    # Initialize virtual registers with unique sentinel values.
+    regs = {}
+    for name in ALL_REGS:
+        regs[name] = f'orig_{name}'
+
+    # Walk thunk bytes, simulating MOV r32,r32 / MOVZX r32,r16 / XCHG r32,r32.
+    # Stop at the first PUSH (start of arg-pushing phase).
+    r32_by_code = {v: k for k, v in ALL_REGS.items()}
+    i = 0
+    while i < len(thunk_code):
+        b = thunk_code[i]
+        if b == 0x50 | 0 or (0x50 <= b <= 0x57):
+            break  # PUSH — staging is done
+        if b == 0xFF:
+            break  # PUSH [esp+disp] — also end of staging
+
+        if b == 0x89 and i + 1 < len(thunk_code):
+            # MOV r/m32, r32 — we only handle MOV r32,r32 (mod=11)
+            modrm = thunk_code[i + 1]
+            if (modrm >> 6) == 3:
+                dst = r32_by_code[modrm & 7]
+                src = r32_by_code[(modrm >> 3) & 7]
+                regs[dst] = regs[src]
+                i += 2; continue
+
+        if b == 0x8B and i + 1 < len(thunk_code):
+            # MOV r32, r/m32 — handle MOV r32,r32 (mod=11)
+            modrm = thunk_code[i + 1]
+            if (modrm >> 6) == 3:
+                dst = r32_by_code[(modrm >> 3) & 7]
+                src = r32_by_code[modrm & 7]
+                regs[dst] = regs[src]
+                i += 2; continue
+
+        if b == 0x87 and i + 1 < len(thunk_code):
+            # XCHG r/m32, r32 — handle r32,r32 (mod=11)
+            modrm = thunk_code[i + 1]
+            if (modrm >> 6) == 3:
+                r1 = r32_by_code[modrm & 7]
+                r2 = r32_by_code[(modrm >> 3) & 7]
+                regs[r1], regs[r2] = regs[r2], regs[r1]
+                i += 2; continue
+
+        if b == 0x0F and i + 1 < len(thunk_code):
+            b2 = thunk_code[i + 1]
+            if b2 == 0xB7 and i + 2 < len(thunk_code):
+                # MOVZX r32, r/m16 — handle r32,r16 (mod=11)
+                modrm = thunk_code[i + 2]
+                if (modrm >> 6) == 3:
+                    dst = r32_by_code[(modrm >> 3) & 7]
+                    src = r32_by_code[modrm & 7]
+                    regs[dst] = regs[src]  # value transfer (widening)
+                    i += 3; continue
+            if b2 == 0xB6 and i + 2 < len(thunk_code):
+                # MOVZX r32, r/m8 — handle r32,r8 (mod=11)
+                modrm = thunk_code[i + 2]
+                if (modrm >> 6) == 3:
+                    dst = r32_by_code[(modrm >> 3) & 7]
+                    src = r32_by_code[modrm & 7]
+                    regs[dst] = regs[src]
+                    i += 3; continue
+
+        i += 1
+
+    # Verify postcondition: each scratch register holds the original value
+    # of its corresponding source register.
+    for idx, (param_idx, src_reg) in enumerate(reg_args):
+        scratch = SCRATCH[idx]
+        src32 = PARENT.get(src_reg, src_reg)
+        expected = f'orig_{src32}'
+        actual = regs[scratch]
+        if actual != expected:
+            raise ValueError(
+                f'Reverse thunk staging verification FAILED for "{sym.decl}":\n'
+                f'  Scratch {scratch} should hold {expected} but holds {actual}.\n'
+                f'  This means register {src_reg} was clobbered before staging.'
+            )
+
+
 def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     """Emit a naked register-to-cdecl trampoline for an implemented @<reg> function.
 
@@ -338,17 +434,105 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     code = bytearray()
 
     # 1. Stage each register arg into its scratch slot, widening as needed.
+    #    Must handle conflicts where a source register is clobbered by an
+    #    earlier staging move (e.g. ECX→EAX then EAX→ECX would lose EAX).
+    #    Strategy: topological sort the moves, breaking cycles with XCHG.
+
+    def _canon32(reg):
+        """Return the 32-bit parent of a register name."""
+        _parent = {'ax': 'eax', 'al': 'eax', 'ah': 'eax',
+                    'bx': 'ebx', 'bl': 'ebx', 'bh': 'ebx',
+                    'cx': 'ecx', 'cl': 'ecx', 'ch': 'ecx',
+                    'dx': 'edx', 'dl': 'edx', 'dh': 'edx',
+                    'si': 'esi', 'di': 'edi', 'bp': 'ebp'}
+        return _parent.get(reg, reg)
+
+    moves = []  # (dst32, src_reg, src_reg_canonical32, needs_widen)
     for i, (_, src_reg) in enumerate(reg_args):
         dst32 = SCRATCH_FOR_ARG[i]
-        if src_reg in REG32_BITS:
-            if src_reg != dst32:
-                code += encode_mov_r32_r32(dst32, src_reg)
-        elif src_reg in REG16_BITS:
-            code += encode_movzx_r32_r16(dst32, src_reg)
-        elif src_reg in REG8_BITS:
-            code += encode_movzx_r32_r8(dst32, src_reg)
+        src32 = _canon32(src_reg)
+        needs_widen = src_reg not in REG32_BITS
+        moves.append((dst32, src_reg, src32, needs_widen))
+
+    # Build a dependency graph: move i depends on move j if move j's dst
+    # clobbers move i's source.
+    n = len(moves)
+    emitted = [False] * n
+    def _emit_move(idx):
+        dst32, src_reg, src32, needs_widen = moves[idx]
+        if needs_widen:
+            if src_reg in REG16_BITS:
+                code.extend(encode_movzx_r32_r16(dst32, src_reg))
+            elif src_reg in REG8_BITS:
+                code.extend(encode_movzx_r32_r8(dst32, src_reg))
+            else:
+                raise ValueError(f'Unsupported register {src_reg!r}')
         else:
-            raise ValueError(f'Unsupported register {src_reg!r}')
+            if src_reg != dst32:
+                code.extend(encode_mov_r32_r32(dst32, src_reg))
+        emitted[idx] = True
+
+    changed = True
+    while changed:
+        changed = False
+        for i in range(n):
+            if emitted[i]:
+                continue
+            dst_i, _, src32_i, _ = moves[i]
+            if dst_i == src32_i:
+                _emit_move(i)
+                changed = True
+                continue
+            blocked = False
+            for j in range(n):
+                if i == j or emitted[j]:
+                    continue
+                _, _, src32_j, _ = moves[j]
+                if dst_i == src32_j:
+                    blocked = True
+                    break
+            if not blocked:
+                _emit_move(i)
+                changed = True
+
+    # Break remaining cycles with XCHG.
+    # For a cycle of length N, N-1 XCHGs rotate all values into place.
+    # Walk the cycle starting from any un-emitted move, chaining XCHGs
+    # between the cycle head and each successive member.
+    for i in range(n):
+        if emitted[i]:
+            continue
+        # Trace the cycle: follow dst→src links among un-emitted moves.
+        cycle = [i]
+        cur = i
+        while True:
+            dst_cur = moves[cur][0]
+            nxt = None
+            for k in range(n):
+                if not emitted[k] and k != cur and _canon32(moves[k][1]) == dst_cur:
+                    nxt = k
+                    break
+            if nxt is None or nxt == i:
+                break
+            cycle.append(nxt)
+            cur = nxt
+
+        if len(cycle) == 1:
+            _emit_move(i)
+            continue
+
+        for member in cycle:
+            if moves[member][3]:
+                raise ValueError(f'Cannot XCHG with sub-register {moves[member][1]!r} in cycle')
+
+        # XCHG cycle[0] with each subsequent member.
+        head_reg = moves[cycle[0]][0]
+        for j in range(1, len(cycle)):
+            other_reg = moves[cycle[j]][0]
+            code.extend(b'\x87' + bytes([0xc0 | (REG32_BITS[head_reg] << 3) | REG32_BITS[other_reg]]))
+
+        for member in cycle:
+            emitted[member] = True
 
     # 2. Push full arg list in reverse declaration order.
     reg_param_to_scratch = {param_idx: SCRATCH_FOR_ARG[i] for i, (param_idx, _) in enumerate(reg_args)}
@@ -379,6 +563,9 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
 
     # 5. Return to original caller.
     code += b'\xc3'  # ret
+
+    # 6. Verify: simulate the staging code to prove register postconditions.
+    _verify_staging_correctness(sym, reg_args, code)
 
     return bytes(code)
 
@@ -424,6 +611,12 @@ def _test_reverse_thunks():
          "@<eax>,@<edi>,@<bx> with 0 stack args — 3 reg args, EDX as third scratch"),
         ("void hs_report_compile_error(void *error_info, char *error_text@<esi>, char *script_element@<ebx>, void *source_start@<edi>);",
          "non-leading register args with one stack arg"),
+        ("void game_engine_hud_update_player(int player_handle@<ecx>, int hud_player@<eax>, int param3@<ebx>);",
+         "@<ecx>,@<eax>,@<ebx> — staging cycle where ECX→EAX clobbers EAX source"),
+        ("void test_two_swap(int a@<eax>, int b@<ecx>);",
+         "@<eax>,@<ecx> — minimal 2-element swap cycle"),
+        ("void test_three_cycle(int a@<ecx>, int b@<edx>, int c@<eax>);",
+         "@<ecx>,@<edx>,@<eax> — 3-element rotation cycle"),
     ]
 
     for decl, desc in cases:
