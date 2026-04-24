@@ -55,6 +55,26 @@ void structures_dispose(void)
 {
 }
 
+/* FUN_0018e420 (0x18e420)
+ *
+ * Returns the global BSP3D pointer (DAT_005064d8). Asserts with a halt if
+ * the pointer has not been initialized (i.e. is NULL). Called by BSP
+ * traversal and portal-intersection code to obtain the current structure
+ * BSP3D tag data.
+ *
+ * Confirmed: no parameters (plain MOV EAX,[global]; TEST; RET).
+ * Confirmed: assert string "global_bsp3d", file scenario.c, line 0xd5.
+ */
+void *FUN_0018e420(void)
+{
+  if (*(void **)0x5064d8 == NULL) {
+    display_assert("global_bsp3d",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xd5, true);
+    system_exit(-1);
+  }
+  return *(void **)0x5064d8;
+}
+
 /* structures_cluster_marker_begin (0x198400)
  *
  * Asserts that the cluster marker is not already initialized,
@@ -140,13 +160,13 @@ bool FUN_00198800(void *scenario, int16_t portal_index, float *position,
 
     if (dx * dx + dy * dy + dz * dz < expanded_radius * expanded_radius) {
       int portal_plane_index = *(int *)(portal + 4);
-      char *portal_plane_owner = FUN_0018e420(portal_plane_index, 0x10);
+      char *bsp3d = FUN_0018e420();
       uint32_t plane_basis;
       uint8_t plane_axis;
       int *portal_vertices = (int *)(portal + 0x34);
       int16_t vertex = 0;
 
-      portal_plane = tag_block_get_element((int *)(portal_plane_owner + 0xc),
+      portal_plane = tag_block_get_element((int *)(bsp3d + 0xc),
                                            portal_plane_index, 0x10);
       plane_basis = FUN_00099220(portal_plane);
       plane_axis = FUN_00099270(portal_plane, plane_basis);
