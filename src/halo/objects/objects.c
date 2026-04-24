@@ -260,7 +260,6 @@ void FUN_0013c560(int object_handle);
 void FUN_0013c620(int object_handle);
 void FUN_0013df70(data_t *data);
 int FUN_0013e050(int object_handle, int offset, int size);
-void FUN_00136150(int object_handle);
 void FUN_001365d0(int object_handle, int arg1, int arg2);
 void FUN_0013ecb0(int object_handle);
 void FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
@@ -3266,6 +3265,138 @@ void object_compute_node_matrices(int object_handle)
 
 /*
  * FUN_00143ae0 — reposition an object and recompute its orientation.
+ *
+ * Disconnects the object from the map, optionally updates its position
+ * (forward vector at obj+0x0C) and facing direction (at obj+0x24).
+ * If a target (up) vector is provided, it is copied directly to obj+0x30.
+ * Otherwise, a perpendicular up vector is computed from the facing via:
+ *   temp = {facing.y, -facing.x, 0.0}
+ *   normalize(temp)
+ *   if degenerate: temp = {1, 0, 0}
+ *   up = cross(temp, facing)
+ * Then recomputes node matrices and reconnects to the map.
+ *
+ * Confirmed: 4 cdecl args (object_handle, facing, target, flags).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x13fd00 (object_disconnect_from_map) with 1 stack arg.
+ * Confirmed: CALL 0x13010 (normalize3d) for perpendicular temp vector.
+ * Confirmed: cross product computed via x87 FPU in-line (not a function call).
+ * Confirmed: CALL 0x141b70 (object_compute_node_matrices).
+ * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
+ * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
+ */
+/* FUN_00136150 — create widgets for an object from its tag definition.
+ *
+ * Looks up the object's tag (group 'obje'), reads the widget attachments
+ * tag block at tag+0x14c, and for each attachment, searches the global
+ * widget_types table (5 entries at 0x323528, each 0x28 bytes) for a
+ * matching group_tag. When found, allocates a new widget datum from the
+ * widget data pool at 0x5a90c4, sets its type field, and either:
+ *   - calls the widget type's "new" function (entry+0x18) with the
+ *     attachment's definition index (element+0x0c), linking on success
+ *   - or directly links the widget with definition_handle = -1 if no
+ *     "new" function is defined.
+ * Widgets are prepended to a singly-linked list rooted at obj+0x11c.
+ *
+ * Source: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
+ *
+ * Confirmed: 1 cdecl arg (object_handle).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x1ba140 (tag_get) with (0x6f626a65, obj[0]).
+ * Confirmed: CALL 0x19b210 (tag_block_get_element) with (block, index, 0x20).
+ * Confirmed: CALL 0x119610 (data_new_at_index) with (*(data_t**)0x5a90c4).
+ * Confirmed: CALL 0x119320 (datum_get) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: CALL 0x1196d0 (datum_delete) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: widget_types table at 0x323528: [+0x00]=group_tag, [+0x18]=new_fn.
+ * Confirmed: ADD ESP,0x10 cleans both object_get_and_verify_type + tag_get pushes.
+ * Confirmed: outer loop counter is int16_t (MOVSX EAX,AX at 0x1362b2).
+ * Confirmed: inner loop counter is int16_t (MOVSX ECX,SI; CMP SI,0x5).
+ * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
+ * Confirmed: assert_halt for type range check at 0x1361fe.
+ */
+void FUN_00136150(int object_handle)
+{
+  int *obj;
+  char *tag_data;
+  int *widget_block; /* tag block at tag+0x14c */
+  int *element;
+  int widget_handle;
+  char *widget;
+  int definition_handle;
+  int16_t i;
+  int16_t type;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  tag_data = (char *)tag_get(0x6f626a65, obj[0]);
+
+  widget_block = (int *)(tag_data + 0x14c);
+
+  /* Initialize widget list head to NONE. */
+  *(int *)((char *)obj + 0x11c) = -1;
+
+  if (*widget_block <= 0)
+    return;
+
+  for (i = 0; (int)i < *widget_block; i++) {
+    element = (int *)tag_block_get_element(widget_block, (int)i, 0x20);
+
+    /* Search the widget_types table for a matching group_tag. */
+    for (type = 0; type < 5; type++) {
+      if (*(int *)(0x323528 + (int)type * 0x28) == element[0])
+        break;
+    }
+    if (type >= 5)
+      continue;
+
+    /* Found a match. Skip if type is NONE or definition index is NONE. */
+    if (type == -1)
+      continue;
+    if (element[3] == -1)
+      continue;
+
+    /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
+    if (type < 0 || type >= 5) {
+      display_assert(
+        "type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+        "c:\\halo\\source\\objects\\widgets\\widget_types.h",
+        0x96, 1);
+      system_exit(-1);
+    }
+
+    /* Allocate a new widget datum. */
+    widget_handle = data_new_at_index(*(data_t **)0x5a90c4);
+    if (widget_handle == -1)
+      continue;
+
+    widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
+
+    /* Store the widget type. */
+    *(int16_t *)(widget + 0x2) = type;
+
+    /* Check if this widget type has a "new" function (entry+0x18). */
+    if (*(int (**)( int))(0x323528 + (int)type * 0x28 + 0x18) == 0) {
+      /* No new function — link directly with definition = NONE. */
+      *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
+      *(int *)((char *)obj + 0x11c) = widget_handle;
+      *(int *)(widget + 0x4) = -1;
+    } else {
+      /* Call the widget type's new function with the definition index. */
+      definition_handle =
+        (*(int (**)(int))(0x323528 + (int)type * 0x28 + 0x18))(element[3]);
+      *(int *)(widget + 0x4) = definition_handle;
+      if (definition_handle == -1) {
+        /* New function failed — delete the widget datum. */
+        datum_delete(*(data_t **)0x5a90c4, widget_handle);
+      } else {
+        /* Success — link into the object's widget list. */
+        *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
+        *(int *)((char *)obj + 0x11c) = widget_handle;
+      }
+    }
+  }
+}
+
+/* FUN_00143ae0 — reposition an object's position and facing.
  *
  * Disconnects the object from the map, optionally updates its position
  * (forward vector at obj+0x0C) and facing direction (at obj+0x24).
