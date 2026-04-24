@@ -894,8 +894,6 @@ void progress_bar_render(float normalized_progress)
     screen_rect[3] = 0.0f;
     screen_rect[6] = 0.0f;
 
-    base_color[2] = 0.0f;
-
     progress_bar_draw_loading_bar(screen_rect, base_color, 1.0f, smoothed);
   }
 
