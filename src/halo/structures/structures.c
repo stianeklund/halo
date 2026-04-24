@@ -299,3 +299,78 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
 
   return 0;
 }
+
+/* FUN_00099220 (0x99220)
+ *
+ * Determine the dominant axis of a plane normal.  Returns the index
+ * (0=x, 1=y, 2=z) of the component with the largest absolute value.
+ */
+uint32_t FUN_00099220(float *plane)
+{
+  float ax = plane[0] < 0.0f ? -plane[0] : plane[0];
+  float ay = plane[1] < 0.0f ? -plane[1] : plane[1];
+  float az = plane[2] < 0.0f ? -plane[2] : plane[2];
+
+  if (ay <= az && ax <= az)
+    return 2;
+  if (ay < ax)
+    return 0;
+  return 1;
+}
+
+/* FUN_00099270 (0x99270)
+ *
+ * Return 1 if the plane normal component at the given projection axis
+ * is positive, 0 otherwise.
+ */
+uint8_t FUN_00099270(float *plane, uint32_t basis)
+{
+  assert_halt((int16_t)basis >= 0 && (int16_t)basis <= 2);
+  if (plane[basis] > 0.0f)
+    return 1;
+  return 0;
+}
+
+/* FUN_00106130 (0x106130)
+ *
+ * Test whether a query point lies within a given radius of a 2D convex
+ * polygon.  Points are 2D (x, y pairs, stride 8 bytes).  Uses the
+ * cross-product sign to check sidedness; if the point is outside any
+ * edge beyond the radius, returns false.
+ */
+bool FUN_00106130(uint16_t point_count, void *points, void *query_point,
+                  float radius)
+{
+  float *pts = (float *)points;
+  float *qp = (float *)query_point;
+  int16_t i;
+  float radius_sq = radius * radius;
+
+  if ((int16_t)point_count <= 0)
+    return true;
+
+  for (i = 0; i < (int16_t)point_count; i++) {
+    int idx = (int)i;
+    int next = (idx + 1 < (int)(int16_t)point_count) ? idx + 1 : 0;
+
+    float ex = pts[next * 2] - pts[idx * 2];
+    float ey = pts[next * 2 + 1] - pts[idx * 2 + 1];
+    float edge_len_sq = ex * ex + ey * ey;
+
+    if (edge_len_sq == 0.0f)
+      continue;
+
+    float dx = qp[0] - pts[idx * 2];
+    float dy = qp[1] - pts[idx * 2 + 1];
+    float cross = dx * ey - dy * ex;
+
+    if (cross <= 0.0f)
+      continue;
+
+    if (cross * cross < edge_len_sq * radius_sq)
+      continue;
+
+    return false;
+  }
+  return true;
+}
