@@ -45,18 +45,11 @@ class ReverseThunkTests(unittest.TestCase):
         rvthunk_addr = 0x65f120
 
         expected = (
-            b'\x8b\x14\x24'
-            b'\x8b\x44\x24\x04'
-            b'\x89\x04\x24'
-            b'\x89\x54\x24\x04'
             b'\x89\xf8'
+            b'\xff\x74\x24\x04'
             b'\x50'
-            b'\xe8' + rel32(rvthunk_addr + 17, impl_addr) +
-            b'\x83\xc4\x04'
-            b'\x8b\x54\x24\x04'
-            b'\x8b\x04\x24'
-            b'\x89\x44\x24\x04'
-            b'\x89\x14\x24'
+            b'\xe8' + rel32(rvthunk_addr + 7, impl_addr) +
+            b'\x83\xc4\x08'
             b'\xc3'
         )
 
@@ -71,20 +64,34 @@ class ReverseThunkTests(unittest.TestCase):
         rvthunk_addr = 0x651000
 
         expected = (
-            b'\x8b\x14\x24'
-            b'\x8b\x44\x24\x04'
-            b'\x89\x04\x24'
-            b'\x89\x54\x24\x04'
             b'\x0f\xb6\xc0'
             b'\x0f\xb7\xce'
+            b'\xff\x74\x24\x04'
             b'\x51'
             b'\x50'
-            b'\xe8' + rel32(rvthunk_addr + 22, impl_addr) +
-            b'\x83\xc4\x08'
-            b'\x8b\x54\x24\x04'
-            b'\x8b\x04\x24'
-            b'\x89\x44\x24\x04'
-            b'\x89\x14\x24'
+            b'\xe8' + rel32(rvthunk_addr + 12, impl_addr) +
+            b'\x83\xc4\x0c'
+            b'\xc3'
+        )
+
+        self.assertEqual(generate_reverse_thunk(sym, impl_addr, rvthunk_addr), expected)
+
+    def test_ecx_eax_ebx_cycle_preserves_all_sources(self):
+        sym = Function(
+            'void game_engine_hud_update_player(int player_handle@<ecx>, '
+            'int hud_player@<eax>, int param3@<ebx>);'
+        )
+        impl_addr = 0x200000
+        rvthunk_addr = 0x300000
+
+        expected = (
+            b'\x89\xda'
+            b'\x87\xc1'
+            b'\x52'
+            b'\x51'
+            b'\x50'
+            b'\xe8' + rel32(rvthunk_addr + 7, impl_addr) +
+            b'\x83\xc4\x0c'
             b'\xc3'
         )
 
