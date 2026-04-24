@@ -1,3 +1,21 @@
+/* Return a pointer to the sound class definition at class_index.
+ * The definitions live in a static table at 0x32ed08 with a stride of 0x2c.
+ * Originally inlined from sound_classes.h; compiled into sound_manager.obj.
+ * Asserts that class_index is in range [0,0x33), the class name is non-empty,
+ * and the per-definition and per-object instance limits are <= 0x10. */
+void *sound_class_get_definition(short class_index)
+{
+  int idx = (int)class_index;
+  void *definition = (void *)(0x32ed08 + idx * 0x2c);
+
+  assert_halt(class_index >= 0 && class_index < 0x33);
+  assert_halt(((const char **)0x32f5d0)[idx][0]);
+  assert_halt(*(short *)definition <= 0x10);
+  assert_halt(*(short *)((char *)definition + 2) <= 0x10);
+
+  return definition;
+}
+
 /* Empty on Xbox — no per-map sound initialization needed. */
 void sound_initialize_for_new_map(void)
 {
@@ -63,8 +81,8 @@ bool sound_can_play(int sound_tag_index /* @<eax> */)
     pitch_range_element =
       tag_block_get_element((char *)sound_tag + 0x98, 0, 0x48);
     if (*(int *)((char *)pitch_range_element + 0x3c) != 0) {
-      class_def = (void *)((int (*)(int))0x1c88c0)(
-        (int)*(unsigned short *)((char *)sound_tag + 4));
+      class_def = sound_class_get_definition(
+        *(short *)((char *)sound_tag + 4));
       if (*(char *)((char *)class_def + 0x28) == '\0') {
         return 1;
       }
