@@ -870,6 +870,51 @@ bool game_engine_game_over(void)
   return false;
 }
 
+/* FUN_000acb10 (0xacb10)
+ *
+ * Checks whether a set of game-type entries (an array of int16_t values)
+ * permits the current engine type. Used to filter scenario multiplayer
+ * equipment, starting locations, and netgame flags by game mode.
+ *
+ * If no engine is active (current_game_engine == NULL), returns true only
+ * when all entries are 0 (none/unset).
+ *
+ * If an engine is active, returns true if ANY entry matches:
+ *   - entry == engine_type  (direct match)
+ *   - entry == 0xC          (matches all engine types)
+ *   - entry == 0xD          (matches all except engine type 1)
+ *   - entry == 0xE          (matches all except engine types 1 and 5)
+ */
+/* 0xacb10 */
+bool FUN_000acb10(int player_index, int count, int16_t *entries)
+{
+  int i;
+  bool result;
+
+  if (current_game_engine == NULL) {
+    /* No engine: true only if every entry is 0 */
+    result = true;
+    for (i = 0; i < count; i++) {
+      result = result & (entries[i] == 0);
+    }
+  } else {
+    /* Engine active: true if any entry matches the engine type */
+    result = false;
+    for (i = 0; i < count; i++) {
+      int16_t entry = entries[i];
+      result = result | (entry == player_index);
+      if (entry == 0xC) {
+        result = result | true;
+      } else if (entry == 0xD) {
+        result = result | (player_index != 1);
+      } else if (entry == 0xE) {
+        result = result | (player_index != 1 && player_index != 5);
+      }
+    }
+  }
+  return result;
+}
+
 /* game_engine_periodic_equipment_spawn (0xacbb0)
  *
  * Iterates scenario multiplayer equipment entries (+0x384, element size 0x90),
@@ -896,7 +941,7 @@ void game_engine_periodic_equipment_spawn(void)
       player_index = *(int *)(*(int *)0x456b60 + 4);
     }
 
-    if (FUN_000acb10(player_index, 4, entry + 4)) {
+    if (FUN_000acb10(player_index, 4, (int16_t *)(entry + 4))) {
       int16_t period_seconds = *(int16_t *)(entry + 0xe);
       spawn_period = 900;
 
