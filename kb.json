@@ -5248,7 +5248,58 @@
         },
         {
           "decl": "void sound_update_music(void);",
-          "addr": "0x1ceda0"
+          "addr": "0x1ceda0",
+          "ported": true
+        },
+        {
+          "decl": "float sound_update_channel_attenuation(int sound_handle@<eax>);",
+          "addr": "0x1cc310",
+          "comment": "Advance envelope attenuation curve for a sound datum."
+        },
+        {
+          "decl": "void sound_stop_channel(int sound_handle@<ebx>);",
+          "addr": "0x1cca60",
+          "comment": "Stop and release the channel currently holding a sound."
+        },
+        {
+          "decl": "void *sound_listener_get(short listener_index@<si>);",
+          "addr": "0x1cbac0",
+          "comment": "Return &listeners[index] at 0x4eaf58 + index*0x44."
+        },
+        {
+          "decl": "void sound_update_channel(int channel_index, float attenuation);",
+          "addr": "0x1ccf80",
+          "comment": "Apply volume/pan/pitch updates for a non-music channel."
+        },
+        {
+          "decl": "void sound_update_music_channel(int channel_index, float attenuation);",
+          "addr": "0x1cdc30",
+          "comment": "Apply volume/pan/pitch updates for a music-class channel."
+        },
+        {
+          "decl": "float sound_get_permutation_pitch(int permutation_block_ptr, int permutation_index);",
+          "addr": "0x1c8f20",
+          "comment": "Sample the pitch value from a permutation block by index."
+        },
+        {
+          "decl": "void sound_pitch_push_sample(int object_handle, float pitch);",
+          "addr": "0x1c7b00",
+          "comment": "Forward a pitch sample to the pitch-track sink for an object."
+        },
+        {
+          "decl": "float sound_class_get_min_distance(int sound_tag_index);",
+          "addr": "0x1c8d50",
+          "comment": "Return the sound class min-distance attenuation parameter."
+        },
+        {
+          "decl": "void *sound_class_get_definition(short class_index);",
+          "addr": "0x1c88c0",
+          "comment": "Return the sound class definition at 0x32ed08 + index*0x2c."
+        },
+        {
+          "decl": "void real_matrix4x3_transform_point(void *matrix, void *point, void *out);",
+          "addr": "0x1097f0",
+          "comment": "Transform a 3D point through an affine 4x3 matrix."
         }
       ]
     },
