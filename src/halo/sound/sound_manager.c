@@ -500,9 +500,8 @@ void sound_update_music(void)
   int tag_handle;
   float attenuation;
   float audible_scale;
-  float source_pos[3];
-  float listener_forward[3]; /* local_40 */
-  float listener_up[3]; /* local_34..local_2c */
+  /* Must be contiguous: dsound reads this as location_t (pos/fwd/up). */
+  struct { float position[3]; float forward[3]; float up[3]; } location;
   char *listener;
   void *class_def;
 
@@ -559,24 +558,26 @@ void sound_update_music(void)
         }
 
         real_matrix3x3_transform_vector(
-          listener + 4, (void *)(sound_entry + 0x20), (void *)source_pos);
+          listener + 4, (void *)(sound_entry + 0x20),
+          (void *)location.position);
         real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
-                                       listener_forward);
+                                       location.forward);
         real_matrix3x3_transform_vector(
-          listener + 4, (void *)(sound_entry + 0x38), (void *)listener_up);
+          listener + 4, (void *)(sound_entry + 0x38),
+          (void *)location.up);
 
         /* Scale up-vector by 30.0 and subtract listener velocity
          * (listener+0x38..0x40). */
-        listener_up[0] =
-          listener_up[0] * *(float *)0x253394 - *(float *)(listener + 0x38);
-        listener_up[1] =
-          listener_up[1] * *(float *)0x253394 - *(float *)(listener + 0x3c);
-        listener_up[2] =
-          listener_up[2] * *(float *)0x253394 - *(float *)(listener + 0x40);
+        location.up[0] =
+          location.up[0] * *(float *)0x253394 - *(float *)(listener + 0x38);
+        location.up[1] =
+          location.up[1] * *(float *)0x253394 - *(float *)(listener + 0x3c);
+        location.up[2] =
+          location.up[2] * *(float *)0x253394 - *(float *)(listener + 0x40);
 
         (*(void (**)(int, int, void *, int, int, int))(*(int *)0x4eaf48 +
                                                        0x30))(
-          i, 1, source_pos, *(int *)(sound_entry + 0x4c),
+          i, 1, location.position, *(int *)(sound_entry + 0x4c),
           *(int *)(sound_entry + 0x50), (int)listener[1]);
       } else if (mode == 2) {
         (*(void (**)(int, int, void *, int, int, int))(
@@ -589,9 +590,9 @@ void sound_update_music(void)
     } else {
       /* Inactive/culled path: compute audible_scale from attenuation. */
       short mode;
-      source_pos[0] = *(float *)(sound_entry + 0x20);
-      source_pos[1] = *(float *)(sound_entry + 0x24);
-      source_pos[2] = *(float *)(sound_entry + 0x28);
+      location.position[0] = *(float *)(sound_entry + 0x20);
+      location.position[1] = *(float *)(sound_entry + 0x24);
+      location.position[2] = *(float *)(sound_entry + 0x28);
       mode = *(short *)(sound_entry + 0x14);
       if (mode != 0) {
         if (mode == 1) {
@@ -603,7 +604,8 @@ void sound_update_music(void)
             system_exit(-1);
           }
           real_matrix3x3_transform_vector(
-            listener + 4, (void *)(sound_entry + 0x20), (void *)source_pos);
+            listener + 4, (void *)(sound_entry + 0x20),
+            (void *)location.position);
         } else if (mode != 2) {
           display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x80a,
                          1);
@@ -616,9 +618,9 @@ void sound_update_music(void)
         {
           float min_dist = sound_class_get_min_distance(tag_handle);
           float max_dist = sound_get_default_priority(tag_handle);
-          float sq = source_pos[0] * source_pos[0] +
-                     source_pos[1] * source_pos[1] +
-                     source_pos[2] * source_pos[2];
+          float sq = location.position[0] * location.position[0] +
+                     location.position[1] * location.position[1] +
+                     location.position[2] * location.position[2];
           float falloff =
             *(float *)0x2533c8 -
             (__builtin_sqrtf(sq) - min_dist) / (max_dist - min_dist);
@@ -641,7 +643,7 @@ void sound_update_music(void)
      * sound's update callback is 0x1c7a10, push the next pitch
      * sample computed from channel+0x8 (phase, truncated to int) and
      * channel+0x10. */
-    class_def = sound_class_get_definition((short)tag_handle);
+    class_def = sound_class_get_definition(*(short *)((char *)tag_ptr + 4));
     if (*(char *)((char *)class_def + 8) != '\0' &&
         *(void **)(sound_entry + 0x10) == (void *)0x1c7a10) {
       int phase_int = (int)*(float *)((char *)channel + 0x8);
