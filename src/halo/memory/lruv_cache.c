@@ -191,6 +191,115 @@ void lruv_cache_dispose_all(void *cache)
     }
 }
 
+/* FUN_0011d9d0 (0x11d9d0)
+ *
+ * Touch a cache block — set its last-access stamp to the cache's
+ * current frame counter (field_30).
+ */
+void FUN_0011d9d0(void *cache, int datum_handle)
+{
+    lruv_cache_t *c = (lruv_cache_t *)cache;
+    lruv_cache_block_t *block;
+
+    lruv_cache_verify(cache, 0);
+    block = (lruv_cache_block_t *)datum_get(c->blocks, datum_handle);
+    *(int *)((char *)block + 0x14) = c->field_30;
+}
+
+/* FUN_0011db90 (0x11db90)
+ *
+ * Dump LRUV cache diagnostic state to a file.  Used when a cache
+ * allocation fails to record page layout, block occupancy, and
+ * per-block age for post-mortem analysis.
+ */
+void FUN_0011db90(const char *path, const char *tag_name, int alloc_size,
+                  void *cache, void *fn1, void *fn2)
+{
+    lruv_cache_t *c = (lruv_cache_t *)cache;
+    void *stream;
+    int page_size, pages_needed, total_pages;
+    int page_index, block_handle;
+    int page_count, age;
+    bool locked;
+    const char *block_name;
+
+    lruv_cache_verify(cache, 1);
+
+    stream = crt_fopen(path, (const char *)0x28fdcc);
+    if (stream == NULL)
+        return;
+
+    crt_fprintf(stream, "%s (v1: only blocks used this frame are locked)\n", cache);
+    ((void (*)(void *))fn1)(stream);
+
+    page_size = 1 << (c->page_size_bits & 0x1f);
+    pages_needed = alloc_size >> (c->page_size_bits & 0x1f);
+    if ((alloc_size & (page_size - 1)) != 0)
+        pages_needed++;
+
+    crt_fprintf(stream,
+        "\n#%d pages, each #%d bytes\n"
+        "#%d blocks at frame index #%d\n"
+        "failed allocation of \"%s\" was #%d bytes (#%d pages)\n\n",
+        c->page_count, page_size,
+        (int)*(int16_t *)((char *)c->blocks + 0x30), c->field_30,
+        tag_name, alloc_size, pages_needed);
+
+    total_pages = c->page_count;
+    block_handle = c->first_block_index;
+    page_index = 0;
+
+    while (page_index < total_pages) {
+        age = 0;
+        locked = false;
+
+        if (block_handle == -1) {
+            page_count = total_pages - page_index;
+            page_index = total_pages;
+            block_name = (const char *)0x25386f;
+        } else {
+            lruv_cache_block_t *block =
+                (lruv_cache_block_t *)datum_get(c->blocks, block_handle);
+
+            if (page_index != block->first_page_index) {
+                page_count = block->first_page_index - page_index;
+                assert_halt(page_count > 0);
+                page_index = block->first_page_index;
+                block_name = (const char *)0x25386f;
+            } else {
+                page_count = block->page_count;
+                age = c->field_30 - *(int *)((char *)block + 0x14);
+
+                if (c->query_cb != NULL) {
+                    locked = c->query_cb(block_handle) != 0;
+                } else {
+                    locked = false;
+                }
+                if (*(int *)((char *)block + 0x14) + 1 >= (unsigned int)c->field_30)
+                    locked = true;
+
+                page_index = block->first_page_index + block->page_count;
+                block_name = ((const char *(*)(int))fn2)(block_handle);
+                block_handle = block->next_block_index;
+                if (block_name == NULL)
+                    block_name = (const char *)0x25386f;
+            }
+        }
+
+        if (age > 9999)
+            age = 9999;
+
+        crt_fprintf(stream, "%s % 5d% 5d %s\n",
+            locked ? (const char *)0x28fd20 : (const char *)0x25b06c,
+            page_count, age, block_name);
+
+        total_pages = c->page_count;
+    }
+
+    crt_fprintf(stream, (const char *)0x260ee4);
+    crt_fclose(stream);
+}
+
 /* 0x1bfe90: Allocate and initialize a new lruv_cache from game state memory.
  * Returns a pointer to the initialized cache. */
 void *lruv_cache_new(const char *name, int capacity, int max_locked,
