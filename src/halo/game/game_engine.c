@@ -1111,6 +1111,93 @@ void game_engine_hud_update_player(int player_handle, int hud_player, int param3
   hud_print_message(*(unsigned short *)(datum + 2), buffer);
 }
 
+/* FUN_000ad160 (0xad160)
+ *
+ * Search scenario netgame flags (tag block at scenario+0x378, element
+ * size 0x94) for entries matching the given type and team index filters.
+ * Optionally filters by radius and height around a world position.
+ *
+ * type/index of -1 act as wildcards (match any).  If position is NULL,
+ * all spatial filtering is skipped.  If radius < 0.0f the distance check
+ * is skipped; if height <= 0.0f the height check is skipped.
+ *
+ * Matching flag indices are written into out_indices (up to max_count).
+ * Returns the number of matches found.
+ */
+/* 0xad160 */
+int FUN_000ad160(float *position, float radius, float height,
+                 int16_t type, int16_t index, int max_count, int *out_indices)
+{
+  int result;
+  int i;
+  int16_t si;
+  float *entry;
+  int *flag_block;
+  float radius_sq;
+
+  radius_sq = radius * radius;
+  result = 0;
+
+  flag_block = (int *)((char *)global_scenario_get() + 0x378);
+
+  si = 0;
+  if (*flag_block < 1)
+    return 0;
+
+  i = 0;
+  do {
+    entry = (float *)tag_block_get_element(flag_block, i, 0x94);
+
+    if ((type == -1 || type == *(int16_t *)((char *)entry + 0x10)) &&
+        (index == -1 || index == *(int16_t *)((char *)entry + 0x12))) {
+      /* Spatial filtering (only when position is non-NULL) */
+      if (position != NULL) {
+        /* Radius check: skip if radius < 0.0f */
+        if (!(radius < 0.0f)) {
+          float dx = position[0] - entry[0];
+          float dy = position[1] - entry[1];
+          float dz = position[2] - entry[2];
+          if (dx * dx + dy * dy + dz * dz > radius_sq)
+            goto next;
+        }
+        /* Height check: skip if height <= 0.0f */
+        if (!(height <= 0.0f)) {
+          float abs_dz = entry[2] - position[2];
+          if (abs_dz < 0.0f)
+            abs_dz = -abs_dz;
+          if (abs_dz > height)
+            goto next;
+        }
+      }
+
+      /* Store match if there's room */
+      if (result < max_count) {
+        out_indices[result] = i;
+        result++;
+      }
+    }
+  next:
+    si++;
+    i = (int)si;
+  } while (i < *flag_block);
+
+  return result;
+}
+
+/* FUN_000ad270 (0xad270)
+ *
+ * Convenience wrapper around FUN_000ad160 that finds at most one matching
+ * netgame flag.  Returns the index of the first match, or -1 if none.
+ */
+/* 0xad270 */
+int FUN_000ad270(float *position, float radius, float height,
+                 int16_t type, int16_t index)
+{
+  int result = -1;
+  FUN_000ad160(position, radius, height, type, index, 1, &result);
+  return result;
+}
+
 /* game_engine_player_update_netgame_flag (0xad600)
  *
  * Per-player netgame flag proximity check.  Finds the nearest type-6
@@ -1340,8 +1427,6 @@ game_variant_t *game_engine_get_variant_by_name(game_variant_t *out_variant,
 void game_engine_validate_map_netgame_flags(void)
 {
   int found_index;
-  int (*find_flag_indices)(float *, float, float, short, short, int, int *) =
-    (int (*)(float *, float, float, short, short, int, int *))0xad160;
   void (*validate_duplicate_flags)(short, const char *) =
     (void (*)(short, const char *))0xaa010;
   void (*validate_flag_out_of_range)(short, short, const char *) =
@@ -1360,13 +1445,13 @@ void game_engine_validate_map_netgame_flags(void)
   int i;
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 0, 0, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 0, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing ctf flag [team %d]", 0);
   }
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 0, 1, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 0, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing ctf flag [team %d]", 1);
   }
@@ -1376,37 +1461,37 @@ void game_engine_validate_map_netgame_flags(void)
     0, 1, "NETGAME MAP FAILURE: ctf flag out of range [team %d]");
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 8, 0, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 8, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing hill flag [team %d]", 0);
   }
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 8, 1, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 8, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing hill flag [team %d]", 1);
   }
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 2, 0, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 2, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing oddball flag [team %d]", 0);
   }
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 2, 1, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 2, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing oddball flag [team %d]", 1);
   }
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 3, 0, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 3, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing race flag [team %d]", 0);
   }
 
   found_index = -1;
-  find_flag_indices(0, 0.0f, 0.0f, 3, 1, 1, &found_index);
+  FUN_000ad160(0, 0.0f, 0.0f, 3, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing race flag [team %d]", 1);
   }
