@@ -164,6 +164,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7d470": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d6e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7d9f0": {
       "kind": "function",
       "status": "ported"

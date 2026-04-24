@@ -97,6 +97,7 @@
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
     "0xe24e0": "void progress_bar_decode_texture(int height@<eax>, int width@<ecx>, void *out_texture@<edx>, void *data, int data_size);",
     "0xe26c0": "void progress_bar_draw_loading_bar(float *rect@<eax>, float *color@<ecx>, float alpha, float progress);",
-    "0xa8ba0": "bool game_engine_is_player_leading(int player_handle@<edi>);"
+    "0xa8ba0": "bool game_engine_is_player_leading(int player_handle@<edi>);",
+    "0x7d440": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);"
   }
 }
