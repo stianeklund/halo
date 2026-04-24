@@ -15,8 +15,11 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 
 ### 1. Research & Analysis
 - **Scope-first:** Start tasks with exact path(s), symbol(s), and line range(s).
-- **Token Discipline:** Minimize redundant reads. Use line-ranged reads and `rtk read`.
+- **Token Discipline:** Minimize redundant reads. Use line-ranged reads and `rtk read`. Never re-read a file after a successful edit — the Edit tool confirms success. Only re-read affected line ranges on failure.
+- **Large files:** For files >300 lines (objects.c, units.c, etc.), always read with `offset`+`limit`. Never read the full file.
+- **kb.json — NEVER use Read tool on it.** It is 6000+ lines. ALWAYS use `rtk jq '<filter>' kb.json` for all lookups and verification. Only edit kb.json directly; never read it to understand structure — query for the specific key you need.
 - **JSON Mastery:** ALWAYS use `rtk jq` for querying/parsing `kb.json`. Never use `python -c`.
+- **Pre-edit research:** Before editing any function, run `rtk rg '<function_name>' src/` to find all callers and related symbols.
 - **Ghidra Pre-flight:** Before using any `ghidra` or `ghidra-live` MCP tool, run `python3 tools/check_ghidra_mcp.py`. If it fails, alert the user and stop.
 - **Tooling:** Always prefix with `rtk`. Use `rtk fd` (files), `rtk rg` (text), `rtk ast-grep` (structure), `rtk fzf` (selecting).
 
@@ -63,7 +66,9 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
   ```
 
 ## Repo Guardrails
-- **Noisy Dirs:** Avoid `build/`, `node_modules/`, `.git/`, `halo-patched/`.
+- **Noisy Dirs:** Never read or search inside `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/` unless explicitly asked. These are generated artifacts.
+- **No Log Files:** Never read `build.log`, `build_output.log`, or any `.log` file. Run the build or command instead.
+- **Scoped Diffs:** When checking changes, scope git diffs to source: `rtk git diff -- src/ kb.json CMakeLists.txt`. Bare `git diff` includes tracked build artifacts.
 - **RTK Always:** Prefix ALL shell commands with `rtk` (e.g., `rtk git status`, `rtk pytest`).
 - **Output Schema:** For non-trivial work, report: Target, Confirmed, Inferred, Uncertain, Proposed Code, kb.json updates.
 

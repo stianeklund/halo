@@ -1,6 +1,6 @@
 # Build output
 /build
-/build_debug
+/build_debug/
 /dist
 build_output.log
 artifacts

@@ -8,9 +8,11 @@ schema_version = 1
 description = "Strip Python INFO logging from frontier.py output"
 match_command = "^python3 tools/frontier\\.py"
 filter_stderr = true
+strip_ansi = true
 strip_lines_matching = [
     "^INFO:knowledge:",
     "^INFO:__main__:",
+    "^\\s*$",
 ]
 max_lines = 50
 on_empty = "frontier: no output"
@@ -19,9 +21,11 @@ on_empty = "frontier: no output"
 description = "Strip Python INFO logging from maintain.py output"
 match_command = "^python3 tools/maintain\\.py"
 filter_stderr = true
+strip_ansi = true
 strip_lines_matching = [
     "^INFO:knowledge:",
     "^INFO:__main__:",
+    "^\\s*$",
 ]
 on_empty = "maintain: ok"
 
@@ -29,9 +33,11 @@ on_empty = "maintain: ok"
 description = "Strip Python INFO logging from kb_meta.py output"
 match_command = "^python3 tools/kb_meta\\.py"
 filter_stderr = true
+strip_ansi = true
 strip_lines_matching = [
     "^INFO:knowledge:",
     "^INFO:__main__:",
+    "^\\s*$",
 ]
 on_empty = "kb_meta: ok"
 
@@ -50,24 +56,29 @@ max_lines = 10
 on_empty = "build_iso: ok"
 
 [filters.cmake-build]
+# Also matches `cmake --build build_debug` (prefix match) — no separate filter needed.
 description = "Strip XBE section-writing noise from cmake build output"
 match_command = "^cmake --build build"
 filter_stderr = true
+strip_ansi = true
 strip_lines_matching = [
     "^INFO:xbe:Writing section",
     "^INFO:__main__:Generating GDB init script",
     "^INFO:knowledge:",
     "^INFO:__main__:",
+    "^\\s*$",
 ]
-max_lines = 20
+max_lines = 30
 on_empty = "cmake build: ok"
 
 [filters.lift-pipeline]
 description = "Strip Python INFO logging from lift_pipeline.py output"
 match_command = "^python3 tools/lift_pipeline\\.py"
 filter_stderr = true
+strip_ansi = true
 strip_lines_matching = [
     "^INFO:",
+    "^\\s*$",
 ]
 max_lines = 40
 
@@ -75,7 +86,27 @@ max_lines = 40
 description = "Strip Python INFO logging from verify_option3.py output"
 match_command = "^python3 tools/verify_option3\\.py"
 filter_stderr = true
+strip_ansi = true
 strip_lines_matching = [
     "^INFO:",
+    "^\\s*$",
 ]
 max_lines = 20
+
+[filters.jq]
+# on_truncate is not a supported rtk field — truncation is silent at max_lines.
+description = "Truncate jq output — prevents accidental full-file dumps (kb.json is 6000+ lines)"
+match_command = "^jq "
+max_lines = 60
+
+[filters.objdump]
+# Use --start-address/--stop-address to narrow range if output is truncated.
+description = "Cap disassembly output — full binary dumps can exceed 50K lines"
+match_command = "^(llvm-)?objdump"
+strip_ansi = true
+strip_lines_matching = [
+    "^\\s*$",
+    "^.*file format",
+    "^Disassembly of section",
+]
+max_lines = 120
