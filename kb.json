@@ -1072,7 +1072,8 @@
         },
         {
           "decl": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
-          "addr": "0x7d440"
+          "addr": "0x7d440",
+          "ported": true
         }
       ]
     },

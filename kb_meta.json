@@ -164,6 +164,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7d440": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7d470": {
       "kind": "function",
       "status": "ported"
