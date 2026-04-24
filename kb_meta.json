@@ -2898,6 +2898,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11d9d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11db90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11ddc0": {
       "kind": "function",
       "status": "ported"
