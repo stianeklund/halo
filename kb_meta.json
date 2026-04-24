@@ -1033,7 +1033,15 @@
         "The engine-type table at 0x2eff98 is a vtable-pointer array indexed by variant->engine_type (variant+0x18). Exactly 0x1a dwords (0x68 bytes) are copied via MOVSD.REP matching the game_variant_t size."
       ]
     },
+    "0xaba90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xabc80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xac4e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2035,6 +2043,11 @@
         "Input rect fields at byte offsets +0x08..+0x18 represent center_x, center_y, half_width, half_height, depth relative to the base pointer.",
         "The function computes screen-space corners by projecting (center +/- half_extent, 1000-depth, 1) through the perspective matrix and dividing by w."
       ]
+    },
+    "0xe1fa0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "progress_bar_set_quad_texcoords"
     },
     "0xe2040": {
       "kind": "function",
