@@ -6658,11 +6658,13 @@
         },
         {
           "decl": "void FUN_0011d9d0(void *cache, int datum_handle);",
-          "addr": "0x11d9d0"
+          "addr": "0x11d9d0",
+          "ported": true
         },
         {
           "decl": "void FUN_0011db90(const char *path, const char *tag_name, int a3, void *cache, void *fn1, void *fn2);",
-          "addr": "0x11db90"
+          "addr": "0x11db90",
+          "ported": true
         }
       ]
     },
