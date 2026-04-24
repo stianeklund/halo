@@ -438,6 +438,35 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("ghidra_extract", ran=False, ok=True,
                               details="skipped (no --extract-cmd)"))
 
+  abi_cmd = ["python3", "tools/audit_reg_abi.py", "--target", target.name]
+  abi_source = "kb.json only"
+  if args.abi_caller_disasm_file:
+    abi_cmd.extend(["--caller-disasm-file", args.abi_caller_disasm_file])
+    abi_source = args.abi_caller_disasm_file
+  elif args.abi_caller_disasm_cmd:
+    abi_cmd.extend([
+      "--caller-disasm-cmd",
+      render_template(args.abi_caller_disasm_cmd, target=target, artifact_dir=artifact_dir),
+    ])
+    abi_source = "command"
+  else:
+    default_caller_disasm = artifact_dir / "caller_disasm.txt"
+    if default_caller_disasm.exists():
+      abi_cmd.extend(["--caller-disasm-file", str(default_caller_disasm)])
+      abi_source = str(default_caller_disasm)
+  if args.abi_strict_callers:
+    abi_cmd.append("--strict-callers")
+
+  proc = run_command(abi_cmd, cwd=ROOT, log_path=artifact_dir / "abi_audit.log")
+  ok = proc.returncode == 0
+  details = f"source={abi_source}"
+  if proc.stdout:
+    first_line = proc.stdout.strip().splitlines()[0]
+    details += f" {first_line}"
+  stages.append(StageResult("abi_audit", ran=True, ok=ok, details=details))
+  if not ok:
+    return finalize(summary, stages, artifact_dir, ok=False)
+
   if args.candidate:
     source = args.source if args.source else target.source_path
     if not source:
@@ -741,8 +770,15 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--skip-build", action="store_true",
                   help="Skip build stage.")
-  ap.add_argument("--build-cmd", default="cmake --build build --target halo",
+  ap.add_argument("--build-cmd", default="python3 tools/build.py --target halo",
                   help="Build command used when build stage runs.")
+
+  ap.add_argument("--abi-caller-disasm-file", default="",
+                  help="Optional caller disassembly file for pre-lift register ABI audit.")
+  ap.add_argument("--abi-caller-disasm-cmd", default="",
+                  help="Optional command producing caller disassembly for ABI audit.")
+  ap.add_argument("--abi-strict-callers", action="store_true",
+                  help="Fail ABI audit if caller evidence misses expected register writes.")
 
   ap.add_argument("--verify-input", default="",
                   help="Input JSON for tools/verify_lift.py.")

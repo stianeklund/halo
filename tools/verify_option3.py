@@ -119,7 +119,7 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--skip-build", action="store_true",
                   help="Skip build stage.")
-  ap.add_argument("--build-cmd", default="cmake --build build",
+  ap.add_argument("--build-cmd", default="python3 tools/build.py",
                   help="Shell command used for build stage.")
 
   ap.add_argument("--skip-iso", action="store_true",
