@@ -6493,22 +6493,42 @@
     },
     {
       "name": "lruv_cache.obj",
+      "source": "memory/lruv_cache.c",
       "functions": [
         {
+          "decl": "int lruv_cache_allocation_size(int maximum_block_count);",
+          "addr": "0x11d480",
+          "ported": true
+        },
+        {
+          "decl": "void lruv_cache_verify(void *cache, char do_full_check);",
+          "addr": "0x11d550",
+          "ported": true
+        },
+        {
+          "decl": "void lruv_cache_initialize(void *cache, int name, int page_count, int page_size_bits, int maximum_block_count, void (*delete_cb)(int), int (*query_cb)(int));",
+          "addr": "0x11d780",
+          "ported": true
+        },
+        {
           "decl": "void lruv_cache_dispose(void *cache);",
-          "addr": "0x11d890"
+          "addr": "0x11d890",
+          "ported": true
         },
         {
           "decl": "void FUN_0011d8f0(void *cache, int block_index);",
-          "addr": "0x11d8f0"
+          "addr": "0x11d8f0",
+          "ported": true
         },
         {
           "decl": "void lruv_cache_dispose_all(void *cache);",
-          "addr": "0x11ddc0"
+          "addr": "0x11ddc0",
+          "ported": true
         },
         {
           "decl": "void *lruv_cache_new(const char *name, int capacity, int max_locked, int entry_size, void (*delete_cb)(int), int (*query_cb)(int));",
-          "addr": "0x1bfe90"
+          "addr": "0x1bfe90",
+          "ported": true
         },
         {
           "decl": "void FUN_0011d9d0(void *cache, int datum_handle);",
