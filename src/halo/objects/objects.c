@@ -3495,6 +3495,48 @@ void FUN_00143ae0(int object_handle, float *position, float *forward, float *up)
 }
 
 /*
+ * FUN_0013ded0 — allocate a new datum in an object data table and reserve
+ * pool memory for it from the global objects memory pool at 0x46f080.
+ *
+ * If type_hint == -1, allocates at the next free index (data_new_at_index).
+ * Otherwise allocates at the specified handle (data_new_datum).
+ * On success, allocates datum_size bytes from the pool into datum+8,
+ * records the size at datum+6, and zeros the allocated block.
+ * Returns the datum handle, or -1 on failure.
+ *
+ * Confirmed: CMP EAX,-1 branches to data_new_at_index vs data_new_datum.
+ * Confirmed: CALL 0x11e6c0 (memory_pool_block_new) with pool from [0x46f080].
+ * Confirmed: MOV [EDI+6],CX stores datum_size as int16_t.
+ * Confirmed: CALL 0x8db80 (csmemset) zeros *(void**)(datum+8).
+ * Confirmed: datum_delete on pool allocation failure, returns -1.
+ */
+int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint)
+{
+  int handle;
+
+  if (type_hint == -1)
+    handle = data_new_at_index(data);
+  else
+    handle = data_new_datum(data, type_hint);
+
+  if (handle != -1) {
+    char *datum = (char *)datum_get(data, handle);
+
+    if (!memory_pool_block_new(*(void **)0x46f080,
+                               (void **)(datum + 8),
+                               (int)datum_size)) {
+      datum_delete(data, handle);
+      return -1;
+    }
+
+    *(int16_t *)(datum + 6) = datum_size;
+    csmemset(*(void **)(datum + 8), 0, (int)datum_size);
+  }
+
+  return handle;
+}
+
+/*
  * FUN_00143c80 — create a new object from a placement data struct.
  *
  * This is the core object creation function. Validates the placement data,
