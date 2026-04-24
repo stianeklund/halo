@@ -859,6 +859,53 @@ void game_engine_initialize(game_variant_t *variant)
   }
 }
 
+/* game_engine_teams_still_playing (0xaba90)
+ *
+ * Returns true if at least two different teams are represented among
+ * active players (i.e. competition is still alive).  Returns true
+ * trivially if there are fewer than 2 players.  Skips players whose
+ * quit flag (byte +0xd1) is set, and in lives-limited games also skips
+ * eliminated players who are leading (they have no object and their
+ * respawn count has reached the lives limit).
+ */
+bool game_engine_teams_still_playing(void)
+{
+  data_iter_t iter;
+  char *player;
+  int first_team;
+  bool result;
+
+  if (game_engine_player_count() < 2)
+    return true;
+
+  result = false;
+  first_team = NONE;
+  data_iterator_new(&iter, player_data);
+  while ((player = (char *)data_iterator_next(&iter)) != NULL) {
+    if (*(char *)(player + 0xd1) != 0)
+      continue;
+
+    if (*(int *)(player + 0x34) == NONE) {
+      if (game_engine_is_player_leading(iter.datum_handle))
+        continue;
+      if (*(int32_t *)0x456b30 >= 1) {
+        char *p = (char *)datum_get(player_data, iter.datum_handle);
+        if (*(int *)(p + 0x34) == NONE &&
+            (int)*(int16_t *)(p + 0xaa) >= *(int32_t *)0x456b30)
+          continue;
+      }
+    }
+
+    assert_halt(*(int *)(player + 0x20) != NONE);
+    if (*(int *)(player + 0x20) != first_team) {
+      if (first_team != NONE)
+        return true;
+      first_team = *(int *)(player + 0x20);
+    }
+  }
+  return result;
+}
+
 /* Returns true if the game is over: the engine exists but all remaining
  * players/teams are on the same side (no competition left). */
 bool game_engine_game_over(void)
@@ -1056,6 +1103,186 @@ void game_engine_update_non_deterministic(float dt)
     }
     network_game_abort();
   }
+}
+
+/* game_engine_get_score_hud_text (0xac4e0)
+ *
+ * Format a default HUD message for a scoring/death/status event.
+ * param_2 selects the message type.  When the engine vtable has a
+ * slot-0x7c callback that returns true, param_2 values 7-12 are
+ * remapped to their "personal" equivalents (14-19) and the engine's
+ * slot-0x48 callback is called to get a score value for the (%d) suffix.
+ *
+ * Register args: buffer in EDI, buffer_capacity in ESI.
+ */
+bool game_engine_get_score_hud_text(int player_handle, int param_2,
+                                     int hud_player, wchar_t *buffer,
+                                     int buffer_capacity)
+{
+  char *player_datum;
+  char *other;
+  int score;
+  bool result;
+
+  result = true;
+  player_datum = (char *)datum_get(player_data, player_handle);
+  score = 0;
+
+  if (current_game_engine) {
+    bool (*has_score)(int) =
+      ((bool (**)(int))current_game_engine)[0x7c / 4];
+    if (has_score && has_score(1)) {
+      switch (param_2) {
+        case 7:  param_2 = 0x10; break;
+        case 8:  param_2 = 0x13; break;
+        case 9:  param_2 = 0xf;  break;
+        case 10: param_2 = 0xe;  break;
+        case 11: param_2 = 0x12; break;
+        case 12: param_2 = 0x11; break;
+        default:
+          if (param_2 < 0xe || param_2 > 0x13)
+            goto main_switch;
+          break;
+      }
+      int (*get_score)(int, int) =
+        ((int (**)(int, int))current_game_engine)[0x48 / 4];
+      score = get_score(player_handle, 1);
+    }
+  }
+
+main_switch:
+  switch (param_2) {
+    case 0:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c63c, player_datum + 4);
+      break;
+    case 1:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c62c, player_datum + 4);
+      break;
+    case 2:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c5ec, player_datum + 4);
+      break;
+    case 3:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c5b4, player_datum + 4);
+      break;
+    case 4:
+      other = (char *)datum_get(player_data, hud_player);
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c58c, player_datum + 4, other + 4);
+      break;
+    case 5:
+      other = (char *)datum_get(player_data, hud_player);
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c560, player_datum + 4, other + 4);
+      break;
+    case 6:
+      datum_get(player_data, hud_player);
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c524, player_datum + 4);
+      break;
+    case 7:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c4b0);
+      game_engine_post_event(0xe);
+      break;
+    case 8:
+      other = (char *)datum_get(player_data, hud_player);
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c440, other + 4);
+      break;
+    case 9:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c4cc);
+      game_engine_post_event(0xf);
+      break;
+    case 10:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c4e8);
+      game_engine_post_event(0x10);
+      break;
+    case 11:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c45c);
+      game_engine_post_event(0x12);
+      break;
+    case 12:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c494);
+      game_engine_post_event(0x11);
+      break;
+    case 13:
+      other = (char *)datum_get(player_data, hud_player);
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c504, other + 4);
+      break;
+    case 14:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c41c, score);
+      game_engine_post_event(0x10);
+      break;
+    case 15:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c3f8, score);
+      game_engine_post_event(0xf);
+      break;
+    case 16:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c3d4, score);
+      game_engine_post_event(0xe);
+      break;
+    case 17:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c3ac, score);
+      game_engine_post_event(0x11);
+      break;
+    case 18:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c368, score);
+      game_engine_post_event(0x12);
+      break;
+    case 19:
+      other = (char *)datum_get(player_data, hud_player);
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c33c, other + 4, score);
+      break;
+    case 23:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c30c);
+      break;
+    case 24:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c2e0);
+      break;
+    case 25:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c2c4, hud_player);
+      break;
+    case 26:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c28c);
+      break;
+    case 27:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c258);
+      break;
+    case 28:
+      other = (char *)datum_get(player_data, hud_player);
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c550, other + 4);
+      break;
+    case 29:
+      unicode_sprintf(buffer, buffer_capacity,
+        (const wchar_t *)0x26c230);
+      break;
+    default:
+      result = false;
+      break;
+  }
+  buffer[buffer_capacity - 1] = 0;
+  return result;
 }
 
 /* game_engine_hud_update_player (0xacef0)
