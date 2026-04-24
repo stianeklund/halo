@@ -3041,7 +3041,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12a1e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a210": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12a240": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a2a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a2d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a500": {
       "kind": "function",
       "status": "ported"
     },
