@@ -8,7 +8,9 @@
  *   0xe1c90  progress_bar_begin
  *   0xe1cc0  progress_bar_end
  *   0xe1ce0  ui_automation_is_active
+ *   0xe1db0  progress_bar_compute_screen_rect
  *   0xe2040  progress_bar_draw_fullscreen_overlay
+ *   0xe24e0  progress_bar_decode_texture
  *   0xe2580  progress_bar_generate_gradient_texture
  *   0xe26c0  progress_bar_draw_loading_bar
  *   0xe29a0  progress_bar_screen_initialize
@@ -127,6 +129,88 @@ bool ui_automation_is_active(void)
 }
 
 /*
+ * progress_bar_set_quad_texcoords — emit texture coordinates for all four
+ * texture stages of a single quad vertex, offset by a 0.1 texel margin.
+ *
+ * Confirmed: 4 calls to D3DDevice_SetVertexData2f with registers 9–12.
+ * Confirmed: float at 0x31a00c = 0.1f (texel margin).
+ * Confirmed: stage 9  = (u - margin, v + margin).
+ * Confirmed: stage 10 = (u - margin, v - margin).
+ * Confirmed: stage 11 = (u + margin, v - margin).
+ * Confirmed: stage 12 = (u + margin, v + margin).
+ */
+void progress_bar_set_quad_texcoords(float u, float v)
+{
+  float margin = *(float *)0x31a00c;
+
+  D3DDevice_SetVertexData2f(9,  u - margin, v + margin);
+  D3DDevice_SetVertexData2f(10, u - margin, v - margin);
+  D3DDevice_SetVertexData2f(11, u + margin, v - margin);
+  D3DDevice_SetVertexData2f(12, u + margin, v + margin);
+}
+
+/*
+ * progress_bar_compute_screen_rect — project a 3D rect to screen coordinates.
+ *
+ * Takes a rect descriptor (floats at byte offsets +0x08..+0x18 from the base
+ * pointer) and projects two corner points through the perspective projection
+ * matrix at 0x46c2d8 to produce a 2D screen rect (x0, y0, x1, y1).
+ *
+ * Pass 1: point = (center_x - half_w, center_y - half_h, 1000.0 - depth, 1.0)
+ * Pass 2: point = (center_x + half_w, center_y + half_h, 1000.0 - depth, 1.0)
+ * Each projected point is perspective-divided (x/w, y/w) to get screen coords.
+ *
+ * Confirmed: cdecl, 2 stack args (ADD ESP,8 at caller 0xe26ec).
+ * Confirmed: mat4x4_transform_vec4 at 0x1ff03f does out = matrix * in (vec4).
+ * Confirmed: 0x254cb8 = 1000.0f, 0x2533c8 = 1.0f.
+ * Confirmed: Asserts "rect->x0 < rect->x1" (line 0x457) and
+ *            "rect->y0 < rect->y1" (line 0x458).
+ */
+/* 0xe1db0 */
+void progress_bar_compute_screen_rect(float *input_rect, float *output_rect)
+{
+  float vec[4];
+  float result[4];
+  float scale;
+
+  /* Pass 1: compute screen position of (center - half_extent) corner */
+  vec[0] = *(float *)((char *)input_rect + 0x08) -
+           *(float *)((char *)input_rect + 0x10);
+  vec[1] = *(float *)((char *)input_rect + 0x0c) -
+           *(float *)((char *)input_rect + 0x14);
+  vec[2] = *(float *)0x254cb8 - *(float *)((char *)input_rect + 0x18);
+  vec[3] = 1.0f;
+  mat4x4_transform_vec4(result, vec, (float *)0x46c2d8);
+  scale = *(float *)0x2533c8 / result[3];
+  output_rect[0] = result[0] * scale;
+  output_rect[1] = result[1] * scale;
+
+  /* Pass 2: compute screen position of (center + half_extent) corner */
+  vec[0] = *(float *)((char *)input_rect + 0x10) +
+           *(float *)((char *)input_rect + 0x08);
+  vec[1] = *(float *)((char *)input_rect + 0x0c) +
+           *(float *)((char *)input_rect + 0x14);
+  vec[2] = *(float *)0x254cb8 - *(float *)((char *)input_rect + 0x18);
+  vec[3] = 1.0f;
+  mat4x4_transform_vec4(result, vec, (float *)0x46c2d8);
+  scale = *(float *)0x2533c8 / result[3];
+  output_rect[2] = result[0] * scale;
+  output_rect[3] = result[1] * scale;
+
+  /* Assert the rect is valid (x0 < x1, y0 < y1) */
+  if (!(output_rect[2] > output_rect[0])) {
+    display_assert("rect->x0 < rect->x1",
+                   "c:\\halo\\SOURCE\\interface\\progress_bar.c", 0x457, 1);
+    system_exit(-1);
+  }
+  if (!(output_rect[3] > output_rect[1])) {
+    display_assert("rect->y0 < rect->y1",
+                   "c:\\halo\\SOURCE\\interface\\progress_bar.c", 0x458, 1);
+    system_exit(-1);
+  }
+}
+
+/*
  * progress_bar_draw_fullscreen_overlay — draw a tinted fullscreen quad.
  *
  * Draws a quad covering the screen using D3D immediate-mode vertex submission.
@@ -173,6 +257,82 @@ void progress_bar_draw_fullscreen_overlay(float x, float y, float alpha)
   D3DDevice_SetVertexData4f(0xffffffff, x0, y1, 0.5f, 1.0f);
 
   D3DDevice_End();
+}
+
+/*
+ * progress_bar_decode_texture — decode RLE-compressed data into a D3D texture.
+ *
+ * Creates a D3DFMT_LIN_A8B8G8R8 (0x3f) texture of the given dimensions,
+ * locks it, retrieves the level description, then decodes RLE data into the
+ * pixel buffer. Each source byte encodes a 4-bit color (low nibble) and a
+ * 4-bit run length (high nibble). The color nibble is expanded to a 32-bit
+ * pixel with the pattern:
+ *   pixel = (C << 16) | (C << 7) | (C >> 2)
+ * where C = nibble << 4. In A8B8G8R8 layout this yields B=C, G=C/2, R=C/4,
+ * A=0 — a blue-tinted ramp. The run length specifies how many consecutive
+ * pixels to fill with that value.
+ *
+ * Register args: EAX = height, ECX = width, EDX = out_texture (pointer to
+ * texture pointer, written by CreateTexture and read back for Lock/GetLevel).
+ * Stack args: data (source bytes), data_size (byte count).
+ *
+ * Confirmed: D3DDevice_CreateTexture(width, height, 1, 0, 0x3f, 0, out_texture).
+ * Confirmed: D3DTexture_LockRect(*out_texture, 0, &locked_rect, NULL, 0).
+ * Confirmed: D3DTexture_GetLevelDesc(*out_texture, 0, &level_desc) at 0x1edc10.
+ * Confirmed: pBits at locked_rect+4 (ebp-4) used as destination cursor via EBX.
+ * Confirmed: REP STOSD for run-length fill, advance by run_length * 4 bytes.
+ * Confirmed: AND EAX,0x8000000F is MSVC signed mod-16 idiom (low nibble extract).
+ * Confirmed: level_desc buffer is 0x1c bytes at ebp-0x24 (unused after call).
+ */
+/* 0xe24e0 */
+void progress_bar_decode_texture(int height, int width, void *out_texture,
+                                 void *data, int data_size)
+{
+  int src_idx;
+  uint32_t *dst;
+  uint8_t *src;
+  /* D3DLOCKED_RECT: { INT Pitch; void *pBits; } */
+  uint32_t locked_rect[2];
+  /* D3DSURFACE_DESC — 0x1c bytes, contents not used after the call */
+  uint8_t level_desc[0x1c];
+
+  /* Create the texture: format 0x3f = D3DFMT_LIN_A8B8G8R8 */
+  D3DDevice_CreateTexture(width, height, 1, 0, 0x3f, 0, out_texture);
+
+  /* Lock level 0 to get writable pixel data */
+  D3DTexture_LockRect(*(void **)out_texture, 0, locked_rect, 0, 0);
+
+  /* Get level description (result unused; side effect only) */
+  D3DTexture_GetLevelDesc(*(void **)out_texture, 0, level_desc);
+
+  dst = (uint32_t *)locked_rect[1];  /* pBits */
+  src = (uint8_t *)data;
+
+  /* RLE decode loop */
+  for (src_idx = 0; src_idx < data_size; src_idx++) {
+    uint8_t byte_val = src[src_idx];
+    uint8_t color_nibble = byte_val & 0x0f;
+    uint8_t run_length = byte_val >> 4;
+    uint32_t color;
+    uint32_t pixel;
+    int i;
+
+    /* Expand 4-bit color to 8-bit */
+    color = (uint32_t)color_nibble << 4;
+
+    /* Build A8B8G8R8 pixel:
+     * pixel = (color << 16) | (color << 7) | (color >> 2) */
+    pixel = (color << 9) | (color & 0xfe);
+    pixel = (pixel << 7) | (color >> 2);
+
+    /* Fill run_length pixels */
+    if (run_length != 0) {
+      for (i = 0; i < run_length; i++) {
+        *dst = pixel;
+        dst++;
+      }
+    }
+  }
 }
 
 /*
@@ -395,7 +555,7 @@ void progress_bar_screen_initialize(void)
 
   /* Build ortho projection matrix at 0x46c318 (scale_x=2.0, scale_y=2.0,
    * near=-1.0, far=2.0). stdcall, RET 0x14. */
-  matrix_build_ortho_projection((void *)0x46c318, 2.0f, 2.0f, -1.0f, 2.0f);
+  matrix_build_ortho_projection((void *)0x46c318, 2.0f, 2.0f, -1.0f, 2.0f); /* dup-args-ok */
 
   /* Build perspective projection matrix at 0x46c2d8 (fov=0.64, aspect=0.48,
    * near=1.0, far=1000.0). stdcall, RET 0x14. */

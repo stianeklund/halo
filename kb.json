@@ -660,6 +660,10 @@
           "addr": "0x1ff913"
         },
         {
+          "decl": "float *mat4x4_transform_vec4(float *out, float *in, float *matrix);",
+          "addr": "0x1ff03f"
+        },
+        {
           "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
           "addr": "0x2062d0"
         },
@@ -976,8 +980,17 @@
           "ported": true
         },
         {
+          "decl": "bool bitmap_verify(void *bitmap, int check_hardware);",
+          "addr": "0x7d470"
+        },
+        {
+          "decl": "short bitmap_mipmap_width(void *bitmap, int mipmap_index);",
+          "addr": "0x7d6e0"
+        },
+        {
           "decl": "int FUN_0007d9f0(void *bitmap, int mipmap_index);",
-          "addr": "0x7d9f0"
+          "addr": "0x7d9f0",
+          "ported": true
         }
       ]
     },
@@ -1365,6 +1378,16 @@
           "decl": "void crc_checksum_buffer(uint32_t *checksum, void *data, int size);",
           "addr": "0x119100",
           "ported": true
+        }
+      ]
+    },
+    {
+      "name": "memory_pool.obj",
+      "source": "memory/memory_pool.c",
+      "functions": [
+        {
+          "decl": "bool memory_pool_block_new(void *pool, void **block_reference, int size);",
+          "addr": "0x11e6c0"
         }
       ]
     },
@@ -3646,7 +3669,8 @@
         },
         {
           "decl": "int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint@<eax>);",
-          "addr": "0x13ded0"
+          "addr": "0x13ded0",
+          "ported": true
         },
         {
           "decl": "void FUN_0013e1f0(int object_handle@<eax>, void *color_data);",
@@ -4460,11 +4484,13 @@
         },
         {
           "decl": "void progress_bar_set_quad_texcoords(float u, float v);",
-          "addr": "0xe1fa0"
+          "addr": "0xe1fa0",
+          "ported": true
         },
         {
-          "decl": "void progress_bar_compute_screen_rect(void *input_rect, float *output_rect);",
-          "addr": "0xe1db0"
+          "decl": "void progress_bar_compute_screen_rect(float *input_rect, float *output_rect);",
+          "addr": "0xe1db0",
+          "ported": true
         },
         {
           "decl": "void progress_bar_draw_fullscreen_overlay(float x, float y, float alpha);",
@@ -4473,7 +4499,8 @@
         },
         {
           "decl": "void progress_bar_decode_texture(int height@<eax>, int width@<ecx>, void *out_texture@<edx>, void *data, int data_size);",
-          "addr": "0xe24e0"
+          "addr": "0xe24e0",
+          "ported": true
         },
         {
           "decl": "void progress_bar_generate_gradient_texture(void);",
@@ -6367,16 +6394,20 @@
       "name": "d3d_resource.obj",
       "functions": [
         {
+          "decl": "uint32_t __stdcall D3DResource_Release(void *resource);",
+          "addr": "0x1ed930"
+        },
+        {
           "decl": "void __stdcall D3DResource_Register(void *resource, void *data);",
           "addr": "0x1eda30"
         },
         {
-          "decl": "void __stdcall D3DTexture_LockRect(void *texture, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
-          "addr": "0x1edc70"
+          "decl": "void __stdcall D3DTexture_GetLevelDesc(void *texture, unsigned int level, void *desc);",
+          "addr": "0x1edc10"
         },
         {
-          "decl": "uint32_t __stdcall D3DResource_Release(void *resource);",
-          "addr": "0x1ed930"
+          "decl": "void __stdcall D3DTexture_LockRect(void *texture, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
+          "addr": "0x1edc70"
         }
       ]
     },

@@ -136,6 +136,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x61df0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7ab50": {
       "kind": "function",
       "status": "ported"
@@ -148,11 +152,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7c270": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7c840": {
       "kind": "function",
       "status": "ported"
     },
     "0x7c8f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d9f0": {
       "kind": "function",
       "status": "ported"
     },
@@ -216,6 +228,10 @@
       "uncertain": [
         "close_endpoint (0x84000) and endpoint_pool_cleanup (0x82d30) are grouped under transport_endpoint_set_winsock.obj in kb.json for convenience, but their XBE assert strings reference transport_endpoint_winsock.c (line 0x221/0x222 for close_endpoint), suggesting they may belong to a separate unrecovered transport_endpoint_winsock.obj."
       ]
+    },
+    "0x84a10": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x861a0": {
       "kind": "function",
@@ -502,6 +518,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x98b20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x98ca0": {
       "kind": "function",
       "status": "ported"
@@ -525,12 +545,32 @@
         "Error-once flags at 0x4557de (locked) and 0x4557df (permanent) are function-static-style globals not in kb.json; accessed via hardcoded addresses."
       ]
     },
+    "0x99530": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x998b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x99fd0": {
       "kind": "function",
       "status": "ported",
       "comments": {
         "summary": "Clears permanent decal state for a cluster across 5 decal layers: walks per-layer linked lists, validates cluster ownership, unsets permanent flag, decrements permanent_count, and releases matching decals."
       }
+    },
+    "0x9a300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9a5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ac90": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x9c4b0": {
       "kind": "function",
@@ -560,6 +600,10 @@
       "status": "ported"
     },
     "0x9e610": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ec30": {
       "kind": "function",
       "status": "ported"
     },
@@ -858,6 +902,22 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa8680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8780": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8b00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa8b30": {
       "kind": "function",
       "status": "ported",
@@ -946,6 +1006,22 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xab420": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xab570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xab720": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xab730": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xaba00": {
       "kind": "function",
       "status": "ported"
@@ -957,6 +1033,18 @@
         "The engine-type table at 0x2eff98 is a vtable-pointer array indexed by variant->engine_type (variant+0x18). Exactly 0x1a dwords (0x68 bytes) are copied via MOVSD.REP matching the game_variant_t size."
       ]
     },
+    "0xabc80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xacb10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xacbb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xacdd0": {
       "kind": "function",
       "status": "ported",
@@ -967,12 +1055,36 @@
         "The game_engine_check_input_button (@edi) forward thunk only works as a raw function pointer; if the function is ever ported to C the inline asm in game_engine_update_non_deterministic must be revisited."
       ]
     },
+    "0xacef0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xad160": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xad270": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xad600": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xadd50": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "String addresses in disassembly (0x26c73c=race, 0x26c730=team_race, etc.) verified against XBE .rdata section via manual VA-to-file-offset mapping; Ghidra flat-read of the file showed wrong values but the XBE section table confirms race/team_race etc."
       ]
+    },
+    "0xae0a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xae4d0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xae760": {
       "kind": "function",
@@ -989,6 +1101,26 @@
       ]
     },
     "0xaf370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb24c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2540": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2610": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2660": {
       "kind": "function",
       "status": "ported"
     },
@@ -1088,12 +1220,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb6990": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb6a20": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "Offset 0x24 in the player control slot is a weapon interaction index, reset to NONE when aim assist is cleared."
       ]
+    },
+    "0xb6ea0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xb6fc0": {
       "kind": "function",
@@ -1376,6 +1516,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbaf90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbb040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbb0f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbb2f0": {
       "kind": "function",
       "status": "ported",
@@ -1403,10 +1555,22 @@
         "The unit fields at +0x1b4 (flag 0x10) and +0x3d2 (powerup type written on timer slot first-fill) are not yet named in types.h; they belong to some unit_data_t subtype retrieved via object_get_and_verify_type with type_mask=3."
       ]
     },
+    "0xbc4b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbc750": {
       "kind": "function",
       "status": "ported",
       "name": "players_respawn_coop"
+    },
+    "0xbcd40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbcf00": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xbcfb0": {
       "kind": "function",
@@ -1427,6 +1591,14 @@
       "comments": {
         "summary": "Pre-tick player update. Originally reverted in ea68d9e due to ABI bugs; re-ported cleanly in 85d2748 after full disassembly-level audit. Split-screen multiplayer (spawn/move/look/shoot) verified in xemu."
       }
+    },
+    "0xbd7e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbdb00": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xbdbf0": {
       "kind": "function",
@@ -1836,6 +2008,69 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe1c70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1c80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1c90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1cc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1ce0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1db0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Input rect fields at byte offsets +0x08..+0x18 represent center_x, center_y, half_width, half_height, depth relative to the base pointer.",
+        "The function computes screen-space corners by projecting (center +/- half_extent, 1000-depth, 1) through the perspective matrix and dividing by w."
+      ]
+    },
+    "0xe2040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe24e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "D3DTexture_GetLevelDesc at 0x1edc10 is a JMP thunk to 0x1f4140; fills a 0x1c-byte surface descriptor, result unused by this caller.",
+        "Format 0x3f is D3DFMT_LIN_A8B8G8R8; pixel construction yields B=C, G=C/2, R=C/4, A=0 where C is nibble<<4."
+      ],
+      "uncertain": [
+        "The GetLevelDesc call result is entirely unused; its purpose may be to trigger a side effect in the Xbox D3D runtime (e.g., cache flush or surface allocation commit)."
+      ]
+    },
+    "0xe2580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe26c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe29a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe2e50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3300": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe3410": {
       "kind": "function",
       "status": "ported",
@@ -2174,6 +2409,50 @@
       "status": "ported"
     },
     "0xfb0c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff400": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff460": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff4a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff4c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff4d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff5d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff9c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xff9e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2570,6 +2849,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11d480": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11d550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11d780": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11d890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11d8f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11ddc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11e9c0": {
       "kind": "function",
       "status": "ported",
@@ -2577,6 +2880,10 @@
         "Pool header layout inferred from field accesses: +0x00 tag/name_ptr, +0x04 base_address, +0x08 pool_size, +0x0c slot_count; slot table at +0x34 (slot_count * 4 bytes).",
         "table[0] is seeded with a self-pointer via csmemcpy to initialize the free-slot list."
       ]
+    },
+    "0x11ea50": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x11ea90": {
       "kind": "function",
@@ -2588,12 +2895,32 @@
         "The high bit of block_hdr[0] is treated as an in-use flag and cleared by masking with 0x7fffffff."
       ]
     },
+    "0x11eb40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11ebc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11ec10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11ec70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11ecf0": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "The usable_size == 0x20 check (LEA EDX,[EAX-0x20]; TEST EDX,EDX; JA) rejects blocks with no payload beyond the 0x20-byte header overhead."
       ]
+    },
+    "0x11ee80": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x11ef50": {
       "kind": "function",
@@ -2613,12 +2940,20 @@
         "Returns block_hdr+0x1c in EAX (LEA EAX,[ESI+0x1c]) but kb.json declares void return; callers do not use the return value."
       ]
     },
+    "0x11f1e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11f620": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "Internal callees 0x11ef50 (valid_block: EAX=block_hdr,ECX=pool) and 0x11efd0 (unlink_block: ESI=block_hdr,EDI=pool) are called via inline asm due to non-standard register conventions."
       ]
+    },
+    "0x11f750": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x11fa40": {
       "kind": "function",
@@ -2649,6 +2984,22 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12a000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a1d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a240": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a780": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12b640": {
       "kind": "function",
       "status": "ported"
@@ -2673,7 +3024,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x136150": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x136520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1365d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2696,6 +3055,26 @@
         "The marker buffer size is inferred as 0x6c bytes from the highest offset read (0x68); the actual struct layout is unknown.",
         "Tag offsets 0x14 (falloff_angle), 0x18 (cutoff), 0x20 (forward_modifier), 0x24 (gel_modifier), 0x28 (tertiary_modifier) are named by function, not confirmed by tag definitions."
       ]
+    },
+    "0x13c100": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13c430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13c490": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13c560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13c620": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x13d640": {
       "kind": "function",
@@ -2733,7 +3112,27 @@
         "object_data_t+0xC0 (unk_192) is the garbage linked list next-pointer field."
       ]
     },
+    "0x13ded0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13df70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13dfc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13e050": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13e1a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13e1f0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2741,7 +3140,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13e5d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13e7b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13eb70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13ecb0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2784,6 +3195,10 @@
       "name_confidence": "high"
     },
     "0x13fb30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13fc20": {
       "kind": "function",
       "status": "ported"
     },
@@ -2834,6 +3249,10 @@
       "status": "ported"
     },
     "0x140420": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x140ad0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2917,6 +3336,14 @@
       "uncertain": [
         "The 0xfe0 type mask (bits 5-11) is labeled _object_mask_cannot_interpolate based on the assertion string; exact bit-to-type mapping not fully verified."
       ]
+    },
+    "0x143ae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x143c80": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x144240": {
       "kind": "function",
@@ -3010,6 +3437,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x155580": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x15b190": {
       "kind": "function",
       "status": "ported"
@@ -3020,6 +3451,10 @@
       "inferred": [
         "decals_update_for_new_map (0x98e70) name is inferred from its behavior: it iterates all decal data, clears locked/permanent flags, and resets the global lock/permanent counts."
       ]
+    },
+    "0x15b460": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x15b530": {
       "kind": "function",
@@ -3046,6 +3481,10 @@
         "D3DResource_Release (0x1ed930) is stdcall with RET 0x4, confirmed from disassembly; the call site uses POP ECX after the call which is inconsistent (the RET 0x4 already cleans the arg)."
       ]
     },
+    "0x15b890": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17c7e0": {
       "kind": "function",
       "status": "ported"
@@ -3071,6 +3510,18 @@
       "status": "ported"
     },
     "0x17c950": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17caf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cb00": {
       "kind": "function",
       "status": "ported"
     },
@@ -3156,6 +3607,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18e420": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18e450": {
       "kind": "function",
       "status": "ported"
@@ -3205,6 +3660,14 @@
       "status": "ported"
     },
     "0x191330": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191a50": {
       "kind": "function",
       "status": "ported"
     },
@@ -3335,6 +3798,10 @@
       "comments": {
         "summary": "Recursive cluster flood helper for structure_find_in_cluster: records current cluster when space remains, marks it visited, walks connected portals, and recurses into unvisited adjacent clusters whose portal sphere test passes."
       }
+    },
+    "0x199230": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1994a0": {
       "kind": "function",
@@ -3815,6 +4282,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1beba0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bec30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bee30": {
       "kind": "function",
       "status": "ported"
@@ -3866,6 +4341,10 @@
       ]
     },
     "0x1bfe10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bfe90": {
       "kind": "function",
       "status": "ported"
     },
@@ -4077,6 +4556,14 @@
         "The MOVSX SI,SI and IMUL pattern suggests promotion_count is sign-extended from short to int before the multiplication with interval."
       ]
     },
+    "0x1ccbe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ccca0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1cd5a0": {
       "kind": "function",
       "status": "ported",
@@ -4112,6 +4599,13 @@
         "The constant at 0x25bc08 is 0.03f, used to convert millisecond deltas to sound-system time units.",
         "The call to 0x1d9068 is MSVC __ftol2 (float-to-long truncation via ST0); replaced with a C cast in the lift.",
         "Vtable calls at offsets +0x10 and +0x14 through the sound driver pointer at 0x4eaf48 are likely lock/unlock or begin-frame/end-frame pairs."
+      ]
+    },
+    "0x1ff03f": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "vec4-by-mat4x4 multiply: float *mat4x4_transform_vec4(float *out, float *in, float *matrix) \u2014 cdecl, 3 stack args, returns out in EAX."
       ]
     },
     "0x31e500": {
