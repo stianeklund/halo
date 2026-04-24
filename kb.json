@@ -985,16 +985,22 @@
         },
         {
           "decl": "bool bitmap_verify(void *bitmap, int check_hardware);",
-          "addr": "0x7d470"
+          "addr": "0x7d470",
+          "ported": true
         },
         {
           "decl": "short bitmap_mipmap_width(void *bitmap, int mipmap_index);",
-          "addr": "0x7d6e0"
+          "addr": "0x7d6e0",
+          "ported": true
         },
         {
           "decl": "int FUN_0007d9f0(void *bitmap, int mipmap_index);",
           "addr": "0x7d9f0",
           "ported": true
+        },
+        {
+          "decl": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
+          "addr": "0x7d440"
         }
       ]
     },
