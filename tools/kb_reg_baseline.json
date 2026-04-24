@@ -91,6 +91,10 @@
         "0x140ad0": "void FUN_00140ad0(int object_handle@<edi>);",
         "0x13e7b0": "void FUN_0013e7b0(int object_handle@<eax>);",
         "0x13e5d0": "void FUN_0013e5d0(int object_handle@<eax>);",
-        "0x13e1a0": "void FUN_0013e1a0(int object_handle@<edi>);"
+        "0x13e1a0": "void FUN_0013e1a0(int object_handle@<edi>);",
+        "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
+        "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
+        "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+        "0xe24e0": "void progress_bar_decode_texture(int height@<eax>, int width@<ecx>, void *out_texture@<edx>, void *data, int data_size);"
     }
 }

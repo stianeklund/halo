@@ -566,6 +566,82 @@
         {
           "decl": "bool FUN_0014bc10(void *los_data, float *pos, void *out_hit);",
           "addr": "0x14bc10"
+        },
+        {
+          "decl": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
+          "addr": "0x1e9350"
+        },
+        {
+          "decl": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
+          "addr": "0x1e9380"
+        },
+        {
+          "decl": "void D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+          "addr": "0x1e9410"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderState_CullMode(uint32_t mode);",
+          "addr": "0x1e96d0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderState_ZEnable(uint32_t enable);",
+          "addr": "0x1ea290"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTexture(uint32_t stage, void *texture);",
+          "addr": "0x1e8700"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetDepthStencilSurface(void **out_surface);",
+          "addr": "0x1e8270"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetBackBuffer(int back_buffer, uint32_t type, void **out_surface);",
+          "addr": "0x1e7d50"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
+          "addr": "0x1e7af0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
+          "addr": "0x1ea650"
+        },
+        {
+          "decl": "void __stdcall matrix_build_ortho_projection(void *matrix_out, float scale_x, float scale_y, float z_near, float z_far);",
+          "addr": "0x1ffc57"
+        },
+        {
+          "decl": "void __stdcall matrix_build_perspective_projection(void *matrix_out, float fov, float aspect, float z_near, float z_far);",
+          "addr": "0x1ff913"
+        },
+        {
+          "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
+          "addr": "0x2062d0"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetBufferData(void *buffer, void *data, uint32_t size);",
+          "addr": "0x205b7f"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetLoopRegion(void *buffer, uint32_t start, uint32_t length);",
+          "addr": "0x20519e"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetCurrentPosition(void *buffer, uint32_t position);",
+          "addr": "0x2051fa"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetVolume(void *buffer, int volume);",
+          "addr": "0x204f23"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_Play(void *buffer, uint32_t reserved, uint32_t priority, uint32_t flags);",
+          "addr": "0x205b43"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
+          "addr": "0x204f3f"
         }
       ]
     },
@@ -4336,6 +4412,14 @@
           "decl": "bool ui_automation_is_active(void);",
           "addr": "0xe1ce0",
           "ported": true
+        },
+        {
+          "decl": "void progress_bar_decode_texture(int height@<eax>, int width@<ecx>, void *out_texture@<edx>, void *data, int data_size);",
+          "addr": "0xe24e0"
+        },
+        {
+          "decl": "void progress_bar_generate_gradient_texture(void);",
+          "addr": "0xe2580"
         },
         {
           "decl": "void progress_bar_screen_initialize(void);",
