@@ -5294,7 +5294,8 @@
         {
           "decl": "void *sound_class_get_definition(short class_index);",
           "addr": "0x1c88c0",
-          "comment": "Return the sound class definition at 0x32ed08 + index*0x2c."
+          "comment": "Return the sound class definition at 0x32ed08 + index*0x2c.",
+          "ported": true
         },
         {
           "decl": "void real_matrix4x3_transform_point(void *matrix, void *point, void *out);",
