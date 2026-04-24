@@ -2263,6 +2263,10 @@
           "ported": true
         },
         {
+          "decl": "bool game_engine_get_score_hud_text(int player_handle, int param3, int hud_player, wchar_t *buffer@<edi>, int buffer_capacity@<esi>);",
+          "addr": "0xac4e0"
+        },
+        {
           "decl": "void game_engine_periodic_equipment_spawn(void);",
           "addr": "0xacbb0",
           "ported": true

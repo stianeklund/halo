@@ -1013,6 +1013,59 @@ void game_engine_update_non_deterministic(float dt)
   }
 }
 
+/* game_engine_hud_update_player (0xacef0)
+ *
+ * Per-player HUD score/message update.  Called when a player is added
+ * or when a scoring event occurs to refresh the HUD text for a given
+ * player.
+ *
+ * First tries the current game engine's vtable slot 0x64 callback to
+ * produce a wchar_t message.  If that callback is null or returns false,
+ * falls back to game_engine_get_score_hud_text (0xac4e0) which formats
+ * a default message via a large switch on the event type (hud_player).
+ *
+ * If either path succeeds, null-terminates the buffer and prints it
+ * via hud_print_message.
+ *
+ * Register args:
+ *   ECX = player_handle (datum handle into player_data)
+ *   EAX = hud_player (event type / -1 for init)
+ *   EBX = param3 (extra context, often 0)
+ */
+/* 0xacef0 */
+void game_engine_hud_update_player(int player_handle, int hud_player, int param3)
+{
+  wchar_t buffer[0x400];
+  char *datum;
+  bool got_text;
+
+  datum = (char *)datum_get(player_data, player_handle);
+  if (*(short *)(datum + 2) == -1)
+    return;
+
+  /* Try vtable slot 0x64 first: engine-specific HUD message callback */
+  got_text = false;
+  {
+    bool (*vtable_fn)(int, int, int, wchar_t *, int) =
+      ((bool (**)(int, int, int, wchar_t *, int))current_game_engine)[0x64 / 4];
+    if (vtable_fn != NULL) {
+      got_text = vtable_fn(player_handle, param3, hud_player, buffer, 0x400);
+    }
+  }
+
+  /* Fall back to default score text formatter */
+  if (!got_text) {
+    got_text = game_engine_get_score_hud_text(player_handle, param3, hud_player,
+                                               buffer, 0x400);
+    if (!got_text)
+      return;
+  }
+
+  /* Null-terminate the buffer at the last position and print */
+  buffer[0x400 - 1] = 0;
+  hud_print_message(*(unsigned short *)(datum + 2), buffer);
+}
+
 /* game_engine_player_update_netgame_flag (0xad600)
  *
  * Per-player netgame flag proximity check.  Finds the nearest type-6
