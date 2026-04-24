@@ -1092,7 +1092,8 @@
         },
         {
           "decl": "int csmemcmp(const void *a, const void *b, int size);",
-          "addr": "0x8da40"
+          "addr": "0x8da40",
+          "ported": true
         },
         {
           "decl": "void *csmemset(void *buffer, int c, size_t size);",
@@ -1705,7 +1706,8 @@
       "functions": [
         {
           "decl": "void first_person_weapons_update(void);",
-          "addr": "0xdeb60"
+          "addr": "0xdeb60",
+          "ported": true
         }
       ]
     },
@@ -2205,7 +2207,8 @@
       "functions": [
         {
           "decl": "void game_statistics_start(void);",
-          "addr": "0xb5640"
+          "addr": "0xb5640",
+          "ported": true
         }
       ]
     },
@@ -2596,15 +2599,18 @@
       "functions": [
         {
           "decl": "bool dangerous_items_near_player(void);",
-          "addr": "0xf6970"
+          "addr": "0xf6970",
+          "ported": true
         },
         {
           "decl": "void item_activate_equipment_effect(int equipment_handle);",
-          "addr": "0xf67b0"
+          "addr": "0xf67b0",
+          "ported": true
         },
         {
           "decl": "void item_attach_to_unit(int item_handle, int unit_handle);",
-          "addr": "0xf69c0"
+          "addr": "0xf69c0",
+          "ported": true
         }
       ]
     },
@@ -2774,7 +2780,8 @@
       "functions": [
         {
           "decl": "void xbox_demos_launch(void);",
-          "addr": "0xe0500"
+          "addr": "0xe0500",
+          "ported": true
         }
       ]
     },
@@ -3242,7 +3249,8 @@
       "functions": [
         {
           "decl": "void physical_memory_allocate(void);",
-          "addr": "0x1bdb70"
+          "addr": "0x1bdb70",
+          "ported": true
         }
       ]
     },
@@ -3715,7 +3723,8 @@
       "functions": [
         {
           "decl": "bool dangerous_projectiles_near_player(void);",
-          "addr": "0xf7dd0"
+          "addr": "0xf7dd0",
+          "ported": true
         }
       ]
     },
@@ -3894,7 +3903,8 @@
       "functions": [
         {
           "decl": "float normalize3d(float *v);",
-          "addr": "0x13010"
+          "addr": "0x13010",
+          "ported": true
         }
       ]
     },
@@ -4067,31 +4077,38 @@
       "functions": [
         {
           "decl": "void scenario_initialize(void);",
-          "addr": "0x18e280"
+          "addr": "0x18e280",
+          "ported": true
         },
         {
           "decl": "void scenario_initialize_for_new_map(void);",
-          "addr": "0x18e2a0"
+          "addr": "0x18e2a0",
+          "ported": true
         },
         {
           "decl": "void scenario_dispose_from_old_map(void);",
-          "addr": "0x18e2f0"
+          "addr": "0x18e2f0",
+          "ported": true
         },
         {
           "decl": "void scenario_frame_update(float);",
-          "addr": "0x18e300"
+          "addr": "0x18e300",
+          "ported": true
         },
         {
           "decl": "void scenario_unload(void);",
-          "addr": "0x18e310"
+          "addr": "0x18e310",
+          "ported": true
         },
         {
           "decl": "scenario_t *global_scenario_get(void);",
-          "addr": "0x18e380"
+          "addr": "0x18e380",
+          "ported": true
         },
         {
           "decl": "void *scenario_get(void);",
-          "addr": "0x18e3c0"
+          "addr": "0x18e3c0",
+          "ported": true
         },
         {
           "decl": "void *game_globals_get(void);",
@@ -4099,19 +4116,23 @@
         },
         {
           "decl": "void scenario_location_reset(int *location);",
-          "addr": "0x18e4d0"
+          "addr": "0x18e4d0",
+          "ported": true
         },
         {
           "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
-          "addr": "0x18eb40"
+          "addr": "0x18eb40",
+          "ported": true
         },
         {
           "decl": "bool scenario_load(const char *map_name);",
-          "addr": "0x18f090"
+          "addr": "0x18f090",
+          "ported": true
         },
         {
           "decl": "void scenario_location_from_point(void *location_out, void *point);",
-          "addr": "0x18f180"
+          "addr": "0x18f180",
+          "ported": true
         }
       ]
     },
@@ -4121,7 +4142,8 @@
       "functions": [
         {
           "decl": "void numeric_countdown_timer_update(void);",
-          "addr": "0x190db0"
+          "addr": "0x190db0",
+          "ported": true
         }
       ]
     },
@@ -4171,7 +4193,8 @@
       "functions": [
         {
           "decl": "void *scenario_get(void);",
-          "addr": "0x18e3c0"
+          "addr": "0x18e3c0",
+          "ported": true
         }
       ]
     },
@@ -4554,7 +4577,8 @@
       "functions": [
         {
           "decl": "const char *tiff_export(file_ref_t *info, __int16 *bitmap);",
-          "addr": "0x7f5e0"
+          "addr": "0x7f5e0",
+          "ported": true
         }
       ]
     },
@@ -4990,7 +5014,8 @@
       "functions": [
         {
           "decl": "bool vehicle_moving_near_any_player(void);",
-          "addr": "0x1b7ee0"
+          "addr": "0x1b7ee0",
+          "ported": true
         }
       ]
     },
@@ -5022,7 +5047,8 @@
       "functions": [
         {
           "decl": "void widgets_update(float);",
-          "addr": "0x136520"
+          "addr": "0x136520",
+          "ported": true
         }
       ]
     },
