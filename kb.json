@@ -568,6 +568,18 @@
           "addr": "0x14bc10"
         },
         {
+          "decl": "void __stdcall D3DDevice_SetTransform(uint32_t type, void *matrix);",
+          "addr": "0x1e6bd0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_GetTransform(uint32_t type, void *matrix_out);",
+          "addr": "0x1e6ce0"
+        },
+        {
+          "decl": "void D3DDevice_BlockUntilVerticalBlank(void);",
+          "addr": "0x1e7110"
+        },
+        {
           "decl": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
           "addr": "0x1e9350"
         },
@@ -578,6 +590,10 @@
         {
           "decl": "void D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
           "addr": "0x1e9410"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTextureState_BorderColor(uint32_t stage, uint32_t color);",
+          "addr": "0x1e9c20"
         },
         {
           "decl": "void __stdcall D3DDevice_SetRenderState_CullMode(uint32_t mode);",
@@ -602,6 +618,14 @@
         {
           "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
           "addr": "0x1e7af0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexShader(uint32_t shader);",
+          "addr": "0x1eb7f0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetPixelShaderProgram(void *program);",
+          "addr": "0x1ec120"
         },
         {
           "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
@@ -4415,12 +4439,20 @@
           "ported": true
         },
         {
+          "decl": "void progress_bar_draw_fullscreen_overlay(int x, int y, float alpha);",
+          "addr": "0xe2040"
+        },
+        {
           "decl": "void progress_bar_decode_texture(int height@<eax>, int width@<ecx>, void *out_texture@<edx>, void *data, int data_size);",
           "addr": "0xe24e0"
         },
         {
           "decl": "void progress_bar_generate_gradient_texture(void);",
           "addr": "0xe2580"
+        },
+        {
+          "decl": "void progress_bar_draw_loading_bar(float *rect@<eax>, float *color@<ecx>, float alpha, float progress);",
+          "addr": "0xe26c0"
         },
         {
           "decl": "void progress_bar_screen_initialize(void);",
