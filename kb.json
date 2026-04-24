@@ -2442,7 +2442,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_000ad160(float *position, float radius, float height, int16_t type, int16_t index, int flags, int *out_index);",
+          "decl": "int FUN_000ad160(float *position, float radius, float height, int16_t type, int16_t index, int max_count, int *out_indices);",
           "addr": "0xad160",
           "ported": true
         },
