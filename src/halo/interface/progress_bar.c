@@ -9,10 +9,37 @@
  *   0xe1cc0  progress_bar_end
  *   0xe1ce0  ui_automation_is_active
  *   0xe29a0  progress_bar_screen_initialize
+ *   0xe2e50  progress_bar_render
  *   0xe3300  progress_bar_display
  */
 
 #include "common.h"
+
+/*
+ * pow via x87 FYL2X + F2XM1 + FSCALE.
+ * Used only for positive base values in [0,1] with small positive exponents.
+ * Matches the binary's use of CRT pow through the thunk at 0x1d9e70.
+ */
+static double pow(double base, double exponent)
+{
+  double result;
+  asm volatile(
+    "fyl2x\n\t"          /* ST(0) = exponent * log2(base) */
+    "fld %%st(0)\n\t"    /* duplicate */
+    "frndint\n\t"         /* ST(0) = integer part */
+    "fxch %%st(1)\n\t"   /* swap: ST(0) = full, ST(1) = int */
+    "fsub %%st(1), %%st\n\t" /* ST(0) = fractional part */
+    "f2xm1\n\t"          /* ST(0) = 2^frac - 1 */
+    "fld1\n\t"            /* push 1.0 */
+    "faddp\n\t"           /* ST(0) = 2^frac */
+    "fscale\n\t"          /* ST(0) = 2^frac * 2^int = 2^(exp*log2(base)) */
+    "fstp %%st(1)\n\t"   /* pop the integer part */
+    : "=t"(result)
+    : "0"(base), "u"(exponent)
+    : "st(1)"
+  );
+  return result;
+}
 
 /* XDK SetThreadPriority thunk (stdcall) */
 typedef int(__stdcall *SetThreadPriority_fn)(int handle, int priority);
@@ -326,6 +353,229 @@ void progress_bar_screen_initialize(void)
     D3DDevice_Clear(0, 0, 0xf0, 0, 0, 0);
     D3DDevice_SetRenderTarget(back_buffer, depth_surface);
   }
+}
+
+/*
+ * progress_bar_render — render one frame of the loading progress bar.
+ *
+ * Updates a phase timer and computes a smoothed progress value from the
+ * normalized input. Adjusts 4 DirectSound buffer volumes based on how far
+ * progress falls within per-channel fade ranges. Sets up D3D transforms
+ * (saving/restoring projection, world, and view matrices), render states
+ * for alpha blending, and draws a full-screen tinted overlay plus the
+ * textured loading bar. Waits for vertical blank before returning.
+ *
+ * Confirmed: phase timer at 0x46c400 incremented by 0.01f each frame.
+ * Confirmed: smoothed progress at 0x46c3fc with 0.2 lerp factor, clamped to 1.0.
+ * Confirmed: 4 sound buffers at 0x46c3d8..0x46c3e4 with volume ranges
+ *   [3500.0, 4500.0, 3500.0, 4500.0] and fade ranges [(0,1),(0.4,1),(0.5,1),(0.55,1)].
+ * Confirmed: pow(sin(factor*pi), 0.3) for volume envelope.
+ * Confirmed: pow(sin(progress*pi), 0.9) for base color intensity.
+ * Confirmed: D3D transforms saved to 0x46c258/0x46c298/0x46c218,
+ *   loading bar transforms set from 0x46c358/0x46c398/0x46c318.
+ * Confirmed: render states: alpha blend enable, src/dst blend 0x302, blend op 1.
+ * Confirmed: FUN_000e2040 called with (0, 0, fade_alpha) cdecl.
+ * Confirmed: FUN_000e26c0 called with EAX=rect, ECX=color, stack=(1.0f, progress) cdecl.
+ * Confirmed: system_milliseconds stored to 0x5aa670 for timeout tracking.
+ */
+/* 0xe2e50 */
+void progress_bar_render(float normalized_progress)
+{
+  int i;
+  float phase_timer;
+  float smoothed;
+  float factor;
+  float pow_result;
+  float base_color[3];
+  float fade_alpha;
+  void *back_buffer_surface;
+
+  /* Per-channel fade ranges: (start, end) pairs for 4 sound channels */
+  float ranges[8];
+  ranges[0] = 0.0f;
+  ranges[1] = 1.0f;
+  ranges[2] = 0.4f;
+  ranges[3] = 1.0f;
+  ranges[4] = 0.5f;
+  ranges[5] = 1.0f;
+  ranges[6] = 0.55f;
+  ranges[7] = 1.0f;
+
+  /* Max volume levels per sound channel */
+  float volumes[4];
+  volumes[0] = 3500.0f;
+  volumes[1] = 4500.0f;
+  volumes[2] = 3500.0f;
+  volumes[3] = 4500.0f;
+
+  /* Advance phase timer and compute sin of accumulated phase */
+  phase_timer = *(float *)0x46c400;
+  phase_timer = phase_timer + 0.01f;
+  *(float *)0x46c400 = phase_timer;
+
+  /* Smooth the progress value: lerp toward input with oscillation */
+  smoothed = (sinf(phase_timer) * 0.05 + normalized_progress
+              - *(float *)0x46c3fc) * 0.2
+             + *(float *)0x46c3fc;
+  if (smoothed > 1.0) {
+    smoothed = 1.0f;
+  }
+  *(float *)0x46c3fc = smoothed;
+
+  /* Compute base color intensity from smoothed progress */
+  pow_result = (float)pow(sinf(smoothed * 3.14159), 0.9);
+  base_color[0] = pow_result;
+  base_color[1] = pow_result;
+  base_color[2] = pow_result;
+
+  /* Update volume for each of the 4 sound buffers */
+  for (i = 0; i < 4; i++) {
+    /* Compute fade factor: how far smoothed progress is within this channel's range */
+    if (smoothed < ranges[i * 2]) {
+      factor = 0.0f;
+    } else if (smoothed > ranges[i * 2 + 1]) {
+      factor = 0.0f;
+    } else {
+      factor = (smoothed - ranges[i * 2]) / (ranges[i * 2 + 1] - ranges[i * 2]);
+    }
+
+    /* Set volume if this sound buffer is valid */
+    if (*(int *)(0x46c3d8 + i * 4) != 0) {
+      int volume = (int)(
+        (float)pow(sinf(factor * 3.1415), 0.3) * volumes[i] - 5000.0f
+      );
+      IDirectSoundBuffer_SetVolume(*(void **)(0x46c3d8 + i * 4), volume);
+    }
+  }
+
+  /* Store current timestamp for timeout tracking */
+  *(int *)0x5aa670 = system_milliseconds();
+
+  /* Save current D3D transforms */
+  D3DDevice_GetTransform(6, (void *)0x46c258);
+  D3DDevice_GetTransform(0, (void *)0x46c298);
+  D3DDevice_GetTransform(1, (void *)0x46c218);
+
+  /* Set loading bar transforms */
+  D3DDevice_SetTransform(6, (void *)0x46c358);
+  D3DDevice_SetTransform(0, (void *)0x46c398);
+  D3DDevice_SetTransform(1, (void *)0x46c318);
+
+  /* Configure render states for alpha-blended overlay */
+  D3DDevice_SetRenderState_Simple(0x40304, 1);
+  *(uint32_t *)0x1fb784 = 1;
+
+  D3DDevice_SetRenderState_Simple(0x40344, 0x302);
+  *(uint32_t *)0x1fb790 = 0x302;
+
+  D3DDevice_SetRenderState_Simple(0x40348, 1);
+  *(uint32_t *)0x1fb794 = 1;
+
+  D3DDevice_SetRenderState_CullMode(0);
+  D3DDevice_SetRenderState_ZEnable(0);
+  D3DDevice_SetRenderState_Deferred(0x5c, 0);
+
+  /* Texture stage states for stage 0 (3 stages, 5 state sets each) */
+  /* Stage 0 */
+  D3DDevice_SetTextureStageState(0, 0xe, 2);
+  D3DDevice_SetTextureStageState(0, 0xd, 2);
+  D3DDevice_SetTextureStageState(0, 0xf, 1);
+  D3DDevice_SetTextureStageState(0, 0xa, 3);
+  D3DDevice_SetTextureStageState(0, 0xb, 3);
+  /* Stage 1 */
+  D3DDevice_SetTextureStageState(1, 0xe, 2);
+  D3DDevice_SetTextureStageState(1, 0xd, 2);
+  D3DDevice_SetTextureStageState(1, 0xf, 1);
+  D3DDevice_SetTextureStageState(1, 0xa, 1);
+  D3DDevice_SetTextureStageState(1, 0xb, 1);
+  /* Stage 2 */
+  D3DDevice_SetTextureStageState(2, 0xe, 2);
+  D3DDevice_SetTextureStageState(2, 0xd, 2);
+  D3DDevice_SetTextureStageState(2, 0xf, 1);
+  D3DDevice_SetTextureStageState(2, 0xa, 1);
+  D3DDevice_SetTextureStageState(2, 0xb, 1);
+
+  /* Set texture, clear screen, set vertex shader and pixel shader */
+  D3DDevice_SetTexture(0, *(void **)0x46c3f0);
+  D3DDevice_Clear(0, 0, 0xf0, 0, 1.0f, 0);
+  D3DDevice_SetVertexShader(0);
+  D3DDevice_SetPixelShaderProgram((void *)0x5aa480);
+
+  /* Get back buffer to build texture descriptor */
+  D3DDevice_GetBackBuffer(-1, 0, &back_buffer_surface);
+
+  {
+    /* Build a texture descriptor on the stack (5 dwords at EBP-0x44) */
+    uint32_t tex_desc[5];
+    tex_desc[0] = 0x40005;
+    tex_desc[1] = *(uint32_t *)((char *)back_buffer_surface + 4);
+    tex_desc[2] = 0;
+    tex_desc[3] = 0x11229;
+    tex_desc[4] = 0x271df27f;
+
+    /* Set texture stage states and texture for 4 stages */
+    for (i = 0; i < 4; i++) {
+      D3DDevice_SetTextureStageState((uint32_t)i, 0xe, 2);
+      D3DDevice_SetTextureStageState((uint32_t)i, 0xd, 2);
+      D3DDevice_SetTextureStageState((uint32_t)i, 0xf, 1);
+      D3DDevice_SetTextureStageState((uint32_t)i, 0xa, 3);
+      D3DDevice_SetTextureStageState((uint32_t)i, 0xb, 3);
+      D3DDevice_SetTexture((uint32_t)i, (void *)tex_desc);
+    }
+  }
+
+  /* Compute and draw the overlay fade quad */
+  if (smoothed >= 0.9f) {
+    fade_alpha = 0.9f - (smoothed - 0.9f) * 9.0f;
+  } else {
+    fade_alpha = 0.9f;
+  }
+  progress_bar_draw_fullscreen_overlay(0, 0, fade_alpha);
+
+  /* Set textures for the loading bar */
+  D3DDevice_SetTexture(0, *(void **)0x46c3f0);
+  D3DDevice_SetTexture(1, *(void **)0x46c3f4);
+  D3DDevice_SetTextureState_BorderColor(1, 0x5050505);
+
+  /* Texture stage states for the bar rendering */
+  D3DDevice_SetTextureStageState(1, 0xa, 4);
+  D3DDevice_SetTextureStageState(1, 0xb, 3);
+
+  /* Set pixel shader for loading bar */
+  D3DDevice_SetPixelShaderProgram((void *)0x5aa580);
+
+  /* Build screen rect struct (7 floats) and draw the loading bar.
+   * Layout at EBP-0x30: [screen_w*2, screen_h*2, x_offset, y_offset,
+   *                      half_w, half_h, depth] */
+  {
+    float screen_rect[7];
+
+    screen_rect[4] = fabsf((float)320.0);
+    screen_rect[5] = fabsf((float)240.0);
+
+    screen_rect[0] = 640.0f;
+    screen_rect[1] = 480.0f;
+    screen_rect[2] = 0.0f;
+    screen_rect[3] = 0.0f;
+    screen_rect[6] = 0.0f;
+
+    base_color[2] = 0.0f;
+
+    progress_bar_draw_loading_bar(screen_rect, base_color, 1.0f, smoothed);
+  }
+
+  /* Clear all 4 texture stages */
+  for (i = 0; i < 4; i++) {
+    D3DDevice_SetTexture((uint32_t)i, 0);
+  }
+
+  /* Restore saved D3D transforms */
+  D3DDevice_SetTransform(6, (void *)0x46c258);
+  D3DDevice_SetTransform(0, (void *)0x46c298);
+  D3DDevice_SetTransform(1, (void *)0x46c218);
+
+  /* Wait for vertical blank */
+  D3DDevice_BlockUntilVerticalBlank();
 }
 
 /*
