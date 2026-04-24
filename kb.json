@@ -3654,7 +3654,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00084a10(float *vector);",
+          "decl": "int real_vector3d_valid(float *vector);",
           "addr": "0x84a10",
           "ported": true
         },

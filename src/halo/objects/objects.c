@@ -251,7 +251,6 @@ typedef void (*pfn_int_t)(int);
 typedef int (*valid_real_point3d_fn)(float *p);
 typedef void (*object_type_validate_fn)(int16_t type);
 
-int FUN_00084a10(float *vector);
 int FUN_000ae0a0(int tag_index);
 void *FUN_0013c100(int16_t object_type);
 void FUN_0013c430(int object_handle, void *placement);
@@ -264,6 +263,31 @@ void FUN_001365d0(int object_handle, int arg1, int arg2);
 void FUN_0013ecb0(int object_handle);
 void FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
                   int marker, int arg4, int arg5, int arg6, int arg7);
+
+/*
+ * real_vector3d_valid — check whether a 3D vector contains only finite floats.
+ *
+ * Tests the IEEE 754 exponent field (bits 23..30) of each of the three
+ * components. If all three have an exponent != 0xFF (i.e. the value is
+ * neither NaN nor Infinity), returns 1 (valid). Otherwise returns 0.
+ *
+ * Leaf function, no callees. Reinterprets floats as uint32 via pointer cast.
+ *
+ * Confirmed: AND with 0x7f800000 and CMP to 0x7f800000 for each component.
+ * Confirmed: returns 1 only if all three pass; returns 0 on first failure.
+ */
+/* 0x84a10 */
+int real_vector3d_valid(float *vector)
+{
+  unsigned int *v = (unsigned int *)vector;
+  if ((v[0] & 0x7f800000) == 0x7f800000)
+    return 0;
+  if ((v[1] & 0x7f800000) == 0x7f800000)
+    return 0;
+  if ((v[2] & 0x7f800000) == 0x7f800000)
+    return 0;
+  return 1;
+}
 
 /*
  * object_try_and_get_and_verify_type — resolve a datum handle to its
@@ -3533,7 +3557,7 @@ int FUN_00143c80(void *placement)
   }
 
   /* --- Validation: angular velocity --- */
-  if (!FUN_00084a10((float *)(p + 0x4c))) {
+  if (!real_vector3d_valid((float *)(p + 0x4c))) {
     char *msg =
       csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "&data->angular_velocity", (double)*(float *)(p + 0x4c),
@@ -3543,7 +3567,7 @@ int FUN_00143c80(void *placement)
   }
 
   /* --- Validation: translational velocity --- */
-  if (!FUN_00084a10((float *)(p + 0x28))) {
+  if (!real_vector3d_valid((float *)(p + 0x28))) {
     char *msg =
       csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "&data->translational_velocity", (double)*(float *)(p + 0x28),
