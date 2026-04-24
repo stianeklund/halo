@@ -18,6 +18,15 @@ ROOT_DIR = os.path.abspath(
 BUILD_DIR = os.path.join(ROOT_DIR, "build")
 
 
+def _run_cmake_build(target: str = "") -> int:
+    command = ["cmake", "--build", BUILD_DIR]
+    if target:
+        command += ["--target", target]
+
+    result = subprocess.run(command, check=False, cwd=ROOT_DIR)
+    return result.returncode
+
+
 def build(target: str = "") -> int:
     if not os.path.isdir(BUILD_DIR):
         print(
@@ -27,12 +36,12 @@ def build(target: str = "") -> int:
         )
         return 1
 
-    command = ["cmake", "--build", BUILD_DIR]
-    if target:
-        command += ["--target", target]
+    if target != "reverse_thunk_tests":
+        thunk_result = _run_cmake_build("reverse_thunk_tests")
+        if thunk_result != 0:
+            return thunk_result
 
-    result = subprocess.run(command, check=False, cwd=ROOT_DIR)
-    return result.returncode
+    return _run_cmake_build(target)
 
 
 def main() -> int:
