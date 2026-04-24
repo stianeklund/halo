@@ -499,6 +499,39 @@ skip_fade:
     ((void (*)(void *))0x119720)(*(void **)0x4fdba0);
 }
 
+/* sound_get_previous_ms (0x1cb8e0)
+ *
+ * Returns the sound system's last-recorded millisecond timestamp.
+ */
+unsigned int FUN_001cb8e0(void)
+{
+  return *(unsigned int *)0x4eaf4c;
+}
+
+/* sound_pump (0x1cf2f0)
+ *
+ * Stripped-down sound tick used during fade-out spin loops.  Locks the
+ * sound driver, updates timing + music, unlocks, then runs game_sound_update.
+ */
+void FUN_001cf2f0(void)
+{
+  int current_ms;
+
+  *(uint8_t *)0x4eaf43 = 1;
+  if (*(uint8_t *)0x4eaf40 != 0 && *(uint8_t *)0x4eaf41 != 0) {
+    (*(void (**)(void))(*(int *)0x4eaf48 + 0x10))();
+    if (*(uint8_t *)0x4eaf42 == 0) {
+      current_ms = system_milliseconds();
+      *(float *)0x4eaf50 = (float)(current_ms - *(int *)0x4eaf4c) * 0.03f;
+      *(int *)0x4eaf4c = current_ms;
+      sound_update_music();
+    }
+    (*(void (**)(void))(*(int *)0x4eaf48 + 0x14))();
+  }
+  xbox_sound_cache_idle();
+  *(uint8_t *)0x4eaf43 = 0;
+}
+
 /* Per-frame sound rendering tick.
  *
  * Guarded by profiling markers (profile_enter/exit_private on "sound_render").

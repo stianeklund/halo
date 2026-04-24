@@ -4559,6 +4559,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1cb8e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1cba20": {
       "kind": "function",
       "status": "ported",
@@ -4607,6 +4611,10 @@
       "uncertain": [
         "The source struct layout is accessed by offsets (0x0=spatialization_mode, 0x4=scale, 0x18=forward vector) but the full struct type is unknown."
       ]
+    },
+    "0x1cf2f0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1cf640": {
       "kind": "function",
