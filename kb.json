@@ -2398,7 +2398,8 @@
         },
         {
           "decl": "bool game_engine_teams_still_playing(void);",
-          "addr": "0xaba90"
+          "addr": "0xaba90",
+          "ported": true
         },
         {
           "decl": "bool game_engine_game_over(void);",
@@ -2407,7 +2408,8 @@
         },
         {
           "decl": "bool game_engine_get_score_hud_text(int player_handle, int param3, int hud_player, wchar_t *buffer@<edi>, int buffer_capacity@<esi>);",
-          "addr": "0xac4e0"
+          "addr": "0xac4e0",
+          "ported": true
         },
         {
           "decl": "void game_engine_periodic_equipment_spawn(void);",
@@ -2493,6 +2495,14 @@
           "decl": "int FUN_000ad270(float *position, float radius, float height, int16_t type, int16_t index);",
           "addr": "0xad270",
           "ported": true
+        },
+        {
+          "decl": "int game_engine_player_count(void);",
+          "addr": "0xa83a0"
+        },
+        {
+          "decl": "bool game_engine_is_player_leading(int player_handle@<edi>);",
+          "addr": "0xa8ba0"
         }
       ]
     },
@@ -5762,6 +5772,10 @@
           "decl": "wchar_t *ascii_to_wide(const char *ascii, wchar_t *unicode, size_t length);",
           "addr": "0x19f450",
           "ported": true
+        },
+        {
+          "decl": "void unicode_sprintf(wchar_t *buffer, int buffer_size, const wchar_t *format, ...);",
+          "addr": "0x19e9f0"
         }
       ]
     },
