@@ -2413,8 +2413,9 @@
           "ported": true
         },
         {
-          "decl": "bool FUN_000acb10(int player_index, int type, void *entry);",
-          "addr": "0xacb10"
+          "decl": "bool FUN_000acb10(int player_index, int count, int16_t *entries);",
+          "addr": "0xacb10",
+          "ported": true
         },
         {
           "decl": "int FUN_000ad160(float *position, float radius, float height, int16_t type, int16_t index, int flags, int *out_index);",
