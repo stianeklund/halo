@@ -8,6 +8,9 @@
  *   0xe1c90  progress_bar_begin
  *   0xe1cc0  progress_bar_end
  *   0xe1ce0  ui_automation_is_active
+ *   0xe2040  progress_bar_draw_fullscreen_overlay
+ *   0xe2580  progress_bar_generate_gradient_texture
+ *   0xe26c0  progress_bar_draw_loading_bar
  *   0xe29a0  progress_bar_screen_initialize
  *   0xe2e50  progress_bar_render
  *   0xe3300  progress_bar_display
@@ -121,6 +124,178 @@ void progress_bar_end(void)
 bool ui_automation_is_active(void)
 {
   return *progress_bar_active();
+}
+
+/*
+ * progress_bar_draw_fullscreen_overlay — draw a tinted fullscreen quad.
+ *
+ * Draws a quad covering the screen using D3D immediate-mode vertex submission.
+ * The quad vertices are computed by scaling (1.0 - offset) * (1/128) around
+ * the screen center. Four texture coordinate sets are emitted per vertex via
+ * progress_bar_set_quad_texcoords. The color is set to near-white
+ * (0.996, 0.996, 1.0) with the given alpha.
+ *
+ * Confirmed: D3DDevice_Begin(7) = D3DPT_QUADLIST.
+ * Confirmed: SetVertexData4f(3, ...) sets diffuse color.
+ * Confirmed: SetVertexData4f(-1, x, y, 0.5, 1.0) emits position.
+ * Confirmed: 4 vertices with texture coords via progress_bar_set_quad_texcoords.
+ * Confirmed: Constants 0x2533c8=1.0, 0x25f0d0=0.0078125 (1/128), 0x255e94=-1.0.
+ */
+/* 0xe2040 */
+void progress_bar_draw_fullscreen_overlay(float x, float y, float alpha)
+{
+  float y0, x0, x1, y1;
+
+  /* Begin quad primitive */
+  D3DDevice_Begin(7);
+
+  /* Set diffuse color: near-white with caller-specified alpha */
+  D3DDevice_SetVertexData4f(3, 0.99607843f, 0.99607843f, 1.0f, alpha);
+
+  /* Vertex 0: bottom-left */
+  progress_bar_set_quad_texcoords(3.0f, 0.0f);
+  y0 = (1.0f - y) * 0.0078125f + 1.0f;
+  x0 = (-1.0f - x) * 0.0078125f - 1.0f;
+  D3DDevice_SetVertexData4f(0xffffffff, x0, y0, 0.5f, 1.0f);
+
+  /* Vertex 1: bottom-right */
+  progress_bar_set_quad_texcoords(637.0f, 0.0f);
+  x1 = (1.0f - x) * 0.0078125f + 1.0f;
+  D3DDevice_SetVertexData4f(0xffffffff, x1, y0, 0.5f, 1.0f);
+
+  /* Vertex 2: top-right */
+  progress_bar_set_quad_texcoords(637.0f, 480.0f);
+  y1 = (-1.0f - y) * 0.0078125f - 1.0f;
+  D3DDevice_SetVertexData4f(0xffffffff, x1, y1, 0.5f, 1.0f);
+
+  /* Vertex 3: top-left */
+  progress_bar_set_quad_texcoords(3.0f, 480.0f);
+  D3DDevice_SetVertexData4f(0xffffffff, x0, y1, 0.5f, 1.0f);
+
+  D3DDevice_End();
+}
+
+/*
+ * progress_bar_generate_gradient_texture — create a 128x16 gradient texture.
+ *
+ * Creates a D3D texture (128x16, D3DFMT_A8R8G8B8) and fills it with a
+ * sinusoidal gradient. Each row uses pow(sin(row/15 * pi), 0.75) as a
+ * brightness envelope. Each column uses sin(col/127 * pi) modulated by the
+ * row envelope, scaled to a 5..255 range, and replicated across all 4 channels
+ * (ARGB). The resulting texture is stored at global 0x46c3f4.
+ *
+ * Confirmed: D3DDevice_CreateTexture(128, 16, 1, 0, 0x3f, 0, &0x46c3f4).
+ * Confirmed: D3DTexture_LockRect to get pixel data pointer.
+ * Confirmed: Outer loop 0..15 (rows), inner loop 0..127 (cols).
+ * Confirmed: pow() call at 0x1d9e70 with exponent 0.75 (double).
+ * Confirmed: _ftol2 at 0x1d9068 for float-to-int conversion.
+ * Confirmed: Constants: 1/15=0x3d888889, pi=0x40490e56, 1/127=0x3c010204.
+ * Confirmed: Scale: sin * row_pow * (250/255) + (5/255), then * 255.
+ * Confirmed: Pixel = (val << 8 | val) << 8 | val) << 8 | val (AARRGGBB).
+ */
+/* 0xe2580 */
+void progress_bar_generate_gradient_texture(void)
+{
+  int row, col;
+  uint32_t *pixels;
+  uint32_t val;
+  float row_factor;
+  /* D3DLOCKED_RECT: { INT Pitch; void *pBits; } — 8 bytes */
+  uint32_t locked_rect[2];
+
+  /* Create the gradient texture: 128 wide, 16 tall, 1 level, format 0x3f */
+  D3DDevice_CreateTexture(128, 16, 1, 0, 0x3f, 0, (void *)0x46c3f4);
+
+  /* Lock level 0 to get writable pixel data */
+  D3DTexture_LockRect(*(void **)0x46c3f4, 0, locked_rect, 0, 0);
+
+  pixels = (uint32_t *)locked_rect[1];
+
+  for (row = 0; row < 16; row++) {
+    /* Row brightness envelope: pow(sin(row * (1/15) * pi), 0.75) */
+    row_factor = (float)pow(sinf((float)row * 0.066666670f * 3.14150f), 0.75);
+
+    for (col = 0; col < 128; col++) {
+      /* Column intensity: sin(col * (1/127) * pi) * row_factor * (250/255) + (5/255) */
+      float intensity = sinf((float)col * 0.0078740157f * 3.14150f)
+                        * row_factor * 0.98039216f + 0.019607844f;
+      val = (uint32_t)(int)(intensity * 255.0f) & 0xff;
+      /* Replicate val across all 4 channels: AARRGGBB */
+      *pixels = ((val << 8 | val) << 8 | val) << 8 | val;
+      pixels++;
+    }
+  }
+}
+
+/*
+ * progress_bar_draw_loading_bar — draw the textured loading bar quad.
+ *
+ * Transforms the input screen rect through the perspective projection matrix
+ * to get screen-space coordinates, then draws a textured quad with the given
+ * color and alpha. The progress parameter controls horizontal texture
+ * scrolling. Two texture coordinate sets are emitted: stage 9 (primary
+ * texture) and stage 10 (gradient overlay with scroll offset).
+ *
+ * Register args: EAX = rect (7 floats), ECX = color (3 floats).
+ * Stack args: alpha (float), progress (float).
+ *
+ * Confirmed: EAX -> rect, used for FLD [EAX], FLD [EAX+4] then passed to
+ *   progress_bar_compute_screen_rect.
+ * Confirmed: ECX -> color, moved to ESI, used for [ESI], [ESI+4], [ESI+8].
+ * Confirmed: D3DDevice_Begin(7) = D3DPT_QUADLIST.
+ * Confirmed: SetVertexData4f(3, color[0], color[1], color[2], alpha).
+ * Confirmed: progress * 768.0 - 64.0 - 64.0 for scroll offset.
+ * Confirmed: 640.0 - scroll for right edge tex coord.
+ * Confirmed: Texture stage 9 = primary, stage 10 = gradient with scroll.
+ * Confirmed: 4 vertices with position from screen rect.
+ */
+/* 0xe26c0 */
+void progress_bar_draw_loading_bar(float *rect, float *color, float alpha, float progress)
+{
+  float screen_rect[4];
+  float tex_u, tex_v;
+  float scroll;
+  float neg_scroll;
+
+  /* Scale rect dimensions by 0.5 for texture coordinates */
+  tex_u = rect[0] * 0.5f;
+  tex_v = rect[1] * 0.5f;
+
+  /* Transform rect to screen coordinates */
+  progress_bar_compute_screen_rect(rect, screen_rect);
+
+  /* Begin quad primitive */
+  D3DDevice_Begin(7);
+
+  /* Set diffuse color with alpha */
+  D3DDevice_SetVertexData4f(3, color[0], color[1], color[2], alpha);
+
+  /* Compute texture scroll offset from progress */
+  scroll = progress * 768.0f - 64.0f - 64.0f;
+  neg_scroll = -scroll;
+
+  /* Vertex 0: bottom-left */
+  D3DDevice_SetVertexData2f(10, neg_scroll, 0.0f);
+  D3DDevice_SetVertexData2f(9, 0.0f, tex_v);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[0], screen_rect[1], 0.5f, 1.0f);
+
+  /* Vertex 1: bottom-right */
+  scroll = 640.0f - scroll;
+  D3DDevice_SetVertexData2f(10, scroll, 0.0f);
+  D3DDevice_SetVertexData2f(9, tex_u, tex_v);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[2], screen_rect[1], 0.5f, 1.0f);
+
+  /* Vertex 2: top-right */
+  D3DDevice_SetVertexData2f(10, scroll, 16.0f);
+  D3DDevice_SetVertexData2f(9, tex_u, 0.0f);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[2], screen_rect[3], 0.5f, 1.0f);
+
+  /* Vertex 3: top-left */
+  D3DDevice_SetVertexData2f(10, neg_scroll, 16.0f);
+  D3DDevice_SetVertexData2f(9, 0.0f, 0.0f);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[0], screen_rect[3], 0.5f, 1.0f);
+
+  D3DDevice_End();
 }
 
 /*
