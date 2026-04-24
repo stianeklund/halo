@@ -694,6 +694,78 @@
         {
           "decl": "void xbox_sound_cache_idle(void);",
           "addr": "0x1bded0"
+        },
+        {
+          "decl": "void network_game_client_dispose(void *client);",
+          "addr": "0x12ea00"
+        },
+        {
+          "decl": "bool network_game_server_start(void *server);",
+          "addr": "0x12eb20"
+        },
+        {
+          "decl": "void network_game_server_dispose(void *server);",
+          "addr": "0x1249b0"
+        },
+        {
+          "decl": "void FUN_000fff70(int param);",
+          "addr": "0xfff70"
+        },
+        {
+          "decl": "void FUN_0012ab80(int reason);",
+          "addr": "0x12ab80"
+        },
+        {
+          "decl": "int FUN_0012d570(void *client);",
+          "addr": "0x12d570"
+        },
+        {
+          "decl": "bool FUN_00127070(void *server);",
+          "addr": "0x127070"
+        },
+        {
+          "decl": "int16_t FUN_00124cc0(void *server);",
+          "addr": "0x124cc0"
+        },
+        {
+          "decl": "int16_t FUN_00124a30(void *server, void *out_param);",
+          "addr": "0x124a30"
+        },
+        {
+          "decl": "void network_game_log(const char *msg);",
+          "addr": "0x12b650"
+        },
+        {
+          "decl": "void *FUN_0012b700(int type, void *data, int size);",
+          "addr": "0x12b700"
+        },
+        {
+          "decl": "bool FUN_001257e0(void *server);",
+          "addr": "0x1257e0"
+        },
+        {
+          "decl": "uint32_t FUN_00125820(void *server);",
+          "addr": "0x125820"
+        },
+        {
+          "decl": "bool FUN_00125860(void *server);",
+          "addr": "0x125860"
+        },
+        {
+          "decl": "void FUN_00125750(void *server, void *out);",
+          "addr": "0x125750"
+        },
+        {
+          "decl": "int FUN_00125710(void *server, void *msg, int seq, void *info, int flags);",
+          "addr": "0x125710"
+        },
+        {
+          "decl": "bool FUN_00124d40(int result);",
+          "addr": "0x124d40"
+        },
+        {
+          "decl": "void FUN_000b8fa0(void *out);",
+          "addr": "0xb8fa0"
         }
       ]
     },
@@ -3360,7 +3432,8 @@
         },
         {
           "decl": "void dispose_global_network_game_client(void);",
-          "addr": "0x12a1e0"
+          "addr": "0x12a1e0",
+          "ported": true
         },
         {
           "decl": "void *network_game_client_get(void);",
@@ -3369,19 +3442,23 @@
         },
         {
           "decl": "bool network_game_server_start_frame(void);",
-          "addr": "0x12a210"
+          "addr": "0x12a210",
+          "ported": true
         },
         {
           "decl": "void dispose_global_network_game_server(void);",
-          "addr": "0x12a2a0"
+          "addr": "0x12a2a0",
+          "ported": true
         },
         {
           "decl": "bool network_game_client_start_frame(void);",
-          "addr": "0x12a2d0"
+          "addr": "0x12a2d0",
+          "ported": true
         },
         {
           "decl": "bool network_game_client_end_frame(void);",
-          "addr": "0x12a500"
+          "addr": "0x12a500",
+          "ported": true
         },
         {
           "decl": "void network_game_abort(void);",
