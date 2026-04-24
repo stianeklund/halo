@@ -121,3 +121,52 @@ void rasterizer_preinitialize(void)
     *(void **)0x476a50 = 0;
   }
 }
+
+/*
+ * rasterizer_get_default_hardware_format (0x155580)
+ *
+ * Returns the default D3D texture pointer for a bitmap based on its type.
+ * Bitmap types 0 (2D) and 1 (volume) map to the 2D default at 0x3256a4.
+ * Bitmap type 2 (cubemap) maps to the cubemap default at 0x3256ac.
+ * These globals are populated by rasterizer_filthy_bitmap_default_initialize
+ * (FUN_00156e00).
+ *
+ * Globals:
+ *   0x3256a4  void *  – default 2D hardware texture format
+ *   0x3256a8  void *  – default volume texture format
+ *   0x3256ac  void *  – default cubemap texture format
+ */
+/* 0x155580 */
+void *rasterizer_get_default_hardware_format(void *bitmap_data)
+{
+  short type;
+  void *result;
+
+  if (!bitmap_data) {
+    display_assert("bitmap",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0xd1, true);
+    system_exit(-1);
+  }
+
+  type = *(short *)((char *)bitmap_data + 0xa);
+  if (type != 0 && type != 1) {
+    if (type == 2) {
+      result = *(void **)0x3256ac;
+    } else {
+      display_assert("### ERROR unsupported bitmap type",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0xdf, true);
+      system_exit(-1);
+      result = bitmap_data;
+    }
+  } else {
+    result = *(void **)0x3256a4;
+  }
+
+  if (!result) {
+    display_assert("hardware_format",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0xe2, true);
+    system_exit(-1);
+  }
+
+  return result;
+}

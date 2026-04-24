@@ -4492,6 +4492,16 @@
     {
       "name": "rasterizer_xbox.obj",
       "source": "rasterizer/xbox/rasterizer_xbox.c",
+      "data_items": [
+        {
+          "decl": "void *rasterizer_default_2d_hardware_format;",
+          "addr": "0x3256a4"
+        },
+        {
+          "decl": "void *rasterizer_default_cubemap_hardware_format;",
+          "addr": "0x3256ac"
+        }
+      ],
       "functions": [
         {
           "decl": "void rasterizer_preinitialize(void);",
@@ -4499,8 +4509,9 @@
           "ported": true
         },
         {
-          "decl": "void *FUN_00155580(void *hardware_format);",
-          "addr": "0x155580"
+          "decl": "void *rasterizer_get_default_hardware_format(void *bitmap_data);",
+          "addr": "0x155580",
+          "ported": true
         }
       ]
     },
