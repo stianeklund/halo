@@ -2498,11 +2498,13 @@
         },
         {
           "decl": "int game_engine_player_count(void);",
-          "addr": "0xa83a0"
+          "addr": "0xa83a0",
+          "ported": true
         },
         {
           "decl": "bool game_engine_is_player_leading(int player_handle@<edi>);",
-          "addr": "0xa8ba0"
+          "addr": "0xa8ba0",
+          "ported": true
         }
       ]
     },

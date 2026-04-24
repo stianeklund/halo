@@ -902,6 +902,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa83a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa8680": {
       "kind": "function",
       "status": "ported"
@@ -924,6 +928,10 @@
       "inferred": [
         "Tail-call to vtable slot 0x58/4=22; original uses JMP ECX after POP EBP so the vtable entry executes as if it were the original function."
       ]
+    },
+    "0xa8ba0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xa8e30": {
       "kind": "function",

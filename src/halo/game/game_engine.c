@@ -859,6 +859,57 @@ void game_engine_initialize(game_variant_t *variant)
   }
 }
 
+/* game_engine_player_count (0xa83a0)
+ *
+ * Count the number of player datums in the player table.
+ */
+int game_engine_player_count(void)
+{
+  data_iter_t iter;
+  int count;
+
+  count = 0;
+  data_iterator_new(&iter, player_data);
+  while (data_iterator_next(&iter) != NULL)
+    count++;
+  return count;
+}
+
+/* game_engine_is_player_leading (0xa8ba0)
+ *
+ * Returns true if the given player has the highest kill count among all
+ * non-eliminated players.  Ties are broken by datum handle index (lower
+ * index wins).  Only checked when the player has no object and
+ * elimination mode is active (0x456b20 != 0).
+ *
+ * Register arg: player_handle in EDI.
+ */
+bool game_engine_is_player_leading(int player_handle)
+{
+  char *self;
+  char *other;
+  data_iter_t iter;
+  bool leading;
+
+  self = (char *)datum_get(player_data, player_handle);
+  if (*(char *)0x456b20 == 0 || *(int *)(self + 0x34) != NONE)
+    return false;
+
+  leading = true;
+  data_iterator_new(&iter, player_data);
+  while ((other = (char *)data_iterator_next(&iter)) != NULL) {
+    if (*(int *)(other + 0x34) != NONE)
+      continue;
+    if (other == self)
+      continue;
+    if (*(int *)(other + 0x84) > *(int *)(self + 0x84) ||
+        (*(int *)(other + 0x84) == *(int *)(self + 0x84) &&
+         (player_handle & 0xffff) > (iter.datum_handle & 0xffff)))
+      leading = false;
+  }
+  return leading;
+}
+
 /* game_engine_teams_still_playing (0xaba90)
  *
  * Returns true if at least two different teams are represented among
