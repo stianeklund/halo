@@ -4668,6 +4668,19 @@
         "The source struct layout is accessed by offsets (0x0=spatialization_mode, 0x4=scale, 0x18=forward vector) but the full struct type is unknown."
       ]
     },
+    "0x1ceda0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_001cc310 takes sound_handle in EAX (register-arg): caller sets MOV EAX,[EDI] before CALL, callee uses PUSH EAX as datum_get arg1 position (handle).",
+        "FUN_001cca60 takes sound_handle in EBX (register-arg): PUSH EBX before PUSH EAX as datum_get args, and no POP EBX in epilog (ESP restored via MOV ESP,EBP).",
+        "FUN_001cbac0 reads listener index from SI directly; no frame prolog, returns 0x4eaf58 + index*0x44 from EAX."
+      ],
+      "uncertain": [
+        "Semantic naming of sound_class_get_min_distance (0x1c8d50) vs sound_get_default_priority (0x1c8d10) is provisional; both return float from tag+0x8/tag+0xc with class_def fallback \u2014 confirmed ABI only.",
+        "Channel struct stride 0x18 confirmed by LEA EDI,[EDI*0x8 + 0x4fc3a0] after EDI=EAX*3; field semantics at +0x04 (flags bit 0), +0x08 (float phase), +0x10 (pitch param) inferred from usage."
+      ]
+    },
     "0x1cf2f0": {
       "kind": "function",
       "status": "ported"

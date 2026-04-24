@@ -1,12 +1,3 @@
-/* Sound manager — low-level sound system lifecycle and rendering. */
-
-/* Compute listener distance squared for a channel/source pair. */
-extern float FUN_001ccbe0(int channel_index, void *source);
-/* Compute distance for random scale checks. */
-extern float FUN_001ccca0(int channel_index, void *source);
-/* Compute sound obstruction for an absolute-spatialized source. */
-extern void sound_compute_source_obstruction(int channel_index, void *source, float sqrt_dist);
-
 /* Empty on Xbox — no per-map sound initialization needed. */
 void sound_initialize_for_new_map(void)
 {
@@ -42,6 +33,15 @@ void sound_set_music_enabled(int enabled)
     if (val == '\0')
       *(unsigned int *)0x4eaf4c = system_milliseconds();
   }
+}
+
+/* sound_get_previous_ms (0x1cb8e0)
+ *
+ * Returns the sound system's last-recorded millisecond timestamp.
+ */
+unsigned int FUN_001cb8e0(void)
+{
+  return *(unsigned int *)0x4eaf4c;
 }
 
 /* Check whether a sound tag can currently play.
@@ -131,6 +131,14 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
 
   return 0;
 }
+
+/* Sound manager — low-level sound system lifecycle and rendering. */
+
+/* Compute listener distance squared for a channel/source pair. */
+extern float FUN_001ccbe0(int channel_index, void *source);
+
+/* Compute distance for random scale checks. */
+extern float FUN_001ccca0(int channel_index, void *source);
 
 /* Allocate a sound channel for a source based on its spatialization mode.
  *
@@ -440,6 +448,233 @@ done:
   return result;
 }
 
+/* sound_update_music (0x1ceda0)
+ *
+ * Per-channel tick for spatialized sound playback. Iterates the global
+ * channel table (0x4fc3a0, stride 0x18 bytes, count at 0x4eb0b4) and, for
+ * each channel that holds a live sound:
+ *
+ *   1. Resolves the sound datum and its tag, then updates the channel's
+ *      attenuation curve via sound_update_channel_attenuation (0x1cc310,
+ *      @<eax>). If the computed attenuation and the tag's min-distance
+ *      curve (+0xa0) both reach 0.0f, the sound has faded out — stop it
+ *      via sound_stop_channel (0x1cca60, @<ebx>) and mark the channel
+ *      free (-1).
+ *   2. Otherwise, dispatches on the sound's spatialization mode
+ *      (sound_entry+0x14). Two top-level branches select on the channel
+ *      flags bit 0 (+0x4 & 1):
+ *        - BIT SET: drive the sound driver directly. Mode 0 asserts,
+ *          mode 1 transforms position/forward/up into the listener's
+ *          frame (matrix3x3 transforms + velocity compensation via
+ *          listener+0x38..0x40 scaled by 30.0) and issues vtable+0x30
+ *          with the transformed triple plus sound_entry+0x4c/0x50 and
+ *          listener[+1]. Mode 2 issues vtable+0x30 with the raw
+ *          world-space position.
+ *        - BIT CLEAR: compute an audible-volume scalar. Copy the source
+ *          position, then for mode 1 fetch the listener via
+ *          sound_listener_get (0x1cbac0, @<si>) and transform the
+ *          position through real_matrix3x3_transform_vector (0x1096e0).
+ *          For modes 1 and 2, scale the current attenuation by
+ *          1 - (sqrt(|pos|^2) - min_dist) / (max_dist - min_dist) using
+ *          sound_get_default_priority variants (0x1c8d50 min-dist,
+ *          0x1c8d10 max-dist), clamped to [0, 1]. Mode 0 leaves the
+ *          attenuation unchanged.
+ *   3. Update the per-channel volume/pan/pitch state. If the sound's
+ *      channel kind (sound_entry+0x2) is 0, invoke sound_update_channel
+ *      (0x1ccf80); otherwise invoke sound_update_music_channel
+ *      (0x1cdc30). Both take (channel_index, attenuation).
+ *   4. If the sound class is marked "pitch-track" (class_def+0x8) and
+ *      the sound's update hook (sound_entry+0x10) matches the pitch
+ *      callback at 0x1c7a10, evaluate the next pitch sample via
+ *      sound_get_random_permutation_pitch (0x1c8f20) driven by the
+ *      channel's current ftol-truncated phase (channel+0x8 -> int) and
+ *      channel+0x10, then forward it to the pitch sink at 0x1c7b00 with
+ *      sound_entry+0xc. */
+void sound_update_music(void)
+{
+  short channel_count;
+  int i;
+  int *channel;
+  char *sound_entry;
+  void *tag_ptr;
+  int tag_handle;
+  float attenuation;
+  float audible_scale;
+  float source_pos[3];
+  float listener_forward[3]; /* local_40 */
+  float listener_up[3]; /* local_34..local_2c */
+  char *listener;
+  void *class_def;
+
+  channel_count = *(short *)0x4eb0b4;
+  if (channel_count <= 0)
+    return;
+
+  for (i = 0; (short)i < channel_count; i++) {
+    if ((short)i < 0 || (short)i >= *(short *)0x4eb0b4) {
+      display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+      system_exit(-1);
+    }
+
+    /* Channel struct: stride 0x18 bytes starting at 0x4fc3a0.
+     *   +0x00 int sound_handle (-1 if free)
+     *   +0x04 uint32 flags (bit 0: active playback path)
+     *   +0x08 float phase_accumulator
+     *   +0x10 int pitch_param */
+    channel = (int *)(0x4fc3a0 + (short)i * 0x18);
+    if (channel[0] == -1)
+      continue;
+
+    sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, channel[0]);
+    tag_handle = *(int *)(sound_entry + 0x8);
+    tag_ptr = tag_get(0x736e6421, tag_handle);
+
+    /* Update attenuation curve for this channel. EAX arg is the
+     * channel's sound_handle (register-passed). */
+    attenuation = sound_update_channel_attenuation(channel[0]);
+    audible_scale = attenuation;
+
+    /* Faded out: both current and target reached 0.0f. */
+    if (attenuation == *(float *)0x2533c0 &&
+        *(float *)((char *)tag_ptr + 0xa0) == *(float *)0x2533c0) {
+      sound_stop_channel(channel[0]);
+      channel[0] = -1;
+      continue;
+    }
+
+    if ((*(uint8_t *)((char *)channel + 0x4) & 1) != 0) {
+      /* Active playback path: drive sound driver. */
+      short mode = *(short *)(sound_entry + 0x14);
+      if (mode == 0) {
+        display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7d4, 1);
+        system_exit(-1);
+      } else if (mode == 1) {
+        /* Listener-relative spatialization. */
+        listener = (char *)sound_listener_get(*(short *)(sound_entry + 0x6));
+        if (*listener == '\0') {
+          display_assert("listener->valid",
+                         "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7db, 1);
+          system_exit(-1);
+        }
+
+        real_matrix3x3_transform_vector(
+          listener + 4, (void *)(sound_entry + 0x20), (void *)source_pos);
+        real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
+                                       listener_forward);
+        real_matrix3x3_transform_vector(
+          listener + 4, (void *)(sound_entry + 0x38), (void *)listener_up);
+
+        /* Scale up-vector by 30.0 and subtract listener velocity
+         * (listener+0x38..0x40). */
+        listener_up[0] =
+          listener_up[0] * *(float *)0x253394 - *(float *)(listener + 0x38);
+        listener_up[1] =
+          listener_up[1] * *(float *)0x253394 - *(float *)(listener + 0x3c);
+        listener_up[2] =
+          listener_up[2] * *(float *)0x253394 - *(float *)(listener + 0x40);
+
+        (*(void (**)(int, int, void *, int, int, int))(*(int *)0x4eaf48 +
+                                                       0x30))(
+          i, 1, source_pos, *(int *)(sound_entry + 0x4c),
+          *(int *)(sound_entry + 0x50), (int)listener[1]);
+      } else if (mode == 2) {
+        (*(void (**)(int, int, void *, int, int, int))(
+          *(int *)0x4eaf48 + 0x30))(i, 1, (void *)(sound_entry + 0x20), 0, 0,
+                                    0);
+      } else {
+        display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7ec, 1);
+        system_exit(-1);
+      }
+    } else {
+      /* Inactive/culled path: compute audible_scale from attenuation. */
+      short mode;
+      source_pos[0] = *(float *)(sound_entry + 0x20);
+      source_pos[1] = *(float *)(sound_entry + 0x24);
+      source_pos[2] = *(float *)(sound_entry + 0x28);
+      mode = *(short *)(sound_entry + 0x14);
+      if (mode != 0) {
+        if (mode == 1) {
+          listener = (char *)sound_listener_get(*(short *)(sound_entry + 0x6));
+          if (*listener == '\0') {
+            display_assert("listener->valid",
+                           "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7fa,
+                           1);
+            system_exit(-1);
+          }
+          real_matrix3x3_transform_vector(
+            listener + 4, (void *)(sound_entry + 0x20), (void *)source_pos);
+        } else if (mode != 2) {
+          display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x80a,
+                         1);
+          system_exit(-1);
+        }
+
+        /* Audible falloff: 1 - (sqrt(dist^2) - min) / (max - min),
+         * clamped to [0, 1]. min/max come from the sound's class
+         * definition (tag+class_index). */
+        {
+          float min_dist = sound_class_get_min_distance(tag_handle);
+          float max_dist = sound_get_default_priority(tag_handle);
+          float sq = source_pos[0] * source_pos[0] +
+                     source_pos[1] * source_pos[1] +
+                     source_pos[2] * source_pos[2];
+          float falloff =
+            *(float *)0x2533c8 -
+            (__builtin_sqrtf(sq) - min_dist) / (max_dist - min_dist);
+          if (falloff < *(float *)0x2533c0)
+            falloff = *(float *)0x2533c0;
+          else if (falloff > *(float *)0x2533c8)
+            falloff = *(float *)0x2533c8;
+          audible_scale = falloff * audible_scale;
+        }
+      }
+    }
+
+    /* Push updated volume/pan/pitch (music vs regular channel). */
+    if (*(short *)(sound_entry + 2) == 0)
+      sound_update_channel(i, audible_scale);
+    else
+      sound_update_music_channel(i, audible_scale);
+
+    /* Pitch-track hook: if class_def says pitch-track and this
+     * sound's update callback is 0x1c7a10, push the next pitch
+     * sample computed from channel+0x8 (phase, truncated to int) and
+     * channel+0x10. */
+    class_def = sound_class_get_definition((short)tag_handle);
+    if (*(char *)((char *)class_def + 8) != '\0' &&
+        *(void **)(sound_entry + 0x10) == (void *)0x1c7a10) {
+      int phase_int = (int)*(float *)((char *)channel + 0x8);
+      float pitch_value = sound_get_permutation_pitch(channel[4], phase_int);
+      sound_pitch_push_sample(*(int *)(sound_entry + 0xc), pitch_value);
+    }
+  }
+}
+
+/* sound_pump (0x1cf2f0)
+ *
+ * Stripped-down sound tick used during fade-out spin loops.  Locks the
+ * sound driver, updates timing + music, unlocks, then runs game_sound_update.
+ */
+void FUN_001cf2f0(void)
+{
+  int current_ms;
+
+  *(uint8_t *)0x4eaf43 = 1;
+  if (*(uint8_t *)0x4eaf40 != 0 && *(uint8_t *)0x4eaf41 != 0) {
+    (*(void (**)(void))(*(int *)0x4eaf48 + 0x10))();
+    if (*(uint8_t *)0x4eaf42 == 0) {
+      current_ms = system_milliseconds();
+      *(float *)0x4eaf50 = (float)(current_ms - *(int *)0x4eaf4c) * 0.03f;
+      *(int *)0x4eaf4c = current_ms;
+      sound_update_music();
+    }
+    (*(void (**)(void))(*(int *)0x4eaf48 + 0x14))();
+  }
+  xbox_sound_cache_idle();
+  *(uint8_t *)0x4eaf43 = 0;
+}
+
 void sound_dispose_from_old_map(void)
 {
   unsigned int start_ms;
@@ -497,39 +732,6 @@ skip_fade:
   /* Re-validate the looping-sounds table for the next map if present. */
   if (*(void **)0x4fdba0 != 0)
     ((void (*)(void *))0x119720)(*(void **)0x4fdba0);
-}
-
-/* sound_get_previous_ms (0x1cb8e0)
- *
- * Returns the sound system's last-recorded millisecond timestamp.
- */
-unsigned int FUN_001cb8e0(void)
-{
-  return *(unsigned int *)0x4eaf4c;
-}
-
-/* sound_pump (0x1cf2f0)
- *
- * Stripped-down sound tick used during fade-out spin loops.  Locks the
- * sound driver, updates timing + music, unlocks, then runs game_sound_update.
- */
-void FUN_001cf2f0(void)
-{
-  int current_ms;
-
-  *(uint8_t *)0x4eaf43 = 1;
-  if (*(uint8_t *)0x4eaf40 != 0 && *(uint8_t *)0x4eaf41 != 0) {
-    (*(void (**)(void))(*(int *)0x4eaf48 + 0x10))();
-    if (*(uint8_t *)0x4eaf42 == 0) {
-      current_ms = system_milliseconds();
-      *(float *)0x4eaf50 = (float)(current_ms - *(int *)0x4eaf4c) * 0.03f;
-      *(int *)0x4eaf4c = current_ms;
-      sound_update_music();
-    }
-    (*(void (**)(void))(*(int *)0x4eaf48 + 0x14))();
-  }
-  xbox_sound_cache_idle();
-  *(uint8_t *)0x4eaf43 = 0;
 }
 
 /* Per-frame sound rendering tick.
