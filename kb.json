@@ -588,7 +588,7 @@
           "addr": "0x1e9380"
         },
         {
-          "decl": "void D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+          "decl": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
           "addr": "0x1e9410"
         },
         {
@@ -660,7 +660,7 @@
           "addr": "0x1ff913"
         },
         {
-          "decl": "float *mat4x4_transform_vec4(float *out, float *in, float *matrix);",
+          "decl": "float *__stdcall mat4x4_transform_vec4(float *out, float *in, float *matrix);",
           "addr": "0x1ff03f"
         },
         {
@@ -6395,7 +6395,7 @@
           "addr": "0x83310"
         },
         {
-          "decl": "void *XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
+          "decl": "void *__stdcall XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
           "addr": "0x1d36d4"
         },
         {

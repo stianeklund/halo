@@ -22,6 +22,9 @@ reg_filter_re = re.compile(r'@<(\w+)>')
 def filter_reg_assignments(s: str) -> str:
 	return reg_filter_re.sub('', s)
 
+def strip_stdcall(s: str) -> str:
+	return s.replace('__stdcall ', '')
+
 _types_file: Optional[str] = None
 
 def _get_types_file() -> str:
@@ -197,6 +200,10 @@ class KnowledgeBase:
 		args = list(s.cursor.get_arguments())
 		name = s.name
 		mangled_name = s.cursor.mangled_name
+		# __stdcall + register args: the thunk presents a cdecl interface
+		# to the C caller, so strip the @N suffix from the mangled name.
+		if '__stdcall' in s.decl:
+			mangled_name = re.sub(r'@\d+$', '', mangled_name)
 		name_alternate = name + '__thunk'
 		mangled_name_alternate = mangled_name.replace(name, name_alternate)
 
@@ -295,8 +302,10 @@ class KnowledgeBase:
 		# Call the raw XBE address
 		asm_lines.append(f'call *%[fn]')
 
-		# Clean up pushed stack args
-		if num_stack_pushes > 0:
+		# Clean up pushed stack args — but NOT if the original function is
+		# __stdcall (callee-clean): the original's RET N already popped them.
+		callee_cleans_stack = '__stdcall' in s.decl
+		if num_stack_pushes > 0 and not callee_cleans_stack:
 			asm_lines.append(f'addl ${num_stack_pushes * 4}, %%esp')
 
 		# Restore callee-saved registers (reverse order)
@@ -307,7 +316,9 @@ class KnowledgeBase:
 
 		asm_body = '\\n\\t'.join(asm_lines)
 
-		decl = filter_reg_assignments(s.decl)[:-1]
+		# Strip both @<reg> and __stdcall from the thunk declaration —
+		# the thunk is always cdecl from the C caller's perspective.
+		decl = strip_stdcall(filter_reg_assignments(s.decl))[:-1]
 
 		thunk_functions = f'''\
 #ifdef MSVC
@@ -341,7 +352,10 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 					if isinstance(s, Data):
 						f.write(f'HDATA {s.decl}\n')
 					elif isinstance(s, Function):
-						f.write(f'HFUNC {filter_reg_assignments(s.decl)}\n')
+						decl_str = filter_reg_assignments(s.decl)
+						if s.requires_reg_thunk:
+							decl_str = strip_stdcall(decl_str)
+						f.write(f'HFUNC {decl_str}\n')
 				f.write('\n')
 
 			f.write('\n'
