@@ -2846,6 +2846,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10b270": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10b2d0": {
       "kind": "function",
       "status": "ported"
@@ -3511,6 +3515,10 @@
         "The byte at object_data_t offset 0xD0 stores the parent_node_index as a uint8_t, overlapping with the first byte of the unk_208 float array."
       ]
     },
+    "0x1443f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1446a0": {
       "kind": "function",
       "status": "ported",
@@ -4141,6 +4149,10 @@
         "The unk_456 field (offset 0x1C8) in unit_data_t guards the allegiance check, likely representing a rider or owner handle.",
         "The return semantics are inverted: returns true when NO matching seat occupant or friendly child was found, meaning the seat is available."
       ]
+    },
+    "0x1a9240": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1a9a30": {
       "kind": "function",

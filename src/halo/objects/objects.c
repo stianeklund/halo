@@ -1,4 +1,221 @@
 /*
+ * real_vector3d_valid — check whether a 3D vector contains only finite floats.
+ *
+ * Tests the IEEE 754 exponent field (bits 23..30) of each of the three
+ * components. If all three have an exponent != 0xFF (i.e. the value is
+ * neither NaN nor Infinity), returns 1 (valid). Otherwise returns 0.
+ *
+ * Leaf function, no callees. Reinterprets floats as uint32 via pointer cast.
+ *
+ * Confirmed: AND with 0x7f800000 and CMP to 0x7f800000 for each component.
+ * Confirmed: returns 1 only if all three pass; returns 0 on first failure.
+ */
+/* 0x84a10 */
+int real_vector3d_valid(float *vector)
+{
+  unsigned int *v = (unsigned int *)vector;
+  if ((v[0] & 0x7f800000) == 0x7f800000)
+    return 0;
+  if ((v[1] & 0x7f800000) == 0x7f800000)
+    return 0;
+  if ((v[2] & 0x7f800000) == 0x7f800000)
+    return 0;
+  return 1;
+}
+
+void FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
+                  int marker, int arg4, int arg5, int arg6, int arg7);
+
+/*
+ * objects/objects.c — object system lifecycle and placement
+ * XBE source: c:\halo\SOURCE\objects\objects.c
+ *            + c:\halo\SOURCE\objects\object_lights.c (same .obj)
+ *
+ * Re-implemented functions (by XBE address, ascending):
+ *   0x1396e0  object_wake (object_lights.c)
+ *   0x13aed0  object_move_to_limbo (object_lights.c)
+ *   0x13d640  object_try_and_get_and_verify_type
+ *   0x13d680  object_get_and_verify_type
+ *   0x13d920  object_set_garbage_flag
+ *   0x13dfc0  object_header_block_reference_get
+ *   0x13e510  object_child_list_remove
+ *   0x13eb70  object_reset_markers
+ *   0x13ee60  object_propagate_flag_to_children
+ *   0x13eff0  object_remove_from_name_list
+ *   0x13f060  objects_place
+ *   0x13f810  objects_initialize
+ *   0x13f950  objects_initialize_for_new_map
+ *   0x13f9f0  objects_dispose_from_old_map
+ *   0x13fac0  objects_dispose
+ *   0x13fc20  FUN_0013fc20 (object placement data init)
+ *   0x13fd00  object_disconnect_from_map
+ *   0x13fef0  object_has_node
+ *   0x13ffc0  object_set_garbage
+ *   0x140160  object_set_region_count
+ *   0x140230  object_adjust_interpolation_position
+ *   0x140420  object_find_in_cluster
+ *   0x140bc0  object_delete_internal
+ *   0x140cc0  object_delete
+ *   0x140ce0  object_connect_to_map
+ *   0x140eb0  object_get_node_matrix
+ *   0x140f10  object_get_markers_by_string_id
+ *   0x141020  object_compute_child_marker_position
+ *   0x1412f0  object_get_world_position
+ *   0x141480  object_get_world_matrix
+ *   0x141b70  object_compute_node_matrices
+ *   0x143ae0  FUN_00143ae0 (object reposition)
+ *   0x143c80  FUN_00143c80 (object_new — create from placement)
+ *   0x144240  object_attach_to_parent
+ *   0x1446a0  object_update_children_recursive
+ *   0x144860  object_attach_to_marker
+ *   0x145170  objects_update
+ */
+
+#include "common.h"
+
+/* Forward declarations for unported callees in the same .obj cluster. */
+typedef void (*pfn_void_t)(void);
+typedef void (*pfn_int_t)(int);
+typedef int (*valid_real_point3d_fn)(float *p);
+typedef void (*object_type_validate_fn)(int16_t type);
+
+int FUN_000ae0a0(int tag_index);
+
+/*
+ * FUN_00143ae0 — reposition an object and recompute its orientation.
+ *
+ * Disconnects the object from the map, optionally updates its position
+ * (forward vector at obj+0x0C) and facing direction (at obj+0x24).
+ * If a target (up) vector is provided, it is copied directly to obj+0x30.
+ * Otherwise, a perpendicular up vector is computed from the facing via:
+ *   temp = {facing.y, -facing.x, 0.0}
+ *   normalize(temp)
+ *   if degenerate: temp = {1, 0, 0}
+ *   up = cross(temp, facing)
+ * Then recomputes node matrices and reconnects to the map.
+ *
+ * Confirmed: 4 cdecl args (object_handle, facing, target, flags).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x13fd00 (object_disconnect_from_map) with 1 stack arg.
+ * Confirmed: CALL 0x13010 (normalize3d) for perpendicular temp vector.
+ * Confirmed: cross product computed via x87 FPU in-line (not a function call).
+ * Confirmed: CALL 0x141b70 (object_compute_node_matrices).
+ * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
+ * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
+ */
+/* FUN_00136150 — create widgets for an object from its tag definition.
+ *
+ * Looks up the object's tag (group 'obje'), reads the widget attachments
+ * tag block at tag+0x14c, and for each attachment, searches the global
+ * widget_types table (5 entries at 0x323528, each 0x28 bytes) for a
+ * matching group_tag. When found, allocates a new widget datum from the
+ * widget data pool at 0x5a90c4, sets its type field, and either:
+ *   - calls the widget type's "new" function (entry+0x18) with the
+ *     attachment's definition index (element+0x0c), linking on success
+ *   - or directly links the widget with definition_handle = -1 if no
+ *     "new" function is defined.
+ * Widgets are prepended to a singly-linked list rooted at obj+0x11c.
+ *
+ * Source: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
+ *
+ * Confirmed: 1 cdecl arg (object_handle).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x1ba140 (tag_get) with (0x6f626a65, obj[0]).
+ * Confirmed: CALL 0x19b210 (tag_block_get_element) with (block, index, 0x20).
+ * Confirmed: CALL 0x119610 (data_new_at_index) with (*(data_t**)0x5a90c4).
+ * Confirmed: CALL 0x119320 (datum_get) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: CALL 0x1196d0 (datum_delete) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: widget_types table at 0x323528: [+0x00]=group_tag, [+0x18]=new_fn.
+ * Confirmed: ADD ESP,0x10 cleans both object_get_and_verify_type + tag_get
+ * pushes. Confirmed: outer loop counter is int16_t (MOVSX EAX,AX at 0x1362b2).
+ * Confirmed: inner loop counter is int16_t (MOVSX ECX,SI; CMP SI,0x5).
+ * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
+ * Confirmed: assert_halt for type range check at 0x1361fe.
+ */
+void FUN_00136150(int object_handle)
+{
+  int *obj;
+  char *tag_data;
+  int *widget_block; /* tag block at tag+0x14c */
+  int *element;
+  int widget_handle;
+  char *widget;
+  int definition_handle;
+  int16_t i;
+  int16_t type;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  tag_data = (char *)tag_get(0x6f626a65, obj[0]);
+
+  widget_block = (int *)(tag_data + 0x14c);
+
+  /* Initialize widget list head to NONE. */
+  *(int *)((char *)obj + 0x11c) = -1;
+
+  if (*widget_block <= 0)
+    return;
+
+  for (i = 0; (int)i < *widget_block; i++) {
+    element = (int *)tag_block_get_element(widget_block, (int)i, 0x20);
+
+    /* Search the widget_types table for a matching group_tag. */
+    for (type = 0; type < 5; type++) {
+      if (*(int *)(0x323528 + (int)type * 0x28) == element[0])
+        break;
+    }
+    if (type >= 5)
+      continue;
+
+    /* Found a match. Skip if type is NONE or definition index is NONE. */
+    if (type == -1)
+      continue;
+    if (element[3] == -1)
+      continue;
+
+    /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
+    if (type < 0 || type >= 5) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
+    }
+
+    /* Allocate a new widget datum. */
+    widget_handle = data_new_at_index(*(data_t **)0x5a90c4);
+    if (widget_handle == -1)
+      continue;
+
+    widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
+
+    /* Store the widget type. */
+    *(int16_t *)(widget + 0x2) = type;
+
+    /* Check if this widget type has a "new" function (entry+0x18). */
+    if (*(int (**)(int))(0x323528 + (int)type * 0x28 + 0x18) == 0) {
+      /* No new function — link directly with definition = NONE. */
+      *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
+      *(int *)((char *)obj + 0x11c) = widget_handle;
+      *(int *)(widget + 0x4) = -1;
+    } else {
+      /* Call the widget type's new function with the definition index. */
+      definition_handle =
+        (*(int (**)(int))(0x323528 + (int)type * 0x28 + 0x18))(element[3]);
+      *(int *)(widget + 0x4) = definition_handle;
+      if (definition_handle == -1) {
+        /* New function failed — delete the widget datum. */
+        datum_delete(*(data_t **)0x5a90c4, widget_handle);
+      } else {
+        /* Success — link into the object's widget list. */
+        *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
+        *(int *)((char *)obj + 0x11c) = widget_handle;
+      }
+    }
+  }
+}
+
+void FUN_001365d0(int object_handle, int arg1, int arg2);
+
+/*
  * object_wake — disconnect a point light from the cluster partition.
  * (from c:\halo\SOURCE\objects\object_lights.c, line 0x4d0)
  *
@@ -198,96 +415,15 @@ void object_move_to_limbo(int object_handle)
   }
 }
 
-/*
- * objects/objects.c — object system lifecycle and placement
- * XBE source: c:\halo\SOURCE\objects\objects.c
- *            + c:\halo\SOURCE\objects\object_lights.c (same .obj)
- *
- * Re-implemented functions (by XBE address, ascending):
- *   0x1396e0  object_wake (object_lights.c)
- *   0x13aed0  object_move_to_limbo (object_lights.c)
- *   0x13d640  object_try_and_get_and_verify_type
- *   0x13d680  object_get_and_verify_type
- *   0x13d920  object_set_garbage_flag
- *   0x13dfc0  object_header_block_reference_get
- *   0x13e510  object_child_list_remove
- *   0x13eb70  object_reset_markers
- *   0x13ee60  object_propagate_flag_to_children
- *   0x13eff0  object_remove_from_name_list
- *   0x13f060  objects_place
- *   0x13f810  objects_initialize
- *   0x13f950  objects_initialize_for_new_map
- *   0x13f9f0  objects_dispose_from_old_map
- *   0x13fac0  objects_dispose
- *   0x13fc20  FUN_0013fc20 (object placement data init)
- *   0x13fd00  object_disconnect_from_map
- *   0x13fef0  object_has_node
- *   0x13ffc0  object_set_garbage
- *   0x140160  object_set_region_count
- *   0x140230  object_adjust_interpolation_position
- *   0x140420  object_find_in_cluster
- *   0x140bc0  object_delete_internal
- *   0x140cc0  object_delete
- *   0x140ce0  object_connect_to_map
- *   0x140eb0  object_get_node_matrix
- *   0x140f10  object_get_markers_by_string_id
- *   0x141020  object_compute_child_marker_position
- *   0x1412f0  object_get_world_position
- *   0x141480  object_get_world_matrix
- *   0x141b70  object_compute_node_matrices
- *   0x143ae0  FUN_00143ae0 (object reposition)
- *   0x143c80  FUN_00143c80 (object_new — create from placement)
- *   0x144240  object_attach_to_parent
- *   0x1446a0  object_update_children_recursive
- *   0x144860  object_attach_to_marker
- *   0x145170  objects_update
- */
-
-#include "common.h"
-
-/* Forward declarations for unported callees in the same .obj cluster. */
-typedef void (*pfn_void_t)(void);
-typedef void (*pfn_int_t)(int);
-typedef int (*valid_real_point3d_fn)(float *p);
-typedef void (*object_type_validate_fn)(int16_t type);
-
-int FUN_000ae0a0(int tag_index);
 void *FUN_0013c100(int16_t object_type);
-void FUN_0013c430(int object_handle, void *placement);
-int FUN_0013c490(int object_handle);
-void FUN_0013c560(int object_handle);
-void FUN_0013c620(int object_handle);
-void FUN_0013df70(data_t *data);
-int FUN_0013e050(int object_handle, int offset, int size);
-void FUN_001365d0(int object_handle, int arg1, int arg2);
-void FUN_0013ecb0(int object_handle);
-void FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
-                  int marker, int arg4, int arg5, int arg6, int arg7);
 
-/*
- * real_vector3d_valid — check whether a 3D vector contains only finite floats.
- *
- * Tests the IEEE 754 exponent field (bits 23..30) of each of the three
- * components. If all three have an exponent != 0xFF (i.e. the value is
- * neither NaN nor Infinity), returns 1 (valid). Otherwise returns 0.
- *
- * Leaf function, no callees. Reinterprets floats as uint32 via pointer cast.
- *
- * Confirmed: AND with 0x7f800000 and CMP to 0x7f800000 for each component.
- * Confirmed: returns 1 only if all three pass; returns 0 on first failure.
- */
-/* 0x84a10 */
-int real_vector3d_valid(float *vector)
-{
-  unsigned int *v = (unsigned int *)vector;
-  if ((v[0] & 0x7f800000) == 0x7f800000)
-    return 0;
-  if ((v[1] & 0x7f800000) == 0x7f800000)
-    return 0;
-  if ((v[2] & 0x7f800000) == 0x7f800000)
-    return 0;
-  return 1;
-}
+void FUN_0013c430(int object_handle, void *placement);
+
+int FUN_0013c490(int object_handle);
+
+void FUN_0013c560(int object_handle);
+
+void FUN_0013c620(int object_handle);
 
 /*
  * object_try_and_get_and_verify_type — resolve a datum handle to its
@@ -613,6 +749,49 @@ done:
 }
 
 /*
+ * FUN_0013ded0 — allocate a new datum in an object data table and reserve
+ * pool memory for it from the global objects memory pool at 0x46f080.
+ *
+ * If type_hint == -1, allocates at the next free index (data_new_at_index).
+ * Otherwise allocates at the specified handle (data_new_datum).
+ * On success, allocates datum_size bytes from the pool into datum+8,
+ * records the size at datum+6, and zeros the allocated block.
+ * Returns the datum handle, or -1 on failure.
+ *
+ * Confirmed: CMP EAX,-1 branches to data_new_at_index vs data_new_datum.
+ * Confirmed: CALL 0x11e6c0 (memory_pool_block_new) with pool from [0x46f080].
+ * Confirmed: MOV [EDI+6],CX stores datum_size as int16_t.
+ * Confirmed: CALL 0x8db80 (csmemset) zeros *(void**)(datum+8).
+ * Confirmed: datum_delete on pool allocation failure, returns -1.
+ */
+int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint)
+{
+  int handle;
+
+  if (type_hint == -1)
+    handle = data_new_at_index(data);
+  else
+    handle = data_new_datum(data, type_hint);
+
+  if (handle != -1) {
+    char *datum = (char *)datum_get(data, handle);
+
+    if (!memory_pool_block_new(*(void **)0x46f080, (void **)(datum + 8),
+                               (int)datum_size)) {
+      datum_delete(data, handle);
+      return -1;
+    }
+
+    *(int16_t *)(datum + 6) = datum_size;
+    csmemset(*(void **)(datum + 8), 0, (int)datum_size);
+  }
+
+  return handle;
+}
+
+void FUN_0013df70(data_t *data);
+
+/*
  * object_header_block_reference_get — resolve an object's inline
  *
  * block-reference pair ({size, offset}) to a pointer into object data.
@@ -656,6 +835,8 @@ void *object_header_block_reference_get(int object_handle, void *reference)
 
   return object + ref_offset;
 }
+
+int FUN_0013e050(int object_handle, int offset, int size);
 
 /* Remove object_handle from a sibling linked list rooted at list_head.
  * Walks the chain at offset 0xc4 (next_sibling) until it finds the entry
@@ -726,6 +907,8 @@ void object_reset_markers(void)
   *(uint32_t *)0x5a8d28 += 1;
   object_globals->object_marker_initialized = 1;
 }
+
+void FUN_0013ecb0(int object_handle);
 
 /* Propagate flags to all children of an object. For each child slot where
  * the "created" flag at obj+0xf4+i is clear and the child handle is valid,
@@ -3287,139 +3470,6 @@ void object_compute_node_matrices(int object_handle)
   }
 }
 
-/*
- * FUN_00143ae0 — reposition an object and recompute its orientation.
- *
- * Disconnects the object from the map, optionally updates its position
- * (forward vector at obj+0x0C) and facing direction (at obj+0x24).
- * If a target (up) vector is provided, it is copied directly to obj+0x30.
- * Otherwise, a perpendicular up vector is computed from the facing via:
- *   temp = {facing.y, -facing.x, 0.0}
- *   normalize(temp)
- *   if degenerate: temp = {1, 0, 0}
- *   up = cross(temp, facing)
- * Then recomputes node matrices and reconnects to the map.
- *
- * Confirmed: 4 cdecl args (object_handle, facing, target, flags).
- * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
- * Confirmed: CALL 0x13fd00 (object_disconnect_from_map) with 1 stack arg.
- * Confirmed: CALL 0x13010 (normalize3d) for perpendicular temp vector.
- * Confirmed: cross product computed via x87 FPU in-line (not a function call).
- * Confirmed: CALL 0x141b70 (object_compute_node_matrices).
- * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
- * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
- */
-/* FUN_00136150 — create widgets for an object from its tag definition.
- *
- * Looks up the object's tag (group 'obje'), reads the widget attachments
- * tag block at tag+0x14c, and for each attachment, searches the global
- * widget_types table (5 entries at 0x323528, each 0x28 bytes) for a
- * matching group_tag. When found, allocates a new widget datum from the
- * widget data pool at 0x5a90c4, sets its type field, and either:
- *   - calls the widget type's "new" function (entry+0x18) with the
- *     attachment's definition index (element+0x0c), linking on success
- *   - or directly links the widget with definition_handle = -1 if no
- *     "new" function is defined.
- * Widgets are prepended to a singly-linked list rooted at obj+0x11c.
- *
- * Source: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
- *
- * Confirmed: 1 cdecl arg (object_handle).
- * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
- * Confirmed: CALL 0x1ba140 (tag_get) with (0x6f626a65, obj[0]).
- * Confirmed: CALL 0x19b210 (tag_block_get_element) with (block, index, 0x20).
- * Confirmed: CALL 0x119610 (data_new_at_index) with (*(data_t**)0x5a90c4).
- * Confirmed: CALL 0x119320 (datum_get) with (*(data_t**)0x5a90c4, handle).
- * Confirmed: CALL 0x1196d0 (datum_delete) with (*(data_t**)0x5a90c4, handle).
- * Confirmed: widget_types table at 0x323528: [+0x00]=group_tag, [+0x18]=new_fn.
- * Confirmed: ADD ESP,0x10 cleans both object_get_and_verify_type + tag_get pushes.
- * Confirmed: outer loop counter is int16_t (MOVSX EAX,AX at 0x1362b2).
- * Confirmed: inner loop counter is int16_t (MOVSX ECX,SI; CMP SI,0x5).
- * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
- * Confirmed: assert_halt for type range check at 0x1361fe.
- */
-void FUN_00136150(int object_handle)
-{
-  int *obj;
-  char *tag_data;
-  int *widget_block; /* tag block at tag+0x14c */
-  int *element;
-  int widget_handle;
-  char *widget;
-  int definition_handle;
-  int16_t i;
-  int16_t type;
-
-  obj = (int *)object_get_and_verify_type(object_handle, -1);
-  tag_data = (char *)tag_get(0x6f626a65, obj[0]);
-
-  widget_block = (int *)(tag_data + 0x14c);
-
-  /* Initialize widget list head to NONE. */
-  *(int *)((char *)obj + 0x11c) = -1;
-
-  if (*widget_block <= 0)
-    return;
-
-  for (i = 0; (int)i < *widget_block; i++) {
-    element = (int *)tag_block_get_element(widget_block, (int)i, 0x20);
-
-    /* Search the widget_types table for a matching group_tag. */
-    for (type = 0; type < 5; type++) {
-      if (*(int *)(0x323528 + (int)type * 0x28) == element[0])
-        break;
-    }
-    if (type >= 5)
-      continue;
-
-    /* Found a match. Skip if type is NONE or definition index is NONE. */
-    if (type == -1)
-      continue;
-    if (element[3] == -1)
-      continue;
-
-    /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
-    if (type < 0 || type >= 5) {
-      display_assert(
-        "type>=0 && type<NUMBER_OF_WIDGET_TYPES",
-        "c:\\halo\\source\\objects\\widgets\\widget_types.h",
-        0x96, 1);
-      system_exit(-1);
-    }
-
-    /* Allocate a new widget datum. */
-    widget_handle = data_new_at_index(*(data_t **)0x5a90c4);
-    if (widget_handle == -1)
-      continue;
-
-    widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
-
-    /* Store the widget type. */
-    *(int16_t *)(widget + 0x2) = type;
-
-    /* Check if this widget type has a "new" function (entry+0x18). */
-    if (*(int (**)( int))(0x323528 + (int)type * 0x28 + 0x18) == 0) {
-      /* No new function — link directly with definition = NONE. */
-      *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
-      *(int *)((char *)obj + 0x11c) = widget_handle;
-      *(int *)(widget + 0x4) = -1;
-    } else {
-      /* Call the widget type's new function with the definition index. */
-      definition_handle =
-        (*(int (**)(int))(0x323528 + (int)type * 0x28 + 0x18))(element[3]);
-      *(int *)(widget + 0x4) = definition_handle;
-      if (definition_handle == -1) {
-        /* New function failed — delete the widget datum. */
-        datum_delete(*(data_t **)0x5a90c4, widget_handle);
-      } else {
-        /* Success — link into the object's widget list. */
-        *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
-        *(int *)((char *)obj + 0x11c) = widget_handle;
-      }
-    }
-  }
-}
-
 /* FUN_00143ae0 — reposition an object's position and facing.
  *
  * Disconnects the object from the map, optionally updates its position
@@ -3492,48 +3542,6 @@ void FUN_00143ae0(int object_handle, float *position, float *forward, float *up)
 
   object_compute_node_matrices(object_handle);
   object_connect_to_map(object_handle, 0);
-}
-
-/*
- * FUN_0013ded0 — allocate a new datum in an object data table and reserve
- * pool memory for it from the global objects memory pool at 0x46f080.
- *
- * If type_hint == -1, allocates at the next free index (data_new_at_index).
- * Otherwise allocates at the specified handle (data_new_datum).
- * On success, allocates datum_size bytes from the pool into datum+8,
- * records the size at datum+6, and zeros the allocated block.
- * Returns the datum handle, or -1 on failure.
- *
- * Confirmed: CMP EAX,-1 branches to data_new_at_index vs data_new_datum.
- * Confirmed: CALL 0x11e6c0 (memory_pool_block_new) with pool from [0x46f080].
- * Confirmed: MOV [EDI+6],CX stores datum_size as int16_t.
- * Confirmed: CALL 0x8db80 (csmemset) zeros *(void**)(datum+8).
- * Confirmed: datum_delete on pool allocation failure, returns -1.
- */
-int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint)
-{
-  int handle;
-
-  if (type_hint == -1)
-    handle = data_new_at_index(data);
-  else
-    handle = data_new_datum(data, type_hint);
-
-  if (handle != -1) {
-    char *datum = (char *)datum_get(data, handle);
-
-    if (!memory_pool_block_new(*(void **)0x46f080,
-                               (void **)(datum + 8),
-                               (int)datum_size)) {
-      datum_delete(data, handle);
-      return -1;
-    }
-
-    *(int16_t *)(datum + 6) = datum_size;
-    csmemset(*(void **)(datum + 8), 0, (int)datum_size);
-  }
-
-  return handle;
 }
 
 /*
@@ -3949,6 +3957,81 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   child_hdr->unk_2 |= 0x10;
 
   object_compute_node_matrices(child_handle);
+}
+
+/*
+ * object_try_place — attempt to place an object at a new position by casting
+ * a collision ray from the object's current position toward the target
+ * position.
+ *
+ * Pushes a collision user stack entry (user=0x13), computes the delta vector
+ * (current_pos - target_pos), then calls FUN_0014df70 to perform a collision
+ * test along that ray. If the collision test succeeds or the object has no
+ * current cluster placement (field 0x4c == -1), the function checks the
+ * collision result for a valid surface. If a valid surface is found, it calls
+ * FUN_00143be0 to update the object's position and reconnect it to the map,
+ * then recomputes node matrices. Returns true if the object was placed or
+ * already had a valid cluster reference, false otherwise.
+ *
+ * Confirmed: cdecl, 2 stack args — PUSH position, PUSH handle before CALL.
+ * Confirmed: returns bool in AL (callers TEST AL,AL after CALL).
+ * Confirmed: collision_result buffer is 0x50 bytes (int16_t[40]).
+ * Confirmed: collision user ID 0x13 pushed to stack at 0x5a8c80.
+ * Confirmed: assert strings match "objects.c" at lines 0x93d and 0x953.
+ */
+bool object_try_place(int object_handle, float *position)
+{
+  char *obj;
+  bool result;
+  int16_t collision_result[40]; /* 0x50 bytes at EBP-0x5c */
+  float delta[3]; /* 3 floats at EBP-0x0c */
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  result = false;
+
+  /* Push collision user stack entry (user = 0x13). */
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x93d, true);
+    system_exit(-1);
+  }
+  {
+    int depth = (int)*(int16_t *)0x4761d8;
+    *(int16_t *)0x4761d8 += 1;
+    *(int16_t *)(0x5a8c80 + depth * 2) = 0x13;
+  }
+
+  /* Compute delta vector: current_position - target_position. */
+  delta[0] = *(float *)(obj + 0x0c) - position[0];
+  delta[1] = *(float *)(obj + 0x10) - position[1];
+  delta[2] = *(float *)(obj + 0x14) - position[2];
+
+  /* Cast collision ray from target position along delta direction. */
+  if (FUN_0014df70(0x1000e9, position, delta, -1, collision_result) ||
+      *(int16_t *)(obj + 0x4c) == -1) {
+    /* Collision found or object has no cluster placement. */
+    if (*(int16_t *)((char *)collision_result + 0x10) == -1) {
+      /* No valid surface in collision result — cannot place. */
+      goto done;
+    }
+    /* Place object at collision surface position and reconnect to map. */
+    FUN_00143be0(object_handle, (float *)((char *)collision_result + 0x18),
+                 (void *)((char *)collision_result + 0x0c));
+    object_compute_node_matrices(object_handle);
+  }
+  result = true;
+
+done:
+  /* Pop collision user stack entry. */
+  if (*(int16_t *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x953, true);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 -= 1;
+
+  return result;
 }
 
 /*
