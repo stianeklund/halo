@@ -5302,7 +5302,8 @@
         {
           "decl": "void sound_channel_set_properties(short channel_index@<si>, int update_only@<ebx>, void *properties);",
           "addr": "0x1cbfb0",
-          "comment": "Push volume/pitch/3D properties to the sound driver for a channel."
+          "comment": "Push volume/pitch/3D properties to the sound driver for a channel.",
+          "ported": true
         },
         {
           "decl": "void sound_update_channel(int channel_index, float attenuation);",
