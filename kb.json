@@ -393,7 +393,8 @@
         },
         {
           "decl": "void edit_text_set_cursor_to_end(void *edit_text);",
-          "addr": "0x97330"
+          "addr": "0x97330",
+          "ported": true
         },
         {
           "decl": "float random_math_real(unsigned int *seed);",
@@ -6706,6 +6707,14 @@
         {
           "decl": "void FUN_0009c750(int effect_handle);",
           "addr": "0x9c750"
+        },
+        {
+          "decl": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
+          "addr": "0x972b0"
+        },
+        {
+          "decl": "void unicode_snap_cursor(const char *str, int16_t *cursor);",
+          "addr": "0x19d300"
         }
       ]
     },
