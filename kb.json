@@ -793,6 +793,26 @@
         {
           "decl": "bool FUN_00124d40(int result);",
           "addr": "0x124d40"
+        },
+        {
+          "decl": "bool valid_real_point3d(float *point);",
+          "addr": "0xa16b0"
+        },
+        {
+          "decl": "float FUN_000121e0(float min, float max);",
+          "addr": "0x121e0"
+        },
+        {
+          "decl": "void vector3d_scale_add(float *base, float *direction, float scale, float *out);",
+          "addr": "0x12f80"
+        },
+        {
+          "decl": "void vector3d_add(float *a, float *b, float *out);",
+          "addr": "0x213c0"
+        },
+        {
+          "decl": "void random_seed_get_direction3d(unsigned int *seed, float *out);",
+          "addr": "0x10b380"
         }
       ]
     },
@@ -1111,8 +1131,9 @@
           "ported": true
         },
         {
-          "decl": "void *FUN_0007c940(__int16 *bitmap, int a2, int y, int a4);",
-          "addr": "0x7c940"
+          "decl": "void *FUN_0007c940(void *bitmap, short x, short y, short mipmap_index);",
+          "addr": "0x7c940",
+          "ported": true
         },
         {
           "decl": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
@@ -3299,7 +3320,30 @@
         },
         {
           "decl": "void item_set_position(int item_handle, float *position, int flag);",
-          "addr": "0xf6d60"
+          "addr": "0xf6d60",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_000f6af0(int item_handle);",
+          "addr": "0xf6af0"
+        },
+        {
+          "decl": "void FUN_000f6b80(int item_handle@<eax>);",
+          "addr": "0xf6b80"
+        }
+      ],
+      "data": [
+        {
+          "decl": "int16_t global_current_collision_user_depth;",
+          "addr": "0x4761d8"
+        },
+        {
+          "decl": "int16_t collision_user_stack[32];",
+          "addr": "0x5a8c80"
+        },
+        {
+          "decl": "float *global_up_vector_ptr;",
+          "addr": "0x31fc44"
         }
       ]
     },
@@ -3929,7 +3973,8 @@
         },
         {
           "decl": "void FUN_00143be0(int object_handle, float *position, void *location);",
-          "addr": "0x143be0"
+          "addr": "0x143be0",
+          "ported": true
         },
         {
           "decl": "int FUN_00143c80(void *placement);",
@@ -4201,7 +4246,8 @@
         },
         {
           "decl": "void FUN_000b8fa0(void *out);",
-          "addr": "0xb8fa0"
+          "addr": "0xb8fa0",
+          "ported": true
         },
         {
           "decl": "void *update_get_buffer_entry(int snapshot_index@<eax>);",
@@ -4763,12 +4809,14 @@
         },
         {
           "decl": "float random_math_real(unsigned int *seed);",
-          "addr": "0x10b240"
+          "addr": "0x10b240",
+          "ported": true
         },
         {
           "decl": "float random_real_range(int *seed, float min, float max);",
           "addr": "0x10b270",
-          "status": "ported"
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "int16_t random_range(unsigned int *seed, int16_t min, int16_t max);",
@@ -5495,8 +5543,9 @@
           "ported": true
         },
         {
-          "decl": "float sound_compute_random_scale(int random_min, int random_max, float bend_min, float bend_max, float source_scale);",
-          "addr": "0x1cc8c0"
+          "decl": "float sound_compute_random_scale(float random_min, float random_max, float bend_min, float bend_max, float source_scale);",
+          "addr": "0x1cc8c0",
+          "ported": true
         },
         {
           "decl": "void sound_start_fade(short mode, float seconds, int fade_in_sound_index, int fade_out_sound_index);",

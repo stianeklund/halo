@@ -33,6 +33,19 @@ void random_seed_debug_log(bool a1)
 {
 }
 
+/* Generate a random float in [0.0, ~1.0] from an LCG seed.
+ * Advances *seed with the Numerical Recipes LCG (a=0x19660d, c=0x3c6ef35f),
+ * extracts the upper 16 bits (0..65535), and normalizes to approximately
+ * [0.0, 1.0] by dividing by 65535. */
+float random_math_real(unsigned int *seed)
+{
+  unsigned int s;
+
+  s = *seed * 0x19660d + 0x3c6ef35f;
+  *seed = s;
+  return (float)(s >> 16) / 65535.0f;
+}
+
 /* Generate a random float in [min, max] using the same LCG as random_range.
  * Advances *seed, extracts the upper 16 bits (0..65535), normalizes to
  * [0.0, 1.0] by dividing by 65535, then scales into [min, max]. */

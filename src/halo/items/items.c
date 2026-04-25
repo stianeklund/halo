@@ -66,3 +66,210 @@ void item_attach_to_unit(int item_handle, int unit_handle)
     *(uint32_t *)(item_obj + 0x1a4) = *(uint32_t *)(item_obj + 0x1a4) & ~3u;
   }
 }
+
+/* item_set_position (0xf6d60)
+ *
+ * Apply a velocity/position delta to an item and update its angular velocity.
+ * Manages collision user depth, ground clamping, angular tumble, and garbage
+ * flag state. Called each tick to move free-floating items (grenades, weapons,
+ * equipment on the ground).
+ *
+ * If the item is grounded (flag bit 3 at +0x1a4) and the delta magnitude is
+ * above a small epsilon, the item is repositioned to just above the ground
+ * plane via a "ground point" marker lookup and plane projection. Otherwise
+ * position is simply accumulated. Angular velocity gets a tumble impulse from
+ * cross(global_up, delta) scaled by a random factor and pi/2, or a random
+ * angular jolt from the ground normal when velocity is near zero.
+ *
+ * Confirmed: 3 cdecl args (item_handle, position, flag).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with type_mask 0x1c.
+ * Confirmed: CALL 0x1ba140 (tag_get) with 'item' (0x6974656d).
+ * Confirmed: CALL 0x8d9f0 (display_assert) for collision depth checks.
+ * Confirmed: CALL 0xa8e30 (game_engine_running) for flag-dependent branch.
+ * Confirmed: CALL 0xf6af0 (FUN_000f6af0) if flag set and engine not running.
+ * Confirmed: CALL 0x140f10 (object_get_markers_by_string_id) for "ground
+ * point". Confirmed: CALL 0x18e3f0 (FUN_0018e3f0) to get structure BSP.
+ * Confirmed: CALL 0x19b210 (tag_block_get_element) at bsp+0x3c.
+ * Confirmed: CALL 0x99640 (FUN_00099640) for plane extraction.
+ * Confirmed: CALL 0x12f80 (vector3d_scale_add) for ground projection.
+ * Confirmed: CALL 0x143be0 (FUN_00143be0) for repositioning item.
+ * Confirmed: CALL 0x12170 (FUN_00012170) for vector magnitude.
+ * Confirmed: CALL 0x10b0d0 (get_global_random_seed_address).
+ * Confirmed: CALL 0x10b240 (random_math_real) for random scale.
+ * Confirmed: CALL 0x13010 (normalize3d) for cross product normalization.
+ * Confirmed: CALL 0x10b380 (random_seed_get_direction3d) for degenerate case.
+ * Confirmed: CALL 0x121e0 (FUN_000121e0) for random angle [-pi/4, pi/4].
+ * Confirmed: CALL 0x213c0 (vector3d_add) for angular velocity accumulation.
+ * Confirmed: CALL 0xf6b80 (FUN_000f6b80) with item_handle in EAX.
+ * Confirmed: CALL 0x13d920 (object_set_garbage_flag) with (handle, 0).
+ * Confirmed: global collision depth at 0x4761d8 (int16_t).
+ * Confirmed: collision user stack at 0x5a8c80.
+ * Confirmed: global up vector pointer at 0x31fc44 → {0, 0, 1}.
+ * Confirmed: epsilon constant at 0x253f44 = ~0.0001f.
+ * Confirmed: offset constant at 0x2533e8 = 0.05f.
+ * Confirmed: zero constant at 0x2533c0 = 0.0f.
+ * Confirmed: pi/2 constant at 0x2568bc = ~1.5708f.
+ */
+void item_set_position(int item_handle, float *position, int flag)
+{
+  char *item_obj;
+  char *item_tag;
+  int16_t marker_count;
+  char marker_buf[0x6c];
+  float plane[4];
+  float cross[3];
+  float vel_mag;
+  float new_pos[3];
+  float scaled_dir[3];
+  float *up;
+  float scale;
+  int bsp;
+  int *plane_ref;
+  float dot;
+
+  item_obj = (char *)object_get_and_verify_type(item_handle, 0x1c);
+  item_tag = (char *)tag_get(0x6974656d, *(int *)item_obj);
+
+  /* Early out if item has flag bit 5 set at +0x1a4 */
+  if (*(uint8_t *)(item_obj + 0x1a4) & 0x20)
+    return;
+
+  /* Collision depth guard */
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\items\\items.c", 0x218, 1);
+    system_exit(-1);
+  }
+
+  {
+    int16_t depth = *(int16_t *)0x4761d8;
+    *(int16_t *)(0x5a8c80 + (int)depth * 2) = 0xb;
+    *(int16_t *)0x4761d8 = depth + 1;
+  }
+
+  /* Only process if parent object handle (obj+0xCC) is NONE */
+  if (*(int *)(item_obj + 0xcc) == NONE) {
+    /* If flag param is set, game engine not running, and tag flag bit 1 set,
+     * call FUN_000f6af0 (possibly spawns pickup effect or similar) */
+    if ((char)flag != 0) {
+      if (!game_engine_running()) {
+        if (*(uint8_t *)(item_tag + 0x17c) & 2) {
+          FUN_000f6af0(item_handle);
+        }
+      }
+    }
+
+    /* Check ground flag (bit 3 of item_flags at +0x1a4) */
+    if (!(*(uint8_t *)(item_obj + 0x1a4) & 0x8)) {
+      /* Not grounded: just clear the "needs update" flag bit 5 at +0x04 */
+      *(uint32_t *)(item_obj + 0x04) =
+        *(uint32_t *)(item_obj + 0x04) & 0xffffffdf;
+    } else if (*(float *)0x253f44 <= position[0] * position[0] +
+                                       position[1] * position[1] +
+                                       position[2] * position[2]) {
+      /* Grounded and velocity magnitude squared >= epsilon:
+       * Try to reposition item to ground plane */
+      marker_count = object_get_markers_by_string_id(
+        item_handle, (void *)0x28aa90, marker_buf, 1);
+      if (marker_count != 0) {
+        /* Ground point marker found: project position onto ground plane */
+        bsp = FUN_0018e3f0();
+        plane_ref = (int *)tag_block_get_element(
+          (void *)(bsp + 0x3c), (int)*(int16_t *)(item_obj + 0x1aa), 0xc);
+        FUN_00099640(bsp, *plane_ref, plane);
+
+        /* Compute offset from plane: 0.05 - (dot(normal, ground_pos) -
+         * distance) */
+        dot = plane[0] * *(float *)(marker_buf + 0x60) +
+              plane[1] * *(float *)(marker_buf + 0x64) +
+              plane[2] * *(float *)(marker_buf + 0x68);
+        scale = *(float *)0x2533e8 - (dot - plane[3]);
+
+        vector3d_scale_add((float *)(marker_buf + 0x60), plane, scale, new_pos);
+        FUN_00143be0(item_handle, new_pos, 0);
+      }
+      /* Clear "needs update" bit 5 at +0x04 and ground bit 3 at +0x1a4 */
+      *(uint32_t *)(item_obj + 0x04) =
+        *(uint32_t *)(item_obj + 0x04) & 0xffffffdf;
+      *(uint32_t *)(item_obj + 0x1a4) =
+        *(uint32_t *)(item_obj + 0x1a4) & 0xfffffff7;
+    }
+
+    /* Accumulate position delta onto object position at +0x18 */
+    *(float *)(item_obj + 0x18) += position[0];
+    *(float *)(item_obj + 0x1c) += position[1];
+    *(float *)(item_obj + 0x20) += position[2];
+
+    /* Determine angular velocity update path */
+    if (*(int *)(item_obj + 0x1b0) != NONE ||
+        !(*(uint8_t *)(item_obj + 0x1a4) & 0x8) ||
+        *(float *)0x253f44 <= FUN_00012170(position)) {
+      /* Normal tumble: compute angular velocity from cross product */
+      vel_mag = sqrtf(position[0] * position[0] + position[1] * position[1] +
+                      position[2] * position[2]);
+      if (vel_mag < *(float *)0x253f44) {
+        unsigned int *seed = (unsigned int *)get_global_random_seed_address();
+        vel_mag = random_math_real(seed);
+      }
+
+      /* cross = cross(global_up, position_delta) */
+      up = *(float **)0x31fc44;
+      cross[2] = up[0] * position[1] - up[1] * position[0];
+      cross[1] = position[0] * up[2] - up[0] * position[2];
+      cross[0] = up[1] * position[2] - position[1] * up[2];
+
+      if (normalize3d(cross) <= *(float *)0x2533c0) {
+        /* Degenerate cross product: use random direction */
+        unsigned int *seed = (unsigned int *)get_global_random_seed_address();
+        random_seed_get_direction3d(seed, cross);
+      }
+
+      {
+        unsigned int *seed = (unsigned int *)get_global_random_seed_address();
+        float factor = random_math_real(seed) * vel_mag * *(float *)0x2568bc;
+        *(float *)(item_obj + 0x3c) += cross[0] * factor;
+        *(float *)(item_obj + 0x40) += cross[1] * factor;
+        *(float *)(item_obj + 0x44) += cross[2] * factor;
+      }
+    } else {
+      /* Slow/grounded path: apply random angular jolt from ground normal */
+      marker_count = object_get_markers_by_string_id(
+        item_handle, (void *)0x28aa90, marker_buf, 1);
+      if (marker_count == 0) {
+        /* No marker: use global up vector as normal */
+        up = *(float **)0x31fc44;
+        cross[0] = up[0];
+        cross[1] = up[1];
+        cross[2] = up[2];
+      } else {
+        /* Use ground point marker normal (at marker+0x50) */
+        cross[0] = *(float *)(marker_buf + 0x50);
+        cross[1] = *(float *)(marker_buf + 0x54);
+        cross[2] = *(float *)(marker_buf + 0x58);
+      }
+
+      /* Random angle in [-pi/4, pi/4] */
+      scale = FUN_000121e0(-1.5707963f, 1.5707963f);
+      scaled_dir[0] = cross[0] * scale;
+      scaled_dir[1] = cross[1] * scale;
+      scaled_dir[2] = cross[2] * scale;
+
+      /* angular_velocity += scaled_dir */
+      vector3d_add((float *)(item_obj + 0x3c), scaled_dir,
+                   (float *)(item_obj + 0x3c));
+    }
+
+    /* Update item velocity/angular state and clear garbage flag */
+    FUN_000f6b80(item_handle);
+    object_set_garbage_flag(item_handle, 0);
+  }
+
+  /* Collision depth unguard */
+  if (*(int16_t *)0x4761d8 < 2) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\items\\items.c", 0x28b, 1);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
+}

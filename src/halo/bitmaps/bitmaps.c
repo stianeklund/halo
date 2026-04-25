@@ -125,6 +125,105 @@ void bitmap_delete(void *bitmap)
   }
 }
 
+/* FUN_0007c940 -- bitmap pixel address
+ *
+ * Computes a pointer to the pixel at (x, y) within a given mipmap level
+ * of a 2D bitmap. Accumulates pixel counts for all mipmap levels below
+ * the requested one, then adds x + width_at_mipmap * y and converts from
+ * pixel offset to byte offset using bits-per-pixel.
+ *
+ * Confirmed: cdecl, 4 stack args (bitmap, x, y, mipmap_index), returns void*.
+ * Confirmed: assert strings at lines 0x1a1-0x1a8 from bitmaps.c.
+ * Confirmed: calls bitmap_format_bits_per_pixel at 0x7c840.
+ * Confirmed: min_dimension = compressed ? 4 : 1 (same pattern as
+ * bitmap_mipmap_width). Confirmed: mipmap loop halves width/height each level,
+ * clamping to min_dimension. Confirmed: final offset = (x + accumulated +
+ * width_at_mip * y) * bpp / 8 + base_address.
+ */
+void *FUN_0007c940(void *bitmap, short x, short y, short mipmap_index)
+{
+  char *b = (char *)bitmap;
+  int pixel_count;
+  int min_dim;
+  short bpp;
+  short width;
+  short height;
+  int bit_offset;
+
+  pixel_count = 0;
+
+  if (bitmap == NULL) {
+    display_assert("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a1, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)(b + 0x2c) == 0) {
+    display_assert("bitmap->base_address",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a2, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)(b + 0xa) != 0) {
+    display_assert("bitmap->type==_bitmap_type_2d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a3, 1);
+    system_exit(-1);
+  }
+
+  if (x < 0 || x >= *(short *)(b + 0x4)) {
+    display_assert("x>=0 && x<bitmap->width",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a4, 1);
+    system_exit(-1);
+  }
+
+  if (y < 0 || y >= *(short *)(b + 0x6)) {
+    display_assert("y>=0 && y<bitmap->height",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a5, 1);
+    system_exit(-1);
+  }
+
+  if (mipmap_index < 0 || mipmap_index > *(short *)(b + 0x14)) {
+    display_assert("mipmap_index>=0 && mipmap_index<=bitmap->mipmap_count",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a6, 1);
+    system_exit(-1);
+  }
+
+  if ((*(uint8_t *)(b + 0xe) & 2) != 0 && (x != 0 || y != 0)) {
+    display_assert(
+      "!TEST_FLAG(bitmap->flags, _bitmap_compressed_bit) || (x==0 && y==0)",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a7, 1);
+    system_exit(-1);
+  }
+
+  if ((*(uint8_t *)(b + 0xe) & 8) != 0 && (x != 0 || y != 0)) {
+    display_assert(
+      "!TEST_FLAG(bitmap->flags, _bitmap_swizzled_bit) || (x==0 && y==0)",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x1a8, 1);
+    system_exit(-1);
+  }
+
+  width = *(short *)(b + 0x4);
+  height = *(short *)(b + 0x6);
+  min_dim = ((*(uint8_t *)(b + 0xe) & 2) != 0) ? 4 : 1;
+  bpp = bitmap_format_bits_per_pixel(*(short *)(b + 0xc));
+
+  if (mipmap_index > 0) {
+    short mip_count = mipmap_index;
+    do {
+      short w = width;
+      short h = height;
+      pixel_count = pixel_count + (int)w * (int)h;
+      width =
+        ((short)min_dim <= (short)(w >> 1)) ? (short)(w >> 1) : (short)min_dim;
+      height =
+        ((short)min_dim <= (short)(h >> 1)) ? (short)(h >> 1) : (short)min_dim;
+      mip_count--;
+    } while (mip_count != 0);
+  }
+
+  bit_offset = ((int)x + pixel_count + (int)width * (int)y) * (int)bpp;
+  return (void *)(bit_offset / 8 + *(int *)(b + 0x2c));
+}
+
 /* bitmap_validate_depth (0x7d440)
  *
  * Validate the depth field of a bitmap against its type.

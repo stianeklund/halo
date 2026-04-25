@@ -768,6 +768,32 @@ float sound_volume_crossfade(float current, float target, float rate)
   }
 }
 
+/* sound_compute_random_scale (0x1cc8c0)
+ *
+ * Compute a randomised scale factor for a sound parameter.
+ * Gets a deterministic random float in [random_min, random_max] from the
+ * local random seed, then evaluates:
+ *   result = random_value * (bend_min + (bend_max - bend_min) * source_scale)
+ *
+ * Confirmed: 5 cdecl args, all floats.
+ * Confirmed: CALL 0x10b120 (random_math_get_local_seed_address).
+ * Confirmed: CALL 0x10b270 (random_real_range) with (seed, random_min,
+ * random_max). Confirmed: FPU arithmetic: (bend_max - bend_min) * source_scale
+ * + bend_min, then multiplied by the random_real_range result. Confirmed:
+ * returns float on FPU stack.
+ */
+float sound_compute_random_scale(float random_min, float random_max,
+                                 float bend_min, float bend_max,
+                                 float source_scale)
+{
+  unsigned int *seed;
+  float random_value;
+
+  seed = random_math_get_local_seed_address();
+  random_value = random_real_range((int *)seed, random_min, random_max);
+  return random_value * ((bend_max - bend_min) * source_scale + bend_min);
+}
+
 /* sound_start_fade (0x1cc8f0)
  *
  * Begin a timed linear or crossfade between two sound entries. Mode must be

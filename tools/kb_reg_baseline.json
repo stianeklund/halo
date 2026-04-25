@@ -122,6 +122,7 @@
     "0x972b0": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
     "0xfb3c0": "bool weapon_has_activity(int weapon_handle @<eax>);",
     "0xfb6e0": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
-    "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);"
+    "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
+    "0xf6b80": "void FUN_000f6b80(int item_handle@<eax>);"
   }
 }

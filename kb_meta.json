@@ -2511,6 +2511,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf6d60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf7dd0": {
       "kind": "function",
       "status": "ported"
@@ -2864,6 +2868,10 @@
       ]
     },
     "0x10b130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10b240": {
       "kind": "function",
       "status": "ported"
     },
@@ -4925,6 +4933,10 @@
       ]
     },
     "0x1cc490": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cc8c0": {
       "kind": "function",
       "status": "ported"
     },

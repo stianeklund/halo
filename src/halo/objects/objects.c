@@ -64,6 +64,7 @@ void FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x141480  object_get_world_matrix
  *   0x141b70  object_compute_node_matrices
  *   0x143ae0  FUN_00143ae0 (object reposition)
+ *   0x143be0  FUN_00143be0 (set object position and reconnect to map)
  *   0x143c80  FUN_00143c80 (object_new — create from placement)
  *   0x144240  object_attach_to_parent
  *   0x1446a0  object_update_children_recursive
@@ -3542,6 +3543,44 @@ void FUN_00143ae0(int object_handle, float *position, float *forward, float *up)
 
   object_compute_node_matrices(object_handle);
   object_connect_to_map(object_handle, 0);
+}
+
+/* FUN_00143be0 — set an object's position and reconnect it to the map.
+ *
+ * Validates the new position with valid_real_point3d, asserts if invalid.
+ * Disconnects the object from the BSP, copies the 3D position into the
+ * object data at offset +0x0C, then reconnects with the given location.
+ *
+ * The assert string identifies this as "new_position" in objects.c line 0x232.
+ *
+ * Confirmed: 3 cdecl args (object_handle, position, location).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0xa16b0 (valid_real_point3d) for point validation.
+ * Confirmed: CALL 0x8d9d0 (csprintf) for assert message formatting.
+ * Confirmed: CALL 0x8d9f0 (display_assert) with file/line left on stack.
+ * Confirmed: CALL 0x8e2f0 (system_exit) with -1.
+ * Confirmed: CALL 0x13fd00 (object_disconnect_from_map).
+ * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, location).
+ * Confirmed: position copied to obj+0x0C, obj+0x10, obj+0x14.
+ */
+void FUN_00143be0(int object_handle, float *position, void *location)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if (!valid_real_point3d(position)) {
+    char *msg =
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
+               "new_position", (double)position[0], (double)position[1],
+               (double)position[2]);
+    display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x232, 1);
+    system_exit(-1);
+  }
+  object_disconnect_from_map(object_handle);
+  *(float *)(obj + 0x0c) = position[0];
+  *(float *)(obj + 0x10) = position[1];
+  *(float *)(obj + 0x14) = position[2];
+  object_connect_to_map(object_handle, location);
 }
 
 /*

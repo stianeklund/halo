@@ -67,6 +67,20 @@ int update_get_maximum_actions(void)
   return *(int *)0x45b1d8 - *(int *)0x45b1d4 + 1;
 }
 
+/* Copy the current client action collection from update_client_globals.
+ * Asserts that action_collection is non-NULL and the client subsystem is
+ * initialized, then copies 0x80 (128) bytes from update_client_globals+0x0c
+ * (address 0x45b1dc) into the caller-provided buffer. */
+void FUN_000b8fa0(void *action_collection)
+{
+  if (!action_collection || *(uint8_t *)0x45b1d0 == 0) {
+    display_assert("action_collection && update_client_globals.initialized",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x244, 1);
+    system_exit(-1);
+  }
+  csmemcpy(action_collection, (void *)0x45b1dc, 0x80);
+}
+
 /* Look up a snapshot buffer entry by index. Returns a pointer into the
  * circular buffer at 0x4570cc (32 entries of 0x208 bytes each), or NULL
  * if the index is outside the valid window [current - 32, current).
