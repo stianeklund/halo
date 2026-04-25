@@ -5331,7 +5331,8 @@
         {
           "decl": "void sound_start_next_looping_permutation(int sound_handle@<eax>);",
           "addr": "0x1cd2c0",
-          "comment": "Transition a looping sound to its next iteration tag and permutation."
+          "comment": "Transition a looping sound to its next iteration tag and permutation.",
+          "ported": true
         },
         {
           "decl": "int sound_create_looping_entry(int sound_tag_handle@<eax>, int looping_handle, int track_index, int type);",
@@ -5379,6 +5380,21 @@
           "addr": "0x1097f0",
           "comment": "Transform a 3D point through an affine 4x3 matrix.",
           "ported": true
+        },
+        {
+          "decl": "void *sound_channel_get(short channel_index@<si>);",
+          "addr": "0x1cba80",
+          "comment": "Return a pointer to the channel entry at the given index. Asserts index is in range."
+        },
+        {
+          "decl": "void sound_collect_like_sounds(int sound_handle, void *summary@<esi>);",
+          "addr": "0x1cbd30",
+          "comment": "Collect a summary of channels playing similar sounds for instance limiting."
+        },
+        {
+          "decl": "short sound_find_oldest_channel(int sound_handle@<eax>, short *channels, short count);",
+          "addr": "0x1ccd70",
+          "comment": "Find the oldest channel from a list of candidate channels for eviction."
         }
       ]
     },
