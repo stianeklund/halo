@@ -160,7 +160,9 @@
         },
         {
           "decl": "int valid_real_normal3d(float *v);",
-          "addr": "0x21fb0"
+          "addr": "0x21fb0",
+          "status": "ported",
+          "source": "src/halo/common.c"
         },
         {
           "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",

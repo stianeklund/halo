@@ -69,13 +69,14 @@ void cross_product3d(float *a, float *b, float *out)
  * unit normal (length within epsilon of 1.0).
  *
  * Computes squared_length = dot(v, v) and returns true if
- * |squared_length - 1.0f| < 0.0009765625 (1/1024).
+ * |squared_length - 1.0f| < 0.001f.
  *
  * Also rejects NaN/infinity by testing the exponent bits.
  *
  * Confirmed: FLD / FMUL / FADDP computes dot(v, v) on x87 stack.
  * Confirmed: FSUB [0x2533c8] subtracts 1.0f.
- * Confirmed: FABS / FCOMP [0x2549d8] compares against epsilon double.
+ * Confirmed: FABS / FCOMP double ptr [0x2549d8] compares against
+ * (double)0.001f.
  */
 int valid_real_normal3d(float *v)
 {
@@ -87,7 +88,7 @@ int valid_real_normal3d(float *v)
     return 0;
   }
 
-  return fabsf(diff) < 0.0009765625f;
+  return fabsf(diff) < 0.001f;
 }
 
 /* 0x2b5d0 — FUN_0002b5d0: initialize trigonometric lookup tables.
