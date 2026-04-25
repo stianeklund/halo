@@ -162,6 +162,44 @@ void sound_dsound_channel_update_3d(int channel_index)
                                       params, 1);
 }
 
+/* sound_dsound_channel_stop_check (0x1c9600)
+ *
+ * Check if a stopping channel's DirectSound stream has finished
+ * processing.  Asserts the channel is in the "stopping" state.
+ *
+ * Calls dsound_stream_is_active (0x20f069) to test whether the
+ * stream's internal kernel status bits (0x10000002) are still set.
+ * If the stream is no longer active, flushes it via the
+ * IDirectSoundStream vtable Flush method (vtable[6], offset 0x18)
+ * and clears the channel's stopping flag.
+ *
+ * Returns true if the channel was released (stream finished and
+ * flushed), false if still active. */
+bool sound_dsound_channel_stop_check(short channel_index)
+{
+  void *channel;
+  void *stream;
+  int active;
+  bool released;
+
+  channel = sound_dsound_channel_get(channel_index);
+
+  assert_halt(*(char *)((char *)channel + 0x6) != 0);
+
+  stream = *(void **)((char *)channel + 0x70);
+  active = dsound_stream_is_active(stream);
+  released = (active == 0);
+
+  if (released) {
+    void *stream2 = *(void **)((char *)channel + 0x70);
+    void **vtable = *(void ***)stream2;
+    ((int(__stdcall *)(void *))vtable[6])(stream2);
+    *(char *)((char *)channel + 0x6) = 0;
+  }
+
+  return released;
+}
+
 /* sound_dsound_log_error (0x1c98f0)
  *
  * Log a DirectSound error.  Formats the caller's message with
