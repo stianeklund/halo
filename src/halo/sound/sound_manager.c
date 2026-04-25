@@ -141,6 +141,51 @@ float sound_get_permutation_pitch(int permutation_block_ptr,
   return 0.0f;
 }
 
+/* sound_valid_for_channel (0x1cb790)
+ *
+ * Check whether a sound definition's compression, encoding, sample_rate,
+ * and spatialization_mode are compatible with a channel's type_flags word.
+ *
+ * Each bit of type_flags encodes a channel capability:
+ *   bit 0: spatialization (mono/stereo) — skipped if bit 1 is set
+ *   bit 1: skip-spatialization flag
+ *   bit 2: sample rate (0 = 22050, 1 = 44100)
+ *   bit 3: compression (0 = uncompressed, 1 = compressed)
+ *
+ * For bits 0, 1, 3 the test is inverted: the NOT of the bit must equal
+ * whether the corresponding parameter is zero. */
+bool sound_valid_for_channel(short compression, short encoding,
+                             unsigned short sample_rate,
+                             short spatialization_mode,
+                             unsigned short type_flags)
+{
+  int flags;
+  bool result;
+
+  flags = (int)(short)type_flags;
+
+  /* Check compression: (~(flags >> 3) & 1) must equal (compression == 0) */
+  result = true;
+  if ((~(flags >> 3) & 1) != (unsigned int)(compression == 0))
+    result = false;
+
+  /* Check encoding: (~(flags >> 1) & 1) must equal (encoding == 0) */
+  if ((~(flags >> 1) & 1) != (unsigned int)(encoding == 0))
+    result = false;
+
+  /* Check sample_rate: ((flags >> 2) & 1) must equal sample_rate */
+  if ((unsigned short)((flags >> 2) & 1) != sample_rate)
+    result = false;
+
+  /* Check spatialization: only if bit 1 of type_flags is clear */
+  if (!(type_flags & 2)) {
+    if ((~flags & 1) != (unsigned int)(spatialization_mode == 0))
+      result = false;
+  }
+
+  return result;
+}
+
 /* Empty on Xbox — no per-map sound initialization needed. */
 void sound_initialize_for_new_map(void)
 {
@@ -215,6 +260,20 @@ bool sound_can_play(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
+/* sound_channel_get (0x1cba80)
+ *
+ * Return a pointer to the sound channel entry at the given index.
+ * Channels live in a static array at 0x4fc3a0 with a stride of 0x18.
+ * The channel count is stored at 0x4eb0b4
+ * (sound_manager_globals.channel_count). Asserts that channel_index is in range
+ * [0, channel_count). */
+void *sound_channel_get(short channel_index /* @<si> */)
+{
+  assert_halt(channel_index >= 0 && channel_index < *(short *)0x4eb0b4);
+
+  return (void *)(0x4fc3a0 + (int)channel_index * 0x18);
+}
+
 /* Return a pointer to the sound listener entry for a local player.
  * The listeners table lives at 0x4eaf58 with a stride of 0x44.
  * Asserts that listener_index is in [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS). */
@@ -286,19 +345,6 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
-/* sound_channel_get (0x1cba80)
- *
- * Return a pointer to the sound channel entry at the given index.
- * Channels live in a static array at 0x4fc3a0 with a stride of 0x18.
- * The channel count is stored at 0x4eb0b4 (sound_manager_globals.channel_count).
- * Asserts that channel_index is in range [0, channel_count). */
-void *sound_channel_get(short channel_index /* @<si> */)
-{
-  assert_halt(channel_index >= 0 && channel_index < *(short *)0x4eb0b4);
-
-  return (void *)(0x4fc3a0 + (int)channel_index * 0x18);
-}
-
 /* sound_collect_like_sounds (0x1cbd30)
  *
  * Build a summary of channels currently playing sounds that are "like" the
@@ -308,9 +354,10 @@ void *sound_channel_get(short channel_index /* @<si> */)
  *   0x00  like_definition_count      (short) — channels with same tag_index
  *   0x02  like_definition_channels[16] (short[16]) — their channel indices
  *   0x22  maximum_instance_count     (short) — from the sound class definition
- *   0x24  like_source_count          (short) — channels with same tag AND source
- *   0x26  like_source_channels[16]   (short[16]) — their channel indices
- *   0x46  maximum_source_instance_count (short) — from the sound class definition
+ *   0x24  like_source_count          (short) — channels with same tag AND
+ * source 0x26  like_source_channels[16]   (short[16]) — their channel indices
+ *   0x46  maximum_source_instance_count (short) — from the sound class
+ * definition
  *
  * Iterates all active channels.  For each channel that holds a different
  * sound_handle, checks sound_valid_for_channel and whether the tag_index
@@ -336,23 +383,25 @@ void sound_collect_like_sounds(int sound_handle, void *summary /* @<esi> */)
   *(short *)((char *)summary + 0x24) = 0;
 
   /* Read max instance counts from the sound class definition. */
-  class_def = (char *)sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
+  class_def =
+    (char *)sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
   *(short *)((char *)summary + 0x22) = *(short *)(class_def + 0x0);
 
-  class_def = (char *)sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
+  class_def =
+    (char *)sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
   *(short *)((char *)summary + 0x46) = *(short *)(class_def + 0x2);
 
   if (*(short *)((char *)summary + 0x46) > 0x10) {
-    display_assert(
-      "summary->maximum_source_instance_count<=MAXIMUM_SOUND_INSTANCES_PER_DEFINITION",
-      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6a4, 1);
+    display_assert("summary->maximum_source_instance_count<=MAXIMUM_SOUND_"
+                   "INSTANCES_PER_DEFINITION",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6a4, 1);
     system_exit(-1);
   }
 
   if (*(short *)((char *)summary + 0x22) > 0x10) {
-    display_assert(
-      "summary->maximum_instance_count<=MAXIMUM_SOUND_INSTANCES_PER_OBJECT_PER_DEFINITION",
-      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6a5, 1);
+    display_assert("summary->maximum_instance_count<=MAXIMUM_SOUND_INSTANCES_"
+                   "PER_OBJECT_PER_DEFINITION",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6a5, 1);
     system_exit(-1);
   }
 
@@ -374,8 +423,7 @@ void sound_collect_like_sounds(int sound_handle, void *summary /* @<esi> */)
     other_entry = (char *)datum_get(*(data_t **)0x4fdba4, other_handle);
 
     if (!sound_valid_for_channel(
-          *(short *)(sound_tag + 0x6e),
-          *(unsigned short *)(sound_tag + 0x6c),
+          *(short *)(sound_tag + 0x6e), *(unsigned short *)(sound_tag + 0x6c),
           *(unsigned short *)(sound_tag + 0x6),
           *(unsigned short *)(sound_entry + 0x14),
           *(unsigned short *)((char *)channel_base + 0x4)))
@@ -933,8 +981,8 @@ short sound_find_oldest_channel(int sound_handle, short *channels, short count)
   sound_tag = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
 
   /* Compute reference distance for our sound. */
-  best_distance = FUN_001ccbe0(*(short *)(sound_entry + 0x6),
-                               (void *)(sound_entry + 0x14));
+  best_distance =
+    FUN_001ccbe0(*(short *)(sound_entry + 0x6), (void *)(sound_entry + 0x14));
 
   for (i = 0; i < count; i++) {
     index = channels[i];
@@ -946,14 +994,16 @@ short sound_find_oldest_channel(int sound_handle, short *channels, short count)
                                     *(int *)(0x4fc3a0 + (int)index * 0x18));
 
     /* Look up the sound class time threshold. */
-    class_def = sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
+    class_def =
+      sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
 
     /* Check elapsed time against class threshold. */
     elapsed = *(int *)0x4eaf4c - *(int *)(other_entry + 0x84);
     if (elapsed >= *(int *)((char *)class_def + 0x4)) {
       /* Check if the candidate's distance is within 1.0 of ours. */
       if (best_distance - FUN_001ccbe0(*(short *)(other_entry + 0x6),
-                                       (void *)(other_entry + 0x14)) < 1.0f) {
+                                       (void *)(other_entry + 0x14)) <
+          1.0f) {
         return index;
       }
     }
