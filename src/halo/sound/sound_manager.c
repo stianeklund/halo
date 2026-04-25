@@ -497,6 +497,22 @@ done:
   return result;
 }
 
+/* sound_pitch_push_sample (0x1c7b00)
+ *
+ * Conditionally applies a pitch sample to an object's pitch-track field.
+ * Only runs if the object looping sounds table (0x5054e4) is initialized
+ * (byte +0x24 != 0).  Validates the object handle as type 3 (biped|vehicle)
+ * via object_try_and_get_and_verify_type before forwarding to
+ * sound_object_apply_pitch_delta (0x1ac2f0). */
+void sound_pitch_push_sample(int object_handle, float pitch)
+{
+  if (*(uint8_t *)(*(int *)0x5054e4 + 0x24) != 0) {
+    if (object_try_and_get_and_verify_type(object_handle, 3) != 0) {
+      sound_object_apply_pitch_delta(object_handle, pitch);
+    }
+  }
+}
+
 /* sound_update_music (0x1ceda0)
  *
  * Per-channel tick for spatialized sound playback. Iterates the global
