@@ -187,6 +187,12 @@ def patch_exception_build_timestamp_strings(xbe: Xbe):
     log.info('Patched exception-screen build timestamp to "%s"', timestamp)
 
 
+def strip_stdcall_decoration(name: str) -> str:
+	"""Strip __stdcall name decoration: _name@N -> name"""
+	if name.startswith('_') and '@' in name:
+		return name[1:name.index('@')]
+	return name
+
 def round_up(value, round_to):
     value += (round_to - 1)
     value &= ~(round_to - 1)
@@ -906,10 +912,7 @@ def main():
         elif image_name == 'halo.xbe':
             for i in de.imports:
                 name = i.name.decode('ascii')
-                lookup_name = name
-                # Strip stdcall decoration: _name@N -> name
-                if lookup_name.startswith('_') and '@' in lookup_name:
-                    lookup_name = lookup_name[1:lookup_name.index('@')]
+                lookup_name = strip_stdcall_decoration(name)
                 if lookup_name not in kb.name_to_addr:
                     log.error('Where is "%s" in the original XBE?', name)
                     exit(1)
@@ -937,6 +940,9 @@ def main():
     # Hook all functions in the XBE that have been re-implemented
     patch_functions = [n for n in export_name_to_addr if n not in special_exports]
 
+    # Map from (possibly decorated) export name to kb.json symbol name
+    export_to_kb_name = {n: strip_stdcall_decoration(n) for n in patch_functions}
+
     # Resolve each export to its kb.json symbol so we can detect @<reg> funcs.
     name_to_symbol = {}
     for s in kb.symbols:
@@ -951,7 +957,7 @@ def main():
     rvthunks_bytes = bytearray()
     rvthunks_redirect = {}
     for n in patch_functions:
-        sym = name_to_symbol.get(n)
+        sym = name_to_symbol.get(export_to_kb_name[n])
         if sym is None or not getattr(sym, 'requires_reg_thunk', False):
             continue
         impl_addr = export_name_to_addr[n]
@@ -975,10 +981,11 @@ def main():
         xbe.sections[name] = XbeSection(name, hdr, bytes(rvthunks_bytes))
 
     for n in patch_functions:
-        if n not in kb.name_to_addr:
+        kb_name = export_to_kb_name[n]
+        if kb_name not in kb.name_to_addr:
             log.error('Where is "%s" in the original XBE?', n)
             exit(1)
-        addr_of_original_in_xbe = kb.name_to_addr[n]
+        addr_of_original_in_xbe = kb.name_to_addr[kb_name]
         addr_of_reimplementation = export_name_to_addr[n]
         if thunk_section_bounds and thunk_section_bounds[0] <= addr_of_reimplementation < thunk_section_bounds[1]:
             log.info('Skipping thunk "%s" export', n)
