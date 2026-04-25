@@ -227,11 +227,55 @@ void matrix_transform_vector(float *matrix, float *in, float *out)
            z * *(float *)((char *)matrix + 0x24);
 }
 
-/* Transform a 3D vector by the rotation part of a 4x3 matrix, normalizing by
- * the scale factor. If scale != 1.0, the input vector is divided by scale
- * before the rotation is applied.
- * Matrix layout: [scale +0x00][3x3 rotation +0x04..+0x24].
- * out[i] = dot(normalized_vec, column_i of rotation). */
+/* real_matrix3x3_transform_point (0x1096e0)
+ *
+ * Transform a world-space point into a 4x3 matrix's local frame.
+ * Subtracts the matrix's translation (+0x28..+0x30), normalizes by
+ * scale (+0x00), then applies the 3x3 rotation (+0x04..+0x24).
+ * If scale == 0.0, outputs the zero vector.
+ *
+ * Counterpart of real_matrix3x3_transform_vector (0x109780) which
+ * omits the translation subtraction — use _point for positions
+ * (world-to-local) and _vector for directions/velocities. */
+void real_matrix3x3_transform_point(void *matrix, float *point, float *out)
+{
+  float *m = (float *)matrix;
+  float x, y, z;
+
+  if (*m == *(float *)0x2533c0) {
+    out[0] = 0.0f;
+    out[1] = 0.0f;
+    out[2] = 0.0f;
+    return;
+  }
+
+  x = point[0] - *(float *)((char *)matrix + 0x28);
+  y = point[1] - *(float *)((char *)matrix + 0x2c);
+  z = point[2] - *(float *)((char *)matrix + 0x30);
+
+  if (*(int *)m != 0x3f800000) {
+    float inv_scale = *(float *)0x2533c8 / *m;
+    x = inv_scale * x;
+    y = inv_scale * y;
+    z = inv_scale * z;
+  }
+
+  out[0] = x * *(float *)((char *)matrix + 0x04) +
+           y * *(float *)((char *)matrix + 0x08) +
+           z * *(float *)((char *)matrix + 0x0c);
+  out[1] = x * *(float *)((char *)matrix + 0x10) +
+           y * *(float *)((char *)matrix + 0x14) +
+           z * *(float *)((char *)matrix + 0x18);
+  out[2] = x * *(float *)((char *)matrix + 0x1c) +
+           y * *(float *)((char *)matrix + 0x20) +
+           z * *(float *)((char *)matrix + 0x24);
+}
+
+/* real_matrix3x3_transform_vector (0x109780)
+ *
+ * Transform a direction or velocity vector by the rotation part of a
+ * 4x3 matrix, normalizing by scale. No translation subtraction —
+ * use real_matrix3x3_transform_point (0x1096e0) for positions. */
 void real_matrix3x3_transform_vector(void *matrix, vector3_t *vec,
                                      vector3_t *out)
 {
