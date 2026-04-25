@@ -189,7 +189,8 @@
         },
         {
           "decl": "bool weapon_try_place(int weapon_handle, int flag);",
-          "addr": "0xfd360"
+          "addr": "0xfd360",
+          "ported": true
         },
         {
           "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
@@ -6697,6 +6698,14 @@
         {
           "decl": "int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2, int16_t param_3, int16_t param_4);",
           "addr": "0xfb140"
+        },
+        {
+          "decl": "bool weapon_has_activity(int weapon_handle @<eax>);",
+          "addr": "0xfb3c0"
+        },
+        {
+          "decl": "void FUN_0009c750(int effect_handle);",
+          "addr": "0x9c750"
         }
       ]
     },
