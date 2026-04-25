@@ -5280,7 +5280,8 @@
         {
           "decl": "void sound_channel_stop(short channel_index@<di>);",
           "addr": "0x1cc140",
-          "comment": "Release cache-sound refs for a channel and stop the hardware via driver vtable+0x20."
+          "comment": "Release cache-sound refs for a channel and stop the hardware via driver vtable+0x20.",
+          "ported": true
         },
         {
           "decl": "void sound_cache_sound_finished(int permutation_ptr);",
@@ -5321,12 +5322,14 @@
         {
           "decl": "float sound_volume_crossfade(float current, float target, float rate);",
           "addr": "0x1cc490",
-          "comment": "Step a volume towards a target by rate (multiply or divide depending on direction)."
+          "comment": "Step a volume towards a target by rate (multiply or divide depending on direction).",
+          "ported": true
         },
         {
           "decl": "void sound_start_fade(short mode, float seconds, int fade_in_sound_index, int fade_out_sound_index);",
           "addr": "0x1cc8f0",
-          "comment": "Begin a timed linear or crossfade between two sound entries."
+          "comment": "Begin a timed linear or crossfade between two sound entries.",
+          "ported": true
         },
         {
           "decl": "void sound_start_next_looping_permutation(int sound_handle@<eax>);",
