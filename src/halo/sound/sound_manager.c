@@ -904,6 +904,64 @@ extern float FUN_001ccbe0(int channel_index, void *source);
 /* Compute distance for random scale checks. */
 extern float FUN_001ccca0(int channel_index, void *source);
 
+/* sound_find_oldest_channel (0x1ccd70)
+ *
+ * Scan a list of candidate channel indices and return the first one whose
+ * sound has been playing long enough (elapsed >= class threshold) and whose
+ * listener distance is within 1.0 of our sound's distance.
+ *
+ * Resolves the caller's sound_handle to get a reference distance via
+ * FUN_001ccbe0.  Then for each candidate channel, looks up the channel's
+ * sound datum, checks that enough time has elapsed since it started
+ * (sound_entry+0x84 vs global timer 0x4eaf4c), and compares distances.
+ *
+ * Returns the channel index of the best eviction candidate, or -1 if
+ * none qualifies. */
+short sound_find_oldest_channel(int sound_handle, short *channels, short count)
+{
+  char *sound_entry;
+  char *sound_tag;
+  float best_distance;
+  short i;
+  short index;
+  char *other_entry;
+  void *class_def;
+  int elapsed;
+
+  /* Resolve our sound datum and its tag. */
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+  sound_tag = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+
+  /* Compute reference distance for our sound. */
+  best_distance = FUN_001ccbe0(*(short *)(sound_entry + 0x6),
+                               (void *)(sound_entry + 0x14));
+
+  for (i = 0; i < count; i++) {
+    index = channels[i];
+
+    assert_halt(index >= 0 && index < *(short *)0x4eb0b4);
+
+    /* Get the sound datum currently playing on this channel. */
+    other_entry = (char *)datum_get(*(data_t **)0x4fdba4,
+                                    *(int *)(0x4fc3a0 + (int)index * 0x18));
+
+    /* Look up the sound class time threshold. */
+    class_def = sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
+
+    /* Check elapsed time against class threshold. */
+    elapsed = *(int *)0x4eaf4c - *(int *)(other_entry + 0x84);
+    if (elapsed >= *(int *)((char *)class_def + 0x4)) {
+      /* Check if the candidate's distance is within 1.0 of ours. */
+      if (best_distance - FUN_001ccbe0(*(short *)(other_entry + 0x6),
+                                       (void *)(other_entry + 0x14)) < 1.0f) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
 /* sound_update_channel (0x1ccf80)
  *
  * Apply volume/pan/pitch updates for a non-music sound channel.

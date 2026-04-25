@@ -5400,7 +5400,8 @@
         {
           "decl": "short sound_find_oldest_channel(int sound_handle@<eax>, short *channels, short count);",
           "addr": "0x1ccd70",
-          "comment": "Find the oldest channel from a list of candidate channels for eviction."
+          "comment": "Find the oldest channel from a list of candidate channels for eviction.",
+          "ported": true
         },
         {
           "decl": "bool sound_valid_for_channel(short compression, short encoding, unsigned short sample_rate, short spatialization_mode, unsigned short type_flags);",
