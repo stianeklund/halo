@@ -5312,7 +5312,8 @@
         {
           "decl": "void real_matrix4x3_transform_point(void *matrix, void *point, void *out);",
           "addr": "0x1097f0",
-          "comment": "Transform a 3D point through an affine 4x3 matrix."
+          "comment": "Transform a 3D point through an affine 4x3 matrix.",
+          "ported": true
         }
       ]
     },

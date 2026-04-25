@@ -258,6 +258,30 @@ void real_matrix3x3_transform_vector(void *matrix, vector3_t *vec,
            z * *(float *)((char *)matrix + 0x24);
 }
 
+/* Transform a 3D point by the rotation part of a 4x3 matrix (no scale
+ * normalization, no translation). Computes:
+ *   out[i] = dot(point, column_i of 3x3 rotation at matrix+0x04).
+ * Matrix layout: [scale +0x00][3x3 rotation +0x04..+0x24][translation
+ * +0x28..+0x30]. Only the 3x3 rotation is used. */
+void real_matrix4x3_transform_point(void *matrix, void *point, void *out)
+{
+  float *p = (float *)point;
+  float *o = (float *)out;
+  float x = p[0];
+  float y = p[1];
+  float z = p[2];
+
+  o[0] = x * *(float *)((char *)matrix + 0x04) +
+         y * *(float *)((char *)matrix + 0x08) +
+         z * *(float *)((char *)matrix + 0x0c);
+  o[1] = x * *(float *)((char *)matrix + 0x10) +
+         y * *(float *)((char *)matrix + 0x14) +
+         z * *(float *)((char *)matrix + 0x18);
+  o[2] = x * *(float *)((char *)matrix + 0x1c) +
+         y * *(float *)((char *)matrix + 0x20) +
+         z * *(float *)((char *)matrix + 0x24);
+}
+
 static float matrix4x3_round_to_float(float value)
 {
   volatile float rounded = value;
