@@ -178,7 +178,9 @@
         },
         {
           "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
-          "addr": "0x84a70"
+          "addr": "0x84a70",
+          "status": "ported",
+          "source": "src/halo/common.c"
         },
         {
           "decl": "void weapon_activate(int weapon_handle);",
