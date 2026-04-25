@@ -84,9 +84,8 @@
       "kind": "function",
       "status": "ported",
       "name": "FUN_0003a990",
-      "obj": "actors.obj",
       "inferred": [
-        "actors_initialize — allocates actor_data, swarm_data, swarm_component_data. Assertion strings confirm actors.c source."
+        "actors_initialize \u2014 allocates actor_data, swarm_data, swarm_component_data. Assertion strings confirm actors.c source."
       ]
     },
     "0x3aa50": {
@@ -97,9 +96,8 @@
       "kind": "function",
       "status": "ported",
       "name": "FUN_0003aa60",
-      "obj": "actors.obj",
       "inferred": [
-        "Likely actors_initialize_for_new_map — calls data_delete_all on all three actor data tables."
+        "Likely actors_initialize_for_new_map \u2014 calls data_delete_all on all three actor data tables."
       ]
     },
     "0x3aa90": {
@@ -2852,6 +2850,26 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10b300": {
+      "kind": "function",
+      "status": "named",
+      "inferred": [
+        "Register-arg function: copies a 3-float vector from the sphere direction table at global 0x46e3e8 indexed by ESI, into the buffer at EBX.",
+        "Assert strings confirm names: random_math_globals.random_direction_table and random_math_globals.random_direction_table_size at lines 250-251."
+      ]
+    },
+    "0x10b4c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The second LCG step and float conversion are an inline expansion of random_real_range(seed, zero, angle).",
+        "The first LCG step and index computation are an inline expansion of random_range(seed, 0, table_size).",
+        "Global 0x46e3e8 is random_math_globals.random_direction_table pointer and 0x46e3ec is random_math_globals.random_direction_table_size as int16_t."
+      ],
+      "uncertain": [
+        "The function returns the result pointer in EAX but is declared void since no known callers use the return value."
+      ]
+    },
     "0x10b5e0": {
       "kind": "function",
       "status": "ported"
@@ -2861,6 +2879,13 @@
       "status": "ported",
       "inferred": [
         "The function finds the component with the smallest absolute value and produces a perpendicular vector by zeroing that component and swapping the other two with one negated."
+      ]
+    },
+    "0x10b6e0": {
+      "kind": "function",
+      "status": "named",
+      "inferred": [
+        "Rodrigues rotation formula: rotates vector[0..2] around axis[0..2] by angle specified via sin_angle and cos_angle arguments."
       ]
     },
     "0x10c600": {

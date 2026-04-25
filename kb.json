@@ -196,10 +196,11 @@
         },
         {
           "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
-          "addr": "0x10b4c0"
+          "addr": "0x10b4c0",
+          "status": "ported"
         },
         {
-          "decl": "float *random_direction_table_get_element(int16_t index@<esi>, float *result@<ebx>);",
+          "decl": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
           "addr": "0x10b300"
         },
         {
