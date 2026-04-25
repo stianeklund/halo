@@ -286,6 +286,85 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
+/* sound_channel_update_status (0x1cc050)
+ *
+ * Query the sound driver for playback status of the given channel and
+ * advance the channel's permutation queue accordingly.
+ *
+ * The channel struct lives in the channel table at 0x4fc3a0 (stride 0x18):
+ *   +0x08  float  time accumulator
+ *   +0x0c  float  time rate
+ *   +0x10  int    current permutation pointer
+ *   +0x14  int    queued permutation pointer
+ *
+ * Driver vtable+0x24 returns the playback status for a channel:
+ *   0 = stopped, 1 = playing, 2 = finished.
+ *
+ * If a queued permutation exists and status < 2 (still playing or stopped):
+ *   - Release the old current permutation via sound_cache_sound_finished.
+ *   - Promote the queued permutation to current and clear the queue.
+ *   - Reset the time accumulator.
+ *   - Request the new permutation via sound_cache_request_sound; if that
+ *     fails, override the status to 0.
+ *
+ * If no queue but current permutation exists and status < 1 (stopped):
+ *   - Assert no queued permutation remains.
+ *   - Release current permutation via sound_cache_sound_finished and clear it.
+ *
+ * Finally, accumulate time: accumulator += delta_time * rate.
+ *
+ * channel_index is passed in AX (register arg, thunked to stack).
+ * Returns the driver playback status as a short. */
+short sound_channel_update_status(short channel_index)
+{
+  int ch;
+  int *channel_base;
+  short status;
+  int queued_perm;
+
+  /* Validate channel_index. */
+  if (channel_index < 0 || channel_index >= *(short *)0x4eb0b4) {
+    display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+    system_exit(-1);
+  }
+
+  ch = (int)channel_index;
+  channel_base = (int *)(0x4fc3a0 + ch * 0x18);
+
+  /* Query the sound driver for playback status (vtable+0x24). */
+  status = (short)(*(int (**)(int))(*(int *)0x4eaf48 + 0x24))(channel_index);
+
+  /* If a queued permutation is pending and channel hasn't finished, promote it. */
+  if (channel_base[5] != 0 && status < 2) {
+    sound_cache_sound_finished(channel_base[4]);
+    queued_perm = channel_base[5];
+    channel_base[4] = queued_perm;
+    channel_base[5] = 0;
+    channel_base[2] = 0;
+    if (!sound_cache_request_sound((void *)queued_perm, 0, 0, 0)) {
+      status = 0;
+    }
+  }
+
+  /* If current permutation exists but channel is stopped, release it. */
+  if (channel_base[4] != 0 && status < 1) {
+    if (channel_base[5] != 0) {
+      display_assert("!channel->queued_permutation",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x868, 1);
+      system_exit(-1);
+    }
+    sound_cache_sound_finished(channel_base[4]);
+    channel_base[4] = 0;
+  }
+
+  /* Accumulate time: accumulator += delta_time * rate. */
+  *(float *)&channel_base[2] +=
+      *(float *)0x4eaf50 * *(float *)&channel_base[3];
+
+  return status;
+}
+
 /* sound_channel_stop (0x1cc140)
  *
  * Release cache-sound references for a channel and stop the hardware
