@@ -5313,7 +5313,8 @@
         {
           "decl": "short sound_channel_update_status(short channel_index@<ax>);",
           "addr": "0x1cc050",
-          "comment": "Advance channel queue/permutation state; returns driver playback status."
+          "comment": "Advance channel queue/permutation state; returns driver playback status.",
+          "ported": true
         },
         {
           "decl": "float sound_volume_crossfade(float current, float target, float rate);",
