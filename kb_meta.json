@@ -3956,6 +3956,22 @@
         "The file_error function at 0x19a450 takes file_ref in EAX as a register arg; if a future port adds it to kb.json with @eax, the inline asm call should be replaced."
       ]
     },
+    "0x19a7a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19a930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19aa70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19ab50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19aed0": {
       "kind": "function",
       "status": "ported"
@@ -4614,6 +4630,10 @@
       "status": "ported"
     },
     "0x1c8b70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c8c60": {
       "kind": "function",
       "status": "ported"
     },
