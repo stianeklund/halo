@@ -10,6 +10,9 @@ Run after `git add` but before `git commit`. Reads staged changes in:
   - kb.json         (to find renames/address changes)
   - kb_meta.json    (to count metadata updates)
 
+Gates on ABI audit: refuses to generate a commit message if any newly ported
+function with register args fails audit_reg_abi.py.
+
 Outputs a commit message to stdout. Pipe it:
     python3 tools/generate_lift_commit.py > /tmp/commit_msg.txt
     git commit -F /tmp/commit_msg.txt
@@ -17,16 +20,64 @@ Outputs a commit message to stdout. Pipe it:
 
 import argparse
 import json
+import logging
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+TOOLS = REPO_ROOT / "tools"
+sys.path.insert(0, str(TOOLS))
 
 
 def run(cmd):
     return subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT).stdout
+
+
+def _load_kb_reg_args():
+    """Return {addr: [(param_index, reg), ...]} for functions with register args."""
+    from knowledge import KnowledgeBase, Function
+    if not logging.root.handlers:
+        logging.basicConfig(level=logging.ERROR)
+    kb = KnowledgeBase.deserialize()
+    result = {}
+    for sym in kb.symbols:
+        if not isinstance(sym, Function):
+            continue
+        if sym.register_args and sym.addr is not None:
+            addr = hex(int(str(sym.addr), 0)).lower()
+            result[addr] = sym.register_args
+    return result
+
+
+def run_abi_audit(function_addrs):
+    """Run audit_reg_abi.py on each address. Returns (pass_count, fail_count, messages)."""
+    passes = 0
+    failures = 0
+    messages = []
+    reg_map = _load_kb_reg_args()
+
+    for addr in function_addrs:
+        norm = hex(int(str(addr), 0)).lower()
+        if norm not in reg_map:
+            passes += 1
+            continue
+        proc = subprocess.run(
+            [sys.executable, str(TOOLS / "audit_reg_abi.py"), "--target", norm],
+            capture_output=True, text=True, cwd=str(REPO_ROOT),
+        )
+        if proc.returncode != 0:
+            failures += 1
+            messages.append(f"ABI FAIL {norm}: {proc.stderr.strip() or proc.stdout.strip()}")
+        else:
+            passes += 1
+            stdout = proc.stdout.strip()
+            if "warning:" in stdout.lower():
+                messages.append(f"ABI WARN {norm}: {stdout}")
+
+    return passes, failures, messages
 
 
 def kb_summary():
@@ -195,11 +246,48 @@ def main():
     ap = argparse.ArgumentParser(description="Generate standardized lift commit message")
     ap.add_argument("--batch-name", default=None, help="Short batch description (e.g. 'weapon helpers')")
     ap.add_argument("--since", default=None, help="Git ref to diff against instead of staged changes")
+    ap.add_argument("--skip-abi-audit", action="store_true",
+                    help="Skip ABI audit gate (emergency bypass)")
     args = ap.parse_args()
+
+    if args.since:
+        ports, renames = compare_kb_json(old_ref=args.since, new_ref="HEAD")
+    else:
+        ports, renames = staged_kb_json_changes()
+
+    if ports and not args.skip_abi_audit:
+        port_addrs = [addr for addr, _ in ports]
+        passes, failures, abi_messages = run_abi_audit(port_addrs)
+        for msg in abi_messages:
+            print(msg, file=sys.stderr)
+        if failures > 0:
+            print(
+                f"\nABI audit FAILED for {failures} function(s). "
+                f"Fix register annotations or pass --skip-abi-audit to bypass.",
+                file=sys.stderr,
+            )
+            return 1
+        if abi_messages:
+            print(f"ABI audit: {passes} passed with warnings (see above)", file=sys.stderr)
+        else:
+            print(f"ABI audit: {passes} function(s) passed", file=sys.stderr)
+
+    # Run sync-ported to catch any drift before committing
+    sync_proc = subprocess.run(
+        [sys.executable, str(TOOLS / "kb_meta.py"), "sync-ported", "--dry-run"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    if "would mark" in sync_proc.stdout:
+        print("WARNING: kb_meta.json has untracked ported functions:", file=sys.stderr)
+        print(sync_proc.stdout.strip(), file=sys.stderr)
+        print(
+            "Run: python3 tools/kb_meta.py sync-ported   (then stage kb_meta.json)",
+            file=sys.stderr,
+        )
 
     msg = generate_message(batch_name=args.batch_name, since_ref=args.since)
     print(msg)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

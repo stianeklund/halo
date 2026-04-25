@@ -72,14 +72,20 @@ Report at minimum:
 After Phase 1 completes:
 
 1. Use the function name from `RESOLVED_TARGET:` above.
-2. Run:
+2. If Phase 1 retrieved caller disassembly from Ghidra (callers of the target
+   function showing register setup before CALL instructions), save it to
+   `/tmp/lift_caller_disasm.txt`.
+3. Run:
    ```
-   python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto
+   python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
+     --abi-caller-disasm-file /tmp/lift_caller_disasm.txt
    ```
-3. Report:
+   If no caller disassembly was retrieved, omit `--abi-caller-disasm-file` (the
+   pipeline still runs ABI audit against kb.json declarations alone).
+4. Report:
    - Target: name / address / object / source path
    - Phase 1 summary (Confirmed / Inferred / Uncertain)
-   - Pipeline stage results (build pass/fail, verify pass/fail)
+   - Pipeline stage results (build pass/fail, ABI audit pass/fail, verify pass/fail)
    - Artifact path from summary.json
 
 Notes:

@@ -77,6 +77,14 @@ Procedure for analysis:
 10. After marking status=ported in kb_meta.json, persist Inferred and Uncertain
     findings with `tools/kb_meta.py annotate-notes --addr <addr> --kind inferred|uncertain --append "<note>"` — one call per note, each a complete sentence.
 
+Caller disassembly capture:
+When retrieving caller disassembly from Ghidra (callers of the target showing
+register setup before CALL instructions), save the raw disassembly text to
+`/tmp/lift_caller_disasm.txt`. Phase 2 of `/lift` feeds this to the pipeline's
+ABI audit stage. Without it, the audit can only check kb.json declarations —
+with it, it can catch mismatches between declared register args and actual
+caller behavior.
+
 Output format:
 - Target
 - Confirmed
@@ -114,6 +122,13 @@ Hard rules:
   and also add to `tools/kb_reg_baseline.json`. Do not use raw casts or inline asm.
 - Remember cdecl push order: first PUSH is the last C argument.
 - Avoid broad speculative refactors; prefer small reviewable changes.
+- **Lift workflow enforcement:** All new function ports MUST go through
+  `/lift` (which invokes this agent as Phase 1). Do not implement and commit
+  lift work outside of `/lift`. If invoked directly (not as a `/lift` subtask),
+  perform analysis and produce the output report, but do NOT commit. Remind
+  the caller to use `/lift` for the full gated pipeline (ABI audit, build,
+  verification). The commit tooling (`generate_lift_commit.py`) gates on ABI
+  audit and will block commits that fail it.
 
 Work selection:
 When choosing targets, prefer frontier-first and object-first recovery: leaf

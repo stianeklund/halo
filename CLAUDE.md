@@ -58,12 +58,15 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 - **Failure Policy:** If an edit fails, re-read only affected ranges before retrying.
 
 ### 4. Commit Discipline
+- **Use `/lift` for all new function ports.** Do not manually implement and commit lift work without going through the `/lift` skill. It runs ABI audit, build, and verification stages that catch real bugs (calling convention mismatches, register-arg errors). Bypassing it has caused page faults and silent regressions.
 - **No Freeform Messages:** Never write freeform lift commit messages.
 - **Standard Command:** After staging changes, run:
   ```bash
   rtk python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
   rtk git commit -F /tmp/commit_msg.txt
   ```
+- **ABI audit gate:** `generate_lift_commit.py` runs `audit_reg_abi.py` on all newly ported functions. If any fail, no commit message is generated. Use `--skip-abi-audit` only for emergencies.
+- **Pre-commit hook:** The git pre-commit hook runs both the baseline guard and lift ABI audit on staged changes. `--no-verify` is the emergency bypass.
 
 ## Repo Guardrails
 - **Noisy Dirs:** Never read or search inside `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/` unless explicitly asked. These are generated artifacts.
