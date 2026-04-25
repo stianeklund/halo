@@ -2067,55 +2067,67 @@
     },
     {
       "name": "files_windows.obj",
-      "source": null,
+      "source": "tag_files/files.c",
       "functions": [
         {
           "decl": "void find_files_begin(int flags, file_ref_t *dir);",
-          "addr": "0x19a040"
+          "addr": "0x19a040",
+          "ported": true
         },
         {
           "decl": "void path_add_directory(char *path, const char *directory);",
-          "addr": "0x19a110"
+          "addr": "0x19a110",
+          "ported": true
         },
         {
           "decl": "void path_add_extension(char *path, const char *extension);",
-          "addr": "0x19a1a0"
+          "addr": "0x19a1a0",
+          "ported": true
         },
         {
           "decl": "void path_remove_filename(char *path);",
-          "addr": "0x19a230"
+          "addr": "0x19a230",
+          "ported": true
         },
         {
           "decl": "void path_split(const char *path, char **directory, char **parent_directory, char **filename, char **extension, int flags);",
-          "addr": "0x19a290"
+          "addr": "0x19a290",
+          "ported": true
         },
         {
           "decl": "void path_from_file_reference(int16_t location, const char *path, char *out);",
-          "addr": "0x19a370"
+          "addr": "0x19a370",
+          "ported": true
         },
         {
           "decl": "void file_error(file_ref_t *info, const char *function_name);",
-          "addr": "0x19a450"
+          "addr": "0x19a450",
+          "ported": true
         },
         {
           "decl": "bool file_open(file_ref_t *info, int flags);",
-          "addr": "0x19a7a0"
+          "addr": "0x19a7a0",
+          "ported": true
         },
         {
           "decl": "bool file_close(file_ref_t *info);",
-          "addr": "0x19a930"
+          "addr": "0x19a930",
+          "ported": true
         },
         {
           "decl": "int file_get_eof(file_ref_t *info);",
-          "addr": "0x19aa70"
+          "addr": "0x19aa70",
+          "ported": true
         },
         {
           "decl": "bool file_read(file_ref_t *info, int size, void *buffer);",
-          "addr": "0x19ab50"
+          "addr": "0x19ab50",
+          "ported": true
         },
         {
           "decl": "bool find_files_next(file_ref_t *result, int param2);",
-          "addr": "0x19aed0"
+          "addr": "0x19aed0",
+          "ported": true
         }
       ]
     },
