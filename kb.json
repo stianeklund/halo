@@ -805,7 +805,8 @@
         },
         {
           "decl": "void vector3d_scale_add(float *base, float *direction, float scale, float *out);",
-          "addr": "0x12f80"
+          "addr": "0x12f80",
+          "ported": true
         },
         {
           "decl": "void vector3d_add(float *a, float *b, float *out);",

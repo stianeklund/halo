@@ -5241,6 +5241,10 @@
     "0x121e0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x12f80": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }

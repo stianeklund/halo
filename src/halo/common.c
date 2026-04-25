@@ -35,6 +35,13 @@ float FUN_000121e0(float min, float max)
   return random_real_range(seed, min, max);
 }
 
+void vector3d_scale_add(float *base, float *direction, float scale, float *out)
+{
+  out[0] = scale * direction[0] + base[0];
+  out[1] = scale * direction[1] + base[1];
+  out[2] = scale * direction[2] + base[2];
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b
