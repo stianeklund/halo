@@ -286,6 +286,50 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
+/* sound_channel_stop (0x1cc140)
+ *
+ * Release cache-sound references for a channel and stop the hardware
+ * via the sound driver vtable+0x20.
+ *
+ * The channel struct lives in the channel table at 0x4fc3a0 (stride 0x18).
+ * Two permutation pointers at offsets +0x10 and +0x14 in the channel
+ * entry are checked: if non-zero, sound_cache_sound_finished is called
+ * to decrement the software reference count and the pointer is cleared.
+ * Finally, the sound driver's stop function (vtable+0x20) is called
+ * with the channel index.
+ *
+ * channel_index is passed in DI (register arg, thunked to stack). */
+void sound_channel_stop(short channel_index)
+{
+  int ch;
+  int *channel_base;
+
+  /* Validate channel_index. */
+  if (channel_index < 0 || channel_index >= *(short *)0x4eb0b4) {
+    display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+    system_exit(-1);
+  }
+
+  ch = (int)channel_index;
+  channel_base = (int *)(0x4fc3a0 + ch * 0x18);
+
+  /* Release cache-sound ref at +0x14 if present. */
+  if (channel_base[5] != 0) {
+    sound_cache_sound_finished(channel_base[5]);
+    channel_base[5] = 0;
+  }
+
+  /* Release cache-sound ref at +0x10 if present. */
+  if (channel_base[4] != 0) {
+    sound_cache_sound_finished(channel_base[4]);
+    channel_base[4] = 0;
+  }
+
+  /* Stop the hardware channel via driver vtable+0x20. */
+  (*(void (**)(int))(*(int *)0x4eaf48 + 0x20))(channel_index);
+}
+
 /* sound_update_channel_attenuation (0x1cc310)
  *
  * Advance the attenuation envelope for a sound datum. Computes the
