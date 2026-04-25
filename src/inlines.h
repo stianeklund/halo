@@ -86,6 +86,31 @@ INLINE float fabsf(float x)
   return r;
 }
 
+/* pow(x, y) = 2^(y * log2(x)) via x87 FYL2X + F2XM1 + FSCALE.
+ * Valid for x > 0 and any y. No edge-case handling (NaN, inf, x<=0)
+ * because the game only calls this for attenuation/progress curves with
+ * base in (0,1] and small positive exponents. */
+INLINE double pow(double base, double exponent)
+{
+  double result;
+  asm volatile (
+    "fyl2x\n\t"              /* ST(0) = exponent * log2(base) */
+    "fld %%st(0)\n\t"        /* duplicate */
+    "frndint\n\t"             /* ST(0) = integer part */
+    "fxch %%st(1)\n\t"       /* swap: ST(0) = full, ST(1) = int */
+    "fsub %%st(1), %%st\n\t" /* ST(0) = fractional part */
+    "f2xm1\n\t"              /* ST(0) = 2^frac - 1 */
+    "fld1\n\t"                /* push 1.0 */
+    "faddp\n\t"               /* ST(0) = 2^frac */
+    "fscale\n\t"              /* ST(0) = 2^frac * 2^int = 2^(exp*log2(base)) */
+    "fstp %%st(1)\n\t"       /* pop the integer part */
+    : "=t"(result)
+    : "0"(base), "u"(exponent)
+    : "st(1)"
+  );
+  return result;
+}
+
 INLINE void *memcpy(void *s1, const void *s2, size_t n)
 {
   char *dest = (char *)s1;

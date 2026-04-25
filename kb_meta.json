@@ -4651,6 +4651,17 @@
         "The MOVSX SI,SI and IMUL pattern suggests promotion_count is sign-extended from short to int before the multiplication with interval."
       ]
     },
+    "0x1cc310": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 0.4 exponent (1.0/2.5) controls the shape of the power curve for non-linear attenuation transitions.",
+        "Fields at +0x9c and +0xa0 are current and target attenuation respectively, +0xa4 and +0xa8 are transition start and end ticks, and +0x92 is the envelope type selector (0=linear, 1=power)."
+      ],
+      "uncertain": [
+        "The direction check (target > current vs target <= current) selects ease-in vs ease-out curve, but the exact perceptual intent is not confirmed by the binary alone."
+      ]
+    },
     "0x1ccbe0": {
       "kind": "function",
       "status": "ported"

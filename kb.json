@@ -5258,7 +5258,8 @@
         {
           "decl": "float sound_update_channel_attenuation(int sound_handle@<eax>);",
           "addr": "0x1cc310",
-          "comment": "Advance envelope attenuation curve for a sound datum."
+          "comment": "Advance envelope attenuation curve for a sound datum.",
+          "ported": true
         },
         {
           "decl": "void sound_stop_channel(int sound_handle@<ebx>);",

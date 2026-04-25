@@ -547,6 +547,74 @@ void sound_pitch_push_sample(int object_handle, float pitch)
   }
 }
 
+/* sound_update_channel_attenuation (0x1cc310)
+ *
+ * Advance the attenuation envelope for a sound datum. Computes the
+ * interpolation parameter t from the transition start/end tick fields
+ * (+0xa4, +0xa8) relative to the global sound timestamp at 0x4eaf4c.
+ *
+ * Three envelope shapes are selected by the short at +0x92:
+ *   0 (linear): t is used directly.
+ *   1 (power):  t is warped through pow(t, 1/2.5) or 1-pow(1-t, 1/2.5)
+ *               depending on whether target > current attenuation.
+ *   default:    assert -- invalid envelope type.
+ *
+ * When t reaches 1.0 the transition start/end fields are cleared.
+ * Returns lerp(current_atten, target_atten, shaped_t).
+ * If no transition is active (start == end), returns 1.0 (fully audible). */
+float sound_update_channel_attenuation(int sound_handle)
+{
+  char *sound_entry;
+  int start_tick;
+  int end_tick;
+  float t;
+
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+  start_tick = *(int *)(sound_entry + 0xa4);
+  end_tick = *(int *)(sound_entry + 0xa8);
+
+  if (start_tick == end_tick) {
+    return 1.0f;
+  }
+
+  /* Compute t = (current_tick - start) / (end - start), clamped to [0, 1]. */
+  t = (float)(*(int *)0x4eaf4c - start_tick) / (float)(end_tick - start_tick);
+  if (t < 0.0f) {
+    t = 0.0f;
+  } else if (t > 1.0f) {
+    t = 1.0f;
+  }
+
+  /* Apply envelope shape based on type at +0x92. */
+  switch (*(short *)(sound_entry + 0x92)) {
+  case 0:
+    /* Linear: use t directly. */
+    break;
+  case 1:
+    /* Power curve: ease-in or ease-out depending on direction. */
+    if (*(float *)(sound_entry + 0xa0) > *(float *)(sound_entry + 0x9c)) {
+      t = (float)pow((double)t, (double)(1.0f / 2.5f));
+    } else {
+      t = (float)(1.0 - pow((double)(1.0f - t), (double)(1.0f / 2.5f)));
+    }
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0xa76, 1);
+    system_exit(-1);
+    break;
+  }
+
+  /* When t reaches 1.0, clear the transition. */
+  if (t == 1.0f) {
+    *(int *)(sound_entry + 0xa8) = 0;
+    *(int *)(sound_entry + 0xa4) = 0;
+  }
+
+  /* Lerp between current and target attenuation. */
+  return (*(float *)(sound_entry + 0xa0) - *(float *)(sound_entry + 0x9c)) * t
+       + *(float *)(sound_entry + 0x9c);
+}
+
 /* sound_update_music (0x1ceda0)
  *
  * Per-channel tick for spatialized sound playback. Iterates the global
