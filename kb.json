@@ -184,7 +184,8 @@
         },
         {
           "decl": "void weapon_activate(int weapon_handle);",
-          "addr": "0xfd2e0"
+          "addr": "0xfd2e0",
+          "ported": true
         },
         {
           "decl": "bool weapon_try_place(int weapon_handle, int flag);",
@@ -5255,6 +5256,28 @@
       ]
     },
     {
+      "name": "sound_dsound_xbox.obj",
+      "source": "sound/sound_dsound_xbox.c",
+      "functions": [
+        {
+          "decl": "short sound_dsound_channel_resolve(int channel_index@<ebx>);",
+          "addr": "0x1c9b40",
+          "comment": "Look up and validate dsound channel for a sound manager channel index."
+        },
+        {
+          "decl": "void sound_dsound_update_channel_properties(float *properties@<ebx>, short channel_index, int update_only);",
+          "addr": "0x1ca5e0",
+          "comment": "Apply volume/pitch/3D properties to a dsound channel."
+        },
+        {
+          "decl": "void sound_dsound_set_channel_properties(int channel_index, float *properties, int update_only);",
+          "addr": "0x1caa80",
+          "ported": true,
+          "comment": "Vtable+0x34 entry: resolve channel, clamp gain, forward to driver."
+        }
+      ]
+    },
+    {
       "name": "sound_manager.obj",
       "source": "sound/sound_manager.c",
       "functions": [
@@ -6654,6 +6677,26 @@
         {
           "decl": "void __stdcall Lock2DSurface(void *texture, unsigned int face, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
           "addr": "0x1f44f0"
+        },
+        {
+          "decl": "void weapon_reset_state(int weapon_handle);",
+          "addr": "0xfcf20"
+        },
+        {
+          "decl": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
+          "addr": "0xfba20"
+        },
+        {
+          "decl": "void FUN_000de3b0(int object_handle, int param_2);",
+          "addr": "0xde3b0"
+        },
+        {
+          "decl": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
+          "addr": "0xfb6e0"
+        },
+        {
+          "decl": "int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2, int16_t param_3, int16_t param_4);",
+          "addr": "0xfb140"
         }
       ]
     },

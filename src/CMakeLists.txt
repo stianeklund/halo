@@ -56,6 +56,7 @@
 	halo/interface/ui_widget_game_data_input_functions.c
 	halo/items/items.c
 	halo/items/projectiles.c
+	halo/items/weapons.c
 	halo/units/units.c
 	halo/units/vehicles.c
 	halo/networking/network_messages.c
@@ -92,6 +93,7 @@
 	halo/shaders/shaders.c
 	halo/sound/game_sound.c
 	halo/sound/sound_classes.c
+	halo/sound/sound_dsound_xbox.c
 	halo/sound/sound_manager.c
 	halo/objects/objects.c
 	halo/objects/widgets/widgets.c
