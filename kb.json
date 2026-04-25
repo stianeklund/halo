@@ -5300,12 +5300,39 @@
         {
           "decl": "void sound_update_channel(int channel_index, float attenuation);",
           "addr": "0x1ccf80",
-          "comment": "Apply volume/pan/pitch updates for a non-music channel."
+          "comment": "Apply volume/pan/pitch updates for a non-music channel.",
+          "ported": true
+        },
+        {
+          "decl": "short sound_channel_update_status(short channel_index@<ax>);",
+          "addr": "0x1cc050",
+          "comment": "Advance channel queue/permutation state; returns driver playback status."
+        },
+        {
+          "decl": "float sound_volume_crossfade(float current, float target, float rate);",
+          "addr": "0x1cc490",
+          "comment": "Step a volume towards a target by rate (multiply or divide depending on direction)."
+        },
+        {
+          "decl": "void sound_start_fade(short mode, float seconds, int fade_in_sound_index, int fade_out_sound_index);",
+          "addr": "0x1cc8f0",
+          "comment": "Begin a timed linear or crossfade between two sound entries."
+        },
+        {
+          "decl": "void sound_start_next_looping_permutation(int sound_handle@<eax>);",
+          "addr": "0x1cd2c0",
+          "comment": "Transition a looping sound to its next iteration tag and permutation."
+        },
+        {
+          "decl": "int sound_create_looping_entry(int sound_tag_handle@<eax>, int looping_handle, int track_index, int type);",
+          "addr": "0x1cda50",
+          "comment": "Allocate and initialize a new sound datum for a looping sound track."
         },
         {
           "decl": "void sound_update_music_channel(int channel_index, float attenuation);",
           "addr": "0x1cdc30",
-          "comment": "Apply volume/pan/pitch updates for a music-class channel."
+          "comment": "Apply volume/pan/pitch updates for a music-class channel.",
+          "ported": true
         },
         {
           "decl": "float sound_get_permutation_pitch(int permutation_block_ptr, short permutation_index);",
