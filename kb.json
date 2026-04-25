@@ -718,6 +718,11 @@
           "addr": "0x205bbf"
         },
         {
+          "decl": "bool __stdcall dsound_stream_is_active(void *stream);",
+          "addr": "0x20f069",
+          "comment": "Check if a DirectSound stream is still active by testing internal kernel status bits (0x10000002). Returns true if the stream is still processing."
+        },
+        {
           "decl": "void xbox_sound_cache_idle(void);",
           "addr": "0x1bded0"
         },
@@ -5329,6 +5334,7 @@
         {
           "decl": "bool sound_dsound_channel_stop_check(short channel_index@<eax>);",
           "addr": "0x1c9600",
+          "ported": true,
           "comment": "Check if a stopping channel has finished and release it. Returns true if the channel was released."
         },
         {
