@@ -114,6 +114,7 @@
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "0xfb3c0": "bool weapon_has_activity(int weapon_handle @<eax>);",
     "0xfb6e0": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
     "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);"
   }
