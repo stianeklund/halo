@@ -474,7 +474,8 @@
         },
         {
           "decl": "void edit_text_initialize(void *edit_text);",
-          "addr": "0x97440"
+          "addr": "0x97440",
+          "ported": true
         },
         {
           "decl": "void edit_text_process_key(void *edit_text, void *keystroke);",
