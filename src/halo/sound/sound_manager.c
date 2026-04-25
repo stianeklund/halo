@@ -1,3 +1,28 @@
+/* sound_object_apply_pitch_delta (0x1ac2f0)
+ *
+ * Computes a clamped pitch delta and accumulates it onto the object's
+ * pitch field at offset 0x298.  The incoming pitch is differenced against
+ * the current stored value; the resulting delta is clamped to [-0.3, 0.3]
+ * before being added back to the stored pitch. */
+void sound_object_apply_pitch_delta(int object_handle, float pitch)
+{
+  char *obj;
+  float *stored_pitch;
+  float delta;
+
+  obj = (char *)object_get_and_verify_type(object_handle, 3);
+  stored_pitch = (float *)(obj + 0x298);
+  delta = pitch - *stored_pitch;
+
+  if (delta < -0.3f) {
+    delta = -0.3f;
+  } else if (delta > 0.3f) {
+    delta = 0.3f;
+  }
+
+  *stored_pitch += delta;
+}
+
 /* sound_pitch_push_sample (0x1c7b00)
  *
  * Conditionally applies a pitch sample to an object's pitch-track field.
