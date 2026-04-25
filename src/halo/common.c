@@ -29,6 +29,12 @@ float FUN_000121a0(const float *a, const float *b)
   return dx * dx + dy * dy + dz * dz;
 }
 
+float FUN_000121e0(float min, float max)
+{
+  int *seed = get_global_random_seed_address();
+  return random_real_range(seed, min, max);
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b
