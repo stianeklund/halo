@@ -715,6 +715,38 @@ done:
   return result;
 }
 
+/* sound_volume_crossfade (0x1cc490)
+ *
+ * Step a volume level toward a target value using a multiplicative rate.
+ * If rate is zero or current already equals target, returns current unchanged.
+ *
+ * When fading down (current > target): computes target * rate and returns
+ * that if it is still below current (making progress), otherwise clamps to
+ * current to avoid overshoot.
+ *
+ * When fading up (current <= target): computes target / rate and returns
+ * that if it is still above current (making progress), otherwise clamps to
+ * current to avoid overshoot. */
+float sound_volume_crossfade(float current, float target, float rate)
+{
+  if (rate == 0.0f || current == target)
+    return current;
+
+  if (current > target) {
+    /* Fading down: multiply target by rate. */
+    float result = target * rate;
+    if (current > result)
+      return result;
+    return current;
+  } else {
+    /* Fading up: divide target by rate. */
+    float result = target / rate;
+    if (current <= result)
+      return result;
+    return current;
+  }
+}
+
 /* sound_update_channel (0x1ccf80)
  *
  * Apply volume/pan/pitch updates for a non-music sound channel.
