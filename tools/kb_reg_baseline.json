@@ -92,6 +92,8 @@
     "0x1c5990": "void *bink_memory_pool_alloc(int alignment@<eax>, int alloc_size@<ecx>);",
     "0x1c7c30": "bool sound_cluster_is_audible(void *location@<esi>);",
     "0x1c89d0": "void *sound_class_get(int class_index@<si>);",
+    "0x1c9290": "void *sound_dsound_channel_get(short index@<si>);",
+    "0x1c92f0": "void *sound_dsound_vchannel_get(short index@<si>);",
     "0x1c9b40": "short sound_dsound_channel_resolve(int channel_index@<ebx>);",
     "0x1ca5e0": "void sound_dsound_update_channel_properties(float *properties@<ebx>, short channel_index, int update_only);",
     "0x1cba20": "bool sound_can_play(int sound_tag_index@<eax>);",

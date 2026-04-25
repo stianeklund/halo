@@ -4736,6 +4736,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c9b40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function names vchannel_get (0x1c92f0), channel_get (0x1c9290), and try_resolve (0x1c99a0) are derived from assertion string text in the binary.",
+        "Global array at 0x32fcf8 is sound_channel_type_flags (short[]), indexed by vchannel type_index, from assertion string.",
+        "Virtual channel struct layout: offset 0 = short channel_index, offset 2 = short type_index (from assertion text and field access patterns).",
+        "Actual channel struct layout: offset 0x02 = short virtual_channel_index, offset 0x38 = short type_flags (from assertion text and field access patterns). Each element is 0x74 bytes."
+      ]
+    },
     "0x1caa80": {
       "kind": "function",
       "status": "ported"
