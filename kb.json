@@ -5202,7 +5202,8 @@
         {
           "decl": "float sound_class_get_gain(int class_index);",
           "addr": "0x1c8c60",
-          "comment": "Return the runtime gain for a sound class from sound_class_data+index*0xc+4."
+          "comment": "Return the runtime gain for a sound class from sound_class_data+index*0xc+4.",
+          "ported": true
         }
       ]
     },
