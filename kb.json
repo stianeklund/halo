@@ -5388,7 +5388,8 @@
         {
           "decl": "void *sound_channel_get(short channel_index@<si>);",
           "addr": "0x1cba80",
-          "comment": "Return a pointer to the channel entry at the given index. Asserts index is in range."
+          "comment": "Return a pointer to the channel entry at the given index. Asserts index is in range.",
+          "ported": true
         },
         {
           "decl": "void sound_collect_like_sounds(int sound_handle, void *summary@<esi>);",

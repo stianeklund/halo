@@ -286,6 +286,19 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
+/* sound_channel_get (0x1cba80)
+ *
+ * Return a pointer to the sound channel entry at the given index.
+ * Channels live in a static array at 0x4fc3a0 with a stride of 0x18.
+ * The channel count is stored at 0x4eb0b4 (sound_manager_globals.channel_count).
+ * Asserts that channel_index is in range [0, channel_count). */
+void *sound_channel_get(short channel_index /* @<si> */)
+{
+  assert_halt(channel_index >= 0 && channel_index < *(short *)0x4eb0b4);
+
+  return (void *)(0x4fc3a0 + (int)channel_index * 0x18);
+}
+
 /* sound_channel_start_new (0x1cbf30)
  *
  * Start a new permutation on a sound channel.  If the channel already has
