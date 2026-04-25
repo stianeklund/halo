@@ -1,0 +1,859 @@
+{
+  "$schema": "https://raw.githubusercontent.com/encounter/objdiff/main/config.schema.json",
+  "custom_make": "cmake --build build",
+  "watch_patterns": [
+    "src/**/*.c",
+    "src/**/*.h",
+    "kb.json"
+  ],
+  "units": [
+    {
+      "name": "halo/actors",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
+      "base_path": "delinked/actors.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actors.c"
+      }
+    },
+    {
+      "name": "halo/ai",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/ai.c.obj",
+      "base_path": "delinked/ai.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/ai.c"
+      }
+    },
+    {
+      "name": "halo/bink_playback",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bink/bink_playback.c.obj",
+      "base_path": "delinked/bink_playback.obj",
+      "metadata": {
+        "source_path": "src/halo/bink/bink_playback.c"
+      }
+    },
+    {
+      "name": "halo/bitmaps",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/bitmaps.c.obj",
+      "base_path": "delinked/bitmaps.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/bitmaps.c"
+      }
+    },
+    {
+      "name": "halo/breakable_surfaces",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/breakable_surfaces.c.obj",
+      "base_path": "delinked/breakable_surfaces.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/breakable_surfaces.c"
+      }
+    },
+    {
+      "name": "halo/cache_files_windows",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/cache_files_windows.c.obj",
+      "base_path": "delinked/cache_files_windows.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/cache_files_windows.c"
+      }
+    },
+    {
+      "name": "halo/cheats",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/cheats.c.obj",
+      "base_path": "delinked/cheats.obj",
+      "metadata": {
+        "source_path": "src/halo/game/cheats.c"
+      }
+    },
+    {
+      "name": "halo/cinematics",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cutscene/cinematics.c.obj",
+      "base_path": "delinked/cinematics.obj",
+      "metadata": {
+        "source_path": "src/halo/cutscene/cinematics.c"
+      }
+    },
+    {
+      "name": "halo/collision_usage",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/console",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/main/console.c.obj",
+      "base_path": "delinked/console.obj",
+      "metadata": {
+        "source_path": "src/halo/main/console.c"
+      }
+    },
+    {
+      "name": "halo/contrails",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+      "base_path": "delinked/contrails.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
+      }
+    },
+    {
+      "name": "halo/debug_memory",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/debug_memory.c.obj",
+      "base_path": "delinked/debug_memory.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/debug_memory.c"
+      }
+    },
+    {
+      "name": "halo/cseries",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/cseries.c.obj",
+      "base_path": "delinked/cseries.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/cseries.c"
+      }
+    },
+    {
+      "name": "halo/cseries_windows",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/cseries_windows.c.obj",
+      "base_path": "delinked/cseries_windows.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/cseries_windows.c"
+      }
+    },
+    {
+      "name": "halo/crc",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/crc.c.obj",
+      "base_path": "delinked/crc.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/crc.c"
+      }
+    },
+    {
+      "name": "halo/memory_pool",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/memory_pool.c.obj",
+      "base_path": "delinked/memory_pool.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/memory_pool.c"
+      }
+    },
+    {
+      "name": "halo/stack_memory_pool",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/stack_memory_pool.c.obj",
+      "base_path": "delinked/stack_memory_pool.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/stack_memory_pool.c"
+      }
+    },
+    {
+      "name": "halo/data",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/data.c.obj",
+      "base_path": "delinked/data.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/data.c"
+      }
+    },
+    {
+      "name": "halo/debug_keys",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/main/debug_keys.c.obj",
+      "base_path": "delinked/debug_keys.obj",
+      "metadata": {
+        "source_path": "src/halo/main/debug_keys.c"
+      }
+    },
+    {
+      "name": "halo/decals",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/decals.c.obj",
+      "base_path": "delinked/decals.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/decals.c"
+      }
+    },
+    {
+      "name": "halo/director",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/director.c.obj",
+      "base_path": "delinked/director.obj",
+      "metadata": {
+        "source_path": "src/halo/camera/director.c"
+      }
+    },
+    {
+      "name": "halo/editor_stubs",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/editor_stubs.c.obj",
+      "base_path": "delinked/editor_stubs.obj",
+      "metadata": {
+        "source_path": "src/halo/game/editor_stubs.c"
+      }
+    },
+    {
+      "name": "halo/effects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/errors",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/errors.c.obj",
+      "base_path": "delinked/errors.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/errors.c"
+      }
+    },
+    {
+      "name": "halo/event_manager",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/event_manager.c.obj",
+      "base_path": "delinked/event_manager.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/event_manager.c"
+      }
+    },
+    {
+      "name": "halo/files",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/tag_files/files.c.obj",
+      "base_path": "delinked/files.obj",
+      "metadata": {
+        "source_path": "src/halo/tag_files/files.c"
+      }
+    },
+    {
+      "name": "halo/first_person_weapons",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/first_person_weapons.c.obj",
+      "base_path": "delinked/first_person_weapons.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/first_person_weapons.c"
+      }
+    },
+    {
+      "name": "halo/game",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game.c.obj",
+      "base_path": "delinked/game.obj",
+      "metadata": {
+        "source_path": "src/halo/game/game.c"
+      }
+    },
+    {
+      "name": "halo/game_allegiance",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game_allegiance.c.obj",
+      "base_path": "delinked/game_allegiance.obj",
+      "metadata": {
+        "source_path": "src/halo/game/game_allegiance.c"
+      }
+    },
+    {
+      "name": "halo/game_engine",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game_engine.c.obj",
+      "base_path": "delinked/game_engine.obj",
+      "metadata": {
+        "source_path": "src/halo/game/game_engine.c"
+      }
+    },
+    {
+      "name": "halo/game_sound",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/game_sound.c.obj",
+      "base_path": "delinked/game_sound.obj",
+      "metadata": {
+        "source_path": "src/halo/sound/game_sound.c"
+      }
+    },
+    {
+      "name": "halo/game_state",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/saved_games/game_state.c.obj",
+      "base_path": "delinked/game_state.obj",
+      "metadata": {
+        "source_path": "src/halo/saved_games/game_state.c"
+      }
+    },
+    {
+      "name": "halo/game_state_xbox",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/saved_games/game_state_xbox.c.obj",
+      "base_path": "delinked/game_state_xbox.obj",
+      "metadata": {
+        "source_path": "src/halo/saved_games/game_state_xbox.c"
+      }
+    },
+    {
+      "name": "halo/game_statistics",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game_statistics.c.obj",
+      "base_path": "delinked/game_statistics.obj",
+      "metadata": {
+        "source_path": "src/halo/game/game_statistics.c"
+      }
+    },
+    {
+      "name": "halo/game_time",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game_time.c.obj",
+      "base_path": "delinked/game_time.obj",
+      "metadata": {
+        "source_path": "src/halo/game/game_time.c"
+      }
+    },
+    {
+      "name": "halo/hs",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/hs/hs.c.obj",
+      "base_path": "delinked/hs.obj",
+      "metadata": {
+        "source_path": "src/halo/hs/hs.c"
+      }
+    },
+    {
+      "name": "halo/hs_runtime",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/hs/hs_runtime.c.obj",
+      "base_path": "delinked/hs_runtime.obj",
+      "metadata": {
+        "source_path": "src/halo/hs/hs_runtime.c"
+      }
+    },
+    {
+      "name": "halo/hud",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
+      "name": "halo/hud_messaging",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
+      "base_path": "delinked/hud_messaging.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_messaging.c"
+      }
+    },
+    {
+      "name": "halo/input_abstraction",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/input/input_abstraction.c.obj",
+      "base_path": "delinked/input_abstraction.obj",
+      "metadata": {
+        "source_path": "src/halo/input/input_abstraction.c"
+      }
+    },
+    {
+      "name": "halo/input_xbox",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/input/input_xbox.c.obj",
+      "base_path": "delinked/input_xbox.obj",
+      "metadata": {
+        "source_path": "src/halo/input/input_xbox.c"
+      }
+    },
+    {
+      "name": "halo/interface",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/interface.c.obj",
+      "base_path": "delinked/interface.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/interface.c"
+      }
+    },
+    {
+      "name": "halo/items",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/items.c.obj",
+      "base_path": "delinked/items.obj",
+      "metadata": {
+        "source_path": "src/halo/items/items.c"
+      }
+    },
+    {
+      "name": "halo/main",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/main/main.c.obj",
+      "base_path": "delinked/main.obj",
+      "metadata": {
+        "source_path": "src/halo/main/main.c"
+      }
+    },
+    {
+      "name": "halo/marketing_and_strategic_business_development",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/marketing_and_strategic_business_development.c.obj",
+      "base_path": "delinked/marketing_and_strategic_business_development.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/marketing_and_strategic_business_development.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_client_manager",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_client_manager.c.obj",
+      "base_path": "delinked/network_client_manager.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_client_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_messages",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_messages.c.obj",
+      "base_path": "delinked/network_messages.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_messages.c"
+      }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/observer",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/observer.c.obj",
+      "base_path": "delinked/observer.obj",
+      "metadata": {
+        "source_path": "src/halo/camera/observer.c"
+      }
+    },
+    {
+      "name": "halo/particle_systems",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/particle_systems.c.obj",
+      "base_path": "delinked/particle_systems.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/particle_systems.c"
+      }
+    },
+    {
+      "name": "halo/particles",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/particles.c.obj",
+      "base_path": "delinked/particles.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/particles.c"
+      }
+    },
+    {
+      "name": "halo/physical_memory_map",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/physical_memory_map.c.obj",
+      "base_path": "delinked/physical_memory_map.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/physical_memory_map.c"
+      }
+    },
+    {
+      "name": "halo/player_control",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_control.c.obj",
+      "base_path": "delinked/player_control.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_control.c"
+      }
+    },
+    {
+      "name": "halo/player_effects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/player_effects.c.obj",
+      "base_path": "delinked/player_effects.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/player_effects.c"
+      }
+    },
+    {
+      "name": "halo/player_queues_new",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_queues_new.c.obj",
+      "base_path": "delinked/player_queues_new.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_queues_new.c"
+      }
+    },
+    {
+      "name": "halo/player_rumble",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_rumble.c.obj",
+      "base_path": "delinked/player_rumble.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_rumble.c"
+      }
+    },
+    {
+      "name": "halo/player_ui",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/player_ui.c.obj",
+      "base_path": "delinked/player_ui.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/player_ui.c"
+      }
+    },
+    {
+      "name": "halo/players",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/players.c.obj",
+      "base_path": "delinked/players.obj",
+      "metadata": {
+        "source_path": "src/halo/game/players.c"
+      }
+    },
+    {
+      "name": "halo/point_physics",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/point_physics.c.obj",
+      "base_path": "delinked/point_physics.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/point_physics.c"
+      }
+    },
+    {
+      "name": "halo/profile",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/profile.c.obj",
+      "base_path": "delinked/profile.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/profile.c"
+      }
+    },
+    {
+      "name": "halo/projectiles",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/projectiles.c.obj",
+      "base_path": "delinked/projectiles.obj",
+      "metadata": {
+        "source_path": "src/halo/items/projectiles.c"
+      }
+    },
+    {
+      "name": "halo/progress_bar",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/progress_bar.c.obj",
+      "base_path": "delinked/progress_bar.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/progress_bar.c"
+      }
+    },
+    {
+      "name": "halo/random_math",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
+      "base_path": "delinked/rasterizer.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer_common",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/common/rasterizer_common.c.obj",
+      "base_path": "delinked/rasterizer_common.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/common/rasterizer_common.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer_decals",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_decals.c.obj",
+      "base_path": "delinked/rasterizer_decals.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer_xbox",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/rasterizer_xbox.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/vector_math",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/vector_math.c.obj",
+      "base_path": "delinked/vector_math.obj",
+      "metadata": {
+        "source_path": "src/halo/math/vector_math.c"
+      }
+    },
+    {
+      "name": "halo/real_math",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/real_math.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/recorded_animations",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cutscene/recorded_animations.c.obj",
+      "base_path": "delinked/recorded_animations.obj",
+      "metadata": {
+        "source_path": "src/halo/cutscene/recorded_animations.c"
+      }
+    },
+    {
+      "name": "halo/render",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
+      "base_path": "delinked/render.obj",
+      "metadata": {
+        "source_path": "src/halo/render/render.c"
+      }
+    },
+    {
+      "name": "halo/render_cameras",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/render/render_cameras.c.obj",
+      "base_path": "delinked/render_cameras.obj",
+      "metadata": {
+        "source_path": "src/halo/render/render_cameras.c"
+      }
+    },
+    {
+      "name": "halo/saved_game_files",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/saved games/saved_game_files.c.obj",
+      "base_path": "delinked/saved_game_files.obj",
+      "metadata": {
+        "source_path": "src/halo/saved games/saved_game_files.c"
+      }
+    },
+    {
+      "name": "halo/scenario",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/scenario.c.obj",
+      "base_path": "delinked/scenario.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/scenario.c"
+      }
+    },
+    {
+      "name": "halo/shaders",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/shaders/shaders.c.obj",
+      "base_path": "delinked/shaders.obj",
+      "metadata": {
+        "source_path": "src/halo/shaders/shaders.c"
+      }
+    },
+    {
+      "name": "halo/shell",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/shell.c.obj",
+      "base_path": "delinked/shell.obj",
+      "metadata": {
+        "source_path": "src/halo/shell.c"
+      }
+    },
+    {
+      "name": "halo/shell_xbox",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/shell_xbox.c.obj",
+      "base_path": "delinked/shell_xbox.obj",
+      "metadata": {
+        "source_path": "src/halo/shell_xbox.c"
+      }
+    },
+    {
+      "name": "halo/scenario",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/scenario.c.obj",
+      "base_path": "delinked/scenario.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/scenario.c"
+      }
+    },
+    {
+      "name": "halo/sound_classes",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
+      "base_path": "delinked/sound_classes.obj",
+      "metadata": {
+        "source_path": "src/halo/sound/sound_classes.c"
+      }
+    },
+    {
+      "name": "halo/sound_manager",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_manager.c.obj",
+      "base_path": "delinked/sound_manager.obj",
+      "metadata": {
+        "source_path": "src/halo/sound/sound_manager.c"
+      }
+    },
+    {
+      "name": "halo/stack_walk_windows",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/stack_walk_windows.c.obj",
+      "base_path": "delinked/stack_walk_windows.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/stack_walk_windows.c"
+      }
+    },
+    {
+      "name": "halo/tag_groups",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/tag_files/tag_groups.c.obj",
+      "base_path": "delinked/tag_groups.obj",
+      "metadata": {
+        "source_path": "src/halo/tag_files/tag_groups.c"
+      }
+    },
+    {
+      "name": "halo/tags",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/tags.c.obj",
+      "base_path": "delinked/tags.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/tags.c"
+      }
+    },
+    {
+      "name": "halo/structure_bsp_definitions",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structure_bsp_definitions.c.obj",
+      "base_path": "delinked/structure_bsp_definitions.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structure_bsp_definitions.c"
+      }
+    },
+    {
+      "name": "halo/structures",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structures.c.obj",
+      "base_path": "delinked/structures.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structures.c"
+      }
+    },
+    {
+      "name": "halo/structure_detail_objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structure_detail_objects.c.obj",
+      "base_path": "delinked/structure_detail_objects.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structure_detail_objects.c"
+      }
+    },
+    {
+      "name": "halo/structure_runtime_decals",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structure_runtime_decals.c.obj",
+      "base_path": "delinked/structure_runtime_decals.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structure_runtime_decals.c"
+      }
+    },
+    {
+      "name": "halo/structure_visibility",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structure_visibility.c.obj",
+      "base_path": "delinked/structure_visibility.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structure_visibility.c"
+      }
+    },
+    {
+      "name": "halo/telnet_console",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/main/telnet_console.c.obj",
+      "base_path": "delinked/telnet_console.obj",
+      "metadata": {
+        "source_path": "src/halo/main/telnet_console.c"
+      }
+    },
+    {
+      "name": "halo/terminal",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/terminal.c.obj",
+      "base_path": "delinked/terminal.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/terminal.c"
+      }
+    },
+    {
+      "name": "halo/tiff_file",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/tiff_file.c.obj",
+      "base_path": "delinked/tiff_file.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/tiff_file.c"
+      }
+    },
+    {
+      "name": "halo/thread_win32",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/thread_win32.c.obj",
+      "base_path": "delinked/thread_win32.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/thread_win32.c"
+      }
+    },
+    {
+      "name": "halo/transport_endpoint_set_winsock",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/network/transport_endpoint_set_winsock.c.obj",
+      "base_path": "delinked/transport_endpoint_set_winsock.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+      }
+    },
+    {
+      "name": "halo/ui_widget",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/ui_widget.c.obj",
+      "base_path": "delinked/ui_widget.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/ui_widget.c"
+      }
+    },
+    {
+      "name": "halo/ui_widget_event_handler_functions",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/ui_widget_event_handler_functions.c.obj",
+      "base_path": "delinked/ui_widget_event_handler_functions.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/ui_widget_event_handler_functions.c"
+      }
+    },
+    {
+      "name": "halo/ui_widget_game_data_input_functions",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/ui_widget_game_data_input_functions.c.obj",
+      "base_path": "delinked/ui_widget_game_data_input_functions.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/ui_widget_game_data_input_functions.c"
+      }
+    },
+    {
+      "name": "halo/unicode",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/text/unicode.c.obj",
+      "base_path": "delinked/unicode.obj",
+      "metadata": {
+        "source_path": "src/halo/text/unicode.c"
+      }
+    },
+    {
+      "name": "halo/units",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/vehicles",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/vehicles.c.obj",
+      "base_path": "delinked/vehicles.obj",
+      "metadata": {
+        "source_path": "src/halo/units/vehicles.c"
+      }
+    },
+    {
+      "name": "halo/weather_particle_systems",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/weather_particle_systems.c.obj",
+      "base_path": "delinked/weather_particle_systems.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/weather_particle_systems.c"
+      }
+    },
+    {
+      "name": "halo/widgets",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/widgets/widgets.c.obj",
+      "base_path": "delinked/widgets.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/widgets/widgets.c"
+      }
+    },
+    {
+      "name": "halo/xbox_texture_cache",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/xbox_texture_cache.c.obj",
+      "base_path": "delinked/xbox_texture_cache.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/xbox_texture_cache.c"
+      }
+    },
+    {
+      "name": "halo/draw_string",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/text/draw_string.c.obj",
+      "base_path": "delinked/draw_string.obj",
+      "metadata": {
+        "source_path": "src/halo/text/draw_string.c"
+      }
+    },
+    {
+      "name": "halo/lruv_cache",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/lruv_cache.c.obj",
+      "base_path": "delinked/lruv_cache.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/lruv_cache.c"
+      }
+    },
+    {
+      "name": "halo/bitmap_utilities",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/bitmap_utilities.c.obj",
+      "base_path": "delinked/bitmap_utilities.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/bitmap_utilities.c"
+      }
+    }
+  ]
+}
