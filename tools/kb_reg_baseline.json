@@ -108,6 +108,9 @@
     "0x1cbfb0": "void sound_channel_set_properties(short channel_index@<si>, int update_only@<ebx>, void *properties);",
     "0x1cc050": "short sound_channel_update_status(short channel_index@<ax>);",
     "0x1cd2c0": "void sound_start_next_looping_permutation(int sound_handle@<eax>);",
-    "0x1cda50": "int sound_create_looping_entry(int sound_tag_handle@<eax>, int looping_handle, int track_index, int type);"
+    "0x1cda50": "int sound_create_looping_entry(int sound_tag_handle@<eax>, int looping_handle, int track_index, int type);",
+    "0x1cba80": "void *sound_channel_get(short channel_index@<si>);",
+    "0x1cbd30": "void sound_collect_like_sounds(int sound_handle, void *summary@<esi>);",
+    "0x1ccd70": "short sound_find_oldest_channel(int sound_handle@<eax>, short *channels, short count);"
   }
 }

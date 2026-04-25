@@ -993,6 +993,93 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
   return (short)best_channel;
 }
 
+/* sound_start_next_looping_permutation (0x1cd2c0)
+ *
+ * Advance a looping sound to its next permutation. Called when the current
+ * permutation finishes and the next_sound chain is exhausted (+0x98 == -1).
+ *
+ * Phase 1 — set up the new permutation:
+ *   Resolves the sound datum and its tag (snd!).  Sets the "next ready"
+ *   flag (flags |= 8).  Saves the current looping_sound_tag_index to the
+ *   sound's tag_index field (+0x8) and clears it (+0x98 = -1).  Selects a
+ *   new pitch range via sound_select_pitch_range using the random_scale
+ *   (+0x88) and hint pitch range index (+0x8e), then selects a permutation
+ *   within that range via sound_select_permutation (hint = -1).  Stores the
+ *   new pitch_range_index (+0x8e) and permutation_index (+0x90).
+ *
+ * Phase 2 — instance limiting (only if playing_channel_index != -1):
+ *   Collects a summary of similar sounds via sound_collect_like_sounds
+ *   (0x1cbd30, @<esi>).  If the like_source_count has reached
+ *   max_source_instance_count, searches the source channel list for the
+ *   oldest to steal.  Otherwise, if the like_definition_count has reached
+ *   max_instance_count, searches the definition channel list.  If a
+ *   stealable channel is found, stops its sound; if not, stops our own.
+ *
+ * sound_handle passed in EAX (register argument). */
+void sound_start_next_looping_permutation(int sound_handle /* @<eax> */)
+{
+  char *sound_entry;
+  void *sound_tag;
+  int looping_tag_index;
+  float random_scale;
+  int hint_index;
+  short pitch_range_index;
+  short permutation_index;
+  char summary[0x48];
+  short like_source_count;
+  short max_source_instance_count;
+  short like_definition_count;
+  short max_instance_count;
+  short *channels_ptr;
+  short count_val;
+  short oldest_channel;
+
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+  sound_tag = tag_get(0x736e6421, *(int *)(sound_entry + 0x98));
+
+  *(uint8_t *)(sound_entry + 0x4) |= 8;
+
+  looping_tag_index = *(int *)(sound_entry + 0x98);
+  *(int *)(sound_entry + 0x8) = looping_tag_index;
+  *(int *)(sound_entry + 0x98) = -1;
+
+  random_scale = *(float *)(sound_entry + 0x88);
+  hint_index = (int)(unsigned short)*(short *)(sound_entry + 0x8e);
+
+  pitch_range_index = sound_select_pitch_range(sound_tag, random_scale, hint_index);
+  *(short *)(sound_entry + 0x8e) = pitch_range_index;
+
+  permutation_index = sound_select_permutation(sound_tag, pitch_range_index, -1);
+  *(short *)(sound_entry + 0x90) = permutation_index;
+
+  if (*(short *)(sound_entry + 0x8c) != -1) {
+    sound_collect_like_sounds(sound_handle, summary);
+
+    like_source_count = *(short *)(summary + 0x24);
+    max_source_instance_count = *(short *)(summary + 0x46);
+    like_definition_count = *(short *)(summary + 0x00);
+    max_instance_count = *(short *)(summary + 0x22);
+
+    if (like_source_count >= max_source_instance_count) {
+      channels_ptr = (short *)(summary + 0x26);
+      count_val = like_source_count;
+    } else if (like_definition_count >= max_instance_count) {
+      channels_ptr = (short *)(summary + 0x02);
+      count_val = like_definition_count;
+    } else {
+      return;
+    }
+
+    oldest_channel = sound_find_oldest_channel(sound_handle, channels_ptr, count_val);
+
+    if (oldest_channel != -1) {
+      sound_handle = *(int *)sound_channel_get(oldest_channel);
+    }
+
+    sound_stop_channel(sound_handle);
+  }
+}
+
 /* sound_update_music_channel (0x1cdc30)
  *
  * Apply volume/pan/pitch updates for a music-class (looping) channel.
