@@ -16,6 +16,25 @@ void *sound_class_get_definition(short class_index)
   return definition;
 }
 
+/* Return the minimum-distance attenuation for a sound tag.
+ * Reads the per-tag min_distance override at tag offset 0x8.
+ * If it is zero, falls back to the min_distance field (offset 0x18)
+ * of the sound class definition looked up via the tag's class_index
+ * at offset 0x4. */
+float sound_class_get_min_distance(int sound_tag_index)
+{
+  void *sound_tag = tag_get(0x736e6421, sound_tag_index);
+  float min_distance = *(float *)((char *)sound_tag + 0x8);
+
+  if (min_distance == 0.0f) {
+    short class_index = *(short *)((char *)sound_tag + 0x4);
+    void *class_def = sound_class_get_definition(class_index);
+    min_distance = *(float *)((char *)class_def + 0x18);
+  }
+
+  return min_distance;
+}
+
 /* Empty on Xbox — no per-map sound initialization needed. */
 void sound_initialize_for_new_map(void)
 {

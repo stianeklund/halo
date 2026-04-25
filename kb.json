@@ -5289,7 +5289,8 @@
         {
           "decl": "float sound_class_get_min_distance(int sound_tag_index);",
           "addr": "0x1c8d50",
-          "comment": "Return the sound class min-distance attenuation parameter."
+          "comment": "Return the sound class min-distance attenuation parameter.",
+          "ported": true
         },
         {
           "decl": "void *sound_class_get_definition(short class_index);",
