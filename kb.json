@@ -479,7 +479,8 @@
         },
         {
           "decl": "void edit_text_process_key(void *edit_text, void *keystroke);",
-          "addr": "0x974a0"
+          "addr": "0x974a0",
+          "ported": true
         },
         {
           "decl": "void FUN_00036e30(int ai_handle);",
@@ -6716,6 +6717,22 @@
         {
           "decl": "void unicode_snap_cursor(const char *str, int16_t *cursor);",
           "addr": "0x19d300"
+        },
+        {
+          "decl": "bool edit_text_get_selection_range(void *edit_text, int16_t *out_start, int16_t *out_end);",
+          "addr": "0x973a0"
+        },
+        {
+          "decl": "void csmemmove(void *dest, const void *src, unsigned int size);",
+          "addr": "0x8dae0"
+        },
+        {
+          "decl": "void unicode_cursor_backward(const char *str, int16_t *cursor);",
+          "addr": "0x19d240"
+        },
+        {
+          "decl": "void unicode_cursor_forward(const char *str, int16_t *cursor);",
+          "addr": "0x19d1b0"
         }
       ]
     },
