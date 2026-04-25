@@ -20,6 +20,7 @@
 	halo/cseries/cseries_windows.c
 	halo/cseries/stack_walk_windows.c
 	halo/memory/crc.c
+	halo/dialogs/edit_text.c
 	halo/cutscene/cinematics.c
 	halo/cutscene/recorded_animations.c
 	halo/effects/contrails.c
