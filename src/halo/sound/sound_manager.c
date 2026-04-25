@@ -299,6 +299,120 @@ void *sound_channel_get(short channel_index /* @<si> */)
   return (void *)(0x4fc3a0 + (int)channel_index * 0x18);
 }
 
+/* sound_collect_like_sounds (0x1cbd30)
+ *
+ * Build a summary of channels currently playing sounds that are "like" the
+ * given sound_handle, for instance-limiting purposes.
+ *
+ * The summary buffer (0x48 bytes, passed via ESI) is laid out as:
+ *   0x00  like_definition_count      (short) — channels with same tag_index
+ *   0x02  like_definition_channels[16] (short[16]) — their channel indices
+ *   0x22  maximum_instance_count     (short) — from the sound class definition
+ *   0x24  like_source_count          (short) — channels with same tag AND source
+ *   0x26  like_source_channels[16]   (short[16]) — their channel indices
+ *   0x46  maximum_source_instance_count (short) — from the sound class definition
+ *
+ * Iterates all active channels.  For each channel that holds a different
+ * sound_handle, checks sound_valid_for_channel and whether the tag_index
+ * matches.  Matching channels are added to the definition list; if the
+ * source field (+0x0c) also matches, they are added to the source list. */
+void sound_collect_like_sounds(int sound_handle, void *summary /* @<esi> */)
+{
+  char *sound_entry;
+  char *sound_tag;
+  char *class_def;
+  short channel_index;
+  int *channel_base;
+  int other_handle;
+  char *other_entry;
+  short like_def_count;
+  short like_src_count;
+
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+  sound_tag = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+
+  /* Initialize counts to zero. */
+  *(short *)((char *)summary + 0x00) = 0;
+  *(short *)((char *)summary + 0x24) = 0;
+
+  /* Read max instance counts from the sound class definition. */
+  class_def = (char *)sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
+  *(short *)((char *)summary + 0x22) = *(short *)(class_def + 0x0);
+
+  class_def = (char *)sound_class_get_definition(*(unsigned short *)(sound_tag + 0x4));
+  *(short *)((char *)summary + 0x46) = *(short *)(class_def + 0x2);
+
+  if (*(short *)((char *)summary + 0x46) > 0x10) {
+    display_assert(
+      "summary->maximum_source_instance_count<=MAXIMUM_SOUND_INSTANCES_PER_DEFINITION",
+      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6a4, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)summary + 0x22) > 0x10) {
+    display_assert(
+      "summary->maximum_instance_count<=MAXIMUM_SOUND_INSTANCES_PER_OBJECT_PER_DEFINITION",
+      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6a5, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)0x4eb0b4 <= 0)
+    return;
+  for (channel_index = 0; channel_index < *(short *)0x4eb0b4; channel_index++) {
+    if (channel_index < 0 || channel_index >= *(short *)0x4eb0b4) {
+      display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+      system_exit(-1);
+    }
+
+    channel_base = (int *)(0x4fc3a0 + (int)channel_index * 0x18);
+    other_handle = channel_base[0];
+
+    if (other_handle == -1 || other_handle == sound_handle)
+      continue;
+
+    other_entry = (char *)datum_get(*(data_t **)0x4fdba4, other_handle);
+
+    if (!sound_valid_for_channel(
+          *(short *)(sound_tag + 0x6e),
+          *(unsigned short *)(sound_tag + 0x6c),
+          *(unsigned short *)(sound_tag + 0x6),
+          *(unsigned short *)(sound_entry + 0x14),
+          *(unsigned short *)((char *)channel_base + 0x4)))
+      continue;
+
+    if (*(int *)(sound_entry + 0x8) != *(int *)(other_entry + 0x8))
+      continue;
+
+    /* Same definition — add to like-definition list. */
+    like_def_count = *(short *)((char *)summary + 0x00);
+    if (like_def_count >= *(short *)((char *)summary + 0x22)) {
+      display_assert(
+        "summary->like_definition_count<summary->maximum_instance_count",
+        "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6b5, 1);
+      system_exit(-1);
+    }
+    *(short *)((char *)summary + 0x02 + like_def_count * 2) = channel_index;
+    *(short *)((char *)summary + 0x00) += 1;
+
+    /* Same source — also add to like-source list. */
+    if (*(int *)(sound_entry + 0xc) == -1)
+      continue;
+    if (*(int *)(sound_entry + 0xc) != *(int *)(other_entry + 0xc))
+      continue;
+
+    like_src_count = *(short *)((char *)summary + 0x24);
+    if (like_src_count >= *(short *)((char *)summary + 0x46)) {
+      display_assert(
+        "summary->like_source_count<summary->maximum_source_instance_count",
+        "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x6bb, 1);
+      system_exit(-1);
+    }
+    *(short *)((char *)summary + 0x26 + like_src_count * 2) = channel_index;
+    *(short *)((char *)summary + 0x24) += 1;
+  }
+}
+
 /* sound_channel_start_new (0x1cbf30)
  *
  * Start a new permutation on a sound channel.  If the channel already has

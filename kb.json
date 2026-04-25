@@ -5394,12 +5394,18 @@
         {
           "decl": "void sound_collect_like_sounds(int sound_handle, void *summary@<esi>);",
           "addr": "0x1cbd30",
-          "comment": "Collect a summary of channels playing similar sounds for instance limiting."
+          "comment": "Collect a summary of channels playing similar sounds for instance limiting.",
+          "ported": true
         },
         {
           "decl": "short sound_find_oldest_channel(int sound_handle@<eax>, short *channels, short count);",
           "addr": "0x1ccd70",
           "comment": "Find the oldest channel from a list of candidate channels for eviction."
+        },
+        {
+          "decl": "bool sound_valid_for_channel(short compression, short encoding, unsigned short sample_rate, short spatialization_mode, unsigned short type_flags);",
+          "addr": "0x1cb790",
+          "comment": "Check whether a channel type_flags word is compatible with a sound definition compression/encoding/sample_rate/spatialization."
         }
       ]
     },
