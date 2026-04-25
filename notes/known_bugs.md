@@ -20,3 +20,10 @@ Description:  You can pick up empty weapons. This shouldn't be possible I think?
 Repro: Hold a weapon, empty weapon, pick up new weapon replacing empty weapon, walk over empty dropped weapon, hold X to pick up shows, holding X will pick up empty weapon.
 Affected build: 76437e7
 
+---
+
+Level: The Pillar of Autumn
+Description: Audio from AI that is close by is non existent. Other AI speech is very muffled / lower amplitude. Does not affect cutscenes.
+Repro: Play campaign levels.
+Affected build: 63d8220
+
