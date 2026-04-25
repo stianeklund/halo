@@ -1930,8 +1930,8 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
         /* Compute random scale for this sound instance. */
         {
           float rscale =
-            sound_compute_random_scale(*(int *)((char *)sound_tag + 0x14),
-                                       *(int *)((char *)sound_tag + 0x18),
+            sound_compute_random_scale(*(float *)((char *)sound_tag + 0x14),
+                                       *(float *)((char *)sound_tag + 0x18),
                                        *(float *)((char *)sound_tag + 0x44),
                                        *(float *)((char *)sound_tag + 0x5c),
                                        *(float *)((char *)source + 4));
