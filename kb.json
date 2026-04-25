@@ -800,7 +800,8 @@
         },
         {
           "decl": "float FUN_000121e0(float min, float max);",
-          "addr": "0x121e0"
+          "addr": "0x121e0",
+          "ported": true
         },
         {
           "decl": "void vector3d_scale_add(float *base, float *direction, float scale, float *out);",

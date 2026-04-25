@@ -5197,6 +5197,50 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x143be0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfd2e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfd360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x97330": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x97440": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x974a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7c940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf6af0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf6b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb8fa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x121e0": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
