@@ -5181,6 +5181,11 @@
           "decl": "void sound_classes_initialize_for_new_map(void);",
           "addr": "0x1c8b70",
           "ported": true
+        },
+        {
+          "decl": "float sound_class_get_gain(int class_index);",
+          "addr": "0x1c8c60",
+          "comment": "Return the runtime gain for a sound class from sound_class_data+index*0xc+4."
         }
       ]
     },
@@ -5281,6 +5286,16 @@
           "decl": "void *sound_listener_get(short listener_index@<si>);",
           "addr": "0x1cbac0",
           "comment": "Return &listeners[index] at 0x4eaf58 + index*0x44."
+        },
+        {
+          "decl": "void sound_channel_start_new(short channel_index@<di>, int permutation@<ebx>);",
+          "addr": "0x1cbf30",
+          "comment": "Assign a new permutation buffer to a channel; cleans up old buffer if present."
+        },
+        {
+          "decl": "void sound_channel_set_properties(short channel_index@<si>, int update_only@<ebx>, void *properties);",
+          "addr": "0x1cbfb0",
+          "comment": "Push volume/pitch/3D properties to the sound driver for a channel."
         },
         {
           "decl": "void sound_update_channel(int channel_index, float attenuation);",

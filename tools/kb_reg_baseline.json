@@ -103,6 +103,8 @@
     "0xa8ba0": "bool game_engine_is_player_leading(int player_handle@<edi>);",
     "0x7d440": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
     "0x1cca60": "void sound_stop_channel(int sound_handle@<ebx>);",
-    "0x1cc140": "void sound_channel_stop(short channel_index@<di>);"
+    "0x1cc140": "void sound_channel_stop(short channel_index@<di>);",
+    "0x1cbf30": "void sound_channel_start_new(short channel_index@<di>, int permutation@<ebx>);",
+    "0x1cbfb0": "void sound_channel_set_properties(short channel_index@<si>, int update_only@<ebx>, void *properties);"
   }
 }

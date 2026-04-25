@@ -715,6 +715,145 @@ done:
   return result;
 }
 
+/* sound_update_channel (0x1ccf80)
+ *
+ * Apply volume/pan/pitch updates for a non-music sound channel.
+ *
+ * Resolves the sound datum and tag, then computes a composite volume
+ * from the tag's gain range (tag+0x40..0x58), the sound_entry's
+ * interpolation fraction (+0x18), per-entry gain (+0x1c), class gain
+ * (sound_class_get_gain), and the incoming attenuation scalar.
+ * Non-ambient classes (not 0x2c/0x2e/0x2f) additionally scale by
+ * the global volume at 0x4eb0b0.
+ *
+ * If the sound's playing channel index (+0x8c) is NONE (-1), this is a
+ * new channel: build a full properties struct (pitch, max_distance,
+ * pan, volume, direction, class flags), assert the permutation is
+ * cache-loaded, then push properties and start the new permutation via
+ * sound_channel_set_properties and sound_channel_start_new.
+ *
+ * If the channel is already playing, compute volume from the existing
+ * permutation's gain and push it directly to the sound driver via
+ * vtable+0x34 (volume-only update, flag=1).
+ *
+ * Finally, call vtable+0x1c to commit the channel update. */
+void sound_update_channel(int channel_index, float attenuation)
+{
+  short si = (short)channel_index;
+  int *channel_ptr;
+  char *sound_entry;
+  char *tag_ptr;
+  short class_index;
+  float class_gain;
+  float fraction;
+  float volume;
+  int pitch_range;
+  int permutation;
+  void *class_def;
+
+  /* Properties struct: 0x20 bytes (8 floats).
+   *   +0x00 float min_distance (pitch)
+   *   +0x04 float max_distance
+   *   +0x08 float pan
+   *   +0x0C float gain/volume
+   *   +0x10 float direction[3] (from tag+0x1c..0x24)
+   *   +0x1C int   class_def_flags (class_def+0x10) */
+  float properties[8];
+
+  /* Validate channel_index. */
+  if (si < 0 || si >= *(short *)0x4eb0b4) {
+    display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+    system_exit(-1);
+  }
+
+  /* Resolve channel, sound entry, and tag. */
+  channel_ptr = (int *)(0x4fc3a0 + (int)si * 0x18);
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, *channel_ptr);
+  tag_ptr = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+
+  /* Cache interpolation fraction from sound_entry+0x18. */
+  fraction = *(float *)(sound_entry + 0x18);
+
+  /* Get class gain. */
+  class_index = *(short *)(tag_ptr + 0x4);
+  class_gain = sound_class_get_gain((int)class_index);
+
+  /* Non-ambient classes scale by global volume. */
+  if (class_index != 0x2c && class_index != 0x2e && class_index != 0x2f) {
+    class_gain = class_gain * *(float *)0x4eb0b0;
+  }
+
+  /* Compute composite volume:
+   * lerp(tag+0x40, tag+0x58, fraction) * sound_entry+0x1c * class_gain * attenuation */
+  volume = (*(float *)(tag_ptr + 0x58) - *(float *)(tag_ptr + 0x40)) * fraction
+           + *(float *)(tag_ptr + 0x40);
+  volume = volume * *(float *)(sound_entry + 0x1c) * class_gain * attenuation;
+
+  if (*(short *)(sound_entry + 0x8c) == -1) {
+    /* New channel: build full properties and start permutation. */
+    pitch_range = (int)tag_block_get_element(tag_ptr + 0x98,
+                     (int)*(short *)(sound_entry + 0x8e), 0x48);
+    permutation = (int)tag_block_get_element((char *)pitch_range + 0x3c,
+                     (int)*(short *)(sound_entry + 0x90), 0x7c);
+
+    /* Volume: permutation+0x24 * tag+0x28 * composite volume. */
+    properties[3] = *(float *)(permutation + 0x24) * *(float *)(tag_ptr + 0x28) * volume;
+
+    /* Pan: sound_entry+0x88 * pitch_range+0x30. */
+    properties[2] = *(float *)(sound_entry + 0x88) * *(float *)(pitch_range + 0x30);
+
+    /* Pitch: min-distance from sound class. */
+    properties[0] = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
+
+    /* Direction from tag+0x1c..0x24. */
+    *(int *)&properties[4] = *(int *)(tag_ptr + 0x1c);
+    *(int *)&properties[5] = *(int *)(tag_ptr + 0x20);
+    *(int *)&properties[6] = *(int *)(tag_ptr + 0x24);
+
+    /* Max distance: FLT_MAX. */
+    *(int *)&properties[1] = 0x7f7fffff;
+
+    /* Class definition flags. */
+    class_def = sound_class_get_definition(class_index);
+    *(int *)&properties[7] = *(int *)((char *)class_def + 0x10);
+
+    /* Assert permutation is cache-loaded. */
+    if (!sound_cache_request_sound((void *)permutation, 0, 0, 0)) {
+      display_assert("sound_cache_sound_loaded(permutation)",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x79a, 1);
+      system_exit(-1);
+    }
+
+    /* Push properties and start the new permutation.
+     * sound_channel_set_properties: SI=channel_index, EBX=0 (full update).
+     * sound_channel_start_new: DI=channel_index, EBX=permutation. */
+    sound_channel_set_properties(si, 0, properties);
+    sound_channel_start_new(si, permutation);
+
+    /* Record this channel as playing in the sound entry. */
+    *(short *)(sound_entry + 0x8c) = si;
+  } else {
+    /* Existing channel: update volume from current permutation. */
+    properties[3] = *(float *)(*(int *)((char *)channel_ptr + 0x10) + 0x24)
+                    * *(float *)(tag_ptr + 0x28) * volume;
+
+    /* Validate channel_index again (matches original). */
+    if (si < 0 || si >= *(short *)0x4eb0b4) {
+      display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+      system_exit(-1);
+    }
+
+    /* Push volume-only update (flag=1) directly through the sound driver. */
+    (*(void (**)(int, void *, int))(*(int *)0x4eaf48 + 0x34))(
+        channel_index, properties, 1);
+  }
+
+  /* Commit the channel update. */
+  (*(void (**)(int))(*(int *)0x4eaf48 + 0x1c))(channel_index);
+}
+
 /* sound_update_music (0x1ceda0)
  *
  * Per-channel tick for spatialized sound playback. Iterates the global
