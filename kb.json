@@ -242,7 +242,8 @@
         },
         {
           "decl": "void unit_set_seat_state(int unit_handle, float *position);",
-          "addr": "0x1a9240"
+          "addr": "0x1a9240",
+          "status": "ported"
         },
         {
           "decl": "bool object_try_place(int object_handle, float *position);",
@@ -588,6 +589,10 @@
         {
           "decl": "void FUN_001a0890(int unit_handle, float *out_pos, float *out_dist_b, float *out_dist_a);",
           "addr": "0x1a0890"
+        },
+        {
+          "decl": "void FUN_001a1140(int unit_handle, int16_t param2, void *param3, void *param4, void *param5, float *position);",
+          "addr": "0x1a1140"
         },
         {
           "decl": "bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b, float dist_a, int param6, void *scratch);",
