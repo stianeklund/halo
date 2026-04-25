@@ -431,6 +431,10 @@
           "addr": "0x1c8d10"
         },
         {
+          "decl": "void *FUN_001c8d90(int permutation_block_ptr, int tick_index);",
+          "addr": "0x1c8d90"
+        },
+        {
           "decl": "short sound_select_pitch_range(void *sound_tag, float random_scale, int hint_index);",
           "addr": "0x1c8de0"
         },
@@ -5277,9 +5281,10 @@
           "comment": "Apply volume/pan/pitch updates for a music-class channel."
         },
         {
-          "decl": "float sound_get_permutation_pitch(int permutation_block_ptr, int permutation_index);",
+          "decl": "float sound_get_permutation_pitch(int permutation_block_ptr, short permutation_index);",
           "addr": "0x1c8f20",
-          "comment": "Sample the pitch value from a permutation block by index."
+          "comment": "Sample the pitch value from a permutation block by index.",
+          "ported": true
         },
         {
           "decl": "void sound_pitch_push_sample(int object_handle, float pitch);",
