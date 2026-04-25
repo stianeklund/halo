@@ -4874,6 +4874,12 @@
           "ported": true
         },
         {
+          "decl": "void real_matrix4x3_transform_point(void *matrix, void *point, void *out);",
+          "addr": "0x1097f0",
+          "comment": "Transform a 3D point through a 4x3 matrix (rotation only, no translation).",
+          "ported": true
+        },
+        {
           "decl": "void matrix4x3_identity_with_position(float *out, float *position);",
           "addr": "0x109280",
           "ported": true
@@ -5390,12 +5396,6 @@
           "decl": "void *sound_class_get_definition(short class_index);",
           "addr": "0x1c88c0",
           "comment": "Return the sound class definition at 0x32ed08 + index*0x2c.",
-          "ported": true
-        },
-        {
-          "decl": "void real_matrix4x3_transform_point(void *matrix, void *point, void *out);",
-          "addr": "0x1097f0",
-          "comment": "Transform a 3D point through an affine 4x3 matrix.",
           "ported": true
         },
         {
@@ -6601,6 +6601,18 @@
         {
           "decl": "int rand(void);",
           "addr": "0x1d9d06"
+        },
+        {
+          "decl": "void __stdcall D3D_DestroyResource(void *resource);",
+          "addr": "0x1ed7d0"
+        },
+        {
+          "decl": "void __stdcall Get2DSurfaceDesc(void *texture, unsigned int level, void *desc);",
+          "addr": "0x1f4140"
+        },
+        {
+          "decl": "void __stdcall Lock2DSurface(void *texture, unsigned int face, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
+          "addr": "0x1f44f0"
         }
       ]
     },
@@ -6699,21 +6711,26 @@
       "functions": [
         {
           "decl": "uint32_t __stdcall D3DResource_Release(void *resource);",
-          "addr": "0x1ed930"
+          "addr": "0x1ed930",
+          "ported": true
         },
         {
           "decl": "void __stdcall D3DResource_Register(void *resource, void *data);",
-          "addr": "0x1eda30"
+          "addr": "0x1eda30",
+          "ported": true
         },
         {
           "decl": "void __stdcall D3DTexture_GetLevelDesc(void *texture, unsigned int level, void *desc);",
-          "addr": "0x1edc10"
+          "addr": "0x1edc10",
+          "ported": true
         },
         {
           "decl": "void __stdcall D3DTexture_LockRect(void *texture, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
-          "addr": "0x1edc70"
+          "addr": "0x1edc70",
+          "ported": true
         }
-      ]
+      ],
+      "source": "rasterizer/xbox/d3d_resource.c"
     },
     {
       "name": "rasterizer_text.obj",
