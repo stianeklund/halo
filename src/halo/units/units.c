@@ -243,6 +243,119 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
   return not_found;
 }
 
+/* unit_set_seat_state (0x1a9240)
+ *
+ * Computes a 3D position representing the unit's current seat state and writes
+ * it into the caller-supplied float[3].
+ *
+ * Three major paths:
+ *
+ * 1. Unit has a parent (parent_object_index != -1):
+ *    Copies the parent object's world position (offset 0x0C). If the parent's
+ *    object type is 0 or 1 (biped/vehicle) and the unit has a valid seat
+ *    definition index (unk_672 != -1), looks up the seat's marker name (at
+ *    seat_def + 0x84) and resolves it on the parent via
+ *    object_get_markers_by_string_id. For seat type 1, skips if the marker
+ *    name byte at seat_def + 0x84 is zero.
+ *
+ * 2. Unit has no parent and no special flags:
+ *    If unit flags byte (0xB6) bit 2 is clear AND object type is 0 (biped),
+ *    delegates to FUN_001a1140 with zeroed optional parameters.
+ *
+ * 3. Unit has no parent but has flags/non-zero type:
+ *    If unk_728 is NONE, gets the "head" marker on the unit itself. Otherwise,
+ *    resolves unk_728 as a unit, reads its seat index (unk_672), looks up the
+ *    seat definition's marker name (seat_def + 0x24) from the original unit's
+ *    tag, and resolves it on the original unit via
+ * object_get_markers_by_string_id.
+ */
+void unit_set_seat_state(int unit_handle, float *position)
+{
+  char *unit;
+  char *unit_tag;
+  int seat_index;
+  char *seat_object;
+  char *parent_unit;
+  char *seat_def;
+  int16_t seat_def_index;
+  uint8_t seat_type;
+  uint32_t type_mask;
+  char marker_buf[0x6c];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+  seat_index = *(int *)(unit + 0xcc);
+
+  if (seat_index == -1) {
+    /* Unit is not in a seat */
+    if (!(*(uint8_t *)(unit + 0xb6) & 0x04) && *(int16_t *)(unit + 0x64) == 0) {
+      /* Simple biped with no special flags — delegate to FUN_001a1140 */
+      FUN_001a1140(unit_handle, 0, 0, 0, 0, position);
+      return;
+    }
+
+    /* Has flags or non-zero type: check unk_728 */
+    if (*(int *)(unit + 0x2d8) == -1) {
+      /* No related unit — find "head" marker on this unit */
+      object_get_markers_by_string_id(unit_handle, (void *)0x2909e4, marker_buf,
+                                      1);
+      position[0] = *(float *)(marker_buf + 0x60);
+      position[1] = *(float *)(marker_buf + 0x64);
+      position[2] = *(float *)(marker_buf + 0x68);
+      return;
+    }
+
+    /* Related unit exists — get its seat definition */
+    parent_unit = (char *)object_get_and_verify_type(*(int *)(unit + 0x2d8), 3);
+    seat_def_index = *(int16_t *)(parent_unit + 0x2a0);
+    seat_def = (char *)tag_block_get_element(unit_tag + 0x2e4,
+                                             (int)seat_def_index, 0x11c);
+    object_get_markers_by_string_id(unit_handle, seat_def + 0x24, marker_buf,
+                                    1);
+    position[0] = *(float *)(marker_buf + 0x60);
+    position[1] = *(float *)(marker_buf + 0x64);
+    position[2] = *(float *)(marker_buf + 0x68);
+    return;
+  }
+
+  /* Unit IS in a seat — seat_index is the parent object handle */
+  seat_object = (char *)object_get_and_verify_type(seat_index, -1);
+
+  /* Copy seat object's world position */
+  position[0] = *(float *)(seat_object + 0x0c);
+  position[1] = *(float *)(seat_object + 0x10);
+  position[2] = *(float *)(seat_object + 0x14);
+
+  /* Check if seat type is biped (0) or vehicle (1) */
+  seat_type = *(uint8_t *)(seat_object + 0x64);
+  type_mask = 1 << seat_type;
+  if (!(type_mask & 0x03))
+    return;
+
+  /* Seat type is 0 or 1 — refine position from seat marker */
+  if (*(int16_t *)(unit + 0x2a0) == -1)
+    return;
+
+  /* Get the seat definition from the parent's unit tag */
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)seat_object);
+  seat_def_index = *(int16_t *)(unit + 0x2a0);
+  seat_def =
+    (char *)tag_block_get_element(unit_tag + 0x2e4, (int)seat_def_index, 0x11c);
+
+  /* For seat type 1 (vehicle), skip if marker name at +0x84 is empty */
+  if (*(int16_t *)(seat_object + 0x64) == 1) {
+    if (*(uint8_t *)(seat_def + 0x84) == 0)
+      return;
+  }
+
+  /* Look up the seat marker on the parent object */
+  object_get_markers_by_string_id(*(int *)(unit + 0xcc), seat_def + 0x84,
+                                  marker_buf, 1);
+  position[0] = *(float *)(marker_buf + 0x60);
+  position[1] = *(float *)(marker_buf + 0x64);
+  position[2] = *(float *)(marker_buf + 0x68);
+}
+
 /* unit_is_alive (0x1a9a30)
  *
  * Returns whether the given unit handle refers to a unit that is currently
@@ -2144,7 +2257,8 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
   delta.z = unit_pos.z - *(float *)(markers + 0x68);
 
   /* Transform delta through marker's rotation matrix (at offset 0x38) */
-  real_matrix3x3_transform_vector(markers + 0x38, &delta, &delta); /* dup-args-ok */
+  real_matrix3x3_transform_vector(markers + 0x38, &delta,
+                                  &delta); /* dup-args-ok */
 
   /* Attach unit to vehicle at seat marker */
   object_attach_to_marker(vehicle_handle, marker_name, unit_handle,
