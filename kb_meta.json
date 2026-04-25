@@ -4631,6 +4631,16 @@
         "Byte at offset 0x28 in the class definition struct is a suppress flag that prevents playback when set."
       ]
     },
+    "0x1cbac0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Returns a pointer to a sound listener entry from the listeners table at 0x4eaf58, indexed by local player index with stride 0x44."
+      },
+      "inferred": [
+        "The assert string 'index>=0 && index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS' confirms the original parameter was named 'index' and the table is sized for 4 local players."
+      ]
+    },
     "0x1cbb00": {
       "kind": "function",
       "status": "ported",

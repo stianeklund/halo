@@ -169,6 +169,18 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
+/* Return a pointer to the sound listener entry for a local player.
+ * The listeners table lives at 0x4eaf58 with a stride of 0x44.
+ * Asserts that listener_index is in [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS). */
+void *sound_listener_get(short listener_index /* @<si> */)
+{
+  short index = listener_index;
+
+  assert_halt(index>=0 && index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  return (void *)(0x4eaf58 + (int)index * 0x44);
+}
+
 /* Sound manager — low-level sound system lifecycle and rendering. */
 
 /* Compute listener distance squared for a channel/source pair. */
