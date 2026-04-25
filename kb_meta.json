@@ -47,9 +47,60 @@
         "Table element semantics are inferred from math pattern and write layout; symbolic names for backing globals/constants remain unknown."
       ]
     },
+    "0x2fc20": {
+      "kind": "function",
+      "status": "ported",
+      "name": "FUN_0002fc20",
+      "inferred": [
+        "0x5ab23c is the prop/clump data table (used as data_t* for datum_get).",
+        "Assertion in neighboring FUN_0002fd10 confirms source file is c:\\halo\\SOURCE\\ai\\actor_perception.c."
+      ]
+    },
+    "0x2fd10": {
+      "kind": "function",
+      "status": "ported",
+      "name": "FUN_0002fd10",
+      "name_confidence": "confirmed",
+      "inferred": [
+        "FUN_0003b320 checks whether the actor has a weapon equipped (returns bool via AL).",
+        "FUN_000210f0 retrieves the weapon tag data for the actors current weapon (returns char* or NULL).",
+        "FUN_000211f0 retrieves an actv (actor variant) tag for the actors weapon, falling back to the actors own actv tag.",
+        "The score formula is: (sum_of_levels * 10.0) + (5.0 / (distance * 0.1 + 1.0)) + bonus, where levels are vision_level + awareness + bonus_flag + extra_flag."
+      ],
+      "uncertain": [
+        "The exact semantic meaning of vision_level values 0-5 and awareness values 1-6 is not known from this function alone.",
+        "The prop field at +0x118 compared against actor field +0x15d may be a team or faction index."
+      ]
+    },
+    "0x36e30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function is inferred to belong to actor_perception.obj based on address proximity (0x36e30 is between confirmed actor_perception.c assertions at 0x36316 and actor_stimulus.c assertions at 0x37299).",
+        "The byte at actor+0x2ed is inferred to be an approach-active flag based on the calling context in ai_handle_unit_approach."
+      ]
+    },
+    "0x3a990": {
+      "kind": "function",
+      "status": "ported",
+      "name": "FUN_0003a990",
+      "obj": "actors.obj",
+      "inferred": [
+        "actors_initialize — allocates actor_data, swarm_data, swarm_component_data. Assertion strings confirm actors.c source."
+      ]
+    },
     "0x3aa50": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x3aa60": {
+      "kind": "function",
+      "status": "ported",
+      "name": "FUN_0003aa60",
+      "obj": "actors.obj",
+      "inferred": [
+        "Likely actors_initialize_for_new_map — calls data_delete_all on all three actor data tables."
+      ]
     },
     "0x3aa90": {
       "kind": "function",

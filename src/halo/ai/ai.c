@@ -82,8 +82,8 @@ void ai_place(void)
  * object_get_and_verify_type (type 3 = unit), tests team friendship via
  * game_allegiance_get_team_is_friendly, and returns true (1) when the
  * teams are NOT friendly (i.e. the unit is an enemy worth approaching).
- * If flag is non-zero and the check passes, records the approach handle
- * at actor+0x2ed by calling FUN_00036e30.
+ * If flag is non-zero and the check passes, sets the approach-active
+ * flag at actor+0x2ed by calling FUN_00036e30.
  * Confirmed: 3 args (PUSH count), no ADD ESP after final CALL, bool
  * return via AL; ADD ESP,8 after each of the two inner calls. */
 bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
@@ -103,7 +103,7 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
                                                 *(int16_t *)(actor + 0x3e))) {
         result = 1;
         if (flag) {
-          /* record the approach target handle at actor+0x2ed */
+          /* set the approach-active flag at actor+0x2ed */
           FUN_00036e30(ai_handle);
         }
       }

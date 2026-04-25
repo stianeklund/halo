@@ -111,6 +111,7 @@
     "0x1cda50": "int sound_create_looping_entry(int sound_tag_handle@<eax>, int looping_handle, int track_index, int type);",
     "0x1cba80": "void *sound_channel_get(short channel_index@<si>);",
     "0x1cbd30": "void sound_collect_like_sounds(int sound_handle, void *summary@<esi>);",
-    "0x1ccd70": "short sound_find_oldest_channel(int sound_handle@<eax>, short *channels, short count);"
+    "0x1ccd70": "short sound_find_oldest_channel(int sound_handle@<eax>, short *channels, short count);",
+    "0x10b300": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);"
   }
 }

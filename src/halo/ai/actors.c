@@ -10,10 +10,33 @@
  * original binary — empty function, no operation.
  */
 
+/* FUN_0003a990 (0x3a990)
+ * Allocate actor_data, swarm_data, and swarm_component_data tables
+ * via game_state_data_new. Asserts each allocation succeeded. */
+void FUN_0003a990(void)
+{
+  FUN_0003a740();
+  actor_data = game_state_data_new("actor", 0x100, 0x724);
+  assert_halt(actor_data);
+  swarm_data = game_state_data_new("swarm", 0x20, 0x98);
+  assert_halt(swarm_data);
+  swarm_component_data = game_state_data_new("swarm component", 0x100, 0x40);
+  assert_halt(swarm_component_data);
+}
+
 /* actors_dispose: empty stub in the original binary (single RET).
  * Confirmed: 0x3aa50 contains only a RET instruction. */
 void actors_dispose(void)
 {
+}
+
+/* FUN_0003aa60 (0x3aa60)
+ * Delete all entries from the three actor data tables. */
+void FUN_0003aa60(void)
+{
+  data_delete_all(actor_data);
+  data_delete_all(swarm_data);
+  data_delete_all(swarm_component_data);
 }
 
 /* actors_dispose_from_old_map: invalidate the three actor data

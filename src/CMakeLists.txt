@@ -1,6 +1,7 @@
 	target_sources(halo PRIVATE
 	entrypoint.c
 	inlines.c
+	halo/ai/actor_perception.c
 	halo/ai/actors.c
 	halo/ai/ai.c
 	halo/bitmaps/bitmaps.c

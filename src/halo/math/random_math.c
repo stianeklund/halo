@@ -57,3 +57,57 @@ int16_t random_range(unsigned int *seed, int16_t min, int16_t max)
   *seed = s;
   return (int16_t)(((int)(max - min) * (int)(s >> 16) >> 16) + (int)min);
 }
+
+/* Generate a random 3D direction within a cone around a forward vector.
+ *
+ * Picks a random unit vector from a precomputed sphere table, computes the
+ * cross product with 'forward' to obtain a perpendicular rotation axis,
+ * normalizes it, then rotates 'forward' around that axis by a random angle
+ * in [zero, angle].  If the random vector is (anti)parallel to forward
+ * (cross product magnitude <= 0), the function bails out and returns
+ * the forward vector unmodified in 'result'.
+ *
+ * Parameters:
+ *   seed    - LCG random state (advanced twice: once for table index,
+ *             once for the rotation angle)
+ *   forward - input direction vector (3 floats)
+ *   zero    - minimum rotation angle (radians)
+ *   angle   - maximum rotation angle (radians)
+ *   result  - output direction vector (3 floats), initially set to forward
+ */
+void random_direction3d(int *seed, float *forward, float zero, float angle,
+                        float *result)
+{
+  float random_vec[3];
+  float cross[3];
+  int16_t index;
+  float random_angle;
+  float sin_val, cos_val;
+
+  /* Copy forward to result */
+  result[0] = forward[0];
+  result[1] = forward[1];
+  result[2] = forward[2];
+
+  /* Pick a random direction from the precomputed sphere table.
+   * Inlines: index = random_range(seed, 0, table_size) then table lookup. */
+  index = random_range((unsigned int *)seed, 0, *(int16_t *)0x46e3ec);
+  random_direction_table_get_element(index, random_vec);
+
+  /* Cross product: cross = random_vec x forward */
+  cross[0] = random_vec[2] * forward[1] - random_vec[1] * forward[2];
+  cross[1] = random_vec[0] * forward[2] - random_vec[2] * forward[0];
+  cross[2] = random_vec[1] * forward[0] - random_vec[0] * forward[1];
+
+  /* Normalize the rotation axis; bail if degenerate (parallel vectors) */
+  if (normalize3d(cross) <= *(float *)0x2533c0)
+    return;
+
+  /* Random rotation angle in [zero, angle] (inlines random_real_range) */
+  random_angle = random_real_range(seed, zero, angle);
+  sin_val = sinf(random_angle);
+  cos_val = cosf(random_angle);
+
+  /* Rotate result around the cross axis by the random angle */
+  rotate_vector3d_by_sincos(result, cross, sin_val, cos_val);
+}

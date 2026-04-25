@@ -199,6 +199,14 @@
           "addr": "0x10b4c0"
         },
         {
+          "decl": "float *random_direction_table_get_element(int16_t index@<esi>, float *result@<ebx>);",
+          "addr": "0x10b300"
+        },
+        {
+          "decl": "void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle, float cos_angle);",
+          "addr": "0x10b6e0"
+        },
+        {
           "decl": "float random_real_range(int *seed, float min, float max);",
           "addr": "0x10b270",
           "status": "ported"
@@ -242,10 +250,6 @@
         {
           "decl": "void FUN_0002b5d0(void);",
           "addr": "0x2b5d0"
-        },
-        {
-          "decl": "void FUN_0003a990(void);",
-          "addr": "0x3a990"
         },
         {
           "decl": "void unit_vehicle_board_notify(int unit_handle, int vehicle_handle);",
@@ -476,6 +480,10 @@
           "addr": "0x36e30"
         },
         {
+          "decl": "void FUN_0003a740(void);",
+          "addr": "0x3a740"
+        },
+        {
           "decl": "void FUN_00059b10(void *iter, char flag);",
           "addr": "0x59b10"
         },
@@ -514,10 +522,6 @@
         {
           "decl": "void FUN_0005dfa0(void);",
           "addr": "0x5dfa0"
-        },
-        {
-          "decl": "void FUN_0003aa60(void);",
-          "addr": "0x3aa60"
         },
         {
           "decl": "void FUN_00064150(void);",
@@ -921,8 +925,18 @@
       ],
       "functions": [
         {
+          "decl": "void FUN_0003a990(void);",
+          "addr": "0x3a990",
+          "ported": true
+        },
+        {
           "decl": "void actors_dispose(void);",
           "addr": "0x3aa50",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0003aa60(void);",
+          "addr": "0x3aa60",
           "ported": true
         },
         {
