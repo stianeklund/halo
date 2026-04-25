@@ -1,3 +1,294 @@
+/* sound_dsound_get_sample_rate (0x1c90e0)
+ *
+ * Return the sample rate for the given codec index.  Index 0 yields
+ * 22050 Hz, index 1 yields 44100 Hz.  Asserts codec_index is in the
+ * range [0, NUMBER_OF_SOUND_SAMPLE_RATES=2). */
+int sound_dsound_get_sample_rate(int codec_index)
+{
+  if (codec_index < 0 || codec_index >= 2) {
+    display_assert("sample_rate>=0 && sample_rate<NUMBER_OF_SOUND_SAMPLE_RATES",
+                   "c:\\halo\\source\\sound\\sound_definitions.h", 0x135, 1);
+    system_exit(-1);
+  }
+  return *(int *)((char *)0x2bcc18 + codec_index * 4);
+}
+
+/* sound_dsound_gain_to_volume (0x1c9130)
+ *
+ * Convert a linear gain value [0.0, 1.0] to a DirectSound volume in
+ * hundredths of dB.  The formula is: 2000 * log10(gain) + ceiling.
+ * If gain is exactly 0, returns -10000 (DSBVOLUME_MIN).
+ * Result is clamped to [-10000, ceiling]. */
+int sound_dsound_gain_to_volume(float gain, int ceiling)
+{
+  int volume;
+
+  if (gain < 0.0f || gain > 1.0f) {
+    display_assert("gain>=0.f && gain<=1.f",
+                   "c:\\halo\\source\\sound\\sound_dsound.h", 0x23, 1);
+    system_exit(-1);
+  }
+
+  if (gain == 0.0f)
+    return -10000;
+
+  volume = (int)(*(double *)0x2c07b8 * log10(gain) + ceiling);
+  if (volume < -10000)
+    return -10000;
+  if (volume > ceiling)
+    volume = ceiling;
+  return volume;
+}
+
+/* sound_dsound_pitch_to_frequency (0x1c91c0)
+ *
+ * Convert a pitch scalar to a DirectSound frequency value.  Asserts
+ * that sample_rate is either 22050 or 44100.  The result is
+ * sample_rate * pitch, clamped to [188, 191983]. */
+int sound_dsound_pitch_to_frequency(int sample_rate, float pitch)
+{
+  float frequency;
+
+  if (sample_rate != 22050 && sample_rate != 44100) {
+    display_assert("samples_per_second==22050 || samples_per_second==44100",
+                   "c:\\halo\\source\\sound\\sound_dsound.h", 0x36, 1);
+    system_exit(-1);
+  }
+
+  frequency = (float)sample_rate * pitch;
+
+  if (frequency < *(float *)0x2c0800)
+    frequency = *(float *)0x2c0800;
+  if (frequency > *(float *)0x2c07fc)
+    frequency = *(float *)0x2c07fc;
+  return (int)frequency;
+}
+
+/* sound_dsound_channel_get (0x1c9290)
+ *
+ * Return a pointer to the actual dsound channel struct at the given
+ * index.  Asserts index is in [0, dsound_globals.actual_channel_count)
+ * and less than MAXIMUM_SOUND_CHANNELS (256).  Element size is 0x74. */
+void *sound_dsound_channel_get(short index)
+{
+  if (index < 0 || index >= *(short *)0x4fdfc4) {
+    display_assert("index>=0 && index<dsound_globals.actual_channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+    system_exit(-1);
+  }
+  if (index >= 0x100) {
+    display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
+    system_exit(-1);
+  }
+  return (void *)(0x4fdfc8 + (int)index * 0x74);
+}
+
+/* sound_dsound_vchannel_get (0x1c92f0)
+ *
+ * Return a pointer to the virtual channel struct at the given index.
+ * Asserts index is in [0, dsound_globals.virtual_channel_count) and
+ * less than MAXIMUM_SOUND_CHANNELS (256).  Element size is 4. */
+void *sound_dsound_vchannel_get(short index)
+{
+  if (index < 0 || index >= *(short *)0x4fdbc2) {
+    display_assert("index>=0 && index<dsound_globals.virtual_channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x72, 1);
+    system_exit(-1);
+  }
+  if (index >= 0x100) {
+    display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x73, 1);
+    system_exit(-1);
+  }
+  return (void *)(0x4fdbc4 + (int)index * 4);
+}
+
+/* sound_dsound_channel_update_3d (0x1c94d0)
+ *
+ * Build and apply full 3D buffer parameters for the given channel.
+ * Constructs a 36-byte parameter block with volume levels (converted
+ * from gain via gain_to_volume) and a rolloff factor of 0.2.
+ *
+ * If the channel is not active (field_4 == 0), all volumes are set
+ * to -10000 (minimum).  Otherwise, gains are derived from the
+ * channel's fade and orientation fields.  When field_5 is set, a
+ * global volume at 0x32f6d4 is applied to offset 0x0 and 0x4.
+ *
+ * Calls IDirectSoundStream_SetAllParameters to commit the block. */
+void sound_dsound_channel_update_3d(int channel_index)
+{
+  void *channel;
+  char params[0x24];
+  float fade_gain;
+
+  channel = sound_dsound_channel_get((short)channel_index);
+  csmemset(params, 0, 0x24);
+  *(int *)(params + 0x00) = 0;
+  *(int *)(params + 0x04) = 0;
+  *(int *)(params + 0x10) = 0;
+  *(int *)(params + 0x18) = 0;
+  *(float *)(params + 0x20) = 0.2f;
+
+  if (*(char *)((char *)channel + 0x4) != 0) {
+    fade_gain = 1.0f - *(float *)((char *)channel + 0x60);
+
+    if (*(char *)((char *)channel + 0x5) != 0) {
+      *(int *)(params + 0x04) =
+        sound_dsound_gain_to_volume(*(float *)0x32f6d4, 0);
+      *(int *)(params + 0x00) =
+        sound_dsound_gain_to_volume(*(float *)0x32f6d4, 0);
+    } else {
+      fade_gain = fade_gain * 0.5f;
+    }
+
+    {
+      int fade_vol = sound_dsound_gain_to_volume(fade_gain, 0);
+      *(int *)(params + 0x08) = fade_vol;
+      *(int *)(params + 0x0c) = fade_vol;
+    }
+    *(int *)(params + 0x14) =
+      sound_dsound_gain_to_volume(1.0f - *(float *)((char *)channel + 0x48), 0);
+    *(int *)(params + 0x1c) =
+      sound_dsound_gain_to_volume(1.0f - *(float *)((char *)channel + 0x44), 0);
+  } else {
+    *(int *)(params + 0x08) = -10000;
+    *(int *)(params + 0x0c) = -10000;
+    *(int *)(params + 0x14) = 0;
+    *(int *)(params + 0x1c) = 0;
+  }
+
+  IDirectSoundStream_SetAllParameters(*(void **)((char *)channel + 0x70),
+                                      params, 1);
+}
+
+/* sound_dsound_log_error (0x1c98f0)
+ *
+ * Log a DirectSound error.  Formats the caller's message with
+ * vsprintf, maps the HRESULT to a symbolic name, and emits a level-2
+ * error via error().  HRESULT is passed in ESI. */
+void sound_dsound_log_error(int hresult, const char *message, ...)
+{
+  static char buffer[0x1000];
+  const char *error_name;
+  char *arglist;
+
+  arglist = (char *)&message + 4;
+  vsprintf(buffer, message, arglist);
+
+  error_name = "<unknown error>";
+
+  if (hresult > (int)0x8007000E) {
+    if (hresult == (int)0x8878001E) {
+      error_name = "DSERR_CONTROLUNAVAIL";
+    } else if (hresult == (int)0x88780032) {
+      error_name = "DSERR_INVALIDCALL";
+    } else if (hresult == (int)0x88780078) {
+      error_name = "DSERR_NODRIVER";
+    }
+  } else if (hresult == (int)0x8007000E) {
+    error_name = "DSERR_OUTOFMEMORY";
+  } else if (hresult == (int)0x80004001) {
+    error_name = "DSERR_UNSUPPORTED";
+  } else if (hresult == (int)0x80004005) {
+    error_name = "DSERR_GENERIC";
+  } else if (hresult == (int)0x80040110) {
+    error_name = "DSERR_NOAGGREGATION";
+  }
+
+  error(2, "DirectSound:  '%s' (%s#%d)", buffer, error_name);
+}
+
+/* sound_dsound_channel_try_resolve (0x1c99a0)
+ *
+ * Try to find and assign a free actual channel for the given virtual
+ * channel.  Looks up the virtual channel, asserts it has no current
+ * assignment (channel_index == NONE) and a valid type_index.
+ *
+ * Scans actual channels of the matching type, starting from the
+ * priority table entry for the vchannel's type_index.  A channel is
+ * eligible if its type_flags match and it is either unassigned
+ * (virtual_channel_index == NONE) or currently stopping and can be
+ * released.
+ *
+ * If no free channel is found, logs a warning with the type_index. */
+void sound_dsound_channel_try_resolve(int virtual_channel_index)
+{
+  short *vchannel;
+  short si;
+  void *channel;
+
+  vchannel = (short *)sound_dsound_vchannel_get(virtual_channel_index);
+
+  /* assert: vchannel has no channel assigned */
+  if (vchannel[0] != (short)-1) {
+    display_assert("vchannel->channel_index==NONE",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x588, 1);
+    system_exit(-1);
+  }
+
+  /* assert: type_index is valid */
+  if (vchannel[1] < 0 || vchannel[1] >= 4) {
+    display_assert("vchannel->type_index>=0 && "
+                   "vchannel->type_index<NUMBER_OF_SOUND_CHANNEL_TYPES",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x589, 1);
+    system_exit(-1);
+  }
+
+  si = ((short *)0x5053c8)[vchannel[1]];
+
+  if (vchannel[0] == (short)-1) {
+    while (si < *(short *)0x4fdfc4) {
+      if (si < 0) {
+        display_assert("index>=0 && index<dsound_globals.actual_channel_count",
+                       "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+        system_exit(-1);
+      }
+      if (si >= 0x100) {
+        display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                       "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
+        system_exit(-1);
+      }
+
+      channel = (void *)(0x4fdfc8 + (int)si * 0x74);
+
+      if (*(short *)((char *)channel + 0x38) !=
+          ((short *)0x32fcf8)[vchannel[1]])
+        break;
+
+      if (*(short *)((char *)channel + 0x2) == (short)-1) {
+        if (*(char *)((char *)channel + 0x6) == 0 ||
+            sound_dsound_channel_stop_check(si)) {
+          vchannel[0] = si;
+        }
+      }
+
+      si++;
+      if (vchannel[0] != (short)-1)
+        break;
+    }
+  }
+
+  /* if we found a channel, store the back-reference */
+  if (vchannel[0] != (short)-1) {
+    if (vchannel[0] < 0 || vchannel[0] >= *(short *)0x4fdfc4) {
+      display_assert("index>=0 && index<dsound_globals.actual_channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+      system_exit(-1);
+    }
+    if (vchannel[0] >= 0x100) {
+      display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
+      system_exit(-1);
+    }
+    *(short *)(0x4fdfc8 + (int)vchannel[0] * 0x74 + 0x2) =
+      (short)virtual_channel_index;
+  } else {
+    error(2, "WARNING: ran out of actual sound channels of type %d",
+          (int)vchannel[1]);
+  }
+}
+
 /* sound_dsound_channel_resolve (0x1c9b40)
  *
  * Look up the virtual channel for the given virtual_channel_index and

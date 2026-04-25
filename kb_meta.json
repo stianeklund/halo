@@ -614,9 +614,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x992d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Originally inlined from real_math.h around line 0x36f; unprojects 2D point to 3D via plane equation."
+      ]
+    },
+    "0x99400": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Computes a normalized 2D line equation from two points; returns NULL on degenerate input."
+      ]
+    },
     "0x99530": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x99640": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "BSP plane extraction with sign-flip via bit 31 of plane_reference; each plane is 0x10 bytes (i,j,k,d)."
+      ]
     },
     "0x998b0": {
       "kind": "function",
@@ -4745,6 +4766,42 @@
       "status": "ported"
     },
     "0x1c8f20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c90e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c9130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c91c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c9290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c92f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c94d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c9600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c98f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c99a0": {
       "kind": "function",
       "status": "ported"
     },

@@ -86,6 +86,22 @@ INLINE float fabsf(float x)
   return r;
 }
 
+/* log10(x) via x87 FLDLG2 + FYL2X.
+ * Computes log10(2) * log2(x) = log10(x).
+ * No edge-case handling -- the game only calls this for gain in (0,1]. */
+INLINE double log10(double x)
+{
+  double result;
+  asm volatile (
+    "fldlg2\n\t"
+    "fxch %%st(1)\n\t"
+    "fyl2x"
+    : "=t"(result)
+    : "0"(x)
+  );
+  return result;
+}
+
 /* pow(x, y) = 2^(y * log2(x)) via x87 FYL2X + F2XM1 + FSCALE.
  * Valid for x > 0 and any y. No edge-case handling (NaN, inf, x<=0)
  * because the game only calls this for attenuation/progress curves with
