@@ -5337,7 +5337,8 @@
         {
           "decl": "int sound_create_looping_entry(int sound_tag_handle@<eax>, int looping_handle, int track_index, int type);",
           "addr": "0x1cda50",
-          "comment": "Allocate and initialize a new sound datum for a looping sound track."
+          "comment": "Allocate and initialize a new sound datum for a looping sound track.",
+          "ported": true
         },
         {
           "decl": "void sound_update_music_channel(int channel_index, float attenuation);",
