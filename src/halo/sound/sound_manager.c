@@ -35,6 +35,40 @@ float sound_class_get_min_distance(int sound_tag_index)
   return min_distance;
 }
 
+/* Sample a pitch value from a permutation's mouth data (0x1c8f20).
+ *
+ * Clamps permutation_index into [0, mouth_data.size-1], reads the
+ * corresponding byte from the mouth data block via FUN_001c8d90,
+ * and normalizes it to [0.0, 1.0] by dividing by 255.
+ * If the permutation has no mouth data (size == 0), logs an error
+ * and returns 0.0f. */
+float sound_get_permutation_pitch(int permutation_block_ptr, short permutation_index)
+{
+  int mouth_data_size = *(int *)((char *)permutation_block_ptr + 0x54);
+  int clamped_index;
+
+  if (mouth_data_size != 0) {
+    if (permutation_index < 0) {
+      clamped_index = 0;
+    } else {
+      clamped_index = mouth_data_size - 1;
+      if ((int)permutation_index <= clamped_index) {
+        clamped_index = (int)permutation_index;
+      }
+    }
+
+    {
+      uint8_t *byte_ptr = (uint8_t *)FUN_001c8d90(permutation_block_ptr, clamped_index);
+      int byte_value = (int)*byte_ptr;
+      return (float)byte_value * (1.0f / 255.0f);
+    }
+  }
+
+  error(2, "but how can you speak if you have no mouth data? (permutation %s)",
+        permutation_block_ptr);
+  return 0.0f;
+}
+
 /* Empty on Xbox — no per-map sound initialization needed. */
 void sound_initialize_for_new_map(void)
 {
