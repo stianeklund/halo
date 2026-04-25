@@ -5285,7 +5285,8 @@
         {
           "decl": "void sound_cache_sound_finished(int permutation_ptr);",
           "addr": "0x1be090",
-          "comment": "Decrement software_reference_count on a cache-sound entry (xbox_sound_cache.c)."
+          "comment": "Decrement software_reference_count on a cache-sound entry (xbox_sound_cache.c).",
+          "ported": true
         },
         {
           "decl": "void *sound_listener_get(short listener_index@<si>);",

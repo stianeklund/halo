@@ -1532,3 +1532,33 @@ void sound_render(void)
   if (*(uint8_t *)0x449ef1 != 0 && *(uint8_t *)0x32f6f0 != 0)
     profile_exit_private((void *)0x32f6e8);
 }
+
+/* sound_cache_sound_finished (0x1be090)
+ *
+ * Decrements the software_reference_count on a cache-sound entry when a
+ * sound permutation finishes playing. Takes the permutation tag pointer,
+ * reads the cache handle from offset +0x2c, and looks up the corresponding
+ * cache-sound datum from the sound cache table at 0x4e9368.
+ *
+ * If the debug trace flag at 0x5054ec is set, logs the current reference
+ * count and name before decrementing.
+ *
+ * Asserts that software_reference_count is nonzero before decrementing
+ * (source: c:\halo\SOURCE\cache\xbox_sound_cache.c, line 263). */
+void sound_cache_sound_finished(int permutation_ptr)
+{
+  char *cache_sound;
+
+  cache_sound = (char *)datum_get(*(data_t **)0x4e9368,
+                                  *(int *)(permutation_ptr + 0x2c));
+
+  if (*(uint8_t *)0x5054ec != 0) {
+    error(2, "--- finish %d %s",
+          *(uint8_t *)(cache_sound + 4),
+          *(char **)(cache_sound + 8));
+  }
+
+  assert_halt(*(uint8_t *)(cache_sound + 4));
+
+  *(uint8_t *)(cache_sound + 4) -= 1;
+}
