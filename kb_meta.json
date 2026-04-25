@@ -2744,6 +2744,10 @@
         "Matrix layout: 4-byte scale at offset 0, followed by 3x3 float rotation at offsets 0x04-0x24."
       ]
     },
+    "0x1096e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x109780": {
       "kind": "function",
       "status": "ported"
@@ -4138,6 +4142,10 @@
         "The exact name of 0x1a9240 (unit_set_seat_state) is uncertain; it receives the unit handle and the root position vector."
       ]
     },
+    "0x1ac2f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ac3f0": {
       "kind": "function",
       "status": "ported"
@@ -4351,6 +4359,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1be090": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bea30": {
       "kind": "function",
       "status": "ported"
@@ -4553,6 +4565,10 @@
         "sound_start at 0x1ce180 belongs to sound_manager.obj based on assertion path string c:\\halo\\SOURCE\\sound\\sound_manager.c."
       ]
     },
+    "0x1c7b00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c7c30": {
       "kind": "function",
       "status": "ported"
@@ -4611,6 +4627,18 @@
         "The float store offset is [record+0x0] and int16 store is [record+0x8], confirmed from disassembly; the record is 0xc bytes per class entry."
       ]
     },
+    "0x1c8d50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c8f20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb790": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1cb810": {
       "kind": "function",
       "status": "ported"
@@ -4630,6 +4658,10 @@
         "0x1c88c0 is sound_get_class_definition, takes cdecl short class_index and returns pointer to a 0x2c-byte class definition struct at 0x32ed08 + index*0x2c.",
         "Byte at offset 0x28 in the class definition struct is a suppress flag that prevents playback when set."
       ]
+    },
+    "0x1cba80": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1cbac0": {
       "kind": "function",
@@ -4651,6 +4683,38 @@
         "The MOVSX SI,SI and IMUL pattern suggests promotion_count is sign-extended from short to int before the multiplication with interval."
       ]
     },
+    "0x1cbd30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cbf30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The vtable+0x18 call is the sound driver start function, taking (channel_index, permutation) based on the PUSH EDI, PUSH EBX sequence before CALL [EAX+0x18].",
+        "Channel struct offsets +0x10 and +0x14 appear to be current and next permutation pointers respectively, based on the queue-or-replace logic."
+      ]
+    },
+    "0x1cbfb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The properties struct field at offset +0x08 is named pitch per the assertion string, and is stored into the channel table at offset +0x0c (time rate field).",
+        "The update_only flag (EBX/BL) controls whether only the driver vtable call is made (non-zero) or whether the pitch is also written to the channel table first (zero)."
+      ]
+    },
+    "0x1cc050": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cc140": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Channel struct offsets +0x10 and +0x14 hold permutation pointers that are released via sound_cache_sound_finished when the channel is stopped.",
+        "Sound driver vtable+0x20 is the stop-channel entry point, taking channel_index as a single int argument (cdecl)."
+      ]
+    },
     "0x1cc310": {
       "kind": "function",
       "status": "ported",
@@ -4662,6 +4726,22 @@
         "The direction check (target > current vs target <= current) selects ease-in vs ease-out curve, but the exact perceptual intent is not confirmed by the binary alone."
       ]
     },
+    "0x1cc490": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cc8f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Sound entry field at +0x92 is the fade mode (short), +0x9c is current fade volume (float), +0xa0 is target fade volume (float), +0xa4 is fade start tick (int), +0xa8 is fade end tick (int).",
+        "The fade-in path checks if start_tick==end_tick before deciding initial volume; when they match the sound is not currently fading so current volume is set to 0.0 (start from silence). Otherwise it queries the in-progress attenuation."
+      ]
+    },
+    "0x1cca60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ccbe0": {
       "kind": "function",
       "status": "ported"
@@ -4669,6 +4749,26 @@
     "0x1ccca0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1ccd70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ccf80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cd2c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The field at sound_entry+0x88 is interpreted as a float random_scale based on the callee prototype of sound_select_pitch_range.",
+        "The field at sound_entry+0x98 serves dual purpose: it is the looping_sound_tag_index used by tag_get and is then saved to sound_entry+0x8 before being cleared.",
+        "Callee sound_collect_like_sounds (0x1cbd30) takes its output buffer via ESI register, named from the assert strings containing summary->like_definition_count etc."
+      ],
+      "uncertain": [
+        "The name sound_find_oldest_channel for 0x1ccd70 is inferred from behavior; the function compares tick counts and distances to find the best eviction candidate."
+      ]
     },
     "0x1cd5a0": {
       "kind": "function",
@@ -4681,6 +4781,19 @@
       "uncertain": [
         "The assert for index bounds at line 0x430 appears unreachable given the loop bounds, suggesting it may be an inlined bounds-check macro."
       ]
+    },
+    "0x1cda50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function pointer 0x1cc1c0 stored at entry+0x10 is an update callback that copies 64 bytes from the looping sound source (offset +0xc) into the output buffer.",
+        "Fields at tag+0x14 and tag+0x18 are the random pitch gain bounds (min/max) used by random_real_range to compute the random_scale stored at entry+0x88.",
+        "Fields at tag+0x44 and tag+0x5c are pitch bounds (min/max pitch) used in the pitch range selection formula: ((max-min)*source_gain + min) * random_gain."
+      ]
+    },
+    "0x1cdc30": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1ce180": {
       "kind": "function",

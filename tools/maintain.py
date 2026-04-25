@@ -340,6 +340,14 @@ def main():
     log.info('Re-formatting files...')
     for_targeted_source(sm.reformat_file)
 
+    log.info('Syncing kb_meta.json ported status...')
+    sync_result = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(__file__), 'kb_meta.py'), 'sync-ported'],
+        capture_output=True, text=True,
+    )
+    if sync_result.stdout.strip():
+        print(sync_result.stdout.strip())
+
 
 if __name__ == '__main__':
     main()

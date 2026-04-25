@@ -34,6 +34,23 @@ def normalize_addr(addr: str) -> str:
     return f'{int(addr, 0):#x}'
 
 
+def _has_function_body(source_path: str, func_name: str) -> bool:
+    """Return True if source_path contains a function definition (not just a
+    declaration or call reference) for func_name.
+
+    A function is considered defined if we find: name ( ... ) { — i.e. the
+    identifier followed by a parameter list and an opening brace, with no
+    semicolon between the closing paren and the brace.
+    """
+    import re
+    try:
+        content = open(source_path, encoding='utf-8', errors='replace').read()
+    except OSError:
+        return False
+    pattern = rf'\b{re.escape(func_name)}\s*\([^;]*?\)\s*\{{'
+    return bool(re.search(pattern, content, re.DOTALL))
+
+
 @dataclass
 class SymbolMetadata:
     kind: str
@@ -226,6 +243,13 @@ def build_parser() -> argparse.ArgumentParser:
     notes_parser.add_argument('--clear', action='store_true',
                               help='Clear all notes of this kind')
 
+    sync_parser = sub.add_parser(
+        'sync-ported',
+        help='Scan source files and mark functions with real implementations as ported',
+    )
+    sync_parser.add_argument('--dry-run', action='store_true',
+                             help='Print what would change without saving')
+
     return ap
 
 
@@ -385,6 +409,42 @@ def main():
             target_list.append(args.append)
             store.save()
             print(f'{normalize_addr(args.addr)} {args.kind} appended')
+        return
+
+    if args.command == 'sync-ported':
+        import re
+        updated = []
+        for sym in kb.symbols:
+            if not isinstance(sym, Function) or sym.addr is None:
+                continue
+            addr = normalize_addr(hex(sym.addr))
+            meta = store.symbols.get(addr)
+            if meta and meta.status in ('ported', 'verified'):
+                continue
+            obj_name = store.kb.symbol_to_object.get(sym)
+            source = store.kb.object_to_source.get(obj_name, '') if obj_name else ''
+            if not source:
+                continue
+            src_path = os.path.join(ROOT_DIR, 'src', 'halo', source)
+            name_parts = re.split(r'[\s\*]+', (sym.decl or '').split('(')[0])
+            name = name_parts[-1] if name_parts else ''
+            if not name or name.startswith('FUN_'):
+                continue
+            if _has_function_body(src_path, name):
+                updated.append((addr, name, source))
+                if not args.dry_run:
+                    entry = store.ensure_symbol(addr)
+                    entry.status = 'ported'
+
+        if updated:
+            if not args.dry_run:
+                store.save()
+            verb = 'would mark' if args.dry_run else 'marked'
+            print(f'{verb} {len(updated)} function(s) as ported:')
+            for addr, name, source in sorted(updated):
+                print(f'  {addr:>10}  {name:<45}  {source}')
+        else:
+            print('all implemented functions are already tracked')
         return
 
 
