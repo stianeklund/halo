@@ -286,6 +286,44 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
+/* sound_channel_set_properties (0x1cbfb0)
+ *
+ * Push volume/pitch/3D properties to the sound driver for a channel.
+ * When update_only is zero, the channel's pitch rate (offset +0x0c in the
+ * channel table at 0x4fc3a0) is also written from properties+0x08 before
+ * calling the driver.  When update_only is non-zero the pitch store is
+ * skipped and only the driver vtable call is made.
+ *
+ * Register args: SI = channel_index, EBX = update_only.
+ * Stack arg:     properties pointer.
+ */
+void sound_channel_set_properties(short channel_index, int update_only,
+                                  void *properties) {
+  int ch;
+
+  if (channel_index < 0 || channel_index >= *(short *)0x4eb0b4) {
+    display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+    system_exit(-1);
+  }
+
+  ch = (int)channel_index;
+
+  if (!update_only) {
+    if (*(float *)((char *)properties + 8) <= 0.0f) {
+      display_assert("properties->pitch>0.f",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x848, 1);
+      system_exit(-1);
+    }
+    *(int *)(0x4fc3a0 + ch * 0x18 + 0x0c) =
+      *(int *)((char *)properties + 8);
+  }
+
+  /* Call the sound driver's set-properties entry (vtable offset 0x34). */
+  (*(void (**)(int, void *, int))(*(int *)0x4eaf48 + 0x34))(
+    channel_index, properties, update_only);
+}
+
 /* sound_channel_update_status (0x1cc050)
  *
  * Query the sound driver for playback status of the given channel and
