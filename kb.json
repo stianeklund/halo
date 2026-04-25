@@ -5356,7 +5356,8 @@
         {
           "decl": "void sound_object_apply_pitch_delta(int object_handle, float pitch);",
           "addr": "0x1ac2f0",
-          "comment": "Clamp and accumulate a pitch delta onto object+0x298."
+          "comment": "Clamp and accumulate a pitch delta onto object+0x298.",
+          "ported": true
         },
         {
           "decl": "float sound_class_get_min_distance(int sound_tag_index);",
