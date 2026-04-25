@@ -186,6 +186,19 @@ static const int16_t g_projection_axes[6][2] = {
   { 2, 1 }, { 1, 2 }, { 0, 2 }, { 2, 0 }, { 1, 0 }, { 0, 1 },
 };
 
+/* FUN_000992d0 (0x992d0)
+ *
+ * Unprojects a 2D point back to 3D using a plane equation and a projection
+ * axis.  The projection axis (0=x, 1=y, 2=z) selects which coordinate to
+ * solve for; the sign bit picks one of two axis-remapping orders from
+ * g_projection_axes.  The two known 2D coordinates are placed into
+ * out_point at the remapped axis slots, and the third is computed from
+ * the plane equation  (d - a*u - b*v) / c.  If the plane's coefficient
+ * along the projection axis is near zero, a large sentinel value is stored
+ * instead.
+ *
+ * Inlined from ..\\math\\real_math.h (line 0x36f).
+ */
 void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
                   uint8_t sign, float *out_point)
 {
@@ -223,6 +236,15 @@ void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
                       plane[proj_i];
 }
 
+/* FUN_00099400 (0x99400)
+ *
+ * Computes a 2D line equation (normal + distance) from two 2D points.
+ * The line normal is the perpendicular of (point_b - point_a), normalized.
+ * out_line[0..1] = unit normal, out_line[2] = signed distance from origin.
+ * Returns out_line on success, or NULL if the two points are coincident
+ * (length below epsilon) or if the length equals the sentinel value at
+ * 0x2533c0.
+ */
 float *FUN_00099400(float *out_line, float *point_a, float *point_b)
 {
   float dx;
@@ -283,6 +305,14 @@ uint32_t FUN_00099530(float alpha, float *color)
   return b | (g << 8) | (r << 0x10) | (a << 0x18);
 }
 
+/* FUN_00099640 (0x99640)
+ *
+ * Extracts a plane equation from a BSP's plane tag block.  The plane_reference
+ * encodes both the plane index (low 31 bits) and a sign-flip flag (bit 31).
+ * When the sign bit is set, all four plane components (normal xyz + d) are
+ * negated, effectively flipping the plane to face the opposite direction.
+ * Each plane element is 0x10 bytes (four floats: i, j, k, d).
+ */
 void FUN_00099640(int structure_bsp, uint32_t plane_reference, float *out_plane)
 {
   float *plane_data;
@@ -1116,7 +1146,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
           decals_cross3(bitangent, tangent, normal);
 
           if (decals_dot3(tangent, tangent) < tiny_squared || /* dup-args-ok */
-              decals_dot3(bitangent, bitangent) < tiny_squared) { /* dup-args-ok */
+              decals_dot3(bitangent, bitangent) <
+                tiny_squared) { /* dup-args-ok */
             float reflected[3];
             float reflected_scale = -decals_dot3(direction3, normal);
 
@@ -1443,7 +1474,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
                 rotated_origin[0] = basis[10] - best_start[0];
                 rotated_origin[1] = basis[11] - best_start[1];
                 rotated_origin[2] = basis[12] - best_start[2];
-                matrix_transform_point(rotation_matrix, rotated_origin, /* dup-args-ok */
+                matrix_transform_point(rotation_matrix,
+                                       rotated_origin, /* dup-args-ok */
                                        rotated_origin);
 
                 matrix_transform_vector(rotation_matrix, basis + 1,
@@ -1878,22 +1910,20 @@ int16_t FUN_00106510(int16_t count, float *points, float *line,
         }
 
         out_points[(int)out_count * 2] =
-          clamped_t * (previous_point[0] - current_point[0]) +
-          current_point[0];
+          clamped_t * (previous_point[0] - current_point[0]) + current_point[0];
         mask |= (uint32_t)1 << ((uint8_t)out_count & 0x1f);
         out_count += 1;
         out_points[((int)out_count - 1) * 2 + 1] =
-          clamped_t * (previous_point[1] - current_point[1]) +
-          current_point[1];
+          clamped_t * (previous_point[1] - current_point[1]) + current_point[1];
 
         if (out_count != 1) {
           out_idx = (int)out_count;
           if ((fabsf(out_points[out_idx * 2 - 2] - out_points[0]) < epsilon &&
                fabsf(out_points[out_idx * 2 - 1] - out_points[1]) < epsilon) ||
-              (fabsf(out_points[out_idx * 2 - 2] - out_points[out_idx * 2 - 4]) <
-                 epsilon &&
-               fabsf(out_points[out_idx * 2 - 1] - out_points[out_idx * 2 - 3]) <
-                 epsilon)) {
+              (fabsf(out_points[out_idx * 2 - 2] -
+                     out_points[out_idx * 2 - 4]) < epsilon &&
+               fabsf(out_points[out_idx * 2 - 1] -
+                     out_points[out_idx * 2 - 3]) < epsilon)) {
             out_count -= 1;
           }
         }
