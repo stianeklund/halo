@@ -67,6 +67,72 @@ void item_attach_to_unit(int item_handle, int unit_handle)
   }
 }
 
+/* Initialize the danger countdown for an item (0xf6af0).
+ * If the item's danger count at +0x1a8 is zero, spawns an effect using
+ * the tag reference at +0x2f4 of the 'item' tag definition (detonation
+ * or fuse warning), then sets the countdown to a random value in the
+ * range [tag+0x2e0, tag+0x2e4] scaled by 30.0 (ticks per second).
+ * Called from item_set_position when the item is flagged for detonation
+ * and the game engine is not running (campaign/solo mode). */
+void FUN_000f6af0(int item_handle)
+{
+  char *item_obj;
+  char *item_tag;
+  int *seed;
+  float rnd;
+
+  item_obj = (char *)object_get_and_verify_type(item_handle, 0x1c);
+  item_tag = (char *)tag_get(0x6974656d, *(int *)item_obj);
+
+  if (*(int16_t *)(item_obj + 0x1a8) == 0) {
+    FUN_0009ec30(*(int *)(item_tag + 0x2f4), item_handle, item_handle, NONE, 0,
+                 0, 0, 0);
+    seed = get_global_random_seed_address();
+    rnd = random_real_range(seed, *(float *)(item_tag + 0x2e0),
+                            *(float *)(item_tag + 0x2e4));
+    *(int16_t *)(item_obj + 0x1a8) = (int16_t)(int)(rnd * 30.0f);
+  }
+}
+
+/* Update an item's angular velocity state (0xf6b80).
+ * Computes the magnitude of the angular velocity vector at +0x3c..+0x44.
+ * If nonzero: sets flag bit 2 (has angular velocity) at +0x1a4, normalizes
+ * the angular velocity into the direction vector at +0x1c8..+0x1d0 (unless
+ * object flag bit 5 at +0x4 is set, indicating externally driven rotation),
+ * then stores sin(magnitude) at +0x1d4 and cos(magnitude) at +0x1d8.
+ * If zero: clears flag bit 2 and sets sin=0, cos=1 (identity rotation). */
+void FUN_000f6b80(int item_handle)
+{
+  char *item_obj;
+  float x, y, z;
+  float mag;
+  float inv_mag;
+
+  item_obj = (char *)object_get_and_verify_type(item_handle, 0x1c);
+  x = *(float *)(item_obj + 0x3c);
+  y = *(float *)(item_obj + 0x40);
+  z = *(float *)(item_obj + 0x44);
+  mag = sqrtf(x * x + y * y + z * z);
+
+  if (mag != 0.0f) {
+    *(uint32_t *)(item_obj + 0x1a4) = *(uint32_t *)(item_obj + 0x1a4) | 4;
+
+    if (!(*(uint8_t *)(item_obj + 0x4) & 0x20)) {
+      inv_mag = 1.0f / mag;
+      *(float *)(item_obj + 0x1c8) = inv_mag * x;
+      *(float *)(item_obj + 0x1cc) = inv_mag * y;
+      *(float *)(item_obj + 0x1d0) = inv_mag * z;
+    }
+
+    *(float *)(item_obj + 0x1d4) = sinf(mag);
+    *(float *)(item_obj + 0x1d8) = cosf(mag);
+  } else {
+    *(uint32_t *)(item_obj + 0x1a4) = *(uint32_t *)(item_obj + 0x1a4) & ~4u;
+    *(float *)(item_obj + 0x1d4) = 0.0f;
+    *(float *)(item_obj + 0x1d8) = 1.0f;
+  }
+}
+
 /* item_set_position (0xf6d60)
  *
  * Apply a velocity/position delta to an item and update its angular velocity.

@@ -3325,11 +3325,13 @@
         },
         {
           "decl": "void FUN_000f6af0(int item_handle);",
-          "addr": "0xf6af0"
+          "addr": "0xf6af0",
+          "ported": true
         },
         {
           "decl": "void FUN_000f6b80(int item_handle@<eax>);",
-          "addr": "0xf6b80"
+          "addr": "0xf6b80",
+          "ported": true
         }
       ],
       "data": [
