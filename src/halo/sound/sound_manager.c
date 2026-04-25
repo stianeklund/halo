@@ -23,6 +23,35 @@ void sound_object_apply_pitch_delta(int object_handle, float pitch)
   *stored_pitch += delta;
 }
 
+/* sound_cache_sound_finished (0x1be090)
+ *
+ * Decrements the software_reference_count on a cache-sound entry when a
+ * sound permutation finishes playing. Takes the permutation tag pointer,
+ * reads the cache handle from offset +0x2c, and looks up the corresponding
+ * cache-sound datum from the sound cache table at 0x4e9368.
+ *
+ * If the debug trace flag at 0x5054ec is set, logs the current reference
+ * count and name before decrementing.
+ *
+ * Asserts that software_reference_count is nonzero before decrementing
+ * (source: c:\halo\SOURCE\cache\xbox_sound_cache.c, line 263). */
+void sound_cache_sound_finished(int permutation_ptr)
+{
+  char *cache_sound;
+
+  cache_sound =
+    (char *)datum_get(*(data_t **)0x4e9368, *(int *)(permutation_ptr + 0x2c));
+
+  if (*(uint8_t *)0x5054ec != 0) {
+    error(2, "--- finish %d %s", *(uint8_t *)(cache_sound + 4),
+          *(char **)(cache_sound + 8));
+  }
+
+  assert_halt(*(uint8_t *)(cache_sound + 4));
+
+  *(uint8_t *)(cache_sound + 4) -= 1;
+}
+
 /* sound_pitch_push_sample (0x1c7b00)
  *
  * Conditionally applies a pitch sample to an object's pitch-track field.
@@ -325,6 +354,115 @@ float sound_update_channel_attenuation(int sound_handle)
          *(float *)(sound_entry + 0x9c);
 }
 
+/* sound_volume_crossfade (0x1cc490)
+ *
+ * Step a volume level toward a target value using a multiplicative rate.
+ * If rate is zero or current already equals target, returns current unchanged.
+ *
+ * When fading down (current > target): computes target * rate and returns
+ * that if it is still below current (making progress), otherwise clamps to
+ * current to avoid overshoot.
+ *
+ * When fading up (current <= target): computes target / rate and returns
+ * that if it is still above current (making progress), otherwise clamps to
+ * current to avoid overshoot. */
+float sound_volume_crossfade(float current, float target, float rate)
+{
+  if (rate == 0.0f || current == target)
+    return current;
+
+  if (current > target) {
+    /* Fading down: multiply target by rate. */
+    float result = target * rate;
+    if (current > result)
+      return result;
+    return current;
+  } else {
+    /* Fading up: divide target by rate. */
+    float result = target / rate;
+    if (current <= result)
+      return result;
+    return current;
+  }
+}
+
+/* sound_start_fade (0x1cc8f0)
+ *
+ * Begin a timed linear or crossfade between two sound entries. Mode must be
+ * either _sound_fade_mode_linear (0) or _sound_fade_mode_crossfade (1).
+ *
+ * Computes a fade window [start_tick, end_tick] based on the global sound
+ * timestamp at 0x4eaf4c. start_tick is timestamp-1, and end_tick is derived
+ * from seconds*1000 + start_tick, clamped to at least the current timestamp.
+ *
+ * For fade_in_sound_index: sets target volume to 1.0 and computes current
+ * attenuation; if already at the endpoint, sets current volume to 0.
+ * For fade_out_sound_index: sets target volume to 0.0 and computes current
+ * attenuation.
+ *
+ * Sound entry fields written:
+ *   +0x92 (short) = fade mode
+ *   +0x9c (float) = current fade volume
+ *   +0xa0 (float) = target fade volume
+ *   +0xa4 (int)   = fade start tick
+ *   +0xa8 (int)   = fade end tick */
+void sound_start_fade(short mode, float seconds, int fade_in_sound_index,
+                      int fade_out_sound_index)
+{
+  int sound_timestamp;
+  int start_tick;
+  int end_tick;
+  char *sound_entry;
+
+  if (mode != 0 && mode != 1) {
+    display_assert(
+      "mode==_sound_fade_mode_linear || mode==_sound_fade_mode_crossfade",
+      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x43f, 1);
+    system_exit(-1);
+  }
+  if (seconds < *(float *)0x2533c0) {
+    display_assert("seconds>=0.f", "c:\\halo\\SOURCE\\sound\\sound_manager.c",
+                   0x440, 1);
+    system_exit(-1);
+  }
+  if (fade_in_sound_index == -1 && fade_out_sound_index == -1) {
+    display_assert("fade_in_sound_index!=NONE || fade_out_sound_index!=NONE",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x441, 1);
+    system_exit(-1);
+  }
+
+  sound_timestamp = *(int *)0x4eaf4c;
+  start_tick = sound_timestamp - 1;
+  end_tick = (int)(seconds * *(float *)0x254cb8 + (float)start_tick);
+  if (end_tick <= sound_timestamp) {
+    end_tick = sound_timestamp;
+  }
+
+  if (fade_in_sound_index != -1) {
+    sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, fade_in_sound_index);
+    if (*(int *)(sound_entry + 0xa4) == *(int *)(sound_entry + 0xa8)) {
+      *(float *)(sound_entry + 0x9c) = 0.0f;
+    } else {
+      *(float *)(sound_entry + 0x9c) =
+        sound_update_channel_attenuation(fade_in_sound_index);
+    }
+    *(float *)(sound_entry + 0xa0) = 1.0f;
+    *(short *)(sound_entry + 0x92) = mode;
+    *(int *)(sound_entry + 0xa4) = start_tick;
+    *(int *)(sound_entry + 0xa8) = end_tick;
+  }
+
+  if (fade_out_sound_index != -1) {
+    sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, fade_out_sound_index);
+    *(float *)(sound_entry + 0x9c) =
+      sound_update_channel_attenuation(fade_out_sound_index);
+    *(float *)(sound_entry + 0xa0) = 0.0f;
+    *(short *)(sound_entry + 0x92) = mode;
+    *(int *)(sound_entry + 0xa4) = start_tick;
+    *(int *)(sound_entry + 0xa8) = end_tick;
+  }
+}
+
 /* sound_stop_channel (0x1cca60)
  *
  * Stop and release the channel currently holding a sound, then delete the
@@ -432,6 +570,149 @@ extern float FUN_001ccbe0(int channel_index, void *source);
 /* Compute distance for random scale checks. */
 extern float FUN_001ccca0(int channel_index, void *source);
 
+/* sound_update_channel (0x1ccf80)
+ *
+ * Apply volume/pan/pitch updates for a non-music sound channel.
+ *
+ * Resolves the sound datum and tag, then computes a composite volume
+ * from the tag's gain range (tag+0x40..0x58), the sound_entry's
+ * interpolation fraction (+0x18), per-entry gain (+0x1c), class gain
+ * (sound_class_get_gain), and the incoming attenuation scalar.
+ * Non-ambient classes (not 0x2c/0x2e/0x2f) additionally scale by
+ * the global volume at 0x4eb0b0.
+ *
+ * If the sound's playing channel index (+0x8c) is NONE (-1), this is a
+ * new channel: build a full properties struct (pitch, max_distance,
+ * pan, volume, direction, class flags), assert the permutation is
+ * cache-loaded, then push properties and start the new permutation via
+ * sound_channel_set_properties and sound_channel_start_new.
+ *
+ * If the channel is already playing, compute volume from the existing
+ * permutation's gain and push it directly to the sound driver via
+ * vtable+0x34 (volume-only update, flag=1).
+ *
+ * Finally, call vtable+0x1c to commit the channel update. */
+void sound_update_channel(int channel_index, float attenuation)
+{
+  short si = (short)channel_index;
+  int *channel_ptr;
+  char *sound_entry;
+  char *tag_ptr;
+  short class_index;
+  float class_gain;
+  float fraction;
+  float volume;
+  int pitch_range;
+  int permutation;
+  void *class_def;
+
+  /* Properties struct: 0x20 bytes (8 floats).
+   *   +0x00 float min_distance (pitch)
+   *   +0x04 float max_distance
+   *   +0x08 float pan
+   *   +0x0C float gain/volume
+   *   +0x10 float direction[3] (from tag+0x1c..0x24)
+   *   +0x1C int   class_def_flags (class_def+0x10) */
+  float properties[8];
+
+  /* Validate channel_index. */
+  if (si < 0 || si >= *(short *)0x4eb0b4) {
+    display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+    system_exit(-1);
+  }
+
+  /* Resolve channel, sound entry, and tag. */
+  channel_ptr = (int *)(0x4fc3a0 + (int)si * 0x18);
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, *channel_ptr);
+  tag_ptr = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+
+  /* Cache interpolation fraction from sound_entry+0x18. */
+  fraction = *(float *)(sound_entry + 0x18);
+
+  /* Get class gain. */
+  class_index = *(short *)(tag_ptr + 0x4);
+  class_gain = sound_class_get_gain((int)class_index);
+
+  /* Non-ambient classes scale by global volume. */
+  if (class_index != 0x2c && class_index != 0x2e && class_index != 0x2f) {
+    class_gain = class_gain * *(float *)0x4eb0b0;
+  }
+
+  /* Compute composite volume:
+   * lerp(tag+0x40, tag+0x58, fraction) * sound_entry+0x1c * class_gain *
+   * attenuation */
+  volume =
+    (*(float *)(tag_ptr + 0x58) - *(float *)(tag_ptr + 0x40)) * fraction +
+    *(float *)(tag_ptr + 0x40);
+  volume = volume * *(float *)(sound_entry + 0x1c) * class_gain * attenuation;
+
+  if (*(short *)(sound_entry + 0x8c) == -1) {
+    /* New channel: build full properties and start permutation. */
+    pitch_range = (int)tag_block_get_element(
+      tag_ptr + 0x98, (int)*(short *)(sound_entry + 0x8e), 0x48);
+    permutation = (int)tag_block_get_element(
+      (char *)pitch_range + 0x3c, (int)*(short *)(sound_entry + 0x90), 0x7c);
+
+    /* Volume: permutation+0x24 * tag+0x28 * composite volume. */
+    properties[3] =
+      *(float *)(permutation + 0x24) * *(float *)(tag_ptr + 0x28) * volume;
+
+    /* Pan: sound_entry+0x88 * pitch_range+0x30. */
+    properties[2] =
+      *(float *)(sound_entry + 0x88) * *(float *)(pitch_range + 0x30);
+
+    /* Pitch: min-distance from sound class. */
+    properties[0] = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
+
+    /* Direction from tag+0x1c..0x24. */
+    *(int *)&properties[4] = *(int *)(tag_ptr + 0x1c);
+    *(int *)&properties[5] = *(int *)(tag_ptr + 0x20);
+    *(int *)&properties[6] = *(int *)(tag_ptr + 0x24);
+
+    /* Max distance: FLT_MAX. */
+    *(int *)&properties[1] = 0x7f7fffff;
+
+    /* Class definition flags. */
+    class_def = sound_class_get_definition(class_index);
+    *(int *)&properties[7] = *(int *)((char *)class_def + 0x10);
+
+    /* Assert permutation is cache-loaded. */
+    if (!sound_cache_request_sound((void *)permutation, 0, 0, 0)) {
+      display_assert("sound_cache_sound_loaded(permutation)",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x79a, 1);
+      system_exit(-1);
+    }
+
+    /* Push properties and start the new permutation.
+     * sound_channel_set_properties: SI=channel_index, EBX=0 (full update).
+     * sound_channel_start_new: DI=channel_index, EBX=permutation. */
+    sound_channel_set_properties(si, 0, properties);
+    sound_channel_start_new(si, permutation);
+
+    /* Record this channel as playing in the sound entry. */
+    *(short *)(sound_entry + 0x8c) = si;
+  } else {
+    /* Existing channel: update volume from current permutation. */
+    properties[3] = *(float *)(*(int *)((char *)channel_ptr + 0x10) + 0x24) *
+                    *(float *)(tag_ptr + 0x28) * volume;
+
+    /* Validate channel_index again (matches original). */
+    if (si < 0 || si >= *(short *)0x4eb0b4) {
+      display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+      system_exit(-1);
+    }
+
+    /* Push volume-only update (flag=1) directly through the sound driver. */
+    (*(void (**)(int, void *, int))(*(int *)0x4eaf48 + 0x34))(channel_index,
+                                                              properties, 1);
+  }
+
+  /* Commit the channel update. */
+  (*(void (**)(int))(*(int *)0x4eaf48 + 0x1c))(channel_index);
+}
+
 /* Allocate a sound channel for a source based on its spatialization mode.
  *
  * source is passed in EAX (register argument); priority is on the stack.
@@ -504,6 +785,299 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
     return -1;
 
   return (short)best_channel;
+}
+
+/* sound_update_music_channel (0x1cdc30)
+ *
+ * Apply volume/pan/pitch updates for a music-class (looping) channel.
+ *
+ * Resolves the sound datum, its tag (snd!), and the parent looping-sound
+ * datum (lsnd).  Computes a composite volume from the tag's gain range
+ * (tag+0x40..0x58), the looping-sound track gain (track+0x4), per-entry
+ * gain (sound_entry+0x1c), class gain (sound_class_get_gain), the tag's
+ * overall gain scalar (tag+0x28), and the incoming attenuation.
+ * Non-ambient classes (not 0x2c/0x2e/0x2f) additionally scale by the
+ * global volume at 0x4eb0b0.
+ *
+ * If the sound's playing channel index (+0x8c) is NONE (-1), this is a
+ * new channel: build properties, assert the permutation is cache-loaded,
+ * then push via sound_channel_set_properties and start_new.
+ *
+ * If already playing, advance the channel queue (sound_channel_update_status),
+ * handle pitch-range crossfading, and manage permutation sequencing for
+ * looped playback (select next permutation, handle linked-permutation
+ * chains, and looping-sound iteration transitions).
+ *
+ * Finally, apply the permutation's gain scalar, push properties, and
+ * commit the channel update via vtable+0x1c. */
+void sound_update_music_channel(int channel_index, float attenuation)
+{
+  short si = (short)channel_index;
+  int *channel_ptr;
+  char *sound_entry;
+  char *tag_ptr;
+  char *looping_sound;
+  int *track_channel_ptr;
+  char *lsnd_tag;
+  char *track_tag;
+  short class_index;
+  float class_gain;
+  float fraction;
+  float local_c; /* gain from tag gain range * sound_entry+0x88 */
+  int pitch_range;
+  int permutation;
+
+  /* Properties struct: 0x20 bytes (8 floats).
+   *   +0x00 float min_distance (pitch)
+   *   +0x04 float max_distance
+   *   +0x08 float pan (gain)
+   *   +0x0C float volume
+   *   +0x10 float direction[3] (from tag+0x1c..0x24)
+   *   +0x1C int   class_def_flags (class_def+0x10) */
+  float properties[8];
+
+  /* Validate channel_index. */
+  if (si < 0 || si >= *(short *)0x4eb0b4) {
+    display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+    system_exit(-1);
+  }
+
+  /* Resolve channel, sound entry, tag, and looping-sound. */
+  channel_ptr = (int *)(0x4fc3a0 + (int)si * 0x18);
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, *channel_ptr);
+  tag_ptr = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+  looping_sound =
+    (char *)datum_get(*(data_t **)0x4fdba0, *(int *)(sound_entry + 0xc));
+  track_channel_ptr =
+    (int *)(looping_sound + 0xd4 + (int)*(short *)(sound_entry + 0x94) * 4);
+  lsnd_tag = (char *)tag_get(0x6c736e64, *(int *)(looping_sound + 0x4));
+  track_tag = (char *)tag_block_get_element(
+    lsnd_tag + 0x3c, (int)*(short *)(sound_entry + 0x94), 0xa0);
+
+  /* Cache interpolation fraction from sound_entry+0x18. */
+  fraction = *(float *)(sound_entry + 0x18);
+
+  /* Compute local_c: lerp(tag+0x44, tag+0x5c, fraction) * sound_entry+0x88. */
+  local_c =
+    ((*(float *)(tag_ptr + 0x5c) - *(float *)(tag_ptr + 0x44)) * fraction +
+     *(float *)(tag_ptr + 0x44)) *
+    *(float *)(sound_entry + 0x88);
+
+  /* Assert this is not an impulse sound. */
+  if (*(short *)(sound_entry + 2) == 0) {
+    display_assert("sound->type!=_sound_impulse",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x9c4, 1);
+    system_exit(-1);
+  }
+
+  /* Pitch: min-distance from sound class. */
+  properties[0] = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
+
+  /* Max distance: FLT_MAX. */
+  *(int *)&properties[1] = 0x7f7fffff;
+
+  /* Direction from tag+0x1c..0x24. */
+  *(int *)&properties[4] = *(int *)(tag_ptr + 0x1c);
+  *(int *)&properties[5] = *(int *)(tag_ptr + 0x20);
+  *(int *)&properties[6] = *(int *)(tag_ptr + 0x24);
+
+  /* Class definition flags. */
+  {
+    void *class_def =
+      sound_class_get_definition(*(unsigned short *)(tag_ptr + 0x4));
+    *(int *)&properties[7] = *(int *)((char *)class_def + 0x10);
+  }
+
+  /* Get class gain. */
+  class_index = *(short *)(tag_ptr + 0x4);
+  class_gain = sound_class_get_gain((int)(unsigned short)class_index);
+
+  /* Non-ambient classes scale by global volume. */
+  if (class_index != 0x2c && class_index != 0x2e && class_index != 0x2f) {
+    class_gain = class_gain * *(float *)0x4eb0b0;
+  }
+
+  /* Compute composite volume:
+   * lerp(tag+0x40, tag+0x58, fraction) * track+0x4 * tag+0x28 *
+   * sound_entry+0x1c * class_gain * attenuation */
+  properties[3] =
+    (*(float *)(tag_ptr + 0x58) - *(float *)(tag_ptr + 0x40)) * fraction +
+    *(float *)(tag_ptr + 0x40);
+  properties[3] = properties[3] * *(float *)(track_tag + 0x4) *
+                  *(float *)(tag_ptr + 0x28) * *(float *)(sound_entry + 0x1c) *
+                  class_gain * attenuation;
+
+  if (*(short *)(sound_entry + 0x8c) == -1) {
+    /* New channel: build full properties and start permutation. */
+    pitch_range = (int)tag_block_get_element(
+      tag_ptr + 0x98, (int)*(short *)(sound_entry + 0x8e), 0x48);
+    permutation = (int)tag_block_get_element(
+      (char *)pitch_range + 0x3c, (int)*(short *)(sound_entry + 0x90), 0x7c);
+
+    /* Volume: permutation+0x24 * existing volume. */
+    properties[3] = properties[3] * *(float *)(permutation + 0x24);
+
+    /* Pan: local_c * pitch_range+0x30. */
+    properties[2] = local_c * *(float *)(pitch_range + 0x30);
+
+    /* Assert permutation is cache-loaded. */
+    if (!sound_cache_request_sound((void *)permutation, 0, 0, 0)) {
+      display_assert("sound_cache_sound_loaded(permutation)",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x9da, 1);
+      system_exit(-1);
+    }
+
+    /* Push properties and start the new permutation. */
+    sound_channel_set_properties(si, 0, properties);
+    sound_channel_start_new(si, permutation);
+
+    /* Record this channel as playing in the sound entry. */
+    *(short *)(sound_entry + 0x8c) = si;
+
+    /* Commit the channel update. */
+    (*(void (**)(int))(*(int *)0x4eaf48 + 0x1c))(channel_index);
+    return;
+  }
+
+  /* Existing channel: resolve pitch range block. */
+  pitch_range = (int)tag_block_get_element(
+    tag_ptr + 0x98, (int)*(short *)(sound_entry + 0x8e), 0x48);
+
+  /* Validate the existing playing channel index. */
+  {
+    short playing_channel = *(short *)(sound_entry + 0x8c);
+    if (playing_channel < 0 || playing_channel >= *(short *)0x4eb0b4) {
+      display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+      system_exit(-1);
+    }
+  }
+
+  /* Volume crossfade toward target. */
+  {
+    short playing_channel = *(short *)(sound_entry + 0x8c);
+    int playing_idx = (int)playing_channel;
+    float channel_rate = *(float *)(0x4fc3ac + playing_idx * 0x18);
+    local_c = sound_volume_crossfade(
+      local_c, channel_rate * *(float *)(pitch_range + 0x20),
+      *(float *)(tag_ptr + 0x2c));
+  }
+
+  /* Pan: local_c * pitch_range+0x30. */
+  properties[2] = local_c * *(float *)(pitch_range + 0x30);
+
+  /* Pitch-range crossfade: if the sound is in looping state and the
+   * fade endpoints differ (or target attenuation not reached), try
+   * selecting a new pitch range. If it changed, allocate a new looping
+   * entry and start a crossfade. */
+  if (*(short *)(sound_entry + 0x2) == 2 &&
+      (*(int *)(sound_entry + 0xa4) == *(int *)(sound_entry + 0xa8) ||
+       *(float *)(sound_entry + 0xa0) != *(float *)0x2533c0)) {
+    short new_pitch_range = sound_select_pitch_range(
+      tag_ptr, local_c, (int)(unsigned short)*(short *)(sound_entry + 0x8e));
+    if (new_pitch_range != *(short *)(sound_entry + 0x8e)) {
+      if (*channel_ptr == *track_channel_ptr && *(char *)0x4eaf43 == '\0') {
+        int new_entry = sound_create_looping_entry(
+          *(int *)(sound_entry + 0x8), *(int *)(sound_entry + 0xc),
+          (int)(unsigned short)*(short *)(sound_entry + 0x94), 2);
+        if (new_entry != -1) {
+          sound_start_fade(1, *(float *)0x2c1278, new_entry, *channel_ptr);
+          *track_channel_ptr = new_entry;
+        }
+      }
+    }
+  }
+
+  /* Check if the sound should stop or continue. */
+  if (*(short *)(sound_entry + 0x2) == 4)
+    goto final_update;
+
+  if (*(short *)(sound_entry + 0x2) == 1 && (*(uint8_t *)track_tag & 1) != 0)
+    goto final_update;
+
+  {
+    short status = sound_channel_update_status(*(short *)(sound_entry + 0x8c));
+    if (status == 2 && (*(uint8_t *)(sound_entry + 0x4) & 8) == 0) {
+      /* Channel finished playing; check if permutation/next-sound chain
+       * means we should skip to final update rather than queue more. */
+      if (*(short *)(channel_ptr[4] + 0x2a) != -1)
+        goto final_update;
+      if (*(int *)(sound_entry + 0x98) == -1)
+        goto final_update;
+    }
+
+    /* Permutation sequencing. */
+    if (*(int *)(sound_entry + 0x98) == -1 ||
+        (channel_ptr[4] != 0 && *(short *)(channel_ptr[4] + 0x2a) != -1)) {
+      /* Next permutation ready or queued. */
+      if ((*(uint8_t *)(sound_entry + 0x4) & 8) == 0) {
+        short next_perm = sound_select_permutation(
+          tag_ptr, *(unsigned short *)(sound_entry + 0x8e),
+          *(unsigned short *)(sound_entry + 0x90));
+        if (next_perm == -1) {
+          if ((*(uint8_t *)tag_ptr & 2) == 0) {
+            display_assert("TEST_FLAG(definition->flags, "
+                           "_sound_definition_linked_permutations_bit)",
+                           "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0xa1c,
+                           1);
+            system_exit(-1);
+          }
+          if ((*(uint8_t *)lsnd_tag & 2) == 0) {
+            next_perm = sound_select_permutation(
+              tag_ptr, *(unsigned short *)(sound_entry + 0x8e), -1);
+            if (next_perm != -1)
+              goto set_next_perm;
+          } else {
+            *(short *)(sound_entry + 0x2) = 4;
+            *(uint8_t *)(looping_sound + 0x4e) = 1;
+          }
+        } else {
+        set_next_perm:
+          *(uint8_t *)(sound_entry + 0x4) |= 8;
+          *(short *)(sound_entry + 0x90) = next_perm;
+        }
+      }
+    } else {
+      /* No next permutation and no queued: start next looping iteration. */
+      sound_start_next_looping_permutation(*channel_ptr);
+      tag_ptr = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+      pitch_range = (int)tag_block_get_element(
+        tag_ptr + 0x98, (int)*(short *)(sound_entry + 0x8e), 0x48);
+    }
+
+    /* Get the current permutation and try to cache-load it. */
+    permutation = (int)tag_block_get_element(
+      (char *)pitch_range + 0x3c, (int)*(short *)(sound_entry + 0x90), 0x7c);
+    if (*(short *)(sound_entry + 0x2) != 4 &&
+        sound_cache_request_sound((void *)permutation, 0, 1, 1)) {
+      *(uint8_t *)(sound_entry + 0x4) &= ~8;
+      sound_channel_start_new((short)channel_index, permutation);
+
+      /* If both the next-sound field (+0x98) and the permutation's
+       * next-permutation link (+0x2a) are NONE, the chain has ended:
+       * advance type 1->2 (start looping) or 3->4 (stop). */
+      if (*(int *)(sound_entry + 0x98) == -1 &&
+          *(short *)(permutation + 0x2a) == -1) {
+        if (*(short *)(sound_entry + 0x2) == 1) {
+          *(short *)(sound_entry + 0x2) = 2;
+        } else if (*(short *)(sound_entry + 0x2) == 3) {
+          *(short *)(sound_entry + 0x2) = 4;
+        }
+      }
+    }
+  }
+
+final_update:
+  /* Final permutation gain and property push. */
+  permutation = (int)tag_block_get_element(
+    (char *)pitch_range + 0x3c, (int)*(short *)(sound_entry + 0x90), 0x7c);
+  properties[3] = properties[3] * *(float *)(permutation + 0x24);
+
+  sound_channel_set_properties(si, 0, properties);
+
+  /* Commit the channel update. */
+  (*(void (**)(int))(*(int *)0x4eaf48 + 0x1c))(channel_index);
 }
 
 /* sound_start (0x1ce180)
@@ -740,469 +1314,6 @@ done:
   return result;
 }
 
-/* sound_volume_crossfade (0x1cc490)
- *
- * Step a volume level toward a target value using a multiplicative rate.
- * If rate is zero or current already equals target, returns current unchanged.
- *
- * When fading down (current > target): computes target * rate and returns
- * that if it is still below current (making progress), otherwise clamps to
- * current to avoid overshoot.
- *
- * When fading up (current <= target): computes target / rate and returns
- * that if it is still above current (making progress), otherwise clamps to
- * current to avoid overshoot. */
-float sound_volume_crossfade(float current, float target, float rate)
-{
-  if (rate == 0.0f || current == target)
-    return current;
-
-  if (current > target) {
-    /* Fading down: multiply target by rate. */
-    float result = target * rate;
-    if (current > result)
-      return result;
-    return current;
-  } else {
-    /* Fading up: divide target by rate. */
-    float result = target / rate;
-    if (current <= result)
-      return result;
-    return current;
-  }
-}
-
-/* sound_update_channel (0x1ccf80)
- *
- * Apply volume/pan/pitch updates for a non-music sound channel.
- *
- * Resolves the sound datum and tag, then computes a composite volume
- * from the tag's gain range (tag+0x40..0x58), the sound_entry's
- * interpolation fraction (+0x18), per-entry gain (+0x1c), class gain
- * (sound_class_get_gain), and the incoming attenuation scalar.
- * Non-ambient classes (not 0x2c/0x2e/0x2f) additionally scale by
- * the global volume at 0x4eb0b0.
- *
- * If the sound's playing channel index (+0x8c) is NONE (-1), this is a
- * new channel: build a full properties struct (pitch, max_distance,
- * pan, volume, direction, class flags), assert the permutation is
- * cache-loaded, then push properties and start the new permutation via
- * sound_channel_set_properties and sound_channel_start_new.
- *
- * If the channel is already playing, compute volume from the existing
- * permutation's gain and push it directly to the sound driver via
- * vtable+0x34 (volume-only update, flag=1).
- *
- * Finally, call vtable+0x1c to commit the channel update. */
-void sound_update_channel(int channel_index, float attenuation)
-{
-  short si = (short)channel_index;
-  int *channel_ptr;
-  char *sound_entry;
-  char *tag_ptr;
-  short class_index;
-  float class_gain;
-  float fraction;
-  float volume;
-  int pitch_range;
-  int permutation;
-  void *class_def;
-
-  /* Properties struct: 0x20 bytes (8 floats).
-   *   +0x00 float min_distance (pitch)
-   *   +0x04 float max_distance
-   *   +0x08 float pan
-   *   +0x0C float gain/volume
-   *   +0x10 float direction[3] (from tag+0x1c..0x24)
-   *   +0x1C int   class_def_flags (class_def+0x10) */
-  float properties[8];
-
-  /* Validate channel_index. */
-  if (si < 0 || si >= *(short *)0x4eb0b4) {
-    display_assert("index>=0 && index<sound_manager_globals.channel_count",
-                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
-    system_exit(-1);
-  }
-
-  /* Resolve channel, sound entry, and tag. */
-  channel_ptr = (int *)(0x4fc3a0 + (int)si * 0x18);
-  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, *channel_ptr);
-  tag_ptr = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
-
-  /* Cache interpolation fraction from sound_entry+0x18. */
-  fraction = *(float *)(sound_entry + 0x18);
-
-  /* Get class gain. */
-  class_index = *(short *)(tag_ptr + 0x4);
-  class_gain = sound_class_get_gain((int)class_index);
-
-  /* Non-ambient classes scale by global volume. */
-  if (class_index != 0x2c && class_index != 0x2e && class_index != 0x2f) {
-    class_gain = class_gain * *(float *)0x4eb0b0;
-  }
-
-  /* Compute composite volume:
-   * lerp(tag+0x40, tag+0x58, fraction) * sound_entry+0x1c * class_gain * attenuation */
-  volume = (*(float *)(tag_ptr + 0x58) - *(float *)(tag_ptr + 0x40)) * fraction
-           + *(float *)(tag_ptr + 0x40);
-  volume = volume * *(float *)(sound_entry + 0x1c) * class_gain * attenuation;
-
-  if (*(short *)(sound_entry + 0x8c) == -1) {
-    /* New channel: build full properties and start permutation. */
-    pitch_range = (int)tag_block_get_element(tag_ptr + 0x98,
-                     (int)*(short *)(sound_entry + 0x8e), 0x48);
-    permutation = (int)tag_block_get_element((char *)pitch_range + 0x3c,
-                     (int)*(short *)(sound_entry + 0x90), 0x7c);
-
-    /* Volume: permutation+0x24 * tag+0x28 * composite volume. */
-    properties[3] = *(float *)(permutation + 0x24) * *(float *)(tag_ptr + 0x28) * volume;
-
-    /* Pan: sound_entry+0x88 * pitch_range+0x30. */
-    properties[2] = *(float *)(sound_entry + 0x88) * *(float *)(pitch_range + 0x30);
-
-    /* Pitch: min-distance from sound class. */
-    properties[0] = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
-
-    /* Direction from tag+0x1c..0x24. */
-    *(int *)&properties[4] = *(int *)(tag_ptr + 0x1c);
-    *(int *)&properties[5] = *(int *)(tag_ptr + 0x20);
-    *(int *)&properties[6] = *(int *)(tag_ptr + 0x24);
-
-    /* Max distance: FLT_MAX. */
-    *(int *)&properties[1] = 0x7f7fffff;
-
-    /* Class definition flags. */
-    class_def = sound_class_get_definition(class_index);
-    *(int *)&properties[7] = *(int *)((char *)class_def + 0x10);
-
-    /* Assert permutation is cache-loaded. */
-    if (!sound_cache_request_sound((void *)permutation, 0, 0, 0)) {
-      display_assert("sound_cache_sound_loaded(permutation)",
-                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x79a, 1);
-      system_exit(-1);
-    }
-
-    /* Push properties and start the new permutation.
-     * sound_channel_set_properties: SI=channel_index, EBX=0 (full update).
-     * sound_channel_start_new: DI=channel_index, EBX=permutation. */
-    sound_channel_set_properties(si, 0, properties);
-    sound_channel_start_new(si, permutation);
-
-    /* Record this channel as playing in the sound entry. */
-    *(short *)(sound_entry + 0x8c) = si;
-  } else {
-    /* Existing channel: update volume from current permutation. */
-    properties[3] = *(float *)(*(int *)((char *)channel_ptr + 0x10) + 0x24)
-                    * *(float *)(tag_ptr + 0x28) * volume;
-
-    /* Validate channel_index again (matches original). */
-    if (si < 0 || si >= *(short *)0x4eb0b4) {
-      display_assert("index>=0 && index<sound_manager_globals.channel_count",
-                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
-      system_exit(-1);
-    }
-
-    /* Push volume-only update (flag=1) directly through the sound driver. */
-    (*(void (**)(int, void *, int))(*(int *)0x4eaf48 + 0x34))(
-        channel_index, properties, 1);
-  }
-
-  /* Commit the channel update. */
-  (*(void (**)(int))(*(int *)0x4eaf48 + 0x1c))(channel_index);
-}
-
-/* sound_update_music_channel (0x1cdc30)
- *
- * Apply volume/pan/pitch updates for a music-class (looping) channel.
- *
- * Resolves the sound datum, its tag (snd!), and the parent looping-sound
- * datum (lsnd).  Computes a composite volume from the tag's gain range
- * (tag+0x40..0x58), the looping-sound track gain (track+0x4), per-entry
- * gain (sound_entry+0x1c), class gain (sound_class_get_gain), the tag's
- * overall gain scalar (tag+0x28), and the incoming attenuation.
- * Non-ambient classes (not 0x2c/0x2e/0x2f) additionally scale by the
- * global volume at 0x4eb0b0.
- *
- * If the sound's playing channel index (+0x8c) is NONE (-1), this is a
- * new channel: build properties, assert the permutation is cache-loaded,
- * then push via sound_channel_set_properties and start_new.
- *
- * If already playing, advance the channel queue (sound_channel_update_status),
- * handle pitch-range crossfading, and manage permutation sequencing for
- * looped playback (select next permutation, handle linked-permutation
- * chains, and looping-sound iteration transitions).
- *
- * Finally, apply the permutation's gain scalar, push properties, and
- * commit the channel update via vtable+0x1c. */
-void sound_update_music_channel(int channel_index, float attenuation)
-{
-  short si = (short)channel_index;
-  int *channel_ptr;
-  char *sound_entry;
-  char *tag_ptr;
-  char *looping_sound;
-  int *track_channel_ptr;
-  char *lsnd_tag;
-  char *track_tag;
-  short class_index;
-  float class_gain;
-  float fraction;
-  float local_c; /* gain from tag gain range * sound_entry+0x88 */
-  int pitch_range;
-  int permutation;
-
-  /* Properties struct: 0x20 bytes (8 floats).
-   *   +0x00 float min_distance (pitch)
-   *   +0x04 float max_distance
-   *   +0x08 float pan (gain)
-   *   +0x0C float volume
-   *   +0x10 float direction[3] (from tag+0x1c..0x24)
-   *   +0x1C int   class_def_flags (class_def+0x10) */
-  float properties[8];
-
-  /* Validate channel_index. */
-  if (si < 0 || si >= *(short *)0x4eb0b4) {
-    display_assert("index>=0 && index<sound_manager_globals.channel_count",
-                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
-    system_exit(-1);
-  }
-
-  /* Resolve channel, sound entry, tag, and looping-sound. */
-  channel_ptr = (int *)(0x4fc3a0 + (int)si * 0x18);
-  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, *channel_ptr);
-  tag_ptr = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
-  looping_sound = (char *)datum_get(*(data_t **)0x4fdba0,
-                                    *(int *)(sound_entry + 0xc));
-  track_channel_ptr = (int *)(looping_sound + 0xd4 +
-                              (int)*(short *)(sound_entry + 0x94) * 4);
-  lsnd_tag = (char *)tag_get(0x6c736e64, *(int *)(looping_sound + 0x4));
-  track_tag = (char *)tag_block_get_element(lsnd_tag + 0x3c,
-                 (int)*(short *)(sound_entry + 0x94), 0xa0);
-
-  /* Cache interpolation fraction from sound_entry+0x18. */
-  fraction = *(float *)(sound_entry + 0x18);
-
-  /* Compute local_c: lerp(tag+0x44, tag+0x5c, fraction) * sound_entry+0x88. */
-  local_c = ((*(float *)(tag_ptr + 0x5c) - *(float *)(tag_ptr + 0x44)) * fraction
-             + *(float *)(tag_ptr + 0x44)) * *(float *)(sound_entry + 0x88);
-
-  /* Assert this is not an impulse sound. */
-  if (*(short *)(sound_entry + 2) == 0) {
-    display_assert("sound->type!=_sound_impulse",
-                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x9c4, 1);
-    system_exit(-1);
-  }
-
-  /* Pitch: min-distance from sound class. */
-  properties[0] = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
-
-  /* Max distance: FLT_MAX. */
-  *(int *)&properties[1] = 0x7f7fffff;
-
-  /* Direction from tag+0x1c..0x24. */
-  *(int *)&properties[4] = *(int *)(tag_ptr + 0x1c);
-  *(int *)&properties[5] = *(int *)(tag_ptr + 0x20);
-  *(int *)&properties[6] = *(int *)(tag_ptr + 0x24);
-
-  /* Class definition flags. */
-  {
-    void *class_def = sound_class_get_definition(*(unsigned short *)(tag_ptr + 0x4));
-    *(int *)&properties[7] = *(int *)((char *)class_def + 0x10);
-  }
-
-  /* Get class gain. */
-  class_index = *(short *)(tag_ptr + 0x4);
-  class_gain = sound_class_get_gain((int)(unsigned short)class_index);
-
-  /* Non-ambient classes scale by global volume. */
-  if (class_index != 0x2c && class_index != 0x2e && class_index != 0x2f) {
-    class_gain = class_gain * *(float *)0x4eb0b0;
-  }
-
-  /* Compute composite volume:
-   * lerp(tag+0x40, tag+0x58, fraction) * track+0x4 * tag+0x28 *
-   * sound_entry+0x1c * class_gain * attenuation */
-  properties[3] = (*(float *)(tag_ptr + 0x58) - *(float *)(tag_ptr + 0x40)) * fraction
-                  + *(float *)(tag_ptr + 0x40);
-  properties[3] = properties[3] * *(float *)(track_tag + 0x4)
-                  * *(float *)(tag_ptr + 0x28)
-                  * *(float *)(sound_entry + 0x1c)
-                  * class_gain * attenuation;
-
-  if (*(short *)(sound_entry + 0x8c) == -1) {
-    /* New channel: build full properties and start permutation. */
-    pitch_range = (int)tag_block_get_element(tag_ptr + 0x98,
-                     (int)*(short *)(sound_entry + 0x8e), 0x48);
-    permutation = (int)tag_block_get_element((char *)pitch_range + 0x3c,
-                     (int)*(short *)(sound_entry + 0x90), 0x7c);
-
-    /* Volume: permutation+0x24 * existing volume. */
-    properties[3] = properties[3] * *(float *)(permutation + 0x24);
-
-    /* Pan: local_c * pitch_range+0x30. */
-    properties[2] = local_c * *(float *)(pitch_range + 0x30);
-
-    /* Assert permutation is cache-loaded. */
-    if (!sound_cache_request_sound((void *)permutation, 0, 0, 0)) {
-      display_assert("sound_cache_sound_loaded(permutation)",
-                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x9da, 1);
-      system_exit(-1);
-    }
-
-    /* Push properties and start the new permutation. */
-    sound_channel_set_properties(si, 0, properties);
-    sound_channel_start_new(si, permutation);
-
-    /* Record this channel as playing in the sound entry. */
-    *(short *)(sound_entry + 0x8c) = si;
-
-    /* Commit the channel update. */
-    (*(void (**)(int))(*(int *)0x4eaf48 + 0x1c))(channel_index);
-    return;
-  }
-
-  /* Existing channel: resolve pitch range block. */
-  pitch_range = (int)tag_block_get_element(tag_ptr + 0x98,
-                   (int)*(short *)(sound_entry + 0x8e), 0x48);
-
-  /* Validate the existing playing channel index. */
-  {
-    short playing_channel = *(short *)(sound_entry + 0x8c);
-    if (playing_channel < 0 || playing_channel >= *(short *)0x4eb0b4) {
-      display_assert("index>=0 && index<sound_manager_globals.channel_count",
-                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
-      system_exit(-1);
-    }
-  }
-
-  /* Volume crossfade toward target. */
-  {
-    short playing_channel = *(short *)(sound_entry + 0x8c);
-    int playing_idx = (int)playing_channel;
-    float channel_rate = *(float *)(0x4fc3ac + playing_idx * 0x18);
-    local_c = sound_volume_crossfade(local_c,
-                 channel_rate * *(float *)(pitch_range + 0x20),
-                 *(float *)(tag_ptr + 0x2c));
-  }
-
-  /* Pan: local_c * pitch_range+0x30. */
-  properties[2] = local_c * *(float *)(pitch_range + 0x30);
-
-  /* Pitch-range crossfade: if the sound is in looping state and the
-   * fade endpoints differ (or target attenuation not reached), try
-   * selecting a new pitch range. If it changed, allocate a new looping
-   * entry and start a crossfade. */
-  if (*(short *)(sound_entry + 0x2) == 2 &&
-      (*(int *)(sound_entry + 0xa4) == *(int *)(sound_entry + 0xa8) ||
-       *(float *)(sound_entry + 0xa0) != *(float *)0x2533c0)) {
-    short new_pitch_range = sound_select_pitch_range(
-        tag_ptr, local_c, (int)(unsigned short)*(short *)(sound_entry + 0x8e));
-    if (new_pitch_range != *(short *)(sound_entry + 0x8e)) {
-      if (*channel_ptr == *track_channel_ptr &&
-          *(char *)0x4eaf43 == '\0') {
-        int new_entry = sound_create_looping_entry(
-            *(int *)(sound_entry + 0x8),
-            *(int *)(sound_entry + 0xc),
-            (int)(unsigned short)*(short *)(sound_entry + 0x94), 2);
-        if (new_entry != -1) {
-          sound_start_fade(1, *(float *)0x2c1278, new_entry, *channel_ptr);
-          *track_channel_ptr = new_entry;
-        }
-      }
-    }
-  }
-
-  /* Check if the sound should stop or continue. */
-  if (*(short *)(sound_entry + 0x2) == 4)
-    goto final_update;
-
-  if (*(short *)(sound_entry + 0x2) == 1 && (*(uint8_t *)track_tag & 1) != 0)
-    goto final_update;
-
-  {
-    short status = sound_channel_update_status(*(short *)(sound_entry + 0x8c));
-    if (status == 2 &&
-        (*(uint8_t *)(sound_entry + 0x4) & 8) == 0) {
-      /* Channel finished playing; check if permutation/next-sound chain
-       * means we should skip to final update rather than queue more. */
-      if (*(short *)(channel_ptr[4] + 0x2a) != -1)
-        goto final_update;
-      if (*(int *)(sound_entry + 0x98) == -1)
-        goto final_update;
-    }
-
-    /* Permutation sequencing. */
-    if (*(int *)(sound_entry + 0x98) == -1 ||
-        (channel_ptr[4] != 0 && *(short *)(channel_ptr[4] + 0x2a) != -1)) {
-      /* Next permutation ready or queued. */
-      if ((*(uint8_t *)(sound_entry + 0x4) & 8) == 0) {
-        short next_perm = sound_select_permutation(
-            tag_ptr, *(unsigned short *)(sound_entry + 0x8e),
-            *(unsigned short *)(sound_entry + 0x90));
-        if (next_perm == -1) {
-          if ((*(uint8_t *)tag_ptr & 2) == 0) {
-            display_assert(
-              "TEST_FLAG(definition->flags, _sound_definition_linked_permutations_bit)",
-              "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0xa1c, 1);
-            system_exit(-1);
-          }
-          if ((*(uint8_t *)lsnd_tag & 2) == 0) {
-            next_perm = sound_select_permutation(
-                tag_ptr, *(unsigned short *)(sound_entry + 0x8e), -1);
-            if (next_perm != -1)
-              goto set_next_perm;
-          } else {
-            *(short *)(sound_entry + 0x2) = 4;
-            *(uint8_t *)(looping_sound + 0x4e) = 1;
-          }
-        } else {
-set_next_perm:
-          *(uint8_t *)(sound_entry + 0x4) |= 8;
-          *(short *)(sound_entry + 0x90) = next_perm;
-        }
-      }
-    } else {
-      /* No next permutation and no queued: start next looping iteration. */
-      sound_start_next_looping_permutation(*channel_ptr);
-      tag_ptr = (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
-      pitch_range = (int)tag_block_get_element(tag_ptr + 0x98,
-                       (int)*(short *)(sound_entry + 0x8e), 0x48);
-    }
-
-    /* Get the current permutation and try to cache-load it. */
-    permutation = (int)tag_block_get_element((char *)pitch_range + 0x3c,
-                     (int)*(short *)(sound_entry + 0x90), 0x7c);
-    if (*(short *)(sound_entry + 0x2) != 4 &&
-        sound_cache_request_sound((void *)permutation, 0, 1, 1)) {
-      *(uint8_t *)(sound_entry + 0x4) &= ~8;
-      sound_channel_start_new((short)channel_index, permutation);
-
-      /* If both the next-sound field (+0x98) and the permutation's
-       * next-permutation link (+0x2a) are NONE, the chain has ended:
-       * advance type 1->2 (start looping) or 3->4 (stop). */
-      if (*(int *)(sound_entry + 0x98) == -1 &&
-          *(short *)(permutation + 0x2a) == -1) {
-        if (*(short *)(sound_entry + 0x2) == 1) {
-          *(short *)(sound_entry + 0x2) = 2;
-        } else if (*(short *)(sound_entry + 0x2) == 3) {
-          *(short *)(sound_entry + 0x2) = 4;
-        }
-      }
-    }
-  }
-
-final_update:
-  /* Final permutation gain and property push. */
-  permutation = (int)tag_block_get_element((char *)pitch_range + 0x3c,
-                   (int)*(short *)(sound_entry + 0x90), 0x7c);
-  properties[3] = properties[3] * *(float *)(permutation + 0x24);
-
-  sound_channel_set_properties(si, 0, properties);
-
-  /* Commit the channel update. */
-  (*(void (**)(int))(*(int *)0x4eaf48 + 0x1c))(channel_index);
-}
-
 /* sound_update_music (0x1ceda0)
  *
  * Per-channel tick for spatialized sound playback. Iterates the global
@@ -1316,9 +1427,8 @@ void sound_update_music(void)
           system_exit(-1);
         }
 
-        real_matrix3x3_transform_point(listener + 4,
-                                       (float *)(sound_entry + 0x20),
-                                       location.position);
+        real_matrix3x3_transform_point(
+          listener + 4, (float *)(sound_entry + 0x20), location.position);
         real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
                                        location.forward);
         real_matrix3x3_transform_vector(
@@ -1361,9 +1471,8 @@ void sound_update_music(void)
                            1);
             system_exit(-1);
           }
-          real_matrix3x3_transform_point(listener + 4,
-                                         (float *)(sound_entry + 0x20),
-                                         location.position);
+          real_matrix3x3_transform_point(
+            listener + 4, (float *)(sound_entry + 0x20), location.position);
         } else if (mode != 2) {
           display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x80a,
                          1);
@@ -1556,34 +1665,4 @@ void sound_render(void)
   /* Profiling: exit "sound_render" section. */
   if (*(uint8_t *)0x449ef1 != 0 && *(uint8_t *)0x32f6f0 != 0)
     profile_exit_private((void *)0x32f6e8);
-}
-
-/* sound_cache_sound_finished (0x1be090)
- *
- * Decrements the software_reference_count on a cache-sound entry when a
- * sound permutation finishes playing. Takes the permutation tag pointer,
- * reads the cache handle from offset +0x2c, and looks up the corresponding
- * cache-sound datum from the sound cache table at 0x4e9368.
- *
- * If the debug trace flag at 0x5054ec is set, logs the current reference
- * count and name before decrementing.
- *
- * Asserts that software_reference_count is nonzero before decrementing
- * (source: c:\halo\SOURCE\cache\xbox_sound_cache.c, line 263). */
-void sound_cache_sound_finished(int permutation_ptr)
-{
-  char *cache_sound;
-
-  cache_sound = (char *)datum_get(*(data_t **)0x4e9368,
-                                  *(int *)(permutation_ptr + 0x2c));
-
-  if (*(uint8_t *)0x5054ec != 0) {
-    error(2, "--- finish %d %s",
-          *(uint8_t *)(cache_sound + 4),
-          *(char **)(cache_sound + 8));
-  }
-
-  assert_halt(*(uint8_t *)(cache_sound + 4));
-
-  *(uint8_t *)(cache_sound + 4) -= 1;
 }
