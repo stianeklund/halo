@@ -5264,7 +5264,18 @@
         {
           "decl": "void sound_stop_channel(int sound_handle@<ebx>);",
           "addr": "0x1cca60",
-          "comment": "Stop and release the channel currently holding a sound."
+          "comment": "Stop and release the channel currently holding a sound.",
+          "ported": true
+        },
+        {
+          "decl": "void sound_channel_stop(short channel_index@<di>);",
+          "addr": "0x1cc140",
+          "comment": "Release cache-sound refs for a channel and stop the hardware via driver vtable+0x20."
+        },
+        {
+          "decl": "void sound_cache_sound_finished(int permutation_ptr);",
+          "addr": "0x1be090",
+          "comment": "Decrement software_reference_count on a cache-sound entry (xbox_sound_cache.c)."
         },
         {
           "decl": "void *sound_listener_get(short listener_index@<si>);",

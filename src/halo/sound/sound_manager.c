@@ -1,3 +1,19 @@
+/* sound_pitch_push_sample (0x1c7b00)
+ *
+ * Conditionally applies a pitch sample to an object's pitch-track field.
+ * Only runs if the object looping sounds table (0x5054e4) is initialized
+ * (byte +0x24 != 0).  Validates the object handle as type 3 (biped|vehicle)
+ * via object_try_and_get_and_verify_type before forwarding to
+ * sound_object_apply_pitch_delta (0x1ac2f0). */
+void sound_pitch_push_sample(int object_handle, float pitch)
+{
+  if (*(uint8_t *)(*(int *)0x5054e4 + 0x24) != 0) {
+    if (object_try_and_get_and_verify_type(object_handle, 3) != 0) {
+      sound_object_apply_pitch_delta(object_handle, pitch);
+    }
+  }
+}
+
 /* Return a pointer to the sound class definition at class_index.
  * The definitions live in a static table at 0x32ed08 with a stride of 0x2c.
  * Originally inlined from sound_classes.h; compiled into sound_manager.obj.
@@ -42,7 +58,8 @@ float sound_class_get_min_distance(int sound_tag_index)
  * and normalizes it to [0.0, 1.0] by dividing by 255.
  * If the permutation has no mouth data (size == 0), logs an error
  * and returns 0.0f. */
-float sound_get_permutation_pitch(int permutation_block_ptr, short permutation_index)
+float sound_get_permutation_pitch(int permutation_block_ptr,
+                                  short permutation_index)
 {
   int mouth_data_size = *(int *)((char *)permutation_block_ptr + 0x54);
   int clamped_index;
@@ -58,7 +75,8 @@ float sound_get_permutation_pitch(int permutation_block_ptr, short permutation_i
     }
 
     {
-      uint8_t *byte_ptr = (uint8_t *)FUN_001c8d90(permutation_block_ptr, clamped_index);
+      uint8_t *byte_ptr =
+        (uint8_t *)FUN_001c8d90(permutation_block_ptr, clamped_index);
       int byte_value = (int)*byte_ptr;
       return (float)byte_value * (1.0f / 255.0f);
     }
@@ -134,14 +152,25 @@ bool sound_can_play(int sound_tag_index /* @<eax> */)
     pitch_range_element =
       tag_block_get_element((char *)sound_tag + 0x98, 0, 0x48);
     if (*(int *)((char *)pitch_range_element + 0x3c) != 0) {
-      class_def = sound_class_get_definition(
-        *(short *)((char *)sound_tag + 4));
+      class_def = sound_class_get_definition(*(short *)((char *)sound_tag + 4));
       if (*(char *)((char *)class_def + 0x28) == '\0') {
         return 1;
       }
     }
   }
   return 0;
+}
+
+/* Return a pointer to the sound listener entry for a local player.
+ * The listeners table lives at 0x4eaf58 with a stride of 0x44.
+ * Asserts that listener_index is in [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS). */
+void *sound_listener_get(short listener_index /* @<si> */)
+{
+  short index = listener_index;
+
+  assert_halt(index >= 0 && index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  return (void *)(0x4eaf58 + (int)index * 0x44);
 }
 
 /* Check whether a sound should be promoted to its promotion sound.
@@ -203,16 +232,171 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
-/* Return a pointer to the sound listener entry for a local player.
- * The listeners table lives at 0x4eaf58 with a stride of 0x44.
- * Asserts that listener_index is in [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS). */
-void *sound_listener_get(short listener_index /* @<si> */)
+/* sound_update_channel_attenuation (0x1cc310)
+ *
+ * Advance the attenuation envelope for a sound datum. Computes the
+ * interpolation parameter t from the transition start/end tick fields
+ * (+0xa4, +0xa8) relative to the global sound timestamp at 0x4eaf4c.
+ *
+ * Three envelope shapes are selected by the short at +0x92:
+ *   0 (linear): t is used directly.
+ *   1 (power):  t is warped through pow(t, 1/2.5) or 1-pow(1-t, 1/2.5)
+ *               depending on whether target > current attenuation.
+ *   default:    assert -- invalid envelope type.
+ *
+ * When t reaches 1.0 the transition start/end fields are cleared.
+ * Returns lerp(current_atten, target_atten, shaped_t).
+ * If no transition is active (start == end), returns 1.0 (fully audible). */
+float sound_update_channel_attenuation(int sound_handle)
 {
-  short index = listener_index;
+  char *sound_entry;
+  int start_tick;
+  int end_tick;
+  float t;
 
-  assert_halt(index>=0 && index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+  start_tick = *(int *)(sound_entry + 0xa4);
+  end_tick = *(int *)(sound_entry + 0xa8);
 
-  return (void *)(0x4eaf58 + (int)index * 0x44);
+  if (start_tick == end_tick) {
+    return 1.0f;
+  }
+
+  /* Compute t = (current_tick - start) / (end - start), clamped to [0, 1]. */
+  t = (float)(*(int *)0x4eaf4c - start_tick) / (float)(end_tick - start_tick);
+  if (t < 0.0f) {
+    t = 0.0f;
+  } else if (t > 1.0f) {
+    t = 1.0f;
+  }
+
+  /* Apply envelope shape based on type at +0x92. */
+  switch (*(short *)(sound_entry + 0x92)) {
+  case 0:
+    /* Linear: use t directly. */
+    break;
+  case 1:
+    /* Power curve: ease-in or ease-out depending on direction. */
+    if (*(float *)(sound_entry + 0xa0) > *(float *)(sound_entry + 0x9c)) {
+      t = (float)pow((double)t, (double)(1.0f / 2.5f));
+    } else {
+      t = (float)(1.0 - pow((double)(1.0f - t), (double)(1.0f / 2.5f)));
+    }
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0xa76, 1);
+    system_exit(-1);
+    break;
+  }
+
+  /* When t reaches 1.0, clear the transition. */
+  if (t == 1.0f) {
+    *(int *)(sound_entry + 0xa8) = 0;
+    *(int *)(sound_entry + 0xa4) = 0;
+  }
+
+  /* Lerp between current and target attenuation. */
+  return (*(float *)(sound_entry + 0xa0) - *(float *)(sound_entry + 0x9c)) * t +
+         *(float *)(sound_entry + 0x9c);
+}
+
+/* sound_stop_channel (0x1cca60)
+ *
+ * Stop and release the channel currently holding a sound, then delete the
+ * sound datum. sound_handle is passed in EBX (register argument).
+ *
+ * If the sound has a playing channel (playing_channel_index != NONE at +0x8c):
+ *   1. Clear the channel's sound_handle to NONE (-1) in the channel table
+ *      at 0x4fc3a0 (stride 0x18).
+ *   2. Call sound_channel_stop (0x1cc140, @<di>) to release cache-sound
+ *      references and stop the hardware channel.
+ *   3. Clear the sound's playing_channel_index to NONE.
+ *
+ * If the sound has no playing channel but has flags bit 1 set (+0x4 & 2):
+ *   Navigate the sound tag's pitch_range -> permutation hierarchy and call
+ *   sound_cache_sound_finished (0x1be090) to decrement the cache refcount.
+ *
+ * If the sound's type (+0x2) is non-zero (looping sound):
+ *   Look up the looping-sound datum via datum_absolute_index_to_index
+ *   on the looping-sounds table (0x4fdba0). If found, decrement
+ *   playing_count (+0x50) and clear the track entry at
+ *   +0xd4 + track_index*4 if it matches sound_handle.
+ *
+ * Clear the sound tag's last-played field (+0x94) if it matches sound_handle.
+ * Assert that the sound's playing_channel_index is NONE after processing.
+ * Finally, delete the sound datum from the sounds table (0x4fdba4). */
+void sound_stop_channel(int sound_handle /* @<ebx> */)
+{
+  char *sound_entry;
+  void *tag_ptr;
+  short playing_channel_index;
+
+  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+  tag_ptr = tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
+
+  playing_channel_index = *(short *)(sound_entry + 0x8c);
+
+  if (playing_channel_index == -1) {
+    /* No active channel -- release cache sound if flags bit 1 set. */
+    if ((*(uint8_t *)(sound_entry + 0x4) & 2) != 0) {
+      void *pitch_range;
+      void *permutation;
+
+      pitch_range = tag_block_get_element(
+        (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8)) + 0x98,
+        (int)*(short *)(sound_entry + 0x8e), 0x48);
+      permutation = tag_block_get_element(
+        (char *)pitch_range + 0x3c, (int)*(short *)(sound_entry + 0x90), 0x7c);
+      sound_cache_sound_finished((int)permutation);
+    }
+  } else {
+    /* Active channel -- stop it. */
+    assert_halt(playing_channel_index >= 0 &&
+                playing_channel_index < *(short *)0x4eb0b4);
+
+    /* Clear the channel's sound_handle to NONE. */
+    *(int *)(0x4fc3a0 + (int)playing_channel_index * 0x18) = -1;
+
+    /* Release cache sounds and stop hardware for this channel.
+     * Re-read playing_channel_index into DI for the register-arg callee. */
+    sound_channel_stop(*(short *)(sound_entry + 0x8c));
+
+    /* Clear the sound's playing_channel_index. */
+    *(short *)(sound_entry + 0x8c) = -1;
+  }
+
+  /* If this is a looping sound (type != 0), update the looping-sound entry. */
+  if (*(short *)(sound_entry + 0x2) != 0) {
+    int looping_sound = datum_absolute_index_to_index(
+      *(data_t **)0x4fdba0, *(int *)(sound_entry + 0xc));
+
+    if (looping_sound != 0) {
+      char *ls = (char *)looping_sound;
+      short track_index = *(short *)(sound_entry + 0x94);
+
+      /* Decrement the looping sound's playing count. */
+      (*(short *)(ls + 0x50))--;
+
+      /* Clear the track entry if it matches our sound_handle. */
+      if (*(int *)(ls + 0xd4 + track_index * 4) == sound_handle) {
+        *(int *)(ls + 0xd4 + track_index * 4) = -1;
+      }
+    }
+  }
+
+  /* Clear the sound tag's last-played field if it matches our handle. */
+  if (*(int *)((char *)tag_ptr + 0x94) == sound_handle) {
+    *(int *)((char *)tag_ptr + 0x94) = -1;
+  }
+
+  /* Assert the sound's playing_channel_index is now NONE. */
+  {
+    char *verify = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
+    assert_halt(*(short *)(verify + 0x8c) == -1);
+  }
+
+  /* Delete the sound datum. */
+  datum_delete(*(data_t **)0x4fdba4, sound_handle);
 }
 
 /* Sound manager — low-level sound system lifecycle and rendering. */
@@ -531,90 +715,6 @@ done:
   return result;
 }
 
-/* sound_pitch_push_sample (0x1c7b00)
- *
- * Conditionally applies a pitch sample to an object's pitch-track field.
- * Only runs if the object looping sounds table (0x5054e4) is initialized
- * (byte +0x24 != 0).  Validates the object handle as type 3 (biped|vehicle)
- * via object_try_and_get_and_verify_type before forwarding to
- * sound_object_apply_pitch_delta (0x1ac2f0). */
-void sound_pitch_push_sample(int object_handle, float pitch)
-{
-  if (*(uint8_t *)(*(int *)0x5054e4 + 0x24) != 0) {
-    if (object_try_and_get_and_verify_type(object_handle, 3) != 0) {
-      sound_object_apply_pitch_delta(object_handle, pitch);
-    }
-  }
-}
-
-/* sound_update_channel_attenuation (0x1cc310)
- *
- * Advance the attenuation envelope for a sound datum. Computes the
- * interpolation parameter t from the transition start/end tick fields
- * (+0xa4, +0xa8) relative to the global sound timestamp at 0x4eaf4c.
- *
- * Three envelope shapes are selected by the short at +0x92:
- *   0 (linear): t is used directly.
- *   1 (power):  t is warped through pow(t, 1/2.5) or 1-pow(1-t, 1/2.5)
- *               depending on whether target > current attenuation.
- *   default:    assert -- invalid envelope type.
- *
- * When t reaches 1.0 the transition start/end fields are cleared.
- * Returns lerp(current_atten, target_atten, shaped_t).
- * If no transition is active (start == end), returns 1.0 (fully audible). */
-float sound_update_channel_attenuation(int sound_handle)
-{
-  char *sound_entry;
-  int start_tick;
-  int end_tick;
-  float t;
-
-  sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
-  start_tick = *(int *)(sound_entry + 0xa4);
-  end_tick = *(int *)(sound_entry + 0xa8);
-
-  if (start_tick == end_tick) {
-    return 1.0f;
-  }
-
-  /* Compute t = (current_tick - start) / (end - start), clamped to [0, 1]. */
-  t = (float)(*(int *)0x4eaf4c - start_tick) / (float)(end_tick - start_tick);
-  if (t < 0.0f) {
-    t = 0.0f;
-  } else if (t > 1.0f) {
-    t = 1.0f;
-  }
-
-  /* Apply envelope shape based on type at +0x92. */
-  switch (*(short *)(sound_entry + 0x92)) {
-  case 0:
-    /* Linear: use t directly. */
-    break;
-  case 1:
-    /* Power curve: ease-in or ease-out depending on direction. */
-    if (*(float *)(sound_entry + 0xa0) > *(float *)(sound_entry + 0x9c)) {
-      t = (float)pow((double)t, (double)(1.0f / 2.5f));
-    } else {
-      t = (float)(1.0 - pow((double)(1.0f - t), (double)(1.0f / 2.5f)));
-    }
-    break;
-  default:
-    display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0xa76, 1);
-    system_exit(-1);
-    break;
-  }
-
-  /* When t reaches 1.0, clear the transition. */
-  if (t == 1.0f) {
-    *(int *)(sound_entry + 0xa8) = 0;
-    *(int *)(sound_entry + 0xa4) = 0;
-  }
-
-  /* Lerp between current and target attenuation. */
-  return (*(float *)(sound_entry + 0xa0) - *(float *)(sound_entry + 0x9c)) * t
-       + *(float *)(sound_entry + 0x9c);
-}
-
 /* sound_update_music (0x1ceda0)
  *
  * Per-channel tick for spatialized sound playback. Iterates the global
@@ -668,7 +768,11 @@ void sound_update_music(void)
   float attenuation;
   float audible_scale;
   /* Must be contiguous: dsound reads this as location_t (pos/fwd/up). */
-  struct { float position[3]; float forward[3]; float up[3]; } location;
+  struct {
+    float position[3];
+    float forward[3];
+    float up[3];
+  } location;
   char *listener;
   void *class_def;
 
@@ -724,14 +828,13 @@ void sound_update_music(void)
           system_exit(-1);
         }
 
-        real_matrix3x3_transform_vector(
-          listener + 4, (void *)(sound_entry + 0x20),
-          (void *)location.position);
+        real_matrix3x3_transform_vector(listener + 4,
+                                        (void *)(sound_entry + 0x20),
+                                        (void *)location.position);
         real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
                                        location.forward);
         real_matrix3x3_transform_vector(
-          listener + 4, (void *)(sound_entry + 0x38),
-          (void *)location.up);
+          listener + 4, (void *)(sound_entry + 0x38), (void *)location.up);
 
         /* Scale up-vector by 30.0 and subtract listener velocity
          * (listener+0x38..0x40). */
@@ -770,9 +873,9 @@ void sound_update_music(void)
                            1);
             system_exit(-1);
           }
-          real_matrix3x3_transform_vector(
-            listener + 4, (void *)(sound_entry + 0x20),
-            (void *)location.position);
+          real_matrix3x3_transform_vector(listener + 4,
+                                          (void *)(sound_entry + 0x20),
+                                          (void *)location.position);
         } else if (mode != 2) {
           display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x80a,
                          1);
