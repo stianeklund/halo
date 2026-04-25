@@ -4746,6 +4746,20 @@
         "Actual channel struct layout: offset 0x02 = short virtual_channel_index, offset 0x38 = short type_flags (from assertion text and field access patterns). Each element is 0x74 bytes."
       ]
     },
+    "0x1ca5e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Properties float array layout: [0]=min_distance, [1]=max_distance, [2]=pitch, [3]=gain, [4]=inner_cone_angle_radians, [5]=outer_cone_angle_radians, [6]=cone_outside_gain, [7]=field_1c_3d_scalar.",
+        "Global 0x505488 is dsound_globals.pause_gain (float), used to scale volume.",
+        "Global 0x4fdbc0 is a byte flag; when 0, all properties are pushed unconditionally (bypasses epsilon checks).",
+        "Constant at 0x2b073c is 57.2958f (180/pi, radians to degrees converter for cone angles)."
+      ],
+      "uncertain": [
+        "Channel struct field at offset 0x38 contains type_flags; bit 0 is the 3D flag and bits [2] encode codec index. Full layout is not yet recovered.",
+        "The update_only parameter name is inferred; when nonzero it skips pitch and 3D updates (volume-only mode). The original source name could differ."
+      ]
+    },
     "0x1caa80": {
       "kind": "function",
       "status": "ported"
