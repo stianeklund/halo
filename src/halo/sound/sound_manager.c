@@ -1154,10 +1154,10 @@ final_update:
  *
  *   1. Resolves the sound datum and its tag, then updates the channel's
  *      attenuation curve via sound_update_channel_attenuation (0x1cc310,
- *      @<eax>). If the computed attenuation and the tag's min-distance
- *      curve (+0xa0) both reach 0.0f, the sound has faded out — stop it
- *      via sound_stop_channel (0x1cca60, @<ebx>) and mark the channel
- *      free (-1).
+ *      @<eax>). If the computed attenuation and the sound entry's target
+ *      attenuation (sound_entry+0xa0) both reach 0.0f, the sound has
+ *      faded out — stop it via sound_stop_channel (0x1cca60, @<ebx>)
+ *      and mark the channel free (-1).
  *   2. Otherwise, dispatches on the sound's spatialization mode
  *      (sound_entry+0x14). Two top-level branches select on the channel
  *      flags bit 0 (+0x4 & 1):
@@ -1238,7 +1238,7 @@ void sound_update_music(void)
 
     /* Faded out: both current and target reached 0.0f. */
     if (attenuation == *(float *)0x2533c0 &&
-        *(float *)((char *)tag_ptr + 0xa0) == *(float *)0x2533c0) {
+        *(float *)(sound_entry + 0xa0) == *(float *)0x2533c0) {
       sound_stop_channel(channel[0]);
       channel[0] = -1;
       continue;
