@@ -165,6 +165,18 @@
           "source": "src/halo/common.c"
         },
         {
+          "decl": "char *FUN_000210f0(int actor_handle);",
+          "addr": "0x210f0"
+        },
+        {
+          "decl": "char *FUN_000211f0(int actor_handle);",
+          "addr": "0x211f0"
+        },
+        {
+          "decl": "bool FUN_0003b320(int actor_handle);",
+          "addr": "0x3b320"
+        },
+        {
           "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
           "addr": "0x84a70"
         },
@@ -186,7 +198,8 @@
         },
         {
           "decl": "float random_real_range(int *seed, float min, float max);",
-          "addr": "0x10b270"
+          "addr": "0x10b270",
+          "status": "ported"
         },
         {
           "decl": "void FUN_000992d0(float *point_2d, float *plane, int16_t projection, uint8_t sign, float *out_point);",
@@ -478,11 +491,15 @@
         },
         {
           "decl": "bool FUN_0002fc20(int actor_handle, int clump_item_handle);",
-          "addr": "0x2fc20"
+          "addr": "0x2fc20",
+          "status": "ported",
+          "source": "src/halo/ai/actor_perception.c"
         },
         {
           "decl": "float FUN_0002fd10(int actor_handle, int clump_item_handle);",
-          "addr": "0x2fd10"
+          "addr": "0x2fd10",
+          "status": "ported",
+          "source": "src/halo/ai/actor_perception.c"
         },
         {
           "decl": "void FUN_0004c0f0(void);",

@@ -33,6 +33,18 @@ void random_seed_debug_log(bool a1)
 {
 }
 
+/* Generate a random float in [min, max] using the same LCG as random_range.
+ * Advances *seed, extracts the upper 16 bits (0..65535), normalizes to
+ * [0.0, 1.0] by dividing by 65535, then scales into [min, max]. */
+float random_real_range(int *seed, float min, float max)
+{
+  unsigned int s;
+
+  s = (unsigned int)*seed * 0x19660d + 0x3c6ef35f;
+  *seed = (int)s;
+  return (float)(s >> 16) / 65535.0f * (max - min) + min;
+}
+
 /* Generate a random int16 in [min, max) using a linear congruential
  * generator.  Advances *seed with the classic Numerical Recipes
  * LCG (a=0x19660d, c=0x3c6ef35f), then maps the upper 16 bits of
