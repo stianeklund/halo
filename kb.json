@@ -5406,7 +5406,8 @@
         {
           "decl": "bool sound_valid_for_channel(short compression, short encoding, unsigned short sample_rate, short spatialization_mode, unsigned short type_flags);",
           "addr": "0x1cb790",
-          "comment": "Check whether a channel type_flags word is compatible with a sound definition compression/encoding/sample_rate/spatialization."
+          "comment": "Check whether a channel type_flags word is compatible with a sound definition compression/encoding/sample_rate/spatialization.",
+          "ported": true
         }
       ]
     },
