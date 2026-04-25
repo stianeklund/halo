@@ -5297,7 +5297,8 @@
         {
           "decl": "void sound_channel_start_new(short channel_index@<di>, int permutation@<ebx>);",
           "addr": "0x1cbf30",
-          "comment": "Assign a new permutation buffer to a channel; cleans up old buffer if present."
+          "comment": "Assign a new permutation buffer to a channel; cleans up old buffer if present.",
+          "ported": true
         },
         {
           "decl": "void sound_channel_set_properties(short channel_index@<si>, int update_only@<ebx>, void *properties);",

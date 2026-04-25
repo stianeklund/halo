@@ -286,6 +286,51 @@ int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
   return 0;
 }
 
+/* sound_channel_start_new (0x1cbf30)
+ *
+ * Start a new permutation on a sound channel.  If the channel already has
+ * a current permutation at offset +0x14, release it via
+ * sound_cache_sound_finished.  Then call the sound driver's start entry
+ * (vtable offset 0x18) to begin playback.
+ *
+ * If the channel already has a queued permutation at +0x10, the new
+ * permutation is stored at +0x14 (next slot).  Otherwise it becomes the
+ * current permutation at +0x10, and the time accumulator at +0x08 is
+ * reset to zero.
+ *
+ * Register args: DI = channel_index, EBX = permutation.
+ */
+void sound_channel_start_new(short channel_index, int permutation) {
+  int ch;
+  int *channel_base;
+
+  if (channel_index < 0 || channel_index >= *(short *)0x4eb0b4) {
+    display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                   "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+    system_exit(-1);
+  }
+
+  ch = (int)channel_index;
+  channel_base = (int *)(0x4fc3a0 + ch * 0x18);
+
+  /* Release any existing permutation at +0x14. */
+  if (channel_base[5]) {
+    sound_cache_sound_finished(channel_base[5]);
+  }
+
+  /* Call sound driver start (vtable +0x18). */
+  (*(void (**)(int, int))(*(int *)0x4eaf48 + 0x18))(channel_index, permutation);
+
+  if (channel_base[4]) {
+    /* Already have a current permutation — queue as next. */
+    channel_base[5] = permutation;
+  } else {
+    /* No current permutation — set as current and reset time. */
+    channel_base[4] = permutation;
+    channel_base[2] = 0;
+  }
+}
+
 /* sound_channel_set_properties (0x1cbfb0)
  *
  * Push volume/pitch/3D properties to the sound driver for a channel.
