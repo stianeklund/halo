@@ -4852,6 +4852,11 @@
           "ported": true
         },
         {
+          "decl": "void real_matrix3x3_transform_point(void *matrix, float *point, float *out);",
+          "addr": "0x1096e0",
+          "ported": true
+        },
+        {
           "decl": "void real_matrix3x3_transform_vector(void *matrix, vector3_t *vec, vector3_t *out);",
           "addr": "0x109780",
           "ported": true

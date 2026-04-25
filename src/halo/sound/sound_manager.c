@@ -1171,7 +1171,7 @@ final_update:
  *        - BIT CLEAR: compute an audible-volume scalar. Copy the source
  *          position, then for mode 1 fetch the listener via
  *          sound_listener_get (0x1cbac0, @<si>) and transform the
- *          position through real_matrix3x3_transform_vector (0x1096e0).
+ *          position through real_matrix3x3_transform_point (0x1096e0).
  *          For modes 1 and 2, scale the current attenuation by
  *          1 - (sqrt(|pos|^2) - min_dist) / (max_dist - min_dist) using
  *          sound_get_default_priority variants (0x1c8d50 min-dist,
@@ -1259,9 +1259,9 @@ void sound_update_music(void)
           system_exit(-1);
         }
 
-        real_matrix3x3_transform_vector(listener + 4,
-                                        (void *)(sound_entry + 0x20),
-                                        (void *)location.position);
+        real_matrix3x3_transform_point(listener + 4,
+                                       (float *)(sound_entry + 0x20),
+                                       location.position);
         real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
                                        location.forward);
         real_matrix3x3_transform_vector(
@@ -1304,9 +1304,9 @@ void sound_update_music(void)
                            1);
             system_exit(-1);
           }
-          real_matrix3x3_transform_vector(listener + 4,
-                                          (void *)(sound_entry + 0x20),
-                                          (void *)location.position);
+          real_matrix3x3_transform_point(listener + 4,
+                                         (float *)(sound_entry + 0x20),
+                                         location.position);
         } else if (mode != 2) {
           display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x80a,
                          1);
