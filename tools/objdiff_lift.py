@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# One-shot CLI wrapper for objdiff comparisons.
+# For interactive/GUI diffing, open the repo root in objdiff — it reads objdiff.json
+# which maps every delinked/<name>.obj (target) against the build's compiled .obj (base).
+# Populate delinked/ using tools/export_delinked_object.py.
 import argparse
 import json
 import os
