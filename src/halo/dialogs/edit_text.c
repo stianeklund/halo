@@ -20,6 +20,37 @@ void edit_text_set_cursor_to_end(void *edit_text)
   *(int16_t *)((int)et + 8) = -1;
 }
 
+/* Get the selection range as ordered (min, max) of cursor and anchor (0x973a0).
+ * Returns false if no selection is active (selection_start == -1). */
+bool edit_text_get_selection_range(void *edit_text, int16_t *out_start,
+                                   int16_t *out_end)
+{
+  int *et = (int *)edit_text;
+
+  if (et == NULL || et[0] == 0 || *(int16_t *)((int)et + 4) <= 0 ||
+      (unsigned int)csstrlen((const char *)et[0]) >
+          (unsigned int)(int)*(int16_t *)((int)et + 4)) {
+    display_assert("valid_edit_text(edit)",
+                   "c:\\halo\\SOURCE\\dialogs\\edit_text.c", 0xae, 1);
+    system_exit(-1);
+  }
+
+  edit_text_clamp_cursor(edit_text);
+
+  int16_t sel = *(int16_t *)((int)et + 8);
+  if (sel == -1)
+    return false;
+
+  int16_t cursor = *(int16_t *)((int)et + 6);
+  *out_start = (sel > cursor) ? cursor : sel;
+
+  sel = *(int16_t *)((int)et + 8);
+  cursor = *(int16_t *)((int)et + 6);
+  *out_end = (sel > cursor) ? sel : cursor;
+
+  return true;
+}
+
 /* Validates the edit_text struct and initializes cursor state by
  * placing the cursor at the end of the current text. */
 void edit_text_initialize(void *edit_text)

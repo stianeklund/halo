@@ -7333,7 +7333,8 @@
         },
         {
           "decl": "bool edit_text_get_selection_range(void *edit_text, int16_t *out_start, int16_t *out_end);",
-          "addr": "0x973a0"
+          "addr": "0x973a0",
+          "ported": true
         },
         {
           "decl": "void edit_text_initialize(void *edit_text);",
