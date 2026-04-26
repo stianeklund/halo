@@ -7324,7 +7324,8 @@
         },
         {
           "decl": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
-          "addr": "0x972b0"
+          "addr": "0x972b0",
+          "ported": true
         },
         {
           "decl": "void edit_text_set_cursor_to_end(void *edit_text);",
