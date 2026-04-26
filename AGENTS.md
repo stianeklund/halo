@@ -58,12 +58,15 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 - **Failure Policy:** If an edit fails, re-read only affected ranges before retrying.
 
 ### 4. Commit Discipline
+- **Use `/lift` for all new function ports.** Do not manually implement and commit lift work without going through the `/lift` skill. It runs ABI audit, build, and verification stages that catch real bugs (calling convention mismatches, register-arg errors). Bypassing it has caused page faults and silent regressions.
 - **No Freeform Messages:** Never write freeform lift commit messages.
 - **Standard Command:** After staging changes, run:
   ```bash
   rtk python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
   rtk git commit -F /tmp/commit_msg.txt
   ```
+- **ABI audit gate:** `generate_lift_commit.py` runs `audit_reg_abi.py` on all newly ported functions. If any fail, no commit message is generated. Use `--skip-abi-audit` only for emergencies.
+- **Pre-commit hook:** The git pre-commit hook runs both the baseline guard and lift ABI audit on staged changes. `--no-verify` is the emergency bypass.
 
 ## Repo Guardrails
 - **Noisy Dirs:** Never read or search inside `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/` unless explicitly asked. These are generated artifacts.
@@ -72,9 +75,36 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 - **RTK Always:** Prefix ALL shell commands with `rtk` (e.g., `rtk git status`, `rtk pytest`).
 - **Output Schema:** For non-trivial work, report: Target, Confirmed, Inferred, Uncertain, Proposed Code, kb.json updates.
 
+## Analysis Tools
+- **`tools/frontier.py`** — Decompilation frontier scoring and target recommendations.
+- **`tools/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
+- **`tools/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
+- **`tools/maintain.py`** — Source file organization and function placement checks.
+
 ## Architecture and Skills
 - `halo-xbox-re`: RE doctrine and evidence rules.
 - `halo-re-lift`: Lift workflow and ABI-specific execution.
-- `halo-verify-debug`: Verification lanes and regression debugging.
+- `halo-verify-debug`: Verification lanes, delink comparison, and regression debugging.
 - `halo-build-xemu`: Build/ISO/xemu workflow.
 - `halo-xbdm`: RDCP/XBDM workflow for real Xbox.
+
+<!-- rtk-instructions v2 -->
+# RTK (Rust Token Killer) - Token-Optimized Commands
+
+## Golden Rule
+
+**Always prefix commands with `rtk`**. Even in command chains with `&&`:
+`rtk git add . && rtk git commit -m "msg" && rtk git push`
+
+## RTK Commands by Workflow
+
+| Category | Typical Savings | Examples |
+|----------|-----------------|----------|
+| **Build** | 70-90% | `rtk cmake`, `rtk tsc`, `rtk lint` |
+| **Test** | 90-99% | `rtk pytest`, `rtk cargo test`, `rtk vitest` |
+| **Git** | 60-80% | `rtk git status`, `rtk git diff`, `rtk git log` |
+| **Files** | 60-75% | `rtk read`, `rtk grep`, `rtk find`, `rtk ls` |
+| **Ghidra**| 70-90% | `rtk python3 tools/check_ghidra_mcp.py` |
+
+Use `rtk gain` to view savings statistics.
+<!-- /rtk-instructions -->

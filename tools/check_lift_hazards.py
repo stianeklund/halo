@@ -141,7 +141,8 @@ def _extract_args(text, start):
     """Extract comma-separated arguments from text starting at '(' position.
 
     Handles nested parens and casts but not string literals with commas.
-    Returns list of stripped argument strings, or None if parse fails.
+    Returns (args, end_pos) where end_pos is the closing ')' index, or
+    (None, None) if parse fails.
     """
     depth = 0
     args = []
@@ -159,7 +160,7 @@ def _extract_args(text, start):
                 arg = ''.join(current).strip()
                 if arg:
                     args.append(arg)
-                return args
+                return args, i
             current.append(ch)
         elif ch == ',' and depth == 1:
             arg = ''.join(current).strip()
@@ -169,14 +170,14 @@ def _extract_args(text, start):
         else:
             current.append(ch)
         i += 1
-    return None
+    return None, None
 
 
 def check_duplicate_args():
     """Flag calls where the same non-trivial expression appears as multiple args.
 
-    Lines containing ``dup-args-ok`` are suppressed (verified in-place or
-    intentional same-arg calls).
+    Calls containing ``dup-args-ok`` are suppressed (verified in-place or
+    intentional same-arg calls), including multiline call expressions.
     """
     errors = []
     for dirpath, _, filenames in os.walk(SRC_DIR):
@@ -191,8 +192,13 @@ def check_duplicate_args():
             for m in FUNC_CALL_PATTERN.finditer(flat):
                 func_name = m.group(1)
                 paren_pos = m.end() - 1
-                args = _extract_args(flat, paren_pos)
+                args, end_pos = _extract_args(flat, paren_pos)
                 if args is None or len(args) < 2:
+                    continue
+                start_lineno = flat[:m.start()].count('\n') + 1
+                end_lineno = flat[:end_pos].count('\n') + 1
+                call_lines = lines[start_lineno - 1:end_lineno]
+                if any('dup-args-ok' in line for line in call_lines):
                     continue
                 seen = {}
                 for i, arg in enumerate(args):
@@ -201,9 +207,7 @@ def check_duplicate_args():
                     if len(arg) < 3:
                         continue
                     if arg in seen:
-                        lineno = flat[:m.start()].count('\n') + 1
-                        if 'dup-args-ok' in lines[lineno - 1]:
-                            break
+                        lineno = start_lineno
                         relpath = os.path.relpath(fpath, ROOT_DIR)
                         errors.append(
                             f'  {relpath}:{lineno}: {func_name}() '
@@ -272,7 +276,7 @@ def check_pointer_as_float():
                     continue
                 ptypes = params_map[func_name]
                 paren_pos = m.end() - 1
-                args = _extract_args(flat, paren_pos)
+                args, _ = _extract_args(flat, paren_pos)
                 if args is None:
                     continue
                 for i, arg in enumerate(args):

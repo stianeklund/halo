@@ -69,7 +69,7 @@ Notes:
 Before running delink comparison, verify:
 
 - a live Ghidra GUI session is open on `cachebeta.xbe` or `default.xbe`
-- the delinker plugin is enabled
+- the delinker plugin is enabled (RPC on port 18080)
 - the project has been built so the candidate `.obj` exists
 
 Then:
@@ -81,6 +81,36 @@ Then:
    and memory access behavior.
 
 Do not save the Ghidra project after a delink export run.
+
+### Delinker RPC fallback
+
+If `mcp__ghidra-live__*` tool calls fail with `-32602 Invalid request
+parameters`, use the direct RPC on port 18080 instead. The MCP SSE
+transport has known issues with nullable parameter schemas in FastMCP
+1.27+. The Ghidra delinker Java plugin always listens on HTTP directly:
+
+```bash
+# Synthesize relocations
+curl -s http://127.0.0.1:18080/rpc -X POST \
+  -d "method=run_relocation_synthesizer&selection_mode=range&range=START-END"
+
+# Export delinked object (use Windows path for export_path)
+curl -s http://127.0.0.1:18080/rpc -X POST \
+  -d "method=export_delinked_object&export_path=G:\dev\halo\artifacts\delinker\NAME.o&selection_mode=range&range=START-END&exporter_name=COFF+relocatable+object&run_relocation_synthesizer=false"
+```
+
+Range format: `AABBCCDD-EEFFGGHH` (hex, no `0x` prefix).
+
+`tools/classify_common.py --delinker-analyze` already uses this RPC
+fallback for bulk analysis of `<common>` functions.
+
+## Bulk classification of `<common>` functions
+
+Use `tools/classify_common.py` to analyze functions in the `<common>`
+bucket that lack object file assignments. The `--delinker-analyze` mode
+exports ranges via the delinker and resolves original source file paths
+from `__FILE__` assert strings embedded in the XBE. See `/classify-common`
+for usage.
 
 ## Regression debugging workflow
 

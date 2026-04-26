@@ -30,27 +30,49 @@ def main():
         return get_current_selection_rpc()
 
     @mcp.tool()
-    def run_relocation_synthesizer(selection_mode: str, range: str | None = None):
-        return run_relocation_synthesizer_rpc(selection_mode=selection_mode, range=range)
+    def run_relocation_synthesizer(selection_mode: str, range: str = ""):
+        """Run relocation synthesizer on a range or current selection.
+
+        Args:
+            selection_mode: "range", "symbol", or "current_selection"
+            range: Address range as "START-END" (hex, no 0x prefix), e.g. "0010b240-0010b8e0"
+        """
+        return run_relocation_synthesizer_rpc(
+            selection_mode=selection_mode, range=range or None
+        )
 
     @mcp.tool()
     def export_delinked_object(
         export_path: str,
         exporter_name: str = "COFF relocatable object",
         selection_mode: str = "current_selection",
-        range: str | None = None,
+        range: str = "",
         run_relocation_synthesizer: bool = True,
     ):
+        """Export a delinked COFF object from Ghidra.
+
+        Args:
+            export_path: Windows path for the output .o file (e.g. G:\\dev\\halo\\artifacts\\delinker\\foo.o)
+            exporter_name: Exporter name, usually "COFF relocatable object"
+            selection_mode: "range", "symbol", or "current_selection"
+            range: Address range as "START-END" (hex, no 0x prefix)
+            run_relocation_synthesizer: Run relocation synthesizer before export
+        """
         return export_delinked_object_rpc(
             export_path=export_path,
             exporter_name=exporter_name,
             selection_mode=selection_mode,
-            range=range,
+            range=range or None,
             run_relocation_synthesizer=run_relocation_synthesizer,
         )
 
     @mcp.tool()
     def list_symbols_in_range(range: str):
+        """List all symbols in an address range.
+
+        Args:
+            range: Address range as "START-END" (hex, no 0x prefix), e.g. "0010b240-0010b8e0"
+        """
         return list_symbols_in_range_rpc(range=range)
 
     @mcp.tool()
@@ -58,6 +80,7 @@ def main():
         return get_last_export_status_rpc()
 
     import sys
+    import time
     transport = "sse"
     host = "127.0.0.1"
     port = 8091
@@ -72,7 +95,23 @@ def main():
     mcp.settings.port = port
     if transport == "sse":
         print(f"ghidra-live MCP listening on http://{host}:{port}/sse", file=sys.stderr)
-    mcp.run(transport=transport)
+
+    # Work around intermittent Starlette/Uvicorn response-state errors seen on
+    # SSE disconnect/exception paths; keep the server alive instead of exiting.
+    while True:
+        try:
+            mcp.run(transport=transport)
+            break
+        except RuntimeError as exc:
+            if "Expected ASGI message 'http.response.body'" not in str(exc):
+                raise
+            print(
+                "ghidra-live MCP recovered from ASGI response-order error; continuing",
+                file=sys.stderr,
+            )
+            if transport != "sse":
+                raise
+            time.sleep(0.25)
 
 
 if __name__ == "__main__":
