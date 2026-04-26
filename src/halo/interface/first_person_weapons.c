@@ -1,3 +1,15 @@
+/* Notify the first-person weapon system of an object event (0xde3b0).
+ * Finds the local player holding the weapon, processes the event, and if
+ * no local player owns it, attempts third-person sound playback. */
+void FUN_000de3b0(int object_handle, int param_2)
+{
+  int16_t local_player = FUN_000dcd60(object_handle);
+  FUN_000de140(local_player, param_2);
+  if (local_player == -1) {
+    FUN_000dc9d0(param_2, object_handle);
+  }
+}
+
 /* Update first-person weapon state for all local players. Detects when
  * a player's controlled unit changes and reinitializes their weapon
  * rendering state. Calls per-player weapon update each frame. */

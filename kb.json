@@ -2170,8 +2170,21 @@
       "source": "interface/first_person_weapons.c",
       "functions": [
         {
+          "decl": "void FUN_000dc9d0(int param_2@<eax>, int object_handle@<ebx>);",
+          "addr": "0xdc9d0"
+        },
+        {
+          "decl": "int16_t FUN_000dcd60(int object_handle@<edi>);",
+          "addr": "0xdcd60"
+        },
+        {
+          "decl": "void FUN_000de140(int param_1, int param_2);",
+          "addr": "0xde140"
+        },
+        {
           "decl": "void FUN_000de3b0(int object_handle, int param_2);",
-          "addr": "0xde3b0"
+          "addr": "0xde3b0",
+          "ported": true
         },
         {
           "decl": "void first_person_weapons_update(void);",
