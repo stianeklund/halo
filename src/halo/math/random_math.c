@@ -71,6 +71,38 @@ int16_t random_range(unsigned int *seed, int16_t min, int16_t max)
   return (int16_t)(((int)(max - min) * (int)(s >> 16) >> 16) + (int)min);
 }
 
+/* Look up a precomputed unit direction from the random direction table (0x10b300).
+ * Asserts the table is initialized and index is in range. Copies 3 floats
+ * from table[index] to result and returns result.
+ * Register args: index in SI, result in EBX. */
+float *random_direction_table_get_element(int16_t index, float *result)
+{
+  float *element = (float *)(*(int *)0x46e3e8 + (int)index * 12);
+
+  assert_halt(*(int *)0x46e3e8);
+  assert_halt(index >= 0 && index < *(int16_t *)0x46e3ec);
+
+  result[0] = element[0];
+  result[1] = element[1];
+  result[2] = element[2];
+
+  return result;
+}
+
+/* Advance the LCG seed and look up a random direction (0x10b380).
+ * Inlines the LCG step and index computation, then calls
+ * random_direction_table_get_element with the computed index. */
+void random_seed_get_direction3d(unsigned int *seed, float *out)
+{
+  unsigned int s = *seed * 0x19660d + 0x3c6ef35f;
+  *seed = s;
+
+  int16_t table_size = *(int16_t *)0x46e3ec;
+  int16_t index = (int16_t)(((int)table_size * (int)(s >> 16)) >> 16);
+
+  random_direction_table_get_element(index, out);
+}
+
 /* Generate a random 3D direction within a cone around a forward vector.
  *
  * Picks a random unit vector from a precomputed sphere table, computes the

@@ -496,19 +496,6 @@
           "addr": "0x106510"
         },
         {
-          "decl": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
-          "addr": "0x10b300"
-        },
-        {
-          "decl": "void random_seed_get_direction3d(unsigned int *seed, float *out);",
-          "addr": "0x10b380"
-        },
-        {
-          "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
-          "addr": "0x10b4c0",
-          "status": "ported"
-        },
-        {
           "decl": "bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
           "addr": "0x10bc70"
         },
@@ -4856,6 +4843,24 @@
         {
           "decl": "int16_t random_range(unsigned int *seed, int16_t min, int16_t max);",
           "addr": "0x10b2d0",
+          "ported": true
+        },
+        {
+          "decl": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
+          "addr": "0x10b300",
+          "comment": "Look up a precomputed unit direction from the random direction table by index.",
+          "ported": true
+        },
+        {
+          "decl": "void random_seed_get_direction3d(unsigned int *seed, float *out);",
+          "addr": "0x10b380",
+          "comment": "Advance the LCG seed and look up a random direction from the precomputed table.",
+          "ported": true
+        },
+        {
+          "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
+          "addr": "0x10b4c0",
+          "comment": "Generate a random direction within a cone around a forward vector.",
           "ported": true
         }
       ]
