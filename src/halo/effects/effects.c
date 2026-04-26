@@ -26,6 +26,34 @@ void effects_dispose(void)
     effect_location_data = 0;
 }
 
+/* Delete an effect and all its per-event datum chains (0x9c750).
+ * For each event in the effect tag, walks the linked list of event datums
+ * starting at effect+0x5c+i*4 and deletes each from the event datum pool
+ * (0x5aa8ac). Then deletes the effect datum from the effects pool (0x5aa8b0). */
+void FUN_0009c750(int effect_handle)
+{
+  char *effect = (char *)(int)datum_absolute_index_to_index(
+      *(data_t **)0x5aa8b0, effect_handle);
+  if (!effect)
+    return;
+
+  char *tag_data = (char *)tag_get(0x65666665, *(int *)(effect + 4));
+  int count = *(int *)(tag_data + 0x28);
+
+  int16_t i = 0;
+  while ((int)i < count) {
+    int cursor = *(int *)(effect + 0x5c + (int)i * 4);
+    while (cursor != -1) {
+      char *datum = (char *)datum_get(*(data_t **)0x5aa8ac, cursor);
+      datum_delete(*(data_t **)0x5aa8ac, cursor);
+      cursor = *(int *)(datum + 4);
+    }
+    i++;
+  }
+
+  datum_delete(*(data_t **)0x5aa8b0, effect_handle);
+}
+
 /* Check if any active effect with a nonzero danger radius is close enough
  * to any player to be considered dangerous. Iterates all effects, skips
  * those with flag bit 3 set or zero danger radius, then for each player

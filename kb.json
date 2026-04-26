@@ -1946,7 +1946,8 @@
         },
         {
           "decl": "void FUN_0009c750(int effect_handle);",
-          "addr": "0x9c750"
+          "addr": "0x9c750",
+          "ported": true
         },
         {
           "decl": "bool dangerous_effects_near_player(void);",
