@@ -75,10 +75,16 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 - **RTK Always:** Prefix ALL shell commands with `rtk` (e.g., `rtk git status`, `rtk pytest`).
 - **Output Schema:** For non-trivial work, report: Target, Confirmed, Inferred, Uncertain, Proposed Code, kb.json updates.
 
+## Analysis Tools
+- **`tools/frontier.py`** — Decompilation frontier scoring and target recommendations.
+- **`tools/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
+- **`tools/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
+- **`tools/maintain.py`** — Source file organization and function placement checks.
+
 ## Architecture and Skills
 - `halo-xbox-re`: RE doctrine and evidence rules.
 - `halo-re-lift`: Lift workflow and ABI-specific execution.
-- `halo-verify-debug`: Verification lanes and regression debugging.
+- `halo-verify-debug`: Verification lanes, delink comparison, and regression debugging.
 - `halo-build-xemu`: Build/ISO/xemu workflow.
 - `halo-xbdm`: RDCP/XBDM workflow for real Xbox.
 
