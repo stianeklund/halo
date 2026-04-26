@@ -93,7 +93,30 @@ void *FUN_0018e420(void)
   return *(void **)0x5064d8;
 }
 
-/* Structure BSP rendering subsystem init/dispose. */
+/* Remove a value from a reference list linked through a datum array (0x1913c0).
+ * Walks the list starting at *head, finds the datum whose +4 field matches
+ * value, calls datum_delete to free it, and unlinks it. */
+void reference_list_remove(data_t *data, int *head, int value)
+{
+  int *current_ptr = head;
+
+  while (*current_ptr != -1) {
+    char *datum = (char *)datum_get(data, *current_ptr);
+    if (*(int *)(datum + 4) == value) {
+      datum_delete(data, *current_ptr);
+      *current_ptr = *(int *)(datum + 8);
+      return;
+    }
+    current_ptr = (int *)(datum + 8);
+  }
+
+  display_assert(
+      csprintf((char *)0x5ab100,
+               "attempt to remove invalid element %ld from reference list",
+               value),
+      "..\\objects\\reference_lists.h", 0x6d, 1);
+  system_exit(-1);
+}
 
 int cluster_partition_iter_next(void *partition, int *state)
 {
