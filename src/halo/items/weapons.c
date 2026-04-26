@@ -323,6 +323,50 @@ tail:
   return 1;
 }
 
+/* Complete a magazine reload cycle (0xfcaf0).
+ * Transfers rounds from unloaded reserve to the loaded count, capped by
+ * the tag's rounds-per-reload and maximum-rounds fields. Adjusts reserve
+ * for dual-wield. Optionally starts the next reload cycle if rounds remain. */
+void FUN_000fcaf0(int weapon_handle, int magazine_index)
+{
+  char *weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
+  int16_t *magazine =
+      (int16_t *)FUN_000fb370((void *)weapon_obj, (int16_t)magazine_index);
+  void *tag_data = tag_get(0x77656170, *(int *)weapon_obj);
+  char *mag_def = (char *)tag_block_get_element(
+      (char *)tag_data + 0x4f0, (int)(int16_t)magazine_index, 0x70);
+
+  if ((*mag_def & 1) != 0) {
+    magazine[4] = 0;
+  }
+
+  int16_t rounds_unloaded = magazine[3];
+  int16_t rounds_to_load = rounds_unloaded;
+  if (*(int16_t *)(mag_def + 0x18) <= rounds_unloaded) {
+    rounds_to_load = *(int16_t *)(mag_def + 0x18);
+  }
+
+  int16_t total = magazine[4] + rounds_to_load;
+  if (total > *(int16_t *)(mag_def + 0xa)) {
+    total = *(int16_t *)(mag_def + 0xa);
+  }
+
+  if (*(char *)0x5aa892 == 0 &&
+      (*(uint8_t *)(weapon_obj + 0x1a4) & 2) != 0) {
+    magazine[3] = (rounds_unloaded - total) + magazine[4];
+  }
+
+  magazine[4] = total;
+  magazine[0] = 2;
+  magazine[1] = 0;
+
+  if (magazine[3] > 0 && total < *(int16_t *)(mag_def + 0xa) &&
+      (*mag_def & 1) == 0 &&
+      (*(uint8_t *)(weapon_obj + 0x1e0) & 0x26) == 0) {
+    FUN_000fc990((int16_t)magazine_index, weapon_handle, 0);
+  }
+}
+
 /* 0xfcf20 — weapon_reset_state
  *
  * Resets all trigger and magazine states on a weapon. Iterates over

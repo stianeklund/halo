@@ -122,9 +122,11 @@
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
     "0x972b0": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
+    "0xfb370": "void *FUN_000fb370(void *weapon_obj@<edi>, int16_t magazine_index@<si>);",
     "0xfb3c0": "bool weapon_has_activity(int weapon_handle @<eax>);",
     "0xfb6e0": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
     "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
+    "0xfc990": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
     "0xf6b80": "void FUN_000f6b80(int item_handle@<eax>);",
     "0x3a600": "void *FUN_0003a600(int16_t actor_type@<ax>);",
     "0x1b9bf0": "int *tag_instance_resolve(int tag_index@<edi>);"

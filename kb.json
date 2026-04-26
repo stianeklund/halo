@@ -7380,6 +7380,10 @@
           "ported": true
         },
         {
+          "decl": "void *FUN_000fb370(void *weapon_obj@<edi>, int16_t magazine_index@<si>);",
+          "addr": "0xfb370"
+        },
+        {
           "decl": "bool weapon_has_activity(int weapon_handle @<eax>);",
           "addr": "0xfb3c0",
           "ported": true
@@ -7399,8 +7403,13 @@
           "addr": "0xfc290"
         },
         {
+          "decl": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
+          "addr": "0xfc990"
+        },
+        {
           "decl": "void FUN_000fcaf0(int weapon_handle, int magazine_index);",
-          "addr": "0xfcaf0"
+          "addr": "0xfcaf0",
+          "ported": true
         },
         {
           "decl": "void weapon_reset_state(int weapon_handle);",
