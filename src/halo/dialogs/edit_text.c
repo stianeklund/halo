@@ -1,3 +1,25 @@
+/* Check if the object's "front" marker faces away from the aim direction (0x971a0).
+ * Returns false if the marker forward dot aim > 0 (facing towards aim),
+ * true otherwise (facing away, or if the object/marker can't be resolved). */
+bool FUN_000971a0(int object_handle, float *position, float *aim_position)
+{
+  char *obj = (char *)object_try_and_get_and_verify_type(object_handle, 0x100);
+  if (obj && (*(uint8_t *)(obj + 0x1c4) & 1) == 0) {
+    char marker_buf[0x6c];
+    int16_t count = object_get_markers_by_string_id(
+        object_handle, "front", marker_buf, 1);
+    if (count == 1) {
+      float *fwd = (float *)(marker_buf + 0x3c);
+      float dot = fwd[0] * aim_position[0] + fwd[1] * aim_position[1] +
+                  fwd[2] * aim_position[2];
+      if (dot > 0.0f) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 /* Moves the text cursor to the end of the edit text buffer and
  * clears any active selection. Asserts that the edit_text struct
  * is valid (non-null, has buffer, max_length > 0, strlen <= max). */

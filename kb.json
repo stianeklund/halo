@@ -7320,7 +7320,8 @@
       "functions": [
         {
           "decl": "bool FUN_000971a0(int object_handle, float *position, float *aim_position);",
-          "addr": "0x971a0"
+          "addr": "0x971a0",
+          "ported": true
         },
         {
           "decl": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
