@@ -661,20 +661,8 @@
           "addr": "0x1c0c20"
         },
         {
-          "decl": "float sound_get_default_priority(int sound_tag_index);",
-          "addr": "0x1c8d10"
-        },
-        {
           "decl": "void *FUN_001c8d90(int permutation_block_ptr, int tick_index);",
           "addr": "0x1c8d90"
-        },
-        {
-          "decl": "short sound_select_pitch_range(void *sound_tag, float random_scale, int hint_index);",
-          "addr": "0x1c8de0"
-        },
-        {
-          "decl": "short sound_select_permutation(void *sound_tag, short pitch_range_index, short hint_permutation_index);",
-          "addr": "0x1c8f80"
         },
         {
           "decl": "void SwitchToThread(void);",
@@ -1494,6 +1482,10 @@
           "ported": true
         },
         {
+          "decl": "void csmemmove(void *dest, const void *src, unsigned int size);",
+          "addr": "0x8dae0"
+        },
+        {
           "decl": "void *csmemset(void *buffer, int c, size_t size);",
           "addr": "0x8db80",
           "ported": true
@@ -2012,13 +2004,17 @@
           "ported": true
         },
         {
-          "decl": "void effect_update(int effect_index, float elapsed);",
-          "addr": "0x9e610",
-          "ported": true
+          "decl": "void FUN_0009c750(int effect_handle);",
+          "addr": "0x9c750"
         },
         {
           "decl": "bool dangerous_effects_near_player(void);",
           "addr": "0x9d000",
+          "ported": true
+        },
+        {
+          "decl": "void effect_update(int effect_index, float elapsed);",
+          "addr": "0x9e610",
           "ported": true
         },
         {
@@ -2231,6 +2227,10 @@
       "name": "first_person_weapons.obj",
       "source": "interface/first_person_weapons.c",
       "functions": [
+        {
+          "decl": "void FUN_000de3b0(int object_handle, int param_2);",
+          "addr": "0xde3b0"
+        },
         {
           "decl": "void first_person_weapons_update(void);",
           "addr": "0xdeb60",
@@ -5123,18 +5123,22 @@
           "ported": true
         },
         {
+          "decl": "void j__render_dispose_from_old_map(void);",
+          "addr": "0x184ba0"
+        },
+        {
           "decl": "void render_dispose(void);",
           "addr": "0x184bb0",
           "ported": true
         },
         {
-          "decl": "void render_frame_pregame(pregame_render_info_t *pregame_info, void *bitmap);",
-          "addr": "0x184cd0",
+          "decl": "void render_window_pregame(int window_type@<ebx>, int16_t *win);",
+          "addr": "0x184bc0",
           "ported": true
         },
         {
-          "decl": "void render_window_pregame(int window_type@<ebx>, int16_t *win);",
-          "addr": "0x184bc0",
+          "decl": "void render_frame_pregame(pregame_render_info_t *pregame_info, void *bitmap);",
+          "addr": "0x184cd0",
           "ported": true
         },
         {
@@ -5471,15 +5475,33 @@
           "ported": true
         },
         {
+          "decl": "float sound_get_default_priority(int sound_tag_index);",
+          "addr": "0x1c8d10",
+          "comment": "Return the default priority for a sound tag (offset 0xc), falling back to sound class priority (offset 0x1c) if zero.",
+          "ported": true
+        },
+        {
           "decl": "float sound_class_get_min_distance(int sound_tag_index);",
           "addr": "0x1c8d50",
           "comment": "Return the sound class min-distance attenuation parameter.",
           "ported": true
         },
         {
+          "decl": "short sound_select_pitch_range(void *sound_tag, float random_scale, short hint_index);",
+          "addr": "0x1c8de0",
+          "comment": "Select the best pitch range for a random scale value, preferring hint_index if valid.",
+          "ported": true
+        },
+        {
           "decl": "float sound_get_permutation_pitch(int permutation_block_ptr, short permutation_index);",
           "addr": "0x1c8f20",
           "comment": "Sample the pitch value from a permutation block by index.",
+          "ported": true
+        },
+        {
+          "decl": "short sound_select_permutation(void *sound_tag, short pitch_range_index, short hint_permutation_index);",
+          "addr": "0x1c8f80",
+          "comment": "Select a permutation from a pitch range using queued-next, sequential, or weighted random with played-bit tracking.",
           "ported": true
         },
         {
@@ -6033,6 +6055,10 @@
           "ported": true
         },
         {
+          "decl": "void winsock_error_report(int error_code);",
+          "addr": "0x83310"
+        },
+        {
           "decl": "void close_endpoint(int *ep);",
           "addr": "0x84000",
           "ported": true
@@ -6279,6 +6305,10 @@
           "decl": "void ui_widget_game_data_function_invoke(void *widget, unsigned short game_data_input_reference_function);",
           "addr": "0xf0a30",
           "ported": true
+        },
+        {
+          "decl": "void ui_widget_game_data_build_version(int a2);",
+          "addr": "0xf0ea0"
         }
       ]
     },
@@ -6784,128 +6814,7 @@
           "addr": "0x5065a4"
         }
       ],
-      "functions": [
-        {
-          "decl": "void ui_widget_game_data_build_version(int a2);",
-          "addr": "0xf0ea0"
-        },
-        {
-          "decl": "char *weapon_get_label(int weapon_handle);",
-          "addr": "0xfae80"
-        },
-        {
-          "decl": "bool weapon_is_flag(int object_index);",
-          "addr": "0xfb0c0"
-        },
-        {
-          "decl": "void j__render_dispose_from_old_map(void);",
-          "addr": "0x184ba0"
-        },
-        {
-          "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
-          "addr": "0x1d0da1"
-        },
-        {
-          "decl": "int __stdcall file_get_full_attributes(const char *path);",
-          "addr": "0x1d0e96"
-        },
-        {
-          "decl": "int xapi_GetLastError(void);",
-          "addr": "0x1d2240"
-        },
-        {
-          "decl": "int __stdcall xnet_send(int socket, const char *buf, int len, int flags);",
-          "addr": "0x225c20"
-        },
-        {
-          "decl": "int __stdcall xnet_closesocket(int socket);",
-          "addr": "0x225cc6"
-        },
-        {
-          "decl": "void winsock_error_report(int error_code);",
-          "addr": "0x83310"
-        },
-        {
-          "decl": "void *__stdcall XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
-          "addr": "0x1d36d4"
-        },
-        {
-          "decl": "void __stdcall physical_memory_protect(void *addr, unsigned int size, unsigned int protect);",
-          "addr": "0x1d371d"
-        },
-        {
-          "decl": "int snprintf(char *str, size_t size, const char *format, ...);",
-          "addr": "0x1d9179"
-        },
-        {
-          "decl": "int rand(void);",
-          "addr": "0x1d9d06"
-        },
-        {
-          "decl": "void __stdcall D3D_DestroyResource(void *resource);",
-          "addr": "0x1ed7d0"
-        },
-        {
-          "decl": "void __stdcall Get2DSurfaceDesc(void *texture, unsigned int level, void *desc);",
-          "addr": "0x1f4140"
-        },
-        {
-          "decl": "void __stdcall Lock2DSurface(void *texture, unsigned int face, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
-          "addr": "0x1f44f0"
-        },
-        {
-          "decl": "void weapon_reset_state(int weapon_handle);",
-          "addr": "0xfcf20"
-        },
-        {
-          "decl": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
-          "addr": "0xfba20"
-        },
-        {
-          "decl": "void FUN_000de3b0(int object_handle, int param_2);",
-          "addr": "0xde3b0"
-        },
-        {
-          "decl": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
-          "addr": "0xfb6e0"
-        },
-        {
-          "decl": "int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2, int16_t param_3, int16_t param_4);",
-          "addr": "0xfb140"
-        },
-        {
-          "decl": "bool weapon_has_activity(int weapon_handle @<eax>);",
-          "addr": "0xfb3c0"
-        },
-        {
-          "decl": "void FUN_0009c750(int effect_handle);",
-          "addr": "0x9c750"
-        },
-        {
-          "decl": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
-          "addr": "0x972b0"
-        },
-        {
-          "decl": "void unicode_snap_cursor(const char *str, int16_t *cursor);",
-          "addr": "0x19d300"
-        },
-        {
-          "decl": "bool edit_text_get_selection_range(void *edit_text, int16_t *out_start, int16_t *out_end);",
-          "addr": "0x973a0"
-        },
-        {
-          "decl": "void csmemmove(void *dest, const void *src, unsigned int size);",
-          "addr": "0x8dae0"
-        },
-        {
-          "decl": "void unicode_cursor_backward(const char *str, int16_t *cursor);",
-          "addr": "0x19d240"
-        },
-        {
-          "decl": "void unicode_cursor_forward(const char *str, int16_t *cursor);",
-          "addr": "0x19d1b0"
-        }
-      ]
+      "functions": []
     },
     {
       "name": "bink.obj",
@@ -7266,6 +7175,162 @@
           "decl": "bool FUN_0007b020(float *rgb);",
           "addr": "0x7b020",
           "ported": true
+        }
+      ]
+    },
+    {
+      "name": "D3D8:d3dresource.obj",
+      "functions": [
+        {
+          "decl": "void __stdcall D3D_DestroyResource(void *resource);",
+          "addr": "0x1ed7d0"
+        }
+      ]
+    },
+    {
+      "name": "D3D8:d3dsurface.obj",
+      "functions": [
+        {
+          "decl": "void __stdcall Get2DSurfaceDesc(void *texture, unsigned int level, void *desc);",
+          "addr": "0x1f4140"
+        },
+        {
+          "decl": "void __stdcall Lock2DSurface(void *texture, unsigned int face, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
+          "addr": "0x1f44f0"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:rand.obj",
+      "functions": [
+        {
+          "decl": "int rand(void);",
+          "addr": "0x1d9d06"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:snprintf.obj",
+      "functions": [
+        {
+          "decl": "int snprintf(char *str, size_t size, const char *format, ...);",
+          "addr": "0x1d9179"
+        }
+      ]
+    },
+    {
+      "name": "XAPILIB:fileio.obj",
+      "functions": [
+        {
+          "decl": "int __stdcall file_get_full_attributes(const char *path);",
+          "addr": "0x1d0e96"
+        }
+      ]
+    },
+    {
+      "name": "XAPILIB:lasterr.obj",
+      "functions": [
+        {
+          "decl": "int xapi_GetLastError(void);",
+          "addr": "0x1d2240"
+        }
+      ]
+    },
+    {
+      "name": "XAPILIB:physmem.obj",
+      "functions": [
+        {
+          "decl": "void *__stdcall XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
+          "addr": "0x1d36d4"
+        },
+        {
+          "decl": "void __stdcall physical_memory_protect(void *addr, unsigned int size, unsigned int protect);",
+          "addr": "0x1d371d"
+        }
+      ]
+    },
+    {
+      "name": "XAPILIB:xvutil.obj",
+      "functions": [
+        {
+          "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
+          "addr": "0x1d0da1"
+        }
+      ]
+    },
+    {
+      "name": "XNET:wsock.obj",
+      "functions": [
+        {
+          "decl": "int __stdcall xnet_send(int socket, const char *buf, int len, int flags);",
+          "addr": "0x225c20"
+        },
+        {
+          "decl": "int __stdcall xnet_closesocket(int socket);",
+          "addr": "0x225cc6"
+        }
+      ]
+    },
+    {
+      "name": "edit_text.obj",
+      "functions": [
+        {
+          "decl": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
+          "addr": "0x972b0"
+        },
+        {
+          "decl": "bool edit_text_get_selection_range(void *edit_text, int16_t *out_start, int16_t *out_end);",
+          "addr": "0x973a0"
+        }
+      ]
+    },
+    {
+      "name": "international_strings.obj",
+      "functions": [
+        {
+          "decl": "void unicode_cursor_forward(const char *str, int16_t *cursor);",
+          "addr": "0x19d1b0"
+        },
+        {
+          "decl": "void unicode_cursor_backward(const char *str, int16_t *cursor);",
+          "addr": "0x19d240"
+        },
+        {
+          "decl": "void unicode_snap_cursor(const char *str, int16_t *cursor);",
+          "addr": "0x19d300"
+        }
+      ]
+    },
+    {
+      "name": "weapons.obj",
+      "functions": [
+        {
+          "decl": "char *weapon_get_label(int weapon_handle);",
+          "addr": "0xfae80"
+        },
+        {
+          "decl": "bool weapon_is_flag(int object_index);",
+          "addr": "0xfb0c0"
+        },
+        {
+          "decl": "int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2, int16_t param_3, int16_t param_4);",
+          "addr": "0xfb140"
+        },
+        {
+          "decl": "bool weapon_has_activity(int weapon_handle @<eax>);",
+          "addr": "0xfb3c0"
+        },
+        {
+          "decl": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
+          "addr": "0xfb6e0"
+        },
+        {
+          "decl": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
+          "addr": "0xfba20"
+        },
+        {
+          "decl": "void weapon_reset_state(int weapon_handle);",
+          "addr": "0xfcf20"
         }
       ]
     }

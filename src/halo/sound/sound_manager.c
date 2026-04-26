@@ -86,6 +86,23 @@ void *sound_class_get_definition(short class_index)
   return definition;
 }
 
+/* Return the default priority for a sound tag (0x1c8d10).
+ * Reads the priority field at tag offset 0xc. If zero, falls back to
+ * the sound class definition's default priority at offset 0x1c. */
+float sound_get_default_priority(int sound_tag_index)
+{
+  void *sound_tag = tag_get(0x736e6421, sound_tag_index);
+  float priority = *(float *)((char *)sound_tag + 0xc);
+
+  if (priority == 0.0f) {
+    short class_index = *(short *)((char *)sound_tag + 0x4);
+    void *class_def = sound_class_get_definition(class_index);
+    priority = *(float *)((char *)class_def + 0x1c);
+  }
+
+  return priority;
+}
+
 /* Return the minimum-distance attenuation for a sound tag.
  * Reads the per-tag min_distance override at tag offset 0x8.
  * If it is zero, falls back to the min_distance field (offset 0x18)
@@ -103,6 +120,63 @@ float sound_class_get_min_distance(int sound_tag_index)
   }
 
   return min_distance;
+}
+
+/* Select the best pitch range for a given random scale value (0x1c8de0).
+ * If hint_index is valid and its bend bounds contain random_scale with at
+ * least one permutation, returns hint_index directly. Otherwise scans all
+ * pitch ranges: an exact match returns immediately, otherwise tracks the
+ * closest range by ratio of bend bounds to scale. */
+short sound_select_pitch_range(void *sound_tag, float random_scale,
+                               short hint_index)
+{
+  short best_index = -1;
+  char *tag = (char *)sound_tag;
+
+  if (hint_index != -1) {
+    if ((int)hint_index < *(int *)(tag + 0x98)) {
+      char *pitch_range =
+        (char *)tag_block_get_element(tag + 0x98, (int)hint_index, 0x48);
+      float min_bend = *(float *)(pitch_range + 0x24);
+      float max_bend = *(float *)(pitch_range + 0x28);
+      if (min_bend <= random_scale && random_scale <= max_bend &&
+          *(int *)(pitch_range + 0x3c) != 0) {
+        return hint_index;
+      }
+    }
+  }
+
+  {
+    int count = *(int *)(tag + 0x98);
+    float best_distance = 3.4028235e+38f;
+    short i;
+    for (i = 0; (int)i < count; i++) {
+      char *pitch_range =
+        (char *)tag_block_get_element(tag + 0x98, (int)i, 0x48);
+      if (*(int *)(pitch_range + 0x3c) == 0)
+        continue;
+
+      float min_bend = *(float *)(pitch_range + 0x24);
+      float max_bend = *(float *)(pitch_range + 0x28);
+
+      if (min_bend <= random_scale && random_scale <= max_bend)
+        return i;
+
+      float distance;
+      if (random_scale <= max_bend) {
+        distance = min_bend / random_scale;
+      } else {
+        distance = random_scale / max_bend;
+      }
+
+      if (distance < best_distance) {
+        best_distance = distance;
+        best_index = i;
+      }
+    }
+  }
+
+  return best_index;
 }
 
 /* Sample a pitch value from a permutation's mouth data (0x1c8f20).
@@ -139,6 +213,91 @@ float sound_get_permutation_pitch(int permutation_block_ptr,
   error(2, "but how can you speak if you have no mouth data? (permutation %s)",
         permutation_block_ptr);
   return 0.0f;
+}
+
+/* Select a permutation from a pitch range (0x1c8f80).
+ * If a next-permutation is queued (offset 0x3a), consumes and returns it.
+ * If the sound tag has the sequential flag (bit 1) and a hint is given,
+ * returns that permutation's chained next index (offset 0x2a).
+ * Otherwise performs weighted random selection with a played-bit mask
+ * (offset 0x34) to avoid repeats, accepting unconditionally after 16 tries. */
+short sound_select_permutation(void *sound_tag, short pitch_range_index,
+                               short hint_permutation_index)
+{
+  char *tag = (char *)sound_tag;
+  char *pitch_range =
+    (char *)tag_block_get_element(tag + 0x98, (int)pitch_range_index, 0x48);
+  short attempts = 0;
+
+  if (*(int *)(pitch_range + 0x3c) == 0) {
+    display_assert("range->permutations.count",
+                   "c:\\halo\\SOURCE\\sound\\sound_definitions.c", 0x37c, 1);
+    system_exit(-1);
+  }
+
+  {
+    short next = *(short *)(pitch_range + 0x3a);
+    if (next != -1) {
+      *(short *)(pitch_range + 0x3a) = -1;
+      *(short *)(pitch_range + 0x38) = next;
+      return next;
+    }
+  }
+
+  if ((*(uint8_t *)tag & 2) != 0 && hint_permutation_index != -1) {
+    char *perm = (char *)tag_block_get_element(
+      pitch_range + 0x3c, (int)hint_permutation_index, 0x7c);
+    return *(short *)(perm + 0x2a);
+  }
+
+  {
+    short count = *(short *)(pitch_range + 0x2c);
+    unsigned int *seed = random_math_get_local_seed_address();
+    short selected = random_range(seed, 0, count);
+
+    for (;;) {
+      uint32_t all_bits = (1u << ((uint8_t)count & 0x1f)) - 1;
+
+      if ((~*(uint32_t *)(pitch_range + 0x34) & all_bits) == 0) {
+        *(uint32_t *)(pitch_range + 0x34) = 0;
+        if (count > 1) {
+          *(uint32_t *)(pitch_range + 0x34) =
+            1u << ((uint8_t) * (short *)(pitch_range + 0x38) & 0x1f);
+        }
+      }
+
+      {
+        uint32_t bit = 1u << ((uint8_t)selected & 0x1f);
+        if ((*(uint32_t *)(pitch_range + 0x34) & bit) == 0) {
+          *(uint32_t *)(pitch_range + 0x34) |= bit;
+
+          if (attempts == 0x10) {
+            *(short *)(pitch_range + 0x38) = selected;
+            return selected;
+          }
+
+          attempts++;
+          seed = random_math_get_local_seed_address();
+
+          {
+            float random_val = random_math_real(seed);
+            char *perm = (char *)tag_block_get_element(pitch_range + 0x3c,
+                                                       (int)selected, 0x7c);
+
+            if (random_val >= *(float *)(perm + 0x20)) {
+              *(short *)(pitch_range + 0x38) = selected;
+              return selected;
+            }
+          }
+        }
+      }
+
+      selected++;
+      if (selected == *(short *)(pitch_range + 0x2c)) {
+        selected = 0;
+      }
+    }
+  }
 }
 
 /* sound_valid_for_channel (0x1cb790)
