@@ -5269,6 +5269,10 @@
     "0x3b900": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x3a600": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }

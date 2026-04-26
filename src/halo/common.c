@@ -205,6 +205,52 @@ void FUN_0002b5d0(void)
   }
 }
 
+void *FUN_0003a600(short actor_type /* @<ax> */)
+{
+  void **actor_type_definitions = (void **)0x2c86a8;
+
+  if (actor_type < 0 || actor_type > 0xf) {
+    display_assert("actor_type>=0 && actor_type<NUMBER_OF_ACTOR_TYPES",
+                   "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x2e, 1);
+    system_exit(-1);
+  }
+  if (actor_type_definitions[actor_type] == 0) {
+    display_assert("actor_type_definitions[actor_type]",
+                   "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x2f, 1);
+    system_exit(-1);
+  }
+  char *def = (char *)actor_type_definitions[actor_type];
+  if (*(int *)(def + 0) == 0) {
+    display_assert("actor_type_definitions[actor_type]->name",
+                   "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x32, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(def + 0x14) == 0) {
+    display_assert("actor_type_definitions[actor_type]->decide_action",
+                   "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x33, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(def + 6) > 2) {
+    display_assert("actor_type_definitions[actor_type]->when_to_search_at_"
+                   "target < NUMBER_OF_ACTOR_PURSUIT_SETTINGS",
+                   "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x35, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(def + 8) > 2) {
+    display_assert("actor_type_definitions[actor_type]->when_to_pursue < "
+                   "NUMBER_OF_ACTOR_PURSUIT_SETTINGS",
+                   "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x35, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(def + 10) > 2) {
+    display_assert("actor_type_definitions[actor_type]->when_to_search_pursuit "
+                   "< NUMBER_OF_ACTOR_PURSUIT_SETTINGS",
+                   "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x37, 1);
+    system_exit(-1);
+  }
+  return actor_type_definitions[actor_type];
+}
+
 void FUN_0003a740(void)
 {
   short i;
