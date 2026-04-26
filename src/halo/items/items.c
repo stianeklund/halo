@@ -15,6 +15,16 @@ void item_activate_equipment_effect(int equipment_handle)
   }
 }
 
+/* Play the pickup sound for an equipment tag (0xf67f0).
+ * Reads the pickup sound tag index at equipment_tag+0x31c and plays it. */
+void FUN_000f67f0(int equipment_tag_index)
+{
+  int tag_data = (int)tag_get(0x65716970, equipment_tag_index);
+  if (*(int *)(tag_data + 0x31c) != -1) {
+    sound_impulse_start(*(int *)(tag_data + 0x31c), 1.0f);
+  }
+}
+
 /* Iterate all item objects (type 0x1c) and return true if any have
  * a positive danger count, indicating a dangerous item is near a player. */
 bool dangerous_items_near_player(void)
