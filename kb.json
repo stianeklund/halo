@@ -7408,7 +7408,8 @@
         },
         {
           "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
-          "addr": "0xfc290"
+          "addr": "0xfc290",
+          "ported": true
         },
         {
           "decl": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",

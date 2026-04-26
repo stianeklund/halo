@@ -1433,7 +1433,7 @@ bool unit_should_swap_weapon(int unit_handle, int weapon_handle)
           float slot_ammo = *(float *)((char *)slot_weapon_obj + 0x1f0);
           if (slot_ammo > *(float *)0x2533c0) {
             float new_ammo = *(float *)((char *)weapon_obj + 0x1f0);
-            if (new_ammo >= slot_ammo)
+            if (new_ammo < slot_ammo)
               goto next_seat;
           }
         }

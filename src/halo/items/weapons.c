@@ -398,9 +398,9 @@ bool FUN_000fc290(int weapon_handle, int source_handle,
                 FUN_000f67f0(*(int *)(entry + 0xc));
               }
               object_delete(source_handle);
+              found = true;
+              break;
             }
-            found = true;
-            break;
           }
         }
       }
