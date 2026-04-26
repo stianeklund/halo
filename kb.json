@@ -221,7 +221,7 @@
         {
           "decl": "void *FUN_0003a600(int16_t actor_type@<ax>);",
           "addr": "0x3a600",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0003a740(void);",
