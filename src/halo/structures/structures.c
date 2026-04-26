@@ -1,3 +1,98 @@
+/* FUN_00099220 (0x99220)
+ *
+ * Determine the dominant axis of a plane normal.  Returns the index
+ * (0=x, 1=y, 2=z) of the component with the largest absolute value.
+ */
+uint32_t FUN_00099220(float *plane)
+{
+  float ax = plane[0] < 0.0f ? -plane[0] : plane[0];
+  float ay = plane[1] < 0.0f ? -plane[1] : plane[1];
+  float az = plane[2] < 0.0f ? -plane[2] : plane[2];
+
+  if (ay <= az && ax <= az)
+    return 2;
+  if (ay < ax)
+    return 0;
+  return 1;
+}
+
+/* FUN_00099270 (0x99270)
+ *
+ * Return 1 if the plane normal component at the given projection axis
+ * is positive, 0 otherwise.
+ */
+uint8_t FUN_00099270(float *plane, uint32_t basis)
+{
+  assert_halt((int16_t)basis >= 0 && (int16_t)basis <= 2);
+  if (plane[basis] > 0.0f)
+    return 1;
+  return 0;
+}
+
+/* FUN_00106130 (0x106130)
+ *
+ * Test whether a query point lies within a given radius of a 2D convex
+ * polygon.  Points are 2D (x, y pairs, stride 8 bytes).  Uses the
+ * cross-product sign to check sidedness; if the point is outside any
+ * edge beyond the radius, returns false.
+ */
+bool FUN_00106130(uint16_t point_count, void *points, void *query_point,
+                  float radius)
+{
+  float *pts = (float *)points;
+  float *qp = (float *)query_point;
+  int16_t i;
+  float radius_sq = radius * radius;
+
+  if ((int16_t)point_count <= 0)
+    return true;
+
+  for (i = 0; i < (int16_t)point_count; i++) {
+    int idx = (int)i;
+    int next = (idx + 1 < (int)(int16_t)point_count) ? idx + 1 : 0;
+
+    float ex = pts[next * 2] - pts[idx * 2];
+    float ey = pts[next * 2 + 1] - pts[idx * 2 + 1];
+    float edge_len_sq = ex * ex + ey * ey;
+
+    if (edge_len_sq == 0.0f)
+      continue;
+
+    float dx = qp[0] - pts[idx * 2];
+    float dy = qp[1] - pts[idx * 2 + 1];
+    float cross = dx * ey - dy * ex;
+
+    if (cross <= 0.0f)
+      continue;
+
+    if (cross * cross < edge_len_sq * radius_sq)
+      continue;
+
+    return false;
+  }
+  return true;
+}
+
+/* FUN_0018e420 (0x18e420)
+ *
+ * Returns the global BSP3D pointer (DAT_005064d8). Asserts with a halt if
+ * the pointer has not been initialized (i.e. is NULL). Called by BSP
+ * traversal and portal-intersection code to obtain the current structure
+ * BSP3D tag data.
+ *
+ * Confirmed: no parameters (plain MOV EAX,[global]; TEST; RET).
+ * Confirmed: assert string "global_bsp3d", file scenario.c, line 0xd5.
+ */
+void *FUN_0018e420(void)
+{
+  if (*(void **)0x5064d8 == NULL) {
+    display_assert("global_bsp3d", "c:\\halo\\SOURCE\\scenario\\scenario.c",
+                   0xd5, true);
+    system_exit(-1);
+  }
+  return *(void **)0x5064d8;
+}
+
 /* Structure BSP rendering subsystem init/dispose. */
 
 int cluster_partition_iter_next(void *partition, int *state)
@@ -10,6 +105,132 @@ int cluster_partition_iter_next(void *partition, int *state)
   }
 
   return -1;
+}
+
+/* Add an object to a cluster partition (0x1917a0).
+ * Finds all clusters overlapping position+radius via structure_find_in_cluster,
+ * then for each cluster: allocates a per-object cluster reference
+ * (partition[2]) linking into *first_cluster_ref, and a per-cluster object
+ * reference (partition[1]) linking into the cluster head array (partition[0]).
+ */
+void cluster_partition_add_object(void *partition, int object_handle,
+                                  void *first_cluster_ref, void *position,
+                                  uint32_t radius_fp, void *location)
+{
+  int **part = (int **)partition;
+  int *first_ref = (int *)first_cluster_ref;
+  short *pos = (short *)position;
+  char *loc = (char *)location;
+
+  assert_halt(partition);
+  assert_halt(first_cluster_ref);
+  assert_halt(*first_ref == -1);
+  assert_halt(position);
+  assert_halt(location);
+
+  short local_clusters[64];
+  uint16_t cluster_bsp_index = *(uint16_t *)(loc + 4);
+  union {
+    uint32_t u;
+    float f;
+  } rad;
+  rad.u = radius_fp;
+
+  int16_t cluster_count = structure_find_in_cluster(
+    cluster_bsp_index, (float *)pos, rad.f, 0x40, local_clusters);
+
+  if (cluster_count > 0x40) {
+    error(2, "an object or light spanned %d clusters.", (int)cluster_count);
+    cluster_count = 0x40;
+  }
+
+  {
+    int i;
+    short *cluster_ptr = local_clusters;
+    for (i = 0; i < (int)(uint16_t)cluster_count; i++, cluster_ptr++) {
+      short cluster_index = *cluster_ptr;
+
+      {
+        data_t *obj_ref_data = (data_t *)part[2];
+        int obj_ref_handle = data_new_at_index(obj_ref_data);
+        if (obj_ref_handle == -1) {
+          error(2, "WARNING: maximum %ss per map (%d) exceeded.", obj_ref_data,
+                (int)*(short *)((char *)obj_ref_data + 0x20));
+        } else {
+          int *obj_ref = (int *)datum_get(obj_ref_data, obj_ref_handle);
+          obj_ref[1] = (int)cluster_index;
+          obj_ref[2] = *first_ref;
+          *first_ref = obj_ref_handle;
+        }
+      }
+
+      if (cluster_index < 0 ||
+          (int)cluster_index >= *(int *)((char *)scenario_get() + 0x134)) {
+        display_assert(
+          "cluster_index>=0 && "
+          "cluster_index<global_structure_bsp_get()->clusters.count",
+          "c:\\halo\\SOURCE\\structures\\cluster_partitions.c", 0xd5, true);
+        system_exit(-1);
+      }
+
+      {
+        int *cluster_head = &part[0][(int)cluster_index];
+        data_t *cluster_ref_data = (data_t *)part[1];
+        int cluster_ref_handle = data_new_at_index(cluster_ref_data);
+        if (cluster_ref_handle == -1) {
+          error(2, "WARNING: maximum %ss per map (%d) exceeded.",
+                cluster_ref_data,
+                (int)*(short *)((char *)cluster_ref_data + 0x20));
+        } else {
+          int *cluster_ref =
+            (int *)datum_get(cluster_ref_data, cluster_ref_handle);
+          cluster_ref[1] = object_handle;
+          cluster_ref[2] = *cluster_head;
+          *cluster_head = cluster_ref_handle;
+        }
+      }
+    }
+  }
+}
+
+/* Remove an object from a cluster partition (0x1919a0).
+ * Walks the per-object cluster reference chain (*first_cluster_ref),
+ * and for each entry: reads the cluster index, removes the matching
+ * per-cluster object reference via reference_list_remove, frees
+ * the per-object datum, then follows the next link. Clears
+ * *first_cluster_ref to -1 when done. */
+void cluster_partition_remove_object(void *partition, int object_handle,
+                                     void *first_cluster_ref)
+{
+  int **part = (int **)partition;
+  int *first_ref = (int *)first_cluster_ref;
+  int cursor = *first_ref;
+
+  while (cursor != -1) {
+    data_t *obj_ref_data = (data_t *)part[2];
+    int *obj_ref = (int *)datum_get(obj_ref_data, cursor);
+    short cluster_index = *(short *)((char *)obj_ref + 4);
+
+    datum_delete(obj_ref_data, cursor);
+
+    if (cluster_index < 0 ||
+        (int)cluster_index >= *(int *)((char *)scenario_get() + 0x134)) {
+      display_assert("cluster_index>=0 && "
+                     "cluster_index<global_structure_bsp_get()->clusters.count",
+                     "c:\\halo\\SOURCE\\structures\\cluster_partitions.c", 0xd5,
+                     true);
+      system_exit(-1);
+    }
+
+    {
+      int *cluster_head = &part[0][(int)cluster_index];
+      reference_list_remove((data_t *)part[1], cluster_head, object_handle);
+    }
+
+    cursor = obj_ref[2];
+  }
+
+  *first_ref = -1;
 }
 
 int cluster_partition_iter_first(void *partition, int *state,
@@ -53,26 +274,6 @@ void structures_dispose_from_old_map(void)
 
 void structures_dispose(void)
 {
-}
-
-/* FUN_0018e420 (0x18e420)
- *
- * Returns the global BSP3D pointer (DAT_005064d8). Asserts with a halt if
- * the pointer has not been initialized (i.e. is NULL). Called by BSP
- * traversal and portal-intersection code to obtain the current structure
- * BSP3D tag data.
- *
- * Confirmed: no parameters (plain MOV EAX,[global]; TEST; RET).
- * Confirmed: assert string "global_bsp3d", file scenario.c, line 0xd5.
- */
-void *FUN_0018e420(void)
-{
-  if (*(void **)0x5064d8 == NULL) {
-    display_assert("global_bsp3d",
-                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xd5, true);
-    system_exit(-1);
-  }
-  return *(void **)0x5064d8;
 }
 
 /* structures_cluster_marker_begin (0x198400)
@@ -166,8 +367,8 @@ bool FUN_00198800(void *scenario, int16_t portal_index, float *position,
       int *portal_vertices = (int *)(portal + 0x34);
       int16_t vertex = 0;
 
-      portal_plane = tag_block_get_element((int *)(bsp3d + 0xc),
-                                           portal_plane_index, 0x10);
+      portal_plane =
+        tag_block_get_element((int *)(bsp3d + 0xc), portal_plane_index, 0x10);
       plane_basis = FUN_00099220(portal_plane);
       plane_axis = FUN_00099270(portal_plane, plane_basis);
 
@@ -298,79 +499,4 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
   }
 
   return 0;
-}
-
-/* FUN_00099220 (0x99220)
- *
- * Determine the dominant axis of a plane normal.  Returns the index
- * (0=x, 1=y, 2=z) of the component with the largest absolute value.
- */
-uint32_t FUN_00099220(float *plane)
-{
-  float ax = plane[0] < 0.0f ? -plane[0] : plane[0];
-  float ay = plane[1] < 0.0f ? -plane[1] : plane[1];
-  float az = plane[2] < 0.0f ? -plane[2] : plane[2];
-
-  if (ay <= az && ax <= az)
-    return 2;
-  if (ay < ax)
-    return 0;
-  return 1;
-}
-
-/* FUN_00099270 (0x99270)
- *
- * Return 1 if the plane normal component at the given projection axis
- * is positive, 0 otherwise.
- */
-uint8_t FUN_00099270(float *plane, uint32_t basis)
-{
-  assert_halt((int16_t)basis >= 0 && (int16_t)basis <= 2);
-  if (plane[basis] > 0.0f)
-    return 1;
-  return 0;
-}
-
-/* FUN_00106130 (0x106130)
- *
- * Test whether a query point lies within a given radius of a 2D convex
- * polygon.  Points are 2D (x, y pairs, stride 8 bytes).  Uses the
- * cross-product sign to check sidedness; if the point is outside any
- * edge beyond the radius, returns false.
- */
-bool FUN_00106130(uint16_t point_count, void *points, void *query_point,
-                  float radius)
-{
-  float *pts = (float *)points;
-  float *qp = (float *)query_point;
-  int16_t i;
-  float radius_sq = radius * radius;
-
-  if ((int16_t)point_count <= 0)
-    return true;
-
-  for (i = 0; i < (int16_t)point_count; i++) {
-    int idx = (int)i;
-    int next = (idx + 1 < (int)(int16_t)point_count) ? idx + 1 : 0;
-
-    float ex = pts[next * 2] - pts[idx * 2];
-    float ey = pts[next * 2 + 1] - pts[idx * 2 + 1];
-    float edge_len_sq = ex * ex + ey * ey;
-
-    if (edge_len_sq == 0.0f)
-      continue;
-
-    float dx = qp[0] - pts[idx * 2];
-    float dy = qp[1] - pts[idx * 2 + 1];
-    float cross = dx * ey - dy * ex;
-
-    if (cross <= 0.0f)
-      continue;
-
-    if (cross * cross < edge_len_sq * radius_sq)
-      continue;
-
-    return false;
-  }
-  return true;
 }
