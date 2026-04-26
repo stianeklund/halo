@@ -87,3 +87,15 @@ const char *tag_get_name(int tag_index)
 
   return (const char *)entry[4];
 }
+
+/* 0x1ba210 — tag_get_group_tag: return the primary group tag (4CC class
+ * identifier) for a tag by index. Calls tag_instance_resolve (0x1b9bf0)
+ * with the tag index in EDI, then reads the group tag at offset +0x00
+ * of the tag instance record. */
+int tag_get_group_tag(int tag_index)
+{
+  int *entry;
+
+  entry = tag_instance_resolve(tag_index);
+  return entry[0];
+}

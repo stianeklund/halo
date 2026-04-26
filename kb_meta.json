@@ -583,6 +583,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x973a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x97440": {
       "kind": "function",
       "status": "ported"
@@ -2989,11 +2993,15 @@
     },
     "0x10b300": {
       "kind": "function",
-      "status": "named",
+      "status": "ported",
       "inferred": [
         "Register-arg function: copies a 3-float vector from the sphere direction table at global 0x46e3e8 indexed by ESI, into the buffer at EBX.",
         "Assert strings confirm names: random_math_globals.random_direction_table and random_math_globals.random_direction_table_size at lines 250-251."
       ]
+    },
+    "0x10b380": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x10b4c0": {
       "kind": "function",
@@ -4572,6 +4580,10 @@
       "inferred": [
         "Offset +0x10 in the tag instance record is the tag name string pointer, accessed as entry[4] (dword at 0x10)."
       ]
+    },
+    "0x1ba210": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1bc6a0": {
       "kind": "function",
