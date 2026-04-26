@@ -5880,7 +5880,8 @@
         {
           "addr": "0x1913c0",
           "decl": "void reference_list_remove(data_t *data, int *head, int value);",
-          "comment": "Walk a reference list and unlink the entry whose +4 field matches value."
+          "comment": "Walk a reference list and unlink the entry whose +4 field matches value.",
+          "ported": true
         },
         {
           "addr": "0x191660",
