@@ -199,8 +199,8 @@ int weapon_start_effect(int trigger_effect, int param_2, int param_3,
                                0, 0);
   } else if (tag_group == 0x736e6421) {
     /* 'snd!' — sound effect */
-    int *position = *(int **)0x31fc1c;
-    int *forward = *(int **)0x31fc3c;
+    float *position = *(float **)0x31fc1c;
+    float *forward = *(float **)0x31fc3c;
     FUN_001c7e70(object_handle, trigger_effect, -1, position, forward,
                  param_2);
     result = -1;

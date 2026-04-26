@@ -2698,8 +2698,13 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001c7e70(int object_handle, int tag_index, int marker, int *position, int *forward, int param_6);",
-          "addr": "0x1c7e70"
+          "decl": "bool FUN_001c7a10(int object_handle, void *attachment_data, void *source);",
+          "addr": "0x1c7a10"
+        },
+        {
+          "decl": "int FUN_001c7e70(int object_handle, int tag_index, int16_t marker, float *position, float *forward, float scale);",
+          "addr": "0x1c7e70",
+          "ported": true
         },
         {
           "decl": "void sound_looping_stop(int sound_tag_index);",
