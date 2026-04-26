@@ -323,6 +323,94 @@ tail:
   return 1;
 }
 
+/* Transfer ammunition from a source object into a weapon's magazines (0xfc290).
+ * For each magazine that's below initial capacity, tries to transfer rounds from
+ * either the same weapon type or matching equipment. Deletes the source if
+ * fully depleted. Returns true if any ammo source was matched. */
+bool FUN_000fc290(int weapon_handle, int source_handle,
+                  uint16_t local_player_index, int16_t *rounds_out)
+{
+  int *weapon_data = (int *)object_get_and_verify_type(weapon_handle, 4);
+  int tag_data = (int)tag_get(0x77656170, *weapon_data);
+  int *source_data = (int *)object_get_and_verify_type(source_handle, 0x1c);
+  int source_tag = *source_data;
+  bool found = false;
+
+  for (int16_t i = 0; (int)i < *(int *)(tag_data + 0x4f0); i++) {
+    int check_tag = (int)tag_get(0x77656170, *weapon_data);
+    if ((int16_t)i < 0 || (int)i >= *(int *)(check_tag + 0x4f0)) {
+      display_assert(
+          "magazine_index>=0 && "
+          "magazine_index<weapon_definition->weapon.magazines.count",
+          "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, 1);
+      system_exit(-1);
+    }
+
+    int mag_offset = ((int)i * 3 + 0x96) * 4;
+    char *mag_def = (char *)tag_block_get_element(
+        (char *)tag_data + 0x4f0, (int)i, 0x70);
+    int16_t *mag_rounds = (int16_t *)((char *)weapon_data + mag_offset + 6);
+    int16_t transfer = 0;
+
+    if (*mag_rounds < *(int16_t *)(mag_def + 8)) {
+      int16_t need = *(int16_t *)(mag_def + 8) - *mag_rounds;
+
+      if (*weapon_data == source_tag) {
+        int *src_weap = (int *)object_get_and_verify_type(source_handle, 4);
+        int src_tag2 = (int)tag_get(0x77656170, *src_weap);
+        if ((int16_t)i < 0 || (int)i >= *(int *)(src_tag2 + 0x4f0)) {
+          display_assert(
+              "magazine_index>=0 && "
+              "magazine_index<weapon_definition->weapon.magazines.count",
+              "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, 1);
+          system_exit(-1);
+        }
+
+        int16_t *src_rounds =
+            (int16_t *)((char *)src_weap + mag_offset + 6);
+        transfer = need;
+        if (*src_rounds <= need) {
+          transfer = *src_rounds;
+        }
+        if (transfer > 0) {
+          *src_rounds = *src_rounds - transfer;
+          if (*(int *)(tag_data + 0x49c) != -1 &&
+              (int16_t)local_player_index != -1) {
+            sound_impulse_start(*(int *)(tag_data + 0x49c), 1.0f);
+          }
+          if (*src_rounds == 0) {
+            object_delete(source_handle);
+          }
+        }
+        found = true;
+      } else {
+        int *equip_block = (int *)(mag_def + 0x64);
+        for (int16_t j = 0; (int)j < *equip_block; j++) {
+          int16_t *entry = (int16_t *)tag_block_get_element(
+              equip_block, (int)j, 0x1c);
+          if (*(int *)(entry + 0xc) == source_tag) {
+            transfer = need;
+            if (*entry <= need) {
+              transfer = *entry;
+            }
+            if (transfer > 0) {
+              if ((int16_t)local_player_index != -1) {
+                FUN_000f67f0(*(int *)(entry + 0xc));
+              }
+              object_delete(source_handle);
+            }
+            found = true;
+            break;
+          }
+        }
+      }
+      *mag_rounds = *mag_rounds + transfer;
+      *rounds_out = transfer;
+    }
+  }
+  return found;
+}
+
 /* Complete a magazine reload cycle (0xfcaf0).
  * Transfers rounds from unloaded reserve to the loaded count, capped by
  * the tag's rounds-per-reload and maximum-rounds fields. Adjusts reserve

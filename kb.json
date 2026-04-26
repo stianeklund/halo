@@ -3296,6 +3296,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_000f67f0(int equipment_tag_index);",
+          "addr": "0xf67f0"
+        },
+        {
           "decl": "bool dangerous_items_near_player(void);",
           "addr": "0xf6970",
           "ported": true
