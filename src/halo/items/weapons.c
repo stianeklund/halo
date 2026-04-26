@@ -153,7 +153,7 @@ bool weapon_has_activity(int weapon_handle)
  * Confirmed: object byte+4 bit 0 checked; if set and +0xcc != -1,
  *   parent_handle = object+0xcc.
  * Confirmed: second object_get_and_verify_type call to get unit handle.
- * Confirmed: FUN_001ba210 returns tag group; dispatches on effe/snd!.
+ * Confirmed: tag_get_group_tag returns tag group; dispatches on effe/snd!.
  * Confirmed: assert at weapons.c line 0x9d2 for unknown tag group.
  * Confirmed: snd! branch reads globals [0x31fc1c] and [0x31fc3c].
  * Confirmed: effe branch calls FUN_0009ec30 with 8 args.
@@ -191,7 +191,7 @@ int weapon_start_effect(int trigger_effect, int param_2, int param_3,
   }
 
   /* Dispatch based on tag group */
-  int tag_group = FUN_001ba210(trigger_effect);
+  int tag_group = tag_get_group_tag(trigger_effect);
   if (tag_group == 0x65666665) {
     /* 'effe' — visual/particle effect */
     result = (int)FUN_0009ec30(trigger_effect, object_handle,
