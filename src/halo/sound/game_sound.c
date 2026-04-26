@@ -74,6 +74,46 @@ void game_sound_dispose_from_old_map(void)
   }
 }
 
+/* Start a sound at a position with a directional forward vector (0x1c7e70).
+ * Builds a callback_data struct with marker/position/forward and a sound_params
+ * struct, calls FUN_001c7a10 to resolve attachment, then sound_start. */
+int FUN_001c7e70(int object_handle, int tag_index, int16_t marker,
+                 float *position, float *forward, float scale)
+{
+  char sound_params[0x40];
+  char callback_data[0x1c];
+
+  if (!position || !forward) {
+    display_assert("position && forward",
+                   "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x12c, 1);
+    system_exit(-1);
+  }
+  if (scale < 0.0f || scale > 1.0f) {
+    display_assert("scale>=0.f && scale<=1.f",
+                   "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x12d, 1);
+    system_exit(-1);
+  }
+
+  *(float *)(callback_data + 4) = position[0];
+  *(float *)(callback_data + 8) = position[1];
+  *(float *)(callback_data + 12) = position[2];
+  *(float *)(callback_data + 16) = forward[0];
+  *(float *)(callback_data + 20) = forward[1];
+  *(float *)(callback_data + 24) = forward[2];
+
+  *(int16_t *)(sound_params + 0) = 1;
+  *(float *)(sound_params + 8) = 1.0f;
+  *(int16_t *)(callback_data + 2) = marker;
+  *(int16_t *)(sound_params + 0x34) = -1;
+
+  if (!FUN_001c7a10(object_handle, callback_data, sound_params))
+    return -1;
+
+  *(float *)(sound_params + 4) = scale;
+  return sound_start(tag_index, sound_params, object_handle,
+                     (int)&FUN_001c7a10, callback_data, 0x1c);
+}
+
 /* sound_looping_stop (0x1c80e0)
  *
  * If sound_tag_index is valid, resolves the
