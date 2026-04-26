@@ -23,8 +23,8 @@ int real_vector3d_valid(float *vector)
   return 1;
 }
 
-void FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
-                  int marker, int arg4, int arg5, int arg6, int arg7);
+int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
+                 int marker, int arg4, int arg5, int arg6, int arg7);
 
 /*
  * objects/objects.c — object system lifecycle and placement
@@ -1604,6 +1604,48 @@ lab_00140017: {
     hdr->unk_2 |= 0x02;
   }
 }
+}
+
+/* Walk the parent chain to the root object and copy its position and
+ * forward vector to the output buffers (0x140070). Either output may
+ * be NULL to skip copying. Position is at object offset 0x18 (3 floats),
+ * forward direction at 0x3c (3 floats). */
+void object_get_root_location(int object_handle, float *position_out,
+                               float *direction_out)
+{
+  char *obj = (char *)object_get_and_verify_type(object_handle, -1);
+
+  while (*(int *)(obj + 0xcc) != -1) {
+    object_header_data_t *header =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
+                                          *(int *)(obj + 0xcc));
+    obj = (char *)header->object;
+
+    {
+      int16_t type = *(int16_t *)(obj + 0x64);
+      if ((1 << (type & 0x1f)) == 0) {
+        char *msg = csprintf(
+            (char *)0x5ab100,
+            "got an object type we didn't expect "
+            "(expected one of 0x%08x but got #%d).",
+            -1, (int)type);
+        display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+        system_exit(-1);
+      }
+    }
+  }
+
+  if (position_out != NULL) {
+    position_out[0] = *(float *)(obj + 0x18);
+    position_out[1] = *(float *)(obj + 0x1c);
+    position_out[2] = *(float *)(obj + 0x20);
+  }
+
+  if (direction_out != NULL) {
+    direction_out[0] = *(float *)(obj + 0x3c);
+    direction_out[1] = *(float *)(obj + 0x40);
+    direction_out[2] = *(float *)(obj + 0x44);
+  }
 }
 
 /*

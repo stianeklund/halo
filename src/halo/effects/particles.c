@@ -21,6 +21,18 @@ void particles_dispose(void)
     particle_data = 0;
 }
 
+/* Check whether a 3D point has all finite float components (0x0a16b0).
+ * Returns true if none of the three components are NaN or infinity
+ * (IEEE 754 exponent field != 0x7f800000). */
+bool valid_real_point3d(float *point)
+{
+  uint32_t *p = (uint32_t *)point;
+  if ((p[0] & 0x7f800000) == 0x7f800000) return false;
+  if ((p[1] & 0x7f800000) == 0x7f800000) return false;
+  if ((p[2] & 0x7f800000) == 0x7f800000) return false;
+  return true;
+}
+
 /* TODO: particle_delete also reverted — see git 08bf664 for implementation */
 
 /* TODO: particle_step and particle_move temporarily reverted to original

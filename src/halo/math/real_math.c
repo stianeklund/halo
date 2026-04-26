@@ -491,6 +491,26 @@ void perpendicular3d(float *in, float *out)
   }
 }
 
+/* Rotate vector in-place around axis by angle given as sin/cos (0x10b6e0).
+ * Uses the Rodrigues rotation formula:
+ *   v' = v*cos + axis*(axis.v)*(1-cos) - (v x axis)*sin */
+void rotate_vector3d_by_sincos(float *vector, float *axis,
+                               float sin_angle, float cos_angle)
+{
+  float v0 = vector[0], v1 = vector[1], v2 = vector[2];
+  float a0 = axis[0], a1 = axis[1], a2 = axis[2];
+
+  float k = (1.0f - cos_angle) * (v0 * a0 + v1 * a1 + v2 * a2);
+
+  float cx = v1 * a2 - v2 * a1;
+  float cy = v2 * a0 - v0 * a2;
+  float cz = v0 * a1 - v1 * a0;
+
+  vector[0] = k * a0 + cos_angle * v0 - cx * sin_angle;
+  vector[1] = k * a1 + cos_angle * v1 - cy * sin_angle;
+  vector[2] = k * a2 + cos_angle * v2 - cz * sin_angle;
+}
+
 float FUN_0010c600(float *a, float *b)
 {
   float dot;

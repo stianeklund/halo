@@ -462,10 +462,6 @@
           "ported": true
         },
         {
-          "decl": "bool valid_real_point3d(float *point);",
-          "addr": "0xa16b0"
-        },
-        {
           "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
           "addr": "0xfc290"
         },
@@ -511,10 +507,6 @@
           "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
           "addr": "0x10b4c0",
           "status": "ported"
-        },
-        {
-          "decl": "void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle, float cos_angle);",
-          "addr": "0x10b6e0"
         },
         {
           "decl": "bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
@@ -593,10 +585,6 @@
           "addr": "0x12eb20"
         },
         {
-          "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
-          "addr": "0x140070"
-        },
-        {
           "decl": "uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point);",
           "addr": "0x146db0"
         },
@@ -623,6 +611,10 @@
         {
           "decl": "void FUN_001a1140(int unit_handle, int16_t param2, void *param3, void *param4, void *param5, float *position);",
           "addr": "0x1a1140"
+        },
+        {
+          "decl": "void FUN_001a8e10(int object_handle, int16_t state);",
+          "addr": "0x1a8e10"
         },
         {
           "decl": "int FUN_001b9920(void);",
@@ -2758,6 +2750,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_001c7e70(int object_handle, int tag_index, int marker, int *position, int *forward, int param_6);",
+          "addr": "0x1c7e70"
+        },
+        {
           "decl": "void sound_looping_stop(int sound_tag_index);",
           "addr": "0x1c80e0",
           "ported": true
@@ -3709,7 +3705,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0009ec30(int effect_index, int object_handle, int parent_handle, int marker, int arg4, int arg5, int arg6, int arg7);",
+          "decl": "int FUN_0009ec30(int effect_index, int object_handle, int parent_handle, int marker, int arg4, int arg5, int arg6, int arg7);",
           "addr": "0x9ec30",
           "ported": true
         },
@@ -3911,6 +3907,12 @@
         {
           "decl": "void object_set_garbage(int object_handle, int flag);",
           "addr": "0x13ffc0",
+          "ported": true
+        },
+        {
+          "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
+          "addr": "0x140070",
+          "comment": "Walk the parent chain to the root object and copy its position/forward vector.",
           "ported": true
         },
         {
@@ -4124,6 +4126,12 @@
         {
           "decl": "void particles_dispose(void);",
           "addr": "0xa14d0",
+          "ported": true
+        },
+        {
+          "decl": "bool valid_real_point3d(float *point);",
+          "addr": "0xa16b0",
+          "comment": "Check whether a 3D point has all finite float components (no NaN/Inf).",
           "ported": true
         },
         {
@@ -5073,6 +5081,12 @@
           "ported": true
         },
         {
+          "decl": "void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle, float cos_angle);",
+          "addr": "0x10b6e0",
+          "comment": "Rotate vector in-place around axis by angle given as sin/cos (Rodrigues formula).",
+          "ported": true
+        },
+        {
           "decl": "void angles_to_vector(float *out, float *angles);",
           "addr": "0x10cc40",
           "ported": true
@@ -5747,6 +5761,10 @@
           "decl": "const char *tag_get_name(int tag_index);",
           "addr": "0x1ba1f0",
           "ported": true
+        },
+        {
+          "decl": "int FUN_001ba210(int tag_index);",
+          "addr": "0x1ba210"
         }
       ]
     },
@@ -7322,34 +7340,46 @@
     },
     {
       "name": "weapons.obj",
+      "source": "items/weapons.c",
       "functions": [
         {
           "decl": "char *weapon_get_label(int weapon_handle);",
-          "addr": "0xfae80"
+          "addr": "0xfae80",
+          "ported": true
         },
         {
           "decl": "bool weapon_is_flag(int object_index);",
-          "addr": "0xfb0c0"
+          "addr": "0xfb0c0",
+          "ported": true
         },
         {
           "decl": "int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2, int16_t param_3, int16_t param_4);",
-          "addr": "0xfb140"
+          "addr": "0xfb140",
+          "ported": true
         },
         {
           "decl": "bool weapon_has_activity(int weapon_handle @<eax>);",
-          "addr": "0xfb3c0"
+          "addr": "0xfb3c0",
+          "ported": true
         },
         {
           "decl": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
-          "addr": "0xfb6e0"
+          "addr": "0xfb6e0",
+          "ported": true
         },
         {
           "decl": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
-          "addr": "0xfba20"
+          "addr": "0xfba20",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_000fcaf0(int weapon_handle, int magazine_index);",
+          "addr": "0xfcaf0"
         },
         {
           "decl": "void weapon_reset_state(int weapon_handle);",
-          "addr": "0xfcf20"
+          "addr": "0xfcf20",
+          "ported": true
         }
       ]
     }
