@@ -184,7 +184,8 @@
         },
         {
           "decl": "char *FUN_000211f0(int actor_handle);",
-          "addr": "0x211f0"
+          "addr": "0x211f0",
+          "ported": true
         },
         {
           "decl": "void vector3d_add(float *a, float *b, float *out);",
