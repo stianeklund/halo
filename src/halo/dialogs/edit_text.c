@@ -20,6 +20,46 @@ void edit_text_set_cursor_to_end(void *edit_text)
   *(int16_t *)((int)et + 8) = -1;
 }
 
+/* Clamp cursor and selection to valid range [0, strlen] (0x972b0).
+ * If cursor == selection after clamping, cancels the selection.
+ * Snaps both to valid character boundaries via unicode_snap_cursor. */
+void edit_text_clamp_cursor(void *edit_text)
+{
+  int *et = (int *)edit_text;
+  int16_t len = (int16_t)csstrlen((const char *)et[0]);
+
+  int16_t cursor = *(int16_t *)((int)et + 6);
+  int16_t clamped_cursor;
+  if (cursor < 0) {
+    clamped_cursor = 0;
+  } else if (cursor > len) {
+    clamped_cursor = len;
+  } else {
+    clamped_cursor = cursor;
+  }
+
+  int16_t sel = *(int16_t *)((int)et + 8);
+  *(int16_t *)((int)et + 6) = clamped_cursor;
+  int16_t clamped_sel;
+  if (sel < -1) {
+    clamped_sel = -1;
+  } else if (sel > len) {
+    clamped_sel = len;
+  } else {
+    clamped_sel = sel;
+  }
+
+  *(int16_t *)((int)et + 8) = clamped_sel;
+  if (clamped_cursor == clamped_sel) {
+    *(int16_t *)((int)et + 8) = -1;
+  }
+
+  unicode_snap_cursor((const char *)et[0], (int16_t *)((int)et + 6));
+  if (*(int16_t *)((int)et + 8) != -1) {
+    unicode_snap_cursor((const char *)et[0], (int16_t *)((int)et + 8));
+  }
+}
+
 /* Get the selection range as ordered (min, max) of cursor and anchor (0x973a0).
  * Returns false if no selection is active (selection_start == -1). */
 bool edit_text_get_selection_range(void *edit_text, int16_t *out_start,
