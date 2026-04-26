@@ -5257,6 +5257,18 @@
     "0x211f0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x3a740": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b320": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b900": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }

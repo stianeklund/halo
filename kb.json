@@ -219,8 +219,14 @@
           "addr": "0x36e30"
         },
         {
+          "decl": "void *FUN_0003a600(int16_t actor_type@<ax>);",
+          "addr": "0x3a600",
+          "ported": false
+        },
+        {
           "decl": "void FUN_0003a740(void);",
-          "addr": "0x3a740"
+          "addr": "0x3a740",
+          "ported": true
         },
         {
           "decl": "int FUN_0003b270(int actor_handle);",
@@ -229,11 +235,18 @@
         },
         {
           "decl": "bool FUN_0003b320(int actor_handle);",
-          "addr": "0x3b320"
+          "addr": "0x3b320",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0003b860(int actor_handle);",
+          "addr": "0x3b860",
+          "ported": false
         },
         {
           "decl": "void FUN_0003b900(void);",
-          "addr": "0x3b900"
+          "addr": "0x3b900",
+          "ported": true
         },
         {
           "decl": "void FUN_0003ba00(void);",

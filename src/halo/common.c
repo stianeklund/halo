@@ -205,6 +205,37 @@ void FUN_0002b5d0(void)
   }
 }
 
+void FUN_0003a740(void)
+{
+  short i;
+  for (i = 0; i < 0x10; i++) {
+    FUN_0003a600(i);
+  }
+}
+
+bool FUN_0003b320(int actor_handle)
+{
+  char *actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  int weapon_handle = FUN_0003b270(actor_handle);
+  bool has_weapon = (weapon_handle != -1);
+  if (has_weapon && *(int *)(actor + 0x18) != -1) {
+    char *unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+    if (*(unsigned char *)(unit + 0xb7) & 1) {
+      return false;
+    }
+  }
+  return has_weapon;
+}
+
+void FUN_0003b900(void)
+{
+  char iter[0x1c];
+  FUN_00059b10(iter, 1);
+  while (FUN_00059b50(iter)) {
+    FUN_0003b860(*(int *)(iter + 0x14));
+  }
+}
+
 /* 0x84a70 — valid_real_normal3d_perpendicular: check whether two 3D vectors
  * are each valid unit normals AND are perpendicular to each other.
  *
