@@ -5249,6 +5249,10 @@
     "0x213c0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x210f0": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
