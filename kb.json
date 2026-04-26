@@ -527,18 +527,6 @@
           "addr": "0x12b700"
         },
         {
-          "decl": "int FUN_0012d570(void *client);",
-          "addr": "0x12d570"
-        },
-        {
-          "decl": "void network_game_client_dispose(void *client);",
-          "addr": "0x12ea00"
-        },
-        {
-          "decl": "bool network_game_server_start(void *server);",
-          "addr": "0x12eb20"
-        },
-        {
           "decl": "uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point);",
           "addr": "0x146db0"
         },
@@ -762,6 +750,11 @@
           "decl": "bool __stdcall dsound_stream_is_active(void *stream);",
           "addr": "0x20f069",
           "comment": "Check if a DirectSound stream is still active by testing internal kernel status bits (0x10000002). Returns true if the stream is still processing."
+        },
+        {
+          "decl": "int *tag_instance_resolve(int tag_index@<edi>);",
+          "addr": "0x1b9bf0",
+          "comment": "Validate and resolve a tag index to its tag_instance record pointer. Asserts if tags not loaded or index out of range. Source: cache/cache_files.c"
         }
       ]
     },
@@ -3624,10 +3617,25 @@
     },
     {
       "name": "network_server_manager.obj",
+      "source": "networking/network_server_manager.c",
       "functions": [
         {
           "decl": "void network_server_manager_game_over(void *server);",
           "addr": "0x12c370"
+        },
+        {
+          "decl": "int FUN_0012d570(void *server);",
+          "addr": "0x12d570",
+          "comment": "Assert server non-null and return pointer offset +8.",
+          "ported": true
+        },
+        {
+          "decl": "void network_game_client_dispose(void *server);",
+          "addr": "0x12ea00"
+        },
+        {
+          "decl": "bool network_game_server_start(void *server);",
+          "addr": "0x12eb20"
         },
         {
           "decl": "bool network_server_manager_pregame_start(void *server);",
@@ -5735,8 +5743,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_001ba210(int tag_index);",
-          "addr": "0x1ba210"
+          "decl": "int tag_get_group_tag(int tag_index);",
+          "addr": "0x1ba210",
+          "ported": true
         }
       ]
     },
