@@ -810,7 +810,8 @@
         },
         {
           "decl": "void vector3d_add(float *a, float *b, float *out);",
-          "addr": "0x213c0"
+          "addr": "0x213c0",
+          "ported": true
         },
         {
           "decl": "void random_seed_get_direction3d(unsigned int *seed, float *out);",

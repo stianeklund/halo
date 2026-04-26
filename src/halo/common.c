@@ -63,6 +63,13 @@ void cross_product3d(float *a, float *b, float *out)
   out[2] = a0 * b1 - a1 * b0;
 }
 
+void vector3d_add(float *a, float *b, float *out)
+{
+  out[0] = a[0] + b[0];
+  out[1] = a[1] + b[1];
+  out[2] = a[2] + b[2];
+}
+
 /* 0xfae80 — weapon_get_label: resolve a weapon handle to its label string.
  *
  * If the handle is NONE (-1), returns a pointer to an empty string
