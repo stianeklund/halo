@@ -38,6 +38,13 @@ int csmemcmp(const void *a, const void *b, int size)
   return 0;
 }
 
+void csmemmove(void *destination, const void *source, unsigned int size)
+{
+  assert_halt(destination && source);
+  assert_halt(size >= 0 && size <= MAXIMUM_MEMCPY_MEMMOVE_SIZE);
+  memmove(destination, source, size);
+}
+
 void *csmemset(void *buffer, int c, size_t size)
 {
   uint32_t *dst32;
