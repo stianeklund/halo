@@ -5120,7 +5120,8 @@
         },
         {
           "decl": "void j__render_dispose_from_old_map(void);",
-          "addr": "0x184ba0"
+          "addr": "0x184ba0",
+          "ported": true
         },
         {
           "decl": "void render_dispose(void);",
