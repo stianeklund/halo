@@ -617,14 +617,6 @@
           "addr": "0x18e3f0"
         },
         {
-          "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
-          "addr": "0x1917a0"
-        },
-        {
-          "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
-          "addr": "0x1919a0"
-        },
-        {
           "decl": "void FUN_001a0890(int unit_handle, float *out_pos, float *out_dist_b, float *out_dist_a);",
           "addr": "0x1a0890"
         },
@@ -932,6 +924,15 @@
         {
           "decl": "char *crt_fgets(char *buffer, int max_count, void *stream);",
           "addr": "0x1daeec"
+        }
+      ]
+    },
+    {
+      "name": "LIBCMT:memmove.obj",
+      "functions": [
+        {
+          "decl": "void *memmove(void *dest, const void *src, size_t size);",
+          "addr": "0x1da290"
         }
       ]
     },
@@ -1483,7 +1484,8 @@
         },
         {
           "decl": "void csmemmove(void *dest, const void *src, unsigned int size);",
-          "addr": "0x8dae0"
+          "addr": "0x8dae0",
+          "ported": true
         },
         {
           "decl": "void *csmemset(void *buffer, int c, size_t size);",
@@ -5877,8 +5879,25 @@
           "ported": true
         },
         {
+          "addr": "0x1913c0",
+          "decl": "void reference_list_remove(data_t *data, int *head, int value);",
+          "comment": "Walk a reference list and unlink the entry whose +4 field matches value."
+        },
+        {
           "addr": "0x191660",
           "decl": "int cluster_partition_iter_next(void *partition, int *state);",
+          "ported": true
+        },
+        {
+          "addr": "0x1917a0",
+          "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
+          "comment": "Find clusters overlapping position+radius and add the object to both per-object and per-cluster reference lists.",
+          "ported": true
+        },
+        {
+          "addr": "0x1919a0",
+          "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
+          "comment": "Walk the object's cluster reference chain, removing each cluster-side reference and freeing both datums.",
           "ported": true
         }
       ]
