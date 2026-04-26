@@ -155,8 +155,41 @@
       ],
       "functions": [
         {
+          "decl": "float FUN_00012170(float *vector);",
+          "addr": "0x12170",
+          "ported": true
+        },
+        {
+          "decl": "float FUN_000121a0(const float *a, const float *b);",
+          "addr": "0x121a0"
+        },
+        {
+          "decl": "float FUN_000121e0(float min, float max);",
+          "addr": "0x121e0",
+          "ported": true
+        },
+        {
+          "decl": "void vector3d_scale_add(float *base, float *direction, float scale, float *out);",
+          "addr": "0x12f80",
+          "ported": true
+        },
+        {
           "decl": "void cross_product3d(float *a, float *b, float *out);",
           "addr": "0x178d0"
+        },
+        {
+          "decl": "char *FUN_000210f0(int actor_handle);",
+          "addr": "0x210f0",
+          "ported": true
+        },
+        {
+          "decl": "char *FUN_000211f0(int actor_handle);",
+          "addr": "0x211f0"
+        },
+        {
+          "decl": "void vector3d_add(float *a, float *b, float *out);",
+          "addr": "0x213c0",
+          "ported": true
         },
         {
           "decl": "int valid_real_normal3d(float *v);",
@@ -165,65 +198,53 @@
           "source": "src/halo/common.c"
         },
         {
-          "decl": "char *FUN_000210f0(int actor_handle);",
-          "addr": "0x210f0"
+          "decl": "void FUN_0002b5d0(void);",
+          "addr": "0x2b5d0"
         },
         {
-          "decl": "char *FUN_000211f0(int actor_handle);",
-          "addr": "0x211f0"
+          "decl": "bool FUN_0002fc20(int actor_handle, int clump_item_handle);",
+          "addr": "0x2fc20",
+          "status": "ported",
+          "source": "src/halo/ai/actor_perception.c"
+        },
+        {
+          "decl": "float FUN_0002fd10(int actor_handle, int clump_item_handle);",
+          "addr": "0x2fd10",
+          "status": "ported",
+          "source": "src/halo/ai/actor_perception.c"
+        },
+        {
+          "decl": "void FUN_00036e30(int ai_handle);",
+          "addr": "0x36e30"
+        },
+        {
+          "decl": "void FUN_0003a740(void);",
+          "addr": "0x3a740"
+        },
+        {
+          "decl": "int FUN_0003b270(int actor_handle);",
+          "addr": "0x3b270",
+          "ported": false
         },
         {
           "decl": "bool FUN_0003b320(int actor_handle);",
           "addr": "0x3b320"
         },
         {
-          "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
-          "addr": "0x84a70",
-          "status": "ported",
-          "source": "src/halo/common.c"
+          "decl": "void FUN_0003b900(void);",
+          "addr": "0x3b900"
         },
         {
-          "decl": "void weapon_activate(int weapon_handle);",
-          "addr": "0xfd2e0",
-          "ported": true
+          "decl": "void FUN_0003ba00(void);",
+          "addr": "0x3ba00"
         },
         {
-          "decl": "bool weapon_try_place(int weapon_handle, int flag);",
-          "addr": "0xfd360",
-          "ported": true
+          "decl": "void FUN_0003f5f0(void);",
+          "addr": "0x3f5f0"
         },
         {
-          "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
-          "addr": "0xfc290"
-        },
-        {
-          "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
-          "addr": "0x10b4c0",
-          "status": "ported"
-        },
-        {
-          "decl": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
-          "addr": "0x10b300"
-        },
-        {
-          "decl": "void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle, float cos_angle);",
-          "addr": "0x10b6e0"
-        },
-        {
-          "decl": "int16_t FUN_00106510(int16_t count, float *points, float *line, int16_t max_count, float *out_points, uint32_t *out_bitmask, uint8_t *changed, float epsilon);",
-          "addr": "0x106510"
-        },
-        {
-          "decl": "int FUN_0018e3f0(void);",
-          "addr": "0x18e3f0"
-        },
-        {
-          "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
-          "addr": "0x140070"
-        },
-        {
-          "decl": "void FUN_0002b5d0(void);",
-          "addr": "0x2b5d0"
+          "decl": "void FUN_00040570(void);",
+          "addr": "0x40570"
         },
         {
           "decl": "void unit_vehicle_board_notify(int unit_handle, int vehicle_handle);",
@@ -238,8 +259,16 @@
           "addr": "0x42b80"
         },
         {
+          "decl": "void FUN_00042b90(void);",
+          "addr": "0x42b90"
+        },
+        {
           "decl": "void FUN_00042ca0(void);",
           "addr": "0x42ca0"
+        },
+        {
+          "decl": "void FUN_00046cb0(void);",
+          "addr": "0x46cb0"
         },
         {
           "decl": "void FUN_00048e90(void);",
@@ -254,6 +283,14 @@
           "addr": "0x48fa0"
         },
         {
+          "decl": "void FUN_0004ab10(void);",
+          "addr": "0x4ab10"
+        },
+        {
+          "decl": "void FUN_0004c0f0(void);",
+          "addr": "0x4c0f0"
+        },
+        {
           "decl": "void FUN_00053620(void);",
           "addr": "0x53620"
         },
@@ -262,8 +299,16 @@
           "addr": "0x53640"
         },
         {
+          "decl": "void FUN_00053650(void);",
+          "addr": "0x53650"
+        },
+        {
           "decl": "void FUN_00053670(void);",
           "addr": "0x53670"
+        },
+        {
+          "decl": "void FUN_00053680(void);",
+          "addr": "0x53680"
         },
         {
           "decl": "void FUN_000540b0(void);",
@@ -272,6 +317,10 @@
         {
           "decl": "void FUN_000540c0(void);",
           "addr": "0x540c0"
+        },
+        {
+          "decl": "void FUN_000540d0(void);",
+          "addr": "0x540d0"
         },
         {
           "decl": "void FUN_000540e0(void);",
@@ -290,8 +339,24 @@
           "addr": "0x58fb0"
         },
         {
+          "decl": "void FUN_00059b10(void *iter, char flag);",
+          "addr": "0x59b10"
+        },
+        {
+          "decl": "int FUN_00059b50(void *iter);",
+          "addr": "0x59b50"
+        },
+        {
+          "decl": "void FUN_0005b200(void);",
+          "addr": "0x5b200"
+        },
+        {
           "decl": "void FUN_0005ddc0(void);",
           "addr": "0x5ddc0"
+        },
+        {
+          "decl": "void FUN_0005de80(void);",
+          "addr": "0x5de80"
         },
         {
           "decl": "void FUN_0005df80(void);",
@@ -300,6 +365,10 @@
         {
           "decl": "void FUN_0005df90(void);",
           "addr": "0x5df90"
+        },
+        {
+          "decl": "void FUN_0005dfa0(void);",
+          "addr": "0x5dfa0"
         },
         {
           "decl": "void FUN_0005dfb0(void);",
@@ -314,8 +383,20 @@
           "addr": "0x64140"
         },
         {
+          "decl": "void FUN_00064150(void);",
+          "addr": "0x64150"
+        },
+        {
           "decl": "void FUN_00064160(void);",
           "addr": "0x64160"
+        },
+        {
+          "decl": "void FUN_00064540(int *out, int actor_handle);",
+          "addr": "0x64540"
+        },
+        {
+          "decl": "int FUN_00064570(int *iter);",
+          "addr": "0x64570"
         },
         {
           "decl": "void FUN_00064ee0(int file);",
@@ -334,16 +415,10 @@
           "addr": "0x6fea0"
         },
         {
-          "decl": "int16_t FUN_00100080(void);",
-          "addr": "0x100080"
-        },
-        {
-          "decl": "void FUN_00101c90(void);",
-          "addr": "0x101c90"
-        },
-        {
-          "decl": "void FUN_00101ca0(void);",
-          "addr": "0x101ca0"
+          "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
+          "addr": "0x84a70",
+          "status": "ported",
+          "source": "src/halo/common.c"
         },
         {
           "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
@@ -363,6 +438,71 @@
           "ported": true
         },
         {
+          "decl": "void edit_text_initialize(void *edit_text);",
+          "addr": "0x97440",
+          "ported": true
+        },
+        {
+          "decl": "void edit_text_process_key(void *edit_text, void *keystroke);",
+          "addr": "0x974a0",
+          "ported": true
+        },
+        {
+          "decl": "bool valid_real_point3d(float *point);",
+          "addr": "0xa16b0"
+        },
+        {
+          "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
+          "addr": "0xfc290"
+        },
+        {
+          "decl": "void weapon_activate(int weapon_handle);",
+          "addr": "0xfd2e0",
+          "ported": true
+        },
+        {
+          "decl": "bool weapon_try_place(int weapon_handle, int flag);",
+          "addr": "0xfd360",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_000fff70(int param);",
+          "addr": "0xfff70"
+        },
+        {
+          "decl": "int16_t FUN_00100080(void);",
+          "addr": "0x100080"
+        },
+        {
+          "decl": "void FUN_00101c90(void);",
+          "addr": "0x101c90"
+        },
+        {
+          "decl": "void FUN_00101ca0(void);",
+          "addr": "0x101ca0"
+        },
+        {
+          "decl": "int16_t FUN_00106510(int16_t count, float *points, float *line, int16_t max_count, float *out_points, uint32_t *out_bitmask, uint8_t *changed, float epsilon);",
+          "addr": "0x106510"
+        },
+        {
+          "decl": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
+          "addr": "0x10b300"
+        },
+        {
+          "decl": "void random_seed_get_direction3d(unsigned int *seed, float *out);",
+          "addr": "0x10b380"
+        },
+        {
+          "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
+          "addr": "0x10b4c0",
+          "status": "ported"
+        },
+        {
+          "decl": "void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle, float cos_angle);",
+          "addr": "0x10b6e0"
+        },
+        {
           "decl": "bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
           "addr": "0x10bc70"
         },
@@ -375,12 +515,92 @@
           "addr": "0x121d60"
         },
         {
+          "decl": "void network_game_server_dispose(void *server);",
+          "addr": "0x1249b0"
+        },
+        {
+          "decl": "int16_t FUN_00124a30(void *server, void *out_param);",
+          "addr": "0x124a30"
+        },
+        {
+          "decl": "int16_t FUN_00124cc0(void *server);",
+          "addr": "0x124cc0"
+        },
+        {
+          "decl": "bool FUN_00124d40(int result);",
+          "addr": "0x124d40"
+        },
+        {
+          "decl": "int FUN_00125710(void *server, void *msg, int seq, void *info, int flags);",
+          "addr": "0x125710"
+        },
+        {
+          "decl": "void FUN_00125750(void *server, void *out);",
+          "addr": "0x125750"
+        },
+        {
+          "decl": "bool FUN_001257e0(void *server);",
+          "addr": "0x1257e0"
+        },
+        {
+          "decl": "uint32_t FUN_00125820(void *server);",
+          "addr": "0x125820"
+        },
+        {
+          "decl": "bool FUN_00125860(void *server);",
+          "addr": "0x125860"
+        },
+        {
+          "decl": "bool FUN_00127070(void *server);",
+          "addr": "0x127070"
+        },
+        {
+          "decl": "void FUN_0012ab80(int reason);",
+          "addr": "0x12ab80"
+        },
+        {
+          "decl": "void network_game_log(const char *msg);",
+          "addr": "0x12b650"
+        },
+        {
+          "decl": "void *FUN_0012b700(int type, void *data, int size);",
+          "addr": "0x12b700"
+        },
+        {
+          "decl": "int FUN_0012d570(void *client);",
+          "addr": "0x12d570"
+        },
+        {
+          "decl": "void network_game_client_dispose(void *client);",
+          "addr": "0x12ea00"
+        },
+        {
+          "decl": "bool network_game_server_start(void *server);",
+          "addr": "0x12eb20"
+        },
+        {
+          "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
+          "addr": "0x140070"
+        },
+        {
           "decl": "uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point);",
           "addr": "0x146db0"
         },
         {
+          "decl": "bool FUN_0014bc10(void *los_data, float *pos, void *out_hit);",
+          "addr": "0x14bc10"
+        },
+        {
           "decl": "bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",
           "addr": "0x14df70"
+        },
+        {
+          "decl": "bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b, float dist_a, int param6, void *scratch);",
+          "addr": "0x14ec30"
+        },
+        {
+          "decl": "int FUN_0018e3f0(void);",
+          "addr": "0x18e3f0"
         },
         {
           "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
@@ -391,8 +611,24 @@
           "addr": "0x1919a0"
         },
         {
+          "decl": "void FUN_001a0890(int unit_handle, float *out_pos, float *out_dist_b, float *out_dist_a);",
+          "addr": "0x1a0890"
+        },
+        {
+          "decl": "void FUN_001a1140(int unit_handle, int16_t param2, void *param3, void *param4, void *param5, float *position);",
+          "addr": "0x1a1140"
+        },
+        {
           "decl": "int FUN_001b9920(void);",
           "addr": "0x1b9920"
+        },
+        {
+          "decl": "void xbox_sound_cache_idle(void);",
+          "addr": "0x1bded0"
+        },
+        {
+          "decl": "int sound_cache_request_sound(void *permutation, int a2, int a3, int a4);",
+          "addr": "0x1be550"
         },
         {
           "decl": "void FUN_001bf790(void);",
@@ -411,10 +647,6 @@
           "addr": "0x1c0c20"
         },
         {
-          "decl": "int sound_cache_request_sound(void *permutation, int a2, int a3, int a4);",
-          "addr": "0x1be550"
-        },
-        {
           "decl": "float sound_get_default_priority(int sound_tag_index);",
           "addr": "0x1c8d10"
         },
@@ -431,139 +663,12 @@
           "addr": "0x1c8f80"
         },
         {
-          "decl": "void edit_text_initialize(void *edit_text);",
-          "addr": "0x97440",
-          "ported": true
-        },
-        {
-          "decl": "void edit_text_process_key(void *edit_text, void *keystroke);",
-          "addr": "0x974a0",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_00036e30(int ai_handle);",
-          "addr": "0x36e30"
-        },
-        {
-          "decl": "void FUN_0003a740(void);",
-          "addr": "0x3a740"
-        },
-        {
-          "decl": "void FUN_00059b10(void *iter, char flag);",
-          "addr": "0x59b10"
-        },
-        {
-          "decl": "int FUN_00059b50(void *iter);",
-          "addr": "0x59b50"
-        },
-        {
-          "decl": "void FUN_00064540(int *out, int actor_handle);",
-          "addr": "0x64540"
-        },
-        {
-          "decl": "int FUN_00064570(int *iter);",
-          "addr": "0x64570"
-        },
-        {
-          "decl": "bool FUN_0002fc20(int actor_handle, int clump_item_handle);",
-          "addr": "0x2fc20",
-          "status": "ported",
-          "source": "src/halo/ai/actor_perception.c"
-        },
-        {
-          "decl": "float FUN_0002fd10(int actor_handle, int clump_item_handle);",
-          "addr": "0x2fd10",
-          "status": "ported",
-          "source": "src/halo/ai/actor_perception.c"
-        },
-        {
-          "decl": "void FUN_0004c0f0(void);",
-          "addr": "0x4c0f0"
-        },
-        {
-          "decl": "void FUN_00053650(void);",
-          "addr": "0x53650"
-        },
-        {
-          "decl": "void FUN_0005dfa0(void);",
-          "addr": "0x5dfa0"
-        },
-        {
-          "decl": "void FUN_00064150(void);",
-          "addr": "0x64150"
-        },
-        {
-          "decl": "void FUN_0005b200(void);",
-          "addr": "0x5b200"
-        },
-        {
-          "decl": "void FUN_000540d0(void);",
-          "addr": "0x540d0"
-        },
-        {
-          "decl": "void FUN_00042b90(void);",
-          "addr": "0x42b90"
-        },
-        {
-          "decl": "void FUN_0004ab10(void);",
-          "addr": "0x4ab10"
-        },
-        {
-          "decl": "void FUN_00053680(void);",
-          "addr": "0x53680"
-        },
-        {
-          "decl": "void FUN_00040570(void);",
-          "addr": "0x40570"
-        },
-        {
-          "decl": "void FUN_0003ba00(void);",
-          "addr": "0x3ba00"
-        },
-        {
-          "decl": "void FUN_00046cb0(void);",
-          "addr": "0x46cb0"
-        },
-        {
-          "decl": "void FUN_0005de80(void);",
-          "addr": "0x5de80"
-        },
-        {
-          "decl": "void FUN_0003f5f0(void);",
-          "addr": "0x3f5f0"
-        },
-        {
-          "decl": "void FUN_0003b900(void);",
-          "addr": "0x3b900"
-        },
-        {
-          "decl": "float FUN_00012170(float *vector);",
-          "addr": "0x12170",
-          "ported": true
-        },
-        {
-          "decl": "float FUN_000121a0(const float *a, const float *b);",
-          "addr": "0x121a0"
-        },
-        {
           "decl": "void SwitchToThread(void);",
           "addr": "0x1cfb98"
         },
         {
-          "decl": "void FUN_001a0890(int unit_handle, float *out_pos, float *out_dist_b, float *out_dist_a);",
-          "addr": "0x1a0890"
-        },
-        {
-          "decl": "void FUN_001a1140(int unit_handle, int16_t param2, void *param3, void *param4, void *param5, float *position);",
-          "addr": "0x1a1140"
-        },
-        {
-          "decl": "bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b, float dist_a, int param6, void *scratch);",
-          "addr": "0x14ec30"
-        },
-        {
-          "decl": "bool FUN_0014bc10(void *los_data, float *pos, void *out_hit);",
-          "addr": "0x14bc10"
+          "decl": "void __stdcall D3DDevice_CreateTexture(uint32_t width, uint32_t height, uint32_t levels, uint32_t usage, uint32_t format, uint32_t pool, void *out_texture);",
+          "addr": "0x1e6ae0"
         },
         {
           "decl": "void __stdcall D3DDevice_SetTransform(uint32_t type, void *matrix);",
@@ -578,6 +683,22 @@
           "addr": "0x1e7110"
         },
         {
+          "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
+          "addr": "0x1e7af0"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetBackBuffer(int back_buffer, uint32_t type, void **out_surface);",
+          "addr": "0x1e7d50"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetDepthStencilSurface(void **out_surface);",
+          "addr": "0x1e8270"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTexture(uint32_t stage, void *texture);",
+          "addr": "0x1e8700"
+        },
+        {
           "decl": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
           "addr": "0x1e9350"
         },
@@ -590,32 +711,20 @@
           "addr": "0x1e9410"
         },
         {
-          "decl": "void __stdcall D3DDevice_SetTextureState_BorderColor(uint32_t stage, uint32_t color);",
-          "addr": "0x1e9c20"
-        },
-        {
           "decl": "void __stdcall D3DDevice_SetRenderState_CullMode(uint32_t mode);",
           "addr": "0x1e96d0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTextureState_BorderColor(uint32_t stage, uint32_t color);",
+          "addr": "0x1e9c20"
         },
         {
           "decl": "void __stdcall D3DDevice_SetRenderState_ZEnable(uint32_t enable);",
           "addr": "0x1ea290"
         },
         {
-          "decl": "void __stdcall D3DDevice_SetTexture(uint32_t stage, void *texture);",
-          "addr": "0x1e8700"
-        },
-        {
-          "decl": "int __stdcall D3DDevice_GetDepthStencilSurface(void **out_surface);",
-          "addr": "0x1e8270"
-        },
-        {
-          "decl": "int __stdcall D3DDevice_GetBackBuffer(int back_buffer, uint32_t type, void **out_surface);",
-          "addr": "0x1e7d50"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
-          "addr": "0x1e7af0"
+          "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
+          "addr": "0x1ea650"
         },
         {
           "decl": "void __stdcall D3DDevice_SetVertexShader(uint32_t shader);",
@@ -626,8 +735,12 @@
           "addr": "0x1ec120"
         },
         {
-          "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
-          "addr": "0x1ea650"
+          "decl": "void __stdcall D3DDevice_SetVertexData2f(uint32_t reg, float a, float b);",
+          "addr": "0x1ed280"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexData4f(uint32_t reg, float a, float b, float c, float d);",
+          "addr": "0x1ed2c0"
         },
         {
           "decl": "void __stdcall D3DDevice_Begin(uint32_t primitive_type);",
@@ -638,36 +751,24 @@
           "addr": "0x1ed490"
         },
         {
-          "decl": "void __stdcall D3DDevice_SetVertexData4f(uint32_t reg, float a, float b, float c, float d);",
-          "addr": "0x1ed2c0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetVertexData2f(uint32_t reg, float a, float b);",
-          "addr": "0x1ed280"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_CreateTexture(uint32_t width, uint32_t height, uint32_t levels, uint32_t usage, uint32_t format, uint32_t pool, void *out_texture);",
-          "addr": "0x1e6ae0"
-        },
-        {
-          "decl": "void __stdcall matrix_build_ortho_projection(void *matrix_out, float scale_x, float scale_y, float z_near, float z_far);",
-          "addr": "0x1ffc57"
+          "decl": "float *__stdcall mat4x4_transform_vec4(float *out, float *in, float *matrix);",
+          "addr": "0x1ff03f"
         },
         {
           "decl": "void __stdcall matrix_build_perspective_projection(void *matrix_out, float fov, float aspect, float z_near, float z_far);",
           "addr": "0x1ff913"
         },
         {
-          "decl": "float *__stdcall mat4x4_transform_vec4(float *out, float *in, float *matrix);",
-          "addr": "0x1ff03f"
+          "decl": "void __stdcall matrix_build_ortho_projection(void *matrix_out, float scale_x, float scale_y, float z_near, float z_far);",
+          "addr": "0x1ffc57"
         },
         {
-          "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
-          "addr": "0x2062d0"
+          "decl": "int __stdcall IDirectSoundBuffer_SetVolume(void *buffer, int volume);",
+          "addr": "0x204f23"
         },
         {
-          "decl": "int __stdcall IDirectSoundBuffer_SetBufferData(void *buffer, void *data, uint32_t size);",
-          "addr": "0x205b7f"
+          "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
+          "addr": "0x204f3f"
         },
         {
           "decl": "int __stdcall IDirectSoundBuffer_SetLoopRegion(void *buffer, uint32_t start, uint32_t length);",
@@ -676,18 +777,6 @@
         {
           "decl": "int __stdcall IDirectSoundBuffer_SetCurrentPosition(void *buffer, uint32_t position);",
           "addr": "0x2051fa"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetVolume(void *buffer, int volume);",
-          "addr": "0x204f23"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_Play(void *buffer, uint32_t reserved, uint32_t priority, uint32_t flags);",
-          "addr": "0x205b43"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
-          "addr": "0x204f3f"
         },
         {
           "decl": "int __stdcall IDirectSoundStream_SetVolume(void *stream, int volume);",
@@ -714,108 +803,25 @@
           "addr": "0x2053a7"
         },
         {
+          "decl": "int __stdcall IDirectSoundBuffer_Play(void *buffer, uint32_t reserved, uint32_t priority, uint32_t flags);",
+          "addr": "0x205b43"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetBufferData(void *buffer, void *data, uint32_t size);",
+          "addr": "0x205b7f"
+        },
+        {
           "decl": "int __stdcall IDirectSoundStream_SetFrequency(void *stream, int frequency);",
           "addr": "0x205bbf"
+        },
+        {
+          "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
+          "addr": "0x2062d0"
         },
         {
           "decl": "bool __stdcall dsound_stream_is_active(void *stream);",
           "addr": "0x20f069",
           "comment": "Check if a DirectSound stream is still active by testing internal kernel status bits (0x10000002). Returns true if the stream is still processing."
-        },
-        {
-          "decl": "void xbox_sound_cache_idle(void);",
-          "addr": "0x1bded0"
-        },
-        {
-          "decl": "void network_game_client_dispose(void *client);",
-          "addr": "0x12ea00"
-        },
-        {
-          "decl": "bool network_game_server_start(void *server);",
-          "addr": "0x12eb20"
-        },
-        {
-          "decl": "void network_game_server_dispose(void *server);",
-          "addr": "0x1249b0"
-        },
-        {
-          "decl": "void FUN_000fff70(int param);",
-          "addr": "0xfff70"
-        },
-        {
-          "decl": "void FUN_0012ab80(int reason);",
-          "addr": "0x12ab80"
-        },
-        {
-          "decl": "int FUN_0012d570(void *client);",
-          "addr": "0x12d570"
-        },
-        {
-          "decl": "bool FUN_00127070(void *server);",
-          "addr": "0x127070"
-        },
-        {
-          "decl": "int16_t FUN_00124cc0(void *server);",
-          "addr": "0x124cc0"
-        },
-        {
-          "decl": "int16_t FUN_00124a30(void *server, void *out_param);",
-          "addr": "0x124a30"
-        },
-        {
-          "decl": "void network_game_log(const char *msg);",
-          "addr": "0x12b650"
-        },
-        {
-          "decl": "void *FUN_0012b700(int type, void *data, int size);",
-          "addr": "0x12b700"
-        },
-        {
-          "decl": "bool FUN_001257e0(void *server);",
-          "addr": "0x1257e0"
-        },
-        {
-          "decl": "uint32_t FUN_00125820(void *server);",
-          "addr": "0x125820"
-        },
-        {
-          "decl": "bool FUN_00125860(void *server);",
-          "addr": "0x125860"
-        },
-        {
-          "decl": "void FUN_00125750(void *server, void *out);",
-          "addr": "0x125750"
-        },
-        {
-          "decl": "int FUN_00125710(void *server, void *msg, int seq, void *info, int flags);",
-          "addr": "0x125710"
-        },
-        {
-          "decl": "bool FUN_00124d40(int result);",
-          "addr": "0x124d40"
-        },
-        {
-          "decl": "bool valid_real_point3d(float *point);",
-          "addr": "0xa16b0"
-        },
-        {
-          "decl": "float FUN_000121e0(float min, float max);",
-          "addr": "0x121e0",
-          "ported": true
-        },
-        {
-          "decl": "void vector3d_scale_add(float *base, float *direction, float scale, float *out);",
-          "addr": "0x12f80",
-          "ported": true
-        },
-        {
-          "decl": "void vector3d_add(float *a, float *b, float *out);",
-          "addr": "0x213c0",
-          "ported": true
-        },
-        {
-          "decl": "void random_seed_get_direction3d(unsigned int *seed, float *out);",
-          "addr": "0x10b380"
         }
       ]
     },

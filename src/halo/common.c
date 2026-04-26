@@ -63,6 +63,16 @@ void cross_product3d(float *a, float *b, float *out)
   out[2] = a0 * b1 - a1 * b0;
 }
 
+char *FUN_000210f0(int actor_handle)
+{
+  int weapon_handle = FUN_0003b270(actor_handle);
+  if (weapon_handle != -1) {
+    int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+    return (char *)tag_get(0x77656170, *obj);
+  }
+  return 0;
+}
+
 void vector3d_add(float *a, float *b, float *out)
 {
   out[0] = a[0] + b[0];
