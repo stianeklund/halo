@@ -443,39 +443,6 @@
           "addr": "0x96720"
         },
         {
-          "decl": "bool FUN_000971a0(int object_handle, float *position, float *aim_position);",
-          "addr": "0x971a0"
-        },
-        {
-          "decl": "void edit_text_set_cursor_to_end(void *edit_text);",
-          "addr": "0x97330",
-          "ported": true
-        },
-        {
-          "decl": "void edit_text_initialize(void *edit_text);",
-          "addr": "0x97440",
-          "ported": true
-        },
-        {
-          "decl": "void edit_text_process_key(void *edit_text, void *keystroke);",
-          "addr": "0x974a0",
-          "ported": true
-        },
-        {
-          "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
-          "addr": "0xfc290"
-        },
-        {
-          "decl": "void weapon_activate(int weapon_handle);",
-          "addr": "0xfd2e0",
-          "ported": true
-        },
-        {
-          "decl": "bool weapon_try_place(int weapon_handle, int flag);",
-          "addr": "0xfd360",
-          "ported": true
-        },
-        {
           "decl": "void FUN_000fff70(int param);",
           "addr": "0xfff70"
         },
@@ -7315,14 +7282,34 @@
     },
     {
       "name": "edit_text.obj",
+      "source": "dialogs/edit_text.c",
       "functions": [
+        {
+          "decl": "bool FUN_000971a0(int object_handle, float *position, float *aim_position);",
+          "addr": "0x971a0"
+        },
         {
           "decl": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
           "addr": "0x972b0"
         },
         {
+          "decl": "void edit_text_set_cursor_to_end(void *edit_text);",
+          "addr": "0x97330",
+          "ported": true
+        },
+        {
           "decl": "bool edit_text_get_selection_range(void *edit_text, int16_t *out_start, int16_t *out_end);",
           "addr": "0x973a0"
+        },
+        {
+          "decl": "void edit_text_initialize(void *edit_text);",
+          "addr": "0x97440",
+          "ported": true
+        },
+        {
+          "decl": "void edit_text_process_key(void *edit_text, void *keystroke);",
+          "addr": "0x974a0",
+          "ported": true
         }
       ]
     },
@@ -7378,12 +7365,28 @@
           "ported": true
         },
         {
+          "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
+          "addr": "0xfc290"
+        },
+        {
           "decl": "void FUN_000fcaf0(int weapon_handle, int magazine_index);",
           "addr": "0xfcaf0"
         },
         {
           "decl": "void weapon_reset_state(int weapon_handle);",
           "addr": "0xfcf20",
+          "ported": true
+        },
+        {
+          "decl": "void weapon_activate(int weapon_handle);",
+          "addr": "0xfd2e0",
+          "comment": "Initialize a weapon after it becomes the active weapon for a unit.",
+          "ported": true
+        },
+        {
+          "decl": "bool weapon_try_place(int weapon_handle, int flag);",
+          "addr": "0xfd360",
+          "comment": "Attempt to put away a weapon; returns false if the weapon has active triggers.",
           "ported": true
         }
       ]
