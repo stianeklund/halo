@@ -1,3 +1,46 @@
+/* Allocate a new particle datum and initialize it from creation params
+ * (0xa1210). Copies position, velocity, and tint/orientation data into the
+ * datum, resolves lighting color via FUN_00139480, then runs particle setup
+ * (FUN_000a0fd0). Returns the datum handle, or -1 on failure. */
+int FUN_000a1210(int tag_index, float *position, float *velocity,
+                 void *ext_data, float scale)
+{
+  int handle;
+  char *datum;
+  char local_buf[12];
+
+  handle = data_new_at_index(particle_data);
+  if (handle != -1) {
+    datum = (char *)datum_get(particle_data, handle);
+    *(int *)(datum + 0x08) = tag_index;
+    *(int *)(datum + 0x0c) = -1;
+
+    *(float *)(datum + 0x20) = position[0];
+    *(float *)(datum + 0x24) = position[1];
+    *(float *)(datum + 0x28) = position[2];
+
+    *(float *)(datum + 0x2c) = velocity[0];
+    *(float *)(datum + 0x30) = velocity[1];
+    *(float *)(datum + 0x34) = velocity[2];
+
+    *(float *)(datum + 0x38) = ((float *)ext_data)[0];
+    *(float *)(datum + 0x3c) = ((float *)ext_data)[1];
+    *(float *)(datum + 0x40) = ((float *)ext_data)[2];
+    *(float *)(datum + 0x44) = ((float *)ext_data)[3];
+
+    *(float *)(datum + 0x14) = scale;
+    *(uint32_t *)(datum + 0x04) |= 1;
+
+    FUN_00139480((void *)(datum + 0x20), (void *)(datum + 0x48), local_buf, 0);
+
+    if (!FUN_000a0fd0(handle)) {
+      datum_delete(particle_data, handle);
+      return -1;
+    }
+  }
+  return handle;
+}
+
 void particles_initialize(void)
 {
   particle_data = game_state_data_new("particle", 0x400, 0x70);
@@ -27,9 +70,12 @@ void particles_dispose(void)
 bool valid_real_point3d(float *point)
 {
   uint32_t *p = (uint32_t *)point;
-  if ((p[0] & 0x7f800000) == 0x7f800000) return false;
-  if ((p[1] & 0x7f800000) == 0x7f800000) return false;
-  if ((p[2] & 0x7f800000) == 0x7f800000) return false;
+  if ((p[0] & 0x7f800000) == 0x7f800000)
+    return false;
+  if ((p[1] & 0x7f800000) == 0x7f800000)
+    return false;
+  if ((p[2] & 0x7f800000) == 0x7f800000)
+    return false;
   return true;
 }
 

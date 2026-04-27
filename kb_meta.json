@@ -579,6 +579,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x971a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x972b0": {
       "kind": "function",
       "status": "ported"
@@ -757,7 +761,43 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9ca70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9caf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9cb90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9cca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9cdd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x9d000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9d1f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9d590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9dcf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9e310": {
       "kind": "function",
       "status": "ported"
     },
@@ -794,6 +834,10 @@
       "status": "ported"
     },
     "0xa10f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa1210": {
       "kind": "function",
       "status": "ported"
     },
@@ -2131,6 +2175,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xde140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xde3b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdeb60": {
       "kind": "function",
       "status": "ported"
@@ -2623,6 +2675,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xfb370": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xfb3c0": {
       "kind": "function",
       "status": "ported"
@@ -2632,6 +2688,18 @@
       "status": "ported"
     },
     "0xfba20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfc290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfc990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfcaf0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2930,6 +2998,10 @@
       "inferred": [
         "Scale field at offset 0x00 is compared as integer 0x3f800000 (1.0f) rather than as float, matching the original binary's integer CMP instruction."
       ]
+    },
+    "0x109610": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x109680": {
       "kind": "function",
@@ -3351,6 +3423,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x136750": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x138e30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1396e0": {
       "kind": "function",
       "status": "ported",
@@ -3370,6 +3450,10 @@
         "The marker buffer size is inferred as 0x6c bytes from the highest offset read (0x68); the actual struct layout is unknown.",
         "Tag offsets 0x14 (falloff_angle), 0x18 (cutoff), 0x20 (forward_modifier), 0x24 (gel_modifier), 0x28 (tertiary_modifier) are named by function, not confirmed by tag definitions."
       ]
+    },
+    "0x13b290": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x13c100": {
       "kind": "function",
@@ -3892,6 +3976,10 @@
       "status": "ported"
     },
     "0x185680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x185770": {
       "kind": "function",
       "status": "ported"
     },
@@ -4847,6 +4935,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c73d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c7480": {
       "kind": "function",
       "status": "ported",
@@ -4854,6 +4946,10 @@
         "The 64-byte local buffer at EBP-0x40 is a sound source descriptor struct with fields: offset 0x00 int16_t spatialization_mode, offset 0x04 float scale, offset 0x08 float gain.",
         "sound_start at 0x1ce180 belongs to sound_manager.obj based on assertion path string c:\\halo\\SOURCE\\sound\\sound_manager.c."
       ]
+    },
+    "0x1c7a10": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1c7b00": {
       "kind": "function",
@@ -4864,6 +4960,10 @@
       "status": "ported"
     },
     "0x1c7e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c7e70": {
       "kind": "function",
       "status": "ported"
     },

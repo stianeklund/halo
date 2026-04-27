@@ -17,6 +17,8 @@ extern "C" {
 #define NULL 0
 #endif
 
+#define MAXIMUM_NUMBER_OF_LOCAL_PLAYERS 4
+
 #define assert_halt(cond)                                    \
     do {                                                     \
         if (!(cond)) {                                       \

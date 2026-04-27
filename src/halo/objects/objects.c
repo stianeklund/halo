@@ -216,6 +216,45 @@ void FUN_00136150(int object_handle)
 
 void FUN_001365d0(int object_handle, int arg1, int arg2);
 
+/* Initialize a damage_params struct with a damage effect tag index (0x136750).
+ * Zeroes 0x54 bytes, sets tag_index at +0x00, and initializes sentinel/default
+ * fields to -1 and scale fields at +0x40/+0x44 to 1.0f. */
+void FUN_00136750(void *damage_params, int tag_index)
+{
+  csmemset(damage_params, 0, 0x54);
+  *(int *)damage_params = tag_index;
+  *(int16_t *)((char *)damage_params + 0x4c) = -1;
+  *(int *)((char *)damage_params + 0x08) = -1;
+  *(int *)((char *)damage_params + 0x0c) = -1;
+  *(int16_t *)((char *)damage_params + 0x10) = -1;
+  *(int16_t *)((char *)damage_params + 0x18) = -1;
+  *(float *)((char *)damage_params + 0x40) = 1.0f;
+  *(float *)((char *)damage_params + 0x44) = 1.0f;
+}
+
+/* Apply area-of-effect damage to nearby objects (0x138e30).
+ * Resolves the 'jpt!' damage effect tag, searches for objects within the
+ * effect radius via FUN_001415f0, applies damage to each via FUN_00138900,
+ * then processes breakable surfaces via FUN_00146be0. */
+void FUN_00138e30(void *damage_params, int target_index)
+{
+  char *tag;
+  int16_t count;
+  int results[64];
+  uint16_t i;
+
+  (void)target_index;
+  tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
+  count = FUN_001415f0(0, 0, (char *)damage_params + 0x14,
+                       (char *)damage_params + 0x1c, *(float *)(tag + 4),
+                       results, 0x40);
+  if (count > 0) {
+    for (i = 0; i < (uint16_t)count; i++)
+      FUN_00138900(damage_params, results[i], 0);
+  }
+  FUN_00146be0(damage_params);
+}
+
 /*
  * object_wake — disconnect a point light from the cluster partition.
  * (from c:\halo\SOURCE\objects\object_lights.c, line 0x4d0)
@@ -414,6 +453,56 @@ void object_move_to_limbo(int object_handle)
 
     *(uint16_t *)(light + 0x2) |= 0x4;
   }
+}
+
+/* Create a new point light datum from a light tag (0x13b290).
+ * Allocates from the light data table (0x5a90bc), validates the 'ligh' tag,
+ * initializes fields, then calls object_move_to_limbo to resolve world-space
+ * position. If object_handle is -1 (world light), position/forward are stored
+ * directly; otherwise marker index and local offsets are stored for attachment.
+ */
+int FUN_0013b290(int tag_index, int object_handle, int16_t marker,
+                 float *position, float *forward, int unknown)
+{
+  int handle;
+  char *datum;
+
+  handle = data_new_at_index(*(data_t **)0x5a90bc);
+  if (handle != -1) {
+    datum = (char *)datum_get(*(data_t **)0x5a90bc, handle);
+    tag_get(0x6c696768, tag_index);
+    *(int16_t *)(datum + 0x02) = 0;
+    {
+      int tick = FUN_000b5aa0();
+      *(uint8_t *)(datum + 0x02) |= 3;
+      *(int *)(datum + 0x58) = tick;
+    }
+    *(int *)(datum + 0x04) = tag_index;
+    *(int *)(datum + 0x2c) = object_handle;
+    *(int *)(datum + 0x78) = unknown;
+    *(int *)(datum + 0x10) = -1;
+
+    if (object_handle == -1) {
+      *(float *)(datum + 0x30) = position[0];
+      *(float *)(datum + 0x34) = position[1];
+      *(float *)(datum + 0x38) = position[2];
+      *(float *)(datum + 0x3c) = forward[0];
+      *(float *)(datum + 0x40) = forward[1];
+      *(float *)(datum + 0x44) = forward[2];
+    } else {
+      *(int16_t *)(datum + 0x5c) = marker;
+      *(float *)(datum + 0x60) = position[0];
+      *(float *)(datum + 0x64) = position[1];
+      *(float *)(datum + 0x68) = position[2];
+      *(float *)(datum + 0x6c) = forward[0];
+      *(float *)(datum + 0x70) = forward[1];
+      *(float *)(datum + 0x74) = forward[2];
+    }
+
+    object_move_to_limbo(handle);
+    *(int *)(datum + 0x0c) = *(int *)0x5a8d64 - 1;
+  }
+  return handle;
 }
 
 void *FUN_0013c100(int16_t object_type);
@@ -1611,24 +1700,22 @@ lab_00140017: {
  * be NULL to skip copying. Position is at object offset 0x18 (3 floats),
  * forward direction at 0x3c (3 floats). */
 void object_get_root_location(int object_handle, float *position_out,
-                               float *direction_out)
+                              float *direction_out)
 {
   char *obj = (char *)object_get_and_verify_type(object_handle, -1);
 
   while (*(int *)(obj + 0xcc) != -1) {
-    object_header_data_t *header =
-        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
-                                          *(int *)(obj + 0xcc));
+    object_header_data_t *header = (object_header_data_t *)datum_get(
+      *(data_t **)0x5a8d50, *(int *)(obj + 0xcc));
     obj = (char *)header->object;
 
     {
       int16_t type = *(int16_t *)(obj + 0x64);
       if ((1 << (type & 0x1f)) == 0) {
-        char *msg = csprintf(
-            (char *)0x5ab100,
-            "got an object type we didn't expect "
-            "(expected one of 0x%08x but got #%d).",
-            -1, (int)type);
+        char *msg = csprintf((char *)0x5ab100,
+                             "got an object type we didn't expect "
+                             "(expected one of 0x%08x but got #%d).",
+                             -1, (int)type);
         display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
         system_exit(-1);
       }

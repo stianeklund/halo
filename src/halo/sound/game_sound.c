@@ -22,6 +22,38 @@ void game_sound_initialize_for_new_map(void)
   }
 }
 
+/* Play a spatialized sound impulse at a world location (0x1c73d0).
+ * Copies 44 bytes of location data into a sound_params struct with
+ * spatialization_mode=1 (positional), then forwards to sound_start. */
+void FUN_001c73d0(int sound_tag_index, void *location, float scale)
+{
+  char sound_params[0x40];
+
+  if (!location) {
+    display_assert("location", "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x148,
+                   1);
+    system_exit(-1);
+  }
+  if (scale < 0.0f || !(scale <= 1.0f)) {
+    display_assert("scale>=0.f && scale<=1.f",
+                   "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x149, 1);
+    system_exit(-1);
+  }
+
+  {
+    int *dst = (int *)(sound_params + 0x0c);
+    int *src = (int *)location;
+    int i;
+    for (i = 0; i < 11; i++)
+      dst[i] = src[i];
+  }
+  *(float *)(sound_params + 0x04) = scale;
+  *(int16_t *)(sound_params + 0x00) = 1;
+  *(float *)(sound_params + 0x08) = 1.0f;
+
+  sound_start(sound_tag_index, sound_params, NONE, 0, 0, 0);
+}
+
 /* Play a one-shot sound impulse at a given volume scale.
  * Builds a minimal sound source descriptor (spatialization_mode=0,
  * scale, gain=1.0f) and forwards to sound_start (0x1ce180) with
@@ -65,12 +97,14 @@ bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
         marker_index = (int)*(int16_t *)((char *)attachment_data + 2);
       }
 
-      node_matrix = (float *)object_get_node_matrix(object_handle, marker_index);
+      node_matrix =
+        (float *)object_get_node_matrix(object_handle, marker_index);
 
       *(int *)((char *)source + 0x30) = location[0];
       *(int *)((char *)source + 0x34) = location[1];
 
-      matrix_transform_point(node_matrix, (float *)((char *)attachment_data + 4),
+      matrix_transform_point(node_matrix,
+                             (float *)((char *)attachment_data + 4),
                              (float *)((char *)source + 0xc));
       matrix_transform_vector(node_matrix,
                               (float *)((char *)attachment_data + 0x10),

@@ -767,6 +767,42 @@
         {
           "decl": "void FUN_000a1fd0(void *spawn_params);",
           "addr": "0xa1fd0"
+        },
+        {
+          "decl": "char FUN_000a0fd0(int particle_handle);",
+          "addr": "0xa0fd0"
+        },
+        {
+          "decl": "void FUN_00139480(void *position, void *tint_color, void *out_color, char use_lightmap);",
+          "addr": "0x139480"
+        },
+        {
+          "decl": "void FUN_00138900(void *damage_params, int object_handle, char recursive);",
+          "addr": "0x138900"
+        },
+        {
+          "decl": "int16_t FUN_001415f0(int type_mask, uint32_t flags, void *position, void *direction, float radius, void *results, int16_t max_results);",
+          "addr": "0x1415f0"
+        },
+        {
+          "decl": "void FUN_00146be0(void *damage_params);",
+          "addr": "0x146be0"
+        },
+        {
+          "decl": "int FUN_000b5aa0(void);",
+          "addr": "0xb5aa0"
+        },
+        {
+          "decl": "int16_t FUN_000dc800(int event @<eax>);",
+          "addr": "0xdc800"
+        },
+        {
+          "decl": "void FUN_000ddbd0(int local_player_index, int state, int param_3);",
+          "addr": "0xddbd0"
+        },
+        {
+          "decl": "void FUN_000dde80(int local_player_index);",
+          "addr": "0xdde80"
         }
       ]
     },
@@ -2013,7 +2049,9 @@
         },
         {
           "decl": "void FUN_0009ca70(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "addr": "0x9ca70"
+          "addr": "0x9ca70",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "ported": true
         },
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
@@ -2236,7 +2274,8 @@
         },
         {
           "decl": "void FUN_000de140(int param_1, int param_2);",
-          "addr": "0xde140"
+          "addr": "0xde140",
+          "ported": true
         },
         {
           "decl": "void FUN_000de3b0(int object_handle, int param_2);",
@@ -2758,8 +2797,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001c73d0(int sound_tag_index, void *params, float scale);",
-          "addr": "0x1c73d0"
+          "decl": "void FUN_001c73d0(int sound_tag_index, void *location, float scale);",
+          "addr": "0x1c73d0",
+          "ported": true
         },
         {
           "decl": "bool sound_cluster_is_audible(void *location@<esi>);",
@@ -3774,11 +3814,13 @@
         },
         {
           "decl": "void FUN_00136750(void *damage_params, int tag_index);",
-          "addr": "0x136750"
+          "addr": "0x136750",
+          "ported": true
         },
         {
           "decl": "void FUN_00138e30(void *damage_params, int target_index);",
-          "addr": "0x138e30"
+          "addr": "0x138e30",
+          "ported": true
         },
         {
           "decl": "void object_wake(int object_handle);",
@@ -3791,8 +3833,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_0013b290(int tag_index, int object_handle, int16_t marker, float *position, float *forward, float scale);",
-          "addr": "0x13b290"
+          "decl": "int FUN_0013b290(int tag_index, int object_handle, int16_t marker, float *position, float *forward, int unknown);",
+          "addr": "0x13b290",
+          "ported": true
         },
         {
           "decl": "void *FUN_0013c100(int16_t object_type);",
@@ -4170,7 +4213,8 @@
       "functions": [
         {
           "decl": "int FUN_000a1210(int tag_index, float *position, float *velocity, void *ext_data, float scale);",
-          "addr": "0xa1210"
+          "addr": "0xa1210",
+          "ported": true
         },
         {
           "decl": "void particles_initialize(void);",
@@ -5266,6 +5310,11 @@
       "name": "render_cameras.obj",
       "source": "render/render_cameras.c",
       "functions": [
+        {
+          "decl": "void render_camera_check_warning_condition(int16_t id@<ax>, float value);",
+          "addr": "0x185770",
+          "ported": true
+        },
         {
           "decl": "double render_camera_get_adjusted_field_of_view_tangent(float a1);",
           "addr": "0x186460",

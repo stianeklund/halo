@@ -90,7 +90,8 @@ def compile_xdk(source: Path, output: Path) -> bool:
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"XDK compilation failed:\n{result.stderr}", file=sys.stderr)
+        diag = result.stdout + result.stderr
+        print(f"XDK compilation failed:\n{diag}", file=sys.stderr)
         return False
 
     if not output.exists():
