@@ -245,8 +245,8 @@ bool dangerous_effects_near_player(void)
         } else {
           void *matrix;
           if ((int16_t)node_index < 0) {
-            matrix = ((void *(*)(int, int))0xdd410)(
-              *(uint16_t *)((char *)effect + 0x4c), node_index & 0x7fff);
+            matrix = FUN_000dd410(*(uint16_t *)((char *)effect + 0x4c),
+                                  node_index & 0x7fff);
           } else {
             matrix = ((void *(*)(int, int))0x140eb0)(
               *(int *)((char *)effect + 0x3c), node_index & 0x7fff);
@@ -323,6 +323,370 @@ void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
   velocity_out[0] = speed * direction_out[0];
   velocity_out[1] = speed * direction_out[1];
   velocity_out[2] = speed * direction_out[2];
+}
+
+/* Effect parts spawner (0x9d590). For each part in the current event,
+ * computes how many new instances to create this frame via the transition
+ * function, then walks the location chain spawning particles/effects at
+ * each location with randomized position, direction, velocity, size, and
+ * color. Handles node-matrix transforms for attached effects. */
+void FUN_0009d590(void *effect)
+{
+  char *ef = (char *)effect;
+  char *tag_data;
+  char *event;
+  char *part;
+  float prev_t;
+  float t;
+  int *parts_block;
+  int part_counter;
+  short part_index;
+
+  tag_data = (char *)tag_get(0x65666665, *(int *)(ef + 4));
+  event = (char *)tag_block_get_element(tag_data + 0x34,
+                                        (int)*(int16_t *)(ef + 0x4e), 0x44);
+
+  prev_t = *(float *)(ef + 0x58);
+
+  if (*(float *)(ef + 0x54) <= 0.0f) {
+    t = 1.0f;
+  } else {
+    t = *(float *)(ef + 0x50) / *(float *)(ef + 0x54);
+  }
+
+  parts_block = (int *)(event + 0x38);
+  part_counter = 0;
+  part_index = 0;
+
+  if (*parts_block < 1) {
+    *(float *)(ef + 0x58) = t;
+    return;
+  }
+
+  do {
+    part = (char *)tag_block_get_element(parts_block, (int)part_index, 0xe8);
+
+    if (*(int16_t *)(part + 8) >= 0 &&
+        (int)*(int16_t *)(part + 8) < *(int *)(tag_data + 0x28)) {
+      bool skip;
+      if ((*(uint8_t *)(ef + 2) >> 6) & 1) {
+        skip = (*(int16_t *)(part + 2) == 1);
+      } else {
+        skip = (*(int16_t *)(part + 2) == 2);
+      }
+
+      if (!skip) {
+        unsigned int *seed;
+        int count;
+        float trans_prev, trans_cur;
+        int ftol_prev, ftol_cur;
+        int16_t count_delta;
+
+        trans_prev = FUN_0009cdd0(*(uint16_t *)(part + 0x68), prev_t);
+        count = (int)*(uint8_t *)(ef + 0xdc + (int)part_index);
+        ftol_prev = (int)(trans_prev * (float)count);
+
+        trans_cur = FUN_0009cdd0(*(uint16_t *)(part + 0x68), t);
+        count = (int)*(uint8_t *)(ef + 0xdc + (int)part_index);
+        ftol_cur = (int)(trans_cur * (float)count);
+
+        count_delta = (int16_t)((uint16_t)ftol_cur - ftol_prev);
+
+        if (count_delta < 0) {
+          display_assert("count_delta>=0",
+                         "c:\\halo\\SOURCE\\effects\\effects.c", 0x583, 1);
+          system_exit(-1);
+        }
+
+        if (count_delta > 0) {
+          int location_handle;
+          char *location;
+          int part_type;
+          uint32_t total_count;
+
+          location_handle =
+            *(int *)(ef + 0x5c + (int)*(int16_t *)(part + 8) * 4);
+          part_type = (int)*(uint16_t *)(part + 4);
+
+          location = (char *)FUN_0009cca0(effect, &location_handle, part_type);
+
+          if (location != NULL) {
+            total_count = (uint32_t)(uint16_t)count_delta;
+
+            do {
+              uint32_t spawn_count = total_count;
+
+              do {
+                float dist_lo, dist_hi, dist_base, dist_range;
+                uint32_t flags_lo, flags_hi;
+                float scale_a, scale_b;
+                float random_distance;
+                float random_dir[3];
+                float scaled_dir[3];
+                float position[3];
+                float direction_out[3];
+                float velocity_out[3];
+                float world_pos[3];
+                float dir_world[3];
+                float vel_world[3];
+                float up_vector[3];
+                char spawn_params[0x5c];
+
+                flags_hi = *(uint32_t *)(part + 0xe4);
+                dist_hi = *(float *)(part + 0x74);
+                dist_lo = *(float *)(part + 0x70);
+                flags_lo = *(uint32_t *)(part + 0xe0);
+                scale_a = *(float *)(ef + 0x44);
+                scale_b = *(float *)(ef + 0x48);
+
+                seed = random_math_get_local_seed_address();
+
+                dist_base = dist_lo;
+                if ((int8_t)(flags_lo & 0xff) < 0)
+                  dist_base *= scale_a;
+                if ((int8_t)(flags_hi & 0xff) < 0)
+                  dist_base *= scale_b;
+
+                dist_range = dist_hi - dist_lo;
+                if (flags_lo & 0x100)
+                  dist_range *= scale_a;
+                if (flags_hi & 0x100)
+                  dist_range *= scale_b;
+
+                random_distance =
+                  random_real_range((int *)seed, 0.0f, dist_range) + dist_base;
+
+                seed = random_math_get_local_seed_address();
+                random_seed_get_direction3d(seed, random_dir);
+
+                matrix_scale_transform_vector(
+                  (float *)(location + 8), (float *)(part + 0x14), scaled_dir);
+
+                position[0] = random_dir[0] * random_distance +
+                              *(float *)(location + 0x30) + scaled_dir[0];
+                position[1] = random_dir[1] * random_distance +
+                              *(float *)(location + 0x34) + scaled_dir[1];
+                position[2] = random_dir[2] * random_distance +
+                              *(float *)(location + 0x38) + scaled_dir[2];
+
+                seed = random_math_get_local_seed_address();
+                FUN_0009d1f0(effect, seed, (float *)(part + 0x20),
+                             direction_out, velocity_out,
+                             *(float *)(part + 0x84), *(float *)(part + 0x88),
+                             *(float *)(part + 0x8c), (int)flags_lo,
+                             (int)flags_hi);
+
+                matrix_transform_vector((float *)(location + 8), direction_out,
+                                        direction_out);
+                matrix_scale_transform_vector((float *)(location + 8),
+                                              velocity_out, velocity_out);
+
+                {
+                  uint16_t node_idx = *(uint16_t *)(location + 2);
+                  if (node_idx == 0xffff) {
+                    world_pos[0] = position[0];
+                    world_pos[1] = position[1];
+                    world_pos[2] = position[2];
+                    dir_world[0] = direction_out[0];
+                    dir_world[1] = direction_out[1];
+                    dir_world[2] = direction_out[2];
+                    vel_world[0] = velocity_out[0];
+                    vel_world[1] = velocity_out[1];
+                    vel_world[2] = velocity_out[2];
+                  } else {
+                    float *node_matrix;
+                    if ((int16_t)node_idx < 0) {
+                      node_matrix =
+                        (float *)FUN_000dd410((int)*(uint16_t *)(ef + 0x4c),
+                                              (int)(node_idx & 0x7fff));
+                    } else {
+                      node_matrix = (float *)object_get_node_matrix(
+                        *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
+                    }
+                    matrix_transform_point(node_matrix, position, world_pos);
+                    matrix_transform_vector(node_matrix, direction_out,
+                                            dir_world);
+                    matrix_scale_transform_vector(node_matrix, velocity_out,
+                                                  vel_world);
+                  }
+                }
+
+                if (!FUN_0009caf0(*(int16_t *)part, world_pos,
+                                  (char *)effect + 0x10))
+                  goto next_count;
+
+                *(int *)(spawn_params + 0x00) = *(int *)(part + 0x60);
+
+                if (*(uint8_t *)(part + 0x64) & 1) {
+                  *(int *)(spawn_params + 0x04) = *(int *)(ef + 0x3c);
+                  {
+                    uint16_t loc_node = *(uint16_t *)(location + 2);
+                    if (loc_node == 0xffff) {
+                      *(uint16_t *)(spawn_params + 0x08) = 0xffff;
+                    } else {
+                      *(uint16_t *)(spawn_params + 0x08) = loc_node & 0x7fff;
+                    }
+                  }
+                  {
+                    float *zero_vec = *(float **)0x31fc38;
+                    up_vector[0] = zero_vec[0];
+                    up_vector[1] = zero_vec[1];
+                    up_vector[2] = zero_vec[2];
+                  }
+                } else {
+                  if (*(void **)(ef + 0x34) != NULL) {
+                    ((void (*)(float *, float *, int)) * (void **)(ef + 0x34))(
+                      up_vector, world_pos, *(int *)(ef + 0x30));
+                  } else {
+                    float *zero_vec = *(float **)0x31fc38;
+                    up_vector[0] = zero_vec[0];
+                    up_vector[1] = zero_vec[1];
+                    up_vector[2] = zero_vec[2];
+                  }
+
+                  *(float *)(spawn_params + 0x10) = world_pos[0];
+                  *(float *)(spawn_params + 0x14) = world_pos[1];
+                  *(float *)(spawn_params + 0x18) = world_pos[2];
+                  *(float *)(spawn_params + 0x1c) = dir_world[0];
+                  *(float *)(spawn_params + 0x20) = dir_world[1];
+                  *(float *)(spawn_params + 0x24) = dir_world[2];
+                  *(float *)(spawn_params + 0x28) =
+                    *(float *)(ef + 0x24) * *(float *)0x253394 + vel_world[0];
+                  *(float *)(spawn_params + 0x2c) =
+                    *(float *)(ef + 0x28) * *(float *)0x253394 + vel_world[1];
+                  *(float *)(spawn_params + 0x30) =
+                    *(float *)(ef + 0x2c) * *(float *)0x253394 + vel_world[2];
+                  *(int *)(spawn_params + 0x04) = -1;
+                }
+
+                {
+                  float size_lo, size_hi, size_base, size_range;
+
+                  size_hi = *(float *)(part + 0xa4);
+                  size_lo = *(float *)(part + 0xa0);
+
+                  seed = random_math_get_local_seed_address();
+
+                  size_base = size_lo;
+                  if (flags_lo & 0x200)
+                    size_base *= scale_a;
+                  if (flags_hi & 0x200)
+                    size_base *= scale_b;
+
+                  size_range = size_hi - size_lo;
+                  if (flags_lo & 0x400)
+                    size_range *= scale_a;
+                  if (flags_hi & 0x400)
+                    size_range *= scale_b;
+
+                  *(float *)(spawn_params + 0x44) =
+                    random_real_range((int *)seed, 0.0f, size_range) +
+                    size_base;
+                }
+
+                {
+                  float scl_lo, scl_hi, scl_base, scl_range;
+
+                  scl_hi = *(float *)(part + 0x94);
+                  scl_lo = *(float *)(part + 0x90);
+
+                  seed = random_math_get_local_seed_address();
+
+                  scl_base = scl_lo;
+                  if (flags_lo & 0x8)
+                    scl_base *= scale_a;
+                  if (flags_hi & 0x8)
+                    scl_base *= scale_b;
+
+                  scl_range = scl_hi - scl_lo;
+                  if (flags_lo & 0x10)
+                    scl_range *= scale_a;
+                  if (flags_hi & 0x10)
+                    scl_range *= scale_b;
+
+                  *(float *)(spawn_params + 0x48) =
+                    random_real_range((int *)seed, 0.0f, scl_range) + scl_base;
+                }
+
+                if (*(uint8_t *)(part + 0x64) & 2) {
+                  seed = random_math_get_local_seed_address();
+                  *(float *)(spawn_params + 0x40) =
+                    random_real_range((int *)seed, 0.0f, 6.2831855f);
+                } else {
+                  *(float *)(spawn_params + 0x40) = 0.0f;
+                }
+
+                {
+                  float blend;
+                  uint32_t fl = *(uint32_t *)(part + 0xe0);
+                  uint32_t fh = *(uint32_t *)(part + 0xe4);
+
+                  if (!(fl & 0x800) && !(fh & 0x800)) {
+                    seed = random_math_get_local_seed_address();
+                    blend = random_math_real(seed);
+                  } else {
+                    blend = 1.0f;
+                    if (fl & 0x800)
+                      blend = *(float *)(ef + 0x44);
+                    if (fh & 0x800)
+                      blend *= *(float *)(ef + 0x48);
+                  }
+
+                  FUN_0007c270(
+                    (float *)(spawn_params + 0x50),
+                    (uint32_t)((*(uint32_t *)(part + 0x64) >> 3) & 3),
+                    (float *)(part + 0xb4), (float *)(part + 0xc4), blend);
+
+                  *(float *)(spawn_params + 0x4c) =
+                    (1.0f - blend) * *(float *)(part + 0xb0) +
+                    blend * *(float *)(part + 0xc0);
+
+                  if (*(uint8_t *)(part + 0x64) & 4) {
+                    *(float *)(spawn_params + 0x50) *= *(float *)(ef + 0x18);
+                    *(float *)(spawn_params + 0x54) *= *(float *)(ef + 0x1c);
+                    *(float *)(spawn_params + 0x58) *= *(float *)(ef + 0x20);
+                  }
+                }
+
+                *(uint16_t *)(spawn_params + 0x0a) = *(uint16_t *)(ef + 0x4c);
+
+                {
+                  uint16_t loc_node = *(uint16_t *)(location + 2);
+                  if (loc_node == 0xffff || (int16_t)loc_node >= 0) {
+                    *(uint8_t *)(spawn_params + 0x0c) = 0;
+                  } else {
+                    *(uint8_t *)(spawn_params + 0x0c) = 1;
+                  }
+                }
+
+                *(uint8_t *)(spawn_params + 0x0d) =
+                  (*(int16_t *)(part + 4) == 2) ? 1 : 0;
+                *(uint8_t *)(spawn_params + 0x0e) =
+                  (*(int16_t *)(part + 4) == 1) ? 1 : 0;
+
+                *(float *)(spawn_params + 0x34) = up_vector[0];
+                *(float *)(spawn_params + 0x38) = up_vector[1];
+                *(float *)(spawn_params + 0x3c) = up_vector[2];
+
+                FUN_000a1fd0(spawn_params);
+
+              next_count:
+                spawn_count--;
+              } while (spawn_count != 0);
+
+              location =
+                (char *)FUN_0009cca0(effect, &location_handle, part_type);
+            } while (location != NULL);
+          }
+        }
+      }
+    }
+
+    part_counter++;
+    part_index = (int16_t)part_counter;
+  } while ((int)part_index < *parts_block);
+
+  *(float *)(ef + 0x58) = t;
 }
 
 /* Per-frame update for a single effect instance. Handles: attached object
