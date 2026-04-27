@@ -1,3 +1,62 @@
+/* Map a first-person weapon state to an animation graph index (0xdc8c0).
+ * Pure lookup table: 24 states (0..23) map to animation indices; any
+ * out-of-range state returns -1. */
+int16_t FUN_000dc8c0(int16_t state)
+{
+  switch (state) {
+  case 0:
+    return 0;
+  case 1:
+    return 0x15;
+  case 2:
+    return 0x16;
+  case 3:
+    return 9;
+  case 4:
+    return 0xc;
+  case 5:
+    return 1;
+  case 6:
+    return 2;
+  case 7:
+    return 0xe;
+  case 8:
+    return 0x12;
+  case 9:
+    return 0x13;
+  case 10:
+    return 0xd;
+  case 11:
+    return 5;
+  case 12:
+    return 6;
+  case 13:
+    return 7;
+  case 14:
+    return 8;
+  case 15:
+    return 0x17;
+  case 16:
+    return 0x18;
+  case 17:
+    return 0x19;
+  case 18:
+    return 0xb;
+  case 19:
+    return 0xa;
+  case 20:
+    return 0x10;
+  case 21:
+    return 0x14;
+  case 22:
+    return 0x1a;
+  case 23:
+    return 0x1b;
+  default:
+    return (int16_t)-1;
+  }
+}
+
 /* Try to play a third-person weapon sound for an object event (0xdc9d0).
  * When no local player owns the weapon, this function looks up the weapon's
  * animation graph tag, maps the event through two state-translation tables
