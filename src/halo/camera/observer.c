@@ -51,6 +51,41 @@ void *observer_get_camera(unsigned __int16 local_player_index)
   return (void *)(entry + 0x74);
 }
 
+/* Update observer position timers and integration (0x8cd40).
+ * Validates the player index, checks if the observer is paused (bit 0x20
+ * of the byte pointed to by observer+0x4), then dispatches five internal
+ * sub-update functions and clamps 5 timer floats at observer+0x5c. */
+void observer_update_positions(int16_t local_player_index)
+{
+  int i;
+  char *observer;
+  float *timers;
+  float val;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  observer = (char *)0x33571c + (int)(int16_t)local_player_index * 0x29c;
+  timers = (float *)(observer + 0x5c);
+
+  if ((*(unsigned char *)(*(int *)(observer + 0x4)) & 0x20) == 0) {
+    observer_compute_velocities(local_player_index);
+    observer_compute_accelerations(local_player_index);
+    observer_apply_acceleration(local_player_index);
+    observer_integrate(local_player_index);
+    observer_compute_update(local_player_index);
+
+    for (i = 5; i != 0; i--) {
+      val = *timers - *(float *)0x335718;
+      if (val <= *(float *)0x2533c0) {
+        val = *(float *)0x2533c0;
+      }
+      *timers = val;
+      timers++;
+    }
+  }
+}
+
 /* Per-tick observer update for all local players (0x8cde0).
  * Saves the frame's delta-time into the global at 0x335718, then walks
  * each of MAXIMUM_NUMBER_OF_LOCAL_PLAYERS observers (stride 0x29c from
