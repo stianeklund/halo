@@ -1115,14 +1115,14 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
         rotation_cos = cosf(angle);
         rotation_sin = sinf(angle);
         perpendicular3d(normal, tangent);
-        decals_cross3(bitangent, tangent, normal);
+        decals_cross3(bitangent, normal, tangent);
       } else {
         rotation_cos = -1.0f;
         rotation_sin = 0.0f;
 
         if ((*(uint16_t *)decal_tag & 0x20) == 0) {
           decals_cross3(tangent, normal, direction3);
-          decals_cross3(bitangent, tangent, normal);
+          decals_cross3(bitangent, normal, tangent);
         } else {
           float axis_vector[3];
           int16_t axis = (int16_t)FUN_00099220(direction3);
@@ -1142,8 +1142,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
           }
 
           normalize3d(axis_vector);
-          decals_cross3(tangent, axis_vector, normal);
-          decals_cross3(bitangent, tangent, normal);
+          decals_cross3(tangent, normal, axis_vector);
+          decals_cross3(bitangent, normal, tangent);
 
           if (decals_dot3(tangent, tangent) < tiny_squared || /* dup-args-ok */
               decals_dot3(bitangent, bitangent) <
@@ -1170,8 +1170,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
             }
 
             normalize3d(axis_vector);
-            decals_cross3(tangent, axis_vector, normal);
-            decals_cross3(bitangent, tangent, normal);
+            decals_cross3(tangent, normal, axis_vector);
+            decals_cross3(bitangent, normal, tangent);
           }
         }
       }
@@ -1244,7 +1244,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
         (int16_t *)tag_block_get_element(sequence + 0x34, sequence_index, 0x20);
 
       sprite_index = sprite[0];
-      FUN_00098b20(uv_bounds, decal_tag, selected_color, sprite_index, size,
+      FUN_00098b20(uv_bounds, decal_tag, selected_color, sequence_index, size,
                    bounds);
     } else {
       float aspect = 1.0f;
