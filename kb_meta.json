@@ -382,6 +382,9 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8a350": {
+      "status": "ported"
+    },
     "0x8a480": {
       "kind": "function",
       "status": "ported"
