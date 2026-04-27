@@ -428,6 +428,63 @@ bool FUN_000fc290(int weapon_handle, int source_handle,
   return found;
 }
 
+/* Begin a magazine reload cycle (0xfc990).
+ * If the magazine state is idle (0) or post-reload (2), and the weapon is
+ * not in an animation, starts the reload animation and effect. For dual-wield
+ * weapons (tag+0x4e2 == 1), computes the animation variant from whether the
+ * magazine is one round short of full.
+ *
+ * Confirmed: magazine_index in AX (register arg), 2 stack args (weapon_handle,
+ * param_2). Confirmed: calls object_get_and_verify_type(weapon_handle, 4)
+ * twice. Confirmed: calls FUN_000fb370(weapon_obj@<edi>, magazine_index@<si>).
+ * Confirmed: calls weapon_set_animation_state(weapon_handle, 0,
+ * magazine_index+5 @<bx>). Confirmed: calls weapon_start_effect(mag_def[0x44],
+ * 0, 0, weapon_handle@<eax>). Confirmed: calls FUN_000de3b0(weapon_handle, 9 or
+ * 10). Confirmed: calls weapon_get_animation_frame(weapon_handle, 0, 7, iVar6).
+ * Confirmed: clears bit 3 of weapon_obj[0x1dc] on non-early-exit path.
+ */
+void FUN_000fc990(int16_t magazine_index, int weapon_handle, int param_2)
+{
+  char *weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
+  int16_t *magazine_state =
+    (int16_t *)FUN_000fb370((void *)weapon_obj, magazine_index);
+  int tag_data = (int)tag_get(0x77656170, *(int *)weapon_obj);
+  char *mag_def = (char *)tag_block_get_element((char *)tag_data + 0x4f0,
+                                                (int)magazine_index, 0x70);
+
+  if (*magazine_state == 0 || *magazine_state == 2) {
+    int iVar6 = (int)object_get_and_verify_type(weapon_handle, 4);
+    if (*(char *)(iVar6 + 0x211) == 0 && *(char *)(iVar6 + 0x235) == 0 &&
+        *(char *)(iVar6 + 0x1e8) == 0) {
+      if (magazine_state[3] > 0 &&
+          magazine_state[4] < *(int16_t *)(mag_def + 0xa)) {
+        int16_t anim_variant = -1;
+        weapon_set_animation_state(weapon_handle, 0,
+                                   (int16_t)(magazine_index + 5));
+        weapon_start_effect(*(int *)(mag_def + 0x44), 0, 0, weapon_handle);
+        FUN_000de3b0(weapon_handle, (magazine_state[4] != 0) + 9);
+
+        if (*(int16_t *)(tag_data + 0x4e2) == 1) {
+          int diff_is_one =
+            ((int)*(int16_t *)(mag_def + 0xa) - (int)magazine_state[4]) == 1;
+          if (param_2 == 0) {
+            anim_variant = diff_is_one ? 1 : -1;
+          } else {
+            anim_variant = diff_is_one ? 2 : 0;
+          }
+        }
+
+        *magazine_state = 1;
+        int16_t frame =
+          weapon_get_animation_frame(weapon_handle, 0, 7, anim_variant);
+        magazine_state[1] = frame;
+        magazine_state[2] = frame;
+      }
+      *(uint32_t *)(weapon_obj + 0x1dc) &= ~0x8u;
+    }
+  }
+}
+
 /* Complete a magazine reload cycle (0xfcaf0).
  * Transfers rounds from unloaded reserve to the loaded count, capped by
  * the tag's rounds-per-reload and maximum-rounds fields. Adjusts reserve
