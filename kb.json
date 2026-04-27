@@ -793,6 +793,10 @@
           "addr": "0xb5aa0"
         },
         {
+          "decl": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);",
+          "addr": "0x8c440"
+        },
+        {
           "decl": "int16_t FUN_000dc800(int event @<eax>);",
           "addr": "0xdc800"
         },
@@ -2275,7 +2279,8 @@
         },
         {
           "decl": "int16_t FUN_000dcd60(int object_handle@<edi>);",
-          "addr": "0xdcd60"
+          "addr": "0xdcd60",
+          "ported": true
         },
         {
           "decl": "void FUN_000de140(int param_1, int param_2);",
@@ -4207,7 +4212,7 @@
         {
           "decl": "void observer_compute_velocities(int16_t local_player_index @<esi>);",
           "addr": "0x8ccf0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_update_positions(int16_t local_player_index @<eax>);",
