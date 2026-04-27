@@ -7390,7 +7390,8 @@
         },
         {
           "decl": "void *FUN_000fb370(void *weapon_obj@<edi>, int16_t magazine_index@<si>);",
-          "addr": "0xfb370"
+          "addr": "0xfb370",
+          "ported": true
         },
         {
           "decl": "bool weapon_has_activity(int weapon_handle @<eax>);",

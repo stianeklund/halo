@@ -854,6 +854,14 @@
       "metadata": {
         "source_path": "src/halo/bitmaps/bitmap_utilities.c"
       }
+    },
+    {
+      "name": "halo/weapons",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons.obj",
+      "metadata": {
+        "source_path": "src/halo/items/weapons.c"
+      }
     }
   ]
 }
