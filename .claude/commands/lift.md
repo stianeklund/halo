@@ -90,9 +90,13 @@ After Phase 1 completes:
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.
+- **XDK verify is the primary structural verification.** The lift pipeline runs
+  `xdk_verify.py` automatically when a delinked reference exists in `delinked/`
+  (mapped via `objdiff.json`). It compiles with the same MSVC 7.1 compiler that
+  built the original XBE, giving 90%+ match for correct lifts. If no delinked
+  reference exists, offer to run `/delink` to export one after the pipeline.
 - **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console
   is available. Use `/deploy --xbe-only` then `/xbdm-*` commands to probe.
 - Use `/verify-option3` for a fast post-lift lane (xemu fallback).
-- Use `/lift-verify` for explicit verify payload runs when you already have
-  the lifted function address and extraction outputs.
+- Use `/lift-verify` for explicit verify runs with xdk_verify.
 - Use `/maintain` for a standalone sort + format pass.
