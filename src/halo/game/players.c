@@ -1403,9 +1403,9 @@ static void player_set_spawn_action_result(int player_handle,
       new_dz = *(float *)(new_obj + 0x14) - *(float *)(unit_obj + 0x14);
 
       cur_dist =
-        __builtin_sqrtf(cur_dx * cur_dx + cur_dy * cur_dy + cur_dz * cur_dz);
+        xbox_sqrtf(cur_dx * cur_dx + cur_dy * cur_dy + cur_dz * cur_dz);
       new_dist =
-        __builtin_sqrtf(new_dx * new_dx + new_dy * new_dy + new_dz * new_dz);
+        xbox_sqrtf(new_dx * new_dx + new_dy * new_dy + new_dz * new_dz);
       if (cur_dist <= new_dist)
         return;
     } else if (action_result_type <= current_type) {
@@ -1440,7 +1440,7 @@ void player_update_nearby_biped(int datum_handle, int object_handle)
   angle_delta = *(float *)0x2568bc - *(float *)(difficulty_entry + 0x70);
 
   nearby_biped = (char *)object_get_and_verify_type(object_handle, 2);
-  if (*(float *)(nearby_biped + 0x38) <= __builtin_cosf(angle_delta)) {
+  if (*(float *)(nearby_biped + 0x38) <= xbox_cosf(angle_delta)) {
     if ((*(unsigned char *)(nearby_biped + 0x424) & 0x10) == 0 &&
         *(int *)(nearby_biped + 0x2d4) == -1) {
       player_set_spawn_action_result(datum_handle, 11, object_handle, -1);

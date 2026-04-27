@@ -143,7 +143,7 @@ int csstrlen(const char *s1)
   int size;
 
   assert_halt(s1);
-  size = strlen(s1);
+  size = xbox_strlen(s1);
   assert_halt(size >= 0 && size < MAXIMUM_STRING_SIZE);
 
   return size;

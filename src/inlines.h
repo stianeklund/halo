@@ -1,95 +1,149 @@
-#define qmemcpy memcpy
+#define qmemcpy xbox_memcpy
 
-#ifdef MSVC
-  #ifdef MSVC_INTRINSIC_DEFS
-    #define INCLUDE_PRAGMA_FUNCTIONS
-    #define INCLUDE_DEFS
-  #else
-    #define INCLUDE_PRAGMA_INTRINSICS
-    #define INCLUDE_DECLS
-  #endif
-  #define INLINE
-  #define atan2 atan2_
+/* ----------------------------------------------------------------
+ * Compiler / architecture detection
+ *
+ * Clang (nxdk) with -target i386-pc-win32 defines _MSC_VER and
+ * _M_IX86 but NOT __i386__. Only real cl.exe should use the MSVC/CRT
+ * path; Clang and GCC use the freestanding path with GCC-style asm.
+ * ---------------------------------------------------------------- */
+#if defined(_MSC_VER) && !defined(__clang__)
+  #define XBOX_COMPILER_MSVC_X86 1
+#elif defined(__i386__) || defined(_M_IX86)
+  #define XBOX_COMPILER_GCC_X86 1
 #else
-  #define INLINE static inline
-  #define INCLUDE_DEFS
+  #error Unsupported compiler/architecture: original Xbox requires 32-bit x86.
 #endif
 
 
-#ifdef INCLUDE_DECLS
+/* ================================================================
+ * MSVC / XDK path
+ *
+ * sinf, cosf, sqrtf, fabsf, log10, pow come from the XDK CRT.
+ * atan2 is renamed to avoid the CRT version (we use fpatan directly).
+ * memcpy, strlen are provided via pragma intrinsic or function body.
+ * xbox_* names are macros to the corresponding CRT names.
+ * ================================================================ */
+#ifdef XBOX_COMPILER_MSVC_X86
+
+#ifdef MSVC_INTRINSIC_DEFS
+  #define _XBOX_PRAGMA_FUNCTIONS
+  #define _XBOX_PROVIDE_DEFS
+#else
+  #define _XBOX_PRAGMA_INTRINSICS
+  #define _XBOX_PROVIDE_DECLS
+#endif
+
+#define atan2 atan2_
+
+#ifdef _XBOX_PROVIDE_DECLS
 double atan2(double y, double x);
 void *memcpy(void *s1, const void *s2, size_t n);
 size_t strlen(const char *s);
-#undef INCLUDE_DECLS
+#undef _XBOX_PROVIDE_DECLS
 #endif
 
-
-#ifdef INCLUDE_PRAGMA_FUNCTIONS
-// #pragma function(atan2)
+#ifdef _XBOX_PRAGMA_FUNCTIONS
 #pragma function(memcpy)
 #pragma function(strlen)
-#undef INCLUDE_PRAGMA_FUNCTIONS
+#undef _XBOX_PRAGMA_FUNCTIONS
 #endif
 
-
-#ifdef INCLUDE_PRAGMA_INTRINSICS
-// #pragma intrinsic(atan2)
+#ifdef _XBOX_PRAGMA_INTRINSICS
 #pragma intrinsic(memcpy)
 #pragma intrinsic(strlen)
-#undef INCLUDE_PRAGMA_INTRINSICS
+#undef _XBOX_PRAGMA_INTRINSICS
 #endif
 
+#ifdef _XBOX_PROVIDE_DEFS
 
-#ifdef INCLUDE_DEFS
-
-INLINE double atan2(double y, double x)
+double atan2_(double y, double x)
 {
   double r = 0;
-#ifdef MSVC
   __asm {
     fld y
     fld x
     fpatan
     fstp r
   }
-#else
-  asm volatile ("fpatan" : "=t"(r) : "u"(y), "0"(x) : "st(1)");
-#endif
   return r;
 }
 
-INLINE float sinf(float x)
+void *memcpy(void *s1, const void *s2, size_t n)
+{
+  char *dest = (char *)s1;
+  const char *src = (const char *)s2;
+  while (n--) { *dest++ = *src++; }
+  return s1;
+}
+
+size_t strlen(const char *s)
+{
+  size_t c = 0;
+  while (*s++) { c++; }
+  return c;
+}
+
+#undef _XBOX_PROVIDE_DEFS
+#endif
+
+#define xbox_sinf   sinf
+#define xbox_cosf   cosf
+#define xbox_sqrtf  sqrtf
+#define xbox_fabsf  fabsf
+#define xbox_atan2  atan2_
+#define xbox_log10  log10
+#define xbox_pow    pow
+#define xbox_memcpy memcpy
+#define xbox_strlen strlen
+
+#endif /* XBOX_COMPILER_MSVC_X86 */
+
+
+/* ================================================================
+ * GCC / nxdk path (freestanding, no libm)
+ *
+ * Math functions use x87 inline asm. Memory/string functions are
+ * plain C. All defined as static inline.
+ * ================================================================ */
+#ifdef XBOX_COMPILER_GCC_X86
+
+static inline float xbox_sinf(float x)
 {
   float r;
   asm volatile ("fsin" : "=t"(r) : "0"(x));
   return r;
 }
 
-INLINE float cosf(float x)
+static inline float xbox_cosf(float x)
 {
   float r;
   asm volatile ("fcos" : "=t"(r) : "0"(x));
   return r;
 }
 
-INLINE float sqrtf(float x)
+static inline float xbox_sqrtf(float x)
 {
   float r;
   asm volatile ("fsqrt" : "=t"(r) : "0"(x));
   return r;
 }
 
-INLINE float fabsf(float x)
+static inline float xbox_fabsf(float x)
 {
   float r;
   asm volatile ("fabs" : "=t"(r) : "0"(x));
   return r;
 }
 
-/* log10(x) via x87 FLDLG2 + FYL2X.
- * Computes log10(2) * log2(x) = log10(x).
- * No edge-case handling -- the game only calls this for gain in (0,1]. */
-INLINE double log10(double x)
+static inline double xbox_atan2(double y, double x)
+{
+  double r = 0;
+  asm volatile ("fpatan" : "=t"(r) : "u"(y), "0"(x) : "st(1)");
+  return r;
+}
+
+static inline double xbox_log10(double x)
 {
   double result;
   asm volatile (
@@ -102,24 +156,20 @@ INLINE double log10(double x)
   return result;
 }
 
-/* pow(x, y) = 2^(y * log2(x)) via x87 FYL2X + F2XM1 + FSCALE.
- * Valid for x > 0 and any y. No edge-case handling (NaN, inf, x<=0)
- * because the game only calls this for attenuation/progress curves with
- * base in (0,1] and small positive exponents. */
-INLINE double pow(double base, double exponent)
+static inline double xbox_pow(double base, double exponent)
 {
   double result;
   asm volatile (
-    "fyl2x\n\t"              /* ST(0) = exponent * log2(base) */
-    "fld %%st(0)\n\t"        /* duplicate */
-    "frndint\n\t"             /* ST(0) = integer part */
-    "fxch %%st(1)\n\t"       /* swap: ST(0) = full, ST(1) = int */
-    "fsub %%st(1), %%st\n\t" /* ST(0) = fractional part */
-    "f2xm1\n\t"              /* ST(0) = 2^frac - 1 */
-    "fld1\n\t"                /* push 1.0 */
-    "faddp\n\t"               /* ST(0) = 2^frac */
-    "fscale\n\t"              /* ST(0) = 2^frac * 2^int = 2^(exp*log2(base)) */
-    "fstp %%st(1)\n\t"       /* pop the integer part */
+    "fyl2x\n\t"
+    "fld %%st(0)\n\t"
+    "frndint\n\t"
+    "fxch %%st(1)\n\t"
+    "fsub %%st(1), %%st\n\t"
+    "f2xm1\n\t"
+    "fld1\n\t"
+    "faddp\n\t"
+    "fscale\n\t"
+    "fstp %%st(1)\n\t"
     : "=t"(result)
     : "0"(base), "u"(exponent)
     : "st(1)"
@@ -127,28 +177,41 @@ INLINE double pow(double base, double exponent)
   return result;
 }
 
-INLINE void *memcpy(void *s1, const void *s2, size_t n)
+static inline void *xbox_memcpy(void *s1, const void *s2, size_t n)
 {
   char *dest = (char *)s1;
   const char *src = (const char *)s2;
-  while (n--) {
-    *dest++ = *src++;
-  }
+  while (n--) { *dest++ = *src++; }
   return s1;
 }
 
-INLINE size_t strlen(const char *s)
+static inline size_t xbox_strlen(const char *s)
 {
   size_t c = 0;
-  while (*s++) {
-    c++;
-  }
+  while (*s++) { c++; }
   return c;
 }
 
-#undef INCLUDE_DEFS
-#endif // INCLUDE_DEFS
+#endif /* XBOX_COMPILER_GCC_X86 */
 
-#ifdef INLINE
-#undef INLINE
+
+/* ================================================================
+ * Standard name mapping (opt-in)
+ *
+ * When XBOX_REPLACE_STANDARD_NAMES is defined before including this
+ * header, standard C names map to xbox_* implementations.
+ * On MSVC this is a no-op since xbox_* already aliases CRT names.
+ * ================================================================ */
+#ifdef XBOX_REPLACE_STANDARD_NAMES
+#ifdef XBOX_COMPILER_GCC_X86
+  #define sinf    xbox_sinf
+  #define cosf    xbox_cosf
+  #define sqrtf   xbox_sqrtf
+  #define fabsf   xbox_fabsf
+  #define atan2   xbox_atan2
+  #define log10   xbox_log10
+  #define pow     xbox_pow
+  #define memcpy  xbox_memcpy
+  #define strlen  xbox_strlen
+#endif
 #endif

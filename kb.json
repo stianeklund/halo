@@ -1950,9 +1950,24 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0009cb90(int effect_handle@<eax>, int event_index@<di>);",
+          "addr": "0x9cb90",
+          "ported": false
+        },
+        {
           "decl": "bool dangerous_effects_near_player(void);",
           "addr": "0x9d000",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0009d590(void *effect@<edi>);",
+          "addr": "0x9d590",
+          "ported": false
+        },
+        {
+          "decl": "void FUN_0009e310(void *effect@<ebx>);",
+          "addr": "0x9e310",
+          "ported": false
         },
         {
           "decl": "void effect_update(int effect_index, float elapsed);",

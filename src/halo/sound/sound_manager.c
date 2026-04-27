@@ -1492,7 +1492,7 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
 
   if ((short)best_channel != -1) {
     /* Evaluate channel suitability with sqrt of best distance. */
-    sqrt_dist = __builtin_sqrtf(best_dist_sq);
+    sqrt_dist = xbox_sqrtf(best_dist_sq);
     sound_compute_source_obstruction(best_channel, source, sqrt_dist);
   }
 
@@ -2335,7 +2335,7 @@ void sound_update_music(void)
                      location.position[2] * location.position[2];
           float falloff =
             *(float *)0x2533c8 -
-            (__builtin_sqrtf(sq) - min_dist) / (max_dist - min_dist);
+            (xbox_sqrtf(sq) - min_dist) / (max_dist - min_dist);
           if (falloff < *(float *)0x2533c0)
             falloff = *(float *)0x2533c0;
           else if (falloff > *(float *)0x2533c8)

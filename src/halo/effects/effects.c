@@ -225,14 +225,7 @@ void effect_update(int effect_index, float elapsed)
           } else {
             /* clear completed flag and restart from event 0 */
             *(uint16_t *)((char *)effect + 2) = ef & 0xfff7;
-            {
-              int _eax = effect_index;
-              int _edi = 0;
-              asm volatile("call *%2"
-                           : "+a"(_eax), "+D"(_edi)
-                           : "r"((void *)0x9cb90)
-                           : "ecx", "edx", "memory", "cc");
-            }
+            FUN_0009cb90(effect_index, 0);
           }
         }
       }
@@ -324,12 +317,7 @@ event_loop:
     if (ef_flags & 1) {
       /* ---- have active event: update it ---- */
       if ((ef_flags & 0x10) == 0) {
-        /* effect_event_update reads EDI as the effect datum */
-        int _edi = (int)effect;
-        asm volatile("call *%1"
-                     : "+D"(_edi)
-                     : "r"((void *)0x9d590)
-                     : "eax", "ecx", "edx", "memory", "cc");
+        FUN_0009d590(effect);
       }
 
       if (transitioned) {
@@ -375,12 +363,7 @@ event_loop:
 
         /* start the chosen event */
         {
-          int _eax = effect_index;
-          int _edi2 = (int)(int16_t)next_event;
-          asm volatile("call *%2"
-                       : "+a"(_eax), "+D"(_edi2)
-                       : "r"((void *)0x9cb90)
-                       : "ecx", "edx", "memory", "cc");
+          FUN_0009cb90(effect_index, (int)(int16_t)next_event);
         }
       }
     } else {
@@ -467,11 +450,7 @@ event_loop:
 
         /* create effect locations for the new event */
         if ((*(uint8_t *)((char *)effect + 2) & 0x10) == 0) {
-          int _ebx = (int)effect;
-          asm volatile("call *%1"
-                       : "+b"(_ebx)
-                       : "r"((void *)0x9e310)
-                       : "eax", "ecx", "edx", "memory", "cc");
+          FUN_0009e310(effect);
         }
       }
     }
