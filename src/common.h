@@ -16,6 +16,7 @@ extern const char *build_date;
 extern const char *build_ui_widget_text;
 
 #include "types.h"
+#define XBOX_REPLACE_STANDARD_NAMES
 #include "inlines.h"
 #include "decl.h"
 
@@ -47,6 +48,7 @@ extern const char *build_ui_widget_text;
 static const int _scenario_type_main_menu = 2;
 
 #ifdef DEBUG_BUILD
+#undef strlen
 #define strlen csstrlen
 #endif
 
