@@ -155,7 +155,8 @@
     "0x8a830": "void observer_integrate(int16_t local_player_index @<eax>);",
     "0x8b470": "void observer_compute_accelerations(int16_t local_player_index @<eax>);",
     "0x8ba10": "void observer_compute_update(int16_t local_player_index @<eax>);",
-    "0x8ccf0": "void observer_compute_velocities(int16_t local_player_index @<esi>);"
+    "0x8ccf0": "void observer_compute_velocities(int16_t local_player_index @<esi>);",
+    "0x8c440": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);"
   },
   "version": 1
 }

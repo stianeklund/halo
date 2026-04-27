@@ -112,6 +112,20 @@ void *observer_get_camera(unsigned __int16 local_player_index)
   return (void *)(entry + 0x74);
 }
 
+/* Compute observer velocities from current and target state (0x8ccf0).
+ * Dispatches to FUN_0008c440 with pointers into the observer struct:
+ * velocities at +0xc, result at +0x260, and integration state at +0xb0. */
+void observer_compute_velocities(int16_t local_player_index)
+{
+  char *observer;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  observer = (char *)0x33571c + (int)local_player_index * 0x29c;
+  FUN_0008c440(observer + 0xc, observer + 0x260, observer + 0xb0);
+}
+
 /* Update observer position timers and integration (0x8cd40).
  * Validates the player index, checks if the observer is paused (bit 0x20
  * of the byte pointed to by observer+0x4), then dispatches five internal

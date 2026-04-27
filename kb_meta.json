@@ -383,6 +383,7 @@
       "status": "ported"
     },
     "0x8a350": {
+      "kind": "function",
       "status": "ported"
     },
     "0x8a480": {
@@ -403,6 +404,9 @@
     },
     "0x8c4b0": {
       "kind": "function",
+      "status": "ported"
+    },
+    "0x8ccf0": {
       "status": "ported"
     },
     "0x8cd40": {
@@ -2189,6 +2193,19 @@
     "0xdc620": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xdc9d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_000dc8c0 is a state-to-animation-index lookup table function in first_person_weapons.obj, taking int16_t in AX and returning int16_t in EAX.",
+        "Weapon tag offset 0x478 holds the model_animations (antr) tag index for the weapon's animation graph.",
+        "The antr tag block at +0x48 (element size 0x1c) contains an int16_t lookup array at element offset +0x14, indexed by animation index, mapping to entries in the block at +0x74 (element size 0xb4).",
+        "The antr tag block at +0x54 (element size 0x14) holds sound references; field at element offset +0xc is a tag_index for the sound effect."
+      ],
+      "uncertain": [
+        "ECX survives through FUN_000dc800 and FUN_000dc8c0 because both are pure switch-table functions that only modify EAX; this is not guaranteed by calling convention but is relied upon by the binary."
+      ]
     },
     "0xde140": {
       "kind": "function",
