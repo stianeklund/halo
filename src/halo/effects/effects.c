@@ -488,6 +488,18 @@ void FUN_0009d590(void *effect)
                 matrix_scale_transform_vector((float *)(location + 8),
                                               velocity_out, velocity_out);
 
+                /* store local-space values into spawn_params; the
+                 * non-attached branch overwrites with world-space later */
+                *(float *)(spawn_params + 0x10) = position[0];
+                *(float *)(spawn_params + 0x14) = position[1];
+                *(float *)(spawn_params + 0x18) = position[2];
+                *(float *)(spawn_params + 0x1c) = direction_out[0];
+                *(float *)(spawn_params + 0x20) = direction_out[1];
+                *(float *)(spawn_params + 0x24) = direction_out[2];
+                *(float *)(spawn_params + 0x28) = velocity_out[0];
+                *(float *)(spawn_params + 0x2c) = velocity_out[1];
+                *(float *)(spawn_params + 0x30) = velocity_out[2];
+
                 {
                   uint16_t node_idx = *(uint16_t *)(location + 2);
                   if (node_idx == 0xffff) {
