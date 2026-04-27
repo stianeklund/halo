@@ -85,6 +85,7 @@
     "0x9a5a0": "void FUN_0009a5a0(void *geometry@<eax>, float *projection, int surface_index, bool allow_deviants, float scale, int16_t type, int *surface_queue, int16_t *surface_queue_write_index, int *deviant_surface_list, int16_t *deviant_surface_count);",
     "0x9caf0": "bool FUN_0009caf0(int16_t part_type@<ax>, void *position@<ecx>, void *effect_volumes@<edx>);",
     "0x9cb90": "void FUN_0009cb90(int effect_handle@<eax>, int event_index@<di>);",
+    "0x9d1f0": "void FUN_0009d1f0(void *effect@<eax>, unsigned int *seed, float *direction_in, float *direction_out, float *velocity_out, float min_speed, float max_speed, float cone_angle, int flags_lo, int flags_hi);",
     "0x9d590": "void FUN_0009d590(void *effect@<edi>);",
     "0x9e310": "void FUN_0009e310(void *effect@<ebx>);",
     "0xa8780": "void game_engine_update_flag_state(int weapon_index@<esi>);",

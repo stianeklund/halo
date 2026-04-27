@@ -113,6 +113,72 @@ void FUN_0009cb90(int effect_handle, int event_index)
     random_real_range(seed, *(float *)(event + 8), *(float *)(event + 0xc));
 }
 
+/* Walk to the next effect location datum, filtering by node attachment
+ * type (0x9cca0). For part types 1 or (3 with single-player + attached
+ * object), skips locations whose node_index is -1 or non-negative — i.e.
+ * looks for negative marker-resolved indices. For other types, skips
+ * locations with negative (non -1) node indices. Recursive. */
+void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
+{
+  char *loc;
+
+  if (!effect) {
+    display_assert("effect", "c:\\halo\\SOURCE\\effects\\effects.c", 0x6e6, 1);
+    system_exit(-1);
+  }
+  if (!location_handle) {
+    display_assert("location_datum_index",
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x6e7, 1);
+    system_exit(-1);
+  }
+  if (*location_handle == -1)
+    return 0;
+
+  loc = (char *)datum_get(*(data_t **)0x5aa8ac, *location_handle);
+  *location_handle = *(int *)(loc + 4);
+
+  if ((int16_t)part_type == 1 ||
+      ((int16_t)part_type == 3 && *(int16_t *)((char *)effect + 0x4c) != -1 &&
+       local_player_count() == 1)) {
+    if (*(int16_t *)(loc + 2) == -1 || *(int16_t *)(loc + 2) >= 0)
+      return FUN_0009cca0(effect, location_handle, part_type);
+  } else {
+    if (*(int16_t *)(loc + 2) != -1 && *(int16_t *)(loc + 2) < 0)
+      return FUN_0009cca0(effect, location_handle, part_type);
+  }
+  return loc;
+}
+
+/* Effect transition function / easing curve (0x9cdd0). Maps a normalized
+ * time value through one of several curves: constant, step, linear,
+ * quadratic, inverse quadratic, or cubic hermite (smoothstep). Returns
+ * 0 when t == -1 (sentinel for "no duration"). */
+float FUN_0009cdd0(uint16_t transition_type, float t)
+{
+  if (t == -1.0f)
+    return 0.0f;
+  switch (transition_type) {
+  case 0:
+    return 1.0f;
+  case 1:
+    if (t < 1.0f)
+      return 0.0f;
+    return 1.0f;
+  case 2:
+    return t;
+  case 3:
+    return t * t;
+  case 4:
+    return (2.0f - t) * t;
+  case 5:
+    return (3.0f - 2.0f * t) * t * t;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\effects\\effects.c", 0x75e, 1);
+    system_exit(-1);
+    return t;
+  }
+}
+
 /* Check if any active effect with a nonzero danger radius is close enough
  * to any player to be considered dangerous. Iterates all effects, skips
  * those with flag bit 3 set or zero danger radius, then for each player
@@ -204,6 +270,59 @@ bool dangerous_effects_near_player(void)
   }
 
   return false;
+}
+
+/* Compute a random direction and velocity for a newly spawned effect part
+ * (0x9d1f0). Picks a random speed from a scaled (min,max) range, optionally
+ * rotates direction_in by a random cone angle, and writes direction_out and
+ * velocity_out = speed * direction_out. Inlines effect_compute_scale logic
+ * for speed (bit 0/1) and cone angle (bit 2/3). */
+void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
+                  float *direction_out, float *velocity_out, float min_speed,
+                  float max_speed, float cone_angle, int flags_lo, int flags_hi)
+{
+  float scale_a = *(float *)((char *)effect + 0x44);
+  float scale_b = *(float *)((char *)effect + 0x48);
+
+  /* compute speed: inline effect_compute_scale with bit_index=0 */
+  float base = min_speed;
+  if (flags_lo & 1)
+    base *= scale_a;
+  if (flags_hi & 1)
+    base *= scale_b;
+  float range = max_speed - min_speed;
+  if (flags_lo & 2)
+    range *= scale_a;
+  if (flags_hi & 2)
+    range *= scale_b;
+  float speed = random_real_range((int *)seed, 0.0f, range) + base;
+
+  /* compute cone spread angle */
+  float cone = cone_angle;
+  if (flags_lo & 4)
+    cone *= scale_a;
+  if (flags_hi & 4)
+    cone *= scale_b;
+  float angle = random_math_real(seed) * cone;
+
+  /* copy direction_in to direction_out */
+  direction_out[0] = direction_in[0];
+  direction_out[1] = direction_in[1];
+  direction_out[2] = direction_in[2];
+
+  /* rotate by cone angle if nonzero */
+  if (angle != 0.0f) {
+    float cos_a, sin_a;
+    __asm__ volatile("fsincos" : "=t"(cos_a), "=u"(sin_a) : "0"(angle));
+    float axis[3];
+    random_seed_get_direction3d(seed, axis);
+    rotate_vector3d_by_sincos(direction_out, axis, sin_a, cos_a);
+  }
+
+  /* velocity = speed * direction */
+  velocity_out[0] = speed * direction_out[0];
+  velocity_out[1] = speed * direction_out[1];
+  velocity_out[2] = speed * direction_out[2];
 }
 
 /* Per-frame update for a single effect instance. Handles: attached object

@@ -1987,6 +1987,21 @@
           "decl": "bool FUN_0009caf0(int16_t part_type@<ax>, void *position@<ecx>, void *effect_volumes@<edx>);",
           "addr": "0x9caf0",
           "ported": true
+        },
+        {
+          "decl": "void *FUN_0009cca0(void *effect, int *location_handle, int part_type);",
+          "addr": "0x9cca0",
+          "ported": true
+        },
+        {
+          "decl": "float FUN_0009cdd0(uint16_t transition_type, float t);",
+          "addr": "0x9cdd0",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0009d1f0(void *effect@<eax>, unsigned int *seed, float *direction_in, float *direction_out, float *velocity_out, float min_speed, float max_speed, float cone_angle, int flags_lo, int flags_hi);",
+          "addr": "0x9d1f0",
+          "ported": true
         }
       ]
     },
