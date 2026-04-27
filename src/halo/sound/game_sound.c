@@ -43,6 +43,48 @@ void sound_impulse_start(int sound_tag_index, float scale)
   sound_start(sound_tag_index, source, NONE, 0, 0, 0);
 }
 
+bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
+{
+  void *object;
+  int location[2];
+  float *node_matrix;
+  int marker_index;
+
+  object = object_try_and_get_and_verify_type(object_handle, -1);
+
+  assert_halt(attachment_data);
+  assert_halt(source);
+
+  if (object != 0) {
+    object_get_location(object_handle, location);
+
+    if ((int16_t)location[1] != -1) {
+      if (*(int16_t *)((char *)attachment_data + 2) == -1) {
+        marker_index = 0;
+      } else {
+        marker_index = (int)*(int16_t *)((char *)attachment_data + 2);
+      }
+
+      node_matrix = (float *)object_get_node_matrix(object_handle, marker_index);
+
+      *(int *)((char *)source + 0x30) = location[0];
+      *(int *)((char *)source + 0x34) = location[1];
+
+      matrix_transform_point(node_matrix, (float *)((char *)attachment_data + 4),
+                             (float *)((char *)source + 0xc));
+      matrix_transform_vector(node_matrix,
+                              (float *)((char *)attachment_data + 0x10),
+                              (float *)((char *)source + 0x18));
+      object_get_root_location(object_handle, (float *)((char *)source + 0x24),
+                               0);
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool sound_cluster_is_audible(void *location)
 {
   int16_t cluster_index;
@@ -110,8 +152,8 @@ int FUN_001c7e70(int object_handle, int tag_index, int16_t marker,
     return -1;
 
   *(float *)(sound_params + 4) = scale;
-  return sound_start(tag_index, sound_params, object_handle,
-                     (int)&FUN_001c7a10, callback_data, 0x1c);
+  return sound_start(tag_index, sound_params, object_handle, (int)&FUN_001c7a10,
+                     callback_data, 0x1c);
 }
 
 /* sound_looping_stop (0x1c80e0)

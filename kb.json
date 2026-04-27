@@ -2712,7 +2712,8 @@
         },
         {
           "decl": "bool FUN_001c7a10(int object_handle, void *attachment_data, void *source);",
-          "addr": "0x1c7a10"
+          "addr": "0x1c7a10",
+          "ported": true
         },
         {
           "decl": "int FUN_001c7e70(int object_handle, int tag_index, int16_t marker, float *position, float *forward, float scale);",
