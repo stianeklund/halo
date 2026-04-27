@@ -652,7 +652,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
                               details="skipped (no --objdiff-reference/--objdiff-candidate)"))
 
   if not args.skip_xdk_verify and build_ok:
-    xdk_source = Path("src") / target.source_path if target.source_path else None
+    xdk_source = Path(target.source_path) if target.source_path else None
     xdk_ref = None
     if xdk_source:
       try:
@@ -671,14 +671,24 @@ def run_pipeline(args: argparse.Namespace) -> int:
     if xdk_source and xdk_ref and (ROOT / xdk_source).exists():
       cmd = [
         "python3", "tools/xdk_verify.py",
-        str(xdk_source), "--fpu-only", "--threshold", "0",
+        str(xdk_source), "--function", target.name,
+        "--show-diffs", "--threshold", "0",
       ]
       proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "xdk_verify.log")
-      has_fpu_warn = "FPU-WARN" in (proc.stdout or "")
-      details = "FPU operand-order warnings detected" if has_fpu_warn else "clean"
-      if proc.returncode != 0 and not has_fpu_warn:
+      output = (proc.stdout or "") + (proc.stderr or "")
+      has_fpu_warn = "FPU-WARN" in output
+      match_pct = None
+      m = re.search(r'(\d+\.\d+)% match', output)
+      if m:
+        match_pct = float(m.group(1))
+      if proc.returncode == 0:
+        details = f"{match_pct:.1f}% match" if match_pct is not None else "PASS"
+      elif has_fpu_warn:
+        details = f"{match_pct:.1f}% match, FPU operand-order warnings" if match_pct else "FPU warnings"
+      else:
         details = "xdk compilation or comparison failed"
-      stages.append(StageResult("xdk_verify", ran=True, ok=True,
+      ok = proc.returncode == 0
+      stages.append(StageResult("xdk_verify", ran=True, ok=ok,
                                 details=details + (" [REVIEW FPU-WARN]" if has_fpu_warn else "")))
     else:
       reason = "no delinked reference" if xdk_source else "no source_path"

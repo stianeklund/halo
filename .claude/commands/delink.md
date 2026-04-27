@@ -7,10 +7,11 @@ subtask: true
 Use the `halo-verify-debug` skill for delink prerequisites, export guidance,
 and mismatch triage rules.
 
-Export a delinked reference object from the live Ghidra session and
-structurally diff it against our compiled candidate for a target function. Use
-this after a lift when you want structural evidence that the C faithfully
-reproduces the original's memory accesses.
+Export a delinked reference object from the live Ghidra session and verify it
+against our lifted code using the XDK MSVC 7.1 compiler (`tools/xdk_verify.py`).
+This is the primary structural verification path — it compiles our C with the
+same compiler that built the original XBE, giving 90%+ match rates for correct
+lifts vs ~13% with the clang cross-compiler.
 
 Prerequisites (verify and bail early if not met):
 
@@ -28,22 +29,30 @@ Ghidra MCP preflight (required):
   exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
   may not be running?`
 
-Argument: $ARGUMENTS (function name or `0x...` address; required)
+Argument: $ARGUMENTS (function name, `0x...` address, or object name; required)
 
 Steps:
 1. Resolve the target.
    - If $ARGUMENTS is an address, find the matching `addr` in `kb.json`.
    - If $ARGUMENTS is a name, find the adjacent address and source mapping.
-   - Resolve the function body range from Ghidra before exporting.
-2. Ensure the output directory exists under `artifacts/delinker/`.
-3. Synthesize relocations for the selected range.
-4. Export the delinked reference object and verify the file exists and is a
-   non-empty COFF object.
-5. Locate the candidate object from the `source` field in `kb.json`.
-6. Run the structural diff between the reference object and the candidate.
-7. Report the reference path, candidate path, whether objdiff ran, and any
-   structural mismatches that matter for field offsets or branch shape.
+   - If $ARGUMENTS is an object name (e.g. `game_sound.obj`), export the full
+     object range.
+   - Resolve the function/object body range from Ghidra before exporting.
+2. Ensure the delinked output directory exists (`delinked/`).
+3. Export the delinked reference object via `ghidra-live` MCP
+   `export_delinked_object` with `run_relocation_synthesizer: true`.
+4. Verify the exported file exists and is a non-empty COFF object (`file` cmd).
+5. Update `objdiff.json` if no entry exists for this object yet.
+6. Run `python3 tools/xdk_verify.py <source_file> --function <target_name>
+   --show-diffs` to compile with XDK MSVC 7.1 and structurally compare.
+   - If XDK compilation fails, fix the issue (usually missing macros in
+     `xdk_common.h` or implicit pointer casts that `/TP` C++ mode rejects).
+   - Report the match percentage and any diffs.
+7. Report: reference path, match %, whether any structural mismatches matter
+   for field offsets or branch shape.
 
 Notes:
 - Do not save the Ghidra project after this run.
-- Expect some codegen noise; focus on systematic offset or control-flow drift.
+- Match rates above 85% are normal for correct lifts (the remaining diff is
+  label placement, NOPs, and minor scheduling differences).
+- Match rates below 70% indicate a real structural problem — investigate.
