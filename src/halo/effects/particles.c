@@ -1,7 +1,7 @@
-/* Allocate a new particle datum and initialize it from creation params
- * (0xa1210). Copies position, velocity, and tint/orientation data into the
- * datum, resolves lighting color via FUN_00139480, then runs particle setup
- * (FUN_000a0fd0). Returns the datum handle, or -1 on failure. */
+/* Allocate a new particle system header and initialize it (0xa1210).
+ * Copies position, velocity, and tint/orientation data into the datum,
+ * resolves lighting color via FUN_00139480, then runs setup (FUN_000a0fd0).
+ * Returns the datum handle, or -1 on failure. */
 int FUN_000a1210(int tag_index, float *position, float *velocity,
                  void *ext_data, float scale)
 {
@@ -9,9 +9,9 @@ int FUN_000a1210(int tag_index, float *position, float *velocity,
   char *datum;
   char local_buf[12];
 
-  handle = data_new_at_index(particle_data);
+  handle = data_new_at_index(particle_system_header_data);
   if (handle != -1) {
-    datum = (char *)datum_get(particle_data, handle);
+    datum = (char *)datum_get(particle_system_header_data, handle);
     *(int *)(datum + 0x08) = tag_index;
     *(int *)(datum + 0x0c) = -1;
 
@@ -34,7 +34,7 @@ int FUN_000a1210(int tag_index, float *position, float *velocity,
     FUN_00139480((void *)(datum + 0x20), (void *)(datum + 0x48), local_buf, 0);
 
     if (!FUN_000a0fd0(handle)) {
-      datum_delete(particle_data, handle);
+      datum_delete(particle_system_header_data, handle);
       return -1;
     }
   }
