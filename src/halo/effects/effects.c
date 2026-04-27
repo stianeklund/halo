@@ -586,7 +586,7 @@ void FUN_0009d590(void *effect)
                   if (flags_hi & 0x400)
                     size_range *= scale_b;
 
-                  *(float *)(spawn_params + 0x44) =
+                  *(float *)(spawn_params + 0x48) =
                     random_real_range((int *)seed, 0.0f, size_range) +
                     size_base;
                 }
@@ -611,7 +611,7 @@ void FUN_0009d590(void *effect)
                   if (flags_hi & 0x10)
                     scl_range *= scale_b;
 
-                  *(float *)(spawn_params + 0x48) =
+                  *(float *)(spawn_params + 0x44) =
                     random_real_range((int *)seed, 0.0f, scl_range) + scl_base;
                 }
 
