@@ -4198,7 +4198,7 @@
         {
           "decl": "void observer_compute_accelerations(int16_t local_player_index @<eax>);",
           "addr": "0x8b470",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_compute_update(int16_t local_player_index @<eax>);",

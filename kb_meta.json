@@ -403,10 +403,14 @@
       "status": "ported"
     },
     "0x8a830": {
+      "kind": "function",
       "status": "ported"
     },
     "0x8b060": {
       "kind": "function",
+      "status": "ported"
+    },
+    "0x8b470": {
       "status": "ported"
     },
     "0x8c4b0": {

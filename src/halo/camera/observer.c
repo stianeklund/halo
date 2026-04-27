@@ -253,6 +253,151 @@ void observer_integrate(int16_t local_player_index)
   }
 }
 
+/* Compute quintic Hermite acceleration coefficients for observer interpolation
+ * (0x8b470). Validates the observer command state (forward/up perpendicular,
+ * position/orientation in range, velocity valid, distance/FOV/timer bounded).
+ * When mode bit 0 is set and timer > delta_time, computes snap/jerk/accel/vel/
+ * pos/extra polynomial coefficients for each of 5 observer components.
+ * Component 0 receives additional velocity-dependent correction terms. */
+void observer_compute_accelerations(int16_t local_player_index)
+{
+  char *observer;
+  char *mode_ptr;
+  float *snap_ptr, *jerk_ptr, *accel_ptr, *vel_ptr, *pos_ptr, *extra_ptr;
+  float *accel_out_ptr, *vel_out_ptr, *result_ptr;
+  float *timers;
+  int16_t comp;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  observer = (char *)0x33571c + (int)local_player_index * 0x29c;
+
+  snap_ptr = (float *)(observer + 0x158);
+  accel_ptr = (float *)(observer + 0x1b0);
+  pos_ptr = (float *)(observer + 0x208);
+  jerk_ptr = (float *)(observer + 0x184);
+  timers = (float *)(observer + 0x5c);
+  vel_ptr = (float *)(observer + 0x1dc);
+  extra_ptr = (float *)(observer + 0x234);
+  vel_out_ptr = (float *)(observer + 0xe8);
+  accel_out_ptr = (float *)(observer + 0x120);
+  result_ptr = (float *)(observer + 0x260);
+
+  mode_ptr = observer + 0x8;
+
+  /* Validate observer command state when mode bit 0 is set */
+  if (mode_ptr == NULL ||
+      ((*(uint8_t *)mode_ptr & 1) &&
+       (!valid_real_normal3d_perpendicular((float *)(observer + 0x2c),
+                                           (float *)(observer + 0x38)) ||
+        (*(uint32_t *)(observer + 0xc) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0xc) < *(float *)0x266e98 ||
+        *(float *)(observer + 0xc) > *(float *)0x266e94 ||
+        (*(uint32_t *)(observer + 0x10) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x10) < *(float *)0x266e98 ||
+        *(float *)(observer + 0x10) > *(float *)0x266e94 ||
+        (*(uint32_t *)(observer + 0x14) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x14) < *(float *)0x266e98 ||
+        *(float *)(observer + 0x14) > *(float *)0x266e94 ||
+        (*(uint32_t *)(observer + 0x18) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x18) < *(float *)0x266e98 ||
+        *(float *)(observer + 0x18) > *(float *)0x266e94 ||
+        (*(uint32_t *)(observer + 0x1c) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x1c) < *(float *)0x266e98 ||
+        *(float *)(observer + 0x1c) > *(float *)0x266e94 ||
+        (*(uint32_t *)(observer + 0x20) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x20) < *(float *)0x266e98 ||
+        *(float *)(observer + 0x20) > *(float *)0x266e94 ||
+        !real_vector3d_valid((float *)(observer + 0x44)) ||
+        (*(uint32_t *)(observer + 0x24) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x24) < *(float *)0x2533c0 ||
+        *(float *)(observer + 0x24) > *(float *)0x266e94 ||
+        (*(uint32_t *)(observer + 0x28) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x28) < *(float *)0x255ef8 ||
+        *(float *)(observer + 0x28) > *(float *)0x2568bc ||
+        (*(uint32_t *)(observer + 0x50) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(observer + 0x50) < *(float *)0x2533c0 ||
+        *(float *)(observer + 0x50) > *(float *)0x266e90))) {
+    char *msg = csprintf(
+      (char *)0x5ab100,
+      "Invalid camera command.\n"
+      "F: (%f, %f, %f) U: (%f, %f, %f)\n"
+      "P: (%f, %f, %f) O: (%f, %f, %f)\n"
+      "D: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
+      (double)*(float *)(observer + 0x2c), (double)*(float *)(observer + 0x30),
+      (double)*(float *)(observer + 0x34), (double)*(float *)(observer + 0x38),
+      (double)*(float *)(observer + 0x3c), (double)*(float *)(observer + 0x40),
+      (double)*(float *)(observer + 0x0c), (double)*(float *)(observer + 0x10),
+      (double)*(float *)(observer + 0x14), (double)*(float *)(observer + 0x18),
+      (double)*(float *)(observer + 0x1c), (double)*(float *)(observer + 0x20),
+      (double)*(float *)(observer + 0x24), (double)*(float *)(observer + 0x44),
+      (double)*(float *)(observer + 0x48), (double)*(float *)(observer + 0x4c),
+      (double)*(float *)(observer + 0x28), (double)*(float *)(observer + 0x50),
+      *(uint32_t *)(observer + 0x8));
+    display_assert(msg, "c:\\halo\\SOURCE\\camera\\observer.c", 0x1f6, 1);
+    system_exit(-1);
+  }
+
+  /* Compute polynomial coefficients for each of 5 components */
+  for (comp = 0; comp < 5; comp++) {
+    if ((*(uint8_t *)(observer + 0x8) & 1) && *(float *)0x335718 < *timers) {
+      float f = 1.0f / *timers;
+      float f2 = f * f;
+      float f3 = f2 * f;
+      float f4 = f3 * f;
+      int16_t size = ((int16_t *)0x2ee6b8)[comp];
+      int16_t j;
+
+      for (j = 0; j < size; j++) {
+        int idx = (int)j;
+        int off = idx * 4;
+
+        *(float *)((char *)snap_ptr + off) =
+          f3 * *(float *)((char *)accel_out_ptr + off) * *(float *)0x253398 -
+          (f4 * *(float *)((char *)vel_out_ptr + off) * *(float *)0x254644 +
+           f4 * f * *(float *)((char *)result_ptr + off) * *(float *)0x254640);
+
+        *(float *)((char *)jerk_ptr + off) =
+          f3 * *(float *)((char *)vel_out_ptr + off) * *(float *)0x2548f4 +
+          f4 * *(float *)((char *)result_ptr + off) * *(float *)0x254cc0 -
+          f2 * *(float *)((char *)accel_out_ptr + off);
+
+        *(float *)((char *)accel_ptr + off) =
+          f * *(float *)((char *)accel_out_ptr + off) * *(float *)0x253398 -
+          (f2 * *(float *)((char *)vel_out_ptr + off) * *(float *)0x2533d8 +
+           f3 * *(float *)((char *)result_ptr + off) * *(float *)0x253f34);
+
+        *(int *)((char *)vel_ptr + off) = 0;
+        *(int *)((char *)pos_ptr + off) = 0;
+        *(int *)((char *)extra_ptr + off) = *(int *)((char *)result_ptr + off);
+
+        if (comp == 0) {
+          float fv = *(float *)(observer + 0x44 + off) * *(float *)0x253394;
+          *(float *)((char *)snap_ptr + off) -= f4 * fv * *(float *)0x254644;
+          *(float *)((char *)jerk_ptr + off) += f3 * fv * *(float *)0x253f78;
+          *(float *)((char *)accel_ptr + off) -= f2 * fv * *(float *)0x254640;
+          *(float *)((char *)pos_ptr + off) += fv;
+        }
+      }
+    }
+
+    {
+      int size = (int)((int16_t *)0x2ee6b8)[comp] * 4;
+      snap_ptr = (float *)((char *)snap_ptr + size);
+      jerk_ptr = (float *)((char *)jerk_ptr + size);
+      accel_ptr = (float *)((char *)accel_ptr + size);
+      vel_ptr = (float *)((char *)vel_ptr + size);
+      pos_ptr = (float *)((char *)pos_ptr + size);
+      extra_ptr = (float *)((char *)extra_ptr + size);
+      vel_out_ptr = (float *)((char *)vel_out_ptr + size);
+      accel_out_ptr = (float *)((char *)accel_out_ptr + size);
+      result_ptr = (float *)((char *)result_ptr + size);
+      timers++;
+    }
+  }
+}
+
 /* Compute observer velocities from current and target state (0x8ccf0).
  * Dispatches to FUN_0008c440 with pointers into the observer struct:
  * velocities at +0xc, result at +0x260, and integration state at +0xb0. */
