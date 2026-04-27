@@ -7415,7 +7415,8 @@
         },
         {
           "decl": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
-          "addr": "0xfc990"
+          "addr": "0xfc990",
+          "ported": true
         },
         {
           "decl": "void FUN_000fcaf0(int weapon_handle, int magazine_index);",
