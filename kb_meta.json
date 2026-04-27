@@ -407,6 +407,7 @@
       "status": "ported"
     },
     "0x8ccf0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x8cd40": {
@@ -2205,6 +2206,13 @@
       ],
       "uncertain": [
         "ECX survives through FUN_000dc800 and FUN_000dc8c0 because both are pure switch-table functions that only modify EAX; this is not guaranteed by calling convention but is relied upon by the binary."
+      ]
+    },
+    "0xdcd60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Offset 0x2a2 on a unit object is the current weapon slot index (int16_t), and offset 0x2a8 is the start of a weapon handle array indexed by that slot."
       ]
     },
     "0xde140": {

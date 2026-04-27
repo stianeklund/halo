@@ -74,6 +74,42 @@ void FUN_000dc9d0(int param_2, int object_handle)
   }
 }
 
+/* Find the local player index (0..3) whose unit currently holds the given
+ * weapon object. Iterates all local players, resolves each player's
+ * controlled unit, and checks if the unit's active weapon slot matches the
+ * given object handle. Returns the local player index or -1 if not found. */
+int16_t FUN_000dcd60(int object_handle)
+{
+  int16_t i;
+
+  for (i = 0; i < 4; i++) {
+    int player_handle;
+    char *player;
+    int unit_handle;
+    char *unit;
+    int16_t weapon_index;
+
+    player_handle = local_player_get_player_index(i);
+    if (player_handle == -1)
+      continue;
+
+    player = (char *)datum_get(player_data, player_handle);
+    unit_handle = *(int *)(player + 0x34);
+    if (unit_handle == -1)
+      continue;
+
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    weapon_index = *(int16_t *)(unit + 0x2a2);
+    if (weapon_index == -1)
+      continue;
+
+    if (object_handle == *(int *)(unit + 0x2a8 + (int)weapon_index * 4))
+      return i;
+  }
+
+  return (int16_t)-1;
+}
+
 /* Process a weapon event for a local player's first-person weapon (0xde140).
  * Handles reload initiation, weapon put-away, aim-assist clearing, and state
  * transitions. Computes reload count from trigger data and weapon ammo state,
