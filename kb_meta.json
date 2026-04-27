@@ -394,6 +394,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8b060": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8c4b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8cd40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8cde0": {
       "kind": "function",
       "status": "ported",

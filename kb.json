@@ -2050,7 +2050,7 @@
         {
           "decl": "void FUN_0009ca70(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -4150,7 +4150,12 @@
           "ported": true
         },
         {
-          "decl": "int observer_initialize_for_new_map(void);",
+          "decl": "void observer_result_initialize(void *observer @<esi>);",
+          "addr": "0x8a350",
+          "ported": false
+        },
+        {
+          "decl": "void observer_initialize_for_new_map(void);",
           "addr": "0x8a480",
           "ported": true
         },
@@ -4163,6 +4168,21 @@
           "decl": "void *observer_get_camera(unsigned __int16 local_player_index);",
           "addr": "0x8a4e0",
           "ported": true
+        },
+        {
+          "decl": "void observer_update_command(int16_t local_player_index @<eax>);",
+          "addr": "0x8b060",
+          "ported": false
+        },
+        {
+          "decl": "void observer_update_result(int16_t local_player_index @<eax>);",
+          "addr": "0x8c4b0",
+          "ported": false
+        },
+        {
+          "decl": "void observer_update_positions(int16_t local_player_index @<eax>);",
+          "addr": "0x8cd40",
+          "ported": false
         },
         {
           "decl": "void observer_update(float);",
