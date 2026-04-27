@@ -50,9 +50,11 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
   1. **Register aliasing:** Ghidra loses track of EBX/ESI/EDI in long functions and substitutes the wrong variable. Trace each PUSH backward from the CALL instruction.
   2. **Push-then-fstp:** MSVC passes floats via `PUSH <dummy>; FSTP [ESP]`. Ghidra reports the dummy (often a pointer) as the argument instead of the FPU-computed float.
   3. **Struct field rotation:** MSVC reorders stores for scheduling. Ghidra reassembles them in instruction order, producing wrong struct offsets. Derive offsets from `MOV [EBP±N]` in disassembly, not the decompiler.
+  4. **Cross-product operand swap:** `cross(A, B)` and `cross(B, A)` look nearly identical in the decompiler — the FLD/FMUL order before FSUBP differs but the components look the same. Always verify the subtraction order against disassembly: `cross(A,B)[0] = A[1]*B[2] - A[2]*B[1]`. Getting it backwards negates the vector, which can cause invisible geometry, flipped UV mapping, or reflected projections.
 
 ### 3. Build & Verification
 - **RTK Build:** Use `rtk cmake --build build`.
+- **XDK Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/xdk_verify.py src/path/to/file.c` to compile with the original MSVC 7.1 compiler and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Validation:** Run the narrowest meaningful validation first.
 - **XBDM Priority:** Prefer real Xbox XBDM verification over xemu when available.
 - **Failure Policy:** If an edit fails, re-read only affected ranges before retrying.
@@ -80,6 +82,8 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 - **`tools/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
 - **`tools/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
 - **`tools/maintain.py`** — Source file organization and function placement checks.
+- **`tools/xdk_verify.py`** — Compile a source file with the original XDK MSVC 7.1 compiler (`RXDK/xbox/bin/vc71/CL.Exe`) and compare against the delinked reference. Flags FPU operand-order differences that indicate cross-product swaps, subtraction direction errors, etc. Use `--fpu-only` for focused output.
+- **`tools/compare_obj.py`** — LCS-based instruction comparison between two COFF objects. Used by `xdk_verify.py`.
 
 ## Architecture and Skills
 - `halo-xbox-re`: RE doctrine and evidence rules.
