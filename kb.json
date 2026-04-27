@@ -4188,7 +4188,7 @@
         {
           "decl": "void observer_integrate(int16_t local_player_index @<eax>);",
           "addr": "0x8a830",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_update_command(int16_t local_player_index @<eax>);",
