@@ -38,7 +38,9 @@ Affected build: f720a8
 2. Weapons do not spin when shot (weapons should spin around their center, this is a known quirk in Halo, it not working is a bug).
 Only weapons that are dropped by the opponent can spin when shot, but even newly spawned weapons should spin when shot.
 
-Laf8529b4befd254f1d808157899d5c7709af8529b4befd254f1d808157899d5c7709af8529b4befd254f1d808157899d5c7709LM Context: These are worth investigating, especially decals_dot3() in decals.c:1149 — that's right in the decal rendering pipeline we suspect.
+Fixed in build/commit: 1d9f7ecc
+
+Context: These are worth investigating, especially decals_dot3() in decals.c:1149 — that's right in the decal rendering pipeline we suspect.
 If Ghidra confused a callee-saved register and we passed bitangent twice instead of bitangent
 and tangent (or similar), the dot3 lighting calculation would be wrong and decals could render as invisible/black
 
