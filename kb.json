@@ -2266,7 +2266,12 @@
       "functions": [
         {
           "decl": "void FUN_000dc9d0(int param_2@<eax>, int object_handle@<ebx>);",
-          "addr": "0xdc9d0"
+          "addr": "0xdc9d0",
+          "ported": true
+        },
+        {
+          "decl": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
+          "addr": "0xdc8c0"
         },
         {
           "decl": "int16_t FUN_000dcd60(int object_handle@<edi>);",

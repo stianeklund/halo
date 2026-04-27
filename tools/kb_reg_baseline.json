@@ -144,6 +144,8 @@
     "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
     "0xfc990": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
     "0xdc800": "int16_t FUN_000dc800(int event @<eax>);",
+    "0xdc8c0": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
+    "0xdc9d0": "void FUN_000dc9d0(int param_2@<eax>, int object_handle@<ebx>);",
     "0x185770": "void render_camera_check_warning_condition(int16_t id@<ax>, float value);",
     "0x8a350": "void observer_result_initialize(void *observer @<esi>);",
     "0x8b060": "void observer_update_command(int16_t local_player_index @<eax>);",
