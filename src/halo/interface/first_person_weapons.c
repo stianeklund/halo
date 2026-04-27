@@ -1,3 +1,79 @@
+/* Try to play a third-person weapon sound for an object event (0xdc9d0).
+ * When no local player owns the weapon, this function looks up the weapon's
+ * animation graph tag, maps the event through two state-translation tables
+ * (FUN_000dc800 and FUN_000dc8c0), resolves the animation's sound effect
+ * tag reference, and plays it at the global origin with default forward. */
+void FUN_000dc9d0(int param_2, int object_handle)
+{
+  int16_t state;
+  int16_t anim_index;
+  char *weapon_tag;
+  int anim_graph_tag_index;
+  char *antr_tag;
+  char *block_element;
+  int16_t lookup_result;
+  char *anim_element;
+  char *sound_element;
+  int sound_tag_index;
+
+  if (object_handle == -1)
+    return;
+  if ((int16_t)param_2 == -1)
+    return;
+  if (!object_try_and_get_and_verify_type(object_handle, 4))
+    return;
+
+  {
+    int *weapon_obj = (int *)object_get_and_verify_type(object_handle, 4);
+    weapon_tag = (char *)tag_get(0x77656170, *weapon_obj);
+  }
+
+  anim_graph_tag_index = *(int *)(weapon_tag + 0x478);
+  if (anim_graph_tag_index == -1)
+    return;
+
+  state = FUN_000dc800(param_2);
+  if (state == -1)
+    return;
+
+  anim_index = FUN_000dc8c0(state);
+  if (anim_index == -1)
+    return;
+
+  antr_tag = (char *)tag_get(0x616e7472, anim_graph_tag_index);
+
+  if (*(int *)(antr_tag + 0x48) == 0) {
+    block_element = NULL;
+  } else {
+    block_element = (char *)tag_block_get_element(antr_tag + 0x48, 0, 0x1c);
+  }
+
+  if (anim_index < 0 || (int)anim_index >= *(int *)(block_element + 0x10))
+    return;
+
+  lookup_result =
+    *(int16_t *)(*(int *)(block_element + 0x14) + (int)anim_index * 2);
+  if (lookup_result == -1)
+    return;
+
+  anim_element =
+    (char *)tag_block_get_element(antr_tag + 0x74, (int)lookup_result, 0xb4);
+  if (*(int16_t *)(anim_element + 0x3c) == -1)
+    return;
+
+  sound_element = (char *)tag_block_get_element(
+    antr_tag + 0x54, (int)*(int16_t *)(anim_element + 0x3c), 0x14);
+  sound_tag_index = *(int *)(sound_element + 0xc);
+  if (sound_tag_index == -1)
+    return;
+
+  {
+    float *position = *(float **)0x31fc1c;
+    float *forward = *(float **)0x31fc3c;
+    FUN_001c7e70(object_handle, sound_tag_index, -1, position, forward, 1.0f);
+  }
+}
+
 /* Process a weapon event for a local player's first-person weapon (0xde140).
  * Handles reload initiation, weapon put-away, aim-assist clearing, and state
  * transitions. Computes reload count from trigger data and weapon ammo state,
