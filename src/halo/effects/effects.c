@@ -29,11 +29,12 @@ void effects_dispose(void)
 /* Delete an effect and all its per-event datum chains (0x9c750).
  * For each event in the effect tag, walks the linked list of event datums
  * starting at effect+0x5c+i*4 and deletes each from the event datum pool
- * (0x5aa8ac). Then deletes the effect datum from the effects pool (0x5aa8b0). */
+ * (0x5aa8ac). Then deletes the effect datum from the effects pool (0x5aa8b0).
+ */
 void FUN_0009c750(int effect_handle)
 {
   char *effect = (char *)(int)datum_absolute_index_to_index(
-      *(data_t **)0x5aa8b0, effect_handle);
+    *(data_t **)0x5aa8b0, effect_handle);
   if (!effect)
     return;
 
@@ -52,6 +53,64 @@ void FUN_0009c750(int effect_handle)
   }
 
   datum_delete(*(data_t **)0x5aa8b0, effect_handle);
+}
+
+/* Effect part volume filter (0x9caf0). Tests whether an effect part should
+ * spawn based on its creation type and the effect's trigger/kill volume.
+ * type 0=always, 1=outside volume, 2=inside volume, 3=never. */
+bool FUN_0009caf0(int16_t part_type, void *position, void *effect_volumes)
+{
+  bool inside;
+  switch (part_type) {
+  case 0:
+    return true;
+  case 1:
+    inside = FUN_0018f3e0(effect_volumes, position, 0);
+    return !inside;
+  case 2:
+    return FUN_0018f3e0(effect_volumes, position, 0);
+  case 3:
+    return false;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\effects\\effects.c", 0x378, 1);
+    system_exit(-1);
+    return false;
+  }
+}
+
+/* Set the current event on an effect instance and randomize its duration
+ * (0x9cb90). Clears the "event complete" flag, records the event index, resets
+ * the elapsed-time counter, and picks a random duration from the event's
+ * min/max range. Uses the global or local random seed depending on the
+ * effect tag's "non-deterministic" flag (bit 1). */
+void FUN_0009cb90(int effect_handle, int event_index)
+{
+  char *effect = (char *)(int)datum_absolute_index_to_index(
+    *(data_t **)0x5aa8b0, effect_handle);
+  if (!effect)
+    return;
+
+  char *tag_data = (char *)tag_get(0x65666665, *(int *)(effect + 4));
+  if (event_index < 0)
+    return;
+  if (event_index >= *(int *)(tag_data + 0x34))
+    return;
+
+  char *event =
+    (char *)tag_block_get_element(tag_data + 0x34, event_index, 0x44);
+  *(uint8_t *)(effect + 2) &= ~1;
+  *(int16_t *)(effect + 0x4e) = (int16_t)event_index;
+  *(int *)(effect + 0x50) = 0;
+
+  char *tag_flags = (char *)tag_get(0x65666665, *(int *)(effect + 4));
+  int *seed;
+  if (*(uint8_t *)tag_flags & 2)
+    seed = get_global_random_seed_address();
+  else
+    seed = (int *)random_math_get_local_seed_address();
+
+  *(float *)(effect + 0x54) =
+    random_real_range(seed, *(float *)(event + 8), *(float *)(event + 0xc));
 }
 
 /* Check if any active effect with a nonzero danger radius is close enough

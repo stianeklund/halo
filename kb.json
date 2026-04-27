@@ -755,6 +755,10 @@
           "decl": "int *tag_instance_resolve(int tag_index@<edi>);",
           "addr": "0x1b9bf0",
           "comment": "Validate and resolve a tag index to its tag_instance record pointer. Asserts if tags not loaded or index out of range. Source: cache/cache_files.c"
+        },
+        {
+          "decl": "bool FUN_0018f3e0(void *volumes, void *position, int flags);",
+          "addr": "0x18f3e0"
         }
       ]
     },
@@ -1952,7 +1956,7 @@
         {
           "decl": "void FUN_0009cb90(int effect_handle@<eax>, int event_index@<di>);",
           "addr": "0x9cb90",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool dangerous_effects_near_player(void);",
@@ -1977,6 +1981,11 @@
         {
           "decl": "bool effects_update(float);",
           "addr": "0x9f320",
+          "ported": true
+        },
+        {
+          "decl": "bool FUN_0009caf0(int16_t part_type@<ax>, void *position@<ecx>, void *effect_volumes@<edx>);",
+          "addr": "0x9caf0",
           "ported": true
         }
       ]
