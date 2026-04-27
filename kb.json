@@ -4170,8 +4170,28 @@
           "ported": true
         },
         {
+          "decl": "void observer_apply_acceleration(int16_t local_player_index @<eax>);",
+          "addr": "0x8a660",
+          "ported": false
+        },
+        {
+          "decl": "void observer_integrate(int16_t local_player_index @<eax>);",
+          "addr": "0x8a830",
+          "ported": false
+        },
+        {
           "decl": "void observer_update_command(int16_t local_player_index @<eax>);",
           "addr": "0x8b060",
+          "ported": false
+        },
+        {
+          "decl": "void observer_compute_accelerations(int16_t local_player_index @<eax>);",
+          "addr": "0x8b470",
+          "ported": false
+        },
+        {
+          "decl": "void observer_compute_update(int16_t local_player_index @<eax>);",
+          "addr": "0x8ba10",
           "ported": false
         },
         {
@@ -4180,9 +4200,14 @@
           "ported": false
         },
         {
+          "decl": "void observer_compute_velocities(int16_t local_player_index @<esi>);",
+          "addr": "0x8ccf0",
+          "ported": false
+        },
+        {
           "decl": "void observer_update_positions(int16_t local_player_index @<eax>);",
           "addr": "0x8cd40",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_update(float);",
