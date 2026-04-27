@@ -4,6 +4,67 @@ void observer_initialize(void)
 {
 }
 
+/* Initialize an observer result struct with default camera orientation,
+ * zero velocities, and signature markers (0x8a350). Sets the camera up/forward
+ * vectors from globals, zeros the integration working area, then copies the
+ * template vectors into the active camera state. */
+void observer_result_initialize(void *observer)
+{
+  char *obs = (char *)observer;
+  float *up = *(float **)0x31fc3c;
+  float *fwd = *(float **)0x31fc44;
+  float *pos;
+
+  *(float *)(obs + 0xd0) = up[0];
+  *(float *)(obs + 0xd4) = up[1];
+  *(float *)(obs + 0xd8) = up[2];
+  *(float *)(obs + 0xdc) = fwd[0];
+  *(float *)(obs + 0xe0) = fwd[1];
+  *(float *)(obs + 0xe4) = fwd[2];
+  *(int *)(obs + 0xcc) = 0x3f5f66f3;
+
+  pos = *(float **)0x31fc1c;
+  *(float *)(obs + 0x74) = pos[0];
+  *(float *)(obs + 0x78) = pos[1];
+  *(float *)(obs + 0x7c) = pos[2];
+
+  *(int16_t *)(obs + 0x84) = -1;
+  *(int *)(obs + 0x80) = -1;
+
+  {
+    float *zero = *(float **)0x31fc38;
+    *(float *)(obs + 0x88) = zero[0];
+    *(float *)(obs + 0x8c) = zero[1];
+    *(float *)(obs + 0x90) = zero[2];
+  }
+
+  up = *(float **)0x31fc3c;
+  *(float *)(obs + 0x94) = up[0];
+  *(float *)(obs + 0x98) = up[1];
+  *(float *)(obs + 0x9c) = up[2];
+
+  fwd = *(float **)0x31fc44;
+  *(float *)(obs + 0xa0) = fwd[0];
+  *(float *)(obs + 0xa4) = fwd[1];
+  *(float *)(obs + 0xa8) = fwd[2];
+  *(int *)(obs + 0xac) = 0x3f5f66f3;
+
+  csmemset(obs + 0x8, 0, 0x68);
+
+  *(float *)(obs + 0x2c) = *(float *)(obs + 0xd0);
+  *(float *)(obs + 0x30) = *(float *)(obs + 0xd4);
+  *(float *)(obs + 0x34) = *(float *)(obs + 0xd8);
+  *(float *)(obs + 0x38) = *(float *)(obs + 0xdc);
+  *(float *)(obs + 0x3c) = *(float *)(obs + 0xe0);
+  *(float *)(obs + 0x40) = *(float *)(obs + 0xe4);
+  *(int *)(obs + 0x28) = *(int *)(obs + 0xcc);
+
+  *(int *)(obs + 0x298) = 0x72616421;
+  *(int *)(obs + 0x0) = 0x72616421;
+  *(uint8_t *)(obs + 0x70) = 1;
+  *(uint8_t *)(obs + 0x71) = 0;
+}
+
 /* Initialize observers for all 4 players. Calls observer_result_initialize
  * with ESI pointing to each player's observer data (base 0x33571c,
  * stride 0x29c). */

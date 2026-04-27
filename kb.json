@@ -4152,7 +4152,7 @@
         {
           "decl": "void observer_result_initialize(void *observer @<esi>);",
           "addr": "0x8a350",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_initialize_for_new_map(void);",
