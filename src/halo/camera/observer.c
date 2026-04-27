@@ -112,6 +112,76 @@ void *observer_get_camera(unsigned __int16 local_player_index)
   return (void *)(entry + 0x74);
 }
 
+/* Apply spring acceleration to observer state (0x8a660).
+ * For each of 5 observer components, evaluates a cubic polynomial
+ * (2*vel + t*accel*K1 + t^2*jerk*K2 + t^3*snap*K3) using the component's
+ * timer. If any element exceeds its threshold, resets the timer (and any
+ * other timers sharing the same value) to zero. */
+void observer_apply_acceleration(int16_t local_player_index)
+{
+  char *observer;
+  float *snap_ptr, *jerk_ptr, *accel_ptr, *vel_ptr, *output;
+  float *timers, *timers_base;
+  int16_t *sizes;
+  float *thresholds;
+  int16_t comp;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  observer = (char *)0x33571c + (int)local_player_index * 0x29c;
+  snap_ptr = (float *)(observer + 0x158);
+  jerk_ptr = (float *)(observer + 0x184);
+  accel_ptr = (float *)(observer + 0x1b0);
+  vel_ptr = (float *)(observer + 0x1dc);
+  output = (float *)(observer + 0x120);
+  timers_base = (float *)(observer + 0x5c);
+  timers = timers_base;
+  sizes = (int16_t *)0x2ee6b8;
+  thresholds = (float *)0x26738c;
+
+  for (comp = 0; comp < 5; comp++) {
+    float t = *timers - *(float *)0x335718;
+    int16_t size = *sizes;
+
+    if (t <= 0.0f) {
+      csmemset(output, 0, (int)size << 2);
+    } else {
+      float t_sq = t * t;
+      float t_cu = t_sq * t;
+      int16_t j;
+
+      for (j = 0; j < size; j++) {
+        float result = t_cu * snap_ptr[j] * *(float *)0x254cd0 +
+                       t_sq * jerk_ptr[j] * *(float *)0x254cc8 +
+                       t * accel_ptr[j] * *(float *)0x254640 + vel_ptr[j] +
+                       vel_ptr[j];
+        output[j] = result;
+
+        if (result > *thresholds || result < -*thresholds) {
+          int16_t k;
+          float *tp = timers_base;
+          for (k = 0; k < 5; k++) {
+            if (k != comp && *tp == *timers)
+              *tp = 0.0f;
+            tp++;
+          }
+          *timers = 0.0f;
+        }
+      }
+    }
+
+    snap_ptr += size;
+    jerk_ptr += size;
+    output += size;
+    accel_ptr += size;
+    vel_ptr += size;
+    timers++;
+    thresholds++;
+    sizes++;
+  }
+}
+
 /* Compute observer velocities from current and target state (0x8ccf0).
  * Dispatches to FUN_0008c440 with pointers into the observer struct:
  * velocities at +0xc, result at +0x260, and integration state at +0xb0. */

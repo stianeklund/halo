@@ -2275,7 +2275,8 @@
         },
         {
           "decl": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
-          "addr": "0xdc8c0"
+          "addr": "0xdc8c0",
+          "ported": true
         },
         {
           "decl": "int16_t FUN_000dcd60(int object_handle@<edi>);",

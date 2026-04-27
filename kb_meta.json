@@ -398,6 +398,9 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8a660": {
+      "status": "ported"
+    },
     "0x8b060": {
       "kind": "function",
       "status": "ported"
