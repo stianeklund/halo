@@ -168,7 +168,8 @@
     "0x9d2d0": "int FUN_0009d2d0(int tag_index@<ebx>, int object_index, int unknown3);",
     "0x9d430": "void FUN_0009d430(int datum@<ecx>, int unknown1@<eax>, int unknown2@<ebx>, float scale_a, float scale_b);",
     "0x9cc20": "int FUN_0009cc20(int marker_data@<eax>, int effect_datum, int event_index, int is_particle);",
-    "0x9d4e0": "void FUN_0009d4e0(int datum@<ebx>, void *callback);"
+    "0x9d4e0": "void FUN_0009d4e0(int datum@<ebx>, void *callback);",
+    "0x12dbb0": "bool FUN_0012dbb0(int server@<eax>);"
   },
   "version": 1
 }

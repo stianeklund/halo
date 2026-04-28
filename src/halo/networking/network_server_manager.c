@@ -132,6 +132,37 @@ bool FUN_0012d880(int server, int new_connection)
   return result;
 }
 
+/* Handle incoming datagrams on the server's public endpoint (0x12d9f0).
+ * Loops reading datagrams and dispatching them until none remain. */
+bool FUN_0012d9f0(int server)
+{
+  char *s = (char *)server;
+  bool result = true;
+  char buffer[0x190];
+  char addr[24];
+  int size = 0x190;
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x810, 1);
+    system_exit(-1);
+  }
+
+  do {
+    if (!FUN_001298f0(*(int *)s, buffer, &size, addr))
+      return result;
+    result = FUN_00130270((void *)server, buffer, size, addr);
+    if (!result) {
+      network_game_log("network_game_server_handle_datagram() failed in "
+                       "network_game_server_handle_public_endpoint()");
+    }
+    size = 0x190;
+  } while (result);
+
+  return false;
+}
+
 /* Postgame state handler (0x12db60).
  * Every 5 seconds sends a heartbeat message (type 0xb) to all clients. */
 bool FUN_0012db60(int server)
@@ -184,6 +215,213 @@ bool FUN_0012dc20(int server)
   FUN_0012c060((void *)server);
 
   return true;
+}
+
+/* Process all connected client machines (0x12e580).
+ * For each of 4 machine slots: checks connection liveness, reads pending
+ * messages, handles disconnections and removal. Returns true on success. */
+bool FUN_0012e580(int server)
+{
+  char *s = (char *)server;
+  int i;
+  short *flags;
+  char *machine;
+  char buffer[0x800];
+  int size;
+  int machine_index;
+  const char *log_msg;
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x827, 1);
+    system_exit(-1);
+  }
+
+  i = 0;
+  flags = (short *)(s + 0x448);
+
+loop_top:
+  for (;;) {
+    if (i >= 4)
+      return true;
+
+    if (*flags == -1)
+      goto next_slot;
+
+    machine = (char *)flags - 0xc;
+
+    if (!FUN_00128660(*(int *)machine)) {
+      if (FUN_0012e090((void *)server, s + 0x11c + (int)*flags * 0x44)) {
+        network_game_log("client machine %x removed from game", (int)*flags);
+      } else {
+        network_game_log("failed to remove client machine %x from game",
+                         (int)*flags);
+      }
+      FUN_0012de20((void *)server);
+      i++;
+      flags += 8;
+      goto loop_top;
+    }
+
+    if (!FUN_00129cf0(*(int *)machine, 0, 0))
+      goto remove_path;
+
+    if (!FUN_00128360(*(int *)machine))
+      goto remove_path;
+
+    do {
+      size = 0x800;
+      if (!FUN_001298f0(*(int *)machine, buffer, &size, 0))
+        goto next_slot;
+    } while (FUN_00130580((void *)server, machine, buffer, size));
+
+    network_game_log("network_game_server_handle_client_message() failed in "
+                     "network_game_server_handle_client_machines()");
+
+    if (FUN_0012e090((void *)server, s + 0x11c + (int)*flags * 0x44)) {
+      machine_index = (int)*flags;
+      log_msg = "client machine removed from game";
+    } else {
+      if (FUN_0012df50((void *)server, machine))
+        goto next_slot;
+      machine_index = (int)*flags;
+      log_msg = "failed to remove client machine from game";
+    }
+    goto do_log;
+
+  remove_path:
+    if (FUN_0012e090((void *)server, s + 0x11c + (int)*flags * 0x44)) {
+      machine_index = (int)*flags;
+      log_msg = "client machine removed from game";
+    } else {
+      machine_index = (int)*flags;
+      log_msg = "failed to remove client machine from game";
+    }
+
+  do_log:
+    network_game_log(log_msg, machine_index);
+
+  next_slot:
+    i++;
+    flags += 8;
+  }
+}
+
+/* Pregame tick handler (0x12e750).
+ * When loading: enforces a 15-second timeout for client map loads.
+ * When not loading: boots dead clients, checks if all players are ready,
+ * manages the pregame countdown, and starts the game when ready. */
+bool FUN_0012e750(int server)
+{
+  char *s = (char *)server;
+  int now;
+  bool result;
+  int i;
+  int *conn_ptr;
+  short *flags_ptr;
+  char name_buf[0x20];
+  const char *name;
+  short countdown;
+  int timer_ms;
+
+  now = system_milliseconds();
+  result = true;
+
+  if (*(char *)(s + 0x4b9) != 0) {
+    if (*(int *)(s + 0x484) == 0)
+      return true;
+
+    if ((unsigned int)(system_milliseconds() - *(int *)(s + 0x484)) < 15000)
+      return result;
+
+    flags_ptr = (short *)(s + 0x44a);
+    for (i = 4; i != 0; i--) {
+      if ((*(short *)flags_ptr & 1) && !(*(short *)flags_ptr & 4)) {
+        if (FUN_0019f3a0(s + 0x11c + (int)*(short *)(flags_ptr - 1) * 0x44,
+                         name_buf, 0x20)) {
+          name = name_buf;
+        } else {
+          name = "<unknown name>";
+        }
+        network_game_log(
+          "forcibly removing client system '%s' due to timeout while "
+          "loading for game",
+          name);
+        if (!FUN_0012df50((void *)server, (void *)(flags_ptr - 7))) {
+          display_assert(
+            "removed", "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+            0x94e, 1);
+          system_exit(-1);
+        }
+      }
+      flags_ptr += 8;
+    }
+    FUN_0012caa0((void *)server);
+    return result;
+  }
+
+  conn_ptr = (int *)(s + 0x43c);
+  for (i = 0; i < 4; i++) {
+    if (*conn_ptr != 0 && !FUN_00128660(*conn_ptr)) {
+      network_game_log("booting dead client machine %d", i);
+      FUN_0012df50((void *)server, conn_ptr);
+    }
+    conn_ptr += 4;
+  }
+
+  if (*(char *)(s + 0x494) != 1) {
+    if (now <= *(int *)(s + 0x480) + 5000)
+      return result;
+    countdown = 0;
+    FUN_0012f430((void *)server, FUN_0012b700(0xa, &countdown, 2));
+    *(int *)(s + 0x480) = now;
+    return result;
+  }
+
+  if (!FUN_0012d150((void *)server) || !FUN_0012d0c0((void *)server) ||
+      FUN_0012d040((void *)server) ||
+      *(short *)(s + 0x22c) < (short)*(char *)(s + 0x115)) {
+    csmemset(s + 0x488, 0, 0x10);
+    i = 0;
+  } else {
+    i = 1;
+    timer_ms = FUN_0012bdb0(s + 0x488);
+    if (timer_ms == 0) {
+      if (FUN_0012dbb0(server) && *(char *)(s + 0x495) == 0) {
+        FUN_0012c0b0((void *)server);
+        result = FUN_0012c290((void *)server);
+        if (result == 1)
+          return true;
+        network_game_log("network_game_server_start_network_game() failed");
+        return result;
+      }
+    }
+    if (now - *(int *)(s + 0x490) < 0x3e9)
+      return result;
+  }
+
+  *(char *)(s + 0x496) = 0;
+  if (i) {
+    timer_ms = FUN_0012bdb0(s + 0x488);
+    countdown = (short)(timer_ms / 1000);
+  } else {
+    countdown = -1;
+  }
+
+  {
+    void *msg = FUN_0012b700(7, &countdown, 2);
+    if (!msg)
+      return result;
+    if (!FUN_0012f430((void *)server, msg)) {
+      network_game_log(
+        "failed to send a message_server_pregame_countdown to all clients");
+      return result;
+    }
+  }
+
+  *(int *)(s + 0x490) = now;
+  return result;
 }
 
 /* Dispose the network game server (0x12ea00).
