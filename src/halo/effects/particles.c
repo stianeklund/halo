@@ -64,6 +64,24 @@ void particles_dispose(void)
     particle_data = 0;
 }
 
+/* Compute the particle's current visual size (0xa1670).
+ * Interpolates between the tag's min/max size based on the ratio of
+ * elapsed time to total lifetime, then scales by the particle's
+ * individual size factor. Returns the interpolated size. */
+float FUN_000a1670(int datum_handle)
+{
+  char *datum;
+  char *tag;
+
+  datum = (char *)datum_get(particle_data, datum_handle);
+  tag = (char *)tag_get(0x70617274, *(int *)(datum + 0x04));
+
+  return (((*(float *)(tag + 0x78) - *(float *)(tag + 0x74)) *
+           (*(float *)(datum + 0x14) / *(float *)(datum + 0x18))) +
+          *(float *)(tag + 0x74)) *
+         *(float *)(datum + 0x5c);
+}
+
 /* Check whether a 3D point has all finite float components (0x0a16b0).
  * Returns true if none of the three components are NaN or infinity
  * (IEEE 754 exponent field != 0x7f800000). */
@@ -79,6 +97,31 @@ bool valid_real_point3d(float *point)
   return true;
 }
 
+/* Validate an ARGB color (0xa1710).
+ * The alpha component (color[0]) must be finite, in [0.0, 1.0],
+ * and the RGB components (color[1..3]) must each be finite and valid.
+ * Returns true if the color is valid. */
+bool FUN_000a1710(float *color)
+{
+  /* Check alpha is not NaN/Inf */
+  if ((*(uint32_t *)color & 0x7f800000) == 0x7f800000)
+    return false;
+
+  /* Check alpha >= 0.0 */
+  if (*color < 0.0f)
+    return false;
+
+  /* Check alpha <= 1.0 */
+  if (*color > 1.0f)
+    return false;
+
+  /* Validate RGB components */
+  if (!FUN_0007b020(color + 1))
+    return false;
+
+  return true;
+}
+
 /* TODO: particle_delete also reverted — see git 08bf664 for implementation */
 
 /* TODO: particle_step and particle_move temporarily reverted to original
@@ -86,6 +129,93 @@ bool valid_real_point3d(float *point)
  * debugging — the implementations are preserved in git history (commit
  * 08bf664). The issue manifests as "particle index #X is unused or changed"
  * in datum_get after loading a campaign level. */
+
+/* Set up the particle's bitmap sequence index (0xa1910).
+ * Walks through up to 4 animation phases (creation, attached, detached,
+ * fading) and picks a random frame range for each phase based on the
+ * particle tag's sequence counts at tag offsets 0x98..0x9e.
+ * Each phase accumulates the total frame offset from prior phases.
+ * If the final frame index is valid within the bitmap tag's sequence
+ * array, clamps it and returns true. Otherwise calls particle_delete
+ * (FUN_000a18c0) and returns false. */
+bool FUN_000a1910(int datum_handle)
+{
+  char *datum;
+  char *tag;
+  char *bitmap_tag;
+  int16_t frame_index;
+  int16_t rval;
+  unsigned int *seed;
+
+  datum = (char *)datum_get(particle_data, datum_handle);
+  tag = (char *)tag_get(0x70617274, *(int *)(datum + 0x04));
+  bitmap_tag = (char *)tag_get(0x6269746d, *(int *)(tag + 0x10));
+
+  frame_index = -1;
+  *(int16_t *)(datum + 0x24) = frame_index;
+
+  /* Phase 0 → 1: creation sequence */
+  if (*(char *)(datum + 0x0e) == 0) {
+    if (*(int16_t *)(tag + 0x9a) > 0) {
+      seed = random_math_get_local_seed_address();
+      rval = random_range(seed, 0, *(int16_t *)(tag + 0x9a));
+      *(int16_t *)(datum + 0x24) = *(int16_t *)(tag + 0x98) + rval;
+    }
+    (*(char *)(datum + 0x0e))++;
+  }
+
+  /* Check if we need to skip to phase 2 */
+  if (*(int16_t *)(datum + 0x24) == -1 && *(char *)(datum + 0x0e) == 1) {
+    *(char *)(datum + 0x0e) = 2;
+  } else if (*(char *)(datum + 0x0e) != 2) {
+    goto skip_phase2;
+  }
+
+  /* Phase 2: attached/detached transition sequence */
+  if (*(float *)(datum + 0x14) >= *(float *)(datum + 0x18) ||
+      *(int16_t *)(tag + 0x9c) < 1) {
+    (*(char *)(datum + 0x0e))++;
+  } else {
+    seed = random_math_get_local_seed_address();
+    rval = random_range(seed, 0, *(int16_t *)(tag + 0x9c));
+    *(int16_t *)(datum + 0x24) =
+      *(int16_t *)(tag + 0x9a) + *(int16_t *)(tag + 0x98) + rval;
+  }
+
+skip_phase2:
+  /* Phase 3 → 4: fading sequence */
+  if (*(int16_t *)(datum + 0x24) == -1 && *(char *)(datum + 0x0e) == 3) {
+    if (*(int16_t *)(tag + 0x9e) > 0) {
+      seed = random_math_get_local_seed_address();
+      rval = random_range(seed, 0, *(int16_t *)(tag + 0x9e));
+      *(int16_t *)(datum + 0x24) = *(int16_t *)(tag + 0x9c) +
+                                   *(int16_t *)(tag + 0x9a) +
+                                   *(int16_t *)(tag + 0x98) + rval;
+    }
+    (*(char *)(datum + 0x0e))++;
+  }
+
+  /* Clamp frame_index and validate against bitmap sequence count */
+  frame_index = *(int16_t *)(datum + 0x24);
+  if (frame_index != -1 && *(int *)(bitmap_tag + 0x54) != 0) {
+    if (frame_index < 0) {
+      *(int16_t *)(datum + 0x24) = 0;
+      return true;
+    }
+    {
+      int max_index = *(int *)(bitmap_tag + 0x54) - 1;
+      int idx = (int)frame_index;
+      if (idx > max_index)
+        idx = max_index;
+      *(int16_t *)(datum + 0x24) = (int16_t)idx;
+    }
+    return true;
+  }
+
+  /* No valid frame — delete particle */
+  FUN_000a18c0(datum_handle);
+  return false;
+}
 
 /* Create a single particle from spawn parameters (0xa1fd0).
  * Validates velocity, position, and color vectors. Resolves the spawn

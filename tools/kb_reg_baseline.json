@@ -152,7 +152,8 @@
     "0x185770": "void render_camera_check_warning_condition(int16_t id@<ax>, float value);",
     "0x8c440": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);",
     "0x8c150": "void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist, float *forward @<eax>, float *position @<ecx>);",
-    "0x8ab90": "bool FUN_0008ab90(float *out_fraction, bool indoor@<al>, float *ray_origin@<esi>, float *ray_endpoint@<edi>);"
+    "0x8ab90": "bool FUN_0008ab90(float *out_fraction, bool indoor@<al>, float *ray_origin@<esi>, float *ray_endpoint@<edi>);",
+    "0xa18c0": "void FUN_000a18c0(int datum_handle@<ebx>);"
   },
   "version": 1
 }

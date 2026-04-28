@@ -4377,15 +4377,22 @@
         },
         {
           "decl": "float FUN_000a1670(int datum_handle);",
-          "addr": "0xa1670"
+          "addr": "0xa1670",
+          "ported": true
         },
         {
           "decl": "bool FUN_000a1710(float *color);",
-          "addr": "0xa1710"
+          "addr": "0xa1710",
+          "ported": true
         },
         {
           "decl": "bool FUN_000a1910(int datum_handle);",
-          "addr": "0xa1910"
+          "addr": "0xa1910",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_000a18c0(int datum_handle@<ebx>);",
+          "addr": "0xa18c0"
         }
       ]
     },

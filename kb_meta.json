@@ -917,7 +917,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa1670": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa16b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa1710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa1910": {
       "kind": "function",
       "status": "ported"
     },
