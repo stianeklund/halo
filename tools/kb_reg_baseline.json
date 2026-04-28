@@ -163,6 +163,7 @@
     "0x12d9f0": "bool FUN_0012d9f0(int server@<esi>);",
     "0x12db60": "bool FUN_0012db60(int server@<esi>);",
     "0x12dc20": "bool FUN_0012dc20(int server@<ebx>);",
+    "0x12dd20": "void FUN_0012dd20(void *game_data, const char *prefix@<esi>);",
     "0x12e580": "bool FUN_0012e580(int server@<ebx>);",
     "0x12e750": "bool FUN_0012e750(int server@<esi>);",
     "0x9d2d0": "int FUN_0009d2d0(int tag_index@<ebx>, int object_index, int unknown3);",
