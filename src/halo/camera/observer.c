@@ -253,6 +253,116 @@ void observer_integrate(int16_t local_player_index)
   }
 }
 
+/* Copy/stage camera command block from director into observer state (0x8b060).
+ * Validates the command struct (pointed to by observer+0x4): checks forward/up
+ * perpendicular, position/orientation in range, velocity valid, distance/FOV/
+ * timer bounded. Then adjusts 5 component timers in the command based on the
+ * observer's current timers and mode bytes, and finally copies the command
+ * struct (0x68 bytes) into the observer at offset +0x8. */
+void observer_update_command(int16_t local_player_index)
+{
+  char *observer;
+  char *command;
+  float *timer_out;
+  uint8_t *mode_bytes;
+  float *obs_timers;
+  int i;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  observer = (char *)0x33571c + (int)local_player_index * 0x29c;
+  command = *(char **)(observer + 0x4);
+  timer_out = (float *)(command + 0x54);
+  mode_bytes = (uint8_t *)(command + 0x4c);
+  obs_timers = (float *)(observer + 0x5c);
+
+  if (command == NULL ||
+      ((*(uint8_t *)command & 1) &&
+       (!valid_real_normal3d_perpendicular((float *)(command + 0x24),
+                                           (float *)(command + 0x30)) ||
+        (*(uint32_t *)(command + 0x4) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x4) < *(float *)0x266e98 ||
+        *(float *)(command + 0x4) > *(float *)0x266e94 ||
+        (*(uint32_t *)(command + 0x8) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x8) < *(float *)0x266e98 ||
+        *(float *)(command + 0x8) > *(float *)0x266e94 ||
+        (*(uint32_t *)(command + 0xc) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0xc) < *(float *)0x266e98 ||
+        *(float *)(command + 0xc) > *(float *)0x266e94 ||
+        (*(uint32_t *)(command + 0x10) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x10) < *(float *)0x266e98 ||
+        *(float *)(command + 0x10) > *(float *)0x266e94 ||
+        (*(uint32_t *)(command + 0x14) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x14) < *(float *)0x266e98 ||
+        *(float *)(command + 0x14) > *(float *)0x266e94 ||
+        (*(uint32_t *)(command + 0x18) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x18) < *(float *)0x266e98 ||
+        *(float *)(command + 0x18) > *(float *)0x266e94 ||
+        !real_vector3d_valid((float *)(command + 0x3c)) ||
+        (*(uint32_t *)(command + 0x1c) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x1c) < *(float *)0x2533c0 ||
+        *(float *)(command + 0x1c) > *(float *)0x266e94 ||
+        (*(uint32_t *)(command + 0x20) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x20) < *(float *)0x255ef8 ||
+        *(float *)(command + 0x20) > *(float *)0x2568bc ||
+        (*(uint32_t *)(command + 0x48) & 0x7f800000) == 0x7f800000 ||
+        *(float *)(command + 0x48) < *(float *)0x2533c0 ||
+        *(float *)(command + 0x48) > *(float *)0x266e90))) {
+    char *msg = csprintf(
+      (char *)0x5ab100,
+      "Invalid camera command.\n"
+      "F: (%f, %f, %f) U: (%f, %f, %f)\n"
+      "P: (%f, %f, %f) O: (%f, %f, %f)\n"
+      "D: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
+      (double)*(float *)(command + 0x24), (double)*(float *)(command + 0x28),
+      (double)*(float *)(command + 0x2c), (double)*(float *)(command + 0x30),
+      (double)*(float *)(command + 0x34), (double)*(float *)(command + 0x38),
+      (double)*(float *)(command + 0x04), (double)*(float *)(command + 0x08),
+      (double)*(float *)(command + 0x0c), (double)*(float *)(command + 0x10),
+      (double)*(float *)(command + 0x14), (double)*(float *)(command + 0x18),
+      (double)*(float *)(command + 0x1c), (double)*(float *)(command + 0x3c),
+      (double)*(float *)(command + 0x40), (double)*(float *)(command + 0x44),
+      (double)*(float *)(command + 0x20), (double)*(float *)(command + 0x48),
+      *(uint32_t *)command);
+    display_assert(msg, "c:\\halo\\SOURCE\\camera\\observer.c", 0x172, 1);
+    system_exit(-1);
+  }
+
+  if (*(uint8_t *)(*(char **)(observer + 0x4)) & 1) {
+    for (i = 5; i != 0; i--) {
+      if ((*mode_bytes & 1) == 0) {
+        command = *(char **)(observer + 0x4);
+        if (*(float *)(command + 0x48) < *obs_timers &&
+            (*(uint8_t *)command & 8) == 0) {
+          if (*obs_timers <= *(float *)0x253f40)
+            *timer_out = *obs_timers;
+          else
+            *timer_out = *(float *)0x253f40;
+        } else {
+          *timer_out = *(float *)(command + 0x48);
+        }
+      } else if ((*mode_bytes & 2) == 0 && *timer_out < *obs_timers) {
+        if (*obs_timers <= *(float *)0x253f40)
+          *timer_out = *obs_timers;
+        else
+          *timer_out = *(float *)0x253f40;
+      }
+
+      timer_out++;
+      obs_timers++;
+      mode_bytes++;
+    }
+
+    {
+      uint32_t *src = (uint32_t *)*(char **)(observer + 0x4);
+      uint32_t *dst = (uint32_t *)(observer + 0x8);
+      for (i = 0x1a; i != 0; i--)
+        *dst++ = *src++;
+    }
+  }
+}
+
 /* Compute quintic Hermite acceleration coefficients for observer interpolation
  * (0x8b470). Validates the observer command state (forward/up perpendicular,
  * position/orientation in range, velocity valid, distance/FOV/timer bounded).

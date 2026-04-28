@@ -4183,7 +4183,7 @@
         {
           "decl": "void observer_apply_acceleration(int16_t local_player_index @<eax>);",
           "addr": "0x8a660",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_integrate(int16_t local_player_index @<eax>);",
@@ -4193,7 +4193,7 @@
         {
           "decl": "void observer_update_command(int16_t local_player_index @<eax>);",
           "addr": "0x8b060",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_compute_accelerations(int16_t local_player_index @<eax>);",
