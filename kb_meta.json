@@ -150,6 +150,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3f5f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3f670": {
       "kind": "function",
       "status": "ported"
@@ -185,6 +189,14 @@
       "uncertain": [
         "0x5ab270 (extended actor iterator data) and 0x5ab23c (clump data_t) are not yet in kb.json; used via raw pointer access."
       ]
+    },
+    "0x40570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x409a0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x41090": {
       "kind": "function",
@@ -406,6 +418,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8ab90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8b060": {
       "kind": "function",
       "status": "ported"
@@ -415,6 +431,10 @@
       "status": "ported"
     },
     "0x8ba10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8c150": {
       "kind": "function",
       "status": "ported"
     },
@@ -869,6 +889,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa0fd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa10f0": {
       "kind": "function",
       "status": "ported"
@@ -894,6 +918,10 @@
       "status": "ported"
     },
     "0xa16b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa1fd0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2211,6 +2239,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xdc8c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdc9d0": {
       "kind": "function",
       "status": "ported",
@@ -3447,6 +3479,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12d570": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x130980": {
       "kind": "function",
       "status": "ported"
@@ -4094,6 +4130,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18eab0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18eb40": {
       "kind": "function",
       "status": "ported"
@@ -4103,6 +4143,18 @@
       "status": "ported"
     },
     "0x18f180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18f2d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18f3e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18f510": {
       "kind": "function",
       "status": "ported"
     },
@@ -4470,6 +4522,10 @@
         "The unk_456 field (offset 0x1C8) in unit_data_t guards the allegiance check, likely representing a rider or owner handle.",
         "The return semantics are inverted: returns true when NO matching seat occupant or friendly child was found, meaning the seat is available."
       ]
+    },
+    "0x1a8e10": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1a9240": {
       "kind": "function",
