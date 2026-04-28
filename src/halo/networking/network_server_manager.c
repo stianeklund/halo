@@ -1,3 +1,49 @@
+/* Open the server's game (0x12c060).
+ * Sets bit 0 of the flags byte at server+6 (marking the game as open),
+ * then tells the underlying connection to open, and logs "opening game". */
+void FUN_0012c060(void *server)
+{
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x1fc, 1);
+    system_exit(-1);
+  }
+  *(uint8_t *)((char *)server + 6) |= 1;
+  FUN_001282f0(*(int *)server, 1);
+  network_game_log("opening game");
+}
+
+/* Close the server's game (0x12c0b0).
+ * Clears bit 0 of the flags byte at server+6 (marking the game as closed),
+ * then tells the underlying connection to close, and logs "closing game". */
+void FUN_0012c0b0(void *server)
+{
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x208, 1);
+    system_exit(-1);
+  }
+  *(uint8_t *)((char *)server + 6) &= ~1;
+  FUN_001282f0(*(int *)server, 0);
+  network_game_log("closing game");
+}
+
+/* Check if the server's game is open (0x12c100).
+ * Returns bit 0 of the flags byte at server+6, set by FUN_0012c060
+ * and cleared by FUN_0012c0b0. */
+bool FUN_0012c100(void *server)
+{
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x214, 1);
+    system_exit(-1);
+  }
+  return *(uint8_t *)((char *)server + 6) & 1;
+}
+
 /* Check if the server's game is valid (0x12c160).
  * Returns bit 1 of the flags byte at server+6. */
 bool FUN_0012c160(void *server)
@@ -9,6 +55,45 @@ bool FUN_0012c160(void *server)
     system_exit(-1);
   }
   return (*(uint8_t *)((char *)server + 6) >> 1) & 1;
+}
+
+/* Signal client machines to begin loading for a network game (0x12c290).
+ * Copies server game-variant data at server+8 (0x434 bytes) into a local
+ * buffer, builds a type-6 message from it and broadcasts it, then builds
+ * a type-8 message with a zero payload and broadcasts that too.  On
+ * success sets server+0x4b9 (loading flag) to 1.  Always clears
+ * server+0x47c and always returns true regardless of success or failure. */
+bool FUN_0012c290(void *server)
+{
+  int data;
+  void *msg;
+  char local_buf[0x434];
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x2de, 1);
+    system_exit(-1);
+  }
+  if (*(char *)((char *)server + 0x4b9) == 0) {
+    data = 0;
+    csmemcpy(local_buf, (char *)server + 8, 0x434);
+    msg = FUN_0012b700(6, local_buf, 0x434);
+    if (msg && FUN_0012f430(server, msg)) {
+      msg = FUN_0012b700(8, &data, 4);
+      if (msg && FUN_0012f430(server, msg)) {
+        network_game_log(
+          "signalling client machines to begin loading for network game");
+        *(int *)((char *)server + 0x47c) = 0;
+        *(char *)((char *)server + 0x4b9) = 1;
+        return true;
+      }
+    }
+    network_game_log(
+      "failed to signal client machines to begin loading for network game");
+  }
+  *(int *)((char *)server + 0x47c) = 0;
+  return true;
 }
 
 /* Xbox kernel sleep wrapper (stdcall, 2 args) */

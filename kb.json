@@ -809,6 +809,10 @@
         {
           "decl": "int FUN_0012bdb0(void *countdown);",
           "addr": "0x12bdb0"
+        },
+        {
+          "decl": "void FUN_001282f0(int connection, bool open);",
+          "addr": "0x1282f0"
         }
       ]
     },
@@ -3926,15 +3930,18 @@
       "functions": [
         {
           "decl": "void FUN_0012c060(void *server);",
-          "addr": "0x12c060"
+          "addr": "0x12c060",
+          "ported": true
         },
         {
           "decl": "void FUN_0012c0b0(void *server);",
-          "addr": "0x12c0b0"
+          "addr": "0x12c0b0",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012c100(void *server);",
-          "addr": "0x12c100"
+          "addr": "0x12c100",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012c160(void *server);",
@@ -3943,7 +3950,8 @@
         },
         {
           "decl": "bool FUN_0012c290(void *server);",
-          "addr": "0x12c290"
+          "addr": "0x12c290",
+          "ported": true
         },
         {
           "decl": "void network_server_manager_game_over(void *server);",
