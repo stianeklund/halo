@@ -2275,6 +2275,18 @@
         "Offset 0x2a2 on a unit object is the current weapon slot index (int16_t), and offset 0x2a8 is the start of a weapon handle array indexed by that slot."
       ]
     },
+    "0xdd410": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xddbd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdde80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xde140": {
       "kind": "function",
       "status": "ported"

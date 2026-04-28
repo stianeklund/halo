@@ -153,7 +153,11 @@
     "0x8c440": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);",
     "0x8c150": "void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist, float *forward @<eax>, float *position @<ecx>);",
     "0x8ab90": "bool FUN_0008ab90(float *out_fraction, bool indoor@<al>, float *ray_origin@<esi>, float *ray_endpoint@<edi>);",
-    "0xa18c0": "void FUN_000a18c0(int datum_handle@<ebx>);"
+    "0xa18c0": "void FUN_000a18c0(int datum_handle@<ebx>);",
+    "0xdcb30": "void FUN_000dcb30(int16_t local_player_index@<di>, uint8_t activate@<bl>);",
+    "0xdcc80": "uint8_t FUN_000dcc80(int mode_tag_index@<eax>, int antr_tag_index, int16_t *output);",
+    "0xdce00": "void FUN_000dce00(int16_t local_player_index@<ax>);",
+    "0xdd4d0": "void FUN_000dd4d0(int16_t local_player_index@<ax>, int16_t blend_ticks@<di>);"
   },
   "version": 1
 }

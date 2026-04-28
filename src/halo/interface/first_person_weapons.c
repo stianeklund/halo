@@ -169,6 +169,304 @@ int16_t FUN_000dcd60(int object_handle)
   return (int16_t)-1;
 }
 
+/* Return a pointer to the node transform for a given node in the local
+ * player's first-person weapon animation state (0xdd410).
+ * Validates the local_player_index (0..3) and node_index against the
+ * animation graph node count. Returns fp_base + 0x108c + node_index * 0x34. */
+void *FUN_000dd410(int param_1, int param_2)
+{
+  int16_t local_player_index = (int16_t)param_1;
+  int16_t node_index = (int16_t)param_2;
+  char *fp;
+  int *weapon_obj;
+  char *weapon_tag;
+  char *antr_tag;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  fp = (char *)(*(int *)0x46bea8 + (int)local_player_index * 0x1ea0);
+  weapon_obj = (int *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+  weapon_tag = (char *)tag_get(0x77656170, *weapon_obj);
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(weapon_tag + 0x478));
+
+  assert_halt(node_index >= 0 && (int)node_index < *(int *)(antr_tag + 0x68));
+
+  return (void *)((int)node_index * 0x34 + 0x108c + (int)fp);
+}
+
+/* Set the first-person weapon animation state for a local player (0xddbd0).
+ * Applies state-transition filtering: certain incoming states are rejected
+ * depending on the current state. For dual-wielding weapons (type 3), maps
+ * state 3 to state 0 unless the weapon has a specific flag. Looks up the
+ * animation index via FUN_000dc8c0 and the animation graph to validate the
+ * transition. If param_3 is nonzero, stops any pending sound. */
+void FUN_000ddbd0(int param_1, int param_2, int param_3)
+{
+  int16_t local_player_index = (int16_t)param_1;
+  int16_t state = (int16_t)param_2;
+  char *fp;
+  int weapon_handle;
+  int16_t sVar1;
+  int16_t blend_ticks;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  fp = (char *)(*(int *)0x46bea8 + (int)local_player_index * 0x1ea0);
+  weapon_handle = *(int *)(fp + 8);
+
+  /* If the unit's weapon has the dual-wield flag (byte 0x1dc bit 0),
+   * remap certain states. */
+  if (weapon_handle != -1) {
+    char *weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
+    if ((*(uint8_t *)(weapon_obj + 0x1dc) & 1) != 0) {
+      if (state == 0x13) {
+        state = 2;
+      } else if (state == 0x14) {
+        state = 0x15;
+      }
+    }
+  }
+
+  /* First switch: filter incoming states based on current state. */
+  switch (state) {
+  case 6:
+  case 7:
+  case 8: {
+    int16_t cur = *(int16_t *)(fp + 0xc);
+    if (cur != 0 && cur != 5 && cur != 6 && cur != 4 && cur != 0xf &&
+        cur != 0x16 && cur != 0x10 && cur != 0x11 && cur != 0xd && cur != 0xe) {
+      return;
+    }
+    break;
+  }
+  case 0xa:
+  case 0xb:
+    if (*(int16_t *)(fp + 0xc) != 0 && *(int16_t *)(fp + 0xc) != 5) {
+      return;
+    }
+    break;
+  case 0x13:
+    if (*(int16_t *)(fp + 0xc) == 0x13)
+      return;
+    break;
+  default:
+    break;
+  }
+
+  if (state == -1)
+    return;
+  if (*(int *)(fp + 8) == -1)
+    return;
+
+  {
+    int *weapon_obj2 = (int *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+    char *weapon_tag = (char *)tag_get(0x77656170, *weapon_obj2);
+
+    /* For weapon type 3, if state is also 3 and the dual-wield flag is
+     * not set, reset state to 0. */
+    if (*(int16_t *)(weapon_tag + 0x4e2) == 3 && state == 3 &&
+        (*(uint8_t *)((char *)weapon_obj2 + 0x1dc) & 1) == 0) {
+      state = 0;
+    }
+
+    sVar1 = FUN_000dc8c0(state);
+
+    /* If weapon type is 1 and current state is 0x10, use blend_ticks = 0. */
+    if (*(int16_t *)(weapon_tag + 0x4e2) == 1 &&
+        *(int16_t *)(fp + 0xc) == 0x10) {
+      blend_ticks = 0;
+    } else {
+      /* Second switch: determine blend tick count. */
+      switch (state) {
+      case 3:
+      case 10:
+      case 0x13:
+        blend_ticks = 0;
+        break;
+      case 6:
+      case 7:
+      case 8:
+      case 9:
+        blend_ticks = 3;
+        break;
+      default:
+        blend_ticks = 6;
+        break;
+      }
+    }
+
+    if (*(int *)(fp + 4) == -1)
+      return;
+    if (*(int *)(fp + 8) == -1)
+      return;
+
+    {
+      int *weapon_obj3 = (int *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+      char *weapon_tag2 = (char *)tag_get(0x77656170, *weapon_obj3);
+      char *antr_tag =
+        (char *)tag_get(0x616e7472, *(int *)(weapon_tag2 + 0x478));
+
+      if (*(int *)(antr_tag + 0x48) != 0) {
+        char *anim_block =
+          (char *)tag_block_get_element(antr_tag + 0x48, 0, 0x1c);
+        if (anim_block != NULL && sVar1 >= 0 &&
+            (int)sVar1 < *(int *)(anim_block + 0x10)) {
+          int16_t anim_index =
+            *(int16_t *)(*(int *)(anim_block + 0x14) + (int)sVar1 * 2);
+          if (anim_index != -1) {
+            if ((char)param_3 != 0 && *(int *)(fp + 0x1e98) != -1 &&
+                *(int16_t *)(fp + 0x1e9c) != 1) {
+              FUN_001cd450(*(int *)(fp + 0x1e98));
+              *(int *)(fp + 0x1e98) = -1;
+              *(int16_t *)(fp + 0x1e9c) = -1;
+            }
+            if (blend_ticks > 0) {
+              FUN_000dd4d0(local_player_index, blend_ticks);
+            }
+            *(int16_t *)(fp + 0xc) = state;
+            *(int16_t *)(fp + 0x16) = anim_index;
+            *(int16_t *)(fp + 0x18) = 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Initialize or reinitialize a local player's first-person weapon (0xdde80).
+ * Clears the current weapon reference, deactivates visual/sound state if
+ * previously active, then resolves the unit's current weapon and sets up
+ * the animation graph, idle animation index, and initial weapon state. */
+void FUN_000dde80(int param_1)
+{
+  int16_t local_player_index = (int16_t)param_1;
+  char *fp;
+  uint8_t was_active;
+  int weapon_handle;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  fp = (char *)(*(int *)0x46bea8 + (int)local_player_index * 0x1ea0);
+  was_active = *(uint8_t *)fp;
+
+  /* Clear weapon handle. */
+  *(int *)(fp + 8) = -1;
+
+  /* If previously active, deactivate effects and sounds. */
+  if (was_active != 0) {
+    assert_halt(local_player_index >= 0 &&
+                local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+    {
+      char *fp2 = (char *)(*(int *)0x46bea8 + (int)local_player_index * 0x1ea0);
+      if (*(uint8_t *)fp2 != 0) {
+        FUN_0009c810(param_1);
+        FUN_000a1510(param_1);
+        *(uint8_t *)fp2 = 0;
+      }
+    }
+  }
+
+  /* If no unit is assigned, skip weapon setup. */
+  if (*(int *)(fp + 4) == -1)
+    goto done;
+
+  {
+    char *unit_obj = (char *)object_get_and_verify_type(*(int *)(fp + 4), 3);
+    int16_t weapon_index = *(int16_t *)(unit_obj + 0x2a2);
+
+    weapon_handle = unit_get_weapon(*(int *)(fp + 4), weapon_index);
+    if (weapon_handle == -1)
+      goto done;
+
+    {
+      int *weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+      char *weapon_tag = (char *)tag_get(0x77656170, *weapon_obj);
+
+      if (*(int *)(weapon_tag + 0x468) == -1)
+        goto done;
+      if (*(int *)(weapon_tag + 0x478) == -1)
+        goto done;
+
+      {
+        char *antr_tag =
+          (char *)tag_get(0x616e7472, *(int *)(weapon_tag + 0x478));
+
+        if (*(int *)(antr_tag + 0x48) == 0)
+          goto done;
+
+        {
+          char *anim_block =
+            (char *)tag_block_get_element(antr_tag + 0x48, 0, 0x1c);
+          if (anim_block == NULL)
+            goto done;
+
+          /* Set idle animation index from the animation lookup table. */
+          *(int16_t *)(fp + 0x14) = -1;
+          if (*(int *)(anim_block + 0x10) > 4) {
+            int16_t anim_lookup = *(int16_t *)(*(int *)(anim_block + 0x14) + 8);
+            if (anim_lookup != -1) {
+              char *anim_entry = (char *)tag_block_get_element(
+                antr_tag + 0x74, (int)anim_lookup, 0xb4);
+              if (*(int16_t *)(anim_entry + 0x22) >= 9) {
+                *(int16_t *)(fp + 0x14) = anim_lookup;
+              }
+            }
+          }
+
+          /* Check game globals for the global fp animation model. */
+          {
+            char *game_globals = (char *)game_globals_get();
+            char *gg_element =
+              (char *)tag_block_get_element(game_globals + 0x17c, 0, 0xc0);
+
+            if (*(int *)(gg_element + 0xc) != -1) {
+              *(uint8_t *)(fp + 0x1e0e) = FUN_000dcc80(
+                *(int *)(gg_element + 0xc), *(int *)(weapon_tag + 0x478),
+                (int16_t *)(fp + 0x1e10));
+            }
+          }
+
+          *(uint8_t *)(fp + 0x1d8c) = FUN_000dcc80(*(int *)(weapon_tag + 0x468),
+                                                   *(int *)(weapon_tag + 0x478),
+                                                   (int16_t *)(fp + 0x1d8e));
+
+          if (*(uint8_t *)(fp + 0x1d8c) == 0)
+            goto done;
+          if (*(uint8_t *)(fp + 0x1e0e) == 0)
+            goto done;
+
+          /* Set weapon handle and clear animation state. */
+          *(int *)(fp + 0x8) = weapon_handle;
+          *(int16_t *)(fp + 0xc) = -1;
+          *(int16_t *)(fp + 0x16) = -1;
+          *(int16_t *)(fp + 0x1a) = -1;
+          *(int16_t *)(fp + 0x20) = -1;
+          *(int *)(fp + 0x28) = 0;
+          *(int *)(fp + 0x2c) = 0;
+          *(int16_t *)(fp + 0x10) = 0;
+          *(int *)(fp + 0x1e98) = -1;
+          *(int16_t *)(fp + 0x1e9c) = -1;
+
+          FUN_000ddbd0(param_1, 0, 1);
+
+          *(int16_t *)(fp + 0x8a) = 0;
+
+          if (was_active != 0) {
+            FUN_000dcb30(local_player_index, 1);
+          }
+        }
+      }
+    }
+  }
+
+done:
+  FUN_000dce00(local_player_index);
+}
+
 /* Process a weapon event for a local player's first-person weapon (0xde140).
  * Handles reload initiation, weapon put-away, aim-assist clearing, and state
  * transitions. Computes reload count from trigger data and weapon ammo state,
