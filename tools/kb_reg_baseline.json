@@ -156,7 +156,8 @@
     "0x8b470": "void observer_compute_accelerations(int16_t local_player_index @<eax>);",
     "0x8ba10": "void observer_compute_update(int16_t local_player_index @<eax>);",
     "0x8ccf0": "void observer_compute_velocities(int16_t local_player_index @<esi>);",
-    "0x8c440": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);"
+    "0x8c440": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);",
+    "0x8c150": "void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist, float *forward @<eax>, float *position @<ecx>);"
   },
   "version": 1
 }
