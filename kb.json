@@ -477,6 +477,10 @@
           "addr": "0x12ab80"
         },
         {
+          "decl": "bool FUN_0012b500(int game, int machine);",
+          "addr": "0x12b500"
+        },
+        {
           "decl": "void network_game_log(const char *fmt, ...);",
           "addr": "0x12b650"
         },
@@ -3648,6 +3652,10 @@
           "ported": true
         },
         {
+          "decl": "char *main_get_multiplayer_map_name(void);",
+          "addr": "0x100050"
+        },
+        {
           "decl": "int __cdecl sort_desired_local_player_controllers(const void *a1, const void *a2);",
           "addr": "0x100090",
           "ported": true
@@ -3815,7 +3823,7 @@
       "source": "networking/network_game_globals.c",
       "functions": [
         {
-          "decl": "void FUN_00129130(int conn1, int conn2);",
+          "decl": "bool FUN_00129130(int conn1, int conn2);",
           "addr": "0x129130"
         },
         {
@@ -3949,6 +3957,11 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0012c1c0(int server, int client);",
+          "addr": "0x12c1c0",
+          "ported": true
+        },
+        {
           "decl": "bool FUN_0012c290(void *server);",
           "addr": "0x12c290",
           "ported": true
@@ -3970,23 +3983,28 @@
         },
         {
           "decl": "bool FUN_0012d040(void *server);",
-          "addr": "0x12d040"
+          "addr": "0x12d040",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012d0c0(void *server);",
-          "addr": "0x12d0c0"
+          "addr": "0x12d0c0",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012d150(void *server);",
-          "addr": "0x12d150"
+          "addr": "0x12d150",
+          "ported": true
         },
         {
           "decl": "int FUN_0012d3b0(void *machine);",
-          "addr": "0x12d3b0"
+          "addr": "0x12d3b0",
+          "ported": true
         },
         {
           "decl": "int FUN_0012d450(int server, int machine_index);",
-          "addr": "0x12d450"
+          "addr": "0x12d450",
+          "ported": true
         },
         {
           "decl": "int FUN_0012d570(void *server);",
@@ -4011,7 +4029,8 @@
         },
         {
           "decl": "bool FUN_0012dbb0(int server@<eax>);",
-          "addr": "0x12dbb0"
+          "addr": "0x12dbb0",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012dc20(int server@<ebx>);",
@@ -4019,16 +4038,24 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0012dd20(void *game_data, const char *prefix@<esi>);",
+          "addr": "0x12dd20",
+          "ported": true
+        },
+        {
           "decl": "void FUN_0012de20(void *server);",
-          "addr": "0x12de20"
+          "addr": "0x12de20",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012df50(void *server, void *machine);",
-          "addr": "0x12df50"
+          "addr": "0x12df50",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012e090(void *server, void *player_data);",
-          "addr": "0x12e090"
+          "addr": "0x12e090",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012e580(int server@<ebx>);",
@@ -4058,6 +4085,11 @@
         {
           "decl": "bool FUN_0012f430(void *server, void *message);",
           "addr": "0x12f430",
+          "ported": true
+        },
+        {
+          "decl": "bool FUN_0012f5d0(void *server);",
+          "addr": "0x12f5d0",
           "ported": true
         }
       ]
