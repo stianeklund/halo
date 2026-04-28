@@ -57,6 +57,52 @@ bool FUN_0012c160(void *server)
   return (*(uint8_t *)((char *)server + 6) >> 1) & 1;
 }
 
+/* Handle a client player-removal request while in-game (0x12c1c0).
+ * Asserts the server is in state 1 (in-game). Iterates the 16 client
+ * entries at server+0x22e (stride 0x20). For each active client whose
+ * machine_index byte (+0x1c) matches the machine slot's index (+0xc),
+ * copies 0x20 bytes of client data, appends a quit time, and broadcasts
+ * a type-0x16 message to all machines. */
+void FUN_0012c1c0(int server, int client)
+{
+  char *s = (char *)server;
+  char *ptr;
+  char local_buf[0x24];
+  int quit_time;
+  void *msg;
+  int i;
+
+  if (*(short *)(s + 4) != 1) {
+    display_assert("_network_game_server_state_ingame == server->state",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x267, 1);
+    system_exit(-1);
+  }
+
+  ptr = s + 0x22e;
+  for (i = 0x10; i != 0; i--) {
+    if (FUN_0012ac80(ptr)) {
+      if ((short)*(signed char *)(ptr + 0x1c) ==
+          *(short *)((char *)client + 0xc)) {
+        csmemcpy(local_buf, ptr, 0x20);
+        quit_time = FUN_000b5aa0() + 0x21;
+        *(int *)(local_buf + 0x20) = quit_time;
+        error(2, "sending quit out of game, time = %x", quit_time);
+        msg = FUN_0012b700(0x16, local_buf, 0x24);
+        if (msg) {
+          if (!FUN_0012f430((void *)server, msg)) {
+            network_game_log(
+              "network_game_server_send_message_to_all_machines() failed in "
+              "network_game_server_handle_message_client_remove_player_"
+              "request_ingame()");
+          }
+        }
+      }
+    }
+    ptr += 0x20;
+  }
+}
+
 /* Signal client machines to begin loading for a network game (0x12c290).
  * Copies server game-variant data at server+8 (0x434 bytes) into a local
  * buffer, builds a type-6 message from it and broadcasts it, then builds
@@ -279,6 +325,20 @@ int FUN_0012d3b0(void *machine)
   return 0;
 }
 
+/* Get a pointer to the machine entry at the given index (0x12d450).
+ * Asserts server is non-null and index < MAXIMUM_NETWORK_MACHINE_COUNT (4).
+ * Each machine entry is 0x10 bytes, starting at server+0x43c. */
+int FUN_0012d450(int server, int machine_index)
+{
+  if (!server || machine_index >= 4) {
+    display_assert("server && (index<MAXIMUM_NETWORK_MACHINE_COUNT)",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x741, 1);
+    system_exit(-1);
+  }
+  return machine_index * 0x10 + 0x43c + server;
+}
+
 /* Assert server is non-null and return the connection pointer at offset +8
  * (0x12d570). */
 int FUN_0012d570(void *server)
@@ -411,6 +471,38 @@ bool FUN_0012db60(int server)
   return true;
 }
 
+/* Check if all connected machines have finished precaching (0x12dbb0).
+ * Iterates machine slots at server+0x448 (stride 0x10, 4 max).
+ * A machine is "valid" if its short at +0 is in [0,3].
+ * If a valid machine has bit 3 of byte at +2 clear, returns false (not done).
+ * If all valid machines have bit 3 set, asserts that the map is loaded and
+ * returns true. */
+bool FUN_0012dbb0(int server)
+{
+  int i;
+  char *slot;
+
+  i = 0;
+  slot = (char *)server + 0x448;
+  while (i < 4) {
+    short conn = *(short *)slot;
+    if (conn >= 0 && conn < 4) {
+      if (((*(uint8_t *)(slot + 2) >> 3) & 1) == 0)
+        return false;
+    }
+    i++;
+    slot += 0x10;
+  }
+  if (!cache_files_precache_map_loaded(main_get_multiplayer_map_name())) {
+    display_assert(
+      "!all_machines_have_precached || "
+      "cache_files_precache_map_loaded(main_get_multiplayer_map_name())",
+      "c:\\halo\\SOURCE\\networking\\network_server_manager.c", 0x8c8, 1);
+    system_exit(-1);
+  }
+  return true;
+}
+
 /* Set up the network game variant and server parameters (0x12dc20).
  * Loads the game variant, copies the game name (defaulting to L"<unknown>"),
  * and configures machine count/team settings. */
@@ -447,6 +539,233 @@ bool FUN_0012dc20(int server)
   FUN_0012c060((void *)server);
 
   return true;
+}
+
+/* Dump network game data fields to the log with a prefix (0x12dd20).
+ * Prints machine_count, 4 machine slots (stride 0x44 from game_data+0x154),
+ * player_count, 16 player entries (stride 0x20 from game_data+0x226),
+ * random seed, and games played. */
+void FUN_0012dd20(void *game_data, const char *prefix)
+{
+  char *s = (char *)game_data;
+  char *p;
+  int i;
+
+  network_game_log("%snetwork_game_data", prefix);
+  network_game_log("%smachine_count %d", prefix, (int)*(int16_t *)(s + 0x112));
+
+  p = s + 0x154;
+  for (i = 0; i < 4; i++) {
+    network_game_log("\t%smachine %d %x", prefix, i, (int)*(signed char *)p);
+    p += 0x44;
+  }
+
+  network_game_log("%splayer_count %d", prefix, (int)*(int16_t *)(s + 0x224));
+
+  p = s + 0x243;
+  for (i = 0; i < 0x10; i++) {
+    network_game_log("%splayer %d", prefix, i);
+    network_game_log("%s\tmachine_index %x", prefix,
+                     (int)*(signed char *)(p - 1));
+    network_game_log("%s\tcontroller_index %x", prefix, (int)*(signed char *)p);
+    network_game_log("%s\tteam_index %x", prefix, (int)*(signed char *)(p + 1));
+    network_game_log("%s\tplayer_list_index %x", prefix,
+                     (int)*(signed char *)(p + 2));
+    p += 0x20;
+  }
+
+  network_game_log("%snetwork_game_random_seed %x", prefix,
+                   *(int *)(s + 0x428));
+  network_game_log("%snumber_of_games_played %d", prefix, *(int *)(s + 0x42c));
+}
+
+/* Dump the full server state to the network game log for debugging (0x12de20).
+ * Prints connection, state, flags, game data, all 4 client machine slots
+ * (connection, update sequence, stall time, machine index, flags), and
+ * timing fields. */
+void FUN_0012de20(void *server)
+{
+  int i;
+  char *slot;
+  const char *status;
+
+  network_game_log("*************BEGIN*************");
+  network_game_log("\tconnection %x", *(int *)server);
+  network_game_log("\tstate %x", (int)*(uint16_t *)((char *)server + 4));
+  network_game_log("\tflags %x", (int)*(uint16_t *)((char *)server + 6));
+  FUN_0012dd20((char *)server + 8, "\t");
+  network_game_log("client_machines:");
+
+  i = 0;
+  slot = (char *)server + 0x444;
+  do {
+    status = "no connection";
+    if (*(int *)(slot - 8) != 0) {
+      if (FUN_00128660(*(int *)(slot - 8)))
+        status = "(active)";
+      else
+        status = "(dead)";
+    }
+    network_game_log("\tclient %d", i);
+    network_game_log("\t\tconnection %x %s", *(int *)(slot - 8), status);
+    network_game_log("\t\tlast_received_update_sequence_number %d",
+                     *(int *)(slot - 4));
+    network_game_log("\t\tstall_start_time %d", *(int *)slot);
+    network_game_log("\t\tmachine_index %x", (int)*(short *)(slot + 4));
+    network_game_log("\t\tflags %x", (int)*(uint16_t *)(slot + 6));
+    i++;
+    slot += 0x10;
+  } while (i < 4);
+
+  network_game_log("\tnext_update_number %d", *(int *)((char *)server + 0x47c));
+  network_game_log("\ttime_of_last_keep_alive %d",
+                   *(int *)((char *)server + 0x480));
+  network_game_log("\ttime_of_first_client_loading_completion %d",
+                   *(int *)((char *)server + 0x484));
+  network_game_log("*************END*************");
+}
+
+/* Remove a client machine from the server's game (0x12df50).
+ * If the server is in-game (state 1), broadcasts a player-removal message.
+ * Finds and removes the machine's entry from game data (server+8), then
+ * clears the matching machine slot (connection, stall, flags) and sets the
+ * machine_index to -1. Returns true if the slot was found. */
+bool FUN_0012df50(void *server, void *machine)
+{
+  char *s = (char *)server;
+  char *m = (char *)machine;
+  char *ptr;
+  int i;
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x22f, 1);
+    system_exit(-1);
+  }
+  if (!machine) {
+    display_assert("client",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x230, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)(s + 4) == 1)
+    FUN_0012c1c0((int)server, (int)machine);
+
+  ptr = s + 0x15c;
+  for (i = 0; i < 4; i++) {
+    if ((short)*(signed char *)ptr == *(short *)(m + 0xc)) {
+      if (!FUN_0012b500((int)(s + 8), (int)(s + 0x11c + i * 0x44))) {
+        error(
+          2, "network_game_server_remove_client_machine_from_game() failed to "
+             "remove the offending machine from the server's copy of the game");
+      }
+      break;
+    }
+    ptr += 0x44;
+  }
+
+  for (i = 0; i < 4; i++) {
+    if (s + 0x43c + i * 0x10 == m) {
+      if (*(int *)(s + 0x43c + i * 0x10) != 0) {
+        if (!FUN_00129130(*(int *)s, *(int *)(s + 0x43c + i * 0x10)))
+          network_game_log("server failed to close a client's connection");
+      }
+      *(int *)(s + 0x440 + i * 0x10) = 0;
+      *(int *)(s + 0x43c + i * 0x10) = 0;
+      *(int *)(s + 0x444 + i * 0x10) = 0;
+      *(uint16_t *)(s + 0x44a + i * 0x10) = 0;
+      *(short *)(s + 0x448 + i * 0x10) = -1;
+      return true;
+    }
+  }
+
+  network_game_log(
+    "network_game_server_remove_client_machine_from_game() failed to find "
+    "the specified machine");
+  return false;
+}
+
+/* Remove a machine from the server's game by its machine_index (0x12e090).
+ * Validates the machine_index byte at player_data+0x40. If valid (0..3),
+ * searches the 4 machine slots at server+0x448 (stride 0x10) for a matching
+ * index, calls FUN_0012df50 to remove it, then FUN_0012b500 to remove
+ * the machine from game data. If the server state is 0 (pre-game),
+ * sends updated settings to remaining clients. */
+bool FUN_0012e090(void *server, void *player_data)
+{
+  char *s = (char *)server;
+  char *pd = (char *)player_data;
+  signed char machine_idx;
+  short *ptr;
+  bool result;
+  int i;
+
+  result = false;
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x299, 1);
+    system_exit(-1);
+  }
+
+  if (*(signed char *)(pd + 0x40) == -1) {
+    network_game_log(
+      "network_game_server_remove_machine_from_game called with a "
+      "machine_index of NONE");
+  }
+
+  machine_idx = *(signed char *)(pd + 0x40);
+  if (machine_idx < 0 || machine_idx > 3) {
+    network_game_log("attempted to remove an invalid machine from the game in "
+                     "network_game_server_remove_machine_from_game()");
+    network_game_log("machine name = <not implemented>");
+    network_game_log("machine index = %x", (int)*(signed char *)(pd + 0x40));
+    FUN_0012de20(server);
+    return result;
+  }
+
+  ptr = (short *)(s + 0x448);
+  for (i = 0; i < 4; i++) {
+    if (*ptr == (short)machine_idx) {
+      result = FUN_0012df50(server, (void *)(s + 0x43c + i * 0x10));
+      if (!result) {
+        network_game_log(
+          "network_game_server_remove_client_machine_from_game() failed in "
+          "network_game_server_remove_machine_from_game()");
+      }
+      break;
+    }
+    ptr += 8;
+    result = false;
+  }
+
+  if (i == 4) {
+    network_game_log(
+      "network_game_server_remove_machine_from_game() failed to find the "
+      "specified machine");
+  }
+
+  if (*(signed char *)(pd + 0x40) != -1) {
+    result = FUN_0012b500((int)(s + 8), (int)player_data);
+    if (!result) {
+      network_game_log("network_game_remove_machine() failed in "
+                       "network_game_server_remove_machine_from_game()");
+    }
+  }
+
+  if (*(short *)(s + 4) == 0) {
+    if (!FUN_0012f5d0(server)) {
+      network_game_log(
+        "network_game_server_remove_machine_from_game() failed to send "
+        "updated game settings to remaining clients");
+      return result;
+    }
+  }
+
+  return result;
 }
 
 /* Process all connected client machines (0x12e580).
@@ -946,6 +1265,53 @@ bool FUN_0012f430(void *server, void *message)
                        "network_game_server_send_message_to_all_machines()");
       result = false;
     }
+  }
+
+  return result;
+}
+
+/* Send updated game settings to all client machines (0x12f5d0).
+ * Gets the game data pointer via FUN_0012d570, copies 0x434 bytes
+ * into a local buffer, builds a type-6 message, and broadcasts it.
+ * Returns true on success. */
+bool FUN_0012f5d0(void *server)
+{
+  char local_buf[0x434];
+  int game_data;
+  void *msg;
+  bool result;
+
+  result = false;
+  if (!server) {
+    display_assert(
+      "server",
+      "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c", 0x1c8,
+      1);
+    system_exit(-1);
+  }
+
+  game_data = FUN_0012d570(server);
+  if (game_data == 0) {
+    network_game_log(
+      "failed to handle a message_server_game_settings_update because their "
+      "was no server game");
+    return result;
+  }
+
+  csmemcpy(local_buf, (void *)game_data, 0x434);
+  msg = FUN_0012b700(6, local_buf, 0x434);
+  if (!msg) {
+    network_game_log(
+      "failed to create a message_server_game_settings_update message");
+    return false;
+  }
+
+  result = FUN_0012f430(server, msg);
+  if (!result) {
+    network_game_log(
+      "failed to send message_server_game_settings_update message to all "
+      "machines");
+    return false;
   }
 
   return result;
