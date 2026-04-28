@@ -739,6 +739,175 @@ void observer_compute_update(int16_t local_player_index)
   }
 }
 
+/* Near-plane collision fix for the camera focus distance (0x8c150).
+ * Casts collision rays from the focus position along the up and right (cross
+ * product of up and forward) directions, scaled by a near-plane factor
+ * proportional to focus_distance. Finds the closest obstruction among 4
+ * directions (+/- up_scaled, +/- right_scaled), then runs a binary-search
+ * refinement loop (10 iterations) to converge on the exact obstruction
+ * boundary. Adjusts *focus_distance by blending the initial collision
+ * fraction with the refined fraction. If no obstruction is found,
+ * *focus_distance is simply scaled by the initial collision fraction. */
+void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist,
+                  float *forward, float *position)
+{
+  char location[8];
+  bool indoor_fog;
+  float initial_fraction;
+  float best_t;
+  float test_fraction;
+  float best_sign;
+  float *best_plane;
+  float adjusted_pos[3];
+  float test_point[3];
+  float up_scaled[3];
+  float right_scaled[3];
+  float fVar1;
+  float dist;
+  int16_t i;
+  int counter;
+
+  initial_fraction = 1.0f;
+
+  /* Determine location and indoor fog status at the focus position */
+  scenario_location_from_point(location, position);
+  indoor_fog = FUN_0018f3e0(location, position, 0);
+
+  /* Compute adjusted position: position - (near_plane_dist + *focus_distance) *
+   * forward */
+  dist = near_plane_dist + *focus_distance;
+  adjusted_pos[0] = -(dist * forward[0]) + position[0];
+  adjusted_pos[1] = -(dist * forward[1]) + position[1];
+  adjusted_pos[2] = -(dist * forward[2]) + position[2];
+
+  /* Cast initial ray from position to adjusted_pos */
+  FUN_0008ab90(&initial_fraction, indoor_fog, position, adjusted_pos);
+
+  /* Scale factor for the near-plane probe vectors */
+  fVar1 = *(float *)0x2673a4 * *focus_distance;
+
+  /* Compute scaled up vector */
+  up_scaled[0] = up[0] * fVar1;
+  up_scaled[1] = up[1] * fVar1;
+  up_scaled[2] = up[2] * fVar1;
+
+  /* Compute scaled right vector = cross(up, forward) * fVar1 */
+  right_scaled[0] = (up[1] * forward[2] - up[2] * forward[1]) * fVar1;
+  right_scaled[1] = (up[2] * forward[0] - up[0] * forward[2]) * fVar1;
+  right_scaled[2] = (up[0] * forward[1] - up[1] * forward[0]) * fVar1;
+
+  best_t = initial_fraction;
+  best_plane = (float *)0;
+  counter = 0;
+
+  /* Sweep 4 directions: -up, -right, +up, +right */
+  i = 0;
+  do {
+    float sign;
+    int plane_idx;
+    float *plane;
+
+    /* sign: -1 for i=0,1; +1 for i=2,3 */
+    sign = (float)(int)(((i & 2) ? 2 : 0) - 1);
+
+    /* plane: up_scaled for even counter, right_scaled for odd */
+    plane_idx = counter & 1;
+    plane = (plane_idx == 0) ? up_scaled : right_scaled;
+
+    test_point[0] = sign * plane[0] + adjusted_pos[0];
+    test_point[1] = sign * plane[1] + adjusted_pos[1];
+    test_point[2] = sign * plane[2] + adjusted_pos[2];
+
+    if (FUN_0008ab90(&test_fraction, indoor_fog, position, test_point)) {
+      if (test_fraction < best_t) {
+        best_t = test_fraction;
+        best_plane = plane;
+        best_sign = sign;
+      }
+    }
+
+    i = (int16_t)(i + 1);
+    counter = counter + 1;
+  } while (i < 4);
+
+  if (best_plane != (float *)0) {
+    /* Refinement loop: binary search along the best plane direction */
+    float refinement_scale;
+    float offset;
+    float best_frac;
+    float fraction;
+    int iterations;
+    float final_scale;
+    float value;
+
+    refinement_scale = best_sign;
+    offset = 0.0f;
+    fraction = initial_fraction;
+    best_frac = best_t;
+    iterations = 10;
+
+    do {
+      float step;
+      bool hit;
+
+      step = (refinement_scale + offset) * *(float *)0x253398;
+
+      test_point[0] = step * best_plane[0] + adjusted_pos[0];
+      test_point[1] = step * best_plane[1] + adjusted_pos[1];
+      test_point[2] = step * best_plane[2] + adjusted_pos[2];
+
+      hit = FUN_0008ab90(&test_fraction, indoor_fog, position, test_point);
+
+      if (hit &&
+          (float)*(double *)0x2674e8 > fabsf(test_fraction - best_frac)) {
+        /* Converged: update the refinement boundary */
+        best_frac = test_fraction;
+        refinement_scale = step;
+      } else {
+        /* Did not converge: record the step as offset */
+        offset = step;
+        if (!hit) {
+          fraction = *(float *)0x2533c8;
+        } else {
+          fraction = test_fraction;
+        }
+      }
+
+      iterations = iterations - 1;
+    } while (iterations != 0);
+
+    /* Determine final_scale from refinement results */
+    if (fraction > best_frac) {
+      value = offset;
+    } else {
+      value = (float)(int)(refinement_scale >= *(float *)0x2533c0);
+    }
+
+    if (value == *(float *)0x2533c0) {
+      /* Negate path */
+      if (fraction < best_frac) {
+        final_scale = -offset;
+      } else {
+        final_scale = -refinement_scale;
+      }
+    } else {
+      if (fraction < best_frac) {
+        final_scale = offset;
+      } else {
+        final_scale = refinement_scale;
+      }
+    }
+
+    *focus_distance = (final_scale * initial_fraction +
+                       (*(float *)0x2533c8 - final_scale) * best_t) *
+                      *focus_distance;
+    return;
+  }
+
+  /* No obstruction found: scale focus_distance by initial fraction */
+  *focus_distance = initial_fraction * *focus_distance;
+}
+
 /* Derive the final observer camera result from staged and integrated state
  * (0x8c4b0). Reads the observer's computed focus position, focus offset,
  * focus distance, forward/up vectors, and field of view. Applies focus offset
