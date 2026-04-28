@@ -4143,6 +4143,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00141360(int object_handle, float *out_forward, float *out_up);",
+          "addr": "0x141360"
+        },
+        {
           "decl": "void *object_get_world_matrix(int object_handle, void *out_matrix);",
           "addr": "0x141480",
           "ported": true
@@ -6721,15 +6725,18 @@
         },
         {
           "decl": "void FUN_001a9900(int unit_handle, void *out_aiming);",
-          "addr": "0x1a9900"
+          "addr": "0x1a9900",
+          "ported": true
         },
         {
           "decl": "void FUN_001a9930(int unit_handle, void *out_looking);",
-          "addr": "0x1a9930"
+          "addr": "0x1a9930",
+          "ported": true
         },
         {
           "decl": "void FUN_001a9960(int unit_handle, void *out_facing);",
-          "addr": "0x1a9960"
+          "addr": "0x1a9960",
+          "ported": true
         },
         {
           "decl": "bool unit_is_alive(int unit_handle);",
@@ -6818,7 +6825,8 @@
         },
         {
           "decl": "void FUN_001adf10(int unit_handle, char param_2);",
-          "addr": "0x1adf10"
+          "addr": "0x1adf10",
+          "ported": true
         },
         {
           "decl": "bool unit_current_weapon_is_busy(int unit_handle);",
