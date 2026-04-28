@@ -229,11 +229,17 @@ void FUN_000ddbd0(int param_1, int param_2, int param_3)
     }
   }
 
-  /* First switch: filter incoming states based on current state. */
+  /* First switch: filter incoming states based on current state.
+   * Binary switch table at 0xdde40/0xdde50 maps:
+   *   6,7,8,9 → handler 0 (melee filter)
+   *   0xb,0xc → handler 1 (grenade filter)
+   *   0x13    → handler 2
+   *   0xa,0xd-0x12 → handler 3 (default, no filter) */
   switch (state) {
   case 6:
   case 7:
-  case 8: {
+  case 8:
+  case 9: {
     int16_t cur = *(int16_t *)(fp + 0xc);
     if (cur != 0 && cur != 5 && cur != 6 && cur != 4 && cur != 0xf &&
         cur != 0x16 && cur != 0x10 && cur != 0x11 && cur != 0xd && cur != 0xe) {
@@ -241,8 +247,8 @@ void FUN_000ddbd0(int param_1, int param_2, int param_3)
     }
     break;
   }
-  case 0xa:
   case 0xb:
+  case 0xc:
     if (*(int16_t *)(fp + 0xc) != 0 && *(int16_t *)(fp + 0xc) != 5) {
       return;
     }
