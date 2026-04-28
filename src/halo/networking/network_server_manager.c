@@ -132,6 +132,92 @@ void network_server_manager_game_over(void *server)
   }
 }
 
+/* Check if a machine is marked as valid/active on this server (0x12c500).
+ * Asserts both server and machine are non-null, then returns bit 1 of the
+ * flags byte at machine+0xe (shifted right by 1, masked to a bool). */
+bool FUN_0012c500(int server, int machine)
+{
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x3cd, 1);
+    system_exit(-1);
+  }
+  if (!machine) {
+    display_assert("machine",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x3ce, 1);
+    system_exit(-1);
+  }
+  return (*(uint8_t *)((char *)machine + 0xe) >> 1) & 1;
+}
+
+/* Finalize server loading after all machines have loaded (0x12caa0).
+ * Sets the server state to 1, clears the timer at +0x484, then copies a
+ * "local game data loaded" flag from the client's game-data region into
+ * server+0x438.  Asserts if the flag is zero (data not loaded). */
+void FUN_0012caa0(void *server)
+{
+  char *s = (char *)server;
+  void *client;
+  void *game_data;
+  uint8_t loaded;
+
+  network_game_log("all machines have successfully loaded");
+  *(int16_t *)(s + 0x4) = 1;
+  *(int32_t *)(s + 0x484) = 0;
+
+  client = network_game_client_get();
+  if (client != NULL) {
+    game_data = FUN_001257a0(network_game_client_get());
+    loaded = *(uint8_t *)((char *)game_data + 0x430);
+  } else {
+    loaded = 0;
+  }
+
+  *(uint8_t *)(s + 0x438) = loaded;
+  if (!loaded) {
+    display_assert("local game data not loaded",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x4e0, 1);
+    system_exit(-1);
+  }
+}
+
+/* Check whether any team (0 or 1) has zero active clients among the 16 client
+ * slots at server+0x22E..+0x44C (stride 0x20).  Returns true when at least one
+ * team is empty, false when both teams have members (0x12d040). */
+bool FUN_0012d040(void *server)
+{
+  char *s;
+  char *client_ptr;
+  int16_t counts[2];
+  signed char team;
+  int i, j;
+
+  s = (char *)server;
+  if (*(char *)(s + 0xc8) == 0)
+    return false;
+
+  counts[0] = 0;
+  counts[1] = 0;
+  client_ptr = s + 0x24c;
+  for (i = 0x10; i != 0; i--) {
+    if (FUN_0012ac80(client_ptr - 0x1e)) {
+      team = *client_ptr;
+      if (team >= 0 && team < 2)
+        counts[team]++;
+    }
+    client_ptr += 0x20;
+  }
+
+  for (j = 0; j < 2; j++) {
+    if (counts[j] == 0)
+      return true;
+  }
+  return false;
+}
+
 /* Assert server is non-null and return the connection pointer at offset +8
  * (0x12d570). */
 int FUN_0012d570(void *server)
