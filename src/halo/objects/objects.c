@@ -236,8 +236,8 @@ void FUN_00136750(void *damage_params, int tag_index)
 
 /* Apply area-of-effect damage to nearby objects (0x138e30).
  * Resolves the 'jpt!' damage effect tag, searches for objects within the
- * effect radius via object_find_in_radius, applies damage to each via FUN_00138900,
- * then processes breakable surfaces via FUN_00146be0. */
+ * effect radius via object_find_in_radius, applies damage to each via
+ * FUN_00138900, then processes breakable surfaces via FUN_00146be0. */
 void FUN_00138e30(void *damage_params, int target_index)
 {
   char *tag;
@@ -1866,6 +1866,31 @@ void object_adjust_interpolation_position(int object_handle, vector3_t *delta)
     block[5] += delta->y;
     block[6] += delta->z;
   }
+}
+
+/* Query an outgoing object function value (0x1403a0).
+ * If function_index is -1, writes 1.0f and returns true.
+ * Otherwise asserts index is in [0,4), writes the float at
+ * object+0xe4+index*4 to out_value, and returns whether the
+ * corresponding bit in the function-valid mask at object+0xd3 is set. */
+bool FUN_001403a0(int object_handle, short function_index, void *out_value)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if (function_index == -1) {
+    *(int *)out_value = 0x3f800000;
+    return true;
+  }
+  if (function_index < 0 || function_index >= 4) {
+    display_assert(
+      "function_index>=0 && function_index<NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x676, 1);
+    system_exit(-1);
+  }
+  *(int *)out_value = *(int *)(obj + 0xe4 + (int)function_index * 4);
+  return (*(unsigned char *)(obj + 0xd3) &
+          (1 << ((unsigned char)function_index & 0x1f))) != 0;
 }
 
 /*

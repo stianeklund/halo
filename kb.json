@@ -4361,7 +4361,8 @@
         },
         {
           "decl": "bool FUN_001403a0(int object_handle, short function_index, void *out_value);",
-          "addr": "0x1403a0"
+          "addr": "0x1403a0",
+          "ported": true
         },
         {
           "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, int16_t *cluster_indices, int16_t max_count, int *out_handles);",
