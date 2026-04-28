@@ -246,3 +246,155 @@ void scenario_location_from_point(void *location_out, void *point)
     (char *)*(void **)0x5064e0 + 0xe0, leaf & 0x7fffffff, 0x10);
   *(int16_t *)&loc[1] = *(int16_t *)(element + 8);
 }
+
+/*
+ * FUN_0018f3e0 -- determine whether a position is under indoor fog.
+ *
+ * Given a BSP location and a 3D position, finds the BSP3D node via
+ * FUN_0018f2d0, then looks up the corresponding fog tag. Returns true
+ * (1) if the fog tag's first byte has bit 0 set (indoor fog flag).
+ *
+ * Optionally writes a sky index to *out_sky_index: either from the
+ * BSP3D node element (offset +0x26), or as a fallback from the cluster
+ * element (offset +0x08 in the clusters tag_block at bsp+0x134).
+ *
+ * Confirmed: asserts "global_structure_bsp" at line 0xc5.
+ * Confirmed: asserts "location" at line 0x258 (600).
+ * Confirmed: asserts "position" at line 0x259 (601).
+ * Confirmed: tag_get('fog ', fog_index) to read indoor flag.
+ * Confirmed: tag_block_get_element(bsp+0x184, node, 0x28) for BSP3D node.
+ * Confirmed: tag_block_get_element(bsp+0x134, cluster, 0x68) fallback.
+ */
+bool FUN_0018f3e0(void *location, void *position, int16_t *out_sky_index)
+{
+  char *bsp;
+  int16_t node_index;
+  char *node_element;
+  int fog_index;
+  char *fog_tag;
+  bool is_indoor;
+  int16_t sky_index;
+
+  if (!global_structure_bsp) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+
+  bsp = (char *)global_structure_bsp;
+  node_index = FUN_0018f2d0(location, position);
+  sky_index = NONE;
+  is_indoor = false;
+
+  assert_halt(location);
+  assert_halt(position);
+
+  if (node_index == NONE) {
+    /* no BSP3D node found -- fall through to cluster fallback */
+  } else {
+    node_element =
+      (char *)tag_block_get_element(bsp + 0x184, (int)node_index, 0x28);
+    fog_index = FUN_0018eab0(node_index);
+    if (fog_index == -1) {
+      is_indoor = false;
+    } else {
+      fog_tag = (char *)tag_get(0x666f6720, fog_index);
+      is_indoor = *(uint8_t *)fog_tag & 1;
+    }
+    sky_index = *(int16_t *)(node_element + 0x26);
+    if (sky_index != NONE)
+      goto done;
+  }
+
+  /* fallback: read sky index from the cluster */
+  if (*(int16_t *)((char *)location + 4) != NONE) {
+    char *cluster_element = (char *)tag_block_get_element(
+      bsp + 0x134, (int)*(int16_t *)((char *)location + 4), 0x68);
+    sky_index = *(int16_t *)(cluster_element + 0x8);
+  }
+
+done:
+  if (out_sky_index != NULL) {
+    *out_sky_index = sky_index;
+  }
+  return is_indoor;
+}
+
+/*
+ * FUN_0018f510 -- compute signed fog distance at a BSP location.
+ *
+ * Given a BSP location (with cluster_index at offset +4) and a 3D position,
+ * looks up the cluster's fog reference from the structure BSP clusters tag
+ * block (bsp+0x134, element size 0x68). The fog reference short at offset +2
+ * in the cluster element can be:
+ *   - NONE (-1): return -FLT_MAX sentinel.
+ *   - Negative (bit 15 set): index into the fog planes tag block
+ *     (bsp+0x178, element size 0x20) with a plane at offset +4 and a
+ *     fog palette index at offset +0.
+ *   - Non-negative: direct fog palette index (no plane).
+ *
+ * The fog palette index is resolved to a fog tag via FUN_0018eab0.
+ * If the fog tag's first byte has bit 0 set (indoor fog), the function:
+ *   - With a plane: returns -(dot(plane, position) + fog_tag[0x74]).
+ *   - Without a plane: returns FLT_MAX.
+ * Otherwise returns -FLT_MAX.
+ *
+ * Confirmed: asserts "global_structure_bsp" at line 0xc5.
+ * Confirmed: tag_get('fog ', tag_index) at CALL 0x1ba140.
+ * Confirmed: FUN_00099500(plane, position) is plane_test_point (dot - d).
+ * Confirmed: FCHS negates the sum before return.
+ * Confirmed: 0x2548fc = FLT_MAX (0x7f7fffff).
+ * Confirmed: default return = -FLT_MAX (0xff7fffff).
+ */
+float FUN_0018f510(void *location, void *position)
+{
+  char *bsp;
+  char *cluster;
+  int16_t fog_ref;
+  int16_t fog_palette_index;
+  float *plane;
+  int tag_index;
+  char *fog_tag;
+
+  if (*(int16_t *)((char *)location + 4) == NONE)
+    return -3.4028235e+38f;
+
+  if (!global_structure_bsp) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+
+  bsp = (char *)global_structure_bsp;
+  cluster = (char *)tag_block_get_element(
+    bsp + 0x134, (int)*(int16_t *)((char *)location + 4), 0x68);
+
+  fog_ref = *(int16_t *)(cluster + 2);
+  if (fog_ref == NONE)
+    return -3.4028235e+38f;
+
+  if (fog_ref < 0) {
+    char *palette_entry =
+      (char *)tag_block_get_element(bsp + 0x178, (int)(fog_ref & 0x7fff), 0x20);
+    fog_palette_index = *(int16_t *)palette_entry;
+    plane = (float *)(palette_entry + 4);
+  } else {
+    fog_palette_index = fog_ref & 0x7fff;
+    plane = NULL;
+  }
+
+  tag_index = FUN_0018eab0(fog_palette_index);
+  if (tag_index == -1)
+    return -3.4028235e+38f;
+
+  fog_tag = (char *)tag_get(0x666f6720, tag_index);
+  if (!(*(uint8_t *)fog_tag & 1))
+    return -3.4028235e+38f;
+
+  if (plane != NULL) {
+    float d = FUN_00099500(plane, position);
+    return -(d + *(float *)(fog_tag + 0x74));
+  }
+
+  return 3.4028235e+38f;
+}
