@@ -940,7 +940,7 @@
         {
           "decl": "int FUN_0003b270(int actor_handle);",
           "addr": "0x3b270",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool FUN_0003b320(int actor_handle);",
@@ -948,9 +948,14 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003b7e0(int actor_handle, int unit_handle@<esi>);",
+          "addr": "0x3b7e0",
+          "ported": true
+        },
+        {
           "decl": "void FUN_0003b860(int actor_handle);",
           "addr": "0x3b860",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0003b900(void);",
@@ -958,8 +963,13 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003b940(int actor_handle, int unit_object_index@<esi>);",
+          "addr": "0x3b940"
+        },
+        {
           "decl": "void FUN_0003ba00(void);",
-          "addr": "0x3ba00"
+          "addr": "0x3ba00",
+          "ported": true
         }
       ]
     },
@@ -5526,7 +5536,8 @@
         },
         {
           "decl": "int FUN_0018eab0(int16_t bsp3d_node_index);",
-          "addr": "0x18eab0"
+          "addr": "0x18eab0",
+          "ported": true
         },
         {
           "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
@@ -5545,7 +5556,8 @@
         },
         {
           "decl": "int16_t FUN_0018f2d0(void *location, void *position);",
-          "addr": "0x18f2d0"
+          "addr": "0x18f2d0",
+          "ported": true
         },
         {
           "decl": "float FUN_0018f510(void *location, void *position);",
@@ -6705,6 +6717,18 @@
           "ported": true
         },
         {
+          "decl": "void FUN_001a9900(int unit_handle, void *out_aiming);",
+          "addr": "0x1a9900"
+        },
+        {
+          "decl": "void FUN_001a9930(int unit_handle, void *out_looking);",
+          "addr": "0x1a9930"
+        },
+        {
+          "decl": "void FUN_001a9960(int unit_handle, void *out_facing);",
+          "addr": "0x1a9960"
+        },
+        {
           "decl": "bool unit_is_alive(int unit_handle);",
           "addr": "0x1a9a30",
           "ported": true
@@ -6788,6 +6812,10 @@
           "decl": "int unit_get_weapon(int unit_handle, int16_t weapon_index);",
           "addr": "0x1adeb0",
           "ported": true
+        },
+        {
+          "decl": "void FUN_001adf10(int unit_handle, char param_2);",
+          "addr": "0x1adf10"
         },
         {
           "decl": "bool unit_current_weapon_is_busy(int unit_handle);",
