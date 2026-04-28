@@ -4426,8 +4426,13 @@
           "ported": true
         },
         {
+          "decl": "void FUN_000a1770(int particle@<eax>, int tag_group@<ecx>, int physics_tag@<esi>, int param);",
+          "addr": "0xa1770"
+        },
+        {
           "decl": "void FUN_000a18c0(int datum_handle@<ebx>);",
-          "addr": "0xa18c0"
+          "addr": "0xa18c0",
+          "ported": true
         }
       ]
     },
