@@ -3910,7 +3910,8 @@
         },
         {
           "decl": "void network_server_manager_game_over(void *server);",
-          "addr": "0x12c370"
+          "addr": "0x12c370",
+          "ported": true
         },
         {
           "decl": "int FUN_0012d570(void *server);",
@@ -3944,15 +3945,18 @@
         },
         {
           "decl": "void network_game_client_dispose(void *server);",
-          "addr": "0x12ea00"
+          "addr": "0x12ea00",
+          "ported": true
         },
         {
           "decl": "bool network_game_server_start(void *server);",
-          "addr": "0x12eb20"
+          "addr": "0x12eb20",
+          "ported": true
         },
         {
           "decl": "bool network_server_manager_pregame_start(void *server);",
-          "addr": "0x12eca0"
+          "addr": "0x12eca0",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012f430(void *server, void *message);",
