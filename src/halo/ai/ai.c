@@ -1,11 +1,57 @@
 /* ai.c — AI subsystem top-level lifecycle and query functions.
  *
- * Corresponds to ai.obj (XBE address range ~0x3f670–0x425b0).
+ * Corresponds to ai.obj (XBE address range ~0x3f5f0–0x425b0).
  * Implements initialize, dispose, dispose_from_old_map, place,
  * ai_handle_unit_approach, game_allegiance_apply_change,
- * ai_initialize_for_new_map, ai_update, ai_clump, and
- * enemies_can_see_player entry points.
+ * unit_vehicle_board_notify, ai_initialize_for_new_map,
+ * ai_update, ai_clump, and enemies_can_see_player entry points.
  */
+
+/* FUN_0003f5f0: per-tick AI actor activation sweep.
+ * Called from ai_update on the first-frame/map-load branch.
+ * Copies ai_globals[6..7] (int16_t) into ai_globals[4..5], then clears
+ * both ai_globals[6..7] and the byte flag at ai_globals[3].
+ * Iterates all active player-actors (flag=1) via FUN_00059b10/FUN_00059b50.
+ * For each actor record:
+ *   - if record+0xb is nonzero: calls FUN_0003d950(actor_handle, 0)
+ *     to delete/dispose the actor entry.
+ *   - if record+0xb is zero and record+0x6a > 0: calls FUN_0003ec80(@esi)
+ *     to activate the actor (full AI init sequence).
+ * The datum handle comes from iter offset 0x14 (stored by FUN_00059b50).
+ * Confirmed: void(void), called from ai_update at 0x41206 with no args.
+ * Confirmed: FUN_0003ec80 takes @esi register arg (MOV ESI,[EBP-8]; CALL).
+ * Confirmed: FUN_0003d950 is cdecl with 2 stack args (PUSH 0; PUSH EAX; CALL;
+ * ADD ESP,8). */
+void FUN_0003f5f0(void)
+{
+  char *g;
+  char iter[0x1c]; /* extended AI actor iterator */
+  char *record;
+
+  g = *(char **)0x632574;
+
+  /* rotate scheduling counters: copy [6..7] into [4..5], clear [6..7] and flag
+   * [3] */
+  *(int16_t *)(g + 4) = *(int16_t *)(g + 6);
+  *(int16_t *)(g + 6) = 0;
+  *(char *)(g + 3) = 0;
+
+  /* iterate over all active player-actors */
+  FUN_00059b10(iter, 1);
+  record = (char *)FUN_00059b50(iter);
+  while (record != 0) {
+    if (*(char *)(record + 0xb) != 0) {
+      /* actor marked for deletion — dispose it */
+      FUN_0003d950(*(int *)(iter + 0x14), 0);
+    } else {
+      if (*(int16_t *)(record + 0x6a) > 0) {
+        /* actor ready for activation — full init via @esi */
+        FUN_0003ec80(*(int *)(iter + 0x14));
+      }
+    }
+    record = (char *)FUN_00059b50(iter);
+  }
+}
 
 /* ai_initialize: allocate AI globals and initialize all AI subsystems.
  * Allocates 0x8dc bytes via game_state_malloc, stores the pointer at
@@ -186,6 +232,86 @@ void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
 
   next_actor:
     actor = FUN_00059b50(iter);
+  }
+}
+
+/* FUN_00040570: spawn AI actors into vehicle seats from pending vehicle list.
+ * Called each tick from ai_update. Iterates the vehicle spawn queue stored
+ * in the AI globals block: a count at offset +0x8b8 (int16_t) and an array
+ * of object handles starting at offset +0x8bc. For each queued vehicle,
+ * looks up its unit tag definition and walks the tag_block at tag+0x2e4
+ * (element size 0x11c). For each seat element with a valid actor variant
+ * tag index at element+0x104, creates an actor via FUN_0003f030 using the
+ * vehicle's world position as the starting location, then boards the new
+ * actor's unit into the vehicle at the corresponding seat index.
+ * Clears the queue count to zero after processing.
+ *
+ * Confirmed: void(void) — no args, no return value.
+ * Confirmed: outer loop uses CMP SI (16-bit comparison).
+ * Confirmed: inner loop counter sign-extended via MOVSX EAX,AX.
+ * Confirmed: csmemset size 0x1c, word at buffer+0x1a = 0xffff.
+ * Confirmed: FUN_0003f030 args: 6 pushes, ADD ESP,0x2c (cleans 6 args + prior
+ * 5). Confirmed: unit_board_vehicle args: PUSH EDX(seat), PUSH EDI(vehicle),
+ * PUSH EAX(unit). */
+void FUN_00040570(void)
+{
+  int g;
+  int vehicle_handle;
+  char *unit_obj;
+  char *tag_data;
+  int *seats_block;
+  char *seat_element;
+  int actor_handle;
+  char *actor;
+  char starting_location[0x1c];
+  int16_t i;
+  int16_t j;
+
+  g = *(volatile int *)0x632574;
+  if (*(int16_t *)(g + 0x8b8) < 1) {
+    *(int16_t *)(g + 0x8b8) = 0;
+    return;
+  }
+
+  for (i = 0; i < *(int16_t *)(g + 0x8b8); i++) {
+    g = *(volatile int *)0x632574;
+    vehicle_handle = *(int *)(g + 0x8bc + (int16_t)i * 4);
+    unit_obj = object_get_and_verify_type(vehicle_handle, 3);
+    tag_data = tag_get(0x756e6974, *(int *)unit_obj);
+    seats_block = (int *)(tag_data + 0x2e4);
+
+    for (j = 0; (int)j < *seats_block; j++) {
+      seat_element = tag_block_get_element(seats_block, (int)j, 0x11c);
+      if (*(int *)(seat_element + 0x104) != -1) {
+        csmemset(starting_location, 0, 0x1c);
+        *(int16_t *)(starting_location + 0x1a) = (int16_t)0xffff;
+        object_get_world_position(vehicle_handle,
+                                  (vector3_t *)starting_location);
+        actor_handle = FUN_0003f030(*(int *)(seat_element + 0x104), -1, -1,
+                                    starting_location, 0, 0);
+        if (actor_handle != -1) {
+          actor = datum_get(actor_data, actor_handle);
+          unit_board_vehicle(*(int *)(actor + 0x18), vehicle_handle, j);
+        }
+      }
+    }
+  }
+
+  *(int16_t *)(*(volatile int *)0x632574 + 0x8b8) = 0;
+}
+
+/* unit_vehicle_board_notify: notify the AI subsystem that a unit is boarding
+ * a vehicle. Verifies the unit object (type_mask=3 for biped|vehicle), and
+ * if the unit has an AI actor (offset 0x1a4 != -1), dispatches an AI
+ * command via FUN_00046f10 with command type 0x24.
+ * The vehicle_handle parameter is accepted but unused in this function body.
+ * Confirmed: 1 stack param used ([EBP+8]), second param ([EBP+0xc]) untouched.
+ * Confirmed: PUSH order for FUN_00046f10 — 7 args, cdecl (ADD ESP,0x1c). */
+void unit_vehicle_board_notify(int unit_handle, int vehicle_handle)
+{
+  void *unit_obj = object_get_and_verify_type(unit_handle, 3);
+  if (*(int *)((char *)unit_obj + 0x1a4) != -1) {
+    FUN_00046f10(0x24, unit_handle, -1, -1, -1, -1, 0);
   }
 }
 

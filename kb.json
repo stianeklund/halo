@@ -239,6 +239,10 @@
           "addr": "0x46cb0"
         },
         {
+          "decl": "void FUN_00046f10(int type, int unit_handle, int param3, int param4, int param5, int param6, int param7);",
+          "addr": "0x46f10"
+        },
+        {
           "decl": "void FUN_00048e90(void);",
           "addr": "0x48e90"
         },
@@ -749,6 +753,22 @@
         {
           "decl": "bool FUN_0018e910(void *location);",
           "addr": "0x18e910"
+        },
+        {
+          "decl": "void FUN_0003d950(int actor_handle, char flag);",
+          "addr": "0x3d950"
+        },
+        {
+          "decl": "void FUN_0003ec80(int actor_handle@<esi>);",
+          "addr": "0x3ec80"
+        },
+        {
+          "decl": "int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index, void *starting_location, char use_major_variant, int16_t team);",
+          "addr": "0x3f030"
+        },
+        {
+          "decl": "float FUN_00099500(float *plane, float *point);",
+          "addr": "0x99500"
         }
       ]
     },
@@ -949,7 +969,8 @@
       "functions": [
         {
           "decl": "void FUN_0003f5f0(void);",
-          "addr": "0x3f5f0"
+          "addr": "0x3f5f0",
+          "ported": true
         },
         {
           "decl": "void ai_initialize(void);",
@@ -983,11 +1004,13 @@
         },
         {
           "decl": "void FUN_00040570(void);",
-          "addr": "0x40570"
+          "addr": "0x40570",
+          "ported": true
         },
         {
           "decl": "void unit_vehicle_board_notify(int unit_handle, int vehicle_handle);",
-          "addr": "0x409a0"
+          "addr": "0x409a0",
+          "ported": true
         },
         {
           "decl": "void ai_initialize_for_new_map(void);",
@@ -5497,6 +5520,10 @@
           "ported": true
         },
         {
+          "decl": "int FUN_0018eab0(int16_t bsp3d_node_index);",
+          "addr": "0x18eab0"
+        },
+        {
           "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
           "addr": "0x18eb40",
           "ported": true
@@ -5512,8 +5539,13 @@
           "ported": true
         },
         {
+          "decl": "int16_t FUN_0018f2d0(void *location, void *position);",
+          "addr": "0x18f2d0"
+        },
+        {
           "decl": "float FUN_0018f510(void *location, void *position);",
-          "addr": "0x18f510"
+          "addr": "0x18f510",
+          "ported": true
         }
       ]
     },
@@ -5585,8 +5617,9 @@
           "ported": true
         },
         {
-          "decl": "bool FUN_0018f3e0(void *volumes, void *position, int flags);",
-          "addr": "0x18f3e0"
+          "decl": "bool FUN_0018f3e0(void *location, void *position, int16_t *out_sky_index);",
+          "addr": "0x18f3e0",
+          "ported": true
         }
       ]
     },
