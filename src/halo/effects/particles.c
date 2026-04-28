@@ -375,7 +375,7 @@ void FUN_000a1fd0(void *spawn_params)
   if (*(int *)location == -1)
     return;
 
-  if (!FUN_0018e910(location))
+  if (!scenario_location_potentially_visible_local(location))
     return;
 
   datum_handle = data_new_at_index(particle_data);

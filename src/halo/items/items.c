@@ -164,7 +164,7 @@ void FUN_000f6b80(int item_handle)
  * Confirmed: CALL 0xa8e30 (game_engine_running) for flag-dependent branch.
  * Confirmed: CALL 0xf6af0 (FUN_000f6af0) if flag set and engine not running.
  * Confirmed: CALL 0x140f10 (object_get_markers_by_string_id) for "ground
- * point". Confirmed: CALL 0x18e3f0 (FUN_0018e3f0) to get structure BSP.
+ * point". Confirmed: CALL 0x18e3f0 (global_collision_bsp_get) to get collision BSP.
  * Confirmed: CALL 0x19b210 (tag_block_get_element) at bsp+0x3c.
  * Confirmed: CALL 0x99640 (FUN_00099640) for plane extraction.
  * Confirmed: CALL 0x12f80 (vector3d_scale_add) for ground projection.
@@ -250,7 +250,7 @@ void item_set_position(int item_handle, float *position, int flag)
         item_handle, (void *)0x28aa90, marker_buf, 1);
       if (marker_count != 0) {
         /* Ground point marker found: project position onto ground plane */
-        bsp = FUN_0018e3f0();
+        bsp = (int)global_collision_bsp_get();
         plane_ref = (int *)tag_block_get_element(
           (void *)(bsp + 0x3c), (int)*(int16_t *)(item_obj + 0x1aa), 0xc);
         FUN_00099640(bsp, *plane_ref, plane);

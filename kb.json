@@ -61,6 +61,10 @@
           "addr": "0x5ab100"
         },
         {
+          "decl": "void *global_collision_bsp;",
+          "addr": "0x5064dc"
+        },
+        {
           "decl": "void *global_structure_bsp;",
           "addr": "0x5064e0"
         },
@@ -5835,8 +5839,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_0018e3f0(void);",
-          "addr": "0x18e3f0"
+          "decl": "void *global_collision_bsp_get(void);",
+          "addr": "0x18e3f0",
+          "ported": true
         },
         {
           "decl": "void *game_globals_get(void);",
@@ -5849,8 +5854,9 @@
           "ported": true
         },
         {
-          "decl": "bool FUN_0018e910(void *location);",
-          "addr": "0x18e910"
+          "decl": "bool scenario_location_potentially_visible_local(void *location);",
+          "addr": "0x18e910",
+          "ported": true
         },
         {
           "decl": "int FUN_0018eab0(int16_t bsp3d_node_index);",

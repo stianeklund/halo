@@ -54,6 +54,12 @@ void *scenario_get(void)
   return global_structure_bsp;
 }
 
+void *global_collision_bsp_get(void)
+{
+  assert_halt(global_collision_bsp);
+  return global_collision_bsp;
+}
+
 /* Return the game globals tag data pointer. Asserts if not loaded. */
 void *game_globals_get(void)
 {
@@ -70,6 +76,34 @@ void *game_globals_get(void)
 void scenario_location_reset(int *location)
 {
   *(int16_t *)((char *)location + 6) = NONE;
+}
+
+bool scenario_location_potentially_visible_local(void *location)
+{
+  int16_t cluster_index;
+  void *pvs;
+
+  if (*(int16_t *)((char *)location + 4) >= 0) {
+    if (!global_structure_bsp) {
+      display_assert("global_structure_bsp",
+                     "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+      system_exit(-1);
+    }
+    if ((int)*(int16_t *)((char *)location + 4) <
+        *(int *)((char *)global_structure_bsp + 0x134))
+      goto valid;
+  }
+  display_assert(
+    "location->cluster_index>=0 && "
+    "location->cluster_index<global_structure_bsp_get()->clusters.count",
+    "c:\\halo\\SOURCE\\scenario\\scenario.c", 0x1e7, 1);
+  system_exit(-1);
+
+valid:
+  cluster_index = *(int16_t *)((char *)location + 4);
+  pvs = players_get_combined_pvs_local();
+  return (*(uint32_t *)((char *)pvs + ((int)cluster_index >> 5) * 4) &
+          (1u << (cluster_index & 0x1f))) != 0;
 }
 
 /*

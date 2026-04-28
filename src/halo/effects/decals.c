@@ -631,7 +631,7 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
     return;
   }
 
-  structure_bsp = FUN_0018e3f0();
+  structure_bsp = (int)global_collision_bsp_get();
   surface = (int *)tag_block_get_element((char *)structure_bsp + 0x3c,
                                          surface_index, 0xc);
 
@@ -1033,7 +1033,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
   float tiny;
   float tiny_squared;
 
-  structure_bsp = FUN_0018e3f0();
+  structure_bsp = (int)global_collision_bsp_get();
   geometry = (s_decal_geometry_scratch *)0x44dfd8;
   staged_vertices = g_decal_staged_vertices;
   grouped_surfaces = g_decal_grouped_surfaces;
@@ -2025,16 +2025,3 @@ void FUN_0017cb10(int decal_index)
   FUN_0015b530(decal_index);
 }
 
-/* Returns the current structure BSP collision data pointer.
- * Source: c:\halo\SOURCE\scenario\scenario.c
- * Asserts that the global is non-null before returning.
- */
-int FUN_0018e3f0(void)
-{
-  if (*(int *)0x5064dc == 0) {
-    display_assert("global_collision_bsp",
-                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xcd, true);
-    system_exit(-1);
-  }
-  return *(int *)0x5064dc;
-}
