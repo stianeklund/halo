@@ -314,14 +314,11 @@ void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
   if (angle != 0.0f) {
     float cos_a, sin_a;
 #ifdef XDK_BUILD
-    __asm fld angle
-    __asm fsincos
-    __asm fstp cos_a
-    __asm fstp sin_a
+    __asm fld angle __asm fsincos __asm fstp cos_a __asm fstp sin_a
 #else
     __asm__ volatile("fsincos" : "=t"(cos_a), "=u"(sin_a) : "0"(angle));
 #endif
-    float axis[3];
+      float axis[3];
     random_seed_get_direction3d(seed, axis);
     rotate_vector3d_by_sincos(direction_out, axis, sin_a, cos_a);
   }
@@ -483,10 +480,12 @@ void FUN_0009d590(void *effect)
                              *(float *)(part + 0x8c), (int)flags_lo,
                              (int)flags_hi);
 
-                matrix_transform_vector((float *)(location + 8), direction_out,
-                                        direction_out); /* dup-args-ok: in-place transform */
-                matrix_scale_transform_vector((float *)(location + 8),
-                                              velocity_out, velocity_out); /* dup-args-ok: in-place transform */
+                matrix_transform_vector(
+                  (float *)(location + 8), direction_out,
+                  direction_out); /* dup-args-ok: in-place transform */
+                matrix_scale_transform_vector(
+                  (float *)(location + 8), velocity_out,
+                  velocity_out); /* dup-args-ok: in-place transform */
 
                 /* store local-space values into spawn_params; the
                  * non-attached branch overwrites with world-space later */
@@ -735,7 +734,6 @@ void FUN_0009e310(void *effect)
 
     if (ref_index >= 0 && (int)ref_index < *(int *)(tag_data + 0x28) &&
         *(int *)(loc_entry + 0x24) != -1) {
-
       bool skip;
       if ((*(uint8_t *)(ef + 2) >> 6) & 1)
         skip = (*(int16_t *)(loc_entry + 2) == 1);
@@ -751,14 +749,12 @@ void FUN_0009e310(void *effect)
           float forward[3];
           float up[3];
 
-          location =
-            (char *)datum_get(*(data_t **)0x5aa8ac, location_handle);
+          location = (char *)datum_get(*(data_t **)0x5aa8ac, location_handle);
           location_handle = *(int *)(location + 4);
 
           if (*(int16_t *)(location + 2) != (int16_t)0xffff &&
               *(int16_t *)(location + 2) < 0) {
-            location =
-              (char *)FUN_0009cca0(effect, &location_handle, 0);
+            location = (char *)FUN_0009cca0(effect, &location_handle, 0);
           }
 
           if (location == NULL)
@@ -779,19 +775,18 @@ void FUN_0009e310(void *effect)
             } else {
               float *node_matrix;
               if ((int16_t)node_idx < 0) {
-                node_matrix =
-                  (float *)FUN_000dd410((int)*(uint16_t *)(ef + 0x4c),
-                                        (int)(node_idx & 0x7fff));
+                node_matrix = (float *)FUN_000dd410(
+                  (int)*(uint16_t *)(ef + 0x4c), (int)(node_idx & 0x7fff));
               } else {
                 node_matrix = (float *)object_get_node_matrix(
                   *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
               }
-              matrix_transform_point(node_matrix,
-                                     (float *)(location + 0x30), position);
-              matrix_transform_vector(node_matrix,
-                                      (float *)(location + 0xc), forward);
-              matrix_transform_vector(node_matrix,
-                                      (float *)(location + 0x24), up);
+              matrix_transform_point(node_matrix, (float *)(location + 0x30),
+                                     position);
+              matrix_transform_vector(node_matrix, (float *)(location + 0xc),
+                                      forward);
+              matrix_transform_vector(node_matrix, (float *)(location + 0x24),
+                                      up);
             }
           }
 
@@ -839,13 +834,12 @@ void FUN_0009e310(void *effect)
               *(float *)(placement + 0x48) = up[2];
 
               seed = (unsigned int *)get_global_random_seed_address();
-              FUN_0009d1f0(effect, seed, forward, direction_scratch,
-                           (float *)(placement + 0x28),
-                           *(float *)(loc_entry + 0x40),
-                           *(float *)(loc_entry + 0x44),
-                           *(float *)(loc_entry + 0x48),
-                           (int)*(uint32_t *)(loc_entry + 0x60),
-                           (int)*(uint32_t *)(loc_entry + 0x64));
+              FUN_0009d1f0(
+                effect, seed, forward, direction_scratch,
+                (float *)(placement + 0x28), *(float *)(loc_entry + 0x40),
+                *(float *)(loc_entry + 0x44), *(float *)(loc_entry + 0x48),
+                (int)*(uint32_t *)(loc_entry + 0x60),
+                (int)*(uint32_t *)(loc_entry + 0x64));
 
               *(float *)(placement + 0x28) += *(float *)(ef + 0x24);
               *(float *)(placement + 0x2c) += *(float *)(ef + 0x28);
@@ -863,11 +857,15 @@ void FUN_0009e310(void *effect)
                 float base, range, spd;
 
                 base = lo;
-                if (fl & 0x8) base *= sa;
-                if (fh & 0x8) base *= sb;
+                if (fl & 0x8)
+                  base *= sa;
+                if (fh & 0x8)
+                  base *= sb;
                 range = hi - lo;
-                if (fl & 0x10) range *= sa;
-                if (fh & 0x10) range *= sb;
+                if (fl & 0x10)
+                  range *= sa;
+                if (fh & 0x10)
+                  range *= sb;
                 spd = random_real_range((int *)seed, 0.0f, range) + base;
 
                 if (spd != 0.0f) {
@@ -990,9 +988,8 @@ void FUN_0009e310(void *effect)
                 else
                   marker = (int)(loc_node & 0x7fff);
 
-                FUN_001c7e70(*(int *)(ef + 0x3c),
-                             *(int *)(loc_entry + 0x24), (int16_t)marker,
-                             (float *)(location + 0x30),
+                FUN_001c7e70(*(int *)(ef + 0x3c), *(int *)(loc_entry + 0x24),
+                             (int16_t)marker, (float *)(location + 0x30),
                              (float *)(location + 0xc), scale);
               } else {
                 struct {
@@ -1016,8 +1013,7 @@ void FUN_0009e310(void *effect)
                 sound_params.field_24 = *(int *)(ef + 0x10);
                 sound_params.field_28 = *(int *)(ef + 0x14);
 
-                FUN_001c73d0(*(int *)(loc_entry + 0x24), &sound_params,
-                             scale);
+                FUN_001c73d0(*(int *)(loc_entry + 0x24), &sound_params, scale);
               }
 
             } else {
@@ -1025,8 +1021,8 @@ void FUN_0009e310(void *effect)
               const char *effect_name = tag_get_name(*(int *)(ef + 4));
               csprintf(err_buf, "effect %s has a bad part %s", effect_name,
                        *(const char **)(loc_entry + 0x1c));
-              display_assert(err_buf,
-                             "c:\\halo\\SOURCE\\effects\\effects.c", 0x6d9, 1);
+              display_assert(err_buf, "c:\\halo\\SOURCE\\effects\\effects.c",
+                             0x6d9, 1);
               system_exit(-1);
             }
           }
@@ -1354,6 +1350,87 @@ event_loop:
 
 delete_effect:
   ((void (*)(int))0x9c750)(effect_index);
+}
+
+/* Create a new effect instance (0x9f0e0).
+ * Validates inputs, allocates an effect datum, copies marker/velocity data,
+ * sets up the effect creation info struct, and kicks off the first update. */
+int FUN_0009f0e0(int effect_tag_index, int object_index,
+                 float *translational_velocity, short marker_count,
+                 void *effect_definition, float *marker_points,
+                 float *marker_forwards, float scale_a, float scale_b,
+                 float unknown1, float unknown2, float unknown3)
+{
+  int handle;
+  char *datum;
+  float *vel;
+  char creation_info[24];
+
+  if (translational_velocity != NULL) {
+    if (!real_vector3d_valid(translational_velocity)) {
+      display_assert("!translational_velocity || "
+                     "valid_real_vector3d(translational_velocity)",
+                     "c:\\halo\\SOURCE\\effects\\effects.c", 0x1c0, 1);
+      system_exit(-1);
+    }
+  }
+  if (marker_count < 1) {
+    display_assert("marker_count>0", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x1c1, 1);
+    system_exit(-1);
+  }
+  if (!marker_points) {
+    display_assert("marker_points", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x1c3, 1);
+    system_exit(-1);
+  }
+  if (!marker_forwards) {
+    display_assert("marker_forwards", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x1c4, 1);
+    system_exit(-1);
+  }
+  if (scale_a < *(float *)0x2533c0 || scale_a > *(float *)0x2533c8) {
+    csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)scale_a);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x1c5, 1);
+    system_exit(-1);
+  }
+  if (scale_b < *(float *)0x2533c0 || scale_b > *(float *)0x2533c8) {
+    csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)scale_b);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x1c6, 1);
+    system_exit(-1);
+  }
+
+  handle = FUN_0009d2d0(effect_tag_index, object_index, *(int *)&unknown3);
+  if (handle != -1) {
+    datum = (char *)datum_get(effect_data, handle);
+    FUN_0009d430((int)datum, *(int *)&unknown1, *(int *)&unknown2, scale_a,
+                 scale_b);
+    *(int *)(datum + 0x3c) = -1;
+
+    *(int16_t *)(creation_info + 0) = -1;
+    *(int *)(creation_info + 4) = 0;
+    *(int16_t *)(creation_info + 8) = marker_count;
+    *(int *)(creation_info + 12) = (int)effect_definition;
+    *(int *)(creation_info + 16) = (int)marker_points;
+    *(int *)(creation_info + 20) = (int)marker_forwards;
+
+    scenario_location_from_point(datum + 0x10, marker_points);
+
+    vel = translational_velocity;
+    if (!vel)
+      vel = *(float **)0x31fc38;
+    *(float *)(datum + 0x24) = vel[0];
+    *(float *)(datum + 0x28) = vel[1];
+    *(float *)(datum + 0x2c) = vel[2];
+
+    *(void **)0x4557e4 = creation_info;
+    csmemset(datum + 0x5c, -1, 0x80);
+    FUN_0009d4e0((int)datum, (void *)0x9e560);
+    effect_update(handle, 0.0f);
+  }
+  return handle;
 }
 
 bool effects_update(float elapsed)

@@ -142,11 +142,31 @@
         "Whether actors.obj contains additional unported functions such as actors_initialize_for_new_map at 0x3a990 has not been confirmed."
       ]
     },
+    "0x3b270": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3b320": {
       "kind": "function",
       "status": "ported"
     },
+    "0x3b7e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b860": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3b900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3ba00": {
       "kind": "function",
       "status": "ported"
     },
@@ -865,6 +885,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9f0e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x9f320": {
       "kind": "function",
       "status": "ported"
@@ -926,6 +950,10 @@
       "status": "ported"
     },
     "0xa1710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa1770": {
       "kind": "function",
       "status": "ported"
     },

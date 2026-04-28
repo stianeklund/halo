@@ -2109,8 +2109,21 @@
           "ported": true
         },
         {
+          "decl": "int FUN_0009d2d0(int tag_index@<ebx>, int object_index, int unknown3);",
+          "addr": "0x9d2d0"
+        },
+        {
+          "decl": "void FUN_0009d430(int datum@<ecx>, int unknown1@<eax>, int unknown2@<ebx>, float scale_a, float scale_b);",
+          "addr": "0x9d430"
+        },
+        {
+          "decl": "void FUN_0009d4e0(int datum@<ebx>, void *callback);",
+          "addr": "0x9d4e0"
+        },
+        {
           "decl": "int FUN_0009f0e0(int effect_tag_index, int object_index, float *translational_velocity, short marker_count, void *effect_definition, float *marker_points, float *marker_forwards, float scale_a, float scale_b, float unknown1, float unknown2, float unknown3);",
-          "addr": "0x9f0e0"
+          "addr": "0x9f0e0",
+          "ported": true
         },
         {
           "decl": "bool effects_update(float);",
