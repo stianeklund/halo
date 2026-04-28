@@ -1,3 +1,16 @@
+/* Check if the server's game is valid (0x12c160).
+ * Returns bit 1 of the flags byte at server+6. */
+bool FUN_0012c160(void *server)
+{
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x220, 1);
+    system_exit(-1);
+  }
+  return (*(uint8_t *)((char *)server + 6) >> 1) & 1;
+}
+
 /* Xbox kernel sleep wrapper (stdcall, 2 args) */
 typedef void(__stdcall *sleep_fn)(int milliseconds, int alertable);
 #define XSleep ((sleep_fn)0x1d01c4)
@@ -45,6 +58,22 @@ int FUN_0012d570(void *server)
     system_exit(-1);
   }
   return (int)((char *)server + 8);
+}
+
+/* Postgame state handler (0x12db60).
+ * Every 5 seconds sends a heartbeat message (type 0xb) to all clients. */
+bool FUN_0012db60(int server)
+{
+  unsigned int now;
+  short data;
+
+  now = system_milliseconds();
+  if (now > *(unsigned int *)((char *)server + 0x480) + 5000) {
+    data = 0;
+    FUN_0012f430((void *)server, FUN_0012b700(0xb, &data, 2));
+    *(unsigned int *)((char *)server + 0x480) = now;
+  }
+  return true;
 }
 
 /* Dispose the network game server (0x12ea00).
@@ -289,5 +318,55 @@ bool network_server_manager_pregame_start(void *server)
   }
   network_game_log("the playlist has ended - server going down, but failed to "
                    "alert client machines");
+  return result;
+}
+
+/* Broadcast a message to all connected client machines (0x12f430).
+ * Iterates 4 machine slots, checks each is valid and alive, then copies
+ * and sends the message. Returns false if any write fails. */
+bool FUN_0012f430(void *server, void *message)
+{
+  char local_buf[0x600];
+  bool result;
+  int i;
+  unsigned short msg_len;
+  int machine;
+  int connection;
+
+  result = true;
+  if (!server || !message) {
+    display_assert(
+      "server && message",
+      "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c", 0x187,
+      1);
+    system_exit(-1);
+  }
+
+  msg_len = *(unsigned short *)message >> 4;
+
+  for (i = 0; i < 4; i++) {
+    machine = FUN_0012d450((int)server, i);
+    if (!FUN_0012c500((int)server, machine))
+      continue;
+    connection = FUN_0012d3b0((void *)machine);
+    if (!connection)
+      continue;
+    if (!FUN_00128660(connection))
+      continue;
+    if (msg_len > 0x600) {
+      display_assert(
+        "message_length<=sizeof(message_buffer)",
+        "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c", 0x19a,
+        1);
+      system_exit(-1);
+    }
+    csmemcpy(local_buf, message, msg_len);
+    if (!FUN_00128e00((void *)connection, local_buf, msg_len, 0, 1)) {
+      network_game_log("network_game_server_write() failed in "
+                       "network_game_server_send_message_to_all_machines()");
+      result = false;
+    }
+  }
+
   return result;
 }

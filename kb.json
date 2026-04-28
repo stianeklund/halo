@@ -829,6 +829,22 @@
         {
           "decl": "void FUN_00129130(int conn1, int conn2);",
           "addr": "0x129130"
+        },
+        {
+          "decl": "int FUN_0012d450(int server, int machine_index);",
+          "addr": "0x12d450"
+        },
+        {
+          "decl": "bool FUN_0012c500(int server, int machine);",
+          "addr": "0x12c500"
+        },
+        {
+          "decl": "int FUN_0012d3b0(void *machine);",
+          "addr": "0x12d3b0"
+        },
+        {
+          "decl": "bool FUN_00128e00(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
+          "addr": "0x128e00"
         }
       ]
     },
@@ -3913,7 +3929,8 @@
       "functions": [
         {
           "decl": "bool FUN_0012c160(void *server);",
-          "addr": "0x12c160"
+          "addr": "0x12c160",
+          "ported": true
         },
         {
           "decl": "void network_server_manager_game_over(void *server);",
@@ -3936,7 +3953,8 @@
         },
         {
           "decl": "bool FUN_0012db60(int server@<esi>);",
-          "addr": "0x12db60"
+          "addr": "0x12db60",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012dc20(int server@<ebx>);",
@@ -3967,7 +3985,8 @@
         },
         {
           "decl": "bool FUN_0012f430(void *server, void *message);",
-          "addr": "0x12f430"
+          "addr": "0x12f430",
+          "ported": true
         }
       ]
     },
