@@ -508,6 +508,237 @@ void observer_compute_accelerations(int16_t local_player_index)
   }
 }
 
+/* Apply observer polynomial update and orthogonalize result vectors (0x8ba10).
+ * For each of 5 observer components, validates velocities (assert_valid_real),
+ * then either copies defaults (when timer expired and mode active), evaluates
+ * a quintic polynomial (when timer active), or negates velocity*delta_time
+ * (when timer expired but mode not active). For the last component (index 4,
+ * forward/up vectors), applies axis-angle rotation via
+ * rotate_vector3d_by_sincos instead of simple addition. After the loop,
+ * orthogonalizes the forward/up vectors via Gram-Schmidt if they are no longer
+ * orthonormal. */
+void observer_compute_update(int16_t local_player_index)
+{
+  char *observer;
+  char *result_ptr;
+  char *default_ptr;
+  char *snap_ptr;
+  char *jerk_ptr;
+  char *accel_ptr;
+  char *vel_ptr;
+  float *velocities;
+  char *pos_ptr;
+  char *extra_ptr;
+  float *timers;
+  float scratch[14];
+  float *scratch_ptr;
+  int16_t comp;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  observer = (char *)0x33571c + (int)local_player_index * 0x29c;
+
+  result_ptr = observer + 0xb0;
+  default_ptr = observer + 0x0c;
+  snap_ptr = observer + 0x158;
+  jerk_ptr = observer + 0x184;
+  accel_ptr = observer + 0x1b0;
+  vel_ptr = observer + 0x1dc;
+  velocities = (float *)(observer + 0xe8);
+  pos_ptr = observer + 0x208;
+  extra_ptr = observer + 0x234;
+  timers = (float *)(observer + 0x5c);
+  scratch_ptr = scratch;
+
+  /* Validate all 11 velocity floats */
+  {
+    float *vp = velocities;
+    int count = 0xb;
+    do {
+      if ((*(uint32_t *)vp & 0x7f800000u) == 0x7f800000u) {
+        char *msg =
+          csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+                   "observer->velocities.n[parameter_index]", *(uint32_t *)vp,
+                   (double)*vp);
+        display_assert(msg, "c:\\halo\\SOURCE\\camera\\observer.c", 0x2f4, 1);
+        system_exit(-1);
+      }
+      vp++;
+      count--;
+    } while (count != 0);
+  }
+
+  for (comp = 0; comp < 5; comp++) {
+    float elapsed = *timers - *(float *)0x335718;
+
+    if (elapsed <= *(float *)0x2533c0 && (*(uint8_t *)(observer + 0x8) & 1)) {
+      /* Timer expired and mode active: copy defaults */
+      int16_t j = 0;
+      if (j < ((int16_t *)0x2ee6ac)[comp]) {
+        do {
+          *(uint32_t *)(result_ptr + j * 4) =
+            *(uint32_t *)(default_ptr + j * 4);
+          j++;
+        } while (j < ((int16_t *)0x2ee6ac)[comp]);
+      }
+    } else {
+      /* Compute update values */
+      if (elapsed <= *(float *)0x2533c0) {
+        /* Timer expired, mode not active: negate velocity*delta_time */
+        int16_t j = 0;
+        if (j < ((int16_t *)0x2ee6b8)[comp]) {
+          do {
+            scratch_ptr[j] = -(*(float *)0x335718 * velocities[j]);
+            j++;
+          } while (j < ((int16_t *)0x2ee6b8)[comp]);
+        }
+      } else {
+        /* Timer active: evaluate quintic polynomial */
+        float t2 = elapsed * elapsed;
+        float t3 = t2 * elapsed;
+        float t4 = t3 * elapsed;
+        float t5 = t4 * elapsed;
+        int16_t j = 0;
+
+        if (j < ((int16_t *)0x2ee6b8)[comp]) {
+          do {
+            int idx = (int)j;
+            int off = idx * 4;
+            j++;
+            scratch_ptr[idx] = t5 * *(float *)(snap_ptr + off) +
+                               t4 * *(float *)(jerk_ptr + off) +
+                               t3 * *(float *)(accel_ptr + off) +
+                               t2 * *(float *)(vel_ptr + off) +
+                               elapsed * *(float *)(pos_ptr + off) +
+                               *(float *)(extra_ptr + off);
+          } while (j < ((int16_t *)0x2ee6b8)[comp]);
+        }
+      }
+
+      if (comp < 4) {
+        /* Components 0-3: add scratch to result */
+        int16_t j = 0;
+        if (j < ((int16_t *)0x2ee6b8)[comp]) {
+          do {
+            int idx = (int)j;
+            int off = idx * 4;
+            j++;
+            *(float *)(result_ptr + off) =
+              scratch_ptr[idx] + *(float *)(result_ptr + off);
+          } while (j < ((int16_t *)0x2ee6b8)[comp]);
+        }
+      } else {
+        /* Component 4 (forward/up vectors): axis-angle rotation */
+        float axis[3];
+        float mag;
+
+        axis[0] = scratch_ptr[0];
+        axis[1] = scratch_ptr[1];
+        axis[2] = scratch_ptr[2];
+        mag = sqrtf(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
+
+        if (fabsf(mag) >= (float)*(double *)0x2533d0) {
+          float inv_mag = *(float *)0x2533c8 / mag;
+          axis[0] = axis[0] * inv_mag;
+          axis[1] = axis[1] * inv_mag;
+          axis[2] = axis[2] * inv_mag;
+
+          if (mag != *(float *)0x2533c0) {
+            float sin_val = sinf(mag);
+            float cos_val = cosf(mag);
+            rotate_vector3d_by_sincos((float *)result_ptr, axis, sin_val,
+                                      cos_val);
+            rotate_vector3d_by_sincos((float *)(result_ptr + 0xc), axis,
+                                      sin_val, cos_val);
+          }
+        }
+      }
+    }
+
+    {
+      int result_advance = (int)((int16_t *)0x2ee6ac)[comp] * 4;
+      int vel_advance = (int)((int16_t *)0x2ee6b8)[comp] * 4;
+      default_ptr += result_advance;
+      result_ptr += result_advance;
+      velocities += (int)((int16_t *)0x2ee6b8)[comp];
+      snap_ptr += vel_advance;
+      jerk_ptr += vel_advance;
+      accel_ptr += vel_advance;
+      vel_ptr += vel_advance;
+      scratch_ptr += (int)((int16_t *)0x2ee6b8)[comp];
+      pos_ptr += vel_advance;
+      extra_ptr += vel_advance;
+      timers++;
+    }
+  }
+
+  /* Orthogonalize forward/up vectors if needed */
+  {
+    float *up = (float *)(observer + 0xd0);
+    float *fwd = (float *)(observer + 0xdc);
+    float check;
+
+    /* Check if up is unit length */
+    check =
+      (up[0] * up[0] + up[1] * up[1] + up[2] * up[2]) - *(float *)0x2533c8;
+    if ((*(uint32_t *)&check & 0x7f800000u) == 0x7f800000u ||
+        fabsf(check) >= (float)*(double *)0x2549d8) {
+      goto orthogonalize;
+    }
+
+    /* Check if forward is unit length */
+    check = (fwd[0] * fwd[0] + fwd[1] * fwd[1] + fwd[2] * fwd[2]) -
+            *(float *)0x2533c8;
+    if ((*(uint32_t *)&check & 0x7f800000u) == 0x7f800000u ||
+        fabsf(check) >= (float)*(double *)0x2549d8) {
+      goto orthogonalize;
+    }
+
+    /* Check if up and forward are perpendicular */
+    check = up[2] * fwd[2] + up[0] * fwd[0] + fwd[1] * up[1];
+    if ((*(uint32_t *)&check & 0x7f800000u) == 0x7f800000u ||
+        fabsf(check) >= (float)*(double *)0x2549d8) {
+      goto orthogonalize;
+    }
+
+    return;
+
+  orthogonalize: {
+    float right[3];
+    float mag;
+
+    /* right = cross(fwd, up) */
+    right[0] = up[2] * fwd[1] - fwd[2] * up[1];
+    right[1] = up[0] * fwd[2] - up[2] * fwd[0];
+    right[2] = up[1] * fwd[0] - up[0] * fwd[1];
+
+    /* fwd = cross(up, right) */
+    fwd[0] = right[2] * up[1] - right[1] * up[2];
+    fwd[1] = right[0] * up[2] - right[2] * up[0];
+    fwd[2] = right[1] * up[0] - right[0] * up[1];
+
+    /* Normalize up */
+    mag = sqrtf(up[0] * up[0] + up[1] * up[1] + up[2] * up[2]);
+    if (fabsf(mag) >= (float)*(double *)0x2533d0) {
+      float inv = *(float *)0x2533c8 / mag;
+      up[0] = inv * up[0];
+      up[1] = inv * up[1];
+      up[2] = inv * up[2];
+    }
+
+    /* Normalize forward */
+    mag = sqrtf(fwd[0] * fwd[0] + fwd[1] * fwd[1] + fwd[2] * fwd[2]);
+    if (fabsf(mag) >= (float)*(double *)0x2533d0) {
+      float inv = *(float *)0x2533c8 / mag;
+      fwd[0] = inv * fwd[0];
+      fwd[1] = inv * fwd[1];
+      fwd[2] = inv * fwd[2];
+    }
+  }
+  }
+}
+
 /* Compute observer velocities from current and target state (0x8ccf0).
  * Dispatches to FUN_0008c440 with pointers into the observer struct:
  * velocities at +0xc, result at +0x260, and integration state at +0xb0. */

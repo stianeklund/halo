@@ -4203,7 +4203,7 @@
         {
           "decl": "void observer_compute_update(int16_t local_player_index @<eax>);",
           "addr": "0x8ba10",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void observer_update_result(int16_t local_player_index @<eax>);",
@@ -6287,8 +6287,9 @@
           "ported": true
         },
         {
-          "decl": "void winsock_error_report(int error_code);",
-          "addr": "0x83310"
+          "decl": "const char *winsock_error_report(int error_code);",
+          "addr": "0x83310",
+          "ported": true
         },
         {
           "decl": "void close_endpoint(int *ep);",
