@@ -218,6 +218,67 @@ bool FUN_0012d040(void *server)
   return false;
 }
 
+/* Check that every machine slot with a valid team index has at least one
+ * active client on that team (0x12d0c0). Iterates the 4 machine slots at
+ * server+0x448 (stride 0x10) and for each valid slot, searches the 16 client
+ * entries at server+0x22e (stride 0x20) for a matching team byte. Returns
+ * false if any valid slot has no matching active client. */
+bool FUN_0012d0c0(void *server)
+{
+  char *s = (char *)server;
+  short *slot = (short *)(s + 0x448);
+  int i, j;
+
+  for (i = 0; i < 4; i++) {
+    if (*slot >= 0 && *slot < 4) {
+      bool found = false;
+      char *client_ptr = s + 0x24a;
+      for (j = 0x10; j != 0; j--) {
+        if (FUN_0012ac80(client_ptr - 0x1c)) {
+          if ((signed char)*client_ptr == *slot)
+            found = true;
+        }
+        client_ptr += 0x20;
+      }
+      if (!found)
+        return false;
+    }
+    slot = (short *)((char *)slot + 0x10);
+  }
+  return true;
+}
+
+/* Check whether enough machine slots have valid team indices (0x12d150).
+ * Counts slots in [0,4) across the 4 machine entries at server+0x448
+ * (stride 0x10). If FUN_0012a170 returns true the threshold is 1,
+ * otherwise 2. Returns count >= threshold. */
+bool FUN_0012d150(void *server)
+{
+  char *s = (char *)server;
+  int threshold = FUN_0012a170() ? 1 : 2;
+  int count = 0;
+
+  if (*(int16_t *)(s + 0x448) >= 0 && *(int16_t *)(s + 0x448) < 4)
+    count++;
+  if (*(int16_t *)(s + 0x458) >= 0 && *(int16_t *)(s + 0x458) < 4)
+    count++;
+  if (*(int16_t *)(s + 0x468) >= 0 && *(int16_t *)(s + 0x468) < 4)
+    count++;
+  if (*(int16_t *)(s + 0x478) >= 0 && *(int16_t *)(s + 0x478) < 4)
+    count++;
+
+  return count >= threshold;
+}
+
+/* Return the connection handle from a machine struct (0x12d3b0).
+ * Returns the first dword at machine+0, or 0 if machine is NULL. */
+int FUN_0012d3b0(void *machine)
+{
+  if (machine != NULL)
+    return *(int *)machine;
+  return 0;
+}
+
 /* Assert server is non-null and return the connection pointer at offset +8
  * (0x12d570). */
 int FUN_0012d570(void *server)
