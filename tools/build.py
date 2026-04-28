@@ -2,8 +2,9 @@
 """Build the patched XBE via CMake.
 
 Usage:
-    python3 tools/build.py            # default: build all targets
-    python3 tools/build.py --target halo  # build specific target
+    python3 tools/build.py                    # default: build all targets
+    python3 tools/build.py --target halo      # build specific target
+    python3 tools/build.py -q --target halo   # warnings/errors only
 """
 
 import argparse
@@ -18,16 +19,23 @@ ROOT_DIR = os.path.abspath(
 BUILD_DIR = os.path.join(ROOT_DIR, "build")
 
 
-def _run_cmake_build(target: str = "") -> int:
+def _run_cmake_build(target: str = "", quiet: bool = False) -> int:
     command = ["cmake", "--build", BUILD_DIR]
     if target:
         command += ["--target", target]
+    if quiet:
+        command += ["--", "--quiet"]
 
-    result = subprocess.run(command, check=False, cwd=ROOT_DIR)
+    env = os.environ.copy()
+    if quiet:
+        env["LOG_LEVEL"] = "WARNING"
+
+    stdout = subprocess.DEVNULL if quiet else None
+    result = subprocess.run(command, stdout=stdout, check=False, cwd=ROOT_DIR, env=env)
     return result.returncode
 
 
-def build(target: str = "") -> int:
+def build(target: str = "", quiet: bool = False) -> int:
     if not os.path.isdir(BUILD_DIR):
         print(
             f"error: build directory not found: {BUILD_DIR}\n"
@@ -37,11 +45,11 @@ def build(target: str = "") -> int:
         return 1
 
     if target != "reverse_thunk_tests":
-        thunk_result = _run_cmake_build("reverse_thunk_tests")
+        thunk_result = _run_cmake_build("reverse_thunk_tests", quiet=quiet)
         if thunk_result != 0:
             return thunk_result
 
-    return _run_cmake_build(target)
+    return _run_cmake_build(target, quiet=quiet)
 
 
 def main() -> int:
@@ -51,8 +59,13 @@ def main() -> int:
         default="",
         help="CMake target to build (default: all)",
     )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Only show warnings and errors.",
+    )
     args = parser.parse_args()
-    return build(target=args.target)
+    return build(target=args.target, quiet=args.quiet)
 
 
 if __name__ == "__main__":

@@ -53,7 +53,7 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
   4. **Cross-product operand swap:** `cross(A, B)` and `cross(B, A)` look nearly identical in the decompiler — the FLD/FMUL order before FSUBP differs but the components look the same. Always verify the subtraction order against disassembly: `cross(A,B)[0] = A[1]*B[2] - A[2]*B[1]`. Getting it backwards negates the vector, which can cause invisible geometry, flipped UV mapping, or reflected projections.
 
 ### 3. Build & Verification
-- **RTK Build:** Use `rtk cmake --build build`.
+- **RTK Build:** Use `rtk python3 tools/build.py -q --target halo` (warnings/errors only).
 - **XDK Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/xdk_verify.py src/path/to/file.c` to compile with the original MSVC 7.1 compiler and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Validation:** Run the narrowest meaningful validation first.
 - **XBDM Priority:** Prefer real Xbox XBDM verification over xemu when available.

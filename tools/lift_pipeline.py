@@ -817,7 +817,7 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--skip-build", action="store_true",
                   help="Skip build stage.")
-  ap.add_argument("--build-cmd", default="python3 tools/build.py --target halo",
+  ap.add_argument("--build-cmd", default="python3 tools/build.py -q --target halo",
                   help="Build command used when build stage runs.")
 
   ap.add_argument("--abi-caller-disasm-file", default="",

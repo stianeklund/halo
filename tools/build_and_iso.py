@@ -21,7 +21,7 @@ def run(command: list[str]) -> int:
 
 
 def main() -> int:
-    build_result = build()
+    build_result = build(quiet=True)
     if build_result != 0:
         print(f"build failed with exit code {build_result}", file=sys.stderr)
         return build_result

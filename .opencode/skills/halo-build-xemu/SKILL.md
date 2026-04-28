@@ -10,7 +10,7 @@ patched ISO, or control xemu.
 
 ## Preferred tools
 
-- Build with `cmake --build build`
+- Build with `python3 tools/build.py -q --target halo`
 - Create ISO with `python3 tools/build_iso.py` (handles xemu eject, retries, and
   excludes IDA database files automatically)
 - Control xemu with `python3 tools/xemu_qmp.py`
@@ -18,7 +18,7 @@ patched ISO, or control xemu.
 
 ## Standard build and load flow
 
-1. Run `cmake --build build`.
+1. Run `python3 tools/build.py -q --target halo`.
 2. If the build fails, stop and report the concrete errors.
 3. Create the ISO:
    `python3 tools/build_iso.py`
