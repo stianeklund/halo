@@ -95,8 +95,8 @@ void FUN_000f6af0(int item_handle)
   item_tag = (char *)tag_get(0x6974656d, *(int *)item_obj);
 
   if (*(int16_t *)(item_obj + 0x1a8) == 0) {
-    FUN_0009ec30(*(int *)(item_tag + 0x2f4), item_handle, item_handle, NONE, 0,
-                 0, 0, 0);
+    FUN_0009ec30(*(int *)(item_tag + 0x2f4), item_handle, item_handle, /* dup-args-ok: same handle as source and target */
+                 NONE, 0, 0, 0, 0);
     seed = get_global_random_seed_address();
     rnd = random_real_range(seed, *(float *)(item_tag + 0x2e0),
                             *(float *)(item_tag + 0x2e4));
@@ -333,7 +333,7 @@ void item_set_position(int item_handle, float *position, int flag)
 
       /* angular_velocity += scaled_dir */
       vector3d_add((float *)(item_obj + 0x3c), scaled_dir,
-                   (float *)(item_obj + 0x3c));
+                   (float *)(item_obj + 0x3c)); /* dup-args-ok: in-place accumulation */
     }
 
     /* Update item velocity/angular state and clear garbage flag */

@@ -484,9 +484,9 @@ void FUN_0009d590(void *effect)
                              (int)flags_hi);
 
                 matrix_transform_vector((float *)(location + 8), direction_out,
-                                        direction_out);
+                                        direction_out); /* dup-args-ok: in-place transform */
                 matrix_scale_transform_vector((float *)(location + 8),
-                                              velocity_out, velocity_out);
+                                              velocity_out, velocity_out); /* dup-args-ok: in-place transform */
 
                 /* store local-space values into spawn_params; the
                  * non-attached branch overwrites with world-space later */

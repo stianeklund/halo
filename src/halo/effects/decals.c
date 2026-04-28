@@ -1146,8 +1146,8 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
           decals_cross3(bitangent, normal, tangent);
 
           if (decals_dot3(tangent, tangent) < tiny_squared || /* dup-args-ok */
-              decals_dot3(bitangent, bitangent) <
-                tiny_squared) { /* dup-args-ok */
+              decals_dot3(bitangent, bitangent) < /* dup-args-ok */
+                tiny_squared) {
             float reflected[3];
             float reflected_scale = -decals_dot3(direction3, normal);
 
