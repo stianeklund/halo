@@ -2366,11 +2366,13 @@
         },
         {
           "decl": "void FUN_000dcb30(int16_t local_player_index@<di>, uint8_t activate@<bl>);",
-          "addr": "0xdcb30"
+          "addr": "0xdcb30",
+          "ported": true
         },
         {
           "decl": "uint8_t FUN_000dcc80(int mode_tag_index@<eax>, int antr_tag_index, int16_t *output);",
-          "addr": "0xdcc80"
+          "addr": "0xdcc80",
+          "ported": true
         },
         {
           "decl": "int16_t FUN_000dcd60(int object_handle@<edi>);",
@@ -2379,7 +2381,8 @@
         },
         {
           "decl": "void FUN_000dce00(int16_t local_player_index@<ax>);",
-          "addr": "0xdce00"
+          "addr": "0xdce00",
+          "ported": true
         },
         {
           "decl": "void *FUN_000dd410(int marker_index, int node_index);",
@@ -2388,7 +2391,8 @@
         },
         {
           "decl": "void FUN_000dd4d0(int16_t local_player_index@<ax>, int16_t blend_ticks@<di>);",
-          "addr": "0xdd4d0"
+          "addr": "0xdd4d0",
+          "ported": true
         },
         {
           "decl": "void FUN_000ddbd0(int local_player_index, int state, int param_3);",

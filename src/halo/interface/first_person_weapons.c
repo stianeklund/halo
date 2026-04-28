@@ -133,6 +133,95 @@ void FUN_000dc9d0(int param_2, int object_handle)
   }
 }
 
+/* Toggle the first-person weapon activation state for a local player (0xdcb30).
+ * When activating (activate != 0): asserts weapon_index != NONE, then calls
+ * FUN_0009e0d0 to start effects. When deactivating: calls FUN_0009c810 to stop
+ * effects and FUN_000a1510 to stop sounds. Only acts if the state changes. */
+void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
+{
+  char *fp;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  fp = (char *)(*(int *)0x46bea8 + (int)local_player_index * 0x1ea0);
+
+  if (activate != *(uint8_t *)fp) {
+    if (activate != 0) {
+      assert_halt(*(int *)(fp + 8) != -1);
+      FUN_0009e0d0((int)local_player_index, *(int *)(fp + 8));
+      *(uint8_t *)fp = activate;
+      return;
+    }
+    FUN_0009c810((int)local_player_index);
+    FUN_000a1510((int)local_player_index);
+    *(uint8_t *)fp = 0;
+  }
+}
+
+/* Match animation node labels between a model tag and an animation graph tag
+ * (0xdcc80). For each node in the model's node block, searches the animation
+ * graph's node block for a matching string label via csstrcmp. Stores the
+ * matching index in the output array. Returns 1 if all nodes matched, 0 if
+ * any node had no match. */
+uint8_t FUN_000dcc80(int mode_tag_index, int antr_tag_index, int16_t *output)
+{
+  char *mode_tag;
+  char *antr_tag;
+  uint8_t success;
+  int16_t outer;
+  int outer_int;
+  void *antr_nodes; /* pointer to antr tag + 0x68 (node block) */
+
+  mode_tag = (char *)tag_get(0x6d6f6465, mode_tag_index);
+  antr_tag = (char *)tag_get(0x616e7472, antr_tag_index);
+
+  success = 1;
+  outer = 0;
+  outer_int = 0;
+
+  if (*(int *)(mode_tag + 0xb8) < 1)
+    return 1;
+
+  antr_nodes = (void *)(antr_tag + 0x68);
+
+  do {
+    char *mode_element;
+    int16_t inner;
+    int inner_int;
+
+    mode_element =
+      (char *)tag_block_get_element(mode_tag + 0xb8, outer_int, 0x9c);
+    inner = 0;
+
+    if (*(int *)antr_nodes > 0) {
+      inner_int = 0;
+      do {
+        char *antr_element;
+        antr_element =
+          (char *)tag_block_get_element(antr_nodes, inner_int, 0x40);
+        if (csstrcmp(mode_element, antr_element) == 0) {
+          if (inner != -1) {
+            output[outer_int] = inner;
+            goto next_outer;
+          }
+          break;
+        }
+        inner = inner + 1;
+        inner_int = (int)inner;
+      } while (inner_int < *(int *)antr_nodes);
+    }
+
+    success = 0;
+
+  next_outer:
+    outer = outer + 1;
+    outer_int = (int)outer;
+    if (outer_int >= *(int *)(mode_tag + 0xb8))
+      return success;
+  } while (1);
+}
+
 /* Find the local player index (0..3) whose unit currently holds the given
  * weapon object. Iterates all local players, resolves each player's
  * controlled unit, and checks if the unit's active weapon slot matches the
@@ -169,6 +258,31 @@ int16_t FUN_000dcd60(int object_handle)
   return (int16_t)-1;
 }
 
+/* Precache the weapon's predicted resources and set the reload timer (0xdce00).
+ * If the player has a valid weapon, resolves the weapon tag and calls
+ * predicted_resources_precache on the resource block at weapon_tag + 0x4e4.
+ * Always sets the timer at fp + 0x12 to 0x1e (30 ticks). */
+void FUN_000dce00(int16_t local_player_index)
+{
+  char *fp;
+  int weapon_handle;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  weapon_handle =
+    *(int *)((int)local_player_index * 0x1ea0 + 8 + *(int *)0x46bea8);
+  fp = (char *)((int)local_player_index * 0x1ea0 + *(int *)0x46bea8);
+
+  if (weapon_handle != -1) {
+    int *weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+    char *weapon_tag = (char *)tag_get(0x77656170, *weapon_obj);
+    predicted_resources_precache((int *)(weapon_tag + 0x4e4));
+  }
+
+  *(int16_t *)(fp + 0x12) = 0x1e;
+}
+
 /* Return a pointer to the node transform for a given node in the local
  * player's first-person weapon animation state (0xdd410).
  * Validates the local_player_index (0..3) and node_index against the
@@ -193,6 +307,34 @@ void *FUN_000dd410(int param_1, int param_2)
   assert_halt(node_index >= 0 && (int)node_index < *(int *)(antr_tag + 0x68));
 
   return (void *)((int)node_index * 0x34 + 0x108c + (int)fp);
+}
+
+/* Copy animation node data from the current buffer to the blend buffer and
+ * update blend timing (0xdd4d0). Copies node_count * 32 bytes from fp + 0x8c
+ * to fp + 0x88c. If blend_ticks >= (fp[0x8a] - fp[0x88]), resets the blend
+ * origin to 0 and sets the blend target to blend_ticks. */
+void FUN_000dd4d0(int16_t local_player_index, int16_t blend_ticks)
+{
+  char *fp;
+  int *weapon_obj;
+  char *weapon_tag;
+  char *antr_tag;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  fp = (char *)(*(int *)0x46bea8 + (int)local_player_index * 0x1ea0);
+  weapon_obj = (int *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+  weapon_tag = (char *)tag_get(0x77656170, *weapon_obj);
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(weapon_tag + 0x478));
+
+  csmemcpy(fp + 0x88c, fp + 0x8c, *(int *)(antr_tag + 0x68) << 5);
+
+  if ((int)blend_ticks >=
+      (int)*(int16_t *)(fp + 0x8a) - (int)*(int16_t *)(fp + 0x88)) {
+    *(int16_t *)(fp + 0x88) = 0;
+    *(int16_t *)(fp + 0x8a) = blend_ticks;
+  }
 }
 
 /* Set the first-person weapon animation state for a local player (0xddbd0).
