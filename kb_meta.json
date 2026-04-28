@@ -929,6 +929,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa18c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa1910": {
       "kind": "function",
       "status": "ported"

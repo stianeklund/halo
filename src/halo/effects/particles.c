@@ -122,7 +122,21 @@ bool FUN_000a1710(float *color)
   return true;
 }
 
-/* TODO: particle_delete also reverted — see git 08bf664 for implementation */
+/* Delete a particle (0xa18c0).
+ * Checks the particle tag for a secondary physics resource; if present,
+ * dispatches cleanup via FUN_000a1770. Then removes the particle datum. */
+void FUN_000a18c0(int datum_handle)
+{
+  char *datum;
+  char *tag;
+
+  datum = (char *)datum_get(particle_data, datum_handle);
+  tag = (char *)tag_get(0x70617274, *(int *)(datum + 0x04));
+  if (*(int *)(tag + 0x64) != -1) {
+    FUN_000a1770((int)datum, *(int *)(tag + 0x58), *(int *)(tag + 0x64), 0);
+  }
+  datum_delete(particle_data, datum_handle);
+}
 
 /* TODO: particle_step and particle_move temporarily reverted to original
  * binary due to a stale datum handle crash during gameplay. These need
