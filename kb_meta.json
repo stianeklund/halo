@@ -411,6 +411,11 @@
       "status": "ported"
     },
     "0x8b470": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8ba10": {
+      "kind": "function",
       "status": "ported"
     },
     "0x8c4b0": {

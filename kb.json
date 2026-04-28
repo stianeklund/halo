@@ -717,6 +717,14 @@
         {
           "decl": "int16_t FUN_000dc800(int event @<eax>);",
           "addr": "0xdc800"
+        },
+        {
+          "decl": "void FUN_001a8990(int object_handle, int16_t state);",
+          "addr": "0x1a8990"
+        },
+        {
+          "decl": "void FUN_001a8b20(int object_handle @<eax>, int16_t state);",
+          "addr": "0x1a8b20"
         }
       ]
     },
@@ -6612,7 +6620,8 @@
         },
         {
           "decl": "void FUN_001a8e10(int object_handle, int16_t state);",
-          "addr": "0x1a8e10"
+          "addr": "0x1a8e10",
+          "ported": true
         },
         {
           "decl": "void unit_set_seat_state(int unit_handle, float *position);",
