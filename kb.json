@@ -4360,6 +4360,10 @@
           "ported": true
         },
         {
+          "decl": "bool FUN_001403a0(int object_handle, short function_index, void *out_value);",
+          "addr": "0x1403a0"
+        },
+        {
           "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, int16_t *cluster_indices, int16_t max_count, int *out_handles);",
           "addr": "0x140420",
           "ported": true
@@ -4581,13 +4585,30 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0009f920(void *type_state@<eax>, void *sys_def@<ecx>, void *ps_datum);",
+          "addr": "0x9f920"
+        },
+        {
+          "decl": "void FUN_0009f9d0(void *particle@<eax>, void *sys_def@<ecx>);",
+          "addr": "0x9f9d0"
+        },
+        {
           "decl": "void particle_systems_dispose_from_old_map(void);",
           "addr": "0x9fcd0",
           "ported": true
         },
         {
+          "decl": "void FUN_0009fd30(void *ps@<ebx>, int type_index, float dt);",
+          "addr": "0x9fd30"
+        },
+        {
+          "decl": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
+          "addr": "0xa0080"
+        },
+        {
           "decl": "void FUN_000a0180(float dt, int particle_system_handle);",
-          "addr": "0xa0180"
+          "addr": "0xa0180",
+          "ported": true
         },
         {
           "decl": "char FUN_000a0fd0(int particle_handle);",
