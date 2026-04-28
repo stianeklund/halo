@@ -4943,6 +4943,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c0370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c0910": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c2840": {
       "kind": "function",
       "status": "ported"
