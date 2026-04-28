@@ -42,6 +42,12 @@ void FUN_00100000(void)
   main_change_map_name_pending = 0;
 }
 
+/* Return a pointer to the global multiplayer map name buffer (0x100050). */
+char *main_get_multiplayer_map_name(void)
+{
+  return (char *)0x46db55;
+}
+
 static const short _game_connection_local = 0;
 
 int __cdecl sort_desired_local_player_controllers(const void *a1,
