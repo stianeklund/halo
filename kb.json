@@ -6541,7 +6541,8 @@
         },
         {
           "decl": "void ui_widget_game_data_build_version(int a2);",
-          "addr": "0xf0ea0"
+          "addr": "0xf0ea0",
+          "ported": true
         }
       ]
     },
