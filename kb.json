@@ -845,6 +845,34 @@
         {
           "decl": "bool FUN_00128e00(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
           "addr": "0x128e00"
+        },
+        {
+          "decl": "bool FUN_0012c100(void *server);",
+          "addr": "0x12c100"
+        },
+        {
+          "decl": "bool FUN_0012a160(void);",
+          "addr": "0x12a160"
+        },
+        {
+          "decl": "void FUN_0012acb0(void *game_connection, int machine_index);",
+          "addr": "0x12acb0"
+        },
+        {
+          "decl": "bool FUN_001285c0(int connection, int new_connection);",
+          "addr": "0x1285c0"
+        },
+        {
+          "decl": "bool FUN_000a8aa0(void *game_variant_dst, void *game_variant_src);",
+          "addr": "0xa8aa0"
+        },
+        {
+          "decl": "void FUN_0012aaf0(void *name_buffer);",
+          "addr": "0x12aaf0"
+        },
+        {
+          "decl": "void FUN_0012c060(void *server);",
+          "addr": "0x12c060"
         }
       ]
     },
@@ -3945,7 +3973,8 @@
         },
         {
           "decl": "bool FUN_0012d880(int server@<eax>, int new_connection);",
-          "addr": "0x12d880"
+          "addr": "0x12d880",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012d9f0(int server@<esi>);",
@@ -3958,7 +3987,8 @@
         },
         {
           "decl": "bool FUN_0012dc20(int server@<ebx>);",
-          "addr": "0x12dc20"
+          "addr": "0x12dc20",
+          "ported": true
         },
         {
           "decl": "bool FUN_0012e580(int server@<ebx>);",

@@ -60,6 +60,78 @@ int FUN_0012d570(void *server)
   return (int)((char *)server + 8);
 }
 
+/* Add a new client connection to the server (0x12d880).
+ * Finds the first empty machine slot (short == -1 at +0x448 stride 0x10),
+ * validates the remote address, stores the connection, and signals accept. */
+bool FUN_0012d880(int server, int new_connection)
+{
+  char *s = (char *)server;
+  bool result = false;
+  int i;
+  short *slot;
+  char addr_buf[24];
+  const char *addr_str;
+
+  if (!server || !new_connection) {
+    display_assert("server && new_connection",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x7d4, 1);
+    system_exit(-1);
+  }
+
+  if (!FUN_0012c100((void *)server)) {
+    network_game_log(
+      "network_game_server_add_new_client() failed because the game is closed");
+    return result;
+  }
+
+  i = 0;
+  slot = (short *)(s + 0x448);
+  do {
+    if (*slot == -1) {
+      csmemset(addr_buf, 0, 24);
+      FUN_001283c0(new_connection, addr_buf, 0);
+      if (*(int *)addr_buf == 0) {
+        network_game_log(
+          "network_connection_get_address() failed to get a valid address "
+          "in network_game_server_add_new_client()");
+        result = false;
+      } else {
+        if (!FUN_0012a160() && *(int *)addr_buf != 0x7f000001) {
+          addr_str = FUN_00081b90(addr_buf);
+          network_game_log(
+            "remote system tried to join our server but we are not accepting "
+            "remote connections: address= '%s'",
+            addr_str);
+          result = false;
+        } else {
+          *(int *)(s + i * 0x10 + 0x43c) = new_connection;
+          FUN_0012acb0(s + 8, i);
+          *(short *)(s + i * 0x10 + 0x448) = (short)i;
+          *(short *)(s + i * 0x10 + 0x44a) = 1;
+          result = FUN_001285c0(*(int *)s, new_connection);
+          if (result == 1) {
+            addr_str = FUN_00081b90(addr_buf);
+            network_game_log("new remote connection accepted from %s",
+                             addr_str);
+          }
+        }
+      }
+      break;
+    }
+    i++;
+    slot += 8;
+    result = false;
+  } while (i < 4);
+
+  if (i == 4) {
+    network_game_log("failed to find an available machine slot in "
+                     "network_game_server_add_new_client()");
+  }
+
+  return result;
+}
+
 /* Postgame state handler (0x12db60).
  * Every 5 seconds sends a heartbeat message (type 0xb) to all clients. */
 bool FUN_0012db60(int server)
@@ -73,6 +145,44 @@ bool FUN_0012db60(int server)
     FUN_0012f430((void *)server, FUN_0012b700(0xb, &data, 2));
     *(unsigned int *)((char *)server + 0x480) = now;
   }
+  return true;
+}
+
+/* Set up the network game variant and server parameters (0x12dc20).
+ * Loads the game variant, copies the game name (defaulting to L"<unknown>"),
+ * and configures machine count/team settings. */
+bool FUN_0012dc20(int server)
+{
+  char *s = (char *)server;
+  char name_buf[0x40];
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x961, 1);
+    system_exit(-1);
+  }
+
+  network_game_log("setting up a net game");
+
+  if (!FUN_000a8aa0(s + 0xac, s + 0x2c)) {
+    error(2, "network game setup failed; probably due to a missing playlist");
+    return false;
+  }
+
+  csmemcpy(name_buf, (void *)0x281c38, 20);
+  csmemset(name_buf + 20, 0, 44);
+  FUN_0012aaf0(name_buf);
+  ustrncpy((wchar_t *)(s + 8), (wchar_t *)name_buf, 0xf);
+
+  *(short *)(s + 0x26) = 0;
+  *(int *)(s + 0x28) = 0;
+  *(char *)(s + 0x115) = 2;
+  *(char *)(s + 0x116) = 0x10;
+  *(char *)(s + 0x117) = (*(char *)(s + 0xc8) != 0) + 1;
+
+  FUN_0012c060((void *)server);
+
   return true;
 }
 
