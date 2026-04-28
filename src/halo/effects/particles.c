@@ -122,6 +122,71 @@ bool FUN_000a1710(float *color)
   return true;
 }
 
+/* Particle physics cleanup dispatch (0xa1770).
+ * Called when deleting a particle that has a secondary physics tag.
+ * Dispatches to effect creation ('effe') or sound playback ('snd!'). */
+void FUN_000a1770(int particle, int tag_group, int physics_tag, int param)
+{
+  float velocity[3];
+  float *default_fwd;
+
+  velocity[0] = *(float *)(particle + 0x48) * *(float *)0x2546a4;
+  velocity[1] = *(float *)(particle + 0x4c) * *(float *)0x2546a4;
+  velocity[2] = *(float *)(particle + 0x50) * *(float *)0x2546a4;
+
+  if (tag_group == 0x65666665) {
+    float marker_points[6];
+    float marker_forwards[6];
+
+    marker_points[0] = *(float *)(particle + 0x30);
+    marker_points[1] = *(float *)(particle + 0x34);
+    marker_points[2] = *(float *)(particle + 0x38);
+    marker_points[3] = *(float *)(particle + 0x30);
+    marker_points[4] = *(float *)(particle + 0x34);
+    marker_points[5] = *(float *)(particle + 0x38);
+
+    marker_forwards[0] = *(float *)(particle + 0x3c);
+    marker_forwards[1] = *(float *)(particle + 0x40);
+    marker_forwards[2] = *(float *)(particle + 0x44);
+    normalize3d(marker_forwards);
+
+    default_fwd = *(float **)0x31fc50;
+    marker_forwards[3] = default_fwd[0];
+    marker_forwards[4] = default_fwd[1];
+    marker_forwards[5] = default_fwd[2];
+
+    FUN_0009f0e0(physics_tag, -1, velocity, 2, (void *)0x2ef7d8, marker_points,
+                 marker_forwards, *(float *)&param, 0.0f, 0.0f, 0.0f, 0.0f);
+    return;
+  }
+
+  if (tag_group == 0x736e6421) {
+    float location[11];
+
+    location[0] = *(float *)(particle + 0x30);
+    location[1] = *(float *)(particle + 0x34);
+    location[2] = *(float *)(particle + 0x38);
+
+    default_fwd = *(float **)0x31fc3c;
+    location[3] = default_fwd[0];
+    location[4] = default_fwd[1];
+    location[5] = default_fwd[2];
+
+    location[6] = velocity[0];
+    location[7] = velocity[1];
+    location[8] = velocity[2];
+
+    *(int *)&location[9] = *(int *)(particle + 0x28);
+    *(int *)&location[10] = *(int *)(particle + 0x2c);
+
+    FUN_001c73d0(physics_tag, location, *(float *)&param);
+    return;
+  }
+
+  display_assert(0, "c:\\halo\\SOURCE\\effects\\particles.c", 799, 1);
+  system_exit(-1);
+}
+
 /* Delete a particle (0xa18c0).
  * Checks the particle tag for a secondary physics resource; if present,
  * dispatches cleanup via FUN_000a1770. Then removes the particle datum. */

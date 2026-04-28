@@ -2109,6 +2109,10 @@
           "ported": true
         },
         {
+          "decl": "int FUN_0009f0e0(int effect_tag_index, int object_index, float *translational_velocity, short marker_count, void *effect_definition, float *marker_points, float *marker_forwards, float scale_a, float scale_b, float unknown1, float unknown2, float unknown3);",
+          "addr": "0x9f0e0"
+        },
+        {
           "decl": "bool effects_update(float);",
           "addr": "0x9f320",
           "ported": true
@@ -4503,7 +4507,8 @@
         },
         {
           "decl": "void FUN_000a1770(int particle@<eax>, int tag_group@<ecx>, int physics_tag@<esi>, int param);",
-          "addr": "0xa1770"
+          "addr": "0xa1770",
+          "ported": true
         },
         {
           "decl": "void FUN_000a18c0(int datum_handle@<ebx>);",
