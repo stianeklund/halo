@@ -86,7 +86,7 @@ void transport_initialize(void)
   if (wsa_result != 0) {
     /* Cleanup: WSACleanup then report error. */
     ((void (*)(void))0x2232ed)();
-    ((void (*)(int))0x83310)((int)wsa_result);
+    winsock_error_report((int)wsa_result);
     return;
   }
 
@@ -195,6 +195,298 @@ int send_endpoint(int *ep, const char *buf, int len)
     *(int16_t *)((char *)ep + 6) = -2;
     return -2;
   }
+}
+
+/* Map a WinSock error code to its symbolic name string and report it.
+ *
+ * Translates the given WinSock/WSA error code into a human-readable
+ * constant name (e.g. "WSAECONNRESET"). Stores the result string in a
+ * global at 0x335098. If the error code differs from the last reported
+ * one (tracked at 0x3352a0), logs it via error(3, ...). Returns the
+ * error name string.
+ *
+ * Confirmed: error (0x8f390, cdecl, variadic);
+ * format string "winsock error #%d: %s" at 0x2666a4;
+ * global string pointer at 0x335098; last error code at 0x3352a0.
+ */
+const char *winsock_error_report(int error_code)
+{
+  const char *name;
+
+  switch (error_code) {
+  case -1:
+    name = "WSA_WAIT_FAILED";
+    break;
+  case 0:
+    name = "WSA_INVALID_EVENT";
+    break;
+  case 6:
+    name = "WSA_INVALID_HANDLE";
+    break;
+  case 8:
+    name = "WSA_NOT_ENOUGH_MEMORY";
+    break;
+  case 0x40:
+    name = "WSA_MAXIMUM_WAIT_EVENTS";
+    break;
+  case 0x57:
+    name = "WSA_INVALID_PARAMETER";
+    break;
+  case 0xC0:
+    name = "WSA_WAIT_IO_COMPLETION";
+    break;
+  case 0x102:
+    name = "WSA_WAIT_TIMEOUT";
+    break;
+  case 0x3E3:
+    name = "WSA_OPERATION_ABORTED";
+    break;
+  case 0x3E4:
+    name = "WSA_IO_INCOMPLETE";
+    break;
+  case 0x3E5:
+    name = "WSA_IO_PENDING";
+    break;
+
+  case 0x2714:
+    name = "WSAEINTR";
+    break;
+  case 0x2719:
+    name = "WSAEBADF";
+    break;
+  case 0x271D:
+    name = "WSAEACCES";
+    break;
+  case 0x271E:
+    name = "WSAEFAULT";
+    break;
+  case 0x2726:
+    name = "WSAEINVAL";
+    break;
+  case 0x2728:
+    name = "WSAEMFILE";
+    break;
+  case 0x2733:
+    name = "WSAEWOULDBLOCK";
+    break;
+  case 0x2734:
+    name = "WSAEINPROGRESS";
+    break;
+  case 0x2735:
+    name = "WSAEALREADY";
+    break;
+  case 0x2736:
+    name = "WSAENOTSOCK";
+    break;
+
+  case 0x2737:
+    name = "WSAEDESTADDRREQ";
+    break;
+
+  case 0x2738:
+    name = "WSAEMSGSIZE";
+    break;
+  case 0x2739:
+    name = "WSAEPROTOTYPE";
+    break;
+  case 0x273A:
+    name = "WSAENOPROTOOPT";
+    break;
+  case 0x273B:
+    name = "WSAEPROTONOSUPPORT";
+    break;
+  case 0x273C:
+    name = "WSAESOCKTNOSUPPORT";
+    break;
+  case 0x273D:
+    name = "WSAEOPNOTSUPP";
+    break;
+  case 0x273E:
+    name = "WSAEPFNOSUPPORT";
+    break;
+  case 0x273F:
+    name = "WSAEAFNOSUPPORT";
+    break;
+  case 0x2740:
+    name = "WSAEADDRINUSE";
+    break;
+  case 0x2741:
+    name = "WSAEADDRNOTAVAIL";
+    break;
+  case 0x2742:
+    name = "WSAENETDOWN";
+    break;
+  case 0x2743:
+    name = "WSAENETUNREACH";
+    break;
+  case 0x2744:
+    name = "WSAENETRESET";
+    break;
+  case 0x2745:
+    name = "WSAECONNABORTED";
+    break;
+  case 0x2746:
+    name = "WSAECONNRESET";
+    break;
+  case 0x2747:
+    name = "WSAENOBUFS";
+    break;
+  case 0x2748:
+    name = "WSAEISCONN";
+    break;
+  case 0x2749:
+    name = "WSAENOTCONN";
+    break;
+  case 0x274A:
+    name = "WSAESHUTDOWN";
+    break;
+  case 0x274B:
+    name = "WSAETOOMANYREFS";
+    break;
+
+  case 0x274C:
+    name = "WSAETIMEDOUT";
+    break;
+
+  case 0x274D:
+    name = "WSAECONNREFUSED";
+    break;
+  case 0x274E:
+    name = "WSAELOOP";
+    break;
+  case 0x274F:
+    name = "WSAENAMETOOLONG";
+    break;
+  case 0x2750:
+    name = "WSAEHOSTDOWN";
+    break;
+  case 0x2751:
+    name = "WSAEHOSTUNREACH";
+    break;
+  case 0x2752:
+    name = "WSAENOTEMPTY";
+    break;
+  case 0x2753:
+    name = "WSAEPROCLIM";
+    break;
+  case 0x2754:
+    name = "WSAEUSERS";
+    break;
+  case 0x2755:
+    name = "WSAEDQUOT";
+    break;
+  case 0x2756:
+    name = "WSAESTALE";
+    break;
+  case 0x2757:
+    name = "WSAEREMOTE";
+    break;
+
+  case 0x276B:
+    name = "WSASYSNOTREADY";
+    break;
+  case 0x276C:
+    name = "WSAVERNOTSUPPORTED";
+    break;
+  case 0x276D:
+    name = "WSANOTINITIALISED";
+    break;
+
+  case 0x2775:
+    name = "WSAEDISCON";
+    break;
+  case 0x2776:
+    name = "WSAENOMORE";
+    break;
+  case 0x2777:
+    name = "WSAECANCELLED";
+    break;
+  case 0x2778:
+    name = "WSAEINVALIDPROCTABLE";
+    break;
+  case 0x2779:
+    name = "WSAEINVALIDPROVIDER";
+    break;
+  case 0x277A:
+    name = "WSAEPROVIDERFAILEDINIT";
+    break;
+  case 0x277B:
+    name = "WSASYSCALLFAILURE";
+    break;
+  case 0x277C:
+    name = "WSASERVICE_NOT_FOUND";
+    break;
+  case 0x277D:
+    name = "WSATYPE_NOT_FOUND";
+    break;
+  case 0x277E:
+    name = "WSA_E_NO_MORE";
+    break;
+  case 0x277F:
+    name = "WSA_E_CANCELLED";
+    break;
+  case 0x2780:
+    name = "WSAEREFUSED";
+    break;
+
+  case 0x2AF9:
+    name = "WSAHOST_NOT_FOUND";
+    break;
+  case 0x2AFA:
+    name = "WSATRY_AGAIN";
+    break;
+  case 0x2AFB:
+    name = "WSANO_RECOVERY";
+    break;
+  case 0x2AFC:
+    name = "WSANO_DATA";
+    break;
+
+  case 0x2AFD:
+    name = "WSA_QOS_RECEIVERS";
+    break;
+  case 0x2AFE:
+    name = "WSA_QOS_SENDERS";
+    break;
+  case 0x2AFF:
+    name = "WSA_QOS_NO_SENDERS";
+    break;
+  case 0x2B00:
+    name = "WSA_QOS_NO_RECEIVERS";
+    break;
+  case 0x2B01:
+    name = "WSA_QOS_REQUEST_CONFIRMED";
+    break;
+  case 0x2B02:
+    name = "WSA_QOS_ADMISSION_FAILURE";
+    break;
+  case 0x2B03:
+    name = "WSA_QOS_POLICY_FAILURE";
+    break;
+  case 0x2B04:
+    name = "WSA_QOS_BAD_STYLE";
+    break;
+  case 0x2B05:
+    name = "WSA_QOS_BAD_OBJECT";
+    break;
+  case 0x2B06:
+    name = "WSA_QOS_TRAFFIC_CTRL_ERROR";
+    break;
+  case 0x2B07:
+    name = "WSA_QOS_GENERIC_ERROR";
+    break;
+
+  default:
+    name = "<unknown error>";
+    break;
+  }
+
+  *(const char **)0x335098 = name;
+  if (error_code != *(int *)0x3352a0) {
+    error(3, "winsock error #%d: %s", error_code, name);
+    *(int *)0x3352a0 = error_code;
+  }
+  return name;
 }
 
 /* Close a transport endpoint's socket and clear its connected flag.
