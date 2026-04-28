@@ -158,7 +158,13 @@
     "0xdcb30": "void FUN_000dcb30(int16_t local_player_index@<di>, uint8_t activate@<bl>);",
     "0xdcc80": "uint8_t FUN_000dcc80(int mode_tag_index@<eax>, int antr_tag_index, int16_t *output);",
     "0xdce00": "void FUN_000dce00(int16_t local_player_index@<ax>);",
-    "0xdd4d0": "void FUN_000dd4d0(int16_t local_player_index@<ax>, int16_t blend_ticks@<di>);"
+    "0xdd4d0": "void FUN_000dd4d0(int16_t local_player_index@<ax>, int16_t blend_ticks@<di>);",
+    "0x12d880": "bool FUN_0012d880(int server@<eax>, int new_connection);",
+    "0x12d9f0": "bool FUN_0012d9f0(int server@<esi>);",
+    "0x12db60": "bool FUN_0012db60(int server@<esi>);",
+    "0x12dc20": "bool FUN_0012dc20(int server@<ebx>);",
+    "0x12e580": "bool FUN_0012e580(int server@<ebx>);",
+    "0x12e750": "bool FUN_0012e750(int server@<esi>);"
   },
   "version": 1
 }

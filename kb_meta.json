@@ -3507,7 +3507,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12c370": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12d570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12ea00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12eb20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12eca0": {
       "kind": "function",
       "status": "ported"
     },

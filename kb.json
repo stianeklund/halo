@@ -477,7 +477,7 @@
           "addr": "0x12ab80"
         },
         {
-          "decl": "void network_game_log(const char *msg);",
+          "decl": "void network_game_log(const char *fmt, ...);",
           "addr": "0x12b650"
         },
         {
@@ -785,6 +785,50 @@
         {
           "decl": "void FUN_001cd450(int sound_index);",
           "addr": "0x1cd450"
+        },
+        {
+          "decl": "const char *FUN_00081b90(void *addr);",
+          "addr": "0x81b90"
+        },
+        {
+          "decl": "bool FUN_00082300(void);",
+          "addr": "0x82300"
+        },
+        {
+          "decl": "void FUN_00082b30(void);",
+          "addr": "0x82b30"
+        },
+        {
+          "decl": "bool FUN_0012a170(void);",
+          "addr": "0x12a170"
+        },
+        {
+          "decl": "bool FUN_0012ac80(void *client);",
+          "addr": "0x12ac80"
+        },
+        {
+          "decl": "void FUN_0012abc0(void *settings, int flag);",
+          "addr": "0x12abc0"
+        },
+        {
+          "decl": "void FUN_001283c0(int connection, void *buf, int flag);",
+          "addr": "0x1283c0"
+        },
+        {
+          "decl": "bool FUN_00128660(int connection);",
+          "addr": "0x128660"
+        },
+        {
+          "decl": "void FUN_00128d30(int connection);",
+          "addr": "0x128d30"
+        },
+        {
+          "decl": "bool FUN_00129cf0(int connection, int flag, int *output);",
+          "addr": "0x129cf0"
+        },
+        {
+          "decl": "void FUN_00129130(int conn1, int conn2);",
+          "addr": "0x129130"
         }
       ]
     },
@@ -3840,6 +3884,10 @@
       "source": "networking/network_server_manager.c",
       "functions": [
         {
+          "decl": "bool FUN_0012c160(void *server);",
+          "addr": "0x12c160"
+        },
+        {
           "decl": "void network_server_manager_game_over(void *server);",
           "addr": "0x12c370"
         },
@@ -3848,6 +3896,30 @@
           "addr": "0x12d570",
           "comment": "Assert server non-null and return pointer offset +8.",
           "ported": true
+        },
+        {
+          "decl": "bool FUN_0012d880(int server@<eax>, int new_connection);",
+          "addr": "0x12d880"
+        },
+        {
+          "decl": "bool FUN_0012d9f0(int server@<esi>);",
+          "addr": "0x12d9f0"
+        },
+        {
+          "decl": "bool FUN_0012db60(int server@<esi>);",
+          "addr": "0x12db60"
+        },
+        {
+          "decl": "bool FUN_0012dc20(int server@<ebx>);",
+          "addr": "0x12dc20"
+        },
+        {
+          "decl": "bool FUN_0012e580(int server@<ebx>);",
+          "addr": "0x12e580"
+        },
+        {
+          "decl": "bool FUN_0012e750(int server@<esi>);",
+          "addr": "0x12e750"
         },
         {
           "decl": "void network_game_client_dispose(void *server);",
@@ -3860,6 +3932,10 @@
         {
           "decl": "bool network_server_manager_pregame_start(void *server);",
           "addr": "0x12eca0"
+        },
+        {
+          "decl": "bool FUN_0012f430(void *server, void *message);",
+          "addr": "0x12f430"
         }
       ]
     },
