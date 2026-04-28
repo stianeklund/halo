@@ -61,7 +61,9 @@ int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x140f10  object_get_markers_by_string_id
  *   0x141020  object_compute_child_marker_position
  *   0x1412f0  object_get_world_position
+ *   0x141360  FUN_00141360 (object orientation getter)
  *   0x141480  object_get_world_matrix
+ *   0x1415f0  object_find_in_radius
  *   0x141b70  object_compute_node_matrices
  *   0x143ae0  FUN_00143ae0 (object reposition)
  *   0x143be0  FUN_00143be0 (set object position and reconnect to map)
@@ -234,7 +236,7 @@ void FUN_00136750(void *damage_params, int tag_index)
 
 /* Apply area-of-effect damage to nearby objects (0x138e30).
  * Resolves the 'jpt!' damage effect tag, searches for objects within the
- * effect radius via FUN_001415f0, applies damage to each via FUN_00138900,
+ * effect radius via object_find_in_radius, applies damage to each via FUN_00138900,
  * then processes breakable surfaces via FUN_00146be0. */
 void FUN_00138e30(void *damage_params, int target_index)
 {
@@ -245,9 +247,9 @@ void FUN_00138e30(void *damage_params, int target_index)
 
   (void)target_index;
   tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
-  count = FUN_001415f0(0, 0, (char *)damage_params + 0x14,
-                       (char *)damage_params + 0x1c, *(float *)(tag + 4),
-                       results, 0x40);
+  count = object_find_in_radius(0, 0, (char *)damage_params + 0x14,
+                                (float *)((char *)damage_params + 0x1c),
+                                *(float *)(tag + 4), results, 0x40);
   if (count > 0) {
     for (i = 0; i < (uint16_t)count; i++)
       FUN_00138900(damage_params, results[i], 0);
@@ -2542,6 +2544,77 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
 }
 
 /*
+ * FUN_00141360 — get an object's forward and/or up orientation vectors in
+ * world space.
+ *
+ * If the object has no parent (parent_object_index == -1), copies the local
+ * forward (obj+0x24) and up (obj+0x30) vectors directly.
+ * If parented, transforms both vectors through the parent's node matrix via
+ * matrix_transform_vector (0x109680).
+ *
+ * When both out_forward and out_up are provided, validates that they form
+ * perpendicular unit axes via valid_real_normal3d_perpendicular (0x84a70).
+ *
+ * Confirmed: 3 cdecl args at [EBP+0x8..0x10].
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x140eb0 (object_get_node_matrix) with (parent_handle,
+ *            sign-extended byte at obj+0xD0).
+ * Confirmed: CALL 0x109680 (matrix_transform_vector) with (node_matrix,
+ *            src_vector, out_vector) — 3 cdecl args each call.
+ * Confirmed: CALL 0x84a70 (valid_real_normal3d_perpendicular) with
+ *            (out_forward, out_up).
+ * Confirmed: Assertion at line 0x5b6, strings "forward" (0x28cb2c) and
+ *            "up" (0x28cb28), format at 0x267490.
+ */
+/* 0x141360 */
+void FUN_00141360(int object_handle, float *out_forward, float *out_up)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  if (obj->parent_object_index.value == NONE) {
+    /* No parent — copy local forward and up vectors directly */
+    if (out_forward != NULL) {
+      out_forward[0] = ((float *)&obj->unk_36)[0];
+      out_forward[1] = ((float *)&obj->unk_36)[1];
+      out_forward[2] = ((float *)&obj->unk_36)[2];
+    }
+    if (out_up != NULL) {
+      out_up[0] = ((float *)&obj->unk_48)[0];
+      out_up[1] = ((float *)&obj->unk_48)[1];
+      out_up[2] = ((float *)&obj->unk_48)[2];
+    }
+  } else {
+    /* Parented — transform through parent's node matrix */
+    void *node_mat =
+      object_get_node_matrix(obj->parent_object_index.value,
+                             (int16_t) * (int8_t *)((char *)obj + 0xd0));
+
+    if (out_forward != NULL) {
+      matrix_transform_vector((float *)node_mat, (float *)&obj->unk_36,
+                              out_forward);
+    }
+    if (out_up != NULL) {
+      matrix_transform_vector((float *)node_mat, (float *)&obj->unk_48, out_up);
+    }
+  }
+
+  /* Validate perpendicularity if both vectors were requested */
+  if (out_forward != NULL && out_up != NULL) {
+    if (!valid_real_normal3d_perpendicular(out_forward, out_up)) {
+      char *msg = csprintf(
+        (char *)0x5ab100,
+        "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
+        "forward", "up", (double)out_forward[0], (double)out_forward[1],
+        (double)out_forward[2], (double)out_up[0], (double)out_up[1],
+        (double)out_up[2]);
+      display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x5b6, 1);
+      system_exit(-1);
+    }
+  }
+}
+
+/*
  * object_get_world_matrix — build a 4x3 world-space matrix for an object.
  *
  * Constructs the matrix from the object's position (obj+0xc), forward
@@ -2608,38 +2681,50 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
  * Confirmed: Distance check uses obj+0x50/0x54/0x58 vs position, and
  *            obj+0x5C as effective object radius.
  * Confirmed: Returns short (count of found objects).
+ * Confirmed: Only type_mask gets the 0 → -1 treatment; flags is NOT checked.
+ * Confirmed: Assert strings: "location" (0x29c114), "center" (0x253f0c),
+ *            "object_indices" (0x29c104) at lines 0x6f3, 0x6f4, 0x6f5.
+ * Confirmed: Inner assert uses csprintf with full format at 0x29b940:
+ *            "got an object type we didn't expect (expected one of 0x%08x
+ *             but got #%d)." with args (-1, type).
+ * Confirmed: Loop iterator i is int16_t (BX register, CMP BX).
  */
+/* 0x1415f0 */
 int16_t object_find_in_radius(int flags, unsigned int type_mask,
                               void *cluster_info, float *position, float radius,
                               int *out_handles, int16_t max_count)
 {
-  int16_t cluster_count;
   int16_t found_count = 0;
   int16_t iter_count;
-  int i;
+  int16_t i;
 
   static int16_t cluster_indices[512];
   static int object_indices[2048];
 
-  if (cluster_info == NULL)
-    assert_halt(cluster_info != NULL);
-  if (position == NULL)
-    assert_halt(position != NULL);
-  if (out_handles == NULL)
-    assert_halt(out_handles != NULL);
+  if (cluster_info == NULL) {
+    display_assert("location", "c:\\halo\\SOURCE\\objects\\objects.c", 0x6f3,
+                   1);
+    system_exit(-1);
+  }
+  if (position == NULL) {
+    display_assert("center", "c:\\halo\\SOURCE\\objects\\objects.c", 0x6f4, 1);
+    system_exit(-1);
+  }
+  if (out_handles == NULL) {
+    display_assert("object_indices", "c:\\halo\\SOURCE\\objects\\objects.c",
+                   0x6f5, 1);
+    system_exit(-1);
+  }
 
   if (type_mask == 0)
     type_mask = 0xFFFFFFFF;
 
-  if (flags == 0)
-    flags = 0xFFFFFFFF;
-
-  cluster_count =
+  iter_count =
     structure_find_in_cluster(*(uint16_t *)((char *)cluster_info + 4), position,
                               radius, 512, cluster_indices);
 
-  iter_count = object_find_in_cluster(flags, cluster_count, cluster_indices,
-                                      2048, object_indices);
+  iter_count = object_find_in_cluster(flags, iter_count, cluster_indices, 2048,
+                                      object_indices);
 
   for (i = 0; i < iter_count && found_count < max_count; i++) {
     int handle = object_indices[i];
@@ -2647,11 +2732,16 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
       (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
     object_data_t *obj = header->object;
 
-    if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
-      assert_halt_msg(0, "got an object type we didn\\'t expect");
+    if ((1 << ((uint8_t)obj->type & 0x1f)) == 0) {
+      char *msg = csprintf((char *)0x5ab100,
+                           "got an object type we didn't expect "
+                           "(expected one of 0x%08x but got #%d).",
+                           (int)-1, (int)obj->type);
+      display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      system_exit(-1);
     }
 
-    if ((type_mask & (1 << (obj->type & 0x1f))) != 0) {
+    if ((type_mask & (1 << ((uint8_t)obj->type & 0x1f))) != 0) {
       float dx = obj->unk_80 - position[0];
       float dy = obj->unk_84 - position[1];
       float dz = obj->unk_88 - position[2];
