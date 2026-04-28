@@ -2233,7 +2233,8 @@
         },
         {
           "decl": "int FUN_0009cc20(int marker_data@<eax>, int effect_datum, int event_index, int is_particle);",
-          "addr": "0x9cc20"
+          "addr": "0x9cc20",
+          "ported": true
         },
         {
           "decl": "int FUN_0009f0e0(int effect_tag_index, int object_index, float *translational_velocity, short marker_count, void *effect_definition, float *marker_points, float *marker_forwards, float scale_a, float scale_b, float unknown1, float unknown2, float unknown3);",

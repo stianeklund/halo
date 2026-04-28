@@ -113,6 +113,38 @@ void FUN_0009cb90(int effect_handle, int event_index)
     random_real_range(seed, *(float *)(event + 8), *(float *)(event + 0xc));
 }
 
+/* Allocate a new effect-location datum, copy marker data into it, and prepend
+ * it to the event's location chain (0x9cc20). The node index at the start of
+ * marker_data gets bit 15 set when is_particle is true, cleared when false;
+ * 0xFFFF is left unchanged. Returns the new datum index or -1 on failure. */
+int FUN_0009cc20(int marker_data, int effect_datum, int event_index,
+                 int is_particle)
+{
+  int new_index = data_new_at_index(effect_location_data);
+  if (new_index == -1)
+    return new_index;
+
+  char *loc = (char *)datum_get(effect_location_data, new_index);
+  uint16_t node_index = *(uint16_t *)marker_data;
+
+  if (node_index == 0xFFFF) {
+    node_index = 0xFFFF;
+  } else if (is_particle) {
+    node_index |= 0x8000;
+  } else {
+    node_index &= 0x7FFF;
+  }
+
+  *(uint16_t *)(loc + 2) = node_index;
+  memcpy(loc + 8, (char *)marker_data + 4, 52);
+
+  int *head = (int *)(effect_datum + 0x5c + (int16_t)event_index * 4);
+  *(int *)(loc + 4) = *head;
+  *head = new_index;
+
+  return new_index;
+}
+
 /* Walk to the next effect location datum, filtering by node attachment
  * type (0x9cca0). For part types 1 or (3 with single-player + attached
  * object), skips locations whose node_index is -1 or non-negative — i.e.
