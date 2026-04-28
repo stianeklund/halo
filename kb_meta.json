@@ -4531,6 +4531,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a9900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a9930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a9960": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a9a30": {
       "kind": "function",
       "status": "ported",
@@ -4654,6 +4666,10 @@
       }
     },
     "0x1adeb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1adf10": {
       "kind": "function",
       "status": "ported"
     },
