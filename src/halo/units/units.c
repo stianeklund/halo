@@ -243,6 +243,51 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
   return not_found;
 }
 
+/* FUN_001a8e10 (0x1a8e10)
+ *
+ * Dispatches a unit animation state transition based on an incoming state code.
+ * Maps input state values 1-8 to either FUN_001a8b20 (which sets a unit
+ * animation transition state with a remapped index) or FUN_001a8990 (which
+ * initiates a seat-based animation sequence). The state remapping is:
+ *   state 1 -> FUN_001a8b20 with index 1
+ *   state 2 -> FUN_001a8b20 with index 2
+ *   state 3 -> FUN_001a8b20 with index 5
+ *   state 4 -> FUN_001a8b20 with index 6
+ *   state 5 -> FUN_001a8990 with index 5
+ *   state 6 -> FUN_001a8990 with index 6
+ *   state 7 -> FUN_001a8b20 with index 3
+ *   state 8 -> FUN_001a8b20 with index 4
+ */
+void FUN_001a8e10(int object_handle, int16_t state)
+{
+  switch (state) {
+  case 1:
+    FUN_001a8b20(object_handle, 1);
+    return;
+  case 2:
+    FUN_001a8b20(object_handle, 2);
+    return;
+  case 3:
+    FUN_001a8b20(object_handle, 5);
+    return;
+  case 4:
+    FUN_001a8b20(object_handle, 6);
+    return;
+  case 5:
+    FUN_001a8990(object_handle, 5);
+    return;
+  case 6:
+    FUN_001a8990(object_handle, 6);
+    return;
+  case 7:
+    FUN_001a8b20(object_handle, 3);
+    return;
+  case 8:
+    FUN_001a8b20(object_handle, 4);
+    return;
+  }
+}
+
 /* unit_set_seat_state (0x1a9240)
  *
  * Computes a 3D position representing the unit's current seat state and writes

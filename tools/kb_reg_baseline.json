@@ -30,6 +30,7 @@
     "0x185290": "void render_window(int16_t *win@<esi>, void *offset_or_null);",
     "0x1aa890": "void unit_update_seat_occupancy(int vehicle_handle@<eax>);",
     "0x1aad60": "int16_t unit_find_empty_weapon_slot(int unit_handle@<eax>);",
+    "0x1a8b20": "void FUN_001a8b20(int object_handle @<eax>, int16_t state);",
     "0x1ab7c0": "void unit_set_animation(int unit_handle@<eax>, int anim_graph_tag_index@<edi>, int16_t animation_index@<bx>);",
     "0x1ab990": "void unit_detach_weapon(int unit_handle@<edi>, int weapon_handle@<esi>);",
     "0x1acd70": "bool unit_try_animation_state(int unit_handle@<eax>, int seat_label, int weapon_label, int reset_flag);",

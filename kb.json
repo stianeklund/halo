@@ -725,6 +725,30 @@
         {
           "decl": "void FUN_001a8b20(int object_handle @<eax>, int16_t state);",
           "addr": "0x1a8b20"
+        },
+        {
+          "decl": "void FUN_000a0180(float dt, int particle_system_handle);",
+          "addr": "0xa0180"
+        },
+        {
+          "decl": "uint16_t FUN_0008e7c0(void);",
+          "addr": "0x8e7c0"
+        },
+        {
+          "decl": "float FUN_000849f0(float min, float max);",
+          "addr": "0x849f0"
+        },
+        {
+          "decl": "float FUN_001548a0(int tag_data, float scale);",
+          "addr": "0x1548a0"
+        },
+        {
+          "decl": "int16_t FUN_00097c80(int min, uint16_t max);",
+          "addr": "0x97c80"
+        },
+        {
+          "decl": "bool FUN_0018e910(void *location);",
+          "addr": "0x18e910"
         }
       ]
     },
@@ -4254,7 +4278,8 @@
         },
         {
           "decl": "char FUN_000a0fd0(int particle_handle);",
-          "addr": "0xa0fd0"
+          "addr": "0xa0fd0",
+          "ported": true
         },
         {
           "decl": "void particle_systems_update(float);",
@@ -4300,12 +4325,25 @@
         },
         {
           "decl": "void FUN_000a1fd0(void *spawn_params);",
-          "addr": "0xa1fd0"
+          "addr": "0xa1fd0",
+          "ported": true
         },
         {
           "decl": "void particles_update(float);",
           "addr": "0xa2570",
           "ported": true
+        },
+        {
+          "decl": "float FUN_000a1670(int datum_handle);",
+          "addr": "0xa1670"
+        },
+        {
+          "decl": "bool FUN_000a1710(float *color);",
+          "addr": "0xa1710"
+        },
+        {
+          "decl": "bool FUN_000a1910(int datum_handle);",
+          "addr": "0xa1910"
         }
       ]
     },
