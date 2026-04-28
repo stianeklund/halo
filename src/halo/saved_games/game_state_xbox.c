@@ -7,6 +7,44 @@
 
 #include "xbox.h"
 
+/* Xbox kernel file I/O wrappers (stdcall) */
+typedef bool(__stdcall *close_handle_fn)(int handle);
+typedef int(__stdcall *set_file_pointer_fn)(int handle, int distance_to_move,
+                                            int *distance_high,
+                                            uint32_t move_method);
+typedef bool(__stdcall *read_file_fn)(int handle, void *buffer,
+                                      uint32_t number_of_bytes_to_read,
+                                      int *number_of_bytes_read,
+                                      void *overlapped);
+typedef bool(__stdcall *write_file_fn)(int handle, void *buffer,
+                                       uint32_t number_of_bytes_to_write,
+                                       int *number_of_bytes_written,
+                                       void *overlapped);
+typedef bool(__stdcall *delete_file_fn)(const char *path);
+typedef int (*open_save_file_fn)(int param_1);
+typedef char (*get_save_path_fn)(short index, void *out_path);
+typedef int (*get_last_error_fn)(void);
+typedef void (*crc_begin_fn)(uint32_t *checksum);
+
+#define XCloseHandle ((close_handle_fn)0x1cf900)
+#define XSetFilePointer ((set_file_pointer_fn)0x1d1610)
+#define XReadFile ((read_file_fn)0x1d13c9)
+#define XWriteFile ((write_file_fn)0x1d14b6)
+#define XDeleteFile ((delete_file_fn)0x1d0ff9)
+#define xapi_GetLastError ((get_last_error_fn)0x1d2240)
+#define xbox_game_state_open_file ((open_save_file_fn)0x1c0780)
+#define xbox_saved_game_get_path ((get_save_path_fn)0xe0bf0)
+#define crc_checksum_begin ((crc_begin_fn)0x1190b0)
+
+/* xbox_game_state_globals layout (at 0x4ea9b0):
+ *   +0x00 (0x4ea9b0): char  buffer_allocated
+ *   +0x04 (0x4ea9b4): void* buffer
+ *   +0x08 (0x4ea9b8): int   buffer_size
+ *   +0x0C (0x4ea9bc): char  file_open
+ *   +0x0D (0x4ea9bd): char  file_written
+ *   +0x10 (0x4ea9c0): int   file_handle
+ */
+
 /* 0x1c0220
  * Release the contiguous physical memory buffer allocated for Xbox game-state
  * saves. Asserts that the buffer is marked allocated before freeing, then
@@ -27,6 +65,138 @@ void xbox_game_state_dispose_buffer(void)
 void xbox_game_state_close_file(void)
 {
   assert_halt(*(char *)0x4ea9bc);
-  ((bool (*)(int))0x1cf900)(*(int *)0x4ea9c0);
+  XCloseHandle(*(int *)0x4ea9c0);
   *(char *)0x4ea9bc = 0;
+}
+
+/* 0x1c0370
+ * Write the game-state buffer to the save file. Asserts that both the buffer
+ * is allocated and the file is open, seeks to the beginning, then writes the
+ * entire buffer. Sets the file_written flag on success.
+ */
+char FUN_001c0370(void)
+{
+  int bytes_written;
+
+  assert_halt(*(char *)0x4ea9b0); /* buffer_allocated */
+  assert_halt(*(char *)0x4ea9bc); /* file_open */
+
+  if (XSetFilePointer(*(int *)0x4ea9c0, 0, NULL, 0) != -1) {
+    if (XWriteFile(*(int *)0x4ea9c0, *(void **)0x4ea9b4, *(uint32_t *)0x4ea9b8,
+                   &bytes_written, NULL) &&
+        bytes_written == *(int *)0x4ea9b8) {
+      *(char *)0x4ea9bd = 1; /* file_written */
+      return 1;
+    }
+  }
+
+  display_assert(csprintf((char *)0x5ab100,
+                          "couldn't write saved game file (#%d)",
+                          xapi_GetLastError()),
+                 "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x84, 1);
+  system_exit(-1);
+  return 0;
+}
+
+/* 0x1c0910
+ * Read and verify a saved game from persistent storage. Reads header first,
+ * then checksums the remaining data in 128KB chunks. Returns 1 on success.
+ *
+ * param_1 (header):      destination buffer for the header portion
+ * param_2 (scratch):     pointer to a uint32_t holding the expected checksum;
+ *                         zeroed before CRC computation and restored on
+ * mismatch param_3 (header_size): byte count for the header read param_4
+ * (buffer_size): total byte count (header + body) to checksum param_5 (flags):
+ * optional output byte; set to 1 if checksum mismatch with a non-zero expected
+ * checksum
+ */
+char FUN_001c0910(void *header, uint32_t *scratch, int header_size,
+                  int buffer_size, char *flags)
+{
+  static char scratch_buffer[0x20000]; /* 128KB — avoids _chkstk */
+  char path_buffer[0x100];
+
+  int file_handle;
+  char result;
+  int bytes_transferred;
+  uint32_t checksum;
+  uint32_t saved_checksum;
+  int remaining;
+  int chunk;
+
+  file_handle = xbox_game_state_open_file(0);
+  result = 0;
+
+  if (flags != NULL) {
+    *flags = 0;
+  }
+
+  if (file_handle == -1) {
+    return result;
+  }
+
+  /* Seek to beginning */
+  if (XSetFilePointer(file_handle, 0, NULL, 0) == -1) {
+    goto read_error;
+  }
+
+  /* Read the header */
+  if (!XReadFile(file_handle, header, (uint32_t)header_size, &bytes_transferred,
+                 NULL) ||
+      bytes_transferred != header_size) {
+    goto read_error;
+  }
+
+  /* Save the expected checksum and prepare for computation */
+  saved_checksum = *scratch;
+  crc_checksum_begin(&checksum);
+  *scratch = 0;
+  crc_checksum_buffer(&checksum, header, header_size);
+
+  /* Read and checksum remaining data in 128KB chunks */
+  remaining = buffer_size - header_size;
+  while (remaining > 0) {
+    chunk = remaining;
+    if ((unsigned int)remaining > 0x20000) {
+      chunk = 0x20000;
+    }
+
+    if (XReadFile(file_handle, scratch_buffer, (uint32_t)chunk,
+                  &bytes_transferred, NULL) &&
+        bytes_transferred == chunk) {
+      crc_checksum_buffer(&checksum, scratch_buffer, chunk);
+    }
+
+    FUN_001cf2f0(); /* sound_pump / idle tick */
+    remaining -= chunk;
+  }
+
+  /* Verify checksum */
+  if (checksum == saved_checksum) {
+    result = 1;
+    XCloseHandle(file_handle);
+    return result;
+  }
+
+  /* Checksum mismatch */
+  if (flags != NULL && saved_checksum != 0) {
+    *flags = 1;
+  }
+  error(2, "checksum failed on persistent storage");
+  XCloseHandle(file_handle);
+  return result;
+
+read_error:
+  display_assert(csprintf((char *)0x5ab100,
+                          "couldn't read header from persistent storage (#%d)",
+                          xapi_GetLastError()),
+                 "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x12a, 1);
+  system_exit(-1);
+
+  /* After the fatal assert, attempt to delete the corrupt save file */
+  if (xbox_saved_game_get_path(0, path_buffer)) {
+    XDeleteFile(path_buffer);
+  }
+  XCloseHandle(file_handle);
+  return result;
 }

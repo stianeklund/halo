@@ -2965,11 +2965,13 @@
         },
         {
           "decl": "char FUN_001c0370(void);",
-          "addr": "0x1c0370"
+          "addr": "0x1c0370",
+          "ported": true
         },
         {
-          "decl": "char FUN_001c0910(void *header, void *scratch, int header_size, void *buffer, int flags);",
-          "addr": "0x1c0910"
+          "decl": "char FUN_001c0910(void *header, uint32_t *scratch, int header_size, int buffer_size, char *flags);",
+          "addr": "0x1c0910",
+          "ported": true
         }
       ]
     },

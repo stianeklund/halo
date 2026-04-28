@@ -177,8 +177,8 @@ void cache_files_precache(void)
 {
   char header[0x14c];
 
-  if (!FUN_001c0910(header, (int *)(header + 0x148), sizeof(header),
-                    (void *)0x345000, 0)) {
+  if (!FUN_001c0910(header, (uint32_t *)(header + 0x148), sizeof(header),
+                    0x345000, NULL)) {
     return;
   }
 
