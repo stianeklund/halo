@@ -73,6 +73,8 @@
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
     "0x3a600": "void *FUN_0003a600(int16_t actor_type@<ax>);",
+    "0x3b7e0": "void FUN_0003b7e0(int actor_handle, int unit_handle@<esi>);",
+    "0x3b940": "void FUN_0003b940(int actor_handle, int unit_object_index@<esi>);",
     "0x3ec80": "void FUN_0003ec80(int actor_handle@<esi>);",
     "0x7d440": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
     "0x8a350": "void observer_result_initialize(void *observer @<esi>);",
