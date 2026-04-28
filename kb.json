@@ -964,7 +964,8 @@
         },
         {
           "decl": "void FUN_0003b940(int actor_handle, int unit_object_index@<esi>);",
-          "addr": "0x3b940"
+          "addr": "0x3b940",
+          "ported": true
         },
         {
           "decl": "void FUN_0003ba00(void);",

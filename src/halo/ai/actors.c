@@ -256,6 +256,79 @@ void FUN_0003b900(void)
   }
 }
 
+/* FUN_0003b940 (0x3b940)
+ * Idle-update a unit's control state. Builds a default unit_control_t (0x40
+ * bytes): animation_state=3, aiming_speed=1, control_flags=0,
+ * weapon/grenade/zoom=-1, throttle from global forward vector. Gets the
+ * unit's current facing via FUN_001a9960, then rotates it 30 degrees around
+ * the up axis via rotate_vector3d_by_sincos. Copies the rotated facing to
+ * aiming and looking. Every 5th tick (based on game_time_get() +
+ * unit_object_index mod 5), sets control_flags |= 0x0800 and
+ * primary_trigger = 1.0f. Applies via unit_set_control and FUN_001adf10.
+ *
+ * Confirmed: csmemset(&control, 0, 0x40) at 0x3b94e.
+ * Confirmed: global forward vector ptr at [0x31fc3c] copied to throttle.
+ * Confirmed: ESI = unit_object_index (register arg), stack param = actor_handle
+ * (unused). Confirmed: FUN_001a9960(ESI, &facing) at 0x3b98c. Confirmed:
+ * rotate_vector3d_by_sincos(&facing, *(float**)0x31fc44, 0.5f, 0.866f) at
+ * 0x3b9a5. Confirmed: facing copied to aiming and looking at 0x3b9b6-0x3b9c5.
+ * Confirmed: game_time_get() at 0x3b9c8, (result+ESI)%5==0 triggers flag set.
+ * Confirmed: unit_set_control(ESI, &control) at 0x3b9eb. Confirmed:
+ * FUN_001adf10(ESI, 0) at 0x3b9f3. */
+void FUN_0003b940(int actor_handle, int unit_object_index /* @<esi> */)
+{
+  char control[0x40];
+  float *global_forward;
+  float *up_axis;
+
+  csmemset(control, 0, 0x40);
+
+  global_forward = *(float **)0x31fc3c;
+
+  /* animation_state = 3, aiming_speed = 1 */
+  *(char *)(control + 0x00) = 3;
+  *(char *)(control + 0x01) = 1;
+
+  /* control_flags = 0 */
+  *(int16_t *)(control + 0x02) = 0;
+
+  /* weapon_index = -1, grenade_index = -1, zoom_level = -1 */
+  *(int16_t *)(control + 0x04) = -1;
+  *(int16_t *)(control + 0x06) = -1;
+  *(int16_t *)(control + 0x08) = -1;
+
+  /* throttle = global forward vector */
+  *(float *)(control + 0x0c) = global_forward[0];
+  *(float *)(control + 0x10) = global_forward[1];
+  *(float *)(control + 0x14) = global_forward[2];
+
+  /* Get unit's current facing vector */
+  FUN_001a9960(unit_object_index, control + 0x1c);
+
+  /* Rotate facing 30 degrees around the up axis */
+  up_axis = *(float **)0x31fc44;
+  rotate_vector3d_by_sincos((float *)(control + 0x1c), up_axis, 0.5f,
+                            0.866025388f);
+
+  /* Copy rotated facing to aiming and looking */
+  *(float *)(control + 0x28) = *(float *)(control + 0x1c);
+  *(float *)(control + 0x2c) = *(float *)(control + 0x20);
+  *(float *)(control + 0x30) = *(float *)(control + 0x24);
+  *(float *)(control + 0x34) = *(float *)(control + 0x1c);
+  *(float *)(control + 0x38) = *(float *)(control + 0x20);
+  *(float *)(control + 0x3c) = *(float *)(control + 0x24);
+
+  /* Every 5th tick, fire the weapon */
+  if ((game_time_get() + unit_object_index) % 5 == 0) {
+    *(int16_t *)(control + 0x02) |= 0x0800;
+    *(float *)(control + 0x18) = 1.0f;
+  }
+
+  /* Apply the control and update weapon state */
+  unit_set_control(unit_object_index, control);
+  FUN_001adf10(unit_object_index, 0);
+}
+
 /* FUN_0003ba00 (0x3ba00) — actors_idle_update
  *
  * Iterates all active actors via the standard iterator
