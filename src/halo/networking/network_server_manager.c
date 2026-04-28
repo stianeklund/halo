@@ -1,3 +1,39 @@
+/* Xbox kernel sleep wrapper (stdcall, 2 args) */
+typedef void(__stdcall *sleep_fn)(int milliseconds, int alertable);
+#define XSleep ((sleep_fn)0x1d01c4)
+
+/* Signal game over to all clients (0x12c370).
+ * Sets server state from in-game (1) to post-game (2) and broadcasts
+ * a _message_type_server_game_over message. */
+void network_server_manager_game_over(void *server)
+{
+  int data;
+  void *msg;
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x2ff, 1);
+    system_exit(-1);
+  }
+  if (*(int16_t *)((char *)server + 4) == 1) {
+    data = 0;
+    *(int16_t *)((char *)server + 4) = 2;
+    msg = FUN_0012b700(0x17, &data, 4);
+    if (msg) {
+      if (FUN_0012f430(server, msg)) {
+        network_game_log("server sent message_game_over to all clients");
+        return;
+      }
+      network_game_log(
+        "failed to signal all client machines to switch to postgame");
+      return;
+    }
+    network_game_log(
+      "failed to create a _message_type_server_game_over message");
+  }
+}
+
 /* Assert server is non-null and return the connection pointer at offset +8
  * (0x12d570). */
 int FUN_0012d570(void *server)
@@ -9,4 +45,249 @@ int FUN_0012d570(void *server)
     system_exit(-1);
   }
   return (int)((char *)server + 8);
+}
+
+/* Dispose the network game server (0x12ea00).
+ * Sends graceful exit messages based on current state (pregame or postgame),
+ * handles remaining client machines, disconnects, clears the server struct,
+ * and resets the in-use flag. */
+void network_game_client_dispose(void *server)
+{
+  char *s;
+  int16_t state;
+  void *msg;
+  const char *log_msg;
+
+  s = (char *)server;
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x120, 1);
+    system_exit(-1);
+  }
+  state = *(int16_t *)(s + 4);
+  if (state == 0) {
+    msg = FUN_0012b700(9, &server, 4);
+    if (!msg) {
+      log_msg = "failed to create a "
+                "_message_type_server_graceful_game_exit_pregame message";
+    } else {
+      goto broadcast;
+    }
+  } else if (state == 2) {
+    msg = FUN_0012b700(0x1f, &server, 4);
+    if (msg) {
+      goto broadcast;
+    }
+    log_msg = "failed to create a "
+              "_message_type_server_graceful_game_exit_postgame message";
+  } else {
+    goto skip_message;
+  }
+  goto do_log;
+
+broadcast:
+  if (FUN_0012f430(server, msg)) {
+    log_msg = "notified all clients that we are going down";
+  } else {
+    log_msg = "failed to notify all clients that we are going down";
+  }
+do_log:
+  network_game_log(log_msg);
+
+skip_message:
+  if (!FUN_0012e580((int)server)) {
+    error(2, "network_game_server_handle_client_machines() failed inside "
+             "network_game_server_dispose()");
+  }
+  if (*(int *)s != 0) {
+    FUN_00128d30(*(int *)s);
+  }
+  XSleep(1000, 0);
+  FUN_00082b30();
+  csmemset(server, 0, 0x4bc);
+  if (!*(char *)0x46eed4) {
+    display_assert("network_game_server_memory_do_not_use_directly_in_use",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x171, 1);
+    system_exit(-1);
+  }
+  *(char *)0x46eed4 = 0;
+  network_game_log("network server disposed");
+}
+
+/* Main server tick function (0x12eb20).
+ * Verifies network connectivity, validates the game, accepts new client
+ * connections, handles the public endpoint, processes client machines,
+ * and dispatches based on server state (pregame/ingame/postgame). */
+bool network_game_server_start(void *server)
+{
+  char *s;
+  bool result;
+  int new_conn;
+  int16_t state;
+  char addr_buf[24];
+  const char *addr_str;
+
+  result = true;
+  if (!FUN_00082300()) {
+    if (!FUN_0012a170()) {
+      display_error_when_main_menu_loaded(6);
+      error(2, "network connection went down!");
+      return false;
+    }
+  }
+
+  s = (char *)server;
+  if (!FUN_0012c160(server)) {
+    network_game_log("the server's game is invalid");
+  } else {
+    new_conn = 0;
+    result = FUN_00129cf0(*(int *)s, 0, &new_conn);
+    if (result != 1) {
+      network_game_log("network_connection_idle() failed");
+      return result;
+    }
+    if (new_conn != 0) {
+      if (FUN_0012d880((int)server, new_conn)) {
+        FUN_001283c0(new_conn, addr_buf, 0);
+        addr_str = FUN_00081b90(addr_buf);
+        network_game_log("new client connected from ip %s (validation pending)",
+                         addr_str);
+      } else {
+        network_game_log("failed to add new client connection to the game");
+        FUN_00129130(*(int *)s, new_conn);
+      }
+    }
+    if (!FUN_0012d9f0((int)server)) {
+      network_game_log("network_game_server_handle_public_endpoint() failed");
+      return false;
+    }
+    if (!FUN_0012e580((int)server)) {
+      network_game_log("network_game_server_handle_client_machines() failed");
+      return false;
+    }
+    state = *(int16_t *)(s + 4);
+    if (state == 0) {
+      return FUN_0012e750((int)server);
+    }
+    if (state == 1) {
+      return result;
+    }
+    if (state == 2) {
+      return FUN_0012db60((int)server);
+    }
+    network_game_log("unknown server state");
+    return false;
+  }
+  return result;
+}
+
+/* Reset server to pregame state (0x12eca0).
+ * If already in postgame, sends pregame reset message, toggles client
+ * team assignments, clears per-machine flags, reinitializes game settings,
+ * and attempts to start a new game cycle. */
+bool network_server_manager_pregame_start(void *server)
+{
+  char *s;
+  bool result;
+  int i;
+  char *client_ptr;
+  char *flags_ptr;
+  void *msg;
+  char local_buf[0x434];
+
+  s = (char *)server;
+  result = false;
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x324, 1);
+    system_exit(-1);
+  }
+  csmemset(s + 0x488, 0, 0x10);
+  *(int *)(s + 0x47c) = 0;
+  *(int *)(s + 0x484) = 0;
+  *(char *)(s + 0x4b9) = 0;
+  *(char *)(s + 0x4b8) = 0;
+  *(int *)(s + 0x434) = *(int *)(s + 0x434) + 1;
+
+  if (*(int16_t *)(s + 4) != 2) {
+    result = FUN_0012dc20((int)server);
+    if (*(char *)(s + 0xc8) != 0) {
+      client_ptr = s + 0x24c;
+      for (i = 0x10; i != 0; i--) {
+        if (FUN_0012ac80(client_ptr - 0x1e)) {
+          if (*client_ptr == 0) {
+            *client_ptr = 1;
+          } else if (*client_ptr == 1) {
+            *client_ptr = 0;
+          }
+        }
+        client_ptr += 0x20;
+      }
+    }
+    return result;
+  }
+
+  /* Postgame → pregame transition */
+  {
+    int data = 0;
+    msg = FUN_0012b700(0x1e, &data, 4);
+  }
+  if (!msg || !FUN_0012f430(server, msg)) {
+    network_game_log(
+      "failed to signal all client machines to switch to pregame");
+    return false;
+  }
+  network_game_log("server resetting to pregame");
+
+  /* Toggle client team assignments */
+  if (*(char *)(s + 0xc8) != 0) {
+    client_ptr = s + 0x24c;
+    for (i = 0x10; i != 0; i--) {
+      if (FUN_0012ac80(client_ptr - 0x1e)) {
+        if (*client_ptr == 0) {
+          *client_ptr = 1;
+        } else if (*client_ptr == 1) {
+          *client_ptr = 0;
+        }
+      }
+      client_ptr += 0x20;
+    }
+  }
+
+  /* Clear per-machine state flags */
+  flags_ptr = s + 0x44a;
+  for (i = 4; i != 0; i--) {
+    *flags_ptr &= 0xfb;
+    *(int *)(flags_ptr - 0xa) = 0;
+    *(int *)(flags_ptr - 0x6) = 0;
+    flags_ptr += 0x10;
+  }
+
+  FUN_0012abc0(s + 8, 0);
+
+  if (FUN_0012dc20((int)server)) {
+    csmemcpy(local_buf, s + 8, 0x434);
+    msg = FUN_0012b700(6, local_buf, 0x434);
+    if (msg && FUN_0012f430(server, msg)) {
+      *(int16_t *)(s + 4) = 0;
+      return true;
+    }
+    return result;
+  }
+
+  /* Playlist ended — send graceful exit */
+  {
+    int data = 0;
+    msg = FUN_0012b700(9, &data, 4);
+    if (msg && FUN_0012f430(server, msg) && FUN_0012e580((int)server)) {
+      network_game_log("the playlist has ended - server going down");
+      return result;
+    }
+  }
+  network_game_log("the playlist has ended - server going down, but failed to "
+                   "alert client machines");
+  return result;
 }
