@@ -5689,6 +5689,18 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x9d2d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9d430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9d4e0": {
+      "kind": "function",
+      "status": "ported"
     }
   }
 }
