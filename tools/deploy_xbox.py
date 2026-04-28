@@ -511,7 +511,7 @@ def main() -> int:
             print("build unchanged, skipping rebuild...")
         else:
             print("building patched XBE...")
-            rc = run_build(target="patched_xbe")
+            rc = run_build(target="patched_xbe", quiet=True)
             if rc != 0:
                 print("error: build failed", file=sys.stderr)
                 return rc
