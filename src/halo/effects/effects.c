@@ -329,6 +329,144 @@ void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
   velocity_out[2] = speed * direction_out[2];
 }
 
+/* Allocate a new effect datum and begin its first event (0x9d2d0).
+ * Tries the effect pool; if full and this is a non-deterministic (particle)
+ * effect, evicts the oldest deterministic effect to make room. */
+int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
+{
+  int effect_index;
+  char *tag;
+  char *datum;
+
+  effect_index = -1;
+  if (game_in_editor() || tag_index == -1)
+    return effect_index;
+
+  tag = (char *)tag_get(0x65666665, tag_index);
+  if (!from_particle && (*(uint8_t *)tag & 2) != 0) {
+    error(2, "cannot create objects, lights, or damage from an effect "
+             "created by particles.");
+    return -1;
+  }
+
+  if (*(int *)(tag + 0x34) <= 0)
+    return effect_index;
+
+  effect_index = data_new_at_index(effect_data);
+  if (effect_index == -1) {
+    if ((*(uint8_t *)tag & 2) == 0)
+      return -1;
+
+    effect_index = data_next_index(effect_data, -1);
+    if (effect_index == -1)
+      return -1;
+
+    for (;;) {
+      datum = (char *)datum_get(effect_data, effect_index);
+      tag = (char *)tag_get(0x65666665, *(int *)(datum + 4));
+      if ((*(uint8_t *)tag & 2) == 0)
+        break;
+      effect_index = data_next_index(effect_data, effect_index);
+      if (effect_index == -1)
+        return -1;
+    }
+
+    datum_delete(effect_data, effect_index);
+    effect_index = data_new_at_index(effect_data);
+    if (effect_index == -1) {
+      display_assert("effect_index!=NONE",
+                     "c:\\halo\\SOURCE\\effects\\effects.c", 0x3ad, 1);
+      system_exit(-1);
+      return -1;
+    }
+  }
+
+  datum = (char *)datum_get(effect_data, effect_index);
+  *(int *)(datum + 4) = tag_index;
+  *(int *)(datum + 0x40) = object_index;
+  *(int16_t *)(datum + 0x4c) = -1;
+  *(int16_t *)(datum + 2) = 0;
+  FUN_0009cb90(effect_index, 0);
+
+  return effect_index;
+}
+
+/* Initialize effect datum color, velocity, and scale (0x9d430).
+ * Copies color from the provided pointer (or default if NULL) to datum+0x18,
+ * validates it, copies velocity to datum+0x30, and stores scale at +0x44/+0x48.
+ */
+void FUN_0009d430(int datum, int color_ptr, int velocity_ptr, float scale_a,
+                  float scale_b)
+{
+  char *d = (char *)datum;
+  float *color = (float *)color_ptr;
+  float *velocity = (float *)velocity_ptr;
+  float *d_color;
+
+  *(float *)(d + 0x44) = scale_a;
+  *(float *)(d + 0x48) = scale_b;
+
+  if (!color)
+    color = *(float **)0x2ee708;
+
+  d_color = (float *)(d + 0x18);
+  d_color[0] = color[0];
+  d_color[1] = color[1];
+  d_color[2] = color[2];
+
+  if (!FUN_0007b020(d_color)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
+             "&effect->color", (double)d_color[0], (double)d_color[1],
+             (double)d_color[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x3d4, 1);
+    system_exit(-1);
+  }
+
+  if (velocity) {
+    *(float *)(d + 0x30) = velocity[0];
+    *(float *)(d + 0x34) = velocity[1];
+    *(float *)(d + 0x38) = velocity[2];
+  } else {
+    *(int *)(d + 0x34) = 0;
+    *(int *)(d + 0x38) = 0;
+  }
+}
+
+/* Iterate effect events and spawn location-based sub-effects (0x9d4e0).
+ * For each event in the effect tag, calls the marker callback to get marker
+ * positions, then creates sub-effect instances via FUN_0009cc20. */
+void FUN_0009d4e0(int datum, void *callback)
+{
+  typedef short (*marker_callback_fn)(int, void *, void *, int);
+  marker_callback_fn cb = (marker_callback_fn)callback;
+  char *ef = (char *)datum;
+  char *tag = (char *)tag_get(0x65666665, *(int *)(ef + 4));
+  int *events_block = (int *)(tag + 0x28);
+  int event_index = 0;
+  char marker_buf[1728];
+
+  if (*events_block <= 0)
+    return;
+
+  do {
+    void *event_elem = tag_block_get_element(events_block, event_index, 0x20);
+    short marker_count = cb(*(int *)(ef + 0x3c), event_elem, marker_buf, 0x10);
+    short j = 0;
+    if (marker_count > 0) {
+      int is_particle = (callback == (void *)0x000dd190);
+      do {
+        int result = FUN_0009cc20((int)(marker_buf + (int)j * 0x6c), datum,
+                                  event_index, is_particle);
+        if (result == -1)
+          break;
+        j++;
+      } while (j < marker_count);
+    }
+    event_index++;
+  } while ((int)(int16_t)event_index < *events_block);
+}
+
 /* Effect parts spawner (0x9d590). For each part in the current event,
  * computes how many new instances to create this frame via the transition
  * function, then walks the location chain spawning particles/effects at
