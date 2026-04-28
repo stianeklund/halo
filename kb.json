@@ -6242,7 +6242,8 @@
         },
         {
           "decl": "void FUN_001cd450(int sound_index);",
-          "addr": "0x1cd450"
+          "addr": "0x1cd450",
+          "ported": true
         },
         {
           "decl": "int16_t sound_allocate_channel(void *source@<eax>, float priority);",
