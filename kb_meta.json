@@ -865,6 +865,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9d2d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9d430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9d4e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x9d590": {
       "kind": "function",
       "status": "ported"
@@ -3551,11 +3563,54 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12c160": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12c370": {
       "kind": "function",
       "status": "ported"
     },
+    "0x12caa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d040": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function checks whether both team indices 0 and 1 have at least one active client across 16 slots at stride 0x20 starting at server+0x24C.",
+        "The byte at server+0xC8 appears to be a team-game flag; when zero (not a team game), the function returns false immediately."
+      ],
+      "uncertain": [
+        "The byte at server+0x24C (indexed per slot) may represent a team index, but the broader struct layout around that region is not fully known."
+      ]
+    },
     "0x12d570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d880": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d9f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12db60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12dc20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12e580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12e750": {
       "kind": "function",
       "status": "ported"
     },
@@ -3568,6 +3623,10 @@
       "status": "ported"
     },
     "0x12eca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12f430": {
       "kind": "function",
       "status": "ported"
     },
@@ -5688,50 +5747,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x9d2d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x9d430": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x9d4e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12c160": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12d880": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12d9f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12db60": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12dc20": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12e580": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12e750": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12f430": {
-      "kind": "function",
       "status": "ported"
     }
   }
