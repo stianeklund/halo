@@ -72,6 +72,50 @@ void scenario_location_reset(int *location)
   *(int16_t *)((char *)location + 6) = NONE;
 }
 
+/*
+ * FUN_0018eab0 — resolve a BSP3D node index to its fog tag index.
+ *
+ * Given a bsp3d_node_index, looks up the node element (bsp+0x184, size 0x28)
+ * and reads the fog palette index at offset +0x24 (int16_t). If valid, looks
+ * up the fog palette entry (bsp+0x190, size 0x88) and returns the fog tag
+ * index at offset +0x2c. Returns -1 if any step fails.
+ *
+ * Confirmed: asserts "global_structure_bsp" at line 0xc5.
+ * Confirmed: tag_block_get_element(bsp+0x184, node_index, 0x28) for BSP3D node.
+ * Confirmed: tag_block_get_element(bsp+0x190, palette_index, 0x88) for fog
+ * palette. Confirmed: returns *(int*)(palette_entry + 0x2c) or -1.
+ */
+int FUN_0018eab0(int16_t bsp3d_node_index)
+{
+  char *bsp;
+  char *node_element;
+  int16_t fog_palette_index;
+  char *palette_entry;
+
+  if (!global_structure_bsp) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+
+  bsp = (char *)global_structure_bsp;
+
+  if (bsp3d_node_index != NONE) {
+    node_element =
+      (char *)tag_block_get_element(bsp + 0x184, (int)bsp3d_node_index, 0x28);
+    fog_palette_index = *(int16_t *)(node_element + 0x24);
+    if (fog_palette_index != NONE) {
+      palette_entry = (char *)tag_block_get_element(
+        bsp + 0x190, (int)fog_palette_index, 0x88);
+      if (*(int *)(palette_entry + 0x2c) != -1) {
+        return *(int *)(palette_entry + 0x2c);
+      }
+    }
+  }
+
+  return -1;
+}
+
 /* Switch the active structure BSP. Calls dispose callbacks on the old BSP,
  * loads the new one from the scenario tag, and calls initialize callbacks.
  * Returns false if the BSP index is invalid or the BSP fails to load. */
@@ -245,6 +289,87 @@ void scenario_location_from_point(void *location_out, void *point)
   char *element = (char *)tag_block_get_element(
     (char *)*(void **)0x5064e0 + 0xe0, leaf & 0x7fffffff, 0x10);
   *(int16_t *)&loc[1] = *(int16_t *)(element + 8);
+}
+
+/*
+ * FUN_0018f2d0 — resolve a BSP location to a fog palette index.
+ *
+ * Given a location (with cluster_index at offset +4) and a 3D position,
+ * looks up the cluster's fog reference from the structure BSP clusters
+ * tag block (bsp+0x134, element size 0x68). The fog reference short at
+ * offset +2 in the cluster element can be:
+ *   - NONE (-1): return NONE.
+ *   - Non-negative (bit 15 clear): direct fog palette index (& 0x7fff).
+ *   - Negative (bit 15 set): index into the fog planes tag block
+ *     (bsp+0x178, element size 0x20). The plane entry contains a fog
+ *     palette index at offset +0 and a plane normal+d at offset +4..+0x10.
+ *     If the position is on the near side of the plane (dot - d + threshold
+ *     < 0.0), returns the fog palette index; otherwise returns NONE.
+ *
+ * The fog threshold is read from the fog tag (0x666f6720 'fog ') at
+ * offset +0x74, but only if the fog tag's first byte has bit 0 set.
+ *
+ * Confirmed: asserts "global_structure_bsp" at line 0xc5.
+ * Confirmed: tag_block_get_element(bsp+0x134, cluster_index, 0x68).
+ * Confirmed: tag_block_get_element(bsp+0x178, plane_index, 0x20).
+ * Confirmed: FCOMP against 0.0f at [0x2533c0]; TEST AH,5 / JP pattern.
+ * Confirmed: calls FUN_0018eab0 and tag_get('fog ', ...).
+ */
+int16_t FUN_0018f2d0(void *location, void *position)
+{
+  char *bsp;
+  char *cluster;
+  int16_t fog_ref;
+  char *plane_entry;
+  int16_t fog_palette_index;
+  int fog_tag_index;
+  char *fog_tag;
+  float fog_threshold;
+
+  if (*(int16_t *)((char *)location + 4) == NONE)
+    return NONE;
+
+  if (!global_structure_bsp) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+
+  bsp = (char *)global_structure_bsp;
+  cluster = (char *)tag_block_get_element(
+    bsp + 0x134, (int)*(int16_t *)((char *)location + 4), 0x68);
+
+  fog_ref = *(int16_t *)(cluster + 2);
+  if (fog_ref == NONE)
+    return NONE;
+
+  if (fog_ref >= 0)
+    return fog_ref & 0x7fff;
+
+  plane_entry =
+    (char *)tag_block_get_element(bsp + 0x178, (int)(fog_ref & 0x7fff), 0x20);
+
+  fog_palette_index = *(int16_t *)plane_entry;
+
+  fog_tag_index = FUN_0018eab0(fog_palette_index);
+  fog_threshold = 0.0f;
+  if (fog_tag_index != -1) {
+    fog_tag = (char *)tag_get(0x666f6720, fog_tag_index);
+    if (*(uint8_t *)fog_tag & 1) {
+      fog_threshold = *(float *)(fog_tag + 0x74);
+    }
+  }
+
+  if (position == NULL ||
+      (*(float *)(plane_entry + 4) * *(float *)position +
+       *(float *)(plane_entry + 8) * *((float *)position + 1) +
+       *(float *)(plane_entry + 0xc) * *((float *)position + 2)) -
+          *(float *)(plane_entry + 0x10) + fog_threshold <
+        *(float *)0x2533c0) {
+    return fog_palette_index;
+  }
+
+  return NONE;
 }
 
 /*
