@@ -4144,7 +4144,8 @@
         },
         {
           "decl": "void FUN_00141360(int object_handle, float *out_forward, float *out_up);",
-          "addr": "0x141360"
+          "addr": "0x141360",
+          "ported": true
         },
         {
           "decl": "void *object_get_world_matrix(int object_handle, void *out_matrix);",
@@ -4155,10 +4156,6 @@
           "decl": "int16_t object_find_in_radius(int flags, unsigned int type_mask, void *cluster_info, float *position, float radius, int *out_handles, int16_t max_count);",
           "addr": "0x1415f0",
           "ported": true
-        },
-        {
-          "decl": "int16_t FUN_001415f0(int type_mask, uint32_t flags, void *position, void *direction, float radius, void *results, int16_t max_results);",
-          "addr": "0x1415f0"
         },
         {
           "decl": "void object_compute_node_matrices(int object_handle);",

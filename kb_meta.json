@@ -3810,6 +3810,10 @@
         "The byte at obj+0xD0 is a parent node index, not part of the float array unk_208[5] that the struct declares at that offset \u2014 the struct layout at 0xD0 may need revision."
       ]
     },
+    "0x141360": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x141480": {
       "kind": "function",
       "status": "ported",
