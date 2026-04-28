@@ -862,6 +862,14 @@
       "metadata": {
         "source_path": "src/halo/items/weapons.c"
       }
+    },
+    {
+      "name": "halo/sound_manager",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_manager.c.obj",
+      "base_path": "delinked/sound_manager.obj",
+      "metadata": {
+        "source_path": "src/halo/sound/sound_manager.c"
+      }
     }
   ]
 }

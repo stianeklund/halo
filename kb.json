@@ -3653,7 +3653,8 @@
         },
         {
           "decl": "char *main_get_multiplayer_map_name(void);",
-          "addr": "0x100050"
+          "addr": "0x100050",
+          "ported": true
         },
         {
           "decl": "int __cdecl sort_desired_local_player_controllers(const void *a1, const void *a2);",

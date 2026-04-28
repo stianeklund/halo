@@ -2951,6 +2951,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100050": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x100090": {
       "kind": "function",
       "status": "ported"

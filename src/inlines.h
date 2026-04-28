@@ -38,6 +38,7 @@
 
 #ifdef _XBOX_PROVIDE_DECLS
 double atan2(double y, double x);
+double pow(double base, double exponent);
 void *memcpy(void *s1, const void *s2, size_t n);
 size_t strlen(const char *s);
 #undef _XBOX_PROVIDE_DECLS

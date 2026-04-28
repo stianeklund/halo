@@ -2300,7 +2300,8 @@ void sound_update_music(void)
         real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
                                        location.forward);
         real_matrix3x3_transform_vector(
-          listener + 4, (void *)(sound_entry + 0x38), (void *)location.up);
+          listener + 4, (vector3_t *)(sound_entry + 0x38),
+          (vector3_t *)location.up);
 
         /* Scale up-vector by 30.0 and subtract listener velocity
          * (listener+0x38..0x40). */
