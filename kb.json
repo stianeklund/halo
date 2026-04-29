@@ -4656,7 +4656,8 @@
         },
         {
           "decl": "void FUN_0009f920(void *type_state@<eax>, void *sys_def@<ecx>, void *ps_datum);",
-          "addr": "0x9f920"
+          "addr": "0x9f920",
+          "ported": true
         },
         {
           "decl": "void FUN_0009f9d0(void *particle@<eax>, void *sys_def@<ecx>);",
