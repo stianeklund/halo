@@ -259,6 +259,14 @@
           "addr": "0x48fa0"
         },
         {
+          "decl": "void FUN_00044590(int actor_handle);",
+          "addr": "0x44590"
+        },
+        {
+          "decl": "void FUN_00049080(int actor_handle);",
+          "addr": "0x49080"
+        },
+        {
           "decl": "void FUN_0004ab10(void);",
           "addr": "0x4ab10"
         },
@@ -315,6 +323,14 @@
           "addr": "0x58fb0"
         },
         {
+          "decl": "void FUN_00059480(int actor_handle, char flag);",
+          "addr": "0x59480"
+        },
+        {
+          "decl": "void FUN_000597f0(int actor_handle);",
+          "addr": "0x597f0"
+        },
+        {
           "decl": "void FUN_00059b10(void *iter, char flag);",
           "addr": "0x59b10"
         },
@@ -325,6 +341,10 @@
         {
           "decl": "void FUN_0005b200(void);",
           "addr": "0x5b200"
+        },
+        {
+          "decl": "void FUN_0005d420(int encounter_handle);",
+          "addr": "0x5d420"
         },
         {
           "decl": "void FUN_0005ddc0(void);",
@@ -373,6 +393,10 @@
         {
           "decl": "int FUN_00064570(int *iter);",
           "addr": "0x64570"
+        },
+        {
+          "decl": "void FUN_00064a80(int actor_handle, int prop_handle);",
+          "addr": "0x64a80"
         },
         {
           "decl": "void FUN_00064ee0(int file);",
@@ -523,6 +547,10 @@
         {
           "decl": "void FUN_001bf790(void);",
           "addr": "0x1bf790"
+        },
+        {
+          "decl": "void FUN_0001c450(int actor_handle, int old_prop, int new_prop);",
+          "addr": "0x1c450"
         },
         {
           "decl": "void *FUN_001c8d90(int permutation_block_ptr, int tick_index);",
@@ -1006,6 +1034,11 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003ad80(int actor_handle);",
+          "addr": "0x3ad80",
+          "ported": true
+        },
+        {
           "decl": "int FUN_0003b270(int actor_handle);",
           "addr": "0x3b270",
           "ported": true
@@ -1013,6 +1046,11 @@
         {
           "decl": "bool FUN_0003b320(int actor_handle);",
           "addr": "0x3b320",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0003b410(int actor_handle, int old_prop, int new_prop);",
+          "addr": "0x3b410",
           "ported": true
         },
         {
@@ -1041,17 +1079,29 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003b030(int actor_handle);",
+          "addr": "0x3b030",
+          "ported": true
+        },
+        {
           "decl": "void FUN_0003ae60(int actor_handle, int unit_handle);",
           "addr": "0x3ae60",
           "ported": true
         },
         {
+          "decl": "void FUN_0003cbc0(int actor_handle);",
+          "addr": "0x3cbc0",
+          "ported": true
+        },
+        {
           "decl": "void FUN_0003cc10(int actor_handle, int flag);",
-          "addr": "0x3cc10"
+          "addr": "0x3cc10",
+          "ported": true
         },
         {
           "decl": "void FUN_0003cff0(int actor_handle);",
-          "addr": "0x3cff0"
+          "addr": "0x3cff0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003d950(int actor_handle, char flag);",
@@ -7131,6 +7181,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_001a8190(int unit_handle, int animation_ticks, int control_flags);",
+          "addr": "0x1a8190"
+        },
+        {
           "decl": "int unit_get_seat_enter_position(int unit_handle, int target_unit_handle, int16_t seat_index, float *out_pos_a, float *out_pos_b, float *out_pos_c);",
           "addr": "0x1a8200",
           "ported": true
@@ -8166,6 +8220,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_000fbbd0(int weapon_handle, int16_t *rounds_array);",
+          "addr": "0xfbbd0"
+        },
+        {
           "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
           "addr": "0xfc290",
           "ported": true
@@ -8184,6 +8242,10 @@
           "decl": "void weapon_reset_state(int weapon_handle);",
           "addr": "0xfcf20",
           "ported": true
+        },
+        {
+          "decl": "void FUN_000fd180(int weapon_handle, float ammo_fraction);",
+          "addr": "0xfd180"
         },
         {
           "decl": "void weapon_activate(int weapon_handle);",

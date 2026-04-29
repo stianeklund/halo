@@ -105,6 +105,218 @@ void actors_dispose_from_old_map(void)
   data_make_invalid(swarm_component_data);
 }
 
+/* FUN_0003ad80 (0x3ad80) — actor_clear_unit
+ *
+ * Clear the unit reference from an actor. Sets unit flags, clears the unit's
+ * actor_index, decrements the encounter's unique_leader_count if the actor
+ * was a unique leader, and finally clears actor->unit_handle and the unique
+ * leader flag.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3ad8f.
+ * Confirmed: actor+0x18 (unit_handle) checked against -1 at 0x3ad9c.
+ * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3ada9.
+ * Confirmed: FUN_0013ff50(unit_handle, 1) at 0x3adb6.
+ * Confirmed: FUN_001adf10(unit_handle, 0) at 0x3adc1.
+ * Confirmed: assert unit+0x1a4 == actor_handle at 0x3adcf.
+ * Confirmed: unit+0x1a4 = -1 at 0x3adf6.
+ * Confirmed: actor+0x1c (unique leader flag) checked at 0x3adfc.
+ * Confirmed: datum_get(encounter_data, actor+0x34) at 0x3ae11.
+ * Confirmed: assert encounter+0x1c > 0 at 0x3ae1b.
+ * Confirmed: encounter+0x1c decremented at 0x3ae41.
+ * Confirmed: actor+0x18 = -1, actor+0x1c = 0 at 0x3ae45-0x3ae48. */
+void FUN_0003ad80(int actor_handle)
+{
+  char *actor;
+  char *unit;
+  char *encounter;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(int *)(actor + 0x18) == -1) {
+    return;
+  }
+
+  unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+  FUN_0013ff50(*(int *)(actor + 0x18), 1);
+  FUN_001adf10(*(int *)(actor + 0x18), 0);
+
+  /* Assert unit's actor_index matches */
+  if (*(int *)(unit + 0x1a4) != actor_handle) {
+    display_assert("unit->unit.actor_index == actor_index",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x55e, 1);
+    system_exit(-1);
+  }
+
+  *(int *)(unit + 0x1a4) = -1;
+
+  /* If actor was a unique leader, decrement encounter's count */
+  if (*(char *)(actor + 0x1c) != 0 && *(int *)(actor + 0x34) != -1) {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+    if (*(short *)(encounter + 0x1c) <= 0) {
+      display_assert("encounter->unique_leader_count > 0",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x565, 1);
+      system_exit(-1);
+    }
+    *(short *)(encounter + 0x1c) = *(short *)(encounter + 0x1c) - 1;
+  }
+
+  *(int *)(actor + 0x18) = -1;
+  *(char *)(actor + 0x1c) = 0;
+}
+
+/* FUN_0003ae60 (0x3ae60) — actor_detach_unit
+ *
+ * Detach a unit from an actor. This removes the unit from the actor's unit
+ * list, updates the unit linked-list pointers (unit+0x1ac/0x1b0), and if the
+ * actor is a swarm, removes the unit from the swarm's component arrays.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3ae71.
+ * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3ae7f.
+ * Confirmed: unit+0x1a8 == actor_handle check at 0x3ae8f.
+ * Confirmed: assert actor+0x1e > 0 (swarm_unit_count) at 0x3aea2.
+ * Confirmed: FUN_0013ff50(unit_handle, 1) at 0x3aec7.
+ * Confirmed: FUN_001adf10(unit_handle, 0) at 0x3aecf.
+ * Confirmed: swarm lookup via datum_get(swarm_data, actor+0x28) at 0x3aeed.
+ * Confirmed: swarm+0x18 array holds unit handles, swarm+0x58 holds component
+ * handles. Confirmed: datum_delete(swarm_component_data, component_handle) at
+ * 0x3afdd. Confirmed: linked list update via unit+0x1ac (prev) and unit+0x1b0
+ * (next). Confirmed: unit+0x1a8 = -1 at end, actor+0x1e decremented. */
+void FUN_0003ae60(int actor_handle, int unit_handle)
+{
+  char *actor;
+  char *unit;
+  char *swarm;
+  short i;
+  int component_handle;
+  short unit_count;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Only proceed if this unit belongs to this actor */
+  if (*(int *)(unit + 0x1a8) != actor_handle) {
+    return;
+  }
+
+  /* Assert swarm_unit_count > 0 */
+  if (*(short *)(actor + 0x1e) <= 0) {
+    display_assert("actor->meta.swarm_unit_count > 0",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x579, 1);
+    system_exit(-1);
+  }
+
+  /* Set unit flags and update weapon state */
+  FUN_0013ff50(unit_handle, 1);
+  FUN_001adf10(unit_handle, 0);
+
+  /* If actor has a swarm, remove unit from swarm arrays */
+  if (*(int *)(actor + 0x28) != -1) {
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+
+    /* Assert swarm->actor_index == actor_index */
+    if (*(int *)(swarm + 4) != actor_handle) {
+      display_assert("swarm->actor_index == actor_index",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x585, 1);
+      system_exit(-1);
+    }
+
+    /* Assert swarm->unit_count == actor->meta.swarm_unit_count */
+    if (*(short *)(swarm + 2) != *(short *)(actor + 0x1e)) {
+      display_assert("swarm->unit_count == actor->meta.swarm_unit_count",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x586, 1);
+      system_exit(-1);
+    }
+
+    /* Search for unit in swarm array and remove it */
+    for (i = 0; i < *(short *)(swarm + 2); i++) {
+      if (*(int *)(swarm + 0x18 + i * 4) == unit_handle) {
+        /* Save component handle before removing */
+        component_handle = *(int *)(swarm + 0x58 + i * 4);
+
+        /* Decrement count */
+        unit_count = *(short *)(swarm + 2) - 1;
+        *(short *)(swarm + 2) = unit_count;
+
+        /* Compact arrays if not last element */
+        if (i < unit_count) {
+          *(int *)(swarm + 0x18 + i * 4) =
+            *(int *)(swarm + 0x18 + unit_count * 4);
+          *(int *)(swarm + 0x58 + i * 4) =
+            *(int *)(swarm + 0x58 + *(short *)(swarm + 2) * 4);
+        }
+
+        /* Delete the swarm component */
+        datum_delete(swarm_component_data, component_handle);
+        goto update_linked_list;
+      }
+    }
+
+    /* Unit not found in swarm - assert */
+    display_assert("found", "c:\\halo\\SOURCE\\ai\\actors.c", 0x59c, 1);
+    system_exit(-1);
+  }
+
+update_linked_list:
+  /* Update linked list of units */
+  if (*(int *)(unit + 0x1b0) == -1) {
+    /* No next unit - update actor's first unit pointer */
+    *(int *)(actor + 0x24) = *(int *)(unit + 0x1ac);
+  } else {
+    /* Update next unit's prev pointer */
+    char *next_unit =
+      (char *)object_get_and_verify_type(*(int *)(unit + 0x1b0), 3);
+    *(int *)(next_unit + 0x1ac) = *(int *)(unit + 0x1ac);
+  }
+
+  if (*(int *)(unit + 0x1ac) != -1) {
+    /* Update prev unit's next pointer */
+    char *prev_unit =
+      (char *)object_get_and_verify_type(*(int *)(unit + 0x1ac), 3);
+    *(int *)(prev_unit + 0x1b0) = *(int *)(unit + 0x1b0);
+  }
+
+  /* Clear unit's actor reference and decrement count */
+  *(int *)(unit + 0x1a8) = -1;
+  *(short *)(actor + 0x1e) = *(short *)(actor + 0x1e) - 1;
+}
+
+/* FUN_0003b030 (0x3b030) — actor_delete_swarm
+ *
+ * Delete swarm data for an actor. Iterates all swarm components and deletes
+ * them from swarm_component_data, then deletes the swarm from swarm_data and
+ * clears actor+0x28.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3b03f.
+ * Confirmed: actor+0x28 (swarm_handle) checked against -1 at 0x3b04c.
+ * Confirmed: datum_get(swarm_data, swarm_handle) at 0x3b05b.
+ * Confirmed: loop over swarm+2 (count), deleting swarm+0x58[i] components.
+ * Confirmed: datum_delete(swarm_component_data, component) at 0x3b07f.
+ * Confirmed: datum_delete(swarm_data, actor+0x28) at 0x3b099.
+ * Confirmed: actor+0x28 = -1 at 0x3b0a2. */
+void FUN_0003b030(int actor_handle)
+{
+  char *actor;
+  char *swarm;
+  short i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(int *)(actor + 0x28) == -1) {
+    return;
+  }
+
+  swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+
+  /* Delete all swarm components */
+  for (i = 0; i < *(short *)(swarm + 2); i++) {
+    datum_delete(swarm_component_data, *(int *)(swarm + 0x58 + i * 4));
+  }
+
+  /* Delete the swarm itself */
+  datum_delete(swarm_data, *(int *)(actor + 0x28));
+  *(int *)(actor + 0x28) = -1;
+}
+
 /* FUN_0003b270 (0x3b270)
  * Get the current weapon handle for an actor. First checks if the actor has
  * a held-weapon unit (offset 0x158, guarded by byte at 0x161). If that path
@@ -162,6 +374,121 @@ bool FUN_0003b320(int actor_handle)
     }
   }
   return has_weapon;
+}
+
+/* FUN_0003b410 (0x3b410) — actor_replace_prop_reference
+ *
+ * Replace all references to old_prop with new_prop in actor fields. Updates
+ * multiple prop reference fields at various offsets in the actor structure.
+ * Also updates swarm component prop references if the actor is a swarm.
+ * Finally calls FUN_0001c450 to dispatch to action-specific prop replacement.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3b421.
+ * Confirmed: actor+0x270 prop reference with special clear of +0x268 if new=-1.
+ * Confirmed: actor+0x610 prop with special clear of +0x60c if new=-1 and
+ * +0x60c==1. Confirmed: actor+0x6b4, +0x2f4, +0x30c, +0x340, +0x3ac, +0x1d0,
+ * +0x1e8 prop refs. Confirmed: actor+0x3a8 cleared when +0x3ac matched and
+ * new=-1. Confirmed: actor+0x1e4 cleared when +0x1e8 matched and new=-1.
+ * Confirmed: actor+0x46c (action state 5) with +0x470 prop, clears +0x480 if
+ * new=-1. Confirmed: actor+0x54c, +0x56c, +0x57c (action state 1) with
+ * +0x550/0x570/0x580. Confirmed: swarm component +0x14 prop updated for each
+ * component. Confirmed: FUN_0001c450(actor_handle, old_prop, new_prop) at
+ * 0x3b5c4. */
+void FUN_0003b410(int actor_handle, int old_prop, int new_prop)
+{
+  char *actor;
+  char *swarm;
+  char *component;
+  short i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  /* Update prop reference at +0x270 */
+  if (*(int *)(actor + 0x270) == old_prop) {
+    *(int *)(actor + 0x270) = new_prop;
+    if (new_prop == -1) {
+      *(short *)(actor + 0x268) = 0;
+    }
+  }
+
+  /* Update prop reference at +0x610 (only if +0x60c == 1) */
+  if (*(short *)(actor + 0x60c) == 1 && *(int *)(actor + 0x610) == old_prop) {
+    *(int *)(actor + 0x610) = new_prop;
+    if (new_prop == -1) {
+      *(short *)(actor + 0x60c) = 0;
+    }
+  }
+
+  /* Update simple prop references */
+  if (*(int *)(actor + 0x6b4) == old_prop) {
+    *(int *)(actor + 0x6b4) = new_prop;
+  }
+  if (*(int *)(actor + 0x2f4) == old_prop) {
+    *(int *)(actor + 0x2f4) = new_prop;
+  }
+  if (*(int *)(actor + 0x30c) == old_prop) {
+    *(int *)(actor + 0x30c) = new_prop;
+  }
+  if (*(int *)(actor + 0x340) == old_prop) {
+    *(int *)(actor + 0x340) = new_prop;
+  }
+
+  /* Update prop reference at +0x3ac with special +0x3a8 clear */
+  if (*(int *)(actor + 0x3ac) == old_prop) {
+    if (new_prop == -1) {
+      *(short *)(actor + 0x3a8) = 0;
+    }
+    *(int *)(actor + 0x3ac) = new_prop;
+  }
+
+  /* Update prop reference at +0x1d0 */
+  if (*(int *)(actor + 0x1d0) == old_prop) {
+    *(int *)(actor + 0x1d0) = new_prop;
+  }
+
+  /* Update prop reference at +0x1e8 with special +0x1e4 clear */
+  if (*(int *)(actor + 0x1e8) == old_prop) {
+    *(int *)(actor + 0x1e8) = new_prop;
+    if (new_prop == -1) {
+      *(short *)(actor + 0x1e4) = 0;
+    }
+  }
+
+  /* Update prop reference at +0x470 (only if action state +0x46c == 5) */
+  if (*(short *)(actor + 0x46c) == 5 && *(int *)(actor + 0x470) == old_prop) {
+    if (new_prop == -1) {
+      *(short *)(actor + 0x46c) = 0;
+      *(int *)(actor + 0x480) = -1;
+    } else {
+      *(int *)(actor + 0x470) = new_prop;
+    }
+  }
+
+  /* Update prop references at +0x550, +0x570, +0x580 (if action state == 1) */
+  if (*(short *)(actor + 0x54c) == 1 && *(int *)(actor + 0x550) == old_prop) {
+    *(int *)(actor + 0x550) = new_prop;
+  }
+  if (*(short *)(actor + 0x56c) == 1 && *(int *)(actor + 0x570) == old_prop) {
+    *(int *)(actor + 0x570) = new_prop;
+  }
+  if (*(short *)(actor + 0x57c) == 1 && *(int *)(actor + 0x580) == old_prop) {
+    *(int *)(actor + 0x580) = new_prop;
+  }
+
+  /* Update swarm component prop references if this is a swarm actor */
+  if (*(char *)(actor + 6) != 0 && *(int *)(actor + 0x28) != -1) {
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+    for (i = 0; i < *(short *)(swarm + 2); i++) {
+      component =
+        (char *)datum_get(swarm_component_data, *(int *)(swarm + 0x58 + i * 4));
+      if (*(int *)(component + 0x14) == old_prop) {
+        *(int *)(component + 0x14) = new_prop;
+      }
+    }
+  }
+
+  /* Dispatch to action-specific prop replacement */
+  FUN_0001c450(actor_handle, old_prop, new_prop);
 }
 
 /* FUN_0003b7e0 (0x3b7e0)
@@ -372,6 +699,254 @@ void FUN_0003ba00(void)
   }
 }
 
+/* FUN_0003cbc0 (0x3cbc0) — actor_clean_props
+ *
+ * Clean up all props associated with an actor. Iterates actor+0x50 linked list,
+ * calling FUN_0003b410 to clear prop references and FUN_00064a80 to delete
+ * each prop, until the list is empty.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3cbcf.
+ * Confirmed: actor+0x50 (prop list head) checked against -1 at 0x3cbdc.
+ * Confirmed: FUN_0003b410(actor_handle, prop, -1) at 0x3cbe5.
+ * Confirmed: FUN_00064a80(actor_handle, actor+0x50) at 0x3cbef.
+ * Confirmed: loop continues while actor+0x50 != -1 at 0x3cbfd. */
+void FUN_0003cbc0(int actor_handle)
+{
+  char *actor;
+  int prop_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  prop_handle = *(int *)(actor + 0x50);
+
+  while (prop_handle != -1) {
+    FUN_0003b410(actor_handle, prop_handle, -1);
+    FUN_00064a80(actor_handle, *(int *)(actor + 0x50));
+    prop_handle = *(int *)(actor + 0x50);
+  }
+}
+
+/* FUN_0003cc10 (0x3cc10) — actor_delete
+ *
+ * Delete an actor and clean up all references. Asserts the actor is not the
+ * currently updating actor. Clears global references if they match, removes
+ * the actor from encounter or encounterless list, detaches all units, cleans
+ * up props, clears prop actor references, and finally deletes the actor datum.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3cc23.
+ * Confirmed: assert actor_index != global_updating_actor_index at 0x3cc37.
+ * Confirmed: DAT_005ac9f8 and DAT_006323b4 cleared if equal to actor_handle.
+ * Confirmed: actor+9 flag selects FUN_000597f0 (encounterless) vs FUN_00059480.
+ * Confirmed: actor+6 flag selects FUN_0003b030+loop vs FUN_0003ad80 path.
+ * Confirmed: FUN_0003cbc0 at 0x3cccc, data_iterator on DAT_005ab23c at 0x3ccdc.
+ * Confirmed: FUN_00049080 at 0x3cd0a, FUN_00044590 at 0x3cd10.
+ * Confirmed: datum_delete(actor_data, actor_handle) at 0x3cd1c. */
+void FUN_0003cc10(int actor_handle, int flag)
+{
+  char *actor;
+  char iter[0x10];
+  char *prop;
+  int unit_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  /* Assert not deleting the currently updating actor */
+  if (actor_handle == *(int *)0x2c8728) {
+    display_assert("actor_index != global_updating_actor_index",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x5d0, 1);
+    system_exit(-1);
+  }
+
+  /* Clear global references if they match */
+  if (*(int *)0x5ac9f8 == actor_handle) {
+    *(int *)0x5ac9f8 = -1;
+  }
+  if (*(int *)0x6323b4 == actor_handle) {
+    *(int *)0x6323b4 = -1;
+  }
+
+  /* Remove from encounter or encounterless list */
+  if (*(char *)(actor + 9) == 0) {
+    FUN_00059480(actor_handle, (char)flag);
+  } else {
+    FUN_000597f0(actor_handle);
+  }
+
+  /* Detach units */
+  if (*(char *)(actor + 6) == 0) {
+    /* Non-swarm: single unit detach */
+    FUN_0003ad80(actor_handle);
+  } else {
+    /* Swarm: delete swarm data and detach all units */
+    FUN_0003b030(actor_handle);
+    unit_handle = *(int *)(actor + 0x24);
+    while (unit_handle != -1) {
+      FUN_0003ae60(actor_handle, unit_handle);
+      unit_handle = *(int *)(actor + 0x24);
+    }
+  }
+
+  /* Clean up props */
+  FUN_0003cbc0(actor_handle);
+
+  /* Clear prop actor references */
+  data_iterator_new((data_iter_t *)iter, *(data_t **)0x5ab23c);
+  prop = (char *)data_iterator_next((data_iter_t *)iter);
+  while (prop != NULL) {
+    if (*(int *)(prop + 0x1c) == actor_handle) {
+      *(int *)(prop + 0x1c) = -1;
+    }
+    prop = (char *)data_iterator_next((data_iter_t *)iter);
+  }
+
+  /* Final cleanup */
+  FUN_00049080(actor_handle);
+  FUN_00044590(actor_handle);
+
+  /* Delete the actor record */
+  datum_delete(actor_data, actor_handle);
+}
+
+/* FUN_0003cff0 (0x3cff0) — actor_update_weapon_state
+ *
+ * Update weapon firing state for an actor. If the actor is in combat state 3
+ * (attacking) with burst count > 1, performs accuracy-based random firing
+ * check. Also handles weapon ammo distribution and magazine rounds for the
+ * actor's weapon. Calls FUN_0003cc10 to mark actor as needing cleanup, and if
+ * actor has an encounter, calls FUN_0005d420 to update encounter state.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3d004.
+ * Confirmed: tag_get(0x61637476, actor+0x5c) at 0x3d014.
+ * Confirmed: actor+0x34 stored for encounter_handle check at end.
+ * Confirmed: actor+0x6a == 3 and actor+0x6e > 1 condition at 0x3d021-0x3d034.
+ * Confirmed: object_get_and_verify_type(actor+0x18, 3) at 0x3d040, 0x3d064.
+ * Confirmed: unit_is_alive(actor+0x18) at 0x3d04e.
+ * Confirmed: unit_get_weapon(actor+0x18, unit+0x2a2) at 0x3d077.
+ * Confirmed: accuracy clamping to [0.1f, 0.6f] at 0x3d096-0x3d0d7.
+ * Confirmed: accuracy boost by 1.5x under certain conditions at
+ * 0x3d0fe-0x3d12d. Confirmed: random check against accuracy at 0x3d12f-0x3d145.
+ * Confirmed: burst duration from tag+0x98, clamped to [0.05f, 2.0f], * 30.0f.
+ * Confirmed: FUN_001a8190(unit, ticks, 0x800) at 0x3d1c8.
+ * Confirmed: FUN_0003cc10(actor_handle, 1) at 0x3d304.
+ * Confirmed: FUN_0005d420(encounter_handle) at 0x3d318 if actor+0x34 != -1. */
+void FUN_0003cff0(int actor_handle)
+{
+  char *actor;
+  char *tag;
+  char *unit;
+  int encounter_handle;
+  int weapon_handle;
+  float accuracy;
+  float boosted;
+  float burst_duration;
+  int ticks;
+  int *seed;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  encounter_handle = *(int *)(actor + 0x34);
+
+  /* Combat state 3 with burst count > 1: perform firing logic */
+  if (*(short *)(actor + 0x6a) == 3 && *(short *)(actor + 0x6e) > 1) {
+    unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+
+    if (unit_is_alive(*(int *)(actor + 0x18))) {
+      char *unit2 =
+        (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+      weapon_handle = unit_get_weapon(
+        *(int *)(actor + 0x18), (int)(uint16_t)(*(int16_t *)(unit2 + 0x2a2)));
+
+      if (weapon_handle != -1 && *(char *)(unit + 0x23c) > 0) {
+        /* Clamp accuracy to [0.1f, 0.6f] */
+        if (*(float *)(tag + 0x94) < 0.1f) {
+          accuracy = 0.1f;
+        } else if (*(float *)(tag + 0x94) > 0.6f) {
+          accuracy = 0.6f;
+        } else {
+          accuracy = *(float *)(tag + 0x94);
+        }
+
+        /* Accuracy boost under certain conditions */
+        if (*(char *)(actor + 0x378) != 0 ||
+            (*(short *)(actor + 0x60c) > 0 &&
+             *(float *)(actor + 0x648) < *(float *)0x254644)) {
+          boosted = accuracy * 1.5f;
+          if (boosted > 0.6f) {
+            boosted = 0.6f;
+          }
+          if (boosted > accuracy) {
+            accuracy = boosted;
+          }
+        }
+
+        /* Random check against accuracy */
+        seed = get_global_random_seed_address();
+        if (random_math_real((unsigned int *)seed) < accuracy) {
+          /* Calculate burst duration in ticks */
+          if (*(float *)(tag + 0x98) == 0.0f) {
+            FUN_000121e0(0.8f, 1.3f);
+          }
+
+          /* Clamp burst_seconds to [0.05f, 2.0f] */
+          if (*(float *)(tag + 0x98) < 0.05f) {
+            burst_duration = 0.05f;
+          } else if (*(float *)(tag + 0x98) > 2.0f) {
+            burst_duration = 2.0f;
+          } else {
+            burst_duration = *(float *)(tag + 0x98);
+          }
+
+          /* Convert to ticks (30 ticks per second) */
+          ticks = (int)(burst_duration * 30.0f);
+          FUN_001a8190(*(int *)(actor + 0x18), ticks, 0x800);
+          *(char *)(unit + 0x23c) = (char)ticks;
+        }
+      }
+    }
+  }
+
+  /* Update weapon ammo state */
+  unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+
+  seed = get_global_random_seed_address();
+  float random_val = random_math_real((unsigned int *)seed);
+
+  char *unit2 = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+  weapon_handle =
+    unit_get_weapon(*(int *)(actor + 0x18), (int)(*(int16_t *)(unit2 + 0x2a2)));
+
+  /* Check global flag for clearing weapon state */
+  char *ai_globals = *(char **)0x632574;
+  if (*(char *)(ai_globals + 0x3b4) == 0 ||
+      random_val < *(float *)(tag + 0x1d4)) {
+    csmemset(unit + 0x2ce, 0, 2);
+  }
+
+  if (weapon_handle != -1) {
+    /* Set weapon ammo fraction if tag defines it */
+    if (*(float *)(tag + 0x1d8) > 0.0f || *(float *)(tag + 0x1dc) > 0.0f) {
+      seed = get_global_random_seed_address();
+      float ammo_fraction = random_real_range(seed, *(float *)(tag + 0x1d8),
+                                              *(float *)(tag + 0x1dc));
+      FUN_000fd180(weapon_handle, ammo_fraction);
+    }
+
+    /* Set magazine rounds if tag defines it */
+    if (*(short *)(tag + 0x1e0) > 0 || *(short *)(tag + 0x1e2) > 0) {
+      int16_t rounds = 0;
+      seed = get_global_random_seed_address();
+      rounds = random_range((unsigned int *)seed, *(short *)(tag + 0x1e0),
+                            *(short *)(tag + 0x1e2) + 1);
+      FUN_000fbbd0(weapon_handle, &rounds);
+    }
+  }
+
+  FUN_0003cc10(actor_handle, 1);
+
+  if (encounter_handle != -1) {
+    FUN_0005d420(encounter_handle);
+  }
+}
+
 /* FUN_0003d950 (0x3d950) — actor_erase_units
  *
  * Erase all units owned by an actor. For swarm actors (byte at actor+6 != 0),
@@ -426,116 +1001,4 @@ void FUN_0003d950(int actor_handle, char flag)
   } else {
     object_delete(unit_handle);
   }
-}
-
-/* FUN_0003ae60 (0x3ae60) — actor_detach_unit
- *
- * Detach a unit from an actor. This removes the unit from the actor's unit
- * list, updates the unit linked-list pointers (unit+0x1ac/0x1b0), and if the
- * actor is a swarm, removes the unit from the swarm's component arrays.
- *
- * Confirmed: datum_get(actor_data, actor_handle) at 0x3ae71.
- * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3ae7f.
- * Confirmed: unit+0x1a8 == actor_handle check at 0x3ae8f.
- * Confirmed: assert actor+0x1e > 0 (swarm_unit_count) at 0x3aea2.
- * Confirmed: FUN_0013ff50(unit_handle, 1) at 0x3aec7.
- * Confirmed: FUN_001adf10(unit_handle, 0) at 0x3aecf.
- * Confirmed: swarm lookup via datum_get(swarm_data, actor+0x28) at 0x3aeed.
- * Confirmed: swarm+0x18 array holds unit handles, swarm+0x58 holds component handles.
- * Confirmed: datum_delete(swarm_component_data, component_handle) at 0x3afdd.
- * Confirmed: linked list update via unit+0x1ac (prev) and unit+0x1b0 (next).
- * Confirmed: unit+0x1a8 = -1 at end, actor+0x1e decremented. */
-void FUN_0003ae60(int actor_handle, int unit_handle)
-{
-  char *actor;
-  char *unit;
-  char *swarm;
-  short i;
-  int component_handle;
-  short unit_count;
-
-  actor = (char *)datum_get(actor_data, actor_handle);
-  unit = (char *)object_get_and_verify_type(unit_handle, 3);
-
-  /* Only proceed if this unit belongs to this actor */
-  if (*(int *)(unit + 0x1a8) != actor_handle) {
-    return;
-  }
-
-  /* Assert swarm_unit_count > 0 */
-  if (*(short *)(actor + 0x1e) <= 0) {
-    display_assert("actor->meta.swarm_unit_count > 0",
-                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x579, 1);
-    system_exit(-1);
-  }
-
-  /* Set unit flags and update weapon state */
-  FUN_0013ff50(unit_handle, 1);
-  FUN_001adf10(unit_handle, 0);
-
-  /* If actor has a swarm, remove unit from swarm arrays */
-  if (*(int *)(actor + 0x28) != -1) {
-    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
-
-    /* Assert swarm->actor_index == actor_index */
-    if (*(int *)(swarm + 4) != actor_handle) {
-      display_assert("swarm->actor_index == actor_index",
-                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x585, 1);
-      system_exit(-1);
-    }
-
-    /* Assert swarm->unit_count == actor->meta.swarm_unit_count */
-    if (*(short *)(swarm + 2) != *(short *)(actor + 0x1e)) {
-      display_assert("swarm->unit_count == actor->meta.swarm_unit_count",
-                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x586, 1);
-      system_exit(-1);
-    }
-
-    /* Search for unit in swarm array and remove it */
-    for (i = 0; i < *(short *)(swarm + 2); i++) {
-      if (*(int *)(swarm + 0x18 + i * 4) == unit_handle) {
-        /* Save component handle before removing */
-        component_handle = *(int *)(swarm + 0x58 + i * 4);
-
-        /* Decrement count */
-        unit_count = *(short *)(swarm + 2) - 1;
-        *(short *)(swarm + 2) = unit_count;
-
-        /* Compact arrays if not last element */
-        if (i < unit_count) {
-          *(int *)(swarm + 0x18 + i * 4) = *(int *)(swarm + 0x18 + unit_count * 4);
-          *(int *)(swarm + 0x58 + i * 4) = *(int *)(swarm + 0x58 + *(short *)(swarm + 2) * 4);
-        }
-
-        /* Delete the swarm component */
-        datum_delete(swarm_component_data, component_handle);
-        goto update_linked_list;
-      }
-    }
-
-    /* Unit not found in swarm - assert */
-    display_assert("found", "c:\\halo\\SOURCE\\ai\\actors.c", 0x59c, 1);
-    system_exit(-1);
-  }
-
-update_linked_list:
-  /* Update linked list of units */
-  if (*(int *)(unit + 0x1b0) == -1) {
-    /* No next unit - update actor's first unit pointer */
-    *(int *)(actor + 0x24) = *(int *)(unit + 0x1ac);
-  } else {
-    /* Update next unit's prev pointer */
-    char *next_unit = (char *)object_get_and_verify_type(*(int *)(unit + 0x1b0), 3);
-    *(int *)(next_unit + 0x1ac) = *(int *)(unit + 0x1ac);
-  }
-
-  if (*(int *)(unit + 0x1ac) != -1) {
-    /* Update prev unit's next pointer */
-    char *prev_unit = (char *)object_get_and_verify_type(*(int *)(unit + 0x1ac), 3);
-    *(int *)(prev_unit + 0x1b0) = *(int *)(unit + 0x1b0);
-  }
-
-  /* Clear unit's actor reference and decrement count */
-  *(int *)(unit + 0x1a8) = -1;
-  *(short *)(actor + 0x1e) = *(short *)(actor + 0x1e) - 1;
 }
