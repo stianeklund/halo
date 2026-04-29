@@ -5,7 +5,11 @@
  * source tree at c:\halo\SOURCE\saved games\game_state_xbox.c).
  */
 
+#ifdef XDK_BUILD
+void __stdcall MmFreeContiguousMemory(void *BaseAddress);
+#else
 #include "xbox.h"
+#endif
 
 /* Xbox kernel file I/O wrappers (stdcall) */
 typedef bool(__stdcall *close_handle_fn)(int handle);
