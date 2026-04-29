@@ -36,8 +36,8 @@ typedef int(__stdcall *xinput_open_fn)(void *, int, int, int);
 typedef int(__stdcall *xinput_get_state_fn)(int, void *);
 typedef void(__stdcall *xinput_close_fn)(int);
 typedef int(__stdcall *xset_event_fn)(int);
-typedef int (__stdcall *xinput_get_keystroke_fn)(void *);
-typedef int (__stdcall *xinput_debug_init_keyboard_fn)(void *);
+typedef int(__stdcall *xinput_get_keystroke_fn)(void *);
+typedef int(__stdcall *xinput_debug_init_keyboard_fn)(void *);
 
 typedef struct xinput_gamepad {
   uint16_t wButtons;
@@ -81,6 +81,19 @@ typedef struct input_change_flag_mapping {
   uint32_t change_flag;
 } input_change_flag_mapping;
 
+#pragma pack(push, 1)
+typedef struct xinput_feedback {
+  uint32_t status;
+  uint8_t header[0x3e];
+  uint16_t left_motor;
+  uint16_t right_motor;
+} xinput_feedback;
+#pragma pack(pop)
+
+cs(xinput_feedback, 0x46);
+co(xinput_feedback, status, 0x0);
+co(xinput_feedback, left_motor, 0x42);
+co(xinput_feedback, right_motor, 0x44);
 cs(input_gamepad_state, 0x28);
 cs(input_raw_stick_state, 0x8);
 cs(input_rumble_state, 0x4);
@@ -171,6 +184,21 @@ static uint8_t *input_update_event_pending(void)
 static int *input_keyboard_handle(void)
 {
   return (int *)0x46bb34;
+}
+
+static int *input_state_file_handle(void)
+{
+  return (int *)0x46b814;
+}
+
+static int *input_state_mode(void)
+{
+  return (int *)0x46b818;
+}
+
+static xinput_feedback *input_feedback_states(void)
+{
+  return (xinput_feedback *)0x46b900;
 }
 
 static uint8_t *input_digital_button_states(void)
@@ -338,6 +366,24 @@ static int16_t input_normalize_stick(int16_t value)
   }
 
   return 0;
+}
+
+/* input_open_state_file (0xce5c0)
+ * Check for sentinel files to select input state recording/playback mode,
+ * then open d:\state.data with the appropriate access flags. */
+void input_open_state_file(void)
+{
+  input_check_state_mode();
+
+  if (*input_state_mode() == 3) {
+    *input_state_file_handle() =
+      CreateFileA("d:\\state.data", 0x40000000, 0, 0, 2, 0x8000000, 0);
+    return;
+  }
+  if (*input_state_mode() == 4 || *input_state_mode() == 5) {
+    *input_state_file_handle() =
+      CreateFileA("d:\\state.data", 0x80000000, 0, 0, 3, 0x8000000, 0);
+  }
 }
 
 void input_flush(void)
@@ -571,6 +617,42 @@ void input_get_device_states(void)
   }
 }
 
+#define ERROR_IO_PENDING 0x3e5
+
+/* input_flush_rumble (0xcfd00)
+ * Send rumble motor commands to all connected gamepads. Called from
+ * input_keyboard_thread. Motors are silenced when input is suppressed or
+ * game state does not warrant rumble. */
+void input_flush_rumble(void)
+{
+  bool suppress;
+  int handle;
+  int i;
+  xinput_feedback *feedback;
+
+  if (!*input_suppressed() && !console_is_active() && !game_time_get_paused() &&
+      game_in_progress()) {
+    suppress = false;
+  } else {
+    suppress = true;
+  }
+
+  feedback = input_feedback_states();
+  for (i = 0; i < MAXIMUM_GAMEPADS; i++) {
+    handle = input_gamepad_handles()[i];
+    if (handle != 0) {
+      if (feedback->status == 0) {
+        feedback->left_motor = suppress ? 0 : input_rumble_states()[i].left;
+        feedback->right_motor = suppress ? 0 : input_rumble_states()[i].right;
+        XInputSetState(handle, feedback);
+      } else if (feedback->status != ERROR_IO_PENDING) {
+        feedback->status = 0;
+      }
+    }
+    feedback++;
+  }
+}
+
 /* input_update_keyboard_devices (0xcfdb0)
  *
  * Hot-plug XDEVICE_TYPE_DEBUG_KEYBOARD handles, age held-key frame counters,
@@ -660,8 +742,8 @@ void input_update_keyboard_devices(void)
       system_exit(-1);
     }
 
-    ascii_remap =
-      (input_ascii_remap_table()[ascii_byte] != -1) ? ascii_byte : (uint8_t)0xff;
+    ascii_remap = (input_ascii_remap_table()[ascii_byte] != -1) ? ascii_byte :
+                                                                  (uint8_t)0xff;
 
     /* VirtualKey is 1 byte (0-255), so the < NUMBER_OF_VIRTUAL_CODES (256)
      * assert can never fail; included to mirror the original binary */

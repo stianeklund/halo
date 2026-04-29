@@ -3612,7 +3612,8 @@
       "functions": [
         {
           "decl": "void input_open_state_file(void);",
-          "addr": "0xce5c0"
+          "addr": "0xce5c0",
+          "ported": true
         },
         {
           "decl": "void input_flush(void);",
@@ -3656,7 +3657,8 @@
         },
         {
           "decl": "void input_flush_rumble(void);",
-          "addr": "0xcfd00"
+          "addr": "0xcfd00",
+          "ported": true
         },
         {
           "decl": "void input_update_keyboard_devices(void);",
@@ -3687,6 +3689,10 @@
           "decl": "void input_frame_end(void);",
           "addr": "0xd0190",
           "ported": true
+        },
+        {
+          "decl": "void input_check_state_mode(void);",
+          "addr": "0xce4b0"
         }
       ]
     },
@@ -8164,6 +8170,10 @@
         {
           "decl": "int __stdcall file_get_full_attributes(const char *path);",
           "addr": "0x1d0e96"
+        },
+        {
+          "decl": "int __stdcall CreateFileA(const char *, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);",
+          "addr": "0x1d1d85"
         }
       ]
     },
@@ -8353,6 +8363,15 @@
           "addr": "0xfd360",
           "comment": "Attempt to put away a weapon; returns false if the weapon has active triggers.",
           "ported": true
+        }
+      ]
+    },
+    {
+      "name": "XAPILIB:xinput.obj",
+      "functions": [
+        {
+          "decl": "int __stdcall XInputSetState(int, void *);",
+          "addr": "0x24c427"
         }
       ]
     }
