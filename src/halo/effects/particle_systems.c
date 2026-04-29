@@ -341,6 +341,53 @@ check_emission_multiplier:
   }
 }
 
+/* Populate particle output from state definition (0xa0080).
+ * Reads particle state definition properties and fills in 7 floats in the
+ * output array. First generates a random interpolation factor t, then:
+ * - output[0] = random_range(state_def+0x48, state_def+0x4c)
+ * - output[1] = random_range(state_def+0x50, state_def+0x54)
+ * - output[2] = random_range(state_def+0x58, state_def+0x5c)
+ * - output[3] = random_range(state_def+0x60, state_def+0x70)
+ * - output[4] = lerp(state_def+0x64, state_def+0x74, t)
+ * - output[5] = lerp(state_def+0x68, state_def+0x78, t)
+ * - output[6] = lerp(state_def+0x6c, state_def+0x7c, t) */
+void FUN_000a0080(void *sys_def_arg, short state_index, void *output_arg)
+{
+  char *sys_def = (char *)sys_def_arg;
+  float *output = (float *)output_arg;
+  char *state_def;
+  float t;
+
+  state_def =
+    (char *)tag_block_get_element((void *)(sys_def + 0x74), (int)state_index,
+                                  0x178);
+
+  /* Generate random interpolation factor */
+  t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f, 1.0f);
+
+  /* Fill output with random ranges */
+  output[1] = random_real_range((int *)random_math_get_local_seed_address(),
+                                *(float *)(state_def + 0x50),
+                                *(float *)(state_def + 0x54));
+  output[2] = random_real_range((int *)random_math_get_local_seed_address(),
+                                *(float *)(state_def + 0x58),
+                                *(float *)(state_def + 0x5c));
+  output[0] = random_real_range((int *)random_math_get_local_seed_address(),
+                                *(float *)(state_def + 0x48),
+                                *(float *)(state_def + 0x4c));
+  output[3] = random_real_range((int *)random_math_get_local_seed_address(),
+                                *(float *)(state_def + 0x60),
+                                *(float *)(state_def + 0x70));
+
+  /* Fill output with linear interpolations */
+  output[4] = (*(float *)(state_def + 0x74) - *(float *)(state_def + 0x64)) * t +
+              *(float *)(state_def + 0x64);
+  output[5] = (*(float *)(state_def + 0x78) - *(float *)(state_def + 0x68)) * t +
+              *(float *)(state_def + 0x68);
+  output[6] = (*(float *)(state_def + 0x7c) - *(float *)(state_def + 0x6c)) * t +
+              *(float *)(state_def + 0x6c);
+}
+
 void particle_systems_dispose_from_old_map(void)
 {
   int particle_system_index;

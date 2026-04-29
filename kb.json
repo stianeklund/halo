@@ -4681,7 +4681,8 @@
         },
         {
           "decl": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
-          "addr": "0xa0080"
+          "addr": "0xa0080",
+          "ported": true
         },
         {
           "decl": "void FUN_000a0180(float dt, int particle_system_handle);",
