@@ -4163,7 +4163,8 @@
         },
         {
           "decl": "void FUN_001362d0(int object_handle);",
-          "addr": "0x1362d0"
+          "addr": "0x1362d0",
+          "ported": true
         },
         {
           "decl": "void FUN_001365d0(int object_handle, int arg1, int arg2);",

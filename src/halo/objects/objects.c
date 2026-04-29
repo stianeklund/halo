@@ -217,6 +217,73 @@ void FUN_00136150(int object_handle)
   }
 }
 
+/* FUN_001362d0 — delete all widgets from an object's widget list.
+ * Walks the linked list of widgets at obj+0x11c, calling each widget type's
+ * delete_proc (at widget_types[type]+0x1c) if the widget has a valid
+ * definition handle, then deletes the widget datum from the pool.
+ *
+ * Widget structure (0xc bytes):
+ *   +0x02: type (int16_t) - index into widget_types table
+ *   +0x04: definition_handle (int) - handle returned by new_proc, or -1
+ *   +0x08: next_widget_handle (int) - linked list next pointer
+ *
+ * Widget types table at 0x323528 (5 entries, 0x28 bytes each):
+ *   +0x00: group_tag
+ *   +0x18: new_proc
+ *   +0x1c: delete_proc
+ *
+ * Source: c:\halo\SOURCE\objects\widgets\widgets.c (line 0xbe)
+ * Assert: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
+ */
+void FUN_001362d0(int object_handle)
+{
+  int *obj;
+  int widget_handle;
+  char *widget;
+  int next_handle;
+  int16_t type;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+
+  widget_handle = *(int *)((char *)obj + 0x11c);
+  if (widget_handle == -1) {
+    *(int *)((char *)obj + 0x11c) = -1;
+    return;
+  }
+
+  do {
+    widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
+    type = *(int16_t *)(widget + 0x2);
+
+    /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
+    if (type < 0 || type >= 5) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
+    }
+
+    next_handle = *(int *)(widget + 0x8);
+
+    /* If this widget has a valid definition handle, call delete_proc. */
+    if (*(int *)(widget + 0x4) != -1) {
+      if (*(int (**)(int))(0x323528 + (int)type * 0x28 + 0x1c) == 0) {
+        display_assert("type_definition->delete_proc",
+                       "c:\\halo\\SOURCE\\objects\\widgets\\widgets.c", 0xbe,
+                       1);
+        system_exit(-1);
+      }
+      (*(void (**)(int))(0x323528 + (int)type * 0x28 + 0x1c))(
+        *(int *)(widget + 0x4));
+    }
+
+    datum_delete(*(data_t **)0x5a90c4, widget_handle);
+    widget_handle = next_handle;
+  } while (next_handle != -1);
+
+  *(int *)((char *)obj + 0x11c) = -1;
+}
+
 void FUN_001365d0(int object_handle, int arg1, int arg2);
 
 /* Initialize a damage_params struct with a damage effect tag index (0x136750).
@@ -561,7 +628,8 @@ void *object_try_and_get_and_verify_type(int datum_handle, int type_mask)
 void *object_get_and_verify_type(int datum_handle, int type_mask)
 {
   /* datum_get: first arg = data table ptr (value at 0x5a8d50) */
-  object_header_data_t *header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, datum_handle);
+  object_header_data_t *header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, datum_handle);
   object_data_t *obj = header->object;
   int16_t type = obj->type;
 
@@ -2673,7 +2741,8 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
     void *node_mat =
       object_get_node_matrix(obj->parent_object_index.value,
                              (int16_t) * (int8_t *)((char *)obj + 0xd0));
-    matrix4x3_multiply((float *)node_mat, (float *)out_matrix, (float *)out_matrix); /* dup-args-ok */
+    matrix4x3_multiply((float *)node_mat, (float *)out_matrix,
+                       (float *)out_matrix); /* dup-args-ok */
   }
 
   return out_matrix;
@@ -4449,15 +4518,18 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
  * delete) or from the garbage collection pass in objects_update.
  *
  * Steps:
- *   1. If object has flag 0x10000, clear garbage flag via object_set_garbage_flag.
- *   2. Call deletion callbacks via FUN_00138eb0 (dispatch through function table).
+ *   1. If object has flag 0x10000, clear garbage flag via
+ * object_set_garbage_flag.
+ *   2. Call deletion callbacks via FUN_00138eb0 (dispatch through function
+ * table).
  *   3. Recursively deactivate child object (obj+0xC8).
  *   4. If delete_sibling is nonzero, recursively deactivate sibling (obj+0xC4).
  *   5. Clear collideable bit (datum header bit 0) if set.
  *   6. Call type table cleanup via FUN_0013c100.
  *   7. Call object cleanup via FUN_001362d0.
  *   8. Call widget detach via FUN_00143a00.
- *   9. If object has flag 0x800, disconnect from map via object_disconnect_from_map.
+ *   9. If object has flag 0x800, disconnect from map via
+ * object_disconnect_from_map.
  *  10. Call FUN_0013c560 (final cleanup).
  *  11. Free memory pool block if allocated (via memory_pool_block_free).
  *  12. Delete datum from object pool via datum_delete.
@@ -4466,9 +4538,9 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
  * Confirmed: cdecl, 2 stack args (object_handle, delete_sibling).
  * Confirmed: delete_sibling is read as byte (MOVZX AL) but compared as bool.
  * Confirmed: Recursive calls at 0x1449ff and 0x144a1c with (child/sibling, 1).
- * Confirmed: Multiple object_get_and_verify_type calls to re-fetch after recursion.
- * Confirmed: EDI preserved across recursive calls (initial object ptr).
- * Confirmed: obj+0xC8 is child handle, obj+0xC4 is sibling handle.
+ * Confirmed: Multiple object_get_and_verify_type calls to re-fetch after
+ * recursion. Confirmed: EDI preserved across recursive calls (initial object
+ * ptr). Confirmed: obj+0xC8 is child handle, obj+0xC4 is sibling handle.
  * Confirmed: 0x10000 flag triggers garbage flag clear.
  * Confirmed: 0x800 flag triggers map disconnect.
  */
