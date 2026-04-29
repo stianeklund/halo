@@ -4442,6 +4442,108 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
 }
 
 /*
+ * FUN_001449b0 — object deactivation and deallocation.
+ *
+ * Recursively tears down an object and its children/siblings, then deallocates
+ * the object from the object pool. Called either from FUN_00144b30 (immediate
+ * delete) or from the garbage collection pass in objects_update.
+ *
+ * Steps:
+ *   1. If object has flag 0x10000, clear garbage flag via object_set_garbage_flag.
+ *   2. Call deletion callbacks via FUN_00138eb0 (dispatch through function table).
+ *   3. Recursively deactivate child object (obj+0xC8).
+ *   4. If delete_sibling is nonzero, recursively deactivate sibling (obj+0xC4).
+ *   5. Clear collideable bit (datum header bit 0) if set.
+ *   6. Call type table cleanup via FUN_0013c100.
+ *   7. Call object cleanup via FUN_001362d0.
+ *   8. Call widget detach via FUN_00143a00.
+ *   9. If object has flag 0x800, disconnect from map via object_disconnect_from_map.
+ *  10. Call FUN_0013c560 (final cleanup).
+ *  11. Free memory pool block if allocated (via memory_pool_block_free).
+ *  12. Delete datum from object pool via datum_delete.
+ *  13. Clear field_8 and unk_2 in header.
+ *
+ * Confirmed: cdecl, 2 stack args (object_handle, delete_sibling).
+ * Confirmed: delete_sibling is read as byte (MOVZX AL) but compared as bool.
+ * Confirmed: Recursive calls at 0x1449ff and 0x144a1c with (child/sibling, 1).
+ * Confirmed: Multiple object_get_and_verify_type calls to re-fetch after recursion.
+ * Confirmed: EDI preserved across recursive calls (initial object ptr).
+ * Confirmed: obj+0xC8 is child handle, obj+0xC4 is sibling handle.
+ * Confirmed: 0x10000 flag triggers garbage flag clear.
+ * Confirmed: 0x800 flag triggers map disconnect.
+ */
+/* 0x1449b0 */
+void FUN_001449b0(int object_handle, int delete_sibling)
+{
+  object_data_t *obj;
+  object_header_data_t *hdr;
+  int16_t obj_type;
+  void *field_8_ptr;
+
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  tag_get(0x6f626a65, (int)obj->tag_index);
+
+  /* If object has flag 0x10000, clear the garbage flag. */
+  if (obj->flags & 0x10000) {
+    object_set_garbage_flag(object_handle, 0);
+  }
+
+  /* Dispatch deletion callbacks. */
+  FUN_00138eb0(object_handle);
+
+  /* Recursively deactivate child object. */
+  if (obj->unk_200.value != -1) {
+    FUN_001449b0(obj->unk_200.value, 1);
+  }
+
+  /* Optionally deactivate sibling object. */
+  if ((char)delete_sibling != 0 && obj->next_object_index.value != -1) {
+    FUN_001449b0(obj->next_object_index.value, 1);
+  }
+
+  /* Get datum header and clear collideable bit if set. */
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_get_and_verify_type(object_handle, -1);
+  if (hdr->unk_2 & 0x01) {
+    hdr->unk_2 &= (uint8_t)~0x01;
+  }
+
+  /* Re-fetch object pointer after recursive calls. */
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  tag_get(0x6f626a65, (int)obj->tag_index);
+
+  /* Call type table cleanup. */
+  obj_type = obj->type;
+  FUN_0013c100(obj_type);
+
+  /* Object cleanup and widget detach. */
+  FUN_001362d0(object_handle);
+  FUN_00143a00(object_handle);
+
+  /* If flag 0x800 is set, disconnect from map. */
+  if (obj->flags & 0x800) {
+    object_disconnect_from_map(object_handle);
+  }
+
+  /* Final cleanup. */
+  FUN_0013c560(object_handle);
+
+  /* Free memory pool block if allocated. */
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  field_8_ptr = (void *)&hdr->object;
+  if (hdr->object != 0) {
+    memory_pool_block_free(*(void **)0x46f080, (void **)field_8_ptr);
+  }
+
+  /* Delete datum from pool. */
+  datum_delete(*(data_t **)0x5a8d50, object_handle);
+
+  /* Clear remaining fields. */
+  *(object_data_t **)field_8_ptr = 0;
+  hdr->unk_2 = 0;
+}
+
+/*
  * FUN_00144b30 — delete and immediately deactivate an object.
  *
  * Marks the object (and its children) for deletion via object_delete_internal,

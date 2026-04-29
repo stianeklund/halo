@@ -1650,6 +1650,10 @@
         {
           "decl": "bool memory_pool_block_new(void *pool, void **block_reference, int size);",
           "addr": "0x11e6c0"
+        },
+        {
+          "decl": "void memory_pool_block_free(void *pool, void **block_reference);",
+          "addr": "0x11e7a0"
         }
       ]
     },
@@ -4158,6 +4162,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_001362d0(int object_handle);",
+          "addr": "0x1362d0"
+        },
+        {
           "decl": "void FUN_001365d0(int object_handle, int arg1, int arg2);",
           "addr": "0x1365d0",
           "ported": true
@@ -4171,6 +4179,10 @@
           "decl": "void FUN_00138e30(void *damage_params, int target_index);",
           "addr": "0x138e30",
           "ported": true
+        },
+        {
+          "decl": "void FUN_00138eb0(int object_handle);",
+          "addr": "0x138eb0"
         },
         {
           "decl": "void object_wake(int object_handle);",
@@ -4457,6 +4469,10 @@
           "decl": "void object_compute_node_matrices(int object_handle);",
           "addr": "0x141b70",
           "ported": true
+        },
+        {
+          "decl": "void FUN_00143a00(int object_handle);",
+          "addr": "0x143a00"
         },
         {
           "decl": "void FUN_00143ae0(int object_handle, float *position, float *forward, float *up);",
