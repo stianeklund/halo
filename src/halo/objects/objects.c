@@ -325,6 +325,30 @@ void FUN_00138e30(void *damage_params, int target_index)
   FUN_00146be0(damage_params);
 }
 
+/* FUN_00138eb0 — dispatch object deletion callbacks.
+ * Iterates through a table of 3 function pointers at 0x3235f0 and calls
+ * each with the object handle. These callbacks clean up references to the
+ * object in various subsystems (actors, players, AI, etc.) before deletion.
+ *
+ * Table at 0x3235f0:
+ *   [0] = 0x13d8b0 — clears object references in other objects
+ *   [1] = 0x40700  — actor cleanup and player notifications
+ *   [2] = 0xbb220  — player object reference cleanup
+ */
+void FUN_00138eb0(int object_handle)
+{
+  void (**table)(int);
+  int i;
+
+  table = (void (**)(int))0x3235f0;
+  i = 3;
+  do {
+    (*table)(object_handle);
+    table++;
+    i--;
+  } while (i != 0);
+}
+
 /*
  * object_wake — disconnect a point light from the cluster partition.
  * (from c:\halo\SOURCE\objects\object_lights.c, line 0x4d0)

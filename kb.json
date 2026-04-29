@@ -4183,7 +4183,8 @@
         },
         {
           "decl": "void FUN_00138eb0(int object_handle);",
-          "addr": "0x138eb0"
+          "addr": "0x138eb0",
+          "ported": true
         },
         {
           "decl": "void object_wake(int object_handle);",
