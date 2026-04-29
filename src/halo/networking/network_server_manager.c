@@ -889,8 +889,10 @@ bool FUN_0012e750(int server)
     flags_ptr = (short *)(s + 0x44a);
     for (i = 4; i != 0; i--) {
       if ((*(short *)flags_ptr & 1) && !(*(short *)flags_ptr & 4)) {
-        if (FUN_0019f3a0(s + 0x11c + (int)*(short *)(flags_ptr - 1) * 0x44,
-                         name_buf, 0x20)) {
+        if (wide_to_ascii(
+              (const wchar_t *)(s + 0x11c +
+                                (int)*(short *)(flags_ptr - 1) * 0x44),
+              name_buf, 0x20)) {
           name = name_buf;
         } else {
           name = "<unknown name>";

@@ -26,6 +26,35 @@ void unicode_sprintf(wchar_t *buffer, int buffer_size, const wchar_t *format,
   va_end(args);
 }
 
+/* wide_to_ascii — convert a wide string to an ASCII byte string.
+ * Returns NULL if the string won't fit in the buffer or contains
+ * any non-ASCII characters (code points >= 0x80). Otherwise copies
+ * the low byte of each wide character and null-terminates the result. */
+char *wide_to_ascii(const wchar_t *unicode, char *ascii, int size)
+{
+  unsigned int length;
+  unsigned int i;
+
+  assert_halt(unicode && ascii);
+  length = _wcslen(unicode);
+  assert_halt(length < 0x8000);
+
+  if (length > (unsigned int)(size - 1))
+    return NULL;
+
+  for (i = 0; i < length; i++) {
+    if ((unicode[i] & 0xFF80) != 0)
+      return NULL;
+  }
+
+  for (i = 0; i < length; i++) {
+    ascii[i] = (char)unicode[i];
+  }
+
+  ascii[i] = '\0';
+  return ascii;
+}
+
 wchar_t *ascii_to_wide(const char *ascii, wchar_t *unicode, size_t length)
 {
   int len;
