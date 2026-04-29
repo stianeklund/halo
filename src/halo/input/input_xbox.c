@@ -36,8 +36,8 @@ typedef int(__stdcall *xinput_open_fn)(void *, int, int, int);
 typedef int(__stdcall *xinput_get_state_fn)(int, void *);
 typedef void(__stdcall *xinput_close_fn)(int);
 typedef int(__stdcall *xset_event_fn)(int);
-typedef int (*xinput_get_keystroke_fn)(void *);
-typedef int (*xinput_debug_init_keyboard_fn)(void *);
+typedef int (__stdcall *xinput_get_keystroke_fn)(void *);
+typedef int (__stdcall *xinput_debug_init_keyboard_fn)(void *);
 
 typedef struct xinput_gamepad {
   uint16_t wButtons;
@@ -140,7 +140,7 @@ static input_gamepad_state *input_gamepad_states(void)
 
 static input_raw_stick_state *input_raw_stick_states(void)
 {
-  return (input_raw_stick_state *)0x46ba1a;
+  return (input_raw_stick_state *)0x46ba18;
 }
 
 static void *suppressed_gamepad_state(void)
