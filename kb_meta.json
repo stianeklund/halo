@@ -5551,6 +5551,10 @@
         "The name sound_find_oldest_channel for 0x1ccd70 is inferred from behavior; the function compares tick counts and distances to find the best eviction candidate."
       ]
     },
+    "0x1cd450": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1cd5a0": {
       "kind": "function",
       "status": "ported",
