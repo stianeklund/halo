@@ -916,6 +916,33 @@ void FUN_0009d590(void *effect)
   *(float *)(ef + 0x58) = t;
 }
 
+/* Assign a local player index to all effects attached to a given weapon
+ * (0x9e0d0). Iterates the effect pool and for each effect whose object handle
+ * (offset 0x3c) matches the given weapon_handle, asserts that
+ * local_player_index is currently NONE, then sets it and re-processes the
+ * effect's event/marker callbacks via FUN_0009d4e0 with the particle marker
+ * callback (FUN_000dd190). */
+void FUN_0009e0d0(int local_player_index, int weapon_handle)
+{
+  int effect_index;
+  for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
+       effect_index = data_next_index(effect_data, effect_index)) {
+    char *effect = (char *)datum_get(effect_data, effect_index);
+    tag_get(0x65666665, *(int *)(effect + 4));
+    if (*(int *)(effect + 0x3c) != weapon_handle)
+      continue;
+
+    if (*(int16_t *)(effect + 0x4c) != (int16_t)NONE) {
+      display_assert("effect->local_player_index==NONE",
+                     "c:\\halo\\SOURCE\\effects\\effects.c", 0x249, 1);
+      system_exit(-1);
+    }
+
+    *(int16_t *)(effect + 0x4c) = (int16_t)local_player_index;
+    FUN_0009d4e0((int)effect, (void *)0xdd190);
+  }
+}
+
 void FUN_0009e310(void *effect)
 {
   char *ef = (char *)effect;

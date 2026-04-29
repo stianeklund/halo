@@ -2149,7 +2149,8 @@
         },
         {
           "decl": "void FUN_0009e0d0(int local_player_index, int weapon_handle);",
-          "addr": "0x9e0d0"
+          "addr": "0x9e0d0",
+          "ported": true
         },
         {
           "decl": "void FUN_0009e310(void *effect@<ebx>);",
