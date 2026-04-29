@@ -821,6 +821,10 @@
         {
           "decl": "void FUN_001282f0(int connection, bool open);",
           "addr": "0x1282f0"
+        },
+        {
+          "decl": "int __stdcall FUN_00222df7(void *key);",
+          "addr": "0x222df7"
         }
       ]
     },
@@ -6715,7 +6719,8 @@
         },
         {
           "decl": "void FUN_00082b30(void);",
-          "addr": "0x82b30"
+          "addr": "0x82b30",
+          "ported": true
         },
         {
           "decl": "void endpoint_pool_cleanup(void);",
