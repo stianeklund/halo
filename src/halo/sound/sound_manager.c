@@ -38,9 +38,19 @@ void sound_object_apply_pitch_delta(int object_handle, float pitch)
 void sound_cache_sound_finished(int permutation_ptr)
 {
   char *cache_sound;
+  int cache_handle;
 
-  cache_sound =
-    (char *)datum_get(*(data_t **)0x4e9368, *(int *)(permutation_ptr + 0x2c));
+  /* When the sound cache is blown the allocation in xbox_sound_cache.c never
+   * writes back to perm+0x2c, leaving it at NONE.  datum_get halts on NONE,
+   * so guard here — nothing to decrement if no cache entry was ever assigned. */
+  cache_handle = *(int *)(permutation_ptr + 0x2c);
+  if (cache_handle == NONE) {
+    display_assert("cache_sound_handle!=NONE (sound cache blown, no entry to finish)",
+                   __FILE__, __LINE__, false);
+    return;
+  }
+
+  cache_sound = (char *)datum_get(*(data_t **)0x4e9368, cache_handle);
 
   if (*(uint8_t *)0x5054ec != 0) {
     error(2, "--- finish %d %s", *(uint8_t *)(cache_sound + 4),
