@@ -466,7 +466,7 @@ void FUN_000ddbd0(int param_1, int param_2, int param_3)
           if (anim_index != -1) {
             if ((char)param_3 != 0 && *(int *)(fp + 0x1e98) != -1 &&
                 *(int16_t *)(fp + 0x1e9c) != 1) {
-              FUN_001cd450(*(int *)(fp + 0x1e98));
+              sound_stop_impulse(*(int *)(fp + 0x1e98));
               *(int *)(fp + 0x1e98) = -1;
               *(int16_t *)(fp + 0x1e9c) = -1;
             }

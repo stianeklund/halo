@@ -1430,11 +1430,7 @@ void sound_start_next_looping_permutation(int sound_handle /* @<eax> */)
   }
 }
 
-/* Start an impulse sound with a 0.3-second fade (0x1cd450).
- * Validates the sound_index in the sound data table, asserts the sound
- * type is _sound_impulse (0), then calls sound_start_fade with mode 0,
- * 0.3 seconds, no fade-in (-1), and the given sound as fade-out. */
-void FUN_001cd450(int sound_index)
+void sound_stop_impulse(int sound_index)
 {
   void *sound;
 
@@ -2299,9 +2295,9 @@ void sound_update_music(void)
           listener + 4, (float *)(sound_entry + 0x20), location.position);
         real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
                                        location.forward);
-        real_matrix3x3_transform_vector(
-          listener + 4, (vector3_t *)(sound_entry + 0x38),
-          (vector3_t *)location.up);
+        real_matrix3x3_transform_vector(listener + 4,
+                                        (vector3_t *)(sound_entry + 0x38),
+                                        (vector3_t *)location.up);
 
         /* Scale up-vector by 30.0 and subtract listener velocity
          * (listener+0x38..0x40). */
