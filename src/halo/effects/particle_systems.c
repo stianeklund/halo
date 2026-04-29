@@ -190,7 +190,7 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
   char *type_state;
   char *state_def;
   char *particle;
-  char marker_buf[0x60];
+  char marker_buf[8 * 0x6c]; /* 8 entries at 0x6c bytes each; original SUB ESP,0x380 */
   float local_position[3];
   float local_up[3];
   int particle_handle;
