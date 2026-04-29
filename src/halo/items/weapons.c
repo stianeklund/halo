@@ -342,6 +342,51 @@ tail:
   return 1;
 }
 
+/* FUN_000fbbd0 (0xfbbd0)
+ *
+ * Sets weapon magazine rounds from an input array. For each magazine,
+ * clamps the input value to the magazine's maximum capacity, then clamps
+ * the loaded rounds to not exceed the new total.
+ */
+void FUN_000fbbd0(int weapon_handle, int16_t *rounds_array)
+{
+  int *weapon = (int *)object_get_and_verify_type(weapon_handle, 4);
+  int tag_data = (int)tag_get(0x77656170, *weapon);
+
+  if (rounds_array == NULL) {
+    display_assert("rounds_array", "c:\\halo\\SOURCE\\items\\weapons.c", 0xc0a,
+                   1);
+    system_exit(-1);
+  }
+
+  int magazine_count = *(int *)(tag_data + 0x4f0);
+  for (int16_t i = 0; (int)i < magazine_count; i++) {
+    int check_tag = (int)tag_get(0x77656170, *weapon);
+    if ((int16_t)i < 0 || (int)i >= *(int *)(check_tag + 0x4f0)) {
+      display_assert("magazine_index>=0 && "
+                     "magazine_index<weapon_definition->weapon.magazines.count",
+                     "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, 1);
+      system_exit(-1);
+    }
+
+    char *mag_def =
+      (char *)tag_block_get_element((int *)(tag_data + 0x4f0), (int)i, 0x70);
+    int16_t max_rounds = *(int16_t *)(mag_def + 8);
+    int16_t input_rounds = rounds_array[i];
+
+    int16_t new_total = (input_rounds < max_rounds) ? input_rounds : max_rounds;
+
+    char *magazine = (char *)weapon + ((int)i * 3 + 0x96) * 4;
+
+    int16_t current_loaded = *(int16_t *)(magazine + 8);
+    *(int16_t *)(magazine + 6) = new_total;
+
+    int16_t new_loaded =
+      (current_loaded <= new_total) ? current_loaded : new_total;
+    *(int16_t *)(magazine + 8) = new_loaded;
+  }
+}
+
 /* Transfer ammunition from a source object into a weapon's magazines (0xfc290).
  * For each magazine that's below initial capacity, tries to transfer rounds
  * from either the same weapon type or matching equipment. Deletes the source if
@@ -621,6 +666,65 @@ void weapon_reset_state(int weapon_handle)
       mag_entry[0] = 0;
       mag_entry[1] = 0;
     } while (mag_count_index < *(int *)(mag_tag_ptr));
+  }
+}
+
+/* FUN_000fd180 (0xfd180)
+ *
+ * Sets weapon ammo level based on a fraction. For battery-based weapons
+ * (no magazines or has triggers with charging threshold), stores the charge
+ * level at weapon+0x1f0. For magazine-based weapons, sets the loaded rounds
+ * in the first magazine and adjusts the total accordingly.
+ */
+void FUN_000fd180(int weapon_handle, float ammo_fraction)
+{
+  int *weapon = (int *)object_get_and_verify_type(weapon_handle, 4);
+  int tag_data = (int)tag_get(0x77656170, *weapon);
+
+  bool is_battery = false;
+  int magazine_count = *(int *)(tag_data + 0x4f0);
+
+  if (magazine_count == 0) {
+    is_battery = true;
+  } else {
+    int trigger_count = *(int *)(tag_data + 0x4fc);
+    for (int16_t i = 0; (int)i < trigger_count; i++) {
+      char *trigger =
+        (char *)tag_block_get_element((int *)(tag_data + 0x4fc), (int)i, 0x114);
+      if (*(float *)(trigger + 0xbc) > 0.0f) {
+        is_battery = true;
+        break;
+      }
+    }
+  }
+
+  if (ammo_fraction < 0.0f) {
+    ammo_fraction = 0.0f;
+  } else if (ammo_fraction > 1.0f) {
+    ammo_fraction = 1.0f;
+  }
+
+  if (is_battery) {
+    *(float *)((char *)weapon + 0x1f0) = 1.0f - ammo_fraction;
+    return;
+  }
+
+  if (magazine_count > 0) {
+    char *mag_def =
+      (char *)tag_block_get_element((int *)(tag_data + 0x4f0), 0, 0x70);
+    int check_tag = (int)tag_get(0x77656170, *weapon);
+    if (*(int *)(check_tag + 0x4f0) < 1) {
+      display_assert("magazine_index>=0 && "
+                     "magazine_index<weapon_definition->weapon.magazines.count",
+                     "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, 1);
+      system_exit(-1);
+    }
+
+    int16_t max_rounds = *(int16_t *)(mag_def + 0xa);
+    int16_t new_loaded = (int16_t)(int)((float)max_rounds * ammo_fraction);
+    int16_t current_loaded = *(int16_t *)((char *)weapon + 0x260);
+    *(int16_t *)((char *)weapon + 0x260) = new_loaded;
+    *(int16_t *)((char *)weapon + 0x25e) += (new_loaded - current_loaded);
   }
 }
 
