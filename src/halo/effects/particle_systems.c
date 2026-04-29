@@ -175,6 +175,172 @@ terminate:
   *(short *)(particle + 0xa) = -1;
 }
 
+/* Emit particles for a particle type (0x9fd30).
+ * Calculates how many particles to emit based on dt and the type's emission
+ * rate, then allocates and initializes each particle. Uses either time-based
+ * accumulation or fixed/random count depending on the location-resolved flag.
+ * Each particle has its creation physics applied via an indirect call. If the
+ * particle fails to resolve a valid location, it's deleted; otherwise it's
+ * linked into the type's particle list. */
+void FUN_0009fd30(void *ps_arg, int type_index, float dt)
+{
+  char *ps = (char *)ps_arg;
+  char *tag_def;
+  char *type_def;
+  char *type_state;
+  char *state_def;
+  char *particle;
+  char marker_buf[0x60];
+  float local_position[3];
+  float local_up[3];
+  int particle_handle;
+  int loop_count;
+  unsigned int target_count;
+  short creation_func_idx;
+  int emit_count_int;
+  float emit_frac;
+  char is_location_resolved;
+  short location_valid;
+
+  tag_def = (char *)tag_get(0x7063746c, *(int *)(ps + 8));
+  type_state = ps + 0x58 + type_index * 0x40;
+  type_def =
+    (char *)tag_block_get_element((void *)(tag_def + 0x5c), type_index, 0x80);
+  is_location_resolved = (*(unsigned int *)(ps + 4) >> 1) & 1;
+
+  if (is_location_resolved == 0) {
+    /* Time-based emission with fractional accumulator */
+    state_def = (char *)tag_block_get_element((void *)(type_def + 0x68),
+                                              (int)*(short *)type_state, 0xc0);
+    emit_frac = dt * *(float *)(type_state + 0x30);
+    emit_count_int = (int)emit_frac;
+    target_count = (unsigned int)(unsigned short)(*(short *)(type_state + 0x3a) +
+                                                  (short)emit_count_int);
+    emit_frac = emit_frac - (float)emit_count_int + *(float *)(type_state + 0x34);
+    *(float *)(type_state + 0x34) = emit_frac;
+    if (emit_frac > 1.0f) {
+      target_count = target_count + 1;
+      *(float *)(type_state + 0x34) = emit_frac - 1.0f;
+    }
+  } else {
+    /* Fixed or random emission count */
+    state_def = (char *)0;
+    if ((*(unsigned int *)(type_def + 0x20) & 0x400) == 0) {
+      target_count = (unsigned int)(unsigned short)*(short *)(type_def + 0x24);
+    } else {
+      emit_count_int = (int)*(short *)(type_def + 0x24);
+      emit_frac = (float)emit_count_int * *(float *)(ps + 0x14) + 0.5f;
+      target_count = (unsigned int)(int)emit_frac;
+    }
+  }
+
+  if (*(short *)(type_state + 0x3a) >= (short)target_count) {
+    goto check_emission_multiplier;
+  }
+
+  /* Set up position and orientation for new particles */
+  if (*(int *)(ps + 0xc) == -1) {
+    /* No object attachment: use system position and gravity */
+    local_position[0] = *(float *)(ps + 0x20);
+    local_position[1] = *(float *)(ps + 0x24);
+    local_position[2] = *(float *)(ps + 0x28);
+    local_up[0] = *(float *)(*(int *)0x31fc38 + 0);
+    local_up[1] = *(float *)(*(int *)0x31fc38 + 4);
+    local_up[2] = *(float *)(*(int *)0x31fc38 + 8);
+    location_valid = 1;
+  } else {
+    /* Get marker from attached object */
+    char *obj = (char *)object_get_and_verify_type(*(int *)(ps + 0xc), -1);
+    char *obj_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+    char *marker_elem =
+      (char *)tag_block_get_element((void *)(obj_tag + 0x140),
+                                    (int)*(short *)(ps + 0x10), 0x6c);
+    location_valid =
+      object_get_markers_by_string_id(*(int *)(ps + 0xc),
+                                      (void *)(marker_elem + 0x10),
+                                      marker_buf, 8);
+    object_get_location(*(int *)(ps + 0xc), ps + 0x18);
+  }
+
+  if (*(short *)(ps + 0x1c) == -1) {
+    goto check_emission_multiplier;
+  }
+
+  loop_count = 0;
+  while (*(short *)(type_state + 0x3a) < (short)target_count) {
+    if (location_valid == 0)
+      break;
+    if (loop_count >= 0x80)
+      break;
+
+    particle_handle = data_new_at_index(particle_system_data);
+    if (particle_handle == -1)
+      break;
+
+    particle = (char *)datum_get(particle_system_data, particle_handle);
+    if (is_location_resolved == 0) {
+      creation_func_idx = *(short *)(state_def + 0xb0);
+    } else {
+      creation_func_idx = *(short *)(type_def + 0x54);
+    }
+
+    if (particle == (char *)0) {
+      display_assert("particle", "c:\\halo\\SOURCE\\effects\\particle_systems.c",
+                     0x1dc, 1);
+      system_exit(-1);
+    }
+
+    /* Initialize particle */
+    *(char *)(particle + 3) = 1;
+    *(short *)(particle + 8) = -1;
+    *(short *)(particle + 0xa) = -1;
+    *(char *)(particle + 2) = 1;
+    *(float *)(particle + 0x44) = -1.0f;
+    *(float *)(particle + 0x40) =
+      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+                        3.14159265f * 2.0f);
+
+    if (creation_func_idx < 0 || creation_func_idx >= 3) {
+      display_assert("creation_function_index>=0 && "
+                     "creation_function_index<NUMBER_OF_PARTICLE_SYSTEM_TYPE_"
+                     "CREATION_PHYSICS",
+                     "c:\\halo\\SOURCE\\effects\\particle_systems.c", 0x1e8, 1);
+      system_exit(-1);
+    }
+
+    /* Call creation physics via function table */
+    {
+      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+                        (float)location_valid);
+      typedef void (*creation_physics_fn)(char *ps, short type_idx, char *particle,
+                                          char *marker_buf);
+      ((creation_physics_fn *)(0x26ab10))[creation_func_idx](
+        ps, (short)type_index, particle, marker_buf);
+    }
+
+    /* Resolve particle location from its position */
+    scenario_location_from_point(particle + 0x14, particle + 0x1c);
+
+    if (*(short *)(particle + 0x18) == -1) {
+      /* Invalid location: delete particle */
+      datum_delete(particle_system_data, particle_handle);
+    } else {
+      /* Link particle into type's list */
+      *(short *)(type_state + 0x3a) = *(short *)(type_state + 0x3a) + 1;
+      *(int *)(particle + 4) = *(int *)(type_state + 0x3c);
+      *(int *)(type_state + 0x3c) = particle_handle;
+    }
+
+    loop_count = loop_count + 1;
+  }
+
+check_emission_multiplier:
+  /* If particle count < threshold, scale down emission timer */
+  if ((float)(int)*(short *)(type_state + 0x3a) < *(float *)(type_state + 0x2c)) {
+    *(float *)(type_state + 0x4) = *(float *)(type_state + 0x4) * 0.5f;
+  }
+}
+
 void particle_systems_dispose_from_old_map(void)
 {
   int particle_system_index;

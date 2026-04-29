@@ -1042,7 +1042,8 @@
         },
         {
           "decl": "void FUN_0003ae60(int actor_handle, int unit_handle);",
-          "addr": "0x3ae60"
+          "addr": "0x3ae60",
+          "ported": true
         },
         {
           "decl": "void FUN_0003cc10(int actor_handle, int flag);",
@@ -4386,6 +4387,10 @@
           "decl": "bool object_has_node(int object_handle, int16_t node_index);",
           "addr": "0x13fef0",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0013ff50(int object_handle, char param_2);",
+          "addr": "0x13ff50"
         },
         {
           "decl": "void object_set_garbage(int object_handle, int flag);",
