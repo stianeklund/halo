@@ -1,3 +1,6 @@
+#ifndef TYPES_H
+#define TYPES_H
+
 #ifdef MSVC
 #define __noreturn
 #define offsetof(t, f) ( (int) &((t*)0)->f )
@@ -870,3 +873,5 @@ typedef struct
 } packet_header;
 cs(packet_header, 0x1);
 co(packet_header, type, 0x00);
+
+#endif /* TYPES_H */

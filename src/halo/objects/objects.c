@@ -71,6 +71,7 @@ int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x144240  object_attach_to_parent
  *   0x1446a0  object_update_children_recursive
  *   0x144860  object_attach_to_marker
+ *   0x144b30  FUN_00144b30 (delete and immediately deactivate)
  *   0x145170  objects_update
  */
 
@@ -560,7 +561,7 @@ void *object_try_and_get_and_verify_type(int datum_handle, int type_mask)
 void *object_get_and_verify_type(int datum_handle, int type_mask)
 {
   /* datum_get: first arg = data table ptr (value at 0x5a8d50) */
-  object_header_data_t *header = datum_get(*(data_t **)0x5a8d50, datum_handle);
+  object_header_data_t *header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, datum_handle);
   object_data_t *obj = header->object;
   int16_t type = obj->type;
 
@@ -728,7 +729,7 @@ int object_get_root_parent(int object_handle)
   int result = -1;
   while (current != -1) {
     object_header_data_t *header =
-      (object_header_data_t *)datum_get(*(void **)0x5a8d50, current);
+      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, current);
     object_data_t *obj = header->object;
     result = current;
     current = obj->parent_object_index.value;
@@ -944,7 +945,7 @@ void object_child_list_remove(void *list_head /* @<eax> */,
     return;
 
   while (1) {
-    obj_data = (int *)datum_get(*(void **)0x5a8d50, *head);
+    obj_data = (int *)datum_get(*(data_t **)0x5a8d50, *head);
     obj_data = (int *)*(int *)((char *)obj_data + 8);
 
     {
@@ -2524,7 +2525,7 @@ void object_detach_from_parent(int object_handle)
   object_connect_to_map(object_handle, NULL);
 
   object_header_data_t *header =
-    (object_header_data_t *)datum_get(*(void **)0x5a8d50, object_handle);
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   child = (object_data_t *)object_get_and_verify_type(object_handle, -1);
   if (!(header->unk_2 & 1) && !(child->flags & 0x100000) &&
       child->parent_object_index.value == NONE) {
@@ -2672,7 +2673,7 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
     void *node_mat =
       object_get_node_matrix(obj->parent_object_index.value,
                              (int16_t) * (int8_t *)((char *)obj + 0xd0));
-    matrix4x3_multiply(node_mat, out_matrix, out_matrix); /* dup-args-ok */
+    matrix4x3_multiply((float *)node_mat, (float *)out_matrix, (float *)out_matrix); /* dup-args-ok */
   }
 
   return out_matrix;
@@ -4441,6 +4442,28 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
 }
 
 /*
+ * FUN_00144b30 — delete and immediately deactivate an object.
+ *
+ * Marks the object (and its children) for deletion via object_delete_internal,
+ * then immediately tears down / deallocates the object via FUN_001449b0.
+ * Used by actor_erase_units as the "soft" deletion path (flag!=0) as an
+ * alternative to object_delete, which only marks for deletion and defers
+ * actual teardown to the objects_update garbage-collection pass.
+ *
+ * Confirmed: cdecl, one stack arg (object_handle).
+ * Confirmed: PUSH 0x0 / PUSH ESI / CALL 0x140bc0 (object_delete_internal).
+ * Confirmed: PUSH 0x0 / PUSH ESI / CALL 0x1449b0 (FUN_001449b0).
+ * Confirmed: ADD ESP,0x10 — combined cleanup for both 2-arg calls.
+ * Confirmed: ESI saved/restored (callee-saved register for param_1).
+ */
+/* 0x144b30 */
+void FUN_00144b30(int object_handle)
+{
+  object_delete_internal(object_handle, 0);
+  FUN_001449b0(object_handle, 0);
+}
+
+/*
  * objects_update — per-tick update for all active objects.
  *
  * Called once per game tick. Three passes over the object header array, plus
@@ -4757,7 +4780,7 @@ void objects_update(void)
       if ((*(uint8_t *)(hdr + 0x2) & 0x8) != 0) {
         int16_t salt = *(int16_t *)hdr;
         int handle = ((int)(int16_t)salt << 16) | (int)(int16_t)i;
-        ((void (*)(int, int))0x1449b0)(handle, 0);
+        FUN_001449b0(handle, 0);
       }
     }
   }
