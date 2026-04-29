@@ -19,7 +19,7 @@ void cheats_update(void)
   char *btn;
   int cnt;
 
-  if (!*(char *)0x5aa898)
+  if (!cheat_controller)
     return;
 
   player_index = (int16_t)local_player_get_next(-1);
@@ -31,10 +31,10 @@ void cheats_update(void)
       cnt = 0x10;
       do {
         if (*cheat != '\0' && *btn != '\0') {
-          ((void (*)(int16_t))0x86220)(player_index);
+          director_set_local_player_context(player_index);
           if (*btn == '\x01') {
-            ((void (*)(int, char *))0xff4d0)(0, cheat);
-            if (!((bool (*)(char *))0xc50c0)(cheat))
+            console_printf(0, cheat);
+            if (!hs_console_evaluate(cheat))
               *cheat = '\0';
           }
         }
@@ -47,7 +47,30 @@ void cheats_update(void)
   }
 }
 
+void cheats_load_from_file(void)
+{
+  void *stream;
+  int16_t slot;
+  char *entry;
+
+  stream = crt_fopen("d:\\cheats.txt", "r");
+  if (stream == NULL)
+    return;
+
+  for (slot = 0; slot < 16; slot++) {
+    entry = cheats_globals + (int)slot * 200;
+    if (crt_fgets(entry, 199, stream) == NULL)
+      break;
+    csstrtok(entry, "\r\n\t;");
+    if ((slot == 12 || slot == 13) && *entry != '\0') {
+      *entry = '\0';
+      error(2, "Cannot execute cheats attached to the back or start button");
+    }
+  }
+  crt_fclose(stream);
+}
+
 void cheats_initialize_for_new_map(void)
 {
-  ((void (*)(void))0xa66d0)();
+  cheats_load_from_file();
 }
