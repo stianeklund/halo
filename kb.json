@@ -821,6 +821,22 @@
         {
           "decl": "int __stdcall FUN_00222df7(void *key);",
           "addr": "0x222df7"
+        },
+        {
+          "decl": "void FUN_00139310(int light_handle);",
+          "addr": "0x139310"
+        },
+        {
+          "decl": "void FUN_001c7330(int sound_handle);",
+          "addr": "0x1c7330"
+        },
+        {
+          "decl": "void FUN_000986d0(int contrail_handle, int arg1, int arg2);",
+          "addr": "0x986d0"
+        },
+        {
+          "decl": "void FUN_0009f6e0(int contrail_handle);",
+          "addr": "0x9f6e0"
         }
       ]
     },
@@ -4474,7 +4490,8 @@
         },
         {
           "decl": "void FUN_00143a00(int object_handle);",
-          "addr": "0x143a00"
+          "addr": "0x143a00",
+          "ported": true
         },
         {
           "decl": "void FUN_00143ae0(int object_handle, float *position, float *forward, float *up);",
