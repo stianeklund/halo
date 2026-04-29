@@ -427,3 +427,115 @@ void FUN_0003d950(int actor_handle, char flag)
     object_delete(unit_handle);
   }
 }
+
+/* FUN_0003ae60 (0x3ae60) — actor_detach_unit
+ *
+ * Detach a unit from an actor. This removes the unit from the actor's unit
+ * list, updates the unit linked-list pointers (unit+0x1ac/0x1b0), and if the
+ * actor is a swarm, removes the unit from the swarm's component arrays.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3ae71.
+ * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3ae7f.
+ * Confirmed: unit+0x1a8 == actor_handle check at 0x3ae8f.
+ * Confirmed: assert actor+0x1e > 0 (swarm_unit_count) at 0x3aea2.
+ * Confirmed: FUN_0013ff50(unit_handle, 1) at 0x3aec7.
+ * Confirmed: FUN_001adf10(unit_handle, 0) at 0x3aecf.
+ * Confirmed: swarm lookup via datum_get(swarm_data, actor+0x28) at 0x3aeed.
+ * Confirmed: swarm+0x18 array holds unit handles, swarm+0x58 holds component handles.
+ * Confirmed: datum_delete(swarm_component_data, component_handle) at 0x3afdd.
+ * Confirmed: linked list update via unit+0x1ac (prev) and unit+0x1b0 (next).
+ * Confirmed: unit+0x1a8 = -1 at end, actor+0x1e decremented. */
+void FUN_0003ae60(int actor_handle, int unit_handle)
+{
+  char *actor;
+  char *unit;
+  char *swarm;
+  short i;
+  int component_handle;
+  short unit_count;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Only proceed if this unit belongs to this actor */
+  if (*(int *)(unit + 0x1a8) != actor_handle) {
+    return;
+  }
+
+  /* Assert swarm_unit_count > 0 */
+  if (*(short *)(actor + 0x1e) <= 0) {
+    display_assert("actor->meta.swarm_unit_count > 0",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x579, 1);
+    system_exit(-1);
+  }
+
+  /* Set unit flags and update weapon state */
+  FUN_0013ff50(unit_handle, 1);
+  FUN_001adf10(unit_handle, 0);
+
+  /* If actor has a swarm, remove unit from swarm arrays */
+  if (*(int *)(actor + 0x28) != -1) {
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+
+    /* Assert swarm->actor_index == actor_index */
+    if (*(int *)(swarm + 4) != actor_handle) {
+      display_assert("swarm->actor_index == actor_index",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x585, 1);
+      system_exit(-1);
+    }
+
+    /* Assert swarm->unit_count == actor->meta.swarm_unit_count */
+    if (*(short *)(swarm + 2) != *(short *)(actor + 0x1e)) {
+      display_assert("swarm->unit_count == actor->meta.swarm_unit_count",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x586, 1);
+      system_exit(-1);
+    }
+
+    /* Search for unit in swarm array and remove it */
+    for (i = 0; i < *(short *)(swarm + 2); i++) {
+      if (*(int *)(swarm + 0x18 + i * 4) == unit_handle) {
+        /* Save component handle before removing */
+        component_handle = *(int *)(swarm + 0x58 + i * 4);
+
+        /* Decrement count */
+        unit_count = *(short *)(swarm + 2) - 1;
+        *(short *)(swarm + 2) = unit_count;
+
+        /* Compact arrays if not last element */
+        if (i < unit_count) {
+          *(int *)(swarm + 0x18 + i * 4) = *(int *)(swarm + 0x18 + unit_count * 4);
+          *(int *)(swarm + 0x58 + i * 4) = *(int *)(swarm + 0x58 + *(short *)(swarm + 2) * 4);
+        }
+
+        /* Delete the swarm component */
+        datum_delete(swarm_component_data, component_handle);
+        goto update_linked_list;
+      }
+    }
+
+    /* Unit not found in swarm - assert */
+    display_assert("found", "c:\\halo\\SOURCE\\ai\\actors.c", 0x59c, 1);
+    system_exit(-1);
+  }
+
+update_linked_list:
+  /* Update linked list of units */
+  if (*(int *)(unit + 0x1b0) == -1) {
+    /* No next unit - update actor's first unit pointer */
+    *(int *)(actor + 0x24) = *(int *)(unit + 0x1ac);
+  } else {
+    /* Update next unit's prev pointer */
+    char *next_unit = (char *)object_get_and_verify_type(*(int *)(unit + 0x1b0), 3);
+    *(int *)(next_unit + 0x1ac) = *(int *)(unit + 0x1ac);
+  }
+
+  if (*(int *)(unit + 0x1ac) != -1) {
+    /* Update prev unit's next pointer */
+    char *prev_unit = (char *)object_get_and_verify_type(*(int *)(unit + 0x1ac), 3);
+    *(int *)(prev_unit + 0x1b0) = *(int *)(unit + 0x1b0);
+  }
+
+  /* Clear unit's actor reference and decrement count */
+  *(int *)(unit + 0x1a8) = -1;
+  *(short *)(actor + 0x1e) = *(short *)(actor + 0x1e) - 1;
+}
