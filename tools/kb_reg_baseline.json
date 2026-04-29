@@ -174,7 +174,11 @@
     "0x9f920": "void FUN_0009f920(void *type_state@<eax>, void *sys_def@<ecx>, void *ps_datum);",
     "0x9f9d0": "void FUN_0009f9d0(void *particle@<eax>, void *sys_def@<ecx>);",
     "0x9fd30": "void FUN_0009fd30(void *ps@<ebx>, int type_index, float dt);",
-    "0xa0080": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);"
+    "0xa0080": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
+    "0x1286e0": "bool FUN_001286e0(int connection@<esi>, void *buffer, int *size, void *addr);",
+    "0x1292f0": "bool FUN_001292f0(int connection@<edi>, void *buffer, int *size, void *addr);",
+    "0x1294d0": "bool FUN_001294d0(int connection@<esi>);",
+    "0x129a30": "bool FUN_00129a30(int connection@<ebx>, int *output);"
   },
   "version": 1
 }
