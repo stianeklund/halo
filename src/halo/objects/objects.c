@@ -3809,6 +3809,65 @@ void object_compute_node_matrices(int object_handle)
   }
 }
 
+/* FUN_00143a00 — delete object attachments (effects, sounds, lights, etc.).
+ *
+ * Iterates through the object's attachment slots (up to tag+0x140 count)
+ * and dispatches cleanup calls based on attachment type:
+ *   Type 0: FUN_00139310 (effect cleanup)
+ *   Type 1: FUN_001c7330 (sound cleanup)
+ *   Type 2: FUN_0009c750 (decal cleanup)
+ *   Type 3: FUN_00141b70 + FUN_000986d0 (light cleanup)
+ *   Type 4: FUN_0009f6e0 (contrail cleanup)
+ *
+ * Object attachment structure:
+ *   obj+0xf4 to obj+0xf4+count: attachment type bytes (-1 = empty)
+ *   obj+0xfc + index*4: attachment handle (int)
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x1ba140 (tag_get) with ('obje', obj[0]).
+ * Confirmed: switch jump table at 0x143ac0 for 5 cases.
+ */
+void FUN_00143a00(int object_handle)
+{
+  int *obj;
+  char *tag;
+  int16_t i;
+  char type;
+  int attachment_handle;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  tag = (char *)tag_get(0x6f626a65, obj[0]);
+
+  for (i = 0; i < *(int *)(tag + 0x140); i++) {
+    type = *((char *)obj + 0xf4 + (int)i);
+    if (type == -1)
+      continue;
+
+    attachment_handle = *(int *)((char *)obj + 0xfc + (int)i * 4);
+    if (attachment_handle == -1)
+      continue;
+
+    switch (type) {
+    case 0:
+      FUN_00139310(attachment_handle);
+      break;
+    case 1:
+      FUN_001c7330(attachment_handle);
+      break;
+    case 2:
+      FUN_0009c750(attachment_handle);
+      break;
+    case 3:
+      object_compute_node_matrices(object_handle);
+      FUN_000986d0(attachment_handle, 1, 0);
+      break;
+    case 4:
+      FUN_0009f6e0(attachment_handle);
+      break;
+    }
+  }
+}
+
 /* FUN_00143ae0 — reposition an object's position and facing.
  *
  * Disconnects the object from the map, optionally updates its position
