@@ -4273,6 +4273,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18e3f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18e420": {
       "kind": "function",
       "status": "ported"
@@ -4282,6 +4286,10 @@
       "status": "ported"
     },
     "0x18e4d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18e910": {
       "kind": "function",
       "status": "ported"
     },
