@@ -3902,6 +3902,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1403a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x140420": {
       "kind": "function",
       "status": "ported"
@@ -4036,6 +4040,14 @@
         "In the else branch, the destination matrix for object_compute_child_marker_position aliases parent_markers+0x38.",
         "In the else branch, the destination matrix for object_compute_child_marker_position aliases parent_markers+0x38."
       ]
+    },
+    "0x1449b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x144b30": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x145170": {
       "kind": "function",
