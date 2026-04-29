@@ -371,3 +371,59 @@ void FUN_0003ba00(void)
     record = (char *)FUN_00059b50(iter);
   }
 }
+
+/* FUN_0003d950 (0x3d950) — actor_erase_units
+ *
+ * Erase all units owned by an actor. For swarm actors (byte at actor+6 != 0),
+ * iterates the linked-list of unit handles starting at actor+0x24, detaching
+ * each unit via FUN_0003ae60 and deleting it. For non-swarm actors, handles
+ * the single unit at actor+0x18 via FUN_0003cff0. The flag parameter controls
+ * whether units are deleted with object_delete (flag=0) or FUN_00144b30
+ * (flag!=0, a softer detach-and-delete path).
+ *
+ * Classification evidence: callee FUN_0003ae60 references actors.c asserts
+ * at 0x3aeab/0x3af05/0x3af32/0x3af6d. Callee FUN_0003cc10 references actors.c
+ * assert at 0x3cc40. Callee FUN_0003cff0 calls FUN_0003cc10. Caller
+ * FUN_0003d9f0 references actors.c string at 0x3da76. All confirm actors.c TU.
+ *
+ * Confirmed: cdecl, two stack args (actor_handle, flag).
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3d95f.
+ * Confirmed: swarm check at actor+6 (0x3d966), branch at 0x3d96e.
+ * Confirmed: loop reads actor+0x24 each iteration (0x3d971, 0x3d99e).
+ * Confirmed: FUN_0003ae60(actor_handle, unit_handle) at 0x3d982.
+ * Confirmed: flag test at 0x3d98d selects object_delete vs FUN_00144b30.
+ * Confirmed: FUN_0003cc10(actor_handle, 1) at 0x3d9ac.
+ * Confirmed: non-swarm path loads actor+0x18 into EDI at 0x3d9b9.
+ * Confirmed: FUN_0003cff0(actor_handle) at 0x3d9bd. */
+void FUN_0003d950(int actor_handle, char flag)
+{
+  char *actor;
+  int unit_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(char *)(actor + 0x6) != 0) {
+    /* Swarm actor: detach and delete all units in linked list */
+    unit_handle = *(int *)(actor + 0x24);
+    while (unit_handle != -1) {
+      FUN_0003ae60(actor_handle, unit_handle);
+      if (flag != 0) {
+        FUN_00144b30(unit_handle);
+      } else {
+        object_delete(unit_handle);
+      }
+      unit_handle = *(int *)(actor + 0x24);
+    }
+    FUN_0003cc10(actor_handle, 1);
+    return;
+  }
+
+  /* Non-swarm actor: handle single unit */
+  unit_handle = *(int *)(actor + 0x18);
+  FUN_0003cff0(actor_handle);
+  if (flag != 0) {
+    FUN_00144b30(unit_handle);
+  } else {
+    object_delete(unit_handle);
+  }
+}

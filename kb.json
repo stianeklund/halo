@@ -739,10 +739,6 @@
           "addr": "0x97c80"
         },
         {
-          "decl": "void FUN_0003d950(int actor_handle, char flag);",
-          "addr": "0x3d950"
-        },
-        {
           "decl": "void FUN_0003ec80(int actor_handle@<esi>);",
           "addr": "0x3ec80"
         },
@@ -1026,6 +1022,23 @@
         {
           "decl": "void FUN_0003ba00(void);",
           "addr": "0x3ba00",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0003ae60(int actor_handle, int unit_handle);",
+          "addr": "0x3ae60"
+        },
+        {
+          "decl": "void FUN_0003cc10(int actor_handle, int flag);",
+          "addr": "0x3cc10"
+        },
+        {
+          "decl": "void FUN_0003cff0(int actor_handle);",
+          "addr": "0x3cff0"
+        },
+        {
+          "decl": "void FUN_0003d950(int actor_handle, char flag);",
+          "addr": "0x3d950",
           "ported": true
         }
       ]
@@ -4479,6 +4492,10 @@
           "decl": "void object_attach_to_marker(int parent_handle, void *marker_name, int child_handle, void *child_marker_name);",
           "addr": "0x144860",
           "ported": true
+        },
+        {
+          "decl": "void FUN_00144b30(int object_handle);",
+          "addr": "0x144b30"
         },
         {
           "decl": "void objects_update(void);",
