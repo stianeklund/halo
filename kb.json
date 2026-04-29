@@ -125,6 +125,10 @@
           "addr": "0x455a68"
         },
         {
+          "decl": "char cheat_controller;",
+          "addr": "0x5aa898"
+        },
+        {
           "decl": "char *rumble_globals;",
           "addr": "0x46b664"
         },
@@ -1469,6 +1473,11 @@
           "ported": true
         },
         {
+          "decl": "void cheats_load_from_file(void);",
+          "addr": "0xa66d0",
+          "ported": true
+        },
+        {
           "decl": "void cheats_initialize_for_new_map(void);",
           "addr": "0xa6820",
           "ported": true
@@ -2118,6 +2127,11 @@
         {
           "decl": "void director_dispose(void);",
           "addr": "0x861c0",
+          "ported": true
+        },
+        {
+          "decl": "void director_set_local_player_context(int16_t player_index);",
+          "addr": "0x86220",
           "ported": true
         },
         {
@@ -3597,6 +3611,10 @@
       "source": "input/input_xbox.c",
       "functions": [
         {
+          "decl": "void input_open_state_file(void);",
+          "addr": "0xce5c0"
+        },
+        {
           "decl": "void input_flush(void);",
           "addr": "0xcf500",
           "ported": true
@@ -3637,8 +3655,27 @@
           "ported": true
         },
         {
+          "decl": "void input_flush_rumble(void);",
+          "addr": "0xcfd00"
+        },
+        {
+          "decl": "void input_update_keyboard_devices(void);",
+          "addr": "0xcfdb0",
+          "ported": true
+        },
+        {
           "decl": "void input_update(void);",
           "addr": "0xd0120",
+          "ported": true
+        },
+        {
+          "decl": "uint32_t __stdcall input_keyboard_thread(void *);",
+          "addr": "0xd01a0",
+          "ported": true
+        },
+        {
+          "decl": "int input_initialize(void);",
+          "addr": "0xd01c0",
           "ported": true
         },
         {

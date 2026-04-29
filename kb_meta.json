@@ -364,6 +364,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x82300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x82b30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82d30": {
       "kind": "function",
       "status": "ported"
@@ -407,6 +415,10 @@
       "status": "ported"
     },
     "0x861c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x86220": {
       "kind": "function",
       "status": "ported"
     },
@@ -975,7 +987,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9f920": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9f9d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x9fcd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9fd30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa0080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa0180": {
       "kind": "function",
       "status": "ported"
     },
@@ -1096,6 +1128,10 @@
       "status": "ported"
     },
     "0xa6620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa66d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2220,6 +2256,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xcfdb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd0120": {
       "kind": "function",
       "status": "ported"
@@ -2229,6 +2269,14 @@
       "status": "ported"
     },
     "0xd0190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd01a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd01c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2917,6 +2965,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xfbbd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xfc290": {
       "kind": "function",
       "status": "ported"
@@ -2930,6 +2982,10 @@
       "status": "ported"
     },
     "0xfcf20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfd180": {
       "kind": "function",
       "status": "ported"
     },
@@ -3581,7 +3637,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x129130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1298f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x129cf0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12a000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a160": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a170": {
       "kind": "function",
       "status": "ported"
     },
@@ -3712,6 +3788,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1362d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x136520": {
       "kind": "function",
       "status": "ported"
@@ -3725,6 +3805,10 @@
       "status": "ported"
     },
     "0x138e30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x138eb0": {
       "kind": "function",
       "status": "ported"
     },
@@ -3894,6 +3978,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13fb80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13fc20": {
       "kind": "function",
       "status": "ported"
@@ -3920,6 +4008,10 @@
         "Model tag node count is stored at offset 0xb8 in the 'mode' tag data.",
         "Object tag definition field at offset 0x34 is the model tag index; value -1 means no model."
       ]
+    },
+    "0x13ff50": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x13ffc0": {
       "kind": "function",
@@ -4044,6 +4136,10 @@
       "uncertain": [
         "The 0xfe0 type mask (bits 5-11) is labeled _object_mask_cannot_interpolate based on the assertion string; exact bit-to-type mapping not fully verified."
       ]
+    },
+    "0x143a00": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x143ae0": {
       "kind": "function",
@@ -4748,6 +4844,10 @@
       "inferred": [
         "Global at 0x4e4cf8 is a pointer to a 5-byte struct {int16_t, int16_t, uint8_t} used for units per-tick update state tracking."
       ]
+    },
+    "0x1a8190": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1a8200": {
       "kind": "function",
