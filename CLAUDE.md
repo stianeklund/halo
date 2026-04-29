@@ -11,13 +11,42 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 - **Small Changes:** Make small, reviewable commits.
 - **Preserve Shape:** Maintain original ABI, layout, side effects, and control-flow.
 
+## Token Discipline
+
+CodeBurn analysis: **~1.7M tokens wasted in 7 days** (~$0.64). The root causes are fixable with strict discipline. These rules are non-negotiable.
+
+### Read-Once Rule
+- **Never read the same file twice in one task.** Before reading, ask: "Have I already read this file in this conversation?"
+- **The Edit tool confirms success.** Do not re-read to verify your edit worked.
+- **Failure exception only:** If an edit fails, re-read *only* the failing line range (≤20 lines), never the full file.
+
+### Research Ratio Gate (4:1 minimum)
+- **Target: 4+ reads per edit.** CodeBurn measured 2.2:1 (1,958 reads vs. 878 edits), causing ~932K wasted tokens from edit-without-research retries.
+- Before editing any function, perform at least these research steps:
+  1. `rtk rg '<function_name>' src/` — find all callers and related symbols.
+  2. `rtk read <file> -o <start> -l <limit>` — read the exact target lines only.
+  3. `rtk jq '<filter>' kb.json` — verify signatures and ABI.
+  4. `rtk git diff -- src/ kb.json` — check current uncommitted state.
+- If you have not done 4 reads, do more research before editing.
+
+### File-Specific Bans & Caps
+| File / Directory | Action | Max Lines | Why |
+|------------------|--------|-----------|-----|
+| `kb.json` | `rtk jq` ONLY | **0** | 6,000+ lines; 239 redundant reads = ~143K tokens |
+| `objects.c`, `units.c`, `sound_manager.c` | `rtk read -o -l` | **100** | 100+ redundant reads each = ~300K tokens |
+| `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/`, `__pycache__/`, `dist/` | **NEVER** | **0** | Generated artifacts; 7 reads = ~4K tokens for zero value |
+| Any `*.log` | **NEVER** | **0** | Run the command instead of reading output |
+
+### Session Memory
+Maintain a mental ledger of files already read in this conversation. If you need a fact from a file you've already read, recall it from context or `rtk rg` for the specific string — do not re-read the file.
+
 ## Workflow
 
 ### 1. Research & Analysis
 - **Scope-first:** Start tasks with exact path(s), symbol(s), and line range(s).
-- **Token Discipline:** Minimize redundant reads. Use line-ranged reads and `rtk read`. Never re-read a file after a successful edit — the Edit tool confirms success. Only re-read affected line ranges on failure.
-- **Large files:** For files >300 lines (objects.c, units.c, etc.), always read with `offset`+`limit`. Never read the full file.
-- **kb.json — NEVER use Read tool on it.** It is 6000+ lines. ALWAYS use `rtk jq '<filter>' kb.json` for all lookups and verification. Only edit kb.json directly; never read it to understand structure — query for the specific key you need.
+- **Token Discipline:** See the [Token Discipline](#token-discipline) section above. Use line-ranged reads (`rtk read -o <start> -l <limit>`). Never re-read a file after a successful edit.
+- **Large files:** For files >300 lines, always read with `rtk read -o <start> -l <limit>`. Cap at 100 lines per read. See the File-Specific Bans & Caps table.
+- **kb.json:** `rtk jq` ONLY — never use the Read tool. See the File-Specific Bans & Caps table.
 - **JSON Mastery:** ALWAYS use `rtk jq` for querying/parsing `kb.json`. Never use `python -c`.
 - **Pre-edit research:** Before editing any function, run `rtk rg '<function_name>' src/` to find all callers and related symbols.
 - **Ghidra Pre-flight:** Before using any `ghidra` or `ghidra-live` MCP tool, run `python3 tools/check_ghidra_mcp.py`. If it fails, alert the user and stop.
@@ -71,7 +100,7 @@ Recover Halo CE Xbox behavior faithfully and incrementally.
 - **Pre-commit hook:** The git pre-commit hook runs both the baseline guard and lift ABI audit on staged changes. `--no-verify` is the emergency bypass.
 
 ## Repo Guardrails
-- **Noisy Dirs:** Never read or search inside `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/` unless explicitly asked. These are generated artifacts.
+- **Noisy Dirs:** Never read or search inside `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/`, `__pycache__/`, `dist/` unless explicitly asked. These are generated artifacts. 7 reads = ~4K tokens for zero value. See the File-Specific Bans & Caps table.
 - **No Log Files:** Never read `build.log`, `build_output.log`, or any `.log` file. Run the build or command instead.
 - **Scoped Diffs:** When checking changes, scope git diffs to source: `rtk git diff -- src/ kb.json CMakeLists.txt`. Bare `git diff` includes tracked build artifacts.
 - **RTK Always:** Prefix ALL shell commands with `rtk` (e.g., `rtk git status`, `rtk pytest`).

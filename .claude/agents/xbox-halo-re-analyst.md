@@ -5,7 +5,7 @@ description: >
   analyze functions/globals, verify decompilation against disassembly,
   infer prototypes and structs, map Xbox/XDK calls, produce faithful C lifts,
   and propose conservative kb.json updates.
-model: opus
+model: sonnet
 color: yellow
 memory: project
 ---

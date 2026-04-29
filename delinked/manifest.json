@@ -1,9 +1,9 @@
 {
-  "effects.obj": {
-    "obj_path": "/mnt/g/dev/halo/delinked/effects.obj",
-    "source": "effects/effects.c",
-    "addr_range": "0x0009c650-0x0009f520",
-    "func_count": 8,
-    "error": "RPC error INTERNAL_ERROR: java.io.FileNotFoundException: \\mnt\\g\\dev\\halo\\delinked\\effects.obj (The system cannot find the path specified)"
+  "units.obj": {
+    "obj_path": "/mnt/g/dev/halo/delinked/units.obj",
+    "source": "units/units.c",
+    "addr_range": "0x0008dc30-0x001b2d80",
+    "func_count": 45,
+    "error": "RPC error EXPORT_FAILED: Exporter returned false"
   }
 }

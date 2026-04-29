@@ -33,6 +33,14 @@ void director_dispose(void)
 {
 }
 
+/* Set active local-player context used by hs/console during cheat dispatch.
+ * Writes 1 to the per-player director state byte at struct offset +0x4e. */
+void director_set_local_player_context(int16_t player_index)
+{
+  assert_halt(player_index >= 0 && player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  ((char *)0x335302)[(int)player_index * 0xf8] = 1;
+}
+
 /* Per-player default-state init (0x86600). Fills four 12-byte slots at
  * struct offset 0x194/0x1a0/0x1ac/0x1b8 (relative to 0x3352b4 + player*0xf8).
  * Each slot's first dword is seeded from a const table at 0x2ee604 (0x1c
