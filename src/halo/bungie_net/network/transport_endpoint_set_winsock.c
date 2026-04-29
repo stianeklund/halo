@@ -52,7 +52,7 @@ void transport_initialize(void)
   xnet_params[10] = 0x20; /* cfgQosProbeMaxWait */
 
   /* Query ethernet link status and log it. */
-  link_status = ((uint32_t(*)(void))0x1d8b76)();
+  link_status = XNetGetEthernetLinkStatus();
 
   halfduplex_str = (link_status & 0x10) ? " in half-duplex mode" : "";
   fullduplex_str = (link_status & 0x08) ? " in full-duplex mode" : "";
@@ -122,6 +122,19 @@ void transport_dispose(void)
     ((void (*)(void))0x2232ed)();
     *(uint8_t *)0x335090 = 0;
   }
+}
+
+/* Check whether the Xbox ethernet link is currently connected.
+ *
+ * Calls XNetGetEthernetLinkStatus (0x1d8b76) and returns bit 0,
+ * which is the "connected" flag.
+ *
+ * Confirmed: 3-instruction function — CALL, AND AL,1, RET.
+ * Callers include network session management functions.
+ */
+bool FUN_00082300(void)
+{
+  return XNetGetEthernetLinkStatus() & 1;
 }
 
 /* Clean up the endpoint pool. Iterates 64 entries (8 bytes each) at

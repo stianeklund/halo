@@ -6710,7 +6710,8 @@
         },
         {
           "decl": "bool FUN_00082300(void);",
-          "addr": "0x82300"
+          "addr": "0x82300",
+          "ported": true
         },
         {
           "decl": "void FUN_00082b30(void);",
@@ -7966,6 +7967,15 @@
         {
           "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
           "addr": "0x1d0da1"
+        }
+      ]
+    },
+    {
+      "name": "XNET:xnet.obj",
+      "functions": [
+        {
+          "decl": "uint32_t XNetGetEthernetLinkStatus(void);",
+          "addr": "0x1d8b76"
         }
       ]
     },
