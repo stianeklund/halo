@@ -6277,7 +6277,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001cd450(int sound_index);",
+          "decl": "void sound_stop_impulse(int sound_index);",
           "addr": "0x1cd450",
           "ported": true
         },
