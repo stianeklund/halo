@@ -4661,7 +4661,8 @@
         },
         {
           "decl": "void FUN_0009f9d0(void *particle@<eax>, void *sys_def@<ecx>);",
-          "addr": "0x9f9d0"
+          "addr": "0x9f9d0",
+          "ported": true
         },
         {
           "decl": "void particle_systems_dispose_from_old_map(void);",
@@ -7076,11 +7077,11 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001a0890(int unit_handle, float *out_pos, float *out_dist_b, float *out_dist_a);",
+          "decl": "void biped_get_camera_height_and_offset(int unit_handle, vector3_t *out_pos, float *out_height_offset, float *out_camera_height);",
           "addr": "0x1a0890"
         },
         {
-          "decl": "void FUN_001a1140(int unit_handle, int16_t param2, void *param3, void *param4, void *param5, float *position);",
+          "decl": "void biped_estimate_position(int unit_handle, int16_t estimate_mode, vector3_t *estimated_body_position, vector3_t *desired_facing, vector3_t *desired_gun_offset, vector3_t *out_position);",
           "addr": "0x1a1140"
         }
       ]

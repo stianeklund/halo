@@ -107,6 +107,74 @@ terminate:
   *(short *)(type_state + 0x2) = -1;
 }
 
+/* Advance particle state to next state index (0x9f9d0).
+ * Similar to FUN_0009f920 but operates on individual particle state rather
+ * than type state. Computes next_state = current_state + delta, where delta
+ * is +1 or -1 based on the direction flag at particle+0x2. If next_state is
+ * valid (0 <= next_state < particle_states.count at sys_def+0x74), stores it.
+ * Otherwise:
+ * - If type can loop (flag bit 2) and states exist:
+ *   - If ping-pong mode (flag bit 3): bounce off ends, flip direction
+ *   - Else: wrap to state 0
+ * - Otherwise: terminate by setting both current/next_state to -1 */
+void FUN_0009f9d0(void *particle_arg, void *sys_def_arg)
+{
+  char *particle = (char *)particle_arg;
+  char *sys_def = (char *)sys_def_arg;
+  char direction;
+  short delta;
+  short current_state;
+  short next_state;
+  int state_count;
+  unsigned int flags;
+
+  direction = *(char *)(particle + 0x2);
+  delta = (direction != 0) ? 1 : -1;
+  current_state = *(short *)(particle + 0x8);
+  next_state = current_state + delta;
+  *(short *)(particle + 0xa) = next_state;
+
+  if (next_state >= 0 && (int)next_state < *(int *)(sys_def + 0x74)) {
+    /* Valid next state */
+    return;
+  }
+
+  /* Out of bounds - check if we can loop */
+  flags = *(unsigned int *)(sys_def + 0x20);
+  if ((flags & 4) == 0) {
+    goto terminate;
+  }
+  state_count = *(int *)(sys_def + 0x74);
+  if (state_count <= 0) {
+    goto terminate;
+  }
+
+  /* Can loop */
+  if ((flags & 8) != 0) {
+    /* Ping-pong mode: bounce off ends and flip direction */
+    int bounced = (int)current_state - (int)delta;
+    if (bounced < 0) {
+      *(short *)(particle + 0xa) = 0;
+      *(char *)(particle + 0x2) = (direction == 0) ? 1 : 0;
+      return;
+    }
+    if (bounced > state_count - 1) {
+      bounced = state_count - 1;
+    }
+    *(short *)(particle + 0xa) = (short)bounced;
+    *(char *)(particle + 0x2) = (direction == 0) ? 1 : 0;
+    return;
+  }
+
+  /* Wrap mode: restart at state 0 */
+  *(short *)(particle + 0xa) = 0;
+  return;
+
+terminate:
+  *(short *)(particle + 0x8) = -1;
+  *(short *)(particle + 0xa) = -1;
+}
+
 void particle_systems_dispose_from_old_map(void)
 {
   int particle_system_index;
