@@ -7182,7 +7182,8 @@
         },
         {
           "decl": "void FUN_001a8190(int unit_handle, int animation_ticks, int control_flags);",
-          "addr": "0x1a8190"
+          "addr": "0x1a8190",
+          "ported": true
         },
         {
           "decl": "int unit_get_seat_enter_position(int unit_handle, int target_unit_handle, int16_t seat_index, float *out_pos_a, float *out_pos_b, float *out_pos_c);",
@@ -8221,7 +8222,8 @@
         },
         {
           "decl": "void FUN_000fbbd0(int weapon_handle, int16_t *rounds_array);",
-          "addr": "0xfbbd0"
+          "addr": "0xfbbd0",
+          "ported": true
         },
         {
           "decl": "bool FUN_000fc290(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
@@ -8245,7 +8247,8 @@
         },
         {
           "decl": "void FUN_000fd180(int weapon_handle, float ammo_fraction);",
-          "addr": "0xfd180"
+          "addr": "0xfd180",
+          "ported": true
         },
         {
           "decl": "void weapon_activate(int weapon_handle);",

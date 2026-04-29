@@ -105,6 +105,27 @@ void units_update(void)
   *(uint8_t *)&p[2] = 0;
 }
 
+/* FUN_001a8190 (0x1a8190)
+ *
+ * Sets persistent control state on a unit. Stores animation_ticks at offset
+ * 0x1c0 and control_flags at offset 0x1c4. Asserts if control_flags has any
+ * bits set beyond position 14 (NUMBER_OF_UNIT_CONTROL_FLAGS = 15).
+ */
+void FUN_001a8190(int unit_handle, int animation_ticks, int control_flags)
+{
+  char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if ((control_flags & 0xffff8000) != 0) {
+    display_assert(
+      "VALID_FLAGS(persistent_control_flags, NUMBER_OF_UNIT_CONTROL_FLAGS)",
+      "c:\\halo\\SOURCE\\units\\units.c", 0x605, 1);
+    system_exit(-1);
+  }
+
+  *(int *)(unit + 0x1c4) = control_flags;
+  *(int *)(unit + 0x1c0) = animation_ticks;
+}
+
 int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
                                  int16_t seat_index, float *out_pos_a,
                                  float *out_pos_b, float *out_pos_c)
@@ -334,8 +355,10 @@ void unit_set_seat_state(int unit_handle, float *position)
   if (seat_index == -1) {
     /* Unit is not in a seat */
     if (!(*(uint8_t *)(unit + 0xb6) & 0x04) && *(int16_t *)(unit + 0x64) == 0) {
-      /* Simple biped with no special flags — delegate to biped_estimate_position */
-      biped_estimate_position(unit_handle, 0, (vector3_t *)0, (vector3_t *)0, (vector3_t *)0, (vector3_t *)position);
+      /* Simple biped with no special flags — delegate to
+       * biped_estimate_position */
+      biped_estimate_position(unit_handle, 0, (vector3_t *)0, (vector3_t *)0,
+                              (vector3_t *)0, (vector3_t *)position);
       return;
     }
 
