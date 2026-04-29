@@ -885,6 +885,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9e0d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "tag_get call at +0x3c has its return value discarded (EAX overwritten at +0x41); included for binary fidelity as possible validation side-effect.",
+        "FUN_000dd190 is the particle marker callback passed to FUN_0009d4e0; not in kb.json because it is only used as a data pointer (pushed as immediate), not called directly from this function."
+      ]
+    },
     "0x9e310": {
       "kind": "function",
       "status": "ported"
