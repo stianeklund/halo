@@ -200,3 +200,36 @@ read_error:
   XCloseHandle(file_handle);
   return result;
 }
+
+/* 0x1c0c20
+ * Read game-state data from persistent storage into a caller-supplied buffer.
+ * Opens the save file, seeks to the beginning, reads `size` bytes into `dst`,
+ * and verifies the byte count. On failure, asserts with the last error code,
+ * exits, and attempts to delete the corrupt save file.
+ */
+void FUN_001c0c20(void *dst, int size)
+{
+  char path_buffer[0x100];
+  int bytes_read;
+
+  int file_handle = xbox_game_state_open_file(0);
+  if (file_handle == -1) {
+    return;
+  }
+
+  if (XSetFilePointer(file_handle, 0, NULL, 0) == -1 ||
+      !XReadFile(file_handle, dst, size, &bytes_read, NULL) ||
+      bytes_read != size) {
+    display_assert(
+      csprintf((char *)0x5ab100, "failed to read from persistent storage (#%d)",
+               xapi_GetLastError()),
+      "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x17f, 1);
+    system_exit(-1);
+
+    if (xbox_saved_game_get_path(0, path_buffer)) {
+      XDeleteFile(path_buffer);
+    }
+  }
+
+  XCloseHandle(file_handle);
+}

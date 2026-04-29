@@ -203,7 +203,7 @@ void cache_files_precache(void)
     return;
 
   ((void (*)(void))game_state_callback_32eaa4)();
-  FUN_001c0c20(*(void **)0x4ea994, (void *)0x345000);
+  FUN_001c0c20(*(void **)0x4ea994, 0x345000);
   game_difficulty_level_set(FUN_00100080());
   FUN_001bf790();
   ((void (*)(void))game_state_callback_32eaa0)();
