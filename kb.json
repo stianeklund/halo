@@ -3084,8 +3084,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001c0c20(void *dst, void *src);",
-          "addr": "0x1c0c20"
+          "decl": "void FUN_001c0c20(void *dst, int size);",
+          "addr": "0x1c0c20",
+          "ported": true
         }
       ]
     },
