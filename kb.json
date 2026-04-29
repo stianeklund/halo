@@ -3611,6 +3611,11 @@
       "source": "input/input_xbox.c",
       "functions": [
         {
+          "decl": "void input_check_state_mode(void);",
+          "addr": "0xce4b0",
+          "ported": true
+        },
+        {
           "decl": "void input_open_state_file(void);",
           "addr": "0xce5c0",
           "ported": true
@@ -3689,10 +3694,6 @@
           "decl": "void input_frame_end(void);",
           "addr": "0xd0190",
           "ported": true
-        },
-        {
-          "decl": "void input_check_state_mode(void);",
-          "addr": "0xce4b0"
         }
       ]
     },

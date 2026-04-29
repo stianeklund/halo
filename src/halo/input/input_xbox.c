@@ -368,6 +368,28 @@ static int16_t input_normalize_stick(int16_t value)
   return 0;
 }
 
+/* input_check_state_mode (0xce4b0)
+ * Probe for sentinel files on the D: drive to select input state recording
+ * or playback mode.  Sets the global input_state_mode:
+ *   d:\write.xts exists  ->  mode 3 (write/record)
+ *   d:\read.xts  exists  ->  mode 4 (read/playback)
+ *   d:\loop.xts  exists  ->  mode 5 (loop playback)
+ * First match wins; if none exist the mode is left unchanged. */
+void input_check_state_mode(void)
+{
+  if (file_get_full_attributes("d:\\write.xts") != -1) {
+    *input_state_mode() = 3;
+    return;
+  }
+  if (file_get_full_attributes("d:\\read.xts") != -1) {
+    *input_state_mode() = 4;
+    return;
+  }
+  if (file_get_full_attributes("d:\\loop.xts") != -1) {
+    *input_state_mode() = 5;
+  }
+}
+
 /* input_open_state_file (0xce5c0)
  * Check for sentinel files to select input state recording/playback mode,
  * then open d:\state.data with the appropriate access flags. */
