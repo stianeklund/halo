@@ -837,15 +837,26 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x9ca70": {
+    "0x9c810": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x9ca70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Inlined into FUN_0009e310; velocity generation helper with hidden reg deps (EDI=flags_hi from loc_entry+0x64)."
+      ]
     },
     "0x9caf0": {
       "kind": "function",
       "status": "ported"
     },
     "0x9cb90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9cc20": {
       "kind": "function",
       "status": "ported"
     },
@@ -883,7 +894,10 @@
     },
     "0x9dcf0": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Inlined into FUN_0009e310; part-type dispatcher with 4 reg args (EAX=position, EDX=effect, ECX=location, ESI=loc_entry)."
+      ]
     },
     "0x9e0d0": {
       "kind": "function",
