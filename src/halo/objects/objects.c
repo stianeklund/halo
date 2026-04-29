@@ -47,9 +47,12 @@ int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x13f950  objects_initialize_for_new_map
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
+ *   0x13fb30  object_activate
+ *   0x13fb80  FUN_0013fb80 (object deactivate)
  *   0x13fc20  FUN_0013fc20 (object placement data init)
  *   0x13fd00  object_disconnect_from_map
  *   0x13fef0  object_has_node
+ *   0x13ff50  FUN_0013ff50 (object set/clear hidden)
  *   0x13ffc0  object_set_garbage
  *   0x140160  object_set_region_count
  *   0x140230  object_adjust_interpolation_position
@@ -1475,6 +1478,29 @@ void object_activate(int object_handle)
 }
 
 /*
+ * FUN_0013fb80 — clear the "active" flag (bit 0x01) from an object's
+ * header unk_2 byte, if currently set.
+ *
+ * Inverse of object_activate: deactivates the object by clearing bit 0x01.
+ *
+ * Confirmed: CALL 0x119320 (datum_get), CALL 0x13d680
+ *   (object_get_and_verify_type) with type_mask=-1.
+ * Confirmed: TEST AL,0x1; JZ skip; AND AL,0xFE; MOV [ESI+2],AL.
+ * Confirmed: ADD ESP,0x10 cleans datum_get + object_get_and_verify_type.
+ */
+void FUN_0013fb80(int object_handle)
+{
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  (void)obj; /* return value unused but call required for verification */
+  if ((hdr->unk_2 & 0x01) != 0) {
+    hdr->unk_2 &= ~0x01;
+  }
+}
+
+/*
  * FUN_0013fc20 — initialise an object placement data struct.
  *
  * Zeroes the 0x88-byte placement buffer, stores the tag index at +0x00,
@@ -1693,6 +1719,48 @@ bool object_has_node(int object_handle, int16_t node_index)
   }
 
   return false;
+}
+
+/*
+ * FUN_0013ff50 — set or clear the "hidden" flag (bit 0x40) on an object's
+ * header unk_2 byte, and optionally activate or deactivate the object.
+ *
+ * When param_2 != 0 (hide):
+ *   Sets bit 0x40 on hdr->unk_2. If the object has no parent
+ *   (parent_object_index == -1) AND unk_76.index == -1, calls
+ *   FUN_0013fb80 to deactivate (clear bit 0x01).
+ *
+ * When param_2 == 0 (unhide):
+ *   Clears bit 0x40 from hdr->unk_2. If bit 0x01 is not set (i.e. the
+ *   object is not currently active), calls object_activate.
+ *
+ * Confirmed: CALL 0x119320 (datum_get), CALL 0x13d680
+ *   (object_get_and_verify_type) with type_mask=-1.
+ * Confirmed: OR byte [ESI+2],0x40 in true branch; AND AL,0xBF in false.
+ * Confirmed: CMP dword [EAX+0xCC],-1 (parent_object_index.value).
+ * Confirmed: CMP word [EAX+0x4C],-1 (unk_76.index, 16-bit compare).
+ * Confirmed: CALL 0x13fb80 (deactivate) and CALL 0x13fb30 (activate).
+ * Confirmed: ADD ESP,0x10 cleans datum_get + object_get_and_verify_type.
+ */
+void FUN_0013ff50(int object_handle, char param_2)
+{
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  if (param_2 != 0) {
+    hdr->unk_2 |= 0x40;
+    if (obj->parent_object_index.value == -1 && obj->unk_76.index == -1) {
+      FUN_0013fb80(object_handle);
+    }
+  } else {
+    uint8_t val = hdr->unk_2 & ~0x40;
+    hdr->unk_2 = val;
+    if ((val & 0x01) == 0) {
+      object_activate(object_handle);
+    }
+  }
 }
 
 /*
@@ -4892,8 +4960,8 @@ void objects_update(void)
             /* Has "always update" flag: force-delete. */
             object_delete_internal((int)i, 0);
           } else {
-            /* Normal deactivate via FUN_13fb80. */
-            ((void (*)(int))0x13fb80)((int)i);
+            /* Normal deactivate via FUN_0013fb80. */
+            FUN_0013fb80((int)i);
           }
         }
       } else {
@@ -4911,7 +4979,7 @@ void objects_update(void)
          * Confirmed: TEST [EDI+EAX*4],EDX; JZ skip. */
         if ((*(uint32_t *)(curr_pvs + ((cluster_idx >> 5) * 4)) &
              (1u << (cluster_idx & 0x1f))) != 0) {
-          ((void (*)(int))0x13fb30)((int)i);
+          object_activate((int)i);
         }
       }
     }
