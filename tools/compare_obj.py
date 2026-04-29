@@ -64,6 +64,12 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
     if current_func and current_lines:
         functions[current_func] = current_lines
 
+    for fn in functions:
+        lines = functions[fn]
+        while lines and lines[-1].strip().split()[0].startswith('nop'):
+            lines.pop()
+        functions[fn] = lines
+
     return functions
 
 
