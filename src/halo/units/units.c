@@ -334,8 +334,8 @@ void unit_set_seat_state(int unit_handle, float *position)
   if (seat_index == -1) {
     /* Unit is not in a seat */
     if (!(*(uint8_t *)(unit + 0xb6) & 0x04) && *(int16_t *)(unit + 0x64) == 0) {
-      /* Simple biped with no special flags — delegate to FUN_001a1140 */
-      FUN_001a1140(unit_handle, 0, 0, 0, 0, position);
+      /* Simple biped with no special flags — delegate to biped_estimate_position */
+      biped_estimate_position(unit_handle, 0, (vector3_t *)0, (vector3_t *)0, (vector3_t *)0, (vector3_t *)position);
       return;
     }
 

@@ -4671,7 +4671,8 @@
         },
         {
           "decl": "void FUN_0009fd30(void *ps@<ebx>, int type_index, float dt);",
-          "addr": "0x9fd30"
+          "addr": "0x9fd30",
+          "ported": true
         },
         {
           "decl": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
@@ -7075,14 +7076,22 @@
           "decl": "wchar_t *ascii_to_wide(const char *ascii, wchar_t *unicode, size_t length);",
           "addr": "0x19f450",
           "ported": true
-        },
+        }
+      ]
+    },
+    {
+      "name": "bipeds.obj",
+      "source": "units/bipeds.c",
+      "functions": [
         {
           "decl": "void biped_get_camera_height_and_offset(int unit_handle, vector3_t *out_pos, float *out_height_offset, float *out_camera_height);",
-          "addr": "0x1a0890"
+          "addr": "0x1a0890",
+          "ported": true
         },
         {
           "decl": "void biped_estimate_position(int unit_handle, int16_t estimate_mode, vector3_t *estimated_body_position, vector3_t *desired_facing, vector3_t *desired_gun_offset, vector3_t *out_position);",
-          "addr": "0x1a1140"
+          "addr": "0x1a1140",
+          "ported": true
         }
       ]
     },

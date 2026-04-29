@@ -1554,7 +1554,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
   unit_pos[2] = *(float *)(unit + 0x2c);
 
   player = (unsigned char *)datum_get(*(void **)0x5aa6d4, player_handle);
-  FUN_001a0890(*(int *)(player + 0x34), &search_pos[0], &distance_b, &distance_a);
+  biped_get_camera_height_and_offset(*(int *)(player + 0x34), (vector3_t *)&search_pos[0], &distance_b, &distance_a);
 
   {
     float candidate_pos[3];
