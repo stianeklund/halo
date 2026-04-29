@@ -4494,8 +4494,13 @@
           "ported": true
         },
         {
+          "decl": "void FUN_001449b0(int object_handle, int delete_sibling);",
+          "addr": "0x1449b0"
+        },
+        {
           "decl": "void FUN_00144b30(int object_handle);",
-          "addr": "0x144b30"
+          "addr": "0x144b30",
+          "ported": true
         },
         {
           "decl": "void objects_update(void);",
