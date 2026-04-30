@@ -644,6 +644,50 @@ bool hs_types_compatible(int16_t actual_type, int16_t desired_type)
                   ((int)desired_type * 0x31 + (int)actual_type) * 4) != 0;
 }
 
+/* 0xcb170 — Cast an HS value from actual_type to desired_type, returning the
+ * converted value. Uses a function dispatch table at 0x2f3ec0 indexed as
+ * [desired_type * 0x31 + actual_type] for most type pairs. Object handle
+ * types (0x2b..0x30) to object reference types (0x25..0x2a) are handled by
+ * FUN_00140720 which converts a handle index to a datum-based reference.
+ * Passthrough (actual==3) and identity casts return value unchanged.
+ *
+ * Assert string confirms name: "hs_can_cast(actual_type, desired_type)"
+ * at source line 0x5d8 (c:\halo\SOURCE\hs\hs_runtime.c).
+ */
+static int hs_can_cast(int thread_handle, int16_t actual_type,
+                       int16_t desired_type, int value)
+{
+  char *script_name;
+  char *msg;
+  int (*cast_fn)(int);
+
+  if (!hs_types_compatible(actual_type, desired_type)) {
+    script_name = hs_get_thread_script_name(thread_handle);
+    msg = csprintf((char *)0x5ab100,
+                   "a problem occurred while executing the script %s: %s (%s)",
+                   script_name, "bad typecast.",
+                   "hs_can_cast(actual_type, desired_type)");
+    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x5d8, true);
+    system_exit(-1);
+  }
+
+  if (actual_type == desired_type || actual_type == 3)
+    return value;
+
+  if (desired_type >= 0x2b && desired_type <= 0x30)
+    return value;
+
+  if (desired_type >= 0x25 && desired_type <= 0x2a) {
+    if (actual_type >= 0x2b && actual_type <= 0x30)
+      return FUN_00140720((int16_t)value);
+    return value;
+  }
+
+  cast_fn = *(int (**)(int))((char *)0x2f3ec0 +
+                             ((int)desired_type * 0x31 + (int)actual_type) * 4);
+  return cast_fn(value);
+}
+
 /* 0xcb230 — Copy an external global's live C value into the HS globals datum
  * pool, type-dispatched. Only processes external globals (bit 15 set in
  * handle). Callees: datum_get, hs_external_global_get (0xc3e10),
@@ -1041,7 +1085,7 @@ static void FUN_000cb7b0(int loop_var)
 }
 
 /* 0xcc1d0 — Evaluate an HS expression and store the result at dest_ptr.
- * If the expression is a constant, evaluates immediately via FUN_000cb170.
+ * If the expression is a constant, evaluates immediately via hs_can_cast.
  * If the expression is a global reference (reparse bit), resolves the global
  * first via FUN_000cc0a0 and hs_global_get_type before evaluating.
  * If the expression is non-constant, sets up the thread stack frame for
@@ -1101,10 +1145,10 @@ static void FUN_000cc1d0(int thread_handle, int expression_index,
       int resolved = FUN_000cc0a0(*(int16_t *)(expr + 0x10));
       int16_t type = hs_global_get_type((uint16_t) * (int16_t *)(expr + 0x10));
       *(int *)dest_ptr =
-        FUN_000cb170(thread_handle, (int)type,
-                     (int)(uint16_t) * (int16_t *)(expr + 0x4), resolved);
+        hs_can_cast(thread_handle, (int)type,
+                    (int)(uint16_t) * (int16_t *)(expr + 0x4), resolved);
     } else {
-      *(int *)dest_ptr = FUN_000cb170(
+      *(int *)dest_ptr = hs_can_cast(
         thread_handle, (int)(uint16_t) * (int16_t *)(expr + 0x2),
         (int)(uint16_t) * (int16_t *)(expr + 0x4), *(int *)(expr + 0x10));
     }

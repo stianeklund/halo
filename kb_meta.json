@@ -2213,7 +2213,36 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xca940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcaa80": {
+      "kind": "function",
+      "status": "ported",
+      "name": "hs_get_thread_script_name",
+      "name_confidence": "high"
+    },
+    "0xcaff0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcb070": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcb170": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name hs_can_cast confirmed from assert expression string at 0x2808d8: 'hs_can_cast(actual_type, desired_type)' at source line 0x5d8.",
+        "Parameter 2 (actual_type) maps to EBX=[EBP+0xc] and parameter 3 (desired_type) maps to EDI=[EBP+0x10], confirmed by CMP BX/DI at 0xcb1cc and hs_types_compatible call order at 0xcb17b-0xcb17d."
+      ],
+      "uncertain": [
+        "FUN_00140720 at 0x140720 (objects.obj) converts a 16-bit index into a 32-bit datum reference via table at 0x46f07c; true name and purpose are unconfirmed but context is object handle to object reference conversion."
+      ]
+    },
+    "0xcb230": {
       "kind": "function",
       "status": "ported"
     },
