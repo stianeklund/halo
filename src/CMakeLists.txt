@@ -10,6 +10,7 @@
 	halo/bungie_net/network/transport_endpoint_set_winsock.c
 	halo/bungie_net/thread_win32.c
 	halo/bink/bink_playback.c
+	halo/bink/bink_sound.c
 	halo/camera/director.c
 	halo/camera/observer.c
 	halo/common.c
@@ -80,6 +81,7 @@
 	halo/math/rectangles.c
 	halo/math/vector_math.c
 	halo/rasterizer/rasterizer.c
+	halo/rasterizer/rasterizer_sprites.c
 	halo/rasterizer/common/rasterizer_common.c
 	halo/rasterizer/xbox/rasterizer_xbox.c
 	halo/rasterizer/xbox/d3d_resource.c
