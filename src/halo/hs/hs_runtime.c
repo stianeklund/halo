@@ -581,6 +581,49 @@ static char *hs_get_thread_script_name(int thread_index)
   return NULL;
 }
 
+/* 0xcab00 — Push a new frame onto the HaloScript thread's stack.
+ * Allocates the next frame by advancing thread->stack_ptr past the current
+ * frame, sets the new frame's back-link to the previous frame pointer, and
+ * zeroes the new frame's size field.
+ *
+ * Frame layout (each frame is at thread+0x18..thread+0x218):
+ *   +0x00 (void*) : back-link to previous frame
+ *   +0x04 (int)   : expression index (set by caller after push)
+ *   +0x08 (void*) : destination value pointer (set by caller)
+ *   +0x0c (int16_t): frame size in bytes (this function zeroes it)
+ *
+ * Stack overflow is fatal: formats a message and halts via display_assert.
+ */
+static void hs_thread_push_frame(int thread_handle)
+{
+  char *thread;
+  char *cur_frame;
+  char *new_frame;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+  cur_frame = *(char **)(thread + 0x10);
+
+  /* new_frame = cur_frame + cur_frame->size + 0x10 */
+  new_frame = cur_frame + (int)*(int16_t *)(cur_frame + 0xc) + 0x10;
+
+  /* Overflow check: (new_frame + 0x10) must be below thread+0x218 */
+  if ((unsigned int)(new_frame + 0x10) >= (unsigned int)(thread + 0x218)) {
+    const char *script_name = hs_get_thread_script_name(thread_handle);
+    const char *msg = csprintf(
+      (char *)0x5ab100,
+      "a problem occurred while executing the script %s: %s (%s)", script_name,
+      "stack overflow.",
+      "(byte *) (new_frame+1)<thread->stack_data+HS_THREAD_STACK_SIZE");
+    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x35e, true);
+    system_exit(-1);
+  }
+
+  /* Link new frame and advance stack pointer */
+  *(char **)(new_frame + 0x0) = cur_frame;
+  *(char **)(thread + 0x10) = new_frame;
+  *(int16_t *)(new_frame + 0xc) = 0;
+}
+
 /* 0xcaff0 */
 static bool hs_object_types_compatible(int16_t actual_offset,
                                        int16_t desired_offset)
@@ -1173,7 +1216,8 @@ static void FUN_000cbf80(int thread_handle, int value)
  * first via FUN_000cc0a0 and hs_global_get_type before evaluating.
  * If the expression is non-constant, sets up the thread stack frame for
  * deferred evaluation: stores dest_ptr and expression_index in the stack
- * frame, pushes a new frame via FUN_000cab00, and sets the evaluation flag.
+ * frame, pushes a new frame via hs_thread_push_frame, and sets the evaluation
+ * flag.
  *
  * Validates thread integrity (stack bounds) and asserts dest_ptr != NULL.
  */
@@ -1241,7 +1285,7 @@ static void FUN_000cc1d0(int thread_handle, int expression_index,
   /* Non-constant expression — set up stack frame for deferred evaluation */
   stack_ptr = *(char **)(thread + 0x10);
   *(void **)(stack_ptr + 0x8) = dest_ptr;
-  FUN_000cab00(thread_handle);
+  hs_thread_push_frame(thread_handle);
   *(uint8_t *)(thread + 0x3) |= 1;
   *(int *)(*(char **)(thread + 0x10) + 0x4) = expression_index;
 }

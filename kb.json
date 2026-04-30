@@ -3641,7 +3641,8 @@
         },
         {
           "addr": "0xcab00",
-          "decl": "void FUN_000cab00(int thread_handle@<eax>);"
+          "decl": "void hs_thread_push_frame(int thread_handle@<eax>);",
+          "ported": true
         },
         {
           "addr": "0xcb230",
