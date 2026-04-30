@@ -12,7 +12,7 @@
  *   0xc3fc0 = hs_function_find_by_name (char *name) -> short
  *   0xc57a0 = hs_source_offset_valid (int offset) -> bool
  *   0xc73a0 = hs_type_check_expression (@EDI=datum_index) -> bool
- *   0xcb070 = hs_types_compatible (short actual, short desired) -> bool
+ *   0xcb070 = hs_types_compatible (short actual, short desired) -> bool [ported]
  *
  * Globals:
  *   0x5aa6c8 = hs_syntax_data (data_t*)
@@ -79,16 +79,7 @@ bool hs_validate_syntax(char **error_info, char **error_text)
           }
           ok = offset_ok;
           if (ok) {
-            /* hs_type_check_expression (0xc73a0): @EDI=datum_index. */
-            {
-              int _edi = datum_index;
-              int _result;
-              asm volatile("call *%[fn]"
-                           : "+D"(_edi), "=a"(_result)
-                           : [fn] "r"((void *)0xc73a0)
-                           : "ecx", "edx", "ebx", "esi", "memory", "cc");
-              ok = (bool)(uint8_t)_result;
-            }
+            ok = FUN_000c73a0(datum_index);
           }
         }
 
@@ -97,18 +88,7 @@ bool hs_validate_syntax(char **error_info, char **error_text)
 
         /* If the reparse flag (bit 2) is set, get the script type. */
         if (*(uint8_t *)(node + 0x6) & 4) {
-          /* hs_script_get_type (0xc3e60): 1 stack arg (uint16). */
-          {
-            int _arg = (int)(uint16_t) * (int16_t *)(node + 0x10);
-            int _result;
-            asm volatile("pushl %[arg]\n\t"
-                         "call *%[fn]\n\t"
-                         "addl $4, %%esp"
-                         : "=a"(_result)
-                         : [fn] "r"((void *)0xc3e60), [arg] "r"(_arg)
-                         : "ecx", "edx", "memory", "cc");
-            result_type = (int16_t)_result;
-          }
+          result_type = hs_global_get_type((uint16_t) * (int16_t *)(node + 0x10));
           goto check_type;
         }
 
@@ -176,35 +156,14 @@ bool hs_validate_syntax(char **error_info, char **error_text)
         {
           bool src_ok;
           int src_offset = *(int *)(inner_node + 0xc);
-          {
-            int _arg = src_offset;
-            int _result;
-            asm volatile("pushl %[arg]\n\t"
-                         "call *%[fn]\n\t"
-                         "addl $4, %%esp"
-                         : "=a"(_result)
-                         : [fn] "r"((void *)0xc57a0), [arg] "r"(_arg)
-                         : "ecx", "memory", "cc");
-            src_ok = (bool)(uint8_t)_result;
-          }
+          src_ok = hs_source_offset_valid(src_offset);
           if (!src_ok)
             goto error;
 
           /* Look up the function by name in the compiled source. */
           {
             int name_addr = *(int *)(inner_node + 0xc) + *(int *)0x46b6e8;
-            int16_t func_idx;
-            {
-              int _arg = name_addr;
-              int _result;
-              asm volatile("pushl %[arg]\n\t"
-                           "call *%[fn]\n\t"
-                           "addl $4, %%esp"
-                           : "=a"(_result)
-                           : [fn] "r"((void *)0xc3fc0), [arg] "r"(_arg)
-                           : "ecx", "edx", "memory", "cc");
-              func_idx = (int16_t)_result;
-            }
+            int16_t func_idx = hs_find_function_by_name((const char *)name_addr);
             if (func_idx == -1) {
               *(int *)0x46b6fc =
                 (int)"missing function (you need to recompile scripts.)";
@@ -215,29 +174,8 @@ bool hs_validate_syntax(char **error_info, char **error_text)
              * type. */
             *(int16_t *)(node + 0x2) = func_idx;
 
-            /* Call hs_function_table_get twice, matching the original
-             * binary which calls 0xc3d00 with the raw push value first,
-             * then again with the updated node field. */
-            {
-              int _arg = (int)(uint16_t)func_idx;
-              asm volatile("pushl %[arg]\n\t"
-                           "call *%[fn]\n\t"
-                           "addl $4, %%esp"
-                           :
-                           : [fn] "r"((void *)0xc3d00), [arg] "r"(_arg)
-                           : "eax", "ecx", "edx", "memory", "cc");
-            }
-            {
-              int _arg = (int)(uint16_t) * (int16_t *)(node + 0x2);
-              int _result;
-              asm volatile("pushl %[arg]\n\t"
-                           "call *%[fn]\n\t"
-                           "addl $4, %%esp"
-                           : "=a"(_result)
-                           : [fn] "r"((void *)0xc3d00), [arg] "r"(_arg)
-                           : "ecx", "edx", "memory", "cc");
-              result_type = *(int16_t *)_result;
-            }
+            hs_function_table_get(func_idx);
+            result_type = *(int16_t *)hs_function_table_get(*(int16_t *)(node + 0x2));
             goto check_type;
           }
         }
@@ -257,25 +195,10 @@ bool hs_validate_syntax(char **error_info, char **error_text)
         goto error;
       }
 
-      /* hs_types_compatible (0xcb070): 2 stack args (result_type,
-       * node_type). */
-      {
-        int _arg1 = (int)(uint16_t)result_type;
-        int _arg2 = (int)(uint16_t) * (int16_t *)(node + 0x4);
-        int _result;
-        asm volatile(
-          "pushl %[a2]\n\t"
-          "pushl %[a1]\n\t"
-          "call *%[fn]\n\t"
-          "addl $8, %%esp"
-          : "=a"(_result)
-          : [fn] "r"((void *)0xcb070), [a1] "r"(_arg1), [a2] "r"(_arg2)
-          : "ecx", "edx", "memory", "cc");
-        if (!(uint8_t)_result) {
-          *(int *)0x46b6fc = (int)"type is inconsistent with usage "
-                                  "(you need to recompile scripts.)";
-          goto error;
-        }
+      if (!hs_types_compatible(result_type, *(int16_t *)(node + 0x4))) {
+        *(int *)0x46b6fc = (int)"type is inconsistent with usage "
+                                "(you need to recompile scripts.)";
+        goto error;
       }
       ok = true;
     }
@@ -370,29 +293,12 @@ int hs_compile(int source_length, const char *source, int *error_info,
   *(int *)error_text = 0;
   *(int *)0x46b700 = -1;
 
-  /* skip_whitespace (0xc72b0) takes @ESI=&cursor. */
-  {
-    char **_esi = &src_cursor;
-    asm volatile("call *%[fn]"
-                 : "+S"(_esi)
-                 : [fn] "r"((void *)0xc72b0)
-                 : "eax", "ebx", "ecx", "edx", "edi", "memory", "cc");
-  }
+  FUN_000c72b0(&src_cursor);
 
   if (*src_cursor == '\0')
     return -1;
 
-  /* hs_parse_expression (0xc7be0) takes @EAX=&cursor. Returns syntax
-   * datum index in EAX. */
-  int expr_datum;
-  {
-    char **_eax_in = &src_cursor;
-    asm volatile("call *%[fn]"
-                 : "+a"(_eax_in)
-                 : [fn] "r"((void *)0xc7be0)
-                 : "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
-    expr_datum = (int)_eax_in;
-  }
+  int expr_datum = FUN_000c7be0(&src_cursor);
 
   if (*(int *)0x46b6fc != 0)
     goto compile_error;
@@ -463,19 +369,7 @@ bool hs_compile_source(int source_file_size, void *source_ptr,
   bool ok;
   int expr_datum;
 
-  /* hs_compile_source_setup (0xc5730): @EDI=source_file_size, 1 stack arg.
-   * Returns cursor pointer in EAX. */
-  {
-    int _edi = source_file_size;
-    int _result;
-    asm volatile("pushl %[src]\n\t"
-                 "call *%[fn]\n\t"
-                 "addl $4, %%esp"
-                 : "+D"(_edi), "=a"(_result)
-                 : [fn] "r"((void *)0xc5730), [src] "r"(source_ptr)
-                 : "ecx", "edx", "ebx", "esi", "memory", "cc");
-    cursor = (char *)_result;
-  }
+  cursor = FUN_000c5730(source_file_size, source_ptr);
 
   if (cursor == NULL) {
     *(int *)error_info = (int)"couldn't allocate memory for compiled source.";
@@ -488,34 +382,11 @@ bool hs_compile_source(int source_file_size, void *source_ptr,
   ok = true;
   *(int *)0x46b700 = -1;
 
-  /* skip_whitespace (0xc72b0) takes @ESI=&cursor. */
-  {
-    char **_esi = &cursor;
-    asm volatile("call *%[fn]"
-                 : "+S"(_esi)
-                 : [fn] "r"((void *)0xc72b0)
-                 : "eax", "ebx", "ecx", "edx", "edi", "memory", "cc");
-  }
+  FUN_000c72b0(&cursor);
 
   while (*cursor != '\0') {
-    /* hs_parse_expression (0xc7be0) takes @EAX=&cursor. */
-    {
-      char **_eax_in = &cursor;
-      asm volatile("call *%[fn]"
-                   : "+a"(_eax_in)
-                   : [fn] "r"((void *)0xc7be0)
-                   : "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
-      expr_datum = (int)_eax_in;
-    }
-
-    /* skip_whitespace again. */
-    {
-      char **_esi = &cursor;
-      asm volatile("call *%[fn]"
-                   : "+S"(_esi)
-                   : [fn] "r"((void *)0xc72b0)
-                   : "eax", "ebx", "ecx", "edx", "edi", "memory", "cc");
-    }
+    expr_datum = FUN_000c7be0(&cursor);
+    FUN_000c72b0(&cursor);
 
     if (*(int *)0x46b6fc != 0)
       goto parse_error;
@@ -613,18 +484,56 @@ void hs_runtime_dispose_from_old_map(void)
   int16_t idx;
   char *data;
 
-  ((void (*)(void *))0x119550)(*(void **)0x5aa6c4);
+  data_make_invalid(*(data_t **)0x5aa6c4);
 
   idx = *(int16_t *)0x27d504;
   data = *(char **)0x5aa6c0;
   while (idx < *(int16_t *)(data + 0x2e)) {
-    if (((int (*)(void *, int))0x119270)(data, (int)idx) != 0)
-      ((void (*)(void *, int))0x1196d0)(data, (int)idx);
+    if (datum_absolute_index_to_index((data_t *)data, (int)idx) != 0)
+      datum_delete((data_t *)data, (int)idx);
     idx++;
     data = *(char **)0x5aa6c0;
   }
 
   *(uint8_t *)0x46b810 = 0;
+}
+
+/* 0xcb070 */
+bool hs_types_compatible(int16_t actual_type, int16_t desired_type)
+{
+  if (actual_type != 3 && (actual_type < 4 || actual_type >= 0x31)) {
+    display_assert("actual_type==_hs_passthrough || hs_type_valid(actual_type)",
+                   "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x5a4, true);
+    system_exit(-1);
+  }
+
+  if (desired_type < 4 || desired_type >= 0x31) {
+    display_assert("hs_type_valid(desired_type)",
+                   "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x5a5, true);
+    system_exit(-1);
+  }
+
+  if (actual_type == 3 || actual_type == desired_type)
+    return true;
+
+  if (desired_type >= 0x25 && desired_type <= 0x2a) {
+    int16_t d_off = desired_type - 0x25;
+    if (actual_type >= 0x25 && actual_type <= 0x2a)
+      return FUN_000caff0((int16_t)(actual_type - 0x25), d_off);
+    if (actual_type >= 0x2b && actual_type <= 0x30)
+      return FUN_000caff0((int16_t)(actual_type - 0x2b), d_off);
+    return false;
+  }
+
+  if (desired_type >= 0x2b && desired_type <= 0x30) {
+    if (actual_type < 0x2b || actual_type > 0x30)
+      return false;
+    return FUN_000caff0((int16_t)(actual_type - 0x2b),
+                        (int16_t)(desired_type - 0x2b));
+  }
+
+  return *(int *)((char *)0x2f3ec0 +
+                  ((int)desired_type * 0x31 + (int)actual_type) * 4) != 0;
 }
 
 /* Initialize HaloScript runtime for a new map. Deletes all existing thread
@@ -657,16 +566,14 @@ void hs_runtime_initialize_for_new_map(void)
   int loop_idx;
 
   /* Phase 1: wipe all thread data, mark runtime as executing. */
-  ((void (*)(void *))0x119b20)(*(void **)0x5aa6c4); /* data_delete_all */
+  data_delete_all(*(data_t **)0x5aa6c4);
   *(uint8_t *)0x46b810 = 1;
   *(int16_t *)0x46b812 = -1;
 
   /* Phase 2: allocate the internal initialization thread. */
-  thread_index =
-    ((int (*)(void *))0x119610)(*(void **)0x5aa6c4); /* data_new_at_index */
+  thread_index = data_new_at_index(*(data_t **)0x5aa6c4);
   if (thread_index != -1) {
-    internal_thread = (char *)((int (*)(void *, int))0x119320)(
-      *(void **)0x5aa6c4, thread_index); /* datum_get */
+    internal_thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
     *(int *)(internal_thread + 0x10) = (int)(internal_thread + 0x18);
     *(int *)(internal_thread + 0x18) = 0;
     stack_frame = *(char **)(internal_thread + 0x10);
@@ -680,9 +587,8 @@ void hs_runtime_initialize_for_new_map(void)
 
   /* Phase 3: run global initialization scripts if a scenario is loaded. */
   if (*(int *)0x326a08 != -1) {
-    scenario = (char *)((int (*)(void))0x18e380)(); /* global_scenario_get */
-    internal_thread = (char *)((int (*)(void *, int))0x119320)(
-      *(void **)0x5aa6c4, thread_index); /* datum_get */
+    scenario = (char *)global_scenario_get();
+    internal_thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
 
     loop_var = 0;
     if (*(int *)(scenario + 0x4a8) > 0) {
@@ -690,11 +596,10 @@ void hs_runtime_initialize_for_new_map(void)
       do {
         /* Get the current script element from the scripts block. */
         {
-          char *block_base =
-            (char *)((int (*)(void))0x18e380)(); /* global_scenario_get */
+          char *block_base = (char *)global_scenario_get();
           block_base += 0x4a8;
-          script_element = (char *)((int (*)(void *, int, int))0x19b210)(
-            block_base, loop_idx, 0x5c); /* tag_block_get_element */
+          script_element =
+            (char *)tag_block_get_element(block_base, loop_idx, 0x5c);
         }
 
         /* Compute the global datum index: if bit 15 set on loop_var, use
@@ -707,10 +612,7 @@ void hs_runtime_initialize_for_new_map(void)
           else
             datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
 
-          /* Allocate the syntax datum with magic handle. */
-          ((int (*)(void *, int))0x119570)(
-            *(void **)0x5aa6c0,
-            (int)(datum_idx | 0xaced0000)); /* data_new_datum */
+          data_new_datum(*(data_t **)0x5aa6c0, (int)(datum_idx | 0xaced0000));
 
           /* Re-derive datum_idx (same logic, needed after the call). */
           if (loop_var & (int16_t)0x8000)
@@ -718,8 +620,7 @@ void hs_runtime_initialize_for_new_map(void)
           else
             datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
 
-          datum_ptr = (char *)((int (*)(void *, int))0x119320)(
-            *(void **)0x5aa6c0, datum_idx); /* datum_get */
+          datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, datum_idx);
         }
 
         /* Reset internal thread state and call hs_default_value.
@@ -730,43 +631,18 @@ void hs_runtime_initialize_for_new_map(void)
           char *sf = *(char **)(internal_thread + 0x10);
           *(int16_t *)(sf + 0xc) = 0;
         }
-        {
-          int _eax = thread_index;
-          int type_arg = *(int *)(script_element + 0x28);
-          int dest_arg = (int)(datum_ptr + 4);
-          asm volatile("pushl %[dest]\n\t"
-                       "pushl %[type]\n\t"
-                       "call *%[fn]\n\t"
-                       "addl $8, %%esp"
-                       : "+a"(_eax)
-                       : [fn] "r"((void *)0xcc1d0), [type] "r"(type_arg),
-                         [dest] "r"(dest_arg)
-                       : "ecx", "edx", "memory", "cc");
-        }
+        FUN_000cc1d0(thread_index, *(int *)(script_element + 0x28),
+                     (void *)(datum_ptr + 4));
 
         /* If the script was successfully parsed (bit 0 of byte +3),
          * execute it. */
         if (*(uint8_t *)(internal_thread + 0x3) & 1) {
-          /* hs_execute_thread (0xcd840) takes EAX=thread_index. */
-          {
-            int _eax = thread_index;
-            asm volatile("call *%[fn]"
-                         : "+a"(_eax)
-                         : [fn] "r"((void *)0xcd840)
-                         : "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
-          }
+          FUN_000cd840(thread_index);
 
           /* If this is a global initialization script (type == 0x17),
            * store the result back into the globals. */
           if (*(int16_t *)(script_element + 0x20) == 0x17) {
-            /* hs_global_value_store (0xcb230) takes EDI=loop_var. */
-            {
-              int _edi = (int)loop_var;
-              asm volatile("call *%[fn]"
-                           : "+D"(_edi)
-                           : [fn] "r"((void *)0xcb230)
-                           : "eax", "ecx", "edx", "ebx", "esi", "memory", "cc");
-            }
+            FUN_000cb230((int)loop_var);
 
             /* Re-derive datum pointer and evaluate the expression.
              * The original code re-calls datum_get here because EDI
@@ -779,29 +655,20 @@ void hs_runtime_initialize_for_new_map(void)
               else
                 datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
 
-              datum_ptr = (char *)((int (*)(void *, int))0x119320)(
-                *(void **)0x5aa6c0, datum_idx); /* datum_get */
-              /* hs_evaluate (0xce350) takes one stack arg. */
-              ((void (*)(int))0xce350)(*(int *)(datum_ptr + 0x4));
+              datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, datum_idx);
+              FUN_000ce350(*(int *)(datum_ptr + 0x4));
             }
             /* Restore internal_thread (original saved in [EBP-0x10],
              * we re-derive via datum_get). */
-            internal_thread = (char *)((int (*)(void *, int))0x119320)(
-              *(void **)0x5aa6c4, thread_index);
+            internal_thread =
+              (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
           }
 
           /* Assert: global init scripts must not sleep.
            * hs_get_thread_script_name (0xcaa80) takes ESI=thread_index
            * as register arg and returns the script name string. */
           if (*(int *)(internal_thread + 0x8) != 0) {
-            char *script_name;
-            {
-              int _esi = thread_index;
-              asm volatile("call *%[fn]"
-                           : "+S"(_esi), "=a"(script_name)
-                           : [fn] "r"((void *)0xcaa80)
-                           : "ecx", "edx", "edi", "memory", "cc");
-            }
+            char *script_name = FUN_000caa80(thread_index);
             display_assert(
               csprintf(error_string_buffer,
                        "a problem occurred while executing the script "
@@ -814,32 +681,23 @@ void hs_runtime_initialize_for_new_map(void)
           }
         }
 
-        /* hs_global_value_finish (0xcb7b0) takes EBX=loop_var. */
-        {
-          int _ebx = (int)loop_var;
-          asm volatile("call *%[fn]"
-                       : "+b"(_ebx)
-                       : [fn] "r"((void *)0xcb7b0)
-                       : "eax", "ecx", "edx", "esi", "edi", "memory", "cc");
-        }
+        FUN_000cb7b0((int)loop_var);
 
         loop_var++;
         loop_idx = (int)(int16_t)loop_var;
-        scenario = (char *)((int (*)(void))0x18e380)();
+        scenario = (char *)global_scenario_get();
       } while (loop_idx < *(int *)(scenario + 0x4a8));
     }
 
     /* Verify internal thread type and delete it. */
-    internal_thread = (char *)((int (*)(void *, int))0x119320)(
-      *(void **)0x5aa6c4, thread_index); /* datum_get */
+    internal_thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
     if (*(uint8_t *)(internal_thread + 0x2) == 0) {
       display_assert(
         "hs_thread_get(thread_index)->type!=_hs_thread_type_script",
         "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x290, true);
       system_exit(-1);
     }
-    ((void (*)(void *, int))0x1196d0)(*(void **)0x5aa6c4,
-                                      thread_index); /* datum_delete */
+    datum_delete(*(data_t **)0x5aa6c4, thread_index);
 
     /* Phase 4: start script threads for non-static/startup scripts.
      * Iterates the scenario globals block (offset 0x49c). Scripts with
@@ -852,26 +710,15 @@ void hs_runtime_initialize_for_new_map(void)
       char *scripts_block = scenario + 0x49c;
       if (*(int *)scripts_block > 0) {
         do {
-          char *script = (char *)((int (*)(void *, int, int))0x19b210)(
-            scripts_block, script_idx, 0x5c); /* tag_block_get_element */
+          char *script =
+            (char *)tag_block_get_element(scripts_block, script_idx, 0x5c);
           int16_t script_type = *(int16_t *)(script + 0x20);
           if (script_type != 3 && script_type != 4) {
             /* hs_thread_new (0xca940): EBX=script_index, stack arg=type.
              * Returns thread index in EAX, -1 on failure. */
-            int result;
-            {
-              int _ebx = script_idx;
-              int _type = 0;
-              asm volatile("pushl %[type]\n\t"
-                           "call *%[fn]\n\t"
-                           "addl $4, %%esp"
-                           : "+b"(_ebx), "=a"(result)
-                           : [fn] "r"((void *)0xca940), [type] "r"(_type)
-                           : "ecx", "edx", "esi", "edi", "memory", "cc");
-            }
+            int result = FUN_000ca940(script_idx, 0);
             if (result == -1) {
-              ((void (*)(uint16_t, const char *, ...))0x8f390)(
-                0, "ran out of script threads.");
+              error(0, "ran out of script threads.");
             }
           }
           script_loop++;
@@ -932,30 +779,11 @@ int hs_runtime_execute(int thread_index)
   /* Re-derive thread pointer (original does a second datum_get). */
   thread_ptr = (char *)datum_get(*(data_t *volatile *)0x5aa6c4, thread_handle);
 
-  /* hs_default_value (0xcc1d0): @EAX=thread_handle, 2 stack args. */
-  {
-    int _eax = thread_handle;
-    int _arg1 = thread_index;
-    int _arg2 = (int)(thread_ptr + 0x14);
-    asm volatile("pushl %[a2]\n\t"
-                 "pushl %[a1]\n\t"
-                 "call *%[fn]\n\t"
-                 "addl $8, %%esp"
-                 : "+a"(_eax)
-                 : [fn] "r"((void *)0xcc1d0), [a1] "r"(_arg1), [a2] "r"(_arg2)
-                 : "ecx", "edx", "memory", "cc");
-  }
+  FUN_000cc1d0(thread_handle, thread_index, (void *)(thread_ptr + 0x14));
 
   if (*(uint8_t *)(thread_ptr + 0x3) & 1) {
     /* Thread needs execution — run it. */
-    /* hs_execute_thread (0xcd840): @EAX=thread_handle. */
-    {
-      int _eax = thread_handle;
-      asm volatile("call *%[fn]"
-                   : "+a"(_eax)
-                   : [fn] "r"((void *)0xcd840)
-                   : "ecx", "edx", "ebx", "esi", "edi", "memory", "cc");
-    }
+    FUN_000cd840(thread_handle);
     return -1;
   }
 

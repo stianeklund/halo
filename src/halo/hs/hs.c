@@ -76,6 +76,47 @@ void hs_scripts_dispose(void)
   }
 }
 
+/* 0xc3d00 — Look up an hs built-in function descriptor by index.
+ * Returns a pointer into the function table at 0x2f1588 (0x1a2 entries). */
+void *hs_function_table_get(int16_t function_index)
+{
+  if (function_index < 0 || function_index >= 0x1a2) {
+    display_assert(
+      "function_index>=0 && function_index<hs_function_table_count",
+      "c:\\halo\\SOURCE\\hs\\hs.c", 0x20a, 1);
+    system_exit(-1);
+  }
+  return ((void **)0x2f1588)[function_index];
+}
+
+/* 0xc3e10 — Bounds-checked accessor for the external-global descriptor table.
+ * Table at 0x2f3708, count at 0x27d504. */
+void *hs_external_global_get(int16_t global_index)
+{
+  int16_t external_count = *(int16_t *)0x27d504;
+  if (global_index < 0 || global_index >= external_count) {
+    display_assert("global_index>=0 && global_index<hs_external_global_count",
+                   "c:\\halo\\SOURCE\\hs\\hs.c", 0x240, 1);
+    system_exit(-1);
+  }
+  return ((void **)0x2f3708)[global_index];
+}
+
+/* 0xc3e60 — Return the HS type of a global variable by script_ref.
+ * Bit 15 set: external global (descriptor+0x4).
+ * Bit 15 clear: scenario global (element+0x20, block at scenario+0x4a8). */
+int16_t hs_global_get_type(uint16_t script_ref)
+{
+  if (script_ref & 0x8000) {
+    void *desc = hs_external_global_get((int16_t)(script_ref & 0x7fff));
+    return *(int16_t *)((char *)desc + 0x4);
+  }
+  char *scenario = (char *)global_scenario_get();
+  void *element = tag_block_get_element((void *)(scenario + 0x4a8),
+                                        (int)(script_ref & 0x7fff), 0x5c);
+  return *(int16_t *)((char *)element + 0x20);
+}
+
 /* Find a HaloScript global variable by name.  Searches external globals
  * first (table at 0x2f3708, count at 0x27d504), returning the index with
  * bit 15 set (| 0x8000).  Then searches scenario globals (tag_block at
@@ -112,6 +153,20 @@ int16_t hs_find_global_by_name(const char *name)
   }
 
   return NONE;
+}
+
+/* 0xc3fc0 — Search the HS function table (0x2f1588, 0x1a2 entries) for a
+ * function whose name (at descriptor+4) matches case-insensitively.
+ * Returns the zero-based function index, or -1 if not found. */
+int16_t hs_find_function_by_name(const char *name)
+{
+  int16_t i;
+  for (i = 0; i < 0x1a2; i++) {
+    if (crt_stricmp(*(const char **)((char *)((void **)0x2f1588)[i] + 4),
+                    name) == 0)
+      return i;
+  }
+  return -1;
 }
 
 /* Load a single HaloScript source file into the scenario's source file list.
@@ -692,4 +747,15 @@ void hs_syntax_reset(int param_1)
     tag_data_resize((void *)(scenario_tag + 0x488), 0);
     data_make_valid(*(data_t *volatile *)0x5aa6c8);
   }
+}
+
+/* 0xc57a0 — Check whether a source offset is within the valid range
+ * [0, hs_compile_globals.source_size). Sets error message on failure. */
+bool hs_source_offset_valid(int offset)
+{
+  if (offset < 0 || offset >= *(int *)0x46b6e4) {
+    *(const char **)0x46b6fc = "bad source offset (you need to recompile.)";
+    return false;
+  }
+  return true;
 }

@@ -2078,6 +2078,18 @@
         "Datum offset +6 bit 0x8 marks a syntax node as persistent (not deleted during dispose)."
       ]
     },
+    "0xc3d00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3e10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3e60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc3ee0": {
       "kind": "function",
       "status": "ported",
@@ -2086,6 +2098,10 @@
         "0x27d504 is hs_external_global_count as int16_t (observed value 0x1BB = 443 in the static image).",
         "Scenario globals are at scenario_tag+0x4a8 as a tag_block with element size 0x5c, where offset 0 of each element is the name string."
       ]
+    },
+    "0xc3fc0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc4660": {
       "kind": "function",
@@ -2152,6 +2168,10 @@
         "The globals at 0x46b6e0-0x46b805 form the hs_compile_globals structure used by the script compiler."
       ]
     },
+    "0xc57a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc7840": {
       "kind": "function",
       "status": "ported",
@@ -2190,6 +2210,10 @@
       "status": "ported"
     },
     "0xca800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcb070": {
       "kind": "function",
       "status": "ported"
     },

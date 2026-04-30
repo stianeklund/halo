@@ -111,9 +111,9 @@ bool FUN_000c73a0(int datum_index)
  *   - If bit 1 of flags is set (is_script reference): looks up the script
  *     element via global_scenario_get()+0x49c, checking script type (must be
  *     3 or 4 = static/dormant). Validates return-type compatibility via
- *     FUN_000cb070 if type != 0. Propagates return type if type == 0.
+ *     hs_types_compatible if type != 0. Propagates return type if type == 0.
  *   - Otherwise (function reference): gets the function descriptor via
- *     FUN_000c3d00. Validates return-type compatibility via FUN_000cb070 if
+ *     hs_function_table_get. Validates return-type compatibility via hs_types_compatible if
  *     type != 0. Checks hs_compile_globals.no_sleep (0x46b806) and
  *     hs_compile_globals.no_set (0x46b807) context flags. Propagates return
  *     type if type == 0 and fn_desc->return_type != 3 (void). Calls the
@@ -194,7 +194,7 @@ bool FUN_000c74c0(int datum_index)
       /* Validate return type compatibility. */
       int16_t script_ret = *(int16_t *)(script_elem + 0x22);
       int16_t expected = *(int16_t *)(node + 0x4);
-      if (!FUN_000cb070(script_ret, expected)) {
+      if (!hs_types_compatible(script_ret, expected)) {
         crt_sprintf(
           (char *)0x46b704, "i expected a %s, but this script returns a %s.",
           ((const char *
@@ -213,13 +213,13 @@ bool FUN_000c74c0(int datum_index)
   }
 
   /* Function reference: get descriptor. */
-  void *fn_desc = FUN_000c3d00((int16_t)fn_idx);
+  void *fn_desc = hs_function_table_get((int16_t)fn_idx);
   int16_t fn_ret = *(int16_t *)fn_desc;
 
   if (*(int16_t *)(node + 0x4) != 0) {
     /* Validate return type compatibility. */
     int16_t expected = *(int16_t *)(node + 0x4);
-    if (!FUN_000cb070(fn_ret, expected)) {
+    if (!hs_types_compatible(fn_ret, expected)) {
       crt_sprintf((char *)0x46b704,
                   "i expected a %s, but this function returns a %s.",
                   ((const char **)(void *)0x2f14a8)[(int)(int16_t)expected],
@@ -305,7 +305,7 @@ void FUN_000c7b10(int datum_index)
     char *str_ptr;
     if (str_offset == -1) {
       /* No string interned yet: look up function name from descriptor. */
-      void *fn_desc = FUN_000c3d00((int16_t) * (uint16_t *)(node + 0x2));
+      void *fn_desc = hs_function_table_get((int16_t) * (uint16_t *)(node + 0x2));
       str_ptr = *(char **)((char *)fn_desc + 0x4);
     } else {
       str_ptr = (char *)(str_offset + *(int *)0x46b6e8);

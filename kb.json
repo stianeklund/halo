@@ -3464,8 +3464,29 @@
           "ported": true
         },
         {
-          "decl": "void *FUN_000c3d00(int16_t function_index);",
-          "addr": "0xc3d00"
+          "decl": "void *hs_function_table_get(int16_t function_index);",
+          "addr": "0xc3d00",
+          "ported": true
+        },
+        {
+          "decl": "void *hs_external_global_get(int16_t global_index);",
+          "addr": "0xc3e10",
+          "ported": true
+        },
+        {
+          "addr": "0xc3e60",
+          "decl": "int16_t hs_global_get_type(uint16_t script_ref);",
+          "ported": true
+        },
+        {
+          "addr": "0xc3fc0",
+          "decl": "int16_t hs_find_function_by_name(const char *name);",
+          "ported": true
+        },
+        {
+          "addr": "0xc57a0",
+          "decl": "bool hs_source_offset_valid(int offset);",
+          "ported": true
         }
       ]
     },
@@ -3521,6 +3542,18 @@
         {
           "decl": "bool FUN_000c6d90(int datum_index);",
           "addr": "0xc6d90"
+        },
+        {
+          "addr": "0xc5730",
+          "decl": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);"
+        },
+        {
+          "addr": "0xc72b0",
+          "decl": "void FUN_000c72b0(char **cursor@<esi>);"
+        },
+        {
+          "addr": "0xc7be0",
+          "decl": "int FUN_000c7be0(char **cursor@<eax>);"
         }
       ]
     },
@@ -3574,10 +3607,44 @@
           "ported": true
         },
         {
-          "decl": "bool FUN_000cb070(int16_t actual_type, int16_t desired_type);",
-          "addr": "0xcb070"
+          "decl": "bool hs_types_compatible(int16_t actual_type, int16_t desired_type);",
+          "addr": "0xcb070",
+          "ported": true
+        },
+        {
+          "addr": "0xcaff0",
+          "decl": "bool FUN_000caff0(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);"
+        },
+        {
+          "addr": "0xca940",
+          "decl": "int FUN_000ca940(int script_index@<ebx>, int type);"
+        },
+        {
+          "addr": "0xcaa80",
+          "decl": "char *FUN_000caa80(int thread_index@<esi>);"
+        },
+        {
+          "addr": "0xcb230",
+          "decl": "void FUN_000cb230(int loop_var@<edi>);"
+        },
+        {
+          "addr": "0xcb7b0",
+          "decl": "void FUN_000cb7b0(int loop_var@<ebx>);"
+        },
+        {
+          "addr": "0xcc1d0",
+          "decl": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);"
+        },
+        {
+          "addr": "0xcd840",
+          "decl": "void FUN_000cd840(int thread_handle@<eax>);"
+        },
+        {
+          "addr": "0xce350",
+          "decl": "void FUN_000ce350(int expression_datum);"
         }
-      ]
+      ],
+      "source_path": "src/halo/hs/hs_runtime.c"
     },
     {
       "name": "hud.obj",

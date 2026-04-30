@@ -186,7 +186,17 @@
     "0xfb3c0": "bool weapon_has_activity(int weapon_handle @<eax>);",
     "0xfb6e0": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
     "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
-    "0xfc990": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);"
+    "0xfc990": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
+    "0xcaff0": "bool FUN_000caff0(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
+    "0xc5730": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);",
+    "0xc72b0": "void FUN_000c72b0(char **cursor@<esi>);",
+    "0xc7be0": "int FUN_000c7be0(char **cursor@<eax>);",
+    "0xca940": "int FUN_000ca940(int script_index@<ebx>, int type);",
+    "0xcaa80": "char *FUN_000caa80(int thread_index@<esi>);",
+    "0xcb230": "void FUN_000cb230(int loop_var@<edi>);",
+    "0xcb7b0": "void FUN_000cb7b0(int loop_var@<ebx>);",
+    "0xcc1d0": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);",
+    "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);"
   },
   "version": 1
 }
