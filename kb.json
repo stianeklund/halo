@@ -3655,7 +3655,8 @@
         },
         {
           "addr": "0xcbf80",
-          "decl": "void FUN_000cbf80(int thread_handle, int value);"
+          "decl": "void FUN_000cbf80(int thread_handle, int value);",
+          "ported": true
         },
         {
           "addr": "0xcc0a0",

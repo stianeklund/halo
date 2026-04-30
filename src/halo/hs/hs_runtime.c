@@ -648,8 +648,8 @@ bool hs_types_compatible(int16_t actual_type, int16_t desired_type)
  * converted value. Uses a function dispatch table at 0x2f3ec0 indexed as
  * [desired_type * 0x31 + actual_type] for most type pairs. Object handle
  * types (0x2b..0x30) to object reference types (0x25..0x2a) are handled by
- * object_name_list_get_handle which converts a handle index to a datum-based reference.
- * Passthrough (actual==3) and identity casts return value unchanged.
+ * object_name_list_get_handle which converts a handle index to a datum-based
+ * reference. Passthrough (actual==3) and identity casts return value unchanged.
  *
  * Assert string confirms name: "hs_can_cast(actual_type, desired_type)"
  * at source line 0x5d8 (c:\halo\SOURCE\hs\hs_runtime.c).
@@ -1082,6 +1082,89 @@ static void FUN_000cb7b0(int loop_var)
     system_exit(-1);
     return;
   }
+}
+
+/* 0xcbf80 — Execute a pending script-call expression on an HS thread.
+ * Resolves the return type of the callee (either a built-in function or a
+ * scenario script), casts the supplied value to that type via hs_can_cast,
+ * writes the result into the current stack frame's dest slot, then pops the
+ * top stack frame (advances thread->stack_ptr to the previous frame).
+ *
+ * Asserts valid_thread(thread) — checks that the thread pointer lies within
+ * the thread-data array bounds and that its stack pointer is within the
+ * per-thread stack window [thread+0x18, thread+0x218).
+ *
+ * Node layout (hs_syntax datum, EBX):
+ *   +0x2 (int16_t) : function/script index (or global index when reparse set)
+ *   +0x4 (int16_t) : desired return type (cast target)
+ *   +0x6 (uint8_t) : flags; bit 1 (0x2) = script-reference (vs. built-in)
+ *
+ * Stack frame layout (top frame ptr, *(*(thread+0x10))):
+ *   +0x8 (int32_t*): pointer to the destination value slot
+ *
+ * Scenario script element (offset 0x49c into scenario, stride 0x5c):
+ *   +0x22 (int16_t): script return type
+ *
+ * Key globals:
+ *   0x5aa6c4 = hs_thread_data  (data_t*)
+ *   0x5aa6c8 = hs_syntax_data  (data_t*)
+ *   0x5ab100 = scratch string buffer (for assert message)
+ */
+static void FUN_000cbf80(int thread_handle, int value)
+{
+  /* Resolve thread and current syntax node. */
+  char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+  char *stack_ptr = *(char **)(thread + 0x10);
+  int node_handle = *(int *)(stack_ptr + 0x4);
+  char *node = (char *)datum_get(*(data_t **)0x5aa6c8, node_handle);
+
+  /* valid_thread(thread) — assert the thread and its stack are sane. */
+  {
+    data_t *td = *(data_t **)0x5aa6c4;
+    char *data_base = *(char **)(((char *)td) + 0x34);
+    int16_t stride = *(int16_t *)(((char *)td) + 0x2e);
+    int16_t count = *(int16_t *)(((char *)td) + 0x22);
+    char *data_end = data_base + (int)stride * (int)count;
+    char *sp = *(char **)(thread + 0x10);
+    char *frame_end = sp + 0xe + (int)*(int16_t *)(sp + 0xc);
+    if (thread < data_base || thread >= data_end || sp < thread + 0x18 ||
+        sp >= thread + 0x218 || frame_end > thread + 0x218) {
+      const char *script_name = hs_get_thread_script_name(thread_handle);
+      const char *msg =
+        csprintf((char *)0x5ab100,
+                 "a problem occurred while executing the script %s: %s (%s)",
+                 script_name, "valid_thread(thread)", "corrupted stack.");
+      display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x325, true);
+      system_exit(-1);
+    }
+  }
+
+  /* Resolve the actual return type of the callee. */
+  int16_t actual_type;
+  if (*(uint8_t *)(node + 0x6) & 0x2) {
+    /* Script reference: look up the scenario script element. */
+    int script_index = (int)*(int16_t *)(node + 0x2);
+    char *scenario = (char *)global_scenario_get();
+    char *script_elem =
+      (char *)tag_block_get_element(scenario + 0x49c, script_index, 0x5c);
+    actual_type = *(int16_t *)(script_elem + 0x22);
+  } else {
+    /* Built-in function: look up its return type from the function table. */
+    int16_t func_index = (int16_t) * (uint16_t *)(node + 0x2);
+    char *func_entry = (char *)hs_function_table_get(func_index);
+    actual_type = *(int16_t *)func_entry;
+  }
+
+  /* Cast value to the desired type and store into the current frame's dest. */
+  int16_t desired_type = (int16_t) * (uint16_t *)(node + 0x4);
+  int result = hs_can_cast(thread_handle, actual_type, desired_type, value);
+  char *top_frame = *(char **)(*(char **)(thread + 0x10));
+  *(int32_t *)(*(int32_t **)(top_frame + 0x8)) = result;
+
+  /* Pop the top stack frame: advance thread->stack_ptr to previous frame. */
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+  char *cur_sp = *(char **)(thread + 0x10);
+  *(char **)(thread + 0x10) = *(char **)cur_sp;
 }
 
 /* 0xcc1d0 — Evaluate an HS expression and store the result at dest_ptr.
