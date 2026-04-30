@@ -1040,6 +1040,85 @@ static void FUN_000cb7b0(int loop_var)
   }
 }
 
+/* 0xcc1d0 — Evaluate an HS expression and store the result at dest_ptr.
+ * If the expression is a constant, evaluates immediately via FUN_000cb170.
+ * If the expression is a global reference (reparse bit), resolves the global
+ * first via FUN_000cc0a0 and hs_global_get_type before evaluating.
+ * If the expression is non-constant, sets up the thread stack frame for
+ * deferred evaluation: stores dest_ptr and expression_index in the stack
+ * frame, pushes a new frame via FUN_000cab00, and sets the evaluation flag.
+ *
+ * Validates thread integrity (stack bounds) and asserts dest_ptr != NULL.
+ */
+static void FUN_000cc1d0(int thread_handle, int expression_index,
+                         void *dest_ptr)
+{
+  char *thread;
+  char *expr;
+  char *expr2;
+  char *stack_ptr;
+  data_t *thread_data;
+
+  thread_data = *(data_t **)0x5aa6c4;
+  thread = (char *)datum_get(thread_data, thread_handle);
+  expr = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+
+  /* valid_thread(thread) check — verify stack pointer is within bounds */
+  {
+    uint32_t pool_base = *(uint32_t *)((char *)thread_data + 0x34);
+    int16_t datum_count = *(int16_t *)((char *)thread_data + 0x2e);
+    int16_t datum_size = *(int16_t *)((char *)thread_data + 0x22);
+    uint32_t pool_end = pool_base + (int)datum_count * (int)datum_size;
+    uint32_t thr = (uint32_t)thread;
+    uint32_t sp = *(uint32_t *)(thread + 0x10);
+    uint32_t stack_base = thr + 0x18;
+    uint32_t stack_end = thr + 0x218;
+
+    if (thr < pool_base || thr >= pool_end || sp < stack_base ||
+        sp >= stack_end || sp + (int)*(int16_t *)(sp + 0xc) + 0xe > stack_end) {
+      char *script_name = hs_get_thread_script_name(thread_handle);
+      char *msg =
+        csprintf((char *)0x5ab100,
+                 "a problem occurred while executing the script %s: %s (%s)",
+                 script_name, "corrupted stack.", "valid_thread(thread)");
+      display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2ff, true);
+      system_exit(-1);
+    }
+  }
+
+  if (dest_ptr == NULL) {
+    display_assert("destination", "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x300,
+                   true);
+    system_exit(-1);
+  }
+
+  expr2 = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+
+  /* Constant expression — evaluate immediately */
+  if (*(uint8_t *)(expr2 + 0x6) & 1) {
+    if (*(uint8_t *)(expr + 0x6) & 4) {
+      /* Global reference (reparse bit): resolve via external global */
+      int resolved = FUN_000cc0a0(*(int16_t *)(expr + 0x10));
+      int16_t type = hs_global_get_type((uint16_t) * (int16_t *)(expr + 0x10));
+      *(int *)dest_ptr =
+        FUN_000cb170(thread_handle, (int)type,
+                     (int)(uint16_t) * (int16_t *)(expr + 0x4), resolved);
+    } else {
+      *(int *)dest_ptr = FUN_000cb170(
+        thread_handle, (int)(uint16_t) * (int16_t *)(expr + 0x2),
+        (int)(uint16_t) * (int16_t *)(expr + 0x4), *(int *)(expr + 0x10));
+    }
+    return;
+  }
+
+  /* Non-constant expression — set up stack frame for deferred evaluation */
+  stack_ptr = *(char **)(thread + 0x10);
+  *(void **)(stack_ptr + 0x8) = dest_ptr;
+  FUN_000cab00(thread_handle);
+  *(uint8_t *)(thread + 0x3) |= 1;
+  *(int *)(*(char **)(thread + 0x10) + 0x4) = expression_index;
+}
+
 /* Initialize HaloScript runtime for a new map. Deletes all existing thread
  * data, creates an internal initialization thread, runs all global
  * initialization scripts (type 0x17), then starts continuous/dormant script

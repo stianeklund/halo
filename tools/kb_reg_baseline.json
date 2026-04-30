@@ -195,6 +195,8 @@
     "0xcaa80": "char *FUN_000caa80(int thread_index@<esi>);",
     "0xcb230": "void FUN_000cb230(int loop_var@<edi>);",
     "0xcb7b0": "void FUN_000cb7b0(int loop_var@<ebx>);",
+    "0xcab00": "void FUN_000cab00(int thread_handle@<eax>);",
+    "0xcc0a0": "int FUN_000cc0a0(int16_t global_ref@<ax>);",
     "0xcc1d0": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);",
     "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);"
   },
