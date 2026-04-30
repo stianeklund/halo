@@ -3626,9 +3626,17 @@
           "ported": true
         },
         {
+          "addr": "0xcaa30",
+          "decl": "void FUN_000caa30(int thread_handle@<esi>);"
+        },
+        {
           "addr": "0xcaa80",
           "decl": "char *hs_get_thread_script_name(int thread_index@<esi>);",
           "ported": true
+        },
+        {
+          "addr": "0xcaba0",
+          "decl": "void *FUN_000caba0(int thread_handle@<eax>, int size);"
         },
         {
           "addr": "0xcab00",
@@ -3645,6 +3653,10 @@
           "ported": true
         },
         {
+          "addr": "0xcbf80",
+          "decl": "void FUN_000cbf80(int thread_handle, int value);"
+        },
+        {
           "addr": "0xcc0a0",
           "decl": "int FUN_000cc0a0(int16_t global_ref@<ax>);"
         },
@@ -3655,7 +3667,8 @@
         },
         {
           "addr": "0xcd840",
-          "decl": "void FUN_000cd840(int thread_handle@<eax>);"
+          "decl": "void FUN_000cd840(int thread_handle@<eax>);",
+          "ported": true
         },
         {
           "addr": "0xce350",

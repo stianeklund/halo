@@ -1119,6 +1119,149 @@ static void FUN_000cc1d0(int thread_handle, int expression_index,
   *(int *)(*(char **)(thread + 0x10) + 0x4) = expression_index;
 }
 
+/* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
+ * evaluation loop: resolves the current stack frame's expression, dispatches
+ * to either a built-in function evaluate callback or a script-reference
+ * evaluation. Respects sleep_until timing and the runtime-enabled flag.
+ * On completion, marks continuous/dormant scripts as finished (sleep=-1)
+ * and deletes console-command threads.
+ */
+static void FUN_000cd840(int thread_handle)
+{
+  char *thread;
+  char *script;
+  char *stack_base;
+  typedef void (*hs_evaluate_t)(int, int, int);
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+  *(int16_t *)0x46b812 = (int16_t)thread_handle;
+  script = NULL;
+
+  /* If script-type thread, look up and validate the script entry */
+  if (*(uint8_t *)(thread + 0x2) == 0) {
+    char *scenario = (char *)global_scenario_get();
+    script = (char *)tag_block_get_element(scenario + 0x49c,
+                                           *(int32_t *)(thread + 0x4), 0x5c);
+    if (*(int16_t *)(script + 0x20) == 3 || *(int16_t *)(script + 0x20) == 4) {
+      char *name = hs_get_thread_script_name(thread_handle);
+      char *msg =
+        csprintf((char *)0x5ab100,
+                 "a problem occurred while executing the script %s: %s (%s)",
+                 name, "found a static script at toplevel.",
+                 "script->script_type!=_hs_script_static && "
+                 "script->script_type!=_hs_script_stub");
+      display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2ba, true);
+      system_exit(-1);
+    }
+  }
+
+  /* valid_thread(thread) — verify stack pointer is within bounds */
+  {
+    data_t *td = *(data_t **)0x5aa6c4;
+    uint32_t pool_base = *(uint32_t *)((char *)td + 0x34);
+    int16_t datum_count = *(int16_t *)((char *)td + 0x2e);
+    int16_t datum_size = *(int16_t *)((char *)td + 0x22);
+    uint32_t pool_end = pool_base + (int)datum_count * (int)datum_size;
+    uint32_t thr = (uint32_t)thread;
+    uint32_t sp = *(uint32_t *)(thread + 0x10);
+    uint32_t sb = thr + 0x18;
+    uint32_t se = thr + 0x218;
+
+    if (thr < pool_base || thr >= pool_end || sp < sb || sp >= se ||
+        sp + (int)*(int16_t *)(sp + 0xc) + 0xe > se) {
+      char *name = hs_get_thread_script_name(thread_handle);
+      char *msg =
+        csprintf((char *)0x5ab100,
+                 "a problem occurred while executing the script %s: %s (%s)",
+                 name, "corrupted stack.", "valid_thread(thread)");
+      display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2bd, true);
+      system_exit(-1);
+    }
+  }
+
+  *(int32_t *)(thread + 0x8) = 0;
+  stack_base = thread + 0x18;
+
+  /* First tick: initialize the root expression evaluation */
+  if (*(char **)(thread + 0x10) == stack_base) {
+    if (script == NULL) {
+      display_assert("script", "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2c3,
+                     true);
+      system_exit(-1);
+    }
+    *(int16_t *)(*(char **)(thread + 0x10) + 0xc) = 0;
+    {
+      void *result = FUN_000caba0(thread_handle, 4);
+      FUN_000cc1d0(thread_handle, *(int *)(script + 0x24), result);
+    }
+    if (*(char **)(thread + 0x10) == stack_base)
+      goto done;
+  }
+
+  /* Main execution loop */
+  do {
+    char *expr;
+    uint8_t eval_flag;
+
+    if (*(int32_t *)(thread + 0x8) < 0)
+      break;
+    if (game_in_progress() && game_time_get() < *(int32_t *)(thread + 0x8))
+      break;
+    if (*(uint8_t *)0x46b810 == 0)
+      break;
+
+    expr = (char *)datum_get(*(data_t **)0x5aa6c8,
+                             *(int *)(*(char **)(thread + 0x10) + 0x4));
+    eval_flag = *(uint8_t *)(thread + 0x3) & 1;
+    *(int16_t *)(*(char **)(thread + 0x10) + 0xc) = 0;
+    *(uint8_t *)(thread + 0x3) &= 0xfe;
+
+    if (!(*(uint8_t *)(expr + 0x6) & 2)) {
+      /* Built-in function call */
+      int func_idx = (int)(uint16_t) * (int16_t *)(expr + 0x2);
+      char *func_entry = (char *)hs_function_table_get((int16_t)func_idx);
+      hs_evaluate_t evaluate = *(hs_evaluate_t *)(func_entry + 0xc);
+      if (evaluate == NULL) {
+        display_assert("function->evaluate",
+                       "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2d8, true);
+        system_exit(-1);
+      }
+      func_idx = (int)(uint16_t) * (int16_t *)(expr + 0x2);
+      evaluate(func_idx, thread_handle, (int)eval_flag);
+    } else {
+      /* Script reference */
+      int script_idx = (int)*(int16_t *)(expr + 0x2);
+      char *scenario = (char *)global_scenario_get();
+      char *ref_script =
+        (char *)tag_block_get_element(scenario + 0x49c, script_idx, 0x5c);
+      datum_get(*(data_t **)0x5aa6c4, thread_handle);
+      {
+        void *result = FUN_000caba0(thread_handle, 4);
+        if (eval_flag) {
+          FUN_000cc1d0(thread_handle, *(int *)(ref_script + 0x24), result);
+        } else {
+          FUN_000cbf80(thread_handle, *(int *)result);
+        }
+      }
+    }
+  } while (*(char **)(thread + 0x10) != stack_base);
+
+done:
+  if (*(char **)(thread + 0x10) == stack_base) {
+    if (*(uint8_t *)(thread + 0x2) == 0) {
+      if (*(int16_t *)(script + 0x20) == 0 ||
+          *(int16_t *)(script + 0x20) == 1) {
+        *(int32_t *)(thread + 0x8) = -1;
+        *(int16_t *)0x46b812 = -1;
+        return;
+      }
+    } else if (*(uint8_t *)(thread + 0x2) == 2) {
+      FUN_000caa30(thread_handle);
+    }
+  }
+  *(int16_t *)0x46b812 = -1;
+}
+
 /* Initialize HaloScript runtime for a new map. Deletes all existing thread
  * data, creates an internal initialization thread, runs all global
  * initialization scripts (type 0x17), then starts continuous/dormant script
