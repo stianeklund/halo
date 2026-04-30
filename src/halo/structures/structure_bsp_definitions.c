@@ -28,6 +28,34 @@ uint32_t *structure_bsp_get_cluster_sound_data(void *bsp, int16_t cluster_index)
                       bit_vector_longs * (int)cluster_index * 4);
 }
 
+/* Return a pointer to the sound encoding byte for a cluster pair (0x1937d0).
+ * Uses upper-triangular matrix indexing (row < column, no diagonal)
+ * into sound_cluster_data. */
+uint8_t *FUN_001937d0(void *bsp, int16_t from_cluster, int16_t to_cluster)
+{
+  char *b = (char *)bsp;
+  int16_t offset;
+
+  offset = (int16_t)((*(int16_t *)(b + 0x134) - 1) * from_cluster -
+                     (from_cluster + 1) * from_cluster / 2 + to_cluster - 1);
+
+  if (to_cluster <= from_cluster) {
+    display_assert("row_index<column_index",
+                   "c:\\halo\\SOURCE\\structures\\structure_bsp_definitions.c",
+                   0x4b2, 1);
+    system_exit(-1);
+  }
+
+  if (offset < 0 || offset >= *(int *)(b + 0x214)) {
+    display_assert("offset>=0 && offset<structure_bsp->sound_cluster_data.size",
+                   "c:\\halo\\SOURCE\\structures\\structure_bsp_definitions.c",
+                   0x4b3, 1);
+    system_exit(-1);
+  }
+
+  return (uint8_t *)(*(int *)(b + 0x220) + offset);
+}
+
 /* Look up the sound encoding byte between two clusters (0x193870).
  * Ensures from < to by swapping if necessary, then delegates to
  * FUN_001937d0 for the actual lookup. Returns 0 for same-cluster. */
