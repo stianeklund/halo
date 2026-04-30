@@ -211,7 +211,7 @@ def run_xbcp(
 def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
     """Launch the deployed XBE on the Xbox via xbdm_rdcp.py magicboot."""
     xbe_xbox_path = xbox_dest.lstrip("x") + "\\default.xbe"
-    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbdm_rdcp.py")
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_rdcp.py")
     cmd = build_windows_python_command(
         rdcp_script,
         [f"magicboot title={xbe_xbox_path} debug"],
@@ -249,7 +249,7 @@ def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
 
 
 def query_remote_file_attributes(host: str, xbox_path: str) -> dict | None:
-    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbdm_rdcp.py")
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_rdcp.py")
     cmd = build_windows_python_command(
         rdcp_script,
         ["--json", f'getfileattributes name="{xbox_path}"'],
@@ -294,7 +294,7 @@ def remote_file_missing(attributes: dict) -> bool:
 
 
 def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
-    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbdm_rdcp.py")
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_rdcp.py")
     cmd = build_windows_python_command(
         rdcp_script,
         ["--json", f'delete name="{xbox_path}"'],
@@ -526,7 +526,7 @@ def main() -> int:
         return 1
 
     # Reset xemu after eject so the guest stops running the old title.
-    qmp_script = os.path.join(ROOT_DIR, "tools", "xemu_qmp.py")
+    qmp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xemu_qmp.py")
     if os.path.isfile(qmp_script):
         prepare_xemu_for_deploy(qmp_script)
 
