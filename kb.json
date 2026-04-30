@@ -1893,10 +1893,12 @@
     },
     {
       "name": "d3d_intimacy.obj",
+      "source": "main/d3d_intimacy.c",
       "functions": [
         {
           "decl": "int *d3d_find_flipcount(void);",
-          "addr": "0x1cf880"
+          "addr": "0x1cf880",
+          "ported": true
         }
       ]
     },
