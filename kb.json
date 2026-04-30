@@ -4876,7 +4876,8 @@
         },
         {
           "addr": "0x140720",
-          "decl": "int FUN_00140720(int16_t index);"
+          "decl": "int object_name_list_get_handle(int16_t index);",
+          "ported": true
         }
       ]
     },

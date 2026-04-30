@@ -648,7 +648,7 @@ bool hs_types_compatible(int16_t actual_type, int16_t desired_type)
  * converted value. Uses a function dispatch table at 0x2f3ec0 indexed as
  * [desired_type * 0x31 + actual_type] for most type pairs. Object handle
  * types (0x2b..0x30) to object reference types (0x25..0x2a) are handled by
- * FUN_00140720 which converts a handle index to a datum-based reference.
+ * object_name_list_get_handle which converts a handle index to a datum-based reference.
  * Passthrough (actual==3) and identity casts return value unchanged.
  *
  * Assert string confirms name: "hs_can_cast(actual_type, desired_type)"
@@ -679,7 +679,7 @@ static int hs_can_cast(int thread_handle, int16_t actual_type,
 
   if (desired_type >= 0x25 && desired_type <= 0x2a) {
     if (actual_type >= 0x2b && actual_type <= 0x30)
-      return FUN_00140720((int16_t)value);
+      return object_name_list_get_handle((int16_t)value);
     return value;
   }
 

@@ -4141,6 +4141,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x140720": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x140ad0": {
       "kind": "function",
       "status": "ported"

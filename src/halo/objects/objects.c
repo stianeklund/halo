@@ -2206,6 +2206,28 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
 }
 
 /*
+ * object_name_list_get_handle — look up an object handle by name-table index.
+ *
+ * Takes a 16-bit name index, validates it is in [0, 0x200), and returns
+ * the object handle stored at object_name_list[index]. Returns 0xFFFFFFFF
+ * (-1) if the index is out of range.
+ *
+ * Confirmed: range check [0, 0x200) via TEST AX,AX / CMP AX,0x200.
+ * Confirmed: MOV ECX,[0x46f07c] — loads object_name_list pointer.
+ * Confirmed: MOVSX EAX,AX — sign-extends index before array access.
+ * Confirmed: MOV EAX,[ECX+EAX*4] — returns name_table[index].
+ * Confirmed: OR EAX,0xFFFFFFFF on out-of-range — returns -1.
+ */
+int object_name_list_get_handle(int16_t index)
+{
+  if (index >= 0 && index < 0x200) {
+    int *name_table = *(int **)0x46f07c;
+    return name_table[(int)index];
+  }
+  return 0xffffffff;
+}
+
+/*
  * object_delete_internal — recursive object deletion implementation.
  *
  * Recursively deletes an object's child chain (obj+0xC8), and optionally
