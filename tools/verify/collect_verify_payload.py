@@ -5,13 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
+_tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _tools_dir not in sys.path:
+    sys.path.insert(0, _tools_dir)
 
-ROOT = Path(__file__).resolve().parent.parent
+
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def run_shell(cmd: str) -> str:

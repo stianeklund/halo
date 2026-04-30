@@ -61,7 +61,7 @@ If these default files are not used, pass explicit paths/commands to
 
 ## verify payload contract
 
-`tools/verify_lift.py` expects a JSON payload with:
+`tools/verify/verify_lift.py` expects a JSON payload with:
 
 - `name`
 - `orig_address`
@@ -71,7 +71,7 @@ If these default files are not used, pass explicit paths/commands to
 - `orig_callees` (optional)
 - `new_callees` (optional)
 
-`tools/collect_verify_payload.py` creates this payload and accepts inputs via:
+`tools/verify/collect_verify_payload.py` creates this payload and accepts inputs via:
 
 - `--*-text` (inline)
 - `--*-file`

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+import sys, os
+_tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _tools_dir not in sys.path:
+    sys.path.insert(0, _tools_dir)
+
 from mcp_server import (
     export_delinked_object as export_delinked_object_rpc,
     get_current_program as get_current_program_rpc,

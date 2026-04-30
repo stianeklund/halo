@@ -78,7 +78,7 @@ Procedure for a suspect function (**fully automated, no GUI interaction**):
    produces a COFF `.o`. Pass `run_relocation_synthesizer=false` since
    step 2 already ran it.
 4. Build normally (`cmake --build build`).
-5. Run `tools/objdiff_lift.py` with the delinked object as `--reference`
+5. Run `tools/verify/objdiff_lift.py` with the delinked object as `--reference`
    and our corresponding compiled object as `--candidate`.
 6. Scan the diff for systematic `[reg+N]` store-offset mismatches across
    adjacent writes with the same source registers — the signature of a

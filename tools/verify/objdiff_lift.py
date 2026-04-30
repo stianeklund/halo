@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+import sys, os
+_tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _tools_dir not in sys.path:
+    sys.path.insert(0, _tools_dir)
+
 # One-shot CLI wrapper for objdiff comparisons.
 # For interactive/GUI diffing, open the repo root in objdiff — it reads objdiff.json
 # which maps every delinked/<name>.obj (target) against the build's compiled .obj (base).

@@ -11,15 +11,15 @@ to a real Xbox. Do not build an ISO unless the user explicitly asks for xemu.
 ## Preferred tools
 
 - Build with `cmake --build build`
-- Deploy with `python3 tools/deploy_xbox.py`
-- Use `tools/xbdm_rdcp.py` for direct XBDM checks when needed
+- Deploy with `python3 tools/xbox/deploy_xbox.py`
+- Use `tools/xbox/xbdm_rdcp.py` for direct XBDM checks when needed
 
 ## Standard build and deploy flow
 
 1. Run `cmake --build build`.
 2. If the build fails, stop and report the concrete errors.
 3. Deploy to the Xbox:
-   `python3 tools/deploy_xbox.py`
+   `python3 tools/xbox/deploy_xbox.py`
 4. If the deploy succeeds, include the build hash and the deployed files in the report.
 
 ## Verification priority

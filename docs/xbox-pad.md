@@ -1,6 +1,6 @@
 # xbox_pad.py — Virtual Controller for xemu
 
-`tools/xbox_pad.py` creates a virtual Xbox 360 controller that xemu can use,
+`tools/xbox/xbox_pad.py` creates a virtual Xbox 360 controller that xemu can use,
 and exposes it over TCP so an LLM (or any script) can send gamepad input
 programmatically. This is useful for automated debugging — navigating menus,
 selecting options, and triggering in-game actions without human interaction.
@@ -42,7 +42,7 @@ the Windows-based server.
 Start the server in a terminal (Windows Python):
 
 ```bash
-python.exe tools/xbox_pad.py serve
+python.exe tools/xbox/xbox_pad.py serve
 ```
 
 The server prints a self-test confirmation and waits for connections. Leave it
@@ -55,9 +55,9 @@ All commands accept `--host` and `--port` flags (defaults: `127.0.0.1`, `27000`)
 ### `tap` — press and release
 
 ```bash
-python3 tools/xbox_pad.py tap A            # quick tap (~100ms)
-python3 tools/xbox_pad.py tap Start -d 0.5 # hold for half a second
-python3 tools/xbox_pad.py tap LB -d 0.3    # left bumper
+python3 tools/xbox/xbox_pad.py tap A            # quick tap (~100ms)
+python3 tools/xbox/xbox_pad.py tap Start -d 0.5 # hold for half a second
+python3 tools/xbox/xbox_pad.py tap LB -d 0.3    # left bumper
 ```
 
 Options:
@@ -66,7 +66,7 @@ Options:
 ### `press` — hold a button
 
 ```bash
-python3 tools/xbox_pad.py press A
+python3 tools/xbox/xbox_pad.py press A
 ```
 
 The button stays held until `release` is called.
@@ -74,15 +74,15 @@ The button stays held until `release` is called.
 ### `release` — release held input
 
 ```bash
-python3 tools/xbox_pad.py release      # release everything (buttons + sticks + triggers)
-python3 tools/xbox_pad.py release A    # release only button A
+python3 tools/xbox/xbox_pad.py release      # release everything (buttons + sticks + triggers)
+python3 tools/xbox/xbox_pad.py release A    # release only button A
 ```
 
 ### `dpad` — tap a D-pad direction
 
 ```bash
-python3 tools/xbox_pad.py dpad down
-python3 tools/xbox_pad.py dpad up -d 0.2
+python3 tools/xbox/xbox_pad.py dpad down
+python3 tools/xbox/xbox_pad.py dpad up -d 0.2
 ```
 
 Options:
@@ -92,9 +92,9 @@ Options:
 ### `stick` — set stick position
 
 ```bash
-python3 tools/xbox_pad.py stick 0.0 -1.0           # left stick, full forward
-python3 tools/xbox_pad.py stick 0.7 0.0 --which l  # left stick, right
-python3 tools/xbox_pad.py stick 0.0 0.5 --which r  # right stick, down
+python3 tools/xbox/xbox_pad.py stick 0.0 -1.0           # left stick, full forward
+python3 tools/xbox/xbox_pad.py stick 0.7 0.0 --which l  # left stick, right
+python3 tools/xbox/xbox_pad.py stick 0.0 0.5 --which r  # right stick, down
 ```
 
 Axes range from `-1.0` to `1.0`. Position persists until changed or `reset`.
@@ -105,8 +105,8 @@ Options:
 ### `trigger` — set trigger value
 
 ```bash
-python3 tools/xbox_pad.py trigger left 0.8
-python3 tools/xbox_pad.py trigger rt 1.0
+python3 tools/xbox/xbox_pad.py trigger left 0.8
+python3 tools/xbox/xbox_pad.py trigger rt 1.0
 ```
 
 Value range: `0.0` (released) to `1.0` (fully pressed). Persists until changed or `reset`.
@@ -114,7 +114,7 @@ Value range: `0.0` (released) to `1.0` (fully pressed). Persists until changed o
 ### `reset` — release all inputs
 
 ```bash
-python3 tools/xbox_pad.py reset
+python3 tools/xbox/xbox_pad.py reset
 ```
 
 Releases all buttons, centers both sticks, zeros both triggers.
@@ -122,7 +122,7 @@ Releases all buttons, centers both sticks, zeros both triggers.
 ### `status` — query current state
 
 ```bash
-python3 tools/xbox_pad.py status
+python3 tools/xbox/xbox_pad.py status
 ```
 
 Returns the full controller state as JSON:
@@ -176,19 +176,19 @@ All responses include `"ok": true/false`. On failure, an `"error"` field is pres
 ```
 1. Screenshot xemu (xemu_xemu_screenshot)
 2. Analyze the current screen state
-3. Navigate: python3 tools/xbox_pad.py dpad down
+3. Navigate: python3 tools/xbox/xbox_pad.py dpad down
 4. Wait a beat, screenshot again
-5. Confirm: python3 tools/xbox_pad.py tap A
+5. Confirm: python3 tools/xbox/xbox_pad.py tap A
 6. Repeat as needed
-7. python3 tools/xbox_pad.py reset  # clean up when done
+7. python3 tools/xbox/xbox_pad.py reset  # clean up when done
 ```
 
 ## Relationship to xbox_keyboard_pad.py
 
-`tools/xbox_keyboard_pad.py` is the original keyboard-to-controller mapper for
+`tools/xbox/xbox_keyboard_pad.py` is the original keyboard-to-controller mapper for
 human use. It hooks physical keyboard input and requires the user to press keys
 while xemu is focused.
 
-`tools/xbox_pad.py` replaces it for automated/LLM use by exposing a TCP API
+`tools/xbox/xbox_pad.py` replaces it for automated/LLM use by exposing a TCP API
 instead of a keyboard hook. Both scripts use the same `vgamepad` + ViGEmBus stack
 and produce identical virtual controller hardware.

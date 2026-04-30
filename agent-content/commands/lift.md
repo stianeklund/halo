@@ -19,7 +19,7 @@ Using the xbox-halo-re-analyst persona (bounded RE worker following
 `halo-xbox-re` doctrine), perform a complete lift for the target:
 
 **If $ARGUMENTS is provided:** use it as the target (name or 0x... address).
-**If $ARGUMENTS is empty:** run `python3 tools/frontier.py --limit 5` and pick
+**If $ARGUMENTS is empty:** run `python3 tools/analysis/frontier.py --limit 5` and pick
 the top candidate.
 
 Steps:
@@ -39,7 +39,7 @@ Steps:
 6. Write the implementation directly to the source file at the correct
    address-ordered position.
 7. If the `kb.json` declaration needs updating, update it conservatively.
-8. Run `python3 tools/maintain.py <source_file>` to sort and reformat.
+8. Run `python3 tools/analysis/maintain.py <source_file>` to sort and reformat.
 
 Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
 

@@ -42,7 +42,7 @@ When moving functions from `<common>` to a real object in `kb.json`:
 1. Only move functions with delinker-confirmed source file evidence.
 2. Verify the function is not already ported in a different source file.
 3. The post-edit hook runs `maintain.py` automatically.
-4. Run `python3 tools/frontier.py` to see updated frontier scores.
+4. Run `python3 tools/analysis/frontier.py` to see updated frontier scores.
 
 ## Notes
 

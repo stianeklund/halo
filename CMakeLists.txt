@@ -9,11 +9,11 @@ add_custom_target(create_gen_dir ALL
 
 add_custom_command(
 	OUTPUT "${gen_dir}/decl.h" "${gen_dir}/halo.xbe.def" "${gen_dir}/thunks.c"
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/knowledge.py"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/analysis/knowledge.py"
 		--gen-header "${gen_dir}/decl.h"
 		--gen-def "${gen_dir}/halo.xbe.def"
 		--gen-thunks "${gen_dir}/thunks.c"
-	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/knowledge.py" "${CMAKE_CURRENT_LIST_DIR}/kb.json" create_gen_dir
+	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/analysis/knowledge.py" "${CMAKE_CURRENT_LIST_DIR}/kb.json" create_gen_dir
 	VERBATIM
 )
 
@@ -39,24 +39,24 @@ add_custom_command(
 
 add_custom_command(
 	OUTPUT "${gen_dir}/build_info.c" "${gen_dir}/.force"
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/gen-build-info.py" > ${gen_dir}/build_info.c
-	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/gen-build-info.py" create_gen_dir
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/build/gen-build-info.py" > ${gen_dir}/build_info.c
+	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/build/gen-build-info.py" create_gen_dir
 	VERBATIM
 )
 
 add_custom_command(
 	OUTPUT "${gen_dir}/typechecks.c"
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" > "${gen_dir}/typechecks.c"
-	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" create_gen_dir
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/archive/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" > "${gen_dir}/typechecks.c"
+	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/archive/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" create_gen_dir
 	VERBATIM
 )
 
 add_custom_target(
 	reverse_thunk_tests ALL
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py" --test-thunks
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/build/patch.py" --test-thunks
 	DEPENDS
-		"${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
-		"${CMAKE_CURRENT_LIST_DIR}/tools/knowledge.py"
+		"${CMAKE_CURRENT_LIST_DIR}/tools/build/patch.py"
+		"${CMAKE_CURRENT_LIST_DIR}/tools/analysis/knowledge.py"
 		"${CMAKE_CURRENT_LIST_DIR}/kb.json"
 	VERBATIM
 )
@@ -102,32 +102,32 @@ add_custom_target(import_libs_target DEPENDS ${import_libs})
 add_dependencies(halo import_libs_target reverse_thunk_tests)
 
 add_custom_command(TARGET halo POST_BUILD
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_lift_hazards.py"
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_raw_casts.py"
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_asm_thunk_conflicts.py"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_lift_hazards.py"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_raw_casts.py"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_asm_thunk_conflicts.py"
 	VERBATIM
 )
 
 add_custom_target(
 	patched_xbe ALL
-	DEPENDS "$<TARGET_FILE:halo>" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
+	DEPENDS "$<TARGET_FILE:halo>" "${CMAKE_CURRENT_LIST_DIR}/tools/build/patch.py"
 	BYPRODUCTS ${CMAKE_CURRENT_LIST_DIR}/halo-patched/default.xbe
 	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_asm_thunk_conflicts.py"
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_asm_thunk_conflicts.py"
 	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_raw_casts.py"
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_raw_casts.py"
 	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/check_lift_hazards.py"
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_lift_hazards.py"
 	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/maintain.py" --check
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/analysis/maintain.py" --check
 	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/kb_meta.py" validate
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/analysis/kb_meta.py" validate
 	COMMAND
 		"${CMAKE_COMMAND}" -E env "PYTHONPATH=${CMAKE_CURRENT_LIST_DIR}"
 			"${Python3_EXECUTABLE}" -m unittest
-			tools.test_patch.RegAnnotationBaselineTests
+			tools.audit.test_patch.RegAnnotationBaselineTests
 	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/patch.py"
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/build/patch.py"
 			"${CMAKE_CURRENT_LIST_DIR}/halo-patched/cachebeta.xbe"
 			"$<TARGET_FILE:halo>"
 			"${CMAKE_CURRENT_LIST_DIR}/halo-patched/default.xbe"

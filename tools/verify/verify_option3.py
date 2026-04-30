@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import subprocess
 import sys
@@ -22,8 +23,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+_tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _tools_dir not in sys.path:
+    sys.path.insert(0, _tools_dir)
 
-ROOT = Path(__file__).resolve().parent.parent
+
+ROOT = Path(__file__).resolve().parent.parent.parent
 ARTIFACT_ROOT = ROOT / "artifacts" / "verify_option3"
 
 
@@ -119,25 +124,25 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--skip-build", action="store_true",
                   help="Skip build stage.")
-  ap.add_argument("--build-cmd", default="python3 tools/build.py -q",
+  ap.add_argument("--build-cmd", default="python3 tools/build/build.py -q",
                   help="Shell command used for build stage.")
 
   ap.add_argument("--skip-iso", action="store_true",
                   help="Skip ISO build stage.")
-  ap.add_argument("--iso-cmd", default="python3 tools/build_iso.py",
+  ap.add_argument("--iso-cmd", default="python3 tools/build/build_iso.py",
                   help="Shell command used for ISO build stage.")
 
   ap.add_argument("--objdiff-reference", default="",
-                  help="Reference object path for tools/objdiff_lift.py.")
+                  help="Reference object path for tools/verify/objdiff_lift.py.")
   ap.add_argument("--objdiff-candidate", default="",
-                  help="Candidate object path for tools/objdiff_lift.py.")
+                  help="Candidate object path for tools/verify/objdiff_lift.py.")
   ap.add_argument("--objdiff-tool", default="",
                   help="Optional objdiff executable path/name.")
 
   ap.add_argument("--load-into-xemu", action="store_true",
                   help="Load ISO into xemu and reset VM using QMP.")
   ap.add_argument("--iso-path", default="halo-patched.iso",
-                  help="ISO path passed to tools/xemu_qmp.py load-iso.")
+                  help="ISO path passed to tools/xbox/xemu_qmp.py load-iso.")
   ap.add_argument("--no-launch-if-missing", action="store_true",
                   help="Do not auto-launch xemu when QMP is unavailable.")
   ap.add_argument("--qmp-host", default="",
@@ -209,7 +214,7 @@ def main() -> int:
   if args.objdiff_reference and args.objdiff_candidate:
     objdiff_cmd = [
       "python3",
-      "tools/objdiff_lift.py",
+      "tools/verify/objdiff_lift.py",
       "--target",
       args.target,
       "--reference",
@@ -247,7 +252,7 @@ def main() -> int:
     ))
 
   if args.load_into_xemu:
-    xemu_cmd = ["python3", "tools/xemu_qmp.py"]
+    xemu_cmd = ["python3", "tools/xbox/xemu_qmp.py"]
     if args.qmp_host:
       xemu_cmd.extend(["--host", args.qmp_host])
     if args.qmp_port > 0:

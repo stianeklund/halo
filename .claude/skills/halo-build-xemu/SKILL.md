@@ -10,22 +10,22 @@ patched ISO, or control xemu.
 
 ## Preferred tools
 
-- Build with `python3 tools/build.py -q --target halo`
+- Build with `python3 tools/build/build.py -q --target halo`
 - Create ISO with `tools/extract-xiso.exe -c halo-patched halo-patched.iso`
-- Control xemu with `python3 tools/xemu_qmp.py`
-- Use MCP xemu tools only if `tools/xemu_qmp.py` cannot do the required action
+- Control xemu with `python3 tools/xbox/xemu_qmp.py`
+- Use MCP xemu tools only if `tools/xbox/xemu_qmp.py` cannot do the required action
 
 ## Standard build and load flow
 
-1. Run `python3 tools/build.py -q --target halo`.
+1. Run `python3 tools/build/build.py -q --target halo`.
 2. If the build fails, stop and report the concrete errors.
 3. Create the ISO:
    `tools/extract-xiso.exe -c halo-patched halo-patched.iso`
 4. If ISO creation fails with `Permission denied`, eject the mounted ISO first:
-   `python3 tools/xemu_qmp.py eject`
+   `python3 tools/xbox/xemu_qmp.py eject`
    then retry ISO creation.
 5. Load and reset xemu:
-   `python3 tools/xemu_qmp.py --launch-if-missing load-iso halo-patched.iso --reset`
+   `python3 tools/xbox/xemu_qmp.py --launch-if-missing load-iso halo-patched.iso --reset`
 6. If the build succeeds, run `git rev-parse HEAD` so the report includes the
    exact commit hash that produced the artifact.
 
@@ -35,8 +35,8 @@ patched ISO, or control xemu.
 - If the ISO is missing but `halo-patched/default.xbe` exists, suggest running
   the build flow first.
 - For monitor-only control, use `status`, `reset`, `stop`, `cont`, `eject`, or
-  `hmp` subcommands through `tools/xemu_qmp.py`.
-- If monitor mode is relevant, remind the user that `tools/xemu-mon.py` can run
+  `hmp` subcommands through `tools/xbox/xemu_qmp.py`.
+- If monitor mode is relevant, remind the user that `tools/xbox/xemu-mon.py` can run
   commands like `info registers`.
 
 ## Report format

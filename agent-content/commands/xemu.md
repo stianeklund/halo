@@ -6,7 +6,7 @@ subtask: true
 
 Use the `halo-build-xemu` skill for repo-specific xemu control rules.
 
-Hot-swap the patched ISO into xemu using `tools/xemu_qmp.py`, or launch xemu
+Hot-swap the patched ISO into xemu using `tools/xbox/xemu_qmp.py`, or launch xemu
 if not already running. Use MCP only as a fallback.
 
 Argument: $ARGUMENTS (optional flags like `-m` for monitor, `-T` for trace,
@@ -19,5 +19,5 @@ Steps:
 3. Report the result.
 
 Notes:
-- `tools/xemu_qmp.py` handles discovery and path normalization automatically.
+- `tools/xbox/xemu_qmp.py` handles discovery and path normalization automatically.
 - MCP remains available as a fallback for unsupported operations.

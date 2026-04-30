@@ -2163,6 +2163,10 @@
         "When node[2] < 0 on a script-reference node, script_element is read uninitialized from the stack local at EBP-8; this appears to be original behavior."
       ]
     },
+    "0xc7d80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc9050": {
       "kind": "function",
       "status": "ported",
@@ -4568,6 +4572,14 @@
       "status": "ported"
     },
     "0x191a50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x193550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x193870": {
       "kind": "function",
       "status": "ported"
     },
