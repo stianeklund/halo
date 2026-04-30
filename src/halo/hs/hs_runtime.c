@@ -944,6 +944,102 @@ static void FUN_000cb230(int loop_var)
   }
 }
 
+/* 0xcb7b0 — Write HS datum values back to external C globals, type-dispatched.
+ * Reverse of FUN_000cb230: datum_ptr+4 → *ext_ptr+8. Only writes if the
+ * backing pointer (ext_ptr+8) is non-NULL.
+ */
+static void FUN_000cb7b0(int loop_var)
+{
+  char *datum_ptr;
+  char *ext_ptr;
+  int16_t type;
+
+  if ((loop_var & 0x8000) == 0)
+    return;
+
+  datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, loop_var & 0x7fff);
+  ext_ptr = (char *)hs_external_global_get((int16_t)(loop_var & 0x7fff));
+  type = hs_global_get_type((uint16_t)loop_var);
+
+  switch (type) {
+  case 5:
+    if (*(uint8_t **)(ext_ptr + 8) != NULL) {
+      **(uint8_t **)(ext_ptr + 8) = *(uint8_t *)(datum_ptr + 4);
+    }
+    return;
+  case 6:
+    if (*(float **)(ext_ptr + 8) != NULL) {
+      **(float **)(ext_ptr + 8) = *(float *)(datum_ptr + 4);
+    }
+    return;
+  case 7:
+  case 10:
+  case 0xd:
+  case 0x10:
+  case 0x13:
+  case 0x16:
+  case 0x22:
+  case 0x2b:
+    if (*(int16_t **)(ext_ptr + 8) != NULL) {
+      **(int16_t **)(ext_ptr + 8) = *(int16_t *)(datum_ptr + 4);
+    }
+    return;
+  case 8:
+  case 0x11:
+  case 0x17:
+  case 0x1a:
+  case 0x1d:
+  case 0x26:
+  case 0x29:
+    if (*(int32_t **)(ext_ptr + 8) != NULL) {
+      **(int32_t **)(ext_ptr + 8) = *(int32_t *)(datum_ptr + 4);
+    }
+    return;
+  case 9:
+  case 0x18:
+  case 0x1b:
+  case 0x1e:
+  case 0x27:
+  case 0x2a:
+    if (*(int32_t **)(ext_ptr + 8) != NULL) {
+      **(int32_t **)(ext_ptr + 8) = *(int32_t *)(datum_ptr + 4);
+    }
+    return;
+  case 0xb:
+  case 0xe:
+  case 0x14:
+  case 0x20:
+  case 0x23:
+    if (*(int16_t **)(ext_ptr + 8) != NULL) {
+      **(int16_t **)(ext_ptr + 8) = *(int16_t *)(datum_ptr + 4);
+    }
+    return;
+  case 0xc:
+  case 0xf:
+  case 0x12:
+  case 0x15:
+  case 0x21:
+  case 0x24:
+    if (*(int16_t **)(ext_ptr + 8) != NULL) {
+      **(int16_t **)(ext_ptr + 8) = *(int16_t *)(datum_ptr + 4);
+    }
+    return;
+  case 0x19:
+  case 0x1c:
+  case 0x1f:
+  case 0x25:
+  case 0x28:
+    if (*(int32_t **)(ext_ptr + 8) != NULL) {
+      **(int32_t **)(ext_ptr + 8) = *(int32_t *)(datum_ptr + 4);
+    }
+    return;
+  default:
+    display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x671, true);
+    system_exit(-1);
+    return;
+  }
+}
+
 /* Initialize HaloScript runtime for a new map. Deletes all existing thread
  * data, creates an internal initialization thread, runs all global
  * initialization scripts (type 0x17), then starts continuous/dormant script
