@@ -3612,6 +3612,10 @@
           "ported": true
         },
         {
+          "addr": "0xcb170",
+          "decl": "int FUN_000cb170(int thread_handle, int value_union, int type, int next_expression);"
+        },
+        {
           "addr": "0xcaff0",
           "decl": "bool hs_object_types_compatible(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
           "ported": true
@@ -3627,6 +3631,10 @@
           "ported": true
         },
         {
+          "addr": "0xcab00",
+          "decl": "void FUN_000cab00(int thread_handle@<eax>);"
+        },
+        {
           "addr": "0xcb230",
           "decl": "void FUN_000cb230(int loop_var@<edi>);",
           "ported": true
@@ -3637,8 +3645,13 @@
           "ported": true
         },
         {
+          "addr": "0xcc0a0",
+          "decl": "int FUN_000cc0a0(int16_t global_ref@<ax>);"
+        },
+        {
           "addr": "0xcc1d0",
-          "decl": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);"
+          "decl": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);",
+          "ported": true
         },
         {
           "addr": "0xcd840",
