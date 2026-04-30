@@ -5478,7 +5478,8 @@
       "functions": [
         {
           "decl": "void FUN_001bdd80(int tag_index @<eax>);",
-          "addr": "0x1bdd80"
+          "addr": "0x1bdd80",
+          "ported": true
         },
         {
           "decl": "void predicted_resources_precache(void *tag_block);",
