@@ -644,6 +644,306 @@ bool hs_types_compatible(int16_t actual_type, int16_t desired_type)
                   ((int)desired_type * 0x31 + (int)actual_type) * 4) != 0;
 }
 
+/* 0xcb230 — Copy an external global's live C value into the HS globals datum
+ * pool, type-dispatched. Only processes external globals (bit 15 set in
+ * handle). Callees: datum_get, hs_external_global_get (0xc3e10),
+ * hs_global_get_type (0xc3e60). ext_ptr+0x8 is the backing pointer to the live
+ * C variable; NULL means use static default from the data segment.
+ */
+static void FUN_000cb230(int loop_var)
+{
+  char *datum_ptr;
+  char *ext_ptr;
+  int16_t type;
+
+  if ((loop_var & 0x8000) == 0)
+    return;
+
+  datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, loop_var & 0x7fff);
+  ext_ptr = (char *)hs_external_global_get((int16_t)(loop_var & 0x7fff));
+  type = hs_global_get_type((uint16_t)loop_var);
+
+  switch (type) {
+  case 5:
+    if (*(uint8_t **)(ext_ptr + 8) == NULL) {
+      *(uint8_t *)(datum_ptr + 4) = *(uint8_t *)0x26f3b2;
+    } else {
+      *(uint8_t *)(datum_ptr + 4) = **(uint8_t **)(ext_ptr + 8);
+    }
+    return;
+  case 6:
+    if (*(float **)(ext_ptr + 8) == NULL) {
+      *(float *)(datum_ptr + 4) = *(float *)0x26f3b4;
+    } else {
+      *(float *)(datum_ptr + 4) = **(float **)(ext_ptr + 8);
+    }
+    return;
+  case 7:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3b8;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 8:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f3bc;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 9:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x2f1580;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 10:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3c0;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0xb:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3c4;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0xc:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3c8;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0xd:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3cc;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0xe:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3d0;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0xf:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3d4;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x10:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3d8;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x11:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f3dc;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x12:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3e0;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x13:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3e4;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x14:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3e8;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x15:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3ec;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x16:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f3f0;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x17:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f3f4;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x18:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f3f8;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x19:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f400;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x1a:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f404;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x1b:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f3fc;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x1c:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f408;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x1d:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f40c;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x1e:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f410;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x1f:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f414;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x20:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f418;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x21:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f41c;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x22:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f420;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x23:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f424;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x24:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f428;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x25:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f430;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x26:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f434;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x27:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f438;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x28:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f43c;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x29:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f440;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x2a:
+    if (*(int32_t **)(ext_ptr + 8) == NULL) {
+      *(int32_t *)(datum_ptr + 4) = *(int32_t *)0x26f444;
+    } else {
+      *(int32_t *)(datum_ptr + 4) = **(int32_t **)(ext_ptr + 8);
+    }
+    return;
+  case 0x2b:
+    if (*(int16_t **)(ext_ptr + 8) == NULL) {
+      *(int16_t *)(datum_ptr + 4) = *(int16_t *)0x26f42c;
+    } else {
+      *(int16_t *)(datum_ptr + 4) = **(int16_t **)(ext_ptr + 8);
+    }
+    return;
+  default:
+    display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x638, true);
+    system_exit(-1);
+    return;
+  }
+}
+
 /* Initialize HaloScript runtime for a new map. Deletes all existing thread
  * data, creates an internal initialization thread, runs all global
  * initialization scripts (type 0x17), then starts continuous/dormant script

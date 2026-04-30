@@ -3628,7 +3628,8 @@
         },
         {
           "addr": "0xcb230",
-          "decl": "void FUN_000cb230(int loop_var@<edi>);"
+          "decl": "void FUN_000cb230(int loop_var@<edi>);",
+          "ported": true
         },
         {
           "addr": "0xcb7b0",
