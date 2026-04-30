@@ -1786,11 +1786,13 @@
       "functions": [
         {
           "decl": "void FUN_0011e430(void *pool @<edi>);",
-          "addr": "0x11e430"
+          "addr": "0x11e430",
+          "ported": true
         },
         {
           "decl": "void *FUN_0011e5a0(void *pool @<eax>, void **block_reference @<esi>);",
-          "addr": "0x11e5a0"
+          "addr": "0x11e5a0",
+          "ported": true
         },
         {
           "decl": "bool memory_pool_block_new(void *pool, void **block_reference, int size);",

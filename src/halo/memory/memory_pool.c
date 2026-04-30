@@ -1,3 +1,112 @@
+/* Validate pool structure and all blocks in the linked list (0x11e430).
+ * Checks pool/block signatures, linked list consistency, and address bounds. */
+void FUN_0011e430(void *pool)
+{
+  char *p = (char *)pool;
+  char *block;
+  char *previous_block;
+
+  if (*(int *)p != 0x706f6f6c) {
+    display_assert("pool->signature==POOL_SIGNATURE",
+                   "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x154, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)(p + 0x28) <= 0) {
+    display_assert("pool->size>0", "c:\\halo\\SOURCE\\memory\\memory_pool.c",
+                   0x155, 1);
+    system_exit(-1);
+  }
+
+  block = *(char **)(p + 0x30);
+  previous_block = NULL;
+
+  while (block != NULL) {
+    if (*(char **)(block + 0x10) != previous_block) {
+      display_assert("block->previous_block==previous_block",
+                     "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x160, 1);
+      system_exit(-1);
+    }
+
+    if (*(int *)(block + 0x0c) == 0 && *(char **)(p + 0x34) != block) {
+      display_assert("block->next_block || pool->last_block==block",
+                     "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x161, 1);
+      system_exit(-1);
+    }
+
+    if (*(int *)block != 0x68656164) {
+      display_assert("block->header_signature==BLOCK_HEADER_SIGNATURE",
+                     "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x163, 1);
+      system_exit(-1);
+    }
+
+    if (*(int *)(block + 0x14) != 0x7461696c) {
+      display_assert("block->trailer_signature==BLOCK_TRAILER_SIGNATURE",
+                     "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x164, 1);
+      system_exit(-1);
+    }
+
+    if ((unsigned int)block < (unsigned int)*(int *)(p + 0x24)) {
+      display_assert("(byte *)block>=(byte *)pool->base_address",
+                     "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x166, 1);
+      system_exit(-1);
+    }
+
+    if ((unsigned int)(*(int *)(block + 0x04) + (int)block) >
+        (unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24))) {
+      display_assert(
+        "(byte *)block+block->size<=(byte *)pool->base_address+pool->size",
+        "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x167, 1);
+      system_exit(-1);
+    }
+
+    previous_block = block;
+    block = *(char **)(block + 0x0c);
+  }
+}
+
+/* Validate a block reference and return the block header pointer (0x11e5a0).
+ * Checks that the reference is non-null, verifies pool integrity, confirms
+ * the block's stored reference matches, and walks the list to find it. */
+void *FUN_0011e5a0(void *pool, void **block_reference)
+{
+  char *p = (char *)pool;
+  char *data;
+  char *block;
+  char *other_block;
+
+  if (block_reference == NULL || *block_reference == NULL) {
+    display_assert("reference && (*reference)",
+                   "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x174, 1);
+    system_exit(-1);
+  }
+
+  FUN_0011e430(pool);
+
+  data = (char *)*block_reference;
+  block = data - 0x18;
+
+  if (*(void **)(data - 0x10) != (void *)block_reference) {
+    char *msg =
+      csprintf((char *)0x5ab100, "expected reference %08x but got %08x",
+               *(int *)(data - 0x10), (int)block_reference);
+    display_assert(msg, "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x17b, 1);
+    system_exit(-1);
+  }
+
+  other_block = *(char **)(p + 0x30);
+  while (other_block != NULL) {
+    if (block == other_block)
+      return block;
+    other_block = *(char **)(other_block + 0x0c);
+  }
+
+  display_assert("other_block", "c:\\halo\\SOURCE\\memory\\memory_pool.c",
+                 0x184, 1);
+  system_exit(-1);
+  return block;
+}
+
 /* Allocate a block from a memory pool (0x11e6c0).
  * Block header is 0x18 bytes: 'head', size, reference, next, prev, 'tail'.
  * Blocks are allocated sequentially after the last block (or at base if empty).

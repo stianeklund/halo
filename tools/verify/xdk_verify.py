@@ -34,7 +34,7 @@ XDK_CL = r"C:\Program Files (x86)\RXDK\xbox\bin\vc71\CL.Exe"
 XDK_CL_WSL = "/mnt/c/Program Files (x86)/RXDK/xbox/bin/vc71/CL.Exe"
 XDK_INC = r"C:\Program Files (x86)\RXDK\xbox\include"
 
-COMPARE_SCRIPT = REPO_ROOT / "tools" / "compare_obj.py"
+COMPARE_SCRIPT = REPO_ROOT / "tools" / "verify" / "compare_obj.py"
 
 
 def wsl_to_win(path: Path) -> str:
