@@ -2181,6 +2181,10 @@
         "The hs_compile_source_setup function at 0xc5730 takes @EDI as source_file_size and one stack arg; the decompiler shows unaff_EDI confirming the register arg pattern."
       ]
     },
+    "0xc93f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc94f0": {
       "kind": "function",
       "status": "ported"
