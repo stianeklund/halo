@@ -3628,7 +3628,8 @@
         },
         {
           "addr": "0xcaa30",
-          "decl": "void FUN_000caa30(int thread_handle@<esi>);"
+          "decl": "void FUN_000caa30(int thread_handle@<esi>);",
+          "ported": true
         },
         {
           "addr": "0xcaa80",
