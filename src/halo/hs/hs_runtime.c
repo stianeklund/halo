@@ -502,6 +502,51 @@ void hs_runtime_dispose_from_old_map(void)
   *(uint8_t *)0x46b810 = 0;
 }
 
+/* 0xca940 */
+static int hs_thread_new(int script_index, int type)
+{
+  int thread_index;
+  char *thread;
+  char *stack;
+  char *script;
+
+  if (type < 0 || type >= 3) {
+    display_assert("type>=0 && type<NUMBER_OF_HS_THREAD_TYPES",
+                   "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x26f, true);
+    system_exit(-1);
+  }
+
+  if (type == 0 && script_index == -1) {
+    display_assert("type!=_hs_thread_type_script || script_index!=NONE",
+                   "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x270, true);
+    system_exit(-1);
+  }
+
+  thread_index = data_new_at_index(*(data_t **)0x5aa6c4);
+  if (thread_index != -1) {
+    thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
+    stack = thread + 0x18;
+    *(char **)(thread + 0x10) = stack;
+    *(int32_t *)stack = 0;
+    *(int16_t *)(*(char **)(thread + 0x10) + 0xc) = 0;
+    *(int32_t *)(*(char **)(thread + 0x10) + 0x4) = -1;
+    *(uint8_t *)(thread + 0x2) = (uint8_t)type;
+    *(int32_t *)(thread + 0x4) = script_index;
+    *(uint8_t *)(thread + 0x3) = 0;
+
+    if (script_index != -1) {
+      script = (char *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x49c, script_index, 0x5c);
+      if (*(int16_t *)(script + 0x20) == 1) {
+        *(int32_t *)(thread + 0x8) = -2;
+        return thread_index;
+      }
+    }
+    *(int32_t *)(thread + 0x8) = 0;
+  }
+  return thread_index;
+}
+
 /* 0xcaff0 */
 static bool hs_object_types_compatible(int16_t actual_offset,
                                        int16_t desired_offset)
@@ -743,9 +788,7 @@ void hs_runtime_initialize_for_new_map(void)
             (char *)tag_block_get_element(scripts_block, script_idx, 0x5c);
           int16_t script_type = *(int16_t *)(script + 0x20);
           if (script_type != 3 && script_type != 4) {
-            /* hs_thread_new (0xca940): EBX=script_index, stack arg=type.
-             * Returns thread index in EAX, -1 on failure. */
-            int result = FUN_000ca940(script_idx, 0);
+            int result = hs_thread_new(script_idx, 0);
             if (result == -1) {
               error(0, "ran out of script threads.");
             }

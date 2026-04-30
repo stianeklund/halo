@@ -3618,7 +3618,8 @@
         },
         {
           "addr": "0xca940",
-          "decl": "int FUN_000ca940(int script_index@<ebx>, int type);"
+          "decl": "int hs_thread_new(int script_index@<ebx>, int type);",
+          "ported": true
         },
         {
           "addr": "0xcaa80",
