@@ -2223,6 +2223,10 @@
       "name": "hs_get_thread_script_name",
       "name_confidence": "high"
     },
+    "0xcab00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcaff0": {
       "kind": "function",
       "status": "ported"
