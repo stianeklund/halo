@@ -870,6 +870,46 @@
       "metadata": {
         "source_path": "src/halo/sound/sound_manager.c"
       }
+    },
+    {
+      "name": "halo/rectangles",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/rectangles.c.obj",
+      "base_path": "delinked/rectangles.obj",
+      "metadata": {
+        "source_path": "src/halo/math/rectangles.c"
+      }
+    },
+    {
+      "name": "halo/predicted_resources",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/predicted_resources.c.obj",
+      "base_path": "delinked/predicted_resources.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/predicted_resources.c"
+      }
+    },
+    {
+      "name": "halo/d3d_intimacy",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/main/d3d_intimacy.c.obj",
+      "base_path": "delinked/d3d_intimacy.obj",
+      "metadata": {
+        "source_path": "src/halo/main/d3d_intimacy.c"
+      }
+    },
+    {
+      "name": "halo/bink_sound",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bink/bink_sound.c.obj",
+      "base_path": "delinked/bink_sound.obj",
+      "metadata": {
+        "source_path": "src/halo/bink/bink_sound.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer_sprites",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer_sprites.c.obj",
+      "base_path": "delinked/rasterizer_sprites.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer_sprites.c"
+      }
     }
   ]
 }
