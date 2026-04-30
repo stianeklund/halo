@@ -3613,7 +3613,8 @@
         },
         {
           "addr": "0xcb170",
-          "decl": "int FUN_000cb170(int thread_handle, int value_union, int type, int next_expression);"
+          "decl": "int hs_can_cast(int thread_handle, int16_t actual_type, int16_t desired_type, int value);",
+          "ported": true
         },
         {
           "addr": "0xcaff0",
@@ -4872,6 +4873,10 @@
           "decl": "void objects_update(void);",
           "addr": "0x145170",
           "ported": true
+        },
+        {
+          "addr": "0x140720",
+          "decl": "int FUN_00140720(int16_t index);"
         }
       ]
     },
