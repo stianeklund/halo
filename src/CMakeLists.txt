@@ -108,5 +108,6 @@
 	halo/shell.c
 	halo/shell_xbox.c
 	halo/cache/physical_memory_map.c
+	halo/cache/predicted_resources.c
 	halo/cache/tags.c
 	)

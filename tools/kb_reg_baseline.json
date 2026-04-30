@@ -178,7 +178,8 @@
     "0x1286e0": "bool FUN_001286e0(int connection@<esi>, void *buffer, int *size, void *addr);",
     "0x1292f0": "bool FUN_001292f0(int connection@<edi>, void *buffer, int *size, void *addr);",
     "0x1294d0": "bool FUN_001294d0(int connection@<esi>);",
-    "0x129a30": "bool FUN_00129a30(int connection@<ebx>, int *output);"
+    "0x129a30": "bool FUN_00129a30(int connection@<ebx>, int *output);",
+    "0x1bdd80": "void FUN_001bdd80(int tag_index@<eax>);"
   },
   "version": 1
 }
