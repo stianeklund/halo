@@ -3462,6 +3462,10 @@
           "decl": "void hs_syntax_reset(int a1);",
           "addr": "0xc5680",
           "ported": true
+        },
+        {
+          "decl": "void *FUN_000c3d00(int16_t function_index);",
+          "addr": "0xc3d00"
         }
       ]
     },
@@ -3471,11 +3475,13 @@
       "functions": [
         {
           "decl": "bool FUN_000c73a0(int datum_index @<edi>);",
-          "addr": "0xc73a0"
+          "addr": "0xc73a0",
+          "ported": true
         },
         {
           "decl": "bool FUN_000c74c0(int datum_index @<ebx>);",
-          "addr": "0xc74c0"
+          "addr": "0xc74c0",
+          "ported": true
         },
         {
           "decl": "bool hs_type_check(int datum_index, int16_t check_type);",
@@ -3484,7 +3490,37 @@
         },
         {
           "decl": "void hs_compile_recompile_scripts(void);",
-          "addr": "0xc93f0"
+          "addr": "0xc93f0",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_000c7b10(int datum_index);",
+          "addr": "0xc7b10",
+          "ported": true
+        },
+        {
+          "decl": "int FUN_000c6a70(char *str @<eax>);",
+          "addr": "0xc6a70"
+        },
+        {
+          "decl": "int FUN_000c57d0(void);",
+          "addr": "0xc57d0"
+        },
+        {
+          "decl": "bool FUN_000c5840(int datum_index @<eax>);",
+          "addr": "0xc5840"
+        },
+        {
+          "decl": "void FUN_000c5960(int datum_index @<eax>);",
+          "addr": "0xc5960"
+        },
+        {
+          "decl": "bool FUN_000c6b00(int datum_index);",
+          "addr": "0xc6b00"
+        },
+        {
+          "decl": "bool FUN_000c6d90(int datum_index);",
+          "addr": "0xc6d90"
         }
       ]
     },
@@ -3536,6 +3572,10 @@
           "decl": "void hs_runtime_dispose(void);",
           "addr": "0xce1e0",
           "ported": true
+        },
+        {
+          "decl": "bool FUN_000cb070(int16_t actual_type, int16_t desired_type);",
+          "addr": "0xcb070"
         }
       ]
     },
