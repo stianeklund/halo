@@ -910,6 +910,14 @@
       "metadata": {
         "source_path": "src/halo/rasterizer/rasterizer_sprites.c"
       }
+    },
+    {
+      "name": "halo/structure_bsp_definitions",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structure_bsp_definitions.c.obj",
+      "base_path": "delinked/structure_bsp_definitions.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structure_bsp_definitions.c"
+      }
     }
   ]
 }

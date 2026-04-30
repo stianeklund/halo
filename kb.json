@@ -6652,11 +6652,17 @@
       "functions": [
         {
           "decl": "uint32_t *structure_bsp_get_cluster_sound_data(void *bsp, int16_t cluster_index);",
-          "addr": "0x193550"
+          "addr": "0x193550",
+          "ported": true
+        },
+        {
+          "decl": "uint8_t *FUN_001937d0(void *bsp, int16_t from_cluster, int16_t to_cluster);",
+          "addr": "0x1937d0"
         },
         {
           "decl": "uint8_t structure_bsp_cluster_sound_encoding(void *bsp, int16_t from_cluster, int16_t to_cluster);",
-          "addr": "0x193870"
+          "addr": "0x193870",
+          "ported": true
         }
       ]
     },
