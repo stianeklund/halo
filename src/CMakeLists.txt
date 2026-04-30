@@ -69,6 +69,7 @@
 	halo/main/telnet_console.c
 	halo/memory/data.c
 	halo/memory/lruv_cache.c
+	halo/memory/memory_pool.c
 	halo/memory/stack_memory_pool.c
 	halo/physics/breakable_surfaces.c
 	halo/physics/collision_usage.c

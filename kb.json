@@ -1781,12 +1781,22 @@
       "source": "memory/memory_pool.c",
       "functions": [
         {
+          "decl": "void FUN_0011e430(void *pool @<edi>);",
+          "addr": "0x11e430"
+        },
+        {
+          "decl": "void *FUN_0011e5a0(void *pool @<eax>, void **block_reference @<esi>);",
+          "addr": "0x11e5a0"
+        },
+        {
           "decl": "bool memory_pool_block_new(void *pool, void **block_reference, int size);",
-          "addr": "0x11e6c0"
+          "addr": "0x11e6c0",
+          "ported": true
         },
         {
           "decl": "void memory_pool_block_free(void *pool, void **block_reference);",
-          "addr": "0x11e7a0"
+          "addr": "0x11e7a0",
+          "ported": true
         }
       ]
     },
