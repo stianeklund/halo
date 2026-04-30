@@ -85,7 +85,7 @@ void FUN_0012c1c0(int server, int client)
       if ((short)*(signed char *)(ptr + 0x1c) ==
           *(short *)((char *)client + 0xc)) {
         csmemcpy(local_buf, ptr, 0x20);
-        quit_time = FUN_000b5aa0() + 0x21;
+        quit_time = game_time_get() + 0x21;
         *(int *)(local_buf + 0x20) = quit_time;
         error(2, "sending quit out of game, time = %x", quit_time);
         msg = FUN_0012b700(0x16, local_buf, 0x24);

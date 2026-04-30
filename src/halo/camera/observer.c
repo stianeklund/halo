@@ -253,6 +253,56 @@ void observer_integrate(int16_t local_player_index)
   }
 }
 
+/* Cast a collision ray for the observer camera (0x8ab90).
+ * Pushes a collision user tag (0xc = observer), computes direction from
+ * ray_origin to ray_endpoint, fires FUN_0014df70, and writes the hit
+ * fraction to *out_fraction if a collision is found. */
+bool FUN_0008ab90(float *out_fraction, bool indoor, float *ray_origin,
+                  float *ray_endpoint)
+{
+  uint32_t flags;
+  bool result;
+  float direction[3];
+  char collision_result[0x60];
+
+  result = false;
+  flags = 0x40e1;
+  if (indoor)
+    flags = 0x40a1;
+
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\camera\\observer.c", 0x4b4, 1);
+    system_exit(-1);
+  }
+
+  {
+    int depth = (int)*(int16_t *)0x4761d8;
+    *(int16_t *)(0x5a8c80 + depth * 2) = 0xc;
+    *(int16_t *)0x4761d8 += 1;
+  }
+
+  direction[0] = ray_endpoint[0] - ray_origin[0];
+  direction[1] = ray_endpoint[1] - ray_origin[1];
+  direction[2] = ray_endpoint[2] - ray_origin[2];
+
+  if (FUN_0014df70(flags, ray_origin, direction, -1,
+                   (int16_t *)collision_result)) {
+    *out_fraction = *(float *)(collision_result + 0x14);
+    result = true;
+  }
+
+  if (*(int16_t *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\camera\\observer.c", 0x4ba, 1);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 -= 1;
+
+  return result;
+}
+
 /* Copy/stage camera command block from director into observer state (0x8b060).
  * Validates the command struct (pointed to by observer+0x4): checks forward/up
  * perpendicular, position/orientation in range, velocity valid, distance/FOV/

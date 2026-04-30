@@ -186,10 +186,6 @@
           "addr": "0x178d0"
         },
         {
-          "decl": "void FUN_0001c450(int actor_handle, int old_prop, int new_prop);",
-          "addr": "0x1c450"
-        },
-        {
           "decl": "char *FUN_000210f0(int actor_handle);",
           "addr": "0x210f0",
           "ported": true
@@ -1030,6 +1026,23 @@
         {
           "decl": "void *memmove(void *dest, const void *src, size_t size);",
           "addr": "0x1da290"
+        }
+      ]
+    },
+    {
+      "name": "actions.obj",
+      "functions": [
+        {
+          "decl": "void FUN_0001c450(int actor_handle, int old_prop, int new_prop);",
+          "addr": "0x1c450",
+          "ported": true
+        }
+      ],
+      "data": [
+        {
+          "decl": "char actor_action_definitions[14][0x38];",
+          "addr": "0x253fcc",
+          "note": "action definition table, stride 0x38, func ptr at offset 0"
         }
       ]
     },
@@ -3287,10 +3300,6 @@
           "ported": true
         },
         {
-          "decl": "int FUN_000b5aa0(void);",
-          "addr": "0xb5aa0"
-        },
-        {
           "decl": "int16_t game_time_get_elapsed(void);",
           "addr": "0xb5ae0",
           "ported": true
@@ -4740,7 +4749,8 @@
         },
         {
           "decl": "bool FUN_0008ab90(float *out_fraction, bool indoor @<al>, float *ray_origin @<esi>, float *ray_endpoint @<edi>);",
-          "addr": "0x8ab90"
+          "addr": "0x8ab90",
+          "ported": true
         },
         {
           "decl": "void observer_update_command(int16_t local_player_index @<eax>);",
