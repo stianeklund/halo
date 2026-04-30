@@ -97,7 +97,7 @@ def load_kb_index() -> tuple[dict[str, Target], dict[str, Target]]:
 def pick_target_from_frontier(frontier_limit: int, object_filter: str, artifact_dir: Path) -> Optional[tuple[str, str]]:
   log_path = artifact_dir / "frontier.log"
   proc = run_command(
-    ["python3", "tools/frontier.py", "--limit", str(frontier_limit)],
+    ["python3", "tools/analysis/frontier.py", "--limit", str(frontier_limit)],
     cwd=ROOT,
     log_path=log_path,
   )
@@ -438,7 +438,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("ghidra_extract", ran=False, ok=True,
                               details="skipped (no --extract-cmd)"))
 
-  abi_cmd = ["python3", "tools/audit_reg_abi.py", "--target", target.name]
+  abi_cmd = ["python3", "tools/audit/audit_reg_abi.py", "--target", target.name]
   abi_source = "kb.json only"
   if args.abi_caller_disasm_file:
     abi_cmd.extend(["--caller-disasm-file", args.abi_caller_disasm_file])
@@ -476,7 +476,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     cmd = [
       "python3",
-      "tools/maintain.py",
+      "tools/analysis/maintain.py",
       "--update-from",
       args.candidate,
       source,
@@ -556,7 +556,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
       verify_input_path = args.verify_output or str(artifact_dir / "verify_payload.json")
       collect_cmd = [
         "python3",
-        "tools/collect_verify_payload.py",
+        "tools/verify/collect_verify_payload.py",
         "--name",
         target.name,
         "--orig-address",
@@ -618,7 +618,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
   if verify_input_path:
     proc = run_command(
-      ["python3", "tools/verify_lift.py", verify_input_path],
+      ["python3", "tools/verify/verify_lift.py", verify_input_path],
       cwd=ROOT,
       log_path=artifact_dir / "verify_lift.log",
     )
@@ -632,7 +632,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
   if args.objdiff_reference and args.objdiff_candidate:
     cmd = [
       "python3",
-      "tools/objdiff_lift.py",
+      "tools/verify/objdiff_lift.py",
       "--target",
       target.name,
       "--reference",
@@ -670,7 +670,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     if xdk_source and xdk_ref and (ROOT / xdk_source).exists():
       cmd = [
-        "python3", "tools/xdk_verify.py",
+        "python3", "tools/verify/xdk_verify.py",
         str(xdk_source), "--function", target.name,
         "--show-diffs", "--threshold", "0",
       ]
@@ -702,7 +702,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
   runtime_ok = True
   if runtime_enabled:
     patched_iso = args.runtime_patched_iso
-    boot_args = ["bash", "tools/boot_hash.sh"]
+    boot_args = ["bash", "tools/xbox/boot_hash.sh"]
     if args.runtime_addr:
       boot_args.extend(["--addr", args.runtime_addr])
     if args.runtime_nwords:
@@ -747,7 +747,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     md_notes: list[str] = []
     if build_ok:
       proc = run_command(
-        ["python3", "tools/kb_meta.py", "set-status", "--addr", target.addr, "--status", "ported"],
+        ["python3", "tools/analysis/kb_meta.py", "set-status", "--addr", target.addr, "--status", "ported"],
         cwd=ROOT,
         log_path=artifact_dir / "metadata_ported.log",
       )
@@ -757,7 +757,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     verification_enabled = structural_enabled or runtime_enabled
     if build_ok and verification_enabled and structural_ok and runtime_ok:
       proc = run_command(
-        ["python3", "tools/kb_meta.py", "set-status", "--addr", target.addr, "--status", "verified"],
+        ["python3", "tools/analysis/kb_meta.py", "set-status", "--addr", target.addr, "--status", "verified"],
         cwd=ROOT,
         log_path=artifact_dir / "metadata_verified.log",
       )
@@ -817,7 +817,7 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--skip-build", action="store_true",
                   help="Skip build stage.")
-  ap.add_argument("--build-cmd", default="python3 tools/build.py -q --target halo",
+  ap.add_argument("--build-cmd", default="python3 tools/build/build.py -q --target halo",
                   help="Build command used when build stage runs.")
 
   ap.add_argument("--abi-caller-disasm-file", default="",
@@ -828,9 +828,9 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Fail ABI audit if caller evidence misses expected register writes.")
 
   ap.add_argument("--verify-input", default="",
-                  help="Input JSON for tools/verify_lift.py.")
+                  help="Input JSON for tools/verify/verify_lift.py.")
   ap.add_argument("--verify-auto", action="store_true",
-                  help="Generate verify_lift input via tools/collect_verify_payload.py.")
+                  help="Generate verify_lift input via tools/verify/collect_verify_payload.py.")
   ap.add_argument("--verify-new-address", default="",
                   help="Lifted function address (required for --verify-auto).")
   ap.add_argument("--verify-output", default="",
@@ -858,9 +858,9 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Optional shell command producing lifted callees for --verify-auto.")
 
   ap.add_argument("--objdiff-reference", default="",
-                  help="Reference object for tools/objdiff_lift.py.")
+                  help="Reference object for tools/verify/objdiff_lift.py.")
   ap.add_argument("--objdiff-candidate", default="",
-                  help="Candidate object for tools/objdiff_lift.py.")
+                  help="Candidate object for tools/verify/objdiff_lift.py.")
   ap.add_argument("--objdiff-tool", default="",
                   help="Optional objdiff executable path/name.")
 
@@ -868,7 +868,7 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Skip XDK MSVC compilation and FPU operand comparison.")
 
   ap.add_argument("--with-runtime", action="store_true",
-                  help="Enable runtime hash comparison via tools/boot_hash.sh.")
+                  help="Enable runtime hash comparison via tools/xbox/boot_hash.sh.")
   ap.add_argument("--runtime-patched-iso", default="halo-patched/halo-patched.iso",
                   help="ISO path used for patched runtime hash.")
   ap.add_argument("--runtime-baseline-iso", default="",

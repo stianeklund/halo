@@ -7,7 +7,7 @@ subtask: true
 Use the `halo-build-xemu` skill for the standard build, ISO, and xemu workflow.
 
 Build the project, create a patched ISO, and hot-swap it into xemu using
-`tools/xemu_qmp.py` first. Use MCP only if the script cannot perform the needed
+`tools/xbox/xemu_qmp.py` first. Use MCP only if the script cannot perform the needed
 action.
 
 Argument: $ARGUMENTS (unused)

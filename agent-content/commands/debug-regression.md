@@ -51,12 +51,12 @@ Only when static analysis leaves the root cause genuinely ambiguous.
 **Fallback — xemu probing** (only if no Xbox is reachable):
 
 ```bash
-python3 tools/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
-python3 tools/xemu_qmp.py --host localhost --port 4444 --serial
-python3 tools/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
-python3 tools/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
-python3 tools/xemu_qmp.py --host localhost --port 4444 --pause
-python3 tools/xemu_qmp.py --host localhost --port 4444 --resume
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --serial
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --pause
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --resume
 ```
 
 Useful xemu probes for regressions:

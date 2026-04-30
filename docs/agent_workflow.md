@@ -42,7 +42,7 @@ Next smallest step:
 Use this when you want fast structural + runtime sanity checks after a lift:
 
 ```bash
-python3 tools/verify_option3.py --target <function_name_or_0xaddr>
+python3 tools/verify/verify_option3.py --target <function_name_or_0xaddr>
 ```
 
 Common add-ons:

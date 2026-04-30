@@ -49,7 +49,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **kb.json:** `rtk jq` ONLY — never use the Read tool. See the File-Specific Bans & Caps table.
 - **JSON Mastery:** ALWAYS use `rtk jq` for querying/parsing `kb.json`. Never use `python -c`.
 - **Pre-edit research:** Before editing any function, run `rtk rg '<function_name>' src/` to find all callers and related symbols.
-- **Ghidra Pre-flight:** Before using any `ghidra` or `ghidra-live` MCP tool, run `python3 tools/check_ghidra_mcp.py`. If it fails, alert the user and stop.
+- **Ghidra Pre-flight:** Before using any `ghidra` or `ghidra-live` MCP tool, run `python3 tools/audit/check_ghidra_mcp.py`. If it fails, alert the user and stop.
 - **Tooling:** Always prefix with `rtk`. Use `rtk fd` (files), `rtk rg` (text), `rtk ast-grep` (structure), `rtk fzf` (selecting).
 
 ### 2. Implementation & kb.json Discipline
@@ -82,8 +82,8 @@ Maintain a mental ledger of files already read in this conversation. If you need
   4. **Cross-product operand swap:** `cross(A, B)` and `cross(B, A)` look nearly identical in the decompiler — the FLD/FMUL order before FSUBP differs but the components look the same. Always verify the subtraction order against disassembly: `cross(A,B)[0] = A[1]*B[2] - A[2]*B[1]`. Getting it backwards negates the vector, which can cause invisible geometry, flipped UV mapping, or reflected projections.
 
 ### 3. Build & Verification
-- **RTK Build:** Use `rtk python3 tools/build.py -q --target halo` (warnings/errors only).
-- **XDK Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/xdk_verify.py src/path/to/file.c` to compile with the original MSVC 7.1 compiler and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
+- **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
+- **XDK Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/xdk_verify.py src/path/to/file.c` to compile with the original MSVC 7.1 compiler and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Validation:** Run the narrowest meaningful validation first.
 - **XBDM Priority:** Prefer real Xbox XBDM verification over xemu when available.
 - **Failure Policy:** If an edit fails, re-read only affected ranges before retrying.
@@ -93,7 +93,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **No Freeform Messages:** Never write freeform lift commit messages.
 - **Standard Command:** After staging changes, run:
   ```bash
-  rtk python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
+  rtk python3 tools/audit/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
   rtk git commit -F /tmp/commit_msg.txt
   ```
 - **ABI audit gate:** `generate_lift_commit.py` runs `audit_reg_abi.py` on all newly ported functions. If any fail, no commit message is generated. Use `--skip-abi-audit` only for emergencies.
@@ -107,12 +107,12 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **Output Schema:** For non-trivial work, report: Target, Confirmed, Inferred, Uncertain, Proposed Code, kb.json updates.
 
 ## Analysis Tools
-- **`tools/frontier.py`** — Decompilation frontier scoring and target recommendations.
-- **`tools/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
-- **`tools/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
-- **`tools/maintain.py`** — Source file organization and function placement checks.
-- **`tools/xdk_verify.py`** — Compile a source file with the original XDK MSVC 7.1 compiler (`RXDK/xbox/bin/vc71/CL.Exe`) and compare against the delinked reference. Flags FPU operand-order differences that indicate cross-product swaps, subtraction direction errors, etc. Use `--fpu-only` for focused output.
-- **`tools/compare_obj.py`** — LCS-based instruction comparison between two COFF objects. Used by `xdk_verify.py`.
+- **`tools/analysis/frontier.py`** — Decompilation frontier scoring and target recommendations.
+- **`tools/analysis/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
+- **`tools/audit/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
+- **`tools/analysis/maintain.py`** — Source file organization and function placement checks.
+- **`tools/verify/xdk_verify.py`** — Compile a source file with the original XDK MSVC 7.1 compiler (`RXDK/xbox/bin/vc71/CL.Exe`) and compare against the delinked reference. Flags FPU operand-order differences that indicate cross-product swaps, subtraction direction errors, etc. Use `--fpu-only` for focused output.
+- **`tools/verify/compare_obj.py`** — LCS-based instruction comparison between two COFF objects. Used by `xdk_verify.py`.
 
 ## Architecture and Skills
 - `halo-xbox-re`: RE doctrine and evidence rules.
@@ -137,7 +137,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 | **Test** | 90-99% | `rtk pytest`, `rtk cargo test`, `rtk vitest` |
 | **Git** | 60-80% | `rtk git status`, `rtk git diff`, `rtk git log` |
 | **Files** | 60-75% | `rtk read`, `rtk grep`, `rtk find`, `rtk ls` |
-| **Ghidra**| 70-90% | `rtk python3 tools/check_ghidra_mcp.py` |
+| **Ghidra**| 70-90% | `rtk python3 tools/audit/check_ghidra_mcp.py` |
 
 Use `rtk gain` to view savings statistics.
 <!-- /rtk-instructions -->

@@ -37,7 +37,7 @@ Report:
 
 Run:
 
-`python3 tools/verify_option3.py --target <target> <extra_flags>`
+`python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
 
 Report:
 
@@ -50,7 +50,7 @@ Notes:
 
 - Add `--objdiff-reference <path>` and `--objdiff-candidate <path>` when a
   delinked reference object exists.
-- Add `--load-into-xemu` to hot-load and reset via `tools/xemu_qmp.py`.
+- Add `--load-into-xemu` to hot-load and reset via `tools/xbox/xemu_qmp.py`.
 - Use `--skip-build` or `--skip-iso` for quick reruns when artifacts already
   exist.
 

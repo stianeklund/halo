@@ -33,14 +33,14 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
 6. Write implementation in address-ordered position.
 7. Update kb.json conservatively (see
    `docs/references/kb-update-policy.md`).
-8. Run `python3 tools/maintain.py <source_file>`.
+8. Run `python3 tools/analysis/maintain.py <source_file>`.
 
 ## Token-efficient execution defaults
 
 Use these defaults unless a target requires deeper forensics:
 
 - Prefer existing repo tools over ad-hoc scripts:
-  - `python3 tools/kb_meta.py list --object <obj>` for scoped symbol sets
+  - `python3 tools/analysis/kb_meta.py list --object <obj>` for scoped symbol sets
   - `python3 tools/lift_pipeline.py --target <name_or_addr> ...` for staged lift/verify
 - Avoid inline `python3 -c` snippets for kb queries and address matching.
 - Keep MCP passes staged:

@@ -8,7 +8,7 @@ Use the `halo-verify-debug` skill for structural verification rules and report
 shape.
 
 Run verification for a lifted function. The primary path is XDK MSVC 7.1
-structural comparison via `tools/xdk_verify.py`. Fallback to
+structural comparison via `tools/verify/xdk_verify.py`. Fallback to
 `tools/lift_pipeline.py` structural verify when no delinked reference exists.
 
 Argument: $ARGUMENTS (`<target> [extra flags]`)
@@ -19,7 +19,7 @@ Behavior:
 3. **XDK verify (primary):** Check if a delinked reference exists in `delinked/`
    (via `objdiff.json`). If so, run:
    ```
-   python3 tools/xdk_verify.py <source_file> --function <target> --show-diffs
+   python3 tools/verify/xdk_verify.py <source_file> --function <target> --show-diffs
    ```
    Report match percentage. Above 85% = correct. Below 70% = investigate.
 4. **Lift pipeline verify (fallback):** If no delinked reference exists, run

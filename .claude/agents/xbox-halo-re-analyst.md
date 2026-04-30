@@ -75,7 +75,7 @@ Procedure for analysis:
 8. Update kb.json conservatively.
 9. Classify claims as Confirmed / Inferred / Uncertain.
 10. After marking status=ported in kb_meta.json, persist Inferred and Uncertain
-    findings with `tools/kb_meta.py annotate-notes --addr <addr> --kind inferred|uncertain --append "<note>"` — one call per note, each a complete sentence.
+    findings with `tools/analysis/kb_meta.py annotate-notes --addr <addr> --kind inferred|uncertain --append "<note>"` — one call per note, each a complete sentence.
 
 Caller disassembly capture:
 When retrieving caller disassembly from Ghidra (callers of the target showing

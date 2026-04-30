@@ -22,7 +22,7 @@ Prerequisites (verify and bail early if not met):
 
 Ghidra MCP preflight (required):
 - Before any `ghidra`/`ghidra-live` MCP tool call, run
-  `python3 tools/check_ghidra_mcp.py`.
+  `python3 tools/audit/check_ghidra_mcp.py`.
 - If the preflight fails, or any `ghidra`/`ghidra-live` MCP tool call fails due
   to connection/timeout/unavailable errors, stop immediately and tell the user
   exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra

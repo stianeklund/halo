@@ -6,11 +6,11 @@ description: Standard RDCP and XBDM command handling for real Xbox debugging
 # Halo XBDM
 
 Use this skill whenever work talks to a real Xbox through XBDM or RDCP via
-`tools/xbdm_rdcp.py`.
+`tools/xbox/xbdm_rdcp.py`.
 
 ## General rules
 
-- Prefer `python3 tools/xbdm_rdcp.py --json ...` for all XBDM interactions.
+- Prefer `python3 tools/xbox/xbdm_rdcp.py --json ...` for all XBDM interactions.
 - Convert user-supplied host and port hints into `--host` and `--port` flags.
 - Otherwise rely on `XBDM_HOST`, `XBDM_PORT`, or the tool defaults.
 - Return parsed results clearly, including non-2xx failures.

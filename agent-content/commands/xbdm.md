@@ -7,7 +7,7 @@ subtask: true
 Use the `halo-xbdm` skill for standard RDCP parsing, host or port handling,
 and response reporting.
 
-Send a raw RDCP/XBDM command through `tools/xbdm_rdcp.py` and report the
+Send a raw RDCP/XBDM command through `tools/xbox/xbdm_rdcp.py` and report the
 response.
 
 Argument: `$ARGUMENTS`
@@ -15,7 +15,7 @@ Argument: `$ARGUMENTS`
 Steps:
 1. Treat `$ARGUMENTS` as the full RDCP command string to send.
 2. If the user included host or port requirements in natural language, convert them into `--host` and `--port` flags. Otherwise rely on `XBDM_HOST` and `XBDM_PORT`, or the tool defaults.
-3. Run `python3 tools/xbdm_rdcp.py --json "<RDCP command built from $ARGUMENTS>"`.
+3. Run `python3 tools/xbox/xbdm_rdcp.py --json "<RDCP command built from $ARGUMENTS>"`.
 4. If the command is likely to return `203` binary data and the user supplied a length, pass `--binary-length` and `--output` as needed.
 5. Return the parsed result, including non-2xx failures.
 

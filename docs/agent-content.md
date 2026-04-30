@@ -11,7 +11,7 @@ They should stay separate because:
 The current state is:
 - the output trees stay separate for tool compatibility
 - shared command and skill content is maintained once under `agent-content/`
-- `tools/sync_agent_content.py` writes the generated outputs to both trees
+- `tools/analysis/sync_agent_content.py` writes the generated outputs to both trees
 - there is one intentional filename alias today:
   `.claude/commands/load-iso.md` and
   `.opencode/commands/load-xemu-with-iso.md`
@@ -21,7 +21,7 @@ The current state is:
 - Keep `.claude/` and `.opencode/` outputs separate.
 - Edit shared command and skill text in `agent-content/`, not in generated
   outputs.
-- Regenerate outputs with `tools/sync_agent_content.py` after shared edits.
+- Regenerate outputs with `tools/analysis/sync_agent_content.py` after shared edits.
 - Put durable shared doctrine in normal repo docs such as `docs/` or in repo
   tooling under `tools/`.
 - Prefer matching filenames across both trees unless there is a concrete
@@ -32,7 +32,7 @@ The current state is:
 Use:
 
 ```bash
-python3 tools/sync_agent_content.py
+python3 tools/analysis/sync_agent_content.py
 ```
 
 This copies shared sources from `agent-content/` into the separate generated
@@ -43,14 +43,14 @@ output trees:
 To verify outputs are current without rewriting files:
 
 ```bash
-python3 tools/sync_agent_content.py --check
+python3 tools/analysis/sync_agent_content.py --check
 ```
 
 To audit the current overlap or spot unexpected drift between the generated
 trees themselves:
 
 ```bash
-python3 tools/audit_agent_content.py --strict
+python3 tools/audit/audit_agent_content.py --strict
 ```
 
 ## Editing rules
@@ -60,7 +60,7 @@ python3 tools/audit_agent_content.py --strict
 - If a command or skill is intentionally platform-specific, keep it only in the
   target tree and document why.
 - If a generated file needs a filename alias, keep the alias mapping in
-  `tools/sync_agent_content.py`.
+  `tools/analysis/sync_agent_content.py`.
 
 ## Recommended next cleanup steps
 

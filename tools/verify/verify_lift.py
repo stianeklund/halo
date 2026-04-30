@@ -31,9 +31,14 @@ The signals it checks, in order of weight:
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass, field
+
+_tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _tools_dir not in sys.path:
+    sys.path.insert(0, _tools_dir)
 
 
 # Assertion-related functions we want to ignore when diffing callees.

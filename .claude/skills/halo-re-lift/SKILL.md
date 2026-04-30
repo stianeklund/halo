@@ -38,12 +38,12 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
 6. Write implementation in address-ordered position.
 7. Update kb.json conservatively (see
     `docs/references/kb-update-policy.md`).
-8. Run `python3 tools/maintain.py <source_file>`.
+8. Run `python3 tools/analysis/maintain.py <source_file>`.
 
-9. **Generate the commit message with `tools/generate_lift_commit.py`**.
+9. **Generate the commit message with `tools/audit/generate_lift_commit.py`**.
    This is mandatory. Do not write freeform commit messages.
    - Stage all changes (`git add -A`).
-   - Run `python3 tools/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt`.
+   - Run `python3 tools/audit/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt`.
    - Review the generated message. It must include:
      - Function inventory (name, address, object)
      - kb_meta.json update count
@@ -54,7 +54,7 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
 ## Ghidra MCP availability (required)
 
 - Before the first `ghidra` or `ghidra-live` MCP tool call in a task, run
-  `python3 tools/check_ghidra_mcp.py`.
+  `python3 tools/audit/check_ghidra_mcp.py`.
 - If the preflight fails, or if any `ghidra`/`ghidra-live` MCP tool call fails
   due to connection/timeout/unavailable errors, stop immediately and do not
   retry in the same response.
@@ -66,7 +66,7 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
 Use these defaults unless a target requires deeper forensics:
 
 - Prefer existing repo tools over ad-hoc scripts:
-  - `python3 tools/kb_meta.py list --object <obj>` for scoped symbol sets
+  - `python3 tools/analysis/kb_meta.py list --object <obj>` for scoped symbol sets
   - `python3 tools/lift_pipeline.py --target <name_or_addr> ...` for staged lift/verify
 - Avoid inline `python3 -c` snippets for kb queries and address matching.
 - Keep MCP passes staged:

@@ -13,7 +13,7 @@ safe fix.
 
 Ghidra MCP preflight (required):
 - Before any `ghidra`/`ghidra-live` MCP tool call, run
-  `python3 tools/check_ghidra_mcp.py`.
+  `python3 tools/audit/check_ghidra_mcp.py`.
 - If the preflight fails, or any `ghidra`/`ghidra-live` MCP tool call fails due
   to connection/timeout/unavailable errors, stop immediately and tell the user
   exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
@@ -59,12 +59,12 @@ Only when static analysis leaves the root cause genuinely ambiguous.
 **Fallback — xemu probing** (only if no Xbox is reachable):
 
 ```bash
-python3 tools/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
-python3 tools/xemu_qmp.py --host localhost --port 4444 --serial
-python3 tools/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
-python3 tools/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
-python3 tools/xemu_qmp.py --host localhost --port 4444 --pause
-python3 tools/xemu_qmp.py --host localhost --port 4444 --resume
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --serial
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --pause
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --resume
 ```
 
 Useful xemu probes for regressions:

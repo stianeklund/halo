@@ -10,16 +10,16 @@ to a real Xbox. Do not build an ISO unless the user explicitly asks for xemu.
 
 ## Preferred tools
 
-- Build with `python3 tools/build.py -q --target halo`
-- Deploy with `python3 tools/deploy_xbox.py`
-- Use `tools/xbdm_rdcp.py` for direct XBDM checks when needed
+- Build with `python3 tools/build/build.py -q --target halo`
+- Deploy with `python3 tools/xbox/deploy_xbox.py`
+- Use `tools/xbox/xbdm_rdcp.py` for direct XBDM checks when needed
 
 ## Standard build and deploy flow
 
-1. Run `python3 tools/build.py -q --target halo`.
+1. Run `python3 tools/build/build.py -q --target halo`.
 2. If the build fails, stop and report the concrete errors.
 3. Deploy to the Xbox:
-   `python3 tools/deploy_xbox.py`
+   `python3 tools/xbox/deploy_xbox.py`
 4. If the deploy succeeds, include the build hash and the deployed files in the report.
 
 ## Verification priority

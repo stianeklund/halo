@@ -40,7 +40,7 @@ Practical update flow:
    - default: keep `kb.json` aligned with `tools/kb_reg_baseline.json`
    - only update baseline for explicit policy changes, with clear justification
 5. Validate:
-   - `python3 tools/kb_meta.py validate`
+   - `python3 tools/analysis/kb_meta.py validate`
    - `python3 -m unittest tools.test_patch.RegAnnotationBaselineTests`
    - normal build path (`patched_xbe`)
 

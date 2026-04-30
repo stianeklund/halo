@@ -18,7 +18,7 @@ network. The order is:
 ## Ghidra MCP availability (required)
 
 - Before the first `ghidra` or `ghidra-live` MCP tool call in a task, run
-  `python3 tools/check_ghidra_mcp.py`.
+  `python3 tools/audit/check_ghidra_mcp.py`.
 - If the preflight fails, or if any `ghidra`/`ghidra-live` MCP tool call fails
   due to connection/timeout/unavailable errors, stop immediately and do not
   retry in the same response.
@@ -47,7 +47,7 @@ Report:
 
 Run:
 
-`python3 tools/verify_option3.py --target <target> <extra_flags>`
+`python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
 
 Report:
 
@@ -60,7 +60,7 @@ Notes:
 
 - Add `--objdiff-reference <path>` and `--objdiff-candidate <path>` when a
   delinked reference object exists.
-- Add `--load-into-xemu` to hot-load and reset via `tools/xemu_qmp.py`.
+- Add `--load-into-xemu` to hot-load and reset via `tools/xbox/xemu_qmp.py`.
 - Use `--skip-build` or `--skip-iso` for quick reruns when artifacts already
   exist.
 

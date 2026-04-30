@@ -54,6 +54,8 @@ desktop.ini
 .gdbinit
 /tools/xemu.env
 /tools/xbox.env
+/tools/xbox/xemu.env
+/tools/xbox/xbox.env
 KrnlDebug.txt
 debug.txt
 gamestate.txt

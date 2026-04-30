@@ -94,5 +94,5 @@ See the [Progress Report](https://blam.info/progress/) to interactively explore 
 
 Low-risk reverse engineering workflow metadata can be stored in `kb_meta.json`.
 Unlike `kb.json`, it does not affect code generation or linking. Use
-`tools/kb_meta.py` to validate and update metadata, and `tools/frontier.py` to
+`tools/analysis/kb_meta.py` to validate and update metadata, and `tools/analysis/frontier.py` to
 rank `.obj` clusters referenced by current ported code.

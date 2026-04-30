@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+import sys, os
+_tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _tools_dir not in sys.path:
+    sys.path.insert(0, _tools_dir)
+
 """Compile a source file with the original XDK compiler and compare against delinked reference.
 
 Finds the matching delinked reference via objdiff.json, compiles the source with
@@ -6,10 +11,10 @@ RXDK's CL.Exe (MSVC 13.10.3077 — the same compiler that built cachebeta.xbe),
 and runs instruction-level comparison to flag FPU operand-order differences.
 
 Usage:
-    python3 tools/xdk_verify.py src/halo/effects/decals.c
-    python3 tools/xdk_verify.py src/halo/effects/decals.c --function FUN_0009ac90
-    python3 tools/xdk_verify.py src/halo/effects/decals.c --show-diffs
-    python3 tools/xdk_verify.py --list  # show available units
+    python3 tools/verify/xdk_verify.py src/halo/effects/decals.c
+    python3 tools/verify/xdk_verify.py src/halo/effects/decals.c --function FUN_0009ac90
+    python3 tools/verify/xdk_verify.py src/halo/effects/decals.c --show-diffs
+    python3 tools/verify/xdk_verify.py --list  # show available units
 """
 
 import argparse
@@ -19,7 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 OBJDIFF_JSON = REPO_ROOT / "objdiff.json"
 BUILD_DIR = REPO_ROOT / "build"
 XDK_OUT_DIR = BUILD_DIR / "xdk"

@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+import sys, os
+_tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _tools_dir not in sys.path:
+    sys.path.insert(0, _tools_dir)
+
 """Compare compiled object against delinked reference at instruction level.
 
 Uses basic-block-aware matching: extracts instruction mnemonics per basic block
@@ -7,8 +12,8 @@ operand-order differences that indicate potential cross-product or subtraction
 argument swaps.
 
 Usage:
-    python3 tools/compare_obj.py <compiled.obj> <reference.obj> [--function FUN_XXXXXXXX]
-    python3 tools/compare_obj.py <compiled.obj> <reference.obj> --show-diffs
+    python3 tools/verify/compare_obj.py <compiled.obj> <reference.obj> [--function FUN_XXXXXXXX]
+    python3 tools/verify/compare_obj.py <compiled.obj> <reference.obj> --show-diffs
 """
 
 import argparse
