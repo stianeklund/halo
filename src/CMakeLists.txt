@@ -33,6 +33,7 @@
 	halo/effects/player_effects.c
 	halo/effects/weather_particle_systems.c
 	halo/hs/hs.c
+	halo/hs/hs_compile.c
 	halo/hs/hs_runtime.c
 	halo/game/cheats.c
 	halo/game/editor_stubs.c

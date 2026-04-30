@@ -918,6 +918,14 @@
       "metadata": {
         "source_path": "src/halo/structures/structure_bsp_definitions.c"
       }
+    },
+    {
+      "name": "halo/hs_compile",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/hs/hs_compile.c.obj",
+      "base_path": "delinked/hs_compile.obj",
+      "metadata": {
+        "source_path": "src/halo/hs/hs_compile.c"
+      }
     }
   ]
 }

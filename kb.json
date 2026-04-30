@@ -3465,10 +3465,20 @@
     },
     {
       "name": "hs_compile.obj",
+      "source": "hs/hs_compile.c",
       "functions": [
         {
-          "decl": "bool hs_type_check(int datum_index, int check_type);",
-          "addr": "0xc7d80"
+          "decl": "bool FUN_000c73a0(int datum_index @<edi>);",
+          "addr": "0xc73a0"
+        },
+        {
+          "decl": "bool FUN_000c74c0(int datum_index @<ebx>);",
+          "addr": "0xc74c0"
+        },
+        {
+          "decl": "bool hs_type_check(int datum_index, int16_t check_type);",
+          "addr": "0xc7d80",
+          "ported": true
         },
         {
           "decl": "void hs_compile_recompile_scripts(void);",

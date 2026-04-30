@@ -181,7 +181,9 @@
     "0x11e430": "void FUN_0011e430(void *pool@<edi>);",
     "0x11e5a0": "void *FUN_0011e5a0(void *pool@<eax>, void **block_reference@<esi>);",
     "0x129a30": "bool FUN_00129a30(int connection@<ebx>, int *output);",
-    "0x1bdd80": "void FUN_001bdd80(int tag_index@<eax>);"
+    "0x1bdd80": "void FUN_001bdd80(int tag_index@<eax>);",
+    "0xc73a0": "bool FUN_000c73a0(int datum_index@<edi>);",
+    "0xc74c0": "bool FUN_000c74c0(int datum_index@<ebx>);"
   },
   "version": 1
 }
