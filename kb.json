@@ -3638,7 +3638,8 @@
         },
         {
           "addr": "0xcaba0",
-          "decl": "void *FUN_000caba0(int thread_handle@<eax>, int size);"
+          "decl": "void *hs_thread_stack_alloc(int thread_handle@<eax>, int size);",
+          "ported": true
         },
         {
           "addr": "0xcab00",

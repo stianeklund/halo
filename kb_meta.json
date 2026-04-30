@@ -2227,6 +2227,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xcaba0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcaff0": {
       "kind": "function",
       "status": "ported"
