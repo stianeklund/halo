@@ -1538,3 +1538,12 @@ void hs_runtime_dispose(void)
   data_make_invalid(*(data_t **)0x5aa698);
   data_make_invalid(*(data_t **)0x5aa694);
 }
+
+/* 0xce350 */
+void FUN_000ce350(int expression_datum)
+{
+  if (expression_datum != -1) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa698, expression_datum);
+    *(int16_t *)(node + 0x4) += 1;
+  }
+}
