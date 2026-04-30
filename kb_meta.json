@@ -41,6 +41,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c450": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The table at 0x253fcc is an array of 14 structs (0x38 bytes each) representing action definitions, with the function pointer for prop replacement at offset 0 of each entry.",
+        "The function name likely relates to actor action prop replacement dispatch based on context from the caller FUN_0003b410 in actors.obj."
+      ]
+    },
     "0x210f0": {
       "kind": "function",
       "status": "ported"

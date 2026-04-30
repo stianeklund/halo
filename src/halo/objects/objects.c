@@ -570,7 +570,7 @@ int FUN_0013b290(int tag_index, int object_handle, int16_t marker,
     tag_get(0x6c696768, tag_index);
     *(int16_t *)(datum + 0x02) = 0;
     {
-      int tick = FUN_000b5aa0();
+      int tick = game_time_get();
       *(uint8_t *)(datum + 0x02) |= 3;
       *(int *)(datum + 0x58) = tick;
     }
