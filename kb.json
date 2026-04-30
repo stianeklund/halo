@@ -7944,14 +7944,17 @@
     },
     {
       "name": "rectangles.obj",
+      "source": "math/rectangles.c",
       "functions": [
         {
-          "decl": "void rect2d_offset(void *rect, short dx, short dy);",
-          "addr": "0x108a70"
+          "decl": "void rect2d_offset(int16_t *rect, int16_t dx, int16_t dy);",
+          "addr": "0x108a70",
+          "ported": true
         },
         {
-          "decl": "int16_t FUN_00108db0(int value);",
-          "addr": "0x108db0"
+          "decl": "int16_t FUN_00108db0(unsigned int value);",
+          "addr": "0x108db0",
+          "ported": true
         }
       ]
     },

@@ -75,6 +75,7 @@
 	halo/physics/point_physics.c
 	halo/math/random_math.c
 	halo/math/real_math.c
+	halo/math/rectangles.c
 	halo/math/vector_math.c
 	halo/rasterizer/rasterizer.c
 	halo/rasterizer/common/rasterizer_common.c
