@@ -641,6 +641,87 @@ static void hs_thread_push_frame(int thread_handle)
   *(int16_t *)(new_frame + 0xc) = 0;
 }
 
+/* 0xcaba0 — Allocate `size` bytes from the current HaloScript thread stack
+ * frame's data area. Returns a pointer to the newly allocated region.
+ *
+ * The HS thread stack is a fixed-size region [thread+0x18 .. thread+0x218).
+ * Each frame begins with a 0xe-byte header:
+ *   +0x00 (void*)   : back-link to previous frame
+ *   +0x04 (int)     : expression index
+ *   +0x08 (void*)   : destination value pointer
+ *   +0x0c (int16_t) : current data size in bytes
+ * Data starts at frame+0xe; this function returns (frame + old_size + 0xe)
+ * and increments frame->size by `size`.
+ *
+ * Three fatal assertions (line 0x37d–0x37f):
+ *   1. valid_thread: thread pointer is within the data array, and the frame
+ *      pointer lies in [thread+0x18, thread+0x218).
+ *   2. size != 0
+ *   3. frame->data + frame->size + size <= thread + HS_THREAD_STACK_SIZE
+ *
+ * ABI: thread_handle@<eax>, size on stack; returns void* in EAX.
+ */
+static void *hs_thread_stack_alloc(int thread_handle, int size)
+{
+  data_t *hs_threads;
+  char *thread;
+  char *frame;
+  int16_t old_size;
+  const char *script_name;
+  const char *msg;
+
+  hs_threads = *(data_t **)0x5aa6c4;
+  thread = (char *)datum_get(hs_threads, thread_handle);
+  frame = *(char **)(thread + 0x10);
+
+  /* valid_thread(thread): thread in array bounds, frame in stack area,
+   * and current data end within stack.
+   * data_t offsets: +0x34=data (base), +0x2e=current_count, +0x22=size (elem).
+   */
+  if ((unsigned int)thread < (unsigned int)(hs_threads->data) ||
+      (unsigned int)thread >= (unsigned int)((char *)hs_threads->data +
+                                             (int)hs_threads->current_count *
+                                               (int)hs_threads->size) ||
+      (unsigned int)frame < (unsigned int)(thread + 0x18) ||
+      (unsigned int)frame >= (unsigned int)(thread + 0x218) ||
+      (unsigned int)(frame + (int)*(int16_t *)(frame + 0xc) + 0xe) >
+        (unsigned int)(thread + 0x218)) {
+    script_name = hs_get_thread_script_name(thread_handle);
+    msg = csprintf((char *)0x5ab100,
+                   "a problem occurred while executing the script %s: %s (%s)",
+                   script_name, "valid_thread(thread)", "corrupted stack.");
+    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37d, true);
+    system_exit(-1);
+  }
+
+  if (size == 0) {
+    script_name = hs_get_thread_script_name(thread_handle);
+    msg = csprintf((char *)0x5ab100,
+                   "a problem occurred while executing the script %s: %s (%s)",
+                   script_name,
+                   "attempt to allocate zero space from the stack.", "size");
+    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37e, true);
+    system_exit(-1);
+  }
+
+  /* frame->data + frame->size + size <= thread + HS_THREAD_STACK_SIZE */
+  if ((unsigned int)(frame + (int)*(int16_t *)(frame + 0xc) + 0xe + size) >
+      (unsigned int)(thread + 0x218)) {
+    script_name = hs_get_thread_script_name(thread_handle);
+    msg = csprintf(
+      (char *)0x5ab100,
+      "a problem occurred while executing the script %s: %s (%s)", script_name,
+      "stack overflow.",
+      "frame->data+frame->size+size<=thread->stack_data+HS_THREAD_STACK_SIZE");
+    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37f, true);
+    system_exit(-1);
+  }
+
+  old_size = *(int16_t *)(frame + 0xc);
+  *(int16_t *)(frame + 0xc) = old_size + (int16_t)size;
+  return (void *)(frame + (int)old_size + 0xe);
+}
+
 /* 0xcaff0 */
 static bool hs_object_types_compatible(int16_t actual_offset,
                                        int16_t desired_offset)
@@ -1379,7 +1460,7 @@ static void FUN_000cd840(int thread_handle)
     }
     *(int16_t *)(*(char **)(thread + 0x10) + 0xc) = 0;
     {
-      void *result = FUN_000caba0(thread_handle, 4);
+      void *result = hs_thread_stack_alloc(thread_handle, 4);
       FUN_000cc1d0(thread_handle, *(int *)(script + 0x24), result);
     }
     if (*(char **)(thread + 0x10) == stack_base)
@@ -1424,7 +1505,7 @@ static void FUN_000cd840(int thread_handle)
         (char *)tag_block_get_element(scenario + 0x49c, script_idx, 0x5c);
       datum_get(*(data_t **)0x5aa6c4, thread_handle);
       {
-        void *result = FUN_000caba0(thread_handle, 4);
+        void *result = hs_thread_stack_alloc(thread_handle, 4);
         if (eval_flag) {
           FUN_000cc1d0(thread_handle, *(int *)(ref_script + 0x24), result);
         } else {
