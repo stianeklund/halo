@@ -3623,7 +3623,8 @@
         },
         {
           "addr": "0xcaa80",
-          "decl": "char *FUN_000caa80(int thread_index@<esi>);"
+          "decl": "char *hs_get_thread_script_name(int thread_index@<esi>);",
+          "ported": true
         },
         {
           "addr": "0xcb230",

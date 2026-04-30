@@ -547,6 +547,40 @@ static int hs_thread_new(int script_index, int type)
   return thread_index;
 }
 
+/* 0xcaa80 */
+static char *hs_get_thread_script_name(int thread_index)
+{
+  char *thread;
+  uint8_t type;
+  int script_index;
+  char *scenario;
+  char *script_entry;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
+  type = *(uint8_t *)(thread + 0x2);
+
+  if (type == 0) {
+    thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
+    script_index = *(int32_t *)(thread + 0x4);
+    scenario = (char *)global_scenario_get();
+    script_entry = (char *)tag_block_get_element((char *)scenario + 0x49c,
+                                                 script_index, 0x5c);
+    return script_entry;
+  }
+
+  if (type == 1) {
+    return "[global initialize]";
+  }
+
+  if (type == 2) {
+    return "[console command]";
+  }
+
+  display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2a9, true);
+  system_exit(-1);
+  return NULL;
+}
+
 /* 0xcaff0 */
 static bool hs_object_types_compatible(int16_t actual_offset,
                                        int16_t desired_offset)
@@ -742,7 +776,7 @@ void hs_runtime_initialize_for_new_map(void)
            * hs_get_thread_script_name (0xcaa80) takes ESI=thread_index
            * as register arg and returns the script name string. */
           if (*(int *)(internal_thread + 0x8) != 0) {
-            char *script_name = FUN_000caa80(thread_index);
+            char *script_name = hs_get_thread_script_name(thread_index);
             display_assert(
               csprintf(error_string_buffer,
                        "a problem occurred while executing the script "
