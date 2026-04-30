@@ -5448,10 +5448,16 @@
     },
     {
       "name": "predicted_resources.obj",
+      "source": "cache/predicted_resources.c",
       "functions": [
         {
-          "decl": "void predicted_resources_precache(int *a1);",
-          "addr": "0x1bde10"
+          "decl": "void FUN_001bdd80(int tag_index @<eax>);",
+          "addr": "0x1bdd80"
+        },
+        {
+          "decl": "void predicted_resources_precache(void *tag_block);",
+          "addr": "0x1bde10",
+          "ported": true
         }
       ]
     },
