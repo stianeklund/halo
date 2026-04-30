@@ -12,7 +12,8 @@
  *   0xc3fc0 = hs_function_find_by_name (char *name) -> short
  *   0xc57a0 = hs_source_offset_valid (int offset) -> bool
  *   0xc73a0 = hs_type_check_expression (@EDI=datum_index) -> bool
- *   0xcb070 = hs_types_compatible (short actual, short desired) -> bool [ported]
+ *   0xcb070 = hs_types_compatible (short actual, short desired) -> bool
+ * [ported]
  *
  * Globals:
  *   0x5aa6c8 = hs_syntax_data (data_t*)
@@ -88,7 +89,8 @@ bool hs_validate_syntax(char **error_info, char **error_text)
 
         /* If the reparse flag (bit 2) is set, get the script type. */
         if (*(uint8_t *)(node + 0x6) & 4) {
-          result_type = hs_global_get_type((uint16_t) * (int16_t *)(node + 0x10));
+          result_type =
+            hs_global_get_type((uint16_t) * (int16_t *)(node + 0x10));
           goto check_type;
         }
 
@@ -163,7 +165,8 @@ bool hs_validate_syntax(char **error_info, char **error_text)
           /* Look up the function by name in the compiled source. */
           {
             int name_addr = *(int *)(inner_node + 0xc) + *(int *)0x46b6e8;
-            int16_t func_idx = hs_find_function_by_name((const char *)name_addr);
+            int16_t func_idx =
+              hs_find_function_by_name((const char *)name_addr);
             if (func_idx == -1) {
               *(int *)0x46b6fc =
                 (int)"missing function (you need to recompile scripts.)";
@@ -175,7 +178,8 @@ bool hs_validate_syntax(char **error_info, char **error_text)
             *(int16_t *)(node + 0x2) = func_idx;
 
             hs_function_table_get(func_idx);
-            result_type = *(int16_t *)hs_function_table_get(*(int16_t *)(node + 0x2));
+            result_type =
+              *(int16_t *)hs_function_table_get(*(int16_t *)(node + 0x2));
             goto check_type;
           }
         }
@@ -498,6 +502,31 @@ void hs_runtime_dispose_from_old_map(void)
   *(uint8_t *)0x46b810 = 0;
 }
 
+/* 0xcaff0 */
+static bool hs_object_types_compatible(int16_t actual_offset,
+                                       int16_t desired_offset)
+{
+  uint16_t *masks = (uint16_t *)0x26f320;
+  uint16_t actual_mask;
+  uint16_t desired_mask;
+
+  if (actual_offset < 0 || actual_offset >= 6) {
+    display_assert("actual_type>=0 && actual_type<NUMBER_OF_HS_OBJECT_TYPES",
+                   "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x599, true);
+    system_exit(-1);
+  }
+
+  if (desired_offset < 0 || desired_offset >= 6) {
+    display_assert("desired_type>=0 && desired_type<NUMBER_OF_HS_OBJECT_TYPES",
+                   "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x59a, true);
+    system_exit(-1);
+  }
+
+  actual_mask = masks[actual_offset];
+  desired_mask = masks[desired_offset];
+  return (desired_mask & actual_mask) == actual_mask;
+}
+
 /* 0xcb070 */
 bool hs_types_compatible(int16_t actual_type, int16_t desired_type)
 {
@@ -519,17 +548,17 @@ bool hs_types_compatible(int16_t actual_type, int16_t desired_type)
   if (desired_type >= 0x25 && desired_type <= 0x2a) {
     int16_t d_off = desired_type - 0x25;
     if (actual_type >= 0x25 && actual_type <= 0x2a)
-      return FUN_000caff0((int16_t)(actual_type - 0x25), d_off);
+      return hs_object_types_compatible((int16_t)(actual_type - 0x25), d_off);
     if (actual_type >= 0x2b && actual_type <= 0x30)
-      return FUN_000caff0((int16_t)(actual_type - 0x2b), d_off);
+      return hs_object_types_compatible((int16_t)(actual_type - 0x2b), d_off);
     return false;
   }
 
   if (desired_type >= 0x2b && desired_type <= 0x30) {
     if (actual_type < 0x2b || actual_type > 0x30)
       return false;
-    return FUN_000caff0((int16_t)(actual_type - 0x2b),
-                        (int16_t)(desired_type - 0x2b));
+    return hs_object_types_compatible((int16_t)(actual_type - 0x2b),
+                                      (int16_t)(desired_type - 0x2b));
   }
 
   return *(int *)((char *)0x2f3ec0 +

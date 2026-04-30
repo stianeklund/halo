@@ -3613,7 +3613,8 @@
         },
         {
           "addr": "0xcaff0",
-          "decl": "bool FUN_000caff0(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);"
+          "decl": "bool hs_object_types_compatible(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
+          "ported": true
         },
         {
           "addr": "0xca940",
