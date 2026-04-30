@@ -547,6 +547,23 @@ static int hs_thread_new(int script_index, int type)
   return thread_index;
 }
 
+/* 0xcaa30 — Delete an HS thread by handle. Asserts that the thread's type is
+ * not _hs_thread_type_script (type==0) before deleting. Called when a
+ * console-command thread (type==2) finishes execution in FUN_000cd840.
+ */
+static void FUN_000caa30(int thread_handle)
+{
+  char *thread;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+  if (*(uint8_t *)(thread + 0x2) == 0) {
+    display_assert("hs_thread_get(thread_index)->type!=_hs_thread_type_script",
+                   "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x290, true);
+    system_exit(-1);
+  }
+  datum_delete(*(data_t **)0x5aa6c4, thread_handle);
+}
+
 /* 0xcaa80 */
 static char *hs_get_thread_script_name(int thread_index)
 {
