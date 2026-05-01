@@ -49,25 +49,25 @@
  * Called from ai_initialize (0x3f670). */
 void ai_debug_initialize(void)
 {
-    csmemset((void *)0x5ac9c0, 0, 0x85b2c);
-    *(int32_t *)0x5ac9f8 = -1;
-    *(int32_t *)0x5ac9f4 = -1;
-    *(int32_t *)0x5acab4 = 1;
-    *(uint8_t  *)0x5aca65 = 1;
+  csmemset((void *)0x5ac9c0, 0, 0x85b2c);
+  *(int32_t *)0x5ac9f8 = -1;
+  *(int32_t *)0x5ac9f4 = -1;
+  *(int32_t *)0x5acab4 = 1;
+  *(uint8_t *)0x5aca65 = 1;
 
-    if (*(void **)0x331f58 == NULL) {
-        *(void **)0x331f58 = debug_malloc(0x657c00, 0,
-            "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x93);
-    }
-    if (*(void **)0x331f5c == NULL) {
-        *(void **)0x331f5c = debug_malloc(0x394f80, 0,
-            "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x94);
-    }
-    if (*(void **)0x331f58 == NULL || *(void **)0x331f5c == NULL) {
-        display_assert("actor_debug_array && actor_path_debug_array",
-            "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x96, 1);
-        system_exit(-1);
-    }
+  if (*(void **)0x331f58 == NULL) {
+    *(void **)0x331f58 =
+      debug_malloc(0x657c00, 0, "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x93);
+  }
+  if (*(void **)0x331f5c == NULL) {
+    *(void **)0x331f5c =
+      debug_malloc(0x394f80, 0, "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x94);
+  }
+  if (*(void **)0x331f58 == NULL || *(void **)0x331f5c == NULL) {
+    display_assert("actor_debug_array && actor_path_debug_array",
+                   "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x96, 1);
+    system_exit(-1);
+  }
 }
 
 /* ai_debug_dispose: free actor_debug_array and actor_path_debug_array.
@@ -78,16 +78,14 @@ void ai_debug_initialize(void)
  * Called from ai_dispose (0x3f6f0). */
 void ai_debug_dispose(void)
 {
-    if (*(void **)0x331f58 != NULL) {
-        debug_free(*(void **)0x331f58,
-            "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0xa0);
-        *(void **)0x331f58 = NULL;
-    }
-    if (*(void **)0x331f5c != NULL) {
-        debug_free(*(void **)0x331f5c,
-            "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0xa6);
-        *(void **)0x331f5c = NULL;
-    }
+  if (*(void **)0x331f58 != NULL) {
+    debug_free(*(void **)0x331f58, "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0xa0);
+    *(void **)0x331f58 = NULL;
+  }
+  if (*(void **)0x331f5c != NULL) {
+    debug_free(*(void **)0x331f5c, "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0xa6);
+    *(void **)0x331f5c = NULL;
+  }
 }
 
 /* FUN_00048fa0: if a valid scenario is loaded and a current encounter is
@@ -99,20 +97,47 @@ void ai_debug_dispose(void)
  * FUN_00041e80. */
 void FUN_00048fa0(void)
 {
-    void *scenario;
-    void *encounter;
+  void *scenario;
+  void *encounter;
 
-    scenario = FUN_0018e3b0();
-    if (scenario != NULL && *(int32_t *)0x5ac9f4 != -1) {
-        encounter = tag_block_get_element(
-            (void *)((char *)scenario + 0x42c),
-            (int)(*(uint32_t *)0x5ac9f4 & 0xffff),
-            0xb0);
-        csstrncpy((char *)0x5ac9d2, encounter, 0x20);
-        *(uint8_t *)0x5ac9f1 = 0;
-        return;
-    }
-    csstrcpy((char *)0x5ac9d2, (const char *)0x25386f);
+  scenario = FUN_0018e3b0();
+  if (scenario != NULL && *(int32_t *)0x5ac9f4 != -1) {
+    encounter =
+      tag_block_get_element((void *)((char *)scenario + 0x42c),
+                            (int)(*(uint32_t *)0x5ac9f4 & 0xffff), 0xb0);
+    csstrncpy((char *)0x5ac9d2, encounter, 0x20);
+    *(uint8_t *)0x5ac9f1 = 0;
+    return;
+  }
+  csstrcpy((char *)0x5ac9d2, (const char *)0x25386f);
+}
+
+/* FUN_00049000: assert that both debug arrays are allocated, then zero them.
+ * Asserts actor_debug_array != NULL (line 0xd0 = 208) and
+ * actor_path_debug_array != NULL (line 0xd3 = 211) before zeroing each.
+ *
+ * Confirmed: __FILE__ = "c:\halo\SOURCE\ai\ai_debug.c" (0x25ab74)
+ *   line 0xd0 (208) — actor_debug_array assert
+ *   line 0xd3 (211) — actor_path_debug_array assert
+ * Called from FUN_0004c0f0 (ai_debug.obj, 0x4c0f0).
+ *
+ * Note: decompiler showed csmemset size for path array as &DAT_00394f80
+ * (treating immediate as address dereference).  Disassembly confirms
+ * PUSH 0x394f80 — it is a literal immediate size, not a pointer. */
+void FUN_00049000(void)
+{
+  if (*(void **)0x331f58 == NULL) {
+    display_assert("actor_debug_array", "c:\\halo\\SOURCE\\ai\\ai_debug.c",
+                   0xd0, 1);
+    system_exit(-1);
+  }
+  csmemset(*(void **)0x331f58, 0, 0x657c00);
+  if (*(void **)0x331f5c == NULL) {
+    display_assert("actor_path_debug_array", "c:\\halo\\SOURCE\\ai\\ai_debug.c",
+                   0xd3, 1);
+    system_exit(-1);
+  }
+  csmemset(*(void **)0x331f5c, 0, 0x394f80);
 }
 
 /* FUN_00049080: scan actor_path_debug_array (0x20 entries, stride 0x1ca7c)
@@ -122,20 +147,49 @@ void FUN_00048fa0(void)
  * No __FILE__ string.  Called from FUN_0003cc10 (actors.obj, 0x3cc10). */
 void FUN_00049080(int actor_handle)
 {
-    char *base;
-    int   off;
-    int   i;
+  char *base;
+  int off;
+  int i;
 
-    base = *(char **)0x331f5c;
-    off  = 0;
-    for (i = 0x20; i != 0; i--) {
-        if (*(char *)(base + off + 0xc) != '\0' &&
-            *(int *)(base + off)        == actor_handle) {
-            *(char *)(base + off + 0xc) = '\0';
-            base = *(char **)0x331f5c;
-        }
-        off += 0x1ca7c;
+  base = *(char **)0x331f5c;
+  off = 0;
+  for (i = 0x20; i != 0; i--) {
+    if (*(char *)(base + off + 0xc) != '\0' &&
+        *(int *)(base + off) == actor_handle) {
+      *(char *)(base + off + 0xc) = '\0';
+      base = *(char **)0x331f5c;
     }
+    off += 0x1ca7c;
+  }
+}
+
+/* FUN_00049220: reset debug encounter state when encounter_idx changes.
+ * Checks if the current encounter index (0x5ac9f4) differs from encounter_idx;
+ * if so, updates the index, clears the debug-state byte at 0x629d40, zeroes
+ * the 0x670-byte block at 0x629d44 and the 0x8000-byte block at 0x62a3b4,
+ * then calls FUN_0004b1b0(encounter_idx, -1) to reinitialize secondary state.
+ *
+ * No __FILE__ string.  Called from FUN_0004b1b0, FUN_0004c0f0, FUN_0004afa0,
+ * FUN_00054e40.
+ *
+ * Calling convention verified (ADD ESP,0x20 at 0x49267 covers 8 dwords):
+ *   3 args to csmemset(0x629d44,...) + 3 args to csmemset(0x62a3b4,...) +
+ *   2 args to FUN_0004b1b0 = 8 dwords. FUN_0004b1b0 is cdecl.
+ *
+ * Call-site verification:
+ *   FUN_0004c0f0 @ 0x4c116: PUSH ESI (enc_idx) -> encounter_idx [match]
+ *   FUN_0004b1b0 @ 0x4b1ca: PUSH EAX (param_1) -> encounter_idx [match] */
+void FUN_0004b1b0(int encounter_idx, int param_2);
+
+void FUN_00049220(int encounter_idx)
+{
+  if (*(int32_t *)0x5ac9f4 != encounter_idx) {
+    *(int32_t *)0x5ac9f4 = encounter_idx;
+    *(uint8_t *)0x629d40 = 0;
+    csmemset((void *)0x629d44, 0, 0x670);
+    csmemset((void *)0x62a3b4, 0, 0x8000);
+    FUN_0004b1b0(encounter_idx, -1);
+  }
 }
 
 /* FUN_0004ab10: per-tick AI debug update.  Three independent debug actions:
@@ -157,179 +211,199 @@ void FUN_00049080(int actor_handle)
  * FUN_0013d640 at 0x4ab5d and as byte value 1 for flag stores. */
 void FUN_0004ab10(void)
 {
-    /* camera-reset flag */
-    if (*(uint8_t *)0x5aca6a != '\0') {
-        *(int32_t *)0x5accac = 0;
-        *(int32_t *)0x5eccb0 = 0;
+  /* camera-reset flag */
+  if (*(uint8_t *)0x5aca6a != '\0') {
+    *(int32_t *)0x5accac = 0;
+    *(int32_t *)0x5eccb0 = 0;
+  }
+
+  if (*(uint8_t *)0x5ac9fc != '\0') {
+    /* camera-follow: actor-position path */
+    if (*(uint8_t *)0x5ac9fd == '\0') {
+      int actor = FUN_000b6870(0);
+      if (actor != -1 && object_try_and_get_and_verify_type(actor, 1) != NULL) {
+        float pos[3];
+        int bone = FUN_001a1bc0(actor, pos);
+        if (bone != -1) {
+          *(float *)0x5f91ac = pos[0];
+          *(float *)0x5f91b0 = pos[1];
+          *(float *)0x5f91b4 = pos[2];
+          *(uint8_t *)0x5f91a8 = 1;
+          *(int32_t *)0x5f91b8 = bone;
+          *(int32_t *)0x5f91bc = actor;
+        }
+      }
     }
 
-    if (*(uint8_t *)0x5ac9fc != '\0') {
-        /* camera-follow: actor-position path */
-        if (*(uint8_t *)0x5ac9fd == '\0') {
-            int actor = FUN_000b6870(0);
-            if (actor != -1 && object_try_and_get_and_verify_type(actor, 1) != NULL) {
-                float pos[3];
-                int bone = FUN_001a1bc0(actor, pos);
-                if (bone != -1) {
-                    *(float   *)0x5f91ac = pos[0];
-                    *(float   *)0x5f91b0 = pos[1];
-                    *(float   *)0x5f91b4 = pos[2];
-                    *(uint8_t *)0x5f91a8 = 1;
-                    *(int32_t *)0x5f91b8 = bone;
-                    *(int32_t *)0x5f91bc = actor;
-                }
-            }
-        }
+    /* camera-follow: LOS-hit path */
+    if (*(uint8_t *)0x5ac9fe == '\0') {
+      void *cam = observer_get_camera(0);
+      if (cam != NULL) {
+        float *fwd = *(float **)0x31fc50;
+        float scale = *(float *)0x254cb8;
+        float dir[3];
+        char hitbuf[8];
 
-        /* camera-follow: LOS-hit path */
-        if (*(uint8_t *)0x5ac9fe == '\0') {
-            void *cam = observer_get_camera(0);
-            if (cam != NULL) {
-                float *fwd   = *(float **)0x31fc50;
-                float  scale = *(float *)0x254cb8;
-                float  dir[3];
-                char   hitbuf[8];
-
-                *(uint16_t *)0x5ac5d4 += 1;
-                dir[0] = fwd[0] * scale;
-                dir[1] = fwd[1] * scale;
-                dir[2] = fwd[2] * scale;
-                if (FUN_0014df70(0x21, (float *)cam, dir, -1, (int16_t *)hitbuf) != 0) {
-                    /* hitbuf offsets relative to local_20 (EBP-0x1c):
-                     * local_58 = EBP-0x58 = local_20 - 0x3c (+0x3c back from
-                     * local_20); Ghidra shows local_58/54/50/2c.
-                     * Confirmed from disasm: MOV EAX,[EBP-0x54] etc. */
-                    *(int32_t *)0x5f91c4 = *(int32_t *)(hitbuf + 0); /* slot 0 */
-                    *(uint8_t *)0x5f91c0 = 1;
-                    *(int32_t *)0x5f91c8 = *(int32_t *)(hitbuf + 4);
-                    *(int32_t *)0x5f91cc = *(int32_t *)(hitbuf - 4); /* Uncertain */
-                    *(int32_t *)0x5f91d0 = *(int32_t *)(hitbuf - 8); /* Uncertain */
-                    *(int32_t *)0x5f91d4 = 0;
-                }
-            }
+        *(uint16_t *)0x5ac5d4 += 1;
+        dir[0] = fwd[0] * scale;
+        dir[1] = fwd[1] * scale;
+        dir[2] = fwd[2] * scale;
+        if (FUN_0014df70(0x21, (float *)cam, dir, -1, (int16_t *)hitbuf) != 0) {
+          /* hitbuf offsets relative to local_20 (EBP-0x1c):
+           * local_58 = EBP-0x58 = local_20 - 0x3c (+0x3c back from
+           * local_20); Ghidra shows local_58/54/50/2c.
+           * Confirmed from disasm: MOV EAX,[EBP-0x54] etc. */
+          *(int32_t *)0x5f91c4 = *(int32_t *)(hitbuf + 0); /* slot 0 */
+          *(uint8_t *)0x5f91c0 = 1;
+          *(int32_t *)0x5f91c8 = *(int32_t *)(hitbuf + 4);
+          *(int32_t *)0x5f91cc = *(int32_t *)(hitbuf - 4); /* Uncertain */
+          *(int32_t *)0x5f91d0 = *(int32_t *)(hitbuf - 8); /* Uncertain */
+          *(int32_t *)0x5f91d4 = 0;
         }
-
-        /* build follow-camera if a target was acquired */
-        if (*(uint8_t *)0x5f91a8 != '\0') {
-            char cam_state[0x48];
-            FUN_0005dfc0(cam_state, 0x3e4ccccd, 0, *(int32_t *)0x5f91bc);
-            FUN_0005e000(cam_state, (void *)0x5f91ac, *(int32_t *)0x5f91b8);
-            if (*(float *)0x2533c0 < *(float *)0x5aca00) {
-                FUN_0005e070(cam_state, *(int32_t *)0x5aca00);
-            }
-            if (*(uint8_t *)0x5aca04 != '\0') {
-                int actor2 = FUN_000b6870(0);
-                if (actor2 != -1) {
-                    vector3_t vpos;
-                    float outer, inner;
-                    object_get_and_verify_type(actor2, 3);
-                    object_get_world_position(actor2, &vpos);
-                    outer = (*(float *)0x5aca0c == *(float *)0x2533c0)
-                            ? 20.0f : *(float *)0x5aca0c;
-                    inner = (*(float *)0x5aca08 == *(float *)0x2533c0)
-                            ? 8.0f  : *(float *)0x5aca08;
-                    FUN_0005e030(cam_state, (float *)&vpos, inner, -1, outer);
-                }
-            }
-            FUN_0005e090(cam_state, (void *)0x5f91dc, (void *)0x60d2c4);
-            if (*(uint8_t *)0x5f91c0 != '\0' && *(uint8_t *)0x5ac9ff == '\0') {
-                FUN_0005e0d0((void *)0x5f91dc, (void *)0x5f91c4,
-                    *(int32_t *)0x5f91d0, *(int32_t *)0x5aca10);
-            }
-            FUN_0005ff70((void *)0x5f91dc);
-            if (*(uint8_t *)0x5f91c0 != '\0' && *(uint8_t *)0x5ac9ff != '\0') {
-                FUN_0005e0d0((void *)0x5f91dc, (void *)0x5f91c4,
-                    *(int32_t *)0x5f91d0, *(int32_t *)0x5aca10);
-            }
-            FUN_0005eae0((void *)0x5f91dc, (void *)0x60d268);
-            *(uint8_t *)0x5f91d8  = 1;
-            *(uint8_t *)0x60d2d0  = 1;
-            *(int32_t *)0x60d2c8  = game_time_get();
-            *(int32_t *)0x60d2c4  = -1;
-        }
+      }
     }
 
-    /* guard-position update */
-    if (*(uint8_t *)0x5ac9c2 != '\0' && game_in_editor() != 0) {
-        int    scenario = (int)global_scenario_get();
-        int   *squads   = (int *)(scenario + 0x42c);
-        float  total    = 0.0f;
-        float  si       = 0.0f;
-        if (*squads > 0) {
-            int s = 0;
+    /* build follow-camera if a target was acquired */
+    if (*(uint8_t *)0x5f91a8 != '\0') {
+      char cam_state[0x48];
+      FUN_0005dfc0(cam_state, 0x3e4ccccd, 0, *(int32_t *)0x5f91bc);
+      FUN_0005e000(cam_state, (void *)0x5f91ac, *(int32_t *)0x5f91b8);
+      if (*(float *)0x2533c0 < *(float *)0x5aca00) {
+        FUN_0005e070(cam_state, *(int32_t *)0x5aca00);
+      }
+      if (*(uint8_t *)0x5aca04 != '\0') {
+        int actor2 = FUN_000b6870(0);
+        if (actor2 != -1) {
+          vector3_t vpos;
+          float outer, inner;
+          object_get_and_verify_type(actor2, 3);
+          object_get_world_position(actor2, &vpos);
+          outer = (*(float *)0x5aca0c == *(float *)0x2533c0) ?
+                    20.0f :
+                    *(float *)0x5aca0c;
+          inner = (*(float *)0x5aca08 == *(float *)0x2533c0) ?
+                    8.0f :
+                    *(float *)0x5aca08;
+          FUN_0005e030(cam_state, (float *)&vpos, inner, -1, outer);
+        }
+      }
+      FUN_0005e090(cam_state, (void *)0x5f91dc, (void *)0x60d2c4);
+      if (*(uint8_t *)0x5f91c0 != '\0' && *(uint8_t *)0x5ac9ff == '\0') {
+        FUN_0005e0d0((void *)0x5f91dc, (void *)0x5f91c4, *(int32_t *)0x5f91d0,
+                     *(int32_t *)0x5aca10);
+      }
+      FUN_0005ff70((void *)0x5f91dc);
+      if (*(uint8_t *)0x5f91c0 != '\0' && *(uint8_t *)0x5ac9ff != '\0') {
+        FUN_0005e0d0((void *)0x5f91dc, (void *)0x5f91c4, *(int32_t *)0x5f91d0,
+                     *(int32_t *)0x5aca10);
+      }
+      FUN_0005eae0((void *)0x5f91dc, (void *)0x60d268);
+      *(uint8_t *)0x5f91d8 = 1;
+      *(uint8_t *)0x60d2d0 = 1;
+      *(int32_t *)0x60d2c8 = game_time_get();
+      *(int32_t *)0x60d2c4 = -1;
+    }
+  }
+
+  /* guard-position update */
+  if (*(uint8_t *)0x5ac9c2 != '\0' && game_in_editor() != 0) {
+    int scenario = (int)global_scenario_get();
+    int *squads = (int *)(scenario + 0x42c);
+    float total = 0.0f;
+    float si = 0.0f;
+    if (*squads > 0) {
+      int s = 0;
+      do {
+        int squad = (int)tag_block_get_element((void *)squads, s, 0xb0);
+        int *firing = (int *)(squad + 0x80);
+        if (*firing > 0) {
+          int f = 0;
+          do {
+            int fp = (int)tag_block_get_element((void *)firing, f, 0xe8);
+            int32_t *hist = (int32_t *)(fp + 0x6c);
+            int n = 4;
             do {
-                int   squad  = (int)tag_block_get_element((void *)squads, s, 0xb0);
-                int  *firing = (int *)(squad + 0x80);
-                if (*firing > 0) {
-                    int f = 0;
-                    do {
-                        int       fp   = (int)tag_block_get_element((void *)firing, f, 0xe8);
-                        int32_t  *hist = (int32_t *)(fp + 0x6c);
-                        int       n    = 4;
-                        do {
-                            *hist = *(hist - 1);
-                            hist--;
-                            n--;
-                        } while (n != 0);
-                        *(int32_t *)(fp + 0x5c) = *(int32_t *)(fp + 0x54);
-                        total = (float)((int)total + 1);
-                        f++;
-                    } while (f < *firing);
-                }
-                si = (float)((int)si + 1);
-                s  = (int)(int16_t)si;
-            } while (s < *squads);
+              *hist = *(hist - 1);
+              hist--;
+              n--;
+            } while (n != 0);
+            *(int32_t *)(fp + 0x5c) = *(int32_t *)(fp + 0x54);
+            total = (float)((int)total + 1);
+            f++;
+          } while (f < *firing);
         }
-        console_printf(0, "updated all %d squads' guard positions. glory!",
-            (int)total);
-        *(uint8_t *)0x5ac9c2 = '\0';
+        si = (float)((int)si + 1);
+        s = (int)(int16_t)si;
+      } while (s < *squads);
     }
+    console_printf(0, "updated all %d squads' guard positions. glory!",
+                   (int)total);
+    *(uint8_t *)0x5ac9c2 = '\0';
+  }
 
-    /* actor-variant reset */
-    if (*(uint8_t *)0x5ac9c3 != '\0' && game_in_editor() != 0) {
-        int    scenario = (int)global_scenario_get();
-        int   *squads   = (int *)(scenario + 0x42c);
-        float  total    = 0.0f;
-        int   *lsq      = squads;
-        float  si       = 0.0f;
-        if (*squads > 0) {
-            int s = 0;
-            do {
-                int  squad  = (int)tag_block_get_element((void *)squads, s, 0xb0);
-                int *firing = (int *)(squad + 0x80);
-                float fi    = 0.0f;
-                if (*firing > 0) {
-                    int f = 0;
-                    do {
-                        int  fp     = (int)tag_block_get_element((void *)firing, f, 0xe8);
-                        int *starts = (int *)(fp + 0xd0);
-                        int  k      = 0;
-                        if (*starts > 0) {
-                            do {
-                                int sl = (int)tag_block_get_element((void *)starts, k, 0x1c);
-                                *(uint16_t *)(sl + 0x18) = 0xffff;
-                                total = (float)((int)total + 1);
-                                k++;
-                            } while (k < *starts);
-                        }
-                        fi = (float)((int)fi + 1);
-                        f  = (int)(int16_t)fi;
-                        squads = lsq;
-                    } while (f < *firing);
-                }
-                si = (float)((int)si + 1);
-                s  = (int)(int16_t)si;
-            } while (s < *squads);
+  /* actor-variant reset */
+  if (*(uint8_t *)0x5ac9c3 != '\0' && game_in_editor() != 0) {
+    int scenario = (int)global_scenario_get();
+    int *squads = (int *)(scenario + 0x42c);
+    float total = 0.0f;
+    int *lsq = squads;
+    float si = 0.0f;
+    if (*squads > 0) {
+      int s = 0;
+      do {
+        int squad = (int)tag_block_get_element((void *)squads, s, 0xb0);
+        int *firing = (int *)(squad + 0x80);
+        float fi = 0.0f;
+        if (*firing > 0) {
+          int f = 0;
+          do {
+            int fp = (int)tag_block_get_element((void *)firing, f, 0xe8);
+            int *starts = (int *)(fp + 0xd0);
+            int k = 0;
+            if (*starts > 0) {
+              do {
+                int sl = (int)tag_block_get_element((void *)starts, k, 0x1c);
+                *(uint16_t *)(sl + 0x18) = 0xffff;
+                total = (float)((int)total + 1);
+                k++;
+              } while (k < *starts);
+            }
+            fi = (float)((int)fi + 1);
+            f = (int)(int16_t)fi;
+            squads = lsq;
+          } while (f < *firing);
         }
-        console_printf(0,
-            "reset the actor variant in all %d starting locations. glory!",
-            (int)total);
-        *(uint8_t *)0x5ac9c3 = '\0';
+        si = (float)((int)si + 1);
+        s = (int)(int16_t)si;
+      } while (s < *squads);
     }
+    console_printf(
+      0, "reset the actor variant in all %d starting locations. glory!",
+      (int)total);
+    *(uint8_t *)0x5ac9c3 = '\0';
+  }
 
-    FUN_0004a030();
-    FUN_0004a9f0();
+  FUN_0004a030();
+  FUN_0004a9f0();
 }
+
+/* FUN_00049220: reset debug encounter state when encounter_idx changes.
+ * Checks if the current encounter index (0x5ac9f4) differs from encounter_idx;
+ * if so, updates the index, clears the debug-state byte at 0x629d40, zeroes
+ * the 0x670-byte block at 0x629d44 and the 0x8000-byte block at 0x62a3b4,
+ * then calls FUN_0004b1b0(encounter_idx, -1) to reinitialize secondary state.
+ *
+ * No __FILE__ string.  Called from FUN_0004b1b0, FUN_0004c0f0, FUN_0004afa0,
+ * FUN_00054e40.
+ *
+ * Call-site verification:
+ *   FUN_0004c0f0 @ 0x4c116: PUSH ESI (enc_idx, int) -> encounter_idx [match]
+ *   FUN_0004b1b0 @ 0x4b1ca: PUSH EAX (param_1, int) -> encounter_idx [match]
+ *
+ * Stack cleanup: ADD ESP,0x20 (0x49267) covers 8 dwords:
+ *   3 args to csmemset(0x629d44,...) + 3 args to csmemset(0x62a3b4,...) +
+ *   2 args to FUN_0004b1b0 = 8 dwords = 0x20 bytes. */
+void FUN_0004b1b0(int encounter_idx, int param_2);
 
 /* FUN_0004c0f0: look up the encounter named DAT_005ac9d2 in the scenario
  * encounter list, reset debug encounter state, then if the selected encounter
@@ -345,25 +419,25 @@ void FUN_0004ab10(void)
  *   0x6323dc       <- 0 (word, MOV word ptr) */
 void FUN_0004c0f0(void)
 {
-    int     enc_idx;
-    uint8_t *p;
-    int     n;
+  int enc_idx;
+  uint8_t *p;
+  int n;
 
-    enc_idx = FUN_00059930((const char *)0x5ac9d2);
-    FUN_00049000();
-    if (*(int32_t *)0x5ac9f4 != enc_idx || *(int32_t *)0x5ac9f8 != -1) {
-        FUN_00049220(enc_idx);
-        *(int32_t *)0x5ac9f8  = -1;
-        *(uint8_t  *)0x629d40  = 0;
-        p = (uint8_t *)0x62a3b5;
-        n = 0x200;
-        do {
-            *p = 0;
-            p += 0x40;
-            n--;
-        } while (n != 0);
-        *(uint8_t  *)0x6323d4  = 0;
-        *(int32_t  *)0x6323d8  = -1;
-        *(uint16_t *)0x6323dc  = 0;
-    }
+  enc_idx = FUN_00059930((const char *)0x5ac9d2);
+  FUN_00049000();
+  if (*(int32_t *)0x5ac9f4 != enc_idx || *(int32_t *)0x5ac9f8 != -1) {
+    FUN_00049220(enc_idx);
+    *(int32_t *)0x5ac9f8 = -1;
+    *(uint8_t *)0x629d40 = 0;
+    p = (uint8_t *)0x62a3b5;
+    n = 0x200;
+    do {
+      *p = 0;
+      p += 0x40;
+      n--;
+    } while (n != 0);
+    *(uint8_t *)0x6323d4 = 0;
+    *(int32_t *)0x6323d8 = -1;
+    *(uint16_t *)0x6323dc = 0;
+  }
 }
