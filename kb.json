@@ -3705,7 +3705,7 @@
         {
           "addr": "0xcc590",
           "decl": "void FUN_000cc590(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcc660",
