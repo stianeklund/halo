@@ -403,7 +403,51 @@ void FUN_0004ab10(void)
  * Stack cleanup: ADD ESP,0x20 (0x49267) covers 8 dwords:
  *   3 args to csmemset(0x629d44,...) + 3 args to csmemset(0x62a3b4,...) +
  *   2 args to FUN_0004b1b0 = 8 dwords = 0x20 bytes. */
-void FUN_0004b1b0(int encounter_idx, int param_2);
+
+/* FUN_0004b1b0: reinitialize secondary encounter debug state when either the
+ * encounter index or param_2 changes.  Calls FUN_00049220(encounter_idx) to
+ * reset the primary per-encounter debug block, then updates the secondary
+ * encounter index (0x5ac9f8), clears the stride-loop byte array at 0x62a3b5
+ * (0x200 entries, stride 0x40), and stores param_2 into the 0x6323d8 globals
+ * block (with 0x6323d4 as a non-(-1) boolean and 0x6323dc zeroed as a word).
+ *
+ * No __FILE__ string.  Called from FUN_00049220 (0x49220), FUN_0004b7a0,
+ * FUN_0004c170, FUN_00054e20.
+ *
+ * Call-site verification (only one CALL):
+ *   0x4b1ca: PUSH EAX — EAX set from [EBP+0x8] at 0x4b1b3 = encounter_idx
+ *   -> FUN_00049220(encounter_idx)  [match]
+ *   ADD ESP,0x4 confirms cdecl 1-arg cleanup.
+ *
+ * Store-offset table (absolute addresses):
+ *   [0x5ac9f8] <- ESI (param_2)      dword
+ *   [0x629d40] <- DL=0               byte  (XOR EDX,EDX)
+ *   [0x62a3b5 + n*0x40] <- DL=0      byte  loop n=0..0x1ff
+ *   [0x6323d4] <- (param_2 != -1)    byte  (SETNZ AL)
+ *   [0x6323d8] <- ESI (param_2)      dword
+ *   [0x6323dc] <- DX=0               word  (MOV word ptr [0x6323dc],DX) */
+void FUN_0004b1b0(int encounter_idx, int param_2)
+{
+  uint8_t *p;
+  int n;
+
+  if (*(int32_t *)0x5ac9f4 != encounter_idx ||
+      *(int32_t *)0x5ac9f8 != param_2) {
+    FUN_00049220(encounter_idx);
+    *(int32_t *)0x5ac9f8 = param_2;
+    *(uint8_t *)0x629d40 = 0;
+    p = (uint8_t *)0x62a3b5;
+    n = 0x200;
+    do {
+      *p = 0;
+      p += 0x40;
+      n--;
+    } while (n != 0);
+    *(uint8_t *)0x6323d4 = (param_2 != -1);
+    *(int32_t *)0x6323d8 = param_2;
+    *(uint16_t *)0x6323dc = 0;
+  }
+}
 
 /* FUN_0004c0f0: look up the encounter named DAT_005ac9d2 in the scenario
  * encounter list, reset debug encounter state, then if the selected encounter
