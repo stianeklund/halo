@@ -194,6 +194,107 @@ int FUN_000c6a70(char *str)
   return offset;
 }
 
+/* 0xc6b00 — Compile a (global <type> <name> <initial-value>) declaration.
+ * Validates exactly 3 args, matches type name, checks name length < 32,
+ * ensures no duplicate global, type-checks the value expression, and
+ * allocates a new entry in the scenario globals tag block. */
+bool FUN_000c6b00(int datum_index)
+{
+  char *node;
+  int type_arg;
+  int name_arg;
+  int value_arg;
+  char *type_name;
+  char *var_name;
+  int16_t i;
+  int16_t new_idx;
+  char *element;
+  bool result;
+
+  result = false;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  type_arg = *(int *)(node + 0x8);
+  if (type_arg != -1) {
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, type_arg);
+    name_arg = *(int *)(node + 0x8);
+    if (name_arg != -1) {
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+      value_arg = *(int *)(node + 0x8);
+      if (value_arg != -1) {
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, value_arg);
+        if (*(int *)(node + 0x8) == -1) {
+          node = (char *)datum_get(*(data_t **)0x5aa6c8, type_arg);
+          type_name = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+
+          i = 0;
+          do {
+            if (csstrcmp(type_name, ((const char **)0x2f14a8)[(int)(short)i]) ==
+                0) {
+              if ((short)i < 4 || (short)i >= 0x31)
+                break;
+
+              node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+              var_name = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+
+              if (csstrlen(var_name) == 0 || csstrlen(var_name) > 0x1f) {
+                *(const char **)0x46b6fc =
+                  "i expected a global variable name less than 32 characters.";
+                node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+                *(int *)0x46b700 = *(int *)(node + 0xc);
+                return false;
+              }
+
+              if (hs_find_global_by_name(var_name) != -1) {
+                *(const char **)0x46b6fc =
+                  "there is already a variable by this name.";
+                node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+                *(int *)0x46b700 = *(int *)(node + 0xc);
+                return false;
+              }
+
+              *(uint8_t *)0x46b806 = 1;
+              *(uint8_t *)0x46b807 = 1;
+              if (hs_type_check(value_arg, (int)i)) {
+                new_idx =
+                  tag_block_add_element((char *)global_scenario_get() + 0x4a8);
+                if (new_idx == -1) {
+                  *(const char **)0x46b6fc =
+                    "i couldn't allocate space for this global.";
+                  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+                  *(int *)0x46b700 = *(int *)(node + 0xc);
+                } else {
+                  element = (char *)tag_block_get_element(
+                    (char *)global_scenario_get() + 0x4a8, (int)new_idx, 0x5c);
+                  csstrcpy(element, var_name);
+                  *(int16_t *)(element + 0x20) = i;
+                  *(int *)(element + 0x28) = value_arg;
+                  result = true;
+                }
+              }
+              *(uint8_t *)0x46b806 = 0;
+              *(uint8_t *)0x46b807 = 0;
+              return result;
+            }
+            i++;
+          } while ((short)i < 0x31);
+
+          *(const char **)0x46b6fc = "this is not a valid type.";
+          node = (char *)datum_get(*(data_t **)0x5aa6c8, type_arg);
+          *(int *)0x46b700 = *(int *)(node + 0xc);
+          return result;
+        }
+      }
+    }
+  }
+
+  *(const char **)0x46b6fc = "i expected (global<type> <name> <initial value>)";
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return false;
+}
+
 /* 0xc71c0 — Parse an atom (non-parenthesized token) from the HS source.
  * Quoted strings: scan to closing '"', null-terminate, report unterminated.
  * Bare tokens: scan until ')', ';', whitespace, or NUL.
