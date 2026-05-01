@@ -169,6 +169,57 @@ void FUN_000c5960(int datum_index)
  * hs_compile_globals.error at 0x46b6fc and error offset at 0x46b700).
  */
 
+/* 0xc71c0 — Parse an atom (non-parenthesized token) from the HS source.
+ * Quoted strings: scan to closing '"', null-terminate, report unterminated.
+ * Bare tokens: scan until ')', ';', whitespace, or NUL.
+ * Both paths lowercase the result via csstr_tolower. */
+void FUN_000c71c0(int datum_index, char **cursor)
+{
+  char *node;
+  char *p;
+  char ch;
+  int16_t i;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  p = *cursor;
+  if (*p == '"') {
+    *cursor = p + 1;
+    *(int *)(node + 0xc) = (int)(*cursor - *(char **)0x46b6e8);
+    while (**cursor != '\0' && **cursor != '"')
+      (*cursor)++;
+    if (**cursor == '\0') {
+      *(const char **)0x46b6fc = "this quoted constant is unterminated.";
+      *(int *)0x46b700 = *(int *)(node + 0xc) - 1;
+    }
+    **cursor = '\0';
+    (*cursor)++;
+    csstr_tolower(*(char **)0x46b6e8 + *(int *)(node + 0xc));
+    return;
+  }
+
+  *(int *)(node + 0xc) = (int)(p - *(char **)0x46b6e8);
+  if (**cursor != '\0') {
+    for (;;) {
+      ch = **cursor;
+      if (ch == ')' || ch == ';')
+        break;
+      for (i = 0; i < 2; i++) {
+        if (ch == *(char *)(0x27bb78 + i))
+          goto done;
+      }
+      for (i = 0; i < 2; i++) {
+        if (ch == *(char *)(0x27bb7c + i))
+          goto done;
+      }
+      (*cursor)++;
+      if (**cursor == '\0')
+        break;
+    }
+  }
+done:
+  csstr_tolower(*(char **)0x46b6e8 + *(int *)(node + 0xc));
+}
+
 /* 0xc72b0 — Skip whitespace and comments in the HS source buffer. Advances
  * the cursor past spaces/tabs (0x27bb78 table), newlines (0x27bb7c table),
  * single-line comments (;...newline), and block comments (;*...*;).
@@ -571,7 +622,7 @@ int FUN_000c7be0(char **cursor)
 
   node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
   if (*(uint8_t *)(node + 0x6) & 1) {
-    FUN_000c71c0(datum_index);
+    FUN_000c71c0(datum_index, cursor);
     return datum_index;
   }
 

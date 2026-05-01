@@ -207,6 +207,6 @@
     "decl": "int FUN_000c57d0(char *str@<ebx>);"
   },
   "0xc71c0": {
-    "decl": "void FUN_000c71c0(int datum_index@<eax>);"
+    "decl": "void FUN_000c71c0(int datum_index@<eax>, char **cursor@<esi>);"
   }
 }

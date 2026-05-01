@@ -465,6 +465,11 @@
           "addr": "0x8c440"
         },
         {
+          "addr": "0x8d9a0",
+          "decl": "char *csstr_tolower(char *s);",
+          "ported": false
+        },
+        {
           "decl": "uint16_t FUN_0008e7c0(void);",
           "addr": "0x8e7c0"
         },
@@ -3543,8 +3548,8 @@
         },
         {
           "addr": "0xc71c0",
-          "decl": "void FUN_000c71c0(int datum_index@<eax>);",
-          "ported": false
+          "decl": "void FUN_000c71c0(int datum_index@<eax>, char **cursor@<esi>);",
+          "ported": true
         },
         {
           "addr": "0xc72b0",
