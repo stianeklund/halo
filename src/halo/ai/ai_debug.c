@@ -112,7 +112,7 @@ void FUN_00048fa0(void)
         *(uint8_t *)0x5ac9f1 = 0;
         return;
     }
-    csstrcpy((char *)0x5ac9d2, *(const char **)0x25386f);
+    csstrcpy((char *)0x5ac9d2, (const char *)0x25386f);
 }
 
 /* FUN_00049080: scan actor_path_debug_array (0x20 entries, stride 0x1ca7c)
