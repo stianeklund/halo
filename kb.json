@@ -3574,7 +3574,7 @@
         {
           "addr": "0xc7ca0",
           "decl": "void FUN_000c7ca0(char **cursor, int datum_index);",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool hs_type_check(int datum_index, int16_t check_type);",
