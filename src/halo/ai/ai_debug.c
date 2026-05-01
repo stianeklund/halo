@@ -15,7 +15,7 @@
  *
  * Key globals:
  *   0x331f58  void *: actor_debug_array  (0x657c00 bytes)
- *   0x331f5c  void *: actor_path_debug_array (size at 0x394f80; stride
+ *   0x331f5c  void *: actor_path_debug_array (0x394f80 bytes; stride
  *                     0x1ca7c × 0x20 entries)
  *   0x5ac9c0  byte[0x85b2c]: AI debug globals block
  *   0x5ac9f4  int32_t: current encounter index (0xffffffff = none)
@@ -60,7 +60,7 @@ void ai_debug_initialize(void)
             "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x93);
     }
     if (*(void **)0x331f5c == NULL) {
-        *(void **)0x331f5c = debug_malloc(*(uint32_t *)0x394f80, 0,
+        *(void **)0x331f5c = debug_malloc(0x394f80, 0,
             "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x94);
     }
     if (*(void **)0x331f58 == NULL || *(void **)0x331f5c == NULL) {
