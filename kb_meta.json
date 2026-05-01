@@ -2180,6 +2180,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc6a70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6d90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc7840": {
       "kind": "function",
       "status": "ported",

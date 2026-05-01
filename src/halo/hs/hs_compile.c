@@ -295,6 +295,259 @@ bool FUN_000c6b00(int datum_index)
   return false;
 }
 
+/* 0xc6d90 — Compile a (script <type> [<return-type>] <name> <body>) definition.
+ *
+ * Walks the argument list under datum_index to extract: script type, optional
+ * return type (for static/stub scripts), script name, and the expression body.
+ * If a script with the same name already exists the function validates that the
+ * existing definition is a compatible stub (or static overriding a stub).
+ * On success allocates two new syntax nodes for the "begin" wrapper and body,
+ * writes the script element (name, type, return type, node handle), calls
+ * hs_type_check on the body, and returns true.
+ *
+ * Script-type table at 0x2f156c (5 entries): startup(0), dormant(1),
+ * continuous(2), static(3), stub(4).
+ * HS type table at 0x2f14a8 (0x31 entries, indices 4..0x30 valid for return).
+ *
+ * Node layout used here (offsets confirmed from disassembly):
+ *   +0x2  int16_t  (script index / function index)
+ *   +0x4  int16_t  type
+ *   +0x6  uint16_t flags
+ *   +0x8  int      next sibling datum_index
+ *   +0xc  int      string offset (relative to compiled source base at 0x46b6e8)
+ *   +0x10 int      first child datum_index
+ *
+ * Script element layout (element_size=0x5c, confirmed from tag_block calls):
+ *   +0x00 char[32] name (written via csstrcpy)
+ *   +0x20 int16_t  script_type
+ *   +0x22 int16_t  return_type
+ *   +0x24 int      root_node datum_index
+ *   +0x28 int      (init expression, used by globals; not touched here)
+ */
+bool FUN_000c6d90(int datum_index)
+{
+  char *node;
+  int type_arg; /* first child of the "script" node */
+  int name_arg; /* sibling after type [and optional return-type] arg */
+  int name_next_arg; /* sibling after name (body expression) */
+  int16_t script_type_idx; /* index into the script-type name table (0-4) */
+  int16_t return_type_idx; /* index into the HS type table */
+  int return_type_arg; /* datum index of the return-type token node (static/stub
+                          only) */
+  char *type_str; /* pointer into source buffer for the type token */
+  char *name_str; /* pointer into source buffer for the name token */
+  int head_handle; /* datum index of newly-allocated head syntax node */
+  int body_handle; /* datum index of newly-allocated body syntax node */
+  char *head_node; /* pointer to head syntax node data */
+  char *body_node; /* pointer to body syntax node data */
+  char *script_elem; /* pointer to the script tag-block element */
+  int16_t existing; /* existing script index (-1 = not found) */
+
+  /* Navigate: datum_index -> (script) -> first child -> next sibling.
+   * That sibling is the script-type token node (type_arg). */
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  type_arg = *(int *)(node + 0x8);
+
+  if (type_arg == -1) {
+    *(const char **)0x46b6fc =
+      "i expected (script <type> <name> <expression(s)>)";
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
+
+  /* Resolve the script-type string and search the script-type table. */
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, type_arg);
+  type_str = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+
+  script_type_idx = 0;
+  do {
+    if (csstrcmp(type_str, ((const char **)0x2f156c)[(int)script_type_idx]) ==
+        0)
+      goto found_script_type;
+    script_type_idx++;
+  } while (script_type_idx < 5);
+
+  /* No match — emit error, report position of the type token. */
+  *(const char **)0x46b6fc = "script type must be \"startup\", \"dormant\", "
+                             "\"continuous\", or \"static\".";
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, type_arg);
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return false;
+
+found_script_type:
+  if (script_type_idx == 3 || script_type_idx == 4) {
+    /* static or stub: next arg is return type, then name. */
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, type_arg);
+    return_type_arg = *(int *)(node + 0x8);
+    if (return_type_arg == -1) {
+      *(const char **)0x46b6fc =
+        "i expected (script local <type> <name> <expression(s)>).";
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+      *(int *)0x46b700 = *(int *)(node + 0xc);
+      return false;
+    }
+
+    /* Search HS type table for return type name. */
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, return_type_arg);
+    type_str = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+    return_type_idx = 0;
+    while (csstrcmp(type_str,
+                    ((const char **)0x2f14a8)[(int)return_type_idx]) != 0) {
+      return_type_idx++;
+      if (return_type_idx >= 0x31) {
+        return_type_idx = -1;
+        break;
+      }
+    }
+
+    /* Advance to the name node: next sibling of the return-type token.
+     * Error position (if invalid type) uses the return-type token node. */
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, return_type_arg);
+    name_arg = *(int *)(node + 0x8);
+
+    if ((short)return_type_idx < 4 || 0x30 < (short)return_type_idx) {
+      *(const char **)0x46b6fc = "this is not a valid return type.";
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, return_type_arg);
+      *(int *)0x46b700 = *(int *)(node + 0xc);
+      return false;
+    }
+  } else {
+    /* startup / dormant / continuous: no explicit return type; use index 4. */
+    return_type_idx = 4;
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, type_arg);
+    name_arg = *(int *)(node + 0x8);
+  }
+
+  /* name_arg now points to the script-name token node. */
+  if (name_arg == -1) {
+    if (script_type_idx == 3) {
+      *(const char **)0x46b6fc =
+        "i expected (script static <type> <name> <expression(s)>)";
+    } else if (script_type_idx == 4) {
+      *(const char **)0x46b6fc =
+        "i expected (script stub <type> <name> <expression(s)>)";
+    } else {
+      *(const char **)0x46b6fc =
+        "i expected (script <type> <name> <expression(s)>)";
+    }
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+  name_next_arg = *(int *)(node + 0x8);
+
+  if (name_next_arg == -1) {
+    if (script_type_idx == 3) {
+      *(const char **)0x46b6fc =
+        "i expected (script static <type> <name> <expression(s)>)";
+    } else if (script_type_idx == 4) {
+      *(const char **)0x46b6fc =
+        "i expected (script stub <type> <name> <expression(s)>)";
+    } else {
+      *(const char **)0x46b6fc =
+        "i expected (script <type> <name> <expression(s)>)";
+    }
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
+
+  /* Validate name length (1..31 characters). */
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+  name_str = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+  if (csstrlen(name_str) == 0 || csstrlen(name_str) >= 0x20) {
+    *(const char **)0x46b6fc =
+      "i expected a script name less than 32 characters.";
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, name_arg);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
+
+  /* Look up scenario scripts block at scenario+0x49c. */
+  {
+    scenario_t *scenario = global_scenario_get();
+    void *scripts_block = (char *)scenario + 0x49c;
+
+    existing = hs_find_script_by_name(name_str);
+    if (existing == -1) {
+      /* No existing script — allocate a new script element. */
+      existing = (int16_t)tag_block_add_element(scripts_block);
+      if (existing == -1) {
+        *(const char **)0x46b6fc = "i couldn't allocate a script.";
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+        *(int *)0x46b700 = *(int *)(node + 0xc);
+        return false;
+      }
+    } else {
+      /* Script exists — validate override rules. */
+      char *elem =
+        (char *)tag_block_get_element(scripts_block, (int)existing, 0x5c);
+      int16_t elem_type = *(int16_t *)(elem + 0x20);
+      int16_t elem_rtype = *(int16_t *)(elem + 0x22);
+
+      /* A static overriding a stub of the same return type: allowed. */
+      if (elem_type == 4 && elem_rtype == return_type_idx &&
+          script_type_idx == 3) {
+        /* Return early: override accepted, existing stub will be replaced. */
+      } else if (elem_type == 3 && elem_rtype == return_type_idx &&
+                 script_type_idx == 4) {
+        /* A stub redeclaring a static of the same return type: already done. */
+        return true;
+      } else {
+        *(const char **)0x46b6fc =
+          "only static scripts of the same type can override stub scripts.";
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+        *(int *)0x46b700 = *(int *)(node + 0xc);
+        return false;
+      }
+    }
+
+    /* Allocate two syntax nodes for the script body. */
+    script_elem =
+      (char *)tag_block_get_element(scripts_block, (int)existing, 0x5c);
+    head_handle = data_new_at_index(*(data_t **)0x5aa6c8);
+    body_handle = data_new_at_index(*(data_t **)0x5aa6c8);
+    if (head_handle == -1 || body_handle == -1) {
+      *(const char **)0x46b6fc = "i couldn't allocate a syntax node.";
+      return false;
+    }
+
+    /* Initialise head node: type=0, flags=0, next=-1, string=param_1 string,
+     * first_child=body_handle. */
+    head_node = (char *)datum_get(*(data_t **)0x5aa6c8, head_handle);
+    body_node = (char *)datum_get(*(data_t **)0x5aa6c8, body_handle);
+    *(int *)(head_node + 0x10) = body_handle;
+    *(int *)(head_node + 0x8) = -1;
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+    *(int *)(head_node + 0xc) = *(int *)(node + 0xc);
+    *(int16_t *)(head_node + 0x6) = 0;
+
+    /* Initialise body node: flags=1 (leaf?), type_b=2, type_a=0,
+     * next=name_next_arg, function_index=0, string=-1 (none). */
+    *(int *)(body_node + 0x8) = name_next_arg;
+    *(int *)(body_node + 0xc) = -1;
+    *(int16_t *)(body_node + 0x2) = 0;
+    *(int16_t *)(body_node + 0x6) = 1;
+    *(int16_t *)(body_node + 0x4) = 2;
+
+    /* Type-check the body. */
+    if (!hs_type_check(head_handle, (int16_t)return_type_idx)) {
+      return false;
+    }
+
+    /* Write script element: name, return type, script type, root node. */
+    csstrcpy(script_elem, name_str);
+    *(int16_t *)(script_elem + 0x22) = return_type_idx;
+    *(int16_t *)(script_elem + 0x20) = script_type_idx;
+    *(int *)(script_elem + 0x24) = head_handle;
+    return true;
+  }
+}
+
 /* 0xc71c0 — Parse an atom (non-parenthesized token) from the HS source.
  * Quoted strings: scan to closing '"', null-terminate, report unterminated.
  * Bare tokens: scan until ')', ';', whitespace, or NUL.
