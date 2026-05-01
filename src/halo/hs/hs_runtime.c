@@ -1798,6 +1798,46 @@ void FUN_000ccc70(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, *(int *)accum);
 }
 
+/* 0xccdf0 — HS equal/not-equal evaluator. Evaluates two arguments of the
+ * same type via FUN_000cc3a0, then compares with csmemcmp using the type's
+ * size from the table at 0x26f350. function_index 0xd = equal, 0xe = not_equal.
+ */
+void FUN_000ccdf0(int16_t function_index, int thread_datum, char init)
+{
+  int16_t type;
+  int16_t param_types[2];
+  int *values;
+
+  if (function_index != 0xd && function_index != 0xe) {
+    display_assert("function_index==_hs_function_equal || "
+                   "function_index==_hs_function_not_equal",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x131,
+                   1);
+    system_exit(-1);
+  }
+
+  {
+    char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    char *arg1 = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child + 0x8));
+    type = *(int16_t *)(arg1 + 0x4);
+  }
+
+  param_types[0] = type;
+  param_types[1] = type;
+  values = (int *)FUN_000cc3a0(thread_datum, 2, (int)param_types, init);
+  if (values != 0) {
+    int size = (int)*(int16_t *)(0x26f350 + (int)type * 2);
+    char result = (csmemcmp(values, values + 1, size) == 0) ? 1 : 0;
+    if (function_index == 0xe)
+      result = (result == 0) ? 1 : 0;
+    FUN_000cbf80(thread_datum, (int)(uint8_t)result);
+  }
+}
+
 /* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
  * evaluation loop: resolves the current stack frame's expression, dispatches
  * to either a built-in function evaluate callback or a script-reference
