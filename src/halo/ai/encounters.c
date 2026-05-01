@@ -134,7 +134,7 @@ void FUN_0005de80(void)
         /* Time-slice: update only if this encounter's slot index matches current tick mod 15 */
         if ((int16_t)((unsigned int)(encounter_handle & 0xffff) % 0xf) == (int16_t)tick_mod15) {
             FUN_0005d420(encounter_handle);
-            FUN_0005acf0();
+            FUN_0005acf0(encounter_handle_copy);
             FUN_0005c680(encounter_handle_copy);
             FUN_0005ae70(encounter_handle_copy);
             FUN_0005c940(encounter_handle_copy);
