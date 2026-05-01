@@ -1458,6 +1458,58 @@ void FUN_000cc590(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, *result_ptr);
 }
 
+/* 0xccb40 — HS 'and'/'or' evaluator. Short-circuits: AND stops on first
+ * false, OR stops on first true. function_index 5 = and, 6 = or. */
+void FUN_000ccb40(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  int *expr_ptr;
+  char *result_ptr;
+  char *running;
+  char is_and;
+  char new_val;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  expr_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  result_ptr = (char *)hs_thread_stack_alloc(thread_datum, 4);
+  running = (char *)hs_thread_stack_alloc(thread_datum, 1);
+
+  is_and = (char)(function_index == 5);
+
+  if (function_index != 5 && function_index != 6) {
+    display_assert(
+      "function_index==_hs_function_and || function_index==_hs_function_or",
+      "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0xcf, 1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    *expr_ptr = *(int *)(child + 0x8);
+    *running = is_and;
+  } else {
+    if (is_and)
+      new_val = (*running && *result_ptr) ? 1 : 0;
+    else
+      new_val = (*running || *result_ptr) ? 1 : 0;
+    *running = new_val;
+  }
+
+  if (*expr_ptr != -1 && *running == is_and) {
+    FUN_000cc1d0(thread_datum, *expr_ptr, result_ptr);
+    {
+      char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
+      *expr_ptr = *(int *)(expr + 0x8);
+    }
+    return;
+  }
+
+  FUN_000cbf80(thread_datum, (int)(uint8_t)*running);
+}
+
 /* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
  * evaluation loop: resolves the current stack frame's expression, dispatches
  * to either a built-in function evaluate callback or a script-reference
