@@ -1408,6 +1408,16 @@ static void FUN_000cc1d0(int thread_handle, int expression_index,
   *(int *)(*(char **)(thread + 0x10) + 0x4) = expression_index;
 }
 
+/* 0xcc560 — Evaluate an HS built-in function call by dispatching to
+ * FUN_000cc3a0 with the function's formal parameter count and types
+ * from the function descriptor table. */
+void FUN_000cc560(int16_t function_index, int thread_datum, char init)
+{
+  char *desc = (char *)hs_function_table_get(function_index);
+  FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18), (int)(desc + 0x1a),
+               init);
+}
+
 /* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
  * evaluation loop: resolves the current stack frame's expression, dispatches
  * to either a built-in function evaluate callback or a script-reference

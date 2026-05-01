@@ -208,5 +208,11 @@
   },
   "0xc71c0": {
     "decl": "void FUN_000c71c0(int datum_index@<eax>, char **cursor@<esi>);"
+  },
+  "0xcc3a0": {
+    "decl": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);"
+  },
+  "0xcc340": {
+    "decl": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);"
   }
 }
