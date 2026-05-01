@@ -3428,6 +3428,10 @@
           "ported": true
         },
         {
+          "addr": "0xc3ea0",
+          "decl": "const char *hs_global_get_name(uint16_t global_ref);"
+        },
+        {
           "decl": "int16_t hs_find_global_by_name(const char *name);",
           "addr": "0xc3ee0",
           "ported": true
@@ -3533,7 +3537,8 @@
         },
         {
           "decl": "bool FUN_000c5840(int datum_index @<eax>);",
-          "addr": "0xc5840"
+          "addr": "0xc5840",
+          "ported": true
         },
         {
           "decl": "void FUN_000c5960(int datum_index @<eax>);",

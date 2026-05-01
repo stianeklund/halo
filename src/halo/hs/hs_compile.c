@@ -1,3 +1,61 @@
+/* 0xc5840 — Resolve expression as a global variable reference. Looks up the
+ * node's name via hs_find_global_by_name. If found, validates type
+ * compatibility and sets the variable_ref flag (bit 2). If the node's type
+ * is unparsed (0), propagates the global's type.
+ */
+bool FUN_000c5840(int datum_index)
+{
+  char *node;
+  int16_t type;
+  int global_ref;
+  int16_t global_type;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  type = *(int16_t *)(node + 0x4);
+
+  if ((type < 4 || type > 0x30) && type != 0) {
+    display_assert(
+      "hs_type_valid(expression->type) || expression->type==_hs_unparsed",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x4e4, 1);
+    system_exit(-1);
+  }
+
+  global_ref = (int)hs_find_global_by_name(
+    (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+  *(int *)(node + 0x10) = global_ref;
+
+  if (global_ref == -1) {
+    if (*(uint8_t *)0x46b808 == 0)
+      return false;
+    *(const char **)0x46b6fc = "this is not a valid variable name.";
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
+
+  global_type = hs_global_get_type((uint16_t) * (int16_t *)(node + 0x10));
+
+  if (*(int16_t *)(node + 0x4) != 0 &&
+      !hs_types_compatible(global_type, *(int16_t *)(node + 0x4))) {
+    const char *global_name =
+      hs_global_get_name((uint16_t) * (int16_t *)(node + 0x10));
+    crt_sprintf(
+      (char *)0x46b704,
+      "i expected a value of type %s, but the variable %s has type %s",
+      ((const char **)(void *)0x2f14a8)[(int)*(int16_t *)(node + 0x4)],
+      global_name,
+      ((const char **)(void *)0x2f14a8)[(int)(int16_t)global_type]);
+    *(const char **)0x46b6fc = (const char *)0x46b704;
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
+
+  if (*(int16_t *)(node + 0x4) == 0) {
+    *(int16_t *)(node + 0x4) = global_type;
+  }
+  *(uint8_t *)(node + 0x6) |= 4;
+  return true;
+}
+
 /* 0xc5960 — Resolve the function/script index for an expression node.
  * Looks up the first child (predicate) at datum_index->field_0x10. If the
  * predicate is already type 2 (function call), copies its function_index.
