@@ -3598,16 +3598,6 @@
       "source": "hs/hs_runtime.c",
       "functions": [
         {
-          "decl": "void hs_runtime_dispose_from_old_map(void);",
-          "addr": "0xca800",
-          "ported": true
-        },
-        {
-          "decl": "void hs_runtime_initialize_for_new_map(void);",
-          "addr": "0xcdb30",
-          "ported": true
-        },
-        {
           "decl": "bool hs_validate_syntax(char **error_info, char **error_text);",
           "addr": "0xc7840",
           "ported": true
@@ -3628,33 +3618,8 @@
           "ported": true
         },
         {
-          "decl": "int hs_runtime_execute(int thread_index);",
-          "addr": "0xcdeb0",
-          "ported": true
-        },
-        {
-          "decl": "void hs_runtime_initialize(void);",
-          "addr": "0xce1c0",
-          "ported": true
-        },
-        {
-          "decl": "void hs_runtime_dispose(void);",
-          "addr": "0xce1e0",
-          "ported": true
-        },
-        {
-          "decl": "bool hs_types_compatible(int16_t actual_type, int16_t desired_type);",
-          "addr": "0xcb070",
-          "ported": true
-        },
-        {
-          "addr": "0xcb170",
-          "decl": "int hs_can_cast(int thread_handle, int16_t actual_type, int16_t desired_type, int value);",
-          "ported": true
-        },
-        {
-          "addr": "0xcaff0",
-          "decl": "bool hs_object_types_compatible(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
+          "decl": "void hs_runtime_dispose_from_old_map(void);",
+          "addr": "0xca800",
           "ported": true
         },
         {
@@ -3673,13 +3638,28 @@
           "ported": true
         },
         {
+          "addr": "0xcab00",
+          "decl": "void hs_thread_push_frame(int thread_handle@<eax>);",
+          "ported": true
+        },
+        {
           "addr": "0xcaba0",
           "decl": "void *hs_thread_stack_alloc(int thread_handle@<eax>, int size);",
           "ported": true
         },
         {
-          "addr": "0xcab00",
-          "decl": "void hs_thread_push_frame(int thread_handle@<eax>);",
+          "addr": "0xcaff0",
+          "decl": "bool hs_object_types_compatible(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
+          "ported": true
+        },
+        {
+          "decl": "bool hs_types_compatible(int16_t actual_type, int16_t desired_type);",
+          "addr": "0xcb070",
+          "ported": true
+        },
+        {
+          "addr": "0xcb170",
+          "decl": "int hs_can_cast(int thread_handle, int16_t actual_type, int16_t desired_type, int value);",
           "ported": true
         },
         {
@@ -3708,8 +3688,108 @@
           "ported": true
         },
         {
+          "addr": "0xcc340",
+          "decl": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcc3a0",
+          "decl": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcc560",
+          "decl": "void FUN_000cc560(int16_t function_index, int thread_datum, char init);",
+          "ported": true
+        },
+        {
+          "addr": "0xcc590",
+          "decl": "void FUN_000cc590(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcc660",
+          "decl": "void FUN_000cc660(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcc870",
+          "decl": "void FUN_000cc870(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcca00",
+          "decl": "void FUN_000cca00(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xccb40",
+          "decl": "void FUN_000ccb40(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xccc70",
+          "decl": "void FUN_000ccc70(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xccdf0",
+          "decl": "void FUN_000ccdf0(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcced0",
+          "decl": "void FUN_000cced0(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcd0e0",
+          "decl": "void FUN_000cd0e0(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcd2a0",
+          "decl": "void FUN_000cd2a0(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcd4a0",
+          "decl": "void FUN_000cd4a0(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcd5a0",
+          "decl": "void FUN_000cd5a0(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
+          "addr": "0xcd6c0",
+          "decl": "void FUN_000cd6c0(int16_t function_index, int thread_datum, char init);",
+          "ported": false
+        },
+        {
           "addr": "0xcd840",
           "decl": "void FUN_000cd840(int thread_handle@<eax>);",
+          "ported": true
+        },
+        {
+          "decl": "void hs_runtime_initialize_for_new_map(void);",
+          "addr": "0xcdb30",
+          "ported": true
+        },
+        {
+          "decl": "int hs_runtime_execute(int thread_index);",
+          "addr": "0xcdeb0",
+          "ported": true
+        },
+        {
+          "decl": "void hs_runtime_initialize(void);",
+          "addr": "0xce1c0",
+          "ported": true
+        },
+        {
+          "decl": "void hs_runtime_dispose(void);",
+          "addr": "0xce1e0",
           "ported": true
         },
         {
