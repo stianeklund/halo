@@ -3562,7 +3562,8 @@
         },
         {
           "addr": "0xc72b0",
-          "decl": "void FUN_000c72b0(char **cursor@<esi>);"
+          "decl": "void FUN_000c72b0(char **cursor@<esi>);",
+          "ported": true
         },
         {
           "addr": "0xc7be0",
