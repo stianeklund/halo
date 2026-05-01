@@ -1838,6 +1838,58 @@ void FUN_000ccdf0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xcd5a0 — HS object-to-unit type converter. Evaluates one argument,
+ * checks if the object's type matches the target conversion mask from
+ * the table at 0x26f320. Returns the object if compatible, NONE if not.
+ * function_index 0x17 = object_to_unit. */
+void FUN_000cd5a0(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  int *result_ptr;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  result_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+
+  if (function_index < 0x17 || function_index > 0x17) {
+    display_assert("function_index>=_hs_function_object_to_unit && "
+                   "function_index<=_hs_function_object_to_unit",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x2dc,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), result_ptr);
+    return;
+  }
+
+  if (*result_ptr == -1) {
+    FUN_000cbf80(thread_datum, -1);
+    return;
+  }
+
+  {
+    char *obj = (char *)object_get_and_verify_type(*result_ptr, -1);
+    int type_idx = (int)(int16_t)(function_index - 0x16);
+    int type_bit = 1 << (*(uint8_t *)(obj + 0x64) & 0x1f);
+    int type_mask = (int)*(int16_t *)(0x26f320 + type_idx * 2);
+
+    if (type_mask & type_bit) {
+      FUN_000cbf80(thread_datum, *result_ptr);
+      return;
+    }
+
+    const char *tag_name = tag_get_name(*(int *)obj);
+    error(2, "attempt to convert object %s to type %s", tag_name,
+          *(const char **)(0x2f153c + type_idx * 4));
+    FUN_000cbf80(thread_datum, -1);
+  }
+}
+
 /* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
  * evaluation loop: resolves the current stack frame's expression, dispatches
  * to either a built-in function evaluate callback or a script-reference
