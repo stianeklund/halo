@@ -3679,7 +3679,7 @@
         },
         {
           "addr": "0xcc0a0",
-          "decl": "int FUN_000cc0a0(int16_t global_ref@<ax>);",
+          "decl": "int FUN_000cc0a0(int16_t global_ref@<eax>);",
           "ported": true
         },
         {
@@ -3720,7 +3720,7 @@
         {
           "addr": "0xcca00",
           "decl": "void FUN_000cca00(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xccb40",
@@ -3796,6 +3796,11 @@
           "addr": "0xce350",
           "decl": "void FUN_000ce350(int expression_datum);",
           "ported": true
+        },
+        {
+          "addr": "0xce370",
+          "decl": "void FUN_000ce370(int expression_datum);",
+          "ported": false
         }
       ],
       "source_path": "src/halo/hs/hs_runtime.c"
