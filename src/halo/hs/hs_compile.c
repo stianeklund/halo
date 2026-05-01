@@ -1,3 +1,28 @@
+/* 0xc5730 — Append a source file's contents to the HS source buffer.
+ * Reallocates the buffer at 0x46b6e8 to hold source_size + file_size + 1,
+ * copies the file data, updates source_size at 0x46b6e4, and null-terminates.
+ * Returns pointer to the appended data, or NULL on allocation failure. */
+char *FUN_000c5730(int source_file_size, void *source_ptr)
+{
+  int old_size;
+  char *new_buf;
+  char *dest;
+
+  dest = 0;
+  old_size = *(int *)0x46b6e4;
+  new_buf =
+    (char *)debug_realloc(*(void **)0x46b6e8, old_size + source_file_size + 1,
+                          "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xfd);
+  if (new_buf != 0) {
+    dest = new_buf + *(int *)0x46b6e4;
+    *(char **)0x46b6e8 = new_buf;
+    csmemcpy(dest, source_ptr, source_file_size);
+    *(int *)0x46b6e4 = *(int *)0x46b6e4 + source_file_size;
+    *(char *)(*(int *)0x46b6e8 + *(int *)0x46b6e4) = 0;
+  }
+  return dest;
+}
+
 /* 0xc57d0 — Search the HS source string table for a name. The source buffer
  * at 0x46b6ec is a packed sequence of null-terminated strings; returns the
  * byte offset of the matching string, or -1 if not found. */
