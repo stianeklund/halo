@@ -202,5 +202,8 @@
     "0xcc1d0": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);",
     "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);"
   },
-  "version": 1
+  "version": 1,
+  "0xc57d0": {
+    "decl": "int FUN_000c57d0(char *str@<ebx>);"
+  }
 }

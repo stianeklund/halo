@@ -1,3 +1,20 @@
+/* 0xc57d0 — Search the HS source string table for a name. The source buffer
+ * at 0x46b6ec is a packed sequence of null-terminated strings; returns the
+ * byte offset of the matching string, or -1 if not found. */
+int FUN_000c57d0(char *str)
+{
+  int offset;
+
+  offset = 0;
+  while (offset < *(int *)0x46b6f0) {
+    if (csstrcmp(str, (const char *)(*(int *)0x46b6ec + offset)) == 0)
+      return offset;
+    offset += csstrlen((const char *)(*(int *)0x46b6ec + offset)) + 1;
+  }
+
+  return -1;
+}
+
 /* 0xc5840 — Resolve expression as a global variable reference. Looks up the
  * node's name via hs_find_global_by_name. If found, validates type
  * compatibility and sets the variable_ref flag (bit 2). If the node's type

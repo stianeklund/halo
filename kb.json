@@ -3534,8 +3534,9 @@
           "addr": "0xc6a70"
         },
         {
-          "decl": "int FUN_000c57d0(void);",
-          "addr": "0xc57d0"
+          "decl": "int FUN_000c57d0(char *str@<ebx>);",
+          "addr": "0xc57d0",
+          "ported": true
         },
         {
           "decl": "bool FUN_000c5840(int datum_index @<eax>);",
