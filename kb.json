@@ -3546,7 +3546,8 @@
         },
         {
           "decl": "bool FUN_000c6d90(int datum_index);",
-          "addr": "0xc6d90"
+          "addr": "0xc6d90",
+          "ported": true
         },
         {
           "addr": "0xc71c0",
