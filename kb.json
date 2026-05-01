@@ -3695,7 +3695,7 @@
         {
           "addr": "0xcc3a0",
           "decl": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcc560",

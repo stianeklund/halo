@@ -1429,6 +1429,79 @@ void FUN_000cc340(int16_t script_index, int thread_handle, char init)
   }
 }
 
+/* 0xcc3a0 — Evaluate function arguments. Allocates a values array on the
+ * thread stack, then evaluates each argument expression one-per-call into
+ * the array, type-checking against the formal parameter list. Returns the
+ * values array pointer when all arguments are evaluated, or 0 if still
+ * processing. */
+int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
+                 char init)
+{
+  char *thread;
+  int *values;
+  int16_t *arg_index;
+  int *expr_ptr;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  values = (int *)hs_thread_stack_alloc(thread_datum, (int)param_count * 4);
+  arg_index = (int16_t *)hs_thread_stack_alloc(thread_datum, 2);
+  expr_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+
+  if (init) {
+    *arg_index = 0;
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    *expr_ptr = *(int *)(child + 0x8);
+  }
+
+  if (*arg_index >= param_count) {
+    if (*expr_ptr != -1) {
+      char *name = hs_get_thread_script_name(thread_datum);
+      char *msg =
+        csprintf((char *)0x5ab100,
+                 "a problem occurred while executing the script %s: %s (%s)",
+                 name, "corrupted syntax tree.", "*expression_index==NONE");
+      display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x3d1, 1);
+      system_exit(-1);
+    }
+    return (int)values;
+  }
+
+  if (*expr_ptr == -1) {
+    char *name = hs_get_thread_script_name(thread_datum);
+    char *msg =
+      csprintf((char *)0x5ab100,
+               "a problem occurred while executing the script %s: %s (%s)",
+               name, "corrupted syntax tree.", "*expression_index!=NONE");
+    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x3c4, 1);
+    system_exit(-1);
+  }
+
+  {
+    char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
+    if (*(int16_t *)(expr + 0x4) !=
+        *(int16_t *)(formal_params + (int)*arg_index * 2)) {
+      datum_get(*(data_t **)0x5aa6c4, thread_datum);
+      char *name = hs_get_thread_script_name(thread_datum);
+      error(2, "script %s needs to be recompiled. (%s: %s)", name,
+            "unexpected actual parameters.",
+            "hs_syntax_get(*expression_index)->type=="
+            "formal_parameters[*argument_index]");
+      return (int)values;
+    }
+  }
+
+  FUN_000cc1d0(thread_datum, *expr_ptr, &values[(int)*arg_index]);
+  {
+    char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
+    *expr_ptr = *(int *)(expr + 0x8);
+  }
+  (*arg_index)++;
+  return 0;
+}
+
 /* 0xcc560 — Evaluate an HS built-in function call by dispatching to
  * FUN_000cc3a0 with the function's formal parameter count and types
  * from the function descriptor table. */
