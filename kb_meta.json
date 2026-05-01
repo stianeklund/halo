@@ -2186,7 +2186,15 @@
     },
     "0xc6d90": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Script-type name table at 0x2f156c has 5 entries in order: startup(0), dormant(1), continuous(2), static(3), stub(4), confirmed by loop bound of 5 at 0xc6e09.",
+        "Head node +0x10 = first_child (body_handle), +0x8 = -1 (no next sibling), +0xc = string offset from datum_index node, +0x6 = 0 (flags cleared); confirmed by MOV [EDI+N] stores at 0xc709c-0xc70be.",
+        "Body node +0x8 = name_next_arg, +0xc = -1 (no string), +0x2 = 0, +0x6 = 1, +0x4 = 2; field values are synthetic wrapper node markers whose semantics are inferred from structure rather than named constants."
+      ],
+      "uncertain": [
+        "The error message 'i expected (script local <type> <name> ...' at 0x27c730 is suspicious; 'local' in the message for a top-level script is likely a copy-paste artifact in the original source."
+      ]
     },
     "0xc7840": {
       "kind": "function",
@@ -2267,6 +2275,10 @@
       ]
     },
     "0xcb230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc660": {
       "kind": "function",
       "status": "ported"
     },

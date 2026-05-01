@@ -1552,6 +1552,130 @@ void FUN_000cc590(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, *result_ptr);
 }
 
+/* 0xcc660 — HS 'begin_random' evaluator.
+ * Implements (begin_random <arg0> <arg1> ... <argN-1>): on each call selects
+ * one not-yet-evaluated argument at random and evaluates it.  When all
+ * arguments have been evaluated it pops the frame with the last result.
+ *
+ * Multi-phase protocol:
+ *   init==true  : count the argument list, memset the used-bit array.
+ *   init==false : pick the next unused slot and evaluate it; when all slots
+ *                 are used call FUN_000cbf80 to commit the result.
+ *
+ * Stack allocations (via hs_thread_stack_alloc):
+ *   2 bytes  — int16_t argument_count
+ *   4 bytes  — uint32_t used_bits[]  (one bit per argument, up to 32)
+ *   4 bytes  — int       result_value
+ *
+ * Random selection: random_range(get_global_random_seed_address(), 0,
+ *   argument_count) gives a starting offset sVar2; then we try
+ *   (i + sVar2) % argument_count for i = 0, 1, ... until we find an
+ *   unset bit.
+ *
+ * Assert: function_index must equal 1 (_hs_function_begin_random).
+ * Assert: argument_count must be < 32 (LONG_BITS).
+ *
+ * Globals:
+ *   0x5aa6c4 = hs_thread_data  (data_t*)
+ *   0x5aa6c8 = hs_syntax_data  (data_t*)
+ */
+void FUN_000cc660(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  int16_t *argument_count;
+  int *used_bits;
+  int *result_value;
+  int16_t sVar2;
+  int16_t sVar10;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  argument_count = (int16_t *)hs_thread_stack_alloc(thread_datum, 2);
+  used_bits = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  result_value = (int *)hs_thread_stack_alloc(thread_datum, 4);
+
+  if (function_index != 1) {
+    display_assert("function_index==_hs_function_begin_random",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x45,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    /* Walk the argument list to count arguments. */
+    char *frame = *(char **)(thread + 0x10);
+    char *fn_node =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(frame + 0x4));
+    char *first_child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(fn_node + 0x10));
+    int arg_datum = *(int *)(first_child + 0x8);
+
+    *argument_count = 0;
+    if (arg_datum != -1) {
+      do {
+        char *arg = (char *)datum_get(*(data_t **)0x5aa6c8, arg_datum);
+        arg_datum = *(int *)(arg + 0x8);
+        *argument_count = *argument_count + 1;
+      } while (arg_datum != -1);
+
+      if (*argument_count >= 0x20) {
+        display_assert("*argument_count<LONG_BITS",
+                       "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
+                       0x50, 1);
+        system_exit(-1);
+      }
+    }
+
+    csmemset(used_bits, 0, (int)((*argument_count + 0x1f) >> 5) << 2);
+  }
+
+  /* Pick a random starting offset in [0, argument_count). */
+  sVar2 = random_range((unsigned int *)get_global_random_seed_address(), 0,
+                       *argument_count);
+
+  sVar10 = 0;
+  if (sVar10 < *argument_count) {
+    do {
+      /* Compute candidate slot: (sVar10 + sVar2) % argument_count. */
+      int16_t sVar11 =
+        (int16_t)(((int)sVar10 + (int)sVar2) % (int)*argument_count);
+
+      if ((used_bits[(int)sVar11 >> 5] & (1 << ((int)sVar11 & 0x1f))) == 0) {
+        /* Slot not yet used: walk to the sVar11-th argument. */
+        char *frame2 = *(char **)(thread + 0x10);
+        char *fn_node2 =
+          (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(frame2 + 0x4));
+        char *first_child2 =
+          (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(fn_node2 + 0x10));
+        int cur_datum = *(int *)(first_child2 + 0x8);
+
+        if (sVar11 > 0) {
+          int walk = (int)(uint16_t)sVar11;
+          do {
+            char *node = (char *)datum_get(*(data_t **)0x5aa6c8, cur_datum);
+            cur_datum = *(int *)(node + 0x8);
+            walk--;
+          } while (walk != 0);
+        }
+
+        /* Evaluate the chosen argument. */
+        FUN_000cc1d0(thread_datum, cur_datum, result_value);
+
+        /* Mark the slot as used. */
+        used_bits[(int)sVar11 >> 5] |= 1 << ((int)sVar11 & 0x1f);
+        break;
+      }
+
+      sVar10++;
+    } while (sVar10 < *argument_count);
+  }
+
+  /* If all slots have been tried (counter wrapped to argument_count), pop
+   * the frame and commit the result. */
+  if (sVar10 == *argument_count) {
+    FUN_000cbf80(thread_datum, *result_value);
+  }
+}
+
 /* 0xcc870 — HS 'if' evaluator. Three-phase: init evaluates the condition,
  * second call selects then/else branch, third call pops frame with result.
  * (if <condition> <then> [else]) */
