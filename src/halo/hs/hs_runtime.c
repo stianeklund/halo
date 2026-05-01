@@ -1962,6 +1962,132 @@ void FUN_000ccdf0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xcced0 — HS comparison evaluator (gt/lt/ge/lte). Evaluates two arguments
+ * of matching numeric type via FUN_000cc3a0 using the static param_types pair
+ * at 0x46b80c/0x46b80e, then performs FPU comparison. Handles three type
+ * classes: real (type==6, FLD float), long_integer (type==8, FILD dword),
+ * and short_integer/enum (type==7 or 0x20..0x24, MOVSX word then FILD).
+ * function_index 0xf=gt, 0x10=lt, 0x11=ge, 0x12=lte.
+ *
+ * The formal_params passed to FUN_000cc3a0 is a static int16_t[2] at
+ * 0x0046b80c; both slots are filled with the argument's inferred type.
+ * Result is committed via FUN_000cbf80(thread_datum, (int)(uint8_t)result).
+ */
+void FUN_000cced0(int16_t function_index, int thread_datum, char init)
+{
+  int16_t type;
+  /* static param_types pair: [0x0046b80c] = type, [0x0046b80e] = type */
+  int16_t *param_types = (int16_t *)0x0046b80c;
+  int *values;
+  char result;
+
+  if (function_index < 0xf || function_index > 0x12) {
+    display_assert(
+      "function_index>=_hs_function_gt && function_index<=_hs_function_lte",
+      "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x15d, 1);
+    system_exit(-1);
+  }
+
+  {
+    char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    char *arg1 = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child + 0x8));
+    type = *(int16_t *)(arg1 + 0x4);
+  }
+
+  param_types[0] = type;
+  param_types[1] = type;
+  values = (int *)FUN_000cc3a0(thread_datum, 2, (int)param_types, init);
+  if (values == NULL)
+    return;
+
+  if (type == 6) {
+    /* real: load as float directly */
+    float a = *(float *)values;
+    float b = ((float *)values)[1];
+    switch (function_index) {
+    case 0xf:
+      result = (a > b) ? 1 : 0;
+      break; /* gt */
+    case 0x10:
+      result = (a < b) ? 1 : 0;
+      break; /* lt */
+    case 0x11:
+      result = (a >= b) ? 1 : 0;
+      break; /* ge */
+    case 0x12:
+      result = (a <= b) ? 1 : 0;
+      break; /* lte */
+    default:
+      display_assert(0, "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
+                     0x16b, 1);
+      system_exit(-1);
+      result = 0;
+      break;
+    }
+  } else if (type == 8) {
+    /* long_integer: load as int32 → float for comparison */
+    float a = (float)*(int32_t *)values;
+    float b = (float)*((int32_t *)values + 1);
+    switch (function_index) {
+    case 0xf:
+      result = (a > b) ? 1 : 0;
+      break; /* gt */
+    case 0x10:
+      result = (a < b) ? 1 : 0;
+      break; /* lt */
+    case 0x11:
+      result = (a >= b) ? 1 : 0;
+      break; /* ge */
+    case 0x12:
+      result = (a <= b) ? 1 : 0;
+      break; /* lte */
+    default:
+      display_assert(0, "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
+                     0x16e, 1);
+      system_exit(-1);
+      result = 0;
+      break;
+    }
+  } else {
+    /* short_integer or enum (type==7 or 0x20..0x24): load as int16 → float */
+    if (type != 7 && (type < 0x20 || type > 0x24)) {
+      display_assert("parameter_types[0]==_hs_type_short_integer || "
+                     "HS_TYPE_IS_ENUM(parameter_types[0])",
+                     "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
+                     0x171, 1);
+      system_exit(-1);
+    }
+    float a = (float)(int)*(int16_t *)values;
+    float b = (float)(int)*((int16_t *)values + 1);
+    switch (function_index) {
+    case 0xf:
+      result = (a > b) ? 1 : 0;
+      break; /* gt */
+    case 0x10:
+      result = (a < b) ? 1 : 0;
+      break; /* lt */
+    case 0x11:
+      result = (a >= b) ? 1 : 0;
+      break; /* ge */
+    case 0x12:
+      result = (a <= b) ? 1 : 0;
+      break; /* lte */
+    default:
+      display_assert(0, "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
+                     0x172, 1);
+      system_exit(-1);
+      result = 0;
+      break;
+    }
+  }
+
+  FUN_000cbf80(thread_datum, (int)(uint8_t)result);
+}
+
 /* 0xcd5a0 — HS object-to-unit type converter. Evaluates one argument,
  * checks if the object's type matches the target conversion mask from
  * the table at 0x26f320. Returns the object if compatible, NONE if not.
