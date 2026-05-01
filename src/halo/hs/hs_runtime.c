@@ -722,6 +722,44 @@ static void *hs_thread_stack_alloc(int thread_handle, int size)
   return (void *)(frame + (int)old_size + 0xe);
 }
 
+/* 0xcada0 — Search hs_thread_data for a thread whose field at offset +4
+ * equals script_index. Returns the datum index of the matching thread, or
+ * -1 if none found. Iterates all live entries via data_next_index / datum_get.
+ *
+ * The field at thread+4 is the script index associated with that thread
+ * (confirmed by caller 0xcc0e0: MOV DI,[ESI+0x10]; and caller 0xcd0e0:
+ * XOR EDI,EDI; MOV DI,[ECX] — both load a script_index into DI before CALL).
+ *
+ * ABI: script_index@<edi> (int16_t, sign-extended to 32-bit at entry via
+ *      MOVSX EDI,DI); returns int datum index in EAX.
+ *
+ * Globals:
+ *   0x5aa6c4 = hs_thread_data (data_t*)
+ */
+static int FUN_000cada0(int16_t script_index)
+{
+  int index;
+  int script_index32;
+  char *thread;
+
+  /* Sign-extend the 16-bit register arg to 32 bits for comparison.
+   * The binary does MOVSX EDI,DI at 0xcadb8 before entering the loop. */
+  script_index32 = (int)script_index;
+
+  index = data_next_index(*(data_t **)0x5aa6c4, -1);
+  if (index == -1)
+    return -1;
+
+  do {
+    thread = (char *)datum_get(*(data_t **)0x5aa6c4, index);
+    if (*(int *)(thread + 0x4) == script_index32)
+      return index;
+    index = data_next_index(*(data_t **)0x5aa6c4, index);
+  } while (index != -1);
+
+  return -1;
+}
+
 /* 0xcaff0 */
 static bool hs_object_types_compatible(int16_t actual_offset,
                                        int16_t desired_offset)

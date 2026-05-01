@@ -3653,7 +3653,7 @@
         {
           "addr": "0xcada0",
           "decl": "int FUN_000cada0(int16_t script_index@<edi>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcaff0",
