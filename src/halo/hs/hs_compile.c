@@ -579,6 +579,58 @@ int FUN_000c7be0(char **cursor)
   return datum_index;
 }
 
+/* 0xc7ca0 — Parse a parenthesized HS expression. Advances cursor past '(',
+ * then loops: skip whitespace (null-terminating gaps), parse sub-expressions
+ * via FUN_000c7be0, and chain them via each node's next_node field (+0x8).
+ * Stops at ')' (null-terminates it) or NUL (unmatched paren error).
+ * Sets "this expression is empty." if no children were parsed. */
+void FUN_000c7ca0(char **cursor, int datum_index)
+{
+  char *node;
+  char *pre_ws;
+  int *link_ptr;
+  int child_index;
+  char *child_node;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  *(int *)(node + 0xc) = (int)(*cursor - *(char **)0x46b6e8);
+  (*cursor)++;
+  link_ptr = (int *)(node + 0x10);
+
+  if (*(char **)0x46b6fc == 0) {
+    do {
+      pre_ws = *cursor;
+      FUN_000c72b0(cursor);
+      if (*cursor != pre_ws)
+        *pre_ws = '\0';
+
+      if (**cursor == '\0') {
+        *(const char **)0x46b6fc = "this left parenthesis is unmatched.";
+        *(int *)0x46b700 = *(int *)(node + 0xc);
+        break;
+      }
+
+      if (**cursor == ')') {
+        **cursor = '\0';
+        (*cursor)++;
+        break;
+      }
+
+      child_index = FUN_000c7be0(cursor);
+      *link_ptr = child_index;
+      if (child_index != -1) {
+        child_node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
+        link_ptr = (int *)(child_node + 0x8);
+      }
+    } while (*(char **)0x46b6fc == 0);
+  }
+
+  if (link_ptr == (int *)(node + 0x10) && *(char **)0x46b6fc == 0) {
+    *(const char **)0x46b6fc = "this expression is empty.";
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+  }
+}
+
 /* Type-check an HS syntax node (0xc7d80).
  * If the node is untyped (type==0), sets its type to check_type and
  * dispatches to FUN_000c73a0 (function-call nodes) or FUN_000c74c0
