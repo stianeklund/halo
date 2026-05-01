@@ -934,6 +934,14 @@
       "metadata": {
         "source_path": "src/halo/hs/hs_compile.c"
       }
+    },
+    {
+      "name": "halo/international_strings",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/text/international_strings.c.obj",
+      "base_path": "delinked/international_strings.obj",
+      "metadata": {
+        "source_path": "src/halo/text/international_strings.c"
+      }
     }
   ]
 }

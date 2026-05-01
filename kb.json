@@ -8516,18 +8516,27 @@
       "name": "international_strings.obj",
       "functions": [
         {
-          "decl": "void unicode_cursor_forward(const char *str, int16_t *cursor);",
-          "addr": "0x19d1b0"
+          "addr": "0x19d080",
+          "decl": "bool unicode_is_multibyte(const uint8_t *p);",
+          "ported": false
         },
         {
-          "decl": "void unicode_cursor_backward(const char *str, int16_t *cursor);",
-          "addr": "0x19d240"
+          "decl": "uint16_t unicode_cursor_forward(const char *str, int16_t *cursor);",
+          "addr": "0x19d1b0",
+          "ported": true
+        },
+        {
+          "decl": "uint16_t unicode_cursor_backward(const char *str, int16_t *cursor);",
+          "addr": "0x19d240",
+          "ported": true
         },
         {
           "decl": "void unicode_snap_cursor(const char *str, int16_t *cursor);",
-          "addr": "0x19d300"
+          "addr": "0x19d300",
+          "ported": true
         }
-      ]
+      ],
+      "source_path": "text/international_strings.c"
     },
     {
       "name": "weapons.obj",
