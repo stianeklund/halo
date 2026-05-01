@@ -3808,7 +3808,7 @@
         {
           "addr": "0xce370",
           "decl": "void FUN_000ce370(int expression_datum);",
-          "ported": false
+          "ported": true
         }
       ],
       "source_path": "src/halo/hs/hs_runtime.c"

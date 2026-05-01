@@ -2958,3 +2958,18 @@ void FUN_000ce350(int expression_datum)
     *(int16_t *)(node + 0x4) += 1;
   }
 }
+
+/* 0xce370 - decrement hs object list reference count; asserts count > 0 before
+ * decrement */
+void FUN_000ce370(int expression_datum)
+{
+  if (expression_datum != -1) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa698, expression_datum);
+    if (*(int16_t *)(node + 0x4) < 1) {
+      display_assert("list->reference_count>0",
+                     "c:\\halo\\SOURCE\\hs\\object_lists.c", 0xa5, 1);
+      system_exit(-1);
+    }
+    *(int16_t *)(node + 0x4) -= 1;
+  }
+}
