@@ -1522,6 +1522,66 @@ void FUN_000cc870(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xcca00 — HS 'set' evaluator. Assigns a value to a global variable.
+ * Init: evaluates the value expression, storing result at the global's address.
+ * Not init: syncs globals, optionally handles object-list type (0x17), pops
+ * frame with the global's current value. */
+void FUN_000cca00(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  char *var_node;
+  int var_node_idx;
+  int16_t global_type;
+  int global_index;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  {
+    char *frame_expr = (char *)datum_get(
+      *(data_t **)0x5aa6c8, *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *fn_child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(frame_expr + 0x10));
+    var_node_idx = *(int *)(fn_child + 0x8);
+  }
+  var_node = (char *)datum_get(*(data_t **)0x5aa6c8, var_node_idx);
+  hs_thread_stack_alloc(thread_datum, 4);
+  global_type = hs_global_get_type((uint16_t) * (int16_t *)(var_node + 0x10));
+
+  if (init) {
+    if (global_type == 0x17)
+      FUN_000ce370(FUN_000cc0a0(*(int16_t *)(var_node + 0x10)));
+
+    global_index = (int)*(int16_t *)(var_node + 0x10) & 0x7fff;
+    if (!((uint8_t)(*((uint8_t *)(var_node + 0x10) + 1)) & 0x80))
+      global_index += (int)*(int16_t *)0x27d504;
+
+    {
+      char *global_datum =
+        (char *)datum_get(*(data_t **)0x5aa6c0, global_index);
+      char *value_expr = (char *)datum_get(*(data_t **)0x5aa6c8, var_node_idx);
+      FUN_000cc1d0(thread_datum, *(int *)(value_expr + 0x8), global_datum + 4);
+    }
+    return;
+  }
+
+  FUN_000cb7b0(*(int16_t *)(var_node + 0x10));
+  if (global_type == 0x17)
+    FUN_000ce350(FUN_000cc0a0(*(int16_t *)(var_node + 0x10)));
+
+  FUN_000cb230(*(int16_t *)(var_node + 0x10));
+  {
+    int ref = (int)*(int16_t *)(var_node + 0x10);
+    if (ref & 0x8000)
+      global_index = ref & 0x7fff;
+    else
+      global_index = (ref & 0x7fff) + (int)*(int16_t *)0x27d504;
+  }
+
+  {
+    char *global_datum = (char *)datum_get(*(data_t **)0x5aa6c0, global_index);
+    FUN_000cbf80(thread_datum, *(int *)(global_datum + 4));
+  }
+}
+
 /* 0xccb40 — HS 'and'/'or' evaluator. Short-circuits: AND stops on first
  * false, OR stops on first true. function_index 5 = and, 6 = or. */
 void FUN_000ccb40(int16_t function_index, int thread_datum, char init)
