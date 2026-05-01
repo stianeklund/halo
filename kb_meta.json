@@ -2305,6 +2305,21 @@
         "done_flag_ptr semantics: the decompiler shows it as a char* but FUN_000cc1d0 writes the condition result into it; exact encoding (bool 0/1) is inferred from the CMP byte [EDI],0 check at 0xcd3e6."
       ]
     },
+    "0xcd4a0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0x2f3df8 table is a per-HS-type inspector callback array; indexed by node->field_4 (the HS type of the argument being inspected), not by function_index.",
+        "The PUSH EDI at 0xcd504 pre-pushes the dest_ptr for FUN_000cc1d0 before both intermediate datum_get calls; ADD ESP,0x10 cleans only the two datum_get arg pairs, leaving EDI on the stack as the second arg to cc1d0."
+      ],
+      "uncertain": [
+        "The name of the 0x2f3df8 table (hs_type_inspector_table) is a RE label only; the binary has no string evidence for this name."
+      ]
+    },
+    "0xcd6c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcdb30": {
       "kind": "function",
       "status": "ported",

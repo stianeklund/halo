@@ -3773,7 +3773,7 @@
         {
           "addr": "0xcd6c0",
           "decl": "void FUN_000cd6c0(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcd840",
