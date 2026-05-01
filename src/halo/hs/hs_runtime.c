@@ -2222,6 +2222,157 @@ void FUN_000cd0e0(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, 0);
 }
 
+/* 0xcd2a0 — HS sleep_until evaluator. Suspends the current thread until a
+ * condition expression becomes true, with an optional timeout.
+ *
+ * Stack frame allocations (in order, from hs_thread_stack_alloc):
+ *   done_flag_ptr  (4-byte slot, byte access): set to 0 on init; set to 1
+ *                  by the callee (FUN_000cc1d0) when the condition is true.
+ *   ticks_ptr      (4-byte slot, int16 access): default sleep interval in
+ *                  ticks (0x1e = 30); may be overwritten by condition eval.
+ *   timeout_ptr    (4-byte slot, int32 access): deadline in ticks (-1 = none).
+ *                  Populated on step==0 if a timeout expression exists.
+ *   start_time_ptr (4-byte slot, int32 access): game_time_get() captured on
+ *                  init; used with timeout_ptr to bound the wait.
+ *   step_ptr       (2-byte slot, int16 access): phase counter.
+ *                  0 = first tick (set up timeout), 1 = subsequent ticks.
+ *
+ * Syntax tree traversal at the top:
+ *   thread_ptr = datum_get(hs_thread_data, thread_datum)
+ *   call_node  = datum_get(hs_syntax_data, *(frame + 0x4))
+ *   child_node = datum_get(hs_syntax_data, *(call_node + 0x10))
+ *   grandchild = datum_get(hs_syntax_data, *(child_node + 0x8))
+ *   sleep_until_target = *(int *)(grandchild + 0x8)
+ *   (The sleep_until_target is -1 if the condition sub-expression is absent.)
+ *
+ * Execution phases:
+ *   init != 0: set done_flag=0, start_time=game_time_get(), step=0,
+ *              ticks=0x1e, timeout=-1. If sleep_until_target != -1, kick off
+ *              FUN_000cc1d0(thread_datum, sleep_until_target, ticks_ptr) and
+ *              return (deferred). Otherwise return immediately.
+ *   init==0, step==0 (first tick):
+ *     Set step=1. If sleep_until_target != -1:
+ *       look up child = datum_get(hs_syntax_data, sleep_until_target).
+ *       If *(child + 0x8) != -1, kick FUN_000cc1d0(thread_datum, that,
+ *       timeout_ptr) and return.
+ *   init==0, step==1 (subsequent ticks):
+ *     If done_flag==0 and (timeout_ptr==-1 or game_time_get() <
+ * timeout+start_time): Re-evaluate condition: traverse syntax tree again and
+ * call FUN_000cc1d0(thread_datum, new_target, done_flag_ptr). Then compute next
+ * wake tick: max(1, *ticks_ptr). Write wake = game_time_get() + tick to
+ * thread+0x8. If timeout != -1, clamp wake to min(wake, timeout+start). Else:
+ * FUN_000cbf80(thread_datum, 0) to complete.
+ *
+ * function_index 0x14 = _hs_function_sleep_until.
+ *
+ * Globals:
+ *   0x5aa6c4 = hs_thread_data  (data_t*)
+ *   0x5aa6c8 = hs_syntax_data  (data_t*)
+ */
+void FUN_000cd2a0(int16_t function_index, int thread_datum, char init)
+{
+  /* Stack frame allocations — all before any branching. */
+  char *done_flag_ptr; /* 4-byte slot; byte access: 0=pending, 1=done */
+  int16_t *ticks_ptr; /* 4-byte slot; int16 access: re-check interval */
+  int32_t *timeout_ptr; /* 4-byte slot; int32 access: absolute deadline  */
+  int32_t *start_time_ptr; /* 4-byte slot; int32 access: game_time at init  */
+  int16_t *step_ptr; /* 2-byte slot; int16 access: phase counter      */
+
+  done_flag_ptr = (char *)hs_thread_stack_alloc(thread_datum, 4);
+  ticks_ptr = (int16_t *)hs_thread_stack_alloc(thread_datum, 4);
+  timeout_ptr = (int32_t *)hs_thread_stack_alloc(thread_datum, 4);
+  start_time_ptr = (int32_t *)hs_thread_stack_alloc(thread_datum, 4);
+  step_ptr = (int16_t *)hs_thread_stack_alloc(thread_datum, 2);
+
+  /* Traverse the syntax tree to locate the sleep_until condition target. */
+  char *thread_ptr = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  char *call_node = (char *)datum_get(
+    *(data_t **)0x5aa6c8, *(int *)(*(char **)(thread_ptr + 0x10) + 0x4));
+  char *child_node =
+    (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(call_node + 0x10));
+  char *grandchild =
+    (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child_node + 0x8));
+  int sleep_until_target = *(int *)(grandchild + 0x8);
+
+  if (function_index != 0x14) {
+    display_assert("function_index==_hs_function_sleep_until",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x1e5,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    /* Phase: init. Capture start time, set defaults, optionally kick
+     * evaluation of the condition expression. Stores are in the order
+     * the original MSVC code emits them (field rotation preserved). */
+    *done_flag_ptr = 0;
+    *start_time_ptr = game_time_get();
+    *step_ptr = 0;
+    *ticks_ptr = 0x1e; /* 30 ticks default re-check interval */
+    *timeout_ptr = -1;
+    if (sleep_until_target != -1) {
+      FUN_000cc1d0(thread_datum, sleep_until_target, (void *)ticks_ptr);
+      return;
+    }
+    return;
+  }
+
+  if (*step_ptr == 0) {
+    /* Phase: step 0 (first tick). Advance step, then optionally kick
+     * evaluation of the timeout expression into timeout_ptr. */
+    *step_ptr = 1;
+    if (sleep_until_target != -1) {
+      char *cond_child =
+        (char *)datum_get(*(data_t **)0x5aa6c8, sleep_until_target);
+      int timeout_expr = *(int *)(cond_child + 0x8);
+      if (timeout_expr != -1) {
+        FUN_000cc1d0(thread_datum, timeout_expr, (void *)timeout_ptr);
+        return;
+      }
+    }
+    /* fall through to step 1 logic */
+  } else if (*step_ptr != 1) {
+    return;
+  }
+
+  /* Phase: step 1 (subsequent ticks) — also reachable by fall-through from
+   * step 0 when no timeout expression exists. Check whether we should keep
+   * waiting or complete. */
+  if (*done_flag_ptr == 0 &&
+      (*timeout_ptr == -1 ||
+       game_time_get() < *timeout_ptr + *start_time_ptr)) {
+    /* Condition not yet met and not timed out: re-evaluate condition.
+     * The original re-derives thread_ptr via datum_get here (EDI was
+     * clobbered by the datum_get calls in the step-0 path above). */
+    char *thread2 = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+    char *frame2 = *(char **)(thread2 + 0x10);
+    char *call2 =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(frame2 + 0x4));
+    char *child2 =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(call2 + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)(child2 + 0x8), (void *)done_flag_ptr);
+
+    /* Compute next re-check tick: max(1, *ticks_ptr). */
+    int tick = (int)*ticks_ptr;
+    if (tick < 1)
+      tick = 1;
+    int wake = game_time_get() + tick;
+    *(int *)(thread2 + 0x8) = wake;
+
+    /* Clamp to timeout deadline if set. */
+    if (*timeout_ptr != -1) {
+      int deadline = *timeout_ptr + *start_time_ptr;
+      if (deadline <= wake) {
+        *(int *)(thread2 + 0x8) = deadline;
+      }
+      return;
+    }
+  } else {
+    /* Condition met or timed out: complete the expression. */
+    FUN_000cbf80(thread_datum, 0);
+  }
+}
+
 /* 0xcd5a0 — HS object-to-unit type converter. Evaluates one argument,
  * checks if the object's type matches the target conversion mask from
  * the table at 0x26f320. Returns the object if compatible, NONE if not.
