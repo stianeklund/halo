@@ -1728,6 +1728,76 @@ void FUN_000ccb40(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, (int)(uint8_t)*running);
 }
 
+/* 0xccc70 — HS arithmetic evaluator (+, -, *, /, min, max). Accumulates
+ * results across multiple operand expressions. Function indices 7-12. */
+void FUN_000ccc70(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  int16_t *counter;
+  int *expr_ptr;
+  float *operand;
+  float *accum;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  counter = (int16_t *)hs_thread_stack_alloc(thread_datum, 2);
+  expr_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  operand = (float *)hs_thread_stack_alloc(thread_datum, 4);
+  accum = (float *)hs_thread_stack_alloc(thread_datum, 4);
+
+  if (init) {
+    *counter = 0;
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    *expr_ptr = *(int *)(child + 0x8);
+  } else {
+    if (*counter == 0) {
+      *accum = *operand;
+    } else {
+      switch (function_index) {
+      case 7:
+        *accum = *operand + *accum;
+        break;
+      case 8:
+        *accum = *accum - *operand;
+        break;
+      case 9:
+        *accum = *operand * *accum;
+        break;
+      case 10:
+        *accum = *accum / *operand;
+        break;
+      case 0xb:
+        if (*operand < *accum)
+          *accum = *operand;
+        break;
+      case 0xc:
+        if (*operand > *accum)
+          *accum = *operand;
+        break;
+      default:
+        display_assert(0, "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
+                       0x111, 1);
+        system_exit(-1);
+        break;
+      }
+    }
+    (*counter)++;
+  }
+
+  if (*expr_ptr != -1) {
+    FUN_000cc1d0(thread_datum, *expr_ptr, operand);
+    {
+      char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
+      *expr_ptr = *(int *)(expr + 0x8);
+    }
+    return;
+  }
+
+  FUN_000cbf80(thread_datum, *(int *)accum);
+}
+
 /* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
  * evaluation loop: resolves the current stack frame's expression, dispatches
  * to either a built-in function evaluate callback or a script-reference
