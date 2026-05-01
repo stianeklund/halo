@@ -198,24 +198,13 @@
     "0xcb230": "void FUN_000cb230(int loop_var@<edi>);",
     "0xcb7b0": "void FUN_000cb7b0(int loop_var@<ebx>);",
     "0xcab00": "void FUN_000cab00(int thread_handle@<eax>);",
-    "0xcc0a0": "int FUN_000cc0a0(int16_t global_ref@<ax>);",
+    "0xcc0a0": "int FUN_000cc0a0(int16_t global_ref@<eax>);",
     "0xcc1d0": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);",
-    "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);"
+    "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);",
+    "0xc57d0": "int FUN_000c57d0(char *str@<ebx>);",
+    "0xc71c0": "void FUN_000c71c0(int datum_index@<eax>, char **cursor@<esi>);",
+    "0xcc3a0": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
+    "0xcc340": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);"
   },
-  "version": 1,
-  "0xc57d0": {
-    "decl": "int FUN_000c57d0(char *str@<ebx>);"
-  },
-  "0xc71c0": {
-    "decl": "void FUN_000c71c0(int datum_index@<eax>, char **cursor@<esi>);"
-  },
-  "0xcc3a0": {
-    "decl": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);"
-  },
-  "0xcc340": {
-    "decl": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);"
-  },
-  "0xcc0a0": {
-    "decl": "int FUN_000cc0a0(int16_t global_ref@<eax>);"
-  }
+  "version": 1
 }
