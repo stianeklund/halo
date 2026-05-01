@@ -981,7 +981,7 @@
           "addr": "0x5a6e0"
         },
         {
-          "decl": "void FUN_0005acf0(void);",
+          "decl": "void FUN_0005acf0(int encounter_handle@<eax>);",
           "addr": "0x5acf0"
         },
         {

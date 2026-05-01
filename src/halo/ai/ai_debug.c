@@ -211,7 +211,7 @@ void FUN_0004ab10(void)
 
         /* build follow-camera if a target was acquired */
         if (*(uint8_t *)0x5f91a8 != '\0') {
-            char cam_state[16];
+            char cam_state[0x48];
             FUN_0005dfc0(cam_state, 0x3e4ccccd, 0, *(int32_t *)0x5f91bc);
             FUN_0005e000(cam_state, (void *)0x5f91ac, *(int32_t *)0x5f91b8);
             if (*(float *)0x2533c0 < *(float *)0x5aca00) {
