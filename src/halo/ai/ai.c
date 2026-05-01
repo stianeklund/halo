@@ -75,7 +75,7 @@ void ai_initialize(void)
     system_exit(-1);
   }
   csmemset(*(void **)0x632574, 0, 0x8dc);
-  FUN_00048e90();
+  ai_debug_initialize();
   FUN_00053620();
   FUN_0005df80();
   FUN_0003a990();
@@ -98,7 +98,7 @@ void ai_dispose(void)
   actors_dispose();
   FUN_0005df90();
   FUN_00053640();
-  FUN_00048f50();
+  ai_debug_dispose();
 }
 
 /* ai_dispose_from_old_map: release per-map AI state when leaving a map.
