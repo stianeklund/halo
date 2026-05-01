@@ -3651,6 +3651,11 @@
           "ported": true
         },
         {
+          "addr": "0xcada0",
+          "decl": "int FUN_000cada0(int16_t script_index@<edi>);",
+          "ported": false
+        },
+        {
           "addr": "0xcaff0",
           "decl": "bool hs_object_types_compatible(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
           "ported": true
@@ -3748,7 +3753,7 @@
         {
           "addr": "0xcd0e0",
           "decl": "void FUN_000cd0e0(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcd2a0",

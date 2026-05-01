@@ -2088,6 +2088,140 @@ void FUN_000cced0(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, (int)(uint8_t)result);
 }
 
+/* 0xcd0e0 — HS 'sleep' evaluator. Implements the (sleep <ticks>) built-in.
+ *
+ * Three stack allocations from the current thread frame:
+ *   sched_time_ptr  (4 bytes, int16_t*): stores the sleep duration in ticks
+ *   wake_datum_ptr  (4 bytes, int32_t*): stores the datum handle to wake at
+ *   step_ptr        (2 bytes, int16_t*): step counter (0=first, 1=subsequent)
+ *
+ * Execution phases (controlled by step_ptr):
+ *   init=1: evaluate the ticks argument expression via FUN_000cc1d0, storing
+ *            the result at sched_time_ptr; set step=0 and return.
+ *   init=0, step=0 (first tick):
+ *     - Read the sleep duration from the syntax node directly.
+ *     - Increment step to 1.
+ *     - If ticks != -1: kick off deferred evaluation of ticks arg
+ * (FUN_000cc1d0) and return (deferred). Otherwise: set wake_datum_ptr = -1 and
+ * fall through to the step!=0 block. init=0, step!=0 (subsequent ticks):
+ *     - Read sched_time (evaluated ticks) from sched_time_ptr.
+ *     - If sched_time == 0: complete immediately via FUN_000cbf80(thread_datum,
+ * 0).
+ *     - If wake_datum_ptr != -1: find the target thread via FUN_000cada0
+ *       (@EDI = (int16_t)*wake_datum_ptr), look it up, then:
+ *         * If sched_time < 0: set EBX = -2 (relative-forever sentinel).
+ *         * If sched_time >= 0: compute wake_at = game_time_get() + sched_time.
+ *       - If target thread has an active wakeup (thread+0x8 != -1):
+ *         * If target != current thread and bit 0x2 not yet set:
+ *           save old wakeup tick to thread+0xc and set flag bit 0x2.
+ *         * Re-derive thread ptr and write wake_at to thread+0x8.
+ *     - Call FUN_000cbf80(thread_datum, 0) to complete the expression.
+ *
+ * Note: [EBP+0xc] (param_2 slot) is overwritten with wake_datum_ptr after
+ * the three hs_thread_stack_alloc calls. The param_3 (init) slot at [EBP+0x10]
+ * is overwritten with the computed wake_at value on the game_time_get path.
+ *
+ * function_index 0x13 = _hs_function_sleep.
+ *
+ * Globals:
+ *   0x5aa6c4 = hs_thread_data  (data_t*)
+ *   0x5aa6c8 = hs_syntax_data  (data_t*)
+ */
+void FUN_000cd0e0(int16_t function_index, int thread_datum, char init)
+{
+  /* Three stack allocations from the thread frame. */
+  int16_t *sched_time_ptr; /* 4-byte alloc: sleep duration in ticks */
+  int32_t *wake_datum_ptr; /* 4-byte alloc: wake datum handle (int32 write,
+                              int16 read) */
+  int16_t *step_ptr; /* 2-byte alloc: step counter */
+
+  /* Allocate all three slots before any branching. */
+  sched_time_ptr = (int16_t *)hs_thread_stack_alloc(thread_datum, 4);
+  wake_datum_ptr = (int32_t *)hs_thread_stack_alloc(thread_datum, 4);
+  step_ptr = (int16_t *)hs_thread_stack_alloc(thread_datum, 2);
+
+  /* Derive thread pointer for expression traversal. */
+  char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+
+  if (function_index != 0x13) {
+    display_assert("function_index==_hs_function_sleep",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x189,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    /* Phase: init. Evaluate the ticks argument and store at sched_time_ptr. */
+    char *call_node = (char *)datum_get(
+      *(data_t **)0x5aa6c8, *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(call_node + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), (void *)sched_time_ptr);
+    *step_ptr = 0;
+    return;
+  }
+
+  if (*step_ptr == 0) {
+    /* Phase: step 0, first tick — read sleep_ticks from syntax node. */
+    char *call_node = (char *)datum_get(
+      *(data_t **)0x5aa6c8, *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(call_node + 0x10));
+    char *first_arg =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child + 0x8));
+    int sleep_ticks = *(int *)(first_arg + 0x8);
+
+    (*step_ptr)++; /* advance to step 1 */
+
+    if (sleep_ticks != -1) {
+      /* Kick off deferred evaluation of ticks argument. */
+      FUN_000cc1d0(thread_datum, sleep_ticks, (void *)wake_datum_ptr);
+      return;
+    }
+    /* sleep_ticks == -1: set wake_datum to -1 (32-bit write). */
+    *wake_datum_ptr = -1;
+
+    /* step is now 1; fall through to step != 0 block. */
+    if (*step_ptr == 0)
+      return;
+  }
+
+  /* Phase: step != 0, subsequent ticks. */
+  {
+    int16_t sched_time = *sched_time_ptr;
+    if (sched_time != 0) {
+      /* Find target thread to schedule the wakeup. */
+      int local_thread = thread_datum;
+      int16_t wake_val = (int16_t)*wake_datum_ptr;
+      if (wake_val != (int16_t)-1) {
+        local_thread = FUN_000cada0((int)(uint16_t)wake_val);
+      }
+      if (local_thread != -1) {
+        char *tgt_thread =
+          (char *)datum_get(*(data_t **)0x5aa6c4, local_thread);
+        int wake_at;
+        if (sched_time < 0) {
+          wake_at = -2;
+        } else {
+          wake_at = game_time_get() + (int)sched_time;
+        }
+        if (*(int *)(tgt_thread + 0x8) != -1) {
+          if (local_thread != thread_datum &&
+              (*(uint8_t *)(tgt_thread + 0x3) & 0x2) == 0) {
+            *(uint8_t *)(tgt_thread + 0x3) |= 0x2;
+            *(int *)(tgt_thread + 0xc) = *(int *)(tgt_thread + 0x8);
+          }
+          /* Re-derive thread pointer and write wake time. */
+          tgt_thread = (char *)datum_get(*(data_t **)0x5aa6c4, local_thread);
+          *(int *)(tgt_thread + 0x8) = wake_at;
+        }
+      }
+    }
+  }
+
+  FUN_000cbf80(thread_datum, 0);
+}
+
 /* 0xcd5a0 — HS object-to-unit type converter. Evaluates one argument,
  * checks if the object's type matches the target conversion mask from
  * the table at 0x26f320. Returns the object if compatible, NONE if not.
