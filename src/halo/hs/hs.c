@@ -89,6 +89,28 @@ void *hs_function_table_get(int16_t function_index)
   return ((void **)0x2f1588)[function_index];
 }
 
+/* 0xc3d50 — Find a scenario script by name. Iterates the scripts tag_block
+ * at scenario+0x49c (element size 0x5c), comparing with csstrcmp.
+ * Returns the zero-based script index, or -1 if not found. */
+int16_t hs_find_script_by_name(const char *name)
+{
+  int16_t i;
+  char *scenario;
+  void *element;
+
+  if (*(int *)0x326a08 == -1)
+    return -1;
+
+  scenario = (char *)global_scenario_get();
+  for (i = 0; (int)i < *(int *)(scenario + 0x49c); i++) {
+    element = tag_block_get_element((void *)(scenario + 0x49c), (int)i, 0x5c);
+    if (csstrcmp(name, (const char *)element) == 0)
+      return i;
+  }
+
+  return -1;
+}
+
 /* 0xc3e10 — Bounds-checked accessor for the external-global descriptor table.
  * Table at 0x2f3708, count at 0x27d504. */
 void *hs_external_global_get(int16_t global_index)
@@ -115,6 +137,21 @@ int16_t hs_global_get_type(uint16_t script_ref)
   void *element = tag_block_get_element((void *)(scenario + 0x4a8),
                                         (int)(script_ref & 0x7fff), 0x5c);
   return *(int16_t *)((char *)element + 0x20);
+}
+
+/* 0xc3ea0 — Return the name string of a global variable by ref.
+ * External globals (bit 15 set): name pointer at descriptor+0x0.
+ * Scenario globals (bit 15 clear): name at element+0x0 in the globals
+ * tag_block at scenario+0x4a8. */
+const char *hs_global_get_name(uint16_t global_ref)
+{
+  if (global_ref & 0x8000) {
+    void *desc = hs_external_global_get((int16_t)(global_ref & 0x7fff));
+    return *(const char **)desc;
+  }
+  char *scenario = (char *)global_scenario_get();
+  return (const char *)tag_block_get_element((void *)(scenario + 0x4a8),
+                                             (int)(global_ref & 0x7fff), 0x5c);
 }
 
 /* Find a HaloScript global variable by name.  Searches external globals
@@ -278,7 +315,7 @@ bool hs_needs_recompile(void)
 
   /* Find all .hsc files in the scripts directory */
   file_reference_create_from_path((file_ref_t *)dir_ref, path, 1);
-  count = find_files(0, (file_ref_t *)dir_ref, 8, (void *)results);
+  count = find_files(0, (file_ref_t *)dir_ref, 8, (file_ref_t *)results);
 
   /* Sort the results by name using the comparison callback at 0xc4770 */
   qsort((void *)results, (size_t)(int16_t)count, 0x10c,
@@ -287,7 +324,7 @@ bool hs_needs_recompile(void)
   if ((int16_t)count > 0) {
     ebx_ptr = results;
     for (i = (uint16_t)count; i != 0; i--) {
-      file_reference_get_name((void *)ebx_ptr, 8, name_buf);
+      file_reference_get_name((file_ref_t *)ebx_ptr, 8, name_buf);
       if (csstrcmp(name_buf, (const char *)0x27ba34) == 0) {
         if (!hs_load_source_file((void *)ebx_ptr))
           result = 0;
@@ -531,8 +568,8 @@ void hs_dispose_from_old_map(void)
   if (*(void **)0x5aa6c8 != 0) {
     hs_scripts_dispose();
     if (*(uint8_t *)0x46b6d9 != 0) {
-      data_make_invalid(*(void **)0x5aa6c8);
-      data_dispose(*(void **)0x5aa6c8);
+      data_make_invalid(*(data_t **)0x5aa6c8);
+      data_dispose(*(data_t **)0x5aa6c8);
       *(uint8_t *)0x46b6d9 = 0;
     }
     *(void **)0x5aa6c8 = 0;
@@ -688,8 +725,8 @@ post_eval:
       if (*(void **)0x5aa6c8 != 0) {
         hs_scripts_dispose();
         if (*(uint8_t *)0x46b6d9 != 0) {
-          data_make_invalid(*(void **)0x5aa6c8);
-          data_dispose(*(void **)0x5aa6c8);
+          data_make_invalid(*(data_t **)0x5aa6c8);
+          data_dispose(*(data_t **)0x5aa6c8);
           *(uint8_t *)0x46b6d9 = 0;
         }
         *(void **)0x5aa6c8 = 0;

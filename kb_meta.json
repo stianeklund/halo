@@ -2082,11 +2082,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc3d50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc3e10": {
       "kind": "function",
       "status": "ported"
     },
     "0xc3e60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3ea0": {
       "kind": "function",
       "status": "ported"
     },

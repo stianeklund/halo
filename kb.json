@@ -3415,7 +3415,8 @@
         },
         {
           "addr": "0xc3d50",
-          "decl": "int16_t hs_find_script_by_name(const char *name);"
+          "decl": "int16_t hs_find_script_by_name(const char *name);",
+          "ported": true
         },
         {
           "decl": "void *hs_external_global_get(int16_t global_index);",
@@ -3429,7 +3430,8 @@
         },
         {
           "addr": "0xc3ea0",
-          "decl": "const char *hs_global_get_name(uint16_t global_ref);"
+          "decl": "const char *hs_global_get_name(uint16_t global_ref);",
+          "ported": true
         },
         {
           "decl": "int16_t hs_find_global_by_name(const char *name);",
