@@ -169,6 +169,31 @@ void FUN_000c5960(int datum_index)
  * hs_compile_globals.error at 0x46b6fc and error offset at 0x46b700).
  */
 
+/* 0xc6a70 — Intern a string into the HS string constant pool.
+ * Returns the byte offset of the string in the pool, deduplicating
+ * via FUN_000c57d0. Asserts if the pool is full. */
+int FUN_000c6a70(char *str)
+{
+  int offset;
+  int len;
+
+  offset = FUN_000c57d0(str);
+  if (offset == -1) {
+    len = (int)(short)(csstrlen(str) + 1);
+    if (len < *(int *)0x46b6f4) {
+      csmemcpy((char *)(*(int *)0x46b6ec + *(int *)0x46b6f0), str, len);
+      offset = *(int *)0x46b6f0;
+      *(int *)0x46b6f0 = *(int *)0x46b6f0 + len;
+      *(int *)0x46b6f4 = *(int *)0x46b6f4 - len;
+      return offset;
+    }
+    display_assert("ran out of script string constant memory",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x264, 1);
+    system_exit(-1);
+  }
+  return offset;
+}
+
 /* 0xc71c0 — Parse an atom (non-parenthesized token) from the HS source.
  * Quoted strings: scan to closing '"', null-terminate, report unterminated.
  * Bare tokens: scan until ')', ';', whitespace, or NUL.

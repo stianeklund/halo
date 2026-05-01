@@ -3536,7 +3536,8 @@
         },
         {
           "decl": "int FUN_000c6a70(char *str @<eax>);",
-          "addr": "0xc6a70"
+          "addr": "0xc6a70",
+          "ported": true
         },
         {
           "decl": "bool FUN_000c6b00(int datum_index);",
