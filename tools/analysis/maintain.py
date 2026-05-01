@@ -67,6 +67,7 @@ class SourceManager:
 
         for c in tu.cursor.get_children():
             if (c.kind != clang.CursorKind.FUNCTION_DECL or
+                    not c.is_definition() or
                     c.spelling not in self.kb.name_to_addr):
                 continue
             name, extents = c.spelling, (c.extent.start.line, c.extent.end.line)

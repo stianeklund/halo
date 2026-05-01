@@ -1414,7 +1414,7 @@
         {
           "addr": "0x4b1b0",
           "decl": "void FUN_0004b1b0(int encounter_idx, int param_2);",
-          "ported": false
+          "ported": true
         }
       ]
     },
