@@ -235,22 +235,6 @@
           "addr": "0x3f030"
         },
         {
-          "decl": "void FUN_00042a30(void);",
-          "addr": "0x42a30"
-        },
-        {
-          "decl": "void FUN_00042b80(void);",
-          "addr": "0x42b80"
-        },
-        {
-          "decl": "void FUN_00042b90(void);",
-          "addr": "0x42b90"
-        },
-        {
-          "decl": "void FUN_00042ca0(void);",
-          "addr": "0x42ca0"
-        },
-        {
           "decl": "void FUN_00044590(int actor_handle);",
           "addr": "0x44590"
         },
@@ -1257,6 +1241,32 @@
         {
           "decl": "void FUN_000425b0(void);",
           "addr": "0x425b0",
+          "ported": true
+        }
+      ]
+    },
+    {
+      "name": "ai_communication.obj",
+      "source": "ai/ai_communication.c",
+      "functions": [
+        {
+          "decl": "void ai_communication_initialize(void);",
+          "addr": "0x42a30",
+          "ported": true
+        },
+        {
+          "decl": "void ai_communication_dispose(void);",
+          "addr": "0x42b80",
+          "ported": true
+        },
+        {
+          "decl": "void ai_communication_initialize_for_new_map(void);",
+          "addr": "0x42b90",
+          "ported": true
+        },
+        {
+          "decl": "void ai_communication_dispose_from_old_map(void);",
+          "addr": "0x42ca0",
           "ported": true
         }
       ]
