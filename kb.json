@@ -3690,7 +3690,7 @@
         {
           "addr": "0xcc340",
           "decl": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcc3a0",

@@ -1408,6 +1408,27 @@ static void FUN_000cc1d0(int thread_handle, int expression_index,
   *(int *)(*(char **)(thread + 0x10) + 0x4) = expression_index;
 }
 
+/* 0xcc340 — Evaluate a script-reference call. Gets the script element from
+ * the scenario scripts block (scenario+0x49c), allocates 4 bytes on the
+ * thread stack, then either evaluates the script's expression tree (init)
+ * or pops the frame with the stored result. */
+void FUN_000cc340(int16_t script_index, int thread_handle, char init)
+{
+  char *script;
+  void *result;
+
+  script = (char *)tag_block_get_element((char *)global_scenario_get() + 0x49c,
+                                         (int)script_index, 0x5c);
+  datum_get(*(data_t **)0x5aa6c4, thread_handle);
+  result = hs_thread_stack_alloc(thread_handle, 4);
+
+  if (init) {
+    FUN_000cc1d0(thread_handle, *(int *)(script + 0x24), result);
+  } else {
+    FUN_000cbf80(thread_handle, *(int *)result);
+  }
+}
+
 /* 0xcc560 — Evaluate an HS built-in function call by dispatching to
  * FUN_000cc3a0 with the function's formal parameter count and types
  * from the function descriptor table. */
