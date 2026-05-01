@@ -516,6 +516,44 @@ void FUN_000c7b10(int datum_index)
   }
 }
 
+/* 0xc7be0 — Allocate and initialize a new HS syntax node, then dispatch to
+ * the atom parser (FUN_000c71c0) or parenthesized expression parser
+ * (FUN_000c7ca0) depending on whether the cursor points to '('. */
+int FUN_000c7be0(char **cursor)
+{
+  int datum_index;
+  char *node;
+
+  datum_index = data_new_at_index(*(data_t **)0x5aa6c8);
+
+  if (*(char **)0x46b6fc != 0) {
+    display_assert("!hs_compile_globals.error",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x39e, 1);
+    system_exit(-1);
+  }
+
+  if (datum_index == -1) {
+    *(const char **)0x46b6fc = "i couldn't allocate a syntax node.";
+    return -1;
+  }
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  *(int16_t *)(node + 0x6) = 0;
+  *(int16_t *)(node + 0x4) = 0;
+  *(int16_t *)(node + 0x2) = -1;
+  *(int *)(node + 0x8) = -1;
+  *(uint16_t *)(node + 0x6) = (uint16_t)(**cursor != '(');
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(uint8_t *)(node + 0x6) & 1) {
+    FUN_000c71c0(datum_index);
+    return datum_index;
+  }
+
+  FUN_000c7ca0(cursor, datum_index);
+  return datum_index;
+}
+
 /* Type-check an HS syntax node (0xc7d80).
  * If the node is untyped (type==0), sets its type to check_type and
  * dispatches to FUN_000c73a0 (function-call nodes) or FUN_000c74c0

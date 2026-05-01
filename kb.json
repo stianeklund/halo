@@ -3505,33 +3505,8 @@
       "source": "hs/hs_compile.c",
       "functions": [
         {
-          "decl": "bool FUN_000c73a0(int datum_index @<edi>);",
-          "addr": "0xc73a0",
-          "ported": true
-        },
-        {
-          "decl": "bool FUN_000c74c0(int datum_index @<ebx>);",
-          "addr": "0xc74c0",
-          "ported": true
-        },
-        {
-          "decl": "bool hs_type_check(int datum_index, int16_t check_type);",
-          "addr": "0xc7d80",
-          "ported": true
-        },
-        {
-          "decl": "void hs_compile_recompile_scripts(void);",
-          "addr": "0xc93f0",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_000c7b10(int datum_index);",
-          "addr": "0xc7b10",
-          "ported": true
-        },
-        {
-          "decl": "int FUN_000c6a70(char *str @<eax>);",
-          "addr": "0xc6a70"
+          "addr": "0xc5730",
+          "decl": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);"
         },
         {
           "decl": "int FUN_000c57d0(char *str@<ebx>);",
@@ -3549,6 +3524,10 @@
           "ported": true
         },
         {
+          "decl": "int FUN_000c6a70(char *str @<eax>);",
+          "addr": "0xc6a70"
+        },
+        {
           "decl": "bool FUN_000c6b00(int datum_index);",
           "addr": "0xc6b00"
         },
@@ -3557,8 +3536,9 @@
           "addr": "0xc6d90"
         },
         {
-          "addr": "0xc5730",
-          "decl": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);"
+          "addr": "0xc71c0",
+          "decl": "void FUN_000c71c0(int datum_index@<eax>);",
+          "ported": false
         },
         {
           "addr": "0xc72b0",
@@ -3566,8 +3546,39 @@
           "ported": true
         },
         {
+          "decl": "bool FUN_000c73a0(int datum_index @<edi>);",
+          "addr": "0xc73a0",
+          "ported": true
+        },
+        {
+          "decl": "bool FUN_000c74c0(int datum_index @<ebx>);",
+          "addr": "0xc74c0",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_000c7b10(int datum_index);",
+          "addr": "0xc7b10",
+          "ported": true
+        },
+        {
           "addr": "0xc7be0",
-          "decl": "int FUN_000c7be0(char **cursor@<eax>);"
+          "decl": "int FUN_000c7be0(char **cursor@<eax>);",
+          "ported": true
+        },
+        {
+          "addr": "0xc7ca0",
+          "decl": "void FUN_000c7ca0(char **cursor, int datum_index);",
+          "ported": false
+        },
+        {
+          "decl": "bool hs_type_check(int datum_index, int16_t check_type);",
+          "addr": "0xc7d80",
+          "ported": true
+        },
+        {
+          "decl": "void hs_compile_recompile_scripts(void);",
+          "addr": "0xc93f0",
+          "ported": true
         }
       ]
     },
