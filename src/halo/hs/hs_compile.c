@@ -143,6 +143,80 @@ void FUN_000c5960(int datum_index)
  * Returns true if compilation succeeded, false on error (sets
  * hs_compile_globals.error at 0x46b6fc and error offset at 0x46b700).
  */
+
+/* 0xc72b0 — Skip whitespace and comments in the HS source buffer. Advances
+ * the cursor past spaces/tabs (0x27bb78 table), newlines (0x27bb7c table),
+ * single-line comments (;...newline), and block comments (;*...*;).
+ * Sets error at 0x46b6fc for unterminated block comments. */
+void FUN_000c72b0(char **cursor)
+{
+  char *p;
+  char ch;
+  int16_t state;
+  int16_t i;
+
+  state = 0;
+  do {
+    switch (state) {
+    case 0:
+      p = *cursor;
+      ch = *p;
+      if (ch == ';') {
+        *cursor = p + 1;
+        state = 1;
+        if (p[1] == '*') {
+          state = 2;
+          *cursor = p + 2;
+        }
+        break;
+      }
+      for (i = 0; i < 2; i++) {
+        if (ch == *(char *)(0x27bb78 + i))
+          goto skip_char;
+      }
+      for (i = 0; i < 2; i++) {
+        if (ch == *(char *)(0x27bb7c + i))
+          goto skip_char;
+      }
+      return;
+
+    case 1:
+      p = *cursor;
+      if (*p == '\0')
+        return;
+      for (i = 0; i < 2; i++) {
+        if (*p == *(char *)(0x27bb7c + i)) {
+          state = 0;
+          break;
+        }
+      }
+      goto skip_char;
+
+    case 2:
+      p = *cursor;
+      if (*p == '\0') {
+        *(const char **)0x46b6fc = "unterminated comment.";
+        return;
+      }
+      if (*p == '*' && p[1] == ';') {
+        state = 0;
+        *cursor = p + 1;
+      }
+      (*cursor)++;
+      break;
+
+    default:
+      display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\hs\\hs_compile.c",
+                     0x46c, 1);
+      system_exit(-1);
+      break;
+    }
+    continue;
+  skip_char:
+    *cursor = p + 1;
+  } while (state != 3);
+}
+
 bool FUN_000c73a0(int datum_index)
 {
   char *node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
