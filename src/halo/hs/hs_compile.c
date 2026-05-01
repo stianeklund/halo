@@ -1,3 +1,49 @@
+/* 0xc5960 — Resolve the function/script index for an expression node.
+ * Looks up the first child (predicate) at datum_index->field_0x10. If the
+ * predicate is already type 2 (function call), copies its function_index.
+ * Otherwise tries hs_find_function_by_name, then hs_find_script_by_name
+ * on the predicate's name string. Sets the is_script flag (bit 1) if
+ * resolved as a script.
+ */
+void FUN_000c5960(int datum_index)
+{
+  char *node;
+  char *node2;
+  char *predicate;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node2 = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  predicate = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node2 + 0x10));
+
+  if (*(int16_t *)(predicate + 0x4) != 2) {
+    int16_t fn_idx;
+    char *name = (char *)(*(int *)(predicate + 0xc) + *(int *)0x46b6e8);
+
+    fn_idx = hs_find_function_by_name(name);
+    *(int16_t *)(node + 0x2) = fn_idx;
+    *(int16_t *)(predicate + 0x4) = 2;
+
+    if (*(int16_t *)(node + 0x2) == -1) {
+      int16_t script_idx = hs_find_script_by_name(name);
+      *(int16_t *)(node + 0x2) = script_idx;
+      if (script_idx != -1) {
+        *(uint8_t *)(node + 0x6) |= 2;
+      }
+    }
+
+    *(int16_t *)(predicate + 0x2) = *(int16_t *)(node + 0x2);
+    return;
+  }
+
+  if (*(int16_t *)(predicate + 0x2) == -1) {
+    display_assert("predicate->function_index!=NONE",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x520, 1);
+    system_exit(-1);
+  }
+
+  *(int16_t *)(node + 0x2) = *(int16_t *)(predicate + 0x2);
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
@@ -113,10 +159,10 @@ bool FUN_000c73a0(int datum_index)
  *     3 or 4 = static/dormant). Validates return-type compatibility via
  *     hs_types_compatible if type != 0. Propagates return type if type == 0.
  *   - Otherwise (function reference): gets the function descriptor via
- *     hs_function_table_get. Validates return-type compatibility via hs_types_compatible if
- *     type != 0. Checks hs_compile_globals.no_sleep (0x46b806) and
- *     hs_compile_globals.no_set (0x46b807) context flags. Propagates return
- *     type if type == 0 and fn_desc->return_type != 3 (void). Calls the
+ *     hs_function_table_get. Validates return-type compatibility via
+ * hs_types_compatible if type != 0. Checks hs_compile_globals.no_sleep
+ * (0x46b806) and hs_compile_globals.no_set (0x46b807) context flags. Propagates
+ * return type if type == 0 and fn_desc->return_type != 3 (void). Calls the
  *     function descriptor's parse function pointer at fn_desc+0x8 with
  *     (function_index, datum_index @EBX).
  *
@@ -305,7 +351,8 @@ void FUN_000c7b10(int datum_index)
     char *str_ptr;
     if (str_offset == -1) {
       /* No string interned yet: look up function name from descriptor. */
-      void *fn_desc = hs_function_table_get((int16_t) * (uint16_t *)(node + 0x2));
+      void *fn_desc =
+        hs_function_table_get((int16_t) * (uint16_t *)(node + 0x2));
       str_ptr = *(char **)((char *)fn_desc + 0x4);
     } else {
       str_ptr = (char *)(str_offset + *(int *)0x46b6e8);

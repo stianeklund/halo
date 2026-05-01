@@ -3389,6 +3389,11 @@
       "source": "hs/hs.c",
       "functions": [
         {
+          "decl": "void hs_scripts_initialize(void);",
+          "addr": "0xc3b60",
+          "ported": true
+        },
+        {
           "decl": "void hs_dispose(void);",
           "addr": "0xc3c30",
           "ported": true
@@ -3399,38 +3404,37 @@
           "ported": true
         },
         {
-          "decl": "void hs_initialize_for_new_map(void);",
-          "addr": "0xc4d90",
-          "ported": true
-        },
-        {
-          "decl": "void hs_dispose_from_old_map(void);",
-          "addr": "0xc4dd0",
-          "ported": true
-        },
-        {
-          "decl": "void hs_initialize(void);",
-          "addr": "0xc5050",
-          "ported": true
-        },
-        {
-          "decl": "bool hs_console_evaluate(const char *command);",
-          "addr": "0xc50c0",
-          "ported": true
-        },
-        {
-          "decl": "void hs_scripts_initialize(void);",
-          "addr": "0xc3b60",
-          "ported": true
-        },
-        {
           "decl": "void hs_scripts_dispose(void);",
           "addr": "0xc3ca0",
           "ported": true
         },
         {
+          "decl": "void *hs_function_table_get(int16_t function_index);",
+          "addr": "0xc3d00",
+          "ported": true
+        },
+        {
+          "addr": "0xc3d50",
+          "decl": "int16_t hs_find_script_by_name(const char *name);"
+        },
+        {
+          "decl": "void *hs_external_global_get(int16_t global_index);",
+          "addr": "0xc3e10",
+          "ported": true
+        },
+        {
+          "addr": "0xc3e60",
+          "decl": "int16_t hs_global_get_type(uint16_t script_ref);",
+          "ported": true
+        },
+        {
           "decl": "int16_t hs_find_global_by_name(const char *name);",
           "addr": "0xc3ee0",
+          "ported": true
+        },
+        {
+          "addr": "0xc3fc0",
+          "decl": "int16_t hs_find_function_by_name(const char *name);",
           "ported": true
         },
         {
@@ -3459,28 +3463,28 @@
           "ported": true
         },
         {
+          "decl": "void hs_initialize_for_new_map(void);",
+          "addr": "0xc4d90",
+          "ported": true
+        },
+        {
+          "decl": "void hs_dispose_from_old_map(void);",
+          "addr": "0xc4dd0",
+          "ported": true
+        },
+        {
+          "decl": "void hs_initialize(void);",
+          "addr": "0xc5050",
+          "ported": true
+        },
+        {
+          "decl": "bool hs_console_evaluate(const char *command);",
+          "addr": "0xc50c0",
+          "ported": true
+        },
+        {
           "decl": "void hs_syntax_reset(int a1);",
           "addr": "0xc5680",
-          "ported": true
-        },
-        {
-          "decl": "void *hs_function_table_get(int16_t function_index);",
-          "addr": "0xc3d00",
-          "ported": true
-        },
-        {
-          "decl": "void *hs_external_global_get(int16_t global_index);",
-          "addr": "0xc3e10",
-          "ported": true
-        },
-        {
-          "addr": "0xc3e60",
-          "decl": "int16_t hs_global_get_type(uint16_t script_ref);",
-          "ported": true
-        },
-        {
-          "addr": "0xc3fc0",
-          "decl": "int16_t hs_find_function_by_name(const char *name);",
           "ported": true
         },
         {
@@ -3533,7 +3537,8 @@
         },
         {
           "decl": "void FUN_000c5960(int datum_index @<eax>);",
-          "addr": "0xc5960"
+          "addr": "0xc5960",
+          "ported": true
         },
         {
           "decl": "bool FUN_000c6b00(int datum_index);",
