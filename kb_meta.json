@@ -293,6 +293,76 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x42a30": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Allocates comm dialogue/reply status tables and \"ai conversation\" data table. __FILE__ = ai_communication.c line 0x286/0x293/0x2a8."
+      }
+    },
+    "0x42b80": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "No-op stub (single RET). Dispose counterpart to ai_communication_initialize."
+      }
+    },
+    "0x42b90": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Resets comm state for new map: sets active flag at AI globals+0x10, zeros +0x14/+0x1c/+0x24, clears dialogue/reply tables, zeros conversation scratch at +0x30, calls data_delete_all."
+      }
+    },
+    "0x42ca0": {
+      "kind": "function",
+      "status": "ported",
+      "comments": {
+        "summary": "Invalidates the conversation data table (data_make_invalid). Called from ai_dispose_from_old_map and FUN_00041e80."
+      }
+    },
+    "0x48e90": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
+      ]
+    },
+    "0x48f50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
+      ]
+    },
+    "0x48fa0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
+      ]
+    },
+    "0x49080": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
+      ]
+    },
+    "0x4ab10": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
+      ]
+    },
+    "0x4c0f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
+      ]
+    },
     "0x61df0": {
       "kind": "function",
       "status": "ported"
@@ -6141,34 +6211,6 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
-    },
-    "0x42a30": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "Allocates comm dialogue/reply status tables and \"ai conversation\" data table. __FILE__ = ai_communication.c line 0x286/0x293/0x2a8."
-      }
-    },
-    "0x42b80": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "No-op stub (single RET). Dispose counterpart to ai_communication_initialize."
-      }
-    },
-    "0x42b90": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "Resets comm state for new map: sets active flag at AI globals+0x10, zeros +0x14/+0x1c/+0x24, clears dialogue/reply tables, zeros conversation scratch at +0x30, calls data_delete_all."
-      }
-    },
-    "0x42ca0": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "Invalidates the conversation data table (data_make_invalid). Called from ai_dispose_from_old_map and FUN_00041e80."
-      }
     }
   }
 }
