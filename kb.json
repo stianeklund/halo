@@ -469,6 +469,11 @@
           "addr": "0x8e7c0"
         },
         {
+          "addr": "0x8f040",
+          "decl": "void *debug_realloc(void *ptr, int new_size, const char *file, int line);",
+          "ported": false
+        },
+        {
           "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
           "addr": "0x966d0"
         },
@@ -709,6 +714,10 @@
           "addr": "0x1548a0"
         },
         {
+          "decl": "void FUN_0015f8e0(void *parameters, void *vertices);",
+          "addr": "0x15f8e0"
+        },
+        {
           "decl": "void FUN_001a8990(int object_handle, int16_t state);",
           "addr": "0x1a8990"
         },
@@ -909,10 +918,6 @@
         {
           "decl": "int __stdcall FUN_00222df7(void *key);",
           "addr": "0x222df7"
-        },
-        {
-          "decl": "void FUN_0015f8e0(void *parameters, void *vertices);",
-          "addr": "0x15f8e0"
         }
       ]
     },
@@ -3506,7 +3511,8 @@
       "functions": [
         {
           "addr": "0xc5730",
-          "decl": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);"
+          "decl": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);",
+          "ported": true
         },
         {
           "decl": "int FUN_000c57d0(char *str@<ebx>);",
