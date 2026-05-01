@@ -1458,6 +1458,70 @@ void FUN_000cc590(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, *result_ptr);
 }
 
+/* 0xcc870 — HS 'if' evaluator. Three-phase: init evaluates the condition,
+ * second call selects then/else branch, third call pops frame with result.
+ * (if <condition> <then> [else]) */
+void FUN_000cc870(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  char *cond_result;
+  int *branch_ptr;
+  int *value_ptr;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  cond_result = (char *)hs_thread_stack_alloc(thread_datum, 4);
+  branch_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  value_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+
+  if (function_index != 2) {
+    display_assert("function_index==_hs_function_if",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x77,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    *(int *)cond_result = 0;
+    *branch_ptr = -1;
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), cond_result);
+    return;
+  }
+
+  if (*branch_ptr != -1) {
+    FUN_000cbf80(thread_datum, *value_ptr);
+    return;
+  }
+
+  {
+    int frame_expr = *(int *)(*(char **)(thread + 0x10) + 0x4);
+    char *fn_name = (char *)datum_get(
+      *(data_t **)0x5aa6c8,
+      *(int *)((char *)datum_get(*(data_t **)0x5aa6c8, frame_expr) + 0x10));
+
+    if (*cond_result) {
+      char *cond =
+        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(fn_name + 0x8));
+      *branch_ptr = *(int *)(cond + 0x8);
+    } else {
+      char *cond =
+        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(fn_name + 0x8));
+      char *then_node =
+        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(cond + 0x8));
+      *branch_ptr = *(int *)(then_node + 0x8);
+      if (*branch_ptr == -1) {
+        FUN_000cbf80(thread_datum, 0);
+        return;
+      }
+    }
+
+    FUN_000cc1d0(thread_datum, *branch_ptr, value_ptr);
+  }
+}
+
 /* 0xccb40 — HS 'and'/'or' evaluator. Short-circuits: AND stops on first
  * false, OR stops on first true. function_index 5 = and, 6 = or. */
 void FUN_000ccb40(int16_t function_index, int thread_datum, char init)
