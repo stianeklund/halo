@@ -3663,7 +3663,8 @@
         },
         {
           "addr": "0xcc0a0",
-          "decl": "int FUN_000cc0a0(int16_t global_ref@<ax>);"
+          "decl": "int FUN_000cc0a0(int16_t global_ref@<ax>);",
+          "ported": true
         },
         {
           "addr": "0xcc1d0",

@@ -1308,6 +1308,26 @@ static void FUN_000cbf80(int thread_handle, int value)
   *(char **)(thread + 0x10) = *(char **)cur_sp;
 }
 
+/* 0xcc0a0 — Resolve an HS global reference to its current value. Syncs
+ * external globals via FUN_000cb230, then indexes into hs_globals_data.
+ * External globals (bit 0x8000 set) index directly; scenario globals
+ * add hs_globals_start_index (0x27d504) as a base offset.
+ */
+int FUN_000cc0a0(int16_t global_ref)
+{
+  int index;
+  char *datum_ptr;
+
+  FUN_000cb230((int)global_ref);
+  if (global_ref & 0x8000) {
+    index = global_ref & 0x7fff;
+  } else {
+    index = (global_ref & 0x7fff) + (int)*(int16_t *)0x27d504;
+  }
+  datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, index);
+  return *(int *)(datum_ptr + 4);
+}
+
 /* 0xcc1d0 — Evaluate an HS expression and store the result at dest_ptr.
  * If the expression is a constant, evaluates immediately via hs_can_cast.
  * If the expression is a global reference (reparse bit), resolves the global
