@@ -457,6 +457,11 @@ def prepare_xemu_for_deploy(qmp_script: str) -> None:
     time.sleep(2.0)
 
 
+def should_prepare_xemu(host: str) -> bool:
+    normalized = host.strip().lower()
+    return normalized in {"", "127.0.0.1", "::1", "localhost"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Deploy patched Halo build to Xbox via xbcp (XDK)"
@@ -525,15 +530,16 @@ def main() -> int:
         print("error: default.xbe not found in halo-patched/", file=sys.stderr)
         return 1
 
+    host = args.xbox
+
     # Reset xemu after eject so the guest stops running the old title.
     qmp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xemu_qmp.py")
-    if os.path.isfile(qmp_script):
+    if should_prepare_xemu(host) and os.path.isfile(qmp_script):
         prepare_xemu_for_deploy(qmp_script)
 
     print_build_hash(xbe_path)
 
     dest = args.dest
-    host = args.xbox
     common_kwargs = dict(
         xbcp_exe=xbcp_exe,
         xbcp_display=xbcp_display,

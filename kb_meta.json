@@ -293,76 +293,6 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x42a30": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "Allocates comm dialogue/reply status tables and \"ai conversation\" data table. __FILE__ = ai_communication.c line 0x286/0x293/0x2a8."
-      }
-    },
-    "0x42b80": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "No-op stub (single RET). Dispose counterpart to ai_communication_initialize."
-      }
-    },
-    "0x42b90": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "Resets comm state for new map: sets active flag at AI globals+0x10, zeros +0x14/+0x1c/+0x24, clears dialogue/reply tables, zeros conversation scratch at +0x30, calls data_delete_all."
-      }
-    },
-    "0x42ca0": {
-      "kind": "function",
-      "status": "ported",
-      "comments": {
-        "summary": "Invalidates the conversation data table (data_make_invalid). Called from ai_dispose_from_old_map and FUN_00041e80."
-      }
-    },
-    "0x48e90": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
-      ]
-    },
-    "0x48f50": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
-      ]
-    },
-    "0x48fa0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
-      ]
-    },
-    "0x49080": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
-      ]
-    },
-    "0x4ab10": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
-      ]
-    },
-    "0x4c0f0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "ai_debug.obj assignment confirmed by delinker + __FILE__ string evidence. See ai_debug.c source."
-      ]
-    },
     "0x61df0": {
       "kind": "function",
       "status": "ported"
@@ -2349,44 +2279,6 @@
       "status": "ported"
     },
     "0xcc660": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcd0e0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "FUN_000cada0 at 0xcada0 takes @<edi>=int16_t script_index and searches hs_thread_data for a thread whose field at +0x4 equals that value; it is an hs_runtime.obj helper.",
-        "sleep_ticks == -1 in the step-0 path sets wake_datum_ptr = (int32_t)-1 via a 32-bit store (not two int16_t stores as the decompiler shows); the 4-byte alloc is used as int32_t for the write and int16_t for the EDI-call read."
-      ],
-      "uncertain": [
-        "The wake_at = -2 sentinel when sched_time < 0 (EBX = 0xfffffffe) is of unknown semantic meaning \u2014 it may indicate an indefinite sleep or a special scheduler signal.",
-        "The name 'script_index' for FUN_000cada0's @<edi> parameter is inferred from context; the function searches thread+0x4 but the semantics of that field are not fully confirmed."
-      ]
-    },
-    "0xcd2a0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "done_flag_ptr slot is a 4-byte allocation but only byte-accessed; the extra 3 bytes are unused padding from hs_thread_stack_alloc alignment.",
-        "sleep_until_target (EDI) traverses three datum_get levels from the thread frame: call_node -> child_node -> grandchild, reading +0x8 at each level."
-      ],
-      "uncertain": [
-        "done_flag_ptr semantics: the decompiler shows it as a char* but FUN_000cc1d0 writes the condition result into it; exact encoding (bool 0/1) is inferred from the CMP byte [EDI],0 check at 0xcd3e6."
-      ]
-    },
-    "0xcd4a0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The 0x2f3df8 table is a per-HS-type inspector callback array; indexed by node->field_4 (the HS type of the argument being inspected), not by function_index.",
-        "The PUSH EDI at 0xcd504 pre-pushes the dest_ptr for FUN_000cc1d0 before both intermediate datum_get calls; ADD ESP,0x10 cleans only the two datum_get arg pairs, leaving EDI on the stack as the second arg to cc1d0."
-      ],
-      "uncertain": [
-        "The name of the 0x2f3df8 table (hs_type_inspector_table) is a RE label only; the binary has no string evidence for this name."
-      ]
-    },
-    "0xcd6c0": {
       "kind": "function",
       "status": "ported"
     },

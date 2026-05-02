@@ -53,12 +53,6 @@ void FUN_0003f5f0(void)
   }
 }
 
-/* Forward declarations for ai_communication.c subsystem functions */
-void ai_communication_initialize(void);
-void ai_communication_dispose(void);
-void ai_communication_initialize_for_new_map(void);
-void ai_communication_dispose_from_old_map(void);
-
 /* ai_initialize: allocate AI globals and initialize all AI subsystems.
  * Allocates 0x8dc bytes via game_state_malloc, stores the pointer at
  * global 0x632574, zeroes the block, then calls 9 subsystem init
@@ -75,14 +69,14 @@ void ai_initialize(void)
     system_exit(-1);
   }
   csmemset(*(void **)0x632574, 0, 0x8dc);
-  ai_debug_initialize();
+  FUN_00048e90();
   FUN_00053620();
   FUN_0005df80();
   FUN_0003a990();
   FUN_00064100();
   FUN_00058eb0();
   FUN_000540b0();
-  ai_communication_initialize();
+  FUN_00042a30();
   FUN_0002b5d0();
 }
 
@@ -91,14 +85,14 @@ void ai_initialize(void)
  * Confirmed: 7 CALL + 1 JMP (tail call to FUN_00048f50) in disassembly. */
 void ai_dispose(void)
 {
-  ai_communication_dispose();
+  FUN_00042b80();
   FUN_000540c0();
   FUN_00058fa0();
   FUN_00064140();
   actors_dispose();
   FUN_0005df90();
   FUN_00053640();
-  ai_debug_dispose();
+  FUN_00048f50();
 }
 
 /* ai_dispose_from_old_map: release per-map AI state when leaving a map.
@@ -108,7 +102,7 @@ void ai_dispose(void)
  * byte ptr [EAX+1],0 in disassembly. */
 void ai_dispose_from_old_map(void)
 {
-  ai_communication_dispose_from_old_map();
+  FUN_00042ca0();
   FUN_000540e0();
   FUN_00058fb0();
   FUN_00064160();
@@ -365,7 +359,7 @@ void ai_initialize_for_new_map(void)
   FUN_00064150();
   FUN_0005b200();
   FUN_000540d0();
-  ai_communication_initialize_for_new_map();
+  FUN_00042b90();
 
   *(int16_t *)((char *)g + 0x132) = 0;
   *(int16_t *)((char *)g + 0x130) = 0;
