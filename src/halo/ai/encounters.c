@@ -39,15 +39,22 @@ void FUN_0005dfb0(void)
 }
 
 /* 0x005ddc0 — encounter tally reset pass.
- * Iterates all encounter records that have the active-enemy flag set (+0xd).
- * For each encounter: checks whether the active encounter index changed OR the
- * enemy-visible flag (+0x20 bit 0, inverted) is clear. If either condition holds,
- * calls FUN_0005d910 to reset that encounter's vote tallies.
+ * Iterates ALL encounter records (first_pass=false in binary — no active-enemy
+ * filter at +0xd). For each encounter: checks whether the active encounter
+ * index changed OR the enemy-visible flag (+0x20 bit 0, inverted) is clear.
+ * If either condition holds, calls FUN_0005d910 to reset that encounter's
+ * vote tallies.
  *
  * Stack layout (0x18 frame):
  *   EBP-0x18..EBP-0x09 = data_iter_t iter (iter.datum_handle at EBP-0x10)
  *   EBP-0x08 = encounter_handle copy (local_c)
- *   EBP-0x04 = first-pass flag (local_8), false on entry */
+ *   EBP-0x04 = first-pass flag (local_8), false on entry
+ *
+ * Note: the binary uses a shared inner-loop pattern with encounter_update
+ * (FUN_0005de80), controlled by a first_pass flag at EBP-0x4.  When
+ * first_pass=0 (this function) the +0xd filter is skipped and every
+ * encounter is visited.  When first_pass=1 (encounter_update) only
+ * encounters with +0xd != 0 are visited. */
 void FUN_0005ddc0(void)
 {
     data_iter_t iter;
@@ -65,13 +72,8 @@ void FUN_0005ddc0(void)
         if (*(char *)((char *)ai_globals + 1) == '\0') {
             return;
         }
-        /* Advance to next active-enemy encounter */
-        do {
-            encounter = data_iterator_next(&iter);
-            if (encounter == NULL) break;
-        } while (*(char *)((char *)encounter + 0xd) == '\0');
-
-        encounter_handle = (int)iter.datum_handle; /* local_14 / local_c */
+        encounter = data_iterator_next(&iter);
+        encounter_handle = (int)iter.datum_handle;
         encounter_handle_copy = encounter_handle;
         if (encounter == NULL) {
             return;
