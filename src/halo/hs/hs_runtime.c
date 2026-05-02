@@ -1973,10 +1973,7 @@ void FUN_000ccdf0(int16_t function_index, int thread_datum, char init)
  * 0x0046b80c; both slots are filled with the argument's inferred type.
  * Result is committed via FUN_000cbf80(thread_datum, (int)(uint8_t)result).
  */
-/* TODO: comparison evaluator causes same regression as begin_random.
- * Kept static pending XDK verify investigation. */
-__attribute__((unused))
-static void FUN_000cced0_pending(int16_t function_index, int thread_datum, char init)
+void FUN_000cced0(int16_t function_index, int thread_datum, char init)
 {
   int16_t type;
   /* static param_types pair: [0x0046b80c] = type, [0x0046b80e] = type */
@@ -2064,8 +2061,8 @@ static void FUN_000cced0_pending(int16_t function_index, int thread_datum, char 
                      0x171, 1);
       system_exit(-1);
     }
-    float a = (float)(int)*(int16_t *)values;
-    float b = (float)(int)*((int16_t *)values + 1);
+    float a = (float)(int)*(int16_t *)&values[0];
+    float b = (float)(int)*(int16_t *)&values[1];
     switch (function_index) {
     case 0xf:
       result = (a > b) ? 1 : 0;
