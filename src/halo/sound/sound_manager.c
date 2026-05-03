@@ -42,11 +42,13 @@ void sound_cache_sound_finished(int permutation_ptr)
 
   /* When the sound cache is blown the allocation in xbox_sound_cache.c never
    * writes back to perm+0x2c, leaving it at NONE.  datum_get halts on NONE,
-   * so guard here — nothing to decrement if no cache entry was ever assigned. */
+   * so guard here — nothing to decrement if no cache entry was ever assigned.
+   */
   cache_handle = *(int *)(permutation_ptr + 0x2c);
   if (cache_handle == NONE) {
-    display_assert("cache_sound_handle!=NONE (sound cache blown, no entry to finish)",
-                   __FILE__, __LINE__, false);
+    display_assert(
+      "cache_sound_handle!=NONE (sound cache blown, no entry to finish)",
+      __FILE__, __LINE__, false);
     return;
   }
 
@@ -2381,12 +2383,12 @@ void sound_update_music(void)
       sound_update_music_channel(i, audible_scale);
 
     /* Pitch-track hook: if class_def says pitch-track and this
-     * sound's update callback is 0x1c7a10, push the next pitch
+     * sound's update callback is FUN_001c7a10, push the next pitch
      * sample computed from channel+0x8 (phase, truncated to int) and
      * channel+0x10. */
     class_def = sound_class_get_definition(*(short *)((char *)tag_ptr + 4));
     if (*(char *)((char *)class_def + 8) != '\0' &&
-        *(void **)(sound_entry + 0x10) == (void *)0x1c7a10) {
+        *(void **)(sound_entry + 0x10) == (void *)&FUN_001c7a10) {
       int phase_int = (int)*(float *)((char *)channel + 0x8);
       float pitch_value = sound_get_permutation_pitch(channel[4], phase_int);
       sound_pitch_push_sample(*(int *)(sound_entry + 0xc), pitch_value);
