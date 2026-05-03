@@ -944,6 +944,116 @@ void FUN_0009e0d0(int local_player_index, int weapon_handle)
   }
 }
 
+/* Fill a single effect marker entry from the creation info marker list (0x9e180).
+ * Validates the forward vector, optionally transforms through the node matrix,
+ * then builds a 4x3 orientation matrix at output+4 with position embedded. */
+void FUN_0009e180(void *output,
+                  int16_t marker_index /* @<ax> */,
+                  void *creation_info /* @<ebx> */)
+{
+  int16_t count = *(int16_t *)((char *)creation_info + 0x8);
+  int offset;
+  float *forwards_ptr;
+  float *positions_ptr;
+  void *node_matrix;
+  float local_position[3];
+  float local_forward[3];
+  float local_up[3];
+
+  if (marker_index < 0 || marker_index >= count) {
+    display_assert(
+      "effect_marker_index>=0 && effect_marker_index<marker_list->count",
+      "c:\\halo\\SOURCE\\effects\\effects.c", 0x460, 1);
+    system_exit(-1);
+  }
+
+  offset = (int)marker_index * 12;
+  forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
+
+  if (!((int (*)(float *))0x21fb0)(forwards_ptr)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&marker_list->forwards[effect_marker_index]",
+             (double)forwards_ptr[0], (double)forwards_ptr[1],
+             (double)forwards_ptr[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x461, 1);
+    system_exit(-1);
+  }
+
+  *(int16_t *)output = *(int16_t *)creation_info;
+
+  node_matrix = *(void **)((char *)creation_info + 0x4);
+  if (node_matrix != 0) {
+    positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
+    matrix_transform_point(node_matrix, positions_ptr, local_position);
+    matrix_transform_vector(node_matrix, forwards_ptr, local_forward);
+  } else {
+    positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
+    local_position[0] = positions_ptr[0];
+    local_position[1] = positions_ptr[1];
+    local_position[2] = positions_ptr[2];
+    forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
+    local_forward[0] = forwards_ptr[0];
+    local_forward[1] = forwards_ptr[1];
+    local_forward[2] = forwards_ptr[2];
+  }
+
+  if (!((int (*)(float *))0x21fb0)(local_forward)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&forward",
+             (double)local_forward[0], (double)local_forward[1],
+             (double)local_forward[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x470, 1);
+    system_exit(-1);
+  }
+
+  ((void (*)(float *, float *))0x10b620)(local_forward, local_up);
+  ((float (*)(float *))0x13010)(local_up);
+  ((void (*)(void *, float *, float *, float *))0x10a110)(
+    (char *)output + 4, local_position, local_forward, local_up);
+}
+
+/* Resolve effect markers from creation info node list (0x9e560).
+ * For each node in creation_info, checks if it matches the event element's
+ * definition. Non-matching nodes produce a marker via FUN_0009e180.
+ * If no markers are produced, fills marker 0 as a default. */
+short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
+                   int16_t max_markers)
+{
+  char *creation_info = *(char **)0x4557e4;
+  int16_t marker_count = 0;
+  int16_t i;
+
+  if (*(int *)(creation_info + 0xc) == 0)
+    goto fallback;
+
+  if (!((int (*)(void *))0x8df60)(event_elem))
+    goto fallback;
+
+  for (i = 0; i < max_markers; i++) {
+    if (i >= *(int16_t *)(creation_info + 0x8))
+      break;
+
+    if (!((int (*)(void *, int))0x8dcb0)(
+          event_elem,
+          *(int *)(*(int *)(creation_info + 0xc) + (int)i * 4))) {
+      FUN_0009e180((char *)marker_buf + (int)marker_count * 0x6c,
+                   i, creation_info);
+      marker_count++;
+    }
+  }
+
+  if (marker_count != 0)
+    return marker_count;
+
+fallback:
+  FUN_0009e180(marker_buf, 0, creation_info);
+  return 1;
+}
+
 void FUN_0009e310(void *effect)
 {
   char *ef = (char *)effect;
@@ -1664,7 +1774,7 @@ int FUN_0009f0e0(int effect_tag_index, int object_index,
 
     *(void **)0x4557e4 = creation_info;
     csmemset(datum + 0x5c, -1, 0x80);
-    FUN_0009d4e0((int)datum, (void *)0x9e560);
+    FUN_0009d4e0((int)datum, (void *)&FUN_0009e560);
     effect_update(handle, 0.0f);
   }
   return handle;

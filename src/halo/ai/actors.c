@@ -1708,8 +1708,8 @@ void FUN_0003dc20(int actor_handle)
    * FUN_0018f3e0(actor+0x144, local_pos, NULL) = scenario_location_from_point:
    *   returns byte outdoor flag; cluster stored at actor+0x15d. */
   {
-    int local_pos[3];
-    FUN_001a9520(*(int *)(actor + 0x18), (int *)local_pos);
+    float local_pos[3];
+    FUN_001a9520(*(int *)(actor + 0x18), local_pos);
     *(char *)(actor + 0x15d) =
       FUN_0018f3e0(actor + 0x144, (void *)local_pos, (int16_t *)0);
   }

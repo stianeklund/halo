@@ -2492,8 +2492,18 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0009e180(void *output, int16_t marker_index@<ax>, void *creation_info@<ebx>);",
+          "addr": "0x9e180",
+          "ported": true
+        },
+        {
           "decl": "void FUN_0009e310(void *effect@<ebx>);",
           "addr": "0x9e310",
+          "ported": true
+        },
+        {
+          "decl": "short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf, int16_t max_markers);",
+          "addr": "0x9e560",
           "ported": true
         },
         {
@@ -5162,7 +5172,8 @@
         },
         {
           "addr": "0x1a9520",
-          "decl": "void FUN_001a9520(int unit_handle, int *out_position);"
+          "decl": "void FUN_001a9520(int object_handle, float *out_position);",
+          "ported": true
         }
       ]
     },
@@ -6346,6 +6357,10 @@
           "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
           "addr": "0x109e10",
           "ported": true
+        },
+        {
+          "decl": "void matrix4x3_from_forward_up_position(void *out, float *position, float *forward, float *up);",
+          "addr": "0x10a110"
         },
         {
           "decl": "void real_math_reset_precision(void);",

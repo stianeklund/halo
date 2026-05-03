@@ -5144,3 +5144,15 @@ void objects_update(void)
     profile_exit_private(*(void *volatile *)0x324638);
   }
 }
+
+/* 0x1a9520 — get world-space position of the "body" marker on an object.
+ * Thin wrapper: calls object_get_markers_by_string_id for marker "body",
+ * then extracts XYZ from offset 0x60 in the marker output record. */
+void FUN_001a9520(int object_handle, float *out_position)
+{
+  char marker_buf[0x6c];
+  object_get_markers_by_string_id(object_handle, "body", marker_buf, 1);
+  out_position[0] = *(float *)(marker_buf + 0x60);
+  out_position[1] = *(float *)(marker_buf + 0x64);
+  out_position[2] = *(float *)(marker_buf + 0x68);
+}

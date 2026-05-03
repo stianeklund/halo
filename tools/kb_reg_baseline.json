@@ -125,6 +125,7 @@
     "0x9d430": "void FUN_0009d430(int datum@<ecx>, int unknown1@<eax>, int unknown2@<ebx>, float scale_a, float scale_b);",
     "0x9d4e0": "void FUN_0009d4e0(int datum@<ebx>, void *callback);",
     "0x9d590": "void FUN_0009d590(void *effect@<edi>);",
+    "0x9e180": "void FUN_0009e180(void *output, int16_t marker_index@<ax>, void *creation_info@<ebx>);",
     "0x9e310": "void FUN_0009e310(void *effect@<ebx>);",
     "0x9f920": "void FUN_0009f920(void *type_state@<eax>, void *sys_def@<ecx>, void *ps_datum);",
     "0x9f9d0": "void FUN_0009f9d0(void *particle@<eax>, void *sys_def@<ecx>);",
