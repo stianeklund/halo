@@ -1002,3 +1002,132 @@ void FUN_0003d950(int actor_handle, char flag)
     object_delete(unit_handle);
   }
 }
+
+/* FUN_0003ec80 (0x3ec80) — actor_activate (full AI init sequence for one actor)
+ *
+ * Called from FUN_0003f5f0 (ai.obj) when actor+0x6a > 0 (activation counter
+ * exhausted) and the actor has not yet been activated. Runs all per-actor
+ * AI subsystem initialization in sequence.
+ *
+ * Classification evidence: caller FUN_0003f5f0 is in ai.obj; all callees
+ * (FUN_0003d9f0, FUN_0003dc20, FUN_0003bb50, FUN_0003bbf0, FUN_0003be90,
+ * FUN_0003e7a0) live in the actors.obj address range (~0x3b000-0x3e9aa) and
+ * operate exclusively on actor_data. Function is placed at the end of
+ * actors.obj (follows FUN_0003d950 at 0x3d950).
+ *
+ * Confirmed: actor_handle passed in ESI (register arg @<esi>).
+ *   MOV ESI,[EBP-8]; CALL 0x3ec80 at caller 0x3f652/0x3f655.
+ * Confirmed: first datum_get(actor_data, actor_handle) at 0x3ec8b.
+ *   Result stored in [EBP-4] for use as iVar2/actor record.
+ * Confirmed: DAT_002c8728 = actor_handle at 0x3ecaa (before any branch).
+ * Confirmed: debug block byte[0x5ac9c0] cleared if actor_handle == [0x5ac9f8]
+ *   at 0x3ecb2/0x3ecba.
+ * Confirmed: FUN_0003d9f0(actor_handle) cdecl at 0x3ecc3; returns bool/char.
+ *   ADD ESP,4 at 0x3ecc8. Return tested; JZ 0x3edae → early out.
+ * Confirmed: FUN_0003bb50(actor_handle@<eax>) at 0x3ecd6 (MOV EAX,ESI).
+ * Confirmed: FUN_0003dc20(actor_handle) cdecl at 0x3ecdc.
+ * Confirmed: FUN_0003355f0(actor_handle) cdecl at 0x3ece2.
+ * Confirmed: FUN_000303f0(actor_handle) cdecl at 0x3ece8.
+ * Confirmed: FUN_00032cb0(actor_handle) cdecl at 0x3ecee.
+ * Confirmed: second datum_get(actor_data, actor_handle) at 0x3ecfb; result
+ *   in EDI, used as iVar3/actor record for memset+field init.
+ * Confirmed: csmemset(actor+0x3e8, 0, 0x84) at 0x3ed10.
+ * Confirmed: word[actor+0x418]=0xffff, [0x42c]=0xffff, [0x42e]=0xffff at
+ *   0x3ed19/0x3ed20/0x3ed27. EBX = 0xffffffff set by OR EBX,0xffffffff.
+ * Confirmed: FUN_0003be90(actor_handle) cdecl at 0x3ed2e (PUSH ESI at 0x3ed18).
+ * Confirmed: FUN_0001c370(actor_handle) cdecl at 0x3ed34.
+ * Confirmed: ADD ESP,0x2c at 0x3ed3f cleans 11 cdecl args.
+ * Confirmed: iVar2/actor+0x13 checked at 0x3ed3c; JNZ → skip subsystem init.
+ * Confirmed: iVar2/actor+6 checked at 0x3ed47; JNZ (swarm actor) → call
+ *   FUN_0003a8a0(actor_handle) then return.
+ * Confirmed: FUN_0003bbf0(actor_handle@<eax>) at 0x3ed64 (MOV EAX,ESI).
+ * Confirmed: 8 cdecl calls follow (0x1c3e0, 0x43db0, 0x14540, 0x2d350,
+ *   0x2a2b0, 0x2e560, 0x29040, 0x22dc0); ADD ESP,0x20 at 0x3ed99.
+ * Confirmed: FUN_0003e7a0(actor_handle@<eax>) at 0x3ed9e (MOV EAX,ESI).
+ * Confirmed: DAT_002c8728 = EBX (0xffffffff) at 0x3eda3 (normal exit).
+ * Confirmed: DAT_002c8728 = 0xffffffff at 0x3edae (early-out path, literal).
+ * Inferred: DAT_002c8728 holds the "currently activating actor" handle;
+ *   reset to -1 on all exit paths including early bail-out.
+ * Inferred: byte[0x5ac9c0] is an AI debug focused-actor flag (see ai_debug.c).
+ *   Cleared here to prevent stale display after actor is re-activated.
+ * Inferred: actor+0x13 is a "don't initialize" or dormant flag;
+ *   non-zero skips all subsystem init and just resets DAT_002c8728.
+ * Inferred: actor+6 distinguishes swarm vs. normal actor type; swarm actors
+ *   take a shortened init path via FUN_0003a8a0. */
+void FUN_0003ec80(int actor_handle /* @<esi> */)
+{
+  char *actor;
+  char *actor2;
+  char ok;
+
+  /* Record first datum_get result (iVar2) for field checks below */
+  actor = (char *)datum_get(actor_data, actor_handle);
+  /* Unused second call result discarded by compiler — both use same handle */
+  datum_get(actor_data, actor_handle);
+
+  /* Track which actor is being activated */
+  *(int *)0x2c8728 = actor_handle;
+
+  /* Clear AI debug focus flag if it points at this actor */
+  if (*(char *)0x5ac9c0 != 0 && *(int *)0x5ac9f8 == actor_handle) {
+    *(char *)0x5ac9c0 = 0;
+  }
+
+  /* Run actor validation/pre-init; bail if not ready */
+  ok = FUN_0003d9f0(actor_handle);
+  if (ok == 0) {
+    *(int *)0x2c8728 = -1;
+    return;
+  }
+
+  /* --- actor is ready for activation --- */
+
+  /* Subsystem pre-init */
+  FUN_0003bb50(actor_handle);
+  FUN_0003dc20(actor_handle);
+  FUN_000355f0(actor_handle);
+  FUN_000303f0(actor_handle);
+  FUN_00032cb0(actor_handle);
+
+  /* Reload actor record (EDI path for memset+field writes) */
+  actor2 = (char *)datum_get(actor_data, actor_handle);
+
+  /* Zero 0x84 bytes of actor state starting at offset 0x3e8 */
+  csmemset(actor2 + 0x3e8, 0, 0x84);
+
+  /* Initialize handle sentinel fields to 0xffff */
+  *(short *)(actor2 + 0x418) = (short)0xffff;
+  *(short *)(actor2 + 0x42c) = (short)0xffff;
+  *(short *)(actor2 + 0x42e) = (short)0xffff;
+
+  /* More subsystem init */
+  FUN_0003be90(actor_handle);
+  FUN_0001c370(actor_handle);
+
+  /* Check dormant/don't-activate flag at actor+0x13 */
+  if (*(char *)(actor + 0x13) != 0) {
+    *(int *)0x2c8728 = -1;
+    return;
+  }
+
+  /* Swarm actor: shortened init path */
+  if (*(char *)(actor + 0x6) != 0) {
+    FUN_0003a8a0(actor_handle);
+    *(int *)0x2c8728 = -1;
+    return;
+  }
+
+  /* Normal actor: full subsystem init sequence */
+  FUN_0003bbf0(actor_handle);
+  FUN_0001c3e0(actor_handle);
+  FUN_00043db0(actor_handle);
+  FUN_00014540(actor_handle);
+  FUN_0002d350(actor_handle);
+  FUN_0002a2b0(actor_handle);
+  FUN_0002e560(actor_handle);
+  FUN_00029040(actor_handle);
+  FUN_00022dc0(actor_handle);
+  FUN_0003e7a0(actor_handle);
+
+  *(int *)0x2c8728 = -1;
+}
