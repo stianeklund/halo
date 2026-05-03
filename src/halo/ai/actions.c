@@ -6,6 +6,37 @@
 
 #include "../../common.h"
 
+/* FUN_0001c300 (0x1c300) — actor_execute_current_action
+ *
+ * Dispatches the current action's execute handler via the action_definitions
+ * table. Returns the handler's result, or 0 if no handler is set.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1c310.
+ * Confirmed: actor+0x6c = action index (short), asserted in [0,14).
+ * Confirmed: table at 0x253fb8, stride 0x38 (execute handler at +0x14 in
+ * entry). Confirmed: handler called with (actor_handle), returns int32_t.
+ * Confirmed: returns 0 when handler is NULL (XOR BL,BL; MOV AL,BL at 0x1c369).
+ */
+int32_t FUN_0001c300(int actor_handle)
+{
+  typedef int32_t (*action_execute_fn_t)(int);
+
+  char *actor;
+  short action;
+  action_execute_fn_t handler;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  action = *(short *)(actor + 0x6c);
+
+  assert_halt(action >= 0 && action < 14);
+
+  handler = *(action_execute_fn_t *)(0x253fb8 + action * 0x38);
+  if (handler != NULL) {
+    return handler(actor_handle);
+  }
+  return 0;
+}
+
 /* FUN_0001c450 (0x1c450)
  * Dispatch action-specific prop replacement for an actor.
  *

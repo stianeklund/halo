@@ -1101,7 +1101,8 @@
       "functions": [
         {
           "addr": "0x1c300",
-          "decl": "int32_t FUN_0001c300(int actor_handle);"
+          "decl": "int32_t FUN_0001c300(int actor_handle);",
+          "ported": true
         },
         {
           "decl": "void FUN_0001c450(int actor_handle, int old_prop, int new_prop);",
