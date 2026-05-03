@@ -914,6 +914,10 @@
           "decl": "void FUN_0001c3e0(int actor_handle);"
         },
         {
+          "addr": "0x24b80",
+          "decl": "void FUN_00024b80(int actor_handle, int param2);"
+        },
+        {
           "addr": "0x43db0",
           "decl": "void FUN_00043db0(int actor_handle);"
         },
@@ -1111,7 +1115,8 @@
         },
         {
           "addr": "0x1d030",
-          "decl": "void FUN_0001d030(int actor_handle, int new_action_type, int param_3);"
+          "decl": "void FUN_0001d030(int actor_handle, int new_action_type, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x1d5c0",
