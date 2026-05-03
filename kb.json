@@ -2523,7 +2523,7 @@
         {
           "addr": "0x8f040",
           "decl": "void *debug_realloc(void *ptr, int new_size, const char *file, int line);",
-          "ported": false,
+          "ported": true,
           "source": "src/halo/cseries/errors.c",
           "status": "ported"
         }
@@ -5164,7 +5164,8 @@
           "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
           "addr": "0x84a70",
           "source": "src/halo/objects/objects.c",
-          "status": "ported"
+          "status": "ported",
+          "ported": true
         }
       ]
     },

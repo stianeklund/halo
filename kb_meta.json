@@ -463,6 +463,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x84a70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x861a0": {
       "kind": "function",
       "status": "ported"
@@ -646,6 +650,10 @@
       "status": "ported"
     },
     "0x8ef70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f040": {
       "kind": "function",
       "status": "ported"
     },

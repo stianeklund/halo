@@ -1,5 +1,16 @@
 #include <stdarg.h>
 
+typedef struct debug_allocation_header {
+  uint32_t begin_guard;
+  struct debug_allocation_header *next;
+  struct debug_allocation_header *previous;
+  uint32_t size;
+  const char *file;
+  int line;
+  uint32_t sequence;
+  uint32_t checksum;
+} debug_allocation_header_t;
+
 /* memory_check (0x8e770) — track min/max physical free memory at a
  * checkpoint. Warns if the spread exceeds 0x4000 bytes, indicating
  * non-deterministic allocation between runs. */
@@ -32,6 +43,144 @@ void memory_check(uint32_t *min_max, const char *location)
           location, diff);
     error(2, "  avail_phys=%u min=%u max=%u", avail_phys, cur_min, cur_max);
   }
+}
+
+/* Reallocate a debug-tracked allocation, preserving the original file/line.
+ * Validates the debug memory sentinel and existing header before reallocating.
+ * If ptr is NULL, behaves like debug_malloc; if new_size is 0, frees. */
+void *debug_realloc(void *ptr, int new_size, const char *file, int line)
+{
+  typedef void *(*realloc_fn)(void *, int);
+  debug_allocation_header_t *header;
+  debug_allocation_header_t *new_header;
+  void *result = NULL;
+  uint32_t old_size = 0;
+  int total_alloc_size = new_size + 0x24;
+
+  if (ptr == NULL && new_size == 0) {
+    display_assert("pointer || size",
+                   "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x151, true);
+    system_exit(-1);
+  } else if ((unsigned int)new_size >= 0x10000000) {
+    display_assert("size>=0 && size<MAXIMUM_POINTER_SIZE",
+                   "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x152, true);
+    system_exit(-1);
+  }
+
+  if (*(uint32_t *)0x2ee74c != 0x53414654 ||
+      *(uint32_t *)0x2ee768 != 0x53414654) {
+    display_assert(
+      csprintf(error_string_buffer,
+               "Debug memory manager is uninitialized or corrupted. (%s:%d)",
+               file, line),
+      "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x91, true);
+    system_exit(-1);
+  }
+
+  header = NULL;
+  if (ptr != NULL) {
+    header = (debug_allocation_header_t *)((char *)ptr - 0x20);
+
+    /* validate header: ESI=header, EBX=file, EDI=line */
+    {
+      int _esi = (int)header;
+      int _ebx = (int)file;
+      int _edi = line;
+      asm volatile("movl $0x8e7d0, %%eax\n\t"
+                   "call *%%eax"
+                   : "+S"(_esi), "+b"(_ebx), "+D"(_edi)
+                   :
+                   : "eax", "ecx", "edx", "memory", "cc");
+    }
+
+    /* verify allocation: EAX=ptr, stack: file, line */
+    {
+      int _eax = (int)ptr;
+      int _file = (int)file;
+      int _line = line;
+      asm volatile(
+        "pushl %[line]\n\t"
+        "pushl %[file]\n\t"
+        "call *%[fn]\n\t"
+        "addl $8, %%esp"
+        : "+a"(_eax)
+        : [fn] "r"((void *)0x8e6d0), [file] "r"(_file), [line] "r"(_line)
+        : "ecx", "edx", "memory", "cc");
+    }
+
+    /* unlink from list: EAX=header, stack: file, line */
+    {
+      int _eax = (int)header;
+      int _file = (int)file;
+      int _line = line;
+      asm volatile(
+        "pushl %[line]\n\t"
+        "pushl %[file]\n\t"
+        "call *%[fn]\n\t"
+        "addl $8, %%esp"
+        : "+a"(_eax)
+        : [fn] "r"((void *)0x8e9f0), [file] "r"(_file), [line] "r"(_line)
+        : "ecx", "edx", "memory", "cc");
+    }
+
+    line = (int)header->line;
+    old_size = header->size;
+    file = header->file;
+    header->begin_guard = 0x3c424144;
+  }
+
+  if (new_size == 0 && ptr != NULL) {
+    total_alloc_size = 0;
+  }
+
+  new_header = (debug_allocation_header_t *)((realloc_fn)0x8e3f0)(
+    header, total_alloc_size);
+
+  if (new_header != NULL) {
+    new_header->begin_guard = 0x2d2d2d3e;
+    new_header->line = line;
+    new_header->file = file;
+    new_header->sequence = *(uint32_t *)0x2ee764;
+    (*(uint32_t *)0x2ee764)++;
+    new_header->size = (uint32_t)new_size;
+    *(uint32_t *)((char *)new_header + new_size + 0x20) = 0x3c2d2d2d;
+
+    /* link into list: ESI=new_header */
+    {
+      int _esi = (int)new_header;
+      asm volatile("call *%[fn]"
+                   : "+S"(_esi)
+                   : [fn] "r"((void *)0x8e950)
+                   : "eax", "ecx", "edx", "memory", "cc");
+    }
+
+    result = (void *)((char *)new_header + 0x20);
+
+    if ((uint32_t)new_size > old_size) {
+      /* fill new area: EBX=fill_start, stack=delta */
+      uint32_t delta = (uint32_t)new_size - old_size;
+      int _ebx = (int)((char *)result + old_size);
+      asm volatile("pushl %[delta]\n\t"
+                   "call *%[fn]\n\t"
+                   "addl $4, %%esp"
+                   : "+b"(_ebx)
+                   : [fn] "r"((void *)0x8e8e0), [delta] "r"(delta)
+                   : "eax", "ecx", "edx", "memory", "cc");
+    }
+
+    if (result != NULL)
+      goto update_stats;
+  }
+
+  if (new_size != 0)
+    return result;
+
+update_stats:
+  *(uint32_t *)0x2ee750 += ((uint32_t)new_size - old_size);
+  if (*(uint32_t *)0x2ee754 < *(uint32_t *)0x2ee750) {
+    *(uint32_t *)0x2ee754 = *(uint32_t *)0x2ee750;
+  }
+  return result;
 }
 
 /*
