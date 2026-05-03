@@ -11,7 +11,18 @@ import java.util.*;
 public class ExportFunctionSizes extends GhidraScript {
     @Override
     public void run() throws Exception {
-        String outPath = "/mnt/g/dev/halo/build/function_sizes.json";
+        String defaultOutPath = "/mnt/g/dev/halo/build/function_sizes.json";
+        String outPath = defaultOutPath;
+
+        if (isRunningHeadless()) {
+            String[] scriptArgs = getScriptArgs();
+            if (scriptArgs.length > 0 && !scriptArgs[0].trim().isEmpty()) {
+                outPath = scriptArgs[0].trim();
+            }
+        } else {
+            File outFile = askFile("Choose function size cache output", "Save");
+            outPath = outFile.getAbsolutePath();
+        }
 
         FunctionManager fm = currentProgram.getFunctionManager();
         Memory mem = currentProgram.getMemory();
