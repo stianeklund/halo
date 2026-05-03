@@ -1051,13 +1051,6 @@ void FUN_0009e310(void *effect)
               scale *= *(float *)(ef + 0x48);
 
             tag_class = *(uint32_t *)(loc_entry + 0x14);
-            /* clang -O3 -mno-sse eliminates position stores before
-               the tag_class dispatch below; force materialization */
-#ifndef XDK_BUILD
-            __asm__ volatile("" : "+m"(position[0]),
-                                  "+m"(position[1]),
-                                  "+m"(position[2]));
-#endif
 
             if (tag_class == 0x6f626a65) {
               char placement[0x88];
