@@ -983,6 +983,10 @@
         {
           "addr": "0x2a3d0",
           "decl": "char FUN_0002a3d0(int actor_handle);"
+        },
+        {
+          "addr": "0x1c270",
+          "decl": "char *FUN_0001c270(char *encounter, int16_t squad_index);"
         }
       ]
     },
@@ -1295,7 +1299,8 @@
         },
         {
           "addr": "0x3dc20",
-          "decl": "void FUN_0003dc20(int actor_handle);"
+          "decl": "void FUN_0003dc20(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x3e7a0",
@@ -1309,6 +1314,14 @@
         {
           "addr": "0x3ca40",
           "decl": "void FUN_0003ca40(int actor_handle, char flag);"
+        },
+        {
+          "addr": "0x3bde0",
+          "decl": "void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block);"
+        },
+        {
+          "addr": "0x3baa0",
+          "decl": "void FUN_0003baa0(int actor_handle, int encounter_handle, int16_t squad_index);"
         }
       ]
     },
@@ -5145,6 +5158,10 @@
           "addr": "0x140720",
           "decl": "int object_name_list_get_handle(int16_t index);",
           "ported": true
+        },
+        {
+          "addr": "0x1a9520",
+          "decl": "void FUN_001a9520(int unit_handle, int *out_position);"
         }
       ]
     },
@@ -6253,6 +6270,14 @@
           "decl": "float normalize3d(float *v);",
           "addr": "0x13010",
           "ported": true
+        },
+        {
+          "addr": "0x12f10",
+          "decl": "float magnitude3d(float *v);"
+        },
+        {
+          "addr": "0x28610",
+          "decl": "int valid_real_normal2d(float *v);"
         }
       ]
     },

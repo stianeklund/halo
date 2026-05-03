@@ -89,7 +89,8 @@ else()
 	endif()
 endif()
 
-add_executable(halo)
+add_executable(halo
+		src/common.h)
 
 add_subdirectory(src)
 

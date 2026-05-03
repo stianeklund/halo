@@ -1502,6 +1502,559 @@ char FUN_0003d9f0(int actor_handle)
   return ret;
 }
 
+/* FUN_0003dc20 (0x3dc20) — actor_input_update
+ *
+ * Populates the actor's "input" block (actor+0x120..0x1c4) which describes
+ * the actor's perceived threat, orientation vectors, and motion state.
+ * This is the per-activation update of the actor's sensory/targeting input.
+ *
+ * Two major code paths depending on actor+0x6 (swarm flag):
+ *
+ * SWARM PATH (actor+0x6 != 0):
+ *   Computes the centroid of all swarm component positions by:
+ *   1. Initing a running sum at swarm+0xc from the PTR_DAT_0031fc1c constant.
+ *   2. Iterating over swarm components: for each, datum_get from
+ *      swarm_component_data, get the component object, copy its
+ *      position relative info, accumulate position into the centroid.
+ *   3. Divide by component count to get the average.
+ *   4. memset actor+0x120 (0xa8 bytes) to zero.
+ *   5. Write sentinel -1 to actor+0x158 and actor+0x164.
+ *   6. If actor+0x24 != -1, call FUN_0003bde0 to fill input block.
+ *
+ * NORMAL PATH (actor+0x6 == 0):
+ *   1. object_get_and_verify_type(actor+0x18, 3) to get the biped object.
+ *   2. Check biped+0xcc for parent object handle.
+ *   3. FUN_0003bde0 to populate actor+0x120 block.
+ *   4. FUN_001a9520 to get biped world position into local_pos[3].
+ *   5. FUN_0018f3e0 to resolve BSP location; result → actor+0x15d.
+ *   6. Extract player-proximity flag from tag: (tag[0] >> 0x15) & 1 →
+ * actor+0x99.
+ *   7. If parent object is a vehicle (type==1, biped+0x64==1):
+ *      - tag_get('vehi', vehicle[0]) → vehicle tag
+ *      - set actor+0x158 = parent_handle, actor+0x161=0, actor+0x162=0,
+ * +0x15e=0
+ *      - if vehicle+0x2d4 == actor+0x18 (driver seat): set +0x15e=1, check
+ *        tag flags at +0x2f0 for vehicle type (banshee/warthog bits)
+ *      - if vehicle+0x2d8 == actor+0x18 (passenger): set +0x161=1, check speed
+ *        via FUN_000211f0
+ *      - compute actor+0x160 = (actor+0x15e < 2)
+ *      - if vehicle+0x2e4 (preferred_seat_index) != -1: check encounter seat
+ *        matching, potentially call FUN_0003baa0
+ *   8. If no vehicle: clear actor+0x158=-1, +0x15e=0, +0x160=0, +0x161=0
+ *      and call FUN_0003baa0 if sticky_burst active (actor+0x40).
+ *   9. Player proximity counter (actor+0x99, scenario player record +0x657a).
+ *  10. Walk object child chain (biped+0xc8) to fill actor+0x1b4 (has_weapon)
+ *      and actor+0x1b0 (active_grenade_handle).
+ *  11. Resolve actor+0x164 (preferred_weapon) from biped if no vehicle.
+ *  12. FUN_001a9960 to fill actor+0x174 (facing_vector 3D).
+ *  13. If not in vehicle: clamp facing_vector to 0 if zero-length; set
+ * +0x17c=0.
+ *  14. Compute aiming_vector from object+0x1ec..0x1f4 (or vehicle aiming pos).
+ *  15. Compute looking_vector from object+0x210..0x218.
+ *  16. Compute up_vector = cross-like product of looking and world_up constant.
+ *  17. Compute right_vector = cross product of looking and up.
+ *  18. Assert validity of facing, aiming, looking vectors.
+ *  19. Copy actor+0x1b8..0x1c4 from biped object offsets 0x90/0x94/0xa8/0xa4.
+ *
+ * Confirmed: stdcall-like — single param pushed; all callees show stack
+ * cleanup. Confirmed: actor_data at [0x6325a4]; swarm_data at [0x6325a0];
+ *   swarm_component_data at [0x63259c].
+ * Confirmed: tag_get('actr', actor+0x58) at 0x3dc43.
+ * Confirmed: tag_get('vehi', vehicle[0]) at 0x3de45–0x3de50.
+ * Confirmed: encounter data (player table) at *(data_t**)0x5ab270.
+ * Confirmed: scenario player table base via *(int*)0x331f58 * 0x657c stride.
+ * Confirmed: global_scenario_get at 0x3e057; tag_block_get_element at 0x3e062.
+ * Confirmed: FUN_001ba1f0 = tag_get_for_object (two calls at 0x3e0b2/0x3e0cf).
+ * Confirmed: FUN_0008f390 = error_display_string (two calls at
+ * 0x3e0c2/0x3e0e0). Confirmed: FUN_0001c270 = encounter_get_squad at
+ * 0x3df6d/0x3df83. Confirmed: FUN_000211f0 = actor_get_unit_speed_record at
+ * 0x3ded2. Confirmed: FUN_00021fb0 = assert_valid_real_normal3d (3 calls at
+ * 0x3e380..0x3e447). Confirmed: FUN_00028610 = assert_valid_real_normal2d at
+ * 0x3e4ac. Confirmed: FUN_000a7a30 = object_is_in_team at 0x3e145. Confirmed:
+ * FUN_00012f10 = real_vector3d_length at 0x3e22e. Confirmed: FUN_00013010 =
+ * real_vector3d_normalize (in-place) at 0x3e33a. Confirmed: world_up constant
+ * pointer at *(float**)0x31fc44 (x,y,z). Confirmed: zero-vector pointer at
+ * *(float**)0x31fc1c. Confirmed: forward-vector pointer at *(float**)0x31fc3c.
+ * Confirmed: float 1.0 at [0x2533c8] (averaging divisor).
+ * Confirmed: float 0.0 at [0x2533c0] (length threshold).
+ * Confirmed: facing.k assert epsilon at [0x2533d0] (absolute value threshold).
+ * Inferred: actor+0x120 block is the actor_input_t (size 0xa8).
+ * Inferred: actor+0x158 = vehicle_handle (or -1).
+ * Inferred: actor+0x15d = BSP cluster index (byte).
+ * Inferred: actor+0x15e = seat_type (short:
+ * 0=none,1=driver,2=gunner,4=passenger). Inferred: actor+0x15c = has_flashlight
+ * flag. Inferred: actor+0x160 = is_in_open_seat (not shooting seat). Inferred:
+ * actor+0x161 = is_passenger flag. Inferred: actor+0x162 = vehicle_moving fast
+ * flag. Inferred: actor+0x164 = preferred_weapon_handle (or -1). Inferred:
+ * actor+0x174 = facing_vector (real_vector3d). Inferred: actor+0x180 =
+ * aiming_vector (real_vector3d). Inferred: actor+0x18c = looking_vector
+ * (real_vector3d). Inferred: actor+0x198 = up_vector (real_vector3d). Inferred:
+ * actor+0x1a4 = right_vector (real_vector3d). Inferred: actor+0x1b0 =
+ * active_grenade_handle (or -1). Inferred: actor+0x1b4 = has_weapon_in_team
+ * flag. Inferred: actor+0x1b5 = crouching flag from biped+0x23b. Inferred:
+ * actor+0x1b8..0x1c4 = speed/velocity/motion fields from biped. Uncertain:
+ * exact semantics of FUN_0008f390 args (priority/event type). Uncertain: player
+ * record stride 0x657c and field +0x657a (proximity counter). */
+void FUN_0003dc20(int actor_handle)
+{
+  char *actor;
+  char *actr_tag;
+  char *swarm;
+  char *swarm_comp;
+  char *biped;
+  char *parent_obj;
+  char *obj;
+  char *encounter;
+  char *squad;
+  char *squad2;
+  float *centroid;
+  float *world_up;
+  float *zero_vec;
+  float *fwd_vec;
+  float lx, ly, lz;
+  float ux, uy, uz;
+  float ax, ay, az;
+  int parent_handle;
+  char *vehi_tag_data;
+  int player_base;
+  int tag_flags;
+  short prox_ctr;
+  short comp_count;
+  int i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  if (*(char *)(actor + 0x6) != 0) {
+    /* SWARM PATH: compute centroid of all swarm components.
+     * Confirmed: swarm record from swarm_data at [0x6325a0].
+     * Confirmed: centroid at swarm+0xc (3 floats, init from zero-vector ptr).
+     * Confirmed: component count at swarm+2 (short).
+     * Confirmed: comp handle array at swarm+0x58 (4 bytes each).
+     * Confirmed: component object handle array at swarm+0x18 (4 bytes each).
+     * Confirmed: datum_get(swarm_component_data, comp_handle) called TWICE per
+     *   iteration (faithful transcription of binary; first result = swarm_comp
+     *   for centroid accumulation, second = dat for FUN_001412f0 / weapon
+     * handle). Confirmed: FUN_001412f0(obj_h, dat+4) at 0x3dd01. Confirmed:
+     * dat+0x10 = no_return (preferred weapon handle or -1). Confirmed: centroid
+     * += swarm_comp+4/+8/+0xc (FPU loads from ECX). Confirmed: averaging: 1.0f
+     * / count at [0x2533c8] / FILD count. Confirmed: csmemset(actor+0x120, 0,
+     * 0xa8) at 0x3dd74–0x3dd82. Confirmed: actor+0x158 = actor+0x164 = -1 at
+     * 0x3dd87–0x3dd90. Confirmed: early return if actor+0x24 == -1 at 0x3dd9e.
+     * Confirmed: FUN_0003bde0(actor_handle, actor+0x24, actor+0x120) at
+     * 0x3dda7. */
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+    zero_vec = *(float **)0x31fc1c;
+    centroid = (float *)(swarm + 0xc);
+    centroid[0] = zero_vec[0];
+    centroid[1] = zero_vec[1];
+    centroid[2] = zero_vec[2];
+
+    comp_count = *(short *)(swarm + 2);
+    if (comp_count > 0) {
+      for (i = 0; (short)i < comp_count; i++) {
+        int comp_handle = *(int *)(swarm + 0x58 + (short)i * 4);
+        int obj_h = *(int *)(swarm + 0x18 + (short)i * 4);
+        /* First datum_get: for centroid accumulation */
+        swarm_comp = (char *)datum_get(swarm_component_data, comp_handle);
+        biped = (char *)object_get_and_verify_type(obj_h, 3);
+        /* Second datum_get on same handle (faithful; see binary
+         * 0x3dcd0–0x3dce7) */
+        char *dat = (char *)datum_get(swarm_component_data, comp_handle);
+        int no_return = -1;
+        if (*(short *)(biped + 0x64) == 0) {
+          no_return = *(int *)(biped + 0x430);
+        }
+        object_get_world_position(obj_h, (vector3_t *)(dat + 4));
+        *(int *)(dat + 0x10) = no_return;
+        /* Accumulate component position (swarm_comp+4/+8/+0xc) into centroid */
+        centroid[0] += *(float *)(swarm_comp + 4);
+        centroid[1] += *(float *)(swarm_comp + 8);
+        centroid[2] += *(float *)(swarm_comp + 0xc);
+      }
+    }
+
+    comp_count = *(short *)(swarm + 2);
+    if (comp_count > 0) {
+      float inv = *(float *)0x2533c8 / (float)(int)(short)comp_count;
+      centroid[0] *= inv;
+      centroid[1] *= inv;
+      centroid[2] *= inv;
+    }
+
+    csmemset(actor + 0x120, 0, 0xa8);
+    *(int *)(actor + 0x158) = -1;
+    *(int *)(actor + 0x164) = -1;
+    if (*(int *)(actor + 0x24) == -1) {
+      return;
+    }
+    FUN_0003bde0(actor_handle, *(int *)(actor + 0x24), actor + 0x120);
+    return;
+  }
+
+  /* NORMAL PATH */
+  biped = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+  parent_handle = *(int *)(biped + 0xcc);
+  if (parent_handle == -1) {
+    parent_obj = (char *)0;
+  } else {
+    parent_obj = (char *)object_get_and_verify_type(parent_handle, -1);
+  }
+
+  FUN_0003bde0(actor_handle, *(int *)(actor + 0x18), actor + 0x120);
+
+  /* Get world position of the biped into local stack buffer (12 bytes).
+   * FUN_001a9520(unit_handle, out_pos[3]) writes 3 floats to local_pos.
+   * FUN_0018f3e0(actor+0x144, local_pos, NULL) = scenario_location_from_point:
+   *   returns byte outdoor flag; cluster stored at actor+0x15d. */
+  {
+    int local_pos[3];
+    FUN_001a9520(*(int *)(actor + 0x18), (int *)local_pos);
+    *(char *)(actor + 0x15d) =
+      FUN_0018f3e0(actor + 0x144, (void *)local_pos, (int16_t *)0);
+  }
+
+  /* Extract player-proximity tag bit: (actr_tag[0] >> 0x15) & 1 → actor+0x99 */
+  *(char *)(actor + 0x99) = (char)((*(unsigned int *)actr_tag >> 0x15) & 1);
+
+  if (parent_obj == (char *)0 || *(short *)(parent_obj + 0x64) != 1) {
+    /* No parent vehicle */
+    *(int *)(actor + 0x158) = -1;
+    *(short *)(actor + 0x15e) = 0;
+    *(char *)(actor + 0x160) = 0;
+    *(char *)(actor + 0x161) = 0;
+    if (*(char *)(actor + 0x40) != 0) {
+      FUN_0003baa0(actor_handle, *(int *)(actor + 0x44),
+                   *(short *)(actor + 0x48));
+      *(char *)(actor + 0x40) = 0;
+    }
+  } else {
+    /* Parent is a vehicle (parent_obj+0x64 == 1) */
+    vehi_tag_data = (char *)tag_get(0x76656869, *(int *)parent_obj);
+    *(int *)(actor + 0x158) = parent_handle;
+    *(char *)(actor + 0x161) = 0;
+    *(char *)(actor + 0x162) = 0;
+    *(short *)(actor + 0x15e) = 0;
+
+    /* Check if actor's biped is in the driver seat (vehicle+0x2d4) */
+    if (*(int *)(parent_obj + 0x2d4) == *(int *)(actor + 0x18)) {
+      *(short *)(actor + 0x15e) = 1;
+      tag_flags = *(unsigned int *)(vehi_tag_data + 0x2f0);
+      if ((tag_flags & 0x800) != 0) {
+        if ((tag_flags & 0x1000) != 0) {
+          *(short *)(actor + 0x15e) = 4;
+          *(char *)(actor + 0x99) = 1;
+        } else if ((tag_flags & 0x2000) != 0) {
+          *(short *)(actor + 0x15e) = (short)((~(tag_flags >> 0xe) & 1) | 2);
+        }
+      }
+    }
+
+    /* Check if actor's biped is in the passenger seat (vehicle+0x2d8) */
+    if (*(int *)(parent_obj + 0x2d8) == *(int *)(actor + 0x18)) {
+      *(char *)(actor + 0x161) = 1;
+      char *speed_rec = (char *)FUN_000211f0(actor_handle);
+      *(char *)(actor + 0x162) =
+        (*(float *)(speed_rec + 0x14c) > *(float *)0x2533c0) ? 1 : 0;
+    }
+
+    *(char *)(actor + 0x160) = (*(short *)(actor + 0x15e) < 2) ? 1 : 0;
+
+    /* Seat preference matching: check encounter vehicle+seat vs. preferred */
+    if (*(short *)(parent_obj + 0x2e4) != (short)-1) {
+      if ((*(unsigned int *)(actor + 0x34) & 0xffff) ==
+          (unsigned int)(int)(short)*(short *)(parent_obj + 0x2e4)) {
+        if (*(short *)(parent_obj + 0x2e6) == (short)-1 ||
+            *(short *)(actor + 0x3a) == *(short *)(parent_obj + 0x2e6)) {
+          goto LAB_3e02c;
+        }
+        encounter = (char *)datum_get(*(data_t **)0x5ab270,
+                                      *(unsigned int *)(actor + 0x34));
+        if (*(short *)(encounter + 0x62) > 0) {
+          squad = (char *)FUN_0001c270(encounter, *(short *)(actor + 0x3a));
+          squad2 = (char *)FUN_0001c270(
+            encounter, (int)(short)*(short *)(parent_obj + 0x2e6));
+          if (*(char *)(squad + 0x10) != 0 && *(char *)(squad2 + 0x10) != 0) {
+            goto LAB_3e02c;
+          }
+        }
+      }
+
+      if (*(char *)(actor + 0x40) == 0) {
+        int unit_h = *(int *)(actor + 0x34);
+        *(int *)(actor + 0x44) = unit_h;
+        *(short *)(actor + 0x48) = *(short *)(actor + 0x3a);
+        *(char *)(actor + 0x40) = 1;
+        if (unit_h != -1) {
+          char *enc2 = (char *)datum_get(*(data_t **)0x5ab270, unit_h);
+          *(char *)(enc2 + 0x1e) = 1;
+        }
+      }
+      FUN_0003baa0(actor_handle, (int)(short)*(short *)(parent_obj + 0x2e4),
+                   (short)*(short *)(parent_obj + 0x2e6));
+    }
+  }
+
+LAB_3e02c:
+  /* Player proximity counter update.
+   * Confirmed: player_base = (actor_handle & 0xffff) * 0x657c +
+   * *(int*)0x331f58. Confirmed: global_scenario_get() takes 0 args (0x3e057);
+   * encounter_idx and 0xb0 remain on stack as args to tag_block_get_element
+   * (0x3e062). Confirmed: proximity counter at player_base + 0x657a (short).
+   * Confirmed: FUN_001ba1f0(actor+0x58, scenario_elem) at 0x3e0b2 / 0x3e0cf.
+   *   ADD ESP,4 after call cleans 1 arg; scenario_elem stays on stack for
+   *   FUN_0008f390(2, string, tag, scenario_elem) ADD ESP,0x10 cleanup.
+   * Confirmed: 0x3e074 JZ: vehicle case (0x99!=0) increments when bit 5 clear;
+   *   on-foot case (0x99==0) increments when bit 5 set. */
+  if (*(unsigned int *)(actor + 0x34) != 0xffffffff) {
+    int encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+    player_base = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
+    char *scenario_base = (char *)global_scenario_get();
+    char *scenario_elem =
+      (char *)tag_block_get_element(scenario_base + 0x42c, encounter_idx, 0xb0);
+    int in_vehicle = *(char *)(actor + 0x99);
+    int bit5 = (*(unsigned char *)(scenario_elem + 0x20) & 0x20) != 0;
+    /* Increment when vehicle && bit clear, or on-foot && bit set */
+    if (in_vehicle ? !bit5 : bit5) {
+      prox_ctr = *(short *)(player_base + 0x657a);
+      if (prox_ctr < 0x96) {
+        prox_ctr++;
+        *(short *)(player_base + 0x657a) = prox_ctr;
+        if (prox_ctr == 0x96) {
+          /* Proximity threshold reached — fire notification */
+          /* tag_get_name(actor_tag_handle) — 1 arg; scenario_elem is stack
+           * residue from earlier push, acts as extra variadic arg to error().
+           */
+          const char *tag_name = tag_get_name(*(int *)(actor + 0x58));
+          if (in_vehicle) {
+            error(2, (const char *)0x257300, tag_name, scenario_elem);
+          } else {
+            error(2, (const char *)0x2572b0, tag_name, scenario_elem);
+          }
+        }
+      }
+    } else {
+      *(short *)(player_base + 0x657a) = 0;
+    }
+  }
+
+  /* Crouching/grenade flags from biped */
+  *(char *)(actor + 0x1b5) = (*(unsigned char *)(biped + 0x23b) > 0) ? 1 : 0;
+  *(char *)(actor + 0x1b4) = 0;
+  *(int *)(actor + 0x1b0) = -1;
+
+  /* Walk child object chain to find equipped weapon and grenade.
+   * Confirmed: chain starts at biped+0xc8; next ptr at obj+0xc4.
+   * Confirmed: obj+0x64 == 0 → weapon; obj+0x64 == 5 → equipment/grenade.
+   * Confirmed: FUN_000a7a30(actor+0x3e, obj+0x68) for team membership check.
+   * Confirmed: grenade condition: obj+0x1dc < 0 OR (actor+0x280==2 AND
+   *   child == actor+0x28c). */
+  {
+    int child = *(int *)(biped + 0xc8);
+    while (child != -1) {
+      obj = (char *)object_get_and_verify_type(child, -1);
+      if (*(short *)(obj + 0x64) == 0) {
+        if (game_allegiance_get_team_is_friendly(*(short *)(actor + 0x3e),
+                                                 *(short *)(obj + 0x68))) {
+          *(char *)(actor + 0x1b4) = 1;
+        }
+      } else if (*(short *)(obj + 0x64) == 5) {
+        if (*(char *)(obj + 0x1dc) < 0 || (*(short *)(actor + 0x280) == 2 &&
+                                           child == *(int *)(actor + 0x28c))) {
+          *(int *)(actor + 0x1b0) = child;
+        }
+      }
+      child = *(int *)(obj + 0xc4);
+    }
+    /* After loop, biped ptr (pfVar2/EBX=[EBP-8]) used for biped+0x64 test below
+     */
+  }
+
+  /* Preferred weapon / flashlight from biped unit record (if on foot, no
+   * vehicle). Confirmed: object_get_and_verify_type(actor+0x18, 1) at 0x3e1b6.
+   * Confirmed: unit+0x459 > 5 → flashlight on (actor+0x15c = 1).
+   * Confirmed: actor+0x164..+0x170 from unit+0x434..+0x440. */
+  *(char *)(actor + 0x15c) = 0;
+  *(int *)(actor + 0x164) = -1;
+  if (*(short *)(biped + 0x64) == 0 && *(int *)(actor + 0x158) == -1) {
+    char *unit_obj =
+      (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 1);
+    if ((unsigned char)*(char *)(unit_obj + 0x459) > 5) {
+      *(char *)(actor + 0x15c) = 1;
+    }
+    *(int *)(actor + 0x164) = *(int *)(unit_obj + 0x434);
+    *(int *)(actor + 0x168) = *(int *)(unit_obj + 0x438);
+    *(int *)(actor + 0x16c) = *(int *)(unit_obj + 0x43c);
+    *(int *)(actor + 0x170) = *(int *)(unit_obj + 0x440);
+  }
+
+  /* Facing vector: from vehicle if riding, otherwise from own biped.
+   * Confirmed: CMP word[ESI+0x15e],0 at 0x3e1f7; if >= 1 use actor+0x158,
+   *   else use actor+0x18. FUN_001a9960(handle, actor+0x174) at 0x3e215. */
+  {
+    int facing_src;
+    if (*(short *)(actor + 0x15e) >= 1) {
+      facing_src = *(int *)(actor + 0x158);
+    } else {
+      facing_src = *(int *)(actor + 0x18);
+    }
+    FUN_001a9960(facing_src, actor + 0x174);
+  }
+
+  /* On foot: if facing vector is zero-length, use default forward vector.
+   * Otherwise clear facing_vector.z (force 2D). Vehicle: skip.
+   * Confirmed: FUN_00012f10(actor+0x174) length check at 0x3e22e.
+   * Confirmed: FCOMP [0x2533c0] (0.0f) at 0x3e233; if length <= 0 copy fwd_vec.
+   * Confirmed: else case: MOV dword[ESI+0x17c],0 at 0x3e243 (clears .z). */
+  if (*(char *)(actor + 0x99) == 0) {
+    if (magnitude3d((float *)(actor + 0x174)) <= *(float *)0x2533c0) {
+      fwd_vec = *(float **)0x31fc3c;
+      *(float *)(actor + 0x174) = fwd_vec[0];
+      *(float *)(actor + 0x178) = fwd_vec[1];
+      *(float *)(actor + 0x17c) = fwd_vec[2];
+    } else {
+      *(float *)(actor + 0x17c) = 0.0f;
+    }
+  }
+
+  /* Aiming vector.
+   * Passenger (actor+0x161 != 0): get from vehicle or own position.
+   * Otherwise: copy from biped+0x1ec..0x1f4.
+   * Confirmed: object_get_and_verify_type(actor+0x158, 2) at 0x3e277.
+   * Confirmed: tag_get('vehi', vehicle[0]) for flag check at 0x3e280/0x3e286.
+   * Confirmed: flag bit 0x100 at tag+0x2f0 → if set, use FUN_001a9960 for
+   *   aiming from own position; else copy vehicle+0x1ec..0x1f4.
+   * Confirmed: biped+0x1ec..0x1f4 for on-foot path (0x3e2ae/0x3e2c6).
+   * Confirmed: biped+500 (0x1f4) used as int (500 == 0x1f4). */
+  if (*(char *)(actor + 0x161) == 0) {
+    /* On foot or driver: use biped aiming vector */
+    *(int *)(actor + 0x180) = *(int *)(biped + 0x1ec);
+    *(int *)(actor + 0x184) = *(int *)(biped + 0x1f0);
+    *(int *)(actor + 0x188) = *(int *)(biped + 0x1f4);
+  } else {
+    /* Passenger: use vehicle aiming vector (or self position if flag set) */
+    char *vehi_obj =
+      (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    char *vehi_tag2 = (char *)tag_get(0x76656869, *(int *)vehi_obj);
+    if ((*(unsigned int *)(vehi_tag2 + 0x2f0) & 0x100) == 0) {
+      *(int *)(actor + 0x180) = *(int *)(vehi_obj + 0x1ec);
+      *(int *)(actor + 0x184) = *(int *)(vehi_obj + 0x1f0);
+      *(int *)(actor + 0x188) = *(int *)(vehi_obj + 0x1f4);
+    } else {
+      FUN_001a9960(*(int *)(actor + 0x18), actor + 0x180);
+    }
+  }
+
+  /* Looking vector from biped+0x210..0x218 */
+  *(int *)(actor + 0x18c) = *(int *)(biped + 0x210);
+  *(int *)(actor + 0x190) = *(int *)(biped + 0x214);
+  *(int *)(actor + 0x194) = *(int *)(biped + 0x218);
+
+  /* Compute up-vector = cross-like product of looking x world_up
+   * (directly transcribed FPU sequence; see disassembly 0x3e300-0x3e337)
+   * world_up = *(float**)0x31fc44 (pointer to {wx,wy,wz} constant)
+   * looking  = actor+0x18c {lx,ly,lz}
+   *
+   * up.x = ly*wx - wy*lx
+   * up.y = wz*lx - lz*wx
+   * up.z = lz*wy - wz*ly
+   */
+  {
+    world_up = *(float **)0x31fc44;
+    lx = *(float *)(actor + 0x18c);
+    ly = *(float *)(actor + 0x190);
+    lz = *(float *)(actor + 0x194);
+    ux = ly * world_up[0] - world_up[1] * lx;
+    uy = world_up[2] * lx - lz * world_up[0];
+    uz = lz * world_up[1] - world_up[2] * ly;
+    *(float *)(actor + 0x198) = ux;
+    *(float *)(actor + 0x19c) = uy;
+    *(float *)(actor + 0x1a0) = uz;
+    normalize3d((float *)(actor + 0x198));
+  }
+
+  /* Compute right-vector = cross(looking, up)
+   * (directly transcribed FPU sequence; see disassembly 0x3e341-0x3e37a)
+   * right.x = lx*uy - ly*ux
+   * right.y = ux*lz - lx*uz
+   * right.z = ly*uz - lz*uy
+   * (stored after normalize call on up, using post-normalize ux/uy/uz)
+   */
+  {
+    ux = *(float *)(actor + 0x198);
+    uy = *(float *)(actor + 0x19c);
+    uz = *(float *)(actor + 0x1a0);
+    ax = lx * uy - ly * ux;
+    ay = ux * lz - lx * uz;
+    az = ly * uz - lz * uy;
+    *(float *)(actor + 0x1a4) = ax;
+    *(float *)(actor + 0x1a8) = ay;
+    *(float *)(actor + 0x1ac) = az;
+  }
+
+  /* Assert vector validity.
+   * Pattern: csprintf fills error_string_buffer with the formatted message,
+   * then display_assert(buffer, file, line, halt) is called as FUN_0008d9f0.
+   * The file/line/halt args are pre-pushed before csprintf; csprintf result
+   * (pointer to buffer) is then pushed as arg1. See disasm 0x3e38c–0x3e3d8.
+   * Confirmed: FUN_00021fb0 = assert_valid_real_normal3d (3-component).
+   * Confirmed: FUN_00028610 = assert_valid_real_normal2d (2-component). */
+  if (!valid_real_normal3d((float *)(actor + 0x174))) {
+    csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&actor->input.facing_vector", (double)*(float *)(actor + 0x174),
+             (double)*(float *)(actor + 0x178),
+             (double)*(float *)(actor + 0x17c));
+    display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf1,
+                   1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d((float *)(actor + 0x180))) {
+    csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&actor->input.aiming_vector", (double)*(float *)(actor + 0x180),
+             (double)*(float *)(actor + 0x184),
+             (double)*(float *)(actor + 0x188));
+    display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf2,
+                   1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d((float *)(actor + 0x18c))) {
+    csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&actor->input.looking_vector", (double)*(float *)(actor + 0x18c),
+             (double)*(float *)(actor + 0x190),
+             (double)*(float *)(actor + 0x194));
+    display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf3,
+                   1);
+    system_exit(-1);
+  }
+
+  /* Additional on-foot facing vector assertions.
+   * Confirmed: valid_real_normal2d checks xy-plane normal validity.
+   * Confirmed: FABS + FCOMP double[0x2533d0] at 0x3e503/0x3e505; uses double.
+   */
+  if (*(char *)(actor + 0x99) == 0) {
+    if (!valid_real_normal2d((float *)(actor + 0x174))) {
+      csprintf(error_string_buffer, "%s: assert_valid_real_normal2d(%f, %f)",
+               "(real_vector2d *) &actor->input.facing_vector",
+               (double)*(float *)(actor + 0x174),
+               (double)*(float *)(actor + 0x178));
+      display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c",
+                     0xcf6, 1);
+      system_exit(-1);
+    }
+    if (fabsf(*(float *)(actor + 0x17c)) >= (float)*(double *)0x2533d0) {
+      display_assert("realcmp(actor->input.facing_vector.k, 0.0f)",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf7, 1);
+      system_exit(-1);
+    }
+  }
+
+  /* Copy motion/velocity fields from biped */
+  *(int *)(actor + 0x1b8) = *(int *)(biped + 0x90);
+  *(int *)(actor + 0x1bc) = *(int *)(biped + 0x94);
+  *(int *)(actor + 0x1c0) = *(int *)(biped + 0xa8);
+  *(int *)(actor + 0x1c4) = *(int *)(biped + 0xa4);
+}
+
 /* FUN_0003ec80 (0x3ec80) — actor_activate (full AI init sequence for one actor)
  *
  * Called from FUN_0003f5f0 (ai.obj) when actor+0x6a > 0 (activation counter
