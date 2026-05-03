@@ -6367,7 +6367,8 @@
         },
         {
           "decl": "void matrix4x3_from_forward_up_position(void *out, float *position, float *forward, float *up);",
-          "addr": "0x10a110"
+          "addr": "0x10a110",
+          "ported": true
         },
         {
           "decl": "void real_math_reset_precision(void);",

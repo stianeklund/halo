@@ -456,6 +456,17 @@ void matrix_from_forward_and_up(float *out, float *forward, float *up)
   *(float *)((char *)out + 0x30) = 0.0f;
 }
 
+/* Build a 4x3 matrix from forward, up direction vectors and a position.
+ * Fills the rotation via matrix_from_forward_and_up, then sets translation. */
+void matrix4x3_from_forward_up_position(void *out, float *position,
+                                        float *forward, float *up)
+{
+  matrix_from_forward_and_up((float *)out, forward, up);
+  *(float *)((char *)out + 0x28) = position[0];
+  *(float *)((char *)out + 0x2c) = position[1];
+  *(float *)((char *)out + 0x30) = position[2];
+}
+
 void real_math_reset_precision(void)
 {
   __control87(0x9001f, 0xfffff);
