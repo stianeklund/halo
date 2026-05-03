@@ -3616,6 +3616,10 @@
         "Matrix rows: scale, forward, left (forward x up cross product), up, zero translation."
       ]
     },
+    "0x10a110": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10b090": {
       "kind": "function",
       "status": "ported"
@@ -5191,6 +5195,17 @@
       "status": "ported",
       "inferred": [
         "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
+      ]
+    },
+    "0x19d080": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Encoding case 1 (*(int16_t*)0x4d9be0 == 1) matches Shift-JIS lead/trail byte ranges: lead 0x81..0x9f or 0xe0..0xfe, trail 0x40..0xfc excluding 0x7f.",
+        "The '|' prefix escape-sequence check (b0==0x7c, b1 in 'ibukprlctn') precedes the switch and is encoding-independent; string literal at 0x2b44d4."
+      ],
+      "uncertain": [
+        "Global 0x4d9be0 (int16_t encoding selector) has no named declaration in kb.json; accessed as *(int16_t *)0x4d9be0. Encoding names (Shift-JIS, Big5, GBK, etc.) are inferred from byte ranges only."
       ]
     },
     "0x19d1b0": {

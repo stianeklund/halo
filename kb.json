@@ -177,11 +177,6 @@
           "ported": true
         },
         {
-          "decl": "void vector3d_scale_add(float *base, float *direction, float scale, float *out);",
-          "addr": "0x12f80",
-          "ported": true
-        },
-        {
           "decl": "void cross_product3d(float *a, float *b, float *out);",
           "addr": "0x178d0"
         },
@@ -194,17 +189,6 @@
           "decl": "char *FUN_000211f0(int actor_handle);",
           "addr": "0x211f0",
           "ported": true
-        },
-        {
-          "decl": "void vector3d_add(float *a, float *b, float *out);",
-          "addr": "0x213c0",
-          "ported": true
-        },
-        {
-          "decl": "int valid_real_normal3d(float *v);",
-          "addr": "0x21fb0",
-          "status": "ported",
-          "source": "src/halo/common.c"
         },
         {
           "decl": "void FUN_0002b5d0(void);",
@@ -451,12 +435,6 @@
           "addr": "0x849f0"
         },
         {
-          "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
-          "addr": "0x84a70",
-          "status": "ported",
-          "source": "src/halo/common.c"
-        },
-        {
           "decl": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);",
           "addr": "0x8c440"
         },
@@ -468,11 +446,6 @@
         {
           "decl": "uint16_t FUN_0008e7c0(void);",
           "addr": "0x8e7c0"
-        },
-        {
-          "addr": "0x8f040",
-          "decl": "void *debug_realloc(void *ptr, int new_size, const char *file, int line);",
-          "ported": false
         },
         {
           "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
@@ -2546,6 +2519,13 @@
           "decl": "bool error_occurred(void);",
           "addr": "0x8f600",
           "ported": true
+        },
+        {
+          "addr": "0x8f040",
+          "decl": "void *debug_realloc(void *ptr, int new_size, const char *file, int line);",
+          "ported": false,
+          "source": "src/halo/cseries/errors.c",
+          "status": "ported"
         }
       ]
     },
@@ -5179,6 +5159,12 @@
           "addr": "0x1a9520",
           "decl": "void FUN_001a9520(int object_handle, float *out_position);",
           "ported": true
+        },
+        {
+          "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
+          "addr": "0x84a70",
+          "source": "src/halo/objects/objects.c",
+          "status": "ported"
         }
       ]
     },
@@ -6297,6 +6283,26 @@
           "addr": "0x28610",
           "decl": "int valid_real_normal2d(float *v);",
           "ported": true
+        },
+        {
+          "decl": "void vector3d_scale_add(float *base, float *direction, float scale, float *out);",
+          "addr": "0x12f80",
+          "ported": true,
+          "source": "src/halo/math/vector_math.c",
+          "status": "ported"
+        },
+        {
+          "decl": "void vector3d_add(float *a, float *b, float *out);",
+          "addr": "0x213c0",
+          "ported": true,
+          "source": "src/halo/math/vector_math.c",
+          "status": "ported"
+        },
+        {
+          "decl": "int valid_real_normal3d(float *v);",
+          "addr": "0x21fb0",
+          "source": "src/halo/math/vector_math.c",
+          "status": "ported"
         }
       ]
     },
