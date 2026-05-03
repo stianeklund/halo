@@ -186,7 +186,11 @@ int FUN_001c7e70(int object_handle, int tag_index, int16_t marker,
     return -1;
 
   *(float *)(sound_params + 4) = scale;
-  return sound_start(tag_index, sound_params, object_handle, (int)&FUN_001c7a10,
+  /* Store the original binary address, not &FUN_001c7a10 (our lifted copy).
+     sound_update_music compares the stored callback against 0x1c7a10 to
+     decide whether to sample mouth data for lip sync. The thunk at
+     0x1c7a10 redirects calls to our lifted code, so invocation still works. */
+  return sound_start(tag_index, sound_params, object_handle, (int)(void *)0x1c7a10,
                      callback_data, 0x1c);
 }
 
