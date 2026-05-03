@@ -52,6 +52,46 @@ void FUN_0003a740(void)
   }
 }
 
+/* FUN_0003a8a0 (0x3a8a0) — actor_swarm_control_dispatch
+ *
+ * Dispatch the actor-type-specific swarm control function for a given actor.
+ * Retrieves the actor datum, reads its actor_type (int16_t at offset 4),
+ * looks up the actor type definition, asserts the definition describes a
+ * swarm actor (byte at +0xd) and that the swarm_control function pointer
+ * (at +0x18) is non-null, then calls it with actor_handle.
+ *
+ * Assert strings confirm source: c:\halo\SOURCE\ai\actor_types.c, lines
+ * 0x8d–0x8e.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3a8af.
+ * Confirmed: MOV AX,[EAX+4] loads actor_type for @<ax> register call at
+ * 0x3a8b4. Confirmed: FUN_0003a600(@<ax>) returns type_def pointer in EAX ->
+ * ESI at 0x3a8bb. Confirmed: type_def->swarm (byte at +0xd) tested at
+ * 0x3a8c2-0x3a8c7. Confirmed: type_def->swarm_control (int * at +0x18) tested
+ * at 0x3a8e9-0x3a8ee. Confirmed: CALL dword ptr [ESI+0x18] dispatches
+ * swarm_control(actor_handle) at 0x3a911. */
+void FUN_0003a8a0(int actor_handle)
+{
+  char *actor;
+  void *type_def;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  type_def = FUN_0003a600(*(short *)(actor + 4));
+
+  if (*(char *)((char *)type_def + 0xd) == 0) {
+    display_assert("actor_type_definition->swarm",
+                   "c:\\halo\\SOURCE\\ai\\actor_types.c", 0x8d, 1);
+    system_exit(-1);
+  }
+  if (*(int *)((char *)type_def + 0x18) == 0) {
+    display_assert("actor_type_definition->swarm_control",
+                   "c:\\halo\\SOURCE\\ai\\actor_types.c", 0x8e, 1);
+    system_exit(-1);
+  }
+
+  (*(void (*)(int)) * (int *)((char *)type_def + 0x18))(actor_handle);
+}
+
 /* actors.c — AI actor/swarm data lifecycle.
  *
  * Corresponds to actors.obj (XBE address range ~0x3a990–0x3aab7).
