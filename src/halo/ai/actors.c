@@ -1,3 +1,10 @@
+/* Clear 100 bytes of actor state at offset 0x2ec (action decision state). */
+void FUN_00036860(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  csmemset(actor + 0x2ec, 0, 0x64);
+}
+
 void *FUN_0003a600(short actor_type /* @<ax> */)
 {
   void **actor_type_definitions = (void **)0x2c86a8;
@@ -760,6 +767,27 @@ void FUN_0003ba00(void)
     }
     record = (char *)FUN_00059b50(iter);
   }
+}
+
+/* Reassign an actor to a new encounter/squad, detaching from the old one. */
+void FUN_0003baa0(int actor_handle, int encounter_handle, int16_t squad_index)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  FUN_0003b5e0(actor_handle);
+
+  if (*(char *)(actor + 9) != 0) {
+    FUN_000597f0(actor_handle);
+  } else {
+    if (*(int *)(actor + 0x34) != -1) {
+      FUN_00059480(actor_handle, 0);
+    }
+  }
+
+  if (encounter_handle == -1) {
+    FUN_00059740(actor_handle);
+    return;
+  }
+  FUN_0005d200(actor_handle, encounter_handle, squad_index, 1);
 }
 
 /* FUN_0003bb50 (0x3bb50) — actor_update_cognition_score

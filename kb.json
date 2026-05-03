@@ -960,6 +960,18 @@
         {
           "addr": "0x1c270",
           "decl": "char *FUN_0001c270(char *encounter, int16_t squad_index);"
+        },
+        {
+          "addr": "0x3b5e0",
+          "decl": "void FUN_0003b5e0(int actor_handle);"
+        },
+        {
+          "addr": "0x59740",
+          "decl": "void FUN_00059740(int actor_handle);"
+        },
+        {
+          "addr": "0x5d200",
+          "decl": "void FUN_0005d200(int actor_handle, int encounter_handle, int16_t squad_index, int flag);"
         }
       ]
     },
@@ -1129,7 +1141,8 @@
       "functions": [
         {
           "addr": "0x36860",
-          "decl": "void FUN_00036860(int actor_handle);"
+          "decl": "void FUN_00036860(int actor_handle);",
+          "ported": true
         },
         {
           "decl": "void *FUN_0003a600(int16_t actor_type@<ax>);",
@@ -1297,7 +1310,8 @@
         },
         {
           "addr": "0x3baa0",
-          "decl": "void FUN_0003baa0(int actor_handle, int encounter_handle, int16_t squad_index);"
+          "decl": "void FUN_0003baa0(int actor_handle, int encounter_handle, int16_t squad_index);",
+          "ported": true
         }
       ]
     },
