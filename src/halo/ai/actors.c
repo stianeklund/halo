@@ -815,6 +815,44 @@ void FUN_0003bb50(int actor_handle /* @<eax> */)
   *(char *)(actor + 0x4c) = 0;
 }
 
+/* FUN_0003bbf0 (0x3bbf0)
+ *
+ * Initializes actor perception/tracking fields on re-activation. Copies
+ * three vector3_t values from actor+0x174..0x18c into actor+0x6fc..0x714,
+ * zeroes actor+0x6d0 and actor+0x720, copies the global zero vector
+ * (*(float**)0x31fc38) into actor+0x6e0, and sets actor+0x6ec = 0xffff.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3bbf9 (EAX=handle,
+ * ECX=actor_data). Confirmed: three 12-byte copies actor+0x174→+0x6fc,
+ * +0x180→+0x708, +0x18c→+0x714 at 0x3bbfe–0x3bc4f. Confirmed: actor+0x6d0
+ * zeroed at 0x3bc54, actor+0x720 zeroed at 0x3bc5a. Confirmed: global zero
+ * vector *(float**)0x31fc38 copied 12 bytes → actor+0x6e0 at 0x3bc60–0x3bc7c.
+ * Confirmed: actor+0x6ec = 0xffff at 0x3bc7f.
+ * Confirmed: called with MOV EAX,ESI / CALL 0x3bbf0 from FUN_0003ec80 at
+ * 0x3ed62–0x3ed64. */
+void FUN_0003bbf0(int actor_handle /* @<eax> */)
+{
+  char *actor;
+  float *zero_vec;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  /* copy three facing/aiming/look vectors into tracking slots */
+  *(vector3_t *)(actor + 0x6fc) = *(vector3_t *)(actor + 0x174);
+  *(vector3_t *)(actor + 0x708) = *(vector3_t *)(actor + 0x180);
+  *(vector3_t *)(actor + 0x714) = *(vector3_t *)(actor + 0x18c);
+
+  *(int *)(actor + 0x6d0) = 0;
+  *(int *)(actor + 0x720) = 0;
+
+  zero_vec = *(float **)0x31fc38;
+  *(float *)(actor + 0x6e0) = zero_vec[0];
+  *(float *)(actor + 0x6e4) = zero_vec[1];
+  *(float *)(actor + 0x6e8) = zero_vec[2];
+
+  *(short *)(actor + 0x6ec) = (short)0xffff;
+}
+
 /* FUN_0003cbc0 (0x3cbc0) — actor_clean_props
  *
  * Clean up all props associated with an actor. Iterates actor+0x50 linked list,

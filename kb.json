@@ -1255,7 +1255,9 @@
         },
         {
           "addr": "0x3bbf0",
-          "decl": "void FUN_0003bbf0(int actor_handle@<eax>);"
+          "decl": "void FUN_0003bbf0(int actor_handle /* @<eax> */);",
+          "status": "ported",
+          "src": "src/halo/ai/actors.c"
         },
         {
           "addr": "0x3be90",
