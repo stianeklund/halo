@@ -2213,8 +2213,9 @@ void FUN_0003e7a0(int actor_handle /* @<eax> */)
 
   /* If an animation is pending (actor+0x6ec != -1), apply it */
   if ((uint16_t) * (uint16_t *)(actor + 0x6ec) != 0xffff) {
-    FUN_001b1a20(*(int *)(actor + 0x18),
-                 (int)(uint16_t) * (uint16_t *)(actor + 0x6ec), actor + 0x6f0);
+    unit_apply_animation_impulse(*(int *)(actor + 0x18),
+                                 (int)(uint16_t) * (uint16_t *)(actor + 0x6ec),
+                                 actor + 0x6f0);
   }
 
   /* If animation ticks are pending (actor+0x6d4 > 0), advance animation */

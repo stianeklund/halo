@@ -425,6 +425,158 @@ void unit_set_seat_state(int unit_handle, float *position)
   position[2] = *(float *)(marker_buf + 0x68);
 }
 
+/* unit_impulse_to_animation_kind (0x1a9560)
+ *
+ * Maps an animation impulse index (0-13) to an animation kind index and an
+ * update_kind value. The impulse index selects an animation kind (e.g. 0x1d
+ * for "impulse", 0x20 for "melee_attack_long_step", etc.) and writes 3 or 6
+ * to *out_update_kind depending on whether the impulse uses a ranged or melee
+ * update mode.
+ *
+ * If impulse_index is out of [0, 13] the function asserts and terminates.
+ * If out_update_kind is NULL the write is skipped (TEST EBX,EBX gate).
+ *
+ * Impulse-to-kind mapping (jump table at 0x1a969c):
+ *   0  -> 0x1d  (update 6)   8  -> 0x04  (update 3)
+ *   1  -> 0x20  (update 6)   9  -> 0x05  (update 3)
+ *   2  -> 0x21  (update 6)   10 -> 0x06  (update 3)
+ *   3  -> 0x22  (update 6)   11 -> 0x07  (update 3)
+ *   4  -> 0x1b  (update 3)   12 -> 0x28  (update 6)
+ *   5  -> 0x1c  (update 3)   13 -> 0x29  (update 6)
+ *   6  -> 0x1e  (update 6)
+ *   7  -> 0x1f  (update 6)
+ *
+ * Register args: impulse_index @<ax>, out_update_kind @<ebx>.
+ * Returns kind index in AX (int16_t).
+ *
+ * Confirmed: MOV DI,AX at entry; switch dispatch from 0x1a969c.
+ * Confirmed: MOV word ptr [EBX],0x3 or 0x6; MOV AX,SI; RET.
+ * Confirmed: assert "animation_impulse>=0 &&
+ * animation_impulse<NUMBER_OF_UNIT_ANIMATION_IMPULSES" file
+ * "c:\\halo\\SOURCE\\units\\units.c", line 0x14f4.
+ */
+int16_t unit_impulse_to_animation_kind(int16_t impulse_index,
+                                       int16_t *out_update_kind)
+{
+  static const int16_t kind_table[14] = { 0x1d, 0x20, 0x21, 0x22, 0x1b,
+                                          0x1c, 0x1e, 0x1f, 0x04, 0x05,
+                                          0x06, 0x07, 0x28, 0x29 };
+  /* update 3 for impulses 4,5,8,9,10,11; update 6 for all others. */
+  static const int16_t update_table[14] = { 6, 6, 6, 6, 3, 3, 6,
+                                            6, 3, 3, 3, 3, 6, 6 };
+  int16_t kind;
+
+  if (impulse_index < 0 || impulse_index >= 14) {
+    display_assert("animation_impulse>=0 && "
+                   "animation_impulse<NUMBER_OF_UNIT_ANIMATION_IMPULSES",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x14f4, 1);
+    system_exit(-1);
+    return -1;
+  }
+
+  kind = kind_table[impulse_index];
+
+  if (out_update_kind != NULL)
+    *out_update_kind = update_table[impulse_index];
+
+  return kind;
+}
+
+/* unit_animation_state_allows_impulse (0x1a96f0)
+ *
+ * Returns true if the unit's current animation state (unk_595 at +0x253)
+ * is one that permits an animation impulse to be applied.
+ *
+ * States in [0x17..0x29] that block impulses (switch table 0x1a97a8):
+ *   0x17-0x1b, 0x1d-0x1f, 0x20-0x23, 0x27, 0x29 -> return false.
+ * States outside [0x17..0x29] -> fall to parent check.
+ *
+ * If parent_object_index != -1 (unit is seated/mounted):
+ *   - If unk_672 (seat-anim index) is -1 -> return false.
+ *   - Resolves parent via object_try_and_get_and_verify_type (0x13d640).
+ *   - Looks up the seat-anim entry at parent_unit_tag+0x2e4, indexed by
+ *     unk_672, element size 0x11c.
+ *   - If impulse_index is in [0xc, 0xd]: returns bit 8 of seat_anim[0].
+ *   - If impulse_index is outside [0xc, 0xd]: returns false.
+ *
+ * If parent_object_index == -1 (no parent):
+ *   - If impulse_index NOT in [0xc, 0xd] -> return true.
+ *   - If impulse_index in [0xc, 0xd] -> return false.
+ *
+ * Register args: unit_handle @<eax>, impulse_index @<edi> (leaked from caller).
+ * Returns bool in AL.
+ *
+ * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type.
+ * Confirmed: MOVSX EAX,byte[ESI+0x253]; ADD -0x17; CMP 0x12; jump table
+ * 0x1a97a8. Confirmed: MOVSX ECX,DI at 0x1a976c and 0x1a9786 (DI = caller's EDI
+ * = anim_index). Confirmed: CMP [ESI+0x2a0],-1 -> unk_672 check. Confirmed:
+ * object_try_and_get_and_verify_type at 0x13d640 / tag_get /
+ * tag_block_get_element. Confirmed: MOV EAX,[EAX]; SHR EAX,8; AND AL,1 -> bit 8
+ * gate.
+ */
+bool unit_animation_state_allows_impulse(int unit_handle, int impulse_index)
+{
+  unit_data_t *unit;
+  int state;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+  state = (int)(int8_t)unit->unk_595;
+
+  /* Switch on state - 0x17 for values in [0x17, 0x29] */
+  if ((unsigned)(state - 0x17) <= 0x12) {
+    switch (state) {
+    case 0x17:
+    case 0x18:
+    case 0x19:
+    case 0x1a:
+    case 0x1b:
+    case 0x1d:
+    case 0x1e:
+    case 0x1f:
+    case 0x20:
+    case 0x21:
+    case 0x22:
+    case 0x23:
+    case 0x27:
+    case 0x29:
+      return false;
+    default:
+      break;
+    }
+  }
+
+  /* Check parent (mounted) case */
+  if (unit->object.parent_object_index.value != -1) {
+    unit_data_t *parent;
+    char *parent_tag;
+    int *seat_anim;
+
+    if ((int16_t)unit->unk_672 == -1)
+      return false;
+
+    parent = (unit_data_t *)object_try_and_get_and_verify_type(
+      (int)unit->object.parent_object_index.value, 3);
+    if (parent == NULL)
+      return false;
+
+    parent_tag = (char *)tag_get(0x756e6974, *(int *)parent);
+    seat_anim = (int *)tag_block_get_element(
+      parent_tag + 0x2e4, (int)(int16_t)unit->unk_672, 0x11c);
+
+    /* Only impulses 0xc and 0xd can fire when mounted */
+    if ((int16_t)impulse_index < 0xc || (int16_t)impulse_index > 0xd)
+      return false;
+
+    return (bool)((seat_anim[0] >> 8) & 1);
+  }
+
+  /* No parent: impulses 0xc and 0xd are blocked */
+  if ((int16_t)impulse_index >= 0xc && (int16_t)impulse_index <= 0xd)
+    return false;
+
+  return true;
+}
+
 /* FUN_001a9900 (0x1a9900)
  *
  * Copies the unit's aiming vector (unk_492, offset 0x1EC) into the output
@@ -1780,6 +1932,78 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
   return true;
 }
 
+/* unit_apply_alignment_vector (0x1af180)
+ *
+ * Sets the unit object's facing direction (forward and up vectors) from a
+ * 2D alignment vector (x, y) representing a direction in the ground plane,
+ * but only if the unit has no parent (is not seated/mounted).
+ *
+ * Steps:
+ *   1. Resolves unit via object_get_and_verify_type (type_mask=3, @<eax>).
+ *   2. If parent_object_index != -1 (unit is mounted), returns immediately.
+ *   3. Asserts alignment_vector is a valid 2D normal via FUN_00028610.
+ *   4. Copies alignment_vector[0] -> unit+0x24 (object forward x),
+ *      alignment_vector[1] -> unit+0x28 (object forward y),
+ *      0.0f               -> unit+0x2c (object forward z).
+ *   5. Loads the canonical "up" vector from the pointer at 0x31fc44 and
+ *      writes it to unit+0x30, +0x34, +0x38.
+ *   6. Asserts the forward/up pair are valid axes via FUN_00084a70.
+ *
+ * Register args: unit_handle @<eax>, alignment_vector @<ecx>.
+ *
+ * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type (0x13d680).
+ * Confirmed: MOV EBX,ECX at entry; CMP [ESI+0xcc],-1 -> parent gate.
+ * Confirmed: CALL 0x28610 (valid_real_normal2d check on EBX=alignment_vector).
+ * Confirmed: MOV ECX,[EBX]; FSTP [ESI+0x28]; MOV [ESI+0x24],ECX; MOV
+ * [ESI+0x2c],0. Confirmed: MOV EDX,[0x31fc44]; copies 3 floats to
+ * [ESI+0x30..0x38]. Confirmed: assert string "alignment_vector" at 0x2b7234.
+ * Confirmed: CALL 0x84a70 (valid_real_vector3d_axes2 check).
+ */
+void unit_apply_alignment_vector(int unit_handle, float *alignment_vector)
+{
+  unit_data_t *unit;
+  float *up_vector;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Only apply if the unit is a top-level object (no parent). */
+  if (unit->object.parent_object_index.value != -1)
+    return;
+
+  /* Assert the 2D alignment vector is a valid normal (valid_real_normal2d). */
+  if (!valid_real_normal2d(alignment_vector)) {
+    display_assert("assert_valid_real_normal2d(alignment_vector)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x2482, 1);
+    system_exit(-1);
+  }
+
+  /* Copy 2D alignment direction into object forward vector (zero z).
+   * Confirmed: MOV ECX,[EBX]; FSTP [ESI+0x28]; MOV [ESI+0x24],ECX; MOV
+   * [ESI+0x2c],0. Note: store order in binary is y first (FSTP [ESI+0x28]) then
+   * x (MOV [ESI+0x24]). Both reads from [EBX] are sourced before any store, so
+   * no aliasing concern. */
+  *(float *)((char *)unit + 0x24) = alignment_vector[0];
+  *(float *)((char *)unit + 0x28) = alignment_vector[1];
+  *(float *)((char *)unit + 0x2c) = 0.0f;
+
+  /* Copy the canonical up vector (world up) from the global at 0x31fc44.
+   * Confirmed: MOV EDX,[0x31fc44]; copies 3 dwords to [ESI+0x30,+0x34,+0x38].
+   */
+  up_vector = *(float **)0x31fc44;
+  *(float *)((char *)unit + 0x30) = up_vector[0];
+  *(float *)((char *)unit + 0x34) = up_vector[1];
+  *(float *)((char *)unit + 0x38) = up_vector[2];
+
+  /* Assert forward/up are valid orthogonal axes
+   * (valid_real_normal3d_perpendicular). */
+  if (!valid_real_normal3d_perpendicular((float *)((char *)unit + 0x24),
+                                         (float *)((char *)unit + 0x30))) {
+    display_assert("assert_valid_real_vector3d_axes2(forward, up)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x2486, 1);
+    system_exit(-1);
+  }
+}
+
 /* unit_verify_vectors (0x1af620)
  *
  * Validates 6 directional vectors stored on a unit object:
@@ -2177,6 +2401,142 @@ void unit_reset_weapon_state(int unit_handle)
   unit->unk_721 = 0xFF;
   unit->unk_760 = 0;
   player_clear_aim_assist(unit_handle);
+}
+
+/* unit_apply_animation_impulse (0x1b1a20)
+ *
+ * Attempts to apply an animation impulse to a unit. The impulse is an index
+ * in [0, NUMBER_OF_UNIT_ANIMATION_IMPULSES) that maps to an animation kind
+ * index and an update_kind via FUN_001a9560. The function:
+ *
+ *   1. Checks whether the unit's current animation state allows impulses
+ *      (FUN_001a96f0 @<eax>=unit_handle). Returns false immediately if not.
+ *   2. Resolves unit tag -> antr tag at unit_tag+0x44. Uses the unit's
+ *      current mode (unk_592 at +0x250) and sub-anim (unk_593 at +0x251)
+ *      to reach the sub-animation block at mode+0x58 (element size 0xbc).
+ *   3. Maps the impulse index to an animation kind index (AX) and an
+ *      update_kind (written to *out_update_kind) via FUN_001a9560.
+ *   4. Looks up the animation kind index in the sub-anim's kind table at
+ *      sub_anim+0x98 (count) / sub_anim+0x9c (int16[] ptr). Returns false
+ *      if out of range or the slot is -1.
+ *   5. Calls object_set_region_count(unit_handle, update_kind) to set
+ *      the interpolation mode.
+ *   6. Calls model_animation_choose_random(1, antr_tag_idx, kind_anim_idx)
+ *      to choose an animation.
+ *   7. Calls unit_set_animation(@<eax>=unit_handle, @<edi>=antr_tag_idx,
+ *      @<bx>=chosen_anim).
+ *   8. Sets unk_584 (0x248) bit 0 and unk_595 (0x253) = 0x1d.
+ *   9. If anim_data is non-NULL, the unit type is 0 (biped), and the unit
+ *      has no parent, calls FUN_001af180(@<eax>=unit_handle, @<ecx>=anim_data)
+ *      to apply an alignment vector.
+ *   10. Returns true on success.
+ *
+ * Register args: FUN_001a96f0 takes unit_handle @<eax>.
+ *                FUN_001a9560 takes impulse_index @<ax>, out_update_kind
+ * @<ebx>. FUN_001af180 takes unit_handle @<eax>, anim_data @<ecx>.
+ *
+ * Confirmed: PUSH EBX (unit_handle) / PUSH 0x3 -> object_get_and_verify_type.
+ * Confirmed: MOV EAX,EBX -> CALL 0x1a96f0 (register arg).
+ * Confirmed: tag_get(0x756e6974, *unit) then tag_get(0x616e7472,
+ * unit_tag+0x44). Confirmed: MOVSX EDX,byte ptr [ESI+0x250] (unk_592 mode
+ * index). Confirmed: tag_block_get_element(antr+0xc, unk_592, 0x64). Confirmed:
+ * MOVSX ECX,byte ptr [ESI+0x251] (unk_593 sub-anim index). Confirmed:
+ * tag_block_get_element(mode+0x58, unk_593, 0xbc). Confirmed: MOV
+ * EAX,[EBP+0xc]; LEA EBX,[EBP-0xc]; CALL 0x1a9560 (reg args). Confirmed: CMP
+ * [local_c+0x98] / ptr at [local_c+0x9c] / word table indexed by AX. Confirmed:
+ * object_set_region_count(unit_handle, update_kind). Confirmed: MOV
+ * EAX,[EDI+0x44]; PUSH EBX; PUSH EAX; PUSH 0x1 ->
+ * model_animation_choose_random. Confirmed: MOV EDI,[EDI+0x44]; CALL 0x1ab7c0
+ * (unit_set_animation @<eax>,@<edi>,@<bx>). Confirmed: OR byte ptr
+ * [ESI+0x248],0x1; MOV byte ptr [ESI+0x253],0x1d. Confirmed: CMP word ptr
+ * [ESI+0x64],0x0 (type field == 0); CMP [ESI+0xcc],-1 (parent_object_index).
+ * Confirmed: MOV EAX,[EBP+0x8]; CALL 0x1af180 (FUN_001af180 @<eax>,@<ecx>).
+ */
+bool unit_apply_animation_impulse(int unit_handle, int anim_index,
+                                  void *anim_data)
+{
+  unit_data_t *unit;
+  char *unit_tag;
+  char *antr_tag;
+  char *mode_elem;
+  char *sub_anim;
+  int16_t kind_anim_index;
+  int16_t update_kind;
+  int16_t chosen_anim;
+  int antr_tag_index;
+
+  unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Check if the unit's animation state allows applying an impulse.
+   * FUN_001a96f0 takes @<eax>=unit_handle, @<edi>=impulse_index (leaked).
+   * Confirmed disassembly: MOV EDI,[EBP+0xc] at 0x1a34, MOV EAX,EBX at 0x1a3c,
+   * CALL 0x1a96f0 at 0x1a42 — EDI = anim_index at call time.
+   */
+  if (!unit_animation_state_allows_impulse(unit_handle, anim_index))
+    return false;
+
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+
+  /* Locate the animation mode element for the unit's current mode (unk_592).
+   * antr_tag+0x0c is the mode block; element size 0x64. */
+  mode_elem = (char *)tag_block_get_element(antr_tag + 0xc,
+                                            (int)(int8_t)unit->unk_592, 0x64);
+
+  /* Locate the sub-animation element for the unit's current sub-anim (unk_593).
+   * mode+0x58 is the sub-anim block; element size 0xbc. */
+  sub_anim = (char *)tag_block_get_element(mode_elem + 0x58,
+                                           (int)(int8_t)unit->unk_593, 0xbc);
+
+  /* Map the impulse index to an animation kind index.
+   * FUN_001a9560 takes impulse_index @<ax> and &update_kind @<ebx>;
+   * writes update_kind (3 or 6) through the pointer, returns kind index in AX.
+   * Confirmed: LEA EBX,[EBP-0xc]; MOV EAX,[EBP+0xc]; CALL 0x1a9560.
+   */
+  kind_anim_index =
+    unit_impulse_to_animation_kind((int16_t)anim_index, &update_kind);
+
+  /* Bounds-check the kind index against the sub-anim's kind table. */
+  if (kind_anim_index < 0)
+    return false;
+  if ((int)kind_anim_index >= *(int *)(sub_anim + 0x98))
+    return false;
+
+  /* Index the kind->animation table (int16[] at sub_anim+0x9c). */
+  kind_anim_index =
+    *(int16_t *)(*(int *)(sub_anim + 0x9c) + (int)kind_anim_index * 2);
+  if (kind_anim_index == -1)
+    return false;
+
+  /* Set interpolation mode and choose a random animation variant. */
+  object_set_region_count(unit_handle, update_kind);
+
+  antr_tag_index = *(int *)(unit_tag + 0x44);
+  chosen_anim =
+    (int16_t)model_animation_choose_random(1, antr_tag_index, kind_anim_index);
+
+  /* Apply the chosen animation to the unit.
+   * unit_set_animation: @<eax>=unit_handle, @<edi>=antr_tag_index,
+   * @<bx>=chosen_anim. Confirmed: MOV EDI,[EDI+0x44]; MOV EAX,[EBP+0x8]; CALL
+   * 0x1ab7c0.
+   */
+  unit_set_animation(unit_handle, antr_tag_index, chosen_anim);
+
+  /* Mark animation impulse as active and set state to 0x1d. */
+  unit->unk_584 |= 0x1;
+  unit->unk_595 = 0x1d;
+
+  /* If anim_data is provided and this is a top-level biped (type==0, no
+   * parent), apply the facing alignment vector. FUN_001af180 takes unit_handle
+   * @<eax>, anim_data @<ecx>. Confirmed: TEST ECX,ECX (param_3); CMP
+   * [ESI+0x64],0; CMP [ESI+0xcc],-1.
+   */
+  if (anim_data != NULL && unit->object.type == 0 &&
+      unit->object.parent_object_index.value == -1) {
+    unit_apply_alignment_vector(unit_handle, (float *)anim_data);
+  }
+
+  return true;
 }
 
 /* unit_enter_seat (0x1b1db0)

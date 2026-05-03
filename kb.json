@@ -7810,6 +7810,16 @@
           "ported": true
         },
         {
+          "addr": "0x1a9560",
+          "decl": "int16_t unit_impulse_to_animation_kind(int16_t impulse_index@<ax>, int16_t *out_update_kind@<ebx>);",
+          "ported": true
+        },
+        {
+          "addr": "0x1a96f0",
+          "decl": "bool unit_animation_state_allows_impulse(int unit_handle@<eax>, int impulse_index@<edi>);",
+          "ported": true
+        },
+        {
           "decl": "void FUN_001a9900(int unit_handle, void *out_aiming);",
           "addr": "0x1a9900",
           "ported": true
@@ -7950,6 +7960,11 @@
           "ported": true
         },
         {
+          "addr": "0x1af180",
+          "decl": "void unit_apply_alignment_vector(int unit_handle@<eax>, float *alignment_vector@<ecx>);",
+          "ported": true
+        },
+        {
           "decl": "bool unit_verify_vectors(int unit_handle@<eax>);",
           "addr": "0x1af620",
           "ported": true
@@ -7970,6 +7985,11 @@
           "ported": true
         },
         {
+          "addr": "0x1b1a20",
+          "decl": "bool unit_apply_animation_impulse(int unit_handle, int anim_index, void *anim_data);",
+          "ported": true
+        },
+        {
           "decl": "bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag);",
           "addr": "0x1b1db0",
           "ported": true
@@ -7983,10 +8003,6 @@
           "decl": "bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index);",
           "addr": "0x1b2b80",
           "ported": true
-        },
-        {
-          "addr": "0x1b1a20",
-          "decl": "int FUN_001b1a20(int unit_handle, int anim_index, void *anim_data);"
         }
       ]
     },
