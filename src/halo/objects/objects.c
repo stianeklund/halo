@@ -188,11 +188,11 @@ void FUN_00136150(int object_handle)
     }
 
     /* Allocate a new widget datum. */
-    widget_handle = data_new_at_index(*(data_t **)0x5a90c4);
+    widget_handle = data_new_at_index(*(data_t *volatile *)0x5a90c4);
     if (widget_handle == -1)
       continue;
 
-    widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
+    widget = (char *)datum_get(*(data_t *volatile *)0x5a90c4, widget_handle);
 
     /* Store the widget type. */
     *(int16_t *)(widget + 0x2) = type;
@@ -210,7 +210,7 @@ void FUN_00136150(int object_handle)
       *(int *)(widget + 0x4) = definition_handle;
       if (definition_handle == -1) {
         /* New function failed — delete the widget datum. */
-        datum_delete(*(data_t **)0x5a90c4, widget_handle);
+        datum_delete(*(data_t *volatile *)0x5a90c4, widget_handle);
       } else {
         /* Success — link into the object's widget list. */
         *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
@@ -255,7 +255,7 @@ void FUN_001362d0(int object_handle)
   }
 
   do {
-    widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
+    widget = (char *)datum_get(*(data_t *volatile *)0x5a90c4, widget_handle);
     type = *(int16_t *)(widget + 0x2);
 
     /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
@@ -280,7 +280,7 @@ void FUN_001362d0(int object_handle)
         *(int *)(widget + 0x4));
     }
 
-    datum_delete(*(data_t **)0x5a90c4, widget_handle);
+    datum_delete(*(data_t *volatile *)0x5a90c4, widget_handle);
     widget_handle = next_handle;
   } while (next_handle != -1);
 
@@ -371,7 +371,7 @@ void object_wake(int object_handle)
   char *light;
   uint16_t flags;
 
-  light = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+  light = (char *)datum_get(*(data_t *volatile *)0x5a90bc, object_handle);
   flags = *(uint16_t *)(light + 0x2);
 
   if ((flags & 0x2) == 0)
@@ -430,7 +430,7 @@ void object_move_to_limbo(int object_handle)
   float offset;
   int16_t marker_index;
 
-  light = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+  light = (char *)datum_get(*(data_t *volatile *)0x5a90bc, object_handle);
   tag_get(0x6c696768, *(int *)(light + 0x4));
 
   if (*(int *)(light + 0x58) == -1) {
@@ -475,7 +475,8 @@ void object_move_to_limbo(int object_handle)
 
   /* Re-fetch light data (original code re-calls datum_get here). */
   {
-    char *light2 = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+    char *light2 =
+      (char *)datum_get(*(data_t *volatile *)0x5a90bc, object_handle);
     char *ligh_tag = (char *)tag_get(0x6c696768, *(int *)(light2 + 0x4));
 
     tag_flags = *(uint8_t *)ligh_tag;
@@ -564,9 +565,9 @@ int FUN_0013b290(int tag_index, int object_handle, int16_t marker,
   int handle;
   char *datum;
 
-  handle = data_new_at_index(*(data_t **)0x5a90bc);
+  handle = data_new_at_index(*(data_t *volatile *)0x5a90bc);
   if (handle != -1) {
-    datum = (char *)datum_get(*(data_t **)0x5a90bc, handle);
+    datum = (char *)datum_get(*(data_t *volatile *)0x5a90bc, handle);
     tag_get(0x6c696768, tag_index);
     *(int16_t *)(datum + 0x02) = 0;
     {
@@ -597,7 +598,7 @@ int FUN_0013b290(int tag_index, int object_handle, int16_t marker,
     }
 
     object_move_to_limbo(handle);
-    *(int *)(datum + 0x0c) = *(int *)0x5a8d64 - 1;
+    *(int *)(datum + 0x0c) = *(volatile int *)0x5a8d64 - 1;
   }
   return handle;
 }
@@ -630,7 +631,7 @@ void *object_try_and_get_and_verify_type(int datum_handle, int type_mask)
 {
   object_header_data_t *header =
     (object_header_data_t *)(int)datum_absolute_index_to_index(
-      *(data_t **)0x5a8d50, datum_handle);
+      *(data_t *volatile *)0x5a8d50, datum_handle);
   if (header != NULL && (type_mask & (1 << (header->type & 0x1f))) != 0)
     return header->object;
   return NULL;
@@ -655,8 +656,8 @@ void *object_try_and_get_and_verify_type(int datum_handle, int type_mask)
 void *object_get_and_verify_type(int datum_handle, int type_mask)
 {
   /* datum_get: first arg = data table ptr (value at 0x5a8d50) */
-  object_header_data_t *header =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, datum_handle);
+  object_header_data_t *header = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, datum_handle);
   object_data_t *obj = header->object;
   int16_t type = obj->type;
 
@@ -698,7 +699,7 @@ void *object_get_and_verify_type(int datum_handle, int type_mask)
 void object_iterator_new(void *iter, int type_mask, int flags)
 {
   object_iter_t *it = (object_iter_t *)iter;
-  data_verify(*(data_t **)0x5a8d50);
+  data_verify(*(data_t *volatile *)0x5a8d50);
   it->cookie = 0x86868686;
   it->type_mask = type_mask;
   it->flags = (uint8_t)flags;
@@ -743,8 +744,8 @@ void *object_iterator_next(void *iter)
     system_exit(-1);
   }
 
-  data_verify(*(data_t **)0x5a8d50);
-  data = *(data_t **)0x5a8d50;
+  data_verify(*(data_t *volatile *)0x5a8d50);
+  data = *(data_t *volatile *)0x5a8d50;
 
   idx = it->current_index;
   count = data->current_count;
@@ -824,7 +825,7 @@ int object_get_root_parent(int object_handle)
   int result = -1;
   while (current != -1) {
     object_header_data_t *header =
-      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, current);
+      (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50, current);
     object_data_t *obj = header->object;
     result = current;
     current = obj->parent_object_index.value;
@@ -842,8 +843,8 @@ void object_set_garbage_flag(int object_handle, int is_garbage)
   {
     int handle = og->unk_8.value;
     while (handle != -1) {
-      object_header_data_t *hdr =
-        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+      object_header_data_t *hdr = (object_header_data_t *)datum_get(
+        *(data_t *volatile *)0x5a8d50, handle);
       object_data_t *gobj = hdr->object;
       int16_t type = gobj->type;
       if ((1 << (type & 0x1f)) == 0) {
@@ -884,8 +885,8 @@ void object_set_garbage_flag(int object_handle, int is_garbage)
     int cur = og->unk_8.value;
 
     while (cur != object_handle) {
-      object_header_data_t *hdr =
-        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, *prev_ptr);
+      object_header_data_t *hdr = (object_header_data_t *)datum_get(
+        *(data_t *volatile *)0x5a8d50, *prev_ptr);
       object_data_t *gobj = hdr->object;
       int16_t type = gobj->type;
       if ((1 << (type & 0x1f)) == 0) {
@@ -912,8 +913,8 @@ done:
   {
     int handle = og->unk_8.value;
     while (handle != -1) {
-      object_header_data_t *hdr =
-        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+      object_header_data_t *hdr = (object_header_data_t *)datum_get(
+        *(data_t *volatile *)0x5a8d50, handle);
       object_data_t *gobj = hdr->object;
       int16_t type = gobj->type;
       if ((1 << (type & 0x1f)) == 0) {
@@ -964,8 +965,8 @@ int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint)
   if (handle != -1) {
     char *datum = (char *)datum_get(data, handle);
 
-    if (!memory_pool_block_new(*(void **)0x46f080, (void **)(datum + 8),
-                               (int)datum_size)) {
+    if (!memory_pool_block_new(*(void *volatile *)0x46f080,
+                               (void **)(datum + 8), (int)datum_size)) {
       datum_delete(data, handle);
       return -1;
     }
@@ -1002,8 +1003,8 @@ void FUN_0013df70(data_t *data);
  */
 void *object_header_block_reference_get(int object_handle, void *reference)
 {
-  object_header_data_t *header =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *header = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   char *object = (char *)object_get_and_verify_type(object_handle, -1);
   int16_t ref_size = *(int16_t *)reference;
   int16_t ref_offset = *(int16_t *)((char *)reference + 2);
@@ -1040,7 +1041,7 @@ void object_child_list_remove(void *list_head /* @<eax> */,
     return;
 
   while (1) {
-    obj_data = (int *)datum_get(*(data_t **)0x5a8d50, *head);
+    obj_data = (int *)datum_get(*(data_t *volatile *)0x5a8d50, *head);
     obj_data = (int *)*(int *)((char *)obj_data + 8);
 
     {
@@ -1092,7 +1093,7 @@ void object_reset_markers(void)
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0xdaf, 1);
     system_exit(-1);
   }
-  *(uint32_t *)0x5a8d28 += 1;
+  *(volatile uint32_t *)0x5a8d28 += 1;
   object_globals->object_marker_initialized = 1;
 }
 
@@ -1147,7 +1148,7 @@ void object_remove_from_name_list(int object_handle /* @<edi> */)
   scenario = global_scenario_get();
   *(int16_t *)(obj + 0x6a) = -1;
   count = *(int *)((char *)scenario + 0x204);
-  name_table = *(int **)0x46f07c;
+  name_table = *(int *volatile *)0x46f07c;
   i = 0;
   while ((int)i < count) {
     if (name_table[(int)i] == object_handle)
@@ -1229,18 +1230,18 @@ void objects_initialize(void)
 
   if (!game_in_editor()) {
     /* Non-editor: allocate from game-state block */
-    *(void **)0x5a8d50 =
+    *(void *volatile *)0x5a8d50 =
       ((void *(*)(const char *, int, int))0x1bfe10)("object", 0x800, 0xc);
     objects = ((void *(*)(const char *, int))0x1bfe50)("objects", 0x100000);
   } else {
     /* Editor: allocate from main heap */
-    *(void **)0x5a8d50 =
+    *(void *volatile *)0x5a8d50 =
       ((void *(*)(const char *, int, int))0x1194d0)("object", 0x2800, 0xc);
     objects =
       ((void *(*)(const char *, void *))0x11e650)("objects", (void *)0x500000);
   }
 
-  if (*(void **)0x5a8d50 == 0 || objects == 0) {
+  if (*(void *volatile *)0x5a8d50 == 0 || objects == 0) {
     display_assert("object_header_data && object_memory_pool",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0xd8, 1);
     system_exit(-1);
@@ -1305,7 +1306,7 @@ void objects_initialize_for_new_map(void)
   ((pfn_void_t)0x13c3d0)();
   ((pfn_void_t)0x1392b0)();
 
-  data_delete_all(*(data_t **)0x5a8d50);
+  data_delete_all(*(data_t *volatile *)0x5a8d50);
   csmemset(object_name_list, 0xff, 0x800);
 
   /* Reset collideable and noncollideable cluster partition structs.
@@ -1321,7 +1322,7 @@ void objects_initialize_for_new_map(void)
   og->pvs_activator_type = 0;
   og->object_marker_initialized = 0;
 
-  *(uint32_t *)0x5a8d28 = 0;
+  *(volatile uint32_t *)0x5a8d28 = 0;
 
   og->unk_8.value = 0xffffffff;
   og->unk_4 = 0;
@@ -1377,7 +1378,7 @@ void objects_dispose_from_old_map(void)
   ((pfn_void_t)0x13c400)();
   ((pfn_void_t)0x1392e0)();
 
-  data_t *obj_data = *(data_t **)0x5a8d50;
+  data_t *obj_data = *(data_t *volatile *)0x5a8d50;
 
   /* Only walk the table if it has been made valid */
   if (*(uint8_t *)((uint8_t *)obj_data + 0x24) != 0) {
@@ -1389,7 +1390,8 @@ void objects_dispose_from_old_map(void)
 
       if (*field_8_ptr != 0) {
         /* Free this object's memory pool allocation */
-        ((void (*)(void *, void **))0x11e7a0)(*(void **)0x46f080, field_8_ptr);
+        ((void (*)(void *, void **))0x11e7a0)(*(void *volatile *)0x46f080,
+                                              field_8_ptr);
       }
 
       datum_delete(obj_data, idx);
@@ -1398,9 +1400,9 @@ void objects_dispose_from_old_map(void)
       *field_8_ptr = 0;
       *(uint8_t *)(elem + 0x2) = 0;
 
-      idx = data_next_index(*(data_t **)0x5a8d50, idx);
+      idx = data_next_index(*(data_t *volatile *)0x5a8d50, idx);
     }
-    data_make_invalid(*(data_t **)0x5a8d50);
+    data_make_invalid(*(data_t *volatile *)0x5a8d50);
   }
 
   /* Dispose cluster partition sub-tables */
@@ -1442,7 +1444,7 @@ void objects_dispose(void)
       *obj_data_ptr = 0;
     }
   } else {
-    data_t *obj_data = *(data_t **)0x5a8d50;
+    data_t *obj_data = *(data_t *volatile *)0x5a8d50;
     data_dispose(obj_data);
   }
 
@@ -1467,8 +1469,8 @@ void objects_dispose(void)
  */
 void object_activate(int object_handle)
 {
-  object_header_data_t *hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
   if ((hdr->unk_2 & 0x01) == 0 && (obj->flags & 0x100000) == 0 &&
@@ -1490,8 +1492,8 @@ void object_activate(int object_handle)
  */
 void FUN_0013fb80(int object_handle)
 {
-  object_header_data_t *hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
   (void)obj; /* return value unused but call required for verification */
@@ -1551,7 +1553,8 @@ void FUN_0013fc20(void *placement, int tag_index, int parent_handle)
   *(int16_t *)(p + 0x16) = 0;
 
   /* Resolve parent: datum_absolute_index_to_index returns header or 0 */
-  header = datum_absolute_index_to_index(*(data_t **)0x5a8d50, parent_handle);
+  header =
+    datum_absolute_index_to_index(*(data_t *volatile *)0x5a8d50, parent_handle);
   if (header == 0 || (1 << (*(uint8_t *)(header + 0x3) & 0x1f)) == 0 ||
       *(int *)(header + 0x8) == 0) {
     /* No valid parent */
@@ -1605,8 +1608,8 @@ void object_disconnect_from_map(int object_handle)
   object_header_data_t *header;
   object_data_t *obj;
 
-  header =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  header = (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50,
+                                             object_handle);
   obj = header->object;
 
   /* assert: identifier portion of handle must be nonzero */
@@ -1639,8 +1642,8 @@ void object_disconnect_from_map(int object_handle)
 
     /* If header bit 0x40 is set, re-fetch header and clear bit 0x1 */
     if (header->unk_2 & 0x40) {
-      object_header_data_t *header2 =
-        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+      object_header_data_t *header2 = (object_header_data_t *)datum_get(
+        *(data_t *volatile *)0x5a8d50, object_handle);
       object_get_and_verify_type(object_handle, -1);
       if (header2->unk_2 & 0x1) {
         header2->unk_2 &= ~0x1;
@@ -1744,8 +1747,8 @@ bool object_has_node(int object_handle, int16_t node_index)
  */
 void FUN_0013ff50(int object_handle, char param_2)
 {
-  object_header_data_t *hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
@@ -1844,8 +1847,8 @@ lab_0014000a:
 
 lab_00140017: {
   /* Commit the datum-level flags. */
-  object_header_data_t *hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   if ((char)flag == 0) {
     /* Mark as garbage: set bit 0 of obj->flags, clear hdr->unk_2 bit 1. */
     obj->flags |= 1;
@@ -1869,7 +1872,7 @@ void object_get_root_location(int object_handle, float *position_out,
 
   while (*(int *)(obj + 0xcc) != -1) {
     object_header_data_t *header = (object_header_data_t *)datum_get(
-      *(data_t **)0x5a8d50, *(int *)(obj + 0xcc));
+      *(data_t *volatile *)0x5a8d50, *(int *)(obj + 0xcc));
     obj = (char *)header->object;
 
     {
@@ -2113,8 +2116,8 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
       handle =
         cluster_partition_iter_first((void *)0x5a8d40, iter_state, cluster_idx);
       while (handle != -1) {
-        object_header_data_t *header =
-          (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+        object_header_data_t *header = (object_header_data_t *)datum_get(
+          *(data_t *volatile *)0x5a8d50, handle);
         object_data_t *obj = header->object;
 
         if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
@@ -2133,8 +2136,8 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
           system_exit(-1);
         }
 
-        if (obj->marker_generation != *(uint32_t *)0x5a8d28) {
-          obj->marker_generation = *(uint32_t *)0x5a8d28;
+        if (obj->marker_generation != *(volatile uint32_t *)0x5a8d28) {
+          obj->marker_generation = *(volatile uint32_t *)0x5a8d28;
           if (found >= max_count) {
             if (!object_globals->object_marker_initialized) {
               display_assert("object_globals->object_marker_initialized",
@@ -2157,8 +2160,8 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
       handle = cluster_partition_iter_first((void *)0x5a8d30, iter_state2,
                                             cluster_idx);
       while (handle != -1) {
-        object_header_data_t *header =
-          (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+        object_header_data_t *header = (object_header_data_t *)datum_get(
+          *(data_t *volatile *)0x5a8d50, handle);
         object_data_t *obj = header->object;
 
         if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
@@ -2177,8 +2180,8 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
           system_exit(-1);
         }
 
-        if (obj->marker_generation != *(uint32_t *)0x5a8d28) {
-          obj->marker_generation = *(uint32_t *)0x5a8d28;
+        if (obj->marker_generation != *(volatile uint32_t *)0x5a8d28) {
+          obj->marker_generation = *(volatile uint32_t *)0x5a8d28;
           if (found >= max_count) {
             if (!object_globals->object_marker_initialized) {
               display_assert("object_globals->object_marker_initialized",
@@ -2221,7 +2224,7 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
 int object_name_list_get_handle(int16_t index)
 {
   if (index >= 0 && index < 0x200) {
-    int *name_table = *(int **)0x46f07c;
+    int *name_table = *(int *volatile *)0x46f07c;
     return name_table[(int)index];
   }
   return 0xffffffff;
@@ -2263,8 +2266,8 @@ int object_name_list_get_handle(int16_t index)
  */
 void object_delete_internal(int object_handle, int delete_sibling)
 {
-  object_header_data_t *hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
@@ -2302,7 +2305,8 @@ void object_delete_internal(int object_handle, int delete_sibling)
   }
 
   /* Re-fetch datum header (recursive calls may have moved pool memory). */
-  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  hdr = (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50,
+                                          object_handle);
 
   /* Set obj->flags bit 0 (deleted/inactive). */
   obj->flags |= 1;
@@ -2350,8 +2354,8 @@ void object_delete(int object_handle)
  */
 void object_connect_to_map(int object_handle, void *location)
 {
-  object_header_data_t *hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   object_data_t *obj = hdr->object;
 
   if ((object_handle & 0xffff0000) == 0) {
@@ -2411,7 +2415,7 @@ void object_connect_to_map(int object_handle, void *location)
       if (hdr->unk_4 != 0xffff) {
         int16_t cluster = (int16_t)hdr->unk_4;
         int *pvs = (int *)players_get_combined_pvs();
-        if ((pvs[cluster >> 5] & (1 << (cluster & 0x1f))) != 0) {
+        if ((pvs[cluster >> 5] & (1u << (cluster & 0x1f))) != 0) {
           object_activate(object_handle);
           goto done;
         }
@@ -2706,8 +2710,8 @@ void object_detach_from_parent(int object_handle)
 
   object_connect_to_map(object_handle, NULL);
 
-  object_header_data_t *header =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *header = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, object_handle);
   child = (object_data_t *)object_get_and_verify_type(object_handle, -1);
   if (!(header->unk_2 & 1) && !(child->flags & 0x100000) &&
       child->parent_object_index.value == NONE) {
@@ -2938,7 +2942,7 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
   for (i = 0; i < iter_count && found_count < max_count; i++) {
     int handle = object_indices[i];
     object_header_data_t *header =
-      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+      (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50, handle);
     object_data_t *obj = header->object;
 
     if ((1 << ((uint8_t)obj->type & 0x1f)) == 0) {
@@ -4171,14 +4175,14 @@ int FUN_00143c80(void *placement)
     char *type_def = (char *)FUN_0013c100((int16_t)type_word);
     int16_t datum_size = *(int16_t *)(type_def + 0x8);
 
-    object_handle = FUN_0013ded0(*(data_t **)0x5a8d50, datum_size, -1);
+    object_handle = FUN_0013ded0(*(data_t *volatile *)0x5a8d50, datum_size, -1);
   }
 
   if (object_handle == -1)
     goto out_of_objects;
 
   /* --- Get header and object pointers --- */
-  header = (char *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  header = (char *)datum_get(*(data_t *volatile *)0x5a8d50, object_handle);
   obj = (char *)object_get_and_verify_type(object_handle, -1);
 
   /* Set header flags and type */
@@ -4240,7 +4244,7 @@ int FUN_00143c80(void *placement)
   /* --- Initialise various fields to defaults --- */
   *(int16_t *)(obj + 0x4c) = -1;
   *(int16_t *)(header + 0x4) = -1;
-  *(uint32_t *)(obj + 0x8) = *(uint32_t *)0x5a8d28 - 1;
+  *(uint32_t *)(obj + 0x8) = *(volatile uint32_t *)0x5a8d28 - 1;
   *(int *)(obj + 0xa0) = -1;
   *(int *)(obj + 0xbc) = -1;
   *(int16_t *)(obj + 0x80) = -1;
@@ -4355,7 +4359,7 @@ int FUN_00143c80(void *placement)
 
   /* --- Failure: free the allocated datum --- */
   FUN_0013c560(object_handle);
-  FUN_0013df70(*(data_t **)0x5a8d50);
+  FUN_0013df70(*(data_t *volatile *)0x5a8d50);
   object_handle = -1;
 
 out_of_objects: {
@@ -4400,7 +4404,7 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   /* Walk the parent chain to verify we are not creating a cycle. */
   while (iter != -1) {
     object_header_data_t *hdr =
-      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, iter);
+      (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50, iter);
     object_data_t *obj_iter = hdr->object;
     int16_t obj_type = obj_iter->type;
 
@@ -4470,16 +4474,16 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   }
 
   /* Update child header flags. */
-  object_header_data_t *child_hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
+  object_header_data_t *child_hdr = (object_header_data_t *)datum_get(
+    *(data_t *volatile *)0x5a8d50, child_handle);
   object_get_and_verify_type(child_handle, -1);
 
   if (child_hdr->unk_2 & 0x01) {
     child_hdr->unk_2 &= 0xfe;
   }
 
-  child_hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
+  child_hdr = (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50,
+                                                child_handle);
   child_hdr->unk_2 |= 0x10;
 
   object_compute_node_matrices(child_handle);
@@ -4516,15 +4520,15 @@ bool object_try_place(int object_handle, float *position)
   result = false;
 
   /* Push collision user stack entry (user = 0x13). */
-  if (*(int16_t *)0x4761d8 >= 0x20) {
+  if (*(volatile int16_t *)0x4761d8 >= 0x20) {
     display_assert("global_current_collision_user_depth < "
                    "MAXIMUM_COLLISION_USER_STACK_DEPTH",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x93d, true);
     system_exit(-1);
   }
   {
-    int depth = (int)*(int16_t *)0x4761d8;
-    *(int16_t *)0x4761d8 += 1;
+    int depth = (int)*(volatile int16_t *)0x4761d8;
+    *(volatile int16_t *)0x4761d8 += 1;
     *(int16_t *)(0x5a8c80 + depth * 2) = 0x13;
   }
 
@@ -4550,12 +4554,12 @@ bool object_try_place(int object_handle, float *position)
 
 done:
   /* Pop collision user stack entry. */
-  if (*(int16_t *)0x4761d8 <= 1) {
+  if (*(volatile int16_t *)0x4761d8 <= 1) {
     display_assert("global_current_collision_user_depth > 1",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x953, true);
     system_exit(-1);
   }
-  *(int16_t *)0x4761d8 -= 1;
+  *(volatile int16_t *)0x4761d8 -= 1;
 
   return result;
 }
@@ -4589,8 +4593,8 @@ void object_update_children_recursive(int object_handle)
   /* walk the child object chain */
   int child_handle = obj->unk_200.value;
   while (child_handle != -1) {
-    object_header_data_t *child_header =
-      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
+    object_header_data_t *child_header = (object_header_data_t *)datum_get(
+      *(data_t *volatile *)0x5a8d50, child_handle);
     object_data_t *child_obj = child_header->object;
     int16_t child_type = child_obj->type;
 
@@ -4747,7 +4751,8 @@ void FUN_001449b0(int object_handle, int delete_sibling)
   }
 
   /* Get datum header and clear collideable bit if set. */
-  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  hdr = (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50,
+                                          object_handle);
   object_get_and_verify_type(object_handle, -1);
   if (hdr->unk_2 & 0x01) {
     hdr->unk_2 &= (uint8_t)~0x01;
@@ -4774,14 +4779,15 @@ void FUN_001449b0(int object_handle, int delete_sibling)
   FUN_0013c560(object_handle);
 
   /* Free memory pool block if allocated. */
-  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  hdr = (object_header_data_t *)datum_get(*(data_t *volatile *)0x5a8d50,
+                                          object_handle);
   field_8_ptr = (void *)&hdr->object;
   if (hdr->object != 0) {
-    memory_pool_block_free(*(void **)0x46f080, (void **)field_8_ptr);
+    memory_pool_block_free(*(void *volatile *)0x46f080, (void **)field_8_ptr);
   }
 
   /* Delete datum from pool. */
-  datum_delete(*(data_t **)0x5a8d50, object_handle);
+  datum_delete(*(data_t *volatile *)0x5a8d50, object_handle);
 
   /* Clear remaining fields. */
   *(object_data_t **)field_8_ptr = 0;
@@ -4884,8 +4890,9 @@ void FUN_00144b30(int object_handle)
 void objects_update(void)
 {
   /* --- profiling entry (gated on two flags) --- */
-  if ((*(uint8_t *)0x449ef1 != 0) && (*(uint8_t *)0x324640 != 0)) {
-    profile_enter_private(*(void **)0x324638);
+  if ((*(volatile uint8_t *)0x449ef1 != 0) &&
+      (*(volatile uint8_t *)0x324640 != 0)) {
+    profile_enter_private(*(void *volatile *)0x324638);
   }
 
   /* --- double-speed player flag --- */
@@ -4939,7 +4946,7 @@ void objects_update(void)
 
   /* --- PVS-driven activation/deactivation pass --- */
   if (pvs_changed != 0) {
-    data_t *obj_data = *(data_t **)0x5a8d50;
+    data_t *obj_data = *(data_t *volatile *)0x5a8d50;
     /* Array base: *(void**)(obj_data+0x34); count: *(int16_t*)(obj_data+0x2e).
      * Confirmed: MOV ESI,[EAX+0x34]; XOR EBX,EBX; CMP word [EAX+0x2e],BX */
     uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
@@ -4947,7 +4954,7 @@ void objects_update(void)
     for (int16_t i = 0; i < count; i++, hdr += 0xc) {
       /* Reload count from live pointer at loop bottom.
        * Confirmed: MOV ECX,[0x5a8d50]; CMP BX,word [ECX+0x2e] at 0x1452d8. */
-      count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
+      count = *(int16_t *)((uint8_t *)(*(data_t *volatile *)0x5a8d50) + 0x2e);
 
       /* Skip empty slots */
       if (*(int16_t *)hdr == 0)
@@ -5019,14 +5026,14 @@ void objects_update(void)
   /* Reload array base — may have been invalidated by the PVS pass.
    * Confirmed: MOV EAX,[0x5a8d50]; MOV EDI,[EAX+0x34] at 0x1452fd. */
   {
-    data_t *obj_data = *(data_t **)0x5a8d50;
+    data_t *obj_data = *(data_t *volatile *)0x5a8d50;
     uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
     int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
 
     for (int16_t i = 0; i < count; i++, hdr += 0xc) {
       /* Reload count each iteration (confirmed at 0x1453de-0x1453eb).
        * Confirmed: MOV EAX,[0x5a8d50]; ... CMP DX,word [EAX+0x2e] */
-      count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
+      count = *(int16_t *)((uint8_t *)(*(data_t *volatile *)0x5a8d50) + 0x2e);
 
       if (*(int16_t *)hdr == 0)
         continue;
@@ -5042,7 +5049,7 @@ void objects_update(void)
        * Confirmed: MOVSX ESI,CX (salt); MOVSX ECX,DX (index); SHL ESI,0x10;
        *            OR EBX,0xffffffff; OR ESI,ECX. */
       int16_t salt = *(int16_t *)hdr;
-      int handle = ((int)(int16_t)salt << 16) | (int)(int16_t)i;
+      int handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
 
       /* Assert: object must be a root (parent == -1) */
       {
@@ -5093,14 +5100,14 @@ void objects_update(void)
   /* Confirmed: XOR EDI,EDI (index counter); MOV BL,0xef (& mask for bit 4).
    * Reload base: MOV ESI,[EAX+0x34] at 0x1453f4 after loop 2. */
   {
-    data_t *obj_data = *(data_t **)0x5a8d50;
+    data_t *obj_data = *(data_t *volatile *)0x5a8d50;
     uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
     int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
 
     for (int16_t i = 0; i < count; i++, hdr += 0xc) {
       /* Reload count each iteration.
        * Confirmed: MOV ECX,[0x5a8d50]; CMP DI,word [ECX+0x2e] at 0x14544a. */
-      count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
+      count = *(int16_t *)((uint8_t *)(*(data_t *volatile *)0x5a8d50) + 0x2e);
 
       if (*(int16_t *)hdr == 0)
         continue;
@@ -5118,7 +5125,7 @@ void objects_update(void)
         flags &= (uint8_t)0xfb;
         *(uint8_t *)(hdr + 0x2) = flags;
         int16_t salt = *(int16_t *)hdr;
-        int handle = ((int)(int16_t)salt << 16) | (int)(int16_t)i;
+        int handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
         ((int (*)(int))0x1444f0)(handle);
       }
 
@@ -5126,7 +5133,7 @@ void objects_update(void)
        * Confirmed: TEST byte [ESI+2],0x8; JZ ...; ... CALL 0x1449b0. */
       if ((*(uint8_t *)(hdr + 0x2) & 0x8) != 0) {
         int16_t salt = *(int16_t *)hdr;
-        int handle = ((int)(int16_t)salt << 16) | (int)(int16_t)i;
+        int handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
         FUN_001449b0(handle, 0);
       }
     }
@@ -5138,7 +5145,8 @@ void objects_update(void)
   ((void (*)(void))0x144b50)();
 
   /* --- profiling exit --- */
-  if ((*(uint8_t *)0x449ef1 != 0) && (*(uint8_t *)0x324640 != 0)) {
-    profile_exit_private(*(void **)0x324638);
+  if ((*(volatile uint8_t *)0x449ef1 != 0) &&
+      (*(volatile uint8_t *)0x324640 != 0)) {
+    profile_exit_private(*(void *volatile *)0x324638);
   }
 }

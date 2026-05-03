@@ -67,6 +67,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 	set(CMAKE_BUILD_TYPE "Release")
 endif()
 
+set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+
 if(MSVC)
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		message(FATAL_ERROR "You are attempting to build for x86-64 (64-bit). Delete the build directory, then specify -AWin32 when configuring with CMake to build for x86 (32-bit).")
@@ -90,6 +92,7 @@ endif()
 add_executable(halo)
 
 add_subdirectory(src)
+
 target_sources(halo PRIVATE
 	${gen_dir}/thunks.c
 	${gen_dir}/build_info.c
