@@ -138,3 +138,21 @@ void FUN_0001d030(int actor_handle, int new_action_type, int param_3)
     handler(actor_handle);
   }
 }
+
+/* FUN_0001d5c0 (0x1d5c0) — action_type_get_name
+ *
+ * Returns the name string for a given action type index from the
+ * action_definitions table. Returns "unknown" if out of range.
+ *
+ * Confirmed: range check [0, 14) at 0x1d5c7/0x1d5d1.
+ * Confirmed: IMUL EAX,EAX,0x38 (stride 56) at 0x1d5da.
+ * Confirmed: name ptr at [EAX + 0x253fa4] (table base+0x04).
+ * Confirmed: default "unknown" string at 0x254608. */
+const char *FUN_0001d5c0(int16_t action_type)
+{
+  const char *name = (const char *)0x254608;
+  if (action_type >= 0 && action_type < 0xe) {
+    name = *(const char **)(0x253fa4 + action_type * 0x38);
+  }
+  return name;
+}

@@ -1120,7 +1120,8 @@
         },
         {
           "addr": "0x1d5c0",
-          "decl": "const char *FUN_0001d5c0(int16_t action_type);"
+          "decl": "const char *FUN_0001d5c0(int16_t action_type);",
+          "ported": true
         }
       ],
       "data": [
