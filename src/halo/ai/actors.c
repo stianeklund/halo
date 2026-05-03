@@ -2055,6 +2055,176 @@ LAB_3e02c:
   *(int *)(actor + 0x1c4) = *(int *)(biped + 0xa4);
 }
 
+/* FUN_0003e7a0 (0x3e7a0) — actor_apply_control_data
+ *
+ * Applies a pre-computed AI control snapshot (actor+0x6d0..0x720 range) to the
+ * unit owned by the actor, performing vector validity assertions first. Called
+ * as the final step of actor_activate (FUN_0003ec80) after all AI subsystems
+ * have been initialized.
+ *
+ * Confirmed: actor_handle passed in EAX (@<eax>, regparm). MOV EAX,ESI at
+ *   caller 0x3ed9c before CALL 0x3e7a0 — ESI = actor_handle throughout caller.
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3e7b1; result → ESI.
+ * Confirmed: object_get_and_verify_type(actor+0x18, 3) at 0x3e7be; result → EBX
+ *   (unit type tag record, used for actor_type->0x1c8 check).
+ * Confirmed: animation_state byte = byte[actor+0x6dc*2 + 0x256c94] at 0x3e7c5.
+ *   MOVSX EAX,word[ESI+0x6dc]; MOV CL,byte[EAX*2+0x256c94].
+ * Confirmed: control_flags word at actor+0x6d0 → struct+0x02 at 0x3e7d6.
+ * Confirmed: primary_trigger dword at actor+0x720 → struct+0x18 at 0x3e7e1.
+ * Confirmed: throttle xyz from actor+0x6e0..0x6e8 → struct+0x0c..0x14 via LEA
+ *   ECX,[ESI+0x6e0] at 0x3e7ea; stores to [EBP-0x34/0x30/0x2c] (= +0x0c/10/14).
+ * Confirmed: aiming_speed byte at actor+0x6f8 → struct+0x01 at 0x3e801.
+ * Confirmed: facing_vector from actor+0x6fc..0x704 → struct+0x1c..0x24 at
+ *   0x3e80a (LEA EAX,[ESI+0x6fc]).
+ * Confirmed: aiming_vector from actor+0x708..0x710 → struct+0x28..0x30 at
+ *   0x3e821 (LEA ECX,[ESI+0x708]).
+ * Confirmed: looking_vector from actor+0x714..0x71c → struct+0x34..0x3c at
+ *   0x3e838 (LEA EDX,[ESI+0x714]).
+ * Confirmed: weapon/grenade/zoom_level set to 0xffff via OR EDI,0xffffffff at
+ *   0x3e846; three word stores [EBP-0x3c/0x3a/0x38] (= struct+0x04/06/08).
+ * Confirmed: actor+0x99 byte check (0 = on-foot) gates valid_real_normal2d
+ *   check at 0x3e85e/0x3e867/0x3e869.
+ * Confirmed: valid_real_normal2d(&facing) at 0x3e86f; string
+ *   "(real_vector2d *) &control_data.facing_vector", line 0xf06.
+ * Confirmed: valid_real_normal3d(&facing) at 0x3e8c1; string
+ *   "&control_data.facing_vector", line 0xf08.
+ * Confirmed: valid_real_normal3d(&aiming) at 0x3e91a; string
+ *   "&control_data.aiming_vector", line 0xf09.
+ * Confirmed: valid_real_normal3d(&looking) at 0x3e973; string
+ *   "&control_data.looking_vector", line 0xf0a.
+ * Confirmed: throttle FABS+FCOMP against double[0x2573d8]=1.0 at
+ *   0x3e9c8..0x3e9fc; JP branches: outer condition fires if ANY |throttle|
+ * > 1.0. Assert string: "(fabs...)...", line 0xf0b; display_assert without
+ * csprintf. Confirmed: [EBX+0x1c8] != -1 test at 0x3ea1d; if non-(-1), call
+ *   player_input_enabled(); return early if returns non-zero at 0x3ea2a.
+ * Confirmed: actor+7 != 0 → FUN_001adf10(actor+0x18, 1) + clear actor+7 at
+ *   0x3ea2e..0x3ea43.
+ * Confirmed: unit_set_control(actor+0x18, &control) at 0x3ea4f.
+ * Confirmed: actor+0x6ec != -1 → FUN_001b1a20(actor+0x18,
+ * (int)(uint16)(actor+0x6ec), actor+0x6f0) at 0x3ea65; XOR EAX,EAX; MOV
+ * AX,word[ESI+0x6ec] = zero-extend. Confirmed: actor+0x6d4 > 0 →
+ * FUN_001a8190(actor+0x18, MOVSX(actor+0x6d4), actor+0x6d8) at 0x3ea85; MOVSX
+ * EDX,AX sign-extends the short. Inferred: actor+0x6dc = animation_state_index
+ * (maps through 0x256c94 table). Inferred: actor+0x6f0 = pointer/data block
+ * passed as 3rd arg to FUN_001b1a20. Inferred: actor+0x6d4 =
+ * animation_tick_count (short); actor+0x6d8 = animation control flags dword for
+ * FUN_001a8190. Uncertain: exact semantics of FUN_001b1a20's 2nd arg
+ * (zero-extended index).
+ */
+void FUN_0003e7a0(int actor_handle /* @<eax> */)
+{
+  char *actor;
+  char *unit;
+  char control[0x40];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+
+  /* Build the unit control struct from actor's control data fields */
+  *(uint8_t *)(control + 0x00) =
+    ((uint8_t *)0x256c94)[*(int16_t *)(actor + 0x6dc) * 2];
+  *(uint8_t *)(control + 0x01) = *(uint8_t *)(actor + 0x6f8);
+  *(uint16_t *)(control + 0x02) = *(uint16_t *)(actor + 0x6d0);
+  *(uint16_t *)(control + 0x04) = (uint16_t)0xffff;
+  *(uint16_t *)(control + 0x06) = (uint16_t)0xffff;
+  *(uint16_t *)(control + 0x08) = (uint16_t)0xffff;
+  *(float *)(control + 0x0c) = *(float *)(actor + 0x6e0);
+  *(float *)(control + 0x10) = *(float *)(actor + 0x6e4);
+  *(float *)(control + 0x14) = *(float *)(actor + 0x6e8);
+  *(uint32_t *)(control + 0x18) = *(uint32_t *)(actor + 0x720);
+  *(float *)(control + 0x1c) = *(float *)(actor + 0x6fc);
+  *(float *)(control + 0x20) = *(float *)(actor + 0x700);
+  *(float *)(control + 0x24) = *(float *)(actor + 0x704);
+  *(float *)(control + 0x28) = *(float *)(actor + 0x708);
+  *(float *)(control + 0x2c) = *(float *)(actor + 0x70c);
+  *(float *)(control + 0x30) = *(float *)(actor + 0x710);
+  *(float *)(control + 0x34) = *(float *)(actor + 0x714);
+  *(float *)(control + 0x38) = *(float *)(actor + 0x718);
+  *(float *)(control + 0x3c) = *(float *)(actor + 0x71c);
+
+  /* Validate facing vector: 2D check only when on-foot (actor+0x99 == 0) */
+  if (*(char *)(actor + 0x99) == 0) {
+    if (!valid_real_normal2d((float *)(control + 0x1c))) {
+      csprintf(error_string_buffer, "%s: assert_valid_real_normal2d(%f, %f)",
+               "(real_vector2d *) &control_data.facing_vector",
+               (double)*(float *)(control + 0x1c),
+               (double)*(float *)(control + 0x20));
+      display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c",
+                     0xf06, 1);
+      system_exit(-1);
+    }
+  }
+
+  /* Validate facing, aiming, looking vectors as 3D normals */
+  if (!valid_real_normal3d((float *)(control + 0x1c))) {
+    csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&control_data.facing_vector", (double)*(float *)(control + 0x1c),
+             (double)*(float *)(control + 0x20),
+             (double)*(float *)(control + 0x24));
+    display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xf08,
+                   1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d((float *)(control + 0x28))) {
+    csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&control_data.aiming_vector", (double)*(float *)(control + 0x28),
+             (double)*(float *)(control + 0x2c),
+             (double)*(float *)(control + 0x30));
+    display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xf09,
+                   1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d((float *)(control + 0x34))) {
+    csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&control_data.looking_vector", (double)*(float *)(control + 0x34),
+             (double)*(float *)(control + 0x38),
+             (double)*(float *)(control + 0x3c));
+    display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xf0a,
+                   1);
+    system_exit(-1);
+  }
+
+  /* Validate throttle components are all <= 1.0 */
+  if (fabsf(*(float *)(control + 0x0c)) > (float)*(double *)0x2573d8 ||
+      fabsf(*(float *)(control + 0x10)) > (float)*(double *)0x2573d8 ||
+      fabsf(*(float *)(control + 0x14)) > (float)*(double *)0x2573d8) {
+    display_assert("(fabs(control_data.throttle.i) <= 1.0f) && "
+                   "(fabs(control_data.throttle.j) <= 1.0f) && "
+                   "(fabs(control_data.throttle.k) <= 1.0f)",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0xf0b, 1);
+    system_exit(-1);
+  }
+
+  /* If unit has a controlling player (actor_type at unit+0x1c8 != -1) and
+   * player input is enabled, skip applying AI control */
+  if (*(int *)(unit + 0x1c8) != -1 && player_input_enabled()) {
+    return;
+  }
+
+  /* If actor was flagged for control reset (actor+7 != 0), apply reset
+   * input to unit and clear the flag */
+  if (*(char *)(actor + 7) != 0) {
+    FUN_001adf10(*(int *)(actor + 0x18), 1);
+    *(char *)(actor + 7) = 0;
+  }
+
+  /* Apply the control snapshot to the unit */
+  unit_set_control(*(int *)(actor + 0x18), control);
+
+  /* If an animation is pending (actor+0x6ec != -1), apply it */
+  if ((uint16_t) * (uint16_t *)(actor + 0x6ec) != 0xffff) {
+    FUN_001b1a20(*(int *)(actor + 0x18),
+                 (int)(uint16_t) * (uint16_t *)(actor + 0x6ec), actor + 0x6f0);
+  }
+
+  /* If animation ticks are pending (actor+0x6d4 > 0), advance animation */
+  if ((int16_t) * (int16_t *)(actor + 0x6d4) > 0) {
+    FUN_001a8190(*(int *)(actor + 0x18),
+                 (int)(int16_t) * (int16_t *)(actor + 0x6d4),
+                 *(int *)(actor + 0x6d8));
+  }
+}
+
 /* FUN_0003ec80 (0x3ec80) — actor_activate (full AI init sequence for one actor)
  *
  * Called from FUN_0003f5f0 (ai.obj) when actor+0x6a > 0 (activation counter

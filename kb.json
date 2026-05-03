@@ -1304,7 +1304,8 @@
         },
         {
           "addr": "0x3e7a0",
-          "decl": "void FUN_0003e7a0(int actor_handle@<eax>);"
+          "decl": "void FUN_0003e7a0(int actor_handle /* @<eax> */);",
+          "ported": true
         },
         {
           "addr": "0x3ec80",
@@ -7967,6 +7968,10 @@
           "decl": "bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index);",
           "addr": "0x1b2b80",
           "ported": true
+        },
+        {
+          "addr": "0x1b1a20",
+          "decl": "int FUN_001b1a20(int unit_handle, int anim_index, void *anim_data);"
         }
       ]
     },
