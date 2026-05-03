@@ -1312,7 +1312,8 @@
         },
         {
           "addr": "0x3bde0",
-          "decl": "void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block);"
+          "decl": "void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block);",
+          "ported": true
         },
         {
           "addr": "0x3baa0",

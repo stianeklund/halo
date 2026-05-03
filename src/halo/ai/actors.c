@@ -904,6 +904,45 @@ void FUN_0003bbf0(int actor_handle /* @<eax> */)
   *(short *)(actor + 0x6ec) = (short)0xffff;
 }
 
+/* FUN_0003bde0 (0x3bde0) — actor_fill_unit_input_block
+ *
+ * Populates an input block structure with the unit's world position,
+ * velocity vector from object+0x24, physics position via FUN_001a9200,
+ * root location, and root parent's object+0x48/0x4c fields.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3bdec.
+ * Confirmed: object_get_world_position(unit_handle, input_block+0xc) at
+ * 0x3bdfb. Confirmed: 12-byte copy from obj+0x24 to input_block+0x18 at
+ * 0x3be03. Confirmed: FUN_001a9200(unit_handle, input_block) at 0x3be18.
+ * Confirmed: object_get_root_location(unit_handle, input_block+0x2c, 0) at
+ * 0x3be24. Confirmed: object_get_root_parent(unit_handle) at 0x3be2a.
+ * Confirmed: object_get_and_verify_type(root, -1) at 0x3be32.
+ * Confirmed: root_obj+0x48/0x4c copied to input_block+0x24/0x28. */
+void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
+{
+  char *unit_obj;
+  char *root_obj;
+  int root_handle;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  object_get_world_position(unit_handle, (vector3_t *)(input_block + 0xc));
+
+  *(int *)(input_block + 0x18) = *(int *)(unit_obj + 0x24);
+  *(int *)(input_block + 0x1c) = *(int *)(unit_obj + 0x28);
+  *(int *)(input_block + 0x20) = *(int *)(unit_obj + 0x2c);
+
+  FUN_001a9200(unit_handle, (int *)input_block);
+
+  object_get_root_location(unit_handle, (float *)(input_block + 0x2c), 0);
+
+  root_handle = object_get_root_parent(unit_handle);
+  root_obj = (char *)object_get_and_verify_type(root_handle, -1);
+
+  *(int *)(input_block + 0x24) = *(int *)(root_obj + 0x48);
+  *(int *)(input_block + 0x28) = *(int *)(root_obj + 0x4c);
+}
+
 /* FUN_0003be90 (0x3be90) — actor run internal logic / infinite-loop watchdog
  *
  * Runs the actor's decision loop up to 10 times, recording the last 5 action
