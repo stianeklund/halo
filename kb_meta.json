@@ -5266,6 +5266,24 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a9560": {
+      "kind": "function",
+      "status": "ported",
+      "name": "unit_impulse_to_animation_kind",
+      "name_confidence": "confirmed"
+    },
+    "0x1a96f0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "unit_animation_state_allows_impulse",
+      "name_confidence": "confirmed",
+      "inferred": [
+        "Uses caller-leaked EDI (impulse_index) to gate impulses 0xc and 0xd: they are blocked when there is no parent, and conditionally allowed when mounted (bit 8 of seat_anim[0])."
+      ],
+      "uncertain": [
+        "Exact set of blocking animation states from switch table 0x1a97a8 \u2014 cases 0x17-0x1b, 0x1d-0x23, 0x27, 0x29 confirmed; gaps 0x1c and 0x24-0x26, 0x28 not independently verified."
+      ]
+    },
     "0x1a9900": {
       "kind": "function",
       "status": "ported"
@@ -5460,6 +5478,12 @@
         "FUN_001ae490 computes next weapon index; FUN_000fd360 attempts weapon placement; FUN_000de360 fires a unit event; FUN_001ab990 is a weapon-stow notification; FUN_000faf50 checks if weapon should be kept alive."
       ]
     },
+    "0x1af180": {
+      "kind": "function",
+      "status": "ported",
+      "name": "unit_apply_alignment_vector",
+      "name_confidence": "confirmed"
+    },
     "0x1af620": {
       "kind": "function",
       "status": "ported",
@@ -5491,6 +5515,19 @@
       "inferred": [
         "Weapon tag offset 0x4bc is a sound tag index for zoom-deactivation sound.",
         "Player datum offset +2 is checked against -1 to verify player validity before playing sound."
+      ]
+    },
+    "0x1b1a20": {
+      "kind": "function",
+      "status": "ported",
+      "name": "unit_apply_animation_impulse",
+      "name_confidence": "confirmed",
+      "comments": {
+        "summary": "Applies an animation impulse (0-13) to a unit: validates state, looks up kind in antr tag, sets interpolation, plays chosen animation, optionally applies alignment vector."
+      },
+      "inferred": [
+        "The anim_data parameter (void*) is passed as the alignment_vector to FUN_001af180; it's a float[2] (2D normal) representing a facing direction in the ground plane.",
+        "The anim_index parameter doubles as the EDI register value passed to unit_animation_state_allows_impulse (0x1a96f0) via register leak \u2014 the callee uses DI to gate impulses 0xc and 0xd."
       ]
     },
     "0x1b1db0": {
