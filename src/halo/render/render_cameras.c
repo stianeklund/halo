@@ -3,9 +3,9 @@
 #define MAXIMUM_RENDER_CAMERA_WARNING_CONDITIONS 64
 
 static char render_camera_warnings_initialized; /* 0x4d0e18 */
-static float
-  render_camera_warning_values[MAXIMUM_RENDER_CAMERA_WARNING_CONDITIONS]; /* 0x4d0d18
-                                                                           */
+static float render_camera_warning_values
+  [MAXIMUM_RENDER_CAMERA_WARNING_CONDITIONS]; /* 0x4d0d18
+                                               */
 
 /* render_camera_check_warning_condition - 0x185770
  * Tracks maximum frustum-integrity violation distances per condition ID.

@@ -475,8 +475,7 @@ void object_move_to_limbo(int object_handle)
 
   /* Re-fetch light data (original code re-calls datum_get here). */
   {
-    char *light2 =
-      (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+    char *light2 = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
     char *ligh_tag = (char *)tag_get(0x6c696768, *(int *)(light2 + 0x4));
 
     tag_flags = *(uint8_t *)ligh_tag;
@@ -656,8 +655,8 @@ void *object_try_and_get_and_verify_type(int datum_handle, int type_mask)
 void *object_get_and_verify_type(int datum_handle, int type_mask)
 {
   /* datum_get: first arg = data table ptr (value at 0x5a8d50) */
-  object_header_data_t *header = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, datum_handle);
+  object_header_data_t *header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, datum_handle);
   object_data_t *obj = header->object;
   int16_t type = obj->type;
 
@@ -843,8 +842,8 @@ void object_set_garbage_flag(int object_handle, int is_garbage)
   {
     int handle = og->unk_8.value;
     while (handle != -1) {
-      object_header_data_t *hdr = (object_header_data_t *)datum_get(
-        *(data_t **)0x5a8d50, handle);
+      object_header_data_t *hdr =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
       object_data_t *gobj = hdr->object;
       int16_t type = gobj->type;
       if ((1 << (type & 0x1f)) == 0) {
@@ -885,8 +884,8 @@ void object_set_garbage_flag(int object_handle, int is_garbage)
     int cur = og->unk_8.value;
 
     while (cur != object_handle) {
-      object_header_data_t *hdr = (object_header_data_t *)datum_get(
-        *(data_t **)0x5a8d50, *prev_ptr);
+      object_header_data_t *hdr =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, *prev_ptr);
       object_data_t *gobj = hdr->object;
       int16_t type = gobj->type;
       if ((1 << (type & 0x1f)) == 0) {
@@ -913,8 +912,8 @@ done:
   {
     int handle = og->unk_8.value;
     while (handle != -1) {
-      object_header_data_t *hdr = (object_header_data_t *)datum_get(
-        *(data_t **)0x5a8d50, handle);
+      object_header_data_t *hdr =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
       object_data_t *gobj = hdr->object;
       int16_t type = gobj->type;
       if ((1 << (type & 0x1f)) == 0) {
@@ -965,8 +964,8 @@ int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint)
   if (handle != -1) {
     char *datum = (char *)datum_get(data, handle);
 
-    if (!memory_pool_block_new(*(void **)0x46f080,
-                               (void **)(datum + 8), (int)datum_size)) {
+    if (!memory_pool_block_new(*(void **)0x46f080, (void **)(datum + 8),
+                               (int)datum_size)) {
       datum_delete(data, handle);
       return -1;
     }
@@ -1003,8 +1002,8 @@ void FUN_0013df70(data_t *data);
  */
 void *object_header_block_reference_get(int object_handle, void *reference)
 {
-  object_header_data_t *header = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   char *object = (char *)object_get_and_verify_type(object_handle, -1);
   int16_t ref_size = *(int16_t *)reference;
   int16_t ref_offset = *(int16_t *)((char *)reference + 2);
@@ -1390,8 +1389,7 @@ void objects_dispose_from_old_map(void)
 
       if (*field_8_ptr != 0) {
         /* Free this object's memory pool allocation */
-        ((void (*)(void *, void **))0x11e7a0)(*(void **)0x46f080,
-                                              field_8_ptr);
+        ((void (*)(void *, void **))0x11e7a0)(*(void **)0x46f080, field_8_ptr);
       }
 
       datum_delete(obj_data, idx);
@@ -1469,8 +1467,8 @@ void objects_dispose(void)
  */
 void object_activate(int object_handle)
 {
-  object_header_data_t *hdr = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
   if ((hdr->unk_2 & 0x01) == 0 && (obj->flags & 0x100000) == 0 &&
@@ -1492,8 +1490,8 @@ void object_activate(int object_handle)
  */
 void FUN_0013fb80(int object_handle)
 {
-  object_header_data_t *hdr = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
   (void)obj; /* return value unused but call required for verification */
@@ -1553,8 +1551,7 @@ void FUN_0013fc20(void *placement, int tag_index, int parent_handle)
   *(int16_t *)(p + 0x16) = 0;
 
   /* Resolve parent: datum_absolute_index_to_index returns header or 0 */
-  header =
-    datum_absolute_index_to_index(*(data_t **)0x5a8d50, parent_handle);
+  header = datum_absolute_index_to_index(*(data_t **)0x5a8d50, parent_handle);
   if (header == 0 || (1 << (*(uint8_t *)(header + 0x3) & 0x1f)) == 0 ||
       *(int *)(header + 0x8) == 0) {
     /* No valid parent */
@@ -1608,8 +1605,8 @@ void object_disconnect_from_map(int object_handle)
   object_header_data_t *header;
   object_data_t *obj;
 
-  header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
-                                             object_handle);
+  header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   obj = header->object;
 
   /* assert: identifier portion of handle must be nonzero */
@@ -1642,8 +1639,8 @@ void object_disconnect_from_map(int object_handle)
 
     /* If header bit 0x40 is set, re-fetch header and clear bit 0x1 */
     if (header->unk_2 & 0x40) {
-      object_header_data_t *header2 = (object_header_data_t *)datum_get(
-        *(data_t **)0x5a8d50, object_handle);
+      object_header_data_t *header2 =
+        (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
       object_get_and_verify_type(object_handle, -1);
       if (header2->unk_2 & 0x1) {
         header2->unk_2 &= ~0x1;
@@ -1747,8 +1744,8 @@ bool object_has_node(int object_handle, int16_t node_index)
  */
 void FUN_0013ff50(int object_handle, char param_2)
 {
-  object_header_data_t *hdr = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
@@ -1847,8 +1844,8 @@ lab_0014000a:
 
 lab_00140017: {
   /* Commit the datum-level flags. */
-  object_header_data_t *hdr = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   if ((char)flag == 0) {
     /* Mark as garbage: set bit 0 of obj->flags, clear hdr->unk_2 bit 1. */
     obj->flags |= 1;
@@ -2116,8 +2113,8 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
       handle =
         cluster_partition_iter_first((void *)0x5a8d40, iter_state, cluster_idx);
       while (handle != -1) {
-        object_header_data_t *header = (object_header_data_t *)datum_get(
-          *(data_t **)0x5a8d50, handle);
+        object_header_data_t *header =
+          (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
         object_data_t *obj = header->object;
 
         if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
@@ -2160,8 +2157,8 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
       handle = cluster_partition_iter_first((void *)0x5a8d30, iter_state2,
                                             cluster_idx);
       while (handle != -1) {
-        object_header_data_t *header = (object_header_data_t *)datum_get(
-          *(data_t **)0x5a8d50, handle);
+        object_header_data_t *header =
+          (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
         object_data_t *obj = header->object;
 
         if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
@@ -2266,8 +2263,8 @@ int object_name_list_get_handle(int16_t index)
  */
 void object_delete_internal(int object_handle, int delete_sibling)
 {
-  object_header_data_t *hdr = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
@@ -2305,8 +2302,7 @@ void object_delete_internal(int object_handle, int delete_sibling)
   }
 
   /* Re-fetch datum header (recursive calls may have moved pool memory). */
-  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
-                                          object_handle);
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
 
   /* Set obj->flags bit 0 (deleted/inactive). */
   obj->flags |= 1;
@@ -2354,8 +2350,8 @@ void object_delete(int object_handle)
  */
 void object_connect_to_map(int object_handle, void *location)
 {
-  object_header_data_t *hdr = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   object_data_t *obj = hdr->object;
 
   if ((object_handle & 0xffff0000) == 0) {
@@ -2710,8 +2706,8 @@ void object_detach_from_parent(int object_handle)
 
   object_connect_to_map(object_handle, NULL);
 
-  object_header_data_t *header = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, object_handle);
+  object_header_data_t *header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   child = (object_data_t *)object_get_and_verify_type(object_handle, -1);
   if (!(header->unk_2 & 1) && !(child->flags & 0x100000) &&
       child->parent_object_index.value == NONE) {
@@ -4474,16 +4470,16 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   }
 
   /* Update child header flags. */
-  object_header_data_t *child_hdr = (object_header_data_t *)datum_get(
-    *(data_t **)0x5a8d50, child_handle);
+  object_header_data_t *child_hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
   object_get_and_verify_type(child_handle, -1);
 
   if (child_hdr->unk_2 & 0x01) {
     child_hdr->unk_2 &= 0xfe;
   }
 
-  child_hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
-                                                child_handle);
+  child_hdr =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
   child_hdr->unk_2 |= 0x10;
 
   object_compute_node_matrices(child_handle);
@@ -4593,8 +4589,8 @@ void object_update_children_recursive(int object_handle)
   /* walk the child object chain */
   int child_handle = obj->unk_200.value;
   while (child_handle != -1) {
-    object_header_data_t *child_header = (object_header_data_t *)datum_get(
-      *(data_t **)0x5a8d50, child_handle);
+    object_header_data_t *child_header =
+      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
     object_data_t *child_obj = child_header->object;
     int16_t child_type = child_obj->type;
 
@@ -4751,8 +4747,7 @@ void FUN_001449b0(int object_handle, int delete_sibling)
   }
 
   /* Get datum header and clear collideable bit if set. */
-  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
-                                          object_handle);
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   object_get_and_verify_type(object_handle, -1);
   if (hdr->unk_2 & 0x01) {
     hdr->unk_2 &= (uint8_t)~0x01;
@@ -4779,8 +4774,7 @@ void FUN_001449b0(int object_handle, int delete_sibling)
   FUN_0013c560(object_handle);
 
   /* Free memory pool block if allocated. */
-  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
-                                          object_handle);
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   field_8_ptr = (void *)&hdr->object;
   if (hdr->object != 0) {
     memory_pool_block_free(*(void **)0x46f080, (void **)field_8_ptr);

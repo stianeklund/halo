@@ -271,7 +271,8 @@ void bink_playback_render_frame(void)
     interface_draw_text(1, 5, 0, 0, -1, 1);
     draw_string_set_color(*(const void **)0x2ee6d4);
     draw_string_set_tab_stops(&frame_info[0], 1);
-    rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4, text_buf);
+    rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4,
+                         text_buf);
 
     /* Check if enough frames have passed to update stats. */
     if (*(int *)0x4ead88 - *(int *)0x4ead84 > 0x1c) {
@@ -298,7 +299,8 @@ void bink_playback_render_frame(void)
       crt_sprintf(text_buf, "SkippedFrames=|t%d (%d)|nSkippedBlits=|t%d|n",
                   skipped_frames, frame_count, skipped_blits);
       draw_string_set_color(*(const void **)0x2ee6d0);
-      rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4, text_buf);
+      rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4,
+                           text_buf);
     }
   }
 }

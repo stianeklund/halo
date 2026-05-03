@@ -71,10 +71,10 @@ int16_t random_range(unsigned int *seed, int16_t min, int16_t max)
   return (int16_t)(((int)(max - min) * (int)(s >> 16) >> 16) + (int)min);
 }
 
-/* Look up a precomputed unit direction from the random direction table (0x10b300).
- * Asserts the table is initialized and index is in range. Copies 3 floats
- * from table[index] to result and returns result.
- * Register args: index in SI, result in EBX. */
+/* Look up a precomputed unit direction from the random direction table
+ * (0x10b300). Asserts the table is initialized and index is in range. Copies 3
+ * floats from table[index] to result and returns result. Register args: index
+ * in SI, result in EBX. */
 float *random_direction_table_get_element(int16_t index, float *result)
 {
   float *element = (float *)(*(int *)0x46e3e8 + (int)index * 12);

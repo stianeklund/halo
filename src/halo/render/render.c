@@ -1,7 +1,7 @@
 void render_initialize(void)
 {
-  cached_object_render_states =
-    game_state_data_new("cached object render states", 0x100, 0x100); /* dup-args-ok */
+  cached_object_render_states = game_state_data_new(
+    "cached object render states", 0x100, 0x100); /* dup-args-ok */
   assert_halt(cached_object_render_states);
 }
 
@@ -10,8 +10,8 @@ void render_initialize_for_new_map(void)
   data_delete_all(cached_object_render_states);
 }
 
-/* Invalidate the cached render states data if it exists and is valid (0x184ba0).
- * Thunk through 0x18afe0. */
+/* Invalidate the cached render states data if it exists and is valid
+ * (0x184ba0). Thunk through 0x18afe0. */
 void j__render_dispose_from_old_map(void)
 {
   int ptr = *(int *)0x50652c;

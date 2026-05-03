@@ -2024,4 +2024,3 @@ void FUN_0017cb10(int decal_index)
 {
   FUN_0015b530(decal_index);
 }
-

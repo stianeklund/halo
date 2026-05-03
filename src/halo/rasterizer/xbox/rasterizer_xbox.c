@@ -144,7 +144,8 @@ void *rasterizer_get_default_hardware_format(void *bitmap_data)
 
   if (!bitmap_data) {
     display_assert("bitmap",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0xd1, true);
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0xd1, true);
     system_exit(-1);
   }
 
@@ -154,7 +155,8 @@ void *rasterizer_get_default_hardware_format(void *bitmap_data)
       result = *(void **)0x3256ac;
     } else {
       display_assert("### ERROR unsupported bitmap type",
-                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0xdf, true);
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0xdf, true);
       system_exit(-1);
       result = bitmap_data;
     }
@@ -164,7 +166,8 @@ void *rasterizer_get_default_hardware_format(void *bitmap_data)
 
   if (!result) {
     display_assert("hardware_format",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0xe2, true);
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0xe2, true);
     system_exit(-1);
   }
 

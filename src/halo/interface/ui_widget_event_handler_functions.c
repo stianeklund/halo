@@ -36,4 +36,6 @@ char ui_widget_focusable(void *widget);
 void *ui_widget_list_column_get(void *widget, int index);
 void ui_widget_set_focus_to_child(int tag_handle, int16_t player_index);
 void ui_widget_set_focus_to_child_focused(void *focused);
-bool ui_widget_event_handler_dispatch(void *widget, int unknown, uint16_t handler_func_index, bool *widget_deleted);
+bool ui_widget_event_handler_dispatch(void *widget, int unknown,
+                                      uint16_t handler_func_index,
+                                      bool *widget_deleted);

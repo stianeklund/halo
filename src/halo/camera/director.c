@@ -37,7 +37,8 @@ void director_dispose(void)
  * Writes 1 to the per-player director state byte at struct offset +0x4e. */
 void director_set_local_player_context(int16_t player_index)
 {
-  assert_halt(player_index >= 0 && player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  assert_halt(player_index >= 0 &&
+              player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
   ((char *)0x335302)[(int)player_index * 0xf8] = 1;
 }
 

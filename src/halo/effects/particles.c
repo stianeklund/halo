@@ -297,12 +297,18 @@ skip_phase2:
 }
 
 /* Create a single particle from spawn parameters (0xa1fd0).
- * Validates velocity, position, and color vectors. Resolves the spawn
- * position through the parent object's node matrix (or first-person weapon
- * node matrix) when attached to an object. Allocates a particle datum,
- * fills it with tag data (lifetime, animation rate, sprite index), copies
- * position/velocity/color from spawn_params, optionally applies physics
- * velocity, samples lighting, and sets up the initial bitmap sequence. */
+ * Validates
+ * velocity, position, and color vectors. Resolves the spawn
+ * position through
+ * the parent object's node matrix (or first-person weapon
+ * node matrix) when
+ * attached to an object. Allocates a particle datum,
+ * fills it with tag data
+ * (lifetime, animation rate, sprite index), copies
+ * position/velocity/color
+ * from spawn_params, optionally applies physics
+ * velocity, samples lighting,
+ * and sets up the initial bitmap sequence. */
 void FUN_000a1fd0(void *spawn_params)
 {
   char *sp = (char *)spawn_params;

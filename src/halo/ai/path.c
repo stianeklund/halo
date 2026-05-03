@@ -19,9 +19,8 @@
  *
  * Disassembly-confirmed field layout (ESI = param_1):
  *   [ESI+0x00] = param_2  (uint32_t flags)
- *   [ESI+0x04] = param_3  (uint8_t — byte at +4 in the uint32_t slot, MSVC packs)
- *   [ESI+0x08] = param_4  (int unit_handle)
- *   [ESI+0x0c] = 0xffffffff
+ *   [ESI+0x04] = param_3  (uint8_t — byte at +4 in the uint32_t slot, MSVC
+ * packs) [ESI+0x08] = param_4  (int unit_handle) [ESI+0x0c] = 0xffffffff
  *
  * Note: Ghidra showed param_1+1 (dword slot) for param_3 storage, but the
  * disassembly has `MOV byte ptr [ESI+4], CL` — param_3 is stored at byte
@@ -31,12 +30,12 @@
  */
 void FUN_0005dfc0(void *param_1, uint32_t param_2, uint8_t param_3, int param_4)
 {
-    csmemset(param_1, 0, 0x48);
-    *(uint32_t *)param_1              = param_2;
-    *(uint8_t  *)((char *)param_1 + 4) = param_3;
-    *(int      *)((char *)param_1 + 8) = param_4;
-    *(int      *)((char *)param_1 + 0xc) = -1;
-    return;
+  csmemset(param_1, 0, 0x48);
+  *(uint32_t *)param_1 = param_2;
+  *(uint8_t *)((char *)param_1 + 4) = param_3;
+  *(int *)((char *)param_1 + 8) = param_4;
+  *(int *)((char *)param_1 + 0xc) = -1;
+  return;
 }
 
 /* 0x005e000 — path_state_set_focus
@@ -51,12 +50,12 @@ void FUN_0005dfc0(void *param_1, uint32_t param_2, uint8_t param_3, int param_4)
  */
 void FUN_0005e000(void *param_1, float *param_2, int param_3)
 {
-    *(uint8_t *)((char *)param_1 + 0x10) = 1;
-    *(float   *)((char *)param_1 + 0x14) = param_2[0];
-    *(float   *)((char *)param_1 + 0x18) = param_2[1];
-    *(float   *)((char *)param_1 + 0x1c) = param_2[2];
-    *(int     *)((char *)param_1 + 0x20) = param_3;
-    return;
+  *(uint8_t *)((char *)param_1 + 0x10) = 1;
+  *(float *)((char *)param_1 + 0x14) = param_2[0];
+  *(float *)((char *)param_1 + 0x18) = param_2[1];
+  *(float *)((char *)param_1 + 0x1c) = param_2[2];
+  *(int *)((char *)param_1 + 0x20) = param_3;
+  return;
 }
 
 /* 0x005e030 — path_state_set_sphere
@@ -68,24 +67,25 @@ void FUN_0005e000(void *param_1, float *param_2, int param_3)
  *   [EAX+0x2c] = param_2[1]  (sphere_pos.y)
  *   [EAX+0x30] = param_2[2]  (sphere_pos.z)
  *   [EAX+0x34] = param_4  (flags — note: [EBP+0x14] stored at +0x34, NOT +0x38)
- *   [EAX+0x38] = param_3  (inner_r — note: [EBP+0x10] stored at +0x38, NOT +0x34)
- *   [EAX+0x3c] = param_5  (outer_r)
+ *   [EAX+0x38] = param_3  (inner_r — note: [EBP+0x10] stored at +0x38, NOT
+ * +0x34) [EAX+0x3c] = param_5  (outer_r)
  *
  * Store rotation confirmed: MSVC emitted param_3 → +0x38, param_4 → +0x34
  * (pipeline-scheduled out-of-order). See disassembly:
  *   MOV [EAX+0x38], ECX   ; ECX = [EBP+0x10] = param_3
  *   MOV [EAX+0x34], EDX   ; EDX = [EBP+0x14] = param_4
  */
-void FUN_0005e030(void *param_1, float *param_2, float param_3, uint32_t param_4, float param_5)
+void FUN_0005e030(void *param_1, float *param_2, float param_3,
+                  uint32_t param_4, float param_5)
 {
-    *(uint8_t *)((char *)param_1 + 0x24) = 1;
-    *(float   *)((char *)param_1 + 0x28) = param_2[0];
-    *(float   *)((char *)param_1 + 0x2c) = param_2[1];
-    *(float   *)((char *)param_1 + 0x30) = param_2[2];
-    *(float   *)((char *)param_1 + 0x38) = param_3;
-    *(uint32_t*)((char *)param_1 + 0x34) = param_4;
-    *(float   *)((char *)param_1 + 0x3c) = param_5;
-    return;
+  *(uint8_t *)((char *)param_1 + 0x24) = 1;
+  *(float *)((char *)param_1 + 0x28) = param_2[0];
+  *(float *)((char *)param_1 + 0x2c) = param_2[1];
+  *(float *)((char *)param_1 + 0x30) = param_2[2];
+  *(float *)((char *)param_1 + 0x38) = param_3;
+  *(uint32_t *)((char *)param_1 + 0x34) = param_4;
+  *(float *)((char *)param_1 + 0x3c) = param_5;
+  return;
 }
 
 /* 0x005e070 — path_state_set_min_speed
@@ -97,9 +97,9 @@ void FUN_0005e030(void *param_1, float *param_2, float param_3, uint32_t param_4
  */
 void FUN_0005e070(void *param_1, int param_2)
 {
-    *(uint8_t *)((char *)param_1 + 0x40) = 1;
-    *(int     *)((char *)param_1 + 0x44) = param_2;
-    return;
+  *(uint8_t *)((char *)param_1 + 0x40) = 1;
+  *(int *)((char *)param_1 + 0x44) = param_2;
+  return;
 }
 
 /* 0x005e090 — path_state_commit
@@ -114,16 +114,18 @@ void FUN_0005e070(void *param_1, int param_2)
  *   param_2[0x12] = param_3          ; at byte offset 0x48 (0x12 * 4)
  *
  * Note: scenario handle stored at +0x64, not +0x19 (raw dword index is 0x19).
- * The copy overwrites param_2[0..0x47], then param_3 is stored at param_2[0x48].
+ * The copy overwrites param_2[0..0x47], then param_3 is stored at
+ * param_2[0x48].
  */
 void FUN_0005e090(void *param_1, void *param_2, void *param_3)
 {
-    csmemset(param_2, 0, 0x1408c);
-    *(void **)((char *)param_2 + 0x64) = scenario_get();
-    /* Copy 0x48 bytes from param_1 into param_2 at offset 0 (MOVSD.REP ECX=0x12) */
-    csmemcpy(param_2, param_1, 0x48);
-    *(void **)((char *)param_2 + 0x48) = param_3;
-    return;
+  csmemset(param_2, 0, 0x1408c);
+  *(void **)((char *)param_2 + 0x64) = scenario_get();
+  /* Copy 0x48 bytes from param_1 into param_2 at offset 0 (MOVSD.REP ECX=0x12)
+   */
+  csmemcpy(param_2, param_1, 0x48);
+  *(void **)((char *)param_2 + 0x48) = param_3;
+  return;
 }
 
 /* 0x005e0d0 — path_state_set_obstacle
@@ -139,11 +141,11 @@ void FUN_0005e090(void *param_1, void *param_2, void *param_3)
  */
 void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4)
 {
-    *(uint8_t *)((char *)param_1 + 0x4c) = 1;
-    *(float   *)((char *)param_1 + 0x50) = param_2[0];
-    *(float   *)((char *)param_1 + 0x54) = param_2[1];
-    *(float   *)((char *)param_1 + 0x58) = param_2[2];
-    *(int     *)((char *)param_1 + 0x5c) = param_3;
-    *(int     *)((char *)param_1 + 0x60) = param_4;
-    return;
+  *(uint8_t *)((char *)param_1 + 0x4c) = 1;
+  *(float *)((char *)param_1 + 0x50) = param_2[0];
+  *(float *)((char *)param_1 + 0x54) = param_2[1];
+  *(float *)((char *)param_1 + 0x58) = param_2[2];
+  *(int *)((char *)param_1 + 0x5c) = param_3;
+  *(int *)((char *)param_1 + 0x60) = param_4;
+  return;
 }

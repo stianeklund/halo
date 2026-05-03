@@ -111,10 +111,10 @@ void reference_list_remove(data_t *data, int *head, int value)
   }
 
   display_assert(
-      csprintf((char *)0x5ab100,
-               "attempt to remove invalid element %ld from reference list",
-               value),
-      "..\\objects\\reference_lists.h", 0x6d, 1);
+    csprintf((char *)0x5ab100,
+             "attempt to remove invalid element %ld from reference list",
+             value),
+    "..\\objects\\reference_lists.h", 0x6d, 1);
   system_exit(-1);
 }
 

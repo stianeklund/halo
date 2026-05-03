@@ -152,7 +152,8 @@ static void rasterizer_decals_vertex_cache_delete(int decal_index)
   system_exit(-1);
 
 LAB_0015b018:
-  decal = (char *)datum_absolute_index_to_index(*(void **)0x5aa8b8, decal_index);
+  decal =
+    (char *)datum_absolute_index_to_index(*(void **)0x5aa8b8, decal_index);
   if (decal == 0) {
     error(2,
           "### ERROR decals: stale cache->decal handle (#%d) in rasterizer -- "
@@ -385,7 +386,7 @@ void *FUN_0015b890(int cache_index, uint32_t cache_size)
   }
 
   *(uint16_t *)0x325652 = 5;
-  ((void (__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
+  ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
     *(void **)0x476ad8, offset, cache_size, &locked_data, 0x80);
   *(uint16_t *)0x325652 = 0;
 
