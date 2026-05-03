@@ -5,6 +5,8 @@
 build_output.log
 artifacts
 
+#Debug / XBDM output
+/xbdm
 # Package manager output
 /node_modules
 
