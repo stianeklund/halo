@@ -962,6 +962,10 @@
           "decl": "char *FUN_0001c270(char *encounter, int16_t squad_index);"
         },
         {
+          "addr": "0x3aca0",
+          "decl": "void FUN_0003aca0(int actor_handle);"
+        },
+        {
           "addr": "0x3b5e0",
           "decl": "void FUN_0003b5e0(int actor_handle);"
         },
@@ -1252,6 +1256,7 @@
         {
           "addr": "0x3bbf0",
           "decl": "void FUN_0003bbf0(int actor_handle /* @<eax> */);",
+          "ported": true,
           "status": "ported",
           "src": "src/halo/ai/actors.c"
         },
@@ -1302,7 +1307,8 @@
         },
         {
           "addr": "0x3ca40",
-          "decl": "void FUN_0003ca40(int actor_handle, char flag);"
+          "decl": "void FUN_0003ca40(int actor_handle, char flag);",
+          "ported": true
         },
         {
           "addr": "0x3bde0",

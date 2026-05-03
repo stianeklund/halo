@@ -1042,6 +1042,76 @@ void FUN_0003be90(int actor_handle)
   FUN_0001d030(actor_handle, 0, 0);
 }
 
+/* FUN_0003ca40 (0x3ca40) — actor_set_object_activation
+ *
+ * Sets activation state on the actor's associated objects. Depending on
+ * actor type (single-object vs swarm leader), activates/deactivates one
+ * object, a linked list of objects, or all swarm member objects.
+ * Always calls FUN_0003aca0 at the end regardless of path taken.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3ca50.
+ * Confirmed: actor+0x8 != 0 guard at 0x3ca5d.
+ * Confirmed: actor+0x13 != flag guard at 0x3ca6b.
+ * Confirmed: actor+0x6 branches single vs multi at 0x3ca72.
+ * Confirmed: actor+0x18 = unit handle (single path) at 0x3cb23.
+ * Confirmed: actor+0x24 = object list head, linked via obj+0x1ac.
+ * Confirmed: actor+0x28 = swarm handle; datum_get(swarm_data, ...) at 0x3ca8b.
+ * Confirmed: swarm+0x2 = count (int16); swarm+0x18[i*4] = handles.
+ * Confirmed: object_activate (0x13fb30) when flag==0; FUN_0013fb80 when
+ * flag!=0. Confirmed: actor+0x13 = flag written at 0x3cad0. Confirmed:
+ * actor+0x14 = 0 (int16) when flag==0 at 0x3cad5. Confirmed:
+ * FUN_0003aca0(actor_handle) always called at 0x3cae0. */
+void FUN_0003ca40(int actor_handle, char flag)
+{
+  char *actor;
+  char *swarm;
+  char *obj;
+  int obj_handle;
+  int16_t i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(char *)(actor + 0x8) != 0 && *(char *)(actor + 0x13) != flag) {
+    if (*(char *)(actor + 0x6) == 0) {
+      if (*(int *)(actor + 0x18) != -1) {
+        if (flag == 0) {
+          object_activate(*(int *)(actor + 0x18));
+        } else {
+          FUN_0013fb80(*(int *)(actor + 0x18));
+        }
+      }
+    } else if (*(int *)(actor + 0x28) == -1) {
+      obj_handle = *(int *)(actor + 0x24);
+      while (obj_handle != -1) {
+        obj = (char *)object_get_and_verify_type(obj_handle, 3);
+        if (flag == 0) {
+          object_activate(obj_handle);
+        } else {
+          FUN_0013fb80(obj_handle);
+        }
+        obj_handle = *(int *)(obj + 0x1ac);
+      }
+    } else {
+      swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+      i = 0;
+      while (i < *(int16_t *)(swarm + 0x2)) {
+        if (flag == 0) {
+          object_activate(*(int *)(swarm + 0x18 + (int)i * 4));
+        } else {
+          FUN_0013fb80(*(int *)(swarm + 0x18 + (int)i * 4));
+        }
+        i++;
+      }
+    }
+    *(char *)(actor + 0x13) = flag;
+    if (flag == 0) {
+      *(int16_t *)(actor + 0x14) = 0;
+    }
+  }
+
+  FUN_0003aca0(actor_handle);
+}
+
 /* FUN_0003cbc0 (0x3cbc0) — actor_clean_props
  *
  * Clean up all props associated with an actor. Iterates actor+0x50 linked list,
