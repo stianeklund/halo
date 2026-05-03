@@ -1148,7 +1148,8 @@
         },
         {
           "addr": "0x3a840",
-          "decl": "void FUN_0003a840(int actor_handle);"
+          "decl": "void FUN_0003a840(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x3a8a0",

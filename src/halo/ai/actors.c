@@ -58,6 +58,23 @@ const char *FUN_0003a760(int16_t actor_type)
   return *(const char **)FUN_0003a600(actor_type);
 }
 
+/* Dispatch the actor-type-specific decide_action function for a given actor. */
+void FUN_0003a840(int actor_handle)
+{
+  char *actor;
+  void *type_def;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  type_def = FUN_0003a600(*(short *)(actor + 4));
+
+  if (*(int *)((char *)type_def + 0x14) == 0) {
+    display_assert("actor_type_definition->decide_action",
+                   "c:\\halo\\SOURCE\\ai\\actor_types.c", 0x81, 1);
+    system_exit(-1);
+  }
+  (*(void (**)(int))((char *)type_def + 0x14))(actor_handle);
+}
+
 /* FUN_0003a8a0 (0x3a8a0) — actor_swarm_control_dispatch
  *
  * Dispatch the actor-type-specific swarm control function for a given actor.
