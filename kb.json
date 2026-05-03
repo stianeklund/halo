@@ -8813,7 +8813,7 @@
         {
           "addr": "0x19d080",
           "decl": "bool unicode_is_multibyte(const uint8_t *p);",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "uint16_t unicode_cursor_forward(const char *str, int16_t *cursor);",
