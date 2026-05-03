@@ -210,6 +210,32 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3d9f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "actor+0x13 = dormant flag (byte); actor+0x6 = swarm flag; actor+0x28 = swarm cache handle; actor+0x1e = swarm unit count (short).",
+        "actor+0x78 = timer countdown (int); actor+0x74 = mode word reset when timer hits 0; actor+0x92 = secondary tick countdown (short); actor+0x4a4 = per-tick scratch byte (zeroed each update).",
+        "actor+0x34 = biped handle (int); DAT_005ab270 = biped data table; actor+0xa = actor flags byte; biped+0xc = biped flags byte; combined flags non-zero forces deactivation.",
+        "actor+0x270 = encounter handle; DAT_005ab23c = encounter data table; encounter+0x12e = scripted flag; encounter+0x60 = active flag; encounter+0x127 = exclusion flag; encounter+0x24 = state short (2-3 = abort; 4-5 + action==3 = abort)."
+      ],
+      "uncertain": [
+        "actor+0x12 flag semantics: decompiler says 'if == 0 OR flags != 0 then deactivate', but the exact meaning of actor+0x12 (player-proximity, targeting-permission, or some other readiness bit) is unknown without further callers.",
+        "actor+0x46c mode=3 vs mode=5 semantics: 3 inferred as biped-ride/vehicle-board check; 5 inferred as encounter-scripted-board; exact game names unknown."
+      ]
+    },
+    "0x3dc20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Third argument to FUN_0003bde0 is char* (pointer to actor+0x120 input block); declared as int initially but corrected to char* based on call-site evidence.",
+        "Swarm centroid loop calls datum_get twice on the same component handle per iteration \u2014 binary-faithful redundancy, not a decompiler artifact."
+      ],
+      "uncertain": [
+        "FUN_0018f3e0 third argument typed as int16_t* but passed as literal 0; true type of the output flag parameter is uncertain.",
+        "FUN_0001c270 return value used as squad pointer; declared as char* but internal layout not confirmed from binary evidence in this analysis."
+      ]
+    },
     "0x3ec80": {
       "kind": "function",
       "status": "ported",
@@ -2187,11 +2213,31 @@
         "The globals at 0x46b6e0-0x46b805 form the hs_compile_globals structure used by the script compiler."
       ]
     },
+    "0xc5730": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc57a0": {
       "kind": "function",
       "status": "ported"
     },
+    "0xc57d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc5840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc5960": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc6a70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6b00": {
       "kind": "function",
       "status": "ported"
     },
@@ -2207,6 +2253,22 @@
         "The error message 'i expected (script local <type> <name> ...' at 0x27c730 is suspicious; 'local' in the message for a top-level script is likely a copy-paste artifact in the original source."
       ]
     },
+    "0xc71c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc72b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc73a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc74c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc7840": {
       "kind": "function",
       "status": "ported",
@@ -2217,6 +2279,18 @@
       "uncertain": [
         "When node[2] < 0 on a script-reference node, script_element is read uninitialized from the stack local at EBP-8; this appears to be original behavior."
       ]
+    },
+    "0xc7b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc7be0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc7ca0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc7d80": {
       "kind": "function",
@@ -2249,6 +2323,10 @@
       "status": "ported"
     },
     "0xca940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcaa30": {
       "kind": "function",
       "status": "ported"
     },
@@ -2289,7 +2367,71 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xcb7b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcbf80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc0a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc1d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc590": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcc660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcca00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xccb40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xccc70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xccdf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcced0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcd5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcd840": {
       "kind": "function",
       "status": "ported"
     },
@@ -2321,6 +2463,10 @@
       ]
     },
     "0xce1e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce350": {
       "kind": "function",
       "status": "ported"
     },
@@ -3381,6 +3527,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x108db0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x109150": {
       "kind": "function",
       "status": "ported",
@@ -3658,6 +3808,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11e430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11e6c0": {
       "kind": "function",
       "status": "ported"
@@ -3837,11 +3995,35 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12c060": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c0b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c100": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12c160": {
       "kind": "function",
       "status": "ported"
     },
+    "0x12c1c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c290": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12c370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c500": {
       "kind": "function",
       "status": "ported"
     },
@@ -3860,6 +4042,22 @@
         "The byte at server+0x24C (indexed per slot) may represent a team index, but the broader struct layout around that region is not fully known."
       ]
     },
+    "0x12d0c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d3b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d450": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12d570": {
       "kind": "function",
       "status": "ported"
@@ -3876,7 +4074,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12dbb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12dc20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12dd20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12de20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12df50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12e090": {
       "kind": "function",
       "status": "ported"
     },
@@ -3901,6 +4119,10 @@
       "status": "ported"
     },
     "0x12f430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12f5d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4687,6 +4909,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1937d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x193870": {
       "kind": "function",
       "status": "ported"
@@ -4958,6 +5184,18 @@
       "inferred": [
         "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
       ]
+    },
+    "0x19d1b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d240": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d300": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x19dc90": {
       "kind": "function",
@@ -5359,6 +5597,10 @@
       "status": "ported"
     },
     "0x1bdb70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdd80": {
       "kind": "function",
       "status": "ported"
     },
@@ -6113,222 +6355,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x11e430": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x11e5a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bdd80": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1937d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x108db0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc5730": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc57d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc5840": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc5960": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc6b00": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc71c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc72b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc73a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc74c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc7b10": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc7be0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc7ca0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcaa30": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcb7b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcbf80": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc0a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc1d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc340": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc3a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc560": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc590": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc870": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcca00": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xccb40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xccc70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xccdf0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcced0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcd5a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcd840": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xce350": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12c060": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12c0b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12c100": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12c1c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12c290": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12c500": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12d0c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12d150": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12d3b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12d450": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12dbb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12dd20": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12de20": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12df50": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12e090": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12f5d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x19d1b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x19d240": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x19d300": {
-      "kind": "function",
       "status": "ported"
     }
   }
