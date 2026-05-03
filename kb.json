@@ -945,10 +945,6 @@
           "decl": "void FUN_00043db0(int actor_handle);"
         },
         {
-          "addr": "0x14540",
-          "decl": "void FUN_00014540(int actor_handle);"
-        },
-        {
           "addr": "0x2d350",
           "decl": "void FUN_0002d350(int actor_handle);"
         },
@@ -967,6 +963,18 @@
         {
           "addr": "0x22dc0",
           "decl": "void FUN_00022dc0(int actor_handle);"
+        },
+        {
+          "addr": "0x27a60",
+          "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);"
+        },
+        {
+          "addr": "0x64ab0",
+          "decl": "int FUN_00064ab0(int actor_handle, int object_handle);"
+        },
+        {
+          "addr": "0x1a9200",
+          "decl": "void FUN_001a9200(int object_handle, int *out_xyz);"
         }
       ]
     },
@@ -1261,6 +1269,17 @@
           "decl": "void FUN_0003e7a0(int actor_handle@<eax>);"
         }
       ]
+    },
+    {
+      "name": "actor_looking.obj",
+      "functions": [
+        {
+          "addr": "0x14540",
+          "decl": "void FUN_00014540(int actor_handle);",
+          "ported": true
+        }
+      ],
+      "data": []
     },
     {
       "name": "ai.obj",
