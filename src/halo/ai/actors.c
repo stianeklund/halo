@@ -853,6 +853,144 @@ void FUN_0003bbf0(int actor_handle /* @<eax> */)
   *(short *)(actor + 0x6ec) = (short)0xffff;
 }
 
+/* FUN_0003be90 (0x3be90) — actor run internal logic / infinite-loop watchdog
+ *
+ * Runs the actor's decision loop up to 10 times, recording the last 5 action
+ * indices in a ring buffer. Each iteration: stores actor->state.action in the
+ * ring, increments a counter, advances the ring index mod 5, clears the
+ * action-changed flag (actor+0x70), dispatches the actor-type decide_action
+ * callback (FUN_0003a840), then clears perception state (FUN_00036860).
+ *
+ * Loop exit paths:
+ *   (a) Normal: BL (previous action-executed result) != 0 AND actor+0x70 == 0
+ *       → action completed without requesting a new action.
+ *   (b) Hard limit: counter >= 10 → break (error reported below).
+ *   (c) Normal: FUN_0001c300 returns 0 AND actor+0x70 == 0 → clean return.
+ *
+ * After loop: if counter < 10, logs "actor-type %s internal logic error (%s)"
+ *   with the current action name and encounter/squad path.
+ * If counter >= 10, logs each of the last 5 ring-buffer actions plus an
+ *   "infinite decision loop" message.
+ * Both paths call display_assert at line 0xd6c, then error() at priority 2,
+ * then FUN_0001d030(actor_handle, 0, 0) to force-set action 0 (recover).
+ *
+ * Confirmed: SUB ESP,0x510 → 1296-byte frame; local_514[1024] at EBP-0x510,
+ *   local_114[256] at EBP-0x110, short local_14[5] at EBP-0x10, int local_8
+ *   (counter) at EBP-0x4.
+ * Confirmed: csmemset(local_14, 0xff, 10) at 0x3bebd (pre-fills ring with -1).
+ * Confirmed: ESI = datum_get result (actor record ptr); EDI = ring index (mod
+ * 5). Confirmed: BL = result of FUN_0001c300; XOR BL,BL at 0x3beb8 → BL starts
+ * 0. Confirmed: loop stored at EBP-0x4 (local_8), incremented at 0x3bedc.
+ * Confirmed: MOV EDI,EDX at 0x3beef sets new ring index from IDIV remainder.
+ * Confirmed: break-on-BL-nonzero test at 0x3bf06–0x3bf0f.
+ * Confirmed: break-on-count>=10 test at 0x3bf11–0x3bf15.
+ * Confirmed: FUN_0001c300 called at 0x3bf1b; result into BL at 0x3bf20.
+ * Confirmed: early-return (BL==0 && actor[0x70]==0) at 0x3bf25–0x3bf36.
+ * Confirmed: global_scenario_get() takes 0 args; PUSH 0xb0, PUSH encounter_idx
+ *   at 0x3bf5a–0x3bf5f remain on stack for tag_block_get_element call at
+ * 0x3bf6b. Confirmed: ADD ESP,0x28 at 0x3bf9b cleans 10 dwords from
+ * encounter-path calls. Confirmed: infinite-loop ring-dump loop: ESI=EDI (start
+ * index), advances mod 5, terminates when ESI wraps back to EDI. Confirmed:
+ * FUN_0001d030(actor_handle, 0, 0) at 0x3c0a5 with PUSH 0,0,EAX. Confirmed: ADD
+ * ESP,0x24 at 0x3c0aa cleans display_assert(4) + error(2) + action_set(3).
+ * Inferred: actor+0x6c = state.action (short); actor+0x70 = action-changed flag
+ * (byte). Inferred: actor+0x34 = encounter handle (int); actor+0x3a = squad
+ * index (short). Inferred: actor+0x4 = actor type index (short). Inferred:
+ * FUN_0001c300 = actor_execute_current_action (dispatches via action table).
+ * Inferred: FUN_0003a840 = actor_type_decide_action (calls type->decide_action
+ * fn ptr). Inferred: FUN_00036860 = actor_clear_perception_state (csmemset
+ * actor+0x2ec, 0, 100). Inferred: FUN_0001d030 = actor_set_action (sets action
+ * to param_2, clears changed flag). Inferred: FUN_0003a760 =
+ * actor_type_get_name (returns actor type name string). Inferred: FUN_0001d5c0
+ * = actor_action_get_name (returns action name string). */
+void FUN_0003be90(int actor_handle)
+{
+  char *actor;
+  short local_14[5]; /* ring buffer of last 5 action indices */
+  int local_8; /* loop counter */
+  char local_114[256]; /* encounter name buffer */
+  char local_514[1024]; /* error message buffer */
+  int edi; /* ring buffer index (mod 5) */
+  char bl; /* result of FUN_0001c300 */
+  int encounter_idx;
+  void *encounter_elem;
+  void *squad_elem;
+  const char *actor_type_name;
+  const char *action_name;
+  int i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  edi = 0;
+  bl = 0;
+  local_8 = 0;
+  csmemset(local_14, 0xff, 10);
+
+  /* Decision loop: run until action settles or limit hit */
+  for (;;) {
+    local_14[edi] = *(short *)(actor + 0x6c);
+    local_8++;
+    edi = (edi + 1) % 5;
+    *(char *)(actor + 0x70) = 0;
+    FUN_0003a840(actor_handle);
+    FUN_00036860(actor_handle);
+
+    /* (a) Previous action completed without requesting change */
+    if (bl != 0 && *(char *)(actor + 0x70) == 0) {
+      break;
+    }
+    /* (b) Hard iteration limit */
+    if (local_8 >= 10) {
+      break;
+    }
+    /* Execute current action; check if it changed state */
+    bl = (char)FUN_0001c300(actor_handle);
+    /* (c) No action ran and no change requested → clean return */
+    if (bl == 0 && *(char *)(actor + 0x70) == 0) {
+      return;
+    }
+  }
+
+  /* --- Error reporting: build encounter/squad path string --- */
+  if (*(int *)(actor + 0x34) == -1) {
+    csstrcpy(local_114, "<no encounter>");
+  } else {
+    encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+    encounter_elem = tag_block_get_element(
+      (char *)global_scenario_get() + 0x42c, encounter_idx, 0xb0);
+    squad_elem = tag_block_get_element((char *)encounter_elem + 0x80,
+                                       (int)*(short *)(actor + 0x3a), 0xe8);
+    crt_sprintf(local_114, "%s/%s", encounter_elem, squad_elem);
+  }
+
+  if (local_8 < 10) {
+    /* Logic error: action did not converge */
+    action_name = (const char *)FUN_0001d5c0(*(short *)(actor + 0x6c));
+    actor_type_name = (const char *)FUN_0003a760(*(short *)(actor + 0x4));
+    crt_sprintf(local_514, "actor-type %s %s internal logic error (%s)",
+                actor_type_name, action_name, local_114);
+  } else {
+    /* Infinite decision loop: dump ring buffer */
+    actor_type_name = (const char *)FUN_0003a760(*(short *)(actor + 0x4));
+    crt_sprintf(local_514, "actor-type %s ", actor_type_name);
+    i = edi;
+    do {
+      if (local_14[i] != (short)-1) {
+        action_name = (const char *)FUN_0001d5c0(local_14[i]);
+        FUN_0008dc30(local_514, action_name);
+        FUN_0008dc30(local_514, (const char *)0x256ec8);
+      }
+      i = (i + 1) % 5;
+    } while (i != edi);
+    crt_sprintf((char *)0x5ab100, " infinite decision loop (%s)", local_114);
+    FUN_0008dc30(local_514, (const char *)0x5ab100);
+  }
+
+  display_assert(local_514, "c:\\halo\\SOURCE\\ai\\actors.c", 0xd6c, 0);
+  error(2, "AI error condition detected, attempting to recover (please tell "
+           "butcher)...");
+  FUN_0001d030(actor_handle, 0, 0);
+}
+
 /* FUN_0003cbc0 (0x3cbc0) — actor_clean_props
  *
  * Clean up all props associated with an actor. Iterates actor+0x50 linked list,
