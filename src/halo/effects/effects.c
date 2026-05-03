@@ -1,3 +1,4 @@
+
 void effects_initialize(void)
 {
   effect_data = game_state_data_new("effect", 0x100, 0xfc);
@@ -538,14 +539,6 @@ void FUN_0009d4e0(int datum, void *callback)
   } while ((int)(int16_t)event_index < *events_block);
 }
 
-static volatile float g_effect_world_position_stabilizer;
-
-__attribute__((noinline)) static void
-effect_stabilize_world_position(float *position)
-{
-  g_effect_world_position_stabilizer = position[0] + position[1] + position[2];
-}
-
 /* Effect parts spawner (0x9d590). For each part in the current event,
  * computes how many new instances to create this frame via the transition
  * function, then walks the location chain spawning particles/effects at
@@ -1058,7 +1051,13 @@ void FUN_0009e310(void *effect)
               scale *= *(float *)(ef + 0x48);
 
             tag_class = *(uint32_t *)(loc_entry + 0x14);
-            effect_stabilize_world_position(position);
+            /* clang -O3 -mno-sse eliminates position stores before
+               the tag_class dispatch below; force materialization */
+#ifndef XDK_BUILD
+            __asm__ volatile("" : "+m"(position[0]),
+                                  "+m"(position[1]),
+                                  "+m"(position[2]));
+#endif
 
             if (tag_class == 0x6f626a65) {
               char placement[0x88];

@@ -248,6 +248,12 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
     local_up[1] = *(float *)(*(int *)0x31fc38 + 4);
     local_up[2] = *(float *)(*(int *)0x31fc38 + 8);
     location_valid = 1;
+    /* Original MSVC stack layout places local_position at marker_buf+0x60.
+       The creation physics function (original binary) reads position from
+       marker_buf+0x60. Replicate the overlap explicitly. */
+    *(float *)(marker_buf + 0x60) = local_position[0];
+    *(float *)(marker_buf + 0x64) = local_position[1];
+    *(float *)(marker_buf + 0x68) = local_position[2];
   } else {
     /* Get marker from attached object */
     char *obj = (char *)object_get_and_verify_type(*(int *)(ps + 0xc), -1);
