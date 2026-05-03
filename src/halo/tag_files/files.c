@@ -6,20 +6,18 @@
 typedef int(__stdcall *find_first_file_fn)(const char *path, void *find_data);
 typedef bool(__stdcall *find_next_file_fn)(int handle, void *find_data);
 typedef bool(__stdcall *close_handle_fn)(int handle);
-typedef int(__stdcall *create_file_fn)(const char *path, uint32_t desired_access,
-                                        uint32_t share_mode,
-                                        void *security_attributes,
-                                        uint32_t creation_disposition,
-                                        uint32_t flags_and_attributes,
-                                        int template_file);
+typedef int(__stdcall *create_file_fn)(
+  const char *path, uint32_t desired_access, uint32_t share_mode,
+  void *security_attributes, uint32_t creation_disposition,
+  uint32_t flags_and_attributes, int template_file);
 typedef int(__stdcall *set_file_pointer_fn)(int handle, int distance_to_move,
-                                             int *distance_high,
-                                             uint32_t move_method);
+                                            int *distance_high,
+                                            uint32_t move_method);
 typedef int(__stdcall *get_file_size_fn)(int handle, int *size_high);
 typedef bool(__stdcall *read_file_fn)(int handle, void *buffer,
-                                       uint32_t number_of_bytes_to_read,
-                                       int *number_of_bytes_read,
-                                       void *overlapped);
+                                      uint32_t number_of_bytes_to_read,
+                                      int *number_of_bytes_read,
+                                      void *overlapped);
 typedef uint16_t (*intl_string_prev_char_fn)(const char *str, int16_t *index);
 typedef int (*is_alpha_fn)(int c);
 typedef void (*debug_log_fn)(int level, const char *format, ...);
@@ -491,6 +489,41 @@ void file_error(file_ref_t *info, const char *function_name)
   XSetLastError(0);
 }
 
+/**
+ * file_exists - check whether a file referenced by info exists on disk.
+ *
+ * Builds the full path from the file reference, then calls
+ * file_get_full_attributes (NtQueryFullAttributesFile wrapper).
+ * Returns true if the file was found, false otherwise. Logs an error
+ * via file_error if the failure was not ERROR_FILE_NOT_FOUND (2) or
+ * ERROR_PATH_NOT_FOUND (3).
+ */
+bool file_exists(file_ref_t *info)
+{
+  file_ref_t *ref;
+  char path[256];
+  int result;
+
+  ref = file_reference_verify(info);
+
+  csmemset(path, 0, sizeof(path));
+
+  path_from_file_reference(ref->unk_6, ref->unk_8, path);
+
+  result = file_get_full_attributes(path);
+  if (result != -1) {
+    return true;
+  }
+
+  if (xapi_GetLastError() != 2) {
+    if (xapi_GetLastError() != 3) {
+      file_error(info, "file_exists");
+    }
+  }
+
+  return false;
+}
+
 bool file_open(file_ref_t *info, int flags)
 {
   file_ref_t *ref;
@@ -504,21 +537,20 @@ bool file_open(file_ref_t *info, int flags)
 
   if ((flags & ~7) != 0) {
     display_assert("VALID_FLAGS(flags, NUMBER_OF_PERMISSION_FLAGS)",
-                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x134,
-                   true);
+                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x134, true);
     system_exit(-1);
   }
   if ((flags & 3) == 0) {
-    display_assert("flags & (FLAG(_permission_read_bit)|FLAG(_permission_write_bit))",
-                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x135,
-                   true);
+    display_assert(
+      "flags & (FLAG(_permission_read_bit)|FLAG(_permission_write_bit))",
+      "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x135, true);
     system_exit(-1);
   }
   if (((flags & 2) == 0) && ((flags & 4) != 0)) {
-    display_assert("TEST_FLAG(flags, _permission_write_bit) || !TEST_FLAG(flags, "
-                   "_permission_append_bit)",
-                   "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x136,
-                   true);
+    display_assert(
+      "TEST_FLAG(flags, _permission_write_bit) || !TEST_FLAG(flags, "
+      "_permission_append_bit)",
+      "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x136, true);
     system_exit(-1);
   }
 
@@ -600,41 +632,6 @@ bool file_read(file_ref_t *info, int size, void *buffer)
   }
 
   file_error(info, "file_read");
-  return false;
-}
-
-/**
- * file_exists - check whether a file referenced by info exists on disk.
- *
- * Builds the full path from the file reference, then calls
- * file_get_full_attributes (NtQueryFullAttributesFile wrapper).
- * Returns true if the file was found, false otherwise. Logs an error
- * via file_error if the failure was not ERROR_FILE_NOT_FOUND (2) or
- * ERROR_PATH_NOT_FOUND (3).
- */
-bool file_exists(file_ref_t *info)
-{
-  file_ref_t *ref;
-  char path[256];
-  int result;
-
-  ref = file_reference_verify(info);
-
-  csmemset(path, 0, sizeof(path));
-
-  path_from_file_reference(ref->unk_6, ref->unk_8, path);
-
-  result = file_get_full_attributes(path);
-  if (result != -1) {
-    return true;
-  }
-
-  if (xapi_GetLastError() != 2) {
-    if (xapi_GetLastError() != 3) {
-      file_error(info, "file_exists");
-    }
-  }
-
   return false;
 }
 

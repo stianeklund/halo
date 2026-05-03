@@ -103,27 +103,6 @@ bool ui_automation_is_active(void)
 }
 
 /*
- * progress_bar_set_quad_texcoords — emit texture coordinates for all four
- * texture stages of a single quad vertex, offset by a 0.1 texel margin.
- *
- * Confirmed: 4 calls to D3DDevice_SetVertexData2f with registers 9–12.
- * Confirmed: float at 0x31a00c = 0.1f (texel margin).
- * Confirmed: stage 9  = (u - margin, v + margin).
- * Confirmed: stage 10 = (u - margin, v - margin).
- * Confirmed: stage 11 = (u + margin, v - margin).
- * Confirmed: stage 12 = (u + margin, v + margin).
- */
-void progress_bar_set_quad_texcoords(float u, float v)
-{
-  float margin = *(float *)0x31a00c;
-
-  D3DDevice_SetVertexData2f(9,  u - margin, v + margin);
-  D3DDevice_SetVertexData2f(10, u - margin, v - margin);
-  D3DDevice_SetVertexData2f(11, u + margin, v - margin);
-  D3DDevice_SetVertexData2f(12, u + margin, v + margin);
-}
-
-/*
  * progress_bar_compute_screen_rect — project a 3D rect to screen coordinates.
  *
  * Takes a rect descriptor (floats at byte offsets +0x08..+0x18 from the base
@@ -185,6 +164,27 @@ void progress_bar_compute_screen_rect(float *input_rect, float *output_rect)
 }
 
 /*
+ * progress_bar_set_quad_texcoords — emit texture coordinates for all four
+ * texture stages of a single quad vertex, offset by a 0.1 texel margin.
+ *
+ * Confirmed: 4 calls to D3DDevice_SetVertexData2f with registers 9–12.
+ * Confirmed: float at 0x31a00c = 0.1f (texel margin).
+ * Confirmed: stage 9  = (u - margin, v + margin).
+ * Confirmed: stage 10 = (u - margin, v - margin).
+ * Confirmed: stage 11 = (u + margin, v - margin).
+ * Confirmed: stage 12 = (u + margin, v + margin).
+ */
+void progress_bar_set_quad_texcoords(float u, float v)
+{
+  float margin = *(float *)0x31a00c;
+
+  D3DDevice_SetVertexData2f(9, u - margin, v + margin);
+  D3DDevice_SetVertexData2f(10, u - margin, v - margin);
+  D3DDevice_SetVertexData2f(11, u + margin, v - margin);
+  D3DDevice_SetVertexData2f(12, u + margin, v + margin);
+}
+
+/*
  * progress_bar_draw_fullscreen_overlay — draw a tinted fullscreen quad.
  *
  * Draws a quad covering the screen using D3D immediate-mode vertex submission.
@@ -196,8 +196,9 @@ void progress_bar_compute_screen_rect(float *input_rect, float *output_rect)
  * Confirmed: D3DDevice_Begin(7) = D3DPT_QUADLIST.
  * Confirmed: SetVertexData4f(3, ...) sets diffuse color.
  * Confirmed: SetVertexData4f(-1, x, y, 0.5, 1.0) emits position.
- * Confirmed: 4 vertices with texture coords via progress_bar_set_quad_texcoords.
- * Confirmed: Constants 0x2533c8=1.0, 0x25f0d0=0.0078125 (1/128), 0x255e94=-1.0.
+ * Confirmed: 4 vertices with texture coords via
+ * progress_bar_set_quad_texcoords. Confirmed: Constants 0x2533c8=1.0,
+ * 0x25f0d0=0.0078125 (1/128), 0x255e94=-1.0.
  */
 /* 0xe2040 */
 void progress_bar_draw_fullscreen_overlay(float x, float y, float alpha)
@@ -250,13 +251,14 @@ void progress_bar_draw_fullscreen_overlay(float x, float y, float alpha)
  * texture pointer, written by CreateTexture and read back for Lock/GetLevel).
  * Stack args: data (source bytes), data_size (byte count).
  *
- * Confirmed: D3DDevice_CreateTexture(width, height, 1, 0, 0x3f, 0, out_texture).
- * Confirmed: D3DTexture_LockRect(*out_texture, 0, &locked_rect, NULL, 0).
- * Confirmed: D3DTexture_GetLevelDesc(*out_texture, 0, &level_desc) at 0x1edc10.
- * Confirmed: pBits at locked_rect+4 (ebp-4) used as destination cursor via EBX.
- * Confirmed: REP STOSD for run-length fill, advance by run_length * 4 bytes.
- * Confirmed: AND EAX,0x8000000F is MSVC signed mod-16 idiom (low nibble extract).
- * Confirmed: level_desc buffer is 0x1c bytes at ebp-0x24 (unused after call).
+ * Confirmed: D3DDevice_CreateTexture(width, height, 1, 0, 0x3f, 0,
+ * out_texture). Confirmed: D3DTexture_LockRect(*out_texture, 0, &locked_rect,
+ * NULL, 0). Confirmed: D3DTexture_GetLevelDesc(*out_texture, 0, &level_desc) at
+ * 0x1edc10. Confirmed: pBits at locked_rect+4 (ebp-4) used as destination
+ * cursor via EBX. Confirmed: REP STOSD for run-length fill, advance by
+ * run_length * 4 bytes. Confirmed: AND EAX,0x8000000F is MSVC signed mod-16
+ * idiom (low nibble extract). Confirmed: level_desc buffer is 0x1c bytes at
+ * ebp-0x24 (unused after call).
  */
 /* 0xe24e0 */
 void progress_bar_decode_texture(int height, int width, void *out_texture,
@@ -279,7 +281,7 @@ void progress_bar_decode_texture(int height, int width, void *out_texture,
   /* Get level description (result unused; side effect only) */
   D3DTexture_GetLevelDesc(*(void **)out_texture, 0, level_desc);
 
-  dst = (uint32_t *)locked_rect[1];  /* pBits */
+  dst = (uint32_t *)locked_rect[1]; /* pBits */
   src = (uint8_t *)data;
 
   /* RLE decode loop */
@@ -350,9 +352,11 @@ void progress_bar_generate_gradient_texture(void)
     row_factor = (float)pow(sinf((float)row * 0.066666670f * 3.14150f), 0.75);
 
     for (col = 0; col < 128; col++) {
-      /* Column intensity: sin(col * (1/127) * pi) * row_factor * (250/255) + (5/255) */
-      float intensity = sinf((float)col * 0.0078740157f * 3.14150f)
-                        * row_factor * 0.98039216f + 0.019607844f;
+      /* Column intensity: sin(col * (1/127) * pi) * row_factor * (250/255) +
+       * (5/255) */
+      float intensity =
+        sinf((float)col * 0.0078740157f * 3.14150f) * row_factor * 0.98039216f +
+        0.019607844f;
       val = (uint32_t)(int)(intensity * 255.0f) & 0xff;
       /* Replicate val across all 4 channels: AARRGGBB */
       *pixels = ((val << 8 | val) << 8 | val) << 8 | val;
@@ -384,7 +388,8 @@ void progress_bar_generate_gradient_texture(void)
  * Confirmed: 4 vertices with position from screen rect.
  */
 /* 0xe26c0 */
-void progress_bar_draw_loading_bar(float *rect, float *color, float alpha, float progress)
+void progress_bar_draw_loading_bar(float *rect, float *color, float alpha,
+                                   float progress)
 {
   float screen_rect[4];
   float tex_u, tex_v;
@@ -411,23 +416,27 @@ void progress_bar_draw_loading_bar(float *rect, float *color, float alpha, float
   /* Vertex 0: bottom-left */
   D3DDevice_SetVertexData2f(10, neg_scroll, 0.0f);
   D3DDevice_SetVertexData2f(9, 0.0f, tex_v);
-  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[0], screen_rect[1], 0.5f, 1.0f);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[0], screen_rect[1], 0.5f,
+                            1.0f);
 
   /* Vertex 1: bottom-right */
   scroll = 640.0f - scroll;
   D3DDevice_SetVertexData2f(10, scroll, 0.0f);
   D3DDevice_SetVertexData2f(9, tex_u, tex_v);
-  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[2], screen_rect[1], 0.5f, 1.0f);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[2], screen_rect[1], 0.5f,
+                            1.0f);
 
   /* Vertex 2: top-right */
   D3DDevice_SetVertexData2f(10, scroll, 16.0f);
   D3DDevice_SetVertexData2f(9, tex_u, 0.0f);
-  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[2], screen_rect[3], 0.5f, 1.0f);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[2], screen_rect[3], 0.5f,
+                            1.0f);
 
   /* Vertex 3: top-left */
   D3DDevice_SetVertexData2f(10, neg_scroll, 16.0f);
   D3DDevice_SetVertexData2f(9, 0.0f, 0.0f);
-  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[0], screen_rect[3], 0.5f, 1.0f);
+  D3DDevice_SetVertexData4f(0xffffffff, screen_rect[0], screen_rect[3], 0.5f,
+                            1.0f);
 
   D3DDevice_End();
 }
@@ -529,7 +538,8 @@ void progress_bar_screen_initialize(void)
 
   /* Build ortho projection matrix at 0x46c318 (scale_x=2.0, scale_y=2.0,
    * near=-1.0, far=2.0). stdcall, RET 0x14. */
-  matrix_build_ortho_projection((void *)0x46c318, 2.0f, 2.0f, -1.0f, 2.0f); /* dup-args-ok */
+  matrix_build_ortho_projection((void *)0x46c318, 2.0f, 2.0f, -1.0f,
+                                2.0f); /* dup-args-ok */
 
   /* Build perspective projection matrix at 0x46c2d8 (fov=0.64, aspect=0.48,
    * near=1.0, far=1000.0). stdcall, RET 0x14. */
@@ -540,11 +550,11 @@ void progress_bar_screen_initialize(void)
    * EAX = MOVSX height from [0x30f038], ECX = MOVSX width from [0x30f034],
    * EDX = 0x46c3f0 (out texture ptr), stack: data=0x30f040, size=0x67e4. */
   progress_bar_decode_texture(
-    (int)*(int16_t *)0x30f038,  /* height (sign-extended) */
-    (int)*(int16_t *)0x30f034,  /* width (sign-extended) */
-    (void *)0x46c3f0,           /* out_texture */
-    (void *)0x30f040,           /* data */
-    0x67e4                      /* data_size */
+    (int)*(int16_t *)0x30f038, /* height (sign-extended) */
+    (int)*(int16_t *)0x30f034, /* width (sign-extended) */
+    (void *)0x46c3f0, /* out_texture */
+    (void *)0x30f040, /* data */
+    0x67e4 /* data_size */
   );
 
   /* Generate gradient texture for the loading bar effect. */
@@ -615,21 +625,21 @@ void progress_bar_screen_initialize(void)
   *(uint32_t *)0x5aa5a4 = 0x1c00;
 
   /* Build WAVEFORMATEX for Xbox ADPCM audio */
-  *(uint16_t *)&wfx[0x00] = 0x69;    /* wFormatTag (XBOX_ADPCM) */
-  *(uint16_t *)&wfx[0x02] = 1;       /* nChannels */
-  *(uint32_t *)&wfx[0x04] = 0x5622;  /* nSamplesPerSec (22050) */
-  *(uint32_t *)&wfx[0x08] = 0x3060;  /* nAvgBytesPerSec (12384) */
-  *(uint16_t *)&wfx[0x0c] = 0x24;    /* nBlockAlign (36) */
-  *(uint16_t *)&wfx[0x0e] = 4;       /* wBitsPerSample */
-  *(uint16_t *)&wfx[0x10] = 2;       /* cbSize */
-  *(uint16_t *)&wfx[0x12] = 0x40;    /* extra (64 samples per block) */
+  *(uint16_t *)&wfx[0x00] = 0x69; /* wFormatTag (XBOX_ADPCM) */
+  *(uint16_t *)&wfx[0x02] = 1; /* nChannels */
+  *(uint32_t *)&wfx[0x04] = 0x5622; /* nSamplesPerSec (22050) */
+  *(uint32_t *)&wfx[0x08] = 0x3060; /* nAvgBytesPerSec (12384) */
+  *(uint16_t *)&wfx[0x0c] = 0x24; /* nBlockAlign (36) */
+  *(uint16_t *)&wfx[0x0e] = 4; /* wBitsPerSample */
+  *(uint16_t *)&wfx[0x10] = 2; /* cbSize */
+  *(uint16_t *)&wfx[0x12] = 0x40; /* extra (64 samples per block) */
 
   /* Build DSBUFFERDESC */
   csmemset(ds_desc, 0, 0x18);
-  *(uint32_t *)&ds_desc[0x00] = 0x18;     /* dwSize */
-  *(uint32_t *)&ds_desc[0x04] = 0x40100;  /* dwFlags */
-  *(uint32_t *)&ds_desc[0x08] = 0;        /* dwBufferBytes */
-  *(uint32_t *)&ds_desc[0x0c] = (uint32_t)wfx;  /* lpwfxFormat */
+  *(uint32_t *)&ds_desc[0x00] = 0x18; /* dwSize */
+  *(uint32_t *)&ds_desc[0x04] = 0x40100; /* dwFlags */
+  *(uint32_t *)&ds_desc[0x08] = 0; /* dwBufferBytes */
+  *(uint32_t *)&ds_desc[0x0c] = (uint32_t)wfx; /* lpwfxFormat */
 
   /* Create 4 sound buffers at 0x46c3d8..0x46c3e4 */
   for (i = 0; i < 4; i++) {
@@ -641,8 +651,7 @@ void progress_bar_screen_initialize(void)
                                      (void *)0x315828, 0x47dc);
     IDirectSoundBuffer_SetLoopRegion(*(void **)(0x46c3d8 + i * 4), 0, 0x47dc);
     IDirectSoundBuffer_SetCurrentPosition(*(void **)(0x46c3d8 + i * 4), 0);
-    IDirectSoundBuffer_SetVolume(*(void **)(0x46c3d8 + i * 4),
-                                 (int)0xffffec78);
+    IDirectSoundBuffer_SetVolume(*(void **)(0x46c3d8 + i * 4), (int)0xffffec78);
     IDirectSoundBuffer_Play(*(void **)(0x46c3d8 + i * 4), 0, 0, 1);
   }
 
@@ -675,17 +684,18 @@ void progress_bar_screen_initialize(void)
  * textured loading bar. Waits for vertical blank before returning.
  *
  * Confirmed: phase timer at 0x46c400 incremented by 0.01f each frame.
- * Confirmed: smoothed progress at 0x46c3fc with 0.2 lerp factor, clamped to 1.0.
- * Confirmed: 4 sound buffers at 0x46c3d8..0x46c3e4 with volume ranges
- *   [3500.0, 4500.0, 3500.0, 4500.0] and fade ranges [(0,1),(0.4,1),(0.5,1),(0.55,1)].
- * Confirmed: pow(sin(factor*pi), 0.3) for volume envelope.
- * Confirmed: pow(sin(progress*pi), 0.9) for base color intensity.
- * Confirmed: D3D transforms saved to 0x46c258/0x46c298/0x46c218,
+ * Confirmed: smoothed progress at 0x46c3fc with 0.2 lerp factor, clamped
+ * to 1.0. Confirmed: 4 sound buffers at 0x46c3d8..0x46c3e4 with volume ranges
+ *   [3500.0, 4500.0, 3500.0, 4500.0] and fade ranges
+ * [(0,1),(0.4,1),(0.5,1),(0.55,1)]. Confirmed: pow(sin(factor*pi), 0.3) for
+ * volume envelope. Confirmed: pow(sin(progress*pi), 0.9) for base color
+ * intensity. Confirmed: D3D transforms saved to 0x46c258/0x46c298/0x46c218,
  *   loading bar transforms set from 0x46c358/0x46c398/0x46c318.
- * Confirmed: render states: alpha blend enable, src/dst blend 0x302, blend op 1.
- * Confirmed: FUN_000e2040 called with (0, 0, fade_alpha) cdecl.
- * Confirmed: FUN_000e26c0 called with EAX=rect, ECX=color, stack=(1.0f, progress) cdecl.
- * Confirmed: system_milliseconds stored to 0x5aa670 for timeout tracking.
+ * Confirmed: render states: alpha blend enable, src/dst blend 0x302, blend
+ * op 1. Confirmed: FUN_000e2040 called with (0, 0, fade_alpha) cdecl.
+ * Confirmed: FUN_000e26c0 called with EAX=rect, ECX=color, stack=(1.0f,
+ * progress) cdecl. Confirmed: system_milliseconds stored to 0x5aa670 for
+ * timeout tracking.
  */
 /* 0xe2e50 */
 void progress_bar_render(float normalized_progress)
@@ -723,9 +733,10 @@ void progress_bar_render(float normalized_progress)
   *(float *)0x46c400 = phase_timer;
 
   /* Smooth the progress value: lerp toward input with oscillation */
-  smoothed = (sinf(phase_timer) * 0.05 + normalized_progress
-              - *(float *)0x46c3fc) * 0.2
-             + *(float *)0x46c3fc;
+  smoothed =
+    (sinf(phase_timer) * 0.05 + normalized_progress - *(float *)0x46c3fc) *
+      0.2 +
+    *(float *)0x46c3fc;
   if (smoothed > 1.0) {
     smoothed = 1.0f;
   }
@@ -739,7 +750,8 @@ void progress_bar_render(float normalized_progress)
 
   /* Update volume for each of the 4 sound buffers */
   for (i = 0; i < 4; i++) {
-    /* Compute fade factor: how far smoothed progress is within this channel's range */
+    /* Compute fade factor: how far smoothed progress is within this channel's
+     * range */
     if (smoothed < ranges[i * 2]) {
       factor = 0.0f;
     } else if (smoothed > ranges[i * 2 + 1]) {
@@ -750,9 +762,8 @@ void progress_bar_render(float normalized_progress)
 
     /* Set volume if this sound buffer is valid */
     if (*(int *)(0x46c3d8 + i * 4) != 0) {
-      int volume = (int)(
-        (float)pow(sinf(factor * 3.1415), 0.3) * volumes[i] - 5000.0f
-      );
+      int volume =
+        (int)((float)pow(sinf(factor * 3.1415), 0.3) * volumes[i] - 5000.0f);
       IDirectSoundBuffer_SetVolume(*(void **)(0x46c3d8 + i * 4), volume);
     }
   }

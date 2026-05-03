@@ -32,14 +32,6 @@ void *sound_class_get(int class_index /* @<si> */)
   return (void *)(*(int *)0x50548c + (int)idx * 0xc);
 }
 
-/* Return the runtime gain for a sound class.
- * Looks up the sound class entry by index and reads the float at offset +4. */
-float sound_class_get_gain(int class_index)
-{
-  float *entry = (float *)sound_class_get(class_index);
-  return entry[1];
-}
-
 void sound_classes_initialize_for_new_map(void)
 {
   int16_t i;
@@ -58,4 +50,12 @@ void sound_classes_initialize_for_new_map(void)
     entry[0] = 0x3f800000;
     *(int16_t *)(entry + 2) = 0;
   } while (i < 0x33);
+}
+
+/* Return the runtime gain for a sound class.
+ * Looks up the sound class entry by index and reads the float at offset +4. */
+float sound_class_get_gain(int class_index)
+{
+  float *entry = (float *)sound_class_get(class_index);
+  return entry[1];
 }

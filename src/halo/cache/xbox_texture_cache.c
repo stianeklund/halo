@@ -43,6 +43,125 @@ void xbox_texture_cache_return_memory(void)
   *(int8_t *)0x4ea984 = 0;
 }
 
+/* FUN_001beba0 (0x1beba0)
+ *
+ * Look up the linear D3D texture format code for a bitmap format index.
+ * Table at 0x2b9618 maps format indices 0..17 to D3D format codes.
+ * If flags bit 0x20 is set and format is 10 or 11 (DXT4/DXT5), returns 0x33. */
+int FUN_001beba0(int16_t format, uint16_t flags)
+{
+  int *table = (int *)0x2b9618;
+
+  if (format < 0 || format >= 0x12) {
+    display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x1e1, 1);
+    system_exit(-1);
+  }
+
+  if (table[format] == -1) {
+    display_assert("table[format]!=NONE",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x1e2, 1);
+    system_exit(-1);
+  }
+
+  if ((flags & 0x20) && (format == 10 || format == 11))
+    return 0x33;
+
+  return table[format];
+}
+
+/* FUN_001bec30 (0x1bec30)
+ *
+ * Look up the swizzled D3D texture format code for a bitmap format index.
+ * Table at 0x2b9660 maps format indices 0..17 to D3D format codes.
+ * If flags bit 0x20 is set and format is 10 or 11 (DXT4/DXT5), returns 0x36. */
+int FUN_001bec30(int16_t format, uint16_t flags)
+{
+  int *table = (int *)0x2b9660;
+
+  if (format < 0 || format >= 0x12) {
+    display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x206, 1);
+    system_exit(-1);
+  }
+
+  if (table[format] == -1) {
+    display_assert("table[format]!=NONE",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x207, 1);
+    system_exit(-1);
+  }
+
+  if ((flags & 0x20) && (format == 10 || format == 11))
+    return 0x36;
+
+  return table[format];
+}
+
+/* xbox_texture_cache_setup_d3d_texture (0x1bee30)
+ *
+ * Populate a D3D texture resource header from a bitmap hardware format.
+ * Two paths: if bitmap flags bit 0x10 is set, builds a swizzled texture
+ * descriptor with pitch-based size encoding; otherwise builds a linear
+ * texture descriptor using log2 dimensions and mipmap level count.
+ * Finishes by registering the resource with D3DResource_Register.
+ *
+ * bitmap  is passed in ESI (hardware_format pointer).
+ * texture is passed in EDI (D3D texture header, 5 dwords / 20 bytes). */
+void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
+                                          void *texture /* @<edi> */)
+{
+  int *tex = (int *)texture;
+  char *bmp = (char *)bitmap;
+  int format_bits;
+  int pitch;
+  int height;
+  int width;
+
+  assert_halt(bitmap);
+  assert_halt(texture);
+
+  tex[1] = 0;
+  tex[2] = 0;
+  tex[0] = 0x40001;
+
+  if (*(uint16_t *)(bmp + 0xe) & 0x10) {
+    format_bits =
+      FUN_001bec30(*(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
+    tex[3] = (format_bits << 8) | 0x10029;
+
+    pitch = FUN_0007d9f0(bitmap, 0);
+    height = (int)*(int16_t *)(bmp + 0x6);
+    width = (int)*(int16_t *)(bmp + 0x4);
+    tex[4] =
+      ((((pitch + ((pitch >> 31) & 0x3f)) >> 6) - 1) << 12 | (height - 1))
+        << 12 |
+      (width - 1);
+  } else {
+    int16_t log2_depth = FUN_00108db0((int)*(int16_t *)(bmp + 0x8));
+    int16_t log2_height = FUN_00108db0((int)*(int16_t *)(bmp + 0x6));
+    int16_t log2_width = FUN_00108db0((int)*(int16_t *)(bmp + 0x4));
+    int linear_fmt =
+      FUN_001beba0(*(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
+    int16_t mipmap_count = *(int16_t *)(bmp + 0xa);
+    int16_t dim_level = FUN_00183120(bitmap);
+    int dim_type = (mipmap_count != 1) ? 2 : 3;
+    int cubemap_flag = (mipmap_count == 2) ? 4 : 0;
+
+    format_bits = (int)log2_depth;
+    format_bits = (format_bits << 4) | (int)log2_height;
+    format_bits = (format_bits << 4) | (int)log2_width;
+    format_bits = (format_bits << 12) | linear_fmt;
+    format_bits = (format_bits << 4) | dim_type;
+    format_bits = (format_bits << 4) | (((int)dim_level + 1) << 16);
+    format_bits |= cubemap_flag | 0x9;
+
+    tex[4] = 0;
+    tex[3] = format_bits;
+  }
+
+  D3DResource_Register(texture, *(void **)(bmp + 0x2c));
+}
+
 bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
 {
   int cache_block_index = FUN_00183290(hardware_format);
@@ -164,122 +283,4 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
   }
 
   return result;
-}
-
-/* FUN_001beba0 (0x1beba0)
- *
- * Look up the linear D3D texture format code for a bitmap format index.
- * Table at 0x2b9618 maps format indices 0..17 to D3D format codes.
- * If flags bit 0x20 is set and format is 10 or 11 (DXT4/DXT5), returns 0x33. */
-int FUN_001beba0(int16_t format, uint16_t flags)
-{
-  int *table = (int *)0x2b9618;
-
-  if (format < 0 || format >= 0x12) {
-    display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
-                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x1e1, 1);
-    system_exit(-1);
-  }
-
-  if (table[format] == -1) {
-    display_assert("table[format]!=NONE",
-                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x1e2, 1);
-    system_exit(-1);
-  }
-
-  if ((flags & 0x20) && (format == 10 || format == 11))
-    return 0x33;
-
-  return table[format];
-}
-
-/* FUN_001bec30 (0x1bec30)
- *
- * Look up the swizzled D3D texture format code for a bitmap format index.
- * Table at 0x2b9660 maps format indices 0..17 to D3D format codes.
- * If flags bit 0x20 is set and format is 10 or 11 (DXT4/DXT5), returns 0x36. */
-int FUN_001bec30(int16_t format, uint16_t flags)
-{
-  int *table = (int *)0x2b9660;
-
-  if (format < 0 || format >= 0x12) {
-    display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
-                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x206, 1);
-    system_exit(-1);
-  }
-
-  if (table[format] == -1) {
-    display_assert("table[format]!=NONE",
-                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x207, 1);
-    system_exit(-1);
-  }
-
-  if ((flags & 0x20) && (format == 10 || format == 11))
-    return 0x36;
-
-  return table[format];
-}
-
-/* xbox_texture_cache_setup_d3d_texture (0x1bee30)
- *
- * Populate a D3D texture resource header from a bitmap hardware format.
- * Two paths: if bitmap flags bit 0x10 is set, builds a swizzled texture
- * descriptor with pitch-based size encoding; otherwise builds a linear
- * texture descriptor using log2 dimensions and mipmap level count.
- * Finishes by registering the resource with D3DResource_Register.
- *
- * bitmap  is passed in ESI (hardware_format pointer).
- * texture is passed in EDI (D3D texture header, 5 dwords / 20 bytes). */
-void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
-                                          void *texture /* @<edi> */)
-{
-  int *tex = (int *)texture;
-  char *bmp = (char *)bitmap;
-  int format_bits;
-  int pitch;
-  int height;
-  int width;
-
-  assert_halt(bitmap);
-  assert_halt(texture);
-
-  tex[1] = 0;
-  tex[2] = 0;
-  tex[0] = 0x40001;
-
-  if (*(uint16_t *)(bmp + 0xe) & 0x10) {
-    format_bits = FUN_001bec30(*(int16_t *)(bmp + 0xc),
-                               *(uint16_t *)(bmp + 0xe));
-    tex[3] = (format_bits << 8) | 0x10029;
-
-    pitch = FUN_0007d9f0(bitmap, 0);
-    height = (int)*(int16_t *)(bmp + 0x6);
-    width = (int)*(int16_t *)(bmp + 0x4);
-    tex[4] = ((((pitch + ((pitch >> 31) & 0x3f)) >> 6) - 1) << 12 |
-              (height - 1)) << 12 |
-             (width - 1);
-  } else {
-    int16_t log2_depth = FUN_00108db0((int)*(int16_t *)(bmp + 0x8));
-    int16_t log2_height = FUN_00108db0((int)*(int16_t *)(bmp + 0x6));
-    int16_t log2_width = FUN_00108db0((int)*(int16_t *)(bmp + 0x4));
-    int linear_fmt = FUN_001beba0(*(int16_t *)(bmp + 0xc),
-                                   *(uint16_t *)(bmp + 0xe));
-    int16_t mipmap_count = *(int16_t *)(bmp + 0xa);
-    int16_t dim_level = FUN_00183120(bitmap);
-    int dim_type = (mipmap_count != 1) ? 2 : 3;
-    int cubemap_flag = (mipmap_count == 2) ? 4 : 0;
-
-    format_bits = (int)log2_depth;
-    format_bits = (format_bits << 4) | (int)log2_height;
-    format_bits = (format_bits << 4) | (int)log2_width;
-    format_bits = (format_bits << 12) | linear_fmt;
-    format_bits = (format_bits << 4) | dim_type;
-    format_bits = (format_bits << 4) | (((int)dim_level + 1) << 16);
-    format_bits |= cubemap_flag | 0x9;
-
-    tex[4] = 0;
-    tex[3] = format_bits;
-  }
-
-  D3DResource_Register(texture, *(void **)(bmp + 0x2c));
 }

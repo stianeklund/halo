@@ -175,6 +175,23 @@ terminate:
   *(short *)(particle + 0xa) = -1;
 }
 
+void particle_systems_dispose_from_old_map(void)
+{
+  int particle_system_index;
+
+  if (particle_system_header_data && particle_system_header_data->valid) {
+    for (particle_system_index =
+           data_next_index(particle_system_header_data, NONE);
+         particle_system_index != NONE;
+         particle_system_index = data_next_index(particle_system_header_data,
+                                                 particle_system_index)) {
+      particle_system_delete(particle_system_index);
+    }
+    data_make_invalid(particle_system_header_data);
+    data_make_invalid(particle_system_data);
+  }
+}
+
 /* Emit particles for a particle type (0x9fd30).
  * Calculates how many particles to emit based on dt and the type's emission
  * rate, then allocates and initializes each particle. Uses either time-based
@@ -190,7 +207,8 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
   char *type_state;
   char *state_def;
   char *particle;
-  char marker_buf[8 * 0x6c]; /* 8 entries at 0x6c bytes each; original SUB ESP,0x380 */
+  char marker_buf[8 * 0x6c]; /* 8 entries at 0x6c bytes each; original SUB
+                                ESP,0x380 */
   float local_position[3];
   float local_up[3];
   int particle_handle;
@@ -214,9 +232,11 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
                                               (int)*(short *)type_state, 0xc0);
     emit_frac = dt * *(float *)(type_state + 0x30);
     emit_count_int = (int)emit_frac;
-    target_count = (unsigned int)(unsigned short)(*(short *)(type_state + 0x3a) +
-                                                  (short)emit_count_int);
-    emit_frac = emit_frac - (float)emit_count_int + *(float *)(type_state + 0x34);
+    target_count =
+      (unsigned int)(unsigned short)(*(short *)(type_state + 0x3a) +
+                                     (short)emit_count_int);
+    emit_frac =
+      emit_frac - (float)emit_count_int + *(float *)(type_state + 0x34);
     *(float *)(type_state + 0x34) = emit_frac;
     if (emit_frac > 1.0f) {
       target_count = target_count + 1;
@@ -258,13 +278,10 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
     /* Get marker from attached object */
     char *obj = (char *)object_get_and_verify_type(*(int *)(ps + 0xc), -1);
     char *obj_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
-    char *marker_elem =
-      (char *)tag_block_get_element((void *)(obj_tag + 0x140),
-                                    (int)*(short *)(ps + 0x10), 0x6c);
-    location_valid =
-      object_get_markers_by_string_id(*(int *)(ps + 0xc),
-                                      (void *)(marker_elem + 0x10),
-                                      marker_buf, 8);
+    char *marker_elem = (char *)tag_block_get_element(
+      (void *)(obj_tag + 0x140), (int)*(short *)(ps + 0x10), 0x6c);
+    location_valid = object_get_markers_by_string_id(
+      *(int *)(ps + 0xc), (void *)(marker_elem + 0x10), marker_buf, 8);
     object_get_location(*(int *)(ps + 0xc), ps + 0x18);
   }
 
@@ -291,8 +308,8 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
     }
 
     if (particle == (char *)0) {
-      display_assert("particle", "c:\\halo\\SOURCE\\effects\\particle_systems.c",
-                     0x1dc, 1);
+      display_assert("particle",
+                     "c:\\halo\\SOURCE\\effects\\particle_systems.c", 0x1dc, 1);
       system_exit(-1);
     }
 
@@ -302,9 +319,8 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
     *(short *)(particle + 0xa) = -1;
     *(char *)(particle + 2) = 1;
     *(float *)(particle + 0x44) = -1.0f;
-    *(float *)(particle + 0x40) =
-      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
-                        3.14159265f * 2.0f);
+    *(float *)(particle + 0x40) = random_real_range(
+      (int *)random_math_get_local_seed_address(), 0.0f, 3.14159265f * 2.0f);
 
     if (creation_func_idx < 0 || creation_func_idx >= 3) {
       display_assert("creation_function_index>=0 && "
@@ -318,8 +334,8 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
     {
       random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
                         (float)location_valid);
-      typedef void (*creation_physics_fn)(char *ps, short type_idx, char *particle,
-                                          char *marker_buf);
+      typedef void (*creation_physics_fn)(char *ps, short type_idx,
+                                          char *particle, char *marker_buf);
       ((creation_physics_fn *)(0x26ab10))[creation_func_idx](
         ps, (short)type_index, particle, marker_buf);
     }
@@ -342,7 +358,8 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
 
 check_emission_multiplier:
   /* If particle count < threshold, scale down emission timer */
-  if ((float)(int)*(short *)(type_state + 0x3a) < *(float *)(type_state + 0x2c)) {
+  if ((float)(int)*(short *)(type_state + 0x3a) <
+      *(float *)(type_state + 0x2c)) {
     *(float *)(type_state + 0x4) = *(float *)(type_state + 0x4) * 0.5f;
   }
 }
@@ -364,12 +381,12 @@ void FUN_000a0080(void *sys_def_arg, short state_index, void *output_arg)
   char *state_def;
   float t;
 
-  state_def =
-    (char *)tag_block_get_element((void *)(sys_def + 0x74), (int)state_index,
-                                  0x178);
+  state_def = (char *)tag_block_get_element((void *)(sys_def + 0x74),
+                                            (int)state_index, 0x178);
 
   /* Generate random interpolation factor */
-  t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f, 1.0f);
+  t =
+    random_real_range((int *)random_math_get_local_seed_address(), 0.0f, 1.0f);
 
   /* Fill output with random ranges */
   output[1] = random_real_range((int *)random_math_get_local_seed_address(),
@@ -386,29 +403,15 @@ void FUN_000a0080(void *sys_def_arg, short state_index, void *output_arg)
                                 *(float *)(state_def + 0x70));
 
   /* Fill output with linear interpolations */
-  output[4] = (*(float *)(state_def + 0x74) - *(float *)(state_def + 0x64)) * t +
-              *(float *)(state_def + 0x64);
-  output[5] = (*(float *)(state_def + 0x78) - *(float *)(state_def + 0x68)) * t +
-              *(float *)(state_def + 0x68);
-  output[6] = (*(float *)(state_def + 0x7c) - *(float *)(state_def + 0x6c)) * t +
-              *(float *)(state_def + 0x6c);
-}
-
-void particle_systems_dispose_from_old_map(void)
-{
-  int particle_system_index;
-
-  if (particle_system_header_data && particle_system_header_data->valid) {
-    for (particle_system_index =
-           data_next_index(particle_system_header_data, NONE);
-         particle_system_index != NONE;
-         particle_system_index = data_next_index(particle_system_header_data,
-                                                 particle_system_index)) {
-      particle_system_delete(particle_system_index);
-    }
-    data_make_invalid(particle_system_header_data);
-    data_make_invalid(particle_system_data);
-  }
+  output[4] =
+    (*(float *)(state_def + 0x74) - *(float *)(state_def + 0x64)) * t +
+    *(float *)(state_def + 0x64);
+  output[5] =
+    (*(float *)(state_def + 0x78) - *(float *)(state_def + 0x68)) * t +
+    *(float *)(state_def + 0x68);
+  output[6] =
+    (*(float *)(state_def + 0x7c) - *(float *)(state_def + 0x6c)) * t +
+    *(float *)(state_def + 0x6c);
 }
 
 /* Main per-particle-system update tick (0xa0180).
@@ -468,11 +471,10 @@ void FUN_000a0180(float dt, int particle_system_handle)
   }
 
   if (*(short *)(tag_def + 0x48) < 0 || *(short *)(tag_def + 0x48) >= 2) {
-    display_assert(
-      "system_definition->system_update_physics>=0 && "
-      "system_definition->system_update_physics<"
-      "NUMBER_OF_PARTICLE_SYSTEM_UPDATE_PHYSICS",
-      "c:\\halo\\SOURCE\\effects\\particle_systems.c", 0x2e1, 1);
+    display_assert("system_definition->system_update_physics>=0 && "
+                   "system_definition->system_update_physics<"
+                   "NUMBER_OF_PARTICLE_SYSTEM_UPDATE_PHYSICS",
+                   "c:\\halo\\SOURCE\\effects\\particle_systems.c", 0x2e1, 1);
     system_exit(-1);
   }
 
