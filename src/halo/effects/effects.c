@@ -970,7 +970,7 @@ void FUN_0009e180(void *output,
   offset = (int)marker_index * 12;
   forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
 
-  if (!((int (*)(float *))0x21fb0)(forwards_ptr)) {
+  if (!valid_real_normal3d(forwards_ptr)) {
     csprintf((char *)0x5ab100,
              "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&marker_list->forwards[effect_marker_index]",
@@ -986,8 +986,8 @@ void FUN_0009e180(void *output,
   node_matrix = *(void **)((char *)creation_info + 0x4);
   if (node_matrix != 0) {
     positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
-    matrix_transform_point(node_matrix, positions_ptr, local_position);
-    matrix_transform_vector(node_matrix, forwards_ptr, local_forward);
+    matrix_transform_point((float *)node_matrix, positions_ptr, local_position);
+    matrix_transform_vector((float *)node_matrix, forwards_ptr, local_forward);
   } else {
     positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
     local_position[0] = positions_ptr[0];
@@ -999,7 +999,7 @@ void FUN_0009e180(void *output,
     local_forward[2] = forwards_ptr[2];
   }
 
-  if (!((int (*)(float *))0x21fb0)(local_forward)) {
+  if (!valid_real_normal3d(local_forward)) {
     csprintf((char *)0x5ab100,
              "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&forward",
@@ -1010,9 +1010,9 @@ void FUN_0009e180(void *output,
     system_exit(-1);
   }
 
-  ((void (*)(float *, float *))0x10b620)(local_forward, local_up);
-  ((float (*)(float *))0x13010)(local_up);
-  ((void (*)(void *, float *, float *, float *))0x10a110)(
+  perpendicular3d(local_forward, local_up);
+  normalize3d(local_up);
+  matrix4x3_from_forward_up_position(
     (char *)output + 4, local_position, local_forward, local_up);
 }
 
@@ -1030,16 +1030,15 @@ short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
   if (*(int *)(creation_info + 0xc) == 0)
     goto fallback;
 
-  if (!((int (*)(void *))0x8df60)(event_elem))
+  if (!csstrlen((const char *)event_elem))
     goto fallback;
 
   for (i = 0; i < max_markers; i++) {
     if (i >= *(int16_t *)(creation_info + 0x8))
       break;
 
-    if (!((int (*)(void *, int))0x8dcb0)(
-          event_elem,
-          *(int *)(*(int *)(creation_info + 0xc) + (int)i * 4))) {
+    if (!csstrcmp((const char *)event_elem,
+                  *(char **)(*(int *)(creation_info + 0xc) + (int)i * 4))) {
       FUN_0009e180((char *)marker_buf + (int)marker_count * 0x6c,
                    i, creation_info);
       marker_count++;
