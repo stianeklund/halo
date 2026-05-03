@@ -210,6 +210,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3ec80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "DAT_002c8728 at 0x2c8728 holds the handle of the actor currently being activated; it is set to actor_handle on entry and reset to -1 on all exit paths, indicating a 'current activation' slot used by callees.",
+        "Byte at actor+0x13 is a dormant/suppress-init flag: when non-zero the function exits immediately after the subsystem pre-init block without calling the full activation sequence."
+      ],
+      "uncertain": [
+        "The second datum_get(actor_data, actor_handle) call is identical to the first; the decompiler shows both results but the second (EDI) is used for the memset+field-init block while the first (EBP-4) is used for actor+0x13 and actor+0x6 checks \u2014 both dereference the same record so the split may be a compiler artifact or the result may differ if actor_data is mutated by an intermediate callee."
+      ]
+    },
     "0x3f5f0": {
       "kind": "function",
       "status": "ported"
@@ -6102,6 +6113,222 @@
     },
     "0x5065a4": {
       "kind": "data",
+      "status": "ported"
+    },
+    "0x11e430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdd80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1937d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x108db0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc5730": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc57d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc5840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc5960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6b00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc71c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc72b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc73a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc74c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc7b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc7be0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc7ca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcaa30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcb7b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcbf80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc0a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc1d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcca00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xccb40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xccc70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xccdf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcced0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcd5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcd840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c060": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c0b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c100": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c1c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d0c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d3b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d450": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12dbb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12dd20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12de20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12df50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12e090": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12f5d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d1b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d240": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d300": {
+      "kind": "function",
       "status": "ported"
     }
   }
