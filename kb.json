@@ -6285,11 +6285,13 @@
         },
         {
           "addr": "0x12f10",
-          "decl": "float magnitude3d(float *v);"
+          "decl": "float magnitude3d(float *v);",
+          "ported": true
         },
         {
           "addr": "0x28610",
-          "decl": "int valid_real_normal2d(float *v);"
+          "decl": "int valid_real_normal2d(float *v);",
+          "ported": true
         }
       ]
     },

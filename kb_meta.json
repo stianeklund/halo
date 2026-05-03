@@ -25,6 +25,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12f10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12f80": {
       "kind": "function",
       "status": "ported"
@@ -62,6 +66,10 @@
       "status": "ported"
     },
     "0x21fb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x28610": {
       "kind": "function",
       "status": "ported"
     },
