@@ -1143,7 +1143,8 @@
         },
         {
           "addr": "0x3a760",
-          "decl": "const char *FUN_0003a760(int16_t actor_type);"
+          "decl": "const char *FUN_0003a760(int16_t actor_type);",
+          "ported": true
         },
         {
           "addr": "0x3a840",
