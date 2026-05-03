@@ -66,6 +66,19 @@ stabbed.txt
 # Generated run artifacts (keep named smoke fixtures tracked)
 /artifacts/lift_runs/[0-9]*
 
+# Generated plugin artifacts
+/ghidra_plugins/delinker_control/.gradle/
+/ghidra_plugins/delinker_control/build/
+/ghidra_plugins/delinker_control/dist/
+
+# Local capture artifacts
+/screenshots/
+/xemu-screenshot.ppm
+
+# Ephemeral repo-local state
+/.claude/scheduled_tasks.lock
+/Invalid
+
 # Local config
 opencode.json
 .claude/settings.local.json
