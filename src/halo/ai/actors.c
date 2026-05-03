@@ -52,6 +52,12 @@ void FUN_0003a740(void)
   }
 }
 
+/* Return the name string for an actor type definition. */
+const char *FUN_0003a760(int16_t actor_type)
+{
+  return *(const char **)FUN_0003a600(actor_type);
+}
+
 /* FUN_0003a8a0 (0x3a8a0) — actor_swarm_control_dispatch
  *
  * Dispatch the actor-type-specific swarm control function for a given actor.
