@@ -213,5 +213,11 @@
     "0x3bbf0": "void FUN_0003bbf0(int actor_handle@<eax>);",
     "0x3e7a0": "void FUN_0003e7a0(int actor_handle@<eax>);"
   },
-  "version": 1
+  "version": 1,
+  "0xcada0": {
+    "decl": "int FUN_000cada0(int16_t script_index@<edi>);",
+    "regs": {
+      "edi": "script_index"
+    }
+  }
 }

@@ -3813,6 +3813,11 @@
           "ported": true
         },
         {
+          "addr": "0xcada0",
+          "decl": "int FUN_000cada0(int16_t script_index@<edi>);",
+          "ported": true
+        },
+        {
           "addr": "0xcaff0",
           "decl": "bool hs_object_types_compatible(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
           "ported": true
@@ -3910,17 +3915,17 @@
         {
           "addr": "0xcd0e0",
           "decl": "void FUN_000cd0e0(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcd2a0",
           "decl": "void FUN_000cd2a0(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcd4a0",
           "decl": "void FUN_000cd4a0(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcd5a0",
@@ -3930,7 +3935,7 @@
         {
           "addr": "0xcd6c0",
           "decl": "void FUN_000cd6c0(int16_t function_index, int thread_datum, char init);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xcd840",
@@ -3965,7 +3970,7 @@
         {
           "addr": "0xce370",
           "decl": "void FUN_000ce370(int expression_datum);",
-          "ported": false
+          "ported": true
         }
       ],
       "source_path": "src/halo/hs/hs_runtime.c"

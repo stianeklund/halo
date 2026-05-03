@@ -722,6 +722,22 @@ static void *hs_thread_stack_alloc(int thread_handle, int size)
   return (void *)(frame + (int)old_size + 0xe);
 }
 
+/* 0xcada0 — Find an HS thread whose script index (at +4) matches the given
+ * index. Iterates hs_thread_data; returns the matching datum handle or -1. */
+int FUN_000cada0(int16_t script_index)
+{
+  int datum_index;
+
+  datum_index = data_next_index(*(data_t **)0x5aa6c4, -1);
+  while (datum_index != -1) {
+    char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, datum_index);
+    if (*(int *)(thread + 0x4) == (int)script_index)
+      return datum_index;
+    datum_index = data_next_index(*(data_t **)0x5aa6c4, datum_index);
+  }
+  return -1;
+}
+
 /* 0xcaff0 */
 static bool hs_object_types_compatible(int16_t actual_offset,
                                        int16_t desired_offset)
@@ -2088,6 +2104,265 @@ void FUN_000cced0(int16_t function_index, int thread_datum, char init)
   FUN_000cbf80(thread_datum, (int)(uint8_t)result);
 }
 
+/* 0xcd0e0 — HS 'sleep' evaluator. Puts a thread (or another thread by script
+ * index) to sleep for a given number of ticks. Three-phase protocol:
+ *   init: evaluate the sleep-ticks expression, set phase=0.
+ *   phase 0: resolve optional target-thread expression; increment phase.
+ *   phase 1: apply the sleep. If target != -1, look up thread by script index
+ *            via FUN_000cada0(@EDI). Negative ticks → sleep_until = -2
+ * (forever). Positive ticks → sleep_until = game_time + ticks. Backs up the
+ *            target's old sleep_until if sleeping a different thread.
+ *
+ * Stack allocations:
+ *   4 bytes — sleep_ticks (int16_t value from evaluation)
+ *   4 bytes — target_ref (int16_t script index of target thread, or -1)
+ *   2 bytes — phase counter
+ *
+ * Assert: function_index == 0x13 (_hs_function_sleep).
+ *
+ * Globals:
+ *   0x5aa6c4 = hs_thread_data (data_t*)
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ */
+void FUN_000cd0e0(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  int16_t *sleep_ticks;
+  int16_t *target_ref;
+  int16_t *phase;
+  int local_thread;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  sleep_ticks = (int16_t *)hs_thread_stack_alloc(thread_datum, 4);
+  target_ref = (int16_t *)hs_thread_stack_alloc(thread_datum, 4);
+  phase = (int16_t *)hs_thread_stack_alloc(thread_datum, 2);
+  local_thread = thread_datum;
+
+  if (function_index != 0x13) {
+    display_assert("function_index==_hs_function_sleep",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x189,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(int *)(thread + 0x10) + 4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), sleep_ticks);
+    *phase = 0;
+    return;
+  }
+
+  if (*phase == 0) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(int *)(thread + 0x10) + 4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    char *ticks_node =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child + 0x8));
+    int next_expr = *(int *)(ticks_node + 0x8);
+    *phase = *phase + 1;
+    if (next_expr != -1) {
+      FUN_000cc1d0(thread_datum, next_expr, target_ref);
+      return;
+    }
+    *(int *)target_ref = -1;
+    if (*phase == 0)
+      return;
+  }
+
+  {
+    int16_t ticks = *sleep_ticks;
+    if (ticks != 0) {
+      if (*target_ref != -1) {
+        local_thread = FUN_000cada0(*target_ref);
+      }
+      if (local_thread != -1) {
+        char *target = (char *)datum_get(*(data_t **)0x5aa6c4, local_thread);
+        int new_sleep;
+        if (ticks < 0) {
+          new_sleep = -2;
+        } else {
+          new_sleep = game_time_get() + (int)ticks;
+        }
+        if (*(int *)(target + 0x8) != -1) {
+          if (local_thread != thread_datum &&
+              (*(uint8_t *)(target + 0x3) & 2) == 0) {
+            *(uint8_t *)(target + 0x3) |= 2;
+            *(int *)(target + 0xc) = *(int *)(target + 0x8);
+          }
+          target = (char *)datum_get(*(data_t **)0x5aa6c4, local_thread);
+          *(int *)(target + 0x8) = new_sleep;
+        }
+      }
+    }
+    FUN_000cbf80(thread_datum, 0);
+  }
+}
+
+/* 0xcd2a0 — HS 'sleep_until' evaluator. Repeatedly evaluates a condition
+ * expression until it becomes true or a timeout expires. Sleeps between
+ * evaluations for a configurable number of ticks (default 30).
+ *
+ * Stack allocations:
+ *   4 bytes — evaluated (char flag: 0=pending, nonzero=condition true)
+ *   4 bytes — ticks_per_eval (int16_t, default 30)
+ *   4 bytes — timeout_ticks (int, -1 = no timeout)
+ *   4 bytes — start_time (int, game_time at init)
+ *   2 bytes — phase counter
+ *
+ * Multi-phase:
+ *   init: set defaults, evaluate optional ticks_per_eval expression.
+ *   phase 0: evaluate optional timeout expression.
+ *   phase 1+: re-evaluate condition; if true or timed out, wake thread.
+ *             Otherwise set sleep_until = game_time + ticks, clamped to
+ * deadline.
+ *
+ * Assert: function_index == 0x14 (_hs_function_sleep_until).
+ */
+void FUN_000cd2a0(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  char *evaluated;
+  int16_t *ticks_per_eval;
+  int *timeout_ticks;
+  int *start_time;
+  int16_t *phase;
+  int ticks_expr;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  evaluated = (char *)hs_thread_stack_alloc(thread_datum, 4);
+  ticks_per_eval = (int16_t *)hs_thread_stack_alloc(thread_datum, 4);
+  timeout_ticks = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  start_time = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  phase = (int16_t *)hs_thread_stack_alloc(thread_datum, 2);
+
+  {
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(int *)(thread + 0x10) + 4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    char *cond = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child + 0x8));
+    ticks_expr = *(int *)(cond + 0x8);
+  }
+
+  if (function_index != 0x14) {
+    display_assert("function_index==_hs_function_sleep_until",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x1e5,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    *evaluated = 0;
+    *start_time = game_time_get();
+    *phase = 0;
+    *ticks_per_eval = 0x1e;
+    *timeout_ticks = -1;
+    if (ticks_expr != -1) {
+      FUN_000cc1d0(thread_datum, ticks_expr, ticks_per_eval);
+      return;
+    }
+  }
+
+  if (*phase == 0) {
+    *phase = 1;
+    if (ticks_expr != -1) {
+      char *ticks_node = (char *)datum_get(*(data_t **)0x5aa6c8, ticks_expr);
+      if (*(int *)(ticks_node + 0x8) != -1) {
+        FUN_000cc1d0(thread_datum, *(int *)(ticks_node + 0x8), timeout_ticks);
+        return;
+      }
+    }
+  }
+
+  if (*phase != 1)
+    return;
+
+  if (*evaluated == 0 && (*timeout_ticks == -1 ||
+                          game_time_get() < *timeout_ticks + *start_time)) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(int *)(thread + 0x10) + 4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), evaluated);
+    {
+      int ticks;
+      int new_sleep;
+      ticks = 1;
+      if (*ticks_per_eval >= 1)
+        ticks = (int)*ticks_per_eval;
+      new_sleep = game_time_get() + ticks;
+      *(int *)(thread + 0x8) = new_sleep;
+      if (*timeout_ticks != -1) {
+        int deadline = *timeout_ticks + *start_time;
+        if (deadline <= new_sleep)
+          new_sleep = deadline;
+        *(int *)(thread + 0x8) = new_sleep;
+      }
+    }
+  } else {
+    FUN_000cbf80(thread_datum, 0);
+  }
+}
+
+/* 0xcd4a0 — HS 'inspect' evaluator. Evaluates one argument and prints its
+ * value using the type-specific inspect function from the table at 0x2f3df8.
+ * function_index must be 0x16 (_hs_function_inspect).
+ *
+ * Stack allocation: 4 bytes — result value.
+ *
+ * Globals:
+ *   0x5aa6c4 = hs_thread_data (data_t*)
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ *   0x2f3df8 = hs_type_inspect_table (code*[])
+ */
+void FUN_000cd4a0(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  int *result_ptr;
+  char local_404[1024];
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  result_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+
+  if (function_index != 0x16) {
+    display_assert("function_index==_hs_function_inspect",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 700,
+                   1);
+    system_exit(-1);
+  }
+
+  {
+    int first_arg = *(int *)(*(int *)(thread + 0x10) + 4);
+    if (init) {
+      char *node = (char *)datum_get(*(data_t **)0x5aa6c8, first_arg);
+      char *child =
+        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+      FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), result_ptr);
+      return;
+    }
+
+    {
+      char *node = (char *)datum_get(*(data_t **)0x5aa6c8, first_arg);
+      char *child =
+        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+      char *value_node =
+        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child + 0x8));
+      int16_t type = *(int16_t *)(value_node + 0x4);
+      typedef void (*inspect_fn)(int16_t, int, char *);
+      inspect_fn fn = ((inspect_fn *)0x2f3df8)[(int)type];
+      if (fn != NULL) {
+        fn(type, *result_ptr, local_404);
+        console_printf(0, local_404);
+      }
+    }
+    FUN_000cbf80(thread_datum, 0);
+  }
+}
+
 /* 0xcd5a0 — HS object-to-unit type converter. Evaluates one argument,
  * checks if the object's type matches the target conversion mask from
  * the table at 0x26f320. Returns the object if compatible, NONE if not.
@@ -2138,6 +2413,82 @@ void FUN_000cd5a0(int16_t function_index, int thread_datum, char init)
           *(const char **)(0x2f153c + type_idx * 4));
     FUN_000cbf80(thread_datum, -1);
   }
+}
+
+/* 0xcd6c0 — HS debug_string evaluator. Collects up to 32 evaluated arguments
+ * into a buffer, then dispatches to one of three output functions based on
+ * function_index: 0x18 → FUN_0004a650, 0x19 → FUN_0004a680, 0x1a →
+ * FUN_0004a6b0.
+ *
+ * Stack allocations:
+ *   4 bytes — current expression datum (int*)
+ *   4 bytes — argument count (int*)
+ *   128 bytes — argument values array (int[32])
+ *
+ * Assert: function_index in [0x18..0x1a] (_hs_function_debug_string range).
+ */
+void FUN_000cd6c0(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  int *cur_expr;
+  int *arg_count;
+  int arg_buf;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  cur_expr = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  arg_count = (int *)hs_thread_stack_alloc(thread_datum, 4);
+  arg_buf = (int)hs_thread_stack_alloc(thread_datum, 0x80);
+
+  if (function_index < 0x18 || function_index > 0x1a) {
+    display_assert("(function_index>=_hs_function_debug_string__first) && "
+                   "(function_index<=_hs_function_debug_string__last)",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x304,
+                   1);
+    system_exit(-1);
+  }
+
+  if (init) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                                   *(int *)(*(int *)(thread + 0x10) + 4));
+    char *child =
+      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    *cur_expr = *(int *)(child + 0x8);
+    *arg_count = 0;
+    csmemset((void *)arg_buf, 0, 0x80);
+  }
+
+  if (*cur_expr != -1 && *arg_count < 0x20) {
+    int result;
+    FUN_000cc1d0(thread_datum, *cur_expr, &result);
+    {
+      char *expr_node = (char *)datum_get(*(data_t **)0x5aa6c8, *cur_expr);
+      *cur_expr = *(int *)(expr_node + 0x8);
+    }
+    *(int *)(arg_buf + *arg_count * 4) = result;
+    *arg_count = *arg_count + 1;
+    return;
+  }
+
+  {
+    typedef void (*debug_string_fn)(int, int);
+    debug_string_fn fn;
+    if (function_index == 0x18) {
+      fn = (debug_string_fn)0x4a650;
+    } else if (function_index == 0x19) {
+      fn = (debug_string_fn)0x4a680;
+    } else if (function_index == 0x1a) {
+      fn = (debug_string_fn)0x4a6b0;
+    } else {
+      display_assert(0, "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
+                     0x330, 1);
+      system_exit(-1);
+      FUN_000cbf80(thread_datum, -1);
+      return;
+    }
+    if (fn != NULL)
+      fn(*arg_count, arg_buf);
+  }
+  FUN_000cbf80(thread_datum, -1);
 }
 
 /* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
@@ -2566,5 +2917,25 @@ void FUN_000ce350(int expression_datum)
   if (expression_datum != -1) {
     char *node = (char *)datum_get(*(data_t **)0x5aa698, expression_datum);
     *(int16_t *)(node + 0x4) += 1;
+  }
+}
+
+/* 0xce370 — Decrement the reference count of an object list entry.
+ * Asserts that the count is > 0 before decrementing.
+ * Source: object_lists.c line 0xa5.
+ *
+ * Globals:
+ *   0x5aa698 = hs_object_list_data (data_t*)
+ */
+void FUN_000ce370(int expression_datum)
+{
+  if (expression_datum != -1) {
+    char *node = (char *)datum_get(*(data_t **)0x5aa698, expression_datum);
+    if (*(int16_t *)(node + 0x4) < 1) {
+      display_assert("list->reference_count>0",
+                     "c:\\halo\\SOURCE\\hs\\object_lists.c", 0xa5, 1);
+      system_exit(-1);
+    }
+    *(int16_t *)(node + 0x4) -= 1;
   }
 }
