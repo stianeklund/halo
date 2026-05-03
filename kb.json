@@ -1250,7 +1250,8 @@
         },
         {
           "addr": "0x3bb50",
-          "decl": "void FUN_0003bb50(int actor_handle@<eax>);"
+          "decl": "void FUN_0003bb50(int actor_handle@<eax>);",
+          "ported": true
         },
         {
           "addr": "0x3bbf0",

@@ -739,6 +739,82 @@ void FUN_0003ba00(void)
   }
 }
 
+/* FUN_0003bb50 (0x3bb50) — actor_update_cognition_score
+ *
+ * Updates a per-actor cognition score (field +0x4a) and compares it against
+ * thresholds stored in the AI globals struct at 0x632574. If the threshold is
+ * exceeded, resets the score to zero and sets alarm flags; otherwise tracks
+ * the running maximum.
+ *
+ * Algorithm:
+ *   increment = 1 if actor->field_0x6c != 10 or field_0xa0 not in {2,3,4,5}
+ *               3 if actor->field_0x6c == 10 AND field_0xa0 in {2,3,4,5}
+ *   actor->field_0x4a += increment
+ *   score = actor->field_0x4a
+ *   if (ai_globals[3] == 0 && score > ai_globals[+4] && score > 15):
+ *       actor->field_0x4a = 0
+ *       ai_globals[+3] = 1
+ *       actor->field_0x4c = 1     (alarm triggered)
+ *       return
+ *   if (score > ai_globals[+6]):
+ *       ai_globals[+6] = score    (update running max)
+ *   actor->field_0x4c = 0         (no alarm)
+ *
+ * actor->field_0x6c: int16 — actor mode/state (10 = some firing mode)
+ * actor->field_0xa0: int16 — some sub-state (2–5 = active sub-states)
+ * actor->field_0x4a: int16 — cognition score accumulator
+ * actor->field_0x4c: byte  — alarm flag
+ * ai_globals+3:      byte  — global alarm triggered flag
+ * ai_globals+4:      int16 — score threshold
+ * ai_globals+6:      int16 — running max score
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3bb59.
+ * Confirmed: CMP [ECX+0x6c], 0xa; then MOV SI,[ECX+0xa0]; CMP SI,{2,3,4,5} at
+ *   0x3bb67–0x3bb8d.
+ * Confirmed: LEA EBX,[EBX+EBX*1+1] computes increment (1 or 3) at 0x3bb97.
+ * Confirmed: ADD [ECX+0x4a], BX at 0x3bb9b.
+ * Confirmed: MOV ESI,[0x632574] loads AI globals ptr at 0x3bb9f.
+ * Confirmed: BL = ai_globals[+3] at 0x3bba5; TEST BL,BL / JNZ at
+ * 0x3bbac–0x3bbaf. Confirmed: CMP DX,[ESI+4] / CMP DX,0xf at 0x3bbb1–0x3bbb7.
+ * Confirmed: reset path: [ECX+0x4a]=0; [EDX+3]=1; [ECX+0x4c]=1 at
+ * 0x3bbbd–0x3bbce. Confirmed: max-tracking: CMP DX,[ESI+6] / MOV [ESI+6],DX at
+ * 0x3bbd3–0x3bbd9. Confirmed: [ECX+0x4c]=0 (AL=0 from XOR AL,AL at 0x3bb63, not
+ * reassigned) at 0x3bbdd. */
+void FUN_0003bb50(int actor_handle /* @<eax> */)
+{
+  char *actor;
+  char *ai_globals;
+  short score;
+  int increment;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  ai_globals = *(char **)0x632574;
+
+  increment = 1;
+  if (*(short *)(actor + 0x6c) == 10) {
+    short sub = *(short *)(actor + 0xa0);
+    if (sub == 2 || sub == 3 || sub == 4 || sub == 5) {
+      increment = 3;
+    }
+  }
+
+  *(short *)(actor + 0x4a) += (short)increment;
+  score = *(short *)(actor + 0x4a);
+
+  if (*(char *)(ai_globals + 3) == 0 && score > *(short *)(ai_globals + 4) &&
+      score > 0xf) {
+    *(short *)(actor + 0x4a) = 0;
+    *(char *)(*(char **)0x632574 + 3) = 1;
+    *(char *)(actor + 0x4c) = 1;
+    return;
+  }
+
+  if (score > *(short *)(ai_globals + 6)) {
+    *(short *)(ai_globals + 6) = score;
+  }
+  *(char *)(actor + 0x4c) = 0;
+}
+
 /* FUN_0003cbc0 (0x3cbc0) — actor_clean_props
  *
  * Clean up all props associated with an actor. Iterates actor+0x50 linked list,
