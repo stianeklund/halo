@@ -679,7 +679,8 @@
         },
         {
           "addr": "0x1d6d0",
-          "decl": "short FUN_0001d6d0(int actor_handle);"
+          "decl": "int16_t FUN_0001d6d0(int actor_handle);",
+          "ported": true
         },
         {
           "decl": "char *FUN_000210f0(int actor_handle);",

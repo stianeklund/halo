@@ -156,3 +156,29 @@ const char *FUN_0001d5c0(int16_t action_type)
   }
   return name;
 }
+
+/* FUN_0001d6d0 (0x1d6d0) — actor_get_action_priority_flag
+ *
+ * Returns the priority flag (short) for the actor's current action from the
+ * action_definitions table. A non-zero value indicates the action raises the
+ * actor's priority to the high-priority tier (>= 3); zero means normal (< 3).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1d6df.
+ * Confirmed: actor+0x6c = action index (short), asserted in [0, 14).
+ * Confirmed: IMUL EDX,EDX,0x38 at 0x1d71c; MOV AX,[EDX+0x253fb0] at 0x1d71f.
+ * Confirmed: table field 0x253fb0 = priority_flag (short at +0x10 from entry
+ *   base 0x253fa0, same field used in actor_set_action at 0x1d030+0x79).
+ * Confirmed: assert line 0xe98, __FILE__ "c:\halo\SOURCE\ai\actions.c".
+ */
+int16_t FUN_0001d6d0(int actor_handle)
+{
+  char *actor;
+  int16_t action;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  action = *(int16_t *)(actor + 0x6c);
+
+  assert_halt(action >= 0 && action < 14);
+
+  return *(int16_t *)(0x253fb0 + action * 0x38);
+}
