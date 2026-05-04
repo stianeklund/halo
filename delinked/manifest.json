@@ -1,9 +1,9 @@
 {
-  "hs.obj": {
-    "obj_path": "/mnt/g/dev/halo/delinked/hs.obj",
-    "source": "hs/hs.c",
-    "addr_range": "0x000c3b60-0x000c59a0",
-    "func_count": 20,
-    "error": "RPC error INTERNAL_ERROR: java.lang.IllegalArgumentException: buffer does not contain relocation"
+  "recorded_animations.obj": {
+    "obj_path": "/mnt/g/dev/halo/delinked/recorded_animations.obj",
+    "source": "cutscene/recorded_animations.c",
+    "addr_range": "0x00094bb0-0x00095480",
+    "func_count": 5,
+    "error": "RPC error INTERNAL_ERROR: java.io.FileNotFoundException: \\mnt\\g\\dev\\halo\\delinked\\recorded_animations.obj (The system cannot find the path specified)"
   }
 }
