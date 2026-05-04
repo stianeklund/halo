@@ -1,4 +1,13 @@
+#ifndef COMMON_H
+#define COMMON_H
+
 #define XDK_BUILD 1
+#define DECOMP_CUSTOM 1
+#define DEBUG_BUILD 1
+
+extern const char *build_rev;
+extern const char *build_date;
+extern const char *build_ui_widget_text;
 
 float __cdecl sinf(float);
 float __cdecl cosf(float);
@@ -6,6 +15,7 @@ float __cdecl sqrtf(float);
 float __cdecl fabsf(float);
 
 #include "types.h"
+#define XBOX_REPLACE_STANDARD_NAMES
 #include "inlines.h"
 #ifdef __cplusplus
 extern "C" {
@@ -17,7 +27,16 @@ extern "C" {
 #define NULL 0
 #endif
 
+#define CLAMP(x, low, high) \
+  ((x) < (low) ? (low) : ((x) > (high) ? (high) : (x)))
+
+#define MAXIMUM_GAMEPADS 4
 #define MAXIMUM_NUMBER_OF_LOCAL_PLAYERS 4
+#define MAXIMUM_STRING_SIZE            0x2000
+#define MAXIMUM_MEMSET_SIZE            0x10000000
+#define MAXIMUM_MEMCPY_MEMMOVE_SIZE    0x10000000
+
+static const int _scenario_type_main_menu = 2;
 
 #define assert_halt(cond)                                    \
     do {                                                     \
@@ -34,3 +53,5 @@ extern "C" {
             system_exit(-1);                                 \
         }                                                    \
     } while (0)
+
+#endif

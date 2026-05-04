@@ -344,12 +344,16 @@ bool game_engine_force_single_screen(void)
  */
 bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
 {
-  bool result = true;
+  bool result;
+  char *seat_obj;
+  int (*gate)(int, int);
+
+  result = true;
 
   if (!current_game_engine)
     return result;
 
-  char *seat_obj =
+  seat_obj =
     (char *)object_try_and_get_and_verify_type(seat_object_handle, 4);
   if (!seat_obj)
     return result;
@@ -360,8 +364,8 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
   /* If bit 0x20 of object flags was already set, clear it and call
    * vtable slot +0x40 (notify-of-seat-exit). */
   if (*(uint32_t *)(seat_obj + 0x1dc) & 0x20) {
-    *(uint32_t *)(seat_obj + 0x1dc) &= ~0x20u;
     void (*slot_0x40)(int) = ((void (**)(int))current_game_engine)[0x40 / 4];
+    *(uint32_t *)(seat_obj + 0x1dc) &= ~0x20u;
     if (slot_0x40)
       slot_0x40(seat_object_handle);
   }
@@ -370,7 +374,7 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
   *(uint32_t *)(seat_obj + 0x1dc) |= 0x20;
 
   /* Check per-engine entry gate at vtable slot +0x3c */
-  int (*gate)(int, int) = ((int (**)(int, int))current_game_engine)[0x3c / 4];
+  gate = ((int (**)(int, int))current_game_engine)[0x3c / 4];
   if (gate) {
     int player_idx = player_index_from_unit_index(unit_handle);
     result = (bool)gate(seat_object_handle, player_idx);
@@ -914,9 +918,11 @@ void game_engine_initialize(game_variant_t *variant)
     game_engine_variant_cleanup((game_variant_t *)0x456af8);
 
     /* Look up vtable pointer for this engine type */
-    int engine_type = *(int32_t *)((char *)variant + 0x18);
-    current_game_engine =
-      (void *)(*(int32_t *)((char *)0x2eff98 + engine_type * 4));
+    {
+      int engine_type = *(int32_t *)((char *)variant + 0x18);
+      current_game_engine =
+        (void *)(*(int32_t *)((char *)0x2eff98 + engine_type * 4));
+    }
   }
 }
 
@@ -1004,6 +1010,7 @@ bool game_engine_get_score_hud_text(int player_handle, int param_2,
   if (current_game_engine) {
     bool (*has_score)(int) = ((bool (**)(int))current_game_engine)[0x7c / 4];
     if (has_score && has_score(1)) {
+      int (*get_score)(int, int);
       switch (param_2) {
       case 7:
         param_2 = 0x10;
@@ -1028,7 +1035,7 @@ bool game_engine_get_score_hud_text(int player_handle, int param_2,
           goto main_switch;
         break;
       }
-      int (*get_score)(int, int) =
+      get_score =
         ((int (**)(int, int))current_game_engine)[0x48 / 4];
       score = get_score(player_handle, 1);
     }
@@ -1243,8 +1250,13 @@ void game_engine_periodic_equipment_spawn(void)
       }
 
       if ((game_time_get() % spawn_period) == 0) {
+#ifdef MSVC
+        int tag_index = ((int(__cdecl *)(int))0xaca70)(
+          *(int *)(entry + 0x5c));
+#else
         int tag_index = ((int(__attribute__((regparm(1))) *)(int))0xaca70)(
           *(int *)(entry + 0x5c));
+#endif
         FUN_0013fc20(placement, tag_index, -1);
         *(int *)(placement + 0x18) = *(int *)(entry + 0x40);
         *(int *)(placement + 0x1c) = *(int *)(entry + 0x44);
@@ -1286,23 +1298,27 @@ void game_engine_periodic_equipment_spawn(void)
  */
 void game_engine_update_non_deterministic(float dt)
 {
+  int phase;
+
   if (!current_game_engine)
     return;
 
-  int phase = *(int32_t *)0x5aa730;
+  phase = *(int32_t *)0x5aa730;
 
   if (phase == 2) {
+    float t;
     /* Phase 2: run input reset, subtract dt from countdown timer */
     rumble_clear_all_players();
     *(float *)0x5aa728 -= dt;
     /* Transition to phase 3 when timer reaches 0 */
-    float t = *(float *)0x5aa728;
+    t = *(float *)0x5aa728;
     if (!(t < 0.0f) && !(t == 0.0f)) {
       /* still > 0, stay in phase 2 */
     } else {
       *(int32_t *)0x5aa730 = 3;
     }
   } else if (phase == 3) {
+    bool ok0, ok1, ok2, ok3;
     /* Phase 3: run input reset, advance progress counter */
     rumble_clear_all_players();
     *(float *)0x5aa72c += dt;
@@ -1312,14 +1328,13 @@ void game_engine_update_non_deterministic(float dt)
     /* Poll four "done" conditions via @edi-indexed
      * game_engine_check_input_button. EDI indices: 0, 0xc, 1, 0xd (matching
      * disassembly order). */
-    bool ok0, ok1, ok2, ok3;
 
     ok0 = game_engine_check_input_button(0);
     ok1 = game_engine_check_input_button(0xc);
 
     if (ok0 || ok1) {
-      /* At least one input is "done": check for network server to reset */
       void *server = network_game_server_get();
+      /* At least one input is "done": check for network server to reset */
       if (server) {
         network_server_manager_pregame_start(server);
         return;
@@ -1333,12 +1348,14 @@ void game_engine_update_non_deterministic(float dt)
     if (!ok2 && !ok3)
       return;
 
-    void *server = network_game_server_get();
-    if (server) {
-      network_server_manager_pregame_start(server);
-      return;
+    {
+      void *server = network_game_server_get();
+      if (server) {
+        network_server_manager_pregame_start(server);
+        return;
+      }
+      network_game_abort();
     }
-    network_game_abort();
   }
 }
 
@@ -1663,10 +1680,11 @@ game_variant_t *game_engine_get_variant_by_name(game_variant_t *out_variant,
                                                 const char *name)
 {
   game_variant_t tmp;
+  game_variant_t *src;
 
   csmemset(&tmp, 0, sizeof(tmp));
 
-  game_variant_t *src = NULL;
+  src = NULL;
 
   if (csstrcmp(name, "race") == 0)
     src = game_engine_race_default(&tmp);
@@ -1846,18 +1864,20 @@ void game_engine_initialize_for_new_map(void)
   *(int32_t *)0x5aa724 = 0;
   *(int32_t *)0x5aa744 = 0;
 
-  void (*init_fn)(void) = ((void (**)(void))current_game_engine)[0x0c / 4];
-  if (init_fn) {
-    bool ok = (bool)((bool (*)(void))init_fn)();
-    if (!ok) {
-      error(2, "failed to initialize custome game engine for new map, "
-               "reverting to default game engine");
-      if (current_game_engine) {
-        void (*dispose_fn)(void) =
-          ((void (**)(void))current_game_engine)[0x08 / 4];
-        if (dispose_fn)
-          dispose_fn();
-        current_game_engine = NULL;
+  {
+    void (*init_fn)(void) = ((void (**)(void))current_game_engine)[0x0c / 4];
+    if (init_fn) {
+      bool ok = (bool)((bool (*)(void))init_fn)();
+      if (!ok) {
+        error(2, "failed to initialize custome game engine for new map, "
+                 "reverting to default game engine");
+        if (current_game_engine) {
+          void (*dispose_fn)(void) =
+            ((void (**)(void))current_game_engine)[0x08 / 4];
+          if (dispose_fn)
+            dispose_fn();
+          current_game_engine = NULL;
+        }
       }
     }
   }
@@ -1910,10 +1930,11 @@ void game_engine_player_added(int player_data_handle)
     /* Networked: check network_game_client_get for team assignment */
     void *client = network_game_client_get();
     if (client == NULL) {
+      int v;
       /* No client info: use counter with wrap-around to bit 0 */
       *(uint8_t *)(player_datum + 0x66) = *(uint8_t *)0x5aa724;
       *(int32_t *)(player_datum + 0x20) = (int32_t)(*(uint8_t *)0x5aa724);
-      int v = *(int32_t *)0x5aa724 + 1;
+      v = *(int32_t *)0x5aa724 + 1;
       /* AND with 0x80000001 then sign-extend (MSVC idiom for mod 2) */
       v &= 0x80000001;
       if (v < 0)
@@ -1942,9 +1963,11 @@ void game_engine_player_added(int player_data_handle)
   }
 
   /* Dispatch vtable slot +0x14 (player_added callback) */
-  void (*cb)(int) = ((void (**)(int))current_game_engine)[0x14 / 4];
-  if (cb)
-    cb(player_data_handle);
+  {
+    void (*cb)(int) = ((void (**)(int))current_game_engine)[0x14 / 4];
+    if (cb)
+      cb(player_data_handle);
+  }
 }
 
 /* game_engine_update (0xaf370)
@@ -2046,10 +2069,12 @@ void game_engine_update(void)
       while (object_iterator_next(object_iter) != NULL)
         object_delete(object_iter[2]);
 
-      void *server = network_game_server_get();
-      if (server != NULL) {
-        network_server_manager_game_over(server);
-        return;
+      {
+        void *server = network_game_server_get();
+        if (server != NULL) {
+          network_server_manager_game_over(server);
+          return;
+        }
       }
     }
     break;

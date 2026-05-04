@@ -163,18 +163,22 @@ short sound_select_pitch_range(void *sound_tag, float random_scale,
     float best_distance = 3.4028235e+38f;
     short i;
     for (i = 0; (int)i < count; i++) {
-      char *pitch_range =
+      char *pitch_range;
+      float min_bend;
+      float max_bend;
+      float distance;
+
+      pitch_range =
         (char *)tag_block_get_element(tag + 0x98, (int)i, 0x48);
       if (*(int *)(pitch_range + 0x3c) == 0)
         continue;
 
-      float min_bend = *(float *)(pitch_range + 0x24);
-      float max_bend = *(float *)(pitch_range + 0x28);
+      min_bend = *(float *)(pitch_range + 0x24);
+      max_bend = *(float *)(pitch_range + 0x28);
 
       if (min_bend <= random_scale && random_scale <= max_bend)
         return i;
 
-      float distance;
       if (random_scale <= max_bend) {
         distance = min_bend / random_scale;
       } else {

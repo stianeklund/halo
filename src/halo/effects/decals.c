@@ -488,13 +488,15 @@ void FUN_00099fd0(int16_t cluster_index)
   }
 
   if (*(uint8_t *)((char *)global_decal_data + 0x24) != 0) {
+    int16_t layer;
+
     if (decal_globals == NULL) {
       display_assert("decal_globals", "c:\\halo\\SOURCE\\effects\\decals.c",
                      0x37d, true);
       system_exit(-1);
     }
 
-    for (int16_t layer = 0; layer < 5; ++layer) {
+    for (layer = 0; layer < 5; ++layer) {
       int decal_index = -1;
 
       if (cluster_index == -1) {
@@ -545,6 +547,7 @@ void FUN_0009a300(float *bounds, float *projection, float *basis)
   int16_t plane_basis;
   uint8_t plane_axis;
   float projected[3];
+  int i;
 
   if (basis == NULL) {
     display_assert("basis", "c:\\halo\\SOURCE\\effects\\decals.c", 0x410, true);
@@ -557,7 +560,7 @@ void FUN_0009a300(float *bounds, float *projection, float *basis)
     system_exit(-1);
   }
 
-  for (int i = 0; i < 13; ++i) {
+  for (i = 0; i < 13; ++i) {
     projection[i] = basis[i];
   }
 
@@ -805,8 +808,9 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
 
       if (clipped_count > 0) {
         float *point = output_points;
+        int i;
 
-        for (int i = 0; i < clipped_count; ++i) {
+        for (i = 0; i < clipped_count; ++i) {
           float dx = point[0] - projection[0x16];
           float dy = point[1] - projection[0x17];
           int16_t geometry_vertex_index = *(int16_t *)(geometry_data + 0x6000);
@@ -1086,6 +1090,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
     int decal_index;
     int decal;
     s_decal_cached_quad *cache_quads;
+    int i;
 
     decal_tag = (char *)tag_get(0x64656361, decal_tag_index);
     bitmap_tag = (char *)tag_get(0x6269746d, *(int *)(decal_tag + 0xe4));
@@ -1324,22 +1329,34 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       while (remaining > 0) {
         bool processed_group = false;
 
-        for (int list_index = 0; list_index < deviant_surface_count;
+        {
+        int list_index;
+        for (list_index = 0; list_index < deviant_surface_count;
              ++list_index) {
-          int seed_surface = deviant_surfaces[list_index];
+          int seed_surface;
+          int grouped_count;
+          float collision_plane_distance;
+          float best_plane[4];
+          float best_start[3];
+          float best_end[3];
+          float best_near;
+          float best_far;
+          int best_plane_reference;
+          int i;
+
+          seed_surface = deviant_surfaces[list_index];
 
           if (seed_surface == -1) {
             continue;
           }
 
-          int grouped_count = 0;
-          float collision_plane_distance = decals_dot3(basis + 7, basis + 10);
-          float best_plane[4];
-          float best_start[3] = { 0.0f, 0.0f, 0.0f };
-          float best_end[3] = { 0.0f, 0.0f, 0.0f };
-          float best_near = 0.0f;
-          float best_far = 0.0f;
-          int best_plane_reference = -1;
+          grouped_count = 0;
+          collision_plane_distance = decals_dot3(basis + 7, basis + 10);
+          best_start[0] = 0.0f; best_start[1] = 0.0f; best_start[2] = 0.0f;
+          best_end[0] = 0.0f; best_end[1] = 0.0f; best_end[2] = 0.0f;
+          best_near = 0.0f;
+          best_far = 0.0f;
+          best_plane_reference = -1;
 
           if (grouped_count >= 0x400) {
             decals_assert_or_exit((char *)0x26a6d4, 0x95f);
@@ -1348,7 +1365,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
           grouped_surfaces[grouped_count++] = seed_surface;
           deviant_surfaces[list_index] = -1;
 
-          for (int i = list_index + 1; i < deviant_surface_count; ++i) {
+          for (i = list_index + 1; i < deviant_surface_count; ++i) {
             int candidate_surface = deviant_surfaces[i];
 
             if (candidate_surface != -1) {
@@ -1383,7 +1400,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
             decals_assert_or_exit((char *)0x26a6b8, 0x9bd);
           }
 
-          for (int i = 0; i < grouped_count; ++i) {
+          for (i = 0; i < grouped_count; ++i) {
             int grouped_surface = grouped_surfaces[i];
             int *surface = (int *)tag_block_get_element(
               (char *)structure_bsp + 0x3c, grouped_surface, 0xc);
@@ -1427,7 +1444,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
             } while (edge_index != surface[1]);
           }
 
-          for (int i = 0; i < 35; ++i) {
+          for (i = 0; i < 35; ++i) {
             transformed_projection[i] = projection[i];
           }
 
@@ -1521,7 +1538,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
             }
           }
 
-          for (int i = 0; i < grouped_count; ++i) {
+          for (i = 0; i < grouped_count; ++i) {
             FUN_0009a5a0(geometry, transformed_projection, grouped_surfaces[i],
                          false, size, decal_type, NULL, NULL, NULL, NULL);
           }
@@ -1529,6 +1546,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
           remaining -= (int16_t)grouped_count;
           processed_group = true;
           break;
+        }
         }
 
         if (!processed_group) {
@@ -1568,7 +1586,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
     }
 
     primitive_count = 0;
-    for (int i = 0; i < geometry->surface_count; ++i) {
+    for (i = 0; i < geometry->surface_count; ++i) {
       int16_t surface_vertex_count = geometry->surface_vertex_counts[i];
 
       if (surface_vertex_count < 3) {
@@ -1631,7 +1649,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
       float u_range = uv_bounds[1] - uv_bounds[0];
       float v_range = uv_bounds[3] - uv_bounds[2];
 
-      for (int i = 0; i < geometry->vertex_count; ++i) {
+      for (i = 0; i < geometry->vertex_count; ++i) {
         s_decal_geometry_vertex *vertex = &geometry->vertices[i];
         float u = u_range * vertex->uv[0] + uv_bounds[0];
         float v = v_range * vertex->uv[1] + uv_bounds[2];
@@ -1705,8 +1723,9 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
     {
       int16_t produced_quads = 0;
       int16_t vertex_cursor = 0;
+      int i;
 
-      for (int i = 0; i < geometry->surface_count; ++i) {
+      for (i = 0; i < geometry->surface_count; ++i) {
         int16_t surface_vertex_count = geometry->surface_vertex_counts[i];
 
         if (surface_vertex_count < 3) {
@@ -1714,10 +1733,12 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
         }
 
         if (surface_vertex_count > 2) {
-          for (int step = 1; step + 1 < surface_vertex_count; step += 2) {
+          int step;
+          for (step = 1; step + 1 < surface_vertex_count; step += 2) {
             int anchor = (step + 2 < surface_vertex_count) ?
                            vertex_cursor + step + 2 :
                            vertex_cursor;
+            s_decal_cached_quad *quad;
 
             if (produced_quads >= primitive_count) {
               if (!g_warned_decal_quad_overflow) {
@@ -1730,7 +1751,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
               return;
             }
 
-            s_decal_cached_quad *quad = &cache_quads[produced_quads];
+            quad = &cache_quads[produced_quads];
 
             quad->vertices[0] = staged_vertices[vertex_cursor];
             quad->vertices[1] = staged_vertices[vertex_cursor + step];

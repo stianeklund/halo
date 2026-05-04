@@ -1,4 +1,4 @@
-	target_sources(halo PRIVATE
+	set(HALO_SOURCES
 	entrypoint.c
 	inlines.c
 	halo/ai/actions.c
@@ -119,4 +119,10 @@
 	halo/cache/predicted_resources.c
 	halo/cache/tags.c
 	)
+
+	if(ENABLE_XDK_HYBRID AND DEFINED XDK_HYBRID_SOURCES)
+		list(REMOVE_ITEM HALO_SOURCES ${XDK_HYBRID_SOURCES})
+	endif()
+
+	target_sources(halo PRIVATE ${HALO_SOURCES})
 

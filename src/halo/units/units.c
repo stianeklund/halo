@@ -30,16 +30,22 @@ char *FUN_0008dc30(char *destination, const char *source)
     destination_cursor += 1;
   } while (*destination_cursor != '\0');
 
-  for (unsigned int i = source_size >> 2; i != 0; i -= 1) {
-    *(uint32_t *)destination_cursor = *(const uint32_t *)source;
-    source += 4;
-    destination_cursor += 4;
+  {
+    unsigned int i;
+    for (i = source_size >> 2; i != 0; i -= 1) {
+      *(uint32_t *)destination_cursor = *(const uint32_t *)source;
+      source += 4;
+      destination_cursor += 4;
+    }
   }
 
-  for (unsigned int i = source_size & 3; i != 0; i -= 1) {
-    *destination_cursor = *source;
-    source += 1;
-    destination_cursor += 1;
+  {
+    unsigned int i;
+    for (i = source_size & 3; i != 0; i -= 1) {
+      *destination_cursor = *source;
+      source += 1;
+      destination_cursor += 1;
+    }
   }
 
   return destination;

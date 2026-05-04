@@ -40,6 +40,8 @@ int real_vector3d_valid(float *vector)
  * when fabsf(dot) < 0.001f. */
 int valid_real_normal3d_perpendicular(float *a, float *b)
 {
+  float dot;
+
   if (!valid_real_normal3d(a)) {
     return 0;
   }
@@ -47,7 +49,7 @@ int valid_real_normal3d_perpendicular(float *a, float *b)
     return 0;
   }
 
-  float dot = a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
+  dot = a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
 
   if ((*(unsigned int *)&dot & 0x7f800000) == 0x7f800000) {
     return 0;
@@ -850,11 +852,14 @@ void *object_iterator_next(void *iter)
  */
 int object_get_root_parent(int object_handle)
 {
+  int current;
+  int result;
+
   if (object_handle == -1)
     return -1;
 
-  int current = object_handle;
-  int result = -1;
+  current = object_handle;
+  result = -1;
   while (current != -1) {
     object_header_data_t *header =
       (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, current);
@@ -909,12 +914,15 @@ void object_set_garbage_flag(int object_handle, int is_garbage)
     obj->flags |= 0x10000;
   } else {
     /* Remove from garbage list */
+    uint32_t *prev_ptr;
+    int cur;
+
     if ((obj->flags & 0x10000) == 0)
       goto done;
 
     /* Walk the list to find the previous pointer */
-    uint32_t *prev_ptr = (uint32_t *)&og->unk_8.value;
-    int cur = og->unk_8.value;
+    prev_ptr = (uint32_t *)&og->unk_8.value;
+    cur = og->unk_8.value;
 
     while (cur != object_handle) {
       object_header_data_t *hdr =
@@ -1203,11 +1211,13 @@ void object_remove_from_name_list(int object_handle /* @<edi> */)
  */
 void objects_place(void)
 {
+  scenario_t *scenario;
+
   /* Set object_is_being_placed = true */
   object_globals->object_is_being_placed = 1;
 
   /* Get the scenario pointer and pass it to the object placer */
-  scenario_t *scenario = global_scenario_get();
+  scenario = global_scenario_get();
   ((pfn_int_t)0x13cdd0)((int)scenario);
 
   /* Clear object_is_being_placed */
@@ -1333,6 +1343,8 @@ void objects_initialize(void)
  */
 void objects_initialize_for_new_map(void)
 {
+  object_globals_t *og;
+
   ((pfn_void_t)0x1365a0)();
   ((pfn_void_t)0x136040)();
   ((pfn_void_t)0x13c3d0)();
@@ -1346,7 +1358,7 @@ void objects_initialize_for_new_map(void)
   ((void (*)(void *))0x1915d0)((void *)0x5a8d40);
   ((void (*)(void *))0x1915d0)((void *)0x5a8d30);
 
-  object_globals_t *og = object_globals;
+  og = object_globals;
 
   csmemset(og->combined_pvs, 0, 0x40);
   csmemset(og->combined_pvs_local, 0, 0x40);
@@ -1405,12 +1417,14 @@ void objects_initialize_for_new_map(void)
  */
 void objects_dispose_from_old_map(void)
 {
+  data_t *obj_data;
+
   ((pfn_void_t)0x1365b0)();
   ((pfn_void_t)0x1360a0)();
   ((pfn_void_t)0x13c400)();
   ((pfn_void_t)0x1392e0)();
 
-  data_t *obj_data = *(data_t **)0x5a8d50;
+  obj_data = *(data_t **)0x5a8d50;
 
   /* Only walk the table if it has been made valid */
   if (*(uint8_t *)((uint8_t *)obj_data + 0x24) != 0) {
@@ -2002,12 +2016,14 @@ void object_set_region_count(int object_handle, int16_t region_count)
   /* Copy region node data from the "new" buffer to the "current" buffer.
    * The two references at obj+0x19c and obj+0x198 each describe a
    * {size, offset} pair into the object's dynamic data region. */
-  int copy_size = (int)model_region_count << 5;
-  void *src =
-    object_header_block_reference_get(object_handle, (char *)obj + 0x19c);
-  void *dst =
-    object_header_block_reference_get(object_handle, (char *)obj + 0x198);
-  csmemcpy(dst, src, copy_size);
+  {
+    int copy_size = (int)model_region_count << 5;
+    void *src =
+      object_header_block_reference_get(object_handle, (char *)obj + 0x19c);
+    void *dst =
+      object_header_block_reference_get(object_handle, (char *)obj + 0x198);
+    csmemcpy(dst, src, copy_size);
+  }
 
   /* If the new region_count is large enough, reset unk_132 and store it. */
   if ((int)region_count >= (int)obj->unk_134 - (int)obj->unk_132) {
@@ -2328,10 +2344,12 @@ void object_delete_internal(int object_handle, int delete_sibling)
   obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
   /* Check if the object's tag definition has a children block. */
-  void *tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
-  if (*(int *)((char *)tag_def + 0x34) != -1 && (obj->flags & 1) == 0) {
-    /* Propagate deletion to attached children. */
-    object_propagate_flag_to_children(object_handle, 1, 0);
+  {
+    void *tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
+    if (*(int *)((char *)tag_def + 0x34) != -1 && (obj->flags & 1) == 0) {
+      /* Propagate deletion to attached children. */
+      object_propagate_flag_to_children(object_handle, 1, 0);
+    }
   }
 
   /* Re-fetch datum header (recursive calls may have moved pool memory). */
@@ -2412,6 +2430,10 @@ void object_connect_to_map(int object_handle, void *location)
   } else {
     /* Root object: resolve BSP location and insert into collision world. */
     uint32_t local_loc[2];
+    uint32_t *loc;
+    object_data_t *self_obj;
+    void *obj_list;
+
     if (location == NULL) {
       scenario_location_from_point(local_loc, (char *)obj + 0x50);
       location = local_loc;
@@ -2420,7 +2442,7 @@ void object_connect_to_map(int object_handle, void *location)
       }
     }
 
-    uint32_t *loc = (uint32_t *)location;
+    loc = (uint32_t *)location;
     if ((int16_t)loc[1] == -1) {
       obj->flags |= 0x200000;
     } else {
@@ -2432,9 +2454,9 @@ void object_connect_to_map(int object_handle, void *location)
 
     hdr->unk_2 &= 0x7f;
 
-    object_data_t *self_obj =
+    self_obj =
       (object_data_t *)object_get_and_verify_type(object_handle, -1);
-    void *obj_list =
+    obj_list =
       (self_obj->flags & 0x2000000) ? (void *)0x5a8d40 : (void *)0x5a8d30;
     cluster_partition_add_object(obj_list, object_handle, (char *)obj + 0xbc,
                                  (char *)obj + 0x50, *(uint32_t *)&obj->unk_92,
@@ -2480,14 +2502,17 @@ done:
  */
 void *object_get_node_matrix(int object_handle, int16_t node_index)
 {
+  object_data_t *obj;
+  char *nodes;
+
   if (!object_has_node(object_handle, node_index)) {
     display_assert("object_has_node(object_index, node_index)",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x424, 1);
     system_exit(-1);
   }
-  object_data_t *obj =
+  obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
-  char *nodes = (char *)object_header_block_reference_get(
+  nodes = (char *)object_header_block_reference_get(
     object_handle, (void *)&obj->unk_416);
   return nodes + (int)node_index * 0x34;
 }
@@ -2558,8 +2583,10 @@ int16_t object_get_markers_by_string_id(int object_handle, void *marker_name,
   ((void (*)(void *))0x1090e0)((char *)out_markers + 4);
 
   /* Copy node-0 matrix (52 bytes / 13 dwords) into out_markers+0x38. */
-  void *node_mat = object_get_node_matrix(object_handle, 0);
-  qmemcpy((char *)out_markers + 0x38, node_mat, 0x34);
+  {
+    void *node_mat = object_get_node_matrix(object_handle, 0);
+    qmemcpy((char *)out_markers + 0x38, node_mat, 0x34);
+  }
 
   /* If the object is mirrored (flags bit 12), negate the second row of the
    * node matrix within the marker result (offsets +0x48, +0x4C, +0x50). */
@@ -2618,15 +2645,21 @@ void object_compute_child_marker_position(void *object, void *child_marker,
 
   float local_mat[13]; /* 0x34 bytes: scale + forward + left + up + position */
   float inv_mat[13]; /* 0x34 bytes */
+  float *obj_position;
+  float *obj_forward;
+  float *obj_up;
+  float fwd_x, fwd_y, fwd_z;
+  float up_x, up_y, up_z;
+  float left_x, left_y, left_z;
 
   assert_halt(object != NULL);
   assert_halt(child_marker != NULL);
   assert_halt(dest_matrix != NULL);
   assert_halt(((valid_real_matrix4x3_fn)0xf6d00)(dest_matrix));
 
-  float *obj_position = (float *)((char *)object + 0xc);
-  float *obj_forward = (float *)((char *)object + 0x24);
-  float *obj_up = (float *)((char *)object + 0x30);
+  obj_position = (float *)((char *)object + 0xc);
+  obj_forward = (float *)((char *)object + 0x24);
+  obj_up = (float *)((char *)object + 0x30);
 
   /* Build a matrix4x3 from the object's orientation and position */
   ((matrix4x3_from_fup_fn)0x10a110)(local_mat, obj_position, obj_forward,
@@ -2660,17 +2693,17 @@ void object_compute_child_marker_position(void *object, void *child_marker,
   /* Re-orthogonalize up: left = cross(forward, up_from_matrix),
    * then up = cross(left, forward).
    * up_from_matrix is at indices 7..9 (offsets 0x1c..0x24). */
-  float fwd_x = local_mat[1];
-  float fwd_y = local_mat[2];
-  float fwd_z = local_mat[3];
-  float up_x = local_mat[7];
-  float up_y = local_mat[8];
-  float up_z = local_mat[9];
+  fwd_x = local_mat[1];
+  fwd_y = local_mat[2];
+  fwd_z = local_mat[3];
+  up_x = local_mat[7];
+  up_y = local_mat[8];
+  up_z = local_mat[9];
 
   /* left = cross(forward, up) */
-  float left_x = fwd_y * up_z - fwd_z * up_y;
-  float left_y = fwd_z * up_x - up_z * fwd_x;
-  float left_z = up_y * fwd_x - fwd_y * up_x;
+  left_x = fwd_y * up_z - fwd_z * up_y;
+  left_y = fwd_z * up_x - up_z * fwd_x;
+  left_z = up_y * fwd_x - fwd_y * up_x;
 
   /* up_new = cross(left, forward) */
   obj_up[0] = left_y * fwd_z - left_z * fwd_y;
@@ -2708,20 +2741,24 @@ void object_compute_child_marker_position(void *object, void *child_marker,
  */
 void object_detach_from_parent(int object_handle)
 {
-  object_data_t *child =
+  object_data_t *child;
+  object_data_t *parent;
+  void *node_matrix;
+  float child_position[13];
+  float child_orientation[13];
+  float result[13];
+  object_header_data_t *header;
+
+  child =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
-  object_data_t *parent = (object_data_t *)object_get_and_verify_type(
+  parent = (object_data_t *)object_get_and_verify_type(
     child->parent_object_index.value, -1);
 
   object_disconnect_from_map(object_handle);
 
-  void *node_matrix =
+  node_matrix =
     object_get_node_matrix(child->parent_object_index.value,
                            (int16_t) * (int8_t *)((char *)child + 0xd0));
-
-  float child_position[13];
-  float child_orientation[13];
-  float result[13];
 
   matrix4x3_identity_with_position(child_position, (float *)&child->unk_12);
   matrix_from_forward_and_up(child_orientation, (float *)&child->unk_36,
@@ -2739,7 +2776,7 @@ void object_detach_from_parent(int object_handle)
 
   object_connect_to_map(object_handle, NULL);
 
-  object_header_data_t *header =
+  header =
     (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   child = (object_data_t *)object_get_and_verify_type(object_handle, -1);
   if (!(header->unk_2 & 1) && !(child->flags & 0x100000) &&
@@ -2769,6 +2806,7 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
 {
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  void *node_mat;
 
   if (obj->parent_object_index.value == NONE) {
     /* No parent — local position is the world position */
@@ -2777,7 +2815,7 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
   }
 
   /* Parented — transform local position through parent's node matrix */
-  void *node_mat = object_get_node_matrix(
+  node_mat = object_get_node_matrix(
     obj->parent_object_index.value, (int16_t) * (int8_t *)((char *)obj + 0xd0));
   matrix_transform_point((float *)node_mat, (float *)&obj->unk_12,
                          (float *)out_position);
@@ -3101,21 +3139,26 @@ void object_compute_node_matrices(int object_handle)
     node_matrices[12] = *(float *)((char *)obj + 0x14);
   } else {
     /* Has a model — full animation pipeline */
+    void *model_tag;
+    float *parent_node_mat;
+    uint8_t override_decompressor;
+    int anim_tag_index;
+
     ((object_type_validate_fn)0x13c100)(*(int16_t *)((char *)obj + 0x64));
-    void *model_tag = tag_get(0x6d6f6465, *(int *)((char *)object_tag + 0x34));
+    model_tag = tag_get(0x6d6f6465, *(int *)((char *)object_tag + 0x34));
 
     /* Get parent node matrix if attached to a parent object */
-    float *parent_node_mat = NULL;
+    parent_node_mat = NULL;
     if (obj->parent_object_index.value != -1) {
       parent_node_mat = (float *)object_get_node_matrix(
         obj->parent_object_index.value,
         (int16_t) * (int8_t *)((char *)obj + 0xd0));
     }
 
-    uint8_t override_decompressor = 0;
+    override_decompressor = 0;
 
     /* Decode animation pose into anim_data */
-    int anim_tag_index = *(int *)((char *)obj + 0x7c);
+    anim_tag_index = *(int *)((char *)obj + 0x7c);
     if (anim_tag_index == -1 || *(int16_t *)((char *)obj + 0x80) == -1) {
       /* No animation graph or no animation index — use default pose */
       ((animation_set_default_fn)0x123aa0)(model_tag, anim_data);
@@ -3174,6 +3217,7 @@ void object_compute_node_matrices(int object_handle)
               if (mode == 0) {
                 /* Keyframe overlay */
                 float total_frames;
+                float frame_value;
                 if ((*(uint8_t *)region_block & 2) == 0) {
                   total_frames =
                     (float)(int)(*(int16_t *)((char *)overlay_anim_entry +
@@ -3183,7 +3227,7 @@ void object_compute_node_matrices(int object_handle)
                   total_frames =
                     (float)(int)*(int16_t *)((char *)overlay_anim_entry + 0x22);
                 }
-                float frame_value = total_frames * func_value;
+                frame_value = total_frames * func_value;
                 ((animation_overlay_keyframe_fn)0x122690)(
                   overlay_anim_entry, frame_value, anim_data);
               } else if (mode == 1) {
@@ -3224,13 +3268,14 @@ void object_compute_node_matrices(int object_handle)
 
     /* Interpolate node matrices if the object has interpolation data */
     if (*(int16_t *)((char *)obj + 0x86) > 0) {
+      void *interp_data;
       if (cannot_interpolate) {
         display_assert("!TEST_FLAG(_object_mask_cannot_interpolate, "
                        "object->object.type)",
                        "c:\\halo\\SOURCE\\objects\\objects.c", 0xad9, 1);
         system_exit(-1);
       }
-      void *interp_data = object_header_block_reference_get(
+      interp_data = object_header_block_reference_get(
         object_handle, (void *)((char *)obj + 0x198));
       ((anim_interpolate_fn)0x120ba0)(
         *(int16_t *)((char *)model_tag + 0xb8), interp_data, anim_data,
@@ -3269,10 +3314,10 @@ void object_compute_node_matrices(int object_handle)
     }
 
     /* Walk the node hierarchy via breadth-first traversal */
+    {
     uint16_t node_queue[64];
     int queue_read = 0;
     int queue_write = 1;
-    node_queue[0] = 0;
     void *model_nodes_block = (char *)model_tag + 0xb8;
 
     float root_anim[13];
@@ -3282,12 +3327,16 @@ void object_compute_node_matrices(int object_handle)
     float origin_matrix[13];
     float parent_copy[13];
 
+    node_queue[0] = 0;
+
     do {
       int16_t cur_read = (int16_t)queue_read;
       uint16_t node_idx_u16 = node_queue[cur_read];
+      int node_idx;
+      void *node_data;
       queue_read++;
-      int node_idx = (int)(int16_t)node_idx_u16;
-      void *node_data =
+      node_idx = (int)(int16_t)node_idx_u16;
+      node_data =
         tag_block_get_element(model_nodes_block, node_idx, 0x9c);
 
       if ((int16_t)node_idx_u16 == 0) {
@@ -3339,13 +3388,15 @@ void object_compute_node_matrices(int object_handle)
             if (*(uint32_t *)parent_node_mat != 0x3f800000) {
               /* Parent scale != 1.0: scale the orientation position */
               float pscale = *parent_node_mat;
+              int k;
+              float *src;
+              float *dst;
               orientation_matrix[10] *= pscale;
               orientation_matrix[11] *= pscale;
               orientation_matrix[12] *= pscale;
               /* Copy parent matrix to local buffer and set scale=1 */
-              int k;
-              float *src = parent_node_mat;
-              float *dst = parent_copy;
+              src = parent_node_mat;
+              dst = parent_copy;
               for (k = 0xd; k != 0; k--) {
                 *dst = *src;
                 src++;
@@ -3545,10 +3596,12 @@ void object_compute_node_matrices(int object_handle)
               (*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
               (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
               (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
+          {
             /* Root node matrix invalid — dump diagnostic info */
+            char *name;
             obj =
               (object_data_t *)object_get_and_verify_type(object_handle, -1);
-            char *name = (char *)tag_get_name(*(int *)obj);
+            name = (char *)tag_get_name(*(int *)obj);
             error(2,
                   "object_compute_node_matrices FAILURE on root node "
                   "of %s",
@@ -3754,6 +3807,7 @@ void object_compute_node_matrices(int object_handle)
               }
             }
           }
+          }
         }
 
         /* Final assert_valid_real_matrix4x3 on root (line 0xb77) */
@@ -3895,6 +3949,8 @@ void object_compute_node_matrices(int object_handle)
       } else {
         /* Non-root node: set default pose then multiply by parent */
         float *node_mat = node_matrices + node_idx * 13;
+        int16_t parent_idx;
+        float *parent_mat;
         ((model_node_set_default_fn)0x109500)(node_mat, (char *)anim_data +
                                                           node_idx * 0x20);
 
@@ -3903,8 +3959,8 @@ void object_compute_node_matrices(int object_handle)
                          "c:\\halo\\SOURCE\\objects\\objects.c", 0xb71, 1);
           system_exit(-1);
         }
-        int16_t parent_idx = *(int16_t *)((char *)node_data + 0x24);
-        float *parent_mat = node_matrices + parent_idx * 13;
+        parent_idx = *(int16_t *)((char *)node_data + 0x24);
+        parent_mat = node_matrices + parent_idx * 13;
         ((matrix_4x3_multiply_fn)0x109850)(parent_mat, node_mat, node_mat);
       }
 
@@ -3920,15 +3976,18 @@ void object_compute_node_matrices(int object_handle)
         queue_write++;
       }
     } while ((int16_t)queue_read != (int16_t)queue_write);
+    }
   }
 
   /* Apply origin offset from model tag and set bounding sphere radius */
   matrix_transform_point(node_matrices, (float *)((char *)object_tag + 0x08),
                          (float *)((char *)obj + 0x50));
-  float radius = *(float *)((char *)object_tag + 0x04);
+  {
+    float radius = *(float *)((char *)object_tag + 0x04);
   *(float *)((char *)obj + 0x5c) = radius;
   if (*(float *)((char *)obj + 0x60) > *(float *)0x2533c0) {
     *(float *)((char *)obj + 0x5c) = radius * *(float *)((char *)obj + 0x60);
+  }
   }
 }
 
@@ -4428,7 +4487,14 @@ out_of_objects: {
 void object_attach_to_parent(int parent_handle, int child_handle,
                              int parent_node_index)
 {
-  int iter = parent_handle;
+  int iter;
+  object_data_t *child_obj;
+  uint8_t connected_to_map;
+  float local_matrix[13]; /* 4x3 matrix = 52 bytes */
+  float *node_mat;
+  object_header_data_t *child_hdr;
+
+  iter = parent_handle;
 
   /* Walk the parent chain to verify we are not creating a cycle. */
   while (iter != -1) {
@@ -4460,11 +4526,11 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   }
 
   /* Get child and parent object pointers. */
-  object_data_t *child_obj =
+  child_obj =
     (object_data_t *)object_get_and_verify_type(child_handle, -1);
   object_get_and_verify_type(parent_handle, -1);
 
-  uint8_t connected_to_map = (uint8_t)((child_obj->flags >> 0xB) & 1);
+  connected_to_map = (uint8_t)((child_obj->flags >> 0xB) & 1);
 
   if (!object_has_node(parent_handle, (int16_t)parent_node_index)) {
     display_assert("object_has_node(parent_object_index, parent_node_index)",
@@ -4479,8 +4545,7 @@ void object_attach_to_parent(int parent_handle, int child_handle,
 
   /* Compute inverse of the parent node matrix, then transform the child's
      position, up, and forward vectors into the parent node's local space. */
-  float local_matrix[13]; /* 4x3 matrix = 52 bytes */
-  float *node_mat =
+  node_mat =
     (float *)object_get_node_matrix(parent_handle, (int16_t)parent_node_index);
   matrix_inverse(node_mat, local_matrix);
   matrix_transform_point(local_matrix,
@@ -4503,7 +4568,7 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   }
 
   /* Update child header flags. */
-  object_header_data_t *child_hdr =
+  child_hdr =
     (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
   object_get_and_verify_type(child_handle, -1);
 
@@ -4615,12 +4680,13 @@ void object_update_children_recursive(int object_handle)
 {
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  int child_handle;
 
   /* compute node matrices for this object */
   object_compute_node_matrices(object_handle);
 
   /* walk the child object chain */
-  int child_handle = obj->unk_200.value;
+  child_handle = obj->unk_200.value;
   while (child_handle != -1) {
     object_header_data_t *child_header =
       (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
@@ -4916,6 +4982,16 @@ void FUN_00144b30(int object_handle)
  */
 void objects_update(void)
 {
+  bool double_speed;
+  object_globals_t *og;
+  uint8_t *prev_pvs;
+  uint8_t *curr_pvs;
+  void *scen;
+  int16_t cluster_count_raw;
+  int pvs_size;
+  void *combined_pvs;
+  int pvs_changed;
+
   /* --- profiling entry (gated on two flags) --- */
   if ((*(volatile uint8_t *)0x449ef1 != 0) &&
       (*(volatile uint8_t *)0x324640 != 0)) {
@@ -4924,7 +5000,7 @@ void objects_update(void)
 
   /* --- double-speed player flag --- */
   /* game_time_get() returns the current tick; bit 0 set → odd tick. */
-  bool double_speed = false;
+  double_speed = false;
   if ((game_time_get() & 1) != 0) {
     /* game_players_are_double_speed: returns bool via AL */
     if (game_players_are_double_speed()) {
@@ -4934,23 +5010,23 @@ void objects_update(void)
 
   /* --- PVS setup --- */
   /* object_globals->pending_update_count (int16 at +0x4) = 0 each frame */
-  object_globals_t *og = object_globals;
+  og = object_globals;
   *(int16_t *)((uint8_t *)og + 0x4) = 0;
 
   /* prev_pvs = og+0xc  (EBX in disasm; holds previous frame's PVS after copy)
    * curr_pvs = og+0x4c (EDI in disasm; receives fresh combined PVS each frame)
    * Confirmed: LEA EBX,[EAX+0xc]; MOV [EBP-0xc],EBX; LEA EDI,[EAX+0x4c]. */
-  uint8_t *prev_pvs = (uint8_t *)og + 0xc;
-  uint8_t *curr_pvs = (uint8_t *)og + 0x4c;
+  prev_pvs = (uint8_t *)og + 0xc;
+  curr_pvs = (uint8_t *)og + 0x4c;
 
   /* cluster_count = scenario->bsp_cluster_count (int16 at scenario+0x134).
    * pvs_size = ((cluster_count + 0x1f) >> 5) << 2  (round up to dword).
    * Confirmed: MOVSX EAX,word [EAX+0x134]; MOVSX ESI,AX; ADD ESI,0x1f;
    *            SAR ESI,5; SHL ESI,2.
    * [EBP-8] holds the raw cluster_count_raw as int for later PUSH. */
-  void *scen = scenario_get();
-  int16_t cluster_count_raw = *(int16_t *)((uint8_t *)scen + 0x134);
-  int pvs_size = ((cluster_count_raw + 0x1f) >> 5) << 2;
+  scen = scenario_get();
+  cluster_count_raw = *(int16_t *)((uint8_t *)scen + 0x134);
+  pvs_size = ((cluster_count_raw + 0x1f) >> 5) << 2;
 
   /* Step 1: save old curr_pvs into prev_pvs.
    * Confirmed: PUSH ESI(pvs_size);PUSH EDI(curr_pvs);PUSH EBX(prev_pvs);
@@ -4962,13 +5038,13 @@ void objects_update(void)
    * Confirmed: PUSH ESI (pre-push for next csmemcpy, not arg to pvs getter);
    *            CALL 0xba6c0; PUSH EAX(combined); PUSH EDI(curr_pvs);
    *            CALL csmemcpy. */
-  void *combined_pvs = players_get_combined_pvs();
+  combined_pvs = players_get_combined_pvs();
   csmemcpy(curr_pvs, combined_pvs, pvs_size);
 
   /* Step 3: compare prev vs curr — nonzero means PVS changed this tick.
    * Confirmed: PUSH ESI;PUSH EDI(curr_pvs);PUSH EBX(prev_pvs);
    *            CALL 0x8da40 (csmemcmp); ADD ESP,0x18 cleans steps 2+3. */
-  int pvs_changed =
+  pvs_changed =
     ((int (*)(void *, void *, int))0x8da40)(prev_pvs, curr_pvs, pvs_size);
 
   /* --- PVS-driven activation/deactivation pass --- */
@@ -4978,7 +5054,9 @@ void objects_update(void)
      * Confirmed: MOV ESI,[EAX+0x34]; XOR EBX,EBX; CMP word [EAX+0x2e],BX */
     uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
     int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
-    for (int16_t i = 0; i < count; i++, hdr += 0xc) {
+    int16_t i;
+    for (i = 0; i < count; i++, hdr += 0xc) {
+      uint8_t flags;
       /* Reload count from live pointer at loop bottom.
        * Confirmed: MOV ECX,[0x5a8d50]; CMP BX,word [ECX+0x2e] at 0x1452d8. */
       count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
@@ -4987,7 +5065,7 @@ void objects_update(void)
       if (*(int16_t *)hdr == 0)
         continue;
 
-      uint8_t flags = *(uint8_t *)(hdr + 0x2);
+      flags = *(uint8_t *)(hdr + 0x2);
 
       /* Must have both PVS-relevant (0x40) and active (0x20) bits set */
       if ((flags & 0x40) == 0)
@@ -5024,10 +5102,11 @@ void objects_update(void)
         /* Non-collideable path: activate if cluster is now in PVS.
          * Bit 7 of flags guards this path (skip if negative).
          * Confirmed: TEST AL,AL; JS skip. */
+        int16_t cluster_idx;
         if ((flags & 0x80) != 0)
           continue;
 
-        int16_t cluster_idx = *(int16_t *)(hdr + 0x4);
+        cluster_idx = *(int16_t *)(hdr + 0x4);
         if (cluster_idx == (int16_t)-1)
           continue;
 
@@ -5056,8 +5135,13 @@ void objects_update(void)
     data_t *obj_data = *(data_t **)0x5a8d50;
     uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
     int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
+    int16_t i;
 
-    for (int16_t i = 0; i < count; i++, hdr += 0xc) {
+    for (i = 0; i < count; i++, hdr += 0xc) {
+      uint8_t flags;
+      int16_t salt;
+      int handle;
+      bool do_update;
       /* Reload count each iteration (confirmed at 0x1453de-0x1453eb).
        * Confirmed: MOV EAX,[0x5a8d50]; ... CMP DX,word [EAX+0x2e] */
       count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
@@ -5065,7 +5149,7 @@ void objects_update(void)
       if (*(int16_t *)hdr == 0)
         continue;
 
-      uint8_t flags = *(uint8_t *)(hdr + 0x2);
+      flags = *(uint8_t *)(hdr + 0x2);
       /* Must be active (bit 0) and not pending forced-update (bit 2) */
       if ((flags & 0x1) == 0)
         continue;
@@ -5075,8 +5159,8 @@ void objects_update(void)
       /* Build datum handle: (salt << 16) | index.
        * Confirmed: MOVSX ESI,CX (salt); MOVSX ECX,DX (index); SHL ESI,0x10;
        *            OR EBX,0xffffffff; OR ESI,ECX. */
-      int16_t salt = *(int16_t *)hdr;
-      int handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
+      salt = *(int16_t *)hdr;
+      handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
 
       /* Assert: object must be a root (parent == -1) */
       {
@@ -5105,7 +5189,7 @@ void objects_update(void)
       /* Double-speed skip: if double_speed && this object's type is biped or
        * vehicle (type-bit 0 or 1) && obj->field_1c8 != -1 → skip update.
        * Confirmed: MOV CL,[EDI+3] (type byte); SHL EDX,CL; TEST DL,0x3. */
-      bool do_update = true;
+      do_update = true;
       if (double_speed) {
         uint8_t type_byte = *(uint8_t *)(hdr + 0x3);
         if (((1u << (type_byte & 0x1f)) & 0x3) != 0) {
@@ -5130,8 +5214,10 @@ void objects_update(void)
     data_t *obj_data = *(data_t **)0x5a8d50;
     uint8_t *hdr = *(uint8_t **)((uint8_t *)obj_data + 0x34);
     int16_t count = *(int16_t *)((uint8_t *)obj_data + 0x2e);
+    int16_t i;
 
-    for (int16_t i = 0; i < count; i++, hdr += 0xc) {
+    for (i = 0; i < count; i++, hdr += 0xc) {
+      uint8_t flags;
       /* Reload count each iteration.
        * Confirmed: MOV ECX,[0x5a8d50]; CMP DI,word [ECX+0x2e] at 0x14544a. */
       count = *(int16_t *)((uint8_t *)(*(data_t **)0x5a8d50) + 0x2e);
@@ -5141,7 +5227,7 @@ void objects_update(void)
 
       /* Read flags, clear bit 4 (0x10) unconditionally ("updated this tick").
        * Confirmed: MOV AL,[ESI+2]; AND AL,0xef; MOV [ESI+2],AL. */
-      uint8_t flags = *(uint8_t *)(hdr + 0x2);
+      flags = *(uint8_t *)(hdr + 0x2);
       flags &= (uint8_t)0xef;
       *(uint8_t *)(hdr + 0x2) = flags;
 
@@ -5149,10 +5235,12 @@ void objects_update(void)
        * also clear bit 2, then call object_update (0x1444f0).
        * Confirmed: TEST AL,0x4; JZ ...; AND AL,0xfb; MOV [ESI+2],AL. */
       if ((flags & 0x4) != 0) {
+        int16_t salt;
+        int handle;
         flags &= (uint8_t)0xfb;
         *(uint8_t *)(hdr + 0x2) = flags;
-        int16_t salt = *(int16_t *)hdr;
-        int handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
+        salt = *(int16_t *)hdr;
+        handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
         ((int (*)(int))0x1444f0)(handle);
       }
 

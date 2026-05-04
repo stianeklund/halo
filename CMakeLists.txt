@@ -1,6 +1,8 @@
 project(halo)
 cmake_minimum_required(VERSION 3.16)
 
+option(ENABLE_XDK_HYBRID "Compile select TUs with XDK MSVC 7.1 for matching FPU codegen" OFF)
+
 find_package(Python3 COMPONENTS Interpreter)
 
 set(gen_dir "${PROJECT_BINARY_DIR}/generated")
@@ -89,6 +91,36 @@ else()
 	endif()
 endif()
 
+if(ENABLE_XDK_HYBRID AND NOT MSVC)
+	function(wsl_to_win PATH OUT_VAR)
+		string(REGEX REPLACE "^/mnt/(.)" "\\1:" _result "${PATH}")
+		set(${OUT_VAR} "${_result}" PARENT_SCOPE)
+	endfunction()
+
+	set(XDK_CL "/mnt/c/Program Files (x86)/RXDK/xbox/bin/vc71/CL.Exe")
+	set(XDK_INC "C:/Program Files (x86)/RXDK/xbox/include")
+
+	# TUs compiled with XDK MSVC 7.1 instead of clang.
+	# Requirements: no inline asm (or asm guarded by #ifdef XDK_BUILD), C89 only.
+	# Paths are relative to src/.
+	set(XDK_HYBRID_SOURCES
+		halo/cseries/cseries.c
+		halo/effects/decals.c
+		halo/effects/effects.c
+		halo/game/game_engine.c
+		halo/items/items.c
+		halo/main/main.c
+		halo/math/real_math.c
+		halo/networking/network_server_manager.c
+		halo/objects/objects.c
+		halo/physics/point_physics.c
+		halo/saved_games/game_state.c
+		halo/sound/game_sound.c
+		halo/sound/sound_manager.c
+		halo/units/units.c
+	)
+endif()
+
 add_executable(halo
 		src/common.h)
 
@@ -104,6 +136,49 @@ set(import_libs ${gen_dir}/halo.xbe.lib ${gen_dir}/xboxkrnl.exe.lib)
 target_link_libraries(halo ${import_libs})
 add_custom_target(import_libs_target DEPENDS ${import_libs})
 add_dependencies(halo import_libs_target reverse_thunk_tests)
+
+if(ENABLE_XDK_HYBRID AND NOT MSVC)
+	set(_xdk_obj_dir "${CMAKE_BINARY_DIR}/xdk")
+	file(MAKE_DIRECTORY "${_xdk_obj_dir}")
+
+	wsl_to_win("${CMAKE_SOURCE_DIR}/src/xdk_common.h" _xdk_fi)
+	wsl_to_win("${gen_dir}" _xdk_gen_inc)
+	wsl_to_win("${CMAKE_SOURCE_DIR}/src" _xdk_src_inc)
+
+	foreach(_src ${XDK_HYBRID_SOURCES})
+		string(REPLACE "/" "_" _obj_name "${_src}")
+		string(REPLACE ".c" ".obj" _obj_name "${_obj_name}")
+		set(_obj "${_xdk_obj_dir}/${_obj_name}")
+
+		wsl_to_win("${CMAKE_SOURCE_DIR}/src/${_src}" _src_win)
+		wsl_to_win("${_obj}" _obj_win)
+
+		add_custom_command(
+			OUTPUT "${_obj}"
+			COMMAND "${XDK_CL}"
+				/nologo /c /TC
+				/O2 /Oy- /GF /Gy /Gd
+				/W0 /Zl /X
+				/DMSVC /DXDK_BUILD
+				"/FI${_xdk_fi}"
+				"/I${_xdk_gen_inc}"
+				"/I${_xdk_src_inc}"
+				"/I${XDK_INC}"
+				"/Fo${_obj_win}"
+				"${_src_win}"
+			DEPENDS
+				"${CMAKE_SOURCE_DIR}/src/${_src}"
+				"${CMAKE_SOURCE_DIR}/src/xdk_common.h"
+				"${gen_dir}/decl.h"
+			COMMENT "XDK: ${_src}"
+			VERBATIM
+		)
+
+		target_sources(halo PRIVATE "${_obj}")
+	endforeach()
+
+	target_sources(halo PRIVATE "${CMAKE_SOURCE_DIR}/src/xdk_rt.c")
+endif()
 
 add_custom_command(TARGET halo POST_BUILD
 	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_lift_hazards.py"
