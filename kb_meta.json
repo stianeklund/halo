@@ -3661,6 +3661,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10a150": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Computes rotation difference between two 4x3 matrices as axis-angle: inverts mat1, multiplies by mat0, extracts quaternion via FUN_00109fc0, converts to axis-angle via FUN_0010caf0, then scales output axis by the angle."
+      ],
+      "uncertain": [
+        "Semantic name is uncertain: could be matrix4x3_angular_delta, matrix_rotation_difference_as_axis_angle, or similar; the name was inferred from the observer caller context."
+      ]
+    },
     "0x10b090": {
       "kind": "function",
       "status": "ported"

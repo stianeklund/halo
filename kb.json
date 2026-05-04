@@ -5843,8 +5843,17 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00109fc0(float *matrix4x3, float *out_quat4);",
+          "addr": "0x109fc0"
+        },
+        {
           "decl": "void matrix4x3_from_forward_up_position(void *out, float *position, float *forward, float *up);",
           "addr": "0x10a110",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0010a150(float *mat0, float *mat1, float *out_vec3);",
+          "addr": "0x10a150",
           "ported": true
         },
         {
@@ -5874,13 +5883,13 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3);",
+          "addr": "0x10caf0"
+        },
+        {
           "decl": "void angles_to_vector(float *out, float *angles);",
           "addr": "0x10cc40",
           "ported": true
-        },
-        {
-          "decl": "void FUN_0010a150(float *mat0, float *mat1, float *out_vec3);",
-          "addr": "0x10a150"
         }
       ]
     },
