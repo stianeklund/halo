@@ -58,6 +58,16 @@ float random_real_range(int *seed, float min, float max)
   return (float)(s >> 16) / 65535.0f * (max - min) + min;
 }
 
+/* Advance an LCG seed and return the upper 16 bits. */
+uint16_t random_seed_step(unsigned int *seed)
+{
+  unsigned int s;
+
+  s = *seed * 0x19660d + 0x3c6ef35f;
+  *seed = s;
+  return (uint16_t)(s >> 16);
+}
+
 /* Generate a random int16 in [min, max) using a linear congruential
  * generator.  Advances *seed with the classic Numerical Recipes
  * LCG (a=0x19660d, c=0x3c6ef35f), then maps the upper 16 bits of

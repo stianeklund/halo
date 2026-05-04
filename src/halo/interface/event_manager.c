@@ -379,3 +379,42 @@ void event_manager_update(void)
     event_manager_dispatch(empty_event, (int16_t)i);
   }
 }
+
+/* Map a game-event type to a UI-widget event type. */
+int16_t FUN_000dc800(int event)
+{
+  switch ((int16_t)event) {
+  case 0:
+    return 6;
+  case 1:
+    return 7;
+  case 2:
+    return 8;
+  case 3:
+    return 9;
+  case 4:
+    return 10;
+  case 5:
+    return 11;
+  case 6:
+    return 12;
+  case 9:
+    return 13;
+  case 10:
+    return 14;
+  case 11:
+    return 18;
+  case 12:
+    return 19;
+  case 14:
+    return 4;
+  case 15:
+    return 1;
+  case 16:
+    return 23;
+  case 17:
+    return 20;
+  default:
+    return -1;
+  }
+}

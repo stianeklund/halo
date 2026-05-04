@@ -1,3 +1,28 @@
+/* Tick a millisecond countdown timer. Subtracts elapsed time from
+   time_remaining, clamps to zero, and returns the remaining value.
+   countdown[0] = time_remaining, countdown[1] = last_tick_time. */
+int FUN_0012bdb0(void *countdown)
+{
+  int now;
+  int elapsed;
+  int remaining;
+  int *timer = (int *)countdown;
+
+  now = system_milliseconds();
+  if (now > timer[1]) {
+    elapsed = now - timer[1];
+    if (elapsed < timer[0]) {
+      timer[0] = timer[0] - elapsed;
+    } else {
+      timer[0] = 0;
+    }
+  }
+  remaining = timer[0];
+  timer[1] = now;
+  assert_halt(remaining >= 0);
+  return remaining;
+}
+
 /* Open the server's game (0x12c060).
  * Sets bit 0 of the flags byte at server+6 (marking the game as open),
  * then tells the underlying connection to open, and logs "opening game". */
@@ -927,7 +952,8 @@ bool FUN_0012e750(int server)
     if (now <= *(int *)(s + 0x480) + 5000)
       return result;
     countdown = 0;
-    FUN_0012f430((void *)server, encode_network_game_message(0xa, &countdown, 2));
+    FUN_0012f430((void *)server,
+                 encode_network_game_message(0xa, &countdown, 2));
     *(int *)(s + 0x480) = now;
     return result;
   }

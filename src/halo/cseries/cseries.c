@@ -1,5 +1,17 @@
 #include <stdarg.h>
 
+/* Convert a string to lowercase in place and return it. */
+char *csstr_tolower(char *s)
+{
+  char *p = s;
+  while (*p != '\0') {
+    if (*p >= 'A' && *p <= 'Z')
+      *p = *p + ('a' - 'A');
+    p++;
+  }
+  return s;
+}
+
 char *csprintf(char *buffer, const char *format, ...)
 {
   va_list args;

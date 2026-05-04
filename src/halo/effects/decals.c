@@ -276,6 +276,13 @@ float *FUN_00099400(float *out_line, float *point_a, float *point_b)
   return NULL;
 }
 
+/* Signed distance from a point to a plane (normal·point - d). */
+float FUN_00099500(float *plane, float *point)
+{
+  return plane[0] * point[0] + plane[1] * point[1] + plane[2] * point[2] -
+         plane[3];
+}
+
 uint32_t FUN_00099530(float alpha, float *color)
 {
   uint32_t a;
