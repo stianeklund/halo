@@ -304,171 +304,6 @@
         {
           "decl": "void FUN_001bf790(void);",
           "addr": "0x1bf790"
-        },
-        {
-          "decl": "void SwitchToThread(void);",
-          "addr": "0x1cfb98"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_CreateTexture(uint32_t width, uint32_t height, uint32_t levels, uint32_t usage, uint32_t format, uint32_t pool, void *out_texture);",
-          "addr": "0x1e6ae0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTransform(uint32_t type, void *matrix);",
-          "addr": "0x1e6bd0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_GetTransform(uint32_t type, void *matrix_out);",
-          "addr": "0x1e6ce0"
-        },
-        {
-          "decl": "void D3DDevice_BlockUntilVerticalBlank(void);",
-          "addr": "0x1e7110"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
-          "addr": "0x1e7af0"
-        },
-        {
-          "decl": "int __stdcall D3DDevice_GetBackBuffer(int back_buffer, uint32_t type, void **out_surface);",
-          "addr": "0x1e7d50"
-        },
-        {
-          "decl": "int __stdcall D3DDevice_GetDepthStencilSurface(void **out_surface);",
-          "addr": "0x1e8270"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTexture(uint32_t stage, void *texture);",
-          "addr": "0x1e8700"
-        },
-        {
-          "decl": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
-          "addr": "0x1e9350"
-        },
-        {
-          "decl": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-          "addr": "0x1e9380"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
-          "addr": "0x1e9410"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetRenderState_CullMode(uint32_t mode);",
-          "addr": "0x1e96d0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTextureState_BorderColor(uint32_t stage, uint32_t color);",
-          "addr": "0x1e9c20"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetRenderState_ZEnable(uint32_t enable);",
-          "addr": "0x1ea290"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
-          "addr": "0x1ea650"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetVertexShader(uint32_t shader);",
-          "addr": "0x1eb7f0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetPixelShaderProgram(void *program);",
-          "addr": "0x1ec120"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetVertexData2f(uint32_t reg, float a, float b);",
-          "addr": "0x1ed280"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetVertexData4f(uint32_t reg, float a, float b, float c, float d);",
-          "addr": "0x1ed2c0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_Begin(uint32_t primitive_type);",
-          "addr": "0x1ed450"
-        },
-        {
-          "decl": "void D3DDevice_End(void);",
-          "addr": "0x1ed490"
-        },
-        {
-          "decl": "float *__stdcall mat4x4_transform_vec4(float *out, float *in, float *matrix);",
-          "addr": "0x1ff03f"
-        },
-        {
-          "decl": "void __stdcall matrix_build_perspective_projection(void *matrix_out, float fov, float aspect, float z_near, float z_far);",
-          "addr": "0x1ff913"
-        },
-        {
-          "decl": "void __stdcall matrix_build_ortho_projection(void *matrix_out, float scale_x, float scale_y, float z_near, float z_far);",
-          "addr": "0x1ffc57"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetVolume(void *buffer, int volume);",
-          "addr": "0x204f23"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
-          "addr": "0x204f3f"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetLoopRegion(void *buffer, uint32_t start, uint32_t length);",
-          "addr": "0x20519e"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetCurrentPosition(void *buffer, uint32_t position);",
-          "addr": "0x2051fa"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetVolume(void *stream, int volume);",
-          "addr": "0x205266"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetConeAngles(void *stream, int inner_angle, int outer_angle, int deferred);",
-          "addr": "0x2052e8"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetConeOutsideVolume(void *stream, int volume, int deferred);",
-          "addr": "0x205316"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetMaxDistance(void *stream, float distance, int deferred);",
-          "addr": "0x20531b"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetMinDistance(void *stream, float distance, int deferred);",
-          "addr": "0x205333"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetAllParameters(void *stream, void *params, int deferred);",
-          "addr": "0x2053a7"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_Play(void *buffer, uint32_t reserved, uint32_t priority, uint32_t flags);",
-          "addr": "0x205b43"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetBufferData(void *buffer, void *data, uint32_t size);",
-          "addr": "0x205b7f"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetFrequency(void *stream, int frequency);",
-          "addr": "0x205bbf"
-        },
-        {
-          "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
-          "addr": "0x2062d0"
-        },
-        {
-          "decl": "bool __stdcall dsound_stream_is_active(void *stream);",
-          "addr": "0x20f069",
-          "comment": "Check if a DirectSound stream is still active by testing internal kernel status bits (0x10000002). Returns true if the stream is still processing."
-        },
-        {
-          "decl": "int __stdcall FUN_00222df7(void *key);",
-          "addr": "0x222df7"
         }
       ]
     },
@@ -6418,6 +6253,11 @@
           "addr": "0x1caa80",
           "ported": true,
           "comment": "Vtable+0x34 entry: resolve channel, clamp gain, forward to driver."
+        },
+        {
+          "decl": "bool __stdcall dsound_stream_is_active(void *stream);",
+          "addr": "0x20f069",
+          "comment": "Check if a DirectSound stream is still active by testing internal kernel status bits (0x10000002). Returns true if the stream is still processing."
         }
       ]
     },
@@ -8329,6 +8169,18 @@
         {
           "decl": "void __stdcall Lock2DSurface(void *texture, unsigned int face, unsigned int level, void *locked_rect, void *rect, unsigned int flags);",
           "addr": "0x1f44f0"
+        },
+        {
+          "decl": "float *__stdcall mat4x4_transform_vec4(float *out, float *in, float *matrix);",
+          "addr": "0x1ff03f"
+        },
+        {
+          "decl": "void __stdcall matrix_build_perspective_projection(void *matrix_out, float fov, float aspect, float z_near, float z_far);",
+          "addr": "0x1ff913"
+        },
+        {
+          "decl": "void __stdcall matrix_build_ortho_projection(void *matrix_out, float scale_x, float scale_y, float z_near, float z_far);",
+          "addr": "0x1ffc57"
         }
       ]
     },
@@ -8406,6 +8258,10 @@
     {
       "name": "XNET:wsock.obj",
       "functions": [
+        {
+          "decl": "int __stdcall FUN_00222df7(void *key);",
+          "addr": "0x222df7"
+        },
         {
           "decl": "int __stdcall xnet_send(int socket, const char *buf, int len, int flags);",
           "addr": "0x225c20"
@@ -9149,6 +9005,157 @@
         {
           "decl": "void FUN_00139480(void *position, void *tint_color, void *out_color, char use_lightmap);",
           "addr": "0x139480"
+        }
+      ]
+    },
+    {
+      "name": "<xdk_stubs>",
+      "source": null,
+      "data": [],
+      "functions": [
+        {
+          "decl": "void SwitchToThread(void);",
+          "addr": "0x1cfb98"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_CreateTexture(uint32_t width, uint32_t height, uint32_t levels, uint32_t usage, uint32_t format, uint32_t pool, void *out_texture);",
+          "addr": "0x1e6ae0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTransform(uint32_t type, void *matrix);",
+          "addr": "0x1e6bd0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_GetTransform(uint32_t type, void *matrix_out);",
+          "addr": "0x1e6ce0"
+        },
+        {
+          "decl": "void D3DDevice_BlockUntilVerticalBlank(void);",
+          "addr": "0x1e7110"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
+          "addr": "0x1e7af0"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetBackBuffer(int back_buffer, uint32_t type, void **out_surface);",
+          "addr": "0x1e7d50"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetDepthStencilSurface(void **out_surface);",
+          "addr": "0x1e8270"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTexture(uint32_t stage, void *texture);",
+          "addr": "0x1e8700"
+        },
+        {
+          "decl": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
+          "addr": "0x1e9350"
+        },
+        {
+          "decl": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
+          "addr": "0x1e9380"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+          "addr": "0x1e9410"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderState_CullMode(uint32_t mode);",
+          "addr": "0x1e96d0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTextureState_BorderColor(uint32_t stage, uint32_t color);",
+          "addr": "0x1e9c20"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderState_ZEnable(uint32_t enable);",
+          "addr": "0x1ea290"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
+          "addr": "0x1ea650"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexShader(uint32_t shader);",
+          "addr": "0x1eb7f0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetPixelShaderProgram(void *program);",
+          "addr": "0x1ec120"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexData2f(uint32_t reg, float a, float b);",
+          "addr": "0x1ed280"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexData4f(uint32_t reg, float a, float b, float c, float d);",
+          "addr": "0x1ed2c0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_Begin(uint32_t primitive_type);",
+          "addr": "0x1ed450"
+        },
+        {
+          "decl": "void D3DDevice_End(void);",
+          "addr": "0x1ed490"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetVolume(void *buffer, int volume);",
+          "addr": "0x204f23"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
+          "addr": "0x204f3f"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetLoopRegion(void *buffer, uint32_t start, uint32_t length);",
+          "addr": "0x20519e"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetCurrentPosition(void *buffer, uint32_t position);",
+          "addr": "0x2051fa"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetVolume(void *stream, int volume);",
+          "addr": "0x205266"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetConeAngles(void *stream, int inner_angle, int outer_angle, int deferred);",
+          "addr": "0x2052e8"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetConeOutsideVolume(void *stream, int volume, int deferred);",
+          "addr": "0x205316"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetMaxDistance(void *stream, float distance, int deferred);",
+          "addr": "0x20531b"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetMinDistance(void *stream, float distance, int deferred);",
+          "addr": "0x205333"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetAllParameters(void *stream, void *params, int deferred);",
+          "addr": "0x2053a7"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_Play(void *buffer, uint32_t reserved, uint32_t priority, uint32_t flags);",
+          "addr": "0x205b43"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetBufferData(void *buffer, void *data, uint32_t size);",
+          "addr": "0x205b7f"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetFrequency(void *stream, int frequency);",
+          "addr": "0x205bbf"
+        },
+        {
+          "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
+          "addr": "0x2062d0"
         }
       ]
     }

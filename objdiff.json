@@ -942,6 +942,14 @@
       "metadata": {
         "source_path": "src/halo/text/international_strings.c"
       }
+    },
+    {
+      "name": "halo/actions",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/actions.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
     }
   ]
 }
