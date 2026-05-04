@@ -32,6 +32,14 @@ void display_error_damaged_media(void)
   main_halt_entry();
 }
 
+/* Set the game connection state (network connection type).
+ * Stores the low 16 bits of param into the global word_46DA0C.
+ * 0 = local/singleplayer, 2 = client, other values used for host/dedicated. */
+void set_game_connection(short param)
+{
+  word_46DA0C = param;
+}
+
 short game_connection(void)
 {
   return word_46DA0C;
@@ -46,6 +54,12 @@ void FUN_00100000(void)
 char *main_get_multiplayer_map_name(void)
 {
   return (char *)0x46db55;
+}
+
+/* Return the game variant index from the static table at 0x31fa90. */
+int16_t FUN_00100080(void)
+{
+  return *(int16_t *)0x31fa90;
 }
 
 static const short _game_connection_local = 0;
@@ -1386,6 +1400,19 @@ void main_rasterizer_throttle(void)
 
   /* store per-frame profile: delta count, synced flag, debug string */
   ((fn_profile_store_t)0x8f880)(frames_delta, synced, (const char *)0x46ddfc);
+}
+
+/* Clear both rasterizer timing flags. */
+void FUN_00101c90(void)
+{
+  *(char *)0x46da46 = 0;
+  *(char *)0x46da47 = 0;
+}
+
+/* Set the rasterizer frame-skip flag. */
+void FUN_00101ca0(void)
+{
+  *(char *)0x46da47 = 1;
 }
 
 /*

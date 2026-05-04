@@ -227,3 +227,14 @@ void contrails_update(float delta_time)
     datum_handle = data_next_index(contrail_data, datum_handle);
   }
 }
+
+/* Detach a contrail from its parent object (clear attached flag and
+   invalidate the object handle). */
+void FUN_0009f6e0(int contrail_handle)
+{
+  char *datum;
+
+  datum = (char *)datum_get(contrail_data, contrail_handle);
+  *(uint32_t *)(datum + 4) &= ~1u;
+  *(int *)(datum + 0xc) = -1;
+}

@@ -1093,7 +1093,8 @@
         },
         {
           "decl": "void FUN_0009f6e0(int contrail_handle);",
-          "addr": "0x9f6e0"
+          "addr": "0x9f6e0",
+          "ported": true
         },
         {
           "addr": "0x97a50",
@@ -3782,20 +3783,25 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000fff70(int param);",
-          "addr": "0xfff70"
+          "decl": "void set_game_connection(short param);",
+          "addr": "0xfff70",
+          "ported": true,
+          "name": "set_game_connection"
         },
         {
           "decl": "int16_t FUN_00100080(void);",
-          "addr": "0x100080"
+          "addr": "0x100080",
+          "ported": true
         },
         {
           "decl": "void FUN_00101c90(void);",
-          "addr": "0x101c90"
+          "addr": "0x101c90",
+          "ported": true
         },
         {
           "decl": "void FUN_00101ca0(void);",
-          "addr": "0x101ca0"
+          "addr": "0x101ca0",
+          "ported": true
         }
       ]
     },
@@ -8495,13 +8501,15 @@
           "decl": "bool FUN_0002fc20(int actor_handle, int clump_item_handle);",
           "addr": "0x2fc20",
           "status": "ported",
-          "source": "src/halo/ai/actor_perception.c"
+          "source": "src/halo/ai/actor_perception.c",
+          "ported": true
         },
         {
           "decl": "float FUN_0002fd10(int actor_handle, int clump_item_handle);",
           "addr": "0x2fd10",
           "status": "ported",
-          "source": "src/halo/ai/actor_perception.c"
+          "source": "src/halo/ai/actor_perception.c",
+          "ported": true
         },
         {
           "addr": "0x303f0",
