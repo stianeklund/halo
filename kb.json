@@ -5885,7 +5885,8 @@
         },
         {
           "decl": "void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3);",
-          "addr": "0x10caf0"
+          "addr": "0x10caf0",
+          "ported": true
         },
         {
           "decl": "void angles_to_vector(float *out, float *angles);",
