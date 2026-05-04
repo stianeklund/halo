@@ -163,36 +163,8 @@
       ],
       "functions": [
         {
-          "decl": "uint16_t FUN_0008e7c0(void);",
-          "addr": "0x8e7c0"
-        },
-        {
-          "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
-          "addr": "0x966d0"
-        },
-        {
-          "decl": "bool FUN_00096720(int object_handle);",
-          "addr": "0x96720"
-        },
-        {
-          "decl": "float FUN_00099500(float *plane, float *point);",
-          "addr": "0x99500"
-        },
-        {
-          "decl": "int16_t FUN_000dc800(int event @<eax>);",
-          "addr": "0xdc800"
-        },
-        {
-          "decl": "bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
-          "addr": "0x10bc70"
-        },
-        {
           "decl": "const char *FUN_001205f0(void *string_table, int16_t index);",
           "addr": "0x1205f0"
-        },
-        {
-          "decl": "void FUN_001bf790(void);",
-          "addr": "0x1bf790"
         }
       ]
     },
@@ -1532,6 +1504,10 @@
           "ported": true
         },
         {
+          "decl": "float FUN_00099500(float *plane, float *point);",
+          "addr": "0x99500"
+        },
+        {
           "decl": "uint32_t FUN_00099530(float alpha, float *color);",
           "addr": "0x99530",
           "ported": true
@@ -1843,6 +1819,17 @@
           "ported": true
         },
         {
+          "decl": "uint16_t FUN_0008e7c0(void);",
+          "addr": "0x8e7c0"
+        },
+        {
+          "addr": "0x8f040",
+          "decl": "void *debug_realloc(void *ptr, int new_size, const char *file, int line);",
+          "ported": true,
+          "source": "src/halo/cseries/errors.c",
+          "status": "ported"
+        },
+        {
           "decl": "void debug_string_to_display(const char *message, int severity);",
           "addr": "0x8f230",
           "ported": true
@@ -1856,13 +1843,6 @@
           "decl": "bool error_occurred(void);",
           "addr": "0x8f600",
           "ported": true
-        },
-        {
-          "addr": "0x8f040",
-          "decl": "void *debug_realloc(void *ptr, int new_size, const char *file, int line);",
-          "ported": true,
-          "source": "src/halo/cseries/errors.c",
-          "status": "ported"
         }
       ]
     },
@@ -1901,8 +1881,18 @@
           "ported": true
         },
         {
+          "decl": "void event_manager_suppress(int suppress);",
+          "addr": "0xdc240",
+          "ported": true
+        },
+        {
           "decl": "bool event_manager_get_next_event(void *event_data, int16_t player_index);",
           "addr": "0xdc250",
+          "ported": true
+        },
+        {
+          "decl": "unsigned int event_manager_get_last_event_time(void);",
+          "addr": "0xdc310",
           "ported": true
         },
         {
@@ -1916,14 +1906,8 @@
           "ported": true
         },
         {
-          "decl": "void event_manager_suppress(int suppress);",
-          "addr": "0xdc240",
-          "ported": true
-        },
-        {
-          "decl": "unsigned int event_manager_get_last_event_time(void);",
-          "addr": "0xdc310",
-          "ported": true
+          "decl": "int16_t FUN_000dc800(int event @<eax>);",
+          "addr": "0xdc800"
         }
       ]
     },
@@ -2683,28 +2667,22 @@
       "source": "saved_games/game_state.c",
       "functions": [
         {
+          "decl": "void FUN_001bf790(void);",
+          "addr": "0x1bf790"
+        },
+        {
           "decl": "void game_state_dispose(void);",
           "addr": "0x1bf7b0",
           "ported": true
         },
         {
-          "decl": "void game_state_dispose_from_old_map(void);",
-          "addr": "0x1bf870",
-          "ported": true
-        },
-        {
-          "decl": "void *game_state_malloc(const char *name, const char *a2, int size);",
-          "addr": "0x1bfbf0",
-          "ported": true
-        },
-        {
-          "decl": "data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size);",
-          "addr": "0x1bfe10",
-          "ported": true
-        },
-        {
           "decl": "void game_state_initialize_for_new_map(void);",
           "addr": "0x1bf7c0",
+          "ported": true
+        },
+        {
+          "decl": "void game_state_dispose_from_old_map(void);",
+          "addr": "0x1bf870",
           "ported": true
         },
         {
@@ -2723,13 +2701,23 @@
           "ported": true
         },
         {
-          "decl": "void game_state_load_core(const char *);",
-          "addr": "0x1bffd0",
+          "decl": "void *game_state_malloc(const char *name, const char *a2, int size);",
+          "addr": "0x1bfbf0",
           "ported": true
         },
         {
           "decl": "void *game_state_gpu_alloc(const char *name, int a2, uint32_t size);",
           "addr": "0x1bfd00",
+          "ported": true
+        },
+        {
+          "decl": "data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size);",
+          "addr": "0x1bfe10",
+          "ported": true
+        },
+        {
+          "decl": "void game_state_load_core(const char *);",
+          "addr": "0x1bffd0",
           "ported": true
         }
       ]
@@ -5763,18 +5751,38 @@
       "source": "math/real_math.c",
       "functions": [
         {
-          "decl": "void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine);",
-          "addr": "0x1092d0",
-          "ported": true
-        },
-        {
           "decl": "void matrix_inverse(float *src, float *dst);",
           "addr": "0x109150",
           "ported": true
         },
         {
+          "decl": "void matrix4x3_identity_with_position(float *out, float *position);",
+          "addr": "0x109280",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine);",
+          "addr": "0x1092d0",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_001094d0(float *out_matrix, float *position, float *basis_data);",
+          "addr": "0x1094d0",
+          "ported": true
+        },
+        {
+          "decl": "void matrix4x3_decompose(float *matrix, float *forward, float *up, float *position);",
+          "addr": "0x109540",
+          "ported": true
+        },
+        {
           "decl": "void matrix_transform_point(float *matrix, float *in, float *out);",
           "addr": "0x109590",
+          "ported": true
+        },
+        {
+          "decl": "void matrix_scale_transform_vector(float *matrix, float *in, float *out);",
+          "addr": "0x109610",
           "ported": true
         },
         {
@@ -5799,23 +5807,8 @@
           "ported": true
         },
         {
-          "decl": "void matrix4x3_identity_with_position(float *out, float *position);",
-          "addr": "0x109280",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_001094d0(float *out_matrix, float *position, float *basis_data);",
-          "addr": "0x1094d0",
-          "ported": true
-        },
-        {
           "decl": "void matrix4x3_multiply(float *a, float *b, float *out);",
           "addr": "0x109850",
-          "ported": true
-        },
-        {
-          "decl": "void matrix4x3_decompose(float *matrix, float *forward, float *up, float *position);",
-          "addr": "0x109540",
           "ported": true
         },
         {
@@ -5834,11 +5827,6 @@
           "ported": true
         },
         {
-          "decl": "float FUN_0010c600(float *a, float *b);",
-          "addr": "0x10c600",
-          "ported": true
-        },
-        {
           "decl": "void perpendicular3d(float *in, float *out);",
           "addr": "0x10b620",
           "ported": true
@@ -5850,13 +5838,17 @@
           "ported": true
         },
         {
-          "decl": "void angles_to_vector(float *out, float *angles);",
-          "addr": "0x10cc40",
+          "decl": "bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
+          "addr": "0x10bc70"
+        },
+        {
+          "decl": "float FUN_0010c600(float *a, float *b);",
+          "addr": "0x10c600",
           "ported": true
         },
         {
-          "decl": "void matrix_scale_transform_vector(float *matrix, float *in, float *out);",
-          "addr": "0x109610",
+          "decl": "void angles_to_vector(float *out, float *angles);",
+          "addr": "0x10cc40",
           "ported": true
         }
       ]
@@ -9213,6 +9205,20 @@
         {
           "decl": "bool encode_packet_group(group_definition *group, void *data, char *encoded_buf, int32_t *encoded_size, int16_t type, int one);",
           "addr": "0x11aca0"
+        }
+      ]
+    },
+    {
+      "name": "devices.obj",
+      "source": "devices/devices.c",
+      "functions": [
+        {
+          "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
+          "addr": "0x966d0"
+        },
+        {
+          "decl": "bool FUN_00096720(int object_handle);",
+          "addr": "0x96720"
         }
       ]
     }
