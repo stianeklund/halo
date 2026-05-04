@@ -456,6 +456,50 @@ void matrix_from_forward_and_up(float *out, float *forward, float *up)
   *(float *)((char *)out + 0x30) = 0.0f;
 }
 
+/* Convert a 4x3 matrix rotation part to a unit quaternion (Shepperd's method).
+ * Output quaternion layout: [x, y, z, w]. */
+void FUN_00109fc0(float *matrix4x3, float *out_quat4)
+{
+  static const int16_t nxt[3] = { 1, 2, 0 };
+  float *m = (float *)((char *)matrix4x3 + 4);
+  float trace = m[0] + m[4] + m[8];
+  float s;
+  int i, j, k;
+  float q[3];
+
+  if (trace > 0.0f) {
+    s = sqrtf(trace + 1.0f);
+    out_quat4[3] = 0.5f * s;
+    s = 0.5f / s;
+    out_quat4[0] = (m[7] - m[5]) * s;
+    out_quat4[1] = (m[2] - m[6]) * s;
+    out_quat4[2] = (m[3] - m[1]) * s;
+    return;
+  }
+
+  i = 0;
+  if (m[4] > m[0])
+    i = 1;
+  if (m[8] > m[i * 4])
+    i = 2;
+
+  j = nxt[i];
+  k = nxt[j];
+
+  s = sqrtf(m[i * 3 + i] - (m[k * 3 + k] + m[j * 3 + j]) + 1.0f);
+  q[i] = 0.5f * s;
+  if (s != 0.0f) {
+    s = 0.5f / s;
+  }
+  q[j] = (m[i * 3 + j] + m[j * 3 + i]) * s;
+  q[k] = (m[i * 3 + k] + m[k * 3 + i]) * s;
+
+  out_quat4[0] = q[0];
+  out_quat4[1] = q[1];
+  out_quat4[2] = q[2];
+  out_quat4[3] = (m[k * 3 + j] - m[j * 3 + k]) * s;
+}
+
 /* Build a 4x3 matrix from forward, up direction vectors and a position.
  * Fills the rotation via matrix_from_forward_and_up, then sets translation. */
 void matrix4x3_from_forward_up_position(void *out, float *position,
