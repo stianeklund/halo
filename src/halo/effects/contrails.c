@@ -77,12 +77,26 @@ int16_t FUN_00097c80(int16_t min, int16_t max)
   return random_range(random_math_get_local_seed_address(), min, max);
 }
 
-/* contrail_delete, contrail_compute, contrail_validate, contrail_add_point,
- * contrail_set_state, and contrail_render_update all use register params
- * (@<eax>, @<esi>) and are called from original binary code that we haven't
- * ported. The current thunk system only bridges our code → original, not
- * original → our code. So these must remain in the original binary until
- * the entire TU is ported together. See feedback_register_args.md. */
+/* 0x97cd0 — compute random value in a flag-adjusted range.
+ * base = range_min (scaled by datum_scale if flag bit set).
+ * range = (range_max - range_min) (scaled by datum_scale if next bit set).
+ * Returns random_real_range(0, range) + base. */
+float FUN_00097cd0(float datum_scale, float range_min, float range_max,
+                   unsigned int flags, int bit_index)
+{
+  float base;
+  float range;
+  unsigned int *seed;
+
+  base = range_min;
+  if (flags & (1 << (bit_index & 0x1f)))
+    base = datum_scale * range_min;
+  range = range_max - range_min;
+  if (flags & (1 << ((bit_index + 1) & 0x1f)))
+    range *= datum_scale;
+  seed = random_math_get_local_seed_address();
+  return random_real_range((int *)seed, 0.0f, range) + base;
+}
 
 void contrails_initialize(void)
 {
@@ -100,6 +114,176 @@ void contrails_initialize(void)
     }
   }
   error(0, "couldn't allocate contrail globals");
+}
+
+/* 0x97e40 — contrail_add_point.  For each marker on the contrail's attached
+ * object, allocates 'count' new contrail-point datums and prepends them to
+ * the per-marker point chain.
+ *
+ * When flag==0 and the existing chain head's position matches the marker's
+ * current position, the spawn is skipped for that marker.
+ *
+ * When count > 1, intermediate points are linearly interpolated between
+ * the new marker position and the old chain head position. */
+void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
+{
+  char *datum;
+  char *ctag;
+  char *prev_head;
+  char *pd;
+  void *obj_struct;
+  char *obj_tag;
+  void *marker_elem;
+  int16_t marker_count;
+  int16_t emit_count;
+  float local_30;
+  float local_24;
+  float local_10;
+  int new_idx;
+  char local_218[4 * 0x6c];
+
+  datum = (char *)datum_get(contrail_data, contrail_handle);
+  ctag = (char *)tag_get(0x636f6e74, *(int *)(datum + 4));
+
+  if ((int16_t)count == 0)
+    return;
+
+  obj_struct = object_get_and_verify_type(*(int *)(datum + 8), -1);
+  obj_tag = (char *)tag_get(0x6f626a65, *(int *)obj_struct);
+  marker_elem =
+    tag_block_get_element(obj_tag + 0x140, *(int16_t *)(datum + 0xc), 0x48);
+  marker_count = object_get_markers_by_string_id(
+    *(int *)(datum + 8), (char *)marker_elem + 0x10, local_218, 4);
+
+  if (marker_count <= 0)
+    return;
+
+  local_30 = FUN_00097cd0(*(float *)(datum + 0x10), *(float *)(ctag + 8),
+                          *(float *)(ctag + 0xc), *(uint16_t *)(ctag + 2), 1);
+
+  local_24 = *(float *)(ctag + 0x10);
+  if (*(uint8_t *)(ctag + 2) & 0x8)
+    local_24 *= *(float *)(datum + 0x10);
+
+  local_10 = *(float *)(ctag + 0x14);
+  if (*(uint8_t *)(ctag + 2) & 0x10)
+    local_10 *= *(float *)(datum + 0x10);
+
+  if (marker_count <= 0)
+    return;
+
+  {
+    unsigned int remaining = (unsigned int)(uint16_t)marker_count;
+    char *marker = local_218;
+    int *chain_head = (int *)(datum + 0x34);
+    int marker_idx = 0;
+
+    do {
+      if (*chain_head == -1) {
+        prev_head = NULL;
+        emit_count = 1;
+      } else {
+        prev_head = (char *)datum_get(contrail_point_data, *chain_head);
+        emit_count = (int16_t)count;
+        if (prev_head != NULL &&
+            csmemcmp(marker + 0x60, prev_head + 0x1c, 0xc) == 0 && flag == 0) {
+          goto next_marker;
+        }
+      }
+
+      {
+        int cur_iter = 1;
+        while ((int16_t)cur_iter <= emit_count) {
+          new_idx = data_new_at_index(contrail_point_data);
+          if (new_idx == -1)
+            goto inner_next;
+
+          pd = (char *)datum_get(contrail_point_data, new_idx);
+          *(int *)(pd + 4) = 0;
+          *(int *)(pd + 8) = 0;
+          *(uint8_t *)(pd + 2) = 3;
+          *(uint8_t *)(pd + 3) = 0xff;
+          *(float *)(pd + 0xc) = *(float *)(datum + 0x10);
+
+          {
+            float vel[3];
+            float root_loc[3];
+            unsigned int *seed = random_math_get_local_seed_address();
+            random_direction3d((int *)seed, (float *)(marker + 0x3c), 0.0f,
+                               local_24, vel);
+
+            *(float *)(pd + 0x1c) = *(float *)(marker + 0x60);
+            *(float *)(pd + 0x20) = *(float *)(marker + 0x64);
+            *(float *)(pd + 0x24) = *(float *)(marker + 0x68);
+
+            scenario_location_from_point(pd + 0x14, pd + 0x1c);
+
+            object_get_root_location(*(int *)(datum + 8), root_loc, NULL);
+
+            *(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];
+            *(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];
+            *(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];
+          }
+
+          if ((int16_t)cur_iter < emit_count) {
+            float t;
+            float frac_new;
+            float frac_old;
+            float blended_pos[3];
+
+            t = (float)cur_iter / (float)(int16_t)emit_count;
+
+            if ((*(uint32_t *)&t & 0x7f800000) == 0x7f800000) {
+              char *msg =
+                csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+                         "t", *(uint32_t *)&t, (double)t);
+              display_assert(msg, "c:\\halo\\SOURCE\\effects\\contrails.c",
+                             0x1d7, 1);
+              system_exit(-1);
+            }
+
+            frac_new = t;
+            frac_old = 1.0f - t;
+
+            *(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +
+                                   frac_old * *(float *)(prev_head + 0xc);
+
+            blended_pos[0] = frac_new * *(float *)(pd + 0x1c) +
+                             frac_old * *(float *)(prev_head + 0x1c);
+            blended_pos[1] = frac_new * *(float *)(pd + 0x20) +
+                             frac_old * *(float *)(prev_head + 0x20);
+            blended_pos[2] = frac_new * *(float *)(pd + 0x24) +
+                             frac_old * *(float *)(prev_head + 0x24);
+
+            scenario_location_from_point(pd + 0x14, blended_pos);
+            *(float *)(pd + 0x1c) = blended_pos[0];
+            *(float *)(pd + 0x20) = blended_pos[1];
+            *(float *)(pd + 0x24) = blended_pos[2];
+
+            *(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +
+                                    frac_old * *(float *)(prev_head + 0x28);
+            *(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +
+                                    frac_old * *(float *)(prev_head + 0x2c);
+            *(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +
+                                    frac_old * *(float *)(prev_head + 0x30);
+          }
+
+          *(int *)(pd + 0x34) = *chain_head;
+          *(int16_t *)(datum + 0x2c + marker_idx * 2) += 1;
+          *chain_head = new_idx;
+
+        inner_next:
+          cur_iter++;
+        }
+      }
+
+    next_marker:
+      marker_idx++;
+      chain_head++;
+      marker += 0x6c;
+      remaining--;
+    } while (remaining != 0);
+  }
 }
 
 /*
@@ -267,13 +451,14 @@ void contrails_update(float delta_time)
   }
 }
 
-/* Detach a contrail from its parent object (clear attached flag and
-   invalidate the object handle). */
+/* Detach a particle system header from its parent object (clear attached
+   flag and invalidate the object handle).  Despite living in contrails.c,
+   this operates on particle_system_header_data (DAT_005aa8a8). */
 void FUN_0009f6e0(int contrail_handle)
 {
   char *datum;
 
-  datum = (char *)datum_get(contrail_data, contrail_handle);
+  datum = (char *)datum_get(particle_system_header_data, contrail_handle);
   *(uint32_t *)(datum + 4) &= ~1u;
   *(int *)(datum + 0xc) = -1;
 }

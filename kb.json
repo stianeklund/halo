@@ -1077,6 +1077,11 @@
           "ported": true
         },
         {
+          "decl": "float FUN_00097cd0(float datum_scale, float range_min, float range_max, unsigned int flags, int bit_index);",
+          "addr": "0x97cd0",
+          "ported": true
+        },
+        {
           "decl": "void contrails_initialize(void);",
           "addr": "0x97d40",
           "ported": true
