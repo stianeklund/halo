@@ -18,6 +18,58 @@ void contrails_dispose(void)
     contrail_data = 0;
 }
 
+/*
+ * FUN_00097a50 (0x97a50): contrail tick counter — given a contrail handle and
+ * delta_time, computes how many full emission periods fit in delta_time and
+ * updates the per-datum time accumulator (datum+0x20).
+ *
+ * datum+0x20 holds the time remaining until the next emission tick.  Each
+ * full period consumed decrements that remaining time by datum[0x20] and
+ * resets it to the computed period (1.0f / render_freq), incrementing the
+ * returned count.  Any leftover fraction is subtracted from datum[0x20] so
+ * the accumulator carries forward correctly to the next call.
+ *
+ * If the tag flag byte (tag[2] & 0x1) is set the render frequency is scaled
+ * by datum[0x10] before the period is calculated.
+ *
+ * Returns the number of complete emission periods that elapsed.
+ * Called by contrail_set_state_for_object and contrails_update.
+ */
+int16_t FUN_00097a50(int contrail_handle, float delta_time)
+{
+  char *datum;
+  char *tag;
+  float render_freq;
+  float period;
+  int16_t count;
+
+  datum = (char *)datum_get(contrail_data, contrail_handle);
+  tag = (char *)tag_get(0x636f6e74, *(int *)(datum + 4));
+
+  render_freq = *(float *)(tag + 4);
+  if (*(uint8_t *)(tag + 2) & 1) {
+    render_freq *= *(float *)(datum + 0x10);
+  }
+  period = 1.0f / render_freq;
+
+  count = 0;
+
+  if (delta_time <= 0.0f) {
+    return count;
+  }
+
+  while (delta_time >= *(float *)(datum + 0x20)) {
+    delta_time -= *(float *)(datum + 0x20);
+    *(float *)(datum + 0x20) = period;
+    count++;
+    if (delta_time <= 0.0f)
+      return count;
+  }
+
+  *(float *)(datum + 0x20) -= delta_time;
+  return count;
+}
+
 /* 0x97c80 — Draw a random short in [min, max) using the module-local LCG seed.
  */
 int16_t FUN_00097c80(int16_t min, int16_t max)
@@ -135,20 +187,7 @@ void contrails_update(float delta_time)
         *(uint8_t *)(datum + 2) &= 0xfe;
       } else {
         *(uint8_t *)(datum + 2) |= 1;
-        /* contrail_compute: EAX = datum_handle, stack = (delta_time, 1) */
-        {
-          int _eax = datum_handle;
-          int _dt = *(int *)&delta_time;
-          asm volatile("pushl $1\n\t"
-                       "pushl %[dt]\n\t"
-                       "movl $0x97a50, %%edx\n\t"
-                       "call *%%edx\n\t"
-                       "addl $8, %%esp"
-                       : "+a"(_eax)
-                       : [dt] "r"(_dt)
-                       : "ecx", "edx", "esi", "edi", "memory", "cc");
-          result = _eax;
-        }
+        result = FUN_00097a50(datum_handle, delta_time);
         /* contrail_set_state: EAX = datum_handle, stack = (result, 1) */
         {
           int _eax = datum_handle;
