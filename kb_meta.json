@@ -6304,6 +6304,10 @@
         "vec4-by-mat4x4 multiply: float *mat4x4_transform_vec4(float *out, float *in, float *matrix) \u2014 cdecl, 3 stack args, returns out in EAX."
       ]
     },
+    "0x20f069": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x31e500": {
       "kind": "data",
       "status": "ported"
