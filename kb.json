@@ -1122,6 +1122,14 @@
         {
           "decl": "void FUN_0009f6e0(int contrail_handle);",
           "addr": "0x9f6e0"
+        },
+        {
+          "addr": "0x97a50",
+          "decl": "int16_t FUN_00097a50(int contrail_handle @<eax>, float delta_time);"
+        },
+        {
+          "addr": "0x97e40",
+          "decl": "void FUN_00097e40(int contrail_handle @<eax>, int count, int flag);"
         }
       ]
     },
@@ -3961,10 +3969,9 @@
           "ported": true
         },
         {
-          "decl": "void *encode_network_game_message(int type, void *data, int16_t message_struct_size);",
+          "decl": "void *FUN_0012b700(int type, void *data, int16_t message_struct_size);",
           "addr": "0x12b700",
-          "ported": true,
-          "name": "encode_network_game_message"
+          "ported": true
         }
       ],
       "data": [

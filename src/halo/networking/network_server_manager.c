@@ -88,7 +88,7 @@ void FUN_0012c1c0(int server, int client)
         quit_time = game_time_get() + 0x21;
         *(int *)(local_buf + 0x20) = quit_time;
         error(2, "sending quit out of game, time = %x", quit_time);
-        msg = encode_network_game_message(0x16, local_buf, 0x24);
+        msg = FUN_0012b700(0x16, local_buf, 0x24);
         if (msg) {
           if (!FUN_0012f430((void *)server, msg)) {
             network_game_log(
@@ -124,9 +124,9 @@ bool FUN_0012c290(void *server)
   if (*(char *)((char *)server + 0x4b9) == 0) {
     data = 0;
     csmemcpy(local_buf, (char *)server + 8, 0x434);
-    msg = encode_network_game_message(6, local_buf, 0x434);
+    msg = FUN_0012b700(6, local_buf, 0x434);
     if (msg && FUN_0012f430(server, msg)) {
-      msg = encode_network_game_message(8, &data, 4);
+      msg = FUN_0012b700(8, &data, 4);
       if (msg && FUN_0012f430(server, msg)) {
         network_game_log(
           "signalling client machines to begin loading for network game");
@@ -163,7 +163,7 @@ void network_server_manager_game_over(void *server)
   if (*(int16_t *)((char *)server + 4) == 1) {
     data = 0;
     *(int16_t *)((char *)server + 4) = 2;
-    msg = encode_network_game_message(0x17, &data, 4);
+    msg = FUN_0012b700(0x17, &data, 4);
     if (msg) {
       if (FUN_0012f430(server, msg)) {
         network_game_log("server sent message_game_over to all clients");
@@ -465,7 +465,7 @@ bool FUN_0012db60(int server)
   now = system_milliseconds();
   if (now > *(unsigned int *)((char *)server + 0x480) + 5000) {
     data = 0;
-    FUN_0012f430((void *)server, encode_network_game_message(0xb, &data, 2));
+    FUN_0012f430((void *)server, FUN_0012b700(0xb, &data, 2));
     *(unsigned int *)((char *)server + 0x480) = now;
   }
   return true;
@@ -927,7 +927,7 @@ bool FUN_0012e750(int server)
     if (now <= *(int *)(s + 0x480) + 5000)
       return result;
     countdown = 0;
-    FUN_0012f430((void *)server, encode_network_game_message(0xa, &countdown, 2));
+    FUN_0012f430((void *)server, FUN_0012b700(0xa, &countdown, 2));
     *(int *)(s + 0x480) = now;
     return result;
   }
@@ -963,7 +963,7 @@ bool FUN_0012e750(int server)
   }
 
   {
-    void *msg = encode_network_game_message(7, &countdown, 2);
+    void *msg = FUN_0012b700(7, &countdown, 2);
     if (!msg)
       return result;
     if (!FUN_0012f430((void *)server, msg)) {
@@ -997,7 +997,7 @@ void network_game_client_dispose(void *server)
   }
   state = *(int16_t *)(s + 4);
   if (state == 0) {
-    msg = encode_network_game_message(9, &server, 4);
+    msg = FUN_0012b700(9, &server, 4);
     if (!msg) {
       log_msg = "failed to create a "
                 "_message_type_server_graceful_game_exit_pregame message";
@@ -1005,7 +1005,7 @@ void network_game_client_dispose(void *server)
       goto broadcast;
     }
   } else if (state == 2) {
-    msg = encode_network_game_message(0x1f, &server, 4);
+    msg = FUN_0012b700(0x1f, &server, 4);
     if (msg) {
       goto broadcast;
     }
@@ -1163,7 +1163,7 @@ bool network_server_manager_pregame_start(void *server)
   /* Postgame → pregame transition */
   {
     int data = 0;
-    msg = encode_network_game_message(0x1e, &data, 4);
+    msg = FUN_0012b700(0x1e, &data, 4);
   }
   if (!msg || !FUN_0012f430(server, msg)) {
     network_game_log(
@@ -1200,7 +1200,7 @@ bool network_server_manager_pregame_start(void *server)
 
   if (FUN_0012dc20((int)server)) {
     csmemcpy(local_buf, s + 8, 0x434);
-    msg = encode_network_game_message(6, local_buf, 0x434);
+    msg = FUN_0012b700(6, local_buf, 0x434);
     if (msg && FUN_0012f430(server, msg)) {
       *(int16_t *)(s + 4) = 0;
       return true;
@@ -1211,7 +1211,7 @@ bool network_server_manager_pregame_start(void *server)
   /* Playlist ended — send graceful exit */
   {
     int data = 0;
-    msg = encode_network_game_message(9, &data, 4);
+    msg = FUN_0012b700(9, &data, 4);
     if (msg && FUN_0012f430(server, msg) && FUN_0012e580((int)server)) {
       network_game_log("the playlist has ended - server going down");
       return result;
@@ -1301,7 +1301,7 @@ bool FUN_0012f5d0(void *server)
   }
 
   csmemcpy(local_buf, (void *)game_data, 0x434);
-  msg = encode_network_game_message(6, local_buf, 0x434);
+  msg = FUN_0012b700(6, local_buf, 0x434);
   if (!msg) {
     network_game_log(
       "failed to create a message_server_game_settings_update message");

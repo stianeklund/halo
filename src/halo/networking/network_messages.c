@@ -86,12 +86,12 @@ void initialize_network_game_packets(void)
   verify_packet_group_definitions(&s_network_game_messages_group);
 }
 
-/* Static 0x604-byte output buffer for encode_network_game_message (0x46e8d0).
+/* Static 0x604-byte output buffer for FUN_0012b700 (0x46e8d0).
  * Passed as the pre-allocated destination to create_message(); only one caller
  * exists so this is safe as a module-level static. */
 static char s_network_game_message_buffer[0x604];
 
-/* encode_network_game_message — validate, encode and wrap a typed network
+/* FUN_0012b700 — validate, encode and wrap a typed network
  * game message struct into a transmittable message packet (0x12b700).
  *
  * Validates that message_struct_size matches the expected size for the given
@@ -99,7 +99,7 @@ static char s_network_game_message_buffer[0x604];
  * packet group definition, then wraps the encoded bytes in a message header
  * and returns a pointer to the resulting message, or NULL on failure.
  */
-void *encode_network_game_message(int type, void *data,
+void *FUN_0012b700(int type, void *data,
                                   int16_t message_struct_size)
 {
   char encoded_buf[0x600];
@@ -361,14 +361,16 @@ size_ok:
 
   if (!encode_packet_group(&s_network_game_messages_group, data, encoded_buf,
                            &encoded_size, type, 1)) {
-    network_game_log("encode_network_game_message() failed");
+    network_game_log("FUN_0012b700() failed");
     return NULL;
   }
 
-  void *msg = create_message(3, encoded_buf, encoded_size,
-                             s_network_game_message_buffer, 0x604);
-  if (msg == NULL) {
-    network_game_log("create_message() failed");
+{
+    void *msg = create_message(3, encoded_buf, encoded_size,
+                               s_network_game_message_buffer, 0x604);
+    if (msg == NULL) {
+      network_game_log("create_message() failed");
+    }
+    return msg;
   }
-  return msg;
 }

@@ -68,33 +68,9 @@ void contrail_set_state_for_object(int contrail_handle, bool reset_points,
   (void)tag_get(0x636f6e74, *(int *)((char *)datum + 4));
 
   if (*(uint8_t *)((char *)datum + 2) & 1) {
-    /* contrail_compute: @eax = contrail_handle, stack = (delta_time) */
-    {
-      int _eax = contrail_handle;
-      int _dt = *(int *)&delta_time;
-      int _out;
-      asm volatile("pushl %[dt]\n\t"
-                   "movl $0x97a50, %%edx\n\t"
-                   "call *%%edx\n\t"
-                   "addl $4, %%esp"
-                   : "=a"(_out)
-                   : "0"(_eax), [dt] "r"(_dt)
-                   : "ecx", "edx", "esi", "edi", "memory", "cc");
-      new_points = (int16_t)_out;
-    }
+    new_points = FUN_00097a50(contrail_handle, delta_time);
     count = (new_points < 1) ? 1 : (int)new_points;
-    /* contrail_set_state: @eax = contrail_handle, stack = (count, 0) */
-    {
-      int _eax = contrail_handle;
-      asm volatile("pushl $0\n\t"
-                   "pushl %[cnt]\n\t"
-                   "movl $0x97e40, %%edx\n\t"
-                   "call *%%edx\n\t"
-                   "addl $8, %%esp"
-                   : "+a"(_eax)
-                   : [cnt] "r"(count)
-                   : "ecx", "edx", "esi", "edi", "memory", "cc");
-    }
+    FUN_00097e40(contrail_handle, count, 0);
   }
 
   if (reset_points) {

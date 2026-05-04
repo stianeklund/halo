@@ -81,7 +81,7 @@ def compile_xdk(source: Path, output: Path) -> bool:
 
     cmd = [
         XDK_CL_WSL,
-        "/nologo", "/c", "/TP",
+        "/nologo", "/c", "/TC",
         "/O2", "/Oy-", "/GF", "/Gy", "/Gd",
         "/W0", "/Zl", "/X",
         "/DMSVC", "/DXDK_BUILD",
