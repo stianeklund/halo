@@ -7285,7 +7285,8 @@
         },
         {
           "decl": "void FUN_001a8b20(int object_handle @<eax>, int16_t state);",
-          "addr": "0x1a8b20"
+          "addr": "0x1a8b20",
+          "ported": true
         },
         {
           "decl": "bool unit_find_nearby_seat(int unit_handle, int target_unit_handle, int16_t seat_index, int *out_unit_handle);",
