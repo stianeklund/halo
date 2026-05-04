@@ -950,6 +950,14 @@
       "metadata": {
         "source_path": "src/halo/ai/actions.c"
       }
+    },
+    {
+      "name": "halo/common",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/common.c.obj",
+      "base_path": "delinked/actions.obj",
+      "metadata": {
+        "source_path": "src/halo/common.c"
+      }
     }
   ]
 }
