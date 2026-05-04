@@ -211,7 +211,8 @@
     "0xcc340": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);",
     "0x3bb50": "void FUN_0003bb50(int actor_handle@<eax>);",
     "0x3bbf0": "void FUN_0003bbf0(int actor_handle@<eax>);",
-    "0x3e7a0": "void FUN_0003e7a0(int actor_handle@<eax>);"
+    "0x3e7a0": "void FUN_0003e7a0(int actor_handle@<eax>);",
+    "0xcada0": "int FUN_000cada0(int16_t script_index@<edi>);"
   },
   "version": 1,
   "0xcada0": {
