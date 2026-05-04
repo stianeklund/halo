@@ -653,6 +653,31 @@ float FUN_0010c600(float *a, float *b)
   return (float)atan2((double)sine_term, (double)dot);
 }
 
+/* Convert a unit quaternion [x,y,z,w] to axis-angle representation.
+ * Extracts the rotation axis (normalized) and the angle in radians.
+ * If the angle exceeds pi, flips to the shorter equivalent rotation. */
+void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3)
+{
+  float w = in_quat4[3];
+  float magnitude;
+  float angle;
+
+  out_axis3[0] = in_quat4[0];
+  out_axis3[1] = in_quat4[1];
+  out_axis3[2] = in_quat4[2];
+
+  magnitude = normalize3d(out_axis3);
+  angle = (float)(2.0 * atan2((double)magnitude, (double)w));
+  *out_angle = angle;
+
+  if (angle > 3.1415927f) {
+    out_axis3[0] = -out_axis3[0];
+    out_axis3[1] = -out_axis3[1];
+    out_axis3[2] = -out_axis3[2];
+    *out_angle = 6.2831855f - angle;
+  }
+}
+
 /* Convert yaw/pitch angles to a unit direction vector.
  * angles[0] = yaw, angles[1] = pitch.
  * out[0] = cos(yaw) * cos(pitch)
