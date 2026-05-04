@@ -541,7 +541,8 @@ void FUN_000a1fd0(void *spawn_params)
 
     if (*tag & 0x4) {
       /* randomized animated sprite */
-      int16_t frame_count = FUN_00097c80(0, *(uint16_t *)(seq_element + 0x34));
+      int16_t frame_count =
+        FUN_00097c80(0, *(uint16_t *)(seq_element + 0x34));
       int16_t direction = (*(uint8_t *)(datum + 0x02) & 1) ? 1 : -1;
       *(int16_t *)(datum + 0x26) = frame_count + direction;
       return;

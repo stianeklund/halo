@@ -213,18 +213,3 @@ done_vision:
   return (float)sum * 10.0f + 5.0f / (*(float *)(prop + 0x11c) * 0.1f + 1.0f) +
          local_c;
 }
-
-/* FUN_00036e30 (0x36e30)
- * Mark an actor as having an active approach. Looks up the actor
- * record in actor_data and sets the byte flag at offset +0x2ed to 1.
- * Called from ai_handle_unit_approach when a non-friendly unit is
- * within approach range and the caller's flag parameter is set.
- * Confirmed: 1 cdecl arg (ADD ESP,4 at call site), void return,
- * single datum_get call followed by byte store. */
-void FUN_00036e30(int ai_handle)
-{
-  char *actor;
-
-  actor = (char *)datum_get(actor_data, ai_handle);
-  *(char *)(actor + 0x2ed) = 1;
-}

@@ -439,7 +439,7 @@ bool network_game_client_end_frame(void)
       csmemcpy((char *)msg_buf + 8, local_124, 0x80);
       *(uint16_t *)((char *)msg_buf + 6) = (uint16_t)local_player_count();
 
-      uint16_t *msg = (uint16_t *)FUN_0012b700(0x19, msg_buf, 0x88);
+      uint16_t *msg = (uint16_t *)encode_network_game_message(0x19, msg_buf, 0x88);
       last_send = now;
 
       if (msg == NULL) {

@@ -22,6 +22,49 @@ void game_sound_initialize_for_new_map(void)
   }
 }
 
+/* Delete a looping-sound datum entry from the object-looping-sounds table
+ * (0x1c7330).
+ *
+ * Preconditions checked via assert:
+ *   - The lsnd tag's runtime_scripting_sound_index must NOT point at this
+ *     entry (the caller is responsible for clearing tag+0x1c before calling
+ *     here if it was set).
+ *   - If runtime_scripting_sound_index != NONE, it must reference a valid
+ *     live datum.
+ *
+ * Then unconditionally deletes the datum from DAT_005054e4.
+ */
+void game_looping_sound_delete(int sound_handle)
+{
+  void *entry;
+  void *tag;
+  int scripting_index;
+
+  entry = datum_get(*(data_t **)0x5054e4, sound_handle);
+  tag = tag_get(0x6c736e64, *(int *)((char *)entry + 0xc));
+
+  scripting_index = *(int *)((char *)tag + 0x1c);
+  if (scripting_index == sound_handle) {
+    display_assert(
+      "definition->runtime_scripting_sound_index!=looping_sound_index",
+      "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x118, 1);
+    system_exit(-1);
+  }
+
+  scripting_index = *(int *)((char *)tag + 0x1c);
+  if (scripting_index != -1) {
+    if (datum_get(*(data_t **)0x5054e4, scripting_index) == 0) {
+      display_assert(
+        "definition->runtime_scripting_sound_index==NONE || "
+        "game_looping_sound_get(definition->runtime_scripting_sound_index)",
+        "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x119, 1);
+      system_exit(-1);
+    }
+  }
+
+  datum_delete(*(data_t **)0x5054e4, sound_handle);
+}
+
 /* Play a spatialized sound impulse at a world location (0x1c73d0).
  * Copies 44 bytes of location data into a sound_params struct with
  * spatialization_mode=1 (positional), then forwards to sound_start. */
@@ -343,7 +386,7 @@ void game_sound_update(float dt)
       if (*(int *)((char *)tag + 0x1c) == looping_sounds_handle) {
         *(int *)((char *)tag + 0x1c) = -1;
       }
-      ((void (*)(int))0x1c7330)(looping_sounds_handle);
+      game_looping_sound_delete(looping_sounds_handle);
     }
 
     looping_sounds_handle =
