@@ -250,32 +250,8 @@
           "addr": "0x10bc70"
         },
         {
-          "decl": "int16_t FUN_00124cc0(void *server);",
-          "addr": "0x124cc0"
-        },
-        {
-          "decl": "bool FUN_00124d40(int result);",
-          "addr": "0x124d40"
-        },
-        {
-          "decl": "int FUN_00125710(void *server, void *msg, int seq, void *info, int flags);",
-          "addr": "0x125710"
-        },
-        {
-          "decl": "void FUN_00125750(void *server, void *out);",
-          "addr": "0x125750"
-        },
-        {
           "decl": "int FUN_0012bdb0(void *countdown);",
           "addr": "0x12bdb0"
-        },
-        {
-          "decl": "bool FUN_00130270(void *server, void *buffer, int size, void *addr);",
-          "addr": "0x130270"
-        },
-        {
-          "decl": "bool FUN_00130580(void *server, void *machine, void *buffer, int size);",
-          "addr": "0x130580"
         },
         {
           "decl": "bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",
@@ -3962,6 +3938,22 @@
           "ported": true
         },
         {
+          "decl": "int16_t FUN_00124cc0(void *server);",
+          "addr": "0x124cc0"
+        },
+        {
+          "decl": "bool FUN_00124d40(int result);",
+          "addr": "0x124d40"
+        },
+        {
+          "decl": "int FUN_00125710(void *server, void *msg, int seq, void *info, int flags);",
+          "addr": "0x125710"
+        },
+        {
+          "decl": "void FUN_00125750(void *server, void *out);",
+          "addr": "0x125750"
+        },
+        {
           "decl": "void *FUN_001257a0(void *client);",
           "addr": "0x1257a0",
           "ported": true
@@ -4174,6 +4166,20 @@
           "decl": "bool FUN_0012f5d0(void *server);",
           "addr": "0x12f5d0",
           "ported": true
+        }
+      ]
+    },
+    {
+      "name": "network_server_message_handler.obj",
+      "source": "networking/network_server_message_handler.c",
+      "functions": [
+        {
+          "decl": "bool FUN_00130270(void *server, void *buffer, int size, void *addr);",
+          "addr": "0x130270"
+        },
+        {
+          "decl": "bool FUN_00130580(void *server, void *machine, void *buffer, int size);",
+          "addr": "0x130580"
         }
       ]
     },
