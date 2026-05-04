@@ -199,6 +199,243 @@ int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
   return 0;
 }
 
+/* FUN_001a8990 (0x1a8990)
+ *
+ * Sets the unit's seated animation state by looking up an animation index from
+ * the unit's animation tag hierarchy and calling model_animation_choose_random.
+ *
+ * When state == 0: clears unk_596 (animation state byte at 0x254) and sets
+ * unk_602 (0x25a) to 0xffff (NONE), then returns.
+ *
+ * For state 1-9: walks the unit tag -> antr tag -> mode element -> sub-element
+ * -> weapon-element hierarchy using unk_592/593/594 as indices. Then:
+ *
+ *   States 1-4, 8: index the animation kind table in the sub-element block
+ *     (sub_element+0x98/0x9c). Kind indices: 0x15, 0x16, 0x17, 0x18, 0x14.
+ *   States 5-7, 9: index the animation kind table in the weapon-element block
+ *     (weapon_element+0x30/0x34). Sub-indices: 0, 1, 8, 9.
+ *
+ * If a valid animation index is found (DI != -1):
+ *   - Calls object_set_region_count(object_handle, 6) unless state == 7.
+ *   - Calls model_animation_choose_random(1, antr_tag_index, animation_index).
+ *   - Stores result in unk_602 (0x25a), clears unk_604 (0x25c), sets
+ *     unk_596 (0x254) to (uint8_t)state.
+ *
+ * Confirmed: switch jump table at 0x1a8af8 (9 entries for ECX=0-8).
+ * Confirmed: MOVSX ECX,byte ptr [ESI+0x250/0x251/0x252] for tag block indices.
+ * Confirmed: MOV byte ptr [ESI+0x254],CL; MOV word ptr [ESI+0x25a],AX.
+ */
+void FUN_001a8990(int object_handle, int16_t state)
+{
+  unit_data_t *unit;
+  char *unit_tag;
+  char *antr_tag;
+  char *mode_element;
+  char *sub_element;
+  char *weapon_element;
+  int16_t animation_index;
+  int anim_kind_idx;
+  int anim_sub_idx;
+
+  unit = (unit_data_t *)object_get_and_verify_type(object_handle, 3);
+
+  if (state == 0) {
+    unit->unk_596 = 0;
+    unit->unk_602 = (int16_t)-1;
+    return;
+  }
+
+  unit_tag = (char *)tag_get(0x756e6974, unit->object.tag_index);
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+  mode_element = (char *)tag_block_get_element(
+    antr_tag + 0xc, (int)(int8_t)unit->unk_592, 0x64);
+  sub_element = (char *)tag_block_get_element(mode_element + 0x58,
+                                              (int)(int8_t)unit->unk_593, 0xbc);
+  weapon_element = (char *)tag_block_get_element(
+    sub_element + 0xb0, (int)(int8_t)unit->unk_594, 0x3c);
+
+  animation_index = (int16_t)-1;
+
+  switch (state) {
+  case 1:
+    anim_kind_idx = 0x15;
+    goto lookup_sub;
+  case 2:
+    anim_kind_idx = 0x16;
+    goto lookup_sub;
+  case 3:
+    anim_kind_idx = 0x17;
+    goto lookup_sub;
+  case 4:
+    anim_kind_idx = 0x18;
+    goto lookup_sub;
+  case 8:
+    anim_kind_idx = 0x14;
+    goto lookup_sub;
+  lookup_sub:
+    if (anim_kind_idx < *(int *)(sub_element + 0x98))
+      animation_index =
+        *(int16_t *)(*(int *)(sub_element + 0x9c) + anim_kind_idx * 2);
+    break;
+
+  case 5:
+    anim_sub_idx = 0;
+    goto lookup_weapon;
+  case 6:
+    anim_sub_idx = 1;
+    goto lookup_weapon;
+  case 7:
+    anim_sub_idx = 8;
+    goto lookup_weapon;
+  case 9:
+    anim_sub_idx = 9;
+    goto lookup_weapon;
+  lookup_weapon:
+    if (anim_sub_idx < *(int *)(weapon_element + 0x30))
+      animation_index =
+        *(int16_t *)(*(int *)(weapon_element + 0x34) + anim_sub_idx * 2);
+    break;
+  }
+
+  if (animation_index != (int16_t)-1) {
+    if (state != 7)
+      object_set_region_count(object_handle, 6);
+    unit->unk_602 = (int16_t)model_animation_choose_random(
+      1, *(int *)(unit_tag + 0x44), animation_index);
+    unit->unk_604 = 0;
+    unit->unk_596 = (uint8_t)state;
+  }
+}
+
+/* FUN_001a8b20 (0x1a8b20)
+ *
+ * Attempts to set the current weapon animation state on a unit by looking up
+ * the appropriate animation index from the unit's animation tag data and
+ * calling model_animation_choose_random to select the sequence.
+ *
+ * Resolves the animation graph via the unit tag (group 'unit') and its nested
+ * animation data (group 'antr'). Navigates through the weapon's animation mode
+ * and weapon-type blocks using per-unit indices (unk_592, unk_593, unk_594).
+ *
+ * The incoming state code is remapped to an animation table index:
+ *   1 -> 4 (fire-1), 2 -> 5 (fire-2), 3 -> 6 (charged-1), 4 -> 7 (charged-2),
+ *   5 -> 2 (chamber-1), 6 -> 3 (chamber-2)
+ *
+ * Early-outs:
+ *   - state < unit->unk_597 (already at or past this state)
+ *   - unk_595 is in the set of "active" animation states (0x17–0x23, 0x27,
+ * 0x29)
+ *   - table index out of range or entry == -1 (animation not defined)
+ *
+ * On success, writes the chosen random animation index into unk_606 (0x25e),
+ * clears unk_608 (0x260), and sets unk_597 (0x255) = state.
+ *
+ * On failure, if developer mode is enabled (DAT_005054fb != 0) and this is a
+ * biped (object.type == 0) with no seat (unk_586 == -1), prints a warning:
+ *   MISSING: <tag_path> '<state_name> <mode_name>'
+ */
+void FUN_001a8b20(int object_handle, int16_t state)
+{
+  unit_data_t *unit;
+  int16_t current_state;
+  char *unit_tag;
+  char *antr_tag;
+  void *mode_block;
+  void *type_block;
+  void *dest_block;
+  int anim_table_index;
+  int16_t anim_index;
+  int16_t chosen;
+
+  unit = (unit_data_t *)object_get_and_verify_type(object_handle, 3);
+
+  /* bail if already at or past this state */
+  current_state = (int16_t)(int8_t)unit->unk_597;
+  if (state < current_state) {
+    return;
+  }
+
+  /* bail for specific animation states that are already active */
+  switch ((uint8_t)unit->unk_595) {
+  case 0x17:
+  case 0x18:
+  case 0x19:
+  case 0x1a:
+  case 0x1b:
+  case 0x1d:
+  case 0x1e:
+  case 0x1f:
+  case 0x20:
+  case 0x21:
+  case 0x22:
+  case 0x23:
+  case 0x27:
+  case 0x29:
+    return;
+  default:
+    break;
+  }
+
+  /* navigate to the animation destination block for this unit's weapon type */
+  unit_tag = tag_get(0x756e6974, *(int *)unit);
+  antr_tag = tag_get(0x616e7472, *(int *)((char *)unit_tag + 0x44));
+  mode_block = tag_block_get_element((char *)antr_tag + 0xc,
+                                     (int)(int8_t)unit->unk_592, 0x64);
+  type_block = tag_block_get_element((char *)mode_block + 0x58,
+                                     (int)(int8_t)unit->unk_593, 0xbc);
+  dest_block = tag_block_get_element((char *)type_block + 0xb0,
+                                     (int)(int8_t)unit->unk_594, 0x3c);
+
+  /* remap state code to animation table index */
+  anim_table_index = -1;
+  switch (state) {
+  case 1:
+    anim_table_index = 4;
+    break;
+  case 2:
+    anim_table_index = 5;
+    break;
+  case 3:
+    anim_table_index = 6;
+    break;
+  case 4:
+    anim_table_index = 7;
+    break;
+  case 5:
+    anim_table_index = 2;
+    break;
+  case 6:
+    anim_table_index = 3;
+    break;
+  default:
+    goto missing;
+  }
+
+  /* look up animation index in the destination block's array */
+  if (anim_table_index < *(int *)((char *)dest_block + 0x30)) {
+    anim_index =
+      *(int16_t *)(*(int *)((char *)dest_block + 0x34) + anim_table_index * 2);
+    if (anim_index != -1) {
+      chosen = (int16_t)model_animation_choose_random(
+        1, *(int *)((char *)unit_tag + 0x44), anim_index);
+      unit->unk_606 = chosen;
+      unit->unk_608 = 0;
+      unit->unk_597 = (uint8_t)state;
+      return;
+    }
+  }
+
+missing:
+  /* developer-mode warning: animation not defined */
+  if (*(uint8_t *)0x5054fb != 0 && unit->object.type == 0 &&
+      (int16_t)unit->unk_586 == -1) {
+    const char *state_name = FUN_001205f0((void *)0x322148, anim_table_index);
+    const char *tag_path =
+      tag_name_strip_path(*(char **)((char *)unit_tag + 0x3c));
+    console_warning("MISSING: %s '%s %s'", tag_path, state_name, type_block);
+  }
+}
+
 /* unit_find_nearby_seat (0x1a8ce0)
  *
  * Searches the child object chain of target_unit for a unit that occupies the
@@ -307,6 +544,20 @@ void FUN_001a8e10(int object_handle, int16_t state)
     FUN_001a8b20(object_handle, 4);
     return;
   }
+}
+
+/* 0x1a9200 — get world-space position of the "head" marker on a unit.
+ * Thin wrapper: calls object_get_markers_by_string_id for the string at
+ * 0x2909e4 ("head"), then extracts XYZ from offset 0x60 in the marker
+ * output record. Identical pattern to FUN_001a9520 ("body" marker). */
+void FUN_001a9200(int object_handle, float *out_position)
+{
+  char marker_buf[0x6c];
+  object_get_markers_by_string_id(object_handle, (void *)0x2909e4, marker_buf,
+                                  1);
+  out_position[0] = *(float *)(marker_buf + 0x60);
+  out_position[1] = *(float *)(marker_buf + 0x64);
+  out_position[2] = *(float *)(marker_buf + 0x68);
 }
 
 /* unit_set_seat_state (0x1a9240)

@@ -3937,7 +3937,7 @@ void object_compute_node_matrices(int object_handle)
  * Iterates through the object's attachment slots (up to tag+0x140 count)
  * and dispatches cleanup calls based on attachment type:
  *   Type 0: FUN_00139310 (effect cleanup)
- *   Type 1: FUN_001c7330 (sound cleanup)
+ *   Type 1: game_looping_sound_delete (sound cleanup)
  *   Type 2: FUN_0009c750 (decal cleanup)
  *   Type 3: FUN_00141b70 + FUN_000986d0 (light cleanup)
  *   Type 4: FUN_0009f6e0 (contrail cleanup)
@@ -3975,14 +3975,14 @@ void FUN_00143a00(int object_handle)
       FUN_00139310(attachment_handle);
       break;
     case 1:
-      FUN_001c7330(attachment_handle);
+      game_looping_sound_delete(attachment_handle);
       break;
     case 2:
       FUN_0009c750(attachment_handle);
       break;
     case 3:
       object_compute_node_matrices(object_handle);
-      FUN_000986d0(attachment_handle, 1, 0);
+      contrail_set_state_for_object(attachment_handle, 1, 0);
       break;
     case 4:
       FUN_0009f6e0(attachment_handle);

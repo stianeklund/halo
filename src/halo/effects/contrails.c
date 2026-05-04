@@ -18,6 +18,13 @@ void contrails_dispose(void)
     contrail_data = 0;
 }
 
+/* 0x97c80 — Draw a random short in [min, max) using the module-local LCG seed.
+ */
+int16_t FUN_00097c80(int16_t min, int16_t max)
+{
+  return random_range(random_math_get_local_seed_address(), min, max);
+}
+
 /* contrail_delete, contrail_compute, contrail_validate, contrail_add_point,
  * contrail_set_state, and contrail_render_update all use register params
  * (@<eax>, @<esi>) and are called from original binary code that we haven't
@@ -41,6 +48,61 @@ void contrails_initialize(void)
     }
   }
   error(0, "couldn't allocate contrail globals");
+}
+
+/*
+ * contrail_set_state_for_object (0x986d0): given a contrail datum handle and a
+ * delta-time, conditionally spawns new contrail points (if the contrail is
+ * attached, flag bit 0x1 set) and optionally resets the point chain head to
+ * -1 (if reset_points != 0).  Accumulates delta_time into datum+0x28.
+ * Called from vehicle/projectile update paths to drive contrail simulation.
+ */
+void contrail_set_state_for_object(int contrail_handle, bool reset_points,
+                                   float delta_time)
+{
+  void *datum;
+  int16_t new_points;
+  int count;
+
+  datum = datum_get(contrail_data, contrail_handle);
+  (void)tag_get(0x636f6e74, *(int *)((char *)datum + 4));
+
+  if (*(uint8_t *)((char *)datum + 2) & 1) {
+    /* contrail_compute: @eax = contrail_handle, stack = (delta_time) */
+    {
+      int _eax = contrail_handle;
+      int _dt = *(int *)&delta_time;
+      int _out;
+      asm volatile("pushl %[dt]\n\t"
+                   "movl $0x97a50, %%edx\n\t"
+                   "call *%%edx\n\t"
+                   "addl $4, %%esp"
+                   : "=a"(_out)
+                   : "0"(_eax), [dt] "r"(_dt)
+                   : "ecx", "edx", "esi", "edi", "memory", "cc");
+      new_points = (int16_t)_out;
+    }
+    count = (new_points < 1) ? 1 : (int)new_points;
+    /* contrail_set_state: @eax = contrail_handle, stack = (count, 0) */
+    {
+      int _eax = contrail_handle;
+      asm volatile("pushl $0\n\t"
+                   "pushl %[cnt]\n\t"
+                   "movl $0x97e40, %%edx\n\t"
+                   "call *%%edx\n\t"
+                   "addl $8, %%esp"
+                   : "+a"(_eax)
+                   : [cnt] "r"(count)
+                   : "ecx", "edx", "esi", "edi", "memory", "cc");
+    }
+  }
+
+  if (reset_points) {
+    *(int *)((char *)datum + 8) = -1;
+  }
+
+  *(float *)((char *)datum + 0x28) =
+    delta_time + *(float *)((char *)datum + 0x28);
 }
 
 void contrails_update(float delta_time)

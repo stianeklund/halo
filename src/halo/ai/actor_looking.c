@@ -55,7 +55,7 @@ void FUN_00014540(int actor_handle)
   if (look_entry == -1) {
     /* No existing look entry: use object's world position (type 3) */
     look_buf[0] = 3;
-    FUN_001a9200(look_object, (int *)&look_buf[2]);
+    FUN_001a9200(look_object, (float *)&look_buf[2]);
   } else {
     /* Existing look entry found: use it as an object-handle target (type 1) */
     look_buf[0] = 1;

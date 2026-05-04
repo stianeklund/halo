@@ -5,6 +5,21 @@ void FUN_00036860(int actor_handle)
   csmemset(actor + 0x2ec, 0, 0x64);
 }
 
+/* FUN_00036e30 (0x36e30)
+ * Mark an actor as having an active approach. Looks up the actor
+ * record in actor_data and sets the byte flag at offset +0x2ed to 1.
+ * Called from ai_handle_unit_approach when a non-friendly unit is
+ * within approach range and the caller's flag parameter is set.
+ * Confirmed: 1 cdecl arg (ADD ESP,4 at call site), void return,
+ * single datum_get call followed by byte store. */
+void FUN_00036e30(int ai_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, ai_handle);
+  *(char *)(actor + 0x2ed) = 1;
+}
+
 void *FUN_0003a600(short actor_type /* @<ax> */)
 {
   void **actor_type_definitions = (void **)0x2c86a8;
@@ -932,7 +947,7 @@ void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
   *(int *)(input_block + 0x1c) = *(int *)(unit_obj + 0x28);
   *(int *)(input_block + 0x20) = *(int *)(unit_obj + 0x2c);
 
-  FUN_001a9200(unit_handle, (int *)input_block);
+  FUN_001a9200(unit_handle, (float *)input_block);
 
   object_get_root_location(unit_handle, (float *)(input_block + 0x2c), 0);
 

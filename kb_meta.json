@@ -831,7 +831,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x97c80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x97d40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x986d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4022,6 +4030,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12b700": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12c060": {
       "kind": "function",
       "status": "ported"
@@ -5288,6 +5300,13 @@
         "summary": "Resolves seat animation mode for target seat label, computes enter-position matrix and marker positions via animation/marker helpers, and writes up to three output vectors (out_pos_a/out_pos_b/out_pos_c). Returns 1 on success, 0 when no valid mode/path is found."
       }
     },
+    "0x1a8b20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "console_warning receives 3 actual format args: tag_name_strip_path result, animation state name from FUN_001205f0 table at 0x322148, and type_block pointer (printed as string, likely a tag name embedded at block+0); the remaining iVar5/iVar6 stack slots are format string overflow that never get consumed."
+      ]
+    },
     "0x1a8ce0": {
       "kind": "function",
       "status": "ported",
@@ -5890,6 +5909,10 @@
       "status": "ported"
     },
     "0x1c7080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c7330": {
       "kind": "function",
       "status": "ported"
     },
