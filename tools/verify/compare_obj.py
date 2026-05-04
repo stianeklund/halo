@@ -206,14 +206,53 @@ def main():
     reference_funcs = disassemble(args.reference)
 
     matched = set(compiled_funcs.keys()) & set(reference_funcs.keys())
+    # Build rename map: when a function was renamed from FUN_xxx, map
+    # the new name to the old FUN_xxx name for matching against references.
+    rename_map = {}
+    if compiled_funcs.keys() - matched:
+        try:
+            import json
+            kb_path = os.path.join(os.path.dirname(os.path.dirname(_tools_dir)), 'kb.json')
+            if not os.path.exists(kb_path):
+                kb_path = os.path.join(_tools_dir, '..', 'kb.json')
+            with open(kb_path) as kf:
+                kb = json.load(kf)
+            for obj in kb.get('objects', []):
+                for fn_entry in obj.get('functions', []):
+                    addr = fn_entry.get('addr', '')
+                    decl = fn_entry.get('decl', '')
+                    # Extract function name from declaration
+                    import re as _re
+                    m = _re.search(r'\b(\w+)\s*\(', decl)
+                    if m and addr:
+                        declared_name = m.group(1)
+                        fun_name = f"FUN_{int(addr, 16):08x}"
+                        if declared_name != fun_name:
+                            rename_map[declared_name] = fun_name
+        except Exception:
+            pass
+
     if args.function:
         fn = args.function.lstrip("_")
         if fn not in matched:
-            print(f"Function {fn} not found in both objects")
-            print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
-            print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
-            sys.exit(1)
+            # Try rename fallback: look up old FUN_xxx name in reference
+            old_name = rename_map.get(fn)
+            if old_name and old_name in reference_funcs and fn in compiled_funcs:
+                compiled_funcs[old_name] = compiled_funcs[fn]
+                matched = {old_name}
+                fn = old_name
+            else:
+                print(f"Function {fn} not found in both objects")
+                print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
+                print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
+                sys.exit(1)
         matched = {fn}
+
+    # Apply rename map for unmatched compiled functions
+    for new_name, old_name in rename_map.items():
+        if new_name in compiled_funcs and old_name in reference_funcs and new_name not in matched:
+            compiled_funcs[old_name] = compiled_funcs[new_name]
+            matched.add(old_name)
 
     if not matched:
         print("No matching functions found between objects")

@@ -3969,7 +3969,7 @@
           "ported": true
         },
         {
-          "decl": "void *FUN_0012b700(int type, void *data, int16_t message_struct_size);",
+          "decl": "void *encode_network_game_message(int type, void *data, int16_t message_struct_size);",
           "addr": "0x12b700",
           "ported": true
         }
