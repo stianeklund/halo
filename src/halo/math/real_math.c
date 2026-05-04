@@ -464,7 +464,8 @@ void FUN_00109fc0(float *matrix4x3, float *out_quat4)
   float *m = (float *)((char *)matrix4x3 + 4);
   float trace = m[0] + m[4] + m[8];
   float s;
-  int i, j, k;
+  short i;
+  int j, k;
   float q[3];
 
   if (trace > 0.0f) {
