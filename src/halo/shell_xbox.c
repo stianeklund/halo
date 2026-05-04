@@ -76,7 +76,12 @@ int main(int argc, const char **argv, const char **envp)
   rasterizer_preinitialize();
   physical_memory_allocate();
   if (shell_initialize()) {
+#ifndef TEST_HARNESS
     main_loop();
+#else
+    extern void run_tests(void);
+    run_tests();
+#endif
     shell_dispose();
   }
   return 0;

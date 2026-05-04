@@ -2,6 +2,7 @@ project(halo)
 cmake_minimum_required(VERSION 3.16)
 
 option(ENABLE_XDK_HYBRID "Compile select TUs with XDK MSVC 7.1 for matching FPU codegen" OFF)
+option(HALO_TEST_HARNESS "Build with in-engine test harness enabled" OFF)
 
 find_package(Python3 COMPONENTS Interpreter)
 
@@ -131,6 +132,11 @@ target_sources(halo PRIVATE
 	${gen_dir}/build_info.c
 	${gen_dir}/typechecks.c
 	)
+
+if(HALO_TEST_HARNESS)
+	target_compile_definitions(halo PRIVATE TEST_HARNESS=1)
+	target_sources(halo PRIVATE src/halo/test_harness.c)
+endif()
 
 set(import_libs ${gen_dir}/halo.xbe.lib ${gen_dir}/xboxkrnl.exe.lib)
 target_link_libraries(halo ${import_libs})
