@@ -177,10 +177,6 @@
           "ported": true
         },
         {
-          "decl": "void cross_product3d(float *a, float *b, float *out);",
-          "addr": "0x178d0"
-        },
-        {
           "decl": "void FUN_00036e30(int ai_handle);",
           "addr": "0x36e30"
         },
@@ -691,6 +687,10 @@
           "addr": "0x14540",
           "decl": "void FUN_00014540(int actor_handle);",
           "ported": true
+        },
+        {
+          "decl": "void cross_product3d(float *a, float *b, float *out);",
+          "addr": "0x178d0"
         },
         {
           "addr": "0x27a60",
