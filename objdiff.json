@@ -958,6 +958,30 @@
       "metadata": {
         "source_path": "src/halo/common.c"
       }
+    },
+    {
+      "name": "halo/contrails",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+      "base_path": "delinked/contrails.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
+      }
+    },
+    {
+      "name": "halo/network_messages",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_messages.c.obj",
+      "base_path": "delinked/network_messages.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_messages.c"
+      }
+    },
+    {
+      "name": "halo/units_new",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units_new.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
     }
   ]
 }

@@ -241,7 +241,7 @@ void FUN_001a8990(int object_handle, int16_t state)
 
   if (state == 0) {
     unit->unk_596 = 0;
-    unit->unk_602 = (int16_t)-1;
+    unit->unk_602 = (uint16_t)0xffff;
     return;
   }
 
