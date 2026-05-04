@@ -1,4 +1,3 @@
-
 void effects_initialize(void)
 {
   effect_data = game_state_data_new("effect", 0x100, 0xfc);
@@ -944,11 +943,11 @@ void FUN_0009e0d0(int local_player_index, int weapon_handle)
   }
 }
 
-/* Fill a single effect marker entry from the creation info marker list (0x9e180).
- * Validates the forward vector, optionally transforms through the node matrix,
- * then builds a 4x3 orientation matrix at output+4 with position embedded. */
-void FUN_0009e180(void *output,
-                  int16_t marker_index /* @<ax> */,
+/* Fill a single effect marker entry from the creation info marker list
+ * (0x9e180). Validates the forward vector, optionally transforms through the
+ * node matrix, then builds a 4x3 orientation matrix at output+4 with position
+ * embedded. */
+void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
                   void *creation_info /* @<ebx> */)
 {
   int16_t count = *(int16_t *)((char *)creation_info + 0x8);
@@ -971,13 +970,12 @@ void FUN_0009e180(void *output,
   forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
 
   if (!valid_real_normal3d(forwards_ptr)) {
-    csprintf((char *)0x5ab100,
-             "%s: assert_valid_real_normal3d(%f, %f, %f)",
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&marker_list->forwards[effect_marker_index]",
              (double)forwards_ptr[0], (double)forwards_ptr[1],
              (double)forwards_ptr[2]);
-    display_assert((char *)0x5ab100,
-                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x461, 1);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x461, 1);
     system_exit(-1);
   }
 
@@ -1000,57 +998,18 @@ void FUN_0009e180(void *output,
   }
 
   if (!valid_real_normal3d(local_forward)) {
-    csprintf((char *)0x5ab100,
-             "%s: assert_valid_real_normal3d(%f, %f, %f)",
-             "&forward",
-             (double)local_forward[0], (double)local_forward[1],
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&forward", (double)local_forward[0], (double)local_forward[1],
              (double)local_forward[2]);
-    display_assert((char *)0x5ab100,
-                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x470, 1);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x470, 1);
     system_exit(-1);
   }
 
   perpendicular3d(local_forward, local_up);
   normalize3d(local_up);
-  matrix4x3_from_forward_up_position(
-    (char *)output + 4, local_position, local_forward, local_up);
-}
-
-/* Resolve effect markers from creation info node list (0x9e560).
- * For each node in creation_info, checks if it matches the event element's
- * definition. Non-matching nodes produce a marker via FUN_0009e180.
- * If no markers are produced, fills marker 0 as a default. */
-short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
-                   int16_t max_markers)
-{
-  char *creation_info = *(char **)0x4557e4;
-  int16_t marker_count = 0;
-  int16_t i;
-
-  if (*(int *)(creation_info + 0xc) == 0)
-    goto fallback;
-
-  if (!csstrlen((const char *)event_elem))
-    goto fallback;
-
-  for (i = 0; i < max_markers; i++) {
-    if (i >= *(int16_t *)(creation_info + 0x8))
-      break;
-
-    if (!csstrcmp((const char *)event_elem,
-                  *(char **)(*(int *)(creation_info + 0xc) + (int)i * 4))) {
-      FUN_0009e180((char *)marker_buf + (int)marker_count * 0x6c,
-                   i, creation_info);
-      marker_count++;
-    }
-  }
-
-  if (marker_count != 0)
-    return marker_count;
-
-fallback:
-  FUN_0009e180(marker_buf, 0, creation_info);
-  return 1;
+  matrix4x3_from_forward_up_position((char *)output + 4, local_position,
+                                     local_forward, local_up);
 }
 
 void FUN_0009e310(void *effect)
@@ -1378,6 +1337,43 @@ void FUN_0009e310(void *effect)
 
     loc_counter++;
   } while ((int)(int16_t)loc_counter < *locations_block);
+}
+
+/* Resolve effect markers from creation info node list (0x9e560).
+ * For each node in creation_info, checks if it matches the event element's
+ * definition. Non-matching nodes produce a marker via FUN_0009e180.
+ * If no markers are produced, fills marker 0 as a default. */
+short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
+                   int16_t max_markers)
+{
+  char *creation_info = *(char **)0x4557e4;
+  int16_t marker_count = 0;
+  int16_t i;
+
+  if (*(int *)(creation_info + 0xc) == 0)
+    goto fallback;
+
+  if (!csstrlen((const char *)event_elem))
+    goto fallback;
+
+  for (i = 0; i < max_markers; i++) {
+    if (i >= *(int16_t *)(creation_info + 0x8))
+      break;
+
+    if (!csstrcmp((const char *)event_elem,
+                  *(char **)(*(int *)(creation_info + 0xc) + (int)i * 4))) {
+      FUN_0009e180((char *)marker_buf + (int)marker_count * 0x6c, i,
+                   creation_info);
+      marker_count++;
+    }
+  }
+
+  if (marker_count != 0)
+    return marker_count;
+
+fallback:
+  FUN_0009e180(marker_buf, 0, creation_info);
+  return 1;
 }
 
 /* Per-frame update for a single effect instance. Handles: attached object

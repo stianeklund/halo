@@ -17,6 +17,14 @@ float magnitude3d(float *v)
   return 0.0f;
 }
 
+/* 0x12f80 — Compute out = base + scale * direction (3-component). */
+void vector3d_scale_add(float *base, float *direction, float scale, float *out)
+{
+  out[0] = scale * direction[0] + base[0];
+  out[1] = scale * direction[1] + base[1];
+  out[2] = scale * direction[2] + base[2];
+}
+
 /* Normalize a 3D vector in-place.
  * Computes the magnitude (Euclidean length) of v, and if it exceeds a
  * small epsilon threshold (~0.0001), divides each component by the
@@ -36,14 +44,6 @@ float normalize3d(float *v)
     return mag;
   }
   return 0.0f;
-}
-
-/* 0x12f80 — Compute out = base + scale * direction (3-component). */
-void vector3d_scale_add(float *base, float *direction, float scale, float *out)
-{
-  out[0] = scale * direction[0] + base[0];
-  out[1] = scale * direction[1] + base[1];
-  out[2] = scale * direction[2] + base[2];
 }
 
 /* 0x213c0 — Compute out = a + b (3-component). */

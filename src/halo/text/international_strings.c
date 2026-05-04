@@ -4,61 +4,62 @@
  * The encoding selector lives at 0x4d9be0 (int16_t):
  *   1 = Shift-JIS  (lead: 0x81..0x9f or 0xe0..0xfe; trail: 0x40..0xfc, !=0x7f)
  *   2 = Big5       (lead: 0xa1..0xfe;                trail: 0xa1..0xfe)
- *   3 = GBK        (lead: 0x81..0xfe;                trail: 0x40..0x7e or 0xa1..0xfe)
- *   4 = Johab-like (lead: 0x81..0xfe;                trail: 0x41..0x5a or 0x61..0x7a or 0x81..0xfe)
- *   5 = Thai-like  (lead: 0x84..0xd3 or 0xd8..0xde or 0xe0..0xf9; trail: 0x41..0x7e or 0x81..0xfe)
- * Any other encoding value returns false.
+ *   3 = GBK        (lead: 0x81..0xfe;                trail: 0x40..0x7e or
+ * 0xa1..0xfe) 4 = Johab-like (lead: 0x81..0xfe;                trail:
+ * 0x41..0x5a or 0x61..0x7a or 0x81..0xfe) 5 = Thai-like  (lead: 0x84..0xd3 or
+ * 0xd8..0xde or 0xe0..0xf9; trail: 0x41..0x7e or 0x81..0xfe) Any other encoding
+ * value returns false.
  *
  * A leading '|' byte (0x7c) followed by a byte in "ibukprlctn" is treated
  * as multibyte regardless of the encoding setting. */
 bool unicode_is_multibyte(const uint8_t *p)
 {
-    uint8_t b0 = p[0];
-    uint8_t b1 = p[1];
+  uint8_t b0 = p[0];
+  uint8_t b1 = p[1];
 
-    if (b0 == 0)
-        return 0;
+  if (b0 == 0)
+    return 0;
 
-    /* '|' escape-sequence prefix */
-    if (b0 == 0x7c && b1 != 0 && crt_strchr("ibukprlctn", (int)b1) != (char *)0x0)
-        return 1;
+  /* '|' escape-sequence prefix */
+  if (b0 == 0x7c && b1 != 0 && crt_strchr("ibukprlctn", (int)b1) != (char *)0x0)
+    return 1;
 
-    switch (*(int16_t *)0x4d9be0) {
-    case 1: /* Shift-JIS */
-        if (!((b0 >= 0x81 && b0 <= 0x9f) || (b0 >= 0xe0 && b0 <= 0xfe)))
-            return 0;
-        if (b1 < 0x40 || b1 > 0xfc || b1 == 0x7f)
-            return 0;
-        return 1;
-    case 2: /* Big5 */
-        if (b0 < 0xa1 || b0 > 0xfe)
-            return 0;
-        if (b1 < 0xa1 || b1 > 0xfe)
-            return 0;
-        return 1;
-    case 3: /* GBK */
-        if (b0 < 0x81 || b0 > 0xfe)
-            return 0;
-        if ((b1 >= 0x40 && b1 <= 0x7e) || (b1 >= 0xa1 && b1 <= 0xfe))
-            return 1;
-        return 0;
-    case 4: /* Johab-like */
-        if (b0 < 0x81 || b0 > 0xfe)
-            return 0;
-        if ((b1 >= 0x41 && b1 <= 0x5a) || (b1 >= 0x61 && b1 <= 0x7a) ||
-            (b1 >= 0x81 && b1 <= 0xfe))
-            return 1;
-        return 0;
-    case 5: /* Thai-like */
-        if (!((b0 >= 0x84 && b0 <= 0xd3) || (b0 >= 0xd8 && b0 <= 0xde) ||
-              (b0 >= 0xe0 && b0 <= 0xf9)))
-            return 0;
-        if ((b1 >= 0x41 && b1 <= 0x7e) || (b1 >= 0x81 && b1 <= 0xfe))
-            return 1;
-        return 0;
-    default:
-        return 0;
-    }
+  switch (*(int16_t *)0x4d9be0) {
+  case 1: /* Shift-JIS */
+    if (!((b0 >= 0x81 && b0 <= 0x9f) || (b0 >= 0xe0 && b0 <= 0xfe)))
+      return 0;
+    if (b1 < 0x40 || b1 > 0xfc || b1 == 0x7f)
+      return 0;
+    return 1;
+  case 2: /* Big5 */
+    if (b0 < 0xa1 || b0 > 0xfe)
+      return 0;
+    if (b1 < 0xa1 || b1 > 0xfe)
+      return 0;
+    return 1;
+  case 3: /* GBK */
+    if (b0 < 0x81 || b0 > 0xfe)
+      return 0;
+    if ((b1 >= 0x40 && b1 <= 0x7e) || (b1 >= 0xa1 && b1 <= 0xfe))
+      return 1;
+    return 0;
+  case 4: /* Johab-like */
+    if (b0 < 0x81 || b0 > 0xfe)
+      return 0;
+    if ((b1 >= 0x41 && b1 <= 0x5a) || (b1 >= 0x61 && b1 <= 0x7a) ||
+        (b1 >= 0x81 && b1 <= 0xfe))
+      return 1;
+    return 0;
+  case 5: /* Thai-like */
+    if (!((b0 >= 0x84 && b0 <= 0xd3) || (b0 >= 0xd8 && b0 <= 0xde) ||
+          (b0 >= 0xe0 && b0 <= 0xf9)))
+      return 0;
+    if ((b1 >= 0x41 && b1 <= 0x7e) || (b1 >= 0x81 && b1 <= 0xfe))
+      return 1;
+    return 0;
+  default:
+    return 0;
+  }
 }
 
 /* 0x19d1b0 — Read the character at *cursor and advance cursor forward.
