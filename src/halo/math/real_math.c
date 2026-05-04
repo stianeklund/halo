@@ -467,6 +467,25 @@ void matrix4x3_from_forward_up_position(void *out, float *position,
   *(float *)((char *)out + 0x30) = position[2];
 }
 
+/* Compute the rotation difference between two 4x3 matrices as an axis-angle
+ * vector.  Inverts mat1, multiplies by mat0, extracts the rotation quaternion,
+ * converts to axis-angle, then writes (axis * angle) into out_vec3. */
+void FUN_0010a150(float *mat0, float *mat1, float *out_vec3)
+{
+  float local_inv[13];
+  float local_product[13];
+  float local_quat[4];
+  float local_angle;
+
+  matrix_inverse(mat1, local_inv);
+  matrix4x3_multiply(mat0, local_inv, local_product);
+  FUN_00109fc0(local_product, local_quat);
+  FUN_0010caf0(local_quat, &local_angle, out_vec3);
+  out_vec3[0] = local_angle * out_vec3[0];
+  out_vec3[1] = local_angle * out_vec3[1];
+  out_vec3[2] = local_angle * out_vec3[2];
+}
+
 void real_math_reset_precision(void)
 {
   __control87(0x9001f, 0xfffff);
