@@ -177,6 +177,22 @@
           "ported": true
         },
         {
+          "decl": "void cross_product3d(float *a, float *b, float *out);",
+          "addr": "0x178d0"
+        },
+        {
+          "addr": "0x22dc0",
+          "decl": "void FUN_00022dc0(int actor_handle);"
+        },
+        {
+          "addr": "0x24b80",
+          "decl": "void FUN_00024b80(int actor_handle, int param2);"
+        },
+        {
+          "addr": "0x27a60",
+          "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);"
+        },
+        {
           "decl": "void FUN_00036e30(int ai_handle);",
           "addr": "0x36e30"
         },
@@ -509,18 +525,6 @@
         {
           "decl": "int __stdcall FUN_00222df7(void *key);",
           "addr": "0x222df7"
-        },
-        {
-          "addr": "0x24b80",
-          "decl": "void FUN_00024b80(int actor_handle, int param2);"
-        },
-        {
-          "addr": "0x22dc0",
-          "decl": "void FUN_00022dc0(int actor_handle);"
-        },
-        {
-          "addr": "0x27a60",
-          "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);"
         }
       ]
     },
@@ -8606,12 +8610,7 @@
       "name": "action_obey.obj",
       "source": "ai/action_obey.c",
       "data": [],
-      "functions": [
-        {
-          "decl": "void cross_product3d(float *a, float *b, float *out);",
-          "addr": "0x178d0"
-        }
-      ]
+      "functions": []
     },
     {
       "name": "actor_combat.obj",

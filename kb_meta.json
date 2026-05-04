@@ -53,6 +53,13 @@
         "The function name likely relates to actor action prop replacement dispatch based on context from the caller FUN_0003b410 in actors.obj."
       ]
     },
+    "0x1d6d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Returns the priority_flag short from the action_definitions table entry for the actor's current action; non-zero means high-priority tier."
+      ]
+    },
     "0x210f0": {
       "kind": "function",
       "status": "ported"
