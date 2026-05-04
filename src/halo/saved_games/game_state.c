@@ -1,3 +1,17 @@
+/* Iterate a table of 13 dispose-from-old-map callbacks. */
+void FUN_001bf790(void)
+{
+  typedef void (*callback_fn)(void);
+  callback_fn *table = (callback_fn *)0x32eaa8;
+  int count = 13;
+
+  do {
+    (*table)();
+    table++;
+    count--;
+  } while (count != 0);
+}
+
 void game_state_dispose(void)
 {
   xbox_game_state_dispose_buffer();

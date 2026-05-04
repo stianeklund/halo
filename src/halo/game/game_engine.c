@@ -236,6 +236,16 @@ void game_engine_spawn_equipment(void)
   }
 }
 
+/* Copy the current game variant and map name into the provided buffers. */
+bool FUN_000a8aa0(void *game_variant_dst, void *map_name_dst)
+{
+  assert_halt(game_variant_dst && map_name_dst);
+  csmemcpy(game_variant_dst, (void *)0x5aa7a0, 0x68);
+  csstrncpy((char *)map_name_dst, (char *)0x5aa760, 0x3f);
+  *((char *)map_name_dst + 0x3f) = 0;
+  return true;
+}
+
 /* Trigger a game restart. Sets a 7-second countdown timer, posts a
  * restart event, and closes all UI widgets. Only fires once (guards
  * against repeated calls via the flag at 0x5aa730). */

@@ -1188,7 +1188,7 @@
         {
           "addr": "0x8d9a0",
           "decl": "char *csstr_tolower(char *s);",
-          "ported": false
+          "ported": true
         }
       ]
     },
@@ -1505,7 +1505,8 @@
         },
         {
           "decl": "float FUN_00099500(float *plane, float *point);",
-          "addr": "0x99500"
+          "addr": "0x99500",
+          "ported": true
         },
         {
           "decl": "uint32_t FUN_00099530(float alpha, float *color);",
@@ -1708,7 +1709,7 @@
         {
           "decl": "void FUN_0009ca70(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -1769,7 +1770,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -1820,7 +1821,8 @@
         },
         {
           "decl": "uint16_t FUN_0008e7c0(void);",
-          "addr": "0x8e7c0"
+          "addr": "0x8e7c0",
+          "ported": true
         },
         {
           "addr": "0x8f040",
@@ -1907,7 +1909,8 @@
         },
         {
           "decl": "int16_t FUN_000dc800(int event @<eax>);",
-          "addr": "0xdc800"
+          "addr": "0xdc800",
+          "ported": true
         }
       ]
     },
@@ -2577,7 +2580,8 @@
         },
         {
           "decl": "bool FUN_000a8aa0(void *game_variant_dst, void *game_variant_src);",
-          "addr": "0xa8aa0"
+          "addr": "0xa8aa0",
+          "ported": true
         }
       ]
     },
@@ -2668,7 +2672,8 @@
       "functions": [
         {
           "decl": "void FUN_001bf790(void);",
-          "addr": "0x1bf790"
+          "addr": "0x1bf790",
+          "ported": true
         },
         {
           "decl": "void game_state_dispose(void);",
@@ -4131,7 +4136,8 @@
         },
         {
           "decl": "int FUN_0012bdb0(void *countdown);",
-          "addr": "0x12bdb0"
+          "addr": "0x12bdb0",
+          "ported": true
         }
       ]
     },
@@ -4810,7 +4816,8 @@
         },
         {
           "decl": "void FUN_000a1510(int local_player_index);",
-          "addr": "0xa1510"
+          "addr": "0xa1510",
+          "ported": true
         }
       ]
     },
@@ -5328,7 +5335,8 @@
         },
         {
           "decl": "float FUN_001548a0(int tag_data, float scale);",
-          "addr": "0x1548a0"
+          "addr": "0x1548a0",
+          "ported": true
         }
       ]
     },
@@ -5558,6 +5566,11 @@
           "decl": "void random_direction3d(int *seed, float *forward, float zero, float angle, float *result);",
           "addr": "0x10b4c0",
           "comment": "Generate a random direction within a cone around a forward vector.",
+          "ported": true
+        },
+        {
+          "addr": "0x10b2b0",
+          "decl": "uint16_t random_seed_step(unsigned int *seed);",
           "ported": true
         }
       ]
@@ -5839,7 +5852,8 @@
         },
         {
           "decl": "bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
-          "addr": "0x10bc70"
+          "addr": "0x10bc70",
+          "ported": true
         },
         {
           "decl": "float FUN_0010c600(float *a, float *b);",

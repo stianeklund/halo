@@ -522,6 +522,48 @@ void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
   vector[2] = k * a2 + cos_angle * v2 - cz * sin_angle;
 }
 
+/* Test whether a line segment intersects a sphere. Returns true if
+   the segment origin is inside the sphere or if the segment crosses
+   the sphere boundary within t in [0,1]. */
+bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center,
+                  float sphere_radius)
+{
+  float dx, dy, dz, c;
+  float dir_x, dir_y, dir_z, b;
+  float a, disc, t_check;
+
+  dx = line_start[0] - sphere_center[0];
+  dy = line_start[1] - sphere_center[1];
+  dz = line_start[2] - sphere_center[2];
+  c = dx * dx + dy * dy + dz * dz - sphere_radius * sphere_radius;
+
+  if (c < 0.0f)
+    return true;
+
+  dir_x = line_end[0];
+  dir_y = line_end[1];
+  dir_z = line_end[2];
+  b = dir_x * dx + dir_y * dy + dir_z * dz;
+
+  if (b >= 0.0f)
+    return false;
+
+  a = dir_x * dir_x + dir_y * dir_y + dir_z * dir_z;
+  disc = b * b - a * c;
+
+  if (disc <= 0.0f)
+    return false;
+
+  t_check = -a - b;
+  if (t_check < 0.0f)
+    return true;
+
+  if (t_check * t_check < disc)
+    return true;
+
+  return false;
+}
+
 float FUN_0010c600(float *a, float *b)
 {
   float dot;

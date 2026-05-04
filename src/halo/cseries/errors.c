@@ -45,6 +45,12 @@ void memory_check(uint32_t *min_max, const char *location)
   }
 }
 
+/* Get a random value from the local random seed. */
+uint16_t FUN_0008e7c0(void)
+{
+  return random_seed_step(random_math_get_local_seed_address());
+}
+
 /* Reallocate a debug-tracked allocation, preserving the original file/line.
  * Validates the debug memory sentinel and existing header before reallocating.
  * If ptr is NULL, behaves like debug_malloc; if new_size is 0, frees. */
