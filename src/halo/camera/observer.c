@@ -789,6 +789,44 @@ void observer_compute_update(int16_t local_player_index)
   }
 }
 
+/* Validate two orientation axis-pairs and compute angular velocity delta
+ * between them (0x8c030). Validates that (forward0, up0) and (forward1, up1)
+ * are each a valid perpendicular pair, builds rotation matrices from each,
+ * then extracts the angular velocity vector between them into result_angular.
+ * forward0/up0 come from state+0x20/+0x2c; forward1/up1 from
+ * velocities+0x20/+0x2c. The caller (FUN_0008c440) passes these via EDI/ESI
+ * (forward0/up0) and EBX (up1) in the binary; here normalised as C params. */
+static void FUN_0008c030(float *forward1, float *result_angular,
+                         float *forward0, float *up0, float *up1)
+{
+  float mat0[13]; /* 3x4 matrix (13 floats, padded to 52 bytes) */
+  float mat1[13];
+
+  if (!valid_real_normal3d_perpendicular(forward0, up0)) {
+    csprintf(
+      (char *)0x5ab100,
+      "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
+      "forward0", (char *)0x2674e0, (double)forward0[0], (double)forward0[1],
+      (double)forward0[2], (double)up0[0], (double)up0[1], (double)up0[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\camera\\observer.c",
+                   0x382, 1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d_perpendicular(forward1, up1)) {
+    csprintf(
+      (char *)0x5ab100,
+      "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
+      "forward1", (char *)0x267488, (double)forward1[0], (double)forward1[1],
+      (double)forward1[2], (double)up1[0], (double)up1[1], (double)up1[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\camera\\observer.c",
+                   0x383, 1);
+    system_exit(-1);
+  }
+  matrix_from_forward_and_up(mat0, forward0, up0);
+  matrix_from_forward_and_up(mat1, forward1, up1);
+  FUN_0010a150(mat0, mat1, result_angular);
+}
+
 /* Near-plane collision fix for the camera focus distance (0x8c150).
  * Casts collision rays from the focus position along the up and right (cross
  * product of up and forward) directions, scaled by a near-plane factor
@@ -956,6 +994,38 @@ void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist,
 
   /* No obstruction found: scale focus_distance by initial fraction */
   *focus_distance = initial_fraction * *focus_distance;
+}
+
+/* Compute linear and angular velocity deltas between velocities and state
+ * (0x8c440). Takes three observer sub-arrays: velocities, result (output),
+ * and state. Subtracts state[0..7] from velocities[0..7] into result[0..7]
+ * (8 linear floats). Then calls FUN_0008c030 once to compute the angular
+ * delta between the forward/up orientation pair at offset +8 (floats) in
+ * velocities and state, storing the result into result+8.
+ *
+ * Register args: result @<eax>, state @<ecx>. Stack arg: velocities. */
+void FUN_0008c440(void *velocities, void *result, void *state)
+{
+  float *velocities_f;
+  float *result_f;
+  float *state_f;
+  int i;
+
+  velocities_f = (float *)velocities;
+  result_f = (float *)result;
+  state_f = (float *)state;
+
+  /* Loop 1: 8 iterations — linear component subtraction */
+  for (i = 0; i < 8; i++) {
+    result_f[i] = velocities_f[i] - state_f[i];
+  }
+
+  /* Loop 2: 1 iteration — angular component via orientation matrices */
+  FUN_0008c030(velocities_f + 8, /* forward1 */
+               result_f + 8, /* result_angular output */
+               state_f + 8, /* forward0 */
+               state_f + 8 + 3, /* up0 (= state+0x2c from base) */
+               velocities_f + 8 + 3); /* up1 (= velocities+0x2c from base) */
 }
 
 /* Derive the final observer camera result from staged and integrated state
@@ -1237,8 +1307,8 @@ void observer_update_result(int16_t local_player_index)
 }
 
 /* Compute observer velocities from current and target state (0x8ccf0).
- * Dispatches to FUN_0008c440 with pointers into the observer struct:
- * velocities at +0xc, result at +0x260, and integration state at +0xb0. */
+ * Dispatches to FUN_0008c440 (linear+angular delta) with pointers into the
+ * observer struct: velocities at +0xc, result at +0x260, state at +0xb0. */
 void observer_compute_velocities(int16_t local_player_index)
 {
   char *observer;

@@ -4686,7 +4686,8 @@
         },
         {
           "decl": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);",
-          "addr": "0x8c440"
+          "addr": "0x8c440",
+          "ported": true
         }
       ]
     },
@@ -5876,6 +5877,10 @@
           "decl": "void angles_to_vector(float *out, float *angles);",
           "addr": "0x10cc40",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0010a150(float *mat0, float *mat1, float *out_vec3);",
+          "addr": "0x10a150"
         }
       ]
     },

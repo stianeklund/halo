@@ -566,6 +566,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8c440": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 8-float linear subtraction covers position(3)+unknown(5) floats before the forward/up orientation pair at offset +8 floats within each state sub-block."
+      ],
+      "uncertain": [
+        "FUN_0010a150 (called by the static helper FUN_0008c030) is not yet ported; its semantic role (rotation-matrix delta to angular velocity) is inferred from matrix_inverse+matrix4x3_multiply+axis-angle extraction call chain."
+      ]
+    },
     "0x8c4b0": {
       "kind": "function",
       "status": "ported"
