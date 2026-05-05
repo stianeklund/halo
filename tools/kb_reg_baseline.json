@@ -1,5 +1,6 @@
 {
   "functions": {
+    "0x28660": "char FUN_00028660(int actor_handle, short *look_spec @<ebx>, float *direction @<edi>);",
     "0xc5960": "void FUN_000c5960(int datum_index @<eax>);",
     "0xc6a70": "int FUN_000c6a70(char *str @<eax>);",
     "0x102510": "void screenshot_render(void *a1@<edi>);",

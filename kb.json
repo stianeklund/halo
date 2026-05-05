@@ -584,6 +584,7 @@
     },
     {
       "name": "actor_looking.obj",
+      "source": "ai/actor_looking.c",
       "functions": [
         {
           "addr": "0x14540",
@@ -599,16 +600,22 @@
           "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);"
         },
         {
+          "addr": "0x28660",
+          "decl": "char FUN_00028660(int actor_handle, short *look_spec @<ebx>, float *direction @<edi>);"
+        },
+        {
           "addr": "0x29040",
           "decl": "void FUN_00029040(int actor_handle);"
         },
         {
           "addr": "0x2a2b0",
-          "decl": "void FUN_0002a2b0(int actor_handle);"
+          "decl": "void FUN_0002a2b0(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x2a3d0",
-          "decl": "char FUN_0002a3d0(int actor_handle);"
+          "decl": "char FUN_0002a3d0(int actor_handle);",
+          "ported": true
         }
       ],
       "data": []
