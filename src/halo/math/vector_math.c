@@ -126,3 +126,20 @@ int valid_real_normal2d(float *v)
     return 1;
   return 0;
 }
+
+/* FUN_00012140 (0x12140) — Subtract two 3D vectors: dst = a - b.
+ * Confirmed: cdecl, 3 pointer args. Pure FPU leaf. */
+void FUN_00012140(float *dst, float *a, float *b)
+{
+  dst[0] = a[0] - b[0];
+  dst[1] = a[1] - b[1];
+  dst[2] = a[2] - b[2];
+}
+
+/* FUN_00013070 (0x13070) — Dot product of two 3D vectors.
+ * Confirmed: cdecl, 2 pointer args. Pure FPU leaf.
+ * Confirmed: computes a.z*b.z + a.y*b.y + a.x*b.x (accumulation order). */
+float FUN_00013070(float *a, float *b)
+{
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}

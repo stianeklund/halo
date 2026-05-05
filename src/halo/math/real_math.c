@@ -697,3 +697,13 @@ void angles_to_vector(float *out, float *angles)
   out[1] = sinf(angles[0]) * cos_pitch;
   out[2] = sinf(angles[1]);
 }
+
+/* FUN_0001ad60 (0x1ad60) — Euclidean distance between two 3D points.
+ * Confirmed: cdecl, 2 pointer args. Pure FPU leaf (FSUB/FMUL/FADD/FSQRT). */
+float FUN_0001ad60(float *a, float *b)
+{
+  float dx = a[0] - b[0];
+  float dy = a[1] - b[1];
+  float dz = a[2] - b[2];
+  return sqrtf(dx * dx + dy * dy + dz * dz);
+}

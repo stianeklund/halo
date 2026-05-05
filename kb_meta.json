@@ -6690,6 +6690,15 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x1ad60": {
+      "status": "ported"
+    },
+    "0x12140": {
+      "status": "ported"
+    },
+    "0x13070": {
+      "status": "ported"
     }
   }
 }

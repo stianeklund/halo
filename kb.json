@@ -5937,11 +5937,13 @@
         },
         {
           "decl": "void FUN_00012140(float *a, float *b, float *result);",
-          "addr": "0x12140"
+          "addr": "0x12140",
+          "ported": true
         },
         {
           "decl": "float FUN_00013070(float *a, float *b);",
-          "addr": "0x13070"
+          "addr": "0x13070",
+          "ported": true
         }
       ]
     },
@@ -6068,7 +6070,8 @@
         },
         {
           "decl": "float FUN_0001ad60(float *a, float *b);",
-          "addr": "0x1ad60"
+          "addr": "0x1ad60",
+          "ported": true
         }
       ]
     },
