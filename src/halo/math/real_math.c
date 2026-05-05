@@ -346,48 +346,48 @@ void matrix4x3_multiply(float *a, float *b, float *out)
 
   __m128 a_row0 = _mm_loadh_pi(_mm_load_ss(&ra[0]), (const __m64 *)&ra[1]);
   __m128 a_row1 = _mm_loadh_pi(_mm_load_ss(&ra[3]), (const __m64 *)&ra[4]);
-  __m128 a_row2_t = _mm_loadh_pi(_mm_load_ss(&ra[8]), (const __m64 *)&ra[6]);
-  __m128 a_row2 = _mm_shuffle_ps(a_row2_t, a_row2_t, 0x36);
+  /* a_row2_t shuffle 0x36 → [ra[6],0,ra[7],ra[8]]; load directly instead */
+  __m128 a_row2 = _mm_loadh_pi(_mm_load_ss(&ra[6]), (const __m64 *)&ra[7]);
 
   __m128 bc, r;
 
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[0]), _mm_load_ss(&rb[0]), 0);
+  bc = _mm_set1_ps(rb[0]);
   r = _mm_mul_ps(bc, a_row0);
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[1]), _mm_load_ss(&rb[1]), 0);
+  bc = _mm_set1_ps(rb[1]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[2]), _mm_load_ss(&rb[2]), 0);
+  bc = _mm_set1_ps(rb[2]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
   _mm_store_ss(&ro[0], r);
   _mm_storeh_pi((__m64 *)&ro[1], r);
 
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[3]), _mm_load_ss(&rb[3]), 0);
+  bc = _mm_set1_ps(rb[3]);
   r = _mm_mul_ps(bc, a_row0);
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[4]), _mm_load_ss(&rb[4]), 0);
+  bc = _mm_set1_ps(rb[4]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[5]), _mm_load_ss(&rb[5]), 0);
+  bc = _mm_set1_ps(rb[5]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
   _mm_store_ss(&ro[3], r);
   _mm_storeh_pi((__m64 *)&ro[4], r);
 
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[6]), _mm_load_ss(&rb[6]), 0);
+  bc = _mm_set1_ps(rb[6]);
   r = _mm_mul_ps(bc, a_row0);
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[7]), _mm_load_ss(&rb[7]), 0);
+  bc = _mm_set1_ps(rb[7]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[8]), _mm_load_ss(&rb[8]), 0);
+  bc = _mm_set1_ps(rb[8]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
   r = _mm_shuffle_ps(r, r, 0x8F);
   _mm_storeh_pi((__m64 *)&ro[6], r);
   _mm_store_ss(&ro[8], r);
 
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[9]), _mm_load_ss(&rb[9]), 0);
+  bc = _mm_set1_ps(rb[9]);
   r = _mm_mul_ps(bc, a_row0);
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[10]), _mm_load_ss(&rb[10]), 0);
+  bc = _mm_set1_ps(rb[10]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
-  bc = _mm_shuffle_ps(_mm_load_ss(&rb[11]), _mm_load_ss(&rb[11]), 0);
+  bc = _mm_set1_ps(rb[11]);
   r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
 
   __m128 a_trans = _mm_loadh_pi(_mm_load_ss(&ra[9]), (const __m64 *)&ra[10]);
-  __m128 scale = _mm_shuffle_ps(_mm_load_ss(&a[0]), _mm_load_ss(&a[0]), 0);
+  __m128 scale = _mm_set1_ps(a[0]);
   r = _mm_add_ps(_mm_mul_ps(r, scale), a_trans);
   _mm_store_ss(&ro[9], r);
   _mm_storeh_pi((__m64 *)&ro[10], r);
