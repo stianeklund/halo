@@ -40,6 +40,15 @@ def _run_cmake_build(target: str = "", quiet: bool = False) -> int:
     return result.returncode
 
 
+def _run_cmake_configure(extra_args: list[str] = None, quiet: bool = False) -> int:
+    command = ["cmake", "-B", BUILD_DIR, "-S", ROOT_DIR]
+    if extra_args:
+        command.extend(extra_args)
+    stdout = subprocess.DEVNULL if quiet else None
+    result = subprocess.run(command, stdout=stdout, check=False, cwd=ROOT_DIR)
+    return result.returncode
+
+
 def build(target: str = "", quiet: bool = False) -> int:
     if not os.path.isdir(BUILD_DIR):
         print(
@@ -48,6 +57,13 @@ def build(target: str = "", quiet: bool = False) -> int:
             file=sys.stderr,
         )
         return 1
+
+    # Reconfigure to ensure HALO_TEST_HARNESS is OFF for regular builds
+    cfg_result = _run_cmake_configure(
+        extra_args=["-DHALO_TEST_HARNESS=OFF"], quiet=quiet
+    )
+    if cfg_result != 0:
+        return cfg_result
 
     if target != "reverse_thunk_tests":
         thunk_result = _run_cmake_build("reverse_thunk_tests", quiet=quiet)
