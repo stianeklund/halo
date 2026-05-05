@@ -82,6 +82,7 @@
       "status": "ported"
     },
     "0x1c4c0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x1d030": {
@@ -1790,7 +1791,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb54e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The matg difficulty block at globals+0x11c stores floats as float[value_type][4_difficulties] with row stride 16 bytes; index 0 (difficulty<0 path) always reads column 0 of the given value_type."
+      ]
+    },
+    "0xb5590": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb55b0": {
+      "kind": "function",
       "status": "ported"
     },
     "0xb5640": {
@@ -3431,6 +3444,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xfaed0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "FUN_000f7da0 second parameter (param_3) is passed as a float on the stack via a standard push; the original MSVC code pushes EDX (from [EBP+0x10]) directly so param_3 is treated as float bits, not an int \u2014 the actual semantic of the value is unknown."
+      ]
+    },
     "0xfb0c0": {
       "kind": "function",
       "status": "ported"
@@ -4849,6 +4869,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1459e0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "breakable_surfaces_get_bsp_surface_data",
+      "name_confidence": "confirmed",
+      "inferred": [
+        "global_structure_bsp_index is an int16_t at 0x326a0c immediately following global_scenario_index (int at 0x326a08); the function returns a pointer into the 16-entry, 32-byte-per-BSP bitfield region starting at breakable_surface_globals+1."
+      ]
+    },
     "0x14d010": {
       "kind": "function",
       "status": "ported"
@@ -5095,6 +5124,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18e720": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18e910": {
       "kind": "function",
       "status": "ported"
@@ -5304,6 +5337,10 @@
       "comments": {
         "summary": "Cluster marker set helper: validates marker state and bounds, writes current marker id into cluster_marker[cluster_index] when not already marked, and returns whether a new mark occurred."
       }
+    },
+    "0x198540": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x198800": {
       "kind": "function",
@@ -6708,12 +6745,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x198540": {
-      "status": "ported"
-    },
-    "0x18e720": {
       "status": "ported"
     }
   }

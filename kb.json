@@ -862,8 +862,15 @@
           "ported": true
         },
         {
-          "decl": "int FUN_001459e0(void);",
-          "addr": "0x1459e0"
+          "decl": "char *breakable_surfaces_get_bsp_surface_data(void);",
+          "addr": "0x1459e0",
+          "ported": true
+        }
+      ],
+      "data": [
+        {
+          "decl": "int16_t global_structure_bsp_index;",
+          "addr": "0x326a0c"
         }
       ]
     },
@@ -2321,11 +2328,13 @@
         },
         {
           "decl": "float game_globals_difficulty_scale(int16_t value_type@<bx>, int16_t difficulty@<di>);",
-          "addr": "0xb54e0"
+          "addr": "0xb54e0",
+          "ported": true
         },
         {
           "decl": "float FUN_000b5590(int16_t value_type);",
-          "addr": "0xb5590"
+          "addr": "0xb5590",
+          "ported": true
         }
       ]
     },
@@ -5531,7 +5540,7 @@
           "addr": "0xf7d80"
         },
         {
-          "decl": "void FUN_000f7da0(void);",
+          "decl": "float FUN_000f7da0(void *proj_tag, float value);",
           "addr": "0xf7da0"
         },
         {
@@ -8675,8 +8684,9 @@
           "ported": true
         },
         {
-          "decl": "float FUN_000faed0(int weapon_handle, short trigger_index, int param_3);",
-          "addr": "0xfaed0"
+          "decl": "float FUN_000faed0(int weapon_handle, int16_t trigger_index, float param_3);",
+          "addr": "0xfaed0",
+          "ported": true
         },
         {
           "decl": "int FUN_000fd400(int weapon_handle, short trigger_index, int param_3, int param_4, int param_5, float *aim_vector, int param_7, int param_8, int param_9);",
