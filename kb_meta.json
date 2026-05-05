@@ -6628,6 +6628,12 @@
     },
     "0x3b5e0": {
       "status": "ported"
+    },
+    "0x2a3d0": {
+      "status": "ported"
+    },
+    "0x2a2b0": {
+      "status": "ported"
     }
   }
 }

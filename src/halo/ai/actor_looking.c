@@ -64,3 +64,65 @@ void FUN_00014540(int actor_handle)
 
   FUN_00027a60(actor_handle, 8, 5, look_buf);
 }
+
+/* FUN_0002a3d0 (0x2a3d0)
+ * Return the in-vehicle / mounted flag byte for the actor.
+ *
+ * Looks up the actor record via datum_get(actor_data, actor_handle) and
+ * returns the byte at actor+0x4a8.  Non-zero means the actor is currently
+ * mounted in or on a vehicle.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x2a3de.
+ * Confirmed: MOV AL,byte ptr [EAX+0x4a8] at 0x2a3e3; ADD ESP,0x8; RET. */
+char FUN_0002a3d0(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  return actor[0x4a8];
+}
+
+/* FUN_0002a2b0 (0x2a2b0)
+ * Update the actor's look-direction validity flag (actor+0x505).
+ *
+ * Reads the actor record and the look-specification slot at actor+0x3ec.
+ * If the spec type word (actor+0x3ec) is 0 (no look command active) and the
+ * actor is not in a vehicle (FUN_0002a3d0 returns 0), the look-priority word
+ * at actor+0x3e8 is reset to 0.
+ *
+ * If the look-priority (actor+0x3e8) is > 2 AND a look spec is active
+ * (actor+0x3ec != 0), FUN_00028660 is called with EBX=&actor[0x3ec] and
+ * EDI=&actor[0x524] (the look-direction float[3] output buffer).  On success
+ * actor+0x505 is set to 1; on failure or when no look spec is active it is
+ * set to 0.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x2a2c0.
+ * Confirmed: EBX = &actor[0x3ec] via LEA EBX,[ESI+0x3ec] at 0x2a2c7.
+ * Confirmed: CMP word [EBX],0x0 at 0x2a2d0; JNZ 0x2a2ec.
+ * Confirmed: CALL FUN_0002a3d0(actor_handle) at 0x2a2d7; TEST AL,AL.
+ * Confirmed: MOV word [ESI+0x3e8],0x0 at 0x2a2e3 when spec==0 && not mounted.
+ * Confirmed: CMP word [ESI+0x3e8],0x3 (JL skip) at 0x2a2ec; CMP [EBX],0x0 (JZ skip).
+ * Confirmed: LEA EDI,[ESI+0x524] at 0x2a2ff; PUSH actor_handle; CALL 0x28660.
+ * Confirmed: FUN_00028660 register args: EBX=short*look_spec, EDI=float*direction.
+ * Confirmed: MOV byte [ESI+0x505],0x1 on success at 0x2a313; RET.
+ * Confirmed: MOV byte [ESI+0x505],0x0 on fallthrough at 0x2a31f; RET.
+ * Inferred: actor+0x3e8 = look priority (int16_t); actor+0x3ec = look spec type (int16_t).
+ * Inferred: actor+0x505 = look-direction valid flag (char).
+ * Inferred: actor+0x524 = computed look direction (float[3]). */
+void FUN_0002a2b0(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  short *look_spec = (short *)(actor + 0x3ec);
+
+  if (*look_spec == 0) {
+    if (!FUN_0002a3d0(actor_handle))
+      *(short *)(actor + 0x3e8) = 0;
+  }
+  if (*(short *)(actor + 0x3e8) > 2 && *look_spec != 0) {
+    if (FUN_00028660(actor_handle, look_spec, (float *)(actor + 0x524))) {
+      actor[0x505] = 1;
+      return;
+    }
+  }
+  actor[0x505] = 0;
+}
