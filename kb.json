@@ -8739,11 +8739,24 @@
         },
         {
           "addr": "0x2d350",
-          "decl": "void FUN_0002d350(int actor_handle);"
+          "decl": "void FUN_0002d350(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x2e560",
           "decl": "void FUN_0002e560(int actor_handle);"
+        },
+        {
+          "addr": "0x2a3a0",
+          "decl": "void FUN_0002a3a0(int actor_handle);"
+        },
+        {
+          "addr": "0x2a580",
+          "decl": "void FUN_0002a580(int actor_handle);"
+        },
+        {
+          "addr": "0x2cdb0",
+          "decl": "char FUN_0002cdb0(int actor_handle, char store_distance, void *override_path);"
         }
       ]
     },
@@ -8867,6 +8880,10 @@
         {
           "decl": "void FUN_00053680(void);",
           "addr": "0x53680"
+        },
+        {
+          "addr": "0x49ac0",
+          "decl": "void FUN_00049ac0(int actor_handle, int object_handle, char with_actor, char *buf, int buf_size);"
         }
       ]
     },

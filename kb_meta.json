@@ -41,14 +41,44 @@
         "Object name vector_math.obj is provisional; the true .obj name is unknown since the function has no string references or assert paths."
       ]
     },
+    "0x14540": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x178d0": {
       "kind": "function",
       "status": "ported"
     },
+    "0x1c270": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c3e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c450": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d5c0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x1d6d0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x210f0": {
@@ -71,6 +101,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2a2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2a3d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2b5d0": {
       "kind": "function",
       "status": "ported",
@@ -80,6 +118,9 @@
       "inferred": [
         "Table element semantics are inferred from math pattern and write layout; symbolic names for backing globals/constants remain unknown."
       ]
+    },
+    "0x2d350": {
+      "status": "ported"
     },
     "0x2fc20": {
       "kind": "function",
@@ -106,6 +147,10 @@
         "The prop field at +0x118 compared against actor field +0x15d may be a team or faction index."
       ]
     },
+    "0x36860": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x36e30": {
       "kind": "function",
       "status": "ported",
@@ -119,6 +164,18 @@
       "status": "ported"
     },
     "0x3a740": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3a760": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3a840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3a8a0": {
       "kind": "function",
       "status": "ported"
     },
@@ -156,6 +213,14 @@
         "Whether actors.obj contains additional unported functions such as actors_initialize_for_new_map at 0x3a990 has not been confirmed."
       ]
     },
+    "0x3ac20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3aca0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3ad80": {
       "kind": "function",
       "status": "ported"
@@ -180,6 +245,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3b5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3b7e0": {
       "kind": "function",
       "status": "ported"
@@ -197,6 +266,30 @@
       "status": "ported"
     },
     "0x3ba00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3baa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3bb50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3bbf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3bde0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3be90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3ca40": {
       "kind": "function",
       "status": "ported"
     },
@@ -241,6 +334,10 @@
         "FUN_0018f3e0 third argument typed as int16_t* but passed as literal 0; true type of the output flag parameter is uncertain.",
         "FUN_0001c270 return value used as squad pointer; declared as char* but internal layout not confirmed from binary evidence in this analysis."
       ]
+    },
+    "0x3e7a0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x3ec80": {
       "kind": "function",
@@ -657,6 +754,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8e7c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8ee60": {
       "kind": "function",
       "status": "ported"
@@ -836,7 +937,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x97a50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x97c80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x97cd0": {
       "kind": "function",
       "status": "ported"
     },
@@ -900,6 +1009,10 @@
       "inferred": [
         "Computes a normalized 2D line equation from two points; returns NULL on degenerate input."
       ]
+    },
+    "0x99500": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x99530": {
       "kind": "function",
@@ -1032,7 +1145,15 @@
         "FUN_000dd190 is the particle marker callback passed to FUN_0009d4e0; not in kb.json because it is only used as a data pointer (pushed as immediate), not called directly from this function."
       ]
     },
+    "0x9e180": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x9e310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9e560": {
       "kind": "function",
       "status": "ported"
     },
@@ -1057,6 +1178,10 @@
       "status": "ported"
     },
     "0x9f6c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9f6e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -1117,6 +1242,10 @@
       "status": "ported"
     },
     "0xa14d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa1510": {
       "kind": "function",
       "status": "ported"
     },
@@ -1416,6 +1545,10 @@
       "status": "ported"
     },
     "0xa8820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8aa0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2380,6 +2513,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xcada0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcaff0": {
       "kind": "function",
       "status": "ported"
@@ -2463,7 +2600,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xcd0e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcd2a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcd4a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcd5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcd6c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2503,6 +2656,10 @@
       "status": "ported"
     },
     "0xce350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce370": {
       "kind": "function",
       "status": "ported"
     },
@@ -2704,6 +2861,10 @@
       "status": "ported"
     },
     "0xdc620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdc800": {
       "kind": "function",
       "status": "ported"
     },
@@ -3379,6 +3540,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100080": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x100090": {
       "kind": "function",
       "status": "ported"
@@ -3465,6 +3630,14 @@
       "status": "ported",
       "name": "main_rasterizer_throttle",
       "name_confidence": "high"
+    },
+    "0x101c90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x101ca0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x101cd0": {
       "kind": "function",
@@ -3648,6 +3821,10 @@
         "Matrix rows: scale, forward, left (forward x up cross product), up, zero translation."
       ]
     },
+    "0x109fc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10a110": {
       "kind": "function",
       "status": "ported"
@@ -3743,7 +3920,15 @@
         "Rodrigues rotation formula: rotates vector[0..2] around axis[0..2] by angle specified via sin_angle and cos_angle arguments."
       ]
     },
+    "0x10bc70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10c600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10caf0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4054,6 +4239,10 @@
       "status": "ported"
     },
     "0x12b700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12bdb0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4666,6 +4855,10 @@
       "status": "ported"
     },
     "0x154890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1548a0": {
       "kind": "function",
       "status": "ported"
     },
@@ -5323,6 +5516,10 @@
         "summary": "Resolves seat animation mode for target seat label, computes enter-position matrix and marker positions via animation/marker helpers, and writes up to three output vectors (out_pos_a/out_pos_b/out_pos_c). Returns 1 on success, 0 when no valid mode/path is found."
       }
     },
+    "0x1a8990": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a8b20": {
       "kind": "function",
       "status": "ported",
@@ -5342,7 +5539,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a9200": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a9240": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a9520": {
       "kind": "function",
       "status": "ported"
     },
@@ -5754,6 +5959,10 @@
       "status": "ported"
     },
     "0x1bf570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bf790": {
       "kind": "function",
       "status": "ported"
     },
@@ -6480,159 +6689,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x1a9520": {
-      "status": "ported"
-    },
-    "0x8e7c0": {
-      "status": "ported"
-    },
-    "0x1a8990": {
-      "status": "ported"
-    },
-    "0x1a9200": {
-      "status": "ported"
-    },
-    "0x109fc0": {
-      "status": "ported"
-    },
-    "0x10bc70": {
-      "status": "ported"
-    },
-    "0x10caf0": {
-      "status": "ported"
-    },
-    "0xa8aa0": {
-      "status": "ported"
-    },
-    "0x12bdb0": {
-      "status": "ported"
-    },
-    "0x99500": {
-      "status": "ported"
-    },
-    "0xa1510": {
-      "status": "ported"
-    },
-    "0xdc800": {
-      "status": "ported"
-    },
-    "0x1bf790": {
-      "status": "ported"
-    },
-    "0x1548a0": {
-      "status": "ported"
-    },
-    "0x9e180": {
-      "status": "ported"
-    },
-    "0x9e560": {
-      "status": "ported"
-    },
-    "0x100080": {
-      "status": "ported"
-    },
-    "0x101c90": {
-      "status": "ported"
-    },
-    "0x101ca0": {
-      "status": "ported"
-    },
-    "0x97cd0": {
-      "status": "ported"
-    },
-    "0x9f6e0": {
-      "status": "ported"
-    },
-    "0x97a50": {
-      "status": "ported"
-    },
-    "0x1c270": {
-      "status": "ported"
-    },
-    "0x1c300": {
-      "status": "ported"
-    },
-    "0x1d030": {
-      "status": "ported"
-    },
-    "0x1d5c0": {
-      "status": "ported"
-    },
-    "0x36860": {
-      "status": "ported"
-    },
-    "0x3a760": {
-      "status": "ported"
-    },
-    "0x3a840": {
-      "status": "ported"
-    },
-    "0x3a8a0": {
-      "status": "ported"
-    },
-    "0x3baa0": {
-      "status": "ported"
-    },
-    "0x3bb50": {
-      "status": "ported"
-    },
-    "0x3bbf0": {
-      "status": "ported"
-    },
-    "0x3bde0": {
-      "status": "ported"
-    },
-    "0x3be90": {
-      "status": "ported"
-    },
-    "0x3ca40": {
-      "status": "ported"
-    },
-    "0x3e7a0": {
-      "status": "ported"
-    },
-    "0x14540": {
-      "status": "ported"
-    },
-    "0xcada0": {
-      "status": "ported"
-    },
-    "0xcd0e0": {
-      "status": "ported"
-    },
-    "0xcd2a0": {
-      "status": "ported"
-    },
-    "0xcd4a0": {
-      "status": "ported"
-    },
-    "0xcd6c0": {
-      "status": "ported"
-    },
-    "0xce370": {
-      "status": "ported"
-    },
-    "0x1c370": {
-      "status": "ported"
-    },
-    "0x1c3e0": {
-      "status": "ported"
-    },
-    "0x3ac20": {
-      "status": "ported"
-    },
-    "0x3aca0": {
-      "status": "ported"
-    },
-    "0x3b5e0": {
-      "status": "ported"
-    },
-    "0x2a3d0": {
-      "status": "ported"
-    },
-    "0x2a2b0": {
       "status": "ported"
     }
   }
