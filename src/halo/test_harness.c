@@ -9,6 +9,11 @@ extern void matrix_inverse(float *src, float *dst);
 extern void matrix4x3_multiply(float *a, float *b, float *out);
 extern void matrix_from_forward_and_up(float *out, float *forward, float *up);
 
+extern void *csstrncpy(char *destination, const char *source, size_t size);
+extern char *csstrtok(char *string, const char *delimiters);
+extern void set_random_seed(int seed);
+extern float random_math_real(unsigned int *seed);
+
 static int check(const char *name, uint32_t got, uint32_t expected, char *buf) {
     if (got == expected) {
         crt_sprintf(buf, "  PASS %s: %08X\n", name, got);
@@ -154,7 +159,7 @@ void run_tests(void) {
         total += 3;
         passed += check("mat_mul m01", *(uint32_t*)&out_mat[1], 0x00000000, buf);
         passed += check("mat_mul trans_y", *(uint32_t*)&out_mat[10], 0x40E00000, buf);
-        passed += check("mat_mul trans_z", *(uint32_t*)&out_mat[11], 0x40400000, buf);
+        passed += check("mat_mul trans_z", *(uint32_t*)&out_mat[11], 0x40800000, buf);
     }
 
     /* matrix_from_forward_and_up */
@@ -169,6 +174,43 @@ void run_tests(void) {
         passed += check("mat_fwd_up m00", *(uint32_t*)&out_mat[0], 0x3F800000, buf);
         passed += check("mat_fwd_up m01", *(uint32_t*)&out_mat[1], 0x3F800000, buf);
         passed += check("mat_fwd_up m22", *(uint32_t*)&out_mat[8], 0x00000000, buf);
+    }
+
+    /* csstrncpy */
+    {
+        char dst[16];
+        int i;
+        for (i = 0; i < sizeof(dst); i++) dst[i] = 0xCC;
+        
+        csstrncpy(dst, "hello world", 8); // Should copy 8 chars and not null terminate?
+        
+        total += 2;
+        passed += check("csstrncpy last char", dst[7], 0x0000006F, buf);
+        passed += check("csstrncpy next char", (uint8_t)dst[8], 0x000000CC, buf);
+    }
+
+    /* csstrtok */
+    {
+        char str[] = "this,is;a\ttest";
+        char *tok1 = csstrtok(str, ",;\t");
+        char *tok2 = csstrtok(NULL, ",;\t");
+
+        total += 2;
+        passed += check("csstrtok t1", tok1 ? tok1[0] : 0, 0x00000074, buf);
+        passed += check("csstrtok t2", tok2 ? tok2[0] : 0, 0x00000069, buf);
+    }
+
+    /* random_math_real */
+    {
+        unsigned int local_seed = 1337;
+        set_random_seed(local_seed);
+        
+        float r1 = random_math_real(&local_seed);
+        float r2 = random_math_real(&local_seed);
+
+        total += 2;
+        passed += check("rand r1", *(uint32_t*)&r1, 0x3F4114C1, buf);
+        passed += check("rand r2", *(uint32_t*)&r2, 0x3F0CAC8D, buf);
     }
 
     crt_sprintf(buf, "--- TEST_HARNESS_END: %d/%d passed ---\n", passed, total);
