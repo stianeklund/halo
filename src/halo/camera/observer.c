@@ -384,15 +384,11 @@ void observer_update_command(int16_t local_player_index)
       if ((*mode_bytes & 1) == 0) {
         command = *(char **)(observer + 0x4);
         if (*(float *)(command + 0x48) < *obs_timers &&
-            (*(uint8_t *)command & 8) == 0) {
-          if (*obs_timers <= *(float *)0x253f40)
-            *timer_out = *obs_timers;
-          else
-            *timer_out = *(float *)0x253f40;
-        } else {
-          *timer_out = *(float *)(command + 0x48);
-        }
+            (*(uint8_t *)command & 8) == 0)
+          goto clamp_timer;
+        *timer_out = *(float *)(command + 0x48);
       } else if ((*mode_bytes & 2) == 0 && *timer_out < *obs_timers) {
+      clamp_timer:
         if (*obs_timers <= *(float *)0x253f40)
           *timer_out = *obs_timers;
         else
