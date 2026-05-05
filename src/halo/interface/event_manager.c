@@ -316,8 +316,7 @@ void event_manager_dispatch(int16_t *event, int16_t player_index)
 record_event:
   event[1] = player_index;
   pi = (int)player_index * 0x40;
-  ((void (*)(void *, void *, int))0x8dae0)((void *)(0x46bd48 + pi),
-                                           (void *)(0x46bd50 + pi), 0x38);
+  csmemmove((void *)(0x46bd48 + pi), (void *)(0x46bd50 + pi), 0x38);
   *(int *)(0x46bd48 + pi) = *(int *)event;
   *(int *)(0x46bd4c + pi) = *(int *)&event[2];
   if (event[0] != 0)
