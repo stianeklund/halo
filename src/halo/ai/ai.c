@@ -566,3 +566,122 @@ void FUN_000425b0(void)
 {
   FUN_00042390(1);
 }
+
+/* Entry struct for FUN_00041420 firing-position candidate buffer.
+ * Each entry is 0x28 bytes. FUN_000413c0 writes them via ESI register.
+ * Layout confirmed from FUN_000413c0 disasm and FUN_00041590 field accesses:
+ *
+ *   +0x00  bool     occupied (0 = available, 1 = selected winner)
+ *   +0x01  bool     type flag: 0 = segment-pair test (FUN_0010e040),
+ *                              1 = point+sphere test  (FUN_0010bc70)
+ *   +0x02  int16_t  padding (unused)
+ *   +0x04  float[3] line_start (vec3_a — first endpoint / sphere center)
+ *   +0x10  float[3] line_dir   (vec3_b — direction / zero for sphere)
+ *   +0x18  float    scalar_a   (local_8 from FUN_001a0890)
+ *   +0x1c  int      handle_a   (actor handle from clump iteration)
+ *   +0x20  int      handle_b   (second exclusion handle — compared to param_2)
+ *   +0x24  float    radius     (local_8 + DAT_00256140 — sphere radius or
+ *                               segment endpoint distance)
+ *
+ * Confirmed: entry size = 0x28 bytes; buffer holds up to 0x20 entries.
+ * FUN_000413c0 iterates via ESI += 0x28 (LEA ESI,[EAX + EDX*8] where EAX
+ * is the entry index multiplied to i*5, SHL 3 → i*0x28). */
+typedef struct {
+    bool       occupied;   /* +0x00 */
+    bool       is_sphere;  /* +0x01 */
+    int16_t    _pad;       /* +0x02 */
+    float      vec_a[3];   /* +0x04 */
+    float      vec_b[3];   /* +0x10 */
+    float      scalar_a;   /* +0x18 */
+    int        handle_a;   /* +0x1c */
+    int        handle_b;   /* +0x20 */
+    float      radius;     /* +0x24 */
+} ai_firing_pos_entry_t;   /* size = 0x28 */
+
+/* FUN_00041590: test whether the actor can fire at a target through any
+ * candidate firing position, and return the best candidate handle.
+ *
+ * Builds up to 0x20 candidate firing-position entries via FUN_00041420
+ * (collecting nearby cover points / target-prop positions), then for each
+ * entry:
+ *   - skips entries whose handle_b matches excluded_handle (param_2)
+ *   - if entry.is_sphere: calls FUN_0010bc70 (line-sphere intersection test)
+ *   - otherwise:          calls FUN_0010e040 (segment-segment proximity test)
+ * On the first passing test, marks that entry as occupied, stores its
+ * handle_a as the result datum, clears the success flag, and breaks.
+ *
+ * When ai_debug lineoffire rendering is active (0x5aca69 != 0), records
+ * the session begin/end and logs each entry via ai_debug helpers.
+ *
+ * Returns: 1 (bool true) if a valid position was found, 0 otherwise.
+ * Output:  *result_out = handle_a of winning entry (-1 if none).
+ *
+ * Confirmed: 5 args, cdecl, ADD ESP,0x14 at call site (0x00023e02).
+ * Confirmed: return in AL (low byte of success flag; 1=found, 0=not found).
+ * Confirmed: global INC at 0x5ac6e4 = entry-attempt counter (word).
+ * Confirmed: guard 0x5aca69 = ai_debug lineoffire enable flag.
+ * Confirmed: EBX = param_5 (int *result_out) loaded at 0x000415cc AFTER
+ *   the FUN_00041420 call+cleanup. EBX is callee-saved and used throughout.
+ * Confirmed: buf size = 0x508 bytes (SUB ESP,0x508; buf at EBP-0x508). */
+bool FUN_00041590(int actor_handle, int excluded_handle, float *origin,
+                  float *offset, int *result_out)
+{
+    ai_firing_pos_entry_t buf[0x20]; /* 0x20 entries × 0x28 = 0x500 bytes */
+    int  result_datum;
+    bool success;
+    int  i, count;
+
+    datum_get(*(void **)0x6325a4, actor_handle);
+    *(int16_t *)0x5ac6e4 += 1;
+
+    success     = 1;
+    result_datum = -1;
+
+    count = (int)(int16_t)FUN_00041420(actor_handle, 0x20, buf);
+
+    if (count > 0) {
+        for (i = 0; i < count; i++) {
+            ai_firing_pos_entry_t *e = &buf[i];
+
+            /* skip entries whose exclusion handle matches param_2 */
+            if (e->handle_b == excluded_handle) {
+                continue;
+            }
+
+            {
+                bool hit;
+                if (e->is_sphere) {
+                    /* push-then-fstp pattern: radius is loaded via FLD then
+                     * FSTP [ESP] after PUSH ECX (dummy). Confirmed at 0x41600:
+                     * FLD [EBP+EAX+0xfffffb1c]; PUSH ECX; FSTP [ESP]. */
+                    hit = FUN_0010bc70(origin, offset, e->vec_a, e->radius);
+                } else {
+                    hit = FUN_0010e040(origin, offset, e->vec_a, e->vec_b,
+                                      e->scalar_a);
+                }
+
+                if (hit) {
+                    result_datum = e->handle_a;
+                    success      = 0;
+                    e->occupied  = 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    /* ai_debug lineoffire rendering */
+    if (*(char *)0x5aca69) {
+        FUN_000493d0(origin, offset);
+        for (i = 0; i < count; i++) {
+            ai_firing_pos_entry_t *e = &buf[i];
+            FUN_00049430(e->vec_a, e->vec_b, *(int *)&e->radius, e->occupied);
+        }
+        FUN_000494d0((char)success);
+    }
+
+    if (result_out) {
+        *result_out = result_datum;
+    }
+    return (bool)success;
+}

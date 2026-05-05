@@ -429,6 +429,9 @@
         "globals[0] = first-frame flag, globals[1] = AI active, globals[2] = pending-spawn/scripted flag; semantics inferred from branch structure."
       ]
     },
+    "0x41590": {
+      "status": "ported"
+    },
     "0x42390": {
       "kind": "function",
       "status": "ported",

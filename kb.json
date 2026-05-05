@@ -696,12 +696,21 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00041590(int actor_handle, int bsp, int param_3, int param_4, int *result);",
-          "addr": "0x41590"
+          "decl": "bool FUN_00041590(int actor_handle, int excluded_handle, float *origin, float *offset, int *result_out);",
+          "addr": "0x41590",
+          "ported": true
         },
         {
           "decl": "int FUN_000416e0(float *origin, int bsp, float *target, int param_4, short param_5, char param_6, int param_7, char param_8);",
           "addr": "0x416e0"
+        },
+        {
+          "addr": "0x413c0",
+          "decl": "void FUN_000413c0(int actor_handle);"
+        },
+        {
+          "addr": "0x41420",
+          "decl": "short FUN_00041420(int actor_handle, short max_count, void *buf);"
         }
       ]
     },
@@ -6091,6 +6100,10 @@
           "decl": "float FUN_0001ad60(float *a, float *b);",
           "addr": "0x1ad60",
           "ported": true
+        },
+        {
+          "addr": "0x10e040",
+          "decl": "bool FUN_0010e040(float *line_a_start, float *line_a_dir, float *line_b_start, float *line_b_dir, float radius);"
         }
       ]
     },
@@ -8909,6 +8922,18 @@
         {
           "addr": "0x49ac0",
           "decl": "void FUN_00049ac0(int actor_handle, int object_handle, char with_actor, char *buf, int buf_size);"
+        },
+        {
+          "addr": "0x493d0",
+          "decl": "void FUN_000493d0(float *vec_a, float *vec_b);"
+        },
+        {
+          "addr": "0x49430",
+          "decl": "void FUN_00049430(float *vec_a, float *vec_b, int param_3, char param_4);"
+        },
+        {
+          "addr": "0x494d0",
+          "decl": "void FUN_000494d0(char success);"
         }
       ]
     },
