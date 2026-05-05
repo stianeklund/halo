@@ -3119,3 +3119,89 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
   unit_reset_weapon_state(unit_handle);
   return true;
 }
+
+/* unit_estimate_position (0x1a93e0)
+ *
+ * Estimates the world-space position for a unit given a desired estimation mode
+ * and optional predicted body position. Handles three major paths:
+ *
+ * 1. Unit has no parent AND flag byte (unit+0xb6) bit 2 is clear AND type==0
+ *    (biped): delegate entirely to biped_estimate_position and return.
+ *
+ * 2. Unit type==0 (biped) AND has a parent AND parent type==1 (vehicle): call
+ *    vehicle_get_estimated_position to get the vehicle's predicted position into
+ *    a local vector, and use that as the local_body_pos for the delta.
+ *    If vehicle_get_estimated_position returns -1 (failed), fall through to path 3.
+ *
+ * 3. Fallback: call object_get_world_position to get unit's world position as
+ *    local_body_pos.
+ *
+ * After path 2/3: call unit_set_seat_state to compute the unit's current
+ * estimated position into out_position, then add the delta
+ * (body_position - local_body_pos) to out_position.
+ *
+ * Confirmed: assert strings "body_position && estimated_position" and
+ * "(estimate_mode >= 0) && (estimate_mode < NUMBER_OF_UNIT_ESTIMATE_POSITION_MODES)"
+ * reference "c:\halo\SOURCE\units\units.c", lines 0x14b1 and 0x14b2.
+ * Confirmed: CMP EAX,-0x1 / JNZ pattern for parent_object_index checks.
+ * Confirmed: TEST byte ptr [EDI+0xb6],0x4 for flags check.
+ * Confirmed: CMP word ptr [EDI+0x64],0x0 and CMP word ptr [EAX+0x64],0x1 for type checks.
+ * Confirmed: FPU tail sequence — FXCH after three FLD/FSUB pairs to reorder x/y.
+ */
+void unit_estimate_position(int unit_handle, int16_t estimate_mode,
+                            vector3_t *body_position, vector3_t *desired_facing,
+                            vector3_t *desired_gun_offset,
+                            vector3_t *out_position)
+{
+  char *unit;
+  char *parent_obj;
+  int parent_handle;
+  int result;
+  vector3_t local_body_pos;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (body_position == NULL || out_position == NULL) {
+    display_assert("body_position && estimated_position",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x14b1, true);
+    system_exit(-1);
+  }
+  if (estimate_mode < 0 || estimate_mode >= 4) {
+    display_assert("(estimate_mode >= 0) && (estimate_mode < "
+                   "NUMBER_OF_UNIT_ESTIMATE_POSITION_MODES)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x14b2, true);
+    system_exit(-1);
+  }
+
+  parent_handle = *(int *)(unit + 0xcc);
+
+  if (parent_handle == -1 && !(*(uint8_t *)(unit + 0xb6) & 0x4)) {
+    /* No parent, no flag: if biped, fully delegate to biped_estimate_position */
+    if (*(int16_t *)(unit + 0x64) == 0) {
+      biped_estimate_position(unit_handle, estimate_mode, body_position,
+                              desired_facing, desired_gun_offset, out_position);
+      return;
+    }
+  } else if (*(int16_t *)(unit + 0x64) == 0 && parent_handle != -1) {
+    /* Biped with a parent: if parent is a vehicle, try vehicle position */
+    parent_obj = (char *)object_get_and_verify_type(parent_handle, -1);
+    if (*(int16_t *)(parent_obj + 0x64) == 1) {
+      result = vehicle_get_estimated_position(*(int *)(unit + 0xcc),
+                                              &local_body_pos);
+      if (result != -1)
+        goto apply_delta;
+    }
+  }
+
+  /* Fallback: use world position as local_body_pos reference */
+  object_get_world_position(unit_handle, &local_body_pos);
+
+apply_delta:
+  /* Get the unit's current estimated seat position into out_position */
+  unit_set_seat_state(unit_handle, (float *)out_position);
+
+  /* Add (body_position - local_body_pos) delta to out_position */
+  out_position->x += body_position->x - local_body_pos.x;
+  out_position->y += body_position->y - local_body_pos.y;
+  out_position->z += body_position->z - local_body_pos.z;
+}

@@ -5618,6 +5618,9 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a93e0": {
+      "status": "ported"
+    },
     "0x1a9520": {
       "kind": "function",
       "status": "ported"
