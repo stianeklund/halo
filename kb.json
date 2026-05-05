@@ -7767,8 +7767,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001a93e0(int unit_handle, int mode, float *body_pos, int param_4, int param_5, float *estimated_pos);",
-          "addr": "0x1a93e0"
+          "decl": "void unit_estimate_position(int unit_handle, int16_t estimate_mode, vector3_t *body_position, vector3_t *desired_facing, vector3_t *desired_gun_offset, vector3_t *out_position);",
+          "addr": "0x1a93e0",
+          "ported": true
         },
         {
           "decl": "int FUN_001aaa90(int unit_handle, short grenade_type, short count);",
@@ -7784,6 +7785,11 @@
       "name": "vehicles.obj",
       "source": "units/vehicles.c",
       "functions": [
+        {
+          "decl": "int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position);",
+          "addr": "0x1b5df0",
+          "ported": false
+        },
         {
           "decl": "bool vehicle_moving_near_any_player(void);",
           "addr": "0x1b7ee0",
