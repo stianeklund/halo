@@ -82,6 +82,9 @@ Maintain a mental ledger of files already read in this conversation. If you need
   4. **Cross-product operand swap:** `cross(A, B)` and `cross(B, A)` look nearly identical in the decompiler — the FLD/FMUL order before FSUBP differs but the components look the same. Always verify the subtraction order against disassembly: `cross(A,B)[0] = A[1]*B[2] - A[2]*B[1]`. Getting it backwards negates the vector, which can cause invisible geometry, flipped UV mapping, or reflected projections.
 
 ### 3. Build & Verification
+- **Golden Master Test Harness:** A specialized test harness intercepts the engine boot in `src/halo/shell_xbox.c`. It lets you run functions inside the engine context and verify their side-effects/return values against the exact Xbox ASM output. 
+  - *Usage:* Add tests to `src/halo/test_harness.c`. Ensure your function is unmapped in `kb.json` (`"ported": false`), run `rtk python3 tools/verify/run_golden_tests.py` to capture the original FPU hex values. Then map your function (`"ported": true`) and press Enter to verify your C implementation.
+  - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
 - **XDK Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/xdk_verify.py src/path/to/file.c` to compile with the original MSVC 7.1 compiler and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Validation:** Run the narrowest meaningful validation first.
