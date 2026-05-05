@@ -46,19 +46,10 @@
       "status": "ported"
     },
     "0x1c450": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The table at 0x253fcc is an array of 14 structs (0x38 bytes each) representing action definitions, with the function pointer for prop replacement at offset 0 of each entry.",
-        "The function name likely relates to actor action prop replacement dispatch based on context from the caller FUN_0003b410 in actors.obj."
-      ]
+      "status": "ported"
     },
     "0x1d6d0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Returns the priority_flag short from the action_definitions table entry for the actor's current action; non-zero means high-priority tier."
-      ]
+      "status": "ported"
     },
     "0x210f0": {
       "kind": "function",
@@ -6492,6 +6483,141 @@
       "status": "ported"
     },
     "0x1a9520": {
+      "status": "ported"
+    },
+    "0x8e7c0": {
+      "status": "ported"
+    },
+    "0x1a8990": {
+      "status": "ported"
+    },
+    "0x1a9200": {
+      "status": "ported"
+    },
+    "0x109fc0": {
+      "status": "ported"
+    },
+    "0x10bc70": {
+      "status": "ported"
+    },
+    "0x10caf0": {
+      "status": "ported"
+    },
+    "0xa8aa0": {
+      "status": "ported"
+    },
+    "0x12bdb0": {
+      "status": "ported"
+    },
+    "0x99500": {
+      "status": "ported"
+    },
+    "0xa1510": {
+      "status": "ported"
+    },
+    "0xdc800": {
+      "status": "ported"
+    },
+    "0x1bf790": {
+      "status": "ported"
+    },
+    "0x1548a0": {
+      "status": "ported"
+    },
+    "0x9e180": {
+      "status": "ported"
+    },
+    "0x9e560": {
+      "status": "ported"
+    },
+    "0x100080": {
+      "status": "ported"
+    },
+    "0x101c90": {
+      "status": "ported"
+    },
+    "0x101ca0": {
+      "status": "ported"
+    },
+    "0x97cd0": {
+      "status": "ported"
+    },
+    "0x9f6e0": {
+      "status": "ported"
+    },
+    "0x97a50": {
+      "status": "ported"
+    },
+    "0x1c270": {
+      "status": "ported"
+    },
+    "0x1c300": {
+      "status": "ported"
+    },
+    "0x1d030": {
+      "status": "ported"
+    },
+    "0x1d5c0": {
+      "status": "ported"
+    },
+    "0x36860": {
+      "status": "ported"
+    },
+    "0x3a760": {
+      "status": "ported"
+    },
+    "0x3a840": {
+      "status": "ported"
+    },
+    "0x3a8a0": {
+      "status": "ported"
+    },
+    "0x3baa0": {
+      "status": "ported"
+    },
+    "0x3bb50": {
+      "status": "ported"
+    },
+    "0x3bbf0": {
+      "status": "ported"
+    },
+    "0x3bde0": {
+      "status": "ported"
+    },
+    "0x3be90": {
+      "status": "ported"
+    },
+    "0x3ca40": {
+      "status": "ported"
+    },
+    "0x3e7a0": {
+      "status": "ported"
+    },
+    "0x14540": {
+      "status": "ported"
+    },
+    "0xcada0": {
+      "status": "ported"
+    },
+    "0xcd0e0": {
+      "status": "ported"
+    },
+    "0xcd2a0": {
+      "status": "ported"
+    },
+    "0xcd4a0": {
+      "status": "ported"
+    },
+    "0xcd6c0": {
+      "status": "ported"
+    },
+    "0xce370": {
+      "status": "ported"
+    },
+    "0x1c370": {
+      "status": "ported"
+    },
+    "0x1c3e0": {
       "status": "ported"
     }
   }

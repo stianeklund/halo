@@ -300,11 +300,13 @@
         },
         {
           "addr": "0x1c370",
-          "decl": "void FUN_0001c370(int actor_handle);"
+          "decl": "void FUN_0001c370(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x1c3e0",
-          "decl": "void FUN_0001c3e0(int actor_handle);"
+          "decl": "void FUN_0001c3e0(int actor_handle);",
+          "ported": true
         },
         {
           "decl": "void FUN_0001c450(int actor_handle, int old_prop, int new_prop);",
@@ -9127,11 +9129,11 @@
           "ported": true
         },
         {
-          "decl": "uint FUN_00136790(int object_handle);",
+          "decl": "unsigned int FUN_00136790(int object_handle);",
           "addr": "0x136790"
         },
         {
-          "decl": "uint FUN_001367e0(int object_handle);",
+          "decl": "unsigned int FUN_001367e0(int object_handle);",
           "addr": "0x1367e0"
         },
         {
@@ -9179,11 +9181,11 @@
           "addr": "0x136b40"
         },
         {
-          "decl": "void FUN_00136bc0(void *collision_model, int material, void *damage_effect, void *damage_params, uint *flags, float *shield_damage, float *body_damage);",
+          "decl": "void FUN_00136bc0(void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *shield_damage, float *body_damage);",
           "addr": "0x136bc0"
         },
         {
-          "decl": "void FUN_00136f40(uint flags);",
+          "decl": "void FUN_00136f40(unsigned int flags);",
           "addr": "0x136f40"
         },
         {
@@ -9207,11 +9209,11 @@
           "addr": "0x137690"
         },
         {
-          "decl": "void FUN_001377d0(int object_handle, int region_index, int node_index, uint param_4, void *collision_model, int material, void *damage_effect, void *damage_params, uint *flags, float *body_damage, void **param_11, float scale);",
+          "decl": "void FUN_001377d0(int object_handle, int region_index, int node_index, unsigned int param_4, void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *body_damage, void **param_11, float scale);",
           "addr": "0x1377d0"
         },
         {
-          "decl": "void FUN_00137d20(void *damage_params, int object_handle, short node_index, short region_index, short permutation_index, uint flags);",
+          "decl": "void FUN_00137d20(void *damage_params, int object_handle, short node_index, short region_index, short permutation_index, unsigned int flags);",
           "addr": "0x137d20"
         },
         {
@@ -9223,7 +9225,7 @@
           "addr": "0x138900"
         },
         {
-          "decl": "void FUN_00138e30(void *damage_params);",
+          "decl": "void FUN_00138e30(void *damage_params, int target_index);",
           "addr": "0x138e30",
           "ported": true
         },

@@ -37,6 +37,74 @@ int32_t FUN_0001c300(int actor_handle)
   return 0;
 }
 
+/* FUN_0001c370 (0x1c370) — actor_action_update
+ *
+ * Dispatches the current action's update handler (table+0x1c) for the given
+ * actor. Called each tick from the actor update loop after the decision logic
+ * has run.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1c37f.
+ * Confirmed: actor+0x6c = action index (short), asserted in [0, 14) at line
+ *   0x9e (158).
+ * Confirmed: table at 0x253fbc (action_definitions base 0x253fa0 + entry
+ *   stride 0x38 + field offset 0x1c), stride 0x38.
+ * Confirmed: handler called with (actor_handle); no return value used by
+ *   caller (void dispatch).
+ */
+void FUN_0001c370(int actor_handle)
+{
+  typedef void (*action_update_fn_t)(int);
+
+  char *actor;
+  short action;
+  action_update_fn_t handler;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  action = *(short *)(actor + 0x6c);
+
+  assert_halt(action >= 0 && action < 14);
+
+  handler = *(action_update_fn_t *)(0x253fbc + action * 0x38);
+  if (handler != NULL) {
+    handler(actor_handle);
+  }
+}
+
+/* FUN_0001c3e0 (0x1c3e0) — actor_action_notify
+ *
+ * Dispatches the current action's notify handler (table+0x20) for the given
+ * actor. Called each tick from the actor update loop after actor_action_update,
+ * as part of the secondary per-tick action dispatch sequence.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1c3ef.
+ * Confirmed: actor+0x6c = action index (short), asserted in [0, 14) at line
+ *   0xad (173).
+ * Confirmed: table at 0x253fc0 (action_definitions base 0x253fa0 + entry
+ *   stride 0x38 + field offset 0x20), stride 0x38.
+ * Confirmed: handler called with (actor_handle); no return value used by
+ *   caller (void dispatch).
+ * Inferred: handler name "notify" — binary only confirms it is the table+0x20
+ *   slot; the semantic role is not directly evidenced.
+ */
+void FUN_0001c3e0(int actor_handle)
+{
+  typedef void (*action_notify_fn_t)(int);
+
+  char *actor;
+  short action;
+  action_notify_fn_t handler;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  action = *(short *)(actor + 0x6c);
+
+  assert_halt(action >= 0 && action < 14);
+
+  handler = *(action_notify_fn_t *)(0x253fc0 + action * 0x38);
+  if (handler != NULL) {
+    handler(actor_handle);
+  }
+}
+
 /* FUN_0001c450 (0x1c450)
  * Dispatch action-specific prop replacement for an actor.
  *
