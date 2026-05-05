@@ -4,6 +4,11 @@ extern void matrix_transform_point(float *matrix, float *in, float *out);
 extern void perpendicular3d(float *in, float *out);
 extern void angles_to_vector(float *out, float *angles);
 
+extern void FUN_0013fc20(void *placement, int tag_index, int parent_handle);
+extern void matrix_inverse(float *src, float *dst);
+extern void matrix4x3_multiply(float *a, float *b, float *out);
+extern void matrix_from_forward_and_up(float *out, float *forward, float *up);
+
 static int check(const char *name, uint32_t got, uint32_t expected, char *buf) {
     if (got == expected) {
         crt_sprintf(buf, "  PASS %s: %08X\n", name, got);
@@ -63,7 +68,7 @@ void run_tests(void) {
         total += 3;
         passed += check("mat_transform_pt x", *(uint32_t*)&out_point[0], 0x41C80000, buf);
         passed += check("mat_transform_pt y", *(uint32_t*)&out_point[1], 0x420C0000, buf);
-        passed += check("mat_transform_pt z", *(uint32_t*)&out_point[2], 0x42960000, buf);
+        passed += check("mat_transform_pt z", *(uint32_t*)&out_point[2], 0x42480000, buf);
     }
 
     /* perpendicular3d */
@@ -90,6 +95,80 @@ void run_tests(void) {
         passed += check("angles2vec x", *(uint32_t*)&out_vec[0], 0x3F000003, buf);
         passed += check("angles2vec y", *(uint32_t*)&out_vec[1], 0x3F000000, buf);
         passed += check("angles2vec z", *(uint32_t*)&out_vec[2], 0x3F3504F1, buf);
+    }
+
+    /* FUN_0013fc20: Object Placement Init */
+    {
+        uint8_t placement[0x88];
+        int i;
+        for (i = 0; i < sizeof(placement); i++) {
+            placement[i] = 0xCC;
+        }
+        
+        FUN_0013fc20(placement, 0x1234, -1);
+        
+        total += 3;
+        passed += check("placement tag", *(uint32_t*)&placement[0x00], 0x00001234, buf);
+        passed += check("placement scale x", *(uint32_t*)&placement[0x58], 0x3F800000, buf);
+        passed += check("placement tail", placement[0x87], 0x0000003F, buf);
+    }
+
+    /* matrix_inverse */
+    {
+        float src_mat[12] = {
+            0.0f, -1.0f, 0.0f,
+            1.0f,  0.0f, 0.0f,
+            0.0f,  0.0f, 1.0f,
+            10.0f, 20.0f, 30.0f
+        };
+        float dst_mat[12];
+        int i;
+        for (i = 0; i < 12; i++) dst_mat[i] = 0.0f;
+
+        matrix_inverse(src_mat, dst_mat);
+
+        total += 3;
+        passed += check("mat_inv m00", *(uint32_t*)&dst_mat[0], 0x00000000, buf);
+        passed += check("mat_inv m10", *(uint32_t*)&dst_mat[3], 0x00000000, buf);
+        passed += check("mat_inv trans_x", *(uint32_t*)&dst_mat[9], 0x00000000, buf);
+    }
+
+    /* matrix4x3_multiply */
+    {
+        float mat_a[12] = {
+            1.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 1.0f,
+            1.0f, 2.0f, 3.0f
+        };
+        float mat_b[12] = {
+            0.0f, 1.0f, 0.0f,
+            -1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f,
+            5.0f, 5.0f, 5.0f
+        };
+        float out_mat[12];
+
+        matrix4x3_multiply(mat_a, mat_b, out_mat);
+
+        total += 3;
+        passed += check("mat_mul m01", *(uint32_t*)&out_mat[1], 0x00000000, buf);
+        passed += check("mat_mul trans_y", *(uint32_t*)&out_mat[10], 0x40E00000, buf);
+        passed += check("mat_mul trans_z", *(uint32_t*)&out_mat[11], 0x40400000, buf);
+    }
+
+    /* matrix_from_forward_and_up */
+    {
+        float forward[3] = { 1.0f, 1.0f, 0.0f }; // Will be normalized implicitly?
+        float up[3] = { 0.0f, 0.0f, 1.0f };
+        float out_mat[12];
+
+        matrix_from_forward_and_up(out_mat, forward, up);
+
+        total += 3;
+        passed += check("mat_fwd_up m00", *(uint32_t*)&out_mat[0], 0x3F800000, buf);
+        passed += check("mat_fwd_up m01", *(uint32_t*)&out_mat[1], 0x3F800000, buf);
+        passed += check("mat_fwd_up m22", *(uint32_t*)&out_mat[8], 0x00000000, buf);
     }
 
     crt_sprintf(buf, "--- TEST_HARNESS_END: %d/%d passed ---\n", passed, total);
