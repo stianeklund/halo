@@ -776,6 +776,104 @@ void FUN_000fd180(int weapon_handle, float ammo_fraction)
   }
 }
 
+/* FUN_000fd400 (0xfd400) — weapon_try_and_fire_projectile
+ *
+ * Attempts to fire a projectile for a given weapon trigger. Validates the
+ * weapon object (type 4), resolves the 'weap' tag, then validates the
+ * trigger_index is in range [0, triggers.count). If in range, fetches the
+ * trigger block element (0x114 bytes each) at [weap_tag+0x4fc], reads the
+ * 'proj' tag reference from [trigger_elem+0xa0], and resolves it via
+ * tag_get('proj',...). Passes the resolved projectile tag along with the
+ * remaining parameters to FUN_000f84d0 (projectile fire dispatcher), then
+ * validates param_6 as a valid 3D unit normal using valid_real_normal3d. If
+ * the vector is invalid, formats an assert message via csprintf and calls
+ * display_assert + system_exit. Returns true (1) on success, false (0) if
+ * trigger_index is out of range.
+ *
+ * Line number evidence: assert at line 0x515 (1301) in weapons.c.
+ *
+ * Confirmed: object_get_and_verify_type(weapon_handle, 4) at 0xfd40c.
+ * Confirmed: tag_get(0x77656170, weapon_data[0]) at 0xfd41b; ADD ESP,0x10
+ *   cleans both preceding calls (object_get + tag_get = 4 args).
+ * Confirmed: TEST SI,SI / JL at 0xfd42a–0xfd42d guards trigger_index < 0.
+ * Confirmed: MOV EDX,[EBX+0x4fc] / ADD EBX,0x4fc at 0xfd433–fd439 =
+ *   trigger block count and pointer.
+ * Confirmed: MOVSX ECX,SI / CMP ECX,EDX / JGE at 0xfd43f–0xfd447 guards
+ *   trigger_index >= triggers.count.
+ * Confirmed: CALL 0xfb320 at 0xfd44d is a debug assertion using caller ESI/EDI;
+ *   not representable as a plain C call — elided (bounds already checked above).
+ * Confirmed: tag_block_get_element(EBX, ECX, 0x114) at 0xfd45c where EBX=
+ *   &triggers_block ([weap_tag+0x4fc] after ADD EBX,0x4fc).
+ * Confirmed: MOV EAX,[EAX+0xa0] at 0xfd475 reads proj tag reference from
+ *   trigger element.
+ * Confirmed: tag_get(0x70726f6a, proj_ref, ...) at 0xfd496 with 14 pushes;
+ *   ADD ESP,0x8 cleans only tag_get's own 2 args.
+ * Confirmed: FUN_000f84d0 called with proj_tag + 12 stale stack args at 0xfd49f;
+ *   receives proj_tag as arg1, then param_3..param_9 interleaved with 0-padding.
+ * Confirmed: valid_real_normal3d(param_6) at 0xfd4a5 (PUSH ESI where ESI=[EBP+0x1c]).
+ * Confirmed: csprintf(&DAT_005ab100, ...) assert-format at 0xfd4e2;
+ *   float args loaded FLD+FSTP double via MSVC push-then-fstp pattern.
+ * Confirmed: CALL display_assert at 0xfd4eb; CALL system_exit at 0xfd4f2.
+ * Confirmed: return 1 at 0xfd4fa; return 0 (XOR AL,AL) at 0xfd428 on early exit.
+ */
+bool FUN_000fd400(
+    int     weapon_handle,
+    int16_t trigger_index,
+    void   *param_3,
+    void   *param_4,
+    int     param_5,
+    float  *param_6,
+    int     param_7,
+    void   *param_8,
+    void   *param_9)
+{
+  int   *weapon_data = (int *)object_get_and_verify_type(weapon_handle, 4);
+  char  *weap_tag    = (char *)tag_get(0x77656170, weapon_data[0]);
+
+  if (trigger_index < 0)
+    return false;
+
+  int trigger_count = *(int *)(weap_tag + 0x4fc);
+  int trig_idx      = (int)trigger_index;
+  if (trig_idx >= trigger_count)
+    return false;
+
+  /* FUN_000fb320 assertion (trigger bounds) elided: reads caller ESI/EDI,
+   * not representable as a plain C call. Bounds already checked above. */
+
+  char *trigger_elem = (char *)tag_block_get_element(
+      (void *)(weap_tag + 0x4fc), trig_idx, 0x114);
+  int proj_ref = *(int *)(trigger_elem + 0xa0);
+
+  /* tag_get + FUN_000f84d0 share a single stack cleanup.
+   * The 12 args pushed before tag_get's own 2 args are left on the stack
+   * and become args 2-13 for FUN_000f84d0. Represent faithfully as two
+   * separate calls passing the same set of parameters. */
+  void *proj_tag = tag_get(0x70726f6a, proj_ref);
+  ((void (*)(void *, void *, void *, int, int, int, int,
+             int, float *, int, int, void *, void *))0xf84d0)(
+      proj_tag,
+      param_3, param_4,
+      0, 0, 0, 0,
+      param_5, param_6,
+      0,
+      param_7, param_8, param_9);
+
+  if (!((bool (*)(float *))0x21fb0)(param_6)) {
+    display_assert(
+        csprintf((char *)0x5ab100,
+                 "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                 "result_aim_vector",
+                 (double)param_6[0],
+                 (double)param_6[1],
+                 (double)param_6[2]),
+        "c:\\halo\\SOURCE\\items\\weapons.c", 0x515, 1);
+    system_exit(-1);
+  }
+
+  return true;
+}
+
 /* weapon_activate — no binary address assigned.
  * Initializes a weapon after it becomes the active weapon for a unit.
  * Resets trigger/magazine state, sets the ready animation (state 9),

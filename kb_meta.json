@@ -430,6 +430,7 @@
       ]
     },
     "0x41590": {
+      "kind": "function",
       "status": "ported"
     },
     "0x42390": {
@@ -3509,6 +3510,17 @@
     "0xfd360": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xfd400": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_000f84d0 (projectile fire dispatcher) takes 13 cdecl args derived from the MSVC deferred-cleanup stack sharing pattern; args 2-13 are the callee params param_3..param_9 with 0-padding at positions 4-7 and 10.",
+        "FUN_000fb320 is a register-arg debug assertion that reads caller ESI (trigger_index) and EDI (weapon_data); not representable as a plain C call \u2014 elided since explicit bounds check precedes the call."
+      ],
+      "uncertain": [
+        "param_3 and param_4 types are uncertain: param_3 may be a position float3* and param_4 may be a float3* velocity/direction based on how FUN_000f84d0 uses them at [EBP+0xc] and [EBP+0x10]."
+      ]
     },
     "0xff400": {
       "kind": "function",

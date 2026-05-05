@@ -8702,8 +8702,10 @@
           "ported": true
         },
         {
-          "decl": "int FUN_000fd400(int weapon_handle, short trigger_index, int param_3, int param_4, int param_5, float *aim_vector, int param_7, int param_8, int param_9);",
-          "addr": "0xfd400"
+          "decl": "bool FUN_000fd400(int weapon_handle, int16_t trigger_index, void *param_3, void *param_4, int param_5, float *param_6, int param_7, void *param_8, void *param_9);",
+          "addr": "0xfd400",
+          "ported": true,
+          "signature": "bool FUN_000fd400(int weapon_handle, int16_t trigger_index, void *param_3, void *param_4, int param_5, float *param_6, int param_7, void *param_8, void *param_9)"
         }
       ]
     },
