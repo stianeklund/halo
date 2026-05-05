@@ -326,106 +326,105 @@ void real_matrix4x3_transform_point(void *matrix, void *point, void *out)
          z * *(float *)((char *)matrix + 0x24);
 }
 
-static float matrix4x3_round_to_float(float value)
-{
-  volatile float rounded = value;
-  return rounded;
-}
-
 /* Multiply two 4x3 matrices: out = b * a.
  * Matrix layout (13 floats each):
  *   [0]       scale
  *   [1..9]    3x3 rotation (row-major)
  *   [10..12]  translation
  *
- * Result:
- *   out_rotation    = b_rotation * a_rotation
- *   out_translation = (b_translation * a_rotation) * a_scale + a_translation
- *   out_scale       = a_scale * b_scale
- *
- * The original uses SSE (MULPS/ADDPS/SHUFPS) for the 3x3 and translation
- * parts, then x87 FLD/FMUL/FSTP for the scale multiply.
- * round_to_float forces intermediate results to 32-bit precision to match
- * the original SSE arithmetic (Clang keeps intermediates in x87 80-bit
- * registers under -mno-sse). */
+ * The original uses SSE1 (MULPS/ADDPS/SHUFPS) for rotation and translation,
+ * then x87 for the scale multiply. */
+#ifndef _MSC_VER
+#include <xmmintrin.h>
+
+__attribute__((target("sse"), noinline))
+void matrix4x3_multiply(float *a, float *b, float *out)
+{
+  float *ra = a + 1;
+  float *rb = b + 1;
+  float *ro = out + 1;
+
+  __m128 a_row0 = _mm_loadh_pi(_mm_load_ss(&ra[0]), (const __m64 *)&ra[1]);
+  __m128 a_row1 = _mm_loadh_pi(_mm_load_ss(&ra[3]), (const __m64 *)&ra[4]);
+  __m128 a_row2_t = _mm_loadh_pi(_mm_load_ss(&ra[8]), (const __m64 *)&ra[6]);
+  __m128 a_row2 = _mm_shuffle_ps(a_row2_t, a_row2_t, 0x36);
+
+  __m128 bc, r;
+
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[0]), _mm_load_ss(&rb[0]), 0);
+  r = _mm_mul_ps(bc, a_row0);
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[1]), _mm_load_ss(&rb[1]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[2]), _mm_load_ss(&rb[2]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
+  _mm_store_ss(&ro[0], r);
+  _mm_storeh_pi((__m64 *)&ro[1], r);
+
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[3]), _mm_load_ss(&rb[3]), 0);
+  r = _mm_mul_ps(bc, a_row0);
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[4]), _mm_load_ss(&rb[4]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[5]), _mm_load_ss(&rb[5]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
+  _mm_store_ss(&ro[3], r);
+  _mm_storeh_pi((__m64 *)&ro[4], r);
+
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[6]), _mm_load_ss(&rb[6]), 0);
+  r = _mm_mul_ps(bc, a_row0);
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[7]), _mm_load_ss(&rb[7]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[8]), _mm_load_ss(&rb[8]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
+  r = _mm_shuffle_ps(r, r, 0x8F);
+  _mm_storeh_pi((__m64 *)&ro[6], r);
+  _mm_store_ss(&ro[8], r);
+
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[9]), _mm_load_ss(&rb[9]), 0);
+  r = _mm_mul_ps(bc, a_row0);
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[10]), _mm_load_ss(&rb[10]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row1));
+  bc = _mm_shuffle_ps(_mm_load_ss(&rb[11]), _mm_load_ss(&rb[11]), 0);
+  r = _mm_add_ps(r, _mm_mul_ps(bc, a_row2));
+
+  __m128 a_trans = _mm_loadh_pi(_mm_load_ss(&ra[9]), (const __m64 *)&ra[10]);
+  __m128 scale = _mm_shuffle_ps(_mm_load_ss(&a[0]), _mm_load_ss(&a[0]), 0);
+  r = _mm_add_ps(_mm_mul_ps(r, scale), a_trans);
+  _mm_store_ss(&ro[9], r);
+  _mm_storeh_pi((__m64 *)&ro[10], r);
+
+  out[0] = a[0] * b[0];
+}
+#else
+__declspec(noinline)
 void matrix4x3_multiply(float *a, float *b, float *out)
 {
   float a1 = a[1], a2 = a[2], a3 = a[3];
   float a4 = a[4], a5 = a[5], a6 = a[6];
   float a7 = a[7], a8 = a[8], a9 = a[9];
-  float b1 = b[1], b2 = b[2], b3 = b[3];
-  float b4 = b[4], b5 = b[5], b6 = b[6];
-  float b7 = b[7], b8 = b[8], b9 = b[9];
-  float p0, p1, p2, scale, b10, b11, b12;
 
-  p0 = matrix4x3_round_to_float(b1 * a1);
-  p1 = matrix4x3_round_to_float(b2 * a4);
-  p2 = matrix4x3_round_to_float(b3 * a7);
-  out[1] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b1 * a2);
-  p1 = matrix4x3_round_to_float(b2 * a5);
-  p2 = matrix4x3_round_to_float(b3 * a8);
-  out[2] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b1 * a3);
-  p1 = matrix4x3_round_to_float(b2 * a6);
-  p2 = matrix4x3_round_to_float(b3 * a9);
-  out[3] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b4 * a1);
-  p1 = matrix4x3_round_to_float(b5 * a4);
-  p2 = matrix4x3_round_to_float(b6 * a7);
-  out[4] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b4 * a2);
-  p1 = matrix4x3_round_to_float(b5 * a5);
-  p2 = matrix4x3_round_to_float(b6 * a8);
-  out[5] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b4 * a3);
-  p1 = matrix4x3_round_to_float(b5 * a6);
-  p2 = matrix4x3_round_to_float(b6 * a9);
-  out[6] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b7 * a1);
-  p1 = matrix4x3_round_to_float(b8 * a4);
-  p2 = matrix4x3_round_to_float(b9 * a7);
-  out[7] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b7 * a2);
-  p1 = matrix4x3_round_to_float(b8 * a5);
-  p2 = matrix4x3_round_to_float(b9 * a8);
-  out[8] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b7 * a3);
-  p1 = matrix4x3_round_to_float(b8 * a6);
-  p2 = matrix4x3_round_to_float(b9 * a9);
-  out[9] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
+  out[1] = b[1]*a1 + b[2]*a4 + b[3]*a7;
+  out[2] = b[1]*a2 + b[2]*a5 + b[3]*a8;
+  out[3] = b[1]*a3 + b[2]*a6 + b[3]*a9;
+  out[4] = b[4]*a1 + b[5]*a4 + b[6]*a7;
+  out[5] = b[4]*a2 + b[5]*a5 + b[6]*a8;
+  out[6] = b[4]*a3 + b[5]*a6 + b[6]*a9;
+  out[7] = b[7]*a1 + b[8]*a4 + b[9]*a7;
+  out[8] = b[7]*a2 + b[8]*a5 + b[9]*a8;
+  out[9] = b[7]*a3 + b[8]*a6 + b[9]*a9;
 
-  b10 = b[10];
-  b11 = b[11];
-  b12 = b[12];
-  scale = a[0];
-  p0 = matrix4x3_round_to_float(b10 * a1);
-  p1 = matrix4x3_round_to_float(b11 * a4);
-  p2 = matrix4x3_round_to_float(b12 * a7);
-  out[10] = matrix4x3_round_to_float(
-    matrix4x3_round_to_float(
-      matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2) *
-      scale) +
-    a[10]);
-  p0 = matrix4x3_round_to_float(b10 * a2);
-  p1 = matrix4x3_round_to_float(b11 * a5);
-  p2 = matrix4x3_round_to_float(b12 * a8);
-  out[11] = matrix4x3_round_to_float(
-    matrix4x3_round_to_float(
-      matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2) *
-      scale) +
-    a[11]);
-  p0 = matrix4x3_round_to_float(b10 * a3);
-  p1 = matrix4x3_round_to_float(b11 * a6);
-  p2 = matrix4x3_round_to_float(b12 * a9);
-  out[12] = matrix4x3_round_to_float(
-    matrix4x3_round_to_float(
-      matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2) *
-      scale) +
-    a[12]);
+  {
+    float scale = a[0];
+    float t0 = b[10]*a1 + b[11]*a4 + b[12]*a7;
+    float t1 = b[10]*a2 + b[11]*a5 + b[12]*a8;
+    float t2 = b[10]*a3 + b[11]*a6 + b[12]*a9;
+    out[10] = t0 * scale + a[10];
+    out[11] = t1 * scale + a[11];
+    out[12] = t2 * scale + a[12];
+  }
 
   out[0] = a[0] * b[0];
 }
+#endif
 
 /* Build a 4x3 matrix from forward and up direction vectors.
  * Layout: [1.0f scale][forward 3f][left 3f][up 3f][translation 0,0,0].
