@@ -35,12 +35,12 @@ Level: All
 Description: When shooting walls etc there are no bullet holes.
 Affected build: f720a8
 1. Blood stains and similar damage inflicted by grenades etc do not show.
-2. Weapons do not spin when shot (weapons should spin around their center, this is a known quirk in Halo, it not working is a bug).
-Only weapons that are dropped by the opponent can spin when shot, but even newly spawned weapons should spin when shot.
-
-Fixed in build/commit: 1d9f7ecc
-
-Context: These are worth investigating, especially decals_dot3() in decals.c:1149 — that's right in the decal rendering pipeline we suspect.
-If Ghidra confused a callee-saved register and we passed bitangent twice instead of bitangent
-and tangent (or similar), the dot3 lighting calculation would be wrong and decals could render as invisible/black
+   Fixed in build/commit: 1d9f7ecc
+2. Weapons do not spin when shot on flat ground (weapons should spin around their center when shot).
+   Grenades still moved weapons (area damage). Weapons on inclines spun correctly after baaef268.
+   Root cause: item_set_position read ground marker normal from wrong offset (+0x50 instead of +0x54).
+   This corrupted the spin axis every tick, gradually rotating the collision model out of position
+   so projectile rays missed the weapon entirely. Ghidra decompiler showed +0x50; disassembly
+   confirms +0x54 (MOV ECX,[EBP-0x38] with marker_buf at EBP-0x8c).
+   Fixed in build/commit: 0cdae111
 
