@@ -8,6 +8,54 @@ char *weapon_get_label(int weapon_handle)
   return (char *)tag_get(0x77656170, *obj) + 0x30c;
 }
 
+/* 0xfaed0 — FUN_000faed0
+ *
+ * Given a weapon object handle, a trigger index, and a float value, returns
+ * the result of evaluating the projectile charge function for that trigger.
+ *
+ * Steps:
+ *   1. Verify weapon object and get its 'weap' tag (first dword of object
+ *      data is the tag index).
+ *   2. Validate trigger_index against the triggers block at tag+0x4fc.
+ *   3. Get the trigger element (element size 0x114) at the given index.
+ *   4. Read the 'proj' (projectile) tag reference from trigger+0xa0.
+ *   5. Call FUN_000f7da0(proj_tag, param_3) — returns a float ratio.
+ *   6. Default return value is 0.0f (loaded from 0x2533c0 which holds 0.0f).
+ *
+ * Confirmed: PUSH 0x4 / PUSH EAX → object_get_and_verify_type at 0xfaed6.
+ * Confirmed: MOV ECX,[EAX] / PUSH ECX / PUSH 0x77656170 → tag_get at 0xfaedf.
+ * Confirmed: FLD [0x2533c0] (0.0f default) at 0xfaeeb.
+ * Confirmed: MOV CX,[EBP+0xc] (trigger_index) at 0xfaef1.
+ * Confirmed: ADD ESP,0x10 cleans 4 cdecl args (both calls) at 0xfaef5.
+ * Confirmed: MOV EDX,[EAX+0x4fc] / ADD EAX,0x4fc block count/ptr at 0xfaefd.
+ * Confirmed: PUSH 0x114 / PUSH ECX / PUSH EAX → tag_block_get_element at 0xfaf0f.
+ * Confirmed: MOV EDX,[EBP+0x10] (param_3) at 0xfaf1d.
+ * Confirmed: MOV EAX,[EAX+0xa0] (proj tag ref) at 0xfaf20.
+ * Confirmed: PUSH EDX / PUSH EAX / PUSH 0x70726f6a → tag_get('proj') at 0xfaf29.
+ *   ADD ESP,0x8 cleans 2 args; EDX (param_3) already on stack for FUN_000f7da0.
+ * Confirmed: PUSH EAX / CALL FUN_000f7da0 at 0xfaf38; ADD ESP,0x8 cleans 2.
+ */
+float FUN_000faed0(int weapon_handle, int16_t trigger_index, float param_3)
+{
+  int *weapon_data = (int *)object_get_and_verify_type(weapon_handle, 4);
+  void *weap_tag   = tag_get(0x77656170, weapon_data[0]);
+  float result     = 0.0f;
+
+  if (trigger_index >= 0) {
+    int *trig_block     = (int *)((char *)weap_tag + 0x4fc);
+    int  trigger_count  = trig_block[0];
+    int  trigger_idx    = (int)trigger_index;
+    if (trigger_idx < trigger_count) {
+      void *trig_elem = tag_block_get_element(trig_block, trigger_idx, 0x114);
+      int   proj_ref  = *(int *)((char *)trig_elem + 0xa0);
+      void *proj_tag  = tag_get(0x70726f6a, proj_ref);
+      result = FUN_000f7da0(proj_tag, param_3);
+    }
+  }
+
+  return result;
+}
+
 /* 0xfb0c0 — weapon_is_flag */
 bool weapon_is_flag(int object_index)
 {
