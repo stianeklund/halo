@@ -6619,6 +6619,15 @@
     },
     "0x1c3e0": {
       "status": "ported"
+    },
+    "0x3ac20": {
+      "status": "ported"
+    },
+    "0x3aca0": {
+      "status": "ported"
+    },
+    "0x3b5e0": {
+      "status": "ported"
     }
   }
 }
