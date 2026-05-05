@@ -361,6 +361,27 @@ int FUN_001984c0(int16_t cluster_index)
   return 0;
 }
 
+/* structures_cluster_marker_end (0x198540)
+ *
+ * Asserts that the cluster-marker session is currently active (initialized),
+ * then clears the initialized flag, ending the session begun by
+ * structures_cluster_marker_begin.
+ *
+ * Confirmed: TEST AL,AL on byte ptr [0x4d92e1] at 0x198545.
+ * Confirmed: assert string "structure_globals.cluster_marker_initialized",
+ *   __FILE__ "c:\halo\SOURCE\structures\structures.c", line 0x130 (304).
+ * Confirmed: MOV byte ptr [0x4d92e1], 0 at 0x198569.
+ */
+void structures_cluster_marker_end(void)
+{
+  if (*(uint8_t *)0x4d92e1 == 0) {
+    display_assert("structure_globals.cluster_marker_initialized",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x130, true);
+    system_exit(-1);
+  }
+  *(uint8_t *)0x4d92e1 = 0;
+}
+
 bool FUN_00198800(void *scenario, int16_t portal_index, float *position,
                   float radius)
 {
@@ -503,15 +524,7 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
       structures_cluster_marker_begin();
       cluster_count_out = FUN_001989b0(cluster_count, position, radius,
                                        max_count, intersected_indices);
-
-      if (*(uint8_t *)0x4d92e1 == 0) {
-        display_assert("structure_globals.cluster_marker_initialized",
-                       "c:\\halo\\SOURCE\\structures\\structures.c", 0x130,
-                       true);
-        system_exit(-1);
-      }
-
-      *(uint8_t *)0x4d92e1 = 0;
+      structures_cluster_marker_end();
       return cluster_count_out;
     }
 

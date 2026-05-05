@@ -78,6 +78,27 @@ void scenario_location_reset(int *location)
   *(int16_t *)((char *)location + 6) = NONE;
 }
 
+/* FUN_0018e720 (0x18e720) — bsp3d_find_leaf_point
+ *
+ * Looks up the BSP3D leaf containing a given 3D point by traversing the
+ * bsp3d tree from the root (node 0). Asserts that the global bsp3d tree
+ * pointer is non-null before calling.
+ *
+ * Confirmed: assert "global_bsp3d" at 0xd5 (213).
+ * Confirmed: CALL 0x146db0 (bsp3d_find_leaf) with args (bsp3d, 0, point).
+ * Confirmed: single cdecl param (point pointer) at [EBP+8].
+ * Confirmed: return value is bsp3d_find_leaf result in EAX.
+ */
+int FUN_0018e720(int point)
+{
+  if (*(void **)0x5064d8 == NULL) {
+    display_assert("global_bsp3d", "c:\\halo\\SOURCE\\scenario\\scenario.c",
+                   0xd5, 1);
+    system_exit(-1);
+  }
+  return (int)bsp3d_find_leaf(*(void **)0x5064d8, 0, (void *)point);
+}
+
 bool scenario_location_potentially_visible_local(void *location)
 {
   int16_t cluster_index;

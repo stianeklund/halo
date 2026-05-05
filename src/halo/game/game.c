@@ -566,3 +566,49 @@ void game_set_game_variant_from_name(const char *name)
           sizeof(game_variant_t));
   qmemcpy(&game_variant_global, &variant_copy, sizeof(game_variant_t));
 }
+
+/* FUN_000b55b0 (0xb55b0) — game_globals_difficulty_scale_get
+ *
+ * Returns the difficulty scaling factor for a given game-globals value type
+ * and team. The lookup strategy depends on game mode:
+ *   - If the game engine is running (multiplayer/co-op): force difficulty=1
+ *     (Normal) regardless of the current level setting.
+ *   - Else if team is friendly (allegiance_get_team_is_friendly(1, team)):
+ *     use the actual difficulty level from game_difficulty_level_get.
+ *   - Else: look up value_type in an override table at 0x26ddc8
+ *     (int16_t[0x23]). If the override is NONE (-1, meaning no override),
+ *     force difficulty=1. Otherwise substitute the override value_type and
+ *     use the actual difficulty level.
+ *
+ * The underlying scale is fetched by FUN_000b54e0 (@BX=value_type,
+ * @DI=difficulty) from the game globals tag (matg) difficulty block.
+ *
+ * Confirmed: CALL 0xa7460 (game_difficulty_level_get) → EDI at 0xb55ba.
+ * Confirmed: CALL 0xa8e30 (game_engine_running) → AL at 0xb55bc.
+ * Confirmed: MOV EDI,1 when running at 0xb55c5 (force Normal).
+ * Confirmed: CALL 0xa7a30 (game_allegiance_get_team_is_friendly(1, team)) at
+ * 0xb55dc. Confirmed: assert value_type in [0, 0x22] at line 0x3bd (957),
+ *   __FILE__ "c:\halo\SOURCE\game\game_globals.c".
+ * Confirmed: override table word lookup at [ECX*2 + 0x26ddc8] at 0xb5619.
+ * Confirmed: CMP AX,0xffff selects between override=NONE (EDI=1) and
+ *   override != NONE (EBX=override, EDI=actual difficulty) at 0xb5621.
+ * Confirmed: CALL 0xb54e0 with BX=value_type and DI=difficulty in all paths.
+ */
+float FUN_000b55b0(short value_type, int team)
+{
+  int16_t difficulty = game_difficulty_level_get();
+  if (game_engine_running()) {
+    return game_globals_difficulty_scale(value_type, 1);
+  }
+  if (game_allegiance_get_team_is_friendly(1, team)) {
+    return game_globals_difficulty_scale(value_type, difficulty);
+  }
+  assert_halt(value_type >= 0 && value_type < 0x23);
+  {
+    int16_t override = *(int16_t *)(0x26ddc8 + (int)value_type * 2);
+    if (override == (int16_t)0xffff) {
+      return game_globals_difficulty_scale(value_type, 1);
+    }
+    return game_globals_difficulty_scale(override, difficulty);
+  }
+}

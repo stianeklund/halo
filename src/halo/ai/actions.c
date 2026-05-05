@@ -138,6 +138,39 @@ void FUN_0001c450(int actor_handle, int old_prop, int new_prop)
   }
 }
 
+/* FUN_0001c4c0 (0x1c4c0)
+ *
+ * Dispatches the current action's handler at table slot +0x30 (0x253fd0,
+ * stride 0x38) for the given actor. The semantic role of this slot is not
+ * directly evidenced by the binary; it is the field immediately after the
+ * prop_replace handler (+0x2c) in each action_definitions entry.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1c4cf.
+ * Confirmed: actor+0x6c = action index (short), asserted in [0, 14) at
+ *   line 0xcd (205).
+ * Confirmed: IMUL ECX,ECX,0x38; MOV EAX,[ECX+0x253fd0] at 0x1c50f.
+ * Confirmed: handler called with (actor_handle); TEST EAX,EAX guards call.
+ * Confirmed: __FILE__ "c:\halo\SOURCE\ai\actions.c".
+ */
+void FUN_0001c4c0(int actor_handle)
+{
+  typedef void (*action_slot30_fn_t)(int);
+
+  char *actor;
+  short action;
+  action_slot30_fn_t handler;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  action = *(short *)(actor + 0x6c);
+
+  assert_halt(action >= 0 && action < 14);
+
+  handler = *(action_slot30_fn_t *)(0x253fd0 + action * 0x38);
+  if (handler != NULL) {
+    handler(actor_handle);
+  }
+}
+
 /* FUN_0001d030 (0x1d030) — actor_set_action
  *
  * Transitions an actor to a new action type: calls the old action's exit

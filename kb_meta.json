@@ -1,6 +1,10 @@
 {
   "md5": "c7869590a1c64ad034e49a5ee0c02465",
   "symbols": {
+    "0x12140": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12170": {
       "kind": "function",
       "status": "ported",
@@ -41,11 +45,19 @@
         "Object name vector_math.obj is provisional; the true .obj name is unknown since the function has no string references or assert paths."
       ]
     },
+    "0x13070": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x14540": {
       "kind": "function",
       "status": "ported"
     },
     "0x178d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ad60": {
       "kind": "function",
       "status": "ported"
     },
@@ -67,6 +79,9 @@
     },
     "0x1c450": {
       "kind": "function",
+      "status": "ported"
+    },
+    "0x1c4c0": {
       "status": "ported"
     },
     "0x1d030": {
@@ -120,6 +135,7 @@
       ]
     },
     "0x2d350": {
+      "kind": "function",
       "status": "ported"
     },
     "0x2fc20": {
@@ -1772,6 +1788,9 @@
     },
     "0xb2660": {
       "kind": "function",
+      "status": "ported"
+    },
+    "0xb55b0": {
       "status": "ported"
     },
     "0xb5640": {
@@ -6691,13 +6710,10 @@
       "kind": "data",
       "status": "ported"
     },
-    "0x1ad60": {
+    "0x198540": {
       "status": "ported"
     },
-    "0x12140": {
-      "status": "ported"
-    },
-    "0x13070": {
+    "0x18e720": {
       "status": "ported"
     }
   }

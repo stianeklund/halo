@@ -315,7 +315,8 @@
         },
         {
           "decl": "void FUN_0001c4c0(int actor_handle);",
-          "addr": "0x1c4c0"
+          "addr": "0x1c4c0",
+          "ported": true
         },
         {
           "addr": "0x1d030",
@@ -2315,7 +2316,16 @@
         },
         {
           "decl": "float FUN_000b55b0(short value_type, int team);",
-          "addr": "0xb55b0"
+          "addr": "0xb55b0",
+          "ported": true
+        },
+        {
+          "decl": "float game_globals_difficulty_scale(int16_t value_type@<bx>, int16_t difficulty@<di>);",
+          "addr": "0xb54e0"
+        },
+        {
+          "decl": "float FUN_000b5590(int16_t value_type);",
+          "addr": "0xb5590"
         }
       ]
     },
@@ -6291,7 +6301,8 @@
         },
         {
           "decl": "int FUN_0018e720(int point);",
-          "addr": "0x18e720"
+          "addr": "0x18e720",
+          "ported": true
         }
       ]
     },
@@ -6961,7 +6972,8 @@
         },
         {
           "decl": "void FUN_00198540(void);",
-          "addr": "0x198540"
+          "addr": "0x198540",
+          "ported": true
         }
       ]
     },
