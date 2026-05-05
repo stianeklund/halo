@@ -190,6 +190,122 @@ void actors_dispose_from_old_map(void)
   data_make_invalid(swarm_component_data);
 }
 
+/* FUN_0003ac20 (0x3ac20) — actor_check_unit_activation_logic
+ *
+ * Validates that a unit's activation state is consistent with the actor's
+ * dormancy flag. For top-level objects only (parent_object_index == -1): if
+ * the unit was deactivated more than 30 ticks ago and its active-flag differs
+ * from what the actor expects, fires an activation-logic error.
+ *
+ * Parameters:
+ *   actor_handle — cdecl stack arg: actor datum handle
+ *   reason       — cdecl stack arg: string label used in the error message
+ *   obj_handle   — @<eax> register arg: handle of the unit/object to check
+ *
+ * Confirmed: MOV ESI,EAX at 0x3ac25 captures register arg.
+ * Confirmed: datum_get(*(data_t**)0x5a8d50, obj_handle) at 0x3ac2f → header.
+ * Confirmed: object_get_and_verify_type(obj_handle, 3) at 0x3ac39 → obj ptr.
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3ac4b → actor ptr.
+ * Confirmed: [obj+0xcc] == -1 guard (parent_object_index) at 0x3ac5b.
+ * Confirmed: game_time_get() at 0x3ac60; [obj+0x2dc]+0x1e compared at 0x3ac6e.
+ * Confirmed: [actor+0x13] vs (~[header+0x2])&1 mismatch check at 0x3ac7f.
+ * Confirmed: error(2, "%s unit activation logic error", reason) at 0x3ac8e. */
+void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax> */)
+{
+  char *header;
+  char *obj;
+  char *actor;
+  int now;
+
+  /* Resolve object header and full object pointer */
+  header = (char *)datum_get(*(data_t **)0x5a8d50, obj_handle);
+  obj    = (char *)object_get_and_verify_type(obj_handle, 3);
+  actor  = (char *)datum_get(actor_data, actor_handle);
+
+  /* Only check top-level objects (no parent) */
+  if (*(int *)(obj + 0xcc) != -1) {
+    return;
+  }
+
+  /* Only flag if the unit has been deactivated long enough */
+  now = game_time_get();
+  if (*(int *)(obj + 0x2dc) + 0x1e >= now) {
+    return;
+  }
+
+  /* Check: actor's active-flag must match what the object header reports.
+   * header->unk_2 bit0 == 0 means active; actor+0x13 == 0 means dormant.
+   * If (~header->unk_2 & 1) != actor->active then it's a logic error. */
+  if (*(unsigned char *)(actor + 0x13) != ((~*(unsigned char *)(header + 0x2)) & 1u)) {
+    error(2, "%s unit activation logic error", reason);
+  }
+}
+
+/* FUN_0003aca0 (0x3aca0) — actor_check_dormancy_logic
+ *
+ * Validates dormancy/activation consistency for all units controlled by an
+ * actor. Asserts at least one of the two dormancy flags (actor+0x8 = has_unit,
+ * actor+0x13 = active) is set. Then dispatches to FUN_0003ac20 for each
+ * unit depending on actor type:
+ *
+ *   Non-swarm (actor+0x6 == 0): checks the single unit at actor+0x18.
+ *   Swarm with no handle (actor+0x28 == -1): walks the singly-linked list
+ *     starting at actor+0x24, following obj+0x1ac, checking each object.
+ *   Swarm with handle (actor+0x28 != -1): looks up the swarm record via
+ *     swarm_data and checks each member handle in swarm->members[].
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3acb0.
+ * Confirmed: actor+0x8 and actor+0x13 both-zero assert at 0x3acbf/0x3acc6.
+ * Confirmed: actor+0x6 branch at 0x3acda.
+ * Confirmed: actor+0x18 (unit handle, individual path) checked at 0x3ad5d.
+ * Confirmed: actor+0x28 (swarm handle) checked at 0x3ace4.
+ * Confirmed: datum_get(swarm_data, actor+0x28) at 0x3acee (active swarm).
+ * Confirmed: swarm->count at [swarm+0x2] (int16_t); member handles at
+ *   [swarm+0x18+i*4]; loop counter ESI is int16 (CMP SI, word ptr).
+ * Confirmed: linked-list path: actor+0x24 head, obj+0x1ac next ptr.
+ * Confirmed: object_get_and_verify_type(handle, 3) before FUN_0003ac20 on
+ *   linked list path (EDI = obj ptr used to read next ptr at 0x3ad47).
+ * Confirmed: FUN_0003ac20 called with @EAX=obj_handle, all three paths. */
+void FUN_0003aca0(int actor_handle)
+{
+  char *actor;
+  char *swarm;
+  char *obj;
+  int obj_handle;
+  int16_t i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  /* At least one of has_unit or active must be set */
+  if (*(char *)(actor + 0x8) == 0 && *(char *)(actor + 0x13) == 0) {
+    error(2, "actor dormancy logic error");
+  }
+
+  if (*(char *)(actor + 0x6) == 0) {
+    /* Non-swarm: single unit */
+    if (*(int *)(actor + 0x18) != -1) {
+      /* @<eax> = unit handle */
+      int unit_handle = *(int *)(actor + 0x18);
+      FUN_0003ac20(actor_handle, "individual", unit_handle /* @<eax> */);
+    }
+  } else if (*(int *)(actor + 0x28) == -1) {
+    /* Swarm with no swarm-data handle: walk linked list from actor+0x24 */
+    obj_handle = *(int *)(actor + 0x24);
+    while (obj_handle != -1) {
+      obj = (char *)object_get_and_verify_type(obj_handle, 3);
+      FUN_0003ac20(actor_handle, "inactive swarm", obj_handle /* @<eax> */);
+      obj_handle = *(int *)(obj + 0x1ac);
+    }
+  } else {
+    /* Swarm with swarm-data handle: iterate members array */
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+    for (i = 0; i < *(int16_t *)(swarm + 0x2); i++) {
+      int member = *(int *)(swarm + 0x18 + (int)i * 4);
+      FUN_0003ac20(actor_handle, "active swarm", member /* @<eax> */);
+    }
+  }
+}
+
 /* FUN_0003ad80 (0x3ad80) — actor_clear_unit
  *
  * Clear the unit reference from an actor. Sets unit flags, clears the unit's
@@ -782,6 +898,43 @@ void FUN_0003ba00(void)
     }
     record = (char *)FUN_00059b50(iter);
   }
+}
+
+/* FUN_0003b5e0 (0x3b5e0) — actor_reset_action_state
+ *
+ * Resets the actor's action-related state and dispatches to the current
+ * action's update function. Unconditionally clears the word at actor+0x3b8
+ * to 0xffff (a "no-action" or invalid sentinel). If the current action state
+ * (actor+0x46c, int16_t) is 3 or 4, resets it to 0 and sets actor+0x480
+ * (action timer/handle) to -1. Finally calls FUN_0001c4c0 to dispatch to the
+ * action-specific handler indexed by actor+0x6c (state.action).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3b5ee.
+ * Confirmed: MOV CX,[EAX+0x46c] — int16_t compare at 0x3b5f3.
+ * Confirmed: OR EDX,-1 then MOV word [EAX+0x3b8],DX — unconditional store
+ *   of 0xffff at 0x3b604 (before the branch, not inside it).
+ * Confirmed: MOV word [EAX+0x46c],0x0 and MOV dword [EAX+0x480],EDX at
+ *   0x3b613/0x3b61c — conditional on CX==3||CX==4.
+ * Confirmed: FUN_0001c4c0(actor_handle) at 0x3b623 (cdecl, 1 arg). */
+void FUN_0003b5e0(int actor_handle)
+{
+  char *actor;
+  int16_t action_state;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  /* Unconditional: clear action sentinel (0xffff = no action pending) */
+  *(int16_t *)(actor + 0x3b8) = (int16_t)0xffff;
+
+  /* If action state is 3 or 4, reset it and clear the action handle */
+  action_state = *(int16_t *)(actor + 0x46c);
+  if (action_state == 3 || action_state == 4) {
+    *(int16_t *)(actor + 0x46c) = 0;
+    *(int *)(actor + 0x480) = -1;
+  }
+
+  /* Dispatch to the current action's update function */
+  FUN_0001c4c0(actor_handle);
 }
 
 /* Reassign an actor to a new encounter/squad, detaching from the old one. */
