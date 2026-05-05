@@ -320,10 +320,10 @@ void item_set_position(int item_handle, float *position, int flag)
         cross[1] = up[1];
         cross[2] = up[2];
       } else {
-        /* Use ground point marker normal (at marker+0x50) */
-        cross[0] = *(float *)(marker_buf + 0x50);
-        cross[1] = *(float *)(marker_buf + 0x54);
-        cross[2] = *(float *)(marker_buf + 0x58);
+        /* Use ground point marker normal (at marker+0x54) */
+        cross[0] = *(float *)(marker_buf + 0x54);
+        cross[1] = *(float *)(marker_buf + 0x58);
+        cross[2] = *(float *)(marker_buf + 0x5c);
       }
 
       /* Random angle in [-pi/4, pi/4] */
