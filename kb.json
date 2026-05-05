@@ -4216,21 +4216,6 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00136750(void *damage_params, int tag_index);",
-          "addr": "0x136750",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_00138e30(void *damage_params, int target_index);",
-          "addr": "0x138e30",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_00138eb0(int object_handle);",
-          "addr": "0x138eb0",
-          "ported": true
-        },
-        {
           "decl": "void object_wake(int object_handle);",
           "addr": "0x1396e0",
           "ported": true
@@ -5436,9 +5421,109 @@
       "source": "items/projectiles.c",
       "functions": [
         {
+          "decl": "void FUN_000f7cb0(void);",
+          "addr": "0xf7cb0"
+        },
+        {
+          "decl": "void FUN_000f7ce0(void);",
+          "addr": "0xf7ce0"
+        },
+        {
+          "decl": "void FUN_000f7d30(void);",
+          "addr": "0xf7d30"
+        },
+        {
+          "decl": "void FUN_000f7d50(void);",
+          "addr": "0xf7d50"
+        },
+        {
+          "decl": "float FUN_000f7d80(int projectile_tag);",
+          "addr": "0xf7d80"
+        },
+        {
+          "decl": "void FUN_000f7da0(void);",
+          "addr": "0xf7da0"
+        },
+        {
           "decl": "bool dangerous_projectiles_near_player(void);",
           "addr": "0xf7dd0",
           "ported": true
+        },
+        {
+          "decl": "void FUN_000f7e10(void);",
+          "addr": "0xf7e10"
+        },
+        {
+          "decl": "void FUN_000f7e40(void);",
+          "addr": "0xf7e40"
+        },
+        {
+          "decl": "void FUN_000f7e60(void);",
+          "addr": "0xf7e60"
+        },
+        {
+          "decl": "void FUN_000f7ec0(int projectile_handle);",
+          "addr": "0xf7ec0"
+        },
+        {
+          "decl": "void FUN_000f7fa0(void);",
+          "addr": "0xf7fa0"
+        },
+        {
+          "decl": "void FUN_000f8000(void);",
+          "addr": "0xf8000"
+        },
+        {
+          "decl": "void FUN_000f8070(void);",
+          "addr": "0xf8070"
+        },
+        {
+          "decl": "char FUN_000f80a0(float speed, float gravity, float *origin, float *target, int param_5, float *param_6, float *param_7, char param_8, float *aim_vector, float *param_10, float *param_11, float *param_12, float *param_13, float *param_14);",
+          "addr": "0xf80a0"
+        },
+        {
+          "decl": "void FUN_000f8410(void);",
+          "addr": "0xf8410"
+        },
+        {
+          "decl": "void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4, int param_5, int param_6, int param_7, int param_8, int param_9, int param_10, int param_11, int param_12, void *param_13);",
+          "addr": "0xf84d0"
+        },
+        {
+          "decl": "void FUN_000f8590(void);",
+          "addr": "0xf8590"
+        },
+        {
+          "decl": "void FUN_000f8640(void);",
+          "addr": "0xf8640"
+        },
+        {
+          "decl": "void FUN_000f8720(void);",
+          "addr": "0xf8720"
+        },
+        {
+          "decl": "void FUN_000f8920(void);",
+          "addr": "0xf8920"
+        },
+        {
+          "decl": "int FUN_000f8d30(int projectile_handle);",
+          "addr": "0xf8d30"
+        },
+        {
+          "decl": "void FUN_000f8ee0(void);",
+          "addr": "0xf8ee0"
+        },
+        {
+          "decl": "void FUN_000f90d0(void);",
+          "addr": "0xf90d0"
+        },
+        {
+          "decl": "int FUN_000f9c40(int projectile_handle);",
+          "addr": "0xf9c40"
+        },
+        {
+          "decl": "void FUN_000fac20(void);",
+          "addr": "0xfac20"
         }
       ]
     },
@@ -9037,8 +9122,119 @@
       "data": [],
       "functions": [
         {
+          "decl": "void FUN_00136750(void *damage_params, int tag_index);",
+          "addr": "0x136750",
+          "ported": true
+        },
+        {
+          "decl": "uint FUN_00136790(int object_handle);",
+          "addr": "0x136790"
+        },
+        {
+          "decl": "uint FUN_001367e0(int object_handle);",
+          "addr": "0x1367e0"
+        },
+        {
+          "decl": "void FUN_00136840(int object_handle);",
+          "addr": "0x136840"
+        },
+        {
+          "decl": "int FUN_00136890(void);",
+          "addr": "0x136890"
+        },
+        {
+          "decl": "void FUN_001368e0(int player_handle);",
+          "addr": "0x1368e0"
+        },
+        {
+          "decl": "void FUN_00136930(int player_handle);",
+          "addr": "0x136930"
+        },
+        {
+          "decl": "void FUN_00136980(int object_handle, char flag);",
+          "addr": "0x136980"
+        },
+        {
+          "decl": "void FUN_001369b0(int object_handle, char flag);",
+          "addr": "0x1369b0"
+        },
+        {
+          "decl": "void FUN_001369e0(int effect_tag_index);",
+          "addr": "0x1369e0"
+        },
+        {
+          "decl": "void FUN_00136a00(char param_1);",
+          "addr": "0x136a00"
+        },
+        {
+          "decl": "float FUN_00136a80(int object_handle, char param_2);",
+          "addr": "0x136a80"
+        },
+        {
+          "decl": "float FUN_00136ae0(int object_handle, char param_2);",
+          "addr": "0x136ae0"
+        },
+        {
+          "decl": "void FUN_00136b40(int object_handle);",
+          "addr": "0x136b40"
+        },
+        {
+          "decl": "void FUN_00136bc0(void *collision_model, int material, void *damage_effect, void *damage_params, uint *flags, float *shield_damage, float *body_damage);",
+          "addr": "0x136bc0"
+        },
+        {
+          "decl": "void FUN_00136f40(uint flags);",
+          "addr": "0x136f40"
+        },
+        {
+          "decl": "void FUN_00137170(float *direction, int param_2, short node_index, float *position);",
+          "addr": "0x137170"
+        },
+        {
+          "decl": "void FUN_00137370(void);",
+          "addr": "0x137370"
+        },
+        {
+          "decl": "void FUN_00137540(int object_handle);",
+          "addr": "0x137540"
+        },
+        {
+          "decl": "void FUN_00137620(int object_handle);",
+          "addr": "0x137620"
+        },
+        {
+          "decl": "void FUN_00137690(short region_index);",
+          "addr": "0x137690"
+        },
+        {
+          "decl": "void FUN_001377d0(int object_handle, int region_index, int node_index, uint param_4, void *collision_model, int material, void *damage_effect, void *damage_params, uint *flags, float *body_damage, void **param_11, float scale);",
+          "addr": "0x1377d0"
+        },
+        {
+          "decl": "void FUN_00137d20(void *damage_params, int object_handle, short node_index, short region_index, short permutation_index, uint flags);",
+          "addr": "0x137d20"
+        },
+        {
+          "decl": "void FUN_001384e0(int object_handle);",
+          "addr": "0x1384e0"
+        },
+        {
           "decl": "void FUN_00138900(void *damage_params, int object_handle, char recursive);",
           "addr": "0x138900"
+        },
+        {
+          "decl": "void FUN_00138e30(void *damage_params);",
+          "addr": "0x138e30",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_00138eb0(int object_handle);",
+          "addr": "0x138eb0",
+          "ported": true
+        },
+        {
+          "decl": "int FUN_00138ee0(int object_handle);",
+          "addr": "0x138ee0"
         }
       ]
     },
