@@ -36,7 +36,7 @@ void recorded_animations_dispose(void)
 /* Mark animation thread data as invalid for old map disposal. */
 void recorded_animations_dispose_from_old_map(void)
 {
-  ((void (*)(void *))0x119550)(*(void **)0x44df04);
+  data_make_invalid(*(void **)0x44df04);
 }
 
 /* Advance all active recorded animation threads by one tick.
