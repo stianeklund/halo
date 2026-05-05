@@ -127,9 +127,11 @@ void lruv_cache_dispose(void *cache)
   lruv_cache_t *c = (lruv_cache_t *)cache;
 
   lruv_cache_verify(cache, 1);
-  data_dispose(c->blocks);
+  /* blocks is inline at cache+0x44 (not debug_malloc'd), and cache itself is
+     game_state_malloc'd — neither has a debug header. Original calls
+     data_dispose + debug_free here, which fires non-fatal asserts. */
+  data_delete_all(c->blocks);
   csmemset(cache, 0, 0x44);
-  debug_free(cache, "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0xa3);
 }
 
 /* 0x11d8f0: Remove a single block from the cache's linked list and
