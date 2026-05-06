@@ -1012,6 +1012,51 @@ int unit_get_equipment(int unit_handle)
   return unit->unk_712.value;
 }
 
+/* unit_set_grenade_count (0x1aaa90)
+ *
+ * Adds count to the unit's grenade count for the given grenade_type, then
+ * records grenade_type as the "last active" grenade type in two byte fields.
+ * The grenade count array lives at unit+0x2CE (one byte per grenade type).
+ * Offsets 0x2CC and 0x2CD both receive the low byte of grenade_type; these
+ * are the last-used-grenade-type fields (two copies, presumably for different
+ * subsystems).
+ *
+ * Asserts: grenade_count >= 0; 0 <= grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES.
+ * Returns: updated grenade count (int16_t, sign-extended from byte).
+ *
+ * Confirmed: CMP word ptr [EBP+0x10],0x0 -> grenade_count is short at +0x10.
+ * Confirmed: MOV BX,[EBP+0xC] -> grenade_type is short at +0xC.
+ * Confirmed: MOV DL,byte ptr [EBP+0x10]; ADD byte ptr [EAX],DL -> byte add.
+ * Confirmed: MOV byte ptr [ESI+0x2cd],BL / MOV byte ptr [ESI+0x2cc],BL.
+ * Confirmed: MOVSX AX,byte ptr [EAX] -> return is sign-extended byte (short).
+ */
+int16_t unit_set_grenade_count(int unit_handle, int16_t grenade_type,
+                               int16_t grenade_count)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (grenade_count < 0) {
+    display_assert("grenade_count>=0", "c:\\halo\\SOURCE\\units\\units.c", 0x1c8d,
+                   1);
+    system_exit(-1);
+  }
+
+  if ((grenade_type < 0) || (grenade_type > 1)) {
+    display_assert(
+      "(grenade_type >= 0) && (grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES)",
+      "c:\\halo\\SOURCE\\units\\units.c", 0x1c8e, 1);
+    system_exit(-1);
+  }
+
+  unit[grenade_type + 0x2ce] += (char)grenade_count;
+  unit[0x2cd] = (char)grenade_type;
+  unit[0x2cc] = (char)grenade_type;
+
+  return (int16_t)unit[grenade_type + 0x2ce];
+}
+
 /* unit_try_add_grenade (0x1aa990)
  *
  * Attempts to add a grenade to the unit's inventory. The equipment object
@@ -1281,6 +1326,39 @@ bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle)
   }
 
   return is_new;
+}
+
+/* unit_get_grenade_count (0x1aae70)
+ *
+ * Returns the current grenade count for the given grenade_type from the
+ * unit's grenade count array at unit+0x2CE. If grenade_type is NONE (-1),
+ * returns 0 without reading the array. The count byte is sign-extended to
+ * int16_t before return.
+ *
+ * Asserts: grenade_type == NONE || (0 <= grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES).
+ *
+ * Confirmed: MOV SI,[EBP+0xC] -> grenade_type is short at +0xC.
+ * Confirmed: CMP SI,-0x1 / JZ -> NONE check precedes range assert.
+ * Confirmed: MOVSX AX,byte ptr [ECX+EDI+0x2CE] -> sign-extended byte return.
+ * Confirmed: XOR AX,AX in NONE branch -> return 0.
+ */
+int16_t unit_get_grenade_count(int unit_handle, int16_t grenade_type)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (grenade_type == -1)
+    return 0;
+
+  if ((grenade_type < 0) || (grenade_type > 1)) {
+    display_assert(
+      "grenade_type==NONE || (grenade_type>=0 && grenade_type<NUMBER_OF_UNIT_GRENADE_TYPES)",
+      "c:\\halo\\SOURCE\\units\\units.c", 0x1ea7, 1);
+    system_exit(-1);
+  }
+
+  return (int16_t)unit[grenade_type + 0x2ce];
 }
 
 /* unit_set_animation (0x1ab7c0)
