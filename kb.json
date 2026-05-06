@@ -3298,7 +3298,7 @@
         },
         {
           "addr": "0xcc560",
-          "decl": "void FUN_000cc560(int16_t function_index, int thread_datum, char init);",
+          "decl": "int FUN_000cc560(int16_t function_index, int thread_datum, char init);",
           "ported": true
         },
         {

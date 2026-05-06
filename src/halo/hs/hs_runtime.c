@@ -1520,11 +1520,13 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
 
 /* 0xcc560 — Evaluate an HS built-in function call by dispatching to
  * FUN_000cc3a0 with the function's formal parameter count and types
- * from the function descriptor table. */
-void FUN_000cc560(int16_t function_index, int thread_datum, char init)
+ * from the function descriptor table.
+ * Returns FUN_000cc3a0's result — callers (e.g. ai_allegiance at 0xc06b0)
+ * read EAX after this call to get the evaluated script value. */
+int FUN_000cc560(int16_t function_index, int thread_datum, char init)
 {
   char *desc = (char *)hs_function_table_get(function_index);
-  FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18), (int)(desc + 0x1a),
+  return FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18), (int)(desc + 0x1a),
                init);
 }
 

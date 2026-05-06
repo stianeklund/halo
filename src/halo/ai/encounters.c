@@ -385,7 +385,10 @@ walk_list:
     if (*(char *)(actor + 8) != '\0') {
       return (int)actor;
     }
-    /* Skip this actor — loop again */
+    /* Skip: loop within walk_list, matching asm JMP 0x59bb0.
+     * The original returns 0 when the chain ends mid-filter rather than
+     * advancing to the next encounter in the same call. */
+    goto walk_list;
   }
 }
 
