@@ -7709,6 +7709,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_001ada90(int unit_handle, float *out_vector, int flag);",
+          "addr": "0x1ada90"
+        },
+        {
           "decl": "void FUN_001adf10(int unit_handle, char param_2);",
           "addr": "0x1adf10",
           "ported": true
@@ -8779,20 +8783,23 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00021130(int actor_handle @<eax>, float *weapon_vector @<ebx>);",
-          "addr": "0x21130"
+          "decl": "void actor_combat_get_weapon_vector(int actor_handle @<eax>, float *weapon_vector @<ebx>);",
+          "addr": "0x21130",
+          "ported": true
         },
         {
-          "decl": "void FUN_00021270(int param_1, int *burst_ref, int *firing_ref);",
+          "decl": "void FUN_00021270(int actor_handle @<eax>, void *actv @<ecx>, void **burst_ref, void **firing_ref);",
           "addr": "0x21270"
         },
         {
-          "decl": "void FUN_00021590(int actor_handle @<esi>);",
-          "addr": "0x21590"
+          "decl": "void actor_combat_set_fire_timer(int actor_handle @<esi>);",
+          "addr": "0x21590",
+          "ported": true
         },
         {
-          "decl": "bool FUN_00021640(int actor_handle @<eax>, void *timing_data @<edi>);",
-          "addr": "0x21640"
+          "decl": "bool actor_combat_evaluate_firing(int actor_handle @<eax>, void *timing_data @<edi>);",
+          "addr": "0x21640",
+          "ported": true
         },
         {
           "decl": "int FUN_00022010(short mode);",
