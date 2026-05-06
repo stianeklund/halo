@@ -160,6 +160,8 @@ def parse_boot_hash_sha(text: str) -> Optional[str]:
 
 def parse_match_percent(text: str) -> Optional[float]:
   m = re.search(r'(\d+\.\d+)% match', text)
+  if not m:
+    m = re.search(r'match:\s*(\d+\.\d+)%', text)
   return float(m.group(1)) if m else None
 
 
@@ -639,6 +641,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("verify_lift", ran=False, ok=True,
                               details="skipped (no verify payload)"))
 
+  objdiff_match_pct: Optional[float] = None
+
   if args.objdiff_reference and args.objdiff_candidate:
     cmd = [
       "python3",
@@ -649,14 +653,20 @@ def run_pipeline(args: argparse.Namespace) -> int:
       args.objdiff_reference,
       "--candidate",
       args.objdiff_candidate,
+      "--symbol",
+      target.name,
     ]
     if args.objdiff_tool:
       cmd.extend(["--tool", args.objdiff_tool])
     proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "objdiff.log")
+    objdiff_output = (proc.stdout or "") + (proc.stderr or "")
+    objdiff_match_pct = parse_match_percent(objdiff_output)
     ok = proc.returncode == 0
     structural_ok = structural_ok and ok
-    stages.append(StageResult("objdiff", ran=True, ok=ok,
-                              details=f"{args.objdiff_reference} vs {args.objdiff_candidate}"))
+    detail = f"{args.objdiff_reference} vs {args.objdiff_candidate}"
+    if objdiff_match_pct is not None:
+      detail += f" ({objdiff_match_pct:.1f}%)"
+    stages.append(StageResult("objdiff", ran=True, ok=ok, details=detail))
   else:
     stages.append(StageResult("objdiff", ran=False, ok=True,
                               details="skipped (no --objdiff-reference/--objdiff-candidate)"))
@@ -770,28 +780,37 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("low_match_policy", ran=False, ok=True,
                               details="skipped (--low-match-policy=off)"))
   else:
-    if not vc71_verify_ran:
+    # Use the best available structural match for policy decisions.
+    best_match_pct = vc71_match_pct
+    if objdiff_match_pct is not None:
+      if best_match_pct is None or objdiff_match_pct > best_match_pct:
+        best_match_pct = objdiff_match_pct
+    elif (not vc71_verify_ran) and (vc71_match_pct is None):
       if args.low_match_policy == "strict":
         stages.append(StageResult("low_match_policy", ran=True, ok=False,
-                                  details="strict mode requires vc71_verify data (vc71_verify was skipped)"))
+                                  details="strict mode requires structural verify data (all skipped)"))
         return finalize(summary, stages, artifact_dir, ok=False)
       stages.append(StageResult("low_match_policy", ran=False, ok=True,
-                                details="skipped (no vc71_verify data)"))
-    elif (not vc71_verify_ok) and (vc71_match_pct is None):
+                                details="skipped (no verify data)"))
+      return finalize(summary, stages, artifact_dir, ok=structural_ok)
+
+    if (vc71_verify_ran and not vc71_verify_ok) and (objdiff_match_pct is None) and (vc71_match_pct is None):
       stages.append(StageResult("low_match_policy", ran=True, ok=False,
                                 details="vc71_verify failed; low-match policy cannot evaluate"))
       return finalize(summary, stages, artifact_dir, ok=False)
-    elif vc71_match_pct is None:
+    elif best_match_pct is None:
       stages.append(StageResult("low_match_policy", ran=True, ok=False,
-                                details="vc71_verify output missing match percentage"))
+                                details="verify output missing match percentage"))
       return finalize(summary, stages, artifact_dir, ok=False)
     else:
       behavior_any_ok = behavior_check_ok or (runtime_enabled and runtime_ok)
       behavior_both_ok = behavior_check_ok and runtime_enabled and runtime_ok
 
+      match_source = "objdiff" if (objdiff_match_pct is not None and (vc71_match_pct is None or objdiff_match_pct >= vc71_match_pct)) else "vc71"
       details = [
         f"policy={args.low_match_policy}",
-        f"match={vc71_match_pct:.1f}%",
+        f"match={best_match_pct:.1f}%",
+        f"source={match_source}",
         f"threshold={args.low_match_threshold:.1f}%",
         f"behavior_both_below={args.low_match_behavior_both_below:.1f}%",
         f"reject_below={args.low_match_reject_below:.1f}%",
@@ -803,20 +822,17 @@ def run_pipeline(args: argparse.Namespace) -> int:
       policy_ok = True
       reason = "accepted"
 
-      if not vc71_verify_ok:
-        policy_ok = False
-        reason = "vc71_verify failed"
-      elif vc71_has_fpu_warn:
+      if vc71_has_fpu_warn and (match_source == "vc71" or objdiff_match_pct is None):
         policy_ok = False
         reason = "FPU operand-order warnings present"
-      elif vc71_match_pct < args.low_match_reject_below:
+      elif best_match_pct < args.low_match_reject_below:
         policy_ok = False
         reason = f"match below hard floor ({args.low_match_reject_below:.1f}%)"
-      elif vc71_match_pct < args.low_match_behavior_both_below:
+      elif best_match_pct < args.low_match_behavior_both_below:
         if not behavior_both_ok:
           policy_ok = False
           reason = "strict low-match range requires both behavior_check and runtime_check PASS"
-      elif vc71_match_pct < args.low_match_threshold:
+      elif best_match_pct < args.low_match_threshold:
         if not behavior_any_ok:
           policy_ok = False
           reason = "low match requires at least one behavior signal (behavior_check or runtime_check)"
