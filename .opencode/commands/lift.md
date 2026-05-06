@@ -97,5 +97,5 @@ Notes:
   is available. Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
 - Use `/verify option3 <target>` only as a runtime/xemu fallback lane, not as primary structural proof.
 - Use `/verify structural <target> <new_address>` for explicit verify payload runs with a known lifted function address.
-- Use `/auto-lift` only for candidate generation/review; it must not auto-commit.
+- `/auto-lift` auto-commits on success and reverts+logs on failure. See `artifacts/auto_lift/failures/` for failure records.
 - Use `/maintain` for a standalone sort + format pass.
