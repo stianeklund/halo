@@ -1,7 +1,7 @@
 ---
 description: Target selection, Ghidra context caching, and lift delegation
 model: sonnet
-subtask: true
+subtask: false
 ---
 
 Use `halo-re-lift` for lift rules and `halo-verify-debug` for validation gates.
