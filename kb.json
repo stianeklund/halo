@@ -7203,8 +7203,9 @@
           "ported": true
         },
         {
-          "decl": "short FUN_00082850(int endpoint, int endpoint_set);",
-          "addr": "0x82850"
+          "decl": "short FUN_00082850(int *endpoint, uint32_t *endpoint_set);",
+          "addr": "0x82850",
+          "ported": true
         },
         {
           "decl": "void FUN_00082b30(void);",
