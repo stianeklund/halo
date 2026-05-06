@@ -105,11 +105,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x21130": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x211f0": {
       "kind": "function",
       "status": "ported"
     },
     "0x213c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x21590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x21640": {
       "kind": "function",
       "status": "ported"
     },

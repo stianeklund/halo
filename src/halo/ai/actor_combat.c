@@ -21,6 +21,36 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
   return 0;
 }
 
+/* 0x21130 — Get the weapon/aim direction for an actor.
+ * If the actor is in a vehicle with flag 0x100 set in the vehicle tag,
+ * copies the vehicle's position (offset 0x24). Otherwise falls back to
+ * unit aiming functions. */
+void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
+                                    float *weapon_vector /* @<ebx> */)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  int handle = *(int *)(actor + 0x18);
+
+  assert_halt(weapon_vector != NULL);
+
+  if (*(char *)(actor + 0x161) != 0) {
+    int *vehicle_obj =
+      (int *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    char *vehi_tag = (char *)tag_get(0x76656869, *vehicle_obj);
+    handle = *(int *)(actor + 0x158);
+    if ((*(unsigned int *)(vehi_tag + 0x2f0) & 0x100) != 0) {
+      weapon_vector[0] = *(float *)((char *)vehicle_obj + 0x24);
+      weapon_vector[1] = *(float *)((char *)vehicle_obj + 0x28);
+      weapon_vector[2] = *(float *)((char *)vehicle_obj + 0x2c);
+      return;
+    }
+  }
+
+  object_get_and_verify_type(handle, 3);
+  FUN_001a9900(handle, weapon_vector);
+  FUN_001ada90(handle, weapon_vector, 1);
+}
+
 char *FUN_000211f0(int actor_handle)
 {
   char *actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
@@ -34,4 +64,78 @@ char *FUN_000211f0(int actor_handle)
     }
   }
   return actv;
+}
+
+/* 0x21590 — Compute and set the fire delay timer for an actor.
+ * Uses burst/firing rate data from the actv tag, random timing,
+ * and combat property scaling. Result stored in actor.field_5f4. */
+void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  void *burst_ref;
+  void *firing_ref;
+  float random_time;
+  float result;
+
+  char *actv = FUN_000211f0(actor_handle);
+  FUN_00021270(actor_handle, actv, &burst_ref, &firing_ref);
+
+  {
+    float min_time = *(float *)((char *)burst_ref + 0x1c);
+    float max_time = *(float *)((char *)burst_ref + 0x20);
+    int *seed = get_global_random_seed_address();
+    random_time = random_real_range(seed, min_time, max_time);
+  }
+
+  result =
+    FUN_000b55b0(0xe, (int)*(unsigned short *)(actor + 0x3e)) * random_time;
+
+  if (firing_ref != NULL) {
+    float mod = *(float *)((char *)firing_ref + 4);
+    if (mod != 0.0f)
+      result *= mod;
+  }
+
+  if (*(char *)(actor + 0x1ca) != 0)
+    result *= *(float *)0x254970;
+
+  result *= 30.0f;
+  *(short *)(actor + 0x5f4) = (short)(int)result;
+}
+
+/* 0x21640 — Evaluate whether the actor should fire and compute delay.
+ * Returns false if encounter is in retreat state (field_24==4 or 5)
+ * or if actor.field_457 is set. Otherwise computes a random delay
+ * from timing_data and returns true. */
+bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
+                                  void *timing_data /* @<edi> */)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  char flag = *(char *)(actor + 0x457);
+
+  if (*(short *)(actor + 0x60c) == 1) {
+    char *encounter =
+      (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+    short enc_state = *(short *)(encounter + 0x24);
+    if (enc_state >= 4 && enc_state <= 5) {
+      *(char *)(actor + 0x3bc) = 1;
+      *(short *)(actor + 0x5f4) = 0;
+      return 0;
+    }
+  }
+
+  if (flag != 0) {
+    *(short *)(actor + 0x5f4) = 0;
+    return 0;
+  }
+
+  {
+    float min_time = *(float *)((char *)timing_data + 0x80);
+    float max_time = *(float *)((char *)timing_data + 0x84);
+    int *seed = get_global_random_seed_address();
+    float delay = random_real_range(seed, min_time, max_time);
+    *(short *)(actor + 0x5f4) = (short)(int)(delay * 30.0f);
+  }
+
+  return 1;
 }
