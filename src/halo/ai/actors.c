@@ -2011,8 +2011,8 @@ void FUN_0003dc20(int actor_handle)
         biped = (char *)object_get_and_verify_type(obj_h, 3);
         /* Second datum_get on same handle (faithful; see binary
          * 0x3dcd0–0x3dce7) */
-        char *dat = (char *)datum_get(swarm_component_data, comp_handle);
-        int no_return = -1;
+        dat = (char *)datum_get(swarm_component_data, comp_handle);
+        no_return = -1;
         if (*(short *)(biped + 0x64) == 0) {
           no_return = *(int *)(biped + 0x430);
         }
@@ -2104,7 +2104,7 @@ void FUN_0003dc20(int actor_handle)
     /* Check if actor's biped is in the passenger seat (vehicle+0x2d8) */
     if (*(int *)(parent_obj + 0x2d8) == *(int *)(actor + 0x18)) {
       *(char *)(actor + 0x161) = 1;
-      char *speed_rec = (char *)FUN_000211f0(actor_handle);
+      speed_rec = (char *)FUN_000211f0(actor_handle);
       *(char *)(actor + 0x162) =
         (*(float *)(speed_rec + 0x14c) > *(float *)0x2533c0) ? 1 : 0;
     }
@@ -2160,11 +2160,11 @@ LAB_3e02c:
   if (*(unsigned int *)(actor + 0x34) != 0xffffffff) {
     int encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
     player_base = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
-    char *scenario_base = (char *)global_scenario_get();
-    char *scenario_elem =
+    scenario_base = (char *)global_scenario_get();
+    scenario_elem =
       (char *)tag_block_get_element(scenario_base + 0x42c, encounter_idx, 0xb0);
-    int in_vehicle = *(char *)(actor + 0x99);
-    int bit5 = (*(unsigned char *)(scenario_elem + 0x20) & 0x20) != 0;
+    in_vehicle = *(char *)(actor + 0x99);
+    bit5 = (*(unsigned char *)(scenario_elem + 0x20) & 0x20) != 0;
     /* Increment when vehicle && bit clear, or on-foot && bit set */
     if (in_vehicle ? !bit5 : bit5) {
       prox_ctr = *(short *)(player_base + 0x657a);

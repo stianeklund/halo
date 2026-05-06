@@ -53,6 +53,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **Tooling:** Always prefix with `rtk`. Use `rtk fd` (files), `rtk rg` (text), `rtk ast-grep` (structure), `rtk fzf` (selecting).
 
 ### 2. Implementation & kb.json Discipline
+- **C89 only.** The original binary was compiled with MSVC 7.1, which is a C89 compiler. All lifted code must be valid C89: declare all variables at the top of their block scope, before any statements. No mixed declarations (C99). This is enforced by VC71 verify. We will stay C89 until the game is fully reimplemented.
 - **No Speculation:** Do not invent behavior or names without binary evidence.
 - **ABI Stability:** `@<reg>` annotations in `kb.json` are **immutable**. Never remove or change register assignments.
 - **New Symbols:** Register-arg callees must be added to `kb.json` with `@<reg>` and called by name.
