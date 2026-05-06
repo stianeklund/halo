@@ -359,6 +359,10 @@
           "ported": true
         },
         {
+          "decl": "int FUN_0001d730(short starting_location_index);",
+          "addr": "0x1d730"
+        },
+        {
           "decl": "char *FUN_000210f0(int actor_handle);",
           "addr": "0x210f0",
           "ported": true
@@ -391,8 +395,18 @@
       ],
       "functions": [
         {
+          "decl": "int FUN_0002a360(int actor_handle);",
+          "addr": "0x2a360",
+          "ported": true
+        },
+        {
           "addr": "0x36860",
           "decl": "void FUN_00036860(int actor_handle);",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_00036e30(int ai_handle);",
+          "addr": "0x36e30",
           "ported": true
         },
         {
@@ -409,6 +423,10 @@
           "addr": "0x3a760",
           "decl": "const char *FUN_0003a760(int16_t actor_type);",
           "ported": true
+        },
+        {
+          "decl": "int FUN_0003a800(int16_t actor_type);",
+          "addr": "0x3a800"
         },
         {
           "addr": "0x3a840",
@@ -538,6 +556,30 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
+          "addr": "0x3c2d0",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0003c330(int actor_handle, char flag);",
+          "addr": "0x3c330",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0003c370(int actor_handle);",
+          "addr": "0x3c370",
+          "ported": true
+        },
+        {
+          "decl": "int FUN_0003c410(int actv_tag_index);",
+          "addr": "0x3c410"
+        },
+        {
+          "decl": "void FUN_0003c7c0(int actv_tag_index, int unit_index);",
+          "addr": "0x3c7c0",
+          "ported": true
+        },
+        {
           "addr": "0x3ca40",
           "decl": "void FUN_0003ca40(int actor_handle, char flag);",
           "ported": true
@@ -556,6 +598,10 @@
           "decl": "void FUN_0003cff0(int actor_handle);",
           "addr": "0x3cff0",
           "ported": true
+        },
+        {
+          "decl": "int FUN_0003d6c0(int actor_handle, int unit_index);",
+          "addr": "0x3d6c0"
         },
         {
           "decl": "void FUN_0003d950(int actor_handle, char flag);",
@@ -578,48 +624,23 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003eab0(int actor_handle, int unit_index);",
+          "addr": "0x3eab0"
+        },
+        {
           "addr": "0x3ec80",
           "decl": "void FUN_0003ec80(int actor_handle@<esi>);",
           "ported": true
         },
         {
-          "decl": "void FUN_00036e30(int ai_handle);",
-          "addr": "0x36e30",
+          "decl": "int FUN_0003edc0(char flags, int unit_index, int actv_tag_index, int encounter_index, int squad_index, char param6, int exclude_actor_handle, char encounter_flag, short starting_location_index, short squad_position_index, unsigned short param11, char param12);",
+          "addr": "0x3edc0",
           "ported": true
         },
         {
           "decl": "int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index, void *starting_location, char use_major_variant, int16_t team);",
           "addr": "0x3f030",
           "ported": true
-        },
-        {
-          "decl": "int FUN_0002a360(int actor_handle);",
-          "addr": "0x2a360",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
-          "addr": "0x3c2d0",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_0003c330(int actor_handle, char flag);",
-          "addr": "0x3c330",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_0003c370(int actor_handle);",
-          "addr": "0x3c370",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_0003c7c0(int actv_tag_index, int unit_index);",
-          "addr": "0x3c7c0",
-          "ported": true
-        },
-        {
-          "decl": "int FUN_0003edc0(int flags, int unit_index, int actv_tag_index, int encounter_index, int squad_index, int param6, int param7, int encounter_flag, short param9, short param10, unsigned short param11, short param12);",
-          "addr": "0x3edc0"
         }
       ]
     },
