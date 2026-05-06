@@ -1,3 +1,15 @@
+/* FUN_00012140 (0x12140) — Subtract two 3D vectors: result = b - a.
+ * Confirmed: cdecl, 3 pointer args. Pure FPU leaf.
+ * Confirmed: arg1=a [EBP+0x8], arg2=b [EBP+0xc], arg3=result [EBP+0x10].
+ * Confirmed: FLD [ECX] / FSUB [EDX] / FSTP [EAX] where ECX=b, EDX=a,
+ * EAX=result. */
+void FUN_00012140(float *a, float *b, float *result)
+{
+  result[0] = b[0] - a[0];
+  result[1] = b[1] - a[1];
+  result[2] = b[2] - a[2];
+}
+
 /* 0x12170 — FUN_00012170: squared magnitude of a 3D vector.
  *
  * Computes vector[0]^2 + vector[1]^2 + vector[2]^2 and returns it.
@@ -20,7 +32,7 @@ float FUN_00012170(float *vector)
  * Confirmed: x87 sequence squares each component delta and sums with FADDP.
  * Confirmed: returns in ST0; no globals or calls.
  */
-float FUN_000121a0(const float *a, const float *b)
+float distance_squared3d(const float *a, const float *b)
 {
   float dx = b[0] - a[0];
   float dy = b[1] - a[1];
@@ -83,6 +95,14 @@ float normalize3d(float *v)
   return 0.0f;
 }
 
+/* FUN_00013070 (0x13070) — Dot product of two 3D vectors.
+ * Confirmed: cdecl, 2 pointer args. Pure FPU leaf.
+ * Confirmed: computes a.z*b.z + a.y*b.y + a.x*b.x (accumulation order). */
+float FUN_00013070(float *a, float *b)
+{
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
 /* 0x213c0 — Compute out = a + b (3-component). */
 void vector3d_add(float *a, float *b, float *out)
 {
@@ -125,23 +145,4 @@ int valid_real_normal2d(float *v)
   if (fabsf(diff) < *(double *)0x2549d8)
     return 1;
   return 0;
-}
-
-/* FUN_00012140 (0x12140) — Subtract two 3D vectors: result = b - a.
- * Confirmed: cdecl, 3 pointer args. Pure FPU leaf.
- * Confirmed: arg1=a [EBP+0x8], arg2=b [EBP+0xc], arg3=result [EBP+0x10].
- * Confirmed: FLD [ECX] / FSUB [EDX] / FSTP [EAX] where ECX=b, EDX=a, EAX=result. */
-void FUN_00012140(float *a, float *b, float *result)
-{
-  result[0] = b[0] - a[0];
-  result[1] = b[1] - a[1];
-  result[2] = b[2] - a[2];
-}
-
-/* FUN_00013070 (0x13070) — Dot product of two 3D vectors.
- * Confirmed: cdecl, 2 pointer args. Pure FPU leaf.
- * Confirmed: computes a.z*b.z + a.y*b.y + a.x*b.x (accumulation order). */
-float FUN_00013070(float *a, float *b)
-{
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }

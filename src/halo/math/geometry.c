@@ -1,3 +1,11 @@
+/* 0x994d0 — Negate all four components of a plane */
+void plane_negate(float *plane_in, float *plane_out)
+{
+  plane_out[0] = -plane_in[0];
+  plane_out[1] = -plane_in[1];
+  plane_out[2] = -plane_in[2];
+  plane_out[3] = -plane_in[3];
+}
 
 /* Sutherland-Hodgman 2D polygon clip against a line.
  * Source: c:\halo\SOURCE\math\geometry.c */

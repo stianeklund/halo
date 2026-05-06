@@ -1127,6 +1127,10 @@
         "Computes a normalized 2D line equation from two points; returns NULL on degenerate input."
       ]
     },
+    "0x994d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x99500": {
       "kind": "function",
       "status": "ported"

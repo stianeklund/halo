@@ -533,7 +533,7 @@ bool FUN_00042390(char param_1)
             if (*(int16_t *)(rec + 0x24) == 4 &&
                 *(float *)(rec + 0x11c) < *(float *)0x254cc8) {
               /* distance-squared check between two position fields */
-              if (FUN_000121a0((void *)(actor + 0xbc), (void *)(rec + 0xbc)) <
+              if (distance_squared3d((void *)(actor + 0xbc), (void *)(rec + 0xbc)) <
                   *(float *)0x254e74) {
                 return 1;
               }

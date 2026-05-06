@@ -5981,8 +5981,9 @@
           "ported": true
         },
         {
-          "decl": "float FUN_000121a0(const float *a, const float *b);",
-          "addr": "0x121a0"
+          "decl": "float distance_squared3d(const float *a, const float *b);",
+          "addr": "0x121a0",
+          "ported": true
         },
         {
           "decl": "float FUN_000121e0(float min, float max);",
@@ -9428,8 +9429,9 @@
           "addr": "0x106510"
         },
         {
-          "decl": "void FUN_000994d0(float *plane_in, float *plane_out);",
-          "addr": "0x994d0"
+          "decl": "void plane_negate(float *plane_in, float *plane_out);",
+          "addr": "0x994d0",
+          "ported": true
         }
       ]
     },
