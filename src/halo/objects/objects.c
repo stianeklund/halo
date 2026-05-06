@@ -805,6 +805,37 @@ void *object_iterator_next(void *iter)
 }
 
 /*
+ * cluster_partition_object_iter_first (0x13d5b0) — begin iteration over
+ * objects in a BSP cluster using the collideable partition (0x5a8d40).
+ *
+ * Wraps cluster_partition_iter_first with the collideable object partition
+ * constant. Returns the first object handle in the cluster, or -1 if none.
+ *
+ * Confirmed: PUSH EAX (param_2=cluster_idx), PUSH ECX (param_1=state),
+ *            PUSH 0x5a8d40, CALL 0x191a50. EAX passed through.
+ * Confirmed: ADD ESP,0xc (3 cdecl args cleaned by caller).
+ */
+int cluster_partition_object_iter_first(int *state, int16_t cluster_idx)
+{
+  return cluster_partition_iter_first((void *)0x5a8d40, state, cluster_idx);
+}
+
+/*
+ * cluster_partition_object_iter_next (0x13d5d0) — advance iteration over
+ * objects in a BSP cluster using the collideable partition (0x5a8d40).
+ *
+ * Wraps cluster_partition_iter_next with the collideable object partition
+ * constant. Returns the next object handle, or -1 when exhausted.
+ *
+ * Confirmed: PUSH EAX (param_1=state), PUSH 0x5a8d40, CALL 0x191660.
+ * Confirmed: ADD ESP,0x8 (2 cdecl args cleaned by caller).
+ */
+int cluster_partition_object_iter_next(int *state)
+{
+  return cluster_partition_iter_next((void *)0x5a8d40, state);
+}
+
+/*
  * object_set_garbage_flag — add or remove an object from the garbage
  * collection linked list.
  *
@@ -1135,6 +1166,67 @@ void object_reset_markers(void)
   }
   *(uint32_t *)0x5a8d28 += 1;
   object_globals->object_marker_initialized = 1;
+}
+
+/*
+ * object_marker_end (0x13ebc0) — end a marker sweep pass.
+ *
+ * Asserts that a marker pass is currently in progress (object_marker_initialized
+ * must be true), then clears the flag to signal the sweep is complete.
+ * Paired with object_reset_markers which begins the sweep.
+ *
+ * Confirmed: no prologue, no stack frame, no arguments.
+ * Confirmed: MOV EAX,[0x46f084] -> object_globals.
+ * Confirmed: MOV CL,[EAX+0x1] -> object_globals->object_marker_initialized.
+ * Confirmed: TEST CL,CL; JNZ -> skips assert if initialized (true).
+ * Confirmed: assert string "object_globals->object_marker_initialized" at line 0xdba.
+ * Confirmed: CALL 0x8d9f0 (display_assert), CALL 0x8e2f0 (system_exit(-1)).
+ * Confirmed: ADD ESP,0x14 cleans 5 args (display_assert 4 + system_exit 1).
+ * Confirmed: MOV byte ptr [EAX+0x1],0x0 -> clears object_marker_initialized.
+ */
+void object_marker_end(void)
+{
+  if (!object_globals->object_marker_initialized) {
+    display_assert("object_globals->object_marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0xdba, 1);
+    system_exit(-1);
+  }
+  object_globals->object_marker_initialized = 0;
+}
+
+/*
+ * object_mark (0x13ec50) — mark an object with the current generation.
+ *
+ * Looks up the object (any type), asserts a marker sweep is in progress,
+ * then compares the object's marker_generation (obj+0x08) against the
+ * global generation counter at 0x5a8d28. If they differ, stamps the object
+ * with the current generation and returns 1 (newly marked). If equal,
+ * returns 0 (already marked this sweep).
+ *
+ * Confirmed: PUSH -1, PUSH EAX -> object_get_and_verify_type(handle, -1).
+ * Confirmed: MOV ECX,[0x46f084]; MOV AL,[ECX+0x1] -> object_marker_initialized.
+ * Confirmed: ADD ESP,0x8 cleans 2 args for object_get_and_verify_type.
+ * Confirmed: assert "object_globals->object_marker_initialized" at line 0xdd7.
+ * Confirmed: MOV EAX,[0x5a8d28] -> global marker generation counter.
+ * Confirmed: CMP [ESI+0x8],EAX -> obj->marker_generation at offset 0x08.
+ * Confirmed: MOV AL,0x1 / XOR AL,AL for return 1/0 (byte-sized).
+ */
+int object_mark(int object_handle)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  if (!object_globals->object_marker_initialized) {
+    display_assert("object_globals->object_marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0xdd7, 1);
+    system_exit(-1);
+  }
+
+  if (obj->marker_generation != *(uint32_t *)0x5a8d28) {
+    obj->marker_generation = *(uint32_t *)0x5a8d28;
+    return 1;
+  }
+  return 0;
 }
 
 void FUN_0013ecb0(int object_handle);

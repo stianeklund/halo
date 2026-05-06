@@ -4523,6 +4523,12 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13d5b0": {
+      "status": "ported"
+    },
+    "0x13d5d0": {
+      "status": "ported"
+    },
     "0x13d640": {
       "kind": "function",
       "status": "ported",
@@ -4597,6 +4603,12 @@
     },
     "0x13eb70": {
       "kind": "function",
+      "status": "ported"
+    },
+    "0x13ebc0": {
+      "status": "ported"
+    },
+    "0x13ec50": {
       "status": "ported"
     },
     "0x13ecb0": {
@@ -5619,6 +5631,7 @@
       "status": "ported"
     },
     "0x1a93e0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x1a9520": {
@@ -5911,6 +5924,9 @@
       "uncertain": [
         "0x1ab7c0 uses three register args (EAX, EDI, BX); current inline asm saves/restores EDI and EBX via push/pop which may cause stack misalignment issues under some calling conventions."
       ]
+    },
+    "0x1b5df0": {
+      "status": "ported"
     },
     "0x1b7ee0": {
       "kind": "function",

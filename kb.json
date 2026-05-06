@@ -4676,20 +4676,24 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0013d5b0(int object_handle, int tick);",
-          "addr": "0x13d5b0"
+          "decl": "int cluster_partition_object_iter_first(int *state, int16_t cluster_idx);",
+          "addr": "0x13d5b0",
+          "ported": true
         },
         {
-          "decl": "int FUN_0013d5d0(int object_handle);",
-          "addr": "0x13d5d0"
+          "decl": "int cluster_partition_object_iter_next(int *state);",
+          "addr": "0x13d5d0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0013ebc0(void);",
-          "addr": "0x13ebc0"
+          "decl": "void object_marker_end(void);",
+          "addr": "0x13ebc0",
+          "ported": true
         },
         {
-          "decl": "int FUN_0013ec50(int object_handle);",
-          "addr": "0x13ec50"
+          "decl": "int object_mark(int object_handle);",
+          "addr": "0x13ec50",
+          "ported": true
         }
       ]
     },
@@ -7788,7 +7792,7 @@
         {
           "decl": "int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position);",
           "addr": "0x1b5df0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool vehicle_moving_near_any_player(void);",
