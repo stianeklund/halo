@@ -101,7 +101,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 ### 4. Commit Discipline
 - **Use `/lift` for all new function ports.** Do not manually implement and commit lift work without going through the `/lift` skill. It runs ABI audit, build, and verification stages that catch real bugs (calling convention mismatches, register-arg errors). Bypassing it has caused page faults and silent regressions.
 - **No Freeform Messages:** Never write freeform lift commit messages.
-- **No Auto-Lift Commits:** Legacy `tools/llm_auto_lift.py` `review`/`promote` artifacts must not be committed directly. Use the standard lift commit generator.
+- **Auto-Lift Commit Policy:** `/auto-lift` auto-commits on pipeline success (via `generate_lift_commit.py`) and reverts+logs on failure (to `artifacts/auto_lift/failures/`). Legacy `review`/`promote` artifacts must not be committed directly.
 - **Standard Command:** After staging changes, run:
   ```bash
   rtk python3 tools/audit/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
