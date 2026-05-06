@@ -567,36 +567,7 @@ void FUN_000425b0(void)
   FUN_00042390(1);
 }
 
-/* Entry struct for FUN_00041420 firing-position candidate buffer.
- * Each entry is 0x28 bytes. FUN_000413c0 writes them via ESI register.
- * Layout confirmed from FUN_000413c0 disasm and FUN_00041590 field accesses:
- *
- *   +0x00  bool     occupied (0 = available, 1 = selected winner)
- *   +0x01  bool     type flag: 0 = segment-pair test (FUN_0010e040),
- *                              1 = point+sphere test  (FUN_0010bc70)
- *   +0x02  int16_t  padding (unused)
- *   +0x04  float[3] line_start (vec3_a — first endpoint / sphere center)
- *   +0x10  float[3] line_dir   (vec3_b — direction / zero for sphere)
- *   +0x18  float    scalar_a   (local_8 from FUN_001a0890)
- *   +0x1c  int      handle_a   (actor handle from clump iteration)
- *   +0x20  int      handle_b   (second exclusion handle — compared to param_2)
- *   +0x24  float    radius     (local_8 + DAT_00256140 — sphere radius or
- *                               segment endpoint distance)
- *
- * Confirmed: entry size = 0x28 bytes; buffer holds up to 0x20 entries.
- * FUN_000413c0 iterates via ESI += 0x28 (LEA ESI,[EAX + EDX*8] where EAX
- * is the entry index multiplied to i*5, SHL 3 → i*0x28). */
-typedef struct {
-    bool       occupied;   /* +0x00 */
-    bool       is_sphere;  /* +0x01 */
-    int16_t    _pad;       /* +0x02 */
-    float      vec_a[3];   /* +0x04 */
-    float      vec_b[3];   /* +0x10 */
-    float      scalar_a;   /* +0x18 */
-    int        handle_a;   /* +0x1c */
-    int        handle_b;   /* +0x20 */
-    float      radius;     /* +0x24 */
-} ai_firing_pos_entry_t;   /* size = 0x28 */
+/* ai_firing_pos_entry_t: see types.h for layout. */
 
 /* FUN_00041590: test whether the actor can fire at a target through any
  * candidate firing position, and return the best candidate handle.
@@ -684,4 +655,186 @@ bool FUN_00041590(int actor_handle, int excluded_handle, float *origin,
         *result_out = result_datum;
     }
     return (bool)success;
+}
+
+/* FUN_000413c0: fill one ai_firing_pos_entry_t in the candidate buffer.
+ *
+ * Register args (thunk loads before CALL):
+ *   ESI = ai_firing_pos_entry_t *entry  — pointer to the slot to fill
+ *   EDI = int unit_handle               — the object handle passed through
+ *                                         as entry->handle_b and as arg to
+ *                                         biped_get_camera_height_and_offset
+ *
+ * Stack arg:
+ *   [EBP+0x8] = int actor_handle        — stored as entry->handle_a
+ *
+ * Calls biped_get_camera_height_and_offset(unit_handle, &entry->vec_a[0],
+ *   &height_offset, &camera_height) to populate the biped's eye position.
+ *
+ * is_sphere:  height_offset == 0.0f (height_offset at [EBP-4];
+ *             compared against DAT_002533c0 = 0.0f via FCOMP).
+ * scalar_a:   height_offset ([EBP-4]).
+ * radius:     camera_height ([EBP-8]) + DAT_00256140 (~0.15f).
+ * handle_a:   actor_handle ([EBP+0x8]).
+ * handle_b:   unit_handle (EDI).
+ * occupied:   0 (CL = 0, XOR ECX,ECX done before test; written last).
+ * vec_b[0/1]: 0 (ECX = 0).
+ *
+ * Store-offset table (from disasm, NOT decompiler):
+ *   [ESI+0x01] = is_sphere            MOV byte [ESI+1], AL (0x41402)
+ *   [ESI+0x10] = vec_b[0] = 0         MOV dword [ESI+0x10], ECX (0x41408)
+ *   [ESI+0x14] = vec_b[1] = 0         MOV dword [ESI+0x14], ECX (0x4140b)
+ *   [ESI+0x18] = scalar_a             MOV dword [ESI+0x18], EAX (0x4140e)
+ *   [ESI+0x24] = radius (fstp)        FSTP float [ESI+0x24]     (0x41411)
+ *   [ESI+0x1c] = handle_a             MOV dword [ESI+0x1c], EDX (0x41414)
+ *   [ESI+0x20] = handle_b (EDI)       MOV dword [ESI+0x20], EDI (0x41417)
+ *   [ESI+0x00] = occupied = 0         MOV byte [ESI], CL        (0x4141a)
+ *
+ * Note: MSVC reorders stores (pipeline scheduling). occupied written last
+ * even though it logically comes first. Preserved here in disasm order.
+ *
+ * Confirmed: cdecl, 1 stack arg, RET (no stack cleanup in callee).
+ * Confirmed: ADD ESP,0x10 at 0x413e1 cleans all 4 pushes to 0x1a0890. */
+void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
+                  int actor_handle)
+{
+    float height_offset;
+    float camera_height;
+
+    biped_get_camera_height_and_offset(unit_handle,
+                                       (vector3_t *)entry->vec_a,
+                                       &height_offset,
+                                       &camera_height);
+
+    /* is_sphere: true when biped has no height offset (eye at ground level) */
+    entry->is_sphere = (height_offset == 0.0f);
+    entry->vec_b[0]  = 0.0f;
+    entry->vec_b[1]  = 0.0f;
+    entry->scalar_a  = height_offset;
+    entry->radius    = camera_height + *(float *)0x256140;
+    entry->handle_a  = actor_handle;
+    entry->handle_b  = unit_handle;
+    entry->occupied  = 0;
+}
+
+/* FUN_00041420: build the firing-position candidate list for an actor.
+ *
+ * Iterates two linked lists:
+ *   1. The actor's own encounter clump (via FUN_00059a00/FUN_00059a50 on
+ *      actor->clump_handle at actor_record+0x34).  For each member:
+ *        - skip if member handle == actor_handle (self)
+ *        - skip if count >= max_count
+ *        - skip if member has no object (member+0x18 == -1)
+ *        - skip if member is already targeting something (member+0x158 != -1)
+ *        Calls FUN_00064ab0(actor_handle, member_object_handle) to get a
+ *        staging handle, then FUN_000413c0(@esi=entry, @edi=object_handle,
+ *        actor_handle_from_64ab0) to fill the slot.
+ *
+ *   2. A secondary prop/enemy list (via FUN_00064540/FUN_00064570).
+ *      For each entry:
+ *        - skip if entry+0x60 is nonzero (flag)
+ *        - skip if entry+0x127 is nonzero (flag)
+ *        - skip if weapon-slot type != 3 (entry+0x24)
+ *        - skip if entry+0x110 != -1
+ *        - verify via object_get_and_verify_type that object type bit 0 is set
+ *        - skip if both are in the same encounter (same encounter handle)
+ *        - skip if count >= max_count
+ *        Calls FUN_000413c0(@esi=entry, @edi=entry_object_handle,
+ *        local_10[0]) to fill the slot.
+ *
+ * Returns count of candidates written (int16_t in BX, returned via AX).
+ *
+ * Entry pointer arithmetic (confirmed from disasm):
+ *   MOVSX EAX,BX               ; EAX = count (sign-extended)
+ *   LEA EAX,[EAX + EAX*4]      ; EAX = count * 5
+ *   LEA ESI,[buf + EAX*8]      ; ESI = buf + count * 0x28
+ *
+ * Confirmed: 3 stack args, cdecl, returns int16_t in AX (MOV AX,BX at epilog).
+ * Confirmed: ESI restored to param_1 at 0x4149f/0x414a2 after inner call.
+ * Confirmed: BX used as count throughout; EBX callee-saved across all calls.
+ * Confirmed: first loop iterator at [EBP-0x10] (12 bytes: handle/current/next).
+ *            second loop iterator at [EBP-0xc] (8 bytes: actor_handle/next).
+ *
+ * Call-site verification table — call to FUN_000413c0 at 0x4149a:
+ *   arg      | binary source         | C expr             | match?
+ *   stack[0] | PUSH EAX (ret 64ab0) | actor_handle_64ab0 | YES
+ *   @esi     | LEA ESI,[buf+cnt*40] | &buf[count]        | YES
+ *   @edi     | MOV EDI,[EDI+0x18]   | member_object_hdl  | YES
+ *
+ * Call-site verification table — call to FUN_000413c0 at 0x41567:
+ *   arg      | binary source         | C expr             | match?
+ *   stack[0] | PUSH ECX ([EBP-0xc]) | local_10[0]        | YES
+ *   @esi     | LEA ESI,[buf+cnt*40] | &buf[count]        | YES
+ *   @edi     | MOV EDI,[EDI+0x18]   | prop_object_handle | YES */
+int16_t FUN_00041420(int actor_handle, int16_t max_count,
+                     ai_firing_pos_entry_t *buf)
+{
+    char *actor;
+    char *member;
+    char *prop;
+    char *prop_obj;
+    int   prop_obj_handle;
+    int   staging;
+    int   member_object_handle;
+    int   iter_a[3]; /* [EBP-0x10]: encounter-clump iterator (12 bytes) */
+    int   local_10[2]; /* [EBP-0xc]: prop-list iterator (8 bytes) */
+    int16_t count;
+
+    actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+    count = 0;
+
+    /* --- loop 1: encounter clump members --- */
+    if (*(int *)(actor + 0x34) != -1) {
+        FUN_00059a00(iter_a, *(int *)(actor + 0x34));
+        member = (char *)FUN_00059a50(iter_a);
+        while (member) {
+            if (iter_a[1] != actor_handle &&
+                count < max_count &&
+                *(int *)(member + 0x18) != -1 &&
+                *(int *)(member + 0x158) == -1)
+            {
+                member_object_handle = *(int *)(member + 0x18);
+                staging = FUN_00064ab0(actor_handle, member_object_handle);
+                /* entry ptr = buf + count*0x28; EDI = member_object_handle */
+                FUN_000413c0(&buf[count], member_object_handle, staging);
+                count++;
+            }
+            member = (char *)FUN_00059a50(iter_a);
+        }
+    }
+
+    /* --- loop 2: prop / enemy list --- */
+    FUN_00064540(local_10, actor_handle);
+    prop = (char *)FUN_00064570(local_10);
+    while (prop) {
+        if (*(char *)(prop + 0x60) == 0 &&
+            *(char *)(prop + 0x127) == 0 &&
+            *(int16_t *)(prop + 0x24) == 3 &&
+            *(int *)(prop + 0x110) == -1)
+        {
+            prop_obj_handle = *(int *)(prop + 0x18);
+            prop_obj = (char *)object_get_and_verify_type(prop_obj_handle,
+                                                         (int)-1);
+            if ((1 << (*(unsigned char *)(prop_obj + 0x64) & 0x1f) & 1u) != 0) {
+                /* same-encounter filter */
+                if (*(int *)(actor + 0x34) == -1 ||
+                    *(int *)(prop + 0x1c) == -1 ||
+                    *(int *)((char *)datum_get(*(void **)0x6325a4,
+                                               *(int *)(prop + 0x1c)) + 0x34)
+                        != *(int *)(actor + 0x34))
+                {
+                    if (count < max_count) {
+                        prop_obj_handle = *(int *)(prop + 0x18);
+                        /* entry ptr = buf + count*0x28; EDI = prop_obj_handle */
+                        FUN_000413c0(&buf[count], prop_obj_handle,
+                                     local_10[0]);
+                        count++;
+                    }
+                }
+            }
+        }
+        prop = (char *)FUN_00064570(local_10);
+    }
+
+    return count;
 }

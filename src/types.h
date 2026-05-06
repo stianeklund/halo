@@ -874,4 +874,34 @@ typedef struct
 cs(packet_header, 0x1);
 co(packet_header, type, 0x00);
 
+/* ai_firing_pos_entry_t — one slot in the firing-position candidate buffer
+ * built by FUN_00041420 and consumed by FUN_00041590.
+ * Entry stride = 0x28 bytes; buffer holds up to 0x20 entries.
+ *
+ * Note: vec_b[3] as declared occupies +0x10..+0x18, but the binary only ever
+ * writes two elements (vec_b[0] and vec_b[1] = 0.0f) via FUN_000413c0.
+ * scalar_a at +0x18 shares the same offset as vec_b[2] — the name
+ * distinguishes its role (height_offset from biped_get_camera_height_and_offset).
+ * Layout confirmed from FUN_000413c0 disasm stores at 0x41402–0x4141a. */
+typedef struct {
+    bool       occupied;   /* +0x00: 0 = candidate; 1 = selected winner */
+    bool       is_sphere;  /* +0x01: 0 = segment test; 1 = sphere test  */
+    int16_t    _pad;       /* +0x02: unused                              */
+    float      vec_a[3];   /* +0x04: biped eye position (from biped_get_camera_height_and_offset) */
+    float      vec_b[2];   /* +0x10: line direction or zero for sphere   */
+    float      scalar_a;   /* +0x18: height_offset (biped camera height) */
+    int        handle_a;   /* +0x1c: actor handle (return from FUN_00064ab0 / local_10[0]) */
+    int        handle_b;   /* +0x20: object/unit handle (EDI at call to FUN_000413c0) */
+    float      radius;     /* +0x24: camera_height + DAT_00256140        */
+} ai_firing_pos_entry_t;   /* size = 0x28 */
+cs(ai_firing_pos_entry_t, 0x28);
+co(ai_firing_pos_entry_t, occupied,  0x00);
+co(ai_firing_pos_entry_t, is_sphere, 0x01);
+co(ai_firing_pos_entry_t, vec_a,     0x04);
+co(ai_firing_pos_entry_t, vec_b,     0x10);
+co(ai_firing_pos_entry_t, scalar_a,  0x18);
+co(ai_firing_pos_entry_t, handle_a,  0x1c);
+co(ai_firing_pos_entry_t, handle_b,  0x20);
+co(ai_firing_pos_entry_t, radius,    0x24);
+
 #endif /* TYPES_H */

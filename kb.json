@@ -706,11 +706,13 @@
         },
         {
           "addr": "0x413c0",
-          "decl": "void FUN_000413c0(int actor_handle);"
+          "decl": "void FUN_000413c0(ai_firing_pos_entry_t *entry@<esi>, int unit_handle@<edi>, int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x41420",
-          "decl": "short FUN_00041420(int actor_handle, short max_count, void *buf);"
+          "decl": "int16_t FUN_00041420(int actor_handle, int16_t max_count, ai_firing_pos_entry_t *buf);",
+          "ported": true
         }
       ]
     },
@@ -9053,6 +9055,14 @@
         {
           "decl": "void FUN_0005dfb0(void);",
           "addr": "0x5dfb0"
+        },
+        {
+          "decl": "void FUN_00059a00(int *iter, int clump_handle);",
+          "addr": "0x59a00"
+        },
+        {
+          "decl": "int FUN_00059a50(int *iter);",
+          "addr": "0x59a50"
         }
       ]
     },
