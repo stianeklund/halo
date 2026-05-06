@@ -24,6 +24,8 @@ Use it to validate structural closeness:
 3. Use the MCP server to:
    - `run_relocation_synthesizer`
    - `export_delinked_object`
+   
+   Or use the CLI: `python3 tools/audit/batch_delink.py --object <name>`
 4. Build the project normally.
 5. Compare the delinked reference object with the compiled candidate object
    using the existing objdiff tooling.
@@ -67,20 +69,14 @@ a page fault inside `stack_walk` several frames downstream.
 
 Procedure for a suspect function (**fully automated, no GUI interaction**):
 
-1. Resolve the function's body range from Ghidra:
-   `mcp__ghidra__get_function_by_address(addr)` returns `Body: <start> - <end>`.
-   Or take `addr` from `kb.json` and the end from the next address in the
-   sorted listing. Format the range as `"0x<start>-0x<end>"` (hyphen
-   separator).
-2. `mcp__ghidra-live__run_relocation_synthesizer(selection_mode="range", range=<range>)` —
-   synthesize relocations for the range.
-3. `mcp__ghidra-live__export_delinked_object(export_path=<out.o>, selection_mode="range", range=<range>, run_relocation_synthesizer=false)` —
-   produces a COFF `.o`. Pass `run_relocation_synthesizer=false` since
-   step 2 already ran it.
-4. Build normally (`cmake --build build`).
-5. Run `tools/verify/objdiff_lift.py` with the delinked object as `--reference`
+1. Resolve the function's object name from `kb.json`.
+2. Run `python3 tools/audit/batch_delink.py --object <name>` to export
+   the delinked reference object. This handles relocation synthesis and
+   COFF export in one step.
+3. Build normally (`cmake --build build`).
+4. Run `tools/verify/objdiff_lift.py` with the delinked object as `--reference`
    and our corresponding compiled object as `--candidate`.
-6. Scan the diff for systematic `[reg+N]` store-offset mismatches across
+5. Scan the diff for systematic `[reg+N]` store-offset mismatches across
    adjacent writes with the same source registers — the signature of a
    rotated assignment.
 
@@ -97,6 +93,12 @@ Ghidra won't create intermediate directories for you.
 
 Verified end-to-end against `FUN_000930a0` (`cinematic_in_progress`,
 9 bytes):
+
+```
+python3 tools/audit/batch_delink.py --object cinematic_in_progress
+```
+
+Or via MCP (direct RPC):
 
 ```
 run_relocation_synthesizer(

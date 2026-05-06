@@ -7,7 +7,7 @@ if _tools_dir not in sys.path:
 # One-shot CLI wrapper for objdiff comparisons.
 # For interactive/GUI diffing, open the repo root in objdiff — it reads objdiff.json
 # which maps every delinked/<name>.obj (target) against the build's compiled .obj (base).
-# Populate delinked/ using tools/export_delinked_object.py.
+# Populate delinked/ using tools/audit/batch_delink.py.
 import argparse
 import json
 import os

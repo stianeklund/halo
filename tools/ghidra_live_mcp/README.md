@@ -10,7 +10,7 @@ It forwards a narrow RPC surface to a Ghidra GUI plugin running inside CodeBrows
 - `get_current_program`
 - `get_current_selection`
 - `run_relocation_synthesizer`
-- `export_delinked_object`
+- `export_delinked_object` (RPC bridge — prefer `batch_delink.py --object <name>` for CLI use)
 - `list_symbols_in_range`
 - `get_last_export_status`
 

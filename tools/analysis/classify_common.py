@@ -549,13 +549,8 @@ def print_delinker_plan(results: list[CommonFunction], objects: list[dict]) -> N
             names_hint = f"  ({', '.join(named[:4])})" if named else ""
 
             print(f"  # {target}: {len(sg)} candidates{names_hint}")
-            print(f"  run_relocation_synthesizer(selection_mode=\"range\","
-                  f" range=\"0x{lo:08x}-0x{hi:08x}\")")
-            print(f"  export_delinked_object(")
-            print(f"    export_path=\"{ARTIFACTS}\\\\{label}.o\",")
-            print(f"    selection_mode=\"range\",")
-            print(f"    range=\"0x{lo:08x}-0x{hi:08x}\",")
-            print(f"    run_relocation_synthesizer=false)")
+            print(f"  python3 tools/audit/batch_delink.py --object {label}")
+            print()
             print()
 
     # 2. Gap clusters
@@ -572,13 +567,7 @@ def print_delinker_plan(results: list[CommonFunction], objects: list[dict]) -> N
 
             print(f"  # {len(fns)} functions between"
                   f" {cluster['before_obj']} / {cluster['after_obj']}")
-            print(f"  run_relocation_synthesizer(selection_mode=\"range\","
-                  f" range=\"0x{lo:08x}-0x{hi:08x}\")")
-            print(f"  export_delinked_object(")
-            print(f"    export_path=\"{ARTIFACTS}\\\\{label}.o\",")
-            print(f"    selection_mode=\"range\",")
-            print(f"    range=\"0x{lo:08x}-0x{hi:08x}\",")
-            print(f"    run_relocation_synthesizer=false)")
+            print(f"  python3 tools/audit/batch_delink.py --object {label}")
             print()
 
 

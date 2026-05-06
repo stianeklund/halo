@@ -154,7 +154,7 @@ def main():
     ref_path = REPO_ROOT / unit["base_path"]
     if not ref_path.exists():
         print(f"Delinked reference not found: {ref_path}", file=sys.stderr)
-        print("Export it via: mcp__ghidra-live__export_delinked_object")
+        print("Export it via: python3 tools/audit/batch_delink.py --object <name>")
         sys.exit(1)
 
     obj_name = source.stem + ".obj"

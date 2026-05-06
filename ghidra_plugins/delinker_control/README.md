@@ -16,7 +16,7 @@ The plugin runs inside an open CodeBrowser session and directly invokes:
 - `get_current_program`
 - `get_current_selection`
 - `run_relocation_synthesizer`
-- `export_delinked_object`
+- `export_delinked_object` (RPC bridge — prefer `batch_delink.py --object <name>` for CLI use)
 - `list_symbols_in_range`
 - `get_last_export_status`
 

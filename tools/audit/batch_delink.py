@@ -47,11 +47,12 @@ TOOLS_DIR = REPO_ROOT / "tools"
 GHIDRA_LIVE_RPC_URL = "http://127.0.0.1:18080/rpc"
 GHIDRA_LIVE_SSE_URL = "http://127.0.0.1:8091/sse"
 
-# Headless defaults (mirrors export_delinked_object.py)
+# Headless defaults (inlined from deprecated export_delinked_object.py)
 DEFAULT_GHIDRA_ROOT = "/mnt/c/Users/stian/AppData/Roaming/ghidra/ghidra_12.0.3_PUBLIC"
 DEFAULT_PROJECT_DIR = "/mnt/c/Users/stian/AppData/Roaming/ghidra/ghidra_12.0.3_PUBLIC/projects"
 DEFAULT_SCRIPT_DIR = "/mnt/c/Users/stian/ghidra_scripts"
 DEFAULT_SCRIPT_NAME = "DelinkProgram.java"
+DEFAULT_PROJECT_NAME = "cachebeta"
 DEFAULT_PROGRAM = "cachebeta.xbe"
 DEFAULT_EXPORTER = "Relocatable Object File (COFF)"
 
@@ -172,17 +173,36 @@ def export_via_headless(
     project_dir: str,
     script_dir: str,
 ) -> None:
-    script = str(TOOLS_DIR / "export_delinked_object.py")
-    cmd = [
-        sys.executable,
-        script,
-        "--ghidra-root", ghidra_root,
-        "--project-dir", project_dir,
-        "--script-dir", script_dir,
-        "--exporter", DEFAULT_EXPORTER,
-        "--output", export_path,
-        "--range", addr_range,
+    output_path = os.path.abspath(export_path)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    analyze_headless = os.path.join(ghidra_root, "support", "analyzeHeadless")
+    analyze_headless_bat = os.path.join(ghidra_root, "support", "analyzeHeadless.bat")
+    if os.name == "nt" and os.path.exists(analyze_headless_bat):
+        launcher = analyze_headless_bat
+    elif os.path.exists(analyze_headless):
+        launcher = analyze_headless
+    elif os.path.exists(analyze_headless_bat):
+        launcher = analyze_headless_bat
+    else:
+        raise FileNotFoundError("analyzeHeadless not found in Ghidra support/")
+
+    script_args = [
+        "/exporter", DEFAULT_EXPORTER,
+        "/include-range", addr_range,
+        "/export", output_path,
     ]
+    cmd = [
+        launcher,
+        project_dir,
+        DEFAULT_PROJECT_NAME,
+        "-process", DEFAULT_PROGRAM,
+        "-scriptPath", script_dir,
+        "-postScript", DEFAULT_SCRIPT_NAME,
+        *script_args,
+        "-noanalysis",
+    ]
+
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.stdout:
         print(result.stdout, end="")
@@ -190,6 +210,8 @@ def export_via_headless(
         print(result.stderr, end="", file=sys.stderr)
     if result.returncode != 0:
         raise RuntimeError(f"headless export failed (rc={result.returncode})")
+    if not os.path.exists(output_path):
+        raise RuntimeError(f"headless export did not produce output: {output_path}")
 
 
 # ---------------------------------------------------------------------------

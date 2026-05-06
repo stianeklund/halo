@@ -82,4 +82,6 @@ contains `support/buildExtension.gradle`.
    - `get_current_selection`
    - `run_relocation_synthesizer`
    - `export_delinked_object`
+   
+   Or use the CLI: `python3 tools/audit/batch_delink.py --object <name>`
 5. Compare the resulting object with the existing objdiff flow.
