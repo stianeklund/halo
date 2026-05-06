@@ -9069,27 +9069,37 @@
     {
       "name": "props.obj",
       "source": "ai/props.c",
-      "data": [],
+      "data": [
+        {
+          "decl": "data_t *prop_data;",
+          "addr": "0x5ab23c"
+        }
+      ],
       "functions": [
         {
           "decl": "void FUN_00064100(void);",
-          "addr": "0x64100"
+          "addr": "0x64100",
+          "ported": true
         },
         {
           "decl": "void FUN_00064140(void);",
-          "addr": "0x64140"
+          "addr": "0x64140",
+          "ported": true
         },
         {
           "decl": "void FUN_00064150(void);",
-          "addr": "0x64150"
+          "addr": "0x64150",
+          "ported": true
         },
         {
           "decl": "void FUN_00064160(void);",
-          "addr": "0x64160"
+          "addr": "0x64160",
+          "ported": true
         },
         {
           "decl": "void FUN_00064540(int *out, int actor_handle);",
-          "addr": "0x64540"
+          "addr": "0x64540",
+          "ported": true
         },
         {
           "decl": "int FUN_00064570(int *iter);",
