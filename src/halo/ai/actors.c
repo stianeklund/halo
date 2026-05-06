@@ -1123,6 +1123,36 @@ void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
   *(int *)(input_block + 0x28) = *(int *)(root_obj + 0x4c);
 }
 
+/* Set or clear bit 0x800 in actor flags at +0x6d0, and store target at +0x720. */
+void FUN_0003c2d0(int actor_handle, char flag, int target)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (flag) {
+    *(uint32_t *)(actor + 0x6d0) |= 0x800;
+  } else {
+    *(uint32_t *)(actor + 0x6d0) &= ~0x800u;
+  }
+  *(int *)(actor + 0x720) = target;
+}
+
+/* Set or clear bit 0x1000 in actor flags at +0x6d0. */
+void FUN_0003c330(int actor_handle, char flag)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (flag) {
+    *(uint32_t *)(actor + 0x6d0) |= 0x1000;
+  } else {
+    *(uint32_t *)(actor + 0x6d0) &= ~0x1000u;
+  }
+}
+
+/* Set bit 0x2000 in actor flags at +0x6d0. */
+void FUN_0003c370(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  *(uint32_t *)(actor + 0x6d0) |= 0x2000;
+}
+
 /* FUN_0003be90 (0x3be90) — actor run internal logic / infinite-loop watchdog
  *
  * Runs the actor's decision loop up to 10 times, recording the last 5 action

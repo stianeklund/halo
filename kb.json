@@ -586,15 +586,18 @@
         },
         {
           "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
-          "addr": "0x3c2d0"
+          "addr": "0x3c2d0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003c330(int actor_handle, char flag);",
-          "addr": "0x3c330"
+          "addr": "0x3c330",
+          "ported": true
         },
         {
           "decl": "void FUN_0003c370(int actor_handle);",
-          "addr": "0x3c370"
+          "addr": "0x3c370",
+          "ported": true
         }
       ]
     },
@@ -7646,7 +7649,8 @@
         },
         {
           "decl": "bool FUN_001a9ad0(int unit_handle);",
-          "addr": "0x1a9ad0"
+          "addr": "0x1a9ad0",
+          "ported": true
         },
         {
           "decl": "bool any_unit_is_dangerous(void);",
