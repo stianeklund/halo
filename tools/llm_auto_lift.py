@@ -529,13 +529,15 @@ class ContextPackBuilder:
         return sigs[:50]
 
     def _gather_ghidra_context(self, target: LiftTarget) -> dict:
-        # Check cache first
+        # Check cache first — only trust it if it has actual content
         cache_file = CONTEXT_CACHE / f"{target.name}.json"
         if cache_file.exists():
             try:
                 cached = json.loads(cache_file.read_text(encoding="utf-8"))
-                log.info("Loaded cached Ghidra context for %s", target.name)
-                return cached
+                if cached.get("decompile_c") or cached.get("disassembly"):
+                    log.info("Loaded cached Ghidra context for %s", target.name)
+                    return cached
+                log.info("Cached context for %s is empty, will re-fetch", target.name)
             except (json.JSONDecodeError, KeyError):
                 pass
 
@@ -654,26 +656,28 @@ class ContextPackBuilder:
 # ---------------------------------------------------------------------------
 
 class GhidraMCPClient:
-    """Lightweight MCP client for the standard Ghidra MCP server."""
+    """Lightweight MCP client that keeps the SSE stream alive for responses."""
 
     ENDPOINT = "http://127.0.0.1:8090/sse"
 
-    def __init__(self, timeout: float = 15.0):
+    def __init__(self, timeout: float = 30.0):
         self.timeout = timeout
         self._session_url: Optional[str] = None
+        self._sse_stream = None
+        self._next_id = 1
 
-    def _connect(self) -> str:
+    def _connect(self):
         import urllib.request
         import urllib.parse
 
         req = urllib.request.Request(self.ENDPOINT, method="GET")
-        resp = urllib.request.urlopen(req, timeout=self.timeout)
+        self._sse_stream = urllib.request.urlopen(req, timeout=self.timeout)
 
         deadline = time.monotonic() + self.timeout
         while True:
             if time.monotonic() >= deadline:
                 raise RuntimeError("Timed out waiting for SSE bootstrap")
-            raw = resp.readline()
+            raw = self._sse_stream.readline()
             if not raw:
                 raise RuntimeError("SSE stream closed")
             line = raw.decode("utf-8", errors="replace").strip()
@@ -681,78 +685,65 @@ class GhidraMCPClient:
                 path = line[5:].strip()
                 if path.startswith("/messages/?session_id="):
                     parsed = urllib.parse.urlparse(self.ENDPOINT)
-                    return f"{parsed.scheme}://{parsed.netloc}{path}"
+                    self._session_url = f"{parsed.scheme}://{parsed.netloc}{path}"
+                    return
                 raise RuntimeError(f"Unexpected SSE payload: {path!r}")
 
     def _ensure_session(self):
-        if self._session_url:
+        if self._session_url and self._sse_stream:
             return
-        self._session_url = self._connect()
-        self._post_rpc(self._session_url, {
-            "jsonrpc": "2.0", "id": 0, "method": "initialize",
-            "params": {"protocolVersion": "2024-11-05",
-                       "capabilities": {},
-                       "clientInfo": {"name": "auto-lift", "version": "0.1.0"}},
-        })
-        self._post_rpc(self._session_url, {
-            "jsonrpc": "2.0", "method": "notifications/initialized",
-        })
+        self._connect()
+        self._post({"jsonrpc": "2.0", "id": 0, "method": "initialize",
+                     "params": {"protocolVersion": "2024-11-05",
+                                "capabilities": {},
+                                "clientInfo": {"name": "auto-lift", "version": "0.1.0"}}})
+        self._post({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}})
+        self._read_response(0)
 
-    def _post_rpc(self, url: str, payload: dict) -> Optional[dict]:
+    def _post(self, payload: dict):
         import urllib.request
-
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url, data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            if resp.status >= 400:
-                raise RuntimeError(f"HTTP {resp.status}")
-        return None
-
-    def call_tool(self, tool_name: str, arguments: dict) -> dict:
-        self._ensure_session()
-        assert self._session_url
-
-        import urllib.request
-
-        rpc_id = int(time.monotonic() * 1000) % 999999
-        payload = {
-            "jsonrpc": "2.0",
-            "id": rpc_id,
-            "method": "tools/call",
-            "params": {"name": tool_name, "arguments": arguments},
-        }
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             self._session_url, data=data,
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-
         with urllib.request.urlopen(req, timeout=self.timeout):
             pass
 
-        # Read result from SSE stream
-        sse_req = urllib.request.Request(self.ENDPOINT, method="GET")
-        with urllib.request.urlopen(sse_req, timeout=self.timeout) as resp:
-            deadline = time.monotonic() + self.timeout
-            while time.monotonic() < deadline:
-                raw = resp.readline()
-                if not raw:
-                    break
-                line = raw.decode("utf-8", errors="replace").strip()
-                if line.startswith("data:") and '"result"' in line:
-                    try:
-                        msg = json.loads(line[5:].strip())
-                        if msg.get("id") == rpc_id:
-                            return msg.get("result", {})
-                    except json.JSONDecodeError:
-                        continue
+    def _read_response(self, rpc_id: int) -> dict:
+        deadline = time.monotonic() + self.timeout
+        while time.monotonic() < deadline:
+            raw = self._sse_stream.readline()
+            if not raw:
+                break
+            line = raw.decode("utf-8", errors="replace").strip()
+            if not line.startswith("data:"):
+                continue
+            payload = line[5:].strip()
+            if not payload.startswith("{"):
+                continue
+            try:
+                msg = json.loads(payload)
+            except json.JSONDecodeError:
+                continue
+            if msg.get("id") == rpc_id:
+                if "error" in msg:
+                    raise RuntimeError(f"RPC error: {msg['error']}")
+                return msg.get("result", {})
+        raise RuntimeError(f"Timed out waiting for response to request {rpc_id}")
 
-        raise RuntimeError(f"No response for tool call {tool_name}")
+    def call_tool(self, tool_name: str, arguments: dict) -> dict:
+        self._ensure_session()
+        rpc_id = self._next_id
+        self._next_id += 1
+        self._post({
+            "jsonrpc": "2.0",
+            "id": rpc_id,
+            "method": "tools/call",
+            "params": {"name": tool_name, "arguments": arguments},
+        })
+        return self._read_response(rpc_id)
 
 
 # ---------------------------------------------------------------------------
