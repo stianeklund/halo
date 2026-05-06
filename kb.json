@@ -9371,8 +9371,9 @@
       "data": [],
       "functions": [
         {
-          "decl": "bool FUN_0014bc10(void *los_data, float *pos, void *out_hit);",
-          "addr": "0x14bc10"
+          "decl": "bool collision_features_test_los(void *features, void *los_data, void *out_hit);",
+          "addr": "0x14bc10",
+          "ported": true
         },
         {
           "decl": "void collision_features_init(void *features);",
@@ -9380,8 +9381,33 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014b6f0(int object_handle, int *collision_results, int param_3, int param_4, int param_5, int param_6, int *features);",
-          "addr": "0x14b6f0"
+          "decl": "void FUN_0014b3d0(int param_1, int object_handle, int param_3, int param_4, int param_5, int param_6, void *features);",
+          "addr": "0x14b3d0"
+        },
+        {
+          "decl": "void FUN_0014b470(int param_1, int object_handle, int param_3, int param_4, int param_5, int param_6, void *features);",
+          "addr": "0x14b470"
+        },
+        {
+          "decl": "void FUN_0014b620(int param_1, int object_handle, int param_3, int param_4, int param_5, int param_6, void *features);",
+          "addr": "0x14b620"
+        },
+        {
+          "decl": "void collision_features_add(int param_1, int *collision_results, int param_3, int param_4, int param_5, int param_6, void *features);",
+          "addr": "0x14b6f0",
+          "ported": true
+        },
+        {
+          "decl": "char FUN_0014b890(void *feature, void *los_data, float *t_hit, float *normal);",
+          "addr": "0x14b890"
+        },
+        {
+          "decl": "char FUN_0014b960(void *feature, void *los_data, float *t_hit, float *normal);",
+          "addr": "0x14b960"
+        },
+        {
+          "decl": "char FUN_0014bae0(void *feature, void *los_data, float *t_hit, float *normal);",
+          "addr": "0x14bae0"
         }
       ]
     },

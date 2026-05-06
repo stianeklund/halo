@@ -1590,7 +1590,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
 
     if (FUN_0014ec30(0x200380, candidate_pos, distance_a * 2.0f + distance_b,
                      distance_b, distance_a, -1, los_scratch) &&
-        FUN_0014bc10(los_scratch, candidate_pos, hit_info)) {
+        collision_features_test_los(los_scratch, candidate_pos, hit_info)) {
       int hit_object = *(int *)(hit_info + 0x20);
       if (hit_object != -1) {
         unsigned char *hit_any =
