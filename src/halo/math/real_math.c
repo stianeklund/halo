@@ -738,6 +738,17 @@ void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3)
   }
 }
 
+/* Convert a 3D direction vector to yaw/pitch angles (radians). */
+void vector_to_angles(float *out_angles, float *in_vector)
+{
+  float x = in_vector[0];
+  float y = in_vector[1];
+  float z = in_vector[2];
+
+  out_angles[0] = (float)atan2((double)y, (double)x);
+  out_angles[1] = (float)atan2((double)z, (double)sqrtf(y * y + x * x));
+}
+
 /* Convert yaw/pitch angles to a unit direction vector.
  * angles[0] = yaw, angles[1] = pitch.
  * out[0] = cos(yaw) * cos(pitch)

@@ -88,10 +88,7 @@ void FUN_000b6ea0(uint16_t local_player_index, float *direction)
   desired_yaw = (float *)(player_slot + 0xc);
 
   /* Convert direction vector to yaw/pitch angles */
-  {
-    void (*vector_to_angles)(float *, float *) = (void *)0x10cc00;
-    vector_to_angles(desired_yaw, direction);
-  }
+  vector_to_angles(desired_yaw, direction);
 
   /* assert_valid_real on desired_angles.pitch (slot+0x10) */
   if ((*(uint32_t *)(player_slot + 0x10) & 0x7f800000u) == 0x7f800000u) {
@@ -141,7 +138,7 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
   if (player_index != -1) {
     unit = (int)object_get_and_verify_type(player_index, 3);
     facing = (float *)(slot + 3);
-    ((void (*)(float *, int))0x10cc00)(facing, unit + 0x1d4);
+    vector_to_angles(facing, (float *)(unit + 0x1d4));
     if (*facing < *(float *)0x2533c0)
       *facing += *(float *)0x255a54;
     *(int16_t *)(slot + 8) = *(int16_t *)(unit + 0x2a4);
