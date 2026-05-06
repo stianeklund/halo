@@ -44,6 +44,21 @@ float FUN_000f7d80(int projectile_tag)
   return -(*(float *)0x32512c * *(float *)(projectile_tag + 0x1cc));
 }
 
+/* Compute a normalized value for a projectile tag field at offset 0x1e4.
+ * If the tag field (e.g. a max-distance or scale parameter) is greater than
+ * the global zero reference at 0x2533c0 (0.0f), returns value / field.
+ * Otherwise returns the zero reference unchanged.
+ * Used by the caller to normalize a float quantity against the tag's field,
+ * guarding against division by zero or a zero/unset field. */
+float FUN_000f7da0(void *proj_tag, float value)
+{
+  float field;
+  field = *(float *)((char *)proj_tag + 0x1e4);
+  if (field > *(float *)0x2533c0)
+    return value / field;
+  return *(float *)0x2533c0;
+}
+
 /* Return true if any projectile object (type 0x20) exists in the world.
  * Loads the projectile's tag definition as a side effect (cache priming). */
 bool dangerous_projectiles_near_player(void)
