@@ -339,106 +339,151 @@ void real_matrix4x3_transform_point(void *matrix, void *point, void *out)
 /* Multiply two 4x3 matrices: out = b * a.
  * Matrix layout (13 floats each):
  *   [0]       scale
- *   [1..9]    3x3 rotation (row-major)
+ *   [1..9]    3x3 rotation (row-major: row0=forward[1..3], row1=left[4..6], row2=up[7..9])
  *   [10..12]  translation
  *
  * Result:
  *   out_rotation    = b_rotation * a_rotation
  *   out_translation = (b_translation * a_rotation) * a_scale + a_translation
- *   out_scale       = a_scale * b_scale
+ *   out_scale       = a_scale * b_scale  (x87 FLD/FMUL/FSTP)
  *
- * The original uses SSE1 (MULPS/ADDPS/SHUFPS) for the 3x3 and translation
- * parts, then x87 FLD/FMUL/FSTP for the scale multiply.
- * round_to_float forces intermediate results to 32-bit precision to match
- * the original SSE arithmetic (Clang keeps intermediates in x87 80-bit
- * registers under -mno-sse). */
-static float matrix4x3_round_to_float(float value)
-{
-  volatile float rounded = value;
-  return rounded;
-}
-
+ * The original uses SSE1 (MOVSS+MOVHPS loads, SHUFPS broadcasts, MULPS/ADDPS
+ * accumulation, MOVSS+MOVHPS stores). Each row is loaded as [x, 0, y, z] in
+ * the XMM register (lane 1 unused). Row 2 is reshuffled via SHUFPS 0x36
+ * before computation, and the result row 2 is reshuffled via SHUFPS 0x8f
+ * before the store to realign lanes for MOVHPS/MOVSS output.
+ * The final scale is computed by x87 to match the original FLD/FMUL/FSTP. */
 #ifndef _MSC_VER
-__attribute__((noinline))
-#else
-__declspec(noinline)
+#define _MM_MALLOC_H_INCLUDED
+#endif
+#include <xmmintrin.h>
+
+#ifdef __clang__
+__attribute__((target("sse")))
 #endif
 void matrix4x3_multiply(float *a, float *b, float *out)
 {
-  float a1 = a[1], a2 = a[2], a3 = a[3];
-  float a4 = a[4], a5 = a[5], a6 = a[6];
-  float a7 = a[7], a8 = a[8], a9 = a[9];
-  float b1 = b[1], b2 = b[2], b3 = b[3];
-  float b4 = b[4], b5 = b[5], b6 = b[6];
-  float b7 = b[7], b8 = b[8], b9 = b[9];
-  float p0, p1, p2, scale, b10, b11, b12;
+  /* All __m128 declarations hoisted to the top for C89 (MSVC 7.1) compatibility. */
+  float *a_rows;  /* &a[1] */
+  float *b_rows;  /* &b[1] */
+  float *out_rows;  /* &out[1] */
+  __m128 row0, row1, row2;
+  __m128 xmm3, xmm4, xmm5, xmm6, xmm7;
+  __m128 t3, t4, t5, a_trans, scale_v;
 
-  p0 = matrix4x3_round_to_float(b1 * a1);
-  p1 = matrix4x3_round_to_float(b2 * a4);
-  p2 = matrix4x3_round_to_float(b3 * a7);
-  out[1] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b1 * a2);
-  p1 = matrix4x3_round_to_float(b2 * a5);
-  p2 = matrix4x3_round_to_float(b3 * a8);
-  out[2] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b1 * a3);
-  p1 = matrix4x3_round_to_float(b2 * a6);
-  p2 = matrix4x3_round_to_float(b3 * a9);
-  out[3] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b4 * a1);
-  p1 = matrix4x3_round_to_float(b5 * a4);
-  p2 = matrix4x3_round_to_float(b6 * a7);
-  out[4] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b4 * a2);
-  p1 = matrix4x3_round_to_float(b5 * a5);
-  p2 = matrix4x3_round_to_float(b6 * a8);
-  out[5] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b4 * a3);
-  p1 = matrix4x3_round_to_float(b5 * a6);
-  p2 = matrix4x3_round_to_float(b6 * a9);
-  out[6] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b7 * a1);
-  p1 = matrix4x3_round_to_float(b8 * a4);
-  p2 = matrix4x3_round_to_float(b9 * a7);
-  out[7] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b7 * a2);
-  p1 = matrix4x3_round_to_float(b8 * a5);
-  p2 = matrix4x3_round_to_float(b9 * a8);
-  out[8] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
-  p0 = matrix4x3_round_to_float(b7 * a3);
-  p1 = matrix4x3_round_to_float(b8 * a6);
-  p2 = matrix4x3_round_to_float(b9 * a9);
-  out[9] = matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2);
+  a_rows   = a + 1;
+  b_rows   = b + 1;
+  out_rows = out + 1;
 
-  b10 = b[10];
-  b11 = b[11];
-  b12 = b[12];
-  scale = a[0];
-  p0 = matrix4x3_round_to_float(b10 * a1);
-  p1 = matrix4x3_round_to_float(b11 * a4);
-  p2 = matrix4x3_round_to_float(b12 * a7);
-  out[10] = matrix4x3_round_to_float(
-    matrix4x3_round_to_float(
-      matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2) *
-      scale) +
-    a[10]);
-  p0 = matrix4x3_round_to_float(b10 * a2);
-  p1 = matrix4x3_round_to_float(b11 * a5);
-  p2 = matrix4x3_round_to_float(b12 * a8);
-  out[11] = matrix4x3_round_to_float(
-    matrix4x3_round_to_float(
-      matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2) *
-      scale) +
-    a[11]);
-  p0 = matrix4x3_round_to_float(b10 * a3);
-  p1 = matrix4x3_round_to_float(b11 * a6);
-  p2 = matrix4x3_round_to_float(b12 * a9);
-  out[12] = matrix4x3_round_to_float(
-    matrix4x3_round_to_float(
-      matrix4x3_round_to_float(matrix4x3_round_to_float(p0 + p1) + p2) *
-      scale) +
-    a[12]);
+  /* Load a's 3 rotation rows into XMM registers.
+   * Pattern: MOVSS loads first component to lane 0 (lanes 1-3 zeroed),
+   * MOVHPS loads 2nd and 3rd components to lanes 2 and 3. Layout: [x,0,y,z].
+   *
+   * XMM0 = row0 (forward): [a[1], 0, a[2], a[3]]
+   * XMM1 = row1 (left):    [a[4], 0, a[5], a[6]]
+   * XMM2 = row2 (up):      loaded reversed, then SHUFPS 0x36 to [a[7],0,a[8],a[9]] */
 
+  /* XMM0: MOVSS a[1] → lane0; MOVHPS a[2],a[3] → lanes 2,3 */
+  row0 = _mm_load_ss(&a_rows[0]);
+  row0 = _mm_loadh_pi(row0, (const __m64 *)&a_rows[1]);
+  /* row0 = [a[1], 0, a[2], a[3]] */
+
+  /* XMM1: MOVSS a[4] → lane0; MOVHPS a[5],a[6] → lanes 2,3 */
+  row1 = _mm_load_ss(&a_rows[3]);
+  row1 = _mm_loadh_pi(row1, (const __m64 *)&a_rows[4]);
+  /* row1 = [a[4], 0, a[5], a[6]] */
+
+  /* XMM2: MOVSS a[9] → lane0; MOVHPS a[7],a[8] → lanes 2,3; then SHUFPS 0x36.
+   * SHUFPS 0x36 = 0b00_11_01_10: result[0]=src[2], result[1]=src[1],
+   *                               result[2]=src[3], result[3]=src[0].
+   * Before shuffle: [a[9], 0, a[7], a[8]].
+   * After  shuffle: [a[7], 0, a[8], a[9]]  (matches row0/row1 layout). */
+  row2 = _mm_load_ss(&a_rows[8]);
+  row2 = _mm_loadh_pi(row2, (const __m64 *)&a_rows[6]);
+  row2 = _mm_shuffle_ps(row2, row2, 0x36);
+  /* row2 = [a[7], 0, a[8], a[9]] */
+
+  /* Compute output row 0: b[1]*row0 + b[2]*row1 + b[3]*row2.
+   * Each b scalar is broadcast to all 4 lanes via SHUFPS imm=0. */
+  xmm3 = _mm_shuffle_ps(_mm_load_ss(&b_rows[0]), _mm_load_ss(&b_rows[0]), 0);
+  xmm4 = _mm_shuffle_ps(_mm_load_ss(&b_rows[1]), _mm_load_ss(&b_rows[1]), 0);
+  xmm5 = _mm_shuffle_ps(_mm_load_ss(&b_rows[2]), _mm_load_ss(&b_rows[2]), 0);
+  xmm3 = _mm_mul_ps(xmm3, row0);  /* b[1]*row0 */
+  xmm4 = _mm_mul_ps(xmm4, row1);  /* b[2]*row1 */
+  xmm5 = _mm_mul_ps(xmm5, row2);  /* b[3]*row2 */
+  xmm3 = _mm_add_ps(xmm3, xmm4);
+  xmm3 = _mm_add_ps(xmm3, xmm5);
+  /* xmm3 = out_row0 = [out[1], 0, out[2], out[3]] */
+
+  /* Store output row 0: MOVSS → out[1]; MOVHPS → out[2],out[3]. */
+  _mm_store_ss(&out_rows[0], xmm3);
+  _mm_storeh_pi((__m64 *)&out_rows[1], xmm3);
+
+  /* Compute output row 1: b[4]*row0 + b[5]*row1 + b[6]*row2. */
+  xmm6 = _mm_shuffle_ps(_mm_load_ss(&b_rows[3]), _mm_load_ss(&b_rows[3]), 0);
+  xmm7 = _mm_shuffle_ps(_mm_load_ss(&b_rows[4]), _mm_load_ss(&b_rows[4]), 0);
+  xmm5 = _mm_shuffle_ps(_mm_load_ss(&b_rows[5]), _mm_load_ss(&b_rows[5]), 0);
+  xmm6 = _mm_mul_ps(xmm6, row0);  /* b[4]*row0 */
+  xmm7 = _mm_mul_ps(xmm7, row1);  /* b[5]*row1 */
+  xmm5 = _mm_mul_ps(xmm5, row2);  /* b[6]*row2 */
+  xmm6 = _mm_add_ps(xmm6, xmm7);
+  xmm6 = _mm_add_ps(xmm6, xmm5);
+  /* xmm6 = out_row1 = [out[4], 0, out[5], out[6]] */
+
+  /* Compute output row 2: b[7]*row0 + b[8]*row1 + b[9]*row2. */
+  xmm7 = _mm_shuffle_ps(_mm_load_ss(&b_rows[6]), _mm_load_ss(&b_rows[6]), 0);
+  xmm4 = _mm_shuffle_ps(_mm_load_ss(&b_rows[7]), _mm_load_ss(&b_rows[7]), 0);
+  xmm5 = _mm_shuffle_ps(_mm_load_ss(&b_rows[8]), _mm_load_ss(&b_rows[8]), 0);
+  xmm7 = _mm_mul_ps(xmm7, row0);  /* b[7]*row0 */
+  xmm4 = _mm_mul_ps(xmm4, row1);  /* b[8]*row1 */
+  xmm5 = _mm_mul_ps(xmm5, row2);  /* b[9]*row2 */
+  xmm7 = _mm_add_ps(xmm7, xmm4);
+  xmm7 = _mm_add_ps(xmm7, xmm5);
+  /* xmm7 = out_row2 = [out[7], 0, out[8], out[9]] before shuffle */
+
+  /* Store output row 1: MOVSS → out[4]; MOVHPS → out[5],out[6]. */
+  _mm_store_ss(&out_rows[3], xmm6);
+  _mm_storeh_pi((__m64 *)&out_rows[4], xmm6);
+
+  /* SHUFPS 0x8f reorders row2 result for MOVHPS/MOVSS output layout.
+   * 0x8f = 0b10_00_11_11: result[0]=src[3], result[1]=src[3], result[2]=src[0], result[3]=src[2].
+   * Before: [out[7], 0, out[8], out[9]].
+   * After:  [out[9], out[9], out[7], out[8]].
+   * MOVHPS stores lanes [2,3] → out[7],out[8]; MOVSS stores lane [0] → out[9]. */
+  xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x8f);
+
+  /* Store output row 2: MOVHPS → out[7],out[8]; MOVSS → out[9]. */
+  _mm_storeh_pi((__m64 *)&out_rows[6], xmm7);
+  _mm_store_ss(&out_rows[8], xmm7);
+
+  /* Translation row: (b_translation * a_rotation) * a_scale + a_translation.
+   * b[10..12] each broadcast and multiplied against the 3 rotation rows. */
+  t3 = _mm_shuffle_ps(_mm_load_ss(&b[10]), _mm_load_ss(&b[10]), 0);
+  t4 = _mm_shuffle_ps(_mm_load_ss(&b[11]), _mm_load_ss(&b[11]), 0);
+  t5 = _mm_shuffle_ps(_mm_load_ss(&b[12]), _mm_load_ss(&b[12]), 0);
+  t3 = _mm_mul_ps(t3, row0);  /* b[10]*row0 */
+  t4 = _mm_mul_ps(t4, row1);  /* b[11]*row1 */
+  t5 = _mm_mul_ps(t5, row2);  /* b[12]*row2 */
+  t3 = _mm_add_ps(t3, t4);
+  t3 = _mm_add_ps(t3, t5);
+  /* t3 = b_trans * a_rot = [tx, 0, ty, tz] */
+
+  /* Load a_translation via MOVSS+MOVHPS pattern. */
+  a_trans = _mm_load_ss(&a[10]);
+  a_trans = _mm_loadh_pi(a_trans, (const __m64 *)&a[11]);
+  /* a_trans = [a[10], 0, a[11], a[12]] */
+
+  /* Broadcast a_scale, multiply into t3, then add a_translation. */
+  scale_v = _mm_shuffle_ps(_mm_load_ss(&a[0]), _mm_load_ss(&a[0]), 0);
+  t3 = _mm_mul_ps(t3, scale_v);
+  t3 = _mm_add_ps(t3, a_trans);
+  /* t3 = [out[10], 0, out[11], out[12]] */
+
+  /* Store translation: MOVSS → out[10]; MOVHPS → out[11],out[12]. */
+  _mm_store_ss(&out[10], t3);
+  _mm_storeh_pi((__m64 *)&out[11], t3);
+
+  /* Scale: out[0] = a[0] * b[0] via x87 FLD/FMUL/FSTP (matches original). */
   out[0] = a[0] * b[0];
 }
 

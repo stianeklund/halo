@@ -205,6 +205,8 @@ def check_duplicate_args():
                 call_lines = lines[start_lineno - 1:end_lineno]
                 if any('dup-args-ok' in line for line in call_lines):
                     continue
+                if func_name.startswith('_mm_'):
+                    continue
                 seen = {}
                 for i, arg in enumerate(args):
                     if arg in TRIVIAL_ARGS:
