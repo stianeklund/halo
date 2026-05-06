@@ -641,7 +641,8 @@
         },
         {
           "decl": "void FUN_0003eab0(int actor_handle, int unit_index);",
-          "addr": "0x3eab0"
+          "addr": "0x3eab0",
+          "ported": true
         },
         {
           "addr": "0x3ec80",

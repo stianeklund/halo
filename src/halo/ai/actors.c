@@ -3122,6 +3122,136 @@ void FUN_0003e7a0(int actor_handle /* @<eax> */)
   }
 }
 
+/* FUN_0003eab0 (0x3eab0) — link an individual (non-swarm) unit to an actor.
+ *
+ * Detaches any prior actor-unit associations (both directions) before
+ * establishing the new link.  If the actor already holds a unit, that unit is
+ * detached via FUN_0003ad80.  If the unit already belongs to a different actor,
+ * that actor is notified via FUN_0003ae60 (swarm path) and FUN_0003cc10.
+ * After checks the function writes:
+ *   actor+0x18 = unit_index  (actor->meta.unit_index)
+ *   unit+0x1a4  = actor_handle (unit->unit.actor_index)
+ * If actor is part of an encounter (actor+0x34 != -1) it syncs the encounter
+ * biped data via FUN_00059630 and copies the team word (encounter_datum+2) into
+ * unit+0x68.  actor+0x3e is then set to unit+0x68 (actor->team = unit->team).
+ * If unit health (unit+0x6e) >= 100 the actor "fully_alive" byte (actor+0x1c)
+ * is set to 1, and if an encounter exists its alive-unit counter (short at
+ * encounter+0x1c) is incremented.
+ * Runs actor input update (FUN_0003dc20), FUN_0013ff50, and activates the unit
+ * (object_activate or FUN_0013fb80 depending on actor+0x13 dormant flag).
+ * Calls FUN_001adf10(unit_index, 1).  Always ends with
+ * FUN_0003aca0(actor_handle).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3eac1.
+ * Confirmed: object_get_and_verify_type(unit_index, 3) at 0x3eace.
+ * Confirmed: early-out if unit->actor_index == actor_handle at 0x3ead5-0x3eae3.
+ * Confirmed: FUN_0003ae60(unit->swarm_actor_index, unit_index) at 0x3eaf6.
+ * Confirmed: FUN_0003cc10(unit->actor_index, 0) at 0x3eb0c.
+ * Confirmed: FUN_0003ad80(actor_handle) if actor->unit_index != -1 at 0x3eb1e.
+ * Confirmed: 4× display_assert + system_exit guard block at 0x3eb2b-0x3ebc4.
+ * Confirmed: actor+0x18 = unit_index (EBX) at 0x3ebc8.
+ * Confirmed: unit+0x1a4 = actor_handle at 0x3ebcb.
+ * Confirmed: datum_get(encounter_data, actor->encounter_handle) + FUN_00059630
+ *   at 0x3ebe1/0x3ebf0; unit+0x68 = encounter_datum+2 at 0x3ebff.
+ * Confirmed: actor+0x3e = unit+0x68 at 0x3ec07.
+ * Confirmed: unit+0x6e >= 100 → actor+0x1c = 1 at 0x3ec18 (scheduler hoisted).
+ * Confirmed: encounter+0x1c incremented when encounter != -1 at 0x3ec2e.
+ * Confirmed: FUN_0003dc20(actor_handle) at 0x3ec36.
+ * Confirmed: FUN_0013ff50(unit_index, 0) at 0x3ec3e.
+ * Confirmed: actor+0x13 selects FUN_0013fb80 vs object_activate at
+ * 0x3ec4e/0x3ec55. Confirmed: FUN_001adf10(unit_index, 1) at 0x3ec60.
+ * Confirmed: FUN_0003aca0(actor_handle) always called at 0x3ec6c. */
+void FUN_0003eab0(int actor_handle, int unit_index)
+{
+  char *actor;
+  char *unit;
+  char *encounter_datum;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  unit = (char *)object_get_and_verify_type(unit_index, 3);
+
+  /* Early-out: unit already linked to this actor. */
+  if (*(int *)(unit + 0x1a4) == actor_handle) {
+    FUN_0003aca0(actor_handle);
+    return;
+  }
+
+  /* Detach unit from its current swarm actor (if any). */
+  if (*(int *)(unit + 0x1a8) != -1) {
+    FUN_0003ae60(*(int *)(unit + 0x1a8), unit_index);
+  }
+
+  /* Detach unit from its current individual actor (if any). */
+  if (*(int *)(unit + 0x1a4) != -1) {
+    FUN_0003cc10(*(int *)(unit + 0x1a4), 0);
+  }
+
+  /* Detach actor's existing unit (if any). */
+  if (*(int *)(actor + 0x18) != -1) {
+    FUN_0003ad80(actor_handle);
+  }
+
+  /* Consistency checks: actor must not be a swarm, and both sides must now be
+   * unlinked before we form the new association. */
+  if (*(char *)(actor + 0x6) != '\0') {
+    display_assert("!actor->meta.swarm", "c:\\halo\\SOURCE\\ai\\actors.c",
+                   0x364, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(actor + 0x18) != -1) {
+    display_assert("actor->meta.unit_index == NONE",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x365, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(unit + 0x1a4) != -1) {
+    display_assert("unit->unit.actor_index == NONE",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x366, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(unit + 0x1a8) != -1) {
+    display_assert("unit->unit.swarm_actor_index == NONE",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x367, 1);
+    system_exit(-1);
+  }
+
+  /* Establish the actor <-> unit link. */
+  *(int *)(actor + 0x18) = unit_index;
+  *(int *)(unit + 0x1a4) = actor_handle;
+
+  /* Sync encounter biped data and team affiliation. */
+  if (*(int *)(actor + 0x34) != -1) {
+    encounter_datum =
+      (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+    FUN_00059630(*(int *)(actor + 0x34), unit_index);
+    *(short *)(unit + 0x68) = *(short *)(encounter_datum + 2);
+  }
+  *(short *)(actor + 0x3e) = *(short *)(unit + 0x68);
+
+  /* If unit is at full health, mark actor fully alive and bump encounter
+   * counter (MSVC hoisted the actor+0x1c store before the encounter_handle
+   * branch). */
+  if (*(short *)(unit + 0x6e) >= 100) {
+    *(char *)(actor + 0x1c) = 1;
+    if (*(int *)(actor + 0x34) != -1) {
+      encounter_datum =
+        (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+      *(short *)(encounter_datum + 0x1c) += 1;
+    }
+  }
+
+  /* Update actor input state, finalize unit flags, and activate unit. */
+  FUN_0003dc20(actor_handle);
+  FUN_0013ff50(unit_index, 0);
+  if (*(char *)(actor + 0x13) != '\0') {
+    FUN_0013fb80(unit_index);
+  } else {
+    object_activate(unit_index);
+  }
+  FUN_001adf10(unit_index, 1);
+
+  FUN_0003aca0(actor_handle);
+}
+
 /* FUN_0003ec80 (0x3ec80) — actor_activate (full AI init sequence for one actor)
  *
  * Called from FUN_0003f5f0 (ai.obj) when actor+0x6a > 0 (activation counter
