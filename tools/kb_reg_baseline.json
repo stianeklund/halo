@@ -2,7 +2,8 @@
   "functions": {
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
     "0x21130": "void actor_combat_get_weapon_vector(int actor_handle @<eax>, float *weapon_vector @<ebx>);",
-    "0x21270": "void FUN_00021270(int actor_handle @<eax>, void *actv @<ecx>, void **burst_ref, void **firing_ref);",
+    "0x21270": "void actor_combat_get_burst_parameters(int actor_handle @<eax>, void *actv @<ecx>, void **burst_ref, void **firing_ref);",
+    "0x22010": "int actor_combat_check_fire_target(int actor_handle @<edi>, short mode);",
     "0x21590": "void actor_combat_set_fire_timer(int actor_handle @<esi>);",
     "0x21640": "bool actor_combat_evaluate_firing(int actor_handle @<eax>, void *timing_data @<edi>);",
     "0x28660": "char FUN_00028660(int actor_handle, short *look_spec @<ebx>, float *direction @<edi>);",

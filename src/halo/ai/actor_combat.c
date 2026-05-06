@@ -66,6 +66,29 @@ char *FUN_000211f0(int actor_handle)
   return actv;
 }
 
+/* 0x21270 — Look up burst and firing rate parameters from the actv tag.
+ * Selects firing modifier based on actor state flags (field_378/600/601). */
+void actor_combat_get_burst_parameters(int actor_handle /* @<eax> */,
+                                       void *actv /* @<ecx> */,
+                                       void **burst_ref, void **firing_ref)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  char *tag = (char *)actv;
+  void *burst = tag + 0xcc;
+  void *firing = NULL;
+
+  if (*(char *)(actor + 0x378) != 0)
+    firing = tag + 0x130;
+  else if (*(char *)(actor + 0x600) != 0)
+    firing = tag + 0x100;
+  else if (*(char *)(actor + 0x601) != 0)
+    firing = tag + 0x118;
+
+  assert_halt(burst_ref != NULL && firing_ref != NULL);
+  *burst_ref = burst;
+  *firing_ref = firing;
+}
+
 /* 0x21590 — Compute and set the fire delay timer for an actor.
  * Uses burst/firing rate data from the actv tag, random timing,
  * and combat property scaling. Result stored in actor.field_5f4. */
@@ -78,7 +101,8 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
   float result;
 
   char *actv = FUN_000211f0(actor_handle);
-  FUN_00021270(actor_handle, actv, &burst_ref, &firing_ref);
+  actor_combat_get_burst_parameters(actor_handle, actv, &burst_ref,
+                                    &firing_ref);
 
   {
     float min_time = *(float *)((char *)burst_ref + 0x1c);
@@ -138,4 +162,37 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
   }
 
   return 1;
+}
+
+/* 0x22010 — Check whether the current fire target is still valid.
+ * Only applies when mode==3 (prop targeting). Checks encounter data
+ * and falls back to FUN_00021ae0 distance-based search. */
+int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+
+  if (mode != 3)
+    return 1;
+
+  if (*(short *)(actor + 0x60c) != 1) {
+    display_assert(
+      "actor->control.current_fire_target_type == _actor_fire_target_prop",
+      "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x3ca, 1);
+    system_exit(-1);
+  }
+
+  char *encounter =
+    (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+
+  if (*(int *)(encounter + 0x110) != -1)
+    return 1;
+
+  if (*(char *)(encounter + 0x12e) != 0)
+    return 0;
+
+  {
+    short result = 0;
+    FUN_00021ae0(actor_handle, 6.0f, 0, encounter + 0xbc, &result);
+    return result >= 3;
+  }
 }

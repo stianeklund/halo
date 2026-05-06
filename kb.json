@@ -8788,8 +8788,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00021270(int actor_handle @<eax>, void *actv @<ecx>, void **burst_ref, void **firing_ref);",
-          "addr": "0x21270"
+          "decl": "void actor_combat_get_burst_parameters(int actor_handle @<eax>, void *actv @<ecx>, void **burst_ref, void **firing_ref);",
+          "addr": "0x21270",
+          "ported": true
         },
         {
           "decl": "void actor_combat_set_fire_timer(int actor_handle @<esi>);",
@@ -8802,8 +8803,13 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00022010(short mode);",
-          "addr": "0x22010"
+          "decl": "void FUN_00021ae0(int actor_handle, float range, int param3, void *encounter_pos, short *out_count);",
+          "addr": "0x21ae0"
+        },
+        {
+          "decl": "int actor_combat_check_fire_target(int actor_handle @<edi>, short mode);",
+          "addr": "0x22010",
+          "ported": true
         },
         {
           "decl": "void FUN_00022390(int actor_handle);",
