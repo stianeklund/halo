@@ -29,6 +29,10 @@ COMMAND_OUTPUTS = {
         "claude": OutputSpec("commands/analyze_screenshot.md"),
         "opencode": OutputSpec("commands/analyze_screenshot.md"),
     },
+    "auto-lift.md": {
+        "claude": OutputSpec("commands/auto-lift.md"),
+        "opencode": OutputSpec("commands/auto-lift.md"),
+    },
     "build.md": {
         "claude": OutputSpec("commands/build.md"),
         "opencode": OutputSpec("commands/build.md"),
@@ -37,33 +41,17 @@ COMMAND_OUTPUTS = {
         "claude": OutputSpec("commands/debug-regression.md"),
         "opencode": OutputSpec("commands/debug-regression.md"),
     },
-    "delink.md": {
-        "claude": OutputSpec("commands/delink.md"),
-        "opencode": OutputSpec("commands/delink.md"),
-    },
     "deploy.md": {
         "claude": OutputSpec("commands/deploy.md"),
         "opencode": OutputSpec("commands/deploy.md"),
-    },
-    "xbdm-debug.md": {
-        "claude": OutputSpec("commands/xbdm-debug.md"),
-        "opencode": OutputSpec("commands/xbdm-debug.md"),
     },
     "frontier.md": {
         "claude": OutputSpec("commands/frontier.md"),
         "opencode": OutputSpec("commands/frontier.md"),
     },
-    "lift-verify.md": {
-        "claude": OutputSpec("commands/lift-verify.md"),
-        "opencode": OutputSpec("commands/lift-verify.md"),
-    },
     "lift.md": {
         "claude": OutputSpec("commands/lift.md"),
         "opencode": OutputSpec("commands/lift.md"),
-    },
-    "load-iso.md": {
-        "claude": OutputSpec("commands/load-iso.md"),
-        "opencode": OutputSpec("commands/load-xemu-with-iso.md"),
     },
     "maintain.md": {
         "claude": OutputSpec("commands/maintain.md"),
@@ -73,65 +61,9 @@ COMMAND_OUTPUTS = {
         "claude": OutputSpec("commands/review-deep.md"),
         "opencode": OutputSpec("commands/review-deep.md"),
     },
-    "verify-option3.md": {
-        "claude": OutputSpec("commands/verify-option3.md"),
-        "opencode": OutputSpec("commands/verify-option3.md"),
-    },
-    "xbdm-continue.md": {
-        "claude": OutputSpec("commands/xbdm-continue.md"),
-        "opencode": OutputSpec("commands/xbdm-continue.md"),
-    },
-    "xbdm-debug-txt.md": {
-        "claude": OutputSpec("commands/xbdm-debug-txt.md"),
-        "opencode": OutputSpec("commands/xbdm-debug-txt.md"),
-    },
-    "xbdm-dirlist.md": {
-        "claude": OutputSpec("commands/xbdm-dirlist.md"),
-        "opencode": OutputSpec("commands/xbdm-dirlist.md"),
-    },
-    "xbdm-getcontext.md": {
-        "claude": OutputSpec("commands/xbdm-getcontext.md"),
-        "opencode": OutputSpec("commands/xbdm-getcontext.md"),
-    },
-    "xbdm-getextcontext.md": {
-        "claude": OutputSpec("commands/xbdm-getextcontext.md"),
-        "opencode": OutputSpec("commands/xbdm-getextcontext.md"),
-    },
-    "xbdm-getfileattributes.md": {
-        "claude": OutputSpec("commands/xbdm-getfileattributes.md"),
-        "opencode": OutputSpec("commands/xbdm-getfileattributes.md"),
-    },
-    "xbdm-getmem.md": {
-        "claude": OutputSpec("commands/xbdm-getmem.md"),
-        "opencode": OutputSpec("commands/xbdm-getmem.md"),
-    },
-    "xbdm-halt.md": {
-        "claude": OutputSpec("commands/xbdm-halt.md"),
-        "opencode": OutputSpec("commands/xbdm-halt.md"),
-    },
-    "xbdm-isstopped.md": {
-        "claude": OutputSpec("commands/xbdm-isstopped.md"),
-        "opencode": OutputSpec("commands/xbdm-isstopped.md"),
-    },
-    "xbdm-modsections.md": {
-        "claude": OutputSpec("commands/xbdm-modsections.md"),
-        "opencode": OutputSpec("commands/xbdm-modsections.md"),
-    },
-    "xbdm-modules.md": {
-        "claude": OutputSpec("commands/xbdm-modules.md"),
-        "opencode": OutputSpec("commands/xbdm-modules.md"),
-    },
-    "xbdm-threadinfo.md": {
-        "claude": OutputSpec("commands/xbdm-threadinfo.md"),
-        "opencode": OutputSpec("commands/xbdm-threadinfo.md"),
-    },
-    "xbdm-threads.md": {
-        "claude": OutputSpec("commands/xbdm-threads.md"),
-        "opencode": OutputSpec("commands/xbdm-threads.md"),
-    },
-    "xbdm-walkmem.md": {
-        "claude": OutputSpec("commands/xbdm-walkmem.md"),
-        "opencode": OutputSpec("commands/xbdm-walkmem.md"),
+    "verify.md": {
+        "claude": OutputSpec("commands/verify.md"),
+        "opencode": OutputSpec("commands/verify.md"),
     },
     "xbdm.md": {
         "claude": OutputSpec("commands/xbdm.md"),

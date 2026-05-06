@@ -1,9 +1,16 @@
 ---
 description: Show the decompilation frontier
-agent: haiku
 subtask: true
 ---
 
-Run `python3 tools/analysis/frontier.py` to check the decompilation frontier, then briefly reason about the output and recommend the best next targets to work on. Focus on: nearly-complete TUs first, then high-impact modules (game_state, main, players), then small unstarted TUs. Keep output concise and table-format preferred.
+Show the decompilation frontier — what's implemented, what's remaining, and what to work on next. For actionable target selection, prefer the combined selector.
 
-When recommending targets, note that the orchestrator should use the @"xbox-halo-re-analyst" agent for performing the actual reverse engineering and lifting work on those targets.
+Steps:
+1. Run `rtk python3 tools/llm_auto_lift.py select --limit 20` for combined strategic priority and liftability.
+2. If the user asks for raw frontier data, run `rtk python3 tools/analysis/frontier.py --limit 20`.
+3. Report:
+   - Total coverage: implemented / total (percentage)
+   - Active TUs: partially-implemented translation units with remaining function count
+   - Quick wins: unstarted TUs with few functions (1-3)
+   - Recommended next targets with lane: `auto-lift`, `cache-context`, `manual-lift`, or `defer`
+4. Keep the output concise — table format preferred.

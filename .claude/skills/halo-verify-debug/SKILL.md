@@ -5,49 +5,74 @@ description: Verification ladder, delink comparison, and regression debugging wo
 
 # Halo Verify And Debug
 
-Use this skill for lift verification, Option 3 validation, delinked object
-comparison, or regression investigation. Doctrine and evidence rules live in
+Use this skill for lift verification, XDK/delink comparison, Option 3 fallback,
+or regression investigation. Doctrine and evidence rules live in
 `halo-xbox-re`; this skill covers the operational verification and debugging
 procedures.
+
+Passing validation reduces risk, but it is not proof of behavioral equivalence
+unless the target also has strong delink, golden, or runtime coverage.
 
 ## Verification priority
 
 Prefer real Xbox via XBDM/RDCP over xemu+ISO whenever a console is on the
 network. The order is:
 
-## Ghidra MCP availability (required)
-
-- Before the first `ghidra` or `ghidra-live` MCP tool call in a task, run
-  `python3 tools/audit/check_ghidra_mcp.py`.
-- If the preflight fails, or if any `ghidra`/`ghidra-live` MCP tool call fails
-  due to connection/timeout/unavailable errors, stop immediately and do not
-  retry in the same response.
-- Tell the user exactly: `You might have forgotten to start
-  tools/mcp-servers.sh or ghidra may not be running?`
-
 1. **XBDM deploy + probe** — build, deploy to Xbox via `/deploy`, then probe
-   with `/xbdm-*` commands. Fastest iteration, real hardware, no ISO needed.
+   with `/xbdm <mode>` commands. Fastest iteration, real hardware, no ISO needed.
 2. **xemu + ISO** — only if no Xbox is available or XBDM cannot reach it.
 
 ## Verification lanes
 
-### Structural verification via lift pipeline
+The user-facing command surface is consolidated under `/verify`:
+
+- `/verify <target>` or `/verify normal <target>` for the normal lift pipeline.
+- `/verify structural <target> <new_address>` for explicit patched-XBE address verification.
+- `/verify hazards` for `check_lift_hazards.py`.
+- `/verify delink <target>` for delink export and reference mapping.
+- `/verify option3 <target>` for legacy runtime/xemu fallback.
+- `/verify failure <artifact_dir>` for failed artifact triage.
+
+### Normal post-lift validation
 
 Run:
 
-`python3 tools/lift_pipeline.py --target <target> --verify-auto --verify-new-address <new_address> --no-metadata-update <extra_flags>`
+`rtk python3 tools/lift_pipeline.py --target <target> --no-metadata-update --verify-policy auto <extra_flags>`
 
 Report:
 
-- verify payload path
-- `verify_lift` stage result
+- build stage result
+- ABI audit result
+- `xdk_verify` result and match percentage if available
+- low-match policy result
+- behavior/runtime check result if requested
 - summary path under `artifacts/lift_runs/.../summary.json`
 
-### Option 3 ladder
+### Explicit structural verification
+
+Use this when the lifted function address in the patched XBE is known:
+
+`rtk python3 tools/lift_pipeline.py --target <target> --verify-auto --verify-new-address <new_address> --no-metadata-update <extra_flags>`
+
+Report the verify payload path, `verify_lift` stage result, and summary path.
+
+### Hazard scan
+
+Run after source edits or when reviewing auto-lift output:
+
+`rtk python3 tools/audit/check_lift_hazards.py`
+
+Treat intrinsic calls, undersized buffers, duplicate suspicious arguments, and
+pointer-as-float warnings as blockers until investigated against disassembly.
+
+### Option 3 fallback ladder
+
+Use Option 3 for runtime/xemu fallback only. Prefer the lift pipeline and XDK
+verify for structural proof.
 
 Run:
 
-`python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
+`rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
 
 Report:
 
@@ -64,12 +89,20 @@ Notes:
 - Use `--skip-build` or `--skip-iso` for quick reruns when artifacts already
   exist.
 
+### Failure classification
+
+- Build failure: fix the compile error only; do not rewrite the lift from scratch.
+- ABI failure: verify `kb.json` declaration, `@<reg>` annotations, caller setup, and callee thunks.
+- XDK `[FPU-WARN]`: verify x87 operand order, push-then-fstp arguments, and cross-product/subtraction order.
+- Low match: inspect objdiff/XDK output for branch shape, memory access offsets, and missing side effects.
+- Behavior/runtime failure: prefer XBDM state probes before xemu unless no console is reachable.
+
 ## Delink workflow
 
 Before running delink comparison, verify:
 
 - a live Ghidra GUI session is open on `cachebeta.xbe` or `default.xbe`
-- the delinker plugin is enabled (RPC on port 18080)
+- the delinker plugin is enabled
 - the project has been built so the candidate `.obj` exists
 
 Then:
@@ -81,36 +114,6 @@ Then:
    and memory access behavior.
 
 Do not save the Ghidra project after a delink export run.
-
-### Delinker RPC fallback
-
-If `mcp__ghidra-live__*` tool calls fail with `-32602 Invalid request
-parameters`, use the direct RPC on port 18080 instead. The MCP SSE
-transport has known issues with nullable parameter schemas in FastMCP
-1.27+. The Ghidra delinker Java plugin always listens on HTTP directly:
-
-```bash
-# Synthesize relocations
-curl -s http://127.0.0.1:18080/rpc -X POST \
-  -d "method=run_relocation_synthesizer&selection_mode=range&range=START-END"
-
-# Export delinked object (use Windows path for export_path)
-curl -s http://127.0.0.1:18080/rpc -X POST \
-  -d "method=export_delinked_object&export_path=G:\dev\halo\artifacts\delinker\NAME.o&selection_mode=range&range=START-END&exporter_name=COFF+relocatable+object&run_relocation_synthesizer=false"
-```
-
-Range format: `AABBCCDD-EEFFGGHH` (hex, no `0x` prefix).
-
-`tools/classify_common.py --delinker-analyze` already uses this RPC
-fallback for bulk analysis of `<common>` functions.
-
-## Bulk classification of `<common>` functions
-
-Use `tools/classify_common.py` to analyze functions in the `<common>`
-bucket that lack object file assignments. The `--delinker-analyze` mode
-exports ranges via the delinker and resolves original source file paths
-from `__FILE__` assert strings embedded in the XBE. See `/classify-common`
-for usage.
 
 ## Regression debugging workflow
 
@@ -130,10 +133,10 @@ for usage.
 
 Useful probes (XBDM preferred):
 
-- `/xbdm-isstopped` — check stop state before context reads
-- `/xbdm-getcontext` — read registers after a crash
-- `/xbdm-getmem` — inspect memory at a suspect address
-- `/xbdm-screenshot` (xemu) or visual check on real hardware
+- `/xbdm status` — check stop state before context reads
+- `/xbdm context` — read registers after a crash
+- `/xbdm mem <addr> <len>` — inspect memory at a suspect address
+- visual check on real hardware, or xemu screenshot when hardware is unavailable
 
 Useful xemu probes (fallback only):
 

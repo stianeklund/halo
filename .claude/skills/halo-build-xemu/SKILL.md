@@ -10,14 +10,14 @@ patched ISO, or control xemu.
 
 ## Preferred tools
 
-- Build with `python3 tools/build/build.py -q --target halo`
+- Build with `cmake --build build`
 - Create ISO with `tools/extract-xiso.exe -c halo-patched halo-patched.iso`
 - Control xemu with `python3 tools/xbox/xemu_qmp.py`
 - Use MCP xemu tools only if `tools/xbox/xemu_qmp.py` cannot do the required action
 
 ## Standard build and load flow
 
-1. Run `python3 tools/build/build.py -q --target halo`.
+1. Run `cmake --build build`.
 2. If the build fails, stop and report the concrete errors.
 3. Create the ISO:
    `tools/extract-xiso.exe -c halo-patched halo-patched.iso`

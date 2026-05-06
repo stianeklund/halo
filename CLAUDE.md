@@ -58,6 +58,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **New Symbols:** Register-arg callees must be added to `kb.json` with `@<reg>` and called by name.
 - **No Inline ASM:** The build system handles thunks via `kb.json`. Do not use inline assembly in C.
 - **Separation:** Keep logic changes separate from cleanup/formatting.
+- **Auto-lift is untrusted:** `tools/llm_auto_lift.py` may generate and validate candidates, but generated code is untrusted until reviewed against binary evidence and validation artifacts. Run `promote` dry first, require explicit user approval for `promote --apply`, and never auto-commit auto-lift results.
 - **Never transcribe MSVC intrinsics as C function calls.** Ghidra shows them as regular calls but they have non-standard ABIs that corrupt the stack or registers when called from C. Use the equivalent C idiom — the compiler generates the intrinsic automatically:
 
   | Address | Intrinsic | Refs | Ghidra shows | Write in C instead |
@@ -84,11 +85,14 @@ Maintain a mental ledger of files already read in this conversation. If you need
   4. **Cross-product operand swap:** `cross(A, B)` and `cross(B, A)` look nearly identical in the decompiler — the FLD/FMUL order before FSUBP differs but the components look the same. Always verify the subtraction order against disassembly: `cross(A,B)[0] = A[1]*B[2] - A[2]*B[1]`. Getting it backwards negates the vector, which can cause invisible geometry, flipped UV mapping, or reflected projections.
 
 ### 3. Build & Verification
+- **Lift Pipeline:** Use `rtk python3 tools/lift_pipeline.py --target <name_or_addr> --no-metadata-update --verify-policy auto` as the primary post-lift validation orchestrator. It runs build, ABI audit, XDK verify when a delinked reference is mapped, optional behavior/runtime checks, and low-match policy gates.
+- **Hazard Scan:** Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits or when reviewing auto-lift output. Treat intrinsic calls, undersized buffers, suspicious duplicate arguments, and pointer-as-float warnings as blockers until investigated.
 - **Golden Master Test Harness:** A specialized test harness intercepts the engine boot in `src/halo/shell_xbox.c`. It lets you run functions inside the engine context and verify their side-effects/return values against the exact Xbox ASM output. 
   - *Usage:* Add tests to `src/halo/test_harness.c`. Ensure your function is unmapped in `kb.json` (`"ported": false`), run `rtk python3 tools/verify/run_golden_tests.py` to capture the original FPU hex values. Then map your function (`"ported": true`) and press Enter to verify your C implementation.
   - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
 - **XDK Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/xdk_verify.py src/path/to/file.c` to compile with the original MSVC 7.1 compiler and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
+- **Auto-Lift Harness:** Use `rtk python3 tools/llm_auto_lift.py score`, `cache-context`, `generate`, and `review` for review-queue candidate generation. Passing validation reduces risk but is not proof of behavioral equivalence without strong delink, golden, or runtime coverage.
 - **Validation:** Run the narrowest meaningful validation first.
 - **XBDM Priority:** Prefer real Xbox XBDM verification over xemu when available.
 - **Failure Policy:** If an edit fails, re-read only affected ranges before retrying.
@@ -96,6 +100,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 ### 4. Commit Discipline
 - **Use `/lift` for all new function ports.** Do not manually implement and commit lift work without going through the `/lift` skill. It runs ABI audit, build, and verification stages that catch real bugs (calling convention mismatches, register-arg errors). Bypassing it has caused page faults and silent regressions.
 - **No Freeform Messages:** Never write freeform lift commit messages.
+- **No Auto-Lift Commits:** `tools/llm_auto_lift.py` results must not be committed directly or automatically. Promote only after review, then use the standard lift commit generator if the user requested a commit.
 - **Standard Command:** After staging changes, run:
   ```bash
   rtk python3 tools/audit/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt
@@ -111,11 +116,24 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **RTK Always:** Prefix ALL shell commands with `rtk` (e.g., `rtk git status`, `rtk pytest`).
 - **Output Schema:** For non-trivial work, report: Target, Confirmed, Inferred, Uncertain, Proposed Code, kb.json updates.
 
+## Command Decision Tree
+- Need next target: `/frontier` or `rtk python3 tools/llm_auto_lift.py select --limit 20`.
+- Need manual implementation: `/lift <target>`.
+- Need auto-lift candidate: `/auto-lift select`, then `cache-context`, `generate`, and `review`.
+- Need validation, delink, hazards, or failure triage: `/verify <mode> ...`.
+- Need real Xbox probing: `/deploy --xbe-only`, then `/xbdm <mode>`.
+- Need xemu build/load: `/build` or `/xemu build-load`.
+- Need regression investigation: `/debug-regression <symptom>`.
+
 ## Analysis Tools
 - **`tools/analysis/frontier.py`** — Decompilation frontier scoring and target recommendations.
+- **`tools/llm_auto_lift.py`** — Untrusted LLM candidate generator, context cache, validation runner, and review queue. Use `select` for combined frontier/liftability target choice; promotion requires review and explicit approval for apply.
 - **`tools/analysis/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
 - **`tools/audit/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
+- **`tools/audit/check_lift_hazards.py`** — Build-time hazard scan for common Ghidra/MSVC lifting pitfalls.
+- **`tools/lift_pipeline.py`** — Primary lift validation orchestrator for build, ABI audit, XDK verify, behavior/runtime checks, and low-match policy.
 - **`tools/analysis/maintain.py`** — Source file organization and function placement checks.
+- **`tools/verify/objdiff_lift.py`** — Structural object diff helper used by the pipeline when reference and candidate objects are available.
 - **`tools/verify/xdk_verify.py`** — Compile a source file with the original XDK MSVC 7.1 compiler (`RXDK/xbox/bin/vc71/CL.Exe`) and compare against the delinked reference. Flags FPU operand-order differences that indicate cross-product swaps, subtraction direction errors, etc. Use `--fpu-only` for focused output.
 - **`tools/verify/compare_obj.py`** — LCS-based instruction comparison between two COFF objects. Used by `xdk_verify.py`.
 

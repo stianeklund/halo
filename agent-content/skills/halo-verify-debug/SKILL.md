@@ -5,10 +5,13 @@ description: Verification ladder, delink comparison, and regression debugging wo
 
 # Halo Verify And Debug
 
-Use this skill for lift verification, Option 3 validation, delinked object
-comparison, or regression investigation. Doctrine and evidence rules live in
+Use this skill for lift verification, XDK/delink comparison, Option 3 fallback,
+or regression investigation. Doctrine and evidence rules live in
 `halo-xbox-re`; this skill covers the operational verification and debugging
 procedures.
+
+Passing validation reduces risk, but it is not proof of behavioral equivalence
+unless the target also has strong delink, golden, or runtime coverage.
 
 ## Verification priority
 
@@ -16,28 +19,60 @@ Prefer real Xbox via XBDM/RDCP over xemu+ISO whenever a console is on the
 network. The order is:
 
 1. **XBDM deploy + probe** — build, deploy to Xbox via `/deploy`, then probe
-   with `/xbdm-*` commands. Fastest iteration, real hardware, no ISO needed.
+   with `/xbdm <mode>` commands. Fastest iteration, real hardware, no ISO needed.
 2. **xemu + ISO** — only if no Xbox is available or XBDM cannot reach it.
 
 ## Verification lanes
 
-### Structural verification via lift pipeline
+The user-facing command surface is consolidated under `/verify`:
+
+- `/verify <target>` or `/verify normal <target>` for the normal lift pipeline.
+- `/verify structural <target> <new_address>` for explicit patched-XBE address verification.
+- `/verify hazards` for `check_lift_hazards.py`.
+- `/verify delink <target>` for delink export and reference mapping.
+- `/verify option3 <target>` for legacy runtime/xemu fallback.
+- `/verify failure <artifact_dir>` for failed artifact triage.
+
+### Normal post-lift validation
 
 Run:
 
-`python3 tools/lift_pipeline.py --target <target> --verify-auto --verify-new-address <new_address> --no-metadata-update <extra_flags>`
+`rtk python3 tools/lift_pipeline.py --target <target> --no-metadata-update --verify-policy auto <extra_flags>`
 
 Report:
 
-- verify payload path
-- `verify_lift` stage result
+- build stage result
+- ABI audit result
+- `xdk_verify` result and match percentage if available
+- low-match policy result
+- behavior/runtime check result if requested
 - summary path under `artifacts/lift_runs/.../summary.json`
 
-### Option 3 ladder
+### Explicit structural verification
+
+Use this when the lifted function address in the patched XBE is known:
+
+`rtk python3 tools/lift_pipeline.py --target <target> --verify-auto --verify-new-address <new_address> --no-metadata-update <extra_flags>`
+
+Report the verify payload path, `verify_lift` stage result, and summary path.
+
+### Hazard scan
+
+Run after source edits or when reviewing auto-lift output:
+
+`rtk python3 tools/audit/check_lift_hazards.py`
+
+Treat intrinsic calls, undersized buffers, duplicate suspicious arguments, and
+pointer-as-float warnings as blockers until investigated against disassembly.
+
+### Option 3 fallback ladder
+
+Use Option 3 for runtime/xemu fallback only. Prefer the lift pipeline and XDK
+verify for structural proof.
 
 Run:
 
-`python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
+`rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
 
 Report:
 
@@ -53,6 +88,14 @@ Notes:
 - Add `--load-into-xemu` to hot-load and reset via `tools/xbox/xemu_qmp.py`.
 - Use `--skip-build` or `--skip-iso` for quick reruns when artifacts already
   exist.
+
+### Failure classification
+
+- Build failure: fix the compile error only; do not rewrite the lift from scratch.
+- ABI failure: verify `kb.json` declaration, `@<reg>` annotations, caller setup, and callee thunks.
+- XDK `[FPU-WARN]`: verify x87 operand order, push-then-fstp arguments, and cross-product/subtraction order.
+- Low match: inspect objdiff/XDK output for branch shape, memory access offsets, and missing side effects.
+- Behavior/runtime failure: prefer XBDM state probes before xemu unless no console is reachable.
 
 ## Delink workflow
 
@@ -90,10 +133,10 @@ Do not save the Ghidra project after a delink export run.
 
 Useful probes (XBDM preferred):
 
-- `/xbdm-isstopped` — check stop state before context reads
-- `/xbdm-getcontext` — read registers after a crash
-- `/xbdm-getmem` — inspect memory at a suspect address
-- `/xbdm-screenshot` (xemu) or visual check on real hardware
+- `/xbdm status` — check stop state before context reads
+- `/xbdm context` — read registers after a crash
+- `/xbdm mem <addr> <len>` — inspect memory at a suspect address
+- visual check on real hardware, or xemu screenshot when hardware is unavailable
 
 Useful xemu probes (fallback only):
 

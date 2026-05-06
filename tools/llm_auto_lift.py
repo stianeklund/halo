@@ -7,6 +7,8 @@ Never commits to the repository.
 
 Usage:
     python3 tools/llm_auto_lift.py score              # Rank unported functions
+    python3 tools/llm_auto_lift.py select             # Combine frontier + liftability
+    python3 tools/llm_auto_lift.py auto               # Pick, cache, generate, review
     python3 tools/llm_auto_lift.py cache-context ...   # Build Ghidra context packs
     python3 tools/llm_auto_lift.py generate ...        # Generate + validate candidates
     python3 tools/llm_auto_lift.py review              # Show pending results
@@ -80,6 +82,17 @@ class LiftTarget:
     register_args: list[tuple[int, str]]
     score: int = 0
     score_details: dict = field(default_factory=dict)
+
+
+@dataclass
+class SelectedTarget:
+    target: LiftTarget
+    total_score: int
+    liftability_score: int
+    frontier_score: int
+    frontier_rank: Optional[int]
+    lane: str
+    reasons: list[str]
 
 
 @dataclass
@@ -341,6 +354,92 @@ class LiftabilityScorer:
 
         targets.sort(key=lambda t: -t.score)
         return targets
+
+
+def _load_frontier_priorities(limit: int) -> dict[str, dict]:
+    cmd = [
+        sys.executable,
+        str(ROOT / "tools" / "analysis" / "frontier.py"),
+        "--limit",
+        str(limit),
+        "--json",
+    ]
+    proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+    if proc.returncode != 0:
+        log.warning("frontier.py failed; continuing with liftability-only selection")
+        return {}
+
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        log.warning("frontier.py did not emit valid JSON; continuing with liftability-only selection")
+        return {}
+
+    priorities: dict[str, dict] = {}
+    for rank, row in enumerate(payload.get("recommended", []), 1):
+        object_bonus = max(0, 22 - rank * 2)
+        object_name = str(row.get("object", ""))
+        for candidate_index, candidate in enumerate(row.get("candidates", [])):
+            name = candidate.get("name", "")
+            addr = str(candidate.get("addr", "")).lower()
+            if not name:
+                continue
+            candidate_bonus = max(0, 5 - candidate_index)
+            bonus = object_bonus + candidate_bonus
+            entry = {
+                "bonus": bonus,
+                "rank": rank,
+                "object": object_name,
+                "object_score": int(row.get("score", 0) or 0),
+            }
+            priorities[name] = entry
+            if addr:
+                priorities[addr] = entry
+                priorities[addr.removeprefix("0x")] = entry
+    return priorities
+
+
+def _select_targets(
+    targets: list[LiftTarget],
+    *,
+    frontier_limit: int,
+    auto_threshold: int,
+) -> list[SelectedTarget]:
+    frontier = _load_frontier_priorities(frontier_limit)
+    selected: list[SelectedTarget] = []
+
+    for target in targets:
+        frontier_entry = frontier.get(target.name) or frontier.get(target.addr.lower())
+        frontier_score = int(frontier_entry.get("bonus", 0)) if frontier_entry else 0
+        total_score = target.score + frontier_score
+        reasons = [f"{k}=+{v}" for k, v in target.score_details.items()]
+        frontier_rank = None
+        if frontier_entry:
+            frontier_rank = int(frontier_entry.get("rank", 0) or 0)
+            reasons.append(f"frontier_rank={frontier_rank}")
+            reasons.append(f"frontier=+{frontier_score}")
+
+        if target.score >= auto_threshold and target.score_details.get("delinked_ref"):
+            lane = "auto-lift"
+        elif target.score >= auto_threshold:
+            lane = "cache-context"
+        elif frontier_score:
+            lane = "manual-lift"
+        else:
+            lane = "defer"
+
+        selected.append(SelectedTarget(
+            target=target,
+            total_score=total_score,
+            liftability_score=target.score,
+            frontier_score=frontier_score,
+            frontier_rank=frontier_rank,
+            lane=lane,
+            reasons=reasons,
+        ))
+
+    selected.sort(key=lambda item: (-item.total_score, item.target.object_name, item.target.addr))
+    return selected
 
 
 # ---------------------------------------------------------------------------
@@ -1586,7 +1685,20 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     ap.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
-    sub = ap.add_subparsers(dest="mode", required=True)
+    sub = ap.add_subparsers(dest="mode")
+
+    # -- auto --
+    p_auto = sub.add_parser("auto", help="Pick best target, cache context, generate, and review")
+    p_auto.add_argument("--limit", type=int, default=20, help="Selection rows to consider")
+    p_auto.add_argument("--frontier-limit", type=int, default=50, help="Frontier rows to consider")
+    p_auto.add_argument("--min-score", type=int, default=30, help="Minimum liftability score")
+    p_auto.add_argument("--llm-provider", default="claude", choices=["claude", "openai", "gemini"])
+    p_auto.add_argument("--llm-model", default="", help="Override model")
+    p_auto.add_argument("--temperature", type=float, default=0.2)
+    p_auto.add_argument("--max-retries", type=int, default=2, help="Correction retries (default: 2)")
+    p_auto.add_argument("--skip-xdk", action="store_true", help="Skip XDK verify")
+    p_auto.add_argument("--xdk-threshold", type=float, default=50.0, help="XDK match %% for auto_accept")
+    p_auto.add_argument("--build-cmd", default="", help="Override build command")
 
     # -- score --
     p_score = sub.add_parser("score", help="Rank unported functions by liftability")
@@ -1595,12 +1707,22 @@ def main():
     p_score.add_argument("--limit", type=int, default=30, help="Max results")
     p_score.add_argument("--json", action="store_true", help="JSON output")
 
+    # -- select --
+    p_select = sub.add_parser("select", help="Combine frontier priority with liftability")
+    p_select.add_argument("--object", default="", help="Filter to one object")
+    p_select.add_argument("--min-score", type=int, default=0, help="Minimum liftability score")
+    p_select.add_argument("--limit", type=int, default=20, help="Max results")
+    p_select.add_argument("--frontier-limit", type=int, default=50, help="Frontier rows to consider")
+    p_select.add_argument("--auto-threshold", type=int, default=30, help="Liftability score needed for automation lanes")
+    p_select.add_argument("--json", action="store_true", help="JSON output")
+
     # -- cache-context --
     p_cache = sub.add_parser("cache-context", help="Build Ghidra context packs (requires MCP)")
     p_cache.add_argument("--target", default="", help="Specific function address or name")
     p_cache.add_argument("--batch", type=int, default=5, help="Number of top targets")
     p_cache.add_argument("--object", default="", help="Filter to one object")
     p_cache.add_argument("--min-score", type=int, default=30, help="Minimum liftability score")
+    p_cache.add_argument("--frontier-limit", type=int, default=50, help="Frontier rows to consider")
 
     # -- generate --
     p_gen = sub.add_parser("generate", help="Generate + validate candidates")
@@ -1608,6 +1730,7 @@ def main():
     p_gen.add_argument("--batch", type=int, default=5, help="Number of top targets")
     p_gen.add_argument("--object", default="", help="Filter to one object")
     p_gen.add_argument("--min-score", type=int, default=30, help="Minimum liftability score")
+    p_gen.add_argument("--frontier-limit", type=int, default=50, help="Frontier rows to consider")
     p_gen.add_argument("--llm-provider", default="claude", choices=["claude", "openai", "gemini"])
     p_gen.add_argument("--llm-model", default="", help="Override model")
     p_gen.add_argument("--temperature", type=float, default=0.2)
@@ -1626,13 +1749,29 @@ def main():
     p_promote.add_argument("--apply", action="store_true", help="Actually apply (default: dry run)")
 
     args = ap.parse_args()
+    if args.mode is None:
+        args.mode = "auto"
+        args.limit = 20
+        args.frontier_limit = 50
+        args.min_score = 30
+        args.llm_provider = "claude"
+        args.llm_model = ""
+        args.temperature = 0.2
+        args.max_retries = 2
+        args.skip_xdk = False
+        args.xdk_threshold = 50.0
+        args.build_cmd = ""
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s: %(message)s",
     )
 
-    if args.mode == "score":
+    if args.mode == "auto":
+        cmd_auto(args)
+    elif args.mode == "score":
         cmd_score(args)
+    elif args.mode == "select":
+        cmd_select(args)
     elif args.mode == "cache-context":
         cmd_cache_context(args)
     elif args.mode == "generate":
@@ -1669,14 +1808,113 @@ def cmd_score(args: argparse.Namespace):
     print(f"\n{len(targets)} scored candidates of {total_unported} unported")
 
 
+def cmd_select(args: argparse.Namespace):
+    scorer = LiftabilityScorer()
+    targets = scorer.score_all(object_filter=args.object, min_score=args.min_score)
+    selected = _select_targets(
+        targets,
+        frontier_limit=args.frontier_limit,
+        auto_threshold=args.auto_threshold,
+    )[: args.limit]
+
+    if args.json:
+        out = []
+        for item in selected:
+            row = asdict(item)
+            row["target"] = asdict(item.target)
+            out.append(row)
+        print(json.dumps(out, indent=2))
+        return
+
+    print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
+    print("-" * 140)
+    for item in selected:
+        target = item.target
+        reasons = ", ".join(item.reasons)
+        print(
+            f"{item.total_score:>5}  {item.liftability_score:>4}  {item.frontier_score:>3}  "
+            f"{item.lane:<13}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}"
+        )
+
+    print("\nLane guide:")
+    print("  auto-lift     -> cache context, generate, review, then dry-run promote")
+    print("  cache-context -> cache Ghidra context before generation")
+    print("  manual-lift   -> use /lift; strategically useful but not automation-safe")
+    print("  defer         -> low priority for now")
+
+
+def cmd_auto(args: argparse.Namespace):
+    scorer = LiftabilityScorer()
+    targets = scorer.score_all(min_score=args.min_score)
+    selected = _select_targets(
+        targets,
+        frontier_limit=args.frontier_limit,
+        auto_threshold=args.min_score,
+    )[: args.limit]
+
+    pick = next((item for item in selected if item.lane == "auto-lift"), None)
+    if pick is None:
+        pick = next((item for item in selected if item.lane == "cache-context"), None)
+
+    print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Address':>10}  {'Object':<35}  {'Name':<35}")
+    print("-" * 115)
+    for item in selected[:5]:
+        target = item.target
+        marker = "*" if item is pick else " "
+        print(
+            f"{marker}{item.total_score:>4}  {item.liftability_score:>4}  {item.frontier_score:>3}  "
+            f"{item.lane:<13}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}"
+        )
+
+    if pick is None:
+        print("\nNo auto-lift eligible target found. Use /lift for a manual target or lower --min-score explicitly.")
+        return
+
+    target = pick.target
+    print(f"\nSelected {target.name} ({target.addr}) from {target.object_name}")
+    print("Safety boundary: this command will generate and review only; it will not promote --apply or commit.")
+
+    cache_args = argparse.Namespace(
+        target=target.name,
+        batch=1,
+        object="",
+        min_score=args.min_score,
+        frontier_limit=args.frontier_limit,
+    )
+    cmd_cache_context(cache_args)
+
+    gen_args = argparse.Namespace(
+        target=target.name,
+        batch=1,
+        object="",
+        min_score=args.min_score,
+        frontier_limit=args.frontier_limit,
+        llm_provider=args.llm_provider,
+        llm_model=args.llm_model,
+        temperature=args.temperature,
+        max_retries=args.max_retries,
+        skip_xdk=args.skip_xdk,
+        xdk_threshold=args.xdk_threshold,
+        build_cmd=args.build_cmd,
+    )
+    cmd_generate(gen_args)
+
+    review_args = argparse.Namespace(limit=1)
+    cmd_review(review_args)
+
+    print("\nStopped before promotion. Review artifacts, then dry-run promote explicitly if desired:")
+    print("  rtk python3 tools/llm_auto_lift.py promote --batch <batch>")
+
+
 def cmd_cache_context(args: argparse.Namespace):
     scorer = LiftabilityScorer()
     if args.target:
         targets = scorer.score_all()
         targets = [t for t in targets if t.addr == args.target or t.name == args.target]
     else:
-        targets = scorer.score_all(object_filter=args.object, min_score=args.min_score)
-        targets = targets[: args.batch]
+        scored = scorer.score_all(object_filter=args.object, min_score=args.min_score)
+        selected = _select_targets(scored, frontier_limit=args.frontier_limit, auto_threshold=args.min_score)
+        targets = [item.target for item in selected if item.lane != "defer"][: args.batch]
 
     if not targets:
         print("No targets found.")
@@ -1716,8 +1954,9 @@ def cmd_generate(args: argparse.Namespace):
             print(f"Target {args.target} not found or already ported.")
             sys.exit(1)
     else:
-        targets = scorer.score_all(object_filter=args.object, min_score=args.min_score)
-        targets = targets[: args.batch]
+        scored = scorer.score_all(object_filter=args.object, min_score=args.min_score)
+        selected = _select_targets(scored, frontier_limit=args.frontier_limit, auto_threshold=args.min_score)
+        targets = [item.target for item in selected if item.lane in {"auto-lift", "cache-context"}][: args.batch]
 
     if not targets:
         print("No eligible targets found.")
@@ -1733,7 +1972,7 @@ def cmd_generate(args: argparse.Namespace):
     if missing_ctx:
         print(f"WARNING: {len(missing_ctx)} target(s) have no cached Ghidra context.")
         print(f"  Missing: {', '.join(missing_ctx[:5])}")
-        print("  Run 'cache-context' first, or pass --ghidra-live if Ghidra MCP is running.")
+        print("  Run 'cache-context' first so Ghidra MCP can populate context packs.")
         print("  Proceeding without decompiler output (likely to fail).")
 
     adapter = _make_adapter(args.llm_provider, args.llm_model, args.temperature)

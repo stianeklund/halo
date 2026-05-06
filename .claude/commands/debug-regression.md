@@ -11,14 +11,6 @@ Investigate and fix a Halo CE XBE regression. Bisect via git history first,
 verify root cause against binary and disassembly, then implement the minimal
 safe fix.
 
-Ghidra MCP preflight (required):
-- Before any `ghidra`/`ghidra-live` MCP tool call, run
-  `python3 tools/audit/check_ghidra_mcp.py`.
-- If the preflight fails, or any `ghidra`/`ghidra-live` MCP tool call fails due
-  to connection/timeout/unavailable errors, stop immediately and tell the user
-  exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
-  may not be running?`
-
 Argument: $ARGUMENTS (description of the regression symptom or failing test)
 
 ## Investigation priority
@@ -54,7 +46,7 @@ Only when static analysis leaves the root cause genuinely ambiguous.
 **Prefer XBDM on real Xbox** over xemu whenever a console is available:
 
 - Build and deploy: `/deploy --xbe-only`
-- Then probe with `/xbdm-isstopped`, `/xbdm-getcontext`, `/xbdm-getmem`
+- Then probe with `/xbdm status`, `/xbdm context`, or `/xbdm mem <addr> <len>`
 
 **Fallback — xemu probing** (only if no Xbox is reachable):
 

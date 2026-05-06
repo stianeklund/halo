@@ -2,7 +2,6 @@
 description: Two-phase lift — RE analysis by deep agent, then build + verify pipeline
 agent: xbox-halo-re-analyst
 subtask: true
-agent: fast
 ---
 
 Use `halo-xbox-re` for doctrine and evidence rules, `halo-re-lift` for the
@@ -12,7 +11,7 @@ Two-phase lift: RE analysis + implementation, then build and verify.
 
 Ghidra MCP preflight (required):
 - Before any `ghidra`/`ghidra-live` MCP tool call, run
-  `python3 tools/audit/check_ghidra_mcp.py`.
+  `rtk python3 tools/audit/check_ghidra_mcp.py`.
 - If the preflight fails, or any `ghidra`/`ghidra-live` MCP tool call fails due
   to connection/timeout/unavailable errors, stop immediately and tell the user
   exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
@@ -33,14 +32,14 @@ Using the xbox-halo-re-analyst persona (bounded RE worker following
 `halo-xbox-re` doctrine), perform a complete lift for the target:
 
 **If $ARGUMENTS is provided:** use it as the target (name or 0x... address).
-**If $ARGUMENTS is empty:** run `python3 tools/analysis/frontier.py --limit 5` and pick
+**If $ARGUMENTS is empty:** run `rtk python3 tools/analysis/frontier.py --limit 5` and pick
 the top candidate.
 
 Steps:
 1. Resolve the target in `kb.json`: address, name, object, and `source_path`.
 2. Follow the analysis and ABI checks from `halo-re-lift`.
 3. Apply token-efficient defaults from `halo-re-lift`:
-   - no ad-hoc inline `python3 -c` for JSON parsing; use `jq` for any JSON
+   - no ad-hoc inline `python3 -c` for JSON parsing; use `rtk jq` for any JSON
      lookup or filter
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
    - prefer `batch_decompile` when comparing related helpers
@@ -54,7 +53,8 @@ Steps:
 6. Write the implementation directly to the source file at the correct
    address-ordered position.
 7. If the `kb.json` declaration needs updating, update it conservatively.
-8. Run `python3 tools/analysis/maintain.py <source_file>` to sort and reformat.
+8. Run `rtk python3 tools/analysis/maintain.py <source_file>` to sort and reformat.
+9. Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits and fix any target-relevant hazards.
 
 Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
 
@@ -77,26 +77,25 @@ After Phase 1 completes:
    `/tmp/lift_caller_disasm.txt`.
 3. Run:
    ```
-   python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
+   rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
      --abi-caller-disasm-file /tmp/lift_caller_disasm.txt
    ```
-   If no caller disassembly was retrieved, omit `--abi-caller-disasm-file` (the
-   pipeline still runs ABI audit against kb.json declarations alone).
+   If no caller disassembly was retrieved, omit `--abi-caller-disasm-file`.
 4. Report:
-   - Target: name / address / object / source path
-   - Phase 1 summary (Confirmed / Inferred / Uncertain)
-   - Pipeline stage results (build pass/fail, ABI audit pass/fail, verify pass/fail)
-   - Artifact path from summary.json
+    - Target: name / address / object / source path
+    - Phase 1 summary (Confirmed / Inferred / Uncertain)
+    - Pipeline stage results (build, ABI audit, XDK verify, low-match policy, behavior/runtime checks)
+    - Artifact path from summary.json
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.
 - **XDK verify is the primary structural verification.** The lift pipeline runs
   `xdk_verify.py` automatically when a delinked reference exists in `delinked/`
-  (mapped via `objdiff.json`). It compiles with the same MSVC 7.1 compiler that
-  built the original XBE, giving 90%+ match for correct lifts. If no delinked
-  reference exists, offer to run `/delink` to export one after the pipeline.
+  (mapped via `objdiff.json`). If no delinked reference exists, offer to run
+  `/verify delink <target>` after the pipeline.
 - **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console
-  is available. Use `/deploy --xbe-only` then `/xbdm-*` commands to probe.
-- Use `/verify-option3` for a fast post-lift lane (xemu fallback).
-- Use `/lift-verify` for explicit verify runs with xdk_verify.
+  is available. Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
+- Use `/verify option3 <target>` only as a runtime/xemu fallback lane, not as primary structural proof.
+- Use `/verify structural <target> <new_address>` for explicit verify payload runs with a known lifted function address.
+- Use `/auto-lift` only for candidate generation/review; it must not auto-commit.
 - Use `/maintain` for a standalone sort + format pass.

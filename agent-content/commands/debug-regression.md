@@ -46,7 +46,7 @@ Only when static analysis leaves the root cause genuinely ambiguous.
 **Prefer XBDM on real Xbox** over xemu whenever a console is available:
 
 - Build and deploy: `/deploy --xbe-only`
-- Then probe with `/xbdm-isstopped`, `/xbdm-getcontext`, `/xbdm-getmem`
+- Then probe with `/xbdm status`, `/xbdm context`, or `/xbdm mem <addr> <len>`
 
 **Fallback — xemu probing** (only if no Xbox is reachable):
 

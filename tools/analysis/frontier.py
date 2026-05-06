@@ -9,6 +9,7 @@ if __name__ == "__main__":
     check_requirements()
 
 import argparse
+import json
 import logging
 import os
 from collections import defaultdict
@@ -121,6 +122,7 @@ def main():
     logging.basicConfig(level=logging.INFO, handlers=[color.ColorLogHandler()])
     ap = argparse.ArgumentParser(description='Rank frontier objects from current ported code.')
     ap.add_argument('--limit', type=int, default=20)
+    ap.add_argument('--json', action='store_true', help='Emit machine-readable frontier data')
     args = ap.parse_args()
 
     kb = KnowledgeBase.deserialize()
@@ -201,6 +203,29 @@ def main():
     ranked.sort(key=lambda row: (-row['score'], sort_object_name(row)))
     active_tus.sort(key=lambda row: (row['remaining'], -row['ported'], sort_object_name(row)))
     quick_wins.sort(key=lambda row: (row['remaining'], sort_object_name(row)))
+
+    if args.json:
+        def serialize_row(row: dict[str, object]) -> dict[str, object]:
+            out = dict(row)
+            out['candidates'] = [
+                {'addr': f'{kb.name_to_addr[name]:#x}', 'name': name}
+                for name in row['unresolved'][:5]
+            ]
+            return out
+
+        percent = (total_ported / total_functions * 100.0) if total_functions else 0.0
+        payload = {
+            'coverage': {
+                'ported': total_ported,
+                'total': total_functions,
+                'percent': percent,
+            },
+            'active_tus': [serialize_row(row) for row in active_tus[:args.limit]],
+            'quick_wins': [serialize_row(row) for row in quick_wins[:args.limit]],
+            'recommended': [serialize_row(row) for row in ranked[:args.limit]],
+        }
+        print(json.dumps(payload, indent=2))
+        return
 
     print_section('Coverage')
     percent = (total_ported / total_functions * 100.0) if total_functions else 0.0
