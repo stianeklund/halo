@@ -6792,6 +6792,21 @@
     },
     "0x41420": {
       "status": "ported"
+    },
+    "0x64100": {
+      "status": "ported"
+    },
+    "0x64140": {
+      "status": "ported"
+    },
+    "0x64150": {
+      "status": "ported"
+    },
+    "0x64160": {
+      "status": "ported"
+    },
+    "0x64540": {
+      "status": "ported"
     }
   }
 }
