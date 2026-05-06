@@ -1362,6 +1362,14 @@ void FUN_0009e310(void *effect)
             if (*(uint8_t *)(loc_entry + 0x64) & 0x20)
               scale *= *(float *)(ef + 0x48);
 
+            if (scale < 0.0f || scale > 1.0f)
+              error(2, "DIAG effect scale OOB: %f (A=%f B=%f flags=%02x/%02x) effect_tag=0x%x",
+                    (double)scale, (double)*(float *)(ef + 0x44),
+                    (double)*(float *)(ef + 0x48),
+                    *(uint8_t *)(loc_entry + 0x60),
+                    *(uint8_t *)(loc_entry + 0x64),
+                    *(int *)(ef + 4));
+
             FUN_0009dcf0(position, effect, location, loc_entry, forward, up,
                          scale);
           }

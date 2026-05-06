@@ -78,6 +78,8 @@ void FUN_001c73d0(int sound_tag_index, void *location, float scale)
     system_exit(-1);
   }
   if (scale < 0.0f || !(scale <= 1.0f)) {
+    error(2, "DIAG scale OOB in 0x1c73d0: scale=%f tag=0x%x",
+          (double)scale, sound_tag_index);
     display_assert("scale>=0.f && scale<=1.f",
                    "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x149, 1);
     system_exit(-1);
@@ -208,6 +210,11 @@ int FUN_001c7e70(int object_handle, int tag_index, int16_t marker,
     system_exit(-1);
   }
   if (scale < 0.0f || scale > 1.0f) {
+    error(2, "DIAG scale OOB in 0x1c7e70: scale=%f obj=0x%x tag=0x%x marker=%d",
+          (double)scale, object_handle, tag_index, (int)marker);
+    error(2, "DIAG pos=(%f,%f,%f) fwd=(%f,%f,%f)",
+          (double)position[0], (double)position[1], (double)position[2],
+          (double)forward[0], (double)forward[1], (double)forward[2]);
     display_assert("scale>=0.f && scale<=1.f",
                    "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x12d, 1);
     system_exit(-1);
