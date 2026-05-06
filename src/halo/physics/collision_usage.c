@@ -55,3 +55,58 @@ void collision_log_end_period(void)
   }
   *(int16_t *)0x325058 = -1;
 }
+
+/* 0x14d940 — wraps QueryPerformanceCounter (FUN_001d33e6) */
+void collision_log_query_counter(void *counter)
+{
+  FUN_001d33e6(counter);
+}
+
+/* 0x14d950 — records elapsed time for a collision function type.
+ * Computes (current_time - start) as 64-bit and accumulates into
+ * per-type and per-user counters in the scratch buffer at 0x5a80e0. */
+void collision_log_add_time(short collision_function, unsigned int start_lo,
+                            int start_hi)
+{
+  unsigned int current[2];
+  short user;
+  unsigned int elapsed_lo;
+  int elapsed_hi;
+  int type_off;
+  int user_off;
+  unsigned int prev;
+
+  FUN_001d33e6(current);
+
+  user = FUN_0014d840(collision_function);
+  if (user == -1)
+    return;
+
+  elapsed_lo = current[0] - start_lo;
+  elapsed_hi = ((int)current[1] - start_hi) - (unsigned int)(current[0] < start_lo);
+
+  type_off = (int)collision_function * 0x170;
+  prev = *(unsigned int *)(0x5a80f0 + type_off);
+  *(unsigned int *)(0x5a80f0 + type_off) = prev + elapsed_lo;
+  *(int *)(0x5a80f4 + type_off) +=
+    elapsed_hi + (unsigned int)((prev + elapsed_lo) < prev);
+
+  user_off = ((int)collision_function * 0x17 + (int)user) * 0x10;
+  prev = *(unsigned int *)(0x5a8100 + user_off);
+  *(unsigned int *)(0x5a8100 + user_off) = prev + elapsed_lo;
+  *(int *)(0x5a8104 + user_off) +=
+    elapsed_hi + (unsigned int)((prev + elapsed_lo) < prev);
+}
+
+/* 0x14d9d0 — increments call count for a collision function type */
+void collision_log_add_call(short collision_function)
+{
+  short user;
+
+  user = FUN_0014d840(collision_function);
+  if (user == -1)
+    return;
+
+  *(int *)(0x5a80e8 + (int)collision_function * 0x170) += 1;
+  *(int *)(0x5a80f8 + ((int)collision_function * 0x17 + (int)user) * 0x10) += 1;
+}

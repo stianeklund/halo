@@ -531,6 +531,7 @@
       "status": "ported"
     },
     "0x64400": {
+      "kind": "function",
       "status": "ported"
     },
     "0x64540": {
@@ -546,9 +547,11 @@
       "status": "ported"
     },
     "0x64ab0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x64ee0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x7ab50": {
@@ -5019,6 +5022,18 @@
       "status": "ported"
     },
     "0x14d140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14d940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14d950": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14d9d0": {
       "kind": "function",
       "status": "ported"
     },

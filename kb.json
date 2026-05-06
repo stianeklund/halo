@@ -165,6 +165,10 @@
         {
           "decl": "const char *FUN_001205f0(void *string_table, int16_t index);",
           "addr": "0x1205f0"
+        },
+        {
+          "decl": "int __stdcall FUN_001d33e6(void *counter);",
+          "addr": "0x1d33e6"
         }
       ]
     },
@@ -1066,16 +1070,23 @@
           "addr": "0x14ec30"
         },
         {
-          "decl": "void FUN_0014d940(void *counter);",
-          "addr": "0x14d940"
+          "decl": "short FUN_0014d840(short collision_function @<edi>);",
+          "addr": "0x14d840"
         },
         {
-          "decl": "void FUN_0014d950(short type, unsigned int start_lo, int start_hi);",
-          "addr": "0x14d950"
+          "decl": "void collision_log_query_counter(void *counter);",
+          "addr": "0x14d940",
+          "ported": true
         },
         {
-          "decl": "void FUN_0014d9d0(short type);",
-          "addr": "0x14d9d0"
+          "decl": "void collision_log_add_time(short collision_function, unsigned int start_lo, int start_hi);",
+          "addr": "0x14d950",
+          "ported": true
+        },
+        {
+          "decl": "void collision_log_add_call(short collision_function);",
+          "addr": "0x14d9d0",
+          "ported": true
         }
       ]
     },
