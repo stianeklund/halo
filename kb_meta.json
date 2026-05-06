@@ -463,15 +463,51 @@
       "status": "ported"
     },
     "0x58fa0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x58fb0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x59740": {
+      "kind": "function",
       "status": "ported"
     },
     "0x597f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x59a00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x59a50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x59b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x59b50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5df80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5df90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5dfa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5dfb0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x61df0": {
@@ -494,8 +530,25 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x64400": {
+      "status": "ported"
+    },
     "0x64540": {
       "kind": "function",
+      "status": "ported"
+    },
+    "0x64570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x64a80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x64ab0": {
+      "status": "ported"
+    },
+    "0x64ee0": {
       "status": "ported"
     },
     "0x7ab50": {
@@ -6832,36 +6885,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x59a00": {
-      "status": "ported"
-    },
-    "0x59a50": {
-      "status": "ported"
-    },
-    "0x59b10": {
-      "status": "ported"
-    },
-    "0x59b50": {
-      "status": "ported"
-    },
-    "0x5df80": {
-      "status": "ported"
-    },
-    "0x5df90": {
-      "status": "ported"
-    },
-    "0x5dfa0": {
-      "status": "ported"
-    },
-    "0x5dfb0": {
-      "status": "ported"
-    },
-    "0x64570": {
-      "status": "ported"
-    },
-    "0x64a80": {
       "status": "ported"
     }
   }

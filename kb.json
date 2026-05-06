@@ -268,6 +268,15 @@
       ]
     },
     {
+      "name": "LIBCMT:close.obj",
+      "functions": [
+        {
+          "decl": "int __close(int fd);",
+          "addr": "0x1e0218"
+        }
+      ]
+    },
+    {
       "name": "LIBCMT:fgets.obj",
       "functions": [
         {
@@ -9110,7 +9119,8 @@
         },
         {
           "decl": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);",
-          "addr": "0x64400"
+          "addr": "0x64400",
+          "ported": true
         },
         {
           "decl": "void FUN_00064540(int *out, int actor_handle);",
@@ -9129,11 +9139,13 @@
         },
         {
           "addr": "0x64ab0",
-          "decl": "int FUN_00064ab0(int actor_handle, int object_handle);"
+          "decl": "int FUN_00064ab0(int actor_handle, int object_handle);",
+          "ported": true
         },
         {
           "decl": "void FUN_00064ee0(int file);",
-          "addr": "0x64ee0"
+          "addr": "0x64ee0",
+          "ported": true
         }
       ]
     },
@@ -9143,8 +9155,23 @@
       "data": [],
       "functions": [
         {
+          "decl": "void FUN_00065f90(int file);",
+          "addr": "0x65f90"
+        },
+        {
           "decl": "void FUN_000659f0(int file, int field, int value);",
           "addr": "0x659f0"
+        }
+      ]
+    },
+    {
+      "name": "tif_flush.obj",
+      "source": "bitmaps/libtiff/tif_flush.c",
+      "data": [],
+      "functions": [
+        {
+          "decl": "int FUN_0006a260(int file);",
+          "addr": "0x6a260"
         }
       ]
     },
