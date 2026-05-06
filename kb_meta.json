@@ -6786,6 +6786,12 @@
     },
     "0x1aae70": {
       "status": "ported"
+    },
+    "0x413c0": {
+      "status": "ported"
+    },
+    "0x41420": {
+      "status": "ported"
     }
   }
 }
