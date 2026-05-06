@@ -8994,11 +8994,13 @@
       "functions": [
         {
           "decl": "void FUN_00058fa0(void);",
-          "addr": "0x58fa0"
+          "addr": "0x58fa0",
+          "ported": true
         },
         {
           "decl": "void FUN_00058fb0(void);",
-          "addr": "0x58fb0"
+          "addr": "0x58fb0",
+          "ported": true
         },
         {
           "decl": "void FUN_00059480(int actor_handle, char flag);",
@@ -9006,11 +9008,13 @@
         },
         {
           "addr": "0x59740",
-          "decl": "void FUN_00059740(int actor_handle);"
+          "decl": "void FUN_00059740(int actor_handle);",
+          "ported": true
         },
         {
           "decl": "void FUN_000597f0(int actor_handle);",
-          "addr": "0x597f0"
+          "addr": "0x597f0",
+          "ported": true
         },
         {
           "decl": "void FUN_00059b10(void *iter, char flag);",

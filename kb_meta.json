@@ -429,6 +429,14 @@
         "globals[0] = first-frame flag, globals[1] = AI active, globals[2] = pending-spawn/scripted flag; semantics inferred from branch structure."
       ]
     },
+    "0x413c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x41420": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x41590": {
       "kind": "function",
       "status": "ported"
@@ -454,7 +462,39 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x58fa0": {
+      "status": "ported"
+    },
+    "0x58fb0": {
+      "status": "ported"
+    },
+    "0x59740": {
+      "status": "ported"
+    },
+    "0x597f0": {
+      "status": "ported"
+    },
     "0x61df0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x64100": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x64140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x64150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x64160": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x64540": {
       "kind": "function",
       "status": "ported"
     },
@@ -4524,9 +4564,11 @@
       "status": "ported"
     },
     "0x13d5b0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x13d5d0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x13d640": {
@@ -4606,9 +4648,11 @@
       "status": "ported"
     },
     "0x13ebc0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x13ec50": {
+      "kind": "function",
       "status": "ported"
     },
     "0x13ecb0": {
@@ -5707,6 +5751,10 @@
         "summary": "Attempts to add a grenade (powerup_type 6) to the unit's inventory. Increments grenade count at unit+0x2CE, plays effect for local players, and deletes the equipment object."
       }
     },
+    "0x1aaa90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1aab20": {
       "kind": "function",
       "status": "ported",
@@ -5740,6 +5788,10 @@
       "status": "ported"
     },
     "0x1aae00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aae70": {
       "kind": "function",
       "status": "ported"
     },
@@ -5926,6 +5978,7 @@
       ]
     },
     "0x1b5df0": {
+      "kind": "function",
       "status": "ported"
     },
     "0x1b7ee0": {
@@ -6779,33 +6832,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x1aaa90": {
-      "status": "ported"
-    },
-    "0x1aae70": {
-      "status": "ported"
-    },
-    "0x413c0": {
-      "status": "ported"
-    },
-    "0x41420": {
-      "status": "ported"
-    },
-    "0x64100": {
-      "status": "ported"
-    },
-    "0x64140": {
-      "status": "ported"
-    },
-    "0x64150": {
-      "status": "ported"
-    },
-    "0x64160": {
-      "status": "ported"
-    },
-    "0x64540": {
       "status": "ported"
     }
   }
