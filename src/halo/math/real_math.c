@@ -1,3 +1,13 @@
+/* FUN_0001ad60 (0x1ad60) — Euclidean distance between two 3D points.
+ * Confirmed: cdecl, 2 pointer args. Pure FPU leaf (FSUB/FMUL/FADD/FSQRT). */
+float FUN_0001ad60(float *a, float *b)
+{
+  float dx = a[0] - b[0];
+  float dy = a[1] - b[1];
+  float dz = a[2] - b[2];
+  return sqrtf(dx * dx + dy * dy + dz * dz);
+}
+
 /* Compute the inverse of a 4x3 matrix (scale + rotation + translation).
  * Intermediates use double to prevent precision loss from x87 register spills.
  */
@@ -698,12 +708,159 @@ void angles_to_vector(float *out, float *angles)
   out[2] = sinf(angles[1]);
 }
 
-/* FUN_0001ad60 (0x1ad60) — Euclidean distance between two 3D points.
- * Confirmed: cdecl, 2 pointer args. Pure FPU leaf (FSUB/FMUL/FADD/FSQRT). */
-float FUN_0001ad60(float *a, float *b)
+/* FUN_0010e040 (0x10e040) — Test if two line segments are within a given
+ * radius. Computes closest points between segments A (start_a + s*dir_a, s in
+ * [0,1]) and B (start_b + t*dir_b, t in [0,1]). Returns true if distance <
+ * radius. */
+bool FUN_0010e040(float *start_a, float *dir_a, float *start_b, float *dir_b,
+                  float radius)
 {
-  float dx = a[0] - b[0];
-  float dy = a[1] - b[1];
-  float dz = a[2] - b[2];
-  return sqrtf(dx * dx + dy * dy + dz * dz);
+  float delta_x, delta_y, delta_z;
+  float nx, ny, nz;
+  float cross_sq;
+  float s, t;
+  float inv;
+  float d0_d1, d0_sq, d1_sq;
+  float s_start, s_end, t_start, t_end;
+  float clamped_s, clamped_t;
+  float closest_a_x, closest_a_y, closest_a_z;
+  float closest_b_x, closest_b_y, closest_b_z;
+  float diff_x, diff_y, diff_z;
+  char s_oob, t_oob;
+
+  delta_x = start_b[0] - start_a[0];
+  delta_y = start_b[1] - start_a[1];
+  delta_z = start_b[2] - start_a[2];
+
+  /* cross = dir_a × dir_b */
+  nx = dir_a[1] * dir_b[2] - dir_b[1] * dir_a[2];
+  ny = dir_a[2] * dir_b[0] - dir_a[0] * dir_b[2];
+  nz = dir_b[1] * dir_a[0] - dir_a[1] * dir_b[0];
+
+  cross_sq = nx * nx + ny * ny + nz * nz;
+
+  if (fabsf(cross_sq) < (float)*(double *)0x2533d0) {
+    /* parallel or nearly parallel lines */
+    d0_d1 = dir_a[0] * dir_b[0] + dir_a[1] * dir_b[1] + dir_a[2] * dir_b[2];
+    d0_sq = dir_a[0] * dir_a[0] + dir_a[1] * dir_a[1] + dir_a[2] * dir_a[2];
+
+    if (d0_sq <= *(float *)0x253f44) {
+      s = 0.0f;
+    } else {
+      inv = *(float *)0x2533c8 / d0_sq;
+      s_start =
+        (delta_x * dir_a[0] + delta_y * dir_a[1] + delta_z * dir_a[2]) * inv;
+      s_end = inv * d0_d1 + s_start;
+
+      /* clamp s_start to [0, 1] */
+      if (s_start < *(float *)0x2533c0)
+        clamped_s = *(float *)0x2533c0;
+      else if (s_start > *(float *)0x2533c8)
+        clamped_s = *(float *)0x2533c8;
+      else
+        clamped_s = s_start;
+
+      /* clamp s_end to [0, 1] */
+      if (s_end < *(float *)0x2533c0)
+        s = (*(float *)0x2533c0 + clamped_s) * *(float *)0x253398;
+      else if (s_end > *(float *)0x2533c8)
+        s = (*(float *)0x2533c8 + clamped_s) * *(float *)0x253398;
+      else
+        s = (s_end + clamped_s) * *(float *)0x253398;
+    }
+
+    d1_sq = dir_b[0] * dir_b[0] + dir_b[1] * dir_b[1] + dir_b[2] * dir_b[2];
+
+    if (d1_sq <= *(float *)0x253f44) {
+      t = *(float *)0x2533c0;
+    } else {
+      inv = *(float *)0x2533c8 / d1_sq;
+      t_start =
+        -((delta_x * dir_b[0] + delta_y * dir_b[1] + delta_z * dir_b[2]) * inv);
+      t_end = inv * d0_d1 + t_start;
+
+      /* clamp t_start to [0, 1] */
+      if (t_start < *(float *)0x2533c0)
+        clamped_t = *(float *)0x2533c0;
+      else if (t_start > *(float *)0x2533c8)
+        clamped_t = *(float *)0x2533c8;
+      else
+        clamped_t = t_start;
+
+      /* clamp t_end to [0, 1] */
+      if (t_end < *(float *)0x2533c0)
+        t = (*(float *)0x2533c0 + clamped_t) * *(float *)0x253398;
+      else if (t_end > *(float *)0x2533c8)
+        t = (*(float *)0x2533c8 + clamped_t) * *(float *)0x253398;
+      else
+        t = (t_end + clamped_t) * *(float *)0x253398;
+    }
+
+    goto distance_check;
+  }
+
+  /* non-parallel case */
+  inv = *(float *)0x2533c8 / cross_sq;
+  nx = nx * inv;
+  ny = ny * inv;
+
+  /* s = dot(delta × dir_b, n_norm) */
+  s = (delta_y * dir_b[2] - delta_z * dir_b[1]) * nx +
+      (delta_z * dir_b[0] - delta_x * dir_b[2]) * ny +
+      (delta_x * dir_b[1] - delta_y * dir_b[0]) * nz * inv;
+
+  /* t = dot(delta × dir_a, n_norm) */
+  t = (delta_y * dir_a[2] - delta_z * dir_a[1]) * nx +
+      (delta_z * dir_a[0] - delta_x * dir_a[2]) * ny +
+      (delta_x * dir_a[1] - delta_y * dir_a[0]) * nz * inv;
+
+  /* check if s is out of [0, 1] */
+  s_oob = (s < *(float *)0x2533c0 || s > *(float *)0x2533c8);
+  /* check if t is out of [0, 1] */
+  t_oob = (t < *(float *)0x2533c0 || t > *(float *)0x2533c8);
+
+  if (s_oob) {
+    clamped_s =
+      (s < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
+    closest_a_x = clamped_s * dir_a[0] + start_a[0];
+    closest_a_y = clamped_s * dir_a[1] + start_a[1];
+    closest_a_z = clamped_s * dir_a[2] + start_a[2];
+    if (!t_oob)
+      goto point_segment_checks;
+  } else if (!t_oob) {
+    goto distance_check;
+  }
+
+  clamped_t =
+    (t < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
+  closest_b_x = clamped_t * dir_b[0] + start_b[0];
+  closest_b_y = clamped_t * dir_b[1] + start_b[1];
+  closest_b_z = clamped_t * dir_b[2] + start_b[2];
+
+point_segment_checks:
+  if (s_oob) {
+    if (FUN_0010bc70(start_b, dir_b, &closest_a_x, radius))
+      return 1;
+  }
+  if (t_oob) {
+    if (FUN_0010bc70(start_a, dir_a, &closest_b_x, radius))
+      return 1;
+  }
+  return 0;
+
+distance_check:
+  closest_a_x = s * dir_a[0] + start_a[0];
+  closest_a_y = s * dir_a[1] + start_a[1];
+  closest_a_z = s * dir_a[2] + start_a[2];
+  closest_b_x = t * dir_b[0] + start_b[0];
+  closest_b_y = t * dir_b[1] + start_b[1];
+  closest_b_z = t * dir_b[2] + start_b[2];
+
+  diff_x = closest_b_x - closest_a_x;
+  diff_y = closest_b_y - closest_a_y;
+  diff_z = closest_b_z - closest_a_z;
+
+  if (radius * radius < diff_x * diff_x + diff_y * diff_y + diff_z * diff_z)
+    return 0;
+  return 1;
 }

@@ -6135,7 +6135,8 @@
         },
         {
           "addr": "0x10e040",
-          "decl": "bool FUN_0010e040(float *line_a_start, float *line_a_dir, float *line_b_start, float *line_b_dir, float radius);"
+          "decl": "bool FUN_0010e040(float *line_a_start, float *line_a_dir, float *line_b_start, float *line_b_dir, float radius);",
+          "ported": true
         }
       ]
     },
