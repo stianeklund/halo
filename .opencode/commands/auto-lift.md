@@ -1,6 +1,6 @@
 ---
 description: Target selection, Ghidra context caching, and lift delegation
-agent: fast
+model: sonnet
 subtask: true
 ---
 
