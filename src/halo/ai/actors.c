@@ -1294,6 +1294,228 @@ void FUN_0003c370(int actor_handle)
   *(uint32_t *)(actor + 0x6d0) |= 0x2000;
 }
 
+/* FUN_0003c410 (0x3c410) — actor_new
+ * Allocate and minimally initialize a new actor datum from the actor_data pool.
+ * Looks up the actv (actor variant) tag by actv_tag_index, then the actr
+ * (actor) tag it references at offset +0x10. Calls data_new_at_index to
+ * reserve a slot, then datum_get to get the record pointer. Writes the actv
+ * and actr tag indices into the record (offsets +0x5c, +0x58), copies the
+ * actor's type tag word and a swarm flag bit, and zeroes/sentinels every
+ * other field (handles to -1, counts to 0, flag bytes to 0 or 1). Zeroes
+ * three struct sub-ranges with csmemset. Initializes the actor's per-slot
+ * AI state array entry (at DAT_00331f58 + slot*0x657c) with csmemset and
+ * sentinel -1 handles. Copies the default facing vector (from
+ * *PTR_DAT_0031fc3c) into actor fields +0x5a4, +0x5b0, +0x5bc. If actr[0x90]
+ * (never_dormant_chance) exceeds *(float*)0x2533c0, rolls a random float and
+ * sets actor+0x376 to 1 if the roll is less than the chance threshold. Calls
+ * FUN_0003a810 to dispatch the actor-type init callback. Returns the new actor
+ * handle, or -1 on failure (invalid actv, invalid actr tag, or allocation
+ * failure).
+ *
+ * Confirmed: PUSH EAX(param_1)/PUSH 0x61637476 → tag_get at 0x3c42c.
+ * Confirmed: actr_tag_index from *(int*)(actv+0x10) at 0x3c431.
+ * Confirmed: data_new_at_index(actor_data) at 0x3c453; ADD ESP,0xc cleans
+ *   both tag_get calls and data_new_at_index in one batch (0x3c458).
+ * Confirmed: datum_get(actor_data, handle) at 0x3c46f; ADD ESP,0x14 at
+ *   0x3c56b cleans datum_get(2) + csmemset(0x350)(3) in one batch.
+ * Confirmed: actr_tag stored at actor+0x5c at 0x3c484; actr_idx at +0x58.
+ * Confirmed: swarm bit = (actr[0] >> 0x1a) & 1 stored at actor+0x6.
+ * Confirmed: type word = *(short*)(actr+0x14) stored at actor+0x4.
+ * Confirmed: csmemset(actor+0x350, 0, 0x68) at 0x3c566.
+ * Confirmed: csmemset(actor+0x4a8, 0, 0x5c) at 0x3c63a.
+ * Confirmed: csmemset(actor+0x5c8, -1, 0x10) at 0x3c692.
+ * Confirmed: FPU compare at 0x3c5cf: actr[0x90] vs *(float*)0x2533c0.
+ * Confirmed: random_math_real result compared with actr[0x90] at 0x3c5f0.
+ * Confirmed: state slot = (handle & 0xffff) * 0x657c + *(char**)0x331f58.
+ * Confirmed: csmemset(state, 0, 0x657c) at 0x3c75c.
+ * Confirmed: FUN_0003a810(handle) at 0x3c79c; ADD ESP,0x30 cleans 12 pushes.
+ * Confirmed: return value = ESI = handle (MOV EAX,ESI at 0x3c7a4).
+ * Inferred: *(float**)0x31fc3c points to a {1,0,0} default facing vec3.
+ * Inferred: 0x2533c0 is a float threshold (0.0f at load, runtime-set later). */
+int FUN_0003c410(int actv_tag_index)
+{
+  char *actv_data;
+  char *actr_data;
+  int new_handle;
+  char *actor;
+  int actr_tag_index;
+  float *default_facing;
+  char *state;
+  unsigned int actr_flags;
+  float rand_val;
+  int *seed;
+
+  if (actv_tag_index == -1) {
+    return -1;
+  }
+
+  actv_data = (char *)tag_get(0x61637476, actv_tag_index);
+  actr_tag_index = *(int *)(actv_data + 0x10);
+  if (actr_tag_index == -1) {
+    return -1;
+  }
+
+  actr_data = (char *)tag_get(0x61637472, actr_tag_index);
+
+  new_handle = data_new_at_index(actor_data);
+  if (new_handle == -1) {
+    return -1;
+  }
+
+  actor = (char *)datum_get(actor_data, new_handle);
+
+  /* Copy actv/actr tag indices and actor-type fields into the actor record. */
+  actr_flags = *(unsigned int *)actr_data;
+  *(int *)(actor + 0x5c) = actv_tag_index;
+  *(char *)(actor + 0x6) = (char)((actr_flags >> 0x1a) & 1);
+  *(int *)(actor + 0x58) = actr_tag_index;
+  *(short *)(actor + 0x4) = *(short *)(actr_data + 0x14);
+
+  /* Initialize handle/index sentinels and zero-fields. */
+  *(int *)(actor + 0x18) = -1;
+  *(char *)(actor + 0x1c) = 0;
+  *(int *)(actor + 0x34) = -1;
+  *(short *)(actor + 0x3a) = (short)-1;
+  *(short *)(actor + 0x3c) = (short)-1;
+  *(char *)(actor + 0x9) = 0;
+  *(int *)(actor + 0x30) = -1;
+  *(short *)(actor + 0x38) = (short)-1;
+  *(short *)(actor + 0x1e) = 0;
+  *(short *)(actor + 0x20) = 0;
+  *(int *)(actor + 0x24) = -1;
+  *(int *)(actor + 0x28) = -1;
+  *(char *)(actor + 0x7) = 1;
+  *(char *)(actor + 0x8) = 0;
+  *(int *)(actor + 0xc) = -1;
+  *(char *)(actor + 0x13) = 1;
+  *(char *)(actor + 0x12) = 1;
+  *(short *)(actor + 0x4a) = 0;
+  *(int *)(actor + 0x50) = -1;
+  *(int *)(actor + 0x54) = -1;
+  *(short *)(actor + 0x3b8) = (short)-1;
+  *(short *)(actor + 0x60) = (short)-1;
+  *(short *)(actor + 0x62) = (short)-1;
+  *(int *)(actor + 0x64) = -1;
+  *(char *)(actor + 0x8e) = 0;
+  *(short *)(actor + 0x90) = (short)-1;
+  *(int *)(actor + 0x94) = -1;
+  *(short *)(actor + 0x6c) = 0;
+  *(short *)(actor + 0x6a) = 2;
+  *(short *)(actor + 0x6e) = 0;
+  *(short *)(actor + 0x72) = 0;
+  *(short *)(actor + 0x74) = 0;
+  *(int *)(actor + 0x88) = -1;
+  *(char *)(actor + 0x98) = 0;
+
+  /* Swarm-component flag: bit 0x15 of actr_flags (re-read after possible
+   * aliasing). */
+  *(char *)(actor + 0x99) = (char)((*(unsigned int *)actr_data >> 0x15) & 1);
+
+  *(int *)(actor + 0x164) = -1;
+  *(int *)(actor + 0x158) = -1;
+  *(char *)(actor + 0x1c9) = 0;
+  *(char *)(actor + 0x1cc) = 0;
+  *(int *)(actor + 0x1d0) = -1;
+  *(short *)(actor + 0x1d4) = 0;
+  *(int *)(actor + 0x1dc) = -1;
+
+  /* Zero sub-range 0x350..0x3b7 (0x68 bytes). */
+  csmemset(actor + 0x350, 0, 0x68);
+
+  /* Initialize fields in 0x350..0x3ff range (after csmemset). */
+  *(int *)(actor + 0x370) = -1;
+  *(int *)(actor + 0x37c) = -1;
+  *(int *)(actor + 0x380) = -1;
+  *(int *)(actor + 0x36c) = -1;
+  *(int *)(actor + 0x384) = -1;
+  *(int *)(actor + 0x388) = -1;
+  *(int *)(actor + 0x398) = -1;
+  *(int *)(actor + 0x3a0) = -1;
+  *(int *)(actor + 0x3a4) = -1;
+  *(int *)(actor + 0x3ac) = -1;
+  *(int *)(actor + 0x3b0) = -1;
+  *(float *)(actor + 0x3b4) = 1.0f;
+  *(int *)(actor + 0x390) = -1;
+  *(int *)(actor + 0x394) = -1;
+  *(int *)(actor + 0x39c) = -1;
+
+  /* Roll a random dormancy check if actr never_dormant_chance > threshold. */
+  if (*(float *)0x2533c0 < *(float *)(actr_data + 0x90)) {
+    seed = get_global_random_seed_address();
+    rand_val = random_math_real((unsigned int *)seed);
+    *(char *)(actor + 0x376) = (char)(rand_val < *(float *)(actr_data + 0x90));
+  }
+
+  /* Zero actor sub-ranges 0x3e8..0x503 (0x5c bytes) and misc field inits. */
+  *(short *)(actor + 0x3e8) = 0;
+  *(short *)(actor + 0x400) = 0;
+  *(short *)(actor + 0x46c) = 0;
+  *(int *)(actor + 0x480) = -1;
+  *(int *)(actor + 0x494) = -1;
+  csmemset(actor + 0x4a8, 0, 0x5c);
+
+  /* Zero then sentinel-fill 0x5c8..0x5d7 (0x10 bytes with 0xff). */
+  *(char *)(actor + 0x504) = 0;
+  *(char *)(actor + 0x505) = 0;
+  *(short *)(actor + 0x5f2) = 1;
+  *(short *)(actor + 0x5f4) = 0;
+  *(short *)(actor + 0x5f6) = 0;
+  *(short *)(actor + 0x5f8) = 0;
+  *(short *)(actor + 0x5fa) = 0;
+  *(int *)(actor + 0x61c) = 0;
+  *(int *)(actor + 0x610) = -1;
+  *(int *)(actor + 0x6a4) = -1;
+  *(int *)(actor + 0x6b4) = -1;
+  csmemset(actor + 0x5c8, -1, 0x10);
+
+  /* Copy default facing vector {1,0,0} to three actor orientation fields. */
+  default_facing = *(float **)0x31fc3c;
+  *(float *)(actor + 0x5b0) = default_facing[0];
+  *(float *)(actor + 0x5b4) = default_facing[1];
+  *(float *)(actor + 0x5b8) = default_facing[2];
+  *(float *)(actor + 0x5a4) = default_facing[0];
+  *(float *)(actor + 0x5a8) = default_facing[1];
+  *(float *)(actor + 0x5ac) = default_facing[2];
+  *(float *)(actor + 0x5bc) = default_facing[0];
+  *(float *)(actor + 0x5c0) = default_facing[1];
+  *(float *)(actor + 0x5c4) = default_facing[2];
+
+  *(short *)(actor + 0x5d8) = (short)-1;
+  *(short *)(actor + 0x5f0) = (short)-1;
+  *(short *)(actor + 0x544) = 0;
+  *(short *)(actor + 0x548) = 0;
+
+  *(char *)(actor + 0x6cc) = 0;
+  *(short *)(actor + 0x6ce) = 0x1e;
+  *(short *)(actor + 0x268) = 0;
+  *(int *)(actor + 0x270) = -1;
+  *(int *)(actor + 0x26c) = -1;
+  *(int *)(actor + 0x278) = -1;
+
+  FUN_00024b80(new_handle, 0);
+
+  *(int *)(actor + 0x3c0) = -1;
+
+  /* Initialize the per-slot AI state array entry for this actor. */
+  state = *(char **)0x331f58 + (new_handle & 0xffff) * 0x657c;
+  csmemset(state, 0, 0x657c);
+  *(int *)(state + 0x4) = -1;
+  *(int *)(state + 0x5c) = -1;
+  *(int *)(state + 0xc4) = -1;
+  *(int *)(state + 0x104) = -1;
+  *(int *)(state + 0x150) = -1;
+  *(int *)(state + 0x168) = -1;
+  *(int *)(state + 0x18c) = -1;
+  *(int *)(state + 0x19c) = -1;
+  *(int *)(state + 0x656c) = -1;
+  *(short *)(state + 0x6578) = (short)-1;
+
+  /* Dispatch actor-type init callback. */
+  FUN_0003a810(new_handle);
+
+  return new_handle;
+}
+
 /* FUN_0003c7c0 (0x3c7c0) — actor_variant_setup_unit
  * Initializes a newly created unit from its actor variant (actv) tag data.
  * Sets perception ranges, grenade type, change colors, initial weapon,

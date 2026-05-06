@@ -429,6 +429,10 @@
           "addr": "0x3a800"
         },
         {
+          "decl": "void FUN_0003a810(int actor_handle);",
+          "addr": "0x3a810"
+        },
+        {
           "addr": "0x3a840",
           "decl": "void FUN_0003a840(int actor_handle);",
           "ported": true
@@ -572,7 +576,8 @@
         },
         {
           "decl": "int FUN_0003c410(int actv_tag_index);",
-          "addr": "0x3c410"
+          "addr": "0x3c410",
+          "ported": true
         },
         {
           "decl": "void FUN_0003c7c0(int actv_tag_index, int unit_index);",
