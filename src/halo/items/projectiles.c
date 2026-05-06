@@ -33,6 +33,17 @@ void FUN_000f7d50(int projectile_handle)
   *(uint32_t *)(proj + 0x1dc) |= 2u;
 }
 
+/* Compute the negated gravity contribution for a projectile.
+ * Multiplies the per-tick gravity constant (DAT_0032512c) by the float
+ * stored at projectile_tag+0x1cc (a physics/velocity field in the proj tag),
+ * then negates the result.  The sign flip converts a positive tag-stored value
+ * into the downward (negative) acceleration component used by the projectile
+ * physics integrator.  Leaf function, no callees. */
+float FUN_000f7d80(int projectile_tag)
+{
+  return -(*(float *)0x32512c * *(float *)(projectile_tag + 0x1cc));
+}
+
 /* Return true if any projectile object (type 0x20) exists in the world.
  * Loads the projectile's tag definition as a side effect (cache priming). */
 bool dangerous_projectiles_near_player(void)

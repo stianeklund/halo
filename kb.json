@@ -5643,7 +5643,8 @@
         },
         {
           "decl": "float FUN_000f7d80(int projectile_tag);",
-          "addr": "0xf7d80"
+          "addr": "0xf7d80",
+          "ported": true
         },
         {
           "decl": "float FUN_000f7da0(void *proj_tag, float value);",
