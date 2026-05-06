@@ -131,7 +131,7 @@ class LiftResult:
     name: str
     state: str
     attempts: int
-    xdk_match_pct: Optional[float]
+    vc71_match_pct: Optional[float]
     abi_clean: bool
     warnings: list[str]
     validation_steps: list[dict]
@@ -877,7 +877,7 @@ def _build_correction_prompt(pack: ContextPack, prev_output: str,
         "forbidden": f"Your output contained a forbidden pattern:\n{failure_detail}\nRemove it and use the equivalent C idiom.",
         "build": f"Your implementation failed to compile:\n{failure_detail}\nFix ONLY the compilation error. Do not change the overall structure.",
         "abi": f"The ABI audit found register argument issues:\n{failure_detail}\nEnsure arguments match the declared signature exactly.",
-        "xdk": f"The XDK structural comparison found differences:\n{failure_detail}\nAdjust control flow to more closely match the original binary.",
+        "vc71": f"The VC71 structural comparison found differences:\n{failure_detail}\nAdjust control flow to more closely match the original binary.",
         "fpu": f"FPU operand order differs from the original:\n{failure_detail}\nCheck subtraction and multiplication order against the disassembly.",
     }
 
@@ -1035,13 +1035,13 @@ def _make_adapter(provider: str, model: str = "", temperature: float = 0.2) -> L
 class OutputValidator:
 
     def __init__(self, *, worktree_path: Path, target: LiftTarget, pack: ContextPack,
-                 build_cmd: str, skip_xdk: bool = False, xdk_threshold: float = 50.0):
+                 build_cmd: str, skip_vc71: bool = False, vc71_threshold: float = 50.0):
         self.worktree = worktree_path
         self.target = target
         self.pack = pack
         self.build_cmd = build_cmd
-        self.skip_xdk = skip_xdk
-        self.xdk_threshold = xdk_threshold
+        self.skip_vc71 = skip_vc71
+        self.vc71_threshold = vc71_threshold
 
     def validate(self, body: str, artifact_dir: Path, attempt: int) -> list[ValidationStep]:
         steps: list[ValidationStep] = []
@@ -1076,8 +1076,8 @@ class OutputValidator:
         if not step.passed:
             return steps
 
-        # Step 6: XDK verify
-        step = self._check_xdk(artifact_dir, attempt)
+        # Step 6: VC71 verify
+        step = self._check_vc71(artifact_dir, attempt)
         steps.append(step)
 
         return steps
@@ -1247,14 +1247,14 @@ class OutputValidator:
         except subprocess.TimeoutExpired:
             return ValidationStep("abi", False, error="ABI audit timed out", failure_class="abi")
 
-    def _check_xdk(self, artifact_dir: Path, attempt: int) -> ValidationStep:
-        if self.skip_xdk or not self.pack.delinked_available:
-            return ValidationStep("xdk", True, warnings=["skipped (no delinked ref)"])
+    def _check_vc71(self, artifact_dir: Path, attempt: int) -> ValidationStep:
+        if self.skip_vc71 or not self.pack.delinked_available:
+            return ValidationStep("vc71", True, warnings=["skipped (no delinked ref)"])
 
-        xdk_log = artifact_dir / f"xdk_v{attempt}.log"
-        xdk_cmd = [
+        vc71_log = artifact_dir / f"vc71_v{attempt}.log"
+        vc71_cmd = [
             sys.executable,
-            str(ROOT / "tools" / "verify" / "xdk_verify.py"),
+            str(ROOT / "tools" / "verify" / "vc71_verify.py"),
             self.target.source_path,
             "--function", self.target.name,
             "--show-diffs",
@@ -1262,11 +1262,11 @@ class OutputValidator:
         ]
         try:
             proc = subprocess.run(
-                xdk_cmd, cwd=str(self.worktree),
+                vc71_cmd, cwd=str(self.worktree),
                 capture_output=True, text=True, timeout=60,
             )
             output = proc.stdout + "\n" + proc.stderr
-            xdk_log.write_text(output, encoding="utf-8")
+            vc71_log.write_text(output, encoding="utf-8")
 
             # Parse match percentage
             match_pct = None
@@ -1276,21 +1276,21 @@ class OutputValidator:
 
             # Parse FPU warnings
             fpu_warns = re.findall(r"\[FPU-WARN\].*", output)
-            warnings = [f"xdk_match={match_pct}%"] if match_pct is not None else []
+            warnings = [f"vc71_match={match_pct}%"] if match_pct is not None else []
             warnings.extend(fpu_warns)
 
-            if match_pct is not None and match_pct < self.xdk_threshold:
-                failure_class = "fpu" if fpu_warns else "xdk"
+            if match_pct is not None and match_pct < self.vc71_threshold:
+                failure_class = "fpu" if fpu_warns else "vc71"
                 return ValidationStep(
-                    "xdk", False, warnings=warnings,
-                    error=f"XDK match {match_pct}% < threshold {self.xdk_threshold}%",
+                    "vc71", False, warnings=warnings,
+                    error=f"VC71 match {match_pct}% < threshold {self.vc71_threshold}%",
                     failure_class=failure_class,
                 )
 
-            return ValidationStep("xdk", True, warnings=warnings)
+            return ValidationStep("vc71", True, warnings=warnings)
 
         except subprocess.TimeoutExpired:
-            return ValidationStep("xdk", False, error="XDK verify timed out", failure_class="xdk")
+            return ValidationStep("vc71", False, error="VC71 verify timed out", failure_class="vc71")
 
 
 # ---------------------------------------------------------------------------
@@ -1361,13 +1361,13 @@ class WorktreeManager:
 class AutoLiftRunner:
 
     def __init__(self, *, adapter: LLMAdapter, ghidra_live: bool = False,
-                 build_cmd: str = "", skip_xdk: bool = False,
-                 xdk_threshold: float = 50.0, max_retries: int = 2):
+                 build_cmd: str = "", skip_vc71: bool = False,
+                 vc71_threshold: float = 50.0, max_retries: int = 2):
         self.adapter = adapter
         self.ghidra_live = ghidra_live
         self.build_cmd = build_cmd or f"{sys.executable} tools/build/build.py -q --target halo"
-        self.skip_xdk = skip_xdk
-        self.xdk_threshold = xdk_threshold
+        self.skip_vc71 = skip_vc71
+        self.vc71_threshold = vc71_threshold
         self.max_retries = max_retries
         self.pack_builder = ContextPackBuilder(ghidra_live=ghidra_live)
 
@@ -1423,7 +1423,7 @@ class AutoLiftRunner:
             log.warning("No decompiler output for %s — skipping", target.name)
             return LiftResult(
                 addr=target.addr, name=target.name, state=REJECT, attempts=0,
-                xdk_match_pct=None, abi_clean=False, warnings=["No decompiler output"],
+                vc71_match_pct=None, abi_clean=False, warnings=["No decompiler output"],
                 validation_steps=[], llm_provider=self.adapter.provider_name(),
                 llm_model="", total_input_tokens=0, total_output_tokens=0,
                 duration_s=time.monotonic() - t0,
@@ -1475,8 +1475,8 @@ class AutoLiftRunner:
                 target=target,
                 pack=pack,
                 build_cmd=self.build_cmd,
-                skip_xdk=self.skip_xdk,
-                xdk_threshold=self.xdk_threshold,
+                skip_vc71=self.skip_vc71,
+                vc71_threshold=self.vc71_threshold,
             )
             steps = validator.validate(body, func_dir, attempt)
 
@@ -1521,12 +1521,12 @@ class AutoLiftRunner:
         for s in best_steps:
             all_warnings.extend(s.warnings)
 
-        xdk_match = None
+        vc71_match = None
         for s in best_steps:
             for w in s.warnings:
-                m = re.match(r"xdk_match=([\d.]+)%", w)
+                m = re.match(r"vc71_match=([\d.]+)%", w)
                 if m:
-                    xdk_match = float(m.group(1))
+                    vc71_match = float(m.group(1))
 
         abi_clean = all(s.passed for s in best_steps if s.name == "abi")
         has_fpu_warn = any("[FPU-WARN]" in w for s in best_steps for w in s.warnings)
@@ -1548,7 +1548,7 @@ class AutoLiftRunner:
             name=target.name,
             state=state,
             attempts=attempts_used,
-            xdk_match_pct=xdk_match,
+            vc71_match_pct=vc71_match,
             abi_clean=abi_clean,
             warnings=all_warnings,
             validation_steps=[asdict(s) for s in best_steps],
@@ -1561,8 +1561,8 @@ class AutoLiftRunner:
 
         (func_dir / "result.json").write_text(json.dumps(asdict(result), indent=2), encoding="utf-8")
 
-        log.info("  Result: %s (attempts=%d, xdk=%s)", state, attempts_used,
-                 f"{xdk_match:.1f}%" if xdk_match is not None else "n/a")
+        log.info("  Result: %s (attempts=%d, vc71=%s)", state, attempts_used,
+                 f"{vc71_match:.1f}%" if vc71_match is not None else "n/a")
 
         return result
 
@@ -1598,9 +1598,9 @@ def cmd_review(args: argparse.Namespace):
 
         for r in summary.get("results", []):
             icon = {"auto_accept": "+", "needs_review": "?", "reject": "x"}.get(r.get("state", ""), " ")
-            xdk = f"{r['xdk_match_pct']:.0f}%" if r.get("xdk_match_pct") is not None else "n/a"
+            vc71 = f"{r['vc71_match_pct']:.0f}%" if r.get("vc71_match_pct") is not None else "n/a"
             print(f"  [{icon}] {r.get('name', '?'):30s}  {r.get('state', '?'):15s}  "
-                  f"xdk={xdk}  attempts={r.get('attempts', 0)}")
+                  f"vc71={vc71}  attempts={r.get('attempts', 0)}")
 
 
 # ---------------------------------------------------------------------------
@@ -1696,8 +1696,8 @@ def main():
     p_auto.add_argument("--llm-model", default="", help="Override model")
     p_auto.add_argument("--temperature", type=float, default=0.2)
     p_auto.add_argument("--max-retries", type=int, default=2, help="Correction retries (default: 2)")
-    p_auto.add_argument("--skip-xdk", action="store_true", help="Skip XDK verify")
-    p_auto.add_argument("--xdk-threshold", type=float, default=50.0, help="XDK match %% for auto_accept")
+    p_auto.add_argument("--skip-vc71", action="store_true", help="Skip VC71 verify")
+    p_auto.add_argument("--vc71-threshold", type=float, default=50.0, help="VC71 match %% for auto_accept")
     p_auto.add_argument("--build-cmd", default="", help="Override build command")
 
     # -- score --
@@ -1735,8 +1735,8 @@ def main():
     p_gen.add_argument("--llm-model", default="", help="Override model")
     p_gen.add_argument("--temperature", type=float, default=0.2)
     p_gen.add_argument("--max-retries", type=int, default=2, help="Correction retries (default: 2)")
-    p_gen.add_argument("--skip-xdk", action="store_true", help="Skip XDK verify")
-    p_gen.add_argument("--xdk-threshold", type=float, default=50.0, help="XDK match %% for auto_accept")
+    p_gen.add_argument("--skip-vc71", action="store_true", help="Skip VC71 verify")
+    p_gen.add_argument("--vc71-threshold", type=float, default=50.0, help="VC71 match %% for auto_accept")
     p_gen.add_argument("--build-cmd", default="", help="Override build command")
 
     # -- review --
@@ -1758,8 +1758,8 @@ def main():
         args.llm_model = ""
         args.temperature = 0.2
         args.max_retries = 2
-        args.skip_xdk = False
-        args.xdk_threshold = 50.0
+        args.skip_vc71 = False
+        args.vc71_threshold = 50.0
         args.build_cmd = ""
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -1893,8 +1893,8 @@ def cmd_auto(args: argparse.Namespace):
         llm_model=args.llm_model,
         temperature=args.temperature,
         max_retries=args.max_retries,
-        skip_xdk=args.skip_xdk,
-        xdk_threshold=args.xdk_threshold,
+        skip_vc71=args.skip_vc71,
+        vc71_threshold=args.vc71_threshold,
         build_cmd=args.build_cmd,
     )
     cmd_generate(gen_args)
@@ -1982,15 +1982,15 @@ def cmd_generate(args: argparse.Namespace):
 
     print(f"Starting batch {batch_id} with {len(targets)} target(s)")
     print(f"Provider: {args.llm_provider}, Model: {args.llm_model or 'default'}")
-    print(f"Max retries: {args.max_retries}, XDK threshold: {args.xdk_threshold}%")
+    print(f"Max retries: {args.max_retries}, VC71 threshold: {args.vc71_threshold}%")
     print()
 
     runner = AutoLiftRunner(
         adapter=adapter,
         ghidra_live=False,  # Use cached context
         build_cmd=args.build_cmd,
-        skip_xdk=args.skip_xdk,
-        xdk_threshold=args.xdk_threshold,
+        skip_vc71=args.skip_vc71,
+        vc71_threshold=args.vc71_threshold,
         max_retries=args.max_retries,
     )
 

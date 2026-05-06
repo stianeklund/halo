@@ -661,55 +661,55 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("objdiff", ran=False, ok=True,
                               details="skipped (no --objdiff-reference/--objdiff-candidate)"))
 
-  xdk_verify_ran = False
-  xdk_verify_ok = False
-  xdk_match_pct: Optional[float] = None
-  xdk_has_fpu_warn = False
+  vc71_verify_ran = False
+  vc71_verify_ok = False
+  vc71_match_pct: Optional[float] = None
+  vc71_has_fpu_warn = False
 
-  if not args.skip_xdk_verify and build_ok:
-    xdk_source = Path(target.source_path) if target.source_path else None
-    xdk_ref = None
-    if xdk_source:
+  if not args.skip_vc71_verify and build_ok:
+    vc71_source = Path(target.source_path) if target.source_path else None
+    vc71_ref = None
+    if vc71_source:
       try:
         with open(ROOT / "objdiff.json") as f:
           objdiff_cfg = json.load(f)
         for u in objdiff_cfg.get("units", []):
           src = u.get("metadata", {}).get("source_path", "")
-          if src and str(xdk_source).endswith(src):
+          if src and str(vc71_source).endswith(src):
             ref_path = ROOT / u.get("base_path", "")
             if ref_path.exists():
-              xdk_ref = ref_path
+              vc71_ref = ref_path
             break
       except (FileNotFoundError, json.JSONDecodeError):
         pass
 
-    if xdk_source and xdk_ref and (ROOT / xdk_source).exists():
-      xdk_verify_ran = True
+    if vc71_source and vc71_ref and (ROOT / vc71_source).exists():
+      vc71_verify_ran = True
       cmd = [
-        "python3", "tools/verify/xdk_verify.py",
-        str(xdk_source), "--function", target.name,
+        "python3", "tools/verify/vc71_verify.py",
+        str(vc71_source), "--function", target.name,
         "--show-diffs", "--threshold", "0",
       ]
-      proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "xdk_verify.log")
+      proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "vc71_verify.log")
       output = (proc.stdout or "") + (proc.stderr or "")
-      xdk_has_fpu_warn = "FPU-WARN" in output
-      xdk_match_pct = parse_match_percent(output)
-      xdk_verify_ok = proc.returncode == 0
+      vc71_has_fpu_warn = "FPU-WARN" in output
+      vc71_match_pct = parse_match_percent(output)
+      vc71_verify_ok = proc.returncode == 0
       if proc.returncode == 0:
-        details = f"{xdk_match_pct:.1f}% match" if xdk_match_pct is not None else "PASS"
-      elif xdk_has_fpu_warn:
-        details = f"{xdk_match_pct:.1f}% match, FPU operand-order warnings" if xdk_match_pct else "FPU warnings"
+        details = f"{vc71_match_pct:.1f}% match" if vc71_match_pct is not None else "PASS"
+      elif vc71_has_fpu_warn:
+        details = f"{vc71_match_pct:.1f}% match, FPU operand-order warnings" if vc71_match_pct else "FPU warnings"
       else:
-        details = "xdk compilation or comparison failed"
-      stages.append(StageResult("xdk_verify", ran=True, ok=xdk_verify_ok,
-                                details=details + (" [REVIEW FPU-WARN]" if xdk_has_fpu_warn else "")))
+        details = "VC71 compilation or comparison failed"
+      stages.append(StageResult("vc71_verify", ran=True, ok=vc71_verify_ok,
+                                details=details + (" [REVIEW FPU-WARN]" if vc71_has_fpu_warn else "")))
     else:
-      reason = "no delinked reference" if xdk_source else "no source_path"
-      stages.append(StageResult("xdk_verify", ran=False, ok=True,
+      reason = "no delinked reference" if vc71_source else "no source_path"
+      stages.append(StageResult("vc71_verify", ran=False, ok=True,
                                 details=f"skipped ({reason})"))
   else:
-    stages.append(StageResult("xdk_verify", ran=False, ok=True,
-                              details="skipped" + (" (--skip-xdk-verify)" if args.skip_xdk_verify else "")))
+    stages.append(StageResult("vc71_verify", ran=False, ok=True,
+                              details="skipped" + (" (--skip-vc71-verify)" if args.skip_vc71_verify else "")))
 
   behavior_check_ok = False
   if args.behavior_check_cmd:
@@ -770,20 +770,20 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("low_match_policy", ran=False, ok=True,
                               details="skipped (--low-match-policy=off)"))
   else:
-    if not xdk_verify_ran:
+    if not vc71_verify_ran:
       if args.low_match_policy == "strict":
         stages.append(StageResult("low_match_policy", ran=True, ok=False,
-                                  details="strict mode requires xdk_verify data (xdk_verify was skipped)"))
+                                  details="strict mode requires vc71_verify data (vc71_verify was skipped)"))
         return finalize(summary, stages, artifact_dir, ok=False)
       stages.append(StageResult("low_match_policy", ran=False, ok=True,
-                                details="skipped (no xdk_verify data)"))
-    elif (not xdk_verify_ok) and (xdk_match_pct is None):
+                                details="skipped (no vc71_verify data)"))
+    elif (not vc71_verify_ok) and (vc71_match_pct is None):
       stages.append(StageResult("low_match_policy", ran=True, ok=False,
-                                details="xdk_verify failed; low-match policy cannot evaluate"))
+                                details="vc71_verify failed; low-match policy cannot evaluate"))
       return finalize(summary, stages, artifact_dir, ok=False)
-    elif xdk_match_pct is None:
+    elif vc71_match_pct is None:
       stages.append(StageResult("low_match_policy", ran=True, ok=False,
-                                details="xdk_verify output missing match percentage"))
+                                details="vc71_verify output missing match percentage"))
       return finalize(summary, stages, artifact_dir, ok=False)
     else:
       behavior_any_ok = behavior_check_ok or (runtime_enabled and runtime_ok)
@@ -791,11 +791,11 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
       details = [
         f"policy={args.low_match_policy}",
-        f"match={xdk_match_pct:.1f}%",
+        f"match={vc71_match_pct:.1f}%",
         f"threshold={args.low_match_threshold:.1f}%",
         f"behavior_both_below={args.low_match_behavior_both_below:.1f}%",
         f"reject_below={args.low_match_reject_below:.1f}%",
-        f"fpu_warn={'yes' if xdk_has_fpu_warn else 'no'}",
+        f"fpu_warn={'yes' if vc71_has_fpu_warn else 'no'}",
         f"behavior_check={'pass' if behavior_check_ok else ('n/a' if not args.behavior_check_cmd else 'fail')}",
         f"runtime_check={'pass' if (runtime_enabled and runtime_ok) else ('n/a' if not runtime_enabled else 'fail')}",
       ]
@@ -803,20 +803,20 @@ def run_pipeline(args: argparse.Namespace) -> int:
       policy_ok = True
       reason = "accepted"
 
-      if not xdk_verify_ok:
+      if not vc71_verify_ok:
         policy_ok = False
-        reason = "xdk_verify failed"
-      elif xdk_has_fpu_warn:
+        reason = "vc71_verify failed"
+      elif vc71_has_fpu_warn:
         policy_ok = False
         reason = "FPU operand-order warnings present"
-      elif xdk_match_pct < args.low_match_reject_below:
+      elif vc71_match_pct < args.low_match_reject_below:
         policy_ok = False
         reason = f"match below hard floor ({args.low_match_reject_below:.1f}%)"
-      elif xdk_match_pct < args.low_match_behavior_both_below:
+      elif vc71_match_pct < args.low_match_behavior_both_below:
         if not behavior_both_ok:
           policy_ok = False
           reason = "strict low-match range requires both behavior_check and runtime_check PASS"
-      elif xdk_match_pct < args.low_match_threshold:
+      elif vc71_match_pct < args.low_match_threshold:
         if not behavior_any_ok:
           policy_ok = False
           reason = "low match requires at least one behavior signal (behavior_check or runtime_check)"
@@ -952,12 +952,12 @@ def build_parser() -> argparse.ArgumentParser:
   ap.add_argument("--objdiff-tool", default="",
                   help="Optional objdiff executable path/name.")
 
-  ap.add_argument("--skip-xdk-verify", action="store_true",
-                  help="Skip XDK MSVC compilation and FPU operand comparison.")
+  ap.add_argument("--skip-vc71-verify", action="store_true",
+                  help="Skip VC++ 7.1 compilation and FPU operand comparison.")
   ap.add_argument("--behavior-check-cmd", default="",
                   help="Optional non-interactive behavior/reference check command (exit 0 = PASS).")
   ap.add_argument("--low-match-policy", choices=["off", "auto", "strict"], default="strict",
-                  help="Enforce low-match acceptance: off=disabled, auto=enforce when xdk data exists, strict=fail if xdk data is missing (default).")
+                  help="Enforce low-match acceptance: off=disabled, auto=enforce when VC71 data exists, strict=fail if VC71 data is missing (default).")
   ap.add_argument("--low-match-threshold", type=float, default=50.0,
                   help="Low-match threshold percentage (default: 50.0).")
   ap.add_argument("--low-match-behavior-both-below", type=float, default=40.0,

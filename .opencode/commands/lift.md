@@ -84,13 +84,13 @@ After Phase 1 completes:
 4. Report:
     - Target: name / address / object / source path
     - Phase 1 summary (Confirmed / Inferred / Uncertain)
-    - Pipeline stage results (build, ABI audit, XDK verify, low-match policy, behavior/runtime checks)
+    - Pipeline stage results (build, ABI audit, VC71 verify, low-match policy, behavior/runtime checks)
     - Artifact path from summary.json
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.
-- **XDK verify is the primary structural verification.** The lift pipeline runs
-  `xdk_verify.py` automatically when a delinked reference exists in `delinked/`
+- **VC71 verify is the primary structural verification.** The lift pipeline runs
+  `vc71_verify.py` automatically when a delinked reference exists in `delinked/`
   (mapped via `objdiff.json`). If no delinked reference exists, offer to run
   `/verify delink <target>` after the pipeline.
 - **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console

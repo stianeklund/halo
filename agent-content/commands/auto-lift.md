@@ -25,7 +25,7 @@ Safety rules:
 2. Prefer no-argument `/auto-lift` for the streamlined safe path, or `select`, `cache-context`, `generate`, and `review` for manual control; run `promote` without `--apply` first.
 3. Ask for explicit user approval before running `promote --apply`.
 4. Never commit from this command. If a promoted result should be committed, use the normal lift commit flow with `tools/audit/generate_lift_commit.py`.
-5. Do not use `--skip-xdk` unless the user explicitly requests a lower-confidence run.
+5. Do not use `--skip-vc71` unless the user explicitly requests a lower-confidence run.
 
 Typical flow:
 ```bash

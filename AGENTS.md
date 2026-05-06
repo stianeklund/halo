@@ -85,13 +85,13 @@ Maintain a mental ledger of files already read in this conversation. If you need
   4. **Cross-product operand swap:** `cross(A, B)` and `cross(B, A)` look nearly identical in the decompiler — the FLD/FMUL order before FSUBP differs but the components look the same. Always verify the subtraction order against disassembly: `cross(A,B)[0] = A[1]*B[2] - A[2]*B[1]`. Getting it backwards negates the vector, which can cause invisible geometry, flipped UV mapping, or reflected projections.
 
 ### 3. Build & Verification
-- **Lift Pipeline:** Use `rtk python3 tools/lift_pipeline.py --target <name_or_addr> --no-metadata-update --verify-policy auto` as the primary post-lift validation orchestrator. It runs build, ABI audit, XDK verify when a delinked reference is mapped, optional behavior/runtime checks, and low-match policy gates.
+- **Lift Pipeline:** Use `rtk python3 tools/lift_pipeline.py --target <name_or_addr> --no-metadata-update --verify-policy auto` as the primary post-lift validation orchestrator. It runs build, ABI audit, VC71 verify when a delinked reference is mapped, optional behavior/runtime checks, and low-match policy gates.
 - **Hazard Scan:** Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits or when reviewing auto-lift output. Treat intrinsic calls, undersized buffers, suspicious duplicate arguments, and pointer-as-float warnings as blockers until investigated.
 - **Golden Master Test Harness:** A specialized test harness intercepts the engine boot in `src/halo/shell_xbox.c`. It lets you run functions inside the engine context and verify their side-effects/return values against the exact Xbox ASM output. 
   - *Usage:* Add tests to `src/halo/test_harness.c`. Ensure your function is unmapped in `kb.json` (`"ported": false`), run `rtk python3 tools/verify/run_golden_tests.py` to capture the original FPU hex values. Then map your function (`"ported": true`) and press Enter to verify your C implementation.
   - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
-- **XDK Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/xdk_verify.py src/path/to/file.c` to compile with the original MSVC 7.1 compiler and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
+- **VC71 Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/vc71_verify.py src/path/to/file.c` to compile with Visual C++ 7.1 and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Auto-Lift Harness:** Use `rtk python3 tools/llm_auto_lift.py score`, `cache-context`, `generate`, and `review` for review-queue candidate generation. Passing validation reduces risk but is not proof of behavioral equivalence without strong delink, golden, or runtime coverage.
 - **Validation:** Run the narrowest meaningful validation first.
 - **XBDM Priority:** Prefer real Xbox XBDM verification over xemu when available.
@@ -131,11 +131,11 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **`tools/analysis/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
 - **`tools/audit/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
 - **`tools/audit/check_lift_hazards.py`** — Build-time hazard scan for common Ghidra/MSVC lifting pitfalls.
-- **`tools/lift_pipeline.py`** — Primary lift validation orchestrator for build, ABI audit, XDK verify, behavior/runtime checks, and low-match policy.
+- **`tools/lift_pipeline.py`** — Primary lift validation orchestrator for build, ABI audit, VC71 verify, behavior/runtime checks, and low-match policy.
 - **`tools/analysis/maintain.py`** — Source file organization and function placement checks.
 - **`tools/verify/objdiff_lift.py`** — Structural object diff helper used by the pipeline when reference and candidate objects are available.
-- **`tools/verify/xdk_verify.py`** — Compile a source file with the original XDK MSVC 7.1 compiler (`RXDK/xbox/bin/vc71/CL.Exe`) and compare against the delinked reference. Flags FPU operand-order differences that indicate cross-product swaps, subtraction direction errors, etc. Use `--fpu-only` for focused output.
-- **`tools/verify/compare_obj.py`** — LCS-based instruction comparison between two COFF objects. Used by `xdk_verify.py`.
+- **`tools/verify/vc71_verify.py`** — Compile a source file with Visual C++ 7.1 (`RXDK/xbox/bin/vc71/CL.Exe`) and compare against the delinked reference. Flags FPU operand-order differences that indicate cross-product swaps, subtraction direction errors, etc. Use `--fpu-only` for focused output.
+- **`tools/verify/compare_obj.py`** — LCS-based instruction comparison between two COFF objects. Used by `vc71_verify.py`.
 
 ## Architecture and Skills
 - `halo-xbox-re`: RE doctrine and evidence rules.

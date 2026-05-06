@@ -43,7 +43,7 @@ Report:
 
 - build stage result
 - ABI audit result
-- `xdk_verify` result and match percentage if available
+- `vc71_verify` result and match percentage if available
 - low-match policy result
 - behavior/runtime check result if requested
 - summary path under `artifacts/lift_runs/.../summary.json`

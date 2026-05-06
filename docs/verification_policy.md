@@ -3,7 +3,7 @@
 This policy defines when a lift may be accepted with low structural match
 percentages, using:
 
-- structural match (`xdk_verify.py` / `compare_obj.py`)
+- structural match (`vc71_verify.py` / `compare_obj.py`)
 - FPU warning signal (`[FPU-WARN]`)
 - behavior checks (reference behavior harness + runtime checks)
 
@@ -14,7 +14,7 @@ goal by itself.
 
 Use this policy for lifted functions when:
 
-- `xdk_verify.py` reports low match %
+- `vc71_verify.py` reports low match %
 - there is uncertainty whether mismatch is scheduling noise vs real behavior drift
 - `ENABLE_XDK_HYBRID` is being considered as a fallback
 
@@ -22,8 +22,8 @@ Use this policy for lifted functions when:
 
 For each target function, capture:
 
-1. Structural score: `P` from `compare_obj.py` / `xdk_verify.py`
-2. FPU warnings: `W` from `xdk_verify.py --fpu-only`
+1. Structural score: `P` from `compare_obj.py` / `vc71_verify.py`
+2. FPU warnings: `W` from `vc71_verify.py --fpu-only`
 3. Reference behavior test: `G` from an automated harness comparison
    (pass/fail)
 4. Runtime behavior: `R` from Option 3 lane or equivalent targeted scenario
@@ -96,8 +96,8 @@ For each target function:
 ## Commands (RTK)
 
 ```bash
-rtk python3 tools/verify/xdk_verify.py src/path/to/file.c --function FUN_XXXXXXXX
-rtk python3 tools/verify/xdk_verify.py src/path/to/file.c --function FUN_XXXXXXXX --fpu-only
+rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXXXX
+rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXXXX --fpu-only
 rtk <automated reference-behavior command>
 rtk python3 tools/verify/verify_option3.py --target FUN_XXXXXXXX --skip-iso
 ```
@@ -112,7 +112,7 @@ rtk python3 tools/verify/verify_option3.py --target FUN_XXXXXXXX --skip-iso
 - `--low-match-reject-below` (default `25`)
 - `--behavior-check-cmd` (non-interactive reference behavior command)
 
-In strict mode, the run fails if `xdk_verify` data is unavailable.
+In strict mode, the run fails if `vc71_verify` data is unavailable.
 
 ## Policy on XDK_HYBRID
 
