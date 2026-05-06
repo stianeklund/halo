@@ -97,6 +97,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x20f80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x210f0": {
       "kind": "function",
       "status": "ported"
@@ -5008,6 +5012,10 @@
       "inferred": [
         "global_structure_bsp_index is an int16_t at 0x326a0c immediately following global_scenario_index (int at 0x326a08); the function returns a pointer into the 16-entry, 32-byte-per-BSP bitfield region starting at breakable_surface_globals+1."
       ]
+    },
+    "0x14ad40": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x14d010": {
       "kind": "function",

@@ -2,6 +2,7 @@
 	entrypoint.c
 	inlines.c
 	halo/ai/actions.c
+	halo/ai/actor_combat.c
 	halo/ai/actor_perception.c
 	halo/ai/actor_looking.c
 	halo/ai/actors.c
@@ -78,6 +79,7 @@
 	halo/memory/memory_pool.c
 	halo/memory/stack_memory_pool.c
 	halo/physics/breakable_surfaces.c
+	halo/physics/collision_features.c
 	halo/physics/collision_usage.c
 	halo/physics/point_physics.c
 	halo/math/random_math.c

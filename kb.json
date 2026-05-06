@@ -8774,11 +8774,12 @@
           "decl": "void FUN_00022dc0(int actor_handle);"
         },
         {
-          "decl": "int FUN_00020f80(short mode);",
-          "addr": "0x20f80"
+          "decl": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
+          "addr": "0x20f80",
+          "ported": true
         },
         {
-          "decl": "void FUN_00021130(void);",
+          "decl": "void FUN_00021130(int actor_handle @<eax>, float *weapon_vector @<ebx>);",
           "addr": "0x21130"
         },
         {
@@ -8786,11 +8787,11 @@
           "addr": "0x21270"
         },
         {
-          "decl": "void FUN_00021590(void);",
+          "decl": "void FUN_00021590(int actor_handle @<esi>);",
           "addr": "0x21590"
         },
         {
-          "decl": "bool FUN_00021640(void);",
+          "decl": "bool FUN_00021640(int actor_handle @<eax>, void *timing_data @<edi>);",
           "addr": "0x21640"
         },
         {
@@ -9361,8 +9362,9 @@
           "addr": "0x14bc10"
         },
         {
-          "decl": "void FUN_0014ad40(void *features);",
-          "addr": "0x14ad40"
+          "decl": "void collision_features_init(void *features);",
+          "addr": "0x14ad40",
+          "ported": true
         },
         {
           "decl": "void FUN_0014b6f0(int object_handle, int *collision_results, int param_3, int param_4, int param_5, int param_6, int *features);",
