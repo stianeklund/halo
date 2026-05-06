@@ -6007,6 +6007,11 @@
       "source": "math/real_math.c",
       "functions": [
         {
+          "decl": "float FUN_0001ad60(float *a, float *b);",
+          "addr": "0x1ad60",
+          "ported": true
+        },
+        {
           "decl": "void matrix_inverse(float *src, float *dst);",
           "addr": "0x109150",
           "ported": true
@@ -6119,13 +6124,13 @@
           "ported": true
         },
         {
-          "decl": "void angles_to_vector(float *out, float *angles);",
-          "addr": "0x10cc40",
-          "ported": true
+          "decl": "void vector_to_angles(float *out_angles, float *in_vector);",
+          "addr": "0x10cc00",
+          "ported": false
         },
         {
-          "decl": "float FUN_0001ad60(float *a, float *b);",
-          "addr": "0x1ad60",
+          "decl": "void angles_to_vector(float *out, float *angles);",
+          "addr": "0x10cc40",
           "ported": true
         },
         {
@@ -7709,8 +7714,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001ada90(int unit_handle, float *out_vector, int flag);",
-          "addr": "0x1ada90"
+          "decl": "char FUN_001ada90(int unit_handle, float *vector, char flag);",
+          "addr": "0x1ada90",
+          "ported": true
         },
         {
           "decl": "void FUN_001adf10(int unit_handle, char param_2);",

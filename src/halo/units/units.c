@@ -682,6 +682,94 @@ void unit_set_seat_state(int unit_handle, float *position)
   position[2] = *(float *)(marker_buf + 0x68);
 }
 
+/* unit_estimate_position (0x1a93e0)
+ *
+ * Estimates the world-space position for a unit given a desired estimation mode
+ * and optional predicted body position. Handles three major paths:
+ *
+ * 1. Unit has no parent AND flag byte (unit+0xb6) bit 2 is clear AND type==0
+ *    (biped): delegate entirely to biped_estimate_position and return.
+ *
+ * 2. Unit type==0 (biped) AND has a parent AND parent type==1 (vehicle): call
+ *    vehicle_get_estimated_position to get the vehicle's predicted position
+ * into a local vector, and use that as the local_body_pos for the delta. If
+ * vehicle_get_estimated_position returns -1 (failed), fall through to path 3.
+ *
+ * 3. Fallback: call object_get_world_position to get unit's world position as
+ *    local_body_pos.
+ *
+ * After path 2/3: call unit_set_seat_state to compute the unit's current
+ * estimated position into out_position, then add the delta
+ * (body_position - local_body_pos) to out_position.
+ *
+ * Confirmed: assert strings "body_position && estimated_position" and
+ * "(estimate_mode >= 0) && (estimate_mode <
+ * NUMBER_OF_UNIT_ESTIMATE_POSITION_MODES)" reference
+ * "c:\halo\SOURCE\units\units.c", lines 0x14b1 and 0x14b2. Confirmed: CMP
+ * EAX,-0x1 / JNZ pattern for parent_object_index checks. Confirmed: TEST byte
+ * ptr [EDI+0xb6],0x4 for flags check. Confirmed: CMP word ptr [EDI+0x64],0x0
+ * and CMP word ptr [EAX+0x64],0x1 for type checks. Confirmed: FPU tail sequence
+ * — FXCH after three FLD/FSUB pairs to reorder x/y.
+ */
+void unit_estimate_position(int unit_handle, int16_t estimate_mode,
+                            vector3_t *body_position, vector3_t *desired_facing,
+                            vector3_t *desired_gun_offset,
+                            vector3_t *out_position)
+{
+  char *unit;
+  char *parent_obj;
+  int parent_handle;
+  int result;
+  vector3_t local_body_pos;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (body_position == NULL || out_position == NULL) {
+    display_assert("body_position && estimated_position",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x14b1, true);
+    system_exit(-1);
+  }
+  if (estimate_mode < 0 || estimate_mode >= 4) {
+    display_assert("(estimate_mode >= 0) && (estimate_mode < "
+                   "NUMBER_OF_UNIT_ESTIMATE_POSITION_MODES)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x14b2, true);
+    system_exit(-1);
+  }
+
+  parent_handle = *(int *)(unit + 0xcc);
+
+  if (parent_handle == -1 && !(*(uint8_t *)(unit + 0xb6) & 0x4)) {
+    /* No parent, no flag: if biped, fully delegate to biped_estimate_position
+     */
+    if (*(int16_t *)(unit + 0x64) == 0) {
+      biped_estimate_position(unit_handle, estimate_mode, body_position,
+                              desired_facing, desired_gun_offset, out_position);
+      return;
+    }
+  } else if (*(int16_t *)(unit + 0x64) == 0 && parent_handle != -1) {
+    /* Biped with a parent: if parent is a vehicle, try vehicle position */
+    parent_obj = (char *)object_get_and_verify_type(parent_handle, -1);
+    if (*(int16_t *)(parent_obj + 0x64) == 1) {
+      result =
+        vehicle_get_estimated_position(*(int *)(unit + 0xcc), &local_body_pos);
+      if (result != -1)
+        goto apply_delta;
+    }
+  }
+
+  /* Fallback: use world position as local_body_pos reference */
+  object_get_world_position(unit_handle, &local_body_pos);
+
+apply_delta:
+  /* Get the unit's current estimated seat position into out_position */
+  unit_set_seat_state(unit_handle, (float *)out_position);
+
+  /* Add (body_position - local_body_pos) delta to out_position */
+  out_position->x += body_position->x - local_body_pos.x;
+  out_position->y += body_position->y - local_body_pos.y;
+  out_position->z += body_position->z - local_body_pos.z;
+}
+
 /* unit_impulse_to_animation_kind (0x1a9560)
  *
  * Maps an animation impulse index (0-13) to an animation kind index and an
@@ -1012,51 +1100,6 @@ int unit_get_equipment(int unit_handle)
   return unit->unk_712.value;
 }
 
-/* unit_set_grenade_count (0x1aaa90)
- *
- * Adds count to the unit's grenade count for the given grenade_type, then
- * records grenade_type as the "last active" grenade type in two byte fields.
- * The grenade count array lives at unit+0x2CE (one byte per grenade type).
- * Offsets 0x2CC and 0x2CD both receive the low byte of grenade_type; these
- * are the last-used-grenade-type fields (two copies, presumably for different
- * subsystems).
- *
- * Asserts: grenade_count >= 0; 0 <= grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES.
- * Returns: updated grenade count (int16_t, sign-extended from byte).
- *
- * Confirmed: CMP word ptr [EBP+0x10],0x0 -> grenade_count is short at +0x10.
- * Confirmed: MOV BX,[EBP+0xC] -> grenade_type is short at +0xC.
- * Confirmed: MOV DL,byte ptr [EBP+0x10]; ADD byte ptr [EAX],DL -> byte add.
- * Confirmed: MOV byte ptr [ESI+0x2cd],BL / MOV byte ptr [ESI+0x2cc],BL.
- * Confirmed: MOVSX AX,byte ptr [EAX] -> return is sign-extended byte (short).
- */
-int16_t unit_set_grenade_count(int unit_handle, int16_t grenade_type,
-                               int16_t grenade_count)
-{
-  char *unit;
-
-  unit = (char *)object_get_and_verify_type(unit_handle, 3);
-
-  if (grenade_count < 0) {
-    display_assert("grenade_count>=0", "c:\\halo\\SOURCE\\units\\units.c", 0x1c8d,
-                   1);
-    system_exit(-1);
-  }
-
-  if ((grenade_type < 0) || (grenade_type > 1)) {
-    display_assert(
-      "(grenade_type >= 0) && (grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES)",
-      "c:\\halo\\SOURCE\\units\\units.c", 0x1c8e, 1);
-    system_exit(-1);
-  }
-
-  unit[grenade_type + 0x2ce] += (char)grenade_count;
-  unit[0x2cd] = (char)grenade_type;
-  unit[0x2cc] = (char)grenade_type;
-
-  return (int16_t)unit[grenade_type + 0x2ce];
-}
-
 /* unit_try_add_grenade (0x1aa990)
  *
  * Attempts to add a grenade to the unit's inventory. The equipment object
@@ -1115,6 +1158,52 @@ bool unit_try_add_grenade(int unit_handle, int equipment_handle)
 
   object_delete(equipment_handle);
   return true;
+}
+
+/* unit_set_grenade_count (0x1aaa90)
+ *
+ * Adds count to the unit's grenade count for the given grenade_type, then
+ * records grenade_type as the "last active" grenade type in two byte fields.
+ * The grenade count array lives at unit+0x2CE (one byte per grenade type).
+ * Offsets 0x2CC and 0x2CD both receive the low byte of grenade_type; these
+ * are the last-used-grenade-type fields (two copies, presumably for different
+ * subsystems).
+ *
+ * Asserts: grenade_count >= 0; 0 <= grenade_type <
+ * NUMBER_OF_UNIT_GRENADE_TYPES. Returns: updated grenade count (int16_t,
+ * sign-extended from byte).
+ *
+ * Confirmed: CMP word ptr [EBP+0x10],0x0 -> grenade_count is short at +0x10.
+ * Confirmed: MOV BX,[EBP+0xC] -> grenade_type is short at +0xC.
+ * Confirmed: MOV DL,byte ptr [EBP+0x10]; ADD byte ptr [EAX],DL -> byte add.
+ * Confirmed: MOV byte ptr [ESI+0x2cd],BL / MOV byte ptr [ESI+0x2cc],BL.
+ * Confirmed: MOVSX AX,byte ptr [EAX] -> return is sign-extended byte (short).
+ */
+int16_t unit_set_grenade_count(int unit_handle, int16_t grenade_type,
+                               int16_t grenade_count)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (grenade_count < 0) {
+    display_assert("grenade_count>=0", "c:\\halo\\SOURCE\\units\\units.c",
+                   0x1c8d, 1);
+    system_exit(-1);
+  }
+
+  if ((grenade_type < 0) || (grenade_type > 1)) {
+    display_assert(
+      "(grenade_type >= 0) && (grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES)",
+      "c:\\halo\\SOURCE\\units\\units.c", 0x1c8e, 1);
+    system_exit(-1);
+  }
+
+  unit[grenade_type + 0x2ce] += (char)grenade_count;
+  unit[0x2cd] = (char)grenade_type;
+  unit[0x2cc] = (char)grenade_type;
+
+  return (int16_t)unit[grenade_type + 0x2ce];
 }
 
 /* unit_pickup_equipment (0x1aab20)
@@ -1335,7 +1424,8 @@ bool unit_weapon_is_new(int unit_handle, int weapon_unit_handle)
  * returns 0 without reading the array. The count byte is sign-extended to
  * int16_t before return.
  *
- * Asserts: grenade_type == NONE || (0 <= grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES).
+ * Asserts: grenade_type == NONE || (0 <= grenade_type <
+ * NUMBER_OF_UNIT_GRENADE_TYPES).
  *
  * Confirmed: MOV SI,[EBP+0xC] -> grenade_type is short at +0xC.
  * Confirmed: CMP SI,-0x1 / JZ -> NONE check precedes range assert.
@@ -1352,9 +1442,9 @@ int16_t unit_get_grenade_count(int unit_handle, int16_t grenade_type)
     return 0;
 
   if ((grenade_type < 0) || (grenade_type > 1)) {
-    display_assert(
-      "grenade_type==NONE || (grenade_type>=0 && grenade_type<NUMBER_OF_UNIT_GRENADE_TYPES)",
-      "c:\\halo\\SOURCE\\units\\units.c", 0x1ea7, 1);
+    display_assert("grenade_type==NONE || (grenade_type>=0 && "
+                   "grenade_type<NUMBER_OF_UNIT_GRENADE_TYPES)",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1ea7, 1);
     system_exit(-1);
   }
 
@@ -1832,6 +1922,162 @@ uint16_t unit_find_best_enter_seat(int unit_handle, int target_unit_handle,
 
   *out_seat_index = (int16_t)best_seat;
   return best_state;
+}
+
+/* FUN_001ada90 (0x1ada90)
+ *
+ * Clamps a unit's aiming/looking vector to the unit's constraint bounds.
+ * flag=1 selects primary constraints (offset 0x266/0x268),
+ * flag=0 selects secondary constraints (offset 0x267/0x278).
+ * Returns 1 if the vector was clamped, 0 if it was already within bounds.
+ * Builds a local coordinate frame from the unit's forward/up node vectors,
+ * transforms the vector to local yaw/pitch angles, clamps, and transforms back.
+ */
+char FUN_001ada90(int unit_handle, float *vector, char flag)
+{
+  char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  char clamped = 0;
+  char enabled;
+  float *bounds;
+  float forward[3], up[3], left[3];
+  float matrix[13];
+  float *gravity;
+  float relative_vector[3];
+  float angles[2];
+
+  if (flag) {
+    enabled = *(char *)(unit + 0x266);
+    bounds = (float *)(unit + 0x268);
+  } else {
+    enabled = *(char *)(unit + 0x267);
+    bounds = (float *)(unit + 0x278);
+  }
+
+  if (!valid_real_normal3d(vector)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "vector", (double)vector[0], (double)vector[1],
+                            (double)vector[2]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x15e8, 1);
+    system_exit(-1);
+  }
+
+  if (!enabled)
+    return clamped;
+
+  FUN_00141360(unit_handle, forward, up);
+
+  /* left = cross(forward, up) */
+  left[0] = forward[2] * up[1] - up[2] * forward[1];
+  left[1] = up[2] * forward[0] - forward[2] * up[0];
+  left[2] = forward[1] * up[0] - up[1] * forward[0];
+
+  /* build real_matrix4x3: scale, forward, left, up, position */
+  matrix[0] = 1.0f;
+  matrix[1] = forward[0]; matrix[2] = forward[1]; matrix[3] = forward[2];
+  matrix[4] = left[0];    matrix[5] = left[1];    matrix[6] = left[2];
+  matrix[7] = up[0];      matrix[8] = up[1];      matrix[9] = up[2];
+  gravity = *(float **)0x31fc1c;
+  matrix[10] = gravity[0]; matrix[11] = gravity[1]; matrix[12] = gravity[2];
+
+  real_matrix4x3_transform_point(matrix, vector, relative_vector);
+
+  if (!real_vector3d_valid(relative_vector)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                            "&relative_vector", (double)relative_vector[0],
+                            (double)relative_vector[1],
+                            (double)relative_vector[2]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x15fa, 1);
+    system_exit(-1);
+  }
+
+  vector_to_angles(angles, relative_vector);
+
+  /* validate pitch (angles[1]) */
+  if ((*(uint32_t *)&angles[1] & 0x7f800000) == 0x7f800000) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real(0x%08X %f)",
+                            "relative_aiming_angles.pitch",
+                            *(uint32_t *)&angles[1], (double)angles[1]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x15fd, 1);
+    system_exit(-1);
+  }
+
+  /* validate yaw (angles[0]) */
+  if ((*(uint32_t *)&angles[0] & 0x7f800000) == 0x7f800000) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real(0x%08X %f)",
+                            "relative_aiming_angles.yaw",
+                            *(uint32_t *)&angles[0], (double)angles[0]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x15fe, 1);
+    system_exit(-1);
+  }
+
+  /* clamp yaw to bounds */
+  if (angles[0] < bounds[0]) {
+    angles[0] = bounds[0];
+    clamped = 1;
+  } else if (angles[0] > bounds[1]) {
+    angles[0] = bounds[1];
+    clamped = 1;
+  }
+
+  /* clamp pitch to bounds */
+  if (angles[1] < bounds[2]) {
+    angles[1] = bounds[2];
+    clamped = 1;
+  } else if (angles[1] > bounds[3]) {
+    angles[1] = bounds[3];
+    clamped = 1;
+  } else if (!clamped) {
+    return 0;
+  }
+
+  /* validate clamped pitch */
+  if ((*(uint32_t *)&angles[1] & 0x7f800000) == 0x7f800000) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real(0x%08X %f)",
+                            "relative_aiming_angles.pitch",
+                            *(uint32_t *)&angles[1], (double)angles[1]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x161d, 1);
+    system_exit(-1);
+  }
+
+  /* validate clamped yaw */
+  if ((*(uint32_t *)&angles[0] & 0x7f800000) == 0x7f800000) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real(0x%08X %f)",
+                            "relative_aiming_angles.yaw",
+                            *(uint32_t *)&angles[0], (double)angles[0]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x161e, 1);
+    system_exit(-1);
+  }
+
+  angles_to_vector(relative_vector, angles);
+
+  if (!real_vector3d_valid(relative_vector)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                            "&relative_vector", (double)relative_vector[0],
+                            (double)relative_vector[1],
+                            (double)relative_vector[2]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1621, 1);
+    system_exit(-1);
+  }
+
+  matrix_transform_vector(matrix, relative_vector, vector);
+
+  if (!real_vector3d_valid(vector)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                            "vector", (double)vector[0], (double)vector[1],
+                            (double)vector[2]),
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1623, 1);
+    system_exit(-1);
+  }
+
+  return clamped;
 }
 
 /* unit_get_weapon (0x1adeb0)
@@ -3196,90 +3442,4 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
   unit_vehicle_board_notify(unit_handle, vehicle_handle);
   unit_reset_weapon_state(unit_handle);
   return true;
-}
-
-/* unit_estimate_position (0x1a93e0)
- *
- * Estimates the world-space position for a unit given a desired estimation mode
- * and optional predicted body position. Handles three major paths:
- *
- * 1. Unit has no parent AND flag byte (unit+0xb6) bit 2 is clear AND type==0
- *    (biped): delegate entirely to biped_estimate_position and return.
- *
- * 2. Unit type==0 (biped) AND has a parent AND parent type==1 (vehicle): call
- *    vehicle_get_estimated_position to get the vehicle's predicted position into
- *    a local vector, and use that as the local_body_pos for the delta.
- *    If vehicle_get_estimated_position returns -1 (failed), fall through to path 3.
- *
- * 3. Fallback: call object_get_world_position to get unit's world position as
- *    local_body_pos.
- *
- * After path 2/3: call unit_set_seat_state to compute the unit's current
- * estimated position into out_position, then add the delta
- * (body_position - local_body_pos) to out_position.
- *
- * Confirmed: assert strings "body_position && estimated_position" and
- * "(estimate_mode >= 0) && (estimate_mode < NUMBER_OF_UNIT_ESTIMATE_POSITION_MODES)"
- * reference "c:\halo\SOURCE\units\units.c", lines 0x14b1 and 0x14b2.
- * Confirmed: CMP EAX,-0x1 / JNZ pattern for parent_object_index checks.
- * Confirmed: TEST byte ptr [EDI+0xb6],0x4 for flags check.
- * Confirmed: CMP word ptr [EDI+0x64],0x0 and CMP word ptr [EAX+0x64],0x1 for type checks.
- * Confirmed: FPU tail sequence — FXCH after three FLD/FSUB pairs to reorder x/y.
- */
-void unit_estimate_position(int unit_handle, int16_t estimate_mode,
-                            vector3_t *body_position, vector3_t *desired_facing,
-                            vector3_t *desired_gun_offset,
-                            vector3_t *out_position)
-{
-  char *unit;
-  char *parent_obj;
-  int parent_handle;
-  int result;
-  vector3_t local_body_pos;
-
-  unit = (char *)object_get_and_verify_type(unit_handle, 3);
-
-  if (body_position == NULL || out_position == NULL) {
-    display_assert("body_position && estimated_position",
-                   "c:\\halo\\SOURCE\\units\\units.c", 0x14b1, true);
-    system_exit(-1);
-  }
-  if (estimate_mode < 0 || estimate_mode >= 4) {
-    display_assert("(estimate_mode >= 0) && (estimate_mode < "
-                   "NUMBER_OF_UNIT_ESTIMATE_POSITION_MODES)",
-                   "c:\\halo\\SOURCE\\units\\units.c", 0x14b2, true);
-    system_exit(-1);
-  }
-
-  parent_handle = *(int *)(unit + 0xcc);
-
-  if (parent_handle == -1 && !(*(uint8_t *)(unit + 0xb6) & 0x4)) {
-    /* No parent, no flag: if biped, fully delegate to biped_estimate_position */
-    if (*(int16_t *)(unit + 0x64) == 0) {
-      biped_estimate_position(unit_handle, estimate_mode, body_position,
-                              desired_facing, desired_gun_offset, out_position);
-      return;
-    }
-  } else if (*(int16_t *)(unit + 0x64) == 0 && parent_handle != -1) {
-    /* Biped with a parent: if parent is a vehicle, try vehicle position */
-    parent_obj = (char *)object_get_and_verify_type(parent_handle, -1);
-    if (*(int16_t *)(parent_obj + 0x64) == 1) {
-      result = vehicle_get_estimated_position(*(int *)(unit + 0xcc),
-                                              &local_body_pos);
-      if (result != -1)
-        goto apply_delta;
-    }
-  }
-
-  /* Fallback: use world position as local_body_pos reference */
-  object_get_world_position(unit_handle, &local_body_pos);
-
-apply_delta:
-  /* Get the unit's current estimated seat position into out_position */
-  unit_set_seat_state(unit_handle, (float *)out_position);
-
-  /* Add (body_position - local_body_pos) delta to out_position */
-  out_position->x += body_position->x - local_body_pos.x;
-  out_position->y += body_position->y - local_body_pos.y;
-  out_position->z += body_position->z - local_body_pos.z;
 }
