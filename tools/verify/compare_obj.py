@@ -246,11 +246,13 @@ def main():
                 sys.exit(1)
         matched = {fn}
 
-    # Apply rename map for unmatched compiled functions
-    for new_name, old_name in rename_map.items():
-        if new_name in compiled_funcs and old_name in reference_funcs and new_name not in matched:
-            compiled_funcs[old_name] = compiled_funcs[new_name]
-            matched.add(old_name)
+    # Apply rename map for unmatched compiled functions only for whole-object
+    # comparisons. --function must stay restricted to the requested symbol.
+    if not args.function:
+        for new_name, old_name in rename_map.items():
+            if new_name in compiled_funcs and old_name in reference_funcs and new_name not in matched:
+                compiled_funcs[old_name] = compiled_funcs[new_name]
+                matched.add(old_name)
 
     if not matched:
         print("No matching functions found between objects")
