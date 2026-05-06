@@ -581,7 +581,8 @@
         },
         {
           "decl": "int FUN_0002a360(int actor_handle);",
-          "addr": "0x2a360"
+          "addr": "0x2a360",
+          "ported": true
         },
         {
           "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
@@ -5557,20 +5558,23 @@
       "source": "items/projectiles.c",
       "functions": [
         {
-          "decl": "void FUN_000f7cb0(void);",
-          "addr": "0xf7cb0"
+          "decl": "void FUN_000f7cb0(int projectile_handle);",
+          "addr": "0xf7cb0",
+          "ported": true
         },
         {
           "decl": "void FUN_000f7ce0(void);",
           "addr": "0xf7ce0"
         },
         {
-          "decl": "void FUN_000f7d30(void);",
-          "addr": "0xf7d30"
+          "decl": "void FUN_000f7d30(int projectile_handle, int target);",
+          "addr": "0xf7d30",
+          "ported": true
         },
         {
-          "decl": "void FUN_000f7d50(void);",
-          "addr": "0xf7d50"
+          "decl": "void FUN_000f7d50(int projectile_handle);",
+          "addr": "0xf7d50",
+          "ported": true
         },
         {
           "decl": "float FUN_000f7d80(int projectile_tag);",
@@ -5586,8 +5590,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f7e10(void);",
-          "addr": "0xf7e10"
+          "decl": "void FUN_000f7e10(int projectile_handle, int target);",
+          "addr": "0xf7e10",
+          "ported": true
         },
         {
           "decl": "void FUN_000f7e40(void);",
@@ -7638,6 +7643,10 @@
           "decl": "bool unit_is_alive(int unit_handle);",
           "addr": "0x1a9a30",
           "ported": true
+        },
+        {
+          "decl": "bool FUN_001a9ad0(int unit_handle);",
+          "addr": "0x1a9ad0"
         },
         {
           "decl": "bool any_unit_is_dangerous(void);",

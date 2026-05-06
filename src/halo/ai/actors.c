@@ -1,3 +1,14 @@
+/* Check if an actor has a swarm component or its unit is in a vehicle seat. */
+int FUN_0002a360(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x418) != -1)
+    return 1;
+  if (*(int *)(actor + 0x18) != -1 && FUN_001a9ad0(*(int *)(actor + 0x18)))
+    return 1;
+  return 0;
+}
+
 /* Clear 100 bytes of actor state at offset 0x2ec (action decision state). */
 void FUN_00036860(int actor_handle)
 {
@@ -23,6 +34,7 @@ void FUN_00036e30(int ai_handle)
 void *FUN_0003a600(short actor_type /* @<ax> */)
 {
   void **actor_type_definitions = (void **)0x2c86a8;
+  char *def;
 
   if (actor_type < 0 || actor_type > 0xf) {
     display_assert("actor_type>=0 && actor_type<NUMBER_OF_ACTOR_TYPES",
@@ -34,7 +46,7 @@ void *FUN_0003a600(short actor_type /* @<ax> */)
                    "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x2f, 1);
     system_exit(-1);
   }
-  char *def = (char *)actor_type_definitions[actor_type];
+  def = (char *)actor_type_definitions[actor_type];
   if (*(int *)(def + 0) == 0) {
     display_assert("actor_type_definitions[actor_type]->name",
                    "c:\\halo\\source\\ai\\actor_type_definitions.h", 0x32, 1);
@@ -1453,11 +1465,15 @@ void FUN_0003cff0(int actor_handle)
   char *actor;
   char *tag;
   char *unit;
+  char *unit2;
+  char *ai_globals;
   int encounter_handle;
   int weapon_handle;
   float accuracy;
   float boosted;
   float burst_duration;
+  float random_val;
+  float ammo_fraction;
   int ticks;
   int *seed;
 
@@ -1528,14 +1544,14 @@ void FUN_0003cff0(int actor_handle)
   unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
 
   seed = get_global_random_seed_address();
-  float random_val = random_math_real((unsigned int *)seed);
+  random_val = random_math_real((unsigned int *)seed);
 
-  char *unit2 = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+  unit2 = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
   weapon_handle =
     unit_get_weapon(*(int *)(actor + 0x18), (int)(*(int16_t *)(unit2 + 0x2a2)));
 
   /* Check global flag for clearing weapon state */
-  char *ai_globals = *(char **)0x632574;
+  ai_globals = *(char **)0x632574;
   if (*(char *)(ai_globals + 0x3b4) == 0 ||
       random_val < *(float *)(tag + 0x1d4)) {
     csmemset(unit + 0x2ce, 0, 2);
@@ -1545,8 +1561,8 @@ void FUN_0003cff0(int actor_handle)
     /* Set weapon ammo fraction if tag defines it */
     if (*(float *)(tag + 0x1d8) > 0.0f || *(float *)(tag + 0x1dc) > 0.0f) {
       seed = get_global_random_seed_address();
-      float ammo_fraction = random_real_range(seed, *(float *)(tag + 0x1d8),
-                                              *(float *)(tag + 0x1dc));
+      ammo_fraction = random_real_range(seed, *(float *)(tag + 0x1d8),
+                                        *(float *)(tag + 0x1dc));
       FUN_000fd180(weapon_handle, ammo_fraction);
     }
 
@@ -1935,6 +1951,10 @@ void FUN_0003dc20(int actor_handle)
   char *encounter;
   char *squad;
   char *squad2;
+  char *dat;
+  char *speed_rec;
+  char *scenario_base;
+  char *scenario_elem;
   float *centroid;
   float *world_up;
   float *zero_vec;
@@ -1943,6 +1963,9 @@ void FUN_0003dc20(int actor_handle)
   float ux, uy, uz;
   float ax, ay, az;
   int parent_handle;
+  int no_return;
+  int in_vehicle;
+  int bit5;
   char *vehi_tag_data;
   int player_base;
   int tag_flags;
