@@ -572,7 +572,8 @@
         },
         {
           "decl": "void FUN_00036e30(int ai_handle);",
-          "addr": "0x36e30"
+          "addr": "0x36e30",
+          "ported": true
         },
         {
           "decl": "int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index, void *starting_location, char use_major_variant, int16_t team);",
@@ -607,7 +608,8 @@
         },
         {
           "decl": "void cross_product3d(float *a, float *b, float *out);",
-          "addr": "0x178d0"
+          "addr": "0x178d0",
+          "ported": true
         },
         {
           "addr": "0x27a60",
@@ -5972,6 +5974,7 @@
         {
           "decl": "int valid_real_normal3d(float *v);",
           "addr": "0x21fb0",
+          "ported": true,
           "source": "src/halo/math/vector_math.c",
           "status": "ported"
         },
@@ -6126,7 +6129,7 @@
         {
           "decl": "void vector_to_angles(float *out_angles, float *in_vector);",
           "addr": "0x10cc00",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void angles_to_vector(float *out, float *angles);",
@@ -6551,6 +6554,7 @@
         {
           "decl": "bool __stdcall dsound_stream_is_active(void *stream);",
           "addr": "0x20f069",
+          "ported": true,
           "comment": "Check if a DirectSound stream is still active by testing internal kernel status bits (0x10000002). Returns true if the stream is still processing."
         }
       ]
@@ -8831,7 +8835,8 @@
       "functions": [
         {
           "decl": "void FUN_0002b5d0(void);",
-          "addr": "0x2b5d0"
+          "addr": "0x2b5d0",
+          "ported": true
         },
         {
           "addr": "0x2d350",

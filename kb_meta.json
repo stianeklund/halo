@@ -4110,12 +4110,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10cc00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10cc40": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "angles[0]=yaw, angles[1]=pitch; standard spherical-to-cartesian conversion."
       ]
+    },
+    "0x10e040": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1190c0": {
       "kind": "function",
@@ -5949,6 +5957,10 @@
       "comments": {
         "summary": "Finds the best seat for a unit to enter another unit. Iterates seats, checks distances and animation compatibility. Returns seat state (0=none, 1=approach, 2=enter) and writes seat index."
       }
+    },
+    "0x1ada90": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1adeb0": {
       "kind": "function",
