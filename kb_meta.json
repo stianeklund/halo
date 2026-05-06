@@ -6833,6 +6833,36 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x59a00": {
+      "status": "ported"
+    },
+    "0x59a50": {
+      "status": "ported"
+    },
+    "0x59b10": {
+      "status": "ported"
+    },
+    "0x59b50": {
+      "status": "ported"
+    },
+    "0x5df80": {
+      "status": "ported"
+    },
+    "0x5df90": {
+      "status": "ported"
+    },
+    "0x5dfa0": {
+      "status": "ported"
+    },
+    "0x5dfb0": {
+      "status": "ported"
+    },
+    "0x64570": {
+      "status": "ported"
+    },
+    "0x64a80": {
+      "status": "ported"
     }
   }
 }

@@ -195,12 +195,226 @@ void FUN_000597f0(int actor_handle)
   *(char *)(actor + 0xa) = 0; /* Uncertain: sub-state byte */
 }
 
+/* 0x00059a00 — encounter_clump_iter_new.
+ * Initialises a 3-slot int iterator for walking an encounter's clump member
+ * list.  Guards on ai_active (ai_globals+1).
+ *
+ * iter[0] = clump_handle         (the encounter handle or -1 for encounterless)
+ * iter[1] = -1                   (current member handle; filled by _next)
+ * iter[2] = first_member_handle  (from encounter+0x14, or ai_globals+8 when
+ *                                  clump_handle == -1)
+ *
+ * Call-site verification (callers read iter[1] to compare against actor_handle):
+ *   PUSH [EBP+0xc]  (param_2 = clump_handle)  → datum_get arg2  YES
+ *   PUSH [0x5ab270] (encounter_data)           → datum_get arg1  YES
+ *   MOV ECX,[EAX+0x14]                         → encounter->first_member  YES
+ *   MOV [ESI+0x8],ECX                          → iter[2]         YES
+ *
+ * Store-offset table (from disasm MOV [ESI+N]):
+ *   ESI+0x0 : param_2 (clump_handle)
+ *   ESI+0x4 : 0xffffffff (-1)
+ *   ESI+0x8 : encounter->field_0x14 OR ai_globals->field_8 */
+void FUN_00059a00(int *iter, int clump_handle)
+{
+  char *encounter;
+  char *ai_globals;
+
+  ai_globals = *(char **)0x632574;
+  if (*(char *)(ai_globals + 1) == '\0') {
+    return;
+  }
+  iter[0] = clump_handle;
+  iter[1] = -1;
+  if (clump_handle == -1) {
+    /* No encounter: seed with encounterless list head */
+    iter[2] = *(int *)(ai_globals + 8);
+    return;
+  }
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, clump_handle);
+  iter[2] = *(int *)(encounter + 0x14);
+}
+
+/* 0x00059a50 — encounter_clump_iter_next.
+ * Advances the encounter-clump member iterator and returns a pointer to the
+ * next actor record, or NULL when the list is exhausted.
+ *
+ * iter[1] (current) ← iter[2] (next handle)
+ * iter[2]           ← actor+0x2c  (link to following member)
+ * returns datum_get(actor_data, iter[1]) or 0 if iter[1] == -1
+ *
+ * Call-site verification (PUSH ECX/PUSH EDX before CALL 0x119320):
+ *   PUSH ECX (handle from iter[2]) → datum_get arg2  YES
+ *   PUSH EDX ([0x6325a4])          → datum_get arg1  YES
+ *   MOV ECX,[EAX+0x2c]             → actor->next_member  YES
+ *   MOV [ESI+0x8],ECX              → iter[2]         YES */
+int FUN_00059a50(int *iter)
+{
+  int handle;
+  char *actor;
+
+  if (*(char *)(*(char **)0x632574 + 1) == '\0') {
+    return 0;
+  }
+  handle = iter[2];
+  iter[1] = handle;
+  if (handle == -1) {
+    return 0;
+  }
+  actor = (char *)datum_get(*(data_t **)0x6325a4, handle);
+  iter[2] = *(int *)(actor + 0x2c);
+  return (int)actor;
+}
+
+/* 0x00059b10 — actor_iterator_new (extended AI actor iterator init).
+ * Initialises a 0x1c-byte extended AI actor iterator.  The first 0x10
+ * bytes are a standard data_iter_t (initialised by data_iterator_new on
+ * encounter_data at 0x5ab270).  The extra fields are:
+ *   iter+0x10 : phase byte  (0=scanning data table, 1=scanning encounterless list)
+ *   iter+0x11 : filter_flag (0=all actors, 1=player-actors with actor+0x8 != 0)
+ *   iter+0x14 : current datum handle (-1 = none)
+ *   iter+0x18 : next linked-list handle (-1 = end)
+ *
+ * Call-site verification (PUSH ECX / PUSH ESI before CALL 0x1197b0):
+ *   PUSH ECX ([0x5ab270] = encounter_data) → data_iterator_new arg2 (data)  YES
+ *   PUSH ESI (iter = param_1)              → data_iterator_new arg1 (iter)  YES
+ *
+ * Store-offset table (from disasm MOV [ESI+N]):
+ *   ESI+0x10 : 0x0   (phase byte — data-table phase)
+ *   ESI+0x18 : -1    (next linked-list handle)
+ *   ESI+0x14 : -1    (current handle)
+ *   ESI+0x11 : DL    (param_2 = filter_flag) */
+void FUN_00059b10(void *iter, char flag)
+{
+  char *p = (char *)iter;
+
+  if (*(char *)(*(char **)0x632574 + 1) == '\0') {
+    return;
+  }
+  data_iterator_new((data_iter_t *)iter, *(data_t **)0x5ab270);
+  *(char  *)(p + 0x10) = 0;
+  *(int   *)(p + 0x18) = -1;
+  *(int   *)(p + 0x14) = -1;
+  *(char  *)(p + 0x11) = flag;
+}
+
+/* 0x00059b50 — actor_iterator_next (extended AI actor iterator advance).
+ * Returns the next actor record pointer, or NULL when done.  Two-phase:
+ *
+ * Phase 0 — data table (iter+0x18 == -1 initially):
+ *   data_iterator_next advances through the encounter data pool.  For each
+ *   encounter record returned, if filter_flag or encounter->field_0xd != 0,
+ *   load iter+0x18 from encounter->field_0x14 (the member-chain head).
+ *   Then fall into phase 1.
+ *   If data_iterator_next returns NULL and iter+0x10 == 0, transition to
+ *   phase 1 by seeding iter+0x18 from ai_globals->field_8 and setting
+ *   iter+0x10 = 1.
+ *
+ * Phase 1 — encounterless linked list (iter+0x18 != -1):
+ *   Walk via datum_get(actor_data, iter+0x18)->field_0x2c.
+ *   If filter_flag==1 and actor+0x8==0: skip (continue with next link).
+ *   Stores current handle at iter+0x14.
+ *
+ * Returns actor record pointer (datum_get result) or 0.
+ *
+ * Call-site verification (PUSH EAX/PUSH ECX before CALL 0x119320 at 0x59bc3):
+ *   PUSH EAX (iter+0x18 current handle) → datum_get arg2 (handle)  YES
+ *   PUSH ECX ([0x6325a4] = actor_data)  → datum_get arg1 (data)    YES
+ *
+ * Key disasm confirmations:
+ *   0x59b6a: CMP [ESI+0x18],-1   — check next handle in linked list
+ *   0x59b71: PUSH ESI / CALL 0x119810 — data_iterator_next(iter)
+ *   0x59b80: TEST [ESI+0x11]     — filter_flag
+ *   0x59b84: TEST [EAX+0xd]      — encounter->field_0xd
+ *   0x59b8e: MOV ECX,[EAX+0x14] — encounter->first_member_handle
+ *   0x59ba0: MOV EDX,[0x632574]  — ai_globals
+ *   0x59ba6: MOV EAX,[EDX+0x8]  — ai_globals->encounterless_head
+ *   0x59bac: MOV [ESI+0x10],1   — set phase=1 */
+int FUN_00059b50(void *iter)
+{
+  char *p = (char *)iter;
+  char *actor;
+  char *encounter;
+  int   handle;
+
+  if (*(char *)(*(char **)0x632574 + 1) == '\0') {
+    return 0;
+  }
+
+  for (;;) {
+    if (*(int *)(p + 0x18) != -1) {
+      /* Phase 1: walk linked list of actors */
+      goto walk_list;
+    }
+
+    /* Phase 0: advance data table */
+    encounter = (char *)data_iterator_next((data_iter_t *)iter);
+    if (encounter != NULL) {
+      /* If filter_flag==0, or this encounter has field_0xd set, load chain */
+      if (*(char *)(p + 0x11) == '\0' || *(char *)(encounter + 0xd) != '\0') {
+        *(int *)(p + 0x18) = *(int *)(encounter + 0x14);
+      }
+      /* Re-check iter+0x18 */
+      if (*(int *)(p + 0x18) == -1) {
+        continue;
+      }
+      goto walk_list;
+    }
+
+    /* data table exhausted — transition to encounterless list if not done */
+    if (*(char *)(p + 0x10) != '\0') {
+      /* Phase 1 already seeded: jump straight to list walk */
+      goto walk_list;
+    }
+    *(int  *)(p + 0x18) = *(int *)(*(char **)0x632574 + 8);
+    *(char *)(p + 0x10) = 1;
+
+walk_list:
+    handle = *(int *)(p + 0x18);
+    *(int *)(p + 0x14) = handle;
+    if (handle == -1) {
+      return 0;
+    }
+    actor = (char *)datum_get(*(data_t **)0x6325a4, handle);
+    *(int *)(p + 0x18) = *(int *)(actor + 0x2c);
+
+    if (*(char *)(p + 0x11) == '\0') {
+      /* No filter — return this actor */
+      return (int)actor;
+    }
+    /* filter_flag: only return if actor+0x8 != 0 */
+    if (*(char *)(actor + 8) != '\0') {
+      return (int)actor;
+    }
+    /* Skip this actor — loop again */
+  }
+}
+
+/* 0x0005df80 — encounter_initialize stub.
+ * Binary: single RET. No initialization needed at this level. */
+void FUN_0005df80(void)
+{
+}
+
+/* 0x0005df90 — encounter_dispose stub.
+ * Binary: single RET. No teardown needed at this level. */
+void FUN_0005df90(void)
+{
+}
+
+/* 0x0005dfa0 — encounter_initialize_for_new_map stub.
+ * Binary: single RET. Map-level init is handled elsewhere. */
+void FUN_0005dfa0(void)
+{
+}
+
+/* 0x0005dfb0 — encounter_dispose_from_old_map stub.
+ * Binary: single RET. Map-level dispose is handled elsewhere. */
+void FUN_0005dfb0(void)
+{
+}
+
 /* Deferred functions (not yet ported — thunked from XBE):
  *   FUN_0005d910  — encounter_tally_votes_reset (complex, deferred)
  *   FUN_0005de80  — encounter_update (needs FUN_0005acf0 @<eax> audit)
  *   FUN_0005ddc0  — encounter_tally_reset_pass (shared loop pattern)
- *   FUN_0005df80  — encounter_initialize stub
- *   FUN_0005df90  — encounter_dispose stub
- *   FUN_0005dfa0  — encounter_initialize_for_new_map stub
- *   FUN_0005dfb0  — encounter_dispose_from_old_map stub
  */

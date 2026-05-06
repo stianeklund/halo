@@ -217,7 +217,8 @@
     "0x97a50": "int16_t FUN_00097a50(int contrail_handle @<eax>, float delta_time);",
     "0x97e40": "void FUN_00097e40(int contrail_handle @<eax>, int count, int flag);",
     "0xb54e0": "float game_globals_difficulty_scale(int16_t value_type@<bx>, int16_t difficulty@<di>);",
-    "0x413c0": "void FUN_000413c0(ai_firing_pos_entry_t *entry@<esi>, int unit_handle@<edi>, int actor_handle);"
+    "0x413c0": "void FUN_000413c0(ai_firing_pos_entry_t *entry@<esi>, int unit_handle@<edi>, int actor_handle);",
+    "0x64400": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);"
   },
   "version": 1,
   "0xcada0": {

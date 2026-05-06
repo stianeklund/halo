@@ -9018,11 +9018,13 @@
         },
         {
           "decl": "void FUN_00059b10(void *iter, char flag);",
-          "addr": "0x59b10"
+          "addr": "0x59b10",
+          "ported": true
         },
         {
           "decl": "int FUN_00059b50(void *iter);",
-          "addr": "0x59b50"
+          "addr": "0x59b50",
+          "ported": true
         },
         {
           "decl": "void FUN_0005b200(void);",
@@ -9046,27 +9048,33 @@
         },
         {
           "decl": "void FUN_0005df80(void);",
-          "addr": "0x5df80"
+          "addr": "0x5df80",
+          "ported": true
         },
         {
           "decl": "void FUN_0005df90(void);",
-          "addr": "0x5df90"
+          "addr": "0x5df90",
+          "ported": true
         },
         {
           "decl": "void FUN_0005dfa0(void);",
-          "addr": "0x5dfa0"
+          "addr": "0x5dfa0",
+          "ported": true
         },
         {
           "decl": "void FUN_0005dfb0(void);",
-          "addr": "0x5dfb0"
+          "addr": "0x5dfb0",
+          "ported": true
         },
         {
           "decl": "void FUN_00059a00(int *iter, int clump_handle);",
-          "addr": "0x59a00"
+          "addr": "0x59a00",
+          "ported": true
         },
         {
           "decl": "int FUN_00059a50(int *iter);",
-          "addr": "0x59a50"
+          "addr": "0x59a50",
+          "ported": true
         }
       ]
     },
@@ -9101,17 +9109,23 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);",
+          "addr": "0x64400"
+        },
+        {
           "decl": "void FUN_00064540(int *out, int actor_handle);",
           "addr": "0x64540",
           "ported": true
         },
         {
           "decl": "int FUN_00064570(int *iter);",
-          "addr": "0x64570"
+          "addr": "0x64570",
+          "ported": true
         },
         {
           "decl": "void FUN_00064a80(int actor_handle, int prop_handle);",
-          "addr": "0x64a80"
+          "addr": "0x64a80",
+          "ported": true
         },
         {
           "addr": "0x64ab0",
