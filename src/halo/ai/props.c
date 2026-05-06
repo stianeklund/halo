@@ -69,6 +69,10 @@ void FUN_00064160(void)
     data_make_invalid(prop_data);
 }
 
+/* 0x64400 — prop_detach_from_actor (@eax=actor_handle, @edi=prop_handle).
+ * Register-arg callee — thunked via kb.json.  See kb.json for the full
+ * prototype.  Do not call directly from C; use FUN_00064400() wrapper. */
+
 /* 0x64540 — prop_iterator_new.
  * Initialises a prop iterator for the props associated with a given actor.
  *
@@ -92,4 +96,64 @@ void FUN_00064540(int *out, int actor_handle)
 {
     void *actor = datum_get(actor_data, actor_handle);
     out[1] = *(int *)((char *)actor + 0x50);
+}
+
+/* 0x64570 — prop_iterator_next.
+ * Advances a prop iterator and returns a pointer to the next prop record,
+ * or NULL when the chain is exhausted.
+ *
+ * The iterator is a 2-slot int array (matches the layout used by
+ * FUN_00064540 / FUN_00064540):
+ *   iter[0] — current prop handle (written here before each datum_get)
+ *   iter[1] — next prop handle    (updated to prop->field_0x8)
+ *
+ * Prop chain link field: prop+0x8 (next handle in singly-linked list).
+ *
+ * Call-site verification (disasm 0x64570):
+ *   MOV ECX,[ESI+0x4]  → handle = iter[1]            YES
+ *   MOV [ESI],ECX      → iter[0] = handle (current)  YES
+ *   PUSH ECX           → datum_get arg2 (handle)      YES
+ *   PUSH EAX ([0x5ab23c] = prop_data) → datum_get arg1  YES
+ *   MOV ECX,[EAX+0x8]  → prop->next_handle            YES
+ *   MOV [ESI+0x4],ECX  → iter[1] = next               YES
+ *
+ * Store-offset table (from disasm MOV [ESI+N]):
+ *   ESI+0x0 : handle (iter[1] before call — becomes current)
+ *   ESI+0x4 : prop->field_0x8 (next handle) */
+int FUN_00064570(int *iter)
+{
+    int   handle;
+    char *prop;
+
+    handle = iter[1];
+    iter[0] = handle;
+    if (handle == -1) {
+        return 0;
+    }
+    prop = (char *)datum_get(prop_data, handle);
+    iter[1] = *(int *)(prop + 8);
+    return (int)prop;
+}
+
+/* 0x64a80 — prop_detach.
+ * Removes the prop record identified by prop_handle from the actor's prop
+ * chain and then frees it from prop_data.
+ *
+ * Calls FUN_00064400 (@eax=actor_handle, @edi=prop_handle) to splice the
+ * prop out of the actor's singly-linked chain, then datum_delete to free
+ * the slot.
+ *
+ * Call-site verification (disasm 0x64a80):
+ *   MOV EAX,[EBP+0x8]  → actor_handle → @eax for FUN_00064400  YES
+ *   MOV EDI,[EBP+0xc]  → prop_handle  → @edi for FUN_00064400  YES
+ *   CALL 0x64400                                                 YES
+ *   MOV EAX,[0x5ab23c] → prop_data    → datum_delete arg1       YES
+ *   PUSH EDI            → prop_handle  → datum_delete arg2       YES
+ *   PUSH EAX            → datum_delete arg1                      YES
+ *   CALL 0x1196d0                                                YES
+ *   ADD ESP,0x8         → 2-arg cdecl cleanup                   YES */
+void FUN_00064a80(int actor_handle, int prop_handle)
+{
+    FUN_00064400(actor_handle, prop_handle);
+    datum_delete(prop_data, prop_handle);
 }
