@@ -983,6 +983,32 @@ bool unit_is_alive(int unit_handle)
   return (unit->unk_436 >> 6) & 1;
 }
 
+/* Check if a unit is in a vehicle seat based on seat state byte at +0x253. */
+bool FUN_001a9ad0(int unit_handle)
+{
+  char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  int seat_state = *(signed char *)(unit + 0x253);
+  switch (seat_state) {
+  case 0x17:
+  case 0x18:
+  case 0x19:
+  case 0x1a:
+  case 0x1b:
+  case 0x1d:
+  case 0x1e:
+  case 0x1f:
+  case 0x20:
+  case 0x21:
+  case 0x22:
+  case 0x23:
+  case 0x27:
+  case 0x29:
+    return true;
+  default:
+    return false;
+  }
+}
+
 /* any_unit_is_dangerous (0x1aa3c0)
  *
  * Iterates all unit objects (type_mask=3: bipeds + vehicles) and returns true
