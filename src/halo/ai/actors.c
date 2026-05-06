@@ -1294,6 +1294,106 @@ void FUN_0003c370(int actor_handle)
   *(uint32_t *)(actor + 0x6d0) |= 0x2000;
 }
 
+/* FUN_0003c7c0 (0x3c7c0) — actor_variant_setup_unit
+ * Initializes a newly created unit from its actor variant (actv) tag data.
+ * Sets perception ranges, grenade type, change colors, initial weapon,
+ * grenade count, initial equipment, and deaf/blind flags. */
+void FUN_0003c7c0(int actv_tag_index, int unit_index)
+{
+  char *actv_data;
+  char *actr_data;
+  char *unit_data;
+  char *element;
+  char *eqip_data;
+  char placement[136];
+  int object_handle;
+  int i;
+  int count;
+  int *seed;
+  float blend;
+  float *out_color;
+  float *copy_dest;
+
+  actv_data = (char *)tag_get(0x61637476, actv_tag_index);
+  actr_data = (char *)tag_get(0x61637472, *(int *)(actv_data + 0x10));
+  unit_data = (char *)object_get_and_verify_type(unit_index, 3);
+
+  if (*(float *)(actv_data + 0x200) > 0.0f ||
+      *(float *)(actv_data + 0x204) > 0.0f) {
+    FUN_001365d0(unit_index, (int)(actv_data + 0x200),
+                 (int)(actv_data + 0x204));
+  }
+
+  if (*(short *)(actv_data + 0x20c) != 0) {
+    *(short *)(unit_data + 0x126) = *(short *)(actv_data + 0x20c);
+  }
+
+  count = 0;
+  for (i = 0; (short)i < *(int *)(actv_data + 0x22c); i = (int)(short)(count)) {
+    element = (char *)tag_block_get_element(actv_data + 0x22c, i, 0x20);
+    if ((short)count < 4) {
+      out_color = (float *)(unit_data + (i * 3 + 0x4e) * 4);
+      seed = get_global_random_seed_address();
+      blend = random_math_real((unsigned int *)seed);
+      FUN_0007c270(out_color, 1, (float *)element, (float *)(element + 0xc),
+                   blend);
+      copy_dest = (float *)(unit_data + (i * 3 + 0x5a) * 4);
+      copy_dest[0] = out_color[0];
+      copy_dest[1] = out_color[1];
+      copy_dest[2] = out_color[2];
+    }
+    count = count + 1;
+  }
+
+  if (*(int *)(actv_data + 0x70) != -1) {
+    FUN_0013fc20(placement, *(int *)(actv_data + 0x70), unit_index);
+    object_handle = FUN_00143c80(placement);
+    if (object_handle != -1) {
+      if (!unit_enter_seat(unit_index, object_handle, 2)) {
+        object_delete(object_handle);
+      }
+    }
+  }
+
+  if (*(short *)(actv_data + 0x180) != -1) {
+    seed = get_global_random_seed_address();
+    unit_set_grenade_count(unit_index, *(short *)(actv_data + 0x180),
+                           random_range((unsigned int *)seed,
+                                        *(short *)(actv_data + 0x1d0),
+                                        *(short *)(actv_data + 0x1d2) + 1));
+  }
+
+  if (*(int *)(actv_data + 0x1cc) != -1) {
+    eqip_data = (char *)tag_get(0x65716970, *(int *)(actv_data + 0x1cc));
+    if (*(short *)(eqip_data + 0x308) == 0 ||
+        *(short *)(eqip_data + 0x308) == 6) {
+      error(2, "cannot add grenades or non-powerups to an actor's inventory "
+               "as equipment... try using the 'grenade' fields maybe?");
+    } else {
+      FUN_0013fc20(placement, *(int *)(actv_data + 0x1cc), unit_index);
+      object_handle = FUN_00143c80(placement);
+      if (object_handle != -1) {
+        if (!unit_pickup_equipment(unit_index, object_handle, 1)) {
+          object_delete(object_handle);
+        }
+      }
+    }
+  }
+
+  if ((*(unsigned char *)actv_data & 0x30) != 0) {
+    if ((*(unsigned char *)actv_data & 0x20) != 0) {
+      *(unsigned int *)(unit_data + 0x1b4) |= 0x20;
+    }
+    *(unsigned int *)(unit_data + 0x1b4) |= 0x10;
+    *(float *)(unit_data + 0x32c) = 1.0f;
+    if ((*(unsigned char *)actr_data & 0x20) != 0) {
+      *(float *)(unit_data + 0x330) = 1.0f;
+      return;
+    }
+    *(float *)(unit_data + 0x330) = 0.0f;
+  }
+}
+
 /* FUN_0003ca40 (0x3ca40) — actor_set_object_activation
  *
  * Sets activation state on the actor's associated objects. Depending on
