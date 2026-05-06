@@ -158,6 +158,11 @@ def parse_boot_hash_sha(text: str) -> Optional[str]:
   return m.group(1).lower() if m else None
 
 
+def parse_match_percent(text: str) -> Optional[float]:
+  m = re.search(r'(\d+\.\d+)% match', text)
+  return float(m.group(1)) if m else None
+
+
 def render_template(value: str, *, target: Target, artifact_dir: Path) -> str:
   out = value
   replacements = {
@@ -396,6 +401,11 @@ def can_auto_generate_verify_payload(args: argparse.Namespace, artifact_dir: Pat
 
 
 def run_pipeline(args: argparse.Namespace) -> int:
+  if not (0.0 <= args.low_match_reject_below <= args.low_match_behavior_both_below <= args.low_match_threshold <= 100.0):
+    raise RuntimeError(
+      "invalid low-match thresholds (expected 0 <= reject <= behavior_both <= threshold <= 100)"
+    )
+
   timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
   run_id = args.run_id or timestamp
   artifact_dir = ARTIFACT_ROOT / run_id
@@ -651,6 +661,11 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("objdiff", ran=False, ok=True,
                               details="skipped (no --objdiff-reference/--objdiff-candidate)"))
 
+  xdk_verify_ran = False
+  xdk_verify_ok = False
+  xdk_match_pct: Optional[float] = None
+  xdk_has_fpu_warn = False
+
   if not args.skip_xdk_verify and build_ok:
     xdk_source = Path(target.source_path) if target.source_path else None
     xdk_ref = None
@@ -669,6 +684,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         pass
 
     if xdk_source and xdk_ref and (ROOT / xdk_source).exists():
+      xdk_verify_ran = True
       cmd = [
         "python3", "tools/verify/xdk_verify.py",
         str(xdk_source), "--function", target.name,
@@ -676,20 +692,17 @@ def run_pipeline(args: argparse.Namespace) -> int:
       ]
       proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "xdk_verify.log")
       output = (proc.stdout or "") + (proc.stderr or "")
-      has_fpu_warn = "FPU-WARN" in output
-      match_pct = None
-      m = re.search(r'(\d+\.\d+)% match', output)
-      if m:
-        match_pct = float(m.group(1))
+      xdk_has_fpu_warn = "FPU-WARN" in output
+      xdk_match_pct = parse_match_percent(output)
+      xdk_verify_ok = proc.returncode == 0
       if proc.returncode == 0:
-        details = f"{match_pct:.1f}% match" if match_pct is not None else "PASS"
-      elif has_fpu_warn:
-        details = f"{match_pct:.1f}% match, FPU operand-order warnings" if match_pct else "FPU warnings"
+        details = f"{xdk_match_pct:.1f}% match" if xdk_match_pct is not None else "PASS"
+      elif xdk_has_fpu_warn:
+        details = f"{xdk_match_pct:.1f}% match, FPU operand-order warnings" if xdk_match_pct else "FPU warnings"
       else:
         details = "xdk compilation or comparison failed"
-      ok = proc.returncode == 0
-      stages.append(StageResult("xdk_verify", ran=True, ok=ok,
-                                details=details + (" [REVIEW FPU-WARN]" if has_fpu_warn else "")))
+      stages.append(StageResult("xdk_verify", ran=True, ok=xdk_verify_ok,
+                                details=details + (" [REVIEW FPU-WARN]" if xdk_has_fpu_warn else "")))
     else:
       reason = "no delinked reference" if xdk_source else "no source_path"
       stages.append(StageResult("xdk_verify", ran=False, ok=True,
@@ -697,6 +710,20 @@ def run_pipeline(args: argparse.Namespace) -> int:
   else:
     stages.append(StageResult("xdk_verify", ran=False, ok=True,
                               details="skipped" + (" (--skip-xdk-verify)" if args.skip_xdk_verify else "")))
+
+  behavior_check_ok = False
+  if args.behavior_check_cmd:
+    behavior_cmd = render_template(args.behavior_check_cmd, target=target, artifact_dir=artifact_dir)
+    proc = run_command(
+      ["bash", "-lc", behavior_cmd],
+      cwd=ROOT,
+      log_path=artifact_dir / "behavior_check.log",
+    )
+    behavior_check_ok = proc.returncode == 0
+    stages.append(StageResult("behavior_check", ran=True, ok=behavior_check_ok, details=behavior_cmd))
+  else:
+    stages.append(StageResult("behavior_check", ran=False, ok=True,
+                              details="skipped (no --behavior-check-cmd)"))
 
   runtime_enabled = args.with_runtime
   runtime_ok = True
@@ -738,6 +765,67 @@ def run_pipeline(args: argparse.Namespace) -> int:
   else:
     stages.append(StageResult("runtime_check", ran=False, ok=True,
                               details="skipped (--with-runtime not set)"))
+
+  if args.low_match_policy == "off":
+    stages.append(StageResult("low_match_policy", ran=False, ok=True,
+                              details="skipped (--low-match-policy=off)"))
+  else:
+    if not xdk_verify_ran:
+      if args.low_match_policy == "strict":
+        stages.append(StageResult("low_match_policy", ran=True, ok=False,
+                                  details="strict mode requires xdk_verify data (xdk_verify was skipped)"))
+        return finalize(summary, stages, artifact_dir, ok=False)
+      stages.append(StageResult("low_match_policy", ran=False, ok=True,
+                                details="skipped (no xdk_verify data)"))
+    elif (not xdk_verify_ok) and (xdk_match_pct is None):
+      stages.append(StageResult("low_match_policy", ran=True, ok=False,
+                                details="xdk_verify failed; low-match policy cannot evaluate"))
+      return finalize(summary, stages, artifact_dir, ok=False)
+    elif xdk_match_pct is None:
+      stages.append(StageResult("low_match_policy", ran=True, ok=False,
+                                details="xdk_verify output missing match percentage"))
+      return finalize(summary, stages, artifact_dir, ok=False)
+    else:
+      behavior_any_ok = behavior_check_ok or (runtime_enabled and runtime_ok)
+      behavior_both_ok = behavior_check_ok and runtime_enabled and runtime_ok
+
+      details = [
+        f"policy={args.low_match_policy}",
+        f"match={xdk_match_pct:.1f}%",
+        f"threshold={args.low_match_threshold:.1f}%",
+        f"behavior_both_below={args.low_match_behavior_both_below:.1f}%",
+        f"reject_below={args.low_match_reject_below:.1f}%",
+        f"fpu_warn={'yes' if xdk_has_fpu_warn else 'no'}",
+        f"behavior_check={'pass' if behavior_check_ok else ('n/a' if not args.behavior_check_cmd else 'fail')}",
+        f"runtime_check={'pass' if (runtime_enabled and runtime_ok) else ('n/a' if not runtime_enabled else 'fail')}",
+      ]
+
+      policy_ok = True
+      reason = "accepted"
+
+      if not xdk_verify_ok:
+        policy_ok = False
+        reason = "xdk_verify failed"
+      elif xdk_has_fpu_warn:
+        policy_ok = False
+        reason = "FPU operand-order warnings present"
+      elif xdk_match_pct < args.low_match_reject_below:
+        policy_ok = False
+        reason = f"match below hard floor ({args.low_match_reject_below:.1f}%)"
+      elif xdk_match_pct < args.low_match_behavior_both_below:
+        if not behavior_both_ok:
+          policy_ok = False
+          reason = "strict low-match range requires both behavior_check and runtime_check PASS"
+      elif xdk_match_pct < args.low_match_threshold:
+        if not behavior_any_ok:
+          policy_ok = False
+          reason = "low match requires at least one behavior signal (behavior_check or runtime_check)"
+
+      details.append(f"verdict={'PASS' if policy_ok else 'FAIL'}")
+      details.append(f"reason={reason}")
+      stages.append(StageResult("low_match_policy", ran=True, ok=policy_ok, details=" ".join(details)))
+      if not policy_ok:
+        return finalize(summary, stages, artifact_dir, ok=False)
 
   if args.no_metadata_update:
     stages.append(StageResult("metadata_update", ran=False, ok=True,
@@ -866,6 +954,16 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--skip-xdk-verify", action="store_true",
                   help="Skip XDK MSVC compilation and FPU operand comparison.")
+  ap.add_argument("--behavior-check-cmd", default="",
+                  help="Optional non-interactive behavior/reference check command (exit 0 = PASS).")
+  ap.add_argument("--low-match-policy", choices=["off", "auto", "strict"], default="strict",
+                  help="Enforce low-match acceptance: off=disabled, auto=enforce when xdk data exists, strict=fail if xdk data is missing (default).")
+  ap.add_argument("--low-match-threshold", type=float, default=50.0,
+                  help="Low-match threshold percentage (default: 50.0).")
+  ap.add_argument("--low-match-behavior-both-below", type=float, default=40.0,
+                  help="Below this match percentage, require both behavior_check and runtime_check to pass (default: 40.0).")
+  ap.add_argument("--low-match-reject-below", type=float, default=25.0,
+                  help="Hard reject below this match percentage (default: 25.0).")
 
   ap.add_argument("--with-runtime", action="store_true",
                   help="Enable runtime hash comparison via tools/xbox/boot_hash.sh.")
