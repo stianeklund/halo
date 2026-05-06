@@ -222,7 +222,8 @@ void actors_dispose_from_old_map(void)
  * Confirmed: game_time_get() at 0x3ac60; [obj+0x2dc]+0x1e compared at 0x3ac6e.
  * Confirmed: [actor+0x13] vs (~[header+0x2])&1 mismatch check at 0x3ac7f.
  * Confirmed: error(2, "%s unit activation logic error", reason) at 0x3ac8e. */
-void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax> */)
+void FUN_0003ac20(int actor_handle, const char *reason,
+                  int obj_handle /* @<eax> */)
 {
   char *header;
   char *obj;
@@ -231,8 +232,8 @@ void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax>
 
   /* Resolve object header and full object pointer */
   header = (char *)datum_get(*(data_t **)0x5a8d50, obj_handle);
-  obj    = (char *)object_get_and_verify_type(obj_handle, 3);
-  actor  = (char *)datum_get(actor_data, actor_handle);
+  obj = (char *)object_get_and_verify_type(obj_handle, 3);
+  actor = (char *)datum_get(actor_data, actor_handle);
 
   /* Only check top-level objects (no parent) */
   if (*(int *)(obj + 0xcc) != -1) {
@@ -248,7 +249,8 @@ void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax>
   /* Check: actor's active-flag must match what the object header reports.
    * header->unk_2 bit0 == 0 means active; actor+0x13 == 0 means dormant.
    * If (~header->unk_2 & 1) != actor->active then it's a logic error. */
-  if (*(unsigned char *)(actor + 0x13) != ((~*(unsigned char *)(header + 0x2)) & 1u)) {
+  if (*(unsigned char *)(actor + 0x13) !=
+      ((~*(unsigned char *)(header + 0x2)) & 1u)) {
     error(2, "%s unit activation logic error", reason);
   }
 }
@@ -704,6 +706,43 @@ void FUN_0003b410(int actor_handle, int old_prop, int new_prop)
   FUN_0001c450(actor_handle, old_prop, new_prop);
 }
 
+/* FUN_0003b5e0 (0x3b5e0) — actor_reset_action_state
+ *
+ * Resets the actor's action-related state and dispatches to the current
+ * action's update function. Unconditionally clears the word at actor+0x3b8
+ * to 0xffff (a "no-action" or invalid sentinel). If the current action state
+ * (actor+0x46c, int16_t) is 3 or 4, resets it to 0 and sets actor+0x480
+ * (action timer/handle) to -1. Finally calls FUN_0001c4c0 to dispatch to the
+ * action-specific handler indexed by actor+0x6c (state.action).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3b5ee.
+ * Confirmed: MOV CX,[EAX+0x46c] — int16_t compare at 0x3b5f3.
+ * Confirmed: OR EDX,-1 then MOV word [EAX+0x3b8],DX — unconditional store
+ *   of 0xffff at 0x3b604 (before the branch, not inside it).
+ * Confirmed: MOV word [EAX+0x46c],0x0 and MOV dword [EAX+0x480],EDX at
+ *   0x3b613/0x3b61c — conditional on CX==3||CX==4.
+ * Confirmed: FUN_0001c4c0(actor_handle) at 0x3b623 (cdecl, 1 arg). */
+void FUN_0003b5e0(int actor_handle)
+{
+  char *actor;
+  int16_t action_state;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  /* Unconditional: clear action sentinel (0xffff = no action pending) */
+  *(int16_t *)(actor + 0x3b8) = (int16_t)0xffff;
+
+  /* If action state is 3 or 4, reset it and clear the action handle */
+  action_state = *(int16_t *)(actor + 0x46c);
+  if (action_state == 3 || action_state == 4) {
+    *(int16_t *)(actor + 0x46c) = 0;
+    *(int *)(actor + 0x480) = -1;
+  }
+
+  /* Dispatch to the current action's update function */
+  FUN_0001c4c0(actor_handle);
+}
+
 /* FUN_0003b7e0 (0x3b7e0)
  * Reset a unit's control state. Builds a default unit_control_t (0x40 bytes):
  * animation_state=1, aiming_speed=1, control_flags=0, weapon/grenade/zoom=-1,
@@ -912,43 +951,6 @@ void FUN_0003ba00(void)
   }
 }
 
-/* FUN_0003b5e0 (0x3b5e0) — actor_reset_action_state
- *
- * Resets the actor's action-related state and dispatches to the current
- * action's update function. Unconditionally clears the word at actor+0x3b8
- * to 0xffff (a "no-action" or invalid sentinel). If the current action state
- * (actor+0x46c, int16_t) is 3 or 4, resets it to 0 and sets actor+0x480
- * (action timer/handle) to -1. Finally calls FUN_0001c4c0 to dispatch to the
- * action-specific handler indexed by actor+0x6c (state.action).
- *
- * Confirmed: datum_get(actor_data, actor_handle) at 0x3b5ee.
- * Confirmed: MOV CX,[EAX+0x46c] — int16_t compare at 0x3b5f3.
- * Confirmed: OR EDX,-1 then MOV word [EAX+0x3b8],DX — unconditional store
- *   of 0xffff at 0x3b604 (before the branch, not inside it).
- * Confirmed: MOV word [EAX+0x46c],0x0 and MOV dword [EAX+0x480],EDX at
- *   0x3b613/0x3b61c — conditional on CX==3||CX==4.
- * Confirmed: FUN_0001c4c0(actor_handle) at 0x3b623 (cdecl, 1 arg). */
-void FUN_0003b5e0(int actor_handle)
-{
-  char *actor;
-  int16_t action_state;
-
-  actor = (char *)datum_get(actor_data, actor_handle);
-
-  /* Unconditional: clear action sentinel (0xffff = no action pending) */
-  *(int16_t *)(actor + 0x3b8) = (int16_t)0xffff;
-
-  /* If action state is 3 or 4, reset it and clear the action handle */
-  action_state = *(int16_t *)(actor + 0x46c);
-  if (action_state == 3 || action_state == 4) {
-    *(int16_t *)(actor + 0x46c) = 0;
-    *(int *)(actor + 0x480) = -1;
-  }
-
-  /* Dispatch to the current action's update function */
-  FUN_0001c4c0(actor_handle);
-}
-
 /* Reassign an actor to a new encounter/squad, detaching from the old one. */
 void FUN_0003baa0(int actor_handle, int encounter_handle, int16_t squad_index)
 {
@@ -1123,36 +1125,6 @@ void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
   *(int *)(input_block + 0x28) = *(int *)(root_obj + 0x4c);
 }
 
-/* Set or clear bit 0x800 in actor flags at +0x6d0, and store target at +0x720. */
-void FUN_0003c2d0(int actor_handle, char flag, int target)
-{
-  char *actor = (char *)datum_get(actor_data, actor_handle);
-  if (flag) {
-    *(uint32_t *)(actor + 0x6d0) |= 0x800;
-  } else {
-    *(uint32_t *)(actor + 0x6d0) &= ~0x800u;
-  }
-  *(int *)(actor + 0x720) = target;
-}
-
-/* Set or clear bit 0x1000 in actor flags at +0x6d0. */
-void FUN_0003c330(int actor_handle, char flag)
-{
-  char *actor = (char *)datum_get(actor_data, actor_handle);
-  if (flag) {
-    *(uint32_t *)(actor + 0x6d0) |= 0x1000;
-  } else {
-    *(uint32_t *)(actor + 0x6d0) &= ~0x1000u;
-  }
-}
-
-/* Set bit 0x2000 in actor flags at +0x6d0. */
-void FUN_0003c370(int actor_handle)
-{
-  char *actor = (char *)datum_get(actor_data, actor_handle);
-  *(uint32_t *)(actor + 0x6d0) |= 0x2000;
-}
-
 /* FUN_0003be90 (0x3be90) — actor run internal logic / infinite-loop watchdog
  *
  * Runs the actor's decision loop up to 10 times, recording the last 5 action
@@ -1289,6 +1261,37 @@ void FUN_0003be90(int actor_handle)
   error(2, "AI error condition detected, attempting to recover (please tell "
            "butcher)...");
   FUN_0001d030(actor_handle, 0, 0);
+}
+
+/* Set or clear bit 0x800 in actor flags at +0x6d0, and store target at +0x720.
+ */
+void FUN_0003c2d0(int actor_handle, char flag, int target)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (flag) {
+    *(uint32_t *)(actor + 0x6d0) |= 0x800;
+  } else {
+    *(uint32_t *)(actor + 0x6d0) &= ~0x800u;
+  }
+  *(int *)(actor + 0x720) = target;
+}
+
+/* Set or clear bit 0x1000 in actor flags at +0x6d0. */
+void FUN_0003c330(int actor_handle, char flag)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (flag) {
+    *(uint32_t *)(actor + 0x6d0) |= 0x1000;
+  } else {
+    *(uint32_t *)(actor + 0x6d0) &= ~0x1000u;
+  }
+}
+
+/* Set bit 0x2000 in actor flags at +0x6d0. */
+void FUN_0003c370(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  *(uint32_t *)(actor + 0x6d0) |= 0x2000;
 }
 
 /* FUN_0003ca40 (0x3ca40) — actor_set_object_activation
@@ -2734,4 +2737,155 @@ void FUN_0003ec80(int actor_handle /* @<esi> */)
   FUN_0003e7a0(actor_handle);
 
   *(int *)0x2c8728 = -1;
+}
+
+/* FUN_0003f030 (0x3f030) — create an AI actor with its associated unit object.
+ * Resolves actor variant tag, initializes object placement, spawns the unit,
+ * then creates the actor record. Returns actor handle or -1 on failure.
+ *
+ * Confirmed: 6 cdecl args (ADD ESP,0x2c at caller in ai.c).
+ * Confirmed: tag_get('actv', actv_tag_index) at 0x3f071.
+ * Confirmed: use_major_variant selects actv+0x30 alternate variant at 0x3f082.
+ * Confirmed: tag_get('actr', [actv+0x10]) at 0x3f0c5 for actor definition
+ * flags. Confirmed: FUN_0013fc20(placement, [actv+0x20], -1) at 0x3f0d9.
+ * Confirmed: position copied from starting_location[0..8] to placement+0x18 at
+ *   0x3f0e0-0x3f0f6.
+ * Confirmed: FUN_0010cc70(placement+0x34, starting_location+0xC) at 0x3f0f9.
+ * Confirmed: FUN_00143c80(placement) at 0x3f10d creates the unit.
+ * Confirmed: FUN_0003c7c0(actv_tag_index, unit_index) at 0x3f202 (2 cdecl args,
+ *   ADD ESP,0x8).
+ * Confirmed: FUN_0003edc0 with 12 cdecl args at 0x3f2a1 (ADD ESP,0x30).
+ * Confirmed: FUN_0003aca0(actor_handle) at 0x3f33c on success.
+ * Confirmed: object_delete(unit_index) at 0x3f32a on actor creation failure.
+ * Confirmed: FUN_00054220(combined_idx, scenario, buf, 256) at 0x3f16b/0x3f2f8
+ *   with pre-pushed args from global_scenario_get (ADD ESP,0x10 cleans 4 args).
+ * Confirmed: error(2, format, tag_name, encounter_name) at 0x3f194/0x3f321
+ *   with pre-pushed encounter_name from stack (ADD ESP,0x10/0x14). */
+int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
+                 void *starting_location, char use_major_variant, int16_t team)
+{
+  char *actv_data;
+  char *actr_data;
+  char placement[0x88];
+  char name_buffer[256];
+  int unit_index;
+  int actor_index;
+  char *encounter_elem;
+  char *squad_elem;
+  char actor_flag;
+  char encounter_flag;
+  short sVar1;
+  short sVar7;
+  const char *tag_name;
+  unsigned int combined_index;
+  char *scenario_ptr;
+
+  if (starting_location == NULL) {
+    display_assert("starting_location", "c:\\halo\\SOURCE\\ai\\actors.c", 0x25b,
+                   1);
+    system_exit(-1);
+  }
+
+  FUN_00144b50();
+
+  actv_data = (char *)tag_get(0x61637476, actv_tag_index);
+
+  if (use_major_variant != 0) {
+    actv_tag_index = *(int *)(actv_data + 0x30);
+    if (actv_tag_index == -1) {
+      display_assert("actor_variant_definition_index != NONE",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x265, 1);
+      system_exit(-1);
+    }
+    actv_data = (char *)tag_get(0x61637476, actv_tag_index);
+  }
+
+  actr_data = (char *)tag_get(0x61637472, *(int *)(actv_data + 0x10));
+
+  FUN_0013fc20(placement, *(int *)(actv_data + 0x20), -1);
+
+  *(int *)(placement + 0x18) = *(int *)((char *)starting_location);
+  *(int *)(placement + 0x1C) = *(int *)((char *)starting_location + 4);
+  *(int *)(placement + 0x20) = *(int *)((char *)starting_location + 8);
+
+  FUN_0010cc70((float *)(placement + 0x34),
+               *(float *)((char *)starting_location + 0xC));
+
+  *(int16_t *)(placement + 0x16) = team;
+
+  unit_index = FUN_00143c80(placement);
+
+  if (unit_index == -1) {
+    if (encounter_index == -1) {
+      csstrcpy(name_buffer, "<encounterless>");
+    } else {
+      scenario_ptr = (char *)global_scenario_get();
+      combined_index =
+        (((unsigned int)(squad_index & 0xff) | 0xffff8000u) << 16) |
+        ((unsigned int)encounter_index & 0xffff);
+      FUN_00054220(combined_index, scenario_ptr, name_buffer, 256);
+    }
+    tag_name = tag_name_strip_path(tag_get_name(actv_tag_index));
+    error(2, "WARNING: cannot create unit for actor %s %s", tag_name,
+          name_buffer);
+    return -1;
+  }
+
+  if (encounter_index != -1) {
+    encounter_elem = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x42c, encounter_index & 0xffff, 0xb0);
+    if (encounter_elem != NULL) {
+      tag_block_get_element(encounter_elem + 0x80, squad_index, 0xe8);
+    }
+  }
+
+  actor_flag = (char)((*(unsigned int *)actr_data >> 26) & 1);
+  encounter_flag = 0;
+  sVar1 = 0;
+  sVar7 = 0;
+
+  FUN_0003c7c0(actv_tag_index, unit_index);
+
+  if (encounter_index != -1) {
+    encounter_elem = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x42c, encounter_index & 0xffff, 0xb0);
+    squad_elem =
+      (char *)tag_block_get_element(encounter_elem + 0x80, squad_index, 0xe8);
+    sVar1 = *(short *)(squad_elem + 0x24);
+    sVar7 = *(short *)(squad_elem + 0x26);
+    encounter_flag =
+      (char)((*(unsigned int *)(encounter_elem + 0x20) >> 4) & 1);
+  }
+
+  if (*(short *)((char *)starting_location + 0x16) > 0) {
+    sVar1 = *(short *)((char *)starting_location + 0x16);
+  }
+  if (*(short *)((char *)starting_location + 0x14) > 0) {
+    sVar7 = *(short *)((char *)starting_location + 0x14);
+  }
+
+  actor_index =
+    FUN_0003edc0(actor_flag, unit_index, actv_tag_index, encounter_index,
+                 squad_index, 0, -1, encounter_flag, sVar1, sVar7,
+                 *(unsigned short *)((char *)starting_location + 0x1a),
+                 (short)*(signed char *)((char *)starting_location + 0x12));
+
+  if (actor_index == -1) {
+    if (encounter_index == -1) {
+      csstrcpy(name_buffer, "<encounterless>");
+    } else {
+      scenario_ptr = (char *)global_scenario_get();
+      combined_index =
+        (((unsigned int)(squad_index & 0xff) | 0xffff8000u) << 16) |
+        ((unsigned int)encounter_index & 0xffff);
+      FUN_00054220(combined_index, scenario_ptr, name_buffer, 256);
+    }
+    tag_name = tag_name_strip_path(tag_get_name(actv_tag_index));
+    error(2, "WARNING: cannot create actor %s %s", tag_name, name_buffer);
+    object_delete(unit_index);
+    return -1;
+  }
+
+  FUN_0003aca0(actor_index);
+  return actor_index;
 }
