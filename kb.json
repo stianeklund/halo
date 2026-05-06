@@ -5648,7 +5648,8 @@
         },
         {
           "decl": "float FUN_000f7da0(void *proj_tag, float value);",
-          "addr": "0xf7da0"
+          "addr": "0xf7da0",
+          "ported": true
         },
         {
           "decl": "bool dangerous_projectiles_near_player(void);",
