@@ -491,7 +491,8 @@
         },
         {
           "decl": "void FUN_0003b0b0(int unit_handle, int swarm_component_handle);",
-          "addr": "0x3b0b0"
+          "addr": "0x3b0b0",
+          "ported": true
         },
         {
           "decl": "int FUN_0003b270(int actor_handle);",

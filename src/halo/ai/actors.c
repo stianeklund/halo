@@ -563,6 +563,42 @@ void FUN_0003b030(int actor_handle)
   *(int *)(actor + 0x28) = -1;
 }
 
+/* FUN_0003b0b0 (0x3b0b0) — swarm_component_update_position
+ *
+ * Update one swarm component's cached position and target state from its
+ * corresponding unit object. Fetches the unit pointer via
+ * object_get_and_verify_type (type_mask 3 = biped/vehicle) and the swarm
+ * component record from swarm_component_data. Writes the unit's world position
+ * into swarm_component+4 (vector3_t). Stores unit+0x430 (target handle) into
+ * swarm_component+0x10 if unit+0x64 (short state flag) is zero, otherwise
+ * stores -1.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3b0bc.
+ * Confirmed: datum_get(swarm_component_data, swarm_component_handle) at
+ * 0x3b0ce. Confirmed: ADD ESP,0x10 at 0x3b0d3 cleans both call frames (4 pushes
+ * total). Confirmed: OR EDI,0xffffffff at 0x3b0d6 (default EDI = -1 before
+ * CMP). Confirmed: CMP word ptr [ESI+0x64],0 at 0x3b0d9 (ESI = unit ptr).
+ * Confirmed: MOV EDI,[ESI+0x430] at 0x3b0e2 (conditional on ZF).
+ * Confirmed: object_get_world_position(unit_handle, swarm_component+4) at
+ * 0x3b0f0. Confirmed: MOV [EBX+0x10],EDI at 0x3b0f8 (EBX = swarm_component
+ * ptr). */
+void FUN_0003b0b0(int unit_handle, int swarm_component_handle)
+{
+  char *unit;
+  char *swarm_component;
+  int target_handle;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  swarm_component =
+    (char *)datum_get(swarm_component_data, swarm_component_handle);
+  target_handle = -1;
+  if (*(short *)(unit + 0x64) == 0) {
+    target_handle = *(int *)(unit + 0x430);
+  }
+  object_get_world_position(unit_handle, (vector3_t *)(swarm_component + 4));
+  *(int *)(swarm_component + 0x10) = target_handle;
+}
+
 /* FUN_0003b270 (0x3b270)
  * Get the current weapon handle for an actor. First checks if the actor has
  * a held-weapon unit (offset 0x158, guarded by byte at 0x161). If that path
