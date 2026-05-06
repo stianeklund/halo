@@ -426,11 +426,13 @@
         },
         {
           "decl": "int FUN_0003a800(int16_t actor_type);",
-          "addr": "0x3a800"
+          "addr": "0x3a800",
+          "ported": true
         },
         {
           "decl": "void FUN_0003a810(int actor_handle);",
-          "addr": "0x3a810"
+          "addr": "0x3a810",
+          "ported": true
         },
         {
           "addr": "0x3a840",

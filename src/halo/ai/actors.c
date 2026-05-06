@@ -92,6 +92,37 @@ const char *FUN_0003a760(int16_t actor_type)
   return *(const char **)FUN_0003a600(actor_type);
 }
 
+/* FUN_0003a800 (0x3a800) — actor_type_is_swarm
+ * Returns the swarm flag byte (offset 0xd) from the actor type definition
+ * for the given actor_type. Used to test whether an actor type uses swarm
+ * control before dispatching swarm callbacks. */
+int FUN_0003a800(int16_t actor_type)
+{
+  char *type_def;
+  type_def = (char *)FUN_0003a600(actor_type);
+  return (int)(unsigned char)type_def[0xd];
+}
+
+/* FUN_0003a810 (0x3a810) — actor_type_init_dispatch
+ * Looks up the actor datum by handle, reads the actor_type field (int16_t at
+ * offset 4), retrieves the actor type definition, and calls the type-specific
+ * init callback (function pointer at type_def+0x10) if it is non-null.
+ * Called at the end of actor_new (FUN_0003c410) to perform per-type
+ * initialization of a newly allocated actor. */
+void FUN_0003a810(int actor_handle)
+{
+  char *actor;
+  char *type_def;
+  void (*init_cb)(int);
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  type_def = (char *)FUN_0003a600(*(short *)(actor + 0x4));
+  init_cb = *(void (**)(int))(type_def + 0x10);
+  if (init_cb != NULL) {
+    init_cb(actor_handle);
+  }
+}
+
 /* Dispatch the actor-type-specific decide_action function for a given actor. */
 void FUN_0003a840(int actor_handle)
 {
