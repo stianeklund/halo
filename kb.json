@@ -7776,12 +7776,14 @@
           "ported": true
         },
         {
-          "decl": "int FUN_001aaa90(int unit_handle, short grenade_type, short count);",
-          "addr": "0x1aaa90"
+          "decl": "int16_t unit_set_grenade_count(int unit_handle, int16_t grenade_type, int16_t grenade_count);",
+          "addr": "0x1aaa90",
+          "ported": true
         },
         {
-          "decl": "short FUN_001aae70(int unit_handle, short grenade_type);",
-          "addr": "0x1aae70"
+          "decl": "int16_t unit_get_grenade_count(int unit_handle, int16_t grenade_type);",
+          "addr": "0x1aae70",
+          "ported": true
         }
       ]
     },

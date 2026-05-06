@@ -6780,6 +6780,12 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x1aaa90": {
+      "status": "ported"
+    },
+    "0x1aae70": {
+      "status": "ported"
     }
   }
 }
