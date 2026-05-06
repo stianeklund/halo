@@ -137,6 +137,60 @@ bool FUN_00082300(void)
   return XNetGetEthernetLinkStatus() & 1;
 }
 
+/* Remove an endpoint from an endpoint set.
+ * Searches the set's endpoint_array for the matching pointer, then finds and
+ * removes the endpoint's socket from the fd_array by shifting. Clears the
+ * "in set" flag (bit 3) on the endpoint, nulls the array slot, and marks
+ * the set dirty. Returns 0 on success, -19 if the endpoint is not found. */
+short FUN_00082850(int *endpoint, uint32_t *endpoint_set)
+{
+  int i = 0;
+  uint32_t **ep_array;
+  uint32_t j;
+  uint32_t *fds;
+
+  assert_halt(endpoint && endpoint_set);
+  assert_halt(*(uint8_t *)0x335090);
+
+  if ((int)endpoint_set[0x43] >= 0) {
+    ep_array = (uint32_t **)endpoint_set[0x41];
+    do {
+      if ((int *)ep_array[i] == endpoint) {
+        j = 0;
+        if (endpoint_set[0] == 0)
+          goto clear_entry;
+        fds = endpoint_set + 1;
+        while (1) {
+          if (*fds == (uint32_t)*endpoint) {
+            if (j < endpoint_set[0] - 1) {
+              uint32_t *p = endpoint_set + j + 1;
+              do {
+                *p = p[1];
+                j++;
+                p++;
+              } while (j < endpoint_set[0] - 1);
+            }
+            endpoint_set[0]--;
+            goto clear_entry;
+          }
+          j++;
+          fds++;
+          if (j >= endpoint_set[0])
+            goto clear_entry;
+        }
+      }
+      i++;
+    } while (i <= (int)endpoint_set[0x43]);
+  }
+  return -19;
+
+clear_entry:
+  *(uint8_t *)((char *)endpoint + 4) &= 0xf7;
+  *(uint32_t *)(endpoint_set[0x41] + i * 4) = 0;
+  endpoint_set[0x45] = 1;
+  return 0;
+}
+
 /* Release the global XNet key and clear associated state.
  *
  * If the "key owned" flag (0x335091) is set, decrements global_key_depth
