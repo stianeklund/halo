@@ -1935,15 +1935,19 @@ uint16_t unit_find_best_enter_seat(int unit_handle, int target_unit_handle,
  */
 char FUN_001ada90(int unit_handle, float *vector, char flag)
 {
-  char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
-  char clamped = 0;
-  char enabled;
-  float *bounds;
-  float forward[3], up[3], left[3];
+  /* Original stack: SUB ESP,0x4c (76 bytes). Matrix is the primary local —
+     forward/up/left/gravity are written directly into its rows, not copied. */
   float matrix[13];
-  float *gravity;
   float relative_vector[3];
   float angles[2];
+  char clamped;
+  char *unit;
+  char enabled;
+  float *bounds;
+  float *pos;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  clamped = 0;
 
   if (flag) {
     enabled = *(char *)(unit + 0x266);
@@ -1953,7 +1957,7 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
     bounds = (float *)(unit + 0x278);
   }
 
-  if (!valid_real_normal3d(vector)) {
+  if (!(char)valid_real_normal3d(vector)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "vector", (double)vector[0], (double)vector[1],
@@ -1965,24 +1969,19 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
   if (!enabled)
     return clamped;
 
-  FUN_00141360(unit_handle, forward, up);
-
-  /* left = cross(forward, up) */
-  left[0] = forward[2] * up[1] - up[2] * forward[1];
-  left[1] = up[2] * forward[0] - forward[2] * up[0];
-  left[2] = forward[1] * up[0] - up[1] * forward[0];
-
-  /* build real_matrix4x3: scale, forward, left, up, position */
   matrix[0] = 1.0f;
-  matrix[1] = forward[0]; matrix[2] = forward[1]; matrix[3] = forward[2];
-  matrix[4] = left[0];    matrix[5] = left[1];    matrix[6] = left[2];
-  matrix[7] = up[0];      matrix[8] = up[1];      matrix[9] = up[2];
-  gravity = *(float **)0x31fc1c;
-  matrix[10] = gravity[0]; matrix[11] = gravity[1]; matrix[12] = gravity[2];
+  FUN_00141360(unit_handle, &matrix[1], &matrix[7]);
 
+  /* left = cross(forward, up), written directly into matrix[4..6] */
+  matrix[4] = matrix[3] * matrix[8] - matrix[9] * matrix[2];
+  matrix[5] = matrix[9] * matrix[1] - matrix[3] * matrix[7];
+  matrix[6] = matrix[2] * matrix[7] - matrix[8] * matrix[1];
+
+  pos = *(float **)0x31fc1c;
+  matrix[10] = pos[0]; matrix[11] = pos[1]; matrix[12] = pos[2];
   real_matrix4x3_transform_point(matrix, vector, relative_vector);
 
-  if (!real_vector3d_valid(relative_vector)) {
+  if (!(char)real_vector3d_valid(relative_vector)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_vector2d(%f, %f, %f)",
                             "&relative_vector", (double)relative_vector[0],
@@ -1994,7 +1993,6 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
 
   vector_to_angles(angles, relative_vector);
 
-  /* validate pitch (angles[1]) */
   if ((*(uint32_t *)&angles[1] & 0x7f800000) == 0x7f800000) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real(0x%08X %f)",
@@ -2004,7 +2002,6 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
     system_exit(-1);
   }
 
-  /* validate yaw (angles[0]) */
   if ((*(uint32_t *)&angles[0] & 0x7f800000) == 0x7f800000) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real(0x%08X %f)",
@@ -2034,7 +2031,6 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
     return 0;
   }
 
-  /* validate clamped pitch */
   if ((*(uint32_t *)&angles[1] & 0x7f800000) == 0x7f800000) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real(0x%08X %f)",
@@ -2044,7 +2040,6 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
     system_exit(-1);
   }
 
-  /* validate clamped yaw */
   if ((*(uint32_t *)&angles[0] & 0x7f800000) == 0x7f800000) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real(0x%08X %f)",
@@ -2056,7 +2051,7 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
 
   angles_to_vector(relative_vector, angles);
 
-  if (!real_vector3d_valid(relative_vector)) {
+  if (!(char)real_vector3d_valid(relative_vector)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_vector2d(%f, %f, %f)",
                             "&relative_vector", (double)relative_vector[0],
@@ -2068,7 +2063,7 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
 
   matrix_transform_vector(matrix, relative_vector, vector);
 
-  if (!real_vector3d_valid(vector)) {
+  if (!(char)real_vector3d_valid(vector)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_vector2d(%f, %f, %f)",
                             "vector", (double)vector[0], (double)vector[1],

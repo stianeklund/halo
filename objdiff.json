@@ -990,6 +990,22 @@
       "metadata": {
         "source_path": "src/halo/networking/network_server_manager.c"
       }
+    },
+    {
+      "name": "halo/units_FUN_001ada90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units_FUN_001ada90.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/real_math_FUN_0010e040",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/real_math_FUN_0010e040.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
     }
   ]
 }

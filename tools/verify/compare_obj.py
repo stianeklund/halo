@@ -44,8 +44,6 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
         if m:
             sym = m.group(1)
             if sym.startswith("LAB_"):
-                if current_func:
-                    current_lines.append("LABEL")
                 continue
             if current_func and current_lines:
                 functions[current_func] = current_lines
