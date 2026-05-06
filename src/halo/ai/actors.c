@@ -1969,6 +1969,165 @@ void FUN_0003cff0(int actor_handle)
   }
 }
 
+/* FUN_0003d6c0 (0x3d6c0) — actor_link_swarm_unit
+ *
+ * Link a unit into an actor's swarm unit list. If the unit is already linked
+ * to this actor as its swarm actor, returns true immediately (no-op).
+ * Otherwise, detaches any existing swarm/actor linkage on the unit, validates
+ * preconditions, inserts the unit at the head of the actor's swarm-unit linked
+ * list, allocates a swarm component if the actor belongs to an encounter swarm,
+ * updates encounter bookkeeping, assigns team affiliation, and activates the
+ * unit object.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3d6d4.
+ * Confirmed: object_get_and_verify_type(unit_index, 3) at 0x3d6e1.
+ * Confirmed: early-out if unit->swarm_actor_index == actor_handle at
+ * 0x3d6f1-0x3d6fe. Confirmed: data_new_at_index(swarm_component_data) if
+ * actor->swarm_index != -1 at 0x3d719. Confirmed: error(2, "unable to create
+ * any more swarm components...", 0x100) at 0x3d73d. Confirmed:
+ * FUN_0003ae60(unit->swarm_actor_index, unit_index) to detach old swarm at
+ * 0x3d75c. Confirmed: FUN_0003cc10(unit->actor_index, 0) to detach old actor at
+ * 0x3d772. Confirmed: FUN_0003ad80(actor_handle) to detach actor's existing
+ * unit at 0x3d784. Confirmed: assert checks (actor->meta.swarm byte at +6, unit
+ * counts) at 0x3d78c-0x3d84f. Confirmed: unit->swarm_actor_index = actor_handle
+ * at 0x3d855. Confirmed: unit->swarm_next_unit = actor->first_unit at 0x3d85e
+ * (unit+0x1ac = actor+0x24). Confirmed: unit->swarm_prev_unit = -1 at 0x3d864
+ * (unit+0x1b0). Confirmed: first_unit->swarm_prev_unit = unit_index if
+ * first_unit != -1 at 0x3d879-0x3d8b1. Confirmed: actor->first_unit =
+ * unit_index at 0x3d8bf (ESI+0x24 = EBX). Confirmed:
+ * FUN_0003cb50(actor->swarm_index@eax, new_sc@edi, unit_index@ebx) at 0x3d8c7.
+ * Confirmed: actor->swarm_unit_count (short at +0x1e) incremented at 0x3d8d2.
+ * Confirmed: short at actor+0x20 incremented at 0x3d8d9.
+ * Confirmed: encounter FUN_00059630(actor->encounter_index, unit_index) at
+ * 0x3d8f9. Confirmed: unit->team (word at unit+0x68) set from encounter biped
+ * data+2 at 0x3d8fe/0x3d908. Confirmed: actor->team (word at actor+0x3e) =
+ * unit->team at 0x3d913. Confirmed: FUN_0013ff50(unit_index, 0) at 0x3d917.
+ * Confirmed: object_activate(unit_index) or FUN_0013fb80(unit_index) at
+ * 0x3d92e/0x3d927. Confirmed: FUN_001adf10(unit_index, 1) at 0x3d939.
+ */
+int FUN_0003d6c0(int actor_handle, int unit_index)
+{
+  char *actor;
+  char *unit;
+  int swarm_component_handle;
+  char *first_unit;
+  char *biped;
+  char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  unit = (char *)object_get_and_verify_type(unit_index, 3);
+
+  /* Early-out: unit is already linked to this actor as swarm actor. */
+  if (*(int *)(unit + 0x1a8) == actor_handle) {
+    return 1;
+  }
+
+  swarm_component_handle = -1;
+
+  /* Allocate swarm component if actor belongs to an encounter swarm. */
+  if (*(int *)(actor + 0x28) != -1) {
+    swarm_component_handle = data_new_at_index(*(data_t **)0x63259c);
+    result = (swarm_component_handle != -1);
+    if (!result) {
+      error(2, "unable to create any more swarm components (max %d)", 0x100);
+      return result;
+    }
+  }
+
+  /* Detach unit from its old swarm actor if it had one. */
+  if (*(int *)(unit + 0x1a8) != -1) {
+    FUN_0003ae60(*(int *)(unit + 0x1a8), unit_index);
+  }
+
+  /* Detach unit from its old actor if it had one. */
+  if (*(int *)(unit + 0x1a4) != -1) {
+    FUN_0003cc10(*(int *)(unit + 0x1a4), 0);
+  }
+
+  /* Detach actor's current unit if it had one. */
+  if (*(int *)(actor + 0x18) != -1) {
+    FUN_0003ad80(actor_handle);
+  }
+
+  /* Precondition assertions (source line 0x513-0x519). */
+  if (*(char *)(actor + 6) == 0) {
+    display_assert("actor->meta.swarm", "c:\\halo\\SOURCE\\ai\\actors.c", 0x513,
+                   1);
+    system_exit(-1);
+  }
+  if (*(int *)(actor + 0x18) != -1) {
+    display_assert("actor->meta.unit_index == NONE",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x514, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(unit + 0x1a4) != -1) {
+    display_assert("unit->unit.actor_index == NONE",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x515, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(unit + 0x1a8) != -1) {
+    display_assert("unit->unit.swarm_actor_index == NONE",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x516, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(actor + 0x1e) >= 0x10) {
+    display_assert(
+      "actor->meta.swarm_unit_count < MAXIMUM_NUMBER_OF_UNITS_PER_SWARM",
+      "c:\\halo\\SOURCE\\ai\\actors.c", 0x519, 1);
+    system_exit(-1);
+  }
+
+  /* Link unit into actor's swarm list at the head. */
+  *(int *)(unit + 0x1a8) = actor_handle;
+  *(int *)(unit + 0x1ac) =
+    *(int *)(actor + 0x24); /* unit->swarm_next = old first */
+  *(int *)(unit + 0x1b0) = -1; /* unit->swarm_prev = NONE */
+
+  /* If there was a previous first unit, point its prev back to this unit. */
+  if (*(int *)(actor + 0x24) != -1) {
+    first_unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x24), 3);
+    if (*(int *)(first_unit + 0x1b0) != -1) {
+      display_assert("swarm_first_unit->unit.swarm_prev_unit_index == NONE",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x524, 1);
+      system_exit(-1);
+    }
+    *(int *)(first_unit + 0x1b0) = unit_index;
+  }
+
+  /* Update actor's first unit pointer. */
+  *(int *)(actor + 0x24) = unit_index;
+
+  /* Register swarm component if allocated. */
+  if (*(int *)(actor + 0x28) != -1) {
+    FUN_0003cb50(*(int *)(actor + 0x28), swarm_component_handle, unit_index);
+  }
+
+  /* Increment swarm unit counts. */
+  *(short *)(actor + 0x1e) += 1;
+  *(short *)(actor + 0x20) += 1;
+
+  /* Sync encounter data and set team affiliation. */
+  if (*(int *)(actor + 0x34) != -1) {
+    biped = (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+    FUN_00059630(*(int *)(actor + 0x34), unit_index);
+    *(short *)(unit + 0x68) = *(short *)(biped + 2);
+  }
+  *(short *)(actor + 0x3e) = *(short *)(unit + 0x68);
+
+  FUN_0013ff50(unit_index, 0);
+
+  /* Activate unit: if actor is in "active" mode, use deferred activation. */
+  if (*(char *)(actor + 0x13) != 0) {
+    FUN_0013fb80(unit_index);
+  } else {
+    object_activate(unit_index);
+  }
+
+  FUN_001adf10(unit_index, 1);
+
+  return 1;
+}
+
 /* FUN_0003d950 (0x3d950) — actor_erase_units
  *
  * Erase all units owned by an actor. For swarm actors (byte at actor+6 != 0),

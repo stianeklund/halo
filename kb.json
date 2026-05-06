@@ -490,6 +490,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003b0b0(int unit_handle, int swarm_component_handle);",
+          "addr": "0x3b0b0"
+        },
+        {
           "decl": "int FUN_0003b270(int actor_handle);",
           "addr": "0x3b270",
           "ported": true
@@ -597,6 +601,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003cb50(int swarm_handle /* @<eax> */, int swarm_component_handle /* @<edi> */, int unit_index /* @<ebx> */);",
+          "addr": "0x3cb50"
+        },
+        {
           "decl": "void FUN_0003cc10(int actor_handle, int flag);",
           "addr": "0x3cc10",
           "ported": true
@@ -608,7 +616,8 @@
         },
         {
           "decl": "int FUN_0003d6c0(int actor_handle, int unit_index);",
-          "addr": "0x3d6c0"
+          "addr": "0x3d6c0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003d950(int actor_handle, char flag);",
@@ -9116,6 +9125,10 @@
         {
           "decl": "void FUN_00059480(int actor_handle, char flag);",
           "addr": "0x59480"
+        },
+        {
+          "decl": "void FUN_00059630(int encounter_index, int unit_index);",
+          "addr": "0x59630"
         },
         {
           "addr": "0x59740",
