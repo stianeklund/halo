@@ -7,19 +7,34 @@ subtask: true
 Use `halo-re-lift` for lift rules and `halo-verify-debug` for validation gates.
 
 Autonomous lift loop: selects the best unported function, lifts it via `/lift`,
-auto-commits on success, reverts+logs on failure. Designed for `/loop /auto-lift`.
+auto-commits on success, reverts+logs on failure.
 
-Argument: $ARGUMENTS (optional: `select|score|cache-context|review|promote ...`)
+Argument: $ARGUMENTS
 
-## Default flow (no arguments)
+Parse the following from $ARGUMENTS (all optional, flags and subcommands):
+- `--batch N` — lift up to N functions sequentially (default: 1)
+- `--stop-on-fail N` — stop after N consecutive failures (default: 3)
+- `--dry-run` — do everything except commit (leave changes for review)
+- Subcommands: `select`, `score`, `cache-context`, `review`, `promote` — if one
+  of these is the first word, run it directly instead of the lift loop.
+
+## Lift loop
+
+For each target up to `--batch` count (or until `--stop-on-fail` consecutive
+failures), repeat:
 
 1. Run `rtk python3 tools/llm_auto_lift.py select --limit 10` to pick best targets.
+   Skip any targets that already have a failure record in `artifacts/auto_lift/failures/`.
 2. Pick the top `auto-lift` or `cache-context` lane target.
 3. If Ghidra MCP is available and no cached context exists, run `cache-context --target <target>`.
 4. Delegate to `/lift <target>` (includes `maintain.py` via lift_pipeline).
 5. Evaluate pipeline result (see pass/fail criteria below).
-6. **On pass**: auto-commit, report commit hash.
-7. **On fail**: attempt Opus escalation or revert+log (see escalation below).
+6. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
+7. **On fail**: attempt Opus escalation or revert+log (see escalation below),
+   increment consecutive failure counter.
+8. If consecutive failures reach `--stop-on-fail`, stop and report.
+
+After the loop ends, print a summary: N attempted, N committed, N failed, N skipped.
 
 ## Pipeline pass/fail criteria
 
@@ -71,11 +86,15 @@ to Opus:
 
 ## On success — auto-commit
 
+Unless `--dry-run` is set:
 ```bash
 rtk git add -- src/ kb.json
 rtk python3 tools/audit/generate_lift_commit.py --batch-name "<target_name>" > /tmp/commit_msg.txt
 rtk git commit -F /tmp/commit_msg.txt
 ```
+
+With `--dry-run`: leave changes staged, report what would be committed, then
+revert before the next iteration (`rtk git checkout -- src/ kb.json`).
 
 ## On failure — revert + log
 
@@ -101,19 +120,19 @@ Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
 ## Usage
 
 ```bash
-/auto-lift                    # one-shot: pick, lift, commit or revert
-/loop /auto-lift              # autonomous: repeat until stopped
-/auto-lift select --limit 20  # just show targets, don't lift
-/auto-lift cache-context --batch 10  # pre-cache Ghidra context for top 10
+/auto-lift                              # one-shot: pick 1, lift, commit or revert
+/auto-lift --batch 10                   # lift up to 10 functions then stop
+/auto-lift --batch 10 --stop-on-fail 3  # stop early if 3 in a row fail
+/auto-lift --batch 5 --dry-run          # lift 5 but don't commit — review in morning
+/auto-lift select --limit 20            # just show targets, don't lift
+/auto-lift cache-context --batch 10     # pre-cache Ghidra context for top 10
 ```
 
 ## Safety rules
 
 1. Code generation is done by `/lift` with full agent context and CLAUDE.md rules.
-2. Auto-commit only after the full pipeline passes.
+2. Auto-commit only after the full pipeline passes (unless `--dry-run`).
 3. Always revert on failure — never leave broken state in the working tree.
-4. `review` and `promote` are legacy subcommands for old batch artifacts.
-
-When used with `/loop`, each iteration picks the next best target, lifts it,
-and either commits or reverts+logs. Check `artifacts/auto_lift/failures/` to
-review targets that failed.
+4. Skip targets that already have failure records (don't retry known failures).
+5. `--stop-on-fail` prevents runaway failures from burning tokens.
+6. `review` and `promote` are legacy subcommands for old batch artifacts.
