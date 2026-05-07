@@ -82,3 +82,15 @@ void FUN_000f7e10(int projectile_handle, int target)
   if (*(int *)(proj + 0x1e8) == target)
     *(int *)(proj + 0x1e8) = -1;
 }
+
+/* Escalate the projectile's detonation state (offset 0x1e0) to at least
+ * the given state value.  Only updates the field if state is strictly
+ * greater than the current value, so the state can only increase
+ * (0=none, 1=pending, 2=immediate). Called by FUN_000f9c40 with state=2
+ * to force an immediate detonation. */
+void FUN_000f7e40(int projectile_handle, int16_t state)
+{
+  char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  if (state > *(int16_t *)(proj + 0x1e0))
+    *(int16_t *)(proj + 0x1e0) = state;
+}
