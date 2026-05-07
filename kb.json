@@ -5930,7 +5930,8 @@
         {
           "decl": "void FUN_0010c8e0(float *v, float *n, float *out);",
           "addr": "0x10c8e0",
-          "comment": "Reflect vector v about surface normal n: out = v - 2*dot(v,n)*n."
+          "comment": "Reflect vector v about surface normal n: out = v - 2*dot(v,n)*n.",
+          "ported": true
         }
       ]
     },

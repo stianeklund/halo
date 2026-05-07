@@ -217,3 +217,23 @@ float FUN_0010c510(float *v1, float *v2)
     return 3.1415927f - half_angle;
   return half_angle;
 }
+
+/* Reflect vector v about surface normal n into out.
+ *
+ * Computes: out = v - 2*dot(v,n)*n
+ *
+ * All three vectors are 3-component float arrays.
+ * The dot product is computed first, doubled via FADD ST0,ST0,
+ * then each output component is v[i] - 2*dot*n[i].
+ *
+ * 0x10c8e0 / random_math.obj
+ */
+void FUN_0010c8e0(float *v, float *n, float *out)
+{
+  float dot2;
+
+  dot2 = (v[0] * n[0] + v[1] * n[1] + v[2] * n[2]) * 2.0f;
+  out[0] = v[0] - dot2 * n[0];
+  out[1] = v[1] - dot2 * n[1];
+  out[2] = v[2] - dot2 * n[2];
+}
