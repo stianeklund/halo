@@ -5765,8 +5765,9 @@
           "addr": "0xf9c40"
         },
         {
-          "decl": "void FUN_000fac20(void);",
-          "addr": "0xfac20"
+          "decl": "float FUN_000fac20(int weapon_tag_index, float *out_field8);",
+          "addr": "0xfac20",
+          "ported": true
         }
       ]
     },

@@ -1663,3 +1663,55 @@ apply_speed_scale:
     return;
   }
 }
+
+/*
+ * Compute the average damage value for the given weapon tag's projectile.
+ *
+ * Looks up the weapon tag (group 'weap') and retrieves the first element of
+ * the trigger block at offset 0x4fc (element size 0x114).  If out_field8 is
+ * non-NULL, writes the float at element+8 there (a trigger parameter such as
+ * rounds-per-shot or charge time).
+ *
+ * Then follows the projectile-type reference at element+0xa0 to a 'proj' tag,
+ * and from there the impact-damage-effect reference at proj+0x230 ('jpt!').
+ * The midpoint of the damage range (min+max)*0.5f is accumulated.  If a
+ * second damage-effect reference exists at proj+0x220, its midpoint is added
+ * as well.  Returns the total accumulated average damage as a float.
+ */
+float FUN_000fac20(int weapon_tag_index, float *out_field8)
+{
+  char *weap_tag;
+  char *trigger_elem;
+  char *proj_tag;
+  char *jpt_tag;
+  int proj_ref;
+  int jpt_ref;
+  float local_float;
+
+  weap_tag = (char *)tag_get(0x77656170, weapon_tag_index);
+  trigger_elem =
+    (char *)tag_block_get_element((void *)(weap_tag + 0x4fc), 0, 0x114);
+  local_float = 0.0f;
+  if (out_field8 != (float *)0) {
+    *out_field8 = *(float *)(trigger_elem + 0x8);
+  }
+  proj_ref = *(int *)(trigger_elem + 0xa0);
+  if (proj_ref == -1) {
+    return local_float;
+  }
+  proj_tag = (char *)tag_get(0x70726f6a, proj_ref);
+  jpt_ref = *(int *)(proj_tag + 0x230);
+  if (jpt_ref != -1) {
+    jpt_tag = (char *)tag_get(0x6a707421, jpt_ref);
+    local_float = (*(float *)(jpt_tag + 0x1d8) + *(float *)(jpt_tag + 0x1d4)) *
+                  *(float *)0x253398;
+  }
+  jpt_ref = *(int *)(proj_tag + 0x220);
+  if (jpt_ref == -1) {
+    return local_float;
+  }
+  jpt_tag = (char *)tag_get(0x6a707421, jpt_ref);
+  return (*(float *)(jpt_tag + 0x1d8) + *(float *)(jpt_tag + 0x1d4)) *
+           *(float *)0x253398 +
+         local_float;
+}
