@@ -1972,6 +1972,10 @@
           "ported": true
         },
         {
+          "decl": "int FUN_0009ee40(int effect_tag_index, int object_index, int attached_object, uint16_t marker_index, short marker_count, void *effect_definition, float *marker_points, float *marker_forwards, float scale_a, float scale_b, float unknown1, float unknown2);",
+          "addr": "0x9ee40"
+        },
+        {
           "decl": "int FUN_0009f0e0(int effect_tag_index, int object_index, float *translational_velocity, short marker_count, void *effect_definition, float *marker_points, float *marker_forwards, float scale_a, float scale_b, float unknown1, float unknown2, float unknown3);",
           "addr": "0x9f0e0",
           "ported": true
@@ -5667,8 +5671,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f7e60(void);",
-          "addr": "0xf7e60"
+          "decl": "void FUN_000f7e60(int effect_tag_index, int object_index, void *tag_def, float *marker_points, float *marker_forwards, float scale_a, float scale_b);",
+          "addr": "0xf7e60",
+          "ported": true
         },
         {
           "decl": "void FUN_000f7ec0(int projectile_handle);",
