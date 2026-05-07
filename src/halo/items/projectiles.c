@@ -94,3 +94,33 @@ void FUN_000f7e40(int projectile_handle, int16_t state)
   if (state > *(int16_t *)(proj + 0x1e0))
     *(int16_t *)(proj + 0x1e0) = state;
 }
+
+/* Dispatch a projectile detonation effect based on the type word at tag_def[0].
+ * Type 3 (contrail/attached): calls FUN_0009ee40 with the attached object
+ * handle at tag_def[+0x38] and the marker-slot index at tag_def[+0x3e]
+ * (uint16_t), plus hardcoded marker_count=5 and effect_definition=0x31f3a0. Any
+ * other type: calls FUN_0009f0e0 with NULL translational-velocity,
+ * marker_count=5, effect_definition=0x31f3a0, and a trailing integer 1.
+ * Both branches pass through the caller-supplied marker_points/marker_forwards
+ * arrays and scale_a/scale_b values; unknown tail floats are 0.0/0.0.
+ * Receive register args: esi=effect_tag_index, edi=object_index, eax=tag_def,
+ * edx=marker_points, ecx=marker_forwards. */
+void FUN_000f7e60(int effect_tag_index, int object_index, void *tag_def,
+                  float *marker_points, float *marker_forwards, float scale_a,
+                  float scale_b)
+{
+  int attached_handle;
+  uint16_t marker_index;
+
+  if (*(int16_t *)tag_def == 3) {
+    attached_handle = *(int *)((char *)tag_def + 0x38);
+    marker_index = *(uint16_t *)((char *)tag_def + 0x3e);
+    FUN_0009ee40(effect_tag_index, object_index, attached_handle, marker_index,
+                 5, (void *)0x31f3a0, marker_points, marker_forwards, scale_a,
+                 scale_b, 0.0f, 0.0f);
+  } else {
+    FUN_0009f0e0(effect_tag_index, object_index, NULL, 5, (void *)0x31f3a0,
+                 marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f,
+                 1);
+  }
+}
