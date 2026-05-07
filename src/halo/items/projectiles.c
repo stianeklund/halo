@@ -918,3 +918,107 @@ int FUN_000f8d30(int projectile_handle)
 
   return 1;
 }
+
+/*
+ * Apply an acceleration vector to a projectile's translational velocity and
+ * add a random scatter impulse.
+ *
+ * param_1: projectile datum handle
+ * param_2: pointer to a 3-float acceleration vector (x, y, z)
+ *
+ * Only operates when the projectile has no parent object (proj+0xcc == -1).
+ * When active:
+ *   1. Validates param_2 (acceleration) and proj+0x18 (translational velocity)
+ *      with assert_valid_real_vector2d checks.
+ *   2. Adds the acceleration to the object's translational velocity at
+ *      proj+0x18..0x20.
+ *   3. Generates a random unit direction via random_seed_get_direction3d and
+ *      scales it by magnitude(acceleration) * random_real * (PI/2).
+ *   4. Adds the scaled random vector to the projectile impulse velocity at
+ *      proj+0x3c..0x44.
+ *   5. Rebuilds the velocity direction cache (FUN_000f8590).
+ *   6. Clears bit 5 of the object flags word at proj+0x4.
+ *
+ * Disasm-verified: FUN_000f8590 called with projectile_handle in EAX.
+ * Deferred stack cleanup: ADD ESP,0x10 at 0xf906b cleans 4 accumulated pushes
+ * (random_seed_get_direction3d args + random_math_real arg +
+ * real_vector3d_valid arg). The float constant at 0x2568bc = PI/2 (0x3FC90FDB).
+ */
+void FUN_000f8ee0(int projectile_handle, float *acceleration)
+{
+  char *proj; /* projectile object base (type 0x20) */
+  char *vel; /* pointer to proj+0x18 (translational velocity xyz) */
+  float *seed; /* engine-wide random seed pointer */
+  float dir[3]; /* random unit direction from random_seed_get_direction3d */
+  float sq_mag; /* squared magnitude of acceleration vector */
+  float magnitude; /* magnitude of acceleration vector */
+  float rand_real; /* random float in [0,1) from random_math_real */
+  float scale; /* scatter scale: rand_real * magnitude * (PI/2) */
+
+  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  tag_get(0x70726f6a, *(int *)proj);
+
+  if (!real_vector3d_valid(acceleration)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+             "acceleration", (double)acceleration[0], (double)acceleration[1],
+             (double)acceleration[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\items\\projectiles.c",
+                   0x3ef, 1);
+    system_exit(-1);
+  }
+
+  /* Only apply acceleration when the projectile has no parent. */
+  if (*(int *)(proj + 0xcc) == -1) {
+    vel = proj + 0x18;
+
+    if (!real_vector3d_valid((float *)vel)) {
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+               "&projectile->object.translational_velocity",
+               (double)*(float *)(proj + 0x18), (double)*(float *)(proj + 0x1c),
+               (double)*(float *)(proj + 0x20));
+      display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\items\\projectiles.c",
+                     0x3f3, 1);
+      system_exit(-1);
+    }
+
+    /* Add acceleration to object translational velocity (proj+0x18..0x20). */
+    *(float *)(proj + 0x18) += acceleration[0];
+    *(float *)(proj + 0x1c) += acceleration[1];
+    *(float *)(proj + 0x20) += acceleration[2];
+
+    /* Get a random direction vector into dir[3]. */
+    seed = (float *)get_global_random_seed_address();
+    random_seed_get_direction3d((unsigned int *)seed, dir);
+
+    /* Compute squared magnitude, then scale = sqrt(sq_mag) * rand * PI/2. */
+    sq_mag = acceleration[0] * acceleration[0] +
+             acceleration[1] * acceleration[1] +
+             acceleration[2] * acceleration[2];
+
+    seed = (float *)get_global_random_seed_address();
+    rand_real = random_math_real((unsigned int *)seed);
+    magnitude = sqrtf(sq_mag);
+    scale = rand_real * magnitude * *(float *)0x2568bc;
+
+    /* Add random scatter to projectile impulse velocity (proj+0x3c..0x44). */
+    *(float *)(proj + 0x3c) += dir[0] * scale;
+    *(float *)(proj + 0x40) += dir[1] * scale;
+    *(float *)(proj + 0x44) += dir[2] * scale;
+
+    /* Rebuild velocity direction cache. */
+    FUN_000f8590(projectile_handle);
+
+    /* Clear object flag bit 5 ("motion-pending" or similar). */
+    *(uint32_t *)(proj + 0x4) &= ~0x20u;
+
+    if (!real_vector3d_valid((float *)vel)) {
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+               "&projectile->object.translational_velocity",
+               (double)*(float *)(proj + 0x18), (double)*(float *)(proj + 0x1c),
+               (double)*(float *)(proj + 0x20));
+      display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\items\\projectiles.c",
+                     0x405, 1);
+      system_exit(-1);
+    }
+  }
+}

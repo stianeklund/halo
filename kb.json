@@ -5746,8 +5746,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f8ee0(void);",
-          "addr": "0xf8ee0"
+          "decl": "void FUN_000f8ee0(int projectile_handle, float *acceleration);",
+          "addr": "0xf8ee0",
+          "ported": true
         },
         {
           "decl": "void FUN_000f90d0(void);",
