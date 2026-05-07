@@ -5727,8 +5727,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f8720(void);",
-          "addr": "0xf8720"
+          "decl": "bool FUN_000f8720(int projectile_handle@<eax>, float *new_pos@<edi>, int16_t *collision_result);",
+          "addr": "0xf8720",
+          "ported": true
         },
         {
           "decl": "void FUN_000f8920(void);",
@@ -6039,6 +6040,10 @@
           "decl": "float normalize3d(float *v);",
           "addr": "0x13010",
           "ported": true
+        },
+        {
+          "decl": "bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b, int max_distance, int16_t *collision_result);",
+          "addr": "0x130d0"
         },
         {
           "addr": "0x12f10",
