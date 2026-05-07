@@ -642,10 +642,10 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
             if ((short)count <= 6) {
               /* Remaining (<=6): mark detonating, randomize vel. */
               *(uint32_t *)(sibling_proj + 0x1dc) |= 0x40u;
-              *(float *)(sibling_proj + 0x1f0) *=
-                random_math_real((unsigned int *)get_global_random_seed_address());
-              *(float *)(sibling_proj + 0x1f8) *=
-                random_math_real((unsigned int *)get_global_random_seed_address());
+              *(float *)(sibling_proj + 0x1f0) *= random_math_real(
+                (unsigned int *)get_global_random_seed_address());
+              *(float *)(sibling_proj + 0x1f8) *= random_math_real(
+                (unsigned int *)get_global_random_seed_address());
             } else {
               /* Excess (>6): zero angular/linear velocity. */
               *(float *)(sibling_proj + 0x1f0) = 0.0f;
@@ -771,4 +771,150 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
    * effect_type=2 (explosive), count=1. */
   ai_volume = *(short *)(proj_tag + 0x1f0);
   FUN_000425c0(projectile_handle, pos, (short)2, ai_volume, (short)1);
+}
+
+/* Initialise a newly-created projectile object.
+ *
+ * Called once per projectile spawn.  Sets up all per-object state that cannot
+ * be baked into the tag definition:
+ *
+ *   - Sets the object active-flags bit (0x2000) and the fuze-type field
+ *     (proj+0x1dc = 2).
+ *   - Clears the target-object handle (proj+0x1e8 = -1) and the per-tick
+ *     counter word (proj+0x1e0 = 0; proj+0x1e2 = 0xFFFF).
+ *   - Resolves and stores the root-parent handle for the owner object
+ *     (proj+0x1e4 = object_get_root_parent(proj[0x1d])).
+ *   - Computes per-tick speed and range decay factors:
+ *       proj+0x1f4 = 1.0f / (initial_speed * 30.0f)  if >= 1 tick worth
+ *       proj+0x1fc = 1.0f / (max_range   * 30.0f)    if >= 1 tick worth
+ *     (30.0f = TICKS_PER_SECOND at 0x253394; 1.0f = 0x2533c8).
+ *   - Walks the tag's material-response block (tag+0x140, element size 0x48)
+ *     and records the first index whose type-tag == 'cont' (0x636f6e74) at
+ *     proj+0x1ec (-1 if none).
+ *   - Applies one tick of velocity to position:
+ *       proj+0x18..0x20 (pos.xyz) += tag[0x1e4] * proj+0x24..0x2c (vel.xyz)
+ *   - Tests whether the new position is inside a valid world region via
+ *     FUN_0018f3e0(&proj[0x48], &proj[0x50], NULL).  Sets or clears bit 4
+ *     of the object flags word (proj+0x4) accordingly.
+ *   - Calls FUN_000f8590 (velocity direction cache) and FUN_000f8640
+ *     (detonation radius cache) with the projectile handle in EAX.
+ *   - Sets flags bits 0xc0000 (active + detonating-armed) in proj+0x4.
+ *   - Returns 1 (success).
+ *
+ * Layout notes (all relative to proj = object_get_and_verify_type(handle,
+ * 0x20)): proj+0x04  object flags (uint32) proj+0x18  position.xyz (3 floats)
+ *   proj+0x24  velocity.xyz / direction (3 floats, pre-normalised by spawner)
+ *   proj+0x48  location struct (passed as arg1 to FUN_0018f3e0)
+ *   proj+0x50  world position (passed as arg2 to FUN_0018f3e0)
+ *   proj+0x74  parent object handle (int)
+ *   proj+0x1dc fuze type (uint32; 2 = standard)
+ *   proj+0x1e0 counter word (uint16)
+ *   proj+0x1e2 counter high word (uint16; init 0xFFFF)
+ *   proj+0x1e4 root-parent handle (int)
+ *   proj+0x1e8 target-object handle (int; -1 = none)
+ *   proj+0x1ec contact-material index (int; -1 = none)
+ *   proj+0x1f4 speed decay factor (float)
+ *   proj+0x1fc range decay factor (float)
+ *
+ * Disasm-verified: call at 0x000f8eaf passes handle in EAX (FUN_000f8590);
+ * call at 0x000f8ebf passes handle in EAX (FUN_000f8640).
+ * All cdecl stack args confirmed from PUSH/ADD-ESP pairs. */
+int FUN_000f8d30(int projectile_handle)
+{
+  char *proj; /* projectile object base (type 0x20) */
+  char *proj_tag; /* projectile tag data ('proj') */
+  float initial_speed; /* tag+0x1bc / random range result */
+  float speed_factor; /* initial_speed * 30.0f */
+  float range_factor; /* tag+0x1a4 * 30.0f */
+  int root_parent; /* result of object_get_root_parent */
+  void *mat_block; /* material response block element pointer */
+  int mat_count; /* number of material response entries */
+  int mat_idx; /* loop index into material response block */
+  int *seed; /* random seed pointer from get_global_random_seed_address */
+
+  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  proj_tag = (char *)tag_get(0x70726f6a, *(int *)proj);
+
+  /* Set active flag bit, fuze type, and clear target/counter fields. */
+  *(uint32_t *)(proj + 0x4) |= 0x2000u;
+  *(uint32_t *)(proj + 0x1dc) = 2;
+  *(int *)(proj + 0x1e8) = -1;
+  *(uint16_t *)(proj + 0x1e0) = 0;
+  *(uint16_t *)(proj + 0x1e2) = 0xFFFF;
+
+  /* Resolve and store root-parent handle. */
+  root_parent = object_get_root_parent(*(int *)(proj + 0x74));
+  *(int *)(proj + 0x1e4) = root_parent;
+
+  /* Compute per-tick speed decay factor from initial_speed tag field.
+   * Tag+0x17c bit2: if set, initial_speed is a fixed float (tag+0x1bc).
+   * Otherwise: random_real_range(seed, tag+0x1bc, tag+0x1c0). */
+  if (*(uint8_t *)(proj_tag + 0x17c) & 4) {
+    initial_speed = *(float *)(proj_tag + 0x1bc);
+  } else {
+    seed = get_global_random_seed_address();
+    initial_speed = random_real_range(seed, *(float *)(proj_tag + 0x1bc),
+                                      *(float *)(proj_tag + 0x1c0));
+  }
+
+  /* Store 1.0 / (initial_speed * 30.0) if speed exceeds one-tick threshold. */
+  speed_factor = initial_speed * *(float *)0x253394;
+  if (*(float *)0x2533c8 <= speed_factor) {
+    *(float *)(proj + 0x1f4) = *(float *)0x2533c8 / speed_factor;
+  }
+
+  /* Compute per-tick range decay factor from max-range tag field (tag+0x1a4).
+   */
+  range_factor = *(float *)(proj_tag + 0x1a4) * *(float *)0x253394;
+  if (*(float *)0x2533c8 <= range_factor) {
+    *(float *)(proj + 0x1fc) = *(float *)0x2533c8 / range_factor;
+  }
+
+  /* Find first 'cont' (contact) material response entry in tag block.
+   * tag+0x140 = tag_block_t: { int count; ... }; element size = 0x48.
+   * Stores the matching index into proj+0x1ec, or -1 if none found. */
+  *(int *)(proj + 0x1ec) = -1;
+  mat_count = *(int *)(proj_tag + 0x140);
+  mat_idx = 0;
+  while (mat_idx < mat_count) {
+    mat_block =
+      tag_block_get_element((void *)(proj_tag + 0x140), mat_idx, 0x48);
+    if (*(int *)mat_block == 0x636f6e74) {
+      *(int *)(proj + 0x1ec) = mat_idx;
+      break;
+    }
+    mat_idx++;
+  }
+
+  /* Apply one tick of initial velocity to position.
+   * proj+0x18..0x20 = position.xyz
+   * proj+0x24..0x2c = velocity direction (unit vector * initial_speed from
+   * spawner) tag+0x1e4 = initial speed (used as the tick delta multiplier here)
+   */
+  {
+    float tick_speed = *(float *)(proj_tag + 0x1e4);
+    *(float *)(proj + 0x18) += tick_speed * *(float *)(proj + 0x24);
+    *(float *)(proj + 0x1c) += tick_speed * *(float *)(proj + 0x28);
+    *(float *)(proj + 0x20) += tick_speed * *(float *)(proj + 0x2c);
+  }
+
+  /* Test world-region validity.  FUN_0018f3e0 returns non-zero if the position
+   * is inside a valid region.  Bit 4 of object flags = "region-valid" marker.
+   */
+  if (FUN_0018f3e0((void *)(proj + 0x48), (void *)(proj + 0x50), 0)) {
+    *(uint32_t *)(proj + 0x4) |= 0x10u;
+  } else {
+    *(uint32_t *)(proj + 0x4) &= ~0x10u;
+  }
+
+  /* Update velocity direction cache and detonation radius cache.
+   * Both functions take the handle in EAX (register-arg convention). */
+  FUN_000f8590(projectile_handle);
+  FUN_000f7ec0(projectile_handle);
+  FUN_000f8640(projectile_handle);
+
+  /* Set active + detonating-armed flag bits. */
+  *(uint32_t *)(proj + 0x4) |= 0xc0000u;
+
+  return 1;
 }
