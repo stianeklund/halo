@@ -960,6 +960,11 @@
           "decl": "char *breakable_surfaces_get_bsp_surface_data(void);",
           "addr": "0x1459e0",
           "ported": true
+        },
+        {
+          "decl": "void FUN_00146a90(int surface_id, void *damage_params, int unknown);",
+          "addr": "0x146a90",
+          "comment": "Apply breakable-surface damage: looks up the surface by ID, reduces its health, and calls the destruction callback if depleted. Asserts globals are present."
         }
       ],
       "data": [
@@ -5751,8 +5756,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f90d0(void);",
-          "addr": "0xf90d0"
+          "decl": "void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3, float *velocity@<eax>, int16_t *col_result@<esi>);",
+          "addr": "0xf90d0",
+          "ported": true
         },
         {
           "decl": "int FUN_000f9c40(int projectile_handle);",
@@ -5907,6 +5913,21 @@
           "addr": "0x10b2b0",
           "decl": "uint16_t random_seed_step(unsigned int *seed);",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out);",
+          "addr": "0x10b910",
+          "comment": "Decompose vector v into components parallel and perpendicular to normal n. If n has zero magnitude both outputs are zeroed; otherwise proj_out = dot(v,n)/dot(n,n)*n, perp_out = v - proj_out."
+        },
+        {
+          "decl": "float FUN_0010c510(float *v1, float *v2);",
+          "addr": "0x10c510",
+          "comment": "Compute the angle (radians, via acos) between two 3D vectors v1 and v2. Returns angle offset from PI/2 (i.e. returns acos(dot(v1,v2)/(|v1||v2|)) - PI/2)."
+        },
+        {
+          "decl": "void FUN_0010c8e0(float *v, float *n, float *out);",
+          "addr": "0x10c8e0",
+          "comment": "Reflect vector v about surface normal n: out = v - 2*dot(v,n)*n."
         }
       ]
     },

@@ -1022,3 +1022,644 @@ void FUN_000f8ee0(int projectile_handle, float *acceleration)
     }
   }
 }
+
+/*
+ * FUN_000f90d0 - Projectile collision response handler.
+ *
+ * Called when a projectile has collided (FUN_000f9c40 calls this after
+ * FUN_000f8720 reports a hit).  The function:
+ *   1. Resolves the projectile object and its tag record.
+ *   2. Copies the incoming velocity vector (in_velocity) to a local,
+ *      normalises it, and replaces it with the zero vector if it is already
+ *      zero (degenerate direction).
+ *   3. Computes a 0-1 "detonation fraction" from the tag's range parameters
+ *      (local_24, used later as an alpha/scale weight).
+ *   4. If the collision state is 3 (world surface) and the tag has a valid
+ *      detonation_causer, asserts the collision object index, builds damage
+ *      params via FUN_00136750, then applies area damage via FUN_00137d20.
+ *   5. Selects the detonation result type (0-4) from a tag element block,
+ *      using random tests for probability-gated outcomes.
+ *   6. Handles a second pass for collision state 2 (shield/object bounce)
+ *      with bit 0x8 set, applying breakable-surface damage via FUN_00146a90.
+ *   7. Writes the collision surface normal/position back to hit_pos.
+ *   8. Applies the detonation result:
+ *        0 - attach / deactivate
+ *        1 - attach at rest
+ *        2 - deflect velocity via surface projection
+ * (FUN_0010b910/0010c510/0010c8e0) 3 - ricochet: velocity reflected by (1 -
+ * elasticity) * direction 4 - detonate: spawn effects, optionally attach to
+ * target, set flags
+ *   9. Emits hit effects (FUN_0009ee40 / FUN_0009f0e0) conditioned on
+ *      the collision normal dot product.
+ *  10. For detonation result 4 and "attach on impact" tag flag, computes
+ *      a spin-rate scale and stores it at proj+0x1f4.
+ *
+ * ABI:
+ *   Prototype : void FUN_000f90d0(int projectile_handle, float *hit_pos,
+ *                                 float param_3,
+ *                                 float *velocity@<eax>,
+ *                                 int16_t *col_result@<esi>)
+ *   in_EAX    : velocity vector (float[3]); saved to EDI at entry.
+ *   in_ESI    : collision result buffer (int16_t *); unaff_ESI in Ghidra.
+ *   param_1   : projectile object handle.
+ *   param_2   : hit world-position (float *); output written back.
+ *   param_3   : time/distance scale passed from caller (float, EBP-0x18 in
+ *               FUN_000f9c40); used as the collision normal speed component.
+ *
+ * Source line refs from assert strings:
+ *   0x47c (line 1148) collision->object_index!=NONE
+ *   0x5cf (line 1487) default detonation result
+ */
+void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
+                  float *in_velocity /* @<eax> */,
+                  int16_t *col_result /* @<esi> */)
+{
+  int *proj; /* object_get_and_verify_type(projectile_handle, 0x20) */
+  char *proj_tag; /* tag_get('proj', proj[0]) - void * base address       */
+  char *tag_elem; /* tag element for the current detonation result index  */
+  char *dtag_elem; /* tag element for the secondary (bounce) pass          */
+
+  /* Normalised incoming velocity / local working copy. */
+  float dir_x, dir_y, dir_z;
+
+  /* "Detonation fraction": how far along the projectile's range we are. */
+  float det_frac;
+
+  /* Per-tick velocity scale (from caller, stored in param_3). */
+  float vel_scale;
+
+  /* Detonation result: 0=none/attach, 1=attached_rest, 2=deflect,
+   *                    3=ricochet, 4=detonate.                             */
+  int16_t det_result; /* low 16 bits of local_1c / local_18 */
+
+  /* Effect scale weights (alpha, intensity). */
+  float scale_a, scale_b;
+
+  /* Squared magnitude of velocity after response processing. */
+  float vel_sq;
+
+  /* local_4 / local_8: initially the tag element index (int16_t range), later
+   * the 32-bit effect-tag handle passed to FUN_0009ee40 / FUN_0009f0e0.
+   * The binary uses the same 4-byte stack slot (raw int copy in MOV, not FPU).
+   */
+  int tag_idx;
+
+  /* Miscellaneous temporaries. */
+  float ftemp;
+  float ang_dot; /* dot product of velocity with surface normal       */
+  float deflect_dot; /* normal-speed component for deflect case           */
+  float ang_speed; /* angular speed for deflect case                    */
+  int obj_handle;
+  char *pTemp; /* used for object_get_and_verify_type returns (void*) */
+  int iTemp;
+  uint32_t uTemp;
+  short sTemp;
+  float *seed;
+
+  /* Damage params buffer (0xac bytes; see FUN_00136750). */
+  char damage_params[0xac];
+
+  /* Marker/position arrays for FUN_0009ee40 / FUN_0009f0e0. */
+  float marker_points[5 * 3]; /* 5 marker positions (float[3] each) */
+  float marker_forwards[3];
+  float marker_up[3];
+
+  /* Surface-decompose buffers for result type 2 (deflect). */
+  float proj_component[3];
+  float perp_component[3];
+
+  /* Copy of col_result position at [ESI+0xc..0x10]. */
+  float col_pos[3];
+  float col_pos2[3];
+
+  /* Velocity copy passed to normalize / normalised direction. */
+  float vel_local[3];
+
+  /* Up-vector buffer. */
+  float up_buf[3];
+
+  /* ------------------------------------------------------------------ */
+  /* 1. Resolve object and tag.                                          */
+  /* ------------------------------------------------------------------ */
+  proj = (int *)object_get_and_verify_type(projectile_handle, 0x20);
+  proj_tag = (char *)tag_get(0x70726f6a /* 'proj' */, proj[0]);
+
+  /* 2. Copy velocity to local and normalise.                            */
+  dir_x = in_velocity[0];
+  dir_y = in_velocity[1];
+  dir_z = in_velocity[2];
+
+  /* local_8 = word [ESI+0x34] (current detonation-result index).       */
+  tag_idx = (int)(int16_t)(col_result[0x1a]);
+
+  vel_scale = param_3;
+
+  /* 000f9112..000f912f: normalise vel_local; FPU result (magnitude) is
+   * compared to 0 and also reused for the detonation-fraction calculation.
+   * Binary calls normalize3d exactly once; the ST(0) result is compared
+   * against [0x2533c0] (0.0f) and then reused in the fraction calculation. */
+  vel_local[0] = dir_x;
+  vel_local[1] = dir_y;
+  vel_local[2] = dir_z;
+  ftemp = normalize3d(vel_local); /* single call; magnitude in ftemp */
+
+  /* If velocity is zero, replace direction with the global up vector. */
+  if (ftemp == *(float *)0x2533c0) {
+    dir_x = *(float *)(*(int *)0x31fc44);
+    dir_y = *(float *)(*(int *)0x31fc44 + 4);
+    dir_z = *(float *)(*(int *)0x31fc44 + 8);
+  }
+
+  /* 3. Compute detonation fraction (det_frac = local_24).              */
+  /* Range: [proj_tag+0x1e8] = near_time, [proj_tag+0x1e4] = far_time.  */
+  if (*(float *)(proj_tag + 0x1e8) == *(float *)(proj_tag + 0x1e4)) {
+    det_frac = 1.0f;
+  } else {
+    /* ftemp = magnitude from normalize3d; reused from FPU at 0xf9156. */
+    det_frac = (ftemp - *(float *)(proj_tag + 0x1e8)) /
+               (*(float *)(proj_tag + 0x1e4) - *(float *)(proj_tag + 0x1e8));
+    if (det_frac < *(float *)0x2533c0) {
+      det_frac = 0.0f;
+    } else if (det_frac > *(float *)0x2533c8) {
+      det_frac = 1.0f;
+    }
+  }
+
+  /* 4. Initial det_result = -1 (tag index word stored in low 16).      */
+  det_result = -1;
+
+  /* ------------------------------------------------------------------ */
+  /* Collision state == 3 (world surface) + detonation causer present.  */
+  /* ------------------------------------------------------------------ */
+  if (col_result[0] == 3 && *(int *)(proj_tag + 0x230) != -1) {
+    /* assert collision->object_index != NONE */
+    if (*(int *)((char *)col_result + 0x38) == -1) {
+      display_assert("collision->object_index!=NONE",
+                     "c:\\halo\\SOURCE\\items\\projectiles.c", 0x47c, 1);
+      system_exit(-1);
+    }
+    FUN_00136750(damage_params, *(int *)(proj_tag + 0x230));
+    /* Copy marker positions from col_result. */
+    col_pos[0] = *(float *)((char *)col_result + 0x18);
+    col_pos[1] = *(float *)((char *)col_result + 0x1c);
+    col_pos[2] = *(float *)((char *)col_result + 0x20);
+    col_pos2[0] = *(float *)((char *)col_result + 0x18);
+    col_pos2[1] = *(float *)((char *)col_result + 0x1c);
+    col_pos2[2] = *(float *)((char *)col_result + 0x20);
+    /* vel_local = in_velocity copy, then normalize. */
+    vel_local[0] = in_velocity[0];
+    vel_local[1] = in_velocity[1];
+    vel_local[2] = in_velocity[2];
+    normalize3d(vel_local);
+    /* Call area damage. */
+    /* FUN_00137d20: last arg is the direction pointer (ESI+0x24) cast to uint.
+     */
+    FUN_00137d20(damage_params, *(int *)((char *)col_result + 0x38),
+                 (short)col_result[0x1f], (short)col_result[0x1e],
+                 (short)col_result[0x27],
+                 (unsigned int)(uintptr_t)((char *)col_result + 0x24));
+    /* Update tag_idx from result if valid. */
+    if ((short)*(int16_t *)((char *)col_result + 0x40) != -1) {
+      tag_idx = (int)(short)*(int16_t *)((char *)col_result + 0x40);
+    }
+    vel_scale = *(float *)((char *)col_result + 0x44);
+  }
+
+  /* Write det_result index to projectile obj+0x1e2 (word).             */
+  sTemp = (int16_t)tag_idx;
+  *(int16_t *)((char *)proj + 0x1e2) = sTemp;
+
+  /* ------------------------------------------------------------------ */
+  /* 5. Select tag element (detonation result block).                    */
+  /* ------------------------------------------------------------------ */
+  if (sTemp < 0 || *(int *)(proj_tag + 0x240) <= (int)sTemp) {
+    tag_elem = (char *)0x31ed08; /* sentinel / null record */
+  } else {
+    tag_elem = (char *)tag_block_get_element((void *)(proj_tag + 0x240),
+                                             (int)sTemp, 0xa0);
+  }
+
+  /* Compute angular-speed randomness. */
+  /* local_10 = -[tag_elem+0x64]; call get_global_random_seed /
+   * random_real_range */
+  ftemp = -*(float *)((char *)tag_elem + 0x64);
+  seed = (float *)get_global_random_seed_address();
+  ang_speed =
+    random_real_range((int *)seed, ftemp, 0.0f); /* note: 2nd arg pushed 0x0 */
+  /* local_38: surface-normal dot with incoming velocity (projection). */
+  ang_dot = ang_speed - *(float *)((char *)col_result + 0x2c) * in_velocity[2] -
+            *(float *)((char *)col_result + 0x28) * in_velocity[1] -
+            *(float *)((char *)col_result + 0x24) * in_velocity[0];
+
+  /* local_10 = [tag_elem+0x60]; compute angular displacement. */
+  ftemp = *(float *)((char *)tag_elem + 0x60);
+  seed = (float *)get_global_random_seed_address();
+  deflect_dot = random_real_range((int *)seed, -ftemp, ftemp);
+
+  {
+    float ang_offset;
+    /* FUN_0010c510(&in_velocity, col_result+0x24) -> angle between vel and
+     * normal. */
+    ang_offset =
+      FUN_0010c510(in_velocity, (float *)((char *)col_result + 0x24));
+    deflect_dot = ang_offset - *(float *)0x2568bc + deflect_dot;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Probability check for alternate detonation result.                  */
+  /* ------------------------------------------------------------------ */
+  det_result = (int16_t) * (int16_t *)((char *)tag_elem + 0x2);
+  {
+    int use_alt;
+    use_alt = 0;
+    if (*(int16_t *)((char *)tag_elem + 0x24) == 0) {
+      use_alt = 1;
+    } else {
+      /* Check angular-displacement ranges. */
+      if (*(float *)((char *)tag_elem + 0x30) != *(float *)0x2533c0) {
+        if (deflect_dot < *(float *)((char *)tag_elem + 0x2c) ||
+            (deflect_dot < *(float *)((char *)tag_elem + 0x30)) ==
+              (deflect_dot == *(float *)((char *)tag_elem + 0x30))) {
+          use_alt = 1;
+        }
+      }
+      if (!use_alt &&
+          *(float *)((char *)tag_elem + 0x38) != *(float *)0x2533c0) {
+        if (ang_dot < *(float *)((char *)tag_elem + 0x34) ||
+            (ang_dot < *(float *)((char *)tag_elem + 0x38)) ==
+              (ang_dot == *(float *)((char *)tag_elem + 0x38))) {
+          use_alt = 1;
+        }
+      }
+      if (!use_alt && (*(char *)((char *)tag_elem + 0x26) & 1)) {
+        if (col_result[0] != 3) {
+          use_alt = 1;
+        } else {
+          iTemp = (object_try_and_get_and_verify_type(
+                     *(int *)((char *)col_result + 0x38), 3) != 0) ?
+                    1 :
+                    0;
+          if (iTemp == 0) {
+            use_alt = 1;
+          }
+        }
+      }
+    }
+    if (!use_alt) {
+      /* Random probability gate. */
+      seed = (float *)get_global_random_seed_address();
+      ftemp = random_math_real((unsigned int *)seed);
+      if (ftemp >= *(float *)((char *)tag_elem + 0x28)) {
+        det_result = (int16_t) * (int16_t *)((char *)tag_elem + 0x24);
+        /* raw int copy: effect tag handle from alt result */
+        tag_idx = *(int *)((char *)tag_elem + 0x48);
+      }
+    } else {
+      /* raw int copy: effect tag handle from default result */
+      tag_idx = *(int *)((char *)tag_elem + 0x10);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 6. Collision state == 2 with bit 0x8: breakable surface.           */
+  /* ------------------------------------------------------------------ */
+  if (col_result[0] == 2 && (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) {
+    FUN_00136750(damage_params, *(int *)(proj_tag + 0x230));
+    col_pos[0] = *(float *)((char *)col_result + 0x18);
+    col_pos[1] = *(float *)((char *)col_result + 0x1c);
+    col_pos[2] = *(float *)((char *)col_result + 0x20);
+    col_pos2[0] = *(float *)((char *)col_result + 0x18);
+    col_pos2[1] = *(float *)((char *)col_result + 0x1c);
+    col_pos2[2] = *(float *)((char *)col_result + 0x20);
+    vel_local[0] = in_velocity[0];
+    vel_local[1] = in_velocity[1];
+    vel_local[2] = in_velocity[2];
+    normalize3d(vel_local);
+    /* Resolve bounce pass tag element (result unused; matches original code).
+     */
+    sTemp = col_result[0x1a];
+    if (sTemp < 0 || *(int *)(proj_tag + 0x240) <= (int)sTemp) {
+      dtag_elem = (char *)0x31ed08;
+    } else {
+      dtag_elem = (char *)tag_block_get_element((void *)(proj_tag + 0x240),
+                                                (int)sTemp, 0xa0);
+    }
+    (void)dtag_elem;
+    /* FUN_00146a90: breakable surface damage.
+     * arg1 = MOVZX byte [ESI+0x4d] (zero-extended to 32 bits via AX).
+     * arg2 = &damage_params, arg3 = *(int*)(col_result+0x44). */
+    FUN_00146a90((int)(uint32_t)(*(uint8_t *)((char *)col_result + 0x4d)),
+                 damage_params, *(int *)((char *)col_result + 0x44));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 7. Write collision position back to hit_pos (param_2).             */
+  /* ------------------------------------------------------------------ */
+  hit_pos[0] = *(float *)((char *)col_result + 0x18);
+  hit_pos[1] = *(float *)((char *)col_result + 0x1c);
+  hit_pos[2] = *(float *)((char *)col_result + 0x20);
+
+  /* ------------------------------------------------------------------ */
+  /* 8. Apply detonation result.                                         */
+  /* ------------------------------------------------------------------ */
+  if (det_result == 3) {
+    /* Ricochet. */
+    if (col_result[0] == 0) {
+      /* Toggle bit 0x10 in proj[1]. */
+      uTemp = (uint32_t)proj[1];
+      if (uTemp & 0x10) {
+        uTemp &= ~0x10u;
+      } else {
+        uTemp |= 0x10u;
+      }
+      proj[1] = (int)uTemp;
+      FUN_000f8640(projectile_handle);
+      /* Subtract normal-component contribution from hit_pos. */
+      hit_pos[0] -= *(float *)((char *)col_result + 0x24) * *(float *)0x255ef8;
+      hit_pos[1] -= *(float *)((char *)col_result + 0x28) * *(float *)0x255ef8;
+      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) * *(float *)0x255ef8;
+    } else if (col_result[0] == 3) {
+      ftemp = *(float *)0x2533c8 - *(float *)((char *)tag_elem + 0x90);
+      in_velocity[0] *= ftemp;
+      in_velocity[1] *= ftemp;
+      in_velocity[2] *= ftemp;
+      proj[0x79] = *(int *)((char *)col_result + 0x38);
+    } else {
+      /* Not state 0 or 3 — check tag's max speed. */
+      if (*(float *)(proj_tag + 0x1c0) == *(float *)0x2533c0) {
+        det_result = 1;
+      } else {
+        proj[0x77] = proj[0x77] | 0x14;
+        det_result = 4;
+      }
+      goto apply_default_velocity;
+    }
+  } else if (det_result == 2) {
+    /* Deflect: project velocity onto/off surface normal. */
+    /* arg3 = perp (EBP+0xffffff58), arg4 = proj (EBP+0xffffff64).
+     * Decompiler note: Ghidra swaps proj/perp labels; the disassembly at
+     * 000f9726 uses [EBP+0xffffff64] as one component and 0xffffff58 as
+     * the other; verified from FUN_0010b910 body: EBP+0x10 = proj_out,
+     * EBP+0x14 = perp_out, so arg order is (v, n, perp_out, proj_out). */
+    FUN_0010b910(in_velocity, (float *)((char *)col_result + 0x24),
+                 perp_component, proj_component);
+    /* new_vel = (1 - tag[0x9c]) * proj - (1 - tag[0x98]) * perp
+     * (0x9726: FMUL proj[0xffffff64], 0x9738: FMUL perp[0xffffff58]) */
+    in_velocity[0] =
+      (1.0f - *(float *)((char *)tag_elem + 0x9c)) * proj_component[0] -
+      (1.0f - *(float *)((char *)tag_elem + 0x98)) * perp_component[0];
+    in_velocity[1] =
+      (1.0f - *(float *)((char *)tag_elem + 0x9c)) * proj_component[1] -
+      (1.0f - *(float *)((char *)tag_elem + 0x98)) * perp_component[1];
+    in_velocity[2] =
+      (1.0f - *(float *)((char *)tag_elem + 0x9c)) * proj_component[2] -
+      (1.0f - *(float *)((char *)tag_elem + 0x98)) * perp_component[2];
+    goto apply_speed_scale;
+  } else {
+  apply_default_velocity:
+    /* Use global forward direction. */
+    in_velocity[0] = *(float *)(*(int *)0x31fc38);
+    in_velocity[1] = *(float *)(*(int *)0x31fc38 + 4);
+    in_velocity[2] = *(float *)(*(int *)0x31fc38 + 8);
+  }
+
+apply_speed_scale:
+  /* Optional: random speed scale in [tag+0x60]. */
+  if (*(float *)((char *)tag_elem + 0x60) != *(float *)0x2533c0) {
+    seed = (float *)get_global_random_seed_address();
+    random_direction3d((int *)seed, in_velocity, 0.0f,
+                       *(float *)((char *)tag_elem + 0x60), in_velocity);
+  }
+
+  /* Optional: speed magnitude randomisation [tag+0x64]. */
+  if (*(float *)((char *)tag_elem + 0x64) != *(float *)0x2533c0) {
+    float lo, hi; /* C89: hoist from inner block */
+    ftemp = normalize3d(in_velocity);
+    if (ftemp != *(float *)0x2533c0) {
+      lo = -*(float *)((char *)tag_elem + 0x64);
+      hi = *(float *)((char *)tag_elem + 0x64);
+      seed = (float *)get_global_random_seed_address();
+      ftemp += random_real_range((int *)seed, lo, hi);
+      in_velocity[0] = ftemp * in_velocity[0];
+      in_velocity[1] = ftemp * in_velocity[1];
+      in_velocity[2] = ftemp * in_velocity[2];
+    }
+  }
+
+  /* Compute squared speed. */
+  vel_sq = in_velocity[0] * in_velocity[0] + in_velocity[1] * in_velocity[1] +
+           in_velocity[2] * in_velocity[2];
+
+  /* Clamp-to-minimum-speed check. */
+  if (det_result != 4) {
+    if (vel_sq < *(float *)(proj_tag + 0x1c4) * *(float *)(proj_tag + 0x1c4)) {
+      pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+      if (*(int16_t *)(pTemp + 0x1e0) < 1) {
+        *(int16_t *)(pTemp + 0x1e0) = 1;
+      }
+    }
+  }
+
+  /* Gravity / vertical velocity threshold check. */
+  if (vel_sq < *(float *)0x253f44) {
+    proj[0x77] = proj[0x77] | 0x10;
+    if (*(float *)((char *)col_result + 0x2c) > *(float *)0x2533e4) {
+      proj[1] = proj[1] | 0x20;
+      if (*(float *)(proj_tag + 0x1c0) == *(float *)0x2533c0) {
+        pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+        if (*(int16_t *)(pTemp + 0x1e0) < 1) {
+          *(int16_t *)(pTemp + 0x1e0) = 1;
+        }
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Detonation result scale (scale_a / local_20).                       */
+  /* ------------------------------------------------------------------ */
+  scale_a = 0.0f;
+  {
+    int16_t scale_mode = *(int16_t *)((char *)tag_elem + 0x5c);
+    if (scale_mode == 0) {
+      scale_a = det_frac;
+    } else if (scale_mode == 1) {
+      scale_a = deflect_dot * *(float *)0x28ac24;
+      if (scale_a < *(float *)0x2533c0) {
+        scale_a = 0.0f;
+      } else if (scale_a > *(float *)0x2533c8) {
+        scale_a = 1.0f;
+      }
+    }
+    /* else: scale_a stays 0.0 (from LAB_000f9862 fallthrough) */
+  }
+
+  /* Clamp scale_a. */
+  if (scale_a < *(float *)0x2533c0) {
+    scale_a = 0.0f;
+  } else if (scale_a > *(float *)0x2533c8) {
+    scale_a = 1.0f;
+  }
+
+  /* scale_b (local_18 / local_14) — intensity weight. */
+  scale_b = vel_scale;
+  if (scale_b < *(float *)0x2533c0) {
+    scale_b = 0.0f;
+  } else if (scale_b > *(float *)0x2533c8) {
+    scale_b = 1.0f;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Build marker arrays for effect functions.                            */
+  /* ------------------------------------------------------------------ */
+  {
+    int k;
+    float *mp;
+    dir_x = dir_x * *(float *)0x255e94;
+    /* dir_z unchanged (MSVC no-op scheduled store, preserved for marker_up). */
+    dir_y = dir_y * *(float *)0x255e94;
+
+    up_buf[0] = *(float *)(*(int *)0x31fc50);
+    up_buf[1] = *(float *)(*(int *)0x31fc50 + 4);
+    up_buf[2] = *(float *)(*(int *)0x31fc50 + 8);
+
+    marker_forwards[0] = *(float *)((char *)col_result + 0x24);
+    marker_forwards[1] = *(float *)((char *)col_result + 0x28);
+    marker_forwards[2] = *(float *)((char *)col_result + 0x2c);
+
+    /* arg1 = &vel_local (normalised dir), arg2 = col_result+0x24 (normal),
+     * arg3 = marker_up output.  EAX still held ESI+0x24 at the PUSH. */
+    FUN_0010c8e0(vel_local, (float *)((char *)col_result + 0x24), marker_up);
+
+    /* Fill 5 marker_points entries with col_result position. */
+    mp = marker_points;
+    for (k = 0; k < 5; k++) {
+      mp[0] = *(float *)((char *)col_result + 0x18);
+      mp[1] = *(float *)((char *)col_result + 0x1c);
+      mp[2] = *(float *)((char *)col_result + 0x20);
+      mp += 3;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 9. Emit hit effect (if ang_dot > threshold).                        */
+  /* ------------------------------------------------------------------ */
+  if (ang_dot > *(float *)0x28ac20) {
+    if (col_result[0] == 3) {
+      /* effect_update(tag, proj_handle, attached_obj, node_idx, 5, def, pts,
+       * fwds, sA, sB, 0, 0) */
+      FUN_0009ee40(
+        tag_idx, projectile_handle, *(int *)((char *)col_result + 0x38),
+        (uint16_t)col_result[0x1f], 5, (void *)0x31f3a0, marker_points,
+        marker_forwards, scale_a, scale_b, 0.0f, 0.0f);
+    } else {
+      FUN_0009f0e0(tag_idx, projectile_handle, 0, 5, (void *)0x31f3a0,
+                   marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f,
+                   1);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Secondary effect: destroy/detonate tag effect.                      */
+  /* ------------------------------------------------------------------ */
+  if (!(proj[0x77] & 0x20) && ((proj[0x77] & 0x10) || det_result == 4)) {
+    if (col_result[0] == 3) {
+      FUN_0009ee40(*(int *)(proj_tag + 0x200), projectile_handle,
+                   *(int *)((char *)col_result + 0x38),
+                   (uint16_t)col_result[0x1f], 5, (void *)0x31f3a0,
+                   marker_points, marker_forwards, scale_a, scale_b, 0.0f,
+                   0.0f);
+    } else {
+      FUN_0009f0e0(*(int *)(proj_tag + 0x200), projectile_handle, 0, 5,
+                   (void *)0x31f3a0, marker_points, marker_forwards, scale_a,
+                   scale_b, 0.0f, 0.0f, 1);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 10. Final detonation result dispatch.                               */
+  /* ------------------------------------------------------------------ */
+  switch (det_result) {
+  case 0:
+    pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+    if (*(int16_t *)(pTemp + 0x1e0) < 2) {
+      *(int16_t *)(pTemp + 0x1e0) = 2;
+      return;
+    }
+    break;
+
+  case 1:
+    pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+    if (*(int16_t *)(pTemp + 0x1e0) < 1) {
+      *(int16_t *)(pTemp + 0x1e0) = 1;
+      return;
+    }
+    break;
+
+  case 2:
+  case 3:
+    break;
+
+  case 4: {
+    /* Detonate. */
+    if (col_result[0] == 3 && (*(uint8_t *)(proj_tag + 0x17c) & 0x8)) {
+      /* Kill all projectiles of same tag attached to this object. */
+      int *parent_obj;
+      int *child_obj;
+      char *child_proj_p;
+      parent_obj = (int *)object_get_and_verify_type(
+        *(int *)((char *)col_result + 0x38), -1);
+      obj_handle = parent_obj[0x32]; /* first child at proj+0xc8 */
+      tag_idx = 0;
+      while (obj_handle != -1) {
+        child_obj = (int *)object_get_and_verify_type(obj_handle, -1);
+        if (child_obj[0] == proj[0] /* same tag */) {
+          child_proj_p = (char *)object_get_and_verify_type(obj_handle, 0x20);
+          if (!(*(uint8_t *)(child_proj_p + 0x1dc) & 0x40)) {
+            char *cp2;
+            cp2 = (char *)object_get_and_verify_type(obj_handle, 0x20);
+            *(int *)(cp2 + 0x1f8) = 0;
+            *(int *)(cp2 + 0x1f0) = 0;
+            tag_idx = tag_idx + 1;
+          }
+        }
+        if ((int16_t)tag_idx > 5) {
+          proj[0x77] = proj[0x77] | 0x80;
+          break;
+        }
+        obj_handle = child_obj[0x31];
+      }
+    }
+    /* Reset object forward/up to global zero vector. */
+    {
+      int *zv = (int *)(*(int *)0x31fc38);
+      proj[6] = zv[0];
+      proj[7] = zv[1];
+      proj[8] = zv[2];
+      proj[0xf] = zv[0];
+      proj[0x10] = zv[1];
+      proj[0x11] = zv[2];
+    }
+    proj[1] = proj[1] | 0x20;
+    proj[0x77] = proj[0x77] | 0x8;
+    FUN_00143be0(projectile_handle, hit_pos,
+                 (float *)((char *)col_result + 0xc));
+    if (col_result[0] == 3) {
+      object_attach_to_parent(*(int *)((char *)col_result + 0x38),
+                              projectile_handle, (int16_t)col_result[0x1f]);
+    }
+    /* Compute spin rate scale if tag "attach on impact" flag (bit 2) set. */
+    if ((*(uint8_t *)(proj_tag + 0x17c) & 0x4)) {
+      ftemp = *(float *)(proj_tag + 0x1c0) * *(float *)0x253394;
+      if (ftemp >= *(float *)0x2533c8) {
+        proj[0x7d] = (int)(*(float *)0x2533c8 / ftemp);
+      }
+    }
+    break;
+  } /* case 4 */
+
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\items\\projectiles.c", 0x5cf, 1);
+    system_exit(-1);
+    return;
+  }
+}
