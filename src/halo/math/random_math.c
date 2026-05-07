@@ -171,6 +171,44 @@ void random_direction3d(int *seed, float *forward, float zero, float angle,
   rotate_vector3d_by_sincos(result, cross, sin_val, cos_val);
 }
 
+/* Decompose vector v into components parallel and perpendicular to normal n.
+ *
+ * Computes dot(n,n) (magnitude-squared of n).  If n is the zero vector
+ * (dot(n,n) == 0.0f), proj_out is zeroed and perp_out is set to v unchanged.
+ * Otherwise:
+ *   proj_out  = (dot(v,n) / dot(n,n)) * n   (projection of v onto n)
+ *   perp_out  = v - proj_out                 (component of v perpendicular to
+ * n)
+ *
+ * All vectors are 3-component float arrays.
+ * The zero branch uses integer stores (XOR + MOV) to avoid redundant FPU ops.
+ *
+ * 0x10b910 / random_math.obj
+ */
+void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out)
+{
+  float nn;
+  float scale;
+
+  nn = (n[2] * n[2] + n[1] * n[1]) + n[0] * n[0];
+  if (nn != 0.0f) {
+    scale = ((v[2] * n[2] + v[1] * n[1]) + v[0] * n[0]) / nn;
+    proj_out[0] = scale * n[0];
+    proj_out[1] = scale * n[1];
+    proj_out[2] = scale * n[2];
+    perp_out[0] = v[0] - proj_out[0];
+    perp_out[1] = v[1] - proj_out[1];
+    perp_out[2] = v[2] - proj_out[2];
+  } else {
+    proj_out[0] = 0.0f;
+    proj_out[1] = 0.0f;
+    proj_out[2] = 0.0f;
+    perp_out[0] = v[0];
+    perp_out[1] = v[1];
+    perp_out[2] = v[2];
+  }
+}
+
 /* Compute the angle (radians) between two 3D vectors v1 and v2.
  *
  * Returns acos(dot(v1,v2) / (|v1| * |v2|)), the geometric angle between

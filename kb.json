@@ -5919,7 +5919,8 @@
         {
           "decl": "void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out);",
           "addr": "0x10b910",
-          "comment": "Decompose vector v into components parallel and perpendicular to normal n. If n has zero magnitude both outputs are zeroed; otherwise proj_out = dot(v,n)/dot(n,n)*n, perp_out = v - proj_out."
+          "comment": "Decompose vector v into components parallel and perpendicular to normal n. If n has zero magnitude both outputs are zeroed; otherwise proj_out = dot(v,n)/dot(n,n)*n, perp_out = v - proj_out.",
+          "ported": true
         },
         {
           "decl": "float FUN_0010c510(float *v1, float *v2);",
