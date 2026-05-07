@@ -666,6 +666,89 @@ const char *winsock_error_report(int error_code)
   return name;
 }
 
+/* Get the socket address for an endpoint.
+ *
+ * Tries getsockname (0x224876) first; if that fails, tries getpeername
+ * (0x22486b).  Both are XNet thunks with signature
+ * __stdcall(int socket, void *name, int *namelen) RET 0xc.  The local
+ * sockaddr buffer is 16 bytes (AF_INET: family=2, port, sin_addr).
+ *
+ * On success: stores ntohl(sin_addr) at addr[0], stores 4 as a uint16_t
+ * at byte offset 0x10, stores ntohs(sin_port) as a uint16_t at byte
+ * offset 0x12; clears ep[6] (status) to 0; returns 0.
+ * On failure: calls xapi_GetLastError and reports via winsock_error_report;
+ * sets ep[6] to 0xfff1; returns 0xfff1 (short -15).
+ *
+ * ep struct layout (from disassembly):
+ *   [ep+0]  int      socket fd (-1 = invalid)
+ *   [ep+6]  int16_t  status/error code
+ *
+ * Confirmed: xnet_getsockname (0x224876, __stdcall 3 args, RET 0xc);
+ * xnet_getpeername (0x22486b, __stdcall 3 args, RET 0xc);
+ * xapi_GetLastError (0x2235c4 thunk -> 0x1d2240);
+ * winsock_error_report (0x83310, cdecl 1 arg);
+ * transport_initialized flag at 0x335090;
+ * assert strings: "ep && address" at 0x266c70, file at 0x266618;
+ * source lines 0xf7/0xf8.
+ */
+short FUN_00083a60(int *ep, void *addr)
+{
+  int result;
+  int err;
+  uint32_t ip;
+  uint32_t ip_host;
+  uint16_t port;
+  uint16_t port_host;
+  int16_t sa_buf[8]; /* 16-byte sockaddr_in buffer */
+  int sa_len;
+
+  sa_len = 0x10;
+
+  assert_halt(ep && addr);
+  assert_halt(*(uint8_t *)0x335090);
+
+  if (*ep != -1) {
+    result = xnet_getsockname(*ep, sa_buf, &sa_len);
+    if (result == 0) {
+      if (sa_buf[0] == 2) {
+        /* AF_INET: extract and byte-swap IP and port. */
+        port = (uint16_t)sa_buf[1];
+        ip = *(uint32_t *)((char *)sa_buf + 4);
+        /* ntohl(ip): reorder bytes from network order to host order. */
+        ip_host = (((ip & 0xff0000u) | (ip >> 16)) >> 8) |
+                  (((ip & 0xff00u) | (ip << 16)) << 8);
+        /* ntohs(port): swap port bytes. */
+        port_host =
+          (uint16_t)(((uint16_t)(port << 8)) | ((uint16_t)(port >> 8)));
+        *(uint32_t *)addr = ip_host;
+        *(uint16_t *)((char *)addr + 0x10) = 4;
+        *(uint16_t *)((char *)addr + 0x12) = port_host;
+        *(int16_t *)((char *)ep + 6) = 0;
+        return 0;
+      }
+    } else {
+      result = xnet_getpeername(*ep, sa_buf, &sa_len);
+      if (result == 0 && sa_buf[0] == 2) {
+        port = (uint16_t)sa_buf[1];
+        ip = *(uint32_t *)((char *)sa_buf + 4);
+        ip_host = (((ip & 0xff0000u) | (ip >> 16)) >> 8) |
+                  (((ip & 0xff00u) | (ip << 16)) << 8);
+        port_host =
+          (uint16_t)(((uint16_t)(port << 8)) | ((uint16_t)(port >> 8)));
+        *(uint32_t *)addr = ip_host;
+        *(uint16_t *)((char *)addr + 0x10) = 4;
+        *(uint16_t *)((char *)addr + 0x12) = port_host;
+        *(int16_t *)((char *)ep + 6) = 0;
+        return 0;
+      }
+    }
+    err = xapi_GetLastError();
+    winsock_error_report(err);
+  }
+  *(int16_t *)((char *)ep + 6) = (int16_t)0xfff1;
+  return (short)0xfff1;
+}
+
 /* Close a transport endpoint's socket and clear its connected flag.
  *
  * If the endpoint's socket handle is not INVALID_SOCKET (-1), calls
