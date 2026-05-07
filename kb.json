@@ -5662,8 +5662,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f7e40(void);",
-          "addr": "0xf7e40"
+          "decl": "void FUN_000f7e40(int projectile_handle@<eax>, int16_t state@<si>);",
+          "addr": "0xf7e40",
+          "ported": true
         },
         {
           "decl": "void FUN_000f7e60(void);",
