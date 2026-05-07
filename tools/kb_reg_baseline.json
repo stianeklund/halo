@@ -9,6 +9,7 @@
     "0x28660": "char FUN_00028660(int actor_handle, short *look_spec @<ebx>, float *direction @<edi>);",
     "0xc5960": "void FUN_000c5960(int datum_index @<eax>);",
     "0xc6a70": "int FUN_000c6a70(char *str @<eax>);",
+    "0xf90d0": "void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3, float *velocity@<eax>, int16_t *col_result@<esi>);",
     "0x102510": "void screenshot_render(void *a1@<edi>);",
     "0x10b300": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
     "0x1190c0": "void crc_table_init(uint32_t *table@<edx>);",
@@ -105,6 +106,7 @@
     "0x3ac20": "void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle @<eax>);",
     "0x3b7e0": "void FUN_0003b7e0(int actor_handle, int unit_handle@<esi>);",
     "0x3b940": "void FUN_0003b940(int actor_handle, int unit_object_index@<esi>);",
+    "0x3cb50": "void FUN_0003cb50(int swarm_handle@<eax>, int swarm_component_handle@<edi>, int unit_index@<ebx>);",
     "0x3ec80": "void FUN_0003ec80(int actor_handle@<esi>);",
     "0x7d440": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
     "0x86600": "void director_init_player_cameras(int16_t local_player_index@<ax>);",
@@ -129,6 +131,7 @@
     "0x998b0": "int FUN_000998b0(int new_index_hint@<eax>, int16_t cluster_index, int16_t layer, int old_index, bool randomize);",
     "0x9a300": "void FUN_0009a300(float *bounds, float *projection, float *basis@<ebx>);",
     "0x9a5a0": "void FUN_0009a5a0(void *geometry@<eax>, float *projection, int surface_index, bool allow_deviants, float scale, int16_t type, int *surface_queue, int16_t *surface_queue_write_index, int *deviant_surface_list, int16_t *deviant_surface_count);",
+    "0x9c700": "bool FUN_0009c700(int object_handle@<eax>);",
     "0x9caf0": "bool FUN_0009caf0(int16_t part_type@<ax>, void *position@<ecx>, void *effect_volumes@<edx>);",
     "0x9cb90": "void FUN_0009cb90(int effect_handle@<eax>, int event_index@<di>);",
     "0x9cc20": "int FUN_0009cc20(int marker_data@<eax>, int effect_datum, int event_index, int is_particle);",
@@ -226,7 +229,12 @@
     "0x97e40": "void FUN_00097e40(int contrail_handle @<eax>, int count, int flag);",
     "0xb54e0": "float game_globals_difficulty_scale(int16_t value_type@<bx>, int16_t difficulty@<di>);",
     "0x413c0": "void FUN_000413c0(ai_firing_pos_entry_t *entry@<esi>, int unit_handle@<edi>, int actor_handle);",
-    "0x64400": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);"
+    "0x64400": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);",
+    "0xf7e40": "void FUN_000f7e40(int projectile_handle@<eax>, int16_t state@<si>);",
+    "0xf7fa0": "float FUN_000f7fa0(void *tag @<ecx>, float range_begin, float range_end);",
+    "0xf8590": "void FUN_000f8590(int projectile_handle@<eax>);",
+    "0xf8640": "void FUN_000f8640(int projectile_handle@<eax>);",
+    "0xf8720": "bool FUN_000f8720(int projectile_handle @<eax>, float *new_pos @<edi>, int16_t *collision_result);"
   },
   "version": 1,
   "0xcada0": {
@@ -234,5 +242,6 @@
     "regs": {
       "edi": "script_index"
     }
-  }
+  },
+  "0xf90d0": "void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3, float *velocity@<eax>, int16_t *col_result@<esi>);"
 }
