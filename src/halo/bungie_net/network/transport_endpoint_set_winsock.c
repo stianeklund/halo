@@ -359,6 +359,21 @@ int send_endpoint(int *ep, const char *buf, int len)
   }
 }
 
+/* Test whether a Winsock endpoint is currently connected.
+ *
+ * Asserts that endpoint is non-null, then returns the state of the
+ * connected flag (bit 0 of the byte at endpoint+4). This flag is cleared
+ * by send_endpoint when it receives disconnect/abort errors from Winsock.
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl, 4 args); system_exit (0x8e2f0).
+ * Confirmed: bit 0 of *(byte*)(endpoint+4) is the connected flag.
+ */
+bool FUN_000831a0(int endpoint)
+{
+  assert_halt(endpoint);
+  return *(uint8_t *)(endpoint + 4) & 1;
+}
+
 /* Map a WinSock error code to its symbolic name string and report it.
  *
  * Translates the given WinSock/WSA error code into a human-readable

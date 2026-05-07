@@ -7356,7 +7356,8 @@
         },
         {
           "decl": "bool FUN_000831a0(int endpoint);",
-          "addr": "0x831a0"
+          "addr": "0x831a0",
+          "ported": true
         },
         {
           "decl": "const char *winsock_error_report(int error_code);",
