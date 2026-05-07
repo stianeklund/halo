@@ -231,3 +231,16 @@ char FUN_000f8000(int projectile_handle)
   object_detach_from_parent(projectile_handle);
   return 1;
 }
+
+/* Scatter a direction vector using the global random seed.
+ * Retrieves the engine-wide random seed via get_global_random_seed_address,
+ * then delegates to random_direction3d to produce a randomised unit vector
+ * within 'angle' radians of 'forward'.  'zero' is always passed as 0.0
+ * at call sites (minimum cone half-angle).  The resulting direction is
+ * written to 'result'.  This is the global-seed variant; callers that own a
+ * local seed call random_direction3d directly. */
+void FUN_000f8070(float *forward, float zero, float angle, float *result)
+{
+  int *seed = get_global_random_seed_address();
+  random_direction3d(seed, forward, zero, angle, result);
+}

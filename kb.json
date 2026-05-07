@@ -5698,8 +5698,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f8070(void);",
-          "addr": "0xf8070"
+          "decl": "void FUN_000f8070(float *forward, float zero, float angle, float *result);",
+          "addr": "0xf8070",
+          "comment": "Wrapper: calls random_direction3d using the global random seed.",
+          "ported": true
         },
         {
           "decl": "char FUN_000f80a0(float speed, float gravity, float *origin, float *target, int param_5, float *param_6, float *param_7, char param_8, float *aim_vector, float *param_10, float *param_11, float *param_12, float *param_13, float *param_14);",
