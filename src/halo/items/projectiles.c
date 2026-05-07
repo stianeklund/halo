@@ -298,6 +298,53 @@ int FUN_000f8410(float speed, float *origin, float *target, float *aim_vector,
   return 1;
 }
 
+/* Resolve the launch speed for a projectile and compute its aim direction.
+ *
+ * If param_4 is NULL the speed is read from the projectile tag definition at
+ * offset 0x1e4 (pointer to float).  Otherwise param_4 is dereferenced to get
+ * the speed value.  The resolved speed is stored back into param_4 so both
+ * call paths share the same code below.
+ *
+ * If the projectile tag has the ballistic-arc flag set (bit 1 of byte at
+ * param_1+0x17c) AND the per-arc gravity value at param_1+0x1cc is > 0.0f,
+ * FUN_000f80a0 (ballistic arc solver) is called to compute a curved
+ * trajectory.  Otherwise the simpler straight-line aim helper FUN_000f8410
+ * is used.  param_13, when non-NULL, receives 0 for the arc path and 1 for
+ * the straight-line path. */
+void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4,
+                  int param_5, int param_6, int param_7, int param_8,
+                  int param_9, int param_10, int param_11, int param_12,
+                  void *param_13)
+{
+  float speed;
+  char *out;
+
+  if (param_4 == NULL) {
+    speed = **(float **)(projectile_tag + 0x1e4);
+  } else {
+    speed = *(float *)param_4;
+  }
+
+  out = (char *)param_13;
+
+  if ((*(unsigned char *)(projectile_tag + 0x17c) & 2) &&
+      (*(float *)(projectile_tag + 0x1cc) > *(float *)0x2533c0)) {
+    FUN_000f80a0(speed, *(float *)(projectile_tag + 0x1cc), (float *)param_2,
+                 (float *)param_3, param_5, (float *)param_6, (float *)param_7,
+                 (char)param_8, (float *)param_9, (float *)param_10,
+                 (float *)param_11, (float *)param_12, 0, 0);
+    if (out != NULL) {
+      *out = 0;
+    }
+  } else {
+    FUN_000f8410(speed, (float *)param_2, (float *)param_3, (float *)param_9,
+                 (float *)param_10, (float *)param_11, (float *)param_12);
+    if (out != NULL) {
+      *out = 1;
+    }
+  }
+}
+
 /* Compute projectile velocity direction and speed angle from the velocity
  * stored at obj+0x3c (vx/vy/vz). If the speed magnitude is non-zero, sets
  * the velocity-valid flag (bit 0 at obj+0x1dc), stores the normalized

@@ -5724,7 +5724,8 @@
         },
         {
           "decl": "void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4, int param_5, int param_6, int param_7, int param_8, int param_9, int param_10, int param_11, int param_12, void *param_13);",
-          "addr": "0xf84d0"
+          "addr": "0xf84d0",
+          "ported": true
         },
         {
           "decl": "void FUN_000f8590(int projectile_handle@<eax>);",
