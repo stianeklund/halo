@@ -5924,7 +5924,8 @@
         {
           "decl": "float FUN_0010c510(float *v1, float *v2);",
           "addr": "0x10c510",
-          "comment": "Compute the angle (radians, via acos) between two 3D vectors v1 and v2. Returns angle offset from PI/2 (i.e. returns acos(dot(v1,v2)/(|v1||v2|)) - PI/2)."
+          "comment": "Compute the angle (radians, via acos) between two 3D vectors v1 and v2. Returns angle offset from PI/2 (i.e. returns acos(dot(v1,v2)/(|v1||v2|)) - PI/2).",
+          "ported": true
         },
         {
           "decl": "void FUN_0010c8e0(float *v, float *n, float *out);",

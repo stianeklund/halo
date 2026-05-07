@@ -92,6 +92,7 @@ size_t strlen(const char *s)
 #define xbox_cosf   cosf
 #define xbox_sqrtf  sqrtf
 #define xbox_fabsf  fabsf
+#define xbox_acosf  acosf
 #define xbox_atan2  atan2_
 #define xbox_log10  log10
 #define xbox_pow    pow
@@ -134,6 +135,22 @@ static inline float xbox_fabsf(float x)
 {
   float r;
   asm volatile ("fabs" : "=t"(r) : "0"(x));
+  return r;
+}
+
+static inline float xbox_acosf(float x)
+{
+  /* acos(x) = atan2(sqrt(1-x^2), x) via x87 FPATAN */
+  float r;
+  asm volatile (
+    "fld %%st(0)\n\t"          /* ST0=x, ST1=x */
+    "fmul %%st(0), %%st(0)\n\t" /* ST0=x^2 */
+    "fld1\n\t"                  /* ST0=1, ST1=x^2, ST2=x */
+    "fsubrp\n\t"                /* ST0=1-x^2, ST1=x */
+    "fsqrt\n\t"                 /* ST0=sqrt(1-x^2), ST1=x */
+    "fpatan\n\t"                /* ST0=atan2(sqrt(1-x^2), x) = acos(x) */
+    : "=t"(r) : "0"(x)
+  );
   return r;
 }
 
@@ -209,6 +226,7 @@ static inline size_t xbox_strlen(const char *s)
   #define cosf    xbox_cosf
   #define sqrtf   xbox_sqrtf
   #define fabsf   xbox_fabsf
+  #define acosf   xbox_acosf
   #define atan2   xbox_atan2
   #define log10   xbox_log10
   #define pow     xbox_pow
