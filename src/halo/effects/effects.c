@@ -38,8 +38,8 @@ void FUN_0009c750(int effect_handle)
   int count;
   int16_t i;
 
-  effect = (char *)(int)datum_absolute_index_to_index(
-    *(data_t **)0x5aa8b0, effect_handle);
+  effect = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8b0,
+                                                      effect_handle);
   if (!effect)
     return;
 
@@ -140,8 +140,8 @@ void FUN_0009cb90(int effect_handle, int event_index)
   char *tag_flags;
   int *seed;
 
-  effect = (char *)(int)datum_absolute_index_to_index(
-    *(data_t **)0x5aa8b0, effect_handle);
+  effect = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8b0,
+                                                      effect_handle);
   if (!effect)
     return;
 
@@ -151,8 +151,7 @@ void FUN_0009cb90(int effect_handle, int event_index)
   if (event_index >= *(int *)(tag_data + 0x34))
     return;
 
-  event =
-    (char *)tag_block_get_element(tag_data + 0x34, event_index, 0x44);
+  event = (char *)tag_block_get_element(tag_data + 0x34, event_index, 0x44);
   *(uint8_t *)(effect + 2) &= ~1;
   *(int16_t *)(effect + 0x4e) = (int16_t)event_index;
   *(int *)(effect + 0x50) = 0;
@@ -415,7 +414,7 @@ void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
 #else
     __asm__ volatile("fsincos" : "=t"(cos_a), "=u"(sin_a) : "0"(angle));
 #endif
-    random_seed_get_direction3d(seed, axis);
+      random_seed_get_direction3d(seed, axis);
     rotate_vector3d_by_sincos(direction_out, axis, sin_a, cos_a);
   }
 
@@ -941,102 +940,6 @@ void FUN_0009d590(void *effect)
   *(float *)(ef + 0x58) = t;
 }
 
-/* Assign a local player index to all effects attached to a given weapon
- * (0x9e0d0). Iterates the effect pool and for each effect whose object handle
- * (offset 0x3c) matches the given weapon_handle, asserts that
- * local_player_index is currently NONE, then sets it and re-processes the
- * effect's event/marker callbacks via FUN_0009d4e0 with the particle marker
- * callback (FUN_000dd190). */
-void FUN_0009e0d0(int local_player_index, int weapon_handle)
-{
-  int effect_index;
-  for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
-       effect_index = data_next_index(effect_data, effect_index)) {
-    char *effect = (char *)datum_get(effect_data, effect_index);
-    tag_get(0x65666665, *(int *)(effect + 4));
-    if (*(int *)(effect + 0x3c) != weapon_handle)
-      continue;
-
-    if (*(int16_t *)(effect + 0x4c) != (int16_t)NONE) {
-      display_assert("effect->local_player_index==NONE",
-                     "c:\\halo\\SOURCE\\effects\\effects.c", 0x249, 1);
-      system_exit(-1);
-    }
-
-    *(int16_t *)(effect + 0x4c) = (int16_t)local_player_index;
-    FUN_0009d4e0((int)effect, (void *)0xdd190);
-  }
-}
-
-/* Fill a single effect marker entry from the creation info marker list
- * (0x9e180). Validates the forward vector, optionally transforms through the
- * node matrix, then builds a 4x3 orientation matrix at output+4 with position
- * embedded. */
-void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
-                  void *creation_info /* @<ebx> */)
-{
-  int16_t count = *(int16_t *)((char *)creation_info + 0x8);
-  int offset;
-  float *forwards_ptr;
-  float *positions_ptr;
-  void *node_matrix;
-  float local_position[3];
-  float local_forward[3];
-  float local_up[3];
-
-  if (marker_index < 0 || marker_index >= count) {
-    display_assert(
-      "effect_marker_index>=0 && effect_marker_index<marker_list->count",
-      "c:\\halo\\SOURCE\\effects\\effects.c", 0x460, 1);
-    system_exit(-1);
-  }
-
-  offset = (int)marker_index * 12;
-  forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
-
-  if (!valid_real_normal3d(forwards_ptr)) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
-             "&marker_list->forwards[effect_marker_index]",
-             (double)forwards_ptr[0], (double)forwards_ptr[1],
-             (double)forwards_ptr[2]);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
-                   0x461, 1);
-    system_exit(-1);
-  }
-
-  *(int16_t *)output = *(int16_t *)creation_info;
-
-  node_matrix = *(void **)((char *)creation_info + 0x4);
-  if (node_matrix != 0) {
-    positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
-    matrix_transform_point((float *)node_matrix, positions_ptr, local_position);
-    matrix_transform_vector((float *)node_matrix, forwards_ptr, local_forward);
-  } else {
-    positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
-    local_position[0] = positions_ptr[0];
-    local_position[1] = positions_ptr[1];
-    local_position[2] = positions_ptr[2];
-    forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
-    local_forward[0] = forwards_ptr[0];
-    local_forward[1] = forwards_ptr[1];
-    local_forward[2] = forwards_ptr[2];
-  }
-
-  if (!valid_real_normal3d(local_forward)) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
-             "&forward", (double)local_forward[0], (double)local_forward[1],
-             (double)local_forward[2]);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
-                   0x470, 1);
-    system_exit(-1);
-  }
-
-  perpendicular3d(local_forward, local_up);
-  normalize3d(local_up);
-  matrix4x3_from_forward_up_position((char *)output + 4, local_position,
-                                     local_forward, local_up);
-}
-
 /* Tag-class dispatch for effect location processing (0x9dcf0).
  * Called from FUN_0009e310 for each active location datum. Dispatches based on
  * the tag class (obje/deca/jpt!/ligh/pctl/snd!) at loc_entry+0x14. */
@@ -1148,8 +1051,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     if (object != NULL) {
       *(int *)(damage_params + 0x08) = *(int *)((char *)object + 0x70);
       *(int *)(damage_params + 0x0c) = *(int *)(ef + 0x40);
-      *(int16_t *)(damage_params + 0x10) =
-        *(int16_t *)((char *)object + 0x68);
+      *(int16_t *)(damage_params + 0x10) = *(int16_t *)((char *)object + 0x68);
     }
 
     *(int *)(damage_params + 0x14) = *(int *)(ef + 0x10);
@@ -1205,8 +1107,8 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     velocity[1] += *(float *)(ef + 0x28);
     velocity[2] += *(float *)(ef + 0x2c);
 
-    FUN_000a1210(*(int *)(loc_entry + 0x24), position, velocity,
-                 &particle_data, scale);
+    FUN_000a1210(*(int *)(loc_entry + 0x24), position, velocity, &particle_data,
+                 scale);
 
   } else if (tag_class == 0x736e6421) {
     char *loc = (char *)location;
@@ -1221,8 +1123,8 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
         marker = (int)(loc_node & 0x7fff);
 
       FUN_001c7e70(*(int *)(ef + 0x3c), *(int *)(loc_entry + 0x24),
-                   (int16_t)marker, (float *)(loc + 0x30),
-                   (float *)(loc + 0xc), scale);
+                   (int16_t)marker, (float *)(loc + 0x30), (float *)(loc + 0xc),
+                   scale);
     } else {
       struct {
         float pos[3];
@@ -1256,6 +1158,102 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     display_assert(err_buf, "c:\\halo\\SOURCE\\effects\\effects.c", 0x6d9, 1);
     system_exit(-1);
   }
+}
+
+/* Assign a local player index to all effects attached to a given weapon
+ * (0x9e0d0). Iterates the effect pool and for each effect whose object handle
+ * (offset 0x3c) matches the given weapon_handle, asserts that
+ * local_player_index is currently NONE, then sets it and re-processes the
+ * effect's event/marker callbacks via FUN_0009d4e0 with the particle marker
+ * callback (FUN_000dd190). */
+void FUN_0009e0d0(int local_player_index, int weapon_handle)
+{
+  int effect_index;
+  for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
+       effect_index = data_next_index(effect_data, effect_index)) {
+    char *effect = (char *)datum_get(effect_data, effect_index);
+    tag_get(0x65666665, *(int *)(effect + 4));
+    if (*(int *)(effect + 0x3c) != weapon_handle)
+      continue;
+
+    if (*(int16_t *)(effect + 0x4c) != (int16_t)NONE) {
+      display_assert("effect->local_player_index==NONE",
+                     "c:\\halo\\SOURCE\\effects\\effects.c", 0x249, 1);
+      system_exit(-1);
+    }
+
+    *(int16_t *)(effect + 0x4c) = (int16_t)local_player_index;
+    FUN_0009d4e0((int)effect, (void *)0xdd190);
+  }
+}
+
+/* Fill a single effect marker entry from the creation info marker list
+ * (0x9e180). Validates the forward vector, optionally transforms through the
+ * node matrix, then builds a 4x3 orientation matrix at output+4 with position
+ * embedded. */
+void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
+                  void *creation_info /* @<ebx> */)
+{
+  int16_t count = *(int16_t *)((char *)creation_info + 0x8);
+  int offset;
+  float *forwards_ptr;
+  float *positions_ptr;
+  void *node_matrix;
+  float local_position[3];
+  float local_forward[3];
+  float local_up[3];
+
+  if (marker_index < 0 || marker_index >= count) {
+    display_assert(
+      "effect_marker_index>=0 && effect_marker_index<marker_list->count",
+      "c:\\halo\\SOURCE\\effects\\effects.c", 0x460, 1);
+    system_exit(-1);
+  }
+
+  offset = (int)marker_index * 12;
+  forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
+
+  if (!valid_real_normal3d(forwards_ptr)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&marker_list->forwards[effect_marker_index]",
+             (double)forwards_ptr[0], (double)forwards_ptr[1],
+             (double)forwards_ptr[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x461, 1);
+    system_exit(-1);
+  }
+
+  *(int16_t *)output = *(int16_t *)creation_info;
+
+  node_matrix = *(void **)((char *)creation_info + 0x4);
+  if (node_matrix != 0) {
+    positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
+    matrix_transform_point((float *)node_matrix, positions_ptr, local_position);
+    matrix_transform_vector((float *)node_matrix, forwards_ptr, local_forward);
+  } else {
+    positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
+    local_position[0] = positions_ptr[0];
+    local_position[1] = positions_ptr[1];
+    local_position[2] = positions_ptr[2];
+    forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
+    local_forward[0] = forwards_ptr[0];
+    local_forward[1] = forwards_ptr[1];
+    local_forward[2] = forwards_ptr[2];
+  }
+
+  if (!valid_real_normal3d(local_forward)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&forward", (double)local_forward[0], (double)local_forward[1],
+             (double)local_forward[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x470, 1);
+    system_exit(-1);
+  }
+
+  perpendicular3d(local_forward, local_up);
+  normalize3d(local_up);
+  matrix4x3_from_forward_up_position((char *)output + 4, local_position,
+                                     local_forward, local_up);
 }
 
 void FUN_0009e310(void *effect)
@@ -1363,12 +1361,13 @@ void FUN_0009e310(void *effect)
               scale *= *(float *)(ef + 0x48);
 
             if (scale < 0.0f || scale > 1.0f)
-              error(2, "DIAG effect scale OOB: %f (A=%f B=%f flags=%02x/%02x) effect_tag=0x%x",
+              error(2,
+                    "DIAG effect scale OOB: %f (A=%f B=%f flags=%02x/%02x) "
+                    "effect_tag=0x%x",
                     (double)scale, (double)*(float *)(ef + 0x44),
                     (double)*(float *)(ef + 0x48),
                     *(uint8_t *)(loc_entry + 0x60),
-                    *(uint8_t *)(loc_entry + 0x64),
-                    *(int *)(ef + 4));
+                    *(uint8_t *)(loc_entry + 0x64), *(int *)(ef + 4));
 
             FUN_0009dcf0(position, effect, location, loc_entry, forward, up,
                          scale);
@@ -1734,6 +1733,126 @@ event_loop:
 
 delete_effect:
   ((void (*)(int))0x9c750)(effect_index);
+}
+
+/* Create a new effect attached to a specific object marker (0x9ee40).
+ * Validates inputs, allocates an effect datum via FUN_0009d2d0, fills colour/
+ * scale from the caller, stores attached_object handle, then — if debug
+ * logging is active — reports whether the effect is "violent" (attached unit
+ * recently received a damage event).  Builds a creation_info record with the
+ * looked-up node matrix for the requested marker index, memsets the per-event
+ * slot array, runs the marker-resolve callback (FUN_0009e560), and fires the
+ * first effect_update tick.  Returns the new effect datum index or NONE. */
+int FUN_0009ee40(int effect_tag_index, int object_index, int attached_object,
+                 uint16_t marker_index, short marker_count,
+                 void *effect_definition, float *marker_points,
+                 float *marker_forwards, float scale_a, float scale_b,
+                 float unknown1, float unknown2)
+{
+  int handle;
+  char *datum;
+  uint16_t masked_marker;
+  short creation_marker_count;
+  void *creation_effect_def;
+  float *creation_marker_pts;
+  float *creation_marker_fwd;
+  /* creation_info layout (24 bytes, matches FUN_0009f0e0):
+   *   [+0]  int16  marker_index (masked: NONE→0, else pass-through)
+   *   [+4]  int    node_matrix ptr (result of object_get_node_matrix)
+   *   [+8]  int16  marker_count
+   *   [+12] void*  effect_definition
+   *   [+16] float* marker_points
+   *   [+20] float* marker_forwards */
+  char creation_info[24];
+
+  if (attached_object == NONE) {
+    display_assert("object_index!=NONE", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x177, 1);
+    system_exit(-1);
+  }
+  if (marker_count < 1) {
+    display_assert("marker_count>0", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x179, 1);
+    system_exit(-1);
+  }
+  if (!marker_points) {
+    display_assert("marker_points", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x17b, 1);
+    system_exit(-1);
+  }
+  if (!marker_forwards) {
+    display_assert("marker_forwards", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x17c, 1);
+    system_exit(-1);
+  }
+  if (scale_a < *(float *)0x2533c0 || scale_a > *(float *)0x2533c8) {
+    csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)scale_a);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x17d, 1);
+    system_exit(-1);
+  }
+  if (scale_b < *(float *)0x2533c0 || scale_b > *(float *)0x2533c8) {
+    csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)scale_b);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x17e, 1);
+    system_exit(-1);
+  }
+
+  handle = FUN_0009d2d0(effect_tag_index, object_index, 1);
+  if (handle != NONE) {
+    datum = (char *)datum_get(effect_data, handle);
+    FUN_0009d430((int)datum, *(int *)&unknown1, *(int *)&unknown2, scale_a,
+                 scale_b);
+    *(int *)(datum + 0x3c) = attached_object;
+
+    /* violent-effect flag: check if attached unit recently had a damage event
+     */
+    if (*(bool *)0x2eebe0) {
+      if (FUN_0009c700(attached_object)) {
+        *(uint8_t *)(datum + 2) |= 0x40;
+      }
+    }
+
+    /* debug logging: report created effect with object and violence status */
+    if (*(bool *)0x4557e8) {
+      void *obj_data;
+      const char *obj_name;
+      const char *violent_str;
+      const char *eff_name;
+      obj_data = object_try_and_get_and_verify_type(attached_object, NONE);
+      if (obj_data == NULL) {
+        obj_name = "<none>";
+      } else {
+        obj_name = tag_name_strip_path(tag_get_name(*(int *)obj_data));
+      }
+      violent_str = (*(uint8_t *)(datum + 2) & 0x40) ?
+                      (const char *)0x26aa58 /* "violent " */
+                      :
+                      (const char *)0x25386f; /* "" */
+      eff_name = tag_name_strip_path(tag_get_name(effect_tag_index));
+      error(2, "created %sviolent %s on %s", violent_str, eff_name, obj_name);
+    }
+
+    /* build creation_info record */
+    masked_marker = (marker_index == 0xffff) ? 0 : marker_index;
+    creation_marker_count = marker_count;
+    creation_effect_def = effect_definition;
+    creation_marker_pts = marker_points;
+    creation_marker_fwd = marker_forwards;
+    *(int16_t *)(creation_info + 0) = (int16_t)masked_marker;
+    *(int *)(creation_info + 4) =
+      (int)object_get_node_matrix(attached_object, (int16_t)masked_marker);
+    *(int16_t *)(creation_info + 8) = creation_marker_count;
+    *(int *)(creation_info + 12) = (int)creation_effect_def;
+    *(int *)(creation_info + 16) = (int)creation_marker_pts;
+    *(int *)(creation_info + 20) = (int)creation_marker_fwd;
+
+    *(void **)0x4557e4 = creation_info;
+    csmemset(datum + 0x5c, -1, 0x80);
+    FUN_0009d4e0((int)datum, (void *)&FUN_0009e560);
+    effect_update(handle, 0.0f);
+  }
+  return handle;
 }
 
 /* Create a new effect instance (0x9f0e0).
