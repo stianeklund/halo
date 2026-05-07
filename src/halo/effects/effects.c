@@ -1968,16 +1968,10 @@ bool effects_update(float elapsed)
 {
   int effect_index;
 
-  if (profile_global_enable && *(bool *)0x2eebf0)
-    profile_enter_private((void *)0x2eebe8);
-
   for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
        effect_index = data_next_index(effect_data, effect_index)) {
     effect_update(effect_index, elapsed);
   }
-
-  if (profile_global_enable && *(bool *)0x2eebf0)
-    profile_exit_private((void *)0x2eebe8);
 
   return false;
 }

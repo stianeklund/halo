@@ -573,8 +573,11 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
 
   /* world position and orientation buffers */
   float pos[3]; /* projectile world position ([EBP-0x30]) */
-  float fwd[3]; /* projectile forward vector ([EBP-0x54]) */
-  float up_buf[3]; /* up-vector from *0x31fc50 ([EBP-0x48..0x40]) */
+  /* MSVC stack overlap: fwd[0..2] at [EBP-0x54], up_buf at [EBP-0x48] are
+   * contiguous. Effects system indexes forwards[1] when marker_count=2 and
+   * the event matches "gravity", reading what MSVC laid out as up_buf. */
+  float fwd[6]; /* [0..2]=forward, [3..5]=up (second marker forward) */
+  float up_buf[3]; /* temp for *0x31fc50; copied into fwd[3..5] */
   float parent_pos[3]; /* parent world position (local_b8) */
   float saved_vel[3]; /* saved proj object position at 0xc..0x14 */
 
@@ -699,14 +702,14 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   object_get_world_position(projectile_handle, (vector3_t *)pos);
   FUN_00141360(projectile_handle, fwd, up_buf);
 
-  /* Copy *0x31fc50 (global up vector ptr) into up_buf slots.
-   * These stores ([EBP-0x48,-0x44,-0x40]) are interleaved with PUSH setup
-   * in MSVC codegen; they are part of the stack frame used by FUN_0009f0e0
-   * but not actually read by it (the marker_forwards arg is &fwd, not &up_buf).
-   */
+  /* MSVC stack overlap: up_buf at [EBP-0x48] is the second marker forward
+   * (forwards[1]) when the effects system indexes with marker_count=2. */
   up_buf[0] = (*(float **)0x31fc50u)[0];
   up_buf[1] = (*(float **)0x31fc50u)[1];
   up_buf[2] = (*(float **)0x31fc50u)[2];
+  fwd[3] = up_buf[0];
+  fwd[4] = up_buf[1];
+  fwd[5] = up_buf[2];
 
   FUN_0009f0e0(effect_tag, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
                pos, fwd, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -1119,11 +1122,17 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   /* Damage params buffer (0xac bytes; see FUN_00136750). */
   char damage_params[0xac];
 
-  /* Marker/position arrays for FUN_0009ee40 / FUN_0009f0e0. */
-  float marker_points[5 * 3]; /* 5 marker positions (float[3] each) */
-  float marker_forwards[3];
-  float marker_up[3];
-
+  /* Marker/position arrays for FUN_0009ee40 / FUN_0009f0e0.
+   * MSVC stack overlap: marker_count=5 but only marker_forwards[0] is
+   * explicitly set.  In the MSVC layout the next 4 float[3] locals are
+   * contiguous and read as forwards[1..4] by the effects system:
+   *   [0] "normal"            — collision surface normal
+   *   [1] "incident"          — scaled normalised velocity
+   *   [2] "negative incident" — normalised velocity
+   *   [3] "reflection"        — velocity x normal (cross product)
+   *   [4] "gravity"           — global up vector (*0x31fc50)  */
+  float marker_points[5 * 3];
+  float marker_forwards[5 * 3];
   /* Surface-decompose buffers for result type 2 (deflect). */
   float proj_component[3];
   float perp_component[3];
@@ -1134,9 +1143,6 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
 
   /* Velocity copy passed to normalize / normalised direction. */
   float vel_local[3];
-
-  /* Up-vector buffer. */
-  float up_buf[3];
 
   /* ------------------------------------------------------------------ */
   /* 1. Resolve object and tag.                                          */
@@ -1514,21 +1520,34 @@ apply_speed_scale:
   {
     int k;
     float *mp;
-    dir_x = dir_x * *(float *)0x255e94;
-    /* dir_z unchanged (MSVC no-op scheduled store, preserved for marker_up). */
-    dir_y = dir_y * *(float *)0x255e94;
+    {
+      float scale_f = *(float *)0x255e94;
+      float *up_ptr = *(float **)0x31fc50;
 
-    up_buf[0] = *(float *)(*(int *)0x31fc50);
-    up_buf[1] = *(float *)(*(int *)0x31fc50 + 4);
-    up_buf[2] = *(float *)(*(int *)0x31fc50 + 8);
+      /* [0] "normal" — collision surface normal */
+      marker_forwards[0] = *(float *)((char *)col_result + 0x24);
+      marker_forwards[1] = *(float *)((char *)col_result + 0x28);
+      marker_forwards[2] = *(float *)((char *)col_result + 0x2c);
 
-    marker_forwards[0] = *(float *)((char *)col_result + 0x24);
-    marker_forwards[1] = *(float *)((char *)col_result + 0x28);
-    marker_forwards[2] = *(float *)((char *)col_result + 0x2c);
+      /* [1] "incident" — scaled normalised velocity */
+      marker_forwards[3] = vel_local[0] * scale_f;
+      marker_forwards[4] = vel_local[1] * scale_f;
+      marker_forwards[5] = vel_local[2] * scale_f;
 
-    /* arg1 = &vel_local (normalised dir), arg2 = col_result+0x24 (normal),
-     * arg3 = marker_up output.  EAX still held ESI+0x24 at the PUSH. */
-    FUN_0010c8e0(vel_local, (float *)((char *)col_result + 0x24), marker_up);
+      /* [2] "negative incident" — normalised velocity */
+      marker_forwards[6] = vel_local[0];
+      marker_forwards[7] = vel_local[1];
+      marker_forwards[8] = vel_local[2];
+
+      /* [3] "reflection" — cross product of velocity and surface normal */
+      FUN_0010c8e0(vel_local, (float *)((char *)col_result + 0x24),
+                   marker_forwards + 9);
+
+      /* [4] "gravity" — global up vector */
+      marker_forwards[12] = up_ptr[0];
+      marker_forwards[13] = up_ptr[1];
+      marker_forwards[14] = up_ptr[2];
+    }
 
     /* Fill 5 marker_points entries with col_result position. */
     mp = marker_points;
