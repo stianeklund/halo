@@ -358,6 +358,21 @@ def _load_frontier_priorities(limit: int) -> dict[str, dict]:
     return priorities
 
 
+def _load_structural_prescreens() -> dict[str, "FunctionFeatures"]:
+    """Run the structural pre-screener on delinked references.
+
+    Returns a dict keyed by function name with difficulty assessments.
+    Silently returns empty if the pre-screener is unavailable.
+    """
+    try:
+        from analysis.structural_prescreen import screen_all
+        results = screen_all()
+        return {r.name: r for r in results}
+    except Exception as exc:
+        log.debug("structural prescreen unavailable: %s", exc)
+        return {}
+
+
 def _select_targets(
     targets: list[LiftTarget],
     *,
@@ -365,6 +380,7 @@ def _select_targets(
     auto_threshold: int,
 ) -> list[SelectedTarget]:
     frontier = _load_frontier_priorities(frontier_limit)
+    structural = _load_structural_prescreens()
     selected: list[SelectedTarget] = []
 
     for target in targets:
@@ -386,6 +402,18 @@ def _select_targets(
             lane = "manual-lift"
         else:
             lane = "defer"
+
+        prescreen = structural.get(target.name)
+        if prescreen:
+            if prescreen.difficulty == "reject":
+                total_score -= 50
+                lane = "defer"
+                reasons.append(f"struct_reject=-50({','.join(prescreen.risk_factors)})")
+            elif prescreen.difficulty == "hard":
+                total_score -= 20
+                if lane == "auto-lift":
+                    lane = "manual-lift"
+                reasons.append(f"struct_hard=-20({','.join(prescreen.risk_factors)})")
 
         selected.append(SelectedTarget(
             target=target,
