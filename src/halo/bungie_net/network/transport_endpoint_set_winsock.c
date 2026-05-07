@@ -749,6 +749,81 @@ short FUN_00083a60(int *ep, void *addr)
   return (short)0xfff1;
 }
 
+/* Bind a transport endpoint to an address.
+ *
+ * If the socket is not yet created (== -1), creates one via FUN_00083930
+ * (regarg: ECX=af, EDX=type, EAX=protocol) using SOCK_STREAM=1 for TCP
+ * (ep->type==0x12) or SOCK_DGRAM=2 for UDP (ep->type==0x11). Converts
+ * the custom address format (host-order IP at addr[0], type at addr+0x10,
+ * host-order port at addr+0x12) into a sockaddr_in and calls xnet_bind
+ * (0x225197, stdcall 3 args).
+ *
+ * Returns 0 on success, -1 if socket creation fails or type is unknown,
+ * -14 (0xfff2) if bind fails.
+ *
+ * Confirmed: FUN_00083930 (0x83930, regarg ECX/EDX/EAX);
+ * xnet_bind (0x225197, stdcall 3 args);
+ * xapi_GetLastError (0x2235c4); winsock_error_report (0x83310, cdecl);
+ * transport_initialized at 0x335090; source lines 0x16c/0x16d.
+ */
+short FUN_00083ce0(int *ep, void *addr)
+{
+  int socket_result;
+  int bind_result;
+  int error_code;
+  short status;
+  uint32_t ip;
+  uint16_t port;
+  uint8_t sa[16];
+
+  status = 0;
+
+  assert_halt(ep && addr);
+  assert_halt(*(uint8_t *)0x335090);
+
+  if (*ep == -1) {
+    if (*(uint8_t *)((char *)ep + 5) == 0x12) {
+      socket_result = FUN_00083930(2, 1, 0);
+      *ep = socket_result;
+      if (socket_result != -1)
+        goto do_bind;
+      status = -1;
+    } else if (*(uint8_t *)((char *)ep + 5) == 0x11) {
+      socket_result = FUN_00083930(2, 2, 0);
+      *ep = socket_result;
+      if (socket_result != -1)
+        goto do_bind;
+      status = -1;
+    } else {
+      status = -12;
+    }
+    if (*ep == -1 || status != 0) {
+      *(uint16_t *)((char *)ep + 6) = 0xffff;
+      return -1;
+    }
+  }
+
+do_bind:
+  ip = *(uint32_t *)addr;
+  *(uint32_t *)(sa + 4) = (((ip & 0xff0000u) | (ip >> 16)) >> 8) |
+                          (((ip & 0xff00u) | (ip << 16)) << 8);
+  port = *(uint16_t *)((char *)addr + 0x12);
+  *(uint16_t *)(sa + 2) =
+    (uint16_t)(((uint16_t)(port << 8)) | ((uint16_t)(port >> 8)));
+  *(uint16_t *)sa = 2;
+
+  bind_result = xnet_bind(*ep, sa, 0x10);
+  if (bind_result == 0) {
+    *(int16_t *)((char *)ep + 6) = status;
+    return status;
+  }
+
+  error_code = xapi_GetLastError();
+  winsock_error_report(error_code);
+  *(int16_t *)((char *)ep + 6) = (int16_t)0xfff2;
+  return (short)0xfff2;
+}
+
 /* Close a transport endpoint's socket and clear its connected flag.
  *
  * If the endpoint's socket handle is not INVALID_SOCKET (-1), calls
