@@ -7345,8 +7345,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00082e50(int endpoint, void *buffer, int maxlen);",
-          "addr": "0x82e50"
+          "decl": "int recv_endpoint(int *ep, void *buffer, int maxlen);",
+          "addr": "0x82e50",
+          "ported": true
         },
         {
           "decl": "int send_endpoint(int *ep, const char *buf, int len);",
@@ -8725,6 +8726,10 @@
         {
           "decl": "int __stdcall FUN_00222df7(void *key);",
           "addr": "0x222df7"
+        },
+        {
+          "decl": "int __stdcall xnet_recv(int socket, void *buf, int len, int flags);",
+          "addr": "0x225bb6"
         },
         {
           "decl": "int __stdcall xnet_send(int socket, const char *buf, int len, int flags);",

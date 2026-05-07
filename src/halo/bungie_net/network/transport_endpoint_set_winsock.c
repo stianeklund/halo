@@ -242,6 +242,67 @@ void endpoint_pool_cleanup(void)
   } while ((int)entry < 0x3352a0);
 }
 
+/* Receive data from a transport endpoint.
+ *
+ * Calls xnet_recv (0x225bb6) with the socket handle stored at ep[0].
+ * On success returns the byte count from recv(); if recv returns 0
+ * (graceful close), returns -3 instead.
+ * On failure, classifies the Winsock error via xapi_GetLastError (0x2235c4):
+ *   WSAECONNRESET (0x2733)                      -> ep status = -4, return -4
+ *   WSAECONNABORTED/disconnect-family            -> ep status = -3, return -3
+ *     (0x2744/0x2745/0x2746/0x2749/0x274a/0x274c,
+ *      also clears bits 0 and 2 of ep flags byte at offset 4)
+ *   Any other error                              -> ep status = -2, return -2
+ *     (clears bit 2 only of ep flags byte at offset 4)
+ *
+ * ep struct layout (from disassembly):
+ *   [ep+0]  int      socket fd
+ *   [ep+4]  uint8_t  flags (bit 0 = connected, bit 2 = ?)
+ *   [ep+6]  int16_t  status/error code
+ *
+ * Confirmed: xnet_recv (0x225bb6, __stdcall 4 args);
+ * xapi_GetLastError (0x2235c4); assert strings at 0x26665c, 0x265fe4;
+ * switch jump table at 0x82f28; byte redirect table at 0x82f34;
+ * source lines 0x322/0x323.
+ */
+int recv_endpoint(int *ep, void *buffer, int maxlen)
+{
+  int result;
+  int error_code;
+
+  assert_halt(ep && buffer && (maxlen > 0));
+  assert_halt(*(uint8_t *)0x335090);
+
+  result = xnet_recv(ep[0], buffer, maxlen, 0);
+  if (result == -1) {
+    error_code = xapi_GetLastError();
+    switch (error_code) {
+    case 0x2733:
+      /* WSAECONNRESET — connection reset by peer. */
+      *(int16_t *)((char *)ep + 6) = -4;
+      return -4;
+    case 0x2744:
+    case 0x2745:
+    case 0x2746:
+    case 0x2749:
+    case 0x274a:
+    case 0x274c:
+      /* Disconnect-family errors — clear connected and another flag bit. */
+      *(uint8_t *)((char *)ep + 4) &= 0xfa;
+      *(int16_t *)((char *)ep + 6) = -3;
+      return -3;
+    default:
+      /* Unknown Winsock error — clear flag bit 2 only. */
+      *(uint8_t *)((char *)ep + 4) &= 0xfb;
+      *(int16_t *)((char *)ep + 6) = -2;
+      return -2;
+    }
+  }
+  if (result == 0)
+    result = -3;
+  return result;
+}
+
 /* Send data over a transport endpoint.
  *
  * Calls xnet_send (0x225c20) with the socket handle stored at ep[0].
