@@ -53,6 +53,8 @@ Steps:
 6. Write the implementation directly to the source file at the correct
    address-ordered position.
 7. If the `kb.json` declaration needs updating, update it conservatively.
+   If the target or any callee has `@<reg>` annotations, also add/update
+   `tools/kb_reg_baseline.json` — the pre-commit hook requires these in sync.
 8. Run `rtk python3 tools/analysis/maintain.py <source_file>` to sort and reformat.
 9. Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits and fix any target-relevant hazards.
 
