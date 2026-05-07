@@ -335,3 +335,60 @@ void FUN_000f8590(int projectile_handle)
     *(float *)(obj + 0x224) = *(float *)0x2533c8;
   }
 }
+
+/* Initialise the projectile's parabolic detonation-radius cache fields
+ * (proj+0x20c, proj+0x210, proj+0x208, proj+0x204).
+ *
+ * Fetches the 'proj' tag definition for the object, then selects between two
+ * sets of tag range fields based on bit 4 of the object flags byte at proj+4:
+ *
+ *   bit4 SET   (detonating state):
+ *     range_begin = tag+0x1dc, range_end = tag+0x1e0
+ *     compare field for threshold: tag+0x1dc
+ *   bit4 CLEAR (non-detonating state):
+ *     range_begin = tag+0x1d0, range_end = tag+0x1d4
+ *     compare field for threshold: tag+0x1d0
+ *
+ * For both branches:
+ *   proj+0x20c = FUN_000f7fa0(tag, range_begin, range_end)  [parabolic apex]
+ *   proj+0x210 = tag+0x1e0  [raw end-range copy]
+ *   If range_begin > 0.0:
+ *     proj+0x208 = range_begin / tag+0x1e4
+ *   Else (range_begin <= 0.0 or zero threshold):
+ *     proj+0x204 = 1.0f
+ *     proj+0x208 = 0.0f
+ *
+ * Called with projectile_handle in EAX (register arg). */
+void FUN_000f8640(int projectile_handle)
+{
+  char *proj;
+  char *tag_def;
+  float range_begin;
+  float ratio;
+
+  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  tag_def = (char *)tag_get(0x70726f6a, *(int *)proj);
+
+  if (*(uint8_t *)(proj + 0x4) & 0x10) {
+    /* detonating branch: use tag offsets 0x1dc/0x1e0 */
+    *(float *)(proj + 0x20c) = FUN_000f7fa0(
+      tag_def, *(float *)(tag_def + 0x1dc), *(float *)(tag_def + 0x1e0));
+    *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1e0);
+    range_begin = *(float *)(tag_def + 0x1dc);
+  } else {
+    /* non-detonating branch: use tag offsets 0x1d0/0x1d4 */
+    *(float *)(proj + 0x20c) = FUN_000f7fa0(
+      tag_def, *(float *)(tag_def + 0x1d0), *(float *)(tag_def + 0x1d4));
+    *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1e0);
+    range_begin = *(float *)(tag_def + 0x1d0);
+  }
+
+  if (range_begin > *(float *)0x2533c0) {
+    ratio = range_begin / *(float *)(tag_def + 0x1e4);
+    *(float *)(proj + 0x208) = ratio;
+    return;
+  }
+
+  *(float *)(proj + 0x204) = 1.0f;
+  *(float *)(proj + 0x208) = 0.0f;
+}

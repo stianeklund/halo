@@ -5722,8 +5722,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f8640(void);",
-          "addr": "0xf8640"
+          "decl": "void FUN_000f8640(int projectile_handle@<eax>);",
+          "addr": "0xf8640",
+          "ported": true
         },
         {
           "decl": "void FUN_000f8720(void);",
