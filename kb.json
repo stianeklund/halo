@@ -776,6 +776,10 @@
           "ported": true
         },
         {
+          "addr": "0x425c0",
+          "decl": "void FUN_000425c0(int object_handle, float *position, short effect_type, short volume, short count);"
+        },
+        {
           "decl": "bool FUN_00041590(int actor_handle, int excluded_handle, float *origin, float *offset, int *result_out);",
           "addr": "0x41590",
           "ported": true
@@ -5732,8 +5736,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f8920(void);",
-          "addr": "0xf8920"
+          "decl": "void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time);",
+          "addr": "0xf8920",
+          "ported": true
         },
         {
           "decl": "int FUN_000f8d30(int projectile_handle);",

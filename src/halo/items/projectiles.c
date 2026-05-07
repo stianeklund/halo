@@ -530,3 +530,245 @@ bool FUN_000f8720(int projectile_handle, float *new_pos,
 
   return 0;
 }
+
+/* Detonate a projectile: fire effects, apply area damage, notify AI.
+ *
+ * param_1 (projectile_handle): datum handle of the projectile object.
+ * param_2 (has_hit_count): non-zero if the projectile has accumulated a hit
+ *   counter (used to decide whether to update the contrail attachment state).
+ * param_3 (current_time): current game time in seconds; used to compute the
+ *   contrail delta-time argument.
+ *
+ * Flow:
+ *   1. If the tag has the burst-fire flag (bit 3 at tag+0x17c) and the
+ *      projectile has a parent with more than 6 siblings of the same type,
+ *      kill or randomize the excess siblings' velocities and then
+ *      detach from the parent and reposition at the burst centre.
+ *   2. If has_hit_count and the projectile has a valid contrail attachment,
+ *      compute node matrices and set the contrail state.
+ *   3. Fire the primary effect at the projectile's world position.
+ *   4. If the projectile has a parent and the tag has splash-damage data
+ *      (tag+0x220), apply area damage to the scene.
+ *   5. Look up the detonation-effect index (proj+0x1e2); fire a per-slot
+ *      secondary effect if the index is valid.
+ *   6. Notify the AI subsystem of the detonation position.
+ *
+ * Binary: 0x000f8920 in projectiles.obj.
+ * Confirmed: prototype from caller FUN_000f9c40 @ 0xfab65
+ *   (SETZ AL for param_2, EDX=[EBP-0x18] for param_3, ECX=[EBP+8] for param_1).
+ */
+void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
+{
+  char *proj; /* projectile object data pointer (type 0x20) */
+  char *proj_tag; /* projectile tag data pointer (group 'proj') */
+  int effect_tag; /* current effect tag index; updated in burst block */
+  void *effect_def[2]; /* effect definition passed to FUN_0009f0e0 */
+
+  /* burst-limit locals */
+  char *parent_obj; /* type-any parent object ptr */
+  int sibling; /* datum handle of current sibling in child list */
+  char *sibling_base; /* type-any sibling object ptr */
+  char *sibling_proj; /* type-0x20 sibling projectile ptr */
+  int count; /* count of active same-type siblings */
+
+  /* world position and orientation buffers */
+  float pos[3]; /* projectile world position ([EBP-0x30]) */
+  float fwd[3]; /* projectile forward vector ([EBP-0x54]) */
+  float up_buf[3]; /* up-vector from *0x31fc50 ([EBP-0x48..0x40]) */
+  float parent_pos[3]; /* parent world position (local_b8) */
+  float saved_vel[3]; /* saved proj object position at 0xc..0x14 */
+
+  /* damage params for area damage (0xac bytes as in FUN_00136750) */
+  char damage_params[0xac];
+  float fwd2[3]; /* forward buf for area-damage FUN_00141360 ([EBP-0x74]) */
+  float pos2[3]; /* world pos for area-damage FUN_001412f0 ([EBP-0x8c]) */
+
+  /* secondary detonation effect */
+  short det_idx; /* proj->detonation_effect_index at proj+0x1e2 */
+  void *det_entry; /* pointer to tag-block element */
+  int det_effect;
+
+  /* AI notification */
+  short ai_volume;
+
+  /* --- Setup. --- */
+  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  proj_tag = (char *)tag_get(0x70726f6a, *(int *)proj);
+  effect_tag = *(int *)(proj_tag + 0x1b8);
+
+  /* Effect definition struct: two pointer-sized globals on the stack. */
+  effect_def[0] = (void *)0x25386fu; /* DAT_0025386f */
+  effect_def[1] = (void *)0x26ad40u; /* "gravity" marker name string */
+
+  /* --- Block 1: Burst-fire sibling count limit. ---
+   * Condition: tag flag bit 3 at +0x17c (burst-limit enabled),
+   *            proj not already detonating (bit 6 at +0x1dc clear),
+   *            projectile has a valid parent (proj+0xcc != -1). */
+  if (((*(uint8_t *)(proj_tag + 0x17c) & 8u) != 0) &&
+      ((*(uint8_t *)(proj + 0x1dc) & 0x40u) == 0) &&
+      (*(int *)(proj + 0xcc) != -1)) {
+    parent_obj = (char *)object_get_and_verify_type(*(int *)(proj + 0xcc), -1);
+    sibling = *(int *)(parent_obj + 0xc8); /* first child */
+    count = 0;
+
+    /* Count siblings with the same tag group that are not detonating. */
+    while (sibling != -1) {
+      sibling_base = (char *)object_get_and_verify_type(sibling, -1);
+      if (*(int *)sibling_base == *(int *)proj) {
+        sibling_proj = (char *)object_get_and_verify_type(sibling, 0x20);
+        if ((*(uint8_t *)(sibling_proj + 0x1dc) & 0x40u) == 0)
+          count++;
+      }
+      sibling = *(int *)(sibling_base + 0xc4);
+    }
+
+    /* Proceed if: parent has no weapon (short at +0x64 == 0),
+     * game engine not running or game_engine_running() returns true,
+     * and (short)count > 6. */
+    if ((*(short *)(parent_obj + 0x64) == 0) &&
+        ((*(int *)((char *)object_get_and_verify_type(*(int *)(proj + 0xcc),
+                                                      1) +
+                   0x1c8) == -1) ||
+         game_engine_running()) &&
+        ((short)count > 6)) {
+      sibling = *(int *)(parent_obj + 0xc8);
+      while (sibling != -1) {
+        sibling_base = (char *)object_get_and_verify_type(sibling, -1);
+        if (*(int *)sibling_base == *(int *)proj) {
+          sibling_proj = (char *)object_get_and_verify_type(sibling, 0x20);
+          if ((*(uint8_t *)(sibling_proj + 0x1dc) & 0x40u) == 0) {
+            /* Second lookup: get proj ptr for mutation. */
+            sibling_proj = (char *)object_get_and_verify_type(sibling, 0x20);
+            if ((short)count <= 6) {
+              /* Remaining (<=6): mark detonating, randomize vel. */
+              *(uint32_t *)(sibling_proj + 0x1dc) |= 0x40u;
+              *(float *)(sibling_proj + 0x1f0) *=
+                random_math_real((unsigned int *)get_global_random_seed_address());
+              *(float *)(sibling_proj + 0x1f8) *=
+                random_math_real((unsigned int *)get_global_random_seed_address());
+            } else {
+              /* Excess (>6): zero angular/linear velocity. */
+              *(float *)(sibling_proj + 0x1f0) = 0.0f;
+              *(float *)(sibling_proj + 0x1f8) = 0.0f;
+            }
+            count--;
+          }
+        }
+        sibling = *(int *)(sibling_base + 0xc4);
+      }
+
+      /* Switch effect to burst-centre effect (tag+0x198). */
+      effect_tag = *(int *)(proj_tag + 0x198);
+
+      /* Detach from parent and reposition at burst centre. */
+      object_get_world_position(*(int *)(proj + 0xcc), (vector3_t *)parent_pos);
+      object_detach_from_parent(projectile_handle);
+
+      /* Save projectile position from obj+0xc. */
+      saved_vel[0] = *(float *)(proj + 0xc);
+      saved_vel[1] = *(float *)(proj + 0x10);
+      saved_vel[2] = *(float *)(proj + 0x14);
+
+      FUN_00143be0(projectile_handle, parent_pos, (void *)0);
+      object_try_place(projectile_handle, saved_vel);
+      object_update_children_recursive(projectile_handle);
+    }
+  }
+
+  /* (EBX restored from [EBP-8] = proj_tag; EDI restored from [EBP+8] = param_1.
+   * In C these variables are unchanged.) */
+
+  /* --- Block 2: Contrail attachment update. ---
+   * Only if has_hit_count, and attachment index and contrail handle are valid.
+   */
+  if (has_hit_count && (*(int *)(proj + 0x1ec) != -1) &&
+      (*(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) != -1)) {
+    object_compute_node_matrices(projectile_handle);
+
+    /* contrail_set_state_for_object(contrail_handle, reset_points, dt):
+     * dt = (DAT_0028ab38) * (*(float*)0x2533c8 - current_time).
+     * Binary: FLD 0x2533c8; FSUB [EBP+0x10]; FMUL 0x28ab38;
+     *         FSTP [ESP]; PUSH 0; PUSH ECX; CALL 0x986d0.
+     * This is the push-then-fstp float argument pattern. */
+    contrail_set_state_for_object(
+      *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4), 0,
+      (*(float *)0x2533c8u - current_time) * *(float *)0x28ab38u);
+  }
+
+  /* --- Block 3: Primary effect at projectile world position. --- */
+  object_get_world_position(projectile_handle, (vector3_t *)pos);
+  FUN_00141360(projectile_handle, fwd, up_buf);
+
+  /* Copy *0x31fc50 (global up vector ptr) into up_buf slots.
+   * These stores ([EBP-0x48,-0x44,-0x40]) are interleaved with PUSH setup
+   * in MSVC codegen; they are part of the stack frame used by FUN_0009f0e0
+   * but not actually read by it (the marker_forwards arg is &fwd, not &up_buf).
+   */
+  up_buf[0] = (*(float **)0x31fc50u)[0];
+  up_buf[1] = (*(float **)0x31fc50u)[1];
+  up_buf[2] = (*(float **)0x31fc50u)[2];
+
+  FUN_0009f0e0(effect_tag, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
+               pos, fwd, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+  /* --- Block 4: Area damage (if parent valid and tag has splash entry). --- */
+  if ((*(int *)(proj + 0xcc) != -1) && (*(int *)(proj_tag + 0x220) != -1)) {
+    FUN_00136750(damage_params, *(int *)(proj_tag + 0x220));
+
+    /* Set "area damage" flag bit 3 (at damage_params+4). */
+    *(uint32_t *)(damage_params + 4) |= 8u;
+
+    /* Forward only (no up needed). */
+    FUN_00141360(projectile_handle, fwd2, (float *)0);
+
+    /* Get world position for damage origin. */
+    object_get_world_position(projectile_handle, (vector3_t *)pos2);
+
+    /* Store position into damage_params (offsets from disasm:
+     * [EBP-0x80] = damage_params+0x28, [EBP-0x7c] = +0x2c, [EBP-0x78] = +0x30).
+     * Confirmed by: MOV [EBP-0x80],EDX; MOV [EBP-0x7c],EAX; MOV [EBP-0x78],ECX
+     * where damage_params base = [EBP-0xa8]. */
+    *(float *)(damage_params + 0x28) = pos2[0];
+    *(float *)(damage_params + 0x2c) = pos2[1];
+    *(float *)(damage_params + 0x30) = pos2[2];
+
+    /* Object-index and team fields.
+     * [EBP-0x9c] = damage_params+0x0c = obj+0x74 (object index).
+     * [EBP-0xa0] = damage_params+0x08 = obj+0x70.
+     * [EBP-0x98] = damage_params+0x10 = word at obj+0x68 (team). */
+    *(int *)(damage_params + 0x0c) = *(int *)(proj + 0x74);
+    *(int *)(damage_params + 0x08) = *(int *)(proj + 0x70);
+    *(short *)(damage_params + 0x10) = *(short *)(proj + 0x68);
+
+    FUN_00137d20(damage_params, *(int *)(proj + 0xcc), (short)-1, (short)-1,
+                 (short)-1, 0u);
+  }
+
+  /* --- Block 5: Secondary detonation effect by per-slot index. ---
+   * proj->detonation_effect_index at proj+0x1e2 (short).
+   * If -1: skip. If negative (but not -1): use global null entry 0x31ed08.
+   * If out of range: same null entry. Otherwise: tag_block_get_element. */
+  det_idx = *(short *)(proj + 0x1e2);
+
+  if (det_idx != (short)-1) {
+    if (det_idx < 0) {
+      det_entry = (void *)0x31ed08u;
+    } else if ((int)det_idx >= *(int *)(proj_tag + 0x240)) {
+      det_entry = (void *)0x31ed08u;
+    } else {
+      det_entry =
+        tag_block_get_element((void *)(proj_tag + 0x240), (int)det_idx, 0xa0);
+    }
+
+    det_effect = *(int *)((char *)det_entry + 0x74);
+    FUN_0009f0e0(det_effect, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
+                 pos, fwd, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+  }
+
+  /* --- Block 6: Notify AI of detonation position. ---
+   * FUN_000425c0(object_handle, position, effect_type, volume, count).
+   * proj_tag+0x1f0 = AI sound volume category (short).
+   * effect_type=2 (explosive), count=1. */
+  ai_volume = *(short *)(proj_tag + 0x1f0);
+  FUN_000425c0(projectile_handle, pos, (short)2, ai_volume, (short)1);
+}
