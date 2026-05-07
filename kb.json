@@ -1870,6 +1870,11 @@
           "ported": true
         },
         {
+          "decl": "bool FUN_0009c700(int object_handle@<eax>);",
+          "addr": "0x9c700",
+          "note": "returns true if attached object is a unit that was recently violent (has damage event within 30 ticks)"
+        },
+        {
           "decl": "void FUN_0009c750(int effect_handle);",
           "addr": "0x9c750",
           "ported": true
@@ -1973,7 +1978,8 @@
         },
         {
           "decl": "int FUN_0009ee40(int effect_tag_index, int object_index, int attached_object, uint16_t marker_index, short marker_count, void *effect_definition, float *marker_points, float *marker_forwards, float scale_a, float scale_b, float unknown1, float unknown2);",
-          "addr": "0x9ee40"
+          "addr": "0x9ee40",
+          "ported": true
         },
         {
           "decl": "int FUN_0009f0e0(int effect_tag_index, int object_index, float *translational_velocity, short marker_count, void *effect_definition, float *marker_points, float *marker_forwards, float scale_a, float scale_b, float unknown1, float unknown2, float unknown3);",
