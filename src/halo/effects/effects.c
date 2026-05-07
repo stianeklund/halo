@@ -26,6 +26,34 @@ void effects_dispose(void)
     effect_location_data = 0;
 }
 
+/* Check whether an object is a unit that was recently violent (0x9c700).
+ * Returns true if:
+ *   - object_handle resolves to a unit (type_mask=1),
+ *   - the unit has its "violent" flag set (byte at offset 0xb6, bit 0x4), AND
+ *   - the unit's last violence tick (offset 0x3cc) plus 30 is less than the
+ *     current game tick — i.e., the violence event is more than 30 ticks old.
+ * Returns false if any check fails or if last_violent_time is NONE (-1).
+ */
+bool FUN_0009c700(int object_handle)
+{
+  char *unit;
+  int last_violent_time;
+  int current_tick;
+
+  unit = (char *)object_try_and_get_and_verify_type(object_handle, 1);
+  if (!unit)
+    return false;
+  if (!(*(uint8_t *)(unit + 0xb6) & 0x4))
+    return false;
+  last_violent_time = *(int *)(unit + 0x3cc);
+  if (last_violent_time == -1)
+    return false;
+  current_tick = game_time_get();
+  if (last_violent_time + 0x1e >= current_tick)
+    return false;
+  return true;
+}
+
 /* Delete an effect and all its per-event datum chains (0x9c750).
  * For each event in the effect tag, walks the linked list of event datums
  * starting at effect+0x5c+i*4 and deletes each from the event datum pool
