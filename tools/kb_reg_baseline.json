@@ -1,5 +1,6 @@
 {
   "functions": {
+    "0x83930": "int FUN_00083930(int af @<ecx>, int type @<edx>, int protocol @<eax>);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
     "0x21130": "void actor_combat_get_weapon_vector(int actor_handle @<eax>, float *weapon_vector @<ebx>);",
     "0x21270": "void actor_combat_get_burst_parameters(int actor_handle @<eax>, void *actv @<ecx>, void **burst_ref, void **firing_ref);",

@@ -7365,9 +7365,17 @@
           "ported": true
         },
         {
+          "decl": "int FUN_00083930(int af @<ecx>, int type @<edx>, int protocol @<eax>);",
+          "addr": "0x83930"
+        },
+        {
           "decl": "short FUN_00083a60(int *ep, void *addr);",
           "addr": "0x83a60",
           "ported": true
+        },
+        {
+          "decl": "short FUN_00083ce0(int *ep, void *addr);",
+          "addr": "0x83ce0"
         },
         {
           "decl": "void close_endpoint(int *ep);",
@@ -7375,8 +7383,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00084520(int endpoint, void *buffer, int maxlen, void *addr);",
-          "addr": "0x84520"
+          "decl": "int FUN_00084520(int *ep, void *buffer, int length, void *addr);",
+          "addr": "0x84520",
+          "ported": true
         },
         {
           "decl": "void destroy_endpoint(int *ep);",
@@ -8748,6 +8757,10 @@
         {
           "decl": "int __stdcall xnet_closesocket(int socket);",
           "addr": "0x225cc6"
+        },
+        {
+          "decl": "int __stdcall xnet_recvfrom(int socket, void *buf, int len, int flags, void *from, int *fromlen);",
+          "addr": "0x225cd1"
         }
       ]
     },

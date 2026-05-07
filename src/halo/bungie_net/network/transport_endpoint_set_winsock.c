@@ -784,6 +784,99 @@ void close_endpoint(int *ep)
   *(uint8_t *)((char *)ep + 4) &= 0xfe;
 }
 
+/* Receive a UDP datagram and return the sender's address.
+ *
+ * If the endpoint's socket is not yet created (== -1), creates a UDP socket
+ * via FUN_00083930 (regarg: ECX=af, EDX=type, EAX=protocol) and binds to
+ * any address/port via FUN_00083ce0. Then calls xnet_recvfrom (0x225cd1,
+ * stdcall 6 args). On success, converts the sender's sockaddr_in to the
+ * custom address format: addr[0]=ntohl(ip), addr+0x10=4, addr+0x12=ntohs(port).
+ * On failure, classifies the Winsock error:
+ *   WSAEWOULDBLOCK (0x2733) -> return -4
+ *   Disconnect family (0x2744-0x274c) -> clear bits 0,2 of flags, return -3
+ *   Other -> clear bit 2 of flags, return -2
+ *
+ * Confirmed: FUN_00083930 (0x83930, regarg ECX/EDX/EAX, creates socket);
+ * FUN_00083ce0 (0x83ce0, cdecl 2 args, binds endpoint);
+ * xnet_recvfrom (0x225cd1, stdcall 6 args);
+ * xapi_GetLastError (0x2235c4); transport_initialized at 0x335090.
+ * Assert strings at 0x266db0/0x266618; source lines 0x377-0x38b.
+ */
+int FUN_00084520(int *ep, void *buffer, int length, void *addr)
+{
+  int socket_result;
+  short bind_result;
+  int recv_result;
+  int error_code;
+  uint32_t bind_addr[6];
+  uint8_t from_addr[16];
+  int from_len;
+  uint32_t ip;
+  uint16_t port;
+
+  from_len = 0x10;
+
+  assert_halt(ep && buffer && addr && (length > 0));
+  assert_halt(*(uint8_t *)0x335090);
+
+  if (*ep == -1) {
+    assert_halt(*(uint8_t *)((char *)ep + 5) == 0x11);
+
+    socket_result = FUN_00083930(2, 2, 0);
+    *ep = socket_result;
+    if (socket_result != -1) {
+      bind_addr[0] = 0;
+      bind_addr[1] = 0;
+      bind_addr[2] = 0;
+      bind_addr[3] = 0;
+      bind_addr[4] = 0;
+      bind_addr[5] = 0;
+      *(uint16_t *)&bind_addr[4] = 4;
+
+      bind_result = FUN_00083ce0(ep, (void *)bind_addr);
+      assert_halt(bind_result == 0);
+
+      if (*ep != -1)
+        goto do_recvfrom;
+    }
+    *(uint16_t *)((char *)ep + 6) = 0xffff;
+  } else {
+  do_recvfrom:
+    assert_halt(!(*(uint8_t *)((char *)ep + 4) & 1));
+
+    recv_result = xnet_recvfrom(*ep, buffer, length, 0, from_addr, &from_len);
+    if (recv_result != -1) {
+      if (recv_result >= 0) {
+        ip = *(uint32_t *)(from_addr + 4);
+        *(uint32_t *)addr = (((ip & 0xff0000u) | (ip >> 16)) >> 8) |
+                            (((ip & 0xff00u) | (ip << 16)) << 8);
+        *(uint16_t *)((char *)addr + 0x10) = 4;
+        port = *(uint16_t *)(from_addr + 2);
+        *(uint16_t *)((char *)addr + 0x12) =
+          (uint16_t)(((uint16_t)(port << 8)) | ((uint16_t)(port >> 8)));
+      }
+      return recv_result;
+    }
+  }
+
+  error_code = xapi_GetLastError();
+  switch (error_code) {
+  case 0x2733:
+    return -4;
+  case 0x2744:
+  case 0x2745:
+  case 0x2746:
+  case 0x2749:
+  case 0x274a:
+  case 0x274c:
+    *(uint8_t *)((char *)ep + 4) &= 0xfa;
+    return -3;
+  default:
+    *(uint8_t *)((char *)ep + 4) &= 0xfb;
+    return -2;
+  }
+}
+
 /* Destroy a transport endpoint: close its socket, free memory, cleanup pool.
  *
  * Calls close_endpoint (0x84000) to close the underlying socket and clear
