@@ -297,3 +297,41 @@ int FUN_000f8410(float speed, float *origin, float *target, float *aim_vector,
 
   return 1;
 }
+
+/* Compute projectile velocity direction and speed angle from the velocity
+ * stored at obj+0x3c (vx/vy/vz). If the speed magnitude is non-zero, sets
+ * the velocity-valid flag (bit 0 at obj+0x1dc), stores the normalized
+ * direction into obj+0x214..0x21c, and stores sin(speed)/cos(speed) at
+ * obj+0x220/0x224. If speed is zero, clears the flag and stores sin=0,
+ * cos=1. Takes projectile_handle in EAX (register arg). */
+void FUN_000f8590(int projectile_handle)
+{
+  char *obj;
+  float vx, vy, vz;
+  float speed;
+  float inv_speed;
+  uint32_t flags;
+
+  obj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+
+  vx = *(float *)(obj + 0x3c);
+  vy = *(float *)(obj + 0x40);
+  vz = *(float *)(obj + 0x44);
+  speed = sqrtf(vx * vx + vy * vy + vz * vz);
+
+  flags = *(uint32_t *)(obj + 0x1dc);
+
+  if (speed != *(float *)0x2533c0) {
+    inv_speed = *(float *)0x2533c8 / speed;
+    *(uint32_t *)(obj + 0x1dc) = flags | 0x1u;
+    *(float *)(obj + 0x214) = inv_speed * vx;
+    *(float *)(obj + 0x218) = inv_speed * vy;
+    *(float *)(obj + 0x21c) = inv_speed * vz;
+    *(float *)(obj + 0x220) = sinf(speed);
+    *(float *)(obj + 0x224) = cosf(speed);
+  } else {
+    *(uint32_t *)(obj + 0x1dc) = flags & ~0x1u;
+    *(float *)(obj + 0x220) = 0.0f;
+    *(float *)(obj + 0x224) = *(float *)0x2533c8;
+  }
+}

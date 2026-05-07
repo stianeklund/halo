@@ -5717,8 +5717,9 @@
           "addr": "0xf84d0"
         },
         {
-          "decl": "void FUN_000f8590(void);",
-          "addr": "0xf8590"
+          "decl": "void FUN_000f8590(int projectile_handle@<eax>);",
+          "addr": "0xf8590",
+          "ported": true
         },
         {
           "decl": "void FUN_000f8640(void);",
