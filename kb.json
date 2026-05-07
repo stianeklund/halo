@@ -5688,8 +5688,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f7fa0(void);",
-          "addr": "0xf7fa0"
+          "decl": "float FUN_000f7fa0(void *tag @<ecx>, float range_begin, float range_end);",
+          "addr": "0xf7fa0",
+          "ported": true
         },
         {
           "decl": "void FUN_000f8000(void);",

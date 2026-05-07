@@ -179,3 +179,30 @@ void FUN_000f7ec0(int projectile_handle)
     counter--;
   } while (counter != 0);
 }
+
+/* Compute the peak-intercept fraction for a projectile detonation range.
+ * Given a tag struct (via ECX) with two radius values at offsets 0x1e4 and
+ * 0x1e8, and a range [range_begin, range_end], returns the position within
+ * the range at which a parabolic distribution peaked:
+ *   result = (r1^2 - r2^2) / (2 * (range_end - range_begin))
+ * Returns 0.0 if the two radii are equal or if the range width is zero.
+ * Used by the projectile trajectory system to locate the apex of a parabolic
+ * detonation-effect distribution along the projectile's travel path. */
+float FUN_000f7fa0(void *tag, float range_begin, float range_end)
+{
+  float delta;
+  float r1;
+  float r2;
+
+  delta = range_end - range_begin;
+  r1 = *(float *)((char *)tag + 0x1e4);
+  r2 = *(float *)((char *)tag + 0x1e8);
+
+  if (r1 == r2) {
+    return 0.0f;
+  }
+  if (delta == 0.0f) {
+    return 0.0f;
+  }
+  return (r1 * r1 - r2 * r2) / (delta + delta);
+}
