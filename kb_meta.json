@@ -330,6 +330,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3c410": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "*(float**)0x31fc3c points to a default {1.0f,0.0f,0.0f} facing vec3 (unit X-axis), used to initialize three actor orientation fields at +0x5a4, +0x5b0, +0x5bc."
+      ],
+      "uncertain": [
+        "*(float*)0x2533c0 is a float threshold compared against actr[0x90] (never_dormant_chance); value is 0.0f in the static image, runtime semantics unclear."
+      ]
+    },
     "0x3ca40": {
       "kind": "function",
       "status": "ported"
@@ -662,6 +672,10 @@
       "status": "ported"
     },
     "0x82d30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x82e50": {
       "kind": "function",
       "status": "ported"
     },
@@ -1093,6 +1107,14 @@
     "0x97d40": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x97e40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function uses a stack-residual calling pattern for tag_block_get_element: after calling tag_get (2 args) with 6 pushes, only 2 args are cleaned, leaving EDX (datum[0xc] index) and 0x48 (element size) on the stack for tag_block_get_element to consume along with the newly pushed block pointer.",
+        "FUN_0018f230 is a 4-arg wrapper for scenario_location_from_point that discards args 2 and 3, passing only arg1 (location_out) and arg4 (point); the C lift calls scenario_location_from_point directly as an equivalent."
+      ]
     },
     "0x986d0": {
       "kind": "function",
