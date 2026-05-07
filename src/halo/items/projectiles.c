@@ -124,3 +124,58 @@ void FUN_000f7e60(int effect_tag_index, int object_index, void *tag_def,
                  1);
   }
 }
+
+/* For each of the 4 scale slots in a projectile's tag definition, compute the
+ * current scale value based on the selector enum at tag[0x184 + i*2]:
+ *   0 = skip (leave projectile float unchanged)
+ *   1 = age fraction: projectile[0x200] / tag[0x1c8]; 0.0 if tag[0x1c8]==0.0
+ *   2 = raw float from projectile[0x1f0]
+ *   3 = armed flag: 1.0 if projectile[0x1dc] & 0x2, else 0.0
+ * Writes the result to projectile[0xd4 + i*4] (four consecutive float slots).
+ * Asserts (halts) on any selector value outside 0..3. */
+void FUN_000f7ec0(int projectile_handle)
+{
+  char *proj;
+  char *tag;
+  int16_t *sel_ptr;
+  float *out_ptr;
+  float local_8;
+  int16_t sel;
+  int counter;
+
+  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  tag = (char *)tag_get(0x70726f6a, *(int *)proj);
+
+  sel_ptr = (int16_t *)(tag + 0x184);
+  out_ptr = (float *)(proj + 0xd4);
+  counter = 4;
+
+  do {
+    sel = *sel_ptr;
+    if (sel != 0) {
+      if (sel == 1) {
+        if (*(float *)(tag + 0x1c8) == 0.0f) {
+          local_8 = 0.0f;
+        } else {
+          local_8 = *(float *)(proj + 0x200) / *(float *)(tag + 0x1c8);
+        }
+      } else if (sel == 2) {
+        local_8 = *(float *)(proj + 0x1f0);
+      } else if (sel == 3) {
+        if (*(uint8_t *)(proj + 0x1dc) & 0x2) {
+          local_8 = 1.0f;
+        } else {
+          local_8 = 0.0f;
+        }
+      } else {
+        display_assert(0, "c:\\halo\\SOURCE\\items\\projectiles.c", 0x622, 1);
+        system_exit(-1);
+        local_8 = 0.0f;
+      }
+      *out_ptr = local_8;
+    }
+    sel_ptr++;
+    out_ptr++;
+    counter--;
+  } while (counter != 0);
+}

@@ -5684,7 +5684,8 @@
         },
         {
           "decl": "void FUN_000f7ec0(int projectile_handle);",
-          "addr": "0xf7ec0"
+          "addr": "0xf7ec0",
+          "ported": true
         },
         {
           "decl": "void FUN_000f7fa0(void);",
