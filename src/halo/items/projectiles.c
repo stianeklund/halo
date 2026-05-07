@@ -206,3 +206,28 @@ float FUN_000f7fa0(void *tag, float range_begin, float range_end)
   }
   return (r1 * r1 - r2 * r2) / (delta + delta);
 }
+
+/* Arm a projectile and detach it from its parent object.
+ * Asserts that the projectile has a valid parent (parent_object_index != NONE
+ * at offset 0xcc).  Sets both the "age scale" float at 0x1f0 and the
+ * "fade scale" float at 0x1f8 to 1.0, clears bit 3 (0x8) of the flags word
+ * at 0x1dc (the "attached-to-parent" flag), then calls
+ * object_detach_from_parent to unlink the projectile from the weapon/unit that
+ * fired it. Returns 1 (bool true) unconditionally on success. Source line
+ * reference: c:\halo\SOURCE\items\projectiles.c line 1845. */
+char FUN_000f8000(int projectile_handle)
+{
+  char *proj;
+
+  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  if (*(int *)(proj + 0xcc) == -1) {
+    display_assert("projectile->object.parent_object_index != NONE",
+                   "c:\\halo\\SOURCE\\items\\projectiles.c", 0x735, 1);
+    system_exit(-1);
+  }
+  *(float *)(proj + 0x1f8) = 1.0f;
+  *(float *)(proj + 0x1f0) = 1.0f;
+  *(uint32_t *)(proj + 0x1dc) &= ~0x8u;
+  object_detach_from_parent(projectile_handle);
+  return 1;
+}
