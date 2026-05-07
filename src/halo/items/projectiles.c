@@ -244,3 +244,56 @@ void FUN_000f8070(float *forward, float zero, float angle, float *result)
   int *seed = get_global_random_seed_address();
   random_direction3d(seed, forward, zero, angle, result);
 }
+
+/* Compute the straight-line aim vector and travel parameters for a projectile
+ * with no ballistic arc (no gravity).
+ * Subtracts origin from target to form the direction delta, normalises it in
+ * place (normalize3d overwrites the local vector with the unit vector and
+ * returns the original length as the distance), then writes outputs:
+ *   aim_vector  - normalised direction from origin to target (required,
+ * asserted non-NULL) out_dist    - optional: raw length of the origin→target
+ * vector out_speed   - optional: copy of the input speed out_t       -
+ * optional: travel time = dist / speed; 0.0 if speed <= 0.0 Returns 1 (bool
+ * true) unconditionally. Source ref: c:\halo\SOURCE\items\projectiles.c line
+ * 0x399 (921). */
+int FUN_000f8410(float speed, float *origin, float *target, float *aim_vector,
+                 float *out_speed, float *out_t, float *out_dist)
+{
+  float local_vec[3];
+  float dist;
+  float t;
+
+  local_vec[0] = target[0] - origin[0];
+  local_vec[1] = target[1] - origin[1];
+  local_vec[2] = target[2] - origin[2];
+
+  dist = normalize3d(local_vec);
+
+  if (speed <= *(float *)0x2533c0) {
+    t = 0.0f;
+  } else {
+    t = dist / speed;
+  }
+
+  if (aim_vector == NULL) {
+    display_assert("result_aim_vector",
+                   "c:\\halo\\SOURCE\\items\\projectiles.c", 0x399, 1);
+    system_exit(-1);
+  }
+
+  aim_vector[0] = local_vec[0];
+  aim_vector[1] = local_vec[1];
+  aim_vector[2] = local_vec[2];
+
+  if (out_dist != NULL) {
+    *out_dist = dist;
+  }
+  if (out_speed != NULL) {
+    *out_speed = speed;
+  }
+  if (out_t != NULL) {
+    *out_t = t;
+  }
+
+  return 1;
+}

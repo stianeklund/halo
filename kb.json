@@ -5708,8 +5708,9 @@
           "addr": "0xf80a0"
         },
         {
-          "decl": "void FUN_000f8410(void);",
-          "addr": "0xf8410"
+          "decl": "int FUN_000f8410(float speed, float *origin, float *target, float *aim_vector, float *out_speed, float *out_t, float *out_dist);",
+          "addr": "0xf8410",
+          "ported": true
         },
         {
           "decl": "void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4, int param_5, int param_6, int param_7, int param_8, int param_9, int param_10, int param_11, int param_12, void *param_13);",
