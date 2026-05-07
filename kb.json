@@ -7365,8 +7365,9 @@
           "ported": true
         },
         {
-          "decl": "short FUN_00083a60(int endpoint, void *addr);",
-          "addr": "0x83a60"
+          "decl": "short FUN_00083a60(int *ep, void *addr);",
+          "addr": "0x83a60",
+          "ported": true
         },
         {
           "decl": "void close_endpoint(int *ep);",
@@ -8727,6 +8728,14 @@
         {
           "decl": "int __stdcall FUN_00222df7(void *key);",
           "addr": "0x222df7"
+        },
+        {
+          "decl": "int __stdcall xnet_getsockname(int socket, void *name, int *namelen);",
+          "addr": "0x224876"
+        },
+        {
+          "decl": "int __stdcall xnet_getpeername(int socket, void *name, int *namelen);",
+          "addr": "0x22486b"
         },
         {
           "decl": "int __stdcall xnet_recv(int socket, void *buf, int len, int flags);",
