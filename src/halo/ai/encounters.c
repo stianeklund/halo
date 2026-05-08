@@ -516,6 +516,35 @@ int FUN_00059b50(void *iter)
   }
 }
 
+/* 0x5b200 — encounters_initialize_for_new_map.
+ * Resets encounter and pursuit data pools, zeroes squad and platoon arrays,
+ * then iterates scenario encounter definitions calling FUN_0005a120 to
+ * initialize each encounter record. */
+void FUN_0005b200(void)
+{
+  char *scenario;
+  short i;
+  short squad_counter;
+  short platoon_counter;
+  void *encounter_def;
+
+  scenario = (char *)global_scenario_get();
+  squad_counter = 0;
+  platoon_counter = 0;
+  data_delete_all(*(data_t **)0x5ab270);
+  data_delete_all(*(data_t **)0x5ab26c);
+  csmemset(*(void **)0x5ab278, 0, 0x8000);
+  csmemset(*(void **)0x5ab274, 0, 0x1000);
+  if (*(int *)(scenario + 0x42c) > 0) {
+    for (i = 0; (int)i < *(int *)(scenario + 0x42c); i++) {
+      encounter_def =
+        tag_block_get_element((void *)(scenario + 0x42c), (int)i, 0xb0);
+      FUN_0005a120(&squad_counter /* @<eax> */, encounter_def,
+                   &platoon_counter);
+    }
+  }
+}
+
 /* 0x0005df80 — encounter_initialize stub.
  * Binary: single RET. No initialization needed at this level. */
 void FUN_0005df80(void)

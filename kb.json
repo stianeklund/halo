@@ -9273,8 +9273,13 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def, short *platoon_counter);",
+          "addr": "0x5a120"
+        },
+        {
           "decl": "void FUN_0005b200(void);",
-          "addr": "0x5b200"
+          "addr": "0x5b200",
+          "ported": true
         },
         {
           "addr": "0x5d200",
