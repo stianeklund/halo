@@ -63,6 +63,14 @@ int16_t FUN_00124cc0(void *server)
   return *(int16_t *)((char *)server + 0xca8);
 }
 
+/* 0x125750 — Asserts client is non-null, then calls FUN_001283c0 with the
+ * connection handle at offset 0x82c, the output buffer, and flag 0. */
+void FUN_00125750(void *server, void *out)
+{
+  assert_halt(server);
+  FUN_001283c0(*(int *)((char *)server + 0x82c), out, 0);
+}
+
 /* FUN_001257a0 (0x1257a0)
  *
  * Asserts client is non-null and returns client + 0x85c.

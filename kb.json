@@ -4153,7 +4153,8 @@
         },
         {
           "decl": "void FUN_00125750(void *server, void *out);",
-          "addr": "0x125750"
+          "addr": "0x125750",
+          "ported": true
         },
         {
           "decl": "void *FUN_001257a0(void *client);",
