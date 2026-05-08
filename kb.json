@@ -741,6 +741,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00040280(void);",
+          "addr": "0x40280"
+        },
+        {
           "decl": "void FUN_00040570(void);",
           "addr": "0x40570",
           "ported": true
@@ -9245,7 +9249,8 @@
         },
         {
           "decl": "void FUN_00059630(int encounter_index, int unit_index);",
-          "addr": "0x59630"
+          "addr": "0x59630",
+          "ported": true
         },
         {
           "addr": "0x59740",
