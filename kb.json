@@ -4160,15 +4160,18 @@
         },
         {
           "decl": "bool FUN_001257e0(void *server);",
-          "addr": "0x1257e0"
+          "addr": "0x1257e0",
+          "ported": true
         },
         {
           "decl": "uint32_t FUN_00125820(void *server);",
-          "addr": "0x125820"
+          "addr": "0x125820",
+          "ported": true
         },
         {
           "decl": "bool FUN_00125860(void *server);",
-          "addr": "0x125860"
+          "addr": "0x125860",
+          "ported": true
         },
         {
           "decl": "bool FUN_00127070(void *server);",

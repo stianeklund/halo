@@ -51,3 +51,27 @@ void *FUN_001257a0(void *client)
 
   return (void *)((uint8_t *)client + 0x85c);
 }
+
+/* 0x1257e0 — Asserts client is non-null and returns whether the int field at
+ * offset 0xc98 is non-zero. */
+bool FUN_001257e0(void *server)
+{
+  assert_halt(server);
+  return *(int *)((char *)server + 0xc98) != 0;
+}
+
+/* 0x125820 — Asserts client is non-null and returns the uint32_t field at
+ * offset 0xc98 (the raw value that FUN_001257e0 tests for non-zero). */
+uint32_t FUN_00125820(void *server)
+{
+  assert_halt(server);
+  return *(uint32_t *)((char *)server + 0xc98);
+}
+
+/* 0x125860 — Asserts client is non-null and returns the byte field at
+ * offset 0xcac. */
+bool FUN_00125860(void *server)
+{
+  assert_halt(server);
+  return *(char *)((char *)server + 0xcac);
+}
