@@ -51,7 +51,8 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
     }
   }
   FUN_0003bc90(actor_handle);
-  FUN_0005dfc0(nav_state_out, local_8, *(unsigned char *)(actor + 0x376), unit_handle);
+  FUN_0005dfc0(nav_state_out, local_8, *(unsigned char *)(actor + 0x376),
+               unit_handle);
   FUN_0005e000(nav_state_out, actor + 0x168, *(int *)(actor + 0x164));
 }
 
@@ -130,6 +131,66 @@ void FUN_0002b5d0(void)
       table_b[index][6] = sin_outer * basis[index][2];
     }
   }
+}
+
+/* FUN_0002b720 (0x2b720) — Check if vehicle actor should brake.
+ *
+ * If actor is in a type-4 vehicle state (actor[0x15e] == 4):
+ *   - Reads vehicle tag stopping distance (vehi_tag[0x388])
+ *   - If stopping distance > 0 and actor's speed factor (actor[0x5ec]) >
+ * threshold:
+ *     - Computes delta vector from actor position to dest_pos
+ *     - Normalizes delta (getting distance)
+ *     - If distance > 0 and dot(normalized_delta, facing) > threshold:
+ *       returns 0 (should brake)
+ * Writes stopping distance to *dist_out if non-NULL.
+ * Returns 1 (don't brake) by default.
+ *
+ * Confirmed: datum_get at 0x2b733. BL=1 default at 0x2b74c.
+ * Confirmed: CMP word [ESI+0x15e],4 at 0x2b73d.
+ * Confirmed: object_get_and_verify_type(actor[0x158], 2) at 0x2b75d.
+ * Confirmed: tag_get('vehi', vehicle[0]) at 0x2b76a.
+ * Confirmed: vehi[0x388] → local_8 at 0x2b76f.
+ * Confirmed: FCOMP [0x2533c0] checks at 0x2b77e, 0x2b7d1.
+ * Confirmed: FCOMP [0x2555d0] speed check at 0x2b795.
+ * Confirmed: normalize3d(&delta) at 0x2b7cc.
+ * Confirmed: dot product z*fz + y*fy + x*fx at 0x2b7e1-0x2b7fe.
+ * Confirmed: FCOMP [0x253d54] dot threshold at 0x2b800.
+ * Confirmed: dist_out write if non-NULL at 0x2b80f-0x2b819.
+ */
+char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out)
+{
+  char *actor;
+  char *vehi;
+  float local_8;
+  float delta[3];
+  char result;
+
+  actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  local_8 = 0.0f;
+  result = 1;
+  if (*(int16_t *)(actor + 0x15e) == 4) {
+    vehi = (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    vehi = (char *)tag_get(0x76656869, *(int *)vehi);
+    local_8 = *(float *)(vehi + 0x388);
+    if (local_8 > *(float *)0x2533c0 &&
+        *(float *)(actor + 0x5ec) > *(float *)0x2555d0) {
+      delta[0] = dest_pos[0] - *(float *)(actor + 0x12c);
+      delta[1] = dest_pos[1] - *(float *)(actor + 0x130);
+      delta[2] = dest_pos[2] - *(float *)(actor + 0x134);
+      if (normalize3d(delta) > *(float *)0x2533c0 &&
+          delta[0] * *(float *)(actor + 0x174) +
+              delta[1] * *(float *)(actor + 0x178) +
+              delta[2] * *(float *)(actor + 0x17c) >
+            *(float *)0x253d54) {
+        result = 0;
+      }
+    }
+  }
+  if (dist_out != (float *)0) {
+    *dist_out = local_8;
+  }
+  return result;
 }
 
 /*
