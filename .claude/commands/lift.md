@@ -80,6 +80,7 @@ After Phase 1 completes:
 3. Run:
    ```
    rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
+     --low-match-threshold 90 --low-match-behavior-both-below 85 --low-match-reject-below 80 \
      --abi-caller-disasm-file /tmp/lift_caller_disasm.txt
    ```
    If no caller disassembly was retrieved, omit `--abi-caller-disasm-file`.
@@ -95,6 +96,9 @@ Notes:
   `vc71_verify.py` automatically when a delinked reference exists in `delinked/`
   (mapped via `objdiff.json`). If no delinked reference exists, offer to run
   `/verify delink <target>` after the pipeline.
+- The pipeline thresholds above are only a mechanical floor. They are not an
+  auto-commit standard: `/auto-lift` must run its separate agent review gate
+  before committing any lift below the near-perfect structural range.
 - **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console
   is available. Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
 - Use `/verify option3 <target>` only as a runtime/xemu fallback lane, not as primary structural proof.

@@ -29,10 +29,11 @@ failures), repeat:
 3. If Ghidra MCP is available and no cached context exists, run `cache-context --target <target>`.
 4. Delegate to `/lift <target>` (includes `maintain.py` via lift_pipeline).
 5. Evaluate pipeline result (see pass/fail criteria below).
-6. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
-7. **On fail**: attempt Opus escalation or revert+log (see escalation below),
+6. Run the autonomous review gate (see Agent review gate below).
+7. **On pass + AUTO_ACCEPT**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
+8. **On fail / NEEDS_RUNTIME / REJECT**: attempt Opus escalation or revert+log (see escalation below),
    increment consecutive failure counter.
-8. If consecutive failures reach `--stop-on-fail`, stop and report.
+9. If consecutive failures reach `--stop-on-fail`, stop and report.
 
 After the loop ends, print a summary: N attempted, N committed, N failed, N skipped.
 
@@ -48,19 +49,66 @@ Any hard failure stops the pipeline and reports the failing stage.
 | **VC71 verify** | Compiles with MSVC 7.1, compared against delinked reference | Depends on low-match policy |
 | **Low-match policy** (default: strict) | See thresholds below | Yes |
 
-Low-match thresholds (VC71 or objdiff structural match %):
-- **>= 65%**: PASS unconditionally — safe for auto-commit
-- **50–65%**: PASS if at least one behavior signal (behavior_check or runtime_check)
-- **40–50%**: PASS only if BOTH behavior_check AND runtime_check pass
-- **< 40%**: hard REJECT — no override
-- **FPU-WARN present**: FAIL — operand-order mismatch needs manual review
+Mechanical low-match thresholds (VC71 or objdiff structural match %):
+- **>= 90%**: pipeline may pass structurally, but auto-commit still requires
+  the Agent review gate below.
+- **85–90%**: pipeline may pass only with at least one behavior signal
+  (`behavior_check` or `runtime_check`), then requires Agent review.
+- **80–85%**: pipeline may pass only if BOTH `behavior_check` AND
+  `runtime_check` pass, then requires Agent review.
+- **< 80%**: hard REJECT for auto-lift. Do not auto-commit.
+- **FPU-WARN present**: FAIL — operand-order mismatch needs reviewer evidence
+  and should normally be treated as REJECT.
 
-Pass `--low-match-threshold 65 --low-match-behavior-both-below 50 --low-match-reject-below 40`
-to `lift_pipeline.py` to enforce these thresholds.
+Pass `--low-match-threshold 90 --low-match-behavior-both-below 85 --low-match-reject-below 80`
+to `lift_pipeline.py` to enforce the mechanical floor.
 
-When no delinked reference exists (no VC71 data), strict policy fails.
-The `/lift` skill uses `--verify-policy auto` which accepts when no VC71 data
-is available but the build and ABI audit pass.
+When no delinked reference exists (no VC71/objdiff data), strict policy fails.
+Do not auto-commit a lift without structural verification data.
+
+## Agent review gate
+
+Auto-lift must be close to end-to-end automated, but the review step is still
+required. It is performed by an LLM agent, not a human, and must fail closed.
+
+After the pipeline passes, invoke an Opus `xbox-halo-lift-reviewer` review pass
+with the target, source diff, `artifacts/lift_runs/.../summary.json`,
+VC71/objdiff output, hazard scan output, ABI audit output, and any cached
+Ghidra caller/callee/disassembly context.
+
+The reviewer must emit this exact verdict line:
+
+`AUTOLIFT_REVIEW: AUTO_ACCEPT | NEEDS_RUNTIME | REJECT`
+
+Reviewer acceptance policy:
+- **>= 98% structural match**: `AUTO_ACCEPT` may be returned if ABI/build/VC71
+  pass, hazard scan is clean, no FPU warnings are present, and no call-arg or
+  memory-offset uncertainty remains.
+- **95–98% structural match**: `AUTO_ACCEPT` requires explicit mismatch
+  classification proving all differences are harmless compiler-shape changes
+  (register allocation, instruction scheduling, equivalent stack layout, or
+  equivalent constant materialization).
+- **90–95% structural match**: `AUTO_ACCEPT` requires mismatch classification,
+  full call-site argument audit, memory offset/global side-effect audit, and
+  no unresolved `Uncertain` findings. Otherwise return `NEEDS_RUNTIME` or
+  `REJECT`.
+- **< 90% structural match**: return `NEEDS_RUNTIME` unless golden/runtime
+  behavior verification already passed and all mismatches are classified.
+- **No structural data, FPU-WARN, ABI uncertainty, suspicious duplicate args,
+  pointer-as-float warning, unverified register args, unknown memory offsets,
+  or unclassified control-flow differences**: return `REJECT`.
+
+The review report must include:
+- Target, address, object, source path, match percentage, and match source.
+- Mismatch classes, each marked harmless or blocking.
+- Call Argument Audit: every call verified, or listed as blocking.
+- Memory Offset / Global Side-effect Audit: every nontrivial access verified,
+  or listed as blocking.
+- ABI Audit: register args and caller expectations verified.
+- Verdict rationale in Confirmed / Inferred / Uncertain terms.
+
+Auto-commit is allowed only when both the pipeline passes and the reviewer
+returns `AUTOLIFT_REVIEW: AUTO_ACCEPT`.
 
 ## Opus escalation
 
@@ -69,10 +117,12 @@ on Sonnet due to a reasoning-class failure (not a trivial build error), escalate
 to Opus:
 
 **Escalate to Opus when:**
-- VC71 match < 65% (control flow / structure wrong)
+- VC71/objdiff match < 95% or reviewer returns `NEEDS_RUNTIME`
 - ABI audit fails (calling convention reasoning)
 - FPU-WARN (operand order requires careful disassembly reading)
 - Build fails on the second attempt (not a simple typo)
+- Agent review returns `REJECT` for a reason that can plausibly be fixed by
+  better disassembly analysis (call args, memory offsets, field rotation)
 
 **Do NOT escalate (just revert+log) when:**
 - Target has SEH prolog/epilog (not liftable with current tooling)
@@ -92,6 +142,9 @@ rtk git add -- src/ kb.json
 rtk python3 tools/audit/generate_lift_commit.py --batch-name "<target_name>" > /tmp/commit_msg.txt
 rtk git commit -F /tmp/commit_msg.txt
 ```
+
+Before staging, confirm the latest review report contains:
+`AUTOLIFT_REVIEW: AUTO_ACCEPT`.
 
 With `--dry-run`: leave changes staged, report what would be committed, then
 revert before the next iteration (`rtk git checkout -- src/ kb.json`).
