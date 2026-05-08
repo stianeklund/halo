@@ -4177,8 +4177,29 @@
           "ported": true
         },
         {
+          "decl": "bool FUN_001268a0(void *server /* @<eax> */);",
+          "addr": "0x1268a0"
+        },
+        {
+          "decl": "bool FUN_00126b60(void *server /* @<eax> */);",
+          "addr": "0x126b60"
+        },
+        {
+          "decl": "bool FUN_00126ce0(void *server /* @<eax> */);",
+          "addr": "0x126ce0"
+        },
+        {
+          "decl": "bool FUN_00126db0(void *server /* @<eax> */);",
+          "addr": "0x126db0"
+        },
+        {
+          "decl": "bool FUN_00126f40(void *server /* @<eax> */);",
+          "addr": "0x126f40"
+        },
+        {
           "decl": "bool FUN_00127070(void *server);",
-          "addr": "0x127070"
+          "addr": "0x127070",
+          "ported": true
         }
       ]
     },
@@ -9292,9 +9313,45 @@
           "addr": "0x5a120"
         },
         {
+          "decl": "short FUN_0005a3b0(void *squad_def);",
+          "addr": "0x5a3b0"
+        },
+        {
+          "decl": "void FUN_0005a6e0(void);",
+          "addr": "0x5a6e0"
+        },
+        {
+          "decl": "void FUN_0005acf0(int encounter_handle /* @<eax> */);",
+          "addr": "0x5acf0"
+        },
+        {
+          "decl": "void FUN_0005ae70(int encounter_handle);",
+          "addr": "0x5ae70"
+        },
+        {
           "decl": "void FUN_0005b200(void);",
           "addr": "0x5b200",
           "ported": true
+        },
+        {
+          "decl": "bool FUN_0005b790(int encounter_handle, int platoon_index, int flag);",
+          "addr": "0x5b790"
+        },
+        {
+          "decl": "bool FUN_0005c3a0(int platoon_index, int delay, int flag, int encounter_handle /* @<ebx> */);",
+          "addr": "0x5c3a0"
+        },
+        {
+          "decl": "void FUN_0005c680(int encounter_handle);",
+          "addr": "0x5c680"
+        },
+        {
+          "decl": "void FUN_0005c940(int encounter_handle);",
+          "addr": "0x5c940"
+        },
+        {
+          "decl": "void FUN_0005ca80(int encounter_handle);",
+          "addr": "0x5ca80"
         },
         {
           "addr": "0x5d200",
@@ -9305,6 +9362,10 @@
           "addr": "0x5d420"
         },
         {
+          "decl": "void FUN_0005d890(void);",
+          "addr": "0x5d890"
+        },
+        {
           "decl": "void FUN_0005d910(int encounter_handle, int param_2, int param_3);",
           "addr": "0x5d910"
         },
@@ -9312,6 +9373,10 @@
           "decl": "void FUN_0005ddc0(void);",
           "addr": "0x5ddc0",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0005dc00(int encounter_handle);",
+          "addr": "0x5dc00"
         },
         {
           "decl": "void FUN_0005de80(void);",
