@@ -1022,6 +1022,14 @@
       "metadata": {
         "source_path": "src/halo/math/real_math.c"
       }
+    },
+    {
+      "name": "halo/damage",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/damage.c.obj",
+      "base_path": "delinked/damage.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/damage.c"
+      }
     }
   ]
 }
