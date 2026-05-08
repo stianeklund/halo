@@ -528,43 +528,6 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x5a6e0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Function takes no arguments (void(void)), confirmed from both callers (FUN_0005d910, FUN_0005de80) which call it with no pushes before the CALL.",
-        "FUN_0005a4e0 (0x5a4e0) and FUN_0005a640 (0x5a640) take encounter_handle via @EAX; confirmed by MOV EAX,[EBP-0x18] immediately before each CALL in the disassembly."
-      ],
-      "uncertain": [
-        "VC71 match is 12.8% (below 25% hard floor) due to clang/MSVC register allocation divergence and control-flow layout differences in this 311-instruction function. Logic is believed correct but cannot be confirmed via VC71 match score."
-      ]
-    },
-    "0x5b790": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The function uses two interleaved bitvectors per squad (unused_locations at squad_bv[word] and used_locations at squad_bv[word+1]) to track firing-position allocation; positions are randomly selected via random_range and recycled when all positions have been used at least once."
-      ],
-      "uncertain": [
-        "VC71 match is 23.1% (below 25% hard floor) due to compiler stack-frame differences: original MSVC reuses [EBP+8] (encounter_handle parameter slot) to store squad_bv, while VC71 compiled from C allocates a dedicated spill slot, making local_18 land at [EBP-0x18] instead of [EBP-0x14].",
-        "The third parameter (flag) is pushed by both callers (0x56d0d and 0x5c3e5) but is never accessed inside the function body \u2014 it is a dead parameter. The callers push value 1. Its original purpose is unknown."
-      ]
-    },
-    "0x5c680": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Bitfield must use direct assignment (bitfield[0]=0; bitfield[1]=0) rather than csmemset \u2014 csmemset causes VC71 to precompute encounter_def+0x80 into EDI, shifting all register allocations and dropping match from 52% to 25%.",
-        "desire_count is reused as 'pick' after random_range call (same stack slot [EBP-0xc]). The second loop uses the encounter ptr saved at the start \u2014 no datum_get re-call needed."
-      ],
-      "uncertain": [
-        "VC71 generates subl /bin/bashx1c, %esp (7 dwords) while reference uses subl /bin/bashx18, %esp (6 dwords). The extra dword is encounter_def spilled from EBX to [EBP-0x8] because VC71 precomputes encounter_def+0x80 into EDI for the inner tag_block_get_element calls."
-      ]
-    },
-    "0x5dc00": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x5df80": {
       "kind": "function",
       "status": "ported"
@@ -4415,10 +4378,6 @@
         "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
       }
     },
-    "0x1249b0": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x124c40": {
       "kind": "function",
       "status": "ported"
@@ -5373,14 +5332,6 @@
     "0x18e4d0": {
       "kind": "function",
       "status": "ported"
-    },
-    "0x18e500": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Block offset 0x194 within game_globals is the material_types tag block; element size 0x374 bytes and max count 33 (NUMBER_OF_MATERIAL_TYPES) confirmed from assert string in binary.",
-        "Static fallback buffer at 0x4d8700 is returned when material_type is NONE or out-of-range; it is initialised once: dword at 0x4d8a70 set to -1, byte flag at 0x4d8a74 set to 1."
-      ]
     },
     "0x18e720": {
       "kind": "function",
