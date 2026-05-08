@@ -1251,6 +1251,65 @@ void FUN_0003bbf0(int actor_handle /* @<eax> */)
   *(short *)(actor + 0x6ec) = (short)0xffff;
 }
 
+/* FUN_0003bc90 (0x3bc90) — Try to acquire a navigation path for the actor.
+ *
+ * If the actor already has a path slot (actor[0x164] != -1), returns
+ * immediately. Otherwise copies actor[0x12c..0x134] (3 floats, actor position)
+ * to actor[0x168..0x170] as the starting position. If the actor is not paused
+ * for path (actor[0x99] == 0):
+ *   - If not in a vehicle (actor[0x158] == -1): calls
+ *     object_try_and_get_and_verify_type(actor[0x18], 1) to verify the unit
+ *     exists; if so calls FUN_001a1bc0(actor[0x18], actor+0x168) and stores
+ *     the resulting path slot in actor[0x164].
+ *   - If in a vehicle and vehicle_count (int16_t actor[0x15e]) is 2 or 3:
+ *     calls vehicle_get_estimated_position(actor[0x158], actor+0x168) and
+ *     stores the result in actor[0x164], then returns immediately.
+ *
+ * Confirmed: datum_get(actors_globals, actor_handle) at 0x3bc9f.
+ * Confirmed: tag_get('actr', actor[0x58]) result discarded at 0x3bcaf.
+ * Confirmed: actor[0x164] != -1 guard at 0x3bcbd.
+ * Confirmed: 3-dword copy [0x12c..0x134] → [0x168..0x170] at 0x3bcc9-0x3bcde.
+ * Confirmed: actor[0x99] test at 0x3bce1.
+ * Confirmed: CMP vehicle_count,2; JL skip; CMP,3; JG skip at 0x3bcfd-0x3bd05.
+ */
+void FUN_0003bc90(int actor_handle)
+{
+  char *actor;
+  int *src;
+  vector3_t *pos;
+  int vehicle;
+  int vehicle_count;
+
+  actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  tag_get(0x61637472, *(int *)(actor + 0x58));
+  if (*(int *)(actor + 0x164) != -1)
+    goto done;
+
+  src = (int *)(actor + 0x12c);
+  pos = (vector3_t *)(actor + 0x168);
+  ((int *)pos)[0] = src[0];
+  ((int *)pos)[1] = src[1];
+  ((int *)pos)[2] = src[2];
+
+  if (*(char *)(actor + 0x99) != 0)
+    goto done;
+
+  vehicle = *(int *)(actor + 0x158);
+  if (vehicle != -1) {
+    vehicle_count = *(int16_t *)(actor + 0x15e);
+    if (vehicle_count > 1 && vehicle_count < 4) {
+      *(int *)(actor + 0x164) = vehicle_get_estimated_position(vehicle, pos);
+      return;
+    }
+    goto done;
+  }
+
+  if (object_try_and_get_and_verify_type(*(int *)(actor + 0x18), 1) != 0)
+    *(int *)(actor + 0x164) = FUN_001a1bc0(*(int *)(actor + 0x18), pos);
+
+done:;
+}
+
 /* FUN_0003bde0 (0x3bde0) — actor_fill_unit_input_block
  *
  * Populates an input block structure with the unit's world position,

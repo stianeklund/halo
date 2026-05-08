@@ -567,7 +567,8 @@
         },
         {
           "addr": "0x3bc90",
-          "decl": "void FUN_0003bc90(int actor_handle);"
+          "decl": "void FUN_0003bc90(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x3bde0",
@@ -7769,6 +7770,10 @@
           "decl": "void biped_estimate_position(int unit_handle, int16_t estimate_mode, vector3_t *estimated_body_position, vector3_t *desired_facing, vector3_t *desired_gun_offset, vector3_t *out_position);",
           "addr": "0x1a1140",
           "ported": true
+        },
+        {
+          "decl": "int FUN_001a1bc0(int unit_handle, vector3_t *pos);",
+          "addr": "0x1a1bc0"
         }
       ]
     },
