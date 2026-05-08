@@ -17,6 +17,25 @@ void network_game_server_dispose(void *server)
   network_game_log("network client disposed");
 }
 
+/* 0x124a30 — Returns the connection state (int16_t at offset 0xca6) and
+ * optionally writes elapsed-time percentage into out_param. The time
+ * calculation divides (current_ms - stored_ms) * 100 by 120000. */
+int16_t FUN_00124a30(void *server, void *out_param)
+{
+  unsigned int diff;
+
+  assert_halt(server);
+  if (out_param != NULL) {
+    *(short *)out_param = 0;
+    if (*(short *)((char *)server + 0xca6) == 1) {
+      diff = system_milliseconds() * 100 -
+             *(unsigned int *)((char *)server + 0x834) * 100;
+      *(short *)out_param = (short)(diff / 120000);
+    }
+  }
+  return *(int16_t *)((char *)server + 0xca6);
+}
+
 /* FUN_00124c40 (0x124c40)
  *
  * Asserts client is non-null and returns the client's 16-bit value at +0.

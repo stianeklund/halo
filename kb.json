@@ -4130,7 +4130,8 @@
         },
         {
           "decl": "int16_t FUN_00124a30(void *server, void *out_param);",
-          "addr": "0x124a30"
+          "addr": "0x124a30",
+          "ported": true
         },
         {
           "decl": "uint16_t FUN_00124c40(void *client);",
