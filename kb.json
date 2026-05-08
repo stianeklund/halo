@@ -4119,7 +4119,8 @@
       "functions": [
         {
           "decl": "void network_game_server_dispose(void *server);",
-          "addr": "0x1249b0"
+          "addr": "0x1249b0",
+          "ported": true
         },
         {
           "decl": "int16_t FUN_00124a30(void *server, void *out_param);",
