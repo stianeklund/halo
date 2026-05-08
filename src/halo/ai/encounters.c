@@ -133,6 +133,49 @@ void FUN_00059480(int actor_handle, char flag)
   *(char *)(encounter + 0x28) = 1;
 }
 
+/* 0x59630 — Validate encounter/actor linkage for a unit and optionally set
+ * the encounter's team index from the unit. If the unit has a secondary actor
+ * (field 0x1a8), validates that actor's encounter matches. Otherwise validates
+ * the primary actor (field 0x1a4) encounter and unit linkage. When
+ * game_engine_running returns false and encounter->team is zero, copies the
+ * unit's team and notifies via FUN_00040280 if members exist. */
+void FUN_00059630(int encounter_index, int unit_index)
+{
+  char *encounter;
+  char *unit;
+  char *actor;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_index);
+  unit = (char *)object_get_and_verify_type(unit_index, 3);
+
+  if (*(int *)(unit + 0x1a8) != -1) {
+    actor = (char *)datum_get(*(data_t **)0x6325a4, *(int *)(unit + 0x1a8));
+    if (*(int *)(actor + 0x34) != encounter_index) {
+      display_assert("actor->meta.encounter_index == encounter_index",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x25b, 1);
+      system_exit(-1);
+    }
+  } else {
+    actor = (char *)datum_get(*(data_t **)0x6325a4, *(int *)(unit + 0x1a4));
+    if (*(int *)(actor + 0x34) != encounter_index) {
+      display_assert("actor->meta.encounter_index == encounter_index",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x261, 1);
+      system_exit(-1);
+    }
+    if (*(int *)(actor + 0x18) != unit_index) {
+      display_assert("actor->meta.unit_index == unit_index",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x262, 1);
+      system_exit(-1);
+    }
+  }
+
+  if (!game_engine_running() && *(int16_t *)(encounter + 2) == 0) {
+    *(int16_t *)(encounter + 2) = *(int16_t *)(unit + 0x68);
+    if (*(int *)(encounter + 0x14) != -1)
+      FUN_00040280();
+  }
+}
+
 /* 0x00059740 — encounter_enter (add actor to encounterless list).
  * Places an actor into the "encounterless" linked list maintained in
  * ai_globals.  Guards on ai_globals->field_1 (ai_active byte).
