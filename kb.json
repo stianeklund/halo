@@ -4156,8 +4156,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00125710(void *server, void *msg, int seq, void *info, int flags);",
-          "addr": "0x125710"
+          "decl": "int FUN_00125710(void *client);",
+          "addr": "0x125710",
+          "ported": true
         },
         {
           "decl": "void FUN_00125750(void *server, void *out);",
@@ -9337,7 +9338,7 @@
         {
           "decl": "void FUN_0005adc0(int encounter_handle, int16_t squad_index);",
           "addr": "0x5adc0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0005ae70(int encounter_handle);",
@@ -9437,6 +9438,12 @@
           "addr": "0x5af70",
           "name": "?",
           "decl": "bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */);",
+          "ported": false
+        },
+        {
+          "addr": "0x58a40",
+          "name": "ai_magically_see_players",
+          "decl": "void FUN_00058a40(int combined_handle);",
           "ported": false
         }
       ]

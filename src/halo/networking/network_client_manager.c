@@ -71,9 +71,26 @@ int16_t FUN_00124cc0(void *server)
  * connection pointer via FUN_00125710, then calls this wrapper with the
  * resulting connection pointer, a message buffer, its size, a dest_address,
  * and reliable=0. */
-bool FUN_00124d40(void *connection, void *message, unsigned short size, int dest_address, int reliable)
+bool FUN_00124d40(void *connection, void *message, unsigned short size,
+                  int dest_address, int reliable)
 {
   return FUN_00128e00(connection, message, size, dest_address, reliable);
+}
+
+/* 0x125710 — Asserts client is non-null and returns the connection handle
+ * (int) stored at offset 0x82c in the client structure. The returned handle
+ * is used by the caller (network_game_client_end_frame) as the first argument
+ * to FUN_00124d40 (which forwards it to FUN_00128e00 to send a network
+ * message). */
+int FUN_00125710(void *client)
+{
+  if (client == NULL) {
+    display_assert("client",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x4b3, true);
+    system_exit(-1);
+  }
+  return *(int *)((char *)client + 0x82c);
 }
 
 /* 0x125750 — Asserts client is non-null, then calls FUN_001283c0 with the

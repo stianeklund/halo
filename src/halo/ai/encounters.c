@@ -516,6 +516,64 @@ int FUN_00059b50(void *iter)
   }
 }
 
+/* 0x5adc0 — encounter_squad_delay_timer_finished.
+ * Called when a squad's delay timer expires (count < 0x10 ticks).
+ * Resets the squad's delay counter to 0, then optionally triggers
+ * ai_magically_see_players on the squad (if squad_def flag 0x10 is set),
+ * and logs a debug message if the debug flag (0x5aca4b) is set.
+ *
+ * param_1 = encounter_handle (int, full datum handle)
+ * param_2 = squad_index (int16_t, index within encounter)
+ *
+ * Confirmed:
+ *   - 2 cdecl stack args; ADD ESP,0x8 at callers (0x1cb00, 0x5af13, 0x5af0e).
+ *   - datum_get(*(data_t**)0x5ab270, encounter_handle) → ESI=encounter record.
+ *   - AND EDI,0xffff at 0x5add8 → encounter_handle masked before scenario
+ * lookup.
+ *   - global_scenario_get() at 0x5ade6 (0 args); +0x42c+[EDI] element (size
+ * 0xb0).
+ *   - FUN_0001c270(encounter, param_2) → squad record; EBX=squad pointer.
+ *   - tag_block_get_element(EBX+0x80, (int16_t)param_2, 0xe8) → squad_def.
+ *   - MOV word ptr [ECX+0x12],0 at 0x5ae1e clears squad delay counter.
+ *   - Bit 0x10 of squad_def+0x28 gates FUN_00058a40 call
+ * (ai_magically_see_players).
+ *   - Handle for FUN_00058a40: ((squad_index & 0xff | 0xffff8000) << 16) |
+ * (encounter_handle & 0xffff).
+ *   - ADD ESP,0x20 at 0x5ae27 cleans up 8 dwords (first tag_block 3 +
+ * FUN_0001c270 2 + second tag_block 3).
+ *   - ADD ESP,0x4 at 0x5ae4c cleans FUN_00058a40 arg.
+ *   - ADD ESP,0x10 at 0x5ae67 cleans console_printf args.
+ *
+ * Store-offset table (squad record writes):
+ *   squad_record+0x12 | 0 (int16_t zero) | MOV word ptr [ECX+0x12],0x0 at
+ * 0x5ae1e
+ */
+void FUN_0005adc0(int encounter_handle, int16_t squad_index)
+{
+  char *encounter;
+  char *squad;
+  char *squad_record;
+  char *squad_def;
+  int handle;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  squad = (char *)tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                        (int)(encounter_handle & 0xffff), 0xb0);
+  squad_record = (char *)FUN_0001c270(encounter, squad_index);
+  squad_def = (char *)tag_block_get_element((char *)(squad + 0x80),
+                                            (int)squad_index, 0xe8);
+  *(int16_t *)(squad_record + 0x12) = 0;
+  if ((*(unsigned char *)(squad_def + 0x28) & 0x10) != 0) {
+    handle =
+      (int)(((unsigned int)(((int)squad_index & 0xff) | 0xffff8000U) << 16) |
+            (unsigned int)(encounter_handle & 0xffff));
+    FUN_00058a40(handle);
+  }
+  if (*(char *)0x5aca4b != '\0') {
+    console_printf(0, "%s/%s: delay timer finished", squad, squad_def);
+  }
+}
+
 /* 0x5ae70 — encounter_update_squad_delay_timers.
  * Iterates all squads in an encounter and manages their delay timers.
  * For each squad with a positive delay counter (squad+0x12):
