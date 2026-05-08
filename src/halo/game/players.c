@@ -1549,7 +1549,7 @@ void player_set_action_result_for_equipment(int player_handle,
     game_set_players_are_double_speed(true);
   } else if (powerup_type == 2) {
     /* Overshield: check if unit can receive it. */
-    if (!((bool (*)(int))0x1367e0)(*(int *)(player + 0x34)))
+    if (!FUN_001367e0(*(int *)(player + 0x34)))
       return;
     player_apply_overshield_effect(player_handle);
   } else if (powerup_type == 5) {
