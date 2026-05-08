@@ -242,14 +242,31 @@ float FUN_0010c510(float *v1, float *v2)
   /* dot(v1, v2) */
   dot = v1[2] * v2[2] + v1[1] * v2[1] + v1[0] * v2[0];
 
-  /* cos(2*theta) = 2*dot^2/product - 1, clamped to [-1, 1] */
-  cos2theta = 2.0f * (dot / product) * dot - 1.0f;
+  /* cos(2*theta) = 2*dot^2/product - 1, clamped to [-1, 1].
+   * The original stores dot and product to memory as 32-bit floats and
+   * reloads them (FSTP/FLD round-trip), truncating x87 80-bit excess
+   * precision. Match that by forcing intermediates through memory. */
+  {
+    volatile float dot_mem = dot;
+    volatile float prod_mem = product;
+    cos2theta = 2.0f * (dot_mem / prod_mem) * dot_mem - 1.0f;
+  }
   if (cos2theta <= -1.0f)
     cos2theta = -1.0f;
   else if (cos2theta >= 1.0f)
     cos2theta = 1.0f;
+  else if (cos2theta != cos2theta)
+    return 0.0f;
 
-  half_angle = acosf(cos2theta) * 0.5f;
+  /* Inline acos to avoid x87 FPU stack issues with xbox_acosf function
+   * call. Clamp 1-x*x to >= 0 to prevent sqrt(negative) from excess
+   * precision. acos(x) = atan2(sqrt(1-x*x), x). */
+  {
+    volatile float c2t = cos2theta;
+    float one_minus_sq = 1.0f - c2t * c2t;
+    if (one_minus_sq < 0.0f) one_minus_sq = 0.0f;
+    half_angle = (float)(atan2((double)sqrtf(one_minus_sq), (double)c2t) * 0.5);
+  }
 
   if (dot < 0.0f)
     return 3.1415927f - half_angle;
