@@ -545,6 +545,143 @@ void FUN_0005b200(void)
   }
 }
 
+/* 0x0005d910 — Place actors for an encounter or specific squad/platoon.
+ * param_2: platoon index (-1 = all), param_3: squad index (-1 = all).
+ * Resolves difficulty-based spawn counts, applies spawn-type delays,
+ * calls FUN_0005c3a0 per actor slot, then finalises via FUN_0005d420 and
+ * FUN_0005a6e0. */
+void FUN_0005d910(int encounter_handle, short param_2, short param_3)
+{
+  char *scenario;
+  char *encounter_def;
+  char *squad_def;
+  char *name;
+  char *encounter;
+  char do_all;
+  int i;
+  int count;
+  int delay;
+  int should_spawn;
+  int leader_count;
+  int squad_state;
+  int spawn_type;
+  int j;
+  int16_t difficulty;
+
+  if (*(char *)(*(int *)0x632574 + 1) == 0) {
+    return;
+  }
+
+  scenario = (char *)global_scenario_get();
+  encounter_def = (char *)tag_block_get_element(
+    (void *)(scenario + 0x42c), encounter_handle & 0xffff, 0xb0);
+  do_all = (param_2 == -1 && param_3 == -1);
+
+  if (*(char *)0x5aca52) {
+    if (param_2 == -1 && param_3 == -1) {
+      console_printf(0, "ai_place %s", encounter_def);
+    } else if (param_2 != -1) {
+      name = (char *)tag_block_get_element((void *)(encounter_def + 0x8c),
+                                           param_2, 0xac);
+      console_printf(0, "ai_place %s/%s", encounter_def, name);
+    } else {
+      name = (char *)tag_block_get_element((void *)(encounter_def + 0x80),
+                                           param_3, 0xe8);
+      console_printf(0, "ai_place %s/%s", encounter_def, name);
+    }
+  }
+
+  for (i = 0; (int)(int16_t)i < *(int *)(encounter_def + 0x80); i++) {
+    squad_def = (char *)tag_block_get_element((void *)(encounter_def + 0x80),
+                                              (int16_t)i, 0xe8);
+
+    if (!do_all && (int16_t)i != (int16_t)param_3 &&
+        (*(int16_t *)(squad_def + 0x22) == -1 ||
+         *(int16_t *)(squad_def + 0x22) != (int16_t)param_2)) {
+      continue;
+    }
+
+    delay = 0;
+
+    difficulty = game_difficulty_level_get();
+    switch (difficulty) {
+    case 0:
+    case 1:
+      count = *(uint16_t *)(squad_def + 0x7c);
+      break;
+    case 2:
+      count = ((int16_t)(*(int16_t *)(squad_def + 0x7e) +
+                         *(int16_t *)(squad_def + 0x7c))) /
+              2;
+      break;
+    case 3:
+      count = *(uint16_t *)(squad_def + 0x7e);
+      break;
+    default:
+      assert_halt(0);
+      break;
+    }
+
+    squad_state = (int)FUN_0005a3b0((void *)squad_def);
+    spawn_type = *(int16_t *)(squad_def + 0x2c);
+
+    switch (spawn_type) {
+    case 0:
+      encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+      should_spawn = 0;
+      leader_count = 0;
+      if (squad_state == 7) {
+        leader_count = (int)*(int16_t *)(encounter + 0x1c);
+        if (leader_count == 0) {
+          should_spawn = (*(int16_t *)(encounter + 0x18) + (int16_t)count >= 4);
+        } else if (leader_count == 1) {
+          should_spawn =
+            (*(int16_t *)(encounter + 0x18) + (int16_t)count >= 10);
+        }
+      }
+      if (*(char *)0x5aca52) {
+        console_printf(
+          0, "%s/%s: %d current %d leaders, create %d -> %s", encounter_def,
+          squad_def, (int)*(int16_t *)(encounter + 0x18), leader_count,
+          (int16_t)count, should_spawn ? "new leader" : "no leader");
+      }
+      if (!should_spawn) {
+        break;
+      }
+      /* fall through to case 2 */
+    case 2:
+      if (squad_state == 7) {
+        delay = (int)random_range(
+                  (unsigned int *)get_global_random_seed_address(), 0, 2) +
+                100;
+      }
+      break;
+    case 3:
+      if (squad_state == 7) {
+        delay = 100;
+      }
+      break;
+    case 4:
+      if (squad_state == 7) {
+        delay = 101;
+      }
+      break;
+    default:
+      break;
+    }
+
+    if ((int16_t)count > 0) {
+      for (j = 0; j < (int16_t)count; j++) {
+        FUN_0005c3a0((int16_t)i, delay, 0, encounter_handle);
+        delay = 0;
+      }
+    }
+  }
+
+  FUN_0005d420(encounter_handle);
+  FUN_0005a6e0();
+}
+
 /* 0x5ddc0 — Iterate all encounters and reset tallies for those matching
  * the current BSP or with the "not-automatically-recycled" flag cleared.
  * Uses a data iterator over encounter_data; for each encounter whose
@@ -656,7 +793,6 @@ void FUN_0005dfb0(void)
 }
 
 /* Deferred functions (not yet ported — thunked from XBE):
- *   FUN_0005d910  — encounter_tally_votes_reset (complex, deferred)
  *   FUN_0005de80  — encounter_update (needs FUN_0005acf0 @<eax> audit)
  *   FUN_0005ddc0  — encounter_tally_reset_pass (shared loop pattern)
  */
