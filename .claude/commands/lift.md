@@ -45,7 +45,7 @@ Steps:
    - prefer `batch_decompile` when comparing related helpers
 4. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
    before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
-   and to `tools/kb_reg_baseline.json`, then call by name from C.
+   and to `tools/kb_reg_baseline.json` (inside the `"functions"` dict), then call by name from C.
    Do not use inline assembly or raw function pointer casts — the build
    generates thunks automatically. Never remove or change existing `@<reg>`
    slot assignments.
