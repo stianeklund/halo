@@ -54,3 +54,60 @@ char *breakable_surfaces_get_bsp_surface_data(void)
               global_structure_bsp_index < 16);
   return breakable_surface_globals + 1 + (int)global_structure_bsp_index * 32;
 }
+
+/* 0x146a90 — Apply breakable-surface damage: reduces surface health based on
+ * the damage effect tag's range/modifier and material vitality. Clears the
+ * surface bit and fires the destruction callback if health reaches zero. */
+void FUN_00146a90(int surface_id, void *damage_params, int unknown)
+{
+  float *health_ptr;
+  char *material_data;
+  char *jpt_tag;
+  float damage;
+  float new_health;
+  char *bsp_data;
+  int surface_idx;
+  uint32_t *word_ptr;
+  int material_type;
+
+  assert_halt(breakable_surface_globals);
+  if (*breakable_surface_globals == 0)
+    return;
+  if ((short)surface_id == -1)
+    return;
+  if (*(int *)damage_params == -1)
+    return;
+  if (*(short *)((char *)damage_params + 0x4c) == -1)
+    return;
+
+  health_ptr = FUN_001457f0((short)surface_id);
+  if (*health_ptr <= 0.0f)
+    return;
+
+  material_type = (int)*(short *)((char *)damage_params + 0x4c);
+  material_data = (char *)FUN_0018e500((short)material_type);
+  if (material_data == NULL)
+    return;
+  if (*(float *)(material_data + 0x2d4) <= 0.0f)
+    return;
+
+  jpt_tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
+
+  damage =
+    FUN_000121e0(*(float *)(jpt_tag + 0x1d4), *(float *)(jpt_tag + 0x1d8));
+  damage = (damage - *(float *)(jpt_tag + 0x1d0)) *
+             *(float *)((char *)damage_params + 0x40) +
+           *(float *)(jpt_tag + 0x1d0);
+  damage = damage * *(float *)(jpt_tag + 0x200 + material_type * 4) /
+           *(float *)(material_data + 0x2d4);
+  new_health = *health_ptr - damage;
+  *health_ptr = new_health;
+
+  if (new_health <= 0.0f) {
+    bsp_data = breakable_surfaces_get_bsp_surface_data();
+    surface_idx = (int)(short)surface_id;
+    word_ptr = (uint32_t *)(bsp_data + (surface_idx >> 5) * 4);
+    *word_ptr = *word_ptr & ~(1 << (surface_idx & 0x1f));
+    FUN_00145ad0((unsigned short)surface_id, damage_params, unknown);
+  }
+}

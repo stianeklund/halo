@@ -937,6 +937,10 @@
       "source": "physics/breakable_surfaces.c",
       "functions": [
         {
+          "decl": "float *FUN_001457f0(short surface_index);",
+          "addr": "0x1457f0"
+        },
+        {
           "decl": "void breakable_surfaces_initialize(void);",
           "addr": "0x1458a0",
           "ported": true
@@ -962,8 +966,13 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00145ad0(unsigned short surface_id, void *damage_params, int unknown);",
+          "addr": "0x145ad0"
+        },
+        {
           "decl": "void FUN_00146a90(int surface_id, void *damage_params, int unknown);",
           "addr": "0x146a90",
+          "ported": true,
           "comment": "Apply breakable-surface damage: looks up the surface by ID, reduces its health, and calls the destruction callback if depleted. Asserts globals are present."
         }
       ],
@@ -4510,12 +4519,12 @@
         {
           "decl": "void FUN_0013e1a0(int object_handle@<edi>);",
           "addr": "0x13e1a0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_0013e1f0(int object_handle@<eax>, void *color_data);",
           "addr": "0x13e1f0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void object_child_list_remove(void *list_head@<eax>, int object_handle@<ebx>);",
@@ -4525,12 +4534,12 @@
         {
           "decl": "void FUN_0013e5d0(int object_handle@<eax>);",
           "addr": "0x13e5d0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_0013e7b0(int object_handle@<eax>);",
           "addr": "0x13e7b0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void object_reset_markers(void);",
@@ -4651,7 +4660,7 @@
         {
           "decl": "void FUN_00140ad0(int object_handle@<edi>);",
           "addr": "0x140ad0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void object_delete_internal(int object_handle, int delete_sibling);",
@@ -6455,6 +6464,10 @@
           "ported": true
         },
         {
+          "decl": "void *FUN_0018e500(short material_type);",
+          "addr": "0x18e500"
+        },
+        {
           "decl": "bool scenario_location_potentially_visible_local(void *location);",
           "addr": "0x18e910",
           "ported": true
@@ -6855,13 +6868,13 @@
           "decl": "float FUN_001ccbe0(int channel_index@<eax>, void *source@<edi>);",
           "addr": "0x1ccbe0",
           "comment": "Compute listener distance squared for a channel/source pair.",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "float FUN_001ccca0(int channel_index@<eax>, void *source@<edi>);",
           "addr": "0x1ccca0",
           "comment": "Compute distance for random scale checks.",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "short sound_find_oldest_channel(int sound_handle@<eax>, short *channels, short count);",
@@ -7371,7 +7384,8 @@
         },
         {
           "decl": "int FUN_00083930(int af @<ecx>, int type @<edx>, int protocol @<eax>);",
-          "addr": "0x83930"
+          "addr": "0x83930",
+          "ported": false
         },
         {
           "decl": "short FUN_00083a60(int *ep, void *addr);",
@@ -7472,32 +7486,32 @@
         {
           "decl": "void ui_widget_pending_load_push_internal(int *head@<ebx>, void *record@<edi>);",
           "addr": "0xe46f0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void ui_widget_pending_load_pop(int *head@<edi>, void *record@<esi>);",
           "addr": "0xe4770",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void ui_widget_update_list_selection(void *widget@<ecx>, void *definition);",
           "addr": "0xe5380",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void ui_widget_list_prev(void *widget@<edi>);",
           "addr": "0xe53e0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void ui_widget_list_next(void *widget@<edi>);",
           "addr": "0xe5440",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void ui_widget_pending_load_apply(int a6@<eax>, int widget, int16_t a7);",
           "addr": "0xe5090",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void ui_widget_close_children(void *widget@<eax>);",
@@ -7527,7 +7541,7 @@
         {
           "decl": "void ui_widget_close_and_reload(void *widget@<eax>);",
           "addr": "0xe68e0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void ui_widget_begin_filesystem_checks(void);",
@@ -7567,7 +7581,7 @@
         {
           "decl": "void ui_widget_load_from_tag_internal(void *tag_data@<eax>, void *widget@<edx>, void *parent@<ecx>, int tag_index, int widget_stack, int widget_stack_base);",
           "addr": "0xe7b10",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void *ui_widget_load_by_name_or_tag(const char *name, int tag_index, int is_child, int widget_stack, int parent_tag_index, int a6, int a7);",
