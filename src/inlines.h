@@ -138,17 +138,25 @@ static inline float xbox_fabsf(float x)
   return r;
 }
 
-static inline float xbox_acosf(float x)
+/* noinline: the x87 inline asm pushes 2 extra values onto the FPU stack.
+ * When inlined into a complex function, the compiler may already have 6+
+ * values live on the 8-slot x87 stack, causing a stack overflow (NaN). */
+static float __attribute__((noinline, unused)) xbox_acosf(float x)
 {
-  /* acos(x) = atan2(sqrt(1-x^2), x) via x87 FPATAN */
+  /* acos(x) = atan2(sqrt(1-x^2), x) via x87 FPATAN.
+   * Clamp x to [-1,1]: x87 excess precision in callers can produce values
+   * epsilon outside the domain, making 1-x^2 negative and fsqrt return NaN. */
   float r;
+  if (x >= 1.0f) return 0.0f;
+  if (x <= -1.0f) return 3.14159265f;
   asm volatile (
     "fld %%st(0)\n\t"          /* ST0=x, ST1=x */
-    "fmul %%st(0), %%st(0)\n\t" /* ST0=x^2 */
+    "fmul %%st(0), %%st(0)\n\t" /* ST0=x^2, ST1=x */
     "fld1\n\t"                  /* ST0=1, ST1=x^2, ST2=x */
     "fsubrp\n\t"                /* ST0=1-x^2, ST1=x */
     "fsqrt\n\t"                 /* ST0=sqrt(1-x^2), ST1=x */
-    "fpatan\n\t"                /* ST0=atan2(sqrt(1-x^2), x) = acos(x) */
+    "fxch %%st(1)\n\t"          /* ST0=x, ST1=sqrt(1-x^2) */
+    "fpatan\n\t"                /* atan(ST1/ST0) = atan(sqrt(1-x^2)/x) = acos(x) */
     : "=t"(r) : "0"(x)
   );
   return r;
