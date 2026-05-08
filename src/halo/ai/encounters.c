@@ -31,6 +31,53 @@
 #include "../../common.h"
 
 
+/* 0x00054020 — encounter_get_platoon_ptr (FUN_00054020).
+ *
+ * Returns a pointer to the platoon record for a given encounter and relative
+ * platoon index. The platoon record lives in a flat array at *(char**)0x5ab274
+ * with each element being 0x10 (16) bytes wide.
+ *
+ * Lookup process:
+ *   1. Assert platoon_index is in [0, MAXIMUM_PLATOONS_PER_ENCOUNTER) and
+ *      less than encounter->platoon_count (encounter+0xa).
+ *   2. Compute absolute platoon index:
+ *        platoon_absolute_index = encounter->platoon_start_index
+ * (encounter+0x8)
+ *                               + platoon_index
+ *   3. Assert platoon_absolute_index is in [0, MAXIMUM_PLATOONS_PER_MAP).
+ *   4. Return *(char**)0x5ab274 + platoon_absolute_index * 0x10.
+ *
+ * Constants (from assert strings + binary):
+ *   MAXIMUM_PLATOONS_PER_ENCOUNTER = 0x20 (32)
+ *   MAXIMUM_PLATOONS_PER_MAP       = 0x100 (256)
+ *   platoon record size            = 0x10 (16 bytes)
+ *
+ * Source file: c:\halo\source\ai\encounters.h (inline, line 0xea / 0xed).
+ * Inferred: the assert filepath is encounters.h, confirming this is an
+ * inline helper compiled into encounters.obj. */
+char *FUN_00054020(char *encounter, short platoon_index)
+{
+  short platoon_absolute_index;
+
+  if (platoon_index < 0 || platoon_index >= 0x20 ||
+      platoon_index >= *(short *)(encounter + 0xa)) {
+    display_assert(
+      "platoon_index>=0 && platoon_index<MAXIMUM_PLATOONS_PER_ENCOUNTER"
+      " && platoon_index<encounter->platoon_count",
+      "c:\\halo\\source\\ai\\encounters.h", 0xea, 1);
+    system_exit(-1);
+  }
+  platoon_absolute_index = *(short *)(encounter + 0x8) + platoon_index;
+  if (platoon_absolute_index < 0 || platoon_absolute_index >= 0x100) {
+    display_assert("platoon_absolute_index>=0 && "
+                   "platoon_absolute_index<MAXIMUM_PLATOONS_PER_MAP",
+                   "c:\\halo\\source\\ai\\encounters.h", 0xed, 1);
+    system_exit(-1);
+  }
+  return *(char **)0x5ab274 + (int)platoon_absolute_index * 0x10;
+}
+
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
@@ -945,10 +992,11 @@ LAB_0005d365:
       FUN_00040280();
     } else {
       /* Team conflict: warn, then force actor to encounter team */
-      console_printf(2,
-                     "WARNING: actor changing to encounter %s/%s is being forced "
-                     "to change teams",
-                     enc_def, squad_def);
+      console_printf(
+        2,
+        "WARNING: actor changing to encounter %s/%s is being forced "
+        "to change teams",
+        enc_def, squad_def);
       FUN_0003aac0(actor_handle,
                    (int)(unsigned short)*(short *)(encounter + 2));
     }

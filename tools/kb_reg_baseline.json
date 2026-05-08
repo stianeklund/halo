@@ -261,5 +261,6 @@
   "0x126b60": "bool FUN_00126b60(void *server @<eax>);",
   "0x126ce0": "bool FUN_00126ce0(void *server @<eax>);",
   "0x126db0": "bool FUN_00126db0(void *server @<eax>);",
-  "0x126f40": "bool FUN_00126f40(void *server @<eax>);"
+  "0x126f40": "bool FUN_00126f40(void *server @<eax>);",
+  "0x2bd80": "void FUN_0002bd80(int actor_handle @<ecx>, float *facing, float *vel_out, float *speed_out);"
 }

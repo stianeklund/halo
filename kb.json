@@ -9119,6 +9119,10 @@
         {
           "addr": "0x2b720",
           "decl": "char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out);"
+        },
+        {
+          "addr": "0x2bd80",
+          "decl": "void FUN_0002bd80(int actor_handle @<ecx>, float *facing, float *vel_out, float *speed_out);"
         }
       ]
     },
@@ -9325,7 +9329,8 @@
         },
         {
           "decl": "char *FUN_00054020(char *encounter, short platoon_index);",
-          "addr": "0x54020"
+          "addr": "0x54020",
+          "ported": true
         },
         {
           "decl": "void FUN_00059630(int encounter_index, int unit_index);",
