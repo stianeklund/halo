@@ -659,6 +659,11 @@
           "decl": "int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index, void *starting_location, char use_major_variant, int16_t team);",
           "addr": "0x3f030",
           "ported": true
+        },
+        {
+          "addr": "0x36dc0",
+          "decl": "void FUN_00036dc0(int actor_handle, char flags_bit1, char flags_bit0);",
+          "ported": null
         }
       ]
     },
@@ -6504,8 +6509,10 @@
           "ported": true
         },
         {
-          "decl": "void *FUN_0018e500(short material_type);",
-          "addr": "0x18e500"
+          "decl": "void *FUN_0018e500(int16_t material_type);",
+          "addr": "0x18e500",
+          "ported": true,
+          "name": "FUN_0018e500"
         },
         {
           "decl": "bool scenario_location_potentially_visible_local(void *location);",
@@ -9385,7 +9392,8 @@
         },
         {
           "decl": "void FUN_0005dc00(int encounter_handle);",
-          "addr": "0x5dc00"
+          "addr": "0x5dc00",
+          "ported": true
         },
         {
           "decl": "void FUN_0005de80(void);",
