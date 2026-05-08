@@ -87,6 +87,409 @@ void FUN_0002b5d0(void)
   }
 }
 
+/*
+ * 0x2cdb0 — FUN_0002cdb0: Compute and populate the actor's path control state
+ * for the current movement mode.
+ *
+ * This function is the per-tick "where should I go?" resolver for actors. It
+ * reads the actor's movement source type (actor[0x46c]) to determine how to
+ * fill the actor's destination fields (actor[0x488..0x494]) and navigation
+ * state (actor[0x4a8]). After resolving the target, it initiates pathfinding
+ * and sets actor[0x4a4]=1 when successful.
+ *
+ * Arguments:
+ *   actor_handle   — datum handle identifying the actor.
+ *   store_distance — if non-zero, writes the computed 3D distance to the
+ *                    destination into actor[0x4a0].
+ *   override_path  — if non-NULL (and actor is not mounted), use this
+ *                    pre-computed path instead of computing a new one.
+ *
+ * Returns 1 if pathfinding succeeded (or a target was found), 0 on failure.
+ *
+ * Movement source types (actor[0x46c]):
+ *   0 — none / disabled (early-return, mark ready).
+ *   1 — disabled variant (same early-return).
+ *   2 — absolute world-space position stored in actor[0x470..0x47c].
+ *   3 — AI squad order position (scenario squads block).
+ *   4 — encounter squad order (scenario encounter/squad/order blocks).
+ *   5 — prop (perception object) position (from prop datum at actor[0x470]).
+ *
+ * Confirmed: cdecl, 3 args, char return.
+ * Confirmed: ESI=actor ptr, EDI=&actor[0x488] after switch cases.
+ * Confirmed: BL carries the function return value (0 or 1).
+ * Confirmed float constants: 0.0f at 0x2533c0, threshold at 0x255d1c,
+ *   threshold2 at 0x253398.
+ */
+char FUN_0002cdb0(int actor_handle, char store_distance, void *override_path)
+{
+  /* All C89 declarations at top of function scope. */
+  char *actor;
+  short move_src;
+  char had_path;
+  char path_found;
+  char path_found2;
+  float saved_pos[3]; /* [EBP-0x18..-0x10]: copy of old actor[0x488..0x490] */
+  char *tag; /* [EBP-0xc]: actor tag pointer from tag_get */
+  float dist; /* [EBP-0x8]: 3D distance actor→destination */
+  char local_nav[44]; /* [EBP-0x60]: nav-state struct (waypoint init output) */
+  char
+    large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
+  void *path_state; /* allocated path cache slot from FUN_00049120 */
+  int scenario;
+  int squad_elem;
+  int order_elem;
+  int order_elem2;
+  short order_idx;
+  int prop;
+  int game_tick;
+  unsigned int actor_handle_u;
+  int ai_idx;
+  float dist_sq_saved;
+
+  /* datum_get confirmed at 0x0002cdcb: PUSH EAX(actor_handle), PUSH
+   * ECX(0x6325a4) */
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  move_src = *(short *)(actor + 0x46c);
+  had_path = 0;
+
+  /* If move_src != 0 and != 1, save old destination and set had_path. */
+  if (move_src != 0 && move_src != 1) {
+    saved_pos[0] = *(float *)(actor + 0x488);
+    saved_pos[1] = *(float *)(actor + 0x48c);
+    saved_pos[2] = *(float *)(actor + 0x490);
+    had_path = 1;
+  }
+
+  /*
+   * Early-return conditions — actor is busy, paused, or at a terminal state:
+   *   actor[0x160] != 0 (some "is_doing" flag)
+   *   move_src == 0 or 1 (no movement source)
+   *   move_src == 3 && actor[0x3bb] != 0 (squad-order terminal condition)
+   * In all cases: re-fetch actor, clear fields, set is_moving=1, return 1.
+   * Confirmed at 0x0002d2fb: second datum_get, then BL (=1) is returned.
+   */
+  if (*(char *)(actor + 0x160) != '\0' || move_src == 0 || move_src == 1 ||
+      (move_src == 3 && *(char *)(actor + 0x3bb) != '\0')) {
+    /* Second datum_get at 0x0002d305 */
+    actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+    *(int *)(actor + 0x4a0) = 0;
+    *(char *)(actor + 0x4a8) = 0;
+    *(char *)(actor + 0x484) = 1;
+    return '\x01';
+  }
+
+  /* Clear navigation state fields for this tick. */
+  *(char *)(actor + 0x4a8) = 0;
+  *(char *)(actor + 0x484) = 0;
+  *(int *)(actor + 0x4a0) = 0;
+  *(char *)(actor + 0x506) = 0;
+
+  /* Resolve destination by movement source type. */
+  switch (move_src) {
+  case 2:
+    /*
+     * Absolute position: copy actor[0x470..0x47c] directly.
+     * Confirmed at 0x0002ce6f: LEA EDI,[ESI+0x488]; copy 3 dwords from
+     * [ESI+0x470]; then [ESI+0x494] = [ESI+0x47c].
+     */
+    *(unsigned int *)(actor + 0x488) = *(unsigned int *)(actor + 0x470);
+    *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(actor + 0x474);
+    *(unsigned int *)(actor + 0x490) = *(unsigned int *)(actor + 0x478);
+    *(unsigned int *)(actor + 0x494) = *(unsigned int *)(actor + 0x47c);
+    break;
+
+  case 3:
+    /*
+     * Squad order position: look up the order waypoint from the scenario
+     * squads block, indexed by actor[0x34] (squad handle low word).
+     *
+     * Disasm 0x0002cf62: tag_block_get_element chain (batch ESP cleanup
+     * at 0x0002cfbb). Sequence:
+     *   global_scenario_get() -> scenario+0x42c = &squads_block
+     *   tag_block_get_element(&squads_block, squad_idx, 0xb0) -> squad
+     *   tag_block_get_element(squad+0x98, actor[0x470], 0x18) -> order
+     *   Copy order[0..8] -> actor[0x488..0x490], order[0x14] -> actor[0x494]
+     */
+    if (*(unsigned int *)(actor + 0x34) == 0xffffffff) {
+      goto LAB_fail;
+    }
+    ai_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+    scenario = (int)global_scenario_get();
+    squad_elem =
+      (int)tag_block_get_element((void *)(scenario + 0x42c), ai_idx, 0xb0);
+    order_elem = (int)tag_block_get_element(
+      (void *)(squad_elem + 0x98), (int)(short)*(short *)(actor + 0x470), 0x18);
+    *(unsigned int *)(actor + 0x488) = *(unsigned int *)(order_elem + 0);
+    *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(order_elem + 4);
+    *(unsigned int *)(actor + 0x490) = *(unsigned int *)(order_elem + 8);
+    *(unsigned int *)(actor + 0x494) = *(unsigned int *)(order_elem + 0x14);
+    break;
+
+  case 4:
+    /*
+     * Encounter order position: look up in scenario encounters ->
+     * squads -> orders, indexed by actor[0x34] (encounter handle low
+     * word), actor[0x3a] (squad index), actor[0x470] (order index).
+     *
+     * Disasm 0x0002cec7-0x0002cf5d: same ESP batch pattern.
+     * actor[0x494] = order_entry[0x4c] (facing handle).
+     */
+    if (*(unsigned int *)(actor + 0x34) == 0xffffffff) {
+      goto LAB_fail;
+    }
+    ai_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+    scenario = (int)global_scenario_get();
+    squad_elem =
+      (int)tag_block_get_element((void *)(scenario + 0x42c), ai_idx, 0xb0);
+    order_elem = (int)tag_block_get_element(
+      (void *)(squad_elem + 0x80), (int)(short)*(short *)(actor + 0x3a), 0xe8);
+    order_idx = *(short *)(actor + 0x470);
+    if (order_idx < 0) {
+      goto LAB_fail;
+    }
+    if ((int)order_idx >= *(int *)(order_elem + 0xc4)) {
+      goto LAB_fail;
+    }
+    order_elem2 = (int)tag_block_get_element((void *)(order_elem + 0xc4),
+                                             (int)order_idx, 0x50);
+    *(unsigned int *)(actor + 0x488) = *(unsigned int *)(order_elem2 + 0);
+    *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(order_elem2 + 4);
+    *(unsigned int *)(actor + 0x490) = *(unsigned int *)(order_elem2 + 8);
+    *(unsigned int *)(actor + 0x494) = *(unsigned int *)(order_elem2 + 0x4c);
+    break;
+
+  case 5:
+    /*
+     * Prop position: actor[0x470] is a prop datum handle. Fetch the prop
+     * from prop_data (DAT_005ab23c). Validate it is in a valid-prop state
+     * (prop[0x24] in [4,5]), then copy position fields.
+     *
+     * actor[0x99] selects between two prop position fields:
+     *   ==0: prop[0xf0..0xf8] (normal position)
+     *   !=0: prop[0xc8..0xd0] (vehicle/mounted position)
+     * actor[0x494] = prop[0xec] (velocity handle).
+     * actor[0x498] = actor[0x474] (facing yaw carry-over).
+     */
+    prop = (int)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x470));
+    if ((*(short *)(prop + 0x24) < 4) || (*(short *)(prop + 0x24) > 5)) {
+      /* Prop state invalid: notify and continue (don't abort). */
+      FUN_0002f910(actor_handle, *(int *)(actor + 0x470));
+    }
+    if (*(char *)(actor + 0x99) != '\0') {
+      *(unsigned int *)(actor + 0x488) = *(unsigned int *)(prop + 0xc8);
+      *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(prop + 0xcc);
+      *(unsigned int *)(actor + 0x490) = *(unsigned int *)(prop + 0xd0);
+    } else {
+      *(unsigned int *)(actor + 0x488) = *(unsigned int *)(prop + 0xf0);
+      *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(prop + 0xf4);
+      *(unsigned int *)(actor + 0x490) = *(unsigned int *)(prop + 0xf8);
+    }
+    *(unsigned int *)(actor + 0x494) = *(unsigned int *)(prop + 0xec);
+    *(unsigned int *)(actor + 0x498) = *(unsigned int *)(actor + 0x474);
+    goto LAB_check_dest;
+
+  default:
+    display_assert((char *)0, "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xb7f, 1);
+    system_exit(-1);
+    goto LAB_fail;
+  }
+
+  /* Cases 2/3/4 fall through here; case 5 jumps to LAB_check_dest. */
+  *(int *)(actor + 0x498) = 0;
+
+LAB_check_dest:
+  /*
+   * Validate destination. Two branches:
+   *
+   * B) actor[0x99]!=0 (mounted): call FUN_0002b720 to check whether the
+   *    destination is accessible for a mounted actor; output dist.
+   *    Confirmed at 0x0002ceab-0x0002cebf:
+   *      JZ skip (actor[0x99]==0)
+   *      PUSH LEA[EBP-0xc](&dist); PUSH EDI(&actor[0x488]); PUSH ECX
+   *      CALL FUN_0002b720
+   *
+   * A) actor[0x99]==0 (on foot): if actor[0x498]==0.0f, check
+   *    actor[0x494]!=-1. If -1, fail. If actor[0x498]!=0.0f, fall through.
+   *    Confirmed at 0x0002d096-0x0002d0b3.
+   */
+  if (*(char *)(actor + 0x99) != '\0') {
+    path_found = FUN_0002b720(actor_handle, (float *)(actor + 0x488), &dist);
+    if (path_found == '\0') {
+      goto LAB_fail;
+    }
+  } else {
+    if (*(float *)(actor + 0x498) == 0.0f) {
+      path_found = (char)(*(int *)(actor + 0x494) != -1);
+      if (path_found == '\0') {
+        goto LAB_fail;
+      }
+    }
+  }
+
+  /* Try fast path: actor is already navigating to the same destination. */
+  path_found = FUN_0002a580(actor_handle);
+  if (path_found != '\0') {
+    if (!had_path) {
+      goto LAB_path_ok;
+    }
+    /*
+     * Had a previous destination endpoint. Compute squared distance between
+     * the saved endpoint (saved_pos) and the new destination (actor[0x488]).
+     * If close enough (dist_sq <= threshold at 0x255d1c), return 1 quickly.
+     * If destination has changed significantly, fall through to do a full
+     * re-path.
+     * Confirmed at 0x0002d0d6-0x0002d0ee:
+     *   LEA EDX,[EBP-0x18](saved_pos); PUSH EDI(&actor[0x488]); PUSH EDX
+     *   CALL distance_squared3d  (FUN_000121a0 = 0x000121a0)
+     *   FCOMP [0x255d1c]; FNSTSW AX; TEST AH,0x41; JNZ 0x2d32a (return 1)
+     * JNZ taken when: AH & 0x41 != 0 → C3|C0 set → FPU flags for <=
+     *   So jump to return-1 when dist_sq <= threshold.
+     *   Fall through (full repath) when dist_sq > threshold.
+     */
+    dist_sq_saved =
+      (float)distance_squared3d(saved_pos, (float *)(actor + 0x488));
+    if (dist_sq_saved <= *(float *)0x255d1c) {
+      goto LAB_path_ok;
+    }
+    /* Destination changed significantly: fall through to full pathfinding. */
+  }
+
+  /*
+   * FUN_0002a580 failed. Compute actual 3D distance from actor position to
+   * destination, allocate path cache, and run the pathfinder.
+   *
+   * tag_get at 0x0002d0f7: PUSH [ESI+0x58]; PUSH 0x61637472 ('rtra'='actr')
+   * FUN_0001ad60 at 0x0002d10d: PUSH EDI(&actor[0x488]); PUSH &actor[0x12c]
+   *   returns float in FPU; FSTP [EBP-0x8] -> dist
+   * game_time_get at 0x0002d12c: no args -> current game tick
+   * Confirmed at 0x0002d131: MOV [EBX+4],EAX (path slot timestamp)
+   */
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  dist =
+    (float)FUN_0001ad60((float *)(actor + 0x12c), (float *)(actor + 0x488));
+  actor_handle_u = (unsigned int)actor_handle;
+  game_tick = game_time_get();
+  *(int *)((actor_handle_u & 0xffff) * 0x657c + *(int *)0x331f58 + 4) =
+    game_tick;
+
+  /* Select pathfinding mode: mounted (vehicle) vs on-foot vs override. */
+  if (*(char *)(actor + 0x99) != '\0') {
+    /*
+     * Mounted: use scenario-based vehicle pathfinding (FUN_0005e920).
+     * Args confirmed at 0x0002d13e-0x0002d155:
+     *   pre-push: &actor[0x4a8], &actor[0x488](EDI), 0, &actor[0x12c]
+     *   scenario_get() -> push EAX
+     *   CALL FUN_0005e920(scenario, &actor[0x12c], 0, &actor[0x488],
+     *                     &actor[0x4a8])
+     * ADD ESP,0x14 = 5 args.
+     */
+    path_found = FUN_0005e920((int)scenario_get(), (int *)(actor + 0x12c), 0,
+                              (int *)(actor + 0x488), (char *)(actor + 0x4a8));
+  } else if (override_path != (void *)0) {
+    /*
+     * Caller provided a pre-computed path override.
+     * Assert: actor[0x480] (dest_object) must be NONE (-1).
+     * Then set up override_path as the navigation state:
+     *   FUN_0005e0d0(override_path, &actor[0x494], actor[0x498], 0)
+     *   FUN_0005eae0(override_path, &actor[0x4a8])
+     * Confirmed at 0x0002d164-0x0002d1bb.
+     */
+    if (*(int *)(actor + 0x480) != -1) {
+      display_assert("actor->control.path.destination_orders."
+                     "ignore_target_object_index == NONE",
+                     "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xbbc, 1);
+      system_exit(-1);
+    }
+    FUN_0005e0d0((int)override_path, (unsigned int *)(actor + 0x494),
+                 *(unsigned int *)(actor + 0x498), 0);
+    path_found = FUN_0005eae0((unsigned int)override_path,
+                              (unsigned int *)(actor + 0x4a8));
+  } else {
+    /*
+     * Normal on-foot pathfinding pipeline:
+     *  1. FUN_0002a470(actor_handle, local_nav): initialize nav-state struct
+     *     (actor position, facing, vehicle info, etc.).
+     *  2. FUN_0005dff0(local_nav, actor[0x480]): if ignore_object!=-1,
+     *     store it at local_nav+0xc.
+     *  3. (Optional) FUN_0005e030: encode movement-constraint orders into
+     *     local_nav when actor has standing orders (actor[0x280]>0,
+     *     actor[0x28a]==0, tag flag bit 4 clear). Float arg 0x41200000=10.0f.
+     *  4. FUN_00049120(actor_handle): allocate/find path cache slot.
+     *  5. FUN_0005e090(local_nav, large_buf, path_state): init path-build
+     *     state in large_buf from local_nav and the cache slot.
+     *  6. FUN_0005e0d0(large_buf, &actor[0x488], actor[0x494], actor[0x498]):
+     *     set destination in path-build state.
+     *  7. FUN_0005ff70(large_buf): run pathfinder; returns 1 on success.
+     *  8. FUN_0005eae0(large_buf, &actor[0x4a8]): extract waypoint result
+     *     into actor nav-control struct. Returns 1 if path is usable.
+     *
+     * Disasm confirmed:
+     *   local_nav at [EBP-0x60] (44 bytes)
+     *   large_buf at [EBP+0xfffebf14] (82060 bytes = 0x1408c)
+     */
+    FUN_0002a470(actor_handle, local_nav);
+    if (*(int *)(actor + 0x480) != -1) {
+      FUN_0005dff0((int)local_nav, *(unsigned int *)(actor + 0x480));
+    }
+    if ((*(short *)(actor + 0x280) > 0) && (*(char *)(actor + 0x28a) == '\0') &&
+        ((*(unsigned char *)(tag + 4) & 0x10) == 0)) {
+      FUN_0005e030((int)local_nav, (unsigned int *)(actor + 0x2b0),
+                   *(unsigned int *)(actor + 0x294),
+                   *(unsigned int *)(actor + 0x28c),
+                   (unsigned int)0x41200000); /* 10.0f as bit pattern */
+    }
+    path_state = FUN_00049120(actor_handle);
+    FUN_0005e090((unsigned int *)local_nav, (unsigned int *)large_buf,
+                 (unsigned int)path_state);
+    FUN_0005e0d0((int)large_buf, (unsigned int *)(actor + 0x488),
+                 *(unsigned int *)(actor + 0x494),
+                 *(unsigned int *)(actor + 0x498));
+    path_found = FUN_0005ff70((unsigned int *)large_buf);
+    if (path_found != '\0') {
+      path_found2 =
+        FUN_0005eae0((unsigned int)large_buf, (unsigned int *)(actor + 0x4a8));
+      path_found = path_found2 ? '\x01' : '\0';
+    }
+  }
+
+  /* Mark path-computation attempted this tick. */
+  *(char *)(actor + 0x4a4) = 1;
+  if (store_distance != '\0') {
+    *(float *)(actor + 0x4a0) = dist;
+  }
+
+  if (path_found != '\0') {
+    /*
+     * Pathfinding succeeded. Hysteresis check: if the actor was already
+     * moving (actor[0x4bc]>0.0f) and the new distance is less than the
+     * expected move distance (dist < actor[0x498]) AND the delta is small
+     * (dist - actor[0x4bc] < threshold), reset the path to avoid jitter.
+     * Confirmed at 0x0002d2ad-0x0002d2f2:
+     *   FLD [ESI+0x4bc]; FCOMP 0.0f; TEST AH,0x41; JNZ done
+     *   FLD dist; FCOMP [ESI+0x498]; TEST AH,0x5; JP done
+     *   FLD dist; FSUB [ESI+0x4bc]; FCOMP [0x253398]; TEST AH,0x5; JP done
+     *   CALL FUN_0002a3a0(actor_handle)
+     */
+    if ((*(float *)(actor + 0x4bc) > 0.0f) &&
+        (dist < *(float *)(actor + 0x498)) &&
+        (dist - *(float *)(actor + 0x4bc) < *(float *)0x253398)) {
+      FUN_0002a3a0(actor_handle);
+    }
+    return path_found;
+  }
+
+LAB_fail:
+  FUN_0002a3a0(actor_handle);
+  return '\0';
+
+LAB_path_ok:
+  *(char *)(actor + 0x4a4) = 1;
+  if (store_distance != '\0') {
+    *(float *)(actor + 0x4a0) = dist;
+  }
+  return '\x01';
+}
+
 /* 0x2d350 — FUN_0002d350: Update actor path state and compute target
  * destination.
  *

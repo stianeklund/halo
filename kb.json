@@ -9105,11 +9105,20 @@
         },
         {
           "addr": "0x2a580",
-          "decl": "void FUN_0002a580(int actor_handle);"
+          "decl": "char FUN_0002a580(int actor_handle);"
         },
         {
           "addr": "0x2cdb0",
-          "decl": "char FUN_0002cdb0(int actor_handle, char store_distance, void *override_path);"
+          "decl": "char FUN_0002cdb0(int actor_handle, char store_distance, void *override_path);",
+          "ported": true
+        },
+        {
+          "addr": "0x2a470",
+          "decl": "void FUN_0002a470(int actor_handle, char *nav_state_out);"
+        },
+        {
+          "addr": "0x2b720",
+          "decl": "char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out);"
         }
       ]
     },
@@ -9143,6 +9152,10 @@
         {
           "addr": "0x355f0",
           "decl": "void FUN_000355f0(int actor_handle);"
+        },
+        {
+          "addr": "0x2f910",
+          "decl": "void FUN_0002f910(int actor_handle, int prop_handle);"
         }
       ]
     },
@@ -9249,6 +9262,10 @@
         {
           "addr": "0x494d0",
           "decl": "void FUN_000494d0(char success);"
+        },
+        {
+          "addr": "0x49120",
+          "decl": "void *FUN_00049120(int actor_handle);"
         }
       ]
     },
@@ -10197,6 +10214,41 @@
         {
           "decl": "void FUN_0014ea10(unsigned int type_mask, int first_handle, float *origin, float radius, float param_5, float param_6, int exclude_handle, int param_8);",
           "addr": "0x14ea10"
+        }
+      ]
+    },
+    {
+      "name": "path.obj",
+      "source": "ai/path.c",
+      "data": [],
+      "functions": [
+        {
+          "addr": "0x5dff0",
+          "decl": "void FUN_0005dff0(int nav_state, unsigned int ignore_object);"
+        },
+        {
+          "addr": "0x5e030",
+          "decl": "void FUN_0005e030(int nav_state, unsigned int *hint_pos, unsigned int hint_handle, unsigned int orders_handle, unsigned int radius_bits);"
+        },
+        {
+          "addr": "0x5e090",
+          "decl": "void FUN_0005e090(unsigned int *nav_state_src, unsigned int *path_buf, unsigned int path_slot);"
+        },
+        {
+          "addr": "0x5e0d0",
+          "decl": "void FUN_0005e0d0(int path_buf, unsigned int *dest_pos, unsigned int dest_handle, unsigned int speed_bits);"
+        },
+        {
+          "addr": "0x5e920",
+          "decl": "char FUN_0005e920(int scenario, int *actor_pos, int zero, int *dest_pos, char *nav_state_out);"
+        },
+        {
+          "addr": "0x5eae0",
+          "decl": "char FUN_0005eae0(unsigned int path_buf, unsigned int *nav_state_out);"
+        },
+        {
+          "addr": "0x5ff70",
+          "decl": "char FUN_0005ff70(unsigned int *path_buf);"
         }
       ]
     }
