@@ -584,6 +584,53 @@ void FUN_0005ddc0(void)
   }
 }
 
+/* 0x5de80 — Per-tick encounter update. Every 30 ticks calls FUN_0005d890 and
+ * FUN_0005a6e0. Then iterates all encounters; for each dirty encounter whose
+ * handle index mod 15 matches the current tick mod 15, runs the full suite of
+ * encounter update functions (tally, perception, squad management, etc.). */
+void FUN_0005de80(void)
+{
+  int tick;
+  int tick_mod15;
+  data_iter_t iter;
+  int encounter_handle;
+  char *encounter;
+  char flag;
+
+  tick = game_time_get();
+  if (tick % 30 == 0) {
+    FUN_0005d890();
+    FUN_0005a6e0();
+  }
+  tick_mod15 = tick % 15;
+  if (*(char *)(*(int *)0x632574 + 1) != '\0') {
+    data_iterator_new(&iter, *(data_t **)0x5ab270);
+    flag = 1;
+  }
+  for (;;) {
+    if (*(char *)(*(int *)0x632574 + 1) == '\0')
+      return;
+    do {
+      encounter = (char *)data_iterator_next(&iter);
+      if (encounter == NULL || flag == '\0')
+        break;
+    } while (*(char *)(encounter + 0xd) == '\0');
+    encounter_handle = (int)iter.datum_handle;
+    if (encounter == NULL)
+      return;
+    (*(short *)0x5abb34)++;
+    if ((short)((encounter_handle & 0xffff) % 15) == (short)tick_mod15) {
+      FUN_0005d420(encounter_handle);
+      FUN_0005acf0(encounter_handle);
+      FUN_0005c680(encounter_handle);
+      FUN_0005ae70(encounter_handle);
+      FUN_0005c940(encounter_handle);
+      FUN_0005ca80(encounter_handle);
+      FUN_0005dc00(encounter_handle);
+    }
+  }
+}
+
 /* 0x0005df80 — encounter_initialize stub.
  * Binary: single RET. No initialization needed at this level. */
 void FUN_0005df80(void)

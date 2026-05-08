@@ -9380,7 +9380,8 @@
         },
         {
           "decl": "void FUN_0005de80(void);",
-          "addr": "0x5de80"
+          "addr": "0x5de80",
+          "ported": true
         },
         {
           "decl": "void FUN_0005df80(void);",
