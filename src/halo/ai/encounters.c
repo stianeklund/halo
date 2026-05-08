@@ -794,6 +794,121 @@ void FUN_0005d910(int encounter_handle, short param_2, short param_3)
   FUN_0005a6e0();
 }
 
+/* 0x0005dc00 — Sync actor state from encounter and platoon definitions.
+ *
+ * For a given encounter handle, walks the linked list of actors belonging to
+ * that encounter (rooted at encounter+0x14, chained via actor+0x2c).
+ * For each actor the function:
+ *   - Copies encounter-level flag bytes into the actor record
+ *     (encounter+0x42 -> actor+0x1c8, encounter+0x60 -> actor+0x1ca).
+ *   - Conditionally resets the actor's aggression/combat state fields
+ *     (actor+0x1e4 = 0, actor+0x1e8 = -1) when encounter+0x47 == 0.
+ *   - If the actor has a valid platoon index (actor+0x3c != -1), looks up the
+ *     platoon definition and copies platoon+0x00 into actor+0x1c9.
+ *   - If the platoon lookup result indicates a valid squad assignment
+ *     (result[1] != 0 and result[2] == 0), reads the target squad index from
+ *     squad_def+0x4e, bounds-checks it against the encounter's squad count,
+ *     and calls FUN_0003baa0 to move the actor to that squad, then calls
+ *     FUN_00036dc0 to update the actor's firing state from platoon flags.
+ * After the actor loop, calls FUN_0005d890 for encounter cleanup.
+ *
+ * Confirmed:
+ *   - cdecl, 1 stack arg (encounter_handle), RET (no stack fixup).
+ *   - actor linked list: encounter+0x14 = head; actor+0x2c = next handle.
+ *   - Loop guard: *(char*)(ai_globals+1) != 0 && handle != -1.
+ *   - Batch ADD ESP,0x18 cleanup for FUN_0003baa0 + FUN_00036dc0 (3+3 args).
+ *   - EDI = encounter record ptr, restored from [EBP-0x8] on loop-back
+ * (0x5dc72).
+ *   - [EBP-0x10] saves actor_handle for use as arg1 in
+ * FUN_0003baa0/FUN_00036dc0.
+ *
+ * Call-site: FUN_0005de80 @ 0x5df5e: PUSH EDX ([EBP-0x8] = encounter_handle).
+ */
+void FUN_0005dc00(int encounter_handle)
+{
+  char *encounter;
+  char *scenario;
+  char *encounter_def;
+  char *actor;
+  char *platoon_def;
+  char *squad_def;
+  char *platoon_entry;
+  int actor_handle;
+  int saved_actor_handle;
+  int next_handle;
+  int squad_count;
+  int16_t squad_target_idx;
+  char uVar9;
+  char bVar2;
+  unsigned int flags_dword;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+
+  scenario = (char *)global_scenario_get();
+  encounter_def = (char *)tag_block_get_element(
+    (void *)(scenario + 0x42c), encounter_handle & 0xffff, 0xb0);
+
+  actor_handle = -1;
+  if (*(char *)(*(int *)0x632574 + 1) != '\0') {
+    if (encounter_handle == -1) {
+      actor_handle = *(int *)(*(int *)0x632574 + 8);
+    } else {
+      actor_handle = *(int *)(encounter + 0x14);
+    }
+  }
+
+  for (;;) {
+    if (*(char *)(*(int *)0x632574 + 1) == '\0')
+      break;
+    if (actor_handle == -1)
+      break;
+
+    saved_actor_handle = actor_handle;
+    actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+
+    next_handle = *(int *)(actor + 0x2c);
+    *(char *)(actor + 0x1c8) = *(char *)(encounter + 0x42);
+    *(char *)(actor + 0x1ca) = *(char *)(encounter + 0x60);
+
+    if (*(char *)(encounter + 0x47) == '\0') {
+      *(int16_t *)(actor + 0x1e4) = 0;
+      *(int *)(actor + 0x1e8) = -1;
+    }
+
+    uVar9 = '\0';
+    bVar2 = 0;
+    if (*(int16_t *)(actor + 0x3c) != -1) {
+      platoon_entry =
+        (char *)FUN_00054020(encounter, (int)*(int16_t *)(actor + 0x3c));
+      uVar9 = platoon_entry[0];
+      if (platoon_entry[1] != '\0' && platoon_entry[2] == '\0') {
+        bVar2 = 1;
+      }
+    }
+    *(char *)(actor + 0x1c9) = uVar9;
+
+    if (bVar2) {
+      squad_def = (char *)tag_block_get_element(
+        (void *)(encounter_def + 0x80), (int)*(int16_t *)(actor + 0x3a), 0xe8);
+      platoon_def = (char *)tag_block_get_element(
+        (void *)(encounter_def + 0x8c), (int)*(int16_t *)(actor + 0x3c), 0xac);
+      squad_target_idx = *(int16_t *)(squad_def + 0x4e);
+      squad_count = *(int *)(encounter_def + 0x80);
+      if ((int)squad_target_idx >= 0 && (int)squad_target_idx < squad_count) {
+        FUN_0003baa0(saved_actor_handle, encounter_handle, squad_target_idx);
+        flags_dword = *(unsigned int *)(platoon_def + 0x20);
+        FUN_00036dc0(saved_actor_handle,
+                     (char)((int)(flags_dword >> 1) & (int)0xffffff01u),
+                     (char)(*(unsigned char *)(platoon_def + 0x20) & 1u));
+      }
+    }
+
+    actor_handle = next_handle;
+  }
+
+  FUN_0005d890();
+}
+
 /* 0x5ddc0 — Iterate all encounters and reset tallies for those matching
  * the current BSP or with the "not-automatically-recycled" flag cleared.
  * Uses a data iterator over encounter_data; for each encounter whose

@@ -78,6 +78,58 @@ void scenario_location_reset(int *location)
   *(int16_t *)((char *)location + 6) = NONE;
 }
 
+/* FUN_0018e500 (0x18e500) — look up a material type entry from game globals.
+ *
+ * Given a material_type index (int16_t), validate it and return a pointer to
+ * the corresponding element from the game_globals material_types tag block at
+ * offset 0x194. Each element is 0x374 bytes.
+ *
+ * If game_globals is not loaded, asserts. If material_type is out of range
+ * (not NONE and not in [0, NUMBER_OF_MATERIAL_TYPES-1] where
+ * NUMBER_OF_MATERIAL_TYPES==33), asserts. If material_type is NONE (-1) or the
+ * index is >= the block count, returns a pointer to a static fallback buffer at
+ * 0x4d8700, initialising it with a -1 sentinel on the first call.
+ *
+ * Confirmed: assert "global_game_globals" at line 0xdd (221).
+ * Confirmed: assert string "material_type==NONE || ..." at line 0x11e (286).
+ * Confirmed: block at game_globals+0x194, element size 0x374.
+ * Confirmed: fallback initialises dword at 0x4d8a70 to -1, byte 0x4d8a74 to 1.
+ * Confirmed: returns &DAT_004d8700 when index is NONE or out of range.
+ */
+void *FUN_0018e500(int16_t material_type)
+{
+  char *game_globals;
+  int index;
+
+  if (!*(void **)0x5064d4) {
+    display_assert("global_game_globals",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xdd, 1);
+    system_exit(-1);
+  }
+  game_globals = *(char **)0x5064d4;
+
+  if (material_type != (int16_t)NONE &&
+      (material_type < 0 || material_type >= 33)) {
+    display_assert("material_type==NONE || (material_type>=0 && "
+                   "material_type<NUMBER_OF_MATERIAL_TYPES)",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0x11e, 1);
+    system_exit(-1);
+  }
+
+  if (material_type >= 0) {
+    index = (int)material_type;
+    if (index < *(int *)(game_globals + 0x194)) {
+      return tag_block_get_element(game_globals + 0x194, index, 0x374);
+    }
+  }
+
+  if (!*(uint8_t *)0x4d8a74) {
+    *(int *)0x4d8a70 = NONE;
+    *(uint8_t *)0x4d8a74 = 1;
+  }
+  return (void *)0x4d8700;
+}
+
 /* FUN_0018e720 (0x18e720) — bsp3d_find_leaf_point
  *
  * Looks up the BSP3D leaf containing a given 3D point by traversing the
