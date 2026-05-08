@@ -54,6 +54,29 @@ bool game_allegiance_get_team_is_friendly(int16_t team_a, int16_t team_b)
 }
 
 /**
+ * Returns whether two teams have had an allegiance incident (natural change).
+ *
+ * Checks a 10x10 bitfield at game_allegiance_globals+0x94. Each bit represents
+ * a team pair (team_a * 10 + team_b). A SET bit means the teams have had an
+ * incident; a CLEAR bit means they have not.
+ *
+ * Out-of-range team indices (negative or >= 10) return false.
+ */
+bool FUN_000a7a90(int16_t team_a, int16_t team_b)
+{
+  int bit_index;
+  bool result;
+
+  result = false;
+  if (team_a >= 0 && team_a < 10 && team_b >= 0 && team_b < 10) {
+    bit_index = team_a * 10 + team_b;
+    result = (*(uint32_t *)(game_allegiance_globals + 0x94 + (bit_index >> 5) * 4) &
+              (1 << (bit_index & 0x1f))) != 0;
+  }
+  return result;
+}
+
+/**
  * Sets the friendship state between two teams in an allegiance entry.
  *
  * Updates two symmetric 10x10 bitfields in game_allegiance_globals:

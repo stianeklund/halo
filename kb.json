@@ -2523,7 +2523,8 @@
         },
         {
           "decl": "bool FUN_000a7a90(int16_t team_a, int16_t team_b);",
-          "addr": "0xa7a90"
+          "addr": "0xa7a90",
+          "ported": true
         },
         {
           "decl": "void game_allegiance_set(int16_t *entry, char friendship, char force);",
