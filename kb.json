@@ -9040,7 +9040,8 @@
         },
         {
           "addr": "0x2a3a0",
-          "decl": "void FUN_0002a3a0(int actor_handle);"
+          "decl": "void FUN_0002a3a0(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x2a580",
