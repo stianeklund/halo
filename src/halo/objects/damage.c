@@ -62,6 +62,66 @@ char FUN_001367e0(int object_handle)
   return 0;
 }
 
+/* FUN_00136840 (0x136840) — Recursively apply FUN_0013c740 to all child
+ * objects in the object hierarchy.
+ *
+ * Starting from the given object, reads the first child handle at +0xC8,
+ * then iterates siblings via the link at +0xC4. For each child, calls
+ * FUN_0013c740; if it returns false, recurses into that child's subtree.
+ *
+ * Confirmed: object_get_and_verify_type(handle, -1) at 0x13684a for root.
+ * Confirmed: MOV ESI,[EAX+0xc8] at 0x13684f reads first child handle.
+ * Confirmed: object_get_and_verify_type(child, -1) at 0x136863 in loop.
+ * Confirmed: MOV EDI,[EAX+0xc4] at 0x136868 reads next sibling handle.
+ * Confirmed: CALL 0x0013c740 at 0x13686f with child handle in ESI.
+ * Confirmed: recursive CALL 0x00136840 at 0x13687c if FUN_0013c740 returns 0.
+ * Confirmed: void return, cdecl, 1 param.
+ */
+void FUN_00136840(int object_handle)
+{
+  char *obj;
+  int child_handle;
+  int next_handle;
+  char result;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  child_handle = *(int *)(obj + 0xc8);
+  while (child_handle != -1) {
+    obj = (char *)object_get_and_verify_type(child_handle, -1);
+    next_handle = *(int *)(obj + 0xc4);
+    result = FUN_0013c740(child_handle);
+    if (result == 0) {
+      FUN_00136840(child_handle);
+    }
+    child_handle = next_handle;
+  }
+}
+
+/* FUN_00136890 (0x136890) — Find the player index that owns a given object.
+ *
+ * Walks up the object parent chain (via object+0xcc) looking for a unit
+ * (biped or vehicle, type_mask=3). When found, returns
+ * player_index_from_unit_index for that unit. Returns -1 if no unit
+ * ancestor is found.
+ *
+ * Confirmed: @EAX register arg from caller at 0x137e2c (MOV EAX,EBX; CALL).
+ * Confirmed: cdecl callees object_try_and_get_and_verify_type,
+ *            object_get_and_verify_type, player_index_from_unit_index.
+ */
+int FUN_00136890(int object_index)
+{
+  void *obj;
+
+  while (object_index != -1) {
+    if (object_try_and_get_and_verify_type(object_index, 3) != NULL) {
+      return player_index_from_unit_index(object_index);
+    }
+    obj = object_get_and_verify_type(object_index, -1);
+    object_index = *(int *)((char *)obj + 0xcc);
+  }
+  return -1;
+}
+
 /* FUN_00136980 (0x136980) — Set or clear the damage-invincible bit on an
  * object.
  *

@@ -41,6 +41,7 @@
     "0x12dd20": "void FUN_0012dd20(void *game_data, const char *prefix@<esi>);",
     "0x12e580": "bool FUN_0012e580(int server@<ebx>);",
     "0x12e750": "bool FUN_0012e750(int server@<esi>);",
+    "0x136890": "int FUN_00136890(int object_index @<eax>);",
     "0x13ded0": "int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint@<eax>);",
     "0x13e1a0": "void FUN_0013e1a0(int object_handle@<edi>);",
     "0x13e1f0": "void FUN_0013e1f0(int object_handle@<eax>, void *color_data);",
