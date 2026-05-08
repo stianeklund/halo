@@ -470,7 +470,8 @@
         },
         {
           "decl": "void FUN_0003aac0(int actor_handle, int16_t team_index);",
-          "addr": "0x3aac0"
+          "addr": "0x3aac0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax> */);",
@@ -3410,7 +3411,8 @@
         },
         {
           "addr": "0xcb980",
-          "decl": "const char *FUN_000cb980(void);"
+          "decl": "const char *FUN_000cb980(void);",
+          "ported": true
         },
         {
           "addr": "0xcbf80",
@@ -10139,6 +10141,11 @@
         {
           "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
           "addr": "0x2062d0"
+        },
+        {
+          "addr": "0x1efd60",
+          "decl": "void D3D_KickOffAndWaitForIdle(void);",
+          "ported": false
         }
       ]
     },

@@ -1241,6 +1241,33 @@ static void FUN_000cb7b0(int loop_var)
   }
 }
 
+/* 0xcb980 — Return the script name of the currently executing HS thread,
+ * or "[unknown]" if no thread is currently running.
+ *
+ * Reads hs_runtime_globals.current_thread (int16_t at 0x46b812).  If -1, no
+ * thread is executing and the fallback string is returned.  Otherwise passes
+ * the index (sign-extended) to hs_get_thread_script_name and returns that
+ * result, or "[unknown]" if it returns NULL.
+ *
+ * Key globals:
+ *   0x46b812 = hs_runtime_globals.current_thread (int16_t, -1 = none)
+ */
+const char *FUN_000cb980(void)
+{
+  int16_t current_thread;
+  const char *name;
+
+  current_thread = *(int16_t *)0x46b812;
+  if (current_thread == -1) {
+    return "[unknown]";
+  }
+  name = (const char *)hs_get_thread_script_name((int)current_thread);
+  if (name == NULL) {
+    return "[unknown]";
+  }
+  return name;
+}
+
 /* 0xcbf80 — Execute a pending script-call expression on an HS thread.
  * Resolves the return type of the callee (either a built-in function or a
  * scenario script), casts the supplied value to that type via hs_can_cast,
@@ -1526,8 +1553,8 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
 int FUN_000cc560(int16_t function_index, int thread_datum, char init)
 {
   char *desc = (char *)hs_function_table_get(function_index);
-  return FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18), (int)(desc + 0x1a),
-               init);
+  return FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18),
+                      (int)(desc + 0x1a), init);
 }
 
 /* 0xcc590 — HS 'begin' evaluator. Evaluates a sequence of expressions in

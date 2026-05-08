@@ -265,6 +265,72 @@ void actors_dispose_from_old_map(void)
   data_make_invalid(swarm_component_data);
 }
 
+/* FUN_0003aac0 (0x3aac0) — set team index on all units belonging to an actor.
+ *
+ * Resolves the actor record via actor_data and writes param team_index to the
+ * team field (offset +0x68) of every unit object associated with the actor.
+ * Three cases are handled based on the swarm flag (actor+0x6) and the swarm
+ * handle (actor+0x28):
+ *
+ *   1. Non-swarm actor (actor[6] == 0):
+ *      If actor->unit_handle (actor+0x18) != -1, write team_index to
+ *      unit[0x68] via object_get_and_verify_type.
+ *
+ *   2. Swarm actor with swarm handle (actor[0x28] != -1):
+ *      Resolve the swarm record via swarm_data. Iterate all member handles
+ *      stored at swarm[0x18 + i*4] (count = swarm[2], short) and write
+ *      team_index to each unit[0x68].
+ *
+ *   3. Swarm actor without swarm handle (actor[0x28] == -1):
+ *      Walk the linked list starting at actor[0x24], following unit[0x1ac]
+ *      until -1, writing team_index to each unit[0x68].
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3aad0.
+ * Confirmed: actor[6] swarm-flag test at 0x3aadb-0x3aadd.
+ * Confirmed: non-swarm path — actor[0x18] guard + object_get_and_verify_type
+ *   at 0x3ab52-0x3ab62; write DX=[EBP+0xc] to [EAX+0x68] at 0x3ab66-0x3ab69.
+ * Confirmed: swarm-handle path — datum_get(swarm_data, actor[0x28]) at
+ *   0x3aaef; loop over swarm[2] entries at 0x3ab01-0x3ab27; BX=[EBP+0xc]
+ *   stored to [EAX+0x68] at 0x3ab19.
+ * Confirmed: linked-list path — actor[0x24] at 0x3ab28; loop via unit[0x1ac]
+ *   at 0x3ab34-0x3ab4c; SI=[EBP+0xc] stored to [EAX+0x68] at 0x3ab3c. */
+void FUN_0003aac0(int actor_handle, int16_t team_index)
+{
+  char *actor;
+  char *swarm;
+  char *unit;
+  int unit_handle;
+  short i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 6) == 0) {
+    /* Non-swarm actor: set team on the single associated unit */
+    unit_handle = *(int *)(actor + 0x18);
+    if (unit_handle != -1) {
+      unit = (char *)object_get_and_verify_type(unit_handle, 3);
+      *(int16_t *)(unit + 0x68) = team_index;
+    }
+  } else if (*(int *)(actor + 0x28) == -1) {
+    /* Swarm actor with no swarm handle: walk the unit linked list */
+    unit_handle = *(int *)(actor + 0x24);
+    while (unit_handle != -1) {
+      unit = (char *)object_get_and_verify_type(unit_handle, 3);
+      *(int16_t *)(unit + 0x68) = team_index;
+      unit_handle = *(int *)(unit + 0x1ac);
+    }
+  } else {
+    /* Swarm actor with swarm handle: iterate swarm member array */
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+    i = 0;
+    while (i < *(short *)(swarm + 2)) {
+      unit = (char *)object_get_and_verify_type(
+        *(int *)(swarm + 0x18 + (int)i * 4), 3);
+      i++;
+      *(int16_t *)(unit + 0x68) = team_index;
+    }
+  }
+}
+
 /* FUN_0003ac20 (0x3ac20) — actor_check_unit_activation_logic
  *
  * Validates that a unit's activation state is consistent with the actor's
