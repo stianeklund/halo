@@ -4144,8 +4144,9 @@
           "ported": true
         },
         {
-          "decl": "bool FUN_00124d40(int result);",
-          "addr": "0x124d40"
+          "decl": "bool FUN_00124d40(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
+          "addr": "0x124d40",
+          "ported": true
         },
         {
           "decl": "int FUN_00125710(void *server, void *msg, int seq, void *info, int flags);",

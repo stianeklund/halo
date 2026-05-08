@@ -63,6 +63,19 @@ int16_t FUN_00124cc0(void *server)
   return *(int16_t *)((char *)server + 0xca8);
 }
 
+/* 0x124d40 — Thin wrapper that tail-calls FUN_00128e00 with the same five
+ * arguments. The prologue sets up a frame (PUSH EBP / MOV EBP,ESP) and
+ * immediately tears it down (POP EBP / JMP 0x128e00), so every argument
+ * passes through to the callee unchanged. In the one observed call site
+ * (network_game_client_end_frame), the caller resolves a server handle to a
+ * connection pointer via FUN_00125710, then calls this wrapper with the
+ * resulting connection pointer, a message buffer, its size, a dest_address,
+ * and reliable=0. */
+bool FUN_00124d40(void *connection, void *message, unsigned short size, int dest_address, int reliable)
+{
+  return FUN_00128e00(connection, message, size, dest_address, reliable);
+}
+
 /* 0x125750 — Asserts client is non-null, then calls FUN_001283c0 with the
  * connection handle at offset 0x82c, the output buffer, and flag 0. */
 void FUN_00125750(void *server, void *out)
