@@ -103,6 +103,21 @@ float FUN_00013070(float *a, float *b)
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
+/* 0x130d0 — Ray-cast between two points. Computes the direction vector
+ * (point_b - point_a) and delegates to FUN_0014df70 for the actual
+ * collision test along that direction from point_a. */
+bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b,
+                  int max_distance, int16_t *collision_result)
+{
+  float direction[3];
+
+  direction[0] = point_b[0] - point_a[0];
+  direction[1] = point_b[1] - point_a[1];
+  direction[2] = point_b[2] - point_a[2];
+  return FUN_0014df70(collision_flags, point_a, direction, max_distance,
+                      collision_result);
+}
+
 /* 0x213c0 — Compute out = a + b (3-component). */
 void vector3d_add(float *a, float *b, float *out)
 {
