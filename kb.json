@@ -742,7 +742,8 @@
         },
         {
           "decl": "void FUN_00040280(void);",
-          "addr": "0x40280"
+          "addr": "0x40280",
+          "ported": true
         },
         {
           "decl": "void FUN_00040570(void);",
@@ -2499,6 +2500,10 @@
           "decl": "bool game_allegiance_get_team_is_friendly(int16_t team_a, int16_t team_b);",
           "addr": "0xa7a30",
           "ported": true
+        },
+        {
+          "decl": "bool FUN_000a7a90(int16_t team_a, int16_t team_b);",
+          "addr": "0xa7a90"
         },
         {
           "decl": "void game_allegiance_set(int16_t *entry, char friendship, char force);",
