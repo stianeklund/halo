@@ -9366,7 +9366,8 @@
         },
         {
           "decl": "short FUN_0005a3b0(void *squad_def);",
-          "addr": "0x5a3b0"
+          "addr": "0x5a3b0",
+          "ported": true
         },
         {
           "decl": "char FUN_0005a4e0(int encounter_index /* @<eax> */);",

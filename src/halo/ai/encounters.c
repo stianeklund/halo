@@ -613,6 +613,40 @@ int FUN_00059b50(void *iter)
   }
 }
 
+/* FUN_0005a3b0 (0x5a3b0) — Look up actor type from squad definition.
+ *
+ * Reads the squad's scenario_squad index from squad_def+0x20 (int16_t),
+ * bounds-checks it against the scenario block at +0x420 (count at first
+ * dword), calls tag_block_get_element(scenario+0x420, index, 0x10),
+ * follows +0xc → tag_get('actv', ...) → +0x10 → tag_get('actr', ...),
+ * and returns the int16_t at actr_tag+0x14.
+ * Returns 14 (0xe) on any failure (out-of-range, -1 ref, etc.).
+ *
+ * Confirmed: squad_def+0x20 (int16_t) at 0x5a3bc. Default ESI=0xe at 0x5a3c3.
+ * Confirmed: count at *(int*)(scenario+0x420); block ptr = scenario+0x420.
+ * Confirmed: tag_block_get_element(block, index, 0x10) at 0x5a3e0.
+ * Confirmed: +0xc actv-ref, +0x10 actr-ref, +0x14 return field.
+ */
+short FUN_0005a3b0(void *squad_def)
+{
+  char *p;
+  int16_t squad_index;
+
+  p = (char *)global_scenario_get();
+  squad_index = *(int16_t *)((char *)squad_def + 0x20);
+  if (squad_index >= 0 && (int)squad_index < *(int *)(p + 0x420)) {
+    p = (char *)tag_block_get_element(p + 0x420, (int)squad_index, 0x10);
+    if (*(int *)(p + 0xc) != -1) {
+      p = (char *)tag_get(0x61637476, *(int *)(p + 0xc));
+      if (*(int *)(p + 0x10) != -1) {
+        p = (char *)tag_get(0x61637472, *(int *)(p + 0x10));
+        return *(int16_t *)(p + 0x14);
+      }
+    }
+  }
+  return 0xe;
+}
+
 /* 0x5adc0 — encounter_squad_delay_timer_finished.
  * Called when a squad's delay timer expires (count < 0x10 ticks).
  * Resets the squad's delay counter to 0, then optionally triggers
