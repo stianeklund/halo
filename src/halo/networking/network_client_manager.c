@@ -110,3 +110,54 @@ bool FUN_00125860(void *server)
   assert_halt(server);
   return *(char *)((char *)server + 0xcac);
 }
+
+/* 0x127070 — Network client idle dispatch: asserts client non-null, switches
+ * on the connection state at offset 0xca6, and calls the appropriate
+ * state-specific idle handler. Logs and returns false on handler failure. */
+bool FUN_00127070(void *server)
+{
+  bool result;
+
+  result = 0;
+  assert_halt(server);
+  switch (*(unsigned short *)((char *)server + 0xca6)) {
+  case 0:
+    result = FUN_001268a0(server);
+    if (!result) {
+      network_game_log("network_game_client_idle_searching() failed");
+      return 0;
+    }
+    break;
+  case 1:
+    result = FUN_00126b60(server);
+    if (!result) {
+      network_game_log("network_game_client_idle_joining() failed");
+      return 0;
+    }
+    break;
+  case 2:
+    result = FUN_00126ce0(server);
+    if (!result) {
+      network_game_log("network_game_client_idle_pregame() failed");
+      return 0;
+    }
+    break;
+  case 3:
+    result = FUN_00126db0(server);
+    if (!result) {
+      network_game_log("network_game_client_idle_ingame() failed");
+      return 0;
+    }
+    break;
+  case 4:
+    result = FUN_00126f40(server);
+    if (!result) {
+      network_game_log("network_game_client_idle_postgame() failed");
+      return 0;
+    }
+    break;
+  default:
+    assert_halt(!"unknown client state");
+  }
+  return result;
+}
