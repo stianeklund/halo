@@ -9302,8 +9302,13 @@
           "addr": "0x5d420"
         },
         {
+          "decl": "void FUN_0005d910(int encounter_handle, int param_2, int param_3);",
+          "addr": "0x5d910"
+        },
+        {
           "decl": "void FUN_0005ddc0(void);",
-          "addr": "0x5ddc0"
+          "addr": "0x5ddc0",
+          "ported": true
         },
         {
           "decl": "void FUN_0005de80(void);",
