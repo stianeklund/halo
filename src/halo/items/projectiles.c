@@ -790,7 +790,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
     *(int *)(damage_params + 0x08) = *(int *)(proj + 0x70);
     *(short *)(damage_params + 0x10) = *(short *)(proj + 0x68);
 
-    FUN_00137d20(damage_params, *(int *)(proj + 0xcc), (short)-1, (short)-1,
+    FUN_00137d20(damage_params, *(int *)(proj + 0xcc), (short)-1, (short)-1, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
                  (short)-1, 0u);
   }
 
@@ -1480,7 +1480,7 @@ apply_speed_scale:
   /* Optional: random speed scale in [tag+0x60]. */
   if (*(float *)((char *)tag_elem + 0x60) != *(float *)0x2533c0) {
     seed = (float *)get_global_random_seed_address();
-    random_direction3d((int *)seed, in_velocity, 0.0f,
+    random_direction3d((int *)seed, in_velocity, 0.0f, /* dup-args-ok: in-place, verified PUSH EDI x2 at 0x000f95f3/59 */
                        *(float *)((char *)tag_elem + 0x60), in_velocity);
   }
 

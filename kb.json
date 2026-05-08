@@ -175,6 +175,10 @@
           "addr": "0x54220"
         },
         {
+          "decl": "void FUN_00055110(int combined_handle, int unit_handle);",
+          "addr": "0x55110"
+        },
+        {
           "decl": "void FUN_0010cc70(float *output, float angle);",
           "addr": "0x10cc70"
         },
@@ -465,6 +469,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003aac0(int actor_handle, int16_t team_index);",
+          "addr": "0x3aac0"
+        },
+        {
           "decl": "void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax> */);",
           "addr": "0x3ac20",
           "ported": true
@@ -614,6 +622,10 @@
           "decl": "void FUN_0003cff0(int actor_handle);",
           "addr": "0x3cff0",
           "ported": true
+        },
+        {
+          "decl": "char FUN_0003d5f0(int actor_handle, char active_flag);",
+          "addr": "0x3d5f0"
         },
         {
           "decl": "int FUN_0003d6c0(int actor_handle, int unit_index);",
@@ -3395,6 +3407,10 @@
           "addr": "0xcb7b0",
           "decl": "void FUN_000cb7b0(int loop_var@<ebx>);",
           "ported": true
+        },
+        {
+          "addr": "0xcb980",
+          "decl": "const char *FUN_000cb980(void);"
         },
         {
           "addr": "0xcbf80",
@@ -9328,6 +9344,10 @@
           "addr": "0x5a3b0"
         },
         {
+          "decl": "char FUN_0005a4e0(int encounter_index /* @<eax> */);",
+          "addr": "0x5a4e0"
+        },
+        {
           "decl": "void FUN_0005a6e0(void);",
           "addr": "0x5a6e0"
         },
@@ -9373,7 +9393,8 @@
         },
         {
           "addr": "0x5d200",
-          "decl": "void FUN_0005d200(int actor_handle, int encounter_handle, int16_t squad_index, int flag);"
+          "decl": "void FUN_0005d200(int actor_handle, int encounter_index, int16_t squad_index, int flag);",
+          "ported": true
         },
         {
           "decl": "void FUN_0005d420(int encounter_handle);",
@@ -9444,7 +9465,7 @@
           "addr": "0x58a40",
           "name": "ai_magically_see_players",
           "decl": "void FUN_00058a40(int combined_handle);",
-          "ported": false
+          "ported": true
         }
       ]
     },

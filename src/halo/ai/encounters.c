@@ -22,14 +22,64 @@
  *   actor+0x3a = squad_index (int16_t, -1 = NONE)
  *   actor+0x3c = platoon_index (int16_t, -1 = NONE)
  *
- * Ported: FUN_00058fa0 (stub), FUN_00058fb0 (dispose pools),
- *         FUN_00059740 (encounter_enter), FUN_000597f0 (encounter_leave),
- *         FUN_0005ddc0 (tally reset), FUN_0005de80 (encounter_update),
- *         encounter lifecycle stubs (0x5df80–0x5dfb0).
+ * Ported: FUN_00058a40 (ai_magically_see_players), FUN_00058fa0 (stub),
+ * FUN_00058fb0 (dispose pools), FUN_00059740 (encounter_enter), FUN_000597f0
+ * (encounter_leave), FUN_0005ddc0 (tally reset), FUN_0005de80
+ * (encounter_update), encounter lifecycle stubs (0x5df80–0x5dfb0).
  */
 
 #include "../../common.h"
 
+
+/* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
+ *
+ * Forces all active players to be "magically seen" by the encounter
+ * specified by combined_handle.  This overrides normal AI perception rules
+ * so that every actor in the encounter immediately knows where all players
+ * are, regardless of line-of-sight.
+ *
+ * Iff the AI trace flag at 0x5aca59 is non-zero, formats the encounter name
+ * into a 256-byte stack buffer via FUN_00054220 then logs:
+ *   "[scenario_tag_name]: ai_magically_see_players [encounter_name]"
+ * via console_printf (channel 2).
+ *
+ * Then, iff combined_handle != -1, walks the player data pool
+ * (*(data_t**)0x5aa6d4) using data_iterator_new / data_iterator_next and
+ * calls FUN_00055110(combined_handle, player+0x34) for each live player.
+ *
+ * Confirmed:
+ *   - ESI = param_1 throughout (callee-saved, loaded at 0x58a51).
+ *   - global_scenario_get() at 0x58a62 takes 0 args; return in EAX.
+ *   - Pre-push pattern: 0x100 and local_114 pushed before global_scenario_get
+ *     for subsequent FUN_00054220 call; ADD ESP,0x10 at 0x58a74 cleans 4 args.
+ *   - Pre-push pattern: local_114 pushed before FUN_000cb980 (0-arg) as 4th
+ *     arg to console_printf; ADD ESP,0x10 at 0x58a8a cleans 4 dwords.
+ *   - console_printf(2, fmt, cb980_result, name_buf): first %s = scenario
+ *     tag name from FUN_000cb980, second %s = encounter name in name_buf.
+ *   - MOV EDX,[0x005aa6d4] dereferences player_data before data_iterator_new.
+ *   - player+0x34 is the field passed as arg2 to FUN_00055110.
+ */
+void FUN_00058a40(int combined_handle)
+{
+  char name_buf[256];
+  char iter_buf[16];
+  char *player;
+
+  if (*(char *)0x5aca59 != '\0') {
+    FUN_00054220((unsigned int)combined_handle, (void *)global_scenario_get(),
+                 name_buf, 0x100);
+    console_printf(2, "%s: ai_magically_see_players %s",
+                   (const char *)FUN_000cb980(), name_buf);
+  }
+  if (combined_handle != -1) {
+    data_iterator_new((data_iter_t *)iter_buf, *(data_t **)0x5aa6d4);
+    player = (char *)data_iterator_next((data_iter_t *)iter_buf);
+    while (player != (char *)0) {
+      FUN_00055110(combined_handle, *(int *)(player + 0x34));
+      player = (char *)data_iterator_next((data_iter_t *)iter_buf);
+    }
+  }
+}
 
 /* 0x00058fa0 — encounter_dispose stub.
  * Called from ai_dispose (0x3f6f0). No teardown needed at this level.
@@ -763,6 +813,165 @@ void FUN_0005c940(int encounter_handle)
     }
     i = i + 1;
   } while ((short)i < *(short *)(encounter + 0xa));
+}
+
+/* 0x5d200 — Add actor to encounter/squad/platoon membership.
+ *
+ * Assigns an actor to a specific encounter, squad, and platoon slot.
+ * Updates all linked-list bookkeeping (encounter member list, squad count,
+ * platoon count, leader count), optionally changes the actor's team, and
+ * activates/deactivates the actor via encounter state flags.
+ *
+ * Preconditions (asserted in binary):
+ *   actor->field_0x34 == -1  (actor not already in an encounter)
+ *
+ * Parameters:
+ *   actor_handle    — datum index of the actor to add
+ *   encounter_index — datum index of the target encounter
+ *   squad_index     — squad slot within the encounter (int16_t)
+ *   flag            — non-zero: force team assignment (suppress actor-team
+ * change; if encounter->field_0x2a != 0, warns and forces anyway)
+ *
+ * Side effects:
+ *   actor->field_0x30  = -1          (clear meta field)
+ *   actor->field_0x38  = 0xffff      (clear meta short)
+ *   actor->field_0x2c  = old encounter->field_0x14  (prepend to member list)
+ *   encounter->field_0x14 = actor_handle
+ *   actor->field_0x3c  = platoon_index (or -1 if out of range)
+ *   actor->field_0x34  = encounter_index
+ *   actor->field_0x3a  = squad_index
+ *   encounter->field_0xe = 0x96 if actor->field_0x8 && !actor->field_0x13
+ *   encounter->field_0x28 = 1  (dirty flag)
+ *
+ * Confirmed: 4 cdecl args, ADD ESP,0x10 at caller 0x3bb04.
+ * Confirmed: assert string "actor->meta.encounter_index==NONE" at 0x5d2bd,
+ *   file "c:\halo\SOURCE\ai\encounters.c", line 0x28a.
+ * Confirmed: FUN_0005a4e0 reads encounter_index from EAX (@<eax> register arg).
+ * Confirmed: EBX=encounter_index preserved across all inner calls.
+ * Confirmed: ESI=actor record, EDI=encounter record throughout.
+ */
+void FUN_0005d200(int actor_handle, int encounter_index, int16_t squad_index,
+                  int flag)
+{
+  char *actor;
+  char *encounter;
+  char *enc_def;
+  char *squad_def;
+  char *squad;
+  char *platoon;
+  int platoon_index;
+  short platoon_index_s;
+  int unit_index;
+
+  if (*(char *)(*(char **)0x632574 + 1) == '\0')
+    return;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  tag_get(0x61637472,
+          *(int *)(actor + 0x58)); /* 'actr' tag — result discarded */
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_index);
+
+  /* Build enc_def: scenario encounter block element */
+  enc_def =
+    (char *)tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                  (int)(encounter_index & 0xffff), 0xb0);
+
+  /* Squad record from encounter runtime data */
+  squad = (char *)FUN_0001c270(encounter, (int)squad_index);
+
+  /* Squad definition element from tag block */
+  squad_def = (char *)tag_block_get_element(enc_def + 0x80,
+                                            (int)(int16_t)squad_index, 0xe8);
+
+  /* platoon_index from squad def field +0x22 */
+  platoon_index_s = *(short *)(squad_def + 0x22);
+  platoon_index = (int)platoon_index_s;
+
+  /* Assert actor is not already in an encounter */
+  if (*(int *)(actor + 0x34) != -1) {
+    display_assert("actor->meta.encounter_index==NONE",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x28a, 1);
+    system_exit(-1);
+  }
+
+  /* Clear actor meta fields */
+  *(int *)(actor + 0x30) = -1;
+  *(short *)(actor + 0x38) = (short)-1; /* 0xffff */
+
+  /* Prepend actor to encounter member list (rooted at encounter+0x14) */
+  *(int *)(actor + 0x2c) = *(int *)(encounter + 0x14);
+  *(int *)(encounter + 0x14) = actor_handle;
+
+  /* Clamp platoon_index: validate against enc_def->field_0x8c count */
+  if (platoon_index_s < 0 || platoon_index >= *(int *)(enc_def + 0x8c)) {
+    platoon_index = -1;
+    platoon_index_s = -1;
+  }
+
+  /* Store encounter membership fields on actor */
+  *(short *)(actor + 0x3c) = (short)platoon_index; /* platoon_index */
+  *(int *)(actor + 0x34) = encounter_index;
+  *(short *)(actor + 0x3a) = squad_index;
+
+  /* If actor is active (field_0x8) and not already activated (field_0x13):
+   * mark encounter as pending (field_0xe = 0x96) and check activation. */
+  if (*(char *)(actor + 0x8) != '\0' && *(char *)(actor + 0x13) == '\0') {
+    /* Re-fetch encounter record for the field_0xe write */
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_index);
+    *(short *)(encounter + 0xe) = 0x96;
+    if ((char)FUN_0005a4e0(encounter_index /* @<eax> */) != '\0')
+      goto LAB_0005d365;
+  }
+
+  FUN_0003d5f0(actor_handle, *(char *)(encounter + 0xd));
+  if (*(char *)(encounter + 0xd) != '\0')
+    FUN_0003ca40(actor_handle, 0);
+
+LAB_0005d365:
+  /* If actor has a unit, validate linkage */
+  unit_index = *(int *)(actor + 0x18);
+  if (unit_index != -1)
+    FUN_00059630(encounter_index, unit_index);
+
+  /* Team change logic */
+  if (*(short *)(actor + 0x3e) != *(short *)(encounter + 2)) {
+    if (flag == 0) {
+      /* Actor drives its own team assignment */
+      FUN_0003aac0(actor_handle,
+                   (int)(unsigned short)*(short *)(encounter + 2));
+    } else if (*(short *)(encounter + 0x2a) == 0) {
+      /* Encounter has no fixed team: adopt actor's team */
+      *(short *)(encounter + 2) = *(short *)(actor + 0x3e);
+      FUN_00040280();
+    } else {
+      /* Team conflict: warn, then force actor to encounter team */
+      console_printf(2,
+                     "WARNING: actor changing to encounter %s/%s is being forced "
+                     "to change teams",
+                     enc_def, squad_def);
+      FUN_0003aac0(actor_handle,
+                   (int)(unsigned short)*(short *)(encounter + 2));
+    }
+  }
+
+  /* Increment actor count on encounter and squad */
+  *(short *)(encounter + 0x18) = *(short *)(encounter + 0x18) + 1;
+  *(short *)(squad + 0x16) = *(short *)(squad + 0x16) + 1;
+
+  /* Increment leader count if actor is a leader */
+  if (*(char *)(actor + 0x1c) != '\0')
+    *(short *)(encounter + 0x1c) = *(short *)(encounter + 0x1c) + 1;
+
+  /* Platoon membership */
+  if ((short)platoon_index != -1) {
+    platoon = (char *)FUN_00054020(encounter, platoon_index);
+    *(char *)(actor + 0x1c9) = *platoon;
+    *(char *)(actor + 0x374) = *platoon;
+    *(short *)(platoon + 4) = *(short *)(platoon + 4) + 1;
+  }
+
+  /* Mark encounter dirty */
+  *(char *)(encounter + 0x28) = 1;
 }
 
 /* 0x5d890 — Iterate all encounters; for each dirty encounter whose

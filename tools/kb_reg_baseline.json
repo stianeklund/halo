@@ -237,7 +237,15 @@
     "0xf8640": "void FUN_000f8640(int projectile_handle@<eax>);",
     "0xf8720": "bool FUN_000f8720(int projectile_handle @<eax>, float *new_pos @<edi>, int16_t *collision_result);",
     "0x5a120": "void FUN_0005a120(short *squad_counter @<eax>, void *encounter_def, short *platoon_counter);",
-    "0x5af70": "bool FUN_0005af70(int encounter_handle @<eax>, void *rule @<edi>);"
+    "0x5af70": "bool FUN_0005af70(int encounter_handle @<eax>, void *rule @<edi>);",
+    "0x1268a0": "bool FUN_001268a0(void *server @<eax>);",
+    "0x126b60": "bool FUN_00126b60(void *server @<eax>);",
+    "0x126ce0": "bool FUN_00126ce0(void *server @<eax>);",
+    "0x126db0": "bool FUN_00126db0(void *server @<eax>);",
+    "0x126f40": "bool FUN_00126f40(void *server @<eax>);",
+    "0x5acf0": "void FUN_0005acf0(int encounter_handle @<eax>);",
+    "0x5c3a0": "bool FUN_0005c3a0(int platoon_index, int delay, int flag, int encounter_handle @<ebx>);",
+    "0x5a4e0": "char FUN_0005a4e0(int encounter_index @<eax>);"
   },
   "version": 1,
   "0xcada0": {
