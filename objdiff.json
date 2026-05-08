@@ -40,6 +40,14 @@
       }
     },
     {
+      "name": "halo/encounters",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/encounters.c.obj",
+      "base_path": "delinked/encounters.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/encounters.c"
+      }
+    },
+    {
       "name": "halo/breakable_surfaces",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/breakable_surfaces.c.obj",
       "base_path": "delinked/breakable_surfaces.obj",

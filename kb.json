@@ -9236,7 +9236,12 @@
         },
         {
           "decl": "void FUN_00059480(int actor_handle, char flag);",
-          "addr": "0x59480"
+          "addr": "0x59480",
+          "ported": true
+        },
+        {
+          "decl": "char *FUN_00054020(char *encounter, short platoon_index);",
+          "addr": "0x54020"
         },
         {
           "decl": "void FUN_00059630(int encounter_index, int unit_index);",

@@ -53,6 +53,86 @@ void FUN_00058fb0(void)
   data_make_invalid(*(data_t **)0x5ab26c); /* pursuit_data */
 }
 
+/* 0x59480 — Remove actor from encounter membership.
+ * Unlinks the actor from the encounter's member linked list (rooted at
+ * encounter+0x14, chained via actor+0x2c). When flag==0, also decrements
+ * original counts on encounter, squad, leader, and platoon. Clears the
+ * actor's encounter/squad/platoon fields and marks the encounter dirty. */
+void FUN_00059480(int actor_handle, char flag)
+{
+  char *actor;
+  char *encounter;
+  int *piVar;
+  int iVar;
+  char *squad;
+  char *platoon;
+
+  if (*(char *)(*(char **)0x632574 + 1) == '\0')
+    return;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(int *)(actor + 0x34) == -1)
+    return;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+  piVar = (int *)(encounter + 0x14);
+  iVar = *(int *)(encounter + 0x14);
+  while (iVar != actor_handle) {
+    if (iVar == -1) {
+      display_assert("*actor_index_reference!=NONE",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x220, 1);
+      system_exit(-1);
+    }
+    iVar = (int)datum_get(*(data_t **)0x6325a4, *piVar);
+    piVar = (int *)(iVar + 0x2c);
+    iVar = *piVar;
+  }
+  *piVar = *(int *)(actor + 0x2c);
+
+  if (flag == '\0') {
+    squad = FUN_0001c270(encounter, *(int16_t *)(actor + 0x3a));
+
+    if (*(int16_t *)(encounter + 0x18) < 1) {
+      display_assert("encounter->original_count > 0",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x22c, 1);
+      system_exit(-1);
+    }
+    (*(int16_t *)(encounter + 0x18))--;
+
+    if (*(char *)(actor + 0x1c) != '\0') {
+      if (*(int16_t *)(encounter + 0x1c) < 1) {
+        display_assert("encounter->unique_leader_count > 0",
+                       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x231, 1);
+        system_exit(-1);
+      }
+      (*(int16_t *)(encounter + 0x1c))--;
+    }
+
+    if (*(int16_t *)(squad + 0x16) < 1) {
+      display_assert("squad->original_count > 0",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x235, 1);
+      system_exit(-1);
+    }
+    (*(int16_t *)(squad + 0x16))--;
+
+    if (*(int16_t *)(actor + 0x3c) != -1) {
+      platoon = FUN_00054020(encounter, *(int16_t *)(actor + 0x3c));
+      if (*(int16_t *)(platoon + 4) < 1) {
+        display_assert("platoon->original_count > 0",
+                       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x23d, 1);
+        system_exit(-1);
+      }
+      (*(int16_t *)(platoon + 4))--;
+    }
+  }
+
+  *(int *)(actor + 0x2c) = -1;
+  *(int *)(actor + 0x34) = -1;
+  *(int16_t *)(actor + 0x3c) = -1;
+  *(int16_t *)(actor + 0x3a) = -1;
+  *(char *)(encounter + 0x28) = 1;
+}
+
 /* 0x00059740 — encounter_enter (add actor to encounterless list).
  * Places an actor into the "encounterless" linked list maintained in
  * ai_globals.  Guards on ai_globals->field_1 (ai_active byte).
@@ -138,6 +218,7 @@ void FUN_000597f0(int actor_handle)
 {
   char *actor;
   char *ai_globals;
+  char *node;
   int *piVar3;
   int iVar2;
 
@@ -181,7 +262,7 @@ void FUN_000597f0(int actor_handle)
                      "c:\\halo\\SOURCE\\ai\\encounters.c", 0x31c, 1);
       system_exit(-1);
     }
-    char *node = (char *)datum_get(*(data_t **)0x6325a4, *piVar3);
+    node = (char *)datum_get(*(data_t **)0x6325a4, *piVar3);
     piVar3 = (int *)(node + 0x2c);
     iVar2 = *piVar3;
   }
@@ -204,8 +285,8 @@ void FUN_000597f0(int actor_handle)
  * iter[2] = first_member_handle  (from encounter+0x14, or ai_globals+8 when
  *                                  clump_handle == -1)
  *
- * Call-site verification (callers read iter[1] to compare against actor_handle):
- *   PUSH [EBP+0xc]  (param_2 = clump_handle)  → datum_get arg2  YES
+ * Call-site verification (callers read iter[1] to compare against
+ * actor_handle): PUSH [EBP+0xc]  (param_2 = clump_handle)  → datum_get arg2 YES
  *   PUSH [0x5ab270] (encounter_data)           → datum_get arg1  YES
  *   MOV ECX,[EAX+0x14]                         → encounter->first_member  YES
  *   MOV [ESI+0x8],ECX                          → iter[2]         YES
@@ -269,10 +350,10 @@ int FUN_00059a50(int *iter)
  * Initialises a 0x1c-byte extended AI actor iterator.  The first 0x10
  * bytes are a standard data_iter_t (initialised by data_iterator_new on
  * encounter_data at 0x5ab270).  The extra fields are:
- *   iter+0x10 : phase byte  (0=scanning data table, 1=scanning encounterless list)
- *   iter+0x11 : filter_flag (0=all actors, 1=player-actors with actor+0x8 != 0)
- *   iter+0x14 : current datum handle (-1 = none)
- *   iter+0x18 : next linked-list handle (-1 = end)
+ *   iter+0x10 : phase byte  (0=scanning data table, 1=scanning encounterless
+ * list) iter+0x11 : filter_flag (0=all actors, 1=player-actors with actor+0x8
+ * != 0) iter+0x14 : current datum handle (-1 = none) iter+0x18 : next
+ * linked-list handle (-1 = end)
  *
  * Call-site verification (PUSH ECX / PUSH ESI before CALL 0x1197b0):
  *   PUSH ECX ([0x5ab270] = encounter_data) → data_iterator_new arg2 (data)  YES
@@ -291,10 +372,10 @@ void FUN_00059b10(void *iter, char flag)
     return;
   }
   data_iterator_new((data_iter_t *)iter, *(data_t **)0x5ab270);
-  *(char  *)(p + 0x10) = 0;
-  *(int   *)(p + 0x18) = -1;
-  *(int   *)(p + 0x14) = -1;
-  *(char  *)(p + 0x11) = flag;
+  *(char *)(p + 0x10) = 0;
+  *(int *)(p + 0x18) = -1;
+  *(int *)(p + 0x14) = -1;
+  *(char *)(p + 0x11) = flag;
 }
 
 /* 0x00059b50 — actor_iterator_next (extended AI actor iterator advance).
@@ -334,7 +415,7 @@ int FUN_00059b50(void *iter)
   char *p = (char *)iter;
   char *actor;
   char *encounter;
-  int   handle;
+  int handle;
 
   if (*(char *)(*(char **)0x632574 + 1) == '\0') {
     return 0;
@@ -365,10 +446,10 @@ int FUN_00059b50(void *iter)
       /* Phase 1 already seeded: jump straight to list walk */
       goto walk_list;
     }
-    *(int  *)(p + 0x18) = *(int *)(*(char **)0x632574 + 8);
+    *(int *)(p + 0x18) = *(int *)(*(char **)0x632574 + 8);
     *(char *)(p + 0x10) = 1;
 
-walk_list:
+  walk_list:
     handle = *(int *)(p + 0x18);
     *(int *)(p + 0x14) = handle;
     if (handle == -1) {
