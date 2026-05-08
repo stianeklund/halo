@@ -55,6 +55,14 @@ uint16_t FUN_00124c40(void *client)
   return client_words[0];
 }
 
+/* 0x124cc0 — Asserts client is non-null and returns the int16_t field at
+ * offset 0xca8. */
+int16_t FUN_00124cc0(void *server)
+{
+  assert_halt(server);
+  return *(int16_t *)((char *)server + 0xca8);
+}
+
 /* FUN_001257a0 (0x1257a0)
  *
  * Asserts client is non-null and returns client + 0x85c.

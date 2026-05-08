@@ -4140,7 +4140,8 @@
         },
         {
           "decl": "int16_t FUN_00124cc0(void *server);",
-          "addr": "0x124cc0"
+          "addr": "0x124cc0",
+          "ported": true
         },
         {
           "decl": "bool FUN_00124d40(int result);",
