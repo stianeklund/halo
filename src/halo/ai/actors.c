@@ -16,6 +16,38 @@ void FUN_00036860(int actor_handle)
   csmemset(actor + 0x2ec, 0, 0x64);
 }
 
+/* FUN_00036dc0 (0x36dc0)
+ * Notify an actor's unit of a combat stimulus and optionally clamp
+ * the actor's "recently perceived threat" counter.
+ *
+ * If the actor has an associated unit (actor+0x18 != -1) this calls
+ * FUN_00046f10 (ai_communication) with type 0x16 when flags_bit1 is
+ * set, or type 0x17 when flags_bit1 is clear. The remaining six args
+ * are (unit_handle, -1, -1, -1, -1, 0).
+ *
+ * If flags_bit0 is set and actor->field_0x308 (int16) is less than 6,
+ * the field is clamped to 6 and actor->field_0x30c is set to -1.
+ *
+ * Confirmed: 3 cdecl args, void return, ADD ESP,0xc at all three call
+ * sites (0x560af, 0x56499, 0x5dd9b). */
+void FUN_00036dc0(int actor_handle, char flags_bit1, char flags_bit0)
+{
+  char *actor;
+  int unit_handle;
+  int type;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  unit_handle = *(int *)(actor + 0x18);
+  if (unit_handle != -1) {
+    type = flags_bit1 ? 0x16 : 0x17;
+    FUN_00046f10(type, unit_handle, -1, -1, -1, -1, 0);
+  }
+  if (flags_bit0 && *(short *)(actor + 0x308) < 6) {
+    *(short *)(actor + 0x308) = 6;
+    *(int *)(actor + 0x30c) = -1;
+  }
+}
+
 /* FUN_00036e30 (0x36e30)
  * Mark an actor as having an active approach. Looks up the actor
  * record in actor_data and sets the byte flag at offset +0x2ed to 1.
