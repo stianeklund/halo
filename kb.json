@@ -9910,7 +9910,8 @@
         },
         {
           "decl": "void FUN_001369b0(int object_handle, char flag);",
-          "addr": "0x1369b0"
+          "addr": "0x1369b0",
+          "ported": true
         },
         {
           "decl": "void FUN_001369e0(int effect_tag_index);",
