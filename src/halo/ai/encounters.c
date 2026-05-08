@@ -545,6 +545,45 @@ void FUN_0005b200(void)
   }
 }
 
+/* 0x5ddc0 — Iterate all encounters and reset tallies for those matching
+ * the current BSP or with the "not-automatically-recycled" flag cleared.
+ * Uses a data iterator over encounter_data; for each encounter whose
+ * dirty flag (+0xd) is set, fetches the encounter's tag definition and
+ * calls FUN_0005d910 to reset vote tallies. */
+void FUN_0005ddc0(void)
+{
+  char *scenario;
+  data_iter_t iter;
+  int encounter_handle;
+  char *encounter;
+  char *encounter_def;
+  char flag;
+
+  scenario = (char *)global_scenario_get();
+  if (*(char *)(*(int *)0x632574 + 1) != '\0') {
+    data_iterator_new(&iter, *(data_t **)0x5ab270);
+    flag = '\0';
+  }
+  for (;;) {
+    if (*(char *)(*(int *)0x632574 + 1) == '\0')
+      return;
+    do {
+      encounter = (char *)data_iterator_next(&iter);
+      if (encounter == NULL || flag == '\0')
+        break;
+    } while (*(char *)(encounter + 0xd) == '\0');
+    encounter_handle = (int)iter.datum_handle;
+    if (encounter == NULL)
+      return;
+    encounter_def = (char *)tag_block_get_element(
+      scenario + 0x42c, encounter_handle & 0xffff, 0xb0);
+    if (((*(int *)0x5ac9f4 ^ encounter_handle) & 0xffff) == 0 ||
+        (~*(unsigned char *)(encounter_def + 0x20) & 1) != 0) {
+      FUN_0005d910(encounter_handle, -1, -1);
+    }
+  }
+}
+
 /* 0x0005df80 — encounter_initialize stub.
  * Binary: single RET. No initialization needed at this level. */
 void FUN_0005df80(void)
