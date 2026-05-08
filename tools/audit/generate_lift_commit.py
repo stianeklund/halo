@@ -192,7 +192,26 @@ def source_files_changed():
     return [l for l in diff.splitlines() if l.endswith(".c")]
 
 
-def generate_message(batch_name=None, since_ref=None):
+def _find_latest_vc71_match():
+    """Find the VC71 match % from the most recent lift run summary."""
+    runs_dir = REPO_ROOT / "artifacts" / "lift_runs"
+    if not runs_dir.exists():
+        return None
+    summaries = sorted(runs_dir.glob("*/summary.json"), reverse=True)
+    for s in summaries[:3]:
+        try:
+            data = json.loads(s.read_text())
+            for stage in data.get("stages", []):
+                if stage.get("name") == "vc71_verify" and stage.get("ok"):
+                    m = re.search(r'([\d.]+)%', stage.get("details", ""))
+                    if m:
+                        return m.group(1)
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return None
+
+
+def generate_message(batch_name=None, since_ref=None, vc71_match=None):
     if since_ref:
         ports, renames = compare_kb_json(old_ref=since_ref, new_ref="HEAD")
         meta_diff = run(["git", "diff", since_ref, "HEAD", "--", "kb_meta.json"])
@@ -203,11 +222,15 @@ def generate_message(batch_name=None, since_ref=None):
     ported_after, total_after, pct_after = kb_summary()
     prev = previous_kb_summary()
 
+    if vc71_match is None:
+        vc71_match = _find_latest_vc71_match()
+
+    match_tag = f" ({vc71_match}% VC71 match)" if vc71_match else ""
     lines = []
     if batch_name:
-        lines.append(f"Port {batch_name}")
+        lines.append(f"Port {batch_name}{match_tag}")
     else:
-        lines.append("Port functions")
+        lines.append(f"Port functions{match_tag}")
     lines.append("")
 
     if ports:
@@ -253,6 +276,8 @@ def main():
     ap.add_argument("--since", default=None, help="Git ref to diff against instead of staged changes")
     ap.add_argument("--skip-abi-audit", action="store_true",
                     help="Skip ABI audit gate (emergency bypass)")
+    ap.add_argument("--vc71-match", default=None,
+                    help="VC71 match %% to include in commit title (auto-detected from latest lift run if omitted)")
     args = ap.parse_args()
 
     if args.since:
@@ -290,7 +315,8 @@ def main():
             file=sys.stderr,
         )
 
-    msg = generate_message(batch_name=args.batch_name, since_ref=args.since)
+    msg = generate_message(batch_name=args.batch_name, since_ref=args.since,
+                           vc71_match=args.vc71_match)
     print(msg)
 
 

@@ -192,6 +192,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x36dc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The type argument to FUN_00046f10 is 0x16 when flags_bit1 is non-zero and 0x17 when flags_bit1 is zero, derived from NEG/SBB/ADD sequence in disassembly.",
+        "Actor struct field at offset 0x308 (int16) appears to be a recently-perceived-threat counter that is clamped to a minimum of 6 when flags_bit0 is set; field at 0x30c is an associated handle reset to -1."
+      ]
+    },
     "0x36e30": {
       "kind": "function",
       "status": "ported",
@@ -527,6 +535,17 @@
     "0x59b50": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x5d200": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "actor+0x1c9 and actor+0x374 both receive *platoon byte (first byte of platoon record) \u2014 likely platoon membership flags or initial AI classification.",
+        "FUN_0005a4e0 (0x5a4e0) takes encounter_index via EAX register arg \u2014 confirmed by MOV ESI,EAX at function entry (0x5a4e8) preserving EAX into ESI for use as datum_get arg2."
+      ],
+      "uncertain": [
+        "actor+0x3e vs encounter+2 team comparison semantics: actor+0x3e is plausibly actor home team, encounter+2 is encounter team, but field names are not confirmed from strings."
+      ]
     },
     "0x5df80": {
       "kind": "function",
@@ -4377,6 +4396,10 @@
       "comments": {
         "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
       }
+    },
+    "0x1249b0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x124c40": {
       "kind": "function",

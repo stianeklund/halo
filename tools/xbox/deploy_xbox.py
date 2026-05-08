@@ -189,12 +189,18 @@ def run_xbcp(
                 for line in result.stdout.strip().splitlines():
                     print(f"  | {line}")
             if result.returncode == 0:
+                if attempt > 0:
+                    print(f"  xbcp succeeded on attempt {attempt + 1}/{retries}")
                 return 0
             last_error = result.returncode
             if result.stderr:
                 for line in result.stderr.strip().splitlines():
                     print(f"  | {line}", file=sys.stderr)
             if attempt < retries - 1:
+                print(
+                    f"  xbcp attempt {attempt + 1}/{retries} failed; "
+                    "waiting 1.0s before retry"
+                )
                 time.sleep(1.0)
                 continue
             print(f"  xbcp exited with code {last_error}", file=sys.stderr)
@@ -246,6 +252,84 @@ def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
     except OSError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+
+def run_rdcp_command(host: str, command: str) -> subprocess.CompletedProcess[str]:
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_rdcp.py")
+    cmd = build_windows_python_command(rdcp_script, [command])
+    if cmd is None:
+        cmd = [sys.executable, rdcp_script, command]
+    if host:
+        cmd += ["--host", host]
+    return subprocess.run(
+        cmd,
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def wait_for_xbdm(host: str, timeout_seconds: float = 15.0) -> bool:
+    deadline = time.time() + timeout_seconds
+    last_error = ""
+    while time.time() < deadline:
+        result = run_rdcp_command(host, "isstopped")
+        if result.returncode == 0:
+            print("  | XBDM reachable again")
+            return True
+        last_error = (result.stderr or result.stdout or "").strip()
+        time.sleep(0.5)
+
+    print(
+        f"  warning: XBDM did not come back within {timeout_seconds:.1f}s",
+        file=sys.stderr,
+    )
+    if last_error:
+        for line in last_error.splitlines():
+            print(f"  | {line}", file=sys.stderr)
+    return False
+
+
+def prepare_xbdm_for_xbe_replace(host: str, dry_run: bool) -> bool:
+    target = host or "localhost"
+    if dry_run:
+        print(f"  [DRY-RUN] reboot XBDM target {target} before XBE retry")
+        return True
+
+    print(f"  rebooting XBDM target {target} to release default.xbe...")
+    result = run_rdcp_command(host, "reboot")
+    if result.stdout:
+        for line in result.stdout.strip().splitlines():
+            print(f"  | {line}")
+    if result.stderr:
+        for line in result.stderr.strip().splitlines():
+            print(f"  | {line}", file=sys.stderr)
+
+    print("  | waiting for XBDM to return after reboot")
+    return wait_for_xbdm(host)
+
+
+def deploy_default_xbe(
+    xbe_path: str,
+    xbe_src: str,
+    xbe_dest: str,
+    host: str,
+    dry_run: bool,
+    common_kwargs: dict,
+) -> int:
+    rc = run_xbcp(src=xbe_src, dest=xbe_dest, **common_kwargs)
+    if rc != 0 and prepare_xbdm_for_xbe_replace(host, dry_run):
+        print("  retrying default.xbe upload after XBDM reboot...")
+        rc = run_xbcp(src=xbe_src, dest=xbe_dest, **common_kwargs)
+    if rc != 0:
+        print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
+        return rc
+    if not dry_run:
+        print("  upload completed; verifying remote file size...")
+    if not dry_run and not verify_uploaded_file(host, xbe_path, xbe_dest.lstrip("x")):
+        return 1
+    return 0
 
 
 def query_remote_file_attributes(host: str, xbox_path: str) -> dict | None:
@@ -413,7 +497,7 @@ def verify_uploaded_file(host: str, local_path: str, xbox_path: str) -> bool:
         )
         return False
 
-    print(f"  verified {xbox_path} ({remote_size:,} bytes)")
+    print(f"  verified size match for {xbox_path} ({remote_size:,} bytes)")
     return True
 
 
@@ -559,14 +643,16 @@ def main() -> int:
 
     if args.xbe_only:
         print(f"  default.xbe ({os.path.getsize(xbe_path):,} bytes)")
-        src = to_windows_path(xbe_path)
-        d = f"{dest}\\default.xbe"
-        rc = run_xbcp(src=src, dest=d, **common_kwargs)
+        rc = deploy_default_xbe(
+            xbe_path=xbe_path,
+            xbe_src=xbe_src,
+            xbe_dest=xbe_dest,
+            host=host,
+            dry_run=args.dry_run,
+            common_kwargs=common_kwargs,
+        )
         if rc != 0:
-            print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
             return rc
-        if not args.dry_run and not verify_uploaded_file(host, xbe_path, d.lstrip("x")):
-            return 1
         if not delete_remote_file(host, debug_txt_dest, args.dry_run):
             return 1
         print("done.")
@@ -605,12 +691,16 @@ def main() -> int:
     # Default: deploy XBE + anything that looks like it changed (maps, etc.)
     # First always push the XBE
     print(f"  default.xbe ({os.path.getsize(xbe_path):,} bytes)")
-    rc = run_xbcp(src=xbe_src, dest=xbe_dest, **common_kwargs)
+    rc = deploy_default_xbe(
+        xbe_path=xbe_path,
+        xbe_src=xbe_src,
+        xbe_dest=xbe_dest,
+        host=host,
+        dry_run=args.dry_run,
+        common_kwargs=common_kwargs,
+    )
     if rc != 0:
-        print(f"  xbcp failed with exit code {rc}", file=sys.stderr)
         return rc
-    if not args.dry_run and not verify_uploaded_file(host, xbe_path, xbe_dest.lstrip("x")):
-        return 1
     if not delete_remote_file(host, debug_txt_dest, args.dry_run):
         return 1
 
