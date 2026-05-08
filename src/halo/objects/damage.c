@@ -1,3 +1,32 @@
+/* FUN_00136790 (0x136790) — Check if object body vitality is below full and
+ * restore it to 1.0f if so.
+ *
+ * Returns true (1) if vitality was restored, false (0) if the object has
+ * bit 2 of flags byte at +0xb6 set (damage-related flag) or if vitality
+ * is already >= 1.0f.
+ *
+ * Confirmed: object_get_and_verify_type(handle, -1) at 0x136799.
+ * Confirmed: TEST AL,0x4 at 0x1367ab checks bit 2 of [obj+0xb6].
+ * Confirmed: FLD [ECX+0x90]; FCOMP [0x2533c8] compares vitality with 1.0f.
+ * Confirmed: FNSTSW AX; TEST AH,0x5; JP tests "not less than" (>= or NaN).
+ * Confirmed: MOV [ECX+0x90],0x3f800000 sets vitality to 1.0f.
+ * Confirmed: XOR DL,DL sets default false return before first branch.
+ * Confirmed: caller at 0xbd055 tests return with TEST AL,AL (bool).
+ */
+char FUN_00136790(int object_handle)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if ((*(unsigned char *)(obj + 0xb6) & 4) != 0)
+    return 0;
+  if (*(float *)(obj + 0x90) < 1.0f) {
+    *(float *)(obj + 0x90) = 1.0f;
+    return 1;
+  }
+  return 0;
+}
+
 /* FUN_00136980 (0x136980) — Set or clear the damage-invincible bit on an
  * object.
  *

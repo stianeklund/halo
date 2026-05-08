@@ -9881,8 +9881,9 @@
           "ported": true
         },
         {
-          "decl": "unsigned int FUN_00136790(int object_handle);",
-          "addr": "0x136790"
+          "decl": "char FUN_00136790(int object_handle);",
+          "addr": "0x136790",
+          "ported": true
         },
         {
           "decl": "unsigned int FUN_001367e0(int object_handle);",

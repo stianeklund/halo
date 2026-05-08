@@ -1554,7 +1554,7 @@ void player_set_action_result_for_equipment(int player_handle,
     player_apply_overshield_effect(player_handle);
   } else if (powerup_type == 5) {
     /* Health: check if unit can receive it. */
-    if (!((bool (*)(int))0x136790)(*(int *)(player + 0x34)))
+    if (!FUN_00136790(*(int *)(player + 0x34)))
       return;
     player_apply_health_effect(player_handle);
   } else {
