@@ -516,6 +516,71 @@ int FUN_00059b50(void *iter)
   }
 }
 
+/* 0x5ae70 — encounter_update_squad_delay_timers.
+ * Iterates all squads in an encounter and manages their delay timers.
+ * For each squad with a positive delay counter (squad+0x12):
+ *   - If the delay is not yet started (squad+0x11 == 0): starts the timer
+ *     when either bit 2 of squad_def+0x28 is set OR encounter+0x2e > 0.
+ *     Logs "%s/%s: delay timer started (%.1f sec)" when debug flag is set.
+ *   - If the delay is running and >= 0x10 ticks: decrements by 15.
+ *   - If the delay is running and < 0x10 ticks: fires FUN_0005adc0 to
+ *     complete the squad spawn.
+ * Squads with bit 3 of squad_def+0x28 set are skipped entirely.
+ *
+ * Confirmed: PUSH [EBP+8] before CALL 0x5ae70 in FUN_0005de80 (0x5df42).
+ * Confirmed: ADD ESP,0xc after global_scenario_get + tag_block_get_element
+ *   (pre-positioned args pattern: 0xb0, ESI pushed before global_scenario_get).
+ * Confirmed: FUN_0005adc0(encounter_handle, squad_index) — 2 cdecl args.
+ * Confirmed: float at iVar5+0x50 promoted to double via FSTP [ESP]. */
+void FUN_0005ae70(int encounter_handle)
+{
+  char *encounter;
+  char *scenario;
+  char *squad;
+  char *squad_def;
+  int16_t squad_count;
+  int16_t squad_index;
+  int16_t delay;
+  char started;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  scenario = (char *)global_scenario_get();
+  squad = (char *)tag_block_get_element(
+    (char *)(scenario + 0x42c), (int)(int16_t)(encounter_handle & 0xffff),
+    0xb0);
+  squad_index = 0;
+  squad_count = *(int16_t *)(encounter + 0x6);
+  if (squad_count <= 0) {
+    return;
+  }
+  do {
+    char *sq = (char *)FUN_0001c270(encounter, squad_index);
+    squad_def = (char *)tag_block_get_element((char *)(squad + 0x80),
+                                              (int)squad_index, 0xe8);
+    delay = *(int16_t *)(sq + 0x12);
+    if (delay > 0 && (*(unsigned int *)(squad_def + 0x28) & 8) == 0) {
+      if (*(char *)(sq + 0x11) == '\0') {
+        if ((*(unsigned int *)(squad_def + 0x28) & 4) == 0 &&
+            *(int16_t *)(encounter + 0x2e) < 1) {
+          started = '\0';
+        } else {
+          started = '\x01';
+        }
+        *(char *)(sq + 0x11) = started;
+        if (started != '\0' && *(char *)0x5aca4b != '\0') {
+          console_printf(0, "%s/%s: delay timer started (%.1f sec)", squad,
+                         squad_def, (double)*(float *)(squad_def + 0x50));
+        }
+      } else if (delay < 0x10) {
+        FUN_0005adc0(encounter_handle, squad_index);
+      } else {
+        *(int16_t *)(sq + 0x12) = delay - 15;
+      }
+    }
+    squad_index = squad_index + 1;
+  } while (squad_index < *(int16_t *)(encounter + 0x6));
+}
+
 /* 0x5b200 — encounters_initialize_for_new_map.
  * Resets encounter and pursuit data pools, zeroes squad and platoon arrays,
  * then iterates scenario encounter definitions calling FUN_0005a120 to
@@ -541,6 +606,53 @@ void FUN_0005b200(void)
         tag_block_get_element((void *)(scenario + 0x42c), (int)i, 0xb0);
       FUN_0005a120(&squad_counter /* @<eax> */, encounter_def,
                    &platoon_counter);
+    }
+  }
+}
+
+/* 0x5d890 — Iterate all encounters; for each dirty encounter whose
+ * flag at +0x28 is set, calls FUN_0005d420 (encounter_finalize/recycle).
+ *
+ * Uses the same guarded iterator pattern as FUN_0005ddc0:
+ *   - Guards on ai_globals+1 before init and at every loop iteration.
+ *   - Inner do-while skips encounters whose dirty flag (+0xd) is clear,
+ *     unless flag==0 (first call after init, which forces one iteration).
+ *   - encounter_handle is read from iter.datum_handle (EBP-0x10 in
+ *     disassembly, confirmed offset 0x08 of data_iter_t).
+ *   - Decompiler aliasing bug: showed local_14 (EBP-0x14) for the handle;
+ *     disassembly clearly reads EBP-0x10 = iter.datum_handle.
+ *
+ * Call-site verification (PUSH ECX at 0x5d8ff → CALL 0x5d420):
+ *   arg1 | EBP-0x10 = iter.datum_handle | encounter_handle | match YES
+ *
+ * Store-offset table (none: no struct init, only reads):
+ *   encounter+0x0d — dirty flag, read in inner loop continue condition
+ *   encounter+0x28 — recycle-pending flag, gates FUN_0005d420 call
+ */
+void FUN_0005d890(void)
+{
+  data_iter_t iter;
+  int encounter_handle;
+  char *encounter;
+  char flag;
+
+  if (*(char *)(*(int *)0x632574 + 1) != '\0') {
+    data_iterator_new(&iter, *(data_t **)0x5ab270);
+    flag = '\0';
+  }
+  for (;;) {
+    if (*(char *)(*(int *)0x632574 + 1) == '\0')
+      return;
+    do {
+      encounter = (char *)data_iterator_next(&iter);
+      if (encounter == NULL || flag == '\0')
+        break;
+    } while (*(char *)(encounter + 0xd) == '\0');
+    encounter_handle = (int)iter.datum_handle;
+    if (encounter == NULL)
+      return;
+    if (*(char *)(encounter + 0x28) != '\0') {
+      FUN_0005d420(encounter_handle);
     }
   }
 }

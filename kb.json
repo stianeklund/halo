@@ -9326,8 +9326,14 @@
           "addr": "0x5acf0"
         },
         {
+          "decl": "void FUN_0005adc0(int encounter_handle, int16_t squad_index);",
+          "addr": "0x5adc0",
+          "ported": false
+        },
+        {
           "decl": "void FUN_0005ae70(int encounter_handle);",
-          "addr": "0x5ae70"
+          "addr": "0x5ae70",
+          "ported": true
         },
         {
           "decl": "void FUN_0005b200(void);",
@@ -9364,7 +9370,8 @@
         },
         {
           "decl": "void FUN_0005d890(void);",
-          "addr": "0x5d890"
+          "addr": "0x5d890",
+          "ported": true
         },
         {
           "decl": "void FUN_0005d910(int encounter_handle, short param_2, short param_3);",
