@@ -235,7 +235,8 @@
     "0xf7fa0": "float FUN_000f7fa0(void *tag @<ecx>, float range_begin, float range_end);",
     "0xf8590": "void FUN_000f8590(int projectile_handle@<eax>);",
     "0xf8640": "void FUN_000f8640(int projectile_handle@<eax>);",
-    "0xf8720": "bool FUN_000f8720(int projectile_handle @<eax>, float *new_pos @<edi>, int16_t *collision_result);"
+    "0xf8720": "bool FUN_000f8720(int projectile_handle @<eax>, float *new_pos @<edi>, int16_t *collision_result);",
+    "0x5a120": "void FUN_0005a120(short *squad_counter @<eax>, void *encounter_def, short *platoon_counter);"
   },
   "version": 1,
   "0xcada0": {
