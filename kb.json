@@ -942,7 +942,8 @@
       "functions": [
         {
           "decl": "float *FUN_001457f0(short surface_index);",
-          "addr": "0x1457f0"
+          "addr": "0x1457f0",
+          "ported": true
         },
         {
           "decl": "void breakable_surfaces_initialize(void);",

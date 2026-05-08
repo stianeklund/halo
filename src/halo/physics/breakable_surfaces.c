@@ -1,3 +1,17 @@
+/* 0x1457f0 — Returns a pointer to the health float for a breakable surface,
+ * indexed by global_structure_bsp_index and surface_index within the globals
+ * buffer starting at offset 0x204. */
+float *FUN_001457f0(short surface_index)
+{
+  assert_halt(breakable_surface_globals);
+  assert_halt(global_structure_bsp_index >= 0 &&
+              global_structure_bsp_index < 16);
+  assert_halt(surface_index >= 0 && surface_index < 256);
+  return (
+    float *)(breakable_surface_globals + 0x204 +
+             ((int)global_structure_bsp_index * 256 + (int)surface_index) * 4);
+}
+
 void breakable_surfaces_initialize(void)
 {
   assert_halt(!breakable_surface_globals);
