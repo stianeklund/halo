@@ -4538,6 +4538,10 @@
           "ported": true
         },
         {
+          "decl": "char FUN_0013c740(int object_handle);",
+          "addr": "0x13c740"
+        },
+        {
           "decl": "void *object_try_and_get_and_verify_type(int datum_handle, int type_mask);",
           "addr": "0x13d640",
           "ported": true
@@ -9892,11 +9896,13 @@
         },
         {
           "decl": "void FUN_00136840(int object_handle);",
-          "addr": "0x136840"
+          "addr": "0x136840",
+          "ported": true
         },
         {
-          "decl": "int FUN_00136890(void);",
-          "addr": "0x136890"
+          "decl": "int FUN_00136890(int object_index@<eax>);",
+          "addr": "0x136890",
+          "ported": true
         },
         {
           "decl": "void FUN_001368e0(int player_handle);",
