@@ -320,7 +320,7 @@ void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4,
   char *out;
 
   if (param_4 == NULL) {
-    speed = **(float **)(projectile_tag + 0x1e4);
+    speed = *(float *)(projectile_tag + 0x1e4);
   } else {
     speed = *(float *)param_4;
   }
