@@ -610,6 +610,103 @@ void FUN_0005b200(void)
   }
 }
 
+/* 0x5c940 — encounter_update_platoon_rules.
+ * For each platoon in the encounter, evaluates two rule conditions:
+ *   1. Maneuvering rule (platoon_def+0x3c): if platoon[1]==0 (not yet set),
+ *      calls FUN_0005af70 to evaluate; stores result in platoon[1].
+ *   2. Defend/attack rule (platoon_def+0x30): if platoon[2]!=0 or
+ * platoon[1]==0, computes the expected attacking flag from platoon_def+0x20 bit
+ * 2 (inverted), and if it differs from platoon[0], calls FUN_0005af70 to
+ * confirm, then sets platoon[0] to the new value. Logs state transitions via
+ * console_printf when DAT_005aca4b is set.
+ *
+ * Confirmed:
+ *   - cdecl, 1 stack arg (encounter_handle); no ADD ESP after RET.
+ *   - datum_get(*(data_t**)0x5ab270, encounter_handle) → encounter record.
+ *   - PUSH 0xb0 / PUSH ESI / CALL global_scenario_get / ADD EAX,0x42c / PUSH
+ * EAX / CALL tag_block_get_element / ADD ESP,0xc → encounter def element at
+ *     global_scenario_get()+0x42c[encounter_handle&0xffff] with
+ * element_size=0xb0.
+ *   - Outer loop on platoon_count = *(int16_t*)(encounter+0xa), via
+ * FUN_00054020.
+ *   - Inner tag_block_get_element: enc_def+0x8c block, loop_index,
+ * element_size=0xac.
+ *   - First FUN_0005af70 call: EAX=encounter_handle, EDI=platoon_def+0x3c.
+ *   - Second FUN_0005af70 call: EAX=encounter_handle, EDI=platoon_def+0x30.
+ *   - BL = ~(*(uint32_t*)(platoon_def+0x20) >> 2) & 1 (attacking flag).
+ *   - Loop counter stored/restored via [EBP-0xc] / DI (16-bit); EBX=[EBP-0x10]
+ *     (encounter) restored at bottom; ESI=platoon record from FUN_00054020.
+ *
+ * Call-site verification (FUN_0005de80 @ 0x5df4b):
+ *   arg1 | PUSH EAX ([EBP-0x8] = encounter_handle) | encounter_handle | YES
+ *
+ * Store-offset table (platoon record writes):
+ *   platoon[0] — attacking flag (byte), written at 0x5ca2f from BL
+ *   platoon[1] — maneuvering enabled (byte), written at 0x5c9dc from AL
+ * (FUN_0005af70 result)
+ */
+void FUN_0005c940(int encounter_handle)
+{
+  char *encounter;
+  char *enc_def_elt;
+  char *platoon;
+  char *platoon_def;
+  unsigned int flags;
+  char new_flag;
+  char result;
+  const char *label;
+  int i;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  enc_def_elt = (char *)tag_block_get_element(
+    (char *)global_scenario_get() + 0x42c,
+    (int)(short)(encounter_handle & 0xffff), 0xb0);
+  i = 0;
+  if (*(short *)(encounter + 0xa) <= 0) {
+    return;
+  }
+  do {
+    platoon = (char *)FUN_00054020(encounter, (short)i);
+    if (*(short *)(platoon + 6) > 0) {
+      platoon_def =
+        (char *)tag_block_get_element(enc_def_elt + 0x8c, (int)(short)i, 0xac);
+
+      /* Maneuvering rule: evaluate once (platoon[1] is the latch). */
+      if (platoon[1] == '\0') {
+        result = (char)FUN_0005af70(encounter_handle /* @<eax> */,
+                                    platoon_def + 0x3c /* @<edi> */);
+        platoon[1] = result;
+        if (result != '\0' && *(char *)0x5aca4b != '\0') {
+          console_printf(0, "%s/%s triggered maneuvering rule", enc_def_elt,
+                         platoon_def);
+        }
+      }
+
+      /* Defend/attack rule: re-evaluate when platoon[2]!=0 or platoon[1]==0. */
+      if (platoon[2] != '\0' || platoon[1] == '\0') {
+        flags = *(unsigned int *)(platoon_def + 0x20);
+        new_flag = (char)(~(flags >> 2) & 1u);
+        if (platoon[0] != new_flag) {
+          result = (char)FUN_0005af70(encounter_handle /* @<eax> */,
+                                      platoon_def + 0x30 /* @<edi> */);
+          if (result != '\0') {
+            platoon[0] = new_flag;
+            if (*(char *)0x5aca4b != '\0') {
+              label = "defending";
+              if (new_flag == '\0') {
+                label = "attacking";
+              }
+              console_printf(0, "%s/%s triggered %s rule", enc_def_elt,
+                             platoon_def, label);
+            }
+          }
+        }
+      }
+    }
+    i = i + 1;
+  } while ((short)i < *(short *)(encounter + 0xa));
+}
+
 /* 0x5d890 — Iterate all encounters; for each dirty encounter whose
  * flag at +0x28 is set, calls FUN_0005d420 (encounter_finalize/recycle).
  *

@@ -663,7 +663,9 @@
         {
           "addr": "0x36dc0",
           "decl": "void FUN_00036dc0(int actor_handle, char flags_bit1, char flags_bit0);",
-          "ported": null
+          "ported": true,
+          "status": "ported",
+          "src": "src/halo/ai/actors.c"
         }
       ]
     },
@@ -9361,7 +9363,8 @@
         },
         {
           "decl": "void FUN_0005c940(int encounter_handle);",
-          "addr": "0x5c940"
+          "addr": "0x5c940",
+          "ported": true
         },
         {
           "decl": "void FUN_0005ca80(int encounter_handle);",
@@ -9429,6 +9432,12 @@
           "decl": "int FUN_00059a50(int *iter);",
           "addr": "0x59a50",
           "ported": true
+        },
+        {
+          "addr": "0x5af70",
+          "name": "?",
+          "decl": "bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */);",
+          "ported": false
         }
       ]
     },
