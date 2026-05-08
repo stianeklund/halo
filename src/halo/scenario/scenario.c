@@ -257,6 +257,7 @@ bool scenario_switch_structure_bsp(__int16 bsp_index)
 bool scenario_load(const char *map_name)
 {
   int tag_index;
+  int matg_index;
   char *scenario_tag;
   bool result = 0;
 
@@ -291,10 +292,8 @@ bool scenario_load(const char *map_name)
   }
 
   /* load game globals tag ("matg") */
-  {
-    int matg_index = tag_loaded(0x6d617467, "globals\\globals");
-    *(char **)0x5064d4 = (char *)tag_get(0x6d617467, matg_index);
-  }
+  matg_index = tag_loaded(0x6d617467, "globals\\globals");
+  *(char **)0x5064d4 = (char *)tag_get(0x6d617467, matg_index);
 
   if (scenario_switch_structure_bsp(0))
     return 1;
@@ -319,6 +318,7 @@ bool scenario_load(const char *map_name)
 void scenario_location_from_point(void *location_out, void *point)
 {
   uint32_t *loc = (uint32_t *)location_out;
+  char *element;
   uint32_t leaf;
 
   if (*(void **)0x5064d8 == 0) {
@@ -341,8 +341,8 @@ void scenario_location_from_point(void *location_out, void *point)
     system_exit(-1);
   }
 
-  char *element = (char *)tag_block_get_element(
-    (char *)*(void **)0x5064e0 + 0xe0, leaf & 0x7fffffff, 0x10);
+  element = (char *)tag_block_get_element((char *)*(void **)0x5064e0 + 0xe0,
+                                          leaf & 0x7fffffff, 0x10);
   *(int16_t *)&loc[1] = *(int16_t *)(element + 8);
 }
 
@@ -450,6 +450,7 @@ bool FUN_0018f3e0(void *location, void *position, int16_t *out_sky_index)
   char *bsp;
   int16_t node_index;
   char *node_element;
+  char *cluster_element;
   int fog_index;
   char *fog_tag;
   bool is_indoor;
@@ -488,7 +489,7 @@ bool FUN_0018f3e0(void *location, void *position, int16_t *out_sky_index)
 
   /* fallback: read sky index from the cluster */
   if (*(int16_t *)((char *)location + 4) != NONE) {
-    char *cluster_element = (char *)tag_block_get_element(
+    cluster_element = (char *)tag_block_get_element(
       bsp + 0x134, (int)*(int16_t *)((char *)location + 4), 0x68);
     sky_index = *(int16_t *)(cluster_element + 0x8);
   }
@@ -535,6 +536,7 @@ float FUN_0018f510(void *location, void *position)
   float *plane;
   int tag_index;
   char *fog_tag;
+  float d;
 
   if (*(int16_t *)((char *)location + 4) == NONE)
     return -3.4028235e+38f;
@@ -572,7 +574,7 @@ float FUN_0018f510(void *location, void *position)
     return -3.4028235e+38f;
 
   if (plane != NULL) {
-    float d = FUN_00099500(plane, position);
+    d = FUN_00099500(plane, position);
     return -(d + *(float *)(fog_tag + 0x74));
   }
 
