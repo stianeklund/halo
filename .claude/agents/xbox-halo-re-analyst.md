@@ -119,7 +119,7 @@ Hard rules:
 - Do not add empty stubs.
 - `@<reg>` annotations are immutable. Never remove or change slot assignments.
   When calling a register-arg XBE function, add it to kb.json with `@<reg>`
-  and also add to `tools/kb_reg_baseline.json`. Do not use raw casts or inline asm.
+  and also add to `tools/kb_reg_baseline.json` **inside the `"functions"` dict**. Do not use raw casts or inline asm.
 - Remember cdecl push order: first PUSH is the last C argument.
 - Avoid broad speculative refactors; prefer small reviewable changes.
 - **Lift workflow enforcement:** All new function ports MUST go through

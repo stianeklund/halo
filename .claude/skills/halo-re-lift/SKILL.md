@@ -87,7 +87,8 @@ Key reminders (full rules in `docs/references/abi-and-calling-conventions.md`):
 - `@<reg>` annotations are immutable. Never remove or change slot assignments.
 - When calling an original XBE function that takes register args, add it to
   kb.json with `@<reg>` and call by name. Do not use raw casts or inline asm.
-  New `@<reg>` entries must also be added to `tools/kb_reg_baseline.json`.
+  New `@<reg>` entries must also be added to `tools/kb_reg_baseline.json`
+  **inside the `"functions"` dict** (not at the top level). Key format: `"0xABCDEF"`.
 - Do not reorder or repack structs without binary evidence and matching asserts.
 
 ## Commit discipline

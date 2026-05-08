@@ -73,6 +73,24 @@ def load_reg_annotation_baseline(baseline_path=KB_REG_BASELINE_PATH):
     if not isinstance(baseline_funcs, dict):
         raise ValueError(f'{baseline_path} is missing a top-level "functions" object')
 
+    migrated = []
+    for key, val in baseline_raw.items():
+        if key in ('functions', 'version'):
+            continue
+        if isinstance(val, str) and '@<' in val and key not in baseline_funcs:
+            baseline_funcs[key] = val
+            migrated.append(key)
+
+    if migrated:
+        baseline_raw['functions'] = baseline_funcs
+        for key in migrated:
+            del baseline_raw[key]
+        with open(baseline_path, 'w') as f:
+            json.dump(baseline_raw, f, indent=2)
+            f.write('\n')
+        log.warning('Auto-migrated %d baseline entr(y/ies) from top-level into functions dict: %s',
+                     len(migrated), ', '.join(migrated))
+
     for addr, baseline_decl in baseline_funcs.items():
         if not isinstance(baseline_decl, str):
             raise ValueError(f'{baseline_path} entry {addr} must map to a declaration string')
