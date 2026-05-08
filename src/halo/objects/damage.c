@@ -27,6 +27,41 @@ char FUN_00136790(int object_handle)
   return 0;
 }
 
+/* FUN_001367e0 (0x1367e0) — Check if object shield vitality is at or below full
+ * and prepare it for shield regeneration if so.
+ *
+ * If shield vitality > 1.0f, returns false (0).
+ * If shield vitality <= 1.0f:
+ *   - Sets bit 4 of flags byte at object+0xb6
+ *   - If shield vitality == 0.0f, clamps it to 0.01f
+ *   - Clears the shield-damage counter word at object+0xb4
+ *   - Returns true (1)
+ *
+ * Confirmed: object_get_and_verify_type(handle, -1) at 0x1367e9.
+ * Confirmed: FLD [ECX+0x94]; FCOMP [0x2533c8] compares shield with 1.0f.
+ * Confirmed: TEST AH,0x41; JP tests "above" (> 1.0f) → return 0.
+ * Confirmed: OR byte [ECX+0xb6],0x10 sets bit 4 of flags byte.
+ * Confirmed: FCOMP [0x2533c0]; TEST AH,0x44; JP tests "not equal to 0.0f".
+ * Confirmed: MOV [ECX+0x94],0x3c23d70a sets shield to 0.01f.
+ * Confirmed: MOV word [ECX+0xb4],0x0 clears shield-damage counter.
+ * Confirmed: caller at 0xbd039 tests return with TEST AL,AL (bool).
+ */
+char FUN_001367e0(int object_handle)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if (*(float *)(obj + 0x94) <= 1.0f) {
+    *(unsigned char *)(obj + 0xb6) |= 0x10;
+    if (*(float *)(obj + 0x94) == 0.0f) {
+      *(float *)(obj + 0x94) = 0.01f;
+    }
+    *(unsigned short *)(obj + 0xb4) = 0;
+    return 1;
+  }
+  return 0;
+}
+
 /* FUN_00136980 (0x136980) — Set or clear the damage-invincible bit on an
  * object.
  *
