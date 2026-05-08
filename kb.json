@@ -566,6 +566,10 @@
           "src": "src/halo/ai/actors.c"
         },
         {
+          "addr": "0x3bc90",
+          "decl": "void FUN_0003bc90(int actor_handle);"
+        },
+        {
           "addr": "0x3bde0",
           "decl": "void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block);",
           "ported": true
@@ -9117,7 +9121,8 @@
         },
         {
           "addr": "0x2a470",
-          "decl": "void FUN_0002a470(int actor_handle, char *nav_state_out);"
+          "decl": "void FUN_0002a470(int actor_handle, char *nav_state_out);",
+          "ported": true
         },
         {
           "addr": "0x2b720",
@@ -10237,8 +10242,16 @@
       "data": [],
       "functions": [
         {
+          "addr": "0x5dfc0",
+          "decl": "void FUN_0005dfc0(void *nav_state_out, int speed, char flag, int unit_handle);"
+        },
+        {
           "addr": "0x5dff0",
           "decl": "void FUN_0005dff0(int nav_state, unsigned int ignore_object);"
+        },
+        {
+          "addr": "0x5e000",
+          "decl": "void FUN_0005e000(void *nav_state_out, void *waypoints, int waypoint_count);"
         },
         {
           "addr": "0x5e030",

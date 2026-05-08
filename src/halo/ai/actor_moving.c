@@ -10,6 +10,51 @@ void FUN_0002a3a0(int actor_handle)
   *(int *)(actor + 0x4a0) = 0;
 }
 
+/* FUN_0002a470 (0x2a470) — Populate nav state for actor movement.
+ *
+ * Gets the actor's actr tag speed value (tag+0x8c) as the base speed.
+ * If the actor is in a vehicle (actor->vehicle_count at +0x15e > 0):
+ *   - Gets the vehicle object via object_get_and_verify_type(actor[0x158], 2)
+ *   - Gets the vehi tag via tag_get('vehi', vehicle[0])
+ *   - Overrides unit_handle with the vehicle handle (actor[0x158])
+ *   - If vehi_tag[0x38c] > constant at 0x2533c0, overrides local_8 with it
+ * Calls FUN_0003bc90(actor_handle), then fills nav_state_out via
+ * FUN_0005dfc0 and FUN_0005e000.
+ *
+ * Confirmed: datum_get + tag_get('actr', actor[0x58]) at 0x2a481-0x2a491.
+ * Confirmed: tag[0x8c] → local_8; actor[0x18] → unit_handle default.
+ * Confirmed: object_get_and_verify_type(actor[0x158], 2) → vehicle at 0x2a4b8.
+ * Confirmed: tag_get('vehi', vehicle[0]) at 0x2a4c5.
+ * Confirmed: unit_handle = actor[0x158] at 0x2a4ca.
+ * Confirmed: FPU FCOMP [0x2533c0] with TEST AH,0x41 at 0x2a4db.
+ * Confirmed: FUN_0003bc90(actor_handle) at 0x2a4f2.
+ * Confirmed: FUN_0005dfc0(nav, local_8, actor[0x376], unit) at 0x2a509.
+ * Confirmed: FUN_0005e000(nav, actor+0x168, actor[0x164]) at 0x2a51d.
+ */
+void FUN_0002a470(int actor_handle, char *nav_state_out)
+{
+  char *actor;
+  char *p;
+  int local_8;
+  int unit_handle;
+
+  actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  p = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  local_8 = *(int *)(p + 0x8c);
+  unit_handle = *(int *)(actor + 0x18);
+  if (*(int16_t *)(actor + 0x15e) > 0) {
+    p = (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    p = (char *)tag_get(0x76656869, *(int *)p);
+    unit_handle = *(int *)(actor + 0x158);
+    if (*(float *)(p + 0x38c) > *(float *)0x2533c0) {
+      local_8 = *(int *)(p + 0x38c);
+    }
+  }
+  FUN_0003bc90(actor_handle);
+  FUN_0005dfc0(nav_state_out, local_8, *(unsigned char *)(actor + 0x376), unit_handle);
+  FUN_0005e000(nav_state_out, actor + 0x168, *(int *)(actor + 0x164));
+}
+
 /* 0x2b5d0 — FUN_0002b5d0: initialize trigonometric lookup tables.
  *
  * Confirmed: no arguments, no calls, writes table blocks rooted at
