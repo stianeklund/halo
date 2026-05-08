@@ -6090,7 +6090,8 @@
         },
         {
           "decl": "bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b, int max_distance, int16_t *collision_result);",
-          "addr": "0x130d0"
+          "addr": "0x130d0",
+          "ported": true
         },
         {
           "addr": "0x12f10",
