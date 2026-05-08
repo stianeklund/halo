@@ -1030,6 +1030,14 @@
       "metadata": {
         "source_path": "src/halo/objects/damage.c"
       }
+    },
+    {
+      "name": "halo/model_animations",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/models/model_animations.c.obj",
+      "base_path": "delinked/model_animations.obj",
+      "metadata": {
+        "source_path": "src/halo/models/model_animations.c"
+      }
     }
   ]
 }

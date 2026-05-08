@@ -4390,6 +4390,10 @@
         "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
       ]
     },
+    "0x120f20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x123470": {
       "kind": "function",
       "status": "ported",

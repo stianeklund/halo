@@ -9649,7 +9649,8 @@
       "functions": [
         {
           "decl": "int model_animation_choose_random(int update_kind, int animation_graph_tag_index, int16_t animation_index);",
-          "addr": "0x120f20"
+          "addr": "0x120f20",
+          "ported": true
         },
         {
           "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
