@@ -4547,11 +4547,13 @@
         },
         {
           "decl": "void FUN_0013c6e0(int object_handle, int region_index, unsigned int flags);",
-          "addr": "0x13c6e0"
+          "addr": "0x13c6e0",
+          "ported": true
         },
         {
           "decl": "char FUN_0013c740(int object_handle);",
-          "addr": "0x13c740"
+          "addr": "0x13c740",
+          "ported": true
         },
         {
           "decl": "void *object_try_and_get_and_verify_type(int datum_handle, int type_mask);",

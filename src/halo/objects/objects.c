@@ -648,6 +648,99 @@ void FUN_0013c560(int object_handle);
 void FUN_0013c620(int object_handle);
 
 /*
+ * FUN_0013c6e0 — dispatch a region-destroyed callback through the object
+ * type definition's extension table.
+ *
+ * Resolves the object's type, looks up its type definition via FUN_0013c100,
+ * then walks the pointer array at type_def+0x5c. For each non-NULL entry,
+ * reads a function pointer at entry+0x3c and calls it with the original
+ * three arguments (object_handle, param_2, param_3).
+ *
+ * Called from damage.c (FUN_00137690) when a region is destroyed, passing
+ * (object_handle, region_index, region_flags).
+ *
+ * Confirmed: cdecl, 3 args (ADD ESP,0xc at caller and inside loop).
+ * Confirmed: MOVSX word [EAX+0x64] — reads object type as int16_t.
+ * Confirmed: PUSH -1, PUSH EBX -> object_get_and_verify_type(handle, -1).
+ * Confirmed: loop counter is int16_t (MOVSX EAX,SI at 0x13c728).
+ * Confirmed: vtable offset 0x3c (MOV EAX,[EAX+0x3c] at 0x13c712).
+ * Confirmed: indirect call passes all 3 params (PUSH ECX/EDX/EBX at 0x13c71f-0x13c721).
+ */
+/* 0x13c6e0 */
+void FUN_0013c6e0(int object_handle, int region_index, unsigned int flags)
+{
+  typedef void (*type_callback_t)(int, int, unsigned int);
+  char *obj;
+  char *type_def;
+  char *entry;
+  type_callback_t fn;
+  int16_t i;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  type_def = (char *)FUN_0013c100(*(int16_t *)(obj + 0x64));
+
+  i = 0;
+  entry = *(char **)(type_def + 0x5c);
+  while (entry != NULL) {
+    fn = *(type_callback_t *)(entry + 0x3c);
+    if (fn != NULL) {
+      fn(object_handle, region_index, flags);
+    }
+    i = i + 1;
+    entry = *(char **)(type_def + 0x5c + (int)(int16_t)i * 4);
+  }
+}
+
+/*
+ * FUN_0013c740 — walk the object type definition extension table and check
+ * whether any extension's callback at offset +0x40 returns true.
+ *
+ * Resolves the object's type via object_get_and_verify_type(-1), looks up
+ * the type definition via FUN_0013c100, then walks the NULL-terminated
+ * pointer array at type_def+0x5c. For each non-NULL entry, reads a function
+ * pointer at entry+0x40 and calls it with the object handle. If any callback
+ * returns non-zero, the function returns 1 (sticky OR).
+ *
+ * Called from FUN_00136840, which recursively walks child objects. If this
+ * function returns 0, the caller recurses into the child.
+ *
+ * Confirmed: cdecl, 1 arg (ADD ESP,0x4 after indirect CALL).
+ * Confirmed: returns char/bool in AL (MOV AL,BL at 0x13c79a).
+ * Confirmed: MOVSX EAX,SI — loop counter is int16_t.
+ * Confirmed: vtable offset +0x40 (MOV EAX,[EAX+0x40] at 0x13c772).
+ * Confirmed: XOR BL,BL — result initialized to 0, set to 1 on any true return.
+ */
+/* 0x13c740 */
+char FUN_0013c740(int object_handle)
+{
+  typedef char (*type_check_callback_t)(int);
+  char *obj;
+  char *type_def;
+  char *entry;
+  type_check_callback_t fn;
+  char result;
+  int16_t i;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  type_def = (char *)FUN_0013c100(*(int16_t *)(obj + 0x64));
+
+  result = 0;
+  i = 0;
+  entry = *(char **)(type_def + 0x5c);
+  while (entry != NULL) {
+    fn = *(type_check_callback_t *)(entry + 0x40);
+    if (fn != NULL) {
+      if (fn(object_handle) != 0) {
+        result = 1;
+      }
+    }
+    i = i + 1;
+    entry = *(char **)(type_def + 0x5c + (int)(int16_t)i * 4);
+  }
+  return result;
+}
+
+/*
  * object_try_and_get_and_verify_type — resolve a datum handle to its
  * object_data_t*, returning NULL if the handle is invalid or the object's
  * type is not among the bits in type_mask.
