@@ -1256,8 +1256,8 @@ void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
   node_matrix = *(void **)((char *)creation_info + 0x4);
   if (node_matrix != 0) {
     positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
-    matrix_transform_point((float *)node_matrix, positions_ptr, local_position);
-    matrix_transform_vector((float *)node_matrix, forwards_ptr, local_forward);
+    real_matrix3x3_transform_point(node_matrix, positions_ptr, local_position);
+    real_matrix4x3_transform_point(node_matrix, forwards_ptr, local_forward);
   } else {
     positions_ptr = (float *)(*(int *)((char *)creation_info + 0x10) + offset);
     local_position[0] = positions_ptr[0];
@@ -1280,8 +1280,8 @@ void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
 
   perpendicular3d(local_forward, local_up);
   normalize3d(local_up);
-  matrix4x3_from_forward_up_position((char *)output + 4, local_position,
-                                     local_forward, local_up);
+  matrix4x3_from_forward_up_position(
+      (char *)output + 4, local_position, local_forward, local_up);
 }
 
 void FUN_0009e310(void *effect)
@@ -1408,10 +1408,6 @@ void FUN_0009e310(void *effect)
   } while ((int)(int16_t)loc_counter < *locations_block);
 }
 
-/* Resolve effect markers from creation info node list (0x9e560).
- * For each node in creation_info, checks if it matches the event element's
- * definition. Non-matching nodes produce a marker via FUN_0009e180.
- * If no markers are produced, fills marker 0 as a default. */
 short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
                    int16_t max_markers)
 {
@@ -1425,7 +1421,8 @@ short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
   if (!csstrlen((const char *)event_elem))
     goto fallback;
 
-  for (i = 0; i < max_markers; i++) {
+  i = 0;
+  do {
     if (i >= *(int16_t *)(creation_info + 0x8))
       break;
 
@@ -1435,7 +1432,8 @@ short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
                    creation_info);
       marker_count++;
     }
-  }
+    i++;
+  } while (marker_count < max_markers);
 
   if (marker_count != 0)
     return marker_count;
