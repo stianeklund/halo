@@ -5763,6 +5763,14 @@
           "ported": true
         },
         {
+          "decl": "void FUN_000916e0(void);",
+          "addr": "0x916e0"
+        },
+        {
+          "decl": "void FUN_00091710(void);",
+          "addr": "0x91710"
+        },
+        {
           "decl": "void profile_frame_start(void);",
           "addr": "0x91780",
           "ported": true
@@ -10073,8 +10081,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00138ee0(int object_handle);",
-          "addr": "0x138ee0"
+          "decl": "int FUN_00138ee0(int hardware_format);",
+          "addr": "0x138ee0",
+          "ported": true
         }
       ]
     },

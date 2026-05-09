@@ -1018,3 +1018,23 @@ void FUN_00137370(void)
   /* collision_result offset 0x38 = object handle (EBP-0x2c from EBP-0x64 base) */
   *(int *)0x46f070 = *(int *)((char *)collision_result + 0x38);
 }
+
+/* FUN_00138ee0 (0x138ee0) — Texture cache hardware format lookup with RDTSC
+ * profiling. Wraps xbox_texture_cache_get_hardware_format(hardware_format, 1, 1)
+ * between RDTSC start/stop calls for performance measurement.
+ *
+ * Confirmed: CALL 0x916e0 (RDTSC start) takes no args.
+ * Confirmed: PUSH 1 / PUSH 1 / PUSH [EBP+8] then CALL 0x1bf570 (cdecl, 3 args).
+ * Confirmed: ADD ESP,0xc after call (cdecl cleanup for 3 args).
+ * Confirmed: CALL 0x91710 (RDTSC stop) takes no args.
+ * Confirmed: return value in ESI is the result of xbox_texture_cache_get_hardware_format.
+ */
+int FUN_00138ee0(int hardware_format)
+{
+  int result;
+
+  FUN_000916e0();
+  result = (int)xbox_texture_cache_get_hardware_format((void *)hardware_format, 1, 1);
+  FUN_00091710();
+  return result;
+}
