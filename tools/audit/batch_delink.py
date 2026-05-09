@@ -113,6 +113,39 @@ def compute_truncated_range(obj: dict) -> tuple[int, int] | None:
     return addrs[0], addrs[-1]
 
 
+def find_max_exportable_range_rpc(
+    export_path: str,
+    obj: dict,
+) -> tuple[int, int] | None:
+    """Binary-search for the largest contiguous range that exports
+    successfully.  Falls back to single-function export if needed."""
+    funcs = obj.get("functions") or []
+    addrs = sorted(set(
+        int(f["addr"], 16) for f in funcs if "addr" in f
+    ))
+    if not addrs:
+        return None
+
+    lo = addrs[0]
+
+    # Try progressively smaller ranges by removing functions from the end
+    for end_idx in range(len(addrs) - 1, 0, -1):
+        hi = addrs[end_idx]
+        try:
+            export_via_rpc(export_path, range_str(lo, hi))
+            return lo, hi
+        except Exception:
+            continue
+
+    # Last resort: try just the first function
+    hi = addrs[0] + RANGE_END_PAD
+    try:
+        export_via_rpc(export_path, range_str(lo, hi))
+        return lo, hi
+    except Exception:
+        return None
+
+
 def range_str(lo: int, hi: int) -> str:
     """Format an address range for Ghidra: 'xxxxxxxx-yyyyyyyy' (no 0x prefix)."""
     return f"{lo:08x}-{hi:08x}"
@@ -389,6 +422,19 @@ def main() -> int:
                     continue
                 except Exception as retry_exc:
                     print(f"  retry also failed: {retry_exc}", file=sys.stderr)
+                    # Progressive split: find the largest exportable subset
+                    print(f"  split {name}  searching for max exportable range...")
+                    result = find_max_exportable_range_rpc(str(export_path), obj)
+                    if result:
+                        slo, shi = result
+                        func_count = len(obj.get("functions") or [])
+                        covered = sum(1 for a in [int(f["addr"], 16) for f in (obj.get("functions") or [])] if slo <= a < shi)
+                        print(f"  ok  {name}  -> {export_path.name}  (split: {covered}/{func_count} functions)")
+                        manifest[name]["addr_range"] = f"0x{slo:08x}-0x{shi:08x}"
+                        manifest[name]["truncated"] = True
+                        manifest[name]["split"] = True
+                        success += 1
+                        continue
             print(f"  FAIL  {name}: {exc}", file=sys.stderr)
             manifest[name]["error"] = str(exc)
             failed += 1
