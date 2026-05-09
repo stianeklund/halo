@@ -185,6 +185,9 @@ static inline double xbox_log10(double x)
 static inline double xbox_pow(double base, double exponent)
 {
   double result;
+  /* fyl2x requires base > 0; log2(0) = -inf produces NaN via -inf - -inf */
+  if (base <= 0.0)
+    return 0.0;
   asm volatile (
     "fyl2x\n\t"
     "fld %%st(0)\n\t"
