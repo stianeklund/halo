@@ -14,3 +14,46 @@ unsigned int FUN_00118e90(int queue)
     }
     return *(int *)(queue + 0x10) - used - 1;
 }
+
+/* Enqueue data into a circular queue, wrapping around the buffer boundary
+ * if necessary (0x118ec0). Returns true if the data was enqueued, or false
+ * if the queue does not have enough space. Handles the wrap-around case by
+ * splitting the copy into two parts: one to the end of the buffer, and one
+ * from the beginning. Asserts validity of the queue before and after. */
+bool FUN_00118ec0(int queue, void *data, int data_size)
+{
+    int write_offset;
+    int used;
+    int remaining;
+
+    FUN_00118d70(queue);
+    assert_halt(data && data_size > 0 && data_size < *(int *)(queue + 0x10));
+
+    FUN_00118d70(queue);
+
+    write_offset = *(int *)(queue + 0x0c);
+    used = write_offset - *(int *)(queue + 0x08);
+    if (used < 0) {
+        used = used + *(int *)(queue + 0x10);
+    }
+
+    if (used + data_size >= *(int *)(queue + 0x10)) {
+        return 0;
+    }
+
+    remaining = *(int *)(queue + 0x10) - write_offset;
+    if (data_size >= remaining) {
+        csmemcpy((void *)(*(int *)(queue + 0x14) + write_offset), data, remaining);
+        data = (char *)data + remaining;
+        *(int *)(queue + 0x0c) = 0;
+        data_size = data_size - remaining;
+    }
+
+    if (data_size > 0) {
+        csmemcpy((void *)(*(int *)(queue + 0x14) + *(int *)(queue + 0x0c)), data, data_size);
+        *(int *)(queue + 0x0c) = *(int *)(queue + 0x0c) + data_size;
+    }
+
+    assert_halt(*(int *)(queue + 0x0c) >= 0 && *(int *)(queue + 0x0c) < *(int *)(queue + 0x10));
+    return 1;
+}
