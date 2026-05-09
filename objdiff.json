@@ -1046,6 +1046,14 @@
       "metadata": {
         "source_path": "src/halo/models/model_animations.c"
       }
+    },
+    {
+      "name": "halo/path",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/path.c.obj",
+      "base_path": "delinked/path.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/path.c"
+      }
     }
   ]
 }

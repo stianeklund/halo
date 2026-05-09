@@ -8,6 +8,7 @@
 	halo/ai/actors.c
 	halo/ai/ai.c
 	halo/ai/encounters.c
+	halo/ai/path.c
 	halo/ai/props.c
 	halo/bitmaps/bitmaps.c
 	halo/bitmaps/tiff_file.c

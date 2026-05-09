@@ -10328,27 +10328,38 @@
       "functions": [
         {
           "addr": "0x5dfc0",
-          "decl": "void FUN_0005dfc0(void *nav_state_out, int speed, char flag, int unit_handle);"
+          "decl": "void FUN_0005dfc0(void *param_1, unsigned int param_2, unsigned char param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0x5dff0",
-          "decl": "void FUN_0005dff0(int nav_state, unsigned int ignore_object);"
+          "decl": "void FUN_0005dff0(void *param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x5e000",
-          "decl": "void FUN_0005e000(void *nav_state_out, void *waypoints, int waypoint_count);"
+          "decl": "void FUN_0005e000(void *param_1, float *param_2, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x5e030",
-          "decl": "void FUN_0005e030(int nav_state, unsigned int *hint_pos, unsigned int hint_handle, unsigned int orders_handle, unsigned int radius_bits);"
+          "decl": "void FUN_0005e030(void *param_1, float *param_2, float param_3, unsigned int param_4, float param_5);",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_0005e070(void *param_1, int param_2);",
+          "addr": "0x5e070",
+          "ported": true
         },
         {
           "addr": "0x5e090",
-          "decl": "void FUN_0005e090(unsigned int *nav_state_src, unsigned int *path_buf, unsigned int path_slot);"
+          "decl": "void FUN_0005e090(void *param_1, void *param_2, void *param_3);",
+          "ported": true
         },
         {
           "addr": "0x5e0d0",
-          "decl": "void FUN_0005e0d0(int path_buf, unsigned int *dest_pos, unsigned int dest_handle, unsigned int speed_bits);"
+          "decl": "void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0x5e920",

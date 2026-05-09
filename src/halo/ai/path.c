@@ -38,6 +38,16 @@ void FUN_0005dfc0(void *param_1, uint32_t param_2, uint8_t param_3, int param_4)
   return;
 }
 
+/* 0x005dff0 — path_state_set_ignore_object
+ * Sets the ignore-object handle in a path_state record.
+ *
+ * Disassembly: MOV EAX,[EBP+0xc]; MOV ECX,[EBP+0x8]; MOV [ECX+0xc],EAX; RET
+ */
+void FUN_0005dff0(void *param_1, int param_2)
+{
+  *(int *)((char *)param_1 + 0xc) = param_2;
+}
+
 /* 0x005e000 — path_state_set_focus
  * Sets the focus-position fields in a path_state record.
  *
