@@ -49,83 +49,73 @@ void FUN_0014b3d0(int param_1, int param_2, int param_3, int param_4,
 void FUN_0014b470(int param_1, int object_handle, int param_3, int param_4,
                   int param_5, int param_6, void *features)
 {
+  unsigned int *puVar3;
+  unsigned int *puVar4;
+  float *pfVar5;
+  float *pfVar7;
   void *edge;
-  int *region_0;
-  int *region_1;
-  float *vertex_0;
-  float *vertex_1;
-  int node_0;
-  int node_1;
-  unsigned int raw_0;
-  unsigned int raw_1;
-  char sign_0;
-  char sign_1;
-  float displacement[3];
+  unsigned int uVar1;
+  unsigned int uVar2;
+  int local_14;
+  unsigned char local_5;
+  float local_24[3];
   float local_34[3];
-  float *position;
-  float *direction;
   int uVar6;
-  float angle;
 
   edge = tag_block_get_element((void *)(param_1 + 0x48), object_handle, 0x18);
-  region_0 = (int *)tag_block_get_element((void *)(param_1 + 0x3c),
+  puVar3 = (unsigned int *)tag_block_get_element((void *)(param_1 + 0x3c),
                                           *(int *)((int)edge + 0x10), 0xc);
-  region_1 = (int *)tag_block_get_element((void *)(param_1 + 0x3c),
+  puVar4 = (unsigned int *)tag_block_get_element((void *)(param_1 + 0x3c),
                                           *(int *)((int)edge + 0x14), 0xc);
 
-  if (*(unsigned int *)region_0 == *(unsigned int *)region_1)
-    return;
-
-  vertex_0 = (float *)tag_block_get_element((void *)(param_1 + 0x54),
+  if (*puVar3 != *puVar4) {
+    pfVar7 = (float *)tag_block_get_element((void *)(param_1 + 0x54),
                                             *(int *)edge, 0x10);
-  vertex_1 = (float *)tag_block_get_element((void *)(param_1 + 0x54),
+    pfVar5 = (float *)tag_block_get_element((void *)(param_1 + 0x54),
                                             *(int *)((int)edge + 0x4), 0x10);
+    uVar1 = *puVar3;
+    uVar2 = *puVar4;
+    local_14 = (int)tag_block_get_element((void *)(param_1 + 0xc),
+                                      uVar1 & 0x7fffffff, 0x10);
+    uVar6 = (int)tag_block_get_element((void *)(param_1 + 0xc),
+                                      uVar2 & 0x7fffffff, 0x10);
 
-  raw_0 = *(unsigned int *)region_0;
-  raw_1 = *(unsigned int *)region_1;
-  node_0 = (int)tag_block_get_element((void *)(param_1 + 0xc),
-                                      raw_0 & 0x7fffffff, 0x10);
-  node_1 = (int)tag_block_get_element((void *)(param_1 + 0xc),
-                                      raw_1 & 0x7fffffff, 0x10);
+    local_5 = (*puVar3 & 0x80000000) != 0;
+    local_24[0] = pfVar5[0] - pfVar7[0];
+    local_24[1] = pfVar5[1] - pfVar7[1];
+    local_24[2] = pfVar5[2] - pfVar7[2];
 
-  sign_0 = (raw_0 & 0x80000000) != 0;
-  sign_1 = (raw_1 & 0x80000000) != 0;
-
-  displacement[0] = vertex_1[0] - vertex_0[0];
-  displacement[1] = vertex_1[1] - vertex_0[1];
-  displacement[2] = vertex_1[2] - vertex_0[2];
-
-  if ((raw_0 & 0x7fffffff) != (raw_1 & 0x7fffffff)) {
-    if (sign_0 == sign_1) {
-      angle = FUN_000993b0((float *)node_0, (float *)node_1, displacement);
-      if (angle <= -1.0e-4f)
-        return;
-    } else {
-      angle = FUN_000993b0((float *)node_0, (float *)node_1, displacement);
-      if (angle >= 1.0e-4f)
-        return;
+    if ((uVar1 & 0x7fffffff) != (uVar2 & 0x7fffffff)) {
+      if ((int)local_5 == (int)((*puVar4 & 0x80000000) != 0)) {
+        if (FUN_000993b0((float *)local_14, (float *)uVar6, local_24)
+            <= -1.0e-4f)
+          return;
+      } else {
+        if (FUN_000993b0((float *)local_14, (float *)uVar6, local_24)
+            >= 1.0e-4f)
+          return;
+      }
     }
-  }
 
-  uVar6 = -1;
-  if (param_6 == -1) {
-    uVar6 = *(int *)((int)edge + 0x10);
-  }
+    uVar6 = 0xffffffff;
+    if (param_6 == -1) {
+      uVar6 = *(int *)((int)edge + 0x10);
+    }
 
-  if (param_3 != 0) {
-    matrix_scale_transform_vector((float *)param_3, displacement, displacement);
-    direction = displacement;
-    matrix_transform_point((float *)param_3, vertex_0, local_34);
-    position = local_34;
-  } else {
-    direction = displacement;
-    position = vertex_0;
-  }
+    if (param_3 == 0) {
+      pfVar5 = local_24;
+    } else {
+      matrix_scale_transform_vector((float *)param_3, local_24, local_24);
+      pfVar5 = local_24;
+      matrix_transform_point((float *)param_3, pfVar7, local_34);
+      pfVar7 = local_34;
+    }
 
-  FUN_0014aee0(position, direction, *(float *)&param_4, param_5, param_6,
-               uVar6, *(unsigned char *)((int)region_0 + 8),
-               *(unsigned char *)((int)region_0 + 9),
-               *(unsigned short *)((int)region_0 + 0xa), features);
+    FUN_0014aee0(pfVar7, pfVar5, *(float *)&param_4, param_5, param_6,
+                 uVar6, (char)puVar3[2],
+                 *(unsigned char *)((int)puVar3 + 9),
+                 *(unsigned short *)((int)puVar3 + 0xa), features);
+  }
 }
 
 /* 0x14b620 — Look up a sphere collision surface by handle, collect its
