@@ -1097,6 +1097,42 @@ void *object_header_block_reference_get(int object_handle, void *reference)
 }
 
 int FUN_0013e050(int object_handle, int offset, int size);
+void FUN_0013c800(int object_handle, void *block_data);
+
+/*
+ * FUN_0013e1a0 — run animation-block initializer callbacks for an object.
+ *
+ * Resolves the object's tag definition and checks whether both a model
+ * (tag+0x34) and an animation graph (tag+0x44) are present. If so,
+ * resolves the object's animation block reference at object_data+0x1a0
+ * via object_header_block_reference_get, then dispatches through type
+ * callbacks via FUN_0013c800.
+ *
+ * Confirmed: single register arg object_handle in EDI.
+ * Confirmed: PUSH -1, PUSH EDI -> object_get_and_verify_type(handle, -1).
+ * Confirmed: PUSH EAX, PUSH 0x6f626a65 -> tag_get('obje', obj[0]).
+ * Confirmed: ADD ESP,0x10 cleans both calls (4 pushes).
+ * Confirmed: CMP [EAX+0x34],-1 checks model tag index.
+ * Confirmed: CMP [EAX+0x44],-1 checks animation graph tag index.
+ * Confirmed: ADD ESI,0x1a0 -> object_data+0x1a0 is the animation block ref.
+ * Confirmed: PUSH ESI, PUSH EDI -> object_header_block_reference_get(handle, obj+0x1a0).
+ * Confirmed: PUSH EAX (return value), PUSH EDI -> FUN_0013c800(handle, block).
+ * Confirmed: ADD ESP,0x10 cleans both calls (4 pushes).
+ */
+/* 0x13e1a0 */
+void FUN_0013e1a0(int object_handle /* @<edi> */)
+{
+  char *obj;
+  char *tag_data;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  tag_data = (char *)tag_get(0x6f626a65, *(int *)obj);
+
+  if (*(int *)(tag_data + 0x34) != -1 && *(int *)(tag_data + 0x44) != -1) {
+    void *block = object_header_block_reference_get(object_handle, obj + 0x1a0);
+    FUN_0013c800(object_handle, block);
+  }
+}
 
 /* Remove object_handle from a sibling linked list rooted at list_head.
  * Walks the chain at offset 0xc4 (next_sibling) until it finds the entry

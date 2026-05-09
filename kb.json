@@ -4602,7 +4602,7 @@
         {
           "decl": "void FUN_0013e1a0(int object_handle@<edi>);",
           "addr": "0x13e1a0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0013e1f0(int object_handle@<eax>, void *color_data);",
@@ -4896,6 +4896,10 @@
           "decl": "int object_mark(int object_handle);",
           "addr": "0x13ec50",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0013c800(int object_handle, void *block_data);",
+          "addr": "0x13c800"
         }
       ]
     },
@@ -9978,7 +9982,8 @@
         },
         {
           "decl": "void FUN_00137620(int object_handle);",
-          "addr": "0x137620"
+          "addr": "0x137620",
+          "ported": true
         },
         {
           "decl": "void FUN_00137690(short region_index);",
