@@ -2968,3 +2968,49 @@ void FUN_000ce370(int expression_datum)
     *(int16_t *)(node + 0x4) -= 1;
   }
 }
+
+/* 0x000ce320 — object_list_iterator_next
+ * Advances an object-list iterator to the next entry.
+ * Returns the object datum handle, or -1 if the list is exhausted.
+ * Updates *iter_state to point to the next node's link.
+ *
+ * Confirmed: datum_get(0x5aa694, *iter_state) at 0xce335.
+ * Confirmed: node+0x8 = next link, node+0x4 = object handle.
+ */
+int FUN_000ce320(int param_1, int *param_2)
+{
+  char *node;
+
+  if (*param_2 != -1) {
+    node = (char *)datum_get(*(data_t **)0x5aa694, *param_2);
+    *param_2 = *(int *)(node + 8);
+    return *(int *)(node + 4);
+  }
+  return -1;
+}
+
+/* 0x000ce450 — object_list_iterator_first
+ * Initializes an object-list iterator and returns the first object handle.
+ * Returns -1 if the list is empty or param_1 is -1.
+ *
+ * Confirmed: datum_get(0x5aa698, param_1) at 0xce466.
+ * Confirmed: datum_get(0x5aa694, first_link) at 0xce483.
+ * Confirmed: node+0x8 = head link (list entry), then node+0x8 = next, node+0x4 = handle.
+ */
+int FUN_000ce450(int param_1, int *param_2)
+{
+  char *node;
+  int first_link;
+
+  if (param_1 != -1) {
+    node = (char *)datum_get(*(data_t **)0x5aa698, param_1);
+    first_link = *(int *)(node + 8);
+    *param_2 = first_link;
+    if (first_link != -1) {
+      node = (char *)datum_get(*(data_t **)0x5aa694, first_link);
+      *param_2 = *(int *)(node + 8);
+      return *(int *)(node + 4);
+    }
+  }
+  return -1;
+}

@@ -3580,11 +3580,13 @@
         },
         {
           "addr": "0xce320",
-          "decl": "int FUN_000ce320(int parent_handle, int *iter_state);"
+          "decl": "int FUN_000ce320(int parent_handle, int *iter_state);",
+          "ported": true
         },
         {
           "addr": "0xce450",
-          "decl": "int FUN_000ce450(int parent_handle, int *iter_state);"
+          "decl": "int FUN_000ce450(int parent_handle, int *iter_state);",
+          "ported": true
         }
       ],
       "source_path": "src/halo/hs/hs_runtime.c"
