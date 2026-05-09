@@ -9731,8 +9731,41 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
-          "addr": "0x121d60"
+          "decl": "void FUN_00121d60(void *model_tag, void *animation, int frame_index, void *out_node_data);",
+          "addr": "0x121d60",
+          "ported": true
+        },
+        {
+          "decl": "void *FUN_00120500(void *animation, int frame_index);",
+          "addr": "0x120500"
+        },
+        {
+          "decl": "void FUN_00120810(void *src, void *dst);",
+          "addr": "0x120810"
+        },
+        {
+          "decl": "void FUN_00120870(void *src, void *dst);",
+          "addr": "0x120870"
+        },
+        {
+          "decl": "void FUN_0010ca30(void *quaternion);",
+          "addr": "0x10ca30"
+        },
+        {
+          "decl": "void FUN_00121330(void *animation, float real_frame_index, int counter, unsigned int node_index, void *output);",
+          "addr": "0x121330"
+        },
+        {
+          "decl": "void FUN_00121640(void *animation, float real_frame_index, int counter, unsigned int node_index, void *output);",
+          "addr": "0x121640"
+        },
+        {
+          "decl": "void FUN_00121940(void *animation, float real_frame_index, int counter, unsigned int node_index, void *output);",
+          "addr": "0x121940"
+        },
+        {
+          "decl": "void FUN_00123aa0(void *model_tag, void *output);",
+          "addr": "0x123aa0"
         }
       ]
     },

@@ -80,6 +80,7 @@
 	halo/memory/lruv_cache.c
 	halo/memory/memory_pool.c
 	halo/memory/stack_memory_pool.c
+	halo/models/model_animations.c
 	halo/physics/breakable_surfaces.c
 	halo/physics/collision_features.c
 	halo/physics/collision_usage.c
