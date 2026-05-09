@@ -44,6 +44,7 @@
     "0x136890": "int FUN_00136890(int object_index @<eax>);",
     "0x1369e0": "void FUN_001369e0(int object_handle @<eax>, int effect_tag_index);",
     "0x136a00": "void FUN_00136a00(int object_handle @<eax>, char param_1);",
+    "0x137170": "void FUN_00137170(float *incident_direction @<eax>, float *surface_normal @<ecx>, int object_handle @<esi>, int effect_tag_index, short marker_index, float *position);",
     "0x137690": "void FUN_00137690(int object_handle @<edi>, short region_index);",
     "0x13ded0": "int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint@<eax>);",
     "0x13e1a0": "void FUN_0013e1a0(int object_handle@<edi>);",

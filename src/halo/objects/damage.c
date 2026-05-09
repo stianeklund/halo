@@ -750,3 +750,138 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
                  shield_vitality, param_4, param_5);
   }
 }
+
+/* FUN_00137170 (0x137170) — Build damage-effect marker arrays and fire an
+ * effect for a damage impact.
+ *
+ * Sets up 5 forward-direction vectors ("normal", "incident",
+ * "negative incident", "reflection", "gravity") and 5 copies of the impact
+ * position, then calls either FUN_0009ee40 (attached effect) when both the
+ * object handle and marker index are valid, or FUN_0009f0e0 (unattached
+ * effect) otherwise.
+ *
+ * The incident direction (@EAX) is normalized in-place; if it has zero
+ * length, it is replaced by the global forward vector (*(0x31fc3c)).
+ * If the surface normal (@ECX/EDI) is NULL, a direction is computed from
+ * position minus the object's world position, and if that also has zero
+ * length, the object's forward vector (obj+0x24) is used instead.
+ *
+ * Register args:
+ *   @EAX = incident_direction (float[3], normalized in function)
+ *   @ECX = surface_normal (float[3], or NULL)
+ *   @ESI = object_handle (int)
+ * Stack args:
+ *   [EBP+0x8]  = effect_tag_index (int, collision model tag index)
+ *   [EBP+0xC]  = marker_index (short, -1 for unattached)
+ *   [EBP+0x10] = position (float[3], world position of impact)
+ *
+ * Confirmed: MOV EDI,ECX at 0x13717e saves @ECX (surface_normal) to EDI.
+ * Confirmed: TEST EDI,EDI at 0x1371fb branches on NULL surface_normal.
+ * Confirmed: MOV EBX,[EBP+0x10] at 0x13717a loads position param.
+ * Confirmed: normalize3d at CALL 0x13010 normalizes incident direction.
+ * Confirmed: FCOMP [0x2533c0] compares magnitude with 0.0f.
+ * Confirmed: FMUL [0x255e94] multiplies by -1.0f for negative incident.
+ * Confirmed: FUN_001412f0 at CALL 0x1412f0 = object_get_world_position.
+ * Confirmed: FUN_0010c8e0 at CALL 0x10c8e0 = reflect vector.
+ * Confirmed: CMP ESI,-1 at 0x1372f9 + CMP AX,0xffff at 0x137303 gate
+ *            between FUN_0009ee40 and FUN_0009f0e0.
+ * Confirmed: 12 pushes + ADD ESP,0x30 for both effect calls.
+ * Confirmed: *(0x31fc50) = global gravity/down vector (0,0,-1).
+ * Confirmed: *(0x31fc3c) = global forward vector (1,0,0).
+ * Confirmed: *(0x31fc38) = translational velocity ptr for FUN_0009f0e0.
+ */
+void FUN_00137170(float *incident_direction, float *surface_normal,
+                  int object_handle, int effect_tag_index,
+                  short marker_index, float *position)
+{
+  float marker_points[15];
+  float forward_vectors[15];
+  char *effect_names[5];
+  float obj_pos[3];
+  float normal[3];
+  float direction[3];
+  float mag;
+  int i;
+  float *dst;
+  char *obj;
+
+  effect_names[0] = "normal";
+  effect_names[1] = "incident";
+  effect_names[2] = "negative incident";
+  effect_names[3] = "reflection";
+  effect_names[4] = "gravity";
+
+  /* Copy gravity vector directly into forward_vectors entry 4 */
+  forward_vectors[12] = *(float *)*(int *)0x31fc50;
+  forward_vectors[13] = *(float *)(*(int *)0x31fc50 + 4);
+  forward_vectors[14] = *(float *)(*(int *)0x31fc50 + 8);
+
+  /* Copy and normalize the incident direction */
+  normal[0] = incident_direction[0];
+  normal[1] = incident_direction[1];
+  normal[2] = incident_direction[2];
+  mag = normalize3d(normal);
+  if (mag == 0.0f) {
+    normal[0] = *(float *)*(int *)0x31fc3c;
+    normal[1] = *(float *)(*(int *)0x31fc3c + 4);
+    normal[2] = *(float *)(*(int *)0x31fc3c + 8);
+  }
+
+  /* Build forward vectors:
+   * [1] = incident (normal * -1.0)
+   * [2] = negative incident (normal copy)
+   */
+  forward_vectors[3] = normal[0] * -1.0f;
+  forward_vectors[6] = normal[0];
+  forward_vectors[7] = normal[1];
+  forward_vectors[4] = normal[1] * -1.0f;
+  forward_vectors[8] = normal[2];
+  forward_vectors[5] = normal[2] * -1.0f;
+
+  if (surface_normal == (float *)0) {
+    /* No surface normal provided: compute direction from position */
+    object_get_world_position(object_handle, (vector3_t *)obj_pos);
+    direction[0] = position[0] - obj_pos[0];
+    direction[1] = position[1] - obj_pos[1];
+    direction[2] = position[2] - obj_pos[2];
+    mag = normalize3d(direction);
+    if (mag == 0.0f) {
+      obj = (char *)object_get_and_verify_type(object_handle, -1);
+      direction[0] = *(float *)(obj + 0x24);
+      direction[1] = *(float *)(obj + 0x28);
+      direction[2] = *(float *)(obj + 0x2c);
+    }
+    /* forward[0] = computed direction ("normal") */
+    forward_vectors[0] = direction[0];
+    forward_vectors[1] = direction[1];
+    forward_vectors[2] = direction[2];
+    /* Reflect normal about direction */
+    FUN_0010c8e0(normal, direction, &forward_vectors[9]);
+  } else {
+    /* forward[0] = surface normal ("normal") */
+    forward_vectors[0] = surface_normal[0];
+    forward_vectors[1] = surface_normal[1];
+    forward_vectors[2] = surface_normal[2];
+    /* Reflect normal about surface normal */
+    FUN_0010c8e0(normal, surface_normal, &forward_vectors[9]);
+  }
+
+  /* Fill all 5 marker positions with the same impact position */
+  dst = marker_points;
+  for (i = 5; i != 0; i--) {
+    *dst = *position;
+    dst[1] = position[1];
+    dst[2] = position[2];
+    dst += 3;
+  }
+
+  if (object_handle != -1 && marker_index != -1) {
+    FUN_0009ee40(effect_tag_index, object_handle, object_handle,
+                 (uint16_t)marker_index, 5, (void *)effect_names,
+                 marker_points, forward_vectors, 1.0f, 0.0f, 0.0f, 0.0f);
+    return;
+  }
+  FUN_0009f0e0(effect_tag_index, object_handle,
+               *(float **)0x31fc38, 5, (void *)effect_names,
+               marker_points, forward_vectors, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+}

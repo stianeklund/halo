@@ -10009,8 +10009,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00137170(float *direction, int param_2, short node_index, float *position);",
-          "addr": "0x137170"
+          "decl": "void FUN_00137170(float *incident_direction @<eax>, float *surface_normal @<ecx>, int object_handle @<esi>, int effect_tag_index, short marker_index, float *position);",
+          "addr": "0x137170",
+          "ported": true
         },
         {
           "decl": "void FUN_00137370(void);",
