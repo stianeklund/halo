@@ -122,6 +122,34 @@ int FUN_00136890(int object_index)
   return -1;
 }
 
+/* FUN_001368e0 (0x1368e0) — Clear bit 3 of object+0xb7 flags byte for all
+ * children/widgets of a given parent handle.
+ *
+ * Iterates using FUN_000ce450 (first) / FUN_000ce320 (next) to enumerate
+ * associated objects. For each, clears bit 3 (AND 0xf7) of the flags byte
+ * at offset 0xb7. This is the same byte modified by FUN_00136980 (bit 0)
+ * and FUN_001369b0 (bit 7).
+ *
+ * Confirmed: cdecl, single stack param at [EBP+0x8].
+ * Confirmed: object_get_and_verify_type(index, -1) at CALL 0x13d680.
+ * Confirmed: AND byte [EAX+0xb7],0xf7 at 0x136908.
+ * Confirmed: FUN_000ce450 (first child) at CALL 0xce450.
+ * Confirmed: FUN_000ce320 (next child) at CALL 0xce320.
+ */
+void FUN_001368e0(int player_handle)
+{
+    int iter_state;
+    int object_index;
+    char *obj;
+
+    object_index = FUN_000ce450(player_handle, &iter_state);
+    while (object_index != -1) {
+        obj = (char *)object_get_and_verify_type(object_index, -1);
+        *(unsigned char *)(obj + 0xb7) &= 0xf7;
+        object_index = FUN_000ce320(player_handle, &iter_state);
+    }
+}
+
 /* FUN_00136980 (0x136980) — Set or clear the damage-invincible bit on an
  * object.
  *
@@ -166,4 +194,21 @@ void FUN_001369b0(int object_handle, char flag)
     }
     *(unsigned char *)(obj + 0xb6) &= 0x7f;
   }
+}
+
+/* FUN_001369e0 (0x1369e0) — Create effect on object (damage-related wrapper).
+ *
+ * Wrapper around FUN_0009ec30 (effect creation). Passes the object_handle as
+ * both object_handle and parent_handle, marker=-1, and zeros for remaining args.
+ *
+ * Confirmed: @EAX register arg (object_handle) from both callers:
+ *   0x136e13: MOV EAX,EDI; CALL 0x1369e0
+ *   0x138717: MOV EAX,EDI; CALL 0x1369e0
+ * Confirmed: 8 pushes before CALL 0x0009ec30, ADD ESP,0x20.
+ * Confirmed: push order: 0,0,0,0,-1,EAX,EAX,[EBP+8].
+ * Confirmed: void return (callers ignore EAX after call).
+ */
+void FUN_001369e0(int object_handle, int effect_tag_index)
+{
+  FUN_0009ec30(effect_tag_index, object_handle, object_handle, -1, 0, 0, 0, 0);
 }

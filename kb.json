@@ -3549,6 +3549,14 @@
           "addr": "0xce370",
           "decl": "void FUN_000ce370(int expression_datum);",
           "ported": true
+        },
+        {
+          "addr": "0xce320",
+          "decl": "int FUN_000ce320(int parent_handle, int *iter_state);"
+        },
+        {
+          "addr": "0xce450",
+          "decl": "int FUN_000ce450(int parent_handle, int *iter_state);"
         }
       ],
       "source_path": "src/halo/hs/hs_runtime.c"
@@ -9906,7 +9914,8 @@
         },
         {
           "decl": "void FUN_001368e0(int player_handle);",
-          "addr": "0x1368e0"
+          "addr": "0x1368e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00136930(int player_handle);",
@@ -9923,8 +9932,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001369e0(int effect_tag_index);",
-          "addr": "0x1369e0"
+          "decl": "void FUN_001369e0(int object_handle @<eax>, int effect_tag_index);",
+          "addr": "0x1369e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00136a00(char param_1);",
