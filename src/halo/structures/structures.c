@@ -50,17 +50,18 @@ bool FUN_00106130(uint16_t point_count, void *points, void *query_point,
   for (i = 0; i < (int16_t)point_count; i++) {
     int idx = (int)i;
     int next = (idx + 1 < (int)(int16_t)point_count) ? idx + 1 : 0;
+    float ex, ey, edge_len_sq, dx, dy, cross;
 
-    float ex = pts[next * 2] - pts[idx * 2];
-    float ey = pts[next * 2 + 1] - pts[idx * 2 + 1];
-    float edge_len_sq = ex * ex + ey * ey;
+    ex = pts[next * 2] - pts[idx * 2];
+    ey = pts[next * 2 + 1] - pts[idx * 2 + 1];
+    edge_len_sq = ex * ex + ey * ey;
 
     if (edge_len_sq == 0.0f)
       continue;
 
-    float dx = qp[0] - pts[idx * 2];
-    float dy = qp[1] - pts[idx * 2 + 1];
-    float cross = dx * ey - dy * ex;
+    dx = qp[0] - pts[idx * 2];
+    dy = qp[1] - pts[idx * 2 + 1];
+    cross = dx * ey - dy * ex;
 
     if (cross <= 0.0f)
       continue;
@@ -70,6 +71,51 @@ bool FUN_00106130(uint16_t point_count, void *points, void *query_point,
 
     return false;
   }
+  return true;
+}
+
+/* FUN_00106200 (0x106200)
+ *
+ * 2D point-in-polygon winding test with epsilon tolerance.
+ * Tests whether a query point lies inside a 2D polygon by checking the
+ * cross-product of each edge against the query point.  Points are stored
+ * as float[2] pairs (x, y).  For every edge (vert[i] -> vert[next]),
+ * computes:  cross = (point.y - vert_i.y) * (next.x - vert_i.x)
+ *                  - (point.x - vert_i.x) * (next.y - vert_i.y)
+ * If cross < -epsilon for any edge, the point is outside and returns false.
+ * The wrap-around index uses: next = (i+1 >= count) ? 0 : i+1.
+ */
+bool FUN_00106200(int16_t count, void *points, float *query_point, float epsilon)
+{
+  int16_t i;
+  float neg_epsilon;
+  float *qp;
+  float *pts;
+
+  i = 0;
+  if (count <= 0)
+    return true;
+
+  neg_epsilon = -epsilon;
+  qp = (float *)query_point;
+  pts = (float *)points;
+
+  do {
+    int idx = (int)i;
+    int next = (idx + 1 >= (int)count) ? 0 : idx + 1;
+    float ex, ey, dx, dy;
+
+    ex = pts[next * 2] - pts[idx * 2];
+    ey = pts[next * 2 + 1] - pts[idx * 2 + 1];
+    dx = qp[0] - pts[idx * 2];
+    dy = qp[1] - pts[idx * 2 + 1];
+
+    if (dy * ex - dx * ey < neg_epsilon)
+      return false;
+
+    i++;
+  } while (i < count);
+
   return true;
 }
 
@@ -144,6 +190,13 @@ void cluster_partition_add_object(void *partition, int object_handle,
   int *first_ref = (int *)first_cluster_ref;
   short *pos = (short *)position;
   char *loc = (char *)location;
+  short local_clusters[64];
+  uint16_t cluster_bsp_index;
+  union {
+    uint32_t u;
+    float f;
+  } rad;
+  int16_t cluster_count;
 
   assert_halt(partition);
   assert_halt(first_cluster_ref);
@@ -151,15 +204,10 @@ void cluster_partition_add_object(void *partition, int object_handle,
   assert_halt(position);
   assert_halt(location);
 
-  short local_clusters[64];
-  uint16_t cluster_bsp_index = *(uint16_t *)(loc + 4);
-  union {
-    uint32_t u;
-    float f;
-  } rad;
+  cluster_bsp_index = *(uint16_t *)(loc + 4);
   rad.u = radius_fp;
 
-  int16_t cluster_count = structure_find_in_cluster(
+  cluster_count = structure_find_in_cluster(
     cluster_bsp_index, (float *)pos, rad.f, 0x40, local_clusters);
 
   if (cluster_count > 0x40) {
