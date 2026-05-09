@@ -1,10 +1,11 @@
 /* ai.c — AI subsystem top-level lifecycle and query functions.
  *
- * Corresponds to ai.obj (XBE address range ~0x3f5f0–0x425b0).
+ * Corresponds to ai.obj (XBE address range ~0x3f5f0–0x425c0).
  * Implements initialize, dispose, dispose_from_old_map, place,
  * ai_handle_unit_approach, game_allegiance_apply_change,
  * unit_vehicle_board_notify, ai_initialize_for_new_map,
- * ai_update, ai_clump, and enemies_can_see_player entry points.
+ * ai_update, ai_clump, enemies_can_see_player, and
+ * ai_spatial_effect_submit entry points.
  */
 
 /* FUN_0003f5f0: per-tick AI actor activation sweep.
@@ -861,4 +862,188 @@ bool ai_enemies_can_see_player(void)
 void FUN_000425b0(void)
 {
   FUN_00042390(1);
+}
+
+/* FUN_000425c0: submit a spatial AI effect to the ring buffer and dispatch
+ * it to nearby actors.
+ *
+ * Maintains a circular queue of 32 entries at ai_globals+0x134. Each entry
+ * is 0x14 bytes: { short type, short count, float position[3], int timestamp }.
+ * Head/tail indices at ai_globals+0x130 / 0x132, wrapping at 32 (mask 0x1f).
+ *
+ * When a new effect arrives:
+ *   1. Scan existing queue entries for a match (same effect_type, position
+ *      within 1.0 world unit). Expire entries older than 120 ticks.
+ *   2. If a match is found and its timestamp is recent (within 30 ticks),
+ *      blend the position; otherwise overwrite it. Increment count.
+ *   3. If no match: allocate a new slot (reuse a freed one, or advance tail).
+ *   4. If the submit flag is set: call FUN_0003c0c0 to apply the spatial
+ *      effect to all actors within range.
+ *
+ * Confirmed: cdecl, 5 stack args, returns void.
+ * Confirmed: callers at 0xf8d18 and 0xfa63a push 5 args, ADD ESP,0x14. */
+void FUN_000425c0(int object_handle, float *position, short effect_type,
+                  short volume, short count)
+{
+  char *g;
+  int game_time;
+  int threshold_submit;
+  int threshold_position;
+  int threshold_expiry;
+  short *effect;
+  int submit;
+  short free_slot;
+  short idx;
+  int nearby;
+  short dist_to_effect;
+  short dist_to_end;
+  float weight;
+  float one_minus_weight;
+  int count_int;
+
+  if (*(char *)(*(char **)0x632574 + 1) == '\0')
+    return;
+
+  game_time = game_time_get();
+
+  if (count < 1) {
+    display_assert("count>0", "c:\\halo\\SOURCE\\ai\\ai.c", 0x80e, 1);
+    system_exit(-1);
+  }
+  if (volume < 0 || 4 < volume) {
+    display_assert("volume>=0 && volume<NUMBER_OF_AI_SOUND_VOLUMES",
+                   "c:\\halo\\SOURCE\\ai\\ai.c", 0x80f, 1);
+    system_exit(-1);
+  }
+  if (effect_type < 0 || 2 < effect_type) {
+    display_assert(
+        "effect_type>=0 && effect_type<NUMBER_OF_AI_SPATIAL_EFFECTS",
+        "c:\\halo\\SOURCE\\ai\\ai.c", 0x810, 1);
+    system_exit(-1);
+  }
+
+  if (0 < volume) {
+    int ofs;
+    effect = (short *)0;
+    submit = 1;
+    free_slot = -1;
+
+    threshold_submit = game_time - 0x1e;
+    threshold_position = game_time - 0x1e;
+    threshold_expiry = threshold_position - 0x5a;
+
+    /* scan the ring buffer for a match or expired entries */
+    g = *(char **)0x632574;
+    for (idx = *(short *)(g + 0x130);
+         idx != *(short *)(*(char **)0x632574 + 0x132);
+         idx = (short)((idx + 1) & 0x1f)) {
+
+      nearby = 0;
+      ofs = idx * 0x14;
+
+      /* check for matching type and nearby position */
+      if (effect_type == *(short *)(*(char **)0x632574 + 0x134 + ofs) &&
+          distance_squared3d(
+              (const float *)(*(char **)0x632574 + 0x138 + ofs),
+              position) < *(float *)0x2533c8) {
+        nearby = 1;
+      }
+
+      /* check if entry has expired */
+      if (*(int *)(*(char **)0x632574 + 0x144 + ofs) > threshold_expiry)
+      {
+        if (nearby) {
+          /* found a matching entry — update it */
+          effect = (short *)(*(char **)0x632574 + 0x134 + ofs);
+          effect[1] = (short)(effect[1] + 1);
+
+          submit = *(int *)(effect + 8) < threshold_submit;
+
+          if (*(int *)(effect + 8) < threshold_position) {
+            /* entry is old enough — overwrite position directly */
+            *(float *)(effect + 2) = position[0];
+            *(float *)(effect + 4) = position[1];
+            *(float *)(effect + 6) = position[2];
+            if (!submit) {
+              display_assert("submit", "c:\\halo\\SOURCE\\ai\\ai.c", 0x847, 1);
+              system_exit(-1);
+            }
+          } else {
+            /* blend position with existing entry */
+            count_int = (int)effect[1];
+            weight = *(float *)0x2533c8 / (float)count_int;
+            one_minus_weight = *(float *)0x2533c8 - weight;
+            *(float *)(effect + 2) =
+                weight * position[0] +
+                one_minus_weight * *(float *)(effect + 2);
+            *(float *)(effect + 4) =
+                weight * position[1] +
+                one_minus_weight * *(float *)(effect + 4);
+            *(float *)(effect + 6) =
+                weight * position[2] +
+                one_minus_weight * *(float *)(effect + 6);
+          }
+          break;
+        }
+      } else {
+        /* entry expired — mark as unused */
+        *(short *)(*(char **)0x632574 + 0x134 + ofs) = -1;
+        if (idx == *(short *)(*(char **)0x632574 + 0x130)) {
+          *(short *)(*(char **)0x632574 + 0x130) = (short)((idx + 1) & 0x1f);
+        } else {
+          free_slot = idx;
+        }
+      }
+    }
+
+    /* if no match was found, allocate a new slot */
+    if (effect == (short *)0) {
+      if (free_slot == -1) {
+        /* no free slot — advance tail, possibly wrap head */
+        g = *(char **)0x632574;
+        idx = *(short *)(g + 0x132);
+        *(short *)(*(char **)0x632574 + 0x132) =
+            (short)((*(short *)(*(char **)0x632574 + 0x132) + 1) & 0x1f);
+        if (*(short *)(*(char **)0x632574 + 0x132) ==
+            *(short *)(*(char **)0x632574 + 0x130)) {
+          *(short *)(*(char **)0x632574 + 0x130) =
+              (short)((*(short *)(*(char **)0x632574 + 0x130) + 1) & 0x1f);
+        }
+      } else {
+        idx = free_slot;
+      }
+
+      /* assert the new slot is within the valid range */
+      dist_to_effect =
+          (short)(((idx - *(short *)(*(char **)0x632574 + 0x130)) + 0x20) &
+                  0x1f);
+      dist_to_end =
+          (short)(((*(short *)(*(char **)0x632574 + 0x132) -
+                    *(short *)(*(char **)0x632574 + 0x130)) +
+                   0x20) &
+                  0x1f);
+      if (dist_to_effect < 0 || dist_to_effect >= dist_to_end) {
+        display_assert(
+            "(distance_to_effect >= 0) && (distance_to_effect < "
+            "distance_to_end_of_queue)",
+            "c:\\halo\\SOURCE\\ai\\ai.c", 0x871, 1);
+        system_exit(-1);
+      }
+
+      /* initialize the new entry */
+      effect = (short *)(*(char **)0x632574 + 0x134 + idx * 0x14);
+      *(float *)(effect + 2) = position[0];
+      *(float *)(effect + 4) = position[1];
+      *(float *)(effect + 6) = position[2];
+      *(int *)(effect + 8) = game_time;
+      *effect = effect_type;
+      effect[1] = 1;
+    }
+
+    /* dispatch the spatial effect to actors if submit flag is set */
+    if (submit) {
+      FUN_0003c0c0(object_handle, *effect, (float *)(effect + 2), volume,
+                   effect[1]);
+    }
+  }
 }

@@ -159,6 +159,10 @@
         {
           "decl": "void *game_state_callback_32eaa4;",
           "addr": "0x32eaa4"
+        },
+        {
+          "decl": "char animation_compressed_data_enabled;",
+          "addr": "0x322600"
         }
       ],
       "functions": [
@@ -213,6 +217,38 @@
         {
           "decl": "void FUN_001b5c90(int handle, float *velocity);",
           "addr": "0x1b5c90"
+        },
+        {
+          "decl": "void *FUN_00120500(void *animation, int frame_index);",
+          "addr": "0x120500"
+        },
+        {
+          "decl": "void FUN_00120810(void *src, void *dst);",
+          "addr": "0x120810"
+        },
+        {
+          "decl": "void FUN_00120870(void *src, void *dst);",
+          "addr": "0x120870"
+        },
+        {
+          "decl": "void FUN_0010ca30(void *quaternion);",
+          "addr": "0x10ca30"
+        },
+        {
+          "decl": "void FUN_00121330(void *animation, float real_frame_index, int counter, unsigned int node_index, void *output);",
+          "addr": "0x121330"
+        },
+        {
+          "decl": "void FUN_00121640(void *animation, float real_frame_index, int counter, unsigned int node_index, void *output);",
+          "addr": "0x121640"
+        },
+        {
+          "decl": "void FUN_00121940(void *animation, float real_frame_index, int counter, unsigned int node_index, void *output);",
+          "addr": "0x121940"
+        },
+        {
+          "decl": "void FUN_00123aa0(void *model_tag, void *output);",
+          "addr": "0x123aa0"
         }
       ]
     },
@@ -610,6 +646,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003c0c0(int object_handle, short effect_type, float *position, short volume, short count);",
+          "addr": "0x3c0c0"
+        },
+        {
           "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
           "addr": "0x3c2d0",
           "ported": true
@@ -654,13 +694,18 @@
           "ported": true
         },
         {
+          "addr": "0x3cd30",
+          "decl": "int FUN_0003cd30(int actor_handle);"
+        },
+        {
           "decl": "void FUN_0003cff0(int actor_handle);",
           "addr": "0x3cff0",
           "ported": true
         },
         {
           "decl": "char FUN_0003d5f0(int actor_handle, char active_flag);",
-          "addr": "0x3d5f0"
+          "addr": "0x3d5f0",
+          "ported": true
         },
         {
           "decl": "int FUN_0003d6c0(int actor_handle, int unit_index);",
@@ -836,7 +881,8 @@
         },
         {
           "addr": "0x425c0",
-          "decl": "void FUN_000425c0(int object_handle, float *position, short effect_type, short volume, short count);"
+          "decl": "void FUN_000425c0(int object_handle, float *position, short effect_type, short volume, short count);",
+          "ported": true
         },
         {
           "decl": "bool FUN_00041590(int actor_handle, int excluded_handle, float *origin, float *offset, int *result_out);",
@@ -9731,8 +9777,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
-          "addr": "0x121d60"
+          "decl": "void FUN_00121d60(void *model_tag, void *animation, int frame_index, void *out_node_data);",
+          "addr": "0x121d60",
+          "ported": true
         }
       ]
     },
