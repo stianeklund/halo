@@ -98,6 +98,108 @@ void collision_log_add_time(short collision_function, unsigned int start_lo,
     elapsed_hi + (unsigned int)((prev + elapsed_lo) < prev);
 }
 
+/* 0x14ec30 — Collision test against BSP surfaces and nearby objects.
+ * Performs a BSP surface collision query with the given search radius,
+ * optionally adds BSP collision features, then iterates over objects in
+ * nearby clusters (filtered by type mask in flags bits 8-19) and tests
+ * each marked object via FUN_0014ea10. Returns true if any collision
+ * features were recorded (any of the 3 feature counts is nonzero). */
+bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
+                  float dist_a, int param6, void *scratch)
+{
+  void *scenario;
+  void *bsp;
+  char *bsp_surface_data;
+  char bsp_hit;
+  unsigned char test_objects;
+  void *cluster_block;
+  void *elem;
+  int16_t cluster_idx;
+  int iter_state;
+  int obj_handle;
+  int i;
+
+  collision_features_init(scratch);
+
+  if ((flags & 0x20) == 0 && (flags & 0xc0) == 0)
+    goto check_result;
+
+  scenario = scenario_get();
+  bsp = global_collision_bsp_get();
+  test_objects = (unsigned char)((unsigned int)flags >> 7) & 1;
+  if (*(char *)0x4761f8 != 0) {
+    test_objects = 0;
+  }
+
+  collision_log_add_call(2);
+  collision_log_query_counter((void *)0x4761e0);
+
+  /* Adjust search radius by the global epsilon at 0x255d90 (0.0625f) */
+  search_radius = search_radius + *(float *)0x255d90;
+
+  /* Large local buffer for collision results — _chkstk allocated 0x1018 bytes */
+  {
+    int results_buf[0x406]; /* 0x1018 bytes */
+
+    bsp_surface_data = breakable_surfaces_get_bsp_surface_data();
+    bsp_hit = (char)FUN_001493b0((int)bsp, 0x100, (int)bsp_surface_data,
+                                 (int)pos, *(int *)&search_radius,
+                                 results_buf);
+
+    if (bsp_hit && (flags & 0x20) != 0) {
+      collision_features_add((int)bsp, results_buf, 0, *(int *)&dist_b,
+                             *(int *)&dist_a, -1, scratch);
+    }
+
+    if (test_objects != 0 && results_buf[0x303] > 0) {
+      if ((flags & 0xfff00) == 0) {
+        flags = flags | 0xfff00;
+      }
+
+      structures_cluster_marker_begin();
+      object_reset_markers();
+
+      cluster_block = (void *)((char *)scenario + 0xe0);
+      i = 0;
+      if (results_buf[0x303] > 0) {
+        do {
+          elem = tag_block_get_element(
+            cluster_block,
+            results_buf[0x184 + i] & 0x7fffffff,
+            0x10);
+          cluster_idx = *(int16_t *)((char *)elem + 8);
+          if (FUN_001984c0(cluster_idx)) {
+            obj_handle = cluster_partition_object_iter_first(
+              &iter_state, cluster_idx);
+            while (obj_handle != -1) {
+              if (object_mark(obj_handle)) {
+                FUN_0014ea10((unsigned int)flags, obj_handle, pos,
+                             search_radius, dist_b, dist_a, param6, (int)scratch);
+              }
+              obj_handle = cluster_partition_object_iter_next(&iter_state);
+            }
+          }
+          i++;
+        } while ((int)(int16_t)i < results_buf[0x303]);
+      }
+
+      object_marker_end();
+      FUN_00198540();
+    }
+
+    collision_log_add_time(2, *(unsigned int *)0x4761e0,
+                           *(int *)0x4761e4);
+  }
+
+check_result:
+  if (*(int16_t *)scratch == 0 &&
+      *((int16_t *)scratch + 1) == 0 &&
+      *((int16_t *)scratch + 2) == 0) {
+    return 0;
+  }
+  return 1;
+}
+
 /* 0x14d9d0 — increments call count for a collision function type */
 void collision_log_add_call(short collision_function)
 {
