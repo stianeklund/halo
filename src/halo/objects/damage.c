@@ -379,3 +379,48 @@ void FUN_00136b40(int object_handle)
     FUN_00136a00(object_handle, 0);
   }
 }
+
+/* FUN_00137620 (0x137620) — Object death/destruction handler.
+ *
+ * Called when an object is destroyed (killed). Performs the death sequence:
+ *   1. Gets the object's tag definition ('obje') from the object data
+ *   2. Calls FUN_00137540 to handle death-related flag setting and child
+ *      object detachment
+ *   3. If the object has a collision model (obje+0x7c != -1), looks up the
+ *      collision tag ('coll') and creates the destroy effect from coll+0xc8
+ *      on the object via FUN_0009ec30
+ *   4. Calls FUN_00136840 to recursively process child objects
+ *   5. Calls FUN_00140cc0 for final destruction cleanup
+ *
+ * Confirmed: cdecl, 1 stack param (object_handle), void return.
+ * Confirmed: PUSH -1; PUSH ESI; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: MOV EAX,[EAX] dereferences first dword of object (tag index).
+ * Confirmed: PUSH EAX; PUSH 0x6f626a65; CALL 0x1ba140 => tag_get('obje', ...).
+ * Confirmed: MOV EDI,EAX saves obje_tag in EDI.
+ * Confirmed: PUSH ESI; CALL 0x137540 => FUN_00137540(object_handle).
+ * Confirmed: MOV EAX,[EDI+0x7c] reads collision model index from obje tag.
+ * Confirmed: CMP EAX,-1 at 0x13764b checks collision model presence.
+ * Confirmed: tag_get('coll', collision_index) at second CALL 0x1ba140.
+ * Confirmed: MOV ECX,[EAX+0xc8] reads destroy effect index from coll tag.
+ * Confirmed: 8 pushes (0,0,0,0,-1,ESI,ESI,ECX) before CALL 0x9ec30.
+ * Confirmed: PUSH ESI; CALL 0x136840 => FUN_00136840(object_handle).
+ * Confirmed: PUSH ESI; CALL 0x140cc0 => object_delete(object_handle).
+ */
+void FUN_00137620(int object_handle)
+{
+  int *obj;
+  char *obje_tag;
+  char *coll_tag;
+  int coll_index;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  obje_tag = (char *)tag_get(0x6f626a65, *obj);
+  FUN_00137540(object_handle);
+  coll_index = *(int *)(obje_tag + 0x7c);
+  if (coll_index != -1) {
+    coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
+    FUN_0009ec30(*(int *)(coll_tag + 0xc8), object_handle, object_handle, -1, 0, 0, 0, 0);
+  }
+  FUN_00136840(object_handle);
+  object_delete(object_handle);
+}
