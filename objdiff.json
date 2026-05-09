@@ -88,6 +88,14 @@
       }
     },
     {
+      "name": "halo/collision_features",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_features.c.obj",
+      "base_path": "delinked/collision_features.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_features.c"
+      }
+    },
+    {
       "name": "halo/collision_usage",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
       "base_path": "delinked/collision_usage.obj",
