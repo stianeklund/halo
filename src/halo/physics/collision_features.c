@@ -87,7 +87,7 @@ void FUN_0014b220(int point_count, void *points, float *plane, float param_4,
       sVar6 = g_projection3d_mappings[table_row][1];
       component = (int)(unsigned short)(sVar6 == 2);
 
-      assert_halt(g_projection3d_mappings[component + table_row * 2][0] == 2);
+      assert_halt(g_projection3d_mappings[table_row][component] == 2);
 
       sVar6 = 0;
       if (0 < *(int *)(prism + 0x24)) {
