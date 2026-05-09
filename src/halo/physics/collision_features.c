@@ -205,7 +205,7 @@ void FUN_0014b470(int param_1, int object_handle, int param_3, int param_4,
     if (param_3 == 0) {
       pfVar5 = local_24;
     } else {
-      matrix_scale_transform_vector((float *)param_3, local_24, local_24);
+      matrix_scale_transform_vector((float *)param_3, local_24, local_24); /* dup-args-ok: in-place transform, confirmed LEA [EBP-0x24] pushed twice */
       pfVar5 = local_24;
       matrix_transform_point((float *)param_3, pfVar7, local_34);
       pfVar7 = local_34;
@@ -248,7 +248,7 @@ void FUN_0014b620(int param_1, int param_2, int param_3, int param_4,
         n--;
       } while (n != 0);
     }
-    FUN_0010a1c0((float *)param_3, plane, plane);
+    FUN_0010a1c0((float *)param_3, plane, plane); /* dup-args-ok: in-place transform, confirmed LEA [EBP-0x14] pushed twice */
   }
 
   if (param_6 != -1) {
