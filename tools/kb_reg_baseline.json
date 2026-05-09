@@ -250,7 +250,8 @@
     "0x5acf0": "void FUN_0005acf0(int encounter_handle @<eax>);",
     "0x5c3a0": "bool FUN_0005c3a0(int platoon_index, int delay, int flag, int encounter_handle @<ebx>);",
     "0x5a4e0": "char FUN_0005a4e0(int encounter_index @<eax>);",
-    "0x2bd80": "void FUN_0002bd80(int actor_handle @<ecx>, float *facing, float *vel_out, float *speed_out);"
+    "0x2bd80": "void FUN_0002bd80(int actor_handle @<ecx>, float *facing, float *vel_out, float *speed_out);",
+    "0x136f40": "void FUN_00136f40(int object_handle @<ebx>, void *damage_data @<esi>, unsigned int flags, float body_vitality, float shield_vitality, int param_4, int param_5);"
   },
   "version": 1,
   "0xcada0": {
