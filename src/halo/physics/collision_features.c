@@ -1,7 +1,107 @@
+/* Projection axis remapping table at 0x28cb10.
+ * Indexed as [projection_axis * 2 + projection_sign][component].
+ * Maps a 3D projection basis + sign to two axis indices for 2D projection. */
+static const short g_projection3d_mappings[6][2] = {
+  { 2, 1 }, { 1, 2 }, { 0, 2 }, { 2, 0 }, { 1, 0 }, { 0, 1 },
+};
+
 /* 0x14ad40 — Zero-initialize a 6-byte collision features header */
 void collision_features_init(void *features)
 {
   csmemset(features, 0, 6);
+}
+
+/* 0x14b220 — Add a prism collision feature to the features buffer.
+ * Copies the plane, surface ID, material flags, and projected 2D points
+ * into the next prism slot.  If param_4 > 0 and the plane normal z-component
+ * is negative, adjusts the plane distance and projected point z-coordinates
+ * by subtracting param_4 (depth correction for embedded surfaces). */
+void FUN_0014b220(int point_count, void *points, float *plane, float param_4,
+                  int param_5, int param_6, int param_7, int param_8,
+                  int param_9, int param_10, void *features)
+{
+  char *prism;
+  float *plane_dst;
+  unsigned int uVar3;
+  short sVar6;
+  int iVar4;
+  int table_row;
+  int component;
+
+  assert_halt((short)point_count <= 8);
+
+  sVar6 = *(short *)((char *)features + 4);
+  if (sVar6 >= 0x100)
+    return;
+
+  *(short *)((char *)features + 4) = (short)(sVar6 + 1);
+  prism = (char *)features + (int)sVar6 * 0x68 + 0x4408;
+
+  /* store header: param_6, param_9, param_7, param_8, param_10
+   * (matches original MSVC instruction-scheduled store order) */
+  *(int *)(prism) = param_6;
+  *(unsigned char *)(prism + 9) = (unsigned char)param_9;
+  *(int *)(prism + 4) = param_7;
+  *(unsigned char *)(prism + 8) = (unsigned char)param_8;
+  *(unsigned short *)(prism + 0xa) = (unsigned short)param_10;
+
+  /* copy plane (4 floats) into prism+0x0C..prism+0x18 */
+  plane_dst = (float *)(prism + 0x0c);
+  plane_dst[0] = plane[0];
+  plane_dst[1] = plane[1];
+  plane_dst[2] = plane[2];
+  plane_dst[3] = plane[3];
+
+  /* store surface ID */
+  *(int *)(prism + 0x1c) = param_5;
+
+  /* compute projection basis from plane normal */
+  uVar3 = FUN_00099220(plane_dst);
+  *(short *)(prism + 0x20) = (short)uVar3;
+  *(unsigned char *)(prism + 0x22) = FUN_00099270(plane_dst, uVar3);
+
+  /* store point count and project each 3D point to 2D */
+  sVar6 = 0;
+  iVar4 = (int)(short)point_count;
+  *(int *)(prism + 0x24) = iVar4;
+  if (0 < iVar4) {
+    iVar4 = 0;
+    do {
+      FUN_00061df0((char *)points + iVar4 * 0xc,
+                   (uint32_t)*(unsigned short *)(prism + 0x20),
+                   *(unsigned char *)(prism + 0x22),
+                   prism + 0x28 + iVar4 * 8);
+      sVar6 = (short)(sVar6 + 1);
+      iVar4 = (int)sVar6;
+    } while (iVar4 < *(int *)(prism + 0x24));
+  }
+
+  /* depth correction: if param_4 > 0 and plane normal z < 0, adjust */
+  if (param_4 > 0.0f && plane[2] < 0.0f) {
+    *(float *)(prism + 0x18) =
+        *(float *)(prism + 0x18) - param_4 * *(float *)(prism + 0x14);
+
+    if (*(short *)(prism + 0x20) != 2) {
+      table_row = (int)(unsigned char)*(prism + 0x22) +
+                  (int)*(short *)(prism + 0x20) * 2;
+      sVar6 = g_projection3d_mappings[table_row][1];
+      component = (int)(unsigned short)(sVar6 == 2);
+
+      assert_halt(g_projection3d_mappings[component + table_row * 2][0] == 2);
+
+      sVar6 = 0;
+      if (0 < *(int *)(prism + 0x24)) {
+        iVar4 = 0;
+        do {
+          iVar4 = component + iVar4 * 2 + 10;
+          sVar6 = (short)(sVar6 + 1);
+          *(float *)(prism + iVar4 * 4) =
+              *(float *)(prism + iVar4 * 4) - param_4;
+          iVar4 = (int)sVar6;
+        } while (iVar4 < *(int *)(prism + 0x24));
+      }
+    }
+  }
 }
 
 /* 0x14b3d0 — Look up a prism collision element by handle, resolve its
