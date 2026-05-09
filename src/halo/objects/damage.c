@@ -212,3 +212,89 @@ void FUN_001369e0(int object_handle, int effect_tag_index)
 {
   FUN_0009ec30(effect_tag_index, object_handle, object_handle, -1, 0, 0, 0, 0);
 }
+
+/* FUN_00136a00 (0x136a00) — Set or clear region "cannot be destroyed" byte
+ * for all collision model regions that have the "forces object death" flag
+ * (bit 4 at region+0x20) and more than one permutation (region+0x48 > 1).
+ *
+ * When param_1 is 0, writes 1 (true) to obj[0x130 + region_index].
+ * When param_1 is non-zero, writes 0 (false).
+ *
+ * Confirmed: @EAX register arg (object_handle) from both callers:
+ *   0x136ba6: MOV EAX,EDI; CALL 0x136a00 (flag=0)
+ *   0x138727: MOV EAX,EDI; CALL 0x136a00 (flag=1)
+ * Confirmed: PUSH -0x1; PUSH EAX; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: tag_get('obje', obj[0]) then tag_get('coll', obje[0x7c]).
+ * Confirmed: LEA EDI,[EAX+0x240] = regions tag_block in collision model.
+ * Confirmed: tag_block_get_element(regions, index, 0x54) per region.
+ * Confirmed: SETZ AL inverts param_1 for the store.
+ * Confirmed: MOVSX ESI,AX = short truncation of loop counter.
+ * Confirmed: MOV [ESI+EBX*1+0x130],AL stores at obj + 0x130 + index.
+ */
+void FUN_00136a00(int object_handle, char param_1)
+{
+  char *obj;
+  char *obje_tag;
+  char *coll_tag;
+  int *regions;
+  short i;
+  int index;
+  char *element;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obje_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+  coll_tag = (char *)tag_get(0x636f6c6c, *(int *)(obje_tag + 0x7c));
+  regions = (int *)(coll_tag + 0x240);
+  i = 0;
+  index = 0;
+  if (0 < *regions) {
+    do {
+      element = (char *)tag_block_get_element(regions, index, 0x54);
+      if (((*(unsigned char *)(element + 0x20) & 0x10) != 0) &&
+          (*(int *)(element + 0x48) > 1)) {
+        *(char *)(obj + 0x130 + index) = (param_1 == 0);
+      }
+      i = (short)(i + 1);
+      index = (int)i;
+    } while (index < *regions);
+  }
+}
+
+/* FUN_00136a80 (0x136a80) — Compute scaled body vitality for an object.
+ *
+ * Returns body_vitality * body_max_vitality, optionally scaled by the
+ * difficulty modifier for value_type 1 (body vitality) when param_2 is 0.
+ * When param_2 is non-zero, no difficulty scaling is applied.
+ *
+ * Object offsets:
+ *   +0x68: team index (uint16_t), passed to FUN_000b55b0 as team arg
+ *   +0x88: body vitality (float)
+ *   +0x90: body max vitality (float)
+ *
+ * Confirmed: PUSH -1; PUSH ESI; CALL 0x13d680 => object_get_and_verify_type x2.
+ * Confirmed: MOV EAX,[EAX+0x90] stores body_max_vitality in local [EBP-8].
+ * Confirmed: FLD [EAX+0x88] loads body_vitality; FST [EBP-4] copies to local.
+ * Confirmed: TEST CL,CL branches on param_2.
+ * Confirmed: XOR ECX,ECX; MOV CX,[EAX+0x68] zero-extends team to int.
+ * Confirmed: PUSH ECX; PUSH 1; CALL 0xb55b0 => FUN_000b55b0(1, team).
+ * Confirmed: FMUL [EBP-4] then FMUL [EBP-8] for final result.
+ * Confirmed: caller at 0x52211 pushes (PUSH 0; PUSH ECX) => (handle, 0).
+ */
+float FUN_00136a80(int object_handle, char param_2)
+{
+  char *obj;
+  float body_max_vitality;
+  float body_vitality;
+  float scale;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  body_max_vitality = *(float *)(obj + 0x90);
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  body_vitality = *(float *)(obj + 0x88);
+  scale = body_vitality;
+  if (param_2 == 0) {
+    scale = FUN_000b55b0(1, (int)*(unsigned short *)(obj + 0x68));
+    scale = scale * body_vitality;
+  }
+  return scale * body_max_vitality;
+}

@@ -9937,12 +9937,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00136a00(char param_1);",
-          "addr": "0x136a00"
+          "decl": "void FUN_00136a00(int object_handle @<eax>, char param_1);",
+          "addr": "0x136a00",
+          "ported": true
         },
         {
           "decl": "float FUN_00136a80(int object_handle, char param_2);",
-          "addr": "0x136a80"
+          "addr": "0x136a80",
+          "ported": true
         },
         {
           "decl": "float FUN_00136ae0(int object_handle, char param_2);",
