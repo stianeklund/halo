@@ -9923,7 +9923,8 @@
         },
         {
           "decl": "void FUN_00136930(int player_handle);",
-          "addr": "0x136930"
+          "addr": "0x136930",
+          "ported": true
         },
         {
           "decl": "void FUN_00136980(int object_handle, char flag);",
@@ -9978,7 +9979,8 @@
         },
         {
           "decl": "void FUN_00137540(int object_handle);",
-          "addr": "0x137540"
+          "addr": "0x137540",
+          "ported": true
         },
         {
           "decl": "void FUN_00137620(int object_handle);",

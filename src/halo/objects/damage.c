@@ -150,6 +150,33 @@ void FUN_001368e0(int player_handle)
     }
 }
 
+/* FUN_00136930 (0x136930) — Set bit 3 of object+0xb7 flags byte for all
+ * children/widgets of a given parent handle.
+ *
+ * Complement of FUN_001368e0 which clears the same bit. Iterates using
+ * FUN_000ce450 (first) / FUN_000ce320 (next) to enumerate associated
+ * objects. For each, sets bit 3 (OR 0x8) of the flags byte at offset 0xb7.
+ *
+ * Confirmed: cdecl, single stack param at [EBP+0x8].
+ * Confirmed: object_get_and_verify_type(index, -1) at CALL 0x13d680.
+ * Confirmed: OR byte [EAX+0xb7],0x8 at 0x136958.
+ * Confirmed: FUN_000ce450 (first child) at CALL 0xce450.
+ * Confirmed: FUN_000ce320 (next child) at CALL 0xce320.
+ */
+void FUN_00136930(int player_handle)
+{
+    int iter_state;
+    int object_index;
+    char *obj;
+
+    object_index = FUN_000ce450(player_handle, &iter_state);
+    while (object_index != -1) {
+        obj = (char *)object_get_and_verify_type(object_index, -1);
+        *(unsigned char *)(obj + 0xb7) |= 0x8;
+        object_index = FUN_000ce320(player_handle, &iter_state);
+    }
+}
+
 /* FUN_00136980 (0x136980) — Set or clear the damage-invincible bit on an
  * object.
  *
@@ -377,6 +404,76 @@ void FUN_00136b40(int object_handle)
     *(unsigned char *)(obj + 0xb6) |= 8;
     *(int *)(obj + 0x98) = 0;
     FUN_00136a00(object_handle, 0);
+  }
+}
+
+/* FUN_00137540 (0x137540) — Set "body depleted" flag and detach child units.
+ *
+ * If bit 2 of the damage flags byte (obj+0xb6) is not already set:
+ *   1. Sets bit 2 of obj+0xb6
+ *   2. Looks up the object's collision model tag (obje+0x7c -> 'coll')
+ *   3. If the collision model has an effect reference at coll+0xb4 (!= -1),
+ *      creates that effect on the object via FUN_0009ec30
+ *   4. If the object type (obj+0x64) is 1 (biped), iterates the child object
+ *      list (starting at obj+0xc8, next-sibling at child+0xc4). For each child
+ *      of type 0 (biped) that meets the activation criteria:
+ *        - child+0x1c8 == -1, or the global byte at 0x5aa890 is 0
+ *        - child+0x2a0 != -1 (short)
+ *      calls unit_set_actively_controlled_flag to set the actively-controlled
+ *      flag on that child unit
+ *   5. Calls FUN_00136b40 to trigger the initial body-damage effect
+ *
+ * Confirmed: cdecl, 1 stack param (object_handle), void return.
+ * Confirmed: PUSH -1; PUSH EDI; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: TEST AL,0x4 at 0x137561 checks bit 2 of [ESI+0xb6].
+ * Confirmed: OR EAX,0x4; MOV [ESI+0xb6],AX sets bit 2.
+ * Confirmed: tag_get('obje', [ESI]) at CALL 0x1ba140.
+ * Confirmed: MOV EAX,[EAX+0x7c] reads collision model index.
+ * Confirmed: tag_get('coll', coll_index) at second CALL 0x1ba140.
+ * Confirmed: MOV ECX,[EAX+0xb4] reads effect index from coll tag.
+ * Confirmed: 8 pushes (0,0,0,0,EBX,EDI,EDI,ECX) before CALL 0x9ec30.
+ * Confirmed: CMP word [ESI+0x64],0x1 checks object type == 1.
+ * Confirmed: MOV EDI,[ESI+0xc8] reads first child handle.
+ * Confirmed: CMP word [ESI+0x64],0x0 checks child type == 0.
+ * Confirmed: CMP [ESI+0x1c8],EBX checks child+0x1c8 == -1.
+ * Confirmed: MOV AL,[0x5aa890]; TEST AL,AL checks global byte.
+ * Confirmed: CMP word [ESI+0x2a0],BX checks child+0x2a0 != -1.
+ * Confirmed: PUSH EDI; CALL 0x1a7f80 => unit_set_actively_controlled_flag.
+ * Confirmed: MOV EDI,[ESI+0xc4] reads next sibling.
+ * Confirmed: MOV EDI,[EBP+0x8] restores param_1 before FUN_00136b40 call.
+ * Confirmed: PUSH EDI; CALL 0x136b40 => FUN_00136b40(object_handle).
+ */
+void FUN_00137540(int object_handle)
+{
+  char *obj;
+  char *obje_tag;
+  char *coll_tag;
+  int coll_index;
+  int child_handle;
+  char *child_obj;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if ((*(unsigned short *)(obj + 0xb6) & 4) == 0) {
+    *(unsigned short *)(obj + 0xb6) = *(unsigned short *)(obj + 0xb6) | 4;
+    obje_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+    coll_index = *(int *)(obje_tag + 0x7c);
+    if (coll_index != -1) {
+      coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
+      FUN_0009ec30(*(int *)(coll_tag + 0xb4), object_handle, object_handle, -1, 0, 0, 0, 0);
+    }
+    if (*(short *)(obj + 0x64) == 1) {
+      child_handle = *(int *)(obj + 0xc8);
+      while (child_handle != -1) {
+        child_obj = (char *)object_get_and_verify_type(child_handle, -1);
+        if (*(short *)(child_obj + 0x64) == 0 &&
+            (*(int *)(child_obj + 0x1c8) == -1 || *(char *)0x5aa890 == 0) &&
+            *(short *)(child_obj + 0x2a0) != -1) {
+          unit_set_actively_controlled_flag(child_handle);
+        }
+        child_handle = *(int *)(child_obj + 0xc4);
+      }
+    }
+    FUN_00136b40(object_handle);
   }
 }
 
