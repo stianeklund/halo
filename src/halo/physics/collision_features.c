@@ -67,6 +67,80 @@ void collision_features_add(int param_1, int *collision_results, int param_3,
                  param_6, features);
 }
 
+/* 0x14b960 — Test a cylinder collision feature against a line-of-sight point.
+ * Projects the point onto the cylinder axis, checks it is within the cylinder
+ * bounds and radius, then computes the perpendicular normal and penetration
+ * depth. Returns 1 if the point is inside the cylinder, 0 otherwise. */
+char FUN_0014b960(void *feature, void *los_data, float *t_hit, float *normal)
+{
+  float *cyl = (float *)feature;
+  float *point = (float *)los_data;
+  float dx, dy, dz;
+  float dot, axis_len_sq;
+  float radius;
+  float t, t_ax, t_ay, t_az;
+  float mag;
+
+  /* displacement from cylinder origin to test point */
+  dx = point[0] - cyl[3];   /* cyl+0x0C */
+  dy = point[1] - cyl[4];   /* cyl+0x10 */
+  dz = point[2] - cyl[5];   /* cyl+0x14 */
+
+  /* project displacement onto cylinder axis */
+  dot = dz * cyl[8] + dy * cyl[7] + dx * cyl[6]; /* axis at cyl+0x18,0x1C,0x20 */
+
+  /* point is behind cylinder start */
+  if (dot < 0.0f)
+    return 0;
+
+  /* compute squared length of axis */
+  axis_len_sq = cyl[6] * cyl[6] + cyl[7] * cyl[7] + cyl[8] * cyl[8];
+
+  /* point is beyond cylinder end */
+  if (dot > axis_len_sq)
+    return 0;
+
+  radius = cyl[9]; /* cyl+0x24 */
+
+  /* point is outside cylinder radius:
+   * d_len_sq * axis_len_sq - dot^2 must be < radius^2 * axis_len_sq */
+  if (radius * radius * axis_len_sq <=
+      (dx * dx + dy * dy + dz * dz) * axis_len_sq - dot * dot)
+    return 0;
+
+  if (axis_len_sq > 0.0f) {
+    /* project out the axial component to get perpendicular direction */
+    t = dot / axis_len_sq;
+    t_ax = t * cyl[6];
+    t_ay = t * cyl[7];
+    t_az = t * cyl[8];
+    normal[0] = dx - t_ax;
+    normal[1] = dy - t_ay;
+    normal[2] = dz - t_az;
+  } else {
+    /* degenerate cylinder: use displacement as normal direction */
+    *(int *)&normal[0] = *(int *)&dx;
+    *(int *)&normal[1] = *(int *)&dy;
+    *(int *)&normal[2] = *(int *)&dz;
+  }
+
+  mag = normalize3d(normal);
+
+  if (mag == 0.0f) {
+    normal[0] = 0.0f;
+    normal[1] = 0.0f;
+    normal[2] = 1.0f;
+  }
+
+  /* plane distance: dot(origin, normal) + radius */
+  normal[3] = cyl[5] * normal[2] + cyl[4] * normal[1] + cyl[3] * normal[0] + radius;
+
+  /* penetration depth: radius - perpendicular distance */
+  *t_hit = radius - mag;
+
+  return 1;
+}
+
 /* 0x14bc10 — Test line-of-sight against all collision features.
  * Iterates spheres, cylinders, and prisms finding the farthest intersection.
  * Returns true if any hit found, writing t_hit, normal, and feature ID. */
