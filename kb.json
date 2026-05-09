@@ -185,6 +185,34 @@
         {
           "decl": "void FUN_00144b50(void);",
           "addr": "0x144b50"
+        },
+        {
+          "decl": "char FUN_000a8e40(void);",
+          "addr": "0xa8e40"
+        },
+        {
+          "decl": "void FUN_000af660(int param_1, int param_2, int param_3, int param_4);",
+          "addr": "0xaf660"
+        },
+        {
+          "decl": "void FUN_000b56e0(int handle, float vitality, int param_3, int param_4, int param_5);",
+          "addr": "0xb56e0"
+        },
+        {
+          "decl": "void FUN_000b56f0(int handle, int param_2, int param_3, int param_4);",
+          "addr": "0xb56f0"
+        },
+        {
+          "decl": "void FUN_001a4a70(int handle, float *velocity);",
+          "addr": "0x1a4a70"
+        },
+        {
+          "decl": "void FUN_001b4dc0(int handle, void *damage_data, unsigned int flags, float body_vitality, float shield_vitality, int param_6, int param_7);",
+          "addr": "0x1b4dc0"
+        },
+        {
+          "decl": "void FUN_001b5c90(int handle, float *velocity);",
+          "addr": "0x1b5c90"
         }
       ]
     },
@@ -9976,8 +10004,9 @@
           "addr": "0x136bc0"
         },
         {
-          "decl": "void FUN_00136f40(unsigned int flags);",
-          "addr": "0x136f40"
+          "decl": "void FUN_00136f40(int object_handle @<ebx>, void *damage_data @<esi>, unsigned int flags, float body_vitality, float shield_vitality, int param_4, int param_5);",
+          "addr": "0x136f40",
+          "ported": true
         },
         {
           "decl": "void FUN_00137170(float *direction, int param_2, short node_index, float *position);",

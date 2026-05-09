@@ -617,3 +617,136 @@ void FUN_00137690(int object_handle, short region_index)
   *(unsigned short *)((char *)obj + 0x124) |= (unsigned short)(1 << region_idx);
   FUN_0013c6e0(object_handle, region_index, *(unsigned int *)(region + 0x20));
 }
+
+/* FUN_00136f40 (0x136f40) — Apply damage velocity and scoring effects to an
+ * object based on its type and the damage parameters.
+ *
+ * Looks up the object's tag ('obje') and the damage effect tag ('jpt!') from
+ * damage_data[0]. If the object's radius (obje+0x20) exceeds epsilon (0.0001f),
+ * computes a velocity vector from the damage_data position (offset 0x34),
+ * adds 0.45f to the Z component, normalizes, then scales by:
+ *   jpt_tag+0x1f4 * obje+0x20 * (1/30.0f)
+ *
+ * Switches on the object type (obj+0x64):
+ *   case 0 (biped):   calls FUN_001a4a70 (biped acceleration)
+ *   case 1 (vehicle): optionally doubles velocity if jpt+0x1c8 flag set,
+ *                     calls FUN_001b5c90 (vehicle acceleration)
+ *   case 2,3,4 (items): calls item_set_position with flag based on
+ *                       damage_data+0x40 > 0.5f && jpt+0x1c8 flag
+ *   case 5 (projectile): calls FUN_000f8ee0 (projectile acceleration)
+ *
+ * After the switch, checks game state via FUN_000a8e40:
+ *   - If true and damage_data byte +4 >= 0: calls FUN_000b56e0 for scoring,
+ *     and conditionally FUN_000b56f0 if flags bit 0 is set.
+ *   - Otherwise: calls FUN_000af660 (player death tracking) via
+ *     player_index_from_unit_index.
+ *
+ * Finally, if the object type is 0 or 1 (unit), forwards all parameters
+ * to FUN_001b4dc0 for unit-specific damage handling.
+ *
+ * Register args: EBX = object_handle, ESI = damage_data pointer.
+ * Stack args: flags, body_vitality, shield_vitality, param_4, param_5.
+ *
+ * Confirmed: PUSH -1; PUSH EBX; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: tag_get('obje', obj[0]) and tag_get('jpt!', damage_data[0]).
+ * Confirmed: FLD [EDI+0x20]; FCOMP [0x253f44] tests radius > 0.0001f.
+ * Confirmed: LEA EDX,[ESI+0x34] copies position vector from damage_data.
+ * Confirmed: FADD [0x25614c] adds 0.45f to z component.
+ * Confirmed: CALL 0x13010 => normalize3d; FSTP ST0 discards return.
+ * Confirmed: FLD [EDX+0x1f4]; FMUL [EDI+0x20]; FMUL [0x2546a4] for scale.
+ * Confirmed: jump table at 0x137158 with 6 entries for switch(obj_type).
+ * Confirmed: PUSH ECX; FSTP [ESP] pattern for float arg to FUN_000b56e0.
+ * Confirmed: (1 << obj_type) & 3 gates call to FUN_001b4dc0.
+ * Confirmed: 7 pushes (EBX,ESI,flags,body,shield,p4,p5) for FUN_001b4dc0.
+ */
+void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
+                  float body_vitality, float shield_vitality, int param_4,
+                  int param_5)
+{
+  int *obj;
+  char *obje_tag;
+  char *jpt_tag;
+  char *dd;
+  short obj_type;
+  float scale;
+  float direction[3];
+  float velocity[3];
+  char game_active;
+  int player_handle;
+
+  dd = (char *)damage_data;
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  obje_tag = (char *)tag_get(0x6f626a65, *obj);
+  jpt_tag = (char *)tag_get(0x6a707421, *(int *)dd);
+
+  if (*(float *)(obje_tag + 0x20) > 0.0001f) {
+    direction[2] = *(float *)(dd + 0x3c) + 0.45f;
+    direction[0] = *(float *)(dd + 0x34);
+    direction[1] = *(float *)(dd + 0x38);
+    normalize3d(direction);
+
+    scale = *(float *)(jpt_tag + 0x1f4) * *(float *)(obje_tag + 0x20)
+            * 0.03333333f;
+    obj_type = *(short *)((char *)obj + 0x64);
+    velocity[0] = direction[0] * scale;
+    velocity[1] = direction[1] * scale;
+    velocity[2] = direction[2] * scale;
+
+    switch (obj_type) {
+    case 0:
+    case 1:
+      if (*(float *)(jpt_tag + 0x1f4) > 0.0001f &&
+          (*(unsigned int *)((char *)obj + 0x1b4) & 0x800000) == 0) {
+        if (obj_type == 0) {
+          FUN_001a4a70(object_handle, velocity);
+        } else if (obj_type == 1) {
+          if ((*(unsigned char *)(jpt_tag + 0x1c8) & 0x20) != 0) {
+            velocity[0] = velocity[0] + velocity[0];
+            velocity[1] = velocity[1] + velocity[1];
+            velocity[2] = velocity[2] + velocity[2];
+          }
+          FUN_001b5c90(object_handle, velocity);
+        }
+      }
+      break;
+    case 2:
+    case 3:
+    case 4:
+      if (*(float *)(dd + 0x40) > 0.5f &&
+          (*(unsigned char *)(jpt_tag + 0x1c8) & 0x20) != 0) {
+        item_set_position(object_handle, velocity, 1);
+      } else {
+        item_set_position(object_handle, velocity, 0);
+      }
+      break;
+    case 5:
+      FUN_000f8ee0(object_handle, velocity);
+      break;
+    default:
+      break;
+    }
+  }
+
+  game_active = FUN_000a8e40();
+  if (game_active != 0 && *(signed char *)(dd + 0x4) >= 0) {
+    FUN_000b56e0(object_handle, body_vitality + shield_vitality,
+                 *(int *)(dd + 0x8), *(int *)(dd + 0xc),
+                 (int)*(unsigned short *)(dd + 0x10));
+    if ((flags & 1) != 0) {
+      FUN_000b56f0(object_handle, *(int *)(dd + 0x8),
+                   *(int *)(dd + 0xc),
+                   (int)*(unsigned short *)(dd + 0x10));
+    }
+  } else {
+    game_active = FUN_000a8e40();
+    if (game_active != 0) {
+      player_handle = player_index_from_unit_index(object_handle);
+      FUN_000af660(player_handle, object_handle, player_handle, 1);
+    }
+  }
+
+  if ((1 << (*(unsigned char *)((char *)obj + 0x64) & 0x1f)) & 3) {
+    FUN_001b4dc0(object_handle, damage_data, flags, body_vitality,
+                 shield_vitality, param_4, param_5);
+  }
+}
