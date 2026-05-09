@@ -1378,18 +1378,20 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   /* ------------------------------------------------------------------ */
   if (col_result[0] == 2 && (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) {
     FUN_00136750(damage_params, *(int *)(proj_tag + 0x230));
-    col_pos[0] = *(float *)((char *)col_result + 0x18);
-    col_pos[1] = *(float *)((char *)col_result + 0x1c);
-    col_pos[2] = *(float *)((char *)col_result + 0x20);
-    col_pos2[0] = *(float *)((char *)col_result + 0x18);
-    col_pos2[1] = *(float *)((char *)col_result + 0x1c);
-    col_pos2[2] = *(float *)((char *)col_result + 0x20);
-    vel_local[0] = in_velocity[0];
-    vel_local[1] = in_velocity[1];
-    vel_local[2] = in_velocity[2];
-    normalize3d(vel_local);
-    /* Resolve bounce pass tag element (result unused; matches original code).
-     */
+    /* MSVC stack overlap: in the original binary col_pos/col_pos2/vel_local
+     * overlap the damage_params buffer. Write directly into damage_params. */
+    *(uint32_t *)(damage_params + 0x04) |= 8;
+    *(float *)(damage_params + 0x1c) = *(float *)((char *)col_result + 0x18);
+    *(float *)(damage_params + 0x20) = *(float *)((char *)col_result + 0x1c);
+    *(float *)(damage_params + 0x24) = *(float *)((char *)col_result + 0x20);
+    *(float *)(damage_params + 0x28) = *(float *)((char *)col_result + 0x18);
+    *(float *)(damage_params + 0x2c) = *(float *)((char *)col_result + 0x1c);
+    *(float *)(damage_params + 0x30) = *(float *)((char *)col_result + 0x20);
+    *(float *)(damage_params + 0x34) = in_velocity[0];
+    *(float *)(damage_params + 0x38) = in_velocity[1];
+    *(float *)(damage_params + 0x3c) = in_velocity[2];
+    normalize3d((float *)(damage_params + 0x34));
+    /* Resolve bounce pass tag element (result unused; matches original code). */
     sTemp = col_result[0x1a];
     if (sTemp < 0 || *(int *)(proj_tag + 0x240) <= (int)sTemp) {
       dtag_elem = (char *)0x31ed08;
@@ -1398,9 +1400,11 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
                                                 (int)sTemp, 0xa0);
     }
     (void)dtag_elem;
-    /* FUN_00146a90: breakable surface damage.
-     * arg1 = MOVZX byte [ESI+0x4d] (zero-extended to 32 bits via AX).
-     * arg2 = &damage_params, arg3 = *(int*)(col_result+0x44). */
+    /* Material type at offset 0x4C — required by FUN_00146a90's early-out check */
+    *(int16_t *)(damage_params + 0x4c) = (int16_t)sTemp;
+    /* Cluster/leaf from collision result */
+    *(int *)(damage_params + 0x14) = *(int *)((char *)col_result + 0x0c);
+    *(int *)(damage_params + 0x18) = *(int *)((char *)col_result + 0x10);
     FUN_00146a90((int)(uint32_t)(*(uint8_t *)((char *)col_result + 0x4d)),
                  damage_params, *(int *)((char *)col_result + 0x44));
   }
