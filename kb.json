@@ -7257,8 +7257,9 @@
           "ported": true
         },
         {
-          "decl": "bool FUN_00106200(int16_t count, void *points, float *query_point, float radius);",
-          "addr": "0x106200"
+          "decl": "bool FUN_00106200(int16_t count, void *points, float *query_point, float epsilon);",
+          "addr": "0x106200",
+          "ported": true
         },
         {
           "decl": "void *FUN_0018e420(void);",
