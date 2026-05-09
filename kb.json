@@ -4775,7 +4775,8 @@
         },
         {
           "decl": "void FUN_001402c0(int object_handle, const char *marker_name, short region_index, char param_4);",
-          "addr": "0x1402c0"
+          "addr": "0x1402c0",
+          "ported": true
         },
         {
           "decl": "bool FUN_001403a0(int object_handle, short function_index, void *out_value);",
