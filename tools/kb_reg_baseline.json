@@ -13,6 +13,7 @@
     "0xf90d0": "void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3, float *velocity@<eax>, int16_t *col_result@<esi>);",
     "0x102510": "void screenshot_render(void *a1@<edi>);",
     "0x10b300": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
+    "0x118d70": "void FUN_00118d70(int queue@<eax>);",
     "0x1190c0": "void crc_table_init(uint32_t *table@<edx>);",
     "0x11e430": "void FUN_0011e430(void *pool@<edi>);",
     "0x11e5a0": "void *FUN_0011e5a0(void *pool@<eax>, void **block_reference@<esi>);",

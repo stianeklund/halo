@@ -88,6 +88,14 @@
       }
     },
     {
+      "name": "halo/circular_queue",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/circular_queue.c.obj",
+      "base_path": "delinked/circular_queue.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/circular_queue.c"
+      }
+    },
+    {
       "name": "halo/collision_features",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_features.c.obj",
       "base_path": "delinked/collision_features.obj",
