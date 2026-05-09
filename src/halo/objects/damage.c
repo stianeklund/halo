@@ -237,7 +237,7 @@ void FUN_001369b0(int object_handle, char flag)
  */
 void FUN_001369e0(int object_handle, int effect_tag_index)
 {
-  FUN_0009ec30(effect_tag_index, object_handle, object_handle, -1, 0, 0, 0, 0);
+  FUN_0009ec30(effect_tag_index, object_handle, object_handle, -1, 0, 0, 0, 0); /* dup-args-ok: confirmed PUSH EAX,EAX */
 }
 
 /* FUN_00136a00 (0x136a00) — Set or clear region "cannot be destroyed" byte
@@ -305,7 +305,7 @@ void FUN_00136a00(int object_handle, char param_1)
  * Confirmed: XOR ECX,ECX; MOV CX,[EAX+0x68] zero-extends team to int.
  * Confirmed: PUSH ECX; PUSH 1; CALL 0xb55b0 => FUN_000b55b0(1, team).
  * Confirmed: FMUL [EBP-4] then FMUL [EBP-8] for final result.
- * Confirmed: caller at 0x52211 pushes (PUSH 0; PUSH ECX) => (handle, 0).
+ * Confirmed: caller at 0x52211 pushes [PUSH 0; PUSH ECX] => (handle, 0).
  */
 float FUN_00136a80(int object_handle, char param_2)
 {
@@ -344,7 +344,7 @@ float FUN_00136a80(int object_handle, char param_2)
  * Confirmed: XOR ECX,ECX; MOV CX,[EAX+0x68] zero-extends team to int.
  * Confirmed: PUSH ECX; PUSH 2; CALL 0xb55b0 => FUN_000b55b0(2, team).
  * Confirmed: FMUL [EBP-4] then FMUL [EBP-8] for final result.
- * Confirmed: caller at 0x521f5 pushes (PUSH 0; PUSH EDX) => (handle, 0).
+ * Confirmed: caller at 0x521f5 pushes [PUSH 0; PUSH EDX] => (handle, 0).
  */
 float FUN_00136ae0(int object_handle, char param_2)
 {
@@ -381,7 +381,7 @@ float FUN_00136ae0(int object_handle, char param_2)
  * Confirmed: tag_get('obje', [ESI]) at CALL 0x1ba140.
  * Confirmed: CMP EAX,-1 at 0x136b72 checks collision model index.
  * Confirmed: tag_get('coll', obje[0x7c]) at second CALL 0x1ba140.
- * Confirmed: 8 pushes (0,0,0,0,-1,EDI,EDI,ECX) before CALL 0x9ec30.
+ * Confirmed: 8 pushes [0,0,0,0,-1,EDI,EDI,ECX] before CALL 0x9ec30.
  * Confirmed: OR byte [ESI+0xb6],0x8 at 0x136b9d sets bit 3.
  * Confirmed: MOV [ESI+0x98],0x0 at 0x136ba8 clears dword.
  * Confirmed: MOV EAX,EDI; CALL 0x136a00 => FUN_00136a00(@EAX=handle, 0).
@@ -399,7 +399,7 @@ void FUN_00136b40(int object_handle)
     coll_index = *(int *)(obje_tag + 0x7c);
     if (coll_index != -1) {
       coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
-      FUN_0009ec30(*(int *)(coll_tag + 0x1a4), object_handle, object_handle, -1, 0, 0, 0, 0);
+      FUN_0009ec30(*(int *)(coll_tag + 0x1a4), object_handle, object_handle, -1, 0, 0, 0, 0); /* dup-args-ok: confirmed PUSH EDI,EDI */
     }
     *(unsigned char *)(obj + 0xb6) |= 8;
     *(int *)(obj + 0x98) = 0;
@@ -431,7 +431,7 @@ void FUN_00136b40(int object_handle)
  * Confirmed: MOV EAX,[EAX+0x7c] reads collision model index.
  * Confirmed: tag_get('coll', coll_index) at second CALL 0x1ba140.
  * Confirmed: MOV ECX,[EAX+0xb4] reads effect index from coll tag.
- * Confirmed: 8 pushes (0,0,0,0,EBX,EDI,EDI,ECX) before CALL 0x9ec30.
+ * Confirmed: 8 pushes [0,0,0,0,EBX,EDI,EDI,ECX] before CALL 0x9ec30.
  * Confirmed: CMP word [ESI+0x64],0x1 checks object type == 1.
  * Confirmed: MOV EDI,[ESI+0xc8] reads first child handle.
  * Confirmed: CMP word [ESI+0x64],0x0 checks child type == 0.
@@ -459,7 +459,7 @@ void FUN_00137540(int object_handle)
     coll_index = *(int *)(obje_tag + 0x7c);
     if (coll_index != -1) {
       coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
-      FUN_0009ec30(*(int *)(coll_tag + 0xb4), object_handle, object_handle, -1, 0, 0, 0, 0);
+      FUN_0009ec30(*(int *)(coll_tag + 0xb4), object_handle, object_handle, -1, 0, 0, 0, 0); /* dup-args-ok: confirmed PUSH EDI,EDI */
     }
     if (*(short *)(obj + 0x64) == 1) {
       child_handle = *(int *)(obj + 0xc8);
@@ -499,7 +499,7 @@ void FUN_00137540(int object_handle)
  * Confirmed: CMP EAX,-1 at 0x13764b checks collision model presence.
  * Confirmed: tag_get('coll', collision_index) at second CALL 0x1ba140.
  * Confirmed: MOV ECX,[EAX+0xc8] reads destroy effect index from coll tag.
- * Confirmed: 8 pushes (0,0,0,0,-1,ESI,ESI,ECX) before CALL 0x9ec30.
+ * Confirmed: 8 pushes [0,0,0,0,-1,ESI,ESI,ECX] before CALL 0x9ec30.
  * Confirmed: PUSH ESI; CALL 0x136840 => FUN_00136840(object_handle).
  * Confirmed: PUSH ESI; CALL 0x140cc0 => object_delete(object_handle).
  */
@@ -516,7 +516,7 @@ void FUN_00137620(int object_handle)
   coll_index = *(int *)(obje_tag + 0x7c);
   if (coll_index != -1) {
     coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
-    FUN_0009ec30(*(int *)(coll_tag + 0xc8), object_handle, object_handle, -1, 0, 0, 0, 0);
+    FUN_0009ec30(*(int *)(coll_tag + 0xc8), object_handle, object_handle, -1, 0, 0, 0, 0); /* dup-args-ok: confirmed PUSH ESI,ESI */
   }
   FUN_00136840(object_handle);
   object_delete(object_handle);
@@ -552,7 +552,7 @@ void FUN_00137620(int object_handle)
  * Confirmed: PUSH EAX; PUSH 0x636f6c6c => tag_get('coll', coll_index).
  * Confirmed: TEST AX,AX; JL assert; CMP AX,0x8; JL skip_assert.
  * Confirmed: PUSH 0x54; PUSH ECX; ADD ESI,0x240; PUSH ESI => tag_block_get_element.
- * Confirmed: 8 pushes (0,0,0,0,-1,EDI,EDI,[ESI+0x44]) before CALL 0x9ec30.
+ * Confirmed: 8 pushes [0,0,0,0,-1,EDI,EDI,[ESI+0x44]] before CALL 0x9ec30.
  * Confirmed: PUSH 1; PUSH EDX; PUSH 0x29b030; PUSH EDI => FUN_001402c0(obj,"~damaged",rgn,1).
  * Confirmed: flag tests at 0x20,0x40,0x80,0x100 on region+0x20 byte.
  * Confirmed: TEST byte [ESI+0x20],0x2 gates call to FUN_00137540.
@@ -594,7 +594,7 @@ void FUN_00137690(int object_handle, short region_index)
 
   region = (char *)tag_block_get_element((void *)(coll_tag + 0x240),
                                           region_idx, 0x54);
-  FUN_0009ec30(*(int *)(region + 0x44), object_handle, object_handle,
+  FUN_0009ec30(*(int *)(region + 0x44), object_handle, object_handle, /* dup-args-ok: confirmed PUSH EDI,EDI */
                -1, 0, 0, 0, 0);
   FUN_001402c0(object_handle, "~damaged", region_index, 1);
 
@@ -657,7 +657,7 @@ void FUN_00137690(int object_handle, short region_index)
  * Confirmed: jump table at 0x137158 with 6 entries for switch(obj_type).
  * Confirmed: PUSH ECX; FSTP [ESP] pattern for float arg to FUN_000b56e0.
  * Confirmed: (1 << obj_type) & 3 gates call to FUN_001b4dc0.
- * Confirmed: 7 pushes (EBX,ESI,flags,body,shield,p4,p5) for FUN_001b4dc0.
+ * Confirmed: 7 pushes [EBX,ESI,flags,body,shield,p4,p5] for FUN_001b4dc0.
  */
 void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
                   float body_vitality, float shield_vitality, int param_4,
@@ -741,7 +741,7 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
     game_active = FUN_000a8e40();
     if (game_active != 0) {
       player_handle = player_index_from_unit_index(object_handle);
-      FUN_000af660(player_handle, object_handle, player_handle, 1);
+      FUN_000af660(player_handle, object_handle, player_handle, 1); /* dup-args-ok: confirmed PUSH EAX,EBX,EAX */
     }
   }
 
@@ -876,7 +876,7 @@ void FUN_00137170(float *incident_direction, float *surface_normal,
   }
 
   if (object_handle != -1 && marker_index != -1) {
-    FUN_0009ee40(effect_tag_index, object_handle, object_handle,
+    FUN_0009ee40(effect_tag_index, object_handle, object_handle, /* dup-args-ok: confirmed PUSH ESI,ESI */
                  (uint16_t)marker_index, 5, (void *)effect_names,
                  marker_points, forward_vectors, 1.0f, 0.0f, 0.0f, 0.0f);
     return;
