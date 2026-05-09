@@ -391,8 +391,9 @@
           "ported": true
         },
         {
-          "decl": "int FUN_0001d730(short starting_location_index);",
-          "addr": "0x1d730"
+          "decl": "short FUN_0001d730(short param_1);",
+          "addr": "0x1d730",
+          "ported": true
         },
         {
           "decl": "char *FUN_000210f0(int actor_handle);",

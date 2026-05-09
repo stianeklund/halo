@@ -283,3 +283,16 @@ int16_t FUN_0001d6d0(int actor_handle)
 
   return *(int16_t *)(0x253fb0 + action * 0x38);
 }
+
+/* FUN_0001d730 (0x1d730) — Map a starting location index to an action category.
+ * Returns a short from a 12-entry lookup table at 0x254300, or 0 if the index
+ * is out of range [0, 12).
+ *
+ * Confirmed: CMP CX,0xc bounds check, table at 0x254300 = {0,2,2,3,4,5,6,7,8,9,9,8}.
+ */
+short FUN_0001d730(short param_1)
+{
+  if (param_1 < 0 || param_1 >= 12)
+    return 0;
+  return *(short *)(0x254300 + (int)param_1 * 2);
+}
