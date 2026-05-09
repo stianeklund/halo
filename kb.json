@@ -10015,7 +10015,8 @@
         },
         {
           "decl": "void FUN_00137370(void);",
-          "addr": "0x137370"
+          "addr": "0x137370",
+          "ported": true
         },
         {
           "decl": "void FUN_00137540(int object_handle);",

@@ -885,3 +885,136 @@ void FUN_00137170(float *incident_direction, float *surface_normal,
                *(float **)0x31fc38, 5, (void *)effect_names,
                marker_points, forward_vectors, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 }
+
+/* FUN_00137370 (0x137370) — Damage debug overlay: display damage vitality info
+ * for a targeted object, and handle picking a new target via collision ray.
+ *
+ * When the damage debug flag (DAT_005a90c0) is set, this function:
+ * 1. Formats a debug string with the targeted object's body/shield vitality,
+ *    current damage, and recent damage values (offsets 0x90..0xa8).
+ *    If no object is targeted (DAT_0046f070 == -1), shows "no object to debug".
+ * 2. Sets up text drawing style/color and renders the string on screen.
+ * 3. Checks if the spacebar (key 0x48) is held; if so, casts a collision ray
+ *    from the camera position along a scaled direction to pick a new target.
+ *    If the collision hits an object (type == 3), stores it as the new target.
+ *
+ * Confirmed: SUB ESP,0x864 for stack frame.
+ * Confirmed: DAT_005a90c0 is the damage debug enable flag.
+ * Confirmed: DAT_0046f070 is the current debug target object handle.
+ * Confirmed: object_try_and_get_and_verify_type(handle, -1) at CALL 0x13d640.
+ * Confirmed: tag_get_name(*obj) at CALL 0x1ba1f0.
+ * Confirmed: strrchr(path, '\\') at CALL 0x1d9710 to get filename part.
+ * Confirmed: _snprintf at CALL 0x1d9179 with 0x800 buffer.
+ * Confirmed: draw_string_set_style_justify_flags(-1, 0, 0) at CALL 0x19b800.
+ * Confirmed: draw_string_set_color(*(void**)0x2ee6c4) at CALL 0x19b640.
+ * Confirmed: rasterizer_text_draw(&rect, NULL, NULL, 0, buf) at CALL 0x183e60.
+ * Confirmed: input_key_is_down(0x48) = spacebar at CALL 0xcf560.
+ * Confirmed: local_player_get_player_index at CALL 0xba3c0.
+ * Confirmed: datum_get(*(data_t**)0x5aa6d4, handle) for player data at 0x119320.
+ * Confirmed: Player object handle at player+0x34.
+ * Confirmed: FUN_0014df70 collision test with 5 args at CALL 0x14df70.
+ * Confirmed: collision type == 3 check at CMP word [EBP-0x64],0x3.
+ * Confirmed: collision object handle at [EBP-0x2c] (offset 0x38 in result).
+ * Confirmed: assert string "collision.type==_collision_result_object" at 0x29af70.
+ * Confirmed: display_assert at CALL 0x8d9f0, system_exit at CALL 0x8e2f0.
+ */
+void FUN_00137370(void)
+{
+  typedef int(__cdecl *fn_snprintf_t)(char *, int, const char *, ...);
+  fn_snprintf_t snprintf_fn;
+
+  char string_buffer[2048];
+  int16_t collision_result[40];
+  float direction[3];
+  int16_t rect[4];
+
+  char *obj;
+  char *tag_path;
+  char *filename;
+  int debug_handle;
+  int player_index;
+  char *player;
+  int object_handle;
+
+  if (*(char *)0x5a90c0 == 0)
+    return;
+
+  snprintf_fn = (fn_snprintf_t)0x1d9179;
+
+  /* Copy screen rect from globals and adjust y by +0x140 */
+  *(int *)&rect[0] = *(int *)0x506584;
+  *(int *)&rect[2] = *(int *)0x506588;
+  rect[1] = (int16_t)(rect[1] + 0x140);
+
+  debug_handle = *(int *)0x46f070;
+  if (debug_handle == -1) {
+    /* No object targeted */
+    snprintf_fn(string_buffer, 0x800,
+        "no object to debug|n(point and press space)");
+  } else {
+    obj = (char *)object_try_and_get_and_verify_type(debug_handle, -1);
+    if (obj == (char *)0) {
+      *(int *)0x46f070 = -1;
+    } else {
+      /* Get tag path for this object's definition tag, extract filename */
+      tag_path = (char *)tag_get_name(*(int *)obj);
+      filename = strrchr(tag_path, 0x5c);
+      snprintf_fn(string_buffer, 0x800,
+          "%s|nbody %0.3f|n  current %0.3f|n  recent %0.3f|n"
+          "shield %0.3f|n  current %0.3f|n  recent %0.3f|n",
+          filename,
+          (double)*(float *)(obj + 0x90),
+          (double)*(float *)(obj + 0x9c),
+          (double)*(float *)(obj + 0xa8),
+          (double)*(float *)(obj + 0x94),
+          (double)*(float *)(obj + 0x98),
+          (double)*(float *)(obj + 0xa4));
+    }
+  }
+
+  /* Set text drawing style: plain, left-justified, no flags */
+  draw_string_set_style_justify_flags(-1, 0, 0);
+
+  /* Set text color from global pointer */
+  draw_string_set_color(*(void **)0x2ee6c4);
+
+  /* Draw the debug text on screen */
+  rasterizer_text_draw(&rect[0], (short *)0, (void *)0, 0, string_buffer);
+
+  /* Check if spacebar is held (key 0x48) to pick a new damage debug target */
+  if (input_key_is_down(0x48) == 0)
+    return;
+
+  /* Get local player's object handle, default to -1 */
+  {
+    uint16_t local_player_index;
+    local_player_index = *(uint16_t *)0x506548;
+    object_handle = -1;
+    if ((int16_t)local_player_index != -1) {
+      player_index = local_player_get_player_index(local_player_index);
+      player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
+      object_handle = *(int *)(player + 0x34);
+    }
+  }
+
+  /* Build direction vector: scale camera direction by global factor */
+  direction[0] = *(float *)0x50655c * *(float *)0x25acf0;
+  direction[1] = *(float *)0x506560 * *(float *)0x25acf0;
+  direction[2] = *(float *)0x506564 * *(float *)0x25acf0;
+
+  /* Cast a collision ray from camera position along the scaled direction */
+  if (FUN_0014df70(0x81, (float *)0x506550, direction, object_handle,
+                   collision_result) == 0)
+    return;
+
+  /* Verify collision result is an object hit */
+  if (collision_result[0] != 3) {
+    display_assert("collision.type==_collision_result_object",
+                   "c:\\halo\\SOURCE\\objects\\damage.c", 0x794, 1);
+    system_exit(-1);
+  }
+
+  /* Store the hit object as the new debug target */
+  /* collision_result offset 0x38 = object handle (EBP-0x2c from EBP-0x64 base) */
+  *(int *)0x46f070 = *(int *)((char *)collision_result + 0x38);
+}
