@@ -1,25 +1,30 @@
 ---
-description: Control xemu and hot-swap the patched ISO
+description: Build, deploy, and run on xemu or real Xbox
 agent: fast
 subtask: true
 ---
 
-Use the `halo-build-xemu` skill for repo-specific xemu control rules.
+Use the `halo-build-xemu` skill for repo-specific build/deploy rules.
 
-Build/load workflows and xemu control should go through this command. Hot-swap
-the patched ISO into xemu using `tools/xbox/xemu_qmp.py`, or launch xemu if not
-already running. Use MCP only as a fallback.
+## Canonical Command
 
-Argument: $ARGUMENTS (`load [iso]`, `build-load`, optional flags like `-m` for
-monitor, `-T` for trace, `-q` for QMP, or a path to a specific ISO)
+```
+./tools/xbox/build_deploy_run.sh -q
+```
+
+This single command builds and deploys via XBDM. No ISO step needed.
+
+Argument: $ARGUMENTS (optional flags like `-q` for quiet, `--xbox <host>` for
+target override)
 
 Steps:
-1. If mode is `build-load`, follow `/build` first, then load the resulting ISO.
-2. Determine the ISO path: if a positional arg is given use that, otherwise
-   `halo-patched.iso` in the repo root.
-3. Follow the xemu control guidance from `halo-build-xemu`.
-4. Report the result.
+1. Run `./tools/xbox/build_deploy_run.sh -q` (or with `--xbox <host>` for real
+   hardware).
+2. If the build fails, stop and report the concrete errors.
+3. Report the result.
 
 Notes:
-- `tools/xbox/xemu_qmp.py` handles discovery and path normalization automatically.
+- For real Xbox: `./tools/xbox/build_deploy_run_real_hw.sh -q`
+- `tools/xbox/xemu_qmp.py` remains available for monitor-only control (status,
+  reset, etc.).
 - MCP remains available as a fallback for unsupported operations.
