@@ -1190,7 +1190,49 @@ void *object_header_block_reference_get(int object_handle, void *reference)
 }
 
 int FUN_0013e050(int object_handle, int offset, int size);
-void FUN_0013c800(int object_handle, void *block_data);
+/*
+ * FUN_0013c800 — dispatch an animation-block initializer callback through the
+ * object type definition's extension table.
+ *
+ * Resolves the object's type, looks up its type definition via FUN_0013c100,
+ * then walks the NULL-terminated pointer array at type_def+0x5c. For each
+ * non-NULL entry, reads a function pointer at entry+0x48 and calls it with
+ * (object_handle, block_data).
+ *
+ * Called from FUN_0013e1a0 after resolving the animation block reference,
+ * passing the object handle and the resolved block data pointer.
+ *
+ * Confirmed: cdecl, 2 args (ADD ESP,0x8 after indirect CALL).
+ * Confirmed: MOVSX word [EAX+0x64] — reads object type as int16_t.
+ * Confirmed: PUSH -1, PUSH EBX -> object_get_and_verify_type(handle, -1).
+ * Confirmed: loop counter is int16_t (MOVSX EDX,SI at 0x13c844).
+ * Confirmed: vtable offset 0x48 (MOV EAX,[EAX+0x48] at 0x13c832).
+ * Confirmed: indirect call passes 2 params (PUSH ECX, PUSH EBX at 0x13c83c-0x13c83d).
+ */
+/* 0x13c800 */
+void FUN_0013c800(int object_handle, void *block_data)
+{
+  typedef void (*type_anim_callback_t)(int, void *);
+  char *obj;
+  char *type_def;
+  char *entry;
+  type_anim_callback_t fn;
+  int16_t i;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  type_def = (char *)FUN_0013c100(*(int16_t *)(obj + 0x64));
+
+  i = 0;
+  entry = *(char **)(type_def + 0x5c);
+  while (entry != NULL) {
+    fn = *(type_anim_callback_t *)(entry + 0x48);
+    if (fn != NULL) {
+      fn(object_handle, block_data);
+    }
+    i = i + 1;
+    entry = *(char **)(type_def + 0x5c + (int)(int16_t)i * 4);
+  }
+}
 
 /*
  * FUN_0013e1a0 — run animation-block initializer callbacks for an object.

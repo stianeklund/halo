@@ -1062,6 +1062,13 @@
       "metadata": {
         "source_path": "src/halo/ai/path.c"
       }
+    },
+    {
+      "name": "halo/objects_13c800",
+      "base_path": "artifacts/delinker/objects_13c800.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }

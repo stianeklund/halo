@@ -4942,7 +4942,8 @@
         },
         {
           "decl": "void FUN_0013c800(int object_handle, void *block_data);",
-          "addr": "0x13c800"
+          "addr": "0x13c800",
+          "ported": true
         }
       ]
     },
