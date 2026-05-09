@@ -75,6 +75,7 @@
 	halo/main/debug_keys.c
 	halo/main/main.c
 	halo/main/telnet_console.c
+	halo/memory/circular_queue.c
 	halo/memory/data.c
 	halo/memory/lruv_cache.c
 	halo/memory/memory_pool.c

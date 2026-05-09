@@ -9687,8 +9687,13 @@
       "data": [],
       "functions": [
         {
+          "decl": "void FUN_00118d70(int queue@<eax>);",
+          "addr": "0x118d70"
+        },
+        {
           "decl": "unsigned int FUN_00118e90(int queue);",
-          "addr": "0x118e90"
+          "addr": "0x118e90",
+          "ported": true
         },
         {
           "decl": "bool FUN_00118ec0(int queue, void *data, int size);",
