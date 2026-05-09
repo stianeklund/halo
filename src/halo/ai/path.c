@@ -159,3 +159,54 @@ void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4)
   *(int *)((char *)param_1 + 0x60) = param_4;
   return;
 }
+
+/* 0x005e920 — path_find_initial
+ * Builds an initial navigation state record from a source position.
+ *
+ * Zeroes a 0x5c-byte output struct, then calls FUN_0005e830 to perform a
+ * pathfinding query. If FUN_0005e830 succeeds, the output struct is populated
+ * with the destination position (from param_4), a result vector from the query,
+ * and various flags/sentinel values. Returns 1 on success, 0 on failure.
+ *
+ * Output struct layout (ESI = param_5):
+ *   [+0x00] = 1              (valid flag, byte)
+ *   [+0x04] = param_4[0]     (destination position x)
+ *   [+0x08] = param_4[1]     (destination position y)
+ *   [+0x0c] = param_4[2]     (destination position z)
+ *   [+0x10] = 0xFFFFFFFF     (sentinel)
+ *   [+0x14] = 0x00000000     (cleared)
+ *   [+0x18] = local_byte     (byte from FUN_0005e830 output)
+ *   [+0x19] = 1              (byte flag)
+ *   [+0x1a] = 0              (byte flag)
+ *   [+0x1c] = 0xFFFFFFFF     (sentinel)
+ *   [+0x20] = local_vec[0]   (result vector x)
+ *   [+0x24] = local_vec[1]   (result vector y)
+ *   [+0x28] = local_vec[2]   (result vector z)
+ */
+char FUN_0005e920(int param_1, int *param_2, int param_3, int *param_4,
+                  char *param_5)
+{
+  char result;
+  float local_vec[3];
+  uint8_t local_byte;
+
+  csmemset(param_5, 0, 0x5c);
+  result = FUN_0005e830(param_1, param_2, param_3, param_4, &local_byte,
+                        local_vec);
+  if (result != 0) {
+    *(float *)(param_5 + 0x20) = local_vec[0];
+    *(float *)(param_5 + 0x24) = local_vec[1];
+    *(float *)(param_5 + 0x28) = local_vec[2];
+    *(uint8_t *)(param_5 + 0x19) = 1;
+    *(int *)(param_5 + 0x1c) = -1;
+    *(uint8_t *)(param_5 + 0x1a) = 0;
+    *(uint8_t *)(param_5 + 0x18) = local_byte;
+    *(int *)(param_5 + 0x04) = param_4[0];
+    *(int *)(param_5 + 0x08) = param_4[1];
+    *(int *)(param_5 + 0x0c) = param_4[2];
+    *(int *)(param_5 + 0x10) = -1;
+    *(int *)(param_5 + 0x14) = 0;
+    *(uint8_t *)param_5 = 1;
+  }
+  return *param_5;
+}

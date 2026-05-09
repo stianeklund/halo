@@ -10370,8 +10370,13 @@
           "ported": true
         },
         {
+          "addr": "0x5e830",
+          "decl": "char FUN_0005e830(int param_1, int *param_2, int param_3, int *param_4, unsigned char *param_5, float *param_6);"
+        },
+        {
           "addr": "0x5e920",
-          "decl": "char FUN_0005e920(int scenario, int *actor_pos, int zero, int *dest_pos, char *nav_state_out);"
+          "decl": "char FUN_0005e920(int param_1, int *param_2, int param_3, int *param_4, char *param_5);",
+          "ported": true
         },
         {
           "addr": "0x5eae0",
