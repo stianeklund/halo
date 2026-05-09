@@ -521,3 +521,99 @@ void FUN_00137620(int object_handle)
   FUN_00136840(object_handle);
   object_delete(object_handle);
 }
+
+/* FUN_00137690 (0x137690) — Apply region destruction to an object.
+ *
+ * Called when a region on an object takes enough damage to be destroyed.
+ * Looks up the object's collision model tag, validates the region_index,
+ * then if the region hasn't already been destroyed:
+ *   1. Gets the region element from the collision model's regions tag_block
+ *      at coll+0x240 (element size 0x54)
+ *   2. Creates the region's destroy effect (region+0x44) via FUN_0009ec30
+ *   3. Calls FUN_001402c0 to set the "~damaged" permutation on the object's
+ *      model for the destroyed region
+ *   4. Propagates region flags (region+0x20) into the object's damage flags:
+ *        bit 5 (0x20) -> obj+0xb6 |= 0x80
+ *        bit 6 (0x40) -> obj+0xb6 |= 0x100
+ *        bit 7 (0x80) -> obj+0xb7 |= 0x02
+ *        bit 8 (0x100) -> obj+0xb7 |= 0x04
+ *   5. If region has "forces body depletion" flag (bit 1 / 0x02), calls
+ *      FUN_00137540 to deplete the object's body
+ *   6. Marks the region as destroyed in obj+0x124 (bitfield)
+ *   7. Calls FUN_0013c6e0 to notify region-damage callbacks
+ *
+ * Confirmed: EDI = object_handle (register arg). Both callers in FUN_001377d0
+ *   set EDI from [EBP+0x8] before calling:
+ *     0x137a62: MOV EDI,[EBP+0x8]; PUSH EAX; CALL 0x137690
+ *     0x137c26: PUSH EBX; CALL 0x137690; MOV EDI,[EBP+0x8] (restore after)
+ * Confirmed: PUSH -1; PUSH EDI; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: MOV EAX,[EBX] -> PUSH EAX; PUSH 0x6f626a65 => tag_get('obje').
+ * Confirmed: MOV EAX,[EAX+0x7c]; CMP EAX,-1 checks collision model.
+ * Confirmed: PUSH EAX; PUSH 0x636f6c6c => tag_get('coll', coll_index).
+ * Confirmed: TEST AX,AX; JL assert; CMP AX,0x8; JL skip_assert.
+ * Confirmed: PUSH 0x54; PUSH ECX; ADD ESI,0x240; PUSH ESI => tag_block_get_element.
+ * Confirmed: 8 pushes (0,0,0,0,-1,EDI,EDI,[ESI+0x44]) before CALL 0x9ec30.
+ * Confirmed: PUSH 1; PUSH EDX; PUSH 0x29b030; PUSH EDI => FUN_001402c0(obj,"~damaged",rgn,1).
+ * Confirmed: flag tests at 0x20,0x40,0x80,0x100 on region+0x20 byte.
+ * Confirmed: TEST byte [ESI+0x20],0x2 gates call to FUN_00137540.
+ * Confirmed: OR word [EBX+0x124],AX sets region-damaged bit.
+ * Confirmed: PUSH [ESI+0x20]; PUSH EDX; PUSH EDI => FUN_0013c6e0(obj,rgn,flags).
+ */
+void FUN_00137690(int object_handle, short region_index)
+{
+  int *obj;
+  int obje_tag;
+  int coll_tag;
+  int coll_index;
+  char *region;
+  int region_idx;
+  unsigned short damaged_regions;
+  int bit;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  obje_tag = (int)tag_get(0x6f626a65, *obj);
+  coll_index = *(int *)(obje_tag + 0x7c);
+  if (coll_index == -1) {
+    return;
+  }
+
+  coll_tag = (int)tag_get(0x636f6c6c, coll_index);
+  if (region_index < 0 || region_index >= 8) {
+    display_assert(
+      "region_index>=0 && region_index<MAXIMUM_REGIONS_PER_OBJECT",
+      "c:\\halo\\SOURCE\\objects\\damage.c", 0x71a, 1);
+    system_exit(-1);
+  }
+
+  region_idx = (int)region_index;
+  damaged_regions = *(unsigned short *)((char *)obj + 0x124);
+  bit = 1 << region_idx;
+  if ((damaged_regions & bit) != 0) {
+    return;
+  }
+
+  region = (char *)tag_block_get_element((void *)(coll_tag + 0x240),
+                                          region_idx, 0x54);
+  FUN_0009ec30(*(int *)(region + 0x44), object_handle, object_handle,
+               -1, 0, 0, 0, 0);
+  FUN_001402c0(object_handle, "~damaged", region_index, 1);
+
+  if ((*(unsigned char *)(region + 0x20) & 0x20) != 0) {
+    *(unsigned short *)((char *)obj + 0xb6) |= 0x80;
+  }
+  if ((*(unsigned char *)(region + 0x20) & 0x40) != 0) {
+    *(unsigned short *)((char *)obj + 0xb6) |= 0x100;
+  }
+  if ((*(unsigned char *)(region + 0x20) & 0x80) != 0) {
+    *(unsigned char *)((char *)obj + 0xb7) |= 0x02;
+  }
+  if ((*(unsigned int *)(region + 0x20) & 0x100) != 0) {
+    *(unsigned char *)((char *)obj + 0xb7) |= 0x04;
+  }
+  if ((*(unsigned char *)(region + 0x20) & 0x02) != 0) {
+    FUN_00137540(object_handle);
+  }
+
+  *(unsigned short *)((char *)obj + 0x124) |= (unsigned short)(1 << region_idx);
+  FUN_0013c6e0(object_handle, region_index, *(unsigned int *)(region + 0x20));
+}

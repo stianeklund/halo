@@ -4546,6 +4546,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0013c6e0(int object_handle, int region_index, unsigned int flags);",
+          "addr": "0x13c6e0"
+        },
+        {
           "decl": "char FUN_0013c740(int object_handle);",
           "addr": "0x13c740"
         },
@@ -4729,6 +4733,10 @@
           "decl": "void object_adjust_interpolation_position(int object_handle, vector3_t *delta);",
           "addr": "0x140230",
           "ported": true
+        },
+        {
+          "decl": "void FUN_001402c0(int object_handle, const char *marker_name, short region_index, char param_4);",
+          "addr": "0x1402c0"
         },
         {
           "decl": "bool FUN_001403a0(int object_handle, short function_index, void *out_value);",
@@ -9988,8 +9996,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00137690(short region_index);",
-          "addr": "0x137690"
+          "decl": "void FUN_00137690(int object_handle @<edi>, short region_index);",
+          "addr": "0x137690",
+          "ported": true
         },
         {
           "decl": "void FUN_001377d0(int object_handle, int region_index, int node_index, unsigned int param_4, void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *body_damage, void **param_11, float scale);",
