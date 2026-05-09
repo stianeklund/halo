@@ -1026,7 +1026,9 @@
         },
         {
           "decl": "void FUN_00145ad0(unsigned short surface_id, void *damage_params, int unknown);",
-          "addr": "0x145ad0"
+          "addr": "0x145ad0",
+          "ported": true,
+          "comment": "Breakable surface destruction effect spawner. BFS traversal of connected surfaces, grid-based particle spawning with physics impulse."
         },
         {
           "decl": "void FUN_00146a90(int surface_id, void *damage_params, int unknown);",
@@ -7255,6 +7257,10 @@
           "ported": true
         },
         {
+          "decl": "bool FUN_00106200(int16_t count, void *points, float *query_point, float radius);",
+          "addr": "0x106200"
+        },
+        {
           "decl": "void *FUN_0018e420(void);",
           "addr": "0x18e420",
           "ported": true
@@ -9706,8 +9712,9 @@
           "ported": true
         },
         {
-          "decl": "bool FUN_00118ec0(int queue, void *data, int size);",
-          "addr": "0x118ec0"
+          "decl": "bool FUN_00118ec0(int queue, void *data, int data_size);",
+          "addr": "0x118ec0",
+          "ported": true
         }
       ]
     },
