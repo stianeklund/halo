@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Use `./tools/xbox/build_deploy_run.sh -q` instead.
+# This script is retained for reference only.
 
 import sys, os
 _tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
