@@ -28,6 +28,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 DELINKED_DIR = ROOT / "delinked"
 OBJDIFF_JSON = ROOT / "objdiff.json"
 KB_JSON = ROOT / "kb.json"
+
+_CALL_TARGET_RE = re.compile(r"calll?\s+.*?<([A-Za-z_][A-Za-z0-9_@$.]*)")
 FAILURES_DIR = ROOT / "artifacts" / "auto_lift" / "failures"
 
 FPU_MNEMONICS = frozenset({
@@ -150,7 +152,44 @@ def _extract_fpu_blocks(insns: list[str]) -> list[int]:
     return blocks
 
 
-def analyze_function(name: str, insns: list[str], object_name: str = "", addr: str = "") -> FunctionFeatures:
+def _load_callee_reg_arg_names() -> frozenset[str]:
+    """Return the set of function names in kb.json that have register args."""
+    try:
+        kb = json.loads(KB_JSON.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return frozenset()
+    reg_arg_re = re.compile(r"@<\w+>")
+    names: set[str] = set()
+    for obj in kb.get("objects", []):
+        for func in obj.get("functions", []):
+            decl = func.get("decl", "")
+            if not reg_arg_re.search(decl):
+                continue
+            m = re.search(r"(\w+)\s*\(", re.sub(r"@<\w+>", "", decl))
+            if m:
+                names.add(m.group(1))
+    return frozenset(names)
+
+
+def _extract_call_targets(insns: list[str]) -> list[str]:
+    """Extract callee function names from call instructions."""
+    targets = []
+    for insn in insns:
+        if not insn.lstrip().startswith(("call", "calll")):
+            continue
+        m = _CALL_TARGET_RE.search(insn)
+        if m:
+            targets.append(m.group(1))
+    return targets
+
+
+def analyze_function(
+    name: str,
+    insns: list[str],
+    object_name: str = "",
+    addr: str = "",
+    callee_reg_arg_names: frozenset[str] = frozenset(),
+) -> FunctionFeatures:
     """Extract structural features from a disassembled function."""
     mnemonics = [i.split()[0].lower() for i in insns]
     n = len(mnemonics)
@@ -202,6 +241,18 @@ def analyze_function(name: str, insns: list[str], object_name: str = "", addr: s
     if fpu_x_branch > 15:
         difficulty_score += 10
         risk_factors.append(f"fpu_x_branch({fpu_x_branch:.0f})")
+
+    if callee_reg_arg_names:
+        call_targets = _extract_call_targets(insns)
+        reg_callees = [t for t in call_targets if t in callee_reg_arg_names]
+        if reg_callees:
+            n_reg = len(set(reg_callees))
+            if n_reg >= 3:
+                difficulty_score += 20
+                risk_factors.append(f"callee_reg_args({n_reg})")
+            else:
+                difficulty_score += 10
+                risk_factors.append(f"callee_reg_args({n_reg})")
 
     if difficulty_score >= 60:
         difficulty = "reject"
@@ -274,6 +325,7 @@ def screen_all(function_filter: Optional[str] = None) -> list[FunctionFeatures]:
     """Screen all unported functions that have delinked references."""
     unported = load_unported_functions()
     objdiff = load_objdiff_map()
+    callee_reg_arg_names = _load_callee_reg_arg_names()
 
     source_to_funcs: dict[str, list[str]] = {}
     for name, info in unported.items():
@@ -306,6 +358,7 @@ def screen_all(function_filter: Optional[str] = None) -> list[FunctionFeatures]:
                 name, insns,
                 object_name=info["object_name"],
                 addr=info["addr"],
+                callee_reg_arg_names=callee_reg_arg_names,
             )
             results.append(features)
 

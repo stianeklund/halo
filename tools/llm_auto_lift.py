@@ -414,6 +414,15 @@ def _select_targets(
                 if lane == "auto-lift":
                     lane = "manual-lift"
                 reasons.append(f"struct_hard=-20({','.join(prescreen.risk_factors)})")
+            elif prescreen.difficulty == "easy":
+                if prescreen.difficulty_score == 0:
+                    bonus = 15
+                elif prescreen.difficulty_score <= 5:
+                    bonus = 8
+                else:
+                    bonus = 5
+                total_score += bonus
+                reasons.append(f"struct_easy=+{bonus}(score={prescreen.difficulty_score})")
 
         selected.append(SelectedTarget(
             target=target,
