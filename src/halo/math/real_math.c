@@ -591,6 +591,26 @@ void FUN_0010a150(float *mat0, float *mat1, float *out_vec3)
   out_vec3[2] = local_angle * out_vec3[2];
 }
 
+/* Transform a plane (normal + distance) by a 4x3 matrix.
+ * The plane normal (in_plane[0..2]) is rotated by the matrix's 3x3 rotation
+ * part, and the distance (in_plane[3]) is recomputed from the original
+ * distance scaled by matrix[0] plus the dot product of the transformed normal
+ * with the matrix's translation (matrix[10..12]). */
+void FUN_0010a1c0(float *matrix, float *in_plane, float *out_plane)
+{
+  float nx = in_plane[0];
+  float ny = in_plane[1];
+  float nz = in_plane[2];
+
+  out_plane[0] = nx * matrix[1] + ny * matrix[4] + nz * matrix[7];
+  out_plane[1] = nx * matrix[2] + ny * matrix[5] + nz * matrix[8];
+  out_plane[2] = nx * matrix[3] + ny * matrix[6] + nz * matrix[9];
+  out_plane[3] = in_plane[3] * matrix[0]
+               + matrix[10] * out_plane[0]
+               + matrix[11] * out_plane[1]
+               + matrix[12] * out_plane[2];
+}
+
 void real_math_reset_precision(void)
 {
   __control87(0x9001f, 0xfffff);

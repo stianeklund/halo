@@ -6428,7 +6428,8 @@
         },
         {
           "addr": "0x10a1c0",
-          "decl": "void FUN_0010a1c0(float *matrix, float *in_plane, float *out_plane);"
+          "decl": "void FUN_0010a1c0(float *matrix, float *in_plane, float *out_plane);",
+          "ported": true
         }
       ]
     },
