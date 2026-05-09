@@ -610,10 +610,6 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003c0c0(int object_handle, short effect_type, float *position, short volume, short count);",
-          "addr": "0x3c0c0"
-        },
-        {
           "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
           "addr": "0x3c2d0",
           "ported": true
@@ -840,8 +836,7 @@
         },
         {
           "addr": "0x425c0",
-          "decl": "void FUN_000425c0(int object_handle, float *position, short effect_type, short volume, short count);",
-          "ported": true
+          "decl": "void FUN_000425c0(int object_handle, float *position, short effect_type, short volume, short count);"
         },
         {
           "decl": "bool FUN_00041590(int actor_handle, int excluded_handle, float *origin, float *offset, int *result_out);",
