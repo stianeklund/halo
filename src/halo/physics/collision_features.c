@@ -4,6 +4,42 @@ void collision_features_init(void *features)
   csmemset(features, 0, 6);
 }
 
+/* 0x14b3d0 — Look up a prism collision element by handle, resolve its
+ * tag block chain (prisms -> regions -> materials), extract material flags,
+ * optionally transform the element, then add it as a collision feature.
+ * Called once per prism in the collision results. */
+void FUN_0014b3d0(int param_1, int param_2, int param_3, int param_4,
+                  int param_5, int param_6, void *features)
+{
+  void *elem;
+  int iVar2;
+  int iVar3;
+  int uVar4;
+  float local_10[3];
+
+  elem = tag_block_get_element((void *)(param_1 + 0x54), param_2, 0x10);
+  iVar2 = (int)tag_block_get_element((void *)(param_1 + 0x48),
+                                     *(int *)((int)elem + 0xc), 0x18);
+  iVar3 = (int)tag_block_get_element((void *)(param_1 + 0x3c),
+                                     *(int *)(iVar2 + 0x10), 0xc);
+
+  if (param_6 != -1) {
+    uVar4 = -1;
+  } else {
+    uVar4 = *(int *)(iVar2 + 0x10);
+  }
+
+  if (param_3 != 0) {
+    matrix_transform_point((float *)param_3, (float *)elem, local_10);
+    elem = local_10;
+  }
+
+  FUN_0014adb0((int)elem, param_4, param_5, param_6, uVar4,
+               *(unsigned char *)(iVar3 + 8),
+               *(unsigned char *)(iVar3 + 9),
+               *(unsigned short *)(iVar3 + 0xa), features);
+}
+
 /* 0x14b6f0 — Iterate collision results and add features for each object.
  * Three sections in collision_results: spheres at [0], cylinders at [0x101],
  * prisms at [0x202]. Each section has a count followed by object handles. */
