@@ -9876,7 +9876,8 @@
         },
         {
           "decl": "char FUN_0014b890(void *feature, void *los_data, float *t_hit, float *normal);",
-          "addr": "0x14b890"
+          "addr": "0x14b890",
+          "ported": true
         },
         {
           "decl": "char FUN_0014b960(void *feature, void *los_data, float *t_hit, float *normal);",

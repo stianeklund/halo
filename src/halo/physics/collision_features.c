@@ -67,6 +67,62 @@ void collision_features_add(int param_1, int *collision_results, int param_3,
                  param_6, features);
 }
 
+/* 0x14b890 — Test a sphere collision feature against a line-of-sight point.
+ * Computes the displacement from the sphere center (feature+0x0C) to the test
+ * point, checks if the squared distance is less than the sphere radius squared
+ * (feature+0x18). If inside, normalizes the displacement to produce the outward
+ * normal, computes the plane equation (normal[3] = dot(center,normal) + radius),
+ * and returns the penetration depth (radius - distance). Returns 1 if the point
+ * is inside the sphere, 0 otherwise. */
+char FUN_0014b890(void *feature, void *los_data, float *t_hit, float *normal)
+{
+  float *sphere = (float *)feature;
+  float *point = (float *)los_data;
+  float dx, dy, dz;
+  float dist_sq, dist;
+  float radius;
+  float scale;
+
+  /* displacement from sphere center to test point */
+  dx = point[0] - sphere[3];   /* sphere+0x0C */
+  dy = point[1] - sphere[4];   /* sphere+0x10 */
+  dz = point[2] - sphere[5];   /* sphere+0x14 */
+
+  /* squared distance */
+  dist_sq = dz * dz + dx * dx + dy * dy;
+
+  radius = sphere[6]; /* sphere+0x18 */
+
+  /* point is outside sphere */
+  if (dist_sq >= radius * radius)
+    return 0;
+
+  /* compute actual distance */
+  dist = sqrtf(dist_sq);
+
+  if (dist > 0.0f) {
+    /* normalize displacement to get outward normal */
+    scale = 1.0f / dist;
+    normal[0] = dx * scale;
+    normal[1] = dy * scale;
+    normal[2] = dz * scale;
+  } else {
+    /* degenerate: point is at sphere center, use up vector */
+    normal[0] = 0.0f;
+    normal[1] = 0.0f;
+    normal[2] = 1.0f;
+  }
+
+  /* plane distance: dot(center, normal) + radius */
+  normal[3] = sphere[5] * normal[2] + sphere[4] * normal[1] +
+              sphere[3] * normal[0] + sphere[6];
+
+  /* penetration depth: radius - distance */
+  *t_hit = sphere[6] - dist;
+
+  return 1;
+}
+
 /* 0x14b960 — Test a cylinder collision feature against a line-of-sight point.
  * Projects the point onto the cylinder axis, checks it is within the cylinder
  * bounds and radius, then computes the perpendicular normal and penetration

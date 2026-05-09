@@ -13,6 +13,11 @@ float __cdecl sinf(float);
 float __cdecl cosf(float);
 float __cdecl sqrtf(float);
 float __cdecl fabsf(float);
+double __cdecl sqrt(double);
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma intrinsic(sqrt)
+#endif
 
 #include "types.h"
 #define XBOX_REPLACE_STANDARD_NAMES
