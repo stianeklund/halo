@@ -2341,6 +2341,67 @@ void object_adjust_interpolation_position(int object_handle, vector3_t *delta)
   }
 }
 
+/* Set region permutation by marker name (0x1402c0).
+ * Searches model regions for a permutation whose name matches marker_name
+ * (case-insensitive). If found, sets the object's region permutation index
+ * at obj+0x130+region. If region_index is -1, searches all regions;
+ * otherwise only the specified region. If param_4 is 0, forces the
+ * permutation index to 0 regardless of the match position. */
+void FUN_001402c0(int object_handle, const char *marker_name,
+                  short region_index, char param_4)
+{
+  char *obj;
+  char *obje_tag;
+  int model_tag_index;
+  char *mode_tag;
+  int *regions_block;
+  short region_iter;
+  int region_i;
+  char *region_element;
+  int *permutations_block;
+  short perm_iter;
+  int perm_i;
+  char *perm_element;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obje_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+  model_tag_index = *(int *)(obje_tag + 0x34);
+  if (model_tag_index == -1)
+    return;
+
+  mode_tag = (char *)tag_get(0x6d6f6465, model_tag_index);
+  regions_block = (int *)(mode_tag + 0xc4);
+  region_i = 0;
+  if (*regions_block <= 0)
+    return;
+
+  region_iter = 0;
+  do {
+    if (region_index == -1 || region_index == region_iter) {
+      region_element =
+        (char *)tag_block_get_element(regions_block, region_i, 0x4c);
+      permutations_block = (int *)(region_element + 0x40);
+      perm_iter = 0;
+      if (*permutations_block > 0) {
+        perm_i = 0;
+        do {
+          perm_element =
+            (char *)tag_block_get_element(permutations_block, perm_i, 0x58);
+          if (crt_stricmp(perm_element, marker_name) == 0) {
+            *(char *)(obj + 0x130 + region_i) =
+              param_4 ? (char)perm_iter : (char)0;
+            break;
+          }
+          perm_iter = perm_iter + 1;
+          perm_i = (int)perm_iter;
+        } while (perm_i < *permutations_block);
+      }
+    }
+    region_iter = region_iter + 1;
+    region_i = (int)region_iter;
+  } while (region_i < *regions_block);
+}
+
 /* Query an outgoing object function value (0x1403a0).
  * If function_index is -1, writes 1.0f and returns true.
  * Otherwise asserts index is in [0,4), writes the float at
