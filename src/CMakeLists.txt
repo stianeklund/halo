@@ -110,6 +110,7 @@
 	halo/sound/sound_classes.c
 	halo/sound/sound_dsound_xbox.c
 	halo/sound/sound_manager.c
+	halo/objects/damage.c
 	halo/objects/objects.c
 	halo/objects/widgets/widgets.c
 	halo/text/draw_string.c

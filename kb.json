@@ -9948,11 +9948,13 @@
         },
         {
           "decl": "float FUN_00136ae0(int object_handle, char param_2);",
-          "addr": "0x136ae0"
+          "addr": "0x136ae0",
+          "ported": true
         },
         {
           "decl": "void FUN_00136b40(int object_handle);",
-          "addr": "0x136b40"
+          "addr": "0x136b40",
+          "ported": true
         },
         {
           "decl": "void FUN_00136bc0(void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *shield_damage, float *body_damage);",

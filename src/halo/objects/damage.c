@@ -298,3 +298,84 @@ float FUN_00136a80(int object_handle, char param_2)
   }
   return scale * body_max_vitality;
 }
+
+/* FUN_00136ae0 (0x136ae0) — Compute scaled shield vitality for an object.
+ *
+ * Returns shield_vitality * shield_max_vitality, optionally scaled by the
+ * difficulty modifier for value_type 2 (shield vitality) when param_2 is 0.
+ * When param_2 is non-zero, no difficulty scaling is applied.
+ *
+ * Object offsets:
+ *   +0x68: team index (uint16_t), passed to FUN_000b55b0 as team arg
+ *   +0x8c: shield vitality (float)
+ *   +0x94: shield max vitality (float)
+ *
+ * Confirmed: PUSH -1; PUSH ESI; CALL 0x13d680 => object_get_and_verify_type x2.
+ * Confirmed: MOV EAX,[EAX+0x94] stores shield_max_vitality in local [EBP-8].
+ * Confirmed: FLD [EAX+0x8c] loads shield_vitality; FST [EBP-4] copies to local.
+ * Confirmed: TEST CL,CL branches on param_2.
+ * Confirmed: XOR ECX,ECX; MOV CX,[EAX+0x68] zero-extends team to int.
+ * Confirmed: PUSH ECX; PUSH 2; CALL 0xb55b0 => FUN_000b55b0(2, team).
+ * Confirmed: FMUL [EBP-4] then FMUL [EBP-8] for final result.
+ * Confirmed: caller at 0x521f5 pushes (PUSH 0; PUSH EDX) => (handle, 0).
+ */
+float FUN_00136ae0(int object_handle, char param_2)
+{
+  char *obj;
+  float shield_max_vitality;
+  float shield_vitality;
+  float scale;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  shield_max_vitality = *(float *)(obj + 0x94);
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  shield_vitality = *(float *)(obj + 0x8c);
+  scale = shield_vitality;
+  if (param_2 == 0) {
+    scale = FUN_000b55b0(2, (int)*(unsigned short *)(obj + 0x68));
+    scale = scale * shield_vitality;
+  }
+  return scale * shield_max_vitality;
+}
+
+/* FUN_00136b40 (0x136b40) — Trigger initial body-damage effect on an object.
+ *
+ * If bit 3 of the damage flags byte (obj+0xb6) is not already set:
+ *   1. Looks up the object's collision model tag (obje+0x7c -> 'coll')
+ *   2. If the collision model has an effect reference at coll+0x1a4 (!= -1),
+ *      creates that effect on the object via FUN_0009ec30
+ *   3. Sets bit 3 of obj+0xb6
+ *   4. Clears obj+0x98 (damage-related counter/timer)
+ *   5. Calls FUN_00136a00 to set region "cannot be destroyed" bytes
+ *
+ * Confirmed: cdecl, 1 stack param (object_handle), void return.
+ * Confirmed: PUSH -1; PUSH EDI; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: TEST AL,0x8 at 0x136b5b checks bit 3 of [ESI+0xb6].
+ * Confirmed: tag_get('obje', [ESI]) at CALL 0x1ba140.
+ * Confirmed: CMP EAX,-1 at 0x136b72 checks collision model index.
+ * Confirmed: tag_get('coll', obje[0x7c]) at second CALL 0x1ba140.
+ * Confirmed: 8 pushes (0,0,0,0,-1,EDI,EDI,ECX) before CALL 0x9ec30.
+ * Confirmed: OR byte [ESI+0xb6],0x8 at 0x136b9d sets bit 3.
+ * Confirmed: MOV [ESI+0x98],0x0 at 0x136ba8 clears dword.
+ * Confirmed: MOV EAX,EDI; CALL 0x136a00 => FUN_00136a00(@EAX=handle, 0).
+ */
+void FUN_00136b40(int object_handle)
+{
+  char *obj;
+  char *obje_tag;
+  char *coll_tag;
+  int coll_index;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if ((*(unsigned char *)(obj + 0xb6) & 8) == 0) {
+    obje_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+    coll_index = *(int *)(obje_tag + 0x7c);
+    if (coll_index != -1) {
+      coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
+      FUN_0009ec30(*(int *)(coll_tag + 0x1a4), object_handle, object_handle, -1, 0, 0, 0, 0);
+    }
+    *(unsigned char *)(obj + 0xb6) |= 8;
+    *(int *)(obj + 0x98) = 0;
+    FUN_00136a00(object_handle, 0);
+  }
+}
