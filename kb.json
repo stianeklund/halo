@@ -9509,7 +9509,8 @@
         },
         {
           "decl": "void FUN_0005acf0(int encounter_handle /* @<eax> */);",
-          "addr": "0x5acf0"
+          "addr": "0x5acf0",
+          "ported": true
         },
         {
           "decl": "void FUN_0005adc0(int encounter_handle, int16_t squad_index);",

@@ -901,6 +901,52 @@ char FUN_0005a4e0(int encounter_index /* @<eax> */)
   return *(char *)(encounter + 0xd);
 }
 
+/* 0x5acf0 — encounter_update_timers.
+ * Updates encounter timers each tick (called every 15 ticks from encounter_update).
+ * Three timer groups:
+ *   +0x50 (int):  incremented by 15 each call if +0x45 == 0 and != -1;
+ *                 reset to 0 if +0x45 != 0.
+ *   +0x54 (int):  incremented by 15 each call if +0x44 == 0 and != -1;
+ *                 reset to 0 if +0x44 != 0.
+ *   +0x4a (short): decremented by 15 if both +0x47 and +0x48 are non-zero
+ *                  and current value > 15; otherwise zeroed.
+ *
+ * Confirmed:
+ *   - 1 register arg (EAX = encounter_handle); PUSH EAX, PUSH [0x5ab270]
+ *     before CALL datum_get at 0x5acf8.
+ *   - XOR EDX,EDX at 0x5ad00 used as zero source throughout.
+ *   - CMP ECX,-0x1 at 0x5ad11/0x5ad29 gates the "disabled" (-1) case.
+ *   - XOR ECX,ECX; MOV CX,[EAX+0x4a] at 0x5ad3e/0x5ad40 — zero-extends
+ *     the short into ECX for the signed compare CMP CX,0xf.
+ */
+void FUN_0005acf0(int encounter_handle)
+{
+  char *encounter;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  if (*(char *)(encounter + 0x45) != '\0') {
+    *(int *)(encounter + 0x50) = 0;
+  } else {
+    if (*(int *)(encounter + 0x50) != -1) {
+      *(int *)(encounter + 0x50) = *(int *)(encounter + 0x50) + 15;
+    }
+  }
+  if (*(char *)(encounter + 0x44) != '\0') {
+    *(int *)(encounter + 0x54) = 0;
+  } else {
+    if (*(int *)(encounter + 0x54) != -1) {
+      *(int *)(encounter + 0x54) = *(int *)(encounter + 0x54) + 15;
+    }
+  }
+  if (*(char *)(encounter + 0x47) != '\0' && *(char *)(encounter + 0x48) != '\0') {
+    if (*(short *)(encounter + 0x4a) > 15) {
+      *(short *)(encounter + 0x4a) = *(short *)(encounter + 0x4a) - 15;
+      return;
+    }
+    *(short *)(encounter + 0x4a) = 0;
+  }
+}
+
 /* 0x5adc0 — encounter_squad_delay_timer_finished.
  * Called when a squad's delay timer expires (count < 0x10 ticks).
  * Resets the squad's delay counter to 0, then optionally triggers
