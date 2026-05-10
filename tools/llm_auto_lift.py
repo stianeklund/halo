@@ -1035,7 +1035,7 @@ def cmd_cache_context(args: argparse.Namespace):
     proc = subprocess.run(check_cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("ERROR: Ghidra MCP not available.")
-        print("You might have forgotten to start tools/mcp-servers.sh or ghidra may not be running?")
+        print("You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running?")
         sys.exit(1)
 
     builder = ContextPackBuilder(ghidra_live=True)

@@ -17,7 +17,7 @@ if _tools_dir not in sys.path:
     sys.path.insert(0, _tools_dir)
 
 
-USER_MESSAGE = "You might have forgotten to start tools/mcp-servers.sh or ghidra may not be running?"
+USER_MESSAGE = "You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running?"
 
 ENDPOINTS = (
     ("ghidra", "http://127.0.0.1:8090/sse"),

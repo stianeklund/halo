@@ -14,7 +14,7 @@ Ghidra MCP preflight (required):
   `rtk python3 tools/audit/check_ghidra_mcp.py`.
 - If the preflight fails, or any `ghidra`/`ghidra-live` MCP tool call fails due
   to connection/timeout/unavailable errors, stop immediately and tell the user
-  exactly: `You might have forgotten to start tools/mcp-servers.sh or ghidra
+  exactly: `You might have forgotten to start tools/shell/mcp-servers.sh or ghidra
   may not be running?`
 
 Scope/read-budget guardrails:
