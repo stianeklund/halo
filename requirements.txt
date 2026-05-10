@@ -1,3 +1,5 @@
 libclang~=16.0.0
 pefile~=2023.2.7
 pyxbe~=1.0.2
+unicorn>=2.1.4
+lief>=0.17.0
