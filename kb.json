@@ -9801,7 +9801,8 @@
         },
         {
           "decl": "void FUN_00123aa0(void *mode_tag, void *out_node_data);",
-          "addr": "0x123aa0"
+          "addr": "0x123aa0",
+          "ported": true
         }
       ]
     },
