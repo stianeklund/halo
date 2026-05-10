@@ -1223,7 +1223,8 @@
         },
         {
           "decl": "short FUN_0014d840(short collision_function @<edi>);",
-          "addr": "0x14d840"
+          "addr": "0x14d840",
+          "ported": true
         },
         {
           "decl": "void collision_log_query_counter(void *counter);",
