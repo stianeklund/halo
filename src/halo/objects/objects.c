@@ -84,10 +84,10 @@ int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x13fac0  objects_dispose
  *   0x13fb30  object_activate
  *   0x13fb80  FUN_0013fb80 (object deactivate)
- *   0x13fc20  FUN_0013fc20 (object placement data init)
+ *   0x13fc20  object_placement_data_new (object placement data init)
  *   0x13fd00  object_disconnect_from_map
  *   0x13fef0  object_has_node
- *   0x13ff50  FUN_0013ff50 (object set/clear hidden)
+ *   0x13ff50  object_set_automatic_deactivation (object set/clear hidden)
  *   0x13ffc0  object_set_garbage
  *   0x140160  object_set_region_count
  *   0x140230  object_adjust_interpolation_position
@@ -99,17 +99,17 @@ int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x140f10  object_get_markers_by_string_id
  *   0x141020  object_compute_child_marker_position
  *   0x1412f0  object_get_world_position
- *   0x141360  FUN_00141360 (object orientation getter)
+ *   0x141360  object_get_orientation (object orientation getter)
  *   0x141480  object_get_world_matrix
  *   0x1415f0  object_find_in_radius
  *   0x141b70  object_compute_node_matrices
- *   0x143ae0  FUN_00143ae0 (object reposition)
- *   0x143be0  FUN_00143be0 (set object position and reconnect to map)
- *   0x143c80  FUN_00143c80 (object_new — create from placement)
+ *   0x143ae0  object_set_position (object reposition)
+ *   0x143be0  object_translate (set object position and reconnect to map)
+ *   0x143c80  object_new (object_new — create from placement)
  *   0x144240  object_attach_to_parent
  *   0x1446a0  object_update_children_recursive
  *   0x144860  object_attach_to_marker
- *   0x144b30  FUN_00144b30 (delete and immediately deactivate)
+ *   0x144b30  objects_garbage_collection (delete and immediately deactivate)
  *   0x145170  objects_update
  */
 
@@ -124,7 +124,7 @@ typedef void (*object_type_validate_fn)(int16_t type);
 int FUN_000ae0a0(int tag_index);
 
 /*
- * FUN_00143ae0 — reposition an object and recompute its orientation.
+ * object_set_position — reposition an object and recompute its orientation.
  *
  * Disconnects the object from the map, optionally updates its position
  * (forward vector at obj+0x0C) and facing direction (at obj+0x24).
@@ -327,7 +327,7 @@ void FUN_001365d0(int object_handle, int arg1, int arg2);
 /* Initialize a damage_params struct with a damage effect tag index (0x136750).
  * Zeroes 0x54 bytes, sets tag_index at +0x00, and initializes sentinel/default
  * fields to -1 and scale fields at +0x40/+0x44 to 1.0f. */
-void FUN_00136750(void *damage_params, int tag_index)
+void damage_data_new(void *damage_params, int tag_index)
 {
   csmemset(damage_params, 0, 0x54);
   *(int *)damage_params = tag_index;
@@ -1102,7 +1102,7 @@ done:
 }
 
 /*
- * FUN_0013ded0 — allocate a new datum in an object data table and reserve
+ * object_header_new — allocate a new datum in an object data table and reserve
  * pool memory for it from the global objects memory pool at 0x46f080.
  *
  * If type_hint == -1, allocates at the next free index (data_new_at_index).
@@ -1117,7 +1117,7 @@ done:
  * Confirmed: CALL 0x8db80 (csmemset) zeros *(void**)(datum+8).
  * Confirmed: datum_delete on pool allocation failure, returns -1.
  */
-int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint)
+int object_header_new(data_t *data, int16_t datum_size, int type_hint)
 {
   int handle;
 
@@ -1142,7 +1142,7 @@ int FUN_0013ded0(data_t *data, int16_t datum_size, int type_hint)
   return handle;
 }
 
-void FUN_0013df70(data_t *data);
+void object_postprocess_node_matrices(data_t *data);
 
 /*
  * object_header_block_reference_get — resolve an object's inline
@@ -1189,7 +1189,7 @@ void *object_header_block_reference_get(int object_handle, void *reference)
   return object + ref_offset;
 }
 
-int FUN_0013e050(int object_handle, int offset, int size);
+int object_header_block_allocate(int object_handle, int offset, int size);
 /*
  * FUN_0013c800 — dispatch an animation-block initializer callback through the
  * object type definition's extension table.
@@ -1400,7 +1400,7 @@ int object_mark(int object_handle)
   return 0;
 }
 
-void FUN_0013ecb0(int object_handle);
+void attachments_new(int object_handle);
 
 /* Propagate flags to all children of an object. For each child slot where
  * the "created" flag at obj+0xf4+i is clear and the child handle is valid,
@@ -1811,7 +1811,7 @@ void FUN_0013fb80(int object_handle)
 }
 
 /*
- * FUN_0013fc20 — initialise an object placement data struct.
+ * object_placement_data_new — initialise an object placement data struct.
  *
  * Zeroes the 0x88-byte placement buffer, stores the tag index at +0x00,
  * copies default forward {1,0,0} and up {0,0,1} vectors from constant
@@ -1830,7 +1830,7 @@ void FUN_0013fb80(int object_handle)
  * Confirmed: word at [ESI+0x16] = 0.
  * Confirmed: 4 iterations of 12-byte copy for scale at [ESI+0x58].
  */
-void FUN_0013fc20(void *placement, int tag_index, int parent_handle)
+void object_placement_data_new(void *placement, int tag_index, int parent_handle)
 {
   char *p = (char *)placement;
   float *src;
@@ -2032,7 +2032,7 @@ bool object_has_node(int object_handle, int16_t node_index)
 }
 
 /*
- * FUN_0013ff50 — set or clear the "hidden" flag (bit 0x40) on an object's
+ * object_set_automatic_deactivation — set or clear the "hidden" flag (bit 0x40) on an object's
  * header unk_2 byte, and optionally activate or deactivate the object.
  *
  * When param_2 != 0 (hide):
@@ -2052,7 +2052,7 @@ bool object_has_node(int object_handle, int16_t node_index)
  * Confirmed: CALL 0x13fb80 (deactivate) and CALL 0x13fb30 (activate).
  * Confirmed: ADD ESP,0x10 cleans datum_get + object_get_and_verify_type.
  */
-void FUN_0013ff50(int object_handle, char param_2)
+void object_set_automatic_deactivation(int object_handle, char param_2)
 {
   object_header_data_t *hdr =
     (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
@@ -2347,7 +2347,7 @@ void object_adjust_interpolation_position(int object_handle, vector3_t *delta)
  * at obj+0x130+region. If region_index is -1, searches all regions;
  * otherwise only the specified region. If param_4 is 0, forces the
  * permutation index to 0 regardless of the match position. */
-void FUN_001402c0(int object_handle, const char *marker_name,
+void object_permute_region(int object_handle, const char *marker_name,
                   short region_index, char param_4)
 {
   char *obj;
@@ -2407,7 +2407,7 @@ void FUN_001402c0(int object_handle, const char *marker_name,
  * Otherwise asserts index is in [0,4), writes the float at
  * object+0xe4+index*4 to out_value, and returns whether the
  * corresponding bit in the function-valid mask at object+0xd3 is set. */
-bool FUN_001403a0(int object_handle, short function_index, void *out_value)
+bool object_get_function_value(int object_handle, short function_index, void *out_value)
 {
   char *obj;
 
@@ -3147,7 +3147,7 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
 }
 
 /*
- * FUN_00141360 — get an object's forward and/or up orientation vectors in
+ * object_get_orientation — get an object's forward and/or up orientation vectors in
  * world space.
  *
  * If the object has no parent (parent_object_index == -1), copies the local
@@ -3170,7 +3170,7 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
  *            "up" (0x28cb28), format at 0x267490.
  */
 /* 0x141360 */
-void FUN_00141360(int object_handle, float *out_forward, float *out_up)
+void object_get_orientation(int object_handle, float *out_forward, float *out_up)
 {
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
@@ -4315,13 +4315,13 @@ void object_compute_node_matrices(int object_handle)
   }
 }
 
-/* FUN_00143a00 — delete object attachments (effects, sounds, lights, etc.).
+/* attachments_delete — delete object attachments (effects, sounds, lights, etc.).
  *
  * Iterates through the object's attachment slots (up to tag+0x140 count)
  * and dispatches cleanup calls based on attachment type:
  *   Type 0: FUN_00139310 (effect cleanup)
  *   Type 1: game_looping_sound_delete (sound cleanup)
- *   Type 2: FUN_0009c750 (decal cleanup)
+ *   Type 2: effect_delete (decal cleanup)
  *   Type 3: FUN_00141b70 + FUN_000986d0 (light cleanup)
  *   Type 4: FUN_0009f6e0 (contrail cleanup)
  *
@@ -4333,7 +4333,7 @@ void object_compute_node_matrices(int object_handle)
  * Confirmed: CALL 0x1ba140 (tag_get) with ('obje', obj[0]).
  * Confirmed: switch jump table at 0x143ac0 for 5 cases.
  */
-void FUN_00143a00(int object_handle)
+void attachments_delete(int object_handle)
 {
   int *obj;
   char *tag;
@@ -4361,7 +4361,7 @@ void FUN_00143a00(int object_handle)
       game_looping_sound_delete(attachment_handle);
       break;
     case 2:
-      FUN_0009c750(attachment_handle);
+      effect_delete(attachment_handle);
       break;
     case 3:
       object_compute_node_matrices(object_handle);
@@ -4374,7 +4374,7 @@ void FUN_00143a00(int object_handle)
   }
 }
 
-/* FUN_00143ae0 — reposition an object's position and facing.
+/* object_set_position — reposition an object's position and facing.
  *
  * Disconnects the object from the map, optionally updates its position
  * (forward vector at obj+0x0C) and facing direction (at obj+0x24).
@@ -4395,7 +4395,7 @@ void FUN_00143a00(int object_handle)
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
  * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
  */
-void FUN_00143ae0(int object_handle, float *position, float *forward, float *up)
+void object_set_position(int object_handle, float *position, float *forward, float *up)
 {
   char *obj;
   float temp[3];
@@ -4448,7 +4448,7 @@ void FUN_00143ae0(int object_handle, float *position, float *forward, float *up)
   object_connect_to_map(object_handle, 0);
 }
 
-/* FUN_00143be0 — set an object's position and reconnect it to the map.
+/* object_translate — set an object's position and reconnect it to the map.
  *
  * Validates the new position with valid_real_point3d, asserts if invalid.
  * Disconnects the object from the BSP, copies the 3D position into the
@@ -4466,7 +4466,7 @@ void FUN_00143ae0(int object_handle, float *position, float *forward, float *up)
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, location).
  * Confirmed: position copied to obj+0x0C, obj+0x10, obj+0x14.
  */
-void FUN_00143be0(int object_handle, float *position, void *location)
+void object_translate(int object_handle, float *position, void *location)
 {
   char *obj;
 
@@ -4487,7 +4487,7 @@ void FUN_00143be0(int object_handle, float *position, void *location)
 }
 
 /*
- * FUN_00143c80 — create a new object from a placement data struct.
+ * object_new — create a new object from a placement data struct.
  *
  * This is the core object creation function. Validates the placement data,
  * allocates a datum in the object header table, initialises the object's
@@ -4501,15 +4501,15 @@ void FUN_00143be0(int object_handle, float *position, void *location)
  *
  * Confirmed: SUB ESP,0x210 — 528 bytes of locals (includes 512-byte sprintf
  * buffer). Confirmed: tag_get(0x6f626a65, tag_index) for 'obje' tag. Confirmed:
- * FUN_0013ded0 with EAX=-1 for datum allocation. Confirmed: datum_get +
+ * object_header_new with EAX=-1 for datum allocation. Confirmed: datum_get +
  * object_get_and_verify_type for header/obj access. Confirmed: header->unk_2 |=
  * 0x44 sets active+type flags. Confirmed: position += scale * up_vector
  * (placement+0x24 multiplied through). Confirmed: tag_get(0x6d6f6465, ...) for
- * 'mode' model tag, node count at +0xb8. Confirmed: FUN_0013e050 for block
+ * 'mode' model tag, node count at +0xb8. Confirmed: object_header_block_allocate for block
  * reference allocation (3 calls). Confirmed: FUN_0009ec30 creation effect (8
  * args) if tag_data+0xac != -1. Confirmed: return EBX (object_handle or -1).
  */
-int FUN_00143c80(void *placement)
+int object_new(void *placement)
 {
   char *p = (char *)placement;
   int tag_index;
@@ -4587,7 +4587,7 @@ int FUN_00143c80(void *placement)
     char *type_def = (char *)FUN_0013c100((int16_t)type_word);
     int16_t datum_size = *(int16_t *)(type_def + 0x8);
 
-    object_handle = FUN_0013ded0(*(data_t **)0x5a8d50, datum_size, -1);
+    object_handle = object_header_new(*(data_t **)0x5a8d50, datum_size, -1);
   }
 
   if (object_handle == -1)
@@ -4701,12 +4701,12 @@ int FUN_00143c80(void *placement)
   }
 
   /* --- Allocate block references for node matrices --- */
-  if (!FUN_0013e050(object_handle, 0x1a0, node_count * 0x34)) {
+  if (!object_header_block_allocate(object_handle, 0x1a0, node_count * 0x34)) {
     success = 0;
   } else if (((1 << (*(uint8_t *)tag_data & 0x1f)) & 0xfe0) == 0) {
     /* Non-standard types need additional allocations */
-    if (!FUN_0013e050(object_handle, 0x19c, node_count << 5) ||
-        !FUN_0013e050(object_handle, 0x198, node_count << 5)) {
+    if (!object_header_block_allocate(object_handle, 0x19c, node_count << 5) ||
+        !object_header_block_allocate(object_handle, 0x198, node_count << 5)) {
       success = 0;
     }
   }
@@ -4730,7 +4730,7 @@ int FUN_00143c80(void *placement)
     FUN_0013e1a0(object_handle);
     FUN_0013c620(object_handle);
     FUN_0013e7b0(object_handle);
-    FUN_0013e5d0(object_handle);
+    object_compute_change_colors(object_handle);
 
     /* --- Widget and child attachment --- */
     {
@@ -4739,7 +4739,7 @@ int FUN_00143c80(void *placement)
       tag_get(0x6f626a65, obj_tag_idx);
       FUN_00136150(object_handle);
     }
-    FUN_0013ecb0(object_handle);
+    attachments_new(object_handle);
 
     /* --- Restore the active flag --- */
     obj = (char *)object_get_and_verify_type(object_handle, -1);
@@ -4771,7 +4771,7 @@ int FUN_00143c80(void *placement)
 
   /* --- Failure: free the allocated datum --- */
   FUN_0013c560(object_handle);
-  FUN_0013df70(*(data_t **)0x5a8d50);
+  object_postprocess_node_matrices(*(data_t **)0x5a8d50);
   object_handle = -1;
 
 out_of_objects: {
@@ -4917,7 +4917,7 @@ void object_attach_to_parent(int parent_handle, int child_handle,
  * test along that ray. If the collision test succeeds or the object has no
  * current cluster placement (field 0x4c == -1), the function checks the
  * collision result for a valid surface. If a valid surface is found, it calls
- * FUN_00143be0 to update the object's position and reconnect it to the map,
+ * object_translate to update the object's position and reconnect it to the map,
  * then recomputes node matrices. Returns true if the object was placed or
  * already had a valid cluster reference, false otherwise.
  *
@@ -4964,7 +4964,7 @@ bool object_try_place(int object_handle, float *position)
       goto done;
     }
     /* Place object at collision surface position and reconnect to map. */
-    FUN_00143be0(object_handle, (float *)((char *)collision_result + 0x18),
+    object_translate(object_handle, (float *)((char *)collision_result + 0x18),
                  (void *)((char *)collision_result + 0x0c));
     object_compute_node_matrices(object_handle);
   }
@@ -5110,7 +5110,7 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
  * FUN_001449b0 — object deactivation and deallocation.
  *
  * Recursively tears down an object and its children/siblings, then deallocates
- * the object from the object pool. Called either from FUN_00144b30 (immediate
+ * the object from the object pool. Called either from objects_garbage_collection (immediate
  * delete) or from the garbage collection pass in objects_update.
  *
  * Steps:
@@ -5123,7 +5123,7 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
  *   5. Clear collideable bit (datum header bit 0) if set.
  *   6. Call type table cleanup via FUN_0013c100.
  *   7. Call object cleanup via FUN_001362d0.
- *   8. Call widget detach via FUN_00143a00.
+ *   8. Call widget detach via attachments_delete.
  *   9. If object has flag 0x800, disconnect from map via
  * object_disconnect_from_map.
  *  10. Call FUN_0013c560 (final cleanup).
@@ -5186,7 +5186,7 @@ void FUN_001449b0(int object_handle, int delete_sibling)
 
   /* Object cleanup and widget detach. */
   FUN_001362d0(object_handle);
-  FUN_00143a00(object_handle);
+  attachments_delete(object_handle);
 
   /* If flag 0x800 is set, disconnect from map. */
   if (obj->flags & 0x800) {
@@ -5212,7 +5212,7 @@ void FUN_001449b0(int object_handle, int delete_sibling)
 }
 
 /*
- * FUN_00144b30 — delete and immediately deactivate an object.
+ * objects_garbage_collection — delete and immediately deactivate an object.
  *
  * Marks the object (and its children) for deletion via object_delete_internal,
  * then immediately tears down / deallocates the object via FUN_001449b0.
@@ -5227,7 +5227,7 @@ void FUN_001449b0(int object_handle, int delete_sibling)
  * Confirmed: ESI saved/restored (callee-saved register for param_1).
  */
 /* 0x144b30 */
-void FUN_00144b30(int object_handle)
+void objects_garbage_collection(int object_handle)
 {
   object_delete_internal(object_handle, 0);
   FUN_001449b0(object_handle, 0);

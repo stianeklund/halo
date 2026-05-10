@@ -31,7 +31,7 @@ uint32_t *structure_bsp_get_cluster_sound_data(void *bsp, int16_t cluster_index)
 /* Return a pointer to the sound encoding byte for a cluster pair (0x1937d0).
  * Uses upper-triangular matrix indexing (row < column, no diagonal)
  * into sound_cluster_data. */
-uint8_t *FUN_001937d0(void *bsp, int16_t from_cluster, int16_t to_cluster)
+uint8_t *structure_bsp_get_cluster_encoded_sound_data(void *bsp, int16_t from_cluster, int16_t to_cluster)
 {
   char *b = (char *)bsp;
   int16_t offset;
@@ -58,7 +58,7 @@ uint8_t *FUN_001937d0(void *bsp, int16_t from_cluster, int16_t to_cluster)
 
 /* Look up the sound encoding byte between two clusters (0x193870).
  * Ensures from < to by swapping if necessary, then delegates to
- * FUN_001937d0 for the actual lookup. Returns 0 for same-cluster. */
+ * structure_bsp_get_cluster_encoded_sound_data for the actual lookup. Returns 0 for same-cluster. */
 uint8_t structure_bsp_cluster_sound_encoding(void *bsp, int16_t from_cluster,
                                              int16_t to_cluster)
 {
@@ -88,5 +88,5 @@ uint8_t structure_bsp_cluster_sound_encoding(void *bsp, int16_t from_cluster,
     to_cluster = tmp;
   }
 
-  return *FUN_001937d0(bsp, from_cluster, to_cluster);
+  return *structure_bsp_get_cluster_encoded_sound_data(bsp, from_cluster, to_cluster);
 }

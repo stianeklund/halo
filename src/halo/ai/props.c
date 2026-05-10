@@ -256,7 +256,7 @@ int FUN_00064570(int *iter)
  *   PUSH EAX            → datum_delete arg1                      YES
  *   CALL 0x1196d0                                                YES
  *   ADD ESP,0x8         → 2-arg cdecl cleanup                   YES */
-void FUN_00064a80(int actor_handle, int prop_handle)
+void prop_iterator_next(int actor_handle, int prop_handle)
 {
   FUN_00064400(actor_handle, prop_handle);
   datum_delete(prop_data, prop_handle);

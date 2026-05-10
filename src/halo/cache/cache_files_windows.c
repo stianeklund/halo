@@ -199,15 +199,15 @@ void cache_files_precache(void)
     return;
   if (*(int *)(header + 0x128) != FUN_001b9920())
     return;
-  if (*(int16_t *)(header + 0x126) != FUN_00100080())
+  if (*(int16_t *)(header + 0x126) != main_get_difficulty())
     return;
 
   ((void (*)(void))game_state_callback_32eaa4)();
   FUN_001c0c20(*(void **)0x4ea994, 0x345000);
-  game_difficulty_level_set(FUN_00100080());
-  FUN_001bf790();
+  game_difficulty_level_set(main_get_difficulty());
+  game_state_call_after_load_procs();
   ((void (*)(void))game_state_callback_32eaa0)();
-  FUN_00101c90();
+  main_lost_map();
   *(uint8_t *)0x4ea9a5 = FUN_001c0370() != 0;
   FUN_00101ca0();
 }

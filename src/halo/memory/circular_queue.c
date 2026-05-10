@@ -30,7 +30,7 @@ void FUN_00118d70(int queue)
  * Computes: buffer_size - used - 1, where used = (write_offset - read_offset),
  * wrapping around via buffer_size when write_offset < read_offset. The -1
  * accounts for the sentinel gap that distinguishes full from empty. */
-unsigned int FUN_00118e90(int queue)
+unsigned int circular_queue_free_space(int queue)
 {
     int used;
 

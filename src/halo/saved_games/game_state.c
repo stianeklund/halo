@@ -1,5 +1,5 @@
 /* Iterate a table of 13 dispose-from-old-map callbacks. */
-void FUN_001bf790(void)
+void game_state_call_after_load_procs(void)
 {
   typedef void (*callback_fn)(void);
   callback_fn *table = (callback_fn *)0x32eaa8;

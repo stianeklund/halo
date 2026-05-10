@@ -22,9 +22,9 @@
  *   actor+0x3a = squad_index (int16_t, -1 = NONE)
  *   actor+0x3c = platoon_index (int16_t, -1 = NONE)
  *
- * Ported: FUN_00058a40 (ai_magically_see_players), FUN_00058fa0 (stub),
- * FUN_00058fb0 (dispose pools), FUN_00059740 (encounter_enter), FUN_000597f0
- * (encounter_leave), FUN_0005ddc0 (tally reset), FUN_0005de80
+ * Ported: FUN_00058a40 (ai_magically_see_players), encounters_dispose (stub),
+ * encounter_compute_activation_cluster_bit_vector (dispose pools), encounterless_attach_actor (encounter_enter), FUN_000597f0
+ * (encounter_leave), encounters_create_for_new_map (tally reset), FUN_0005de80
  * (encounter_update), encounter lifecycle stubs (0x5df80–0x5dfb0).
  */
 
@@ -131,7 +131,7 @@ void FUN_00058a40(int combined_handle)
 /* 0x00058fa0 — encounter_dispose stub.
  * Called from ai_dispose (0x3f6f0). No teardown needed at this level.
  * Binary: single RET instruction. */
-void FUN_00058fa0(void)
+void encounters_dispose(void)
 {
   return;
 }
@@ -144,7 +144,7 @@ void FUN_00058fa0(void)
  *
  * Confirmed: ADD ESP,0x8 after two CALL 0x119550 instructions (combined
  * stack cleanup for both calls). */
-void FUN_00058fb0(void)
+void encounter_compute_activation_cluster_bit_vector(void)
 {
   data_make_invalid(*(data_t **)0x5ab270); /* encounter_data */
   data_make_invalid(*(data_t **)0x5ab26c); /* pursuit_data */
@@ -155,7 +155,7 @@ void FUN_00058fb0(void)
  * encounter+0x14, chained via actor+0x2c). When flag==0, also decrements
  * original counts on encounter, squad, leader, and platoon. Clears the
  * actor's encounter/squad/platoon fields and marks the encounter dirty. */
-void FUN_00059480(int actor_handle, char flag)
+void encounter_detach_actor(int actor_handle, char flag)
 {
   char *actor;
   char *encounter;
@@ -187,7 +187,7 @@ void FUN_00059480(int actor_handle, char flag)
   *piVar = *(int *)(actor + 0x2c);
 
   if (flag == '\0') {
-    squad = FUN_0001c270(encounter, *(int16_t *)(actor + 0x3a));
+    squad = encounter_get_squad(encounter, *(int16_t *)(actor + 0x3a));
 
     if (*(int16_t *)(encounter + 0x18) < 1) {
       display_assert("encounter->original_count > 0",
@@ -236,7 +236,7 @@ void FUN_00059480(int actor_handle, char flag)
  * the primary actor (field 0x1a4) encounter and unit linkage. When
  * game_engine_running returns false and encounter->team is zero, copies the
  * unit's team and notifies via FUN_00040280 if members exist. */
-void FUN_00059630(int encounter_index, int unit_index)
+void encounter_attach_unit(int encounter_index, int unit_index)
 {
   char *encounter;
   char *unit;
@@ -291,7 +291,7 @@ void FUN_00059630(int encounter_index, int unit_index)
  * NEG/SBB/AND pattern at 0x597d1–0x597da:
  *   DL = actor+0x8; NEG DL sets CF if DL != 0; SBB EDX,EDX → EDX=-1 or 0;
  *   AND EDX,0x5a → EDX = 0x5a (if flag) or 0 (if not). */
-void FUN_00059740(int actor_handle)
+void encounterless_attach_actor(int actor_handle)
 {
   char *actor;
   char *ai_globals;
@@ -435,7 +435,7 @@ void FUN_000597f0(int actor_handle)
  *   ESI+0x0 : param_2 (clump_handle)
  *   ESI+0x4 : 0xffffffff (-1)
  *   ESI+0x8 : encounter->field_0x14 OR ai_globals->field_8 */
-void FUN_00059a00(int *iter, int clump_handle)
+void encounter_actor_iterator_new(int *iter, int clump_handle)
 {
   char *encounter;
   char *ai_globals;
@@ -504,7 +504,7 @@ int FUN_00059a50(int *iter)
  *   ESI+0x18 : -1    (next linked-list handle)
  *   ESI+0x14 : -1    (current handle)
  *   ESI+0x11 : DL    (param_2 = filter_flag) */
-void FUN_00059b10(void *iter, char flag)
+void encounter_iterator_next(void *iter, char flag)
 {
   char *p = (char *)iter;
 
@@ -624,7 +624,7 @@ int FUN_00059b50(void *iter)
  *   - datum_get(encounter_data, encounter_handle) at 0x5a062.
  *   - global_scenario_get() at 0x5a078 (0 args).
  *   - tag_block_get_element(scenario+0x42c, enc_index, 0xb0) at 0x5a083.
- *   - FUN_0001c270(encounter, squad_index) at 0x5a08c → squad record.
+ *   - encounter_get_squad(encounter, squad_index) at 0x5a08c → squad record.
  *   - tag_block_get_element(enc_def+0x80, squad_index, 0xe8) at 0x5a0a3.
  *   - Starting-location tag_block at squad_def+0xd0; element size 0x1c.
  *   - csmemset(squad+4, 0xff, ((count+31)>>5)<<2) at 0x5a0c4.
@@ -647,7 +647,7 @@ void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> *
   scenario = (char *)global_scenario_get();
   encounter_def = (char *)tag_block_get_element(
       scenario + 0x42c, encounter_handle & 0xffff, 0xb0);
-  squad_base = (char *)FUN_0001c270(encounter, (short)squad_index);
+  squad_base = (char *)encounter_get_squad(encounter, (short)squad_index);
   squad_def = (char *)tag_block_get_element(
       encounter_def + 0x80, (short)squad_index, 0xe8);
 
@@ -683,7 +683,7 @@ void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> *
  *   - Squad accumulator max 0x400 (MAXIMUM_SQUADS_PER_MAP).
  *   - Platoon count from encounter_def+0x8c (tag_block); max 0x20 platoons.
  *   - Platoon accumulator max 0x100 (MAXIMUM_PLATOONS_PER_MAP).
- *   - FUN_0001c270(encounter, squad_index) for squad records.
+ *   - encounter_get_squad(encounter, squad_index) for squad records.
  *   - FUN_00054020(encounter, platoon_index) for platoon records.
  *   - FUN_0005a050(squad_index @EAX, encounter_handle @ECX) initializes
  *     squad starting locations from the definition.
@@ -755,7 +755,7 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   i = 0;
   if (*(short *)(encounter + 0x6) > 0) {
     do {
-      squad_record = (char *)FUN_0001c270(encounter, (short)i);
+      squad_record = (char *)encounter_get_squad(encounter, (short)i);
       squad_def = (char *)tag_block_get_element(
           (char *)encounter_def + 0x80, (int)(short)i, 0xe8);
       *(char *)(squad_record + 0x11) = 0;
@@ -852,7 +852,7 @@ short FUN_0005a3b0(void *squad_def)
  * Activates an encounter if its BSP requirement is satisfied (enc_def+0x7e is
  * NONE or matches the current global_structure_bsp_index).  When the encounter
  * is not already active (encounter+0xd == 0), walks the encounter's member
- * list and calls FUN_0003d5f0(actor_handle, 1) to activate each actor.  Then
+ * list and calls actor_set_active(actor_handle, 1) to activate each actor.  Then
  * stamps encounter+0x10 with game_time_get() and sets encounter+0xd = 1.
  *
  * param: encounter_index via @<eax> register arg.
@@ -862,9 +862,9 @@ short FUN_0005a3b0(void *squad_def)
  * Confirmed: datum_get(encounter_data, encounter_index) at 0x5a4f1.
  * Confirmed: tag_block_get_element(scenario+0x42c, index&0xffff, 0xb0) at 0x5a514.
  * Confirmed: enc_def+0x7e (int16_t) checked against -1 and *(int16_t*)0x326a0c.
- * Confirmed: FUN_00059a00(iter, encounter_index) at 0x5a53b; iter at EBP-0xc.
+ * Confirmed: encounter_actor_iterator_new(iter, encounter_index) at 0x5a53b; iter at EBP-0xc.
  * Confirmed: inline member-list walk using actor+0x2c (next member link).
- * Confirmed: FUN_0003d5f0(actor_handle, 1) at 0x5a576 per member.
+ * Confirmed: actor_set_active(actor_handle, 1) at 0x5a576 per member.
  * Confirmed: game_time_get() at 0x5a581; stored to encounter+0x10.
  * Confirmed: encounter+0xd set to 1 at 0x5a589.
  */
@@ -885,13 +885,13 @@ char FUN_0005a4e0(int encounter_index /* @<eax> */)
   if (*(short *)(enc_def + 0x7e) == -1 ||
       *(short *)(enc_def + 0x7e) == *(short *)0x326a0c) {
     if (*(char *)(encounter + 0xd) == '\0') {
-      FUN_00059a00(iter, encounter_index);
+      encounter_actor_iterator_new(iter, encounter_index);
       next_handle = iter[2];
       while (*(char *)(*(char **)0x632574 + 1) != '\0' && next_handle != -1) {
         actor_handle = next_handle;
         actor = (char *)datum_get(*(data_t **)0x6325a4, next_handle);
         next_handle = *(int *)(actor + 0x2c);
-        FUN_0003d5f0(actor_handle, 1);
+        actor_set_active(actor_handle, 1);
       }
     }
     *(int *)(encounter + 0x10) = game_time_get();
@@ -963,7 +963,7 @@ void FUN_0005acf0(int encounter_handle)
  * lookup.
  *   - global_scenario_get() at 0x5ade6 (0 args); +0x42c+[EDI] element (size
  * 0xb0).
- *   - FUN_0001c270(encounter, param_2) → squad record; EBX=squad pointer.
+ *   - encounter_get_squad(encounter, param_2) → squad record; EBX=squad pointer.
  *   - tag_block_get_element(EBX+0x80, (int16_t)param_2, 0xe8) → squad_def.
  *   - MOV word ptr [ECX+0x12],0 at 0x5ae1e clears squad delay counter.
  *   - Bit 0x10 of squad_def+0x28 gates FUN_00058a40 call
@@ -971,7 +971,7 @@ void FUN_0005acf0(int encounter_handle)
  *   - Handle for FUN_00058a40: ((squad_index & 0xff | 0xffff8000) << 16) |
  * (encounter_handle & 0xffff).
  *   - ADD ESP,0x20 at 0x5ae27 cleans up 8 dwords (first tag_block 3 +
- * FUN_0001c270 2 + second tag_block 3).
+ * encounter_get_squad 2 + second tag_block 3).
  *   - ADD ESP,0x4 at 0x5ae4c cleans FUN_00058a40 arg.
  *   - ADD ESP,0x10 at 0x5ae67 cleans console_printf args.
  *
@@ -979,7 +979,7 @@ void FUN_0005acf0(int encounter_handle)
  *   squad_record+0x12 | 0 (int16_t zero) | MOV word ptr [ECX+0x12],0x0 at
  * 0x5ae1e
  */
-void FUN_0005adc0(int encounter_handle, int16_t squad_index)
+void encounter_squad_timer_expire(int encounter_handle, int16_t squad_index)
 {
   char *encounter;
   char *squad;
@@ -990,7 +990,7 @@ void FUN_0005adc0(int encounter_handle, int16_t squad_index)
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
   squad = (char *)tag_block_get_element((char *)global_scenario_get() + 0x42c,
                                         (int)(encounter_handle & 0xffff), 0xb0);
-  squad_record = (char *)FUN_0001c270(encounter, squad_index);
+  squad_record = (char *)encounter_get_squad(encounter, squad_index);
   squad_def = (char *)tag_block_get_element((char *)(squad + 0x80),
                                             (int)squad_index, 0xe8);
   *(int16_t *)(squad_record + 0x12) = 0;
@@ -1012,14 +1012,14 @@ void FUN_0005adc0(int encounter_handle, int16_t squad_index)
  *     when either bit 2 of squad_def+0x28 is set OR encounter+0x2e > 0.
  *     Logs "%s/%s: delay timer started (%.1f sec)" when debug flag is set.
  *   - If the delay is running and >= 0x10 ticks: decrements by 15.
- *   - If the delay is running and < 0x10 ticks: fires FUN_0005adc0 to
+ *   - If the delay is running and < 0x10 ticks: fires encounter_squad_timer_expire to
  *     complete the squad spawn.
  * Squads with bit 3 of squad_def+0x28 set are skipped entirely.
  *
  * Confirmed: PUSH [EBP+8] before CALL 0x5ae70 in FUN_0005de80 (0x5df42).
  * Confirmed: ADD ESP,0xc after global_scenario_get + tag_block_get_element
  *   (pre-positioned args pattern: 0xb0, ESI pushed before global_scenario_get).
- * Confirmed: FUN_0005adc0(encounter_handle, squad_index) — 2 cdecl args.
+ * Confirmed: encounter_squad_timer_expire(encounter_handle, squad_index) — 2 cdecl args.
  * Confirmed: float at iVar5+0x50 promoted to double via FSTP [ESP]. */
 void FUN_0005ae70(int encounter_handle)
 {
@@ -1043,7 +1043,7 @@ void FUN_0005ae70(int encounter_handle)
     return;
   }
   do {
-    char *sq = (char *)FUN_0001c270(encounter, squad_index);
+    char *sq = (char *)encounter_get_squad(encounter, squad_index);
     squad_def = (char *)tag_block_get_element((char *)(squad + 0x80),
                                               (int)squad_index, 0xe8);
     delay = *(int16_t *)(sq + 0x12);
@@ -1061,7 +1061,7 @@ void FUN_0005ae70(int encounter_handle)
                          squad_def, (double)*(float *)(squad_def + 0x50));
         }
       } else if (delay < 0x10) {
-        FUN_0005adc0(encounter_handle, squad_index);
+        encounter_squad_timer_expire(encounter_handle, squad_index);
       } else {
         *(int16_t *)(sq + 0x12) = delay - 15;
       }
@@ -1374,7 +1374,7 @@ void FUN_0005c940(int encounter_handle)
  * Confirmed: EBX=encounter_index preserved across all inner calls.
  * Confirmed: ESI=actor record, EDI=encounter record throughout.
  */
-void FUN_0005d200(int actor_handle, int encounter_index, int16_t squad_index,
+void encounter_attach_actor(int actor_handle, int encounter_index, int16_t squad_index,
                   int flag)
 {
   char *actor;
@@ -1401,7 +1401,7 @@ void FUN_0005d200(int actor_handle, int encounter_index, int16_t squad_index,
                                   (int)(encounter_index & 0xffff), 0xb0);
 
   /* Squad record from encounter runtime data */
-  squad = (char *)FUN_0001c270(encounter, (int)squad_index);
+  squad = (char *)encounter_get_squad(encounter, (int)squad_index);
 
   /* Squad definition element from tag block */
   squad_def = (char *)tag_block_get_element(enc_def + 0x80,
@@ -1447,15 +1447,15 @@ void FUN_0005d200(int actor_handle, int encounter_index, int16_t squad_index,
       goto LAB_0005d365;
   }
 
-  FUN_0003d5f0(actor_handle, *(char *)(encounter + 0xd));
+  actor_set_active(actor_handle, *(char *)(encounter + 0xd));
   if (*(char *)(encounter + 0xd) != '\0')
-    FUN_0003ca40(actor_handle, 0);
+    actor_set_dormant(actor_handle, 0);
 
 LAB_0005d365:
   /* If actor has a unit, validate linkage */
   unit_index = *(int *)(actor + 0x18);
   if (unit_index != -1)
-    FUN_00059630(encounter_index, unit_index);
+    encounter_attach_unit(encounter_index, unit_index);
 
   /* Team change logic */
   if (*(short *)(actor + 0x3e) != *(short *)(encounter + 2)) {
@@ -1500,9 +1500,9 @@ LAB_0005d365:
 }
 
 /* 0x5d890 — Iterate all encounters; for each dirty encounter whose
- * flag at +0x28 is set, calls FUN_0005d420 (encounter_finalize/recycle).
+ * flag at +0x28 is set, calls encounter_update_status (encounter_finalize/recycle).
  *
- * Uses the same guarded iterator pattern as FUN_0005ddc0:
+ * Uses the same guarded iterator pattern as encounters_create_for_new_map:
  *   - Guards on ai_globals+1 before init and at every loop iteration.
  *   - Inner do-while skips encounters whose dirty flag (+0xd) is clear,
  *     unless flag==0 (first call after init, which forces one iteration).
@@ -1516,9 +1516,9 @@ LAB_0005d365:
  *
  * Store-offset table (none: no struct init, only reads):
  *   encounter+0x0d — dirty flag, read in inner loop continue condition
- *   encounter+0x28 — recycle-pending flag, gates FUN_0005d420 call
+ *   encounter+0x28 — recycle-pending flag, gates encounter_update_status call
  */
-void FUN_0005d890(void)
+void encounters_update_dirty_status(void)
 {
   data_iter_t iter;
   int encounter_handle;
@@ -1541,7 +1541,7 @@ void FUN_0005d890(void)
     if (encounter == NULL)
       return;
     if (*(char *)(encounter + 0x28) != '\0') {
-      FUN_0005d420(encounter_handle);
+      encounter_update_status(encounter_handle);
     }
   }
 }
@@ -1549,9 +1549,9 @@ void FUN_0005d890(void)
 /* 0x0005d910 — Place actors for an encounter or specific squad/platoon.
  * param_2: platoon index (-1 = all), param_3: squad index (-1 = all).
  * Resolves difficulty-based spawn counts, applies spawn-type delays,
- * calls FUN_0005c3a0 per actor slot, then finalises via FUN_0005d420 and
+ * calls encounter_get_actor_starting_location per actor slot, then finalises via encounter_update_status and
  * FUN_0005a6e0. */
-void FUN_0005d910(int encounter_handle, short param_2, short param_3)
+void encounter_create(int encounter_handle, short param_2, short param_3)
 {
   char *scenario;
   char *encounter_def;
@@ -1673,13 +1673,13 @@ void FUN_0005d910(int encounter_handle, short param_2, short param_3)
 
     if ((int16_t)count > 0) {
       for (j = 0; j < (int16_t)count; j++) {
-        FUN_0005c3a0((int16_t)i, delay, 0, encounter_handle);
+        encounter_get_actor_starting_location((int16_t)i, delay, 0, encounter_handle);
         delay = 0;
       }
     }
   }
 
-  FUN_0005d420(encounter_handle);
+  encounter_update_status(encounter_handle);
   FUN_0005a6e0();
 }
 
@@ -1699,7 +1699,7 @@ void FUN_0005d910(int encounter_handle, short param_2, short param_3)
  *     squad_def+0x4e, bounds-checks it against the encounter's squad count,
  *     and calls FUN_0003baa0 to move the actor to that squad, then calls
  *     FUN_00036dc0 to update the actor's firing state from platoon flags.
- * After the actor loop, calls FUN_0005d890 for encounter cleanup.
+ * After the actor loop, calls encounters_update_dirty_status for encounter cleanup.
  *
  * Confirmed:
  *   - cdecl, 1 stack arg (encounter_handle), RET (no stack fixup).
@@ -1795,15 +1795,15 @@ void FUN_0005dc00(int encounter_handle)
     actor_handle = next_handle;
   }
 
-  FUN_0005d890();
+  encounters_update_dirty_status();
 }
 
 /* 0x5ddc0 — Iterate all encounters and reset tallies for those matching
  * the current BSP or with the "not-automatically-recycled" flag cleared.
  * Uses a data iterator over encounter_data; for each encounter whose
  * dirty flag (+0xd) is set, fetches the encounter's tag definition and
- * calls FUN_0005d910 to reset vote tallies. */
-void FUN_0005ddc0(void)
+ * calls encounter_create to reset vote tallies. */
+void encounters_create_for_new_map(void)
 {
   char *scenario;
   data_iter_t iter;
@@ -1832,12 +1832,12 @@ void FUN_0005ddc0(void)
       scenario + 0x42c, encounter_handle & 0xffff, 0xb0);
     if (((*(int *)0x5ac9f4 ^ encounter_handle) & 0xffff) == 0 ||
         (~*(unsigned char *)(encounter_def + 0x20) & 1) != 0) {
-      FUN_0005d910(encounter_handle, -1, -1);
+      encounter_create(encounter_handle, -1, -1);
     }
   }
 }
 
-/* 0x5de80 — Per-tick encounter update. Every 30 ticks calls FUN_0005d890 and
+/* 0x5de80 — Per-tick encounter update. Every 30 ticks calls encounters_update_dirty_status and
  * FUN_0005a6e0. Then iterates all encounters; for each dirty encounter whose
  * handle index mod 15 matches the current tick mod 15, runs the full suite of
  * encounter update functions (tally, perception, squad management, etc.). */
@@ -1852,7 +1852,7 @@ void FUN_0005de80(void)
 
   tick = game_time_get();
   if (tick % 30 == 0) {
-    FUN_0005d890();
+    encounters_update_dirty_status();
     FUN_0005a6e0();
   }
   tick_mod15 = tick % 15;
@@ -1873,7 +1873,7 @@ void FUN_0005de80(void)
       return;
     (*(short *)0x5abb34)++;
     if ((short)((encounter_handle & 0xffff) % 15) == (short)tick_mod15) {
-      FUN_0005d420(encounter_handle);
+      encounter_update_status(encounter_handle);
       FUN_0005acf0(encounter_handle);
       FUN_0005c680(encounter_handle);
       FUN_0005ae70(encounter_handle);
@@ -1910,5 +1910,5 @@ void FUN_0005dfb0(void)
 
 /* Deferred functions (not yet ported — thunked from XBE):
  *   FUN_0005de80  — encounter_update (needs FUN_0005acf0 @<eax> audit)
- *   FUN_0005ddc0  — encounter_tally_reset_pass (shared loop pattern)
+ *   encounters_create_for_new_map  — encounter_tally_reset_pass (shared loop pattern)
  */

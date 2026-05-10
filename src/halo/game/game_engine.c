@@ -237,7 +237,7 @@ void game_engine_spawn_equipment(void)
 }
 
 /* Copy the current game variant and map name into the provided buffers. */
-bool FUN_000a8aa0(void *game_variant_dst, void *map_name_dst)
+bool game_engine_get_current_stage(void *game_variant_dst, void *map_name_dst)
 {
   assert_halt(game_variant_dst && map_name_dst);
   csmemcpy(game_variant_dst, (void *)0x5aa7a0, 0x68);
@@ -773,7 +773,7 @@ void game_engine_variant_cleanup(game_variant_t *variant)
 }
 
 /* Returns true if the game has not entered a restart/game-over state. */
-bool FUN_000ab720(void)
+bool game_engine_allow_pause(void)
 {
   return *(int *)0x5aa730 == 0;
 }
@@ -1161,7 +1161,7 @@ main_switch:
   return result;
 }
 
-/* FUN_000acb10 (0xacb10)
+/* match_game_type (0xacb10)
  *
  * Checks whether a set of game-type entries (an array of int16_t values)
  * permits the current engine type. Used to filter scenario multiplayer
@@ -1177,7 +1177,7 @@ main_switch:
  *   - entry == 0xE          (matches all except engine types 1 and 5)
  */
 /* 0xacb10 */
-bool FUN_000acb10(int player_index, int count, int16_t *entries)
+bool match_game_type(int player_index, int count, int16_t *entries)
 {
   int i;
   bool result;
@@ -1232,7 +1232,7 @@ void game_engine_periodic_equipment_spawn(void)
       player_index = *(int *)(*(int *)0x456b60 + 4);
     }
 
-    if (FUN_000acb10(player_index, 4, (int16_t *)(entry + 4))) {
+    if (match_game_type(player_index, 4, (int16_t *)(entry + 4))) {
       int16_t period_seconds = *(int16_t *)(entry + 0xe);
       spawn_period = 900;
 
@@ -1257,13 +1257,13 @@ void game_engine_periodic_equipment_spawn(void)
         int tag_index = ((int(__attribute__((regparm(1))) *)(int))0xaca70)(
           *(int *)(entry + 0x5c));
 #endif
-        FUN_0013fc20(placement, tag_index, -1);
+        object_placement_data_new(placement, tag_index, -1);
         *(int *)(placement + 0x18) = *(int *)(entry + 0x40);
         *(int *)(placement + 0x1c) = *(int *)(entry + 0x44);
         *(int *)(placement + 0x20) = *(int *)(entry + 0x48);
 
         {
-          int object_handle = FUN_00143c80(placement);
+          int object_handle = object_new(placement);
           if (object_handle != -1) {
             int object_data =
               (int)object_get_and_verify_type(object_handle, 0x1c);
@@ -1413,7 +1413,7 @@ void game_engine_hud_update_player(int player_handle, int hud_player,
   hud_print_message(*(unsigned short *)(datum + 2), buffer);
 }
 
-/* FUN_000ad160 (0xad160)
+/* find_netgame_flags (0xad160)
  *
  * Search scenario netgame flags (tag block at scenario+0x378, element
  * size 0x94) for entries matching the given type and team index filters.
@@ -1427,7 +1427,7 @@ void game_engine_hud_update_player(int player_handle, int hud_player,
  * Returns the number of matches found.
  */
 /* 0xad160 */
-int FUN_000ad160(float *position, float radius, float height, int16_t type,
+int find_netgame_flags(float *position, float radius, float height, int16_t type,
                  int16_t index, int max_count, int *out_indices)
 {
   int result;
@@ -1488,7 +1488,7 @@ int FUN_000ad160(float *position, float radius, float height, int16_t type,
 
 /* FUN_000ad270 (0xad270)
  *
- * Convenience wrapper around FUN_000ad160 that finds at most one matching
+ * Convenience wrapper around find_netgame_flags that finds at most one matching
  * netgame flag.  Returns the index of the first match, or -1 if none.
  */
 /* 0xad270 */
@@ -1496,7 +1496,7 @@ int FUN_000ad270(float *position, float radius, float height, int16_t type,
                  int16_t index)
 {
   int result = -1;
-  FUN_000ad160(position, radius, height, type, index, 1, &result);
+  find_netgame_flags(position, radius, height, type, index, 1, &result);
   return result;
 }
 
@@ -1546,7 +1546,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
 
   selected_goal_index = -1;
   /* netgame_flag_find_nearest: search for type-6 flag near unit */
-  FUN_000ad160((float *)(unit + 0xc), 0.5f, 0.0f, 6, -1, 1,
+  find_netgame_flags((float *)(unit + 0xc), 0.5f, 0.0f, 6, -1, 1,
                &selected_goal_index);
 
   if (selected_goal_index == -1 ||
@@ -1559,7 +1559,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
 
   next_goal_index = -1;
   /* netgame_flag_find_nearest: find paired type-7 flag by team index */
-  FUN_000ad160(0, 0.0f, 0.0f, 7, *(short *)(goal_entry + 0x12), 1,
+  find_netgame_flags(0, 0.0f, 0.0f, 7, *(short *)(goal_entry + 0x12), 1,
                &next_goal_index);
 
   if (next_goal_index == -1) {
@@ -1651,10 +1651,10 @@ void game_engine_player_update_netgame_flag(int player_handle)
   }
 
   /* object_place_at_position: teleport player to destination flag */
-  FUN_00143ae0(*(int *)(player + 0x34), (float *)next_goal_entry, unit_pos, 0);
+  object_set_position(*(int *)(player + 0x34), (float *)next_goal_entry, unit_pos, 0);
 
   if (*(short *)(player + 2) != -1) {
-    FUN_000b6ea0((unsigned short)*(short *)(player + 2), unit_pos);
+    player_control_set_facing((unsigned short)*(short *)(player + 2), unit_pos);
   }
 
   *(int *)(player + 0x70) =
@@ -1750,13 +1750,13 @@ void game_engine_validate_map_netgame_flags(void)
   int i;
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 0, 0, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 0, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing ctf flag [team %d]", 0);
   }
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 0, 1, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 0, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing ctf flag [team %d]", 1);
   }
@@ -1767,37 +1767,37 @@ void game_engine_validate_map_netgame_flags(void)
     0, 1, "NETGAME MAP FAILURE: ctf flag out of range [team %d]");
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 8, 0, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 8, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing hill flag [team %d]", 0);
   }
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 8, 1, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 8, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing hill flag [team %d]", 1);
   }
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 2, 0, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 2, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing oddball flag [team %d]", 0);
   }
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 2, 1, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 2, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing oddball flag [team %d]", 1);
   }
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 3, 0, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 3, 0, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing race flag [team %d]", 0);
   }
 
   found_index = -1;
-  FUN_000ad160(0, 0.0f, 0.0f, 3, 1, 1, &found_index);
+  find_netgame_flags(0, 0.0f, 0.0f, 3, 1, 1, &found_index);
   if (found_index == -1) {
     error(2, "NETGAME MAP FAILURE: missing race flag [team %d]", 1);
   }

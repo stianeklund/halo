@@ -1122,7 +1122,7 @@ after_local_handling:
       }
     }
     if (i == 4) {
-      FUN_00100620();
+      main_goto_main_menu();
     }
   }
 
@@ -1618,11 +1618,11 @@ bool ui_widgets_process_pause(void)
       }
 
       if (network_game) {
-        if (FUN_000ab720() && target_local_player == (int16_t)stack_index) {
+        if (game_engine_allow_pause() && target_local_player == (int16_t)stack_index) {
           root_widget = *(int *)(0x46cc20 + stack_index * 4);
           if (root_widget == 0) {
             client = network_game_client_get();
-            FUN_001257a0(client);
+            network_game_client_get_machine_index(client);
             FUN_00124c40(client);
 
             switch (local_player_count) {

@@ -26,7 +26,7 @@ int FUN_0012bdb0(void *countdown)
 /* Open the server's game (0x12c060).
  * Sets bit 0 of the flags byte at server+6 (marking the game as open),
  * then tells the underlying connection to open, and logs "opening game". */
-void FUN_0012c060(void *server)
+void network_game_server_open_game(void *server)
 {
   if (!server) {
     display_assert("server",
@@ -35,14 +35,14 @@ void FUN_0012c060(void *server)
     system_exit(-1);
   }
   *(uint8_t *)((char *)server + 6) |= 1;
-  FUN_001282f0(*(int *)server, 1);
+  network_server_allow_client_connections(*(int *)server, 1);
   network_game_log("opening game");
 }
 
 /* Close the server's game (0x12c0b0).
  * Clears bit 0 of the flags byte at server+6 (marking the game as closed),
  * then tells the underlying connection to close, and logs "closing game". */
-void FUN_0012c0b0(void *server)
+void network_game_server_close_game(void *server)
 {
   if (!server) {
     display_assert("server",
@@ -51,14 +51,14 @@ void FUN_0012c0b0(void *server)
     system_exit(-1);
   }
   *(uint8_t *)((char *)server + 6) &= ~1;
-  FUN_001282f0(*(int *)server, 0);
+  network_server_allow_client_connections(*(int *)server, 0);
   network_game_log("closing game");
 }
 
 /* Check if the server's game is open (0x12c100).
- * Returns bit 0 of the flags byte at server+6, set by FUN_0012c060
- * and cleared by FUN_0012c0b0. */
-bool FUN_0012c100(void *server)
+ * Returns bit 0 of the flags byte at server+6, set by network_game_server_open_game
+ * and cleared by network_game_server_close_game. */
+bool network_game_server_game_is_open(void *server)
 {
   if (!server) {
     display_assert("server",
@@ -71,7 +71,7 @@ bool FUN_0012c100(void *server)
 
 /* Check if the server's game is valid (0x12c160).
  * Returns bit 1 of the flags byte at server+6. */
-bool FUN_0012c160(void *server)
+bool network_game_server_game_is_valid(void *server)
 {
   if (!server) {
     display_assert("server",
@@ -106,7 +106,7 @@ void FUN_0012c1c0(int server, int client)
 
   ptr = s + 0x22e;
   for (i = 0x10; i != 0; i--) {
-    if (FUN_0012ac80(ptr)) {
+    if (network_player_is_valid(ptr)) {
       if ((short)*(signed char *)(ptr + 0x1c) ==
           *(short *)((char *)client + 0xc)) {
         csmemcpy(local_buf, ptr, 0x20);
@@ -240,7 +240,7 @@ void FUN_0012caa0(void *server)
 
   client = network_game_client_get();
   if (client != NULL) {
-    game_data = FUN_001257a0(network_game_client_get());
+    game_data = network_game_client_get_machine_index(network_game_client_get());
     loaded = *(uint8_t *)((char *)game_data + 0x430);
   } else {
     loaded = 0;
@@ -258,7 +258,7 @@ void FUN_0012caa0(void *server)
 /* Check whether any team (0 or 1) has zero active clients among the 16 client
  * slots at server+0x22E..+0x44C (stride 0x20).  Returns true when at least one
  * team is empty, false when both teams have members (0x12d040). */
-bool FUN_0012d040(void *server)
+bool get_unique_random_name(void *server)
 {
   char *s;
   char *client_ptr;
@@ -274,7 +274,7 @@ bool FUN_0012d040(void *server)
   counts[1] = 0;
   client_ptr = s + 0x24c;
   for (i = 0x10; i != 0; i--) {
-    if (FUN_0012ac80(client_ptr - 0x1e)) {
+    if (network_player_is_valid(client_ptr - 0x1e)) {
       team = *client_ptr;
       if (team >= 0 && team < 2)
         counts[team]++;
@@ -294,7 +294,7 @@ bool FUN_0012d040(void *server)
  * server+0x448 (stride 0x10) and for each valid slot, searches the 16 client
  * entries at server+0x22e (stride 0x20) for a matching team byte. Returns
  * false if any valid slot has no matching active client. */
-bool FUN_0012d0c0(void *server)
+bool get_unique_random_color(void *server)
 {
   char *s = (char *)server;
   short *slot = (short *)(s + 0x448);
@@ -305,7 +305,7 @@ bool FUN_0012d0c0(void *server)
       bool found = false;
       char *client_ptr = s + 0x24a;
       for (j = 0x10; j != 0; j--) {
-        if (FUN_0012ac80(client_ptr - 0x1c)) {
+        if (network_player_is_valid(client_ptr - 0x1c)) {
           if ((signed char)*client_ptr == *slot)
             found = true;
         }
@@ -343,7 +343,7 @@ bool FUN_0012d150(void *server)
 
 /* Return the connection handle from a machine struct (0x12d3b0).
  * Returns the first dword at machine+0, or 0 if machine is NULL. */
-int FUN_0012d3b0(void *machine)
+int network_game_server_adjust_machine_settings(void *machine)
 {
   if (machine != NULL)
     return *(int *)machine;
@@ -396,7 +396,7 @@ bool FUN_0012d880(int server, int new_connection)
     system_exit(-1);
   }
 
-  if (!FUN_0012c100((void *)server)) {
+  if (!network_game_server_game_is_open((void *)server)) {
     network_game_log(
       "network_game_server_add_new_client() failed because the game is closed");
     return result;
@@ -414,7 +414,7 @@ bool FUN_0012d880(int server, int new_connection)
           "in network_game_server_add_new_client()");
         result = false;
       } else {
-        if (!FUN_0012a160() && *(int *)addr_buf != 0x7f000001) {
+        if (!network_game_accept_remote_connections() && *(int *)addr_buf != 0x7f000001) {
           addr_str = FUN_00081b90(addr_buf);
           network_game_log(
             "remote system tried to join our server but we are not accepting "
@@ -545,14 +545,14 @@ bool FUN_0012dc20(int server)
 
   network_game_log("setting up a net game");
 
-  if (!FUN_000a8aa0(s + 0xac, s + 0x2c)) {
+  if (!game_engine_get_current_stage(s + 0xac, s + 0x2c)) {
     error(2, "network game setup failed; probably due to a missing playlist");
     return false;
   }
 
   csmemcpy(name_buf, (void *)0x281c38, 20);
   csmemset(name_buf + 20, 0, 44);
-  FUN_0012aaf0(name_buf);
+  network_game_generate_local_machine_name(name_buf);
   ustrncpy((wchar_t *)(s + 8), (wchar_t *)name_buf, 0xf);
 
   *(short *)(s + 0x26) = 0;
@@ -561,7 +561,7 @@ bool FUN_0012dc20(int server)
   *(char *)(s + 0x116) = 0x10;
   *(char *)(s + 0x117) = (*(char *)(s + 0xc8) != 0) + 1;
 
-  FUN_0012c060((void *)server);
+  network_game_server_open_game((void *)server);
 
   return true;
 }
@@ -843,7 +843,7 @@ loop_top:
     if (!FUN_00129cf0(*(int *)machine, 0, 0))
       goto remove_path;
 
-    if (!FUN_00128360(*(int *)machine))
+    if (!network_connection_connected(*(int *)machine))
       goto remove_path;
 
     do {
@@ -958,8 +958,8 @@ bool FUN_0012e750(int server)
     return result;
   }
 
-  if (!FUN_0012d150((void *)server) || !FUN_0012d0c0((void *)server) ||
-      FUN_0012d040((void *)server) ||
+  if (!FUN_0012d150((void *)server) || !get_unique_random_color((void *)server) ||
+      get_unique_random_name((void *)server) ||
       *(short *)(s + 0x22c) < (short)*(char *)(s + 0x115)) {
     csmemset(s + 0x488, 0, 0x10);
     i = 0;
@@ -968,7 +968,7 @@ bool FUN_0012e750(int server)
     timer_ms = FUN_0012bdb0(s + 0x488);
     if (timer_ms == 0) {
       if (FUN_0012dbb0(server) && *(char *)(s + 0x495) == 0) {
-        FUN_0012c0b0((void *)server);
+        network_game_server_close_game((void *)server);
         result = FUN_0012c290((void *)server);
         if (result == 1)
           return true;
@@ -1057,7 +1057,7 @@ skip_message:
              "network_game_server_dispose()");
   }
   if (*(int *)s != 0) {
-    FUN_00128d30(*(int *)s);
+    network_connection_delete(*(int *)s);
   }
   XSleep(1000, 0);
   FUN_00082b30();
@@ -1095,7 +1095,7 @@ bool network_game_server_start(void *server)
   }
 
   s = (char *)server;
-  if (!FUN_0012c160(server)) {
+  if (!network_game_server_game_is_valid(server)) {
     network_game_log("the server's game is invalid");
   } else {
     new_conn = 0;
@@ -1173,7 +1173,7 @@ bool network_server_manager_pregame_start(void *server)
     if (*(char *)(s + 0xc8) != 0) {
       client_ptr = s + 0x24c;
       for (i = 0x10; i != 0; i--) {
-        if (FUN_0012ac80(client_ptr - 0x1e)) {
+        if (network_player_is_valid(client_ptr - 0x1e)) {
           if (*client_ptr == 0) {
             *client_ptr = 1;
           } else if (*client_ptr == 1) {
@@ -1202,7 +1202,7 @@ bool network_server_manager_pregame_start(void *server)
   if (*(char *)(s + 0xc8) != 0) {
     client_ptr = s + 0x24c;
     for (i = 0x10; i != 0; i--) {
-      if (FUN_0012ac80(client_ptr - 0x1e)) {
+      if (network_player_is_valid(client_ptr - 0x1e)) {
         if (*client_ptr == 0) {
           *client_ptr = 1;
         } else if (*client_ptr == 1) {
@@ -1275,7 +1275,7 @@ bool FUN_0012f430(void *server, void *message)
     machine = FUN_0012d450((int)server, i);
     if (!FUN_0012c500((int)server, machine))
       continue;
-    connection = FUN_0012d3b0((void *)machine);
+    connection = network_game_server_adjust_machine_settings((void *)machine);
     if (!connection)
       continue;
     if (!FUN_00128660(connection))

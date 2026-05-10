@@ -1,4 +1,4 @@
-float *FUN_0007ab50(float *rgb, float *hsv_out)
+float *bitmap_clone(float *rgb, float *hsv_out)
 {
   float max_component;
   float min_component;

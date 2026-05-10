@@ -306,7 +306,7 @@ bool scenario_switch_structure_bsp(__int16 bsp_index)
 
 /* Return the current structure BSP index.
  * Confirmed: MOV AX,[0x326a0c]; RET — 2-instruction getter. */
-short FUN_0018f080(void)
+short global_structure_bsp_index_get(void)
 {
   return *(int16_t *)0x326a0c;
 }
@@ -581,7 +581,7 @@ done:
  *
  * Confirmed: asserts "global_structure_bsp" at line 0xc5.
  * Confirmed: tag_get('fog ', tag_index) at CALL 0x1ba140.
- * Confirmed: FUN_00099500(plane, position) is plane_test_point (dot - d).
+ * Confirmed: plane3d_distance_to_point(plane, position) is plane_test_point (dot - d).
  * Confirmed: FCHS negates the sum before return.
  * Confirmed: 0x2548fc = FLT_MAX (0x7f7fffff).
  * Confirmed: default return = -FLT_MAX (0xff7fffff).
@@ -633,7 +633,7 @@ float FUN_0018f510(void *location, void *position)
     return -3.4028235e+38f;
 
   if (plane != NULL) {
-    d = FUN_00099500(plane, position);
+    d = plane3d_distance_to_point(plane, position);
     return -(d + *(float *)(fog_tag + 0x74));
   }
 

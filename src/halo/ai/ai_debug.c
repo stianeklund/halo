@@ -266,10 +266,10 @@ void FUN_0004ab10(void)
     /* build follow-camera if a target was acquired */
     if (*(uint8_t *)0x5f91a8 != '\0') {
       char cam_state[0x48];
-      FUN_0005dfc0(cam_state, 0x3e4ccccd, 0, *(int32_t *)0x5f91bc);
-      FUN_0005e000(cam_state, (void *)0x5f91ac, *(int32_t *)0x5f91b8);
+      path_input_new(cam_state, 0x3e4ccccd, 0, *(int32_t *)0x5f91bc);
+      path_input_set_start(cam_state, (void *)0x5f91ac, *(int32_t *)0x5f91b8);
       if (*(float *)0x2533c0 < *(float *)0x5aca00) {
-        FUN_0005e070(cam_state, *(int32_t *)0x5aca00);
+        path_input_set_search_bounds(cam_state, *(int32_t *)0x5aca00);
       }
       if (*(uint8_t *)0x5aca04 != '\0') {
         int actor2 = FUN_000b6870(0);
@@ -284,10 +284,10 @@ void FUN_0004ab10(void)
           inner = (*(float *)0x5aca08 == *(float *)0x2533c0) ?
                     8.0f :
                     *(float *)0x5aca08;
-          FUN_0005e030(cam_state, (float *)&vpos, inner, -1, outer);
+          path_input_set_attractor(cam_state, (float *)&vpos, inner, -1, outer);
         }
       }
-      FUN_0005e090(cam_state, (void *)0x5f91dc, (void *)0x60d2c4);
+      path_state_new(cam_state, (void *)0x5f91dc, (void *)0x60d2c4);
       if (*(uint8_t *)0x5f91c0 != '\0' && *(uint8_t *)0x5ac9ff == '\0') {
         FUN_0005e0d0((void *)0x5f91dc, (void *)0x5f91c4, *(int32_t *)0x5f91d0,
                      *(int32_t *)0x5aca10);
@@ -297,7 +297,7 @@ void FUN_0004ab10(void)
         FUN_0005e0d0((void *)0x5f91dc, (void *)0x5f91c4, *(int32_t *)0x5f91d0,
                      *(int32_t *)0x5aca10);
       }
-      FUN_0005eae0((void *)0x5f91dc, (void *)0x60d268);
+      path_state_build_path((void *)0x5f91dc, (void *)0x60d268);
       *(uint8_t *)0x5f91d8 = 1;
       *(uint8_t *)0x60d2d0 = 1;
       *(int32_t *)0x60d2c8 = game_time_get();

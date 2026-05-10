@@ -68,7 +68,7 @@ void game_looping_sound_delete(int sound_handle)
 /* Play a spatialized sound impulse at a world location (0x1c73d0).
  * Copies 44 bytes of location data into a sound_params struct with
  * spatialization_mode=1 (positional), then forwards to sound_start. */
-void FUN_001c73d0(int sound_tag_index, void *location, float scale)
+void unattached_impulse_sound_new(int sound_tag_index, void *location, float scale)
 {
   char sound_params[0x40];
 

@@ -6,7 +6,7 @@
 
 #include "../../common.h"
 
-/* FUN_0001c300 (0x1c300) — actor_execute_current_action
+/* actor_action_perform (0x1c300) — actor_execute_current_action
  *
  * Dispatches the current action's execute handler via the action_definitions
  * table. Returns the handler's result, or 0 if no handler is set.
@@ -17,7 +17,7 @@
  * entry). Confirmed: handler called with (actor_handle), returns int32_t.
  * Confirmed: returns 0 when handler is NULL (XOR BL,BL; MOV AL,BL at 0x1c369).
  */
-int32_t FUN_0001c300(int actor_handle)
+int32_t actor_action_perform(int actor_handle)
 {
   typedef int32_t (*action_execute_fn_t)(int);
 
@@ -37,7 +37,7 @@ int32_t FUN_0001c300(int actor_handle)
   return 0;
 }
 
-/* FUN_0001c370 (0x1c370) — actor_action_update
+/* actor_action_update (0x1c370) — actor_action_update
  *
  * Dispatches the current action's update handler (table+0x1c) for the given
  * actor. Called each tick from the actor update loop after the decision logic
@@ -51,7 +51,7 @@ int32_t FUN_0001c300(int actor_handle)
  * Confirmed: handler called with (actor_handle); no return value used by
  *   caller (void dispatch).
  */
-void FUN_0001c370(int actor_handle)
+void actor_action_update(int actor_handle)
 {
   typedef void (*action_update_fn_t)(int);
 
@@ -70,7 +70,7 @@ void FUN_0001c370(int actor_handle)
   }
 }
 
-/* FUN_0001c3e0 (0x1c3e0) — actor_action_notify
+/* actor_action_control (0x1c3e0) — actor_action_notify
  *
  * Dispatches the current action's notify handler (table+0x20) for the given
  * actor. Called each tick from the actor update loop after actor_action_update,
@@ -86,7 +86,7 @@ void FUN_0001c370(int actor_handle)
  * Inferred: handler name "notify" — binary only confirms it is the table+0x20
  *   slot; the semantic role is not directly evidenced.
  */
-void FUN_0001c3e0(int actor_handle)
+void actor_action_control(int actor_handle)
 {
   typedef void (*action_notify_fn_t)(int);
 
@@ -105,7 +105,7 @@ void FUN_0001c3e0(int actor_handle)
   }
 }
 
-/* FUN_0001c450 (0x1c450)
+/* actor_action_replace_prop (0x1c450)
  * Dispatch action-specific prop replacement for an actor.
  *
  * Looks up the actor via actor_data, validates the action index is in range,
@@ -119,7 +119,7 @@ void FUN_0001c3e0(int actor_handle)
  * Confirmed: table at 0x253fcc, stride 0x38, first field is function pointer.
  * Confirmed: indirect call passes (actor_handle, old_prop, new_prop).
  * Confirmed: __FILE__ = "c:\halo\SOURCE\ai\actions.c". */
-void FUN_0001c450(int actor_handle, int old_prop, int new_prop)
+void actor_action_replace_prop(int actor_handle, int old_prop, int new_prop)
 {
   typedef void (*action_prop_replace_fn_t)(int, int, int);
 
@@ -258,7 +258,7 @@ const char *FUN_0001d5c0(int16_t action_type)
   return name;
 }
 
-/* FUN_0001d6d0 (0x1d6d0) — actor_get_action_priority_flag
+/* actor_action_try_to_panic (0x1d6d0) — actor_get_action_priority_flag
  *
  * Returns the priority flag (short) for the actor's current action from the
  * action_definitions table. A non-zero value indicates the action raises the
@@ -271,7 +271,7 @@ const char *FUN_0001d5c0(int16_t action_type)
  *   base 0x253fa0, same field used in actor_set_action at 0x1d030+0x79).
  * Confirmed: assert line 0xe98, __FILE__ "c:\halo\SOURCE\ai\actions.c".
  */
-int16_t FUN_0001d6d0(int actor_handle)
+int16_t actor_action_try_to_panic(int actor_handle)
 {
   char *actor;
   int16_t action;

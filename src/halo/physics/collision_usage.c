@@ -196,7 +196,7 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
             results_buf[0x304 + i] & 0x7fffffff,
             0x10);
           cluster_idx = *(int16_t *)((char *)elem + 8);
-          if (FUN_001984c0(cluster_idx)) {
+          if (structure_cluster_mark(cluster_idx)) {
             obj_handle = cluster_partition_object_iter_first(
               &iter_state, cluster_idx);
             while (obj_handle != -1) {

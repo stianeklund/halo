@@ -277,13 +277,13 @@ float *FUN_00099400(float *out_line, float *point_a, float *point_b)
 }
 
 /* Signed distance from a point to a plane (normal·point - d). */
-float FUN_00099500(float *plane, float *point)
+float plane3d_distance_to_point(float *plane, float *point)
 {
   return plane[0] * point[0] + plane[1] * point[1] + plane[2] * point[2] -
          plane[3];
 }
 
-uint32_t FUN_00099530(float alpha, float *color)
+uint32_t real_a_rgb_color_to_pixel32(float alpha, float *color)
 {
   uint32_t a;
   uint32_t r;
@@ -1015,7 +1015,7 @@ static float g_decal_transformed_projection[35];
 static bool g_warned_decal_vertex_overflow;
 static bool g_warned_decal_quad_overflow;
 
-void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
+void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                   void *direction, float scale, bool randomize,
                   int16_t color_index, int flags)
 {
@@ -1715,7 +1715,7 @@ void FUN_0009ac90(int decal_tag_index, int16_t *collision_result,
                  (float *)(decal_tag + 0x34), (float *)(decal_tag + 0x40),
                  decals_random_real(0.0f, 1.0f));
     *(uint32_t *)(decal + 0x24) =
-      FUN_00099530(decals_random_real(*(float *)(decal_tag + 0x2c),
+      real_a_rgb_color_to_pixel32(decals_random_real(*(float *)(decal_tag + 0x2c),
                                       *(float *)(decal_tag + 0x30)),
                    color);
     *(uint8_t *)(decal + 0x28) = 0xff;
@@ -1821,7 +1821,7 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
         collision_result[0] != 0 && collision_result[0] == 2) {
       uint8_t *decal_tag = (uint8_t *)tag_get(0x64656361, decal_tag_index);
       if ((decal_tag[0] & 0x10) == 0) {
-        FUN_0009ac90(decal_tag_index, collision_result, direction, scale,
+        decal_new_from_collision(decal_tag_index, collision_result, direction, scale,
                      randomize, color_index, flags);
       }
     }

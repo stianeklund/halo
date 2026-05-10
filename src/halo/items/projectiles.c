@@ -1,5 +1,5 @@
 /* Clear bit 1 of projectile flags at offset 0x1dc. */
-void FUN_000f7cb0(int projectile_handle)
+void projectile_kill_tracer(int projectile_handle)
 {
   char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
   *(uint32_t *)(proj + 0x1dc) &= ~2u;
@@ -20,14 +20,14 @@ void FUN_000f7ce0(void)
 }
 
 /* Set the projectile's target handle at offset 0x1e8. */
-void FUN_000f7d30(int projectile_handle, int target)
+void projectile_set_target_object_index(int projectile_handle, int target)
 {
   char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
   *(int *)(proj + 0x1e8) = target;
 }
 
 /* Set bit 1 of projectile flags at offset 0x1dc. */
-void FUN_000f7d50(int projectile_handle)
+void projectile_make_tracer(int projectile_handle)
 {
   char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
   *(uint32_t *)(proj + 0x1dc) |= 2u;
@@ -39,7 +39,7 @@ void FUN_000f7d50(int projectile_handle)
  * then negates the result.  The sign flip converts a positive tag-stored value
  * into the downward (negative) acceleration component used by the projectile
  * physics integrator.  Leaf function, no callees. */
-float FUN_000f7d80(int projectile_tag)
+float projectile_get_ballistic_acceleration(int projectile_tag)
 {
   return -(*(float *)0x32512c * *(float *)(projectile_tag + 0x1cc));
 }
@@ -50,7 +50,7 @@ float FUN_000f7d80(int projectile_tag)
  * Otherwise returns the zero reference unchanged.
  * Used by the caller to normalize a float quantity against the tag's field,
  * guarding against division by zero or a zero/unset field. */
-float FUN_000f7da0(void *proj_tag, float value)
+float projectile_estimate_time_to_target(void *proj_tag, float value)
 {
   float field;
   field = *(float *)((char *)proj_tag + 0x1e4);
@@ -76,7 +76,7 @@ bool dangerous_projectiles_near_player(void)
 }
 
 /* Clear the projectile's target handle if it matches the given value. */
-void FUN_000f7e10(int projectile_handle, int target)
+void projectile_handle_deleted_object(int projectile_handle, int target)
 {
   char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
   if (*(int *)(proj + 0x1e8) == target)
@@ -96,10 +96,10 @@ void FUN_000f7e40(int projectile_handle, int16_t state)
 }
 
 /* Dispatch a projectile detonation effect based on the type word at tag_def[0].
- * Type 3 (contrail/attached): calls FUN_0009ee40 with the attached object
+ * Type 3 (contrail/attached): calls effect_new_attached_from_markers with the attached object
  * handle at tag_def[+0x38] and the marker-slot index at tag_def[+0x3e]
  * (uint16_t), plus hardcoded marker_count=5 and effect_definition=0x31f3a0. Any
- * other type: calls FUN_0009f0e0 with NULL translational-velocity,
+ * other type: calls effect_new_unattached_from_markers with NULL translational-velocity,
  * marker_count=5, effect_definition=0x31f3a0, and a trailing integer 1.
  * Both branches pass through the caller-supplied marker_points/marker_forwards
  * arrays and scale_a/scale_b values; unknown tail floats are 0.0/0.0.
@@ -115,11 +115,11 @@ void FUN_000f7e60(int effect_tag_index, int object_index, void *tag_def,
   if (*(int16_t *)tag_def == 3) {
     attached_handle = *(int *)((char *)tag_def + 0x38);
     marker_index = *(uint16_t *)((char *)tag_def + 0x3e);
-    FUN_0009ee40(effect_tag_index, object_index, attached_handle, marker_index,
+    effect_new_attached_from_markers(effect_tag_index, object_index, attached_handle, marker_index,
                  5, (void *)0x31f3a0, marker_points, marker_forwards, scale_a,
                  scale_b, 0.0f, 0.0f);
   } else {
-    FUN_0009f0e0(effect_tag_index, object_index, NULL, 5, (void *)0x31f3a0,
+    effect_new_unattached_from_markers(effect_tag_index, object_index, NULL, 5, (void *)0x31f3a0,
                  marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f,
                  1);
   }
@@ -133,7 +133,7 @@ void FUN_000f7e60(int effect_tag_index, int object_index, void *tag_def,
  *   3 = armed flag: 1.0 if projectile[0x1dc] & 0x2, else 0.0
  * Writes the result to projectile[0xd4 + i*4] (four consecutive float slots).
  * Asserts (halts) on any selector value outside 0..3. */
-void FUN_000f7ec0(int projectile_handle)
+void projectile_export_function_values(int projectile_handle)
 {
   char *proj;
   char *tag;
@@ -215,7 +215,7 @@ float FUN_000f7fa0(void *tag, float range_begin, float range_end)
  * object_detach_from_parent to unlink the projectile from the weapon/unit that
  * fired it. Returns 1 (bool true) unconditionally on success. Source line
  * reference: c:\halo\SOURCE\items\projectiles.c line 1845. */
-char FUN_000f8000(int projectile_handle)
+char projectile_handle_parent_destroyed(int projectile_handle)
 {
   char *proj;
 
@@ -239,7 +239,7 @@ char FUN_000f8000(int projectile_handle)
  * at call sites (minimum cone half-angle).  The resulting direction is
  * written to 'result'.  This is the global-seed variant; callers that own a
  * local seed call random_direction3d directly. */
-void FUN_000f8070(float *forward, float zero, float angle, float *result)
+void random_vector_in_cone3d(float *forward, float zero, float angle, float *result)
 {
   int *seed = get_global_random_seed_address();
   random_direction3d(seed, forward, zero, angle, result);
@@ -256,7 +256,7 @@ void FUN_000f8070(float *forward, float zero, float angle, float *result)
  * optional: travel time = dist / speed; 0.0 if speed <= 0.0 Returns 1 (bool
  * true) unconditionally. Source ref: c:\halo\SOURCE\items\projectiles.c line
  * 0x399 (921). */
-int FUN_000f8410(float speed, float *origin, float *target, float *aim_vector,
+int projectile_aim_linear(float speed, float *origin, float *target, float *aim_vector,
                  float *out_speed, float *out_t, float *out_dist)
 {
   float local_vec[3];
@@ -307,11 +307,11 @@ int FUN_000f8410(float speed, float *origin, float *target, float *aim_vector,
  *
  * If the projectile tag has the ballistic-arc flag set (bit 1 of byte at
  * param_1+0x17c) AND the per-arc gravity value at param_1+0x1cc is > 0.0f,
- * FUN_000f80a0 (ballistic arc solver) is called to compute a curved
- * trajectory.  Otherwise the simpler straight-line aim helper FUN_000f8410
+ * projectile_aim_ballistic (ballistic arc solver) is called to compute a curved
+ * trajectory.  Otherwise the simpler straight-line aim helper projectile_aim_linear
  * is used.  param_13, when non-NULL, receives 0 for the arc path and 1 for
  * the straight-line path. */
-void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4,
+void projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
                   int param_5, int param_6, int param_7, int param_8,
                   int param_9, int param_10, int param_11, int param_12,
                   void *param_13)
@@ -329,7 +329,7 @@ void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4,
 
   if ((*(unsigned char *)(projectile_tag + 0x17c) & 2) &&
       (*(float *)(projectile_tag + 0x1cc) > *(float *)0x2533c0)) {
-    FUN_000f80a0(speed, *(float *)(projectile_tag + 0x1cc), (float *)param_2,
+    projectile_aim_ballistic(speed, *(float *)(projectile_tag + 0x1cc), (float *)param_2,
                  (float *)param_3, param_5, (float *)param_6, (float *)param_7,
                  (char)param_8, (float *)param_9, (float *)param_10,
                  (float *)param_11, (float *)param_12, 0, 0);
@@ -337,7 +337,7 @@ void FUN_000f84d0(int projectile_tag, int param_2, int param_3, void *param_4,
       *out = 0;
     }
   } else {
-    FUN_000f8410(speed, (float *)param_2, (float *)param_3, (float *)param_9,
+    projectile_aim_linear(speed, (float *)param_2, (float *)param_3, (float *)param_9,
                  (float *)param_10, (float *)param_11, (float *)param_12);
     if (out != NULL) {
       *out = 1;
@@ -609,7 +609,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   char *proj; /* projectile object data pointer (type 0x20) */
   char *proj_tag; /* projectile tag data pointer (group 'proj') */
   int effect_tag; /* current effect tag index; updated in burst block */
-  void *effect_def[2]; /* effect definition passed to FUN_0009f0e0 */
+  void *effect_def[2]; /* effect definition passed to effect_new_unattached_from_markers */
 
   /* burst-limit locals */
   char *parent_obj; /* type-any parent object ptr */
@@ -628,9 +628,9 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   float parent_pos[3]; /* parent world position (local_b8) */
   float saved_vel[3]; /* saved proj object position at 0xc..0x14 */
 
-  /* damage params for area damage (0xac bytes as in FUN_00136750) */
+  /* damage params for area damage (0xac bytes as in damage_data_new) */
   char damage_params[0xac];
-  float fwd2[3]; /* forward buf for area-damage FUN_00141360 ([EBP-0x74]) */
+  float fwd2[3]; /* forward buf for area-damage object_get_orientation ([EBP-0x74]) */
   float pos2[3]; /* world pos for area-damage FUN_001412f0 ([EBP-0x8c]) */
 
   /* secondary detonation effect */
@@ -719,7 +719,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
       saved_vel[1] = *(float *)(proj + 0x10);
       saved_vel[2] = *(float *)(proj + 0x14);
 
-      FUN_00143be0(projectile_handle, parent_pos, (void *)0);
+      object_translate(projectile_handle, parent_pos, (void *)0);
       object_try_place(projectile_handle, saved_vel);
       object_update_children_recursive(projectile_handle);
     }
@@ -747,7 +747,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
 
   /* --- Block 3: Primary effect at projectile world position. --- */
   object_get_world_position(projectile_handle, (vector3_t *)pos);
-  FUN_00141360(projectile_handle, fwd, up_buf);
+  object_get_orientation(projectile_handle, fwd, up_buf);
 
   /* MSVC stack overlap: up_buf at [EBP-0x48] is the second marker forward
    * (forwards[1]) when the effects system indexes with marker_count=2. */
@@ -758,18 +758,18 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   fwd[4] = up_buf[1];
   fwd[5] = up_buf[2];
 
-  FUN_0009f0e0(effect_tag, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
+  effect_new_unattached_from_markers(effect_tag, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
                pos, fwd, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
   /* --- Block 4: Area damage (if parent valid and tag has splash entry). --- */
   if ((*(int *)(proj + 0xcc) != -1) && (*(int *)(proj_tag + 0x220) != -1)) {
-    FUN_00136750(damage_params, *(int *)(proj_tag + 0x220));
+    damage_data_new(damage_params, *(int *)(proj_tag + 0x220));
 
     /* Set "area damage" flag bit 3 (at damage_params+4). */
     *(uint32_t *)(damage_params + 4) |= 8u;
 
     /* Forward only (no up needed). */
-    FUN_00141360(projectile_handle, fwd2, (float *)0);
+    object_get_orientation(projectile_handle, fwd2, (float *)0);
 
     /* Get world position for damage origin. */
     object_get_world_position(projectile_handle, (vector3_t *)pos2);
@@ -790,7 +790,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
     *(int *)(damage_params + 0x08) = *(int *)(proj + 0x70);
     *(short *)(damage_params + 0x10) = *(short *)(proj + 0x68);
 
-    FUN_00137d20(damage_params, *(int *)(proj + 0xcc), (short)-1, (short)-1, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
+    object_cause_damage(damage_params, *(int *)(proj + 0xcc), (short)-1, (short)-1, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
                  (short)-1, 0u);
   }
 
@@ -811,7 +811,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
     }
 
     det_effect = *(int *)((char *)det_entry + 0x74);
-    FUN_0009f0e0(det_effect, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
+    effect_new_unattached_from_markers(det_effect, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
                  pos, fwd, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
   }
 
@@ -869,7 +869,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
  * Disasm-verified: call at 0x000f8eaf passes handle in EAX (FUN_000f8590);
  * call at 0x000f8ebf passes handle in EAX (FUN_000f8640).
  * All cdecl stack args confirmed from PUSH/ADD-ESP pairs. */
-int FUN_000f8d30(int projectile_handle)
+int projectile_new(int projectile_handle)
 {
   char *proj; /* projectile object base (type 0x20) */
   char *proj_tag; /* projectile tag data ('proj') */
@@ -960,7 +960,7 @@ int FUN_000f8d30(int projectile_handle)
   /* Update velocity direction cache and detonation radius cache.
    * Both functions take the handle in EAX (register-arg convention). */
   FUN_000f8590(projectile_handle);
-  FUN_000f7ec0(projectile_handle);
+  projectile_export_function_values(projectile_handle);
   FUN_000f8640(projectile_handle);
 
   /* Set active + detonating-armed flag bits. */
@@ -994,7 +994,7 @@ int FUN_000f8d30(int projectile_handle)
  * (random_seed_get_direction3d args + random_math_real arg +
  * real_vector3d_valid arg). The float constant at 0x2568bc = PI/2 (0x3FC90FDB).
  */
-void FUN_000f8ee0(int projectile_handle, float *acceleration)
+void projectile_accelerate(int projectile_handle, float *acceleration)
 {
   char *proj; /* projectile object base (type 0x20) */
   char *vel; /* pointer to proj+0x18 (translational velocity xyz) */
@@ -1086,7 +1086,7 @@ void FUN_000f8ee0(int projectile_handle, float *acceleration)
  *      (local_24, used later as an alpha/scale weight).
  *   4. If the collision state is 3 (world surface) and the tag has a valid
  *      detonation_causer, asserts the collision object index, builds damage
- *      params via FUN_00136750, then applies area damage via FUN_00137d20.
+ *      params via damage_data_new, then applies area damage via object_cause_damage.
  *   5. Selects the detonation result type (0-4) from a tag element block,
  *      using random tests for probability-gated outcomes.
  *   6. Handles a second pass for collision state 2 (shield/object bounce)
@@ -1099,7 +1099,7 @@ void FUN_000f8ee0(int projectile_handle, float *acceleration)
  * (FUN_0010b910/0010c510/0010c8e0) 3 - ricochet: velocity reflected by (1 -
  * elasticity) * direction 4 - detonate: spawn effects, optionally attach to
  * target, set flags
- *   9. Emits hit effects (FUN_0009ee40 / FUN_0009f0e0) conditioned on
+ *   9. Emits hit effects (effect_new_attached_from_markers / effect_new_unattached_from_markers) conditioned on
  *      the collision normal dot product.
  *  10. For detonation result 4 and "attach on impact" tag flag, computes
  *      a spin-rate scale and stores it at proj+0x1f4.
@@ -1149,7 +1149,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   float vel_sq;
 
   /* local_4 / local_8: initially the tag element index (int16_t range), later
-   * the 32-bit effect-tag handle passed to FUN_0009ee40 / FUN_0009f0e0.
+   * the 32-bit effect-tag handle passed to effect_new_attached_from_markers / effect_new_unattached_from_markers.
    * The binary uses the same 4-byte stack slot (raw int copy in MOV, not FPU).
    */
   int tag_idx;
@@ -1166,10 +1166,10 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   short sTemp;
   float *seed;
 
-  /* Damage params buffer (0xac bytes; see FUN_00136750). */
+  /* Damage params buffer (0xac bytes; see damage_data_new). */
   char damage_params[0xac];
 
-  /* Marker/position arrays for FUN_0009ee40 / FUN_0009f0e0.
+  /* Marker/position arrays for effect_new_attached_from_markers / effect_new_unattached_from_markers.
    * MSVC stack overlap: marker_count=5 but only marker_forwards[0] is
    * explicitly set.  In the MSVC layout the next 4 float[3] locals are
    * contiguous and read as forwards[1..4] by the effects system:
@@ -1251,7 +1251,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x47c, 1);
       system_exit(-1);
     }
-    FUN_00136750(damage_params, *(int *)(proj_tag + 0x230));
+    damage_data_new(damage_params, *(int *)(proj_tag + 0x230));
     /* Copy marker positions from col_result. */
     col_pos[0] = *(float *)((char *)col_result + 0x18);
     col_pos[1] = *(float *)((char *)col_result + 0x1c);
@@ -1265,14 +1265,14 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
     vel_local[2] = in_velocity[2];
     normalize3d(vel_local);
     /* Call area damage. */
-    /* FUN_00137d20: last arg is the direction pointer (ESI+0x24) cast to uint.
+    /* object_cause_damage: last arg is the direction pointer (ESI+0x24) cast to uint.
      */
-    FUN_00137d20(damage_params, *(int *)((char *)col_result + 0x38),
+    object_cause_damage(damage_params, *(int *)((char *)col_result + 0x38),
                  (short)col_result[0x1f], (short)col_result[0x1e],
                  (short)col_result[0x27],
                  (unsigned int)(uintptr_t)((char *)col_result + 0x24));
     /* Update tag_idx from area-damage result material type.
-     * FUN_00137d20 writes the resolved material type to damage_params+0x4C
+     * object_cause_damage writes the resolved material type to damage_params+0x4C
      * and velocity scale to damage_params+0x48.  Original binary reads from
      * [EBP-0x40] and [EBP-0x44] which are damage_params+0x4C/0x48
      * (damage_params base = EBP-0x8C). */
@@ -1381,7 +1381,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   /* 6. Collision state == 2 with bit 0x8: breakable surface.           */
   /* ------------------------------------------------------------------ */
   if (col_result[0] == 2 && (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) { /* buf-alias-ok */
-    FUN_00136750(damage_params, *(int *)(proj_tag + 0x230));
+    damage_data_new(damage_params, *(int *)(proj_tag + 0x230));
     /* MSVC stack overlap: in the original binary col_pos/col_pos2/vel_local
      * overlap the damage_params buffer. Write directly into damage_params. */
     *(uint32_t *)(damage_params + 0x04) |= 8;
@@ -1621,12 +1621,12 @@ apply_speed_scale:
     if (col_result[0] == 3) {
       /* effect_update(tag, proj_handle, attached_obj, node_idx, 5, def, pts,
        * fwds, sA, sB, 0, 0) */
-      FUN_0009ee40(
+      effect_new_attached_from_markers(
         tag_idx, projectile_handle, *(int *)((char *)col_result + 0x38),
         (uint16_t)col_result[0x1f], 5, (void *)0x31f3a0, marker_points,
         marker_forwards, scale_a, scale_b, 0.0f, 0.0f);
     } else {
-      FUN_0009f0e0(tag_idx, projectile_handle, 0, 5, (void *)0x31f3a0,
+      effect_new_unattached_from_markers(tag_idx, projectile_handle, 0, 5, (void *)0x31f3a0,
                    marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f,
                    1);
     }
@@ -1637,13 +1637,13 @@ apply_speed_scale:
   /* ------------------------------------------------------------------ */
   if (!(proj[0x77] & 0x20) && ((proj[0x77] & 0x10) || det_result == 4)) {
     if (col_result[0] == 3) {
-      FUN_0009ee40(*(int *)(proj_tag + 0x200), projectile_handle,
+      effect_new_attached_from_markers(*(int *)(proj_tag + 0x200), projectile_handle,
                    *(int *)((char *)col_result + 0x38),
                    (uint16_t)col_result[0x1f], 5, (void *)0x31f3a0,
                    marker_points, marker_forwards, scale_a, scale_b, 0.0f,
                    0.0f);
     } else {
-      FUN_0009f0e0(*(int *)(proj_tag + 0x200), projectile_handle, 0, 5,
+      effect_new_unattached_from_markers(*(int *)(proj_tag + 0x200), projectile_handle, 0, 5,
                    (void *)0x31f3a0, marker_points, marker_forwards, scale_a,
                    scale_b, 0.0f, 0.0f, 1);
     }
@@ -1715,7 +1715,7 @@ apply_speed_scale:
     }
     proj[1] = proj[1] | 0x20;
     proj[0x77] = proj[0x77] | 0x8;
-    FUN_00143be0(projectile_handle, hit_pos,
+    object_translate(projectile_handle, hit_pos,
                  (float *)((char *)col_result + 0xc));
     if (col_result[0] == 3) {
       object_attach_to_parent(*(int *)((char *)col_result + 0x38),

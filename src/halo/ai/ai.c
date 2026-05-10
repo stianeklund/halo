@@ -11,16 +11,16 @@
  * Called from ai_update on the first-frame/map-load branch.
  * Copies ai_globals[6..7] (int16_t) into ai_globals[4..5], then clears
  * both ai_globals[6..7] and the byte flag at ai_globals[3].
- * Iterates all active player-actors (flag=1) via FUN_00059b10/FUN_00059b50.
+ * Iterates all active player-actors (flag=1) via encounter_iterator_next/FUN_00059b50.
  * For each actor record:
- *   - if record+0xb is nonzero: calls FUN_0003d950(actor_handle, 0)
+ *   - if record+0xb is nonzero: calls actor_erase(actor_handle, 0)
  *     to delete/dispose the actor entry.
  *   - if record+0xb is zero and record+0x6a > 0: calls FUN_0003ec80(@esi)
  *     to activate the actor (full AI init sequence).
  * The datum handle comes from iter offset 0x14 (stored by FUN_00059b50).
  * Confirmed: void(void), called from ai_update at 0x41206 with no args.
  * Confirmed: FUN_0003ec80 takes @esi register arg (MOV ESI,[EBP-8]; CALL).
- * Confirmed: FUN_0003d950 is cdecl with 2 stack args (PUSH 0; PUSH EAX; CALL;
+ * Confirmed: actor_erase is cdecl with 2 stack args (PUSH 0; PUSH EAX; CALL;
  * ADD ESP,8). */
 void FUN_0003f5f0(void)
 {
@@ -37,12 +37,12 @@ void FUN_0003f5f0(void)
   *(char *)(g + 3) = 0;
 
   /* iterate over all active player-actors */
-  FUN_00059b10(iter, 1);
+  encounter_iterator_next(iter, 1);
   record = (char *)FUN_00059b50(iter);
   while (record != 0) {
     if (*(char *)(record + 0xb) != 0) {
       /* actor marked for deletion — dispose it */
-      FUN_0003d950(*(int *)(iter + 0x14), 0);
+      actor_erase(*(int *)(iter + 0x14), 0);
     } else {
       if (*(int16_t *)(record + 0x6a) > 0) {
         /* actor ready for activation — full init via @esi */
@@ -56,7 +56,7 @@ void FUN_0003f5f0(void)
 /* ai_initialize: allocate AI globals and initialize all AI subsystems.
  * Allocates 0x8dc bytes via game_state_malloc, stores the pointer at
  * global 0x632574, zeroes the block, then calls 9 subsystem init
- * functions in order. The last call (FUN_0002b5d0) is a tail-call
+ * functions in order. The last call (actor_move_get_avoidance_direction) is a tail-call
  * (JMP in the original binary).
  * Confirmed: PUSH order for game_state_malloc("ai globals", NULL, 0x8dc);
  * assert string "ai_globals" at line 0x8c (140) of ai.c. */
@@ -70,14 +70,14 @@ void ai_initialize(void)
   }
   csmemset(*(void **)0x632574, 0, 0x8dc);
   FUN_00048e90();
-  FUN_00053620();
+  set_real_point3d();
   FUN_0005df80();
-  FUN_0003a990();
+  actors_initialize();
   FUN_00064100();
   FUN_00058eb0();
   FUN_000540b0();
   FUN_00042a30();
-  FUN_0002b5d0();
+  actor_move_get_avoidance_direction();
 }
 
 /* ai_dispose: shut down all AI subsystems in reverse-init order.
@@ -86,12 +86,12 @@ void ai_initialize(void)
 void ai_dispose(void)
 {
   FUN_00042b80();
-  FUN_000540c0();
-  FUN_00058fa0();
+  ai_profile_dispose();
+  encounters_dispose();
   FUN_00064140();
   actors_dispose();
   FUN_0005df90();
-  FUN_00053640();
+  ai_debug_lineoffire_success();
   FUN_00048f50();
 }
 
@@ -104,22 +104,22 @@ void ai_dispose_from_old_map(void)
 {
   FUN_00042ca0();
   FUN_000540e0();
-  FUN_00058fb0();
+  encounter_compute_activation_cluster_bit_vector();
   FUN_00064160();
   actors_dispose_from_old_map();
   FUN_0005dfb0();
-  FUN_00053670();
+  ai_debug_lineofsight_reset();
   FUN_00048fa0();
   /* clear the AI active flag (offset 1 in the AI globals block) */
   *(char *)(*(int *)0x632574 + 1) = 0;
 }
 
-/* ai_place: JMP thunk — forwards directly to FUN_0005ddc0.
+/* ai_place: JMP thunk — forwards directly to encounters_create_for_new_map.
  * The binary at 0x3f760 is a single JMP instruction; the real body
  * lives at 0x5ddc0 (not yet identified as a named symbol). */
 void ai_place(void)
 {
-  FUN_0005ddc0();
+  encounters_create_for_new_map();
 }
 
 /* ai_handle_unit_approach: test whether a unit is approaching a valid
@@ -160,7 +160,7 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
 
 /* game_allegiance_apply_change: apply an allegiance change between two
  * teams, updating all matching actor records in the AI actor iterator.
- * Iterates over all active player-actors via FUN_00059b10/FUN_00059b50;
+ * Iterates over all active player-actors via encounter_iterator_next/FUN_00059b50;
  * for each actor whose team matches team_a or team_b, walks the actor's
  * clump items via FUN_00064540/FUN_00064570 and applies the friendship
  * and force flags.
@@ -177,7 +177,7 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
 void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
                                   char friendship, char force)
 {
-  char iter[0x1c]; /* extended AI actor iterator; see FUN_00059b10 */
+  char iter[0x1c]; /* extended AI actor iterator; see encounter_iterator_next */
   int clump_iter[2]; /* clump-item walk: [0]=current handle, [1]=next */
   int16_t matched_team;
   int actor;
@@ -193,7 +193,7 @@ void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
   }
 
   /* initialise iterator over all active player-actors (flag=1) */
-  FUN_00059b10(iter, 1);
+  encounter_iterator_next(iter, 1);
   actor = FUN_00059b50(iter);
   while (actor != 0) {
     /* check if this actor belongs to team_a or team_b */
@@ -222,7 +222,7 @@ void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
         if (!friendship || force) {
           *(char *)(clump_item + 0x60) = friendship;
           *(char *)(clump_item + 0xa4) =
-            FUN_0002fc20(*(int *)(iter + 0x14), clump_iter[0]);
+            actor_get_perception_knowledge(*(int *)(iter + 0x14), clump_iter[0]);
           *(float *)(clump_item + 0x50) =
             FUN_0002fd10(*(int *)(iter + 0x14), clump_iter[0]);
         }
@@ -248,7 +248,7 @@ void FUN_00040280(void)
   int unit;
   short team;
 
-  FUN_00059b10(iter, 1);
+  encounter_iterator_next(iter, 1);
   actor = FUN_00059b50(iter);
   while (actor != 0) {
     FUN_00064540(clump_iter, *(int *)(iter + 0x14));
@@ -262,7 +262,7 @@ void FUN_00040280(void)
       *(char *)(clump_item + 0x61) =
         FUN_000a7a90(*(short *)(actor + 0x3e), *(short *)(clump_item + 0x12));
       *(char *)(clump_item + 0xa4) =
-        FUN_0002fc20(*(int *)(iter + 0x14), clump_iter[0]);
+        actor_get_perception_knowledge(*(int *)(iter + 0x14), clump_iter[0]);
       *(float *)(clump_item + 0x50) =
         FUN_0002fd10(*(int *)(iter + 0x14), clump_iter[0]);
       clump_item = FUN_00064570(clump_iter);
@@ -391,7 +391,7 @@ void ai_initialize_for_new_map(void)
   FUN_0004c0f0();
   FUN_00053650();
   FUN_0005dfa0();
-  FUN_0003aa60();
+  actor_in_combat();
   FUN_00064150();
   FUN_0005b200();
   FUN_000540d0();
@@ -440,19 +440,19 @@ void ai_update(void)
     FUN_00040570();
     if (schedule_flag) {
       /* scripted/scheduled actor branch */
-      FUN_0003ba00();
+      actors_move_randomly();
       *(char *)(*(int *)0x632574 + 2) = 1;
     } else {
       if (*(char *)*(int *)0x632574) {
         /* first-frame / map-load branch */
-        FUN_00046cb0();
+        ai_conversation_update();
         FUN_0005de80();
         FUN_0003f5f0();
         *(char *)(*(int *)0x632574 + 2) = 1;
       } else {
         /* accumulated-spawn branch */
         if (*(char *)(*(int *)0x632574 + 2)) {
-          FUN_0003b900();
+          actors_freeze();
           *(char *)(*(int *)0x632574 + 2) = 0;
         }
       }
@@ -525,7 +525,7 @@ void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
 /* FUN_00041420: build the firing-position candidate list for an actor.
  *
  * Iterates two linked lists:
- *   1. The actor's own encounter clump (via FUN_00059a00/FUN_00059a50 on
+ *   1. The actor's own encounter clump (via encounter_actor_iterator_new/FUN_00059a50 on
  *      actor->clump_handle at actor_record+0x34).  For each member:
  *        - skip if member handle == actor_handle (self)
  *        - skip if count >= max_count
@@ -590,7 +590,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
 
   /* --- loop 1: encounter clump members --- */
   if (*(int *)(actor + 0x34) != -1) {
-    FUN_00059a00(iter_a, *(int *)(actor + 0x34));
+    encounter_actor_iterator_new(iter_a, *(int *)(actor + 0x34));
     member = (char *)FUN_00059a50(iter_a);
     while (member) {
       if (iter_a[1] != actor_handle && count < max_count &&
@@ -636,7 +636,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
 
 /* ai_firing_pos_entry_t: see types.h for layout. */
 
-/* FUN_00041590: test whether the actor can fire at a target through any
+/* ai_test_line_of_fire: test whether the actor can fire at a target through any
  * candidate firing position, and return the best candidate handle.
  *
  * Builds up to 0x20 candidate firing-position entries via FUN_00041420
@@ -661,7 +661,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
  * Confirmed: EBX = param_5 (int *result_out) loaded at 0x000415cc AFTER
  *   the FUN_00041420 call+cleanup. EBX is callee-saved and used throughout.
  * Confirmed: buf size = 0x508 bytes (SUB ESP,0x508; buf at EBP-0x508). */
-bool FUN_00041590(int actor_handle, int excluded_handle, float *origin,
+bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
                   float *offset, int *result_out)
 {
   ai_firing_pos_entry_t buf[0x20]; /* 0x20 entries × 0x28 = 0x500 bytes */
@@ -709,7 +709,7 @@ bool FUN_00041590(int actor_handle, int excluded_handle, float *origin,
 
   /* ai_debug lineoffire rendering */
   if (*(char *)0x5aca69) {
-    FUN_000493d0(origin, offset);
+    ai_debug_get_last_path(origin, offset);
     for (i = 0; i < count; i++) {
       ai_firing_pos_entry_t *e = &buf[i];
       FUN_00049430(e->vec_a, e->vec_b, *(int *)&e->radius, e->occupied);
@@ -854,11 +854,11 @@ bool ai_enemies_can_see_player(void)
   return FUN_00042390(0);
 }
 
-/* FUN_000425b0: unconditionally trigger a clump check with flag=1.
+/* ai_enemies_attacking_player: unconditionally trigger a clump check with flag=1.
  * Thin wrapper around ai_clump (FUN_00042390). Return value is discarded
  * by the caller.
  * Confirmed: PUSH 1 / CALL 0x42390 / ADD ESP,4 / RET. */
-void FUN_000425b0(void)
+void ai_enemies_attacking_player(void)
 {
   FUN_00042390(1);
 }

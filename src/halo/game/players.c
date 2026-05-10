@@ -1549,12 +1549,12 @@ void player_set_action_result_for_equipment(int player_handle,
     game_set_players_are_double_speed(true);
   } else if (powerup_type == 2) {
     /* Overshield: check if unit can receive it. */
-    if (!FUN_001367e0(*(int *)(player + 0x34)))
+    if (!object_double_charge_shield(*(int *)(player + 0x34)))
       return;
     player_apply_overshield_effect(player_handle);
   } else if (powerup_type == 5) {
     /* Health: check if unit can receive it. */
-    if (!FUN_00136790(*(int *)(player + 0x34)))
+    if (!object_restore_body(*(int *)(player + 0x34)))
       return;
     player_apply_health_effect(player_handle);
   } else {

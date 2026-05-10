@@ -104,7 +104,7 @@ void FUN_0015b530(int decal_index)
     system_exit(-1);
   }
 
-  FUN_0011d8f0(*(void **)0x476adc, decal_index);
+  lruv_block_delete(*(void **)0x476adc, decal_index);
 }
 
 /* 0x15afa0

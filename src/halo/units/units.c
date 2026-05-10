@@ -57,7 +57,7 @@ void FUN_00123470(void *mode_tag, void *animation, int animation_index,
   uint8_t node_data[0x800];
 
   FUN_00121d60(mode_tag, animation, animation_index, node_data);
-  FUN_001094d0(out_matrix, (float *)(node_data + 0x10), (float *)node_data);
+  component_vectors_from_normal3d(out_matrix, (float *)(node_data + 0x10), (float *)node_data);
 }
 
 /* unit_set_actively_controlled_flag (0x1a7f80)
@@ -111,13 +111,13 @@ void units_update(void)
   *(uint8_t *)&p[2] = 0;
 }
 
-/* FUN_001a8190 (0x1a8190)
+/* unit_persistent_control (0x1a8190)
  *
  * Sets persistent control state on a unit. Stores animation_ticks at offset
  * 0x1c0 and control_flags at offset 0x1c4. Asserts if control_flags has any
  * bits set beyond position 14 (NUMBER_OF_UNIT_CONTROL_FLAGS = 15).
  */
-void FUN_001a8190(int unit_handle, int animation_ticks, int control_flags)
+void unit_persistent_control(int unit_handle, int animation_ticks, int control_flags)
 {
   char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
 
@@ -205,7 +205,7 @@ int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
   return 0;
 }
 
-/* FUN_001a8990 (0x1a8990)
+/* unit_animation_start_action (0x1a8990)
  *
  * Sets the unit's seated animation state by looking up an animation index from
  * the unit's animation tag hierarchy and calling model_animation_choose_random.
@@ -231,7 +231,7 @@ int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
  * Confirmed: MOVSX ECX,byte ptr [ESI+0x250/0x251/0x252] for tag block indices.
  * Confirmed: MOV byte ptr [ESI+0x254],CL; MOV word ptr [ESI+0x25a],AX.
  */
-void FUN_001a8990(int object_handle, int16_t state)
+void unit_animation_start_action(int object_handle, int16_t state)
 {
   unit_data_t *unit;
   char *unit_tag;
@@ -511,14 +511,14 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
  *
  * Dispatches a unit animation state transition based on an incoming state code.
  * Maps input state values 1-8 to either FUN_001a8b20 (which sets a unit
- * animation transition state with a remapped index) or FUN_001a8990 (which
+ * animation transition state with a remapped index) or unit_animation_start_action (which
  * initiates a seat-based animation sequence). The state remapping is:
  *   state 1 -> FUN_001a8b20 with index 1
  *   state 2 -> FUN_001a8b20 with index 2
  *   state 3 -> FUN_001a8b20 with index 5
  *   state 4 -> FUN_001a8b20 with index 6
- *   state 5 -> FUN_001a8990 with index 5
- *   state 6 -> FUN_001a8990 with index 6
+ *   state 5 -> unit_animation_start_action with index 5
+ *   state 6 -> unit_animation_start_action with index 6
  *   state 7 -> FUN_001a8b20 with index 3
  *   state 8 -> FUN_001a8b20 with index 4
  */
@@ -538,10 +538,10 @@ void FUN_001a8e10(int object_handle, int16_t state)
     FUN_001a8b20(object_handle, 6);
     return;
   case 5:
-    FUN_001a8990(object_handle, 5);
+    unit_animation_start_action(object_handle, 5);
     return;
   case 6:
-    FUN_001a8990(object_handle, 6);
+    unit_animation_start_action(object_handle, 6);
     return;
   case 7:
     FUN_001a8b20(object_handle, 3);
@@ -556,7 +556,7 @@ void FUN_001a8e10(int object_handle, int16_t state)
  * Thin wrapper: calls object_get_markers_by_string_id for the string at
  * 0x2909e4 ("head"), then extracts XYZ from offset 0x60 in the marker
  * output record. Identical pattern to FUN_001a9520 ("body" marker). */
-void FUN_001a9200(int object_handle, float *out_position)
+void unit_get_head_position(int object_handle, float *out_position)
 {
   char marker_buf[0x6c];
   object_get_markers_by_string_id(object_handle, (void *)0x2909e4, marker_buf,
@@ -922,13 +922,13 @@ bool unit_animation_state_allows_impulse(int unit_handle, int impulse_index)
   return true;
 }
 
-/* FUN_001a9900 (0x1a9900)
+/* unit_scripting_unit_driver (0x1a9900)
  *
  * Copies the unit's aiming vector (unk_492, offset 0x1EC) into the output
  * buffer. Resolves the unit via object_get_and_verify_type with type mask
  * 0x3 (biped | vehicle).
  */
-void FUN_001a9900(int unit_handle, void *out_aiming)
+void unit_scripting_unit_driver(int unit_handle, void *out_aiming)
 {
   char *unit;
   float *out = (float *)out_aiming;
@@ -939,13 +939,13 @@ void FUN_001a9900(int unit_handle, void *out_aiming)
   out[2] = *(float *)(unit + 0x1f4);
 }
 
-/* FUN_001a9930 (0x1a9930)
+/* unit_scripting_unit_gunner (0x1a9930)
  *
  * Copies the unit's looking vector (unk_528, offset 0x210) into the output
  * buffer. Resolves the unit via object_get_and_verify_type with type mask
  * 0x3 (biped | vehicle).
  */
-void FUN_001a9930(int unit_handle, void *out_looking)
+void unit_scripting_unit_gunner(int unit_handle, void *out_looking)
 {
   char *unit;
   float *out = (float *)out_looking;
@@ -956,15 +956,15 @@ void FUN_001a9930(int unit_handle, void *out_looking)
   out[2] = *(float *)(unit + 0x218);
 }
 
-/* FUN_001a9960 (0x1a9960)
+/* units_debug_get_closest_unit (0x1a9960)
  *
- * Gets the unit's facing vector by delegating to FUN_00141360 (an object-level
+ * Gets the unit's facing vector by delegating to object_get_orientation (an object-level
  * orientation getter in objects.c). Passes NULL for the up-vector output,
  * requesting only the forward direction.
  */
-void FUN_001a9960(int unit_handle, void *out_facing)
+void units_debug_get_closest_unit(int unit_handle, void *out_facing)
 {
-  FUN_00141360(unit_handle, (float *)out_facing, 0);
+  object_get_orientation(unit_handle, (float *)out_facing, 0);
 }
 
 /* unit_is_alive (0x1a9a30)
@@ -1996,7 +1996,7 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
     return clamped;
 
   matrix[0] = 1.0f;
-  FUN_00141360(unit_handle, &matrix[1], &matrix[7]);
+  object_get_orientation(unit_handle, &matrix[1], &matrix[7]);
 
   /* left = cross(forward, up), written directly into matrix[4..6] */
   matrix[4] = matrix[3] * matrix[8] - matrix[9] * matrix[2];

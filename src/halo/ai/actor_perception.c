@@ -6,12 +6,12 @@
 
 #include "../../common.h"
 
-/* FUN_0002fc20 (0x2fc20)
+/* actor_get_perception_knowledge (0x2fc20)
  * Evaluate whether an actor should engage a prop. Checks prop type,
  * visibility flags, and actor state to determine engagement eligibility.
  * Side effects: clears prop tracking fields when engagement drops,
  * and clears actor pursuit fields when target is lost. */
-bool FUN_0002fc20(int actor_handle, int prop_handle)
+bool actor_get_perception_knowledge(int actor_handle, int prop_handle)
 {
   char *actor;
   char *prop;
@@ -130,7 +130,7 @@ float FUN_0002fd10(int actor_handle, int clump_item_handle)
     } else {
       /* Actor has a weapon in hand */
       char *weapon_tag = FUN_000210f0(actor_handle);
-      char *actv_tag2 = FUN_000211f0(actor_handle);
+      char *actv_tag2 = actor_combat_get_firing_variant_definition(actor_handle);
 
       if (weapon_tag == 0 ||
           *(float *)(prop + 0x11c) >= *(float *)(weapon_tag + 0x40c)) {

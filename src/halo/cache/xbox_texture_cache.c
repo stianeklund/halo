@@ -43,12 +43,12 @@ void xbox_texture_cache_return_memory(void)
   *(int8_t *)0x4ea984 = 0;
 }
 
-/* FUN_001beba0 (0x1beba0)
+/* bitmap_format_to_d3d_linear_format (0x1beba0)
  *
  * Look up the linear D3D texture format code for a bitmap format index.
  * Table at 0x2b9618 maps format indices 0..17 to D3D format codes.
  * If flags bit 0x20 is set and format is 10 or 11 (DXT4/DXT5), returns 0x33. */
-int FUN_001beba0(int16_t format, uint16_t flags)
+int bitmap_format_to_d3d_linear_format(int16_t format, uint16_t flags)
 {
   int *table = (int *)0x2b9618;
 
@@ -141,7 +141,7 @@ void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
     int16_t log2_height = FUN_00108db0((int)*(int16_t *)(bmp + 0x6));
     int16_t log2_width = FUN_00108db0((int)*(int16_t *)(bmp + 0x4));
     int linear_fmt =
-      FUN_001beba0(*(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
+      bitmap_format_to_d3d_linear_format(*(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
     int16_t mipmap_count = *(int16_t *)(bmp + 0xa);
     int16_t dim_level = FUN_00183120(bitmap);
     int dim_type = (mipmap_count != 1) ? 2 : 3;
@@ -217,7 +217,7 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
     if (*(int32_t *)((char *)hardware_format + 0x24) != -1) {
       void *entry = datum_get(*(void **)0x4ea978,
                               *(int32_t *)((char *)hardware_format + 0x24));
-      FUN_0011d9d0(*(void **)0x4ea980,
+      lruv_debug_to_file(*(void **)0x4ea980,
                    *(int32_t *)((char *)hardware_format + 0x24));
       if (block) {
         if (*(int8_t *)((char *)entry + 4) != 0)

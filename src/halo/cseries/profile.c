@@ -251,7 +251,7 @@ void profile_render_window_end(void)
 
 /* Snapshot the current TSC into a dedicated low/high global pair at
  * 0x449c98/0x449c9c (used to mark a reference timestamp). */
-void FUN_000916e0(void)
+void profile_texture_start(void)
 {
   uint32_t lo, hi;
   RDTSC(lo, hi);
@@ -260,9 +260,9 @@ void FUN_000916e0(void)
 }
 
 /* End a custom profiling section. Computes elapsed msec since the
- * reference timestamp at 0x449c98/0x449c9c (set by FUN_000916e0)
+ * reference timestamp at 0x449c98/0x449c9c (set by profile_texture_start)
  * and accumulates into the two custom accumulators at 0x449ca8/0x449cac. */
-void FUN_00091710(void)
+void profile_texture_end(void)
 {
   uint32_t lo, hi, diff_lo, diff_hi;
   float elapsed;

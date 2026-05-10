@@ -85,7 +85,7 @@ void FUN_000a1510(int local_player_index)
  * Interpolates between the tag's min/max size based on the ratio of
  * elapsed time to total lifetime, then scales by the particle's
  * individual size factor. Returns the interpolated size. */
-float FUN_000a1670(int datum_handle)
+float particle_get_radius(int datum_handle)
 {
   char *datum;
   char *tag;
@@ -118,7 +118,7 @@ bool valid_real_point3d(float *point)
  * The alpha component (color[0]) must be finite, in [0.0, 1.0],
  * and the RGB components (color[1..3]) must each be finite and valid.
  * Returns true if the color is valid. */
-bool FUN_000a1710(float *color)
+bool valid_real_argb_color(float *color)
 {
   /* Check alpha is not NaN/Inf */
   if ((*(uint32_t *)color & 0x7f800000) == 0x7f800000)
@@ -172,7 +172,7 @@ void FUN_000a1770(int particle, int tag_group, int physics_tag, int param)
     marker_forwards[4] = default_fwd[1];
     marker_forwards[5] = default_fwd[2];
 
-    FUN_0009f0e0(physics_tag, -1, velocity, 2, (void *)0x2ef7d8, marker_points,
+    effect_new_unattached_from_markers(physics_tag, -1, velocity, 2, (void *)0x2ef7d8, marker_points,
                  marker_forwards, *(float *)&param, 0.0f, 0.0f, 0.0f, 0.0f);
     return;
   }
@@ -196,7 +196,7 @@ void FUN_000a1770(int particle, int tag_group, int physics_tag, int param)
     *(int *)&location[9] = *(int *)(particle + 0x28);
     *(int *)&location[10] = *(int *)(particle + 0x2c);
 
-    FUN_001c73d0(physics_tag, location, *(float *)&param);
+    unattached_impulse_sound_new(physics_tag, location, *(float *)&param);
     return;
   }
 
@@ -326,7 +326,7 @@ skip_phase2:
  * from spawn_params, optionally applies physics
  * velocity, samples lighting,
  * and sets up the initial bitmap sequence. */
-void FUN_000a1fd0(void *spawn_params)
+void particle_new(void *spawn_params)
 {
   char *sp = (char *)spawn_params;
   float *velocity = (float *)(sp + 0x28);
@@ -361,7 +361,7 @@ void FUN_000a1fd0(void *spawn_params)
   }
 
   /* assert color is valid */
-  if (!FUN_000a1710(color)) {
+  if (!valid_real_argb_color(color)) {
     csprintf((char *)0x5ab100,
              "%s: assert_valid_real_argb_color(%f, %f, %f, %f)", "&data->color",
              (double)color[0], (double)color[1], (double)color[2],
@@ -389,7 +389,7 @@ void FUN_000a1fd0(void *spawn_params)
   } else {
     /* first-person weapon — transform through FP weapon node matrix */
     float *matrix =
-      (float *)FUN_000dd410(*(uint16_t *)(sp + 0x0a), *(uint16_t *)(sp + 0x08));
+      (float *)first_person_weapon_get_node_matrix(*(uint16_t *)(sp + 0x0a), *(uint16_t *)(sp + 0x08));
     matrix_transform_point(matrix, position, local_position);
   }
 
@@ -503,7 +503,7 @@ void FUN_000a1fd0(void *spawn_params)
 
   /* apply physics velocity if no parent object */
   if (*(int *)(datum + 0x08) == -1) {
-    float phys_scale = FUN_000a1670(datum_handle);
+    float phys_scale = particle_get_radius(datum_handle);
     float *phys_tag =
       (float *)tag_get(0x70706879, *(int *)((char *)tag + 0x20));
     float phys_vel = FUN_001548a0((int)phys_tag, phys_scale);

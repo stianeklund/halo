@@ -4,7 +4,7 @@ extern void matrix_transform_point(float *matrix, float *in, float *out);
 extern void perpendicular3d(float *in, float *out);
 extern void angles_to_vector(float *out, float *angles);
 
-extern void FUN_0013fc20(void *placement, int tag_index, int parent_handle);
+extern void object_placement_data_new(void *placement, int tag_index, int parent_handle);
 extern void matrix_inverse(float *src, float *dst);
 extern void matrix4x3_multiply(float *a, float *b, float *out);
 extern void matrix_from_forward_and_up(float *out, float *forward, float *up);
@@ -102,7 +102,7 @@ void run_tests(void) {
         passed += check("angles2vec z", *(uint32_t*)&out_vec[2], 0x3F3504F1, buf);
     }
 
-    /* FUN_0013fc20: Object Placement Init */
+    /* object_placement_data_new: Object Placement Init */
     {
         uint8_t placement[0x88];
         int i;
@@ -110,7 +110,7 @@ void run_tests(void) {
             placement[i] = 0xCC;
         }
         
-        FUN_0013fc20(placement, 0x1234, -1);
+        object_placement_data_new(placement, 0x1234, -1);
         
         total += 3;
         passed += check("placement tag", *(uint32_t*)&placement[0x00], 0x00001234, buf);

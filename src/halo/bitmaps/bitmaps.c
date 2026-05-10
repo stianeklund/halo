@@ -51,8 +51,8 @@ float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound,
     out_color[2] = blend * rgb_upper_bound[2] + t_inv * rgb_lower_bound[2];
   } else {
     /* HSV interpolation. Convert both endpoints to HSV. */
-    FUN_0007ab50(rgb_lower_bound, hsv_lower);
-    FUN_0007ab50(rgb_upper_bound, hsv_upper);
+    bitmap_clone(rgb_lower_bound, hsv_lower);
+    bitmap_clone(rgb_upper_bound, hsv_upper);
 
     /* Decide whether to wrap one hue up by +1.0 so the mix takes the
      * short (or long, depending on bit 1) arc around the hue circle. */

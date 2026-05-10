@@ -135,7 +135,7 @@ void FUN_000dc9d0(int param_2, int object_handle)
 
 /* Toggle the first-person weapon activation state for a local player (0xdcb30).
  * When activating (activate != 0): asserts weapon_index != NONE, then calls
- * FUN_0009e0d0 to start effects. When deactivating: calls FUN_0009c810 to stop
+ * effects_start_on_first_person_weapon to start effects. When deactivating: calls FUN_0009c810 to stop
  * effects and FUN_000a1510 to stop sounds. Only acts if the state changes. */
 void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
 {
@@ -149,7 +149,7 @@ void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
   if (activate != *(uint8_t *)fp) {
     if (activate != 0) {
       assert_halt(*(int *)(fp + 8) != -1);
-      FUN_0009e0d0((int)local_player_index, *(int *)(fp + 8));
+      effects_start_on_first_person_weapon((int)local_player_index, *(int *)(fp + 8));
       *(uint8_t *)fp = activate;
       return;
     }
@@ -287,7 +287,7 @@ void FUN_000dce00(int16_t local_player_index)
  * player's first-person weapon animation state (0xdd410).
  * Validates the local_player_index (0..3) and node_index against the
  * animation graph node count. Returns fp_base + 0x108c + node_index * 0x34. */
-void *FUN_000dd410(int param_1, int param_2)
+void *first_person_weapon_get_node_matrix(int param_1, int param_2)
 {
   int16_t local_player_index = (int16_t)param_1;
   int16_t node_index = (int16_t)param_2;

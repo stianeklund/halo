@@ -38,7 +38,7 @@ bool FUN_00129130(int server_connection, int client_connection)
     }
   }
 
-  FUN_00128d30(*(int *)(server_connection + 0x3c + i * 4));
+  network_connection_delete(*(int *)(server_connection + 0x3c + i * 4));
   *(int *)(server_connection + 0x3c + i * 4) = 0;
   return true;
 }
@@ -139,7 +139,7 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
   if (*(int *)(connection + 0x4) == 0)
     return ok;
 
-  queue_space = FUN_00118e90(*(int *)(connection + 0x14));
+  queue_space = circular_queue_free_space(*(int *)(connection + 0x14));
 
   while (ok && queue_space > 0x193) {
     is_connected = FUN_000831a0(*(int *)(connection + 0x4));
@@ -210,7 +210,7 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
       }
     }
 
-    queue_space = FUN_00118e90(*(int *)(connection + 0x14));
+    queue_space = circular_queue_free_space(*(int *)(connection + 0x14));
   }
 
   return ok;
@@ -229,11 +229,11 @@ bool network_game_in_progress(void)
   return true;
 }
 
-/* FUN_0012a160 (0x12a160)
+/* network_game_accept_remote_connections (0x12a160)
  *
  * Returns the network game globals byte at 0x46e8c4.
  */
-bool FUN_0012a160(void)
+bool network_game_accept_remote_connections(void)
 {
   return *(uint8_t *)0x46e8c4;
 }
@@ -328,11 +328,11 @@ bool network_game_client_start_frame(void)
     if (*(void **)0x46e8bc != NULL) {
       reason = FUN_0012d570(*(void **)0x46e8bc);
     } else if (*(void **)0x46e8c0 != NULL) {
-      reason = (int)(intptr_t)FUN_001257a0(*(void **)0x46e8c0);
+      reason = (int)(intptr_t)network_game_client_get_machine_index(*(void **)0x46e8c0);
     } else {
       reason = 0;
     }
-    FUN_0012ab80(reason);
+    network_game_end_and_load_ui(reason);
 
     if (*(void **)0x46e8c0 != NULL) {
       network_game_server_dispose(*(void **)0x46e8c0);
@@ -344,7 +344,7 @@ bool network_game_client_start_frame(void)
       *(void **)0x46e8bc = NULL;
       *(uint8_t *)0x46e8c5 = 0;
     }
-    FUN_00100620();
+    main_goto_main_menu();
     return true;
   }
 
@@ -422,16 +422,16 @@ bool network_game_client_end_frame(void)
     last_send = *(int *)0x46e8c8;
 
     if ((unsigned int)(now - *(int *)0x46e8c8) > 0xf &&
-        FUN_001257e0(*(void **)0x46e8c0)) {
-      FUN_00125820(*(void **)0x46e8c0);
-      FUN_001257a0(*(void **)0x46e8c0);
+        network_game_client_get_available_games(*(void **)0x46e8c0)) {
+      network_game_client_get_error(*(void **)0x46e8c0);
+      network_game_client_get_machine_index(*(void **)0x46e8c0);
       FUN_000b8fa0(local_124);
 
       if (FUN_00125860(*(void **)0x46e8c0)) {
-        flags = FUN_00125820(*(void **)0x46e8c0);
+        flags = network_game_client_get_error(*(void **)0x46e8c0);
         flags = flags | 0x80000000;
       } else {
-        flags = FUN_00125820(*(void **)0x46e8c0);
+        flags = network_game_client_get_error(*(void **)0x46e8c0);
         flags = flags & 0x7fffffff;
       }
 
@@ -447,9 +447,9 @@ bool network_game_client_end_frame(void)
           "failed to create a _message_type_client_game_update message");
         result = false;
       } else {
-        FUN_00125750(*(void **)0x46e8c0, local_1c);
+        network_game_client_switch_to_postgame(*(void **)0x46e8c0, local_1c);
         int send_result =
-          FUN_00125710(*(void **)0x46e8c0, msg, *msg >> 4, local_1c, 0);
+          network_game_client_get_seconds_to_game_start(*(void **)0x46e8c0, msg, *msg >> 4, local_1c, 0);
         result = FUN_00124d40(send_result);
         if (!result) {
           network_game_log("failed to send a game update to the server");

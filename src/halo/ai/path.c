@@ -2,21 +2,21 @@
  *
  * Corresponds to path.obj (XBE address range ~0x5dfc0–0x5ff70+).
  * __FILE__ = c:\halo\SOURCE\ai\path.c (confirmed via display_assert strings
- * in FUN_0005eae0 at 0x5eae0).
+ * in path_state_build_path at 0x5eae0).
  *
  * Ported: path_state_init (0x5dfc0), path_state_set_focus (0x5e000),
  *         path_state_set_sphere (0x5e030), path_state_set_min_speed (0x5e070),
  *         path_state_commit (0x5e090), path_state_set_obstacle (0x5e0d0),
- *         FUN_0005e760 (path node accessor with bounds assert),
- *         FUN_0005e7e0 (path hash table lookup by key),
- *         FUN_0005e830 (path ray-cast clearance check),
+ *         path_get_node (path node accessor with bounds assert),
+ *         path_node_from_hash_table (path hash table lookup by key),
+ *         path_3d_available (path ray-cast clearance check),
  *         FUN_0005ff70 (path traverse + debug snapshot).
- * Deferred: FUN_0005eae0 (0x5eae0) — complex path evaluation, deferred.
+ * Deferred: path_state_build_path (0x5eae0) — complex path evaluation, deferred.
  */
 
 #include "../../common.h"
 
-/* All callees (csmemset, csmemcpy, scenario_get, FUN_0018f080) declared via
+/* All callees (csmemset, csmemcpy, scenario_get, global_structure_bsp_index_get) declared via
  * decl.h / generated header */
 
 /* 0x005dfc0 — path_state_init
@@ -33,7 +33,7 @@
  * `*(undefined1*)(param_1+1)` due to how it assigns dword-indexed fields.
  * The raw byte offset is +4.
  */
-void FUN_0005dfc0(void *param_1, uint32_t param_2, uint8_t param_3, int param_4)
+void path_input_new(void *param_1, uint32_t param_2, uint8_t param_3, int param_4)
 {
   csmemset(param_1, 0, 0x48);
   *(uint32_t *)param_1 = param_2;
@@ -48,7 +48,7 @@ void FUN_0005dfc0(void *param_1, uint32_t param_2, uint8_t param_3, int param_4)
  *
  * Disassembly: MOV EAX,[EBP+0xc]; MOV ECX,[EBP+0x8]; MOV [ECX+0xc],EAX; RET
  */
-void FUN_0005dff0(void *param_1, int param_2)
+void paths_dispose(void *param_1, int param_2)
 {
   *(int *)((char *)param_1 + 0xc) = param_2;
 }
@@ -63,7 +63,7 @@ void FUN_0005dff0(void *param_1, int param_2)
  *   [EAX+0x1c] = param_2[2]  (focus_pos.z)
  *   [EAX+0x20] = param_3  (bone index)
  */
-void FUN_0005e000(void *param_1, float *param_2, int param_3)
+void path_input_set_start(void *param_1, float *param_2, int param_3)
 {
   *(uint8_t *)((char *)param_1 + 0x10) = 1;
   *(float *)((char *)param_1 + 0x14) = param_2[0];
@@ -90,7 +90,7 @@ void FUN_0005e000(void *param_1, float *param_2, int param_3)
  *   MOV [EAX+0x38], ECX   ; ECX = [EBP+0x10] = param_3
  *   MOV [EAX+0x34], EDX   ; EDX = [EBP+0x14] = param_4
  */
-void FUN_0005e030(void *param_1, float *param_2, float param_3,
+void path_input_set_attractor(void *param_1, float *param_2, float param_3,
                   uint32_t param_4, float param_5)
 {
   *(uint8_t *)((char *)param_1 + 0x24) = 1;
@@ -110,7 +110,7 @@ void FUN_0005e030(void *param_1, float *param_2, float param_3,
  *   [EAX+0x40] = 1       (min_speed_valid flag, uint8_t)
  *   [EAX+0x44] = param_2 (min_speed, int)
  */
-void FUN_0005e070(void *param_1, int param_2)
+void path_input_set_search_bounds(void *param_1, int param_2)
 {
   *(uint8_t *)((char *)param_1 + 0x40) = 1;
   *(int *)((char *)param_1 + 0x44) = param_2;
@@ -132,7 +132,7 @@ void FUN_0005e070(void *param_1, int param_2)
  * The copy overwrites param_2[0..0x47], then param_3 is stored at
  * param_2[0x48].
  */
-void FUN_0005e090(void *param_1, void *param_2, void *param_3)
+void path_state_new(void *param_1, void *param_2, void *param_3)
 {
   csmemset(param_2, 0, 0x1408c);
   *(void **)((char *)param_2 + 0x64) = scenario_get();
@@ -177,7 +177,7 @@ void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4)
  *   param_2 (SI)  = node_index (short, loaded as word ptr [EBP+0xc])
  *   return: MOVSX EAX,SI; IMUL EAX,EAX,0x44; LEA EAX,[EAX+EDI+0x84]
  */
-char *FUN_0005e760(char *param_1, short param_2)
+char *path_get_node(char *param_1, short param_2)
 {
   if (param_2 == -1) {
     display_assert("node_index != NONE",
@@ -209,7 +209,7 @@ done:
  *   EDI = sign-extended AX for node key comparison
  *   Loop: MOVSX EAX,CX; MOV AX,[EDX+EAX*2+0x1208a]; INC ECX; AND ECX,0xfff
  */
-short FUN_0005e7e0(char *param_1, unsigned int param_2)
+short path_node_from_hash_table(char *param_1, unsigned int param_2)
 {
   unsigned int slot;
   short sVar1;
@@ -239,7 +239,7 @@ short FUN_0005e7e0(char *param_1, unsigned int param_2)
  *   Condition: (1.0 - t)^2 * dist_sq < 0.1  => clear (return 1)
  *   param_5 receives the result byte; param_6 receives param_4 copy (dest pos)
  */
-char FUN_0005e830(int param_1, int *param_2, int param_3, int *param_4,
+char path_3d_available(int param_1, int *param_2, int param_3, int *param_4,
                   unsigned char *param_5, float *param_6)
 {
   char cVar3;
@@ -284,8 +284,8 @@ char FUN_0005e830(int param_1, int *param_2, int param_3, int *param_4,
 /* 0x005e920 — path_find_initial
  * Builds an initial navigation state record from a source position.
  *
- * Zeroes a 0x5c-byte output struct, then calls FUN_0005e830 to perform a
- * pathfinding query. If FUN_0005e830 succeeds, the output struct is populated
+ * Zeroes a 0x5c-byte output struct, then calls path_3d_available to perform a
+ * pathfinding query. If path_3d_available succeeds, the output struct is populated
  * with the destination position (from param_4), a result vector from the query,
  * and various flags/sentinel values. Returns 1 on success, 0 on failure.
  *
@@ -296,7 +296,7 @@ char FUN_0005e830(int param_1, int *param_2, int param_3, int *param_4,
  *   [+0x0c] = param_4[2]     (destination position z)
  *   [+0x10] = 0xFFFFFFFF     (sentinel)
  *   [+0x14] = 0x00000000     (cleared)
- *   [+0x18] = local_byte     (byte from FUN_0005e830 output)
+ *   [+0x18] = local_byte     (byte from path_3d_available output)
  *   [+0x19] = 1              (byte flag)
  *   [+0x1a] = 0              (byte flag)
  *   [+0x1c] = 0xFFFFFFFF     (sentinel)
@@ -312,7 +312,7 @@ char FUN_0005e920(int param_1, int *param_2, int param_3, int *param_4,
   uint8_t local_byte;
 
   csmemset(param_5, 0, 0x5c);
-  result = FUN_0005e830(param_1, param_2, param_3, param_4, &local_byte,
+  result = path_3d_available(param_1, param_2, param_3, param_4, &local_byte,
                         local_vec);
   if (result != 0) {
     *(float *)(param_5 + 0x20) = local_vec[0];
@@ -386,7 +386,7 @@ char FUN_0005ff70(unsigned int *param_1)
       puVar4 = puVar4 + 1;
       puVar5 = puVar5 + 1;
     }
-    uVar2 = FUN_0018f080();
+    uVar2 = global_structure_bsp_index_get();
     *(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0xe) = uVar2;
     if (*(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x10) == 0) {
       display_assert(

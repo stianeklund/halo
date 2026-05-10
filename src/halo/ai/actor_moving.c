@@ -19,7 +19,7 @@ void FUN_0002a3a0(int actor_handle)
  *   - Overrides unit_handle with the vehicle handle (actor[0x158])
  *   - If vehi_tag[0x38c] > constant at 0x2533c0, overrides local_8 with it
  * Calls FUN_0003bc90(actor_handle), then fills nav_state_out via
- * FUN_0005dfc0 and FUN_0005e000.
+ * path_input_new and path_input_set_start.
  *
  * Confirmed: datum_get + tag_get('actr', actor[0x58]) at 0x2a481-0x2a491.
  * Confirmed: tag[0x8c] → local_8; actor[0x18] → unit_handle default.
@@ -28,8 +28,8 @@ void FUN_0002a3a0(int actor_handle)
  * Confirmed: unit_handle = actor[0x158] at 0x2a4ca.
  * Confirmed: FPU FCOMP [0x2533c0] with TEST AH,0x41 at 0x2a4db.
  * Confirmed: FUN_0003bc90(actor_handle) at 0x2a4f2.
- * Confirmed: FUN_0005dfc0(nav, local_8, actor[0x376], unit) at 0x2a509.
- * Confirmed: FUN_0005e000(nav, actor+0x168, actor[0x164]) at 0x2a51d.
+ * Confirmed: path_input_new(nav, local_8, actor[0x376], unit) at 0x2a509.
+ * Confirmed: path_input_set_start(nav, actor+0x168, actor[0x164]) at 0x2a51d.
  */
 void FUN_0002a470(int actor_handle, char *nav_state_out)
 {
@@ -51,12 +51,12 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
     }
   }
   FUN_0003bc90(actor_handle);
-  FUN_0005dfc0(nav_state_out, local_8, *(unsigned char *)(actor + 0x376),
+  path_input_new(nav_state_out, local_8, *(unsigned char *)(actor + 0x376),
                unit_handle);
-  FUN_0005e000(nav_state_out, actor + 0x168, *(int *)(actor + 0x164));
+  path_input_set_start(nav_state_out, actor + 0x168, *(int *)(actor + 0x164));
 }
 
-/* 0x2b5d0 — FUN_0002b5d0: initialize trigonometric lookup tables.
+/* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup tables.
  *
  * Confirmed: no arguments, no calls, writes table blocks rooted at
  * 0x6327e0 and 0x6325c0 using constants/tables at 0x25577c..0x25581c.
@@ -64,7 +64,7 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
  * Confirmed: second stage runs 2 outer iterations × 8 inner iterations,
  * with destination stride 0x38 (14 floats) per inner iteration.
  */
-void FUN_0002b5d0(void)
+void actor_move_get_avoidance_direction(void)
 {
   float(*table_a)[7] = (float(*)[7])0x6327e0;
   float(*table_b)[7] = (float(*)[7])0x6325c0;
@@ -194,7 +194,7 @@ char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out)
 }
 
 /*
- * 0x2cdb0 — FUN_0002cdb0: Compute and populate the actor's path control state
+ * 0x2cdb0 — actor_path_refresh: Compute and populate the actor's path control state
  * for the current movement mode.
  *
  * This function is the per-tick "where should I go?" resolver for actors. It
@@ -226,7 +226,7 @@ char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out)
  * Confirmed float constants: 0.0f at 0x2533c0, threshold at 0x255d1c,
  *   threshold2 at 0x253398.
  */
-char FUN_0002cdb0(int actor_handle, char store_distance, void *override_path)
+char actor_path_refresh(int actor_handle, char store_distance, void *override_path)
 {
   /* All C89 declarations at top of function scope. */
   char *actor;
@@ -497,7 +497,7 @@ LAB_check_dest:
      * Assert: actor[0x480] (dest_object) must be NONE (-1).
      * Then set up override_path as the navigation state:
      *   FUN_0005e0d0(override_path, &actor[0x494], actor[0x498], 0)
-     *   FUN_0005eae0(override_path, &actor[0x4a8])
+     *   path_state_build_path(override_path, &actor[0x4a8])
      * Confirmed at 0x0002d164-0x0002d1bb.
      */
     if (*(int *)(actor + 0x480) != -1) {
@@ -508,25 +508,25 @@ LAB_check_dest:
     }
     FUN_0005e0d0((int)override_path, (unsigned int *)(actor + 0x494),
                  *(unsigned int *)(actor + 0x498), 0);
-    path_found = FUN_0005eae0((unsigned int)override_path,
+    path_found = path_state_build_path((unsigned int)override_path,
                               (unsigned int *)(actor + 0x4a8));
   } else {
     /*
      * Normal on-foot pathfinding pipeline:
      *  1. FUN_0002a470(actor_handle, local_nav): initialize nav-state struct
      *     (actor position, facing, vehicle info, etc.).
-     *  2. FUN_0005dff0(local_nav, actor[0x480]): if ignore_object!=-1,
+     *  2. paths_dispose(local_nav, actor[0x480]): if ignore_object!=-1,
      *     store it at local_nav+0xc.
-     *  3. (Optional) FUN_0005e030: encode movement-constraint orders into
+     *  3. (Optional) path_input_set_attractor: encode movement-constraint orders into
      *     local_nav when actor has standing orders (actor[0x280]>0,
      *     actor[0x28a]==0, tag flag bit 4 clear). Float arg 0x41200000=10.0f.
      *  4. FUN_00049120(actor_handle): allocate/find path cache slot.
-     *  5. FUN_0005e090(local_nav, large_buf, path_state): init path-build
+     *  5. path_state_new(local_nav, large_buf, path_state): init path-build
      *     state in large_buf from local_nav and the cache slot.
      *  6. FUN_0005e0d0(large_buf, &actor[0x488], actor[0x494], actor[0x498]):
      *     set destination in path-build state.
      *  7. FUN_0005ff70(large_buf): run pathfinder; returns 1 on success.
-     *  8. FUN_0005eae0(large_buf, &actor[0x4a8]): extract waypoint result
+     *  8. path_state_build_path(large_buf, &actor[0x4a8]): extract waypoint result
      *     into actor nav-control struct. Returns 1 if path is usable.
      *
      * Disasm confirmed:
@@ -535,17 +535,17 @@ LAB_check_dest:
      */
     FUN_0002a470(actor_handle, local_nav);
     if (*(int *)(actor + 0x480) != -1) {
-      FUN_0005dff0((int)local_nav, *(unsigned int *)(actor + 0x480));
+      paths_dispose((int)local_nav, *(unsigned int *)(actor + 0x480));
     }
     if ((*(short *)(actor + 0x280) > 0) && (*(char *)(actor + 0x28a) == '\0') &&
         ((*(unsigned char *)(tag + 4) & 0x10) == 0)) {
-      FUN_0005e030((int)local_nav, (unsigned int *)(actor + 0x2b0),
+      path_input_set_attractor((int)local_nav, (unsigned int *)(actor + 0x2b0),
                    *(unsigned int *)(actor + 0x294),
                    *(unsigned int *)(actor + 0x28c),
                    (unsigned int)0x41200000); /* 10.0f as bit pattern */
     }
     path_state = FUN_00049120(actor_handle);
-    FUN_0005e090((unsigned int *)local_nav, (unsigned int *)large_buf,
+    path_state_new((unsigned int *)local_nav, (unsigned int *)large_buf,
                  (unsigned int)path_state);
     FUN_0005e0d0((int)large_buf, (unsigned int *)(actor + 0x488),
                  *(unsigned int *)(actor + 0x494),
@@ -553,7 +553,7 @@ LAB_check_dest:
     path_found = FUN_0005ff70((unsigned int *)large_buf);
     if (path_found != '\0') {
       path_found2 =
-        FUN_0005eae0((unsigned int)large_buf, (unsigned int *)(actor + 0x4a8));
+        path_state_build_path((unsigned int)large_buf, (unsigned int *)(actor + 0x4a8));
       path_found = path_found2 ? '\x01' : '\0';
     }
   }
@@ -652,7 +652,7 @@ void FUN_0002d350(int actor_handle)
 
   if (*(char *)(actor + 0x4c) != '\0' && *(char *)(actor + 0x4a4) == '\0' &&
       *(char *)(actor + 0x13) == '\0') {
-    FUN_0002cdb0(actor_handle, 0, 0);
+    actor_path_refresh(actor_handle, 0, 0);
   }
 
   FUN_0002a580(actor_handle);

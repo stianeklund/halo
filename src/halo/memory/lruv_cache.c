@@ -136,7 +136,7 @@ void lruv_cache_dispose(void *cache)
 
 /* 0x11d8f0: Remove a single block from the cache's linked list and
  * delete the datum. Calls the delete callback if set. Relinks neighbors. */
-void FUN_0011d8f0(void *cache, int block_index)
+void lruv_block_delete(void *cache, int block_index)
 {
   lruv_cache_t *c = (lruv_cache_t *)cache;
   lruv_cache_block_t *block =
@@ -172,12 +172,12 @@ void FUN_0011d8f0(void *cache, int block_index)
   lruv_cache_verify(cache, 1);
 }
 
-/* FUN_0011d9d0 (0x11d9d0)
+/* lruv_debug_to_file (0x11d9d0)
  *
  * Touch a cache block — set its last-access stamp to the cache's
  * current frame counter (field_30).
  */
-void FUN_0011d9d0(void *cache, int datum_handle)
+void lruv_debug_to_file(void *cache, int datum_handle)
 {
   lruv_cache_t *c = (lruv_cache_t *)cache;
   lruv_cache_block_t *block;
@@ -283,7 +283,7 @@ void FUN_0011db90(const char *path, const char *tag_name, int alloc_size,
 }
 
 /* 0x11ddc0: Dispose all blocks from the cache by iterating the data_t
- * and removing each block individually via FUN_0011d8f0. */
+ * and removing each block individually via lruv_block_delete. */
 void lruv_cache_dispose_all(void *cache)
 {
   lruv_cache_t *c = (lruv_cache_t *)cache;
@@ -293,7 +293,7 @@ void lruv_cache_dispose_all(void *cache)
   data_iterator_new(&iter, c->blocks);
 
   while (data_iterator_next(&iter) != NULL) {
-    FUN_0011d8f0(cache, iter.datum_handle);
+    lruv_block_delete(cache, iter.datum_handle);
   }
 }
 

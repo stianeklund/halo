@@ -1294,7 +1294,7 @@ const char *FUN_000cb980(void)
  *   0x5aa6c8 = hs_syntax_data  (data_t*)
  *   0x5ab100 = scratch string buffer (for assert message)
  */
-static void FUN_000cbf80(int thread_handle, int value)
+static void hs_return(int thread_handle, int value)
 {
   /* Resolve thread and current syntax node. */
   char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
@@ -1468,7 +1468,7 @@ void FUN_000cc340(int16_t script_index, int thread_handle, char init)
   if (init) {
     FUN_000cc1d0(thread_handle, *(int *)(script + 0x24), result);
   } else {
-    FUN_000cbf80(thread_handle, *(int *)result);
+    hs_return(thread_handle, *(int *)result);
   }
 }
 
@@ -1550,7 +1550,7 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
  * from the function descriptor table.
  * Returns FUN_000cc3a0's result — callers (e.g. ai_allegiance at 0xc06b0)
  * read EAX after this call to get the evaluated script value. */
-int FUN_000cc560(int16_t function_index, int thread_datum, char init)
+int hs_macro_function_evaluate(int16_t function_index, int thread_datum, char init)
 {
   char *desc = (char *)hs_function_table_get(function_index);
   return FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18),
@@ -1561,7 +1561,7 @@ int FUN_000cc560(int16_t function_index, int thread_datum, char init)
  * order, returning the value of the last one. On init, sets up the expression
  * list pointer (skipping the function-name child). Each call evaluates one
  * expression and advances to the next sibling. */
-void FUN_000cc590(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_begin(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int *expr_ptr;
@@ -1594,7 +1594,7 @@ void FUN_000cc590(int16_t function_index, int thread_datum, char init)
     return;
   }
 
-  FUN_000cbf80(thread_datum, *result_ptr);
+  hs_return(thread_datum, *result_ptr);
 }
 
 /* 0xcc660 — HS 'begin_random' evaluator.
@@ -1605,7 +1605,7 @@ void FUN_000cc590(int16_t function_index, int thread_datum, char init)
  * Multi-phase protocol:
  *   init==true  : count the argument list, memset the used-bit array.
  *   init==false : pick the next unused slot and evaluate it; when all slots
- *                 are used call FUN_000cbf80 to commit the result.
+ *                 are used call hs_return to commit the result.
  *
  * Stack allocations (via hs_thread_stack_alloc):
  *   2 bytes  — int16_t argument_count
@@ -1624,7 +1624,7 @@ void FUN_000cc590(int16_t function_index, int thread_datum, char init)
  *   0x5aa6c4 = hs_thread_data  (data_t*)
  *   0x5aa6c8 = hs_syntax_data  (data_t*)
  */
-void FUN_000cc660(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_begin_random(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int16_t *argument_count;
@@ -1717,14 +1717,14 @@ void FUN_000cc660(int16_t function_index, int thread_datum, char init)
   /* If all slots have been tried (counter wrapped to argument_count), pop
    * the frame and commit the result. */
   if (sVar10 == *argument_count) {
-    FUN_000cbf80(thread_datum, *result_value);
+    hs_return(thread_datum, *result_value);
   }
 }
 
 /* 0xcc870 — HS 'if' evaluator. Three-phase: init evaluates the condition,
  * second call selects then/else branch, third call pops frame with result.
  * (if <condition> <then> [else]) */
-void FUN_000cc870(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_if(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   char *cond_result;
@@ -1755,7 +1755,7 @@ void FUN_000cc870(int16_t function_index, int thread_datum, char init)
   }
 
   if (*branch_ptr != -1) {
-    FUN_000cbf80(thread_datum, *value_ptr);
+    hs_return(thread_datum, *value_ptr);
     return;
   }
 
@@ -1776,7 +1776,7 @@ void FUN_000cc870(int16_t function_index, int thread_datum, char init)
         (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(cond + 0x8));
       *branch_ptr = *(int *)(then_node + 0x8);
       if (*branch_ptr == -1) {
-        FUN_000cbf80(thread_datum, 0);
+        hs_return(thread_datum, 0);
         return;
       }
     }
@@ -1789,7 +1789,7 @@ void FUN_000cc870(int16_t function_index, int thread_datum, char init)
  * Init: evaluates the value expression, storing result at the global's address.
  * Not init: syncs globals, optionally handles object-list type (0x17), pops
  * frame with the global's current value. */
-void FUN_000cca00(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_set(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   char *var_node;
@@ -1841,13 +1841,13 @@ void FUN_000cca00(int16_t function_index, int thread_datum, char init)
 
   {
     char *global_datum = (char *)datum_get(*(data_t **)0x5aa6c0, global_index);
-    FUN_000cbf80(thread_datum, *(int *)(global_datum + 4));
+    hs_return(thread_datum, *(int *)(global_datum + 4));
   }
 }
 
 /* 0xccb40 — HS 'and'/'or' evaluator. Short-circuits: AND stops on first
  * false, OR stops on first true. function_index 5 = and, 6 = or. */
-void FUN_000ccb40(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_logical(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int *expr_ptr;
@@ -1894,12 +1894,12 @@ void FUN_000ccb40(int16_t function_index, int thread_datum, char init)
     return;
   }
 
-  FUN_000cbf80(thread_datum, (int)(uint8_t)*running);
+  hs_return(thread_datum, (int)(uint8_t)*running);
 }
 
 /* 0xccc70 — HS arithmetic evaluator (+, -, *, /, min, max). Accumulates
  * results across multiple operand expressions. Function indices 7-12. */
-void FUN_000ccc70(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_arithmetic(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int16_t *counter;
@@ -1964,14 +1964,14 @@ void FUN_000ccc70(int16_t function_index, int thread_datum, char init)
     return;
   }
 
-  FUN_000cbf80(thread_datum, *(int *)accum);
+  hs_return(thread_datum, *(int *)accum);
 }
 
 /* 0xccdf0 — HS equal/not-equal evaluator. Evaluates two arguments of the
  * same type via FUN_000cc3a0, then compares with csmemcmp using the type's
  * size from the table at 0x26f350. function_index 0xd = equal, 0xe = not_equal.
  */
-void FUN_000ccdf0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_equality(int16_t function_index, int thread_datum, char init)
 {
   int16_t type;
   int16_t param_types[2];
@@ -2003,7 +2003,7 @@ void FUN_000ccdf0(int16_t function_index, int thread_datum, char init)
     char result = (csmemcmp(values, values + 1, size) == 0) ? 1 : 0;
     if (function_index == 0xe)
       result = (result == 0) ? 1 : 0;
-    FUN_000cbf80(thread_datum, (int)(uint8_t)result);
+    hs_return(thread_datum, (int)(uint8_t)result);
   }
 }
 
@@ -2016,9 +2016,9 @@ void FUN_000ccdf0(int16_t function_index, int thread_datum, char init)
  *
  * The formal_params passed to FUN_000cc3a0 is a static int16_t[2] at
  * 0x0046b80c; both slots are filled with the argument's inferred type.
- * Result is committed via FUN_000cbf80(thread_datum, (int)(uint8_t)result).
+ * Result is committed via hs_return(thread_datum, (int)(uint8_t)result).
  */
-void FUN_000cced0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_inequality(int16_t function_index, int thread_datum, char init)
 {
   int16_t type;
   /* static param_types pair: [0x0046b80c] = type, [0x0046b80e] = type */
@@ -2130,7 +2130,7 @@ void FUN_000cced0(int16_t function_index, int thread_datum, char init)
     }
   }
 
-  FUN_000cbf80(thread_datum, (int)(uint8_t)result);
+  hs_return(thread_datum, (int)(uint8_t)result);
 }
 
 /* 0xcd0e0 — HS 'sleep' evaluator. Puts a thread (or another thread by script
@@ -2153,7 +2153,7 @@ void FUN_000cced0(int16_t function_index, int thread_datum, char init)
  *   0x5aa6c4 = hs_thread_data (data_t*)
  *   0x5aa6c8 = hs_syntax_data (data_t*)
  */
-void FUN_000cd0e0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sleep(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int16_t *sleep_ticks;
@@ -2227,7 +2227,7 @@ void FUN_000cd0e0(int16_t function_index, int thread_datum, char init)
         }
       }
     }
-    FUN_000cbf80(thread_datum, 0);
+    hs_return(thread_datum, 0);
   }
 }
 
@@ -2251,7 +2251,7 @@ void FUN_000cd0e0(int16_t function_index, int thread_datum, char init)
  *
  * Assert: function_index == 0x14 (_hs_function_sleep_until).
  */
-void FUN_000cd2a0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sleep_until(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   char *evaluated;
@@ -2333,7 +2333,7 @@ void FUN_000cd2a0(int16_t function_index, int thread_datum, char init)
       }
     }
   } else {
-    FUN_000cbf80(thread_datum, 0);
+    hs_return(thread_datum, 0);
   }
 }
 
@@ -2348,7 +2348,7 @@ void FUN_000cd2a0(int16_t function_index, int thread_datum, char init)
  *   0x5aa6c8 = hs_syntax_data (data_t*)
  *   0x2f3df8 = hs_type_inspect_table (code*[])
  */
-void FUN_000cd4a0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_inspect(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int *result_ptr;
@@ -2388,7 +2388,7 @@ void FUN_000cd4a0(int16_t function_index, int thread_datum, char init)
         console_printf(0, local_404);
       }
     }
-    FUN_000cbf80(thread_datum, 0);
+    hs_return(thread_datum, 0);
   }
 }
 
@@ -2396,7 +2396,7 @@ void FUN_000cd4a0(int16_t function_index, int thread_datum, char init)
  * checks if the object's type matches the target conversion mask from
  * the table at 0x26f320. Returns the object if compatible, NONE if not.
  * function_index 0x17 = object_to_unit. */
-void FUN_000cd5a0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int *result_ptr;
@@ -2422,7 +2422,7 @@ void FUN_000cd5a0(int16_t function_index, int thread_datum, char init)
   }
 
   if (*result_ptr == -1) {
-    FUN_000cbf80(thread_datum, -1);
+    hs_return(thread_datum, -1);
     return;
   }
 
@@ -2433,14 +2433,14 @@ void FUN_000cd5a0(int16_t function_index, int thread_datum, char init)
     int type_mask = (int)*(int16_t *)(0x26f320 + type_idx * 2);
 
     if (type_mask & type_bit) {
-      FUN_000cbf80(thread_datum, *result_ptr);
+      hs_return(thread_datum, *result_ptr);
       return;
     }
 
     const char *tag_name = tag_get_name(*(int *)obj);
     error(2, "attempt to convert object %s to type %s", tag_name,
           *(const char **)(0x2f153c + type_idx * 4));
-    FUN_000cbf80(thread_datum, -1);
+    hs_return(thread_datum, -1);
   }
 }
 
@@ -2456,7 +2456,7 @@ void FUN_000cd5a0(int16_t function_index, int thread_datum, char init)
  *
  * Assert: function_index in [0x18..0x1a] (_hs_function_debug_string range).
  */
-void FUN_000cd6c0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_debug_string(int16_t function_index, int thread_datum, char init)
 {
   char *thread;
   int *cur_expr;
@@ -2511,13 +2511,13 @@ void FUN_000cd6c0(int16_t function_index, int thread_datum, char init)
       display_assert(0, "c:\\halo\\source\\hs\\hs_library_internal_runtime.h",
                      0x330, 1);
       system_exit(-1);
-      FUN_000cbf80(thread_datum, -1);
+      hs_return(thread_datum, -1);
       return;
     }
     if (fn != NULL)
       fn(*arg_count, arg_buf);
   }
-  FUN_000cbf80(thread_datum, -1);
+  hs_return(thread_datum, -1);
 }
 
 /* 0xcd840 — Main HS thread execution tick. Runs the thread's expression
@@ -2641,7 +2641,7 @@ static void FUN_000cd840(int thread_handle)
         if (eval_flag) {
           FUN_000cc1d0(thread_handle, *(int *)(ref_script + 0x24), result);
         } else {
-          FUN_000cbf80(thread_handle, *(int *)result);
+          hs_return(thread_handle, *(int *)result);
         }
       }
     }

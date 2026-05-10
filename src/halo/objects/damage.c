@@ -1,4 +1,4 @@
-/* FUN_00136790 (0x136790) — Check if object body vitality is below full and
+/* object_restore_body (0x136790) — Check if object body vitality is below full and
  * restore it to 1.0f if so.
  *
  * Returns true (1) if vitality was restored, false (0) if the object has
@@ -13,7 +13,7 @@
  * Confirmed: XOR DL,DL sets default false return before first branch.
  * Confirmed: caller at 0xbd055 tests return with TEST AL,AL (bool).
  */
-char FUN_00136790(int object_handle)
+char object_restore_body(int object_handle)
 {
   char *obj;
 
@@ -27,7 +27,7 @@ char FUN_00136790(int object_handle)
   return 0;
 }
 
-/* FUN_001367e0 (0x1367e0) — Check if object shield vitality is at or below full
+/* object_double_charge_shield (0x1367e0) — Check if object shield vitality is at or below full
  * and prepare it for shield regeneration if so.
  *
  * If shield vitality > 1.0f, returns false (0).
@@ -46,7 +46,7 @@ char FUN_00136790(int object_handle)
  * Confirmed: MOV word [ECX+0xb4],0x0 clears shield-damage counter.
  * Confirmed: caller at 0xbd039 tests return with TEST AL,AL (bool).
  */
-char FUN_001367e0(int object_handle)
+char object_double_charge_shield(int object_handle)
 {
   char *obj;
 
@@ -122,13 +122,13 @@ int FUN_00136890(int object_index)
   return -1;
 }
 
-/* FUN_001368e0 (0x1368e0) — Clear bit 3 of object+0xb7 flags byte for all
+/* object_can_take_damage (0x1368e0) — Clear bit 3 of object+0xb7 flags byte for all
  * children/widgets of a given parent handle.
  *
  * Iterates using FUN_000ce450 (first) / FUN_000ce320 (next) to enumerate
  * associated objects. For each, clears bit 3 (AND 0xf7) of the flags byte
- * at offset 0xb7. This is the same byte modified by FUN_00136980 (bit 0)
- * and FUN_001369b0 (bit 7).
+ * at offset 0xb7. This is the same byte modified by object_set_ranged_attack_inhibited (bit 0)
+ * and object_set_melee_attack_inhibited (bit 7).
  *
  * Confirmed: cdecl, single stack param at [EBP+0x8].
  * Confirmed: object_get_and_verify_type(index, -1) at CALL 0x13d680.
@@ -136,7 +136,7 @@ int FUN_00136890(int object_index)
  * Confirmed: FUN_000ce450 (first child) at CALL 0xce450.
  * Confirmed: FUN_000ce320 (next child) at CALL 0xce320.
  */
-void FUN_001368e0(int player_handle)
+void object_can_take_damage(int player_handle)
 {
     int iter_state;
     int object_index;
@@ -150,10 +150,10 @@ void FUN_001368e0(int player_handle)
     }
 }
 
-/* FUN_00136930 (0x136930) — Set bit 3 of object+0xb7 flags byte for all
+/* object_get_maximum_body_vitality (0x136930) — Set bit 3 of object+0xb7 flags byte for all
  * children/widgets of a given parent handle.
  *
- * Complement of FUN_001368e0 which clears the same bit. Iterates using
+ * Complement of object_can_take_damage which clears the same bit. Iterates using
  * FUN_000ce450 (first) / FUN_000ce320 (next) to enumerate associated
  * objects. For each, sets bit 3 (OR 0x8) of the flags byte at offset 0xb7.
  *
@@ -163,7 +163,7 @@ void FUN_001368e0(int player_handle)
  * Confirmed: FUN_000ce450 (first child) at CALL 0xce450.
  * Confirmed: FUN_000ce320 (next child) at CALL 0xce320.
  */
-void FUN_00136930(int player_handle)
+void object_get_maximum_body_vitality(int player_handle)
 {
     int iter_state;
     int object_index;
@@ -177,7 +177,7 @@ void FUN_00136930(int player_handle)
     }
 }
 
-/* FUN_00136980 (0x136980) — Set or clear the damage-invincible bit on an
+/* object_set_ranged_attack_inhibited (0x136980) — Set or clear the damage-invincible bit on an
  * object.
  *
  * If object_handle is valid (!= -1), gets the object and sets or clears
@@ -189,7 +189,7 @@ void FUN_00136930(int player_handle)
  * Confirmed: AND byte [EAX+0xb7],0xfe (clear) at 0x1369a6.
  * Confirmed: flag at [EBP+0xc] tested via TEST CL,CL at 0x136999.
  */
-void FUN_00136980(int object_handle, char flag)
+void object_set_ranged_attack_inhibited(int object_handle, char flag)
 {
   char *obj;
 
@@ -203,13 +203,13 @@ void FUN_00136980(int object_handle, char flag)
   }
 }
 
-/* FUN_001369b0 (0x1369b0) — Set or clear bit 7 of object+0xb6 flags byte.
+/* object_set_melee_attack_inhibited (0x1369b0) — Set or clear bit 7 of object+0xb6 flags byte.
  *
- * Confirmed: identical structure to FUN_00136980 but targets offset 0xb6 bit 7.
+ * Confirmed: identical structure to object_set_ranged_attack_inhibited but targets offset 0xb6 bit 7.
  * Confirmed: OR byte [EAX+0xb6],0x80 (set) at 0x1369cd.
  * Confirmed: AND byte [EAX+0xb6],0x7f (clear) at 0x1369d6.
  */
-void FUN_001369b0(int object_handle, char flag)
+void object_set_melee_attack_inhibited(int object_handle, char flag)
 {
   char *obj;
 
@@ -287,7 +287,7 @@ void FUN_00136a00(int object_handle, char param_1)
   }
 }
 
-/* FUN_00136a80 (0x136a80) — Compute scaled body vitality for an object.
+/* object_get_actual_body_vitality (0x136a80) — Compute scaled body vitality for an object.
  *
  * Returns body_vitality * body_max_vitality, optionally scaled by the
  * difficulty modifier for value_type 1 (body vitality) when param_2 is 0.
@@ -307,7 +307,7 @@ void FUN_00136a00(int object_handle, char param_1)
  * Confirmed: FMUL [EBP-4] then FMUL [EBP-8] for final result.
  * Confirmed: caller at 0x52211 pushes [PUSH 0; PUSH ECX] => (handle, 0).
  */
-float FUN_00136a80(int object_handle, char param_2)
+float object_get_actual_body_vitality(int object_handle, char param_2)
 {
   char *obj;
   float body_max_vitality;
@@ -326,7 +326,7 @@ float FUN_00136a80(int object_handle, char param_2)
   return scale * body_max_vitality;
 }
 
-/* FUN_00136ae0 (0x136ae0) — Compute scaled shield vitality for an object.
+/* object_get_actual_shield_vitality (0x136ae0) — Compute scaled shield vitality for an object.
  *
  * Returns shield_vitality * shield_max_vitality, optionally scaled by the
  * difficulty modifier for value_type 2 (shield vitality) when param_2 is 0.
@@ -346,7 +346,7 @@ float FUN_00136a80(int object_handle, char param_2)
  * Confirmed: FMUL [EBP-4] then FMUL [EBP-8] for final result.
  * Confirmed: caller at 0x521f5 pushes [PUSH 0; PUSH EDX] => (handle, 0).
  */
-float FUN_00136ae0(int object_handle, char param_2)
+float object_get_actual_shield_vitality(int object_handle, char param_2)
 {
   char *obj;
   float shield_max_vitality;
@@ -365,7 +365,7 @@ float FUN_00136ae0(int object_handle, char param_2)
   return scale * shield_max_vitality;
 }
 
-/* FUN_00136b40 (0x136b40) — Trigger initial body-damage effect on an object.
+/* object_deplete_shield (0x136b40) — Trigger initial body-damage effect on an object.
  *
  * If bit 3 of the damage flags byte (obj+0xb6) is not already set:
  *   1. Looks up the object's collision model tag (obje+0x7c -> 'coll')
@@ -386,7 +386,7 @@ float FUN_00136ae0(int object_handle, char param_2)
  * Confirmed: MOV [ESI+0x98],0x0 at 0x136ba8 clears dword.
  * Confirmed: MOV EAX,EDI; CALL 0x136a00 => FUN_00136a00(@EAX=handle, 0).
  */
-void FUN_00136b40(int object_handle)
+void object_deplete_shield(int object_handle)
 {
   char *obj;
   char *obje_tag;
@@ -407,7 +407,7 @@ void FUN_00136b40(int object_handle)
   }
 }
 
-/* FUN_00137540 (0x137540) — Set "body depleted" flag and detach child units.
+/* object_deplete_body (0x137540) — Set "body depleted" flag and detach child units.
  *
  * If bit 2 of the damage flags byte (obj+0xb6) is not already set:
  *   1. Sets bit 2 of obj+0xb6
@@ -421,7 +421,7 @@ void FUN_00136b40(int object_handle)
  *        - child+0x2a0 != -1 (short)
  *      calls unit_set_actively_controlled_flag to set the actively-controlled
  *      flag on that child unit
- *   5. Calls FUN_00136b40 to trigger the initial body-damage effect
+ *   5. Calls object_deplete_shield to trigger the initial body-damage effect
  *
  * Confirmed: cdecl, 1 stack param (object_handle), void return.
  * Confirmed: PUSH -1; PUSH EDI; CALL 0x13d680 => object_get_and_verify_type.
@@ -440,10 +440,10 @@ void FUN_00136b40(int object_handle)
  * Confirmed: CMP word [ESI+0x2a0],BX checks child+0x2a0 != -1.
  * Confirmed: PUSH EDI; CALL 0x1a7f80 => unit_set_actively_controlled_flag.
  * Confirmed: MOV EDI,[ESI+0xc4] reads next sibling.
- * Confirmed: MOV EDI,[EBP+0x8] restores param_1 before FUN_00136b40 call.
- * Confirmed: PUSH EDI; CALL 0x136b40 => FUN_00136b40(object_handle).
+ * Confirmed: MOV EDI,[EBP+0x8] restores param_1 before object_deplete_shield call.
+ * Confirmed: PUSH EDI; CALL 0x136b40 => object_deplete_shield(object_handle).
  */
-void FUN_00137540(int object_handle)
+void object_deplete_body(int object_handle)
 {
   char *obj;
   char *obje_tag;
@@ -473,15 +473,15 @@ void FUN_00137540(int object_handle)
         child_handle = *(int *)(child_obj + 0xc4);
       }
     }
-    FUN_00136b40(object_handle);
+    object_deplete_shield(object_handle);
   }
 }
 
-/* FUN_00137620 (0x137620) — Object death/destruction handler.
+/* object_destroy (0x137620) — Object death/destruction handler.
  *
  * Called when an object is destroyed (killed). Performs the death sequence:
  *   1. Gets the object's tag definition ('obje') from the object data
- *   2. Calls FUN_00137540 to handle death-related flag setting and child
+ *   2. Calls object_deplete_body to handle death-related flag setting and child
  *      object detachment
  *   3. If the object has a collision model (obje+0x7c != -1), looks up the
  *      collision tag ('coll') and creates the destroy effect from coll+0xc8
@@ -494,7 +494,7 @@ void FUN_00137540(int object_handle)
  * Confirmed: MOV EAX,[EAX] dereferences first dword of object (tag index).
  * Confirmed: PUSH EAX; PUSH 0x6f626a65; CALL 0x1ba140 => tag_get('obje', ...).
  * Confirmed: MOV EDI,EAX saves obje_tag in EDI.
- * Confirmed: PUSH ESI; CALL 0x137540 => FUN_00137540(object_handle).
+ * Confirmed: PUSH ESI; CALL 0x137540 => object_deplete_body(object_handle).
  * Confirmed: MOV EAX,[EDI+0x7c] reads collision model index from obje tag.
  * Confirmed: CMP EAX,-1 at 0x13764b checks collision model presence.
  * Confirmed: tag_get('coll', collision_index) at second CALL 0x1ba140.
@@ -503,7 +503,7 @@ void FUN_00137540(int object_handle)
  * Confirmed: PUSH ESI; CALL 0x136840 => FUN_00136840(object_handle).
  * Confirmed: PUSH ESI; CALL 0x140cc0 => object_delete(object_handle).
  */
-void FUN_00137620(int object_handle)
+void object_destroy(int object_handle)
 {
   int *obj;
   char *obje_tag;
@@ -512,7 +512,7 @@ void FUN_00137620(int object_handle)
 
   obj = (int *)object_get_and_verify_type(object_handle, -1);
   obje_tag = (char *)tag_get(0x6f626a65, *obj);
-  FUN_00137540(object_handle);
+  object_deplete_body(object_handle);
   coll_index = *(int *)(obje_tag + 0x7c);
   if (coll_index != -1) {
     coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
@@ -530,7 +530,7 @@ void FUN_00137620(int object_handle)
  *   1. Gets the region element from the collision model's regions tag_block
  *      at coll+0x240 (element size 0x54)
  *   2. Creates the region's destroy effect (region+0x44) via FUN_0009ec30
- *   3. Calls FUN_001402c0 to set the "~damaged" permutation on the object's
+ *   3. Calls object_permute_region to set the "~damaged" permutation on the object's
  *      model for the destroyed region
  *   4. Propagates region flags (region+0x20) into the object's damage flags:
  *        bit 5 (0x20) -> obj+0xb6 |= 0x80
@@ -538,7 +538,7 @@ void FUN_00137620(int object_handle)
  *        bit 7 (0x80) -> obj+0xb7 |= 0x02
  *        bit 8 (0x100) -> obj+0xb7 |= 0x04
  *   5. If region has "forces body depletion" flag (bit 1 / 0x02), calls
- *      FUN_00137540 to deplete the object's body
+ *      object_deplete_body to deplete the object's body
  *   6. Marks the region as destroyed in obj+0x124 (bitfield)
  *   7. Calls FUN_0013c6e0 to notify region-damage callbacks
  *
@@ -553,9 +553,9 @@ void FUN_00137620(int object_handle)
  * Confirmed: TEST AX,AX; JL assert; CMP AX,0x8; JL skip_assert.
  * Confirmed: PUSH 0x54; PUSH ECX; ADD ESI,0x240; PUSH ESI => tag_block_get_element.
  * Confirmed: 8 pushes [0,0,0,0,-1,EDI,EDI,[ESI+0x44]] before CALL 0x9ec30.
- * Confirmed: PUSH 1; PUSH EDX; PUSH 0x29b030; PUSH EDI => FUN_001402c0(obj,"~damaged",rgn,1).
+ * Confirmed: PUSH 1; PUSH EDX; PUSH 0x29b030; PUSH EDI => object_permute_region(obj,"~damaged",rgn,1).
  * Confirmed: flag tests at 0x20,0x40,0x80,0x100 on region+0x20 byte.
- * Confirmed: TEST byte [ESI+0x20],0x2 gates call to FUN_00137540.
+ * Confirmed: TEST byte [ESI+0x20],0x2 gates call to object_deplete_body.
  * Confirmed: OR word [EBX+0x124],AX sets region-damaged bit.
  * Confirmed: PUSH [ESI+0x20]; PUSH EDX; PUSH EDI => FUN_0013c6e0(obj,rgn,flags).
  */
@@ -596,7 +596,7 @@ void FUN_00137690(int object_handle, short region_index)
                                           region_idx, 0x54);
   FUN_0009ec30(*(int *)(region + 0x44), object_handle, object_handle, /* dup-args-ok: confirmed PUSH EDI,EDI */
                -1, 0, 0, 0, 0);
-  FUN_001402c0(object_handle, "~damaged", region_index, 1);
+  object_permute_region(object_handle, "~damaged", region_index, 1);
 
   if ((*(unsigned char *)(region + 0x20) & 0x20) != 0) {
     *(unsigned short *)((char *)obj + 0xb6) |= 0x80;
@@ -611,7 +611,7 @@ void FUN_00137690(int object_handle, short region_index)
     *(unsigned char *)((char *)obj + 0xb7) |= 0x04;
   }
   if ((*(unsigned char *)(region + 0x20) & 0x02) != 0) {
-    FUN_00137540(object_handle);
+    object_deplete_body(object_handle);
   }
 
   *(unsigned short *)((char *)obj + 0x124) |= (unsigned short)(1 << region_idx);
@@ -633,7 +633,7 @@ void FUN_00137690(int object_handle, short region_index)
  *                     calls FUN_001b5c90 (vehicle acceleration)
  *   case 2,3,4 (items): calls item_set_position with flag based on
  *                       damage_data+0x40 > 0.5f && jpt+0x1c8 flag
- *   case 5 (projectile): calls FUN_000f8ee0 (projectile acceleration)
+ *   case 5 (projectile): calls projectile_accelerate (projectile acceleration)
  *
  * After the switch, checks game state via FUN_000a8e40:
  *   - If true and damage_data byte +4 >= 0: calls FUN_000b56e0 for scoring,
@@ -720,7 +720,7 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
       }
       break;
     case 5:
-      FUN_000f8ee0(object_handle, velocity);
+      projectile_accelerate(object_handle, velocity);
       break;
     default:
       break;
@@ -756,8 +756,8 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
  *
  * Sets up 5 forward-direction vectors ("normal", "incident",
  * "negative incident", "reflection", "gravity") and 5 copies of the impact
- * position, then calls either FUN_0009ee40 (attached effect) when both the
- * object handle and marker index are valid, or FUN_0009f0e0 (unattached
+ * position, then calls either effect_new_attached_from_markers (attached effect) when both the
+ * object handle and marker index are valid, or effect_new_unattached_from_markers (unattached
  * effect) otherwise.
  *
  * The incident direction (@EAX) is normalized in-place; if it has zero
@@ -784,11 +784,11 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
  * Confirmed: FUN_001412f0 at CALL 0x1412f0 = object_get_world_position.
  * Confirmed: FUN_0010c8e0 at CALL 0x10c8e0 = reflect vector.
  * Confirmed: CMP ESI,-1 at 0x1372f9 + CMP AX,0xffff at 0x137303 gate
- *            between FUN_0009ee40 and FUN_0009f0e0.
+ *            between effect_new_attached_from_markers and effect_new_unattached_from_markers.
  * Confirmed: 12 pushes + ADD ESP,0x30 for both effect calls.
  * Confirmed: *(0x31fc50) = global gravity/down vector (0,0,-1).
  * Confirmed: *(0x31fc3c) = global forward vector (1,0,0).
- * Confirmed: *(0x31fc38) = translational velocity ptr for FUN_0009f0e0.
+ * Confirmed: *(0x31fc38) = translational velocity ptr for effect_new_unattached_from_markers.
  */
 /* Unported: only caller (FUN_001377d0) is unported and passes 3 register
  * args (@<eax>, @<ecx>, @<esi>) that our cdecl C function cannot receive.
@@ -880,18 +880,18 @@ void FUN_00137170(float *incident_direction, float *surface_normal,
   }
 
   if (object_handle != -1 && marker_index != -1) {
-    FUN_0009ee40(effect_tag_index, object_handle, object_handle, /* dup-args-ok: confirmed PUSH ESI,ESI */
+    effect_new_attached_from_markers(effect_tag_index, object_handle, object_handle, /* dup-args-ok: confirmed PUSH ESI,ESI */
                  (uint16_t)marker_index, 5, (void *)effect_names,
                  marker_points, forward_vectors, 1.0f, 0.0f, 0.0f, 0.0f);
     return;
   }
-  FUN_0009f0e0(effect_tag_index, object_handle,
+  effect_new_unattached_from_markers(effect_tag_index, object_handle,
                *(float **)0x31fc38, 5, (void *)effect_names,
                marker_points, forward_vectors, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 }
 #endif
 
-/* FUN_00137370 (0x137370) — Damage debug overlay: display damage vitality info
+/* render_debug_object_damage (0x137370) — Damage debug overlay: display damage vitality info
  * for a targeted object, and handle picking a new target via collision ray.
  *
  * When the damage debug flag (DAT_005a90c0) is set, this function:
@@ -923,7 +923,7 @@ void FUN_00137170(float *incident_direction, float *surface_normal,
  * Confirmed: assert string "collision.type==_collision_result_object" at 0x29af70.
  * Confirmed: display_assert at CALL 0x8d9f0, system_exit at CALL 0x8e2f0.
  */
-void FUN_00137370(void)
+void render_debug_object_damage(void)
 {
   typedef int(__cdecl *fn_snprintf_t)(char *, int, const char *, ...);
   fn_snprintf_t snprintf_fn;
@@ -1038,8 +1038,8 @@ int FUN_00138ee0(int hardware_format)
 {
   int result;
 
-  FUN_000916e0();
+  profile_texture_start();
   result = (int)xbox_texture_cache_get_hardware_format((void *)hardware_format, 1, 1);
-  FUN_00091710();
+  profile_texture_end();
   return result;
 }

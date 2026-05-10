@@ -75,7 +75,7 @@ void player_clear_aim_assist(int unit_handle)
  * Converts the direction vector to yaw+pitch via FUN_0010cc00 (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
  * to [0, 2*pi) by adding 2*pi if negative. */
-void FUN_000b6ea0(uint16_t local_player_index, float *direction)
+void player_control_set_facing(uint16_t local_player_index, float *direction)
 {
   char *player_slot;
   float *desired_yaw;

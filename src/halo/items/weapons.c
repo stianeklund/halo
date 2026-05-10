@@ -19,7 +19,7 @@ char *weapon_get_label(int weapon_handle)
  *   2. Validate trigger_index against the triggers block at tag+0x4fc.
  *   3. Get the trigger element (element size 0x114) at the given index.
  *   4. Read the 'proj' (projectile) tag reference from trigger+0xa0.
- *   5. Call FUN_000f7da0(proj_tag, param_3) — returns a float ratio.
+ *   5. Call projectile_estimate_time_to_target(proj_tag, param_3) — returns a float ratio.
  *   6. Default return value is 0.0f (loaded from 0x2533c0 which holds 0.0f).
  *
  * Confirmed: PUSH 0x4 / PUSH EAX → object_get_and_verify_type at 0xfaed6.
@@ -32,8 +32,8 @@ char *weapon_get_label(int weapon_handle)
  * Confirmed: MOV EDX,[EBP+0x10] (param_3) at 0xfaf1d.
  * Confirmed: MOV EAX,[EAX+0xa0] (proj tag ref) at 0xfaf20.
  * Confirmed: PUSH EDX / PUSH EAX / PUSH 0x70726f6a → tag_get('proj') at 0xfaf29.
- *   ADD ESP,0x8 cleans 2 args; EDX (param_3) already on stack for FUN_000f7da0.
- * Confirmed: PUSH EAX / CALL FUN_000f7da0 at 0xfaf38; ADD ESP,0x8 cleans 2.
+ *   ADD ESP,0x8 cleans 2 args; EDX (param_3) already on stack for projectile_estimate_time_to_target.
+ * Confirmed: PUSH EAX / CALL projectile_estimate_time_to_target at 0xfaf38; ADD ESP,0x8 cleans 2.
  */
 float FUN_000faed0(int weapon_handle, int16_t trigger_index, float param_3)
 {
@@ -49,7 +49,7 @@ float FUN_000faed0(int weapon_handle, int16_t trigger_index, float param_3)
       void *trig_elem = tag_block_get_element(trig_block, trigger_idx, 0x114);
       int   proj_ref  = *(int *)((char *)trig_elem + 0xa0);
       void *proj_tag  = tag_get(0x70726f6a, proj_ref);
-      result = FUN_000f7da0(proj_tag, param_3);
+      result = projectile_estimate_time_to_target(proj_tag, param_3);
     }
   }
 
@@ -717,14 +717,14 @@ void weapon_reset_state(int weapon_handle)
   }
 }
 
-/* FUN_000fd180 (0xfd180)
+/* weapon_set_current_amount (0xfd180)
  *
  * Sets weapon ammo level based on a fraction. For battery-based weapons
  * (no magazines or has triggers with charging threshold), stores the charge
  * level at weapon+0x1f0. For magazine-based weapons, sets the loaded rounds
  * in the first magazine and adjusts the total accordingly.
  */
-void FUN_000fd180(int weapon_handle, float ammo_fraction)
+void weapon_set_current_amount(int weapon_handle, float ammo_fraction)
 {
   int *weapon = (int *)object_get_and_verify_type(weapon_handle, 4);
   int tag_data = (int)tag_get(0x77656170, *weapon);
@@ -784,7 +784,7 @@ void FUN_000fd180(int weapon_handle, float ammo_fraction)
  * trigger block element (0x114 bytes each) at [weap_tag+0x4fc], reads the
  * 'proj' tag reference from [trigger_elem+0xa0], and resolves it via
  * tag_get('proj',...). Passes the resolved projectile tag along with the
- * remaining parameters to FUN_000f84d0 (projectile fire dispatcher), then
+ * remaining parameters to projectile_aim (projectile fire dispatcher), then
  * validates param_6 as a valid 3D unit normal using valid_real_normal3d. If
  * the vector is invalid, formats an assert message via csprintf and calls
  * display_assert + system_exit. Returns true (1) on success, false (0) if
@@ -808,7 +808,7 @@ void FUN_000fd180(int weapon_handle, float ammo_fraction)
  *   trigger element.
  * Confirmed: tag_get(0x70726f6a, proj_ref, ...) at 0xfd496 with 14 pushes;
  *   ADD ESP,0x8 cleans only tag_get's own 2 args.
- * Confirmed: FUN_000f84d0 called with proj_tag + 12 stale stack args at 0xfd49f;
+ * Confirmed: projectile_aim called with proj_tag + 12 stale stack args at 0xfd49f;
  *   receives proj_tag as arg1, then param_3..param_9 interleaved with 0-padding.
  * Confirmed: valid_real_normal3d(param_6) at 0xfd4a5 (PUSH ESI where ESI=[EBP+0x1c]).
  * Confirmed: csprintf(&DAT_005ab100, ...) assert-format at 0xfd4e2;
@@ -845,9 +845,9 @@ bool FUN_000fd400(
       (void *)(weap_tag + 0x4fc), trig_idx, 0x114);
   int proj_ref = *(int *)(trigger_elem + 0xa0);
 
-  /* tag_get + FUN_000f84d0 share a single stack cleanup.
+  /* tag_get + projectile_aim share a single stack cleanup.
    * The 12 args pushed before tag_get's own 2 args are left on the stack
-   * and become args 2-13 for FUN_000f84d0. Represent faithfully as two
+   * and become args 2-13 for projectile_aim. Represent faithfully as two
    * separate calls passing the same set of parameters. */
   void *proj_tag = tag_get(0x70726f6a, proj_ref);
   ((void (*)(void *, void *, void *, int, int, int, int,
@@ -916,7 +916,7 @@ bool weapon_try_place(int weapon_handle, int flag)
   weapon_reset_state(weapon_handle);
 
   if (*(int *)((int)weapon_data + 0x274) != -1) {
-    FUN_0009c750(*(int *)((int)weapon_data + 0x274));
+    effect_delete(*(int *)((int)weapon_data + 0x274));
     *(int *)((int)weapon_data + 0x274) = -1;
   }
 

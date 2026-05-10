@@ -19,7 +19,7 @@ static double breakable_ceil(double x)
 /* 0x1457f0 — Returns a pointer to the health float for a breakable surface,
  * indexed by global_structure_bsp_index and surface_index within the globals
  * buffer starting at offset 0x204. */
-float *FUN_001457f0(short surface_index)
+float *breakable_surface_get(short surface_index)
 {
   assert_halt(breakable_surface_globals);
   assert_halt(global_structure_bsp_index >= 0 &&
@@ -106,8 +106,8 @@ char *breakable_surfaces_get_bsp_surface_data(void)
  * Confirmed: tag_block_get_element calls for planes, edges, vertices, effects.
  * Confirmed: FUN_00061df0 projects 3D to 2D, FUN_000992d0 unprojects 2D to 3D.
  * Confirmed: FUN_00106200 point-in-polygon test with 0 radius.
- * Confirmed: FUN_000a1fd0 spawns a particle.
- * Confirmed: FUN_001c73d0 triggers sound at end if material has sound tag. */
+ * Confirmed: particle_new spawns a particle.
+ * Confirmed: unattached_impulse_sound_new triggers sound at end if material has sound tag. */
 void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 {
   uint32_t *param_2;
@@ -818,7 +818,7 @@ spawn_loop:
                     }
 
                     /* Spawn the particle */
-                    FUN_000a1fd0(spawn_params);
+                    particle_new(spawn_params);
                   }
 
 next_cell:
@@ -869,7 +869,7 @@ next_effect:
     *(uint32_t *)(sound_location + 0x24) = param_2[5];
     *(uint32_t *)(sound_location + 0x28) = param_2[6];
 
-    FUN_001c73d0(*(int *)(material_effects_base + 0x2c),
+    unattached_impulse_sound_new(*(int *)(material_effects_base + 0x2c),
                  sound_location, 1.0f);
   }
 }
@@ -899,7 +899,7 @@ void FUN_00146a90(int surface_id, void *damage_params, int unknown)
   if (*(short *)((char *)damage_params + 0x4c) == -1)
     return;
 
-  health_ptr = FUN_001457f0((short)surface_id);
+  health_ptr = breakable_surface_get((short)surface_id);
   if (*health_ptr <= 0.0f)
     return;
 

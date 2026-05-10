@@ -57,7 +57,7 @@ char *main_get_multiplayer_map_name(void)
 }
 
 /* Return the game variant index from the static table at 0x31fa90. */
-int16_t FUN_00100080(void)
+int16_t main_get_difficulty(void)
 {
   return *(int16_t *)0x31fa90;
 }
@@ -153,7 +153,7 @@ void main_queue_map_name(char *map_name)
   }
 }
 
-void FUN_00100620(void)
+void main_goto_main_menu(void)
 {
   word_46DA40 = -1;
   byte_46DA28 = 0;
@@ -1403,7 +1403,7 @@ void main_rasterizer_throttle(void)
 }
 
 /* Clear both rasterizer timing flags. */
-void FUN_00101c90(void)
+void main_lost_map(void)
 {
   *(char *)0x46da46 = 0;
   *(char *)0x46da47 = 0;

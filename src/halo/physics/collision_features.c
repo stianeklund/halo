@@ -15,7 +15,7 @@ void collision_features_init(void *features)
  * Writes a sphere entry (position, material, surface ID). If param_2 > 0,
  * also writes a second sphere entry and a cylinder entry with position_z
  * adjusted by subtracting param_2 (depth/height correction). */
-void FUN_0014adb0(int param_1, float param_2, int param_3, int param_4,
+void collision_features_from_point(int param_1, float param_2, int param_3, int param_4,
                   int param_5, unsigned char param_6, unsigned char param_7,
                   short param_8, void *features)
 {
@@ -180,7 +180,7 @@ void FUN_0014b220(int point_count, void *points, float *plane, float param_4,
  * tag block chain (prisms -> regions -> materials), extract material flags,
  * optionally transform the element, then add it as a collision feature.
  * Called once per prism in the collision results. */
-void FUN_0014b3d0(int param_1, int param_2, int param_3, int param_4,
+void collision_features_from_vertex(int param_1, int param_2, int param_3, int param_4,
                   int param_5, int param_6, void *features)
 {
   void *elem;
@@ -206,7 +206,7 @@ void FUN_0014b3d0(int param_1, int param_2, int param_3, int param_4,
     elem = local_10;
   }
 
-  FUN_0014adb0((int)elem, param_4, param_5, param_6, uVar4,
+  collision_features_from_point((int)elem, param_4, param_5, param_6, uVar4,
                *(unsigned char *)(iVar3 + 8),
                *(unsigned char *)(iVar3 + 9),
                *(unsigned short *)(iVar3 + 0xa), features);
@@ -218,7 +218,7 @@ void FUN_0014b3d0(int param_1, int param_2, int param_3, int param_4,
  * consistency via scalar triple product against a threshold, optionally
  * transform position and direction, then add a cylinder collision feature.
  * Called once per cylinder in the collision results. */
-void FUN_0014b470(int param_1, int object_handle, int param_3, int param_4,
+void collision_features_from_polygon(int param_1, int object_handle, int param_3, int param_4,
                   int param_5, int param_6, void *features)
 {
   unsigned int *puVar3;
@@ -283,7 +283,7 @@ void FUN_0014b470(int param_1, int object_handle, int param_3, int param_4,
       pfVar7 = local_34;
     }
 
-    FUN_0014aee0(pfVar7, pfVar5, *(float *)&param_4, param_5, param_6,
+    collision_features_from_line(pfVar7, pfVar5, *(float *)&param_4, param_5, param_6,
                  uVar6, (char)puVar3[2],
                  *(unsigned char *)((int)puVar3 + 9),
                  *(unsigned short *)((int)puVar3 + 0xa), features);
@@ -352,11 +352,11 @@ void collision_features_add(int param_1, int *collision_results, int param_3,
   assert_halt(counts[2] >= 0 && counts[2] <= 0x100);
 
   for (i = 0; i < collision_results[0x202]; i++)
-    FUN_0014b3d0(param_1, collision_results[0x203 + i], param_3, param_4,
+    collision_features_from_vertex(param_1, collision_results[0x203 + i], param_3, param_4,
                  param_5, param_6, features);
 
   for (i = 0; i < collision_results[0x101]; i++)
-    FUN_0014b470(param_1, collision_results[0x102 + i], param_3, param_4,
+    collision_features_from_polygon(param_1, collision_results[0x102 + i], param_3, param_4,
                  param_5, param_6, features);
 
   for (i = 0; i < collision_results[0]; i++)
@@ -371,7 +371,7 @@ void collision_features_add(int param_1, int *collision_results, int param_3,
  * normal, computes the plane equation (normal[3] = dot(center,normal) + radius),
  * and returns the penetration depth (radius - distance). Returns 1 if the point
  * is inside the sphere, 0 otherwise. */
-char FUN_0014b890(void *feature, void *los_data, float *t_hit, float *normal)
+char collision_features_from_surface(void *feature, void *los_data, float *t_hit, float *normal)
 {
   float *sphere = (float *)feature;
   float *point = (float *)los_data;
@@ -424,7 +424,7 @@ char FUN_0014b890(void *feature, void *los_data, float *t_hit, float *normal)
  * Projects the point onto the cylinder axis, checks it is within the cylinder
  * bounds and radius, then computes the perpendicular normal and penetration
  * depth. Returns 1 if the point is inside the cylinder, 0 otherwise. */
-char FUN_0014b960(void *feature, void *los_data, float *t_hit, float *normal)
+char collision_cylinder_test_point(void *feature, void *los_data, float *t_hit, float *normal)
 {
   float *cyl = (float *)feature;
   float *point = (float *)los_data;
@@ -515,13 +515,13 @@ bool collision_features_test_los(void *features, void *los_data, void *out_hit)
       char hit = 0;
 
       if (type == 0)
-        hit = FUN_0014b890(base + 8 + i * 0x1c, los_data, &current_t,
+        hit = collision_features_from_surface(base + 8 + i * 0x1c, los_data, &current_t,
                            current_normal);
       else if (type == 1)
-        hit = FUN_0014b960(base + 0x1c08 + i * 0x28, los_data, &current_t,
+        hit = collision_cylinder_test_point(base + 0x1c08 + i * 0x28, los_data, &current_t,
                            current_normal);
       else if (type == 2)
-        hit = FUN_0014bae0(base + 0x4408 + i * 0x68, los_data, &current_t,
+        hit = collision_prism_test_point(base + 0x4408 + i * 0x68, los_data, &current_t,
                            current_normal);
 
       if (hit && best_t < current_t) {

@@ -18,7 +18,7 @@
  * Confirmed: squad_array pointer at [0x5ab278] (MOVSX EAX,SI; SHL EAX,5;
  *   ADD EAX,[0x5ab278]).
  */
-char *FUN_0001c270(char *encounter, int16_t squad_index)
+char *encounter_get_squad(char *encounter, int16_t squad_index)
 {
   int16_t squad_absolute;
 
@@ -42,7 +42,7 @@ char *FUN_0001c270(char *encounter, int16_t squad_index)
 
 char *FUN_000210f0(int actor_handle)
 {
-  int weapon_handle = FUN_0003b270(actor_handle);
+  int weapon_handle = actor_attacking_target(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
     return (char *)tag_get(0x77656170, *obj);

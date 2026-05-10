@@ -47,15 +47,15 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
   }
 
   object_get_and_verify_type(handle, 3);
-  FUN_001a9900(handle, weapon_vector);
+  unit_scripting_unit_driver(handle, weapon_vector);
   FUN_001ada90(handle, weapon_vector, 1);
 }
 
-char *FUN_000211f0(int actor_handle)
+char *actor_combat_get_firing_variant_definition(int actor_handle)
 {
   char *actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   char *actv = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
-  int weapon_handle = FUN_0003b270(actor_handle);
+  int weapon_handle = actor_attacking_target(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
     char *weap = (char *)tag_get(0x77656170, *obj);
@@ -100,7 +100,7 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
   float random_time;
   float result;
 
-  char *actv = FUN_000211f0(actor_handle);
+  char *actv = actor_combat_get_firing_variant_definition(actor_handle);
   actor_combat_get_burst_parameters(actor_handle, actv, &burst_ref,
                                     &firing_ref);
 

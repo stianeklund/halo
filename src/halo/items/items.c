@@ -84,7 +84,7 @@ void item_attach_to_unit(int item_handle, int unit_handle)
  * range [tag+0x2e0, tag+0x2e4] scaled by 30.0 (ticks per second).
  * Called from item_set_position when the item is flagged for detonation
  * and the game engine is not running (campaign/solo mode). */
-void FUN_000f6af0(int item_handle)
+void item_detonate(int item_handle)
 {
   char *item_obj;
   char *item_tag;
@@ -164,13 +164,13 @@ void FUN_000f6b80(int item_handle)
  * Confirmed: CALL 0x1ba140 (tag_get) with 'item' (0x6974656d).
  * Confirmed: CALL 0x8d9f0 (display_assert) for collision depth checks.
  * Confirmed: CALL 0xa8e30 (game_engine_running) for flag-dependent branch.
- * Confirmed: CALL 0xf6af0 (FUN_000f6af0) if flag set and engine not running.
+ * Confirmed: CALL 0xf6af0 (item_detonate) if flag set and engine not running.
  * Confirmed: CALL 0x140f10 (object_get_markers_by_string_id) for "ground
  * point". Confirmed: CALL 0x18e3f0 (global_collision_bsp_get) to get collision
  * BSP. Confirmed: CALL 0x19b210 (tag_block_get_element) at bsp+0x3c. Confirmed:
  * CALL 0x99640 (FUN_00099640) for plane extraction. Confirmed: CALL 0x12f80
  * (vector3d_scale_add) for ground projection. Confirmed: CALL 0x143be0
- * (FUN_00143be0) for repositioning item. Confirmed: CALL 0x12170 (FUN_00012170)
+ * (object_translate) for repositioning item. Confirmed: CALL 0x12170 (FUN_00012170)
  * for vector magnitude. Confirmed: CALL 0x10b0d0
  * (get_global_random_seed_address). Confirmed: CALL 0x10b240 (random_math_real)
  * for random scale. Confirmed: CALL 0x13010 (normalize3d) for cross product
@@ -228,11 +228,11 @@ void item_set_position(int item_handle, float *position, int flag)
   /* Only process if parent object handle (obj+0xCC) is NONE */
   if (*(int *)(item_obj + 0xcc) == NONE) {
     /* If flag param is set, game engine not running, and tag flag bit 1 set,
-     * call FUN_000f6af0 (possibly spawns pickup effect or similar) */
+     * call item_detonate (possibly spawns pickup effect or similar) */
     if ((char)flag != 0) {
       if (!game_engine_running()) {
         if (*(uint8_t *)(item_tag + 0x17c) & 2) {
-          FUN_000f6af0(item_handle);
+          item_detonate(item_handle);
         }
       }
     }
@@ -264,7 +264,7 @@ void item_set_position(int item_handle, float *position, int flag)
         scale = *(float *)0x2533e8 - (dot - plane[3]);
 
         vector3d_scale_add((float *)(marker_buf + 0x60), plane, scale, new_pos);
-        FUN_00143be0(item_handle, new_pos, 0);
+        object_translate(item_handle, new_pos, 0);
       }
       /* Clear "needs update" bit 5 at +0x04 and ground bit 3 at +0x1a4 */
       *(uint32_t *)(item_obj + 0x04) =

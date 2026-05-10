@@ -820,7 +820,7 @@ static void FUN_0008c030(float *forward1, float *result_angular,
   }
   matrix_from_forward_and_up(mat0, forward0, up0);
   matrix_from_forward_and_up(mat1, forward1, up1);
-  FUN_0010a150(mat0, mat1, result_angular);
+  quaternion_to_angle_and_vector(mat0, mat1, result_angular);
 }
 
 /* Near-plane collision fix for the camera focus distance (0x8c150).

@@ -452,7 +452,7 @@ void FUN_000a0180(float dt, int particle_system_handle)
     char *obj =
       (char *)object_get_and_verify_type(*(int *)(ps_datum + 0xc), -1);
     if ((*(unsigned int *)(obj + 4) & 0x800) != 0 &&
-        FUN_001403a0(*(int *)(ps_datum + 0xc), *(short *)(ps_datum + 0x12),
+        object_get_function_value(*(int *)(ps_datum + 0xc), *(short *)(ps_datum + 0x12),
                      (void *)(ps_datum + 0x14))) {
       *(unsigned int *)(ps_datum + 4) = *(unsigned int *)(ps_datum + 4) | 1;
     } else {

@@ -93,7 +93,7 @@ int model_animation_choose_random(int update_kind,
   return (int)animation_index;
 }
 
-/* FUN_00120810 (0x120810) — Convert 4 packed int16 values to normalized floats.
+/* quaternion_decompress_8byte (0x120810) — Convert 4 packed int16 values to normalized floats.
  *
  * Reads 4 consecutive short values from src and writes 4 floats to dest,
  * each multiplied by (1.0f / 32767.0f) to normalize from [-32767,32767]
@@ -105,7 +105,7 @@ int model_animation_choose_random(int update_kind,
  * Confirmed: Multiplies by float constant at 0x290dd8 = 1.0f/32767.0f.
  * Confirmed: 4 iterations via MOVSX+FILD+FMUL+FSTP pattern in disassembly.
  */
-void FUN_00120810(short *src, float *dest)
+void quaternion_decompress_8byte(short *src, float *dest)
 {
     dest[0] = (float)(int)src[0] * (1.0f / 32767.0f);
     dest[1] = (float)(int)src[1] * (1.0f / 32767.0f);
@@ -155,8 +155,8 @@ void FUN_00120870(void *compressed_data, float *dest)
  * For each node in the animation (animation+0x2c count), decodes rotation
  * (quaternion), translation (vec3), and scale (float) from either:
  *   - Compressed keyframed data (when flag bit 0 is set and compression is
- *     active), using FUN_00121330/FUN_00121640/FUN_00121940 interpolators.
- *   - Uncompressed frame data via FUN_00120810/FUN_00120870 or raw memcpy
+ *     active), using FUN_00121330/animation_get_node_orientations/overlay_animation_apply_continuous_scaled interpolators.
+ *   - Uncompressed frame data via quaternion_decompress_8byte/FUN_00120870 or raw memcpy
  *     from default data (animation+0x98).
  *
  * Three bitmask arrays at animation offsets 0x5c, 0x6c, 0x7c (4 DWORDs each
@@ -172,12 +172,12 @@ void FUN_00120870(void *compressed_data, float *dest)
  *
  * Confirmed: cdecl, 4 args, void return.
  * Confirmed: CALL FUN_00120500 at 0x121dca and 0x121fd5 (2 args: animation, frame_index).
- * Confirmed: CALL FUN_00120810 at 0x121e63 and 0x121e9d (2 args: src_shorts, dest_floats).
+ * Confirmed: CALL quaternion_decompress_8byte at 0x121e63 and 0x121e9d (2 args: src_shorts, dest_floats).
  * Confirmed: CALL FUN_00120870 at 0x121e89 (2 args: compressed_data, dest_floats).
- * Confirmed: CALL FUN_0010ca30 at 0x121e8f (1 arg: quaternion).
+ * Confirmed: CALL sphere_intersects_rectangle3d at 0x121e8f (1 arg: quaternion).
  * Confirmed: CALL FUN_00121330 at 0x121e51 (5 args: animation, frame_float, count, node, out).
- * Confirmed: CALL FUN_00121640 at 0x121edc (5 args: animation, frame_float, count, node, out).
- * Confirmed: CALL FUN_00121940 at 0x121f78 (5 args: animation, frame_float, count, node, out).
+ * Confirmed: CALL animation_get_node_orientations at 0x121edc (5 args: animation, frame_float, count, node, out).
+ * Confirmed: CALL overlay_animation_apply_continuous_scaled at 0x121f78 (5 args: animation, frame_float, count, node, out).
  * Confirmed: CALL FUN_00123aa0 at 0x12204a (2 args: mode_tag, out_node_data).
  */
 void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
@@ -240,9 +240,9 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
             FUN_00120870(
               (void *)(local_8[1] + sVar5 * 6 + (int)local_8),
               (float *)iVar7);
-            FUN_0010ca30((float *)iVar7);
+            sphere_intersects_rectangle3d((float *)iVar7);
           } else {
-            FUN_00120810((short *)local_c, (float *)iVar7);
+            quaternion_decompress_8byte((short *)local_c, (float *)iVar7);
             local_c = (int *)((char *)local_c + 8);
           }
         } else if (bVar2) {
@@ -250,7 +250,7 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
                        (unsigned short)local_10, sVar5, (void *)iVar7);
           local_10 = local_10 + 1;
         } else {
-          FUN_00120810((short *)local_8, (float *)iVar7);
+          quaternion_decompress_8byte((short *)local_8, (float *)iVar7);
           local_8 = (int *)((char *)local_8 + 8);
         }
         local_14 = local_14 >> 1;
@@ -268,7 +268,7 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
             local_c = (int *)((char *)local_c + 0xc);
           }
         } else if (bVar2) {
-          FUN_00121640(animation, (float)(int)(short)animation_index,
+          animation_get_node_orientations(animation, (float)(int)(short)animation_index,
                        (unsigned short)local_18, sVar5,
                        (void *)(iVar7 + 0x10));
           local_18 = local_18 + 1;
@@ -288,7 +288,7 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
             local_c = (int *)((char *)local_c + 4);
           }
         } else if (bVar2) {
-          FUN_00121940(animation, (float)(int)(short)animation_index,
+          overlay_animation_apply_continuous_scaled(animation, (float)(int)(short)animation_index,
                        (unsigned short)local_24, sVar5,
                        (void *)(iVar7 + 0x1c));
           local_24 = local_24 + 1;

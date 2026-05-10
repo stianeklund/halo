@@ -368,7 +368,7 @@ void structures_cluster_marker_begin(void)
   *(uint8_t *)0x4d92e1 = 1;
 }
 
-bool FUN_00198440(int16_t cluster_index)
+bool structure_cluster_unmarked(int16_t cluster_index)
 {
   if (*(uint8_t *)0x4d92e1 == 0) {
     display_assert("structure_globals.cluster_marker_initialized",
@@ -386,7 +386,7 @@ bool FUN_00198440(int16_t cluster_index)
   return ((int *)0x4d92e8)[cluster_index] != *(int *)0x4d92e4;
 }
 
-int FUN_001984c0(int16_t cluster_index)
+int structure_cluster_mark(int16_t cluster_index)
 {
   if (*(uint8_t *)0x4d92e1 == 0) {
     display_assert("structure_globals.cluster_marker_initialized",
@@ -430,7 +430,7 @@ void structures_cluster_marker_end(void)
   *(uint8_t *)0x4d92e1 = 0;
 }
 
-bool FUN_00198800(void *scenario, int16_t portal_index, float *position,
+bool structure_get_planar_fog(void *scenario, int16_t portal_index, float *position,
                   float radius)
 {
   uint8_t projected_vertices[1024];
@@ -504,7 +504,7 @@ int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
     out_indices += 1;
   }
 
-  FUN_001984c0(cluster_count);
+  structure_cluster_mark(cluster_count);
 
   if (*(int *)(cluster + 0x5c) > 0) {
     int16_t portal_iter = 0;
@@ -521,8 +521,8 @@ int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
         adjacent_cluster = portal[1];
       }
 
-      if (FUN_00198440(adjacent_cluster) &&
-          FUN_00198800(scenario, portal_index, position, radius)) {
+      if (structure_cluster_unmarked(adjacent_cluster) &&
+          structure_get_planar_fog(scenario, portal_index, position, radius)) {
         int recurse_count = FUN_001989b0((uint16_t)adjacent_cluster, position,
                                          radius, remaining_count, out_indices);
         visited_count += recurse_count;
