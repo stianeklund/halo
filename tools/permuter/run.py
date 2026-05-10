@@ -244,6 +244,8 @@ def main():
                     help="Keep the work directory after the run")
     ap.add_argument("--output-dir", default=None,
                     help="Save work dir to this path after run")
+    ap.add_argument("--quiet", "-q", action="store_true",
+                    help="Suppress diagnostic noise; only print final summary and errors")
     args = ap.parse_args()
 
     source = Path(args.source)
@@ -362,35 +364,77 @@ def main():
         except KeyboardInterrupt:
             print("\n[run.py] Interrupted.")
 
-        # Check for output directories (improvements found)
+        # ------------------------------------------------------------------
+        # LCS-gated candidate selection
+        # ------------------------------------------------------------------
+        # The permuter's penalty score can diverge from the repo's LCS
+        # instruction-match metric.  We compile every output candidate,
+        # compute the repo LCS for each, and select by:
+        #   1. Highest LCS first (must exceed baseline)
+        #   2. Lowest permuter penalty as tie-breaker
+        #   3. Equal-LCS candidates labelled as manual-inspection only
+        # ------------------------------------------------------------------
         outputs = sorted(work_dir.glob("output-*"))
-        if outputs:
-            best_dir = min(outputs, key=lambda p: int(p.name.split("-")[1]))
-            best_score = int(best_dir.name.split("-")[1])
-            print(f"\n[run.py] Best permuter score: {best_score}")
-            print(f"[run.py] Best output dir: {best_dir}")
+        if not outputs:
+            print("\n[run.py] No improvements found in this run.")
+        else:
+            print(f"\n[run.py] Scoring {len(outputs)} candidate(s) by LCS...")
 
-            # Compile best candidate and report the repo's acceptance metric.
-            best_src = best_dir / "source.c"
-            best_obj = work_dir / "best_candidate.o"
-            if best_src.exists():
+            candidates = []
+            for out_dir in outputs:
+                perm_penalty = int(out_dir.name.split("-")[1])
+                src = out_dir / "source.c"
+                if not src.exists():
+                    continue
+                obj_file = work_dir / f"candidate_{perm_penalty}.o"
                 r = subprocess.run(
-                    [str(COMPILE_SH), str(best_src), "-o", str(best_obj)],
+                    [str(COMPILE_SH), str(src), "-o", str(obj_file)],
                     env={**os.environ, "TMPDIR": str(WIN_TMPDIR)},
                     capture_output=True,
                 )
-                if r.returncode == 0 and best_obj.exists():
-                    best_pct = get_lcs_score(func_name, best_obj, target_o)
-                    if best_pct is not None:
-                        print(f"[run.py] Best candidate LCS: {best_pct:.1f}%")
-                        if init_pct is not None:
-                            print(f"[run.py] Improvement: {init_pct:.1f}% → {best_pct:.1f}% "
-                                  f"(+{best_pct - init_pct:.1f}pp)")
-                            if best_pct < init_pct:
-                                print("[run.py] WARNING: permuter penalty score improved but LCS regressed; "
-                                      "do not apply this candidate.", file=sys.stderr)
-        else:
-            print("\n[run.py] No improvements found in this run.")
+                if r.returncode != 0 or not obj_file.exists():
+                    print(f"  penalty={perm_penalty}: compile failed, skipping")
+                    continue
+                lcs = get_lcs_score(func_name, obj_file, target_o)
+                if lcs is None:
+                    print(f"  penalty={perm_penalty}: LCS lookup failed, skipping")
+                    continue
+                candidates.append((lcs, perm_penalty, out_dir, obj_file))
+                label = "NEW BEST" if init_pct is None or lcs > init_pct else ""
+                print(f"  penalty={perm_penalty:>6d}  LCS={lcs:5.1f}%  {label}")
+
+            if not candidates:
+                print("[run.py] No candidates compiled successfully.")
+            else:
+                candidates.sort(key=lambda c: (-c[0], c[1]))
+                best_lcs, best_penalty, best_dir, best_obj = candidates[0]
+
+                print(f"\n[run.py] Best permuter penalty: {best_penalty}")
+                print(f"[run.py] Best LCS            : {best_lcs:.1f}%")
+                print(f"[run.py] Best output dir     : {best_dir}")
+
+                if init_pct is not None:
+                    delta = best_lcs - init_pct
+                    print(f"[run.py] Baseline            : {init_pct:.1f}%")
+                    if delta > 0:
+                        print(f"[run.py] Result: IMPROVED by {delta:.1f}pp")
+                    elif delta == 0:
+                        print("[run.py] Result: EQUAL to baseline — manual inspection only")
+                    else:
+                        print(f"[run.py] Result: REGRESSED by {abs(delta):.1f}pp — do not apply")
+
+                # Write a summary file for downstream tooling
+                summary = work_dir / "lcs_results.txt"
+                with open(summary, "w") as sf:
+                    sf.write(f"baseline_lcs={init_pct}\n")
+                    for rank, (lcs, penalty, d, _) in enumerate(candidates, 1):
+                        delta_str = f"{lcs - init_pct:+.1f}" if init_pct else "n/a"
+                        verdict = "IMPROVED" if init_pct and lcs > init_pct else (
+                            "EQUAL" if init_pct and lcs == init_pct else (
+                            "REGRESSED" if init_pct and lcs < init_pct else "UNKNOWN"))
+                        sf.write(f"rank={rank} lcs={lcs:.1f} penalty={penalty} "
+                                 f"delta={delta_str} verdict={verdict} dir={d.name}\n")
+                print(f"[run.py] Summary written to: {summary}")
 
         # ------------------------------------------------------------------
         # Save or clean up
