@@ -6644,7 +6644,8 @@
         },
         {
           "decl": "short FUN_0018f080(void);",
-          "addr": "0x18f080"
+          "addr": "0x18f080",
+          "ported": true
         },
         {
           "decl": "bool scenario_load(const char *map_name);",
