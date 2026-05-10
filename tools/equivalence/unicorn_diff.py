@@ -269,6 +269,43 @@ def _check_relocations(func_slice, label: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Pure-leaf cache (consumed by tools/llm_auto_lift.py for selection scoring)
+# ---------------------------------------------------------------------------
+
+_LEAF_CACHE_PATH = _REPO_ROOT / "tools" / "equivalence" / "leaf_cache.json"
+
+
+def _record_leaf_classification(addr: str, is_leaf: bool) -> None:
+    """Persist a `addr -> "leaf" | "non_leaf"` entry to leaf_cache.json.
+
+    Used by `llm_auto_lift.py select` to reward Unicorn-eligible candidates
+    without paying the cost of COFF parsing on the hot path. The cache is
+    populated as a side-effect of real `unicorn_diff` runs, so entries
+    represent verified evidence rather than heuristics.
+    """
+    if not addr:
+        return
+    norm = addr if addr.startswith("0x") else hex(int(addr, 0))
+    norm = norm.lower()
+    try:
+        if _LEAF_CACHE_PATH.exists():
+            data = json.loads(_LEAF_CACHE_PATH.read_text(encoding="utf-8"))
+        else:
+            data = {}
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    data[norm] = "leaf" if is_leaf else "non_leaf"
+    try:
+        _LEAF_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _LEAF_CACHE_PATH.write_text(
+            json.dumps(dict(sorted(data.items())), indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Self-test
 # ---------------------------------------------------------------------------
 
@@ -406,7 +443,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     # --- Check for external relocations ---
     oracle_ok = _check_relocations(oracle_slice, "oracle")
     lifted_ok = _check_relocations(lifted_slice, "lifted")
-    if not oracle_ok or not lifted_ok:
+    is_leaf = oracle_ok and lifted_ok
+    _record_leaf_classification(addr, is_leaf)
+    if not is_leaf:
         log("ERROR: function has external relocations — cannot emulate without full linker.")
         log("  (This function calls other functions or references globals.)")
         log("  Solution: choose a pure leaf function, or implement callee stubs (Stage 2).")

@@ -134,6 +134,7 @@ def _has_delinked_ref(source_path: str, units: dict[str, dict]) -> bool:
 
 
 _PDB_PROPOSALS_CACHE: Optional[set[str]] = None
+_PURE_LEAF_CACHE: Optional[set[str]] = None
 
 
 def _load_pdb_proposal_addrs() -> set[str]:
@@ -157,6 +158,30 @@ def _load_pdb_proposal_addrs() -> set[str]:
         except (json.JSONDecodeError, OSError):
             pass
     _PDB_PROPOSALS_CACHE = addrs
+    return addrs
+
+
+def _load_pure_leaf_addrs() -> set[str]:
+    """Return the set of addresses verified as pure leaves by unicorn_diff.
+
+    Populated as a side-effect of real `tools/equivalence/unicorn_diff.py`
+    runs (see `_record_leaf_classification` there). Empty until at least
+    one Unicorn diff has executed; cheap to load (single small JSON read).
+    """
+    global _PURE_LEAF_CACHE
+    if _PURE_LEAF_CACHE is not None:
+        return _PURE_LEAF_CACHE
+    cache_path = ROOT / "tools" / "equivalence" / "leaf_cache.json"
+    addrs: set[str] = set()
+    if cache_path.exists():
+        try:
+            data = json.loads(cache_path.read_text(encoding="utf-8"))
+            for k, v in data.items():
+                if v == "leaf":
+                    addrs.add(k.lower())
+        except (json.JSONDecodeError, OSError):
+            pass
+    _PURE_LEAF_CACHE = addrs
     return addrs
 
 
@@ -312,6 +337,14 @@ class LiftabilityScorer:
                 if addr.lower() in pdb_addrs:
                     score += 10
                     details["pdb_named"] = 10
+
+                # Verified pure leaf — unicorn_diff already proved this
+                # function has no external relocations. The behavioral
+                # differential lane (`/verify equivalence`) is available as
+                # a strong post-lift gate.
+                if addr.lower() in _load_pure_leaf_addrs():
+                    score += 5
+                    details["eq_pure_leaf"] = 5
 
                 # Cached Ghidra context available
                 cache_file = CONTEXT_CACHE / f"{name}.json"

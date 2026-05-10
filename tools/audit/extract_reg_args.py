@@ -106,13 +106,16 @@ def _save_baseline(data: dict) -> None:
 # ---------------------------------------------------------------------------
 
 def _parse_reg_annotations(decl: str) -> list[tuple[int, str]]:
-    """Return list of (param_index, reg_name) for active @<reg> annotations.
+    """Return list of (param_index, reg_name) for @<reg> annotations.
 
-    Commented-out annotations like /* @<eax> */ are skipped — they are
-    documented-but-inactive hints and must not generate baseline entries.
+    Both bare (``@<eax>``) and commented (``/* @<eax> */``) forms are treated
+    as active. This matches the build-time semantics in
+    ``analysis/knowledge.py`` (``reg_filter_re``), which generates thunks for
+    either form. C-source parameter syntax forces the comment form, while
+    hand-written kb.json entries often use the bare form — they are stylistic
+    variants of the same annotation, not "active" vs "inactive".
     """
-    # Strip comments first so /* @<eax> */ is invisible to the live scanner
-    stripped = re.sub(r"/\*.*?\*/", "", decl)
+    stripped = decl
 
     open_paren = stripped.find("(")
     close_paren = stripped.rfind(")")
