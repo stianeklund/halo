@@ -90,3 +90,7 @@ opencode.json
 
 # Per-session token-discipline metrics state (written by tools/audit/token_discipline_hook.py)
 .claude/agent-memory/token_discipline/
+
+# Semantic-retrieval index (rebuildable from kb.json + sources)
+tools/retrieval/index.duckdb
+tools/retrieval/index.duckdb.wal
