@@ -81,6 +81,8 @@ def cmd_embed(args: argparse.Namespace) -> int:
             )
             n_written += 1
 
+        con.execute("CHECKPOINT")
+
         done = min(chunk_start + chunk_size, len(rows))
         print(f"  [{done}/{len(rows)}] {n_written} embedded so far",
               flush=True)

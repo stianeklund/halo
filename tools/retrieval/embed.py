@@ -44,11 +44,9 @@ class Embedder:
     @property
     def model(self):
         if Embedder._model is None:
-            import torch
             from sentence_transformers import SentenceTransformer
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            _log.info("loading %s on %s (first call downloads ~322MB)",
-                       self.model_name, device)
+            device = "cpu"
+            print(f"[embed] loading {self.model_name} on {device}", flush=True)
             Embedder._model = SentenceTransformer(
                 self.model_name,
                 trust_remote_code=True,  # jina-v2 ships custom modeling code
@@ -71,11 +69,15 @@ class Embedder:
         self,
         texts: list[Optional[str]],
         *,
-        batch_size: int = 16,
+        batch_size: int = 4,
     ) -> list[Optional[list[float]]]:
         """Embed a list of texts; preserves None entries."""
-        # Filter Nones, embed, then re-thread back into the original order.
-        idx_text = [(i, t) for i, t in enumerate(texts) if t]
+        # Hard cap on characters as a fast pre-filter; the tokenizer enforces
+        # the real token limit below so dense single-char inputs can't exceed
+        # MAX_TOKENS regardless of character count.
+        MAX_CHARS = 6_000
+        MAX_TOKENS = 1024  # attention is O(n²): 1024 tokens ≈ 50 MB/layer
+        idx_text = [(i, t[:MAX_CHARS]) for i, t in enumerate(texts) if t]
         if not idx_text:
             return [None] * len(texts)
         keep_texts = [t for _, t in idx_text]
@@ -85,6 +87,7 @@ class Embedder:
             normalize_embeddings=True,
             batch_size=batch_size,
             show_progress_bar=False,
+            max_length=MAX_TOKENS,
         )
         out: list[Optional[list[float]]] = [None] * len(texts)
         for (orig_idx, _), v in zip(idx_text, vecs):
