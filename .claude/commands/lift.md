@@ -102,14 +102,27 @@ After Phase 1 completes:
     - Phase 1 summary (Confirmed / Inferred / Uncertain)
     - Pipeline stage results (build, ABI audit, VC71 verify, low-match policy, behavior/runtime checks)
     - Artifact path from summary.json
-5. Optional last-mile: if the VC71 match is in the 85–98% band, suggest
-   `/verify permute <target>` for a 60-second permuter pass. Apply a winning
-   permutation only after re-running the lift pipeline; never accept a
-   permutation that lowers the match.
-6. Optional behavioral validation for pure leaves: if the target has no
-   unresolved external relocations (e.g. math/serializer/string helpers),
-   suggest `/verify equivalence <target>` for a 100-seed Unicorn-Engine
-   differential. Useful for FPU-heavy code where byte-match is unreliable.
+5. Last-mile match optimization (decision rule):
+   - VC71 match in **[85, 98]%** with a delinked reference mapped → suggest
+     `/verify permute <target>` (60s permuter pass).
+   - Match < 85% → do NOT suggest permuter; the lift has a structural bug
+     that random permutations cannot fix. Investigate the root cause first.
+   - Match > 98% → do NOT suggest; not worth the cycles.
+   - Hard rule: never accept a permutation that lowers the existing match.
+     Apply a winning permutation only after re-running the lift pipeline
+     against the new source.
+6. Behavioral differential testing (decision rule):
+   - Function is a **pure leaf** (no calls out, no globals) AND either
+     FPU-heavy (math/geometry/projection), or VC71 match is structurally
+     capped (SEH wrappers stuck at ~55%, etc.) → suggest
+     `/verify equivalence <target>` for a 100-seed Unicorn-Engine
+     differential. Pass = 0 divergences across all seeds.
+   - Function has unresolved external relocations (calls `FUN_xxx`,
+     references DAT_/globals) → do NOT suggest; Unicorn will reject it.
+   - Function is a leaf but has a clean ≥99% VC71 match → optional;
+     byte-match is already strong evidence.
+   - The run will populate `tools/equivalence/leaf_cache.json`, which
+     rewards related leaves in future `select` runs (`+5 eq_pure_leaf`).
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.

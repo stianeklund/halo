@@ -36,17 +36,36 @@ rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>
 ```
 
 Equivalence mode:
-1. Resolve `<target>` and confirm the function is a pure leaf. `unicorn_diff.py`
-   exits early with a clear diagnostic if there are unresolved external
-   relocations. Math, serializer, and small string helpers are typical fits.
+- **When to use:** function is a pure leaf (no calls out, no globals);
+  byte-match alone is weak evidence (FPU-heavy math, serializers, hashes,
+  small string helpers); or VC71 match is structurally capped (e.g. SEH
+  wrappers stuck at ~55%) and you need a different lane to prove
+  correctness.
+- **When to skip:** the function calls `FUN_xxx`, references DAT_/globals,
+  or otherwise has unresolved external relocations. `unicorn_diff.py` will
+  exit early with a clear diagnostic; do not waste cycles trying.
+- **Side effect:** every run records the leaf classification to
+  `tools/equivalence/leaf_cache.json`, which boosts that address in
+  `llm_auto_lift.py select` (`+5 eq_pure_leaf`).
+1. Resolve `<target>` and confirm the function is a pure leaf.
 2. Run with at least 100 seeds. Pass = 0 divergences across all seeds; even
    one divergence is a real bug. Re-run with `--seed <hex>` from the failing
    report to reproduce.
 
 Permute mode:
-1. Confirm the current VC71 match is in [85, 98]. Below 85 the structural
-   mismatch is too large for permutations to fix — address the underlying
-   lift bug first. Above 98 it is not worth the cycles.
+- **When to use:** VC71 match is in **[85, 98]%** AND a delinked reference
+  exists. The lift is structurally correct but instruction order /
+  scheduling differs from MSVC — random AST permutations can close the
+  gap.
+- **When to skip:** match < 85% (structural bug — fix the lift first;
+  permuter cannot recover from real correctness issues), match > 98%
+  (diminishing returns, not worth 60s+), or no delinked reference (no
+  byte-target to optimize against).
+- **Hard rule:** never accept a permutation that lowers the existing VC71
+  match. Always re-run the lift pipeline against the new source before
+  trusting the new score.
+1. Confirm the current VC71 match is in [85, 98] and a delinked reference is
+   mapped via `objdiff.json`.
 2. Run with a 60s time budget by default. The driver extracts the target,
    sets up a permuter work dir, and reports the best score.
 3. Apply a winning permutation ONLY after re-running the lift pipeline
