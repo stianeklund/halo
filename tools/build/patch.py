@@ -310,6 +310,59 @@ def encode_call_rel32(src_addr_of_call, target_addr):
     return b'\xe8' + struct.pack('<i', rel32)
 
 
+def encode_jmp_rel32(src_addr_of_jmp, target_addr):
+    # EIP after the 5-byte jmp is src_addr_of_jmp + 5; rel32 = target - (eip_after).
+    rel32 = target_addr - (src_addr_of_jmp + 5)
+    assert -(2 ** 31) <= rel32 < 2 ** 31
+    return b'\xe9' + struct.pack('<i', rel32)
+
+
+def generate_deactivation_redirect(sym, impl_addr, original_addr):
+    """Emit a redirect to splat at the impl entry when ported=false.
+
+    For non-@<reg> functions: a single 5-byte JMP rel32 to original_addr.
+    For @<reg> functions: load each register arg from the cdecl stack frame
+    that our C caller built ([esp+4+i*4]), then JMP to original. The cdecl
+    caller's args remain on the stack; original reads its register args from
+    the loaded regs and ignores the stack slots that overlap them. Stack-only
+    args (params not in registers) sit at the same offsets the original
+    expects, so no re-pushing is needed.
+
+    The cdecl caller's return address is preserved on entry, so original
+    returns directly to the cdecl caller. Caller cleans the stack (cdecl)
+    or original's RET N pops it (__stdcall) — both work.
+    """
+    reg_args = sym.register_args
+    if not reg_args:
+        # Plain cdecl/stdcall: 5-byte JMP is enough.
+        return encode_jmp_rel32(impl_addr, original_addr)
+
+    code = bytearray()
+
+    # Load each register arg from the incoming cdecl stack frame.
+    # Stack on entry: [esp]=ret_addr, [esp+4]=arg0, [esp+8]=arg1, ...
+    for param_idx, reg in reg_args:
+        disp = 4 + param_idx * 4
+        parent32 = REG_PARENT.get(reg, reg)
+        if reg in REG32_BITS:
+            code += encode_mov_r32_mesp(reg, disp)
+        elif reg in REG16_BITS:
+            # Load 32 bits, then the low 16 bits of the parent are the desired value.
+            # (Original reads only the 16-bit reg; high bits of parent don't matter.)
+            code += encode_mov_r32_mesp(parent32, disp)
+        elif reg in REG8_BITS:
+            # Load 32 bits into the parent; original reads only the 8-bit slice.
+            code += encode_mov_r32_mesp(parent32, disp)
+        else:
+            raise ValueError(f'Unsupported register {reg!r} in @<reg> annotation')
+
+    # Tail-call original.
+    jmp_site = impl_addr + len(code)
+    code += encode_jmp_rel32(jmp_site, original_addr)
+
+    return bytes(code)
+
+
 def _verify_staging_correctness(sym, reg_args, thunk_code):
     """Simulate the staging portion of a reverse thunk on a virtual register
     file and verify that each scratch register ends up holding the value that
@@ -987,6 +1040,10 @@ def main():
         if thunk_section_bounds and thunk_section_bounds[0] <= impl_addr < thunk_section_bounds[1]:
             # Still just the forward-thunk weak symbol — no real impl.
             continue
+        if getattr(sym, 'ported', None) is False:
+            # Deactivated by kb.json; no original→our_impl path needed because
+            # the original-address redirect is also skipped below.
+            continue
         rvthunk_addr = rvthunks_base + len(rvthunks_bytes)
         rvthunks_bytes += generate_reverse_thunk(sym, impl_addr, rvthunk_addr)
         rvthunks_redirect[n] = rvthunk_addr
@@ -1003,6 +1060,7 @@ def main():
         log.info('Adding .rvthunks section at %x, length %x', hdr.virtual_addr, hdr.raw_size)
         xbe.sections[name] = XbeSection(name, hdr, bytes(rvthunks_bytes))
 
+    deactivated_count = 0
     for n in patch_functions:
         kb_name = export_to_kb_name[n]
         if kb_name not in kb.name_to_addr:
@@ -1013,12 +1071,27 @@ def main():
         if thunk_section_bounds and thunk_section_bounds[0] <= addr_of_reimplementation < thunk_section_bounds[1]:
             log.info('Skipping thunk "%s" export', n)
             continue
+        sym = name_to_symbol.get(kb_name)
+        if sym is not None and getattr(sym, 'ported', None) is False:
+            # Deactivation: leave the original XBE bytes intact, and overwrite
+            # our impl entry with a redirect to the original. Both original
+            # callers (via untouched original_addr) and lifted callers (via
+            # JMP at impl entry) end up at original code.
+            redirect_bytes = generate_deactivation_redirect(
+                sym, addr_of_reimplementation, addr_of_original_in_xbe)
+            log.info('Deactivating "%s" (kb.json ported=false): impl %x → JMP %x (%d bytes)',
+                     n, addr_of_reimplementation, addr_of_original_in_xbe, len(redirect_bytes))
+            write_to_vaddr(xbe, addr_of_reimplementation, redirect_bytes)
+            deactivated_count += 1
+            continue
         hook_target = rvthunks_redirect.get(n, addr_of_reimplementation)
         log.info('Patching "%s" at %x in XBE with redirect to %x%s',
                  n, addr_of_original_in_xbe, hook_target,
                  ' (via rvthunk)' if n in rvthunks_redirect else '')
         patch_bytes = b'\x68' + struct.pack('<I', hook_target) + b'\xc3'  # push addr, ret
         write_to_vaddr(xbe, addr_of_original_in_xbe, patch_bytes)
+    if deactivated_count:
+        log.info('%d function(s) deactivated via kb.json ported=false', deactivated_count)
 
     patch_exception_build_timestamp_strings(xbe)
 

@@ -63,13 +63,19 @@ def _extract_name_regex(decl: str, is_function: bool) -> Optional[str]:
 
 
 class Symbol:
-	def __init__(self, decl: str, addr: Optional[Union[str, int]] = None, **kwargs):
+	def __init__(self, decl: str, addr: Optional[Union[str, int]] = None, ported: Optional[bool] = None, **kwargs):
 		self._parsed = None
 		self._name_cache = None
 		self.decl = decl
 		if type(addr) is str:
 			addr = int(addr, 16)
 		self.addr = addr
+		# Tri-state: None=field absent (treat as unported by tooling, but patch
+		# semantics fall through to "is there a strong impl?" detection).
+		# True=patch is active. False=skip the patch redirect at the original
+		# address AND tail-call original from our impl entry, so all callers
+		# (original and lifted) reach original code.
+		self.ported = ported
 
 	@property
 	def cursor(self):
@@ -84,7 +90,10 @@ class Symbol:
 		return self._name_cache
 
 	def serialize(self):
-		return {'decl': self.decl, 'addr': hex(self.addr)}
+		out = {'decl': self.decl, 'addr': hex(self.addr)}
+		if self.ported is not None:
+			out['ported'] = self.ported
+		return out
 
 	@property
 	def requires_reg_thunk(self):
