@@ -1,18 +1,20 @@
 /* path.c — AI path planning state builders.
  *
- * Corresponds to path.obj (XBE address range ~0x5dfc0–0x5ef13+).
+ * Corresponds to path.obj (XBE address range ~0x5dfc0–0x5ff70+).
  * __FILE__ = c:\halo\SOURCE\ai\path.c (confirmed via display_assert strings
  * in FUN_0005eae0 at 0x5eae0).
  *
  * Ported: path_state_init (0x5dfc0), path_state_set_focus (0x5e000),
  *         path_state_set_sphere (0x5e030), path_state_set_min_speed (0x5e070),
- *         path_state_commit (0x5e090), path_state_set_obstacle (0x5e0d0).
+ *         path_state_commit (0x5e090), path_state_set_obstacle (0x5e0d0),
+ *         FUN_0005ff70 (path traverse + debug snapshot).
  * Deferred: FUN_0005eae0 (0x5eae0) — complex path evaluation, deferred.
  */
 
 #include "../../common.h"
 
-/* All callees (csmemset, csmemcpy, scenario_get) are declared via decl.h */
+/* All callees (csmemset, csmemcpy, scenario_get, FUN_0018f080) declared via
+ * decl.h / generated header */
 
 /* 0x005dfc0 — path_state_init
  * Zero-fills a 0x48-byte path_state record, then writes the initial fields.
@@ -209,4 +211,74 @@ char FUN_0005e920(int param_1, int *param_2, int param_3, int *param_4,
     *(uint8_t *)param_5 = 1;
   }
   return *param_5;
+}
+
+/* 0x005ff70 — path traverse and debug snapshot
+ * Initializes a path traverse operation on a path buffer, then optionally
+ * copies the resulting state into a debug record.
+ *
+ * Increments one of two global 16-bit counters depending on a flag at +0x4c
+ * (obstacle_valid). Clears the node list, resets distance fields, calls
+ * FUN_0005ef80 (@edi) to set up the initial path node. If that succeeds,
+ * calls FUN_0005f740 to perform the full traverse. If a debug record exists
+ * at +0x48, copies the entire path buffer into it, stores the BSP index, and
+ * asserts the traverse result is non-zero (not _path_traverse_result_none).
+ * If the result is not 5, marks the debug record as needing attention.
+ *
+ * Returns: char (0 = failed/skipped, nonzero = traverse result from FUN_0005f740)
+ */
+char FUN_0005ff70(unsigned int *param_1)
+{
+  char cVar1;
+  short uVar2;
+  unsigned int *puVar4;
+  unsigned int *puVar5;
+  int iVar3;
+  char local_5;
+
+  local_5 = 0;
+  if (*(char *)((char *)param_1 + 0x4c) != '\0') {
+    (*(short *)0x5ac7f4)++;
+  } else {
+    (*(short *)0x5ac76c)++;
+  }
+  *(short *)((char *)param_1 + 0x80) = 0;
+  *(short *)((char *)param_1 + 0x11084) = 1;
+  csmemset((char *)param_1 + 0x1208a, -1, 0x2000);
+  *(unsigned int *)((char *)param_1 + 0x6c) = 0x7f7fffff;
+  *(unsigned int *)((char *)param_1 + 0x70) = 0x7f7fffff;
+  *(short *)((char *)param_1 + 0x68) = (short)0xffff;
+  if (*(unsigned int *)((char *)param_1 + 0x48) != 0) {
+    *(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x10) = 0;
+  }
+  cVar1 = FUN_0005ef80(param_1);
+  if (cVar1 != '\0') {
+    local_5 = FUN_0005f740(param_1);
+  } else {
+    if (*(unsigned int *)((char *)param_1 + 0x48) != 0) {
+      *(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x10) = 1;
+    }
+  }
+  if (*(unsigned int *)((char *)param_1 + 0x48) != 0) {
+    puVar4 = param_1;
+    puVar5 = (unsigned int *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x14);
+    for (iVar3 = 0x5023; iVar3 != 0; iVar3 = iVar3 - 1) {
+      *puVar5 = *puVar4;
+      puVar4 = puVar4 + 1;
+      puVar5 = puVar5 + 1;
+    }
+    uVar2 = FUN_0018f080();
+    *(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0xe) = uVar2;
+    if (*(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x10) == 0) {
+      display_assert(
+          "state->debug->path_traverse_result != _path_traverse_result_none",
+          "c:\\halo\\SOURCE\\ai\\path.c", 0x32d, 1);
+      system_exit(-1);
+    }
+    if (*(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x10) != 5) {
+      *(char *)(*(unsigned int *)((char *)param_1 + 0x48) + 0xd) = 1;
+      return local_5;
+    }
+  }
+  return local_5;
 }

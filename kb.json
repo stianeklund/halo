@@ -6643,6 +6643,10 @@
           "ported": true
         },
         {
+          "decl": "short FUN_0018f080(void);",
+          "addr": "0x18f080"
+        },
+        {
           "decl": "bool scenario_load(const char *map_name);",
           "addr": "0x18f090",
           "ported": true
@@ -10470,8 +10474,17 @@
           "decl": "char FUN_0005eae0(unsigned int path_buf, unsigned int *nav_state_out);"
         },
         {
+          "addr": "0x5ef80",
+          "decl": "char FUN_0005ef80(unsigned int *path_buf @<edi>);"
+        },
+        {
+          "addr": "0x5f740",
+          "decl": "char FUN_0005f740(unsigned int *path_buf);"
+        },
+        {
           "addr": "0x5ff70",
-          "decl": "char FUN_0005ff70(unsigned int *path_buf);"
+          "decl": "char FUN_0005ff70(unsigned int *path_buf);",
+          "ported": true
         }
       ]
     }
