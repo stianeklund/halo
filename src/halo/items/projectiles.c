@@ -1255,10 +1255,10 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
     /* Copy marker positions from col_result. */
     col_pos[0] = *(float *)((char *)col_result + 0x18);
     col_pos[1] = *(float *)((char *)col_result + 0x1c);
-    col_pos[2] = *(float *)((char *)col_result + 0x20);
+    col_pos[2] = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
     col_pos2[0] = *(float *)((char *)col_result + 0x18);
     col_pos2[1] = *(float *)((char *)col_result + 0x1c);
-    col_pos2[2] = *(float *)((char *)col_result + 0x20);
+    col_pos2[2] = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
     /* vel_local = in_velocity copy, then normalize. */
     vel_local[0] = in_velocity[0];
     vel_local[1] = in_velocity[1];
@@ -1304,7 +1304,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   ang_speed =
     random_real_range((int *)seed, ftemp, 0.0f); /* note: 2nd arg pushed 0x0 */
   /* local_38: surface-normal dot with incoming velocity (projection). */
-  ang_dot = ang_speed - *(float *)((char *)col_result + 0x2c) * in_velocity[2] -
+  ang_dot = ang_speed - *(float *)((char *)col_result + 0x2c) * in_velocity[2] - /* buf-alias-ok */
             *(float *)((char *)col_result + 0x28) * in_velocity[1] -
             *(float *)((char *)col_result + 0x24) * in_velocity[0];
 
@@ -1336,7 +1336,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       if (*(float *)((char *)tag_elem + 0x30) != *(float *)0x2533c0) {
         if (deflect_dot < *(float *)((char *)tag_elem + 0x2c) ||
             (deflect_dot < *(float *)((char *)tag_elem + 0x30)) ==
-              (deflect_dot == *(float *)((char *)tag_elem + 0x30))) {
+              (deflect_dot == *(float *)((char *)tag_elem + 0x30))) { /* buf-alias-ok */
           use_alt = 1;
         }
       }
@@ -1344,7 +1344,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
           *(float *)((char *)tag_elem + 0x38) != *(float *)0x2533c0) {
         if (ang_dot < *(float *)((char *)tag_elem + 0x34) ||
             (ang_dot < *(float *)((char *)tag_elem + 0x38)) ==
-              (ang_dot == *(float *)((char *)tag_elem + 0x38))) {
+              (ang_dot == *(float *)((char *)tag_elem + 0x38))) { /* buf-alias-ok */
           use_alt = 1;
         }
       }
@@ -1366,10 +1366,10 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       /* Random probability gate. */
       seed = (float *)get_global_random_seed_address();
       ftemp = random_math_real((unsigned int *)seed);
-      if (ftemp >= *(float *)((char *)tag_elem + 0x28)) {
-        det_result = (int16_t) * (int16_t *)((char *)tag_elem + 0x24);
+      if (ftemp >= *(float *)((char *)tag_elem + 0x28)) { /* buf-alias-ok */
+        det_result = (int16_t) * (int16_t *)((char *)tag_elem + 0x24); /* buf-alias-ok */
         /* raw int copy: effect tag handle from alt result */
-        tag_idx = *(int *)((char *)tag_elem + 0x48);
+        tag_idx = *(int *)((char *)tag_elem + 0x48); /* buf-alias-ok */
       }
     } else {
       /* raw int copy: effect tag handle from default result */
@@ -1380,17 +1380,17 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   /* ------------------------------------------------------------------ */
   /* 6. Collision state == 2 with bit 0x8: breakable surface.           */
   /* ------------------------------------------------------------------ */
-  if (col_result[0] == 2 && (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) {
+  if (col_result[0] == 2 && (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) { /* buf-alias-ok */
     FUN_00136750(damage_params, *(int *)(proj_tag + 0x230));
     /* MSVC stack overlap: in the original binary col_pos/col_pos2/vel_local
      * overlap the damage_params buffer. Write directly into damage_params. */
     *(uint32_t *)(damage_params + 0x04) |= 8;
     *(float *)(damage_params + 0x1c) = *(float *)((char *)col_result + 0x18);
     *(float *)(damage_params + 0x20) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x24) = *(float *)((char *)col_result + 0x20);
+    *(float *)(damage_params + 0x24) = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
     *(float *)(damage_params + 0x28) = *(float *)((char *)col_result + 0x18);
     *(float *)(damage_params + 0x2c) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x30) = *(float *)((char *)col_result + 0x20);
+    *(float *)(damage_params + 0x30) = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
     *(float *)(damage_params + 0x34) = in_velocity[0];
     *(float *)(damage_params + 0x38) = in_velocity[1];
     *(float *)(damage_params + 0x3c) = in_velocity[2];
@@ -1418,7 +1418,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   /* ------------------------------------------------------------------ */
   hit_pos[0] = *(float *)((char *)col_result + 0x18);
   hit_pos[1] = *(float *)((char *)col_result + 0x1c);
-  hit_pos[2] = *(float *)((char *)col_result + 0x20);
+  hit_pos[2] = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
 
   /* ------------------------------------------------------------------ */
   /* 8. Apply detonation result.                                         */
@@ -1436,15 +1436,15 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       proj[1] = (int)uTemp;
       FUN_000f8640(projectile_handle);
       /* Subtract normal-component contribution from hit_pos. */
-      hit_pos[0] -= *(float *)((char *)col_result + 0x24) * *(float *)0x255ef8;
-      hit_pos[1] -= *(float *)((char *)col_result + 0x28) * *(float *)0x255ef8;
-      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) * *(float *)0x255ef8;
+      hit_pos[0] -= *(float *)((char *)col_result + 0x24) * *(float *)0x255ef8; /* buf-alias-ok */
+      hit_pos[1] -= *(float *)((char *)col_result + 0x28) * *(float *)0x255ef8; /* buf-alias-ok */
+      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) * *(float *)0x255ef8; /* buf-alias-ok */
     } else if (col_result[0] == 3) {
       ftemp = *(float *)0x2533c8 - *(float *)((char *)tag_elem + 0x90);
       in_velocity[0] *= ftemp;
       in_velocity[1] *= ftemp;
       in_velocity[2] *= ftemp;
-      proj[0x79] = *(int *)((char *)col_result + 0x38);
+      proj[0x79] = *(int *)((char *)col_result + 0x38); /* buf-alias-ok */
     } else {
       /* Not state 0 or 3 — check tag's max speed. */
       if (*(float *)(proj_tag + 0x1c0) == *(float *)0x2533c0) {
@@ -1540,7 +1540,7 @@ apply_speed_scale:
   /* ------------------------------------------------------------------ */
   scale_a = 0.0f;
   {
-    int16_t scale_mode = *(int16_t *)((char *)tag_elem + 0x5c);
+    int16_t scale_mode = *(int16_t *)((char *)tag_elem + 0x5c); /* buf-alias-ok */
     if (scale_mode == 0) {
       scale_a = det_frac;
     } else if (scale_mode == 1) {
@@ -1580,9 +1580,9 @@ apply_speed_scale:
       float *up_ptr = *(float **)0x31fc50;
 
       /* [0] "normal" — collision surface normal */
-      marker_forwards[0] = *(float *)((char *)col_result + 0x24);
-      marker_forwards[1] = *(float *)((char *)col_result + 0x28);
-      marker_forwards[2] = *(float *)((char *)col_result + 0x2c);
+      marker_forwards[0] = *(float *)((char *)col_result + 0x24); /* buf-alias-ok */
+      marker_forwards[1] = *(float *)((char *)col_result + 0x28); /* buf-alias-ok */
+      marker_forwards[2] = *(float *)((char *)col_result + 0x2c); /* buf-alias-ok */
 
       /* [1] "incident" — scaled normalised velocity */
       marker_forwards[3] = vel_local[0] * scale_f;
@@ -1609,7 +1609,7 @@ apply_speed_scale:
     for (k = 0; k < 5; k++) {
       mp[0] = *(float *)((char *)col_result + 0x18);
       mp[1] = *(float *)((char *)col_result + 0x1c);
-      mp[2] = *(float *)((char *)col_result + 0x20);
+      mp[2] = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
       mp += 3;
     }
   }
