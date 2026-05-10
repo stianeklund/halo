@@ -2,7 +2,7 @@
 """run.py — Adapter driver: run decomp-permuter against a VC71/MSVC target function.
 
 Assembles the permuter input directory for a given function, then invokes
-permuter.py with our compile.sh adapter and ELF-converted reference object.
+permuter.py with our compile.sh adapter and COFF reference object.
 
 Usage:
     python3 tools/permuter/run.py --function FUN_0014b220 --source src/halo/physics/collision_features.c
@@ -11,7 +11,7 @@ Usage:
 
 Steps performed:
     1. Extract and preprocess the target function into base.c (with pycparser-compat typedefs)
-    2. Convert delinked reference COFF → ELF (target.o)
+    2. Copy delinked reference COFF to target.o
     3. Write compile.sh symlink + settings.toml into a temp work dir
     4. Run permuter.py -j<threads> --best-only <workdir>
 
@@ -82,14 +82,12 @@ def find_delinked_reference(source: Path) -> Path | None:
     return None
 
 
-def coff_to_elf(coff: Path, elf: Path) -> bool:
-    """Convert a COFF i386 object to ELF i386 using objcopy."""
-    result = subprocess.run(
-        ["objcopy", "-I", "pe-i386", "-O", "elf32-i386", str(coff), str(elf)],
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        print(f"[run.py] objcopy failed: {result.stderr.decode()}", file=sys.stderr)
+def copy_reference_coff(coff: Path, target: Path) -> bool:
+    """Copy the delinked COFF i386 object into the permuter work dir."""
+    try:
+        shutil.copy2(coff, target)
+    except OSError as e:
+        print(f"[run.py] reference copy failed: {e}", file=sys.stderr)
         return False
     return True
 
@@ -209,14 +207,14 @@ def compile_base(work_dir: Path) -> bool:
     return True
 
 
-def get_lcs_score(func_name: str, compiled_elf: Path, ref_elf: Path) -> float | None:
-    """Get LCS match % for a function between compiled and reference ELF objects."""
+def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path) -> float | None:
+    """Get LCS match % for a function between compiled and reference objects."""
     spec = importlib.util.spec_from_file_location("compare_obj", str(COMPARE_OBJ))
     co = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(co)
 
-    cand_funcs = co.disassemble(str(compiled_elf))
-    ref_funcs = co.disassemble(str(ref_elf))
+    cand_funcs = co.disassemble(str(compiled_obj))
+    ref_funcs = co.disassemble(str(ref_obj))
 
     fn = func_name.lstrip("_")
     if fn in cand_funcs and fn in ref_funcs:
@@ -290,9 +288,10 @@ def main():
     print(f"[run.py] Work dir        : {work_dir}")
 
     try:
-        # Convert reference COFF → ELF
+        # Copy reference COFF into the work dir. The permuter scorer now uses
+        # llvm-objdump on COFF directly, matching compare_obj.py's pipeline.
         target_o = work_dir / "target.o"
-        if not coff_to_elf(ref_coff, target_o):
+        if not copy_reference_coff(ref_coff, target_o):
             sys.exit(1)
 
         # Extract and preprocess the target function
@@ -324,7 +323,7 @@ def main():
         settings_f.write_text(
             f'func_name = "{func_name}"\n'
             f'compiler_type = "base"\n'
-            f'objdump_command = "objdump -d --no-show-raw-insn"\n'
+            f'objdump_command = "llvm-objdump -d --no-show-raw-insn --no-leading-addr"\n'
         )
 
         # Pre-compile sanity check
@@ -334,13 +333,13 @@ def main():
             sys.exit(1)
 
         # Get initial score via vc71_verify
-        base_o_elf = work_dir / "base.o"
-        init_pct = get_lcs_score(func_name, base_o_elf, target_o)
+        base_o = work_dir / "base.o"
+        init_pct = get_lcs_score(func_name, base_o, target_o)
         if init_pct is not None:
             init_score = round((100.0 - init_pct) * 10)
-            print(f"[run.py] Initial match   : {init_pct:.1f}% (permuter score≈{init_score*15})")
+            print(f"[run.py] Initial LCS     : {init_pct:.1f}% (LCS loss={init_score})")
         else:
-            print("[run.py] Initial match   : (could not compute)")
+            print("[run.py] Initial LCS     : (could not compute)")
 
         # ------------------------------------------------------------------
         # Run permuter
@@ -371,22 +370,25 @@ def main():
             print(f"\n[run.py] Best permuter score: {best_score}")
             print(f"[run.py] Best output dir: {best_dir}")
 
-            # Compile best candidate and report LCS score
+            # Compile best candidate and report the repo's acceptance metric.
             best_src = best_dir / "source.c"
-            best_elf = work_dir / "best_candidate.o"
+            best_obj = work_dir / "best_candidate.o"
             if best_src.exists():
                 r = subprocess.run(
-                    [str(COMPILE_SH), str(best_src), "-o", str(best_elf)],
+                    [str(COMPILE_SH), str(best_src), "-o", str(best_obj)],
                     env={**os.environ, "TMPDIR": str(WIN_TMPDIR)},
                     capture_output=True,
                 )
-                if r.returncode == 0 and best_elf.exists():
-                    best_pct = get_lcs_score(func_name, best_elf, target_o)
+                if r.returncode == 0 and best_obj.exists():
+                    best_pct = get_lcs_score(func_name, best_obj, target_o)
                     if best_pct is not None:
                         print(f"[run.py] Best candidate LCS: {best_pct:.1f}%")
                         if init_pct is not None:
                             print(f"[run.py] Improvement: {init_pct:.1f}% → {best_pct:.1f}% "
                                   f"(+{best_pct - init_pct:.1f}pp)")
+                            if best_pct < init_pct:
+                                print("[run.py] WARNING: permuter penalty score improved but LCS regressed; "
+                                      "do not apply this candidate.", file=sys.stderr)
         else:
             print("\n[run.py] No improvements found in this run.")
 

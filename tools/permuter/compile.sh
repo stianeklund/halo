@@ -4,8 +4,8 @@
 # Called by permuter as: ./compile.sh <input.c> -o <output.o>
 #
 # Compiles a single .c file using Visual C++ 7.1 (CL.Exe) through WSL path
-# translation, then converts the COFF output to ELF i386 so decomp-permuter's
-# scorer (which expects ELF) can read it.
+# translation, then writes the COFF output expected by the repo's LLVM/COFF
+# scorer path.
 #
 # Key constraint: VC71 CL.Exe runs as a Windows process and can only write
 # to Windows-accessible paths (i.e. drive-mapped paths like G:\..., not /tmp).
@@ -102,6 +102,7 @@ if [[ ! -s "$COFF_TMP" ]]; then
 fi
 
 # --------------------------------------------------------------------------
-# Convert COFF i386 → ELF i386 so decomp-permuter's scorer can read it
+# Return the COFF object directly; decomp-permuter's objdump layer is patched
+# in this checkout to score COFF i386 with llvm-objdump.
 # --------------------------------------------------------------------------
-objcopy -I pe-i386 -O elf32-i386 "$COFF_TMP" "$O_FILE" 2>/dev/null
+cp "$COFF_TMP" "$O_FILE"
