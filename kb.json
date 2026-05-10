@@ -9945,8 +9945,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014adb0(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, int param_7, int param_8, void *features);",
-          "addr": "0x14adb0"
+          "decl": "void FUN_0014adb0(int param_1, float param_2, int param_3, int param_4, int param_5, unsigned char param_6, unsigned char param_7, short param_8, void *features);",
+          "addr": "0x14adb0",
+          "ported": true
         },
         {
           "decl": "void FUN_0014b3d0(int param_1, int object_handle, int param_3, int param_4, int param_5, int param_6, void *features);",

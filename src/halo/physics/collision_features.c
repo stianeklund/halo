@@ -11,6 +11,78 @@ void collision_features_init(void *features)
   csmemset(features, 0, 6);
 }
 
+/* 0x14adb0 — Add a sphere collision feature to the features buffer.
+ * Writes a sphere entry (position, material, surface ID). If param_2 > 0,
+ * also writes a second sphere entry and a cylinder entry with position_z
+ * adjusted by subtracting param_2 (depth/height correction). */
+void FUN_0014adb0(int param_1, float param_2, int param_3, int param_4,
+                  int param_5, unsigned char param_6, unsigned char param_7,
+                  short param_8, void *features)
+{
+  short sVar4;
+  char *entry;
+  float *pos;
+  float fVar2;
+
+  pos = (float *)param_1;
+
+  /* First sphere entry — always written if count < 256 */
+  sVar4 = *(short *)features;
+  if (sVar4 < 0x100) {
+    *(short *)features = (short)(sVar4 + 1);
+    entry = (char *)features + (int)sVar4 * 0x1c + 0x8;
+    *(int *)(entry + 0x00) = param_4;
+    *(int *)(entry + 0x04) = param_5;
+    *(unsigned char *)(entry + 0x08) = param_6;
+    *(short *)(entry + 0x0a) = param_8;
+    *(unsigned char *)(entry + 0x09) = param_7;
+    *(float *)(entry + 0x0c) = pos[0];
+    *(float *)(entry + 0x10) = pos[1];
+    *(float *)(entry + 0x14) = pos[2];
+    *(int *)(entry + 0x18) = param_3;
+  }
+
+  /* If param_2 > 0.0f, write a second sphere entry and a cylinder entry */
+  if (param_2 > 0.0f) {
+    fVar2 = pos[2] - param_2;
+
+    /* Second sphere entry with adjusted z */
+    sVar4 = *(short *)features;
+    if (sVar4 < 0x100) {
+      entry = (char *)features + (int)sVar4 * 0x1c + 0x8;
+      *(short *)features = (short)(sVar4 + 1);
+      *(int *)(entry + 0x00) = param_4;
+      *(int *)(entry + 0x04) = param_5;
+      *(unsigned char *)(entry + 0x08) = param_6;
+      *(unsigned char *)(entry + 0x09) = param_7;
+      *(short *)(entry + 0x0a) = param_8;
+      *(float *)(entry + 0x0c) = pos[0];
+      *(float *)(entry + 0x10) = pos[1];
+      *(float *)(entry + 0x14) = fVar2;
+      *(int *)(entry + 0x18) = param_3;
+    }
+
+    /* Cylinder entry */
+    sVar4 = *(short *)((char *)features + 2);
+    if (sVar4 < 0x100) {
+      *(short *)((char *)features + 2) = (short)(sVar4 + 1);
+      entry = (char *)features + (int)sVar4 * 0x28 + 0x1c08;
+      *(int *)(entry + 0x00) = param_4;
+      *(unsigned char *)(entry + 0x08) = param_6;
+      *(int *)(entry + 0x04) = param_5;
+      *(unsigned char *)(entry + 0x09) = param_7;
+      *(short *)(entry + 0x0a) = param_8;
+      *(float *)(entry + 0x0c) = pos[0];
+      *(float *)(entry + 0x10) = pos[1];
+      *(float *)(entry + 0x14) = fVar2;
+      *(int *)(entry + 0x18) = 0;
+      *(int *)(entry + 0x1c) = 0;
+      *(float *)(entry + 0x20) = param_2;
+      *(int *)(entry + 0x24) = param_3;
+    }
+  }
+}
+
 /* 0x14b220 — Add a prism collision feature to the features buffer.
  * Copies the plane, surface ID, material flags, and projected 2D points
  * into the next prism slot.  If param_4 > 0 and the plane normal z-component
