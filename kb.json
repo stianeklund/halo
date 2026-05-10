@@ -9769,7 +9769,8 @@
         },
         {
           "decl": "void FUN_00120810(short *src, float *dest);",
-          "addr": "0x120810"
+          "addr": "0x120810",
+          "ported": true
         },
         {
           "decl": "void FUN_00120870(void *compressed_data, float *dest);",

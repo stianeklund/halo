@@ -93,6 +93,26 @@ int model_animation_choose_random(int update_kind,
   return (int)animation_index;
 }
 
+/* FUN_00120810 (0x120810) — Convert 4 packed int16 values to normalized floats.
+ *
+ * Reads 4 consecutive short values from src and writes 4 floats to dest,
+ * each multiplied by (1.0f / 32767.0f) to normalize from [-32767,32767]
+ * to approximately [-1.0, 1.0]. Used to decompress quaternion rotation
+ * components stored as 16-bit integers in animation frame data.
+ *
+ * Confirmed: cdecl, 2 args (src shorts ptr, dest floats ptr).
+ * Confirmed: Leaf function, no callees.
+ * Confirmed: Multiplies by float constant at 0x290dd8 = 1.0f/32767.0f.
+ * Confirmed: 4 iterations via MOVSX+FILD+FMUL+FSTP pattern in disassembly.
+ */
+void FUN_00120810(short *src, float *dest)
+{
+    dest[0] = (float)(int)src[0] * (1.0f / 32767.0f);
+    dest[1] = (float)(int)src[1] * (1.0f / 32767.0f);
+    dest[2] = (float)(int)src[2] * (1.0f / 32767.0f);
+    dest[3] = (float)(int)src[3] * (1.0f / 32767.0f);
+}
+
 /* FUN_00121d60 (0x121d60) — Decode a single animation frame into per-node
  * rotation/translation/scale data.
  *
