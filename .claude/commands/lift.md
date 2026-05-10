@@ -105,3 +105,4 @@ Notes:
 - Use `/verify structural <target> <new_address>` for explicit verify payload runs with a known lifted function address.
 - `/auto-lift` auto-commits on success and reverts+logs on failure. See `artifacts/auto_lift/failures/` for failure records.
 - Use `/maintain` for a standalone sort + format pass.
+- **After Phase 2 completes**, always run `/build` to catch any remaining compile errors or linter issues that arose post-verification.

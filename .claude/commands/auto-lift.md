@@ -165,6 +165,9 @@ rtk git commit -F /tmp/commit_msg.txt
 With `--dry-run`: leave changes staged, report what would be committed, then
 revert before the next iteration (`rtk git checkout -- src/ kb.json`).
 
+After all lifts complete (loop ends), run `/build` one final time to catch
+any remaining compile errors or linter issues that may have accumulated.
+
 ## On failure — revert + log
 
 Discard the isolated worktree. Write failure record to
