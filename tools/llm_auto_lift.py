@@ -195,13 +195,11 @@ def _check_retrieval_index() -> bool:
     if not idx.exists():
         return False
     try:
-        import duckdb
-        con = duckdb.connect(str(idx), read_only=True)
-        row = con.execute(
-            "SELECT COUNT(*) FROM functions WHERE emb_c IS NOT NULL"
-        ).fetchone()
+        from retrieval import db as _ret_db
+        con = _ret_db.connect(read_only=True)
+        s = _ret_db.stats(con)
         con.close()
-        return row is not None and row[0] > 0
+        return s.get("with_emb", 0) > 0
     except Exception:
         return False
 
@@ -214,7 +212,7 @@ def _query_retrieval_neighbors(pseudocode: str, top_k: int = 3) -> list[dict]:
     never fails due to retrieval issues.
     """
     try:
-        from tools.retrieval.query import query_neighbors
+        from retrieval.query import query_neighbors
         neighbors = query_neighbors(pseudocode, top_k=top_k, min_similarity=0.35)
         return [
             {

@@ -13,8 +13,14 @@ once a model is loaded. Commit 1 only fills the text columns.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Iterator
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_VENV_SP = _REPO_ROOT / ".venv" / "lib" / "python3.12" / "site-packages"
+if _VENV_SP.exists() and str(_VENV_SP) not in sys.path:
+    sys.path.insert(0, str(_VENV_SP))
 
 import duckdb
 
@@ -102,7 +108,7 @@ def iter_records(
     if require_c:
         where.append("c_source IS NOT NULL")
     if require_embeddings:
-        where.append("emb_pseudocode IS NOT NULL")
+        where.append("(emb_pseudocode IS NOT NULL OR emb_c IS NOT NULL)")
     sql = "SELECT * FROM functions"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -120,7 +126,7 @@ def stats(con: duckdb.DuckDBPyConnection) -> dict:
             COUNT(*)                                            AS total,
             COUNT(pseudocode)                                   AS with_pseudocode,
             COUNT(c_source)                                     AS with_c,
-            COUNT(emb_pseudocode)                               AS with_emb,
+            COUNT(*) FILTER (WHERE emb_pseudocode IS NOT NULL OR emb_c IS NOT NULL) AS with_emb,
             COUNT(DISTINCT obj_name)                            AS objects,
             COUNT(DISTINCT emb_model)                           AS models
         FROM functions

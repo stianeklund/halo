@@ -9,7 +9,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
+REPO_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 BRIDGE_PY="C:/Users/stian/Documents/ghidra-mcp-bridge.py"
 LIVE_PY="$REPO_DIR/tools/ghidra_live_mcp/server.py"
