@@ -613,6 +613,151 @@ int FUN_00059b50(void *iter)
   }
 }
 
+/* 0x5a120 — encounter_initialize_from_definition (FUN_0005a120).
+ * Allocates a new encounter record from the encounter data pool, initializes
+ * its fields from the scenario encounter definition, then iterates squads and
+ * platoons to set up per-squad and per-platoon state. Updates the running
+ * squad_counter and platoon_counter accumulators.
+ *
+ * Confirmed:
+ *   - squad_counter passed via EAX (@<eax>), encounter_def via [EBP+0x8],
+ *     platoon_counter via [EBP+0xc].
+ *   - data_new_at_index(DAT_005ab270) at 0x5a12f; datum_get at 0x5a14d.
+ *   - Squad count from encounter_def+0x80 (tag_block); max 0x40 squads.
+ *   - Squad accumulator max 0x400 (MAXIMUM_SQUADS_PER_MAP).
+ *   - Platoon count from encounter_def+0x8c (tag_block); max 0x20 platoons.
+ *   - Platoon accumulator max 0x100 (MAXIMUM_PLATOONS_PER_MAP).
+ *   - FUN_0001c270(encounter, squad_index) for squad records.
+ *   - FUN_00054020(encounter, platoon_index) for platoon records.
+ *   - FUN_0005a050(squad_index @EAX, encounter_handle @ECX) initializes
+ *     squad starting locations from the definition.
+ *   - _ftol2 at 0x5a289 = (short)(squad_def->field_0x50 * 30.0f).
+ *   - tag_block_get_element sizes: 0xe8 for squads, 0xac for platoons.
+ */
+void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
+                  short *platoon_counter)
+{
+  int encounter_handle;
+  char *encounter;
+  char *squad_record;
+  char *squad_def;
+  char *platoon_record;
+  char *platoon_def;
+  short squad_count;
+  short platoon_count;
+  int i;
+  short sVar;
+  void *platoon_block;
+
+  encounter_handle = data_new_at_index(*(data_t **)0x5ab270);
+  if (encounter_handle == -1) {
+    return;
+  }
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+
+  *(short *)(encounter + 0x2) = *(short *)((char *)encounter_def + 0x24);
+  *(int *)(encounter + 0x14) = -1;
+  *(int *)(encounter + 0x38) = -1;
+  *(unsigned char *)(encounter + 0x40) =
+      (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 2) & 1);
+  *(unsigned char *)(encounter + 0x41) =
+      (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 3) & 1);
+  *(unsigned char *)(encounter + 0x3c) =
+      (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 1) & 1);
+  *(short *)(encounter + 0x3e) = 0;
+  *(char *)(encounter + 0x46) = 0;
+  *(char *)(encounter + 0x45) = 0;
+  *(int *)(encounter + 0x50) = -1;
+  *(char *)(encounter + 0x44) = 0;
+  *(int *)(encounter + 0x54) = -1;
+  *(int *)(encounter + 0x58) = -1;
+  *(char *)(encounter + 0x42) = 1;
+  *(int *)(encounter + 0x5c) = -1;
+  *(short *)(encounter + 0x20) = 0;
+  *(int *)(encounter + 0x10) = -1;
+
+  if (*(int *)((char *)encounter_def + 0x80) > 0x40) {
+    display_assert(
+        "encounter_definition->squads.count <= MAXIMUM_SQUADS_PER_ENCOUNTER",
+        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5a4, 1);
+    system_exit(-1);
+  }
+
+  squad_count = *(short *)((char *)encounter_def + 0x80);
+  *(short *)(encounter + 0x6) = squad_count;
+  *(short *)(encounter + 0x4) = *squad_counter;
+  *squad_counter = *squad_counter + squad_count;
+
+  if (*squad_counter > 0x400) {
+    display_assert(
+        csprintf((char *)0x5ab100,
+                 "overflowed MAXIMUM_SQUADS_PER_MAP (%d)", 0x400),
+        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5a8, 1);
+    system_exit(-1);
+  }
+
+  i = 0;
+  if (*(short *)(encounter + 0x6) > 0) {
+    do {
+      squad_record = (char *)FUN_0001c270(encounter, (short)i);
+      squad_def = (char *)tag_block_get_element(
+          (char *)encounter_def + 0x80, (int)(short)i, 0xe8);
+      *(char *)(squad_record + 0x11) = 0;
+      if ((*(unsigned char *)(squad_def + 0x28) & 8) == 0) {
+        *(short *)(squad_record + 0x12) =
+            (short)(*(float *)(squad_def + 0x50) * 30.0f);
+      } else {
+        *(short *)(squad_record + 0x12) = 999;
+      }
+      *(unsigned char *)(squad_record + 0x10) =
+          (unsigned char)((*(unsigned int *)(squad_def + 0x28) >> 5) & 1);
+      FUN_0005a050(i /* @<eax> */, encounter_handle /* @<ecx> */);
+      if (*(short *)(squad_def + 0x86) > 0 ||
+          *(short *)(squad_def + 0x84) > 0) {
+        sVar = 999;
+        if (*(short *)(squad_def + 0x88) != 0) {
+          sVar = *(short *)(squad_def + 0x88);
+        }
+        *(short *)(squad_record + 0xc) = sVar;
+      }
+      i = i + 1;
+    } while ((short)i < *(short *)(encounter + 0x6));
+  }
+
+  if (*(int *)((char *)encounter_def + 0x8c) > 0x20) {
+    display_assert(
+        "encounter_definition->platoons.count <= MAXIMUM_PLATOONS_PER_ENCOUNTER",
+        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5cb, 1);
+    system_exit(-1);
+  }
+
+  platoon_count = *(short *)((char *)encounter_def + 0x8c);
+  *(short *)(encounter + 0xa) = platoon_count;
+  *(short *)(encounter + 0x8) = *platoon_counter;
+  *platoon_counter = *platoon_counter + platoon_count;
+
+  if (*platoon_counter > 0x100) {
+    display_assert(
+        csprintf((char *)0x5ab100,
+                 "overflowed MAXIMUM_PLATOONS_PER_MAP (%d)", 0x100),
+        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5cf, 1);
+    system_exit(-1);
+  }
+
+  platoon_block = (void *)((char *)encounter_def + 0x8c);
+  i = 0;
+  if (*(short *)(encounter + 0xa) > 0) {
+    do {
+      platoon_record = (char *)FUN_00054020(encounter, (short)i);
+      platoon_def = (char *)tag_block_get_element(
+          platoon_block, (int)(short)i, 0xac);
+      i = i + 1;
+      *(unsigned char *)platoon_record =
+          (unsigned char)((*(unsigned int *)(platoon_def + 0x20) >> 2) & 1);
+    } while ((short)i < *(short *)(encounter + 0xa));
+  }
+}
+
 /* FUN_0005a3b0 (0x5a3b0) — Look up actor type from squad definition.
  *
  * Reads the squad's scenario_squad index from squad_def+0x20 (int16_t),
