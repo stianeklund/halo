@@ -59,6 +59,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **ABI Stability:** `@<reg>` annotations in `kb.json` are **immutable**. Never remove or change register assignments.
 - **New Symbols:** Register-arg callees must be added to `kb.json` with `@<reg>` and called by name.
 - **No Inline ASM:** The build system handles thunks via `kb.json`. Do not use inline assembly in C.
+- **`ported` is a real toggle.** Setting `"ported": false` on a function in `kb.json` deactivates the patch at build time: `tools/build/patch.py` skips the redirect at the original address AND writes a JMP at the impl entry that tail-calls the original. Both original code and our lifted C code reach original behavior. The C implementation stays in source and in the binary as dead code. Use this for **bisecting** which lift introduced a regression — flip ports off one at a time and rebuild. Re-activate by setting `"ported": true`. The pre-commit hook `pre-commit-ported-deactivations.sh` warns (does not block) when a commit contains active deactivations so you don't ship them by accident; `tools/audit/check_ported_deactivations.py --check` exits non-zero for CI gating.
 - **Separation:** Keep logic changes separate from cleanup/formatting.
 - **Auto-lift delegates to `/lift`:** `tools/llm_auto_lift.py` provides target selection, liftability scoring, and Ghidra context caching. Code generation is delegated to `/lift` which has full agent context. Legacy `review`/`promote` subcommands exist for old batch artifacts.
 - **Never transcribe MSVC intrinsics as C function calls.** Ghidra shows them as regular calls but they have non-standard ABIs that corrupt the stack or registers when called from C. Use the equivalent C idiom — the compiler generates the intrinsic automatically:
@@ -96,6 +97,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
 - **VC71 Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/vc71_verify.py src/path/to/file.c` to compile with Visual C++ 7.1 and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Auto-Lift Selector:** Use `rtk python3 tools/llm_auto_lift.py select` for target selection and `cache-context` for Ghidra context caching. Code generation is delegated to `/lift`.
+- **Auto-Build After Lift:** `/lift` and `/auto-lift` automatically trigger `/build` on completion to catch compile errors and linter issues early. This is enforced by `.claude/settings.json` hooks.
 - **Validation:** Run the narrowest meaningful validation first.
 - **XBDM Priority:** Prefer real Xbox XBDM verification over xemu when available.
 - **Failure Policy:** If an edit fails, re-read only affected ranges before retrying.
