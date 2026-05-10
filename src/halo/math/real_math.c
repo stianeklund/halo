@@ -733,6 +733,34 @@ float FUN_0010c600(float *a, float *b)
   return (float)atan2((double)sine_term, (double)dot);
 }
 
+/* Normalize a quaternion [x,y,z,w] in place.
+ * If the squared magnitude is > 0, divides each component by the magnitude.
+ * Otherwise, resets to the identity quaternion (0,0,0,1). */
+void FUN_0010ca30(float *quaternion)
+{
+  float mag_sq;
+
+  mag_sq = quaternion[3] * quaternion[3] +
+           quaternion[2] * quaternion[2] +
+           quaternion[1] * quaternion[1] +
+           quaternion[0] * quaternion[0];
+
+  if (mag_sq > 0.0f) {
+    float scale;
+
+    scale = 1.0f / sqrtf(mag_sq);
+    quaternion[0] = scale * quaternion[0];
+    quaternion[1] = scale * quaternion[1];
+    quaternion[2] = scale * quaternion[2];
+    quaternion[3] = scale * quaternion[3];
+  } else {
+    quaternion[0] = 0.0f;
+    quaternion[1] = 0.0f;
+    quaternion[2] = 0.0f;
+    quaternion[3] = 1.0f;
+  }
+}
+
 /* Convert a unit quaternion [x,y,z,w] to axis-angle representation.
  * Extracts the rotation axis (normalized) and the angle in radians.
  * If the angle exceeds pi, flips to the shorter equivalent rotation. */
