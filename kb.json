@@ -4257,6 +4257,14 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00126000(void *server /* @<ebx> */);",
+          "addr": "0x126000"
+        },
+        {
+          "decl": "bool FUN_001260c0(void *server /* @<esi> */);",
+          "addr": "0x1260c0"
+        },
+        {
           "decl": "bool FUN_001268a0(void *server /* @<eax> */);",
           "addr": "0x1268a0"
         },
@@ -4266,7 +4274,8 @@
         },
         {
           "decl": "bool FUN_00126ce0(void *server /* @<eax> */);",
-          "addr": "0x126ce0"
+          "addr": "0x126ce0",
+          "ported": true
         },
         {
           "decl": "bool FUN_00126db0(void *server /* @<eax> */);",
