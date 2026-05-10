@@ -10474,6 +10474,14 @@
           "ported": true
         },
         {
+          "addr": "0x5e760",
+          "decl": "int FUN_0005e760(unsigned int param_1, unsigned int param_2);"
+        },
+        {
+          "addr": "0x5e7e0",
+          "decl": "unsigned int FUN_0005e7e0(unsigned int param_1, unsigned int param_2);"
+        },
+        {
           "addr": "0x5e830",
           "decl": "char FUN_0005e830(int param_1, int *param_2, int param_3, int *param_4, unsigned char *param_5, float *param_6);"
         },
@@ -10484,7 +10492,8 @@
         },
         {
           "addr": "0x5eae0",
-          "decl": "char FUN_0005eae0(unsigned int path_buf, unsigned int *nav_state_out);"
+          "decl": "char FUN_0005eae0(unsigned int path_buf, unsigned int *nav_state_out);",
+          "ported": true
         },
         {
           "addr": "0x5ef80",
@@ -10498,6 +10507,28 @@
           "addr": "0x5ff70",
           "decl": "char FUN_0005ff70(unsigned int *path_buf);",
           "ported": true
+        }
+      ]
+    },
+    {
+      "name": "path_smoothing.obj",
+      "source": "ai/path_smoothing.c",
+      "data": [],
+      "functions": [
+        {
+          "addr": "0x633b0",
+          "decl": "void FUN_000633b0(unsigned int param_1, int param_2, void *param_3, int *param_4, void *param_5, char *param_6);"
+        }
+      ]
+    },
+    {
+      "name": "path_obstacle_avoidance.obj",
+      "source": "ai/path_obstacle_avoidance.c",
+      "data": [],
+      "functions": [
+        {
+          "addr": "0x61750",
+          "decl": "char FUN_00061750(unsigned int param_1, int param_2, void *param_3, int *param_4, void *param_5, char *param_6);"
         }
       ]
     }
