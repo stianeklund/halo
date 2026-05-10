@@ -141,6 +141,40 @@ bool FUN_00125860(void *server)
   return *(char *)((char *)server + 0xcac);
 }
 
+/* FUN_00126000 (0x126000) — network_game_client_send_graceful_exit_pregame
+ *
+ * Periodically (every 1000ms) encodes and sends a
+ * message_client_graceful_game_exit_pregame (type 0x13) containing the
+ * multiplayer map name to the server connection. */
+void FUN_00126000(void *server)
+{
+  int now;
+  char *map_name;
+  char buf[256];
+  unsigned short *encoded;
+  unsigned short size;
+
+  now = system_milliseconds();
+  if (*(int *)((char *)server + 0xca0) + 1000 < now) {
+    map_name = main_get_multiplayer_map_name();
+    *(int *)((char *)server + 0xca0) = now;
+    if (FUN_001b9de0(map_name)) {
+      memset(buf, 0, sizeof(buf));
+      csstrncpy(buf, map_name, 0x100);
+      encoded = (unsigned short *)encode_network_game_message(0x13, buf, 0x100);
+      if (encoded != NULL) {
+        size = *encoded >> 4;
+        if (!FUN_00128e00(*(int *)((char *)server + 0x82c), encoded, size, 0,
+                          1)) {
+          network_game_log(
+              "network_game_client_write() failed while sending a "
+              "message_client_graceful_game_exit_pregame message");
+        }
+      }
+    }
+  }
+}
+
 /* FUN_001260c0 (0x1260c0) — network_game_client_process_incoming_messages
  *
  * Drains all pending messages from the server connection. Loops calling

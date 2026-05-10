@@ -4258,7 +4258,8 @@
         },
         {
           "decl": "void FUN_00126000(void *server /* @<ebx> */);",
-          "addr": "0x126000"
+          "addr": "0x126000",
+          "ported": true
         },
         {
           "decl": "bool FUN_001260c0(void *server /* @<esi> */);",
@@ -10018,6 +10019,10 @@
           "decl": "int *tag_instance_resolve(int tag_index@<edi>);",
           "addr": "0x1b9bf0",
           "comment": "Validate and resolve a tag index to its tag_instance record pointer. Asserts if tags not loaded or index out of range. Source: cache/cache_files.c"
+        },
+        {
+          "decl": "bool FUN_001b9de0(const char *name);",
+          "addr": "0x1b9de0"
         }
       ]
     },
