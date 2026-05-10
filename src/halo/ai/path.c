@@ -9,6 +9,7 @@
  *         path_state_commit (0x5e090), path_state_set_obstacle (0x5e0d0),
  *         FUN_0005e760 (path node accessor with bounds assert),
  *         FUN_0005e7e0 (path hash table lookup by key),
+ *         FUN_0005e830 (path ray-cast clearance check),
  *         FUN_0005ff70 (path traverse + debug snapshot).
  * Deferred: FUN_0005eae0 (0x5eae0) — complex path evaluation, deferred.
  */
@@ -220,6 +221,64 @@ short FUN_0005e7e0(char *param_1, unsigned int param_2)
   } while (sVar1 != -1 &&
            *(unsigned int *)(param_1 + (int)sVar1 * 0x44 + 0x8c) != param_2);
   return sVar1;
+}
+
+/* 0x005e830 — path ray-cast clearance check
+ * Casts a ray from param_2 toward param_4 using the BSP collision tree at
+ * param_1+0xb0.  Returns 1 (clear) if the ray-cast fails, the hit fraction
+ * is >= 1.0, or the remaining distance after the hit is below a threshold.
+ * Returns 0 otherwise (path is blocked).
+ *
+ * Disassembly-confirmed:
+ *   ESI = param_4[0], EDI = param_4[1], [EBP-0x14] = param_4[2]  (saved dest)
+ *   [EBP-0x10] = param_4[0] - param_2[0]  (delta.x)
+ *   [EBP-0x0c] = param_4[1] - param_2[1]  (delta.y)
+ *   [EBP-0x08] = param_4[2] - param_2[2]  (delta.z)
+ *   tag_block_get_element(param_1+0xb0, 0, 0x60) -> bsp element
+ *   FUN_00149480(1, bsp, 0, 0, param_2, &delta, FLT_MAX, result_buf) -> ray cast
+ *   Condition: (1.0 - t)^2 * dist_sq < 0.1  => clear (return 1)
+ *   param_5 receives the result byte; param_6 receives param_4 copy (dest pos)
+ */
+char FUN_0005e830(int param_1, int *param_2, int param_3, int *param_4,
+                  unsigned char *param_5, float *param_6)
+{
+  char cVar3;
+  unsigned char uVar5;
+  float local_438[264];
+  float local_18;
+  float delta[3];
+  unsigned char local_5;
+
+  local_18 = *((float *)param_4 + 2);
+  delta[0] = *(float *)param_4 - *(float *)param_2;
+  uVar5 = 0;
+  local_5 = 0;
+  delta[1] = *((float *)param_4 + 1) - *((float *)param_2 + 1);
+  delta[2] = *((float *)param_4 + 2) - *((float *)param_2 + 2);
+  cVar3 = ((char (*)(int, void *, short, int, float *, float *, float,
+                     float *))0x149480)(
+      1, tag_block_get_element((char *)param_1 + 0xb0, 0, 0x60),
+      0, 0, (float *)param_2, delta, 3.4028235e+38f,
+      local_438);
+  if (cVar3 == '\0' ||
+      local_438[0] >= *(float *)0x2533c8 ||
+      (*(float *)0x2533c8 - local_438[0]) *
+          (*(float *)0x2533c8 - local_438[0]) *
+          (delta[1] * delta[1] + delta[0] * delta[0] +
+           delta[2] * delta[2]) <
+          *(float *)0x25496c) {
+    uVar5 = 1;
+    local_5 = 1;
+  }
+  if (param_5 != (unsigned char *)0) {
+    *param_5 = local_5;
+  }
+  if (param_6 != (float *)0) {
+    *param_6 = *(float *)param_4;
+    param_6[1] = *((float *)param_4 + 1);
+    param_6[2] = local_18;
+  }
+  return (char)uVar5;
 }
 
 /* 0x005e920 — path_find_initial
