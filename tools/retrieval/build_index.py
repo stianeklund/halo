@@ -31,6 +31,67 @@ from tools.retrieval import db as _db
 from tools.retrieval import extract as _extract
 
 
+def cmd_embed(args: argparse.Namespace) -> int:
+    """Embed text signals for rows that don't yet have an embedding.
+
+    Processes rows in chunks and commits after each chunk so partial
+    progress survives OOM or interruption. Re-run is a no-op for already-
+    embedded rows (unless --reembed is set).
+    """
+    from tools.retrieval.embed import Embedder
+
+    con = _db.connect()
+    if args.reembed:
+        rows = list(_db.iter_records(con, require_c=False, require_pseudocode=False))
+    else:
+        rows = list(con.execute(
+            "SELECT * FROM functions WHERE emb_pseudocode IS NULL AND emb_c IS NULL"
+        ).fetchall())
+        cols = [d[0] for d in con.description]
+        rows = [dict(zip(cols, r)) for r in rows]
+
+    if not rows:
+        print("embed: nothing to do (all rows already embedded; pass --reembed to force)")
+        con.close()
+        return 0
+
+    embedder = Embedder(args.model)
+    chunk_size = args.chunk_size
+    bs = args.batch_size
+    print(f"embed: {len(rows)} rows, model={args.model}, "
+          f"batch_size={bs}, chunk_size={chunk_size}")
+
+    import gc
+
+    n_written = 0
+    for chunk_start in range(0, len(rows), chunk_size):
+        chunk = rows[chunk_start:chunk_start + chunk_size]
+        pseudo_texts = [r.get("pseudocode") for r in chunk]
+        c_texts = [r.get("c_source") for r in chunk]
+
+        pseudo_vecs = embedder.embed_batch(pseudo_texts, batch_size=bs)
+        c_vecs = embedder.embed_batch(c_texts, batch_size=bs)
+
+        for r, ep, ec in zip(chunk, pseudo_vecs, c_vecs):
+            if ep is None and ec is None:
+                continue
+            _db.update_embeddings(
+                con, r["addr"],
+                emb_pseudocode=ep, emb_c=ec, emb_model=args.model,
+            )
+            n_written += 1
+
+        done = min(chunk_start + chunk_size, len(rows))
+        print(f"  [{done}/{len(rows)}] {n_written} embedded so far",
+              flush=True)
+        del pseudo_vecs, c_vecs, pseudo_texts, c_texts, chunk
+        gc.collect()
+
+    con.close()
+    print(f"embed: wrote embeddings for {n_written} rows")
+    return 0
+
+
 def cmd_extract(args: argparse.Namespace) -> int:
     con = _db.connect()
     n_total = 0
@@ -102,6 +163,16 @@ def main() -> int:
 
     sp_e = sub.add_parser("extract", help="Populate the index with text signals from kb.json + sources")
     sp_e.set_defaults(func=cmd_extract)
+
+    sp_em = sub.add_parser("embed", help="Compute and store jina-v2 embeddings for indexed rows")
+    sp_em.add_argument("--model", default="jinaai/jina-embeddings-v2-base-code")
+    sp_em.add_argument("--batch-size", type=int, default=4,
+                       help="Sentences per encode call (smaller = less RAM)")
+    sp_em.add_argument("--chunk-size", type=int, default=100,
+                       help="Rows to embed before committing progress to DB")
+    sp_em.add_argument("--reembed", action="store_true",
+                       help="Re-embed every row (default: only rows lacking embeddings)")
+    sp_em.set_defaults(func=cmd_embed)
 
     sp_s = sub.add_parser("stats", help="Print row counts and coverage")
     sp_s.set_defaults(func=cmd_stats)
