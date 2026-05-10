@@ -1975,7 +1975,7 @@
         {
           "decl": "void FUN_0009ca70(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -2036,7 +2036,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -9616,7 +9616,7 @@
           "addr": "0x5af70",
           "name": "?",
           "decl": "bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x58a40",
