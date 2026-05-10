@@ -227,6 +227,14 @@ def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path) -> float | 
 # main
 # ---------------------------------------------------------------------------
 
+_quiet = False  # set after arg parse; used by _log
+
+
+def _log(*a, **kw):
+    if not _quiet:
+        print(*a, **kw)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -248,6 +256,9 @@ def main():
                     help="Suppress diagnostic noise; only print final summary and errors")
     args = ap.parse_args()
 
+    global _quiet
+    _quiet = args.quiet
+
     source = Path(args.source)
     if not source.is_absolute():
         source = REPO_ROOT / source
@@ -256,8 +267,8 @@ def main():
         sys.exit(1)
 
     func_name = args.function.lstrip("_")
-    print(f"[run.py] Target function : {func_name}")
-    print(f"[run.py] Source file     : {source}")
+    _log(f"[run.py] Target function : {func_name}")
+    _log(f"[run.py] Source file     : {source}")
 
     # ------------------------------------------------------------------
     # VC71 requires temp files on Windows-accessible drive paths.
@@ -275,7 +286,7 @@ def main():
         print("[run.py] ERROR: No delinked reference found. "
               "Run batch_delink.py to export the reference object.", file=sys.stderr)
         sys.exit(1)
-    print(f"[run.py] Reference COFF  : {ref_coff}")
+    _log(f"[run.py] Reference COFF  : {ref_coff}")
 
     # ------------------------------------------------------------------
     # Set up work directory (must be on Windows-accessible path)
@@ -287,7 +298,7 @@ def main():
     else:
         work_dir = Path(tempfile.mkdtemp(prefix="permuter_", dir=WIN_TMPDIR))
         cleanup = not args.keep
-    print(f"[run.py] Work dir        : {work_dir}")
+    _log(f"[run.py] Work dir        : {work_dir}")
 
     try:
         # Copy reference COFF into the work dir. The permuter scorer now uses
@@ -312,7 +323,7 @@ def main():
 
         base_c = work_dir / "base.c"
         base_c.write_text(base_c_content)
-        print(f"[run.py] base.c          : {len(base_c_content)} chars, {func_name}")
+        _log(f"[run.py] base.c          : {len(base_c_content)} chars, {func_name}")
 
         # Write compile.sh symlink
         compile_sh_link = work_dir / "compile.sh"
@@ -339,9 +350,9 @@ def main():
         init_pct = get_lcs_score(func_name, base_o, target_o)
         if init_pct is not None:
             init_score = round((100.0 - init_pct) * 10)
-            print(f"[run.py] Initial LCS     : {init_pct:.1f}% (LCS loss={init_score})")
+            _log(f"[run.py] Initial LCS     : {init_pct:.1f}% (LCS loss={init_score})")
         else:
-            print("[run.py] Initial LCS     : (could not compute)")
+            _log("[run.py] Initial LCS     : (could not compute)")
 
         # ------------------------------------------------------------------
         # Run permuter
@@ -352,17 +363,18 @@ def main():
             cmd += [f"-j{args.threads}"]
         cmd += ["--best-only", str(work_dir)]
 
-        print(f"\n[run.py] Running permuter for {args.time}s, {args.threads} thread(s)...")
-        print(f"[run.py] Command: {' '.join(cmd)}\n")
-        print("-" * 60)
+        _log(f"\n[run.py] Running permuter for {args.time}s, {args.threads} thread(s)...")
+        _log(f"[run.py] Command: {' '.join(cmd)}\n")
+        _log("-" * 60)
 
         try:
             result = subprocess.run(cmd, timeout=args.time,
-                                    env={**os.environ, "TMPDIR": str(WIN_TMPDIR)})
+                                    env={**os.environ, "TMPDIR": str(WIN_TMPDIR)},
+                                    capture_output=_quiet)
         except subprocess.TimeoutExpired:
-            print(f"\n[run.py] Permuter stopped after {args.time}s timeout.")
+            _log(f"\n[run.py] Permuter stopped after {args.time}s timeout.")
         except KeyboardInterrupt:
-            print("\n[run.py] Interrupted.")
+            _log("\n[run.py] Interrupted.")
 
         # ------------------------------------------------------------------
         # LCS-gated candidate selection
@@ -378,7 +390,7 @@ def main():
         if not outputs:
             print("\n[run.py] No improvements found in this run.")
         else:
-            print(f"\n[run.py] Scoring {len(outputs)} candidate(s) by LCS...")
+            _log(f"\n[run.py] Scoring {len(outputs)} candidate(s) by LCS...")
 
             candidates = []
             for out_dir in outputs:
@@ -393,15 +405,18 @@ def main():
                     capture_output=True,
                 )
                 if r.returncode != 0 or not obj_file.exists():
-                    print(f"  penalty={perm_penalty}: compile failed, skipping")
+                    _log(f"  penalty={perm_penalty}: compile failed, skipping")
                     continue
                 lcs = get_lcs_score(func_name, obj_file, target_o)
                 if lcs is None:
-                    print(f"  penalty={perm_penalty}: LCS lookup failed, skipping")
+                    _log(f"  penalty={perm_penalty}: LCS lookup failed, skipping")
                     continue
                 candidates.append((lcs, perm_penalty, out_dir, obj_file))
-                label = "NEW BEST" if init_pct is None or lcs > init_pct else ""
-                print(f"  penalty={perm_penalty:>6d}  LCS={lcs:5.1f}%  {label}")
+                is_best = init_pct is None or lcs > init_pct
+                label = "NEW BEST" if is_best else ""
+                # In quiet mode only log candidates that beat the baseline
+                if not _quiet or is_best:
+                    print(f"  penalty={perm_penalty:>6d}  LCS={lcs:5.1f}%  {label}")
 
             if not candidates:
                 print("[run.py] No candidates compiled successfully.")
@@ -411,7 +426,7 @@ def main():
 
                 print(f"\n[run.py] Best permuter penalty: {best_penalty}")
                 print(f"[run.py] Best LCS            : {best_lcs:.1f}%")
-                print(f"[run.py] Best output dir     : {best_dir}")
+                _log(f"[run.py] Best output dir     : {best_dir}")
 
                 if init_pct is not None:
                     delta = best_lcs - init_pct
@@ -434,7 +449,7 @@ def main():
                             "REGRESSED" if init_pct and lcs < init_pct else "UNKNOWN"))
                         sf.write(f"rank={rank} lcs={lcs:.1f} penalty={penalty} "
                                  f"delta={delta_str} verdict={verdict} dir={d.name}\n")
-                print(f"[run.py] Summary written to: {summary}")
+                _log(f"[run.py] Summary written to: {summary}")
 
         # ------------------------------------------------------------------
         # Save or clean up
