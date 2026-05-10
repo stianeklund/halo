@@ -30,8 +30,42 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify structural <target> <new_address>` for explicit patched-XBE address verification.
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
+- `/verify equivalence <target>` for behavioral differential testing — runs the
+  MSVC delinked oracle and our clang candidate in two Unicorn-Engine emulators
+  with seeded inputs, comparing CPU/FPU state at RET. Pure-leaf functions only
+  (rejects targets with unresolved external relocations). Useful for FPU-heavy
+  code where byte-match is unreliable across compiler versions.
+- `/verify permute <target> [--time 60]` for last-mile match optimization on
+  functions in the 85–98% VC71 band. Wraps `tools/permuter/run.py`. Apply a
+  winning permutation only after re-running the lift pipeline; never accept a
+  permutation that lowers the VC71 match.
 - `/verify option3 <target>` for legacy runtime/xemu fallback.
 - `/verify failure <artifact_dir>` for failed artifact triage.
+
+### Lane decision tree
+
+After `/verify normal` (or `/lift`) finishes, choose follow-ups by the VC71
+match and call shape. **Default is to do nothing** — extra lanes cost time.
+
+| Result | Function shape | Do this | Skip this |
+|---|---|---|---|
+| Match ≥99% | any | done — byte-match is sufficient | permute, equivalence (optional) |
+| Match in [85, 98] | delinked ref mapped | `/verify permute` (60s) | equivalence (orthogonal) |
+| Match in [85, 98] | pure leaf, FPU-heavy | `/verify equivalence` first; then permute | — |
+| Match < 85% | any | investigate the lift; do NOT permute | permute (won't help), equivalence |
+| Match capped (e.g. SEH ~55%) | pure leaf | `/verify equivalence` to prove behavior | permute |
+| No delinked ref | any | `/verify delink <target>` first | permute (no target), vc71 |
+| External relocations present | any | use `/verify normal` only | equivalence (will reject) |
+
+Hard rules:
+- Permuter never auto-applies — re-run the lift pipeline against any
+  candidate permutation before trusting the new score.
+- Unicorn requires a pure leaf. The relocation check rejects functions
+  that call `FUN_xxx` or reference DAT_ globals.
+- Every Unicorn run records leaf classification to
+  `tools/equivalence/leaf_cache.json`. Subsequent `llm_auto_lift.py select`
+  runs reward those addresses (`+5 eq_pure_leaf`), so running equivalence
+  on real leaves makes the selector smarter over time.
 
 ### Normal post-lift validation
 

@@ -43,9 +43,22 @@ Steps:
      lookup or filter
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
    - prefer `batch_decompile` when comparing related helpers
+3b. After the decompile pass, run the deterministic pre-pass on the cached
+    Ghidra output before reasoning over it:
+    ```
+    rtk python3 tools/lift/draft_decompiler.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_draft.c
+    rtk python3 tools/lift/buffer_alias_detector.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_hazards.c
+    ```
+    `draft_decompiler` canonicalizes synthetic Ghidra ops, applies the MSVC
+    intrinsic table (CLAUDE.md), and wraps `__SEH_prolog`/`__SEH_epilog`
+    pairs in native `__try/__except`. `buffer_alias_detector` flags
+    HIGH-RISK `local_XX` reads inside known stack buffers (hazard #5).
+    Use `/tmp/lift_draft.c` as the working starting point and resolve any
+    HIGH-RISK lines from `/tmp/lift_hazards.c` against disassembly before
+    writing the lift.
 4. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
    before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
-   and to `tools/kb_reg_baseline.json`, then call by name from C.
+   and to `tools/kb_reg_baseline.json` (inside the `"functions"` dict), then call by name from C.
    Do not use inline assembly or raw function pointer casts — the build
    generates thunks automatically. Never remove or change existing `@<reg>`
    slot assignments.
@@ -80,6 +93,7 @@ After Phase 1 completes:
 3. Run:
    ```
    rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
+     --low-match-threshold 90 --low-match-behavior-both-below 85 --low-match-reject-below 80 \
      --abi-caller-disasm-file /tmp/lift_caller_disasm.txt
    ```
    If no caller disassembly was retrieved, omit `--abi-caller-disasm-file`.
@@ -88,6 +102,27 @@ After Phase 1 completes:
     - Phase 1 summary (Confirmed / Inferred / Uncertain)
     - Pipeline stage results (build, ABI audit, VC71 verify, low-match policy, behavior/runtime checks)
     - Artifact path from summary.json
+5. Last-mile match optimization (decision rule):
+   - VC71 match in **[85, 98]%** with a delinked reference mapped → suggest
+     `/verify permute <target>` (60s permuter pass).
+   - Match < 85% → do NOT suggest permuter; the lift has a structural bug
+     that random permutations cannot fix. Investigate the root cause first.
+   - Match > 98% → do NOT suggest; not worth the cycles.
+   - Hard rule: never accept a permutation that lowers the existing match.
+     Apply a winning permutation only after re-running the lift pipeline
+     against the new source.
+6. Behavioral differential testing (decision rule):
+   - Function is a **pure leaf** (no calls out, no globals) AND either
+     FPU-heavy (math/geometry/projection), or VC71 match is structurally
+     capped (SEH wrappers stuck at ~55%, etc.) → suggest
+     `/verify equivalence <target>` for a 100-seed Unicorn-Engine
+     differential. Pass = 0 divergences across all seeds.
+   - Function has unresolved external relocations (calls `FUN_xxx`,
+     references DAT_/globals) → do NOT suggest; Unicorn will reject it.
+   - Function is a leaf but has a clean ≥99% VC71 match → optional;
+     byte-match is already strong evidence.
+   - The run will populate `tools/equivalence/leaf_cache.json`, which
+     rewards related leaves in future `select` runs (`+5 eq_pure_leaf`).
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.
@@ -95,9 +130,13 @@ Notes:
   `vc71_verify.py` automatically when a delinked reference exists in `delinked/`
   (mapped via `objdiff.json`). If no delinked reference exists, offer to run
   `/verify delink <target>` after the pipeline.
+- The pipeline thresholds above are only a mechanical floor. They are not an
+  auto-commit standard: `/auto-lift` must run its separate agent review gate
+  before committing any lift below the near-perfect structural range.
 - **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console
   is available. Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
 - Use `/verify option3 <target>` only as a runtime/xemu fallback lane, not as primary structural proof.
 - Use `/verify structural <target> <new_address>` for explicit verify payload runs with a known lifted function address.
 - `/auto-lift` auto-commits on success and reverts+logs on failure. See `artifacts/auto_lift/failures/` for failure records.
 - Use `/maintain` for a standalone sort + format pass.
+- **After Phase 2 completes**, always run `/build` to catch any remaining compile errors or linter issues that arose post-verification.
