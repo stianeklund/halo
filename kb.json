@@ -7523,12 +7523,12 @@
         {
           "decl": "bool FUN_00081870(int *mutex_reference, int timeout_ms);",
           "addr": "0x81870",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_000818d0(int *mutex_reference);",
           "addr": "0x818d0",
-          "ported": false
+          "ported": true
         }
       ]
     },
