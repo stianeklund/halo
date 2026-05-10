@@ -43,6 +43,6 @@ The real-hardware wrapper sets `XBOX_HOST` to `10.0.0.29` by default.
 Report:
 
 - build status
-- commit hash from `git rev-parse HEAD` when the build succeeds
+- commit hash from `rtk git rev-parse HEAD` when the build succeeds
 - deploy target (xemu / real Xbox)
 - any warnings or errors

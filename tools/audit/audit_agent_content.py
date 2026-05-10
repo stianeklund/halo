@@ -78,6 +78,14 @@ def collect_skills(base_dir: Path) -> dict[str, MarkdownFile]:
     }
 
 
+def collect_agents(base_dir: Path) -> dict[str, MarkdownFile]:
+    agents_dir = base_dir / "agents"
+    return {
+        path.name: read_markdown_file(path, base_dir)
+        for path in sorted(agents_dir.glob("*.md"))
+    }
+
+
 def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
@@ -157,6 +165,31 @@ def audit_skills() -> tuple[list[str], int, int]:
     return lines, mismatches, wrappers
 
 
+def audit_agents() -> tuple[list[str], int, int]:
+    claude_agents = collect_agents(CLAUDE_DIR)
+    opencode_agents = collect_agents(OPENCODE_DIR)
+    lines: list[str] = []
+    mismatches = 0
+    wrappers = 0
+
+    for agent_name, claude_file in sorted(claude_agents.items()):
+        opencode_file = opencode_agents.get(agent_name)
+        line = format_status("agent", claude_file, opencode_file)
+        lines.append(line)
+        if opencode_file is None or claude_file.body != opencode_file.body:
+            if opencode_file is None or claude_file.raw_text != opencode_file.raw_text:
+                mismatches += 1
+        elif claude_file.raw_text != opencode_file.raw_text:
+            wrappers += 1
+
+    for agent_name, opencode_file in sorted(opencode_agents.items()):
+        if agent_name not in claude_agents:
+            lines.append(f"agent: missing in .claude -> {opencode_file.relative_path}")
+            mismatches += 1
+
+    return lines, mismatches, wrappers
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Audit drift between .claude and .opencode command and skill content.",
@@ -174,12 +207,14 @@ def main() -> int:
 
     command_lines, command_mismatches, command_wrappers = audit_commands()
     skill_lines, skill_mismatches, skill_wrappers = audit_skills()
-    mismatches = command_mismatches + skill_mismatches
+    agent_lines, agent_mismatches, agent_wrappers = audit_agents()
+    mismatches = command_mismatches + skill_mismatches + agent_mismatches
 
     print("Agent content audit")
     print(f"  commands: {len(command_lines)} checked")
     print(f"  skills:   {len(skill_lines)} checked")
-    print(f"  wrapper-only differences: {command_wrappers + skill_wrappers}")
+    print(f"  agents:   {len(agent_lines)} checked")
+    print(f"  wrapper-only differences: {command_wrappers + skill_wrappers + agent_wrappers}")
     print(f"  content mismatches/missing files: {mismatches}")
     print()
     print("Commands")
@@ -188,6 +223,10 @@ def main() -> int:
     print()
     print("Skills")
     for line in skill_lines:
+        print(f"  {line}")
+    print()
+    print("Agents")
+    for line in agent_lines:
         print(f"  {line}")
 
     if args.strict and mismatches:

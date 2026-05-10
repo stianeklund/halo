@@ -64,10 +64,10 @@ Inspect the suspect function in kb.json:
 
 ```bash
 # Find the function at or near the crash address
-jq '.symbols[] | select(.address | startswith("000923"))' kb.json
+rtk jq '.symbols[] | select(.address | startswith("000923"))' kb.json
 
 # Check if it has @<reg> annotations
-jq '.symbols[] | select(.name == "<function_name>") | {name, address, type, calling_convention}' kb.json
+rtk jq '.symbols[] | select(.name == "<function_name>") | {name, address, type, calling_convention}' kb.json
 ```
 
 **Red flags to look for:**
