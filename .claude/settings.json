@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Read|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /mnt/g/dev/halo && python3 tools/audit/token_discipline_hook.py",
+            "timeout": 10,
+            "statusMessage": "Token-discipline tracker"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /mnt/g/dev/halo && python3 tools/audit/token_discipline_hook.py",
+            "timeout": 10,
+            "statusMessage": "Emit token-discipline summary"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /mnt/g/dev/halo && python3 tools/audit/token_discipline_hook.py",
+            "timeout": 10,
+            "statusMessage": "Emit token-discipline summary"
+          }
+        ]
+      }
+    ]
+  }
+}

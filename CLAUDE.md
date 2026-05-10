@@ -40,6 +40,8 @@ CodeBurn analysis: **~1.7M tokens wasted in 7 days** (~$0.64). The root causes a
 ### Session Memory
 Maintain a mental ledger of files already read in this conversation. If you need a fact from a file you've already read, recall it from context or `rtk rg` for the specific string — do not re-read the file.
 
+A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`) backs this up with measurement: it records every Read/Edit/Write per session in `.claude/agent-memory/token_discipline/`, warns on duplicate `(path, offset, limit)` reads, warns on reads of banned dirs (`build/`, `*.log`, etc.), warns when the read/edit ratio falls below 4:1 after at least 5 edits, and emits a final summary on Stop. Treat hook warnings as authoritative — they observe the actual tool calls, not your recollection.
+
 ## Workflow
 
 ### 1. Research & Analysis
