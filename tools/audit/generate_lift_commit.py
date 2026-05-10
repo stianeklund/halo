@@ -302,6 +302,23 @@ def main():
         else:
             print(f"ABI audit: {passes} function(s) passed", file=sys.stderr)
 
+    # Drift advisory: kb.json @<reg> annotations vs tools/kb_reg_baseline.json.
+    # Warning-only for now (17 pre-existing stale entries on first run).
+    # Promote to a hard gate after the existing stale set is cleaned up.
+    if not args.skip_abi_audit:
+        drift_proc = subprocess.run(
+            [sys.executable, str(TOOLS / "audit" / "extract_reg_args.py"), "--check"],
+            capture_output=True, text=True, cwd=str(REPO_ROOT),
+        )
+        if drift_proc.returncode != 0:
+            stale_count = drift_proc.stdout.count("0x")  # crude but effective
+            print(
+                f"\nkb_reg_baseline drift advisory: ~{stale_count} stale entries "
+                f"(run `tools/audit/extract_reg_args.py --check` for the full "
+                f"list, or `--apply` to merge missing entries). Not blocking commit.",
+                file=sys.stderr,
+            )
+
     # Run sync-ported to catch any drift before committing
     sync_proc = subprocess.run(
         [sys.executable, str(TOOLS / "analysis" / "kb_meta.py"), "sync-ported", "--dry-run"],

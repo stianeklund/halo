@@ -17,8 +17,10 @@ Modes:
 2. `structural <target> <new_address> [extra lift_pipeline flags]` — explicit patched-XBE address verification.
 3. `hazards` — run the lift hazard scanner.
 4. `delink <target>` — export/reference-map a delinked object and run structural comparison.
-5. `option3 <target> [extra verify_option3 flags]` — legacy runtime/xemu fallback.
-6. `failure <artifact_dir>` — classify a failed lift pipeline or auto-lift artifact and recommend the next narrow action.
+5. `equivalence <target> [--seeds N]` — Unicorn-Engine differential test on a pure-leaf function. Runs MSVC oracle and clang candidate with seeded inputs; compares CPU/FPU at RET. Rejects functions with external relocations.
+6. `permute <target> [--time 60]` — last-mile match optimizer for the 85–98% VC71 band. Wraps `tools/permuter/run.py`. Reports best score found; never apply a permutation that lowers the existing match.
+7. `option3 <target> [extra verify_option3 flags]` — legacy runtime/xemu fallback.
+8. `failure <artifact_dir>` — classify a failed lift pipeline or auto-lift artifact and recommend the next narrow action.
 
 If no mode is supplied, treat the first token as `<target>` and run `normal`.
 
@@ -28,8 +30,28 @@ rtk python3 tools/lift_pipeline.py --target <target> --no-metadata-update --veri
 rtk python3 tools/lift_pipeline.py --target <target> --verify-auto --verify-new-address <new_address> --no-metadata-update <extra_flags>
 rtk python3 tools/audit/check_lift_hazards.py
 rtk python3 tools/audit/batch_delink.py --object <object>
+rtk python3 tools/equivalence/unicorn_diff.py <target> --seeds 100
+rtk python3 tools/permuter/run.py <target> --time 60
 rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>
 ```
+
+Equivalence mode:
+1. Resolve `<target>` and confirm the function is a pure leaf. `unicorn_diff.py`
+   exits early with a clear diagnostic if there are unresolved external
+   relocations. Math, serializer, and small string helpers are typical fits.
+2. Run with at least 100 seeds. Pass = 0 divergences across all seeds; even
+   one divergence is a real bug. Re-run with `--seed <hex>` from the failing
+   report to reproduce.
+
+Permute mode:
+1. Confirm the current VC71 match is in [85, 98]. Below 85 the structural
+   mismatch is too large for permutations to fix — address the underlying
+   lift bug first. Above 98 it is not worth the cycles.
+2. Run with a 60s time budget by default. The driver extracts the target,
+   sets up a permuter work dir, and reports the best score.
+3. Apply a winning permutation ONLY after re-running the lift pipeline
+   against the new source — confirm the match improved and no regression
+   slipped in.
 
 Delink mode:
 1. Resolve `<target>` to object/source in `kb.json` using `rtk jq`.

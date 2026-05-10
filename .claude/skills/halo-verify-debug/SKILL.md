@@ -30,6 +30,15 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify structural <target> <new_address>` for explicit patched-XBE address verification.
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
+- `/verify equivalence <target>` for behavioral differential testing — runs the
+  MSVC delinked oracle and our clang candidate in two Unicorn-Engine emulators
+  with seeded inputs, comparing CPU/FPU state at RET. Pure-leaf functions only
+  (rejects targets with unresolved external relocations). Useful for FPU-heavy
+  code where byte-match is unreliable across compiler versions.
+- `/verify permute <target> [--time 60]` for last-mile match optimization on
+  functions in the 85–98% VC71 band. Wraps `tools/permuter/run.py`. Apply a
+  winning permutation only after re-running the lift pipeline; never accept a
+  permutation that lowers the VC71 match.
 - `/verify option3 <target>` for legacy runtime/xemu fallback.
 - `/verify failure <artifact_dir>` for failed artifact triage.
 

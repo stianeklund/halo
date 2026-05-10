@@ -63,8 +63,18 @@ Use these defaults unless a target requires deeper forensics:
 - Keep MCP passes staged:
   1. Resolve target (`get_function_by_address`).
   2. Pull pseudocode (`decompile_function` or `batch_decompile` for >1 function).
-  3. Pull callers/callees (`get_function_callers`/`get_function_callees`) with bounded limits.
-  4. Pull full disassembly only when decompiler output is ambiguous or ABI-critical.
+  3. Pre-pass the pseudocode through the deterministic rewriter before reasoning over it:
+     ```
+     rtk python3 tools/lift/draft_decompiler.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_draft.c
+     rtk python3 tools/lift/buffer_alias_detector.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_hazards.c
+     ```
+     Use `/tmp/lift_draft.c` as the working starting point — it has the
+     MSVC intrinsic table (CLAUDE.md) already applied, synthetic types
+     canonicalized, and `__try/__except` already wrapped. `/tmp/lift_hazards.c`
+     surfaces HIGH-RISK buffer-alias sites (hazard #5) that must be
+     resolved before writing the final lift.
+  4. Pull callers/callees (`get_function_callers`/`get_function_callees`) with bounded limits.
+  5. Pull full disassembly only when decompiler output is ambiguous or ABI-critical.
 - Prefer one target per run; do not batch unrelated functions in one analysis pass.
 - In reports, summarize evidence and include only the minimum assembly needed to justify claims.
 

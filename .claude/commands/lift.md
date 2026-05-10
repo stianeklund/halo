@@ -43,6 +43,19 @@ Steps:
      lookup or filter
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
    - prefer `batch_decompile` when comparing related helpers
+3b. After the decompile pass, run the deterministic pre-pass on the cached
+    Ghidra output before reasoning over it:
+    ```
+    rtk python3 tools/lift/draft_decompiler.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_draft.c
+    rtk python3 tools/lift/buffer_alias_detector.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_hazards.c
+    ```
+    `draft_decompiler` canonicalizes synthetic Ghidra ops, applies the MSVC
+    intrinsic table (CLAUDE.md), and wraps `__SEH_prolog`/`__SEH_epilog`
+    pairs in native `__try/__except`. `buffer_alias_detector` flags
+    HIGH-RISK `local_XX` reads inside known stack buffers (hazard #5).
+    Use `/tmp/lift_draft.c` as the working starting point and resolve any
+    HIGH-RISK lines from `/tmp/lift_hazards.c` against disassembly before
+    writing the lift.
 4. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
    before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
    and to `tools/kb_reg_baseline.json` (inside the `"functions"` dict), then call by name from C.
@@ -89,6 +102,14 @@ After Phase 1 completes:
     - Phase 1 summary (Confirmed / Inferred / Uncertain)
     - Pipeline stage results (build, ABI audit, VC71 verify, low-match policy, behavior/runtime checks)
     - Artifact path from summary.json
+5. Optional last-mile: if the VC71 match is in the 85–98% band, suggest
+   `/verify permute <target>` for a 60-second permuter pass. Apply a winning
+   permutation only after re-running the lift pipeline; never accept a
+   permutation that lowers the match.
+6. Optional behavioral validation for pure leaves: if the target has no
+   unresolved external relocations (e.g. math/serializer/string helpers),
+   suggest `/verify equivalence <target>` for a 100-seed Unicorn-Engine
+   differential. Useful for FPU-heavy code where byte-match is unreliable.
 
 Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.

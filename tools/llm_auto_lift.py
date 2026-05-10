@@ -133,6 +133,33 @@ def _has_delinked_ref(source_path: str, units: dict[str, dict]) -> bool:
     return (ROOT / base).exists() if base else False
 
 
+_PDB_PROPOSALS_CACHE: Optional[set[str]] = None
+
+
+def _load_pdb_proposal_addrs() -> set[str]:
+    """Return the set of addresses (lowercase hex with 0x prefix) that have
+    a real-name proposal from the punpckhdq PDB import. Empty if the importer
+    has not been run.
+    """
+    global _PDB_PROPOSALS_CACHE
+    if _PDB_PROPOSALS_CACHE is not None:
+        return _PDB_PROPOSALS_CACHE
+    proposals_path = ROOT / "artifacts" / "punpckhdq_import" / "name_proposals.json"
+    addrs: set[str] = set()
+    if proposals_path.exists():
+        try:
+            data = json.loads(proposals_path.read_text(encoding="utf-8"))
+            for p in data:
+                if (p.get("real_name")
+                        and p.get("confidence") in ("high", "medium")
+                        and p.get("our_addr")):
+                    addrs.add(p["our_addr"].lower())
+        except (json.JSONDecodeError, OSError):
+            pass
+    _PDB_PROPOSALS_CACHE = addrs
+    return addrs
+
+
 # ---------------------------------------------------------------------------
 # Parsing helpers
 # ---------------------------------------------------------------------------
@@ -277,6 +304,14 @@ class LiftabilityScorer:
                 if ported_count > 0 and unported_count <= 2:
                     score += 12
                     details["completes_tu"] = 12
+
+                # PDB-derived real name proposal exists for this address —
+                # the punpckhdq corpus gives us a strong naming hint for the
+                # lift agent and reduces guesswork.
+                pdb_addrs = _load_pdb_proposal_addrs()
+                if addr.lower() in pdb_addrs:
+                    score += 10
+                    details["pdb_named"] = 10
 
                 # Cached Ghidra context available
                 cache_file = CONTEXT_CACHE / f"{name}.json"

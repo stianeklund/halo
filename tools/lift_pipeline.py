@@ -721,6 +721,53 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("vc71_verify", ran=False, ok=True,
                               details="skipped" + (" (--skip-vc71-verify)" if args.skip_vc71_verify else "")))
 
+  # Optional last-mile permuter pass (informational; never auto-applies).
+  if args.permute:
+    if vc71_match_pct is not None and 85.0 <= vc71_match_pct < 99.0:
+      cmd = [
+        "python3", "tools/permuter/run.py", target.name,
+        "--time", str(args.permute_time),
+      ]
+      proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "permute.log")
+      best = parse_match_percent((proc.stdout or "") + (proc.stderr or ""))
+      details = (f"vc71={vc71_match_pct:.1f}% best_perm={best:.1f}%"
+                 if best is not None else f"vc71={vc71_match_pct:.1f}% no improvement")
+      stages.append(StageResult("permute", ran=True, ok=proc.returncode == 0,
+                                details=details))
+    else:
+      reason = ("vc71 match unknown" if vc71_match_pct is None
+                else f"vc71 match {vc71_match_pct:.1f}% out of [85, 99) band")
+      stages.append(StageResult("permute", ran=False, ok=True,
+                                details=f"skipped ({reason})"))
+  else:
+    stages.append(StageResult("permute", ran=False, ok=True,
+                              details="skipped (--permute not set)"))
+
+  # Optional Unicorn-Engine differential test (pure leaves only).
+  if args.equivalence:
+    cmd = [
+      "python3", "tools/equivalence/unicorn_diff.py", target.name,
+      "--seeds", str(args.equivalence_seeds),
+    ]
+    proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "equivalence.log")
+    output = (proc.stdout or "") + (proc.stderr or "")
+    if "external relocations" in output.lower() or "not a pure leaf" in output.lower():
+      stages.append(StageResult("equivalence", ran=False, ok=True,
+                                details="skipped (external relocations)"))
+    else:
+      m = re.search(r"(\d+)\s+passed,\s+(\d+)\s+failed", output)
+      if m:
+        passed, failed = int(m.group(1)), int(m.group(2))
+        ok = failed == 0
+        details = f"{passed} passed, {failed} diverged / {args.equivalence_seeds} seeds"
+      else:
+        ok = proc.returncode == 0
+        details = "ran (see equivalence.log)"
+      stages.append(StageResult("equivalence", ran=True, ok=ok, details=details))
+  else:
+    stages.append(StageResult("equivalence", ran=False, ok=True,
+                              details="skipped (--equivalence not set)"))
+
   behavior_check_ok = False
   if args.behavior_check_cmd:
     behavior_cmd = render_template(args.behavior_check_cmd, target=target, artifact_dir=artifact_dir)
@@ -998,6 +1045,19 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--no-metadata-update", action="store_true",
                   help="Do not update kb_meta status.")
+
+  ap.add_argument("--permute", action="store_true",
+                  help="When VC71 match falls in [85, 98], spawn a permuter "
+                       "pass via tools/permuter/run.py. Reports best score; "
+                       "does NOT auto-apply permutations.")
+  ap.add_argument("--permute-time", type=int, default=60,
+                  help="Permuter time budget in seconds (default 60).")
+  ap.add_argument("--equivalence", action="store_true",
+                  help="Run tools/equivalence/unicorn_diff.py for behavioral "
+                       "differential testing. Pure-leaf functions only "
+                       "(skipped automatically if external relocations exist).")
+  ap.add_argument("--equivalence-seeds", type=int, default=100,
+                  help="Number of seeds for unicorn_diff (default 100).")
   return ap
 
 
