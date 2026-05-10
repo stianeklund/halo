@@ -25,6 +25,14 @@ Hazard classes:
    a pointer expression passed to a parameter declared float in the function's
    prototype.
 
+5. Buffer-alias confusion: Ghidra names each stack offset as an independent
+   local_XX, even when the offset falls inside a local buffer. After a call
+   that takes a buffer pointer, subsequent reads from the buffer may be
+   misattributed to a different variable (like a parameter pointer). This check
+   flags functions where the same raw hex offset (e.g. + 0x4c) is accessed on
+   both a local buffer and a different pointer — a strong signal that one of the
+   accesses should be the buffer, not the pointer.
+
 Usage:
     python3 tools/audit/check_lift_hazards.py
 """
@@ -301,11 +309,131 @@ def check_pointer_as_float():
     return errors
 
 
+BUF_WRITE_PATTERN = re.compile(
+    r'\*\s*\(\s*[\w\s]*\*\s*\)\s*\(\s*(\w+)\s*\+\s*(0x[0-9a-fA-F]+)\s*\)\s*='
+)
+
+PARAM_CAST_READ_PATTERN = re.compile(
+    r'=.*\*\s*\(\s*[\w\s]*\*\s*\)\s*\(\s*\(\s*char\s*\*\s*\)\s*(\w+)\s*\+\s*(0x[0-9a-fA-F]+)\s*\)'
+)
+
+FUNC_DEF_PATTERN = re.compile(r'^(?:void|int|char|float|short|unsigned|uint\w*|int\w*)\s')
+
+MIN_BUF_SIZE = 0x40
+MIN_OFFSET = 0x20
+ALIAS_TOLERANCE = 16
+
+
+FUNC_BOUNDARY = re.compile(r'^}')
+
+
+def _split_functions(lines):
+    """Split file lines into function chunks. Each chunk is (start_line, end_line)
+    where line numbers are 1-based. Uses '}' at column 0 as the boundary."""
+    chunks = []
+    start = 1
+    for i, line in enumerate(lines, 1):
+        if FUNC_BOUNDARY.match(line) and i > start:
+            chunks.append((start, i))
+            start = i + 1
+    if start <= len(lines):
+        chunks.append((start, len(lines)))
+    return chunks
+
+
+def check_buffer_alias():
+    """Flag functions where a local buffer is written at an offset AND a
+    different pointer is read at a nearby offset — likely buffer-alias
+    confusion from Ghidra's independent local_XX naming.
+
+    Only triggers for:
+      - Buffers >= 0x40 bytes (small buffers rarely cause aliasing)
+      - Offsets >= 0x20 (low offsets are normal struct field accesses)
+      - Param read offset falls within the buffer's size
+      - Buffer write and param read are in the same function scope
+      - Offset difference <= 16 bytes (close enough to be suspicious)
+    Suppressed by ``buf-alias-ok`` comment on the read line.
+    """
+    errors = []
+    for dirpath, _, filenames in os.walk(SRC_DIR):
+        for fname in filenames:
+            if not fname.endswith('.c'):
+                continue
+            fpath = os.path.join(dirpath, fname)
+            with open(fpath, 'r', errors='replace') as f:
+                content = f.read()
+            lines = content.split('\n')
+            chunks = _split_functions(lines)
+
+            for chunk_start, chunk_end in chunks:
+                buffers = {}
+                buf_write_offsets = {}
+                param_read_sites = []
+
+                for lineno in range(chunk_start, chunk_end + 1):
+                    if lineno > len(lines):
+                        break
+                    line = lines[lineno - 1]
+                    stripped = line.lstrip()
+                    if stripped.startswith('//'):
+                        continue
+                    if stripped.startswith('/*') or stripped.startswith('* ') \
+                       or stripped == '*\n' or stripped == '*':
+                        continue
+
+                    for m in ARRAY_DECL_PATTERN.finditer(line):
+                        name = m.group(1)
+                        size_str = m.group(2)
+                        size = int(size_str, 16) if size_str.startswith('0x') else int(size_str)
+                        if size >= MIN_BUF_SIZE:
+                            buffers[name] = (size, lineno)
+
+                    for m in BUF_WRITE_PATTERN.finditer(line):
+                        var = m.group(1)
+                        off = int(m.group(2), 16)
+                        if var in buffers and off >= MIN_OFFSET and off < buffers[var][0]:
+                            buf_write_offsets.setdefault(var, set()).add(off)
+
+                    if 'buf-alias-ok' in line:
+                        continue
+
+                    for m in PARAM_CAST_READ_PATTERN.finditer(line):
+                        var = m.group(1)
+                        off = int(m.group(2), 16)
+                        if var not in buffers and off >= MIN_OFFSET:
+                            param_read_sites.append((var, off, lineno))
+
+                for param_name, p_off, p_line in param_read_sites:
+                    for buf_name, b_offs in buf_write_offsets.items():
+                        buf_size = buffers[buf_name][0]
+                        if p_off >= buf_size:
+                            continue
+                        for b_off in b_offs:
+                            if abs(p_off - b_off) <= ALIAS_TOLERANCE:
+                                relpath = os.path.relpath(fpath, ROOT_DIR)
+                                errors.append(
+                                    f'  {relpath}:{p_line}: reads {param_name}+{p_off:#x} '
+                                    f'but {buf_name}[{buf_size:#x}] is written at '
+                                    f'+{b_off:#x} — verify this isn\'t a buffer field '
+                                    f'(suppress with buf-alias-ok comment)'
+                                )
+                                break
+
+    seen = set()
+    deduped = []
+    for e in errors:
+        if e not in seen:
+            seen.add(e)
+            deduped.append(e)
+    return deduped
+
+
 def main():
     intrinsic_errors = check_intrinsics()
     buffer_errors = check_buffer_sizes()
     duplicate_errors = check_duplicate_args()
     ptr_float_errors = check_pointer_as_float()
+    alias_errors = check_buffer_alias()
 
     if intrinsic_errors:
         print(
@@ -347,6 +475,18 @@ def main():
             file=sys.stderr,
         )
         for e in ptr_float_errors:
+            print(e, file=sys.stderr)
+        print(file=sys.stderr)
+
+    if alias_errors:
+        print(
+            'WARNING: possible buffer-alias confusion.\n'
+            'A local buffer and a different pointer are accessed at nearby\n'
+            'offsets. Ghidra may have shown a buffer field as a separate\n'
+            'local_XX variable. Verify against disassembly [EBP±N]:\n',
+            file=sys.stderr,
+        )
+        for e in alias_errors:
             print(e, file=sys.stderr)
         print(file=sys.stderr)
 
