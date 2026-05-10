@@ -4285,7 +4285,8 @@
         },
         {
           "decl": "bool FUN_00126f40(void *server /* @<eax> */);",
-          "addr": "0x126f40"
+          "addr": "0x126f40",
+          "ported": true
         },
         {
           "decl": "bool FUN_00127070(void *server);",
