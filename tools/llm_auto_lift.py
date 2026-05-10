@@ -186,6 +186,53 @@ def _load_pure_leaf_addrs() -> set[str]:
 
 
 # ---------------------------------------------------------------------------
+# Semantic retrieval helpers (Mizuchi-style neighbor injection)
+# ---------------------------------------------------------------------------
+
+def _check_retrieval_index() -> bool:
+    """Return True if the retrieval index exists and has embeddings."""
+    idx = ROOT / "tools" / "retrieval" / "index.duckdb"
+    if not idx.exists():
+        return False
+    try:
+        import duckdb
+        con = duckdb.connect(str(idx), read_only=True)
+        row = con.execute(
+            "SELECT COUNT(*) FROM functions WHERE emb_c IS NOT NULL"
+        ).fetchone()
+        con.close()
+        return row is not None and row[0] > 0
+    except Exception:
+        return False
+
+
+def _query_retrieval_neighbors(pseudocode: str, top_k: int = 3) -> list[dict]:
+    """Query the retrieval index for the top-K most-similar ported functions.
+
+    Returns a list of dicts suitable for direct JSON serialization into
+    the cached context pack. Returns [] on any error so cache-context
+    never fails due to retrieval issues.
+    """
+    try:
+        from tools.retrieval.query import query_neighbors
+        neighbors = query_neighbors(pseudocode, top_k=top_k, min_similarity=0.35)
+        return [
+            {
+                "addr": n.addr,
+                "name": n.name,
+                "obj_name": n.obj_name,
+                "decl": n.decl,
+                "similarity": round(n.similarity, 4),
+                "c_source": n.c_source,
+            }
+            for n in neighbors
+        ]
+    except Exception as exc:
+        log.debug("retrieval query failed: %s", exc)
+        return []
+
+
+# ---------------------------------------------------------------------------
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
@@ -1109,16 +1156,29 @@ def cmd_cache_context(args: argparse.Namespace):
     builder = ContextPackBuilder(ghidra_live=True)
     CONTEXT_CACHE.mkdir(parents=True, exist_ok=True)
 
+    retrieval_available = _check_retrieval_index()
+
     for t in targets:
         print(f"Caching context for {t.name} ({t.addr})...")
         pack = builder.build(t)
         cache_file = CONTEXT_CACHE / f"{t.name}.json"
         ghidra_ctx = pack.ghidra
-        cache_file.write_text(json.dumps(ghidra_ctx, indent=2), encoding="utf-8")
         has_decomp = bool(ghidra_ctx.get("decompile_c"))
         has_disasm = bool(ghidra_ctx.get("disassembly"))
         print(f"  decompile={'yes' if has_decomp else 'NO'}  disasm={'yes' if has_disasm else 'NO'}  "
               f"callers={len(ghidra_ctx.get('callers', []))}  callees={len(ghidra_ctx.get('callees', []))}")
+
+        if retrieval_available and has_decomp:
+            neighbors = _query_retrieval_neighbors(ghidra_ctx["decompile_c"])
+            if neighbors:
+                ghidra_ctx["similar_neighbors"] = neighbors
+                print(f"  retrieval: {len(neighbors)} similar ported function(s) injected")
+            else:
+                print(f"  retrieval: no similar neighbors above threshold")
+        elif not retrieval_available:
+            pass  # silently skip — index not built yet
+
+        cache_file.write_text(json.dumps(ghidra_ctx, indent=2), encoding="utf-8")
 
     print(f"\nCached {len(targets)} context packs to {CONTEXT_CACHE}")
 
