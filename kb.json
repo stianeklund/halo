@@ -6411,6 +6411,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0010ca30(float *quaternion);",
+          "addr": "0x10ca30"
+        },
+        {
           "decl": "void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3);",
           "addr": "0x10caf0",
           "ported": true
@@ -9737,16 +9741,50 @@
     {
       "name": "model_animations.obj",
       "source": "models/model_animations.c",
-      "data": [],
+      "data": [
+        {
+          "decl": "char DAT_00322600;",
+          "addr": "0x322600"
+        }
+      ],
       "functions": [
+        {
+          "decl": "void *FUN_00120500(void *animation, short frame_index);",
+          "addr": "0x120500"
+        },
+        {
+          "decl": "void FUN_00120810(short *src, float *dest);",
+          "addr": "0x120810"
+        },
+        {
+          "decl": "void FUN_00120870(void *compressed_data, float *dest);",
+          "addr": "0x120870"
+        },
         {
           "decl": "int model_animation_choose_random(int update_kind, int animation_graph_tag_index, int16_t animation_index);",
           "addr": "0x120f20",
           "ported": true
         },
         {
+          "decl": "void FUN_00121330(void *animation, float frame, unsigned short rotation_count, short node_index, void *out_rotation);",
+          "addr": "0x121330"
+        },
+        {
+          "decl": "void FUN_00121640(void *animation, float frame, unsigned short translation_count, short node_index, void *out_translation);",
+          "addr": "0x121640"
+        },
+        {
+          "decl": "void FUN_00121940(void *animation, float frame, unsigned short scale_count, short node_index, void *out_scale);",
+          "addr": "0x121940"
+        },
+        {
           "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
-          "addr": "0x121d60"
+          "addr": "0x121d60",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_00123aa0(void *mode_tag, void *out_node_data);",
+          "addr": "0x123aa0"
         }
       ]
     },

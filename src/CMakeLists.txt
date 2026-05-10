@@ -88,6 +88,7 @@
 	halo/math/real_math.c
 	halo/math/rectangles.c
 	halo/math/vector_math.c
+	halo/models/model_animations.c
 	halo/rasterizer/rasterizer.c
 	halo/rasterizer/rasterizer_sprites.c
 	halo/rasterizer/common/rasterizer_common.c

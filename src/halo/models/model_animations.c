@@ -45,3 +45,176 @@ int model_animation_choose_random(int update_kind,
   }
   return (int)animation_index;
 }
+
+/* FUN_00121d60 (0x121d60) — Decode a single animation frame into per-node
+ * rotation/translation/scale data.
+ *
+ * For each node in the animation (animation+0x2c count), decodes rotation
+ * (quaternion), translation (vec3), and scale (float) from either:
+ *   - Compressed keyframed data (when flag bit 0 is set and compression is
+ *     active), using FUN_00121330/FUN_00121640/FUN_00121940 interpolators.
+ *   - Uncompressed frame data via FUN_00120810/FUN_00120870 or raw memcpy
+ *     from default data (animation+0x98).
+ *
+ * Three bitmask arrays at animation offsets 0x5c, 0x6c, 0x7c (4 DWORDs each
+ * for up to 128 nodes) indicate which nodes have animated rotation,
+ * translation, and scale respectively. Bit=1 means animated (read from
+ * frame data), bit=0 means static (read from default data).
+ *
+ * If the animation type (animation+0x20) is nonzero, or the mode_tag check
+ * fails, falls back to FUN_00123aa0 which fills default node transforms.
+ *
+ * After the loop, two assertions verify that exactly the right amount of
+ * frame data and default data was consumed.
+ *
+ * Confirmed: cdecl, 4 args, void return.
+ * Confirmed: CALL FUN_00120500 at 0x121dca and 0x121fd5 (2 args: animation, frame_index).
+ * Confirmed: CALL FUN_00120810 at 0x121e63 and 0x121e9d (2 args: src_shorts, dest_floats).
+ * Confirmed: CALL FUN_00120870 at 0x121e89 (2 args: compressed_data, dest_floats).
+ * Confirmed: CALL FUN_0010ca30 at 0x121e8f (1 arg: quaternion).
+ * Confirmed: CALL FUN_00121330 at 0x121e51 (5 args: animation, frame_float, count, node, out).
+ * Confirmed: CALL FUN_00121640 at 0x121edc (5 args: animation, frame_float, count, node, out).
+ * Confirmed: CALL FUN_00121940 at 0x121f78 (5 args: animation, frame_float, count, node, out).
+ * Confirmed: CALL FUN_00123aa0 at 0x12204a (2 args: mode_tag, out_node_data).
+ */
+void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
+                  void *out_node_data)
+{
+  int param_1;
+  int param_2;
+  int param_4;
+  unsigned int uVar6;
+  int iVar7;
+  short sVar5;
+  int iVar3;
+  unsigned int local_1c;
+  unsigned int local_20;
+  unsigned int local_14;
+  int local_10;
+  int local_18;
+  int local_24;
+  int *local_c;
+  int *local_8;
+  int bVar2;
+  int *puVar4;
+
+  param_1 = (int)mode_tag;
+  param_2 = (int)animation;
+  param_4 = (int)out_node_data;
+  uVar6 = 0;
+
+  if (*(short *)(param_2 + 0x20) == 0 &&
+      (param_1 == 0 ||
+       (((*(int *)(param_2 + 0x28) == 0 ||
+          *(int *)(param_2 + 0x28) == *(int *)(param_1 + 4) ||
+          *(int *)(param_1 + 4) == 0) &&
+         *(int *)(param_1 + 0xb8) == (int)*(short *)(param_2 + 0x2c))))) {
+
+    if (((*(unsigned char *)(param_2 + 0x3a) & 1) == 0) ||
+        (DAT_00322600 == '\0' && *(int *)(param_2 + 0x88) != 0)) {
+      bVar2 = 0;
+    } else {
+      bVar2 = 1;
+    }
+
+    local_8 = (int *)FUN_00120500(animation, (short)animation_index);
+    local_c = *(int **)(param_2 + 0x98);
+    local_10 = 0;
+    local_18 = 0;
+    local_24 = 0;
+    if (0 < *(short *)(param_2 + 0x2c)) {
+      do {
+        sVar5 = (short)uVar6;
+        iVar7 = sVar5 * 0x20 + param_4;
+        if ((uVar6 & 0x1f) == 0) {
+          iVar3 = (int)(sVar5 >> 5);
+          local_1c = *(unsigned int *)(param_2 + 0x5c + iVar3 * 4);
+          local_14 = *(unsigned int *)(param_2 + 0x6c + iVar3 * 4);
+          local_20 = *(unsigned int *)(param_2 + 0x7c + iVar3 * 4);
+        }
+        if ((local_14 & 1) == 0) {
+          if (bVar2) {
+            FUN_00120870(
+              (void *)(local_8[1] + sVar5 * 6 + (int)local_8),
+              (float *)iVar7);
+            FUN_0010ca30((float *)iVar7);
+          } else {
+            FUN_00120810((short *)local_c, (float *)iVar7);
+            local_c = (int *)((char *)local_c + 8);
+          }
+        } else if (bVar2) {
+          FUN_00121330(animation, (float)(int)(short)animation_index,
+                       (unsigned short)local_10, sVar5, (void *)iVar7);
+          local_10 = local_10 + 1;
+        } else {
+          FUN_00120810((short *)local_8, (float *)iVar7);
+          local_8 = (int *)((char *)local_8 + 8);
+        }
+        local_14 = local_14 >> 1;
+
+        if ((local_1c & 1) == 0) {
+          if (bVar2) {
+            puVar4 = (int *)(local_8[5] + sVar5 * 0xc + (int)local_8);
+            *(int *)(iVar7 + 0x10) = puVar4[0];
+            *(int *)(iVar7 + 0x14) = puVar4[1];
+            *(int *)(iVar7 + 0x18) = puVar4[2];
+          } else {
+            *(int *)(iVar7 + 0x10) = local_c[0];
+            *(int *)(iVar7 + 0x14) = local_c[1];
+            *(int *)(iVar7 + 0x18) = local_c[2];
+            local_c = (int *)((char *)local_c + 0xc);
+          }
+        } else if (bVar2) {
+          FUN_00121640(animation, (float)(int)(short)animation_index,
+                       (unsigned short)local_18, sVar5,
+                       (void *)(iVar7 + 0x10));
+          local_18 = local_18 + 1;
+        } else {
+          *(int *)(iVar7 + 0x10) = local_8[0];
+          *(int *)(iVar7 + 0x14) = local_8[1];
+          *(int *)(iVar7 + 0x18) = local_8[2];
+          local_8 = (int *)((char *)local_8 + 0xc);
+        }
+        local_1c = local_1c >> 1;
+
+        if ((local_20 & 1) == 0) {
+          if (bVar2) {
+            *(int *)(iVar7 + 0x1c) = 0x3f800000;
+          } else {
+            *(int *)(iVar7 + 0x1c) = *local_c;
+            local_c = (int *)((char *)local_c + 4);
+          }
+        } else if (bVar2) {
+          FUN_00121940(animation, (float)(int)(short)animation_index,
+                       (unsigned short)local_24, sVar5,
+                       (void *)(iVar7 + 0x1c));
+          local_24 = local_24 + 1;
+        } else {
+          *(int *)(iVar7 + 0x1c) = *local_8;
+          local_8 = (int *)((char *)local_8 + 4);
+        }
+        local_20 = local_20 >> 1;
+
+        uVar6 = uVar6 + 1;
+      } while ((short)uVar6 < *(short *)(param_2 + 0x2c));
+    }
+    if (!bVar2) {
+      iVar7 = (int)FUN_00120500(animation, (short)animation_index);
+      if ((int)local_8 - iVar7 != (int)*(short *)(param_2 + 0x24)) {
+        display_assert(
+          "compressed || (byte *)data-(byte *)animation_get_frame_data(animation, frame_index)==animation->frame_size",
+          "c:\\halo\\SOURCE\\models\\model_animations.c", 0x141, 1);
+        system_exit(-1);
+      }
+      if ((int)local_c - *(int *)(param_2 + 0x98) !=
+          *(int *)(param_2 + 0x8c)) {
+        display_assert(
+          "compressed || (byte *)default_data-(byte *)animation_get_default_data(animation)==animation->default_data.size",
+          "c:\\halo\\SOURCE\\models\\model_animations.c", 0x142, 1);
+        system_exit(-1);
+      }
+    }
+  } else {
+    FUN_00123aa0(mode_tag, out_node_data);
+  }
+}
