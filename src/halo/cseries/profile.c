@@ -230,6 +230,16 @@ void profile_render_window_end(void)
   *(float *)(0x449c04 + idx * 0x18) += elapsed;
 }
 
+/* Snapshot the current TSC into a dedicated low/high global pair at
+ * 0x449c98/0x449c9c (used to mark a reference timestamp). */
+void FUN_000916e0(void)
+{
+  uint32_t lo, hi;
+  RDTSC(lo, hi);
+  *(uint32_t *)0x449c98 = lo;
+  *(uint32_t *)0x449c9c = hi;
+}
+
 /* Start a new profiling frame. Clears the current frame data, records
  * the render count and timing state, and timestamps the frame start. */
 void profile_frame_start(void)
