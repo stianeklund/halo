@@ -6412,7 +6412,8 @@
         },
         {
           "decl": "void FUN_0010ca30(float *quaternion);",
-          "addr": "0x10ca30"
+          "addr": "0x10ca30",
+          "ported": true
         },
         {
           "decl": "void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3);",
