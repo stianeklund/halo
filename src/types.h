@@ -875,7 +875,7 @@ cs(packet_header, 0x1);
 co(packet_header, type, 0x00);
 
 /* ai_firing_pos_entry_t — one slot in the firing-position candidate buffer
- * built by FUN_00041420 and consumed by FUN_00041590.
+ * built by FUN_00041420 and consumed by ai_test_line_of_fire.
  * Entry stride = 0x28 bytes; buffer holds up to 0x20 entries.
  *
  * Note: vec_b[3] as declared occupies +0x10..+0x18, but the binary only ever
