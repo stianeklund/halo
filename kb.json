@@ -9774,7 +9774,8 @@
         },
         {
           "decl": "void FUN_00120870(void *compressed_data, float *dest);",
-          "addr": "0x120870"
+          "addr": "0x120870",
+          "ported": true
         },
         {
           "decl": "int model_animation_choose_random(int update_kind, int animation_graph_tag_index, int16_t animation_index);",

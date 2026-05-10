@@ -113,6 +113,42 @@ void FUN_00120810(short *src, float *dest)
     dest[3] = (float)(int)src[3] * (1.0f / 32767.0f);
 }
 
+/* FUN_00120870 (0x120870) — Decompress 3 packed uint16s into 4 normalized floats.
+ *
+ * Extracts 4 values from 3 consecutive unsigned shorts (48 bits total) by
+ * interleaved bit manipulation, sign-extends each to int, converts to float,
+ * and multiplies by (1.0f / 32767.0f). Used to decompress compressed
+ * quaternion rotation data in animation frames (compressed path in
+ * FUN_00121d60).
+ *
+ * Confirmed: cdecl, 2 args (compressed_data ushort ptr, dest floats ptr).
+ * Confirmed: Leaf function, no callees.
+ * Confirmed: Multiplies by float constant at 0x290dd8 = 1.0f/32767.0f.
+ * Confirmed: 4 outputs via interleaved bit extraction + MOVSX + FILD + FMUL + FSTP.
+ * Confirmed: Bit operations verified against disassembly at 0x120870-0x12092a.
+ */
+void FUN_00120870(void *compressed_data, float *dest)
+{
+    unsigned short *src;
+    unsigned short w0, w1, w2;
+    short s0, s1, s2, s3;
+
+    src = (unsigned short *)compressed_data;
+    w0 = src[0];
+    w1 = src[1];
+    w2 = src[2];
+
+    s0 = (short)((w0 >> 12) | (w0 & 0xFFF0));
+    s1 = (short)(((w1 >> 4) & 0xFF0) | (w0 & 0xF) | (w0 << 12));
+    s2 = (short)((((w2 >> 4) & 0xF00) | (w1 & 0xF0)) >> 4 | (w1 << 8));
+    s3 = (short)(((w2 >> 8) & 0xF) | (w2 << 4));
+
+    dest[0] = (float)(int)s0 * (1.0f / 32767.0f);
+    dest[1] = (float)(int)s1 * (1.0f / 32767.0f);
+    dest[2] = (float)(int)s2 * (1.0f / 32767.0f);
+    dest[3] = (float)(int)s3 * (1.0f / 32767.0f);
+}
+
 /* FUN_00121d60 (0x121d60) — Decode a single animation frame into per-node
  * rotation/translation/scale data.
  *
