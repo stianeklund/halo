@@ -252,6 +252,26 @@ void FUN_000916e0(void)
   *(uint32_t *)0x449c9c = hi;
 }
 
+/* End a custom profiling section. Computes elapsed msec since the
+ * reference timestamp at 0x449c98/0x449c9c (set by FUN_000916e0)
+ * and accumulates into the two custom accumulators at 0x449ca8/0x449cac. */
+void FUN_00091710(void)
+{
+  uint32_t lo, hi, diff_lo, diff_hi;
+  float elapsed;
+
+  RDTSC(lo, hi);
+  *(uint32_t *)0x449ca0 = lo;
+  *(uint32_t *)0x449ca4 = hi;
+
+  diff_lo = lo - *(uint32_t *)0x449c98;
+  diff_hi = hi - *(uint32_t *)0x449c9c - (lo < *(uint32_t *)0x449c98);
+  elapsed = cycles_to_msec(diff_lo, diff_hi);
+
+  *(float *)0x449ca8 += elapsed;
+  *(float *)0x449cac += elapsed;
+}
+
 /* Start a new profiling frame. Clears the current frame data, records
  * the render count and timing state, and timestamps the frame start. */
 void profile_frame_start(void)

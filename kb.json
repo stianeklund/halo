@@ -5779,7 +5779,8 @@
         },
         {
           "decl": "void FUN_00091710(void);",
-          "addr": "0x91710"
+          "addr": "0x91710",
+          "ported": true
         },
         {
           "decl": "void profile_frame_start(void);",
