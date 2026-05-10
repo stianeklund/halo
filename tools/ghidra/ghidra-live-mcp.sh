@@ -6,7 +6,7 @@ set -euo pipefail
 
 PORT=8091
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
+REPO_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # Kill anything already on this port (handles stale processes from prior sessions)
 if command -v fuser >/dev/null 2>&1; then
