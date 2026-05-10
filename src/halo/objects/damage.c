@@ -790,6 +790,10 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
  * Confirmed: *(0x31fc3c) = global forward vector (1,0,0).
  * Confirmed: *(0x31fc38) = translational velocity ptr for FUN_0009f0e0.
  */
+/* Unported: only caller (FUN_001377d0) is unported and passes 3 register
+ * args (@<eax>, @<ecx>, @<esi>) that our cdecl C function cannot receive.
+ * Original XBE code runs and correctly calls our ported callees. */
+#if 0
 void FUN_00137170(float *incident_direction, float *surface_normal,
                   int object_handle, int effect_tag_index,
                   short marker_index, float *position)
@@ -885,6 +889,7 @@ void FUN_00137170(float *incident_direction, float *surface_normal,
                *(float **)0x31fc38, 5, (void *)effect_names,
                marker_points, forward_vectors, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 }
+#endif
 
 /* FUN_00137370 (0x137370) — Damage debug overlay: display damage vitality info
  * for a targeted object, and handle picking a new target via collision ray.
