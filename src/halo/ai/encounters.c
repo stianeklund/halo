@@ -1070,6 +1070,149 @@ void FUN_0005ae70(int encounter_handle)
   } while (squad_index < *(int16_t *)(encounter + 0x6));
 }
 
+/* 0x5af70 — encounter_evaluate_rule (FUN_0005af70).
+ *
+ * Evaluates an encounter platoon rule condition. The rule structure is a
+ * short[2]: rule[0] = type (0–9), rule[1] = platoon index override.
+ *
+ * If rule[1] is a valid platoon index, uses that platoon's stats (strength,
+ * total, survivors); otherwise uses the encounter-level stats.
+ *
+ * Rule types:
+ *   0: always false (default)
+ *   1: strength < 0.75
+ *   2: strength < 0.50
+ *   3: strength < 0.25
+ *   4: survivors < total
+ *   5: survivors*4/3 <= total
+ *   6: survivors*2 <= total
+ *   7: survivors*4 <= total
+ *   8: survivors <= 1
+ *   9: survivors == 0
+ *
+ * If the global debug flag at 0x5aca4c is set and the rule triggers, a
+ * diagnostic message is printed via console_printf.
+ *
+ * Confirmed:
+ *   - EAX = encounter_handle (datum index), EDI = rule pointer (short*).
+ *   - datum_get(*(data_t**)0x5ab270, encounter_handle) → encounter record.
+ *   - FUN_00054020(encounter, platoon_index) → platoon record.
+ *   - Switch table at 0x5b1b4 (10 entries), debug switch at 0x5b1dc (9 entries).
+ *   - Float constants: 0x25afcc=0.75f, 0x253398=0.5f, 0x25337c=0.25f.
+ */
+bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */)
+{
+  char *encounter;
+  char *platoon;
+  short platoon_index;
+  short total;
+  short survivors;
+  float strength;
+  bool result;
+  short *rule_ptr;
+
+  rule_ptr = (short *)rule;
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  platoon_index = rule_ptr[1];
+  result = 0;
+
+  if (platoon_index < 0 || platoon_index >= *(short *)(encounter + 0xa)) {
+    /* Use encounter-level stats. */
+    total = *(short *)(encounter + 0x18);
+    survivors = *(short *)(encounter + 0x2a);
+    strength = *(float *)(encounter + 0x34);
+  } else {
+    /* Use platoon-level stats. */
+    platoon = FUN_00054020(encounter, platoon_index);
+    strength = *(float *)(platoon + 0xc);
+    total = *(short *)(platoon + 0x4);
+    survivors = *(short *)(platoon + 0x6);
+  }
+
+  if (total <= 0) {
+    goto done;
+  }
+
+  switch (rule_ptr[0]) {
+  case 1:
+    if (strength < 0.75f) {
+      result = 1;
+      break;
+    }
+    goto case_default;
+  case 2:
+    if (strength < 0.5f) {
+      result = 1;
+      break;
+    }
+    goto case_default;
+  case 3:
+    if (strength < 0.25f) {
+      result = 1;
+      break;
+    }
+  case_default:
+  default:
+    result = 0;
+    break;
+  case 4:
+    result = (survivors < total);
+    break;
+  case 5:
+    result = ((int)survivors * 4 / 3 <= (int)total);
+    break;
+  case 6:
+    result = ((int)survivors * 2 <= (int)total);
+    break;
+  case 7:
+    result = ((int)survivors * 4 <= (int)total);
+    break;
+  case 8:
+    result = (survivors <= 1);
+    break;
+  case 9:
+    result = (survivors == 0);
+    break;
+  }
+
+done:
+  if (*(char *)0x5aca4c != '\0' && result != 0) {
+    switch (rule_ptr[0] - 1) {
+    case 0:
+      console_printf(0, "strength %.2f < 75%%", (double)strength);
+      return result;
+    case 1:
+      console_printf(0, "strength %.2f < 50%%", (double)strength);
+      return result;
+    case 2:
+      console_printf(0, "strength %.2f < 25%%", (double)strength);
+      return result;
+    case 3:
+      console_printf(0, "survivors %d < total %d", (int)survivors, (int)total);
+      return result;
+    case 4:
+      console_printf(0, "survivors %d <= 25%% of total %d", (int)survivors,
+                     (int)total);
+      return result;
+    case 5:
+      console_printf(0, "survivors %d <= 50%% of total %d", (int)survivors,
+                     (int)total);
+      return result;
+    case 6:
+      console_printf(0, "survivors %d <= 75%% of total %d", (int)survivors,
+                     (int)total);
+      return result;
+    case 7:
+      console_printf(0, "survivors %d <= 1", (int)survivors);
+      return result;
+    case 8:
+      console_printf(0, "survivors %d = 0", (int)survivors);
+      break;
+    }
+  }
+  return result;
+}
+
 /* 0x5b200 — encounters_initialize_for_new_map.
  * Resets encounter and pursuit data pools, zeroes squad and platoon arrays,
  * then iterates scenario encounter definitions calling FUN_0005a120 to
