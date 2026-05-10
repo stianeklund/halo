@@ -18,6 +18,21 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
 
 ## Lift workflow
 
+0. **Pre-screen the target** (fast, free, run before any Ghidra calls):
+   ```
+   rtk python3 tools/analysis/structural_prescreen.py --function <NAME>
+   ```
+   - If no output: target has no delinked reference — skip and continue.
+   - If `difficulty=reject`: warn the user and ask whether to proceed. These
+     functions have structural patterns (heavy FPU + param slot reuse + size)
+     that make 90%+ VC71 match unlikely; plan extra verification time.
+   - If `difficulty=hard` or risk factors include `callee_reg_args`: note the
+     specific flags — they predict where the implementation will diverge
+     (e.g. `long_fpu_block` → verify FPU operand order; `param_slot_reuse` →
+     MSVC reuses param slots as scratch, clang won't).
+   - If `difficulty=easy, score=0`: highest confidence for a clean match.
+     Proceed normally.
+
 1. Resolve target by name or address in kb.json and Ghidra.
 2. Gather context: callers, callees, touched globals, strings, imports,
    existing declarations in source and kb.json.
@@ -49,7 +64,7 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
   due to connection/timeout/unavailable errors, stop immediately and do not
   retry in the same response.
 - Tell the user exactly: `You might have forgotten to start
-  tools/mcp-servers.sh or ghidra may not be running?`
+  tools/shell/mcp-servers.sh or ghidra may not be running?`
 
 ## Token-efficient execution defaults
 
