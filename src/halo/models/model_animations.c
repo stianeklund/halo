@@ -1,3 +1,50 @@
+/* FUN_00120500 (0x120500) — Get a pointer to a specific animation frame's data.
+ *
+ * Given an animation structure and a frame index, returns a pointer to the
+ * frame data for that frame. If compression is active (flag bit 0 at
+ * animation+0x3a set, and DAT_00322600 is nonzero), returns a pointer
+ * offset by the compressed data offset (animation+0x88). Otherwise,
+ * returns a pointer offset by frame_size * frame_index.
+ *
+ * The frame data itself lives in tag_data at animation+0xa0, resolved
+ * via tag_data_get_pointer.
+ *
+ * Confirmed: cdecl, 2 args (animation ptr, frame_index short).
+ * Confirmed: CALL tag_data_get_pointer(animation+0xa0, 0, 0) at 0x12052b.
+ * Confirmed: Assert "frame_index>=0 && frame_index<animation->frame_count" at 0x120555.
+ * Confirmed: CALL display_assert at 0x120555, system_exit(-1) at 0x12055c.
+ * Confirmed: Compressed path returns ESI + [EDI+0x88] at 0x12056b.
+ * Confirmed: Uncompressed path returns ESI + MOVSX([EDI+0x24]) * MOVSX(BX) at 0x120578-0x120582.
+ */
+void *FUN_00120500(void *animation, short frame_index)
+{
+  int compressed;
+  char *data;
+  char *anim;
+
+  anim = (char *)animation;
+
+  if (((*(unsigned char *)(anim + 0x3a) & 1) != 0) && DAT_00322600 != '\0') {
+    compressed = 1;
+  } else {
+    compressed = 0;
+  }
+
+  data = (char *)tag_data_get_pointer(anim + 0xa0, 0, 0);
+
+  if (frame_index < 0 || frame_index >= *(short *)(anim + 0x22)) {
+    display_assert("frame_index>=0 && frame_index<animation->frame_count",
+                   "c:\\halo\\SOURCE\\models\\model_animation_definitions.c",
+                   0x47a, 1);
+    system_exit(-1);
+  }
+
+  if (compressed) {
+    return (void *)(data + *(int *)(anim + 0x88));
+  }
+  return (void *)(data + (int)*(short *)(anim + 0x24) * (int)frame_index);
+}
+
 /* model_animation_choose_random (0x120f20) — Choose a weighted random
  * animation.
  *

@@ -9764,7 +9764,8 @@
       "functions": [
         {
           "decl": "void *FUN_00120500(void *animation, short frame_index);",
-          "addr": "0x120500"
+          "addr": "0x120500",
+          "ported": true
         },
         {
           "decl": "void FUN_00120810(short *src, float *dest);",
