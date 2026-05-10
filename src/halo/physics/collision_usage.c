@@ -56,6 +56,34 @@ void collision_log_end_period(void)
   *(int16_t *)0x325058 = -1;
 }
 
+/* 0x14d840 — returns the current collision user if collision logging is
+ * active, or -1 if logging is disabled / not applicable.
+ * Validates depth > 0, user in [0,22), collision_function in [0,8),
+ * game in progress, not in editor, logging enabled, and period set. */
+short FUN_0014d840(short collision_function /* @<edi> */)
+{
+  short user;
+
+  assert_halt(*(int16_t *)0x4761d8 > 0);
+
+  user = *(int16_t *)(0x5a8c7e + *(int16_t *)0x4761d8 * 2);
+  assert_halt(user >= 0 && user < 0x16);
+  assert_halt(collision_function >= 0 && collision_function < 8);
+
+  if (!game_in_progress())
+    return -1;
+  if (game_in_editor())
+    return -1;
+  if (*(char *)0x325054 == 0)
+    return -1;
+  if (*(int16_t *)0x325058 == -1)
+    return -1;
+
+  assert_halt(*(int16_t *)0x325058 >= 0 && *(int16_t *)0x325058 < 3);
+
+  return user;
+}
+
 /* 0x14d940 — wraps QueryPerformanceCounter (FUN_001d33e6) */
 void collision_log_query_counter(void *counter)
 {
