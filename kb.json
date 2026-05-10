@@ -7519,6 +7519,16 @@
           "decl": "void thread_close(void *thread_reference);",
           "addr": "0x81770",
           "ported": true
+        },
+        {
+          "decl": "bool FUN_00081870(int *mutex_reference, int timeout_ms);",
+          "addr": "0x81870",
+          "ported": false
+        },
+        {
+          "decl": "void FUN_000818d0(int *mutex_reference);",
+          "addr": "0x818d0",
+          "ported": false
         }
       ]
     },
@@ -7599,7 +7609,7 @@
         {
           "decl": "void FUN_00084300(int *connect_handle);",
           "addr": "0x84300",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "int FUN_00084520(int *ep, void *buffer, int length, void *addr);",

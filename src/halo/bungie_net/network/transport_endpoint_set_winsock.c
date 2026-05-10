@@ -979,3 +979,58 @@ void destroy_endpoint(int *ep)
   /* Remove from active endpoint pool. */
   endpoint_pool_cleanup();
 }
+
+/* Cancel an in-progress connection attempt.
+ *
+ * Validates the connect_handle struct (non-null, has ep, has thread), then
+ * calls endpoint_pool_cleanup() before attempting to acquire the connection
+ * mutex with a 1000 ms timeout. On success: closes the underlying socket via
+ * close_endpoint(), clears all endpoint flags (word at ep+6), marks the
+ * handle as cancelled (byte at connect_handle+0x24), and releases the mutex.
+ * On failure to acquire the mutex: asserts and halts.
+ *
+ * connect_handle layout (int[] offsets):
+ *   [0]  int * — pointer to the endpoint struct (socket handle at ep[0])
+ *   [7]  int   — thread reference (must be non-zero)
+ *   [8]  int * — pointer to the mutex HANDLE for this connection
+ *   [9]  char  — cancel flag (set to 1 on successful cancel, byte at +0x24)
+ *
+ * Confirmed: assert "input && input->ep && input->thread" at line 0x298;
+ *   assert "!\"unable to get mutex in cancel_connect_process()!\"" at 0x2a5;
+ *   source file "c:\halo\SOURCE\bungie_net\network\transport_endpoint_winsock.c";
+ *   FUN_00081870 (mutex_acquire, 0x81870, cdecl 2 args: mutex_ref, timeout_ms);
+ *   FUN_000818d0 (mutex_release, 0x818d0, cdecl 1 arg: mutex_ref);
+ *   close_endpoint (0x84000); endpoint_pool_cleanup (0x82d30).
+ *   endpoint flags word cleared at ep+6 after close; cancel flag at ESI+0x24.
+ */
+void FUN_00084300(int *connect_handle)
+{
+  int *ep;
+  int *mutex_ref;
+  bool acquired;
+
+  if (connect_handle == NULL || connect_handle[0] == 0 || connect_handle[7] == 0) {
+    display_assert("input && input->ep && input->thread",
+                   "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+                   0x298, 1);
+    system_exit(-1);
+  }
+
+  endpoint_pool_cleanup();
+
+  mutex_ref = (int *)connect_handle[8];
+  acquired = FUN_00081870(mutex_ref, 1000);
+  if (acquired) {
+    ep = (int *)connect_handle[0];
+    close_endpoint(ep);
+    *(uint16_t *)((char *)ep + 6) = 0;
+    *(uint8_t *)((char *)connect_handle + 0x24) = 1;
+    FUN_000818d0(mutex_ref);
+    return;
+  }
+
+  display_assert("!\"unable to get mutex in cancel_connect_process()!\"",
+                 "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+                 0x2a5, 1);
+  system_exit(-1);
+}
