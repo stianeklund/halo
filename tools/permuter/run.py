@@ -106,6 +106,7 @@ def extract_function_body(source: Path, func_name: str) -> tuple[str, str] | Non
             f"-I{REPO_ROOT / 'src'}",
             f"-I{REPO_ROOT / 'build' / 'generated'}",
             "-DMSVC", "-DXDK_BUILD",
+            "-D_M_IX86=1", "-D_MSC_VER=1310",
             "-D__attribute__(x)=",
             str(source),
         ],
@@ -146,31 +147,67 @@ def extract_function_body(source: Path, func_name: str) -> tuple[str, str] | Non
 
     func_body = src[start:i + 1]
 
-    # Extract file-scope static definitions that appear before the function.
-    # Walk line by line, collecting top-level 'static ...' declarations
-    # (which may span multiple lines due to array initializers).
+    # Extract file-scope declarations that the target function actually uses.
+    # 1. Collect all identifiers referenced in the function body.
+    # 2. Walk the preamble for typedef/struct/static/extern blocks.
+    # 3. Keep only blocks whose defined name appears in the function's identifiers.
     preamble = src[:start]
-    static_defs = []
+    _C_KEYWORDS = {
+        'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do',
+        'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if',
+        'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof',
+        'static', 'struct', 'switch', 'typedef', 'union', 'unsigned', 'void',
+        'volatile', 'while', 'bool', 'true', 'false', 'NULL',
+    }
+    func_no_strings = re.sub(r'"[^"]*"', '""', func_body)
+    func_ids = set(re.findall(r'\b[A-Za-z_]\w*\b', func_no_strings)) - _C_KEYWORDS
+
+    all_blocks = []  # list of (block_text, defined_names)
     lines = preamble.split('\n')
     i = 0
     while i < len(lines):
         line = lines[i]
-        if re.match(r'^static\b', line):
-            # Collect lines until we see the closing ';' at top level
+        if re.match(r'^(typedef|struct|union|enum|static)\b', line):
             block = [line]
             depth = line.count('{') - line.count('}')
+            entered_body = depth > 0
             j = i + 1
-            while j < len(lines) and (depth > 0 or not block[-1].rstrip().endswith(';')):
+            while j < len(lines):
+                if entered_body and depth == 0:
+                    break
+                if not entered_body and block[-1].rstrip().endswith(';'):
+                    break
                 next_line = lines[j]
                 block.append(next_line)
                 depth += next_line.count('{') - next_line.count('}')
+                if depth > 0:
+                    entered_body = True
                 j += 1
-            static_defs.append('\n'.join(block))
+            block_text = '\n'.join(block)
+            block_ids = set(re.findall(r'\b[A-Za-z_]\w*\b', block_text)) - _C_KEYWORDS
+            all_blocks.append((block_text, block_ids))
             i = j
         else:
             i += 1
 
-    return "\n\n".join(static_defs), func_body
+    # Keep blocks that define names used by the function.  Then iteratively
+    # resolve transitive dependencies (a kept typedef may reference another).
+    kept = []
+    resolved = set(func_ids)
+    changed = True
+    while changed:
+        changed = False
+        remaining = []
+        for block_text, block_ids in all_blocks:
+            if block_ids & resolved:
+                kept.append(block_text)
+                resolved |= block_ids
+                changed = True
+            else:
+                remaining.append((block_text, block_ids))
+        all_blocks = remaining
+
+    return "\n\n".join(kept), func_body
 
 
 def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
