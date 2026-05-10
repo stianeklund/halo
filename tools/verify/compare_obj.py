@@ -47,7 +47,7 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
                 continue
             if current_func and current_lines:
                 functions[current_func] = current_lines
-            current_func = sym.lstrip("_")
+            current_func = re.sub(r'@\d+$', '', sym.lstrip("_"))
             current_lines = []
             continue
 

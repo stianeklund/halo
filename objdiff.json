@@ -1077,6 +1077,14 @@
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
+    },
+    {
+      "name": "XAPILIB/xbox_crt",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/xbox_crt.c.obj",
+      "base_path": "delinked/XAPILIB/FUN_001d789a.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/xbox_crt.c"
+      }
     }
   ]
 }

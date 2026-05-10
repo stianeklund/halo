@@ -26,6 +26,7 @@
 	halo/cseries/debug_memory.c
 	halo/cseries/cseries_windows.c
 	halo/cseries/stack_walk_windows.c
+	halo/cseries/xbox_crt.c
 	halo/memory/crc.c
 	halo/dialogs/edit_text.c
 	halo/cutscene/cinematics.c

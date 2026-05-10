@@ -1975,7 +1975,7 @@
         {
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -2036,7 +2036,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -10567,6 +10567,17 @@
         {
           "addr": "0x61750",
           "decl": "char FUN_00061750(unsigned int param_1, int param_2, void *param_3, int *param_4, void *param_5, char *param_6);"
+        }
+      ]
+    },
+    {
+      "name": "XAPILIB:xbox_crt.obj",
+      "source": "cseries/xbox_crt.c",
+      "functions": [
+        {
+          "decl": "char * __stdcall FUN_001d789a(char *dst, const char *src, int count);",
+          "addr": "0x1d789a",
+          "ported": true
         }
       ]
     }
