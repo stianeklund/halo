@@ -206,7 +206,7 @@ void collision_features_from_vertex(int param_1, int param_2, int param_3, int p
     elem = local_10;
   }
 
-  collision_features_from_point((int)elem, param_4, param_5, param_6, uVar4,
+  collision_features_from_point((int)elem, *(float *)&param_4, param_5, param_6, uVar4,
                *(unsigned char *)(iVar3 + 8),
                *(unsigned char *)(iVar3 + 9),
                *(unsigned short *)(iVar3 + 0xa), features);
