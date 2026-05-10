@@ -1,5 +1,8 @@
 libclang~=16.0.0
 pefile~=2023.2.7
 pyxbe~=1.0.2
-unicorn>=2.1.4
-lief>=0.17.0
+# Optional deps for tools/equivalence (Unicorn differential tester).
+# Install into the project venv only — the build's check_requirements
+# enforces this file against the running interpreter, so adding optional
+# tooling deps here would break system-Python builds.
+#   .venv/bin/python3 -m pip install unicorn lief
