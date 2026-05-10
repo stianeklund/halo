@@ -10475,11 +10475,13 @@
         },
         {
           "addr": "0x5e760",
-          "decl": "int FUN_0005e760(unsigned int param_1, unsigned int param_2);"
+          "decl": "char *FUN_0005e760(char *param_1, short param_2);",
+          "ported": true
         },
         {
           "addr": "0x5e7e0",
-          "decl": "unsigned int FUN_0005e7e0(unsigned int param_1, unsigned int param_2);"
+          "decl": "short FUN_0005e7e0(char *param_1, unsigned int param_2);",
+          "ported": true
         },
         {
           "addr": "0x5e830",

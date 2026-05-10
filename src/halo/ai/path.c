@@ -7,6 +7,8 @@
  * Ported: path_state_init (0x5dfc0), path_state_set_focus (0x5e000),
  *         path_state_set_sphere (0x5e030), path_state_set_min_speed (0x5e070),
  *         path_state_commit (0x5e090), path_state_set_obstacle (0x5e0d0),
+ *         FUN_0005e760 (path node accessor with bounds assert),
+ *         FUN_0005e7e0 (path hash table lookup by key),
  *         FUN_0005ff70 (path traverse + debug snapshot).
  * Deferred: FUN_0005eae0 (0x5eae0) — complex path evaluation, deferred.
  */
@@ -160,6 +162,64 @@ void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4)
   *(int *)((char *)param_1 + 0x5c) = param_3;
   *(int *)((char *)param_1 + 0x60) = param_4;
   return;
+}
+
+/* 0x005e760 — path_get_node
+ * Returns a pointer to a node within the path state buffer, given a node index.
+ *
+ * Asserts node_index != NONE (-1) and 0 <= node_index < state->node_count
+ * (short at state+0x80). Each node is 0x44 bytes, and the node array starts
+ * at state+0x84.
+ *
+ * Disassembly-confirmed:
+ *   param_1 (EDI) = path state pointer
+ *   param_2 (SI)  = node_index (short, loaded as word ptr [EBP+0xc])
+ *   return: MOVSX EAX,SI; IMUL EAX,EAX,0x44; LEA EAX,[EAX+EDI+0x84]
+ */
+char *FUN_0005e760(char *param_1, short param_2)
+{
+  if (param_2 == -1) {
+    display_assert("node_index != NONE",
+                   "c:\\halo\\SOURCE\\ai\\path.c", 0x611, 1);
+    system_exit(-1);
+  } else if (param_2 >= 0 && param_2 < *(short *)(param_1 + 0x80)) {
+    goto done;
+  }
+  display_assert(
+      "(node_index >= 0) && (node_index < state->node_count)",
+      "c:\\halo\\SOURCE\\ai\\path.c", 0x612, 1);
+  system_exit(-1);
+done:
+  return param_1 + (int)param_2 * 0x44 + 0x84;
+}
+
+/* 0x005e7e0 — path_hash_lookup
+ * Looks up a node in the path state hash table by key.
+ *
+ * Computes a starting hash slot from (param_2 & 0x1ff) << 3, then probes the
+ * hash table at state+0x1208a (array of shorts, 0x1000 entries). For each
+ * non-NONE slot, checks if the node's key (at node_base + 0x8 = state +
+ * node_index * 0x44 + 0x8c) matches param_2. Returns the matching node index
+ * (short in AX), or -1 if not found.
+ *
+ * Disassembly-confirmed:
+ *   ECX = hash slot index (12-bit, masked with 0xfff)
+ *   AX  = hash table entry (short, node index or -1)
+ *   EDI = sign-extended AX for node key comparison
+ *   Loop: MOVSX EAX,CX; MOV AX,[EDX+EAX*2+0x1208a]; INC ECX; AND ECX,0xfff
+ */
+short FUN_0005e7e0(char *param_1, unsigned int param_2)
+{
+  unsigned int slot;
+  short sVar1;
+
+  slot = (param_2 & 0x1ff) << 3;
+  do {
+    sVar1 = *(short *)(param_1 + (short)slot * 2 + 0x1208a);
+    slot = (slot + 1) & 0xfff;
+  } while (sVar1 != -1 &&
+           *(unsigned int *)(param_1 + (int)sVar1 * 0x44 + 0x8c) != param_2);
+  return sVar1;
 }
 
 /* 0x005e920 — path_find_initial
