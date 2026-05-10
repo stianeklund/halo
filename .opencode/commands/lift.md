@@ -56,6 +56,13 @@ Steps:
     Use `/tmp/lift_draft.c` as the working starting point and resolve any
     HIGH-RISK lines from `/tmp/lift_hazards.c` against disassembly before
     writing the lift.
+3c. If the cached context JSON contains a `similar_neighbors` key (injected
+    by `cache-context` from the semantic retrieval index), read the top-3
+    neighbors. Each neighbor has `name`, `decl`, `similarity`, and `c_source`
+    — the final lifted C of the most structurally similar already-ported
+    function. Use these as worked examples for calling conventions, intrinsic
+    idioms, struct field access patterns, and buffer sizing. They are hints,
+    not authoritative — the binary is still the source of truth.
 4. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
    before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
    and to `tools/kb_reg_baseline.json` (inside the `"functions"` dict), then call by name from C.
