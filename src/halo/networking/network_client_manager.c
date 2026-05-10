@@ -141,6 +141,34 @@ bool FUN_00125860(void *server)
   return *(char *)((char *)server + 0xcac);
 }
 
+/* FUN_001260c0 (0x1260c0) — network_game_client_process_incoming_messages
+ *
+ * Drains all pending messages from the server connection. Loops calling
+ * FUN_001298f0 to receive each message, then FUN_00127ea0 to handle it.
+ * Returns true if all messages were processed successfully, false if any
+ * handler fails. */
+bool FUN_001260c0(void *server)
+{
+  bool result;
+  char local_820[2048];
+  char local_20[24];
+  int local_8;
+
+  result = true;
+  do {
+    local_8 = 0x800;
+    if (!FUN_001298f0(*(int *)((char *)server + 0x82c), local_820, &local_8,
+                      local_20))
+      return result;
+    result = FUN_00127ea0(server, local_820, local_8, local_20);
+    if (!result)
+      network_game_log(
+          "network_game_client_handle_message() failed in "
+          "network_game_client_process_incoming_messages()");
+  } while (result);
+  return result;
+}
+
 /* FUN_00126ce0 (0x126ce0) — network_game_client_idle_pregame
  *
  * Called from the client idle dispatch (FUN_00127070) when state == 2 (pregame).

@@ -4262,7 +4262,8 @@
         },
         {
           "decl": "bool FUN_001260c0(void *server /* @<esi> */);",
-          "addr": "0x1260c0"
+          "addr": "0x1260c0",
+          "ported": true
         },
         {
           "decl": "bool FUN_001268a0(void *server /* @<eax> */);",
@@ -4289,6 +4290,16 @@
           "decl": "bool FUN_00127070(void *server);",
           "addr": "0x127070",
           "ported": true
+        }
+      ]
+    },
+    {
+      "name": "network_client_message_handler.obj",
+      "source": "networking/network_client_message_handler.c",
+      "functions": [
+        {
+          "decl": "bool FUN_00127ea0(void *client, void *message, int message_size, void *source_address);",
+          "addr": "0x127ea0"
         }
       ]
     },
