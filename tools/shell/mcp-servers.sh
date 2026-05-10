@@ -2,7 +2,7 @@
 # Start Ghidra MCP bridge servers for multi-client access.
 # Both servers run as SSE endpoints so multiple Claude/opencode instances can connect.
 #
-# Usage: ./tools/mcp-servers.sh
+# Usage: ./tools/shell/mcp-servers.sh
 #   Starts both ghidra (port 8090) and ghidra-live (port 8091) in background.
 #   Ctrl-C stops both.
 

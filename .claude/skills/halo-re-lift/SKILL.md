@@ -49,7 +49,7 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
   due to connection/timeout/unavailable errors, stop immediately and do not
   retry in the same response.
 - Tell the user exactly: `You might have forgotten to start
-  tools/mcp-servers.sh or ghidra may not be running?`
+  tools/shell/mcp-servers.sh or ghidra may not be running?`
 
 ## Token-efficient execution defaults
 
