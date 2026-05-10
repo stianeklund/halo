@@ -45,7 +45,7 @@ typedef int (*valid_real_matrix4x3_fn)(float *mat);
  * Uses FPTAN: tan(fov * half_constant) * aspect_ratio */
 double render_camera_get_adjusted_field_of_view_tangent(float fov)
 {
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
   double result;
   __asm {
     fld fov
@@ -120,7 +120,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   /* Compute tan(vfov/2) and inverse tangent scale factors.
    * inv_tan_x accounts for the aspect ratio correction. */
   float tan_half_fov;
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
   {
     float vfov = camera->vertical_field_of_view;
     __asm {

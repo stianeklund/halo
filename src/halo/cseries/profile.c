@@ -2,8 +2,10 @@
  * converts to milliseconds using the stored CPU frequency at 0x3361a0.
  * All timing data is accumulated into global profiling structures. */
 
-/* Read the x86 timestamp counter (RDTSC) into a low/high dword pair. */
-#ifdef _MSC_VER
+/* Read the x86 timestamp counter (RDTSC) into a low/high dword pair.
+   Use GCC-style asm for clang (even targeting MSVC) because MSVC-style
+   __asm doesn't properly communicate register clobbers to the optimizer. */
+#if defined(_MSC_VER) && !defined(__clang__)
 #define RDTSC(lo, hi)                             \
   do {                                            \
     uint32_t _lo, _hi;                            \
@@ -14,12 +16,17 @@
     (hi) = _hi;                                   \
   } while (0)
 #else
-#define RDTSC(lo, hi)                             \
-  do {                                            \
-    uint32_t _lo, _hi;                            \
-    asm volatile("rdtsc" : "=a"(_lo), "=d"(_hi)); \
-    (lo) = _lo;                                   \
-    (hi) = _hi;                                   \
+#define RDTSC(lo, hi)                                     \
+  do {                                                    \
+    uint32_t _lo, _hi;                                    \
+    asm volatile("rdtsc\n\t"                              \
+                 "movl %%eax, %0\n\t"                     \
+                 "movl %%edx, %1"                         \
+                 : "=rm"(_lo), "=rm"(_hi)                 \
+                 :                                        \
+                 : "eax", "edx");                         \
+    (lo) = _lo;                                           \
+    (hi) = _hi;                                           \
   } while (0)
 #endif
 
