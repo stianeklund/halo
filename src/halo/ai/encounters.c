@@ -613,6 +613,62 @@ int FUN_00059b50(void *iter)
   }
 }
 
+/* 0x5a050 — squad_initialize_starting_locations (FUN_0005a050).
+ * Initializes the starting-location bitfield for a squad. Retrieves the
+ * encounter datum and scenario squad definition, then fills the bitfield
+ * (at squad_record + 4) with all-ones via csmemset. Finally iterates each
+ * starting location element and sets bit i if element+0x13 flag bit 0 is set.
+ *
+ * Confirmed:
+ *   - squad_index via EAX (@<eax>), encounter_handle via ECX (@<ecx>).
+ *   - datum_get(encounter_data, encounter_handle) at 0x5a062.
+ *   - global_scenario_get() at 0x5a078 (0 args).
+ *   - tag_block_get_element(scenario+0x42c, enc_index, 0xb0) at 0x5a083.
+ *   - FUN_0001c270(encounter, squad_index) at 0x5a08c → squad record.
+ *   - tag_block_get_element(enc_def+0x80, squad_index, 0xe8) at 0x5a0a3.
+ *   - Starting-location tag_block at squad_def+0xd0; element size 0x1c.
+ *   - csmemset(squad+4, 0xff, ((count+31)>>5)<<2) at 0x5a0c4.
+ *   - Loop counter is sign-extended to short (MOVSX ESI,AX at 0x5a105).
+ */
+void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */)
+{
+  char *encounter;
+  char *scenario;
+  char *encounter_def;
+  char *squad_base;
+  char *squad_def;
+  int *count_ptr;
+  int i;
+  int loop_var;
+  char *element;
+  unsigned int *word_ptr;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  scenario = (char *)global_scenario_get();
+  encounter_def = (char *)tag_block_get_element(
+      scenario + 0x42c, encounter_handle & 0xffff, 0xb0);
+  squad_base = (char *)FUN_0001c270(encounter, (short)squad_index);
+  squad_def = (char *)tag_block_get_element(
+      encounter_def + 0x80, (short)squad_index, 0xe8);
+
+  count_ptr = (int *)(squad_def + 0xd0);
+  csmemset(squad_base + 4, -1, ((*count_ptr + 0x1f) >> 5) << 2);
+
+  i = 0;
+  loop_var = 0;
+  if (0 < *count_ptr) {
+    do {
+      element = (char *)tag_block_get_element(count_ptr, i, 0x1c);
+      if ((*(unsigned char *)(element + 0x13) & 1) != 0) {
+        word_ptr = (unsigned int *)(squad_base + 4 + (i >> 5) * 4);
+        *word_ptr = *word_ptr | (1u << (i & 0x1f));
+      }
+      loop_var = loop_var + 1;
+      i = (int)(short)loop_var;
+    } while (i < *count_ptr);
+  }
+}
+
 /* 0x5a120 — encounter_initialize_from_definition (FUN_0005a120).
  * Allocates a new encounter record from the encounter data pool, initializes
  * its fields from the scenario encounter definition, then iterates squads and

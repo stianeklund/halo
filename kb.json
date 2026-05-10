@@ -9605,7 +9605,8 @@
         },
         {
           "addr": "0x5a050",
-          "decl": "void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */);"
+          "decl": "void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */);",
+          "ported": true
         }
       ]
     },
