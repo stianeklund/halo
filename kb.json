@@ -1974,7 +1974,7 @@
         {
           "decl": "void FUN_0009ca70(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -2035,7 +2035,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -9469,7 +9469,8 @@
         },
         {
           "decl": "void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def, short *platoon_counter);",
-          "addr": "0x5a120"
+          "addr": "0x5a120",
+          "ported": true
         },
         {
           "decl": "short FUN_0005a3b0(void *squad_def);",
@@ -9600,6 +9601,10 @@
           "name": "ai_magically_see_players",
           "decl": "void FUN_00058a40(int combined_handle);",
           "ported": true
+        },
+        {
+          "addr": "0x5a050",
+          "decl": "void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */);"
         }
       ]
     },
