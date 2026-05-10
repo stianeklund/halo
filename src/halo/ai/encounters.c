@@ -647,6 +647,59 @@ short FUN_0005a3b0(void *squad_def)
   return 0xe;
 }
 
+/* 0x5a4e0 — encounter_activate.
+ * Activates an encounter if its BSP requirement is satisfied (enc_def+0x7e is
+ * NONE or matches the current global_structure_bsp_index).  When the encounter
+ * is not already active (encounter+0xd == 0), walks the encounter's member
+ * list and calls FUN_0003d5f0(actor_handle, 1) to activate each actor.  Then
+ * stamps encounter+0x10 with game_time_get() and sets encounter+0xd = 1.
+ *
+ * param: encounter_index via @<eax> register arg.
+ * returns: encounter+0xd (activation status byte).
+ *
+ * Confirmed: encounter_index in EAX (MOV ESI,EAX at 0x5a4e8).
+ * Confirmed: datum_get(encounter_data, encounter_index) at 0x5a4f1.
+ * Confirmed: tag_block_get_element(scenario+0x42c, index&0xffff, 0xb0) at 0x5a514.
+ * Confirmed: enc_def+0x7e (int16_t) checked against -1 and *(int16_t*)0x326a0c.
+ * Confirmed: FUN_00059a00(iter, encounter_index) at 0x5a53b; iter at EBP-0xc.
+ * Confirmed: inline member-list walk using actor+0x2c (next member link).
+ * Confirmed: FUN_0003d5f0(actor_handle, 1) at 0x5a576 per member.
+ * Confirmed: game_time_get() at 0x5a581; stored to encounter+0x10.
+ * Confirmed: encounter+0xd set to 1 at 0x5a589.
+ */
+char FUN_0005a4e0(int encounter_index /* @<eax> */)
+{
+  char *encounter;
+  char *enc_def;
+  int iter[3];
+  int next_handle;
+  int actor_handle;
+  char *actor;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_index);
+  enc_def = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x42c,
+      (int)(encounter_index & 0xffff), 0xb0);
+
+  if (*(short *)(enc_def + 0x7e) == -1 ||
+      *(short *)(enc_def + 0x7e) == *(short *)0x326a0c) {
+    if (*(char *)(encounter + 0xd) == '\0') {
+      FUN_00059a00(iter, encounter_index);
+      next_handle = iter[2];
+      while (*(char *)(*(char **)0x632574 + 1) != '\0' && next_handle != -1) {
+        actor_handle = next_handle;
+        actor = (char *)datum_get(*(data_t **)0x6325a4, next_handle);
+        next_handle = *(int *)(actor + 0x2c);
+        FUN_0003d5f0(actor_handle, 1);
+      }
+    }
+    *(int *)(encounter + 0x10) = game_time_get();
+    *(char *)(encounter + 0xd) = 1;
+  }
+
+  return *(char *)(encounter + 0xd);
+}
+
 /* 0x5adc0 — encounter_squad_delay_timer_finished.
  * Called when a squad's delay timer expires (count < 0x10 ticks).
  * Resets the squad's delay counter to 0, then optionally triggers

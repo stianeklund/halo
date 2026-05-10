@@ -9478,7 +9478,8 @@
         },
         {
           "decl": "char FUN_0005a4e0(int encounter_index /* @<eax> */);",
-          "addr": "0x5a4e0"
+          "addr": "0x5a4e0",
+          "ported": true
         },
         {
           "decl": "void FUN_0005a6e0(void);",
