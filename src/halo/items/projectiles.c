@@ -1271,11 +1271,15 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
                  (short)col_result[0x1f], (short)col_result[0x1e],
                  (short)col_result[0x27],
                  (unsigned int)(uintptr_t)((char *)col_result + 0x24));
-    /* Update tag_idx from result if valid. */
-    if ((short)*(int16_t *)((char *)col_result + 0x40) != -1) {
-      tag_idx = (int)(short)*(int16_t *)((char *)col_result + 0x40);
+    /* Update tag_idx from area-damage result material type.
+     * FUN_00137d20 writes the resolved material type to damage_params+0x4C
+     * and velocity scale to damage_params+0x48.  Original binary reads from
+     * [EBP-0x40] and [EBP-0x44] which are damage_params+0x4C/0x48
+     * (damage_params base = EBP-0x8C). */
+    if ((short)*(int16_t *)(damage_params + 0x4c) != -1) {
+      tag_idx = (int)(short)*(int16_t *)(damage_params + 0x4c);
     }
-    vel_scale = *(float *)((char *)col_result + 0x44);
+    vel_scale = *(float *)(damage_params + 0x48);
   }
 
   /* Write det_result index to projectile obj+0x1e2 (word).             */
