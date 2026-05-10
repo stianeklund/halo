@@ -78,6 +78,24 @@ Use these defaults unless a target requires deeper forensics:
 - Prefer one target per run; do not batch unrelated functions in one analysis pass.
 - In reports, summarize evidence and include only the minimum assembly needed to justify claims.
 
+## Post-lift follow-ups
+
+After `lift_pipeline.py` reports VC71 results, decide whether to spend
+extra cycles on permuter or Unicorn — the default is to do nothing.
+
+- Match in **[85, 98]%** with a delinked reference → `/verify permute`
+  (60s last-mile optimizer). Do NOT permute below 85% (fix the lift) or
+  above 98% (diminishing returns). Never accept a permutation that lowers
+  the existing match; always re-run the lift pipeline before trusting it.
+- **Pure leaf** (no calls out, no globals) AND FPU-heavy or structurally
+  capped (e.g. SEH wrappers stuck near 55%) → `/verify equivalence` for a
+  100-seed Unicorn behavioral diff. Skip if the function calls `FUN_xxx`
+  or references DAT_/globals — Unicorn rejects non-leaves.
+- Equivalence runs populate `tools/equivalence/leaf_cache.json`, which
+  rewards leaves in future `select` runs (`+5 eq_pure_leaf`).
+
+See `halo-verify-debug` for the full lane decision tree.
+
 ## Auto-lift candidates
 
 - `tools/llm_auto_lift.py` is an untrusted candidate generator and validation runner.
