@@ -141,6 +141,60 @@ bool FUN_00125860(void *server)
   return *(char *)((char *)server + 0xcac);
 }
 
+/* FUN_00126ce0 (0x126ce0) — network_game_client_idle_pregame
+ *
+ * Called from the client idle dispatch (FUN_00127070) when state == 2 (pregame).
+ * Checks network connectivity, processes the connection, and handles incoming
+ * messages. Returns false if the connection drops or processing fails. */
+bool FUN_00126ce0(void *server)
+{
+  bool result;
+
+  result = true;
+  if (FUN_0012a170())
+    goto check_result;
+  result = FUN_00082300();
+  if (result)
+    goto main_body;
+  error(2, "network connection went down!");
+  display_error_when_main_menu_loaded(6);
+
+check_result:
+  if (!result)
+    goto tail_check;
+
+main_body:
+  if (!FUN_00128660(*(int *)((char *)server + 0x82c)))
+    goto fail;
+  if (!FUN_00128360(*(int *)((char *)server + 0x82c)))
+    goto fail;
+  FUN_00126000(server);
+  result = FUN_00129cf0(*(int *)((char *)server + 0x82c), 15000, 0);
+  if (!result) {
+    network_game_log(
+        "network_connection_idle() failed in "
+        "network_game_client_idle_pregame()");
+    goto tail_check;
+  }
+  result = FUN_001260c0(server);
+  if (result)
+    return result;
+  network_game_log(
+      "network_game_client_process_incoming_messages() failed in "
+      "network_game_client_idle_pregame()");
+  goto tail_check;
+
+fail:
+  result = false;
+
+tail_check:
+  if (!FUN_00128660(*(int *)((char *)server + 0x82c))) {
+    display_error_when_main_menu_loaded(4);
+    return false;
+  }
+  return result;
+}
+
 /* 0x127070 — Network client idle dispatch: asserts client non-null, switches
  * on the connection state at offset 0xca6, and calls the appropriate
  * state-specific idle handler. Logs and returns false on handler failure. */
