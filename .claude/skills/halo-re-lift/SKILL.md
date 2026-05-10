@@ -40,6 +40,11 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
    `docs/references/kb-update-policy.md`).
 8. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
 9. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
+10. Refresh the semantic-retrieval index so future lifts can use this function as a worked example:
+    ```bash
+    .venv/bin/python3 tools/retrieval/build_index.py extract
+    .venv/bin/python3 tools/retrieval/build_index.py embed --batch-size 4 --chunk-size 50
+    ```
 
 ## Ghidra MCP availability (required)
 
