@@ -321,3 +321,61 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
     FUN_00123aa0(mode_tag, out_node_data);
   }
 }
+
+/* FUN_00123aa0 (0x123aa0) — Fill default node transforms from mode tag.
+ *
+ * Iterates over the nodes in a model mode tag (tag block at mode_tag+0xb8,
+ * element size 0x9c). For each node, copies the default rotation quaternion
+ * from element+0x34 (4 floats) and default translation from element+0x28
+ * (3 floats) into the output node_data array (stride 0x20 per node).
+ * Sets scale to 1.0f for each node.
+ *
+ * This is the fallback path used by FUN_00121d60 when the animation type is
+ * nonzero or the mode_tag node count doesn't match the animation.
+ *
+ * Confirmed: cdecl, 2 args (mode_tag ptr, out_node_data ptr).
+ * Confirmed: CALL tag_block_get_element(mode_tag+0xb8, index, 0x9c) at 0x123ac7.
+ * Confirmed: Copies element+0x34..0x43 (rotation) to out+0x00..0x0F.
+ * Confirmed: Copies element+0x28..0x33 (translation) to out+0x10..0x1B.
+ * Confirmed: Sets out+0x1c = 0x3f800000 (1.0f scale).
+ * Confirmed: Loop counter is short via MOVSX at 0x123b0c; compared to [EDI] at 0x123b19.
+ */
+void FUN_00123aa0(void *mode_tag, void *out_node_data)
+{
+    int param_1;
+    int param_2;
+    short sVar1;
+    int iVar4;
+    char *element;
+    int *out;
+
+    param_1 = (int)mode_tag;
+    param_2 = (int)out_node_data;
+    iVar4 = 0;
+    sVar1 = 0;
+
+    if (0 < *(int *)(param_1 + 0xb8)) {
+        do {
+            element = (char *)tag_block_get_element(
+                (void *)(param_1 + 0xb8), iVar4, 0x9c);
+            out = (int *)(param_2 + iVar4 * 0x20);
+
+            /* rotation quaternion from element+0x34 */
+            out[0] = *(int *)(element + 0x34);
+            out[1] = *(int *)(element + 0x38);
+            out[2] = *(int *)(element + 0x3c);
+            out[3] = *(int *)(element + 0x40);
+
+            /* translation from element+0x28 */
+            out[4] = *(int *)(element + 0x28);
+            out[5] = *(int *)(element + 0x2c);
+            out[6] = *(int *)(element + 0x30);
+
+            /* scale = 1.0f */
+            out[7] = 0x3f800000;
+
+            sVar1 = sVar1 + 1;
+            iVar4 = (int)sVar1;
+        } while (iVar4 < *(int *)(param_1 + 0xb8));
+    }
+}
