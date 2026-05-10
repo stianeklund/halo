@@ -440,16 +440,13 @@ char collision_cylinder_test_point(void *feature, void *los_data, float *t_hit, 
   dz = point[2] - cyl[5];   /* cyl+0x14 */
 
   /* project displacement onto cylinder axis */
-  dot = dz * cyl[8] + dy * cyl[7] + dx * cyl[6]; /* axis at cyl+0x18,0x1C,0x20 */
+  dot = dz * cyl[8] + dy * cyl[7] + dx * cyl[6];
 
-  /* point is behind cylinder start */
   if (dot < 0.0f)
     return 0;
 
-  /* compute squared length of axis */
   axis_len_sq = cyl[6] * cyl[6] + cyl[7] * cyl[7] + cyl[8] * cyl[8];
 
-  /* point is beyond cylinder end */
   if (dot > axis_len_sq)
     return 0;
 
