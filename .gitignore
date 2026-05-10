@@ -4,6 +4,8 @@
 /dist
 build_output.log
 artifacts
+# Vendored third-party clones (decomp-permuter, etc.)
+/third_party/
 
 #Debug / XBDM output
 /xbdm
