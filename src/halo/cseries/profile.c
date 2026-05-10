@@ -3,6 +3,17 @@
  * All timing data is accumulated into global profiling structures. */
 
 /* Read the x86 timestamp counter (RDTSC) into a low/high dword pair. */
+#ifdef _MSC_VER
+#define RDTSC(lo, hi)                             \
+  do {                                            \
+    uint32_t _lo, _hi;                            \
+    __asm { rdtsc }                               \
+    __asm { mov _lo, eax }                        \
+    __asm { mov _hi, edx }                        \
+    (lo) = _lo;                                   \
+    (hi) = _hi;                                   \
+  } while (0)
+#else
 #define RDTSC(lo, hi)                             \
   do {                                            \
     uint32_t _lo, _hi;                            \
@@ -10,6 +21,7 @@
     (lo) = _lo;                                   \
     (hi) = _hi;                                   \
   } while (0)
+#endif
 
 /* Compute elapsed milliseconds from a 64-bit cycle difference.
  * Formula: (float)(int64_t)cycles * scale / (float)cpu_freq */
