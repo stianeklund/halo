@@ -304,6 +304,13 @@ bool scenario_switch_structure_bsp(__int16 bsp_index)
   return result;
 }
 
+/* Return the current structure BSP index.
+ * Confirmed: MOV AX,[0x326a0c]; RET — 2-instruction getter. */
+short FUN_0018f080(void)
+{
+  return *(int16_t *)0x326a0c;
+}
+
 /* Load a scenario from the map cache. Opens the cache file, loads the
  * scenario and game globals tags, and switches to BSP 0. */
 bool scenario_load(const char *map_name)
