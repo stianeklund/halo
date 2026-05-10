@@ -1005,10 +1005,6 @@ void destroy_endpoint(int *ep)
  */
 void FUN_00084300(int *connect_handle)
 {
-  int *ep;
-  int *mutex_ref;
-  bool acquired;
-
   if (connect_handle == NULL || connect_handle[0] == 0 || connect_handle[7] == 0) {
     display_assert("input && input->ep && input->thread",
                    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
@@ -1018,14 +1014,11 @@ void FUN_00084300(int *connect_handle)
 
   endpoint_pool_cleanup();
 
-  mutex_ref = (int *)connect_handle[8];
-  acquired = FUN_00081870(mutex_ref, 1000);
-  if (acquired) {
-    ep = (int *)connect_handle[0];
-    close_endpoint(ep);
-    *(uint16_t *)((char *)ep + 6) = 0;
+  if (FUN_00081870((int *)connect_handle[8], 1000)) {
+    close_endpoint((int *)connect_handle[0]);
+    *(uint16_t *)((char *)(int *)connect_handle[0] + 6) = 0;
     *(uint8_t *)((char *)connect_handle + 0x24) = 1;
-    FUN_000818d0(mutex_ref);
+    FUN_000818d0((int *)connect_handle[8]);
     return;
   }
 
