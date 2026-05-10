@@ -5,7 +5,7 @@ void network_game_server_dispose(void *server)
 {
   if (server != NULL) {
     if (*(int *)((char *)server + 0x82c) != 0)
-      FUN_00128d30(*(int *)((char *)server + 0x82c));
+      network_connection_delete(*(int *)((char *)server + 0x82c));
     if (*(char *)0x46e8b9 == '\0') {
       display_assert("network_game_client_dont_use_directly_in_use",
                      "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
@@ -68,7 +68,7 @@ int16_t FUN_00124cc0(void *server)
  * immediately tears it down (POP EBP / JMP 0x128e00), so every argument
  * passes through to the callee unchanged. In the one observed call site
  * (network_game_client_end_frame), the caller resolves a server handle to a
- * connection pointer via FUN_00125710, then calls this wrapper with the
+ * connection pointer via network_game_client_get_seconds_to_game_start, then calls this wrapper with the
  * resulting connection pointer, a message buffer, its size, a dest_address,
  * and reliable=0. */
 bool FUN_00124d40(void *connection, void *message, unsigned short size,
@@ -82,7 +82,7 @@ bool FUN_00124d40(void *connection, void *message, unsigned short size,
  * is used by the caller (network_game_client_end_frame) as the first argument
  * to FUN_00124d40 (which forwards it to FUN_00128e00 to send a network
  * message). */
-int FUN_00125710(void *client)
+int network_game_client_get_seconds_to_game_start(void *client)
 {
   if (client == NULL) {
     display_assert("client",
@@ -95,17 +95,17 @@ int FUN_00125710(void *client)
 
 /* 0x125750 — Asserts client is non-null, then calls FUN_001283c0 with the
  * connection handle at offset 0x82c, the output buffer, and flag 0. */
-void FUN_00125750(void *server, void *out)
+void network_game_client_switch_to_postgame(void *server, void *out)
 {
   assert_halt(server);
   FUN_001283c0(*(int *)((char *)server + 0x82c), out, 0);
 }
 
-/* FUN_001257a0 (0x1257a0)
+/* network_game_client_get_machine_index (0x1257a0)
  *
  * Asserts client is non-null and returns client + 0x85c.
  */
-void *FUN_001257a0(void *client)
+void *network_game_client_get_machine_index(void *client)
 {
   if (client == NULL) {
     display_assert("client",
@@ -119,15 +119,15 @@ void *FUN_001257a0(void *client)
 
 /* 0x1257e0 — Asserts client is non-null and returns whether the int field at
  * offset 0xc98 is non-zero. */
-bool FUN_001257e0(void *server)
+bool network_game_client_get_available_games(void *server)
 {
   assert_halt(server);
   return *(int *)((char *)server + 0xc98) != 0;
 }
 
 /* 0x125820 — Asserts client is non-null and returns the uint32_t field at
- * offset 0xc98 (the raw value that FUN_001257e0 tests for non-zero). */
-uint32_t FUN_00125820(void *server)
+ * offset 0xc98 (the raw value that network_game_client_get_available_games tests for non-zero). */
+uint32_t network_game_client_get_error(void *server)
 {
   assert_halt(server);
   return *(uint32_t *)((char *)server + 0xc98);
@@ -203,6 +203,84 @@ bool FUN_001260c0(void *server)
   return result;
 }
 
+/* FUN_00126b60 (0x126b60) — network_game_client_idle_joining
+ *
+ * Called from the client idle dispatch (FUN_00127070) when state == 1
+ * (joining). Verifies network connectivity, sends a join request once,
+ * and checks for 120s timeout on the connect-process. Returns false
+ * if connection drops, join request fails, or connection times out. */
+bool FUN_00126b60(void *server)
+{
+  bool connected;
+  unsigned char join_payload[0x50];
+  unsigned short *encoded;
+  int now_ms;
+  int connect_handle;
+
+  connected = true;
+  if (!FUN_0012a170()) {
+    connected = FUN_00082300();
+    if (!connected) {
+      error(2, "network connection went down!");
+      display_error_when_main_menu_loaded(6);
+    }
+  }
+  if (connected != true)
+    return connected;
+
+  if (FUN_00128360(*(int *)((char *)server + 0x82c))) {
+    if ((*(unsigned char *)((char *)server + 0xcaa) & 2) == 0) {
+      csmemset(join_payload, 0, 0x50);
+      FUN_0012aaf0(join_payload);
+      csmemcpy(&join_payload[0x40], (char *)server + 0x84a, 0x10);
+      encoded = (unsigned short *)FUN_0012b700(0xc, join_payload, 0x50);
+      if (encoded == NULL) {
+        network_game_log(
+            "failed to create a message_client_join_game_request message");
+      } else if (FUN_00128e00(*(int *)((char *)server + 0x82c), encoded,
+                              (unsigned short)(*encoded >> 4), 0, 1)) {
+        *(unsigned char *)((char *)server + 0xcaa) =
+            *(unsigned char *)((char *)server + 0xcaa) | 2;
+      } else {
+        network_game_log(
+            "network_game_client_write() failed to send a "
+            "message_client_join_game_request message");
+      }
+    }
+    *(int *)((char *)server + 0x830) = 0;
+  } else {
+    connect_handle = *(int *)((char *)server + 0x830);
+    if (connect_handle != 0) {
+      now_ms = (int)system_milliseconds();
+      if ((unsigned int)(now_ms - *(int *)((char *)server + 0x834)) >
+          120000) {
+        network_game_log(
+            "client connection process has timed out; aborting connection "
+            "attempt");
+        FUN_00084300(*(int *)((char *)server + 0x830));
+        *(int *)((char *)server + 0x830) = 0;
+        return false;
+      }
+    }
+  }
+
+  connected = FUN_00129cf0(*(int *)((char *)server + 0x82c), 5000, 0);
+  if (!connected) {
+    network_game_log(
+        "network_connection_idle() failed in "
+        "network_game_client_idle_joining()");
+    return false;
+  }
+  connected = FUN_001260c0(server);
+  if (!connected) {
+    network_game_log(
+        "network_game_client_process_incoming_messages() failed in "
+        "network_game_client_idle_joining()");
+    return false;
+  }
+  return connected;
+}
+
 /* FUN_00126ce0 (0x126ce0) — network_game_client_idle_pregame
  *
  * Called from the client idle dispatch (FUN_00127070) when state == 2 (pregame).
@@ -228,7 +306,7 @@ check_result:
 main_body:
   if (!FUN_00128660(*(int *)((char *)server + 0x82c)))
     goto fail;
-  if (!FUN_00128360(*(int *)((char *)server + 0x82c)))
+  if (!network_connection_connected(*(int *)((char *)server + 0x82c)))
     goto fail;
   FUN_00126000(server);
   result = FUN_00129cf0(*(int *)((char *)server + 0x82c), 15000, 0);
@@ -257,13 +335,13 @@ tail_check:
   return result;
 }
 
-/* FUN_00126f40 (0x126f40) — network_game_client_idle_postgame
+/* network_game_client_idle (0x126f40) — network_game_client_idle_postgame
  *
  * Called from the client idle dispatch (FUN_00127070) when state == 4 (postgame).
  * Checks network connectivity, runs the connection idle with a 15-second
  * timeout, and processes incoming messages. Returns false if the connection
  * drops or processing fails. */
-bool FUN_00126f40(void *server)
+bool network_game_client_idle(void *server)
 {
   bool result;
 
@@ -342,7 +420,7 @@ bool FUN_00127070(void *server)
     }
     break;
   case 4:
-    result = FUN_00126f40(server);
+    result = network_game_client_idle(server);
     if (!result) {
       network_game_log("network_game_client_idle_postgame() failed");
       return 0;
