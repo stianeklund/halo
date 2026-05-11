@@ -1500,6 +1500,64 @@ int FUN_000ad270(float *position, float radius, float height, int16_t type,
   return result;
 }
 
+/* FUN_000ad530 (0xad530)
+ *
+ * Computes a per-player damage modifier for the active game engine.
+ * If a game engine is active, it normalises the engine's stored float
+ * (at 0x456b34, e.g. damage multiplier) by clamping it to
+ * [*(float*)0x25337c, *(float*)0x2533d8] and then inverting it
+ * (1.0f / clamped).  If either player index is valid and the engine
+ * exposes a vtable predicate at slot 0x80/4, the function further
+ * scales the result:
+ *   - if predicate(player_a, 2) is true: multiply by *(float*)0x2533ec
+ *   - if predicate(player_b, 3) is true: multiply by *(float*)0x253398
+ * Returns 1.0f when no engine is active (no game-type modifier).
+ */
+/* 0xad530 */
+float FUN_000ad530(int player_a, int player_b)
+{
+    float local_8;
+    char cVar1;
+    int engine;
+    int (*fn)(int, int);
+    float engine_float;
+    float clamped;
+
+    engine = *(int *)0x456b60;
+    local_8 = *(float *)0x2533c8;
+    if (engine != 0) {
+        engine_float = *(float *)0x456b34;
+        if (engine_float < *(float *)0x25337c) {
+            clamped = *(float *)0x25337c;
+        } else if (engine_float > *(float *)0x2533d8) {
+            clamped = *(float *)0x2533d8;
+        } else {
+            clamped = engine_float;
+        }
+        local_8 = *(float *)0x2533c8 / clamped;
+    }
+    if (player_a != -1 && player_b != -1 && engine != 0) {
+        fn = (int (*)(int, int))(*(int *)(engine + 0x80));
+        if (fn != 0) {
+            cVar1 = (char)fn(player_a, 2);
+            engine = *(int *)0x456b60;
+            if (cVar1 != '\0') {
+                local_8 = local_8 * *(float *)0x2533ec;
+            }
+        }
+        if (engine != 0) {
+            fn = (int (*)(int, int))(*(int *)(engine + 0x80));
+            if (fn != 0) {
+                cVar1 = (char)fn(player_b, 3);
+                if (cVar1 != '\0') {
+                    return local_8 * *(float *)0x253398;
+                }
+            }
+        }
+    }
+    return local_8;
+}
+
 /* game_engine_player_update_netgame_flag (0xad600)
  *
  * Per-player netgame flag proximity check.  Finds the nearest type-6

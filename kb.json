@@ -2906,7 +2906,8 @@
         },
         {
           "decl": "float FUN_000ad530(int player_a, int player_b);",
-          "addr": "0xad530"
+          "addr": "0xad530",
+          "ported": true
         }
       ]
     },
