@@ -881,6 +881,10 @@
           "addr": "0x41420",
           "decl": "int16_t FUN_00041420(int actor_handle, int16_t max_count, ai_firing_pos_entry_t *buf);",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0003f900(int player_index, void *damage_params, float *scale);",
+          "addr": "0x3f900"
         }
       ]
     },
@@ -2552,6 +2556,10 @@
           "decl": "float FUN_000b5590(int16_t value_type);",
           "addr": "0xb5590",
           "ported": true
+        },
+        {
+          "decl": "const char *FUN_000b5490(short material_type);",
+          "addr": "0xb5490"
         }
       ]
     },
@@ -2894,6 +2902,10 @@
           "decl": "bool game_engine_get_current_stage(void *game_variant_dst, void *game_variant_src);",
           "addr": "0xa8aa0",
           "ported": true
+        },
+        {
+          "decl": "float FUN_000ad530(int player_a, int player_b);",
+          "addr": "0xad530"
         }
       ]
     },
@@ -5348,6 +5360,10 @@
           "decl": "void player_effect_apply(int player_handle, void *effect_descriptor, float intensity);",
           "addr": "0xa2e80",
           "ported": true
+        },
+        {
+          "decl": "void FUN_000a3b80(int player_index, void *damage_params, void *position, float damage_amount, float scale);",
+          "addr": "0xa3b80"
         }
       ]
     },
@@ -8232,6 +8248,10 @@
           "decl": "int16_t unit_get_grenade_count(int unit_handle, int16_t grenade_type);",
           "addr": "0x1aae70",
           "ported": true
+        },
+        {
+          "decl": "char FUN_001b1d00(int object_handle, void *position);",
+          "addr": "0x1b1d00"
         }
       ]
     },
@@ -10250,7 +10270,8 @@
         },
         {
           "decl": "void object_cause_damage(void *damage_params, int object_handle, short node_index, short region_index, short permutation_index, unsigned int flags);",
-          "addr": "0x137d20"
+          "addr": "0x137d20",
+          "ported": true
         },
         {
           "decl": "void object_damage_update(int object_handle);",
@@ -10276,7 +10297,8 @@
           "addr": "0x138ee0",
           "ported": true
         }
-      ]
+      ],
+      "src": "src/halo/objects/damage.c"
     },
     {
       "name": "object_lights.obj",
