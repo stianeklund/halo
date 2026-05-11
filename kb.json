@@ -731,7 +731,8 @@
         },
         {
           "decl": "char FUN_0003b150(int actor_handle);",
-          "addr": "0x3b150"
+          "addr": "0x3b150",
+          "ported": true
         }
       ],
       "src": "src/halo/ai/actors.c"

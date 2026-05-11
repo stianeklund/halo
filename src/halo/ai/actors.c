@@ -721,6 +721,34 @@ char FUN_0003b120(int actor_handle)
   return 0;
 }
 
+/* FUN_0003b150 (0x3b150)
+ * Test whether an actor has at least 7 active slots (field +0x6e) and is
+ * NOT simultaneously in mode 4 with a positive counter at +0xa8.
+ * Returns 1 when actor->field_0x6e >= 7, unless actor->field_0x6c == 4
+ * AND actor->field_0xa8 > 0, in which case it returns 0.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3b15e (EAX=handle,
+ * ECX=table from DAT_006325a4; cdecl).
+ * Confirmed: CMP word ptr [ECX+0x6e],0x7 / SETGE AL at 0x3b168/0x3b16d
+ * materializes the boolean into AL rather than branching.
+ * Confirmed: TEST AL,AL / JZ end at 0x3b170 short-circuits when AL==0.
+ * Confirmed: CMP word ptr [ECX+0x6c],0x4 / JNZ end at 0x3b174/0x3b179.
+ * Confirmed: CMP word ptr [ECX+0xa8],0x0 / JLE end at 0x3b17b/0x3b183.
+ * Confirmed: XOR AL,AL at 0x3b185 clears the boolean before RET. */
+char FUN_0003b150(int actor_handle)
+{
+  char *actor;
+  char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  result = (char)(*(short *)(actor + 0x6e) >= 7);
+  if (result && *(short *)(actor + 0x6c) == 4 &&
+      *(short *)(actor + 0xa8) > 0) {
+    result = 0;
+  }
+  return result;
+}
+
 /* actor_attacking_target (0x3b270)
  * Get the current weapon handle for an actor. First checks if the actor has
  * a held-weapon unit (offset 0x158, guarded by byte at 0x161). If that path
