@@ -43,6 +43,26 @@ Steps:
      lookup or filter
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
    - prefer `batch_decompile` when comparing related helpers
+3a. Before running the deterministic pre-pass, check for a mizuchi result in
+    the context cache:
+    ```
+    rtk python3 -c "
+    import json, sys
+    d = json.load(open('artifacts/auto_lift/context_cache/<NAME>.json'))
+    r = d.get('mizuchi_result')
+    if r:
+        open('/tmp/mizuchi_draft.c','w').write(r)
+        print('mizuchi_result: YES (' + str(len(r)) + ' chars) -> /tmp/mizuchi_draft.c')
+    else:
+        print('mizuchi_result: none')
+    "
+    ```
+    **If a mizuchi result exists:** use `/tmp/mizuchi_draft.c` as the starting
+    implementation. Skip the Ghidra decompile reasoning pass — go straight to
+    hazard scan, ABI verification, and compile. You still need to read the
+    disassembly to verify the implementation is correct before accepting it.
+    **If no mizuchi result:** proceed normally with the Ghidra decompile.
+
 3b. After the decompile pass, run the deterministic pre-pass on the cached
     Ghidra output before reasoning over it:
     ```

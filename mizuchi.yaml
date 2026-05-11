@@ -60,6 +60,10 @@ plugins:
   m2c:
     enable: false
 
+  integrator:
+    enable: false
+    integratorModule: tools/mizuchi/integrator.js
+
   decomp-permuter:
     enable: true
     path: ./third_party/decomp-permuter

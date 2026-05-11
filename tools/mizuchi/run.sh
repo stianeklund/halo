@@ -10,4 +10,4 @@ mkdir -p "$ROOT_DIR/build/vc71/permuter_tmp" "$ROOT_DIR/artifacts/mizuchi/prompt
 
 export TMPDIR="$ROOT_DIR/build/vc71/permuter_tmp"
 
-exec node "$MIZUCHI_DIR/dist/cli.js" "$@"
+exec env -u CLAUDECODE node "$MIZUCHI_DIR/dist/cli.js" "$@"
