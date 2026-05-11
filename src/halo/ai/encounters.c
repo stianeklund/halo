@@ -613,6 +613,44 @@ int FUN_00059b50(void *iter)
   }
 }
 
+/* 0x00059bf0 — encounter_drain_pursuit_list (FUN_00059bf0).
+ *
+ * Drains the linked pursuit list attached to the given encounter.
+ * The encounter record keeps the head of the pursuit list at +0x38 (int handle).
+ * Each pursuit record's next-handle lives at pursuit+0x24.
+ *
+ * Steps:
+ *   1. datum_get(encounter_data, encounter_handle) → encounter ptr (EDI).
+ *   2. Load head handle from encounter+0x38 (ESI).
+ *   3. While head != -1:
+ *        a. datum_get(pursuit_data, head) → pursuit ptr.
+ *        b. Advance encounter+0x38 = pursuit+0x24 (next handle).
+ *        c. datum_delete(pursuit_data, head) — free the pursuit record.
+ *        d. Reload head from encounter+0x38.
+ *
+ * Confirmed:
+ *   - encounter_handle received in EAX (@<eax>).
+ *   - encounter_data  = *(data_t**)0x5ab270.
+ *   - pursuit_data    = *(data_t**)0x5ab26c.
+ *   - encounter+0x38  = pursuit list head (int handle, -1 = empty).
+ *   - pursuit+0x24    = next pursuit handle in list.
+ */
+void FUN_00059bf0(int encounter_handle /* @<eax> */)
+{
+    char *encounter;
+    char *pursuit;
+    int pursuit_handle;
+
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    pursuit_handle = *(int *)(encounter + 0x38);
+    while (pursuit_handle != -1) {
+        pursuit = (char *)datum_get(*(data_t **)0x5ab26c, pursuit_handle);
+        *(int *)(encounter + 0x38) = *(int *)(pursuit + 0x24);
+        datum_delete(*(data_t **)0x5ab26c, pursuit_handle);
+        pursuit_handle = *(int *)(encounter + 0x38);
+    }
+}
+
 /* 0x5a050 — squad_initialize_starting_locations (FUN_0005a050).
  * Initializes the starting-location bitfield for a squad. Retrieves the
  * encounter datum and scenario squad definition, then fills the bitfield
