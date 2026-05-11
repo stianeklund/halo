@@ -2208,20 +2208,14 @@ void FUN_0003cff0(int actor_handle)
 char actor_set_active(int actor_handle, char active)
 {
   char *actor;
-  int game_time;
+  char result;
 
   actor = (char *)datum_get(actor_data, actor_handle);
+  result = 1;
   actor_verify_activation(actor_handle);
 
   if (*(char *)(actor + 0x8) != active) {
-    if (active == '\0') {
-      actor_delete_props(actor_handle);
-      actor_swarm_cache_delete(actor_handle);
-      actor_set_dormant(actor_handle, 1);
-      *(char *)(actor + 0x8) = 0;
-      game_time = game_time_get();
-      *(int *)(actor + 0xc) = game_time;
-    } else {
+    if (active) {
       if (*(char *)(actor + 0x6) != '\0') {
         FUN_0003cd30(actor_handle);
         if (*(int *)(actor + 0x28) == -1) {
@@ -2229,20 +2223,27 @@ char actor_set_active(int actor_handle, char active)
                 "swarm tried to become active but couldn't, erasing %d units",
                 (int)*(short *)(actor + 0x1e));
           *(char *)(actor + 0xb) = 1;
+          result = 0;
           actor_verify_activation(actor_handle);
-          return 0;
+          return result;
         }
       }
       *(char *)(actor + 0x8) = 1;
       if (*(short *)(actor + 0x6a) == 0) {
         actor_set_dormant(actor_handle, 0);
         actor_verify_activation(actor_handle);
-        return 1;
+        return result;
       }
+    } else {
+      actor_delete_props(actor_handle);
+      actor_swarm_cache_delete(actor_handle);
+      actor_set_dormant(actor_handle, 1);
+      *(char *)(actor + 0x8) = 0;
+      *(int *)(actor + 0xc) = game_time_get();
     }
   }
   actor_verify_activation(actor_handle);
-  return 1;
+  return result;
 }
 
 /* actor_swarm_attach_unit (0x3d6c0) — actor_link_swarm_unit
