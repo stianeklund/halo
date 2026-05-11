@@ -2025,6 +2025,102 @@ void FUN_0003cc10(int actor_handle, int flag)
   datum_delete(actor_data, actor_handle);
 }
 
+/* FUN_0003cd30 (0x3cd30) — actor_allocate_swarm_components
+ *
+ * Allocate a swarm record and swarm-component slots for a swarm actor.
+ * Called by actor_set_active when activating a swarm actor
+ * (actor+0x6 != 0). Idempotent: returns early if actor+0x28 (swarm
+ * cache handle) is already set.
+ *
+ * Steps:
+ *   1. datum_get(actor_data, actor_handle) -> actor ptr.
+ *   2. If actor+0x28 != -1, return (already allocated).
+ *   3. data_new_at_index(swarm_data) -> swarm_handle; store at actor+0x28.
+ *      On failure, log "exceeded MAXIMUM_NUMBER_OF_ACTIVE_SWARMS (32)".
+ *   4. datum_get(swarm_data, swarm_handle) -> swarm ptr.
+ *   5. Assert actor+0x1e (swarm_unit_count, short) <= 0x10.
+ *   6. Init swarm: swarm+4 = actor_handle, swarm+2 = 0 (unit count).
+ *   7. Walk unit chain from actor+0x24. For each unit:
+ *      a. object_get_and_verify_type(unit_handle, 3) -> unit ptr.
+ *      b. data_new_at_index(swarm_component_data) -> component_handle.
+ *         On failure, log "unable to create any more swarm components
+ *         (max 256)" and break.
+ *      c. FUN_0003cb50(swarm_handle @eax, component_handle @edi,
+ *         unit_handle @ebx) — initialize the component slot.
+ *      d. Advance to next unit: unit_ptr+0x1ac.
+ *
+ * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x3cd42.
+ * Confirmed: actor+0x28 == -1 guard at 0x3cd49-0x3cd52.
+ * Confirmed: data_new_at_index(swarm_data=DAT_006325a0) at 0x3cd5f; result
+ *   stored at actor+0x28 (0x3cd6a). Confirmed: error("exceeded
+ *   MAXIMUM_NUMBER_OF_ACTIVE_SWARMS (%d)", 0x20) at 0x3cd78 on failure.
+ * Confirmed: datum_get(swarm_data, swarm_handle) at 0x3cd91.
+ * Confirmed: unit chain head from actor+0x24 at 0x3cd96.
+ * Confirmed: assert (word ptr [ESI+0x1e]) <= 0x10 at 0x3cd9c; display_assert
+ *   at 0x3cdb6 + system_exit(-1) at 0x3cdbd on violation (line 0x622).
+ * Confirmed: swarm+4 = actor_handle at 0x3cdcb; swarm+2 = 0 at 0x3cdce.
+ * Confirmed: unit chain -1 guard (JZ to return) at 0x3cdd4.
+ * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3cdd9; result
+ *   stored local at [EBP-4] (0x3cde5).
+ * Confirmed: data_new_at_index(swarm_component_data=DAT_0063259c) at 0x3cde8;
+ *   -1 check at 0x3cdf0; JZ to error at 0x3ce17.
+ * Confirmed: EDI=component_handle (0x3cdf5), EAX=swarm_handle from
+ *   actor+0x28 (0x3cdf7), CALL FUN_0003cb50 at 0x3cdfa.
+ * Confirmed: next unit from [EBP-4]+0x1ac at 0x3cdff-0x3ce02; loop back
+ *   at 0x3ce0b if != -1; return at 0x3ce0d-0x3ce16 when chain ends.
+ * Confirmed: error("unable to create any more swarm components (max %d)",
+ *   0x100) at 0x3ce23 when component alloc fails. */
+void FUN_0003cd30(int actor_handle)
+{
+  char *actor;
+  int swarm_handle;
+  char *swarm;
+  int unit_handle;
+  char *unit;
+  int component_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(int *)(actor + 0x28) == -1) {
+    swarm_handle = data_new_at_index(swarm_data);
+    *(int *)(actor + 0x28) = swarm_handle;
+    if (swarm_handle == -1) {
+      error(2, "exceeded MAXIMUM_NUMBER_OF_ACTIVE_SWARMS (%d)", 0x20);
+      return;
+    }
+
+    swarm = (char *)datum_get(swarm_data, swarm_handle);
+    unit_handle = *(int *)(actor + 0x24);
+
+    if (*(short *)(actor + 0x1e) > 0x10) {
+      display_assert(
+        "actor->meta.swarm_unit_count <= MAXIMUM_NUMBER_OF_UNITS_PER_SWARM",
+        "c:\\halo\\SOURCE\\ai\\actors.c", 0x622, 1);
+      system_exit(-1);
+    }
+
+    *(int *)(swarm + 4) = actor_handle;
+    *(short *)(swarm + 2) = 0;
+
+    if (unit_handle != -1) {
+      while (1) {
+        unit = (char *)object_get_and_verify_type(unit_handle, 3);
+        component_handle = data_new_at_index(swarm_component_data);
+        if (component_handle == -1) {
+          error(2, "unable to create any more swarm components (max %d)",
+                0x100);
+          return;
+        }
+        FUN_0003cb50(swarm_handle, component_handle, unit_handle);
+        unit_handle = *(int *)(unit + 0x1ac);
+        if (unit_handle == -1) {
+          return;
+        }
+      }
+    }
+  }
+}
+
 /* FUN_0003cff0 (0x3cff0) — actor_update_weapon_state
  *
  * Update weapon firing state for an actor. If the actor is in combat state 3
