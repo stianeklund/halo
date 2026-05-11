@@ -159,6 +159,10 @@
         "Table element semantics are inferred from math pattern and write layout; symbolic names for backing globals/constants remain unknown."
       ]
     },
+    "0x2cdb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2d350": {
       "kind": "function",
       "status": "ported"
@@ -282,6 +286,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3b0b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3b270": {
       "kind": "function",
       "status": "ported"
@@ -338,6 +346,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3c370": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3c410": {
       "kind": "function",
       "status": "unknown",
@@ -347,6 +359,10 @@
       "uncertain": [
         "*(float*)0x2533c0 is a float threshold compared against actr[0x90] (never_dormant_chance); value is 0.0f in the static image, runtime semantics unclear."
       ]
+    },
+    "0x3c7c0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x3ca40": {
       "kind": "function",
@@ -361,6 +377,14 @@
       "status": "ported"
     },
     "0x3cff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3d5f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3d6c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -398,6 +422,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3eab0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3ec80": {
       "kind": "function",
       "status": "ported",
@@ -408,6 +436,10 @@
       "uncertain": [
         "The second datum_get(actor_data, actor_handle) call is identical to the first; the decompiler shows both results but the second (EDI) is used for the memset+field-init block while the first (EBP-4) is used for actor+0x13 and actor+0x6 checks \u2014 both dereference the same record so the split may be a compiler artifact or the result may differ if actor_data is mutated by an intermediate callee."
       ]
+    },
+    "0x3edc0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x3f5f0": {
       "kind": "function",
@@ -512,6 +544,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x59480": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x59630": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x59740": {
       "kind": "function",
       "status": "ported"
@@ -536,6 +576,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5adc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5d200": {
       "kind": "function",
       "status": "ported",
@@ -546,6 +590,18 @@
       "uncertain": [
         "actor+0x3e vs encounter+2 team comparison semantics: actor+0x3e is plausibly actor home team, encounter+2 is encounter team, but field names are not confirmed from strings."
       ]
+    },
+    "0x5d890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5d910": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5ddc0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x5df80": {
       "kind": "function",
@@ -560,6 +616,46 @@
       "status": "ported"
     },
     "0x5dfb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5dfc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5dff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5e000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5e030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5e070": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5e090": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5e760": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5e7e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5e830": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5eae0": {
       "kind": "function",
       "status": "ported"
     },
@@ -988,6 +1084,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x916e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x91710": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x91780": {
       "kind": "function",
       "status": "ported"
@@ -1348,6 +1452,10 @@
       "status": "ported"
     },
     "0x9ec30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ee40": {
       "kind": "function",
       "status": "ported"
     },
@@ -3605,7 +3713,63 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf7cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf7d30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf7d50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf7d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf7da0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf7dd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf7e10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf7ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf8000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf8070": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf80a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf8410": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf84d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf8d30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf8ee0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4147,6 +4311,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10ca30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10caf0": {
       "kind": "function",
       "status": "ported"
@@ -4163,6 +4331,10 @@
       ]
     },
     "0x10e040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x118e90": {
       "kind": "function",
       "status": "ported"
     },
@@ -4390,6 +4562,10 @@
         "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
       ]
     },
+    "0x120810": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x120f20": {
       "kind": "function",
       "status": "ported"
@@ -4409,7 +4585,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x125710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x125750": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1257a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1257e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x125820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x126f40": {
       "kind": "function",
       "status": "ported"
     },
@@ -4649,6 +4845,54 @@
       "status": "ported"
     },
     "0x136750": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136790": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1367e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1368e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1369b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136a80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136ae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136b40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x137370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x137540": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x137620": {
       "kind": "function",
       "status": "ported"
     },
@@ -4904,6 +5148,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1402c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1403a0": {
       "kind": "function",
       "status": "ported"
@@ -5065,6 +5313,10 @@
       "name": "objects_update",
       "name_confidence": "high"
     },
+    "0x1457f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1458a0": {
       "kind": "function",
       "status": "ported"
@@ -5094,7 +5346,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x14adb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14b3d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14b470": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x14b6f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14b890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14b960": {
       "kind": "function",
       "status": "ported"
     },
@@ -5373,6 +5645,10 @@
       "status": "ported"
     },
     "0x18eb40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18f080": {
       "kind": "function",
       "status": "ported"
     },

@@ -658,13 +658,18 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0003cd30(int actor_handle);",
+          "addr": "0x3cd30"
+        },
+        {
           "decl": "void FUN_0003cff0(int actor_handle);",
           "addr": "0x3cff0",
           "ported": true
         },
         {
           "decl": "char actor_set_active(int actor_handle, char active_flag);",
-          "addr": "0x3d5f0"
+          "addr": "0x3d5f0",
+          "ported": true
         },
         {
           "decl": "int actor_swarm_attach_unit(int actor_handle, int unit_index);",

@@ -761,7 +761,8 @@ bool FUN_0003b320(int actor_handle)
  * Replace all references to old_prop with new_prop in actor fields. Updates
  * multiple prop reference fields at various offsets in the actor structure.
  * Also updates swarm component prop references if the actor is a swarm.
- * Finally calls actor_action_replace_prop to dispatch to action-specific prop replacement.
+ * Finally calls actor_action_replace_prop to dispatch to action-specific prop
+ * replacement.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x3b421.
  * Confirmed: actor+0x270 prop reference with special clear of +0x268 if new=-1.
@@ -772,8 +773,8 @@ bool FUN_0003b320(int actor_handle)
  * Confirmed: actor+0x46c (action state 5) with +0x470 prop, clears +0x480 if
  * new=-1. Confirmed: actor+0x54c, +0x56c, +0x57c (action state 1) with
  * +0x550/0x570/0x580. Confirmed: swarm component +0x14 prop updated for each
- * component. Confirmed: actor_action_replace_prop(actor_handle, old_prop, new_prop) at
- * 0x3b5c4. */
+ * component. Confirmed: actor_action_replace_prop(actor_handle, old_prop,
+ * new_prop) at 0x3b5c4. */
 void FUN_0003b410(int actor_handle, int old_prop, int new_prop)
 {
   char *actor;
@@ -917,10 +918,11 @@ void FUN_0003b5e0(int actor_handle)
  * Confirmed: csmemset(&control, 0, 0x40) at 0x3b7ee.
  * Confirmed: global zero vector ptr at [0x31fc38] copied to throttle.
  * Confirmed: ESI = unit_handle (register arg), stack param = actor_handle
- * (unused). Confirmed: units_debug_get_closest_unit(ESI, &facing) at 0x3b82c. Confirmed:
- * unit_scripting_unit_driver(ESI, &aiming) at 0x3b836. Confirmed: unit_scripting_unit_gunner(ESI, &looking)
- * at 0x3b840. Confirmed: unit_set_control(ESI, &control) at 0x3b84a. Confirmed:
- * FUN_001adf10(ESI, 0) at 0x3b852. */
+ * (unused). Confirmed: units_debug_get_closest_unit(ESI, &facing) at 0x3b82c.
+ * Confirmed: unit_scripting_unit_driver(ESI, &aiming) at 0x3b836. Confirmed:
+ * unit_scripting_unit_gunner(ESI, &looking) at 0x3b840. Confirmed:
+ * unit_set_control(ESI, &control) at 0x3b84a. Confirmed: FUN_001adf10(ESI, 0)
+ * at 0x3b852. */
 void FUN_0003b7e0(int actor_handle, int unit_handle /* @<esi> */)
 {
   char control[0x40];
@@ -1004,21 +1006,21 @@ void actors_freeze(void)
  * Idle-update a unit's control state. Builds a default unit_control_t (0x40
  * bytes): animation_state=3, aiming_speed=1, control_flags=0,
  * weapon/grenade/zoom=-1, throttle from global forward vector. Gets the
- * unit's current facing via units_debug_get_closest_unit, then rotates it 30 degrees around
- * the up axis via rotate_vector3d_by_sincos. Copies the rotated facing to
- * aiming and looking. Every 5th tick (based on game_time_get() +
+ * unit's current facing via units_debug_get_closest_unit, then rotates it 30
+ * degrees around the up axis via rotate_vector3d_by_sincos. Copies the rotated
+ * facing to aiming and looking. Every 5th tick (based on game_time_get() +
  * unit_object_index mod 5), sets control_flags |= 0x0800 and
  * primary_trigger = 1.0f. Applies via unit_set_control and FUN_001adf10.
  *
  * Confirmed: csmemset(&control, 0, 0x40) at 0x3b94e.
  * Confirmed: global forward vector ptr at [0x31fc3c] copied to throttle.
  * Confirmed: ESI = unit_object_index (register arg), stack param = actor_handle
- * (unused). Confirmed: units_debug_get_closest_unit(ESI, &facing) at 0x3b98c. Confirmed:
- * rotate_vector3d_by_sincos(&facing, *(float**)0x31fc44, 0.5f, 0.866f) at
- * 0x3b9a5. Confirmed: facing copied to aiming and looking at 0x3b9b6-0x3b9c5.
- * Confirmed: game_time_get() at 0x3b9c8, (result+ESI)%5==0 triggers flag set.
- * Confirmed: unit_set_control(ESI, &control) at 0x3b9eb. Confirmed:
- * FUN_001adf10(ESI, 0) at 0x3b9f3. */
+ * (unused). Confirmed: units_debug_get_closest_unit(ESI, &facing) at 0x3b98c.
+ * Confirmed: rotate_vector3d_by_sincos(&facing, *(float**)0x31fc44, 0.5f,
+ * 0.866f) at 0x3b9a5. Confirmed: facing copied to aiming and looking at
+ * 0x3b9b6-0x3b9c5. Confirmed: game_time_get() at 0x3b9c8, (result+ESI)%5==0
+ * triggers flag set. Confirmed: unit_set_control(ESI, &control) at 0x3b9eb.
+ * Confirmed: FUN_001adf10(ESI, 0) at 0x3b9f3. */
 void FUN_0003b940(int actor_handle, int unit_object_index /* @<esi> */)
 {
   char control[0x40];
@@ -1313,15 +1315,16 @@ done:;
 /* FUN_0003bde0 (0x3bde0) — actor_fill_unit_input_block
  *
  * Populates an input block structure with the unit's world position,
- * velocity vector from object+0x24, physics position via unit_get_head_position,
- * root location, and root parent's object+0x48/0x4c fields.
+ * velocity vector from object+0x24, physics position via
+ * unit_get_head_position, root location, and root parent's object+0x48/0x4c
+ * fields.
  *
  * Confirmed: object_get_and_verify_type(unit_handle, 3) at 0x3bdec.
  * Confirmed: object_get_world_position(unit_handle, input_block+0xc) at
  * 0x3bdfb. Confirmed: 12-byte copy from obj+0x24 to input_block+0x18 at
- * 0x3be03. Confirmed: unit_get_head_position(unit_handle, input_block) at 0x3be18.
- * Confirmed: object_get_root_location(unit_handle, input_block+0x2c, 0) at
- * 0x3be24. Confirmed: object_get_root_parent(unit_handle) at 0x3be2a.
+ * 0x3be03. Confirmed: unit_get_head_position(unit_handle, input_block) at
+ * 0x3be18. Confirmed: object_get_root_location(unit_handle, input_block+0x2c,
+ * 0) at 0x3be24. Confirmed: object_get_root_parent(unit_handle) at 0x3be2a.
  * Confirmed: object_get_and_verify_type(root, -1) at 0x3be32.
  * Confirmed: root_obj+0x48/0x4c copied to input_block+0x24/0x28. */
 void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
@@ -1361,7 +1364,8 @@ void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
  *   (a) Normal: BL (previous action-executed result) != 0 AND actor+0x70 == 0
  *       → action completed without requesting a new action.
  *   (b) Hard limit: counter >= 10 → break (error reported below).
- *   (c) Normal: actor_action_perform returns 0 AND actor+0x70 == 0 → clean return.
+ *   (c) Normal: actor_action_perform returns 0 AND actor+0x70 == 0 → clean
+ * return.
  *
  * After loop: if counter < 10, logs "actor-type %s internal logic error (%s)"
  *   with the current action name and encounter/squad path.
@@ -1375,30 +1379,31 @@ void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
  *   (counter) at EBP-0x4.
  * Confirmed: csmemset(local_14, 0xff, 10) at 0x3bebd (pre-fills ring with -1).
  * Confirmed: ESI = datum_get result (actor record ptr); EDI = ring index (mod
- * 5). Confirmed: BL = result of actor_action_perform; XOR BL,BL at 0x3beb8 → BL starts
- * 0. Confirmed: loop stored at EBP-0x4 (local_8), incremented at 0x3bedc.
- * Confirmed: MOV EDI,EDX at 0x3beef sets new ring index from IDIV remainder.
- * Confirmed: break-on-BL-nonzero test at 0x3bf06–0x3bf0f.
- * Confirmed: break-on-count>=10 test at 0x3bf11–0x3bf15.
- * Confirmed: actor_action_perform called at 0x3bf1b; result into BL at 0x3bf20.
- * Confirmed: early-return (BL==0 && actor[0x70]==0) at 0x3bf25–0x3bf36.
- * Confirmed: global_scenario_get() takes 0 args; PUSH 0xb0, PUSH encounter_idx
- *   at 0x3bf5a–0x3bf5f remain on stack for tag_block_get_element call at
- * 0x3bf6b. Confirmed: ADD ESP,0x28 at 0x3bf9b cleans 10 dwords from
- * encounter-path calls. Confirmed: infinite-loop ring-dump loop: ESI=EDI (start
- * index), advances mod 5, terminates when ESI wraps back to EDI. Confirmed:
- * FUN_0001d030(actor_handle, 0, 0) at 0x3c0a5 with PUSH 0,0,EAX. Confirmed: ADD
- * ESP,0x24 at 0x3c0aa cleans display_assert(4) + error(2) + action_set(3).
- * Inferred: actor+0x6c = state.action (short); actor+0x70 = action-changed flag
- * (byte). Inferred: actor+0x34 = encounter handle (int); actor+0x3a = squad
- * index (short). Inferred: actor+0x4 = actor type index (short). Inferred:
- * actor_action_perform = actor_execute_current_action (dispatches via action table).
- * Inferred: FUN_0003a840 = actor_type_decide_action (calls type->decide_action
- * fn ptr). Inferred: FUN_00036860 = actor_clear_perception_state (csmemset
- * actor+0x2ec, 0, 100). Inferred: FUN_0001d030 = actor_set_action (sets action
- * to param_2, clears changed flag). Inferred: FUN_0003a760 =
- * actor_type_get_name (returns actor type name string). Inferred: FUN_0001d5c0
- * = actor_action_get_name (returns action name string). */
+ * 5). Confirmed: BL = result of actor_action_perform; XOR BL,BL at 0x3beb8 → BL
+ * starts 0. Confirmed: loop stored at EBP-0x4 (local_8), incremented at
+ * 0x3bedc. Confirmed: MOV EDI,EDX at 0x3beef sets new ring index from IDIV
+ * remainder. Confirmed: break-on-BL-nonzero test at 0x3bf06–0x3bf0f. Confirmed:
+ * break-on-count>=10 test at 0x3bf11–0x3bf15. Confirmed: actor_action_perform
+ * called at 0x3bf1b; result into BL at 0x3bf20. Confirmed: early-return (BL==0
+ * && actor[0x70]==0) at 0x3bf25–0x3bf36. Confirmed: global_scenario_get() takes
+ * 0 args; PUSH 0xb0, PUSH encounter_idx at 0x3bf5a–0x3bf5f remain on stack for
+ * tag_block_get_element call at 0x3bf6b. Confirmed: ADD ESP,0x28 at 0x3bf9b
+ * cleans 10 dwords from encounter-path calls. Confirmed: infinite-loop
+ * ring-dump loop: ESI=EDI (start index), advances mod 5, terminates when ESI
+ * wraps back to EDI. Confirmed: FUN_0001d030(actor_handle, 0, 0) at 0x3c0a5
+ * with PUSH 0,0,EAX. Confirmed: ADD ESP,0x24 at 0x3c0aa cleans
+ * display_assert(4) + error(2) + action_set(3). Inferred: actor+0x6c =
+ * state.action (short); actor+0x70 = action-changed flag (byte). Inferred:
+ * actor+0x34 = encounter handle (int); actor+0x3a = squad index (short).
+ * Inferred: actor+0x4 = actor type index (short). Inferred:
+ * actor_action_perform = actor_execute_current_action (dispatches via action
+ * table). Inferred: FUN_0003a840 = actor_type_decide_action (calls
+ * type->decide_action fn ptr). Inferred: FUN_00036860 =
+ * actor_clear_perception_state (csmemset actor+0x2ec, 0, 100). Inferred:
+ * FUN_0001d030 = actor_set_action (sets action to param_2, clears changed
+ * flag). Inferred: FUN_0003a760 = actor_type_get_name (returns actor type name
+ * string). Inferred: FUN_0001d5c0 = actor_action_get_name (returns action name
+ * string). */
 void FUN_0003be90(int actor_handle)
 {
   char *actor;
@@ -1792,7 +1797,8 @@ void actor_customize_unit(int actv_tag_index, int unit_index)
   }
 
   if (*(int *)(actv_data + 0x70) != -1) {
-    object_placement_data_new(placement, *(int *)(actv_data + 0x70), unit_index);
+    object_placement_data_new(placement, *(int *)(actv_data + 0x70),
+                              unit_index);
     object_handle = object_new(placement);
     if (object_handle != -1) {
       if (!unit_enter_seat(unit_index, object_handle, 2)) {
@@ -1816,7 +1822,8 @@ void actor_customize_unit(int actv_tag_index, int unit_index)
       error(2, "cannot add grenades or non-powerups to an actor's inventory "
                "as equipment... try using the 'grenade' fields maybe?");
     } else {
-      object_placement_data_new(placement, *(int *)(actv_data + 0x1cc), unit_index);
+      object_placement_data_new(placement, *(int *)(actv_data + 0x1cc),
+                                unit_index);
       object_handle = object_new(placement);
       if (object_handle != -1) {
         if (!unit_pickup_equipment(unit_index, object_handle, 1)) {
@@ -1913,8 +1920,8 @@ void actor_set_dormant(int actor_handle, char flag)
 /* actor_delete_props (0x3cbc0) — actor_clean_props
  *
  * Clean up all props associated with an actor. Iterates actor+0x50 linked list,
- * calling FUN_0003b410 to clear prop references and prop_iterator_next to delete
- * each prop, until the list is empty.
+ * calling FUN_0003b410 to clear prop references and prop_iterator_next to
+ * delete each prop, until the list is empty.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x3cbcf.
  * Confirmed: actor+0x50 (prop list head) checked against -1 at 0x3cbdc.
@@ -1946,9 +1953,10 @@ void actor_delete_props(int actor_handle)
  * Confirmed: datum_get(actor_data, actor_handle) at 0x3cc23.
  * Confirmed: assert actor_index != global_updating_actor_index at 0x3cc37.
  * Confirmed: DAT_005ac9f8 and DAT_006323b4 cleared if equal to actor_handle.
- * Confirmed: actor+9 flag selects FUN_000597f0 (encounterless) vs encounter_detach_actor.
- * Confirmed: actor+6 flag selects actor_swarm_cache_delete+loop vs actor_detach_from_unit path.
- * Confirmed: actor_delete_props at 0x3cccc, data_iterator on DAT_005ab23c at 0x3ccdc.
+ * Confirmed: actor+9 flag selects FUN_000597f0 (encounterless) vs
+ * encounter_detach_actor. Confirmed: actor+6 flag selects
+ * actor_swarm_cache_delete+loop vs actor_detach_from_unit path. Confirmed:
+ * actor_delete_props at 0x3cccc, data_iterator on DAT_005ab23c at 0x3ccdc.
  * Confirmed: FUN_00049080 at 0x3cd0a, FUN_00044590 at 0x3cd10.
  * Confirmed: datum_delete(actor_data, actor_handle) at 0x3cd1c. */
 void FUN_0003cc10(int actor_handle, int flag)
@@ -2023,7 +2031,8 @@ void FUN_0003cc10(int actor_handle, int flag)
  * (attacking) with burst count > 1, performs accuracy-based random firing
  * check. Also handles weapon ammo distribution and magazine rounds for the
  * actor's weapon. Calls FUN_0003cc10 to mark actor as needing cleanup, and if
- * actor has an encounter, calls encounter_update_status to update encounter state.
+ * actor has an encounter, calls encounter_update_status to update encounter
+ * state.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x3d004.
  * Confirmed: tag_get(0x61637476, actor+0x5c) at 0x3d014.
@@ -2038,7 +2047,8 @@ void FUN_0003cc10(int actor_handle, int flag)
  * Confirmed: burst duration from tag+0x98, clamped to [0.05f, 2.0f], * 30.0f.
  * Confirmed: unit_persistent_control(unit, ticks, 0x800) at 0x3d1c8.
  * Confirmed: FUN_0003cc10(actor_handle, 1) at 0x3d304.
- * Confirmed: encounter_update_status(encounter_handle) at 0x3d318 if actor+0x34 != -1. */
+ * Confirmed: encounter_update_status(encounter_handle) at 0x3d318 if actor+0x34
+ * != -1. */
 void FUN_0003cff0(int actor_handle)
 {
   char *actor;
@@ -2162,6 +2172,79 @@ void FUN_0003cff0(int actor_handle)
   }
 }
 
+/* actor_set_active (0x3d5f0) — actor_set_activation_state
+ *
+ * Transition an actor between active (1) and inactive (0) states.
+ * Always calls actor_verify_activation on entry. Returns early (1) if the
+ * actor is already in the requested state. On deactivation: calls
+ * actor_delete_props, actor_swarm_cache_delete, actor_set_dormant(1), clears
+ * actor+0x8, and stamps actor+0xc with the current game time. On activation:
+ * if actor is a swarm (actor+0x6 != 0), calls FUN_0003cd30 to allocate swarm
+ * components; if actor+0x28 == -1 after that (allocation failed), logs an
+ * error, sets the erase flag at actor+0xb, calls actor_verify_activation, and
+ * returns 0. If activation succeeds, sets actor+0x8 = 1; if actor+0x6a == 0,
+ * calls actor_set_dormant(0) and actor_verify_activation, then returns 1. Falls
+ * through to actor_verify_activation and returns 1 on all other success paths.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3d600.
+ * Confirmed: actor_verify_activation(actor_handle) at entry (0x3d60a).
+ * Confirmed: actor+0x8 compared to param_2 at 0x3d612-0x3d61a.
+ * Confirmed: actor_delete_props(actor_handle) at 0x3d662 (deactivate path).
+ * Confirmed: actor_swarm_cache_delete(actor_handle) at 0x3d668.
+ * Confirmed: actor_set_dormant(actor_handle, 1) at 0x3d673.
+ * Confirmed: actor+0x8 = 0 at 0x3d67b; game_time_get() stored at actor+0xc at
+ * 0x3d67f-0x3d684. Confirmed: actor+0x6 (swarm byte) tested at 0x3d620.
+ * Confirmed: FUN_0003cd30(actor_handle) (swarm component allocator) at 0x3d628.
+ * Confirmed: actor+0x28 == -1 check at 0x3d633 (swarm failed).
+ * Confirmed: error(2, "swarm tried to become active but couldn't, erasing %d
+ * units", ...) at 0x3d644. Confirmed: actor+0xb = 1 (erase flag) at 0x3d64c;
+ * actor_verify_activation; return 0 at 0x3d650-0x3d660. Confirmed: actor+0x8 =
+ * 1 at 0x3d69c (activate). Confirmed: actor+0x6a (short) == 0 check at 0x3d697;
+ * if true: actor_set_dormant(0) at 0x3d6a5, actor_verify_activation at 0x3d6ae,
+ * return 1 at 0x3d6b8. Confirmed: actor_verify_activation at 0x3d688 for
+ * remaining paths; return 1. BL = 1 throughout (set at 0x3d608); XOR BL,BL only
+ * on swarm-fail path.
+ */
+char actor_set_active(int actor_handle, char active)
+{
+  char *actor;
+  int game_time;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_verify_activation(actor_handle);
+
+  if (*(char *)(actor + 0x8) != active) {
+    if (active == '\0') {
+      actor_delete_props(actor_handle);
+      actor_swarm_cache_delete(actor_handle);
+      actor_set_dormant(actor_handle, 1);
+      *(char *)(actor + 0x8) = 0;
+      game_time = game_time_get();
+      *(int *)(actor + 0xc) = game_time;
+    } else {
+      if (*(char *)(actor + 0x6) != '\0') {
+        FUN_0003cd30(actor_handle);
+        if (*(int *)(actor + 0x28) == -1) {
+          error(2,
+                "swarm tried to become active but couldn't, erasing %d units",
+                (int)*(short *)(actor + 0x1e));
+          *(char *)(actor + 0xb) = 1;
+          actor_verify_activation(actor_handle);
+          return 0;
+        }
+      }
+      *(char *)(actor + 0x8) = 1;
+      if (*(short *)(actor + 0x6a) == 0) {
+        actor_set_dormant(actor_handle, 0);
+        actor_verify_activation(actor_handle);
+        return 1;
+      }
+    }
+  }
+  actor_verify_activation(actor_handle);
+  return 1;
+}
+
 /* actor_swarm_attach_unit (0x3d6c0) — actor_link_swarm_unit
  *
  * Link a unit into an actor's swarm unit list. If the unit is already linked
@@ -2178,25 +2261,26 @@ void FUN_0003cff0(int actor_handle)
  * 0x3d6f1-0x3d6fe. Confirmed: data_new_at_index(swarm_component_data) if
  * actor->swarm_index != -1 at 0x3d719. Confirmed: error(2, "unable to create
  * any more swarm components...", 0x100) at 0x3d73d. Confirmed:
- * actor_swarm_detach_from_unit(unit->swarm_actor_index, unit_index) to detach old swarm at
- * 0x3d75c. Confirmed: FUN_0003cc10(unit->actor_index, 0) to detach old actor at
- * 0x3d772. Confirmed: actor_detach_from_unit(actor_handle) to detach actor's existing
- * unit at 0x3d784. Confirmed: assert checks (actor->meta.swarm byte at +6, unit
- * counts) at 0x3d78c-0x3d84f. Confirmed: unit->swarm_actor_index = actor_handle
- * at 0x3d855. Confirmed: unit->swarm_next_unit = actor->first_unit at 0x3d85e
- * (unit+0x1ac = actor+0x24). Confirmed: unit->swarm_prev_unit = -1 at 0x3d864
- * (unit+0x1b0). Confirmed: first_unit->swarm_prev_unit = unit_index if
- * first_unit != -1 at 0x3d879-0x3d8b1. Confirmed: actor->first_unit =
- * unit_index at 0x3d8bf (ESI+0x24 = EBX). Confirmed:
- * FUN_0003cb50(actor->swarm_index@eax, new_sc@edi, unit_index@ebx) at 0x3d8c7.
- * Confirmed: actor->swarm_unit_count (short at +0x1e) incremented at 0x3d8d2.
- * Confirmed: short at actor+0x20 incremented at 0x3d8d9.
- * Confirmed: encounter encounter_attach_unit(actor->encounter_index, unit_index) at
- * 0x3d8f9. Confirmed: unit->team (word at unit+0x68) set from encounter biped
- * data+2 at 0x3d8fe/0x3d908. Confirmed: actor->team (word at actor+0x3e) =
- * unit->team at 0x3d913. Confirmed: object_set_automatic_deactivation(unit_index, 0) at 0x3d917.
- * Confirmed: object_activate(unit_index) or FUN_0013fb80(unit_index) at
- * 0x3d92e/0x3d927. Confirmed: FUN_001adf10(unit_index, 1) at 0x3d939.
+ * actor_swarm_detach_from_unit(unit->swarm_actor_index, unit_index) to detach
+ * old swarm at 0x3d75c. Confirmed: FUN_0003cc10(unit->actor_index, 0) to detach
+ * old actor at 0x3d772. Confirmed: actor_detach_from_unit(actor_handle) to
+ * detach actor's existing unit at 0x3d784. Confirmed: assert checks
+ * (actor->meta.swarm byte at +6, unit counts) at 0x3d78c-0x3d84f. Confirmed:
+ * unit->swarm_actor_index = actor_handle at 0x3d855. Confirmed:
+ * unit->swarm_next_unit = actor->first_unit at 0x3d85e (unit+0x1ac =
+ * actor+0x24). Confirmed: unit->swarm_prev_unit = -1 at 0x3d864 (unit+0x1b0).
+ * Confirmed: first_unit->swarm_prev_unit = unit_index if first_unit != -1 at
+ * 0x3d879-0x3d8b1. Confirmed: actor->first_unit = unit_index at 0x3d8bf
+ * (ESI+0x24 = EBX). Confirmed: FUN_0003cb50(actor->swarm_index@eax, new_sc@edi,
+ * unit_index@ebx) at 0x3d8c7. Confirmed: actor->swarm_unit_count (short at
+ * +0x1e) incremented at 0x3d8d2. Confirmed: short at actor+0x20 incremented at
+ * 0x3d8d9. Confirmed: encounter encounter_attach_unit(actor->encounter_index,
+ * unit_index) at 0x3d8f9. Confirmed: unit->team (word at unit+0x68) set from
+ * encounter biped data+2 at 0x3d8fe/0x3d908. Confirmed: actor->team (word at
+ * actor+0x3e) = unit->team at 0x3d913. Confirmed:
+ * object_set_automatic_deactivation(unit_index, 0) at 0x3d917. Confirmed:
+ * object_activate(unit_index) or FUN_0013fb80(unit_index) at 0x3d92e/0x3d927.
+ * Confirmed: FUN_001adf10(unit_index, 1) at 0x3d939.
  */
 int actor_swarm_attach_unit(int actor_handle, int unit_index)
 {
@@ -2325,24 +2409,25 @@ int actor_swarm_attach_unit(int actor_handle, int unit_index)
  *
  * Erase all units owned by an actor. For swarm actors (byte at actor+6 != 0),
  * iterates the linked-list of unit handles starting at actor+0x24, detaching
- * each unit via actor_swarm_detach_from_unit and deleting it. For non-swarm actors, handles
- * the single unit at actor+0x18 via FUN_0003cff0. The flag parameter controls
- * whether units are deleted with object_delete (flag=0) or objects_garbage_collection
- * (flag!=0, a softer detach-and-delete path).
+ * each unit via actor_swarm_detach_from_unit and deleting it. For non-swarm
+ * actors, handles the single unit at actor+0x18 via FUN_0003cff0. The flag
+ * parameter controls whether units are deleted with object_delete (flag=0) or
+ * objects_garbage_collection (flag!=0, a softer detach-and-delete path).
  *
- * Classification evidence: callee actor_swarm_detach_from_unit references actors.c asserts
- * at 0x3aeab/0x3af05/0x3af32/0x3af6d. Callee FUN_0003cc10 references actors.c
- * assert at 0x3cc40. Callee FUN_0003cff0 calls FUN_0003cc10. Caller
- * FUN_0003d9f0 references actors.c string at 0x3da76. All confirm actors.c TU.
+ * Classification evidence: callee actor_swarm_detach_from_unit references
+ * actors.c asserts at 0x3aeab/0x3af05/0x3af32/0x3af6d. Callee FUN_0003cc10
+ * references actors.c assert at 0x3cc40. Callee FUN_0003cff0 calls
+ * FUN_0003cc10. Caller FUN_0003d9f0 references actors.c string at 0x3da76. All
+ * confirm actors.c TU.
  *
  * Confirmed: cdecl, two stack args (actor_handle, flag).
  * Confirmed: datum_get(actor_data, actor_handle) at 0x3d95f.
  * Confirmed: swarm check at actor+6 (0x3d966), branch at 0x3d96e.
  * Confirmed: loop reads actor+0x24 each iteration (0x3d971, 0x3d99e).
- * Confirmed: actor_swarm_detach_from_unit(actor_handle, unit_handle) at 0x3d982.
- * Confirmed: flag test at 0x3d98d selects object_delete vs objects_garbage_collection.
- * Confirmed: FUN_0003cc10(actor_handle, 1) at 0x3d9ac.
- * Confirmed: non-swarm path loads actor+0x18 into EDI at 0x3d9b9.
+ * Confirmed: actor_swarm_detach_from_unit(actor_handle, unit_handle) at
+ * 0x3d982. Confirmed: flag test at 0x3d98d selects object_delete vs
+ * objects_garbage_collection. Confirmed: FUN_0003cc10(actor_handle, 1) at
+ * 0x3d9ac. Confirmed: non-swarm path loads actor+0x18 into EDI at 0x3d9b9.
  * Confirmed: FUN_0003cff0(actor_handle) at 0x3d9bd. */
 void actor_erase(int actor_handle, char flag)
 {
@@ -2403,12 +2488,13 @@ void actor_erase(int actor_handle, char flag)
  *   - If actor+0x12 == 0 (no player-presence?) OR combined flags != 0:
  *       call actor_set_dormant(actor_handle, 0); return 1.
  *   - If actor+0x13 != 0 (dormant): return 1 (dormant actors always pass).
- *   - If actor_action_try_to_panic(actor_handle) returns 2 (action already in flight):
- * return 1.
+ *   - If actor_action_try_to_panic(actor_handle) returns 2 (action already in
+ * flight): return 1.
  *   - Encounter validity check: if actor+0x270 != -1:
  *       datum_get(DAT_005ab23c, actor+0x270); check +0x12e, +0x60, +0x127;
  *       if valid encounter and action type in [2,3] → return 1;
- *       if action type in [4,5] and actor_action_try_to_panic returned 3 → return 1.
+ *       if action type in [4,5] and actor_action_try_to_panic returned 3 →
+ * return 1.
  *   - FUN_0002a3d0(actor_handle) checks byte at actor+0x4a8 (non-zero =
  * vehicle?): if mode==3 and actor+0x6c==6 and biped+0x62==1 → return 1. if
  * mode==5 and encounter+0x12e!=0 → return 1.
@@ -2424,27 +2510,27 @@ void actor_erase(int actor_handle, char flag)
  *   All exits load AL from [EBP-1], so default return is 1.
  * Confirmed: ESI = datum_get result (actor record pointer) throughout.
  * Confirmed: EDI = actor_handle (from [EBP+0x8]) at 0x3d9fb; preserved until
- *   overwritten by actor_action_try_to_panic return at 0x3db2a, then restored at 0x3db92.
- * Confirmed: encounter data table at DAT_005ab23c (0x5ab23c).
+ *   overwritten by actor_action_try_to_panic return at 0x3db2a, then restored
+ * at 0x3db92. Confirmed: encounter data table at DAT_005ab23c (0x5ab23c).
  * Confirmed: actor_set_dormant(actor_handle, flag) cdecl 2 args — ADD ESP,0x8.
- * Confirmed: actor_action_try_to_panic(actor_handle) cdecl 1 arg → short action type in AX.
- *   Return stored in DI; compared as 16-bit (CMP DI,0x2 / CMP DI,0x3).
- * Confirmed: FUN_0002a3d0(actor_handle) cdecl 1 arg → byte at actor+0x4a8.
- * Confirmed: mode==3 path: CMP word[ESI+0x6c],6; CMP word[EBX+0x62],1 (biped
- * rec). EBX = DAT_005ab270 datum_get result (biped record), set at 0x3daf7.
- * Confirmed: mode==5 path: datum_get(DAT_005ab23c, actor+0x470) → check +0x12e.
- * Confirmed: ADD ESP,0x18 at 0x3da9c cleans csprintf(3)+display_assert(1)+
- *   actor_erase(2) = 6 dwords after partial ADD ESP,0xc at 0x3da8b.
- * Inferred: actor+0x13 = dormant flag (byte); actor+6 = swarm flag (byte).
- * Inferred: actor+0x28 = swarm cache handle (int); -1 = no cache.
- * Inferred: actor+0x1e = swarm unit count (short).
- * Inferred: actor+0x78 = timer/countdown int; actor+0x74 = associated mode
- * word. Inferred: actor+0x92 = secondary tick countdown (short). Inferred:
- * actor+0x34 = biped handle (int); DAT_005ab270 = biped data table. Inferred:
- * actor+0xa = actor flags byte; biped+0xc = biped flags byte. Inferred:
- * actor+0x12 = player-proximity or targeting flag (byte). Inferred: actor+0x14
- * = idle tick counter (short); threshold 0x3b (59 ticks). Inferred: actor+0x270
- * = encounter handle (int). Inferred: encounter+0x12e = scripted flag (char);
+ * Confirmed: actor_action_try_to_panic(actor_handle) cdecl 1 arg → short action
+ * type in AX. Return stored in DI; compared as 16-bit (CMP DI,0x2 / CMP
+ * DI,0x3). Confirmed: FUN_0002a3d0(actor_handle) cdecl 1 arg → byte at
+ * actor+0x4a8. Confirmed: mode==3 path: CMP word[ESI+0x6c],6; CMP
+ * word[EBX+0x62],1 (biped rec). EBX = DAT_005ab270 datum_get result (biped
+ * record), set at 0x3daf7. Confirmed: mode==5 path: datum_get(DAT_005ab23c,
+ * actor+0x470) → check +0x12e. Confirmed: ADD ESP,0x18 at 0x3da9c cleans
+ * csprintf(3)+display_assert(1)+ actor_erase(2) = 6 dwords after partial ADD
+ * ESP,0xc at 0x3da8b. Inferred: actor+0x13 = dormant flag (byte); actor+6 =
+ * swarm flag (byte). Inferred: actor+0x28 = swarm cache handle (int); -1 = no
+ * cache. Inferred: actor+0x1e = swarm unit count (short). Inferred: actor+0x78
+ * = timer/countdown int; actor+0x74 = associated mode word. Inferred:
+ * actor+0x92 = secondary tick countdown (short). Inferred: actor+0x34 = biped
+ * handle (int); DAT_005ab270 = biped data table. Inferred: actor+0xa = actor
+ * flags byte; biped+0xc = biped flags byte. Inferred: actor+0x12 =
+ * player-proximity or targeting flag (byte). Inferred: actor+0x14 = idle tick
+ * counter (short); threshold 0x3b (59 ticks). Inferred: actor+0x270 = encounter
+ * handle (int). Inferred: encounter+0x12e = scripted flag (char);
  * encounter+0x60 = active (char); encounter+0x127 = some exclusion flag (char);
  * encounter+0x24 = type/state short. Inferred: actor+0x4a8 = in-vehicle or
  * mounted flag (byte, read by FUN_0002a3d0). Inferred: actor+0x46c = activation
@@ -2649,11 +2735,12 @@ char FUN_0003d9f0(int actor_handle)
  * Confirmed: FUN_001ba1f0 = tag_get_for_object (two calls at 0x3e0b2/0x3e0cf).
  * Confirmed: FUN_0008f390 = error_display_string (two calls at
  * 0x3e0c2/0x3e0e0). Confirmed: encounter_get_squad = encounter_get_squad at
- * 0x3df6d/0x3df83. Confirmed: actor_combat_get_firing_variant_definition = actor_get_unit_speed_record at
- * 0x3ded2. Confirmed: FUN_00021fb0 = assert_valid_real_normal3d (3 calls at
- * 0x3e380..0x3e447). Confirmed: FUN_00028610 = assert_valid_real_normal2d at
- * 0x3e4ac. Confirmed: FUN_000a7a30 = object_is_in_team at 0x3e145. Confirmed:
- * FUN_00012f10 = real_vector3d_length at 0x3e22e. Confirmed: FUN_00013010 =
+ * 0x3df6d/0x3df83. Confirmed: actor_combat_get_firing_variant_definition =
+ * actor_get_unit_speed_record at 0x3ded2. Confirmed: FUN_00021fb0 =
+ * assert_valid_real_normal3d (3 calls at 0x3e380..0x3e447). Confirmed:
+ * FUN_00028610 = assert_valid_real_normal2d at 0x3e4ac. Confirmed: FUN_000a7a30
+ * = object_is_in_team at 0x3e145. Confirmed: FUN_00012f10 =
+ * real_vector3d_length at 0x3e22e. Confirmed: FUN_00013010 =
  * real_vector3d_normalize (in-place) at 0x3e33a. Confirmed: world_up constant
  * pointer at *(float**)0x31fc44 (x,y,z). Confirmed: zero-vector pointer at
  * *(float**)0x31fc1c. Confirmed: forward-vector pointer at *(float**)0x31fc3c.
@@ -2842,7 +2929,8 @@ void FUN_0003dc20(int actor_handle)
     /* Check if actor's biped is in the passenger seat (vehicle+0x2d8) */
     if (*(int *)(parent_obj + 0x2d8) == *(int *)(actor + 0x18)) {
       *(char *)(actor + 0x161) = 1;
-      speed_rec = (char *)actor_combat_get_firing_variant_definition(actor_handle);
+      speed_rec =
+        (char *)actor_combat_get_firing_variant_definition(actor_handle);
       *(char *)(actor + 0x162) =
         (*(float *)(speed_rec + 0x14c) > *(float *)0x2533c0) ? 1 : 0;
     }
@@ -2860,7 +2948,8 @@ void FUN_0003dc20(int actor_handle)
         encounter = (char *)datum_get(*(data_t **)0x5ab270,
                                       *(unsigned int *)(actor + 0x34));
         if (*(short *)(encounter + 0x62) > 0) {
-          squad = (char *)encounter_get_squad(encounter, *(short *)(actor + 0x3a));
+          squad =
+            (char *)encounter_get_squad(encounter, *(short *)(actor + 0x3a));
           squad2 = (char *)encounter_get_squad(
             encounter, (int)(short)*(short *)(parent_obj + 0x2e6));
           if (*(char *)(squad + 0x10) != 0 && *(char *)(squad2 + 0x10) != 0) {
@@ -2979,7 +3068,8 @@ LAB_3e02c:
 
   /* Facing vector: from vehicle if riding, otherwise from own biped.
    * Confirmed: CMP word[ESI+0x15e],0 at 0x3e1f7; if >= 1 use actor+0x158,
-   *   else use actor+0x18. units_debug_get_closest_unit(handle, actor+0x174) at 0x3e215. */
+   *   else use actor+0x18. units_debug_get_closest_unit(handle, actor+0x174) at
+   * 0x3e215. */
   {
     int facing_src;
     if (*(short *)(actor + 0x15e) >= 1) {
@@ -3011,10 +3101,11 @@ LAB_3e02c:
    * Otherwise: copy from biped+0x1ec..0x1f4.
    * Confirmed: object_get_and_verify_type(actor+0x158, 2) at 0x3e277.
    * Confirmed: tag_get('vehi', vehicle[0]) for flag check at 0x3e280/0x3e286.
-   * Confirmed: flag bit 0x100 at tag+0x2f0 → if set, use units_debug_get_closest_unit for
-   *   aiming from own position; else copy vehicle+0x1ec..0x1f4.
-   * Confirmed: biped+0x1ec..0x1f4 for on-foot path (0x3e2ae/0x3e2c6).
-   * Confirmed: biped+500 (0x1f4) used as int (500 == 0x1f4). */
+   * Confirmed: flag bit 0x100 at tag+0x2f0 → if set, use
+   * units_debug_get_closest_unit for aiming from own position; else copy
+   * vehicle+0x1ec..0x1f4. Confirmed: biped+0x1ec..0x1f4 for on-foot path
+   * (0x3e2ae/0x3e2c6). Confirmed: biped+500 (0x1f4) used as int (500 == 0x1f4).
+   */
   if (*(char *)(actor + 0x161) == 0) {
     /* On foot or driver: use biped aiming vector */
     *(int *)(actor + 0x180) = *(int *)(biped + 0x1ec);
@@ -3192,10 +3283,10 @@ LAB_3e02c:
  * Confirmed: actor+0x6ec != -1 → FUN_001b1a20(actor+0x18,
  * (int)(uint16)(actor+0x6ec), actor+0x6f0) at 0x3ea65; XOR EAX,EAX; MOV
  * AX,word[ESI+0x6ec] = zero-extend. Confirmed: actor+0x6d4 > 0 →
- * unit_persistent_control(actor+0x18, MOVSX(actor+0x6d4), actor+0x6d8) at 0x3ea85; MOVSX
- * EDX,AX sign-extends the short. Inferred: actor+0x6dc = animation_state_index
- * (maps through 0x256c94 table). Inferred: actor+0x6f0 = pointer/data block
- * passed as 3rd arg to FUN_001b1a20. Inferred: actor+0x6d4 =
+ * unit_persistent_control(actor+0x18, MOVSX(actor+0x6d4), actor+0x6d8) at
+ * 0x3ea85; MOVSX EDX,AX sign-extends the short. Inferred: actor+0x6dc =
+ * animation_state_index (maps through 0x256c94 table). Inferred: actor+0x6f0 =
+ * pointer/data block passed as 3rd arg to FUN_001b1a20. Inferred: actor+0x6d4 =
  * animation_tick_count (short); actor+0x6d8 = animation control flags dword for
  * unit_persistent_control. Uncertain: exact semantics of FUN_001b1a20's 2nd arg
  * (zero-extended index).
@@ -3310,50 +3401,50 @@ void FUN_0003e7a0(int actor_handle /* @<eax> */)
   /* If animation ticks are pending (actor+0x6d4 > 0), advance animation */
   if ((int16_t) * (int16_t *)(actor + 0x6d4) > 0) {
     unit_persistent_control(*(int *)(actor + 0x18),
-                 (int)(int16_t) * (int16_t *)(actor + 0x6d4),
-                 *(int *)(actor + 0x6d8));
+                            (int)(int16_t) * (int16_t *)(actor + 0x6d4),
+                            *(int *)(actor + 0x6d8));
   }
 }
 
-/* actor_attach_unit (0x3eab0) — link an individual (non-swarm) unit to an actor.
+/* actor_attach_unit (0x3eab0) — link an individual (non-swarm) unit to an
+ * actor.
  *
  * Detaches any prior actor-unit associations (both directions) before
  * establishing the new link.  If the actor already holds a unit, that unit is
- * detached via actor_detach_from_unit.  If the unit already belongs to a different actor,
- * that actor is notified via actor_swarm_detach_from_unit (swarm path) and FUN_0003cc10.
- * After checks the function writes:
- *   actor+0x18 = unit_index  (actor->meta.unit_index)
- *   unit+0x1a4  = actor_handle (unit->unit.actor_index)
- * If actor is part of an encounter (actor+0x34 != -1) it syncs the encounter
- * biped data via encounter_attach_unit and copies the team word (encounter_datum+2) into
- * unit+0x68.  actor+0x3e is then set to unit+0x68 (actor->team = unit->team).
- * If unit health (unit+0x6e) >= 100 the actor "fully_alive" byte (actor+0x1c)
- * is set to 1, and if an encounter exists its alive-unit counter (short at
- * encounter+0x1c) is incremented.
- * Runs actor input update (FUN_0003dc20), object_set_automatic_deactivation, and activates the unit
- * (object_activate or FUN_0013fb80 depending on actor+0x13 dormant flag).
- * Calls FUN_001adf10(unit_index, 1).  Always ends with
+ * detached via actor_detach_from_unit.  If the unit already belongs to a
+ * different actor, that actor is notified via actor_swarm_detach_from_unit
+ * (swarm path) and FUN_0003cc10. After checks the function writes: actor+0x18 =
+ * unit_index  (actor->meta.unit_index) unit+0x1a4  = actor_handle
+ * (unit->unit.actor_index) If actor is part of an encounter (actor+0x34 != -1)
+ * it syncs the encounter biped data via encounter_attach_unit and copies the
+ * team word (encounter_datum+2) into unit+0x68.  actor+0x3e is then set to
+ * unit+0x68 (actor->team = unit->team). If unit health (unit+0x6e) >= 100 the
+ * actor "fully_alive" byte (actor+0x1c) is set to 1, and if an encounter exists
+ * its alive-unit counter (short at encounter+0x1c) is incremented. Runs actor
+ * input update (FUN_0003dc20), object_set_automatic_deactivation, and activates
+ * the unit (object_activate or FUN_0013fb80 depending on actor+0x13 dormant
+ * flag). Calls FUN_001adf10(unit_index, 1).  Always ends with
  * actor_verify_activation(actor_handle).
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x3eac1.
  * Confirmed: object_get_and_verify_type(unit_index, 3) at 0x3eace.
  * Confirmed: early-out if unit->actor_index == actor_handle at 0x3ead5-0x3eae3.
- * Confirmed: actor_swarm_detach_from_unit(unit->swarm_actor_index, unit_index) at 0x3eaf6.
- * Confirmed: FUN_0003cc10(unit->actor_index, 0) at 0x3eb0c.
- * Confirmed: actor_detach_from_unit(actor_handle) if actor->unit_index != -1 at 0x3eb1e.
- * Confirmed: 4× display_assert + system_exit guard block at 0x3eb2b-0x3ebc4.
- * Confirmed: actor+0x18 = unit_index (EBX) at 0x3ebc8.
+ * Confirmed: actor_swarm_detach_from_unit(unit->swarm_actor_index, unit_index)
+ * at 0x3eaf6. Confirmed: FUN_0003cc10(unit->actor_index, 0) at 0x3eb0c.
+ * Confirmed: actor_detach_from_unit(actor_handle) if actor->unit_index != -1 at
+ * 0x3eb1e. Confirmed: 4× display_assert + system_exit guard block at
+ * 0x3eb2b-0x3ebc4. Confirmed: actor+0x18 = unit_index (EBX) at 0x3ebc8.
  * Confirmed: unit+0x1a4 = actor_handle at 0x3ebcb.
- * Confirmed: datum_get(encounter_data, actor->encounter_handle) + encounter_attach_unit
- *   at 0x3ebe1/0x3ebf0; unit+0x68 = encounter_datum+2 at 0x3ebff.
- * Confirmed: actor+0x3e = unit+0x68 at 0x3ec07.
- * Confirmed: unit+0x6e >= 100 → actor+0x1c = 1 at 0x3ec18 (scheduler hoisted).
- * Confirmed: encounter+0x1c incremented when encounter != -1 at 0x3ec2e.
- * Confirmed: FUN_0003dc20(actor_handle) at 0x3ec36.
- * Confirmed: object_set_automatic_deactivation(unit_index, 0) at 0x3ec3e.
- * Confirmed: actor+0x13 selects FUN_0013fb80 vs object_activate at
- * 0x3ec4e/0x3ec55. Confirmed: FUN_001adf10(unit_index, 1) at 0x3ec60.
- * Confirmed: actor_verify_activation(actor_handle) always called at 0x3ec6c. */
+ * Confirmed: datum_get(encounter_data, actor->encounter_handle) +
+ * encounter_attach_unit at 0x3ebe1/0x3ebf0; unit+0x68 = encounter_datum+2 at
+ * 0x3ebff. Confirmed: actor+0x3e = unit+0x68 at 0x3ec07. Confirmed: unit+0x6e
+ * >= 100 → actor+0x1c = 1 at 0x3ec18 (scheduler hoisted). Confirmed:
+ * encounter+0x1c incremented when encounter != -1 at 0x3ec2e. Confirmed:
+ * FUN_0003dc20(actor_handle) at 0x3ec36. Confirmed:
+ * object_set_automatic_deactivation(unit_index, 0) at 0x3ec3e. Confirmed:
+ * actor+0x13 selects FUN_0013fb80 vs object_activate at 0x3ec4e/0x3ec55.
+ * Confirmed: FUN_001adf10(unit_index, 1) at 0x3ec60. Confirmed:
+ * actor_verify_activation(actor_handle) always called at 0x3ec6c. */
 void actor_attach_unit(int actor_handle, int unit_index)
 {
   char *actor;
@@ -3574,8 +3665,8 @@ void FUN_0003ec80(int actor_handle /* @<esi> */)
   *(int *)0x2c8728 = -1;
 }
 
-/* actor_create_for_unit (0x3edc0) — allocate and initialize an actor record, then link
- * it to its unit.
+/* actor_create_for_unit (0x3edc0) — allocate and initialize an actor record,
+ * then link it to its unit.
  *
  * For individual (non-swarm) actors (flags==0): verifies the unit can accept an
  * actor (object_try_and_get_and_verify_type succeeds and bit 2 at +0xb6 is
@@ -3586,33 +3677,34 @@ void FUN_0003ec80(int actor_handle /* @<esi> */)
  *
  * Then creates a fresh actor datum via FUN_0003c410 (which allocates from
  * actor_data and initializes all fields). Sets encounter/squad assignment via
- * encounterless_attach_actor (no encounter) or encounter_attach_actor (with encounter). Sets the
- * encounter_flag, squad starting location index, squad position index,
- * swarm-flag, and marker byte on the actor record.
+ * encounterless_attach_actor (no encounter) or encounter_attach_actor (with
+ * encounter). Sets the encounter_flag, squad starting location index, squad
+ * position index, swarm-flag, and marker byte on the actor record.
  *
  * Validates that the actor variant's swarm flag matches the actor type's swarm
  * flag (from the actor_type field at actor+4 via FUN_0003a800). On mismatch,
  * prints a warning and destroys the allocated actor.
  *
  * Finally links the unit to the actor: actor_attach_unit for individual,
- * actor_swarm_attach_unit for swarm. On swarm link failure, destroys the actor if it has
- * no swarm units.
+ * actor_swarm_attach_unit for swarm. On swarm link failure, destroys the actor
+ * if it has no swarm units.
  *
  * Returns actor handle, or -1 on failure.
  *
  * Confirmed: 12 cdecl args (ADD ESP,0x30 at 0x3f2a1 in FUN_0003f030).
- * Confirmed: iter[3] at [EBP-0xc]: encounter_actor_iterator_new writes iter[0..2], FUN_00059a50
- *   returns datum_get(actor_data,iter[1]) and advances iter[2] to next handle.
- * Confirmed: actor_data (DAT_006325a4) at 0x3ee88, encounter_data (0x5ab270) at
- *   0x3eeaa. Confirmed: handle-tag construction (MOVSX+SHL+OR) at
- * 0x3eec2-0x3eece. Confirmed: FUN_0003a800 takes int16_t actor_type, returns
- * char swarm flag. Confirmed: strings "swarm" at 0x256cd4, "individual" at
- * 0x256d2c, format string at 0x257468. */
+ * Confirmed: iter[3] at [EBP-0xc]: encounter_actor_iterator_new writes
+ * iter[0..2], FUN_00059a50 returns datum_get(actor_data,iter[1]) and advances
+ * iter[2] to next handle. Confirmed: actor_data (DAT_006325a4) at 0x3ee88,
+ * encounter_data (0x5ab270) at 0x3eeaa. Confirmed: handle-tag construction
+ * (MOVSX+SHL+OR) at 0x3eec2-0x3eece. Confirmed: FUN_0003a800 takes int16_t
+ * actor_type, returns char swarm flag. Confirmed: strings "swarm" at 0x256cd4,
+ * "individual" at 0x256d2c, format string at 0x257468. */
 int actor_create_for_unit(char flags, int unit_index, int actv_tag_index,
-                 int encounter_index, int squad_index, char param6,
-                 int exclude_actor_handle, char encounter_flag,
-                 short starting_location_index, short squad_position_index,
-                 unsigned short param11, char param12)
+                          int encounter_index, int squad_index, char param6,
+                          int exclude_actor_handle, char encounter_flag,
+                          short starting_location_index,
+                          short squad_position_index, unsigned short param11,
+                          char param12)
 {
   char *actor;
   char actor_is_swarm;
@@ -3744,14 +3836,13 @@ actor_found:
  * Confirmed: tag_get('actv', actv_tag_index) at 0x3f071.
  * Confirmed: use_major_variant selects actv+0x30 alternate variant at 0x3f082.
  * Confirmed: tag_get('actr', [actv+0x10]) at 0x3f0c5 for actor definition
- * flags. Confirmed: object_placement_data_new(placement, [actv+0x20], -1) at 0x3f0d9.
- * Confirmed: position copied from starting_location[0..8] to placement+0x18 at
- *   0x3f0e0-0x3f0f6.
- * Confirmed: FUN_0010cc70(placement+0x34, starting_location+0xC) at 0x3f0f9.
- * Confirmed: object_new(placement) at 0x3f10d creates the unit.
- * Confirmed: actor_customize_unit(actv_tag_index, unit_index) at 0x3f202 (2 cdecl args,
- *   ADD ESP,0x8).
- * Confirmed: actor_create_for_unit with 12 cdecl args at 0x3f2a1 (ADD ESP,0x30).
+ * flags. Confirmed: object_placement_data_new(placement, [actv+0x20], -1) at
+ * 0x3f0d9. Confirmed: position copied from starting_location[0..8] to
+ * placement+0x18 at 0x3f0e0-0x3f0f6. Confirmed: FUN_0010cc70(placement+0x34,
+ * starting_location+0xC) at 0x3f0f9. Confirmed: object_new(placement) at
+ * 0x3f10d creates the unit. Confirmed: actor_customize_unit(actv_tag_index,
+ * unit_index) at 0x3f202 (2 cdecl args, ADD ESP,0x8). Confirmed:
+ * actor_create_for_unit with 12 cdecl args at 0x3f2a1 (ADD ESP,0x30).
  * Confirmed: actor_verify_activation(actor_handle) at 0x3f33c on success.
  * Confirmed: object_delete(unit_index) at 0x3f32a on actor creation failure.
  * Confirmed: FUN_00054220(combined_idx, scenario, buf, 256) at 0x3f16b/0x3f2f8
@@ -3861,11 +3952,11 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
     sVar7 = *(short *)((char *)starting_location + 0x14);
   }
 
-  actor_index =
-    actor_create_for_unit(actor_flag, unit_index, actv_tag_index, encounter_index,
-                 squad_index, 0, -1, encounter_flag, sVar1, sVar7,
-                 *(unsigned short *)((char *)starting_location + 0x1a),
-                 (short)*(signed char *)((char *)starting_location + 0x12));
+  actor_index = actor_create_for_unit(
+    actor_flag, unit_index, actv_tag_index, encounter_index, squad_index, 0, -1,
+    encounter_flag, sVar1, sVar7,
+    *(unsigned short *)((char *)starting_location + 0x1a),
+    (short)*(signed char *)((char *)starting_location + 0x12));
 
   if (actor_index == -1) {
     if (encounter_index == -1) {
