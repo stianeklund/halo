@@ -1499,6 +1499,305 @@ LAB_0005d365:
   *(char *)(encounter + 0x28) = 1;
 }
 
+/* 0x5d420 — encounter_update_status.
+ *
+ * Recomputes per-encounter, per-squad, and per-platoon actor-count statistics
+ * for the encounter identified by encounter_handle.  Called after every actor
+ * attach/detach so the encounter's cached counts stay consistent.
+ *
+ * Algorithm:
+ *   1. Resolve encounter ptr via datum_get(encounter_data, encounter_handle).
+ *   2. Reset counters: encounter+0x44 (enemy_alive), +0x45 (enemy_visible),
+ *      +0x30, +0x2e, +0x2c, +0x2a (short tallies), +0x34 (float vitality sum);
+ *      and per-squad (+0x18, +0x1a, +0x1c) and per-platoon (+0x6, +0x8, +0xc).
+ *   3. Walk the actor linked list (encounter+0x14 chained via actor+0x2c).
+ *      For each actor compute its contribution weight:
+ *        - if actor+0x18 == -1 (no live unit): weight = actor+0x1e / actor+0x20
+ *        - else: weight = 1, vitality = *(float*)(unit+0x90)
+ *      Then accumulate per-squad, per-platoon (if actor+0x3c != -1), and
+ *      encounter-level counters.  Also calls FUN_0003b120/FUN_0003b150 with
+ *      the actor handle for dead/fleeing status.
+ *      Sets encounter enemy-visible/alive flags from unit state when
+ *      actor+0x270 != -1.
+ *   4. If no longer active (enemy gone), calls FUN_0005aab0 or FUN_0005bbe0
+ *      depending on encounter state.
+ *   5. Finalise: compute vitality ratio = sum_vitality / actor_count - 0.001f,
+ *      clamped to 0.0f, for encounter and each squad/platoon.
+ *   6. Clear encounter+0x28 (dirty flag).
+ *
+ * Confirmed:
+ *   ESI = encounter ptr (callee-saved, loaded at 0x5d439).
+ *   EDI = loop counter / reused during actor walk.
+ *   EBX = integer weight during actor loop (sVar13).
+ *   FPU: FILD/FIDIV/FSTP at 0x5d569-0x5d572 for integer-ratio weight.
+ *   FDIVR at 0x5d7c4, 0x5d806, 0x5d84e for final vitality ratio.
+ *   FSUB [0x255ef8] (0.001f) at 0x5d7c7, 0x5d809, 0x5d851.
+ *   FCOMP [0x2533c0] (0.0f) + TEST AH,0x41 clamp pattern.
+ *   assert string "!encounter->enemy_visible && !encounter->enemy_alive"
+ *     at 0x5d754, file "c:\halo\SOURCE\ai\encounters.c" line 0x86c.
+ */
+void encounter_update_status(int encounter_handle)
+{
+    char *encounter;
+    char *actor;
+    char *squad;
+    char *platoon;
+    char *unit;
+    int actor_handle;
+    int next_actor_handle;
+    int i;
+    short weight;
+    float vitality;
+    float fVar1;
+    unsigned char bVar6;
+    char not_same_team;      /* bVar2: set if FUN_000a7a90 returns false */
+    char has_reinforcements;  /* bVar3: set if actor+0x1e4 > 0 */
+    char saw_enemy_primary;   /* bVar4: actor+0x8c != 0 */
+    char saw_enemy_secondary; /* bVar5: actor+0x8d != 0 */
+
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+
+    not_same_team = 0;
+    has_reinforcements = 0;
+    saw_enemy_primary = 0;
+    saw_enemy_secondary = 0;
+
+    /* Reset encounter-level status fields */
+    *(char *)(encounter + 0x44) = 0;
+    *(char *)(encounter + 0x45) = 0;
+    *(short *)(encounter + 0x30) = 0;
+    *(short *)(encounter + 0x2e) = 0;
+    *(short *)(encounter + 0x2c) = 0;
+    *(short *)(encounter + 0x2a) = 0;
+    *(int *)(encounter + 0x34) = 0;
+
+    /* Reset per-squad counters */
+    i = 0;
+    if (0 < *(short *)(encounter + 6)) {
+        do {
+            squad = encounter_get_squad(encounter, (short)i);
+            i = i + 1;
+            *(short *)(squad + 0x1a) = 0;
+            *(short *)(squad + 0x18) = 0;
+            *(int *)(squad + 0x1c) = 0;
+        } while ((short)i < *(short *)(encounter + 6));
+    }
+
+    /* Reset per-platoon counters */
+    i = 0;
+    if (0 < *(short *)(encounter + 10)) {
+        do {
+            platoon = FUN_00054020(encounter, (short)i);
+            i = i + 1;
+            *(short *)(platoon + 8) = 0;
+            *(short *)(platoon + 6) = 0;
+            *(int *)(platoon + 0xc) = 0;
+        } while ((short)i < *(short *)(encounter + 10));
+    }
+
+    /* Determine starting actor handle for the linked-list walk */
+    if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+        if (encounter_handle == -1) {
+            actor_handle = *(int *)(*(char **)0x632574 + 8);
+        } else {
+            actor_handle = *(int *)((char *)datum_get(*(data_t **)0x5ab270,
+                                                      encounter_handle) + 0x14);
+        }
+    }
+
+    /* Walk the actor linked list */
+    while (*(char *)(*(char **)0x632574 + 1) != '\0' && actor_handle != -1) {
+        actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+        next_actor_handle = *(int *)(actor + 0x2c);
+
+        squad = encounter_get_squad(encounter, *(short *)(actor + 0x3a));
+
+        /* Compute per-actor weight and vitality */
+        if (*(int *)(actor + 0x18) != -1) {
+            /* Live unit: weight = 1, vitality from unit health field */
+            unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+            vitality = *(float *)(unit + 0x90);
+            weight = 1;
+        } else {
+            /* No live unit: use spawn fraction as weight */
+            weight = *(short *)(actor + 0x1e);
+            vitality = (float)(int)weight / (float)(int)*(short *)(actor + 0x20);
+        }
+
+        /* Accumulate platoon counters if actor belongs to a platoon */
+        if (*(short *)(actor + 0x3c) != -1) {
+            platoon = FUN_00054020(encounter, *(short *)(actor + 0x3c));
+            *(short *)(platoon + 6) = *(short *)(platoon + 6) + weight;
+            bVar6 = *(unsigned char *)(actor + 6);
+            *(float *)(platoon + 0xc) = vitality + *(float *)(platoon + 0xc);
+            *(short *)(platoon + 8) = *(short *)(platoon + 8) +
+                (short)((unsigned short)bVar6 * (unsigned short)weight);
+        }
+
+        /* Accumulate squad counters */
+        *(short *)(squad + 0x18) = *(short *)(squad + 0x18) + weight;
+        bVar6 = *(unsigned char *)(actor + 6);
+        *(float *)(squad + 0x1c) = vitality + *(float *)(squad + 0x1c);
+        *(short *)(squad + 0x1a) = *(short *)(squad + 0x1a) +
+            (short)((unsigned short)bVar6 * (unsigned short)weight);
+
+        /* Accumulate encounter counters */
+        *(short *)(encounter + 0x2a) = *(short *)(encounter + 0x2a) + weight;
+        *(short *)(encounter + 0x2c) = *(short *)(encounter + 0x2c) +
+            (short)((unsigned short)*(unsigned char *)(actor + 6) * (unsigned short)weight);
+
+        bVar6 = (unsigned char)FUN_0003b120(actor_handle);
+        *(short *)(encounter + 0x2e) = *(short *)(encounter + 0x2e) +
+            (short)((unsigned short)bVar6 * (unsigned short)weight);
+
+        bVar6 = (unsigned char)FUN_0003b150(actor_handle);
+        *(float *)(encounter + 0x34) = vitality + *(float *)(encounter + 0x34);
+        *(short *)(encounter + 0x30) = *(short *)(encounter + 0x30) +
+            (short)((unsigned short)bVar6 * (unsigned short)weight);
+
+        /* Enemy visible / alive flags from actor's linked unit */
+        if (*(int *)(actor + 0x270) != -1) {
+            unit = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+            *(char *)(encounter + 0x43) = 1;
+
+            if (!FUN_000a7a90(*(short *)(actor + 0x3e),
+                              *(short *)(unit + 0x12))) {
+                not_same_team = 1;
+            }
+
+            FUN_0003b120(actor_handle);
+
+            if (*(char *)(actor + 0x8c) != '\0') {
+                saw_enemy_primary = 1;
+            }
+            if (*(char *)(actor + 0x8d) != '\0') {
+                saw_enemy_secondary = 1;
+            }
+
+            if (*(short *)(actor + 0x6e) >= 7) {
+                *(char *)(encounter + 0x45) = 1;
+            } else {
+                if (*(short *)(unit + 0x24) < 2 || 3 < *(short *)(unit + 0x24)) {
+                    bVar6 = *(unsigned char *)((char *)object_get_and_verify_type(
+                        *(int *)(unit + 0x18), 3) + 0xb6) & 4;
+                } else {
+                    bVar6 = *(unsigned char *)(unit + 0x127);
+                }
+                if (bVar6 != 0) {
+                    goto skip_enemy_alive;
+                }
+            }
+
+            *(char *)(encounter + 0x44) = 1;
+        }
+
+    skip_enemy_alive:
+        actor_handle = next_actor_handle;
+        if (0 < *(short *)(actor + 0x1e4)) {
+            has_reinforcements = 1;
+        }
+    }
+
+    /* Apply not-same-team flag */
+    if (not_same_team) {
+        *(char *)(encounter + 0x46) = 0;
+    }
+
+    /* State machine: determine encounter activity */
+    if (*(char *)(encounter + 0x45) == '\0' &&
+        (*(int *)(encounter + 0x50) == -1 || 0x3b < *(int *)(encounter + 0x50))) {
+        if ((*(char *)(encounter + 0x44) == '\0' &&
+             (*(int *)(encounter + 0x54) == -1 || 0x3b < *(int *)(encounter + 0x54))) ||
+            (*(int *)(encounter + 0x50) == -1 || 0x1c1 < *(int *)(encounter + 0x50))) {
+
+            if (*(char *)(encounter + 0x42) != '\0') {
+                /* Encounter was previously active -- transition out */
+                *(char *)(encounter + 0x47) = 0;
+                *(short *)(encounter + 0x1a) = *(short *)(encounter + 0x2a);
+                *(int *)(encounter + 0x58) = game_time_get();
+                *(short *)(encounter + 0x4c) = 0;
+
+                if (*(char *)(encounter + 0x43) == '\0') {
+                    if (*(char *)(encounter + 0x45) != '\0' ||
+                        *(char *)(encounter + 0x44) != '\0') {
+                        display_assert(
+                            "!encounter->enemy_visible && !encounter->enemy_alive",
+                            "c:\\halo\\SOURCE\\ai\\encounters.c", 0x86c, 1);
+                        system_exit(-1);
+                    }
+                    *(int *)(encounter + 0x50) = -1;
+                    *(int *)(encounter + 0x54) = -1;
+                }
+            } else {
+                if (*(char *)(encounter + 0x47) != '\0') {
+                    *(char *)(encounter + 0x48) = !has_reinforcements;
+                    if (*(short *)(encounter + 0x4a) != 0) {
+                        goto done;
+                    }
+                } else {
+                    if (saw_enemy_primary && saw_enemy_secondary) {
+                        FUN_0005bbe0(encounter_handle);
+                        goto done;
+                    }
+                }
+                FUN_0005aab0(encounter_handle);
+            }
+        } else {
+            /* Still active */
+            *(char *)(encounter + 0x42) = 0;
+            *(char *)(encounter + 0x47) = 0;
+        }
+    } else {
+        /* Still active */
+        *(char *)(encounter + 0x42) = 0;
+        *(char *)(encounter + 0x47) = 0;
+    }
+
+done:
+    /* Finalise encounter vitality ratio */
+    if (0 < *(short *)(encounter + 0x18)) {
+        fVar1 = *(float *)(encounter + 0x34) / (float)(int)*(short *)(encounter + 0x18)
+                - *(float *)0x255ef8;
+        if (fVar1 < *(float *)0x2533c0) {
+            fVar1 = *(float *)0x2533c0;
+        }
+        *(float *)(encounter + 0x34) = fVar1;
+    }
+
+    /* Finalise per-squad vitality ratios */
+    i = 0;
+    if (0 < *(short *)(encounter + 6)) {
+        do {
+            squad = encounter_get_squad(encounter, (short)i);
+            fVar1 = *(float *)(squad + 0x1c) / (float)(int)*(short *)(squad + 0x16)
+                    - *(float *)0x255ef8;
+            if (fVar1 < *(float *)0x2533c0) {
+                fVar1 = *(float *)0x2533c0;
+            }
+            i = i + 1;
+            *(float *)(squad + 0x1c) = fVar1;
+        } while ((short)i < *(short *)(encounter + 6));
+    }
+
+    /* Finalise per-platoon vitality ratios */
+    i = 0;
+    if (0 < *(short *)(encounter + 10)) {
+        do {
+            platoon = FUN_00054020(encounter, (short)i);
+            fVar1 = *(float *)(platoon + 0xc) / (float)(int)*(short *)(platoon + 4)
+                    - *(float *)0x255ef8;
+            if (fVar1 < *(float *)0x2533c0) {
+                fVar1 = *(float *)0x2533c0;
+            }
+            i = i + 1;
+            *(float *)(platoon + 0xc) = fVar1;
+        } while ((short)i < *(short *)(encounter + 10));
+    }
+
+    /* Clear the dirty / recycle-pending flag */
+    *(char *)(encounter + 0x28) = 0;
+}
+
 /* 0x5d890 — Iterate all encounters; for each dirty encounter whose
  * flag at +0x28 is set, calls encounter_update_status (encounter_finalize/recycle).
  *

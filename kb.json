@@ -723,6 +723,14 @@
           "ported": true,
           "status": "ported",
           "src": "src/halo/ai/actors.c"
+        },
+        {
+          "decl": "char FUN_0003b120(int actor_handle);",
+          "addr": "0x3b120"
+        },
+        {
+          "decl": "char FUN_0003b150(int actor_handle);",
+          "addr": "0x3b150"
         }
       ]
     },
@@ -9584,7 +9592,8 @@
         },
         {
           "decl": "void encounter_update_status(int encounter_handle);",
-          "addr": "0x5d420"
+          "addr": "0x5d420",
+          "ported": true
         },
         {
           "decl": "void encounters_update_dirty_status(void);",
@@ -9657,8 +9666,17 @@
           "addr": "0x5a050",
           "decl": "void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */);",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0005aab0(int encounter_handle);",
+          "addr": "0x5aab0"
+        },
+        {
+          "decl": "void FUN_0005bbe0(int encounter_handle);",
+          "addr": "0x5bbe0"
         }
-      ]
+      ],
+      "src": "src/halo/ai/encounters.c"
     },
     {
       "name": "props.obj",
