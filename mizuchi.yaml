@@ -1,0 +1,70 @@
+global:
+  getContextScript: tools/mizuchi/get-context.sh "{{targetObjectPath}}"
+  maxRetries: 25
+  outputDir: ./artifacts/mizuchi
+  compilerScript: |
+    REPO_ROOT="$PWD" tools/permuter/compile.sh "{{cFilePath}}" -o "{{objFilePath}}"
+  promptsDir: ./artifacts/mizuchi/prompts
+  mapFilePath: ./objdiff.json
+  target: win32
+  nonMatchingAsmFolders: []
+  matchingAsmFolders: []
+  excludeFromScan:
+    - tools
+    - third_party
+    - build
+    - dist
+    - .claude
+    - .opencode
+
+plugins:
+  objdiff:
+    diffSettings: {}
+
+  claude-runner:
+    timeoutMs: 600000
+    ttftTimeoutMs: 180000
+    softTimeout:
+      softTimeoutMs: 420000
+      prompt: 'You are running out of time. Submit your best C code now in a ```c block. Do not explain, do not use tools, just output the code.'
+    kickoffMessage: 'Decompile the function described in the system prompt. Respond with only the C code in a ```c code block.'
+    systemPrompt: |
+      You are an automated decompilation system that converts assembly code into C code that compiles into identical machine code.
+
+      This project targets Halo CE Xbox and uses MSVC 7.1 COFF objects as the ground truth.
+
+      Requirements:
+      - Output only one final ```c code block.
+      - Preserve ABI, calling convention, control flow shape, and side effects.
+      - Reuse existing types and declarations from the provided context when possible.
+      - Do not invent helper functions unless they already exist in the codebase.
+      - The provided context is prepended before compilation.
+
+      Available tool:
+      - compile_and_view_assembly: compiles the code and shows the current diff.
+
+      Workflow:
+      1. Analyze the assembly.
+      2. Read the context at `{{contextFilePath}}`.
+      3. Produce C code.
+      4. Use compile_and_view_assembly.
+      5. Iterate until the diff is minimized.
+      6. Return only the final ```c block.
+
+      <decompilation_task>
+      {{promptContent}}
+      </decompilation_task>
+
+  m2c:
+    enable: false
+
+  decomp-permuter:
+    enable: true
+    path: ./third_party/decomp-permuter
+    maxIterations: 1000
+    timeoutMs: 120000
+    flags:
+      - '--show-errors'
+      - '-j'
+      - '4'
+    compilerType: base
