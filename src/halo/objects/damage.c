@@ -1620,8 +1620,8 @@ skip_player_effect:
         /* BUG1-FIX: arg7 = &damage_scale (EBP-0xc), NOT &body_damage.
          * After the call, damage_scale holds the remaining body damage.
          * Disasm at 0x1382db: LEA ECX,[EBP-0xc]; PUSH ECX → last arg. */
-        FUN_00136bc0(collision_model, (int)material_data, jpt_offset, damage_params,
-                     &damage_flags, &shield_damage, &damage_scale);
+        FUN_00136bc0(current_object_handle, collision_model, (int)material_data, jpt_offset,
+                     damage_params, &damage_flags, &shield_damage, &damage_scale);
         coll_data = (unsigned char *)collision_model;
       }
 

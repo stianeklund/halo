@@ -10231,7 +10231,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00136bc0(void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *shield_damage, float *body_damage);",
+          "decl": "void FUN_00136bc0(int current_object_handle@<edi>, void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *shield_damage, float *body_damage);",
           "addr": "0x136bc0"
         },
         {
