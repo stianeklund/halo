@@ -1,9 +1,9 @@
 global:
-  getContextScript: tools/mizuchi/get-context.sh "{{targetObjectPath}}"
-  maxRetries: 25
+  getContextScript: tools/mizuchi/mizuchi_context.sh "{{targetObjectPath}}"
+  maxRetries: 5
   outputDir: ./artifacts/mizuchi
   compilerScript: |
-    REPO_ROOT="$PWD" tools/permuter/compile.sh "{{cFilePath}}" -o "{{objFilePath}}"
+    REPO_ROOT="$PWD" tools/mizuchi/mizuchi_compile.sh "{{cFilePath}}" -o "{{objFilePath}}"
   promptsDir: ./artifacts/mizuchi/prompts
   mapFilePath: ./objdiff.json
   target: win32
