@@ -104,7 +104,7 @@ def lcs_ratio(a: list[str], b: list[str]) -> float:
         return 1.0
     if not a or not b:
         return 0.0
-    return SequenceMatcher(None, a, b).ratio()
+    return SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
 FPU_MNEMONICS = {'fld', 'flds', 'fldl', 'fldt', 'fild', 'fst', 'fstp',
@@ -163,7 +163,7 @@ def compare_functions(compiled: list[str], reference: list[str]) -> tuple[float,
 
     # Generate unified diff summary
     diffs = []
-    sm = SequenceMatcher(None, c_mnems, r_mnems)
+    sm = SequenceMatcher(None, c_mnems, r_mnems, autojunk=False)
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == 'replace':
             for k in range(min(i2 - i1, j2 - j1)):

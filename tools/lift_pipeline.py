@@ -743,30 +743,69 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("permute", ran=False, ok=True,
                               details="skipped (--permute not set)"))
 
-  # Optional Unicorn-Engine differential test (pure leaves only).
-  if args.equivalence:
+  # Unicorn-Engine differential test. In auto mode this is a behavioral signal
+  # only when the target is applicable; skips do not count as proof.
+  equivalence_ok = False
+  equivalence_policy = "auto" if args.equivalence else args.equivalence_policy
+  if equivalence_policy != "off":
+    equivalence_json = artifact_dir / "equivalence.json"
     cmd = [
       "python3", "tools/equivalence/unicorn_diff.py", target.name,
       "--seeds", str(args.equivalence_seeds),
+      "--output-json", str(equivalence_json),
+      "--no-leaf-cache",
     ]
     proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "equivalence.log")
     output = (proc.stdout or "") + (proc.stderr or "")
-    if "external relocations" in output.lower() or "not a pure leaf" in output.lower():
-      stages.append(StageResult("equivalence", ran=False, ok=True,
-                                details="skipped (external relocations)"))
+    payload: dict[str, object] | None = None
+    if equivalence_json.exists():
+      try:
+        payload = json.loads(equivalence_json.read_text(encoding="utf-8"))
+        summary["equivalence"] = payload
+      except json.JSONDecodeError:
+        payload = None
+
+    status = str(payload.get("status", "")) if payload else ""
+    reason = str(payload.get("reason", "")) if payload and payload.get("reason") else ""
+
+    if status == "pass":
+      equivalence_ok = True
+      passed = int(payload.get("passed", 0)) if payload else 0
+      failed = int(payload.get("failed", 0)) if payload else 0
+      errors = int(payload.get("errors", 0)) if payload else 0
+      seeds = int(payload.get("seeds", args.equivalence_seeds)) if payload else args.equivalence_seeds
+      stages.append(StageResult("equivalence", ran=True, ok=True,
+                                details=f"{passed} passed, {failed} diverged, {errors} errors / {seeds} seeds"))
+    elif status == "fail":
+      passed = int(payload.get("passed", 0)) if payload else 0
+      failed = int(payload.get("failed", 0)) if payload else 0
+      errors = int(payload.get("errors", 0)) if payload else 0
+      seeds = int(payload.get("seeds", args.equivalence_seeds)) if payload else args.equivalence_seeds
+      details = f"{passed} passed, {failed} diverged, {errors} errors / {seeds} seeds"
+      if reason:
+        details += f" reason={reason}"
+      stages.append(StageResult("equivalence", ran=True, ok=False, details=details))
+      return finalize(summary, stages, artifact_dir, ok=False)
+    elif status == "not_applicable":
+      ok = equivalence_policy != "required"
+      details = f"skipped ({reason or 'not_applicable'})"
+      stages.append(StageResult("equivalence", ran=False, ok=ok, details=details))
+      if not ok:
+        return finalize(summary, stages, artifact_dir, ok=False)
     else:
-      m = re.search(r"(\d+)\s+passed,\s+(\d+)\s+failed", output)
-      if m:
-        passed, failed = int(m.group(1)), int(m.group(2))
-        ok = failed == 0
-        details = f"{passed} passed, {failed} diverged / {args.equivalence_seeds} seeds"
+      if "external relocations" in output.lower() or "not a pure leaf" in output.lower():
+        ok = equivalence_policy != "required"
+        stages.append(StageResult("equivalence", ran=False, ok=ok,
+                                  details="skipped (external relocations)"))
+        if not ok:
+          return finalize(summary, stages, artifact_dir, ok=False)
       else:
-        ok = proc.returncode == 0
-        details = "ran (see equivalence.log)"
-      stages.append(StageResult("equivalence", ran=True, ok=ok, details=details))
+        details = f"error ({reason or 'no structured result'}; see equivalence.log)"
+        stages.append(StageResult("equivalence", ran=True, ok=False, details=details))
+        return finalize(summary, stages, artifact_dir, ok=False)
   else:
     stages.append(StageResult("equivalence", ran=False, ok=True,
-                              details="skipped (--equivalence not set)"))
+                              details="skipped (--equivalence-policy=off)"))
 
   behavior_check_ok = False
   if args.behavior_check_cmd:
@@ -850,8 +889,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
                                 details="verify output missing match percentage"))
       return finalize(summary, stages, artifact_dir, ok=False)
     else:
-      behavior_any_ok = behavior_check_ok or (runtime_enabled and runtime_ok)
-      behavior_both_ok = behavior_check_ok and runtime_enabled and runtime_ok
+      behavior_any_ok = equivalence_ok or behavior_check_ok or (runtime_enabled and runtime_ok)
+      behavior_both_ok = equivalence_ok or (behavior_check_ok and runtime_enabled and runtime_ok)
 
       match_source = "objdiff" if (objdiff_match_pct is not None and (vc71_match_pct is None or objdiff_match_pct >= vc71_match_pct)) else "vc71"
       details = [
@@ -862,6 +901,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         f"behavior_both_below={args.low_match_behavior_both_below:.1f}%",
         f"reject_below={args.low_match_reject_below:.1f}%",
         f"fpu_warn={'yes' if vc71_has_fpu_warn else 'no'}",
+        f"equivalence={'pass' if equivalence_ok else ('n/a' if equivalence_policy == 'off' else 'skip')}",
         f"behavior_check={'pass' if behavior_check_ok else ('n/a' if not args.behavior_check_cmd else 'fail')}",
         f"runtime_check={'pass' if (runtime_enabled and runtime_ok) else ('n/a' if not runtime_enabled else 'fail')}",
       ]
@@ -878,11 +918,11 @@ def run_pipeline(args: argparse.Namespace) -> int:
       elif best_match_pct < args.low_match_behavior_both_below:
         if not behavior_both_ok:
           policy_ok = False
-          reason = "strict low-match range requires both behavior_check and runtime_check PASS"
+          reason = "strict low-match range requires Unicorn equivalence PASS or both behavior_check and runtime_check PASS"
       elif best_match_pct < args.low_match_threshold:
         if not behavior_any_ok:
           policy_ok = False
-          reason = "low match requires at least one behavior signal (behavior_check or runtime_check)"
+          reason = "low match requires at least one behavior signal (equivalence, behavior_check, or runtime_check)"
 
       details.append(f"verdict={'PASS' if policy_ok else 'FAIL'}")
       details.append(f"reason={reason}")
@@ -1052,10 +1092,11 @@ def build_parser() -> argparse.ArgumentParser:
                        "does NOT auto-apply permutations.")
   ap.add_argument("--permute-time", type=int, default=60,
                   help="Permuter time budget in seconds (default 60).")
+  ap.add_argument("--equivalence-policy", choices=["off", "auto", "required"], default="auto",
+                  help="Unicorn differential policy: off=disabled, auto=run when applicable "
+                       "and treat skips as non-proof, required=fail if skipped (default: auto).")
   ap.add_argument("--equivalence", action="store_true",
-                  help="Run tools/equivalence/unicorn_diff.py for behavioral "
-                       "differential testing. Pure-leaf functions only "
-                       "(skipped automatically if external relocations exist).")
+                  help="Compatibility alias for --equivalence-policy=auto.")
   ap.add_argument("--equivalence-seeds", type=int, default=100,
                   help="Number of seeds for unicorn_diff (default 100).")
   return ap
