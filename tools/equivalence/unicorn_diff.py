@@ -33,12 +33,9 @@ if _VENV_SP.exists() and str(_VENV_SP) not in sys.path:
 
 try:
   import unicorn  # noqa: F401  (probe)
-except ImportError:
-  sys.stderr.write(
-    "error: unicorn not importable. Activate the project venv or install:\n"
-    f"  {_REPO_ROOT}/.venv/bin/python3 -m pip install unicorn lief\n"
-  )
-  sys.exit(2)
+  _UNICORN_IMPORT_ERROR = ""
+except ImportError as exc:
+  _UNICORN_IMPORT_ERROR = str(exc)
 
 # ---------------------------------------------------------------------------
 # Path setup
@@ -327,7 +324,9 @@ def _run_self_test(verbose: bool = False) -> int:
 # ---------------------------------------------------------------------------
 
 def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
-             verbose: bool = False, save_log: bool = True) -> int:
+             verbose: bool = False, save_log: bool = True,
+             output_json: Optional[Path] = None,
+             record_leaf: bool = True) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     sys.path.insert(0, str(_SCRIPT_DIR))
@@ -342,7 +341,43 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         print(msg)
         log_lines.append(msg)
 
+    def finish(status: str, applicable: bool, reason: Optional[str],
+               exit_code: int, **extra) -> int:
+        payload = {
+            "target": func_name,
+            "status": status,
+            "applicable": applicable,
+            "reason": reason,
+            "passed": 0,
+            "failed": 0,
+            "errors": 0,
+            "seeds": 0,
+            "log_path": None,
+        }
+        payload.update(extra)
+
+        if save_log:
+            log_dir = _REPO_ROOT / "artifacts" / "equivalence"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_path = log_dir / f"{func_name}_smoke.log"
+            with open(log_path, "w") as f:
+                f.write('\n'.join(log_lines) + '\n')
+            payload["log_path"] = str(log_path)
+            print(f"\n  Log saved to: {log_path}")
+
+        if output_json:
+            output_json.parent.mkdir(parents=True, exist_ok=True)
+            output_json.write_text(json.dumps(payload, indent=2) + "\n",
+                                   encoding="utf-8")
+
+        return exit_code
+
     log(f"=== unicorn_diff: {func_name} ===")
+
+    if _UNICORN_IMPORT_ERROR:
+        log("ERROR: unicorn not importable. Activate the project venv or install:")
+        log(f"  {_REPO_ROOT}/.venv/bin/python3 -m pip install unicorn lief")
+        return finish("not_applicable", False, "unicorn_unavailable", 2)
 
     # --- Locate kb.json entry ---
     kb = _load_kb()
@@ -352,7 +387,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         entry = _find_kb_entry_by_addr(kb, func_name)
     if not entry:
         log(f"ERROR: '{func_name}' not found in kb.json")
-        return 1
+        return finish("error", True, "missing_kb_entry", 1)
 
     decl = entry.get("decl", "")
     addr = entry.get("addr", "")
@@ -363,7 +398,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     if not decl:
         log("ERROR: no 'decl' in kb.json entry")
-        return 1
+        return finish("error", True, "missing_decl", 1)
 
     # --- Parse ABI ---
     abi = parse_decl(decl)
@@ -397,12 +432,12 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     if not delinked_path:
         log(f"ERROR: cannot find delinked .obj for '{obj_name}'")
         log(f"  Searched delinked/ for {obj_name}.obj")
-        return 1
+        return finish("not_applicable", False, "missing_delinked_reference", 2)
 
     if not build_path:
         log(f"ERROR: cannot find build .obj for '{obj_name}'")
         log(f"  Run: python3 tools/build/build.py -q --target halo")
-        return 1
+        return finish("not_applicable", False, "missing_build_object", 2)
 
     log(f"  delinked: {delinked_path}")
     log(f"  build   : {build_path}")
@@ -422,34 +457,35 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         except CoffParseError as e2:
             log(f"ERROR extracting oracle: {e}")
             log(f"  (also tried '{func_name}': {e2})")
-            return 1
+            return finish("not_applicable", False, "oracle_extract_failed", 2)
 
     try:
         lifted_slice = extract_function(str(build_path), func_name)
     except CoffParseError as e:
         log(f"ERROR extracting lifted: {e}")
-        return 1
+        return finish("not_applicable", False, "lifted_extract_failed", 2)
 
     log(f"  oracle code: {len(oracle_slice.code)} bytes, {len(oracle_slice.relocs)} relocs")
     log(f"  lifted code: {len(lifted_slice.code)} bytes, {len(lifted_slice.relocs)} relocs")
 
     if not oracle_slice.code:
         log("ERROR: oracle code is empty")
-        return 1
+        return finish("error", True, "empty_oracle_code", 1)
     if not lifted_slice.code:
         log("ERROR: lifted code is empty")
-        return 1
+        return finish("error", True, "empty_lifted_code", 1)
 
     # --- Check for external relocations ---
     oracle_ok = _check_relocations(oracle_slice, "oracle")
     lifted_ok = _check_relocations(lifted_slice, "lifted")
     is_leaf = oracle_ok and lifted_ok
-    _record_leaf_classification(addr, is_leaf)
+    if record_leaf:
+        _record_leaf_classification(addr, is_leaf)
     if not is_leaf:
         log("ERROR: function has external relocations — cannot emulate without full linker.")
         log("  (This function calls other functions or references globals.)")
         log("  Solution: choose a pure leaf function, or implement callee stubs (Stage 2).")
-        return 1
+        return finish("not_applicable", False, "external_relocations", 2)
 
     # --- Generate seeds ---
     params = abi['params']
@@ -528,16 +564,15 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         log(state_mod.format_state_verbose(oracle_state, "oracle"))
         log(state_mod.format_state_verbose(lifted_state, "lifted"))
 
-    # --- Save log ---
-    if save_log:
-        log_dir = _REPO_ROOT / "artifacts" / "equivalence"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_path = log_dir / f"{func_name}_smoke.log"
-        with open(log_path, "w") as f:
-            f.write('\n'.join(log_lines) + '\n')
-        print(f"\n  Log saved to: {log_path}")
+    if failed == 0 and errors == 0:
+        return finish("pass", True, None, 0,
+                      passed=passed, failed=failed, errors=errors,
+                      seeds=len(seeds))
 
-    return 0 if (failed == 0 and errors == 0) else 1
+    reason = "emulation_error" if errors else "divergence"
+    return finish("fail", True, reason, 1,
+                  passed=passed, failed=failed, errors=errors,
+                  seeds=len(seeds))
 
 
 def _format_inputs(params, seed_vec) -> str:
@@ -577,6 +612,10 @@ def main():
                         help=f"Run smoke test against {SELF_TEST_FUNC}")
     parser.add_argument("--list-funcs", metavar="OBJ",
                         help="List function symbols in a .obj file and exit")
+    parser.add_argument("--output-json", type=Path, default=None,
+                        help="Write structured result JSON to this path")
+    parser.add_argument("--no-leaf-cache", action="store_true",
+                        help="Do not update tools/equivalence/leaf_cache.json")
     args = parser.parse_args()
 
     if args.list_funcs:
@@ -600,6 +639,8 @@ def main():
         base_seed=args.seed,
         verbose=args.verbose,
         save_log=True,
+        output_json=args.output_json,
+        record_leaf=not args.no_leaf_cache,
     ))
 
 

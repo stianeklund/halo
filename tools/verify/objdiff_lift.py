@@ -102,7 +102,7 @@ def compute_match_pct(left: list[str], right: list[str]) -> float:
         return 100.0
     if not left or not right:
         return 0.0
-    return SequenceMatcher(None, left, right).ratio() * 100
+    return SequenceMatcher(None, left, right, autojunk=False).ratio() * 100
 
 
 def main():

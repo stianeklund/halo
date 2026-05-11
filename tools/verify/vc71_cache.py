@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Per-function SQLite cache for vc71_verify.py.
 
-Cache key: (source_sha256, ref_sha256, compiler_version, fn_decl_sha256)
+Cache key: (source_sha256, ref_sha256, compiler_version, fn_decl_sha256, comparator_sha256)
 Cache value: match_pct, fpu_warnings (JSON), diff_lines (JSON|NULL), created_utc
 
 Safe to delete at any time — a fresh run rebuilds it.
@@ -116,7 +116,8 @@ def make_cache_key(fn_name: str, source_path: Path, ref_path: Path) -> str:
     ref_sha = _sha256_file(ref_path)
     cc_ver = compiler_version_token()
     decl_sha = fn_decl_sha256(fn_name)
-    raw = f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}"
+    comparator_sha = _sha256_file(REPO_ROOT / "tools" / "verify" / "compare_obj.py")
+    raw = f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|{comparator_sha}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
