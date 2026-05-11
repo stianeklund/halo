@@ -5909,7 +5909,8 @@
         },
         {
           "decl": "char projectile_aim_ballistic(float speed, float gravity, float *origin, float *target, int param_5, float *param_6, float *param_7, char param_8, float *aim_vector, float *param_10, float *param_11, float *param_12, float *param_13, float *param_14);",
-          "addr": "0xf80a0"
+          "addr": "0xf80a0",
+          "ported": true
         },
         {
           "decl": "int projectile_aim_linear(float speed, float *origin, float *target, float *aim_vector, float *out_speed, float *out_t, float *out_dist);",
@@ -5965,7 +5966,8 @@
           "addr": "0xfac20",
           "ported": true
         }
-      ]
+      ],
+      "src": "src/halo/items/projectiles.c"
     },
     {
       "name": "progress_bar.obj",
