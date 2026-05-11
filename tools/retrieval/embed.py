@@ -81,14 +81,18 @@ class Embedder:
         if not idx_text:
             return [None] * len(texts)
         keep_texts = [t for _, t in idx_text]
+        old_max = getattr(self.model, "max_seq_length", None)
+        if old_max is None or old_max > MAX_TOKENS:
+            self.model.max_seq_length = MAX_TOKENS
         vecs = self.model.encode(
             keep_texts,
             convert_to_numpy=True,
             normalize_embeddings=True,
             batch_size=batch_size,
             show_progress_bar=False,
-            max_length=MAX_TOKENS,
         )
+        if old_max is not None:
+            self.model.max_seq_length = old_max
         out: list[Optional[list[float]]] = [None] * len(texts)
         for (orig_idx, _), v in zip(idx_text, vecs):
             out[orig_idx] = [float(x) for x in v.tolist()]
