@@ -912,7 +912,6 @@ int projectile_new(int projectile_handle)
   if (*(float *)0x2533c8 <= speed_factor) {
     *(float *)(proj + 0x1f4) = *(float *)0x2533c8 / speed_factor;
   }
-
   /* Compute per-tick range decay factor from max-range tag field (tag+0x1a4).
    */
   range_factor = *(float *)(proj_tag + 0x1a4) * *(float *)0x253394;
@@ -1725,7 +1724,7 @@ apply_speed_scale:
     if ((*(uint8_t *)(proj_tag + 0x17c) & 0x4)) {
       ftemp = *(float *)(proj_tag + 0x1c0) * *(float *)0x253394;
       if (ftemp >= *(float *)0x2533c8) {
-        proj[0x7d] = (int)(*(float *)0x2533c8 / ftemp);
+        *(float *)((char *)proj + 0x1f4) = *(float *)0x2533c8 / ftemp;
       }
     }
     break;
