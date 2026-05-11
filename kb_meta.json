@@ -5350,6 +5350,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x14aee0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x14b3d0": {
       "kind": "function",
       "status": "ported"
@@ -5367,6 +5371,10 @@
       "status": "ported"
     },
     "0x14b960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14bae0": {
       "kind": "function",
       "status": "ported"
     },

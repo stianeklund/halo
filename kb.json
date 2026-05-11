@@ -10010,7 +10010,8 @@
         },
         {
           "decl": "char collision_prism_test_point(void *feature, void *los_data, float *t_hit, float *normal);",
-          "addr": "0x14bae0"
+          "addr": "0x14bae0",
+          "ported": true
         },
         {
           "addr": "0x14b220",
