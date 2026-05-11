@@ -138,6 +138,45 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **`tools/verify/objdiff_lift.py`** — Structural object diff helper used by the pipeline when reference and candidate objects are available.
 - **`tools/verify/vc71_verify.py`** — Compile a source file with Visual C++ 7.1 (`RXDK/xbox/bin/vc71/CL.Exe`) and compare against the delinked reference. Flags FPU operand-order differences that indicate cross-product swaps, subtraction direction errors, etc. Use `--fpu-only` for focused output.
 - **`tools/verify/compare_obj.py`** — LCS-based instruction comparison between two COFF objects. Used by `vc71_verify.py`.
+- **`tools/mizuchi/compile_and_view.py`** — Compile C code and diff against delinked reference; returns JSON. Core feedback tool for the decompilation loop — usable by any agent or provider. See the Mizuchi Decompilation Loop section.
+- **`tools/mizuchi/gen_prompts.py`** — Convert auto_lift context cache entries into mizuchi prompt folders (`prompt.md` + `settings.yaml`).
+
+## Mizuchi Decompilation Loop (provider-agnostic)
+
+Any agent (OpenCode, Codex, Claude, human) can run the compile-and-diff loop
+without the Claude Agent SDK. The workflow:
+
+**Step 1 — Pick a target and get its prompt:**
+```bash
+python3 tools/llm_auto_lift.py select --limit 10          # see candidates (Miz=Y = already solved)
+python3 tools/llm_auto_lift.py cache-context --target <ADDR>   # cache Ghidra context
+python3 tools/mizuchi/gen_prompts.py --target <ADDR>      # create prompt folder
+cat artifacts/mizuchi/prompts/<FUNC>/prompt.md            # read assembly + decompile
+cat artifacts/mizuchi/prompts/<FUNC>/settings.yaml        # read target object path + GAS asm
+```
+
+**Step 2 — Write C code, then test it:**
+```bash
+python3 tools/mizuchi/compile_and_view.py <FUNC> --c-code "void FUNC(...) { ... }"
+# or from a file:
+python3 tools/mizuchi/compile_and_view.py <FUNC> --c-file /tmp/attempt.c
+```
+
+Output is JSON:
+```json
+{ "success": false, "diff_count": 5, "match_pct": 89.3, "output": "FAIL FUN_...: 89.3% match ..." }
+```
+
+**Step 3 — Iterate** until `"success": true` (`diff_count == 0`).
+
+**Step 4 — After a match, run the full verification pipeline:**
+```bash
+python3 tools/lift_pipeline.py --target <FUNC> --verify-policy auto
+```
+
+The prompt folder (`artifacts/mizuchi/prompts/<FUNC>/`) has everything needed:
+- `prompt.md` — Ghidra decompile, similar ported functions, callee list
+- `settings.yaml` — `functionName`, `targetObjectPath`, `asm` (GAS reference assembly)
 
 ## Architecture and Skills
 - `halo-xbox-re`: RE doctrine and evidence rules.
