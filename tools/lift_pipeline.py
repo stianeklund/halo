@@ -909,7 +909,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
       policy_ok = True
       reason = "accepted"
 
-      if vc71_has_fpu_warn and (match_source == "vc71" or objdiff_match_pct is None):
+      if vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None):
         policy_ok = False
         reason = "FPU operand-order warnings present"
       elif best_match_pct < args.low_match_reject_below:

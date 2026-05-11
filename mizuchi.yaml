@@ -9,6 +9,8 @@ global:
   target: win32
   nonMatchingAsmFolders: []
   matchingAsmFolders: []
+  kbJsonPath: ./kb.json
+  delinkedDir: ./delinked
   excludeFromScan:
     - tools
     - third_party

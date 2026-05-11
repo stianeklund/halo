@@ -1048,6 +1048,14 @@
       }
     },
     {
+      "name": "halo/real_math_FUN_0010b600",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/real_math_FUN_0010b600.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
       "name": "halo/damage",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/damage.c.obj",
       "base_path": "delinked/damage.obj",

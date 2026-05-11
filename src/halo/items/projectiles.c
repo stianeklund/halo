@@ -298,6 +298,255 @@ int projectile_aim_linear(float speed, float *origin, float *target, float *aim_
   return 1;
 }
 
+/*
+ * Ballistic arc trajectory solver.
+ *
+ * Computes the initial aim direction for a projectile that must follow a
+ * parabolic arc from origin to target under gravity.  The caller supplies an
+ * initial speed budget (speed), the effective per-tick gravity scale (gravity),
+ * 3D origin and target vectors, and optional constraints / override values.
+ * On success the function fills aim_vector with the normalised launch direction
+ * and populates up to five optional output scalars; it returns 1 when a
+ * non-trivial arc solution was found and 0 when the fallback minimum-range
+ * trajectory is used instead.
+ *
+ * Algorithm overview
+ * ------------------
+ * 1. Compute the displacement delta = target - origin.
+ * 2. Derive the effective gravity coefficient
+ *      a_coeff = max(0, per_tick_const * gravity)
+ *    and the quadratic coefficient a = a_coeff^2 * 0.25.
+ * 3. Compute the discriminant base (4*a*c, where c = |delta|^2) and verify
+ *    that a solution exists (assert 4ac > 0).
+ * 4. The maximum time-of-flight for which the quadratic has real solutions is
+ *      t_sq_max = sqrt(4*a*c) / (2*a)
+ *    (asserted >= 0).  t_max = sqrt(t_sq_max).
+ * 5. The minimum time-of-flight (t_min) is:
+ *      t_min = sqrt(a_coeff * dz - disc_base)  if that is >= 0, else 0.
+ * 6. Choose launch speed V:
+ *    - If param_7 != NULL: V = *param_7.
+ *    - Else start with V = speed; if param_6 != NULL and *param_6 > 0 then
+ *      reduce V to match the desired time (capped at the caller's max speed).
+ * 7. If a valid arc solution exists (t_min <= V), solve the quadratic for the
+ *    time parameter t_disc and replace V when the result is valid.
+ * 8. Build the initial velocity vector (vx,vy,vz) from the chosen t/V values,
+ *    normalise it, and write the unit direction to aim_vector.
+ * 9. Fill optional outputs: param_10 = time, param_11 = t_param,
+ *    param_12 = t_param*time, param_13 = vertical velocity, param_14 =
+ *    horizontal speed magnitude.
+ *
+ * Source ref: c:\halo\SOURCE\items\projectiles.c lines 0x2ee-0x36f.
+ */
+char projectile_aim_ballistic(float speed, float gravity, float *origin,
+                              float *target, int param_5, float *param_6,
+                              float *param_7, char param_8, float *aim_vector,
+                              float *param_10, float *param_11, float *param_12,
+                              float *param_13, float *param_14)
+{
+    /* Local variables mirror the original MSVC stack frame layout.
+     * Frame size: SUB ESP,0x34 (= 52 bytes = 13 float slots + 1 char).
+     *
+     * Locals at EBP-N (Ghidra names):
+     *   EBP-0x34 = aim_vec[0]   (float buffer for normalize3d)
+     *   EBP-0x30 = aim_vec[1]
+     *   EBP-0x2c = aim_vec[2]   (also holds aim_z)
+     *   EBP-0x28 = dx
+     *   EBP-0x24 = dy
+     *   EBP-0x20 = dz
+     *   EBP-0x1c = t_max
+     *   EBP-0x18 = two_a
+     *   EBP-0x14 = dist_sq
+     *   EBP-0x10 = disc_base (-sqrt(4ac)), then t_min
+     *   EBP-0x0c = c4 = 4*a*c
+     *   EBP-0x08 = b = a_coeff*dz
+     *   EBP-0x01 = result (char)
+     *
+     * Parameter slots reused as float temps by the original MSVC code:
+     *   EBP+0x08 (speed)   -> t_sol
+     *   EBP+0x0c (gravity) -> a (quadratic coefficient a = a_coeff^2*0.25)
+     *   EBP+0x10 (origin)  -> a_coeff, then t_sol*V_out product
+     *   EBP+0x14 (target)  -> V (chosen speed), then V_out
+     *
+     * Source ref: c:\halo\SOURCE\items\projectiles.c lines 0x2ee-0x36f.
+     */
+    float local_38;   /* aim_vec[0] */
+    float local_34;   /* aim_vec[1] */
+    float local_30;   /* aim_vec[2] / aim_z */
+    float local_2c;   /* dx */
+    float local_28;   /* dy */
+    float local_24;   /* dz */
+    float local_20;   /* t_max */
+    float local_1c;   /* two_a = 2*a */
+    float local_18;   /* dist_sq */
+    float local_14;   /* disc_base = -sqrt(4*a*c), then t_min */
+    float local_10;   /* c4 = 4*a*c */
+    float local_c;    /* b = a_coeff*dz */
+    char  local_5;    /* result flag: 1=arc, 0=fallback */
+    float a;          /* quadratic coeff a = a_coeff^2 * 0.25 */
+    float a_coeff;    /* effective gravity: max(0, per_tick*gravity) */
+    float V;          /* chosen launch speed, then V_out at output stage */
+    float fVar1;      /* scratch */
+    float fVar2;      /* scratch */
+    float partial;    /* dy^2 + dx^2 partial sum for interleaved dist_sq */
+
+    /* 1. Displacement = target - origin.
+     * local_5 is set to 1 here to match the original's instruction order:
+     * FSUB,FSTP(dx),MOVB(1),FSUB,FSTP(dy),FSUB,FSTP(dz). */
+    local_2c = target[0] - origin[0];
+    local_5  = 1;
+    local_28 = target[1] - origin[1];
+    local_24 = target[2] - origin[2];
+
+    /* 2. Partial distance sum (dy^2 + dx^2) computed first.
+     * The original interleaves this with the gravity computation:
+     * partial stays on the FPU stack as st1 while a_coeff/a are computed,
+     * then dz^2 is added to partial to complete dist_sq. */
+    partial = local_28 * local_28 + local_2c * local_2c;
+
+    /* 3. Effective gravity coefficient, clamped to zero. */
+    a_coeff = *(float *)0x32512c * gravity;
+    if (a_coeff < *(float *)0x2533c0) {
+        a_coeff = 0.0f;
+    }
+
+    /* 4. Quadratic coefficient a = a_coeff^2 * 0.25.
+     * Two-step to force a_coeff*a_coeff before *0.25 (matches MSVC operand order). */
+    fVar1 = a_coeff * a_coeff;
+    a = fVar1 * *(float *)0x25337c;
+
+    /* 5. Complete dist_sq by adding dz^2 to partial sum. */
+    local_18 = local_24 * local_24 + partial;
+
+    /* 6. c4 = dist_sq * a * 4.0; assert > 0.
+     * Two-step to force dist_sq*a before *4.0 (matches MSVC operand order). */
+    fVar1 = local_18 * a;
+    local_10 = fVar1 * *(float *)0x2533d8;
+    if (local_10 <= *(float *)0x2533c0) {
+        display_assert("4.0f * a * c > 0.0f",
+                       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2f8, 1);
+        system_exit(-1);
+    }
+
+    /* 7. disc_base = -sqrt(c4); two_a = 2*a. */
+    local_14 = -sqrtf(local_10);
+    local_1c = a + a;
+
+    /* t_sq_max = -disc_base / two_a; assert >= 0. */
+    V = -local_14 / local_1c;
+    if (V < *(float *)0x2533c0) {
+        display_assert("t_squared_max >= 0.0f",
+                       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2fc, 1);
+        system_exit(-1);
+    }
+    local_20 = sqrtf(V);  /* t_max */
+
+    /* 8. b = a_coeff * dz; t_min = sqrt(b - disc_base) if >= 0, else 0.
+     * Branch polarity: original falls through to the zero path, jumps to sqrt. */
+    local_c = a_coeff * local_24;
+    if (local_c - local_14 < *(float *)0x2533c0) {
+        local_14 = 0.0f;
+    } else {
+        local_14 = sqrtf(local_c - local_14);
+    }
+
+    /* 9. Choose launch speed V. */
+    if (param_7 != NULL) {
+        V = *param_7;
+    } else {
+        V = speed;
+        if ((param_6 != NULL) && (*param_6 > *(float *)0x2533c0)) {
+            fVar2 = local_20 * *param_6;
+            fVar2 = fVar2 * fVar2;
+            fVar1 = local_c - -(fVar2 * a + local_18 / fVar2);
+            if (fVar1 <= *(float *)0x2533c0) {
+                display_assert("v_desired_sq > 0.0f",
+                               "c:\\halo\\SOURCE\\items\\projectiles.c", 0x326, 1);
+                system_exit(-1);
+            }
+            fVar1 = sqrtf(fVar1);
+            if (speed > fVar1) {
+                V = fVar1;
+            }
+        }
+    }
+
+    /* 10. If V >= t_min, try to find an arc solution. */
+    if (V >= local_14) {
+        fVar1 = local_c - V * V;
+        fVar2 = fVar1 * fVar1 - local_10;
+        if ((fVar1 < *(float *)0x2533c0) && (fVar2 >= *(float *)0x2533c0)) {
+            speed = (sqrtf(fVar2) *
+                     (float)(int)((unsigned int)(param_8 != '\0') * 2 + -1) -
+                     fVar1) / local_1c;
+            if (*(float *)0x2533c0 < speed) {
+                speed = sqrtf(speed);
+                goto LAB_output;
+            }
+        }
+    }
+    local_5 = 0;
+    speed = local_20;   /* t_sol = t_max */
+    V     = local_14;   /* V_out = t_min */
+
+LAB_output:
+    /* 11. Build velocity direction (dx/t, dy/t, a_coeff*t*0.5 + dz/t). */
+    fVar1    = *(float *)0x2533c8 / speed;
+    local_38 = local_2c * fVar1;
+    local_34 = local_28 * fVar1;
+    local_30 = fVar1 * local_24 + speed * a_coeff * *(float *)0x253398;
+
+    /* Precompute sqrt(aim_y^2 + aim_x^2) for param_14 output, stored early. */
+    fVar2 = local_34 * local_34 + local_38 * local_38;
+    fVar2 = sqrtf(fVar2);
+
+    /* Store aim_z before normalize overwrites local_30. */
+    fVar1 = local_30;
+
+    /* Compute t_sol*V_out product into a_coeff slot (mirrors MSVC FSTP EBP+0x10). */
+    a_coeff = speed * V;
+
+    if (normalize3d(&local_38) == *(float *)0x2533c0) {
+        /* Degenerate: fall back to displacement direction. */
+        local_38 = local_2c;
+        local_5  = 0;
+        local_34 = local_28;
+        local_30 = local_24;
+        if (normalize3d(&local_38) == *(float *)0x2533c0) {
+            /* Degenerate displacement: use global up vector. */
+            local_30 = *(float *)(*(int *)0x31fc44 + 8);
+            local_38 = *(float *)(*(int *)0x31fc44);
+            local_34 = *(float *)(*(int *)0x31fc44 + 4);
+        }
+    }
+
+    if (aim_vector == NULL) {
+        display_assert("result_aim_vector",
+                       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x363, 1);
+        system_exit(-1);
+    }
+
+    aim_vector[0] = local_38;
+    aim_vector[1] = local_34;
+    aim_vector[2] = local_30;
+
+    if (param_12 != NULL) {
+        *param_12 = a_coeff;    /* t_sol * V_out */
+    }
+    if (param_10 != NULL) {
+        *param_10 = V;          /* V_out */
+    }
+    if (param_13 != NULL) {
+        *param_13 = fVar1;      /* aim_z before normalize */
+    }
+    if (param_14 != NULL) {
+        *param_14 = fVar2;      /* sqrt(aim_y^2 + aim_x^2) */
+    }
+    if (param_11 != NULL) {
+        *param_11 = speed;      /* t_sol */
+    }
+    return local_5;
+}
+
 /* Resolve the launch speed for a projectile and compute its aim direction.
  *
  * If param_4 is NULL the speed is read from the projectile tag definition at
