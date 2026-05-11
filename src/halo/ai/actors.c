@@ -697,6 +697,30 @@ void actor_switch_props(int unit_handle, int swarm_component_handle)
   *(int *)(swarm_component + 0x10) = target_handle;
 }
 
+/* FUN_0003b120 (0x3b120)
+ * Test whether an actor is in mode 3 with its active-slot count
+ * exceeding capacity.  Returns 1 (true) when actor->field_0x6a == 3
+ * AND actor->field_0x6e > actor->field_0x72; 0 otherwise.
+ * Called by encounter_update_status to accumulate the dead/fleeing
+ * counter at encounter+0x2e.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3b12e.
+ * Confirmed: CMP word ptr [EAX+0x6a],3 at 0x3b136.
+ * Confirmed: MOV DX,[EAX+0x6e]; CMP DX,[EAX+0x72] at 0x3b13d/0x3b141.
+ * Confirmed: JLE 0x3b14b (return 0 if +0x6e <= +0x72) at 0x3b145.
+ * Confirmed: MOV AL,1 / XOR AL,AL at 0x3b147/0x3b14b. */
+char FUN_0003b120(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x6a) == 3 &&
+      *(short *)(actor + 0x6e) > *(short *)(actor + 0x72)) {
+    return 1;
+  }
+  return 0;
+}
+
 /* actor_attacking_target (0x3b270)
  * Get the current weapon handle for an actor. First checks if the actor has
  * a held-weapon unit (offset 0x158, guarded by byte at 0x161). If that path

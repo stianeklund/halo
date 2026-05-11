@@ -726,13 +726,15 @@
         },
         {
           "decl": "char FUN_0003b120(int actor_handle);",
-          "addr": "0x3b120"
+          "addr": "0x3b120",
+          "ported": true
         },
         {
           "decl": "char FUN_0003b150(int actor_handle);",
           "addr": "0x3b150"
         }
-      ]
+      ],
+      "src": "src/halo/ai/actors.c"
     },
     {
       "name": "actor_looking.obj",
