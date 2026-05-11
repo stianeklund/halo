@@ -2559,7 +2559,8 @@
         },
         {
           "decl": "const char *FUN_000b5490(short material_type);",
-          "addr": "0xb5490"
+          "addr": "0xb5490",
+          "ported": true
         }
       ]
     },
