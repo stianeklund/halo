@@ -9531,6 +9531,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00059bf0(int encounter_handle /* @<eax> */);",
+          "addr": "0x59bf0"
+        },
+        {
           "decl": "void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def, short *platoon_counter);",
           "addr": "0x5a120",
           "ported": true
@@ -9674,7 +9678,8 @@
         },
         {
           "decl": "void FUN_0005aab0(int encounter_handle);",
-          "addr": "0x5aab0"
+          "addr": "0x5aab0",
+          "ported": true
         },
         {
           "decl": "void FUN_0005bbe0(int encounter_handle);",

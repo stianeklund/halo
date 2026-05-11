@@ -2207,6 +2207,127 @@ void FUN_0005dfb0(void)
 {
 }
 
+/* 0x0005aab0 — encounter_clear_active_props (FUN_0005aab0).
+ *
+ * Called when an encounter loses all visible enemies (encounter+0x45 must be
+ * 0 on entry — asserted at line 0x97f).  Prepares the encounter for a fresh
+ * activation cycle:
+ *
+ *   1. Assert !encounter->enemy_visible (encounter+0x45 == 0).
+ *   2. Set encounter+0x42 = 1 (reset/active flag).
+ *   3. Clear encounter+0x4c (uint16 tally).
+ *   4. Call FUN_00059bf0(encounter_handle) to drain the pursuit list.
+ *   5. Walk all actors in this encounter (linked list at encounter+0x14,
+ *      chained via actor+0x2c).  For each actor:
+ *        - Iterate its props via FUN_00064540 / FUN_00064570.
+ *        - For each prop whose state (prop+0x24) is 4 or 5 AND whose
+ *          enemy-visible flag (prop+0x60) is set AND whose prop_handle is
+ *          not the actor's orphan_prop (actor+0x270):
+ *            a. Assert prop->parent_prop_index (prop+0xc) != NONE.
+ *            b. Follow the parent prop via datum_get(prop_data, prop+0xc).
+ *            c. Assert parent_prop->orphan_prop_index == current prop_handle.
+ *            d. Clear parent_prop->orphan_prop_index to NONE.
+ *            e. Call FUN_0003b410(actor_handle, prop_handle, NONE).
+ *            f. Call prop_iterator_next(actor_handle, prop_handle).
+ *
+ * Confirmed:
+ *   EDI  = encounter_handle (param, EBP+0x8).
+ *   ESI  = encounter ptr after first datum_get; later reused for prop/parent_prop.
+ *   EBX  = outer actor_handle loop variable, advanced to next_actor_handle
+ *          (actor+0x2c) at both loop-back paths.
+ *   EBP-0x4 = actor ptr (stored at 0x5ab63 after datum_get).
+ *   EBP-0xc = prop_iter[2] (2-slot int array: [0]=current handle read at
+ *             0x5aba6/0x5ac20/0x5ac2f, [1]=next handle written by FUN_00064540/FUN_00064570).
+ *   FUN_00059bf0: @<eax> register convention (encounter_handle in EAX at 0x5aaf4).
+ *   prop_data  = *(data_t**)0x5ab23c.
+ *   actor_data = *(data_t**)0x6325a4.
+ *   assert strings confirm file "c:\\halo\\SOURCE\\ai\\encounters.c" lines 0x97f/0x99a/0x99f.
+ */
+void FUN_0005aab0(int encounter_handle)
+{
+    char *encounter;
+    char *ai_globals;
+    char *actor;
+    char *prop;
+    char *parent_prop;
+    int actor_handle;
+    int cur_actor_handle;
+    int next_actor_handle;
+    int prop_iter[2]; /* 2-slot iterator: [0]=current prop handle, [1]=next */
+
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    if (*(char *)(encounter + 0x45) != '\0') {
+        display_assert("!encounter->enemy_visible",
+                       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x97f, 1);
+        system_exit(-1);
+    }
+    *(char *)(encounter + 0x42) = 1;
+    *(short *)(encounter + 0x4c) = 0;
+    FUN_00059bf0(encounter_handle /* @<eax> */);
+
+    ai_globals = *(char **)0x632574;
+    if (*(char *)(ai_globals + 1) != '\0') {
+        if (encounter_handle == -1) {
+            actor_handle = *(int *)(ai_globals + 8);
+        } else {
+            encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+            actor_handle = *(int *)(encounter + 0x14);
+        }
+    }
+
+    /* Outer actor loop: walks the actor linked list.
+     * actor_handle (EBX) = current actor for the outer-loop check.
+     * cur_actor_handle (EDI) = snapshot of actor_handle at outer-loop entry,
+     * used for all calls inside the inner loop. */
+    for (;;) {
+        ai_globals = *(char **)0x632574;
+        if (*(char *)(ai_globals + 1) == '\0') break;
+        if (actor_handle == -1) break;
+
+        /* Snapshot current actor_handle into cur_actor_handle (= EDI in
+         * binary). This is what gets passed to FUN_0003b410 and
+         * prop_iterator_next. */
+        cur_actor_handle = actor_handle;
+        actor = (char *)datum_get(*(data_t **)0x6325a4, cur_actor_handle);
+        next_actor_handle = *(int *)(actor + 0x2c);
+
+        /* Init prop iterator and get first prop data ptr.
+         * prop_iter[0] (EBP-0xc) = current prop_handle (index).
+         * prop_iter[1] (EBP-0x8) = next prop_handle (chain link).
+         * prop (return value of FUN_00064570) = prop data ptr. */
+        FUN_00064540(prop_iter, cur_actor_handle);
+        prop = (char *)FUN_00064570(prop_iter);
+
+        /* Inner prop loop.  The binary's inner while condition sets
+         * EBX (actor_handle) = next_actor_handle each iteration, advancing
+         * the outer loop.  Calls inside use EDI = cur_actor_handle. */
+        while (prop != NULL) {
+            actor_handle = next_actor_handle;
+            if (*(short *)(prop + 0x24) > 3 && *(short *)(prop + 0x24) < 6 &&
+                *(char *)(prop + 0x60) != '\0' &&
+                prop_iter[0] != *(int *)(actor + 0x270)) {
+                if (*(int *)(prop + 0xc) == -1) {
+                    display_assert("prop->parent_prop_index != NONE",
+                                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x99a, 1);
+                    system_exit(-1);
+                }
+                parent_prop = (char *)datum_get(*(data_t **)0x5ab23c,
+                                                *(int *)(prop + 0xc));
+                if (*(int *)(parent_prop + 0xc) != prop_iter[0]) {
+                    display_assert(
+                        "parent_prop->orphan_prop_index == prop_iterator.index",
+                        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x99f, 1);
+                    system_exit(-1);
+                }
+                *(int *)(parent_prop + 0xc) = -1;
+                FUN_0003b410(cur_actor_handle, prop_iter[0], -1);
+                prop_iterator_next(cur_actor_handle, prop_iter[0]);
+            }
+            prop = (char *)FUN_00064570(prop_iter);
+        }
+    }
+}
+
 /* Deferred functions (not yet ported — thunked from XBE):
  *   FUN_0005de80  — encounter_update (needs FUN_0005acf0 @<eax> audit)
  *   encounters_create_for_new_map  — encounter_tally_reset_pass (shared loop pattern)
