@@ -668,29 +668,32 @@ char collision_prism_test_point(void *feature, void *los_data, float *t_hit,
                                 float *normal)
 {
   char *prism_bytes = (char *)feature;
+  float vi_x_mem;
+  float vi_y_mem;
   float *point = (float *)los_data;
-  float *edges;
+  char *height_ptr;
   float plane_dist_from_point;
   float neg_dist;
   float proj[3];
+  float *vi_x_ref;
+  float *vi_y_ref;
   float out_2d[2];
+  float *edge_ptr;
   int edge_count;
-  int i;
+  int counter;
   int j;
-  float vi_x, vi_y, vj_x, vj_y;
-  float cross;
 
   /* signed distance from point to prism base plane:
    * dot(normal, point) - plane_dist
    * normal at offsets 0x0C/0x10/0x14, plane_dist at 0x18 */
   plane_dist_from_point =
-    (*(float *)(prism_bytes + 0x10) * point[1] +
-     *(float *)(prism_bytes + 0x14) * point[2] +
-     *(float *)(prism_bytes + 0x0c) * point[0]) -
+    *(float *)(prism_bytes + 0x10) * point[1] +
+    *(float *)(prism_bytes + 0x14) * point[2] +
+    *(float *)(prism_bytes + 0x0c) * point[0] -
     *(float *)(prism_bytes + 0x18);
 
   /* point must be at or above the base plane */
-  if (!(0.0f <= plane_dist_from_point))
+  if (plane_dist_from_point < 0.0f)
     return 0;
 
   /* point must be below the top face (height at 0x1C) */
@@ -701,6 +704,7 @@ char collision_prism_test_point(void *feature, void *los_data, float *t_hit,
   neg_dist = -plane_dist_from_point;
   proj[0] = neg_dist * *(float *)(prism_bytes + 0x0c) + point[0];
   proj[1] = neg_dist * *(float *)(prism_bytes + 0x10) + point[1];
+  height_ptr = prism_bytes + 0x1c;
   proj[2] = neg_dist * *(float *)(prism_bytes + 0x14) + point[2];
 
   /* project 3D point to 2D using the prism's dominant axis */
@@ -712,29 +716,36 @@ char collision_prism_test_point(void *feature, void *los_data, float *t_hit,
   /* polygon winding test: cross product of each edge with the 2D point
    * must be >= 0 for all edges (CCW winding) */
   edge_count = *(int *)(prism_bytes + 0x24);
-  edges = (float *)(prism_bytes + 0x28);
 
   if (edge_count > 0) {
-    for (i = 0; i < edge_count; i++) {
-      j = (i + 1 >= edge_count) ? 0 : (i + 1);
-      vi_x = edges[i * 2 + 0] - out_2d[0];
-      vi_y = edges[i * 2 + 1] - out_2d[1];
-      vj_x = edges[j * 2 + 0] - out_2d[0];
-      vj_y = edges[j * 2 + 1] - out_2d[1];
-      cross = vi_x * vj_y - vi_y * vj_x;
-      if (cross < 0.0f)
+    vi_x_ref = &vi_x_mem;
+    vi_y_ref = &vi_y_mem;
+    counter = 1;
+    edge_ptr = (float *)(prism_bytes + 0x28);
+    do {
+      /* wrap index: j = (counter >= edge_count) ? 0 : counter
+       * uses SETGE/DEC/AND pattern from the original */
+      j = ((counter >= edge_count) - 1) & counter;
+      vi_x_mem = edge_ptr[0] - out_2d[0];
+      vi_y_mem = edge_ptr[1] - out_2d[1];
+      if ((*vi_x_ref) *
+              (*(float *)(prism_bytes + j * 8 + 0x2c) - out_2d[1]) -
+          (*vi_y_ref) *
+              (*(float *)(prism_bytes + j * 8 + 0x28) - out_2d[0]) < 0.0f)
         return 0;
-    }
+      edge_ptr += 2;
+      counter++;
+    } while (counter - 1 < edge_count);
   }
 
   /* write hit normal (prism plane normal + 4th component = plane_dist + height) */
   *(int *)&normal[0] = *(int *)(prism_bytes + 0x0c);
   *(int *)&normal[1] = *(int *)(prism_bytes + 0x10);
   *(int *)&normal[2] = *(int *)(prism_bytes + 0x14);
-  normal[3] = *(float *)(prism_bytes + 0x18) + *(float *)(prism_bytes + 0x1c);
+  normal[3] = *(float *)(prism_bytes + 0x18) + *(float *)height_ptr;
 
   /* t_hit = height - signed distance (depth until top face) */
-  *t_hit = *(float *)(prism_bytes + 0x1c) - plane_dist_from_point;
+  *t_hit = *(float *)height_ptr - plane_dist_from_point;
 
   return 1;
 }
