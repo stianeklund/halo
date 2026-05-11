@@ -623,28 +623,31 @@ const char *FUN_000b5490(short material_type)
 float game_globals_difficulty_scale(int16_t value_type, int16_t difficulty)
 {
   float default_val = 1.0f;
-  void *globals = game_globals_get();
+  void *globals;
+  void *element;
+  int16_t clamped;
+  int idx;
 
   assert_halt(value_type >= 0 && value_type < 0x23);
 
+  globals = game_globals_get();
   if (!globals)
     return default_val;
 
   if (*(int *)((char *)globals + 0x11c) == 0)
     return default_val;
 
-  void *element = tag_block_get_element((char *)globals + 0x11c, 0, 0x284);
+  element = tag_block_get_element((char *)globals + 0x11c, 0, 0x284);
   if (!element)
     return default_val;
 
   if (difficulty < 0) {
-    /* Raw per-value_type offset: column index 0, stride 16 bytes */
-    int idx = (int)value_type * 4;
+    idx = (int)value_type * 4;
     return *(float *)((char *)element + idx * 4);
   }
 
-  int16_t clamped = difficulty > 3 ? 3 : difficulty;
-  int idx = (int)clamped + (int)value_type * 4;
+  clamped = difficulty > 3 ? 3 : difficulty;
+  idx = (int)clamped + (int)value_type * 4;
   return *(float *)((char *)element + idx * 4);
 }
 
