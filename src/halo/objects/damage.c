@@ -891,6 +891,229 @@ void FUN_00137170(float *incident_direction, float *surface_normal,
 }
 #endif
 
+/* object_damage_update (0x1384e0) — Per-tick damage state update for an object.
+ *
+ * Handles three main subsystems each tick:
+ * 1. Pending damage application: if damage-pending flags (bits 5,6,13 of +0xb6)
+ *    are set and the object is not invincible (bit 2), applies self-damage via
+ *    the game difficulty's default damage effect.
+ * 2. Shield vitality management:
+ *    - Overshield charging (bit 4): increments shield toward 3.0f at 1/30 per tick.
+ *    - Overshield drain: if shield > 1.0f and game_engine_running(), drains at a
+ *      fixed rate (0.00074074074f/tick), notifying the player of lost shield energy.
+ *    - Shield recharge: if shield < 1.0f and delay counter is zero, recharges at
+ *      the collision model's recharge rate scaled by difficulty modifier (type 3).
+ * 3. Damage stun counters (+0xb0 body, +0xac shield): after incrementing, decays
+ *    current and recent damage values by 1/60 per tick once counter thresholds
+ *    are reached (0 for current, 60 for recent). Resets counter to -1 when both
+ *    current and recent damage reach 0.0f.
+ *
+ * Confirmed: PUSH -1; PUSH EDI; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: tag_get('obje', obj[0]) then tag_get('coll', obje[0x7c]).
+ * Confirmed: FLD [ESI+0x8c]; FCOMP [0x2533c0] checks max_body_vitality > 0.0f.
+ * Confirmed: TEST AH,0x41; JNZ skips when body <= 0.0f.
+ * Confirmed: TEST CL,0x10 checks overshield charging flag (bit 4).
+ * Confirmed: FADD [0x2546a4] adds 1/30 per tick for overshield charge.
+ * Confirmed: FCOMP [0x254644] compares with 3.0f overshield cap.
+ * Confirmed: TEST AH,0x1; JNZ for shield < 3.0f.
+ * Confirmed: TEST AH,0x41; JNZ at 0x138649 for shield <= 1.0f.
+ * Confirmed: CALL 0xa8e30 = game_engine_running().
+ * Confirmed: CALL 0xba500 = player_index_from_unit_index(object_handle).
+ * Confirmed: FLD [0x29b18c]; FCOMP [EBP-4] compares drain_rate with excess.
+ * Confirmed: CALL 0xd7cd0 = FUN_000d7cd0(player_index, float_amount).
+ * Confirmed: TEST AH,0x5; JP at 0x1386d0 for shield >= 1.0f skip.
+ * Confirmed: MOV AX,[ESI+0xb4]; TEST AX,AX; JNZ for delay counter check.
+ * Confirmed: DEC AX at 0x138774 for delay counter decrement.
+ * Confirmed: CALL 0xb55b0 = FUN_000b55b0(3, team) for difficulty scale.
+ * Confirmed: FMUL [EBP-4] scales recharge rate by difficulty.
+ * Confirmed: CALL 0x1369e0 with @EAX = object_handle for shield recharge effect.
+ * Confirmed: CALL 0x136a00 with @EAX = object_handle, param_1=1.
+ * Confirmed: INC EAX; TEST EAX,EAX; JL for stun counter >= 0 check.
+ * Confirmed: CMP EAX,0x3c; JL for stun counter >= 60 check.
+ * Confirmed: FSUB [0x25634c] subtracts 1/60 per tick for damage decay.
+ * Confirmed: TEST AH,0x44; JP for equality-with-zero check on damage values.
+ * Confirmed: damage_data_new at 0x136750 and object_cause_damage at 0x137d20.
+ * Confirmed: game_globals_get at 0x18e450, tag_block_get_element at 0x19b210.
+ */
+void object_damage_update(int object_handle)
+{
+  char *obj;
+  char *obje_tag;
+  int coll_tag_index;
+  char *coll_tag;
+  unsigned short flags;
+  unsigned int damage_flags;
+  char damage_params[0x58];
+  float local_8;
+  char *difficulty;
+  int damage_tag_index;
+  int player_index;
+  float shield;
+  float new_shield;
+  int counter;
+  float fVar1;
+  float fVar3;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obje_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+  coll_tag_index = *(int *)(obje_tag + 0x7c);
+  if (coll_tag_index == -1)
+    return;
+  coll_tag = (char *)tag_get(0x636f6c6c, coll_tag_index);
+  if (coll_tag == (char *)0)
+    return;
+
+  /* --- Pending damage application --- */
+  flags = *(unsigned short *)(obj + 0xb6);
+  if ((flags & 0x2000) != 0 || (flags & 0x60) != 0) {
+    if ((flags & 4) == 0) {
+      difficulty = (char *)tag_block_get_element(
+          (char *)game_globals_get() + 0x188, 0, 0x98);
+      damage_tag_index = *(int *)(difficulty + 0x1c);
+      if (damage_tag_index != -1) {
+        damage_data_new(damage_params, damage_tag_index);
+        flags = *(unsigned short *)(obj + 0xb6);
+        damage_flags = *(unsigned int *)(damage_params + 0x4) | 4;
+        *(float *)(damage_params + 0x40) = 1.0f;
+        if ((flags & 0x40) != 0) {
+          damage_flags = damage_flags | 0x10;
+        }
+        *(unsigned int *)(damage_params + 0x4) = damage_flags;
+        if ((*(unsigned short *)(obj + 0xb6) & 0x2000) != 0) {
+          *(unsigned int *)(damage_params + 0x4) =
+            *(unsigned int *)(damage_params + 0x4) | 0x80;
+        }
+        object_cause_damage(damage_params, object_handle, -1, -1, -1, 0);
+      }
+    }
+    *(unsigned short *)(obj + 0xb6) &= 0xdf9f;
+  }
+
+  /* --- Shield vitality management --- */
+  *(unsigned char *)(obj + 0xb7) &= 0xef;
+  flags = *(unsigned short *)(obj + 0xb6);
+
+  if (!(*(float *)(obj + 0x8c) > 0.0f))
+    goto stun_body;
+  if ((flags & 4) != 0)
+    goto stun_body;
+
+  if ((flags & 0x10) != 0) {
+    /* Overshield charging: increment shield toward 3.0f */
+    shield = *(float *)(obj + 0x94) + 0.033333335f;
+    *(float *)(obj + 0x94) = shield;
+    if (!(shield < 3.0f)) {
+      *(float *)(obj + 0x94) = 3.0f;
+      *(unsigned short *)(obj + 0xb6) = flags & 0xffef;
+    } else {
+      *(unsigned short *)(obj + 0xb6) = flags | 0x1000;
+    }
+    goto stun_body;
+  }
+
+  /* Non-charging path: check overshield drain or recharge */
+  if (*(float *)(obj + 0x94) > 1.0f && game_engine_running()) {
+    /* Overshield drain */
+    player_index = player_index_from_unit_index(object_handle);
+    local_8 = *(float *)(obj + 0x94) - 1.0f;
+    if (!(0.00074074074f <= local_8)) {
+      *(float *)(obj + 0x94) = 1.0f;
+      FUN_000d7cd0(player_index, local_8);
+    } else {
+      *(float *)(obj + 0x94) = *(float *)(obj + 0x94) - 0.00074074074f;
+      FUN_000d7cd0(player_index, 0.00074074074f);
+    }
+    goto stun_body;
+  }
+
+  /* Shield recharge (shield < 1.0f) */
+  if (!(*(float *)(obj + 0x94) < 1.0f))
+    goto stun_body;
+
+  if (*(short *)(obj + 0xb4) == 0) {
+    local_8 = *(float *)(coll_tag + 0x1c0);
+    local_8 = FUN_000b55b0(3, (int)*(unsigned short *)(obj + 0x68)) * local_8;
+    if ((*(unsigned char *)(obj + 0xb6) & 8) != 0) {
+      FUN_001369e0(object_handle, *(int *)(coll_tag + 0x1b4));
+      *(unsigned char *)(obj + 0xb6) &= 0xf7;
+      FUN_00136a00(object_handle, 1);
+    }
+    *(unsigned char *)(obj + 0xb7) |= 0x10;
+    new_shield = local_8 + *(float *)(obj + 0x94);
+    flags = *(unsigned short *)(obj + 0xb6);
+    *(float *)(obj + 0x94) = new_shield;
+    if (new_shield > 1.0f) {
+      *(float *)(obj + 0x94) = 1.0f;
+      *(unsigned short *)(obj + 0xb6) = flags & 0xefff;
+    }
+  } else {
+    *(short *)(obj + 0xb4) = *(short *)(obj + 0xb4) - 1;
+  }
+
+stun_body:
+  /* --- Body stun counter decay --- */
+  counter = *(int *)(obj + 0xb0);
+  if (counter != -1) {
+    counter = counter + 1;
+    *(int *)(obj + 0xb0) = counter;
+    if (counter >= 0) {
+      *(float *)(obj + 0x9c) = *(float *)(obj + 0x9c) - 0.016666668f;
+    }
+    if (counter >= 60) {
+      *(float *)(obj + 0xa8) = *(float *)(obj + 0xa8) - 0.016666668f;
+    }
+    /* Clamp body current damage to >= 0 */
+    if (0.0f <= *(float *)(obj + 0x9c)) {
+      fVar1 = *(float *)(obj + 0x9c);
+    } else {
+      fVar1 = 0.0f;
+    }
+    *(float *)(obj + 0x9c) = fVar1;
+    /* Clamp body recent damage to >= 0 */
+    if (0.0f <= *(float *)(obj + 0xa8)) {
+      fVar3 = *(float *)(obj + 0xa8);
+    } else {
+      fVar3 = 0.0f;
+    }
+    local_8 = fVar3;
+    *(float *)(obj + 0xa8) = fVar3;
+    if (fVar1 == 0.0f && local_8 == 0.0f) {
+      *(int *)(obj + 0xb0) = -1;
+    }
+  }
+
+  /* --- Shield stun counter decay --- */
+  counter = *(int *)(obj + 0xac);
+  if (counter != -1) {
+    counter = counter + 1;
+    *(int *)(obj + 0xac) = counter;
+    if (counter >= 0) {
+      *(float *)(obj + 0x98) = *(float *)(obj + 0x98) - 0.016666668f;
+    }
+    if (counter >= 60) {
+      *(float *)(obj + 0xa4) = *(float *)(obj + 0xa4) - 0.016666668f;
+    }
+    /* Clamp shield current damage to >= 0 */
+    if (0.0f <= *(float *)(obj + 0x98)) {
+      fVar1 = *(float *)(obj + 0x98);
+    } else {
+      fVar1 = 0.0f;
+    }
+    *(float *)(obj + 0x98) = fVar1;
+    /* Clamp shield recent damage to >= 0 */
+    if (0.0f <= *(float *)(obj + 0xa4)) {
+      fVar3 = *(float *)(obj + 0xa4);
+    } else {
+      fVar3 = 0.0f;
+    }
+    local_8 = fVar3;
+    *(float *)(obj + 0xa4) = fVar3;
+    if (fVar1 == 0.0f && local_8 == 0.0f) {
+      *(int *)(obj + 0xac) = -1;
+    }
+  }
+}
+
 /* render_debug_object_damage (0x137370) — Damage debug overlay: display damage vitality info
  * for a targeted object, and handle picking a new target via collision ray.
  *
