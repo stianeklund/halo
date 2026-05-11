@@ -217,6 +217,10 @@
         {
           "decl": "float FUN_000993b0(float *param_1, float *param_2, float *param_3);",
           "addr": "0x993b0"
+        },
+        {
+          "decl": "void FUN_000d7cd0(int player_index, float amount);",
+          "addr": "0xd7cd0"
         }
       ]
     },
@@ -6487,6 +6491,10 @@
           "addr": "0x10b600",
           "decl": "void FUN_0010b600(float *in, float *out);",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0010b7d0(float *a, float *b, float blend, float *out);",
+          "addr": "0x10b7d0"
         }
       ]
     },
@@ -9857,6 +9865,10 @@
           "ported": true
         },
         {
+          "decl": "short FUN_00120d10(unsigned short *keyframe_frame_indices, short target_frame_index, short keyframe_count@<edi>);",
+          "addr": "0x120d10"
+        },
+        {
           "decl": "int model_animation_choose_random(int update_kind, int animation_graph_tag_index, int16_t animation_index);",
           "addr": "0x120f20",
           "ported": true
@@ -9867,7 +9879,8 @@
         },
         {
           "decl": "void animation_get_node_orientations(void *animation, float frame, unsigned short translation_count, short node_index, void *out_translation);",
-          "addr": "0x121640"
+          "addr": "0x121640",
+          "ported": true
         },
         {
           "decl": "void overlay_animation_apply_continuous_scaled(void *animation, float frame, unsigned short scale_count, short node_index, void *out_scale);",
@@ -10241,7 +10254,8 @@
         },
         {
           "decl": "void object_damage_update(int object_handle);",
-          "addr": "0x1384e0"
+          "addr": "0x1384e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00138900(void *damage_params, int object_handle, char recursive);",

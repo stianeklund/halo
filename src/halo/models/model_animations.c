@@ -379,3 +379,207 @@ void FUN_00123aa0(void *mode_tag, void *out_node_data)
         } while (iVar4 < *(int *)(param_1 + 0xb8));
     }
 }
+
+/* floor: the original calls MSVC CRT floor (0x1d9c2b).
+ * We provide a local implementation since we don't link the CRT math lib. */
+static double anim_floor(double x)
+{
+    int i = (int)x;
+    return (double)((x < (double)i) ? (i - 1) : i);
+}
+
+/* animation_get_node_orientations (0x121640) — Interpolate keyframed translation
+ * data for a single node in a compressed animation.
+ *
+ * Given an animation structure, a fractional frame index, a translation keyframe
+ * count, a node index, and an output buffer, this function resolves the two
+ * bracketing keyframes and either copies the exact keyframe data or interpolates
+ * between them using FUN_0010b7d0 (vec3 lerp).
+ *
+ * The animation's tag_data (at animation+0xa0) contains:
+ *   +0x0c: offset to a per-component packed descriptor array (4 bytes each,
+ *          low 12 bits = keyframe_count, high 4 bits = data_offset_index).
+ *   +0x10: offset to keyframe_frame_indices (unsigned short array).
+ *   +0x14: offset to default_translations (vec3 array, 12 bytes per node).
+ *   +0x18: offset to keyframe_data (vec3 array, 12 bytes per keyframe).
+ *
+ * Three branches for the frame position:
+ *   1. Before the first keyframe: interpolate between default_translation[node]
+ *      and keyframe_data[0], with kf0_frame=0 and kf1_frame=first_keyframe_frame.
+ *   2. At the last keyframe: interpolate between keyframe_data[last] and
+ *      default_translation[node], with kf0_frame=last_frame and kf1_frame=last+1.
+ *   3. Between two keyframes: binary-search via FUN_00120d10, then interpolate
+ *      between the two bracketing keyframe entries.
+ *
+ * If frame == kf0_frame exactly, copies this_kf_data directly (no blend).
+ *
+ * Confirmed: cdecl, 5 args, void return.
+ * Confirmed: CALL tag_data_get_pointer(animation+0xa0, *(int*)(animation+0x88), 0) at 0x12165b.
+ * Confirmed: CALL floor() at 0x12175f (CRT 0x1d9c2b), result truncated to short frame_index.
+ * Confirmed: CALL FUN_00120d10(keyframe_frame_indices, frame_index) at 0x12182d with keyframe_count in EDI.
+ * Confirmed: CALL FUN_0010b7d0(this_kf_data, next_kf_data, blend, out) at 0x121928.
+ * Confirmed: Assert strings at 0x5f2, 0x5f4, 0x609, 0x60a, 0x61e, 0x62f, 0x630.
+ * Confirmed: Before-first-keyframe branch saves kf0_frame to kf1_frame before zeroing (MOV EBX,EDX at 0x1217fa).
+ */
+void animation_get_node_orientations(void *animation, float frame,
+                                     unsigned short translation_count,
+                                     short node_index, void *out_translation)
+{
+    char *anim;
+    char *tag_data_base;
+    unsigned int descriptor;
+    unsigned short keyframe_count;
+    int data_offset_index;
+    char *default_translations;
+    char *keyframe_data;
+    unsigned short *keyframe_frame_indices;
+    int frame_count_i;
+    float frame_floor_f;
+    short frame_index;
+    int kf_count_i;
+    unsigned short kf0_frame;
+    unsigned short kf1_frame;
+    char *this_kf_data;
+    char *next_kf_data;
+    short kf_idx;
+    float this_frame_f;
+    float blend;
+
+    anim = (char *)animation;
+
+    /* Resolve tag_data pointer */
+    tag_data_base = (char *)tag_data_get_pointer(
+        anim + 0xa0, *(int *)(anim + 0x88), 0);
+
+    /* Read packed descriptor for this translation component */
+    descriptor = *(unsigned int *)(
+        tag_data_base + *(int *)(tag_data_base + 0x0c) +
+        (short)translation_count * 4);
+    keyframe_count = (unsigned short)(descriptor & 0xfff);
+    data_offset_index = (int)(short)(descriptor >> 0xc);
+
+    /* Default translations and keyframe arrays are relative to tag_data_base */
+    default_translations = tag_data_base + *(int *)(tag_data_base + 0x14);
+    keyframe_data = tag_data_base + *(int *)(tag_data_base + 0x18) +
+                    data_offset_index * 0xc;
+    keyframe_frame_indices = (unsigned short *)(
+        tag_data_base + *(int *)(tag_data_base + 0x10) +
+        data_offset_index * 2);
+
+    /* Assert: real_frame_index >= 0.0f */
+    if (frame < 0.0f) {
+        display_assert("real_frame_index>=0.0f",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x5f2, 1);
+        system_exit(-1);
+    }
+
+    /* Assert: real_frame_index < (real)animation->frame_count */
+    frame_count_i = (int)*(short *)(anim + 0x22);
+    if (frame >= (float)frame_count_i) {
+        display_assert("real_frame_index<(real)animation->frame_count",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x5f4, 1);
+        system_exit(-1);
+    }
+
+    /* If keyframe_count == 0, return the default translation for this node */
+    if (keyframe_count == 0) {
+        char *def = default_translations + (int)node_index * 0xc;
+        int *out = (int *)out_translation;
+        out[0] = *(int *)(def);
+        out[1] = *(int *)(def + 4);
+        out[2] = *(int *)(def + 8);
+        return;
+    }
+
+    /* Compute integer frame index from floor(frame) */
+    frame_floor_f = (float)anim_floor((double)frame);
+    frame_index = (short)(int)frame_floor_f;
+
+    /* Assert: frame_index >= 0 && frame_index <= keyframe_frame_indices[keyframe_count-1] */
+    kf_count_i = (int)(short)keyframe_count;
+    if (frame_index < 0 ||
+        (int)frame_index > (int)(unsigned int)keyframe_frame_indices[kf_count_i - 1]) {
+        display_assert(
+            "frame_index>=0 && frame_index<=keyframe_frame_indices[keyframe_count-1]",
+            "c:\\halo\\SOURCE\\models\\model_animations.c", 0x609, 1);
+        system_exit(-1);
+    }
+
+    /* Assert: keyframe_frame_indices[keyframe_count-1] == animation->frame_count - 1 */
+    if ((unsigned int)keyframe_frame_indices[kf_count_i - 1] !=
+        (unsigned int)((int)*(short *)(anim + 0x22) - 1)) {
+        display_assert(
+            "keyframe_frame_indices[keyframe_count-1]==animation->frame_count-1",
+            "c:\\halo\\SOURCE\\models\\model_animations.c", 0x60a, 1);
+        system_exit(-1);
+    }
+
+    /* Determine which two keyframes bracket the current frame */
+    kf0_frame = keyframe_frame_indices[0];
+
+    if ((int)frame_index < (int)(unsigned int)kf0_frame) {
+        /* Before the first keyframe: interpolate default -> first keyframe */
+        this_kf_data = default_translations + (int)node_index * 0xc;
+        kf1_frame = kf0_frame;
+        kf0_frame = 0;
+        next_kf_data = keyframe_data;
+    } else {
+        kf1_frame = keyframe_frame_indices[kf_count_i - 1];
+
+        if ((int)frame_index == (int)(unsigned int)kf1_frame) {
+            /* At the last keyframe: interpolate last keyframe -> default */
+            this_kf_data = keyframe_data + (kf_count_i - 1) * 0xc;
+            kf0_frame = kf1_frame;
+            kf1_frame = kf1_frame + 1;
+            next_kf_data = default_translations + (int)node_index * 0xc;
+        } else {
+            /* Between two keyframes: binary search */
+            kf_idx = FUN_00120d10(keyframe_frame_indices,
+                                  (short)(int)frame_floor_f,
+                                  keyframe_count);
+
+            if (kf_idx < 0 || (int)kf_idx >= kf_count_i - 1) {
+                display_assert(
+                    "keyframe_index>=0 && keyframe_index<keyframe_count-1",
+                    "c:\\halo\\SOURCE\\models\\model_animations.c", 0x61e, 1);
+                system_exit(-1);
+            }
+
+            kf0_frame = keyframe_frame_indices[(int)kf_idx];
+            kf1_frame = keyframe_frame_indices[(int)kf_idx + 1];
+            this_kf_data = keyframe_data + (int)kf_idx * 0xc;
+            next_kf_data = this_kf_data + 0xc;
+        }
+    }
+
+    /* If frame == this_keyframe_frame exactly, copy directly */
+    this_frame_f = (float)(int)(short)kf0_frame;
+    if (frame == this_frame_f) {
+        int *out = (int *)out_translation;
+        out[0] = *(int *)(this_kf_data);
+        out[1] = *(int *)(this_kf_data + 4);
+        out[2] = *(int *)(this_kf_data + 8);
+        return;
+    }
+
+    /* Compute blend factor and interpolate */
+    blend = (frame - this_frame_f) /
+            (float)((int)(short)kf1_frame - (int)(short)kf0_frame);
+
+    /* Assert: real_frame_index >= (real)this_keyframe_frame_index */
+    if (frame < this_frame_f) {
+        display_assert("real_frame_index>=(real)this_keyframe_frame_index",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x62f, 1);
+        system_exit(-1);
+    }
+
+    /* Assert: real_frame_index < (real)next_keyframe_frame_index */
+    if (frame >= (float)(int)(short)kf1_frame) {
+        display_assert("real_frame_index< (real)next_keyframe_frame_index",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x630, 1);
+        system_exit(-1);
+    }
+
+    FUN_0010b7d0((float *)this_kf_data, (float *)next_kf_data, blend,
+                 (float *)out_translation);
+}
