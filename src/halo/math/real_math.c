@@ -150,7 +150,8 @@ void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
   out_matrix[12] = 0.0f;
 }
 
-void component_vectors_from_normal3d(float *out_matrix, float *position, float *basis_data)
+void component_vectors_from_normal3d(float *out_matrix, float *position,
+                                     float *basis_data)
 {
   typedef void (*quat_to_matrix_fn)(float *out, float *basis);
 
@@ -339,8 +340,8 @@ void real_matrix4x3_transform_point(void *matrix, void *point, void *out)
 /* Multiply two 4x3 matrices: out = b * a.
  * Matrix layout (13 floats each):
  *   [0]       scale
- *   [1..9]    3x3 rotation (row-major: row0=forward[1..3], row1=left[4..6], row2=up[7..9])
- *   [10..12]  translation
+ *   [1..9]    3x3 rotation (row-major: row0=forward[1..3], row1=left[4..6],
+ * row2=up[7..9]) [10..12]  translation
  *
  * Result:
  *   out_rotation    = b_rotation * a_rotation
@@ -363,16 +364,17 @@ __attribute__((target("sse")))
 #endif
 void matrix4x3_multiply(float *a, float *b, float *out)
 {
-  /* All __m128 declarations hoisted to the top for C89 (MSVC 7.1) compatibility. */
-  float *a_rows;  /* &a[1] */
-  float *b_rows;  /* &b[1] */
-  float *out_rows;  /* &out[1] */
+  /* All __m128 declarations hoisted to the top for C89 (MSVC 7.1)
+   * compatibility. */
+  float *a_rows; /* &a[1] */
+  float *b_rows; /* &b[1] */
+  float *out_rows; /* &out[1] */
   __m128 row0, row1, row2;
   __m128 xmm3, xmm4, xmm5, xmm6, xmm7;
   __m128 t3, t4, t5, a_trans, scale_v;
 
-  a_rows   = a + 1;
-  b_rows   = b + 1;
+  a_rows = a + 1;
+  b_rows = b + 1;
   out_rows = out + 1;
 
   /* Load a's 3 rotation rows into XMM registers.
@@ -381,7 +383,8 @@ void matrix4x3_multiply(float *a, float *b, float *out)
    *
    * XMM0 = row0 (forward): [a[1], 0, a[2], a[3]]
    * XMM1 = row1 (left):    [a[4], 0, a[5], a[6]]
-   * XMM2 = row2 (up):      loaded reversed, then SHUFPS 0x36 to [a[7],0,a[8],a[9]] */
+   * XMM2 = row2 (up):      loaded reversed, then SHUFPS 0x36 to
+   * [a[7],0,a[8],a[9]] */
 
   /* XMM0: MOVSS a[1] → lane0; MOVHPS a[2],a[3] → lanes 2,3 */
   row0 = _mm_load_ss(&a_rows[0]);
@@ -408,9 +411,9 @@ void matrix4x3_multiply(float *a, float *b, float *out)
   xmm3 = _mm_shuffle_ps(_mm_load_ss(&b_rows[0]), _mm_load_ss(&b_rows[0]), 0);
   xmm4 = _mm_shuffle_ps(_mm_load_ss(&b_rows[1]), _mm_load_ss(&b_rows[1]), 0);
   xmm5 = _mm_shuffle_ps(_mm_load_ss(&b_rows[2]), _mm_load_ss(&b_rows[2]), 0);
-  xmm3 = _mm_mul_ps(xmm3, row0);  /* b[1]*row0 */
-  xmm4 = _mm_mul_ps(xmm4, row1);  /* b[2]*row1 */
-  xmm5 = _mm_mul_ps(xmm5, row2);  /* b[3]*row2 */
+  xmm3 = _mm_mul_ps(xmm3, row0); /* b[1]*row0 */
+  xmm4 = _mm_mul_ps(xmm4, row1); /* b[2]*row1 */
+  xmm5 = _mm_mul_ps(xmm5, row2); /* b[3]*row2 */
   xmm3 = _mm_add_ps(xmm3, xmm4);
   xmm3 = _mm_add_ps(xmm3, xmm5);
   /* xmm3 = out_row0 = [out[1], 0, out[2], out[3]] */
@@ -423,9 +426,9 @@ void matrix4x3_multiply(float *a, float *b, float *out)
   xmm6 = _mm_shuffle_ps(_mm_load_ss(&b_rows[3]), _mm_load_ss(&b_rows[3]), 0);
   xmm7 = _mm_shuffle_ps(_mm_load_ss(&b_rows[4]), _mm_load_ss(&b_rows[4]), 0);
   xmm5 = _mm_shuffle_ps(_mm_load_ss(&b_rows[5]), _mm_load_ss(&b_rows[5]), 0);
-  xmm6 = _mm_mul_ps(xmm6, row0);  /* b[4]*row0 */
-  xmm7 = _mm_mul_ps(xmm7, row1);  /* b[5]*row1 */
-  xmm5 = _mm_mul_ps(xmm5, row2);  /* b[6]*row2 */
+  xmm6 = _mm_mul_ps(xmm6, row0); /* b[4]*row0 */
+  xmm7 = _mm_mul_ps(xmm7, row1); /* b[5]*row1 */
+  xmm5 = _mm_mul_ps(xmm5, row2); /* b[6]*row2 */
   xmm6 = _mm_add_ps(xmm6, xmm7);
   xmm6 = _mm_add_ps(xmm6, xmm5);
   /* xmm6 = out_row1 = [out[4], 0, out[5], out[6]] */
@@ -434,9 +437,9 @@ void matrix4x3_multiply(float *a, float *b, float *out)
   xmm7 = _mm_shuffle_ps(_mm_load_ss(&b_rows[6]), _mm_load_ss(&b_rows[6]), 0);
   xmm4 = _mm_shuffle_ps(_mm_load_ss(&b_rows[7]), _mm_load_ss(&b_rows[7]), 0);
   xmm5 = _mm_shuffle_ps(_mm_load_ss(&b_rows[8]), _mm_load_ss(&b_rows[8]), 0);
-  xmm7 = _mm_mul_ps(xmm7, row0);  /* b[7]*row0 */
-  xmm4 = _mm_mul_ps(xmm4, row1);  /* b[8]*row1 */
-  xmm5 = _mm_mul_ps(xmm5, row2);  /* b[9]*row2 */
+  xmm7 = _mm_mul_ps(xmm7, row0); /* b[7]*row0 */
+  xmm4 = _mm_mul_ps(xmm4, row1); /* b[8]*row1 */
+  xmm5 = _mm_mul_ps(xmm5, row2); /* b[9]*row2 */
   xmm7 = _mm_add_ps(xmm7, xmm4);
   xmm7 = _mm_add_ps(xmm7, xmm5);
   /* xmm7 = out_row2 = [out[7], 0, out[8], out[9]] before shuffle */
@@ -446,10 +449,10 @@ void matrix4x3_multiply(float *a, float *b, float *out)
   _mm_storeh_pi((__m64 *)&out_rows[4], xmm6);
 
   /* SHUFPS 0x8f reorders row2 result for MOVHPS/MOVSS output layout.
-   * 0x8f = 0b10_00_11_11: result[0]=src[3], result[1]=src[3], result[2]=src[0], result[3]=src[2].
-   * Before: [out[7], 0, out[8], out[9]].
-   * After:  [out[9], out[9], out[7], out[8]].
-   * MOVHPS stores lanes [2,3] → out[7],out[8]; MOVSS stores lane [0] → out[9]. */
+   * 0x8f = 0b10_00_11_11: result[0]=src[3], result[1]=src[3], result[2]=src[0],
+   * result[3]=src[2]. Before: [out[7], 0, out[8], out[9]]. After:  [out[9],
+   * out[9], out[7], out[8]]. MOVHPS stores lanes [2,3] → out[7],out[8]; MOVSS
+   * stores lane [0] → out[9]. */
   xmm7 = _mm_shuffle_ps(xmm7, xmm7, 0x8f);
 
   /* Store output row 2: MOVHPS → out[7],out[8]; MOVSS → out[9]. */
@@ -461,9 +464,9 @@ void matrix4x3_multiply(float *a, float *b, float *out)
   t3 = _mm_shuffle_ps(_mm_load_ss(&b[10]), _mm_load_ss(&b[10]), 0);
   t4 = _mm_shuffle_ps(_mm_load_ss(&b[11]), _mm_load_ss(&b[11]), 0);
   t5 = _mm_shuffle_ps(_mm_load_ss(&b[12]), _mm_load_ss(&b[12]), 0);
-  t3 = _mm_mul_ps(t3, row0);  /* b[10]*row0 */
-  t4 = _mm_mul_ps(t4, row1);  /* b[11]*row1 */
-  t5 = _mm_mul_ps(t5, row2);  /* b[12]*row2 */
+  t3 = _mm_mul_ps(t3, row0); /* b[10]*row0 */
+  t4 = _mm_mul_ps(t4, row1); /* b[11]*row1 */
+  t5 = _mm_mul_ps(t5, row2); /* b[12]*row2 */
   t3 = _mm_add_ps(t3, t4);
   t3 = _mm_add_ps(t3, t5);
   /* t3 = b_trans * a_rot = [tx, 0, ty, tz] */
@@ -605,15 +608,23 @@ void FUN_0010a1c0(float *matrix, float *in_plane, float *out_plane)
   out_plane[0] = nx * matrix[1] + ny * matrix[4] + nz * matrix[7];
   out_plane[1] = nx * matrix[2] + ny * matrix[5] + nz * matrix[8];
   out_plane[2] = nx * matrix[3] + ny * matrix[6] + nz * matrix[9];
-  out_plane[3] = in_plane[3] * matrix[0]
-               + matrix[10] * out_plane[0]
-               + matrix[11] * out_plane[1]
-               + matrix[12] * out_plane[2];
+  out_plane[3] = in_plane[3] * matrix[0] + matrix[10] * out_plane[0] +
+                 matrix[11] * out_plane[1] + matrix[12] * out_plane[2];
 }
 
 void real_math_reset_precision(void)
 {
   __control87(0x9001f, 0xfffff);
+}
+
+/* Rotate a 2D float vector 90 degrees counterclockwise (0x10b600).
+ * Computes: out[0] = -in[1], out[1] = in[0]
+ * This produces the perpendicular (left-normal) of a 2D vector.
+ */
+void FUN_0010b600(float *in, float *out)
+{
+  out[0] = -in[1];
+  out[1] = in[0];
 }
 
 /* Compute a perpendicular vector to the input 3D vector.
@@ -740,10 +751,8 @@ void sphere_intersects_rectangle3d(float *quaternion)
 {
   float mag_sq;
 
-  mag_sq = quaternion[3] * quaternion[3] +
-           quaternion[2] * quaternion[2] +
-           quaternion[1] * quaternion[1] +
-           quaternion[0] * quaternion[0];
+  mag_sq = quaternion[3] * quaternion[3] + quaternion[2] * quaternion[2] +
+           quaternion[1] * quaternion[1] + quaternion[0] * quaternion[0];
 
   if (mag_sq > 0.0f) {
     float scale;

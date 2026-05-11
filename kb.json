@@ -6469,6 +6469,11 @@
           "addr": "0x10a1c0",
           "decl": "void FUN_0010a1c0(float *matrix, float *in_plane, float *out_plane);",
           "ported": true
+        },
+        {
+          "addr": "0x10b600",
+          "decl": "void FUN_0010b600(float *in, float *out);",
+          "ported": true
         }
       ]
     },
@@ -10013,8 +10018,9 @@
           "ported": true
         },
         {
-          "decl": "void collision_features_from_line(float *param_1, float *param_2, float param_3, int param_4, int param_5, int param_6, int param_7, int param_8, int param_9, void *features);",
-          "addr": "0x14aee0"
+          "decl": "void collision_features_from_line(float *param_1, float *param_2, float param_3, int param_4, int param_5, int param_6, unsigned char param_7, unsigned char param_8, unsigned short param_9, void *features);",
+          "addr": "0x14aee0",
+          "ported": true
         }
       ]
     },
