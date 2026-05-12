@@ -43,6 +43,9 @@ REG_PARENT = {
     "ebp": "ebp", "bp": "ebp",
 }
 SCRATCH_FOR_ARG = ["eax", "ecx", "edx"]
+# Max register args the reverse-thunk generator supports (3 scratch slots +
+# up to 3 callee-saved slots). See tools/build/patch.py:generate_reverse_thunk.
+MAX_REG_ARGS = 6
 ARG_REGS = {"eax", "ecx", "edx", "ebx", "esi", "edi", "ebp"}
 
 
@@ -212,11 +215,22 @@ def audit(sym: Function, evidence: list[CallerEvidence], strict_callers: bool) -
     warnings: list[str] = []
     errors: list[str] = []
 
-    if len(reg_args) > len(SCRATCH_FOR_ARG):
+    if len(reg_args) > MAX_REG_ARGS:
         errors.append(
             f"{sym.name} has {len(reg_args)} register args; reverse thunks support "
-            f"only {len(SCRATCH_FOR_ARG)}"
+            f"only {MAX_REG_ARGS}"
         )
+    # Callee-saved slots (4th+ reg args) must be full 32-bit registers — the
+    # thunk PUSHes them whole. Sub-32-bit sources (bx, si, di, bh, bl, etc.)
+    # are only valid in scratch slots where MOVZX widens them into EAX/ECX/EDX.
+    if len(reg_args) > len(SCRATCH_FOR_ARG):
+        for slot_i, (param_idx, src_reg) in enumerate(reg_args[len(SCRATCH_FOR_ARG):],
+                                                       start=len(SCRATCH_FOR_ARG)):
+            if src_reg.lower() not in {"ebx", "esi", "edi", "ebp"}:
+                errors.append(
+                    f"{sym.name} arg{param_idx} @<{src_reg}> in callee-save slot "
+                    f"{slot_i} — must be a full 32-bit register (ebx/esi/edi/ebp)"
+                )
 
     for cycle in cycles:
         parts = []

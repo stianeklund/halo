@@ -101,6 +101,97 @@ void FUN_00036e30(int ai_handle)
   *(char *)(actor + 0x2ed) = 1;
 }
 
+/* FUN_000373b0 (0x373b0) — charge effect dispatch (audible AI broadcast).
+ *
+ * Dispatched from FUN_0003c0c0 with effect_type=1 (charge) when an actor is
+ * audible to a broadcast source. Resolves the actor record via
+ * datum_get(actor_data, actor_handle) and the actor's type definition via
+ * tag_get('actr', actor->actv_index@0x58).
+ *
+ * Behavior split:
+ *   1) If the actor is already in a charge state with a matching target
+ *      object_handle (actor[0x280] > 0 && actor[0x28c] == object_handle &&
+ *      actor[0x284] > 0), forward the event as command type 10 via
+ *      ai_communication (FUN_00046f10) on the actor's unit (actor+0x18),
+ *      with five trailing -1 placeholders and a trailing 0 byte.
+ *
+ *   2) Otherwise, build delta = (broadcast_position - actor_position@0x120).
+ *      Run normalize3d (FUN_00013010); if the resulting length magnitude is
+ *      below the epsilon double at 0x002533d0 (~1e-4) — i.e. the actor is
+ *      essentially on top of the broadcast — the direction is replaced
+ *      with the actor's facing vector at actor+0x174..0x17c.
+ *
+ *      If the actor's state field (actor+0x6a) is below 3 AND the length is
+ *      below the actor-type charge range (actr_def+0x2b0), post a look at
+ *      direction via FUN_00036960 (look_type=2, priority -1).
+ *
+ *      Then unconditionally drive the charge command via FUN_00036890
+ *      (actor_handle@<eax>, NULL@<ecx>, 3@<edx> as a short, &direction@<ebx>,
+ *      followed by stack args -1, 0, 0x5a, -1, 0, 0).
+ *
+ * Finally, write a 16-byte look_buf { word 3, float pos[3] } from the raw
+ * broadcast position and dispatch it as a look directive via
+ * FUN_00027a60(actor_handle, 3, 1, look_buf) — look_type=3, priority=1.
+ *
+ * Confirmed: ADD ESP,0x10 cleans datum_get(2) + tag_get(2). Tag id 'actr'.
+ * Confirmed: 4-arg cdecl signature at caller (FUN_0003c0c0 dispatch).
+ * Confirmed: FUN_00036890 register-arg order EAX/ECX/EDX/EBX from
+ *   LEA EBX,[EBP-0xc]; XOR ECX,ECX; MOV EDX,0x3; MOV EAX,EDI.
+ * Confirmed: FUN_00036890 callee reads DI from DX (low 16 bits are the
+ *   priority short).
+ * Confirmed: small-delta override copies actor+0x174..0x17c (vec3) via three
+ *   MOV reg reg pairs into local_10 at the same offsets.
+ * Confirmed: FCOMP [0x2533d0] is double-precision epsilon (~1e-4) against
+ *   |normalize3d result|; FSTP ST0 fall-through cleans FPU when state>=3.
+ * Inferred: parameter names — count is unused here (per FUN_00036c00
+ *   sibling); object_handle gates the early-return communication branch.
+ */
+void FUN_000373b0(int actor_handle, int object_handle, float *position,
+                  short count)
+{
+  char *actor;
+  char *actr_def;
+  int unit_handle;
+  float length;
+  float direction[3]; /* EBP-0xc..EBP-0x4 */
+  short look_buf[8];  /* 16 bytes: EBP-0x10..EBP-0x1; word[0]=type, [2..7]=pos */
+
+  (void)count;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_def = (char *)tag_get(0x61637472 /* 'actr' */,
+                             *(int *)(actor + 0x58));
+  if (*(short *)(actor + 0x280) > 0
+      && *(int *)(actor + 0x28c) == object_handle
+      && *(short *)(actor + 0x284) > 0) {
+    unit_handle = *(int *)(actor + 0x18);
+    FUN_00046f10(10, unit_handle, -1, -1, -1, -1, 0);
+  } else {
+    direction[0] = position[0] - *(float *)(actor + 0x120);
+    direction[1] = position[1] - *(float *)(actor + 0x124);
+    direction[2] = position[2] - *(float *)(actor + 0x128);
+    length = normalize3d(direction);
+    if (length < 0.0001f && length > -0.0001f) {
+      direction[0] = *(float *)(actor + 0x174);
+      direction[1] = *(float *)(actor + 0x178);
+      direction[2] = *(float *)(actor + 0x17c);
+    }
+    if (*(short *)(actor + 0x6a) < 3) {
+      if (length < *(float *)(actr_def + 0x2b0)) {
+        FUN_00036960(actor_handle, 2, -1, (int *)direction);
+      }
+    }
+    FUN_00036890(actor_handle, (int *)0, 3, (int *)direction,
+                 -1, 0, 0x5a, -1, 0, 0);
+  }
+
+  look_buf[0] = 3;
+  *(float *)&look_buf[2] = position[0];
+  *(float *)&look_buf[4] = position[1];
+  *(float *)&look_buf[6] = position[2];
+  FUN_00027a60(actor_handle, 3, 1, look_buf);
+}
+
 void *FUN_0003a600(short actor_type /* @<ax> */)
 {
   void **actor_type_definitions = (void **)0x2c86a8;

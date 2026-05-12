@@ -8,6 +8,7 @@
     "0x22010": "int actor_combat_check_fire_target(int actor_handle @<edi>, short mode);",
     "0x28660": "char FUN_00028660(int actor_handle, short *look_spec @<ebx>, float *direction @<edi>);",
     "0x2bd80": "void FUN_0002bd80(int actor_handle @<ecx>, float *facing, float *vel_out, float *speed_out);",
+    "0x36890": "void FUN_00036890(int actor_handle /* @<eax> */, int *position_a /* @<ecx> */, short priority /* @<edx> */, int *position_b /* @<ebx> */, int param5, int param6, int param7, int param8, int param9, char param10);",
     "0x3a600": "void *FUN_0003a600(int16_t actor_type@<ax>);",
     "0x3ac20": "void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax> */);",
     "0x3b7e0": "void FUN_0003b7e0(int actor_handle, int unit_handle@<esi>);",
