@@ -23,9 +23,10 @@
  *   actor+0x3c = platoon_index (int16_t, -1 = NONE)
  *
  * Ported: FUN_00058a40 (ai_magically_see_players), encounters_dispose (stub),
- * encounter_compute_activation_cluster_bit_vector (dispose pools), encounterless_attach_actor (encounter_enter), FUN_000597f0
- * (encounter_leave), encounters_create_for_new_map (tally reset), FUN_0005de80
- * (encounter_update), encounter lifecycle stubs (0x5df80–0x5dfb0).
+ * encounter_compute_activation_cluster_bit_vector (dispose pools),
+ * encounterless_attach_actor (encounter_enter), FUN_000597f0 (encounter_leave),
+ * encounters_create_for_new_map (tally reset), FUN_0005de80 (encounter_update),
+ * encounter lifecycle stubs (0x5df80–0x5dfb0).
  */
 
 #include "../../common.h"
@@ -76,7 +77,6 @@ char *FUN_00054020(char *encounter, short platoon_index)
   }
   return *(char **)0x5ab274 + (int)platoon_absolute_index * 0x10;
 }
-
 
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
@@ -616,8 +616,8 @@ int FUN_00059b50(void *iter)
 /* 0x00059bf0 — encounter_drain_pursuit_list (FUN_00059bf0).
  *
  * Drains the linked pursuit list attached to the given encounter.
- * The encounter record keeps the head of the pursuit list at +0x38 (int handle).
- * Each pursuit record's next-handle lives at pursuit+0x24.
+ * The encounter record keeps the head of the pursuit list at +0x38 (int
+ * handle). Each pursuit record's next-handle lives at pursuit+0x24.
  *
  * Steps:
  *   1. datum_get(encounter_data, encounter_handle) → encounter ptr (EDI).
@@ -637,18 +637,18 @@ int FUN_00059b50(void *iter)
  */
 void FUN_00059bf0(int encounter_handle /* @<eax> */)
 {
-    char *encounter;
-    char *pursuit;
-    int pursuit_handle;
+  char *encounter;
+  char *pursuit;
+  int pursuit_handle;
 
-    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  pursuit_handle = *(int *)(encounter + 0x38);
+  while (pursuit_handle != -1) {
+    pursuit = (char *)datum_get(*(data_t **)0x5ab26c, pursuit_handle);
+    *(int *)(encounter + 0x38) = *(int *)(pursuit + 0x24);
+    datum_delete(*(data_t **)0x5ab26c, pursuit_handle);
     pursuit_handle = *(int *)(encounter + 0x38);
-    while (pursuit_handle != -1) {
-        pursuit = (char *)datum_get(*(data_t **)0x5ab26c, pursuit_handle);
-        *(int *)(encounter + 0x38) = *(int *)(pursuit + 0x24);
-        datum_delete(*(data_t **)0x5ab26c, pursuit_handle);
-        pursuit_handle = *(int *)(encounter + 0x38);
-    }
+  }
 }
 
 /* 0x5a050 — squad_initialize_starting_locations (FUN_0005a050).
@@ -668,7 +668,8 @@ void FUN_00059bf0(int encounter_handle /* @<eax> */)
  *   - csmemset(squad+4, 0xff, ((count+31)>>5)<<2) at 0x5a0c4.
  *   - Loop counter is sign-extended to short (MOVSX ESI,AX at 0x5a105).
  */
-void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */)
+void FUN_0005a050(int squad_index /* @<eax> */,
+                  int encounter_handle /* @<ecx> */)
 {
   char *encounter;
   char *scenario;
@@ -684,10 +685,10 @@ void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> *
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
   scenario = (char *)global_scenario_get();
   encounter_def = (char *)tag_block_get_element(
-      scenario + 0x42c, encounter_handle & 0xffff, 0xb0);
+    scenario + 0x42c, encounter_handle & 0xffff, 0xb0);
   squad_base = (char *)encounter_get_squad(encounter, (short)squad_index);
-  squad_def = (char *)tag_block_get_element(
-      encounter_def + 0x80, (short)squad_index, 0xe8);
+  squad_def = (char *)tag_block_get_element(encounter_def + 0x80,
+                                            (short)squad_index, 0xe8);
 
   count_ptr = (int *)(squad_def + 0xd0);
   csmemset(squad_base + 4, -1, ((*count_ptr + 0x1f) >> 5) << 2);
@@ -753,11 +754,11 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   *(int *)(encounter + 0x14) = -1;
   *(int *)(encounter + 0x38) = -1;
   *(unsigned char *)(encounter + 0x40) =
-      (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 2) & 1);
+    (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 2) & 1);
   *(unsigned char *)(encounter + 0x41) =
-      (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 3) & 1);
+    (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 3) & 1);
   *(unsigned char *)(encounter + 0x3c) =
-      (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 1) & 1);
+    (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 1) & 1);
   *(short *)(encounter + 0x3e) = 0;
   *(char *)(encounter + 0x46) = 0;
   *(char *)(encounter + 0x45) = 0;
@@ -772,8 +773,8 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
 
   if (*(int *)((char *)encounter_def + 0x80) > 0x40) {
     display_assert(
-        "encounter_definition->squads.count <= MAXIMUM_SQUADS_PER_ENCOUNTER",
-        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5a4, 1);
+      "encounter_definition->squads.count <= MAXIMUM_SQUADS_PER_ENCOUNTER",
+      "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5a4, 1);
     system_exit(-1);
   }
 
@@ -783,10 +784,9 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   *squad_counter = *squad_counter + squad_count;
 
   if (*squad_counter > 0x400) {
-    display_assert(
-        csprintf((char *)0x5ab100,
-                 "overflowed MAXIMUM_SQUADS_PER_MAP (%d)", 0x400),
-        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5a8, 1);
+    display_assert(csprintf((char *)0x5ab100,
+                            "overflowed MAXIMUM_SQUADS_PER_MAP (%d)", 0x400),
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5a8, 1);
     system_exit(-1);
   }
 
@@ -794,17 +794,17 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   if (*(short *)(encounter + 0x6) > 0) {
     do {
       squad_record = (char *)encounter_get_squad(encounter, (short)i);
-      squad_def = (char *)tag_block_get_element(
-          (char *)encounter_def + 0x80, (int)(short)i, 0xe8);
+      squad_def = (char *)tag_block_get_element((char *)encounter_def + 0x80,
+                                                (int)(short)i, 0xe8);
       *(char *)(squad_record + 0x11) = 0;
       if ((*(unsigned char *)(squad_def + 0x28) & 8) == 0) {
         *(short *)(squad_record + 0x12) =
-            (short)(*(float *)(squad_def + 0x50) * 30.0f);
+          (short)(*(float *)(squad_def + 0x50) * 30.0f);
       } else {
         *(short *)(squad_record + 0x12) = 999;
       }
       *(unsigned char *)(squad_record + 0x10) =
-          (unsigned char)((*(unsigned int *)(squad_def + 0x28) >> 5) & 1);
+        (unsigned char)((*(unsigned int *)(squad_def + 0x28) >> 5) & 1);
       FUN_0005a050(i /* @<eax> */, encounter_handle /* @<ecx> */);
       if (*(short *)(squad_def + 0x86) > 0 ||
           *(short *)(squad_def + 0x84) > 0) {
@@ -820,8 +820,8 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
 
   if (*(int *)((char *)encounter_def + 0x8c) > 0x20) {
     display_assert(
-        "encounter_definition->platoons.count <= MAXIMUM_PLATOONS_PER_ENCOUNTER",
-        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5cb, 1);
+      "encounter_definition->platoons.count <= MAXIMUM_PLATOONS_PER_ENCOUNTER",
+      "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5cb, 1);
     system_exit(-1);
   }
 
@@ -831,10 +831,9 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   *platoon_counter = *platoon_counter + platoon_count;
 
   if (*platoon_counter > 0x100) {
-    display_assert(
-        csprintf((char *)0x5ab100,
-                 "overflowed MAXIMUM_PLATOONS_PER_MAP (%d)", 0x100),
-        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5cf, 1);
+    display_assert(csprintf((char *)0x5ab100,
+                            "overflowed MAXIMUM_PLATOONS_PER_MAP (%d)", 0x100),
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5cf, 1);
     system_exit(-1);
   }
 
@@ -843,11 +842,11 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   if (*(short *)(encounter + 0xa) > 0) {
     do {
       platoon_record = (char *)FUN_00054020(encounter, (short)i);
-      platoon_def = (char *)tag_block_get_element(
-          platoon_block, (int)(short)i, 0xac);
+      platoon_def =
+        (char *)tag_block_get_element(platoon_block, (int)(short)i, 0xac);
       i = i + 1;
       *(unsigned char *)platoon_record =
-          (unsigned char)((*(unsigned int *)(platoon_def + 0x20) >> 2) & 1);
+        (unsigned char)((*(unsigned int *)(platoon_def + 0x20) >> 2) & 1);
     } while ((short)i < *(short *)(encounter + 0xa));
   }
 }
@@ -890,7 +889,7 @@ short FUN_0005a3b0(void *squad_def)
  * Activates an encounter if its BSP requirement is satisfied (enc_def+0x7e is
  * NONE or matches the current global_structure_bsp_index).  When the encounter
  * is not already active (encounter+0xd == 0), walks the encounter's member
- * list and calls actor_set_active(actor_handle, 1) to activate each actor.  Then
+ * list and calls actor_set_active(actor_handle, 1) to activate each actor. Then
  * stamps encounter+0x10 with game_time_get() and sets encounter+0xd = 1.
  *
  * param: encounter_index via @<eax> register arg.
@@ -898,13 +897,14 @@ short FUN_0005a3b0(void *squad_def)
  *
  * Confirmed: encounter_index in EAX (MOV ESI,EAX at 0x5a4e8).
  * Confirmed: datum_get(encounter_data, encounter_index) at 0x5a4f1.
- * Confirmed: tag_block_get_element(scenario+0x42c, index&0xffff, 0xb0) at 0x5a514.
- * Confirmed: enc_def+0x7e (int16_t) checked against -1 and *(int16_t*)0x326a0c.
- * Confirmed: encounter_actor_iterator_new(iter, encounter_index) at 0x5a53b; iter at EBP-0xc.
- * Confirmed: inline member-list walk using actor+0x2c (next member link).
- * Confirmed: actor_set_active(actor_handle, 1) at 0x5a576 per member.
- * Confirmed: game_time_get() at 0x5a581; stored to encounter+0x10.
- * Confirmed: encounter+0xd set to 1 at 0x5a589.
+ * Confirmed: tag_block_get_element(scenario+0x42c, index&0xffff, 0xb0) at
+ * 0x5a514. Confirmed: enc_def+0x7e (int16_t) checked against -1 and
+ * *(int16_t*)0x326a0c. Confirmed: encounter_actor_iterator_new(iter,
+ * encounter_index) at 0x5a53b; iter at EBP-0xc. Confirmed: inline member-list
+ * walk using actor+0x2c (next member link). Confirmed:
+ * actor_set_active(actor_handle, 1) at 0x5a576 per member. Confirmed:
+ * game_time_get() at 0x5a581; stored to encounter+0x10. Confirmed:
+ * encounter+0xd set to 1 at 0x5a589.
  */
 char FUN_0005a4e0(int encounter_index /* @<eax> */)
 {
@@ -916,9 +916,9 @@ char FUN_0005a4e0(int encounter_index /* @<eax> */)
   char *actor;
 
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_index);
-  enc_def = (char *)tag_block_get_element(
-      (char *)global_scenario_get() + 0x42c,
-      (int)(encounter_index & 0xffff), 0xb0);
+  enc_def =
+    (char *)tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                  (int)(encounter_index & 0xffff), 0xb0);
 
   if (*(short *)(enc_def + 0x7e) == -1 ||
       *(short *)(enc_def + 0x7e) == *(short *)0x326a0c) {
@@ -939,15 +939,460 @@ char FUN_0005a4e0(int encounter_index /* @<eax> */)
   return *(char *)(encounter + 0xd);
 }
 
+/* 0x5a640 — encounter_deactivate.
+ * Deactivates an encounter (encounter_handle via @<eax>).
+ * Clears encounter+0xd (active flag), walks the encounter's actor member
+ * list and calls actor_set_active(handle, 0) for each actor to make them
+ * dormant.
+ *
+ * Confirmed:
+ *   - in_EAX used as encounter_handle (comparison vs -1 and datum_get arg).
+ *   - datum_get(encounter_data, encounter_handle) at top.
+ *   - FUN_00059bf0(encounter_handle @<eax>) called unconditionally.
+ *   - actor loop: ai_globals+8 (encounterless head) if handle == -1,
+ *     else encounter+0x14; advance via actor+0x2c.
+ *   - actor_set_active(handle, 0) via FUN_0003d5f0 for each active actor.
+ *   - actor_verify_activation(handle) via FUN_0003aca0 for each actor.
+ */
+void FUN_0005a640(int encounter_handle /* @<eax> */)
+{
+  char *encounter;
+  char *ai_globals;
+  char *actor;
+  int actor_handle;
+  int next_handle;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  *(char *)(encounter + 0xd) = 0;
+  FUN_00059bf0(encounter_handle /* @<eax> */);
+
+  ai_globals = *(char **)0x632574;
+  if (*(char *)(ai_globals + 1) != '\0') {
+    if (encounter_handle == -1) {
+      actor_handle = *(int *)(ai_globals + 8);
+    } else {
+      encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+      actor_handle = *(int *)(encounter + 0x14);
+    }
+    while (*(char *)(*(char **)0x632574 + 1) != '\0' && actor_handle != -1) {
+      actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+      next_handle = *(int *)(actor + 0x2c);
+      if (*(char *)(actor + 8) != '\0') {
+        actor_set_active(actor_handle, 0);
+      }
+      actor_verify_activation(actor_handle);
+      actor_handle = next_handle;
+    }
+  }
+}
+
+/* 0x5a6e0 — encounter_update_visibility.
+ * Called every tick (from FUN_0005de80 / encounter_update) to refresh:
+ *   1. Encounterless actor PVS visibility and activation timers.
+ *   2. Per-encounter activation state based on cluster visibility.
+ *
+ * Phase 1 — encounterless actor loop:
+ *   Iterates actors chained from ai_globals+8 (head) via actor+0x2c (next).
+ *   For each actor:
+ *     - Asserts actor+0x9 (encounterless flag).
+ *     - If actor+0x6 == 0 (no vehicle): gets unit root parent, reads
+ *       object+0x4c (cluster_index), checks PVS bit; writes actor+0x12.
+ *     - Else: sets actor+0x12 = 1, then walks vehicle units or squad actor
+ *       list to check if any are visible; clears actor+0x12 if one is found.
+ *     - Activation decision at 0x5a870:
+ *       if NOT (actor+0x12 && !g_ai_override && !actor+0xa &&
+ * !game_in_editor()) → set actor+0x10 = 0x5a and activate. else if actor+0x10 >
+ * 30: decrement by 30. else: zero actor+0x10 and deactivate.
+ *     - Calls actor_verify_activation(local_c) each iteration.
+ *     - Advances via actor+0x2c.
+ *
+ * Phase 2 — encounter loop:
+ *   Iterates all encounters via data_iterator_new/next on encounter_data.
+ *   For each encounter:
+ *     - Reads combined visibility flags (encounter+0xc, game_in_editor,
+ *       encounter+0x3e timer, g_ai_override).
+ *     - Gets scenario encounter def; checks def+0x7e (bsp_index) vs current.
+ *     - If bsp match (or -1): builds encounter cluster bit-vector via
+ *       FUN_00058fd0, intersects with pvs via FUN_00108e70.
+ *       If any visibility → activate via FUN_0005a4e0(@<eax>).
+ *       Else: goto deactivate path.
+ *     - Deactivate path: if encounter+0xd (active): decrement encounter+0xe
+ *       timer, or zero timer and deactivate via FUN_0005a640(@<eax>).
+ *     - Activate path: check encounter+0x20 squads for pending actors;
+ *       set encounter+0xe=0 and call FUN_0005a4e0 or FUN_0005a640.
+ *
+ * Confirmed:
+ *   - CALL 0x18e3c0 (scenario_get) → [EBP-0x10].
+ *   - CALL 0xba6c0 (players_get_combined_pvs) → [EBP-0xc].
+ *   - [EBP-0x8] = local_c = encounterless actor list head (ai_globals+8).
+ *   - datum_get(actor_data=0x6325a4, local_c) at 0x5a712.
+ *   - assert "actor->meta.encounterless" at 0x5a72b/0x5a9a7 (lines
+ * 0x8ba/0x720).
+ *   - actor+0x6 branches at 0x5a750: JZ 0x5a82b (no vehicle = solo unit path).
+ *   - actor+0x28 = -1 check at 0x5a756/0x5a760 selects vehicle vs squad path.
+ *   - actor+0x12 written at 0x5a825 (0) / 0x5a84d,0x5a86d (1 or computed).
+ *   - actor+0xa (sub-state byte) read at 0x5a870.
+ *   - activation gate OR at 0x5a88c: JZ 0x5a8d4 (deactivate path).
+ *   - actor+0x10 timer: 0x5a writes at 0x5a8cb; dec at 0x5a8e0; zero at
+ * 0x5a8ec.
+ *   - actor_set_active (0x3d5f0) called with (local_c, 1 or 0) at 0x5a934.
+ *   - actor_verify_activation (0x3aca0) called at 0x5a940.
+ *   - advance: local_c = actor+0x2c at 0x5a945.
+ *   - encounter loop: data_iterator_new([EBP-0x20], 0x5ab270) at 0x5a957.
+ *   - [EBP-0x18] = iter.datum_handle = encounter_handle.
+ *   - cluster bv build: FUN_00058fd0(enc_hdl,1,0x200,pvs,local_64) at 0x5a9e4.
+ *   - cluster bv intersect: FUN_00108e70(*(uint16_t*)(scenario+0x134), pvs,
+ * local_64, 0) at 0x5a9fd.
+ *   - encounter+0xe = 0x96 on activate-trigger at 0x5aa09.
+ *   - encounter+0x20 = squad count, encounter+0x22[i*2] = squad datum indices.
+ *   - datum_get(encounter_data, squad_idx) → squad+0xe checked at 0x5aa58.
+ */
+void FUN_0005a6e0(void)
+{
+  char *scenario;
+  char *pvs;
+  char *ai_globals;
+  char *actor;
+  char *group_rec;
+  char *obj;
+  char *enc_def;
+  data_iter_t iter;
+  char cluster_bv[64];
+  int encounter_handle;
+  int actor_handle;
+  int unit_handle;
+  char *unit_obj;
+  int root;
+  char *actor_ptr;
+  char *squad_rec;
+  char *enc;
+  int i;
+  int16_t cluster_index;
+  int16_t squad_i;
+  int16_t squad_count;
+  int16_t enc_timer;
+  char enc_active;
+  char in_editor;
+  char override_flag;
+  char sub_state;
+  char any_squad_active;
+  char vis_result;
+
+  scenario = (char *)scenario_get();
+  pvs = (char *)players_get_combined_pvs();
+  ai_globals = *(char **)0x632574;
+  actor_handle = *(int *)(ai_globals + 8);
+
+  if (actor_handle == -1)
+    goto LAB_encounters;
+
+  /* Phase 1: encounterless actor visibility / activation update */
+LAB_actor_loop:
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(char *)(actor + 9) == '\0') {
+    display_assert("actor->meta.encounterless",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x8ba, 1);
+    system_exit(-1);
+  }
+
+  /* Compute visibility into actor+0x12 */
+  if (*(char *)(actor + 6) != '\0') {
+    /* Actor is in a vehicle or group: start with not-visible */
+    *(char *)(actor + 0x12) = 1;
+    if (*(int *)(actor + 0x28) == -1) {
+      /* Walk vehicle unit list: actor+0x24 = head, unit+0x1ac = next */
+      unit_handle = *(int *)(actor + 0x24);
+      while (unit_handle != -1) {
+        unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+        root = object_get_root_parent(unit_handle);
+        obj = (char *)object_get_and_verify_type(root, 0xffffffff);
+        cluster_index = *(int16_t *)(obj + 0x4c);
+        if (cluster_index != -1 &&
+            (*(unsigned int *)(pvs + ((int)cluster_index >> 5) * 4) &
+             (1 << ((unsigned char)cluster_index & 0x1f))) != 0)
+          goto LAB_0005a825;
+        unit_handle = *(int *)(unit_obj + 0x1ac);
+      }
+    } else {
+      /* Group path: get group record from swarm data, iterate unit handles */
+      group_rec =
+        (char *)datum_get(*(data_t **)0x6325a0, *(int *)(actor + 0x28));
+      squad_i = 0;
+      if (0 < *(int16_t *)(group_rec + 2)) {
+        do {
+          root = object_get_root_parent(
+            *(int *)(group_rec + 0x18 + (int)squad_i * 4));
+          obj = (char *)object_get_and_verify_type(root, 0xffffffff);
+          cluster_index = *(int16_t *)(obj + 0x4c);
+          if (cluster_index != -1 &&
+              (*(unsigned int *)(pvs + ((int)cluster_index >> 5) * 4) &
+               (1 << ((unsigned char)cluster_index & 0x1f))) != 0)
+            goto LAB_0005a825;
+          squad_i++;
+        } while (squad_i < *(int16_t *)(group_rec + 2));
+      }
+    }
+    goto LAB_0005a870;
+  }
+
+  /* Solo unit path (actor+6 == 0): get root parent and check cluster vs PVS */
+  root = object_get_root_parent(*(int *)(actor + 0x18));
+  obj = (char *)object_get_and_verify_type(root, 0xffffffff);
+  cluster_index = *(int16_t *)(obj + 0x4c);
+  if (cluster_index == -1) {
+    *(char *)(actor + 0x12) = 1;
+  } else {
+    /* NEG+SBB+INC pattern: 1 - (pvs_bit != 0) */
+    *(char *)(actor + 0x12) =
+      (char)(1 -
+             (((1 << ((unsigned char)cluster_index & 0x1f)) &
+               *(unsigned int *)(pvs + ((int)cluster_index >> 5) * 4)) != 0));
+  }
+  goto LAB_0005a870;
+
+LAB_0005a825:
+  *(char *)(actor + 0x12) = 0;
+
+LAB_0005a870:
+  /* Activation decision: short-circuit OR, last test inverted.
+   * ref: je visible, jne override, jne sub_state, je !editor → deactivate; fall=activate.
+   * SETZ; OR override; OR sub_state; then if !editor → deactivate. */
+  sub_state = *(char *)(actor + 0xa);
+  in_editor = game_in_editor();
+  if (*(char *)(actor + 0x12) == '\0') goto LAB_activate; /* visible → activate */
+  if (*(char *)0x5ac9c9 != '\0') goto LAB_activate;       /* override → activate */
+  if (sub_state != '\0') goto LAB_activate;                /* sub_state → activate */
+  if (in_editor == '\0') goto LAB_0005a8d4;                /* !editor → deactivate */
+  /* else fall through to activate */
+
+LAB_activate:
+  /* Activate: re-fetch actor to assert encounterless, set timer, activate.
+   * Disasm 0x5a891: datum_get(actor_data, actor_handle) → ESI; check ESI+9;
+   * MOV [ESI+0x10], 0x5a; PUSH 1; PUSH actor_handle; JMP actor_set_active. */
+  actor_ptr = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(char *)(actor_ptr + 9) == '\0') {
+    display_assert("actor->meta.encounterless",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x720, 1);
+    system_exit(-1);
+  }
+  *(int16_t *)(actor_ptr + 0x10) = 0x5a;
+  actor_set_active(actor_handle, 1);
+  goto LAB_advance;
+
+LAB_0005a8d4:
+  /* Deactivate or tick down timer */
+  if (*(int16_t *)(actor + 0x10) > 0x1e) {
+    *(int16_t *)(actor + 0x10) = (int16_t)(*(int16_t *)(actor + 0x10) - 0x1e);
+    goto LAB_advance;
+  }
+  *(int16_t *)(actor + 0x10) = 0;
+  /* Re-fetch actor to assert encounterless before deactivating */
+  actor_ptr = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(char *)(actor_ptr + 9) == '\0') {
+    display_assert("actor->meta.encounterless",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x72e, 1);
+    system_exit(-1);
+  }
+  *(int16_t *)(actor_ptr + 0x10) = 0;
+  actor_set_active(actor_handle, 0);
+
+LAB_advance:
+  actor_verify_activation(actor_handle);
+  actor_handle = *(int *)(actor + 0x2c);
+  if (actor_handle != -1)
+    goto LAB_actor_loop;
+
+  /* Phase 2: encounter loop */
+LAB_encounters:
+  data_iterator_new(&iter, *(data_t **)0x5ab270);
+  enc = (char *)data_iterator_next(&iter);
+  for (;;) {
+    if (enc == NULL)
+      return;
+
+    encounter_handle = (int)iter.datum_handle;
+
+    /* Gather visibility flags */
+    enc_active = *(char *)(enc + 0xc);
+    in_editor = game_in_editor();
+    override_flag = *(char *)0x5ac9c9;
+    enc_timer = *(int16_t *)(enc + 0x3e);
+
+    enc_def =
+      (char *)tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                    (int)(encounter_handle & 0xffff), 0xb0);
+
+    if (*(int16_t *)(enc_def + 0x7e) == -1 ||
+        *(int16_t *)(enc_def + 0x7e) == *(int16_t *)0x326a0c) {
+      /* BSP matches: compute cluster visibility */
+      FUN_00058fd0(encounter_handle, 1, 0x200, (int)pvs, cluster_bv);
+      vis_result = FUN_00108e70(*(int16_t *)(scenario + 0x134), (int)pvs,
+                                (int)cluster_bv, 0);
+      if (!((enc_active == '\0' && in_editor == '\0') &&
+            (enc_timer < 1 && override_flag == '\0') && vis_result == '\0')) {
+        /* Trigger activation */
+        *(int16_t *)(enc + 0xe) = 0x96;
+        FUN_0005a4e0(encounter_handle /* @<eax> */);
+        goto LAB_enc_next;
+      }
+    }
+
+    /* Deactivate path */
+    if (*(char *)(enc + 0xd) == '\0' || *(int16_t *)(enc + 0xe) < 0x1f) {
+      /* Check squads for any active members */
+      squad_count = *(int16_t *)(enc + 0x20);
+      any_squad_active = '\0';
+      for (i = 0; i < (int)squad_count; i++) {
+        squad_rec = (char *)datum_get(*(data_t **)0x5ab270,
+                                      (int)*(int16_t *)(enc + 0x22 + i * 2));
+        if (*(int16_t *)(squad_rec + 0xe) > 0) {
+          any_squad_active = '\x01';
+        }
+      }
+      *(int16_t *)(enc + 0xe) = 0;
+      if (any_squad_active == '\0') {
+        FUN_0005a640(encounter_handle /* @<eax> */);
+      } else {
+        FUN_0005a4e0(encounter_handle /* @<eax> */);
+      }
+    } else {
+      *(int16_t *)(enc + 0xe) = *(int16_t *)(enc + 0xe) - 0x1e;
+    }
+
+  LAB_enc_next:
+    enc = (char *)data_iterator_next(&iter);
+  }
+}
+
+/* 0x0005aab0 — encounter_clear_active_props (FUN_0005aab0).
+ *
+ * Called when an encounter loses all visible enemies (encounter+0x45 must be
+ * 0 on entry — asserted at line 0x97f).  Prepares the encounter for a fresh
+ * activation cycle:
+ *
+ *   1. Assert !encounter->enemy_visible (encounter+0x45 == 0).
+ *   2. Set encounter+0x42 = 1 (reset/active flag).
+ *   3. Clear encounter+0x4c (uint16 tally).
+ *   4. Call FUN_00059bf0(encounter_handle) to drain the pursuit list.
+ *   5. Walk all actors in this encounter (linked list at encounter+0x14,
+ *      chained via actor+0x2c).  For each actor:
+ *        - Iterate its props via FUN_00064540 / FUN_00064570.
+ *        - For each prop whose state (prop+0x24) is 4 or 5 AND whose
+ *          enemy-visible flag (prop+0x60) is set AND whose prop_handle is
+ *          not the actor's orphan_prop (actor+0x270):
+ *            a. Assert prop->parent_prop_index (prop+0xc) != NONE.
+ *            b. Follow the parent prop via datum_get(prop_data, prop+0xc).
+ *            c. Assert parent_prop->orphan_prop_index == current prop_handle.
+ *            d. Clear parent_prop->orphan_prop_index to NONE.
+ *            e. Call FUN_0003b410(actor_handle, prop_handle, NONE).
+ *            f. Call prop_iterator_next(actor_handle, prop_handle).
+ *
+ * Confirmed:
+ *   EDI  = encounter_handle (param, EBP+0x8).
+ *   ESI  = encounter ptr after first datum_get; later reused for
+ * prop/parent_prop. EBX  = outer actor_handle loop variable, advanced to
+ * next_actor_handle (actor+0x2c) at both loop-back paths. EBP-0x4 = actor ptr
+ * (stored at 0x5ab63 after datum_get). EBP-0xc = prop_iter[2] (2-slot int
+ * array: [0]=current handle read at 0x5aba6/0x5ac20/0x5ac2f, [1]=next handle
+ * written by FUN_00064540/FUN_00064570). FUN_00059bf0: @<eax> register
+ * convention (encounter_handle in EAX at 0x5aaf4). prop_data  =
+ * *(data_t**)0x5ab23c. actor_data = *(data_t**)0x6325a4. assert strings confirm
+ * file "c:\\halo\\SOURCE\\ai\\encounters.c" lines 0x97f/0x99a/0x99f.
+ */
+void FUN_0005aab0(int encounter_handle)
+{
+  char *encounter;
+  char *ai_globals;
+  char *actor;
+  char *prop;
+  char *parent_prop;
+  int actor_handle;
+  int cur_actor_handle;
+  int next_actor_handle;
+  int prop_iter[2]; /* 2-slot iterator: [0]=current prop handle, [1]=next */
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  if (*(char *)(encounter + 0x45) != '\0') {
+    display_assert("!encounter->enemy_visible",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x97f, 1);
+    system_exit(-1);
+  }
+  *(char *)(encounter + 0x42) = 1;
+  *(short *)(encounter + 0x4c) = 0;
+  FUN_00059bf0(encounter_handle /* @<eax> */);
+
+  ai_globals = *(char **)0x632574;
+  if (*(char *)(ai_globals + 1) != '\0') {
+    if (encounter_handle == -1) {
+      actor_handle = *(int *)(ai_globals + 8);
+    } else {
+      encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+      actor_handle = *(int *)(encounter + 0x14);
+    }
+  }
+
+  /* Outer actor loop: walks the actor linked list.
+   * actor_handle (EBX) = current actor for the outer-loop check.
+   * cur_actor_handle (EDI) = snapshot of actor_handle at outer-loop entry,
+   * used for all calls inside the inner loop. */
+  for (;;) {
+    ai_globals = *(char **)0x632574;
+    if (*(char *)(ai_globals + 1) == '\0')
+      break;
+    if (actor_handle == -1)
+      break;
+
+    /* Snapshot current actor_handle into cur_actor_handle (= EDI in
+     * binary). This is what gets passed to FUN_0003b410 and
+     * prop_iterator_next. */
+    cur_actor_handle = actor_handle;
+    actor = (char *)datum_get(*(data_t **)0x6325a4, cur_actor_handle);
+    next_actor_handle = *(int *)(actor + 0x2c);
+
+    /* Init prop iterator and get first prop data ptr.
+     * prop_iter[0] (EBP-0xc) = current prop_handle (index).
+     * prop_iter[1] (EBP-0x8) = next prop_handle (chain link).
+     * prop (return value of FUN_00064570) = prop data ptr. */
+    FUN_00064540(prop_iter, cur_actor_handle);
+    prop = (char *)FUN_00064570(prop_iter);
+
+    /* Inner prop loop.  The binary's inner while condition sets
+     * EBX (actor_handle) = next_actor_handle each iteration, advancing
+     * the outer loop.  Calls inside use EDI = cur_actor_handle. */
+    while (prop != NULL) {
+      actor_handle = next_actor_handle;
+      if (*(short *)(prop + 0x24) > 3 && *(short *)(prop + 0x24) < 6 &&
+          *(char *)(prop + 0x60) != '\0' &&
+          prop_iter[0] != *(int *)(actor + 0x270)) {
+        if (*(int *)(prop + 0xc) == -1) {
+          display_assert("prop->parent_prop_index != NONE",
+                         "c:\\halo\\SOURCE\\ai\\encounters.c", 0x99a, 1);
+          system_exit(-1);
+        }
+        parent_prop =
+          (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(prop + 0xc));
+        if (*(int *)(parent_prop + 0xc) != prop_iter[0]) {
+          display_assert(
+            "parent_prop->orphan_prop_index == prop_iterator.index",
+            "c:\\halo\\SOURCE\\ai\\encounters.c", 0x99f, 1);
+          system_exit(-1);
+        }
+        *(int *)(parent_prop + 0xc) = -1;
+        FUN_0003b410(cur_actor_handle, prop_iter[0], -1);
+        prop_iterator_next(cur_actor_handle, prop_iter[0]);
+      }
+      prop = (char *)FUN_00064570(prop_iter);
+    }
+  }
+}
+
 /* 0x5acf0 — encounter_update_timers.
- * Updates encounter timers each tick (called every 15 ticks from encounter_update).
- * Three timer groups:
- *   +0x50 (int):  incremented by 15 each call if +0x45 == 0 and != -1;
- *                 reset to 0 if +0x45 != 0.
- *   +0x54 (int):  incremented by 15 each call if +0x44 == 0 and != -1;
- *                 reset to 0 if +0x44 != 0.
- *   +0x4a (short): decremented by 15 if both +0x47 and +0x48 are non-zero
- *                  and current value > 15; otherwise zeroed.
+ * Updates encounter timers each tick (called every 15 ticks from
+ * encounter_update). Three timer groups: +0x50 (int):  incremented by 15 each
+ * call if +0x45 == 0 and != -1; reset to 0 if +0x45 != 0. +0x54 (int):
+ * incremented by 15 each call if +0x44 == 0 and != -1; reset to 0 if +0x44 !=
+ * 0. +0x4a (short): decremented by 15 if both +0x47 and +0x48 are non-zero and
+ * current value > 15; otherwise zeroed.
  *
  * Confirmed:
  *   - 1 register arg (EAX = encounter_handle); PUSH EAX, PUSH [0x5ab270]
@@ -976,7 +1421,8 @@ void FUN_0005acf0(int encounter_handle)
       *(int *)(encounter + 0x54) = *(int *)(encounter + 0x54) + 15;
     }
   }
-  if (*(char *)(encounter + 0x47) != '\0' && *(char *)(encounter + 0x48) != '\0') {
+  if (*(char *)(encounter + 0x47) != '\0' &&
+      *(char *)(encounter + 0x48) != '\0') {
     if (*(short *)(encounter + 0x4a) > 15) {
       *(short *)(encounter + 0x4a) = *(short *)(encounter + 0x4a) - 15;
       return;
@@ -1001,7 +1447,8 @@ void FUN_0005acf0(int encounter_handle)
  * lookup.
  *   - global_scenario_get() at 0x5ade6 (0 args); +0x42c+[EDI] element (size
  * 0xb0).
- *   - encounter_get_squad(encounter, param_2) → squad record; EBX=squad pointer.
+ *   - encounter_get_squad(encounter, param_2) → squad record; EBX=squad
+ * pointer.
  *   - tag_block_get_element(EBX+0x80, (int16_t)param_2, 0xe8) → squad_def.
  *   - MOV word ptr [ECX+0x12],0 at 0x5ae1e clears squad delay counter.
  *   - Bit 0x10 of squad_def+0x28 gates FUN_00058a40 call
@@ -1050,15 +1497,16 @@ void encounter_squad_timer_expire(int encounter_handle, int16_t squad_index)
  *     when either bit 2 of squad_def+0x28 is set OR encounter+0x2e > 0.
  *     Logs "%s/%s: delay timer started (%.1f sec)" when debug flag is set.
  *   - If the delay is running and >= 0x10 ticks: decrements by 15.
- *   - If the delay is running and < 0x10 ticks: fires encounter_squad_timer_expire to
- *     complete the squad spawn.
- * Squads with bit 3 of squad_def+0x28 set are skipped entirely.
+ *   - If the delay is running and < 0x10 ticks: fires
+ * encounter_squad_timer_expire to complete the squad spawn. Squads with bit 3
+ * of squad_def+0x28 set are skipped entirely.
  *
  * Confirmed: PUSH [EBP+8] before CALL 0x5ae70 in FUN_0005de80 (0x5df42).
  * Confirmed: ADD ESP,0xc after global_scenario_get + tag_block_get_element
  *   (pre-positioned args pattern: 0xb0, ESI pushed before global_scenario_get).
- * Confirmed: encounter_squad_timer_expire(encounter_handle, squad_index) — 2 cdecl args.
- * Confirmed: float at iVar5+0x50 promoted to double via FSTP [ESP]. */
+ * Confirmed: encounter_squad_timer_expire(encounter_handle, squad_index) — 2
+ * cdecl args. Confirmed: float at iVar5+0x50 promoted to double via FSTP [ESP].
+ */
 void FUN_0005ae70(int encounter_handle)
 {
   char *encounter;
@@ -1135,7 +1583,8 @@ void FUN_0005ae70(int encounter_handle)
  *   - EAX = encounter_handle (datum index), EDI = rule pointer (short*).
  *   - datum_get(*(data_t**)0x5ab270, encounter_handle) → encounter record.
  *   - FUN_00054020(encounter, platoon_index) → platoon record.
- *   - Switch table at 0x5b1b4 (10 entries), debug switch at 0x5b1dc (9 entries).
+ *   - Switch table at 0x5b1b4 (10 entries), debug switch at 0x5b1dc (9
+ * entries).
  *   - Float constants: 0x25afcc=0.75f, 0x253398=0.5f, 0x25337c=0.25f.
  */
 bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */)
@@ -1412,8 +1861,8 @@ void FUN_0005c940(int encounter_handle)
  * Confirmed: EBX=encounter_index preserved across all inner calls.
  * Confirmed: ESI=actor record, EDI=encounter record throughout.
  */
-void encounter_attach_actor(int actor_handle, int encounter_index, int16_t squad_index,
-                  int flag)
+void encounter_attach_actor(int actor_handle, int encounter_index,
+                            int16_t squad_index, int flag)
 {
   char *actor;
   char *encounter;
@@ -1576,268 +2025,279 @@ LAB_0005d365:
  */
 void encounter_update_status(int encounter_handle)
 {
-    char *encounter;
-    char *actor;
-    char *squad;
-    char *platoon;
-    char *unit;
-    int actor_handle;
-    int next_actor_handle;
-    int i;
-    short weight;
-    float vitality;
-    float fVar1;
-    unsigned char bVar6;
-    char not_same_team;      /* bVar2: set if FUN_000a7a90 returns false */
-    char has_reinforcements;  /* bVar3: set if actor+0x1e4 > 0 */
-    char saw_enemy_primary;   /* bVar4: actor+0x8c != 0 */
-    char saw_enemy_secondary; /* bVar5: actor+0x8d != 0 */
+  char *encounter;
+  char *actor;
+  char *squad;
+  char *platoon;
+  char *unit;
+  int actor_handle;
+  int next_actor_handle;
+  int i;
+  short weight;
+  float vitality;
+  float fVar1;
+  unsigned char bVar6;
+  char not_same_team; /* bVar2: set if FUN_000a7a90 returns false */
+  char has_reinforcements; /* bVar3: set if actor+0x1e4 > 0 */
+  char saw_enemy_primary; /* bVar4: actor+0x8c != 0 */
+  char saw_enemy_secondary; /* bVar5: actor+0x8d != 0 */
 
-    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
 
-    not_same_team = 0;
-    has_reinforcements = 0;
-    saw_enemy_primary = 0;
-    saw_enemy_secondary = 0;
+  not_same_team = 0;
+  has_reinforcements = 0;
+  saw_enemy_primary = 0;
+  saw_enemy_secondary = 0;
 
-    /* Reset encounter-level status fields */
-    *(char *)(encounter + 0x44) = 0;
-    *(char *)(encounter + 0x45) = 0;
-    *(short *)(encounter + 0x30) = 0;
-    *(short *)(encounter + 0x2e) = 0;
-    *(short *)(encounter + 0x2c) = 0;
-    *(short *)(encounter + 0x2a) = 0;
-    *(int *)(encounter + 0x34) = 0;
+  /* Reset encounter-level status fields */
+  *(char *)(encounter + 0x44) = 0;
+  *(char *)(encounter + 0x45) = 0;
+  *(short *)(encounter + 0x30) = 0;
+  *(short *)(encounter + 0x2e) = 0;
+  *(short *)(encounter + 0x2c) = 0;
+  *(short *)(encounter + 0x2a) = 0;
+  *(int *)(encounter + 0x34) = 0;
 
-    /* Reset per-squad counters */
-    i = 0;
-    if (0 < *(short *)(encounter + 6)) {
-        do {
-            squad = encounter_get_squad(encounter, (short)i);
-            i = i + 1;
-            *(short *)(squad + 0x1a) = 0;
-            *(short *)(squad + 0x18) = 0;
-            *(int *)(squad + 0x1c) = 0;
-        } while ((short)i < *(short *)(encounter + 6));
-    }
+  /* Reset per-squad counters */
+  i = 0;
+  if (0 < *(short *)(encounter + 6)) {
+    do {
+      squad = encounter_get_squad(encounter, (short)i);
+      i = i + 1;
+      *(short *)(squad + 0x1a) = 0;
+      *(short *)(squad + 0x18) = 0;
+      *(int *)(squad + 0x1c) = 0;
+    } while ((short)i < *(short *)(encounter + 6));
+  }
 
-    /* Reset per-platoon counters */
-    i = 0;
-    if (0 < *(short *)(encounter + 10)) {
-        do {
-            platoon = FUN_00054020(encounter, (short)i);
-            i = i + 1;
-            *(short *)(platoon + 8) = 0;
-            *(short *)(platoon + 6) = 0;
-            *(int *)(platoon + 0xc) = 0;
-        } while ((short)i < *(short *)(encounter + 10));
-    }
+  /* Reset per-platoon counters */
+  i = 0;
+  if (0 < *(short *)(encounter + 10)) {
+    do {
+      platoon = FUN_00054020(encounter, (short)i);
+      i = i + 1;
+      *(short *)(platoon + 8) = 0;
+      *(short *)(platoon + 6) = 0;
+      *(int *)(platoon + 0xc) = 0;
+    } while ((short)i < *(short *)(encounter + 10));
+  }
 
-    /* Determine starting actor handle for the linked-list walk */
-    if (*(char *)(*(char **)0x632574 + 1) != '\0') {
-        if (encounter_handle == -1) {
-            actor_handle = *(int *)(*(char **)0x632574 + 8);
-        } else {
-            actor_handle = *(int *)((char *)datum_get(*(data_t **)0x5ab270,
-                                                      encounter_handle) + 0x14);
-        }
-    }
-
-    /* Walk the actor linked list */
-    while (*(char *)(*(char **)0x632574 + 1) != '\0' && actor_handle != -1) {
-        actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-        next_actor_handle = *(int *)(actor + 0x2c);
-
-        squad = encounter_get_squad(encounter, *(short *)(actor + 0x3a));
-
-        /* Compute per-actor weight and vitality */
-        if (*(int *)(actor + 0x18) != -1) {
-            /* Live unit: weight = 1, vitality from unit health field */
-            unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
-            vitality = *(float *)(unit + 0x90);
-            weight = 1;
-        } else {
-            /* No live unit: use spawn fraction as weight */
-            weight = *(short *)(actor + 0x1e);
-            vitality = (float)(int)weight / (float)(int)*(short *)(actor + 0x20);
-        }
-
-        /* Accumulate platoon counters if actor belongs to a platoon */
-        if (*(short *)(actor + 0x3c) != -1) {
-            platoon = FUN_00054020(encounter, *(short *)(actor + 0x3c));
-            *(short *)(platoon + 6) = *(short *)(platoon + 6) + weight;
-            bVar6 = *(unsigned char *)(actor + 6);
-            *(float *)(platoon + 0xc) = vitality + *(float *)(platoon + 0xc);
-            *(short *)(platoon + 8) = *(short *)(platoon + 8) +
-                (short)((unsigned short)bVar6 * (unsigned short)weight);
-        }
-
-        /* Accumulate squad counters */
-        *(short *)(squad + 0x18) = *(short *)(squad + 0x18) + weight;
-        bVar6 = *(unsigned char *)(actor + 6);
-        *(float *)(squad + 0x1c) = vitality + *(float *)(squad + 0x1c);
-        *(short *)(squad + 0x1a) = *(short *)(squad + 0x1a) +
-            (short)((unsigned short)bVar6 * (unsigned short)weight);
-
-        /* Accumulate encounter counters */
-        *(short *)(encounter + 0x2a) = *(short *)(encounter + 0x2a) + weight;
-        *(short *)(encounter + 0x2c) = *(short *)(encounter + 0x2c) +
-            (short)((unsigned short)*(unsigned char *)(actor + 6) * (unsigned short)weight);
-
-        bVar6 = (unsigned char)FUN_0003b120(actor_handle);
-        *(short *)(encounter + 0x2e) = *(short *)(encounter + 0x2e) +
-            (short)((unsigned short)bVar6 * (unsigned short)weight);
-
-        bVar6 = (unsigned char)FUN_0003b150(actor_handle);
-        *(float *)(encounter + 0x34) = vitality + *(float *)(encounter + 0x34);
-        *(short *)(encounter + 0x30) = *(short *)(encounter + 0x30) +
-            (short)((unsigned short)bVar6 * (unsigned short)weight);
-
-        /* Enemy visible / alive flags from actor's linked unit */
-        if (*(int *)(actor + 0x270) != -1) {
-            unit = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
-            *(char *)(encounter + 0x43) = 1;
-
-            if (!FUN_000a7a90(*(short *)(actor + 0x3e),
-                              *(short *)(unit + 0x12))) {
-                not_same_team = 1;
-            }
-
-            FUN_0003b120(actor_handle);
-
-            if (*(char *)(actor + 0x8c) != '\0') {
-                saw_enemy_primary = 1;
-            }
-            if (*(char *)(actor + 0x8d) != '\0') {
-                saw_enemy_secondary = 1;
-            }
-
-            if (*(short *)(actor + 0x6e) >= 7) {
-                *(char *)(encounter + 0x45) = 1;
-            } else {
-                if (*(short *)(unit + 0x24) < 2 || 3 < *(short *)(unit + 0x24)) {
-                    bVar6 = *(unsigned char *)((char *)object_get_and_verify_type(
-                        *(int *)(unit + 0x18), 3) + 0xb6) & 4;
-                } else {
-                    bVar6 = *(unsigned char *)(unit + 0x127);
-                }
-                if (bVar6 != 0) {
-                    goto skip_enemy_alive;
-                }
-            }
-
-            *(char *)(encounter + 0x44) = 1;
-        }
-
-    skip_enemy_alive:
-        actor_handle = next_actor_handle;
-        if (0 < *(short *)(actor + 0x1e4)) {
-            has_reinforcements = 1;
-        }
-    }
-
-    /* Apply not-same-team flag */
-    if (not_same_team) {
-        *(char *)(encounter + 0x46) = 0;
-    }
-
-    /* State machine: determine encounter activity */
-    if (*(char *)(encounter + 0x45) == '\0' &&
-        (*(int *)(encounter + 0x50) == -1 || 0x3b < *(int *)(encounter + 0x50))) {
-        if ((*(char *)(encounter + 0x44) == '\0' &&
-             (*(int *)(encounter + 0x54) == -1 || 0x3b < *(int *)(encounter + 0x54))) ||
-            (*(int *)(encounter + 0x50) == -1 || 0x1c1 < *(int *)(encounter + 0x50))) {
-
-            if (*(char *)(encounter + 0x42) != '\0') {
-                /* Encounter was previously active -- transition out */
-                *(char *)(encounter + 0x47) = 0;
-                *(short *)(encounter + 0x1a) = *(short *)(encounter + 0x2a);
-                *(int *)(encounter + 0x58) = game_time_get();
-                *(short *)(encounter + 0x4c) = 0;
-
-                if (*(char *)(encounter + 0x43) == '\0') {
-                    if (*(char *)(encounter + 0x45) != '\0' ||
-                        *(char *)(encounter + 0x44) != '\0') {
-                        display_assert(
-                            "!encounter->enemy_visible && !encounter->enemy_alive",
-                            "c:\\halo\\SOURCE\\ai\\encounters.c", 0x86c, 1);
-                        system_exit(-1);
-                    }
-                    *(int *)(encounter + 0x50) = -1;
-                    *(int *)(encounter + 0x54) = -1;
-                }
-            } else {
-                if (*(char *)(encounter + 0x47) != '\0') {
-                    *(char *)(encounter + 0x48) = !has_reinforcements;
-                    if (*(short *)(encounter + 0x4a) != 0) {
-                        goto done;
-                    }
-                } else {
-                    if (saw_enemy_primary && saw_enemy_secondary) {
-                        FUN_0005bbe0(encounter_handle);
-                        goto done;
-                    }
-                }
-                FUN_0005aab0(encounter_handle);
-            }
-        } else {
-            /* Still active */
-            *(char *)(encounter + 0x42) = 0;
-            *(char *)(encounter + 0x47) = 0;
-        }
+  /* Determine starting actor handle for the linked-list walk */
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    if (encounter_handle == -1) {
+      actor_handle = *(int *)(*(char **)0x632574 + 8);
     } else {
-        /* Still active */
-        *(char *)(encounter + 0x42) = 0;
-        *(char *)(encounter + 0x47) = 0;
+      actor_handle =
+        *(int *)((char *)datum_get(*(data_t **)0x5ab270, encounter_handle) +
+                 0x14);
     }
+  }
+
+  /* Walk the actor linked list */
+  while (*(char *)(*(char **)0x632574 + 1) != '\0' && actor_handle != -1) {
+    actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+    next_actor_handle = *(int *)(actor + 0x2c);
+
+    squad = encounter_get_squad(encounter, *(short *)(actor + 0x3a));
+
+    /* Compute per-actor weight and vitality */
+    if (*(int *)(actor + 0x18) != -1) {
+      /* Live unit: weight = 1, vitality from unit health field */
+      unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+      vitality = *(float *)(unit + 0x90);
+      weight = 1;
+    } else {
+      /* No live unit: use spawn fraction as weight */
+      weight = *(short *)(actor + 0x1e);
+      vitality = (float)(int)weight / (float)(int)*(short *)(actor + 0x20);
+    }
+
+    /* Accumulate platoon counters if actor belongs to a platoon */
+    if (*(short *)(actor + 0x3c) != -1) {
+      platoon = FUN_00054020(encounter, *(short *)(actor + 0x3c));
+      *(short *)(platoon + 6) = *(short *)(platoon + 6) + weight;
+      bVar6 = *(unsigned char *)(actor + 6);
+      *(float *)(platoon + 0xc) = vitality + *(float *)(platoon + 0xc);
+      *(short *)(platoon + 8) =
+        *(short *)(platoon + 8) +
+        (short)((unsigned short)bVar6 * (unsigned short)weight);
+    }
+
+    /* Accumulate squad counters */
+    *(short *)(squad + 0x18) = *(short *)(squad + 0x18) + weight;
+    bVar6 = *(unsigned char *)(actor + 6);
+    *(float *)(squad + 0x1c) = vitality + *(float *)(squad + 0x1c);
+    *(short *)(squad + 0x1a) =
+      *(short *)(squad + 0x1a) +
+      (short)((unsigned short)bVar6 * (unsigned short)weight);
+
+    /* Accumulate encounter counters */
+    *(short *)(encounter + 0x2a) = *(short *)(encounter + 0x2a) + weight;
+    *(short *)(encounter + 0x2c) =
+      *(short *)(encounter + 0x2c) +
+      (short)((unsigned short)*(unsigned char *)(actor + 6) *
+              (unsigned short)weight);
+
+    bVar6 = (unsigned char)FUN_0003b120(actor_handle);
+    *(short *)(encounter + 0x2e) =
+      *(short *)(encounter + 0x2e) +
+      (short)((unsigned short)bVar6 * (unsigned short)weight);
+
+    bVar6 = (unsigned char)FUN_0003b150(actor_handle);
+    *(float *)(encounter + 0x34) = vitality + *(float *)(encounter + 0x34);
+    *(short *)(encounter + 0x30) =
+      *(short *)(encounter + 0x30) +
+      (short)((unsigned short)bVar6 * (unsigned short)weight);
+
+    /* Enemy visible / alive flags from actor's linked unit */
+    if (*(int *)(actor + 0x270) != -1) {
+      unit = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+      *(char *)(encounter + 0x43) = 1;
+
+      if (!FUN_000a7a90(*(short *)(actor + 0x3e), *(short *)(unit + 0x12))) {
+        not_same_team = 1;
+      }
+
+      FUN_0003b120(actor_handle);
+
+      if (*(char *)(actor + 0x8c) != '\0') {
+        saw_enemy_primary = 1;
+      }
+      if (*(char *)(actor + 0x8d) != '\0') {
+        saw_enemy_secondary = 1;
+      }
+
+      if (*(short *)(actor + 0x6e) >= 7) {
+        *(char *)(encounter + 0x45) = 1;
+      } else {
+        if (*(short *)(unit + 0x24) < 2 || 3 < *(short *)(unit + 0x24)) {
+          bVar6 = *(unsigned char *)((char *)object_get_and_verify_type(
+                                       *(int *)(unit + 0x18), 3) +
+                                     0xb6) &
+                  4;
+        } else {
+          bVar6 = *(unsigned char *)(unit + 0x127);
+        }
+        if (bVar6 != 0) {
+          goto skip_enemy_alive;
+        }
+      }
+
+      *(char *)(encounter + 0x44) = 1;
+    }
+
+  skip_enemy_alive:
+    actor_handle = next_actor_handle;
+    if (0 < *(short *)(actor + 0x1e4)) {
+      has_reinforcements = 1;
+    }
+  }
+
+  /* Apply not-same-team flag */
+  if (not_same_team) {
+    *(char *)(encounter + 0x46) = 0;
+  }
+
+  /* State machine: determine encounter activity */
+  if (*(char *)(encounter + 0x45) == '\0' &&
+      (*(int *)(encounter + 0x50) == -1 || 0x3b < *(int *)(encounter + 0x50))) {
+    if ((*(char *)(encounter + 0x44) == '\0' &&
+         (*(int *)(encounter + 0x54) == -1 ||
+          0x3b < *(int *)(encounter + 0x54))) ||
+        (*(int *)(encounter + 0x50) == -1 ||
+         0x1c1 < *(int *)(encounter + 0x50))) {
+      if (*(char *)(encounter + 0x42) != '\0') {
+        /* Encounter was previously active -- transition out */
+        *(char *)(encounter + 0x47) = 0;
+        *(short *)(encounter + 0x1a) = *(short *)(encounter + 0x2a);
+        *(int *)(encounter + 0x58) = game_time_get();
+        *(short *)(encounter + 0x4c) = 0;
+
+        if (*(char *)(encounter + 0x43) == '\0') {
+          if (*(char *)(encounter + 0x45) != '\0' ||
+              *(char *)(encounter + 0x44) != '\0') {
+            display_assert(
+              "!encounter->enemy_visible && !encounter->enemy_alive",
+              "c:\\halo\\SOURCE\\ai\\encounters.c", 0x86c, 1);
+            system_exit(-1);
+          }
+          *(int *)(encounter + 0x50) = -1;
+          *(int *)(encounter + 0x54) = -1;
+        }
+      } else {
+        if (*(char *)(encounter + 0x47) != '\0') {
+          *(char *)(encounter + 0x48) = !has_reinforcements;
+          if (*(short *)(encounter + 0x4a) != 0) {
+            goto done;
+          }
+        } else {
+          if (saw_enemy_primary && saw_enemy_secondary) {
+            FUN_0005bbe0(encounter_handle);
+            goto done;
+          }
+        }
+        FUN_0005aab0(encounter_handle);
+      }
+    } else {
+      /* Still active */
+      *(char *)(encounter + 0x42) = 0;
+      *(char *)(encounter + 0x47) = 0;
+    }
+  } else {
+    /* Still active */
+    *(char *)(encounter + 0x42) = 0;
+    *(char *)(encounter + 0x47) = 0;
+  }
 
 done:
-    /* Finalise encounter vitality ratio */
-    if (0 < *(short *)(encounter + 0x18)) {
-        fVar1 = *(float *)(encounter + 0x34) / (float)(int)*(short *)(encounter + 0x18)
-                - *(float *)0x255ef8;
-        if (fVar1 < *(float *)0x2533c0) {
-            fVar1 = *(float *)0x2533c0;
-        }
-        *(float *)(encounter + 0x34) = fVar1;
+  /* Finalise encounter vitality ratio */
+  if (0 < *(short *)(encounter + 0x18)) {
+    fVar1 =
+      *(float *)(encounter + 0x34) / (float)(int)*(short *)(encounter + 0x18) -
+      *(float *)0x255ef8;
+    if (fVar1 < *(float *)0x2533c0) {
+      fVar1 = *(float *)0x2533c0;
     }
+    *(float *)(encounter + 0x34) = fVar1;
+  }
 
-    /* Finalise per-squad vitality ratios */
-    i = 0;
-    if (0 < *(short *)(encounter + 6)) {
-        do {
-            squad = encounter_get_squad(encounter, (short)i);
-            fVar1 = *(float *)(squad + 0x1c) / (float)(int)*(short *)(squad + 0x16)
-                    - *(float *)0x255ef8;
-            if (fVar1 < *(float *)0x2533c0) {
-                fVar1 = *(float *)0x2533c0;
-            }
-            i = i + 1;
-            *(float *)(squad + 0x1c) = fVar1;
-        } while ((short)i < *(short *)(encounter + 6));
-    }
+  /* Finalise per-squad vitality ratios */
+  i = 0;
+  if (0 < *(short *)(encounter + 6)) {
+    do {
+      squad = encounter_get_squad(encounter, (short)i);
+      fVar1 = *(float *)(squad + 0x1c) / (float)(int)*(short *)(squad + 0x16) -
+              *(float *)0x255ef8;
+      if (fVar1 < *(float *)0x2533c0) {
+        fVar1 = *(float *)0x2533c0;
+      }
+      i = i + 1;
+      *(float *)(squad + 0x1c) = fVar1;
+    } while ((short)i < *(short *)(encounter + 6));
+  }
 
-    /* Finalise per-platoon vitality ratios */
-    i = 0;
-    if (0 < *(short *)(encounter + 10)) {
-        do {
-            platoon = FUN_00054020(encounter, (short)i);
-            fVar1 = *(float *)(platoon + 0xc) / (float)(int)*(short *)(platoon + 4)
-                    - *(float *)0x255ef8;
-            if (fVar1 < *(float *)0x2533c0) {
-                fVar1 = *(float *)0x2533c0;
-            }
-            i = i + 1;
-            *(float *)(platoon + 0xc) = fVar1;
-        } while ((short)i < *(short *)(encounter + 10));
-    }
+  /* Finalise per-platoon vitality ratios */
+  i = 0;
+  if (0 < *(short *)(encounter + 10)) {
+    do {
+      platoon = FUN_00054020(encounter, (short)i);
+      fVar1 = *(float *)(platoon + 0xc) / (float)(int)*(short *)(platoon + 4) -
+              *(float *)0x255ef8;
+      if (fVar1 < *(float *)0x2533c0) {
+        fVar1 = *(float *)0x2533c0;
+      }
+      i = i + 1;
+      *(float *)(platoon + 0xc) = fVar1;
+    } while ((short)i < *(short *)(encounter + 10));
+  }
 
-    /* Clear the dirty / recycle-pending flag */
-    *(char *)(encounter + 0x28) = 0;
+  /* Clear the dirty / recycle-pending flag */
+  *(char *)(encounter + 0x28) = 0;
 }
 
 /* 0x5d890 — Iterate all encounters; for each dirty encounter whose
- * flag at +0x28 is set, calls encounter_update_status (encounter_finalize/recycle).
+ * flag at +0x28 is set, calls encounter_update_status
+ * (encounter_finalize/recycle).
  *
  * Uses the same guarded iterator pattern as encounters_create_for_new_map:
  *   - Guards on ai_globals+1 before init and at every loop iteration.
@@ -1886,8 +2346,8 @@ void encounters_update_dirty_status(void)
 /* 0x0005d910 — Place actors for an encounter or specific squad/platoon.
  * param_2: platoon index (-1 = all), param_3: squad index (-1 = all).
  * Resolves difficulty-based spawn counts, applies spawn-type delays,
- * calls encounter_get_actor_starting_location per actor slot, then finalises via encounter_update_status and
- * FUN_0005a6e0. */
+ * calls encounter_get_actor_starting_location per actor slot, then finalises
+ * via encounter_update_status and FUN_0005a6e0. */
 void encounter_create(int encounter_handle, short param_2, short param_3)
 {
   char *scenario;
@@ -2010,7 +2470,8 @@ void encounter_create(int encounter_handle, short param_2, short param_3)
 
     if ((int16_t)count > 0) {
       for (j = 0; j < (int16_t)count; j++) {
-        encounter_get_actor_starting_location((int16_t)i, delay, 0, encounter_handle);
+        encounter_get_actor_starting_location((int16_t)i, delay, 0,
+                                              encounter_handle);
         delay = 0;
       }
     }
@@ -2036,7 +2497,8 @@ void encounter_create(int encounter_handle, short param_2, short param_3)
  *     squad_def+0x4e, bounds-checks it against the encounter's squad count,
  *     and calls FUN_0003baa0 to move the actor to that squad, then calls
  *     FUN_00036dc0 to update the actor's firing state from platoon flags.
- * After the actor loop, calls encounters_update_dirty_status for encounter cleanup.
+ * After the actor loop, calls encounters_update_dirty_status for encounter
+ * cleanup.
  *
  * Confirmed:
  *   - cdecl, 1 stack arg (encounter_handle), RET (no stack fixup).
@@ -2174,10 +2636,11 @@ void encounters_create_for_new_map(void)
   }
 }
 
-/* 0x5de80 — Per-tick encounter update. Every 30 ticks calls encounters_update_dirty_status and
- * FUN_0005a6e0. Then iterates all encounters; for each dirty encounter whose
- * handle index mod 15 matches the current tick mod 15, runs the full suite of
- * encounter update functions (tally, perception, squad management, etc.). */
+/* 0x5de80 — Per-tick encounter update. Every 30 ticks calls
+ * encounters_update_dirty_status and FUN_0005a6e0. Then iterates all
+ * encounters; for each dirty encounter whose handle index mod 15 matches the
+ * current tick mod 15, runs the full suite of encounter update functions
+ * (tally, perception, squad management, etc.). */
 void FUN_0005de80(void)
 {
   int tick;
@@ -2245,128 +2708,8 @@ void FUN_0005dfb0(void)
 {
 }
 
-/* 0x0005aab0 — encounter_clear_active_props (FUN_0005aab0).
- *
- * Called when an encounter loses all visible enemies (encounter+0x45 must be
- * 0 on entry — asserted at line 0x97f).  Prepares the encounter for a fresh
- * activation cycle:
- *
- *   1. Assert !encounter->enemy_visible (encounter+0x45 == 0).
- *   2. Set encounter+0x42 = 1 (reset/active flag).
- *   3. Clear encounter+0x4c (uint16 tally).
- *   4. Call FUN_00059bf0(encounter_handle) to drain the pursuit list.
- *   5. Walk all actors in this encounter (linked list at encounter+0x14,
- *      chained via actor+0x2c).  For each actor:
- *        - Iterate its props via FUN_00064540 / FUN_00064570.
- *        - For each prop whose state (prop+0x24) is 4 or 5 AND whose
- *          enemy-visible flag (prop+0x60) is set AND whose prop_handle is
- *          not the actor's orphan_prop (actor+0x270):
- *            a. Assert prop->parent_prop_index (prop+0xc) != NONE.
- *            b. Follow the parent prop via datum_get(prop_data, prop+0xc).
- *            c. Assert parent_prop->orphan_prop_index == current prop_handle.
- *            d. Clear parent_prop->orphan_prop_index to NONE.
- *            e. Call FUN_0003b410(actor_handle, prop_handle, NONE).
- *            f. Call prop_iterator_next(actor_handle, prop_handle).
- *
- * Confirmed:
- *   EDI  = encounter_handle (param, EBP+0x8).
- *   ESI  = encounter ptr after first datum_get; later reused for prop/parent_prop.
- *   EBX  = outer actor_handle loop variable, advanced to next_actor_handle
- *          (actor+0x2c) at both loop-back paths.
- *   EBP-0x4 = actor ptr (stored at 0x5ab63 after datum_get).
- *   EBP-0xc = prop_iter[2] (2-slot int array: [0]=current handle read at
- *             0x5aba6/0x5ac20/0x5ac2f, [1]=next handle written by FUN_00064540/FUN_00064570).
- *   FUN_00059bf0: @<eax> register convention (encounter_handle in EAX at 0x5aaf4).
- *   prop_data  = *(data_t**)0x5ab23c.
- *   actor_data = *(data_t**)0x6325a4.
- *   assert strings confirm file "c:\\halo\\SOURCE\\ai\\encounters.c" lines 0x97f/0x99a/0x99f.
- */
-void FUN_0005aab0(int encounter_handle)
-{
-    char *encounter;
-    char *ai_globals;
-    char *actor;
-    char *prop;
-    char *parent_prop;
-    int actor_handle;
-    int cur_actor_handle;
-    int next_actor_handle;
-    int prop_iter[2]; /* 2-slot iterator: [0]=current prop handle, [1]=next */
-
-    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
-    if (*(char *)(encounter + 0x45) != '\0') {
-        display_assert("!encounter->enemy_visible",
-                       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x97f, 1);
-        system_exit(-1);
-    }
-    *(char *)(encounter + 0x42) = 1;
-    *(short *)(encounter + 0x4c) = 0;
-    FUN_00059bf0(encounter_handle /* @<eax> */);
-
-    ai_globals = *(char **)0x632574;
-    if (*(char *)(ai_globals + 1) != '\0') {
-        if (encounter_handle == -1) {
-            actor_handle = *(int *)(ai_globals + 8);
-        } else {
-            encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
-            actor_handle = *(int *)(encounter + 0x14);
-        }
-    }
-
-    /* Outer actor loop: walks the actor linked list.
-     * actor_handle (EBX) = current actor for the outer-loop check.
-     * cur_actor_handle (EDI) = snapshot of actor_handle at outer-loop entry,
-     * used for all calls inside the inner loop. */
-    for (;;) {
-        ai_globals = *(char **)0x632574;
-        if (*(char *)(ai_globals + 1) == '\0') break;
-        if (actor_handle == -1) break;
-
-        /* Snapshot current actor_handle into cur_actor_handle (= EDI in
-         * binary). This is what gets passed to FUN_0003b410 and
-         * prop_iterator_next. */
-        cur_actor_handle = actor_handle;
-        actor = (char *)datum_get(*(data_t **)0x6325a4, cur_actor_handle);
-        next_actor_handle = *(int *)(actor + 0x2c);
-
-        /* Init prop iterator and get first prop data ptr.
-         * prop_iter[0] (EBP-0xc) = current prop_handle (index).
-         * prop_iter[1] (EBP-0x8) = next prop_handle (chain link).
-         * prop (return value of FUN_00064570) = prop data ptr. */
-        FUN_00064540(prop_iter, cur_actor_handle);
-        prop = (char *)FUN_00064570(prop_iter);
-
-        /* Inner prop loop.  The binary's inner while condition sets
-         * EBX (actor_handle) = next_actor_handle each iteration, advancing
-         * the outer loop.  Calls inside use EDI = cur_actor_handle. */
-        while (prop != NULL) {
-            actor_handle = next_actor_handle;
-            if (*(short *)(prop + 0x24) > 3 && *(short *)(prop + 0x24) < 6 &&
-                *(char *)(prop + 0x60) != '\0' &&
-                prop_iter[0] != *(int *)(actor + 0x270)) {
-                if (*(int *)(prop + 0xc) == -1) {
-                    display_assert("prop->parent_prop_index != NONE",
-                                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x99a, 1);
-                    system_exit(-1);
-                }
-                parent_prop = (char *)datum_get(*(data_t **)0x5ab23c,
-                                                *(int *)(prop + 0xc));
-                if (*(int *)(parent_prop + 0xc) != prop_iter[0]) {
-                    display_assert(
-                        "parent_prop->orphan_prop_index == prop_iterator.index",
-                        "c:\\halo\\SOURCE\\ai\\encounters.c", 0x99f, 1);
-                    system_exit(-1);
-                }
-                *(int *)(parent_prop + 0xc) = -1;
-                FUN_0003b410(cur_actor_handle, prop_iter[0], -1);
-                prop_iterator_next(cur_actor_handle, prop_iter[0]);
-            }
-            prop = (char *)FUN_00064570(prop_iter);
-        }
-    }
-}
-
 /* Deferred functions (not yet ported — thunked from XBE):
  *   FUN_0005de80  — encounter_update (needs FUN_0005acf0 @<eax> audit)
- *   encounters_create_for_new_map  — encounter_tally_reset_pass (shared loop pattern)
+ *   encounters_create_for_new_map  — encounter_tally_reset_pass (shared loop
+ * pattern)
  */
