@@ -28,11 +28,40 @@ failures), repeat:
    Skip targets that already have a failure record in `artifacts/auto_lift/failures/`.
    Pick the top `auto-lift` or `cache-context` lane target.
 
+   The selector also prints a **Rejected branches** table at the bottom. These are
+   functions that failed a previous auto-lift but have a preserved `lift/rejected/<name>`
+   branch. They are skipped from the main loop by default; use `/lift <target>` to
+   retry them manually (see step 1b below).
+
+1b. **Check for prior rejected branch** (before any Ghidra calls):
+   ```bash
+   rtk python3 tools/llm_auto_lift.py select --limit 1  # check Reasons column
+   # If "prior_rejected_branch(...)" appears, OR if the Rejected branches table lists
+   # the target:
+   BRANCH="lift/rejected/<target_name>"
+   rtk git branch --list "$BRANCH"   # confirm it still exists
+   rtk git diff main.."$BRANCH" -- src/ kb.json  # show prior work
+   ```
+   - If the branch exists: include the full `git diff` output in the lift subagent
+     prompt under **"Prior attempt"**. Instruct the subagent to:
+     1. Read the diff to understand what was tried and what failed
+     2. Reuse any kb.json additions from the diff (don't re-research them)
+     3. Build on the existing implementation rather than starting from scratch
+     4. Check out the rejected branch as the worktree base if it saves Ghidra calls
+   - If no branch exists: proceed normally (fresh lift).
+
 2. **Pre-screen**: run the prescreen on the specific target before any Ghidra calls:
    ```bash
    rtk python3 tools/analysis/structural_prescreen.py --function <NAME>
    ```
-   - No output → no delinked ref, proceed normally.
+   - No output **and** selector showed `needs_delink` in Reasons → the function
+     lives in a split TU and its per-function COFF is missing. Run:
+     ```bash
+     rtk python3 tools/audit/batch_delink.py --per-function-only
+     ```
+     Then re-run the prescreen. The function should now appear. If it still
+     returns no output after delink, treat as "no delinked ref" and proceed.
+   - No output (no `needs_delink` in selector) → no delinked ref at all; proceed normally.
    - `difficulty=reject` → log as skipped (not a failure), pick next target.
      Do NOT increment the consecutive failure counter.
    - `difficulty=hard` or `callee_reg_args` in risk factors → note the flags
@@ -146,6 +175,10 @@ Do NOT escalate (revert+log immediately) when:
 - Target has SEH prolog/epilog
 - Target has >3 register args (disqualified)
 - Build fails on an unrelated file (repo state issue)
+- REJECT reason is MSVC basic block reordering (control-flow shape divergence not
+  fixable by better analysis — Opus produces the same structural result)
+- VC71 match < 65% (structural ceiling — not a reading problem; escalation cannot
+  recover more than ~5–10% from this floor)
 
 Escalation flow:
 1. Discard the Sonnet worktree.
@@ -168,16 +201,34 @@ revert before the next iteration (`rtk git checkout -- src/ kb.json`).
 After all lifts complete (loop ends), run `/build` one final time to catch
 any remaining compile errors or linter issues that may have accumulated.
 
-## On failure — revert + log
+## On failure — preserve worktree + log
 
-Discard the isolated worktree. Write failure record to
-`artifacts/auto_lift/failures/<target_name>.json`:
+**Do NOT discard the isolated worktree.** Instead, rename it to a persistent
+branch so the research and partial lift can be revisited later (different model,
+different provider, manual intervention):
+
+```bash
+# Inside the failed subagent's worktree:
+rtk git checkout -b "lift/rejected/<target_name>"
+rtk git add -- src/ kb.json
+rtk git commit -m "WIP: rejected lift of <target_name> (<match>% VC71, <stage>)" \
+  --allow-empty
+# The parent auto-lift loop then exits the worktree without deleting the branch.
+```
+
+The branch `lift/rejected/<target_name>` stays on the remote (or local) and can
+be checked out, rebased, or re-attempted at any time without redoing the Ghidra
+research. The worktree itself is cleaned up (the branch persists; the checkout
+directory is removed).
+
+Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
 ```json
 {
   "target": "<name>",
   "addr": "<0x...>",
   "object": "<object_name>",
   "timestamp": "<ISO 8601>",
+  "branch": "lift/rejected/<target_name>",
   "prescreen": {"difficulty": "<easy|medium|hard|reject>", "score": 0, "risks": []},
   "attempts": [
     {"model": "sonnet", "failure_stage": "<stage>", "error_summary": "<msg>"},

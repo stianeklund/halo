@@ -82,7 +82,8 @@ def _random_ints(rng: random.Random, n: int) -> list[int]:
     return result
 
 
-def generate_seeds(params: list, num_seeds: int = 100, base_seed: int = 0) -> list[list]:
+def generate_seeds(params: list, num_seeds: int = 100, base_seed: int = 0,
+                   z3_seeds: list = None) -> list[list]:
     """Generate num_seeds test vectors for the given parameter list.
 
     Each element in the returned list is one test vector: a list of values
@@ -91,14 +92,18 @@ def generate_seeds(params: list, num_seeds: int = 100, base_seed: int = 0) -> li
     Pointer parameters get a bytes value: 64 floats (256 bytes) filled
     deterministically from the seed.
 
-    The first min(len(INT_CORNERS), len(FLOAT_CORNERS)) seeds are the
-    corner-case values; the rest are random.
+    Priority order: z3_seeds first, then corner-case values, then random.
     """
     rng = random.Random(base_seed)
 
-    # Collect corner-case pool per param type
-    # For pointer params, we generate byte blobs
     all_seeds = []
+
+    # Z3-generated branch-coverage seeds go first (highest priority)
+    if z3_seeds:
+        for sv in z3_seeds:
+            if len(all_seeds) >= num_seeds:
+                break
+            all_seeds.append(sv)
 
     # Corner seeds: iterate over corner pool size
     corner_len = max(len(INT_CORNERS), len(FLOAT_CORNERS))

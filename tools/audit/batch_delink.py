@@ -60,6 +60,9 @@ DEFAULT_EXPORTER = "Relocatable Object File (COFF)"
 # This is a heuristic — the real size isn't in kb.json.
 RANGE_END_PAD = 0x200
 
+# Pad for per-function exports of split TUs — generous enough to cover most functions.
+RANGE_PAD_PER_FUNC = 0x2000
+
 
 # ---------------------------------------------------------------------------
 # kb.json loading
@@ -295,6 +298,84 @@ def write_objects_csv(objects: list[dict], out_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Per-function export for split TUs
+# ---------------------------------------------------------------------------
+
+def export_split_functions(
+    objects: list,
+    out_dir: Path,
+    manifest: dict,
+    backend: str,
+    verbose: bool,
+    args,
+) -> tuple:
+    """Second pass: export each unported function of split TUs individually.
+
+    Stores each function as delinked/functions/<hex8>.obj so vc71_verify can
+    find a reference even when the parent TU is non-contiguous in the binary.
+    """
+    per_func_dir = out_dir / "functions"
+    per_func_dir.mkdir(parents=True, exist_ok=True)
+    success = failed = skipped = 0
+
+    # Build addr->obj lookup from the full object list
+    obj_by_name = {obj["name"]: obj for obj in objects}
+
+    for name, entry in list(manifest.items()):
+        if not entry.get("split"):
+            continue
+        obj = obj_by_name.get(name)
+        if not obj:
+            continue
+        funcs = [f for f in (obj.get("functions") or []) if not f.get("ported") and f.get("addr")]
+        if not funcs:
+            continue
+
+        print(f"\n  per-function pass for split TU: {name} ({len(funcs)} unported)")
+        for fn in funcs:
+            addr_int = int(fn["addr"], 16)
+            addr_hex = f"{addr_int:08x}"
+            export_path = per_func_dir / f"{addr_hex}.obj"
+            manifest_key = f"functions/{addr_hex}"
+
+            if export_path.exists():
+                if verbose:
+                    print(f"    skip  functions/{addr_hex}.obj  (exists)")
+                skipped += 1
+                manifest.setdefault(manifest_key, {
+                    "obj_path": str(export_path),
+                    "source": obj.get("source"),
+                    "addr": f"0x{addr_int:08x}",
+                    "parent_obj": name,
+                })
+                continue
+
+            addr_range = range_str(addr_int, addr_int + RANGE_PAD_PER_FUNC)
+            try:
+                if backend == "rpc":
+                    export_via_rpc(str(export_path), addr_range)
+                else:
+                    export_via_headless(
+                        str(export_path), addr_range,
+                        args.ghidra_root, args.project_dir, args.script_dir,
+                    )
+                decl = fn.get("decl", "").split("(")[0].strip() if fn.get("decl") else addr_hex
+                print(f"    ok  functions/{addr_hex}.obj  ({decl})")
+                manifest[manifest_key] = {
+                    "obj_path": str(export_path),
+                    "source": obj.get("source"),
+                    "addr": f"0x{addr_int:08x}",
+                    "parent_obj": name,
+                }
+                success += 1
+            except Exception as exc:
+                print(f"    FAIL  functions/{addr_hex}.obj: {exc}", file=sys.stderr)
+                failed += 1
+
+    return success, skipped, failed
+
+
+# ---------------------------------------------------------------------------
 # Main logic
 # ---------------------------------------------------------------------------
 
@@ -316,6 +397,10 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--project-dir", default=DEFAULT_PROJECT_DIR)
     ap.add_argument("--script-dir", default=DEFAULT_SCRIPT_DIR)
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--no-per-function", action="store_true",
+                    help="Skip per-function export pass for split TUs")
+    ap.add_argument("--per-function-only", action="store_true",
+                    help="Only run per-function pass using existing manifest (no main export)")
     return ap.parse_args()
 
 
@@ -330,6 +415,24 @@ def main() -> int:
 
     if args.csv_only:
         return 0
+
+    # --per-function-only: skip main export, use existing manifest, run second pass only
+    if getattr(args, "per_function_only", False):
+        if not MANIFEST_PATH.exists():
+            print(f"error: manifest not found at {MANIFEST_PATH}; run without --per-function-only first", file=sys.stderr)
+            return 1
+        manifest = json.load(MANIFEST_PATH.open())
+        backend = "rpc" if is_ghidra_live_available() else "headless"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        pf_ok, pf_skip, pf_fail = export_split_functions(
+            objects, out_dir, manifest, backend, args.verbose, args
+        )
+        print(f"\nper-function pass: {pf_ok} exported, {pf_skip} skipped, {pf_fail} failed")
+        if args.write_manifest:
+            with MANIFEST_PATH.open("w") as f:
+                json.dump(manifest, f, indent=2)
+            print(f"manifest: {MANIFEST_PATH}")
+        return 1 if pf_fail else 0
 
     # Filter to a single object if requested
     if args.object:
@@ -438,6 +541,14 @@ def main() -> int:
             print(f"  FAIL  {name}: {exc}", file=sys.stderr)
             manifest[name]["error"] = str(exc)
             failed += 1
+
+    # Second pass: per-function exports for split TUs
+    if not args.dry_run and not args.no_per_function and backend == "rpc":
+        pf_ok, pf_skip, pf_fail = export_split_functions(
+            objects, out_dir, manifest, backend, args.verbose, args
+        )
+        if pf_ok or pf_fail:
+            print(f"\nper-function pass: {pf_ok} exported, {pf_skip} skipped, {pf_fail} failed")
 
     # Write manifest
     if args.write_manifest and not args.dry_run:

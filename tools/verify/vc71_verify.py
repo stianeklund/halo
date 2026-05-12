@@ -125,6 +125,18 @@ def object_symbols(obj_path: Path) -> set[str]:
     return symbols
 
 
+def _per_function_ref(function: str) -> Path | None:
+    """Return delinked/functions/<hex8>.obj if it exists for this function address."""
+    aliases = function_aliases(function)
+    for alias in aliases:
+        m = re.match(r"FUN_([0-9a-f]{8})$", alias, re.IGNORECASE)
+        if m:
+            candidate = DELINKED_DIR / "functions" / f"{m.group(1).lower()}.obj"
+            if candidate.exists():
+                return candidate
+    return None
+
+
 def choose_unit(source: str, units: list[dict], function: str | None) -> dict | None:
     """Choose the best delinked reference for a source/function pair."""
     matches = find_units(source, units)
@@ -148,6 +160,14 @@ def choose_unit(source: str, units: list[dict], function: str | None) -> dict | 
         ref_path = REPO_ROOT / unit["base_path"]
         if object_symbols(ref_path) & aliases:
             return unit
+
+    # Fallback: per-function export from a split TU
+    per_func = _per_function_ref(function)
+    if per_func:
+        return {
+            "base_path": str(per_func.relative_to(REPO_ROOT)),
+            "metadata": {"source_path": str(source)},
+        }
 
     return None
 

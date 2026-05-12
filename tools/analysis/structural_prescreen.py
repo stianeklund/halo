@@ -351,6 +351,21 @@ def screen_all(function_filter: Optional[str] = None) -> list[FunctionFeatures]:
             if function_filter and name != function_filter:
                 continue
             insns = funcs.get(name)
+
+            # Function not in TU obj (split TU) — try per-function delinked ref
+            if not insns:
+                info = unported[name]
+                addr = info.get("addr", "")
+                if addr:
+                    try:
+                        addr_hex = f"{int(addr, 16):08x}"
+                        per_func = str(DELINKED_DIR / "functions" / f"{addr_hex}.obj")
+                        if per_func not in disasm_cache:
+                            disasm_cache[per_func] = disassemble_obj(per_func)
+                        insns = disasm_cache[per_func].get(name)
+                    except (ValueError, OSError):
+                        pass
+
             if not insns:
                 continue
             info = unported[name]

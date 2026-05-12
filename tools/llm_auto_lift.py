@@ -52,6 +52,8 @@ INTRINSIC_RE = re.compile(
 
 DISQUALIFIED_OBJECTS = {"<xdk_stubs>", "<common>"}
 
+FAILURES_DIR = ARTIFACT_ROOT / "failures"
+
 # States (used by legacy review/promote)
 AUTO_ACCEPT = "auto_accept"
 NEEDS_REVIEW = "needs_review"
@@ -126,6 +128,83 @@ def _find_objdiff_unit(source_path: str, units: dict[str, dict]) -> Optional[dic
     return None
 
 
+def _check_rejected_branch(name: str) -> Optional[tuple[str, str]]:
+    """Return (branch_name, failure_stage) if a preserved rejected branch exists, else None."""
+    failure_file = FAILURES_DIR / f"{name}.json"
+    if not failure_file.exists():
+        return None
+    try:
+        rec = json.loads(failure_file.read_text())
+        branch = rec.get("branch", "")
+        if not branch:
+            return None
+        # Verify the branch still exists in git
+        result = subprocess.run(
+            ["git", "branch", "--list", branch],
+            capture_output=True, text=True, cwd=ROOT,
+        )
+        if branch not in result.stdout:
+            return None
+        stage = ""
+        for attempt in rec.get("attempts", []):
+            stage = attempt.get("failure_stage", "")
+        return branch, stage
+    except Exception:
+        return None
+
+
+_MANIFEST_CACHE: dict | None = None
+
+def _load_manifest() -> dict:
+    global _MANIFEST_CACHE
+    if _MANIFEST_CACHE is None:
+        p = DELINKED_DIR / "manifest.json"
+        try:
+            _MANIFEST_CACHE = json.loads(p.read_text()) if p.exists() else {}
+        except (json.JSONDecodeError, OSError):
+            _MANIFEST_CACHE = {}
+    return _MANIFEST_CACHE
+
+
+def _delinked_ref_status(source_path: str, addr: str, units: dict[str, dict]) -> str:
+    """Return 'ok' | 'per_function' | 'needs_delink' | 'none'.
+
+    'ok'           — TU-level delinked obj exists and is not a split TU.
+    'per_function' — per-function obj exists at delinked/functions/<addr>.obj.
+    'needs_delink' — TU is split, function not in it, per-function obj missing.
+    'none'         — no delinked reference at all.
+    """
+    # Per-function file takes priority (already exported and usable)
+    if addr:
+        try:
+            addr_hex = f"{int(addr, 16):08x}"
+            if (DELINKED_DIR / "functions" / f"{addr_hex}.obj").exists():
+                return "per_function"
+        except ValueError:
+            pass
+
+    unit = _find_objdiff_unit(source_path, units)
+    if not unit:
+        return "none"
+    base = unit.get("base_path", "")
+    if not base or not (ROOT / base).exists():
+        return "none"
+
+    # TU file exists — is it a split TU that won't contain this function?
+    # Match by obj_path since manifest keys use ':' (e.g. 'XNET:wsock.obj')
+    # but file paths use '/' (e.g. 'delinked/XNET/wsock.obj').
+    ref_abs = str((ROOT / base).resolve())
+    is_split = any(
+        v.get("split") and str(Path(v.get("obj_path", "")).resolve()) == ref_abs
+        for v in _load_manifest().values()
+        if isinstance(v, dict)
+    )
+    if is_split:
+        return "needs_delink"
+
+    return "ok"
+
+
 def _has_delinked_ref(source_path: str, units: dict[str, dict]) -> bool:
     unit = _find_objdiff_unit(source_path, units)
     if not unit:
@@ -135,7 +214,6 @@ def _has_delinked_ref(source_path: str, units: dict[str, dict]) -> bool:
 
 
 _PDB_PROPOSALS_CACHE: Optional[set[str]] = None
-_PURE_LEAF_CACHE: Optional[set[str]] = None
 
 
 def _load_pdb_proposal_addrs() -> set[str]:
@@ -162,28 +240,37 @@ def _load_pdb_proposal_addrs() -> set[str]:
     return addrs
 
 
-def _load_pure_leaf_addrs() -> set[str]:
-    """Return the set of addresses verified as pure leaves by unicorn_diff.
+_LEAF_CACHE_DATA: dict | None = None
 
-    Populated as a side-effect of real `tools/equivalence/unicorn_diff.py`
-    runs (see `_record_leaf_classification` there). Empty until at least
-    one Unicorn diff has executed; cheap to load (single small JSON read).
+
+def _load_leaf_cache() -> dict[str, dict]:
+    """Return the full leaf classification cache.
+
+    Each entry is {addr: {"class": "leaf"|"data_only"|"stubbable"|"non_leaf", ...}}.
+    Handles both legacy string values and the extended dict schema.
     """
-    global _PURE_LEAF_CACHE
-    if _PURE_LEAF_CACHE is not None:
-        return _PURE_LEAF_CACHE
+    global _LEAF_CACHE_DATA
+    if _LEAF_CACHE_DATA is not None:
+        return _LEAF_CACHE_DATA
     cache_path = ROOT / "tools" / "equivalence" / "leaf_cache.json"
-    addrs: set[str] = set()
+    result: dict[str, dict] = {}
     if cache_path.exists():
         try:
             data = json.loads(cache_path.read_text(encoding="utf-8"))
             for k, v in data.items():
-                if v == "leaf":
-                    addrs.add(k.lower())
+                if isinstance(v, str):
+                    result[k.lower()] = {"class": v}
+                elif isinstance(v, dict):
+                    result[k.lower()] = v
         except (json.JSONDecodeError, OSError):
             pass
-    _PURE_LEAF_CACHE = addrs
-    return addrs
+    _LEAF_CACHE_DATA = result
+    return result
+
+
+def _load_pure_leaf_addrs() -> set[str]:
+    """Return the set of addresses classified as pure leaves."""
+    return {a for a, d in _load_leaf_cache().items() if d.get("class") == "leaf"}
 
 
 # ---------------------------------------------------------------------------
@@ -344,9 +431,13 @@ class LiftabilityScorer:
                 details: dict[str, int] = {}
 
                 # Delinked reference
-                if _has_delinked_ref(source_path, self.objdiff_units):
+                _dref = _delinked_ref_status(source_path, addr, self.objdiff_units)
+                if _dref in ("ok", "per_function"):
                     score += 20
                     details["delinked_ref"] = 20
+                elif _dref == "needs_delink":
+                    score += 10
+                    details["needs_delink"] = 10
 
                 # No register args
                 if not reg_args:
@@ -384,13 +475,20 @@ class LiftabilityScorer:
                     score += 10
                     details["pdb_named"] = 10
 
-                # Verified pure leaf — unicorn_diff already proved this
-                # function has no external relocations. The behavioral
-                # differential lane (`/verify equivalence`) is available as
-                # a strong post-lift gate.
-                if addr.lower() in _load_pure_leaf_addrs():
+                leaf_entry = _load_leaf_cache().get(addr.lower(), {})
+                leaf_class = leaf_entry.get("class", "")
+                if leaf_class == "leaf":
                     score += 5
                     details["eq_pure_leaf"] = 5
+                elif leaf_class == "data_only":
+                    score += 3
+                    details["eq_data_only"] = 3
+                elif leaf_class == "stubbable":
+                    score += 3
+                    details["eq_stubbable"] = 3
+                if leaf_entry.get("z3_proven"):
+                    score += 5
+                    details["z3_proven"] = 5
 
                 # Cached Ghidra context available
                 cache_file = CONTEXT_CACHE / f"{name}.json"
@@ -537,6 +635,11 @@ def _select_targets(
                     bonus = 5
                 total_score += bonus
                 reasons.append(f"struct_easy=+{bonus}(score={prescreen.difficulty_score})")
+
+        rejected = _check_rejected_branch(target.name)
+        if rejected:
+            branch, stage = rejected
+            reasons.append(f"prior_rejected_branch({stage or 'unknown'})")
 
         selected.append(SelectedTarget(
             target=target,
@@ -1119,9 +1222,11 @@ def cmd_select(args: argparse.Namespace):
         target = item.target
         reasons = ", ".join(item.reasons)
         miz = "Y" if _find_mizuchi_result(target.name) else "-"
+        has_failure = (FAILURES_DIR / f"{target.name}.json").exists()
+        skip_marker = " [skip:prior_fail]" if has_failure else ""
         print(
             f"{item.total_score:>5}  {item.liftability_score:>4}  {item.frontier_score:>3}  "
-            f"{item.lane:<13}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}"
+            f"{item.lane:<13}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
         )
 
     print("\nLane guide:")
@@ -1129,6 +1234,35 @@ def cmd_select(args: argparse.Namespace):
     print("  cache-context -> cache Ghidra context, then /lift <target>")
     print("  manual-lift   -> use /lift; strategically useful but needs more care")
     print("  defer         -> low priority for now")
+
+    # Show any functions with preserved rejected branches (skipped from main table)
+    rejected_entries = []
+    if FAILURES_DIR.exists():
+        for f in sorted(FAILURES_DIR.glob("*.json")):
+            try:
+                rec = json.loads(f.read_text())
+                branch = rec.get("branch", "")
+                if not branch:
+                    continue
+                result = subprocess.run(
+                    ["git", "branch", "--list", branch],
+                    capture_output=True, text=True, cwd=ROOT,
+                )
+                if branch not in result.stdout:
+                    continue
+                stage = ""
+                for attempt in rec.get("attempts", []):
+                    stage = attempt.get("failure_stage", stage)
+                rejected_entries.append((rec.get("target", f.stem), branch, stage,
+                                         rec.get("addr", ""), rec.get("object", "")))
+            except Exception:
+                continue
+    if rejected_entries:
+        print("\nRejected branches (prior work preserved — retry with /lift <target>):")
+        print(f"  {'Target':<35}  {'Stage':<20}  {'Branch'}")
+        print("  " + "-" * 80)
+        for name, branch, stage, addr, obj in rejected_entries:
+            print(f"  {name:<35}  {stage:<20}  {branch}")
 
 
 def _find_mizuchi_result(func_name: str) -> str | None:

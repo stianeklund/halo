@@ -72,6 +72,7 @@ class FunctionSlice:
     raw_name: str           # exact symbol name as found in the table
     code: bytes             # raw machine code bytes
     relocs: list[CoffReloc] # relocations that fall inside this function
+    defined_symbols: set = field(default_factory=set)  # symbols defined in this .obj
 
 
 class CoffParseError(Exception):
@@ -233,14 +234,18 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
     section = sections[sec_idx]
     func_offset = target_sym.value  # offset within section
 
-    # Determine function end: find the next symbol in the same section
-    # that comes after our function's start offset.
+    # Determine function end: find the next *function* symbol in the same section
+    # that comes after our function's start offset.  Only EXTERNAL symbols with
+    # function type (sym_type 0x20) are used as boundaries — this avoids
+    # LAB_/switchD static labels truncating the extracted slice prematurely.
+    # Fall back to the end of the section if no such symbol exists.
     next_offset = len(section.data)
     for sym in symbols:
         if (sym.section_num == target_sym.section_num
                 and sym.value > func_offset
                 and sym.value < next_offset
-                and sym.storage_class in (IMAGE_SYM_CLASS_EXTERNAL, IMAGE_SYM_CLASS_STATIC)):
+                and sym.storage_class == IMAGE_SYM_CLASS_EXTERNAL
+                and sym.sym_type == 0x20):
             next_offset = sym.value
 
     code = section.data[func_offset:next_offset]
@@ -256,11 +261,14 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
         if func_offset <= r.virtual_address < next_offset
     ]
 
+    defined = {s.name for s in symbols if s.section_num > 0}
+
     return FunctionSlice(
         name=_canonical(target_sym.name),
         raw_name=target_sym.name,
         code=code,
         relocs=func_relocs,
+        defined_symbols=defined,
     )
 
 

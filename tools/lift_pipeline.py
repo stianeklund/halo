@@ -680,6 +680,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     vc71_source = Path(target.source_path) if target.source_path else None
     vc71_ref = None
     if vc71_source:
+      # First: try TU-level delinked ref via objdiff.json
       try:
         with open(ROOT / "objdiff.json") as f:
           objdiff_cfg = json.load(f)
@@ -692,6 +693,15 @@ def run_pipeline(args: argparse.Namespace) -> int:
             break
       except (FileNotFoundError, json.JSONDecodeError):
         pass
+      # Fallback: per-function delinked ref for split TUs
+      if not vc71_ref and target.addr:
+        try:
+          addr_hex = f"{int(target.addr, 16):08x}"
+          per_func = ROOT / "delinked" / "functions" / f"{addr_hex}.obj"
+          if per_func.exists():
+            vc71_ref = per_func
+        except (ValueError, TypeError):
+          pass
 
     if vc71_source and vc71_ref and (ROOT / vc71_source).exists():
       vc71_verify_ran = True
@@ -714,7 +724,10 @@ def run_pipeline(args: argparse.Namespace) -> int:
       stages.append(StageResult("vc71_verify", ran=True, ok=vc71_verify_ok,
                                 details=details + (" [REVIEW FPU-WARN]" if vc71_has_fpu_warn else "")))
     else:
-      reason = "no delinked reference" if vc71_source else "no source_path"
+      if vc71_source:
+        reason = "no delinked reference — run: python3 tools/audit/batch_delink.py --per-function-only"
+      else:
+        reason = "no source_path"
       stages.append(StageResult("vc71_verify", ran=False, ok=True,
                                 details=f"skipped ({reason})"))
   else:
@@ -754,6 +767,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
       "--seeds", str(args.equivalence_seeds),
       "--output-json", str(equivalence_json),
       "--no-leaf-cache",
+      "--z3-equiv",
+      "--allow-stubs",
     ]
     proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "equivalence.log")
     output = (proc.stdout or "") + (proc.stderr or "")
@@ -770,12 +785,16 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     if status == "pass":
       equivalence_ok = True
+      z3_proven = bool(payload.get("z3_proven")) if payload else False
       passed = int(payload.get("passed", 0)) if payload else 0
       failed = int(payload.get("failed", 0)) if payload else 0
       errors = int(payload.get("errors", 0)) if payload else 0
       seeds = int(payload.get("seeds", args.equivalence_seeds)) if payload else args.equivalence_seeds
-      stages.append(StageResult("equivalence", ran=True, ok=True,
-                                details=f"{passed} passed, {failed} diverged, {errors} errors / {seeds} seeds"))
+      if z3_proven:
+        details = "Z3 PROVEN EQUIVALENT (formal proof, all inputs)"
+      else:
+        details = f"{passed} passed, {failed} diverged, {errors} errors / {seeds} seeds"
+      stages.append(StageResult("equivalence", ran=True, ok=True, details=details))
     elif status == "fail":
       passed = int(payload.get("passed", 0)) if payload else 0
       failed = int(payload.get("failed", 0)) if payload else 0

@@ -22,6 +22,7 @@
     "0x5a050": "void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */);",
     "0x5a120": "void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def, short *platoon_counter);",
     "0x5a4e0": "char FUN_0005a4e0(int encounter_index /* @<eax> */);",
+    "0x5a640": "void FUN_0005a640(int encounter_handle /* @<eax> */);",
     "0x5acf0": "void FUN_0005acf0(int encounter_handle /* @<eax> */);",
     "0x5af70": "bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */);",
     "0x5c3a0": "bool encounter_get_actor_starting_location(int platoon_index, int delay, int flag, int encounter_handle /* @<ebx> */);",
