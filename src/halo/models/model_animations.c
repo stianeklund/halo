@@ -45,6 +45,108 @@ void *FUN_00120500(void *animation, short frame_index)
   return (void *)(data + (int)*(short *)(anim + 0x24) * (int)frame_index);
 }
 
+/* find_keyframe_index (0x120d10) — Binary search for a keyframe by frame index.
+ *
+ * Given a sorted array of keyframe frame indices and a target frame, returns
+ * the keyframe index i such that:
+ *   keyframe_frame_indices[i] <= target_frame_index < keyframe_frame_indices[i+1]
+ *
+ * Uses binary search with lo/hi bounds. The keyframe_count parameter is passed
+ * in EDI (register arg @<edi>).
+ *
+ * Asserts:
+ *   keyframe_count > 1
+ *   keyframe_frame_indices != NULL
+ *   keyframe_frame_indices[0] > 0
+ *   target_frame_index >= 0 && target_frame_index < keyframe_frame_indices[keyframe_count-1]
+ *   Infinite loop killer at 200 iterations
+ *   Post-search: keyframe_index >= 0 && keyframe_index < keyframe_count-1
+ *   Post-search: target in range [keyframe_frame_indices[i], keyframe_frame_indices[i+1])
+ *
+ * Confirmed: keyframe_count@<edi> register arg per disassembly.
+ * Confirmed: Binary search with lo=local_8, hi=keyframe_count-1.
+ * Confirmed: RETURNS uint masked to 0xffff (MOVZX EAX,AX pattern at return).
+ */
+short FUN_00120d10(unsigned short *keyframe_frame_indices, short target_frame_index,
+                   short keyframe_count)
+{
+  int lo;
+  int hi;
+  int mid;
+  short kfc;
+  int kf_idx;
+  int i;
+
+  kfc = keyframe_count;
+  if (kfc < 2) {
+    display_assert("keyframe_count>1",
+                   "c:\\halo\\SOURCE\\models\\model_animations.c", 0x536, 1);
+    system_exit(-1);
+  }
+  if (keyframe_frame_indices == (void *)0) {
+    display_assert("keyframe_frame_indices",
+                   "c:\\halo\\SOURCE\\models\\model_animations.c", 0x537, 1);
+    system_exit(-1);
+  }
+  if ((short)keyframe_frame_indices[0] < 1) {
+    display_assert("keyframe_frame_indices[0]>0",
+                   "c:\\halo\\SOURCE\\models\\model_animations.c", 0x538, 1);
+    system_exit(-1);
+  }
+  if (target_frame_index < 0 ||
+      (short)keyframe_frame_indices[kfc - 1] <= target_frame_index) {
+    display_assert("target_frame_index>=0 && target_frame_index<keyframe_frame_indices[keyframe_count-1]",
+                   "c:\\halo\\SOURCE\\models\\model_animations.c", 0x539, 1);
+    system_exit(-1);
+  }
+
+  lo = 0;
+  hi = kfc - 1;
+  i = 0;
+  while (1) {
+    mid = lo + hi;
+    mid = mid >> 1;
+    kf_idx = mid;
+
+    if ((short)kf_idx < 0 || kfc <= (short)kf_idx) {
+      display_assert("keyframe_index>=0 && keyframe_index<keyframe_count",
+                     "c:\\halo\\SOURCE\\models\\model_animations.c", 0x53f, 1);
+      system_exit(-1);
+    }
+
+    if ((short)(kf_idx + 1) >= kfc ||
+        target_frame_index < (short)keyframe_frame_indices[kf_idx + 1]) {
+      if (target_frame_index >= (short)keyframe_frame_indices[kf_idx]) {
+        break;
+      }
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+
+    i++;
+    if (i > 199) {
+      display_assert("++infinite_loop_killer<200",
+                     "c:\\halo\\SOURCE\\models\\model_animations.c", 0x54c, 1);
+      system_exit(-1);
+    }
+  }
+
+  if ((short)kf_idx < 0 || kfc - 1 <= (short)kf_idx) {
+    display_assert("keyframe_index>=0 && keyframe_index<keyframe_count-1",
+                   "c:\\halo\\SOURCE\\models\\model_animations.c", 0x550, 1);
+    system_exit(-1);
+  }
+  if (target_frame_index < (short)keyframe_frame_indices[kf_idx] ||
+      (short)keyframe_frame_indices[kf_idx + 1] <= target_frame_index) {
+    display_assert("target_frame_index>=keyframe_frame_indices[keyframe_index] && target_frame_index<keyframe_frame_indices[keyframe_index+1]",
+                   "c:\\halo\\SOURCE\\models\\model_animations.c", 0x551, 1);
+    system_exit(-1);
+  }
+
+  return (short)kf_idx;
+}
+
 /* model_animation_choose_random (0x120f20) — Choose a weighted random
  * animation.
  *
