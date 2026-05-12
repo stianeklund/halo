@@ -13,15 +13,22 @@ int16_t FUN_00106510(int16_t count, float *points, float *line,
                      int16_t max_count, float *out_points,
                      uint32_t *out_bitmask, uint8_t *changed, float epsilon)
 {
-  static float clip_buffer[0x200 * 2];
+  /* _chkstk(0x1014): clip_buffer is a 512-float-pair local, not static */
+  float clip_buffer[0x200 * 2];
   int16_t out_count;
   uint32_t mask;
   bool any_above;
   bool any_below;
   bool previous_inside;
+  bool current_inside;
   int16_t i;
   int byte_size;
   float *previous_point;
+  float *current_point;
+  float distance;
+  float t;
+  float clamped_t;
+  int out_idx;
 
   if (count < 3) {
     display_assert("count>=NUMBER_OF_VERTICES_PER_TRIANGLE",
@@ -60,10 +67,10 @@ int16_t FUN_00106510(int16_t count, float *points, float *line,
   }
 
   for (i = 0; i < count; ++i) {
-    float *current_point = points + (int)i * 2;
-    float distance =
+    current_point = points + (int)i * 2;
+    distance =
       (line[0] * current_point[0] + current_point[1] * line[1]) - line[2];
-    bool current_inside = *(float *)0x2533c0 <= distance;
+    current_inside = *(float *)0x2533c0 <= distance;
 
     if (distance > epsilon) {
       any_above = true;
@@ -80,41 +87,35 @@ int16_t FUN_00106510(int16_t count, float *points, float *line,
         *changed = 1;
       }
 
-      {
-        float t;
-        float clamped_t;
-        int out_idx;
+      t =
+        -((line[0] * current_point[0] + current_point[1] * line[1]) - line[2]) /
+        ((previous_point[1] - current_point[1]) * line[1] +
+         (previous_point[0] - current_point[0]) * line[0]);
 
-        t = -((line[0] * current_point[0] + current_point[1] * line[1]) -
-              line[2]) /
-            ((previous_point[1] - current_point[1]) * line[1] +
-             (previous_point[0] - current_point[0]) * line[0]);
-
-        clamped_t = *(float *)0x2533c0;
-        if (*(float *)0x2533c0 <= t) {
-          clamped_t = t;
-          if (*(float *)0x2533c8 < t) {
-            clamped_t = *(float *)0x2533c8;
-          }
+      clamped_t = *(float *)0x2533c0;
+      if (*(float *)0x2533c0 <= t) {
+        clamped_t = t;
+        if (*(float *)0x2533c8 < t) {
+          clamped_t = *(float *)0x2533c8;
         }
+      }
 
-        out_points[(int)out_count * 2] =
-          clamped_t * (previous_point[0] - current_point[0]) + current_point[0];
-        mask |= (uint32_t)1 << ((uint8_t)out_count & 0x1f);
-        out_count += 1;
-        out_points[((int)out_count - 1) * 2 + 1] =
-          clamped_t * (previous_point[1] - current_point[1]) + current_point[1];
+      out_points[(int)out_count * 2] =
+        clamped_t * (previous_point[0] - current_point[0]) + current_point[0];
+      mask |= (uint32_t)1 << ((uint8_t)out_count & 0x1f);
+      out_count += 1;
+      out_points[((int)out_count - 1) * 2 + 1] =
+        clamped_t * (previous_point[1] - current_point[1]) + current_point[1];
 
-        if (out_count != 1) {
-          out_idx = (int)out_count;
-          if ((fabsf(out_points[out_idx * 2 - 2] - out_points[0]) < epsilon &&
-               fabsf(out_points[out_idx * 2 - 1] - out_points[1]) < epsilon) ||
-              (fabsf(out_points[out_idx * 2 - 2] -
-                     out_points[out_idx * 2 - 4]) < epsilon &&
-               fabsf(out_points[out_idx * 2 - 1] -
-                     out_points[out_idx * 2 - 3]) < epsilon)) {
-            out_count -= 1;
-          }
+      if (out_count != 1) {
+        out_idx = (int)out_count;
+        if ((fabsf(out_points[out_idx * 2 - 2] - out_points[0]) < epsilon &&
+             fabsf(out_points[out_idx * 2 - 1] - out_points[1]) < epsilon) ||
+            (fabsf(out_points[out_idx * 2 - 2] - out_points[out_idx * 2 - 4]) <
+               epsilon &&
+             fabsf(out_points[out_idx * 2 - 1] - out_points[out_idx * 2 - 3]) <
+               epsilon)) {
+          out_count -= 1;
         }
       }
     }
@@ -136,7 +137,7 @@ int16_t FUN_00106510(int16_t count, float *points, float *line,
       out_count += 1;
 
       if (out_count != 1) {
-        int out_idx = (int)out_count;
+        out_idx = (int)out_count;
         if ((fabsf(out_points[out_idx * 2 - 2] - out_points[0]) < epsilon &&
              fabsf(out_points[out_idx * 2 - 1] - out_points[1]) < epsilon) ||
             (fabsf(out_points[out_idx * 2 - 2] - out_points[out_idx * 2 - 4]) <

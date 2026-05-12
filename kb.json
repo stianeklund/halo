@@ -10224,7 +10224,8 @@
       "functions": [
         {
           "decl": "int16_t FUN_00106510(int16_t count, float *points, float *line, int16_t max_count, float *out_points, uint32_t *out_bitmask, uint8_t *changed, float epsilon);",
-          "addr": "0x106510"
+          "addr": "0x106510",
+          "ported": true
         },
         {
           "decl": "void plane_negate(float *plane_in, float *plane_out);",
