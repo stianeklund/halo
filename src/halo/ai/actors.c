@@ -54,6 +54,77 @@ void FUN_00036c00(int actor_handle, int object_handle, float *position,
   }
 }
 
+/* FUN_000374f0 (0x374f0) — cover/take-cover look reaction.
+ *
+ * Resolves the actor record via datum_get(actor_data, actor_handle) and
+ * the actor type tag via tag_get('actr', actor+0x58). Computes the delta
+ * from the actor's world position (actor+0x120 vec3) to the input
+ * position; if the resulting magnitude is < (float)*(double *)0x2533d0
+ * (epsilon), substitutes the actor's facing vector (actor+0x174) for the
+ * delta. If the actor's state field (actor+0x6a) is < 3 AND the magnitude
+ * is < tag+0x2b0 (range float), posts a priority-4 stimulus via
+ * FUN_00036960(actor_handle, 4, -1, &delta). Then unconditionally posts
+ * a priority-3 alert stimulus via FUN_00036890 with NULL primary vector,
+ * the delta as the secondary vector, and stack args (-1, 0, 0x5a, -1, 0,
+ * 0 byte). If object_handle != -1, resolves the object's type via
+ * object_get_and_verify_type(object_handle, -1) and checks team
+ * friendliness via game_allegiance_get_team_is_friendly(actor+0x3e,
+ * obj+0x68); when friendly, posts FUN_000369c0(actor_handle, 2, 900).
+ * Finally posts a position-look at priority-1, look_type=6 with the
+ * original input position via FUN_00027a60.
+ *
+ * Confirmed: 4 cdecl args matching dispatch in FUN_0003c0c0; ESP cleanup
+ *   ADD ESP,0x14 after datum_get+tag_get; ADD ESP,0x10 after FUN_00036960;
+ *   ADD ESP,0x18 after FUN_00036890; ADD ESP,0x10 after FUN_000a7a30;
+ *   ADD ESP,0xc after FUN_000369c0; ADD ESP,0x10 after FUN_00027a60.
+ * Confirmed: FUN_00036890 reg ABI — @ecx=vec1, @eax=actor, @edx=priority,
+ *   @ebx=vec2; verified against sibling FUN_000373b0 call site at 0x374b4.
+ * Confirmed: epsilon constant at 0x2533d0 (double, ~0.0001).
+ * Confirmed: look_buf layout — short type at +0x00, then float pos[3] at
+ *   +0x04; matches FUN_00036c00 look_buf shape. */
+void FUN_000374f0(int actor_handle, int object_handle, float *position,
+                  short count)
+{
+  char *actor;
+  char *actor_tag;
+  char *object;
+  float delta[3];
+  float mag;
+  short look_buf[8]; /* 16 bytes: [0]=type word, [2..7]=position data */
+
+  (void)count;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  delta[0] = position[0] - *(float *)(actor + 0x120);
+  delta[1] = position[1] - *(float *)(actor + 0x124);
+  delta[2] = position[2] - *(float *)(actor + 0x128);
+  mag = normalize3d(delta);
+  if (mag < (float)*(double *)0x2533d0) {
+    delta[0] = *(float *)(actor + 0x174);
+    delta[1] = *(float *)(actor + 0x178);
+    delta[2] = *(float *)(actor + 0x17c);
+  }
+  if (*(short *)(actor + 0x6a) < 3 &&
+      mag < *(float *)(actor_tag + 0x2b0)) {
+    FUN_00036960(actor_handle, 4, -1, (int *)delta);
+  }
+  FUN_00036890(actor_handle, (int *)0, 3, (int *)delta,
+               -1, 0, 0x5a, -1, 0, 0);
+  if (object_handle != -1) {
+    object = (char *)object_get_and_verify_type(object_handle, -1);
+    if (game_allegiance_get_team_is_friendly(*(short *)(actor + 0x3e),
+                                             *(short *)(object + 0x68))) {
+      FUN_000369c0(actor_handle, 2, 900);
+    }
+  }
+  look_buf[0] = 3;
+  *(float *)&look_buf[2] = position[0];
+  *(float *)&look_buf[4] = position[1];
+  *(float *)&look_buf[6] = position[2];
+  FUN_00027a60(actor_handle, 6, 1, look_buf);
+}
+
 /* FUN_00036dc0 (0x36dc0)
  * Notify an actor's unit of a combat stimulus and optionally clamp
  * the actor's "recently perceived threat" counter.

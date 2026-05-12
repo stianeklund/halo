@@ -446,6 +446,10 @@
           "ported": true
         },
         {
+          "addr": "0x369c0",
+          "decl": "void FUN_000369c0(int actor_handle, short priority, int value);"
+        },
+        {
           "decl": "void FUN_00036e30(int ai_handle);",
           "addr": "0x36e30",
           "ported": true
@@ -755,7 +759,8 @@
         },
         {
           "addr": "0x374f0",
-          "decl": "void FUN_000374f0(int actor_handle, int object_handle, float *position, short count);"
+          "decl": "void FUN_000374f0(int actor_handle, int object_handle, float *position, short count);",
+          "ported": true
         },
         {
           "addr": "0x36890",
