@@ -5402,6 +5402,14 @@
         {
           "decl": "void FUN_000a3b80(int player_index, void *damage_params, void *position, float damage_amount, float scale);",
           "addr": "0xa3b80"
+        },
+        {
+          "decl": "void FUN_000a3890(int unit_index, float *direction_table, void *direction, float damage, float scale);",
+          "addr": "0xa3890"
+        },
+        {
+          "decl": "void FUN_000a2ba0(int unit_index, float damage, float scale);",
+          "addr": "0xa2ba0"
         }
       ]
     },
@@ -5524,6 +5532,10 @@
           "decl": "void rumble_update(void);",
           "addr": "0xb9fd0",
           "ported": true
+        },
+        {
+          "decl": "void FUN_000b9bc0(int unit_index, float *impulse, float damage, float scale);",
+          "addr": "0xb9bc0"
         }
       ]
     },
@@ -6191,6 +6203,14 @@
           "addr": "0x10c8e0",
           "comment": "Reflect vector v about surface normal n: out = v - 2*dot(v,n)*n.",
           "ported": true
+        },
+        {
+          "decl": "void FUN_0010b090(void);",
+          "addr": "0x10b090"
+        },
+        {
+          "decl": "void FUN_0010b0a0(void);",
+          "addr": "0x10b0a0"
         }
       ]
     },
