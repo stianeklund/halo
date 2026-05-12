@@ -769,7 +769,8 @@
         },
         {
           "addr": "0x36960",
-          "decl": "void FUN_00036960(int actor_handle, short priority, int param3, int *direction);"
+          "decl": "void FUN_00036960(int actor_handle, short priority, int param3, int *direction);",
+          "ported": true
         }
       ],
       "src": "src/halo/ai/actors.c"
