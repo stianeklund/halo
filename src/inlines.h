@@ -209,21 +209,17 @@ static inline double xbox_pow(double base, double exponent)
 
 static inline void *xbox_memcpy(void *s1, const void *s2, size_t n)
 {
-  /* Copy dword-aligned prefix (matches original REP MOVSD behavior). */
-  uint32_t *d32 = (uint32_t *)s1;
-  const uint32_t *s32 = (const uint32_t *)s2;
-  size_t dwords = n >> 2;
-  size_t tail = n & 3;
-  size_t i;
-  for (i = 0; i < dwords; i++)
-    d32[i] = s32[i];
-  if (tail) {
-    char *dt = (char *)&d32[dwords];
-    const char *st = (const char *)&s32[dwords];
-    for (i = 0; i < tail; i++)
-      dt[i] = st[i];
-  }
-  return s1;
+  void *ret = s1;
+  uint32_t dwords = (uint32_t)(n >> 2);
+  uint32_t tail = (uint32_t)(n & 3);
+  asm volatile(
+    "rep movsl\n\t"
+    "mov %[tail], %%ecx\n\t"
+    "rep movsb"
+    : "+D"(s1), "+S"(s2), "+c"(dwords)
+    : [tail] "r"(tail)
+    : "memory");
+  return ret;
 }
 
 static inline size_t xbox_strlen(const char *s)
