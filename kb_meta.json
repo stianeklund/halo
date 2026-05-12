@@ -591,6 +591,10 @@
         "actor+0x3e vs encounter+2 team comparison semantics: actor+0x3e is plausibly actor home team, encounter+2 is encounter team, but field names are not confirmed from strings."
       ]
     },
+    "0x5d420": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5d890": {
       "kind": "function",
       "status": "ported"
@@ -4570,6 +4574,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x121640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x121940": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x123470": {
       "kind": "function",
       "status": "ported",
@@ -4893,6 +4905,14 @@
       "status": "ported"
     },
     "0x137620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x137d20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1384e0": {
       "kind": "function",
       "status": "ported"
     },

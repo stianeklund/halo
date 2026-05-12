@@ -583,3 +583,200 @@ void animation_get_node_orientations(void *animation, float frame,
     FUN_0010b7d0((float *)this_kf_data, (float *)next_kf_data, blend,
                  (float *)out_translation);
 }
+
+/* overlay_animation_apply_continuous_scaled (0x121940) — Interpolate keyframed
+ * scale data for a single node in a compressed animation.
+ *
+ * Scalar (single-float) sibling of animation_get_node_orientations. Resolves
+ * the two bracketing keyframes for a given fractional frame and either copies
+ * the exact keyframe scale or interpolates between two scales using
+ * FUN_0010b820 (scalar lerp).
+ *
+ * The animation's tag_data (at animation+0xa0) contains:
+ *   +0x1c: offset to a per-component packed descriptor array (4 bytes each,
+ *          low 12 bits = keyframe_count, high 4 bits = data_offset_index).
+ *   +0x20: offset to keyframe_frame_indices (unsigned short array).
+ *   +0x24: offset to default_scales (float array, 4 bytes per node).
+ *   +0x28: offset to keyframe_data (float array, 4 bytes per keyframe).
+ *
+ * Branch structure mirrors animation_get_node_orientations:
+ *   1. Before first keyframe: lerp default_scale[scale_count] -> keyframe[0]
+ *      with kf0_frame=0, kf1_frame=first_keyframe_frame.
+ *   2. At last keyframe: lerp keyframe[last] -> default_scale[scale_count]
+ *      with kf0_frame=last_frame, kf1_frame=last_frame+1.
+ *   3. Between keyframes: binary search via FUN_00120d10, then lerp the two
+ *      bracketing keyframe entries.
+ * If frame == kf0_frame exactly, copy this_kf_scale directly (no blend).
+ *
+ * Note: scale_count is a 16-bit selector indexing the descriptor array; it
+ * is also used as the index into default_scales (default_scales[scale_count]).
+ * After masking the descriptor, the local param_3 slot holds keyframe_count.
+ *
+ * Confirmed: cdecl, 5 args, void return (stack cleanup ADD ESP,0x10 at 0x121c1c).
+ * Confirmed: CALL tag_data_get_pointer(animation+0xa0, *(int*)(animation+0x88), 0) at 0x12195b.
+ * Confirmed: CALL anim_floor (CRT 0x1d9c2b) at 0x121a4f via push double + FSTP [ESP].
+ * Confirmed: CALL FUN_00120d10(keyframe_frame_indices=EBX, target_frame=ECX,
+ *            keyframe_count@<edi>=[EBP+0x10]) at 0x121b1d.
+ * Confirmed: CALL FUN_0010b820(this_kf, next_kf, blend, out) at 0x121c17.
+ * Confirmed: Assert lines 0x64a, 0x64c, 0x662, 0x663, 0x677, 0x688, 0x689
+ *            (the 0x64e "keyframe_count>=0" assert is dead after the &0xfff
+ *            mask and was eliminated by the optimizer).
+ * Confirmed: Element size 4 bytes (float) — LEA EDX+EAX*0x4 at 0x121a39.
+ * Confirmed: Frame indices array stride 2 bytes — LEA ECX+EAX*0x2 at 0x121a44.
+ */
+void overlay_animation_apply_continuous_scaled(void *animation, float frame,
+                                               unsigned short scale_count,
+                                               short node_index,
+                                               void *out_scale)
+{
+    char *anim;
+    char *tag_data_base;
+    unsigned int descriptor;
+    unsigned short keyframe_count;
+    int data_offset_index;
+    char *default_scales;
+    char *keyframe_data;
+    unsigned short *keyframe_frame_indices;
+    int frame_count_i;
+    float frame_floor_f;
+    short frame_index;
+    int kf_count_i;
+    unsigned short kf0_frame;
+    unsigned short kf1_frame;
+    float this_kf_scale;
+    float next_kf_scale;
+    short kf_idx;
+    float this_frame_f;
+    float blend;
+    (void)node_index;
+
+    anim = (char *)animation;
+
+    /* Resolve tag_data pointer */
+    tag_data_base = (char *)tag_data_get_pointer(
+        anim + 0xa0, *(int *)(anim + 0x88), 0);
+
+    /* Read packed descriptor for this scale component */
+    descriptor = *(unsigned int *)(
+        tag_data_base + *(int *)(tag_data_base + 0x1c) +
+        (short)scale_count * 4);
+    keyframe_count = (unsigned short)(descriptor & 0xfff);
+    data_offset_index = (int)(short)(descriptor >> 0xc);
+
+    /* Default scales and keyframe arrays are relative to tag_data_base */
+    default_scales = tag_data_base + *(int *)(tag_data_base + 0x24);
+    keyframe_data = tag_data_base + *(int *)(tag_data_base + 0x28) +
+                    data_offset_index * 4;
+    keyframe_frame_indices = (unsigned short *)(
+        tag_data_base + *(int *)(tag_data_base + 0x20) +
+        data_offset_index * 2);
+
+    /* Assert: real_frame_index >= 0.0f */
+    if (frame < 0.0f) {
+        display_assert("real_frame_index>=0.0f",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x64a, 1);
+        system_exit(-1);
+    }
+
+    /* Assert: real_frame_index < (real)animation->frame_count */
+    frame_count_i = (int)*(short *)(anim + 0x22);
+    if (frame >= (float)frame_count_i) {
+        display_assert("real_frame_index<(real)animation->frame_count",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x64c, 1);
+        system_exit(-1);
+    }
+
+    /* If keyframe_count == 0, return the default scale for this slot */
+    if (keyframe_count == 0) {
+        *(int *)out_scale = *(int *)(default_scales + (int)(short)scale_count * 4);
+        return;
+    }
+
+    /* Compute integer frame index from floor(frame) */
+    frame_floor_f = (float)anim_floor((double)frame);
+    frame_index = (short)(int)frame_floor_f;
+
+    /* Assert: frame_index >= 0 && frame_index <= keyframe_frame_indices[keyframe_count-1] */
+    kf_count_i = (int)(short)keyframe_count;
+    if (frame_index < 0 ||
+        (int)frame_index > (int)(unsigned int)keyframe_frame_indices[kf_count_i - 1]) {
+        display_assert(
+            "frame_index>=0 && frame_index<=keyframe_frame_indices[keyframe_count-1]",
+            "c:\\halo\\SOURCE\\models\\model_animations.c", 0x662, 1);
+        system_exit(-1);
+    }
+
+    /* Assert: keyframe_frame_indices[keyframe_count-1] == animation->frame_count - 1 */
+    if ((unsigned int)keyframe_frame_indices[kf_count_i - 1] !=
+        (unsigned int)((int)*(short *)(anim + 0x22) - 1)) {
+        display_assert(
+            "keyframe_frame_indices[keyframe_count-1]==animation->frame_count-1",
+            "c:\\halo\\SOURCE\\models\\model_animations.c", 0x663, 1);
+        system_exit(-1);
+    }
+
+    /* Determine which two keyframes bracket the current frame */
+    kf0_frame = keyframe_frame_indices[0];
+
+    if ((int)frame_index < (int)(unsigned int)kf0_frame) {
+        /* Before the first keyframe: interpolate default_scale -> first keyframe */
+        this_kf_scale = *(float *)(default_scales + (int)(short)scale_count * 4);
+        next_kf_scale = *(float *)keyframe_data;
+        kf1_frame = kf0_frame;
+        kf0_frame = 0;
+    } else {
+        kf1_frame = keyframe_frame_indices[kf_count_i - 1];
+
+        if ((int)frame_index == (int)(unsigned int)kf1_frame) {
+            /* At the last keyframe: interpolate last keyframe -> default_scale */
+            this_kf_scale = *(float *)(keyframe_data + (kf_count_i - 1) * 4);
+            next_kf_scale = *(float *)(default_scales + (int)(short)scale_count * 4);
+            kf0_frame = kf1_frame;
+            kf1_frame = kf1_frame + 1;
+        } else {
+            /* Between two keyframes: binary search */
+            kf_idx = FUN_00120d10(keyframe_frame_indices,
+                                  (short)(int)frame_floor_f,
+                                  keyframe_count);
+
+            if (kf_idx < 0 || (int)kf_idx >= kf_count_i - 1) {
+                display_assert(
+                    "keyframe_index>=0 && keyframe_index<keyframe_count-1",
+                    "c:\\halo\\SOURCE\\models\\model_animations.c", 0x677, 1);
+                system_exit(-1);
+            }
+
+            kf0_frame = keyframe_frame_indices[(int)kf_idx];
+            kf1_frame = keyframe_frame_indices[(int)kf_idx + 1];
+            this_kf_scale = *(float *)(keyframe_data + (int)kf_idx * 4);
+            next_kf_scale = *(float *)(keyframe_data + ((int)kf_idx + 1) * 4);
+        }
+    }
+
+    /* If frame == this_keyframe_frame exactly, copy directly */
+    this_frame_f = (float)(int)(short)kf0_frame;
+    if (frame == this_frame_f) {
+        *(float *)out_scale = this_kf_scale;
+        return;
+    }
+
+    /* Compute blend factor and interpolate */
+    blend = (frame - this_frame_f) /
+            (float)((int)(short)kf1_frame - (int)(short)kf0_frame);
+
+    /* Assert: real_frame_index >= (real)this_keyframe_frame_index */
+    if (frame < this_frame_f) {
+        display_assert("real_frame_index>=(real)this_keyframe_frame_index",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x688, 1);
+        system_exit(-1);
+    }
+
+    /* Assert: real_frame_index < (real)next_keyframe_frame_index */
+    if (frame >= (float)(int)(short)kf1_frame) {
+        display_assert("real_frame_index< (real)next_keyframe_frame_index",
+                       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x689, 1);
+        system_exit(-1);
+    }
+
+    FUN_0010b820(this_kf_scale, next_kf_scale, blend, (float *)out_scale);
+}

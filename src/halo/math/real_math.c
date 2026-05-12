@@ -692,6 +692,22 @@ void FUN_0010b7d0(float *a, float *b, float blend, float *out)
   out[2] = inv_blend * a[2] + blend * b[2];
 }
 
+/* Linearly interpolate between two scalar floats (0x10b820).
+ * Computes: *out = b * blend + (1.0f - blend) * a
+ * blend=0.0 yields a, blend=1.0 yields b.
+ * Called as FUN_0010b820(this_kf, next_kf, blend, out) in model_animations.c
+ * for scalar keyframe interpolation (scale channel).
+ *
+ * Confirmed: cdecl, 4 args, void return. Disassembly at 0x10b820:
+ *   FLD [0x2533c8]; FSUB [EBP+0x10]; FMUL [EBP+0x8]; FLD [EBP+0xc];
+ *   FMUL [EBP+0x10]; FADDP; FSTP [EAX]
+ * Where [0x2533c8] holds 1.0f. Equivalent to b*t + (1-t)*a.
+ */
+void FUN_0010b820(float a, float b, float blend, float *out)
+{
+  *out = b * blend + (1.0f - blend) * a;
+}
+
 /* Test whether a line segment intersects a sphere. Returns true if
    the segment origin is inside the sphere or if the segment crosses
    the sphere boundary within t in [0,1]. */
