@@ -4317,7 +4317,8 @@
         },
         {
           "decl": "bool FUN_00126db0(void *server /* @<eax> */);",
-          "addr": "0x126db0"
+          "addr": "0x126db0",
+          "ported": true
         },
         {
           "decl": "bool network_game_client_idle(void *server /* @<eax> */);",
@@ -9945,6 +9946,10 @@
         {
           "decl": "bool FUN_00128660(int connection);",
           "addr": "0x128660"
+        },
+        {
+          "decl": "bool FUN_001286a0(int connection);",
+          "addr": "0x1286a0"
         },
         {
           "decl": "bool FUN_001286e0(int connection@<esi>, void *buffer, int *size, void *addr);",

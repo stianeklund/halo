@@ -335,6 +335,79 @@ tail_check:
   return result;
 }
 
+/* FUN_00126db0 (0x126db0) — network_game_client_idle_ingame
+ *
+ * Called from the client idle dispatch (FUN_00127070) when state == 3 (ingame).
+ * Verifies the server connection is alive, checks if the connection has gone
+ * silent (bit 5 of connection+0x30 via FUN_001286a0), displays per-player
+ * error widgets if newly silent, records the silent flag at server+0xcad, then
+ * runs the connection idle tick (15-second timeout) and processes incoming
+ * messages. Returns false if the connection drops or any critical step fails. */
+bool FUN_00126db0(void *server)
+{
+  int connection;
+  bool result;
+  bool is_silent;
+  __int16 player_idx;
+
+  result = true;
+  connection = *(int *)((char *)server + 0x82c);
+  if (!FUN_00128660(connection))
+    goto abort;
+  if (!network_connection_connected(connection))
+    goto abort;
+
+  if (!FUN_0012a170()) {
+    is_silent = FUN_001286a0(connection);
+    if (!FUN_00082300()) {
+      error(2, "network connection went down (idle in game)!");
+      display_error_when_main_menu_loaded(6);
+      network_game_log("network connection went down (idle in game)!");
+      result = false;
+      goto write_flag;
+    }
+    if (is_silent && !*(char *)((char *)server + 0xcad)) {
+      player_idx = local_player_get_next(-1);
+      while (player_idx != (__int16)-1) {
+        ui_widget_display_error(9, player_idx, 0, 0);
+        player_idx = local_player_get_next(player_idx);
+      }
+      network_game_log(
+          "network client connection has been silent for a dangerously long"
+          " amount of time");
+    }
+  write_flag:
+    *(char *)((char *)server + 0xcad) = (char)is_silent;
+    if (!result)
+      return result;
+  }
+
+  connection = *(int *)((char *)server + 0x82c);
+  result = FUN_00129cf0(connection, 15000, 0);
+  if (!result) {
+    connection = *(int *)((char *)server + 0x82c);
+    if (!FUN_00128660(connection) || !network_connection_connected(connection)) {
+      error(2, "new2 idle in game abort hit");
+      display_error_when_main_menu_loaded(4);
+      result = false;
+    }
+    network_game_log(
+        "network_connection_idle() failed in network_game_client_idle_ingame()");
+    return result;
+  }
+  result = FUN_001260c0(server);
+  if (!result)
+    network_game_log(
+        "network_game_client_process_incoming_messages() failed in"
+        " network_game_client_idle_ingame()");
+  return result;
+
+abort:
+  error(2, "new idle in game abort hit");
+  display_error_when_main_menu_loaded(4);
+  return false;
+}
+
 /* network_game_client_idle (0x126f40) — network_game_client_idle_postgame
  *
  * Called from the client idle dispatch (FUN_00127070) when state == 4 (postgame).
