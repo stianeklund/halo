@@ -1,12 +1,3 @@
-#define fabs(x) __builtin_fabsf((float)(x))
-#define FUN_0010b090 lock_global_random_seed
-#define FUN_0010b0a0 unlock_global_random_seed
-static void FUN_000a3890(int u, float *d, void *dir, float dmg, float s)
-  { ((void (*)(int,float*,void*,float,float))0xa3890)(u,d,dir,dmg,s); }
-static void FUN_000a2ba0(int u, float dmg, float s)
-  { ((void (*)(int,float,float))0xa2ba0)(u,dmg,s); }
-static void FUN_000b9bc0(int u, float *imp, float dmg, float s)
-  { ((void (*)(int,float*,float,float))0xb9bc0)(u,imp,dmg,s); }
 
 char *player_effect_get(int16_t local_player_index)
 {
@@ -182,7 +173,7 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
     assert_halt(0);
   }
 
-  FUN_0010b090();
+  lock_global_random_seed();
 
   if (unit_index != -1) {
     jpt_tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
@@ -191,9 +182,10 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
     player_effect_set_from_descriptor(unit_index, effect, damage_amount, 1.0f,
                                      (void *)(jpt_tag + 0x24));
     FUN_000a3890(unit_index, (float *)(jpt_tag + 0x98), direction,
-                 damage_amount, 1.0f);
-    FUN_000a2ba0(unit_index, damage_amount, 1.0f);
-    FUN_000b9bc0(unit_index, (float *)(jpt_tag + 0x5c), damage_amount, 1.0f);
+                 damage_amount, 1.0f, (float *)effect /* @<eax> */);
+    FUN_000a2ba0(unit_index, damage_amount, 1.0f,
+                 (float *)(jpt_tag + 0xcc) /* @<eax> */, (void *)effect /* @<ebx> */);
+    FUN_000b9bc0((short)unit_index, (float *)(jpt_tag + 0x5c), damage_amount, 1.0f);
 
     if (*(int *)(jpt_tag + 0x120) != -1) {
       sound_impulse_start(*(int *)(jpt_tag + 0x120), 1.0f);
@@ -201,9 +193,9 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
 
     if ((*(float *)0x2533c0 < scale) &&
         (*(int *)((char *)damage_params + 0xc) != -1)) {
-      if ((*(unsigned int *)(player + 0x1c8) & 0x100) != 0) {
+      if ((*(unsigned int *)(jpt_tag + 0x1c8) & 0x100) != 0) {
         *(unsigned char *)(effect + 0xe6) = 1;
-        FUN_0010b0a0();
+        unlock_global_random_seed();
         return;
       }
 
@@ -260,7 +252,7 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
                 (*(float *)0x26af48 < angle)) {
               if ((*(float *)0x2568bc < fabsf(angle))) {
                 *(unsigned char *)(effect + 0xe5) = 1;
-                FUN_0010b0a0();
+                unlock_global_random_seed();
                 return;
               }
               *(unsigned char *)(effect + 0xe7) = 1;
@@ -271,5 +263,5 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
     }
   }
 
-  FUN_0010b0a0();
+  unlock_global_random_seed();
 }
