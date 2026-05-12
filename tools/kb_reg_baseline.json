@@ -72,6 +72,8 @@
     "0xa0080": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
     "0xa1770": "void FUN_000a1770(int particle@<eax>, int tag_group@<ecx>, int physics_tag@<esi>, int param);",
     "0xa18c0": "void FUN_000a18c0(int datum_handle@<ebx>);",
+    "0xa2ba0": "void FUN_000a2ba0(int unit_index, float damage_amount, float scale, float *effect_data@<eax>, void *effect@<ebx>);",
+    "0xa3890": "void FUN_000a3890(int unit_index, float *rumble_def, void *direction, float damage_amount, float scale, float *effect@<eax>);",
     "0xa8780": "void game_engine_update_flag_state(int weapon_index@<esi>);",
     "0xa8ba0": "bool game_engine_is_player_leading(int player_handle@<edi>);",
     "0xab420": "bool game_engine_check_input_button(int button_index@<edi>);",

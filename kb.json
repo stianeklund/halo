@@ -9986,17 +9986,17 @@
         {
           "decl": "void animation_get_node_orientations(void *animation, float frame, unsigned short translation_count, short node_index, void *out_translation);",
           "addr": "0x121640",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void overlay_animation_apply_continuous_scaled(void *animation, float frame, unsigned short scale_count, short node_index, void *out_scale);",
           "addr": "0x121940",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
           "addr": "0x121d60",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_00123aa0(void *mode_tag, void *out_node_data);",
@@ -10237,7 +10237,8 @@
       "functions": [
         {
           "decl": "int16_t FUN_00106510(int16_t count, float *points, float *line, int16_t max_count, float *out_points, uint32_t *out_bitmask, uint8_t *changed, float epsilon);",
-          "addr": "0x106510"
+          "addr": "0x106510",
+          "ported": false
         },
         {
           "decl": "void plane_negate(float *plane_in, float *plane_out);",
