@@ -8255,7 +8255,8 @@
         },
         {
           "decl": "char FUN_001b1d00(int object_handle, void *position);",
-          "addr": "0x1b1d00"
+          "addr": "0x1b1d00",
+          "ported": true
         }
       ]
     },

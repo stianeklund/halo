@@ -57,7 +57,8 @@ void FUN_00123470(void *mode_tag, void *animation, int animation_index,
   uint8_t node_data[0x800];
 
   FUN_00121d60(mode_tag, animation, animation_index, node_data);
-  component_vectors_from_normal3d(out_matrix, (float *)(node_data + 0x10), (float *)node_data);
+  component_vectors_from_normal3d(out_matrix, (float *)(node_data + 0x10),
+                                  (float *)node_data);
 }
 
 /* unit_set_actively_controlled_flag (0x1a7f80)
@@ -117,7 +118,8 @@ void units_update(void)
  * 0x1c0 and control_flags at offset 0x1c4. Asserts if control_flags has any
  * bits set beyond position 14 (NUMBER_OF_UNIT_CONTROL_FLAGS = 15).
  */
-void unit_persistent_control(int unit_handle, int animation_ticks, int control_flags)
+void unit_persistent_control(int unit_handle, int animation_ticks,
+                             int control_flags)
 {
   char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
 
@@ -511,16 +513,13 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
  *
  * Dispatches a unit animation state transition based on an incoming state code.
  * Maps input state values 1-8 to either FUN_001a8b20 (which sets a unit
- * animation transition state with a remapped index) or unit_animation_start_action (which
- * initiates a seat-based animation sequence). The state remapping is:
- *   state 1 -> FUN_001a8b20 with index 1
- *   state 2 -> FUN_001a8b20 with index 2
- *   state 3 -> FUN_001a8b20 with index 5
- *   state 4 -> FUN_001a8b20 with index 6
- *   state 5 -> unit_animation_start_action with index 5
- *   state 6 -> unit_animation_start_action with index 6
- *   state 7 -> FUN_001a8b20 with index 3
- *   state 8 -> FUN_001a8b20 with index 4
+ * animation transition state with a remapped index) or
+ * unit_animation_start_action (which initiates a seat-based animation
+ * sequence). The state remapping is: state 1 -> FUN_001a8b20 with index 1 state
+ * 2 -> FUN_001a8b20 with index 2 state 3 -> FUN_001a8b20 with index 5 state 4
+ * -> FUN_001a8b20 with index 6 state 5 -> unit_animation_start_action with
+ * index 5 state 6 -> unit_animation_start_action with index 6 state 7 ->
+ * FUN_001a8b20 with index 3 state 8 -> FUN_001a8b20 with index 4
  */
 void FUN_001a8e10(int object_handle, int16_t state)
 {
@@ -958,9 +957,9 @@ void unit_scripting_unit_gunner(int unit_handle, void *out_looking)
 
 /* units_debug_get_closest_unit (0x1a9960)
  *
- * Gets the unit's facing vector by delegating to object_get_orientation (an object-level
- * orientation getter in objects.c). Passes NULL for the up-vector output,
- * requesting only the forward direction.
+ * Gets the unit's facing vector by delegating to object_get_orientation (an
+ * object-level orientation getter in objects.c). Passes NULL for the up-vector
+ * output, requesting only the forward direction.
  */
 void units_debug_get_closest_unit(int unit_handle, void *out_facing)
 {
@@ -2004,7 +2003,9 @@ char FUN_001ada90(int unit_handle, float *vector, char flag)
   matrix[6] = matrix[2] * matrix[7] - matrix[8] * matrix[1];
 
   pos = *(float **)0x31fc1c;
-  matrix[10] = pos[0]; matrix[11] = pos[1]; matrix[12] = pos[2];
+  matrix[10] = pos[0];
+  matrix[11] = pos[1];
+  matrix[12] = pos[2];
   real_matrix4x3_transform_point(matrix, vector, relative_vector);
 
   if (!(char)real_vector3d_valid(relative_vector)) {
@@ -3139,6 +3140,67 @@ bool unit_apply_animation_impulse(int unit_handle, int anim_index,
   }
 
   return true;
+}
+
+/* unit_can_melee_attack (0x1b1d00)
+ *
+ * Returns true if the unit at object_handle can be hit by a melee attack
+ * originating from position *position (a float[3]). The check is:
+ *
+ *   1. Object must be a biped (type == 0) via
+ * object_try_and_get_and_verify_type with mask=3 (units).
+ *   2. Unit tag flags dword at +0x17c must NOT have bit 0x10000 set.
+ *   3. Dot product of (unit.pos - position) with unit.unk_528 must be <= 0.0f
+ *      (i.e., the attacker is not in front of the victim along the victim's
+ *      forward vector); OR the unit's seat label must be "asleep".
+ *
+ * Confirmed: PUSH 0x3 / PUSH EDI -> object_try_and_get_and_verify_type.
+ * Confirmed: CMP word ptr [ESI+0x64],0x0; JNZ -> type == 0 check.
+ * Confirmed: MOV EAX,[ESI]; PUSH EAX; PUSH 0x756e6974 ->
+ * tag_get('unit',tag_index). Confirmed: MOV ECX,[EAX+0x17c]; TEST ECX,0x10000;
+ * JNZ -> flag check. Confirmed: FLD [ESI+0x50]; FSUB [EAX]; ... -> dot product
+ * over unk_528. Confirmed: FCOMP [0x2533c0](0.0f); FNSTSW AX; TEST AH,0x41; JZ
+ * -> > 0.0f early return true. Confirmed: MOV ESI,[0x32e484] ("asleep" str
+ * ptr); MOV EAX,EDI; CALL unit_get_seat_label. Confirmed: PUSH EAX; PUSH ESI;
+ * CALL csstrcmp; TEST EAX,EAX; JNZ -> return false on mismatch.
+ */
+char FUN_001b1d00(int object_handle, void *position)
+{
+  unit_data_t *unit;
+  char *unit_tag;
+  float dx;
+  float dy;
+  float dz;
+  float dot;
+  int seat_label;
+  float *pos;
+
+  unit = (unit_data_t *)object_try_and_get_and_verify_type(object_handle, 3);
+  if (unit == NULL)
+    return 0;
+  if (unit->object.type != 0)
+    return 0;
+
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+  if (*(int *)(unit_tag + 0x17c) & 0x10000)
+    return 0;
+
+  pos = (float *)position;
+  dx = unit->object.unk_80 - pos[0];
+  dy = unit->object.unk_84 - pos[1];
+  dz = unit->object.unk_88 - pos[2];
+
+  dot = dx * unit->unk_528.x + dy * unit->unk_528.y + dz * unit->unk_528.z;
+
+  if (dot > *(float *)0x2533c0)
+    return 1;
+
+  /* Dot product <= 0: only allow if unit is asleep */
+  seat_label = unit_get_seat_label(object_handle);
+  if (csstrcmp(*(const char **)0x32e484, (const char *)seat_label) != 0)
+    return 0;
+
+  return 1;
 }
 
 /* unit_enter_seat (0x1b1db0)
