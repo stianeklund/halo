@@ -5404,11 +5404,11 @@
           "addr": "0xa3b80"
         },
         {
-          "decl": "void FUN_000a3890(int unit_index, float *direction_table, void *direction, float damage, float scale);",
+          "decl": "void FUN_000a3890(int unit_index, float *rumble_def, void *direction, float damage_amount, float scale, float *effect@<eax>);",
           "addr": "0xa3890"
         },
         {
-          "decl": "void FUN_000a2ba0(int unit_index, float damage, float scale);",
+          "decl": "void FUN_000a2ba0(int unit_index, float damage_amount, float scale, float *effect_data@<eax>, void *effect@<ebx>);",
           "addr": "0xa2ba0"
         }
       ]
@@ -5534,7 +5534,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000b9bc0(int unit_index, float *impulse, float damage, float scale);",
+          "decl": "void FUN_000b9bc0(short unit_index, float *rumble_def, float damage_amount, float scale);",
           "addr": "0xb9bc0"
         }
       ]
@@ -6203,14 +6203,6 @@
           "addr": "0x10c8e0",
           "comment": "Reflect vector v about surface normal n: out = v - 2*dot(v,n)*n.",
           "ported": true
-        },
-        {
-          "decl": "void FUN_0010b090(void);",
-          "addr": "0x10b090"
-        },
-        {
-          "decl": "void FUN_0010b0a0(void);",
-          "addr": "0x10b0a0"
         }
       ]
     },
@@ -9979,7 +9971,8 @@
         },
         {
           "decl": "short FUN_00120d10(unsigned short *keyframe_frame_indices, short target_frame_index, short keyframe_count@<edi>);",
-          "addr": "0x120d10"
+          "addr": "0x120d10",
+          "ported": true
         },
         {
           "decl": "int model_animation_choose_random(int update_kind, int animation_graph_tag_index, int16_t animation_index);",
@@ -9993,17 +9986,17 @@
         {
           "decl": "void animation_get_node_orientations(void *animation, float frame, unsigned short translation_count, short node_index, void *out_translation);",
           "addr": "0x121640",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void overlay_animation_apply_continuous_scaled(void *animation, float frame, unsigned short scale_count, short node_index, void *out_scale);",
           "addr": "0x121940",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
           "addr": "0x121d60",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_00123aa0(void *mode_tag, void *out_node_data);",
