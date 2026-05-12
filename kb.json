@@ -618,6 +618,10 @@
           "ported": true
         },
         {
+          "addr": "0x3c0c0",
+          "decl": "void FUN_0003c0c0(int object_handle, short effect_type, float *position, short volume, short count);"
+        },
+        {
           "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
           "addr": "0x3c2d0",
           "ported": true
@@ -861,7 +865,8 @@
         },
         {
           "addr": "0x425c0",
-          "decl": "void FUN_000425c0(int object_handle, float *position, short effect_type, short volume, short count);"
+          "decl": "void FUN_000425c0(int object_handle, float *position, short effect_type, short volume, short count);",
+          "ported": true
         },
         {
           "decl": "bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin, float *offset, int *result_out);",
@@ -8735,6 +8740,16 @@
       ]
     },
     {
+      "name": "integer_math.obj",
+      "source": "math/integer_math.c",
+      "functions": [
+        {
+          "decl": "char FUN_00108e70(int16_t bit_vector_size, int v0, int v1, int result_out);",
+          "addr": "0x108e70"
+        }
+      ]
+    },
+    {
       "name": "bink_sound.obj",
       "source": "bink/bink_sound.c",
       "functions": [
@@ -9529,6 +9544,10 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00058fd0(int encounter_handle, char flag, int bit_vector_size, int pvs, char *out_cluster_bv);",
+          "addr": "0x58fd0"
+        },
+        {
           "decl": "void encounter_detach_actor(int actor_handle, char flag);",
           "addr": "0x59480",
           "ported": true
@@ -9584,8 +9603,13 @@
           "ported": true
         },
         {
+          "decl": "void FUN_0005a640(int encounter_handle /* @<eax> */);",
+          "addr": "0x5a640"
+        },
+        {
           "decl": "void FUN_0005a6e0(void);",
-          "addr": "0x5a6e0"
+          "addr": "0x5a6e0",
+          "ported": true
         },
         {
           "decl": "void FUN_0005acf0(int encounter_handle /* @<eax> */);",

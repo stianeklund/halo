@@ -11,8 +11,8 @@
  * Called from ai_update on the first-frame/map-load branch.
  * Copies ai_globals[6..7] (int16_t) into ai_globals[4..5], then clears
  * both ai_globals[6..7] and the byte flag at ai_globals[3].
- * Iterates all active player-actors (flag=1) via encounter_iterator_next/FUN_00059b50.
- * For each actor record:
+ * Iterates all active player-actors (flag=1) via
+ * encounter_iterator_next/FUN_00059b50. For each actor record:
  *   - if record+0xb is nonzero: calls actor_erase(actor_handle, 0)
  *     to delete/dispose the actor entry.
  *   - if record+0xb is zero and record+0x6a > 0: calls FUN_0003ec80(@esi)
@@ -56,10 +56,10 @@ void FUN_0003f5f0(void)
 /* ai_initialize: allocate AI globals and initialize all AI subsystems.
  * Allocates 0x8dc bytes via game_state_malloc, stores the pointer at
  * global 0x632574, zeroes the block, then calls 9 subsystem init
- * functions in order. The last call (actor_move_get_avoidance_direction) is a tail-call
- * (JMP in the original binary).
- * Confirmed: PUSH order for game_state_malloc("ai globals", NULL, 0x8dc);
- * assert string "ai_globals" at line 0x8c (140) of ai.c. */
+ * functions in order. The last call (actor_move_get_avoidance_direction) is a
+ * tail-call (JMP in the original binary). Confirmed: PUSH order for
+ * game_state_malloc("ai globals", NULL, 0x8dc); assert string "ai_globals" at
+ * line 0x8c (140) of ai.c. */
 void ai_initialize(void)
 {
   void *globals = game_state_malloc("ai globals", 0, 0x8dc);
@@ -160,13 +160,12 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
 
 /* game_allegiance_apply_change: apply an allegiance change between two
  * teams, updating all matching actor records in the AI actor iterator.
- * Iterates over all active player-actors via encounter_iterator_next/FUN_00059b50;
- * for each actor whose team matches team_a or team_b, walks the actor's
- * clump items via FUN_00064540/FUN_00064570 and applies the friendship
- * and force flags.
- * Confirmed: 4 args via PUSH count + ADD ESP,0x18 cleanup at 0x40068.
- * Operand sizes confirmed: team_a/team_b as int16_t (MOVSX + CMP AX,DI);
- * friendship/force as char (MOV byte ptr).
+ * Iterates over all active player-actors via
+ * encounter_iterator_next/FUN_00059b50; for each actor whose team matches
+ * team_a or team_b, walks the actor's clump items via FUN_00064540/FUN_00064570
+ * and applies the friendship and force flags. Confirmed: 4 args via PUSH count
+ * + ADD ESP,0x18 cleanup at 0x40068. Operand sizes confirmed: team_a/team_b as
+ * int16_t (MOVSX + CMP AX,DI); friendship/force as char (MOV byte ptr).
  *
  * Stack layout (EBP-based, SUB ESP,0x24):
  *   [EBP-0x24..EBP-0x09]: ai_actor_iter (0x1c bytes extended iterator)
@@ -221,8 +220,8 @@ void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
         }
         if (!friendship || force) {
           *(char *)(clump_item + 0x60) = friendship;
-          *(char *)(clump_item + 0xa4) =
-            actor_get_perception_knowledge(*(int *)(iter + 0x14), clump_iter[0]);
+          *(char *)(clump_item + 0xa4) = actor_get_perception_knowledge(
+            *(int *)(iter + 0x14), clump_iter[0]);
           *(float *)(clump_item + 0x50) =
             FUN_0002fd10(*(int *)(iter + 0x14), clump_iter[0]);
         }
@@ -525,8 +524,9 @@ void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
 /* FUN_00041420: build the firing-position candidate list for an actor.
  *
  * Iterates two linked lists:
- *   1. The actor's own encounter clump (via encounter_actor_iterator_new/FUN_00059a50 on
- *      actor->clump_handle at actor_record+0x34).  For each member:
+ *   1. The actor's own encounter clump (via
+ * encounter_actor_iterator_new/FUN_00059a50 on actor->clump_handle at
+ * actor_record+0x34).  For each member:
  *        - skip if member handle == actor_handle (self)
  *        - skip if count >= max_count
  *        - skip if member has no object (member+0x18 == -1)
@@ -662,7 +662,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
  *   the FUN_00041420 call+cleanup. EBX is callee-saved and used throughout.
  * Confirmed: buf size = 0x508 bytes (SUB ESP,0x508; buf at EBP-0x508). */
 bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
-                  float *offset, int *result_out)
+                          float *offset, int *result_out)
 {
   ai_firing_pos_entry_t buf[0x20]; /* 0x20 entries × 0x28 = 0x500 bytes */
   int result_datum;
@@ -854,11 +854,175 @@ bool ai_enemies_can_see_player(void)
   return FUN_00042390(0);
 }
 
-/* ai_enemies_attacking_player: unconditionally trigger a clump check with flag=1.
- * Thin wrapper around ai_clump (FUN_00042390). Return value is discarded
- * by the caller.
- * Confirmed: PUSH 1 / CALL 0x42390 / ADD ESP,4 / RET. */
+/* ai_enemies_attacking_player: unconditionally trigger a clump check with
+ * flag=1. Thin wrapper around ai_clump (FUN_00042390). Return value is
+ * discarded by the caller. Confirmed: PUSH 1 / CALL 0x42390 / ADD ESP,4 / RET.
+ */
 void ai_enemies_attacking_player(void)
 {
   FUN_00042390(1);
+}
+
+/* FUN_000425c0: ai_sound_spatial_effect_submit — submit a spatial sound effect
+ * into the AI's ring buffer of recent spatial events. If AI subsystem is
+ * inactive (g+1 == 0), returns immediately.
+ *
+ * The ring buffer lives at g+0x130 (head/tail uint16_t pair) and holds up to
+ * 32 entries of 0x14 bytes each starting at g+0x134.  Each entry:
+ *   +0x00  int16_t  effect_type
+ *   +0x02  int16_t  count          (number of samples blended in)
+ *   +0x04  float[3] position       (running-average world position)
+ *   +0x10  int      timestamp      (game_time when last sample was stored)
+ *
+ * Algorithm: walk the ring from head to tail.  For each live entry:
+ *   - If its timestamp is older than (now - 120): expire it (mark 0xffff,
+ *     advance head if it was the head slot, or record as a free slot).
+ *   - Else if effect_type matches and distance from stored position to the
+ *     new position is less than 1.0 (distance_squared3d < 1.0): merge
+ *     the new sample in.  If timestamp is stale by >= 30 ticks, overwrite
+ *     the position directly (first new sample); otherwise blend it in as
+ *     a running average (weight = 1/count for new, 1 - 1/count for old).
+ *     Break out of the loop after merging.
+ * If no matching entry was found, allocate either the first expired slot or
+ * the current tail (advancing tail and bumping head if the queue is full),
+ * then write the entry and call FUN_0003c0c0 to trigger the actual AI reaction.
+ *
+ * Asserts: count > 0, 0 <= volume < 5, 0 <= effect_type < 3.
+ * Confirmed: c:\halo\SOURCE\ai\ai.c line 0x80e/0x80f/0x810/0x847/0x871.
+ */
+void FUN_000425c0(int object_handle, float *position, short effect_type,
+                  short volume, short count)
+{
+  int *g;
+  int current_time;
+  int time_minus_30;
+  int time_minus_120;
+  char submit;
+  short *entry;
+  short i;
+  int free_slot;
+  short dist_to_end;
+  short queue_len;
+  float inv_count;
+  float old_weight;
+
+  g = *(int **)0x632574;
+  if (*((char *)g + 1) == '\0') {
+    return;
+  }
+  current_time = game_time_get();
+
+  if (count < 1) {
+    display_assert("count>0", "c:\\halo\\SOURCE\\ai\\ai.c", 0x80e, 1);
+    system_exit(-1);
+  }
+  if ((volume < 0) || (volume >= 5)) {
+    display_assert("volume>=0 && volume<NUMBER_OF_AI_SOUND_VOLUMES",
+                   "c:\\halo\\SOURCE\\ai\\ai.c", 0x80f, 1);
+    system_exit(-1);
+  }
+  if ((effect_type < 0) || (effect_type >= 3)) {
+    display_assert("effect_type>=0 && effect_type<NUMBER_OF_AI_SPATIAL_EFFECTS",
+                   "c:\\halo\\SOURCE\\ai\\ai.c", 0x810, 1);
+    system_exit(-1);
+  }
+
+  if (volume <= 0) {
+    return;
+  }
+
+  time_minus_30 = current_time - 0x1e;
+  time_minus_120 = current_time - 0x78;
+
+  entry = (short *)0x0;
+  submit = 1;
+  free_slot = -1;
+
+  for (i = *(short *)((char *)g + 0x130); i != *(short *)((char *)g + 0x132);
+       i = (short)((i + 1) & 0x1f)) {
+    char *slot;
+    char match;
+
+    match = 0;
+    slot = (char *)g + 0x134 + (int)i * 0x14;
+
+    if (effect_type == *(short *)slot &&
+        distance_squared3d((float *)(slot + 0x4), position) <
+          *(float *)0x2533c8) {
+      match = 1;
+    }
+
+    if (*(int *)(slot + 0x10) > time_minus_120) {
+      if (match) {
+        entry = (short *)slot;
+        entry[1] = entry[1] + 1;
+        submit = (*(int *)(slot + 0x10) < time_minus_30);
+        if (*(int *)(slot + 0x10) < time_minus_30) {
+          *(float *)(slot + 0x4) = position[0];
+          *(float *)(slot + 0x8) = position[1];
+          *(float *)(slot + 0xc) = position[2];
+          if (!submit) {
+            display_assert("submit", "c:\\halo\\SOURCE\\ai\\ai.c", 0x847, 1);
+            system_exit(-1);
+          }
+        } else {
+          inv_count = *(float *)0x2533c8 / (float)(int)entry[1];
+          old_weight = *(float *)0x2533c8 - inv_count;
+          *(float *)(slot + 0x4) =
+            inv_count * position[0] + old_weight * *(float *)(slot + 0x4);
+          *(float *)(slot + 0x8) =
+            inv_count * position[1] + old_weight * *(float *)(slot + 0x8);
+          *(float *)(slot + 0xc) =
+            inv_count * position[2] + old_weight * *(float *)(slot + 0xc);
+        }
+        break;
+      }
+    } else {
+      *(short *)slot = (short)0xffff;
+      if (i == *(short *)((char *)g + 0x130)) {
+        *(short *)((char *)g + 0x130) = (short)((i + 1) & 0x1f);
+      } else {
+        free_slot = (int)i;
+      }
+    }
+  }
+
+  if (entry == (short *)0x0) {
+    if (free_slot == -1) {
+      i = *(short *)((char *)g + 0x132);
+      *(short *)((char *)g + 0x132) =
+        (short)((*(short *)((char *)g + 0x132) + 1) & 0x1f);
+      if (*(short *)((char *)g + 0x132) == *(short *)((char *)g + 0x130)) {
+        *(short *)((char *)g + 0x130) =
+          (short)((*(short *)((char *)g + 0x130) + 1) & 0x1f);
+      }
+    } else {
+      i = (short)free_slot;
+    }
+
+    dist_to_end = (short)((i - *(short *)((char *)g + 0x130) + 0x20) & 0x1f);
+    queue_len = (short)((*(short *)((char *)g + 0x132) -
+                         *(short *)((char *)g + 0x130) + 0x20) &
+                        0x1f);
+
+    if (!((dist_to_end >= 0) && (dist_to_end < queue_len))) {
+      display_assert("(distance_to_effect >= 0) && (distance_to_effect < "
+                     "distance_to_end_of_queue)",
+                     "c:\\halo\\SOURCE\\ai\\ai.c", 0x871, 1);
+      system_exit(-1);
+    }
+
+    entry = (short *)((char *)g + 0x134 + (int)i * 0x14);
+    *(float *)((char *)entry + 0x4) = position[0];
+    *(float *)((char *)entry + 0x8) = position[1];
+    *(float *)((char *)entry + 0xc) = position[2];
+    *(int *)((char *)entry + 0x10) = current_time;
+    *entry = effect_type;
+    entry[1] = 1;
+  }
+
+  if (submit) {
+    FUN_0003c0c0(object_handle, *entry, (float *)((char *)entry + 0x4), volume,
+                 entry[1]);
+  }
 }
