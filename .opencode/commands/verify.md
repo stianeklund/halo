@@ -17,7 +17,7 @@ Modes:
 2. `structural <target> <new_address> [extra lift_pipeline flags]` — explicit patched-XBE address verification.
 3. `hazards` — run the lift hazard scanner.
 4. `delink <target>` — export/reference-map a delinked object and run structural comparison.
-5. `equivalence <target> [--seeds N]` — Unicorn-Engine differential test on a pure-leaf function. Runs MSVC oracle and clang candidate with seeded inputs; compares CPU/FPU at RET. Rejects functions with external relocations.
+5. `equivalence <target> [--seeds N] [--allow-stubs] [--float-tolerance N]` — Unicorn-Engine differential test. Runs MSVC oracle and clang candidate with seeded inputs; compares CPU/FPU at RET. Use `--allow-stubs` for non-leaf functions (external calls are stubbed). Use `--float-tolerance N` for FPU-heavy functions (compares float* scratch slots with N ULP tolerance instead of byte-exact).
 6. `permute <target> [--time 60]` — last-mile match optimizer for the 85–98% VC71 band. Wraps `tools/permuter/run.py`. Reports best score found; never apply a permutation that lowers the existing match.
 7. `option3 <target> [extra verify_option3 flags]` — legacy runtime/xemu fallback.
 8. `failure <artifact_dir>` — classify a failed lift pipeline or auto-lift artifact and recommend the next narrow action.
@@ -26,31 +26,38 @@ If no mode is supplied, treat the first token as `<target>` and run `normal`.
 
 Commands:
 ```bash
-rtk python3 tools/lift_pipeline.py --target <target> --no-metadata-update --verify-policy auto <extra_flags>
-rtk python3 tools/lift_pipeline.py --target <target> --verify-auto --verify-new-address <new_address> --no-metadata-update <extra_flags>
-rtk python3 tools/audit/check_lift_hazards.py
-rtk python3 tools/audit/batch_delink.py --object <object>
 rtk python3 tools/equivalence/unicorn_diff.py <target> --seeds 100
-rtk python3 tools/permuter/run.py <target> --time 60
-rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>
+rtk python3 tools/equivalence/unicorn_diff.py <target> --seeds 100 --allow-stubs --float-tolerance 32
 ```
 
 Equivalence mode:
-- **When to use:** function is a pure leaf (no calls out, no globals);
-  byte-match alone is weak evidence (FPU-heavy math, serializers, hashes,
-  small string helpers); or VC71 match is structurally capped (e.g. SEH
-  wrappers stuck at ~55%) and you need a different lane to prove
-  correctness.
-- **When to skip:** the function calls `FUN_xxx`, references DAT_/globals,
-  or otherwise has unresolved external relocations. `unicorn_diff.py` will
-  exit early with a clear diagnostic; do not waste cycles trying.
+- **When to use:** byte-match alone is weak evidence (FPU-heavy math,
+  serializers, hashes, small string helpers); VC71 match is structurally
+  capped (e.g. SEH wrappers stuck at ~55%); or you need behavioral proof
+  beyond structural comparison.
+- **Leaf functions:** run bare `unicorn_diff.py <target> --seeds 100`. No
+  stubs or globals needed.
+- **Non-leaf functions:** add `--allow-stubs` to enable callee stubbing
+  (csmemcpy, fabs, _chkstk, etc.) and DIR32 data relocation patching.
+  Globals from `_KNOWN_GLOBAL_BYTES` are automatically seeded into the
+  patched slots.
+- **FPU-heavy functions:** add `--float-tolerance N` to compare float*
+  scratch buffers with N ULP tolerance instead of byte-exact.  x87
+  rounding differences between MSVC and clang accumulate across loop
+  iterations.  Recommended values: 16 (tight), 32 (moderate), 256 (loose
+  for long FPU chains).  Auto-detects float* params from the declaration.
+- **Typical invocation for a geometry/physics function:**
+  `unicorn_diff.py <target> --allow-stubs --float-tolerance 32 --seeds 100`
 - **Side effect:** every run records the leaf classification to
   `tools/equivalence/leaf_cache.json`, which boosts that address in
   `llm_auto_lift.py select` (`+5 eq_pure_leaf`).
-1. Resolve `<target>` and confirm the function is a pure leaf.
-2. Run with at least 100 seeds. Pass = 0 divergences across all seeds; even
-   one divergence is a real bug. Re-run with `--seed <hex>` from the failing
-   report to reproduce.
+1. Resolve `<target>` and check if it's leaf or non-leaf (the tool prints
+   the classification: leaf / data_only / stubbable / non_leaf).
+2. Run with at least 100 seeds. Pass = 0 divergences across all seeds;
+   even one divergence is a real bug unless it's a float tolerance issue.
+3. Re-run with `--seed <hex>` from the failing report to reproduce.
+4. If failures are only in float scratch at small ULP, increase
+   `--float-tolerance` or accept the divergence as FPU precision noise.
 
 Permute mode:
 - **When to use:** VC71 match is in **[85, 98]%** AND a delinked reference

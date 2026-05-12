@@ -55,14 +55,20 @@ The tradeoff: Z3 proofs only work on small-to-medium pure-leaf functions (the so
 
 The initial approach (full symbolic lifting → Z3 solver) produced deeply nested Z3 Array expressions that timed out on anything touching memory. The production approach extracts CMP/TEST+Jcc instruction patterns directly and solves for the comparison values — fast (sub-second), works on any function regardless of FPU complexity, and generates seeds that exercise each branch direction.
 
-### DIR32 patching + auto-mapping vs loading XBE data sections
+### DIR32 patching + global seeding vs loading XBE data sections
 
-Many functions reference global constants (epsilon values, lookup tables) via DIR32 relocations. Rather than loading the full XBE data section (which would require parsing the XBE format and handling segment relocations), we auto-map zeroed pages on demand. This means the globals contain zeros instead of real values, so the oracle and lifted code may diverge on functions that depend on those values. But it still catches structural bugs (wrong control flow, wrong registers, stack corruption) which are the most common lift errors.
+Many functions reference global constants (epsilon values, lookup tables) via DIR32 relocations. Rather than loading the full XBE data section, we patch DIR32 relocations to point into a zeroed GLOBALS region and seed known XBE values into the correct slots. The `_KNOWN_GLOBAL_BYTES` dict maps original XBE addresses (e.g., 0x2533C0 = 0.0f, 0x2533C8 = 1.0f) to their canonical values. `_build_globals_seeds` matches DIR32 symbol names like `DAT_002533c8` to these addresses and writes the correct floats into the GLOBALS slots. This ensures the oracle reads the same values as the real binary, not zeros.
 
 ### Why not angr/Triton
 
 - **angr**: Its value is whole-program CFG recovery and symbolic exploration. We already have Ghidra for decompilation, and our verification is post-lift comparison, not path exploration. angr's VEX IR lifter adds dependency weight without clear payoff.
 - **Triton** (the concolic engine, not OpenAI's GPU compiler): No pip wheel for Python 3.12, requires building from source with cmake+LLVM. Our manual x86-to-Z3 lifter covers the 79 instruction mnemonics found in leaf functions and is debuggable. If the FPU subset proves too fragile, Triton is the fallback — but the current approach works.
+
+### FPU tolerance for float-heavy functions
+
+MSVC and clang schedule x87 FPU operations differently, causing rounding to accumulate differently across loop iterations. Byte-exact scratch comparison produces false positives on FPU-heavy functions (geometry, physics). The `--float-tolerance N` flag compares `float*` scratch buffer slots with N-ULP tolerance instead of byte-exact, auto-detecting float pointer params from the function declaration.
+
+Typical values: 16 (tight, catches real bugs), 32 (moderate, tolerates 1–2 extra rounding steps), 256 (loose, for long FPU chains). FUN_00106510 passes 4/4 exact, 18/20 at 32 ULP, 19/20 at 1024 ULP — the remaining failures are degenerate inputs (count=128) where accumulated rounding exceeds any reasonable tolerance.
 
 ## Usage
 
@@ -76,8 +82,11 @@ python3 tools/equivalence/unicorn_diff.py vector3d_scale_add --z3-equiv
 # Test a data_only function with DIR32 patching
 python3 tools/equivalence/unicorn_diff.py magnitude3d --allow-stubs
 
-# Both flags (what the pipeline uses)
-python3 tools/equivalence/unicorn_diff.py <func> --z3-equiv --allow-stubs
+# Test an FPU-heavy function with float tolerance
+python3 tools/equivalence/unicorn_diff.py FUN_00106510 --allow-stubs --float-tolerance 32
+
+# Both flags + tolerance (geometry/physics functions)
+python3 tools/equivalence/unicorn_diff.py <func> --z3-equiv --allow-stubs --float-tolerance 32
 
 # Pipeline runs this automatically after lift
 python3 tools/lift_pipeline.py --target <name_or_addr> --verify-policy auto

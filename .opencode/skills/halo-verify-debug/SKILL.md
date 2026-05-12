@@ -32,9 +32,12 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify delink <target>` for delink export and reference mapping.
 - `/verify equivalence <target>` for behavioral differential testing — runs the
   MSVC delinked oracle and our clang candidate in two Unicorn-Engine emulators
-  with seeded inputs, comparing CPU/FPU state at RET. Pure-leaf functions only
-  (rejects targets with unresolved external relocations). Useful for FPU-heavy
-  code where byte-match is unreliable across compiler versions.
+  with seeded inputs, comparing CPU/FPU state at RET. Use `--allow-stubs` for
+  non-leaf functions (external calls are stubbed; known globals are seeded).
+  Use `--float-tolerance N` for FPU-heavy functions (compares float* scratch
+  buffers with N ULP tolerance instead of byte-exact). Useful for geometry,
+  physics, and other FPU-heavy code where byte-match is unreliable across
+  compiler versions.
 - `/verify permute <target> [--time 60]` for last-mile match optimization on
   functions in the 85–98% VC71 band. Wraps `tools/permuter/run.py`. Apply a
   winning permutation only after re-running the lift pipeline; never accept a
@@ -55,13 +58,20 @@ match and call shape. **Default is to do nothing** — extra lanes cost time.
 | Match < 85% | any | investigate the lift; do NOT permute | permute (won't help), equivalence |
 | Match capped (e.g. SEH ~55%) | pure leaf | `/verify equivalence` to prove behavior | permute |
 | No delinked ref | any | `/verify delink <target>` first | permute (no target), vc71 |
-| External relocations present | any | use `/verify normal` only | equivalence (will reject) |
+| Non-leaf (calls/globals) | any | `/verify equivalence --allow-stubs` | — |
+| FPU-heavy, float output | any | `/verify equivalence --allow-stubs --float-tolerance 32` | — |
 
 Hard rules:
 - Permuter never auto-applies — re-run the lift pipeline against any
   candidate permutation before trusting the new score.
-- Unicorn requires a pure leaf. The relocation check rejects functions
-  that call `FUN_xxx` or reference DAT_ globals.
+- Unicorn works for both leaf and non-leaf functions now. Use `--allow-stubs`
+  for non-leaf targets; the stub infrastructure emulates known callees
+  (csmemcpy, fabs, _chkstk, display_assert, system_exit) and seeds known
+  XBE globals into DIR32 relocation slots.
+- For FPU-heavy functions, always use `--float-tolerance N` (recommended: 16–32
+  for typical geometry, up to 256 for long chains). x87 rounding differences
+  between MSVC and clang accumulate across loop iterations and cause
+  byte-exact scratch mismatches that are not real bugs.
 - Every Unicorn run records leaf classification to
   `tools/equivalence/leaf_cache.json`. Subsequent `llm_auto_lift.py select`
   runs reward those addresses (`+5 eq_pure_leaf`), so running equivalence
