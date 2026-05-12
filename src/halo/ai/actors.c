@@ -16,6 +16,42 @@ void FUN_00036860(int actor_handle)
   csmemset(actor + 0x2ec, 0, 0x64);
 }
 
+/* FUN_000369c0 (0x369c0) — post scalar stimulus value at a given priority.
+ *
+ * Resolves actor via datum_get(actor_data, actor_handle).
+ * actor+0x34a (short) holds the current best priority; actor+0x34c (int)
+ * holds the associated value.
+ *
+ * If the incoming priority strictly exceeds the stored one, unconditionally
+ * replace both the priority and value.  If they are equal, keep the maximum
+ * of the stored and incoming values.  If the stored priority is higher, do
+ * nothing.
+ *
+ * Confirmed: cdecl, ADD ESP,0xc after FUN_000369c0 at call sites.
+ * Confirmed: comparison is signed CMP CX,DX / JGE; equal-path uses CMP/JG
+ *   then MOV ECX,EDX to take the max.
+ * Confirmed: fields at actor+0x34a (short priority) and actor+0x34c (int
+ *   value) directly from disassembly MOV/CMP at those offsets. */
+void FUN_000369c0(int actor_handle, short priority, int value)
+{
+  char *actor;
+  int stored_value;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x34a) < priority) {
+    *(short *)(actor + 0x34a) = priority;
+    *(int *)(actor + 0x34c) = value;
+    return;
+  }
+  if (*(short *)(actor + 0x34a) == priority) {
+    stored_value = *(int *)(actor + 0x34c);
+    if (stored_value <= value) {
+      stored_value = value;
+    }
+    *(int *)(actor + 0x34c) = stored_value;
+  }
+}
+
 /* FUN_00036c00 (0x36c00) — flee/scatter look reaction.
  *
  * Resolves the actor record via datum_get(actor_data, actor_handle).

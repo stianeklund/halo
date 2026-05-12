@@ -447,7 +447,8 @@
         },
         {
           "addr": "0x369c0",
-          "decl": "void FUN_000369c0(int actor_handle, short priority, int value);"
+          "decl": "void FUN_000369c0(int actor_handle, short priority, int value);",
+          "ported": true
         },
         {
           "decl": "void FUN_00036e30(int ai_handle);",
@@ -2033,7 +2034,7 @@
         {
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -2094,7 +2095,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
