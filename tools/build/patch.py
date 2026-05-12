@@ -363,14 +363,17 @@ def generate_deactivation_redirect(sym, impl_addr, original_addr):
     return bytes(code)
 
 
-def _verify_staging_correctness(sym, reg_args, thunk_code):
+def _verify_staging_correctness(sym, reg_args, thunk_code, num_callee_saves=0):
     """Simulate the staging portion of a reverse thunk on a virtual register
     file and verify that each scratch register ends up holding the value that
     was originally in the corresponding source register.
 
     This catches any register clobbering bug regardless of the specific
     register combination — cycles, sub-register widening, arbitrary orderings.
-    Runs at build time for every generated reverse thunk."""
+    Runs at build time for every generated reverse thunk.
+
+    num_callee_saves: number of callee-saved PUSH r32 instructions prepended
+    before the staging moves.  These are skipped before simulation begins."""
     SCRATCH = ['eax', 'ecx', 'edx']
     ALL_REGS = {'eax': 0, 'ecx': 1, 'edx': 2, 'ebx': 3,
                 'esp': 4, 'ebp': 5, 'esi': 6, 'edi': 7}
@@ -386,9 +389,17 @@ def _verify_staging_correctness(sym, reg_args, thunk_code):
         regs[name] = f'orig_{name}'
 
     # Walk thunk bytes, simulating MOV r32,r32 / MOVZX r32,r16 / XCHG r32,r32.
-    # Stop at the first PUSH (start of arg-pushing phase).
+    # Stop at the first PUSH that is not a callee-save prefix (start of arg-push phase).
     r32_by_code = {v: k for k, v in ALL_REGS.items()}
     i = 0
+
+    # Skip the callee-save PUSH r32 prefix (one per callee-save reg arg).
+    for cs_idx in range(num_callee_saves):
+        assert i < len(thunk_code) and 0x50 <= thunk_code[i] <= 0x57, (
+            f'Expected PUSH r32 for callee-save #{cs_idx} in "{sym.decl}", '
+            f'got 0x{thunk_code[i]:02x}')
+        i += 1
+
     while i < len(thunk_code):
         b = thunk_code[i]
         if b == 0x50 | 0 or (0x50 <= b <= 0x57):
@@ -444,9 +455,13 @@ def _verify_staging_correctness(sym, reg_args, thunk_code):
 
         i += 1
 
-    # Verify postcondition: each scratch register holds the original value
-    # of its corresponding source register.
-    for idx, (param_idx, src_reg) in enumerate(reg_args):
+    # Verify postcondition: each scratch register holds the original value of
+    # its corresponding source register.  Only scratch-slot args (indices 0–2)
+    # are staged; callee-save-slot args (indices 3+) are saved by PUSH at
+    # thunk entry and are trivially correct.
+    scratch_count = min(len(reg_args), len(SCRATCH))
+    for idx in range(scratch_count):
+        param_idx, src_reg = reg_args[idx]
         scratch = SCRATCH[idx]
         src32 = PARENT.get(src_reg, src_reg)
         expected = f'orig_{src32}'
@@ -462,27 +477,52 @@ def _verify_staging_correctness(sym, reg_args, thunk_code):
 def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     """Emit a naked register-to-cdecl trampoline for an implemented @<reg> function.
 
-    Strategy: stage every register arg through caller-saved scratch registers
-    (EAX, ECX, EDX) so callee-saved regs (ESI/EDI/EBX/EBP) are never modified.
-    Then rebuild a full cdecl argument list on top of the current stack by
-    pushing parameters right-to-left. Register params are pushed from staged
-    scratch slots; stack params are copied from their original incoming stack
-    locations. This supports any register-param indices, including non-leading
-    ones such as `f(a, b@<esi>, c@<ebx>, d)`.
+    Strategy for the first 3 register args: stage them through caller-saved
+    scratch registers (EAX, ECX, EDX).  For a 4th–6th register arg (which must
+    be a 32-bit callee-saved register such as EBX, ESI, or EDI): emit a PUSH
+    r32 at thunk entry that simultaneously saves the arg value to the stack and
+    satisfies the callee-save ABI contract for the original caller (the C impl
+    preserves the register, so POP r32 at exit restores the original arg value,
+    which is exactly what the caller placed there).
 
     Layout:
-      1. Move/widen each register arg into its assigned scratch slot.
+      0. PUSH each callee-save register arg (4th+ arg, in declaration order).
+      1. Move/widen each scratch-slot register arg (1st–3rd) into EAX/ECX/EDX.
       2. Push full argument list in reverse declaration order.
+         – Scratch-slot args: PUSH scratch_reg.
+         – Callee-save-slot args: PUSH [ESP+disp] from the save block.
+         – Stack args: PUSH [ESP+disp] from the original caller's frame.
       3. Call impl (rel32).
       4. Clean up the injected cdecl args.
-      5. Ret to the original caller using the untouched return address."""
+      5. POP each callee-save register (reverse of step 0 order).
+      6. Ret to the original caller using the untouched return address."""
     reg_args = sym.register_args
     assert reg_args, "generate_reverse_thunk called on non-register-arg function"
 
-    # Up to 3 register args supported via EAX/ECX/EDX scratch staging.
-    SCRATCH_FOR_ARG = ['eax', 'ecx', 'edx']
-    assert len(reg_args) <= len(SCRATCH_FOR_ARG), \
-        f'rvthunk supports at most {len(SCRATCH_FOR_ARG)} register args'
+    # Slots 0–2: caller-saved scratch registers (free to clobber).
+    # Slots 3–5: callee-saved registers saved by PUSH at thunk entry.
+    # Only full 32-bit registers are supported for callee-save slots (no bx/si).
+    SCRATCH_SLOTS = ['eax', 'ecx', 'edx']
+    assert len(reg_args) <= 6, \
+        f'rvthunk supports at most 6 register args, got {len(reg_args)}'
+
+    # Classify each reg arg into a scratch slot or a callee-save slot.
+    reg_param_to_scratch = {}    # param_idx → scratch_reg32
+    reg_param_to_saved_slot = {} # param_idx → j (index in callee_save_pushes)
+    callee_save_pushes = []      # canonical32 regs pushed at thunk entry, in order
+
+    for i, (param_idx, src_reg) in enumerate(reg_args):
+        if i < len(SCRATCH_SLOTS):
+            reg_param_to_scratch[param_idx] = SCRATCH_SLOTS[i]
+        else:
+            assert src_reg in REG32_BITS, (
+                f'Callee-save register arg must be a full 32-bit register '
+                f'(got @<{src_reg}> in "{sym.decl}")')
+            j = len(callee_save_pushes)
+            callee_save_pushes.append(src_reg)
+            reg_param_to_saved_slot[param_idx] = j
+
+    K = len(callee_save_pushes)
 
     open_paren = sym.decl.find('(')
     close_paren = sym.decl.rfind(')')
@@ -515,10 +555,15 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
 
     code = bytearray()
 
-    # 1. Stage each register arg into its scratch slot, widening as needed.
-    #    Must handle conflicts where a source register is clobbered by an
-    #    earlier staging move (e.g. ECX→EAX then EAX→ECX would lose EAX).
-    #    Strategy: topological sort the moves, breaking cycles with XCHG.
+    # 0. Push each callee-save register arg before any staging moves, so that
+    #    their values are on the stack and safe from the staging writes below.
+    for reg32 in callee_save_pushes:
+        code += encode_push_r32(reg32)
+
+    # 1. Stage each scratch-slot register arg into its scratch slot (EAX/ECX/EDX),
+    #    widening as needed.  Must handle conflicts where a source register is
+    #    clobbered by an earlier staging move (e.g. ECX→EAX then EAX→ECX loses
+    #    EAX).  Strategy: topological sort the moves, breaking cycles with XCHG.
 
     def _canon32(reg):
         """Return the 32-bit parent of a register name."""
@@ -529,9 +574,11 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
                     'si': 'esi', 'di': 'edi', 'bp': 'ebp'}
         return _parent.get(reg, reg)
 
-    moves = []  # (dst32, src_reg, src_reg_canonical32, needs_widen)
-    for i, (_, src_reg) in enumerate(reg_args):
-        dst32 = SCRATCH_FOR_ARG[i]
+    moves = []  # (dst32, src_reg, src_reg_canonical32, needs_widen) — scratch-slot args only
+    for i, (param_idx, src_reg) in enumerate(reg_args):
+        if param_idx not in reg_param_to_scratch:
+            continue  # callee-save slot; no staging move needed
+        dst32 = reg_param_to_scratch[param_idx]
         src32 = _canon32(src_reg)
         needs_widen = src_reg not in REG32_BITS
         moves.append((dst32, src_reg, src32, needs_widen))
@@ -617,11 +664,18 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
             emitted[member] = True
 
     # 2. Push full arg list in reverse declaration order.
-    reg_param_to_scratch = {param_idx: SCRATCH_FOR_ARG[i] for i, (param_idx, _) in enumerate(reg_args)}
+    #    Three sources:
+    #      a) Scratch-slot reg args: PUSH scratch_reg.
+    #      b) Callee-save-slot reg args: PUSH [ESP+disp] from the save block at
+    #         thunk entry.  Save block layout (top of stack = lowest address):
+    #           [ESP + 4*(K-1-j) + 4*pushed_count] = callee_save_pushes[j]
+    #      c) Stack args from original caller's frame:
+    #           [ESP + 4*(1+K+src_slot+pushed_count)]
+    #         where +1 skips the return address, +K skips the save block.
     stack_param_to_incoming_slot = {}
     incoming_slot = 0
     for param_idx in range(param_count):
-        if param_idx not in reg_param_to_scratch:
+        if param_idx not in reg_param_to_scratch and param_idx not in reg_param_to_saved_slot:
             stack_param_to_incoming_slot[param_idx] = incoming_slot
             incoming_slot += 1
 
@@ -629,10 +683,14 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     for param_idx in reversed(range(param_count)):
         if param_idx in reg_param_to_scratch:
             code += encode_push_r32(reg_param_to_scratch[param_idx])
+        elif param_idx in reg_param_to_saved_slot:
+            j = reg_param_to_saved_slot[param_idx]
+            disp = 4 * (K - 1 - j + pushed_count)
+            code += encode_push_mesp(disp)
         else:
             src_slot = stack_param_to_incoming_slot[param_idx]
-            # +1 skips return address from original caller.
-            disp = 4 * (1 + src_slot + pushed_count)
+            # +1 skips return address; +K skips the callee-save save block.
+            disp = 4 * (1 + K + src_slot + pushed_count)
             code += encode_push_mesp(disp)
         pushed_count += 1
 
@@ -643,11 +701,15 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     # 4. Clean up injected args, preserving EAX return value.
     code += encode_add_esp(4 * param_count)
 
-    # 5. Return to original caller.
+    # 5. Restore callee-saved registers (reverse of push order).
+    for reg32 in reversed(callee_save_pushes):
+        code += encode_pop_r32(reg32)
+
+    # 6. Return to original caller.
     code += b'\xc3'  # ret
 
-    # 6. Verify: simulate the staging code to prove register postconditions.
-    _verify_staging_correctness(sym, reg_args, code)
+    # 7. Verify: simulate the staging code to prove register postconditions.
+    _verify_staging_correctness(sym, reg_args, code, num_callee_saves=K)
 
     return bytes(code)
 
@@ -748,6 +810,85 @@ def _test_reverse_thunks():
             ),
             "regression: ECX/EAX cycle must preserve original EAX",
         ),
+        # --- callee-save slot tests (4th+ register arg) ---
+        (
+            # FUN_00036890 shape: 4 reg args, no staging moves needed (all identity).
+            # PUSH EBX saves d.  PUSH [ESP+0] retrieves d for cdecl arg3.
+            "void FUN_00036890(int a@<eax>, int b@<ecx>, int c@<edx>, int d@<ebx>);",
+            0x401000,
+            0x650000,
+            (
+                b'\x53'                                    # PUSH EBX (save d)
+                b'\xff\x34\x24'                           # PUSH [ESP+0] (d)
+                b'\x52'                                    # PUSH EDX (c)
+                b'\x51'                                    # PUSH ECX (b)
+                b'\x50'                                    # PUSH EAX (a)
+                b'\xe8' + _rel32(0x650000 + 7, 0x401000) +
+                b'\x83\xc4\x10'                           # ADD ESP, 16
+                b'\x5b'                                    # POP EBX
+                b'\xc3'
+            ),
+            "4 reg args: 4th arg via callee-save PUSH/POP (FUN_00036890 shape)",
+        ),
+        (
+            # callee-save slot + stack arg: displacement must add K=1 offset.
+            "void f(int a@<eax>, int b@<ecx>, int c@<edx>, int d@<ebx>, int e);",
+            0x401000,
+            0x650000,
+            (
+                b'\x53'                                    # PUSH EBX (save d)
+                b'\xff\x74\x24\x08'                       # PUSH [ESP+8] (e — skip saved EBX + retaddr)
+                b'\xff\x74\x24\x04'                       # PUSH [ESP+4] (d — from save block)
+                b'\x52'                                    # PUSH EDX (c)
+                b'\x51'                                    # PUSH ECX (b)
+                b'\x50'                                    # PUSH EAX (a)
+                b'\xe8' + _rel32(0x650000 + 12, 0x401000) +
+                b'\x83\xc4\x14'                           # ADD ESP, 20
+                b'\x5b'                                    # POP EBX
+                b'\xc3'
+            ),
+            "4 reg args + 1 stack arg: K=1 displacement offset",
+        ),
+        (
+            # 3-cycle in scratch slots alongside a callee-save 4th arg.
+            # Entry: EAX=c, ECX=a, EDX=b, EBX=d.
+            # Scratch staging: XCHG EAX,EDX; XCHG EAX,ECX → EAX=a, ECX=b, EDX=c.
+            "void f(int a@<ecx>, int b@<edx>, int c@<eax>, int d@<ebx>);",
+            0x401000,
+            0x650000,
+            (
+                b'\x53'                                    # PUSH EBX (save d)
+                b'\x87\xc2'                               # XCHG EAX, EDX
+                b'\x87\xc1'                               # XCHG EAX, ECX
+                b'\xff\x34\x24'                           # PUSH [ESP+0] (d)
+                b'\x52'                                    # PUSH EDX (c)
+                b'\x51'                                    # PUSH ECX (b)
+                b'\x50'                                    # PUSH EAX (a)
+                b'\xe8' + _rel32(0x650000 + 11, 0x401000) +
+                b'\x83\xc4\x10'                           # ADD ESP, 16
+                b'\x5b'                                    # POP EBX
+                b'\xc3'
+            ),
+            "3-cycle in scratch slots + callee-save 4th arg (XCHG interacts correctly)",
+        ),
+        (
+            # ESI as the 4th callee-save arg (not EBX) — verifies parameterisation.
+            "void f(int a@<eax>, int b@<ecx>, int c@<edx>, int d@<esi>);",
+            0x401000,
+            0x650000,
+            (
+                b'\x56'                                    # PUSH ESI (save d)
+                b'\xff\x34\x24'                           # PUSH [ESP+0] (d)
+                b'\x52'                                    # PUSH EDX (c)
+                b'\x51'                                    # PUSH ECX (b)
+                b'\x50'                                    # PUSH EAX (a)
+                b'\xe8' + _rel32(0x650000 + 7, 0x401000) +
+                b'\x83\xc4\x10'                           # ADD ESP, 16
+                b'\x5e'                                    # POP ESI
+                b'\xc3'
+            ),
+            "4 reg args: 4th arg in ESI (not EBX) — callee-save parameterisation",
+        ),
     ]
 
     for decl, impl_addr, rvthunk_addr, expected, desc in exact_cases:
@@ -779,7 +920,26 @@ def _test_reverse_thunks():
          "minimal 2-element swap cycle"),
         ("void test_three_cycle(int a@<ecx>, int b@<edx>, int c@<eax>);",
          "3-element rotation cycle"),
+        ("void FUN_00036890(int a@<eax>, int b@<ecx>, int c@<edx>, int d@<ebx>);",
+         "4 reg args: 4th via callee-save EBX"),
+        ("void f(int a@<eax>, int b@<ecx>, int c@<edx>, int d@<ebx>, int e);",
+         "4 reg args + 1 stack arg: K=1 displacement"),
+        ("void f(int a@<eax>, int b@<ecx>, int c@<edx>, int d@<esi>);",
+         "4 reg args: 4th via callee-save ESI"),
     ]
+
+    def _expected_post_call(sym_):
+        """Build expected bytes after CALL: ADD ESP + POPs (callee-saves) + RET."""
+        n_params = _decl_param_count(sym_.decl)
+        result = encode_add_esp(4 * n_params)
+        # Callee-save POPs in reverse push order (args at indices 3+ in order).
+        _PARENT = {'ax': 'eax', 'bx': 'ebx', 'cx': 'ecx', 'dx': 'edx',
+                   'si': 'esi', 'di': 'edi', 'bp': 'ebp'}
+        saved_regs = [_PARENT.get(src_reg, src_reg)
+                      for j, (_, src_reg) in enumerate(sym_.register_args) if j >= 3]
+        for reg32 in reversed(saved_regs):
+            result += encode_pop_r32(reg32)
+        return result + b'\xc3'
 
     for decl, desc in property_cases:
         sym = Function(decl, addr=0x100000)
@@ -787,9 +947,11 @@ def _test_reverse_thunks():
         call_offset = _call_offset(code)
         assert call_offset is not None, f"FAIL: no CALL found in thunk for {desc}"
         post_call = code[call_offset + 5:]
-        assert post_call[-1:] == b'\xc3', f"FAIL: thunk does not end in RET for {desc}"
-        assert post_call[:-1] == encode_add_esp(4 * _decl_param_count(sym.decl)), (
-            f"FAIL: post-CALL code should only clean cdecl args for {desc}"
+        expected_post = _expected_post_call(sym)
+        assert post_call == expected_post, (
+            f"FAIL: post-CALL code mismatch for {desc}\n"
+            f"  expected: {expected_post.hex(' ')}\n"
+            f"  actual:   {post_call.hex(' ')}"
         )
         log.info("PASS: properties: %s", desc)
 
