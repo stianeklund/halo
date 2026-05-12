@@ -1064,6 +1064,14 @@
       }
     },
     {
+      "name": "halo/real_math_FUN_0010b7d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/real_math_FUN_0010b7d0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
       "name": "halo/damage",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/damage.c.obj",
       "base_path": "delinked/damage.obj",
@@ -1090,6 +1098,13 @@
     {
       "name": "halo/objects_13c800",
       "base_path": "artifacts/delinker/objects_13c800.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013e7b0",
+      "base_path": "delinked/objects_FUN_0013e7b0.obj",
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }

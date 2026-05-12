@@ -6513,7 +6513,8 @@
         },
         {
           "decl": "void FUN_0010b7d0(float *a, float *b, float blend, float *out);",
-          "addr": "0x10b7d0"
+          "addr": "0x10b7d0",
+          "ported": true
         }
       ]
     },

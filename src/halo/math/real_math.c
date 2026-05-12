@@ -677,6 +677,21 @@ void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
   vector[2] = k * a2 + cos_angle * v2 - cz * sin_angle;
 }
 
+/* Linearly interpolate between two vec3 values (0x10b7d0).
+ * Computes: out[i] = (1.0f - blend) * a[i] + blend * b[i]
+ * blend=0.0 yields a, blend=1.0 yields b.
+ * Called as FUN_0010b7d0(this_kf_data, next_kf_data, blend, out)
+ * in model_animations.c for keyframe interpolation.
+ */
+void FUN_0010b7d0(float *a, float *b, float blend, float *out)
+{
+  float inv_blend;
+  inv_blend = 1.0f - blend;
+  out[0] = inv_blend * a[0] + blend * b[0];
+  out[1] = inv_blend * a[1] + blend * b[1];
+  out[2] = inv_blend * a[2] + blend * b[2];
+}
+
 /* Test whether a line segment intersects a sphere. Returns true if
    the segment origin is inside the sphere or if the segment crosses
    the sphere boundary within t in [0,1]. */
