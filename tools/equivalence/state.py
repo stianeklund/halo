@@ -11,6 +11,53 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
+def _float_ulp(a_bits: int, b_bits: int) -> int:
+    """Return the ULP distance between two IEEE 754 single-precision values
+    given as raw 32-bit bit patterns.  Handles sign changes correctly."""
+    if (a_bits & 0x80000000) != (b_bits & 0x80000000):
+        if a_bits == 0x80000000 and b_bits == 0:
+            return 1
+        if a_bits == 0 and b_bits == 0x80000000:
+            return 1
+        ax = a_bits if (a_bits & 0x80000000) == 0 else (~a_bits + 1) & 0xFFFFFFFF
+        bx = b_bits if (b_bits & 0x80000000) == 0 else (~b_bits + 1) & 0xFFFFFFFF
+        return ax + bx
+    if a_bits < b_bits:
+        return b_bits - a_bits
+    return a_bits - b_bits
+
+
+def _scratch_matches_float(oracle_data: bytes, lifted_data: bytes,
+                           float_slot_indices: list,
+                           max_ulp: int) -> bool:
+    """Compare scratch buffers with ULP tolerance for float pointer params.
+
+    float_slot_indices is a list of scratch slot indices (0-based) whose
+    contents should be compared as float32 arrays with ULP tolerance.
+    Other slots are compared byte-for-byte.
+    """
+    from abi import POINTER_SLOT
+    if len(oracle_data) != len(lifted_data):
+        return False
+    n_slots = len(oracle_data) // POINTER_SLOT
+    float_slots = set(float_slot_indices or [])
+    for slot in range(n_slots):
+        start = slot * POINTER_SLOT
+        end = start + POINTER_SLOT
+        if slot in float_slots:
+            for i in range(start, min(end, len(oracle_data)), 4):
+                if i + 4 > len(oracle_data):
+                    break
+                ob = struct.unpack_from('<I', oracle_data, i)[0]
+                lb = struct.unpack_from('<I', lifted_data, i)[0]
+                if ob != lb and _float_ulp(ob, lb) > max_ulp:
+                    return False
+        else:
+            if oracle_data[start:end] != lifted_data[start:end]:
+                return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Unicorn register IDs (lazy import)
 # ---------------------------------------------------------------------------
@@ -154,24 +201,38 @@ class StateDiff:
 def compare(oracle: CPUState, lifted: CPUState,
             check_scratch: bool = True,
             ret_eax: bool = True,
+            ret_eax_bits: int = 32,
             ret_edx_eax: bool = False,
             ret_st0: bool = False,
-            check_st_count: int = 0) -> StateDiff:
+            check_st_count: int = 0,
+            scratch_float_tolerance_ulp: int = 0,
+            scratch_float_params: list = None) -> StateDiff:
     """Compare two CPUState objects and return a StateDiff.
 
     All comparisons are bit-pattern based (no floating-point ==).
 
     ret_eax         check EAX (True for int-returning functions)
+    ret_eax_bits    number of meaningful low bits in EAX for integer returns
     ret_edx_eax     check EDX:EAX pair (int64 return)
     ret_st0         check ST0 only (float/double return)
     check_st_count  how many ST registers to check (0 = none, 8 = all)
                     Normally 1 for float-returning, 0 for void/int.
     check_scratch   compare scratch buffer byte-for-byte
+    scratch_float_tolerance_ulp  if > 0, allow N ULP difference for float
+                    values in scratch buffer slots listed in scratch_float_params.
+    scratch_float_params  list of slot indices (ints) whose scratch slots
+                    contain float arrays (compared with ULP tolerance).
     """
     diff = StateDiff(oracle=oracle, lifted=lifted)
 
     if ret_eax or ret_edx_eax:
-        diff.eax_differs = oracle.eax != lifted.eax
+        if ret_eax_bits >= 32:
+            eax_mask = 0xFFFFFFFF
+        elif ret_eax_bits <= 0:
+            eax_mask = 0
+        else:
+            eax_mask = (1 << ret_eax_bits) - 1
+        diff.eax_differs = (oracle.eax & eax_mask) != (lifted.eax & eax_mask)
     if ret_edx_eax:
         diff.edx_differs = oracle.edx != lifted.edx
 
@@ -185,7 +246,13 @@ def compare(oracle: CPUState, lifted: CPUState,
             diff.st_differs.append(i)
 
     if check_scratch:
-        diff.scratch_differs = oracle.scratch_data != lifted.scratch_data
+        if scratch_float_tolerance_ulp > 0 and scratch_float_params:
+            diff.scratch_differs = not _scratch_matches_float(
+                oracle.scratch_data, lifted.scratch_data,
+                scratch_float_params,
+                scratch_float_tolerance_ulp)
+        else:
+            diff.scratch_differs = oracle.scratch_data != lifted.scratch_data
 
     if oracle.esp_delta != lifted.esp_delta:
         diff.esp_delta_differs = True
@@ -203,6 +270,7 @@ def format_state_verbose(state: CPUState, label: str) -> str:
         lines.append(f"    ST{i}={_fmt_st(b)}  ({_st_as_float(b)})")
     lines.append(f"    FPSW=0x{state.fpsw:04x}  FPCW=0x{state.fpcw:04x}")
     lines.append(f"    ESP_delta={state.esp_delta}")
+    lines.append(f"    INSN_count={state.insn_count}")
     if state.error:
         lines.append(f"    ERROR: {state.error}")
     return '\n'.join(lines)

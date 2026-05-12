@@ -5,12 +5,107 @@ Compares MSVC-compiled delinked .obj (oracle) against clang-compiled lifted
 .obj (candidate) by running both in separate Unicorn x86 emulators with
 identical inputs and comparing CPU+FPU state at RET.
 
-Usage:
+QUICK START
+-----------
+    # Basic smoke test (leaf function, 100 seeds):
     python3 tools/equivalence/unicorn_diff.py <func_name>
-    python3 tools/equivalence/unicorn_diff.py <func_name> --seeds 100
-    python3 tools/equivalence/unicorn_diff.py <func_name> --seed 0xdeadbeef
-    python3 tools/equivalence/unicorn_diff.py <func_name> --verbose
+
+    # Non-leaf function (has external calls like csmemcpy, fabs):
+    python3 tools/equivalence/unicorn_diff.py <func_name> --allow-stubs
+
+    # FPU-heavy function with float output buffers:
+    python3 tools/equivalence/unicorn_diff.py <func_name> --allow-stubs --float-tolerance 32
+
+    # Detailed per-seed state dump:
+    python3 tools/equivalence/unicorn_diff.py <func_name> --allow-stubs --verbose
+
+    # Run self-test against built-in leaf function:
     python3 tools/equivalence/unicorn_diff.py --self-test
+
+FLAGS
+-----
+    --seeds N          Number of test vectors (default: 100).
+    --seed N           Base RNG seed for reproducibility (default: 0).
+    --allow-stubs      Enable non-leaf emulation.  Patches DIR32 data
+                       relocations, redirects REL32 calls to stub sentinels,
+                       and emulates known callees (csmemcpy, fabs, _chkstk,
+                       etc.) inline.  Required for any function that calls
+                       other functions or references global data.
+    --float-tolerance N
+                       ULP (Unit in the Last Place) tolerance for float*
+                       scratch buffer comparison.  When set, float pointer
+                       params are compared element-by-element allowing up to
+                       N ULP difference per float.  Non-float slots remain
+                       byte-exact.  Auto-detects float* params from the
+                       function declaration.  Typical values:
+                         16  — tight, catches real bugs (recommended default)
+                         32  — moderate, tolerates 1-2 extra rounding steps
+                        256  — loose, for functions with long FPU chains
+                       1024  — very loose, for extreme count=128 degenerates
+    --float-params NAMES
+                       Comma-separated param names to treat as float arrays.
+                       Only needed when auto-detection guesses wrong.
+    --verbose          Print per-seed register dump, FPU state, stub trace,
+                       and scratch buffer diff for failures.
+    --output-json PATH Write structured JSON result for CI/automation.
+    --batch-classify   Scan all delinked/ .obj files and classify each
+                       function as leaf / data_only / stubbable / non_leaf.
+    --list-funcs OBJ   List function symbols in a .obj file.
+
+HOW IT WORKS
+------------
+1. Locates the oracle (delinked/*.obj from the original XBE) and the lifted
+   candidate (build/*.obj compiled from our C sources).
+2. Parses the function declaration from kb.json to determine parameter types,
+   calling convention, and return type.
+3. Generates typed test seeds: corner-case values for scalars, float arrays
+   for pointer params, sanitized for valid-path execution.
+4. For each seed, runs both oracle and lifted in separate Unicorn x86 (i386)
+   instances with identical memory layout:
+     - Stack at 0x7FFE0000
+     - Scratch buffer at 0x10000000 (1 KB per pointer param)
+     - Globals region at 0x00500000 (DIR32 targets, seeded from known XBE data)
+     - Stub sentinels at 0x40000000+ (intercepted calls)
+5. Compares EAX/EDX (integer return), ST0 (float return), and scratch buffer.
+   With --float-tolerance, float* scratch slots use ULP comparison instead of
+   byte-exact.
+
+GLOBALS SEEDING
+---------------
+The oracle COFF has DIR32 relocations like DAT_002533c8 that reference XBE
+data addresses.  These are patched into the GLOBALS region (0x500000).
+_KNOWN_GLOBAL_BYTES maps original XBE addresses to their canonical values
+(0x2533c0=0.0f, 0x2533c8=1.0f, etc.).  After patching, _build_globals_seeds
+writes the correct values into the GLOBALS slots so the oracle reads the same
+data as the real binary.  The lifted code accesses these addresses directly
+(via *(float*)0x2533c0 in C) and gets correct values from auto-mapped pages.
+
+STUB EMULATION
+--------------
+External calls are redirected to sentinel addresses.  Known stubs:
+  - _chkstk: stack probe, no-op in Unicorn (stack is pre-allocated)
+  - csmemcpy / memcpy: reads src, writes dst, returns dst
+  - fabs: x87 FABS instruction on ST0
+  - _display_assert / system_exit: no-op (return 0)
+All other stubs return 0/EAX or 0.0/ST0 depending on ABI.
+
+INTERPRETING RESULTS
+--------------------
+  "4 passed, 0 failed"           — Oracle and lifted are equivalent for
+                                   these seeds.  Genuine equivalence is
+                                   likely (especially with --seeds 100+).
+  "14 passed, 6 failed"          — Look at the failure details.  If the
+                                   diff is in float scratch and ULP < 32,
+                                   use --float-tolerance.  If EDX or EAX
+                                   differs, there's a real logic bug.
+  "0 passed, N failed, M errors"  — Errors mean the emulator crashed
+                                   (unhandled stub, unmapped memory, stack
+                                   overflow).  Check --verbose output for
+                                   the crash address and missing stubs.
+
+To add a new known global, edit _KNOWN_GLOBAL_BYTES near the top of this
+file.  To add a new stub handler, see StubManager.execute_stub() in
+stubs.py.
 """
 
 import argparse
@@ -588,7 +683,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              verbose: bool = False, save_log: bool = True,
              output_json: Optional[Path] = None,
              record_leaf: bool = True, z3_equiv: bool = False,
-             allow_stubs: bool = False) -> int:
+             allow_stubs: bool = False,
+             float_tolerance_ulp: int = 0,
+             float_tolerance_params: list = None) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     sys.path.insert(0, str(_SCRIPT_DIR))
@@ -667,6 +764,24 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     log(f"  conv : {abi['conv']}")
     log(f"  params: {[(p.name, p.c_type, p.reg) for p in abi['params']]}")
     log(f"  return: {abi['return_type']} (st0={abi['ret_st0']}, edx_eax={abi['ret_edx_eax']})")
+
+    if float_tolerance_ulp > 0 and float_tolerance_params is None:
+        float_tolerance_params = [
+            p.name for p in abi['params']
+            if p.is_pointer and 'float' in p.c_type
+        ]
+
+    float_tolerance_slot_indices = None
+    if float_tolerance_ulp > 0 and float_tolerance_params:
+        ptr_idx = 0
+        float_tolerance_slot_indices = []
+        for p in abi['params']:
+            if p.is_pointer:
+                if p.name in float_tolerance_params:
+                    float_tolerance_slot_indices.append(ptr_idx)
+                ptr_idx += 1
+        if float_tolerance_params:
+            log(f"  float-tolerance: {float_tolerance_ulp} ULP for {float_tolerance_params}")
 
     # --- Locate .obj files ---
     delinked_path, build_path = _find_obj_paths(entry)
@@ -935,6 +1050,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             ret_edx_eax=abi['ret_edx_eax'],
             ret_st0=abi['ret_st0'],
             check_st_count=1 if abi['ret_st0'] else 0,
+            scratch_float_tolerance_ulp=float_tolerance_ulp,
+            scratch_float_params=float_tolerance_slot_indices,
         )
 
         if diff.has_differences():
@@ -1183,6 +1300,10 @@ def main():
                         help="Attempt Z3 formal equivalence proof before Unicorn testing")
     parser.add_argument("--allow-stubs", action="store_true",
                         help="Enable non-leaf emulation with callee stubbing and DIR32 patching")
+    parser.add_argument("--float-tolerance", type=int, default=0, metavar="ULP",
+                        help="Allow N ULP difference for float pointer params in scratch comparison")
+    parser.add_argument("--float-params", type=str, default=None, metavar="NAMES",
+                        help="Comma-separated param names treated as float arrays (default: auto-detect)")
     args = parser.parse_args()
 
     if args.batch_classify:
@@ -1213,6 +1334,8 @@ def main():
         record_leaf=not args.no_leaf_cache,
         z3_equiv=args.z3_equiv,
         allow_stubs=args.allow_stubs,
+        float_tolerance_ulp=args.float_tolerance,
+        float_tolerance_params=args.float_params.split(",") if args.float_params else None,
     ))
 
 
