@@ -133,6 +133,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **`tools/analysis/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
 - **`tools/audit/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
 - **`tools/audit/check_lift_hazards.py`** — Build-time hazard scan for common Ghidra/MSVC lifting pitfalls.
+- **`tools/equivalence/unicorn_diff.py`** — Unicorn-Engine differential tester. Runs MSVC oracle vs clang candidate with seeded inputs. Supports `--allow-stubs` for non-leaf functions (csmemcpy, fabs, _chkstk stubs; DIR32 globals seeded) and `--float-tolerance N` for FPU-heavy functions (ULP comparison on float* scratch buffers).
 - **`tools/lift_pipeline.py`** — Primary lift validation orchestrator for build, ABI audit, VC71 verify, behavior/runtime checks, and low-match policy.
 - **`tools/analysis/maintain.py`** — Source file organization and function placement checks.
 - **`tools/verify/objdiff_lift.py`** — Structural object diff helper used by the pipeline when reference and candidate objects are available.
