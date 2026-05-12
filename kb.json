@@ -619,7 +619,8 @@
         },
         {
           "addr": "0x3c0c0",
-          "decl": "void FUN_0003c0c0(int object_handle, short effect_type, float *position, short volume, short count);"
+          "decl": "void FUN_0003c0c0(int object_handle, short effect_type, float *position, short volume, short count);",
+          "ported": true
         },
         {
           "decl": "void FUN_0003c2d0(int actor_handle, char flag, int target);",
@@ -741,6 +742,18 @@
           "decl": "char FUN_0003b150(int actor_handle);",
           "addr": "0x3b150",
           "ported": true
+        },
+        {
+          "addr": "0x36c00",
+          "decl": "void FUN_00036c00(int actor_handle, int object_handle, float *position, short count);"
+        },
+        {
+          "addr": "0x373b0",
+          "decl": "void FUN_000373b0(int actor_handle, int object_handle, float *position, short count);"
+        },
+        {
+          "addr": "0x374f0",
+          "decl": "void FUN_000374f0(int actor_handle, int object_handle, float *position, short count);"
         }
       ],
       "src": "src/halo/ai/actors.c"
@@ -9381,6 +9394,14 @@
         {
           "addr": "0x2f910",
           "decl": "void FUN_0002f910(int actor_handle, int prop_handle);"
+        },
+        {
+          "addr": "0x31850",
+          "decl": "int FUN_00031850(int actor_handle, void *input_block, float *position, void *location, short volume, int range_scale, short flags);"
+        },
+        {
+          "addr": "0x31a90",
+          "decl": "void FUN_00031a90(void *actor_handle_out, float *position, int param_3, void *input_block_out);"
         }
       ]
     },

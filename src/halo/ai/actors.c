@@ -742,8 +742,7 @@ char FUN_0003b150(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   result = (char)(*(short *)(actor + 0x6e) >= 7);
-  if (result && *(short *)(actor + 0x6c) == 4 &&
-      *(short *)(actor + 0xa8) > 0) {
+  if (result && *(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) > 0) {
     result = 0;
   }
   return result;
@@ -1542,6 +1541,62 @@ void FUN_0003be90(int actor_handle)
   error(2, "AI error condition detected, attempting to recover (please tell "
            "butcher)...");
   FUN_0001d030(actor_handle, 0, 0);
+}
+
+/* FUN_0003c0c0 (0x3c0c0) — broadcast an AI effect to all audible actors.
+ * Iterates over every actor via the encounter iterator. For each actor whose
+ * type field (actor+0x6e) is < 7, resolves the nearest swarm unit position
+ * via FUN_00031a90 and tests sound audibility via FUN_00031850 (range
+ * factor 1.0f, flags 0). If the audibility result >= 2, dispatches one of
+ * three effect functions by effect_type:
+ *   0 -> FUN_00036c00 (flee/scatter)
+ *   1 -> FUN_000373b0 (charge)
+ *   2 -> FUN_000374f0 (cover)
+ * Asserts on unknown effect_type.
+ *
+ * Confirmed: [EBP+0x08]=object_handle (->EDI), [EBP+0x0C]=effect_type,
+ *   [EBP+0x10]=position (->ESI), [EBP+0x14]=volume, [EBP+0x18]=count (->EBX).
+ * Confirmed: location [EBP-0x08] 8 bytes; iter [EBP-0x24] 20 bytes;
+ *   actor_handle [EBP-0x10]; input_block [EBP-0x5C] 56 bytes.
+ * Confirmed: CMP word ptr [EAX+0x6e],0x7 / JGE skip at 0x3c105.
+ * Confirmed: ADD ESP,0x2c at 0x3c138 cleans FUN_00031a90(4)+FUN_00031850(7)=44.
+ * Confirmed: ADD ESP,0x10 at 0x3c197 cleans 4-arg effect dispatch.
+ * Confirmed: CMP AX,0x2 / JL skip at 0x3c13b checks audibility >= 2.
+ * Confirmed: assert filepath "c:\halo\SOURCE\ai\actors.c" line 0xdaa=3498.
+ */
+void FUN_0003c0c0(int object_handle, short effect_type, float *position,
+                  short volume, short count)
+{
+  char location[8];
+  char iter[20];
+  int actor_handle;
+  char input_block[56];
+  char *actor_record;
+  short audibility;
+
+  scenario_location_from_point(location, position);
+  encounter_iterator_next(iter, 1);
+  actor_record = (char *)FUN_00059b50(iter);
+  while (actor_record != NULL) {
+    if (*(short *)(actor_record + 0x6e) < 7) {
+      FUN_00031a90(&actor_handle, position, -1, input_block);
+      audibility = (short)FUN_00031850(actor_handle, input_block, position,
+                                       location, volume, 0x3f800000, 0);
+      if (audibility >= 2) {
+        if (effect_type == 0) {
+          FUN_00036c00(actor_handle, object_handle, position, count);
+        } else if (effect_type == 1) {
+          FUN_000373b0(actor_handle, object_handle, position, count);
+        } else if (effect_type == 2) {
+          FUN_000374f0(actor_handle, object_handle, position, count);
+        } else {
+          display_assert(0, "c:\\halo\\SOURCE\\ai\\actors.c", 0xdaa, 1);
+          system_exit(-1);
+        }
+      }
+    }
+    actor_record = (char *)FUN_00059b50(iter);
+  }
 }
 
 /* Set or clear bit 0x800 in actor flags at +0x6d0, and store target at +0x720.
