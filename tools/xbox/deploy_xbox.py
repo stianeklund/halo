@@ -428,7 +428,8 @@ def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
     code = int(payload.get("code", 0) or 0)
     message = str(payload.get("message", "")).strip()
     if code == 402:
-        print(f"  debug.txt already absent")
+        filename = xbox_path.split("\\")[-1]
+        print(f"  {filename} already absent")
         return True
 
     if not payload.get("ok"):
@@ -638,6 +639,9 @@ def main() -> int:
     xbe_src = to_windows_path(xbe_path)
     xbe_dest = f"{dest}\\default.xbe"
     debug_txt_dest = f"{dest.lstrip('x')}\\debug.txt"
+    gamestate_txt_dest = f"{dest.lstrip('x')}\\gamestate.txt"
+    stabbed_txt_dest = f"{dest.lstrip('x')}\\stabbed.txt"
+    crashdump_dest = "E:\\crashdump.xdmp"
 
     print(f"deploying to {dest}" + (f" on {host}" if host else ""))
 
@@ -654,6 +658,12 @@ def main() -> int:
         if rc != 0:
             return rc
         if not delete_remote_file(host, debug_txt_dest, args.dry_run):
+            return 1
+        if not delete_remote_file(host, gamestate_txt_dest, args.dry_run):
+            return 1
+        if not delete_remote_file(host, stabbed_txt_dest, args.dry_run):
+            return 1
+        if not delete_remote_file(host, crashdump_dest, args.dry_run):
             return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
@@ -682,6 +692,12 @@ def main() -> int:
             return 1
         if not delete_remote_file(host, debug_txt_dest, args.dry_run):
             return 1
+        if not delete_remote_file(host, gamestate_txt_dest, args.dry_run):
+            return 1
+        if not delete_remote_file(host, stabbed_txt_dest, args.dry_run):
+            return 1
+        if not delete_remote_file(host, crashdump_dest, args.dry_run):
+            return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
         if rc != 0:
@@ -702,6 +718,12 @@ def main() -> int:
     if rc != 0:
         return rc
     if not delete_remote_file(host, debug_txt_dest, args.dry_run):
+        return 1
+    if not delete_remote_file(host, gamestate_txt_dest, args.dry_run):
+        return 1
+    if not delete_remote_file(host, stabbed_txt_dest, args.dry_run):
+        return 1
+    if not delete_remote_file(host, crashdump_dest, args.dry_run):
         return 1
 
     # Then push maps/ and bink/ if --full, or just maps/ by default
