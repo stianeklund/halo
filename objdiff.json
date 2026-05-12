@@ -8,6 +8,14 @@
   ],
   "units": [
     {
+      "name": "halo/actors_FUN_00036c00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
+      "base_path": "delinked/actors_FUN_00036c00.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actors.c"
+      }
+    },
+    {
       "name": "halo/actors_FUN_0003b150",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
       "base_path": "delinked/actors_FUN_0003b150.obj",

@@ -16,6 +16,44 @@ void FUN_00036860(int actor_handle)
   csmemset(actor + 0x2ec, 0, 0x64);
 }
 
+/* FUN_00036c00 (0x36c00) — flee/scatter look reaction.
+ *
+ * Resolves the actor record via datum_get(actor_data, actor_handle).
+ * If actor+0x6a (short state) != 1, posts a position-look directive to the
+ * actor by building a 16-byte look buffer { type=3, pad, float pos[3] } from
+ * the caller's position vector and dispatching it through FUN_00027a60
+ * (actor_handle, 1, 1, look_buf).
+ *
+ * The object_handle and count parameters are present in the calling
+ * convention (see FUN_0003c0c0 dispatch) but unused by this variant — only
+ * the flee position is forwarded as a look target.
+ *
+ * Confirmed: 4 cdecl args (caller passes actor_handle, object_handle,
+ *   position, count); ADD ESP,0x8 after datum_get; ADD ESP,0x10 after
+ *   FUN_00027a60.
+ * Confirmed: state field check is CMP word ptr [EAX+0x6a],0x1 / JZ skip.
+ * Confirmed: look_buf layout — word 0x3 at +0x00, position[0..2] at +0x04.
+ * Confirmed: FUN_00027a60(actor_handle, 1, 1, look_buf) — look_type=1,
+ *   priority=1. */
+void FUN_00036c00(int actor_handle, int object_handle, float *position,
+                  short count)
+{
+  char *actor;
+  short look_buf[8]; /* 16 bytes: [0]=type word, [2..7]=position data */
+
+  (void)object_handle;
+  (void)count;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x6a) != 1) {
+    look_buf[0] = 3;
+    *(float *)&look_buf[2] = position[0];
+    *(float *)&look_buf[4] = position[1];
+    *(float *)&look_buf[6] = position[2];
+    FUN_00027a60(actor_handle, 1, 1, look_buf);
+  }
+}
+
 /* FUN_00036dc0 (0x36dc0)
  * Notify an actor's unit of a combat stimulus and optionally clamp
  * the actor's "recently perceived threat" counter.

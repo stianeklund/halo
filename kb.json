@@ -745,7 +745,8 @@
         },
         {
           "addr": "0x36c00",
-          "decl": "void FUN_00036c00(int actor_handle, int object_handle, float *position, short count);"
+          "decl": "void FUN_00036c00(int actor_handle, int object_handle, float *position, short count);",
+          "ported": true
         },
         {
           "addr": "0x373b0",
