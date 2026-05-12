@@ -80,7 +80,8 @@ def classify_relocations(relocs: list, defined_symbols: set) -> RelocClassificat
 
 
 def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
-                       globals_base: int = GLOBALS_BASE) -> bytearray:
+                       globals_base: int = GLOBALS_BASE,
+                       return_slots: bool = False):
     """Rewrite DIR32 relocations to point into the globals memory region.
 
     Each unique external DIR32 symbol gets a 256-byte slot in the globals
@@ -88,6 +89,8 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
     section-relative relocations are left untouched.
 
     Returns a mutable copy of the code with patched addresses.
+    If return_slots is True, returns (patched, symbol_slots) where
+    symbol_slots maps symbol_name -> slot_address.
     """
     patched = bytearray(code)
     slot_size = 256
@@ -112,6 +115,8 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
         if off + 4 <= len(patched):
             struct.pack_into('<I', patched, off, addr)
 
+    if return_slots:
+        return patched, symbol_slots
     return patched
 
 
@@ -132,7 +137,8 @@ class CalleeStub:
 
 
 def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
-                      code_base: int = 0x00400000) -> tuple:
+                      code_base: int = 0x00400000,
+                      symbol_sentinels: Optional[dict[str, int]] = None) -> tuple:
     """Rewrite REL32 call relocations to sentinel addresses.
 
     Returns (patched_code, stub_map) where stub_map is
@@ -140,7 +146,9 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
     """
     patched = bytearray(code)
     stub_map = {}
-    next_idx = 0
+    if symbol_sentinels is None:
+        symbol_sentinels = {}
+    next_idx = len(symbol_sentinels)
 
     for r in relocs:
         if r.reloc_type != IMAGE_REL_I386_REL32:
@@ -151,7 +159,11 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
         if sym in defined_symbols:
             continue
 
-        sentinel = STUB_BASE + next_idx * STUB_SLOT
+        sentinel = symbol_sentinels.get(sym)
+        if sentinel is None:
+            sentinel = STUB_BASE + next_idx * STUB_SLOT
+            symbol_sentinels[sym] = sentinel
+            next_idx += 1
         call_addr = code_base + r.virtual_address
         # REL32: displacement = target - (call_addr + 4)
         # The +4 is because the displacement is relative to the end of the instruction
@@ -160,7 +172,6 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
         if off + 4 <= len(patched):
             struct.pack_into('<i', patched, off, disp)
         stub_map[sentinel] = sym
-        next_idx += 1
 
     return bytes(patched), stub_map
 
@@ -179,6 +190,7 @@ class StubManager:
         self.delinked_dir = delinked_dir
         self._kb = None
         self._stubs: dict[int, CalleeStub] = {}
+        self._stub_names: dict[int, str] = {}
         self._depth = 0
 
     def _load_kb(self):
@@ -238,6 +250,7 @@ class StubManager:
 
         prepared = 0
         for sentinel_addr, symbol_name in stub_map.items():
+            self._stub_names[sentinel_addr] = symbol_name
             kb_entry = self._find_callee_in_kb(symbol_name)
             if not kb_entry:
                 continue
@@ -266,10 +279,47 @@ class StubManager:
         return prepared
 
     def has_stub(self, address: int) -> bool:
-        return address in self._stubs
+        return address in self._stub_names
 
     def get_stub_addresses(self) -> set:
-        return set(self._stubs.keys())
+        return set(self._stub_names.keys())
+
+    def should_intercept(self, address: int) -> bool:
+        symbol_name = self._stub_names.get(address, "").lstrip("_").lower()
+        return symbol_name in ("csmemcpy", "memcpy")
+
+    def get_stub_code(self, address: int) -> bytes:
+        """Return machine code for a tiny trampoline stub at a sentinel address."""
+        stub = self._stubs.get(address)
+        symbol_name = self._stub_names.get(address, "").lstrip("_").lower()
+
+        if symbol_name == "fabs":
+            # double fabs(double): load arg from [esp+4], apply x87 FABS, return in ST0
+            return b"\xDD\x44\x24\x04\xD9\xE1\xC3"
+
+        if stub is not None:
+            ret_st0 = stub.abi.get('ret_st0', False)
+            ret_void = stub.abi.get('ret_void', True)
+            conv = stub.abi.get('conv', 'cdecl')
+            n_stack_params = sum(1 for p in stub.abi['params'] if not p.reg)
+        else:
+            ret_st0 = False
+            ret_void = False
+            conv = 'cdecl'
+            n_stack_params = 0
+
+        code = bytearray()
+        if ret_st0:
+            code += b"\xD9\xEE"  # FLDZ
+        elif not ret_void:
+            code += b"\x31\xC0"  # XOR EAX, EAX
+
+        if conv == 'stdcall':
+            code += b"\xC2" + int(n_stack_params * 4).to_bytes(2, "little")
+        else:
+            code += b"\xC3"  # RET
+
+        return bytes(code)
 
     def execute_stub(self, uc, address: int) -> bool:
         """Execute a callee stub at the given sentinel address.
@@ -279,10 +329,9 @@ class StubManager:
 
         Returns True if handled, False if the stub is not available.
         """
-        if address not in self._stubs or self._depth >= MAX_RECURSION_DEPTH:
+        if address not in self._stub_names or self._depth >= MAX_RECURSION_DEPTH:
             return False
-
-        stub = self._stubs[address]
+        stub = self._stubs.get(address)
         self._depth += 1
 
         try:
@@ -294,14 +343,33 @@ class StubManager:
 
             # Read caller's current state
             caller_esp = uc.reg_read(UC_X86_REG_ESP)
+            symbol_name = self._stub_names.get(address, "").lstrip("_").lower()
+
+            if symbol_name in ("csmemcpy", "memcpy"):
+                dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
+                src = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little")
+                size = int.from_bytes(bytes(uc.mem_read(caller_esp + 12, 4)), "little")
+                if size > 0:
+                    data = bytes(uc.mem_read(src, size))
+                    uc.mem_write(dst, data)
+                uc.reg_write(UC_X86_REG_EAX, dst)
+                return True
 
             # For now, return 0 from all stubs.
             # Full sub-emulator execution is deferred to avoid complexity.
             # The key win here is that the calling function still executes
             # correctly through the call site, testing the pre-call setup
             # and post-call usage of the return value.
-            ret_st0 = stub.abi.get('ret_st0', False)
-            ret_void = stub.abi.get('ret_void', True)
+            if stub is not None:
+                ret_st0 = stub.abi.get('ret_st0', False)
+                ret_void = stub.abi.get('ret_void', True)
+                conv = stub.abi.get('conv', 'cdecl')
+                n_stack_params = sum(1 for p in stub.abi['params'] if not p.reg)
+            else:
+                ret_st0 = False
+                ret_void = False
+                conv = 'cdecl'
+                n_stack_params = 0
 
             if ret_st0:
                 # Push 0.0 onto FPU stack
@@ -310,9 +378,7 @@ class StubManager:
                 uc.reg_write(UC_X86_REG_EAX, 0)
 
             # Clean up stack based on calling convention
-            conv = stub.abi.get('conv', 'cdecl')
             if conv == 'stdcall':
-                n_stack_params = sum(1 for p in stub.abi['params'] if not p.reg)
                 uc.reg_write(UC_X86_REG_ESP, caller_esp + n_stack_params * 4)
 
         finally:
