@@ -157,3 +157,47 @@ bool FUN_0007b020(float *rgb)
 
   return true;
 }
+
+uint32_t FUN_000d1c90(float *color)
+{
+  int a;
+  int r;
+  int g;
+  int b;
+  uint32_t result;
+  float ca;
+  float cr;
+  float cg;
+  float cb;
+
+  if (!valid_real_argb_color(color)) {
+    /* clamp overbright tag colors instead of halting — cachebeta contrails
+     * store HDR color bounds > 1.0 that would crash the original assert. */
+    ca = color[0] < 0.0f ? 0.0f : (color[0] > 1.0f ? 1.0f : color[0]);
+    cr = color[1] < 0.0f ? 0.0f : (color[1] > 1.0f ? 1.0f : color[1]);
+    cg = color[2] < 0.0f ? 0.0f : (color[2] > 1.0f ? 1.0f : color[2]);
+    cb = color[3] < 0.0f ? 0.0f : (color[3] > 1.0f ? 1.0f : color[3]);
+    a = (int)(ca * 255.0f + 0.5f);
+    r = (int)(cr * 255.0f + 0.5f);
+    g = (int)(cg * 255.0f + 0.5f);
+    b = (int)(cb * 255.0f + 0.5f);
+    return (uint32_t)b | ((uint32_t)g << 8) | ((uint32_t)r << 16) |
+           ((uint32_t)a << 24);
+  }
+
+  a = (int)(color[0] * 255.0f + 0.5f);
+  r = (int)(color[1] * 255.0f + 0.5f);
+  g = (int)(color[2] * 255.0f + 0.5f);
+  b = (int)(color[3] * 255.0f + 0.5f);
+  result = (uint32_t)b | ((uint32_t)g << 8) | ((uint32_t)r << 16) |
+           ((uint32_t)a << 24);
+
+  if (((uint32_t)(b & 0xff) | ((uint32_t)(g & 0xff) << 8) |
+       ((uint32_t)(r & 0xff) << 16) | ((uint32_t)a << 24)) != result) {
+    display_assert("verify == result", "..\\bitmaps\\bitmaps_inlines.h", 0xbc,
+                   true);
+    system_exit(-1);
+  }
+
+  return result;
+}

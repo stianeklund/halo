@@ -5023,8 +5023,9 @@
           "addr": "0xd1c50"
         },
         {
-          "decl": "void FUN_000d1c90(void);",
-          "addr": "0xd1c90"
+          "decl": "uint32_t FUN_000d1c90(float *color);",
+          "addr": "0xd1c90",
+          "ported": true
         },
         {
           "decl": "void FUN_000d1dd0(void);",
