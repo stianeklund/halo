@@ -17248,8 +17248,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000b5650(void);",
-          "addr": "0xb5650"
+          "decl": "void FUN_000b5650(short param_1);",
+          "addr": "0xb5650",
+          "ported": true
         }
       ]
     },
