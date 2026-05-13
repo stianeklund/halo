@@ -132,9 +132,92 @@ What we primarily compare for structural scoring is instruction sequence shape
 (mnemonic order), then we add behavior and risk checks on top.
 
 
+## Batch verification
+
+Tool:
+
+- `tools/equivalence/batch_verify.py`
+
+Single-function verification (above) checks one lift at a time. Batch
+verification runs the Unicorn differential test across **all** ported functions
+that have both a delinked oracle `.obj` and a built candidate `.obj`.
+
+For each function it:
+
+1. Loads the **oracle** (original MSVC-compiled `.obj` extracted from the Xbox
+   binary via the Ghidra delinker) and the **candidate** (our clang-compiled
+   `.obj` from lifted C source).
+2. Runs both in separate Unicorn x86 emulators with identical random inputs
+   (default: 50 seeds per function).
+3. Compares CPU state at function return — EAX, EDX, ST0, and output buffer
+   contents.
+4. Reports **pass** (identical output), **fail** (divergence — our lift has a
+   bug), **error** (emulation crashed, e.g. unmapped memory), or **N/A**
+   (function can't be tested).
+
+```bash
+# Full batch run with FPU tolerance and CSV output:
+rtk python3 tools/equivalence/batch_verify.py --seeds 50 --float-tolerance 32 --csv
+
+# Quick smoke test (first 20 functions, fewer seeds):
+rtk python3 tools/equivalence/batch_verify.py --limit 20 --seeds 10
+
+# List candidates without running:
+rtk python3 tools/equivalence/batch_verify.py --dry-run
+```
+
+Results go to `artifacts/batch_verify/`:
+
+- `summary.json` — aggregate pass/fail/error counts, failure list, Z3 proofs
+- `<function>.json` — per-function detailed result
+- `results.csv` — tabular output (with `--csv` flag)
+
+
+### Global data seeding
+
+The emulator needs to read the same global data as the real Xbox binary.
+`tools/equivalence/extract_globals.py` scans all delinked `.obj` files for
+`DIR32` relocations (absolute address references), reads the corresponding bytes
+from the XBE, and writes them to `tools/equivalence/known_globals.json`.
+`unicorn_diff.py` loads this file at startup to seed the emulator's memory.
+
+```bash
+# Regenerate after new delinked exports:
+rtk python3 tools/equivalence/extract_globals.py --json
+```
+
+
+### FPU tolerance
+
+x87 floating-point rounding can differ between MSVC and clang even when the
+logic is identical. `--float-tolerance N` allows up to N ULP (Unit in the Last
+Place) difference for:
+
+- Float pointer output buffers (scratch slots)
+- ST0 return values (80-bit x87 extended precision)
+
+Typical values: 16 (tight), 32 (moderate), 256 (long FPU chains).
+
+
+### Leaf cache and function classification
+
+`unicorn_diff.py --batch-classify` scans all delinked `.obj` files and
+classifies each function as:
+
+- **leaf** — no external calls or data references (pure computation)
+- **data_only** — references global data but makes no external calls
+- **stubbable** — calls known stubs (csmemcpy, fabs, etc.)
+- **non_leaf** — calls unknown functions (can't emulate yet)
+
+Results are cached in `tools/equivalence/leaf_cache.json`. `batch_verify.py`
+uses this cache to select testable candidates.
+
+
 ## Where to read next
 
 - `docs/lift_pipeline.md` - pipeline stages and flags
 - `docs/verification_policy.md` - acceptance policy for low match
+- `docs/z3-equivalence.md` - Z3 formal equivalence proofs
 - `tools/verify/compare_obj.py` - sequence matcher and FPU warning implementation
 - `tools/equivalence/unicorn_diff.py` - behavioral state comparison
+- `tools/equivalence/batch_verify.py` - batch differential testing
