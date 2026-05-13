@@ -19382,7 +19382,7 @@
         {
           "decl": "void network_game_server_dispose(void *server);",
           "addr": "0x1249b0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "int16_t FUN_00124a30(void *server, void *out_param);",
@@ -19412,7 +19412,7 @@
         {
           "decl": "void network_game_client_switch_to_postgame(void *server, void *out);",
           "addr": "0x125750",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void *network_game_client_get_machine_index(void *client);",
@@ -30388,11 +30388,11 @@
           "addr": "0x2d720"
         },
         {
-          "decl": "void FUN_0002d850(void);",
+          "decl": "int FUN_0002d850(int actor_handle, int16_t param_2);",
           "addr": "0x2d850"
         },
         {
-          "decl": "void FUN_0002d900(void);",
+          "decl": "int FUN_0002d900(int actor_handle, int16_t param_2, void *param_3);",
           "addr": "0x2d900"
         },
         {

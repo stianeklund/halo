@@ -998,3 +998,4 @@ void FUN_0002d350(int actor_handle)
   *(float *)(actor + 0x514) =
     *(float *)(actor + 0x134) + *(float *)(actor + 0x520);
 }
+
