@@ -156,8 +156,8 @@ For each function it:
    (function can't be tested).
 
 ```bash
-# Full batch run with FPU tolerance and CSV output:
-rtk python3 tools/equivalence/batch_verify.py --seeds 50 --float-tolerance 32 --csv
+# Full batch run (sensible defaults: 32 ULP tolerance, auto ESP, CSV):
+rtk python3 tools/equivalence/batch_verify.py --seeds 50 --csv
 
 # Quick smoke test (first 20 functions, fewer seeds):
 rtk python3 tools/equivalence/batch_verify.py --limit 20 --seeds 10
@@ -165,6 +165,10 @@ rtk python3 tools/equivalence/batch_verify.py --limit 20 --seeds 10
 # List candidates without running:
 rtk python3 tools/equivalence/batch_verify.py --dry-run
 ```
+
+Defaults apply automatically: `--float-tolerance 32` for FPU rounding, ESP delta
+checked for leaf functions only (non-leaf stack frames legitimately differ between
+MSVC and clang).
 
 Results go to `artifacts/batch_verify/`:
 
@@ -196,7 +200,24 @@ Place) difference for:
 - Float pointer output buffers (scratch slots)
 - ST0 return values (80-bit x87 extended precision)
 
-Typical values: 16 (tight), 32 (moderate), 256 (long FPU chains).
+Typical values: 16 (tight), 32 (moderate, batch default), 256 (long FPU chains).
+
+
+### Known divergence categories
+
+Not all "fail" results are lift bugs. The batch run produces several expected
+failure categories:
+
+- **Pointer returns** — functions returning pointers to globals produce
+  different addresses in the emulator vs the XBE. Not fixable without a full
+  memory image. (~7 functions)
+- **Upper-EAX artifacts** — MSVC leaves stale bits in upper EAX for `int16_t`
+  returns. Lower bits match. The `ret_bits` field in kb.json ABI can mask this.
+- **Intra-object call chains** — functions that call other functions within the
+  same `.obj` now execute deeper (full `.text` section is loaded), but callees
+  may themselves hit unmapped memory or missing stubs.
+- **ESP delta** — automatically skipped for non-leaf functions. MSVC and clang
+  allocate different stack frame sizes for functions with local variables.
 
 
 ### Leaf cache and function classification
