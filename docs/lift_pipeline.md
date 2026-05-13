@@ -4,6 +4,9 @@ This document defines the input/output contract for `tools/lift_pipeline.py` and
 how to plug in extraction tooling so decompile -> reimplementation -> verify can
 run with one command.
 
+If you want a plain-language overview first, read
+`docs/verification_explained.md`.
+
 ## Goals
 
 - Keep the workflow conservative (assist-first, fail-fast, explicit artifacts).
