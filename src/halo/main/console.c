@@ -368,3 +368,25 @@ bool console_update(void)
 
   return *console_is_open();
 }
+
+/* Returns a pointer one past the last space, '(', or '"' in the console
+ * input buffer. Used to find the start of the most recent token. */
+char *FUN_000ff640(void)
+{
+  char *result;
+  char *sp;
+  char *lp;
+  char *qp;
+
+  result = (char *)0x46d018;
+  sp = strrchr(result, 0x20) + 1;
+  lp = strrchr(result, 0x28) + 1;
+  qp = strrchr(result, 0x22) + 1;
+  if (result <= sp)
+    result = sp;
+  if (result <= lp)
+    result = lp;
+  if (result <= qp)
+    result = qp;
+  return result;
+}

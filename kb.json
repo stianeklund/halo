@@ -13911,8 +13911,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000ff640(void);",
-          "addr": "0xff640"
+          "decl": "char *FUN_000ff640(void);",
+          "addr": "0xff640",
+          "ported": true
         }
       ]
     },
@@ -21122,8 +21123,9 @@
           "addr": "0x8acb0"
         },
         {
-          "decl": "void FUN_0008c030(void);",
-          "addr": "0x8c030"
+          "decl": "void FUN_0008c030(float *forward1, float *result_angular, float *forward0, float *up0, float *up1);",
+          "addr": "0x8c030",
+          "ported": true
         },
         {
           "decl": "void FUN_0008cf10(void);",
