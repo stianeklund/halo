@@ -34,6 +34,15 @@ void rumble_clear_all_players(void)
   }
 }
 
+/* Set direct rumble motor values for a player slot. */
+void rumble_set_direct_motors(short local_player_index, int left_motor,
+                              int right_motor)
+{
+  char *slot = rumble_globals + (int)local_player_index * 0x208;
+  *(int *)(slot + 0x200) = left_motor;
+  *(int *)(slot + 0x204) = right_motor;
+}
+
 void rumble_dispose_from_old_map(void)
 {
   int i;

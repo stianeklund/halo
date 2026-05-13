@@ -2346,6 +2346,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb9da0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb9dd0": {
       "kind": "function",
       "status": "ported"
@@ -6550,6 +6554,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bdc60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdd00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bdd80": {
       "kind": "function",
       "status": "ported"
@@ -6845,6 +6857,10 @@
       "status": "ported"
     },
     "0x1c8b70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c8c00": {
       "kind": "function",
       "status": "ported"
     },
