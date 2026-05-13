@@ -14137,7 +14137,7 @@
           "addr": "0x8d970"
         },
         {
-          "decl": "void FUN_0008ddd0(void);",
+          "decl": "int FUN_0008ddd0(char *s1, char *s2, unsigned int size);",
           "addr": "0x8ddd0"
         },
         {
@@ -31262,8 +31262,9 @@
           "addr": "0x58c40"
         },
         {
-          "decl": "void FUN_00059930(void);",
-          "addr": "0x59930"
+          "decl": "int FUN_00059930(char *name);",
+          "addr": "0x59930",
+          "ported": true
         },
         {
           "decl": "void FUN_00059990(void);",
@@ -31350,7 +31351,8 @@
           "addr": "0x5c630"
         }
       ],
-      "src": "src/halo/ai/encounters.c"
+      "src": "src/halo/ai/encounters.c",
+      "source_path": "src/halo/ai/encounters.c"
     },
     {
       "name": "props.obj",

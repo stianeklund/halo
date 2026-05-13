@@ -416,6 +416,32 @@ void FUN_000597f0(int actor_handle)
   *(char *)(actor + 0xa) = 0; /* Uncertain: sub-state byte */
 }
 
+/* 0x59930 — Find encounter index by name.
+ * Searches the scenario encounter block for the first entry whose name matches
+ * the given string (strncmp up to 0x20 bytes). Returns -1 if not found. */
+int FUN_00059930(char *name)
+{
+  int *encounters;
+  int i;
+  void *elem;
+
+  encounters = (int *)global_scenario_get();
+  if (encounters != 0) {
+    encounters = (int *)((char *)encounters + 0x42c);
+    i = 0;
+    if (*encounters > 0) {
+      do {
+        elem = tag_block_get_element(encounters, i, 0xb0);
+        if (FUN_0008ddd0((char *)elem, name, 0x20) == 0)
+          return i;
+        i++;
+      } while (i < *encounters);
+      return -1;
+    }
+  }
+  return -1;
+}
+
 /* 0x00059a00 — encounter_clump_iter_new.
  * Initialises a 3-slot int iterator for walking an encounter's clump member
  * list.  Guards on ai_active (ai_globals+1).
