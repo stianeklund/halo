@@ -1061,9 +1061,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             lifted_state = _run_function(lifted_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
                                          stub_manager=stub_manager,
-                                         globals_seeds=globals_seeds,
-                                         section_code=lifted_text,
-                                         func_offset=lifted_slice.section_offset)
+                                         globals_seeds=globals_seeds)
         except Exception as exc:
             log(f"  {seed_label} LIFTED-ERROR: {exc}")
             errors += 1
