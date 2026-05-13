@@ -160,12 +160,12 @@ void FUN_00126000(void *server)
     map_name = main_get_multiplayer_map_name();
     *(int *)((char *)server + 0xca0) = now;
     if (FUN_001b9de0(map_name)) {
-      memset(buf, 0, sizeof(buf));
+      csmemset(buf, 0, sizeof(buf));
       csstrncpy(buf, map_name, 0x100);
       encoded = (unsigned short *)encode_network_game_message(0x13, buf, 0x100);
       if (encoded != NULL) {
         size = *encoded >> 4;
-        if (!FUN_00128e00(*(int *)((char *)server + 0x82c), encoded, size, 0,
+        if (!FUN_00128e00((void *)*(int *)((char *)server + 0x82c), encoded, size, 0,
                           1)) {
           network_game_log("network_game_client_write() failed while sending a "
                            "message_client_graceful_game_exit_pregame message");
@@ -227,16 +227,16 @@ bool FUN_00126b60(void *server)
   if (connected != true)
     return connected;
 
-  if (FUN_00128360(*(int *)((char *)server + 0x82c))) {
+  if (network_connection_connected(*(int *)((char *)server + 0x82c))) {
     if ((*(unsigned char *)((char *)server + 0xcaa) & 2) == 0) {
       csmemset(join_payload, 0, 0x50);
-      FUN_0012aaf0(join_payload);
+      network_game_generate_local_machine_name(join_payload);
       csmemcpy(&join_payload[0x40], (char *)server + 0x84a, 0x10);
-      encoded = (unsigned short *)FUN_0012b700(0xc, join_payload, 0x50);
+      encoded = (unsigned short *)encode_network_game_message(0xc, join_payload, 0x50);
       if (encoded == NULL) {
         network_game_log(
           "failed to create a message_client_join_game_request message");
-      } else if (FUN_00128e00(*(int *)((char *)server + 0x82c), encoded,
+      } else if (FUN_00128e00((void *)*(int *)((char *)server + 0x82c), encoded,
                               (unsigned short)(*encoded >> 4), 0, 1)) {
         *(unsigned char *)((char *)server + 0xcaa) =
           *(unsigned char *)((char *)server + 0xcaa) | 2;
@@ -254,7 +254,7 @@ bool FUN_00126b60(void *server)
         network_game_log(
           "client connection process has timed out; aborting connection "
           "attempt");
-        FUN_00084300(*(int *)((char *)server + 0x830));
+        FUN_00084300((int *)((char *)server + 0x830));
         *(int *)((char *)server + 0x830) = 0;
         return false;
       }
