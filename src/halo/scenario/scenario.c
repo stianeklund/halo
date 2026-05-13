@@ -151,6 +151,41 @@ int FUN_0018e720(int point)
   return (int)bsp3d_find_leaf(*(void **)0x5064d8, 0, (void *)point);
 }
 
+/* 0x18e770 — Look up the sky tag ref (tag index) for a given sky list index.
+ * Returns the 4-byte tag ref from the scenario sky block, or -1 if invalid. */
+int FUN_0018e770(int16_t sky_index)
+{
+  int result;
+  char *element;
+
+  if (*(int *)0x5064e4 == 0) {
+    display_assert("global_scenario", "c:\\halo\\SOURCE\\scenario\\scenario.c",
+                   0xb7, 1);
+    system_exit(-1);
+  }
+  result = -1;
+  if ((int)sky_index >= 0) {
+    if ((int)sky_index < *(int *)(*(int *)0x5064e4 + 0x30)) {
+      element = (char *)tag_block_get_element(
+        (int *)(*(int *)0x5064e4 + 0x30), sky_index, 0x10);
+      result = *(int *)(element + 0xc);
+    }
+  }
+  return result;
+}
+
+/* 0x18e7d0 — Get sky tag pointer for a given sky list index.
+ * Returns tag_get('sky ', tag_ref) or NULL if index is invalid. */
+void *FUN_0018e7d0(int param_1)
+{
+  int tag_ref;
+
+  tag_ref = FUN_0018e770((int16_t)param_1);
+  if (tag_ref != -1)
+    return tag_get(0x736b7920, tag_ref); /* 'sky ' */
+  return NULL;
+}
+
 bool scenario_location_potentially_visible_local(void *location)
 {
   int16_t cluster_index;

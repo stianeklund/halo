@@ -24522,7 +24522,8 @@
           "addr": "0x18e720",
           "ported": true
         }
-      ]
+      ],
+      "source_path": "src/halo/scenario/scenario.c"
     },
     {
       "name": "shaders.obj",
@@ -24661,12 +24662,14 @@
           "addr": "0x18e6a0"
         },
         {
-          "decl": "void FUN_0018e770(void);",
-          "addr": "0x18e770"
+          "decl": "int FUN_0018e770(int16_t sky_index);",
+          "addr": "0x18e770",
+          "ported": true
         },
         {
           "decl": "void *FUN_0018e7d0(int param_1);",
-          "addr": "0x18e7d0"
+          "addr": "0x18e7d0",
+          "ported": true
         },
         {
           "decl": "void FUN_0018e800(void);",
@@ -24728,7 +24731,8 @@
           "decl": "void FUN_0018ffe0(void);",
           "addr": "0x18ffe0"
         }
-      ]
+      ],
+      "source_path": "src/halo/scenario/scenario.c"
     },
     {
       "name": "sound_classes.obj",
