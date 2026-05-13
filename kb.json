@@ -12590,8 +12590,9 @@
           "addr": "0x36c50"
         },
         {
-          "decl": "void FUN_00036da0(void);",
-          "addr": "0x36da0"
+          "decl": "void FUN_00036da0(int actor_handle);",
+          "addr": "0x36da0",
+          "ported": true
         },
         {
           "decl": "void FUN_00036e50(void);",
@@ -12634,8 +12635,9 @@
           "addr": "0x3ab80"
         },
         {
-          "decl": "void FUN_0003b100(void);",
-          "addr": "0x3b100"
+          "decl": "bool FUN_0003b100(int actor_handle);",
+          "addr": "0x3b100",
+          "ported": true
         },
         {
           "decl": "void FUN_0003b190(void);",
@@ -12714,7 +12716,8 @@
           "addr": "0x3e570"
         }
       ],
-      "src": "src/halo/ai/actors.c"
+      "src": "src/halo/ai/actors.c",
+      "source_path": "src/halo/ai/actors.c"
     },
     {
       "name": "actor_looking.obj",
