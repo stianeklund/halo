@@ -30308,7 +30308,7 @@
         {
           "addr": "0x2b720",
           "decl": "char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2bd80",
