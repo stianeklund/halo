@@ -1830,7 +1830,8 @@ void FUN_0003be90(int actor_handle)
  * Confirmed: [EBP+0x08]=object_handle (->EDI), [EBP+0x0C]=effect_type,
  *   [EBP+0x10]=position (->ESI), [EBP+0x14]=volume, [EBP+0x18]=count (->EBX).
  * Confirmed: location [EBP-0x08] 8 bytes; iter [EBP-0x24] 20 bytes;
- *   actor_handle [EBP-0x10]; input_block [EBP-0x5C] 56 bytes.
+ *   actor_handle [EBP-0x10] = iter+0x14 (set by FUN_00059b50);
+ *   input_block [EBP-0x5C] 56 bytes.
  * Confirmed: CMP word ptr [EAX+0x6e],0x7 / JGE skip at 0x3c105.
  * Confirmed: ADD ESP,0x2c at 0x3c138 cleans FUN_00031a90(4)+FUN_00031850(7)=44.
  * Confirmed: ADD ESP,0x10 at 0x3c197 cleans 4-arg effect dispatch.
@@ -1840,19 +1841,27 @@ void FUN_0003be90(int actor_handle)
 void FUN_0003c0c0(int object_handle, short effect_type, float *position,
                   short volume, short count)
 {
-  char location[8];
-  char iter[20];
-  int actor_handle;
-  char input_block[56];
+  /* MSVC frame layout (SUB ESP,0x5c = 92 bytes):
+   *   [EBP-0x5C] input_block  56 bytes
+   *   [EBP-0x24] iter         28 bytes (includes actor_handle at +0x14)
+   *   [EBP-0x08] location      8 bytes
+   * Use a single buffer to match the original layout exactly — callees
+   * may depend on the relative positions (MSVC stack overlap hazard). */
+  char frame[0x5c];
+  char *input_block = frame;
+  char *iter        = frame + 0x38;
+  char *location    = frame + 0x54;
   char *actor_record;
+  int actor_handle;
   short audibility;
 
   scenario_location_from_point(location, position);
   encounter_iterator_next(iter, 1);
   actor_record = (char *)FUN_00059b50(iter);
   while (actor_record != NULL) {
+    actor_handle = *(int *)(iter + 0x14);
     if (*(short *)(actor_record + 0x6e) < 7) {
-      FUN_00031a90(&actor_handle, position, -1, input_block);
+      FUN_00031a90(actor_handle, position, -1, input_block);
       audibility = (short)FUN_00031850(actor_handle, input_block, position,
                                        location, volume, 0x3f800000, 0);
       if (audibility >= 2) {
