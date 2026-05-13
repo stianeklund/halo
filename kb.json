@@ -25872,8 +25872,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00193a80(void);",
-          "addr": "0x193a80"
+          "decl": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
+          "addr": "0x193a80",
+          "ported": true
         },
         {
           "decl": "void FUN_00193b00(void);",

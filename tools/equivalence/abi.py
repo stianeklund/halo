@@ -153,6 +153,16 @@ def parse_decl(decl: str) -> dict:
     ret_st0 = bool(re.search(r'\bfloat\b|\bdouble\b', ret_type_str))
     ret_edx_eax = bool(re.search(r'\bint64_t\b|\buint64_t\b|\blong long\b', ret_type_str))
     ret_void = 'void' in ret_type_str and '*' not in ret_type_str
+    ret_bits = 32
+
+    if ret_edx_eax:
+        ret_bits = 64
+    elif ret_st0 or ret_void:
+        ret_bits = 0
+    elif re.search(r'\b(bool|char|int8_t|uint8_t)\b', ret_type_str):
+        ret_bits = 8
+    elif re.search(r'\b(short|int16_t|uint16_t)\b', ret_type_str):
+        ret_bits = 16
 
     params = _parse_params(decl)
 
@@ -163,6 +173,7 @@ def parse_decl(decl: str) -> dict:
         'ret_st0': ret_st0,
         'ret_edx_eax': ret_edx_eax,
         'ret_void': ret_void,
+        'ret_bits': ret_bits,
     }
 
 

@@ -12,6 +12,38 @@ void FUN_001939f0(float param_1)
   *(float *)0x4d8ea8 = param_1 - *(float *)0x4d8ea8;
 }
 
+int FUN_00193a80(int param_1, short *param_2, int in_EAX)
+{
+  int count;
+  int mid;
+  int elem;
+  short elem_val;
+  short cmp0;
+
+  count = (in_EAX - param_1) >> 5;
+  if (count > 0) {
+    cmp0 = *param_2;
+    do {
+      mid = count / 2;
+      elem = mid * 0x20 + param_1;
+      elem_val = *(short *)elem;
+      if (elem_val < cmp0)                             goto do_lower;
+      if (elem_val != cmp0)                            goto do_upper;
+      if (*(short *)(elem + 2) < param_2[1])           goto do_lower;
+      if (*(short *)(elem + 2) != param_2[1])          goto do_upper;
+      if (*(short *)(elem + 4) >= param_2[2])          goto do_upper;
+      do_lower:
+      param_1 = elem + 0x20;
+      count = count - 1 - mid;
+      goto do_check;
+      do_upper:
+      count = mid;
+      do_check:;
+    } while (count > 0);
+  }
+  return param_1;
+}
+
 float FUN_00193b80(float *param_1, float *param_2)
 {
   return param_1[0] * param_2[0] + param_1[1] * param_2[1] +
