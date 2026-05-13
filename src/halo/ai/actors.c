@@ -130,6 +130,15 @@ void FUN_00036c00(int actor_handle, int object_handle, float *position,
   }
 }
 
+/* 0x36da0 — Set actor stimulus-received flag at offset +0x2f0 to 1. */
+void FUN_00036da0(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(char *)(actor + 0x2f0) = 1;
+}
+
 /* FUN_00036dc0 (0x36dc0)
  * Notify an actor's unit of a combat stimulus and optionally clamp
  * the actor's "recently perceived threat" counter.
@@ -992,6 +1001,12 @@ char FUN_0003b120(int actor_handle)
     return 1;
   }
   return 0;
+}
+
+/* 0x3b100 — Return true if actor has fewer than 3 active slots (field +0x6a). */
+bool FUN_0003b100(int actor_handle)
+{
+  return *(int16_t *)((char *)datum_get(actor_data, actor_handle) + 0x6a) < 3;
 }
 
 /* FUN_0003b150 (0x3b150)
