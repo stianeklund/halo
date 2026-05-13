@@ -52,7 +52,7 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
             continue
 
         stripped = line.strip()
-        if not stripped or stripped.startswith("..."):
+        if not stripped or stripped.startswith("...") or stripped.startswith("Disassembly of section"):
             continue
         # Extract just the mnemonic + operands (skip leading address)
         parts = stripped.split(None, 1)
