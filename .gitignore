@@ -4,6 +4,8 @@
 /dist
 build_output.log
 artifacts
+!/artifacts/batch_verify/summary.json
+!/artifacts/batch_verify/results.csv
 # Vendored third-party clones
 /third_party/*
 !/third_party/decomp-permuter/
