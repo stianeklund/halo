@@ -124,17 +124,13 @@ def main():
                         help="List candidates without running verification")
     parser.add_argument("--float-tolerance", type=int, default=32, metavar="ULP",
                         help="ULP tolerance for float params and ST0 (default: 32)")
-    parser.add_argument("--skip-esp", action="store_true", default=True,
-                        help="Skip ESP delta comparison (default: on)")
-    parser.add_argument("--check-esp", action="store_true",
-                        help="Enable ESP delta comparison (overrides --skip-esp)")
+    parser.add_argument("--skip-esp", action="store_true",
+                        help="Force skip ESP delta even for leaf functions")
     parser.add_argument("--csv", action="store_true",
                         help="Write per-function results to results.csv")
     parser.add_argument("--classes", type=str, default="leaf,data_only,stubbable",
                         help="Comma-separated classes to verify")
     args = parser.parse_args()
-    if args.check_esp:
-        args.skip_esp = False
 
     classes = set(args.classes.split(","))
     candidates = load_candidates(leaf_only=args.leaf_only, classes=classes)

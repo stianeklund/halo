@@ -1091,7 +1091,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             scratch_float_tolerance_ulp=float_tolerance_ulp,
             scratch_float_params=float_tolerance_slot_indices,
             st_tolerance_ulp=float_tolerance_ulp,
-            check_esp=not skip_esp,
+            check_esp=is_leaf if not skip_esp else False,
         )
 
         if diff.has_differences():
