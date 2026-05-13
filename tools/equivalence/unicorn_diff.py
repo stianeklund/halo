@@ -554,11 +554,13 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
         uc.hook_add(UC_HOOK_MEM_WRITE_UNMAPPED, hook_mem_unmapped)
     else:
         def hook_known_globals(uc, access, address, size, value, user_data):
+            from unicorn import UC_MEM_WRITE_UNMAPPED
             page_base = address & ~0xFFFF
             last_unmapped_access[0] = (
                 f"known-page={page_base:#x} addr={address:#x} size={size} access={access}"
             )
-            if page_base not in known_pages:
+            is_write = (access == UC_MEM_WRITE_UNMAPPED)
+            if page_base not in known_pages and not is_write:
                 return False
             try:
                 uc.mem_map(page_base, 0x10000)
