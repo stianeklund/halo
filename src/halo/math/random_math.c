@@ -264,7 +264,8 @@ float FUN_0010c510(float *v1, float *v2)
   {
     volatile float c2t = cos2theta;
     float one_minus_sq = 1.0f - c2t * c2t;
-    if (one_minus_sq < 0.0f) one_minus_sq = 0.0f;
+    if (one_minus_sq < 0.0f)
+      one_minus_sq = 0.0f;
     half_angle = (float)(atan2((double)sqrtf(one_minus_sq), (double)c2t) * 0.5);
   }
 

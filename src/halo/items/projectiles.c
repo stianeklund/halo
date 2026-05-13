@@ -96,10 +96,11 @@ void FUN_000f7e40(int projectile_handle, int16_t state)
 }
 
 /* Dispatch a projectile detonation effect based on the type word at tag_def[0].
- * Type 3 (contrail/attached): calls effect_new_attached_from_markers with the attached object
- * handle at tag_def[+0x38] and the marker-slot index at tag_def[+0x3e]
- * (uint16_t), plus hardcoded marker_count=5 and effect_definition=0x31f3a0. Any
- * other type: calls effect_new_unattached_from_markers with NULL translational-velocity,
+ * Type 3 (contrail/attached): calls effect_new_attached_from_markers with the
+ * attached object handle at tag_def[+0x38] and the marker-slot index at
+ * tag_def[+0x3e] (uint16_t), plus hardcoded marker_count=5 and
+ * effect_definition=0x31f3a0. Any other type: calls
+ * effect_new_unattached_from_markers with NULL translational-velocity,
  * marker_count=5, effect_definition=0x31f3a0, and a trailing integer 1.
  * Both branches pass through the caller-supplied marker_points/marker_forwards
  * arrays and scale_a/scale_b values; unknown tail floats are 0.0/0.0.
@@ -115,13 +116,14 @@ void FUN_000f7e60(int effect_tag_index, int object_index, void *tag_def,
   if (*(int16_t *)tag_def == 3) {
     attached_handle = *(int *)((char *)tag_def + 0x38);
     marker_index = *(uint16_t *)((char *)tag_def + 0x3e);
-    effect_new_attached_from_markers(effect_tag_index, object_index, attached_handle, marker_index,
-                 5, (void *)0x31f3a0, marker_points, marker_forwards, scale_a,
-                 scale_b, 0.0f, 0.0f);
+    effect_new_attached_from_markers(
+      effect_tag_index, object_index, attached_handle, marker_index, 5,
+      (void *)0x31f3a0, marker_points, marker_forwards, scale_a, scale_b, 0.0f,
+      0.0f);
   } else {
-    effect_new_unattached_from_markers(effect_tag_index, object_index, NULL, 5, (void *)0x31f3a0,
-                 marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f,
-                 1);
+    effect_new_unattached_from_markers(
+      effect_tag_index, object_index, NULL, 5, (void *)0x31f3a0, marker_points,
+      marker_forwards, scale_a, scale_b, 0.0f, 0.0f, 1);
   }
 }
 
@@ -239,63 +241,11 @@ char projectile_handle_parent_destroyed(int projectile_handle)
  * at call sites (minimum cone half-angle).  The resulting direction is
  * written to 'result'.  This is the global-seed variant; callers that own a
  * local seed call random_direction3d directly. */
-void random_vector_in_cone3d(float *forward, float zero, float angle, float *result)
+void random_vector_in_cone3d(float *forward, float zero, float angle,
+                             float *result)
 {
   int *seed = get_global_random_seed_address();
   random_direction3d(seed, forward, zero, angle, result);
-}
-
-/* Compute the straight-line aim vector and travel parameters for a projectile
- * with no ballistic arc (no gravity).
- * Subtracts origin from target to form the direction delta, normalises it in
- * place (normalize3d overwrites the local vector with the unit vector and
- * returns the original length as the distance), then writes outputs:
- *   aim_vector  - normalised direction from origin to target (required,
- * asserted non-NULL) out_dist    - optional: raw length of the origin→target
- * vector out_speed   - optional: copy of the input speed out_t       -
- * optional: travel time = dist / speed; 0.0 if speed <= 0.0 Returns 1 (bool
- * true) unconditionally. Source ref: c:\halo\SOURCE\items\projectiles.c line
- * 0x399 (921). */
-int projectile_aim_linear(float speed, float *origin, float *target, float *aim_vector,
-                 float *out_speed, float *out_t, float *out_dist)
-{
-  float local_vec[3];
-  float dist;
-  float t;
-
-  local_vec[0] = target[0] - origin[0];
-  local_vec[1] = target[1] - origin[1];
-  local_vec[2] = target[2] - origin[2];
-
-  dist = normalize3d(local_vec);
-
-  if (speed <= *(float *)0x2533c0) {
-    t = 0.0f;
-  } else {
-    t = dist / speed;
-  }
-
-  if (aim_vector == NULL) {
-    display_assert("result_aim_vector",
-                   "c:\\halo\\SOURCE\\items\\projectiles.c", 0x399, 1);
-    system_exit(-1);
-  }
-
-  aim_vector[0] = local_vec[0];
-  aim_vector[1] = local_vec[1];
-  aim_vector[2] = local_vec[2];
-
-  if (out_dist != NULL) {
-    *out_dist = dist;
-  }
-  if (out_speed != NULL) {
-    *out_speed = speed;
-  }
-  if (out_t != NULL) {
-    *out_t = t;
-  }
-
-  return 1;
 }
 
 /*
@@ -343,208 +293,265 @@ char projectile_aim_ballistic(float speed, float gravity, float *origin,
                               float *param_10, float *param_11, float *param_12,
                               float *param_13, float *param_14)
 {
-    /* Local variables mirror the original MSVC stack frame layout.
-     * Frame size: SUB ESP,0x34 (= 52 bytes = 13 float slots + 1 char).
-     *
-     * Locals at EBP-N (Ghidra names):
-     *   EBP-0x34 = aim_vec[0]   (float buffer for normalize3d)
-     *   EBP-0x30 = aim_vec[1]
-     *   EBP-0x2c = aim_vec[2]   (also holds aim_z)
-     *   EBP-0x28 = dx
-     *   EBP-0x24 = dy
-     *   EBP-0x20 = dz
-     *   EBP-0x1c = t_max
-     *   EBP-0x18 = two_a
-     *   EBP-0x14 = dist_sq
-     *   EBP-0x10 = disc_base (-sqrt(4ac)), then t_min
-     *   EBP-0x0c = c4 = 4*a*c
-     *   EBP-0x08 = b = a_coeff*dz
-     *   EBP-0x01 = result (char)
-     *
-     * Parameter slots reused as float temps by the original MSVC code:
-     *   EBP+0x08 (speed)   -> t_sol
-     *   EBP+0x0c (gravity) -> a (quadratic coefficient a = a_coeff^2*0.25)
-     *   EBP+0x10 (origin)  -> a_coeff, then t_sol*V_out product
-     *   EBP+0x14 (target)  -> V (chosen speed), then V_out
-     *
-     * Source ref: c:\halo\SOURCE\items\projectiles.c lines 0x2ee-0x36f.
-     */
-    float local_38;   /* aim_vec[0] */
-    float local_34;   /* aim_vec[1] */
-    float local_30;   /* aim_vec[2] / aim_z */
-    float local_2c;   /* dx */
-    float local_28;   /* dy */
-    float local_24;   /* dz */
-    float local_20;   /* t_max */
-    float local_1c;   /* two_a = 2*a */
-    float local_18;   /* dist_sq */
-    float local_14;   /* disc_base = -sqrt(4*a*c), then t_min */
-    float local_10;   /* c4 = 4*a*c */
-    float local_c;    /* b = a_coeff*dz */
-    char  local_5;    /* result flag: 1=arc, 0=fallback */
-    float a;          /* quadratic coeff a = a_coeff^2 * 0.25 */
-    float a_coeff;    /* effective gravity: max(0, per_tick*gravity) */
-    float V;          /* chosen launch speed, then V_out at output stage */
-    float fVar1;      /* scratch */
-    float fVar2;      /* scratch */
-    float partial;    /* dy^2 + dx^2 partial sum for interleaved dist_sq */
+  /* Local variables mirror the original MSVC stack frame layout.
+   * Frame size: SUB ESP,0x34 (= 52 bytes = 13 float slots + 1 char).
+   *
+   * Locals at EBP-N (Ghidra names):
+   *   EBP-0x34 = aim_vec[0]   (float buffer for normalize3d)
+   *   EBP-0x30 = aim_vec[1]
+   *   EBP-0x2c = aim_vec[2]   (also holds aim_z)
+   *   EBP-0x28 = dx
+   *   EBP-0x24 = dy
+   *   EBP-0x20 = dz
+   *   EBP-0x1c = t_max
+   *   EBP-0x18 = two_a
+   *   EBP-0x14 = dist_sq
+   *   EBP-0x10 = disc_base (-sqrt(4ac)), then t_min
+   *   EBP-0x0c = c4 = 4*a*c
+   *   EBP-0x08 = b = a_coeff*dz
+   *   EBP-0x01 = result (char)
+   *
+   * Parameter slots reused as float temps by the original MSVC code:
+   *   EBP+0x08 (speed)   -> t_sol
+   *   EBP+0x0c (gravity) -> a (quadratic coefficient a = a_coeff^2*0.25)
+   *   EBP+0x10 (origin)  -> a_coeff, then t_sol*V_out product
+   *   EBP+0x14 (target)  -> V (chosen speed), then V_out
+   *
+   * Source ref: c:\halo\SOURCE\items\projectiles.c lines 0x2ee-0x36f.
+   */
+  float local_38; /* aim_vec[0] */
+  float local_34; /* aim_vec[1] */
+  float local_30; /* aim_vec[2] / aim_z */
+  float local_2c; /* dx */
+  float local_28; /* dy */
+  float local_24; /* dz */
+  float local_20; /* t_max */
+  float local_1c; /* two_a = 2*a */
+  float local_18; /* dist_sq */
+  float local_14; /* disc_base = -sqrt(4*a*c), then t_min */
+  float local_10; /* c4 = 4*a*c */
+  float local_c; /* b = a_coeff*dz */
+  char local_5; /* result flag: 1=arc, 0=fallback */
+  float a; /* quadratic coeff a = a_coeff^2 * 0.25 */
+  float a_coeff; /* effective gravity: max(0, per_tick*gravity) */
+  float V; /* chosen launch speed, then V_out at output stage */
+  float fVar1; /* scratch */
+  float fVar2; /* scratch */
+  float partial; /* dy^2 + dx^2 partial sum for interleaved dist_sq */
 
-    /* 1. Displacement = target - origin.
-     * local_5 is set to 1 here to match the original's instruction order:
-     * FSUB,FSTP(dx),MOVB(1),FSUB,FSTP(dy),FSUB,FSTP(dz). */
-    local_2c = target[0] - origin[0];
-    local_5  = 1;
-    local_28 = target[1] - origin[1];
-    local_24 = target[2] - origin[2];
+  /* 1. Displacement = target - origin.
+   * local_5 is set to 1 here to match the original's instruction order:
+   * FSUB,FSTP(dx),MOVB(1),FSUB,FSTP(dy),FSUB,FSTP(dz). */
+  local_2c = target[0] - origin[0];
+  local_5 = 1;
+  local_28 = target[1] - origin[1];
+  local_24 = target[2] - origin[2];
 
-    /* 2. Partial distance sum (dy^2 + dx^2) computed first.
-     * The original interleaves this with the gravity computation:
-     * partial stays on the FPU stack as st1 while a_coeff/a are computed,
-     * then dz^2 is added to partial to complete dist_sq. */
-    partial = local_28 * local_28 + local_2c * local_2c;
+  /* 2. Partial distance sum (dy^2 + dx^2) computed first.
+   * The original interleaves this with the gravity computation:
+   * partial stays on the FPU stack as st1 while a_coeff/a are computed,
+   * then dz^2 is added to partial to complete dist_sq. */
+  partial = local_28 * local_28 + local_2c * local_2c;
 
-    /* 3. Effective gravity coefficient, clamped to zero. */
-    a_coeff = *(float *)0x32512c * gravity;
-    if (a_coeff < *(float *)0x2533c0) {
-        a_coeff = 0.0f;
-    }
+  /* 3. Effective gravity coefficient, clamped to zero. */
+  a_coeff = *(float *)0x32512c * gravity;
+  if (a_coeff < *(float *)0x2533c0) {
+    a_coeff = 0.0f;
+  }
 
-    /* 4. Quadratic coefficient a = a_coeff^2 * 0.25.
-     * Two-step to force a_coeff*a_coeff before *0.25 (matches MSVC operand order). */
-    fVar1 = a_coeff * a_coeff;
-    a = fVar1 * *(float *)0x25337c;
+  /* 4. Quadratic coefficient a = a_coeff^2 * 0.25.
+   * Two-step to force a_coeff*a_coeff before *0.25 (matches MSVC operand
+   * order). */
+  fVar1 = a_coeff * a_coeff;
+  a = fVar1 * *(float *)0x25337c;
 
-    /* 5. Complete dist_sq by adding dz^2 to partial sum. */
-    local_18 = local_24 * local_24 + partial;
+  /* 5. Complete dist_sq by adding dz^2 to partial sum. */
+  local_18 = local_24 * local_24 + partial;
 
-    /* 6. c4 = dist_sq * a * 4.0; assert > 0.
-     * Two-step to force dist_sq*a before *4.0 (matches MSVC operand order). */
-    fVar1 = local_18 * a;
-    local_10 = fVar1 * *(float *)0x2533d8;
-    if (local_10 <= *(float *)0x2533c0) {
-        display_assert("4.0f * a * c > 0.0f",
-                       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2f8, 1);
+  /* 6. c4 = dist_sq * a * 4.0; assert > 0.
+   * Two-step to force dist_sq*a before *4.0 (matches MSVC operand order). */
+  fVar1 = local_18 * a;
+  local_10 = fVar1 * *(float *)0x2533d8;
+  if (local_10 <= *(float *)0x2533c0) {
+    display_assert("4.0f * a * c > 0.0f",
+                   "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2f8, 1);
+    system_exit(-1);
+  }
+
+  /* 7. disc_base = -sqrt(c4); two_a = 2*a. */
+  local_14 = -sqrtf(local_10);
+  local_1c = a + a;
+
+  /* t_sq_max = -disc_base / two_a; assert >= 0. */
+  V = -local_14 / local_1c;
+  if (V < *(float *)0x2533c0) {
+    display_assert("t_squared_max >= 0.0f",
+                   "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2fc, 1);
+    system_exit(-1);
+  }
+  local_20 = sqrtf(V); /* t_max */
+
+  /* 8. b = a_coeff * dz; t_min = sqrt(b - disc_base) if >= 0, else 0.
+   * Branch polarity: original falls through to the zero path, jumps to sqrt. */
+  local_c = a_coeff * local_24;
+  if (local_c - local_14 < *(float *)0x2533c0) {
+    local_14 = 0.0f;
+  } else {
+    local_14 = sqrtf(local_c - local_14);
+  }
+
+  /* 9. Choose launch speed V. */
+  if (param_7 != NULL) {
+    V = *param_7;
+  } else {
+    V = speed;
+    if ((param_6 != NULL) && (*param_6 > *(float *)0x2533c0)) {
+      fVar2 = local_20 * *param_6;
+      fVar2 = fVar2 * fVar2;
+      fVar1 = local_c - -(fVar2 * a + local_18 / fVar2);
+      if (fVar1 <= *(float *)0x2533c0) {
+        display_assert("v_desired_sq > 0.0f",
+                       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x326, 1);
         system_exit(-1);
+      }
+      fVar1 = sqrtf(fVar1);
+      if (speed > fVar1) {
+        V = fVar1;
+      }
     }
+  }
 
-    /* 7. disc_base = -sqrt(c4); two_a = 2*a. */
-    local_14 = -sqrtf(local_10);
-    local_1c = a + a;
-
-    /* t_sq_max = -disc_base / two_a; assert >= 0. */
-    V = -local_14 / local_1c;
-    if (V < *(float *)0x2533c0) {
-        display_assert("t_squared_max >= 0.0f",
-                       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2fc, 1);
-        system_exit(-1);
+  /* 10. If V >= t_min, try to find an arc solution. */
+  if (V >= local_14) {
+    fVar1 = local_c - V * V;
+    fVar2 = fVar1 * fVar1 - local_10;
+    if ((fVar1 < *(float *)0x2533c0) && (fVar2 >= *(float *)0x2533c0)) {
+      speed =
+        (sqrtf(fVar2) * (float)(int)((unsigned int)(param_8 != '\0') * 2 + -1) -
+         fVar1) /
+        local_1c;
+      if (*(float *)0x2533c0 < speed) {
+        speed = sqrtf(speed);
+        goto LAB_output;
+      }
     }
-    local_20 = sqrtf(V);  /* t_max */
-
-    /* 8. b = a_coeff * dz; t_min = sqrt(b - disc_base) if >= 0, else 0.
-     * Branch polarity: original falls through to the zero path, jumps to sqrt. */
-    local_c = a_coeff * local_24;
-    if (local_c - local_14 < *(float *)0x2533c0) {
-        local_14 = 0.0f;
-    } else {
-        local_14 = sqrtf(local_c - local_14);
-    }
-
-    /* 9. Choose launch speed V. */
-    if (param_7 != NULL) {
-        V = *param_7;
-    } else {
-        V = speed;
-        if ((param_6 != NULL) && (*param_6 > *(float *)0x2533c0)) {
-            fVar2 = local_20 * *param_6;
-            fVar2 = fVar2 * fVar2;
-            fVar1 = local_c - -(fVar2 * a + local_18 / fVar2);
-            if (fVar1 <= *(float *)0x2533c0) {
-                display_assert("v_desired_sq > 0.0f",
-                               "c:\\halo\\SOURCE\\items\\projectiles.c", 0x326, 1);
-                system_exit(-1);
-            }
-            fVar1 = sqrtf(fVar1);
-            if (speed > fVar1) {
-                V = fVar1;
-            }
-        }
-    }
-
-    /* 10. If V >= t_min, try to find an arc solution. */
-    if (V >= local_14) {
-        fVar1 = local_c - V * V;
-        fVar2 = fVar1 * fVar1 - local_10;
-        if ((fVar1 < *(float *)0x2533c0) && (fVar2 >= *(float *)0x2533c0)) {
-            speed = (sqrtf(fVar2) *
-                     (float)(int)((unsigned int)(param_8 != '\0') * 2 + -1) -
-                     fVar1) / local_1c;
-            if (*(float *)0x2533c0 < speed) {
-                speed = sqrtf(speed);
-                goto LAB_output;
-            }
-        }
-    }
-    local_5 = 0;
-    speed = local_20;   /* t_sol = t_max */
-    V     = local_14;   /* V_out = t_min */
+  }
+  local_5 = 0;
+  speed = local_20; /* t_sol = t_max */
+  V = local_14; /* V_out = t_min */
 
 LAB_output:
-    /* 11. Build velocity direction (dx/t, dy/t, a_coeff*t*0.5 + dz/t). */
-    fVar1    = *(float *)0x2533c8 / speed;
-    local_38 = local_2c * fVar1;
-    local_34 = local_28 * fVar1;
-    local_30 = fVar1 * local_24 + speed * a_coeff * *(float *)0x253398;
+  /* 11. Build velocity direction (dx/t, dy/t, a_coeff*t*0.5 + dz/t). */
+  fVar1 = *(float *)0x2533c8 / speed;
+  local_38 = local_2c * fVar1;
+  local_34 = local_28 * fVar1;
+  local_30 = fVar1 * local_24 + speed * a_coeff * *(float *)0x253398;
 
-    /* Precompute sqrt(aim_y^2 + aim_x^2) for param_14 output, stored early. */
-    fVar2 = local_34 * local_34 + local_38 * local_38;
-    fVar2 = sqrtf(fVar2);
+  /* Precompute sqrt(aim_y^2 + aim_x^2) for param_14 output, stored early. */
+  fVar2 = local_34 * local_34 + local_38 * local_38;
+  fVar2 = sqrtf(fVar2);
 
-    /* Store aim_z before normalize overwrites local_30. */
-    fVar1 = local_30;
+  /* Store aim_z before normalize overwrites local_30. */
+  fVar1 = local_30;
 
-    /* Compute t_sol*V_out product into a_coeff slot (mirrors MSVC FSTP EBP+0x10). */
-    a_coeff = speed * V;
+  /* Compute t_sol*V_out product into a_coeff slot (mirrors MSVC FSTP EBP+0x10).
+   */
+  a_coeff = speed * V;
 
+  if (normalize3d(&local_38) == *(float *)0x2533c0) {
+    /* Degenerate: fall back to displacement direction. */
+    local_38 = local_2c;
+    local_5 = 0;
+    local_34 = local_28;
+    local_30 = local_24;
     if (normalize3d(&local_38) == *(float *)0x2533c0) {
-        /* Degenerate: fall back to displacement direction. */
-        local_38 = local_2c;
-        local_5  = 0;
-        local_34 = local_28;
-        local_30 = local_24;
-        if (normalize3d(&local_38) == *(float *)0x2533c0) {
-            /* Degenerate displacement: use global up vector. */
-            local_30 = *(float *)(*(int *)0x31fc44 + 8);
-            local_38 = *(float *)(*(int *)0x31fc44);
-            local_34 = *(float *)(*(int *)0x31fc44 + 4);
-        }
+      /* Degenerate displacement: use global up vector. */
+      local_30 = *(float *)(*(int *)0x31fc44 + 8);
+      local_38 = *(float *)(*(int *)0x31fc44);
+      local_34 = *(float *)(*(int *)0x31fc44 + 4);
     }
+  }
 
-    if (aim_vector == NULL) {
-        display_assert("result_aim_vector",
-                       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x363, 1);
-        system_exit(-1);
-    }
+  if (aim_vector == NULL) {
+    display_assert("result_aim_vector",
+                   "c:\\halo\\SOURCE\\items\\projectiles.c", 0x363, 1);
+    system_exit(-1);
+  }
 
-    aim_vector[0] = local_38;
-    aim_vector[1] = local_34;
-    aim_vector[2] = local_30;
+  aim_vector[0] = local_38;
+  aim_vector[1] = local_34;
+  aim_vector[2] = local_30;
 
-    if (param_12 != NULL) {
-        *param_12 = a_coeff;    /* t_sol * V_out */
-    }
-    if (param_10 != NULL) {
-        *param_10 = V;          /* V_out */
-    }
-    if (param_13 != NULL) {
-        *param_13 = fVar1;      /* aim_z before normalize */
-    }
-    if (param_14 != NULL) {
-        *param_14 = fVar2;      /* sqrt(aim_y^2 + aim_x^2) */
-    }
-    if (param_11 != NULL) {
-        *param_11 = speed;      /* t_sol */
-    }
-    return local_5;
+  if (param_12 != NULL) {
+    *param_12 = a_coeff; /* t_sol * V_out */
+  }
+  if (param_10 != NULL) {
+    *param_10 = V; /* V_out */
+  }
+  if (param_13 != NULL) {
+    *param_13 = fVar1; /* aim_z before normalize */
+  }
+  if (param_14 != NULL) {
+    *param_14 = fVar2; /* sqrt(aim_y^2 + aim_x^2) */
+  }
+  if (param_11 != NULL) {
+    *param_11 = speed; /* t_sol */
+  }
+  return local_5;
+}
+
+/* Compute the straight-line aim vector and travel parameters for a projectile
+ * with no ballistic arc (no gravity).
+ * Subtracts origin from target to form the direction delta, normalises it in
+ * place (normalize3d overwrites the local vector with the unit vector and
+ * returns the original length as the distance), then writes outputs:
+ *   aim_vector  - normalised direction from origin to target (required,
+ * asserted non-NULL) out_dist    - optional: raw length of the origin→target
+ * vector out_speed   - optional: copy of the input speed out_t       -
+ * optional: travel time = dist / speed; 0.0 if speed <= 0.0 Returns 1 (bool
+ * true) unconditionally. Source ref: c:\halo\SOURCE\items\projectiles.c line
+ * 0x399 (921). */
+int projectile_aim_linear(float speed, float *origin, float *target,
+                          float *aim_vector, float *out_speed, float *out_t,
+                          float *out_dist)
+{
+  float local_vec[3];
+  float dist;
+  float t;
+
+  local_vec[0] = target[0] - origin[0];
+  local_vec[1] = target[1] - origin[1];
+  local_vec[2] = target[2] - origin[2];
+
+  dist = normalize3d(local_vec);
+
+  if (speed <= *(float *)0x2533c0) {
+    t = 0.0f;
+  } else {
+    t = dist / speed;
+  }
+
+  if (aim_vector == NULL) {
+    display_assert("result_aim_vector",
+                   "c:\\halo\\SOURCE\\items\\projectiles.c", 0x399, 1);
+    system_exit(-1);
+  }
+
+  aim_vector[0] = local_vec[0];
+  aim_vector[1] = local_vec[1];
+  aim_vector[2] = local_vec[2];
+
+  if (out_dist != NULL) {
+    *out_dist = dist;
+  }
+  if (out_speed != NULL) {
+    *out_speed = speed;
+  }
+  if (out_t != NULL) {
+    *out_t = t;
+  }
+
+  return 1;
 }
 
 /* Resolve the launch speed for a projectile and compute its aim direction.
@@ -557,13 +564,13 @@ LAB_output:
  * If the projectile tag has the ballistic-arc flag set (bit 1 of byte at
  * param_1+0x17c) AND the per-arc gravity value at param_1+0x1cc is > 0.0f,
  * projectile_aim_ballistic (ballistic arc solver) is called to compute a curved
- * trajectory.  Otherwise the simpler straight-line aim helper projectile_aim_linear
- * is used.  param_13, when non-NULL, receives 0 for the arc path and 1 for
- * the straight-line path. */
+ * trajectory.  Otherwise the simpler straight-line aim helper
+ * projectile_aim_linear is used.  param_13, when non-NULL, receives 0 for the
+ * arc path and 1 for the straight-line path. */
 void projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
-                  int param_5, int param_6, int param_7, int param_8,
-                  int param_9, int param_10, int param_11, int param_12,
-                  void *param_13)
+                    int param_5, int param_6, int param_7, int param_8,
+                    int param_9, int param_10, int param_11, int param_12,
+                    void *param_13)
 {
   float speed;
   char *out;
@@ -578,16 +585,18 @@ void projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
 
   if ((*(unsigned char *)(projectile_tag + 0x17c) & 2) &&
       (*(float *)(projectile_tag + 0x1cc) > *(float *)0x2533c0)) {
-    projectile_aim_ballistic(speed, *(float *)(projectile_tag + 0x1cc), (float *)param_2,
-                 (float *)param_3, param_5, (float *)param_6, (float *)param_7,
-                 (char)param_8, (float *)param_9, (float *)param_10,
-                 (float *)param_11, (float *)param_12, 0, 0);
+    projectile_aim_ballistic(speed, *(float *)(projectile_tag + 0x1cc),
+                             (float *)param_2, (float *)param_3, param_5,
+                             (float *)param_6, (float *)param_7, (char)param_8,
+                             (float *)param_9, (float *)param_10,
+                             (float *)param_11, (float *)param_12, 0, 0);
     if (out != NULL) {
       *out = 0;
     }
   } else {
-    projectile_aim_linear(speed, (float *)param_2, (float *)param_3, (float *)param_9,
-                 (float *)param_10, (float *)param_11, (float *)param_12);
+    projectile_aim_linear(speed, (float *)param_2, (float *)param_3,
+                          (float *)param_9, (float *)param_10,
+                          (float *)param_11, (float *)param_12);
     if (out != NULL) {
       *out = 1;
     }
@@ -858,7 +867,8 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   char *proj; /* projectile object data pointer (type 0x20) */
   char *proj_tag; /* projectile tag data pointer (group 'proj') */
   int effect_tag; /* current effect tag index; updated in burst block */
-  void *effect_def[2]; /* effect definition passed to effect_new_unattached_from_markers */
+  void *effect_def[2]; /* effect definition passed to
+                          effect_new_unattached_from_markers */
 
   /* burst-limit locals */
   char *parent_obj; /* type-any parent object ptr */
@@ -879,7 +889,8 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
 
   /* damage params for area damage (0xac bytes as in damage_data_new) */
   char damage_params[0xac];
-  float fwd2[3]; /* forward buf for area-damage object_get_orientation ([EBP-0x74]) */
+  float fwd2[3]; /* forward buf for area-damage object_get_orientation
+                    ([EBP-0x74]) */
   float pos2[3]; /* world pos for area-damage FUN_001412f0 ([EBP-0x8c]) */
 
   /* secondary detonation effect */
@@ -1007,8 +1018,9 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   fwd[4] = up_buf[1];
   fwd[5] = up_buf[2];
 
-  effect_new_unattached_from_markers(effect_tag, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
-               pos, fwd, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+  effect_new_unattached_from_markers(effect_tag, *(int *)(proj + 0x74),
+                                     (float *)0, 2, effect_def, pos, fwd, 0.0f,
+                                     0.0f, 0.0f, 0.0f, 1.0f);
 
   /* --- Block 4: Area damage (if parent valid and tag has splash entry). --- */
   if ((*(int *)(proj + 0xcc) != -1) && (*(int *)(proj_tag + 0x220) != -1)) {
@@ -1039,8 +1051,10 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
     *(int *)(damage_params + 0x08) = *(int *)(proj + 0x70);
     *(short *)(damage_params + 0x10) = *(short *)(proj + 0x68);
 
-    object_cause_damage(damage_params, *(int *)(proj + 0xcc), (short)-1, (short)-1, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
-                 (short)-1, 0u);
+    object_cause_damage(
+      damage_params, *(int *)(proj + 0xcc), (short)-1,
+      (short)-1, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
+      (short)-1, 0u);
   }
 
   /* --- Block 5: Secondary detonation effect by per-slot index. ---
@@ -1060,8 +1074,9 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
     }
 
     det_effect = *(int *)((char *)det_entry + 0x74);
-    effect_new_unattached_from_markers(det_effect, *(int *)(proj + 0x74), (float *)0, 2, effect_def,
-                 pos, fwd, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    effect_new_unattached_from_markers(det_effect, *(int *)(proj + 0x74),
+                                       (float *)0, 2, effect_def, pos, fwd,
+                                       0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
   }
 
   /* --- Block 6: Notify AI of detonation position. ---
@@ -1334,7 +1349,8 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
  *      (local_24, used later as an alpha/scale weight).
  *   4. If the collision state is 3 (world surface) and the tag has a valid
  *      detonation_causer, asserts the collision object index, builds damage
- *      params via damage_data_new, then applies area damage via object_cause_damage.
+ *      params via damage_data_new, then applies area damage via
+ * object_cause_damage.
  *   5. Selects the detonation result type (0-4) from a tag element block,
  *      using random tests for probability-gated outcomes.
  *   6. Handles a second pass for collision state 2 (shield/object bounce)
@@ -1347,8 +1363,9 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
  * (FUN_0010b910/0010c510/0010c8e0) 3 - ricochet: velocity reflected by (1 -
  * elasticity) * direction 4 - detonate: spawn effects, optionally attach to
  * target, set flags
- *   9. Emits hit effects (effect_new_attached_from_markers / effect_new_unattached_from_markers) conditioned on
- *      the collision normal dot product.
+ *   9. Emits hit effects (effect_new_attached_from_markers /
+ * effect_new_unattached_from_markers) conditioned on the collision normal dot
+ * product.
  *  10. For detonation result 4 and "attach on impact" tag flag, computes
  *      a spin-rate scale and stores it at proj+0x1f4.
  *
@@ -1397,8 +1414,9 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   float vel_sq;
 
   /* local_4 / local_8: initially the tag element index (int16_t range), later
-   * the 32-bit effect-tag handle passed to effect_new_attached_from_markers / effect_new_unattached_from_markers.
-   * The binary uses the same 4-byte stack slot (raw int copy in MOV, not FPU).
+   * the 32-bit effect-tag handle passed to effect_new_attached_from_markers /
+   * effect_new_unattached_from_markers. The binary uses the same 4-byte stack
+   * slot (raw int copy in MOV, not FPU).
    */
   int tag_idx;
 
@@ -1417,13 +1435,12 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   /* Damage params buffer (0xac bytes; see damage_data_new). */
   char damage_params[0xac];
 
-  /* Marker/position arrays for effect_new_attached_from_markers / effect_new_unattached_from_markers.
-   * MSVC stack overlap: marker_count=5 but only marker_forwards[0] is
-   * explicitly set.  In the MSVC layout the next 4 float[3] locals are
-   * contiguous and read as forwards[1..4] by the effects system:
-   *   [0] "normal"            — collision surface normal
-   *   [1] "incident"          — scaled normalised velocity
-   *   [2] "negative incident" — normalised velocity
+  /* Marker/position arrays for effect_new_attached_from_markers /
+   * effect_new_unattached_from_markers. MSVC stack overlap: marker_count=5 but
+   * only marker_forwards[0] is explicitly set.  In the MSVC layout the next 4
+   * float[3] locals are contiguous and read as forwards[1..4] by the effects
+   * system: [0] "normal"            — collision surface normal [1] "incident"
+   * — scaled normalised velocity [2] "negative incident" — normalised velocity
    *   [3] "reflection"        — velocity x normal (cross product)
    *   [4] "gravity"           — global up vector (*0x31fc50)  */
   float marker_points[5 * 3];
@@ -1513,17 +1530,18 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
     vel_local[2] = in_velocity[2];
     normalize3d(vel_local);
     /* Call area damage. */
-    /* object_cause_damage: last arg is the direction pointer (ESI+0x24) cast to uint.
+    /* object_cause_damage: last arg is the direction pointer (ESI+0x24) cast to
+     * uint.
      */
     object_cause_damage(damage_params, *(int *)((char *)col_result + 0x38),
-                 (short)col_result[0x1f], (short)col_result[0x1e],
-                 (short)col_result[0x27],
-                 (unsigned int)(uintptr_t)((char *)col_result + 0x24));
+                        (short)col_result[0x1f], (short)col_result[0x1e],
+                        (short)col_result[0x27],
+                        (unsigned int)(uintptr_t)((char *)col_result + 0x24));
     /* Update tag_idx from area-damage result material type.
-     * object_cause_damage writes the resolved material type to damage_params+0x4C
-     * and velocity scale to damage_params+0x48.  Original binary reads from
-     * [EBP-0x40] and [EBP-0x44] which are damage_params+0x4C/0x48
-     * (damage_params base = EBP-0x8C). */
+     * object_cause_damage writes the resolved material type to
+     * damage_params+0x4C and velocity scale to damage_params+0x48.  Original
+     * binary reads from [EBP-0x40] and [EBP-0x44] which are
+     * damage_params+0x4C/0x48 (damage_params base = EBP-0x8C). */
     if ((short)*(int16_t *)(damage_params + 0x4c) != -1) {
       tag_idx = (int)(short)*(int16_t *)(damage_params + 0x4c);
     }
@@ -1552,9 +1570,11 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   ang_speed =
     random_real_range((int *)seed, ftemp, 0.0f); /* note: 2nd arg pushed 0x0 */
   /* local_38: surface-normal dot with incoming velocity (projection). */
-  ang_dot = ang_speed - *(float *)((char *)col_result + 0x2c) * in_velocity[2] - /* buf-alias-ok */
-            *(float *)((char *)col_result + 0x28) * in_velocity[1] -
-            *(float *)((char *)col_result + 0x24) * in_velocity[0];
+  ang_dot =
+    ang_speed -
+    *(float *)((char *)col_result + 0x2c) * in_velocity[2] - /* buf-alias-ok */
+    *(float *)((char *)col_result + 0x28) * in_velocity[1] -
+    *(float *)((char *)col_result + 0x24) * in_velocity[0];
 
   /* local_10 = [tag_elem+0x60]; compute angular displacement. */
   ftemp = *(float *)((char *)tag_elem + 0x60);
@@ -1584,7 +1604,8 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       if (*(float *)((char *)tag_elem + 0x30) != *(float *)0x2533c0) {
         if (deflect_dot < *(float *)((char *)tag_elem + 0x2c) ||
             (deflect_dot < *(float *)((char *)tag_elem + 0x30)) ==
-              (deflect_dot == *(float *)((char *)tag_elem + 0x30))) { /* buf-alias-ok */
+              (deflect_dot ==
+               *(float *)((char *)tag_elem + 0x30))) { /* buf-alias-ok */
           use_alt = 1;
         }
       }
@@ -1592,7 +1613,8 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
           *(float *)((char *)tag_elem + 0x38) != *(float *)0x2533c0) {
         if (ang_dot < *(float *)((char *)tag_elem + 0x34) ||
             (ang_dot < *(float *)((char *)tag_elem + 0x38)) ==
-              (ang_dot == *(float *)((char *)tag_elem + 0x38))) { /* buf-alias-ok */
+              (ang_dot ==
+               *(float *)((char *)tag_elem + 0x38))) { /* buf-alias-ok */
           use_alt = 1;
         }
       }
@@ -1615,7 +1637,8 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       seed = (float *)get_global_random_seed_address();
       ftemp = random_math_real((unsigned int *)seed);
       if (ftemp >= *(float *)((char *)tag_elem + 0x28)) { /* buf-alias-ok */
-        det_result = (int16_t) * (int16_t *)((char *)tag_elem + 0x24); /* buf-alias-ok */
+        det_result =
+          (int16_t) * (int16_t *)((char *)tag_elem + 0x24); /* buf-alias-ok */
         /* raw int copy: effect tag handle from alt result */
         tag_idx = *(int *)((char *)tag_elem + 0x48); /* buf-alias-ok */
       }
@@ -1628,22 +1651,26 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   /* ------------------------------------------------------------------ */
   /* 6. Collision state == 2 with bit 0x8: breakable surface.           */
   /* ------------------------------------------------------------------ */
-  if (col_result[0] == 2 && (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) { /* buf-alias-ok */
+  if (col_result[0] == 2 &&
+      (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) { /* buf-alias-ok */
     damage_data_new(damage_params, *(int *)(proj_tag + 0x230));
     /* MSVC stack overlap: in the original binary col_pos/col_pos2/vel_local
      * overlap the damage_params buffer. Write directly into damage_params. */
     *(uint32_t *)(damage_params + 0x04) |= 8;
     *(float *)(damage_params + 0x1c) = *(float *)((char *)col_result + 0x18);
     *(float *)(damage_params + 0x20) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x24) = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
+    *(float *)(damage_params + 0x24) =
+      *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
     *(float *)(damage_params + 0x28) = *(float *)((char *)col_result + 0x18);
     *(float *)(damage_params + 0x2c) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x30) = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
+    *(float *)(damage_params + 0x30) =
+      *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
     *(float *)(damage_params + 0x34) = in_velocity[0];
     *(float *)(damage_params + 0x38) = in_velocity[1];
     *(float *)(damage_params + 0x3c) = in_velocity[2];
     normalize3d((float *)(damage_params + 0x34));
-    /* Resolve bounce pass tag element (result unused; matches original code). */
+    /* Resolve bounce pass tag element (result unused; matches original code).
+     */
     sTemp = col_result[0x1a];
     if (sTemp < 0 || *(int *)(proj_tag + 0x240) <= (int)sTemp) {
       dtag_elem = (char *)0x31ed08;
@@ -1652,7 +1679,8 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
                                                 (int)sTemp, 0xa0);
     }
     (void)dtag_elem;
-    /* Material type at offset 0x4C — required by FUN_00146a90's early-out check */
+    /* Material type at offset 0x4C — required by FUN_00146a90's early-out check
+     */
     *(int16_t *)(damage_params + 0x4c) = (int16_t)sTemp;
     /* Cluster/leaf from collision result */
     *(int *)(damage_params + 0x14) = *(int *)((char *)col_result + 0x0c);
@@ -1684,9 +1712,12 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       proj[1] = (int)uTemp;
       FUN_000f8640(projectile_handle);
       /* Subtract normal-component contribution from hit_pos. */
-      hit_pos[0] -= *(float *)((char *)col_result + 0x24) * *(float *)0x255ef8; /* buf-alias-ok */
-      hit_pos[1] -= *(float *)((char *)col_result + 0x28) * *(float *)0x255ef8; /* buf-alias-ok */
-      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) * *(float *)0x255ef8; /* buf-alias-ok */
+      hit_pos[0] -= *(float *)((char *)col_result + 0x24) *
+                    *(float *)0x255ef8; /* buf-alias-ok */
+      hit_pos[1] -= *(float *)((char *)col_result + 0x28) *
+                    *(float *)0x255ef8; /* buf-alias-ok */
+      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) *
+                    *(float *)0x255ef8; /* buf-alias-ok */
     } else if (col_result[0] == 3) {
       ftemp = *(float *)0x2533c8 - *(float *)((char *)tag_elem + 0x90);
       in_velocity[0] *= ftemp;
@@ -1736,8 +1767,10 @@ apply_speed_scale:
   /* Optional: random speed scale in [tag+0x60]. */
   if (*(float *)((char *)tag_elem + 0x60) != *(float *)0x2533c0) {
     seed = (float *)get_global_random_seed_address();
-    random_direction3d((int *)seed, in_velocity, 0.0f, /* dup-args-ok: in-place, verified PUSH EDI x2 at 0x000f95f3/59 */
-                       *(float *)((char *)tag_elem + 0x60), in_velocity);
+    random_direction3d(
+      (int *)seed, in_velocity,
+      0.0f, /* dup-args-ok: in-place, verified PUSH EDI x2 at 0x000f95f3/59 */
+      *(float *)((char *)tag_elem + 0x60), in_velocity);
   }
 
   /* Optional: speed magnitude randomisation [tag+0x64]. */
@@ -1788,7 +1821,8 @@ apply_speed_scale:
   /* ------------------------------------------------------------------ */
   scale_a = 0.0f;
   {
-    int16_t scale_mode = *(int16_t *)((char *)tag_elem + 0x5c); /* buf-alias-ok */
+    int16_t scale_mode =
+      *(int16_t *)((char *)tag_elem + 0x5c); /* buf-alias-ok */
     if (scale_mode == 0) {
       scale_a = det_frac;
     } else if (scale_mode == 1) {
@@ -1828,9 +1862,12 @@ apply_speed_scale:
       float *up_ptr = *(float **)0x31fc50;
 
       /* [0] "normal" — collision surface normal */
-      marker_forwards[0] = *(float *)((char *)col_result + 0x24); /* buf-alias-ok */
-      marker_forwards[1] = *(float *)((char *)col_result + 0x28); /* buf-alias-ok */
-      marker_forwards[2] = *(float *)((char *)col_result + 0x2c); /* buf-alias-ok */
+      marker_forwards[0] =
+        *(float *)((char *)col_result + 0x24); /* buf-alias-ok */
+      marker_forwards[1] =
+        *(float *)((char *)col_result + 0x28); /* buf-alias-ok */
+      marker_forwards[2] =
+        *(float *)((char *)col_result + 0x2c); /* buf-alias-ok */
 
       /* [1] "incident" — scaled normalised velocity */
       marker_forwards[3] = vel_local[0] * scale_f;
@@ -1874,9 +1911,9 @@ apply_speed_scale:
         (uint16_t)col_result[0x1f], 5, (void *)0x31f3a0, marker_points,
         marker_forwards, scale_a, scale_b, 0.0f, 0.0f);
     } else {
-      effect_new_unattached_from_markers(tag_idx, projectile_handle, 0, 5, (void *)0x31f3a0,
-                   marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f,
-                   1);
+      effect_new_unattached_from_markers(
+        tag_idx, projectile_handle, 0, 5, (void *)0x31f3a0, marker_points,
+        marker_forwards, scale_a, scale_b, 0.0f, 0.0f, 1);
     }
   }
 
@@ -1885,15 +1922,15 @@ apply_speed_scale:
   /* ------------------------------------------------------------------ */
   if (!(proj[0x77] & 0x20) && ((proj[0x77] & 0x10) || det_result == 4)) {
     if (col_result[0] == 3) {
-      effect_new_attached_from_markers(*(int *)(proj_tag + 0x200), projectile_handle,
-                   *(int *)((char *)col_result + 0x38),
-                   (uint16_t)col_result[0x1f], 5, (void *)0x31f3a0,
-                   marker_points, marker_forwards, scale_a, scale_b, 0.0f,
-                   0.0f);
+      effect_new_attached_from_markers(
+        *(int *)(proj_tag + 0x200), projectile_handle,
+        *(int *)((char *)col_result + 0x38), (uint16_t)col_result[0x1f], 5,
+        (void *)0x31f3a0, marker_points, marker_forwards, scale_a, scale_b,
+        0.0f, 0.0f);
     } else {
-      effect_new_unattached_from_markers(*(int *)(proj_tag + 0x200), projectile_handle, 0, 5,
-                   (void *)0x31f3a0, marker_points, marker_forwards, scale_a,
-                   scale_b, 0.0f, 0.0f, 1);
+      effect_new_unattached_from_markers(
+        *(int *)(proj_tag + 0x200), projectile_handle, 0, 5, (void *)0x31f3a0,
+        marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f, 1);
     }
   }
 
@@ -1964,7 +2001,7 @@ apply_speed_scale:
     proj[1] = proj[1] | 0x20;
     proj[0x77] = proj[0x77] | 0x8;
     object_translate(projectile_handle, hit_pos,
-                 (float *)((char *)col_result + 0xc));
+                     (float *)((char *)col_result + 0xc));
     if (col_result[0] == 3) {
       object_attach_to_parent(*(int *)((char *)col_result + 0x38),
                               projectile_handle, (int16_t)col_result[0x1f]);

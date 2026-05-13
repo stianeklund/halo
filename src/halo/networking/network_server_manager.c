@@ -56,8 +56,9 @@ void network_game_server_close_game(void *server)
 }
 
 /* Check if the server's game is open (0x12c100).
- * Returns bit 0 of the flags byte at server+6, set by network_game_server_open_game
- * and cleared by network_game_server_close_game. */
+ * Returns bit 0 of the flags byte at server+6, set by
+ * network_game_server_open_game and cleared by network_game_server_close_game.
+ */
 bool network_game_server_game_is_open(void *server)
 {
   if (!server) {
@@ -240,7 +241,8 @@ void FUN_0012caa0(void *server)
 
   client = network_game_client_get();
   if (client != NULL) {
-    game_data = network_game_client_get_machine_index(network_game_client_get());
+    game_data =
+      network_game_client_get_machine_index(network_game_client_get());
     loaded = *(uint8_t *)((char *)game_data + 0x430);
   } else {
     loaded = 0;
@@ -414,7 +416,8 @@ bool FUN_0012d880(int server, int new_connection)
           "in network_game_server_add_new_client()");
         result = false;
       } else {
-        if (!network_game_accept_remote_connections() && *(int *)addr_buf != 0x7f000001) {
+        if (!network_game_accept_remote_connections() &&
+            *(int *)addr_buf != 0x7f000001) {
           addr_str = FUN_00081b90(addr_buf);
           network_game_log(
             "remote system tried to join our server but we are not accepting "
@@ -958,7 +961,8 @@ bool FUN_0012e750(int server)
     return result;
   }
 
-  if (!FUN_0012d150((void *)server) || !get_unique_random_color((void *)server) ||
+  if (!FUN_0012d150((void *)server) ||
+      !get_unique_random_color((void *)server) ||
       get_unique_random_name((void *)server) ||
       *(short *)(s + 0x22c) < (short)*(char *)(s + 0x115)) {
     csmemset(s + 0x488, 0, 0x10);

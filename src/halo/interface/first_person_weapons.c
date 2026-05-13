@@ -135,8 +135,9 @@ void FUN_000dc9d0(int param_2, int object_handle)
 
 /* Toggle the first-person weapon activation state for a local player (0xdcb30).
  * When activating (activate != 0): asserts weapon_index != NONE, then calls
- * effects_start_on_first_person_weapon to start effects. When deactivating: calls FUN_0009c810 to stop
- * effects and FUN_000a1510 to stop sounds. Only acts if the state changes. */
+ * effects_start_on_first_person_weapon to start effects. When deactivating:
+ * calls FUN_0009c810 to stop effects and FUN_000a1510 to stop sounds. Only acts
+ * if the state changes. */
 void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
 {
   char *fp;
@@ -149,7 +150,8 @@ void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
   if (activate != *(uint8_t *)fp) {
     if (activate != 0) {
       assert_halt(*(int *)(fp + 8) != -1);
-      effects_start_on_first_person_weapon((int)local_player_index, *(int *)(fp + 8));
+      effects_start_on_first_person_weapon((int)local_player_index,
+                                           *(int *)(fp + 8));
       *(uint8_t *)fp = activate;
       return;
     }

@@ -130,7 +130,8 @@ void player_effect_apply(int player_handle, void *effect_descriptor,
                                     intensity * 30.0f, effect_descriptor);
 }
 
-/* player_effect_apply_damage (0xa3b80) — Apply damage-related effects to a player.
+/* player_effect_apply_damage (0xa3b80) — Apply damage-related effects to a
+ * player.
  *
  * Uses the damage effect tag (jpt!) to set screen shake, vibration, and
  * directional damage indicators based on the angle of incoming damage
@@ -140,16 +141,17 @@ void player_effect_apply(int player_handle, void *effect_descriptor,
  * Confirmed: assert_halt on direction != NULL.
  * Confirmed: lock_random_seed / unlock_random_seed bracket the entire function.
  * Confirmed: tag_get('jpt!', *damage_params) for tag lookup.
- * Confirmed: player_effect_set_from_descriptor(sVar1, effect, param_4, 1.0f, jpt+0x24).
- * Confirmed: *(unsigned int*)(player+0x1c8) & 0x100 checks vehicle driver flag.
- * Confirmed: Global floats: 0x2533c0=0.0f, 0x2533c8=1.0f, 0x25fea8=~0.0,
- *   0x254a58=~0.7854 (PI/4), 0x26af48=~2.3562 (3*PI/4), 0x2568bc=~1.5708 (PI/2).
- * Confirmed: local_player_get_player_index called twice (original binary artifact).
- * Confirmed: camera+0x20 is forward vector, +0x2c is up vector.
- * Confirmed: effect flags at +0xe4 (right), +0xe5 (forward), +0xe6 (down), +0xe7 (side).
+ * Confirmed: player_effect_set_from_descriptor(sVar1, effect, param_4, 1.0f,
+ * jpt+0x24). Confirmed: *(unsigned int*)(player+0x1c8) & 0x100 checks vehicle
+ * driver flag. Confirmed: Global floats: 0x2533c0=0.0f, 0x2533c8=1.0f,
+ * 0x25fea8=~0.0, 0x254a58=~0.7854 (PI/4), 0x26af48=~2.3562 (3*PI/4),
+ * 0x2568bc=~1.5708 (PI/2). Confirmed: local_player_get_player_index called
+ * twice (original binary artifact). Confirmed: camera+0x20 is forward vector,
+ * +0x2c is up vector. Confirmed: effect flags at +0xe4 (right), +0xe5
+ * (forward), +0xe6 (down), +0xe7 (side).
  */
 void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
-                 float damage_amount, float scale)
+                  float damage_amount, float scale)
 {
   char *player;
   int16_t unit_index;
@@ -180,12 +182,14 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
     effect = player_effect_get(unit_index);
 
     player_effect_set_from_descriptor(unit_index, effect, damage_amount, 1.0f,
-                                     (void *)(jpt_tag + 0x24));
+                                      (void *)(jpt_tag + 0x24));
     FUN_000a3890(unit_index, (float *)(jpt_tag + 0x98), direction,
                  damage_amount, 1.0f, (float *)effect /* @<eax> */);
     FUN_000a2ba0(unit_index, damage_amount, 1.0f,
-                 (float *)(jpt_tag + 0xcc) /* @<eax> */, (void *)effect /* @<ebx> */);
-    FUN_000b9bc0((short)unit_index, (float *)(jpt_tag + 0x5c), damage_amount, 1.0f);
+                 (float *)(jpt_tag + 0xcc) /* @<eax> */,
+                 (void *)effect /* @<ebx> */);
+    FUN_000b9bc0((short)unit_index, (float *)(jpt_tag + 0x5c), damage_amount,
+                 1.0f);
 
     if (*(int *)(jpt_tag + 0x120) != -1) {
       sound_impulse_start(*(int *)(jpt_tag + 0x120), 1.0f);
@@ -209,9 +213,9 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
       }
 
       driver_type_valid =
-          (int)object_try_and_get_and_verify_type(driver_handle, 3) != 0;
+        (int)object_try_and_get_and_verify_type(driver_handle, 3) != 0;
       damage_type_valid = (int)object_try_and_get_and_verify_type(
-          *(int *)((char *)damage_params + 0xc), -1) != 0;
+                            *(int *)((char *)damage_params + 0xc), -1) != 0;
 
       if (driver_type_valid && damage_type_valid) {
         camera = observer_get_camera(unit_index);
@@ -225,7 +229,7 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
           delta[2] = victim_pos.z - attacker_pos[2];
 
           cross_product3d((float *)((char *)camera + 0x20),
-                         (float *)((char *)camera + 0x2c), attacker_pos);
+                          (float *)((char *)camera + 0x2c), attacker_pos);
 
           rotated_delta[0] = attacker_pos[0] * delta[0] +
                              attacker_pos[1] * delta[1] +
@@ -248,8 +252,7 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
             }
 
             angle = (float)atan2(rotated_delta[1], rotated_delta[0]);
-            if ((angle < *(float *)0x254a58) ||
-                (*(float *)0x26af48 < angle)) {
+            if ((angle < *(float *)0x254a58) || (*(float *)0x26af48 < angle)) {
               if ((*(float *)0x2568bc < fabsf(angle))) {
                 *(unsigned char *)(effect + 0xe5) = 1;
                 unlock_global_random_seed();

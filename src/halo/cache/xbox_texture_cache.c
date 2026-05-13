@@ -140,8 +140,8 @@ void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
     int16_t log2_depth = FUN_00108db0((int)*(int16_t *)(bmp + 0x8));
     int16_t log2_height = FUN_00108db0((int)*(int16_t *)(bmp + 0x6));
     int16_t log2_width = FUN_00108db0((int)*(int16_t *)(bmp + 0x4));
-    int linear_fmt =
-      bitmap_format_to_d3d_linear_format(*(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
+    int linear_fmt = bitmap_format_to_d3d_linear_format(
+      *(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
     int16_t mipmap_count = *(int16_t *)(bmp + 0xa);
     int16_t dim_level = FUN_00183120(bitmap);
     int dim_type = (mipmap_count != 1) ? 2 : 3;
@@ -218,7 +218,7 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
       void *entry = datum_get(*(void **)0x4ea978,
                               *(int32_t *)((char *)hardware_format + 0x24));
       lruv_debug_to_file(*(void **)0x4ea980,
-                   *(int32_t *)((char *)hardware_format + 0x24));
+                         *(int32_t *)((char *)hardware_format + 0x24));
       if (block) {
         if (*(int8_t *)((char *)entry + 4) != 0)
           goto loaded;

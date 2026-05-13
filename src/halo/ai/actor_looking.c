@@ -15,8 +15,9 @@
  * -1) and the actor also has a secondary-look object handle at actor+0x1e0,
  * it attempts to find an existing look-at entry for that object via
  * FUN_00064ab0.  If one is found it is passed as an object-handle look target
- * (type 1); otherwise the object's position is fetched via unit_get_head_position and
- * a position look target (type 3) is issued via FUN_00027a60.
+ * (type 1); otherwise the object's position is fetched via
+ * unit_get_head_position and a position look target (type 3) is issued via
+ * FUN_00027a60.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x14552.
  * Confirmed: guard on [actor+0x1dc] != -1 AND [actor+0x1e0] != -1 at
@@ -38,8 +39,9 @@ void FUN_00014540(int actor_handle)
 
   /* Buffer passed to FUN_00027a60: { int16_t type; int16_t pad; int data[3]; }
    * type=1 (object handle look): data[0] = look_entry handle
-   * type=3 (position look):      data[0..2] = xyz position from unit_get_head_position
-   * Total: 2 + 2(pad) + 12 = 16 bytes (0x10), matching SUB ESP,0x10 */
+   * type=3 (position look):      data[0..2] = xyz position from
+   * unit_get_head_position Total: 2 + 2(pad) + 12 = 16 bytes (0x10), matching
+   * SUB ESP,0x10 */
   short look_buf[8]; /* 16 bytes on stack: [0]=type word, [2..7]=data dwords */
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -65,20 +67,25 @@ void FUN_00014540(int actor_handle)
   FUN_00027a60(actor_handle, 8, 5, look_buf);
 }
 
-/* FUN_0002a3d0 (0x2a3d0)
- * Return the in-vehicle / mounted flag byte for the actor.
+/* Compute the cross product of two 3D vectors.
  *
- * Looks up the actor record via datum_get(actor_data, actor_handle) and
- * returns the byte at actor+0x4a8.  Non-zero means the actor is currently
- * mounted in or on a vehicle.
+ * out = a × b
  *
- * Confirmed: cdecl, single stack arg (actor_handle).
- * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x2a3de.
- * Confirmed: MOV AL,byte ptr [EAX+0x4a8] at 0x2a3e3; ADD ESP,0x8; RET. */
-char FUN_0002a3d0(int actor_handle)
+ * Confirmed: pure x87 arithmetic, no assertions, no globals.
+ * Confirmed: FLD [ECX] / FMUL [EAX+0x4] / FLD [ECX+0x4] / FMUL [EAX] / FSUBP
+ *   computes out[2] = a[0]*b[1] - a[1]*b[0] (z component).
+ * Confirmed: three-component store at [EAX], [EAX+0x4], [EAX+0x8].
+ */
+void cross_product3d(float *a, float *b, float *out)
 {
-  char *actor = (char *)datum_get(actor_data, actor_handle);
-  return actor[0x4a8];
+  /* Load all inputs before any store so b==out (in-place) is safe.
+   * The binary (0x178d0) holds all three FPU results on the x87 stack
+   * before the first FSTP, giving the same aliasing guarantee. */
+  float a0 = a[0], a1 = a[1], a2 = a[2];
+  float b0 = b[0], b1 = b[1], b2 = b[2];
+  out[0] = a1 * b2 - a2 * b1;
+  out[1] = a2 * b0 - a0 * b2;
+  out[2] = a0 * b1 - a1 * b0;
 }
 
 /* FUN_0002a2b0 (0x2a2b0)
@@ -101,13 +108,13 @@ char FUN_0002a3d0(int actor_handle)
  * Confirmed: CMP word [EBX],0x0 at 0x2a2d0; JNZ 0x2a2ec.
  * Confirmed: CALL FUN_0002a3d0(actor_handle) at 0x2a2d7; TEST AL,AL.
  * Confirmed: MOV word [ESI+0x3e8],0x0 at 0x2a2e3 when spec==0 && not mounted.
- * Confirmed: CMP word [ESI+0x3e8],0x3 (JL skip) at 0x2a2ec; CMP [EBX],0x0 (JZ skip).
- * Confirmed: LEA EDI,[ESI+0x524] at 0x2a2ff; PUSH actor_handle; CALL 0x28660.
- * Confirmed: FUN_00028660 register args: EBX=short*look_spec, EDI=float*direction.
- * Confirmed: MOV byte [ESI+0x505],0x1 on success at 0x2a313; RET.
- * Confirmed: MOV byte [ESI+0x505],0x0 on fallthrough at 0x2a31f; RET.
- * Inferred: actor+0x3e8 = look priority (int16_t); actor+0x3ec = look spec type (int16_t).
- * Inferred: actor+0x505 = look-direction valid flag (char).
+ * Confirmed: CMP word [ESI+0x3e8],0x3 (JL skip) at 0x2a2ec; CMP [EBX],0x0 (JZ
+ * skip). Confirmed: LEA EDI,[ESI+0x524] at 0x2a2ff; PUSH actor_handle; CALL
+ * 0x28660. Confirmed: FUN_00028660 register args: EBX=short*look_spec,
+ * EDI=float*direction. Confirmed: MOV byte [ESI+0x505],0x1 on success at
+ * 0x2a313; RET. Confirmed: MOV byte [ESI+0x505],0x0 on fallthrough at 0x2a31f;
+ * RET. Inferred: actor+0x3e8 = look priority (int16_t); actor+0x3ec = look spec
+ * type (int16_t). Inferred: actor+0x505 = look-direction valid flag (char).
  * Inferred: actor+0x524 = computed look direction (float[3]). */
 void FUN_0002a2b0(int actor_handle)
 {
@@ -125,4 +132,20 @@ void FUN_0002a2b0(int actor_handle)
     }
   }
   actor[0x505] = 0;
+}
+
+/* FUN_0002a3d0 (0x2a3d0)
+ * Return the in-vehicle / mounted flag byte for the actor.
+ *
+ * Looks up the actor record via datum_get(actor_data, actor_handle) and
+ * returns the byte at actor+0x4a8.  Non-zero means the actor is currently
+ * mounted in or on a vehicle.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x2a3de.
+ * Confirmed: MOV AL,byte ptr [EAX+0x4a8] at 0x2a3e3; ADD ESP,0x8; RET. */
+char FUN_0002a3d0(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  return actor[0x4a8];
 }

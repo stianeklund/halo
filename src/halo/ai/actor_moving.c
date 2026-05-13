@@ -52,11 +52,12 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
   }
   FUN_0003bc90(actor_handle);
   path_input_new(nav_state_out, local_8, *(unsigned char *)(actor + 0x376),
-               unit_handle);
+                 unit_handle);
   path_input_set_start(nav_state_out, actor + 0x168, *(int *)(actor + 0x164));
 }
 
-/* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup tables.
+/* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup
+ * tables.
  *
  * Confirmed: no arguments, no calls, writes table blocks rooted at
  * 0x6327e0 and 0x6325c0 using constants/tables at 0x25577c..0x25581c.
@@ -194,8 +195,8 @@ char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out)
 }
 
 /*
- * 0x2cdb0 — actor_path_refresh: Compute and populate the actor's path control state
- * for the current movement mode.
+ * 0x2cdb0 — actor_path_refresh: Compute and populate the actor's path control
+ * state for the current movement mode.
  *
  * This function is the per-tick "where should I go?" resolver for actors. It
  * reads the actor's movement source type (actor[0x46c]) to determine how to
@@ -226,7 +227,8 @@ char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out)
  * Confirmed float constants: 0.0f at 0x2533c0, threshold at 0x255d1c,
  *   threshold2 at 0x253398.
  */
-char actor_path_refresh(int actor_handle, char store_distance, void *override_path)
+char actor_path_refresh(int actor_handle, char store_distance,
+                        void *override_path)
 {
   /* All C89 declarations at top of function scope. */
   char *actor;
@@ -509,7 +511,7 @@ LAB_check_dest:
     FUN_0005e0d0((int)override_path, (unsigned int *)(actor + 0x494),
                  *(unsigned int *)(actor + 0x498), 0);
     path_found = path_state_build_path((unsigned int)override_path,
-                              (unsigned int *)(actor + 0x4a8));
+                                       (unsigned int *)(actor + 0x4a8));
   } else {
     /*
      * Normal on-foot pathfinding pipeline:
@@ -517,8 +519,8 @@ LAB_check_dest:
      *     (actor position, facing, vehicle info, etc.).
      *  2. paths_dispose(local_nav, actor[0x480]): if ignore_object!=-1,
      *     store it at local_nav+0xc.
-     *  3. (Optional) path_input_set_attractor: encode movement-constraint orders into
-     *     local_nav when actor has standing orders (actor[0x280]>0,
+     *  3. (Optional) path_input_set_attractor: encode movement-constraint
+     * orders into local_nav when actor has standing orders (actor[0x280]>0,
      *     actor[0x28a]==0, tag flag bit 4 clear). Float arg 0x41200000=10.0f.
      *  4. FUN_00049120(actor_handle): allocate/find path cache slot.
      *  5. path_state_new(local_nav, large_buf, path_state): init path-build
@@ -526,8 +528,8 @@ LAB_check_dest:
      *  6. FUN_0005e0d0(large_buf, &actor[0x488], actor[0x494], actor[0x498]):
      *     set destination in path-build state.
      *  7. FUN_0005ff70(large_buf): run pathfinder; returns 1 on success.
-     *  8. path_state_build_path(large_buf, &actor[0x4a8]): extract waypoint result
-     *     into actor nav-control struct. Returns 1 if path is usable.
+     *  8. path_state_build_path(large_buf, &actor[0x4a8]): extract waypoint
+     * result into actor nav-control struct. Returns 1 if path is usable.
      *
      * Disasm confirmed:
      *   local_nav at [EBP-0x60] (44 bytes)
@@ -539,21 +541,21 @@ LAB_check_dest:
     }
     if ((*(short *)(actor + 0x280) > 0) && (*(char *)(actor + 0x28a) == '\0') &&
         ((*(unsigned char *)(tag + 4) & 0x10) == 0)) {
-      path_input_set_attractor((int)local_nav, (unsigned int *)(actor + 0x2b0),
-                   *(unsigned int *)(actor + 0x294),
-                   *(unsigned int *)(actor + 0x28c),
-                   (unsigned int)0x41200000); /* 10.0f as bit pattern */
+      path_input_set_attractor(
+        (int)local_nav, (unsigned int *)(actor + 0x2b0),
+        *(unsigned int *)(actor + 0x294), *(unsigned int *)(actor + 0x28c),
+        (unsigned int)0x41200000); /* 10.0f as bit pattern */
     }
     path_state = FUN_00049120(actor_handle);
     path_state_new((unsigned int *)local_nav, (unsigned int *)large_buf,
-                 (unsigned int)path_state);
+                   (unsigned int)path_state);
     FUN_0005e0d0((int)large_buf, (unsigned int *)(actor + 0x488),
                  *(unsigned int *)(actor + 0x494),
                  *(unsigned int *)(actor + 0x498));
     path_found = FUN_0005ff70((unsigned int *)large_buf);
     if (path_found != '\0') {
-      path_found2 =
-        path_state_build_path((unsigned int)large_buf, (unsigned int *)(actor + 0x4a8));
+      path_found2 = path_state_build_path((unsigned int)large_buf,
+                                          (unsigned int *)(actor + 0x4a8));
       path_found = path_found2 ? '\x01' : '\0';
     }
   }

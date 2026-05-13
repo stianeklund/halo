@@ -11,13 +11,14 @@
  *         path_node_from_hash_table (path hash table lookup by key),
  *         path_3d_available (path ray-cast clearance check),
  *         FUN_0005ff70 (path traverse + debug snapshot).
- * Deferred: path_state_build_path (0x5eae0) — complex path evaluation, deferred.
+ * Deferred: path_state_build_path (0x5eae0) — complex path evaluation,
+ * deferred.
  */
 
 #include "../../common.h"
 
-/* All callees (csmemset, csmemcpy, scenario_get, global_structure_bsp_index_get) declared via
- * decl.h / generated header */
+/* All callees (csmemset, csmemcpy, scenario_get,
+ * global_structure_bsp_index_get) declared via decl.h / generated header */
 
 /* 0x005dfc0 — path_state_init
  * Zero-fills a 0x48-byte path_state record, then writes the initial fields.
@@ -33,7 +34,8 @@
  * `*(undefined1*)(param_1+1)` due to how it assigns dword-indexed fields.
  * The raw byte offset is +4.
  */
-void path_input_new(void *param_1, uint32_t param_2, uint8_t param_3, int param_4)
+void path_input_new(void *param_1, uint32_t param_2, uint8_t param_3,
+                    int param_4)
 {
   csmemset(param_1, 0, 0x48);
   *(uint32_t *)param_1 = param_2;
@@ -91,7 +93,7 @@ void path_input_set_start(void *param_1, float *param_2, int param_3)
  *   MOV [EAX+0x34], EDX   ; EDX = [EBP+0x14] = param_4
  */
 void path_input_set_attractor(void *param_1, float *param_2, float param_3,
-                  uint32_t param_4, float param_5)
+                              uint32_t param_4, float param_5)
 {
   *(uint8_t *)((char *)param_1 + 0x24) = 1;
   *(float *)((char *)param_1 + 0x28) = param_2[0];
@@ -180,15 +182,14 @@ void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4)
 char *path_get_node(char *param_1, short param_2)
 {
   if (param_2 == -1) {
-    display_assert("node_index != NONE",
-                   "c:\\halo\\SOURCE\\ai\\path.c", 0x611, 1);
+    display_assert("node_index != NONE", "c:\\halo\\SOURCE\\ai\\path.c", 0x611,
+                   1);
     system_exit(-1);
   } else if (param_2 >= 0 && param_2 < *(short *)(param_1 + 0x80)) {
     goto done;
   }
-  display_assert(
-      "(node_index >= 0) && (node_index < state->node_count)",
-      "c:\\halo\\SOURCE\\ai\\path.c", 0x612, 1);
+  display_assert("(node_index >= 0) && (node_index < state->node_count)",
+                 "c:\\halo\\SOURCE\\ai\\path.c", 0x612, 1);
   system_exit(-1);
 done:
   return param_1 + (int)param_2 * 0x44 + 0x84;
@@ -235,12 +236,12 @@ short path_node_from_hash_table(char *param_1, unsigned int param_2)
  *   [EBP-0x0c] = param_4[1] - param_2[1]  (delta.y)
  *   [EBP-0x08] = param_4[2] - param_2[2]  (delta.z)
  *   tag_block_get_element(param_1+0xb0, 0, 0x60) -> bsp element
- *   FUN_00149480(1, bsp, 0, 0, param_2, &delta, FLT_MAX, result_buf) -> ray cast
- *   Condition: (1.0 - t)^2 * dist_sq < 0.1  => clear (return 1)
- *   param_5 receives the result byte; param_6 receives param_4 copy (dest pos)
+ *   FUN_00149480(1, bsp, 0, 0, param_2, &delta, FLT_MAX, result_buf) -> ray
+ * cast Condition: (1.0 - t)^2 * dist_sq < 0.1  => clear (return 1) param_5
+ * receives the result byte; param_6 receives param_4 copy (dest pos)
  */
 char path_3d_available(int param_1, int *param_2, int param_3, int *param_4,
-                  unsigned char *param_5, float *param_6)
+                       unsigned char *param_5, float *param_6)
 {
   char cVar3;
   unsigned char uVar5;
@@ -257,16 +258,13 @@ char path_3d_available(int param_1, int *param_2, int param_3, int *param_4,
   delta[2] = *((float *)param_4 + 2) - *((float *)param_2 + 2);
   cVar3 = ((char (*)(int, void *, short, int, float *, float *, float,
                      float *))0x149480)(
-      1, tag_block_get_element((char *)param_1 + 0xb0, 0, 0x60),
-      0, 0, (float *)param_2, delta, 3.4028235e+38f,
-      local_438);
-  if (cVar3 == '\0' ||
-      local_438[0] >= *(float *)0x2533c8 ||
+    1, tag_block_get_element((char *)param_1 + 0xb0, 0, 0x60), 0, 0,
+    (float *)param_2, delta, 3.4028235e+38f, local_438);
+  if (cVar3 == '\0' || local_438[0] >= *(float *)0x2533c8 ||
       (*(float *)0x2533c8 - local_438[0]) *
           (*(float *)0x2533c8 - local_438[0]) *
-          (delta[1] * delta[1] + delta[0] * delta[0] +
-           delta[2] * delta[2]) <
-          *(float *)0x25496c) {
+          (delta[1] * delta[1] + delta[0] * delta[0] + delta[2] * delta[2]) <
+        *(float *)0x25496c) {
     uVar5 = 1;
     local_5 = 1;
   }
@@ -285,9 +283,10 @@ char path_3d_available(int param_1, int *param_2, int param_3, int *param_4,
  * Builds an initial navigation state record from a source position.
  *
  * Zeroes a 0x5c-byte output struct, then calls path_3d_available to perform a
- * pathfinding query. If path_3d_available succeeds, the output struct is populated
- * with the destination position (from param_4), a result vector from the query,
- * and various flags/sentinel values. Returns 1 on success, 0 on failure.
+ * pathfinding query. If path_3d_available succeeds, the output struct is
+ * populated with the destination position (from param_4), a result vector from
+ * the query, and various flags/sentinel values. Returns 1 on success, 0 on
+ * failure.
  *
  * Output struct layout (ESI = param_5):
  *   [+0x00] = 1              (valid flag, byte)
@@ -313,7 +312,7 @@ char FUN_0005e920(int param_1, int *param_2, int param_3, int *param_4,
 
   csmemset(param_5, 0, 0x5c);
   result = path_3d_available(param_1, param_2, param_3, param_4, &local_byte,
-                        local_vec);
+                             local_vec);
   if (result != 0) {
     *(float *)(param_5 + 0x20) = local_vec[0];
     *(float *)(param_5 + 0x24) = local_vec[1];
@@ -344,7 +343,8 @@ char FUN_0005e920(int param_1, int *param_2, int param_3, int *param_4,
  * asserts the traverse result is non-zero (not _path_traverse_result_none).
  * If the result is not 5, marks the debug record as needing attention.
  *
- * Returns: char (0 = failed/skipped, nonzero = traverse result from FUN_0005f740)
+ * Returns: char (0 = failed/skipped, nonzero = traverse result from
+ * FUN_0005f740)
  */
 char FUN_0005ff70(unsigned int *param_1)
 {
@@ -390,8 +390,8 @@ char FUN_0005ff70(unsigned int *param_1)
     *(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0xe) = uVar2;
     if (*(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x10) == 0) {
       display_assert(
-          "state->debug->path_traverse_result != _path_traverse_result_none",
-          "c:\\halo\\SOURCE\\ai\\path.c", 0x32d, 1);
+        "state->debug->path_traverse_result != _path_traverse_result_none",
+        "c:\\halo\\SOURCE\\ai\\path.c", 0x32d, 1);
       system_exit(-1);
     }
     if (*(short *)(*(unsigned int *)((char *)param_1 + 0x48) + 0x10) != 5) {

@@ -34,8 +34,8 @@ typedef int(__stdcall *ReleaseMutex_fn)(int handle);
 #define XReleaseMutex ((ReleaseMutex_fn)0x1d0099)
 
 /* WaitForSingleObject return codes */
-#define WAIT_OBJECT_0    0x00
-#define WAIT_ABANDONED   0x80
+#define WAIT_OBJECT_0 0x00
+#define WAIT_ABANDONED 0x80
 
 #define STILL_ACTIVE 0x103
 

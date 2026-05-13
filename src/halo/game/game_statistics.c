@@ -4,8 +4,9 @@ void game_statistics_start(void)
 }
 
 /* Update game statistics for all items in the data table.
- * Stores the current game time (in seconds) at +0xb8, marks entry active at +0x8e,
- * and increments the match counter at +0x90 for entries matching param_1. */
+ * Stores the current game time (in seconds) at +0xb8, marks entry active at
+ * +0x8e, and increments the match counter at +0x90 for entries matching
+ * param_1. */
 void FUN_000b5650(short param_1)
 {
   data_iter_t local_14;

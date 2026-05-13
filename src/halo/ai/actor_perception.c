@@ -130,7 +130,8 @@ float FUN_0002fd10(int actor_handle, int clump_item_handle)
     } else {
       /* Actor has a weapon in hand */
       char *weapon_tag = FUN_000210f0(actor_handle);
-      char *actv_tag2 = actor_combat_get_firing_variant_definition(actor_handle);
+      char *actv_tag2 =
+        actor_combat_get_firing_variant_definition(actor_handle);
 
       if (weapon_tag == 0 ||
           *(float *)(prop + 0x11c) >= *(float *)(weapon_tag + 0x40c)) {

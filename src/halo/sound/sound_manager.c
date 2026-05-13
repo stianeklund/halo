@@ -168,8 +168,7 @@ short sound_select_pitch_range(void *sound_tag, float random_scale,
       float max_bend;
       float distance;
 
-      pitch_range =
-        (char *)tag_block_get_element(tag + 0x98, (int)i, 0x48);
+      pitch_range = (char *)tag_block_get_element(tag + 0x98, (int)i, 0x48);
       if (*(int *)(pitch_range + 0x3c) == 0)
         continue;
 

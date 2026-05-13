@@ -85,7 +85,8 @@ bool FUN_00106130(uint16_t point_count, void *points, void *query_point,
  * If cross < -epsilon for any edge, the point is outside and returns false.
  * The wrap-around index uses: next = (i+1 >= count) ? 0 : i+1.
  */
-bool FUN_00106200(int16_t count, void *points, float *query_point, float epsilon)
+bool FUN_00106200(int16_t count, void *points, float *query_point,
+                  float epsilon)
 {
   int16_t i;
   float neg_epsilon;
@@ -207,8 +208,8 @@ void cluster_partition_add_object(void *partition, int object_handle,
   cluster_bsp_index = *(uint16_t *)(loc + 4);
   rad.u = radius_fp;
 
-  cluster_count = structure_find_in_cluster(
-    cluster_bsp_index, (float *)pos, rad.f, 0x40, local_clusters);
+  cluster_count = structure_find_in_cluster(cluster_bsp_index, (float *)pos,
+                                            rad.f, 0x40, local_clusters);
 
   if (cluster_count > 0x40) {
     error(2, "an object or light spanned %d clusters.", (int)cluster_count);
@@ -430,8 +431,8 @@ void structures_cluster_marker_end(void)
   *(uint8_t *)0x4d92e1 = 0;
 }
 
-bool structure_get_planar_fog(void *scenario, int16_t portal_index, float *position,
-                  float radius)
+bool structure_get_planar_fog(void *scenario, int16_t portal_index,
+                              float *position, float radius)
 {
   uint8_t projected_vertices[1024];
   uint8_t projected_center[8];

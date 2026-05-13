@@ -12,7 +12,8 @@ void FUN_001965f0(void *param_1)
   char *fog_elem;
 
   scenario = (char *)scenario_get();
-  leaf = bsp3d_find_leaf(tag_block_get_element(scenario + 0xb0, 0, 0x60), 0, param_1);
+  leaf = bsp3d_find_leaf(tag_block_get_element(scenario + 0xb0, 0, 0x60), 0,
+                         param_1);
 
   if (leaf == 0xffffffff) {
     leaf = *(uint32_t *)0x506780;
@@ -28,12 +29,12 @@ void FUN_001965f0(void *param_1)
   if (leaf == 0xffffffff)
     return;
 
-  do_cluster:
+do_cluster:
   cluster_elem = (char *)tag_block_get_element(scenario + 0xe0,
-    (int)(leaf & 0x7fffffff), 0x10);
+                                               (int)(leaf & 0x7fffffff), 0x10);
   *(int *)0x506784 = (int)*(short *)(cluster_elem + 8);
-  fog_elem = (char *)tag_block_get_element(scenario + 0x134,
-    *(int *)0x506784, 0x68);
+  fog_elem =
+    (char *)tag_block_get_element(scenario + 0x134, *(int *)0x506784, 0x68);
   *(short *)0x50678a = *(short *)fog_elem;
   fog_elem = (char *)FUN_0018e7d0((int)*(short *)0x50678a);
   if (fog_elem != 0 && *(int *)(fog_elem + 0xc) != -1)

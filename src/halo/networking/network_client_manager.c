@@ -68,9 +68,9 @@ int16_t FUN_00124cc0(void *server)
  * immediately tears it down (POP EBP / JMP 0x128e00), so every argument
  * passes through to the callee unchanged. In the one observed call site
  * (network_game_client_end_frame), the caller resolves a server handle to a
- * connection pointer via network_game_client_get_seconds_to_game_start, then calls this wrapper with the
- * resulting connection pointer, a message buffer, its size, a dest_address,
- * and reliable=0. */
+ * connection pointer via network_game_client_get_seconds_to_game_start, then
+ * calls this wrapper with the resulting connection pointer, a message buffer,
+ * its size, a dest_address, and reliable=0. */
 bool FUN_00124d40(void *connection, void *message, unsigned short size,
                   int dest_address, int reliable)
 {
@@ -126,7 +126,8 @@ bool network_game_client_get_available_games(void *server)
 }
 
 /* 0x125820 — Asserts client is non-null and returns the uint32_t field at
- * offset 0xc98 (the raw value that network_game_client_get_available_games tests for non-zero). */
+ * offset 0xc98 (the raw value that network_game_client_get_available_games
+ * tests for non-zero). */
 uint32_t network_game_client_get_error(void *server)
 {
   assert_halt(server);
@@ -166,9 +167,8 @@ void FUN_00126000(void *server)
         size = *encoded >> 4;
         if (!FUN_00128e00(*(int *)((char *)server + 0x82c), encoded, size, 0,
                           1)) {
-          network_game_log(
-              "network_game_client_write() failed while sending a "
-              "message_client_graceful_game_exit_pregame message");
+          network_game_log("network_game_client_write() failed while sending a "
+                           "message_client_graceful_game_exit_pregame message");
         }
       }
     }
@@ -196,9 +196,8 @@ bool FUN_001260c0(void *server)
       return result;
     result = FUN_00127ea0(server, local_820, local_8, local_20);
     if (!result)
-      network_game_log(
-          "network_game_client_handle_message() failed in "
-          "network_game_client_process_incoming_messages()");
+      network_game_log("network_game_client_handle_message() failed in "
+                       "network_game_client_process_incoming_messages()");
   } while (result);
   return result;
 }
@@ -236,15 +235,14 @@ bool FUN_00126b60(void *server)
       encoded = (unsigned short *)FUN_0012b700(0xc, join_payload, 0x50);
       if (encoded == NULL) {
         network_game_log(
-            "failed to create a message_client_join_game_request message");
+          "failed to create a message_client_join_game_request message");
       } else if (FUN_00128e00(*(int *)((char *)server + 0x82c), encoded,
                               (unsigned short)(*encoded >> 4), 0, 1)) {
         *(unsigned char *)((char *)server + 0xcaa) =
-            *(unsigned char *)((char *)server + 0xcaa) | 2;
+          *(unsigned char *)((char *)server + 0xcaa) | 2;
       } else {
-        network_game_log(
-            "network_game_client_write() failed to send a "
-            "message_client_join_game_request message");
+        network_game_log("network_game_client_write() failed to send a "
+                         "message_client_join_game_request message");
       }
     }
     *(int *)((char *)server + 0x830) = 0;
@@ -252,11 +250,10 @@ bool FUN_00126b60(void *server)
     connect_handle = *(int *)((char *)server + 0x830);
     if (connect_handle != 0) {
       now_ms = (int)system_milliseconds();
-      if ((unsigned int)(now_ms - *(int *)((char *)server + 0x834)) >
-          120000) {
+      if ((unsigned int)(now_ms - *(int *)((char *)server + 0x834)) > 120000) {
         network_game_log(
-            "client connection process has timed out; aborting connection "
-            "attempt");
+          "client connection process has timed out; aborting connection "
+          "attempt");
         FUN_00084300(*(int *)((char *)server + 0x830));
         *(int *)((char *)server + 0x830) = 0;
         return false;
@@ -266,16 +263,15 @@ bool FUN_00126b60(void *server)
 
   connected = FUN_00129cf0(*(int *)((char *)server + 0x82c), 5000, 0);
   if (!connected) {
-    network_game_log(
-        "network_connection_idle() failed in "
-        "network_game_client_idle_joining()");
+    network_game_log("network_connection_idle() failed in "
+                     "network_game_client_idle_joining()");
     return false;
   }
   connected = FUN_001260c0(server);
   if (!connected) {
     network_game_log(
-        "network_game_client_process_incoming_messages() failed in "
-        "network_game_client_idle_joining()");
+      "network_game_client_process_incoming_messages() failed in "
+      "network_game_client_idle_joining()");
     return false;
   }
   return connected;
@@ -283,9 +279,10 @@ bool FUN_00126b60(void *server)
 
 /* FUN_00126ce0 (0x126ce0) — network_game_client_idle_pregame
  *
- * Called from the client idle dispatch (FUN_00127070) when state == 2 (pregame).
- * Checks network connectivity, processes the connection, and handles incoming
- * messages. Returns false if the connection drops or processing fails. */
+ * Called from the client idle dispatch (FUN_00127070) when state == 2
+ * (pregame). Checks network connectivity, processes the connection, and handles
+ * incoming messages. Returns false if the connection drops or processing fails.
+ */
 bool FUN_00126ce0(void *server)
 {
   bool result;
@@ -311,17 +308,15 @@ main_body:
   FUN_00126000(server);
   result = FUN_00129cf0(*(int *)((char *)server + 0x82c), 15000, 0);
   if (!result) {
-    network_game_log(
-        "network_connection_idle() failed in "
-        "network_game_client_idle_pregame()");
+    network_game_log("network_connection_idle() failed in "
+                     "network_game_client_idle_pregame()");
     goto tail_check;
   }
   result = FUN_001260c0(server);
   if (result)
     return result;
-  network_game_log(
-      "network_game_client_process_incoming_messages() failed in "
-      "network_game_client_idle_pregame()");
+  network_game_log("network_game_client_process_incoming_messages() failed in "
+                   "network_game_client_idle_pregame()");
   goto tail_check;
 
 fail:
@@ -342,7 +337,8 @@ tail_check:
  * silent (bit 5 of connection+0x30 via FUN_001286a0), displays per-player
  * error widgets if newly silent, records the silent flag at server+0xcad, then
  * runs the connection idle tick (15-second timeout) and processes incoming
- * messages. Returns false if the connection drops or any critical step fails. */
+ * messages. Returns false if the connection drops or any critical step fails.
+ */
 bool FUN_00126db0(void *server)
 {
   int connection;
@@ -373,8 +369,8 @@ bool FUN_00126db0(void *server)
         player_idx = local_player_get_next(player_idx);
       }
       network_game_log(
-          "network client connection has been silent for a dangerously long"
-          " amount of time");
+        "network client connection has been silent for a dangerously long"
+        " amount of time");
     }
   write_flag:
     *(char *)((char *)server + 0xcad) = (char)is_silent;
@@ -386,20 +382,20 @@ bool FUN_00126db0(void *server)
   result = FUN_00129cf0(connection, 15000, 0);
   if (!result) {
     connection = *(int *)((char *)server + 0x82c);
-    if (!FUN_00128660(connection) || !network_connection_connected(connection)) {
+    if (!FUN_00128660(connection) ||
+        !network_connection_connected(connection)) {
       error(2, "new2 idle in game abort hit");
       display_error_when_main_menu_loaded(4);
       result = false;
     }
     network_game_log(
-        "network_connection_idle() failed in network_game_client_idle_ingame()");
+      "network_connection_idle() failed in network_game_client_idle_ingame()");
     return result;
   }
   result = FUN_001260c0(server);
   if (!result)
-    network_game_log(
-        "network_game_client_process_incoming_messages() failed in"
-        " network_game_client_idle_ingame()");
+    network_game_log("network_game_client_process_incoming_messages() failed in"
+                     " network_game_client_idle_ingame()");
   return result;
 
 abort:
@@ -410,10 +406,10 @@ abort:
 
 /* network_game_client_idle (0x126f40) — network_game_client_idle_postgame
  *
- * Called from the client idle dispatch (FUN_00127070) when state == 4 (postgame).
- * Checks network connectivity, runs the connection idle with a 15-second
- * timeout, and processes incoming messages. Returns false if the connection
- * drops or processing fails. */
+ * Called from the client idle dispatch (FUN_00127070) when state == 4
+ * (postgame). Checks network connectivity, runs the connection idle with a
+ * 15-second timeout, and processes incoming messages. Returns false if the
+ * connection drops or processing fails. */
 bool network_game_client_idle(void *server)
 {
   bool result;
@@ -434,17 +430,15 @@ check_result:
 main_body:
   result = FUN_00129cf0(*(int *)((char *)server + 0x82c), 15000, 0);
   if (!result) {
-    network_game_log(
-        "network_connection_idle() failed in "
-        "network_game_client_idle_postgame()");
+    network_game_log("network_connection_idle() failed in "
+                     "network_game_client_idle_postgame()");
     goto tail_check;
   }
   result = FUN_001260c0(server);
   if (result)
     return result;
-  network_game_log(
-      "network_game_client_process_incoming_messages() failed in "
-      "network_game_client_idle_postgame()");
+  network_game_log("network_game_client_process_incoming_messages() failed in "
+                   "network_game_client_idle_postgame()");
 
 tail_check:
   if (!FUN_00128660(*(int *)((char *)server + 0x82c))) {

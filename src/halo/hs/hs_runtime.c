@@ -1550,7 +1550,8 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
  * from the function descriptor table.
  * Returns FUN_000cc3a0's result — callers (e.g. ai_allegiance at 0xc06b0)
  * read EAX after this call to get the evaluated script value. */
-int hs_macro_function_evaluate(int16_t function_index, int thread_datum, char init)
+int hs_macro_function_evaluate(int16_t function_index, int thread_datum,
+                               char init)
 {
   char *desc = (char *)hs_function_table_get(function_index);
   return FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18),
@@ -1624,7 +1625,8 @@ void hs_evaluate_begin(int16_t function_index, int thread_datum, char init)
  *   0x5aa6c4 = hs_thread_data  (data_t*)
  *   0x5aa6c8 = hs_syntax_data  (data_t*)
  */
-void hs_evaluate_begin_random(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_begin_random(int16_t function_index, int thread_datum,
+                              char init)
 {
   char *thread;
   int16_t *argument_count;
@@ -2251,7 +2253,8 @@ void hs_evaluate_sleep(int16_t function_index, int thread_datum, char init)
  *
  * Assert: function_index == 0x14 (_hs_function_sleep_until).
  */
-void hs_evaluate_sleep_until(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sleep_until(int16_t function_index, int thread_datum,
+                             char init)
 {
   char *thread;
   char *evaluated;
@@ -2396,7 +2399,8 @@ void hs_evaluate_inspect(int16_t function_index, int thread_datum, char init)
  * checks if the object's type matches the target conversion mask from
  * the table at 0x26f320. Returns the object if compatible, NONE if not.
  * function_index 0x17 = object_to_unit. */
-void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum,
+                                char init)
 {
   char *thread;
   int *result_ptr;
@@ -2456,7 +2460,8 @@ void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum, char i
  *
  * Assert: function_index in [0x18..0x1a] (_hs_function_debug_string range).
  */
-void hs_evaluate_debug_string(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_debug_string(int16_t function_index, int thread_datum,
+                              char init)
 {
   char *thread;
   int *cur_expr;
@@ -2940,6 +2945,26 @@ void hs_runtime_dispose(void)
   data_make_invalid(*(data_t **)0x5aa694);
 }
 
+/* 0x000ce320 — object_list_iterator_next
+ * Advances an object-list iterator to the next entry.
+ * Returns the object datum handle, or -1 if the list is exhausted.
+ * Updates *iter_state to point to the next node's link.
+ *
+ * Confirmed: datum_get(0x5aa694, *iter_state) at 0xce335.
+ * Confirmed: node+0x8 = next link, node+0x4 = object handle.
+ */
+int FUN_000ce320(int param_1, int *param_2)
+{
+  char *node;
+
+  if (*param_2 != -1) {
+    node = (char *)datum_get(*(data_t **)0x5aa694, *param_2);
+    *param_2 = *(int *)(node + 8);
+    return *(int *)(node + 4);
+  }
+  return -1;
+}
+
 /* 0xce350 */
 void FUN_000ce350(int expression_datum)
 {
@@ -2969,33 +2994,14 @@ void FUN_000ce370(int expression_datum)
   }
 }
 
-/* 0x000ce320 — object_list_iterator_next
- * Advances an object-list iterator to the next entry.
- * Returns the object datum handle, or -1 if the list is exhausted.
- * Updates *iter_state to point to the next node's link.
- *
- * Confirmed: datum_get(0x5aa694, *iter_state) at 0xce335.
- * Confirmed: node+0x8 = next link, node+0x4 = object handle.
- */
-int FUN_000ce320(int param_1, int *param_2)
-{
-  char *node;
-
-  if (*param_2 != -1) {
-    node = (char *)datum_get(*(data_t **)0x5aa694, *param_2);
-    *param_2 = *(int *)(node + 8);
-    return *(int *)(node + 4);
-  }
-  return -1;
-}
-
 /* 0x000ce450 — object_list_iterator_first
  * Initializes an object-list iterator and returns the first object handle.
  * Returns -1 if the list is empty or param_1 is -1.
  *
  * Confirmed: datum_get(0x5aa698, param_1) at 0xce466.
  * Confirmed: datum_get(0x5aa694, first_link) at 0xce483.
- * Confirmed: node+0x8 = head link (list entry), then node+0x8 = next, node+0x4 = handle.
+ * Confirmed: node+0x8 = head link (list entry), then node+0x8 = next, node+0x4
+ * = handle.
  */
 int FUN_000ce450(int param_1, int *param_2)
 {

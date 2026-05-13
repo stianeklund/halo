@@ -288,7 +288,8 @@ int16_t actor_action_try_to_panic(int actor_handle)
  * Returns a short from a 12-entry lookup table at 0x254300, or 0 if the index
  * is out of range [0, 12).
  *
- * Confirmed: CMP CX,0xc bounds check, table at 0x254300 = {0,2,2,3,4,5,6,7,8,9,9,8}.
+ * Confirmed: CMP CX,0xc bounds check, table at 0x254300 =
+ * {0,2,2,3,4,5,6,7,8,9,9,8}.
  */
 short FUN_0001d730(short param_1)
 {

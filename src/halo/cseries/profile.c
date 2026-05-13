@@ -6,27 +6,30 @@
    Use GCC-style asm for clang (even targeting MSVC) because MSVC-style
    __asm doesn't properly communicate register clobbers to the optimizer. */
 #if defined(_MSC_VER) && !defined(__clang__)
-#define RDTSC(lo, hi)                             \
-  do {                                            \
-    uint32_t _lo, _hi;                            \
-    __asm { rdtsc }                               \
-    __asm { mov _lo, eax }                        \
-    __asm { mov _hi, edx }                        \
-    (lo) = _lo;                                   \
-    (hi) = _hi;                                   \
+#define RDTSC(lo, hi)   \
+  do {                  \
+    uint32_t _lo, _hi;  \
+    __asm { rdtsc }      \
+    __asm               \
+    {                   \
+      mov _lo, eax      \
+    }                   \
+    __asm { mov _hi, edx } \
+    (lo) = _lo;         \
+    (hi) = _hi;         \
   } while (0)
 #else
-#define RDTSC(lo, hi)                                     \
-  do {                                                    \
-    uint32_t _lo, _hi;                                    \
-    asm volatile("rdtsc\n\t"                              \
-                 "movl %%eax, %0\n\t"                     \
-                 "movl %%edx, %1"                         \
-                 : "=rm"(_lo), "=rm"(_hi)                 \
-                 :                                        \
-                 : "eax", "edx");                         \
-    (lo) = _lo;                                           \
-    (hi) = _hi;                                           \
+#define RDTSC(lo, hi)                     \
+  do {                                    \
+    uint32_t _lo, _hi;                    \
+    asm volatile("rdtsc\n\t"              \
+                 "movl %%eax, %0\n\t"     \
+                 "movl %%edx, %1"         \
+                 : "=rm"(_lo), "=rm"(_hi) \
+                 :                        \
+                 : "eax", "edx");         \
+    (lo) = _lo;                           \
+    (hi) = _hi;                           \
   } while (0)
 #endif
 

@@ -1155,14 +1155,19 @@ LAB_0005a825:
 
 LAB_0005a870:
   /* Activation decision: short-circuit OR, last test inverted.
-   * ref: je visible, jne override, jne sub_state, je !editor → deactivate; fall=activate.
-   * SETZ; OR override; OR sub_state; then if !editor → deactivate. */
+   * ref: je visible, jne override, jne sub_state, je !editor → deactivate;
+   * fall=activate. SETZ; OR override; OR sub_state; then if !editor →
+   * deactivate. */
   sub_state = *(char *)(actor + 0xa);
   in_editor = game_in_editor();
-  if (*(char *)(actor + 0x12) == '\0') goto LAB_activate; /* visible → activate */
-  if (*(char *)0x5ac9c9 != '\0') goto LAB_activate;       /* override → activate */
-  if (sub_state != '\0') goto LAB_activate;                /* sub_state → activate */
-  if (in_editor == '\0') goto LAB_0005a8d4;                /* !editor → deactivate */
+  if (*(char *)(actor + 0x12) == '\0')
+    goto LAB_activate; /* visible → activate */
+  if (*(char *)0x5ac9c9 != '\0')
+    goto LAB_activate; /* override → activate */
+  if (sub_state != '\0')
+    goto LAB_activate; /* sub_state → activate */
+  if (in_editor == '\0')
+    goto LAB_0005a8d4; /* !editor → deactivate */
   /* else fall through to activate */
 
 LAB_activate:

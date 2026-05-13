@@ -16,18 +16,20 @@
  * Confirmed: PUSH 0x2, PUSH ESI -> object_get_and_verify_type(handle, 2).
  * Confirmed: MOV EAX,[EAX] -> obj->tag_index (uint32 at offset 0).
  * Confirmed: PUSH EAX, PUSH 0x76656869 -> tag_get('vehi', tag_index).
- * Confirmed: MOVSX EAX,word ptr [EDI+0x2f4] -> (int16_t)vehicle_tag->type_field.
- * Confirmed: CMP EAX,0x6; JA -> default return -1 for types > 6.
- * Confirmed: switch byte table at 0x1b5f18: types 0,1,4,6 -> case body; 2,3,5 -> default.
- * Confirmed: CALL 0x18e3f0 (global_collision_bsp_get) with no args.
- * Confirmed: LEA EDX,[EBP-0xc]; PUSH EDX; PUSH ESI -> object_get_world_position(handle, &adj_pos).
- * Confirmed: MOV EAX,[0x31fc44] -> up_vec_ptr = *(float**)0x31fc44 (global_up_vector_ptr).
+ * Confirmed: MOVSX EAX,word ptr [EDI+0x2f4] ->
+ * (int16_t)vehicle_tag->type_field. Confirmed: CMP EAX,0x6; JA -> default
+ * return -1 for types > 6. Confirmed: switch byte table at 0x1b5f18: types
+ * 0,1,4,6 -> case body; 2,3,5 -> default. Confirmed: CALL 0x18e3f0
+ * (global_collision_bsp_get) with no args. Confirmed: LEA EDX,[EBP-0xc]; PUSH
+ * EDX; PUSH ESI -> object_get_world_position(handle, &adj_pos). Confirmed: MOV
+ * EAX,[0x31fc44] -> up_vec_ptr = *(float**)0x31fc44 (global_up_vector_ptr).
  * Confirmed: FMUL float[0x253524] -> 0.4f (constant at 0x253524 = 0x3ECCCCCD).
- * Confirmed: adj_pos[i] = up_vec[i] * 0.4 + world_pos[i] (FSTP to EBP-0xc,-0x8,-0x4).
- * Confirmed: MOV EAX,[0x31fc50] -> fwd_vec_ptr = *(float**)0x31fc50 (global_forward_vector_ptr).
- * Confirmed: FADD ST0,ST0 -> fwd_vec[i] * 2; FSTP to EBP-0x18,-0x14,-0x10.
- * Confirmed: PUSH EAX(result_buf), PUSH 0x7f7fffff(FLT_MAX), PUSH ECX(&fwd_doubled),
- *            PUSH EDX(&adj_pos), PUSH 0, PUSH 0, PUSH EDI(bsp), PUSH 1 -> FUN_00149480.
+ * Confirmed: adj_pos[i] = up_vec[i] * 0.4 + world_pos[i] (FSTP to
+ * EBP-0xc,-0x8,-0x4). Confirmed: MOV EAX,[0x31fc50] -> fwd_vec_ptr =
+ * *(float**)0x31fc50 (global_forward_vector_ptr). Confirmed: FADD ST0,ST0 ->
+ * fwd_vec[i] * 2; FSTP to EBP-0x18,-0x14,-0x10. Confirmed: PUSH
+ * EAX(result_buf), PUSH 0x7f7fffff(FLT_MAX), PUSH ECX(&fwd_doubled), PUSH
+ * EDX(&adj_pos), PUSH 0, PUSH 0, PUSH EDI(bsp), PUSH 1 -> FUN_00149480.
  * Confirmed: TEST AL,AL; JZ -> if ray misses, fall to default return -1.
  * Confirmed: MOV EAX,[EBP-0x42c] -> result_buf[2] loaded as return value.
  * Confirmed: FMUL [EBP-0x434] -> multiply by result_buf[0] (ray t param).
@@ -36,9 +38,10 @@
 int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position)
 {
   void *bsp;
-  float adj_pos[3];   /* object_pos + up_vec * 0.4, at EBP-0xc */
+  float adj_pos[3]; /* object_pos + up_vec * 0.4, at EBP-0xc */
   float fwd_doubled[3]; /* fwd_vec * 2, at EBP-0x18 */
-  float result_buf[0x434 / 4]; /* ray hit result buffer, at EBP-0x434; only [0] and [2] used */
+  float result_buf[0x434 / 4]; /* ray hit result buffer, at EBP-0x434; only [0]
+                                  and [2] used */
   int default_ret;
 
   object_data_t *obj =
@@ -46,7 +49,8 @@ int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position)
   void *vehicle_tag = tag_get(0x76656869, *(uint32_t *)obj);
   default_ret = -1;
 
-  /* First call: store current position into out_position (fills in initial value). */
+  /* First call: store current position into out_position (fills in initial
+   * value). */
   object_get_world_position(vehicle_handle, out_position);
 
   /* Switch on vehicle type at tag+0x2f4. */
@@ -83,7 +87,8 @@ int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position)
     fwd_doubled[2] = fwd[2] + fwd[2];
   }
 
-  /* Cast ray. result_buf[0] = t, result_buf[2] = hit object (returned as EAX). */
+  /* Cast ray. result_buf[0] = t, result_buf[2] = hit object (returned as EAX).
+   */
   if (!((char (*)(int, void *, int16_t, int, float *, float *, float,
                   float *))0x149480)(1, bsp, 0, 0, adj_pos, fwd_doubled,
                                      3.4028235e+38f, result_buf)) {

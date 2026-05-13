@@ -35,32 +35,31 @@
  *   - Called from XapiMapLetterToDirectory, XLaunchNewImageA — XAPI layer
  *   - Function is a safe strncpy variant with access-violation guard
  */
-char * __stdcall FUN_001d789a(char *dst, const char *src, int count)
+char *__stdcall FUN_001d789a(char *dst, const char *src, int count)
 {
-    __try {
-        char *d;
-        const char *s;
-        d = dst;
-        s = src;
-        if (count != 0) {
-            while (count != 0) {
-                if (*s == '\0') {
-                    if (count != 0)
-                        goto done_null;
-                    break;
-                }
-                *d = *s;
-                d++;
-                s++;
-                count--;
-            }
-            d--;
-done_null:
-            *d = '\0';
+  __try {
+    char *d;
+    const char *s;
+    d = dst;
+    s = src;
+    if (count != 0) {
+      while (count != 0) {
+        if (*s == '\0') {
+          if (count != 0)
+            goto done_null;
+          break;
         }
+        *d = *s;
+        d++;
+        s++;
+        count--;
+      }
+      d--;
+    done_null:
+      *d = '\0';
     }
-    __except(1) {
-        return 0;
-    }
-    return dst;
+  } __except (1) {
+    return 0;
+  }
+  return dst;
 }

@@ -792,8 +792,8 @@ void observer_compute_update(int16_t local_player_index)
  * forward0/up0 come from state+0x20/+0x2c; forward1/up1 from
  * velocities+0x20/+0x2c. The caller (FUN_0008c440) passes these via EDI/ESI
  * (forward0/up0) and EBX (up1) in the binary; here normalised as C params. */
-void FUN_0008c030(float *forward1, float *result_angular,
-                  float *forward0, float *up0, float *up1)
+void FUN_0008c030(float *forward1, float *result_angular, float *forward0,
+                  float *up0, float *up1)
 {
   float mat0[13]; /* 3x4 matrix (13 floats, padded to 52 bytes) */
   float mat1[13];

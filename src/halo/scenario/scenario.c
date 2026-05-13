@@ -581,10 +581,9 @@ done:
  *
  * Confirmed: asserts "global_structure_bsp" at line 0xc5.
  * Confirmed: tag_get('fog ', tag_index) at CALL 0x1ba140.
- * Confirmed: plane3d_distance_to_point(plane, position) is plane_test_point (dot - d).
- * Confirmed: FCHS negates the sum before return.
- * Confirmed: 0x2548fc = FLT_MAX (0x7f7fffff).
- * Confirmed: default return = -FLT_MAX (0xff7fffff).
+ * Confirmed: plane3d_distance_to_point(plane, position) is plane_test_point
+ * (dot - d). Confirmed: FCHS negates the sum before return. Confirmed: 0x2548fc
+ * = FLT_MAX (0x7f7fffff). Confirmed: default return = -FLT_MAX (0xff7fffff).
  */
 float FUN_0018f510(void *location, void *position)
 {

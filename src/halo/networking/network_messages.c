@@ -365,7 +365,7 @@ size_ok:
     return NULL;
   }
 
-{
+  {
     void *msg = create_message(3, encoded_buf, encoded_size,
                                s_network_game_message_buffer, 0x604);
     if (msg == NULL) {

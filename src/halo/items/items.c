@@ -170,8 +170,8 @@ void FUN_000f6b80(int item_handle)
  * BSP. Confirmed: CALL 0x19b210 (tag_block_get_element) at bsp+0x3c. Confirmed:
  * CALL 0x99640 (FUN_00099640) for plane extraction. Confirmed: CALL 0x12f80
  * (vector3d_scale_add) for ground projection. Confirmed: CALL 0x143be0
- * (object_translate) for repositioning item. Confirmed: CALL 0x12170 (FUN_00012170)
- * for vector magnitude. Confirmed: CALL 0x10b0d0
+ * (object_translate) for repositioning item. Confirmed: CALL 0x12170
+ * (FUN_00012170) for vector magnitude. Confirmed: CALL 0x10b0d0
  * (get_global_random_seed_address). Confirmed: CALL 0x10b240 (random_math_real)
  * for random scale. Confirmed: CALL 0x13010 (normalize3d) for cross product
  * normalization. Confirmed: CALL 0x10b380 (random_seed_get_direction3d) for

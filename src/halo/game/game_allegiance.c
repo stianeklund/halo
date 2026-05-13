@@ -70,8 +70,9 @@ bool FUN_000a7a90(int16_t team_a, int16_t team_b)
   result = false;
   if (team_a >= 0 && team_a < 10 && team_b >= 0 && team_b < 10) {
     bit_index = team_a * 10 + team_b;
-    result = (*(uint32_t *)(game_allegiance_globals + 0x94 + (bit_index >> 5) * 4) &
-              (1 << (bit_index & 0x1f))) != 0;
+    result =
+      (*(uint32_t *)(game_allegiance_globals + 0x94 + (bit_index >> 5) * 4) &
+       (1 << (bit_index & 0x1f))) != 0;
   }
   return result;
 }

@@ -172,8 +172,9 @@ void FUN_000a1770(int particle, int tag_group, int physics_tag, int param)
     marker_forwards[4] = default_fwd[1];
     marker_forwards[5] = default_fwd[2];
 
-    effect_new_unattached_from_markers(physics_tag, -1, velocity, 2, (void *)0x2ef7d8, marker_points,
-                 marker_forwards, *(float *)&param, 0.0f, 0.0f, 0.0f, 0.0f);
+    effect_new_unattached_from_markers(
+      physics_tag, -1, velocity, 2, (void *)0x2ef7d8, marker_points,
+      marker_forwards, *(float *)&param, 0.0f, 0.0f, 0.0f, 0.0f);
     return;
   }
 
@@ -388,8 +389,8 @@ void particle_new(void *spawn_params)
     matrix_transform_point(matrix, position, local_position);
   } else {
     /* first-person weapon — transform through FP weapon node matrix */
-    float *matrix =
-      (float *)first_person_weapon_get_node_matrix(*(uint16_t *)(sp + 0x0a), *(uint16_t *)(sp + 0x08));
+    float *matrix = (float *)first_person_weapon_get_node_matrix(
+      *(uint16_t *)(sp + 0x0a), *(uint16_t *)(sp + 0x08));
     matrix_transform_point(matrix, position, local_position);
   }
 

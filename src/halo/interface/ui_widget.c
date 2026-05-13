@@ -1618,7 +1618,8 @@ bool ui_widgets_process_pause(void)
       }
 
       if (network_game) {
-        if (game_engine_allow_pause() && target_local_player == (int16_t)stack_index) {
+        if (game_engine_allow_pause() &&
+            target_local_player == (int16_t)stack_index) {
           root_widget = *(int *)(0x46cc20 + stack_index * 4);
           if (root_widget == 0) {
             client = network_game_client_get();

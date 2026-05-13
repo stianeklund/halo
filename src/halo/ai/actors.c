@@ -1849,8 +1849,8 @@ void FUN_0003c0c0(int object_handle, short effect_type, float *position,
    * may depend on the relative positions (MSVC stack overlap hazard). */
   char frame[0x5c];
   char *input_block = frame;
-  char *iter        = frame + 0x38;
-  char *location    = frame + 0x54;
+  char *iter = frame + 0x38;
+  char *location = frame + 0x54;
   char *actor_record;
   int actor_handle;
   short audibility;

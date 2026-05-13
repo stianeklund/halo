@@ -363,8 +363,8 @@ bool dangerous_effects_near_player(void)
         } else {
           void *matrix;
           if ((int16_t)node_index < 0) {
-            matrix = first_person_weapon_get_node_matrix(*(uint16_t *)((char *)effect + 0x4c),
-                                  node_index & 0x7fff);
+            matrix = first_person_weapon_get_node_matrix(
+              *(uint16_t *)((char *)effect + 0x4c), node_index & 0x7fff);
           } else {
             matrix = ((void *(*)(int, int))0x140eb0)(
               *(int *)((char *)effect + 0x3c), node_index & 0x7fff);
@@ -776,8 +776,9 @@ void FUN_0009d590(void *effect)
                     float *node_matrix;
                     if ((int16_t)node_idx < 0) {
                       node_matrix =
-                        (float *)first_person_weapon_get_node_matrix((int)*(uint16_t *)(ef + 0x4c),
-                                              (int)(node_idx & 0x7fff));
+                        (float *)first_person_weapon_get_node_matrix(
+                          (int)*(uint16_t *)(ef + 0x4c),
+                          (int)(node_idx & 0x7fff));
                     } else {
                       node_matrix = (float *)object_get_node_matrix(
                         *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
@@ -988,7 +989,8 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     float direction_scratch[3];
     unsigned int *seed;
 
-    object_placement_data_new(placement, *(int *)(loc_entry + 0x24), *(int *)(ef + 0x40));
+    object_placement_data_new(placement, *(int *)(loc_entry + 0x24),
+                              *(int *)(ef + 0x40));
 
     *(float *)(placement + 0x18) = position[0];
     *(float *)(placement + 0x1c) = position[1];
@@ -1175,7 +1177,8 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
       sound_params.field_24 = *(int *)(ef + 0x10);
       sound_params.field_28 = *(int *)(ef + 0x14);
 
-      unattached_impulse_sound_new(*(int *)(loc_entry + 0x24), &sound_params, scale);
+      unattached_impulse_sound_new(*(int *)(loc_entry + 0x24), &sound_params,
+                                   scale);
     }
 
   } else {
@@ -1194,7 +1197,8 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
  * local_player_index is currently NONE, then sets it and re-processes the
  * effect's event/marker callbacks via FUN_0009d4e0 with the particle marker
  * callback (FUN_000dd190). */
-void effects_start_on_first_person_weapon(int local_player_index, int weapon_handle)
+void effects_start_on_first_person_weapon(int local_player_index,
+                                          int weapon_handle)
 {
   int effect_index;
   for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
@@ -1280,8 +1284,8 @@ void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
 
   perpendicular3d(local_forward, local_up);
   normalize3d(local_up);
-  matrix4x3_from_forward_up_position(
-      (char *)output + 4, local_position, local_forward, local_up);
+  matrix4x3_from_forward_up_position((char *)output + 4, local_position,
+                                     local_forward, local_up);
 }
 
 void FUN_0009e310(void *effect)
@@ -1769,11 +1773,11 @@ delete_effect:
  * looked-up node matrix for the requested marker index, memsets the per-event
  * slot array, runs the marker-resolve callback (FUN_0009e560), and fires the
  * first effect_update tick.  Returns the new effect datum index or NONE. */
-int effect_new_attached_from_markers(int effect_tag_index, int object_index, int attached_object,
-                 uint16_t marker_index, short marker_count,
-                 void *effect_definition, float *marker_points,
-                 float *marker_forwards, float scale_a, float scale_b,
-                 float unknown1, float unknown2)
+int effect_new_attached_from_markers(
+  int effect_tag_index, int object_index, int attached_object,
+  uint16_t marker_index, short marker_count, void *effect_definition,
+  float *marker_points, float *marker_forwards, float scale_a, float scale_b,
+  float unknown1, float unknown2)
 {
   int handle;
   char *datum;
@@ -1782,7 +1786,8 @@ int effect_new_attached_from_markers(int effect_tag_index, int object_index, int
   void *creation_effect_def;
   float *creation_marker_pts;
   float *creation_marker_fwd;
-  /* creation_info layout (24 bytes, matches effect_new_unattached_from_markers):
+  /* creation_info layout (24 bytes, matches
+   * effect_new_unattached_from_markers):
    *   [+0]  int16  marker_index (masked: NONE→0, else pass-through)
    *   [+4]  int    node_matrix ptr (result of object_get_node_matrix)
    *   [+8]  int16  marker_count
@@ -1884,11 +1889,11 @@ int effect_new_attached_from_markers(int effect_tag_index, int object_index, int
 /* Create a new effect instance (0x9f0e0).
  * Validates inputs, allocates an effect datum, copies marker/velocity data,
  * sets up the effect creation info struct, and kicks off the first update. */
-int effect_new_unattached_from_markers(int effect_tag_index, int object_index,
-                 float *translational_velocity, short marker_count,
-                 void *effect_definition, float *marker_points,
-                 float *marker_forwards, float scale_a, float scale_b,
-                 float unknown1, float unknown2, float unknown3)
+int effect_new_unattached_from_markers(
+  int effect_tag_index, int object_index, float *translational_velocity,
+  short marker_count, void *effect_definition, float *marker_points,
+  float *marker_forwards, float scale_a, float scale_b, float unknown1,
+  float unknown2, float unknown3)
 {
   int handle;
   char *datum;

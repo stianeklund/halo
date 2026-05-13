@@ -353,8 +353,7 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
   if (!current_game_engine)
     return result;
 
-  seat_obj =
-    (char *)object_try_and_get_and_verify_type(seat_object_handle, 4);
+  seat_obj = (char *)object_try_and_get_and_verify_type(seat_object_handle, 4);
   if (!seat_obj)
     return result;
 
@@ -1035,8 +1034,7 @@ bool game_engine_get_score_hud_text(int player_handle, int param_2,
           goto main_switch;
         break;
       }
-      get_score =
-        ((int (**)(int, int))current_game_engine)[0x48 / 4];
+      get_score = ((int (**)(int, int))current_game_engine)[0x48 / 4];
       score = get_score(player_handle, 1);
     }
   }
@@ -1251,8 +1249,7 @@ void game_engine_periodic_equipment_spawn(void)
 
       if ((game_time_get() % spawn_period) == 0) {
 #ifdef MSVC
-        int tag_index = ((int(__cdecl *)(int))0xaca70)(
-          *(int *)(entry + 0x5c));
+        int tag_index = ((int(__cdecl *)(int))0xaca70)(*(int *)(entry + 0x5c));
 #else
         int tag_index = ((int(__attribute__((regparm(1))) *)(int))0xaca70)(
           *(int *)(entry + 0x5c));
@@ -1427,8 +1424,9 @@ void game_engine_hud_update_player(int player_handle, int hud_player,
  * Returns the number of matches found.
  */
 /* 0xad160 */
-int find_netgame_flags(float *position, float radius, float height, int16_t type,
-                 int16_t index, int max_count, int *out_indices)
+int find_netgame_flags(float *position, float radius, float height,
+                       int16_t type, int16_t index, int max_count,
+                       int *out_indices)
 {
   int result;
   int i;
@@ -1516,46 +1514,46 @@ int FUN_000ad270(float *position, float radius, float height, int16_t type,
 /* 0xad530 */
 float FUN_000ad530(int player_a, int player_b)
 {
-    float local_8;
-    char cVar1;
-    int engine;
-    int (*fn)(int, int);
-    float engine_float;
-    float clamped;
+  float local_8;
+  char cVar1;
+  int engine;
+  int (*fn)(int, int);
+  float engine_float;
+  float clamped;
 
-    engine = *(int *)0x456b60;
-    local_8 = *(float *)0x2533c8;
+  engine = *(int *)0x456b60;
+  local_8 = *(float *)0x2533c8;
+  if (engine != 0) {
+    engine_float = *(float *)0x456b34;
+    if (engine_float < *(float *)0x25337c) {
+      clamped = *(float *)0x25337c;
+    } else if (engine_float > *(float *)0x2533d8) {
+      clamped = *(float *)0x2533d8;
+    } else {
+      clamped = engine_float;
+    }
+    local_8 = *(float *)0x2533c8 / clamped;
+  }
+  if (player_a != -1 && player_b != -1 && engine != 0) {
+    fn = (int (*)(int, int))(*(int *)(engine + 0x80));
+    if (fn != 0) {
+      cVar1 = (char)fn(player_a, 2);
+      engine = *(int *)0x456b60;
+      if (cVar1 != '\0') {
+        local_8 = local_8 * *(float *)0x2533ec;
+      }
+    }
     if (engine != 0) {
-        engine_float = *(float *)0x456b34;
-        if (engine_float < *(float *)0x25337c) {
-            clamped = *(float *)0x25337c;
-        } else if (engine_float > *(float *)0x2533d8) {
-            clamped = *(float *)0x2533d8;
-        } else {
-            clamped = engine_float;
+      fn = (int (*)(int, int))(*(int *)(engine + 0x80));
+      if (fn != 0) {
+        cVar1 = (char)fn(player_b, 3);
+        if (cVar1 != '\0') {
+          return local_8 * *(float *)0x253398;
         }
-        local_8 = *(float *)0x2533c8 / clamped;
+      }
     }
-    if (player_a != -1 && player_b != -1 && engine != 0) {
-        fn = (int (*)(int, int))(*(int *)(engine + 0x80));
-        if (fn != 0) {
-            cVar1 = (char)fn(player_a, 2);
-            engine = *(int *)0x456b60;
-            if (cVar1 != '\0') {
-                local_8 = local_8 * *(float *)0x2533ec;
-            }
-        }
-        if (engine != 0) {
-            fn = (int (*)(int, int))(*(int *)(engine + 0x80));
-            if (fn != 0) {
-                cVar1 = (char)fn(player_b, 3);
-                if (cVar1 != '\0') {
-                    return local_8 * *(float *)0x253398;
-                }
-            }
-        }
-    }
-    return local_8;
+  }
+  return local_8;
 }
 
 /* game_engine_player_update_netgame_flag (0xad600)
@@ -1605,7 +1603,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
   selected_goal_index = -1;
   /* netgame_flag_find_nearest: search for type-6 flag near unit */
   find_netgame_flags((float *)(unit + 0xc), 0.5f, 0.0f, 6, -1, 1,
-               &selected_goal_index);
+                     &selected_goal_index);
 
   if (selected_goal_index == -1 ||
       selected_goal_index == *(int *)(player + 0x70)) {
@@ -1618,7 +1616,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
   next_goal_index = -1;
   /* netgame_flag_find_nearest: find paired type-7 flag by team index */
   find_netgame_flags(0, 0.0f, 0.0f, 7, *(short *)(goal_entry + 0x12), 1,
-               &next_goal_index);
+                     &next_goal_index);
 
   if (next_goal_index == -1) {
     console_printf(0, (const char *)0x26c66c,
@@ -1709,7 +1707,8 @@ void game_engine_player_update_netgame_flag(int player_handle)
   }
 
   /* object_place_at_position: teleport player to destination flag */
-  object_set_position(*(int *)(player + 0x34), (float *)next_goal_entry, unit_pos, 0);
+  object_set_position(*(int *)(player + 0x34), (float *)next_goal_entry,
+                      unit_pos, 0);
 
   if (*(short *)(player + 2) != -1) {
     player_control_set_facing((unsigned short)*(short *)(player + 2), unit_pos);

@@ -99,15 +99,16 @@ char *breakable_surfaces_get_bsp_surface_data(void)
  * random perturbation. Sound effects are also triggered at the surface center.
  *
  * Confirmed: _chkstk with 0x1240 bytes stack frame.
- * Confirmed: scenario_get at 0x145adf, FUN_0018e3f0 (global_collision_bsp) at 0x145ae6.
- * Confirmed: assert param_2!=NULL via display_assert at 0x145b05.
+ * Confirmed: scenario_get at 0x145adf, FUN_0018e3f0 (global_collision_bsp) at
+ * 0x145ae6. Confirmed: assert param_2!=NULL via display_assert at 0x145b05.
  * Confirmed: DAT_00324c32 early-out flag check at 0x145b14.
  * Confirmed: BFS queue in local_1244[1024], traversal count local_b4.
  * Confirmed: tag_block_get_element calls for planes, edges, vertices, effects.
  * Confirmed: FUN_00061df0 projects 3D to 2D, FUN_000992d0 unprojects 2D to 3D.
  * Confirmed: FUN_00106200 point-in-polygon test with 0 radius.
  * Confirmed: particle_new spawns a particle.
- * Confirmed: unattached_impulse_sound_new triggers sound at end if material has sound tag. */
+ * Confirmed: unattached_impulse_sound_new triggers sound at end if material has
+ * sound tag. */
 void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 {
   uint32_t *param_2;
@@ -191,8 +192,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 
   /* Get material data for the surface's material type */
   material_data = (char *)tag_block_get_element(
-    (void *)(scenario + 0xa4),
-    (int)*(short *)(surface_element + 10), 0x14);
+    (void *)(scenario + 0xa4), (int)*(short *)(surface_element + 10), 0x14);
 
   /* Get the game globals structure for this material */
   {
@@ -207,9 +207,8 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
   have_bbox = false;
   bfs_head = 0;
   if (*(uint8_t *)(surface_element + 9) != (uint8_t)param_1) {
-    display_assert(
-      "surface->breakable_surface==breakable_surface_index",
-      "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x10a, 1);
+    display_assert("surface->breakable_surface==breakable_surface_index",
+                   "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x10a, 1);
     system_exit(-1);
   }
 
@@ -224,16 +223,14 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
     bfs_head = bfs_head + 1;
 
     /* Get surface data (two uint32s: packed plane ref + first edge) */
-    surface_ptr =
-      (uint32_t *)tag_block_get_element((void *)(collision_bsp + 0x3c),
-                                        current_surface, 0xc);
+    surface_ptr = (uint32_t *)tag_block_get_element(
+      (void *)(collision_bsp + 0x3c), current_surface, 0xc);
     surface_data_0 = surface_ptr[0];
     surface_data_1 = surface_ptr[1];
 
     /* Get plane equation (strip sign bit for plane index) */
     vert_ptr = (float *)tag_block_get_element(
-      (void *)(collision_bsp + 0xc),
-      (int)(surface_data_0 & 0x7fffffff), 0x10);
+      (void *)(collision_bsp + 0xc), (int)(surface_data_0 & 0x7fffffff), 0x10);
 
     /* Copy plane, negating if surface references back side */
     if ((int)surface_data_0 < 0) {
@@ -277,8 +274,8 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
       char *edge_data;
 
       /* Get edge element */
-      edge_data = (char *)tag_block_get_element(
-        (void *)(collision_bsp + 0x48), current_edge, 0x18);
+      edge_data = (char *)tag_block_get_element((void *)(collision_bsp + 0x48),
+                                                current_edge, 0x18);
 
       /* Check which side of the edge this surface is on */
       is_reversed = (*(int *)(edge_data + 0x14) == current_surface) ? 1 : 0;
@@ -298,8 +295,8 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
            * our local reference point */
           FUN_00061df0(param_2 + 10, (uint32_t)projection, sign,
                        projected_point);
-          FUN_000992d0((float *)projected_point, plane, (short)projection,
-                       sign, origin);
+          FUN_000992d0((float *)projected_point, plane, (short)projection, sign,
+                       origin);
         } else {
           origin[0] = vert_ptr[0];
           origin[1] = vert_ptr[1];
@@ -317,9 +314,9 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
         edge_dir[2] = vert_other[2] - vert_ptr[2];
 
         /* Normalize edge direction */
-        dist = xbox_sqrtf(edge_dir[0] * edge_dir[0] +
-                          edge_dir[1] * edge_dir[1] +
-                          edge_dir[2] * edge_dir[2]);
+        dist =
+          xbox_sqrtf(edge_dir[0] * edge_dir[0] + edge_dir[1] * edge_dir[1] +
+                     edge_dir[2] * edge_dir[2]);
         if (xbox_fabsf(dist) >= (float)*(double *)0x2533d0) {
           inv_dist = 1.0f / dist;
           edge_dir[0] = edge_dir[0] * inv_dist;
@@ -328,28 +325,21 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
         }
 
         /* Compute cross product: cross_dir = edge_dir x plane_normal */
-        cross_dir[0] =
-          edge_dir[1] * plane[2] - edge_dir[2] * plane[1];
-        cross_dir[1] =
-          edge_dir[2] * plane[0] - plane[2] * edge_dir[0];
-        cross_dir[2] =
-          plane[1] * edge_dir[0] - edge_dir[1] * plane[0];
+        cross_dir[0] = edge_dir[1] * plane[2] - edge_dir[2] * plane[1];
+        cross_dir[1] = edge_dir[2] * plane[0] - plane[2] * edge_dir[0];
+        cross_dir[2] = plane[1] * edge_dir[0] - edge_dir[1] * plane[0];
 
         /* Compute reference dot products */
-        dot_edge = origin[0] * edge_dir[0] +
-                   origin[1] * edge_dir[1] +
+        dot_edge = origin[0] * edge_dir[0] + origin[1] * edge_dir[1] +
                    origin[2] * edge_dir[2];
-        dot_cross = origin[0] * cross_dir[0] +
-                    origin[1] * cross_dir[1] +
+        dot_cross = origin[0] * cross_dir[0] + origin[1] * cross_dir[1] +
                     origin[2] * cross_dir[2];
 
         /* Initialize bounding box in local 2D */
-        min_u = (edge_dir[0] * vert_ptr[0] +
-                 edge_dir[1] * vert_ptr[1] +
+        min_u = (edge_dir[0] * vert_ptr[0] + edge_dir[1] * vert_ptr[1] +
                  edge_dir[2] * vert_ptr[2]) -
                 dot_edge;
-        min_v = (cross_dir[0] * vert_ptr[0] +
-                 cross_dir[1] * vert_ptr[1] +
+        min_v = (cross_dir[0] * vert_ptr[0] + cross_dir[1] * vert_ptr[1] +
                  cross_dir[2] * vert_ptr[2]) -
                 dot_cross;
 
@@ -359,12 +349,10 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
         /* Subsequent edges — extend bounding box */
         float u_val, v_val;
 
-        u_val = (edge_dir[0] * vert_ptr[0] +
-                 edge_dir[1] * vert_ptr[1] +
+        u_val = (edge_dir[0] * vert_ptr[0] + edge_dir[1] * vert_ptr[1] +
                  edge_dir[2] * vert_ptr[2]) -
                 dot_edge;
-        v_val = (cross_dir[0] * vert_ptr[0] +
-                 cross_dir[1] * vert_ptr[1] +
+        v_val = (cross_dir[0] * vert_ptr[0] + cross_dir[1] * vert_ptr[1] +
                  cross_dir[2] * vert_ptr[2]) -
                 dot_cross;
 
@@ -434,11 +422,11 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
               (void *)(collision_bsp + 0x3c), next_surface, 0xc);
             if (*(uint8_t *)(neighbor + 9) == (uint8_t)param_1 &&
                 *(short *)(neighbor + 0xa) ==
-                    *(short *)(surface_element + 0xa)) {
+                  *(short *)(surface_element + 0xa)) {
               if (bfs_count_s >= 0x400) {
-                display_assert("surface_count<MAXIMUM_BREAKABLE_SURFACE_SURFACES",
-                               "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c",
-                               0x184, 1);
+                display_assert(
+                  "surface_count<MAXIMUM_BREAKABLE_SURFACE_SURFACES",
+                  "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x184, 1);
                 system_exit(-1);
               }
               bfs_queue[bfs_count_s] = next_surface;
@@ -455,8 +443,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
       }
 
       /* Advance to next edge */
-      current_edge =
-        *(int *)(edge_data + 8 + (uint32_t)is_reversed * 4);
+      current_edge = *(int *)(edge_data + 8 + (uint32_t)is_reversed * 4);
       edge_count = edge_count + 1;
     } while ((uint32_t)current_edge != surface_ptr[1]);
 
@@ -534,10 +521,9 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 
             grid_row = (int)grid_x0;
 
-spawn_loop:
+          spawn_loop:
             /* Outer loop: rows (u-axis) */
-            grid_width =
-              (uint16_t)((int)grid_x1 - (int)grid_x0 + 1);
+            grid_width = (uint16_t)((int)grid_x1 - (int)grid_x0 + 1);
 
             do {
               if (grid_y0 <= grid_y1) {
@@ -546,8 +532,7 @@ spawn_loop:
 
                 row_f = (float)grid_row;
                 col_iter = (int)grid_y0;
-                grid_height =
-                  (uint16_t)((int)grid_y1 - (int)grid_y0 + 1);
+                grid_height = (uint16_t)((int)grid_y1 - (int)grid_y0 + 1);
 
                 do {
                   float jitter_u, jitter_v;
@@ -561,8 +546,7 @@ spawn_loop:
                   jitter_v = random_real_range((int *)seed, -0.75f, 0.75f);
 
                   /* Compute world-space position from grid coordinates */
-                  u_coord =
-                    ((float)col_iter + jitter_u) * effect_size;
+                  u_coord = ((float)col_iter + jitter_u) * effect_size;
                   v_coord = (row_f + jitter_v) * effect_size;
 
                   adjusted_pos[0] = origin[0];
@@ -570,27 +554,22 @@ spawn_loop:
                   adjusted_pos[2] = origin[2];
 
                   /* adjusted_pos += edge_dir * u_coord */
-                  adjusted_pos[0] =
-                    edge_dir[0] * u_coord + adjusted_pos[0];
-                  adjusted_pos[1] =
-                    edge_dir[1] * u_coord + adjusted_pos[1];
-                  adjusted_pos[2] =
-                    edge_dir[2] * u_coord + adjusted_pos[2];
+                  adjusted_pos[0] = edge_dir[0] * u_coord + adjusted_pos[0];
+                  adjusted_pos[1] = edge_dir[1] * u_coord + adjusted_pos[1];
+                  adjusted_pos[2] = edge_dir[2] * u_coord + adjusted_pos[2];
 
                   /* adjusted_pos += cross_dir * v_coord */
-                  adjusted_pos[0] =
-                    cross_dir[0] * v_coord + adjusted_pos[0];
-                  adjusted_pos[1] =
-                    cross_dir[1] * v_coord + adjusted_pos[1];
-                  adjusted_pos[2] =
-                    cross_dir[2] * v_coord + adjusted_pos[2];
+                  adjusted_pos[0] = cross_dir[0] * v_coord + adjusted_pos[0];
+                  adjusted_pos[1] = cross_dir[1] * v_coord + adjusted_pos[1];
+                  adjusted_pos[2] = cross_dir[2] * v_coord + adjusted_pos[2];
 
-                  /* Project adjusted position to 2D and test if inside polygon */
-                  FUN_00061df0(adjusted_pos, (uint32_t)projection,
-                               sign, projected_point);
+                  /* Project adjusted position to 2D and test if inside polygon
+                   */
+                  FUN_00061df0(adjusted_pos, (uint32_t)projection, sign,
+                               projected_point);
 
                   if (!FUN_00106200(edge_count, projected_verts,
-                                   (float *)projected_point, 0.0f))
+                                    (float *)projected_point, 0.0f))
                     goto next_cell;
 
                   /* === Spawn particle === */
@@ -611,9 +590,9 @@ spawn_loop:
                     delta[2] = adjusted_pos[2] - *(float *)(param_2 + 12);
 
                     /* Compute distance */
-                    dist = xbox_sqrtf(delta[0] * delta[0] +
-                                      delta[1] * delta[1] +
-                                      delta[2] * delta[2]);
+                    dist =
+                      xbox_sqrtf(delta[0] * delta[0] + delta[1] * delta[1] +
+                                 delta[2] * delta[2]);
 
                     /* Normalize delta */
                     if (xbox_fabsf(dist) < (float)*(double *)0x2533d0) {
@@ -636,22 +615,20 @@ spawn_loop:
 
                       /* Apply power curve if exponent != 0 */
                       if (*(float *)(jpt_offset + 0x20) != 0.0f)
-                        t = (float)xbox_pow((double)t,
-                                            (double)*(float *)(jpt_offset + 0x20));
+                        t = (float)xbox_pow(
+                          (double)t, (double)*(float *)(jpt_offset + 0x20));
 
                       /* Scale by magnitude */
                       scale = t * *(float *)(jpt_offset + 0x18);
 
                       /* velocity += delta * scale */
-                      velocity[0] =
-                        delta[0] * scale + velocity[0];
-                      velocity[1] =
-                        delta[1] * scale + velocity[1];
-                      velocity[2] =
-                        delta[2] * scale + velocity[2];
+                      velocity[0] = delta[0] * scale + velocity[0];
+                      velocity[1] = delta[1] * scale + velocity[1];
+                      velocity[2] = delta[2] * scale + velocity[2];
                     }
 
-                    /* Apply impulse from damage effect (directional component) */
+                    /* Apply impulse from damage effect (directional component)
+                     */
                     if (0.0f < *(float *)(jpt_offset + 0x4)) {
                       /* t = clamp(1 - dist/range, 0, 1) */
                       t = 1.0f - dist / *(float *)(jpt_offset + 0x4);
@@ -662,8 +639,8 @@ spawn_loop:
 
                       /* Apply power curve if exponent != 0 */
                       if (*(float *)(jpt_offset + 0x8) != 0.0f)
-                        t = (float)xbox_pow((double)t,
-                                            (double)*(float *)(jpt_offset + 0x8));
+                        t = (float)xbox_pow(
+                          (double)t, (double)*(float *)(jpt_offset + 0x8));
 
                       /* Scale by magnitude */
                       scale = t * *(float *)(jpt_offset + 0x0);
@@ -683,8 +660,7 @@ spawn_loop:
                       lo = *(float *)(effect_entry + 0x18);
                       hi = *(float *)(effect_entry + 0x1c);
                       seed = random_math_get_local_seed_address();
-                      rand_val =
-                        random_real_range((int *)seed, lo, hi);
+                      rand_val = random_real_range((int *)seed, lo, hi);
                       velocity[0] = velocity[0] * rand_val;
                       velocity[1] = velocity[1] * rand_val;
                       velocity[2] = velocity[2] * rand_val;
@@ -759,7 +735,7 @@ spawn_loop:
                       if ((*(float *)(effect_entry + 0x54) -
                            *(float *)(effect_entry + 0x44)) *
                               rand_val +
-                          *(float *)(effect_entry + 0x44) <
+                            *(float *)(effect_entry + 0x44) <
                           0.0f) {
                         *(float *)(spawn_params + 0x4c) = 0.0f;
                       } else {
@@ -768,14 +744,14 @@ spawn_loop:
                         if ((*(float *)(effect_entry + 0x54) -
                              *(float *)(effect_entry + 0x44)) *
                                 rand_val +
-                            *(float *)(effect_entry + 0x44) <=
+                              *(float *)(effect_entry + 0x44) <=
                             1.0f) {
                           seed = random_math_get_local_seed_address();
                           rand_val = random_math_real(seed);
                           *(float *)(spawn_params + 0x4c) =
                             (*(float *)(effect_entry + 0x54) -
                              *(float *)(effect_entry + 0x44)) *
-                                rand_val +
+                              rand_val +
                             *(float *)(effect_entry + 0x44);
                         } else {
                           *(float *)(spawn_params + 0x4c) = 1.0f;
@@ -793,12 +769,11 @@ spawn_loop:
                     /* Normalize velocity direction */
                     {
                       float vel_len;
-                      vel_len = xbox_sqrtf(
-                        sp_velocity_dir[0] * sp_velocity_dir[0] +
-                        sp_velocity_dir[1] * sp_velocity_dir[1] +
-                        sp_velocity_dir[2] * sp_velocity_dir[2]);
-                      if (xbox_fabsf(vel_len) <
-                          (float)*(double *)0x2533d0) {
+                      vel_len =
+                        xbox_sqrtf(sp_velocity_dir[0] * sp_velocity_dir[0] +
+                                   sp_velocity_dir[1] * sp_velocity_dir[1] +
+                                   sp_velocity_dir[2] * sp_velocity_dir[2]);
+                      if (xbox_fabsf(vel_len) < (float)*(double *)0x2533d0) {
                         /* Zero velocity — assign random direction */
                         random_seed_get_direction3d(
                           random_math_get_local_seed_address(),
@@ -821,7 +796,7 @@ spawn_loop:
                     particle_new(spawn_params);
                   }
 
-next_cell:
+                next_cell:
                   grid_height = grid_height - 1;
                   col_iter = col_iter + 1;
                 } while (grid_height != 0);
@@ -832,7 +807,7 @@ next_cell:
             } while (grid_width != 0);
           }
 
-next_effect:
+        next_effect:
           effect_idx_s = effect_idx_s + 1;
           effect_idx = effect_idx_s;
         } while ((short)effect_idx_s < effect_count);
@@ -846,12 +821,9 @@ next_effect:
     float *fwd_vec;
 
     /* position = center of bounding box */
-    *(float *)(sound_location + 0x00) =
-      (bbox_max[0] + bbox_min[0]) * 0.5f;
-    *(float *)(sound_location + 0x04) =
-      (bbox_max[1] + bbox_min[1]) * 0.5f;
-    *(float *)(sound_location + 0x08) =
-      (bbox_max[2] + bbox_min[2]) * 0.5f;
+    *(float *)(sound_location + 0x00) = (bbox_max[0] + bbox_min[0]) * 0.5f;
+    *(float *)(sound_location + 0x04) = (bbox_max[1] + bbox_min[1]) * 0.5f;
+    *(float *)(sound_location + 0x08) = (bbox_max[2] + bbox_min[2]) * 0.5f;
 
     /* forward vector */
     fwd_vec = *(float **)0x31fc3c;
@@ -870,7 +842,7 @@ next_effect:
     *(uint32_t *)(sound_location + 0x28) = param_2[6];
 
     unattached_impulse_sound_new(*(int *)(material_effects_base + 0x2c),
-                 sound_location, 1.0f);
+                                 sound_location, 1.0f);
   }
 }
 
