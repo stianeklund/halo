@@ -24,22 +24,19 @@ void physical_memory_allocate(void)
 /* Verify all physical memory map pages are read-write accessible. */
 void physical_memory_map_verify(void)
 {
+  volatile physical_memory_map_globals_t *g = &physical_memory_map_globals;
   unsigned int addr;
   int page_status;
 
-  addr = (unsigned int)physical_memory_map_globals.tag_cache_base_address;
-  while (addr <
-         (unsigned int)physical_memory_map_globals.tag_cache_base_address +
-           0x1600000) {
+  addr = (unsigned int)g->tag_cache_base_address;
+  while (addr < (unsigned int)g->tag_cache_base_address + 0x1600000) {
     page_status = MmQueryAddressProtect((void *)addr);
     assert_halt(page_status == PAGE_READWRITE);
     addr += 0x1000;
   }
 
-  addr = (unsigned int)physical_memory_map_globals.game_state_base_address;
-  while (addr <
-         (unsigned int)physical_memory_map_globals.game_state_base_address +
-           0x305000) {
+  addr = (unsigned int)g->game_state_base_address;
+  while (addr < (unsigned int)g->game_state_base_address + 0x305000) {
     page_status = MmQueryAddressProtect((void *)addr);
     assert_halt(page_status == PAGE_READWRITE);
     addr += 0x1000;
@@ -49,18 +46,14 @@ void physical_memory_map_verify(void)
 /* Free all physical memory map allocations. */
 void physical_memory_deallocate(void)
 {
-  if (physical_memory_map_globals.game_state_base_address) {
-    MmFreeContiguousMemory(physical_memory_map_globals.game_state_base_address);
-  }
-  if (physical_memory_map_globals.tag_cache_base_address) {
-    MmFreeContiguousMemory(physical_memory_map_globals.tag_cache_base_address);
-  }
-  if (physical_memory_map_globals.texture_cache_base_address) {
-    MmFreeContiguousMemory(
-      physical_memory_map_globals.texture_cache_base_address);
-  }
-  if (physical_memory_map_globals.sound_cache_base_address) {
-    MmFreeContiguousMemory(
-      physical_memory_map_globals.sound_cache_base_address);
-  }
+  volatile physical_memory_map_globals_t *g = &physical_memory_map_globals;
+
+  if (g->game_state_base_address)
+    MmFreeContiguousMemory(g->game_state_base_address);
+  if (g->tag_cache_base_address)
+    MmFreeContiguousMemory(g->tag_cache_base_address);
+  if (g->texture_cache_base_address)
+    MmFreeContiguousMemory(g->texture_cache_base_address);
+  if (g->sound_cache_base_address)
+    MmFreeContiguousMemory(g->sound_cache_base_address);
 }
