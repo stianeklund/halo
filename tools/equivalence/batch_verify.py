@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import csv
 import json
 import re
 import subprocess
@@ -79,7 +80,8 @@ def load_candidates(leaf_only: bool = False, classes: set = None):
     return candidates
 
 
-def run_verify(name: str, seeds: int = 50, timeout: int = 60) -> dict:
+def run_verify(name: str, seeds: int = 50, timeout: int = 60,
+               float_tolerance: int = 0) -> dict:
     """Run unicorn_diff on a single function. Returns structured result."""
     result_json = RESULTS_DIR / f"{name}.json"
     cmd = [
@@ -91,6 +93,8 @@ def run_verify(name: str, seeds: int = 50, timeout: int = 60) -> dict:
         "--output-json", str(result_json),
         "--no-leaf-cache",
     ]
+    if float_tolerance > 0:
+        cmd.extend(["--float-tolerance", str(float_tolerance)])
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True,
                               timeout=timeout, cwd=str(ROOT))
@@ -116,6 +120,10 @@ def main():
                         help="Timeout per function in seconds (default: 60)")
     parser.add_argument("--dry-run", action="store_true",
                         help="List candidates without running verification")
+    parser.add_argument("--float-tolerance", type=int, default=0, metavar="ULP",
+                        help="ULP tolerance for float params and ST0 (default: 0)")
+    parser.add_argument("--csv", action="store_true",
+                        help="Write per-function results to results.csv")
     parser.add_argument("--classes", type=str, default="leaf,data_only,stubbable",
                         help="Comma-separated classes to verify")
     args = parser.parse_args()
@@ -134,6 +142,7 @@ def main():
         return 0
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    csv_rows = []
 
     results = {"pass": 0, "fail": 0, "error": 0, "not_applicable": 0,
                "z3_proven": 0, "total": len(candidates)}
@@ -148,7 +157,8 @@ def main():
         eta = ((len(candidates) - i) / rate) if rate > 0 else 0
         print(f"[{i+1}/{len(candidates)}] {name:40s} ", end="", flush=True)
 
-        result = run_verify(name, seeds=args.seeds, timeout=args.timeout)
+        result = run_verify(name, seeds=args.seeds, timeout=args.timeout,
+                            float_tolerance=args.float_tolerance)
         status = result.get("status", "error")
 
         if status == "pass":
@@ -170,6 +180,18 @@ def main():
         else:
             results["error"] += 1
             print(f"ERROR ({result.get('reason', '')})")
+
+        csv_rows.append({
+            "addr": c["addr"],
+            "name": name,
+            "class": c["class"],
+            "obj": c["obj"],
+            "status": status,
+            "reason": result.get("reason", ""),
+            "seeds_passed": result.get("passed", 0),
+            "seeds_total": result.get("seeds", 0),
+            "z3_proven": "1" if result.get("z3_proven") else "0",
+        })
 
     elapsed = time.time() - t0
 
@@ -200,6 +222,17 @@ def main():
         "elapsed_seconds": elapsed,
     }, indent=2) + "\n", encoding="utf-8")
     print(f"\nSummary: {summary_path}")
+
+    if args.csv:
+        csv_path = RESULTS_DIR / "results.csv"
+        with open(csv_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=[
+                "addr", "name", "class", "obj", "status",
+                "reason", "seeds_passed", "seeds_total", "z3_proven",
+            ])
+            writer.writeheader()
+            writer.writerows(csv_rows)
+        print(f"CSV: {csv_path}")
 
     return 1 if results["fail"] > 0 else 0
 

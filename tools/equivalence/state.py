@@ -27,6 +27,36 @@ def _float_ulp(a_bits: int, b_bits: int) -> int:
     return a_bits - b_bits
 
 
+def _st80_ulp_distance(a, b):
+    """Return ULP distance between two 80-bit x87 extended precision values.
+
+    Each value is 10 bytes LE: bytes[0:8] = 64-bit mantissa, bytes[8:10] = sign+exponent.
+    Returns -1 if values have different signs (except +0/-0) or exponents differ by >1.
+    """
+    if len(a) < 10 or len(b) < 10:
+        return -1
+    ma = int.from_bytes(a[:8], 'little')
+    ea_sign = int.from_bytes(a[8:10], 'little')
+    sa = ea_sign >> 15
+    ea = ea_sign & 0x7FFF
+    mb = int.from_bytes(b[:8], 'little')
+    eb_sign = int.from_bytes(b[8:10], 'little')
+    sb = eb_sign >> 15
+    eb = eb_sign & 0x7FFF
+    if ea == 0 and ma == 0 and eb == 0 and mb == 0:
+        return 0
+    if sa != sb:
+        return -1
+    if ea == eb:
+        return abs(ma - mb)
+    if abs(ea - eb) == 1:
+        if ea > eb:
+            return (1 << 64) - mb + (ma - (1 << 63))
+        else:
+            return (1 << 64) - ma + (mb - (1 << 63))
+    return -1
+
+
 def _scratch_matches_float(oracle_data: bytes, lifted_data: bytes,
                            float_slot_indices: list,
                            max_ulp: int) -> bool:
@@ -206,7 +236,8 @@ def compare(oracle: CPUState, lifted: CPUState,
             ret_st0: bool = False,
             check_st_count: int = 0,
             scratch_float_tolerance_ulp: int = 0,
-            scratch_float_params: list = None) -> StateDiff:
+            scratch_float_params: list = None,
+            st_tolerance_ulp: int = 0) -> StateDiff:
     """Compare two CPUState objects and return a StateDiff.
 
     All comparisons are bit-pattern based (no floating-point ==).
@@ -243,6 +274,10 @@ def compare(oracle: CPUState, lifted: CPUState,
     # unrelated prior operations that differ between oracle and lifted.
     for i in range(check_st_count):
         if oracle.st[i] != lifted.st[i]:
+            if st_tolerance_ulp > 0:
+                dist = _st80_ulp_distance(oracle.st[i], lifted.st[i])
+                if 0 <= dist <= st_tolerance_ulp:
+                    continue
             diff.st_differs.append(i)
 
     if check_scratch:
