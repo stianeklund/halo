@@ -187,7 +187,7 @@ if(ENABLE_XDK_HYBRID AND NOT MSVC)
 endif()
 
 add_custom_command(TARGET halo POST_BUILD
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_lift_hazards.py"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_lift_hazards.py" --frame-size-audit
 	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_raw_casts.py"
 	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_asm_thunk_conflicts.py"
 	VERBATIM
@@ -202,7 +202,7 @@ add_custom_target(
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_raw_casts.py"
 	COMMAND
-		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_lift_hazards.py"
+		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/audit/check_lift_hazards.py" --frame-size-audit
 	COMMAND
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/analysis/maintain.py" --check
 	COMMAND
