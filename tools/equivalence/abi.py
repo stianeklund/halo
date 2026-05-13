@@ -150,9 +150,14 @@ def parse_decl(decl: str) -> dict:
     ret_m = re.match(r'\s*([\w\s\*]+?)\s+(?:__cdecl|__stdcall|__fastcall)?\s*\w+\s*\(', decl)
     ret_type_str = ret_m.group(1).strip() if ret_m else ''
 
-    ret_st0 = bool(re.search(r'\bfloat\b|\bdouble\b', ret_type_str))
+    # Detect pointer returns from the text before the function name
+    func_m = re.search(r'(\w+)\s*\(', decl)
+    pre_func = decl[:func_m.start()].strip() if func_m else ''
+    ret_is_ptr = '*' in pre_func
+
+    ret_st0 = bool(re.search(r'\bfloat\b|\bdouble\b', ret_type_str)) and not ret_is_ptr
     ret_edx_eax = bool(re.search(r'\bint64_t\b|\buint64_t\b|\blong long\b', ret_type_str))
-    ret_void = 'void' in ret_type_str and '*' not in ret_type_str
+    ret_void = 'void' in ret_type_str and not ret_is_ptr
     ret_bits = 32
 
     if ret_edx_eax:
@@ -174,6 +179,7 @@ def parse_decl(decl: str) -> dict:
         'ret_edx_eax': ret_edx_eax,
         'ret_void': ret_void,
         'ret_bits': ret_bits,
+        'ret_is_ptr': ret_is_ptr,
     }
 
 

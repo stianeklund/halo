@@ -1079,7 +1079,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             continue
 
         # Determine what to compare based on return type
-        ret_eax = not abi['ret_void'] and not abi['ret_st0']
+        ret_eax = not abi['ret_void'] and not abi['ret_st0'] and not abi.get('ret_is_ptr', False)
         diff = state_mod.compare(
             oracle_state, lifted_state,
             check_scratch=True,
