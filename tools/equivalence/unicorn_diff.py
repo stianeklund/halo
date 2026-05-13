@@ -171,6 +171,12 @@ _KNOWN_GLOBAL_BYTES = {
     0x254CB8: struct.pack("<f", 1000.0),
 }
 
+try:
+    from equivalence._global_bytes import _KNOWN_GLOBAL_BYTES as _XBE_GLOBALS
+    _KNOWN_GLOBAL_BYTES.update(_XBE_GLOBALS)
+except ImportError:
+    pass
+
 
 # ---------------------------------------------------------------------------
 # kb.json helpers

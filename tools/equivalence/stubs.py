@@ -286,7 +286,7 @@ class StubManager:
 
     def should_intercept(self, address: int) -> bool:
         symbol_name = self._stub_names.get(address, "").lstrip("_").lower()
-        return symbol_name in ("csmemcpy", "memcpy")
+        return symbol_name in ("csmemcpy", "memcpy", "csstrncpy", "csmemset", "memset", "crt_sprintf", "debug_string_to_display")
 
     def get_stub_code(self, address: int) -> bytes:
         """Return machine code for a tiny trampoline stub at a sentinel address."""
@@ -353,6 +353,32 @@ class StubManager:
                     data = bytes(uc.mem_read(src, size))
                     uc.mem_write(dst, data)
                 uc.reg_write(UC_X86_REG_EAX, dst)
+                return True
+
+            if symbol_name == "csstrncpy":
+                dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
+                src = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little")
+                n = int.from_bytes(bytes(uc.mem_read(caller_esp + 12, 4)), "little")
+                if n > 0:
+                    data = bytes(uc.mem_read(src, n))
+                    idx = data.find(b'\0')
+                    if idx != -1:
+                        data = data[:idx+1]
+                    uc.mem_write(dst, data)
+                uc.reg_write(UC_X86_REG_EAX, dst)
+                return True
+
+            if symbol_name in ("csmemset", "memset"):
+                dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
+                val = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little") & 0xFF
+                n = int.from_bytes(bytes(uc.mem_read(caller_esp + 12, 4)), "little")
+                if n > 0:
+                    uc.mem_write(dst, bytes([val] * n))
+                uc.reg_write(UC_X86_REG_EAX, dst)
+                return True
+
+            if symbol_name in ("crt_sprintf", "debug_string_to_display"):
+                uc.reg_write(UC_X86_REG_EAX, 0)
                 return True
 
             # For now, return 0 from all stubs.
