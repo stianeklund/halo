@@ -70,6 +70,7 @@
 	halo/items/weapons.c
 	halo/units/units.c
 	halo/units/vehicles.c
+	halo/networking/network_client_manager.c
 	halo/networking/network_messages.c
 	halo/networking/network_server_manager.c
 	halo/main/console.c

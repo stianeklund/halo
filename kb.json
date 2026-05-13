@@ -15984,7 +15984,7 @@
         },
         {
           "decl": "int game_difficulty_level_get_ignore_easy(void);",
-          "addr": "0xa7460",
+          "addr": "0xa7470",
           "ported": true
         },
         {
@@ -19389,22 +19389,22 @@
         {
           "decl": "uint16_t FUN_00124c40(void *client);",
           "addr": "0x124c40",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "int16_t FUN_00124cc0(void *server);",
           "addr": "0x124cc0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool FUN_00124d40(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
           "addr": "0x124d40",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "int network_game_client_get_seconds_to_game_start(void *client);",
           "addr": "0x125710",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void network_game_client_switch_to_postgame(void *server, void *out);",
@@ -19414,22 +19414,22 @@
         {
           "decl": "void *network_game_client_get_machine_index(void *client);",
           "addr": "0x1257a0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool network_game_client_get_available_games(void *server);",
           "addr": "0x1257e0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "uint32_t network_game_client_get_error(void *server);",
           "addr": "0x125820",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool FUN_00125860(void *server);",
           "addr": "0x125860",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_00126000(void *server /* @<ebx> */);",
@@ -19634,7 +19634,8 @@
           "decl": "void FUN_00127710(void);",
           "addr": "0x127710"
         }
-      ]
+      ],
+      "source_path": "src/halo/networking/network_client_manager.c"
     },
     {
       "name": "network_client_message_handler.obj",
