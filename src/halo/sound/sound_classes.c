@@ -52,6 +52,35 @@ void sound_classes_initialize_for_new_map(void)
   } while (i < 0x33);
 }
 
+/* Advance sound class gain interpolation by delta_ticks. */
+void sound_classes_update(int delta_ticks)
+{
+  short i;
+
+  if (delta_ticks > 0) {
+    i = 0;
+    do {
+      float *entry;
+      short remaining;
+      int remaining_int;
+
+      entry = (float *)sound_class_get(i);
+      remaining = *(short *)(entry + 2);
+      remaining_int = (int)remaining;
+      if (remaining_int > delta_ticks) {
+        *(short *)(entry + 2) = remaining - (short)delta_ticks;
+        entry[1] =
+          (entry[0] - entry[1]) * ((float)delta_ticks / (float)remaining_int) +
+          entry[1];
+      } else {
+        entry[1] = entry[0];
+        *(short *)(entry + 2) = 0;
+      }
+      i++;
+    } while (i < 0x33);
+  }
+}
+
 /* Return the runtime gain for a sound class.
  * Looks up the sound class entry by index and reads the float at offset +4. */
 float sound_class_get_gain(int class_index)

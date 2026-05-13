@@ -44,6 +44,7 @@ extern const char *build_ui_widget_text;
 #define MAXIMUM_STRING_SIZE            0x2000
 #define MAXIMUM_MEMSET_SIZE            0x10000000
 #define MAXIMUM_MEMCPY_MEMMOVE_SIZE    0x10000000
+#define PAGE_READWRITE                 0x04
 
 static const int _scenario_type_main_menu = 2;
 
