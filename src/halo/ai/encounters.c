@@ -1356,11 +1356,12 @@ void FUN_0005aab0(int encounter_handle)
     FUN_00064540(prop_iter, cur_actor_handle);
     prop = (char *)FUN_00064570(prop_iter);
 
-    /* Inner prop loop.  The binary's inner while condition sets
-     * EBX (actor_handle) = next_actor_handle each iteration, advancing
-     * the outer loop.  Calls inside use EDI = cur_actor_handle. */
+    /* The binary's inner while condition is a comma expression:
+     *   while (actor_handle = next_actor_handle, prop != NULL)
+     * The assignment runs unconditionally before the condition test,
+     * advancing the outer loop even when the actor has zero props. */
+    actor_handle = next_actor_handle;
     while (prop != NULL) {
-      actor_handle = next_actor_handle;
       if (*(short *)(prop + 0x24) > 3 && *(short *)(prop + 0x24) < 6 &&
           *(char *)(prop + 0x60) != '\0' &&
           prop_iter[0] != *(int *)(actor + 0x270)) {
