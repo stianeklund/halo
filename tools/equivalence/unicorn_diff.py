@@ -149,7 +149,7 @@ BUILD_DIR = _REPO_ROOT / "build"
 # Unicorn memory layout constants
 # ---------------------------------------------------------------------------
 CODE_BASE      = 0x00400000   # where we map the function code
-CODE_SIZE      = 0x00010000   # 64 KB — enough for any single function
+CODE_SIZE      = 0x00040000   # 256 KB — fits largest .text sections
 STACK_BASE     = 0x00100000   # bottom of stack region
 STACK_SIZE     = 0x00100000   # 1 MB stack
 STACK_TOP      = STACK_BASE + STACK_SIZE
@@ -393,7 +393,9 @@ def _build_globals_seeds(*slot_maps: dict) -> dict:
 
 def _run_function(code: bytes, abi: dict, arg_values: list,
                   verbose: bool = False, map_globals: bool = False,
-                  stub_manager=None, globals_seeds: dict = None) -> "state.CPUState":
+                  stub_manager=None, globals_seeds: dict = None,
+                  section_code: bytes = None,
+                  func_offset: int = 0) -> "state.CPUState":
     """Run a function in a fresh Unicorn instance.
 
     Returns a CPUState with captured registers and scratch memory.
@@ -403,6 +405,8 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     stub_manager: if set, installs a fetch-unmapped hook to intercept calls
     globals_seeds: dict of {address: bytes} to write into the globals region
                    after zero-initialization (seeds known global values).
+    section_code: full .text section bytes (enables intra-object calls)
+    func_offset: offset of the target function within section_code
     """
     import unicorn
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
@@ -441,7 +445,14 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 uc.mem_write(addr, data)
 
     # Write function code at CODE_BASE
-    uc.mem_write(CODE_BASE, code)
+    if section_code is not None and len(section_code) <= CODE_SIZE:
+        combined = bytearray(section_code)
+        combined[func_offset:func_offset + len(code)] = code
+        uc.mem_write(CODE_BASE, bytes(combined))
+        entry_point = CODE_BASE + func_offset
+    else:
+        uc.mem_write(CODE_BASE, code)
+        entry_point = CODE_BASE
 
     if stub_addrs:
         stub_page_base = min(stub_addrs) & ~0xFFFF
@@ -582,7 +593,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     err_msg = None
     try:
-        uc.emu_start(CODE_BASE, CODE_BASE + len(code), timeout=TIMEOUT_MS * 1000,
+        uc.emu_start(entry_point, entry_point + len(code), timeout=TIMEOUT_MS * 1000,
                      count=MAX_INSN)
     except unicorn.UcError as e:
         err_str = str(e)
@@ -700,7 +711,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              record_leaf: bool = True, z3_equiv: bool = False,
              allow_stubs: bool = False,
              float_tolerance_ulp: int = 0,
-             float_tolerance_params: list = None) -> int:
+             float_tolerance_params: list = None,
+             skip_esp: bool = False) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     sys.path.insert(0, str(_SCRIPT_DIR))
@@ -882,6 +894,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     log(f"  oracle code: {len(oracle_slice.code)} bytes, {len(oracle_slice.relocs)} relocs")
     log(f"  lifted code: {len(lifted_slice.code)} bytes, {len(lifted_slice.relocs)} relocs")
 
+    from coff_loader import load_text_section
+    oracle_text = load_text_section(str(delinked_path))
+    lifted_text = load_text_section(str(build_path))
+
     if not oracle_slice.code:
         log("ERROR: oracle code is empty")
         return finish("error", True, "empty_oracle_code", 1)
@@ -1030,7 +1046,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             oracle_state = _run_function(oracle_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
                                          stub_manager=stub_manager,
-                                         globals_seeds=globals_seeds)
+                                         globals_seeds=globals_seeds,
+                                         section_code=oracle_text,
+                                         func_offset=oracle_slice.section_offset)
         except Exception as exc:
             log(f"  {seed_label} ORACLE-ERROR: {exc}")
             errors += 1
@@ -1041,7 +1059,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             lifted_state = _run_function(lifted_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
                                          stub_manager=stub_manager,
-                                         globals_seeds=globals_seeds)
+                                         globals_seeds=globals_seeds,
+                                         section_code=lifted_text,
+                                         func_offset=lifted_slice.section_offset)
         except Exception as exc:
             log(f"  {seed_label} LIFTED-ERROR: {exc}")
             errors += 1
@@ -1069,6 +1089,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             scratch_float_tolerance_ulp=float_tolerance_ulp,
             scratch_float_params=float_tolerance_slot_indices,
             st_tolerance_ulp=float_tolerance_ulp,
+            check_esp=not skip_esp,
         )
 
         if diff.has_differences():
@@ -1321,6 +1342,8 @@ def main():
                         help="Allow N ULP difference for float pointer params in scratch comparison")
     parser.add_argument("--float-params", type=str, default=None, metavar="NAMES",
                         help="Comma-separated param names treated as float arrays (default: auto-detect)")
+    parser.add_argument("--skip-esp", action="store_true",
+                        help="Skip ESP delta comparison (expected to differ for non-leaf functions)")
     args = parser.parse_args()
 
     if args.batch_classify:
@@ -1353,6 +1376,7 @@ def main():
         allow_stubs=args.allow_stubs,
         float_tolerance_ulp=args.float_tolerance,
         float_tolerance_params=args.float_params.split(",") if args.float_params else None,
+        skip_esp=args.skip_esp,
     ))
 
 

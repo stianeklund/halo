@@ -81,7 +81,7 @@ def load_candidates(leaf_only: bool = False, classes: set = None):
 
 
 def run_verify(name: str, seeds: int = 50, timeout: int = 60,
-               float_tolerance: int = 0) -> dict:
+               float_tolerance: int = 0, skip_esp: bool = False) -> dict:
     """Run unicorn_diff on a single function. Returns structured result."""
     result_json = RESULTS_DIR / f"{name}.json"
     cmd = [
@@ -95,6 +95,8 @@ def run_verify(name: str, seeds: int = 50, timeout: int = 60,
     ]
     if float_tolerance > 0:
         cmd.extend(["--float-tolerance", str(float_tolerance)])
+    if skip_esp:
+        cmd.append("--skip-esp")
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True,
                               timeout=timeout, cwd=str(ROOT))
@@ -122,6 +124,8 @@ def main():
                         help="List candidates without running verification")
     parser.add_argument("--float-tolerance", type=int, default=0, metavar="ULP",
                         help="ULP tolerance for float params and ST0 (default: 0)")
+    parser.add_argument("--skip-esp", action="store_true",
+                        help="Skip ESP delta comparison (non-leaf stack size differs)")
     parser.add_argument("--csv", action="store_true",
                         help="Write per-function results to results.csv")
     parser.add_argument("--classes", type=str, default="leaf,data_only,stubbable",
@@ -158,7 +162,8 @@ def main():
         print(f"[{i+1}/{len(candidates)}] {name:40s} ", end="", flush=True)
 
         result = run_verify(name, seeds=args.seeds, timeout=args.timeout,
-                            float_tolerance=args.float_tolerance)
+                            float_tolerance=args.float_tolerance,
+                            skip_esp=args.skip_esp)
         status = result.get("status", "error")
 
         if status == "pass":

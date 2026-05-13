@@ -73,6 +73,7 @@ class FunctionSlice:
     code: bytes             # raw machine code bytes
     relocs: list[CoffReloc] # relocations that fall inside this function
     defined_symbols: set = field(default_factory=set)  # symbols defined in this .obj
+    section_offset: int = 0  # offset of this function within its section
 
 
 class CoffParseError(Exception):
@@ -272,7 +273,17 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
         code=code,
         relocs=func_relocs,
         defined_symbols=defined,
+        section_offset=func_offset,
     )
+
+
+def load_text_section(obj_path: str) -> Optional[bytes]:
+    """Return the raw .text section data from a COFF .obj, or None."""
+    sections, _, _ = load_coff(obj_path)
+    for s in sections:
+        if s.name == '.text':
+            return s.data
+    return None
 
 
 def list_functions(obj_path: str) -> list[str]:

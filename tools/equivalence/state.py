@@ -237,7 +237,8 @@ def compare(oracle: CPUState, lifted: CPUState,
             check_st_count: int = 0,
             scratch_float_tolerance_ulp: int = 0,
             scratch_float_params: list = None,
-            st_tolerance_ulp: int = 0) -> StateDiff:
+            st_tolerance_ulp: int = 0,
+            check_esp: bool = True) -> StateDiff:
     """Compare two CPUState objects and return a StateDiff.
 
     All comparisons are bit-pattern based (no floating-point ==).
@@ -289,7 +290,7 @@ def compare(oracle: CPUState, lifted: CPUState,
         else:
             diff.scratch_differs = oracle.scratch_data != lifted.scratch_data
 
-    if oracle.esp_delta != lifted.esp_delta:
+    if check_esp and oracle.esp_delta != lifted.esp_delta:
         diff.esp_delta_differs = True
         diff.oracle_esp_delta = oracle.esp_delta
         diff.lifted_esp_delta = lifted.esp_delta
