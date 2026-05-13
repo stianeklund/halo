@@ -5347,14 +5347,11 @@
     "call_count": 2
   },
   "0x000818d0": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "leaf"
   },
   "0x00081910": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x00081980": {
     "class": "data_only",
@@ -6990,7 +6987,7 @@
   },
   "0x000996b0": {
     "class": "stubbable",
-    "dir32_count": 1,
+    "dir32_count": 4,
     "call_count": 2
   },
   "0x00099840": {
@@ -7004,14 +7001,12 @@
     "call_count": 1
   },
   "0x00099b70": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x00099d60": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x00099f80": {
     "class": "stubbable",
@@ -7024,12 +7019,11 @@
   "0x0009a160": {
     "class": "stubbable",
     "dir32_count": 3,
-    "call_count": 3
+    "call_count": 1
   },
   "0x0009a300": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x0009a5a0": {
     "class": "leaf"
@@ -7037,10 +7031,12 @@
   "0x0009ac90": {
     "class": "stubbable",
     "dir32_count": 2,
-    "call_count": 4
+    "call_count": 2
   },
   "0x0009c4b0": {
-    "class": "leaf"
+    "class": "stubbable",
+    "dir32_count": 3,
+    "call_count": 1
   },
   "0x0009c650": {
     "class": "stubbable",
@@ -7105,9 +7101,8 @@
     "call_count": 2
   },
   "0x0009cca0": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x0009cdd0": {
     "class": "data_only",
@@ -7142,7 +7137,7 @@
   "0x0009d2d0": {
     "class": "stubbable",
     "dir32_count": 1,
-    "call_count": 3
+    "call_count": 1
   },
   "0x0009d430": {
     "class": "data_only",
@@ -7173,9 +7168,8 @@
     "call_count": 2
   },
   "0x0009e560": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x0009e610": {
     "class": "stubbable",
@@ -7183,29 +7177,24 @@
     "call_count": 5
   },
   "0x0009eb40": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x0009ec30": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x0009ee40": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x0009f0e0": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 3
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x0009f320": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x0009f3b0": {
     "class": "stubbable",
@@ -7214,7 +7203,7 @@
   "0x0009f430": {
     "class": "stubbable",
     "dir32_count": 3,
-    "call_count": 6
+    "call_count": 3
   },
   "0x0009f570": {
     "class": "stubbable",
@@ -7300,6 +7289,10 @@
   },
   "0x000a10f0": {
     "class": "leaf"
+  },
+  "0x000a1170": {
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x000a1210": {
     "class": "stubbable",
@@ -7497,6 +7490,33 @@
     "dir32_count": 2,
     "call_count": 2
   },
+  "0x000a32e0": {
+    "class": "stubbable",
+    "dir32_count": 1,
+    "call_count": 3
+  },
+  "0x000a3370": {
+    "class": "stubbable",
+    "dir32_count": 2,
+    "call_count": 2
+  },
+  "0x000a3890": {
+    "class": "stubbable",
+    "dir32_count": 2,
+    "call_count": 1
+  },
+  "0x000a3b80": {
+    "class": "stubbable",
+    "dir32_count": 3,
+    "call_count": 3
+  },
+  "0x000a3e60": {
+    "class": "leaf"
+  },
+  "0x000a3ea0": {
+    "class": "stubbable",
+    "call_count": 1
+  },
   "0x000a3ef0": {
     "class": "stubbable",
     "dir32_count": 3,
@@ -7523,10 +7543,107 @@
   "0x000a40a0": {
     "class": "leaf"
   },
-  "0x000a65e0": {
+  "0x000a4200": {
+    "class": "leaf"
+  },
+  "0x000a4310": {
     "class": "stubbable",
     "dir32_count": 1,
     "call_count": 1
+  },
+  "0x000a45d0": {
+    "class": "leaf"
+  },
+  "0x000a4610": {
+    "class": "leaf"
+  },
+  "0x000a48c0": {
+    "class": "data_only",
+    "dir32_count": 25
+  },
+  "0x000a4a00": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x000a4ab0": {
+    "class": "leaf"
+  },
+  "0x000a4be0": {
+    "class": "leaf"
+  },
+  "0x000a4e20": {
+    "class": "leaf"
+  },
+  "0x000a54b0": {
+    "class": "stubbable",
+    "dir32_count": 6,
+    "call_count": 3
+  },
+  "0x000a5590": {
+    "class": "data_only",
+    "dir32_count": 2
+  },
+  "0x000a55e0": {
+    "class": "leaf"
+  },
+  "0x000a5610": {
+    "class": "stubbable",
+    "call_count": 4
+  },
+  "0x000a5700": {
+    "class": "leaf"
+  },
+  "0x000a57a0": {
+    "class": "data_only",
+    "dir32_count": 1
+  },
+  "0x000a57b0": {
+    "class": "leaf"
+  },
+  "0x000a5810": {
+    "class": "leaf"
+  },
+  "0x000a5830": {
+    "class": "data_only",
+    "dir32_count": 3
+  },
+  "0x000a5920": {
+    "class": "stubbable",
+    "dir32_count": 3,
+    "call_count": 1
+  },
+  "0x000a5ac0": {
+    "class": "stubbable",
+    "dir32_count": 1,
+    "call_count": 1
+  },
+  "0x000a5c60": {
+    "class": "stubbable",
+    "dir32_count": 2,
+    "call_count": 2
+  },
+  "0x000a5d70": {
+    "class": "leaf"
+  },
+  "0x000a5f00": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x000a6030": {
+    "class": "stubbable",
+    "call_count": 5
+  },
+  "0x000a6130": {
+    "class": "stubbable",
+    "dir32_count": 5,
+    "call_count": 3
+  },
+  "0x000a6470": {
+    "class": "leaf"
+  },
+  "0x000a65e0": {
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000a6600": {
     "class": "leaf"
@@ -7557,7 +7674,7 @@
   "0x000a6830": {
     "class": "stubbable",
     "dir32_count": 3,
-    "call_count": 4
+    "call_count": 1
   },
   "0x000a68e0": {
     "class": "stubbable",
@@ -7567,16 +7684,28 @@
   "0x000a6930": {
     "class": "stubbable",
     "dir32_count": 1,
-    "call_count": 6
+    "call_count": 4
+  },
+  "0x000a6a80": {
+    "class": "stubbable",
+    "call_count": 3
+  },
+  "0x000a6b50": {
+    "class": "stubbable",
+    "call_count": 2
+  },
+  "0x000a6ba0": {
+    "class": "stubbable",
+    "call_count": 3
   },
   "0x000a6bf0": {
     "class": "stubbable",
     "dir32_count": 4,
-    "call_count": 41
+    "call_count": 26
   },
   "0x000a6d00": {
     "class": "stubbable",
-    "call_count": 34
+    "call_count": 22
   },
   "0x000a6dc0": {
     "class": "stubbable",
@@ -7594,7 +7723,7 @@
   "0x000a7050": {
     "class": "stubbable",
     "dir32_count": 1,
-    "call_count": 33
+    "call_count": 20
   },
   "0x000a7110": {
     "class": "data_only",
@@ -7608,11 +7737,10 @@
   "0x000a7260": {
     "class": "stubbable",
     "dir32_count": 3,
-    "call_count": 4
+    "call_count": 2
   },
   "0x000a7370": {
-    "class": "stubbable",
-    "call_count": 1
+    "class": "leaf"
   },
   "0x000a73a0": {
     "class": "leaf"
@@ -7643,13 +7771,12 @@
     "dir32_count": 1
   },
   "0x000a7490": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000a74f0": {
     "class": "stubbable",
-    "call_count": 5
+    "call_count": 4
   },
   "0x000a7530": {
     "class": "stubbable",
@@ -7669,32 +7796,28 @@
     "call_count": 1
   },
   "0x000a76b0": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x000a7780": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x000a78e0": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000a7940": {
     "class": "stubbable",
     "dir32_count": 2,
-    "call_count": 2
+    "call_count": 1
   },
   "0x000a7970": {
     "class": "leaf"
   },
   "0x000a7980": {
-    "class": "stubbable",
-    "dir32_count": 4,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 4
   },
   "0x000a7a20": {
     "class": "leaf"
@@ -7804,27 +7927,24 @@
     "call_count": 3
   },
   "0x000a8780": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x000a8820": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x000a8970": {
     "class": "leaf"
   },
   "0x000a8a20": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000a8a70": {
     "class": "stubbable",
     "dir32_count": 2,
-    "call_count": 4
+    "call_count": 3
   },
   "0x000a8aa0": {
     "class": "leaf"
@@ -7832,16 +7952,15 @@
   "0x000a8b00": {
     "class": "stubbable",
     "dir32_count": 3,
-    "call_count": 1
+    "call_count": 2
   },
   "0x000a8b30": {
     "class": "data_only",
     "dir32_count": 1
   },
   "0x000a8b50": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x000a8ba0": {
     "class": "stubbable",
@@ -7854,9 +7973,8 @@
     "call_count": 1
   },
   "0x000a8d80": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x000a8df0": {
     "class": "data_only",
@@ -7875,9 +7993,8 @@
     "dir32_count": 2
   },
   "0x000a8e80": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000a8ec0": {
     "class": "stubbable",
@@ -7925,9 +8042,8 @@
     "dir32_count": 1
   },
   "0x000a9380": {
-    "class": "stubbable",
-    "dir32_count": 3,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 3
   },
   "0x000a93e0": {
     "class": "stubbable",
@@ -7935,9 +8051,8 @@
     "call_count": 1
   },
   "0x000a9460": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000a9480": {
     "class": "stubbable",
@@ -8006,9 +8121,8 @@
     "call_count": 2
   },
   "0x000a9af0": {
-    "class": "stubbable",
-    "dir32_count": 70,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 70
   },
   "0x000a9e20": {
     "class": "stubbable",
@@ -8038,7 +8152,7 @@
   "0x000aa120": {
     "class": "stubbable",
     "dir32_count": 4,
-    "call_count": 3
+    "call_count": 1
   },
   "0x000aa190": {
     "class": "leaf"
@@ -8119,14 +8233,12 @@
     "class": "leaf"
   },
   "0x000ab040": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000ab070": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000ab090": {
     "class": "stubbable",
@@ -8186,9 +8298,8 @@
     "call_count": 1
   },
   "0x000aba30": {
-    "class": "stubbable",
-    "dir32_count": 6,
-    "call_count": 1
+    "class": "data_only",
+    "dir32_count": 6
   },
   "0x000aba90": {
     "class": "leaf"
@@ -8201,9 +8312,8 @@
     "dir32_count": 1
   },
   "0x000abca0": {
-    "class": "stubbable",
-    "dir32_count": 2,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 2
   },
   "0x000abd20": {
     "class": "leaf"
@@ -8272,7 +8382,7 @@
   "0x000acff0": {
     "class": "stubbable",
     "dir32_count": 3,
-    "call_count": 3
+    "call_count": 1
   },
   "0x000ad0c0": {
     "class": "leaf"
@@ -8324,17 +8434,14 @@
     "dir32_count": 1
   },
   "0x000add50": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 2
+    "class": "data_only",
+    "dir32_count": 1
   },
   "0x000adf70": {
     "class": "leaf"
   },
   "0x000ae0a0": {
-    "class": "stubbable",
-    "dir32_count": 1,
-    "call_count": 1
+    "class": "leaf"
   },
   "0x000ae110": {
     "class": "stubbable",
@@ -14863,6 +14970,11 @@
   "0x00139480": {
     "class": "leaf"
   },
+  "0x0013e7b0": {
+    "class": "stubbable",
+    "dir32_count": 1,
+    "call_count": 3
+  },
   "0x001402c0": {
     "class": "stubbable",
     "call_count": 3
@@ -14927,10 +15039,97 @@
     "dir32_count": 1,
     "call_count": 2
   },
-  "0x001493b0": {
+  "0x00147410": {
     "class": "stubbable",
-    "dir32_count": 4,
     "call_count": 1
+  },
+  "0x00147520": {
+    "class": "stubbable",
+    "call_count": 2
+  },
+  "0x00147570": {
+    "class": "stubbable",
+    "call_count": 5
+  },
+  "0x001475f0": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x00147660": {
+    "class": "leaf"
+  },
+  "0x001476a0": {
+    "class": "stubbable",
+    "call_count": 3
+  },
+  "0x00147710": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x001477f0": {
+    "class": "stubbable",
+    "call_count": 5
+  },
+  "0x00147990": {
+    "class": "stubbable",
+    "call_count": 3
+  },
+  "0x001479e0": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x00147ae0": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x00147d10": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x00147ed0": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x00148240": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x00148370": {
+    "class": "data_only",
+    "dir32_count": 1
+  },
+  "0x00148440": {
+    "class": "leaf"
+  },
+  "0x001486e0": {
+    "class": "leaf"
+  },
+  "0x00148780": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x00148910": {
+    "class": "data_only",
+    "dir32_count": 7
+  },
+  "0x00148b20": {
+    "class": "leaf"
+  },
+  "0x00148b90": {
+    "class": "leaf"
+  },
+  "0x00148eb0": {
+    "class": "stubbable",
+    "dir32_count": 2,
+    "call_count": 2
+  },
+  "0x001491d0": {
+    "class": "stubbable",
+    "call_count": 1
+  },
+  "0x001493b0": {
+    "class": "data_only",
+    "dir32_count": 4
   },
   "0x00149480": {
     "class": "data_only",
@@ -19553,7 +19752,13 @@
   "0x002315f0": {
     "class": "leaf"
   },
+  "0x100050": {
+    "class": "non_leaf"
+  },
   "0x106510": {
+    "class": "non_leaf"
+  },
+  "0x10b120": {
     "class": "non_leaf"
   },
   "0x121a0": {
@@ -19566,16 +19771,25 @@
     "class": "leaf",
     "z3_proven": true
   },
+  "0x191240": {
+    "class": "non_leaf"
+  },
   "0x193a80": {
     "class": "leaf"
   },
   "0x1bdc60": {
     "class": "non_leaf"
   },
+  "0x1bfd00": {
+    "class": "non_leaf"
+  },
   "0x1c300": {
     "class": "non_leaf"
   },
   "0x1c61a0": {
+    "class": "non_leaf"
+  },
+  "0x1cbac0": {
     "class": "non_leaf"
   },
   "0x1cd5a0": {
@@ -19639,6 +19853,9 @@
   "0x92dd0": {
     "class": "non_leaf"
   },
+  "0x97a50": {
+    "class": "non_leaf"
+  },
   "0x99500": {
     "class": "leaf"
   },
@@ -19691,6 +19908,9 @@
     "class": "non_leaf"
   },
   "0xcc1d0": {
+    "class": "non_leaf"
+  },
+  "0xfae80": {
     "class": "non_leaf"
   },
   "0xff640": {
