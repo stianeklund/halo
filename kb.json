@@ -25877,8 +25877,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00193b00(void);",
-          "addr": "0x193b00"
+          "decl": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
+          "addr": "0x193b00",
+          "ported": true
         }
       ]
     },
