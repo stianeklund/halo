@@ -1036,6 +1036,41 @@ char FUN_0003b150(int actor_handle)
   return result;
 }
 
+/* 0x3b190 — Get actor attack vector (3-float) if actively in cover type 4.
+ * Asserts attack_vector_out is non-null, then if attack intensity > 8 and
+ * the action type is 4 (cover): copies the script-set vector (+0x180) or the
+ * burst-fire target vector (+0x63c) into attack_vector_out. Returns 1 on
+ * success, 0 if no attack vector is available. */
+int FUN_0003b190(int actor_handle, int *attack_vector_out)
+{
+  char *actor;
+  int16_t mode;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (attack_vector_out == 0) {
+    display_assert("attack_vector", "c:\\halo\\SOURCE\\ai\\actors.c", 0x698, 1);
+    system_exit(-1);
+  }
+  if (*(int16_t *)(actor + 0x268) > 8) {
+    mode = actor_action_try_to_panic(actor_handle);
+    if (mode == 4) {
+      if (*(char *)(actor + 0x6a0)) {
+        attack_vector_out[0] = *(int *)(actor + 0x180);
+        attack_vector_out[1] = *(int *)(actor + 0x184);
+        attack_vector_out[2] = *(int *)(actor + 0x188);
+        return 1;
+      }
+      if (*(int16_t *)(actor + 0x60c) > 0) {
+        attack_vector_out[0] = *(int *)(actor + 0x63c);
+        attack_vector_out[1] = *(int *)(actor + 0x640);
+        attack_vector_out[2] = *(int *)(actor + 0x644);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 /* actor_attacking_target (0x3b270)
  * Get the current weapon handle for an actor. First checks if the actor has
  * a held-weapon unit (offset 0x158, guarded by byte at 0x161). If that path

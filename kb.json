@@ -12640,8 +12640,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003b190(void);",
-          "addr": "0x3b190"
+          "decl": "int FUN_0003b190(int actor_handle, int *attack_vector_out);",
+          "addr": "0x3b190",
+          "ported": true
         },
         {
           "decl": "void FUN_0003b240(void);",
