@@ -70,6 +70,28 @@ ARRAY_DECL_PATTERN = re.compile(
     r'(?:unsigned\s+)?char\s+(\w+)\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]'
 )
 
+SUB_ESP_PATTERN = re.compile(
+    r'SUB\s+ESP\s*[,=]\s*(0x[0-9a-fA-F]+)', re.IGNORECASE
+)
+LOCAL_ARRAY_PATTERN = re.compile(
+    r'^\s+(?:unsigned\s+)?(?:char|uint8_t|int8_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+)
+LOCAL_ARRAY16_PATTERN = re.compile(
+    r'^\s+(?:unsigned\s+)?(?:short|int16_t|uint16_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+)
+LOCAL_ARRAY32_PATTERN = re.compile(
+    r'^\s+(?:unsigned\s+)?(?:int|int32_t|uint32_t|float)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+)
+LOCAL_SCALAR_PATTERN = re.compile(
+    r'^\s+(?:unsigned\s+)?(?:int|int32_t|uint32_t|float|void\s*\*|char\s*\*|int\s*\*|short\s*\*)\s+\w+\s*;',
+)
+LOCAL_SCALAR16_PATTERN = re.compile(
+    r'^\s+(?:unsigned\s+)?(?:short|int16_t|uint16_t)\s+\w+\s*;',
+)
+LOCAL_SCALAR8_PATTERN = re.compile(
+    r'^\s+(?:unsigned\s+)?(?:char|int8_t|uint8_t)\s+\w+\s*;',
+)
+
 
 def check_intrinsics():
     errors = []
@@ -428,12 +450,109 @@ def check_buffer_alias():
     return deduped
 
 
+def _parse_int(s):
+    return int(s, 16) if s.startswith('0x') else int(s)
+
+
+def _find_function_body(lines, func_name):
+    """Return (start_line, end_line) 0-indexed for function body, or None."""
+    for i, line in enumerate(lines):
+        if func_name + '(' in line and not line.lstrip().startswith(('*', '/', '#')):
+            for j in range(i, min(i + 5, len(lines))):
+                if '{' in lines[j]:
+                    depth = 1
+                    for k in range(j + 1, len(lines)):
+                        depth += lines[k].count('{') - lines[k].count('}')
+                        if depth == 0:
+                            return (j + 1, k)
+                    break
+    return None
+
+
+def _sum_locals(lines):
+    """Sum declared local variable sizes (bytes) from function body lines."""
+    total = 0
+    for line in lines:
+        for m in LOCAL_ARRAY_PATTERN.finditer(line):
+            total += _parse_int(m.group(1))
+        for m in LOCAL_ARRAY16_PATTERN.finditer(line):
+            total += _parse_int(m.group(1)) * 2
+        for m in LOCAL_ARRAY32_PATTERN.finditer(line):
+            total += _parse_int(m.group(1)) * 4
+        if LOCAL_SCALAR_PATTERN.match(line):
+            total += 4
+        elif LOCAL_SCALAR16_PATTERN.match(line):
+            total += 4  # MSVC aligns shorts to 4
+        elif LOCAL_SCALAR8_PATTERN.match(line):
+            total += 4  # MSVC aligns chars to 4
+    return total
+
+
+def check_frame_sizes():
+    """Check ported functions where SUB ESP,N is documented in a comment.
+
+    Compares the original MSVC stack frame size against the sum of declared
+    local variables in the C source. Flags functions where the declared
+    locals are significantly smaller than the original frame.
+    """
+    errors = []
+    for dirpath, _, filenames in os.walk(SRC_DIR):
+        for fname in filenames:
+            if not fname.endswith('.c'):
+                continue
+            fpath = os.path.join(dirpath, fname)
+            with open(fpath, 'r', errors='replace') as f:
+                lines = f.readlines()
+
+            text = ''.join(lines)
+            i = 0
+            while i < len(lines):
+                m = SUB_ESP_PATTERN.search(lines[i])
+                if not m:
+                    i += 1
+                    continue
+                frame_size = _parse_int(m.group(1))
+                func_name = None
+                j = i
+                for j in range(i + 1, min(i + 30, len(lines))):
+                    stripped = lines[j].lstrip()
+                    if stripped and not stripped.startswith(('*', '/', '#', '\n')):
+                        fn_match = re.match(
+                            r'(?:static\s+)?(?:void|int|short|char|float|unsigned|'
+                            r'int16_t|uint32_t|int32_t|bool|data_t)\s*\*?\s*'
+                            r'(FUN_[0-9a-fA-F]+|\w+)\s*\(', stripped
+                        )
+                        if fn_match:
+                            func_name = fn_match.group(1)
+                        break
+                if func_name:
+                    body = _find_function_body(lines, func_name)
+                    if body:
+                        start, end = body
+                        declared = _sum_locals(lines[start:end])
+                        gap = frame_size - declared
+                        if gap >= 8:
+                            relpath = os.path.relpath(fpath, ROOT_DIR)
+                            errors.append(
+                                f'  {relpath}:{j+1}: {func_name} — '
+                                f'original: {frame_size:#x} ({frame_size}), '
+                                f'declared: {declared:#x} ({declared}), '
+                                f'gap: {gap} bytes'
+                            )
+                i = j + 1
+
+    return errors
+
+
 def main():
+    frame_audit = '--frame-size-audit' in sys.argv
+
     intrinsic_errors = check_intrinsics()
     buffer_errors = check_buffer_sizes()
     duplicate_errors = check_duplicate_args()
     ptr_float_errors = check_pointer_as_float()
     alias_errors = check_buffer_alias()
+    frame_errors = check_frame_sizes() if frame_audit else []
 
     if intrinsic_errors:
         print(
@@ -487,6 +606,18 @@ def main():
             file=sys.stderr,
         )
         for e in alias_errors:
+            print(e, file=sys.stderr)
+        print(file=sys.stderr)
+
+    if frame_errors:
+        print(
+            'WARNING: stack frame size mismatch in ported functions.\n'
+            'The original MSVC binary allocates more stack space than our C\n'
+            'code declares. Unported callees may depend on this layout\n'
+            '(MSVC stack overlap hazard):\n',
+            file=sys.stderr,
+        )
+        for e in frame_errors:
             print(e, file=sys.stderr)
         print(file=sys.stderr)
 

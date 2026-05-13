@@ -9435,7 +9435,7 @@
         },
         {
           "addr": "0x31a90",
-          "decl": "void FUN_00031a90(void *actor_handle_out, float *position, int param_3, void *input_block_out);"
+          "decl": "void FUN_00031a90(int actor_handle, float *position, int param_3, void *input_block_out);"
         }
       ]
     },
