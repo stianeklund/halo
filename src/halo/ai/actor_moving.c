@@ -56,6 +56,60 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
   path_input_set_start(nav_state_out, (float *)(actor + 0x168), *(int *)(actor + 0x164));
 }
 
+/* 0x2a7e0 — Set actor goal destination if not already occupied.
+ * Calls actor_set_dormant(actor, 0), then checks actor->goal_slot (+0x418)
+ * and vehicle-in-air state. On success writes param_2 to +0x418 and
+ * copies two ints from param_3 to +0x41c/+0x420. Returns 1 on success, 0 on
+ * failure. */
+int FUN_0002a7e0(int actor_handle, int16_t param_2, int *param_3)
+{
+  char *actor;
+  char *actor2;
+  char result;
+
+  result = 0;
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  actor_set_dormant(actor_handle, 0);
+  actor2 = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(int16_t *)(actor2 + 0x418) == -1) {
+    if (*(int *)(actor2 + 0x18) == -1 || !FUN_001a9ad0(*(int *)(actor2 + 0x18))) {
+      *(int16_t *)(actor + 0x418) = param_2;
+      *(int *)(actor + 0x41c) = *param_3;
+      *(int *)(actor + 0x420) = param_3[1];
+      result = 1;
+    }
+  }
+  return (int)result;
+}
+
+/* 0x2a860 — Clear actor destination and trigger flee movement.
+ * Returns 0 if actor has a goal slot, is in a flying vehicle, or FUN_0001ca90
+ * returns true. Otherwise zeroes the swarm flag, copies 12 bytes from the
+ * global pointer at 0x31fc38, calls FUN_0003c3e0, and returns 1. */
+int FUN_0002a860(int actor_handle)
+{
+  char *actor;
+  char *ptr;
+  char result;
+
+  result = 0;
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(int16_t *)(actor + 0x418) == -1) {
+    if (*(int *)(actor + 0x18) == -1 || !FUN_001a9ad0(*(int *)(actor + 0x18))) {
+      if (!FUN_0001ca90(actor_handle)) {
+        *(char *)(actor + 0x504) = 0;
+        ptr = (char *)*(int *)0x31fc38;
+        *(int *)(actor + 0x6e0) = *(int *)ptr;
+        *(int *)(actor + 0x6e4) = *(int *)(ptr + 4);
+        *(int *)(actor + 0x6e8) = *(int *)(ptr + 8);
+        FUN_0003c3e0(actor_handle);
+        result = 1;
+      }
+    }
+  }
+  return (int)result;
+}
+
 /* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup
  * tables.
  *
