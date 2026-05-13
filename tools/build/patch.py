@@ -1186,6 +1186,21 @@ def main():
     for s in kb.symbols:
         name_to_symbol[s.name] = s
 
+    # Guard: every ported=true function must appear in the EXE export table.
+    # If a source file is missing from CMakeLists.txt the function compiles to
+    # nothing, the XBE patch is silently skipped, and the original (crashing)
+    # code runs.  Catch that here so the build fails loudly instead.
+    ported_kb_names = {s.name for s in kb.symbols if getattr(s, 'ported', None) is True}
+    exported_kb_names = set(export_to_kb_name.values())
+    missing_exports = ported_kb_names - exported_kb_names
+    if missing_exports:
+        for name in sorted(missing_exports):
+            log.error(
+                'kb.json ported=true for "%s" but symbol absent from EXE exports '
+                '— source file may be missing from CMakeLists.txt',
+                name)
+        exit(1)
+
     # First pass: build reverse thunks for implemented @<reg> functions. Each
     # rvthunk adapts the original register-arg ABI into cdecl before calling
     # the impl. Placed in a new .rvthunks XBE section after the EXE sections.
