@@ -8,6 +8,10 @@ extern void object_placement_data_new(void *placement, int tag_index, int parent
 extern void matrix_inverse(float *src, float *dst);
 extern void matrix4x3_multiply(float *a, float *b, float *out);
 extern void matrix_from_forward_and_up(float *out, float *forward, float *up);
+extern int16_t FUN_00106510(int16_t count, float *points, float *line,
+                            int16_t max_count, float *out_points,
+                            uint32_t *out_bitmask, uint8_t *changed,
+                            float epsilon);
 
 extern void *csstrncpy(char *destination, const char *source, size_t size);
 extern char *csstrtok(char *string, const char *delimiters);
@@ -23,6 +27,28 @@ static int check(const char *name, uint32_t got, uint32_t expected, char *buf) {
     crt_sprintf(buf, "  FAIL %s: got %08X expected %08X\n", name, got, expected);
     debug_string_to_display(buf, 0);
     return 0;
+}
+
+static void dump_clip_case(const char *name, int16_t ret, uint32_t mask,
+                           uint8_t changed, float *points, char *buf) {
+    int i;
+    int point_count;
+
+    crt_sprintf(buf, "  CLIP %s ret=%04X changed=%02X mask=%08X\n", name,
+                (uint16_t)ret, changed, mask);
+    debug_string_to_display(buf, 0);
+
+    point_count = ret;
+    if (point_count < 0) {
+        point_count = 0;
+    }
+
+    for (i = 0; i < point_count; i++) {
+        crt_sprintf(buf, "  CLIP %s p%d=%08X,%08X\n", name, i,
+                    *(uint32_t *)&points[i * 2],
+                    *(uint32_t *)&points[i * 2 + 1]);
+        debug_string_to_display(buf, 0);
+    }
 }
 
 void run_tests(void) {
@@ -211,6 +237,95 @@ void run_tests(void) {
         total += 2;
         passed += check("rand r1", *(uint32_t*)&r1, 0x3F4114C1, buf);
         passed += check("rand r2", *(uint32_t*)&r2, 0x3F0CAC8D, buf);
+    }
+
+    /* FUN_00106510: 2D polygon clip against a line.
+     * Golden/candidate comparison is done by run_golden_tests.py on the raw
+     * output below, so these cases print exact hex results instead of PASS/FAIL.
+     */
+    {
+        float line_x_ge_0[3] = { 1.0f, 0.0f, 0.0f };
+        float line_y_ge_0[3] = { 0.0f, 1.0f, 0.0f };
+
+        {
+            float in_points[8] = {
+                -1.0f,  0.0f,
+                 1.0f,  1.0f,
+                 1.0f, -1.0f,
+                -1.0f, -1.0f
+            };
+            float out_points[0x18];
+            uint32_t out_mask = 0x0000000f;
+            uint8_t changed = 0xcc;
+            int16_t ret;
+
+            ret = FUN_00106510(4, in_points, line_x_ge_0, 0xc, out_points,
+                               &out_mask, &changed, 0.0f);
+            dump_clip_case("clip_cross", ret, out_mask, changed, out_points, buf);
+        }
+
+        {
+            float alias_points[0x18] = {
+                -2.0f,  2.0f,
+                 2.0f,  2.0f,
+                 2.0f, -2.0f,
+                -2.0f, -2.0f
+            };
+            uint32_t out_mask = 0x00000005;
+            uint8_t changed = 0xcc;
+            int16_t ret;
+
+            ret = FUN_00106510(4, alias_points, line_y_ge_0, 0xc, alias_points,
+                               &out_mask, &changed, 0.0f);
+            dump_clip_case("clip_alias", ret, out_mask, changed, alias_points, buf);
+        }
+
+        {
+            float in_points[6] = {
+                1.0f, 0.0f,
+                2.0f, 1.0f,
+                1.0f, 2.0f
+            };
+            float out_points[0x18];
+            uint8_t changed = 0xcc;
+            int16_t ret;
+
+            ret = FUN_00106510(3, in_points, line_x_ge_0, 0xc, out_points,
+                               NULL, &changed, 0.0f);
+            dump_clip_case("clip_inside", ret, 0, changed, out_points, buf);
+        }
+
+        {
+            float in_points[6] = {
+                -3.0f, -1.0f,
+                -2.0f, -2.0f,
+                -1.0f, -3.0f
+            };
+            float out_points[0x18];
+            uint8_t changed = 0xcc;
+            int16_t ret;
+
+            ret = FUN_00106510(3, in_points, line_x_ge_0, 0xc, out_points,
+                               NULL, &changed, 0.0f);
+            dump_clip_case("clip_outside", ret, 0, changed, out_points, buf);
+        }
+
+        {
+            float in_points[6] = {
+                 0.0f, 0.0f,
+                 2.0f, 0.0f,
+                -1.0f, 1.0f
+            };
+            float out_points[0x18];
+            uint32_t out_mask = 0x00000007;
+            uint8_t changed = 0xcc;
+            int16_t ret;
+
+            ret = FUN_00106510(3, in_points, line_x_ge_0, 0xc, out_points,
+                               &out_mask, &changed, 0.0001f);
+            dump_clip_case("clip_duplicate", ret, out_mask, changed, out_points,
+                           buf);
+        }
     }
 
     crt_sprintf(buf, "--- TEST_HARNESS_END: %d/%d passed ---\n", passed, total);

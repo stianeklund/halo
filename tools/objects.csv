@@ -1,6 +1,6 @@
 Object,Delink?,addr_range,func_count
 actions.obj,true,0x0001C270-0x000212F0,11
-actors.obj,true,0x0002A360-0x0003F230,60
+actors.obj,true,0x0002A360-0x0003F230,64
 actor_looking.obj,true,0x00014540-0x0002A5D0,7
 ai.obj,true,0x0003F5F0-0x000427C0,21
 bink_playback.obj,true,0x001C5900-0x001C6A70,16
@@ -119,6 +119,7 @@ rasterizer_text.obj,true,0x00183120-0x00184060,2
 draw_string.obj,true,0x00130AB0-0x0019BAB0,5
 rasterizer_sprites.obj,true,0x0017CFA0-0x0017D1A0,1
 rectangles.obj,true,0x00108A70-0x00108FB0,2
+integer_math.obj,true,0x00108E70-0x00109070,1
 bink_sound.obj,true,0x001C94B0-0x001C96B0,1
 lruv_cache.obj,true,0x0011D480-0x001C0090,9
 bitmap_utilities.obj,true,0x0007AB50-0x0007B220,3
@@ -137,12 +138,12 @@ XAPILIB:xinput.obj,true,0x0024C427-0x0024C627,1
 action_obey.obj,false,,0
 actor_combat.obj,true,0x00020F80-0x00022FC0,10
 actor_moving.obj,true,0x0002A3A0-0x0002E760,9
-actor_perception.obj,true,0x0002F910-0x000357F0,6
+actor_perception.obj,true,0x0002F910-0x000357F0,8
 ai_communication.obj,true,0x00042A30-0x00049090,9
 ai_debug.obj,true,0x00048F50-0x00053880,15
 ai_profile.obj,true,0x000540B0-0x000542E0,4
 ai_script.obj,true,0x00058EB0-0x000590B0,1
-encounters.obj,true,0x00054020-0x0005E1B0,41
+encounters.obj,true,0x00054020-0x0005E1B0,43
 props.obj,true,0x00064100-0x000650E0,10
 tif_dir.obj,true,0x000659F0-0x00066190,2
 tif_flush.obj,true,0x0006A260-0x0006A460,1

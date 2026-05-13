@@ -217,6 +217,8 @@
     "0x184bc0": "void render_window_pregame(int window_type@<ebx>, int16_t *win);",
     "0x185290": "void render_window(int16_t *win@<esi>, void *offset_or_null);",
     "0x185770": "void render_camera_check_warning_condition(int16_t id@<ax>, float value);",
+    "0x193a80": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
+    "0x193b00": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x1a8b20": "void FUN_001a8b20(int object_handle @<eax>, int16_t state);",
     "0x1a9560": "int16_t unit_impulse_to_animation_kind(int16_t impulse_index@<ax>, int16_t *out_update_kind@<ebx>);",
     "0x1a96f0": "bool unit_animation_state_allows_impulse(int unit_handle@<eax>, int impulse_index@<edi>);",
