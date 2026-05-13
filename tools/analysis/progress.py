@@ -191,6 +191,26 @@ def print_report(s, by_object=False):
         print()
 
 
+def find_cache_file(cache_path):
+    """Find the function size cache file, checking multiple locations."""
+    # Check the specified/default path first
+    if os.path.exists(cache_path):
+        return cache_path
+    
+    # Check alternative locations
+    alternatives = [
+        os.path.join(ROOT_DIR, 'function_sizes.json'),
+        os.path.join(os.getcwd(), 'function_sizes.json'),
+        os.path.join(os.getcwd(), 'build', 'function_sizes.json'),
+    ]
+    
+    for alt in alternatives:
+        if os.path.exists(alt):
+            return alt
+    
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser(description='Report reimplementation progress')
     ap.add_argument('--cache', default=DEFAULT_CACHE,
@@ -203,12 +223,29 @@ def main():
                     help='Output machine-readable JSON only')
     args = ap.parse_args()
 
-    if not os.path.exists(args.cache):
+    # Ensure build directory exists (for when Ghidra script runs)
+    build_dir = os.path.dirname(DEFAULT_CACHE)
+    if not os.path.exists(build_dir):
+        os.makedirs(build_dir, exist_ok=True)
+
+    # Try to find the cache file
+    cache_path = find_cache_file(args.cache)
+    
+    if cache_path is None:
         print(f'Error: function size cache not found at {args.cache}', file=sys.stderr)
-        print(f'Run the ExportFunctionSizes.java script in Ghidra first.', file=sys.stderr)
+        print(f'', file=sys.stderr)
+        print(f'To generate this file:', file=sys.stderr)
+        print(f'  1. Open the XBE in Ghidra', file=sys.stderr)
+        print(f'  2. Go to Window -> Script Manager', file=sys.stderr)
+        print(f'  3. Click the script directories icon (+) and add:', file=sys.stderr)
+        print(f'     {os.path.join(ROOT_DIR, "ghidra_scripts")}', file=sys.stderr)
+        print(f'  4. Run: ExportFunctionSizes.java', file=sys.stderr)
+        print(f'  5. The file will be saved to: {DEFAULT_CACHE}', file=sys.stderr)
+        print(f'', file=sys.stderr)
+        print(f'Or specify a custom path with --cache', file=sys.stderr)
         sys.exit(1)
 
-    s = compute(args.cache, args.kb, args.meta)
+    s = compute(cache_path, args.kb, args.meta)
 
     if args.json:
         print(json.dumps({
@@ -222,6 +259,14 @@ def main():
         }, indent=2))
     else:
         print_report(s, by_object=args.by_object)
+        
+        # Suggest auto-discovery if many functions are undeclared
+        undeclared = s['total_funcs'] - s['declared_count']
+        if undeclared > 1000:
+            print()
+            print(f'Note: {undeclared:,} functions are not yet in kb.json')
+            print(f'Run the following to auto-discover and add them:')
+            print(f'  python3 tools/analysis/auto_discover.py --auto-add')
 
 
 if __name__ == '__main__':

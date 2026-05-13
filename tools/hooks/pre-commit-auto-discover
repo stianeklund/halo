@@ -1,0 +1,55 @@
+#!/bin/bash
+# Pre-commit hook: Auto-discover new functions before committing
+# 
+# Install:
+#   cp tools/hooks/pre-commit-auto-discover .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+
+set -e
+
+# Only run if function cache exists
+if [ ! -f "build/function_sizes.json" ]; then
+    echo "Skipping auto-discover: build/function_sizes.json not found"
+    exit 0
+fi
+
+echo "Running auto-discover for new functions..."
+
+# Run discovery (dry-run first to check if there are new functions)
+OUTPUT=$(python3 tools/analysis/auto_discover.py --quiet --json 2>/dev/null || true)
+
+if [ -z "$OUTPUT" ]; then
+    exit 0
+fi
+
+DISCOVERED=$(echo "$OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin)['discovered'])")
+
+if [ "$DISCOVERED" -eq 0 ]; then
+    exit 0
+fi
+
+echo ""
+echo "Found $DISCOVERED undocumented functions that should be added to kb.json"
+echo ""
+
+# Show summary
+python3 tools/analysis/auto_discover.py 2>&1 | head -40
+
+echo ""
+echo "To add these functions automatically, run:"
+echo "  python3 tools/analysis/auto_discover.py --auto-add"
+echo ""
+echo "Or stage the changes and commit with --no-verify to skip this check"
+echo ""
+
+# Ask user what to do
+read -p "Auto-add discovered functions to kb.json? [y/N] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    python3 tools/analysis/auto_discover.py --auto-add --quiet
+    git add kb.json
+    echo "Added $DISCOVERED functions to kb.json"
+else
+    echo "Commit aborted. Please run the discovery tool manually or commit with --no-verify"
+    exit 1
+fi
