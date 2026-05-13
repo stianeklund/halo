@@ -209,17 +209,10 @@ static inline double xbox_pow(double base, double exponent)
 
 static inline void *xbox_memcpy(void *s1, const void *s2, size_t n)
 {
-  void *ret = s1;
-  uint32_t dwords = (uint32_t)(n >> 2);
-  uint32_t tail = (uint32_t)(n & 3);
-  asm volatile(
-    "rep movsl\n\t"
-    "mov %[tail], %%ecx\n\t"
-    "rep movsb"
-    : "+D"(s1), "+S"(s2), "+c"(dwords)
-    : [tail] "r"(tail)
-    : "memory");
-  return ret;
+  char *dest = (char *)s1;
+  const char *src = (const char *)s2;
+  while (n--) { *dest++ = *src++; }
+  return s1;
 }
 
 static inline size_t xbox_strlen(const char *s)
