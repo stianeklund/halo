@@ -99,3 +99,19 @@ void debug_keys_update(void)
     } while ((definition++)->termination != NULL);
   }
 }
+
+/* Set the AI debug display flag to 1 when called with a non-zero argument. */
+void FUN_000ffdd0(char param_1)
+{
+  if (param_1 != '\0') {
+    *(char *)0x5ac9c1 = 1;
+  }
+}
+
+/* Trigger AI debug encounter display when called with a non-zero argument. */
+void FUN_000ffdf0(char param_1)
+{
+  if (param_1 != '\0') {
+    FUN_0004afa0(1);
+  }
+}
