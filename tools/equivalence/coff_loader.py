@@ -157,13 +157,16 @@ def load_coff(path: str) -> tuple[list[CoffSection], list[CoffSymbol], bytes]:
         name = _read_coff_string(data, off, string_table)
         value, section_num, sym_type, storage_class, num_aux = \
             struct.unpack_from("<IHHBB", data, off + 8)
-        symbols.append(CoffSymbol(
+        sym = CoffSymbol(
             name=name,
             value=value,
             section_num=section_num,
             sym_type=sym_type,
             storage_class=storage_class,
-        ))
+        )
+        symbols.append(sym)
+        for _ in range(num_aux):
+            symbols.append(sym)
         i += 1 + num_aux  # skip auxiliary records
 
     return sections, symbols, string_table
