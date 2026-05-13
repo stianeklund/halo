@@ -117,7 +117,8 @@ int csstrcmp(const char *s1, const char *s2)
 /* csstrcat — bounded string concatenation with assertions. */
 char *csstrcat(char *destination, const char *source, size_t max_size)
 {
-  assert_halt(destination && source);
+  if (!destination || !source)
+    return NULL;
   assert_halt(max_size < MAXIMUM_STRING_SIZE);
 
   crt_strncat(destination, source, max_size);
