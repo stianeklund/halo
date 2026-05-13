@@ -3,11 +3,14 @@
 
 Scans every section of every .obj in delinked/ for IMAGE_REL_I386_DIR32 (0x0006)
 relocations whose target symbol name looks like an Xbox VA (hex suffix).
-Outputs a _KNOWN_GLOBAL_BYTES dict snippet for unicorn_diff.py.
+Outputs a _KNOWN_GLOBAL_BYTES dict snippet for unicorn_diff.py, or a JSON file
+suitable for loading by unicorn_diff._load_known_globals().
 
 Usage:
     python3 tools/equivalence/extract_globals.py [--verbose] [--min-addr 0x10000]
+    python3 tools/equivalence/extract_globals.py --json [--output PATH]
 """
+import json
 import re
 import struct
 import sys
@@ -26,6 +29,19 @@ DELINKED_DIR = _REPO_ROOT / "delinked"
 DIR32 = 0x0006  # IMAGE_REL_I386_DIR32
 MIN_ADDR = 0x10000
 MAX_ADDR = 0x6400000  # ~100 MB Xbox VA space; filter out constants like 0x80000000, 0xc0000090, 0xffffffff
+
+# Code section range: addresses in this range are code, not data.
+CODE_RANGE_START = 0x012000
+CODE_RANGE_END = 0x1e69cc
+_CODE_PREFIXES = ('FUN_', 'switchD_', 'switchdataD_', 'LAB_')
+
+
+def _is_code_ref(sym_name: str, addr: int) -> bool:
+    """Return True if the symbol looks like a code reference rather than a data global."""
+    for prefix in _CODE_PREFIXES:
+        if prefix in sym_name:
+            return True
+    return CODE_RANGE_START <= addr <= CODE_RANGE_END
 
 
 def _load_xbe_sections() -> list:
@@ -74,10 +90,13 @@ def _va_from_symbol(name: str) -> int:
 
 def main():
     verbose = "--verbose" in sys.argv
+    emit_json = "--json" in sys.argv
     out_path = None
     for i, a in enumerate(sys.argv):
         if a == "--output" and i + 1 < len(sys.argv):
             out_path = Path(sys.argv[i + 1])
+    if emit_json and out_path is None:
+        out_path = _SCRIPT_DIR / "known_globals.json"
 
     if not DELINKED_DIR.exists():
         print(f"Error: {DELINKED_DIR} not found.", file=sys.stderr)
@@ -90,6 +109,7 @@ def main():
 
     global_addrs = set()
     addr_sources = {}
+    addr_symbols = {}  # addr -> raw symbol name (for code-ref filtering)
     errors = 0
 
     for obj_path in obj_files:
@@ -121,6 +141,7 @@ def main():
                 if addr and addr not in global_addrs:
                     global_addrs.add(addr)
                     addr_sources[addr] = f"{obj_path.name}:{sym_name}"
+                    addr_symbols[addr] = sym_name
 
     print(f"# Parsed {len(obj_files)} .obj files ({errors} errors)", file=sys.stderr)
     print(f"# Found {len(global_addrs)} unique DIR32 relocation targets", file=sys.stderr)
@@ -128,8 +149,13 @@ def main():
     sorted_addrs = sorted(global_addrs)
     mapped = []
     unmapped = []
+    skipped_code = 0
 
     for addr in sorted_addrs:
+        sym_name = addr_symbols.get(addr, "")
+        if _is_code_ref(sym_name, addr):
+            skipped_code += 1
+            continue
         if xbe_sections:
             b = _read_xbe_bytes(xbe_sections, addr, 4)
         else:
@@ -139,35 +165,48 @@ def main():
         else:
             unmapped.append(addr)
 
-    lines = []
-    lines.append("_KNOWN_GLOBAL_BYTES = {")
-    for addr, b in mapped:
-        hex_val = struct.unpack("<I", b)[0]
-        try:
-            f_val = struct.unpack("<f", b)[0]
-            comment = f"{f_val:g}"
-        except Exception:
-            comment = ""
-        src = addr_sources.get(addr, "")
-        lines.append(f'    0x{addr:06x}: struct.pack("<I", 0x{hex_val:08x}),  # {comment}  [{src}]')
-    lines.append("}")
+    print(f"# Skipped {skipped_code} code-section references (FUN_/switchD_/LAB_/code range)",
+          file=sys.stderr)
 
-    if unmapped:
-        lines.append(f"\n# --- {len(unmapped)} UNMAPPED (runtime-initialized or BSS) ---")
-        for addr in unmapped:
-            src = addr_sources.get(addr, "")
-            lines.append(f"# 0x{addr:06x}  [{src}]")
-
-    text = "\n".join(lines) + "\n"
-
-    if out_path:
+    if emit_json:
+        json_dict = {}
+        for addr, b in mapped:
+            json_dict[f"{addr:x}"] = b.hex()
+        text = json.dumps(json_dict, indent=2) + "\n"
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(text)
-        print(f"# Wrote {len(mapped)} entries to {out_path}", file=sys.stderr)
+        out_path.write_text(text, encoding="utf-8")
+        print(f"# Wrote {len(json_dict)} entries to {out_path}", file=sys.stderr)
     else:
-        print(text)
+        lines = []
+        lines.append("_KNOWN_GLOBAL_BYTES = {")
+        for addr, b in mapped:
+            hex_val = struct.unpack("<I", b)[0]
+            try:
+                f_val = struct.unpack("<f", b)[0]
+                comment = f"{f_val:g}"
+            except Exception:
+                comment = ""
+            src = addr_sources.get(addr, "")
+            lines.append(f'    0x{addr:06x}: struct.pack("<I", 0x{hex_val:08x}),  # {comment}  [{src}]')
+        lines.append("}")
 
-    print(f"\n# Summary: {len(mapped)} mapped, {len(unmapped)} unmapped, {len(global_addrs)} total",
+        if unmapped:
+            lines.append(f"\n# --- {len(unmapped)} UNMAPPED (runtime-initialized or BSS) ---")
+            for addr in unmapped:
+                src = addr_sources.get(addr, "")
+                lines.append(f"# 0x{addr:06x}  [{src}]")
+
+        text = "\n".join(lines) + "\n"
+
+        if out_path:
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(text)
+            print(f"# Wrote {len(mapped)} entries to {out_path}", file=sys.stderr)
+        else:
+            print(text)
+
+    print(f"\n# Summary: {len(mapped)} mapped, {len(unmapped)} unmapped, "
+          f"{skipped_code} skipped (code), {len(global_addrs)} total",
           file=sys.stderr)
 
 
