@@ -3,6 +3,7 @@
 	inlines.c
 	halo/ai/actions.c
 	halo/ai/actor_combat.c
+	halo/ai/actor_moving.c
 	halo/ai/actor_perception.c
 	halo/ai/actor_looking.c
 	halo/ai/actors.c

@@ -30289,7 +30289,7 @@
         {
           "addr": "0x2a3a0",
           "decl": "void FUN_0002a3a0(int actor_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2a580",
@@ -30303,7 +30303,7 @@
         {
           "addr": "0x2a470",
           "decl": "void FUN_0002a470(int actor_handle, char *nav_state_out);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2b720",
@@ -30394,7 +30394,8 @@
           "decl": "void FUN_0002daa0(void);",
           "addr": "0x2daa0"
         }
-      ]
+      ],
+      "source_path": "src/halo/ai/actor_moving.c"
     },
     {
       "name": "actor_perception.obj",

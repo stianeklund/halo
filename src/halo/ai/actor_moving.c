@@ -53,7 +53,7 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
   FUN_0003bc90(actor_handle);
   path_input_new(nav_state_out, local_8, *(unsigned char *)(actor + 0x376),
                  unit_handle);
-  path_input_set_start(nav_state_out, actor + 0x168, *(int *)(actor + 0x164));
+  path_input_set_start(nav_state_out, (float *)(actor + 0x168), *(int *)(actor + 0x164));
 }
 
 /* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup
@@ -240,7 +240,7 @@ char actor_path_refresh(int actor_handle, char store_distance,
   char *tag; /* [EBP-0xc]: actor tag pointer from tag_get */
   float dist; /* [EBP-0x8]: 3D distance actor→destination */
   char local_nav[44]; /* [EBP-0x60]: nav-state struct (waypoint init output) */
-  char
+  static char
     large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
   void *path_state; /* allocated path cache slot from FUN_00049120 */
   int scenario;
@@ -508,8 +508,8 @@ LAB_check_dest:
                      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xbbc, 1);
       system_exit(-1);
     }
-    FUN_0005e0d0((int)override_path, (unsigned int *)(actor + 0x494),
-                 *(unsigned int *)(actor + 0x498), 0);
+    FUN_0005e0d0(override_path, (float *)(actor + 0x494),
+                 *(int *)(actor + 0x498), 0);
     path_found = path_state_build_path((unsigned int)override_path,
                                        (unsigned int *)(actor + 0x4a8));
   } else {
@@ -537,21 +537,20 @@ LAB_check_dest:
      */
     FUN_0002a470(actor_handle, local_nav);
     if (*(int *)(actor + 0x480) != -1) {
-      paths_dispose((int)local_nav, *(unsigned int *)(actor + 0x480));
+      paths_dispose(local_nav, *(int *)(actor + 0x480));
     }
     if ((*(short *)(actor + 0x280) > 0) && (*(char *)(actor + 0x28a) == '\0') &&
         ((*(unsigned char *)(tag + 4) & 0x10) == 0)) {
       path_input_set_attractor(
-        (int)local_nav, (unsigned int *)(actor + 0x2b0),
-        *(unsigned int *)(actor + 0x294), *(unsigned int *)(actor + 0x28c),
+        local_nav, (float *)(actor + 0x2b0),
+        *(float *)(actor + 0x294), *(unsigned int *)(actor + 0x28c),
         (unsigned int)0x41200000); /* 10.0f as bit pattern */
     }
     path_state = FUN_00049120(actor_handle);
-    path_state_new((unsigned int *)local_nav, (unsigned int *)large_buf,
-                   (unsigned int)path_state);
-    FUN_0005e0d0((int)large_buf, (unsigned int *)(actor + 0x488),
-                 *(unsigned int *)(actor + 0x494),
-                 *(unsigned int *)(actor + 0x498));
+    path_state_new(local_nav, large_buf, path_state);
+    FUN_0005e0d0(large_buf, (float *)(actor + 0x488),
+                 *(int *)(actor + 0x494),
+                 *(int *)(actor + 0x498));
     path_found = FUN_0005ff70((unsigned int *)large_buf);
     if (path_found != '\0') {
       path_found2 = path_state_build_path((unsigned int)large_buf,
@@ -879,7 +878,7 @@ void FUN_0002d350(int actor_handle)
       dx = *(float *)(actor + 0x518);
       dy = *(float *)(actor + 0x51c);
       dz = *(float *)(actor + 0x520);
-      dist = __builtin_sqrtf(dx * dx + dy * dy + dz * dz);
+      dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
       /* Jump past error if distance is sane (< 1,000,000 units). */
       if (dist < 1000000.0f) {
