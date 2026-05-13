@@ -111,7 +111,8 @@ void collision_log_add_time(short collision_function, unsigned int start_lo,
     return;
 
   elapsed_lo = current[0] - start_lo;
-  elapsed_hi = ((int)current[1] - start_hi) - (unsigned int)(current[0] < start_lo);
+  elapsed_hi =
+    ((int)current[1] - start_hi) - (unsigned int)(current[0] < start_lo);
 
   type_off = (int)collision_function * 0x170;
   prev = *(unsigned int *)(0x5a80f0 + type_off);
@@ -124,6 +125,19 @@ void collision_log_add_time(short collision_function, unsigned int start_lo,
   *(unsigned int *)(0x5a8100 + user_off) = prev + elapsed_lo;
   *(int *)(0x5a8104 + user_off) +=
     elapsed_hi + (unsigned int)((prev + elapsed_lo) < prev);
+}
+
+/* 0x14d9d0 — increments call count for a collision function type */
+void collision_log_add_call(short collision_function)
+{
+  short user;
+
+  user = FUN_0014d840(collision_function);
+  if (user == -1)
+    return;
+
+  *(int *)(0x5a80e8 + (int)collision_function * 0x170) += 1;
+  *(int *)(0x5a80f8 + ((int)collision_function * 0x17 + (int)user) * 0x10) += 1;
 }
 
 /* 0x14ec30 — Collision test against BSP surfaces and nearby objects.
@@ -165,14 +179,14 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
   /* Adjust search radius by the global epsilon at 0x255d90 (0.0625f) */
   search_radius = search_radius + *(float *)0x255d90;
 
-  /* Large local buffer for collision results — _chkstk allocated 0x1018 bytes */
+  /* Large local buffer for collision results — _chkstk allocated 0x1018 bytes
+   */
   {
     int results_buf[0x406]; /* 0x1018 bytes */
 
     bsp_surface_data = breakable_surfaces_get_bsp_surface_data();
     bsp_hit = (char)FUN_001493b0((int)bsp, 0x100, (int)bsp_surface_data,
-                                 (int)pos, *(int *)&search_radius,
-                                 results_buf);
+                                 (int)pos, *(int *)&search_radius, results_buf);
 
     if (bsp_hit && (flags & 0x20) != 0) {
       collision_features_add((int)bsp, results_buf, 0, *(int *)&dist_b,
@@ -192,17 +206,16 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
       if (results_buf[0x303] > 0) {
         do {
           elem = tag_block_get_element(
-            cluster_block,
-            results_buf[0x304 + i] & 0x7fffffff,
-            0x10);
+            cluster_block, results_buf[0x304 + i] & 0x7fffffff, 0x10);
           cluster_idx = *(int16_t *)((char *)elem + 8);
           if (structure_cluster_mark(cluster_idx)) {
-            obj_handle = cluster_partition_object_iter_first(
-              &iter_state, cluster_idx);
+            obj_handle =
+              cluster_partition_object_iter_first(&iter_state, cluster_idx);
             while (obj_handle != -1) {
               if (object_mark(obj_handle)) {
                 FUN_0014ea10((unsigned int)flags, obj_handle, pos,
-                             search_radius, dist_b, dist_a, param6, (int)scratch);
+                             search_radius, dist_b, dist_a, param6,
+                             (int)scratch);
               }
               obj_handle = cluster_partition_object_iter_next(&iter_state);
             }
@@ -215,28 +228,13 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
       FUN_00198540();
     }
 
-    collision_log_add_time(2, *(unsigned int *)0x4761e0,
-                           *(int *)0x4761e4);
+    collision_log_add_time(2, *(unsigned int *)0x4761e0, *(int *)0x4761e4);
   }
 
 check_result:
-  if (*(int16_t *)scratch == 0 &&
-      *((int16_t *)scratch + 1) == 0 &&
+  if (*(int16_t *)scratch == 0 && *((int16_t *)scratch + 1) == 0 &&
       *((int16_t *)scratch + 2) == 0) {
     return 0;
   }
   return 1;
-}
-
-/* 0x14d9d0 — increments call count for a collision function type */
-void collision_log_add_call(short collision_function)
-{
-  short user;
-
-  user = FUN_0014d840(collision_function);
-  if (user == -1)
-    return;
-
-  *(int *)(0x5a80e8 + (int)collision_function * 0x170) += 1;
-  *(int *)(0x5a80f8 + ((int)collision_function * 0x17 + (int)user) * 0x10) += 1;
 }
