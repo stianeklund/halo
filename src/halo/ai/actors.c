@@ -1071,6 +1071,15 @@ int FUN_0003b190(int actor_handle, int *attack_vector_out)
   return 0;
 }
 
+/* 0x3c3e0 — Clear the actor's vehicle-leaving counter field at offset +0x6ec. */
+void FUN_0003c3e0(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(int16_t *)(actor + 0x6ec) = -1;
+}
+
 /* actor_attacking_target (0x3b270)
  * Get the current weapon handle for an actor. First checks if the actor has
  * a held-weapon unit (offset 0x158, guarded by byte at 0x161). If that path
