@@ -92,6 +92,24 @@ void FUN_000369c0(int actor_handle, short priority, int value)
   }
 }
 
+/* 0x36a20 — Notify an actor's unit of a communication stimulus from an encounter.
+ * Checks that the encounter is active (+0x60) and not excluded (+0x127), and
+ * that the actor has a unit. If so, calls FUN_00046f10 with type 4 (if param_3)
+ * or 5 (otherwise), using the actor's unit handle and the encounter's object. */
+void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
+{
+  char *actor;
+  char *encounter;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+  if (*(char *)(encounter + 0x127) == 0 && *(int *)(actor + 0x18) != -1 &&
+      *(char *)(encounter + 0x60) != 0) {
+    FUN_00046f10(param_3 != '\0' ? 4 : 5, *(int *)(actor + 0x18),
+                 *(int *)(encounter + 0x18), 3, -1, -1, 0);
+  }
+}
+
 /* FUN_00036c00 (0x36c00) — flee/scatter look reaction.
  *
  * Resolves the actor record via datum_get(actor_data, actor_handle).

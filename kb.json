@@ -12566,8 +12566,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00036a20(void);",
-          "addr": "0x36a20"
+          "decl": "void FUN_00036a20(int actor_handle, int encounter_handle, char param_3);",
+          "addr": "0x36a20",
+          "ported": true
         },
         {
           "decl": "void FUN_00036a90(void);",
