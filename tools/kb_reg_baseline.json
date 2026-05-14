@@ -239,6 +239,7 @@
     "0x1bee30": "void xbox_texture_cache_setup_d3d_texture(void *bitmap@<esi>, void *texture@<edi>);",
     "0x1bf180": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);",
     "0x1c5990": "void *bink_memory_pool_alloc(int alignment@<eax>, int alloc_size@<ecx>);",
+    "0x1c6170": "int FUN_001c6170(unsigned int flags@<eax>, void *rect@<ecx>, void *locked_rect@<edx>, void *texture, unsigned int level);",
     "0x1c7c30": "bool sound_cluster_is_audible(void *location@<esi>);",
     "0x1c89d0": "void *sound_class_get(int class_index@<si>);",
     "0x1c9290": "void *sound_dsound_channel_get(short index@<si>);",
