@@ -26036,8 +26036,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000e3690(void);",
-          "addr": "0xe3690"
+          "decl": "void terminal_draw(void);",
+          "addr": "0xe3690",
+          "ported": true
         }
       ]
     },

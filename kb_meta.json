@@ -1711,6 +1711,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa7470": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa7490": {
       "kind": "function",
       "status": "ported"
@@ -3413,6 +3417,10 @@
       "inferred": [
         "Age counter is at line+0x120 (int); lines are evicted after age exceeds 0x96 (150 ticks), confirmed from CMP ECX,0x96 / JLE in disasm."
       ]
+    },
+    "0xe3690": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xe3940": {
       "kind": "function",
