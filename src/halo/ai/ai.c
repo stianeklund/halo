@@ -526,6 +526,54 @@ void unit_vehicle_board_notify(int unit_handle, int vehicle_handle)
   }
 }
 
+/* FUN_000409e0: notify the AI subsystem that a unit is exiting a vehicle.
+ * Looks up the unit object (type_mask=3), checks whether the unit has a
+ * valid AI actor handle at offset +0x1a4. If the actor exists, retrieves the
+ * actor record from actor_data and checks the byte flag at actor+0x38c. If
+ * the flag is clear, dispatches AI command 0x25 via FUN_00046f10 to notify
+ * the subsystem of the vehicle-exit event. The flag at actor+0x38c is then
+ * cleared unconditionally (whether or not the command was dispatched).
+ *
+ * Confirmed: 1 stack param [EBP+8] (unit handle). No return value.
+ * Confirmed: object_get_and_verify_type(param_1, 3); EAX+0x1a4 = actor handle.
+ * Confirmed: datum_get([0x6325a4], actor_handle); result in ESI.
+ * Confirmed: TEST AL,AL on [ESI+0x38c]; JNZ skips FUN_00046f10 call.
+ * Confirmed: FUN_00046f10(0x25, param_1, -1, -1, -1, -1, 0), 7 args cdecl
+ *   (ADD ESP,0x1c). MOV byte [ESI+0x38c],0 always executes. */
+void FUN_000409e0(int param_1)
+{
+  char *unit_obj;
+  int actor_handle;
+  char *actor;
+
+  unit_obj = (char *)object_get_and_verify_type(param_1, 3);
+  actor_handle = *(int *)(unit_obj + 0x1a4);
+  if (actor_handle != -1) {
+    actor = (char *)datum_get(actor_data, actor_handle);
+    if (*(char *)(actor + 0x38c) == '\0') {
+      FUN_00046f10(0x25, param_1, -1, -1, -1, -1, 0);
+    }
+    *(char *)(actor + 0x38c) = 0;
+  }
+}
+
+/* FUN_00040a40: clear the AI encounter/firing-position cache fields in the
+ * globals block. Zeroes the int16_t counts at globals+0x130 and globals+0x132,
+ * then csmemsets 0x280 bytes starting at globals+0x134 to zero.
+ *
+ * Confirmed: void(void) — no args, no return value.
+ * Confirmed: three stores then CALL csmemset(globals+0x134, 0, 0x280).
+ * Confirmed: ADD ESP,0xc (3 args); RET. */
+void FUN_00040a40(void)
+{
+  int g;
+
+  g = *(volatile int *)0x632574;
+  *(int16_t *)(g + 0x132) = 0;
+  *(int16_t *)(g + 0x130) = 0;
+  csmemset((void *)(g + 0x134), 0, 0x280);
+}
+
 /* ai_initialize_for_new_map: reset the AI globals block and initialise
  * all per-map AI subsystems.
  * Zeroes the 0x8dc-byte globals block (at *(int*)0x632574), writes
