@@ -1712,12 +1712,12 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       proj[1] = (int)uTemp;
       FUN_000f8640(projectile_handle);
       /* Subtract normal-component contribution from hit_pos. */
-      hit_pos[0] -= *(float *)((char *)col_result + 0x24) *
-                    *(float *)0x255ef8; /* buf-alias-ok */
-      hit_pos[1] -= *(float *)((char *)col_result + 0x28) *
-                    *(float *)0x255ef8; /* buf-alias-ok */
-      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) *
-                    *(float *)0x255ef8; /* buf-alias-ok */
+      hit_pos[0] -= *(float *)((char *)col_result + 0x24) * /* buf-alias-ok */
+                    *(float *)0x255ef8;
+      hit_pos[1] -= *(float *)((char *)col_result + 0x28) * /* buf-alias-ok */
+                    *(float *)0x255ef8;
+      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) * /* buf-alias-ok */
+                    *(float *)0x255ef8;
     } else if (col_result[0] == 3) {
       ftemp = *(float *)0x2533c8 - *(float *)((char *)tag_elem + 0x90);
       in_velocity[0] *= ftemp;

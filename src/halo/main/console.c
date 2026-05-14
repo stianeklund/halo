@@ -81,21 +81,6 @@ void console_initialize_for_new_map(void)
 {
 }
 
-/*
- * console_printf — print a formatted message to the console.
- *
- * If channel is non-zero, shows the terminal overlay first. Formats
- * the message with vsprintf into a 1024-byte stack buffer, outputs it
- * via terminal_output, and optionally logs to telnet.
- *
- * Confirmed: SUB ESP, 0x400 — 1024-byte buffer.
- * Confirmed: local_305 = 0 (null-terminates at byte 255 of the buffer).
- * Confirmed: CALL 0x1da209 (vsprintf) with va_list at [EBP+0x10].
- * Confirmed: CALL 0xe3a10 (terminal_output) with (NULL, format_str, buffer).
- * Confirmed: CALL 0xe34a0 (terminal_show) if channel != 0.
- * Confirmed: if telnet flag at 0x46d924, calls csstrcat +
- * debug_string_to_display.
- */
 /* Flush and close the console terminal if it's currently active. */
 void console_flush(void)
 {
@@ -111,6 +96,21 @@ bool console_is_active(void)
   return *(uint8_t *)0x46cf60;
 }
 
+/*
+ * console_printf — print a formatted message to the console.
+ *
+ * If channel is non-zero, shows the terminal overlay first. Formats
+ * the message with vsprintf into a 1024-byte stack buffer, outputs it
+ * via terminal_output, and optionally logs to telnet.
+ *
+ * Confirmed: SUB ESP, 0x400 — 1024-byte buffer.
+ * Confirmed: local_305 = 0 (null-terminates at byte 255 of the buffer).
+ * Confirmed: CALL 0x1da209 (vsprintf) with va_list at [EBP+0x10].
+ * Confirmed: CALL 0xe3a10 (terminal_output) with (NULL, format_str, buffer).
+ * Confirmed: CALL 0xe34a0 (terminal_show) if channel != 0.
+ * Confirmed: if telnet flag at 0x46d924, calls csstrcat +
+ * debug_string_to_display.
+ */
 void console_printf(int channel, const char *format, ...)
 {
   char buffer[1024];

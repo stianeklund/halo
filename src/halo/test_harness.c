@@ -330,7 +330,7 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = FUN_00106510(4, alias_points, line_y_ge_0, 0xc, alias_points,
+      ret = FUN_00106510(4, alias_points, line_y_ge_0, 0xc, alias_points, /* dup-args-ok: in-place clipping test */
                          &out_mask, &changed, 0.0f);
       dump_clip_case("clip_alias", ret, out_mask, changed, alias_points, buf);
     }

@@ -40,8 +40,8 @@ int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position)
   void *bsp;
   float adj_pos[3]; /* object_pos + up_vec * 0.4, at EBP-0xc */
   float fwd_doubled[3]; /* fwd_vec * 2, at EBP-0x18 */
-  float result_buf[0x434 / 4]; /* ray hit result buffer, at EBP-0x434; only [0]
-                                  and [2] used */
+  float result_buf[0x10d]; /* 0x434/4 floats; ray hit result buffer, at EBP-0x434;
+                              only [0] and [2] used */
   int default_ret;
 
   object_data_t *obj =

@@ -1156,7 +1156,7 @@ after_modifier:
         }
         dp[1] = saved_flags;
         /* Recursive call for passenger */
-        object_cause_damage(damage_params, child_handle, (short)-1, (short)-1,
+        object_cause_damage(damage_params, child_handle, (short)-1, (short)-1, /* dup-args-ok: all sentinel -1 */
                             (short)-1, 0);
         dp[1] = dp[1] & ~0x20u;
       }
