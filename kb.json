@@ -10220,7 +10220,7 @@
           "addr": "0x1cfca4"
         },
         {
-          "decl": "void FUN_001cfd8c(void);",
+          "decl": "void * __stdcall FUN_001cfd8c(void *security, int stack_size, void *func, void *param, int flags, int *thread_id);",
           "addr": "0x1cfd8c"
         },
         {
@@ -13677,11 +13677,15 @@
         },
         {
           "decl": "void FUN_001bda90(void);",
-          "addr": "0x1bda90"
+          "addr": "0x1bda90",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bdb10(void);",
-          "addr": "0x1bdb10"
+          "addr": "0x1bdb10",
+          "status": "ported",
+          "ported": true
         }
       ]
     },
@@ -32823,7 +32827,7 @@
           "addr": "0x1cfde0"
         },
         {
-          "decl": "void FUN_001cfded(void);",
+          "decl": "void * __stdcall FUN_001cfded(void *security, int manual_reset, int initial_state, const char *name);",
           "addr": "0x1cfded"
         },
         {

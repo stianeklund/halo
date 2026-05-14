@@ -507,6 +507,45 @@ bool cache_files_precache_map_loaded(char *map_name)
   return result != -1;
 }
 
+/* FUN_001bda90 — initialize the cache IO system: create the sleep event and
+ * the IO dispatcher thread (FUN_001bd3a0) with 0x4000 bytes of stack.
+ * DAT_004e9248 = sleep_event handle, DAT_004e924c = thread handle.
+ */
+void FUN_001bda90(void)
+{
+  *(void **)0x4e9248 = FUN_001cfded(NULL, 0, 0, NULL);
+  if (!*(void **)0x4e9248) {
+    display_assert("cache_file_globals.sleep_event",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x4b2, 1);
+    system_exit(-1);
+  }
+  *(void **)0x4e924c = FUN_001cfd8c(NULL, 0x4000, FUN_001bd3a0, NULL, 0, NULL);
+  if (!*(void **)0x4e924c) {
+    display_assert("cache_file_globals.thread",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x4b6, 1);
+    system_exit(-1);
+  }
+}
+
+/* FUN_001bdb10 — allocate and initialize cache file globals.
+ * Sets open_map_file_index=NONE, allocates request array (0x4000 bytes),
+ * creates IO event+thread, and initializes the IO state.
+ */
+void FUN_001bdb10(void)
+{
+  *(int16_t *)0x4e9244 = -1;
+  *(void **)0x4e9250 = debug_malloc(
+    0x4000, 0, "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0xb7);
+  if (!*(void **)0x4e9250) {
+    display_assert("cache_file_globals.requests",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0xb8, 1);
+    system_exit(-1);
+  }
+  FUN_001bda90();
+  FUN_001bd5f0();
+  FUN_001bc280();
+}
+
 #if 0 /* bisect: disable map_begin and map_end */
 /* Begin precaching a map from DVD to the cache partition. Returns true
  * if the copy was already done or was successfully started. */
