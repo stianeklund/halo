@@ -13542,7 +13542,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001bc5c0(void);",
+          "decl": "short FUN_001bc5c0(void);",
           "addr": "0x1bc5c0"
         },
         {
@@ -13592,8 +13592,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001bc9e0(void);",
-          "addr": "0x1bc9e0"
+          "decl": "short FUN_001bc9e0(int param_1, int offset, unsigned int size, int buffer, char *completion_flag, char async_flag);",
+          "addr": "0x1bc9e0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bcb80(void);",
@@ -13626,12 +13628,16 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001bcdc0(void);",
-          "addr": "0x1bcdc0"
+          "decl": "void FUN_001bcdc0(void *block);",
+          "addr": "0x1bcdc0",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_001bce30(void);",
-          "addr": "0x1bce30"
+          "decl": "void FUN_001bce30(void *block);",
+          "addr": "0x1bce30",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bcea0(void);",
@@ -32813,7 +32819,7 @@
           "addr": "0x1cfe4e"
         },
         {
-          "decl": "void FUN_001cfeaa(void);",
+          "decl": "void __stdcall FUN_001cfeaa(void *handle);",
           "addr": "0x1cfeaa"
         },
         {
