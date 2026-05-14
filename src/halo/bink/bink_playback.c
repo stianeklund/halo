@@ -21,6 +21,16 @@ bool bink_playback_active(void)
   return false;
 }
 
+/* Returns true if bink is initialized and was started with flag 0x8
+ * (suppress-UI mode). Callers use this to skip rendering UI widgets
+ * during attract-mode or other fullscreen bink playback. */
+bool bink_playback_suppress_ui(void)
+{
+  if (*(uint8_t *)0x4ead58 != 0 && (*(uint8_t *)0x4ead5c & 8) != 0)
+    return true;
+  return false;
+}
+
 /* Returns true if a bink video handle is open (regardless of whether
  * the subsystem is initialized). */
 bool bink_playback_has_video(void)

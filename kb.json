@@ -13191,8 +13191,9 @@
           "addr": "0x1c58f0"
         },
         {
-          "decl": "void FUN_001c5960(void);",
-          "addr": "0x1c5960"
+          "decl": "bool bink_playback_suppress_ui(void);",
+          "addr": "0x1c5960",
+          "ported": true
         },
         {
           "decl": "void FUN_001c5ab0(void);",
