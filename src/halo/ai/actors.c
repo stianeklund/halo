@@ -436,6 +436,31 @@ const char *FUN_0003a760(int16_t actor_type)
   return *(const char **)FUN_0003a600(actor_type);
 }
 
+int16_t FUN_0003a770(int16_t actor_type)
+{
+  return *(int16_t *)((char *)FUN_0003a600(actor_type) + 4);
+}
+
+int16_t FUN_0003a790(int16_t actor_type)
+{
+  return *(int16_t *)((char *)FUN_0003a600(actor_type) + 6);
+}
+
+int16_t FUN_0003a7b0(int16_t actor_type)
+{
+  return *(int16_t *)((char *)FUN_0003a600(actor_type) + 8);
+}
+
+int16_t FUN_0003a7d0(int16_t actor_type)
+{
+  return *(int16_t *)((char *)FUN_0003a600(actor_type) + 10);
+}
+
+unsigned char FUN_0003a7f0(int16_t actor_type)
+{
+  return *(unsigned char *)((char *)FUN_0003a600(actor_type) + 12);
+}
+
 /* FUN_0003a800 (0x3a800) — actor_type_is_swarm
  * Returns the swarm flag byte (offset 0xd) from the actor type definition
  * for the given actor_type. Used to test whether an actor type uses swarm

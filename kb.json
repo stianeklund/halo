@@ -12609,24 +12609,29 @@
           "addr": "0x37240"
         },
         {
-          "decl": "void FUN_0003a770(void);",
-          "addr": "0x3a770"
+          "decl": "int16_t FUN_0003a770(int16_t actor_type);",
+          "addr": "0x3a770",
+          "ported": true
         },
         {
-          "decl": "void FUN_0003a790(void);",
-          "addr": "0x3a790"
+          "decl": "int16_t FUN_0003a790(int16_t actor_type);",
+          "addr": "0x3a790",
+          "ported": true
         },
         {
-          "decl": "void FUN_0003a7b0(void);",
-          "addr": "0x3a7b0"
+          "decl": "int16_t FUN_0003a7b0(int16_t actor_type);",
+          "addr": "0x3a7b0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0003a7d0(void);",
-          "addr": "0x3a7d0"
+          "decl": "int16_t FUN_0003a7d0(int16_t actor_type);",
+          "addr": "0x3a7d0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0003a7f0(void);",
-          "addr": "0x3a7f0"
+          "decl": "unsigned char FUN_0003a7f0(int16_t actor_type);",
+          "addr": "0x3a7f0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003a920(void);",
