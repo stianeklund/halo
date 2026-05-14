@@ -310,6 +310,30 @@ def prepare_xbdm_for_xbe_replace(host: str, dry_run: bool) -> bool:
     return wait_for_xbdm(host)
 
 
+def upload_via_xbdm(local_path: str, xbox_path: str, host: str) -> int:
+    """Upload a file via XBDM sendfile. Returns 0 on success."""
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_rdcp.py")
+    src = to_windows_path(local_path) if is_wsl() else local_path
+    cmd = build_windows_python_command(rdcp_script, ["--sendfile", src, xbox_path, "--timeout", "30"])
+    if cmd is None:
+        cmd = [sys.executable, rdcp_script, "--sendfile", local_path, xbox_path, "--timeout", "30"]
+    if host:
+        cmd += ["--host", host]
+    try:
+        result = subprocess.run(
+            cmd, cwd=ROOT_DIR, capture_output=True, text=True, check=False,
+        )
+        if result.stdout:
+            for line in result.stdout.strip().splitlines():
+                print(f"  | {line}")
+        if result.returncode != 0 and result.stderr:
+            for line in result.stderr.strip().splitlines():
+                print(f"  | {line}", file=sys.stderr)
+        return result.returncode
+    except (FileNotFoundError, OSError):
+        return 1
+
+
 def deploy_default_xbe(
     xbe_path: str,
     xbe_src: str,
@@ -318,6 +342,24 @@ def deploy_default_xbe(
     dry_run: bool,
     common_kwargs: dict,
 ) -> int:
+    xbox_dest_path = xbe_dest.lstrip("x")
+    if not dry_run:
+        rc = upload_via_xbdm(xbe_path, xbox_dest_path, host)
+        if rc == 0:
+            print("  upload completed via XBDM; verifying remote file size...")
+            if verify_uploaded_file(host, xbe_path, xbox_dest_path):
+                return 0
+            print("  XBDM verify failed, falling back to xbcp...",
+                  file=sys.stderr)
+        else:
+            if prepare_xbdm_for_xbe_replace(host, dry_run):
+                rc = upload_via_xbdm(xbe_path, xbox_dest_path, host)
+                if rc == 0:
+                    print("  upload completed via XBDM after reboot; verifying...")
+                    if verify_uploaded_file(host, xbe_path, xbox_dest_path):
+                        return 0
+            print("  XBDM sendfile failed, falling back to xbcp...",
+                  file=sys.stderr)
     rc = run_xbcp(src=xbe_src, dest=xbe_dest, **common_kwargs)
     if rc != 0 and prepare_xbdm_for_xbe_replace(host, dry_run):
         print("  retrying default.xbe upload after XBDM reboot...")

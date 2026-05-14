@@ -199,6 +199,25 @@ class RdcpClient:
             remaining -= len(chunk)
         return bytes(chunks)
 
+    def send_file(self, local_path: str, xbox_path: str) -> RdcpResponse:
+        """Upload a local file to the Xbox via XBDM sendfile."""
+        file_size = os.path.getsize(local_path)
+        self.send_command(f'sendfile name="{xbox_path}" length={file_size}')
+        resp = self.read_response()
+        if resp.code != 204:
+            return resp
+        if self.sock is None:
+            raise RdcpError("client is not connected")
+        with open(local_path, "rb") as f:
+            remaining = file_size
+            while remaining > 0:
+                chunk = f.read(min(remaining, 65536))
+                if not chunk:
+                    raise RdcpError("local file shorter than expected")
+                self.sock.sendall(chunk)
+                remaining -= len(chunk)
+        return self.read_response()
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -206,7 +225,15 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "command",
+        nargs="?",
+        default=None,
         help="RDCP command to send, for example 'threads' or 'getmem addr=0x1000 length=0x40'",
+    )
+    parser.add_argument(
+        "--sendfile",
+        nargs=2,
+        metavar=("LOCAL_PATH", "XBOX_PATH"),
+        help="Upload a local file to the Xbox (e.g. --sendfile build/default.xbe E:\\\\GAMES\\\\halo\\\\default.xbe)",
     )
     parser.add_argument(
         "--host",
@@ -282,6 +309,11 @@ def emit_plain_response(response: RdcpResponse, output_path: str | None) -> None
 def main() -> int:
     args = parse_args()
 
+    if not args.command and not args.sendfile:
+        print("error: either a command or --sendfile is required",
+              file=sys.stderr)
+        return 1
+
     if args.json and args.output == "-":
         print("error: --json cannot be combined with --output -",
               file=sys.stderr)
@@ -289,6 +321,29 @@ def main() -> int:
 
     try:
         with RdcpClient(args.host, args.port, args.timeout) as client:
+            if args.sendfile:
+                local_path, xbox_path = args.sendfile
+                if not os.path.isfile(local_path):
+                    print(f"error: local file not found: {local_path}",
+                          file=sys.stderr)
+                    return 1
+                client.sock.settimeout(max(args.timeout, 30.0))
+                response = client.send_file(local_path, xbox_path)
+                if args.json:
+                    payload = response.to_json()
+                    payload["local_path"] = os.path.abspath(local_path)
+                    payload["xbox_path"] = xbox_path
+                    payload["size"] = os.path.getsize(local_path)
+                    json.dump(payload, sys.stdout, indent=2, sort_keys=True)
+                    sys.stdout.write("\n")
+                else:
+                    if response.is_success:
+                        size = os.path.getsize(local_path)
+                        print(f"{local_path} => {xbox_path} ({size:,} bytes)")
+                    else:
+                        print(f"{response.code}- {response.message}".rstrip())
+                return 0 if response.is_success else 1
+
             response = client.command(
                 args.command,
                 binary_length=args.binary_length,
