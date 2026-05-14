@@ -13720,16 +13720,22 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a6760(void);",
-          "addr": "0xa6760"
+          "decl": "void FUN_000a6760(int local_player_index);",
+          "addr": "0xa6760",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_000a67c0(void);",
-          "addr": "0xa67c0"
+          "decl": "int FUN_000a67c0(void);",
+          "addr": "0xa67c0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_000a6830(void);",
-          "addr": "0xa6830"
+          "addr": "0xa6830",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_000a68e0(void);",
