@@ -92,6 +92,65 @@ int FUN_001bc7e0(short map_file_index)
   return result;
 }
 
+/* FUN_001bc860 — IO completion callback for cache read/write.
+ * Called by Windows when an overlapped IO request completes.
+ * Validates error_code==ERROR_SUCCESS and bytes_transferred==request->size,
+ * then signals the event at request->overlapped.hEvent (offset +0x10)
+ * and clears the in-progress flags at +0x1d and +0x1e.
+ * __stdcall: callee cleans 3 stack args (RET 0xc).
+ */
+void __stdcall FUN_001bc860(int error_code, int bytes_transferred,
+                            void *finished_request)
+{
+  char *req = (char *)finished_request;
+  char *event_ptr;
+
+  if (error_code != 0) {
+    display_assert("error_code==ERROR_SUCCESS",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x538, 1);
+    system_exit(-1);
+  }
+  if (bytes_transferred != *(int *)(req + 0x14)) {
+    display_assert("bytes_transferred==finished_request->size",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x539, 1);
+    system_exit(-1);
+  }
+  event_ptr = *(char **)(req + 0x10);
+  if (!event_ptr) {
+    display_assert("finished_request->overlapped.hEvent",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x53a, 1);
+    system_exit(-1);
+  }
+  *event_ptr = 1;
+  *(char *)(req + 0x1d) = 0;
+  *(char *)(req + 0x1e) = 0;
+}
+
+/* FUN_001bc8f0 — IO completion callback for async operations without
+ * size tracking.  Validates error_code==ERROR_SUCCESS and hEvent non-null,
+ * then sets *hEvent = 1 to signal the waiter.
+ * __stdcall: callee cleans 3 stack args (RET 0xc).
+ */
+void __stdcall FUN_001bc8f0(int error_code, unsigned int param_2,
+                            void *overlapped)
+{
+  char *req = (char *)overlapped;
+  char *event_ptr;
+
+  if (error_code != 0) {
+    display_assert("error_code==ERROR_SUCCESS",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x54a, 1);
+    system_exit(-1);
+  }
+  event_ptr = *(char **)(req + 0x10);
+  if (!event_ptr) {
+    display_assert("overlapped->hEvent",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x54b, 1);
+    system_exit(-1);
+  }
+  *event_ptr = 1;
+}
+
 /* Enable an async cache I/O request. Validates request_index is within
  * [0, 512) and sets the enable byte (offset 0x1c) in the request's
  * 0x20-byte entry in the global cache request array at 0x4e9250. */
