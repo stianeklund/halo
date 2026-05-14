@@ -36,6 +36,62 @@ void cache_files_precache_map_queue_end(void)
   ((void (*)(void))0x1ba5d0)();
 }
 
+/* Cache file slot accessor helpers. All take map_file_index in @<si>.
+ * DAT_004e61d8 is an array of 6 cache file entries, each 0x80c bytes.
+ * Source: c:\halo\SOURCE\cache\cache_files_windows.c line 0x485/0x49d. */
+
+void *FUN_001bc720(short map_file_index)
+{
+  if ((int)map_file_index < 0 || (int)map_file_index >= 6) {
+    display_assert(
+      "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+    system_exit(-1);
+  }
+  return (void *)((char *)0x4e61d8 + (int)map_file_index * 0x80c);
+}
+
+void FUN_001bc760(short map_file_index)
+{
+  if ((int)map_file_index < 0 || (int)map_file_index >= 6) {
+    display_assert(
+      "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+    system_exit(-1);
+  }
+  *(unsigned int *)((char *)0x4e61d8 + (int)map_file_index * 0x80c) =
+    0xffffffff;
+}
+
+unsigned int FUN_001bc7a0(short map_file_index)
+{
+  if ((int)map_file_index < 0 || (int)map_file_index >= 6) {
+    display_assert(
+      "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+    system_exit(-1);
+  }
+  return *(unsigned int *)((char *)0x4e61d8 + (int)map_file_index * 0x80c);
+}
+
+int FUN_001bc7e0(short map_file_index)
+{
+  int result;
+
+  if ((int)map_file_index < 0 || (int)map_file_index >= 6) {
+    display_assert(
+      "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x49d, 1);
+    system_exit(-1);
+  }
+  if (map_file_index <= 1)
+    return 0x11600000;
+  result = (int)(map_file_index > 2) - 1;
+  result &= (int)0xff400000;
+  result += 0x2f00000;
+  return result;
+}
+
 /* Enable an async cache I/O request. Validates request_index is within
  * [0, 512) and sets the enable byte (offset 0x1c) in the request's
  * 0x20-byte entry in the global cache request array at 0x4e9250. */

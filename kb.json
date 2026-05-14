@@ -13550,20 +13550,28 @@
           "addr": "0x1bc620"
         },
         {
-          "decl": "void FUN_001bc720(void);",
-          "addr": "0x1bc720"
+          "decl": "void *FUN_001bc720(short map_file_index@<si>);",
+          "addr": "0x1bc720",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_001bc760(void);",
-          "addr": "0x1bc760"
+          "decl": "void FUN_001bc760(short map_file_index@<si>);",
+          "addr": "0x1bc760",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_001bc7a0(void);",
-          "addr": "0x1bc7a0"
+          "decl": "unsigned int FUN_001bc7a0(short map_file_index@<si>);",
+          "addr": "0x1bc7a0",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_001bc7e0(void);",
-          "addr": "0x1bc7e0"
+          "decl": "int FUN_001bc7e0(short map_file_index@<si>);",
+          "addr": "0x1bc7e0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bc860(void);",
