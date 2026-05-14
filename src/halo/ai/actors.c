@@ -1574,7 +1574,7 @@ void FUN_0003b700(int param_1, int prop_handle, float param_3, int param_4)
       *(float *)(prop + 0x70) = param_3 + *(float *)(prop + 0x70);
       *(int16_t *)(prop + 0x6c) = 0;
       *(int8_t *)(prop + 0x74) = 1;
-      if (*(int16_t *)(prop + 0x24) > 3 && *(int16_t *)(prop + 0x24) < 6) {
+      if (*(int16_t *)(prop + 0x24) >= 4 && *(int16_t *)(prop + 0x24) <= 5) {
         display_assert("!prop_orphaned(prop)",
                        "c:\\halo\\SOURCE\\ai\\actors.c", 0x7f6, 1);
         system_exit(-1);
@@ -2266,15 +2266,15 @@ void FUN_0003c1c0(int param_1, int param_2, int param_3)
 {
   char *iVar2;
   char *iVar3;
-  short sVar1;
 
   if (param_3 == 0)
     return;
 
-  sVar1 = *(short *)(param_3 + 0x14);
-  if (sVar1 == 2) {
+  switch (*(short *)(param_3 + 0x14)) {
+  case 2:
     FUN_00036b50(param_1, param_2);
-  } else if (sVar1 == 3) {
+    break;
+  case 3:
     iVar2 = (char *)datum_get(*(data_t **)0x5ab23c, param_2);
     if (*(int *)(iVar2 + 0x1c) != -1) {
       iVar3 = (char *)(int)datum_absolute_index_to_index(
@@ -2285,7 +2285,8 @@ void FUN_0003c1c0(int param_1, int param_2, int param_3)
         return;
       }
     }
-  } else if (sVar1 == 4) {
+    break;
+  case 4:
     FUN_000377d0(param_1, param_2);
     return;
   }

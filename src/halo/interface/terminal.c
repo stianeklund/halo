@@ -444,6 +444,7 @@ void terminal_output(void *color, const char *format, const char *text)
 void terminal_draw(void)
 {
   char *font_tag;
+  int16_t dx_base;
   char *line;
   float alpha;
   float local_color[4];
@@ -452,13 +453,14 @@ void terminal_draw(void)
   int font_tag_index;
   int line_handle;
   int cur_y;
-  int16_t line_height;
+  unsigned short line_height;
   int16_t str_len;
   int cursor_pos;
   int16_t dx;
   int dy_i32;
 
   font_tag_index = interface_get_tag_index(1);
+  dx_base = *(int16_t *)0x50657e;
   if (*(uint8_t *)0x46c404 == 0)
     return;
 
@@ -476,12 +478,15 @@ void terminal_draw(void)
     csstrcpy(text_buf + str_len, *(char **)0x46c414 + 0xb4);
 
     /* Build rect: bottom of screen minus one line, offset by global position. */
-    rect[1] = *(int16_t *)0x506586;                  /* left */
-    rect[2] = (int16_t)*(int *)0x506588;             /* bottom */
-    rect[3] = *(int16_t *)0x50658a;                  /* right */
-    rect[0] = (int16_t)(*(int *)0x506588 - (int)(uint16_t)line_height); /* top */
+    {
+      int screen_bottom = *(int *)0x506588;
+      rect[1] = *(int16_t *)0x506586;                  /* left */
+      rect[2] = (int16_t)screen_bottom;                /* bottom */
+      rect[3] = *(int16_t *)0x50658a;                  /* right */
+      rect[0] = (int16_t)(screen_bottom - line_height); /* top */
+    }
 
-    dx = -(int16_t)*(int16_t *)0x50657e;
+    dx = -(int16_t)dx_base;
     dy_i32 = -*(int32_t *)0x50657c;
     rect2d_offset(rect, dx, (int16_t)dy_i32);
 
@@ -503,7 +508,7 @@ void terminal_draw(void)
   if (*(uint8_t *)0x31a011 == 0)
     return;
 
-  cur_y = *(int *)0x506588 - (int)(uint16_t)line_height;
+  cur_y = *(int *)0x506588 - (int)line_height;
   line_handle = *(int *)0x46c40c;
   if (line_handle == -1)
     return;
@@ -534,10 +539,10 @@ void terminal_draw(void)
     rect[1] = *(int16_t *)0x506586;          /* left */
     rect[3] = *(int16_t *)0x50658a;          /* right */
     rect[2] = (int16_t)cur_y;                /* bottom (before decrement) */
-    cur_y -= (int)(uint16_t)line_height;     /* decrement current y */
-    rect[0] = (int16_t)cur_y;               /* top (after decrement) */
+    cur_y -= (int)line_height;              /* decrement current y */
+    rect[0] = (int16_t)cur_y;              /* top (after decrement) */
 
-    dx = -(int16_t)*(int16_t *)0x50657e;
+    dx = -(int16_t)dx_base;
     dy_i32 = -*(int32_t *)0x50657c;
     rect2d_offset(rect, dx, (int16_t)dy_i32);
 

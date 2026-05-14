@@ -185,14 +185,6 @@ void FUN_0003f850(int16_t param_1, char *force_major, char *is_random, float *ra
     system_exit(-1);
   }
   switch (param_1) {
-  case 1:
-    *is_random = 1;
-    *random_chance = FUN_000b5590(0x1d);
-    return;
-  case 2:
-    *is_random = 1;
-    *random_chance = FUN_000b5590(0x1e);
-    return;
   case 3:
     *is_random = 0;
     *force_major = 0;
@@ -200,6 +192,14 @@ void FUN_0003f850(int16_t param_1, char *force_major, char *is_random, float *ra
   case 4:
     *is_random = 0;
     *force_major = 1;
+    return;
+  case 1:
+    *is_random = 1;
+    *random_chance = FUN_000b5590(0x1d);
+    return;
+  case 2:
+    *is_random = 1;
+    *random_chance = FUN_000b5590(0x1e);
     return;
   default:
     *is_random = 1;
@@ -1369,7 +1369,7 @@ int FUN_0003fb00(unsigned char *param_1, unsigned char *param_2)
   if (*(int *)(param_2 + 8) < *(int *)(param_1 + 8)) {
     return 1;
   }
-  if (*(int *)(param_1 + 8) < *(int *)(param_2 + 8)) {
+  if (*(int *)(param_2 + 8) > *(int *)(param_1 + 8)) {
     return 0xffffffff;
   }
   if (*param_2 < *param_1) {
@@ -1457,23 +1457,23 @@ check_debug:
  *            [EBP+10]=param_3 compared as word ptr. */
 void FUN_0003feb0(int unit_handle, int param_2, short param_3)
 {
-  char relation;
+  int relation;
   int resolved;
   void *obj_unit;
   void *obj_resolved;
 
   resolved = FUN_0003fe30(param_2, (char)(param_3 != 9));
-  relation = '\0';
+  relation = 0;
   if (unit_handle == resolved) {
-    relation = '\x01';
+    relation = 1;
   } else if (resolved != -1) {
     obj_unit     = object_get_and_verify_type(unit_handle, 3);
     obj_resolved = object_get_and_verify_type(resolved, 3);
-    relation = (char)(game_allegiance_get_team_is_friendly(
-                  *(short *)((char *)obj_resolved + 0x68),
-                  *(short *)((char *)obj_unit     + 0x68)) != '\0') + '\x02';
+    relation = (game_allegiance_get_team_is_friendly(
+                  *(short *)((char *)obj_unit     + 0x68),
+                  *(short *)((char *)obj_resolved + 0x68)) != 0) + 2;
   }
-  FUN_00046f10(0, unit_handle, resolved, (int)relation, (int)param_3, -1, 0);
+  FUN_00046f10(0, unit_handle, resolved, relation, (int)param_3, -1, 0);
   FUN_00044660(unit_handle, '\0');
   FUN_0005b2a0(unit_handle);
 }
