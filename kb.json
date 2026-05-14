@@ -12698,8 +12698,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003c3a0(void);",
-          "addr": "0x3c3a0"
+          "decl": "void FUN_0003c3a0(int actor_handle, char flag);",
+          "addr": "0x3c3a0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003c3e0(int actor_handle);",
@@ -12719,8 +12720,9 @@
           "addr": "0x3d330"
         },
         {
-          "decl": "void FUN_0003d3d0(void);",
-          "addr": "0x3d3d0"
+          "decl": "void FUN_0003d3d0(int actor_handle, char param_2);",
+          "addr": "0x3d3d0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003d430(void);",

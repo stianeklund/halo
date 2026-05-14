@@ -2099,6 +2099,18 @@ void actor_handle_communication(int actor_handle)
   *(uint32_t *)(actor + 0x6d0) |= 0x2000;
 }
 
+/* 0x3c3a0 — Set or clear bit 0x20 in actor flags (field +0x6d0). */
+void FUN_0003c3a0(int actor_handle, char flag)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (flag)
+    *(unsigned int *)(actor + 0x6d0) |= 0x20u;
+  else
+    *(unsigned int *)(actor + 0x6d0) &= ~0x20u;
+}
+
 /* FUN_0003c410 (0x3c410) — actor_new
  * Allocate and minimally initialize a new actor datum from the actor_data pool.
  * Looks up the actv (actor variant) tag by actv_tag_index, then the actr
@@ -3209,6 +3221,27 @@ void actor_erase(int actor_handle, char flag)
  * mounted flag (byte, read by FUN_0002a3d0). Inferred: actor+0x46c = activation
  * mode (short); 3=biped-ride, 5=encounter-board. Inferred: actor+0x470 =
  * secondary encounter handle (int) used with mode==5. */
+/* 0x3d3d0 — Set or restore actor dormancy state and fields +0x6a/+0x6c.
+ * If param_2 is non-zero: clears +0x6a and +0x6c, calls actor_delete_props,
+ * FUN_0003b860, and actor_set_dormant(0). Otherwise sets +0x6a to 2 if it was
+ * previously 0. */
+void FUN_0003d3d0(int actor_handle, char param_2)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (param_2 != '\0') {
+    *(int16_t *)(actor + 0x6a) = 0;
+    *(int16_t *)(actor + 0x6c) = 0;
+    actor_delete_props(actor_handle);
+    FUN_0003b860(actor_handle);
+    actor_set_dormant(actor_handle, 0);
+    return;
+  }
+  if (*(int16_t *)(actor + 0x6a) == 0)
+    *(int16_t *)(actor + 0x6a) = 2;
+}
+
 char FUN_0003d9f0(int actor_handle)
 {
   char *actor;
