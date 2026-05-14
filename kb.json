@@ -31367,7 +31367,8 @@
         },
         {
           "decl": "void FUN_0005b2a0(int unit_handle);",
-          "addr": "0x5b2a0"
+          "addr": "0x5b2a0",
+          "ported": true
         },
         {
           "decl": "void FUN_0005b370(void);",

@@ -1761,6 +1761,79 @@ void FUN_0005b200(void)
   }
 }
 
+/* 0x0005b2a0 — encounter_increment_unit_tally (FUN_0005b2a0).
+ *
+ * For each active encounter whose team is friendly to the given unit's team,
+ * increments the encounter's live-unit tally counter (encounter+0x4c) if the
+ * encounter is in an eligible state.
+ *
+ * Algorithm:
+ *   1. object_get_and_verify_type(unit_handle, 3) → unit ptr (EDI).
+ *   2. Check unit+0x68 (int16_t team index) != -1; return immediately if so.
+ *   3. If ai_globals+1 (ai_active) is set: init encounter data iterator.
+ *   4. Outer loop: guard ai_active at each iteration.
+ *   5. Inner do-while: call data_iterator_next; skip if NULL or first pass
+ *      (flag==0); skip encounters where encounter+0xd (active flag) == 0.
+ *   6. Copy iter.datum_handle → encounter_handle (read but unused in this fn).
+ *   7. If encounter == NULL: return.
+ *   8. game_allegiance_get_team_is_friendly(encounter+0x2 team, unit+0x68 team)
+ *      AND encounter+0x43 != 0 (some condition met)
+ *      AND encounter+0x42 == 0 (not in reset state)
+ *      AND encounter+0x47 == 0 (no exclusion flag):
+ *        → increment encounter+0x4c (int16_t tally).
+ *
+ * Confirmed from disassembly (0x5b2a0–0x5b364):
+ *   - Unit ptr in EDI; ESI = encounter ptr from data_iterator_next.
+ *   - [EBP-0x18] = data_iter_t (0x10 bytes); [EBP-0x4] = first-pass flag.
+ *   - [EBP-0x10] = iter.datum_handle (EBP-0x18+0x8); copied to [EBP-0x8].
+ *   - PUSH ECX (unit team zero-extended) / PUSH EDX (encounter team
+ *     zero-extended) → game_allegiance_get_team_is_friendly(enc_team,
+ *     unit_team).
+ *   - INC word ptr [ESI+0x4c] at 0x5b359 = ++encounter->tally.
+ *   - encounter+0x42 = reset/active flag (set to 1 by encounter_clear_active_props).
+ *   - encounter+0x43 = condition-met flag.
+ *   - encounter+0x47 = exclusion flag.
+ *   - encounter+0x4c = uint16_t live-unit tally (cleared by encounter_clear_active_props).
+ *
+ * Caller: FUN_0003feb0 (ai.obj) — unit-update routine.
+ */
+void FUN_0005b2a0(int unit_handle)
+{
+  data_iter_t iter;
+  char *unit;
+  char *encounter;
+  char flag;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (*(short *)(unit + 0x68) == -1) {
+    return;
+  }
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    data_iterator_new(&iter, *(data_t **)0x5ab270);
+    flag = '\x01';
+  }
+  for (;;) {
+    if (*(char *)(*(char **)0x632574 + 1) == '\0') {
+      return;
+    }
+    do {
+      encounter = (char *)data_iterator_next(&iter);
+      if (encounter == NULL || flag == '\0')
+        break;
+    } while (*(char *)(encounter + 0xd) == '\0');
+    if (encounter == NULL) {
+      return;
+    }
+    if (game_allegiance_get_team_is_friendly(*(short *)(encounter + 0x2),
+                                             *(short *)(unit + 0x68)) &&
+        *(char *)(encounter + 0x43) != '\0' &&
+        *(char *)(encounter + 0x42) == '\0' &&
+        *(char *)(encounter + 0x47) == '\0') {
+      (*(short *)(encounter + 0x4c))++;
+    }
+  }
+}
+
 /* 0x5c940 — encounter_update_platoon_rules.
  * For each platoon in the encounter, evaluates two rule conditions:
  *   1. Maneuvering rule (platoon_def+0x3c): if platoon[1]==0 (not yet set),
