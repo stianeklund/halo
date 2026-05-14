@@ -646,6 +646,31 @@ short bitmap_mipmap_width(void *bitmap, int mipmap_index)
   return (short)result;
 }
 
+/* FUN_0007d780 — bitmap_mipmap_height: height counterpart of
+ * bitmap_mipmap_width. Returns the pixel height at the given mipmap level,
+ * clamped to 1. If the compressed flag (bit 1 of +0xe) is set, rounds up to the
+ * next multiple of 4 (DXT block alignment).
+ */
+short FUN_0007d780(void *bitmap, short mipmap_index)
+{
+  char *b = (char *)bitmap;
+  uint16_t height;
+  uint16_t result;
+
+  assert_halt(bitmap_verify(bitmap, 0));
+  assert_halt(mipmap_index >= 0 && mipmap_index <= *(short *)(b + 0x14));
+
+  height = *(uint16_t *)(b + 0x6);
+  result = height >> (mipmap_index & 0x1f);
+  if (result < 2)
+    result = 1;
+
+  if ((*(uint8_t *)(b + 0xe) & 2) != 0)
+    result = result + ((-(uint8_t)result) & 3);
+
+  return (short)result;
+}
+
 /*
  * FUN_0007d9f0 — compute the byte size of one scanline at a given mipmap
  * level for an uncompressed, unswizzled bitmap.
