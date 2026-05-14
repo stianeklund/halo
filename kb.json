@@ -12583,8 +12583,9 @@
           "addr": "0x36b50"
         },
         {
-          "decl": "void FUN_00036bd0(void);",
-          "addr": "0x36bd0"
+          "decl": "void FUN_00036bd0(int actor_handle, int param_2);",
+          "addr": "0x36bd0",
+          "ported": true
         },
         {
           "decl": "void FUN_00036c50(void);",

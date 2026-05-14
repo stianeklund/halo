@@ -110,6 +110,18 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
   }
 }
 
+/* 0x36bd0 — Post an object-look stimulus (type 5, priority 1) to an actor.
+ * Builds a look_buf with word 0x1 and passes param_2 (object handle) adjacent
+ * so FUN_00027a60 can read it as part of the buffer. */
+void FUN_00036bd0(int actor_handle, int param_2)
+{
+  short look_buf[4]; /* [0]=1, [2..3]=param_2 as int overlay */
+
+  look_buf[0] = 1;
+  *(int *)(&look_buf[2]) = param_2;
+  FUN_00027a60(actor_handle, 5, 1, look_buf);
+}
+
 /* FUN_00036c00 (0x36c00) — flee/scatter look reaction.
  *
  * Resolves the actor record via datum_get(actor_data, actor_handle).
