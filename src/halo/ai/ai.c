@@ -574,6 +574,60 @@ void FUN_00040a40(void)
   csmemset((void *)(g + 0x134), 0, 0x280);
 }
 
+/* FUN_00040f80: iterate all encounterless actors and re-attach any whose
+ * encounter's BSP index matches the current structure BSP.
+ *
+ * Walks the global encounterless-actor linked list (head at globals+0x8,
+ * next-handle at actor+0x2c). For each actor:
+ *   - Asserts actor[9] != 0 (encounterless flag must be set).
+ *   - Skips actors with no encounter reference (actor+0x30 == -1).
+ *   - Resolves the encounter element via global_scenario_get() +
+ *     tag_block_get_element(scenario+0x42c, encounter_index, 0xb0).
+ *   - If the element's BSP index (element+0x7e) matches the current BSP,
+ *     calls FUN_000597f0 (encounter_leave/detach) then encounter_attach_actor
+ *     to re-attach the actor to its encounter and squad.
+ *
+ * Confirmed: void(void) — no args, no return.
+ * Confirmed: PUSH 0xb0 + PUSH encounter_idx are pre-staged args for
+ *   tag_block_get_element; ADD ESP,0xc cleans all 3 args at once.
+ * Confirmed: XOR EAX,EAX; MOV AX,[ESI+0x38] = zero-extend squad index.
+ * Confirmed: MOV EBX,[ESI+0x2c] saved before body — next saved early. */
+void FUN_00040f80(void)
+{
+  short bsp_index;
+  int actor_handle;
+  int next_handle;
+  char *actor;
+  char *scenario;
+  char *encounter_element;
+  int encounter_ref;
+  int g;
+
+  bsp_index = global_structure_bsp_index_get();
+  g = *(int *)0x632574;
+  actor_handle = *(int *)(g + 0x8);
+  while (actor_handle != -1) {
+    actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+    next_handle = *(int *)(actor + 0x2c);
+    if (*(char *)(actor + 0x9) == '\0') {
+      display_assert("actor->meta.encounterless", "c:\\halo\\SOURCE\\ai\\ai.c", 0x96f, 1);
+      FUN_001029a0();
+    }
+    encounter_ref = *(int *)(actor + 0x30);
+    if (encounter_ref != -1) {
+      scenario = (char *)global_scenario_get();
+      encounter_element = (char *)tag_block_get_element(
+          scenario + 0x42c, encounter_ref & 0xffff, 0xb0);
+      if (*(short *)(encounter_element + 0x7e) == bsp_index) {
+        FUN_000597f0(actor_handle);
+        encounter_attach_actor(actor_handle, *(int *)(actor + 0x30),
+            *(int16_t *)(actor + 0x38), 1);
+      }
+    }
+    actor_handle = next_handle;
+  }
+}
+
 /* ai_initialize_for_new_map: reset the AI globals block and initialise
  * all per-map AI subsystems.
  * Zeroes the 0x8dc-byte globals block (at *(int*)0x632574), writes
