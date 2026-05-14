@@ -445,6 +445,29 @@ __int16 cache_files_precache_map_status(float *progress)
   }
 }
 
+/* FUN_001bcfb0 — open/map the cache file for the given slot (@<ax> =
+ * map_file_index). Initializes a local OBJECT_ATTRIBUTES-like struct, fills it
+ * with the file path pointer at entry+4, and calls FUN_001d1910 to create a
+ * file mapping. Cache file entry at DAT_004e61d8 + index*0x80c; file handle at
+ * offset +0.
+ */
+void FUN_001bcfb0(short map_file_index)
+{
+  char local_buf[16];
+  char *entry;
+
+  if ((int)map_file_index < 0 || (int)map_file_index >= 6) {
+    display_assert(
+      "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+    system_exit(-1);
+  }
+  entry = (char *)0x4e61d8 + (int)map_file_index * 0x80c;
+  FUN_001d051d(local_buf);
+  FUN_001d05f4(local_buf, entry + 4);
+  FUN_001d1910(*(int *)entry, entry + 4, 0, 0);
+}
+
 /* Returns true if the named map has already been precached.
  * 0x1bd1b0 reads EDI as the canonical map name (set from 0x19b0d0). */
 bool cache_files_precache_map_loaded(char *map_name)

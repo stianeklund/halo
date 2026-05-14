@@ -242,6 +242,7 @@
     "0x1b1ee0": "void unit_update_weapon_readiness(int unit_handle@<esi>, int flag);",
     "0x1b9bf0": "int *tag_instance_resolve(int tag_index@<edi>);",
     "0x1bc720": "void *FUN_001bc720(short map_file_index@<si>);",
+    "0x1bcfb0": "void FUN_001bcfb0(short map_file_index@<ax>);",
     "0x1bc760": "void FUN_001bc760(short map_file_index@<si>);",
     "0x1bc7a0": "unsigned int FUN_001bc7a0(short map_file_index@<si>);",
     "0x1bc7e0": "int FUN_001bc7e0(short map_file_index@<si>);",

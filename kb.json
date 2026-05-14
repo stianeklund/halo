@@ -13644,8 +13644,10 @@
           "addr": "0x1bcea0"
         },
         {
-          "decl": "void FUN_001bcfb0(void);",
-          "addr": "0x1bcfb0"
+          "decl": "void FUN_001bcfb0(short map_file_index@<ax>);",
+          "addr": "0x1bcfb0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bd020(void);",
@@ -29594,7 +29596,7 @@
           "addr": "0x1d18aa"
         },
         {
-          "decl": "void FUN_001d1910(void);",
+          "decl": "void __stdcall FUN_001d1910(int handle, void *data, int param_3, int param_4);",
           "addr": "0x1d1910"
         },
         {
@@ -29749,7 +29751,7 @@
           "addr": "0x1d04f1"
         },
         {
-          "decl": "void FUN_001d051d(void);",
+          "decl": "void __stdcall FUN_001d051d(void *ptr);",
           "addr": "0x1d051d"
         },
         {
@@ -29761,7 +29763,7 @@
           "addr": "0x1d0589"
         },
         {
-          "decl": "void FUN_001d05f4(void);",
+          "decl": "void __stdcall FUN_001d05f4(void *a, void *b);",
           "addr": "0x1d05f4"
         },
         {
