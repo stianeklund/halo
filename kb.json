@@ -8144,7 +8144,7 @@
           "addr": "0x168340"
         },
         {
-          "decl": "void FUN_00168370(void);",
+          "decl": "void FUN_00168370(void *bitmap);",
           "addr": "0x168370"
         },
         {
@@ -13344,8 +13344,10 @@
           "addr": "0x7d300"
         },
         {
-          "decl": "void FUN_0007d5d0(void);",
-          "addr": "0x7d5d0"
+          "decl": "void FUN_0007d5d0(void *bitmap);",
+          "addr": "0x7d5d0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_0007d650(void);",
