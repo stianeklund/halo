@@ -120,6 +120,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 
 ## Command Decision Tree
 - Need next target: `/frontier` or `rtk python3 tools/llm_auto_lift.py select --limit 20`.
+- Need to reduce FUN_ backlog or improve frontier accuracy: `rtk python3 tools/analysis/fun_pipeline.py status` → `reclassify [--apply]` → `prioritize --priority P0`.
 - Need manual implementation: `/lift <target>`.
 - Need auto-lift candidate: `/auto-lift` to select + cache context, then `/lift <target>`.
 - Need validation, delink, hazards, or failure triage: `/verify <mode> ...`.
@@ -129,6 +130,7 @@ Maintain a mental ledger of files already read in this conversation. If you need
 
 ## Analysis Tools
 - **`tools/analysis/frontier.py`** — Decompilation frontier scoring and target recommendations.
+- **`tools/analysis/fun_pipeline.py`** — FUN_ function naming pipeline. Four stages: `reclassify` moves `<common>` FUN_ functions to named objects (feeds frontier.py accuracy); `prioritize` tiers remaining FUN_ functions by evidence quality (P0 = attributed + signature, P3 = unclassified); `propose` outputs a Ghidra work queue for decompile-based naming; `apply` writes proposed names back to kb.json. Run `status` first to gauge naming debt. Prerequisite for accurate frontier scoring when `<common>` is large.
 - **`tools/llm_auto_lift.py`** — Target selection, liftability scoring, and Ghidra context caching. Use `select` for combined frontier/liftability target choice; `cache-context` to pre-cache Ghidra output; code generation delegated to `/lift`.
 - **`tools/analysis/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
 - **`tools/audit/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
