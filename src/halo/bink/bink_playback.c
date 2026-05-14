@@ -110,6 +110,49 @@ bool bink_memory_pool_is_empty(void)
   return empty;
 }
 
+/* Release a bink memory pool allocation. Searches the allocation table at
+ * 0x4eacd0 (up to 0x4eae30 entries) for a pointer matching ptr, and zeroes
+ * that slot when found. If the pointer is not found (or the pool is empty),
+ * calls display_assert and exits — "bink just confused the hell out of me (2)".
+ * Bracketed by bink_playback_trace calls (memory checkpoint) before the
+ * search and after the successful free. Calling convention: __stdcall (RET 4).
+ */
+void __stdcall bink_memory_pool_free(int ptr)
+{
+  uint32_t mem_status[8];
+  int count;
+  int i;
+
+  csmemset(mem_status, 0, 0x20);
+  mem_status[0] = 0x20;
+  xbox_query_global_memory_status(mem_status);
+  *(uint32_t *)0x32eb9c = mem_status[3] >> 10;
+
+  count = *(int *)0x4eae30;
+  i = 0;
+  if (0 < count) {
+    do {
+      if (*(int *)(i * 4 + 0x4eacd0) == ptr) {
+        *(int *)(i * 4 + 0x4eacd0) = 0;
+        if (i < count) {
+          goto found;
+        }
+        break;
+      }
+      i = i + 1;
+    } while (i < count);
+  }
+  display_assert("### FATAL_ERROR bink just confused the hell out of me (2)",
+                 "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x339, 1);
+  system_exit(-1);
+
+found:
+  csmemset(mem_status, 0, 0x20);
+  mem_status[0] = 0x20;
+  xbox_query_global_memory_status(mem_status);
+  *(uint32_t *)0x32eb9c = mem_status[3] >> 10;
+}
+
 /* Render the bink frame quad on screen with optional debug overlay.
  *
  * Builds a 4-vertex textured quad from the current display bounds and
