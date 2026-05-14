@@ -13200,8 +13200,9 @@
           "addr": "0x1c5ab0"
         },
         {
-          "decl": "void FUN_001c5ca0(void);",
-          "addr": "0x1c5ca0"
+          "decl": "void __stdcall bink_memory_pool_free(int ptr);",
+          "addr": "0x1c5ca0",
+          "ported": true
         },
         {
           "decl": "void FUN_001c6170(void);",
