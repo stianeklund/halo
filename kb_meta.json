@@ -6707,6 +6707,10 @@
         "Checks both bink handle (0x4ead60) and initialized flag (0x4ead58) to determine if bink playback is active."
       ]
     },
+    "0x1c5960": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c5980": {
       "kind": "function",
       "status": "ported",
@@ -6723,6 +6727,10 @@
       ]
     },
     "0x1c5a80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c5ca0": {
       "kind": "function",
       "status": "ported"
     },
@@ -7185,6 +7193,10 @@
       ]
     },
     "0x1cf880": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d8368": {
       "kind": "function",
       "status": "ported"
     },

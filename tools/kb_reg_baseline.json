@@ -272,6 +272,7 @@
     "0x1cd2c0": "void sound_start_next_looping_permutation(int sound_handle@<eax>);",
     "0x1cd5a0": "int16_t sound_allocate_channel(void *source@<eax>, float priority);",
     "0x1cda50": "int sound_create_looping_entry(int sound_tag_handle@<eax>, int looping_handle, int track_index, int type);",
+    "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"

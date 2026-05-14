@@ -3,6 +3,7 @@
  * instructions, and to CRT intrinsics like __ftol2. This file provides the
  * implementations. Compiled with clang only when ENABLE_XDK_HYBRID is ON. */
 
+
 #undef sinf
 #undef cosf
 #undef sqrtf
