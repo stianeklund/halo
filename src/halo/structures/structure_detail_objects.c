@@ -35,15 +35,14 @@ int FUN_00193a80(int param_1, short *param_2, int in_EAX)
         goto do_lower;
       if (*(short *)(elem + 2) != param_2[1])
         goto do_upper;
-      if (*(short *)(elem + 4) >= param_2[2])
-        goto do_upper;
-    do_lower:
-      param_1 = elem + 0x20;
-      count = count - 1 - mid;
-      goto do_check;
-    do_upper:
-      count = mid;
-    do_check:;
+      if (*(short *)(elem + 4) < param_2[2]) {
+      do_lower:
+        param_1 = elem + 0x20;
+        count = count - 1 - mid;
+      } else {
+      do_upper:
+        count = mid;
+      }
     } while (count > 0);
   }
   return param_1;
