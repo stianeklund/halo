@@ -4,6 +4,7 @@ import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
 import ghidra.app.services.Analyzer;
 import ghidra.app.util.Option;
 import ghidra.app.util.exporter.Exporter;
+import ghidra.framework.options.Options;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.address.AddressSetView;
 import ghidra.program.model.listing.Program;
@@ -60,8 +61,33 @@ public class DelinkerService {
           "Relocation table synthesizer analyzer is not available");
     }
 
-    autoAnalysisManager.scheduleOneTimeAnalysis(analyzer, set);
-    autoAnalysisManager.waitForAnalysis(null, TaskMonitor.DUMMY);
+    // Suppress evaluation report warnings that cause popup dialogs
+    // by disabling the analyzer's evaluation reports option
+    Options analysisOptions = program.getOptions(Program.ANALYSIS_PROPERTIES);
+    String evalReportOption = "Reloc Synthesizer.Enable Evaluation Reports";
+    boolean originalEvalSetting = true;
+    try {
+      if (analysisOptions.contains(evalReportOption)) {
+        originalEvalSetting = analysisOptions.getBoolean(evalReportOption, true);
+        analysisOptions.setBoolean(evalReportOption, false);
+      }
+    } catch (Exception e) {
+      // Ignore - option may not exist in this Ghidra version
+    }
+
+    try {
+      autoAnalysisManager.scheduleOneTimeAnalysis(analyzer, set);
+      autoAnalysisManager.waitForAnalysis(null, TaskMonitor.DUMMY);
+    } finally {
+      // Restore original setting
+      try {
+        if (analysisOptions.contains(evalReportOption)) {
+          analysisOptions.setBoolean(evalReportOption, originalEvalSetting);
+        }
+      } catch (Exception e) {
+        // Ignore
+      }
+    }
 
     Map<String, Object> out = new LinkedHashMap<>();
     out.put("status", "ok");
