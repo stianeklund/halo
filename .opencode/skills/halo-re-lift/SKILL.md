@@ -49,7 +49,7 @@ cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
   due to connection/timeout/unavailable errors, stop immediately and do not
   retry in the same response.
 - Tell the user exactly: `You might have forgotten to start
-  tools/shell/mcp-servers.sh or ghidra may not be running?`
+  tools/mcp-servers.sh or ghidra may not be running?`
 
 ## Token-efficient execution defaults
 
@@ -63,41 +63,10 @@ Use these defaults unless a target requires deeper forensics:
 - Keep MCP passes staged:
   1. Resolve target (`get_function_by_address`).
   2. Pull pseudocode (`decompile_function` or `batch_decompile` for >1 function).
-  3. Pre-pass the pseudocode through the deterministic rewriter before reasoning over it:
-     ```
-     rtk python3 tools/lift/draft_decompiler.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_draft.c
-     rtk python3 tools/lift/buffer_alias_detector.py --json artifacts/auto_lift/context_cache/<NAME>.json > /tmp/lift_hazards.c
-     ```
-     Use `/tmp/lift_draft.c` as the working starting point — it has the
-     MSVC intrinsic table (CLAUDE.md) already applied, synthetic types
-     canonicalized, and `__try/__except` already wrapped. `/tmp/lift_hazards.c`
-     surfaces HIGH-RISK buffer-alias sites (hazard #5) that must be
-     resolved before writing the final lift.
-  4. If the cached context JSON contains `similar_neighbors`, read them —
-     these are the top-3 most semantically similar already-ported functions
-     with their final C source. Use as worked examples, not authority.
-  5. Pull callers/callees (`get_function_callers`/`get_function_callees`) with bounded limits.
-  6. Pull full disassembly only when decompiler output is ambiguous or ABI-critical.
+  3. Pull callers/callees (`get_function_callers`/`get_function_callees`) with bounded limits.
+  4. Pull full disassembly only when decompiler output is ambiguous or ABI-critical.
 - Prefer one target per run; do not batch unrelated functions in one analysis pass.
 - In reports, summarize evidence and include only the minimum assembly needed to justify claims.
-
-## Post-lift follow-ups
-
-After `lift_pipeline.py` reports VC71 results, decide whether to spend
-extra cycles on permuter or Unicorn — the default is to do nothing.
-
-- Match in **[85, 98]%** with a delinked reference → `/verify permute`
-  (60s last-mile optimizer). Do NOT permute below 85% (fix the lift) or
-  above 98% (diminishing returns). Never accept a permutation that lowers
-  the existing match; always re-run the lift pipeline before trusting it.
-- **Pure leaf** (no calls out, no globals) AND FPU-heavy or structurally
-  capped (e.g. SEH wrappers stuck near 55%) → `/verify equivalence` for a
-  100-seed Unicorn behavioral diff. Skip if the function calls `FUN_xxx`
-  or references DAT_/globals — Unicorn rejects non-leaves.
-- Equivalence runs populate `tools/equivalence/leaf_cache.json`, which
-  rewards leaves in future `select` runs (`+5 eq_pure_leaf`).
-
-See `halo-verify-debug` for the full lane decision tree.
 
 ## Auto-lift candidates
 
@@ -118,8 +87,7 @@ Key reminders (full rules in `docs/references/abi-and-calling-conventions.md`):
 - `@<reg>` annotations are immutable. Never remove or change slot assignments.
 - When calling an original XBE function that takes register args, add it to
   kb.json with `@<reg>` and call by name. Do not use raw casts or inline asm.
-  New `@<reg>` entries must also be added to `tools/kb_reg_baseline.json`
-  **inside the `"functions"` dict** (not at the top level). Key format: `"0xABCDEF"`.
+  New `@<reg>` entries must also be added to `tools/kb_reg_baseline.json`.
 - Do not reorder or repack structs without binary evidence and matching asserts.
 
 ## Commit discipline

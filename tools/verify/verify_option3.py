@@ -129,8 +129,8 @@ def build_parser() -> argparse.ArgumentParser:
 
   ap.add_argument("--skip-iso", action="store_true",
                   help="Skip ISO build stage.")
-   ap.add_argument("--iso-cmd", default="./tools/xbox/build_deploy_run.sh -q",
-                   help="Shell command used for build+deploy stage.")
+  ap.add_argument("--iso-cmd", default="./tools/xbox/build_deploy_run.sh -q",
+                  help="Shell command used for build+deploy stage.")
 
   ap.add_argument("--objdiff-reference", default="",
                   help="Reference object path for tools/verify/objdiff_lift.py.")

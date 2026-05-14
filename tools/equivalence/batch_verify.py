@@ -10,6 +10,7 @@ Usage:
     python3 tools/equivalence/batch_verify.py --limit 50      # first 50
     python3 tools/equivalence/batch_verify.py --seeds 20      # fewer seeds (faster)
     python3 tools/equivalence/batch_verify.py --dry-run       # list candidates only
+    python3 tools/equivalence/batch_verify.py --baseline artifacts/batch_verify/summary.json
 """
 
 import argparse
@@ -19,12 +20,14 @@ import re
 import subprocess
 import sys
 import time
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 KB_JSON = ROOT / "kb.json"
 LEAF_CACHE = ROOT / "tools" / "equivalence" / "leaf_cache.json"
 RESULTS_DIR = ROOT / "artifacts" / "batch_verify"
+FAIL_STATUSES = {"fail", "error"}
 
 
 def load_candidates(leaf_only: bool = False, classes: set = None):
@@ -80,10 +83,77 @@ def load_candidates(leaf_only: bool = False, classes: set = None):
     return candidates
 
 
-def run_verify(name: str, seeds: int = 50, timeout: int = 60,
+def load_json(path: Path) -> dict:
+    if not path:
+        return {}
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_allowlist(path: Path) -> dict[str, set[str]]:
+    if not path:
+        return {}
+    raw = load_json(path)
+    entries = raw.get("targets", raw)
+    allowlist = {}
+
+    def values(value):
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(item) for item in value]
+        return []
+
+    for name, value in entries.items():
+        if isinstance(value, str):
+            allowlist[name] = {value}
+        elif isinstance(value, list):
+            allowlist[name] = {str(item) for item in value}
+        elif isinstance(value, dict):
+            allowlist[name] = set(values(value.get("statuses", [])))
+            allowlist[name].update(values(value.get("reasons", [])))
+        else:
+            allowlist[name] = {"*"}
+    return allowlist
+
+
+def is_allowlisted(row: dict, allowlist: dict[str, set[str]]) -> bool:
+    allowed = allowlist.get(row["name"]) or allowlist.get(row["addr"])
+    if not allowed:
+        return False
+    if "*" in allowed:
+        return True
+    return row["status"] in allowed or row.get("reason", "") in allowed
+
+
+def failure_key(row: dict) -> str:
+    return f"{row['name']}|{row['status']}|{row.get('reason', '')}"
+
+
+def baseline_failure_keys(path: Path) -> set[str]:
+    if not path:
+        return set()
+    raw = load_json(path)
+    rows = raw.get("rows", [])
+    if rows:
+        return {failure_key(row) for row in rows
+                if row.get("status") in FAIL_STATUSES}
+    return {f"{name}|fail|{reason}" for name, reason in raw.get("failures", [])}
+
+
+def summarize_by_object(rows: list[dict]) -> dict:
+    by_object: dict[str, Counter] = defaultdict(Counter)
+    for row in rows:
+        by_object[row["obj"]][row["status"]] += 1
+        by_object[row["obj"]]["total"] += 1
+    return {obj: dict(counts) for obj, counts in sorted(by_object.items())}
+
+
+def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
                float_tolerance: int = 0, skip_esp: bool = False) -> dict:
     """Run unicorn_diff on a single function. Returns structured result."""
-    result_json = RESULTS_DIR / f"{name}.json"
+    result_json = output_dir / f"{name}.json"
     cmd = [
         sys.executable, str(ROOT / "tools" / "equivalence" / "unicorn_diff.py"),
         name,
@@ -130,6 +200,14 @@ def main():
                         help="Write per-function results to results.csv")
     parser.add_argument("--classes", type=str, default="leaf,data_only,stubbable",
                         help="Comma-separated classes to verify")
+    parser.add_argument("--output-dir", type=Path, default=RESULTS_DIR,
+                        help="Artifact directory (default: artifacts/batch_verify)")
+    parser.add_argument("--baseline", type=Path, default=None,
+                        help="Previous summary.json to compare against")
+    parser.add_argument("--allowlist", type=Path, default=None,
+                        help="JSON allowlist for known failures or not_applicable reasons")
+    parser.add_argument("--fail-on-new", action="store_true",
+                        help="Exit non-zero when baseline comparison finds new failures")
     args = parser.parse_args()
 
     classes = set(args.classes.split(","))
@@ -145,13 +223,16 @@ def main():
             print(f"  {c['addr']:12s} {c['class']:10s} {c['obj']:30s} {c['name']}")
         return 0
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir = args.output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
     csv_rows = []
 
     results = {"pass": 0, "fail": 0, "error": 0, "not_applicable": 0,
                "z3_proven": 0, "total": len(candidates)}
     failures = []
+    error_failures = []
     proven = []
+    rows = []
     t0 = time.time()
 
     for i, c in enumerate(candidates):
@@ -161,7 +242,7 @@ def main():
         eta = ((len(candidates) - i) / rate) if rate > 0 else 0
         print(f"[{i+1}/{len(candidates)}] {name:40s} ", end="", flush=True)
 
-        result = run_verify(name, seeds=args.seeds, timeout=args.timeout,
+        result = run_verify(name, output_dir, seeds=args.seeds, timeout=args.timeout,
                             float_tolerance=args.float_tolerance,
                             skip_esp=args.skip_esp)
         status = result.get("status", "error")
@@ -184,9 +265,10 @@ def main():
             print(f"N/A ({result.get('reason', '')})")
         else:
             results["error"] += 1
+            error_failures.append((name, result.get("reason", "")))
             print(f"ERROR ({result.get('reason', '')})")
 
-        csv_rows.append({
+        row = {
             "addr": c["addr"],
             "name": name,
             "class": c["class"],
@@ -196,7 +278,9 @@ def main():
             "seeds_passed": result.get("passed", 0),
             "seeds_total": result.get("seeds", 0),
             "z3_proven": "1" if result.get("z3_proven") else "0",
-        })
+        }
+        csv_rows.append(row)
+        rows.append(row)
 
     elapsed = time.time() - t0
 
@@ -219,17 +303,43 @@ def main():
         for name in proven:
             print(f"  {name}")
 
-    summary_path = RESULTS_DIR / "summary.json"
+    allowlist = load_allowlist(args.allowlist)
+    allowlisted = [row for row in rows if is_allowlisted(row, allowlist)]
+    current_failure_rows = [row for row in rows
+                            if row["status"] in FAIL_STATUSES
+                            and not is_allowlisted(row, allowlist)]
+    baseline_keys = baseline_failure_keys(args.baseline)
+    new_failure_rows = [row for row in current_failure_rows
+                        if failure_key(row) not in baseline_keys]
+    comparison = {
+        "baseline": str(args.baseline) if args.baseline else "",
+        "new_failures": new_failure_rows,
+        "known_failures": [row for row in current_failure_rows
+                           if failure_key(row) in baseline_keys],
+        "allowlisted": allowlisted,
+    }
+
+    if args.baseline:
+        print(f"\nBASELINE COMPARISON:")
+        print(f"  New failures:   {len(new_failure_rows)}")
+        print(f"  Known failures: {len(comparison['known_failures'])}")
+        print(f"  Allowlisted:    {len(allowlisted)}")
+
+    summary_path = output_dir / "summary.json"
     summary_path.write_text(json.dumps({
         "results": results,
         "failures": [(n, r) for n, r in failures],
+        "errors": [(n, r) for n, r in error_failures],
         "z3_proven": proven,
+        "rows": rows,
+        "by_object": summarize_by_object(rows),
+        "comparison": comparison,
         "elapsed_seconds": elapsed,
     }, indent=2) + "\n", encoding="utf-8")
     print(f"\nSummary: {summary_path}")
 
     if args.csv:
-        csv_path = RESULTS_DIR / "results.csv"
+        csv_path = output_dir / "results.csv"
         with open(csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "addr", "name", "class", "obj", "status",
@@ -239,6 +349,8 @@ def main():
             writer.writerows(csv_rows)
         print(f"CSV: {csv_path}")
 
+    if args.fail_on_new and new_failure_rows:
+        return 1
     return 1 if results["fail"] > 0 else 0
 
 

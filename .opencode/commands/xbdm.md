@@ -1,5 +1,6 @@
 ---
 description: Run XBDM/RDCP commands and common real-Xbox debug probes
+agent: fast
 subtask: true
 ---
 

@@ -20,9 +20,9 @@ commit. Static analysis is fast, free, and usually sufficient.
 
 ### Phase 1 — Git bisection (always first)
 
-1. `rtk git log --oneline -20` — identify recent commits touching `kb.json`, C
+1. `git log --oneline -20` — identify recent commits touching `kb.json`, C
    source, or types.
-2. `rtk git diff HEAD~N -- kb.json src/` — inspect what changed.
+2. `git diff HEAD~N -- kb.json src/` — inspect what changed.
 3. For each suspicious commit, check:
    - Calling convention (cdecl/stdcall/fastcall/thiscall/register)
    - Argument count vs. `PUSH` count and `ADD ESP,N` cleanup
@@ -51,12 +51,12 @@ Only when static analysis leaves the root cause genuinely ambiguous.
 **Fallback — xemu probing** (only if no Xbox is reachable):
 
 ```bash
-rtk python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
-rtk python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --serial
-rtk python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
-rtk python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
-rtk python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --pause
-rtk python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --resume
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --serial
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --pause
+python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --resume
 ```
 
 Useful xemu probes for regressions:

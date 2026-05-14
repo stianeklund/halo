@@ -22,7 +22,7 @@ The most common cause: a function was changed in kb.json from a simple declarati
 to a ported function with a **different signature**, especially:
 
 - Added `@<reg>` register arguments that callers don't know about
-- Changed return type width (e.g., `void` → `uint`)
+- Changed return type width (e.g., `void` -> `uint`)
 - Changed parameter count or types
 - Missing `HDATA` indirection adjustment
 
@@ -64,10 +64,10 @@ Inspect the suspect function in kb.json:
 
 ```bash
 # Find the function at or near the crash address
-rtk jq '.symbols[] | select(.address | startswith("000923"))' kb.json
+rtk jq '.objects[].functions[] | select(.addr | startswith("000923"))' kb.json
 
 # Check if it has @<reg> annotations
-rtk jq '.symbols[] | select(.name == "<function_name>") | {name, address, type, calling_convention}' kb.json
+rtk jq '.objects[].functions[] | select(.name == "<function_name>") | {name: .name, addr, decl, calling_convention}' kb.json
 ```
 
 **Red flags to look for:**

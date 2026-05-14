@@ -14,6 +14,6 @@ Argument: $ARGUMENTS (unused)
 
 Steps:
 1. Follow the standard build-and-load flow from `halo-build-xemu`.
-2. If the build succeeds, run `rtk git rev-parse HEAD` and include the full commit
+2. If the build succeeds, run `git rev-parse HEAD` and include the full commit
    hash in the report.
 3. Report: build status, commit hash, any warnings, ISO path, xemu load status.
