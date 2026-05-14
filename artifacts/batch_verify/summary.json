@@ -1,29 +1,13 @@
 {
   "results": {
-    "pass": 516,
-    "fail": 596,
+    "pass": 591,
+    "fail": 513,
     "error": 0,
-    "not_applicable": 81,
+    "not_applicable": 75,
     "z3_proven": 19,
-    "total": 1193
+    "total": 1179
   },
   "failures": [
-    [
-      "FUN_0001d030",
-      "divergence"
-    ],
-    [
-      "FUN_0001d5c0",
-      "divergence"
-    ],
-    [
-      "FUN_00036860",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003a600",
-      "divergence"
-    ],
     [
       "FUN_0003a740",
       "emulation_error"
@@ -49,23 +33,19 @@
       "emulation_error"
     ],
     [
-      "actors_initialize",
-      "emulation_error"
-    ],
-    [
       "actor_verify_activation",
       "emulation_error"
     ],
     [
-      "actor_detach_from_unit",
+      "FUN_0003b320",
       "emulation_error"
     ],
     [
-      "actor_swarm_detach_from_unit",
-      "divergence"
+      "FUN_0003b410",
+      "emulation_error"
     ],
     [
-      "FUN_0003b320",
+      "FUN_0003b7e0",
       "emulation_error"
     ],
     [
@@ -73,11 +53,31 @@
       "emulation_error"
     ],
     [
+      "actors_freeze",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003b940",
+      "emulation_error"
+    ],
+    [
+      "actors_move_randomly",
+      "emulation_error"
+    ],
+    [
       "FUN_0003baa0",
       "emulation_error"
     ],
     [
+      "FUN_0003bde0",
+      "emulation_error"
+    ],
+    [
       "FUN_0003be90",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003c0c0",
       "emulation_error"
     ],
     [
@@ -94,6 +94,10 @@
     ],
     [
       "FUN_0003cc10",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003cd30",
       "emulation_error"
     ],
     [
@@ -121,10 +125,6 @@
       "emulation_error"
     ],
     [
-      "FUN_0003e7a0",
-      "divergence"
-    ],
-    [
       "actor_attach_unit",
       "emulation_error"
     ],
@@ -138,18 +138,6 @@
     ],
     [
       "FUN_0003f030",
-      "emulation_error"
-    ],
-    [
-      "FUN_000373b0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000374f0",
-      "emulation_error"
-    ],
-    [
-      "FUN_00014540",
       "emulation_error"
     ],
     [
@@ -169,12 +157,8 @@
       "divergence"
     ],
     [
-      "bink_playback_initialize",
+      "FUN_00041420",
       "emulation_error"
-    ],
-    [
-      "bink_memory_pool_alloc",
-      "divergence"
     ],
     [
       "bink_playback_start",
@@ -189,12 +173,16 @@
       "emulation_error"
     ],
     [
+      "bink_playback_check_any_button",
+      "emulation_error"
+    ],
+    [
       "bink_playback_decode_frame",
       "emulation_error"
     ],
     [
-      "FUN_0007c270",
-      "divergence"
+      "bink_playback_render_frame",
+      "emulation_error"
     ],
     [
       "bitmap_format_bits_per_pixel",
@@ -202,6 +190,10 @@
     ],
     [
       "FUN_0007c940",
+      "emulation_error"
+    ],
+    [
+      "bitmap_verify",
       "emulation_error"
     ],
     [
@@ -213,35 +205,15 @@
       "emulation_error"
     ],
     [
-      "breakable_surface_get",
-      "divergence"
-    ],
-    [
-      "breakable_surfaces_initialize_for_new_map",
-      "divergence"
-    ],
-    [
-      "breakable_surfaces_get_bsp_surface_data",
-      "divergence"
-    ],
-    [
       "FUN_00145ad0",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_00146a90",
-      "divergence"
-    ],
-    [
-      "cache_files_precache_set_priority",
-      "divergence"
+      "emulation_error"
     ],
     [
       "cache_files_precache_is_copying_map",
-      "divergence"
-    ],
-    [
-      "cache_files_precache_map_queue_end",
       "divergence"
     ],
     [
@@ -253,20 +225,8 @@
       "emulation_error"
     ],
     [
-      "cheats_initialize",
+      "cache_files_precache",
       "emulation_error"
-    ],
-    [
-      "cinematic_initialize",
-      "divergence"
-    ],
-    [
-      "cinematic_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "collision_log_period_helper",
-      "divergence"
     ],
     [
       "collision_log_begin_period",
@@ -275,10 +235,6 @@
     [
       "collision_log_continue_period",
       "emulation_error"
-    ],
-    [
-      "collision_log_end_period",
-      "divergence"
     ],
     [
       "FUN_0014ec30",
@@ -301,20 +257,24 @@
       "emulation_error"
     ],
     [
+      "console_update",
+      "emulation_error"
+    ],
+    [
+      "contrail_set_state_for_object",
+      "emulation_error"
+    ],
+    [
       "contrails_update",
       "emulation_error"
     ],
     [
-      "FUN_00097a50",
-      "divergence"
+      "FUN_00097e40",
+      "emulation_error"
     ],
     [
       "debug_free",
       "emulation_error"
-    ],
-    [
-      "csstrcat",
-      "divergence"
     ],
     [
       "csstr_tolower",
@@ -322,14 +282,6 @@
     ],
     [
       "crc_table_init",
-      "emulation_error"
-    ],
-    [
-      "crc_checksum_buffer",
-      "emulation_error"
-    ],
-    [
-      "FUN_0011e430",
       "divergence"
     ],
     [
@@ -358,10 +310,14 @@
     ],
     [
       "FUN_0011ec10",
-      "emulation_error"
+      "divergence"
     ],
     [
       "FUN_0011ee80",
+      "emulation_error"
+    ],
+    [
+      "memory_block_valid",
       "emulation_error"
     ],
     [
@@ -401,14 +357,6 @@
       "divergence"
     ],
     [
-      "datum_absolute_index_to_index",
-      "divergence"
-    ],
-    [
-      "data_verify",
-      "divergence"
-    ],
-    [
       "data_dispose",
       "emulation_error"
     ],
@@ -437,28 +385,12 @@
       "emulation_error"
     ],
     [
-      "debug_keys_initialize",
-      "divergence"
-    ],
-    [
       "FUN_00098b20",
-      "divergence"
-    ],
-    [
-      "decals_initialize",
       "divergence"
     ],
     [
       "decals_initialize_for_new_map",
       "emulation_error"
-    ],
-    [
-      "decals_dispose_from_old_map",
-      "divergence"
-    ],
-    [
-      "decals_update_for_new_map",
-      "divergence"
     ],
     [
       "FUN_000992d0",
@@ -470,11 +402,11 @@
     ],
     [
       "real_a_rgb_color_to_pixel32",
-      "emulation_error"
+      "divergence"
     ],
     [
       "FUN_000998b0",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_0009a300",
@@ -487,10 +419,6 @@
     [
       "decal_new_from_collision",
       "emulation_error"
-    ],
-    [
-      "FUN_0009c4b0",
-      "divergence"
     ],
     [
       "director_set_player_camera_normal",
@@ -509,10 +437,6 @@
       "emulation_error"
     ],
     [
-      "director_set_local_player_context",
-      "divergence"
-    ],
-    [
       "director_initialize_for_new_map",
       "emulation_error"
     ],
@@ -521,16 +445,12 @@
       "emulation_error"
     ],
     [
-      "FUN_0009c810",
-      "divergence"
-    ],
-    [
       "FUN_0009caf0",
       "emulation_error"
     ],
     [
       "FUN_0009cca0",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_0009cdd0",
@@ -538,22 +458,22 @@
     ],
     [
       "dangerous_effects_near_player",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_0009d1f0",
       "emulation_error"
     ],
     [
-      "FUN_0009d430",
-      "divergence"
+      "FUN_0009d2d0",
+      "emulation_error"
+    ],
+    [
+      "FUN_0009d4e0",
+      "emulation_error"
     ],
     [
       "FUN_0009d590",
-      "divergence"
-    ],
-    [
-      "FUN_0009dcf0",
       "emulation_error"
     ],
     [
@@ -562,10 +482,10 @@
     ],
     [
       "FUN_0009e180",
-      "divergence"
+      "emulation_error"
     ],
     [
-      "FUN_0009e560",
+      "FUN_0009e310",
       "emulation_error"
     ],
     [
@@ -621,12 +541,12 @@
       "emulation_error"
     ],
     [
-      "FUN_000dc800",
+      "event_manager_dispatch",
       "emulation_error"
     ],
     [
-      "file_reference_verify",
-      "divergence"
+      "FUN_000dc800",
+      "emulation_error"
     ],
     [
       "file_reference_add_directory",
@@ -689,11 +609,11 @@
       "emulation_error"
     ],
     [
-      "FUN_000dcd60",
-      "divergence"
+      "FUN_000dc9d0",
+      "emulation_error"
     ],
     [
-      "first_person_weapon_get_node_matrix",
+      "FUN_000dcd60",
       "divergence"
     ],
     [
@@ -725,19 +645,7 @@
       "emulation_error"
     ],
     [
-      "game_precache_new_map",
-      "divergence"
-    ],
-    [
       "game_dispose_from_old_map",
-      "emulation_error"
-    ],
-    [
-      "game_frame",
-      "divergence"
-    ],
-    [
-      "remove_quitting_players_from_game",
       "emulation_error"
     ],
     [
@@ -749,39 +657,11 @@
       "emulation_error"
     ],
     [
-      "game_difficulty_level_get_ignore_easy",
-      "divergence"
-    ],
-    [
-      "game_load",
-      "emulation_error"
-    ],
-    [
       "game_initialize_for_new_map",
       "emulation_error"
     ],
     [
-      "game_set_game_variant_from_name",
-      "emulation_error"
-    ],
-    [
-      "FUN_000b55b0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000b5590",
-      "emulation_error"
-    ],
-    [
-      "FUN_000b5490",
-      "emulation_error"
-    ],
-    [
       "game_allegiance_initialize",
-      "emulation_error"
-    ],
-    [
-      "game_allegiance_initialize_for_new_map",
       "emulation_error"
     ],
     [
@@ -793,12 +673,8 @@
       "emulation_error"
     ],
     [
-      "game_engine_update_flag_state",
-      "divergence"
-    ],
-    [
       "game_engine_spawn_equipment",
-      "divergence"
+      "emulation_error"
     ],
     [
       "game_engine_start_over",
@@ -813,11 +689,11 @@
       "emulation_error"
     ],
     [
-      "game_engine_teams_still_playing",
+      "game_engine_get_score_hud_text",
       "emulation_error"
     ],
     [
-      "game_engine_get_score_hud_text",
+      "game_engine_periodic_equipment_spawn",
       "emulation_error"
     ],
     [
@@ -837,28 +713,16 @@
       "emulation_error"
     ],
     [
+      "game_engine_player_added",
+      "emulation_error"
+    ],
+    [
       "game_engine_post_event",
       "emulation_error"
     ],
     [
       "game_engine_score_reset",
       "emulation_error"
-    ],
-    [
-      "game_looping_sound_delete",
-      "emulation_error"
-    ],
-    [
-      "unattached_impulse_sound_new",
-      "divergence"
-    ],
-    [
-      "sound_impulse_start",
-      "divergence"
-    ],
-    [
-      "sound_cluster_is_audible",
-      "divergence"
     ],
     [
       "FUN_001c7e70",
@@ -889,18 +753,6 @@
       "emulation_error"
     ],
     [
-      "game_state_revert",
-      "divergence"
-    ],
-    [
-      "game_state_save_core",
-      "divergence"
-    ],
-    [
-      "game_state_gpu_alloc",
-      "divergence"
-    ],
-    [
       "game_state_load_core",
       "emulation_error"
     ],
@@ -913,48 +765,16 @@
       "emulation_error"
     ],
     [
-      "FUN_001c0370",
-      "divergence"
-    ],
-    [
       "FUN_001c0910",
       "emulation_error"
     ],
     [
-      "FUN_001c0c20",
+      "FUN_000b5650",
       "emulation_error"
     ],
     [
-      "game_time_end",
-      "divergence"
-    ],
-    [
-      "game_time_get",
-      "divergence"
-    ],
-    [
-      "game_time_get_elapsed",
-      "divergence"
-    ],
-    [
-      "local_time_get",
-      "divergence"
-    ],
-    [
-      "game_in_progress",
-      "divergence"
-    ],
-    [
-      "game_time_get_paused",
-      "divergence"
-    ],
-    [
-      "game_time_set_paused",
-      "divergence"
-    ],
-    [
-      "game_time_set_speed",
-      "divergence"
+      "game_time_statistics_frame",
+      "emulation_error"
     ],
     [
       "game_time_start",
@@ -965,7 +785,11 @@
       "emulation_error"
     ],
     [
-      "FUN_000c6a70",
+      "FUN_000c6b00",
+      "emulation_error"
+    ],
+    [
+      "FUN_000c6d90",
       "emulation_error"
     ],
     [
@@ -973,24 +797,16 @@
       "divergence"
     ],
     [
-      "FUN_000c73a0",
+      "FUN_000c74c0",
       "emulation_error"
     ],
     [
       "FUN_000c7b10",
-      "divergence"
-    ],
-    [
-      "FUN_000c7be0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000c7ca0",
       "emulation_error"
     ],
     [
       "hs_compile_recompile_scripts",
-      "divergence"
+      "emulation_error"
     ],
     [
       "hs_validate_syntax",
@@ -1002,46 +818,30 @@
     ],
     [
       "hs_compile_source",
-      "divergence"
+      "emulation_error"
     ],
     [
       "hs_compile_cleanup",
-      "divergence"
+      "emulation_error"
     ],
     [
-      "hs_thread_new",
-      "divergence"
+      "hs_runtime_dispose_from_old_map",
+      "emulation_error"
     ],
     [
-      "FUN_000caa30",
-      "divergence"
+      "hs_thread_push_frame",
+      "emulation_error"
     ],
     [
       "hs_thread_stack_alloc",
       "emulation_error"
     ],
     [
-      "FUN_000cada0",
-      "divergence"
-    ],
-    [
       "hs_can_cast",
       "emulation_error"
     ],
     [
-      "FUN_000cb980",
-      "emulation_error"
-    ],
-    [
       "hs_return",
-      "emulation_error"
-    ],
-    [
-      "FUN_000cc0a0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000cc1d0",
       "emulation_error"
     ],
     [
@@ -1113,8 +913,8 @@
       "emulation_error"
     ],
     [
-      "FUN_000ce370",
-      "divergence"
+      "hs_runtime_initialize_for_new_map",
+      "emulation_error"
     ],
     [
       "hud_update",
@@ -1157,14 +957,6 @@
       "emulation_error"
     ],
     [
-      "input_key_is_down",
-      "divergence"
-    ],
-    [
-      "input_has_gamepad",
-      "divergence"
-    ],
-    [
       "input_set_rumble",
       "emulation_error"
     ],
@@ -1185,24 +977,8 @@
       "emulation_error"
     ],
     [
-      "input_frame_begin",
-      "emulation_error"
-    ],
-    [
       "interface_initialize",
       "emulation_error"
-    ],
-    [
-      "interface_dispose_from_old_map",
-      "divergence"
-    ],
-    [
-      "interface_dispose",
-      "divergence"
-    ],
-    [
-      "interface_get_tag_index",
-      "divergence"
     ],
     [
       "interface_get_color",
@@ -1221,10 +997,6 @@
       "emulation_error"
     ],
     [
-      "main_get_multiplayer_map_name",
-      "divergence"
-    ],
-    [
       "main_rasterizer_throttle",
       "emulation_error"
     ],
@@ -1233,11 +1005,27 @@
       "emulation_error"
     ],
     [
-      "main_load_last_solo_map",
-      "divergence"
+      "xbox_demos_launch",
+      "emulation_error"
     ],
     [
-      "xbox_demos_launch",
+      "FUN_00126000",
+      "emulation_error"
+    ],
+    [
+      "FUN_00126b60",
+      "emulation_error"
+    ],
+    [
+      "FUN_00126ce0",
+      "emulation_error"
+    ],
+    [
+      "FUN_00126db0",
+      "emulation_error"
+    ],
+    [
+      "network_game_client_idle",
       "emulation_error"
     ],
     [
@@ -1253,12 +1041,12 @@
       "emulation_error"
     ],
     [
-      "FUN_0012c500",
-      "divergence"
+      "FUN_0012c290",
+      "emulation_error"
     ],
     [
-      "FUN_0012caa0",
-      "divergence"
+      "FUN_0012c500",
+      "emulation_error"
     ],
     [
       "FUN_0012d450",
@@ -1273,11 +1061,19 @@
       "divergence"
     ],
     [
+      "FUN_0012db60",
+      "emulation_error"
+    ],
+    [
       "FUN_0012dc20",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_0012de20",
+      "emulation_error"
+    ],
+    [
+      "FUN_0012df50",
       "emulation_error"
     ],
     [
@@ -1289,15 +1085,19 @@
       "emulation_error"
     ],
     [
+      "FUN_0012e750",
+      "emulation_error"
+    ],
+    [
       "network_game_client_dispose",
       "emulation_error"
     ],
     [
-      "network_server_manager_pregame_start",
+      "network_game_server_start",
       "emulation_error"
     ],
     [
-      "FUN_0012f430",
+      "network_server_manager_pregame_start",
       "emulation_error"
     ],
     [
@@ -1306,15 +1106,11 @@
     ],
     [
       "FUN_0012bdb0",
+      "divergence"
+    ],
+    [
+      "observer_compute_update",
       "emulation_error"
-    ],
-    [
-      "FUN_0008ab90",
-      "divergence"
-    ],
-    [
-      "observer_update_command",
-      "divergence"
     ],
     [
       "FUN_0008c150",
@@ -1322,15 +1118,11 @@
     ],
     [
       "observer_update_result",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_0008c440",
       "emulation_error"
-    ],
-    [
-      "FUN_0008c030",
-      "divergence"
     ],
     [
       "FUN_0009f920",
@@ -1342,7 +1134,7 @@
     ],
     [
       "FUN_0009fd30",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_000a0080",
@@ -1353,14 +1145,6 @@
       "emulation_error"
     ],
     [
-      "FUN_000a0fd0",
-      "emulation_error"
-    ],
-    [
-      "particle_systems_update",
-      "divergence"
-    ],
-    [
       "particle_new",
       "emulation_error"
     ],
@@ -1369,32 +1153,12 @@
       "emulation_error"
     ],
     [
-      "FUN_000a1910",
-      "emulation_error"
-    ],
-    [
       "FUN_000a1770",
-      "divergence"
-    ],
-    [
-      "FUN_000a18c0",
       "emulation_error"
-    ],
-    [
-      "FUN_000a1510",
-      "divergence"
-    ],
-    [
-      "physical_memory_allocate",
-      "divergence"
-    ],
-    [
-      "player_control_get_data",
-      "divergence"
     ],
     [
       "player_control_set_action_flags",
-      "divergence"
+      "emulation_error"
     ],
     [
       "player_control_new_unit",
@@ -1422,10 +1186,6 @@
     ],
     [
       "player_control_set_facing",
-      "divergence"
-    ],
-    [
-      "player_effect_initialize",
       "emulation_error"
     ],
     [
@@ -1434,7 +1194,7 @@
     ],
     [
       "player_effect_update",
-      "divergence"
+      "emulation_error"
     ],
     [
       "player_effect_apply",
@@ -1445,16 +1205,12 @@
       "emulation_error"
     ],
     [
-      "update_client_start",
-      "divergence"
-    ],
-    [
       "FUN_000b8fa0",
       "divergence"
     ],
     [
-      "update_get_buffer_entry",
-      "divergence"
+      "update_server_new",
+      "emulation_error"
     ],
     [
       "update_server_start",
@@ -1466,11 +1222,7 @@
     ],
     [
       "player_control_get_current_actions",
-      "divergence"
-    ],
-    [
-      "update_server_apply_actions",
-      "divergence"
+      "emulation_error"
     ],
     [
       "update_server_create_snapshot",
@@ -1497,6 +1249,10 @@
       "emulation_error"
     ],
     [
+      "rumble_calculate",
+      "emulation_error"
+    ],
+    [
       "rumble_update",
       "emulation_error"
     ],
@@ -1506,10 +1262,6 @@
     ],
     [
       "player_ui_get_single_player_local_player_controller",
-      "divergence"
-    ],
-    [
-      "player_ui_remember_player1_profile",
       "divergence"
     ],
     [
@@ -1525,12 +1277,16 @@
       "emulation_error"
     ],
     [
-      "local_player_get_player_index",
-      "divergence"
+      "local_player_exists",
+      "emulation_error"
     ],
     [
       "local_player_set_player_index",
       "divergence"
+    ],
+    [
+      "player_index_from_unit_index",
+      "emulation_error"
     ],
     [
       "players_update_pvs",
@@ -1545,19 +1301,15 @@
       "emulation_error"
     ],
     [
-      "profile_tick_end",
-      "divergence"
-    ],
-    [
-      "profile_render_window_end",
-      "divergence"
-    ],
-    [
       "profile_frame_start",
       "emulation_error"
     ],
     [
-      "profile_frame_end",
+      "projectile_set_target_object_index",
+      "emulation_error"
+    ],
+    [
+      "projectile_handle_deleted_object",
       "emulation_error"
     ],
     [
@@ -1566,7 +1318,7 @@
     ],
     [
       "projectile_aim_ballistic",
-      "divergence"
+      "emulation_error"
     ],
     [
       "projectile_aim_linear",
@@ -1574,10 +1326,18 @@
     ],
     [
       "projectile_aim",
-      "emulation_error"
+      "divergence"
     ],
     [
       "FUN_000f8640",
+      "emulation_error"
+    ],
+    [
+      "FUN_000f8720",
+      "emulation_error"
+    ],
+    [
+      "FUN_000f8920",
       "emulation_error"
     ],
     [
@@ -1586,7 +1346,7 @@
     ],
     [
       "projectile_accelerate",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_000f90d0",
@@ -1598,7 +1358,7 @@
     ],
     [
       "progress_bar_compute_screen_rect",
-      "divergence"
+      "emulation_error"
     ],
     [
       "progress_bar_draw_fullscreen_overlay",
@@ -1623,14 +1383,6 @@
     [
       "progress_bar_render",
       "emulation_error"
-    ],
-    [
-      "unlock_global_random_seed",
-      "divergence"
-    ],
-    [
-      "random_math_get_local_seed_address",
-      "divergence"
     ],
     [
       "random_math_real",
@@ -1661,32 +1413,12 @@
       "emulation_error"
     ],
     [
-      "rasterizer_frame_begin",
-      "divergence"
-    ],
-    [
       "rasterizer_window_begin",
       "divergence"
     ],
     [
-      "rasterizer_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "rasterizer_dispose_from_old_map",
-      "divergence"
-    ],
-    [
       "FUN_0015b460",
-      "divergence"
-    ],
-    [
-      "FUN_0015b530",
       "emulation_error"
-    ],
-    [
-      "FUN_0015b890",
-      "divergence"
     ],
     [
       "rasterizer_preinitialize",
@@ -1694,11 +1426,7 @@
     ],
     [
       "rasterizer_get_default_hardware_format",
-      "divergence"
-    ],
-    [
-      "recorded_animations_initialize",
-      "divergence"
+      "emulation_error"
     ],
     [
       "recorded_animations_initialize_for_new_map",
@@ -1713,10 +1441,6 @@
       "emulation_error"
     ],
     [
-      "render_frame_present",
-      "divergence"
-    ],
-    [
       "render_window",
       "emulation_error"
     ],
@@ -1725,28 +1449,8 @@
       "emulation_error"
     ],
     [
-      "saved_game_files_dispose",
-      "divergence"
-    ],
-    [
       "saved_game_files_initialize",
       "emulation_error"
-    ],
-    [
-      "global_collision_bsp_get",
-      "divergence"
-    ],
-    [
-      "FUN_0018e500",
-      "divergence"
-    ],
-    [
-      "scenario_location_potentially_visible_local",
-      "divergence"
-    ],
-    [
-      "FUN_0018eab0",
-      "divergence"
     ],
     [
       "scenario_load",
@@ -1758,15 +1462,11 @@
     ],
     [
       "FUN_0018f2d0",
-      "divergence"
+      "emulation_error"
     ],
     [
       "FUN_0018f510",
       "emulation_error"
-    ],
-    [
-      "FUN_0018e720",
-      "divergence"
     ],
     [
       "shell_initialize",
@@ -1775,10 +1475,6 @@
     [
       "shell_dispose",
       "emulation_error"
-    ],
-    [
-      "shell_get_command_line",
-      "divergence"
     ],
     [
       "update_loaded_module_section_attributes",
@@ -1793,12 +1489,12 @@
       "emulation_error"
     ],
     [
-      "sound_class_get",
+      "FUN_0018e770",
       "divergence"
     ],
     [
-      "sound_classes_initialize_for_new_map",
-      "divergence"
+      "FUN_0018e7d0",
+      "emulation_error"
     ],
     [
       "sound_class_get_gain",
@@ -1814,18 +1510,6 @@
     ],
     [
       "sound_dsound_gain_to_volume",
-      "divergence"
-    ],
-    [
-      "sound_dsound_pitch_to_frequency",
-      "divergence"
-    ],
-    [
-      "sound_dsound_channel_get",
-      "emulation_error"
-    ],
-    [
-      "sound_dsound_vchannel_get",
       "divergence"
     ],
     [
@@ -1853,14 +1537,6 @@
       "emulation_error"
     ],
     [
-      "sound_cache_sound_finished",
-      "divergence"
-    ],
-    [
-      "sound_class_get_definition",
-      "divergence"
-    ],
-    [
       "sound_get_default_priority",
       "emulation_error"
     ],
@@ -1873,8 +1549,8 @@
       "divergence"
     ],
     [
-      "sound_select_permutation",
-      "divergence"
+      "sound_get_permutation_pitch",
+      "emulation_error"
     ],
     [
       "sound_set_music_enabled",
@@ -1883,14 +1559,6 @@
     [
       "sound_can_play",
       "emulation_error"
-    ],
-    [
-      "sound_channel_get",
-      "divergence"
-    ],
-    [
-      "sound_listener_get",
-      "divergence"
     ],
     [
       "sound_check_promotion",
@@ -1917,6 +1585,10 @@
       "emulation_error"
     ],
     [
+      "sound_update_channel_attenuation",
+      "emulation_error"
+    ],
+    [
       "sound_start_fade",
       "emulation_error"
     ],
@@ -1937,8 +1609,8 @@
       "emulation_error"
     ],
     [
-      "sound_allocate_channel",
-      "divergence"
+      "sound_stop_impulse",
+      "emulation_error"
     ],
     [
       "sound_create_looping_entry",
@@ -1957,15 +1629,11 @@
       "emulation_error"
     ],
     [
-      "sound_dispose_from_old_map",
-      "emulation_error"
-    ],
-    [
       "stack_walk",
       "emulation_error"
     ],
     [
-      "tag_data_get_pointer",
+      "tag_block_add_element",
       "emulation_error"
     ],
     [
@@ -1975,10 +1643,6 @@
     [
       "tag_get_group_tag",
       "emulation_error"
-    ],
-    [
-      "structure_bsp_get_cluster_encoded_sound_data",
-      "divergence"
     ],
     [
       "FUN_00099220",
@@ -1997,15 +1661,15 @@
       "emulation_error"
     ],
     [
-      "FUN_001963c0",
-      "emulation_error"
-    ],
-    [
       "telnet_console_initialize",
       "emulation_error"
     ],
     [
       "terminal_age_lines",
+      "emulation_error"
+    ],
+    [
+      "terminal_get_line",
       "emulation_error"
     ],
     [
@@ -2033,10 +1697,6 @@
       "emulation_error"
     ],
     [
-      "FUN_000831a0",
-      "divergence"
-    ],
-    [
       "FUN_00083a60",
       "emulation_error"
     ],
@@ -2051,14 +1711,6 @@
     [
       "FUN_00084520",
       "emulation_error"
-    ],
-    [
-      "ui_widget_set_events_suppressed",
-      "divergence"
-    ],
-    [
-      "ui_widgets_disable_pause_game",
-      "divergence"
     ],
     [
       "ui_widget_close_children",
@@ -2078,7 +1730,7 @@
     ],
     [
       "render_ui_widgets",
-      "divergence"
+      "emulation_error"
     ],
     [
       "ui_widget_load_by_name_or_tag",
@@ -2086,10 +1738,14 @@
     ],
     [
       "ui_widget_display_error",
-      "divergence"
+      "emulation_error"
     ],
     [
       "ui_widget_load_error_screen",
+      "emulation_error"
+    ],
+    [
+      "ui_widgets_process_pause",
       "emulation_error"
     ],
     [
@@ -2109,24 +1765,12 @@
       "emulation_error"
     ],
     [
-      "ui_widget_game_data_build_version",
-      "divergence"
-    ],
-    [
-      "unicode_sprintf",
-      "divergence"
-    ],
-    [
       "vehicle_get_estimated_position",
       "emulation_error"
     ],
     [
       "vehicle_moving_near_any_player",
       "emulation_error"
-    ],
-    [
-      "lruv_cache_verify",
-      "divergence"
     ],
     [
       "lruv_cache_initialize",
@@ -2181,16 +1825,28 @@
       "emulation_error"
     ],
     [
-      "weapon_get_label",
-      "divergence"
+      "weapon_is_flag",
+      "emulation_error"
     ],
     [
-      "FUN_000fb370",
-      "divergence"
+      "weapon_get_animation_frame",
+      "emulation_error"
+    ],
+    [
+      "weapon_has_activity",
+      "emulation_error"
     ],
     [
       "weapon_start_effect",
       "divergence"
+    ],
+    [
+      "weapon_set_animation_state",
+      "emulation_error"
+    ],
+    [
+      "FUN_000fc290",
+      "emulation_error"
     ],
     [
       "FUN_000fc990",
@@ -2198,6 +1854,10 @@
     ],
     [
       "FUN_000fcaf0",
+      "emulation_error"
+    ],
+    [
+      "weapon_reset_state",
       "emulation_error"
     ],
     [
@@ -2209,8 +1869,8 @@
       "emulation_error"
     ],
     [
-      "actor_combat_get_weapon_vector",
-      "divergence"
+      "FUN_000fd400",
+      "emulation_error"
     ],
     [
       "actor_combat_get_burst_parameters",
@@ -2221,23 +1881,35 @@
       "emulation_error"
     ],
     [
-      "FUN_00054020",
-      "divergence"
+      "actor_combat_check_fire_target",
+      "emulation_error"
     ],
     [
-      "encounter_attach_unit",
-      "divergence"
+      "FUN_0005a4e0",
+      "emulation_error"
     ],
     [
-      "FUN_0005a120",
-      "divergence"
+      "encounter_squad_timer_expire",
+      "emulation_error"
     ],
     [
-      "FUN_0005a6e0",
-      "divergence"
+      "FUN_0005ae70",
+      "emulation_error"
     ],
     [
       "FUN_0005b200",
+      "emulation_error"
+    ],
+    [
+      "FUN_0005c940",
+      "emulation_error"
+    ],
+    [
+      "encounter_update_status",
+      "emulation_error"
+    ],
+    [
+      "encounters_create_for_new_map",
       "emulation_error"
     ],
     [
@@ -2249,28 +1921,24 @@
       "emulation_error"
     ],
     [
+      "FUN_0005af70",
+      "emulation_error"
+    ],
+    [
+      "FUN_00058a40",
+      "emulation_error"
+    ],
+    [
+      "FUN_0005a050",
+      "emulation_error"
+    ],
+    [
       "FUN_0005aab0",
       "emulation_error"
     ],
     [
-      "FUN_00064100",
-      "divergence"
-    ],
-    [
-      "FUN_00064400",
-      "divergence"
-    ],
-    [
       "prop_iterator_next",
       "emulation_error"
-    ],
-    [
-      "FUN_00064ab0",
-      "divergence"
-    ],
-    [
-      "FUN_00118d70",
-      "divergence"
     ],
     [
       "circular_queue_free_space",
@@ -2278,10 +1946,6 @@
     ],
     [
       "FUN_00118ec0",
-      "emulation_error"
-    ],
-    [
-      "FUN_00120500",
       "emulation_error"
     ],
     [
@@ -2306,22 +1970,22 @@
     ],
     [
       "overlay_animation_apply_continuous_scaled",
-      "divergence"
-    ],
-    [
-      "FUN_00121d60",
       "emulation_error"
     ],
     [
-      "FUN_00123aa0",
+      "FUN_00121d60",
       "divergence"
     ],
     [
       "collision_features_test_los",
-      "emulation_error"
+      "divergence"
     ],
     [
       "collision_features_from_vertex",
+      "emulation_error"
+    ],
+    [
+      "collision_features_from_polygon",
       "emulation_error"
     ],
     [
@@ -2334,22 +1998,22 @@
     ],
     [
       "FUN_0014b220",
+      "divergence"
+    ],
+    [
+      "collision_features_from_line",
       "emulation_error"
     ],
     [
       "FUN_00136840",
-      "divergence"
-    ],
-    [
-      "object_can_take_damage",
-      "divergence"
-    ],
-    [
-      "object_get_maximum_body_vitality",
-      "divergence"
+      "emulation_error"
     ],
     [
       "object_deplete_shield",
+      "emulation_error"
+    ],
+    [
+      "FUN_00136f40",
       "emulation_error"
     ],
     [
@@ -2361,8 +2025,20 @@
       "emulation_error"
     ],
     [
+      "FUN_00137690",
+      "emulation_error"
+    ],
+    [
       "object_cause_damage",
-      "divergence"
+      "emulation_error"
+    ],
+    [
+      "object_damage_update",
+      "emulation_error"
+    ],
+    [
+      "FUN_00138e30",
+      "emulation_error"
     ],
     [
       "FUN_00138eb0",
@@ -2371,14 +2047,6 @@
     [
       "path_state_new",
       "emulation_error"
-    ],
-    [
-      "path_get_node",
-      "divergence"
-    ],
-    [
-      "path_node_from_hash_table",
-      "divergence"
     ],
     [
       "path_3d_available",
@@ -2414,5 +2082,5 @@
     "path_input_set_search_bounds",
     "FUN_0005e0d0"
   ],
-  "elapsed_seconds": 2419.834901332855
+  "elapsed_seconds": 2700.284035205841
 }
