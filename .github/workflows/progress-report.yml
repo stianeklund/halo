@@ -1,0 +1,201 @@
+name: Progress Report
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+
+jobs:
+  generate-progress-report:
+    name: Generate decomp.dev-style Progress Report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install clang
+      
+      - name: Generate Progress Report
+        run: |
+          python3 tools/report/generate_decomp_report.py \
+            --output artifacts/progress/report.json \
+            --html artifacts/progress/index.html
+      
+      - name: Update README Badge Data
+        run: |
+          # Extract current percentage for badge
+          PERCENT=$(python3 -c "
+import json
+with open('artifacts/progress/report.json') as f:
+    data = json.load(f)
+print(f\"{data['summary']['functions']['percent']:.1f}\")
+")
+          echo "PROGRESS_PERCENT=$PERCENT" >> $GITHUB_ENV
+          
+          # Create badge JSON
+          cat > artifacts/progress/badge.json << EOF
+{
+  "schemaVersion": 1,
+  "label": "progress",
+  "message": "${PERCENT}%",
+  "color": "blue"
+}
+EOF
+      
+      - name: Download Existing History
+        run: |
+          # Try to fetch existing history from gh-pages
+          git fetch origin gh-pages:gh-pages --depth=1 || true
+          if git show-ref --quiet refs/remotes/origin/gh-pages; then
+            git show origin/gh-pages:progress/history.json > artifacts/progress/history.json 2>/dev/null || echo "No existing history found"
+          fi
+        continue-on-error: true
+      
+      - name: Update Historical Data
+        run: |
+          python3 tools/report/history.py \
+            --add-snapshot artifacts/progress/report.json \
+            --commit ${{ github.sha }}
+      
+      - name: Generate Historical Summary
+        run: |
+          python3 tools/report/history.py --show-summary
+          python3 tools/report/history.py --show-velocity
+          python3 tools/report/history.py --show-eta
+      
+      - name: Copy History for Deployment
+        run: |
+          # Ensure history is in the deploy directory
+          cp artifacts/progress/history.json artifacts/progress/history.json.deploy 2>/dev/null || true
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./artifacts/progress
+          publish_branch: gh-pages
+          destination_dir: progress
+          keep_files: true
+      
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('artifacts/progress/report.json', 'utf8'));
+            
+            // Try to load historical data for velocity
+            let velocityInfo = '';
+            try {
+              const history = JSON.parse(fs.readFileSync('artifacts/progress/history.json', 'utf8'));
+              if (history.snapshots && history.snapshots.length >= 2) {
+                const recent = history.snapshots.slice(-7);
+                const funcsGained = recent[recent.length-1].summary.functions.ported - recent[0].summary.functions.ported;
+                const days = Math.max(1, recent.length);
+                const velocity = (funcsGained / days).toFixed(2);
+                velocityInfo = `\n📈 **Velocity:** ${velocity} funcs/day (7-day avg)`;
+              }
+            } catch (e) {
+              // No historical data yet
+            }
+            
+            const body = `## 📊 Decompilation Progress Report
+            
+            **Overall Progress:** ${report.summary.functions.percent.toFixed(2)}%
+            - Functions: ${report.summary.functions.ported.toLocaleString()} / ${report.summary.functions.total.toLocaleString()}
+            - Bytes: ${report.summary.bytes.percent.toFixed(2)}%
+            
+            **Translation Units:** ${report.units.length}${velocityInfo}
+            
+            [View Full Dashboard](https://blam.info/progress/)
+            
+            <sub>Generated at ${report.meta.timestamp}</sub>
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  compare-progress:
+    name: Compare Progress with Previous
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install clang
+      
+      - name: Generate Base Report
+        run: |
+          git checkout ${{ github.event.pull_request.base.sha }}
+          python3 tools/report/generate_decomp_report.py \
+            --output /tmp/base_report.json 2>/dev/null || echo '{"summary": {"functions": {"ported": 0, "total": 1}}}' > /tmp/base_report.json
+      
+      - name: Generate PR Report
+        run: |
+          git checkout ${{ github.event.pull_request.head.sha }}
+          python3 tools/report/generate_decomp_report.py \
+            --output /tmp/pr_report.json
+      
+      - name: Compare Reports
+        run: |
+          python3 << 'EOF'
+          import json
+          
+          with open('/tmp/base_report.json') as f:
+              base = json.load(f)
+          with open('/tmp/pr_report.json') as f:
+              pr = json.load(f)
+          
+          base_funcs = base['summary']['functions']['ported']
+          pr_funcs = pr['summary']['functions']['ported']
+          delta = pr_funcs - base_funcs
+          
+          base_bytes = base['summary']['bytes']['ported']
+          pr_bytes = pr['summary']['bytes']['ported']
+          bytes_delta = pr_bytes - base_bytes
+          
+          print(f"::notice title=Progress Change::Functions: {'+' if delta >= 0 else ''}{delta} | Bytes: {'+' if bytes_delta >= 0 else ''}{bytes_delta:,}")
+          
+          # Write summary for GitHub Actions
+          with open(os.environ.get('GITHUB_STEP_SUMMARY', '/dev/null'), 'a') as f:
+              f.write(f"## 📈 Progress Change\n\n")
+              f.write(f"| Metric | Base | PR | Delta |\n")
+              f.write(f"|--------|------|-----|-------|\n")
+              f.write(f"| Functions | {base_funcs:,} | {pr_funcs:,} | {'+' if delta >= 0 else ''}{delta} |\n")
+              f.write(f"| Bytes | {base_bytes:,} | {pr_bytes:,} | {'+' if bytes_delta >= 0 else ''}{bytes_delta:,} |\n")
+          EOF
