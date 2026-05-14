@@ -576,6 +576,49 @@ void FUN_0007d5d0(void *bitmap)
   }
 }
 
+/* 0x7d650 — compute bitmap mipmap level count from max dimension.
+ *
+ * Asserts bitmap_verify(bitmap, FALSE). If flag bit 0 at bitmap+0xe is not
+ * set, returns 0. Otherwise computes max(+6, +8) as sVar3, compares with +4,
+ * and calls FUN_00108db0(max_dimension) in each branch.
+ *
+ * Confirmed: bitmap_verify(bitmap,0) / display_assert(...,0x368,1) at 0x7d65c.
+ * Confirmed: TEST [ESI+0xe],1 / JZ return-0 at 0x7d688.
+ * Confirmed: MOV AX,[ESI+6]; MOV CX,[ESI+8]; MOVSX EDI,AX/CX at 0x7d68e.
+ * Confirmed: MOVSX EDX,[ESI+4] / CMP EDX,EDI / JLE at 0x7d6a1.
+ * Confirmed: MOV AX,DI=0 / RET at 0x7d6d0 for bit-not-set path.
+ */
+short FUN_0007d650(void *bitmap)
+{
+  short sVar1;
+  short sVar2;
+  int sVar3;
+  int iWidth;
+
+  if (!bitmap_verify(bitmap, 0)) {
+    display_assert("bitmap_verify(bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x368, 1);
+    system_exit(-1);
+  }
+  if (*(uint8_t *)((char *)bitmap + 0xe) & 1) {
+    sVar1 = *(short *)((char *)bitmap + 6);
+    sVar2 = *(short *)((char *)bitmap + 8);
+    sVar3 = (int)sVar1;
+    if (sVar1 <= sVar2) {
+      sVar3 = (int)sVar2;
+    }
+    iWidth = (int)*(short *)((char *)bitmap + 4);
+    if (sVar3 < iWidth) {
+      return FUN_00108db0(iWidth);
+    }
+    if (sVar1 <= sVar2) {
+      sVar1 = sVar2;
+    }
+    return FUN_00108db0((int)sVar1);
+  }
+  return 0;
+}
+
 /* bitmap_mipmap_width (0x7d6e0)
  *
  * Compute the width of a bitmap at a given mipmap level.  Clamps to a

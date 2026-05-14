@@ -13350,8 +13350,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0007d650(void);",
-          "addr": "0x7d650"
+          "decl": "short FUN_0007d650(void *bitmap);",
+          "addr": "0x7d650",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_0007d780(void);",
