@@ -897,8 +897,16 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     log(f"  lifted code: {len(lifted_slice.code)} bytes, {len(lifted_slice.relocs)} relocs")
 
     from coff_loader import load_text_section
-    oracle_text = load_text_section(str(delinked_path))
-    lifted_text = load_text_section(str(build_path))
+
+    def _has_raw_calls(code, relocs):
+        """Check if code has E8 CALL instructions without matching relocations."""
+        reloc_offsets = {r.virtual_address for r in relocs}
+        for i in range(len(code) - 4):
+            if code[i] == 0xE8 and (i + 1) not in reloc_offsets:
+                return True
+        return False
+
+    oracle_text = load_text_section(str(delinked_path)) if _has_raw_calls(oracle_slice.code, oracle_slice.relocs) else None
 
     if not oracle_slice.code:
         log("ERROR: oracle code is empty")
