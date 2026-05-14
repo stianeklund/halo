@@ -23507,7 +23507,8 @@
         },
         {
           "decl": "bool FUN_00012e50(int actor_handle);",
-          "addr": "0x12e50"
+          "addr": "0x12e50",
+          "ported": true
         },
         {
           "decl": "void FUN_00012ea0(void);",

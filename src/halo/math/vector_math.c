@@ -47,6 +47,32 @@ float FUN_000121e0(float min, float max)
   return random_real_range(seed, min, max);
 }
 
+/* 0x12e50 — FUN_00012e50: check if actor is in a valid 'swarm flying' state
+ * and its state timer has not yet expired.
+ *
+ * Looks up the actor record via actor_data (0x6325a4) and checks:
+ *   actor+0xa0 (short): must equal 3 (swarm flying state)
+ *   actor+0xa7 (char):  must be non-zero (active flag)
+ * If both conditions hold, reads actor+0xac (int, state end time) and
+ * returns true iff game_time_get() <= actor+0xac + 0x1e.
+ *
+ * Confirmed: cdecl, 1 stack arg (actor_handle). Returns bool.
+ * Confirmed: ESI = datum_get result + 0x9c; offsets relative to ESI.
+ * Confirmed: SETGE AL after CMP EDX,EAX (EDX=*(int*)(ESI+0x10)+0x1e,
+ *   AX=game_time_get()), so bVar1 = (EDX >= EAX). */
+bool FUN_00012e50(int actor_handle)
+{
+  char *actor;
+  bool result;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  result = false;
+  if (*(short *)(actor + 0xa0) == 3 && *(char *)(actor + 0xa7) != '\0') {
+    result = *(int *)(actor + 0xac) + 0x1e >= game_time_get();
+  }
+  return result;
+}
+
 /* 0x12f10 — Normalize a 2D vector in-place and return its magnitude.
  * Despite the kb.json name "magnitude3d", only operates on v[0] and v[1].
  * If magnitude exceeds epsilon, divides each component by it so v becomes
