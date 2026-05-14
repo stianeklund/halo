@@ -115,18 +115,6 @@ def previous_kb_summary():
         return None, None, None
 
 
-def previous_kb_summary_from_git():
-    """Try to get summary from HEAD~1 via git show + python."""
-    try:
-        out = run(["git", "show", "HEAD~1:tools/analysis/kb_meta.py"])
-        if not out:
-            return None, None, None
-        # Fallback: just return None and let caller handle it
-        return None, None, None
-    except Exception:
-        return None, None, None
-
-
 def _load_kb_functions(ref=None):
     """Load all function declarations from kb.json at a given git ref (or working tree)."""
     if ref:
@@ -216,13 +204,19 @@ def _find_latest_vc71_match():
     return None
 
 
-def generate_message(batch_name=None, since_ref=None, vc71_match=None):
-    if since_ref:
+def generate_message(batch_name=None, since_ref=None, vc71_match=None,
+                     ports_renames=None):
+    if ports_renames is not None:
+        ports, renames = ports_renames
+    elif since_ref:
         ports, renames = compare_kb_json(old_ref=since_ref, new_ref="HEAD")
+    else:
+        ports, renames = staged_kb_json_changes()
+
+    if since_ref:
         meta_diff = run(["git", "diff", since_ref, "HEAD", "--", "kb_meta.json"])
         meta_changes = len(re.findall(r'^\+\s*"0x[0-9a-fA-F]+":\s*\{', meta_diff, re.MULTILINE))
     else:
-        ports, renames = staged_kb_json_changes()
         meta_changes = kb_meta_change_count()
     ported_after, total_after, pct_after = kb_summary()
     prev = previous_kb_summary()
@@ -351,7 +345,8 @@ def main():
         )
 
     msg = generate_message(batch_name=args.batch_name, since_ref=args.since,
-                           vc71_match=args.vc71_match)
+                           vc71_match=args.vc71_match,
+                           ports_renames=(ports, renames))
     print(msg)
 
 

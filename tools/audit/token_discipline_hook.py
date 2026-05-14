@@ -32,7 +32,7 @@ STATE_DIR = REPO_ROOT / ".claude" / "agent-memory" / "token_discipline"
 # minimum number of edits so the first few hits are not noise.
 TARGET_RATIO = 4.0
 MIN_EDITS_BEFORE_RATIO_WARN = 5
-RATIO_HEARTBEAT_INTERVAL = 10  # emit "on track" every N edits when healthy
+RATIO_WARN_COOLDOWN = 5
 
 # Files we never want to count as "research reads" — generated artifacts,
 # logs, and binaries that CLAUDE.md already bans. Reading them is the
@@ -68,6 +68,7 @@ def _load_state(session_id: str) -> dict:
         "ranges": {},  # "<path>:<offset>:<limit>" -> count
         "files_read": {},  # path -> count
         "last_event": "",
+        "last_ratio_warn_at": 0,
     }
 
 
@@ -91,16 +92,15 @@ def _ratio_message(state: dict) -> str | None:
         return None
     ratio = research_reads / total_writes if total_writes else 0.0
     if ratio < TARGET_RATIO:
+        last = state.get("last_ratio_warn_at", 0)
+        if total_writes - last < RATIO_WARN_COOLDOWN:
+            return None
+        state["last_ratio_warn_at"] = total_writes
         return (
             f"Token-discipline: read/edit ratio {ratio:.1f}:1 "
             f"({research_reads} research reads / {total_writes} edits) — "
             f"below {TARGET_RATIO:.0f}:1 target. CLAUDE.md: do more research "
             f"before editing (rg/jq for callers + read narrow line ranges)."
-        )
-    if total_writes % RATIO_HEARTBEAT_INTERVAL == 0:
-        return (
-            f"Token-discipline: ratio {ratio:.1f}:1 "
-            f"({research_reads}r / {total_writes}w) — on track."
         )
     return None
 
@@ -113,6 +113,15 @@ def _record_read(state: dict, file_path: str, offset, limit) -> str | None:
             f"Token-discipline: read of noisy path {file_path}. CLAUDE.md "
             f"bans reads in build/log/generated dirs — run the command or "
             f"grep instead."
+        )
+
+    norm = file_path.replace("\\", "/")
+    if norm.endswith("/kb.json") or norm == "kb.json":
+        state["noisy_reads"] += 1
+        return (
+            f"Token-discipline: direct Read of kb.json. CLAUDE.md: use "
+            f"`rtk jq` ONLY for kb.json queries (6000+ lines, historically "
+            f"239 redundant reads = ~143K wasted tokens)."
         )
 
     state["files_read"][file_path] = state["files_read"].get(file_path, 0) + 1

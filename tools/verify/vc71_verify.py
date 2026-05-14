@@ -40,6 +40,16 @@ RXDK_INC = r"C:\Program Files (x86)\RXDK\xbox\include"
 
 COMPARE_SCRIPT = REPO_ROOT / "tools" / "verify" / "compare_obj.py"
 
+_kb_cache: dict | None = None
+
+
+def _load_kb() -> dict:
+    global _kb_cache
+    if _kb_cache is None:
+        with open(REPO_ROOT / "kb.json") as f:
+            _kb_cache = json.load(f)
+    return _kb_cache
+
 
 def wsl_to_win(path: Path) -> str:
     """Convert a WSL path to a Windows path."""
@@ -90,8 +100,7 @@ def function_aliases(function: str | None) -> set[str]:
     aliases = {fn}
 
     try:
-        with open(REPO_ROOT / "kb.json") as f:
-            kb = json.load(f)
+        kb = _load_kb()
         for obj in kb.get("objects", []):
             for entry in obj.get("functions", []):
                 addr = entry.get("addr", "")
@@ -221,8 +230,7 @@ def _build_rename_map(compiled_keys: set[str], matched: set[str]) -> dict[str, s
     if not (compiled_keys - matched):
         return rename_map
     try:
-        with open(REPO_ROOT / "kb.json") as kf:
-            kb = json.load(kf)
+        kb = _load_kb()
         for obj in kb.get("objects", []):
             for fn_entry in obj.get("functions", []):
                 addr = fn_entry.get("addr", "")
@@ -245,6 +253,7 @@ def run_compare_cached(
     extra_args: list[str],
     cache,
     no_cache: bool,
+    quiet: bool = False,
 ) -> int:
     """Run per-function comparison with cache integration.
 
@@ -349,7 +358,10 @@ def run_compare_cached(
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
 
         if not fpu_only:
-            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}{cache_tag}")
+            if quiet:
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}")
+            else:
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
@@ -357,20 +369,23 @@ def run_compare_cached(
                 for w in fpu_warnings:
                     print(w)
             else:
-                print(f"  {fn}:{fpu_tag}{cache_tag}")
+                if quiet:
+                    print(f"  {fn}:{fpu_tag}")
+                else:
+                    print(f"  {fn}:{fpu_tag}{cache_tag}")
                 for w in fpu_warnings:
                     print(w)
 
         if status == "FAIL":
             any_fail = True
 
-        if show_diffs and diffs and not fpu_only:
+        if show_diffs and diffs and not fpu_only and not quiet:
             for d in diffs[:60]:
                 print(d)
             if len(diffs) > 60:
                 print(f"  ... and {len(diffs) - 60} more diff lines")
 
-    if hits or misses:
+    if (hits or misses) and not quiet:
         total = hits + misses
         print(f"\n  Cache: {hits}/{total} hits ({100*hits//total if total else 0}%)")
 
@@ -391,6 +406,8 @@ def main():
     ap.add_argument("--threshold", "-t", type=float, default=50.0)
     ap.add_argument("--list", action="store_true", help="List available units")
     ap.add_argument("--skip-compile", action="store_true", help="Reuse existing VC71 .obj")
+    ap.add_argument("--quiet", "-q", action="store_true",
+                    help="Minimal output: match %% per function, FAIL, and FPU-WARN only")
     ap.add_argument("--no-cache", action="store_true",
                     help="Disable cache: always recompile and recompare")
     ap.add_argument("--rebuild-cache", action="store_true",
@@ -456,7 +473,8 @@ def main():
 
         if cache is not None and args.rebuild_cache:
             dropped = cache.invalidate(source_path=source, ref_path=ref_path)
-            print(f"[cache] Dropped {dropped} stale entries for {source.name}", flush=True)
+            if not args.quiet:
+                print(f"[cache] Dropped {dropped} stale entries for {source.name}", flush=True)
 
     # Decide whether to skip compile.  We can skip if:
     #   1. --skip-compile is set, OR
@@ -475,24 +493,29 @@ def main():
         need_compile = False  # tentative; compile_vc71 called below if obj absent
 
     if need_compile:
-        print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
+        if not args.quiet:
+            print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
         t0 = time.perf_counter()
         if not compile_vc71(source, vc71_obj):
             sys.exit(1)
-        elapsed = time.perf_counter() - t0
-        print(f"Compiled in {elapsed:.1f}s", flush=True)
+        if not args.quiet:
+            elapsed = time.perf_counter() - t0
+            print(f"Compiled in {elapsed:.1f}s", flush=True)
     elif not args.skip_compile and vc71_obj.exists():
-        print(f"Using cached VC71 object: {vc71_obj.name}", flush=True)
+        if not args.quiet:
+            print(f"Using cached VC71 object: {vc71_obj.name}", flush=True)
 
     if not vc71_obj.exists():
-        # Object missing and we skipped compile — need to compile now
-        print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
+        if not args.quiet:
+            print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
         t0 = time.perf_counter()
         if not compile_vc71(source, vc71_obj):
             sys.exit(1)
-        print(f"Compiled in {time.perf_counter() - t0:.1f}s", flush=True)
+        if not args.quiet:
+            print(f"Compiled in {time.perf_counter() - t0:.1f}s", flush=True)
 
-    print(f"Comparing against {ref_path.name}...\n", flush=True)
+    if not args.quiet:
+        print(f"Comparing against {ref_path.name}...\n", flush=True)
     extra = []
     if args.function:
         extra += ["--function", args.function]
@@ -503,7 +526,8 @@ def main():
     extra += ["--threshold", str(args.threshold)]
 
     rc = run_compare_cached(
-        vc71_obj, ref_path, source, extra, cache, no_cache=args.no_cache
+        vc71_obj, ref_path, source, extra, cache, no_cache=args.no_cache,
+        quiet=args.quiet,
     )
     sys.exit(rc)
 

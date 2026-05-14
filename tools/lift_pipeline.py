@@ -445,7 +445,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("ghidra_extract", ran=True, ok=proc.returncode == 0,
                               details="custom extract command"))
     if proc.returncode != 0:
-      return finalize(summary, stages, artifact_dir, ok=False)
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
   else:
     stages.append(StageResult("ghidra_extract", ran=False, ok=True,
                               details="skipped (no --extract-cmd)"))
@@ -477,14 +477,14 @@ def run_pipeline(args: argparse.Namespace) -> int:
     details += f" {first_line}"
   stages.append(StageResult("abi_audit", ran=True, ok=ok, details=details))
   if not ok:
-    return finalize(summary, stages, artifact_dir, ok=False)
+    return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
 
   if args.candidate:
     source = args.source if args.source else target.source_path
     if not source:
       stages.append(StageResult("source_update", ran=True, ok=False,
                                 details="no source path resolved; pass --source"))
-      return finalize(summary, stages, artifact_dir, ok=False)
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
 
     cmd = [
       "python3",
@@ -497,7 +497,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("source_update", ran=True, ok=proc.returncode == 0,
                               details=f"candidate={args.candidate} source={source}"))
     if proc.returncode != 0:
-      return finalize(summary, stages, artifact_dir, ok=False)
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
   else:
     stages.append(StageResult("source_update", ran=False, ok=True,
                               details="skipped (no --candidate)"))
@@ -512,7 +512,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     build_ok = proc.returncode == 0
     stages.append(StageResult("build", ran=True, ok=build_ok, details=args.build_cmd))
     if not build_ok:
-      return finalize(summary, stages, artifact_dir, ok=False)
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
 
   risk_assessment = assess_verify_risk(target, args.verify_risk_threshold)
   trigger_text = ",".join(risk_assessment.triggers) if risk_assessment.triggers else "none"
@@ -548,7 +548,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
   if args.verify_policy == "strict" and policy_requires_verify and policy_missing_inputs:
     stages.append(StageResult("verify_policy", ran=True, ok=False, details=verify_policy_details))
-    return finalize(summary, stages, artifact_dir, ok=False)
+    return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
 
   stages.append(StageResult("verify_policy", ran=True, ok=True, details=verify_policy_details))
 
@@ -563,7 +563,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
       else:
         stages.append(StageResult("verify_payload", ran=True, ok=False,
                                   details="--verify-new-address is required with --verify-auto"))
-        return finalize(summary, stages, artifact_dir, ok=False)
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
     else:
       verify_input_path = args.verify_output or str(artifact_dir / "verify_payload.json")
       collect_cmd = [
@@ -615,7 +615,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
       ok = proc.returncode == 0
       stages.append(StageResult("verify_payload", ran=True, ok=ok, details=verify_input_path))
       if not ok:
-        return finalize(summary, stages, artifact_dir, ok=False)
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
   else:
     if verify_input_path:
       details = "skipped (verify payload generation not needed: --verify-input provided)"
@@ -804,24 +804,24 @@ def run_pipeline(args: argparse.Namespace) -> int:
       if reason:
         details += f" reason={reason}"
       stages.append(StageResult("equivalence", ran=True, ok=False, details=details))
-      return finalize(summary, stages, artifact_dir, ok=False)
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
     elif status == "not_applicable":
       ok = equivalence_policy != "required"
       details = f"skipped ({reason or 'not_applicable'})"
       stages.append(StageResult("equivalence", ran=False, ok=ok, details=details))
       if not ok:
-        return finalize(summary, stages, artifact_dir, ok=False)
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
     else:
       if "external relocations" in output.lower() or "not a pure leaf" in output.lower():
         ok = equivalence_policy != "required"
         stages.append(StageResult("equivalence", ran=False, ok=ok,
                                   details="skipped (external relocations)"))
         if not ok:
-          return finalize(summary, stages, artifact_dir, ok=False)
+          return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
       else:
         details = f"error ({reason or 'no structured result'}; see equivalence.log)"
         stages.append(StageResult("equivalence", ran=True, ok=False, details=details))
-        return finalize(summary, stages, artifact_dir, ok=False)
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
   else:
     stages.append(StageResult("equivalence", ran=False, ok=True,
                               details="skipped (--equivalence-policy=off)"))
@@ -894,19 +894,19 @@ def run_pipeline(args: argparse.Namespace) -> int:
       if args.low_match_policy == "strict":
         stages.append(StageResult("low_match_policy", ran=True, ok=False,
                                   details="strict mode requires structural verify data (all skipped)"))
-        return finalize(summary, stages, artifact_dir, ok=False)
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
       stages.append(StageResult("low_match_policy", ran=False, ok=True,
                                 details="skipped (no verify data)"))
-      return finalize(summary, stages, artifact_dir, ok=structural_ok)
+      return finalize(summary, stages, artifact_dir, ok=structural_ok, quiet=args.quiet)
 
     if (vc71_verify_ran and not vc71_verify_ok) and (objdiff_match_pct is None) and (vc71_match_pct is None):
       stages.append(StageResult("low_match_policy", ran=True, ok=False,
                                 details="vc71_verify failed; low-match policy cannot evaluate"))
-      return finalize(summary, stages, artifact_dir, ok=False)
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
     elif best_match_pct is None:
       stages.append(StageResult("low_match_policy", ran=True, ok=False,
                                 details="verify output missing match percentage"))
-      return finalize(summary, stages, artifact_dir, ok=False)
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
     else:
       behavior_any_ok = equivalence_ok or behavior_check_ok or (runtime_enabled and runtime_ok)
       behavior_both_ok = equivalence_ok or (behavior_check_ok and runtime_enabled and runtime_ok)
@@ -947,7 +947,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
       details.append(f"reason={reason}")
       stages.append(StageResult("low_match_policy", ran=True, ok=policy_ok, details=" ".join(details)))
       if not policy_ok:
-        return finalize(summary, stages, artifact_dir, ok=False)
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
 
   if args.no_metadata_update:
     stages.append(StageResult("metadata_update", ran=False, ok=True,
@@ -978,10 +978,24 @@ def run_pipeline(args: argparse.Namespace) -> int:
                               details=", ".join(md_notes) if md_notes else "no status change"))
 
   overall_ok = all(s.ok for s in stages if s.ran)
-  return finalize(summary, stages, artifact_dir, ok=overall_ok)
+  return finalize(summary, stages, artifact_dir, ok=overall_ok, quiet=args.quiet)
 
 
-def finalize(summary: dict[str, object], stages: list[StageResult], artifact_dir: Path, ok: bool) -> int:
+def _quiet_details(name: str, details: str) -> str:
+  if name == "low_match_policy":
+    parts = details.split()
+    keep = {}
+    for p in parts:
+      if p.startswith("match=") or p.startswith("verdict="):
+        k, v = p.split("=", 1)
+        keep[k] = v
+    if keep:
+      return " ".join(f"{k}={v}" for k, v in keep.items())
+  return details
+
+
+def finalize(summary: dict[str, object], stages: list[StageResult], artifact_dir: Path, ok: bool,
+             quiet: bool = False) -> int:
   summary["completed_utc"] = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
   summary["ok"] = ok
   summary["stages"] = [
@@ -998,10 +1012,14 @@ def finalize(summary: dict[str, object], stages: list[StageResult], artifact_dir
 
   print(f"lift_pipeline: {'PASS' if ok else 'FAIL'}")
   for s in stages:
+    if quiet and not s.ran:
+      continue
     state = "PASS" if s.ok else "FAIL"
     run = "ran" if s.ran else "skip"
-    print(f"- {s.name:<16} [{run}] {state}: {s.details}")
-  print(f"- artifacts: {summary_path}")
+    det = _quiet_details(s.name, s.details) if quiet else s.details
+    print(f"- {s.name:<16} [{run}] {state}: {det}")
+  if not quiet:
+    print(f"- artifacts: {summary_path}")
   return 0 if ok else 1
 
 
@@ -1118,6 +1136,8 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Compatibility alias for --equivalence-policy=auto.")
   ap.add_argument("--equivalence-seeds", type=int, default=100,
                   help="Number of seeds for unicorn_diff (default 100).")
+  ap.add_argument("-q", "--quiet", action="store_true",
+                  help="Suppress skipped stages and condense detail strings in final output.")
   return ap
 
 

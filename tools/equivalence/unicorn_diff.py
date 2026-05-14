@@ -622,7 +622,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 # Relocation checker
 # ---------------------------------------------------------------------------
 
-def _check_relocations(func_slice, label: str) -> bool:
+def _check_relocations(func_slice, label: str, quiet: bool = False) -> bool:
     """Return True if the function has no unresolvable external relocations.
 
     Relocations that reference symbols defined in the same .obj are safe
@@ -640,7 +640,8 @@ def _check_relocations(func_slice, label: str) -> bool:
             continue
         if sym in defined:
             continue
-        print(f"  [RELOC] {label}: '{sym}' at +0x{r.virtual_address:x} — external, cannot emulate")
+        if not quiet:
+            print(f"  [RELOC] {label}: '{sym}' at +0x{r.virtual_address:x} — external, cannot emulate")
         ok = False
     return ok
 
@@ -714,7 +715,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              allow_stubs: bool = False,
              float_tolerance_ulp: int = 0,
              float_tolerance_params: list = None,
-             skip_esp: bool = False) -> int:
+             skip_esp: bool = False,
+             quiet: bool = False) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     sys.path.insert(0, str(_SCRIPT_DIR))
@@ -728,6 +730,11 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     def log(msg: str = ""):
         print(msg)
         log_lines.append(msg)
+
+    def info(msg: str = ""):
+        log_lines.append(msg)
+        if not quiet:
+            print(msg)
 
     def finish(status: str, applicable: bool, reason: Optional[str],
                exit_code: int, **extra) -> int:
@@ -751,7 +758,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             with open(log_path, "w") as f:
                 f.write('\n'.join(log_lines) + '\n')
             payload["log_path"] = str(log_path)
-            print(f"\n  Log saved to: {log_path}")
+            if not quiet:
+                print(f"\n  Log saved to: {log_path}")
 
         if output_json:
             output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -760,7 +768,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
         return exit_code
 
-    log(f"=== unicorn_diff: {func_name} ===")
+    info(f"=== unicorn_diff: {func_name} ===")
 
     if _UNICORN_IMPORT_ERROR:
         log("ERROR: unicorn not importable. Activate the project venv or install:")
@@ -780,9 +788,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     decl = entry.get("decl", "")
     addr = entry.get("addr", "")
     obj_name = entry.get("_obj_name", "")
-    log(f"  decl : {decl}")
-    log(f"  addr : {addr}")
-    log(f"  obj  : {obj_name}")
+    info(f"  decl : {decl}")
+    info(f"  addr : {addr}")
+    info(f"  obj  : {obj_name}")
 
     if not decl:
         log("ERROR: no 'decl' in kb.json entry")
@@ -790,9 +798,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     # --- Parse ABI ---
     abi = parse_decl(decl)
-    log(f"  conv : {abi['conv']}")
-    log(f"  params: {[(p.name, p.c_type, p.reg) for p in abi['params']]}")
-    log(f"  return: {abi['return_type']} (st0={abi['ret_st0']}, edx_eax={abi['ret_edx_eax']})")
+    info(f"  conv : {abi['conv']}")
+    info(f"  params: {[(p.name, p.c_type, p.reg) for p in abi['params']]}")
+    info(f"  return: {abi['return_type']} (st0={abi['ret_st0']}, edx_eax={abi['ret_edx_eax']})")
 
     if float_tolerance_ulp > 0 and float_tolerance_params is None:
         float_tolerance_params = [
@@ -810,7 +818,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                     float_tolerance_slot_indices.append(ptr_idx)
                 ptr_idx += 1
         if float_tolerance_params:
-            log(f"  float-tolerance: {float_tolerance_ulp} ULP for {float_tolerance_params}")
+            info(f"  float-tolerance: {float_tolerance_ulp} ULP for {float_tolerance_params}")
 
     # --- Locate .obj files ---
     delinked_path, build_path = _find_obj_paths(entry)
@@ -847,7 +855,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             build_path, compile_detail = _compile_build_obj_for_source(entry["_obj_source"])
         if build_path:
             build_compiled_on_demand = True
-            log(f"  build   : {build_path} (compiled on demand)")
+            info(f"  build   : {build_path} (compiled on demand)")
         else:
             log(f"ERROR: cannot find build .obj for '{obj_name}'")
             if compile_detail:
@@ -855,9 +863,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             log(f"  Run: python3 tools/build/build.py -q --target halo")
             return finish("not_applicable", False, "missing_build_object", 2)
 
-    log(f"  delinked: {delinked_path}")
+    info(f"  delinked: {delinked_path}")
     if not build_compiled_on_demand:
-        log(f"  build   : {build_path}")
+        info(f"  build   : {build_path}")
 
     # --- Extract function slices ---
     # The delinked obj uses FUN_00XXXXXX naming; the build obj uses
@@ -893,8 +901,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         log(f"ERROR extracting lifted: {e}")
         return finish("not_applicable", False, "lifted_extract_failed", 2)
 
-    log(f"  oracle code: {len(oracle_slice.code)} bytes, {len(oracle_slice.relocs)} relocs")
-    log(f"  lifted code: {len(lifted_slice.code)} bytes, {len(lifted_slice.relocs)} relocs")
+    info(f"  oracle code: {len(oracle_slice.code)} bytes, {len(oracle_slice.relocs)} relocs")
+    info(f"  lifted code: {len(lifted_slice.code)} bytes, {len(lifted_slice.relocs)} relocs")
 
     from coff_loader import load_text_section
 
@@ -916,8 +924,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         return finish("error", True, "empty_lifted_code", 1)
 
     # --- Check for external relocations ---
-    oracle_ok = _check_relocations(oracle_slice, "oracle")
-    lifted_ok = _check_relocations(lifted_slice, "lifted")
+    oracle_ok = _check_relocations(oracle_slice, "oracle", quiet=quiet)
+    lifted_ok = _check_relocations(lifted_slice, "lifted", quiet=quiet)
     is_leaf = oracle_ok and lifted_ok
     if record_leaf:
         _record_leaf_classification(addr, is_leaf)
@@ -935,8 +943,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                        getattr(oracle_slice, 'defined_symbols', set()))
         lft_cls = classify_relocations(lifted_slice.relocs,
                                        getattr(lifted_slice, 'defined_symbols', set()))
-        log(f"  oracle class: {orc_cls.category} ({orc_cls.reason})")
-        log(f"  lifted class: {lft_cls.category} ({lft_cls.reason})")
+        info(f"  oracle class: {orc_cls.category} ({orc_cls.reason})")
+        info(f"  lifted class: {lft_cls.category} ({lft_cls.reason})")
 
         # Patch DIR32 relocations for both
         orc_defined = getattr(oracle_slice, 'defined_symbols', set())
@@ -970,7 +978,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         if combined_stub_map:
             stub_mgr = StubManager(KB_JSON, DELINKED_DIR)
             n_prepared = stub_mgr.prepare_stubs(combined_stub_map)
-            log(f"  stubs prepared: {n_prepared}/{len(combined_stub_map)}")
+            info(f"  stubs prepared: {n_prepared}/{len(combined_stub_map)}")
             stub_manager = stub_mgr
             use_stubs = True
 
@@ -987,7 +995,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     if z3_equiv and is_leaf:
         try:
             from z3_equiv import prove_equivalence
-            log("\n  Attempting Z3 formal equivalence proof...")
+            info("\n  Attempting Z3 formal equivalence proof...")
             eq_result = prove_equivalence(oracle_slice.code, lifted_slice.code, abi)
             if eq_result.proven:
                 log(f"  Z3 PROVEN EQUIVALENT")
@@ -1025,13 +1033,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     seed_safe_mode = not is_leaf
     z3_extra = []
     if seed_safe_mode:
-        log("  seed mode: non-leaf valid-path execution (z3 branch seeds disabled)")
+        info("  seed mode: non-leaf valid-path execution (z3 branch seeds disabled)")
     else:
         try:
             from z3_seeds import extract_branch_seeds
             z3_extra = extract_branch_seeds(oracle_slice.code, abi)
             if z3_extra:
-                log(f"  z3 branch seeds: {len(z3_extra)}")
+                info(f"  z3 branch seeds: {len(z3_extra)}")
         except ImportError:
             pass
         except Exception as e:
@@ -1040,8 +1048,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     params = abi['params']
     seeds = generate_seeds(params, num_seeds=num_seeds, base_seed=base_seed,
                            z3_seeds=z3_extra, safe_mode=seed_safe_mode)
-    log(f"\n  Running {len(seeds)} seeds...")
-    log("")
+    info(f"\n  Running {len(seeds)} seeds...")
+    info("")
 
     passed = 0
     failed = 0
@@ -1117,10 +1125,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         else:
             passed += 1
             if verbose and si < 3:
-                log(f"  {seed_label} PASS")
-                log(state_mod.format_state_verbose(oracle_state, "oracle"))
+                info(f"  {seed_label} PASS")
+                info(state_mod.format_state_verbose(oracle_state, "oracle"))
 
-    log("")
+    info("")
     log(f"=== RESULTS: {passed} passed, {failed} failed, {errors} errors / {len(seeds)} seeds ===")
 
     if first_diff and not verbose:
@@ -1352,6 +1360,8 @@ def main():
                         help="Comma-separated param names treated as float arrays (default: auto-detect)")
     parser.add_argument("--skip-esp", action="store_true",
                         help="Skip ESP delta comparison (expected to differ for non-leaf functions)")
+    parser.add_argument("-q", "--quiet", action="store_true",
+                        help="Suppress setup config and per-seed PASS lines; print only RESULTS and first failure")
     args = parser.parse_args()
 
     if args.batch_classify:
@@ -1385,6 +1395,7 @@ def main():
         float_tolerance_ulp=args.float_tolerance,
         float_tolerance_params=args.float_params.split(",") if args.float_params else None,
         skip_esp=args.skip_esp,
+        quiet=args.quiet,
     ))
 
 
