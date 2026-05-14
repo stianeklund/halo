@@ -1339,3 +1339,43 @@ void FUN_0003feb0(int unit_handle, int param_2, short param_3)
   FUN_00044660(unit_handle, '\0');
   FUN_0005b2a0(unit_handle);
 }
+
+/*
+ * FUN_0003ff40: AI killing spree threshold check and notification.
+ *
+ * Given a unit handle and a killing spree count, checks whether the count
+ * meets the threshold to trigger a killing-spree AI communication event.
+ * Threshold is 3 if the unit has no rider (unit+0x1c8 == 0xffffffff), or
+ * 5 if it does. When the debug flag at 0x5aca60 is set, logs the spree count
+ * to the console. If the threshold is met, fires FUN_00046f10 with type=1
+ * and returns 1; otherwise returns 0.
+ *
+ * Confirmed: [EBP+8]=unit_handle (int), [EBP+C]=killing_spree_count (short),
+ *            threshold = (uVar1 != 0xffffffff)*2 + 3 = 3 (no rider) or 5 (rider).
+ */
+char FUN_0003ff40(int unit_handle, short killing_spree_count)
+{
+    char buf[512];
+    void *obj;
+    unsigned int rider;
+    short threshold;
+
+    obj = object_get_and_verify_type(unit_handle, 3);
+    rider = *(unsigned int *)((char *)obj + 0x1c8);
+    threshold = (short)((rider != 0xffffffffu) * 2 + 3);
+
+    if (*(char *)0x5aca60 != '\0') {
+        if (rider == 0xffffffffu) {
+            FUN_00049ac0(*(int *)((char *)obj + 0x1a4), unit_handle, 1, buf, 0x200);
+        } else {
+            crt_sprintf(buf, "player%d", (unsigned int)(rider & 0xffff));
+        }
+        console_printf(0, "%s killing spree: %d", buf, (int)killing_spree_count);
+    }
+
+    if (killing_spree_count >= threshold) {
+        FUN_00046f10(1, unit_handle, -1, -1, -1, -1, 0);
+        return 1;
+    }
+    return 0;
+}

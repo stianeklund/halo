@@ -13033,8 +13033,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003ff40(void);",
-          "addr": "0x3ff40"
+          "decl": "char FUN_0003ff40(int unit_handle, short killing_spree_count);",
+          "addr": "0x3ff40",
+          "ported": true
         },
         {
           "decl": "void FUN_00040150(void);",
