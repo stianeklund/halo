@@ -13083,8 +13083,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00041040(void);",
-          "addr": "0x41040"
+          "decl": "int FUN_00041040(short param_1);",
+          "addr": "0x41040",
+          "ported": true
         },
         {
           "decl": "void FUN_00041250(void);",
