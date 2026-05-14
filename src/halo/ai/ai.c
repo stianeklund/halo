@@ -1379,3 +1379,76 @@ char FUN_0003ff40(int unit_handle, short killing_spree_count)
     }
     return 0;
 }
+
+/*
+ * FUN_00040360: Remove AI encounter relationships between two units.
+ *
+ * param_1: actor/unit handle (the acting unit; provides the encounter via +0x1a4).
+ * param_2: vehicle or unit handle to resolve; if the resolved unit has a driver
+ *          (unit+0x2d4 != -1), the driver handle replaces param_2.
+ *
+ * Conditions that skip the encounter removal:
+ *   - param_2 == -1 or try_and_get resolves NULL.
+ *   - The resolved handle is still -1 after driver promotion.
+ *   - game_connection() == 0 AND DAT_005ac9c6 != '\0' AND rider (unit+0x1c8) != -1.
+ *   - word at (resolved_unit + 0x64) != 0.
+ *
+ * When all conditions pass, calls FUN_00064b40 to look up the slot index,
+ * then FUN_0003d430(encounter_handle, slot_index, 0) on both directions
+ * (param_1's encounter vs param_2, and param_2's encounter vs param_1).
+ *
+ * Confirmed: [EBP+8]=param_1 (int), [EBP+C]=param_2 (int).
+ */
+void FUN_00040360(int param_1, int param_2)
+{
+    void *obj2;
+    void *obj1;
+    int slot;
+    int enc;
+
+    if (param_2 == -1) {
+        return;
+    }
+    obj2 = object_try_and_get_and_verify_type(param_2, 3);
+    if (obj2 == NULL) {
+        return;
+    }
+    /* promote param_2 to driver if present */
+    if (*(int *)((char *)obj2 + 0x2d4) != -1) {
+        param_2 = *(int *)((char *)obj2 + 0x2d4);
+    }
+    if (param_2 == -1) {
+        return;
+    }
+    /* network + rider guard: skip if standalone + rider occupied */
+    if (game_connection() == 0 && *(char *)0x5ac9c6 != '\0') {
+        obj2 = object_get_and_verify_type(param_2, 3);
+        if (*(int *)((char *)obj2 + 0x1c8) != -1) {
+            return;
+        }
+    }
+    /* skip if field_64 word is non-zero */
+    obj2 = object_get_and_verify_type(param_2, 3);
+    if (*(short *)((char *)obj2 + 0x64) != 0) {
+        return;
+    }
+
+    /* remove param_1's encounter entry for param_2 */
+    obj1 = object_get_and_verify_type(param_1, 3);
+    enc  = *(int *)((char *)obj1 + 0x1a4);
+    if (enc != -1) {
+        slot = FUN_00064b40(enc, param_2, 1, 0);
+        if (slot != -1) {
+            FUN_0003d430(*(int *)((char *)obj1 + 0x1a4), slot, 0);
+        }
+    }
+
+    /* remove param_2's encounter entry for param_1 */
+    enc = *(int *)((char *)obj2 + 0x1a4);
+    if (enc != -1) {
+        slot = FUN_00064b40(enc, param_1, 1, 0);
+        if (slot != -1) {
+            FUN_0003d430(*(int *)((char *)obj2 + 0x1a4), slot, 0);
+        }
+    }
+}
