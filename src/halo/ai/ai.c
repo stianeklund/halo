@@ -628,6 +628,34 @@ void FUN_00040f80(void)
   }
 }
 
+/* FUN_00041040: map an actor/encounter type index to a flag/size value.
+ * Takes a short type code (1-5) and returns the corresponding constant:
+ *   1 -> 1, 2 -> 2, 3 -> 4, 4 -> 0x38, 5 -> 0x40, else 0.
+ * Confirmed from disasm at 0x41040: MOV CX,word ptr [EBP+0x8],
+ * cdecl short param, returns int via EAX. */
+int FUN_00041040(short param_1)
+{
+  int uVar1;
+
+  uVar1 = 0;
+  if (param_1 == 1) {
+    return 1;
+  }
+  if (param_1 == 2) {
+    return 2;
+  }
+  if (param_1 == 3) {
+    return 4;
+  }
+  if (param_1 == 4) {
+    return 0x38;
+  }
+  if (param_1 == 5) {
+    uVar1 = 0x40;
+  }
+  return uVar1;
+}
+
 /* ai_initialize_for_new_map: reset the AI globals block and initialise
  * all per-map AI subsystems.
  * Zeroes the 0x8dc-byte globals block (at *(int*)0x632574), writes
