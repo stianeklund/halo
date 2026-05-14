@@ -12668,8 +12668,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003b630(void);",
-          "addr": "0x3b630"
+          "decl": "void FUN_0003b630(int actor_handle);",
+          "addr": "0x3b630",
+          "ported": true
         },
         {
           "decl": "bool FUN_0003b6f0(void);",
