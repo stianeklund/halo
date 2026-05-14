@@ -13005,8 +13005,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003fa40(void);",
-          "addr": "0x3fa40"
+          "decl": "int FUN_0003fa40(int result_description, char *more_to_release);",
+          "addr": "0x3fa40",
+          "ported": true
         },
         {
           "decl": "void FUN_0003fb00(void);",
