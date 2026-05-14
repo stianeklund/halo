@@ -29302,8 +29302,9 @@
           "addr": "0x11da60"
         },
         {
-          "decl": "void FUN_0011db00(void);",
-          "addr": "0x11db00"
+          "decl": "void FUN_0011db00(void *cache, int new_page_count);",
+          "addr": "0x11db00",
+          "ported": true
         },
         {
           "decl": "void FUN_0011dd60(void);",

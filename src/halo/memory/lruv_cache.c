@@ -187,6 +187,33 @@ void lruv_debug_to_file(void *cache, int datum_handle)
   *(int *)((char *)block + 0x14) = c->field_30;
 }
 
+/* FUN_0011db00 (0x11db00)
+ *
+ * Resize the lruv_cache to new_page_count pages.  Any block whose
+ * page range (first_page_index + page_count) exceeds the new limit is
+ * evicted via lruv_block_delete before the page_count field is updated.
+ */
+void FUN_0011db00(void *cache, int new_page_count)
+{
+  lruv_cache_t *c = (lruv_cache_t *)cache;
+  lruv_cache_block_t *block;
+  data_iter_t iter;
+
+  assert_halt(new_page_count > 0);
+  lruv_cache_verify(cache, 1);
+  data_iterator_new(&iter, c->blocks);
+
+  block = (lruv_cache_block_t *)data_iterator_next(&iter);
+  while (block != NULL) {
+    if (block->first_page_index + block->page_count > new_page_count) {
+      lruv_block_delete(cache, iter.datum_handle);
+    }
+    block = (lruv_cache_block_t *)data_iterator_next(&iter);
+  }
+
+  c->page_count = new_page_count;
+}
+
 /* FUN_0011db90 (0x11db90)
  *
  * Dump LRUV cache diagnostic state to a file.  Used when a cache
