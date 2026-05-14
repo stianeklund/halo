@@ -13051,8 +13051,9 @@
           "addr": "0x40460"
         },
         {
-          "decl": "void FUN_00040690(void);",
-          "addr": "0x40690"
+          "decl": "void FUN_00040690(int param_1);",
+          "addr": "0x40690",
+          "ported": true
         },
         {
           "decl": "void FUN_00040700(void);",

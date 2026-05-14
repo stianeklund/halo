@@ -410,6 +410,42 @@ void FUN_00040280(void)
   }
 }
 
+/* FUN_00040690: enqueue a vehicle unit handle into the AI mounted-weapon
+ * pending spawn list. Checks the AI-initialized guard at globals+0x1, then
+ * appends param_1 to the array at globals+0x8bc (capacity 8, count int16_t
+ * at globals+0x8b8) if there is room. If the list is full, logs a warning
+ * via error(). Called from FUN_001b2780 (one caller).
+ *
+ * Confirmed: one stack param [EBP+8], no return value.
+ * Confirmed: CMP AX,0x8; MOVSX EAX,AX before indexed store.
+ * Confirmed: object_get_and_verify_type(param_1, 3) → *(ptr) → tag_get_name →
+ *   tag_name_strip_path → error(2, warning_str, name) when list is full. */
+void FUN_00040690(int param_1)
+{
+  int g;
+  void *unit_obj;
+  int tag_index;
+  const char *tag_name;
+  const char *stripped;
+
+  g = *(volatile int *)0x632574;
+  if (*(char *)(g + 1) != '\0') {
+    if (*(int16_t *)(g + 0x8b8) < 8) {
+      *(int *)(g + 0x8bc + (int)(*(int16_t *)(g + 0x8b8)) * 4) = param_1;
+      g = *(volatile int *)0x632574;
+      *(int16_t *)(g + 0x8b8) += 1;
+      return;
+    }
+    unit_obj = object_get_and_verify_type(param_1, 3);
+    tag_index = *(int *)unit_obj;
+    tag_name = tag_get_name(tag_index);
+    stripped = tag_name_strip_path(tag_name);
+    error(2,
+      "WARNING: cannot create mounted weapons for %s, exceeded MAXIMUM_NUMBER_OF_MOUNTED_WEAPON_UNITS",
+      stripped);
+  }
+}
+
 /* FUN_00040570: spawn AI actors into vehicle seats from pending vehicle list.
  * Called each tick from ai_update. Iterates the vehicle spawn queue stored
  * in the AI globals block: a count at offset +0x8b8 (int16_t) and an array
