@@ -1520,6 +1520,80 @@ bool FUN_0003b6f0(void)
   return true;
 }
 
+/* FUN_0003b700 (0x3b700) — actor_notify_prop
+ *
+ * Notifies a prop (and its child prop) that time has passed, setting
+ * activity flags and accumulating elapsed time. Then dispatches to
+ * FUN_00037240 (actor_stimulus) with the resolved prop handle.
+ *
+ * 1. If prop_handle == -1, do nothing (early return after tail call).
+ * 2. Calls FUN_00064b40(param_1, prop_handle, 1, 1) → prop_handle2.
+ * 3. If prop_handle2 != -1:
+ *    a. datum_get(prop_data, prop_handle2) → prop record.
+ *    b. prop+0x70 += param_3  (accumulated time)
+ *    c. prop+0x6c = 0         (clear word field)
+ *    d. prop+0x74 = 1         (set active byte)
+ *    e. Assert prop state (prop+0x24) is NOT 4 or 5 (!prop_orphaned).
+ *    f. If prop+0xc != -1 (child handle valid):
+ *         datum_get(prop_data, prop+0xc) → child record.
+ *         child+0x6c = 0
+ *         child+0x74 = 1
+ *         child+0x70 += param_3
+ *    g. If state < 2 or state > 3: set prop_handle2 = -1.
+ * 4. FUN_00037240(param_1, prop_handle2, param_3, param_4).
+ *
+ * Confirmed: MOV EAX,[EBP+0xC]; CMP EAX,-1; JZ exit at 0x3b703-0x3b709.
+ * Confirmed: PUSH 1; PUSH 1; PUSH EAX(param_2); PUSH EAX(param_1);
+ *   CALL 0x64b40; MOV EDI,EAX at 0x3b710-0x3b71e.
+ * Confirmed: MOV ECX,[0x5ab23c]; PUSH ESI; PUSH EDI; PUSH ECX;
+ *   CALL 0x119320 (datum_get); MOV ESI,EAX at 0x3b72c-0x3b73d.
+ * Confirmed: FLD [EBP+0x10]; FADD [ESI+0x70]; FSTP [ESI+0x70] at
+ *   0x3b73a-0x3b74d (before word/byte stores).
+ * Confirmed: MOV word [ESI+0x6c],0; MOV byte [ESI+0x74],1 at 0x3b750-0x3b756.
+ * Confirmed: CMP AX,4; JL; CMP AX,5; JG → assert if state in [4,5] at
+ *   0x3b749-0x3b760.
+ * Confirmed: MOV EAX,[ESI+0xc]; CMP EAX,-1; JZ at 0x3b782-0x3b788.
+ * Confirmed: datum_get(prop_data, child) → EAX; MOV word [EAX+0x6c],0;
+ *   MOV byte [EAX+0x74],1; FLD/FADD/FSTP at 0x3b78a-0x3b7aa (byte stores
+ *   before float store for child).
+ * Confirmed: MOV SI,[ESI+0x24]; CMP SI,2; JL; CMP SI,3; JLE; OR EDI,-1 at
+ *   0x3b7ad-0x3b7bd.
+ * Confirmed: PUSH [EBP+0x14]; PUSH [EBP+0x10]; PUSH EDI; PUSH [EBP+0x8];
+ *   CALL 0x37240 at 0x3b7c1-0x3b7ce. */
+void FUN_0003b700(int param_1, int prop_handle, float param_3, int param_4)
+{
+  int prop_handle2;
+  char *prop;
+  char *child;
+  int16_t state;
+
+  if (prop_handle != -1) {
+    prop_handle2 = FUN_00064b40(param_1, prop_handle, 1, 1);
+    if (prop_handle2 != -1) {
+      prop = (char *)datum_get(prop_data, prop_handle2);
+      *(float *)(prop + 0x70) = param_3 + *(float *)(prop + 0x70);
+      *(int16_t *)(prop + 0x6c) = 0;
+      *(int8_t *)(prop + 0x74) = 1;
+      if (*(int16_t *)(prop + 0x24) > 3 && *(int16_t *)(prop + 0x24) < 6) {
+        display_assert("!prop_orphaned(prop)",
+                       "c:\\halo\\SOURCE\\ai\\actors.c", 0x7f6, 1);
+        system_exit(-1);
+      }
+      if (*(int *)(prop + 0xc) != -1) {
+        child = (char *)datum_get(prop_data, *(int *)(prop + 0xc));
+        *(int16_t *)(child + 0x6c) = 0;
+        *(int8_t *)(child + 0x74) = 1;
+        *(float *)(child + 0x70) = param_3 + *(float *)(child + 0x70);
+      }
+      state = *(int16_t *)(prop + 0x24);
+      if (state < 2 || state > 3) {
+        prop_handle2 = -1;
+      }
+    }
+    FUN_00037240(param_1, prop_handle2, param_3, param_4);
+  }
+}
+
 /* FUN_0003b7e0 (0x3b7e0)
  * Reset a unit's control state. Builds a default unit_control_t (0x40 bytes):
  * animation_state=1, aiming_speed=1, control_flags=0, weapon/grenade/zoom=-1,
