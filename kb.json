@@ -23256,8 +23256,9 @@
           "addr": "0x1550c0"
         },
         {
-          "decl": "void FUN_00155110(void);",
-          "addr": "0x155110"
+          "decl": "void FUN_00155110(int stage@<eax>, int sub_index@<ecx>, unsigned int *result);",
+          "addr": "0x155110",
+          "ported": true
         }
       ]
     },
