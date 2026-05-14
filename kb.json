@@ -12638,8 +12638,9 @@
           "addr": "0x3a920"
         },
         {
-          "decl": "void FUN_0003ab80(void);",
-          "addr": "0x3ab80"
+          "decl": "void *FUN_0003ab80(int actor_handle);",
+          "addr": "0x3ab80",
+          "ported": true
         },
         {
           "decl": "bool FUN_0003b100(int actor_handle);",
