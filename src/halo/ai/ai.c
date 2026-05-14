@@ -153,6 +153,61 @@ void FUN_0003f800(char param_1)
   *(char *)(*(char **)0x632574 + 0x3b4) = param_1;
 }
 
+/* 0x3f850 — Decode a force-type enum into force_major/is_random/random_chance.
+ *
+ * Translates an AI force-type code (param_1) into a trio of output values:
+ *   force_major   — non-zero when the force is a "major" (definitive) event
+ *   is_random     — non-zero when the force has a random-chance component
+ *   random_chance — the probability [0,1] fetched from game globals difficulty
+ *
+ * Force-type mapping (from assert string: "force_major && is_random && random_chance"):
+ *   1 (default): is_random=1, random_chance=FUN_000b5590(0x1c)  (normal random)
+ *   2:           is_random=1, random_chance=FUN_000b5590(0x1d)  (variant 1)
+ *   3:           is_random=1, random_chance=FUN_000b5590(0x1e)  (variant 2)
+ *   4:           is_random=0, force_major=0  (non-random, non-major)
+ *   5:           is_random=0, force_major=1  (non-random, major)
+ *
+ * Confirmed: 4 cdecl stack args; no register args; no return value.
+ * Confirmed: ADD ESP,0x14 after display_assert+system_exit pair at 0x3f888.
+ * Confirmed: MOVSX EAX, word [EBP+8]; DEC EAX; CMP EAX,3; JA default (jump table 1-4).
+ * Confirmed: ESI=[EBP+0x10]=is_random, EDI=[EBP+0xc]=force_major, EBX=[EBP+0x14]=random_chance.
+ * Confirmed: case 1 at 0x3f8b2: MOV [ESI],1; PUSH 0x1d; CALL FUN_000b5590; FSTP [EBX].
+ * Confirmed: case 2 at 0x3f8c6: MOV [ESI],1; PUSH 0x1e; CALL; FSTP [EBX].
+ * Confirmed: case 3 at 0x3f89c: MOV [ESI],0; MOV [EDI],0.
+ * Confirmed: case 4 at 0x3f8a7: MOV [ESI],0; MOV [EDI],1.
+ * Confirmed: default at 0x3f8da: MOV [ESI],1; PUSH 0x1c; CALL; FSTP [EBX].
+ */
+void FUN_0003f850(int16_t param_1, char *force_major, char *is_random, float *random_chance)
+{
+  if ((force_major == NULL) || (is_random == NULL) || (random_chance == NULL)) {
+    display_assert("force_major && is_random && random_chance",
+                   "c:\\halo\\SOURCE\\ai\\ai.c", 0x158, 1);
+    system_exit(-1);
+  }
+  switch (param_1) {
+  case 1:
+    *is_random = 1;
+    *random_chance = FUN_000b5590(0x1d);
+    return;
+  case 2:
+    *is_random = 1;
+    *random_chance = FUN_000b5590(0x1e);
+    return;
+  case 3:
+    *is_random = 0;
+    *force_major = 0;
+    return;
+  case 4:
+    *is_random = 0;
+    *force_major = 1;
+    return;
+  default:
+    *is_random = 1;
+    *random_chance = FUN_000b5590(0x1c);
+    return;
+  }
+}
+
 /* ai_handle_unit_approach: test whether a unit is approaching a valid
  * target for an AI actor, and optionally record the approach.
  * Looks up the actor via actor_data, checks the unit against
