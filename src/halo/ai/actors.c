@@ -1033,6 +1033,19 @@ char FUN_0003b120(int actor_handle)
   return 0;
 }
 
+/* 0x3b240 — Return true if actor is in mode 10 and FUN_00012e50 says so.
+ * Checks actor->mode (field +0x6c) == 10; if so, delegates to FUN_00012e50.
+ * Otherwise returns false. */
+bool FUN_0003b240(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int16_t *)(actor + 0x6c) == 10)
+    return FUN_00012e50(actor_handle);
+  return false;
+}
+
 /* 0x3b100 — Return true if actor has fewer than 3 active slots (field +0x6a). */
 bool FUN_0003b100(int actor_handle)
 {
