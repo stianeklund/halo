@@ -90,6 +90,62 @@ float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound,
   return out_color;
 }
 
+/* FUN_0007c5f0 — apply bump-map height to a bitmap (0x4af in
+ * bitmap_utilities.c).
+ *
+ * Dispatches bump-height processing to the appropriate per-type helper:
+ *   type 0 (_bitmap_type_2d)       -> FUN_0007b510 (bitmap in ESI)
+ *   type 1 (_bitmap_type_3d)       -> FUN_0007b940 (bitmap in EBX)
+ *   type 2 (_bitmap_type_cube_map) -> FUN_00079630 (bitmap in ESI)
+ *   other                          -> assert + system_exit
+ *
+ * bump_height must be > 0.0f (compared against DAT_002533c0 == 0.0f).
+ * Confirmed: cdecl, 2 stack args; bitmap loaded into ESI at 0x7c5f4.
+ * Confirmed: FID_conflict__fwprintf at 0x1d98ad / crt_fflush at 0x1d9bd2.
+ * Source: c:\halo\SOURCE\bitmaps\bitmap_utilities.c, lines 0x4af-0x4bd.
+ */
+void FUN_0007c5f0(void *bitmap, float bump_height)
+{
+  short type;
+
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x4af, 1);
+    system_exit(-1);
+  }
+
+  if (bump_height <= 0.0f) {
+    crt_fprintf(
+      (void *)0x331050,
+      (const char *)0x2648d8); /* L"### WARNING importing special-effect bump
+                                  map with zero-height\r\n" */
+    crt_fflush((void *)0x331050);
+    return;
+  }
+
+  type = *(short *)((char *)bitmap + 0xa);
+  switch (type) {
+  case 0:
+    /* _bitmap_type_2d: bitmap passed via ESI (register arg). */
+    FUN_0007b510(bump_height, bitmap);
+    return;
+  case 1:
+    /* _bitmap_type_3d: bitmap passed via EBX (register arg). */
+    FUN_0007b940(bump_height, bitmap);
+    return;
+  case 2:
+    /* _bitmap_type_cube_map: bitmap passed via ESI (register arg). */
+    FUN_00079630(bump_height, bitmap);
+    return;
+  default:
+    break;
+  }
+
+  display_assert("### ERROR unsupported bitmap type",
+                 "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x4bd, 1);
+  system_exit(-1);
+}
+
 /* Look up the number of bits per pixel for a given bitmap format index.
  * The format must be in range [0, 18) and the table entry must be non-zero
  * (i.e. the format must be a supported/known type).
