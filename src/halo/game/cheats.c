@@ -158,3 +158,27 @@ void FUN_000a6830(void)
     object_handle = *(int *)(player + 0x34);
   object_set_position(object_handle, (float *)camera, NULL, NULL);
 }
+
+/* FUN_000a68e0 — give weapon infinite ammo for the first armed player.
+ * Same weapon modification logic as FUN_000a6760 but targets the first player
+ * that has a weapon equipped (via FUN_000a67c0) rather than a specific local
+ * index. Frameless in the original binary.
+ */
+void FUN_000a68e0(void)
+{
+  int player_handle;
+  char *player;
+  char *weapon;
+  unsigned int flags;
+
+  player_handle = FUN_000a67c0();
+  if (player_handle == -1)
+    return;
+  player = (char *)datum_get(player_data, player_handle);
+  weapon = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+  *(unsigned int *)(weapon + 0x32c) = 0x3f800000;
+  flags = *(unsigned int *)(weapon + 0x1b4);
+  if (flags & 0x10)
+    *(unsigned int *)(weapon + 0x1b4) = flags | 0x20;
+  *(unsigned int *)(weapon + 0x1b4) |= 0x10;
+}
