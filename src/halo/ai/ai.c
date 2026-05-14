@@ -1166,3 +1166,59 @@ void FUN_000425c0(int object_handle, float *position, short effect_type,
                  entry[1]);
   }
 }
+
+/* FUN_0003fa40: count and erase swarm units, format a result description.
+ *
+ * Iterates all AI actors via encounter_iterator_next (flag=0) + FUN_00059b50.
+ * For each actor record where:
+ *   record[6] != 0  (actor is active/alive)
+ *   record[8] == 0  (not in some suppressed state)
+ *   *(int*)(record+0xc) != -1  (has a valid reference)
+ * accumulates *(short*)(record+0x1e) into swarm_count, then erases the actor
+ * via actor_erase(handle, 1).
+ *
+ * After iteration: formats "%d swarm units" into result_description via
+ * crt_sprintf, sets *more_to_release = 0, returns 1 if swarm_count > 0.
+ *
+ * Stack layout (SUB ESP,0x20):
+ *   [EBP-0x20..EBP-0xd]: iter[0x14] (encounter iterator, 20-byte body)
+ *   [EBP-0xc]:           iter+0x14  (actor handle stored by FUN_00059b50)
+ *   [EBP-0x4]:           local_8    (initialized to 0; base for swarm_count/SI)
+ *
+ * Confirmed: assert string "result_description && more_to_release", line 0x1f7=503.
+ * Confirmed: encounter_iterator_next flag=0 (PUSH 0x0 at 0x3fa81).
+ * Confirmed: MOV EDX,[EBP-0xc]; PUSH EDX as actor_erase first arg (handle at iter+0x14).
+ * Confirmed: ADD SI,word[EAX+0x1e] accumulates short field at record+0x1e.
+ * Confirmed: MOVSX ECX,SI; PUSH ECX; PUSH fmt; PUSH EDI → crt_sprintf(result_desc,...).
+ * Confirmed: XOR EAX,EAX; TEST SI,SI; SETG AL → returns 1 if swarm_count > 0.
+ * Confirmed: MOV byte[EBX],0x0 → *more_to_release = 0. */
+int FUN_0003fa40(int result_description, char *more_to_release)
+{
+  char iter[24]; /* encounter iterator; actor handle at iter+0x14 */
+  int record;
+  short swarm_count;
+
+  swarm_count = 0;
+
+  if ((result_description == 0) || (more_to_release == (char *)0x0)) {
+    display_assert("result_description && more_to_release",
+                   "c:\\halo\\SOURCE\\ai\\ai.c", 0x1f7, 1);
+    system_exit(-1);
+  }
+
+  encounter_iterator_next(iter, 0);
+  record = FUN_00059b50(iter);
+  while (record != 0) {
+    if ((*(char *)(record + 6) != '\0') &&
+        (*(char *)(record + 8) == '\0') &&
+        (*(int *)(record + 0xc) != -1)) {
+      swarm_count = (short)(swarm_count + *(short *)(record + 0x1e));
+      actor_erase(*(int *)(iter + 0x14), 1);
+    }
+    record = FUN_00059b50(iter);
+  }
+
+  crt_sprintf((char *)result_description, "%d swarm units", (int)swarm_count);
+  *more_to_release = 0;
+  return swarm_count > 0;
+}
