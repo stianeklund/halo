@@ -443,7 +443,6 @@ void terminal_output(void *color, const char *format, const char *text)
  */
 void terminal_draw(void)
 {
-  char *state;
   char *font_tag;
   char *line;
   float alpha;
@@ -467,15 +466,14 @@ void terminal_draw(void)
   line_height = *(int16_t *)(font_tag + 4) + *(int16_t *)(font_tag + 6) +
                 *(int16_t *)(font_tag + 8);
 
-  state = *(char **)0x46c414;
-  if (state != NULL) {
+  if (*(char **)0x46c414 != NULL) {
     /* -- Draw active input line at bottom of screen -- */
     text_buf[0] = '\0';
-    *(uint8_t *)(state + 0xb3) = 0;
-    FUN_0008dc30(text_buf, state + 0x94);
-    *(uint8_t *)(state + 0x1b3) = 0;
+    *(uint8_t *)(*(char **)0x46c414 + 0xb3) = 0;
+    FUN_0008dc30(text_buf, *(char **)0x46c414 + 0x94);
+    *(uint8_t *)(*(char **)0x46c414 + 0x1b3) = 0;
     str_len = (int16_t)csstrlen(text_buf);
-    csstrcpy(text_buf + str_len, state + 0xb4);
+    csstrcpy(text_buf + str_len, *(char **)0x46c414 + 0xb4);
 
     /* Build rect: bottom of screen minus one line, offset by global position. */
     rect[1] = *(int16_t *)0x506586;                  /* left */
@@ -487,11 +485,11 @@ void terminal_draw(void)
     dy_i32 = -*(int32_t *)0x50657c;
     rect2d_offset(rect, dx, (int16_t)dy_i32);
 
-    draw_string_set_font(font_tag_index, -1, 0, 0, state + 0x84);
+    draw_string_set_font(font_tag_index, -1, 0, 0, *(char **)0x46c414 + 0x84);
 
     /* Insert blinking cursor character if key-activity flag is set. */
     if (*(uint8_t *)0x46c418 != 0) {
-      cursor_pos = (int)(int16_t)(*(int16_t *)(state + 0x1ba) + str_len);
+      cursor_pos = (int)(int16_t)(*(int16_t *)(*(char **)0x46c414 + 0x1ba) + str_len);
       if (text_buf[cursor_pos] == '\0') {
         text_buf[cursor_pos + 1] = '\0';
       }
