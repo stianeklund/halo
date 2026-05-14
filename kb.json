@@ -12995,8 +12995,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003f850(void);",
-          "addr": "0x3f850"
+          "decl": "void FUN_0003f850(int16_t param_1, char *force_major, char *is_random, float *random_chance);",
+          "addr": "0x3f850",
+          "ported": true
         },
         {
           "decl": "void FUN_0003f970(void);",
