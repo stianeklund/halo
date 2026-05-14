@@ -26,5 +26,9 @@ while (($#)); do
   esac
 done
 
+if [[ ! -d build ]]; then
+    cmake -Bbuild -S. -DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake
+fi
+
 python3 tools/build/build.py "${build_args[@]}"
 python3 tools/xbox/deploy_xbox.py --xbox "$xbox_host" --xbe-only
