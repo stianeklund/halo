@@ -3110,6 +3110,55 @@ void FUN_0003cff0(int actor_handle)
   }
 }
 
+/* FUN_0003d330 (0x3d330) — actor_swarm_unit_detach_and_delete
+ *
+ * Detaches a swarm unit from its actor and, if the swarm is now empty (no
+ * remaining units), deletes the actor and updates the encounter state.
+ *
+ * Asserts that the actor is a swarm type (actor+6 != 0). Calls
+ * actor_swarm_detach_from_unit(actor_handle, unit_handle) to remove the unit.
+ * If swarm_unit_count (actor+0x1e) drops to zero, asserts that
+ * swarm_unit_index (actor+0x24) == NONE, then calls FUN_0003cc10 to delete
+ * the actor and, if encounter handle (actor+0x34) is valid, calls
+ * encounter_update_status.
+ *
+ * Confirmed: cdecl 2-arg (actor_handle at EBP+8, unit_handle at EBP+C).
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3d33f.
+ * Confirmed: swarm check byte[ESI+6] at 0x3d346; assert "actor->meta.swarm"
+ *   actors.c line 0x8e0; system_exit(-1).
+ * Confirmed: actor_swarm_detach_from_unit(actor_handle, unit_handle) at 0x3d375.
+ * Confirmed: swarm_unit_count check word[ESI+0x1e] at 0x3d37d; JNZ exits.
+ * Confirmed: assert "actor->meta.swarm_unit_index == NONE" for int[ESI+0x24]
+ *   at 0x3d384; actors.c line 0x8e7; system_exit(-1).
+ * Confirmed: encounter_handle = int[ESI+0x34] at 0x3d389.
+ * Confirmed: FUN_0003cc10(actor_handle, 1) at 0x3d3b1.
+ * Confirmed: encounter_update_status(encounter_handle) at 0x3d3bf if != -1. */
+void FUN_0003d330(int actor_handle, int unit_handle)
+{
+  char *actor;
+  int encounter_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 6) == '\0') {
+    display_assert("actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x8e0, 1);
+    system_exit(-1);
+  }
+  actor_swarm_detach_from_unit(actor_handle, unit_handle);
+  if (*(int16_t *)(actor + 0x1e) == 0) {
+    encounter_handle = *(int *)(actor + 0x34);
+    if (*(int *)(actor + 0x24) != -1) {
+      display_assert("actor->meta.swarm_unit_index == NONE",
+                     "c:\\halo\\SOURCE\\ai\\actors.c", 0x8e7, 1);
+      system_exit(-1);
+    }
+    FUN_0003cc10(actor_handle, 1);
+    if (encounter_handle != -1) {
+      encounter_update_status(encounter_handle);
+    }
+  }
+}
+
 /* FUN_0003d9f0 (0x3d9f0) — actor_pre_activate_check
  *
  * Validates an actor before activation and updates per-tick AI counters.

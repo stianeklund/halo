@@ -12720,8 +12720,9 @@
           "addr": "0x3cf10"
         },
         {
-          "decl": "void FUN_0003d330(void);",
-          "addr": "0x3d330"
+          "decl": "void FUN_0003d330(int actor_handle, int unit_handle);",
+          "addr": "0x3d330",
+          "ported": true
         },
         {
           "decl": "void FUN_0003d3d0(int actor_handle, char param_2);",
