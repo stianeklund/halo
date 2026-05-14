@@ -1222,3 +1222,20 @@ int FUN_0003fa40(int result_description, char *more_to_release)
   *more_to_release = 0;
   return swarm_count > 0;
 }
+
+/* Compare two AI records for sorting. Primary key: int at offset 8 (ascending).
+   Secondary key: unsigned byte at offset 0 (ascending).
+   Returns 1 if param_1 < param_2, -1 if param_1 > param_2, 0 if equal. */
+int FUN_0003fb00(unsigned char *param_1, unsigned char *param_2)
+{
+  if (*(int *)(param_2 + 8) < *(int *)(param_1 + 8)) {
+    return 1;
+  }
+  if (*(int *)(param_1 + 8) < *(int *)(param_2 + 8)) {
+    return 0xffffffff;
+  }
+  if (*param_2 < *param_1) {
+    return 0xffffffff;
+  }
+  return (*param_1 < *param_2);
+}
