@@ -13574,12 +13574,16 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001bc860(void);",
-          "addr": "0x1bc860"
+          "decl": "void __stdcall FUN_001bc860(int error_code, int bytes_transferred, void *finished_request);",
+          "addr": "0x1bc860",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_001bc8f0(void);",
-          "addr": "0x1bc8f0"
+          "decl": "void __stdcall FUN_001bc8f0(int error_code, unsigned int param_2, void *overlapped);",
+          "addr": "0x1bc8f0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bc9c0(void);",
