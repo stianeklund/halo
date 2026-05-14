@@ -170,14 +170,19 @@ def staged_kb_json_changes():
     return compare_kb_json(old_ref="HEAD")
 
 
+_obj_cache = {}
+
 def object_for_addr(addr):
     """Look up object name from kb_meta.py list output."""
-    out = run([sys.executable, "tools/analysis/kb_meta.py", "list"])
-    for line in out.splitlines():
-        parts = line.split()
-        if len(parts) >= 5 and parts[0] == addr:
-            return parts[3]
-    return "<common>"
+    if not _obj_cache:
+        out = run([sys.executable, "tools/analysis/kb_meta.py", "list"])
+        for line in out.splitlines():
+            parts = line.split()
+            if len(parts) >= 5:
+                # Store both object (parts[3]) and source if we can find it
+                # For now just match the existing return behavior but cached
+                _obj_cache[parts[0]] = parts[3]
+    return _obj_cache.get(addr, "<common>")
 
 
 def kb_meta_change_count():
@@ -226,11 +231,22 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None):
         vc71_match = _find_latest_vc71_match()
 
     match_tag = f" ({vc71_match}% VC71 match)" if vc71_match else ""
+
+    # Identify objects affected by ports/renames to include in subject
+    affected_addrs = [addr for addr, _ in ports] + [addr for addr, _, _ in renames]
+    objs = sorted(list(set(object_for_addr(addr) for addr in affected_addrs)))
+    obj_tag = ""
+    if objs:
+        if len(objs) == 1:
+            obj_tag = f" ({objs[0]})"
+        else:
+            obj_tag = f" ({len(objs)} objects)"
+
     lines = []
     if batch_name:
-        lines.append(f"Port {batch_name}{match_tag}")
+        lines.append(f"Port {batch_name}{obj_tag}{match_tag}")
     else:
-        lines.append(f"Port functions{match_tag}")
+        lines.append(f"Port functions{obj_tag}{match_tag}")
     lines.append("")
 
     if ports:
