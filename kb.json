@@ -13277,15 +13277,15 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0007ba50(void);",
+          "decl": "void FUN_0007ba50(void *bitmap@<edi>);",
           "addr": "0x7ba50"
         },
         {
-          "decl": "void FUN_0007bcb0(void);",
+          "decl": "void FUN_0007bcb0(void *bitmap@<esi>);",
           "addr": "0x7bcb0"
         },
         {
-          "decl": "void FUN_0007bd90(void);",
+          "decl": "void FUN_0007bd90(void *bitmap@<ebx>);",
           "addr": "0x7bd90"
         },
         {
@@ -13302,12 +13302,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0007c6c0(void);",
-          "addr": "0x7c6c0"
+          "decl": "void FUN_0007c6c0(void *bitmap);",
+          "addr": "0x7c6c0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0007c750(void);",
-          "addr": "0x7c750"
+          "decl": "const char *FUN_0007c750(short type);",
+          "addr": "0x7c750",
+          "ported": true
         },
         {
           "decl": "void FUN_0007c7c0(void);",

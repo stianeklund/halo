@@ -146,6 +146,83 @@ void FUN_0007c5f0(void *bitmap, float bump_height)
   system_exit(-1);
 }
 
+/*
+ * FUN_0007c6c0 — hardware-upload dispatcher for a bitmap (0x569 in
+ * bitmap_utilities.c).
+ *
+ * Verifies the bitmap, then dispatches to the per-type D3D upload helper:
+ *   type 0 (_bitmap_type_2d)       -> FUN_0007ba50 (bitmap in EDI)
+ *   type 1 (_bitmap_type_3d)       -> FUN_0007bcb0 (bitmap in ESI)
+ *   type 2 (_bitmap_type_cube_map) -> FUN_0007bd90 (bitmap in EBX)
+ *   other                          -> assert + system_exit
+ *
+ * Confirmed: cdecl, 1 stack arg; bitmap in ESI at 0x7c6c4.
+ * Confirmed: bitmap_verify(bitmap, TRUE) at 0x7c6ca.
+ * Confirmed: type field at bitmap+0xa; dispatch at 0x7c6f6..0x7c74 7.
+ * Source: c:\halo\SOURCE\bitmaps\bitmap_utilities.c, line 0x569.
+ */
+void FUN_0007c6c0(void *bitmap)
+{
+  int type;
+
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x569, 1);
+    system_exit(-1);
+  }
+
+  type = (int)*(short *)((char *)bitmap + 0xa);
+  switch (type) {
+  case 0:
+    FUN_0007ba50(bitmap);
+    return;
+  case 1:
+    FUN_0007bcb0(bitmap);
+    return;
+  case 2:
+    FUN_0007bd90(bitmap);
+    return;
+  default:
+    break;
+  }
+
+  display_assert("### ERROR unsupported bitmap type",
+                 "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x577, 1);
+  system_exit(-1);
+}
+
+/*
+ * FUN_0007c750 — return a display string for a bitmap type index
+ * (bitmaps.c line 0x50).
+ *
+ * The string table at 0x2ee4a0 holds three char* pointers:
+ *   [0] = "2d texture"
+ *   [1] = "3d texture"
+ *   [2] = "cube map"
+ * Entry [3] (DAT_002ee4ac) must be NULL, confirming NUMBER_OF_BITMAP_TYPES==3.
+ *
+ * Confirmed: range check type>=0 && type<3 at 0x7c753.
+ * Confirmed: sentinel assert at 0x7c763.
+ * Confirmed: return (&PTR_s_2d_texture_002ee4a0)[type] at 0x7c772/0x7c784.
+ * Source: c:\halo\SOURCE\bitmaps\bitmaps.c, line 0x50.
+ */
+const char *FUN_0007c750(short type)
+{
+  if (type < 0 || type > 2) {
+    display_assert("type>=0 && type<NUMBER_OF_BITMAP_TYPES",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x50, 1);
+    system_exit(-1);
+  }
+
+  if (((const char **)0x2ee4a0)[3] != 0) {
+    display_assert("bitmap_type_string_table[NUMBER_OF_BITMAP_TYPES]==NULL",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x51, 1);
+    system_exit(-1);
+  }
+
+  return ((const char **)0x2ee4a0)[type];
+}
+
 /* Look up the number of bits per pixel for a given bitmap format index.
  * The format must be in range [0, 18) and the table entry must be non-zero
  * (i.e. the format must be a supported/known type).
