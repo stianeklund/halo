@@ -1077,37 +1077,37 @@ char FUN_0002d850(int actor_handle, int16_t param_2)
  */
 char FUN_0002d9b0(int actor_handle, int encounter_handle, float distance)
 {
-  char *iVar2;
-  char *iVar4;
-  int iVar5;
-  int *piVar6;
-  int *piVar7;
+  char *actor;
+  char *encounter;
+  int node_handle;
+  int *active_state;
+  int *pending_state;
 
-  iVar2 = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  *(int16_t *)(iVar2 + 0x3b8) = -1;
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  *(int16_t *)(actor + 0x3b8) = -1;
   actor_set_dormant(actor_handle, 0);
-  piVar6 = (int *)(iVar2 + 0x46c);
-  if ((*(int16_t *)piVar6 == 5) && (*(int *)(iVar2 + 0x470) == encounter_handle)) {
-    if (*(float *)(iVar2 + 0x474) == distance) {
-      if ((*(char *)(iVar2 + 0x4c) != '\0') && (*(char *)(iVar2 + 0x4a4) == '\0')) {
-        return actor_path_refresh(actor_handle, 0, 0);
-      }
+  active_state = (int *)(actor + 0x46c);
+  if (*(int16_t *)active_state == 5 && *(int *)(actor + 0x470) == encounter_handle &&
+      *(float *)(actor + 0x474) == distance) {
+    if (*(char *)(actor + 0x4c) == 0) {
       return 1;
     }
+    if (*(char *)(actor + 0x4a4) != 0) {
+      return 1;
+    }
+    return actor_path_refresh(actor_handle, 0, 0);
   }
-  iVar4 = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
-  *(int *)(iVar2 + 0x404) = encounter_handle;
-  *(int16_t *)(iVar2 + 0x400) = 5;
-  *(char *)(iVar2 + 0x402) = 0;
-  *(float *)(iVar2 + 0x408) = distance;
-  iVar5 = *(int *)(iVar4 + 0x110);
-  if (iVar5 == -1) {
-    iVar5 = *(int *)(iVar4 + 0x18);
-  }
-  *(int *)(iVar2 + 0x414) = iVar5;
-  piVar7 = (int *)(iVar2 + 0x400);
-  for (iVar5 = 6; iVar5 != 0; iVar5--) {
-    *piVar6++ = *piVar7++;
+  encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+  *(int *)(actor + 0x404) = encounter_handle;
+  *(int16_t *)(actor + 0x400) = 5;
+  *(char *)(actor + 0x402) = 0;
+  *(float *)(actor + 0x408) = distance;
+  node_handle = *(int *)(encounter + 0x110) == -1 ? *(int *)(encounter + 0x18)
+                                                   : *(int *)(encounter + 0x110);
+  *(int *)(actor + 0x414) = node_handle;
+  pending_state = (int *)(actor + 0x400);
+  for (node_handle = 6; node_handle != 0; node_handle--) {
+    *active_state++ = *pending_state++;
   }
   return actor_path_refresh(actor_handle, 1, 0);
 }
