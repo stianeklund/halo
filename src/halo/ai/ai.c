@@ -133,6 +133,26 @@ void FUN_0003f770(char param_1)
   **(char **)0x632574 = param_1;
 }
 
+/* 0x3f7b0 — Set byte at ai_globals+0x10. */
+void FUN_0003f7b0(char param_1)
+{
+  if (*(char **)0x632574 == NULL) {
+    display_assert("ai_globals", "c:\\halo\\SOURCE\\ai\\ai.c", 0x143, 1);
+    system_exit(-1);
+  }
+  *(char *)(*(char **)0x632574 + 0x10) = param_1;
+}
+
+/* 0x3f800 — Set byte at ai_globals+0x3b4. */
+void FUN_0003f800(char param_1)
+{
+  if (*(char **)0x632574 == NULL) {
+    display_assert("ai_globals", "c:\\halo\\SOURCE\\ai\\ai.c", 0x14c, 1);
+    system_exit(-1);
+  }
+  *(char *)(*(char **)0x632574 + 0x3b4) = param_1;
+}
+
 /* ai_handle_unit_approach: test whether a unit is approaching a valid
  * target for an AI actor, and optionally record the approach.
  * Looks up the actor via actor_data, checks the unit against

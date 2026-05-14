@@ -12980,12 +12980,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003f7b0(void);",
-          "addr": "0x3f7b0"
+          "decl": "void FUN_0003f7b0(char param_1);",
+          "addr": "0x3f7b0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0003f800(void);",
-          "addr": "0x3f800"
+          "decl": "void FUN_0003f800(char param_1);",
+          "addr": "0x3f800",
+          "ported": true
         },
         {
           "decl": "void FUN_0003f850(void);",
