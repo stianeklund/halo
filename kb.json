@@ -13322,16 +13322,18 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0007cb60(void);",
+          "decl": "void *FUN_0007cb60(void *bitmap, short x, short y, short face_index, short mipmap_index);",
           "addr": "0x7cb60"
         },
         {
-          "decl": "void FUN_0007cdf0(void);",
+          "decl": "void *FUN_0007cdf0(void *bitmap, short x, short y, short z, short mipmap_index);",
           "addr": "0x7cdf0"
         },
         {
-          "decl": "void FUN_0007d000(void);",
-          "addr": "0x7d000"
+          "decl": "void *FUN_0007d000(void *bitmap, short mipmap_index);",
+          "addr": "0x7d000",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_0007d0d0(void);",

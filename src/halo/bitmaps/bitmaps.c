@@ -411,6 +411,49 @@ void *FUN_0007c940(void *bitmap, short x, short y, short mipmap_index)
   return (void *)(bit_offset / 8 + *(int *)(b + 0x2c));
 }
 
+/* 0x7d000 — dispatch bitmap_pixel_address by bitmap type.
+ *
+ * Asserts that bitmap != NULL and bitmap->base_address (+0x2c) != NULL,
+ * then routes to the appropriate typed pixel-address function based on
+ * bitmap->type (+0xa): 0=2D (FUN_0007c940), 1=cube (FUN_0007cb60),
+ * 2=3D (FUN_0007cdf0). Returns the pixel address at (0,0[,0], mipmap_index).
+ *
+ * Confirmed: TEST ESI,ESI / display_assert("bitmap",...,0x20d,1) at 0x7d007.
+ * Confirmed: TEST [ESI+0x2c] / display_assert("bitmap->base_address",...,0x20e)
+ * at 0x7d02e. Confirmed: MOVSX+SUB+JZ/DEC/DEC type switch at 0x7d052.
+ * Confirmed: FUN_0007c940(bitmap,0,0,mipmap_index) via PUSH EDX+3×PUSH0+PUSH
+ * ESI at 0x7d0b3. Confirmed: FUN_0007cb60(bitmap,0,0,0,mipmap_index) at
+ * 0x7d09d. Confirmed: FUN_0007cdf0(bitmap,0,0,0,mipmap_index) at 0x7d087.
+ * Confirmed: display_assert("### ERROR unsupported bitmap type",...,0x21c,1) +
+ * return bitmap at 0x7d061.
+ */
+void *FUN_0007d000(void *bitmap, short mipmap_index)
+{
+  if (!bitmap) {
+    display_assert("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x20d, 1);
+    system_exit(-1);
+  }
+  if (!*(void **)((char *)bitmap + 0x2c)) {
+    display_assert("bitmap->base_address",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x20e, 1);
+    system_exit(-1);
+  }
+  switch ((int)*(short *)((char *)bitmap + 0xa)) {
+  case 2:
+    return FUN_0007cdf0(bitmap, 0, 0, 0, mipmap_index);
+  case 1:
+    return FUN_0007cb60(bitmap, 0, 0, 0, mipmap_index);
+  case 0:
+    return FUN_0007c940(bitmap, 0, 0, mipmap_index);
+  default:
+    break;
+  }
+  display_assert("### ERROR unsupported bitmap type",
+                 "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x21c, 1);
+  system_exit(-1);
+  return bitmap;
+}
+
 /* bitmap_validate_depth (0x7d440)
  *
  * Validate the depth field of a bitmap against its type.
