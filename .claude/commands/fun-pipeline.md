@@ -1,5 +1,5 @@
 ---
-description: Run the FUN_ naming pipeline (classify, prioritize, propose, apply)
+description: Classify and name FUN_ functions; run before /frontier when <common> backlog is large
 subtask: true
 ---
 
