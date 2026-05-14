@@ -716,6 +716,28 @@ int FUN_0007d8b0(void *bitmap, int mipmap_index)
   return result;
 }
 
+/* FUN_0007d960 — total byte size of one mipmap slice.
+ * Multiplies total texels by bits-per-pixel, then ceiling-divides by 8.
+ * Uses MSVC CDQ arithmetic rounding: (bits + (bits>>31 & 7)) >> 3.
+ * Field +0xc is the bitmap format index passed to bitmap_format_bits_per_pixel.
+ */
+int FUN_0007d960(void *bitmap, int mipmap_index)
+{
+  char *b = (char *)bitmap;
+  int texels;
+  short bpp;
+  int total_bits;
+
+  assert_halt(bitmap_verify(bitmap, 0));
+  assert_halt((short)mipmap_index >= 0 &&
+              (short)mipmap_index <= *(short *)(b + 0x14));
+
+  texels = FUN_0007d8b0(bitmap, mipmap_index);
+  bpp = bitmap_format_bits_per_pixel(*(short *)(b + 0xc));
+  total_bits = (int)bpp * texels;
+  return (total_bits + (total_bits >> 31 & 7)) >> 3;
+}
+
 /*
  * FUN_0007d9f0 — compute the byte size of one scanline at a given mipmap
  * level for an uncompressed, unswizzled bitmap.
