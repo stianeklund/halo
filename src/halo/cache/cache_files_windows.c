@@ -164,6 +164,62 @@ void FUN_001bc9c0(void)
   }
 }
 
+/* FUN_001bc9e0 — submit an async IO request to the cache file system.
+ * Allocates a free request slot via FUN_001bc5c0, validates inputs, fills the
+ * slot (offset +0..+0x1e), clears the completion flag, and fires the IO event.
+ * Size is rounded up to the next multiple of 0x200 if not aligned.
+ * Returns the request slot index.
+ */
+short FUN_001bc9e0(int param_1, int offset, unsigned int size, int buffer,
+                   char *completion_flag, char async_flag)
+{
+  short request_index;
+  char *req;
+
+  request_index = FUN_001bc5c0();
+  if (request_index < 0 || request_index > 0x1ff) {
+    display_assert(
+      "request_index>=0 && request_index<MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x260, 1);
+    system_exit(-1);
+  }
+  req = (char *)(*(int *)0x4e9250 + (int)request_index * 0x20);
+  if (*(int16_t *)0x4e9244 == -1) {
+    display_assert("cache_file_globals.open_map_file_index!=NONE",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x107, 1);
+    system_exit(-1);
+  }
+  if (!buffer) {
+    display_assert("buffer", "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
+                   0x10a, 1);
+    system_exit(-1);
+  }
+  if (!completion_flag) {
+    display_assert("completion_flag_reference",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x10b, 1);
+    system_exit(-1);
+  }
+  if (offset < 0) {
+    display_assert("offset>=0",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x10e, 1);
+    system_exit(-1);
+  }
+  if (size & 0x1ff)
+    size = (size | 0x1ff) + 1;
+  *completion_flag = 0;
+  csmemset(req, 0, 0x14);
+  *(char **)(req + 0x10) = completion_flag;
+  *(unsigned int *)(req + 0x14) = size;
+  *(int *)(req + 0xc) = 0;
+  *(int *)(req + 0x8) = offset;
+  *(int *)(req + 0x18) = buffer;
+  *(char *)(req + 0x1d) = 1;
+  *(char *)(req + 0x1c) = async_flag;
+  *(char *)(req + 0x1e) = 0;
+  FUN_001cfeaa(*(void **)0x4e9248);
+  return request_index;
+}
+
 /* Enable an async cache I/O request. Validates request_index is within
  * [0, 512) and sets the enable byte (offset 0x1c) in the request's
  * 0x20-byte entry in the global cache request array at 0x4e9250. */
@@ -286,6 +342,74 @@ void FUN_001bcd10(void *block)
       i = (int)s;
     } while (i < *(int *)(b + 0x18));
   }
+}
+
+/* FUN_001bcdc0 — register D3D vertex and index buffers from a geometry block.
+ * block+4/8: vertex count/array; block+0xc/0x10: index count/array (stride
+ * 0xc). Writes 1 to first dword of each buffer entry and calls
+ * D3DResource_Register. Same as FUN_001bccb0 but uses offsets +4/+8/+0xc/+0x10
+ * instead of +0x10/+0x14/+0x18/+0x1c.
+ */
+void FUN_001bcdc0(void *block)
+{
+  char *b = (char *)block;
+  short s;
+  int i;
+
+  s = 0;
+  if (*(int *)(b + 4) > 0) {
+    i = 0;
+    do {
+      unsigned int *entry = (unsigned int *)(*(int *)(b + 8) + i * 0xc);
+      *entry = 1;
+      D3DResource_Register(entry, 0);
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 4));
+  }
+  s = 0;
+  if (*(int *)(b + 0xc) > 0) {
+    i = 0;
+    do {
+      unsigned int *entry = (unsigned int *)(*(int *)(b + 0x10) + i * 0xc);
+      *entry = 1;
+      D3DResource_Register(entry, 0);
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 0xc));
+  }
+}
+
+/* FUN_001bce30 — wait for all vertex and index buffers in a geometry block.
+ * Sets DAT_00325652=0x11 (render state), blocks until each D3D resource is
+ * idle, then clears DAT_00325652=0. Same struct layout as FUN_001bcdc0.
+ */
+void FUN_001bce30(void *block)
+{
+  char *b = (char *)block;
+  short s;
+  int i;
+
+  *(char *)0x325652 = 0x11;
+  s = 0;
+  if (*(int *)(b + 4) > 0) {
+    i = 0;
+    do {
+      D3DResource_BlockUntilNotBusy((void *)(*(int *)(b + 8) + i * 0xc));
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 4));
+  }
+  s = 0;
+  if (*(int *)(b + 0xc) > 0) {
+    i = 0;
+    do {
+      D3DResource_BlockUntilNotBusy((void *)(*(int *)(b + 0x10) + i * 0xc));
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 0xc));
+  }
+  *(char *)0x325652 = 0;
 }
 
 /* Query the status of the current precache operation. Returns a status
