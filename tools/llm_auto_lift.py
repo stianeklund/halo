@@ -661,10 +661,10 @@ def _select_targets(
 
 class ContextPackBuilder:
 
-    def __init__(self, *, ghidra_live: bool = False):
+    def __init__(self, *, ghidra_live: bool = False, kb_raw: dict | None = None, objdiff_units: dict | None = None):
         self.ghidra_live = ghidra_live
-        self.kb_raw = _load_kb_raw()
-        self.objdiff_units = _load_objdiff_units()
+        self.kb_raw = kb_raw if kb_raw is not None else _load_kb_raw()
+        self.objdiff_units = objdiff_units if objdiff_units is not None else _load_objdiff_units()
 
     def build(self, target: LiftTarget) -> ContextPack:
         kb_context = self._gather_kb_context(target)
@@ -1112,6 +1112,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     ap.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
+    ap.add_argument("-q", "--quiet", action="store_true", help="Suppress decorative output")
     sub = ap.add_subparsers(dest="mode")
 
     # -- score --
@@ -1180,18 +1181,19 @@ def cmd_score(args: argparse.Namespace):
 
     if args.json:
         out = [asdict(t) for t in targets]
-        print(json.dumps(out, indent=2))
+        kw = {"separators": (",", ":")} if args.quiet else {"indent": 2}
+        print(json.dumps(out, **kw))
         return
 
-    print(f"{'Score':>5}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Factors'}")
-    print("-" * 120)
+    if not args.quiet:
+        print(f"{'Score':>5}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Factors'}")
+        print("-" * 120)
     for t in targets:
         factors = ", ".join(f"{k}=+{v}" for k, v in t.score_details.items())
         print(f"{t.score:>5}  {t.addr:>10}  {t.object_name:<35}  {t.name:<35}  {factors}")
 
-    kb_raw = _load_kb_raw()
     total_unported = sum(
-        1 for obj in kb_raw["objects"]
+        1 for obj in scorer.kb_raw["objects"]
         for f in obj.get("functions", [])
         if not f.get("ported")
     )
@@ -1213,11 +1215,13 @@ def cmd_select(args: argparse.Namespace):
             row = asdict(item)
             row["target"] = asdict(item.target)
             out.append(row)
-        print(json.dumps(out, indent=2))
+        kw = {"separators": (",", ":")} if args.quiet else {"indent": 2}
+        print(json.dumps(out, **kw))
         return
 
-    print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Miz':>3}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
-    print("-" * 146)
+    if not args.quiet:
+        print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Miz':>3}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
+        print("-" * 146)
     for item in selected:
         target = item.target
         reasons = ", ".join(item.reasons)
@@ -1229,40 +1233,40 @@ def cmd_select(args: argparse.Namespace):
             f"{item.lane:<13}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
         )
 
-    print("\nLane guide:")
-    print("  auto-lift     -> high confidence; use /lift <target>")
-    print("  cache-context -> cache Ghidra context, then /lift <target>")
-    print("  manual-lift   -> use /lift; strategically useful but needs more care")
-    print("  defer         -> low priority for now")
+    if not args.quiet:
+        print("\nLane guide:")
+        print("  auto-lift     -> high confidence; use /lift <target>")
+        print("  cache-context -> cache Ghidra context, then /lift <target>")
+        print("  manual-lift   -> use /lift; strategically useful but needs more care")
+        print("  defer         -> low priority for now")
 
-    # Show any functions with preserved rejected branches (skipped from main table)
-    rejected_entries = []
-    if FAILURES_DIR.exists():
-        for f in sorted(FAILURES_DIR.glob("*.json")):
-            try:
-                rec = json.loads(f.read_text())
-                branch = rec.get("branch", "")
-                if not branch:
+        rejected_entries = []
+        if FAILURES_DIR.exists():
+            for f in sorted(FAILURES_DIR.glob("*.json")):
+                try:
+                    rec = json.loads(f.read_text())
+                    branch = rec.get("branch", "")
+                    if not branch:
+                        continue
+                    result = subprocess.run(
+                        ["git", "branch", "--list", branch],
+                        capture_output=True, text=True, cwd=ROOT,
+                    )
+                    if branch not in result.stdout:
+                        continue
+                    stage = ""
+                    for attempt in rec.get("attempts", []):
+                        stage = attempt.get("failure_stage", stage)
+                    rejected_entries.append((rec.get("target", f.stem), branch, stage,
+                                             rec.get("addr", ""), rec.get("object", "")))
+                except Exception:
                     continue
-                result = subprocess.run(
-                    ["git", "branch", "--list", branch],
-                    capture_output=True, text=True, cwd=ROOT,
-                )
-                if branch not in result.stdout:
-                    continue
-                stage = ""
-                for attempt in rec.get("attempts", []):
-                    stage = attempt.get("failure_stage", stage)
-                rejected_entries.append((rec.get("target", f.stem), branch, stage,
-                                         rec.get("addr", ""), rec.get("object", "")))
-            except Exception:
-                continue
-    if rejected_entries:
-        print("\nRejected branches (prior work preserved — retry with /lift <target>):")
-        print(f"  {'Target':<35}  {'Stage':<20}  {'Branch'}")
-        print("  " + "-" * 80)
-        for name, branch, stage, addr, obj in rejected_entries:
-            print(f"  {name:<35}  {stage:<20}  {branch}")
+        if rejected_entries:
+            print("\nRejected branches (prior work preserved — retry with /lift <target>):")
+            print(f"  {'Target':<35}  {'Stage':<20}  {'Branch'}")
+            print("  " + "-" * 80)
+            for name, branch, stage, addr, obj in rejected_entries:
+                print(f"  {name:<35}  {stage:<20}  {branch}")
 
 
 def _find_mizuchi_result(func_name: str) -> str | None:
@@ -1319,7 +1323,7 @@ def cmd_cache_context(args: argparse.Namespace):
         print("You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running?")
         sys.exit(1)
 
-    builder = ContextPackBuilder(ghidra_live=True)
+    builder = ContextPackBuilder(ghidra_live=True, kb_raw=scorer.kb_raw, objdiff_units=scorer.objdiff_units)
     CONTEXT_CACHE.mkdir(parents=True, exist_ok=True)
 
     retrieval_available = _check_retrieval_index()

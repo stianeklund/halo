@@ -35,9 +35,13 @@ Hazard classes:
 
 Usage:
     python3 tools/audit/check_lift_hazards.py
+    python3 tools/audit/check_lift_hazards.py -q
+    python3 tools/audit/check_lift_hazards.py --changed-only
+    python3 tools/audit/check_lift_hazards.py --changed-only --cached
 """
 import os
 import re
+import subprocess
 import sys
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -93,71 +97,58 @@ LOCAL_SCALAR8_PATTERN = re.compile(
 )
 
 
-def check_intrinsics():
+def check_intrinsics(filepath, content, lines):
     errors = []
-    for dirpath, _, filenames in os.walk(SRC_DIR):
-        for fname in filenames:
-            if not fname.endswith('.c'):
-                continue
-            fpath = os.path.join(dirpath, fname)
-            with open(fpath, 'r', errors='replace') as f:
+    in_block_comment = False
+    for lineno, line in enumerate(lines, 1):
+        stripped = line.lstrip()
+        if in_block_comment:
+            if '*/' in line:
                 in_block_comment = False
-                for lineno, line in enumerate(f, 1):
-                    stripped = line.lstrip()
-                    if in_block_comment:
-                        if '*/' in line:
-                            in_block_comment = False
-                        continue
-                    if stripped.startswith('//'):
-                        continue
-                    if stripped.startswith('/*'):
-                        if '*/' not in stripped:
-                            in_block_comment = True
-                        continue
-                    if stripped.startswith('* ') or stripped.startswith('*\t') or stripped == '*\n':
-                        continue
-                    for m in INTRINSIC_PATTERN.finditer(line):
-                        addr = m.group(0)[2:].lower()
-                        name, fix = MSVC_INTRINSICS[addr]
-                        relpath = os.path.relpath(fpath, ROOT_DIR)
-                        errors.append(
-                            f'  {relpath}:{lineno}: call to {name} '
-                            f'(0x{addr}) — {fix}'
-                        )
+            continue
+        if stripped.startswith('//'):
+            continue
+        if stripped.startswith('/*'):
+            if '*/' not in stripped:
+                in_block_comment = True
+            continue
+        if stripped.startswith('* ') or stripped.startswith('*\t') or stripped == '*\n':
+            continue
+        for m in INTRINSIC_PATTERN.finditer(line):
+            addr = m.group(0)[2:].lower()
+            name, fix = MSVC_INTRINSICS[addr]
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            errors.append(
+                f'  {relpath}:{lineno}: call to {name} '
+                f'(0x{addr}) — {fix}'
+            )
     return errors
 
 
-def check_buffer_sizes():
+def check_buffer_sizes(filepath, content, lines):
     errors = []
-    for dirpath, _, filenames in os.walk(SRC_DIR):
-        for fname in filenames:
-            if not fname.endswith('.c'):
-                continue
-            fpath = os.path.join(dirpath, fname)
-            with open(fpath, 'r', errors='replace') as f:
-                lines = f.readlines()
 
-            buffers = {}
-            for lineno, line in enumerate(lines, 1):
-                for m in ARRAY_DECL_PATTERN.finditer(line):
-                    name = m.group(1)
-                    size_str = m.group(2)
-                    size = int(size_str, 16) if size_str.startswith('0x') else int(size_str)
-                    buffers[name] = (size, lineno)
+    buffers = {}
+    for lineno, line in enumerate(lines, 1):
+        for m in ARRAY_DECL_PATTERN.finditer(line):
+            name = m.group(1)
+            size_str = m.group(2)
+            size = int(size_str, 16) if size_str.startswith('0x') else int(size_str)
+            buffers[name] = (size, lineno)
 
-            for lineno, line in enumerate(lines, 1):
-                for m in BUFFER_CALL_PATTERN.finditer(line):
-                    callee = m.group(1)
-                    required_size, desc = KNOWN_BUFFER_SIZES[callee]
-                    rest = line[m.start():]
-                    for buf_name, (buf_size, decl_line) in buffers.items():
-                        if buf_name in rest and buf_size < required_size:
-                            relpath = os.path.relpath(fpath, ROOT_DIR)
-                            errors.append(
-                                f'  {relpath}:{lineno}: {buf_name}[{buf_size:#x}] '
-                                f'passed to {callee} which needs {required_size:#x} '
-                                f'bytes ({desc})'
-                            )
+    for lineno, line in enumerate(lines, 1):
+        for m in BUFFER_CALL_PATTERN.finditer(line):
+            callee = m.group(1)
+            required_size, desc = KNOWN_BUFFER_SIZES[callee]
+            rest = line[m.start():]
+            for buf_name, (buf_size, decl_line) in buffers.items():
+                if buf_name in rest and buf_size < required_size:
+                    relpath = os.path.relpath(filepath, ROOT_DIR)
+                    errors.append(
+                        f'  {relpath}:{lineno}: {buf_name}[{buf_size:#x}] '
+                        f'passed to {callee} which needs {required_size:#x} '
+                        f'bytes ({desc})'
+                    )
     return errors
 
 
@@ -208,51 +199,43 @@ def _extract_args(text, start):
     return None, None
 
 
-def check_duplicate_args():
+def check_duplicate_args(filepath, content, lines):
     """Flag calls where the same non-trivial expression appears as multiple args.
 
     Calls containing ``dup-args-ok`` are suppressed (verified in-place or
     intentional same-arg calls), including multiline call expressions.
     """
     errors = []
-    for dirpath, _, filenames in os.walk(SRC_DIR):
-        for fname in filenames:
-            if not fname.endswith('.c'):
+    flat = content
+    for m in FUNC_CALL_PATTERN.finditer(flat):
+        func_name = m.group(1)
+        paren_pos = m.end() - 1
+        args, end_pos = _extract_args(flat, paren_pos)
+        if args is None or len(args) < 2:
+            continue
+        start_lineno = flat[:m.start()].count('\n') + 1
+        end_lineno = flat[:end_pos].count('\n') + 1
+        call_lines = lines[start_lineno - 1:end_lineno]
+        if any('dup-args-ok' in line for line in call_lines):
+            continue
+        if func_name.startswith('_mm_'):
+            continue
+        seen = {}
+        for i, arg in enumerate(args):
+            if arg in TRIVIAL_ARGS:
                 continue
-            fpath = os.path.join(dirpath, fname)
-            with open(fpath, 'r', errors='replace') as f:
-                content = f.read()
-            lines = content.split('\n')
-            flat = content
-            for m in FUNC_CALL_PATTERN.finditer(flat):
-                func_name = m.group(1)
-                paren_pos = m.end() - 1
-                args, end_pos = _extract_args(flat, paren_pos)
-                if args is None or len(args) < 2:
-                    continue
-                start_lineno = flat[:m.start()].count('\n') + 1
-                end_lineno = flat[:end_pos].count('\n') + 1
-                call_lines = lines[start_lineno - 1:end_lineno]
-                if any('dup-args-ok' in line for line in call_lines):
-                    continue
-                if func_name.startswith('_mm_'):
-                    continue
-                seen = {}
-                for i, arg in enumerate(args):
-                    if arg in TRIVIAL_ARGS:
-                        continue
-                    if len(arg) < 3:
-                        continue
-                    if arg in seen:
-                        lineno = start_lineno
-                        relpath = os.path.relpath(fpath, ROOT_DIR)
-                        errors.append(
-                            f'  {relpath}:{lineno}: {func_name}() '
-                            f'arg {seen[arg]+1} and {i+1} are both '
-                            f'"{arg}" — possible register aliasing'
-                        )
-                        break
-                    seen[arg] = i
+            if len(arg) < 3:
+                continue
+            if arg in seen:
+                lineno = start_lineno
+                relpath = os.path.relpath(filepath, ROOT_DIR)
+                errors.append(
+                    f'  {relpath}:{lineno}: {func_name}() '
+                    f'arg {seen[arg]+1} and {i+1} are both '
+                    f'"{arg}" — possible register aliasing'
+                )
+                break
+            seen[arg] = i
     return errors
 
 
@@ -293,41 +276,33 @@ PTR_EXPR = re.compile(
 )
 
 
-def check_pointer_as_float():
+def check_pointer_as_float(filepath, content, lines, params_map):
     """Flag calls where a pointer expression is passed to a float parameter."""
-    params_map = _parse_decl_params()
     if not params_map:
         return []
     errors = []
-    for dirpath, _, filenames in os.walk(SRC_DIR):
-        for fname in filenames:
-            if not fname.endswith('.c'):
-                continue
-            fpath = os.path.join(dirpath, fname)
-            with open(fpath, 'r', errors='replace') as f:
-                content = f.read()
-            flat = content
-            for m in FUNC_CALL_PATTERN.finditer(flat):
-                func_name = m.group(1)
-                if func_name not in params_map:
-                    continue
-                ptypes = params_map[func_name]
-                paren_pos = m.end() - 1
-                args, _ = _extract_args(flat, paren_pos)
-                if args is None:
-                    continue
-                for i, arg in enumerate(args):
-                    if i >= len(ptypes):
-                        break
-                    if ptypes[i] in ('float', 'double') and PTR_EXPR.search(arg):
-                        lineno = flat[:m.start()].count('\n') + 1
-                        relpath = os.path.relpath(fpath, ROOT_DIR)
-                        errors.append(
-                            f'  {relpath}:{lineno}: {func_name}() '
-                            f'arg {i+1} looks like a pointer but '
-                            f'param is {ptypes[i]} — possible '
-                            f'push-then-fstp artifact'
-                        )
+    flat = content
+    for m in FUNC_CALL_PATTERN.finditer(flat):
+        func_name = m.group(1)
+        if func_name not in params_map:
+            continue
+        ptypes = params_map[func_name]
+        paren_pos = m.end() - 1
+        args, _ = _extract_args(flat, paren_pos)
+        if args is None:
+            continue
+        for i, arg in enumerate(args):
+            if i >= len(ptypes):
+                break
+            if ptypes[i] in ('float', 'double') and PTR_EXPR.search(arg):
+                lineno = flat[:m.start()].count('\n') + 1
+                relpath = os.path.relpath(filepath, ROOT_DIR)
+                errors.append(
+                    f'  {relpath}:{lineno}: {func_name}() '
+                    f'arg {i+1} looks like a pointer but '
+                    f'param is {ptypes[i]} — possible '
+                    f'push-then-fstp artifact'
+                )
     return errors
 
 
@@ -363,7 +338,7 @@ def _split_functions(lines):
     return chunks
 
 
-def check_buffer_alias():
+def check_buffer_alias(filepath, content, lines):
     """Flag functions where a local buffer is written at an offset AND a
     different pointer is read at a nearby offset — likely buffer-alias
     confusion from Ghidra's independent local_XX naming.
@@ -377,69 +352,61 @@ def check_buffer_alias():
     Suppressed by ``buf-alias-ok`` comment on the read line.
     """
     errors = []
-    for dirpath, _, filenames in os.walk(SRC_DIR):
-        for fname in filenames:
-            if not fname.endswith('.c'):
+    chunks = _split_functions(lines)
+
+    for chunk_start, chunk_end in chunks:
+        buffers = {}
+        buf_write_offsets = {}
+        param_read_sites = []
+
+        for lineno in range(chunk_start, chunk_end + 1):
+            if lineno > len(lines):
+                break
+            line = lines[lineno - 1]
+            stripped = line.lstrip()
+            if stripped.startswith('//'):
                 continue
-            fpath = os.path.join(dirpath, fname)
-            with open(fpath, 'r', errors='replace') as f:
-                content = f.read()
-            lines = content.split('\n')
-            chunks = _split_functions(lines)
+            if stripped.startswith('/*') or stripped.startswith('* ') \
+               or stripped == '*\n' or stripped == '*':
+                continue
 
-            for chunk_start, chunk_end in chunks:
-                buffers = {}
-                buf_write_offsets = {}
-                param_read_sites = []
+            for m in ARRAY_DECL_PATTERN.finditer(line):
+                name = m.group(1)
+                size_str = m.group(2)
+                size = int(size_str, 16) if size_str.startswith('0x') else int(size_str)
+                if size >= MIN_BUF_SIZE:
+                    buffers[name] = (size, lineno)
 
-                for lineno in range(chunk_start, chunk_end + 1):
-                    if lineno > len(lines):
+            for m in BUF_WRITE_PATTERN.finditer(line):
+                var = m.group(1)
+                off = int(m.group(2), 16)
+                if var in buffers and off >= MIN_OFFSET and off < buffers[var][0]:
+                    buf_write_offsets.setdefault(var, set()).add(off)
+
+            if 'buf-alias-ok' in line:
+                continue
+
+            for m in PARAM_CAST_READ_PATTERN.finditer(line):
+                var = m.group(1)
+                off = int(m.group(2), 16)
+                if var not in buffers and off >= MIN_OFFSET:
+                    param_read_sites.append((var, off, lineno))
+
+        for param_name, p_off, p_line in param_read_sites:
+            for buf_name, b_offs in buf_write_offsets.items():
+                buf_size = buffers[buf_name][0]
+                if p_off >= buf_size:
+                    continue
+                for b_off in b_offs:
+                    if abs(p_off - b_off) <= ALIAS_TOLERANCE:
+                        relpath = os.path.relpath(filepath, ROOT_DIR)
+                        errors.append(
+                            f'  {relpath}:{p_line}: reads {param_name}+{p_off:#x} '
+                            f'but {buf_name}[{buf_size:#x}] is written at '
+                            f'+{b_off:#x} — verify this isn\'t a buffer field '
+                            f'(suppress with buf-alias-ok comment)'
+                        )
                         break
-                    line = lines[lineno - 1]
-                    stripped = line.lstrip()
-                    if stripped.startswith('//'):
-                        continue
-                    if stripped.startswith('/*') or stripped.startswith('* ') \
-                       or stripped == '*\n' or stripped == '*':
-                        continue
-
-                    for m in ARRAY_DECL_PATTERN.finditer(line):
-                        name = m.group(1)
-                        size_str = m.group(2)
-                        size = int(size_str, 16) if size_str.startswith('0x') else int(size_str)
-                        if size >= MIN_BUF_SIZE:
-                            buffers[name] = (size, lineno)
-
-                    for m in BUF_WRITE_PATTERN.finditer(line):
-                        var = m.group(1)
-                        off = int(m.group(2), 16)
-                        if var in buffers and off >= MIN_OFFSET and off < buffers[var][0]:
-                            buf_write_offsets.setdefault(var, set()).add(off)
-
-                    if 'buf-alias-ok' in line:
-                        continue
-
-                    for m in PARAM_CAST_READ_PATTERN.finditer(line):
-                        var = m.group(1)
-                        off = int(m.group(2), 16)
-                        if var not in buffers and off >= MIN_OFFSET:
-                            param_read_sites.append((var, off, lineno))
-
-                for param_name, p_off, p_line in param_read_sites:
-                    for buf_name, b_offs in buf_write_offsets.items():
-                        buf_size = buffers[buf_name][0]
-                        if p_off >= buf_size:
-                            continue
-                        for b_off in b_offs:
-                            if abs(p_off - b_off) <= ALIAS_TOLERANCE:
-                                relpath = os.path.relpath(fpath, ROOT_DIR)
-                                errors.append(
-                                    f'  {relpath}:{p_line}: reads {param_name}+{p_off:#x} '
-                                    f'but {buf_name}[{buf_size:#x}] is written at '
-                                    f'+{b_off:#x} — verify this isn\'t a buffer field '
-                                    f'(suppress with buf-alias-ok comment)'
-                                )
-                                break
 
     seen = set()
     deduped = []
@@ -488,7 +455,7 @@ def _sum_locals(lines):
     return total
 
 
-def check_frame_sizes():
+def check_frame_sizes(filepath, content, lines):
     """Check ported functions where SUB ESP,N is documented in a comment.
 
     Compares the original MSVC stack frame size against the sum of declared
@@ -496,132 +463,190 @@ def check_frame_sizes():
     locals are significantly smaller than the original frame.
     """
     errors = []
+    i = 0
+    while i < len(lines):
+        m = SUB_ESP_PATTERN.search(lines[i])
+        if not m:
+            i += 1
+            continue
+        frame_size = _parse_int(m.group(1))
+        func_name = None
+        j = i
+        for j in range(i + 1, min(i + 30, len(lines))):
+            stripped = lines[j].lstrip()
+            if stripped and not stripped.startswith(('*', '/', '#', '\n')):
+                fn_match = re.match(
+                    r'(?:static\s+)?(?:void|int|short|char|float|unsigned|'
+                    r'int16_t|uint32_t|int32_t|bool|data_t)\s*\*?\s*'
+                    r'(FUN_[0-9a-fA-F]+|\w+)\s*\(', stripped
+                )
+                if fn_match:
+                    func_name = fn_match.group(1)
+                break
+        if func_name:
+            body = _find_function_body(lines, func_name)
+            if body:
+                start, end = body
+                declared = _sum_locals(lines[start:end])
+                gap = frame_size - declared
+                if gap >= 8:
+                    relpath = os.path.relpath(filepath, ROOT_DIR)
+                    errors.append(
+                        f'  {relpath}:{j+1}: {func_name} — '
+                        f'original: {frame_size:#x} ({frame_size}), '
+                        f'declared: {declared:#x} ({declared}), '
+                        f'gap: {gap} bytes'
+                    )
+        i = j + 1
+
+    return errors
+
+
+def _collect_c_files(changed_only=False, cached=False):
+    """Collect .c file paths under SRC_DIR.
+
+    If changed_only is True, only return files appearing in git diff output.
+    If cached is also True, use --cached to check staged files.
+    """
+    if changed_only:
+        cmd = ['git', 'diff', '--name-only', 'HEAD']
+        if cached:
+            cmd = ['git', 'diff', '--name-only', '--cached']
+        try:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=ROOT_DIR
+            )
+            changed = set()
+            for line in result.stdout.strip().splitlines():
+                abspath = os.path.normpath(os.path.join(ROOT_DIR, line))
+                changed.add(abspath)
+        except (subprocess.SubprocessError, FileNotFoundError):
+            changed = None
+    else:
+        changed = None
+
+    c_files = []
     for dirpath, _, filenames in os.walk(SRC_DIR):
         for fname in filenames:
             if not fname.endswith('.c'):
                 continue
             fpath = os.path.join(dirpath, fname)
-            with open(fpath, 'r', errors='replace') as f:
-                lines = f.readlines()
-
-            text = ''.join(lines)
-            i = 0
-            while i < len(lines):
-                m = SUB_ESP_PATTERN.search(lines[i])
-                if not m:
-                    i += 1
-                    continue
-                frame_size = _parse_int(m.group(1))
-                func_name = None
-                j = i
-                for j in range(i + 1, min(i + 30, len(lines))):
-                    stripped = lines[j].lstrip()
-                    if stripped and not stripped.startswith(('*', '/', '#', '\n')):
-                        fn_match = re.match(
-                            r'(?:static\s+)?(?:void|int|short|char|float|unsigned|'
-                            r'int16_t|uint32_t|int32_t|bool|data_t)\s*\*?\s*'
-                            r'(FUN_[0-9a-fA-F]+|\w+)\s*\(', stripped
-                        )
-                        if fn_match:
-                            func_name = fn_match.group(1)
-                        break
-                if func_name:
-                    body = _find_function_body(lines, func_name)
-                    if body:
-                        start, end = body
-                        declared = _sum_locals(lines[start:end])
-                        gap = frame_size - declared
-                        if gap >= 8:
-                            relpath = os.path.relpath(fpath, ROOT_DIR)
-                            errors.append(
-                                f'  {relpath}:{j+1}: {func_name} — '
-                                f'original: {frame_size:#x} ({frame_size}), '
-                                f'declared: {declared:#x} ({declared}), '
-                                f'gap: {gap} bytes'
-                            )
-                i = j + 1
-
-    return errors
+            if changed is not None and fpath not in changed:
+                continue
+            c_files.append(fpath)
+    return c_files
 
 
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
+    quiet = '-q' in sys.argv or '--quiet' in sys.argv
+    changed_only = '--changed-only' in sys.argv
+    cached = '--cached' in sys.argv
 
-    intrinsic_errors = check_intrinsics()
-    buffer_errors = check_buffer_sizes()
-    duplicate_errors = check_duplicate_args()
-    ptr_float_errors = check_pointer_as_float()
-    alias_errors = check_buffer_alias()
-    frame_errors = check_frame_sizes() if frame_audit else []
+    c_files = _collect_c_files(changed_only=changed_only, cached=cached)
 
-    if intrinsic_errors:
-        print(
-            'ERROR: MSVC intrinsic addresses found in lifted code.\n'
-            'These are compiler runtime helpers with non-standard ABIs.\n'
-            'Use the equivalent C idiom instead:\n',
-            file=sys.stderr,
+    params_map = _parse_decl_params()
+
+    all_intrinsic_errors = []
+    all_buffer_errors = []
+    all_duplicate_errors = []
+    all_ptr_float_errors = []
+    all_alias_errors = []
+    all_frame_errors = []
+
+    for fpath in c_files:
+        with open(fpath, 'r', errors='replace') as f:
+            content = f.read()
+        lines = content.split('\n')
+
+        all_intrinsic_errors.extend(check_intrinsics(fpath, content, lines))
+        all_buffer_errors.extend(check_buffer_sizes(fpath, content, lines))
+        all_duplicate_errors.extend(check_duplicate_args(fpath, content, lines))
+        all_ptr_float_errors.extend(check_pointer_as_float(fpath, content, lines, params_map))
+        all_alias_errors.extend(check_buffer_alias(fpath, content, lines))
+        if frame_audit:
+            all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
+
+    if quiet:
+        counts = (
+            f'intrinsics: {len(all_intrinsic_errors)}, '
+            f'buffer_sizes: {len(all_buffer_errors)}, '
+            f'duplicate_args: {len(all_duplicate_errors)}, '
+            f'pointer_as_float: {len(all_ptr_float_errors)}, '
+            f'buffer_alias: {len(all_alias_errors)}'
         )
-        for e in intrinsic_errors:
-            print(e, file=sys.stderr)
-        print(file=sys.stderr)
+        if frame_audit:
+            counts += f', frame_sizes: {len(all_frame_errors)}'
+        print(counts, file=sys.stderr)
+    else:
+        if all_intrinsic_errors:
+            print(
+                'ERROR: MSVC intrinsic addresses found in lifted code.\n'
+                'These are compiler runtime helpers with non-standard ABIs.\n'
+                'Use the equivalent C idiom instead:\n',
+                file=sys.stderr,
+            )
+            for e in all_intrinsic_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
 
-    if buffer_errors:
-        print(
-            'ERROR: undersized buffers passed to known callees.\n'
-            'Verify the buffer size matches the callee\'s memset/init:\n',
-            file=sys.stderr,
-        )
-        for e in buffer_errors:
-            print(e, file=sys.stderr)
-        print(file=sys.stderr)
+        if all_buffer_errors:
+            print(
+                'ERROR: undersized buffers passed to known callees.\n'
+                'Verify the buffer size matches the callee\'s memset/init:\n',
+                file=sys.stderr,
+            )
+            for e in all_buffer_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
 
-    if duplicate_errors:
-        print(
-            'WARNING: duplicate arguments in function calls.\n'
-            'Ghidra may have confused callee-saved registers (EBX/ESI/EDI)\n'
-            'with a different variable. Verify against disassembly:\n',
-            file=sys.stderr,
-        )
-        for e in duplicate_errors:
-            print(e, file=sys.stderr)
-        print(file=sys.stderr)
+        if all_duplicate_errors:
+            print(
+                'WARNING: duplicate arguments in function calls.\n'
+                'Ghidra may have confused callee-saved registers (EBX/ESI/EDI)\n'
+                'with a different variable. Verify against disassembly:\n',
+                file=sys.stderr,
+            )
+            for e in all_duplicate_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
 
-    if ptr_float_errors:
-        print(
-            'WARNING: pointer expression passed to float parameter.\n'
-            'MSVC passes floats via PUSH <dummy>; FSTP [ESP]. Ghidra may\n'
-            'have reported the dummy (a pointer) instead of the float:\n',
-            file=sys.stderr,
-        )
-        for e in ptr_float_errors:
-            print(e, file=sys.stderr)
-        print(file=sys.stderr)
+        if all_ptr_float_errors:
+            print(
+                'WARNING: pointer expression passed to float parameter.\n'
+                'MSVC passes floats via PUSH <dummy>; FSTP [ESP]. Ghidra may\n'
+                'have reported the dummy (a pointer) instead of the float:\n',
+                file=sys.stderr,
+            )
+            for e in all_ptr_float_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
 
-    if alias_errors:
-        print(
-            'WARNING: possible buffer-alias confusion.\n'
-            'A local buffer and a different pointer are accessed at nearby\n'
-            'offsets. Ghidra may have shown a buffer field as a separate\n'
-            'local_XX variable. Verify against disassembly [EBP±N]:\n',
-            file=sys.stderr,
-        )
-        for e in alias_errors:
-            print(e, file=sys.stderr)
-        print(file=sys.stderr)
+        if all_alias_errors:
+            print(
+                'WARNING: possible buffer-alias confusion.\n'
+                'A local buffer and a different pointer are accessed at nearby\n'
+                'offsets. Ghidra may have shown a buffer field as a separate\n'
+                'local_XX variable. Verify against disassembly [EBP±N]:\n',
+                file=sys.stderr,
+            )
+            for e in all_alias_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
 
-    if frame_errors:
-        print(
-            'WARNING: stack frame size mismatch in ported functions.\n'
-            'The original MSVC binary allocates more stack space than our C\n'
-            'code declares. Unported callees may depend on this layout\n'
-            '(MSVC stack overlap hazard):\n',
-            file=sys.stderr,
-        )
-        for e in frame_errors:
-            print(e, file=sys.stderr)
-        print(file=sys.stderr)
+        if all_frame_errors:
+            print(
+                'WARNING: stack frame size mismatch in ported functions.\n'
+                'The original MSVC binary allocates more stack space than our C\n'
+                'code declares. Unported callees may depend on this layout\n'
+                '(MSVC stack overlap hazard):\n',
+                file=sys.stderr,
+            )
+            for e in all_frame_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
 
-    if intrinsic_errors or buffer_errors:
+    if all_intrinsic_errors or all_buffer_errors:
         return 1
 
     return 0
