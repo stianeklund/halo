@@ -13023,8 +13023,9 @@
           "addr": "0x3fc90"
         },
         {
-          "decl": "void FUN_0003fe30(void);",
-          "addr": "0x3fe30"
+          "decl": "int FUN_0003fe30(int unit_handle, char prefer_passenger);",
+          "addr": "0x3fe30",
+          "ported": true
         },
         {
           "decl": "void FUN_0003feb0(void);",

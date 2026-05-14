@@ -1239,3 +1239,66 @@ int FUN_0003fb00(unsigned char *param_1, unsigned char *param_2)
   }
   return (*param_1 < *param_2);
 }
+
+/* FUN_0003fe30: resolve a vehicle unit handle to an occupant handle.
+ *
+ * Given a vehicle unit handle, returns the handle of a key occupant:
+ *  - If prefer_passenger is nonzero and the vehicle has a passenger
+ *    (unit+0x2d8 != -1), resolve to the passenger handle.
+ *  - Otherwise, if the vehicle has a driver (unit+0x2d4 != -1), resolve
+ *    to the driver handle.
+ *  - If no resolution changed the handle (remains -1 or unchanged), returns
+ *    the resolved handle directly.
+ *
+ * Debug filter (applied only in non-multiplayer with debug flag set):
+ *  - If game_connection() != 0 (multiplayer): skip filter, return resolved.
+ *  - If byte[0x5ac9c6] == 0 (AI debug flag off): skip filter, return resolved.
+ *  - If the resolved unit has no rider (unit+0x1c8 == -1): skip filter,
+ *    return resolved.
+ *  - Otherwise (debug on, singleplayer, resolved unit has a rider): return -1.
+ *
+ * Confirmed: param_1=[EBP+8] (int), prefer_passenger=[EBP+C] (char).
+ * Returns int in EAX. */
+int FUN_0003fe30(int unit_handle, char prefer_passenger)
+{
+  void *obj;
+  int resolved;
+  int candidate;
+
+  if (unit_handle == -1) {
+    return -1;
+  }
+  obj = object_try_and_get_and_verify_type(unit_handle, 3);
+  if (obj == NULL) {
+    return -1;
+  }
+
+  resolved = unit_handle;
+  if (prefer_passenger != '\0') {
+    candidate = *(int *)((char *)obj + 0x2d8);
+    if (candidate != -1) {
+      resolved = candidate;
+      goto check_debug;
+    }
+  }
+  candidate = *(int *)((char *)obj + 0x2d4);
+  if (candidate != -1) {
+    resolved = candidate;
+  }
+
+check_debug:
+  if (resolved == -1) {
+    return resolved;
+  }
+  if (game_connection() != 0) {
+    return resolved;
+  }
+  if (*(char *)0x5ac9c6 == '\0') {
+    return resolved;
+  }
+  obj = object_get_and_verify_type(resolved, 3);
+  if (*(int *)((char *)obj + 0x1c8) == -1) {
+    return resolved;
+  }
+  return -1;
+}
