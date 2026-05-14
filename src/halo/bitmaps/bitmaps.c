@@ -547,6 +547,35 @@ invalid:
   return false;
 }
 
+/* 0x7d5d0 — bitmap init/validate helper.
+ *
+ * Asserts bitmap != NULL. If bitmap+0x28 is zero, calls FUN_00168370 to
+ * set it up. Then calls FUN_00168b10 (hardware finalize), and asserts
+ * bitmap_verify(bitmap, FALSE).
+ *
+ * Confirmed: TEST ESI,ESI / display_assert("bitmap",...,0x163,1) at 0x7d5d7.
+ * Confirmed: [ESI+0x28]==0 / CALL FUN_00168370(bitmap) at 0x7d5fb.
+ * Confirmed: CALL FUN_00168b10(bitmap) at 0x7d60c (batched ADD ESP,0xc at
+ * 0x7d619). Confirmed: bitmap_verify(bitmap,0) /
+ * display_assert("bitmap_verify(bitmap, FALSE)",...,0x171) at 0x7d614.
+ */
+void FUN_0007d5d0(void *bitmap)
+{
+  if (!bitmap) {
+    display_assert("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x163, 1);
+    system_exit(-1);
+  }
+  if (!*(int *)((char *)bitmap + 0x28)) {
+    FUN_00168370(bitmap);
+  }
+  FUN_00168b10(bitmap);
+  if (!bitmap_verify(bitmap, 0)) {
+    display_assert("bitmap_verify(bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x171, 1);
+    system_exit(-1);
+  }
+}
+
 /* bitmap_mipmap_width (0x7d6e0)
  *
  * Compute the width of a bitmap at a given mipmap level.  Clamps to a
