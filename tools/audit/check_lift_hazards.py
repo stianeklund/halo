@@ -78,18 +78,18 @@ SUB_ESP_PATTERN = re.compile(
     r'SUB\s+ESP\s*[,=]\s*(0x[0-9a-fA-F]+)', re.IGNORECASE
 )
 LOCAL_ARRAY_PATTERN = re.compile(
-    r'^\s+(?:unsigned\s+)?(?:char|uint8_t|int8_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+    r'^\s+(?:volatile\s+)?(?:unsigned\s+)?(?:char|uint8_t|int8_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
 )
 LOCAL_ARRAY16_PATTERN = re.compile(
-    r'^\s+(?:unsigned\s+)?(?:short|int16_t|uint16_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+    r'^\s+(?:volatile\s+)?(?:unsigned\s+)?(?:short|int16_t|uint16_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
 )
 LOCAL_ARRAY32_PATTERN = re.compile(
-    r'^\s+(?:unsigned\s+)?(?:int|int32_t|uint32_t|float)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+    r'^\s+(?:volatile\s+)?(?:unsigned\s+)?(?:int|int32_t|uint32_t|float)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
 )
 # Matches struct-typed arrays: `some_struct_t name[N]`.  The size per element
 # is resolved at runtime from cs() macros parsed out of project headers.
 LOCAL_STRUCT_ARRAY_PATTERN = re.compile(
-    r'^\s+(\w+_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+    r'^\s+(?:volatile\s+)?(\w+_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
 )
 # cs(TypeName, size) static-assert macro — used to build the struct-size table.
 CS_MACRO_PATTERN = re.compile(

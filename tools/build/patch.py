@@ -255,7 +255,11 @@ def patch_exception_build_timestamp_strings(xbe: Xbe):
 
 
 def strip_stdcall_decoration(name: str) -> str:
-	"""Strip __stdcall name decoration: _name@N -> name"""
+	"""Strip __stdcall/__fastcall name decoration:
+	   _name@N -> name (stdcall)
+	   @name@N -> name (fastcall)"""
+	if name.startswith('@') and name.count('@') >= 2:
+		return name[1:name.rindex('@')]
 	if name.startswith('_') and '@' in name:
 		return name[1:name.index('@')]
 	return name
