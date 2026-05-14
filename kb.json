@@ -13362,8 +13362,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0007d820(void);",
-          "addr": "0x7d820"
+          "decl": "int FUN_0007d820(void *bitmap, short mipmap_index);",
+          "addr": "0x7d820",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_0007d8b0(void);",

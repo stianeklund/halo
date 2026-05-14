@@ -671,6 +671,25 @@ short FUN_0007d780(void *bitmap, short mipmap_index)
   return (short)result;
 }
 
+/* FUN_0007d820 — bitmap_mipmap_depth: depth counterpart of bitmap_mipmap_width.
+ * Returns the depth at the given mipmap level as a signed 32-bit int,
+ * clamped to 1.  No DXT block-alignment rounding (depth is not block-sized).
+ * Field +0x8 is the bitmap depth.
+ */
+int FUN_0007d820(void *bitmap, short mipmap_index)
+{
+  char *b = (char *)bitmap;
+  short depth;
+
+  assert_halt(bitmap_verify(bitmap, 0));
+  assert_halt(mipmap_index >= 0 && mipmap_index <= *(short *)(b + 0x14));
+
+  depth = *(short *)(b + 0x8);
+  if (depth >> (mipmap_index & 0x1f) < 2)
+    return 1;
+  return depth >> (mipmap_index & 0x1f);
+}
+
 /*
  * FUN_0007d9f0 — compute the byte size of one scanline at a given mipmap
  * level for an uncompressed, unswizzled bitmap.
