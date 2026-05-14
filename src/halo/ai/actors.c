@@ -1182,6 +1182,39 @@ bool FUN_0003b320(int actor_handle)
   return has_weapon;
 }
 
+/* 0x3b380 — Get actor's current encounter's team handle (encounter+0x18).
+ * Returns -1 if actor has no encounter. */
+int FUN_0003b380(int actor_handle)
+{
+  char *actor;
+  char *encounter;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0x270) != -1) {
+    encounter = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+    return *(int *)(encounter + 0x18);
+  }
+  return -1;
+}
+
+/* 0x3b3c0 — Forward param_1 and encounter context to FUN_00034970.
+ * Looks up the actor's encounter handle (+0x270); if valid, calls
+ * FUN_00034970 with the encounter's team handle and both actor/encounter
+ * handles. */
+void FUN_0003b3c0(int param_1, int actor_handle)
+{
+  char *actor;
+  int encounter_handle;
+  char *encounter;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  encounter_handle = *(int *)(actor + 0x270);
+  if (encounter_handle != -1) {
+    encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+    FUN_00034970(param_1, *(int *)(encounter + 0x18), actor_handle, encounter_handle);
+  }
+}
+
 /* FUN_0003b410 (0x3b410) — actor_replace_prop_reference
  *
  * Replace all references to old_prop with new_prop in actor fields. Updates

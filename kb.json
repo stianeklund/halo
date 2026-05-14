@@ -803,7 +803,7 @@
           "addr": "0x342a0"
         },
         {
-          "decl": "void FUN_00034970(void);",
+          "decl": "void FUN_00034970(int param_1, int encounter_team, int actor_handle, int encounter_handle);",
           "addr": "0x34970"
         },
         {
@@ -12652,12 +12652,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003b380(void);",
-          "addr": "0x3b380"
+          "decl": "int FUN_0003b380(int actor_handle);",
+          "addr": "0x3b380",
+          "ported": true
         },
         {
-          "decl": "void FUN_0003b3c0(void);",
-          "addr": "0x3b3c0"
+          "decl": "void FUN_0003b3c0(int param_1, int actor_handle);",
+          "addr": "0x3b3c0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003b630(void);",
