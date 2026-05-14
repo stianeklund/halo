@@ -86,6 +86,15 @@ LOCAL_ARRAY16_PATTERN = re.compile(
 LOCAL_ARRAY32_PATTERN = re.compile(
     r'^\s+(?:unsigned\s+)?(?:int|int32_t|uint32_t|float)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
 )
+# Matches struct-typed arrays: `some_struct_t name[N]`.  The size per element
+# is resolved at runtime from cs() macros parsed out of project headers.
+LOCAL_STRUCT_ARRAY_PATTERN = re.compile(
+    r'^\s+(\w+_t)\s+\w+\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+)
+# cs(TypeName, size) static-assert macro — used to build the struct-size table.
+CS_MACRO_PATTERN = re.compile(
+    r'\bcs\(\s*(\w+)\s*,\s*(0x[0-9a-fA-F]+|\d+)\s*\)'
+)
 LOCAL_SCALAR_PATTERN = re.compile(
     r'^\s+(?:unsigned\s+)?(?:int|int32_t|uint32_t|float|void\s*\*|char\s*\*|int\s*\*|short\s*\*)\s+\w+\s*;',
 )
@@ -436,9 +445,33 @@ def _find_function_body(lines, func_name):
     return None
 
 
+_struct_sizes_cache = None
+
+
+def _get_struct_sizes():
+    """Return {type_name: byte_size} for all cs()-asserted structs in src/ headers."""
+    global _struct_sizes_cache
+    if _struct_sizes_cache is not None:
+        return _struct_sizes_cache
+    sizes = {}
+    for dirpath, _, filenames in os.walk(SRC_DIR):
+        for fname in filenames:
+            if not fname.endswith('.h'):
+                continue
+            try:
+                with open(os.path.join(dirpath, fname), 'r', errors='replace') as f:
+                    for m in CS_MACRO_PATTERN.finditer(f.read()):
+                        sizes[m.group(1)] = _parse_int(m.group(2))
+            except OSError:
+                pass
+    _struct_sizes_cache = sizes
+    return sizes
+
+
 def _sum_locals(lines):
     """Sum declared local variable sizes (bytes) from function body lines."""
     total = 0
+    struct_sizes = _get_struct_sizes()
     for line in lines:
         for m in LOCAL_ARRAY_PATTERN.finditer(line):
             total += _parse_int(m.group(1))
@@ -446,6 +479,10 @@ def _sum_locals(lines):
             total += _parse_int(m.group(1)) * 2
         for m in LOCAL_ARRAY32_PATTERN.finditer(line):
             total += _parse_int(m.group(1)) * 4
+        for m in LOCAL_STRUCT_ARRAY_PATTERN.finditer(line):
+            type_name = m.group(1)
+            if type_name in struct_sizes:
+                total += struct_sizes[type_name] * _parse_int(m.group(2))
         if LOCAL_SCALAR_PATTERN.match(line):
             total += 4
         elif LOCAL_SCALAR16_PATTERN.match(line):
