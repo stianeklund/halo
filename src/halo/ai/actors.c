@@ -2242,6 +2242,55 @@ void FUN_0003c0c0(int object_handle, short effect_type, float *position,
   }
 }
 
+/* FUN_0003c1c0 (0x3c1c0) — dispatch actor stimulus by effect type.
+ *
+ * Dispatched from FUN_0003c0c0. Routes the incoming effect (a struct pointer
+ * with type at +0x14 and index at +0x18) to one of three handlers:
+ *   type 2 -> FUN_00036b50(param_1, param_2)
+ *   type 3 -> look up prop record via datum_get(prop_data, param_2); if its
+ *             field +0x1c != -1, call datum_absolute_index_to_index on the
+ *             effect index; if the resulting record is non-NULL, call
+ *             FUN_00034970(param_1, record+0x18, prop+0x1c, effect+0x18)
+ *   type 4 -> FUN_000377d0(param_1, param_2)
+ *
+ * Confirmed: [EBP+0x08]=param_1 (actor handle), [EBP+0x0C]=param_2 (prop
+ *   handle), [EBP+0x10]=param_3 (effect struct pointer).
+ * Confirmed: MOVSX EAX,word ptr [ESI+0x14] at 0x3c1d0 (type field).
+ * Confirmed: SUB EAX,2 / JZ / DEC / JZ / DEC / JNZ dispatch pattern.
+ * Confirmed: datum_get uses DAT_005ab23c (prop_data) for param_2 lookup.
+ * Confirmed: datum_absolute_index_to_index(prop_data, effect+0x18) at 0x3c21a.
+ * Confirmed: FUN_00034970 push order (first->last): param_1, iVar3+0x18,
+ *   iVar2+0x1c, param_3+0x18; ADD ESP,0x10 at 0x3c23b.
+ */
+void FUN_0003c1c0(int param_1, int param_2, int param_3)
+{
+  char *iVar2;
+  char *iVar3;
+  short sVar1;
+
+  if (param_3 == 0)
+    return;
+
+  sVar1 = *(short *)(param_3 + 0x14);
+  if (sVar1 == 2) {
+    FUN_00036b50(param_1, param_2);
+  } else if (sVar1 == 3) {
+    iVar2 = (char *)datum_get(*(data_t **)0x5ab23c, param_2);
+    if (*(int *)(iVar2 + 0x1c) != -1) {
+      iVar3 = (char *)(int)datum_absolute_index_to_index(
+        *(data_t **)0x5ab23c, *(int *)(param_3 + 0x18));
+      if (iVar3 != 0) {
+        FUN_00034970(param_1, *(int *)(iVar3 + 0x18),
+                     *(int *)(iVar2 + 0x1c), *(int *)(param_3 + 0x18));
+        return;
+      }
+    }
+  } else if (sVar1 == 4) {
+    FUN_000377d0(param_1, param_2);
+    return;
+  }
+}
+
 /* 0x3c260 — Set or clear bit 0 in actor flags (field +0x6d0). */
 void FUN_0003c260(int actor_handle, char flag)
 {
