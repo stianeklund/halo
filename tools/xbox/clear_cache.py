@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 
 _tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _tools_dir not in sys.path:
@@ -143,83 +144,117 @@ def list_files_in_path(client: RdcpClient, path: str) -> tuple[list[dict], int, 
     return files, 0, ""
 
 
+def reboot_and_reconnect(client: RdcpClient, timeout_seconds: float = 20.0) -> bool:
+    """Reboot the Xbox and reconnect XBDM. Returns True on success."""
+    print("\n  Files locked by running title - rebooting Xbox...")
+    try:
+        client.command("reboot")
+    except RdcpError:
+        pass
+    client.close()
+
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        time.sleep(1.0)
+        try:
+            client.connect()
+            print("  XBDM reachable again after reboot")
+            return True
+        except RdcpError:
+            pass
+
+    print(
+        f"  warning: XBDM did not come back within {timeout_seconds:.1f}s",
+        file=sys.stderr,
+    )
+    return False
+
+
 def delete_item(client: RdcpClient, full_path: str, is_dir: bool = False,
-                dry_run: bool = False) -> bool:
-    """Delete a file or directory from the Xbox."""
+                dry_run: bool = False) -> tuple[bool, bool]:
+    """Delete a file or directory from the Xbox.
+
+    Returns:
+        (success, needs_reboot) - needs_reboot is True when a 414 (locked)
+        error indicates the title must be stopped first.
+    """
     if dry_run:
         item_type = "directory" if is_dir else "file"
         print(f"      [DRY-RUN] Would delete {item_type}: {full_path}")
-        return True
-    
+        return True, False
+
     if is_dir:
         command = f'delete name="{full_path}" dir'
     else:
         command = f'delete name="{full_path}"'
-    
+
     response = client.command(command)
-    
+
     if response.is_success:
-        return True
+        return True, False
     elif response.code == 402:  # Not found
-        return True
+        return True, False
+    elif response.code == 414:  # File is locked / in use
+        print(f"        Locked: {full_path} (414 - file in use by running title)")
+        return False, True
     else:
         print(f"        Error: {response.code}- {response.message}",
               file=sys.stderr)
-        return False
+        return False, False
 
 
 def clear_path_recursive(client: RdcpClient, drive_letter: str,
                         current_path: str,
-                        dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str], int]:
+                        dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str], int, bool]:
     """Recursively clear Halo cache from a path.
-    
+
     Returns:
-        Tuple of (deleted_count, failed_count, list_of_deleted_names, total_size)
+        Tuple of (deleted_count, failed_count, list_of_deleted_names, total_size,
+                  hit_locked) - hit_locked is True if any file returned 414.
     """
     files, error_code, error_msg = list_files_in_path(client, current_path)
-    
-    if error_code == 402:  # File not found = empty or missing
-        return (0, 0, [], 0)
+
+    if error_code == 402:
+        return (0, 0, [], 0, False)
     elif error_code != 0:
         if verbose:
             print(f"    Error listing {current_path}: {error_code}- {error_msg}")
-        return (0, 1, [], 0)
-    
+        return (0, 1, [], 0, False)
+
     if not files:
-        return (0, 0, [], 0)
-    
+        return (0, 0, [], 0, False)
+
     deleted = 0
     failed = 0
     total_size = 0
     deleted_names = []
-    
+    hit_locked = False
+
     for item in files:
         item_name = item["name"]
         item_lower = item_name.lower()
         full_path = f"{current_path}{item_name}"
-        
+
         if item.get("is_dir"):
-            # Skip protected directories (save data)
             if item_lower in SKIP_DIRECTORIES:
                 if verbose:
                     print(f"    Skipping protected directory: {full_path}")
                 continue
-            
-            # Recurse into subdirectory
+
             sub_path = f"{full_path}\\"
-            sub_deleted, sub_failed, sub_names, sub_size = clear_path_recursive(
+            sub_deleted, sub_failed, sub_names, sub_size, sub_locked = clear_path_recursive(
                 client, drive_letter, sub_path, dry_run, verbose
             )
             deleted += sub_deleted
             failed += sub_failed
             deleted_names.extend(sub_names)
             total_size += sub_size
-            
-            # After clearing contents, try to remove the directory itself
-            # if it is now empty and appears to be Halo-specific
-            # (only do this if the directory name matches a Halo pattern)
+            hit_locked = hit_locked or sub_locked
+
             if is_halo_cache_file(item_name + ".map") or item_lower in HALO_FILE_PATTERNS:
-                if delete_item(client, full_path, is_dir=True, dry_run=dry_run):
+                ok, locked = delete_item(client, full_path, is_dir=True, dry_run=dry_run)
+                hit_locked = hit_locked or locked
+                if ok:
                     deleted += 1
                     deleted_names.append(item_name)
                 else:
@@ -233,7 +268,9 @@ def clear_path_recursive(client: RdcpClient, drive_letter: str,
                     total_size += item.get("size", 0)
                     deleted_names.append(item_name)
                 else:
-                    if delete_item(client, full_path, is_dir=False, dry_run=dry_run):
+                    ok, locked = delete_item(client, full_path, is_dir=False, dry_run=dry_run)
+                    hit_locked = hit_locked or locked
+                    if ok:
                         deleted += 1
                         total_size += item.get("size", 0)
                         deleted_names.append(item_name)
@@ -241,29 +278,29 @@ def clear_path_recursive(client: RdcpClient, drive_letter: str,
                             print(f"      Deleted: {full_path}")
                     else:
                         failed += 1
-    
-    return (deleted, failed, deleted_names, total_size)
+
+    return (deleted, failed, deleted_names, total_size, hit_locked)
 
 
 def clear_partition(client: RdcpClient, drive_letter: str,
-                   dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str]]:
+                   dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str], bool]:
     """Clear Halo cache from a single partition.
-    
+
     Returns:
-        Tuple of (deleted_count, failed_count, list_of_deleted_names)
+        Tuple of (deleted_count, failed_count, list_of_deleted_names, hit_locked)
     """
     drive_display = f"{drive_letter}:"
     drive_path = make_drive_path(drive_letter)
-    
+
     if dry_run:
         print(f"  [DRY-RUN] Would scan {drive_display}")
     else:
         print(f"  Scanning {drive_display}...")
-    
-    deleted, failed, deleted_names, total_size = clear_path_recursive(
+
+    deleted, failed, deleted_names, total_size, hit_locked = clear_path_recursive(
         client, drive_letter, drive_path, dry_run, verbose
     )
-    
+
     if deleted > 0:
         size_mb = total_size / (1024 * 1024)
         print(f"    Deleted {deleted} item(s), freed {size_mb:.2f} MB")
@@ -273,8 +310,8 @@ def clear_partition(client: RdcpClient, drive_letter: str,
                 print(f"      - {name}")
     elif verbose:
         print(f"    No Halo cache files in {drive_display}")
-    
-    return (deleted, failed, deleted_names)
+
+    return (deleted, failed, deleted_names, hit_locked)
 
 
 def parse_args() -> argparse.Namespace:
@@ -315,34 +352,58 @@ def main() -> int:
         print("[DRY-RUN] Preview mode - no files will be deleted\n")
 
     try:
-        with RdcpClient(args.host, args.port, args.timeout) as client:
-            print("Connected\n")
+        client = RdcpClient(args.host, args.port, args.timeout)
+        client.connect()
+        print("Connected\n")
 
-            total_deleted = 0
-            total_failed = 0
-            all_deleted_files = []
+        total_deleted = 0
+        total_failed = 0
+        all_deleted_files = []
+        any_locked = False
 
-            for drive_letter in CACHE_PARTITIONS:
-                deleted, failed, deleted_names = clear_partition(
-                    client, drive_letter, args.dry_run, args.verbose
-                )
-                total_deleted += deleted
-                total_failed += failed
-                if deleted_names:
-                    all_deleted_files.extend([(drive_letter, name) for name in deleted_names])
+        for drive_letter in CACHE_PARTITIONS:
+            deleted, failed, deleted_names, hit_locked = clear_partition(
+                client, drive_letter, args.dry_run, args.verbose
+            )
+            total_deleted += deleted
+            total_failed += failed
+            any_locked = any_locked or hit_locked
+            if deleted_names:
+                all_deleted_files.extend([(drive_letter, name) for name in deleted_names])
 
-            print()
-            if total_failed > 0:
-                print(f"Warning: Deleted {total_deleted} item(s), {total_failed} failed")
-                return 1
-            elif total_deleted == 0:
-                print("No Halo cache files found (already clean)")
-                return 0
+        if any_locked and not args.dry_run:
+            if reboot_and_reconnect(client):
+                print("  Retrying cache clear after reboot...\n")
+                for drive_letter in CACHE_PARTITIONS:
+                    deleted, failed, deleted_names, _ = clear_partition(
+                        client, drive_letter, args.dry_run, args.verbose
+                    )
+                    total_deleted += deleted
+                    total_failed = max(0, total_failed - deleted)
+                    if deleted_names:
+                        all_deleted_files.extend(
+                            [(drive_letter, name) for name in deleted_names]
+                        )
             else:
-                print(f"Deleted {total_deleted} Halo cache item(s):")
-                for drive, name in all_deleted_files:
-                    print(f"  {drive}:\\{name}")
-                return 0
+                print(
+                    "  warning: could not reboot - locked files were NOT deleted",
+                    file=sys.stderr,
+                )
+
+        client.close()
+
+        print()
+        if total_failed > 0:
+            print(f"Warning: Deleted {total_deleted} item(s), {total_failed} failed")
+            return 1
+        elif total_deleted == 0:
+            print("No Halo cache files found (already clean)")
+            return 0
+        else:
+            print(f"Deleted {total_deleted} Halo cache item(s):")
+            for drive, name in all_deleted_files:
+                print(f"  {drive}:\\{name}")
+            return 0
 
     except RdcpError as exc:
         print(f"error: {exc}", file=sys.stderr)
