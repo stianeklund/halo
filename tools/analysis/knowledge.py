@@ -422,6 +422,14 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 						max(a.type.get_size(), 4) for a in args
 					)
 					export_name = f'_{s.name}@{param_bytes}'
+				elif isinstance(s, Function) and '__fastcall' in s.decl:
+					# fastcall functions need @name@N decoration in the .def
+					# so the linker can match the compiler-generated @name@N
+					args = list(s.cursor.get_arguments())
+					param_bytes = sum(
+						max(a.type.get_size(), 4) for a in args
+					)
+					export_name = f'@{s.name}@{param_bytes}'
 				f.write('\t' + export_name)
 				if isinstance(s, Data):
 					f.write(' DATA\n')
