@@ -1080,17 +1080,16 @@ char FUN_0002d9b0(int actor_handle, int encounter_handle, float distance)
   char *iVar2;
   char *iVar4;
   int iVar5;
-  int *puVar6;
-  short *psVar7;
+  int *piVar6;
+  int *piVar7;
 
   iVar2 = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   *(int16_t *)(iVar2 + 0x3b8) = -1;
   actor_set_dormant(actor_handle, 0);
-  if ((*(int16_t *)(iVar2 + 0x46c) == 5) &&
-      (*(int *)(iVar2 + 0x470) == encounter_handle)) {
+  piVar6 = (int *)(iVar2 + 0x46c);
+  if ((*(int16_t *)piVar6 == 5) && (*(int *)(iVar2 + 0x470) == encounter_handle)) {
     if (*(float *)(iVar2 + 0x474) == distance) {
-      if ((*(char *)(iVar2 + 0x4c) != '\0') &&
-          (*(char *)(iVar2 + 0x4a4) == '\0')) {
+      if ((*(char *)(iVar2 + 0x4c) != '\0') && (*(char *)(iVar2 + 0x4a4) == '\0')) {
         return actor_path_refresh(actor_handle, 0, 0);
       }
       return 1;
@@ -1106,12 +1105,9 @@ char FUN_0002d9b0(int actor_handle, int encounter_handle, float distance)
     iVar5 = *(int *)(iVar4 + 0x18);
   }
   *(int *)(iVar2 + 0x414) = iVar5;
-  puVar6 = (int *)(iVar2 + 0x400);
-  psVar7 = (short *)(iVar2 + 0x46c);
+  piVar7 = (int *)(iVar2 + 0x400);
   for (iVar5 = 6; iVar5 != 0; iVar5--) {
-    *(int *)psVar7 = *puVar6;
-    puVar6++;
-    psVar7 += 2;
+    *piVar6++ = *piVar7++;
   }
   return actor_path_refresh(actor_handle, 1, 0);
 }
