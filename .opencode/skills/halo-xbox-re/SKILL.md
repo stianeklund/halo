@@ -52,7 +52,7 @@ Before finalizing any RE finding:
    pointer arithmetic).
 6. Write implementation in address-ordered position.
 7. Update kb.json conservatively when evidence supports it.
-8. Run `rtk python3 tools/analysis/maintain.py <source>` after source edits.
+8. Run `python3 tools/analysis/maintain.py <source>` after source edits.
 
 ## Output format
 

@@ -84,6 +84,10 @@ SKILL_OUTPUTS = {
         "claude": OutputSpec("skills/halo-build-xemu/SKILL.md"),
         "opencode": OutputSpec("skills/halo-build-xemu/SKILL.md"),
     },
+    "halo-page-fault": {
+        "claude": OutputSpec("skills/halo-page-fault/SKILL.md"),
+        "opencode": OutputSpec("skills/halo-page-fault/SKILL.md"),
+    },
     "halo-re-lift": {
         "claude": OutputSpec("skills/halo-re-lift/SKILL.md"),
         "opencode": OutputSpec("skills/halo-re-lift/SKILL.md"),

@@ -29,11 +29,13 @@ extern uint32_t FUN_000d1c90(float *color);
 static int check(const char *name, uint32_t got, uint32_t expected, char *buf)
 {
   if (got == expected) {
-    crt_sprintf(buf, "  PASS %s: %08X\n", name, got);
+    crt_sprintf(buf, "ASSERT|PASS|%s|got=%08X|expected=%08X\n", name, got,
+                expected);
     debug_string_to_display(buf, 0);
     return 1;
   }
-  crt_sprintf(buf, "  FAIL %s: got %08X expected %08X\n", name, got, expected);
+  crt_sprintf(buf, "ASSERT|FAIL|%s|got=%08X|expected=%08X\n", name, got,
+              expected);
   debug_string_to_display(buf, 0);
   return 0;
 }
@@ -44,7 +46,10 @@ static void dump_clip_case(const char *name, int16_t ret, uint32_t mask,
   int i;
   int point_count;
 
-  crt_sprintf(buf, "  CLIP %s ret=%04X changed=%02X mask=%08X\n", name,
+  crt_sprintf(buf, "CASE|BEGIN|clip|%s\n", name);
+  debug_string_to_display(buf, 0);
+
+  crt_sprintf(buf, "VALUE|%s.ret|value=%04X|changed=%02X|mask=%08X\n", name,
               (uint16_t)ret, changed, mask);
   debug_string_to_display(buf, 0);
 
@@ -54,10 +59,13 @@ static void dump_clip_case(const char *name, int16_t ret, uint32_t mask,
   }
 
   for (i = 0; i < point_count; i++) {
-    crt_sprintf(buf, "  CLIP %s p%d=%08X,%08X\n", name, i,
+    crt_sprintf(buf, "VALUE|%s.p%d|x=%08X|y=%08X\n", name, i,
                 *(uint32_t *)&points[i * 2], *(uint32_t *)&points[i * 2 + 1]);
     debug_string_to_display(buf, 0);
   }
+
+  crt_sprintf(buf, "CASE|END|clip|%s|PASS\n", name);
+  debug_string_to_display(buf, 0);
 }
 
 void run_tests(void)
@@ -65,7 +73,7 @@ void run_tests(void)
   char buf[128];
   int passed = 0, total = 0;
 
-  debug_string_to_display("--- TEST_HARNESS_START ---\n", 0);
+  debug_string_to_display("RUN|BEGIN|suite=xbox_harness\n", 0);
 
   /* normalize3d: magnitude and resulting unit vector */
   {
@@ -370,6 +378,7 @@ void run_tests(void)
     }
   }
 
-  crt_sprintf(buf, "--- TEST_HARNESS_END: %d/%d passed ---\n", passed, total);
+  crt_sprintf(buf, "RUN|END|passed=%d|failed=%d|total=%d\n", passed,
+              total - passed, total);
   debug_string_to_display(buf, 0);
 }

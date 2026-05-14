@@ -27,6 +27,7 @@ from analysis.knowledge import Function, KnowledgeBase
 log = logging.getLogger(__name__)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 KB_REG_BASELINE_PATH = os.path.join(root_dir, 'tools', 'kb_reg_baseline.json')
+KB_OVERLAY_ENV = 'HALO_KB_OVERLAY'
 
 
 EXCEPTION_BUILD_AT_STRING_ADDR = 0x28b6f8
@@ -99,6 +100,49 @@ def load_reg_annotation_baseline(baseline_path=KB_REG_BASELINE_PATH):
             raise ValueError(f'{baseline_path} entry {addr} has no @<reg> annotation: {baseline_decl}')
 
     return baseline_funcs
+
+
+def _overlay_selector_keys(sym):
+    keys = {sym.name}
+    if getattr(sym, 'addr', None) is not None:
+        keys.add(hex(sym.addr))
+        keys.add(f'0x{sym.addr:08x}')
+        keys.add(f'FUN_{sym.addr:08x}')
+    return {k.lower() for k in keys if k}
+
+
+def apply_kb_overlay(kb, overlay_path):
+    """Apply temporary metadata overrides without editing kb.json."""
+    with open(overlay_path, encoding='utf-8') as f:
+        overlay = json.load(f)
+
+    functions = overlay.get('functions', overlay)
+    if not isinstance(functions, dict):
+        raise ValueError(f'{overlay_path}: expected object or functions object')
+
+    by_selector = {}
+    for sym in kb.symbols:
+        if isinstance(sym, Function):
+            for key in _overlay_selector_keys(sym):
+                by_selector.setdefault(key, []).append(sym)
+
+    applied = []
+    for selector, value in functions.items():
+        if isinstance(value, dict):
+            ported = value.get('ported')
+        else:
+            ported = value
+        if not isinstance(ported, bool):
+            raise ValueError(f'{overlay_path}: {selector} must set boolean ported')
+
+        matches = by_selector.get(str(selector).lower(), [])
+        if not matches:
+            raise ValueError(f'{overlay_path}: no function matches {selector}')
+        for sym in matches:
+            sym.ported = ported
+            applied.append(f'{sym.name}:ported={ported}')
+
+    log.info('Applied kb overlay %s: %s', overlay_path, ', '.join(applied))
 
 
 def find_reg_annotation_mismatches(kb, baseline_path=KB_REG_BASELINE_PATH, baseline_funcs=None):
@@ -1002,6 +1046,8 @@ def main():
     ap.add_argument('output_xbe', nargs='?', help='Output XBE path')
     ap.add_argument('--test-thunks', action='store_true',
                     help='Run reverse thunk self-tests and exit')
+    ap.add_argument('--kb-overlay', default=os.environ.get(KB_OVERLAY_ENV, ''),
+                    help='Temporary metadata override JSON. Also read from HALO_KB_OVERLAY.')
     args = ap.parse_args()
 
     if args.test_thunks:
@@ -1012,6 +1058,8 @@ def main():
         ap.error('input_xbe, input_exe, and output_xbe are required')
 
     kb = KnowledgeBase.deserialize()
+    if args.kb_overlay:
+        apply_kb_overlay(kb, args.kb_overlay)
 
     if not os.path.isfile(args.input_xbe):
         log.error('Could not find input XBE %s', args.input_xbe)

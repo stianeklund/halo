@@ -1,6 +1,5 @@
 ---
 description: Show the decompilation frontier
-agent: fast
 subtask: true
 ---
 
