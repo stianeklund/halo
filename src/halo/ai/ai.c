@@ -1302,3 +1302,40 @@ check_debug:
   }
   return -1;
 }
+
+/* FUN_0003feb0: Notify AI systems when a unit exits a vehicle.
+ *
+ * param_1 (unit_handle): the unit that just exited.
+ * param_2: passed to FUN_0003fe30 as unit_handle for vehicle-occupant resolution.
+ * param_3: vehicle/context handle; used to control prefer_passenger (word !=9)
+ *          and forwarded as param5 of FUN_00046f10.
+ *
+ * Resolves the occupant from param_2 via FUN_0003fe30, determines a relationship
+ * code (0=same unit, 2=enemy, 3=friendly, or 0xffffffff if no valid occupant),
+ * then notifies the AI communication system (FUN_00046f10), clears encounter
+ * references (FUN_00044660), and updates encounter kill counts (FUN_0005b2a0).
+ *
+ * Confirmed: [EBP+8]=unit_handle (int), [EBP+C]=param_2 (int),
+ *            [EBP+10]=param_3 compared as word ptr. */
+void FUN_0003feb0(int unit_handle, int param_2, short param_3)
+{
+  char relation;
+  int resolved;
+  void *obj_unit;
+  void *obj_resolved;
+
+  resolved = FUN_0003fe30(param_2, (char)(param_3 != 9));
+  relation = '\0';
+  if (unit_handle == resolved) {
+    relation = '\x01';
+  } else if (resolved != -1) {
+    obj_unit     = object_get_and_verify_type(unit_handle, 3);
+    obj_resolved = object_get_and_verify_type(resolved, 3);
+    relation = (char)(game_allegiance_get_team_is_friendly(
+                  *(short *)((char *)obj_resolved + 0x68),
+                  *(short *)((char *)obj_unit     + 0x68)) != '\0') + '\x02';
+  }
+  FUN_00046f10(0, unit_handle, resolved, (int)relation, (int)param_3, -1, 0);
+  FUN_00044660(unit_handle, '\0');
+  FUN_0005b2a0(unit_handle);
+}
