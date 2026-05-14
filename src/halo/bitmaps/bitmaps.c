@@ -690,6 +690,32 @@ int FUN_0007d820(void *bitmap, short mipmap_index)
   return depth >> (mipmap_index & 0x1f);
 }
 
+/* FUN_0007d8b0 — total number of texels in one mipmap slice (pixels per face).
+ * Returns width * height * depth at the given mipmap level, multiplied by 6
+ * for cube maps (_bitmap_type_cube_map == 2).
+ * Field +0xa is the bitmap type; depth at field +0x8.
+ */
+int FUN_0007d8b0(void *bitmap, int mipmap_index)
+{
+  char *b = (char *)bitmap;
+  short width;
+  short height;
+  short depth;
+  int result;
+
+  assert_halt(bitmap_verify(bitmap, 0));
+  assert_halt((short)mipmap_index >= 0 &&
+              (short)mipmap_index <= *(short *)(b + 0x14));
+
+  width = bitmap_mipmap_width(bitmap, mipmap_index);
+  height = FUN_0007d780(bitmap, mipmap_index);
+  depth = (short)FUN_0007d820(bitmap, mipmap_index);
+  result = (int)depth * (int)height * (int)width;
+  if (*(short *)(b + 0xa) == 2)
+    result *= 6;
+  return result;
+}
+
 /*
  * FUN_0007d9f0 — compute the byte size of one scanline at a given mipmap
  * level for an uncompressed, unswizzled bitmap.
