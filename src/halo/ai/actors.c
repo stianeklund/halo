@@ -1445,6 +1445,75 @@ void FUN_0003b5e0(int actor_handle)
   FUN_0001c4c0(actor_handle);
 }
 
+/* FUN_0003b630 (0x3b630) — actor_reset_targeting_state
+ *
+ * Resets an actor's targeting/combat handles to -1 (none) and clears
+ * swarm-component target slots. Performs the following:
+ *   1. Resolves actor via datum_get(actor_data, actor_handle).
+ *   2. Unconditionally sets:
+ *        actor+0x148 (int16_t) = -1  (short handle/index)
+ *        actor+0x144 (int32_t) = -1  (target handle)
+ *        actor+0x164 (int32_t) = -1  (preferred weapon handle)
+ *        actor+0x324 (int32_t) = -1
+ *   3. If *(short*)(actor+0x400) == 2: sets actor+0x410 (int32_t) = -1
+ *   4. If *(short*)(actor+0x46c) == 2: sets actor+0x47c (int32_t) = -1
+ *   5. Sets actor+0x494 (int32_t) = -1
+ *   6. If actor+0x6 != 0 AND actor+0x28 != -1 (swarm actor with valid swarm):
+ *        Gets swarm record via datum_get(swarm_data, actor+0x28).
+ *        Loops over each component (count at swarm+2, handles at swarm+0x58[i]):
+ *          datum_get(swarm_component_data, handle) → sets comp+0x10 = -1
+ *   7. Tail-calls FUN_0001c530().
+ *
+ * Confirmed: PUSH EBP; MOV EBP,ESP; MOV EAX,[EBP+8] at 0x3b630.
+ * Confirmed: PUSH [0x6325a4] (actor_data), PUSH EAX (actor_handle) →
+ *   CALL 0x119320 (datum_get); ADD ESP,0x8 at 0x3b636–0x3b64c.
+ * Confirmed: OR EBX,0xffffffff; MOV ECX,0x2 at 0x3b644–0x3b647.
+ * Confirmed: MOV word [EAX+0x148],BX (unconditional) at 0x3b656.
+ * Confirmed: MOV dword [EAX+0x144],EBX at 0x3b65d.
+ * Confirmed: MOV dword [EAX+0x164],EBX at 0x3b663.
+ * Confirmed: MOV dword [EAX+0x324],EBX at 0x3b669.
+ * Confirmed: CMP word [EAX+0x400],CX; JNZ; MOV dword [EAX+0x410],EBX at
+ *   0x3b64f/0x3b66f–0x3b671.
+ * Confirmed: CMP word [EAX+0x46c],CX; JNZ; MOV dword [EAX+0x47c],EBX at
+ *   0x3b677–0x3b680.
+ * Confirmed: MOV dword [EAX+0x494],EBX (unconditional) at 0x3b68b.
+ * Confirmed: MOV CL,[EAX+6]; TEST CL,CL; JZ at 0x3b686–0x3b691.
+ * Confirmed: MOV EAX,[EAX+0x28]; CMP EAX,EBX; JZ at 0x3b693–0x3b698.
+ * Confirmed: datum_get(swarm_data, actor+0x28) at 0x3b69a–0x3b6a9; EDI=swarm.
+ * Confirmed: XOR ESI,ESI; CMP word [EDI+2],SI; JLE 0x3b6b4 at 0x3b6ab–0x3b6b4.
+ * Confirmed: MOVSX EAX,SI; MOV ECX,[EDI+EAX*4+0x58]; datum_get(swarm_comp_data)
+ *   at 0x3b6c6–0x3b6d4; MOV dword [EAX+0x10],EBX at 0x3b6d8.
+ * Confirmed: INC ESI; CMP SI,word [EDI+2]; JL at 0x3b6d7–0x3b6df.
+ * Confirmed: JMP 0x1c530 (tail call to FUN_0001c530) at 0x3b6e5. */
+void FUN_0003b630(int actor_handle)
+{
+  char *actor;
+  char *swarm;
+  char *comp;
+  short i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(int16_t *)(actor + 0x148) = (int16_t)0xffff;
+  *(int *)(actor + 0x144) = -1;
+  *(int *)(actor + 0x164) = -1;
+  *(int *)(actor + 0x324) = -1;
+  if (*(int16_t *)(actor + 0x400) == 2) {
+    *(int *)(actor + 0x410) = -1;
+  }
+  if (*(int16_t *)(actor + 0x46c) == 2) {
+    *(int *)(actor + 0x47c) = -1;
+  }
+  *(int *)(actor + 0x494) = -1;
+  if (*(char *)(actor + 6) != '\0' && *(int *)(actor + 0x28) != -1) {
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+    for (i = 0; i < *(short *)(swarm + 2); i++) {
+      comp = (char *)datum_get(swarm_component_data, *(int *)(swarm + 0x58 + i * 4));
+      *(int *)(comp + 0x10) = -1;
+    }
+  }
+  FUN_0001c530();
+}
+
 /* 0x3b6f0 — Always returns true (actor type capability stub). */
 bool FUN_0003b6f0(void)
 {
