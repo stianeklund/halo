@@ -2,12 +2,13 @@
 """Clear Halo CE cache files from Xbox cache partitions via XBDM/RDCP.
 
 This tool surgically removes only Halo CE related cache files from devkit cache
-partitions (T: and U: for active title cache).
+partitions (P:, T:, U:, and Z:).
 
 For devkits:
+  P: - All titles cache (cache000.map, etc.)
   T: - Persistent Data - Active Title (temporary data)
   U: - Saved Games - Active Title (save data)
-  Z: - Not currently mounted (appears when game running)
+  Z: - Title state files (last_solo.txt); z:\\saved is preserved
 """
 
 from __future__ import annotations
@@ -38,13 +39,7 @@ DEFAULT_TIMEOUT = float(os.environ.get("XBDM_TIMEOUT", "10.0"))
 def make_drive_path(letter: str) -> str:
     return f"{letter}:\\"
 
-CACHE_PARTITIONS = ["P", "T", "U"]  # P: = All titles cache (has cache000.map, etc.)
-
-# File extensions that Halo CE creates in cache
-HALO_CACHE_EXTENSIONS = [
-    ".map",      # Map files
-    ".xbx",      # Xbox save metadata
-]
+CACHE_PARTITIONS = ["P", "T", "U", "Z"]
 
 # Known Halo file patterns
 # Note: "halo" is too generic and matches non-Halo files like "TitleMeta.xbx"
@@ -56,6 +51,9 @@ HALO_FILE_PATTERNS = [
     "sidewinder", "timberland", "putput", "longest",
     "a10", "a30", "a50", "b30", "b40", "c10", "c20", "c40", "d20", "d40",
 ]
+
+# Directories to skip entirely (save data, not cache)
+SKIP_DIRECTORIES = {"saved"}
 
 
 def is_halo_cache_file(filename: str) -> bool:
@@ -80,7 +78,10 @@ def is_halo_cache_file(filename: str) -> bool:
         # (cache partitions only contain cached game data)
         return True
 
-    # Check for Halo save/cache metadata files in P:\ root
+    # Check for Xbox save metadata files
+    if filename_lower.endswith(".xbx"):
+        return True
+
     # Include all .txt files (last_solo.txt, lastprof.txt, etc.)
     if filename_lower.endswith(".txt"):
         return True
@@ -92,15 +93,14 @@ def is_halo_cache_file(filename: str) -> bool:
     return False
 
 
-def list_files_in_partition(client: RdcpClient, drive_letter: str) -> tuple[list[dict], int, str]:
-    """List all files in a partition.
+def list_files_in_path(client: RdcpClient, path: str) -> tuple[list[dict], int, str]:
+    """List all files/directories at a given XBDM path.
     
     Returns:
         Tuple of (files_list, error_code, error_message)
     """
-    # IMPORTANT: Must use trailing backslash for XBDM
-    drive_path = make_drive_path(drive_letter)
-    command = f'dirlist name="{drive_path}"'
+    # IMPORTANT: Must use trailing backslash for XBDM directories
+    command = f'dirlist name="{path}"'
     response = client.command(command)
     
     if not response.is_success:
@@ -143,18 +143,15 @@ def list_files_in_partition(client: RdcpClient, drive_letter: str) -> tuple[list
     return files, 0, ""
 
 
-def delete_item(client: RdcpClient, drive_letter: str, item: dict, 
+def delete_item(client: RdcpClient, full_path: str, is_dir: bool = False,
                 dry_run: bool = False) -> bool:
-    """Delete a file or directory from a partition."""
-    drive_path = make_drive_path(drive_letter)
-    full_path = f"{drive_path}{item['name']}"
-    
+    """Delete a file or directory from the Xbox."""
     if dry_run:
-        item_type = "directory" if item.get("is_dir") else "file"
+        item_type = "directory" if is_dir else "file"
         print(f"      [DRY-RUN] Would delete {item_type}: {full_path}")
         return True
     
-    if item.get("is_dir"):
+    if is_dir:
         command = f'delete name="{full_path}" dir'
     else:
         command = f'delete name="{full_path}"'
@@ -171,6 +168,83 @@ def delete_item(client: RdcpClient, drive_letter: str, item: dict,
         return False
 
 
+def clear_path_recursive(client: RdcpClient, drive_letter: str,
+                        current_path: str,
+                        dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str], int]:
+    """Recursively clear Halo cache from a path.
+    
+    Returns:
+        Tuple of (deleted_count, failed_count, list_of_deleted_names, total_size)
+    """
+    files, error_code, error_msg = list_files_in_path(client, current_path)
+    
+    if error_code == 402:  # File not found = empty or missing
+        return (0, 0, [], 0)
+    elif error_code != 0:
+        if verbose:
+            print(f"    Error listing {current_path}: {error_code}- {error_msg}")
+        return (0, 1, [], 0)
+    
+    if not files:
+        return (0, 0, [], 0)
+    
+    deleted = 0
+    failed = 0
+    total_size = 0
+    deleted_names = []
+    
+    for item in files:
+        item_name = item["name"]
+        item_lower = item_name.lower()
+        full_path = f"{current_path}{item_name}"
+        
+        if item.get("is_dir"):
+            # Skip protected directories (save data)
+            if item_lower in SKIP_DIRECTORIES:
+                if verbose:
+                    print(f"    Skipping protected directory: {full_path}")
+                continue
+            
+            # Recurse into subdirectory
+            sub_path = f"{full_path}\\"
+            sub_deleted, sub_failed, sub_names, sub_size = clear_path_recursive(
+                client, drive_letter, sub_path, dry_run, verbose
+            )
+            deleted += sub_deleted
+            failed += sub_failed
+            deleted_names.extend(sub_names)
+            total_size += sub_size
+            
+            # After clearing contents, try to remove the directory itself
+            # if it is now empty and appears to be Halo-specific
+            # (only do this if the directory name matches a Halo pattern)
+            if is_halo_cache_file(item_name + ".map") or item_lower in HALO_FILE_PATTERNS:
+                if delete_item(client, full_path, is_dir=True, dry_run=dry_run):
+                    deleted += 1
+                    deleted_names.append(item_name)
+                else:
+                    failed += 1
+        else:
+            if is_halo_cache_file(item_name):
+                if dry_run:
+                    size_mb = item.get("size", 0) / (1024 * 1024)
+                    print(f"      [DRY-RUN] file: {full_path} ({size_mb:.2f} MB)")
+                    deleted += 1
+                    total_size += item.get("size", 0)
+                    deleted_names.append(item_name)
+                else:
+                    if delete_item(client, full_path, is_dir=False, dry_run=dry_run):
+                        deleted += 1
+                        total_size += item.get("size", 0)
+                        deleted_names.append(item_name)
+                        if verbose:
+                            print(f"      Deleted: {full_path}")
+                    else:
+                        failed += 1
+    
+    return (deleted, failed, deleted_names, total_size)
+
+
 def clear_partition(client: RdcpClient, drive_letter: str,
                    dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str]]:
     """Clear Halo cache from a single partition.
@@ -179,67 +253,26 @@ def clear_partition(client: RdcpClient, drive_letter: str,
         Tuple of (deleted_count, failed_count, list_of_deleted_names)
     """
     drive_display = f"{drive_letter}:"
+    drive_path = make_drive_path(drive_letter)
     
     if dry_run:
         print(f"  [DRY-RUN] Would scan {drive_display}")
     else:
         print(f"  Scanning {drive_display}...")
     
-    files, error_code, error_msg = list_files_in_partition(client, drive_letter)
-    
-    if error_code == 402:  # File not found = empty partition
-        if verbose:
-            print(f"    {drive_display} is empty")
-        return (0, 0, [])
-    elif error_code != 0:
-        print(f"    Error: {error_code}- {error_msg}")
-        return (0, 1, [])
-    
-    if not files:
-        if verbose:
-            print(f"    {drive_display} is empty")
-        return (0, 0, [])
-    
-    # Identify Halo cache files
-    halo_items = [f for f in files if is_halo_cache_file(f["name"])]
-    other_items = [f for f in files if not is_halo_cache_file(f["name"])]
-    
-    if not halo_items:
-        if verbose:
-            print(f"    No Halo cache files in {drive_display}")
-        return (0, 0, [])
-    
-    print(f"    Found {len(halo_items)} Halo item(s) "
-          f"({len(other_items)} other items preserved)")
-    
-    if dry_run:
-        for item in halo_items:
-            size_mb = item.get("size", 0) / (1024 * 1024)
-            item_type = "dir" if item.get("is_dir") else "file"
-            print(f"      [DRY-RUN] {item_type}: {item['name']} ({size_mb:.2f} MB)")
-        return (len(halo_items), 0, [item['name'] for item in halo_items])
-    
-    deleted = 0
-    failed = 0
-    total_size = 0
-    deleted_names = []
-    
-    for item in halo_items:
-        if delete_item(client, drive_letter, item, dry_run):
-            deleted += 1
-            total_size += item.get("size", 0)
-            deleted_names.append(item['name'])
-            if verbose:
-                print(f"      Deleted: {item['name']}")
-        else:
-            failed += 1
+    deleted, failed, deleted_names, total_size = clear_path_recursive(
+        client, drive_letter, drive_path, dry_run, verbose
+    )
     
     if deleted > 0:
         size_mb = total_size / (1024 * 1024)
         print(f"    Deleted {deleted} item(s), freed {size_mb:.2f} MB")
-        print("    Deleted items:")
-        for name in deleted_names:
-            print(f"      - {name}")
+        if verbose:
+            print("    Deleted items:")
+            for name in deleted_names:
+                print(f"      - {name}")
+    elif verbose:
+        print(f"    No Halo cache files in {drive_display}")
     
     return (deleted, failed, deleted_names)
 
@@ -254,7 +287,8 @@ Examples:
   python tools/xbox/clear_cache.py --dry-run    # Preview what would be deleted
   python tools/xbox/clear_cache.py -x 192.168.1.42
 
-Clears Halo files from T: and U: partitions (active title cache on devkits).
+Clears Halo files from P:, T:, U:, and Z: partitions (devkit cache).
+The z:\\saved directory is always preserved (contains save data).
 """
     )
     parser.add_argument("-x", "--host", default=DEFAULT_HOST,
