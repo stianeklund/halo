@@ -12975,8 +12975,9 @@
           "addr": "0x3f350"
         },
         {
-          "decl": "void FUN_0003f770(void);",
-          "addr": "0x3f770"
+          "decl": "void FUN_0003f770(char param_1);",
+          "addr": "0x3f770",
+          "ported": true
         },
         {
           "decl": "void FUN_0003f7b0(void);",
@@ -13074,7 +13075,8 @@
           "decl": "void FUN_00041e80(void);",
           "addr": "0x41e80"
         }
-      ]
+      ],
+      "source_path": "src/halo/ai/ai.c"
     },
     {
       "name": "bink_playback.obj",

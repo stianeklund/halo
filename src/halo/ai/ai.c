@@ -122,6 +122,17 @@ void ai_place(void)
   encounters_create_for_new_map();
 }
 
+/* 0x3f770 — Set the first byte of the AI globals block.
+ * Asserts ai_globals is non-null, then writes param_1 to the first byte. */
+void FUN_0003f770(char param_1)
+{
+  if (*(char **)0x632574 == NULL) {
+    display_assert("ai_globals", "c:\\halo\\SOURCE\\ai\\ai.c", 0x13a, 1);
+    system_exit(-1);
+  }
+  **(char **)0x632574 = param_1;
+}
+
 /* ai_handle_unit_approach: test whether a unit is approaching a valid
  * target for an AI actor, and optionally record the approach.
  * Looks up the actor via actor_data, checks the unit against
