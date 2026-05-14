@@ -13587,7 +13587,9 @@
         },
         {
           "decl": "void FUN_001bc9c0(void);",
-          "addr": "0x1bc9c0"
+          "addr": "0x1bc9c0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bc9e0(void);",
@@ -13607,15 +13609,21 @@
         },
         {
           "decl": "void FUN_001bcc50(void);",
-          "addr": "0x1bcc50"
+          "addr": "0x1bcc50",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_001bccb0(void);",
-          "addr": "0x1bccb0"
+          "decl": "void FUN_001bccb0(void *block);",
+          "addr": "0x1bccb0",
+          "status": "ported",
+          "ported": true
         },
         {
-          "decl": "void FUN_001bcd10(void);",
-          "addr": "0x1bcd10"
+          "decl": "void FUN_001bcd10(void *block);",
+          "addr": "0x1bcd10",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bcdc0(void);",
@@ -28477,6 +28485,16 @@
           "ported": true
         },
         {
+          "decl": "void __stdcall D3DResource_BlockUntilNotBusy(void *resource);",
+          "addr": "0x1ed620",
+          "ported": true
+        },
+        {
+          "decl": "int __stdcall D3DResource_IsBusy(void *resource);",
+          "addr": "0x1ed980",
+          "ported": true
+        },
+        {
           "decl": "void __stdcall D3DResource_Register(void *resource, void *data);",
           "addr": "0x1eda30",
           "ported": true
@@ -32835,7 +32853,7 @@
           "addr": "0x1d0144"
         },
         {
-          "decl": "void FUN_001d01c4(void);",
+          "decl": "void FUN_001d01c4(unsigned int milliseconds, int alertable);",
           "addr": "0x1d01c4"
         },
         {

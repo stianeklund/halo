@@ -151,6 +151,19 @@ void __stdcall FUN_001bc8f0(int error_code, unsigned int param_2,
   *event_ptr = 1;
 }
 
+/* FUN_001bc9c0 — close the currently-open map file if any is open.
+ * DAT_004e9244 = cache_file_globals.open_map_file_index (int16_t).
+ * If not NONE (-1), calls FUN_001bc620 to close the file, then resets to -1.
+ * Frameless in the original (no EBP frame).
+ */
+void FUN_001bc9c0(void)
+{
+  if (*(int16_t *)0x4e9244 != -1) {
+    FUN_001bc620();
+    *(int16_t *)0x4e9244 = -1;
+  }
+}
+
 /* Enable an async cache I/O request. Validates request_index is within
  * [0, 512) and sets the enable byte (offset 0x1c) in the request's
  * 0x20-byte entry in the global cache request array at 0x4e9250. */
@@ -163,6 +176,116 @@ void cache_files_io_request_enable(int16_t request_index)
     system_exit(-1);
   }
   *(uint8_t *)(*(int *)0x4e9250 + (int)request_index * 0x20 + 0x1c) = 1;
+}
+
+/* FUN_001bcc50 — spin-wait until all 512 cache IO request slots are idle.
+ * Loops: sleeps 1ms (FUN_001d01c4(0,1)), then scans all slots checking the
+ * active byte at +0x1d. If any slot is still active, repeat.
+ * DAT_004e9250 = base of the 512-entry request array (each 0x20 bytes).
+ */
+void FUN_001bcc50(void)
+{
+  int active;
+  short i;
+  int offset;
+
+  do {
+    FUN_001d01c4(0, 1);
+    active = 0;
+    i = 0;
+    offset = 0;
+    do {
+      if (i < 0 || i > 0x1ff) {
+        display_assert("request_index>=0 && "
+                       "request_index<MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS",
+                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x260,
+                       1);
+        system_exit(-1);
+      }
+      if (*(char *)(*(int *)0x4e9250 + offset + 0x1d) != '\0')
+        active = 1;
+      i = i + 1;
+      offset = offset + 0x20;
+    } while (i < 0x200);
+  } while (active);
+}
+
+/* FUN_001bccb0 — register D3D vertex and index buffers from a block.
+ * block+0x10: vertex buffer count; block+0x14: vertex buffer array base (stride
+ * 0xc). block+0x18: index buffer count; block+0x1c: index buffer array base
+ * (stride 0xc). Writes 1 to the first dword of each vertex buffer entry and
+ * calls D3DResource_Register; writes 0x10001 to each index buffer entry.
+ */
+void FUN_001bccb0(void *block)
+{
+  char *b = (char *)block;
+  short s;
+  int i;
+
+  s = 0;
+  if (*(int *)(b + 0x10) > 0) {
+    i = 0;
+    do {
+      unsigned int *entry = (unsigned int *)(*(int *)(b + 0x14) + i * 0xc);
+      *entry = 1;
+      D3DResource_Register(entry, 0);
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 0x10));
+  }
+  s = 0;
+  if (*(int *)(b + 0x18) > 0) {
+    i = 0;
+    do {
+      *(unsigned int *)(*(int *)(b + 0x1c) + i * 0xc) = 0x10001;
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 0x18));
+  }
+}
+
+/* FUN_001bcd10 — wait for D3D vertex and index buffers to become idle.
+ * Calls D3DResource_BlockUntilNotBusy then asserts !IsBusy for each buffer.
+ * Same block layout as FUN_001bccb0.
+ */
+void FUN_001bcd10(void *block)
+{
+  char *b = (char *)block;
+  short s;
+  int i;
+
+  s = 0;
+  if (*(int *)(b + 0x10) > 0) {
+    i = 0;
+    do {
+      void *entry = (void *)(*(int *)(b + 0x14) + i * 0xc);
+      D3DResource_BlockUntilNotBusy(entry);
+      if (D3DResource_IsBusy(entry) != 0) {
+        display_assert("!IDirect3DVertexBuffer8_IsBusy(vertex_buffer)",
+                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x205,
+                       1);
+        system_exit(-1);
+      }
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 0x10));
+  }
+  s = 0;
+  if (*(int *)(b + 0x18) > 0) {
+    i = 0;
+    do {
+      void *entry = (void *)(*(int *)(b + 0x1c) + i * 0xc);
+      D3DResource_BlockUntilNotBusy(entry);
+      if (D3DResource_IsBusy(entry) != 0) {
+        display_assert("!IDirect3DIndexBuffer8_IsBusy(index_buffer)",
+                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x212,
+                       1);
+        system_exit(-1);
+      }
+      s = s + 1;
+      i = (int)s;
+    } while (i < *(int *)(b + 0x18));
+  }
 }
 
 /* Query the status of the current precache operation. Returns a status
