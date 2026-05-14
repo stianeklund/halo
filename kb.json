@@ -6788,7 +6788,7 @@
      "addr": "0x118ba0"
     },
     {
-     "decl": "void FUN_00118be0(void);",
+     "decl": "void FUN_00118be0(void *definition, void *data, int count);",
      "addr": "0x118be0"
     },
     {
@@ -13210,8 +13210,9 @@
      "ported": true
     },
     {
-     "decl": "void FUN_001c6880(void);",
-     "addr": "0x1c6880"
+     "decl": "bool FUN_001c6880(file_ref_t *info);",
+     "addr": "0x1c6880",
+     "ported": true
     },
     {
      "decl": "void FUN_001c6900(void);",
@@ -15791,7 +15792,7 @@
      "addr": "0x19ac00"
     },
     {
-     "decl": "void FUN_0019acb0(void);",
+     "decl": "bool FUN_0019acb0(file_ref_t *info, int offset, int size, void *buffer);",
      "addr": "0x19acb0"
     },
     {

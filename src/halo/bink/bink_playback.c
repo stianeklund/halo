@@ -823,3 +823,31 @@ int FUN_001c6170(unsigned int flags, void *rect, void *locked_rect,
   D3DTexture_LockRect(texture, level, locked_rect, rect, flags);
   return 0;
 }
+
+/* Check if a file is an AIFF or AIFC audio container.
+ * Opens the file, reads the first 12-byte AIFF header chunk (FORM + size +
+ * type), byte-swaps it via the aiff_container_chunk definition, then checks
+ * that the chunk ID is 0x464f524d ('FORM') and the file type is either
+ * 0x41494646 ('AIFF') or 0x41494643 ('AIFC'). Closes the file before
+ * returning. Returns true if the file is a valid AIFF/AIFC container. */
+bool FUN_001c6880(file_ref_t *info)
+{
+  int header[3];
+  char result;
+  char ok;
+
+  result = 0;
+  ok = file_open(info, 1);
+  if (ok != '\0') {
+    ok = FUN_0019acb0(info, 0, 0xc, header);
+    if (ok != '\0') {
+      FUN_00118be0((void *)0x32ebbc, header, 1);
+      if ((header[0] == 0x464f524d) &&
+          ((header[2] == 0x41494646) || (header[2] == 0x41494643))) {
+        result = 1;
+      }
+    }
+    file_close(info);
+  }
+  return result;
+}
