@@ -214,6 +214,7 @@
     "0x140ad0": "void FUN_00140ad0(int object_handle@<edi>);",
     "0x14d080": "void collision_log_period_helper(int time_period@<esi>, int begin_flag);",
     "0x14d840": "short FUN_0014d840(short collision_function @<edi>);",
+    "0x155110": "void FUN_00155110(int stage@<eax>, int sub_index@<ecx>, unsigned int *result);",
     "0x184bc0": "void render_window_pregame(int window_type@<ebx>, int16_t *win);",
     "0x185290": "void render_window(int16_t *win@<esi>, void *offset_or_null);",
     "0x185770": "void render_camera_check_warning_condition(int16_t id@<ax>, float value);",
