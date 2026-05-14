@@ -62,6 +62,20 @@ void breakable_surfaces_dispose_from_old_map(void)
 {
 }
 
+/* FUN_00145990 — write a byte to *breakable_surface_globals (the flags byte
+ * at offset 0 in the globals buffer).  Used to toggle the active/enabled flag.
+ * Source: c:\halo\SOURCE\physics\breakable_surfaces.c line 0x78.
+ */
+void FUN_00145990(char active)
+{
+  if (!breakable_surface_globals) {
+    display_assert("globals",
+                   "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x78, 1);
+    system_exit(-1);
+  }
+  *breakable_surface_globals = active;
+}
+
 /* 0x1459e0 — breakable_surfaces_get_bsp_surface_data
  *
  * Returns a pointer to the 32-byte bitfield array for the current structure
@@ -85,6 +99,34 @@ char *breakable_surfaces_get_bsp_surface_data(void)
   assert_halt(global_structure_bsp_index >= 0 &&
               global_structure_bsp_index < 16);
   return breakable_surface_globals + 1 + (int)global_structure_bsp_index * 32;
+}
+
+/* FUN_00145a60 — check whether a breakable surface has been destroyed.
+ * Returns 1 if surface_index is NONE (-1) or the surface's bit is set in the
+ * BSP surface data bitfield; returns 0 if the bit is clear (still intact).
+ * Each uint32 covers 32 surface indices; bit = (index >> 5)*4 byte offset,
+ * bit position = index & 31.
+ * Source: c:\halo\SOURCE\physics\breakable_surfaces.c line 0x93.
+ */
+char FUN_00145a60(short breakable_surface_index)
+{
+  char *bsp_data;
+  int idx;
+
+  if (breakable_surface_index == -1)
+    return 1;
+  if (breakable_surface_index < 0 || breakable_surface_index >= 0x100) {
+    display_assert(
+      "breakable_surface_index==NONE || (breakable_surface_index>=0 &&"
+      " breakable_surface_index<MAXIMUM_BREAKABLE_SURFACES_PER_MAP)",
+      "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x93, 1);
+    system_exit(-1);
+  }
+  idx = (int)breakable_surface_index;
+  bsp_data = breakable_surfaces_get_bsp_surface_data();
+  if (!(*(uint32_t *)(bsp_data + (idx >> 5) * 4) & (1U << (idx & 0x1f))))
+    return 0;
+  return 1;
 }
 
 /* 0x145ad0 — Breakable surface destruction effect spawner.

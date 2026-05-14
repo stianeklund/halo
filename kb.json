@@ -13464,16 +13464,20 @@
           "addr": "0x1457d0"
         },
         {
-          "decl": "void FUN_00145990(void);",
-          "addr": "0x145990"
+          "decl": "void FUN_00145990(char active);",
+          "addr": "0x145990",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001459d0(void);",
           "addr": "0x1459d0"
         },
         {
-          "decl": "void FUN_00145a60(void);",
-          "addr": "0x145a60"
+          "decl": "char FUN_00145a60(short breakable_surface_index);",
+          "addr": "0x145a60",
+          "status": "ported",
+          "ported": true
         }
       ],
       "data": [
