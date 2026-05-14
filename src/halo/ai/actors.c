@@ -1393,6 +1393,12 @@ void FUN_0003b5e0(int actor_handle)
   FUN_0001c4c0(actor_handle);
 }
 
+/* 0x3b6f0 — Always returns true (actor type capability stub). */
+bool FUN_0003b6f0(void)
+{
+  return true;
+}
+
 /* FUN_0003b7e0 (0x3b7e0)
  * Reset a unit's control state. Builds a default unit_control_t (0x40 bytes):
  * animation_state=1, aiming_speed=1, control_flags=0, weapon/grenade/zoom=-1,
@@ -2039,6 +2045,27 @@ void FUN_0003c0c0(int object_handle, short effect_type, float *position,
     }
     actor_record = (char *)FUN_00059b50(iter);
   }
+}
+
+/* 0x3c260 — Set or clear bit 0 in actor flags (field +0x6d0). */
+void FUN_0003c260(int actor_handle, char flag)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (flag)
+    *(unsigned int *)(actor + 0x6d0) |= 1u;
+  else
+    *(unsigned int *)(actor + 0x6d0) &= ~1u;
+}
+
+/* 0x3c2a0 — Set bit 1 in actor flags (field +0x6d0). */
+void FUN_0003c2a0(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(unsigned int *)(actor + 0x6d0) |= 2u;
 }
 
 /* Set or clear bit 0x800 in actor flags at +0x6d0, and store target at +0x720.
