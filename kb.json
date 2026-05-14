@@ -13000,8 +13000,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003f970(void);",
-          "addr": "0x3f970"
+          "decl": "void FUN_0003f970(int param_1, int param_2, int param_3, int param_4);",
+          "addr": "0x3f970",
+          "ported": true
         },
         {
           "decl": "void FUN_0003fa40(void);",

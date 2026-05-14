@@ -208,6 +208,60 @@ void FUN_0003f850(int16_t param_1, char *force_major, char *is_random, float *ra
   }
 }
 
+/* FUN_0003f970: erase AI actors matching an encounter/squad/squad-group filter.
+ * Guards on AI globals active flag (*(char*)(ai_globals+1) != 0).
+ * If param_1 == -1 (all encounters): iterates all actors via
+ *   encounter_iterator_next (flag=0) + FUN_00059b50; erases each via
+ *   actor_erase(iter+0x14 handle, param_4).
+ * Else: initialises a per-encounter actor iterator via
+ *   encounter_actor_iterator_new(&iter, param_1) + FUN_00059a50; for each
+ *   actor, skips if actor+0x3c != param_2 (unless param_2==-1) or
+ *   actor+0x3a != param_3 (unless param_3==-1); erases matching actors via
+ *   actor_erase(iter[1] handle, param_4).
+ *
+ * Stack layout (SUB ESP,0x28):
+ *   [EBP-0x28..EBP-0x15]: enc_iter[0x1c] (encounter iterator, all-branch)
+ *   [EBP-0x14]:           enc_iter+0x14 (actor handle field in iterator)
+ *   [EBP-0x0c..EBP-0x09]: actor_iter[2] (encounter-actor iterator, single-branch)
+ *   [EBP-0x08]:           actor_iter[1] (actor handle, 4 bytes into actor_iter)
+ *
+ * Confirmed: PUSH 0x0 at 0x3f992 → encounter_iterator_next flag=0.
+ * Confirmed: MOVSX+CMP for short fields at actor+0x3c (param_2) and
+ *            actor+0x3a (param_3).
+ * Confirmed: actor_erase args: PUSH param_4, PUSH actor_handle (cdecl). */
+void FUN_0003f970(int param_1, int param_2, int param_3, int param_4)
+{
+  char enc_iter[0x1c]; /* encounter iterator for the all-encounters branch */
+  int actor_iter[2];   /* encounter-actor iterator: [0]=state, [1]=handle */
+  int has_more;
+  int actor;
+
+  if (*(char *)(*(int *)0x632574 + 1) == 0) {
+    return;
+  }
+
+  if (param_1 == -1) {
+    /* iterate all actors across all encounters */
+    encounter_iterator_next(enc_iter, 0);
+    has_more = FUN_00059b50(enc_iter);
+    while (has_more != 0) {
+      actor_erase(*(int *)(enc_iter + 0x14), (char)param_4);
+      has_more = FUN_00059b50(enc_iter);
+    }
+  } else {
+    /* iterate actors within the specified encounter, applying filters */
+    encounter_actor_iterator_new(actor_iter, param_1);
+    actor = FUN_00059a50(actor_iter);
+    while (actor != 0) {
+      if ((param_2 == -1 || *(short *)(actor + 0x3c) == param_2) &&
+          (param_3 == -1 || *(short *)(actor + 0x3a) == param_3)) {
+        actor_erase(actor_iter[1], (char)param_4);
+      }
+      actor = FUN_00059a50(actor_iter);
+    }
+  }
+}
+
 /* ai_handle_unit_approach: test whether a unit is approaching a valid
  * target for an AI actor, and optionally record the approach.
  * Looks up the actor via actor_data, checks the unit against
