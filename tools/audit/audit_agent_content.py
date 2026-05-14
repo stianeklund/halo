@@ -197,7 +197,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="return non-zero if any content mismatch or missing file is found",
+        help="return non-zero if any content mismatch, missing file, or wrapper/frontmatter diff is found",
     )
     return parser
 
@@ -229,7 +229,12 @@ def main() -> int:
     for line in agent_lines:
         print(f"  {line}")
 
-    if args.strict and mismatches:
+    print()
+    print("Agents")
+    for line in agent_lines:
+        print(f"  {line}")
+
+    if args.strict and (mismatches or command_wrappers or skill_wrappers or agent_wrappers):
         return 1
     return 0
 

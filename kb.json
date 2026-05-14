@@ -30455,8 +30455,10 @@
           "addr": "0x2d900"
         },
         {
-          "decl": "void FUN_0002d9b0(void);",
-          "addr": "0x2d9b0"
+          "decl": "char FUN_0002d9b0(int actor_handle, int encounter_handle, float distance);",
+          "addr": "0x2d9b0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_0002daa0(void);",

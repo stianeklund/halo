@@ -73,6 +73,10 @@ COMMAND_OUTPUTS = {
         "claude": OutputSpec("commands/xemu.md"),
         "opencode": OutputSpec("commands/xemu.md"),
     },
+    "verify-all.md": {
+        "claude": OutputSpec("commands/verify-all.md"),
+        "opencode": OutputSpec("commands/verify-all.md"),
+    },
 }
 
 SKILL_OUTPUTS = {
@@ -103,6 +107,17 @@ SKILL_OUTPUTS = {
     "halo-xbox-re": {
         "claude": OutputSpec("skills/halo-xbox-re/SKILL.md"),
         "opencode": OutputSpec("skills/halo-xbox-re/SKILL.md"),
+    },
+}
+
+AGENT_OUTPUTS = {
+    "xbox-halo-lift-reviewer.md": {
+        "claude": OutputSpec("agents/xbox-halo-lift-reviewer.md"),
+        "opencode": OutputSpec("agents/xbox-halo-lift-reviewer.md"),
+    },
+    "xbox-halo-re-analyst.md": {
+        "claude": OutputSpec("agents/xbox-halo-re-analyst.md"),
+        "opencode": OutputSpec("agents/xbox-halo-re-analyst.md"),
     },
 }
 
@@ -164,6 +179,8 @@ def bootstrap(prefer: str, force: bool) -> None:
         bootstrap_file(SHARED_DIR / "commands" / name, outputs, prefer, force)
     for name, outputs in SKILL_OUTPUTS.items():
         bootstrap_file(SHARED_DIR / "skills" / name / "SKILL.md", outputs, prefer, force)
+    for name, outputs in AGENT_OUTPUTS.items():
+        bootstrap_file(SHARED_DIR / "agents" / name, outputs, prefer, force)
 
 
 def sync(check: bool) -> int:
@@ -172,6 +189,8 @@ def sync(check: bool) -> int:
         differences += sync_file(SHARED_DIR / "commands" / name, outputs, check)
     for name, outputs in SKILL_OUTPUTS.items():
         differences += sync_file(SHARED_DIR / "skills" / name / "SKILL.md", outputs, check)
+    for name, outputs in AGENT_OUTPUTS.items():
+        differences += sync_file(SHARED_DIR / "agents" / name, outputs, check)
     return differences
 
 
