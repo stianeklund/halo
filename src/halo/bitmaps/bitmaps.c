@@ -223,6 +223,36 @@ const char *FUN_0007c750(short type)
   return ((const char **)0x2ee4a0)[type];
 }
 
+/*
+ * FUN_0007c7c0 — return a display string for a bitmap format index
+ * (bitmaps.c line 0x86).
+ *
+ * The string pointer table at 0x2ee4b0 holds 18 char* entries for format
+ * indices 0..17 (NUMBER_OF_BITMAP_FORMATS == 18, i.e. 0x12).
+ * DAT_002ee4f8 (= &table[18]) must be NULL — used as the sentinel check.
+ *
+ * Confirmed: range check format<0 || format>0x11 at 0x7c7c6.
+ * Confirmed: sentinel at DAT_002ee4f8 (0x2ee4f8 = 0x2ee4b0 + 18*4) at 0x7c7dd.
+ * Confirmed: return (&PTR_s_alpha_002ee4b0)[format] at 0x7c7ec.
+ * Source: c:\halo\SOURCE\bitmaps\bitmaps.c, line 0x86.
+ */
+const char *FUN_0007c7c0(short format)
+{
+  if (format < 0 || format > 0x11) {
+    display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x86, 1);
+    system_exit(-1);
+  }
+
+  if (((const char **)0x2ee4b0)[18] != 0) {
+    display_assert("bitmap_format_string_table[NUMBER_OF_BITMAP_FORMATS]==NULL",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x87, 1);
+    system_exit(-1);
+  }
+
+  return ((const char **)0x2ee4b0)[format];
+}
+
 /* Look up the number of bits per pixel for a given bitmap format index.
  * The format must be in range [0, 18) and the table entry must be non-zero
  * (i.e. the format must be a supported/known type).
@@ -236,6 +266,30 @@ short bitmap_format_bits_per_pixel(short format)
   assert_halt(format >= 0 && format < 18);
   assert_halt(bitmap_format_bits_per_pixel_table[format] != 0);
   return (short)bitmap_format_bits_per_pixel_table[format];
+}
+
+/*
+ * FUN_0007c8b0 — release the hardware (D3D) texture resources for a bitmap
+ * (bitmaps.c line 0x179).
+ *
+ * Asserts bitmap is non-NULL, then dispatches to FUN_00168b10 which
+ * releases the D3D surface by bitmap type (2D/3D/cube map).
+ * Called separately from bitmap_delete so the hardware resources can be
+ * freed without immediately freeing the bitmap struct itself.
+ *
+ * Confirmed: cdecl, 1 stack arg (void *bitmap).
+ * Confirmed: NULL assert at 0x7c8b9 ("bitmap", bitmaps.c line 0x179).
+ * Confirmed: CALL FUN_00168b10 at 0x7c8c9 (rasterizer_xbox_hardware_bitmaps).
+ * Source: c:\halo\SOURCE\bitmaps\bitmaps.c, line 0x179.
+ */
+void FUN_0007c8b0(void *bitmap)
+{
+  if (bitmap == NULL) {
+    display_assert("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x179, 1);
+    system_exit(-1);
+  }
+
+  FUN_00168b10(bitmap);
 }
 
 /* Release a bitmap's D3D texture resource and free its memory if it
