@@ -3342,6 +3342,11 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
  */
 void object_compute_node_matrices(int object_handle)
 {
+  /* MSVC original: SUB ESP,0xa44. Pad to match so unported callees that
+     read from overlapping MSVC stack offsets see valid memory. */
+  volatile char _msvc_frame_pad[92];
+  (void)_msvc_frame_pad;
+
   /* Type-cast helpers for unported callees */
   typedef void (*animation_set_default_fn)(void *model_tag, void *anim_data);
   typedef void (*animation_decode_fn)(void *model_tag, void *anim_entry,
