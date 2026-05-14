@@ -13640,8 +13640,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001bcea0(void);",
-          "addr": "0x1bcea0"
+          "decl": "void FUN_001bcea0(short map_file_index@<ax>);",
+          "addr": "0x1bcea0",
+          "status": "ported",
+          "ported": true
         },
         {
           "decl": "void FUN_001bcfb0(short map_file_index@<ax>);",
@@ -29552,7 +29554,7 @@
           "addr": "0x1d0f63"
         },
         {
-          "decl": "void FUN_001d0ff9(void);",
+          "decl": "void __stdcall FUN_001d0ff9(const char *path);",
           "addr": "0x1d0ff9"
         },
         {

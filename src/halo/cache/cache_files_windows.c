@@ -412,6 +412,31 @@ void FUN_001bce30(void *block)
   *(char *)0x325652 = 0;
 }
 
+/* FUN_001bcea0 — delete cache map files z:\cacheNNN.map starting at
+ * map_file_index+1 up to but not including 20 (@<ax> = map_file_index).
+ * Calls SetLastError(0) at the end to clear any DeleteFile error.
+ */
+void FUN_001bcea0(short map_file_index)
+{
+  char local_buf[256];
+  int i;
+  unsigned int count;
+  short start;
+
+  start = map_file_index + 1;
+  if ((unsigned short)start < 0x14) {
+    i = (int)start;
+    count = (unsigned int)(unsigned short)(0x14 - start);
+    do {
+      csprintf(local_buf, "z:\\cache%03d.map", i);
+      FUN_001d0ff9(local_buf);
+      i = i + 1;
+      count = count - 1;
+    } while (count != 0);
+  }
+  SetLastError(0);
+}
+
 /* Query the status of the current precache operation. Returns a status
  * code and optionally writes the progress fraction to *progress. */
 __int16 cache_files_precache_map_status(float *progress)
