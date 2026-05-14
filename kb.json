@@ -30412,8 +30412,9 @@
           "addr": "0x2d720"
         },
         {
-          "decl": "int FUN_0002d850(int actor_handle, int16_t param_2);",
-          "addr": "0x2d850"
+          "decl": "char FUN_0002d850(int actor_handle, int16_t param_2);",
+          "addr": "0x2d850",
+          "ported": true
         },
         {
           "decl": "int FUN_0002d900(int actor_handle, int16_t param_2, void *param_3);",

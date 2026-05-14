@@ -999,3 +999,55 @@ void FUN_0002d350(int actor_handle)
     *(float *)(actor + 0x134) + *(float *)(actor + 0x520);
 }
 
+/* 0x2d850 — Set actor movement to far-movement mode (move_type=4, dest=param_2).
+ *
+ * Clears the actor's 3b8 (movement dormant flag), calls actor_set_dormant to
+ * wake the actor, then checks if the actor is already in far-movement mode
+ * heading to param_2. If not, sets up the movement block at +0x400..+0x417,
+ * copies it to the active slot at +0x46c, and kicks off a path refresh
+ * (store_distance=1). If already at the target, checks if the actor is still
+ * active (+0x4c) and not sleeping (+0x4a4), and if so refreshes the path
+ * (store_distance=0). Returns the result of actor_path_refresh, or 1 if
+ * no refresh was needed.
+ *
+ * Confirmed: datum_get(0x6325a4, actor_handle) at 0x2d860.
+ * Confirmed: OR EDI,-1 / MOV DI,[ESI+0x3b8] = 0xffff at 0x2d869/0x2d86d.
+ * Confirmed: actor_set_dormant(actor_handle, 0) at 0x2d874.
+ * Confirmed: CMP [ESI+0x46c], 4 / CMP [ESI+0x470], CX at 0x2d886-0x2d893.
+ * Confirmed: MOV [ESI+0x404],CX; MOV [ESI+0x414],EDI=-1; MOV [ESI+0x402],0;
+ *            MOV [ESI+0x400],4 at 0x2d8be-0x2d8da.
+ * Confirmed: REP MOVSD ECX=6 from ESI=actor+0x400 to EDI=actor+0x46c at 0x2d8e5.
+ * Confirmed: actor_path_refresh(actor_handle,1,0) at 0x2d8e7.
+ * Confirmed: actor_path_refresh(actor_handle,0,0) at 0x2d8ab.
+ * Confirmed: return 1 via MOV AL,1 at 0x2d8f6.
+ */
+char FUN_0002d850(int actor_handle, int16_t param_2)
+{
+  char *iVar1;
+  int iVar3;
+  int *puVar4;
+  short *psVar5;
+
+  iVar1 = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  *(int16_t *)(iVar1 + 0x3b8) = -1;
+  actor_set_dormant(actor_handle, 0);
+  if ((*(int16_t *)(iVar1 + 0x46c) != 4) || (*(int16_t *)(iVar1 + 0x470) != param_2)) {
+    *(int16_t *)(iVar1 + 0x404) = param_2;
+    *(int *)(iVar1 + 0x414) = -1;
+    *(char *)(iVar1 + 0x402) = 0;
+    *(int16_t *)(iVar1 + 0x400) = 4;
+    puVar4 = (int *)(iVar1 + 0x400);
+    psVar5 = (short *)(iVar1 + 0x46c);
+    for (iVar3 = 6; iVar3 != 0; iVar3--) {
+      *(int *)psVar5 = *puVar4;
+      puVar4++;
+      psVar5 += 2;
+    }
+    return actor_path_refresh(actor_handle, 1, 0);
+  }
+  if ((*(char *)(iVar1 + 0x4c) != '\0') && (*(char *)(iVar1 + 0x4a4) == '\0')) {
+    return actor_path_refresh(actor_handle, 0, 0);
+  }
+  return 1;
+}
+
