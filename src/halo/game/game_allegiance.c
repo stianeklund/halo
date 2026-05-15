@@ -150,6 +150,26 @@ void FUN_000a7bc0(int16_t team_a, int16_t team_b)
   }
 }
 
+void FUN_000a7c30(int16_t team_a, int16_t team_b)
+{
+  int16_t i;
+  int16_t *entry;
+
+  i = 0;
+  entry = (int16_t *)game_allegiance_globals + 1;
+  if (*(int16_t *)game_allegiance_globals > 0) {
+    while ((entry[0] != team_a || entry[1] != team_b) &&
+           (entry[1] != team_a || entry[0] != team_b)) {
+      i++;
+      entry += 9;
+      if (*(int16_t *)game_allegiance_globals <= i) {
+        return;
+      }
+    }
+    *((char *)entry + 0xb) = 0;
+  }
+}
+
 /**
  * Sets the friendship state between two teams in an allegiance entry.
  *
