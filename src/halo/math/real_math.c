@@ -695,8 +695,8 @@ void points_interpolate(float *a, float *b, float blend, float *out)
 /* Linearly interpolate between two scalar floats (0x10b820).
  * Computes: *out = b * blend + (1.0f - blend) * a
  * blend=0.0 yields a, blend=1.0 yields b.
- * Called as scalars_interpolate(this_kf, next_kf, blend, out) in model_animations.c
- * for scalar keyframe interpolation (scale channel).
+ * Called as scalars_interpolate(this_kf, next_kf, blend, out) in
+ * model_animations.c for scalar keyframe interpolation (scale channel).
  *
  * Confirmed: cdecl, 4 args, void return. Disassembly at 0x10b820:
  *   FLD [0x2533c8]; FSUB [EBP+0x10]; FMUL [EBP+0x8]; FLD [EBP+0xc];
@@ -711,8 +711,8 @@ void scalars_interpolate(float a, float b, float blend, float *out)
 /* Test whether a line segment intersects a sphere. Returns true if
    the segment origin is inside the sphere or if the segment crosses
    the sphere boundary within t in [0,1]. */
-bool fast_vector_intersects_sphere(float *line_start, float *line_end, float *sphere_center,
-                  float sphere_radius)
+bool fast_vector_intersects_sphere(float *line_start, float *line_end,
+                                   float *sphere_center, float sphere_radius)
 {
   float dx, dy, dz, c;
   float dir_x, dir_y, dir_z, b;
@@ -852,7 +852,8 @@ void angles_to_vector(float *out, float *angles)
   out[2] = sinf(angles[1]);
 }
 
-/* Convert an angle to a 2D direction vector stored as (cos, sin, 0) (0x10cc70). */
+/* Convert an angle to a 2D direction vector stored as (cos, sin, 0) (0x10cc70).
+ */
 void vector3d_from_angle(float *out, float angle)
 {
   float c = cosf(angle);
@@ -861,12 +862,12 @@ void vector3d_from_angle(float *out, float angle)
   out[1] = sinf(angle);
 }
 
-/* vector_intersects_pill3d (0x10e040) — Test if two line segments are within a given
- * radius. Computes closest points between segments A (start_a + s*dir_a, s in
- * [0,1]) and B (start_b + t*dir_b, t in [0,1]). Returns true if distance <
+/* vector_intersects_pill3d (0x10e040) — Test if two line segments are within a
+ * given radius. Computes closest points between segments A (start_a + s*dir_a,
+ * s in [0,1]) and B (start_b + t*dir_b, t in [0,1]). Returns true if distance <
  * radius. */
-bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b, float *dir_b,
-                  float radius)
+bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
+                              float *dir_b, float radius)
 {
   float delta_x, delta_y, delta_z;
   float nx, ny, nz;

@@ -16,9 +16,10 @@ void plane_negate(float *plane_in, float *plane_out)
 
 /* Sutherland-Hodgman 2D polygon clip against a line.
  * Source: c:\halo\SOURCE\math\geometry.c */
-int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points, float *line,
-                     int16_t max_count, float *out_points,
-                     uint32_t *out_bitmask, uint8_t *changed, float epsilon)
+int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points,
+                                       float *line, int16_t max_count,
+                                       float *out_points, uint32_t *out_bitmask,
+                                       uint8_t *changed, float epsilon)
 {
   /* _chkstk(0x1014): clip_buffer is a 512-float-pair local, not static. */
   float clip_buffer[0x200 * 2];

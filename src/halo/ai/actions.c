@@ -184,9 +184,9 @@ void actor_action_flush_position_indices(int actor_handle)
  * Confirmed: assert actor+0x6c (old action) in [0,14) at line 0xb87.
  * Confirmed: exit handler at table+0x24 (0x253fc4) called with actor_handle.
  * Confirmed: priority adjust using table+0x10 (0x253fb0) short field.
- * Confirmed: actor_clear_discarded_firing_positions(actor_handle, 0) at 0x1d122.
- * Confirmed: csmemcpy(actor+0x9c, param_3, data_size) when data_size > 0.
- * Confirmed: actor+0x6c = (short)param_2, actor+0x70 = 1 at 0x1d153/0x1d157.
+ * Confirmed: actor_clear_discarded_firing_positions(actor_handle, 0) at
+ * 0x1d122. Confirmed: csmemcpy(actor+0x9c, param_3, data_size) when data_size >
+ * 0. Confirmed: actor+0x6c = (short)param_2, actor+0x70 = 1 at 0x1d153/0x1d157.
  * Confirmed: begin handler at table+0x14 (0x253fb4) called with actor_handle.
  */
 void actor_action_change(int actor_handle, int new_action_type, int param_3)
@@ -284,9 +284,9 @@ int16_t actor_action_try_to_panic(int actor_handle)
   return *(int16_t *)(0x253fb0 + action * 0x38);
 }
 
-/* actor_action_get_default_state (0x1d730) — Map a starting location index to an action category.
- * Returns a short from a 12-entry lookup table at 0x254300, or 0 if the index
- * is out of range [0, 12).
+/* actor_action_get_default_state (0x1d730) — Map a starting location index to
+ * an action category. Returns a short from a 12-entry lookup table at 0x254300,
+ * or 0 if the index is out of range [0, 12).
  *
  * Confirmed: CMP CX,0xc bounds check, table at 0x254300 =
  * {0,2,2,3,4,5,6,7,8,9,9,8}.

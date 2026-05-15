@@ -786,8 +786,8 @@ bool game_engine_allow_pause(void)
  *
  * Preloads game-engine related sound tags from game globals.
  * Selection depends on game_engine_variant_index (0x456b40) and game type
- * (0x456b10). The final 10 entries are mapped through game_engine_remap_weapon before
- * loading.
+ * (0x456b10). The final 10 entries are mapped through game_engine_remap_weapon
+ * before loading.
  */
 void game_engine_load_sounds(void)
 {
@@ -1496,7 +1496,7 @@ int find_netgame_flags(float *position, float radius, float height,
  */
 /* 0xad270 */
 int find_netgame_flag(float *position, float radius, float height, int16_t type,
-                 int16_t index)
+                      int16_t index)
 {
   int result = -1;
   find_netgame_flags(position, radius, height, type, index, 1, &result);
@@ -1675,8 +1675,9 @@ void game_engine_player_update_netgame_flag(int player_handle)
       }
 
       *(int *)0x456b64 = 0x78;
-      hud_print_message((int)(short)unit_get_local_player_index(*(int *)(player + 0x34)),
-                        (wchar_t *)0x26c684);
+      hud_print_message(
+        (int)(short)unit_get_local_player_index(*(int *)(player + 0x34)),
+        (wchar_t *)0x26c684);
       return;
     }
   }

@@ -200,7 +200,7 @@ void game_sound_dispose_from_old_map(void)
  * Builds a callback_data struct with marker/position/forward and a sound_params
  * struct, calls FUN_001c7a10 to resolve attachment, then sound_start. */
 int object_impulse_sound_new(int object_handle, int tag_index, int16_t marker,
-                 float *position, float *forward, float scale)
+                             float *position, float *forward, float scale)
 {
   char sound_params[0x40];
   char callback_data[0x1c];
@@ -278,8 +278,8 @@ void sound_looping_stop(int sound_tag_index)
  * - Determines the current
  * sound environment (BSP cluster) via
  *   scenario_get_sound_environment, updates DirectSound
- * EAX/environment state via sound_manager_set_sound_environment, then recalculates per-cluster
- * audibility via FUN_001c7b40.
+ * EAX/environment state via sound_manager_set_sound_environment, then
+ * recalculates per-cluster audibility via FUN_001c7b40.
  * - Manages the music looping sound slot (globals[1]): starts, stops,
  *   or replaces it when the ambient sound environment changes.
  * - Iterates every active entry in the object-looping-sounds table and
@@ -294,9 +294,9 @@ void sound_looping_stop(int sound_tag_index)
  */
 void game_sound_update(float dt)
 {
-  /* Out-params from scenario_get_sound_environment: sound_env_tag_index, sound_env_data ptr,
-   * and a changed flag (bool). 0x18f600 writes a pointer value INTO
-   * sound_env_data; cb9b0 then receives that pointer BY VALUE. */
+  /* Out-params from scenario_get_sound_environment: sound_env_tag_index,
+   * sound_env_data ptr, and a changed flag (bool). 0x18f600 writes a pointer
+   * value INTO sound_env_data; cb9b0 then receives that pointer BY VALUE. */
   int sound_env_tag_index; /* [EBP-0x8]  tag index, or -1 */
   void *sound_env_data; /* [EBP-0xc]  pointer to EAX data block, written
                            by 0x18f600 */

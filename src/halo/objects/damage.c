@@ -451,8 +451,8 @@ void object_deplete_shield(int object_handle)
  *   case 5 (projectile): calls projectile_accelerate (projectile acceleration)
  *
  * After the switch, checks game state via game_engine_can_score:
- *   - If true and damage_data byte +4 >= 0: calls game_statistics_record_damage for scoring,
- *     and conditionally FUN_000b56f0 if flags bit 0 is set.
+ *   - If true and damage_data byte +4 >= 0: calls game_statistics_record_damage
+ * for scoring, and conditionally FUN_000b56f0 if flags bit 0 is set.
  *   - Otherwise: calls game_engine_player_killed (player death tracking) via
  *     player_index_from_unit_index.
  *
@@ -470,9 +470,10 @@ void object_deplete_shield(int object_handle)
  * Confirmed: CALL 0x13010 => normalize3d; FSTP ST0 discards return.
  * Confirmed: FLD [EDX+0x1f4]; FMUL [EDI+0x20]; FMUL [0x2546a4] for scale.
  * Confirmed: jump table at 0x137158 with 6 entries for switch(obj_type).
- * Confirmed: PUSH ECX; FSTP [ESP] pattern for float arg to game_statistics_record_damage.
- * Confirmed: (1 << obj_type) & 3 gates call to FUN_001b4dc0.
- * Confirmed: 7 pushes [EBX,ESI,flags,body,shield,p4,p5] for FUN_001b4dc0.
+ * Confirmed: PUSH ECX; FSTP [ESP] pattern for float arg to
+ * game_statistics_record_damage. Confirmed: (1 << obj_type) & 3 gates call to
+ * FUN_001b4dc0. Confirmed: 7 pushes [EBX,ESI,flags,body,shield,p4,p5] for
+ * FUN_001b4dc0.
  */
 void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
                   float body_vitality, float shield_vitality, int param_4,
@@ -544,9 +545,9 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
 
   game_active = game_engine_can_score();
   if (game_active != 0 && *(signed char *)(dd + 0x4) >= 0) {
-    game_statistics_record_damage(object_handle, body_vitality + shield_vitality,
-                 *(int *)(dd + 0x8), *(int *)(dd + 0xc),
-                 (int)*(unsigned short *)(dd + 0x10));
+    game_statistics_record_damage(
+      object_handle, body_vitality + shield_vitality, *(int *)(dd + 0x8),
+      *(int *)(dd + 0xc), (int)*(unsigned short *)(dd + 0x10));
     if ((flags & 1) != 0) {
       FUN_000b56f0(object_handle, *(int *)(dd + 0x8), *(int *)(dd + 0xc),
                    (int)*(unsigned short *)(dd + 0x10));
@@ -555,8 +556,9 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
     game_active = game_engine_can_score();
     if (game_active != 0) {
       player_handle = player_index_from_unit_index(object_handle);
-      game_engine_player_killed(player_handle, object_handle, player_handle,
-                   1); /* dup-args-ok: confirmed PUSH EAX,EBX,EAX */
+      game_engine_player_killed(
+        player_handle, object_handle, player_handle,
+        1); /* dup-args-ok: confirmed PUSH EAX,EBX,EAX */
     }
   }
 
@@ -931,11 +933,11 @@ void FUN_00137690(int object_handle, short region_index)
  * Confirmed: get_global_random_seed_address() takes 0 args at 0x137da5.
  * Confirmed: random_real_range(seed, min=*(jpt+0x1d4), max=*(jpt+0x1d8)) at
  * 0x137dab. Confirmed: FUN_00136890(@eax=object_handle) at 0x137e2c, 0x137e35.
- * Confirmed: game_engine_get_damage_multiplier(player_a, player_b) at 0x137e3b, 2 cdecl args.
- * Confirmed: ai_adjust_damage(player_index, damage_params, &scale) at 0x137e19, 3
- * args. Confirmed: FUN_000a7a30(team_a, team_b) at 0x137e54. Confirmed:
- * FUN_000b5590(0) at 0x137e62, returns float on FPU. Confirmed: object parent
- * chain walk via +0xcc at 0x137ec6. Confirmed:
+ * Confirmed: game_engine_get_damage_multiplier(player_a, player_b) at 0x137e3b,
+ * 2 cdecl args. Confirmed: ai_adjust_damage(player_index, damage_params,
+ * &scale) at 0x137e19, 3 args. Confirmed: FUN_000a7a30(team_a, team_b) at
+ * 0x137e54. Confirmed: FUN_000b5590(0) at 0x137e62, returns float on FPU.
+ * Confirmed: object parent chain walk via +0xcc at 0x137ec6. Confirmed:
  * object_get_and_verify_type(handle, -1) at 0x137eec. Confirmed:
  * tag_get(0x6f626a65, *obj) at 0x137efb for object definition. Confirmed:
  * tag_get(0x636f6c6c, collision_ref) at 0x137f11 for collision model.
@@ -1156,7 +1158,8 @@ after_modifier:
         }
         dp[1] = saved_flags;
         /* Recursive call for passenger */
-        object_cause_damage(damage_params, child_handle, (short)-1, (short)-1, /* dup-args-ok: all sentinel -1 */
+        object_cause_damage(damage_params, child_handle, (short)-1,
+                            (short)-1, /* dup-args-ok: all sentinel -1 */
                             (short)-1, 0);
         dp[1] = dp[1] & ~0x20u;
       }

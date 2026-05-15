@@ -63,9 +63,9 @@ int16_t FUN_00124cc0(void *server)
   return *(int16_t *)((char *)server + 0xca8);
 }
 
-/* 0x124d40 — Thin wrapper that tail-calls network_connection_write with the same five
- * arguments. The prologue sets up a frame (PUSH EBP / MOV EBP,ESP) and
- * immediately tears it down (POP EBP / JMP 0x128e00), so every argument
+/* 0x124d40 — Thin wrapper that tail-calls network_connection_write with the
+ * same five arguments. The prologue sets up a frame (PUSH EBP / MOV EBP,ESP)
+ * and immediately tears it down (POP EBP / JMP 0x128e00), so every argument
  * passes through to the callee unchanged. In the one observed call site
  * (network_game_client_end_frame), the caller resolves a server handle to a
  * connection pointer via network_game_client_get_seconds_to_game_start, then
@@ -74,14 +74,15 @@ int16_t FUN_00124cc0(void *server)
 bool FUN_00124d40(void *connection, void *message, unsigned short size,
                   int dest_address, int reliable)
 {
-  return network_connection_write(connection, message, size, dest_address, reliable);
+  return network_connection_write(connection, message, size, dest_address,
+                                  reliable);
 }
 
 /* 0x125710 — Asserts client is non-null and returns the connection handle
  * (int) stored at offset 0x82c in the client structure. The returned handle
  * is used by the caller (network_game_client_end_frame) as the first argument
- * to FUN_00124d40 (which forwards it to network_connection_write to send a network
- * message). */
+ * to FUN_00124d40 (which forwards it to network_connection_write to send a
+ * network message). */
 int network_game_client_get_seconds_to_game_start(void *client)
 {
   if (client == NULL) {
@@ -165,8 +166,8 @@ void FUN_00126000(void *server)
       encoded = (unsigned short *)encode_network_game_message(0x13, buf, 0x100);
       if (encoded != NULL) {
         size = *encoded >> 4;
-        if (!network_connection_write((void *)*(int *)((char *)server + 0x82c), encoded, size, 0,
-                          1)) {
+        if (!network_connection_write((void *)*(int *)((char *)server + 0x82c),
+                                      encoded, size, 0, 1)) {
           network_game_log("network_game_client_write() failed while sending a "
                            "message_client_graceful_game_exit_pregame message");
         }
@@ -232,12 +233,14 @@ bool FUN_00126b60(void *server)
       csmemset(join_payload, 0, 0x50);
       network_game_generate_local_machine_name(join_payload);
       csmemcpy(&join_payload[0x40], (char *)server + 0x84a, 0x10);
-      encoded = (unsigned short *)encode_network_game_message(0xc, join_payload, 0x50);
+      encoded =
+        (unsigned short *)encode_network_game_message(0xc, join_payload, 0x50);
       if (encoded == NULL) {
         network_game_log(
           "failed to create a message_client_join_game_request message");
-      } else if (network_connection_write((void *)*(int *)((char *)server + 0x82c), encoded,
-                              (unsigned short)(*encoded >> 4), 0, 1)) {
+      } else if (network_connection_write(
+                   (void *)*(int *)((char *)server + 0x82c), encoded,
+                   (unsigned short)(*encoded >> 4), 0, 1)) {
         *(unsigned char *)((char *)server + 0xcaa) =
           *(unsigned char *)((char *)server + 0xcaa) | 2;
       } else {
@@ -334,10 +337,11 @@ tail_check:
  *
  * Called from the client idle dispatch (FUN_00127070) when state == 3 (ingame).
  * Verifies the server connection is alive, checks if the connection has gone
- * silent (bit 5 of connection+0x30 via network_connection_going_stale), displays per-player
- * error widgets if newly silent, records the silent flag at server+0xcad, then
- * runs the connection idle tick (15-second timeout) and processes incoming
- * messages. Returns false if the connection drops or any critical step fails.
+ * silent (bit 5 of connection+0x30 via network_connection_going_stale),
+ * displays per-player error widgets if newly silent, records the silent flag at
+ * server+0xcad, then runs the connection idle tick (15-second timeout) and
+ * processes incoming messages. Returns false if the connection drops or any
+ * critical step fails.
  */
 bool FUN_00126db0(void *server)
 {

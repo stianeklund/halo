@@ -39,10 +39,12 @@ void rasterizer_frame_update(float delta_time)
   *(float *)0x5a5e1c = delta_time;
 }
 
-/* Read one entry from D3D_g_DeferredTextureState[stage][sub_index] into *result.
- * The array is a flat DWORD array at 0x1fb498 with 32 entries per stage row.
- * Register args: EAX=stage, ECX=sub_index; stack arg: result pointer. */
-void FUN_00155110(int stage /* @<eax> */, int sub_index /* @<ecx> */, unsigned int *result)
+/* Read one entry from D3D_g_DeferredTextureState[stage][sub_index] into
+ * *result. The array is a flat DWORD array at 0x1fb498 with 32 entries per
+ * stage row. Register args: EAX=stage, ECX=sub_index; stack arg: result
+ * pointer. */
+void FUN_00155110(int stage /* @<eax> */, int sub_index /* @<ecx> */,
+                  unsigned int *result)
 {
   *result = ((unsigned int *)0x1fb498)[stage * 32 + sub_index];
 }

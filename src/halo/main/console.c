@@ -251,7 +251,8 @@ void console_process_enter(void)
   if (token_start <= qp + 1)
     token_start = qp + 1;
 
-  token_count = hs_tokens_enumerate(token_start, 0xffffffff, token_array, 0x100);
+  token_count =
+    hs_tokens_enumerate(token_start, 0xffffffff, token_array, 0x100);
   if (token_count != 0) {
     match_len = 0x7fff;
     large_list = (int16_t)token_count > 0x10;

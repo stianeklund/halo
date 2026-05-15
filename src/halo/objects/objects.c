@@ -1523,8 +1523,8 @@ void objects_initialize(void)
  *                   vtable entry via [EDI] (slot stride 0x28)
  *   FUN_0013c3d0  — walks the object_type_definition linked list, calls
  *                   each type's initialize_for_new_map function at +0x18
- *   lights_initialize_for_new_map  — calls data_delete_all on a BSP cluster data table,
- *                   then object_list_initialize_for_new_map via FUN_1915d0
+ *   lights_initialize_for_new_map  — calls data_delete_all on a BSP cluster
+ * data table, then object_list_initialize_for_new_map via FUN_1915d0
  *
  * Then:
  *   data_delete_all(*(data_t**)0x5a8d50)        — clear all object headers
@@ -5175,10 +5175,11 @@ void object_delete_recursive(int object_handle, int delete_sibling)
  * objects_garbage_collection — delete and immediately deactivate an object.
  *
  * Marks the object (and its children) for deletion via object_delete_internal,
- * then immediately tears down / deallocates the object via object_delete_recursive.
- * Used by actor_erase_units as the "soft" deletion path (flag!=0) as an
- * alternative to object_delete, which only marks for deletion and defers
- * actual teardown to the objects_update garbage-collection pass.
+ * then immediately tears down / deallocates the object via
+ * object_delete_recursive. Used by actor_erase_units as the "soft" deletion
+ * path (flag!=0) as an alternative to object_delete, which only marks for
+ * deletion and defers actual teardown to the objects_update garbage-collection
+ * pass.
  *
  * Confirmed: cdecl, one stack arg (object_handle).
  * Confirmed: PUSH 0x0 / PUSH ESI / CALL 0x140bc0 (object_delete_internal).

@@ -62,15 +62,16 @@ void breakable_surfaces_dispose_from_old_map(void)
 {
 }
 
-/* breakable_surfaces_enable — write a byte to *breakable_surface_globals (the flags byte
- * at offset 0 in the globals buffer).  Used to toggle the active/enabled flag.
- * Source: c:\halo\SOURCE\physics\breakable_surfaces.c line 0x78.
+/* breakable_surfaces_enable — write a byte to *breakable_surface_globals (the
+ * flags byte at offset 0 in the globals buffer).  Used to toggle the
+ * active/enabled flag. Source: c:\halo\SOURCE\physics\breakable_surfaces.c line
+ * 0x78.
  */
 void breakable_surfaces_enable(char active)
 {
   if (!breakable_surface_globals) {
-    display_assert("globals",
-                   "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x78, 1);
+    display_assert("globals", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c",
+                   0x78, 1);
     system_exit(-1);
   }
   *breakable_surface_globals = active;
@@ -101,12 +102,12 @@ char *breakable_surfaces_get_bsp_surface_data(void)
   return breakable_surface_globals + 1 + (int)global_structure_bsp_index * 32;
 }
 
-/* breakable_surface_extant — check whether a breakable surface has been destroyed.
- * Returns 1 if surface_index is NONE (-1) or the surface's bit is set in the
- * BSP surface data bitfield; returns 0 if the bit is clear (still intact).
- * Each uint32 covers 32 surface indices; bit = (index >> 5)*4 byte offset,
- * bit position = index & 31.
- * Source: c:\halo\SOURCE\physics\breakable_surfaces.c line 0x93.
+/* breakable_surface_extant — check whether a breakable surface has been
+ * destroyed. Returns 1 if surface_index is NONE (-1) or the surface's bit is
+ * set in the BSP surface data bitfield; returns 0 if the bit is clear (still
+ * intact). Each uint32 covers 32 surface indices; bit = (index >> 5)*4 byte
+ * offset, bit position = index & 31. Source:
+ * c:\halo\SOURCE\physics\breakable_surfaces.c line 0x93.
  */
 char breakable_surface_extant(short breakable_surface_index)
 {
@@ -146,11 +147,10 @@ char breakable_surface_extant(short breakable_surface_index)
  * Confirmed: DAT_00324c32 early-out flag check at 0x145b14.
  * Confirmed: BFS queue in local_1244[1024], traversal count local_b4.
  * Confirmed: tag_block_get_element calls for planes, edges, vertices, effects.
- * Confirmed: FUN_00061df0 projects 3D to 2D, project_point2d unprojects 2D to 3D.
- * Confirmed: FUN_00106200 point-in-polygon test with 0 radius.
- * Confirmed: particle_new spawns a particle.
- * Confirmed: unattached_impulse_sound_new triggers sound at end if material has
- * sound tag. */
+ * Confirmed: FUN_00061df0 projects 3D to 2D, project_point2d unprojects 2D to
+ * 3D. Confirmed: FUN_00106200 point-in-polygon test with 0 radius. Confirmed:
+ * particle_new spawns a particle. Confirmed: unattached_impulse_sound_new
+ * triggers sound at end if material has sound tag. */
 void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 {
   uint32_t *param_2;
@@ -337,8 +337,8 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
            * our local reference point */
           FUN_00061df0(param_2 + 10, (uint32_t)projection, sign,
                        projected_point);
-          project_point2d((float *)projected_point, plane, (short)projection, sign,
-                       origin);
+          project_point2d((float *)projected_point, plane, (short)projection,
+                          sign, origin);
         } else {
           origin[0] = vert_ptr[0];
           origin[1] = vert_ptr[1];

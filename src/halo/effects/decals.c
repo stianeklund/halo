@@ -200,7 +200,7 @@ static const int16_t g_projection_axes[6][2] = {
  * Inlined from ..\\math\\real_math.h (line 0x36f).
  */
 void project_point2d(float *point_2d, float *plane, int16_t projection,
-                  uint8_t sign, float *out_point)
+                     uint8_t sign, float *out_point)
 {
   int proj_i;
   int table_index;
@@ -320,7 +320,8 @@ uint32_t real_a_rgb_color_to_pixel32(float alpha, float *color)
  * negated, effectively flipping the plane to face the opposite direction.
  * Each plane element is 0x10 bytes (four floats: i, j, k, d).
  */
-void bsp3d_get_plane_from_designator(int structure_bsp, uint32_t plane_reference, float *out_plane)
+void bsp3d_get_plane_from_designator(int structure_bsp,
+                                     uint32_t plane_reference, float *out_plane)
 {
   float *plane_data;
 
@@ -741,13 +742,14 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
 
       FUN_00061df0(remote_vertex, *(int16_t *)((char *)projection + 0x54),
                    *(uint8_t *)((char *)projection + 0x56), projected_current);
-      if (plane2d_from_points(line, projected_current, projected_previous) == NULL) {
+      if (plane2d_from_points(line, projected_current, projected_previous) ==
+          NULL) {
         clipped_count = 0;
       } else {
         clipped = 0;
-        clipped_count =
-          convex_polygon2d_clip_to_plane(clipped_count, input_points, line, 0xc, output_points,
-                       &clipped_mask, &clipped, 0.0f);
+        clipped_count = convex_polygon2d_clip_to_plane(
+          clipped_count, input_points, line, 0xc, output_points, &clipped_mask,
+          &clipped, 0.0f);
 
         if (allow_deviants && clipped != 0 && queue_write_index < 0x400) {
           int current_vertex_index = edge[surface_match ? 1 : 0];
@@ -758,8 +760,9 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
           segment[0] = current_vertex[0] - remote_vertex[0];
           segment[1] = current_vertex[1] - remote_vertex[1];
           segment[2] = current_vertex[2] - remote_vertex[2];
-          if (fast_vector_intersects_sphere(remote_vertex, segment, projection + 0xa,
-                           scale * *(float *)(0x269d88 + type * 0x10))) {
+          if (fast_vector_intersects_sphere(
+                remote_vertex, segment, projection + 0xa,
+                scale * *(float *)(0x269d88 + type * 0x10))) {
             int candidate_surface = edge[surface_match ? 4 : 5];
             int16_t i = 0;
 
@@ -825,8 +828,8 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
           *(bool *)(geometry_vertex + 0x14) = (clipped_mask & bit) != 0;
 
           project_point2d(point, plane, *(int16_t *)((char *)projection + 0x54),
-                       *(uint8_t *)((char *)projection + 0x56),
-                       (float *)geometry_vertex);
+                          *(uint8_t *)((char *)projection + 0x56),
+                          (float *)geometry_vertex);
 
           if ((clipped_mask & bit) == 0) {
             *(float *)(geometry_vertex + 0) += plane[0] * *(float *)0x325710;
@@ -860,8 +863,9 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
         segment[1] = current_vertex[1] - remote_vertex[1];
         segment[2] = current_vertex[2] - remote_vertex[2];
 
-        if (fast_vector_intersects_sphere(remote_vertex, segment, projection + 0xa,
-                         scale * *(float *)(0x269d88 + type * 0x10))) {
+        if (fast_vector_intersects_sphere(
+              remote_vertex, segment, projection + 0xa,
+              scale * *(float *)(0x269d88 + type * 0x10))) {
           int candidate_surface = edge[surface_match ? 4 : 5];
           int16_t i = 0;
 
@@ -929,8 +933,8 @@ static int16_t decals_random_short(int16_t min, int16_t max)
 static void decals_get_signed_plane(int structure_bsp, int plane_reference,
                                     float *out_plane)
 {
-  bsp3d_get_plane_from_designator(structure_bsp, (uint32_t)plane_reference & 0x7fffffff,
-               out_plane);
+  bsp3d_get_plane_from_designator(
+    structure_bsp, (uint32_t)plane_reference & 0x7fffffff, out_plane);
 
   if (plane_reference < 0) {
     out_plane[0] = -out_plane[0];

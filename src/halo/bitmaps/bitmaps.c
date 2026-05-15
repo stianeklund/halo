@@ -416,16 +416,18 @@ void *bitmap_2d_address(void *bitmap, short x, short y, short mipmap_index)
  * Asserts that bitmap != NULL and bitmap->base_address (+0x2c) != NULL,
  * then routes to the appropriate typed pixel-address function based on
  * bitmap->type (+0xa): 0=2D (bitmap_2d_address), 1=cube (bitmap_3d_address),
- * 2=3D (bitmap_cube_map_address). Returns the pixel address at (0,0[,0], mipmap_index).
+ * 2=3D (bitmap_cube_map_address). Returns the pixel address at (0,0[,0],
+ * mipmap_index).
  *
  * Confirmed: TEST ESI,ESI / display_assert("bitmap",...,0x20d,1) at 0x7d007.
  * Confirmed: TEST [ESI+0x2c] / display_assert("bitmap->base_address",...,0x20e)
  * at 0x7d02e. Confirmed: MOVSX+SUB+JZ/DEC/DEC type switch at 0x7d052.
- * Confirmed: bitmap_2d_address(bitmap,0,0,mipmap_index) via PUSH EDX+3×PUSH0+PUSH
- * ESI at 0x7d0b3. Confirmed: bitmap_3d_address(bitmap,0,0,0,mipmap_index) at
- * 0x7d09d. Confirmed: bitmap_cube_map_address(bitmap,0,0,0,mipmap_index) at 0x7d087.
- * Confirmed: display_assert("### ERROR unsupported bitmap type",...,0x21c,1) +
- * return bitmap at 0x7d061.
+ * Confirmed: bitmap_2d_address(bitmap,0,0,mipmap_index) via PUSH
+ * EDX+3×PUSH0+PUSH ESI at 0x7d0b3. Confirmed:
+ * bitmap_3d_address(bitmap,0,0,0,mipmap_index) at 0x7d09d. Confirmed:
+ * bitmap_cube_map_address(bitmap,0,0,0,mipmap_index) at 0x7d087. Confirmed:
+ * display_assert("### ERROR unsupported bitmap type",...,0x21c,1) + return
+ * bitmap at 0x7d061.
  */
 void *bitmap_mipmap_address(void *bitmap, short mipmap_index)
 {
@@ -671,10 +673,10 @@ short bitmap_mipmap_get_height(void *bitmap, short mipmap_index)
   return (short)result;
 }
 
-/* bitmap_mipmap_get_depth — bitmap_mipmap_depth: depth counterpart of bitmap_mipmap_width.
- * Returns the depth at the given mipmap level as a signed 32-bit int,
- * clamped to 1.  No DXT block-alignment rounding (depth is not block-sized).
- * Field +0x8 is the bitmap depth.
+/* bitmap_mipmap_get_depth — bitmap_mipmap_depth: depth counterpart of
+ * bitmap_mipmap_width. Returns the depth at the given mipmap level as a signed
+ * 32-bit int, clamped to 1.  No DXT block-alignment rounding (depth is not
+ * block-sized). Field +0x8 is the bitmap depth.
  */
 int bitmap_mipmap_get_depth(void *bitmap, short mipmap_index)
 {
@@ -690,10 +692,10 @@ int bitmap_mipmap_get_depth(void *bitmap, short mipmap_index)
   return 1;
 }
 
-/* bitmap_mipmap_get_pixel_count — total number of texels in one mipmap slice (pixels per face).
- * Returns width * height * depth at the given mipmap level, multiplied by 6
- * for cube maps (_bitmap_type_cube_map == 2).
- * Field +0xa is the bitmap type; depth at field +0x8.
+/* bitmap_mipmap_get_pixel_count — total number of texels in one mipmap slice
+ * (pixels per face). Returns width * height * depth at the given mipmap level,
+ * multiplied by 6 for cube maps (_bitmap_type_cube_map == 2). Field +0xa is the
+ * bitmap type; depth at field +0x8.
  */
 int bitmap_mipmap_get_pixel_count(void *bitmap, int mipmap_index)
 {
@@ -739,8 +741,8 @@ int bitmap_mipmap_get_pixel_data_size(void *bitmap, int mipmap_index)
 }
 
 /*
- * bitmap_mipmap_get_row_pitch — compute the byte size of one scanline at a given mipmap
- * level for an uncompressed, unswizzled bitmap.
+ * bitmap_mipmap_get_row_pitch — compute the byte size of one scanline at a
+ * given mipmap level for an uncompressed, unswizzled bitmap.
  *
  * Confirmed: bitmap_verify(bitmap, FALSE) at 0x7d9fb.
  * Confirmed: mipmap_index range check against bitmap+0x14 (mipmap_count).

@@ -1153,8 +1153,8 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
         marker = (int)(loc_node & 0x7fff);
 
       object_impulse_sound_new(*(int *)(ef + 0x3c), *(int *)(loc_entry + 0x24),
-                   (int16_t)marker, (float *)(loc + 0x30), (float *)(loc + 0xc),
-                   scale);
+                               (int16_t)marker, (float *)(loc + 0x30),
+                               (float *)(loc + 0xc), scale);
     } else {
       struct {
         float pos[3];

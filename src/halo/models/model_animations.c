@@ -81,8 +81,8 @@ void quaternion_decompress_8byte(short *src, float *dest)
   dest[3] = (float)(int)src[3] * (1.0f / 32767.0f);
 }
 
-/* quaternion_decompress_6byte (0x120870) — Decompress 3 packed uint16s into 4 normalized
- * floats.
+/* quaternion_decompress_6byte (0x120870) — Decompress 3 packed uint16s into 4
+ * normalized floats.
  *
  * Extracts 4 values from 3 consecutive unsigned shorts (48 bits total) by
  * interleaved bit manipulation, sign-extends each to int, converts to float,
@@ -482,7 +482,7 @@ void animation_get_node_orientations(void *animation, float frame,
   }
 
   points_interpolate((float *)this_kf_data, (float *)next_kf_data, blend,
-               (float *)out_translation);
+                     (float *)out_translation);
 }
 
 /* overlay_animation_apply_continuous_scaled (0x121940) — Interpolate keyframed
@@ -519,12 +519,12 @@ void animation_get_node_orientations(void *animation, float frame,
  * 0x1d9c2b) at 0x121a4f via push double + FSTP [ESP]. Confirmed: CALL
  * FUN_00120d10(keyframe_frame_indices=EBX, target_frame=ECX,
  *            keyframe_count@<edi>=[EBP+0x10]) at 0x121b1d.
- * Confirmed: CALL scalars_interpolate(this_kf, next_kf, blend, out) at 0x121c17.
- * Confirmed: Assert lines 0x64a, 0x64c, 0x662, 0x663, 0x677, 0x688, 0x689
- *            (the 0x64e "keyframe_count>=0" assert is dead after the &0xfff
- *            mask and was eliminated by the optimizer).
- * Confirmed: Element size 4 bytes (float) — LEA EDX+EAX*0x4 at 0x121a39.
- * Confirmed: Frame indices array stride 2 bytes — LEA ECX+EAX*0x2 at 0x121a44.
+ * Confirmed: CALL scalars_interpolate(this_kf, next_kf, blend, out) at
+ * 0x121c17. Confirmed: Assert lines 0x64a, 0x64c, 0x662, 0x663, 0x677, 0x688,
+ * 0x689 (the 0x64e "keyframe_count>=0" assert is dead after the &0xfff mask and
+ * was eliminated by the optimizer). Confirmed: Element size 4 bytes (float) —
+ * LEA EDX+EAX*0x4 at 0x121a39. Confirmed: Frame indices array stride 2 bytes —
+ * LEA ECX+EAX*0x2 at 0x121a44.
  */
 void overlay_animation_apply_continuous_scaled(void *animation, float frame,
                                                unsigned short scale_count,
@@ -694,8 +694,9 @@ void overlay_animation_apply_continuous_scaled(void *animation, float frame,
  *     active), using
  * FUN_00121330/animation_get_node_orientations/overlay_animation_apply_continuous_scaled
  * interpolators.
- *   - Uncompressed frame data via quaternion_decompress_8byte/quaternion_decompress_6byte or
- * raw memcpy from default data (animation+0x98).
+ *   - Uncompressed frame data via
+ * quaternion_decompress_8byte/quaternion_decompress_6byte or raw memcpy from
+ * default data (animation+0x98).
  *
  * Three bitmask arrays at animation offsets 0x5c, 0x6c, 0x7c (4 DWORDs each
  * for up to 128 nodes) indicate which nodes have animated rotation,
@@ -711,15 +712,15 @@ void overlay_animation_apply_continuous_scaled(void *animation, float frame,
  * Confirmed: cdecl, 4 args, void return.
  * Confirmed: CALL FUN_00120500 at 0x121dca and 0x121fd5 (2 args: animation,
  * frame_index). Confirmed: CALL quaternion_decompress_8byte at 0x121e63 and
- * 0x121e9d (2 args: src_shorts, dest_floats). Confirmed: CALL quaternion_decompress_6byte at
- * 0x121e89 (2 args: compressed_data, dest_floats). Confirmed: CALL
- * sphere_intersects_rectangle3d at 0x121e8f (1 arg: quaternion). Confirmed:
- * CALL FUN_00121330 at 0x121e51 (5 args: animation, frame_float, count, node,
- * out). Confirmed: CALL animation_get_node_orientations at 0x121edc (5 args:
+ * 0x121e9d (2 args: src_shorts, dest_floats). Confirmed: CALL
+ * quaternion_decompress_6byte at 0x121e89 (2 args: compressed_data,
+ * dest_floats). Confirmed: CALL sphere_intersects_rectangle3d at 0x121e8f (1
+ * arg: quaternion). Confirmed: CALL FUN_00121330 at 0x121e51 (5 args:
  * animation, frame_float, count, node, out). Confirmed: CALL
- * overlay_animation_apply_continuous_scaled at 0x121f78 (5 args: animation,
- * frame_float, count, node, out). Confirmed: CALL FUN_00123aa0 at 0x12204a (2
- * args: mode_tag, out_node_data).
+ * animation_get_node_orientations at 0x121edc (5 args: animation, frame_float,
+ * count, node, out). Confirmed: CALL overlay_animation_apply_continuous_scaled
+ * at 0x121f78 (5 args: animation, frame_float, count, node, out). Confirmed:
+ * CALL FUN_00123aa0 at 0x12204a (2 args: mode_tag, out_node_data).
  */
 void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
                   void *out_node_data)
@@ -777,8 +778,8 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
         }
         if ((local_14 & 1) == 0) {
           if (bVar2) {
-            quaternion_decompress_6byte((void *)(local_8[1] + sVar5 * 6 + (int)local_8),
-                         (float *)iVar7);
+            quaternion_decompress_6byte(
+              (void *)(local_8[1] + sVar5 * 6 + (int)local_8), (float *)iVar7);
             sphere_intersects_rectangle3d((float *)iVar7);
           } else {
             quaternion_decompress_8byte((short *)local_c, (float *)iVar7);

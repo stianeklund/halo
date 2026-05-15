@@ -166,8 +166,8 @@ int FUN_0018e770(int16_t sky_index)
   result = -1;
   if ((int)sky_index >= 0) {
     if ((int)sky_index < *(int *)(*(int *)0x5064e4 + 0x30)) {
-      element = (char *)tag_block_get_element(
-        (int *)(*(int *)0x5064e4 + 0x30), sky_index, 0x10);
+      element = (char *)tag_block_get_element((int *)(*(int *)0x5064e4 + 0x30),
+                                              sky_index, 0x10);
       result = *(int *)(element + 0xc);
     }
   }
@@ -215,7 +215,8 @@ valid:
 }
 
 /*
- * scenario_get_structure_reference_index_from_tag_index — resolve a BSP3D node index to its fog tag index.
+ * scenario_get_structure_reference_index_from_tag_index — resolve a BSP3D node
+ * index to its fog tag index.
  *
  * Given a bsp3d_node_index, looks up the node element (bsp+0x184, size 0x28)
  * and reads the fog palette index at offset +0x24 (int16_t). If valid, looks
@@ -227,7 +228,8 @@ valid:
  * Confirmed: tag_block_get_element(bsp+0x190, palette_index, 0x88) for fog
  * palette. Confirmed: returns *(int*)(palette_entry + 0x2c) or -1.
  */
-int scenario_get_structure_reference_index_from_tag_index(int16_t bsp3d_node_index)
+int scenario_get_structure_reference_index_from_tag_index(
+  int16_t bsp3d_node_index)
 {
   char *bsp;
   char *node_element;
@@ -462,7 +464,8 @@ void scenario_location_from_point(void *location_out, void *point)
  * Confirmed: tag_block_get_element(bsp+0x134, cluster_index, 0x68).
  * Confirmed: tag_block_get_element(bsp+0x178, plane_index, 0x20).
  * Confirmed: FCOMP against 0.0f at [0x2533c0]; TEST AH,5 / JP pattern.
- * Confirmed: calls scenario_get_structure_reference_index_from_tag_index and tag_get('fog ', ...).
+ * Confirmed: calls scenario_get_structure_reference_index_from_tag_index and
+ * tag_get('fog ', ...).
  */
 int16_t FUN_0018f2d0(void *location, void *position)
 {
@@ -500,7 +503,8 @@ int16_t FUN_0018f2d0(void *location, void *position)
 
   fog_palette_index = *(int16_t *)plane_entry;
 
-  fog_tag_index = scenario_get_structure_reference_index_from_tag_index(fog_palette_index);
+  fog_tag_index =
+    scenario_get_structure_reference_index_from_tag_index(fog_palette_index);
   fog_threshold = 0.0f;
   if (fog_tag_index != -1) {
     fog_tag = (char *)tag_get(0x666f6720, fog_tag_index);
@@ -569,7 +573,8 @@ bool FUN_0018f3e0(void *location, void *position, int16_t *out_sky_index)
   } else {
     node_element =
       (char *)tag_block_get_element(bsp + 0x184, (int)node_index, 0x28);
-    fog_index = scenario_get_structure_reference_index_from_tag_index(node_index);
+    fog_index =
+      scenario_get_structure_reference_index_from_tag_index(node_index);
     if (fog_index == -1) {
       is_indoor = false;
     } else {
@@ -608,8 +613,9 @@ done:
  *     fog palette index at offset +0.
  *   - Non-negative: direct fog palette index (no plane).
  *
- * The fog palette index is resolved to a fog tag via scenario_get_structure_reference_index_from_tag_index.
- * If the fog tag's first byte has bit 0 set (indoor fog), the function:
+ * The fog palette index is resolved to a fog tag via
+ * scenario_get_structure_reference_index_from_tag_index. If the fog tag's first
+ * byte has bit 0 set (indoor fog), the function:
  *   - With a plane: returns -(dot(plane, position) + fog_tag[0x74]).
  *   - Without a plane: returns FLT_MAX.
  * Otherwise returns -FLT_MAX.
@@ -658,7 +664,8 @@ float FUN_0018f510(void *location, void *position)
     plane = NULL;
   }
 
-  tag_index = scenario_get_structure_reference_index_from_tag_index(fog_palette_index);
+  tag_index =
+    scenario_get_structure_reference_index_from_tag_index(fog_palette_index);
   if (tag_index == -1)
     return -3.4028235e+38f;
 

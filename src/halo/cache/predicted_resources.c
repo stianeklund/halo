@@ -47,4 +47,3 @@ void predicted_resources_precache(void *tag_block)
     }
   }
 }
-

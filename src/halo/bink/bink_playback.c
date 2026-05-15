@@ -397,6 +397,17 @@ bool bink_playback_check_any_button(void)
   return pressed;
 }
 
+/* Bink texture lock adapter. Reorders arguments from the original
+ * __fastcall register layout (flags@EAX, rect@ECX, locked_rect@EDX,
+ * texture+level on stack) into the standard D3DTexture_LockRect
+ * cdecl call. Returns 0. Used as a Bink SDK callback. */
+int FUN_001c6170(unsigned int flags, void *rect, void *locked_rect,
+                 void *texture, unsigned int level)
+{
+  D3DTexture_LockRect(texture, level, locked_rect, rect, flags);
+  return 0;
+}
+
 /* Initialize the bink playback globals and register callbacks. */
 void bink_playback_initialize(void)
 {
@@ -811,17 +822,6 @@ void bink_playback_update(void)
 {
   if (*(uint8_t *)0x31fa96 != 0)
     bink_playback_check_stop();
-}
-
-/* Bink texture lock adapter. Reorders arguments from the original
- * __fastcall register layout (flags@EAX, rect@ECX, locked_rect@EDX,
- * texture+level on stack) into the standard D3DTexture_LockRect
- * cdecl call. Returns 0. Used as a Bink SDK callback. */
-int FUN_001c6170(unsigned int flags, void *rect, void *locked_rect,
-                 void *texture, unsigned int level)
-{
-  D3DTexture_LockRect(texture, level, locked_rect, rect, flags);
-  return 0;
 }
 
 /* Check if a file is an AIFF or AIFC audio container.
