@@ -7324,27 +7324,33 @@
         },
         {
           "decl": "bool game_team_ally_status_changed(int16_t team_a, int16_t team_b);",
-          "addr": "0xa7ae0"
+          "addr": "0xa7ae0",
+          "ported": true
         },
         {
           "decl": "int16_t game_allegiance_get_incidents(int16_t team_a, int16_t team_b, int16_t *out_threshold);",
-          "addr": "0xa7b40"
+          "addr": "0xa7b40",
+          "ported": true
         },
         {
           "decl": "void game_allegiance_provoke(int16_t team_a, int16_t team_b);",
-          "addr": "0xa7bc0"
+          "addr": "0xa7bc0",
+          "ported": true
         },
         {
           "decl": "void game_allegiance_notify_change(int16_t team_a, int16_t team_b);",
-          "addr": "0xa7c30"
+          "addr": "0xa7c30",
+          "ported": true
         },
         {
           "decl": "int FUN_000a8110(int param_1, int param_2);",
-          "addr": "0xa8110"
+          "addr": "0xa8110",
+          "ported": true
         },
         {
           "decl": "int FUN_000a8130(int param_1);",
-          "addr": "0xa8130"
+          "addr": "0xa8130",
+          "ported": true
         }
       ]
     },
