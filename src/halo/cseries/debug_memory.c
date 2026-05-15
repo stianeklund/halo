@@ -21,19 +21,18 @@ void FUN_0008eb80(const char *tag_filter)
   total = 0;
   if (node != NULL) {
     do {
-      if (tag_filter == NULL ||
-          crt_strstr(node->file, tag_filter) != NULL) {
+      if (tag_filter == NULL || crt_strstr(node->file, tag_filter) != NULL) {
         if (stream == NULL) {
           stream = crt_fopen("d:\\heap_dump.txt", "a+b");
           if (stream != NULL) {
-            crt_fprintf(stream, "% 40s  % 6s % 10s % 10s\r\n",
-                        "file", "line", "id", "size");
+            crt_fprintf(stream, "% 40s  % 6s % 10s % 10s\r\n", "file", "line",
+                        "id", "size");
             goto write_entry;
           }
         } else {
         write_entry:
-          crt_fprintf(stream, "% 40s  % 6d % 10d % 10d bytes\r\n",
-                      node->file, node->line, node->sequence, node->size);
+          crt_fprintf(stream, "% 40s  % 6d % 10d % 10d bytes\r\n", node->file,
+                      node->line, node->sequence, node->size);
         }
         total += (int)node->size;
       }
@@ -105,12 +104,12 @@ void FUN_0008ec60(void)
               FUN_0008e750);
         if ((int16_t)file_count > 0) {
           for (i = 0; i < (uint32_t)(uint16_t)file_count; i++) {
-            crt_fprintf(
-              stream,
-              "File: %32s %8d bytes in %4d pointers. (Min: %8d Max: %8d Avg: %5.3f)\r\n",
-              (const char *)table[i][0], (int)table[i][4], (int)table[i][1],
-              (int)table[i][2], (int)table[i][3],
-              (double)table[i][4] / (double)table[i][1]);
+            crt_fprintf(stream,
+                        "File: %32s %8d bytes in %4d pointers. (Min: %8d Max: "
+                        "%8d Avg: %5.3f)\r\n",
+                        (const char *)table[i][0], (int)table[i][4],
+                        (int)table[i][1], (int)table[i][2], (int)table[i][3],
+                        (double)table[i][4] / (double)table[i][1]);
           }
         }
         if (total_size != *(int *)0x2ee750) {
@@ -119,10 +118,10 @@ void FUN_0008ec60(void)
             "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x264, true);
           system_exit(-1);
         }
-        crt_fprintf(
-          stream,
-          "\r\nTotal: %40d bytes in %4d pointers\r\nLargest Heap Size: %28d bytes\r\n\r\n",
-          total_size, alloc_count, *(int *)0x2ee754);
+        crt_fprintf(stream,
+                    "\r\nTotal: %40d bytes in %4d pointers\r\nLargest Heap "
+                    "Size: %28d bytes\r\n\r\n",
+                    total_size, alloc_count, *(int *)0x2ee754);
         crt_fclose(stream);
       }
     }
