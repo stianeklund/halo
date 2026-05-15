@@ -431,3 +431,32 @@ bool game_allegiance_bump(int16_t team_a, int16_t team_b, int16_t action,
   }
   return false;
 }
+
+int FUN_000a8110(int param_1, int param_2)
+{
+  char *elem;
+
+  elem =
+    (char *)tag_block_get_element((void *)(param_1 + 0x14c), param_2, 0x10);
+  return *(int *)(elem + 0xc);
+}
+
+int FUN_000a8130(int param_1)
+{
+  int (*fn)(int, int);
+  char *item;
+  data_iter_t iter;
+
+  data_iterator_new(&iter, *(data_t **)0x5aa6d4);
+  item = (char *)data_iterator_next(&iter);
+  while (1) {
+    if (item == NULL) {
+      return 0;
+    }
+    if (*(int *)(item + 0x20) == param_1)
+      break;
+    item = (char *)data_iterator_next(&iter);
+  }
+  fn = *(int (**)(int, int))((char *)(*(void **)0x456b60) + 0x48);
+  return fn((int)iter.datum_handle, 1);
+}
