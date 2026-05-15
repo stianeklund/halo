@@ -6,7 +6,7 @@ description: >
   offsets, and hazard scan output. Fails closed unless binary-backed evidence
   supports auto-acceptance.
 model: opus
-color: red
+color: error
 memory: project
 ---
 
