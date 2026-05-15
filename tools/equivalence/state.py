@@ -27,6 +27,25 @@ def _float_ulp(a_bits: int, b_bits: int) -> int:
     return a_bits - b_bits
 
 
+def _st80_to_f32_bits(b):
+    """Convert 10-byte x87 extended to 32-bit float bit pattern."""
+    if len(b) < 10:
+        return 0
+    mantissa = int.from_bytes(b[:8], 'little')
+    exp_sign = int.from_bytes(b[8:10], 'little')
+    sign = exp_sign >> 15
+    exp = exp_sign & 0x7FFF
+    if exp == 0:
+        return sign << 31
+    fexp = exp - 16383 + 127
+    if fexp <= 0:
+        return sign << 31
+    if fexp >= 255:
+        return 0x7F800000 | (sign << 31)
+    fmant = (mantissa >> 40) & 0x7FFFFF
+    return (sign << 31) | (fexp << 23) | fmant
+
+
 def _st80_ulp_distance(a, b):
     """Return ULP distance between two 80-bit x87 extended precision values.
 
@@ -250,6 +269,7 @@ def compare(oracle: CPUState, lifted: CPUState,
             scratch_float_tolerance_ulp: int = 0,
             scratch_float_params: list = None,
             st_tolerance_ulp: int = 0,
+            st_compare_as_f32: bool = False,
             check_esp: bool = True) -> StateDiff:
     """Compare two CPUState objects and return a StateDiff.
 
@@ -287,7 +307,12 @@ def compare(oracle: CPUState, lifted: CPUState,
     # unrelated prior operations that differ between oracle and lifted.
     for i in range(check_st_count):
         if oracle.st[i] != lifted.st[i]:
-            if st_tolerance_ulp > 0:
+            if st_compare_as_f32:
+                ob = _st80_to_f32_bits(oracle.st[i])
+                lb = _st80_to_f32_bits(lifted.st[i])
+                if ob == lb or (st_tolerance_ulp > 0 and _float_ulp(ob, lb) <= st_tolerance_ulp):
+                    continue
+            elif st_tolerance_ulp > 0:
                 dist = _st80_ulp_distance(oracle.st[i], lifted.st[i])
                 if 0 <= dist <= st_tolerance_ulp:
                     continue

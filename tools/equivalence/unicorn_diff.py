@@ -487,6 +487,11 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     uc.reg_write(UC_X86_REG_ESP, esp)
     uc.reg_write(UC_X86_REG_EBP, esp)
 
+    # Initialize FPU control word: mask all exceptions, double-extended precision,
+    # round to nearest. Matches the Xbox OS default (0x027F).
+    from unicorn.x86_const import UC_X86_REG_FPCW
+    uc.reg_write(UC_X86_REG_FPCW, 0x027F)
+
     # Zero scratch buffer
     uc.mem_write(SCRATCH_BASE, b'\x00' * SCRATCH_SIZE)
 
@@ -692,6 +697,27 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 err_msg = err_str
 
     s = state_mod.capture(uc, SCRATCH_BASE, SCRATCH_SIZE, entry_esp + 4)
+
+    # Capture full 80-bit FPU state via FXSAVE (reg_read only returns mantissa)
+    FXSAVE_BASE = 0x20000000
+    fxsave_stub_addr = CODE_BASE + CODE_SIZE - 16
+    fxsave_stub = b"\x0F\xAE\x05" + struct.pack('<I', FXSAVE_BASE) + b"\xC3"
+    try:
+        uc.mem_map(FXSAVE_BASE, 0x1000)
+        uc.mem_write(fxsave_stub_addr, fxsave_stub)
+        fake_ret2 = fxsave_stub_addr + len(fxsave_stub) - 1
+        cur_esp = uc.reg_read(UC_X86_REG_ESP)
+        cur_esp -= 4
+        uc.mem_write(cur_esp, struct.pack('<I', fake_ret2))
+        uc.reg_write(UC_X86_REG_ESP, cur_esp)
+        uc.emu_start(fxsave_stub_addr, fake_ret2, timeout=1000000, count=10)
+        fxsave_data = bytes(uc.mem_read(FXSAVE_BASE, 512))
+        uc.reg_write(UC_X86_REG_ESP, cur_esp + 4)
+        for i in range(8):
+            off = 32 + i * 16
+            s.st[i] = fxsave_data[off:off + 10]
+    except Exception:
+        pass
     s.error = err_msg
     s.insn_count = insn_count[0]
     s.visited_pcs = visited_pcs
@@ -1062,17 +1088,25 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         info(f"  oracle class: {orc_cls.category} ({orc_cls.reason})")
         info(f"  lifted class: {lft_cls.category} ({lft_cls.reason})")
 
-        # Patch DIR32 relocations for both
+        # Patch DIR32 relocations for both, with non-overlapping slot ranges
         orc_defined = getattr(oracle_slice, 'defined_symbols', set())
         lft_defined = getattr(lifted_slice, 'defined_symbols', set())
-        oracle_code_patched, orc_data_slots = patch_dir32_relocs(
-            oracle_slice.code, oracle_slice.relocs, orc_defined, return_slots=True)
+        orc_rdata = getattr(oracle_slice, 'rdata_map', {})
+        lft_rdata = getattr(lifted_slice, 'rdata_map', {})
+        oracle_code_patched, orc_data_slots, orc_rdata_seeds = patch_dir32_relocs(
+            oracle_slice.code, oracle_slice.relocs, orc_defined,
+            return_slots=True, rdata_map=orc_rdata)
         oracle_code_patched = bytes(oracle_code_patched)
-        lifted_code_patched, lft_data_slots = patch_dir32_relocs(
-            lifted_slice.code, lifted_slice.relocs, lft_defined, return_slots=True)
+        lft_globals_base = GLOBALS_BASE + len(orc_data_slots) * 256
+        lifted_code_patched, lft_data_slots, lft_rdata_seeds = patch_dir32_relocs(
+            lifted_slice.code, lifted_slice.relocs, lft_defined,
+            globals_base=lft_globals_base,
+            return_slots=True, rdata_map=lft_rdata)
         lifted_code_patched = bytes(lifted_code_patched)
 
         globals_seeds = _build_globals_seeds(orc_data_slots, lft_data_slots)
+        globals_seeds.update(orc_rdata_seeds)
+        globals_seeds.update(lft_rdata_seeds)
         shared_stub_sentinels = {}
         orc_stub_map = {}
         lft_stub_map = {}
@@ -1258,6 +1292,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             scratch_float_tolerance_ulp=float_tolerance_ulp,
             scratch_float_params=float_tolerance_slot_indices,
             st_tolerance_ulp=float_tolerance_ulp,
+            st_compare_as_f32=abi['ret_st0'] and not abi.get('ret_double', False),
             check_esp=is_leaf if not skip_esp else False,
         )
 
@@ -1387,6 +1422,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                 scratch_float_tolerance_ulp=float_tolerance_ulp,
                                 scratch_float_params=float_tolerance_slot_indices,
                                 st_tolerance_ulp=float_tolerance_ulp,
+                                st_compare_as_f32=abi['ret_st0'] and not abi.get('ret_double', False),
                                 check_esp=False)
 
                             if d.has_differences():
