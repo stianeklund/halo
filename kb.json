@@ -12226,17 +12226,17 @@
         {
           "decl": "bool FUN_00129130(int conn1, int conn2);",
           "addr": "0x129130",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool FUN_001298f0(int connection, void *buffer, int *size, void *addr);",
           "addr": "0x1298f0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool FUN_00129cf0(int connection, int flag, int *output);",
           "addr": "0x129cf0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool network_game_in_progress(void);",
@@ -16463,7 +16463,7 @@
           "addr": "0x1bdd50"
         },
         {
-          "decl": "void FUN_001bdd60(void);",
+          "decl": "void *FUN_001bdd60(void);",
           "addr": "0x1bdd60"
         },
         {
@@ -25124,7 +25124,7 @@
         {
           "decl": "int FUN_001bec30(int16_t format, uint16_t flags);",
           "addr": "0x1bec30",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void xbox_texture_cache_setup_d3d_texture(void *bitmap@<esi>, void *texture@<edi>);",
@@ -25431,7 +25431,7 @@
           "addr": "0x183120"
         },
         {
-          "decl": "void FUN_00183290(void);",
+          "decl": "int FUN_00183290(void *hardware_format);",
           "addr": "0x183290"
         },
         {
@@ -26677,7 +26677,7 @@
           "ported": true
         },
         {
-          "decl": "void lruv_block_get_address(void);",
+          "decl": "int lruv_block_get_address(void *lruv, int block_index);",
           "addr": "0x11da00"
         },
         {
@@ -26708,7 +26708,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0011de10(void);",
+          "decl": "int FUN_0011de10(void *lruv, int block_index);",
           "addr": "0x11de10"
         },
         {

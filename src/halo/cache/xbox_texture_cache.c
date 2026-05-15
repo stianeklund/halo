@@ -162,7 +162,7 @@ void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
   D3DResource_Register(texture, *(void **)(bmp + 0x2c));
 }
 
-bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
+bool xbox_texture_cache_request(void *hardware_format, bool block)
 {
   int cache_block_index = FUN_00183290(hardware_format);
 
@@ -175,7 +175,7 @@ bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
     int cache_page_index =
       lruv_block_get_address(*(void **)0x4ea980, cache_block_index) +
       *(int32_t *)0x4ea97c;
-    int new_texture_index = FUN_00119570(*(void **)0x4ea978, cache_block_index);
+    int new_texture_index = data_new_datum(*(void **)0x4ea978, cache_block_index);
     char *cache_entry = datum_get(*(void **)0x4ea978, cache_block_index);
 
     if (new_texture_index != cache_block_index) {
@@ -274,7 +274,7 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
                    *(void **)0x4ea980, (void *)0x18ef30, (void *)0x1beb70);
       *(unsigned int *)0x4ea98c = system_milliseconds();
     }
-    result = FUN_00155580(hardware_format);
+    result = rasterizer_get_default_hardware_format(hardware_format);
     if (!result) {
       display_assert("hardware_format",
                      "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x127,
