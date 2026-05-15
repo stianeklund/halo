@@ -339,14 +339,16 @@ void console_startup(void)
     return;
 
   while (crt_fgets(buffer, 199, stream) != NULL) {
+    int16_t head;
+    int16_t count;
     csstrtok(buffer, "\r\n\t");
 
-    int16_t head = (*console_history_head() + 1) & 7;
+    head = (*console_history_head() + 1) & 7;
     *console_history_head() = head;
 
     csstrcpy(console_history_ring() + head * CONSOLE_HISTORY_SLOT_SIZE, buffer);
 
-    int16_t count = *console_history_count() + 1;
+    count = *console_history_count() + 1;
     if (count > CONSOLE_HISTORY_SLOTS)
       count = CONSOLE_HISTORY_SLOTS;
     *console_history_count() = count;
@@ -460,16 +462,19 @@ bool console_update(void)
         *console_history_browse_index() += 2;
         /* fall through */
       case 0x4e: {
-        int16_t browse = *console_history_browse_index() - 1;
+        int16_t browse;
+        int16_t max_idx;
+        int idx;
+        browse = *console_history_browse_index() - 1;
         if (browse < 1)
           browse = 0;
-        int16_t max_idx = *console_history_count() - 1;
+        max_idx = *console_history_count() - 1;
         if (browse > max_idx)
           browse = max_idx;
         *console_history_browse_index() = browse;
 
         if (browse != -1) {
-          int idx = ((int)*console_history_head() - (int)browse + 8) & 7;
+          idx = ((int)*console_history_head() - (int)browse + 8) & 7;
           csstrcpy(console_input_buffer(),
                    console_history_ring() + idx * CONSOLE_HISTORY_SLOT_SIZE);
           edit_text_set_cursor_to_end(console_edit_text());
