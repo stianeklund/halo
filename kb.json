@@ -20228,8 +20228,9 @@
           "addr": "0x18e1d0"
         },
         {
-          "decl": "void FUN_0018e3b0(void);",
-          "addr": "0x18e3b0"
+          "decl": "void *FUN_0018e3b0(void);",
+          "addr": "0x18e3b0",
+          "ported": true
         },
         {
           "decl": "void *scenario_get(void);",

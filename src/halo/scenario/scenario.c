@@ -48,6 +48,15 @@ scenario_t *global_scenario_get(void)
   return *(scenario_t **)0x5064e4;
 }
 
+/* Return the global scenario pointer without asserting (0x18e3b0).
+ * Sibling of global_scenario_get; used at call sites that must tolerate
+ * a NULL scenario (e.g. early boot, between map switches). Compiles to
+ * a 2-instruction MOV EAX, [global]; RET. */
+void *FUN_0018e3b0(void)
+{
+  return *(void **)0x5064e4;
+}
+
 void *scenario_get(void)
 {
   assert_halt(global_structure_bsp);
