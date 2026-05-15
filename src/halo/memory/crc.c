@@ -1,3 +1,8 @@
+void crc_new(uint32_t *checksum)
+{
+  *checksum = 0xFFFFFFFF;
+}
+
 /* Generate the standard CRC32 lookup table (polynomial 0xEDB88320).
  * Fills 256 entries at the given table pointer.
  * table pointer passed in EDX (register arg). */

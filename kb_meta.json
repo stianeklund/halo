@@ -4770,6 +4770,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1190b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1190c0": {
       "kind": "function",
       "status": "ported"
