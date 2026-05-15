@@ -29488,10 +29488,20 @@
     },
     {
       "name": "D3D8:d3dresource.obj",
+      "data": [
+        {
+          "decl": "uint8_t *D3D_g_pDevice;",
+          "addr": "0x1fe6a0"
+        }
+      ],
       "functions": [
         {
           "decl": "void __stdcall D3D_DestroyResource(void *resource);",
           "addr": "0x1ed7d0"
+        },
+        {
+          "decl": "void __stdcall D3D_BlockOnTime(uint32_t time, int param2);",
+          "addr": "0x1efa80"
         }
       ]
     },
