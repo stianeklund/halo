@@ -39,6 +39,23 @@ void rasterizer_frame_update(float delta_time)
   *(float *)0x5a5e1c = delta_time;
 }
 
+/* D3D8 CreateDevice register-shim. Receives three register args
+ * (EAX/ECX/EDX) and four stack args (the first stack arg is unused;
+ * RET 0x10 cleans all four), reorders them into the standard 6-arg
+ * stdcall to IDirect3D8_CreateDevice. No callers observed in the
+ * shipped XBE — dead code from debug builds. */
+void FUN_001550c0(unsigned int arg_eax /* @<eax> */,
+                  unsigned int arg_ecx /* @<ecx> */,
+                  unsigned int arg_edx /* @<edx> */, unsigned int unused_stack0,
+                  unsigned int stack_arg1, unsigned int stack_arg2,
+                  unsigned int stack_arg3)
+{
+  (void)unused_stack0;
+  ((void(__stdcall *)(unsigned int, unsigned int, unsigned int, unsigned int,
+                      unsigned int, unsigned int))0x1edec0)(
+    stack_arg1, stack_arg2, stack_arg3, arg_edx, arg_ecx, arg_eax);
+}
+
 /* Read one entry from D3D_g_DeferredTextureState[stage][sub_index] into
  * *result. The array is a flat DWORD array at 0x1fb498 with 32 entries per
  * stage row. Register args: EAX=stage, ECX=sub_index; stack arg: result
