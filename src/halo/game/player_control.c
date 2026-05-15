@@ -32,7 +32,7 @@ void player_control_set_action_flags(int16_t local_player_index, uint16_t flags,
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)
  * if the unit has no controlling player. */
-int16_t FUN_000b6990(int unit_handle)
+int16_t unit_get_local_player_index(int unit_handle)
 {
   char *unit_obj;
   int player_handle;

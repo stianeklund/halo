@@ -10,7 +10,7 @@ extern void object_placement_data_new(void *placement, int tag_index,
 extern void matrix_inverse(float *src, float *dst);
 extern void matrix4x3_multiply(float *a, float *b, float *out);
 extern void matrix_from_forward_and_up(float *out, float *forward, float *up);
-extern int16_t FUN_00106510(int16_t count, float *points, float *line,
+extern int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points, float *line,
                             int16_t max_count, float *out_points,
                             uint32_t *out_bitmask, uint8_t *changed,
                             float epsilon);
@@ -22,8 +22,8 @@ extern float random_math_real(unsigned int *seed);
 
 extern float magnitude3d(float *v);
 extern float FUN_00013070(float *a, float *b);
-extern void FUN_0010b7d0(float *a, float *b, float blend, float *out);
-extern void FUN_0010b820(float a, float b, float blend, float *out);
+extern void points_interpolate(float *a, float *b, float blend, float *out);
+extern void scalars_interpolate(float a, float b, float blend, float *out);
 extern uint32_t FUN_000d1c90(float *color);
 
 static int check(const char *name, uint32_t got, uint32_t expected, char *buf)
@@ -281,24 +281,24 @@ void run_tests(void)
     passed += check("FUN_00013070 dot", *(uint32_t *)&dot, 0x40100000, buf);
   }
 
-  /* FUN_0010b7d0 (interpolate_vector3d) */
+  /* points_interpolate (interpolate_vector3d) */
   {
     float a[3] = { 10.0f, 20.0f, 30.0f };
     float b[3] = { 20.0f, -10.0f, 0.0f };
     float out[3];
-    FUN_0010b7d0(a, b, 0.25f, out);
+    points_interpolate(a, b, 0.25f, out);
     total += 3;
-    passed += check("FUN_0010b7d0 x", *(uint32_t *)&out[0], 0x41480000, buf);
-    passed += check("FUN_0010b7d0 y", *(uint32_t *)&out[1], 0x41480000, buf);
-    passed += check("FUN_0010b7d0 z", *(uint32_t *)&out[2], 0x41B40000, buf);
+    passed += check("points_interpolate x", *(uint32_t *)&out[0], 0x41480000, buf);
+    passed += check("points_interpolate y", *(uint32_t *)&out[1], 0x41480000, buf);
+    passed += check("points_interpolate z", *(uint32_t *)&out[2], 0x41B40000, buf);
   }
 
-  /* FUN_0010b820 (interpolate_float) */
+  /* scalars_interpolate (interpolate_float) */
   {
     float out;
-    FUN_0010b820(10.0f, 20.0f, 0.75f, &out);
+    scalars_interpolate(10.0f, 20.0f, 0.75f, &out);
     total += 1;
-    passed += check("FUN_0010b820 out", *(uint32_t *)&out, 0x418C0000, buf);
+    passed += check("scalars_interpolate out", *(uint32_t *)&out, 0x418C0000, buf);
   }
 
   /* FUN_000d1c90 (real_argb_color_to_pixel32) */
@@ -309,7 +309,7 @@ void run_tests(void)
     passed += check("FUN_000d1c90 pixel", pixel, 0x80FF00CC, buf);
   }
 
-  /* FUN_00106510: 2D polygon clip against a line.
+  /* convex_polygon2d_clip_to_plane: 2D polygon clip against a line.
    * Golden/candidate comparison is done by run_golden_tests.py on the raw
    * output below, so these cases print exact hex results instead of PASS/FAIL.
    */
@@ -326,7 +326,7 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = FUN_00106510(4, in_points, line_x_ge_0, 0xc, out_points, &out_mask,
+      ret = convex_polygon2d_clip_to_plane(4, in_points, line_x_ge_0, 0xc, out_points, &out_mask,
                          &changed, 0.0f);
       dump_clip_case("clip_cross", ret, out_mask, changed, out_points, buf);
     }
@@ -338,7 +338,7 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = FUN_00106510(4, alias_points, line_y_ge_0, 0xc, alias_points, /* dup-args-ok: in-place clipping test */
+      ret = convex_polygon2d_clip_to_plane(4, alias_points, line_y_ge_0, 0xc, alias_points, /* dup-args-ok: in-place clipping test */
                          &out_mask, &changed, 0.0f);
       dump_clip_case("clip_alias", ret, out_mask, changed, alias_points, buf);
     }
@@ -349,7 +349,7 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = FUN_00106510(3, in_points, line_x_ge_0, 0xc, out_points, NULL,
+      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc, out_points, NULL,
                          &changed, 0.0f);
       dump_clip_case("clip_inside", ret, 0, changed, out_points, buf);
     }
@@ -360,7 +360,7 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = FUN_00106510(3, in_points, line_x_ge_0, 0xc, out_points, NULL,
+      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc, out_points, NULL,
                          &changed, 0.0f);
       dump_clip_case("clip_outside", ret, 0, changed, out_points, buf);
     }
@@ -372,7 +372,7 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = FUN_00106510(3, in_points, line_x_ge_0, 0xc, out_points, &out_mask,
+      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc, out_points, &out_mask,
                          &changed, 0.0001f);
       dump_clip_case("clip_duplicate", ret, out_mask, changed, out_points, buf);
     }

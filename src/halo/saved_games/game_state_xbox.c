@@ -78,7 +78,7 @@ void xbox_game_state_close_file(void)
  * is allocated and the file is open, seeks to the beginning, then writes the
  * entire buffer. Sets the file_written flag on success.
  */
-char FUN_001c0370(void)
+char game_state_write_to_file(void)
 {
   int bytes_written;
 
@@ -114,7 +114,7 @@ char FUN_001c0370(void)
  * optional output byte; set to 1 if checksum mismatch with a non-zero expected
  * checksum
  */
-char FUN_001c0910(void *header, uint32_t *scratch, int header_size,
+char game_state_read_header_from_persistent_storage(void *header, uint32_t *scratch, int header_size,
                   int buffer_size, char *flags)
 {
   static char scratch_buffer[0x20000]; /* 128KB — avoids _chkstk */
@@ -171,7 +171,7 @@ char FUN_001c0910(void *header, uint32_t *scratch, int header_size,
       crc_checksum_buffer(&checksum, scratch_buffer, chunk);
     }
 
-    FUN_001cf2f0(); /* sound_pump / idle tick */
+    sound_idle(); /* sound_pump / idle tick */
     remaining -= chunk;
   }
 

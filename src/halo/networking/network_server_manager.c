@@ -1,7 +1,7 @@
 /* Tick a millisecond countdown timer. Subtracts elapsed time from
    time_remaining, clamps to zero, and returns the remaining value.
    countdown[0] = time_remaining, countdown[1] = last_tick_time. */
-int FUN_0012bdb0(void *countdown)
+int countdown_timer_get_time_remaining(void *countdown)
 {
   int now;
   int elapsed;
@@ -207,7 +207,7 @@ void network_server_manager_game_over(void *server)
 /* Check if a machine is marked as valid/active on this server (0x12c500).
  * Asserts both server and machine are non-null, then returns bit 1 of the
  * flags byte at machine+0xe (shifted right by 1, masked to a bool). */
-bool FUN_0012c500(int server, int machine)
+bool network_game_server_client_machine_is_joined_to_game(int server, int machine)
 {
   if (!server) {
     display_assert("server",
@@ -228,7 +228,7 @@ bool FUN_0012c500(int server, int machine)
  * Sets the server state to 1, clears the timer at +0x484, then copies a
  * "local game data loaded" flag from the client's game-data region into
  * server+0x438.  Asserts if the flag is zero (data not loaded). */
-void FUN_0012caa0(void *server)
+void network_game_server_all_machines_have_loaded(void *server)
 {
   char *s = (char *)server;
   void *client;
@@ -323,12 +323,12 @@ bool get_unique_random_color(void *server)
 
 /* Check whether enough machine slots have valid team indices (0x12d150).
  * Counts slots in [0,4) across the 4 machine entries at server+0x448
- * (stride 0x10). If FUN_0012a170 returns true the threshold is 1,
+ * (stride 0x10). If network_game_is_splitscreen_local returns true the threshold is 1,
  * otherwise 2. Returns count >= threshold. */
-bool FUN_0012d150(void *server)
+bool server_has_enough_machines(void *server)
 {
   char *s = (char *)server;
-  int threshold = FUN_0012a170() ? 1 : 2;
+  int threshold = network_game_is_splitscreen_local() ? 1 : 2;
   int count = 0;
 
   if (*(int16_t *)(s + 0x448) >= 0 && *(int16_t *)(s + 0x448) < 4)
@@ -355,7 +355,7 @@ int network_game_server_adjust_machine_settings(void *machine)
 /* Get a pointer to the machine entry at the given index (0x12d450).
  * Asserts server is non-null and index < MAXIMUM_NETWORK_MACHINE_COUNT (4).
  * Each machine entry is 0x10 bytes, starting at server+0x43c. */
-int FUN_0012d450(int server, int machine_index)
+int network_game_server_get_client_machine_at_index(int server, int machine_index)
 {
   if (!server || machine_index >= 4) {
     display_assert("server && (index<MAXIMUM_NETWORK_MACHINE_COUNT)",
@@ -368,7 +368,7 @@ int FUN_0012d450(int server, int machine_index)
 
 /* Assert server is non-null and return the connection pointer at offset +8
  * (0x12d570). */
-int FUN_0012d570(void *server)
+int network_game_server_get_game(void *server)
 {
   if (!server) {
     display_assert("server",
@@ -418,7 +418,7 @@ bool FUN_0012d880(int server, int new_connection)
       } else {
         if (!network_game_accept_remote_connections() &&
             *(int *)addr_buf != 0x7f000001) {
-          addr_str = FUN_00081b90(addr_buf);
+          addr_str = transport_address_to_string(addr_buf);
           network_game_log(
             "remote system tried to join our server but we are not accepting "
             "remote connections: address= '%s'",
@@ -426,12 +426,12 @@ bool FUN_0012d880(int server, int new_connection)
           result = false;
         } else {
           *(int *)(s + i * 0x10 + 0x43c) = new_connection;
-          FUN_0012acb0(s + 8, i);
+          network_game_invalidate_machine(s + 8, i);
           *(short *)(s + i * 0x10 + 0x448) = (short)i;
           *(short *)(s + i * 0x10 + 0x44a) = 1;
-          result = FUN_001285c0(*(int *)s, new_connection);
+          result = network_connection_server_accept_client_connection(*(int *)s, new_connection);
           if (result == 1) {
-            addr_str = FUN_00081b90(addr_buf);
+            addr_str = transport_address_to_string(addr_buf);
             network_game_log("new remote connection accepted from %s",
                              addr_str);
           }
@@ -629,7 +629,7 @@ void FUN_0012de20(void *server)
   do {
     status = "no connection";
     if (*(int *)(slot - 8) != 0) {
-      if (FUN_00128660(*(int *)(slot - 8)))
+      if (network_connection_active(*(int *)(slot - 8)))
         status = "(active)";
       else
         status = "(dead)";
@@ -830,7 +830,7 @@ loop_top:
 
     machine = (char *)flags - 0xc;
 
-    if (!FUN_00128660(*(int *)machine)) {
+    if (!network_connection_active(*(int *)machine)) {
       if (FUN_0012e090((void *)server, s + 0x11c + (int)*flags * 0x44)) {
         network_game_log("client machine %x removed from game", (int)*flags);
       } else {
@@ -938,13 +938,13 @@ bool FUN_0012e750(int server)
       }
       flags_ptr += 8;
     }
-    FUN_0012caa0((void *)server);
+    network_game_server_all_machines_have_loaded((void *)server);
     return result;
   }
 
   conn_ptr = (int *)(s + 0x43c);
   for (i = 0; i < 4; i++) {
-    if (*conn_ptr != 0 && !FUN_00128660(*conn_ptr)) {
+    if (*conn_ptr != 0 && !network_connection_active(*conn_ptr)) {
       network_game_log("booting dead client machine %d", i);
       FUN_0012df50((void *)server, conn_ptr);
     }
@@ -961,7 +961,7 @@ bool FUN_0012e750(int server)
     return result;
   }
 
-  if (!FUN_0012d150((void *)server) ||
+  if (!server_has_enough_machines((void *)server) ||
       !get_unique_random_color((void *)server) ||
       get_unique_random_name((void *)server) ||
       *(short *)(s + 0x22c) < (short)*(char *)(s + 0x115)) {
@@ -969,7 +969,7 @@ bool FUN_0012e750(int server)
     i = 0;
   } else {
     i = 1;
-    timer_ms = FUN_0012bdb0(s + 0x488);
+    timer_ms = countdown_timer_get_time_remaining(s + 0x488);
     if (timer_ms == 0) {
       if (FUN_0012dbb0(server) && *(char *)(s + 0x495) == 0) {
         network_game_server_close_game((void *)server);
@@ -986,7 +986,7 @@ bool FUN_0012e750(int server)
 
   *(char *)(s + 0x496) = 0;
   if (i) {
-    timer_ms = FUN_0012bdb0(s + 0x488);
+    timer_ms = countdown_timer_get_time_remaining(s + 0x488);
     countdown = (short)(timer_ms / 1000);
   } else {
     countdown = -1;
@@ -1090,8 +1090,8 @@ bool network_game_server_start(void *server)
   const char *addr_str;
 
   result = true;
-  if (!FUN_00082300()) {
-    if (!FUN_0012a170()) {
+  if (!transport_network_available()) {
+    if (!network_game_is_splitscreen_local()) {
       display_error_when_main_menu_loaded(6);
       error(2, "network connection went down!");
       return false;
@@ -1111,7 +1111,7 @@ bool network_game_server_start(void *server)
     if (new_conn != 0) {
       if (FUN_0012d880((int)server, new_conn)) {
         FUN_001283c0(new_conn, addr_buf, 0);
-        addr_str = FUN_00081b90(addr_buf);
+        addr_str = transport_address_to_string(addr_buf);
         network_game_log("new client connected from ip %s (validation pending)",
                          addr_str);
       } else {
@@ -1276,13 +1276,13 @@ bool FUN_0012f430(void *server, void *message)
   msg_len = *(unsigned short *)message >> 4;
 
   for (i = 0; i < 4; i++) {
-    machine = FUN_0012d450((int)server, i);
-    if (!FUN_0012c500((int)server, machine))
+    machine = network_game_server_get_client_machine_at_index((int)server, i);
+    if (!network_game_server_client_machine_is_joined_to_game((int)server, machine))
       continue;
     connection = network_game_server_adjust_machine_settings((void *)machine);
     if (!connection)
       continue;
-    if (!FUN_00128660(connection))
+    if (!network_connection_active(connection))
       continue;
     if (msg_len > 0x600) {
       display_assert(
@@ -1303,7 +1303,7 @@ bool FUN_0012f430(void *server, void *message)
 }
 
 /* Send updated game settings to all client machines (0x12f5d0).
- * Gets the game data pointer via FUN_0012d570, copies 0x434 bytes
+ * Gets the game data pointer via network_game_server_get_game, copies 0x434 bytes
  * into a local buffer, builds a type-6 message, and broadcasts it.
  * Returns true on success. */
 bool FUN_0012f5d0(void *server)
@@ -1322,7 +1322,7 @@ bool FUN_0012f5d0(void *server)
     system_exit(-1);
   }
 
-  game_data = FUN_0012d570(server);
+  game_data = network_game_server_get_game(server);
   if (game_data == 0) {
     network_game_log(
       "failed to handle a message_server_game_settings_update because their "

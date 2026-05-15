@@ -45,7 +45,7 @@ short game_connection(void)
   return word_46DA0C;
 }
 
-void FUN_00100000(void)
+void main_defer_map_map_change(void)
 {
   main_change_map_name_pending = 0;
 }
@@ -1410,7 +1410,7 @@ void main_lost_map(void)
 }
 
 /* Set the rasterizer frame-skip flag. */
-void FUN_00101ca0(void)
+void main_start_time(void)
 {
   *(char *)0x46da47 = 1;
 }

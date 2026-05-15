@@ -162,12 +162,12 @@ void __stdcall FUN_001bc8f0(int error_code, unsigned int param_2,
   **(char **)((char *)overlapped + 0x10) = 1;
 }
 
-/* FUN_001bc9c0 — close the currently-open map file if any is open.
+/* cache_file_close — close the currently-open map file if any is open.
  * DAT_004e9244 = cache_file_globals.open_map_file_index (int16_t).
  * If not NONE (-1), calls FUN_001bc620 to close the file, then resets to -1.
  * Frameless in the original (no EBP frame).
  */
-void FUN_001bc9c0(void)
+void cache_file_close(void)
 {
   if (*(int16_t *)0x4e9244 != -1) {
     FUN_001bc620();
@@ -175,13 +175,13 @@ void FUN_001bc9c0(void)
   }
 }
 
-/* FUN_001bc9e0 — submit an async IO request to the cache file system.
+/* cache_file_read — submit an async IO request to the cache file system.
  * Allocates a free request slot via FUN_001bc5c0, validates inputs, fills the
  * slot (offset +0..+0x1e), clears the completion flag, and fires the IO event.
  * Size is rounded up to the next multiple of 0x200 if not aligned.
  * Returns the request slot index.
  */
-short FUN_001bc9e0(int param_1, int offset, unsigned int size, int buffer,
+short cache_file_read(int param_1, int offset, unsigned int size, int buffer,
                    char *completion_flag, char async_flag)
 {
   short request_index;
@@ -245,12 +245,12 @@ void cache_files_io_request_enable(int16_t request_index)
   *(uint8_t *)(*(int *)0x4e9250 + (int)request_index * 0x20 + 0x1c) = 1;
 }
 
-/* FUN_001bcc50 — spin-wait until all 512 cache IO request slots are idle.
+/* cache_file_block_until_not_busy — spin-wait until all 512 cache IO request slots are idle.
  * Loops: sleeps 1ms (FUN_001d01c4(0,1)), then scans all slots checking the
  * active byte at +0x1d. If any slot is still active, repeat.
  * DAT_004e9250 = base of the 512-entry request array (each 0x20 bytes).
  */
-void FUN_001bcc50(void)
+void cache_file_block_until_not_busy(void)
 {
   int active;
   short i;
@@ -277,13 +277,13 @@ void FUN_001bcc50(void)
   } while (active);
 }
 
-/* FUN_001bccb0 — register D3D vertex and index buffers from a block.
+/* tags_header_register_vertex_and_index_buffers — register D3D vertex and index buffers from a block.
  * block+0x10: vertex buffer count; block+0x14: vertex buffer array base (stride
  * 0xc). block+0x18: index buffer count; block+0x1c: index buffer array base
  * (stride 0xc). Writes 1 to the first dword of each vertex buffer entry and
  * calls D3DResource_Register; writes 0x10001 to each index buffer entry.
  */
-void FUN_001bccb0(void *block)
+void tags_header_register_vertex_and_index_buffers(void *block)
 {
   char *b = (char *)block;
   short s;
@@ -311,11 +311,11 @@ void FUN_001bccb0(void *block)
   }
 }
 
-/* FUN_001bcd10 — wait for D3D vertex and index buffers to become idle.
+/* tags_header_deregister_vertex_and_index_buffers — wait for D3D vertex and index buffers to become idle.
  * Calls D3DResource_BlockUntilNotBusy then asserts !IsBusy for each buffer.
- * Same block layout as FUN_001bccb0.
+ * Same block layout as tags_header_register_vertex_and_index_buffers.
  */
-void FUN_001bcd10(void *block)
+void tags_header_deregister_vertex_and_index_buffers(void *block)
 {
   char *b = (char *)block;
   short s;
@@ -355,13 +355,13 @@ void FUN_001bcd10(void *block)
   }
 }
 
-/* FUN_001bcdc0 — register D3D vertex and index buffers from a geometry block.
+/* structure_bsp_header_register_vertex_buffers — register D3D vertex and index buffers from a geometry block.
  * block+4/8: vertex count/array; block+0xc/0x10: index count/array (stride
  * 0xc). Writes 1 to first dword of each buffer entry and calls
- * D3DResource_Register. Same as FUN_001bccb0 but uses offsets +4/+8/+0xc/+0x10
+ * D3DResource_Register. Same as tags_header_register_vertex_and_index_buffers but uses offsets +4/+8/+0xc/+0x10
  * instead of +0x10/+0x14/+0x18/+0x1c.
  */
-void FUN_001bcdc0(void *block)
+void structure_bsp_header_register_vertex_buffers(void *block)
 {
   char *b = (char *)block;
   short s;
@@ -391,11 +391,11 @@ void FUN_001bcdc0(void *block)
   }
 }
 
-/* FUN_001bce30 — wait for all vertex and index buffers in a geometry block.
+/* structure_bsp_header_deregister_vertex_buffers — wait for all vertex and index buffers in a geometry block.
  * Sets DAT_00325652=0x11 (render state), blocks until each D3D resource is
- * idle, then clears DAT_00325652=0. Same struct layout as FUN_001bcdc0.
+ * idle, then clears DAT_00325652=0. Same struct layout as structure_bsp_header_register_vertex_buffers.
  */
-void FUN_001bce30(void *block)
+void structure_bsp_header_deregister_vertex_buffers(void *block)
 {
   char *b = (char *)block;
   short s;
@@ -646,7 +646,7 @@ void cache_files_precache(void)
 {
   char header[0x14c];
 
-  if (!FUN_001c0910(header, (uint32_t *)(header + 0x148), sizeof(header),
+  if (!game_state_read_header_from_persistent_storage(header, (uint32_t *)(header + 0x148), sizeof(header),
                     0x345000, NULL)) {
     return;
   }
@@ -677,6 +677,6 @@ void cache_files_precache(void)
   game_state_call_after_load_procs();
   ((void (*)(void))game_state_callback_32eaa0)();
   main_lost_map();
-  *(uint8_t *)0x4ea9a5 = FUN_001c0370() != 0;
-  FUN_00101ca0();
+  *(uint8_t *)0x4ea9a5 = game_state_write_to_file() != 0;
+  main_start_time();
 }

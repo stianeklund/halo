@@ -187,13 +187,13 @@ void lruv_debug_to_file(void *cache, int datum_handle)
   *(int *)((char *)block + 0x14) = c->field_30;
 }
 
-/* FUN_0011db00 (0x11db00)
+/* lruv_resize (0x11db00)
  *
  * Resize the lruv_cache to new_page_count pages.  Any block whose
  * page range (first_page_index + page_count) exceeds the new limit is
  * evicted via lruv_block_delete before the page_count field is updated.
  */
-void FUN_0011db00(void *cache, int new_page_count)
+void lruv_resize(void *cache, int new_page_count)
 {
   lruv_cache_t *c = (lruv_cache_t *)cache;
   lruv_cache_block_t *block;

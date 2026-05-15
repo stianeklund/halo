@@ -47,17 +47,17 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
     return "out of memory";
   }
 
-  FUN_000659f0(tiff, 0x100, (int)*(int16_t *)((char *)bitmap + 0x4));
-  FUN_000659f0(tiff, 0x101, (int)*(int16_t *)((char *)bitmap + 0x6));
-  FUN_000659f0(tiff, 0x103, 5);
-  FUN_000659f0(tiff, 0x106, photometric);
-  FUN_000659f0(tiff, 0x11c, 1);
-  FUN_000659f0(tiff, 0x115, samples_per_pixel);
-  FUN_000659f0(tiff, 0x102, 8);
-  FUN_000659f0(tiff, 0x112, 1);
+  TIFFSetField(tiff, 0x100, (int)*(int16_t *)((char *)bitmap + 0x4));
+  TIFFSetField(tiff, 0x101, (int)*(int16_t *)((char *)bitmap + 0x6));
+  TIFFSetField(tiff, 0x103, 5);
+  TIFFSetField(tiff, 0x106, photometric);
+  TIFFSetField(tiff, 0x11c, 1);
+  TIFFSetField(tiff, 0x115, samples_per_pixel);
+  TIFFSetField(tiff, 0x102, 8);
+  TIFFSetField(tiff, 0x112, 1);
 
   for (y = 0; y < *(int16_t *)((char *)bitmap + 0x6); y++) {
-    uint8_t *src_row = (uint8_t *)FUN_0007c940(bitmap, 0, y, 0);
+    uint8_t *src_row = (uint8_t *)bitmap_2d_address(bitmap, 0, y, 0);
     int x;
 
     switch (*(int16_t *)((char *)bitmap + 0xc)) {
@@ -128,7 +128,7 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
       break;
     }
 
-    if (FUN_0006fea0(tiff, row_buffer, y, 0) < 0) {
+    if (TIFFWriteScanline(tiff, row_buffer, y, 0) < 0) {
       error_message = "failed to write scanline";
       break;
     }

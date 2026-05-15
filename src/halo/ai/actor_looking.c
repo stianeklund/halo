@@ -14,7 +14,7 @@
  * Reads the actor's scripted-look target handle at actor+0x1dc.  If set (not
  * -1) and the actor also has a secondary-look object handle at actor+0x1e0,
  * it attempts to find an existing look-at entry for that object via
- * FUN_00064ab0.  If one is found it is passed as an object-handle look target
+ * prop_get_active_by_unit_index.  If one is found it is passed as an object-handle look target
  * (type 1); otherwise the object's position is fetched via
  * unit_get_head_position and a position look target (type 3) is issued via
  * FUN_00027a60.
@@ -22,7 +22,7 @@
  * Confirmed: datum_get(actor_data, actor_handle) at 0x14552.
  * Confirmed: guard on [actor+0x1dc] != -1 AND [actor+0x1e0] != -1 at
  *   0x14559/0x14567.
- * Confirmed: FUN_00064ab0(actor_handle, [actor+0x1e0]) at 0x14574.
+ * Confirmed: prop_get_active_by_unit_index(actor_handle, [actor+0x1e0]) at 0x14574.
  * Confirmed: branch on return == -1 at 0x1457c/0x1457f.
  * Confirmed: type=1 path: MOV word [EBP-0x10],1; MOV [EBP-0xc],EAX at
  *   0x14581/0x14587.
@@ -30,12 +30,12 @@
  *   with args ([actor+0x1e0], &buf[1]) at 0x1459d.
  * Confirmed: FUN_00027a60(actor_handle, 8, 5, &buf) at 0x145ae.
  * Confirmed: cdecl: ADD ESP,0x10 after FUN_00027a60; ADD ESP,0x8 after
- *   FUN_00064ab0 and unit_get_head_position. */
+ *   prop_get_active_by_unit_index and unit_get_head_position. */
 void FUN_00014540(int actor_handle)
 {
   char *actor;
   int look_object; /* [actor+0x1e0]: handle of scripted look object */
-  int look_entry; /* return from FUN_00064ab0: existing look entry or -1 */
+  int look_entry; /* return from prop_get_active_by_unit_index: existing look entry or -1 */
 
   /* Buffer passed to FUN_00027a60: { int16_t type; int16_t pad; int data[3]; }
    * type=1 (object handle look): data[0] = look_entry handle
@@ -53,7 +53,7 @@ void FUN_00014540(int actor_handle)
 
   look_object = *(int *)(actor + 0x1e0);
 
-  look_entry = FUN_00064ab0(actor_handle, look_object);
+  look_entry = prop_get_active_by_unit_index(actor_handle, look_object);
   if (look_entry == -1) {
     /* No existing look entry: use object's world position (type 3) */
     look_buf[0] = 3;

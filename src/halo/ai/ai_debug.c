@@ -8,10 +8,10 @@
  * Subsystem roles:
  *   ai_debug_initialize  (0x48e90) — allocate actor/path debug arrays
  *   ai_debug_dispose     (0x48f50) — free actor/path debug arrays
- *   FUN_00048fa0         (0x48fa0) — load encounter name into debug state
- *   FUN_00049080         (0x49080) — clear path debug entries for an actor
- *   FUN_0004ab10         (0x4ab10) — per-tick AI debug update
- *   FUN_0004c0f0         (0x4c0f0) — set current debug encounter by name
+ *   ai_debug_dispose_from_old_map         (0x48fa0) — load encounter name into debug state
+ *   ai_debug_actor_deleted         (0x49080) — clear path debug entries for an actor
+ *   ai_debug_update         (0x4ab10) — per-tick AI debug update
+ *   ai_debug_initialize_for_new_map         (0x4c0f0) — set current debug encounter by name
  *
  * Key globals:
  *   0x331f58  void *: actor_debug_array  (0x657c00 bytes)
@@ -88,14 +88,14 @@ void ai_debug_dispose(void)
   }
 }
 
-/* FUN_00048fa0: if a valid scenario is loaded and a current encounter is
+/* ai_debug_dispose_from_old_map: if a valid scenario is loaded and a current encounter is
  * selected (DAT_005ac9f4 != -1), copy the encounter name from the scenario
  * tag block into DAT_005ac9d2 and clear the dirty flag.
  * Otherwise zero the name buffer via csstrcpy with empty string.
  *
  * No __FILE__ string.  Called from ai_dispose_from_old_map (0x3f720) and
- * FUN_00041e80. */
-void FUN_00048fa0(void)
+ * ai_handle_editing. */
+void ai_debug_dispose_from_old_map(void)
 {
   void *scenario;
   void *encounter;
@@ -112,19 +112,19 @@ void FUN_00048fa0(void)
   csstrcpy((char *)0x5ac9d2, (const char *)0x25386f);
 }
 
-/* FUN_00049000: assert that both debug arrays are allocated, then zero them.
+/* ai_debug_clear_storage: assert that both debug arrays are allocated, then zero them.
  * Asserts actor_debug_array != NULL (line 0xd0 = 208) and
  * actor_path_debug_array != NULL (line 0xd3 = 211) before zeroing each.
  *
  * Confirmed: __FILE__ = "c:\halo\SOURCE\ai\ai_debug.c" (0x25ab74)
  *   line 0xd0 (208) — actor_debug_array assert
  *   line 0xd3 (211) — actor_path_debug_array assert
- * Called from FUN_0004c0f0 (ai_debug.obj, 0x4c0f0).
+ * Called from ai_debug_initialize_for_new_map (ai_debug.obj, 0x4c0f0).
  *
  * Note: decompiler showed csmemset size for path array as &DAT_00394f80
  * (treating immediate as address dereference).  Disassembly confirms
  * PUSH 0x394f80 — it is a literal immediate size, not a pointer. */
-void FUN_00049000(void)
+void ai_debug_clear_storage(void)
 {
   if (*(void **)0x331f58 == NULL) {
     display_assert("actor_debug_array", "c:\\halo\\SOURCE\\ai\\ai_debug.c",
@@ -140,12 +140,12 @@ void FUN_00049000(void)
   csmemset(*(void **)0x331f5c, 0, 0x394f80);
 }
 
-/* FUN_00049080: scan actor_path_debug_array (0x20 entries, stride 0x1ca7c)
+/* ai_debug_actor_deleted: scan actor_path_debug_array (0x20 entries, stride 0x1ca7c)
  * and clear the active flag (offset +0xc) for any entry whose actor handle
  * (offset +0x0) matches actor_handle.
  *
- * No __FILE__ string.  Called from FUN_0003cc10 (actors.obj, 0x3cc10). */
-void FUN_00049080(int actor_handle)
+ * No __FILE__ string.  Called from actor_delete (actors.obj, 0x3cc10). */
+void ai_debug_actor_deleted(int actor_handle)
 {
   char *base;
   int off;
@@ -163,36 +163,36 @@ void FUN_00049080(int actor_handle)
   }
 }
 
-/* FUN_00049220: reset debug encounter state when encounter_idx changes.
+/* ai_debug_select_encounter: reset debug encounter state when encounter_idx changes.
  * Checks if the current encounter index (0x5ac9f4) differs from encounter_idx;
  * if so, updates the index, clears the debug-state byte at 0x629d40, zeroes
  * the 0x670-byte block at 0x629d44 and the 0x8000-byte block at 0x62a3b4,
- * then calls FUN_0004b1b0(encounter_idx, -1) to reinitialize secondary state.
+ * then calls ai_debug_select_actor(encounter_idx, -1) to reinitialize secondary state.
  *
- * No __FILE__ string.  Called from FUN_0004b1b0, FUN_0004c0f0, FUN_0004afa0,
+ * No __FILE__ string.  Called from ai_debug_select_actor, ai_debug_initialize_for_new_map, ai_debug_change_selected_encounter,
  * FUN_00054e40.
  *
  * Calling convention verified (ADD ESP,0x20 at 0x49267 covers 8 dwords):
  *   3 args to csmemset(0x629d44,...) + 3 args to csmemset(0x62a3b4,...) +
- *   2 args to FUN_0004b1b0 = 8 dwords. FUN_0004b1b0 is cdecl.
+ *   2 args to ai_debug_select_actor = 8 dwords. ai_debug_select_actor is cdecl.
  *
  * Call-site verification:
- *   FUN_0004c0f0 @ 0x4c116: PUSH ESI (enc_idx) -> encounter_idx [match]
- *   FUN_0004b1b0 @ 0x4b1ca: PUSH EAX (param_1) -> encounter_idx [match] */
-void FUN_0004b1b0(int encounter_idx, int param_2);
+ *   ai_debug_initialize_for_new_map @ 0x4c116: PUSH ESI (enc_idx) -> encounter_idx [match]
+ *   ai_debug_select_actor @ 0x4b1ca: PUSH EAX (param_1) -> encounter_idx [match] */
+void ai_debug_select_actor(int encounter_idx, int param_2);
 
-void FUN_00049220(int encounter_idx)
+void ai_debug_select_encounter(int encounter_idx)
 {
   if (*(int32_t *)0x5ac9f4 != encounter_idx) {
     *(int32_t *)0x5ac9f4 = encounter_idx;
     *(uint8_t *)0x629d40 = 0;
     csmemset((void *)0x629d44, 0, 0x670);
     csmemset((void *)0x62a3b4, 0, 0x8000);
-    FUN_0004b1b0(encounter_idx, -1);
+    ai_debug_select_actor(encounter_idx, -1);
   }
 }
 
-/* FUN_0004ab10: per-tick AI debug update.  Three independent debug actions:
+/* ai_debug_update: per-tick AI debug update.  Three independent debug actions:
  *
  *   1. Camera-follow (0x5ac9fc):  acquire actor or LOS-hit target, then
  *      build follow-camera state via the 0x5dfc0-0x5ff70 family.
@@ -209,7 +209,7 @@ void FUN_00049220(int encounter_idx)
  * pushed dummy values with FPU-computed float values).
  * Register aliasing verified: EBX=1 set at 0x4ab44, used as arg to
  * FUN_0013d640 at 0x4ab5d and as byte value 1 for flag stores. */
-void FUN_0004ab10(void)
+void ai_debug_update(void)
 {
   /* camera-reset flag */
   if (*(uint8_t *)0x5aca6a != '\0') {
@@ -220,10 +220,10 @@ void FUN_0004ab10(void)
   if (*(uint8_t *)0x5ac9fc != '\0') {
     /* camera-follow: actor-position path */
     if (*(uint8_t *)0x5ac9fd == '\0') {
-      int actor = FUN_000b6870(0);
+      int actor = player_control_get_unit_index(0);
       if (actor != -1 && object_try_and_get_and_verify_type(actor, 1) != NULL) {
         float pos[3];
-        int bone = FUN_001a1bc0(actor, pos);
+        int bone = biped_find_pathfinding_surface_index(actor, pos);
         if (bone != -1) {
           *(float *)0x5f91ac = pos[0];
           *(float *)0x5f91b0 = pos[1];
@@ -272,7 +272,7 @@ void FUN_0004ab10(void)
         path_input_set_search_bounds(cam_state, *(int32_t *)0x5aca00);
       }
       if (*(uint8_t *)0x5aca04 != '\0') {
-        int actor2 = FUN_000b6870(0);
+        int actor2 = player_control_get_unit_index(0);
         if (actor2 != -1) {
           vector3_t vpos;
           float outer, inner;
@@ -387,36 +387,36 @@ void FUN_0004ab10(void)
   FUN_0004a9f0();
 }
 
-/* FUN_00049220: reset debug encounter state when encounter_idx changes.
+/* ai_debug_select_encounter: reset debug encounter state when encounter_idx changes.
  * Checks if the current encounter index (0x5ac9f4) differs from encounter_idx;
  * if so, updates the index, clears the debug-state byte at 0x629d40, zeroes
  * the 0x670-byte block at 0x629d44 and the 0x8000-byte block at 0x62a3b4,
- * then calls FUN_0004b1b0(encounter_idx, -1) to reinitialize secondary state.
+ * then calls ai_debug_select_actor(encounter_idx, -1) to reinitialize secondary state.
  *
- * No __FILE__ string.  Called from FUN_0004b1b0, FUN_0004c0f0, FUN_0004afa0,
+ * No __FILE__ string.  Called from ai_debug_select_actor, ai_debug_initialize_for_new_map, ai_debug_change_selected_encounter,
  * FUN_00054e40.
  *
  * Call-site verification:
- *   FUN_0004c0f0 @ 0x4c116: PUSH ESI (enc_idx, int) -> encounter_idx [match]
- *   FUN_0004b1b0 @ 0x4b1ca: PUSH EAX (param_1, int) -> encounter_idx [match]
+ *   ai_debug_initialize_for_new_map @ 0x4c116: PUSH ESI (enc_idx, int) -> encounter_idx [match]
+ *   ai_debug_select_actor @ 0x4b1ca: PUSH EAX (param_1, int) -> encounter_idx [match]
  *
  * Stack cleanup: ADD ESP,0x20 (0x49267) covers 8 dwords:
  *   3 args to csmemset(0x629d44,...) + 3 args to csmemset(0x62a3b4,...) +
- *   2 args to FUN_0004b1b0 = 8 dwords = 0x20 bytes. */
+ *   2 args to ai_debug_select_actor = 8 dwords = 0x20 bytes. */
 
-/* FUN_0004b1b0: reinitialize secondary encounter debug state when either the
- * encounter index or param_2 changes.  Calls FUN_00049220(encounter_idx) to
+/* ai_debug_select_actor: reinitialize secondary encounter debug state when either the
+ * encounter index or param_2 changes.  Calls ai_debug_select_encounter(encounter_idx) to
  * reset the primary per-encounter debug block, then updates the secondary
  * encounter index (0x5ac9f8), clears the stride-loop byte array at 0x62a3b5
  * (0x200 entries, stride 0x40), and stores param_2 into the 0x6323d8 globals
  * block (with 0x6323d4 as a non-(-1) boolean and 0x6323dc zeroed as a word).
  *
- * No __FILE__ string.  Called from FUN_00049220 (0x49220), FUN_0004b7a0,
- * FUN_0004c170, FUN_00054e20.
+ * No __FILE__ string.  Called from ai_debug_select_encounter (0x49220), FUN_0004b7a0,
+ * ai_debug_change_selected_actor, FUN_00054e20.
  *
  * Call-site verification (only one CALL):
  *   0x4b1ca: PUSH EAX — EAX set from [EBP+0x8] at 0x4b1b3 = encounter_idx
- *   -> FUN_00049220(encounter_idx)  [match]
+ *   -> ai_debug_select_encounter(encounter_idx)  [match]
  *   ADD ESP,0x4 confirms cdecl 1-arg cleanup.
  *
  * Store-offset table (absolute addresses):
@@ -426,14 +426,14 @@ void FUN_0004ab10(void)
  *   [0x6323d4] <- (param_2 != -1)    byte  (SETNZ AL)
  *   [0x6323d8] <- ESI (param_2)      dword
  *   [0x6323dc] <- DX=0               word  (MOV word ptr [0x6323dc],DX) */
-void FUN_0004b1b0(int encounter_idx, int param_2)
+void ai_debug_select_actor(int encounter_idx, int param_2)
 {
   uint8_t *p;
   int n;
 
   if (*(int32_t *)0x5ac9f4 != encounter_idx ||
       *(int32_t *)0x5ac9f8 != param_2) {
-    FUN_00049220(encounter_idx);
+    ai_debug_select_encounter(encounter_idx);
     *(int32_t *)0x5ac9f8 = param_2;
     *(uint8_t *)0x629d40 = 0;
     p = (uint8_t *)0x62a3b5;
@@ -449,9 +449,9 @@ void FUN_0004b1b0(int encounter_idx, int param_2)
   }
 }
 
-/* FUN_0004c0f0: look up the encounter named DAT_005ac9d2 in the scenario
+/* ai_debug_initialize_for_new_map: look up the encounter named DAT_005ac9d2 in the scenario
  * encounter list, reset debug encounter state, then if the selected encounter
- * or secondary index changed, reinitialize via FUN_00049220.
+ * or secondary index changed, reinitialize via ai_debug_select_encounter.
  *
  * No __FILE__ string.  Called from ai_initialize_for_new_map (0x41090).
  *
@@ -461,16 +461,16 @@ void FUN_0004b1b0(int encounter_idx, int param_2)
  *   0x6323d4       <- 0 (byte)
  *   0x6323d8       <- 0xffffffff (dword)
  *   0x6323dc       <- 0 (word, MOV word ptr) */
-void FUN_0004c0f0(void)
+void ai_debug_initialize_for_new_map(void)
 {
   int enc_idx;
   uint8_t *p;
   int n;
 
-  enc_idx = FUN_00059930((const char *)0x5ac9d2);
-  FUN_00049000();
+  enc_idx = encounter_get_by_name((const char *)0x5ac9d2);
+  ai_debug_clear_storage();
   if (*(int32_t *)0x5ac9f4 != enc_idx || *(int32_t *)0x5ac9f8 != -1) {
-    FUN_00049220(enc_idx);
+    ai_debug_select_encounter(enc_idx);
     *(int32_t *)0x5ac9f8 = -1;
     *(uint8_t *)0x629d40 = 0;
     p = (uint8_t *)0x62a3b5;

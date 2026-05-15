@@ -890,7 +890,7 @@ typedef struct {
     float      vec_a[3];   /* +0x04: biped eye position (from biped_get_camera_height_and_offset) */
     float      vec_b[2];   /* +0x10: line direction or zero for sphere   */
     float      scalar_a;   /* +0x18: height_offset (biped camera height) */
-    int        handle_a;   /* +0x1c: actor handle (return from FUN_00064ab0 / local_10[0]) */
+    int        handle_a;   /* +0x1c: actor handle (return from prop_get_active_by_unit_index / local_10[0]) */
     int        handle_b;   /* +0x20: object/unit handle (EDI at call to FUN_000413c0) */
     float      radius;     /* +0x24: camera_height + DAT_00256140        */
 } ai_firing_pos_entry_t;   /* size = 0x28 */

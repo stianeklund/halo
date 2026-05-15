@@ -29,7 +29,7 @@ bool FUN_00129130(int server_connection, int client_connection)
 
   if (*(int *)client_connection != 0) {
     short result =
-      FUN_00082850(*(int *)*(int *)(server_connection + 0x3c + i * 4),
+      remove_endpoint_from_set(*(int *)*(int *)(server_connection + 0x3c + i * 4),
                    *(int *)(server_connection + 0x38));
     if (result != 0) {
       error(2,
@@ -238,12 +238,12 @@ bool network_game_accept_remote_connections(void)
   return *(uint8_t *)0x46e8c4;
 }
 
-/* FUN_0012a170 (0x12a170)
+/* network_game_is_splitscreen_local (0x12a170)
  *
  * Returns true when a server connection exists (0x46e8bc != NULL) and the
  * global byte at 0x46e8c4 is zero.
  */
-bool FUN_0012a170(void)
+bool network_game_is_splitscreen_local(void)
 {
   if (*(void **)0x46e8bc != NULL && *(uint8_t *)0x46e8c4 == 0) {
     return true;
@@ -326,7 +326,7 @@ bool network_game_client_start_frame(void)
 
     int reason;
     if (*(void **)0x46e8bc != NULL) {
-      reason = FUN_0012d570(*(void **)0x46e8bc);
+      reason = network_game_server_get_game(*(void **)0x46e8bc);
     } else if (*(void **)0x46e8c0 != NULL) {
       reason = (int)(intptr_t)network_game_client_get_machine_index(
         *(void **)0x46e8c0);
@@ -356,7 +356,7 @@ bool network_game_client_start_frame(void)
   if (FUN_00124cc0(*(void **)0x46e8c0) != 0)
     return false;
 
-  state = FUN_00124a30(*(void **)0x46e8c0, &local_4);
+  state = network_game_client_get_state(*(void **)0x46e8c0, &local_4);
 
   switch (state) {
   case 0:
@@ -415,7 +415,7 @@ bool network_game_client_end_frame(void)
     return true;
   }
 
-  state = FUN_00124a30(*(void **)0x46e8c0, NULL);
+  state = network_game_client_get_state(*(void **)0x46e8c0, NULL);
   last_send = *(int *)0x46e8c8;
 
   if (state == 3) {
@@ -426,9 +426,9 @@ bool network_game_client_end_frame(void)
         network_game_client_get_available_games(*(void **)0x46e8c0)) {
       network_game_client_get_error(*(void **)0x46e8c0);
       network_game_client_get_machine_index(*(void **)0x46e8c0);
-      FUN_000b8fa0(local_124);
+      update_client_build_client_update(local_124);
 
-      if (FUN_00125860(*(void **)0x46e8c0)) {
+      if (network_client_get_oos(*(void **)0x46e8c0)) {
         flags = network_game_client_get_error(*(void **)0x46e8c0);
         flags = flags | 0x80000000;
       } else {

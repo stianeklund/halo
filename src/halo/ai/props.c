@@ -87,7 +87,7 @@ void FUN_00064160(void)
  * In C this is a normal 2-argument function; the thunk handles register setup.
  *
  * Call-site verification table (from disassembly):
- *   Caller 0x64789 (FUN_000645a0):
+ *   Caller 0x64789 (prop_new_unacknowledged):
  *     MOV EAX,EBX   (EBX = actor_handle from [EBP+0x8]) -> @eax  YES
  *     CALL 0x64400  (EDI = prop_handle held in EDI)       -> @edi  YES
  *   Caller 0x64a80 (prop_detach):
@@ -285,7 +285,7 @@ void prop_iterator_next(int actor_handle, int prop_handle)
  *     arg2 | PUSH EAX ([EBP+0x8]=actor_handle)   | actor_handle  | YES
  *
  * Store-offset table: no struct filled; read-only traversal. */
-int FUN_00064ab0(int actor_handle, int object_handle)
+int prop_get_active_by_unit_index(int actor_handle, int object_handle)
 {
   char *obj;
   int target;
@@ -347,7 +347,7 @@ int FUN_00064ab0(int actor_handle, int object_handle)
  * Closes a TIFF file and releases all resources:
  *   1. If tif->tif_flags (tif+0x6, word) != 0, call TIFFFlush / write-back.
  *   2. If tif->tif_cleanup (tif+0x11c, fn ptr) != NULL, call it.
- *   3. Call FUN_00065f90 (TIFFFreeDirectory).
+ *   3. Call TIFFFreeDirectory (TIFFFreeDirectory).
  *   4. If tif->tif_rawdata (tif+0x12c) != NULL and flag bit 0x40 set (tif+0xa),
  *      free it.
  *   5. __close(tif->tif_fd)  — tif+0x4 as int16 sign-extended.
@@ -366,7 +366,7 @@ int FUN_00064ab0(int actor_handle, int object_handle)
  *   indirect call [ESI+0x11c]:
  *     EAX = [ESI+0x11c] (fn ptr, NULL-guarded)
  *     arg1 | PUSH ESI | tif | YES (CALL EAX)
- *   FUN_00065f90 call (TIFFFreeDirectory):
+ *   TIFFFreeDirectory call (TIFFFreeDirectory):
  *     arg1 | PUSH ESI | tif | YES
  *   debug_free calls:
  *     raw data: PUSH [ESI+0x12c], PUSH file_str, PUSH 0x37
@@ -389,7 +389,7 @@ void FUN_00064ee0(int tif_)
   }
 
   /* Free directory data. */
-  FUN_00065f90(tif_);
+  TIFFFreeDirectory(tif_);
 
   /* Free raw data buffer if owned by this TIFF object. */
   rawdata = *(void **)(tif + 0x12c);

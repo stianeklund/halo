@@ -188,7 +188,7 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
     FUN_000a2ba0(unit_index, damage_amount, 1.0f,
                  (float *)(jpt_tag + 0xcc) /* @<eax> */,
                  (void *)effect /* @<ebx> */);
-    FUN_000b9bc0((short)unit_index, (float *)(jpt_tag + 0x5c), damage_amount,
+    rumble_player_impulse((short)unit_index, (float *)(jpt_tag + 0x5c), damage_amount,
                  1.0f);
 
     if (*(int *)(jpt_tag + 0x120) != -1) {

@@ -29,7 +29,7 @@
  * *(float**)0x31fc50 (global_forward_vector_ptr). Confirmed: FADD ST0,ST0 ->
  * fwd_vec[i] * 2; FSTP to EBP-0x18,-0x14,-0x10. Confirmed: PUSH
  * EAX(result_buf), PUSH 0x7f7fffff(FLT_MAX), PUSH ECX(&fwd_doubled), PUSH
- * EDX(&adj_pos), PUSH 0, PUSH 0, PUSH EDI(bsp), PUSH 1 -> FUN_00149480.
+ * EDX(&adj_pos), PUSH 0, PUSH 0, PUSH EDI(bsp), PUSH 1 -> collision_bsp_test_vector.
  * Confirmed: TEST AL,AL; JZ -> if ray misses, fall to default return -1.
  * Confirmed: MOV EAX,[EBP-0x42c] -> result_buf[2] loaded as return value.
  * Confirmed: FMUL [EBP-0x434] -> multiply by result_buf[0] (ray t param).

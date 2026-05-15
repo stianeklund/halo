@@ -7,7 +7,7 @@ void game_statistics_start(void)
  * Stores the current game time (in seconds) at +0xb8, marks entry active at
  * +0x8e, and increments the match counter at +0x90 for entries matching
  * param_1. */
-void FUN_000b5650(short param_1)
+void game_statistics_stop(short param_1)
 {
   data_iter_t local_14;
   char *item;
@@ -29,7 +29,7 @@ void FUN_000b5650(short param_1)
   *(char *)0x457060 = 0;
 }
 
-void FUN_000b56e0(int handle, float vitality, int param_3, int param_4,
+void game_statistics_record_damage(int handle, float vitality, int param_3, int param_4,
                   int param_5)
 {
 }
@@ -38,7 +38,7 @@ void FUN_000b56e0(int handle, float vitality, int param_3, int param_4,
  * Resolves the unit to a player entry, increments death counters, walks the
  * object's attacker table (4 slots at +0x3e0) to find the best damage
  * contributor, updates kill/assist credits on the attacker entries, then
- * calls FUN_000af660 to finalize the event. */
+ * calls game_engine_player_killed to finalize the event. */
 void FUN_000b56f0(int handle, int param_2, int param_3, int param_4)
 {
   unsigned int player_index;
@@ -169,5 +169,5 @@ b56f0_assist_loop:
       att2 += 4;
     }
   }
-  FUN_000af660(param_2, param_3, (int)player_index, (int)is_team_kill);
+  game_engine_player_killed(param_2, param_3, (int)player_index, (int)is_team_kill);
 }

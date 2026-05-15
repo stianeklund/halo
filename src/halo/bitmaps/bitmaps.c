@@ -24,7 +24,7 @@ float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound,
 
   t_inv = *(float *)0x2533c8 - blend;
 
-  if (!FUN_0007b020(rgb_lower_bound)) {
+  if (!valid_real_rgb_color(rgb_lower_bound)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
              "rgb_lower_bound", (double)rgb_lower_bound[0],
              (double)rgb_lower_bound[1], (double)rgb_lower_bound[2]);
@@ -34,7 +34,7 @@ float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound,
     system_exit(-1);
   }
 
-  if (!FUN_0007b020(rgb_upper_bound)) {
+  if (!valid_real_rgb_color(rgb_upper_bound)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
              "rgb_upper_bound", (double)rgb_upper_bound[0],
              (double)rgb_upper_bound[1], (double)rgb_upper_bound[2]);
@@ -74,10 +74,10 @@ float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound,
     hsv_result[1] = hsv_upper[1] * blend + hsv_lower[1] * t_inv;
     hsv_result[2] = hsv_upper[2] * blend + hsv_lower[2] * t_inv;
 
-    FUN_0007ace0(hsv_result, out_color);
+    real_hsv_color_to_real_rgb_color(hsv_result, out_color);
   }
 
-  if (!FUN_0007b020(out_color)) {
+  if (!valid_real_rgb_color(out_color)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
              "rgb_result", (double)out_color[0], (double)out_color[1],
              (double)out_color[2]);
@@ -192,7 +192,7 @@ void FUN_0007c6c0(void *bitmap)
 }
 
 /*
- * FUN_0007c750 — return a display string for a bitmap type index
+ * bitmap_type_get_string — return a display string for a bitmap type index
  * (bitmaps.c line 0x50).
  *
  * The string table at 0x2ee4a0 holds three char* pointers:
@@ -206,7 +206,7 @@ void FUN_0007c6c0(void *bitmap)
  * Confirmed: return (&PTR_s_2d_texture_002ee4a0)[type] at 0x7c772/0x7c784.
  * Source: c:\halo\SOURCE\bitmaps\bitmaps.c, line 0x50.
  */
-const char *FUN_0007c750(short type)
+const char *bitmap_type_get_string(short type)
 {
   if (type < 0 || type > 2) {
     display_assert("type>=0 && type<NUMBER_OF_BITMAP_TYPES",
@@ -224,7 +224,7 @@ const char *FUN_0007c750(short type)
 }
 
 /*
- * FUN_0007c7c0 — return a display string for a bitmap format index
+ * bitmap_format_get_string — return a display string for a bitmap format index
  * (bitmaps.c line 0x86).
  *
  * The string pointer table at 0x2ee4b0 holds 18 char* entries for format
@@ -236,7 +236,7 @@ const char *FUN_0007c750(short type)
  * Confirmed: return (&PTR_s_alpha_002ee4b0)[format] at 0x7c7ec.
  * Source: c:\halo\SOURCE\bitmaps\bitmaps.c, line 0x86.
  */
-const char *FUN_0007c7c0(short format)
+const char *bitmap_format_get_string(short format)
 {
   if (format < 0 || format > 0x11) {
     display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
@@ -269,7 +269,7 @@ short bitmap_format_bits_per_pixel(short format)
 }
 
 /*
- * FUN_0007c8b0 — release the hardware (D3D) texture resources for a bitmap
+ * bitmap_changed — release the hardware (D3D) texture resources for a bitmap
  * (bitmaps.c line 0x179).
  *
  * Asserts bitmap is non-NULL, then dispatches to FUN_00168b10 which
@@ -282,7 +282,7 @@ short bitmap_format_bits_per_pixel(short format)
  * Confirmed: CALL FUN_00168b10 at 0x7c8c9 (rasterizer_xbox_hardware_bitmaps).
  * Source: c:\halo\SOURCE\bitmaps\bitmaps.c, line 0x179.
  */
-void FUN_0007c8b0(void *bitmap)
+void bitmap_changed(void *bitmap)
 {
   if (bitmap == NULL) {
     display_assert("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x179, 1);
@@ -312,7 +312,7 @@ void bitmap_delete(void *bitmap)
   }
 }
 
-/* FUN_0007c940 -- bitmap pixel address
+/* bitmap_2d_address -- bitmap pixel address
  *
  * Computes a pointer to the pixel at (x, y) within a given mipmap level
  * of a 2D bitmap. Accumulates pixel counts for all mipmap levels below
@@ -327,7 +327,7 @@ void bitmap_delete(void *bitmap)
  * clamping to min_dimension. Confirmed: final offset = (x + accumulated +
  * width_at_mip * y) * bpp / 8 + base_address.
  */
-void *FUN_0007c940(void *bitmap, short x, short y, short mipmap_index)
+void *bitmap_2d_address(void *bitmap, short x, short y, short mipmap_index)
 {
   char *b = (char *)bitmap;
   int pixel_count;
@@ -415,19 +415,19 @@ void *FUN_0007c940(void *bitmap, short x, short y, short mipmap_index)
  *
  * Asserts that bitmap != NULL and bitmap->base_address (+0x2c) != NULL,
  * then routes to the appropriate typed pixel-address function based on
- * bitmap->type (+0xa): 0=2D (FUN_0007c940), 1=cube (FUN_0007cb60),
- * 2=3D (FUN_0007cdf0). Returns the pixel address at (0,0[,0], mipmap_index).
+ * bitmap->type (+0xa): 0=2D (bitmap_2d_address), 1=cube (bitmap_3d_address),
+ * 2=3D (bitmap_cube_map_address). Returns the pixel address at (0,0[,0], mipmap_index).
  *
  * Confirmed: TEST ESI,ESI / display_assert("bitmap",...,0x20d,1) at 0x7d007.
  * Confirmed: TEST [ESI+0x2c] / display_assert("bitmap->base_address",...,0x20e)
  * at 0x7d02e. Confirmed: MOVSX+SUB+JZ/DEC/DEC type switch at 0x7d052.
- * Confirmed: FUN_0007c940(bitmap,0,0,mipmap_index) via PUSH EDX+3×PUSH0+PUSH
- * ESI at 0x7d0b3. Confirmed: FUN_0007cb60(bitmap,0,0,0,mipmap_index) at
- * 0x7d09d. Confirmed: FUN_0007cdf0(bitmap,0,0,0,mipmap_index) at 0x7d087.
+ * Confirmed: bitmap_2d_address(bitmap,0,0,mipmap_index) via PUSH EDX+3×PUSH0+PUSH
+ * ESI at 0x7d0b3. Confirmed: bitmap_3d_address(bitmap,0,0,0,mipmap_index) at
+ * 0x7d09d. Confirmed: bitmap_cube_map_address(bitmap,0,0,0,mipmap_index) at 0x7d087.
  * Confirmed: display_assert("### ERROR unsupported bitmap type",...,0x21c,1) +
  * return bitmap at 0x7d061.
  */
-void *FUN_0007d000(void *bitmap, short mipmap_index)
+void *bitmap_mipmap_address(void *bitmap, short mipmap_index)
 {
   if (!bitmap) {
     display_assert("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x20d, 1);
@@ -440,11 +440,11 @@ void *FUN_0007d000(void *bitmap, short mipmap_index)
   }
   switch ((int)*(short *)((char *)bitmap + 0xa)) {
   case 2:
-    return FUN_0007cdf0(bitmap, 0, 0, 0, mipmap_index);
+    return bitmap_cube_map_address(bitmap, 0, 0, 0, mipmap_index);
   case 1:
-    return FUN_0007cb60(bitmap, 0, 0, 0, mipmap_index);
+    return bitmap_3d_address(bitmap, 0, 0, 0, mipmap_index);
   case 0:
-    return FUN_0007c940(bitmap, 0, 0, mipmap_index);
+    return bitmap_2d_address(bitmap, 0, 0, mipmap_index);
   default:
     break;
   }
@@ -559,7 +559,7 @@ invalid:
  * 0x7d619). Confirmed: bitmap_verify(bitmap,0) /
  * display_assert("bitmap_verify(bitmap, FALSE)",...,0x171) at 0x7d614.
  */
-void FUN_0007d5d0(void *bitmap)
+void bitmap_rebuild(void *bitmap)
 {
   if (!bitmap) {
     display_assert("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x163, 1);
@@ -588,7 +588,7 @@ void FUN_0007d5d0(void *bitmap)
  * Confirmed: MOVSX EDX,[ESI+4] / CMP EDX,EDI / JLE at 0x7d6a1.
  * Confirmed: MOV AX,DI=0 / RET at 0x7d6d0 for bit-not-set path.
  */
-short FUN_0007d650(void *bitmap)
+short bitmap_get_max_mipmap_count(void *bitmap)
 {
   short sVar1;
   short sVar2;
@@ -646,12 +646,12 @@ short bitmap_mipmap_width(void *bitmap, int mipmap_index)
   return (short)result;
 }
 
-/* FUN_0007d780 — bitmap_mipmap_height: height counterpart of
+/* bitmap_mipmap_get_height — bitmap_mipmap_height: height counterpart of
  * bitmap_mipmap_width. Returns the pixel height at the given mipmap level,
  * clamped to 1. If the compressed flag (bit 1 of +0xe) is set, rounds up to the
  * next multiple of 4 (DXT block alignment).
  */
-short FUN_0007d780(void *bitmap, short mipmap_index)
+short bitmap_mipmap_get_height(void *bitmap, short mipmap_index)
 {
   char *b = (char *)bitmap;
   uint16_t height;
@@ -671,12 +671,12 @@ short FUN_0007d780(void *bitmap, short mipmap_index)
   return (short)result;
 }
 
-/* FUN_0007d820 — bitmap_mipmap_depth: depth counterpart of bitmap_mipmap_width.
+/* bitmap_mipmap_get_depth — bitmap_mipmap_depth: depth counterpart of bitmap_mipmap_width.
  * Returns the depth at the given mipmap level as a signed 32-bit int,
  * clamped to 1.  No DXT block-alignment rounding (depth is not block-sized).
  * Field +0x8 is the bitmap depth.
  */
-int FUN_0007d820(void *bitmap, short mipmap_index)
+int bitmap_mipmap_get_depth(void *bitmap, short mipmap_index)
 {
   char *b = (char *)bitmap;
   short depth;
@@ -690,12 +690,12 @@ int FUN_0007d820(void *bitmap, short mipmap_index)
   return 1;
 }
 
-/* FUN_0007d8b0 — total number of texels in one mipmap slice (pixels per face).
+/* bitmap_mipmap_get_pixel_count — total number of texels in one mipmap slice (pixels per face).
  * Returns width * height * depth at the given mipmap level, multiplied by 6
  * for cube maps (_bitmap_type_cube_map == 2).
  * Field +0xa is the bitmap type; depth at field +0x8.
  */
-int FUN_0007d8b0(void *bitmap, int mipmap_index)
+int bitmap_mipmap_get_pixel_count(void *bitmap, int mipmap_index)
 {
   char *b = (char *)bitmap;
   short width;
@@ -708,20 +708,20 @@ int FUN_0007d8b0(void *bitmap, int mipmap_index)
               (short)mipmap_index <= *(short *)(b + 0x14));
 
   width = bitmap_mipmap_width(bitmap, mipmap_index);
-  height = FUN_0007d780(bitmap, mipmap_index);
-  depth = (short)FUN_0007d820(bitmap, mipmap_index);
+  height = bitmap_mipmap_get_height(bitmap, mipmap_index);
+  depth = (short)bitmap_mipmap_get_depth(bitmap, mipmap_index);
   result = (int)depth * (int)height * (int)width;
   if (*(short *)(b + 0xa) == 2)
     result *= 6;
   return result;
 }
 
-/* FUN_0007d960 — total byte size of one mipmap slice.
+/* bitmap_mipmap_get_pixel_data_size — total byte size of one mipmap slice.
  * Multiplies total texels by bits-per-pixel, then ceiling-divides by 8.
  * Uses MSVC CDQ arithmetic rounding: (bits + (bits>>31 & 7)) >> 3.
  * Field +0xc is the bitmap format index passed to bitmap_format_bits_per_pixel.
  */
-int FUN_0007d960(void *bitmap, int mipmap_index)
+int bitmap_mipmap_get_pixel_data_size(void *bitmap, int mipmap_index)
 {
   char *b = (char *)bitmap;
   int texels;
@@ -732,14 +732,14 @@ int FUN_0007d960(void *bitmap, int mipmap_index)
   assert_halt((short)mipmap_index >= 0 &&
               (short)mipmap_index <= *(short *)(b + 0x14));
 
-  texels = FUN_0007d8b0(bitmap, mipmap_index);
+  texels = bitmap_mipmap_get_pixel_count(bitmap, mipmap_index);
   bpp = bitmap_format_bits_per_pixel(*(short *)(b + 0xc));
   total_bits = (int)bpp * texels;
   return (total_bits + (total_bits >> 31 & 7)) >> 3;
 }
 
 /*
- * FUN_0007d9f0 — compute the byte size of one scanline at a given mipmap
+ * bitmap_mipmap_get_row_pitch — compute the byte size of one scanline at a given mipmap
  * level for an uncompressed, unswizzled bitmap.
  *
  * Confirmed: bitmap_verify(bitmap, FALSE) at 0x7d9fb.
@@ -747,7 +747,7 @@ int FUN_0007d960(void *bitmap, int mipmap_index)
  * Confirmed: flags byte at +0xe checked for compressed (bit 1) and swizzled
  * (bit 3). Confirmed: bitmap_mipmap_width * bitmap_format_bits_per_pixel / 8.
  */
-int FUN_0007d9f0(void *bitmap, int mipmap_index)
+int bitmap_mipmap_get_row_pitch(void *bitmap, int mipmap_index)
 {
   short width;
   short bpp;

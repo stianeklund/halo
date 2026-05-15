@@ -445,15 +445,15 @@ void object_deplete_shield(int object_handle)
  * Switches on the object type (obj+0x64):
  *   case 0 (biped):   calls FUN_001a4a70 (biped acceleration)
  *   case 1 (vehicle): optionally doubles velocity if jpt+0x1c8 flag set,
- *                     calls FUN_001b5c90 (vehicle acceleration)
+ *                     calls vehicle_accelerate (vehicle acceleration)
  *   case 2,3,4 (items): calls item_set_position with flag based on
  *                       damage_data+0x40 > 0.5f && jpt+0x1c8 flag
  *   case 5 (projectile): calls projectile_accelerate (projectile acceleration)
  *
- * After the switch, checks game state via FUN_000a8e40:
- *   - If true and damage_data byte +4 >= 0: calls FUN_000b56e0 for scoring,
+ * After the switch, checks game state via game_engine_can_score:
+ *   - If true and damage_data byte +4 >= 0: calls game_statistics_record_damage for scoring,
  *     and conditionally FUN_000b56f0 if flags bit 0 is set.
- *   - Otherwise: calls FUN_000af660 (player death tracking) via
+ *   - Otherwise: calls game_engine_player_killed (player death tracking) via
  *     player_index_from_unit_index.
  *
  * Finally, if the object type is 0 or 1 (unit), forwards all parameters
@@ -470,7 +470,7 @@ void object_deplete_shield(int object_handle)
  * Confirmed: CALL 0x13010 => normalize3d; FSTP ST0 discards return.
  * Confirmed: FLD [EDX+0x1f4]; FMUL [EDI+0x20]; FMUL [0x2546a4] for scale.
  * Confirmed: jump table at 0x137158 with 6 entries for switch(obj_type).
- * Confirmed: PUSH ECX; FSTP [ESP] pattern for float arg to FUN_000b56e0.
+ * Confirmed: PUSH ECX; FSTP [ESP] pattern for float arg to game_statistics_record_damage.
  * Confirmed: (1 << obj_type) & 3 gates call to FUN_001b4dc0.
  * Confirmed: 7 pushes [EBX,ESI,flags,body,shield,p4,p5] for FUN_001b4dc0.
  */
@@ -520,7 +520,7 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
             velocity[1] = velocity[1] + velocity[1];
             velocity[2] = velocity[2] + velocity[2];
           }
-          FUN_001b5c90(object_handle, velocity);
+          vehicle_accelerate(object_handle, velocity);
         }
       }
       break;
@@ -542,9 +542,9 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
     }
   }
 
-  game_active = FUN_000a8e40();
+  game_active = game_engine_can_score();
   if (game_active != 0 && *(signed char *)(dd + 0x4) >= 0) {
-    FUN_000b56e0(object_handle, body_vitality + shield_vitality,
+    game_statistics_record_damage(object_handle, body_vitality + shield_vitality,
                  *(int *)(dd + 0x8), *(int *)(dd + 0xc),
                  (int)*(unsigned short *)(dd + 0x10));
     if ((flags & 1) != 0) {
@@ -552,10 +552,10 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
                    (int)*(unsigned short *)(dd + 0x10));
     }
   } else {
-    game_active = FUN_000a8e40();
+    game_active = game_engine_can_score();
     if (game_active != 0) {
       player_handle = player_index_from_unit_index(object_handle);
-      FUN_000af660(player_handle, object_handle, player_handle,
+      game_engine_player_killed(player_handle, object_handle, player_handle,
                    1); /* dup-args-ok: confirmed PUSH EAX,EBX,EAX */
     }
   }
@@ -931,8 +931,8 @@ void FUN_00137690(int object_handle, short region_index)
  * Confirmed: get_global_random_seed_address() takes 0 args at 0x137da5.
  * Confirmed: random_real_range(seed, min=*(jpt+0x1d4), max=*(jpt+0x1d8)) at
  * 0x137dab. Confirmed: FUN_00136890(@eax=object_handle) at 0x137e2c, 0x137e35.
- * Confirmed: FUN_000ad530(player_a, player_b) at 0x137e3b, 2 cdecl args.
- * Confirmed: FUN_0003f900(player_index, damage_params, &scale) at 0x137e19, 3
+ * Confirmed: game_engine_get_damage_multiplier(player_a, player_b) at 0x137e3b, 2 cdecl args.
+ * Confirmed: ai_adjust_damage(player_index, damage_params, &scale) at 0x137e19, 3
  * args. Confirmed: FUN_000a7a30(team_a, team_b) at 0x137e54. Confirmed:
  * FUN_000b5590(0) at 0x137e62, returns float on FPU. Confirmed: object parent
  * chain walk via +0xcc at 0x137ec6. Confirmed:
@@ -1045,7 +1045,7 @@ void object_cause_damage(void *damage_params, int object_handle,
         i = *(int *)(unit_check + 0x1a4);
       }
       if (i != -1) {
-        FUN_0003f900(i, damage_params, &damage_scale);
+        ai_adjust_damage(i, damage_params, &damage_scale);
       }
     }
   }
@@ -1056,7 +1056,7 @@ void object_cause_damage(void *damage_params, int object_handle,
     /* Game engine path: get player indices for both sides */
     player_idx = FUN_00136890(object_handle);
     i = FUN_00136890(dp[3]);
-    modifier = FUN_000ad530(i, player_idx);
+    modifier = game_engine_get_damage_multiplier(i, player_idx);
     was_modified = 0;
   } else {
     /* Campaign path: check team allegiance for difficulty scale */
@@ -1278,7 +1278,7 @@ after_modifier:
 
       /* Check if object should be destroyed (depleted body) */
       if (((*(short *)jpt_offset == 2 &&
-            FUN_001b1d00(current_object_handle, (char *)dp + 0x28) != 0 &&
+            unit_unsuspecting(current_object_handle, (char *)dp + 0x28) != 0 &&
             (*(unsigned char *)(object_data + 0xb7) & 8) == 0) ||
            is_forced != 0) &&
           (*(unsigned char *)(object_data + 0xb6) & 4) == 0) {

@@ -83,7 +83,7 @@ int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x13f9f0  objects_dispose_from_old_map
  *   0x13fac0  objects_dispose
  *   0x13fb30  object_activate
- *   0x13fb80  FUN_0013fb80 (object deactivate)
+ *   0x13fb80  object_deactivate (object deactivate)
  *   0x13fc20  object_placement_data_new (object placement data init)
  *   0x13fd00  object_disconnect_from_map
  *   0x13fef0  object_has_node
@@ -1442,14 +1442,14 @@ void objects_place(void)
  *               game-state block; FUN_001bfe50("objects", 0x100000) —
  *               memory-pool_new from game-state block.
  *   Editor:     FUN_001194d0("object", 0x2800, 0xc) — data_array_new from
- *               main heap; FUN_0011e650("objects", &DAT_500000) — memory-
+ *               main heap; memory_pool_new("objects", &DAT_500000) — memory-
  *               pool_new from main heap using a size read from 0x500000.
  *
  * Sub-system init call order (confirmed from disasm):
  *   FUN_00136580 — unknown object sub-type A init
  *   FUN_00135f90 — unknown object sub-type B init
  *   FUN_0013c2e0 — object type definition list init
- *   FUN_001391e0 — object BSP cluster data init
+ *   lights_initialize — object BSP cluster data init
  *
  * Confirmed: PUSH 0xc pre-pushed before JNZ — shared 3rd arg to both
  *            first-call variants; ADD ESP,0x14 cleans 5 args (3+2).
@@ -1523,7 +1523,7 @@ void objects_initialize(void)
  *                   vtable entry via [EDI] (slot stride 0x28)
  *   FUN_0013c3d0  — walks the object_type_definition linked list, calls
  *                   each type's initialize_for_new_map function at +0x18
- *   FUN_001392b0  — calls data_delete_all on a BSP cluster data table,
+ *   lights_initialize_for_new_map  — calls data_delete_all on a BSP cluster data table,
  *                   then object_list_initialize_for_new_map via FUN_1915d0
  *
  * Then:
@@ -1586,7 +1586,7 @@ void objects_initialize_for_new_map(void)
  *   FUN_001365b0  — per-map dispose for type-slot array
  *   FUN_001360a0  — per-map dispose for 5 object-type slots
  *   FUN_0013c400  — per-map dispose for object type definition list
- *   FUN_001392e0  — per-map dispose for BSP cluster data
+ *   lights_dispose_from_old_map  — per-map dispose for BSP cluster data
  *
  * Then, if the object header data table is valid (byte at data+0x24 != 0):
  *   Walk every datum via data_next_index (0x1198f0):
@@ -1663,7 +1663,7 @@ void objects_dispose_from_old_map(void)
  * Call order (confirmed from disasm):
  *   FUN_00136100  — iterates 5 type slots, calls dispose vtable entry at [EDI]
  *   FUN_0013c3a0  — walks linked list, calls each type's dispose at +0x14
- *   FUN_001392a0  — disposes the BSP cluster data, calls FUN_191630
+ *   lights_dispose  — disposes the BSP cluster data, calls FUN_191630
  *
  * Then:
  *   if (!game_in_editor()):  null out *(data_t**)0x5a8d50 (don't free)
@@ -1727,7 +1727,7 @@ void object_activate(int object_handle)
 }
 
 /*
- * FUN_0013fb80 — clear the "active" flag (bit 0x01) from an object's
+ * object_deactivate — clear the "active" flag (bit 0x01) from an object's
  * header unk_2 byte, if currently set.
  *
  * Inverse of object_activate: deactivates the object by clearing bit 0x01.
@@ -1737,7 +1737,7 @@ void object_activate(int object_handle)
  * Confirmed: TEST AL,0x1; JZ skip; AND AL,0xFE; MOV [ESI+2],AL.
  * Confirmed: ADD ESP,0x10 cleans datum_get + object_get_and_verify_type.
  */
-void FUN_0013fb80(int object_handle)
+void object_deactivate(int object_handle)
 {
   object_header_data_t *hdr =
     (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
@@ -1979,7 +1979,7 @@ bool object_has_node(int object_handle, int16_t node_index)
  * When param_2 != 0 (hide):
  *   Sets bit 0x40 on hdr->unk_2. If the object has no parent
  *   (parent_object_index == -1) AND unk_76.index == -1, calls
- *   FUN_0013fb80 to deactivate (clear bit 0x01).
+ *   object_deactivate to deactivate (clear bit 0x01).
  *
  * When param_2 == 0 (unhide):
  *   Clears bit 0x40 from hdr->unk_2. If bit 0x01 is not set (i.e. the
@@ -2003,7 +2003,7 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
   if (param_2 != 0) {
     hdr->unk_2 |= 0x40;
     if (obj->parent_object_index.value == -1 && obj->unk_76.index == -1) {
-      FUN_0013fb80(object_handle);
+      object_deactivate(object_handle);
     }
   } else {
     uint8_t val = hdr->unk_2 & ~0x40;
@@ -4277,7 +4277,7 @@ void object_compute_node_matrices(int object_handle)
  *
  * Iterates through the object's attachment slots (up to tag+0x140 count)
  * and dispatches cleanup calls based on attachment type:
- *   Type 0: FUN_00139310 (effect cleanup)
+ *   Type 0: light_delete (effect cleanup)
  *   Type 1: game_looping_sound_delete (sound cleanup)
  *   Type 2: effect_delete (decal cleanup)
  *   Type 3: FUN_00141b70 + FUN_000986d0 (light cleanup)
@@ -4313,7 +4313,7 @@ void attachments_delete(int object_handle)
 
     switch (type) {
     case 0:
-      FUN_00139310(attachment_handle);
+      light_delete(attachment_handle);
       break;
     case 1:
       game_looping_sound_delete(attachment_handle);
@@ -4682,14 +4682,14 @@ int object_new(void *placement)
     }
 
     /* --- Run initialisation chain --- */
-    FUN_0013e1f0(object_handle, p + 0x58);
+    object_choose_random_change_colors(object_handle, p + 0x58);
     FUN_00140ad0(object_handle);
     FUN_001365d0(object_handle, 0, 0);
     object_compute_node_matrices(object_handle);
     object_connect_to_map(object_handle, 0);
     FUN_0013e1a0(object_handle);
     FUN_0013c620(object_handle);
-    FUN_0013e7b0(object_handle);
+    object_compute_function_values(object_handle);
     object_compute_change_colors(object_handle);
 
     /* --- Widget and child attachment --- */
@@ -5066,7 +5066,7 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
 }
 
 /*
- * FUN_001449b0 — object deactivation and deallocation.
+ * object_delete_recursive — object deactivation and deallocation.
  *
  * Recursively tears down an object and its children/siblings, then deallocates
  * the object from the object pool. Called either from
@@ -5101,7 +5101,7 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
  * Confirmed: 0x800 flag triggers map disconnect.
  */
 /* 0x1449b0 */
-void FUN_001449b0(int object_handle, int delete_sibling)
+void object_delete_recursive(int object_handle, int delete_sibling)
 {
   object_data_t *obj;
   object_header_data_t *hdr;
@@ -5121,12 +5121,12 @@ void FUN_001449b0(int object_handle, int delete_sibling)
 
   /* Recursively deactivate child object. */
   if (obj->unk_200.value != -1) {
-    FUN_001449b0(obj->unk_200.value, 1);
+    object_delete_recursive(obj->unk_200.value, 1);
   }
 
   /* Optionally deactivate sibling object. */
   if ((char)delete_sibling != 0 && obj->next_object_index.value != -1) {
-    FUN_001449b0(obj->next_object_index.value, 1);
+    object_delete_recursive(obj->next_object_index.value, 1);
   }
 
   /* Get datum header and clear collideable bit if set. */
@@ -5175,14 +5175,14 @@ void FUN_001449b0(int object_handle, int delete_sibling)
  * objects_garbage_collection — delete and immediately deactivate an object.
  *
  * Marks the object (and its children) for deletion via object_delete_internal,
- * then immediately tears down / deallocates the object via FUN_001449b0.
+ * then immediately tears down / deallocates the object via object_delete_recursive.
  * Used by actor_erase_units as the "soft" deletion path (flag!=0) as an
  * alternative to object_delete, which only marks for deletion and defers
  * actual teardown to the objects_update garbage-collection pass.
  *
  * Confirmed: cdecl, one stack arg (object_handle).
  * Confirmed: PUSH 0x0 / PUSH ESI / CALL 0x140bc0 (object_delete_internal).
- * Confirmed: PUSH 0x0 / PUSH ESI / CALL 0x1449b0 (FUN_001449b0).
+ * Confirmed: PUSH 0x0 / PUSH ESI / CALL 0x1449b0 (object_delete_recursive).
  * Confirmed: ADD ESP,0x10 — combined cleanup for both 2-arg calls.
  * Confirmed: ESI saved/restored (callee-saved register for param_1).
  */
@@ -5190,7 +5190,7 @@ void FUN_001449b0(int object_handle, int delete_sibling)
 void objects_garbage_collection(int object_handle)
 {
   object_delete_internal(object_handle, 0);
-  FUN_001449b0(object_handle, 0);
+  object_delete_recursive(object_handle, 0);
 }
 
 /*
@@ -5378,8 +5378,8 @@ void objects_update(void)
             /* Has "always update" flag: force-delete. */
             object_delete_internal((int)i, 0);
           } else {
-            /* Normal deactivate via FUN_0013fb80. */
-            FUN_0013fb80((int)i);
+            /* Normal deactivate via object_deactivate. */
+            object_deactivate((int)i);
           }
         }
       } else {
@@ -5533,7 +5533,7 @@ void objects_update(void)
       if ((*(uint8_t *)(hdr + 0x2) & 0x8) != 0) {
         int16_t salt = *(int16_t *)hdr;
         int handle = (int)(((uint32_t)(uint16_t)salt << 16) | (uint16_t)i);
-        FUN_001449b0(handle, 0);
+        object_delete_recursive(handle, 0);
       }
     }
   }

@@ -24,7 +24,7 @@
  *
  * Ported: FUN_00058a40 (ai_magically_see_players), encounters_dispose (stub),
  * encounter_compute_activation_cluster_bit_vector (dispose pools),
- * encounterless_attach_actor (encounter_enter), FUN_000597f0 (encounter_leave),
+ * encounterless_attach_actor (encounter_enter), encounterless_detach_actor (encounter_leave),
  * encounters_create_for_new_map (tally reset), FUN_0005de80 (encounter_update),
  * encounter lifecycle stubs (0x5df80–0x5dfb0).
  */
@@ -99,10 +99,10 @@ char *FUN_00054020(char *encounter, short platoon_index)
  *   - global_scenario_get() at 0x58a62 takes 0 args; return in EAX.
  *   - Pre-push pattern: 0x100 and local_114 pushed before global_scenario_get
  *     for subsequent FUN_00054220 call; ADD ESP,0x10 at 0x58a74 cleans 4 args.
- *   - Pre-push pattern: local_114 pushed before FUN_000cb980 (0-arg) as 4th
+ *   - Pre-push pattern: local_114 pushed before hs_runtime_get_executing_thread_name (0-arg) as 4th
  *     arg to console_printf; ADD ESP,0x10 at 0x58a8a cleans 4 dwords.
  *   - console_printf(2, fmt, cb980_result, name_buf): first %s = scenario
- *     tag name from FUN_000cb980, second %s = encounter name in name_buf.
+ *     tag name from hs_runtime_get_executing_thread_name, second %s = encounter name in name_buf.
  *   - MOV EDX,[0x005aa6d4] dereferences player_data before data_iterator_new.
  *   - player+0x34 is the field passed as arg2 to FUN_00055110.
  */
@@ -116,7 +116,7 @@ void FUN_00058a40(int combined_handle)
     FUN_00054220((unsigned int)combined_handle, (void *)global_scenario_get(),
                  name_buf, 0x100);
     console_printf(2, "%s: ai_magically_see_players %s",
-                   (const char *)FUN_000cb980(), name_buf);
+                   (const char *)hs_runtime_get_executing_thread_name(), name_buf);
   }
   if (combined_handle != -1) {
     data_iterator_new((data_iter_t *)iter_buf, *(data_t **)0x5aa6d4);
@@ -137,7 +137,7 @@ void encounters_dispose(void)
 }
 
 /* 0x00058fb0 — encounters_dispose_from_old_map.
- * Called from ai_dispose_from_old_map (0x3f720) and FUN_00041e80.
+ * Called from ai_dispose_from_old_map (0x3f720) and ai_handle_editing.
  * Invalidates the encounter_data and pursuit_data pools via
  * data_make_invalid.  Uses raw address loads (MOV r32,[0x5ab270] /
  * PUSH r32 / CALL 0x119550) — the pool pointers are passed by value.
@@ -235,7 +235,7 @@ void encounter_detach_actor(int actor_handle, char flag)
  * (field 0x1a8), validates that actor's encounter matches. Otherwise validates
  * the primary actor (field 0x1a4) encounter and unit linkage. When
  * game_engine_running returns false and encounter->team is zero, copies the
- * unit's team and notifies via FUN_00040280 if members exist. */
+ * unit's team and notifies via ai_update_team_status if members exist. */
 void encounter_attach_unit(int encounter_index, int unit_index)
 {
   char *encounter;
@@ -269,7 +269,7 @@ void encounter_attach_unit(int encounter_index, int unit_index)
   if (!game_engine_running() && *(int16_t *)(encounter + 2) == 0) {
     *(int16_t *)(encounter + 2) = *(int16_t *)(unit + 0x68);
     if (*(int *)(encounter + 0x14) != -1)
-      FUN_00040280();
+      ai_update_team_status();
   }
 }
 
@@ -286,7 +286,7 @@ void encounter_attach_unit(int encounter_index, int unit_index)
  *   ai_globals->field_8 = actor_handle   (new list head)
  *   actor+0x9 = 1                        (mark as encounterless)
  *   actor+0x10 = 0x5a if actor+0x8 != 0 else 0  (initial action mask)
- *   Calls FUN_0003b5e0(actor_handle) to reset action state.
+ *   Calls actor_flush_position_indices(actor_handle) to reset action state.
  *
  * NEG/SBB/AND pattern at 0x597d1–0x597da:
  *   DL = actor+0x8; NEG DL sets CF if DL != 0; SBB EDX,EDX → EDX=-1 or 0;
@@ -328,7 +328,7 @@ void encounterless_attach_actor(int actor_handle)
   *(uint16_t *)(actor + 0x10) =
     (uint16_t)(-(*(char *)(actor + 8) != '\0') & 0x5a);
 
-  FUN_0003b5e0(actor_handle);
+  actor_flush_position_indices(actor_handle);
 }
 
 /* 0x000597f0 — encounter_leave (remove actor from encounterless list).
@@ -354,7 +354,7 @@ void encounterless_attach_actor(int actor_handle)
  *
  * Confirmed: ESI = &ai_globals->field_8 at 0x598c0 (ADD ESI,0x8 after
  * MOV ESI,[0x632574]).  Inner loop uses ESI as int* pointer-to-next-slot. */
-void FUN_000597f0(int actor_handle)
+void encounterless_detach_actor(int actor_handle)
 {
   char *actor;
   char *ai_globals;
@@ -419,7 +419,7 @@ void FUN_000597f0(int actor_handle)
 /* 0x59930 — Find encounter index by name.
  * Searches the scenario encounter block for the first entry whose name matches
  * the given string (strncmp up to 0x20 bytes). Returns -1 if not found. */
-int FUN_00059930(char *name)
+int encounter_get_by_name(char *name)
 {
   int *encounters;
   int i;
@@ -432,7 +432,7 @@ int FUN_00059930(char *name)
     if (*encounters > 0) {
       do {
         elem = tag_block_get_element(encounters, i, 0xb0);
-        if (FUN_0008ddd0((char *)elem, name, 0x20) == 0)
+        if (csstrncmp((char *)elem, name, 0x20) == 0)
           return i;
         i++;
       } while (i < *encounters);
@@ -494,7 +494,7 @@ void encounter_actor_iterator_new(int *iter, int clump_handle)
  *   PUSH EDX ([0x6325a4])          → datum_get arg1  YES
  *   MOV ECX,[EAX+0x2c]             → actor->next_member  YES
  *   MOV [ESI+0x8],ECX              → iter[2]         YES */
-int FUN_00059a50(int *iter)
+int encounter_actor_iterator_next(int *iter)
 {
   int handle;
   char *actor;
@@ -1039,7 +1039,7 @@ void FUN_0005a640(int encounter_handle /* @<eax> */)
  *       encounter+0x3e timer, g_ai_override).
  *     - Gets scenario encounter def; checks def+0x7e (bsp_index) vs current.
  *     - If bsp match (or -1): builds encounter cluster bit-vector via
- *       FUN_00058fd0, intersects with pvs via FUN_00108e70.
+ *       FUN_00058fd0, intersects with pvs via bit_vector_and.
  *       If any visibility → activate via FUN_0005a4e0(@<eax>).
  *       Else: goto deactivate path.
  *     - Deactivate path: if encounter+0xd (active): decrement encounter+0xe
@@ -1067,7 +1067,7 @@ void FUN_0005a640(int encounter_handle /* @<eax> */)
  *   - encounter loop: data_iterator_new([EBP-0x20], 0x5ab270) at 0x5a957.
  *   - [EBP-0x18] = iter.datum_handle = encounter_handle.
  *   - cluster bv build: FUN_00058fd0(enc_hdl,1,0x200,pvs,local_64) at 0x5a9e4.
- *   - cluster bv intersect: FUN_00108e70(*(uint16_t*)(scenario+0x134), pvs,
+ *   - cluster bv intersect: bit_vector_and(*(uint16_t*)(scenario+0x134), pvs,
  * local_64, 0) at 0x5a9fd.
  *   - encounter+0xe = 0x96 on activate-trigger at 0x5aa09.
  *   - encounter+0x20 = squad count, encounter+0x22[i*2] = squad datum indices.
@@ -1257,7 +1257,7 @@ LAB_encounters:
         *(int16_t *)(enc_def + 0x7e) == *(int16_t *)0x326a0c) {
       /* BSP matches: compute cluster visibility */
       FUN_00058fd0(encounter_handle, 1, 0x200, (int)pvs, cluster_bv);
-      vis_result = FUN_00108e70(*(int16_t *)(scenario + 0x134), (int)pvs,
+      vis_result = bit_vector_and(*(int16_t *)(scenario + 0x134), (int)pvs,
                                 (int)cluster_bv, 0);
       if (!((enc_active == '\0' && in_editor == '\0') &&
             (enc_timer < 1 && override_flag == '\0') && vis_result == '\0')) {
@@ -1295,7 +1295,7 @@ LAB_encounters:
   }
 }
 
-/* 0x0005aab0 — encounter_clear_active_props (FUN_0005aab0).
+/* 0x0005aab0 — encounter_clear_active_props (encounter_stand_down).
  *
  * Called when an encounter loses all visible enemies (encounter+0x45 must be
  * 0 on entry — asserted at line 0x97f).  Prepares the encounter for a fresh
@@ -1330,7 +1330,7 @@ LAB_encounters:
  * *(data_t**)0x5ab23c. actor_data = *(data_t**)0x6325a4. assert strings confirm
  * file "c:\\halo\\SOURCE\\ai\\encounters.c" lines 0x97f/0x99a/0x99f.
  */
-void FUN_0005aab0(int encounter_handle)
+void encounter_stand_down(int encounter_handle)
 {
   char *encounter;
   char *ai_globals;
@@ -1736,7 +1736,7 @@ done:
  * Resets encounter and pursuit data pools, zeroes squad and platoon arrays,
  * then iterates scenario encounter definitions calling FUN_0005a120 to
  * initialize each encounter record. */
-void FUN_0005b200(void)
+void encounters_initialize_for_new_map(void)
 {
   char *scenario;
   short i;
@@ -1761,7 +1761,7 @@ void FUN_0005b200(void)
   }
 }
 
-/* 0x0005b2a0 — encounter_increment_unit_tally (FUN_0005b2a0).
+/* 0x0005b2a0 — encounter_increment_unit_tally (encounters_unit_died).
  *
  * For each active encounter whose team is friendly to the given unit's team,
  * increments the encounter's live-unit tally counter (encounter+0x4c) if the
@@ -1795,9 +1795,9 @@ void FUN_0005b200(void)
  *   - encounter+0x47 = exclusion flag.
  *   - encounter+0x4c = uint16_t live-unit tally (cleared by encounter_clear_active_props).
  *
- * Caller: FUN_0003feb0 (ai.obj) — unit-update routine.
+ * Caller: ai_handle_death (ai.obj) — unit-update routine.
  */
-void FUN_0005b2a0(int unit_handle)
+void encounters_unit_died(int unit_handle)
 {
   data_iter_t iter;
   char *unit;
@@ -2053,12 +2053,12 @@ LAB_0005d365:
   if (*(short *)(actor + 0x3e) != *(short *)(encounter + 2)) {
     if (flag == 0) {
       /* Actor drives its own team assignment */
-      FUN_0003aac0(actor_handle,
+      actor_set_team(actor_handle,
                    (int)(unsigned short)*(short *)(encounter + 2));
     } else if (*(short *)(encounter + 0x2a) == 0) {
       /* Encounter has no fixed team: adopt actor's team */
       *(short *)(encounter + 2) = *(short *)(actor + 0x3e);
-      FUN_00040280();
+      ai_update_team_status();
     } else {
       /* Team conflict: warn, then force actor to encounter team */
       console_printf(
@@ -2066,7 +2066,7 @@ LAB_0005d365:
         "WARNING: actor changing to encounter %s/%s is being forced "
         "to change teams",
         enc_def, squad_def);
-      FUN_0003aac0(actor_handle,
+      actor_set_team(actor_handle,
                    (int)(unsigned short)*(short *)(encounter + 2));
     }
   }
@@ -2107,11 +2107,11 @@ LAB_0005d365:
  *        - if actor+0x18 == -1 (no live unit): weight = actor+0x1e / actor+0x20
  *        - else: weight = 1, vitality = *(float*)(unit+0x90)
  *      Then accumulate per-squad, per-platoon (if actor+0x3c != -1), and
- *      encounter-level counters.  Also calls FUN_0003b120/FUN_0003b150 with
+ *      encounter-level counters.  Also calls FUN_0003b120/actor_is_fighting with
  *      the actor handle for dead/fleeing status.
  *      Sets encounter enemy-visible/alive flags from unit state when
  *      actor+0x270 != -1.
- *   4. If no longer active (enemy gone), calls FUN_0005aab0 or FUN_0005bbe0
+ *   4. If no longer active (enemy gone), calls encounter_stand_down or FUN_0005bbe0
  *      depending on encounter state.
  *   5. Finalise: compute vitality ratio = sum_vitality / actor_count - 0.001f,
  *      clamped to 0.0f, for encounter and each squad/platoon.
@@ -2142,7 +2142,7 @@ void encounter_update_status(int encounter_handle)
   float vitality;
   float fVar1;
   unsigned char bVar6;
-  char not_same_team; /* bVar2: set if FUN_000a7a90 returns false */
+  char not_same_team; /* bVar2: set if game_team_is_ally returns false */
   char has_reinforcements; /* bVar3: set if actor+0x1e4 > 0 */
   char saw_enemy_primary; /* bVar4: actor+0x8c != 0 */
   char saw_enemy_secondary; /* bVar5: actor+0x8d != 0 */
@@ -2248,7 +2248,7 @@ void encounter_update_status(int encounter_handle)
       *(short *)(encounter + 0x2e) +
       (short)((unsigned short)bVar6 * (unsigned short)weight);
 
-    bVar6 = (unsigned char)FUN_0003b150(actor_handle);
+    bVar6 = (unsigned char)actor_is_fighting(actor_handle);
     *(float *)(encounter + 0x34) = vitality + *(float *)(encounter + 0x34);
     *(short *)(encounter + 0x30) =
       *(short *)(encounter + 0x30) +
@@ -2259,7 +2259,7 @@ void encounter_update_status(int encounter_handle)
       unit = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
       *(char *)(encounter + 0x43) = 1;
 
-      if (!FUN_000a7a90(*(short *)(actor + 0x3e), *(short *)(unit + 0x12))) {
+      if (!game_team_is_ally(*(short *)(actor + 0x3e), *(short *)(unit + 0x12))) {
         not_same_team = 1;
       }
 
@@ -2341,7 +2341,7 @@ void encounter_update_status(int encounter_handle)
             goto done;
           }
         }
-        FUN_0005aab0(encounter_handle);
+        encounter_stand_down(encounter_handle);
       }
     } else {
       /* Still active */

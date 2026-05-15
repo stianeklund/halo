@@ -129,14 +129,14 @@ void FUN_000dc9d0(int param_2, int object_handle)
   {
     float *position = *(float **)0x31fc1c;
     float *forward = *(float **)0x31fc3c;
-    FUN_001c7e70(object_handle, sound_tag_index, -1, position, forward, 1.0f);
+    object_impulse_sound_new(object_handle, sound_tag_index, -1, position, forward, 1.0f);
   }
 }
 
 /* Toggle the first-person weapon activation state for a local player (0xdcb30).
  * When activating (activate != 0): asserts weapon_index != NONE, then calls
  * effects_start_on_first_person_weapon to start effects. When deactivating:
- * calls FUN_0009c810 to stop effects and FUN_000a1510 to stop sounds. Only acts
+ * calls effects_stop_on_first_person_weapon to stop effects and FUN_000a1510 to stop sounds. Only acts
  * if the state changes. */
 void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
 {
@@ -155,7 +155,7 @@ void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
       *(uint8_t *)fp = activate;
       return;
     }
-    FUN_0009c810((int)local_player_index);
+    effects_stop_on_first_person_weapon((int)local_player_index);
     FUN_000a1510((int)local_player_index);
     *(uint8_t *)fp = 0;
   }
@@ -513,7 +513,7 @@ void FUN_000dde80(int param_1)
     {
       char *fp2 = (char *)(*(int *)0x46bea8 + (int)local_player_index * 0x1ea0);
       if (*(uint8_t *)fp2 != 0) {
-        FUN_0009c810(param_1);
+        effects_stop_on_first_person_weapon(param_1);
         FUN_000a1510(param_1);
         *(uint8_t *)fp2 = 0;
       }
@@ -729,7 +729,7 @@ cleanup:
 /* Notify the first-person weapon system of an object event (0xde3b0).
  * Finds the local player holding the weapon, processes the event, and if
  * no local player owns it, attempts third-person sound playback. */
-void FUN_000de3b0(int object_handle, int param_2)
+void first_person_weapon_message_from_weapon(int object_handle, int param_2)
 {
   int16_t local_player = FUN_000dcd60(object_handle);
   FUN_000de140(local_player, param_2);

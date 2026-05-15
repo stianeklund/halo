@@ -11,7 +11,7 @@ typedef struct debug_allocation_header {
   uint32_t checksum;
 } debug_allocation_header_t;
 
-void FUN_0008eb80(const char *tag_filter)
+void debug_dump_memory_for_file(const char *tag_filter)
 {
   debug_allocation_header_t *node;
   void *stream;
@@ -47,7 +47,7 @@ void FUN_0008eb80(const char *tag_filter)
   }
 }
 
-void FUN_0008ec60(void)
+void debug_dump_memory_by_file(void)
 {
   uint32_t table[0x200][5];
   debug_allocation_header_t *node;

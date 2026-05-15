@@ -131,7 +131,7 @@ extern int strncmp(const char *s1, const char *s2, unsigned int n);
 
 /* 0x8ddd0 — Validated strncmp wrapper. Asserts both strings are non-null and
  * size is within MAXIMUM_STRING_SIZE, then delegates to strncmp. */
-int FUN_0008ddd0(char *s1, char *s2, unsigned int size)
+int csstrncmp(char *s1, char *s2, unsigned int size)
 {
   assert_halt(s1 && s2);
   assert_halt(size <= 0x1fff);

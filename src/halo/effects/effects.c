@@ -95,7 +95,7 @@ void effect_delete(int effect_handle)
  * and unlinked; others are skipped. After processing, the effect's player index
  * is reset to NONE (-1). Called when deactivating first-person weapon effects.
  */
-void FUN_0009c810(int local_player_index)
+void effects_stop_on_first_person_weapon(int local_player_index)
 {
   int effect_index;
   for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
@@ -537,7 +537,7 @@ void FUN_0009d430(int datum, int color_ptr, int velocity_ptr, float scale_a,
   d_color[1] = color[1];
   d_color[2] = color[2];
 
-  if (!FUN_0007b020(d_color)) {
+  if (!valid_real_rgb_color(d_color)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
              "&effect->color", (double)d_color[0], (double)d_color[1],
              (double)d_color[2]);
@@ -1152,7 +1152,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
       else
         marker = (int)(loc_node & 0x7fff);
 
-      FUN_001c7e70(*(int *)(ef + 0x3c), *(int *)(loc_entry + 0x24),
+      object_impulse_sound_new(*(int *)(ef + 0x3c), *(int *)(loc_entry + 0x24),
                    (int16_t)marker, (float *)(loc + 0x30), (float *)(loc + 0xc),
                    scale);
     } else {
@@ -1196,7 +1196,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
  * (offset 0x3c) matches the given weapon_handle, asserts that
  * local_player_index is currently NONE, then sets it and re-processes the
  * effect's event/marker callbacks via FUN_0009d4e0 with the particle marker
- * callback (FUN_000dd190). */
+ * callback (first_person_weapon_get_marker_by_name). */
 void effects_start_on_first_person_weapon(int local_player_index,
                                           int weapon_handle)
 {

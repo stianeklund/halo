@@ -839,7 +839,7 @@ bool FUN_001c6880(file_ref_t *info)
   result = 0;
   ok = file_open(info, 1);
   if (ok != '\0') {
-    ok = FUN_0019acb0(info, 0, 0xc, header);
+    ok = file_read_from_position(info, 0, 0xc, header);
     if (ok != '\0') {
       FUN_00118be0((void *)0x32ebbc, header, 1);
       if ((header[0] == 0x464f524d) &&

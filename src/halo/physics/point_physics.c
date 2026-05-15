@@ -9,7 +9,7 @@ void point_physics_dispose_from_old_map(void)
 }
 
 /* Scale a point-physics density value by volume (scale^3). */
-float FUN_001548a0(int tag_data, float scale)
+float point_physics_definition_get_mass(int tag_data, float scale)
 {
   return scale * *(float *)(tag_data + 4) * scale * scale;
 }

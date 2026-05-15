@@ -509,7 +509,7 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
   return not_found;
 }
 
-/* FUN_001a8e10 (0x1a8e10)
+/* unit_handle_weapon_state_change (0x1a8e10)
  *
  * Dispatches a unit animation state transition based on an incoming state code.
  * Maps input state values 1-8 to either FUN_001a8b20 (which sets a unit
@@ -521,7 +521,7 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
  * index 5 state 6 -> unit_animation_start_action with index 6 state 7 ->
  * FUN_001a8b20 with index 3 state 8 -> FUN_001a8b20 with index 4
  */
-void FUN_001a8e10(int object_handle, int16_t state)
+void unit_handle_weapon_state_change(int object_handle, int16_t state)
 {
   switch (state) {
   case 1:
@@ -983,7 +983,7 @@ bool unit_is_alive(int unit_handle)
 }
 
 /* Check if a unit is in a vehicle seat based on seat state byte at +0x253. */
-bool FUN_001a9ad0(int unit_handle)
+bool unit_is_busy(int unit_handle)
 {
   char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
   int seat_state = *(signed char *)(unit + 0x253);
@@ -1949,7 +1949,7 @@ uint16_t unit_find_best_enter_seat(int unit_handle, int target_unit_handle,
   return best_state;
 }
 
-/* FUN_001ada90 (0x1ada90)
+/* unit_clip_to_aiming_bounds (0x1ada90)
  *
  * Clamps a unit's aiming/looking vector to the unit's constraint bounds.
  * flag=1 selects primary constraints (offset 0x266/0x268),
@@ -1958,7 +1958,7 @@ uint16_t unit_find_best_enter_seat(int unit_handle, int target_unit_handle,
  * Builds a local coordinate frame from the unit's forward/up node vectors,
  * transforms the vector to local yaw/pitch angles, clamps, and transforms back.
  */
-char FUN_001ada90(int unit_handle, float *vector, char flag)
+char unit_clip_to_aiming_bounds(int unit_handle, float *vector, char flag)
 {
   /* Original stack: SUB ESP,0x4c (76 bytes). Matrix is the primary local —
      forward/up/left/gravity are written directly into its rows, not copied. */
@@ -2128,7 +2128,7 @@ int unit_get_weapon(int unit_handle, int16_t weapon_index)
   return result;
 }
 
-/* FUN_001adf10 (0x1adf10)
+/* unit_set_actively_controlled (0x1adf10)
  *
  * Reattaches all weapons in the unit's weapon slots (unk_680, offset 0x2A8,
  * 4 entries) and updates the unit's alive/active flags (unk_436, offset 0x1B4).
@@ -2144,7 +2144,7 @@ int unit_get_weapon(int unit_handle, int16_t weapon_index)
  * Then iterates all 4 weapon slots and calls item_attach_to_unit for each
  * valid weapon handle, and finally tail-calls unit_update_seat_occupancy.
  */
-void FUN_001adf10(int unit_handle, char param_2)
+void unit_set_actively_controlled(int unit_handle, char param_2)
 {
   char *unit;
   uint32_t flags;
@@ -2491,7 +2491,7 @@ int16_t unit_next_weapon_index(int unit_handle, int16_t weapon_index,
  * 6. Calls FUN_000fd360(weapon_handle, flag) to attempt the placement.
  * 7. On success: fires unit event 0xd, calls FUN_001ab990, clears the weapon
  *    slot, resets current/next weapon indices, and optionally deletes the
- *    weapon object if FUN_000faf50 returns false.
+ *    weapon object if weapon_can_be_fired returns false.
  */
 bool unit_set_in_vehicle(int unit_handle, bool flag)
 {
@@ -3164,7 +3164,7 @@ bool unit_apply_animation_impulse(int unit_handle, int anim_index,
  * ptr); MOV EAX,EDI; CALL unit_get_seat_label. Confirmed: PUSH EAX; PUSH ESI;
  * CALL csstrcmp; TEST EAX,EAX; JNZ -> return false on mismatch.
  */
-char FUN_001b1d00(int object_handle, void *position)
+char unit_unsuspecting(int object_handle, void *position)
 {
   unit_data_t *unit;
   char *unit_tag;

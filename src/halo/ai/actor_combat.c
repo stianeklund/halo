@@ -48,7 +48,7 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
 
   object_get_and_verify_type(handle, 3);
   unit_scripting_unit_driver(handle, weapon_vector);
-  FUN_001ada90(handle, weapon_vector, 1);
+  unit_clip_to_aiming_bounds(handle, weapon_vector, 1);
 }
 
 char *actor_combat_get_firing_variant_definition(int actor_handle)

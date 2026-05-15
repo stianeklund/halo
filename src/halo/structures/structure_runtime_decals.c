@@ -51,7 +51,7 @@ void FUN_001963c0(uint32_t *old_cluster_visibility,
     }
 
     if (should_delete_cluster_decals) {
-      FUN_00099fd0(cluster_index);
+      decals_delete_permanent_from_cluster(cluster_index);
       continue;
     }
 

@@ -8,7 +8,7 @@ char *weapon_get_label(int weapon_handle)
   return (char *)tag_get(0x77656170, *obj) + 0x30c;
 }
 
-/* 0xfaed0 — FUN_000faed0
+/* 0xfaed0 — weapon_estimate_time_to_target
  *
  * Given a weapon object handle, a trigger index, and a float value, returns
  * the result of evaluating the projectile charge function for that trigger.
@@ -37,7 +37,7 @@ char *weapon_get_label(int weapon_handle)
  * PUSH EAX / CALL projectile_estimate_time_to_target at 0xfaf38; ADD ESP,0x8
  * cleans 2.
  */
-float FUN_000faed0(int weapon_handle, int16_t trigger_index, float param_3)
+float weapon_estimate_time_to_target(int weapon_handle, int16_t trigger_index, float param_3)
 {
   int *weapon_data = (int *)object_get_and_verify_type(weapon_handle, 4);
   void *weap_tag = tag_get(0x77656170, weapon_data[0]);
@@ -254,7 +254,7 @@ int weapon_start_effect(int trigger_effect, int param_2, int param_3,
     /* 'snd!' — sound effect */
     float *position = *(float **)0x31fc1c;
     float *forward = *(float **)0x31fc3c;
-    FUN_001c7e70(object_handle, trigger_effect, -1, position, forward, param_2);
+    object_impulse_sound_new(object_handle, trigger_effect, -1, position, forward, param_2);
     result = -1;
   } else {
     display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0x9d2, 1);
@@ -280,7 +280,7 @@ int weapon_start_effect(int trigger_effect, int param_2, int param_3,
  * Confirmed: switch on state (0..10) maps to animation indices.
  * Confirmed: model_animation_choose_random(1, tag+0x44, anim_index).
  * Confirmed: stores to weapon_data+0x80, +0x82, +0x1e8.
- * Confirmed: tail section resolves unit handle and calls FUN_001a8e10.
+ * Confirmed: tail section resolves unit handle and calls unit_handle_weapon_state_change.
  * Confirmed: returns AL=1 on success, AL=0 on early exit.
  */
 int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state)
@@ -386,19 +386,19 @@ tail:
     }
     int check2 = (int)object_try_and_get_and_verify_type(unit_handle, 3);
     if (check2 != 0) {
-      FUN_001a8e10(unit_handle, state);
+      unit_handle_weapon_state_change(unit_handle, state);
     }
   }
   return 1;
 }
 
-/* FUN_000fbbd0 (0xfbbd0)
+/* weapon_set_total_rounds (0xfbbd0)
  *
  * Sets weapon magazine rounds from an input array. For each magazine,
  * clamps the input value to the magazine's maximum capacity, then clamps
  * the loaded rounds to not exceed the new total.
  */
-void FUN_000fbbd0(int weapon_handle, int16_t *rounds_array)
+void weapon_set_total_rounds(int weapon_handle, int16_t *rounds_array)
 {
   int *weapon = (int *)object_get_and_verify_type(weapon_handle, 4);
   int tag_data = (int)tag_get(0x77656170, *weapon);
@@ -441,7 +441,7 @@ void FUN_000fbbd0(int weapon_handle, int16_t *rounds_array)
  * For each magazine that's below initial capacity, tries to transfer rounds
  * from either the same weapon type or matching equipment. Deletes the source if
  * fully depleted. Returns true if any ammo source was matched. */
-bool FUN_000fc290(int weapon_handle, int source_handle,
+bool weapon_handle_potential_inventory_item(int weapon_handle, int source_handle,
                   uint16_t local_player_index, int16_t *rounds_out)
 {
   int *weapon_data = (int *)object_get_and_verify_type(weapon_handle, 4);
@@ -534,7 +534,7 @@ bool FUN_000fc290(int weapon_handle, int source_handle,
  * twice. Confirmed: calls FUN_000fb370(weapon_obj@<edi>, magazine_index@<si>).
  * Confirmed: calls weapon_set_animation_state(weapon_handle, 0,
  * magazine_index+5 @<bx>). Confirmed: calls weapon_start_effect(mag_def[0x44],
- * 0, 0, weapon_handle@<eax>). Confirmed: calls FUN_000de3b0(weapon_handle, 9 or
+ * 0, 0, weapon_handle@<eax>). Confirmed: calls first_person_weapon_message_from_weapon(weapon_handle, 9 or
  * 10). Confirmed: calls weapon_get_animation_frame(weapon_handle, 0, 7, iVar6).
  * Confirmed: clears bit 3 of weapon_obj[0x1dc] on non-early-exit path.
  */
@@ -557,7 +557,7 @@ void FUN_000fc990(int16_t magazine_index, int weapon_handle, int param_2)
         weapon_set_animation_state(weapon_handle, 0,
                                    (int16_t)(magazine_index + 5));
         weapon_start_effect(*(int *)(mag_def + 0x44), 0, 0, weapon_handle);
-        FUN_000de3b0(weapon_handle, (magazine_state[4] != 0) + 9);
+        first_person_weapon_message_from_weapon(weapon_handle, (magazine_state[4] != 0) + 9);
 
         if (*(int16_t *)(tag_data + 0x4e2) == 1) {
           int diff_is_one =
@@ -791,7 +791,7 @@ void weapon_activate(int weapon_handle)
 
   weapon_reset_state(weapon_handle);
   weapon_set_animation_state(weapon_handle, 1, 9);
-  FUN_000de3b0(weapon_handle, 0xc);
+  first_person_weapon_message_from_weapon(weapon_handle, 0xc);
   weapon_start_effect(*(int *)(tag_data + 0x348), 0, 0, weapon_handle);
 
   int16_t frame = weapon_get_animation_frame(weapon_handle, 0, 10, -1);
@@ -824,11 +824,11 @@ bool weapon_try_place(int weapon_handle, int flag)
     *(int *)((int)weapon_data + 0x274) = -1;
   }
 
-  FUN_000de3b0(weapon_handle, 0xb);
+  first_person_weapon_message_from_weapon(weapon_handle, 0xb);
   return true;
 }
 
-/* FUN_000fd400 (0xfd400) — weapon_try_and_fire_projectile
+/* weapon_aim (0xfd400) — weapon_try_and_fire_projectile
  *
  * Attempts to fire a projectile for a given weapon trigger. Validates the
  * weapon object (type 4), resolves the 'weap' tag, then validates the
@@ -868,7 +868,7 @@ bool weapon_try_place(int weapon_handle, int flag)
  * Confirmed: return 1 at 0xfd4fa; return 0 (XOR AL,AL) at 0xfd428 on early
  * exit.
  */
-bool FUN_000fd400(int weapon_handle, int16_t trigger_index, void *param_3,
+bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
                   void *param_4, int param_5, float *param_6, int param_7,
                   void *param_8, void *param_9)
 {

@@ -374,7 +374,7 @@ void sound_initialize_for_new_map(void)
  *      fade was started (blocking wait for the fade to complete).
  *   3. After the wait, if the fade flag (0x4eaf42) is set, clear it, call
  *      vtable+0x28(0) to stop hardware output, and record the timestamp.
- * Finally, unconditionally stop all channels (FUN_001cd540) and re-validate
+ * Finally, unconditionally stop all channels (sound_stop_all) and re-validate
  * the looping-sounds table so it is ready for the next map. */
 /* sound_set_music_enabled (0x1cb8a0)
  *
@@ -401,7 +401,7 @@ void sound_set_music_enabled(int enabled)
  *
  * Returns the sound system's last-recorded millisecond timestamp.
  */
-unsigned int FUN_001cb8e0(void)
+unsigned int sound_render_time(void)
 {
   return *(unsigned int *)0x4eaf4c;
 }
@@ -2404,7 +2404,7 @@ void sound_update_music(void)
  * Stripped-down sound tick used during fade-out spin loops.  Locks the
  * sound driver, updates timing + music, unlocks, then runs game_sound_update.
  */
-void FUN_001cf2f0(void)
+void sound_idle(void)
 {
   int current_ms;
 

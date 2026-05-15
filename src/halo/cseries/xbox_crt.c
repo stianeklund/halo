@@ -66,7 +66,7 @@ char *__stdcall FUN_001d789a(char *dst, const char *src, int count)
 
 /* strncmp (CRT stub) — provided here since _strncmp is internal to the original
  * LIBCMT and not exported from the XBE import table. Behaviorally equivalent to
- * the standard strncmp; called only by FUN_0008ddd0 in cseries.c. */
+ * the standard strncmp; called only by csstrncmp in cseries.c. */
 int strncmp(const char *s1, const char *s2, unsigned int n)
 {
   unsigned int i;

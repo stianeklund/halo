@@ -185,7 +185,7 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
     int results_buf[0x406]; /* 0x1018 bytes */
 
     bsp_surface_data = breakable_surfaces_get_bsp_surface_data();
-    bsp_hit = (char)FUN_001493b0((int)bsp, 0x100, (int)bsp_surface_data,
+    bsp_hit = (char)collision_bsp_test_sphere((int)bsp, 0x100, (int)bsp_surface_data,
                                  (int)pos, *(int *)&search_radius, results_buf);
 
     if (bsp_hit && (flags & 0x20) != 0) {
@@ -225,7 +225,7 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
       }
 
       object_marker_end();
-      FUN_00198540();
+      structure_cluster_marker_end();
     }
 
     collision_log_add_time(2, *(unsigned int *)0x4761e0, *(int *)0x4761e4);

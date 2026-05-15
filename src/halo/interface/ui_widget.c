@@ -1447,7 +1447,7 @@ void ui_widget_display_error(int16_t error_handle, int local_player_index,
       *(float *)0x46cc4c >= 0.0f) {
     error(2, "aborting to the main menu root, for safety's sake");
     main_screen_shell_load();
-    FUN_00100000();
+    main_defer_map_map_change();
     *(float *)0x46cc4c = -1.0f;
   }
 

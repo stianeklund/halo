@@ -10,7 +10,7 @@ void FUN_0002a3a0(int actor_handle)
   *(int *)(actor + 0x4a0) = 0;
 }
 
-/* FUN_0002a470 (0x2a470) — Populate nav state for actor movement.
+/* actor_path_input_new (0x2a470) — Populate nav state for actor movement.
  *
  * Gets the actor's actr tag speed value (tag+0x8c) as the base speed.
  * If the actor is in a vehicle (actor->vehicle_count at +0x15e > 0):
@@ -18,7 +18,7 @@ void FUN_0002a3a0(int actor_handle)
  *   - Gets the vehi tag via tag_get('vehi', vehicle[0])
  *   - Overrides unit_handle with the vehicle handle (actor[0x158])
  *   - If vehi_tag[0x38c] > constant at 0x2533c0, overrides local_8 with it
- * Calls FUN_0003bc90(actor_handle), then fills nav_state_out via
+ * Calls actor_find_pathfinding_location(actor_handle), then fills nav_state_out via
  * path_input_new and path_input_set_start.
  *
  * Confirmed: datum_get + tag_get('actr', actor[0x58]) at 0x2a481-0x2a491.
@@ -27,11 +27,11 @@ void FUN_0002a3a0(int actor_handle)
  * Confirmed: tag_get('vehi', vehicle[0]) at 0x2a4c5.
  * Confirmed: unit_handle = actor[0x158] at 0x2a4ca.
  * Confirmed: FPU FCOMP [0x2533c0] with TEST AH,0x41 at 0x2a4db.
- * Confirmed: FUN_0003bc90(actor_handle) at 0x2a4f2.
+ * Confirmed: actor_find_pathfinding_location(actor_handle) at 0x2a4f2.
  * Confirmed: path_input_new(nav, local_8, actor[0x376], unit) at 0x2a509.
  * Confirmed: path_input_set_start(nav, actor+0x168, actor[0x164]) at 0x2a51d.
  */
-void FUN_0002a470(int actor_handle, char *nav_state_out)
+void actor_path_input_new(int actor_handle, char *nav_state_out)
 {
   char *actor;
   char *p;
@@ -50,7 +50,7 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
       local_8 = *(int *)(p + 0x38c);
     }
   }
-  FUN_0003bc90(actor_handle);
+  actor_find_pathfinding_location(actor_handle);
   path_input_new(nav_state_out, local_8, *(unsigned char *)(actor + 0x376),
                  unit_handle);
   path_input_set_start(nav_state_out, (float *)(actor + 0x168),
@@ -62,7 +62,7 @@ void FUN_0002a470(int actor_handle, char *nav_state_out)
  * and vehicle-in-air state. On success writes param_2 to +0x418 and
  * copies two ints from param_3 to +0x41c/+0x420. Returns 1 on success, 0 on
  * failure. */
-int FUN_0002a7e0(int actor_handle, int16_t param_2, int *param_3)
+int actor_move_animation_impulse(int actor_handle, int16_t param_2, int *param_3)
 {
   char *actor;
   char *actor2;
@@ -74,7 +74,7 @@ int FUN_0002a7e0(int actor_handle, int16_t param_2, int *param_3)
   actor2 = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (*(int16_t *)(actor2 + 0x418) == -1) {
     if (*(int *)(actor2 + 0x18) == -1 ||
-        !FUN_001a9ad0(*(int *)(actor2 + 0x18))) {
+        !unit_is_busy(*(int *)(actor2 + 0x18))) {
       *(int16_t *)(actor + 0x418) = param_2;
       *(int *)(actor + 0x41c) = *param_3;
       *(int *)(actor + 0x420) = param_3[1];
@@ -85,10 +85,10 @@ int FUN_0002a7e0(int actor_handle, int16_t param_2, int *param_3)
 }
 
 /* 0x2a860 — Clear actor destination and trigger flee movement.
- * Returns 0 if actor has a goal slot, is in a flying vehicle, or FUN_0001ca90
+ * Returns 0 if actor has a goal slot, is in a flying vehicle, or actor_action_deny_transition
  * returns true. Otherwise zeroes the swarm flag, copies 12 bytes from the
- * global pointer at 0x31fc38, calls FUN_0003c3e0, and returns 1. */
-int FUN_0002a860(int actor_handle)
+ * global pointer at 0x31fc38, calls actor_unit_control_stop_animation_impulse, and returns 1. */
+int actor_move_force_stop(int actor_handle)
 {
   char *actor;
   char *ptr;
@@ -97,14 +97,14 @@ int FUN_0002a860(int actor_handle)
   result = 0;
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (*(int16_t *)(actor + 0x418) == -1) {
-    if (*(int *)(actor + 0x18) == -1 || !FUN_001a9ad0(*(int *)(actor + 0x18))) {
-      if (!FUN_0001ca90(actor_handle)) {
+    if (*(int *)(actor + 0x18) == -1 || !unit_is_busy(*(int *)(actor + 0x18))) {
+      if (!actor_action_deny_transition(actor_handle)) {
         *(char *)(actor + 0x504) = 0;
         ptr = (char *)*(int *)0x31fc38;
         *(int *)(actor + 0x6e0) = *(int *)ptr;
         *(int *)(actor + 0x6e4) = *(int *)(ptr + 4);
         *(int *)(actor + 0x6e8) = *(int *)(ptr + 8);
-        FUN_0003c3e0(actor_handle);
+        actor_unit_control_stop_animation_impulse(actor_handle);
         result = 1;
       }
     }
@@ -190,7 +190,7 @@ void actor_move_get_avoidance_direction(void)
   }
 }
 
-/* FUN_0002b720 (0x2b720) — Check if vehicle actor should brake.
+/* actor_path_3d_available (0x2b720) — Check if vehicle actor should brake.
  *
  * If actor is in a type-4 vehicle state (actor[0x15e] == 4):
  *   - Reads vehicle tag stopping distance (vehi_tag[0x388])
@@ -215,7 +215,7 @@ void actor_move_get_avoidance_direction(void)
  * Confirmed: FCOMP [0x253d54] dot threshold at 0x2b800.
  * Confirmed: dist_out write if non-NULL at 0x2b80f-0x2b819.
  */
-char FUN_0002b720(int actor_handle, float *dest_pos, float *dist_out)
+char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
 {
   char *actor;
   char *vehi;
@@ -298,7 +298,7 @@ char actor_path_refresh(int actor_handle, char store_distance,
   char local_nav[44]; /* [EBP-0x60]: nav-state struct (waypoint init output) */
   static char
     large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
-  void *path_state; /* allocated path cache slot from FUN_00049120 */
+  void *path_state; /* allocated path cache slot from ai_debug_get_path_storage */
   int scenario;
   int squad_elem;
   int order_elem;
@@ -437,7 +437,7 @@ char actor_path_refresh(int actor_handle, char store_distance,
     prop = (int)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x470));
     if ((*(short *)(prop + 0x24) < 4) || (*(short *)(prop + 0x24) > 5)) {
       /* Prop state invalid: notify and continue (don't abort). */
-      FUN_0002f910(actor_handle, *(int *)(actor + 0x470));
+      actor_perception_find_prop_pathfinding_location(actor_handle, *(int *)(actor + 0x470));
     }
     if (*(char *)(actor + 0x99) != '\0') {
       *(unsigned int *)(actor + 0x488) = *(unsigned int *)(prop + 0xc8);
@@ -465,19 +465,19 @@ LAB_check_dest:
   /*
    * Validate destination. Two branches:
    *
-   * B) actor[0x99]!=0 (mounted): call FUN_0002b720 to check whether the
+   * B) actor[0x99]!=0 (mounted): call actor_path_3d_available to check whether the
    *    destination is accessible for a mounted actor; output dist.
    *    Confirmed at 0x0002ceab-0x0002cebf:
    *      JZ skip (actor[0x99]==0)
    *      PUSH LEA[EBP-0xc](&dist); PUSH EDI(&actor[0x488]); PUSH ECX
-   *      CALL FUN_0002b720
+   *      CALL actor_path_3d_available
    *
    * A) actor[0x99]==0 (on foot): if actor[0x498]==0.0f, check
    *    actor[0x494]!=-1. If -1, fail. If actor[0x498]!=0.0f, fall through.
    *    Confirmed at 0x0002d096-0x0002d0b3.
    */
   if (*(char *)(actor + 0x99) != '\0') {
-    path_found = FUN_0002b720(actor_handle, (float *)(actor + 0x488), &dist);
+    path_found = actor_path_3d_available(actor_handle, (float *)(actor + 0x488), &dist);
     if (path_found == '\0') {
       goto LAB_fail;
     }
@@ -491,7 +491,7 @@ LAB_check_dest:
   }
 
   /* Try fast path: actor is already navigating to the same destination. */
-  path_found = FUN_0002a580(actor_handle);
+  path_found = actor_test_destination(actor_handle);
   if (path_found != '\0') {
     if (!had_path) {
       goto LAB_path_ok;
@@ -519,7 +519,7 @@ LAB_check_dest:
   }
 
   /*
-   * FUN_0002a580 failed. Compute actual 3D distance from actor position to
+   * actor_test_destination failed. Compute actual 3D distance from actor position to
    * destination, allocate path cache, and run the pathfinder.
    *
    * tag_get at 0x0002d0f7: PUSH [ESI+0x58]; PUSH 0x61637472 ('rtra'='actr')
@@ -539,15 +539,15 @@ LAB_check_dest:
   /* Select pathfinding mode: mounted (vehicle) vs on-foot vs override. */
   if (*(char *)(actor + 0x99) != '\0') {
     /*
-     * Mounted: use scenario-based vehicle pathfinding (FUN_0005e920).
+     * Mounted: use scenario-based vehicle pathfinding (path_3d_build_path).
      * Args confirmed at 0x0002d13e-0x0002d155:
      *   pre-push: &actor[0x4a8], &actor[0x488](EDI), 0, &actor[0x12c]
      *   scenario_get() -> push EAX
-     *   CALL FUN_0005e920(scenario, &actor[0x12c], 0, &actor[0x488],
+     *   CALL path_3d_build_path(scenario, &actor[0x12c], 0, &actor[0x488],
      *                     &actor[0x4a8])
      * ADD ESP,0x14 = 5 args.
      */
-    path_found = FUN_0005e920((int)scenario_get(), (int *)(actor + 0x12c), 0,
+    path_found = path_3d_build_path((int)scenario_get(), (int *)(actor + 0x12c), 0,
                               (int *)(actor + 0x488), (char *)(actor + 0x4a8));
   } else if (override_path != (void *)0) {
     /*
@@ -571,14 +571,14 @@ LAB_check_dest:
   } else {
     /*
      * Normal on-foot pathfinding pipeline:
-     *  1. FUN_0002a470(actor_handle, local_nav): initialize nav-state struct
+     *  1. actor_path_input_new(actor_handle, local_nav): initialize nav-state struct
      *     (actor position, facing, vehicle info, etc.).
      *  2. paths_dispose(local_nav, actor[0x480]): if ignore_object!=-1,
      *     store it at local_nav+0xc.
      *  3. (Optional) path_input_set_attractor: encode movement-constraint
      * orders into local_nav when actor has standing orders (actor[0x280]>0,
      *     actor[0x28a]==0, tag flag bit 4 clear). Float arg 0x41200000=10.0f.
-     *  4. FUN_00049120(actor_handle): allocate/find path cache slot.
+     *  4. ai_debug_get_path_storage(actor_handle): allocate/find path cache slot.
      *  5. path_state_new(local_nav, large_buf, path_state): init path-build
      *     state in large_buf from local_nav and the cache slot.
      *  6. FUN_0005e0d0(large_buf, &actor[0x488], actor[0x494], actor[0x498]):
@@ -591,7 +591,7 @@ LAB_check_dest:
      *   local_nav at [EBP-0x60] (44 bytes)
      *   large_buf at [EBP+0xfffebf14] (82060 bytes = 0x1408c)
      */
-    FUN_0002a470(actor_handle, local_nav);
+    actor_path_input_new(actor_handle, local_nav);
     if (*(int *)(actor + 0x480) != -1) {
       paths_dispose(local_nav, *(int *)(actor + 0x480));
     }
@@ -602,7 +602,7 @@ LAB_check_dest:
         *(unsigned int *)(actor + 0x28c),
         (unsigned int)0x41200000); /* 10.0f as bit pattern */
     }
-    path_state = FUN_00049120(actor_handle);
+    path_state = ai_debug_get_path_storage(actor_handle);
     path_state_new(local_nav, large_buf, path_state);
     FUN_0005e0d0(large_buf, (float *)(actor + 0x488), *(int *)(actor + 0x494),
                  *(int *)(actor + 0x498));
@@ -652,7 +652,7 @@ LAB_path_ok:
   return '\x01';
 }
 
-/* 0x2d350 — FUN_0002d350: Update actor path state and compute target
+/* 0x2d350 — actor_destination_update: Update actor path state and compute target
  * destination.
  *
  * Called every tick for an actor. Has three main branches:
@@ -682,7 +682,7 @@ LAB_path_ok:
  * Confirmed float constants: 0.0225f=near_sq(0.15), 0.0625f=seg_sq(0.25),
  *   0.0f=zero, 1000000.0f=tau_ceti_sq, 3.0f=step_dist, 0.9f=facing_thresh.
  */
-void FUN_0002d350(int actor_handle)
+void actor_destination_update(int actor_handle)
 {
   extern data_t *actor_data;
   char *actor;
@@ -711,7 +711,7 @@ void FUN_0002d350(int actor_handle)
     actor_path_refresh(actor_handle, 0, 0);
   }
 
-  FUN_0002a580(actor_handle);
+  actor_test_destination(actor_handle);
 
   path_ctl = actor + 0x4a8;
   if (*(char *)(actor + 0x4a8) != '\0') {
@@ -855,11 +855,11 @@ void FUN_0002d350(int actor_handle)
         FUN_0002a3a0(actor_handle);
       } else if (*(char *)0x5aca62 != '\0') {
         /* Debug: log "fell off end of unfinished path".
-         * FUN_00049ac0: actor_describe_name(actor_handle, -1, 1, buf, 0x200)
+         * ai_debug_describe_actor: actor_describe_name(actor_handle, -1, 1, buf, 0x200)
          * Disasm 0x2d518-0x2d529:
          *   PUSH 0x200; PUSH EDX(local_218); PUSH 1; PUSH -1; PUSH EBX
          */
-        FUN_00049ac0(actor_handle, -1, 1, name_buf, 0x200);
+        ai_debug_describe_actor(actor_handle, -1, 1, name_buf, 0x200);
         error(2, "%s: fell off end of unfinished path %d/%d", name_buf,
               (int)*(signed char *)(actor + 0x4c1), 4);
       }
@@ -1023,7 +1023,7 @@ void FUN_0002d350(int actor_handle)
  * Confirmed: actor_path_refresh(actor_handle,0,0) at 0x2d8ab.
  * Confirmed: return 1 via MOV AL,1 at 0x2d8f6.
  */
-char FUN_0002d850(int actor_handle, int16_t param_2)
+char actor_move_to_move_position(int actor_handle, int16_t param_2)
 {
   char *iVar1;
   int iVar3;
@@ -1075,7 +1075,7 @@ char FUN_0002d850(int actor_handle, int16_t param_2)
  * Confirmed: actor_path_refresh(actor_handle,0,0) at 0x2da1c.
  * Confirmed: return 1 via MOV AL,1 at 0x2da94.
  */
-char FUN_0002d9b0(int actor_handle, int encounter_handle, float distance)
+char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
 {
   char *actor;
   char *encounter;

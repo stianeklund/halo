@@ -138,7 +138,7 @@ void actor_action_replace_prop(int actor_handle, int old_prop, int new_prop)
   }
 }
 
-/* FUN_0001c4c0 (0x1c4c0)
+/* actor_action_flush_position_indices (0x1c4c0)
  *
  * Dispatches the current action's handler at table slot +0x30 (0x253fd0,
  * stride 0x38) for the given actor. The semantic role of this slot is not
@@ -152,7 +152,7 @@ void actor_action_replace_prop(int actor_handle, int old_prop, int new_prop)
  * Confirmed: handler called with (actor_handle); TEST EAX,EAX guards call.
  * Confirmed: __FILE__ "c:\halo\SOURCE\ai\actions.c".
  */
-void FUN_0001c4c0(int actor_handle)
+void actor_action_flush_position_indices(int actor_handle)
 {
   typedef void (*action_slot30_fn_t)(int);
 
@@ -171,7 +171,7 @@ void FUN_0001c4c0(int actor_handle)
   }
 }
 
-/* FUN_0001d030 (0x1d030) — actor_set_action
+/* actor_action_change (0x1d030) — actor_set_action
  *
  * Transitions an actor to a new action type: calls the old action's exit
  * handler, adjusts the actor's priority level, copies action-specific state
@@ -184,12 +184,12 @@ void FUN_0001c4c0(int actor_handle)
  * Confirmed: assert actor+0x6c (old action) in [0,14) at line 0xb87.
  * Confirmed: exit handler at table+0x24 (0x253fc4) called with actor_handle.
  * Confirmed: priority adjust using table+0x10 (0x253fb0) short field.
- * Confirmed: FUN_00024b80(actor_handle, 0) at 0x1d122.
+ * Confirmed: actor_clear_discarded_firing_positions(actor_handle, 0) at 0x1d122.
  * Confirmed: csmemcpy(actor+0x9c, param_3, data_size) when data_size > 0.
  * Confirmed: actor+0x6c = (short)param_2, actor+0x70 = 1 at 0x1d153/0x1d157.
  * Confirmed: begin handler at table+0x14 (0x253fb4) called with actor_handle.
  */
-void FUN_0001d030(int actor_handle, int new_action_type, int param_3)
+void actor_action_change(int actor_handle, int new_action_type, int param_3)
 {
   typedef void (*action_handler_fn_t)(int);
 
@@ -225,7 +225,7 @@ void FUN_0001d030(int actor_handle, int new_action_type, int param_3)
     }
   }
 
-  FUN_00024b80(actor_handle, 0);
+  actor_clear_discarded_firing_positions(actor_handle, 0);
 
   if (*(unsigned int *)(0x253fac + table_offset) != 0 && param_3 != 0) {
     csmemcpy(actor + 0x9c, (void *)param_3, *(int *)(0x253fac + table_offset));
@@ -240,7 +240,7 @@ void FUN_0001d030(int actor_handle, int new_action_type, int param_3)
   }
 }
 
-/* FUN_0001d5c0 (0x1d5c0) — action_type_get_name
+/* actor_action_name (0x1d5c0) — action_type_get_name
  *
  * Returns the name string for a given action type index from the
  * action_definitions table. Returns "unknown" if out of range.
@@ -249,7 +249,7 @@ void FUN_0001d030(int actor_handle, int new_action_type, int param_3)
  * Confirmed: IMUL EAX,EAX,0x38 (stride 56) at 0x1d5da.
  * Confirmed: name ptr at [EAX + 0x253fa4] (table base+0x04).
  * Confirmed: default "unknown" string at 0x254608. */
-const char *FUN_0001d5c0(int16_t action_type)
+const char *actor_action_name(int16_t action_type)
 {
   const char *name = (const char *)0x254608;
   if (action_type >= 0 && action_type < 0xe) {
@@ -284,14 +284,14 @@ int16_t actor_action_try_to_panic(int actor_handle)
   return *(int16_t *)(0x253fb0 + action * 0x38);
 }
 
-/* FUN_0001d730 (0x1d730) — Map a starting location index to an action category.
+/* actor_action_get_default_state (0x1d730) — Map a starting location index to an action category.
  * Returns a short from a 12-entry lookup table at 0x254300, or 0 if the index
  * is out of range [0, 12).
  *
  * Confirmed: CMP CX,0xc bounds check, table at 0x254300 =
  * {0,2,2,3,4,5,6,7,8,9,9,8}.
  */
-short FUN_0001d730(short param_1)
+short actor_action_get_default_state(short param_1)
 {
   if (param_1 < 0 || param_1 >= 12)
     return 0;

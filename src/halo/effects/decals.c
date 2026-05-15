@@ -186,7 +186,7 @@ static const int16_t g_projection_axes[6][2] = {
   { 2, 1 }, { 1, 2 }, { 0, 2 }, { 2, 0 }, { 1, 0 }, { 0, 1 },
 };
 
-/* FUN_000992d0 (0x992d0)
+/* project_point2d (0x992d0)
  *
  * Unprojects a 2D point back to 3D using a plane equation and a projection
  * axis.  The projection axis (0=x, 1=y, 2=z) selects which coordinate to
@@ -199,7 +199,7 @@ static const int16_t g_projection_axes[6][2] = {
  *
  * Inlined from ..\\math\\real_math.h (line 0x36f).
  */
-void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
+void project_point2d(float *point_2d, float *plane, int16_t projection,
                   uint8_t sign, float *out_point)
 {
   int proj_i;
@@ -236,7 +236,7 @@ void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
                       plane[proj_i];
 }
 
-/* FUN_00099400 (0x99400)
+/* plane2d_from_points (0x99400)
  *
  * Computes a 2D line equation (normal + distance) from two 2D points.
  * The line normal is the perpendicular of (point_b - point_a), normalized.
@@ -245,7 +245,7 @@ void FUN_000992d0(float *point_2d, float *plane, int16_t projection,
  * (length below epsilon) or if the length equals the sentinel value at
  * 0x2533c0.
  */
-float *FUN_00099400(float *out_line, float *point_a, float *point_b)
+float *plane2d_from_points(float *out_line, float *point_a, float *point_b)
 {
   float dx;
   float length;
@@ -312,7 +312,7 @@ uint32_t real_a_rgb_color_to_pixel32(float alpha, float *color)
   return b | (g << 8) | (r << 0x10) | (a << 0x18);
 }
 
-/* FUN_00099640 (0x99640)
+/* bsp3d_get_plane_from_designator (0x99640)
  *
  * Extracts a plane equation from a BSP's plane tag block.  The plane_reference
  * encodes both the plane index (low 31 bits) and a sign-flip flag (bit 31).
@@ -320,7 +320,7 @@ uint32_t real_a_rgb_color_to_pixel32(float alpha, float *color)
  * negated, effectively flipping the plane to face the opposite direction.
  * Each plane element is 0x10 bytes (four floats: i, j, k, d).
  */
-void FUN_00099640(int structure_bsp, uint32_t plane_reference, float *out_plane)
+void bsp3d_get_plane_from_designator(int structure_bsp, uint32_t plane_reference, float *out_plane)
 {
   float *plane_data;
 
@@ -478,7 +478,7 @@ int FUN_000998b0(int new_index_hint, int16_t cluster_index, int16_t layer,
   return decal_index;
 }
 
-void FUN_00099fd0(int16_t cluster_index)
+void decals_delete_permanent_from_cluster(int16_t cluster_index)
 {
   if (cluster_index < 0 || cluster_index >= 0x200) {
     display_assert(
@@ -696,8 +696,8 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
     deviant_count = *deviant_surface_count;
   }
 
-  FUN_00099640(structure_bsp, (uint32_t)surface[0], plane);
-  angle = FUN_0010c600(plane, projection + 0x11);
+  bsp3d_get_plane_from_designator(structure_bsp, (uint32_t)surface[0], plane);
+  angle = angle_between_normals3d(plane, projection + 0x11);
 
   if (!allow_deviants ||
       angle <= *(float *)(0x269d80 + type * 0x10) * *(float *)0x253d4c) {
@@ -741,12 +741,12 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
 
       FUN_00061df0(remote_vertex, *(int16_t *)((char *)projection + 0x54),
                    *(uint8_t *)((char *)projection + 0x56), projected_current);
-      if (FUN_00099400(line, projected_current, projected_previous) == NULL) {
+      if (plane2d_from_points(line, projected_current, projected_previous) == NULL) {
         clipped_count = 0;
       } else {
         clipped = 0;
         clipped_count =
-          FUN_00106510(clipped_count, input_points, line, 0xc, output_points,
+          convex_polygon2d_clip_to_plane(clipped_count, input_points, line, 0xc, output_points,
                        &clipped_mask, &clipped, 0.0f);
 
         if (allow_deviants && clipped != 0 && queue_write_index < 0x400) {
@@ -758,7 +758,7 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
           segment[0] = current_vertex[0] - remote_vertex[0];
           segment[1] = current_vertex[1] - remote_vertex[1];
           segment[2] = current_vertex[2] - remote_vertex[2];
-          if (FUN_0010bc70(remote_vertex, segment, projection + 0xa,
+          if (fast_vector_intersects_sphere(remote_vertex, segment, projection + 0xa,
                            scale * *(float *)(0x269d88 + type * 0x10))) {
             int candidate_surface = edge[surface_match ? 4 : 5];
             int16_t i = 0;
@@ -824,7 +824,7 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
             (dx * projection[0x1f] - dy * projection[0x1e]) * projection[0x22]);
           *(bool *)(geometry_vertex + 0x14) = (clipped_mask & bit) != 0;
 
-          FUN_000992d0(point, plane, *(int16_t *)((char *)projection + 0x54),
+          project_point2d(point, plane, *(int16_t *)((char *)projection + 0x54),
                        *(uint8_t *)((char *)projection + 0x56),
                        (float *)geometry_vertex);
 
@@ -860,7 +860,7 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
         segment[1] = current_vertex[1] - remote_vertex[1];
         segment[2] = current_vertex[2] - remote_vertex[2];
 
-        if (FUN_0010bc70(remote_vertex, segment, projection + 0xa,
+        if (fast_vector_intersects_sphere(remote_vertex, segment, projection + 0xa,
                          scale * *(float *)(0x269d88 + type * 0x10))) {
           int candidate_surface = edge[surface_match ? 4 : 5];
           int16_t i = 0;
@@ -929,7 +929,7 @@ static int16_t decals_random_short(int16_t min, int16_t max)
 static void decals_get_signed_plane(int structure_bsp, int plane_reference,
                                     float *out_plane)
 {
-  FUN_00099640(structure_bsp, (uint32_t)plane_reference & 0x7fffffff,
+  bsp3d_get_plane_from_designator(structure_bsp, (uint32_t)plane_reference & 0x7fffffff,
                out_plane);
 
   if (plane_reference < 0) {
@@ -1387,7 +1387,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                 decals_get_signed_plane(structure_bsp, *(int *)surface,
                                         seed_plane);
 
-                angle = FUN_0010c600(seed_plane, candidate_plane);
+                angle = angle_between_normals3d(seed_plane, candidate_plane);
                 if (angle < *(float *)(0x269d80 + ((int)decal_type << 4)) *
                               *(float *)0x253d4c) {
                   if (grouped_count >= 0x400) {
@@ -1493,7 +1493,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                     sign = -1.0f;
                   }
 
-                  angle = FUN_0010c600(basis + 7, best_plane) * sign;
+                  angle = angle_between_normals3d(basis + 7, best_plane) * sign;
                   sine = sinf(angle);
                   cosine = cosf(angle);
 

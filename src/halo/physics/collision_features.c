@@ -147,7 +147,7 @@ void collision_features_from_line(float *param_1, float *param_2, float param_3,
       *(float *)(iVar9 + 0x20) = param_2[2];
       *(int *)(iVar9 + 0x24) = param_4;
     }
-    FUN_0010b600(param_2, perp);
+    perpendicular2d(param_2, perp);
     if (magnitude3d(perp) != 0.0f) {
       /* build 4 vertices; pts[0..2]=start, pts[3..5]=end, pts[6..8]=end_low,
        * pts[9..11]=start_low */
@@ -418,11 +418,11 @@ void collision_features_from_polygon(int param_1, int object_handle,
 
     if ((uVar1 & 0x7fffffff) != (uVar2 & 0x7fffffff)) {
       if ((int)local_5 == (int)((*puVar4 & 0x80000000) != 0)) {
-        if (FUN_000993b0((float *)local_14, (float *)uVar6, local_24) <=
+        if (triple_product3d((float *)local_14, (float *)uVar6, local_24) <=
             -1.0e-4f)
           return;
       } else {
-        if (FUN_000993b0((float *)local_14, (float *)uVar6, local_24) >=
+        if (triple_product3d((float *)local_14, (float *)uVar6, local_24) >=
             1.0e-4f)
           return;
       }
@@ -470,7 +470,7 @@ void FUN_0014b620(int param_1, int param_2, int param_3, int param_4,
   material_elem =
     (int *)tag_block_get_element((void *)(param_1 + 0x3c), param_2, 0xc);
   point_count_packed = FUN_00147410(param_1, param_2, (void *)points);
-  FUN_00099640(param_1, (uint32_t)*material_elem, plane);
+  bsp3d_get_plane_from_designator(param_1, (uint32_t)*material_elem, plane);
 
   if (param_3 != 0) {
     if ((short)point_count_packed > 0) {

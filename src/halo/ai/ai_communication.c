@@ -195,7 +195,7 @@ void ai_communication_initialize_for_new_map(void)
  * table when leaving a map.
  *
  * Confirmed via callers: ai_dispose_from_old_map (0x3f720) and
- * FUN_00041e80 (0x41e80). Binary: MOV EAX,[0x6324ec]; PUSH EAX;
+ * ai_handle_editing (0x41e80). Binary: MOV EAX,[0x6324ec]; PUSH EAX;
  * CALL data_make_invalid; POP ECX; RET. */
 void ai_communication_dispose_from_old_map(void)
 {

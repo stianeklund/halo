@@ -621,7 +621,7 @@ void real_math_reset_precision(void)
  * Computes: out[0] = -in[1], out[1] = in[0]
  * This produces the perpendicular (left-normal) of a 2D vector.
  */
-void FUN_0010b600(float *in, float *out)
+void perpendicular2d(float *in, float *out)
 {
   out[0] = -in[1];
   out[1] = in[0];
@@ -680,10 +680,10 @@ void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
 /* Linearly interpolate between two vec3 values (0x10b7d0).
  * Computes: out[i] = (1.0f - blend) * a[i] + blend * b[i]
  * blend=0.0 yields a, blend=1.0 yields b.
- * Called as FUN_0010b7d0(this_kf_data, next_kf_data, blend, out)
+ * Called as points_interpolate(this_kf_data, next_kf_data, blend, out)
  * in model_animations.c for keyframe interpolation.
  */
-void FUN_0010b7d0(float *a, float *b, float blend, float *out)
+void points_interpolate(float *a, float *b, float blend, float *out)
 {
   float inv_blend;
   inv_blend = 1.0f - blend;
@@ -695,7 +695,7 @@ void FUN_0010b7d0(float *a, float *b, float blend, float *out)
 /* Linearly interpolate between two scalar floats (0x10b820).
  * Computes: *out = b * blend + (1.0f - blend) * a
  * blend=0.0 yields a, blend=1.0 yields b.
- * Called as FUN_0010b820(this_kf, next_kf, blend, out) in model_animations.c
+ * Called as scalars_interpolate(this_kf, next_kf, blend, out) in model_animations.c
  * for scalar keyframe interpolation (scale channel).
  *
  * Confirmed: cdecl, 4 args, void return. Disassembly at 0x10b820:
@@ -703,7 +703,7 @@ void FUN_0010b7d0(float *a, float *b, float blend, float *out)
  *   FMUL [EBP+0x10]; FADDP; FSTP [EAX]
  * Where [0x2533c8] holds 1.0f. Equivalent to b*t + (1-t)*a.
  */
-void FUN_0010b820(float a, float b, float blend, float *out)
+void scalars_interpolate(float a, float b, float blend, float *out)
 {
   *out = b * blend + (1.0f - blend) * a;
 }
@@ -711,7 +711,7 @@ void FUN_0010b820(float a, float b, float blend, float *out)
 /* Test whether a line segment intersects a sphere. Returns true if
    the segment origin is inside the sphere or if the segment crosses
    the sphere boundary within t in [0,1]. */
-bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center,
+bool fast_vector_intersects_sphere(float *line_start, float *line_end, float *sphere_center,
                   float sphere_radius)
 {
   float dx, dy, dz, c;
@@ -750,7 +750,7 @@ bool FUN_0010bc70(float *line_start, float *line_end, float *sphere_center,
   return false;
 }
 
-float FUN_0010c600(float *a, float *b)
+float angle_between_normals3d(float *a, float *b)
 {
   float dot;
   float sine_term;
@@ -853,7 +853,7 @@ void angles_to_vector(float *out, float *angles)
 }
 
 /* Convert an angle to a 2D direction vector stored as (cos, sin, 0) (0x10cc70). */
-void FUN_0010cc70(float *out, float angle)
+void vector3d_from_angle(float *out, float angle)
 {
   float c = cosf(angle);
   out[2] = 0.0f;
@@ -861,11 +861,11 @@ void FUN_0010cc70(float *out, float angle)
   out[1] = sinf(angle);
 }
 
-/* FUN_0010e040 (0x10e040) — Test if two line segments are within a given
+/* vector_intersects_pill3d (0x10e040) — Test if two line segments are within a given
  * radius. Computes closest points between segments A (start_a + s*dir_a, s in
  * [0,1]) and B (start_b + t*dir_b, t in [0,1]). Returns true if distance <
  * radius. */
-bool FUN_0010e040(float *start_a, float *dir_a, float *start_b, float *dir_b,
+bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b, float *dir_b,
                   float radius)
 {
   float delta_x, delta_y, delta_z;
@@ -992,11 +992,11 @@ bool FUN_0010e040(float *start_a, float *dir_a, float *start_b, float *dir_b,
 
 point_segment_checks:
   if (s_oob) {
-    if (FUN_0010bc70(start_b, dir_b, &closest_a_x, radius))
+    if (fast_vector_intersects_sphere(start_b, dir_b, &closest_a_x, radius))
       return 1;
   }
   if (t_oob) {
-    if (FUN_0010bc70(start_a, dir_a, &closest_b_x, radius))
+    if (fast_vector_intersects_sphere(start_a, dir_a, &closest_b_x, radius))
       return 1;
   }
   return 0;

@@ -57,7 +57,7 @@ float *bitmap_clone(float *rgb, float *hsv_out)
   return hsv_out;
 }
 
-float *FUN_0007ace0(float *hsv, float *rgb_out)
+float *real_hsv_color_to_real_rgb_color(float *hsv, float *rgb_out)
 {
   float scaled_hue;
   float f;
@@ -132,7 +132,7 @@ float *FUN_0007ace0(float *hsv, float *rgb_out)
   }
 }
 
-bool FUN_0007b020(float *rgb)
+bool valid_real_rgb_color(float *rgb)
 {
   uint32_t component_bits;
 

@@ -64,6 +64,12 @@ void particles_dispose(void)
     particle_data = 0;
 }
 
+/* Delete particle datum from the particle pool (0xa14f0). */
+void particle_delete(int datum_handle)
+{
+  datum_delete(particle_data, datum_handle);
+}
+
 /* Delete all particles owned by a local player that have an attached
    object (flag 0x40 set and object handle != -1). */
 void FUN_000a1510(int local_player_index)
@@ -133,7 +139,7 @@ bool valid_real_argb_color(float *color)
     return false;
 
   /* Validate RGB components */
-  if (!FUN_0007b020(color + 1))
+  if (!valid_real_rgb_color(color + 1))
     return false;
 
   return true;
@@ -507,7 +513,7 @@ void particle_new(void *spawn_params)
     float phys_scale = particle_get_radius(datum_handle);
     float *phys_tag =
       (float *)tag_get(0x70706879, *(int *)((char *)tag + 0x20));
-    float phys_vel = FUN_001548a0((int)phys_tag, phys_scale);
+    float phys_vel = point_physics_definition_get_mass((int)phys_tag, phys_scale);
     *(float *)(datum + 0x48) += phys_vel * *(float *)(sp + 0x34);
     *(float *)(datum + 0x4c) += phys_vel * *(float *)(sp + 0x38);
     *(float *)(datum + 0x50) += phys_vel * *(float *)(sp + 0x3c);
@@ -520,7 +526,7 @@ void particle_new(void *spawn_params)
   if ((*tag & 0x200) == 0 || (*tag & 0x40) != 0) {
     FUN_00139480(local_position, light, diffuse, 0);
 
-    if (!FUN_0007b020(light)) {
+    if (!valid_real_rgb_color(light)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
                "&light", (double)light[0], (double)light[1], (double)light[2]);
       display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\particles.c",
@@ -528,7 +534,7 @@ void particle_new(void *spawn_params)
       system_exit(-1);
     }
 
-    if (!FUN_0007b020(diffuse)) {
+    if (!valid_real_rgb_color(diffuse)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
                "&diffuse", (double)diffuse[0], (double)diffuse[1],
                (double)diffuse[2]);
@@ -559,7 +565,7 @@ void particle_new(void *spawn_params)
 
     if (*tag & 0x4) {
       /* randomized animated sprite */
-      int16_t frame_count = FUN_00097c80(0, *(uint16_t *)(seq_element + 0x34));
+      int16_t frame_count = local_random_range(0, *(uint16_t *)(seq_element + 0x34));
       int16_t direction = (*(uint8_t *)(datum + 0x02) & 1) ? 1 : -1;
       *(int16_t *)(datum + 0x26) = frame_count + direction;
       return;

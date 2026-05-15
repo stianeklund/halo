@@ -53,13 +53,13 @@ bool actor_get_perception_knowledge(int actor_handle, int prop_handle)
   return result;
 }
 
-/* FUN_0002fd10 (0x2fd10)
+/* actor_compute_prop_target_weight (0x2fd10)
  * Compute a perception priority score for an actor evaluating a prop.
  * Returns 0.0f immediately if the prop is filtered out by various
  * early-exit conditions. Otherwise computes a score from a vision level,
  * an awareness level, a distance-based term, and optional bonuses.
  * Assertion: "prop_orphaned(prop)" at line 0x1086. */
-float FUN_0002fd10(int actor_handle, int clump_item_handle)
+float actor_compute_prop_target_weight(int actor_handle, int clump_item_handle)
 {
   char *actor;
   char *prop;
@@ -101,7 +101,7 @@ float FUN_0002fd10(int actor_handle, int clump_item_handle)
   } else if (*(short *)(prop + 0x9c) > 0) {
     vision_level = 0;
   } else {
-    if (FUN_0003b320(actor_handle) == 0) {
+    if (actor_has_ranged_weapon(actor_handle) == 0) {
       /* Actor does not have a weapon in hand */
       if (*(char *)(actor + 0x378) != 0) {
         actv_threshold = *(float *)(actv_tag + 0x160);

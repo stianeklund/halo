@@ -21,7 +21,7 @@ void *xbox_texture_cache_steal_memory(unsigned int size)
     system_exit(-1);
   }
 
-  FUN_0011db00(*(void **)0x4ea980, remaining_page_count);
+  lruv_resize(*(void **)0x4ea980, remaining_page_count);
   physical_memory_protect(base + 0x104000, stolen_size, 4);
   physical_memory_protect(base, 0x104000, 2);
   physical_memory_protect(base + 0x104000 + stolen_size, 0x104000, 2);
@@ -38,7 +38,7 @@ void xbox_texture_cache_return_memory(void)
     system_exit(-1);
   }
 
-  FUN_0011db00(*(void **)0x4ea980, 0x580);
+  lruv_resize(*(void **)0x4ea980, 0x580);
   physical_memory_protect(FUN_001bdd60(), 0x1600000, 0x404);
   *(int8_t *)0x4ea984 = 0;
 }
@@ -129,7 +129,7 @@ void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
       FUN_001bec30(*(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
     tex[3] = (format_bits << 8) | 0x10029;
 
-    pitch = FUN_0007d9f0(bitmap, 0);
+    pitch = bitmap_mipmap_get_row_pitch(bitmap, 0);
     height = (int)*(int16_t *)(bmp + 0x6);
     width = (int)*(int16_t *)(bmp + 0x4);
     tex[4] =
@@ -172,7 +172,7 @@ bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
 
   cache_block_index = FUN_0011de10(*(void **)0x4ea980, cache_block_index);
   if (cache_block_index != -1) {
-    int cache_page_index = FUN_0011da00(*(void **)0x4ea980, cache_block_index) +
+    int cache_page_index = lruv_block_get_address(*(void **)0x4ea980, cache_block_index) +
                            *(int32_t *)0x4ea97c;
     int new_texture_index = FUN_00119570(*(void **)0x4ea978, cache_block_index);
     char *cache_entry = datum_get(*(void **)0x4ea978, cache_block_index);
@@ -189,7 +189,7 @@ bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
     *(void **)(cache_entry + 8) = hardware_format;
     xbox_texture_cache_setup_d3d_texture(hardware_format, cache_entry + 0xc);
     *(int16_t *)(cache_entry + 2) =
-      FUN_001bc9e0(*(int32_t *)((char *)hardware_format + 0x20),
+      cache_file_read(*(int32_t *)((char *)hardware_format + 0x20),
                    *(int32_t *)((char *)hardware_format + 0x18),
                    *(int32_t *)((char *)hardware_format + 0x1c),
                    cache_page_index, cache_entry + 4, block);
@@ -231,10 +231,10 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
       }
       do {
         if (*(int8_t *)((char *)entry + 4) == 0) {
-          unsigned int t0 = FUN_001cb8e0();
+          unsigned int t0 = sound_render_time();
           unsigned int t1 = system_milliseconds();
           if (t1 - t0 > 0x84u) {
-            FUN_001cf2f0();
+            sound_idle();
           }
           SwitchToThread();
         } else {

@@ -6,8 +6,8 @@
  *   0x81630  thread_new
  *   0x81720  thread_is_done
  *   0x81770  thread_close
- *   0x81870  mutex_acquire (FUN_00081870)
- *   0x818d0  mutex_release (FUN_000818d0)
+ *   0x81870  mutex_acquire (take_mutex)
+ *   0x818d0  mutex_release (release_mutex)
  */
 
 #include "common.h"
@@ -181,7 +181,7 @@ void thread_close(void *thread_reference)
 }
 
 /*
- * FUN_00081870 — acquire a mutex with a timeout.
+ * take_mutex — acquire a mutex with a timeout.
  *
  * Calls WaitForSingleObject(*mutex_reference, timeout_ms). Returns true if the
  * wait succeeded (WAIT_OBJECT_0 = 0) or the mutex was abandoned (WAIT_ABANDONED
@@ -190,7 +190,7 @@ void thread_close(void *thread_reference)
  * Confirmed: assert "mutex_reference" at line 0xd3.
  * Confirmed: WaitForSingleObject at 0x1d0336; success codes 0x00 and 0x80.
  */
-bool FUN_00081870(int *mutex_reference, int timeout_ms)
+bool take_mutex(int *mutex_reference, int timeout_ms)
 {
   int result;
 
@@ -208,7 +208,7 @@ bool FUN_00081870(int *mutex_reference, int timeout_ms)
 }
 
 /*
- * FUN_000818d0 — release a mutex.
+ * release_mutex — release a mutex.
  *
  * Calls ReleaseMutex(*mutex_reference) via the XDK thunk at 0x1d0099
  * (NtReleaseMutant wrapper). Returns void.
@@ -216,7 +216,7 @@ bool FUN_00081870(int *mutex_reference, int timeout_ms)
  * Confirmed: assert "mutex_reference" at line 0xe6.
  * Confirmed: ReleaseMutex at 0x1d0099.
  */
-void FUN_000818d0(int *mutex_reference)
+void release_mutex(int *mutex_reference)
 {
   if (mutex_reference == NULL) {
     display_assert("mutex_reference",

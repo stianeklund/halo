@@ -72,7 +72,7 @@ int16_t FUN_00097a50(int contrail_handle, float delta_time)
 
 /* 0x97c80 — Draw a random short in [min, max) using the module-local LCG seed.
  */
-int16_t FUN_00097c80(int16_t min, int16_t max)
+int16_t local_random_range(int16_t min, int16_t max)
 {
   return random_range(random_math_get_local_seed_address(), min, max);
 }
@@ -81,7 +81,7 @@ int16_t FUN_00097c80(int16_t min, int16_t max)
  * base = range_min (scaled by datum_scale if flag bit set).
  * range = (range_max - range_min) (scaled by datum_scale if next bit set).
  * Returns random_real_range(0, range) + base. */
-float FUN_00097cd0(float datum_scale, float range_min, float range_max,
+float contrail_scale_random_value(float datum_scale, float range_min, float range_max,
                    unsigned int flags, int bit_index)
 {
   float base;
@@ -158,7 +158,7 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
   if (marker_count <= 0)
     return;
 
-  local_30 = FUN_00097cd0(*(float *)(datum + 0x10), *(float *)(ctag + 8),
+  local_30 = contrail_scale_random_value(*(float *)(datum + 0x10), *(float *)(ctag + 8),
                           *(float *)(ctag + 0xc), *(uint16_t *)(ctag + 2), 1);
 
   local_24 = *(float *)(ctag + 0x10);

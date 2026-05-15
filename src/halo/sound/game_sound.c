@@ -199,7 +199,7 @@ void game_sound_dispose_from_old_map(void)
 /* Start a sound at a position with a directional forward vector (0x1c7e70).
  * Builds a callback_data struct with marker/position/forward and a sound_params
  * struct, calls FUN_001c7a10 to resolve attachment, then sound_start. */
-int FUN_001c7e70(int object_handle, int tag_index, int16_t marker,
+int object_impulse_sound_new(int object_handle, int tag_index, int16_t marker,
                  float *position, float *forward, float scale)
 {
   char sound_params[0x40];
@@ -277,8 +277,8 @@ void sound_looping_stop(int sound_tag_index)
  *
  * - Determines the current
  * sound environment (BSP cluster) via
- *   FUN_0018f600, updates DirectSound
- * EAX/environment state via FUN_001cb9b0, then recalculates per-cluster
+ *   scenario_get_sound_environment, updates DirectSound
+ * EAX/environment state via sound_manager_set_sound_environment, then recalculates per-cluster
  * audibility via FUN_001c7b40.
  * - Manages the music looping sound slot (globals[1]): starts, stops,
  *   or replaces it when the ambient sound environment changes.
@@ -294,7 +294,7 @@ void sound_looping_stop(int sound_tag_index)
  */
 void game_sound_update(float dt)
 {
-  /* Out-params from FUN_0018f600: sound_env_tag_index, sound_env_data ptr,
+  /* Out-params from scenario_get_sound_environment: sound_env_tag_index, sound_env_data ptr,
    * and a changed flag (bool). 0x18f600 writes a pointer value INTO
    * sound_env_data; cb9b0 then receives that pointer BY VALUE. */
   int sound_env_tag_index; /* [EBP-0x8]  tag index, or -1 */

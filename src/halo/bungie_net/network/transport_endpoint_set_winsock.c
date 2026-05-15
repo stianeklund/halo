@@ -132,7 +132,7 @@ void transport_dispose(void)
  * Confirmed: 3-instruction function — CALL, AND AL,1, RET.
  * Callers include network session management functions.
  */
-bool FUN_00082300(void)
+bool transport_network_available(void)
 {
   return XNetGetEthernetLinkStatus() & 1;
 }
@@ -142,7 +142,7 @@ bool FUN_00082300(void)
  * removes the endpoint's socket from the fd_array by shifting. Clears the
  * "in set" flag (bit 3) on the endpoint, nulls the array slot, and marks
  * the set dirty. Returns 0 on success, -19 if the endpoint is not found. */
-short FUN_00082850(int *endpoint, uint32_t *endpoint_set)
+short remove_endpoint_from_set(int *endpoint, uint32_t *endpoint_set)
 {
   int i = 0;
   uint32_t **ep_array;
@@ -878,12 +878,12 @@ void close_endpoint(int *ep)
  *   assert "!\"unable to get mutex in cancel_connect_process()!\"" at 0x2a5;
  *   source file
  * "c:\halo\SOURCE\bungie_net\network\transport_endpoint_winsock.c";
- *   FUN_00081870 (mutex_acquire, 0x81870, cdecl 2 args: mutex_ref, timeout_ms);
- *   FUN_000818d0 (mutex_release, 0x818d0, cdecl 1 arg: mutex_ref);
+ *   take_mutex (mutex_acquire, 0x81870, cdecl 2 args: mutex_ref, timeout_ms);
+ *   release_mutex (mutex_release, 0x818d0, cdecl 1 arg: mutex_ref);
  *   close_endpoint (0x84000); endpoint_pool_cleanup (0x82d30).
  *   endpoint flags word cleared at ep+6 after close; cancel flag at ESI+0x24.
  */
-void FUN_00084300(int *connect_handle)
+void transport_server_terminate(int *connect_handle)
 {
   if (connect_handle == NULL || connect_handle[0] == 0 ||
       connect_handle[7] == 0) {
@@ -896,11 +896,11 @@ void FUN_00084300(int *connect_handle)
 
   endpoint_pool_cleanup();
 
-  if (FUN_00081870((int *)connect_handle[8], 1000)) {
+  if (take_mutex((int *)connect_handle[8], 1000)) {
     close_endpoint((int *)connect_handle[0]);
     *(uint16_t *)((char *)(int *)connect_handle[0] + 6) = 0;
     *(uint8_t *)((char *)connect_handle + 0x24) = 1;
-    FUN_000818d0((int *)connect_handle[8]);
+    release_mutex((int *)connect_handle[8]);
     return;
   }
 

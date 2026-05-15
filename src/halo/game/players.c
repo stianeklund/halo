@@ -1499,12 +1499,12 @@ void player_update_nearby_weapon(int datum_handle, int object_handle)
   weapon = (char *)object_get_and_verify_type(object_handle, 0x380);
 
   unit_set_seat_state(*(int *)(player + 0x34), local_position);
-  if (!FUN_0010bc70(local_position, (float *)(unit + 0x1ec),
+  if (!fast_vector_intersects_sphere(local_position, (float *)(unit + 0x1ec),
                     (float *)(weapon + 0x50), *(float *)(weapon + 0x5c)))
     return;
   if (!FUN_000971a0(object_handle, local_position, (float *)(unit + 0x1ec)))
     return;
-  if (!FUN_00096720(object_handle))
+  if (!device_can_change_position(object_handle))
     return;
 
   player_set_spawn_action_result(datum_handle, 10, object_handle, -1);
@@ -2015,7 +2015,7 @@ void player_update_nearby_vehicle(int datum_handle, int object_handle)
   for (i = 0; i < 4; i++) {
     seat_occupant = *(int *)(unit + 0x2a8 + (int)i * 4);
     if (seat_occupant != -1 &&
-        FUN_000fc290(seat_occupant, object_handle, (uint16_t)local_player_index,
+        weapon_handle_potential_inventory_item(seat_occupant, object_handle, (uint16_t)local_player_index,
                      &seat_index)) {
       if (seat_index > 0) {
         equipment_obj = (int *)object_get_and_verify_type(seat_occupant, 4);

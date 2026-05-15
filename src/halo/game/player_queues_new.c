@@ -71,7 +71,7 @@ int update_get_maximum_actions(void)
  * Asserts that action_collection is non-NULL and the client subsystem is
  * initialized, then copies 0x80 (128) bytes from update_client_globals+0x0c
  * (address 0x45b1dc) into the caller-provided buffer. */
-void FUN_000b8fa0(void *action_collection)
+void update_client_build_client_update(void *action_collection)
 {
   if (!action_collection || *(uint8_t *)0x45b1d0 == 0) {
     display_assert("action_collection && update_client_globals.initialized",

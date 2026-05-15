@@ -62,7 +62,7 @@ bool game_allegiance_get_team_is_friendly(int16_t team_a, int16_t team_b)
  *
  * Out-of-range team indices (negative or >= 10) return false.
  */
-bool FUN_000a7a90(int16_t team_a, int16_t team_b)
+bool game_team_is_ally(int16_t team_a, int16_t team_b)
 {
   int bit_index;
   bool result;
@@ -77,7 +77,7 @@ bool FUN_000a7a90(int16_t team_a, int16_t team_b)
   return result;
 }
 
-bool FUN_000a7ae0(int16_t team_a, int16_t team_b)
+bool game_team_ally_status_changed(int16_t team_a, int16_t team_b)
 {
   int16_t i;
   int16_t *entry;
@@ -98,7 +98,7 @@ bool FUN_000a7ae0(int16_t team_a, int16_t team_b)
   return 0;
 }
 
-int16_t FUN_000a7b40(int16_t team_a, int16_t team_b, int16_t *out_threshold)
+int16_t game_allegiance_get_incidents(int16_t team_a, int16_t team_b, int16_t *out_threshold)
 {
   int16_t i;
   int16_t result;
@@ -127,7 +127,7 @@ int16_t FUN_000a7b40(int16_t team_a, int16_t team_b, int16_t *out_threshold)
   return result;
 }
 
-void FUN_000a7bc0(int16_t team_a, int16_t team_b)
+void game_allegiance_provoke(int16_t team_a, int16_t team_b)
 {
   int16_t i;
   int16_t *entry;
@@ -150,7 +150,7 @@ void FUN_000a7bc0(int16_t team_a, int16_t team_b)
   }
 }
 
-void FUN_000a7c30(int16_t team_a, int16_t team_b)
+void game_allegiance_notify_change(int16_t team_a, int16_t team_b)
 {
   int16_t i;
   int16_t *entry;

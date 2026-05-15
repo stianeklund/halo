@@ -192,7 +192,7 @@ void console_submit_command(void)
 
 /* Returns a pointer one past the last space, '(', or '"' in the console
  * input buffer. Used to find the start of the most recent token. */
-char *FUN_000ff640(void)
+char *console_get_text_to_autocomplete(void)
 {
   char *result;
   char *sp;
@@ -251,7 +251,7 @@ void console_process_enter(void)
   if (token_start <= qp + 1)
     token_start = qp + 1;
 
-  token_count = FUN_000c4580(token_start, 0xffffffff, token_array, 0x100);
+  token_count = hs_tokens_enumerate(token_start, 0xffffffff, token_array, 0x100);
   if (token_count != 0) {
     match_len = 0x7fff;
     large_list = (int16_t)token_count > 0x10;

@@ -81,7 +81,7 @@ void quaternion_decompress_8byte(short *src, float *dest)
   dest[3] = (float)(int)src[3] * (1.0f / 32767.0f);
 }
 
-/* FUN_00120870 (0x120870) — Decompress 3 packed uint16s into 4 normalized
+/* quaternion_decompress_6byte (0x120870) — Decompress 3 packed uint16s into 4 normalized
  * floats.
  *
  * Extracts 4 values from 3 consecutive unsigned shorts (48 bits total) by
@@ -97,7 +97,7 @@ void quaternion_decompress_8byte(short *src, float *dest)
  * FSTP. Confirmed: Bit operations verified against disassembly at
  * 0x120870-0x12092a.
  */
-void FUN_00120870(void *compressed_data, float *dest)
+void quaternion_decompress_6byte(void *compressed_data, float *dest)
 {
   unsigned short *src;
   unsigned short w0, w1, w2;
@@ -289,7 +289,7 @@ static double anim_floor(double x)
  * Given an animation structure, a fractional frame index, a translation
  * keyframe count, a node index, and an output buffer, this function resolves
  * the two bracketing keyframes and either copies the exact keyframe data or
- * interpolates between them using FUN_0010b7d0 (vec3 lerp).
+ * interpolates between them using points_interpolate (vec3 lerp).
  *
  * The animation's tag_data (at animation+0xa0) contains:
  *   +0x0c: offset to a per-component packed descriptor array (4 bytes each,
@@ -315,7 +315,7 @@ static double anim_floor(double x)
  * 0) at 0x12165b. Confirmed: CALL floor() at 0x12175f (CRT 0x1d9c2b), result
  * truncated to short frame_index. Confirmed: CALL
  * FUN_00120d10(keyframe_frame_indices, frame_index) at 0x12182d with
- * keyframe_count in EDI. Confirmed: CALL FUN_0010b7d0(this_kf_data,
+ * keyframe_count in EDI. Confirmed: CALL points_interpolate(this_kf_data,
  * next_kf_data, blend, out) at 0x121928. Confirmed: Assert strings at 0x5f2,
  * 0x5f4, 0x609, 0x60a, 0x61e, 0x62f, 0x630. Confirmed: Before-first-keyframe
  * branch saves kf0_frame to kf1_frame before zeroing (MOV EBX,EDX at 0x1217fa).
@@ -481,7 +481,7 @@ void animation_get_node_orientations(void *animation, float frame,
     system_exit(-1);
   }
 
-  FUN_0010b7d0((float *)this_kf_data, (float *)next_kf_data, blend,
+  points_interpolate((float *)this_kf_data, (float *)next_kf_data, blend,
                (float *)out_translation);
 }
 
@@ -491,7 +491,7 @@ void animation_get_node_orientations(void *animation, float frame,
  * Scalar (single-float) sibling of animation_get_node_orientations. Resolves
  * the two bracketing keyframes for a given fractional frame and either copies
  * the exact keyframe scale or interpolates between two scales using
- * FUN_0010b820 (scalar lerp).
+ * scalars_interpolate (scalar lerp).
  *
  * The animation's tag_data (at animation+0xa0) contains:
  *   +0x1c: offset to a per-component packed descriptor array (4 bytes each,
@@ -519,7 +519,7 @@ void animation_get_node_orientations(void *animation, float frame,
  * 0x1d9c2b) at 0x121a4f via push double + FSTP [ESP]. Confirmed: CALL
  * FUN_00120d10(keyframe_frame_indices=EBX, target_frame=ECX,
  *            keyframe_count@<edi>=[EBP+0x10]) at 0x121b1d.
- * Confirmed: CALL FUN_0010b820(this_kf, next_kf, blend, out) at 0x121c17.
+ * Confirmed: CALL scalars_interpolate(this_kf, next_kf, blend, out) at 0x121c17.
  * Confirmed: Assert lines 0x64a, 0x64c, 0x662, 0x663, 0x677, 0x688, 0x689
  *            (the 0x64e "keyframe_count>=0" assert is dead after the &0xfff
  *            mask and was eliminated by the optimizer).
@@ -682,7 +682,7 @@ void overlay_animation_apply_continuous_scaled(void *animation, float frame,
     system_exit(-1);
   }
 
-  FUN_0010b820(this_kf_scale, next_kf_scale, blend, (float *)out_scale);
+  scalars_interpolate(this_kf_scale, next_kf_scale, blend, (float *)out_scale);
 }
 
 /* FUN_00121d60 (0x121d60) — Decode a single animation frame into per-node
@@ -694,7 +694,7 @@ void overlay_animation_apply_continuous_scaled(void *animation, float frame,
  *     active), using
  * FUN_00121330/animation_get_node_orientations/overlay_animation_apply_continuous_scaled
  * interpolators.
- *   - Uncompressed frame data via quaternion_decompress_8byte/FUN_00120870 or
+ *   - Uncompressed frame data via quaternion_decompress_8byte/quaternion_decompress_6byte or
  * raw memcpy from default data (animation+0x98).
  *
  * Three bitmask arrays at animation offsets 0x5c, 0x6c, 0x7c (4 DWORDs each
@@ -711,7 +711,7 @@ void overlay_animation_apply_continuous_scaled(void *animation, float frame,
  * Confirmed: cdecl, 4 args, void return.
  * Confirmed: CALL FUN_00120500 at 0x121dca and 0x121fd5 (2 args: animation,
  * frame_index). Confirmed: CALL quaternion_decompress_8byte at 0x121e63 and
- * 0x121e9d (2 args: src_shorts, dest_floats). Confirmed: CALL FUN_00120870 at
+ * 0x121e9d (2 args: src_shorts, dest_floats). Confirmed: CALL quaternion_decompress_6byte at
  * 0x121e89 (2 args: compressed_data, dest_floats). Confirmed: CALL
  * sphere_intersects_rectangle3d at 0x121e8f (1 arg: quaternion). Confirmed:
  * CALL FUN_00121330 at 0x121e51 (5 args: animation, frame_float, count, node,
@@ -777,7 +777,7 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
         }
         if ((local_14 & 1) == 0) {
           if (bVar2) {
-            FUN_00120870((void *)(local_8[1] + sVar5 * 6 + (int)local_8),
+            quaternion_decompress_6byte((void *)(local_8[1] + sVar5 * 6 + (int)local_8),
                          (float *)iVar7);
             sphere_intersects_rectangle3d((float *)iVar7);
           } else {

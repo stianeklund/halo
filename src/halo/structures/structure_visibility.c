@@ -1,10 +1,10 @@
-void FUN_001965d0(uint8_t param_1)
+void debug_pvs(uint8_t param_1)
 {
   *(uint8_t *)0x505702 = param_1;
   *(uint8_t *)0x505701 = param_1;
 }
 
-void FUN_001965f0(void *param_1)
+void structure_visibility_find_camera(void *param_1)
 {
   char *scenario;
   uint32_t leaf;

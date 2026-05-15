@@ -20,7 +20,7 @@ void network_game_server_dispose(void *server)
 /* 0x124a30 — Returns the connection state (int16_t at offset 0xca6) and
  * optionally writes elapsed-time percentage into out_param. The time
  * calculation divides (current_ms - stored_ms) * 100 by 120000. */
-int16_t FUN_00124a30(void *server, void *out_param)
+int16_t network_game_client_get_state(void *server, void *out_param)
 {
   unsigned int diff;
 
@@ -136,7 +136,7 @@ uint32_t network_game_client_get_error(void *server)
 
 /* 0x125860 — Asserts client is non-null and returns the byte field at
  * offset 0xcac. */
-bool FUN_00125860(void *server)
+bool network_client_get_oos(void *server)
 {
   assert_halt(server);
   return *(char *)((char *)server + 0xcac);
@@ -159,7 +159,7 @@ void FUN_00126000(void *server)
   if (*(int *)((char *)server + 0xca0) + 1000 < now) {
     map_name = main_get_multiplayer_map_name();
     *(int *)((char *)server + 0xca0) = now;
-    if (FUN_001b9de0(map_name)) {
+    if (cache_files_give_time_to_precache(map_name)) {
       csmemset(buf, 0, sizeof(buf));
       csstrncpy(buf, map_name, 0x100);
       encoded = (unsigned short *)encode_network_game_message(0x13, buf, 0x100);
@@ -217,8 +217,8 @@ bool FUN_00126b60(void *server)
   int connect_handle;
 
   connected = true;
-  if (!FUN_0012a170()) {
-    connected = FUN_00082300();
+  if (!network_game_is_splitscreen_local()) {
+    connected = transport_network_available();
     if (!connected) {
       error(2, "network connection went down!");
       display_error_when_main_menu_loaded(6);
@@ -254,7 +254,7 @@ bool FUN_00126b60(void *server)
         network_game_log(
           "client connection process has timed out; aborting connection "
           "attempt");
-        FUN_00084300((int *)((char *)server + 0x830));
+        transport_server_terminate((int *)((char *)server + 0x830));
         *(int *)((char *)server + 0x830) = 0;
         return false;
       }
@@ -288,9 +288,9 @@ bool FUN_00126ce0(void *server)
   bool result;
 
   result = true;
-  if (FUN_0012a170())
+  if (network_game_is_splitscreen_local())
     goto check_result;
-  result = FUN_00082300();
+  result = transport_network_available();
   if (result)
     goto main_body;
   error(2, "network connection went down!");
@@ -301,7 +301,7 @@ check_result:
     goto tail_check;
 
 main_body:
-  if (!FUN_00128660(*(int *)((char *)server + 0x82c)))
+  if (!network_connection_active(*(int *)((char *)server + 0x82c)))
     goto fail;
   if (!network_connection_connected(*(int *)((char *)server + 0x82c)))
     goto fail;
@@ -323,7 +323,7 @@ fail:
   result = false;
 
 tail_check:
-  if (!FUN_00128660(*(int *)((char *)server + 0x82c))) {
+  if (!network_connection_active(*(int *)((char *)server + 0x82c))) {
     display_error_when_main_menu_loaded(4);
     return false;
   }
@@ -334,7 +334,7 @@ tail_check:
  *
  * Called from the client idle dispatch (FUN_00127070) when state == 3 (ingame).
  * Verifies the server connection is alive, checks if the connection has gone
- * silent (bit 5 of connection+0x30 via FUN_001286a0), displays per-player
+ * silent (bit 5 of connection+0x30 via network_connection_going_stale), displays per-player
  * error widgets if newly silent, records the silent flag at server+0xcad, then
  * runs the connection idle tick (15-second timeout) and processes incoming
  * messages. Returns false if the connection drops or any critical step fails.
@@ -348,14 +348,14 @@ bool FUN_00126db0(void *server)
 
   result = true;
   connection = *(int *)((char *)server + 0x82c);
-  if (!FUN_00128660(connection))
+  if (!network_connection_active(connection))
     goto abort;
   if (!network_connection_connected(connection))
     goto abort;
 
-  if (!FUN_0012a170()) {
-    is_silent = FUN_001286a0(connection);
-    if (!FUN_00082300()) {
+  if (!network_game_is_splitscreen_local()) {
+    is_silent = network_connection_going_stale(connection);
+    if (!transport_network_available()) {
       error(2, "network connection went down (idle in game)!");
       display_error_when_main_menu_loaded(6);
       network_game_log("network connection went down (idle in game)!");
@@ -382,7 +382,7 @@ bool FUN_00126db0(void *server)
   result = FUN_00129cf0(connection, 15000, 0);
   if (!result) {
     connection = *(int *)((char *)server + 0x82c);
-    if (!FUN_00128660(connection) ||
+    if (!network_connection_active(connection) ||
         !network_connection_connected(connection)) {
       error(2, "new2 idle in game abort hit");
       display_error_when_main_menu_loaded(4);
@@ -415,9 +415,9 @@ bool network_game_client_idle(void *server)
   bool result;
 
   result = true;
-  if (FUN_0012a170())
+  if (network_game_is_splitscreen_local())
     goto check_result;
-  result = FUN_00082300();
+  result = transport_network_available();
   if (result)
     goto main_body;
   error(2, "network connection went down!");
@@ -441,7 +441,7 @@ main_body:
                    "network_game_client_idle_postgame()");
 
 tail_check:
-  if (!FUN_00128660(*(int *)((char *)server + 0x82c))) {
+  if (!network_connection_active(*(int *)((char *)server + 0x82c))) {
     display_error_when_main_menu_loaded(4);
     return false;
   }
