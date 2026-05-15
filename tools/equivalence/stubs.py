@@ -7,6 +7,7 @@ Provides:
   - StubManager: intercept calls via Unicorn hooks, run callees in sub-emulator
 """
 
+import math
 import struct
 import json
 import re
@@ -20,6 +21,36 @@ IMAGE_REL_I386_REL32 = 0x0014
 
 GLOBALS_BASE = 0x00500000
 GLOBALS_SIZE = 0x00100000  # 1 MB
+
+
+def _st80_to_double(b: bytes) -> float:
+    """Convert 10-byte x87 extended precision to Python float."""
+    mantissa = int.from_bytes(b[:8], 'little')
+    exp_sign = int.from_bytes(b[8:10], 'little')
+    sign = -1 if (exp_sign >> 15) else 1
+    exp = exp_sign & 0x7FFF
+    if exp == 0 and mantissa == 0:
+        return 0.0
+    if exp == 0x7FFF:
+        return float('inf') * sign if mantissa == (1 << 63) else float('nan')
+    power = exp - 16383 - 63
+    return sign * mantissa * (2.0 ** power)
+
+
+def _write_st0_double(uc, val: float):
+    """Write a Python float to Unicorn's ST0 as x87 80-bit extended."""
+    from unicorn.x86_const import UC_X86_REG_ST0
+    bits = struct.unpack('<Q', struct.pack('<d', val))[0]
+    sign = (bits >> 63) & 1
+    exp = (bits >> 52) & 0x7FF
+    frac = bits & ((1 << 52) - 1)
+    if exp == 0 and frac == 0:
+        ext = sign << 79
+    elif exp == 0x7FF:
+        ext = (sign << 79) | (0x7FFF << 64) | (1 << 63) | (frac << 11)
+    else:
+        ext = (sign << 79) | ((exp - 1023 + 16383) << 64) | (1 << 63) | (frac << 11)
+    uc.reg_write(UC_X86_REG_ST0, ext)
 
 
 @dataclass
@@ -304,6 +335,8 @@ class StubManager:
         "csmemcpy", "memcpy", "csstrncpy", "csmemset", "memset",
         "crt_sprintf", "debug_string_to_display",
         "system_exit", "display_assert", "halt_and_catch_fire",
+        "ciacos", "ciasin", "ciatan2", "cisin", "cicos",
+        "cisqrt", "cilog", "cilog10", "cipow", "cifmod", "citan",
     ))
     _FTOL2_ADDRS = frozenset(("fun_001d9068", "_ftol2", "ftol2"))
 
@@ -435,6 +468,41 @@ class StubManager:
 
             if symbol_name == "display_assert":
                 uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            # _CI* CRT math intrinsics: arg(s) in ST0 (and ST1), result in ST0
+            _CI_ONE_ARG = {
+                "ciacos": math.acos, "ciasin": math.asin,
+                "cisin": math.sin, "cicos": math.cos, "citan": math.tan,
+                "cisqrt": math.sqrt, "cilog": math.log, "cilog10": math.log10,
+            }
+            _CI_TWO_ARG = {
+                "ciatan2": math.atan2, "cipow": math.pow, "cifmod": math.fmod,
+            }
+            if symbol_name in _CI_ONE_ARG:
+                import struct as _st
+                st0_raw = uc.reg_read(UC_X86_REG_ST0)
+                st0_bytes = st0_raw.to_bytes(10, 'little')
+                val = _st80_to_double(st0_bytes)
+                try:
+                    result = _CI_ONE_ARG[symbol_name](val)
+                except (ValueError, OverflowError):
+                    result = 0.0
+                _write_st0_double(uc, result)
+                return True
+
+            if symbol_name in _CI_TWO_ARG:
+                import struct as _st
+                from unicorn.x86_const import UC_X86_REG_ST1
+                st0_raw = uc.reg_read(UC_X86_REG_ST0)
+                st1_raw = uc.reg_read(UC_X86_REG_ST1)
+                st0_val = _st80_to_double(st0_raw.to_bytes(10, 'little'))
+                st1_val = _st80_to_double(st1_raw.to_bytes(10, 'little'))
+                try:
+                    result = _CI_TWO_ARG[symbol_name](st0_val, st1_val)
+                except (ValueError, OverflowError, ZeroDivisionError):
+                    result = 0.0
+                _write_st0_double(uc, result)
                 return True
 
             # For now, return 0 from all stubs.
