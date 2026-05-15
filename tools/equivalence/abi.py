@@ -194,17 +194,22 @@ SCRATCH_SIZE  = 0x10000     # 64 KB
 POINTER_SLOT = 0x400  # 1 KB per pointer param — enough for 256 floats
 
 
-def setup_args(uc, abi: dict, arg_values: list, scratch_writes: dict):
+def setup_args(uc, abi: dict, arg_values: list, scratch_writes: dict,
+               lifted: bool = False):
     """Push arguments onto the Unicorn stack and set register args.
 
     abi         result from parse_decl()
     arg_values  list of Python int/float values, one per param
     scratch_writes  dict to collect {scratch_offset: bytes} for pointer args
                     (the caller maps and fills scratch before calling this)
+    lifted      True when running the lifted C candidate: @<reg> params are
+                pushed onto the stack instead of written to registers, because
+                the thunk that normally converts register args to stack args is
+                not present in the emulated snippet.
 
     After this call:
     - ESP points to just below the fake return address that was pushed last
-    - Register args are set in the appropriate UC registers
+    - Register args are set in the appropriate UC registers (oracle mode only)
     - Pointer args point into the scratch buffer
     """
     from unicorn.x86_const import UC_X86_REG_ESP
@@ -264,9 +269,12 @@ def setup_args(uc, abi: dict, arg_values: list, scratch_writes: dict):
             v = value & 0xFFFFFFFF
             packed = struct.pack('<I', v)
 
-        if param.reg:
-            # Register arg from @<reg> annotation
+        if param.reg and not lifted:
+            # Oracle: write directly to the register (original code reads it)
             reg_args[param.reg] = struct.unpack('<I', packed[:4])[0]
+        elif param.reg and lifted:
+            # Lifted C function: thunk isn't present, so push as a stack arg
+            stack_args.append(packed)
         elif conv == 'fastcall' and fastcall_idx < len(fastcall_regs) and not param.is_pointer:
             reg_args[fastcall_regs[fastcall_idx]] = struct.unpack('<I', packed[:4])[0]
             fastcall_idx += 1
