@@ -2,12 +2,17 @@
 """Triage batch_verify failures by parsing smoke logs and result JSONs.
 
 Classifies each failure into actionable categories:
+  - genuine: both sides complete normally, results differ — investigate
+  - dirty_eax: oracle uses mov ax (16-bit), upper EAX bits are stale
+  - insn_limit: one/both sides hit 100K instruction limit
+  - exec_asymmetry: >10x instruction count ratio with different ESP
+  - stack_divergence: both sides have different abnormal ESP deltas
   - ftol2: oracle calls _ftol2 intrinsic (stubbed to return 0)
   - intrinsic: oracle calls other CRT intrinsic (_CIlog, _CIpow, etc.)
   - assert_path: divergence only on seeds that trigger assert/halt
-  - stub_asymmetry: oracle/lifted call different stubs (name mismatch)
+  - stub_asymmetry: oracle/lifted call different reloc patterns
+  - scratch_divergence: only scratch buffer differs (constant/global)
   - coverage_limited: <30% coverage, only early-exit path tested
-  - genuine: both sides complete normally, results differ — investigate
   - unknown: doesn't fit other categories
 
 Usage:
@@ -138,7 +143,43 @@ def parse_smoke_log(path: Path) -> dict:
     crashes = re.findall(r'(ORACLE|LIFTED)-CRASH:\s+(.*)', text)
     info["crashes"] = crashes
 
+    # Stubs prepared ratio
+    m = re.search(r'stubs prepared:\s*(\d+)/(\d+)', text)
+    if m:
+        info["stubs_prepared"] = int(m.group(1))
+        info["stubs_total"] = int(m.group(2))
+
+    # Per-side INSN_count and ESP_delta from first divergence block
+    m = re.search(r'\[oracle\].*?INSN_count=(\d+)', text, re.DOTALL)
+    if m:
+        info["oracle_insn"] = int(m.group(1))
+    m = re.search(r'\[lifted\].*?INSN_count=(\d+)', text, re.DOTALL)
+    if m:
+        info["lifted_insn"] = int(m.group(1))
+    m = re.search(r'\[oracle\].*?ESP_delta=(-?\d+)', text, re.DOTALL)
+    if m:
+        info["oracle_esp"] = int(m.group(1))
+    m = re.search(r'\[lifted\].*?ESP_delta=(-?\d+)', text, re.DOTALL)
+    if m:
+        info["lifted_esp"] = int(m.group(1))
+
     return info
+
+
+def _is_dirty_eax(fails: list) -> bool:
+    """Check if EAX divergence is only in upper 16 bits (mov ax artifact)."""
+    eax_diffs = [f for f in fails if "EAX:" in f["diff"]]
+    if not eax_diffs:
+        return False
+    for f in eax_diffs:
+        m = re.search(r'EAX: oracle=(0x[0-9a-f]+) lifted=(0x[0-9a-f]+)', f["diff"])
+        if not m:
+            return False
+        orc = int(m.group(1), 16)
+        lft = int(m.group(2), 16)
+        if (orc & 0xFFFF) != (lft & 0xFFFF) or orc == lft:
+            return False
+    return True
 
 
 def classify(row: dict, smoke: dict) -> tuple:
@@ -165,11 +206,54 @@ def classify(row: dict, smoke: dict) -> tuple:
     if smoke.get("has_halt") or smoke.get("has_assert"):
         esp = smoke.get("esp_deltas", [])
         insn = smoke.get("insn_counts", [])
-        # If oracle ESP_delta is non-zero on failing seeds, it's an assert path
         abnormal_esp = any(e != 0 for e in esp)
         hit_max_insn = any(c >= 99999 for c in insn)
         if abnormal_esp or hit_max_insn:
             return "assert_path", "divergence on assert/halt path"
+
+    # --- New false-positive detectors ---
+
+    orc_insn = smoke.get("oracle_insn", 0)
+    lft_insn = smoke.get("lifted_insn", 0)
+    orc_esp = smoke.get("oracle_esp", 0)
+    lft_esp = smoke.get("lifted_esp", 0)
+
+    # Dirty EAX: oracle uses mov ax (16-bit), upper bits are stale pointer
+    if fails and _is_dirty_eax(fails):
+        only_eax = all(
+            f["diff"].startswith("EAX:") and ";" not in f["diff"]
+            for f in fails
+        )
+        if only_eax:
+            return "dirty_eax", "oracle mov ax leaves upper 16 bits dirty"
+
+    # Instruction limit: one or both sides hit 100K — didn't complete normally
+    if orc_insn >= 100000 or lft_insn >= 100000:
+        # Asymmetric: one side completes, other hits limit
+        if orc_insn >= 100000 and lft_insn < 100000 and lft_insn > 0:
+            ratio = orc_insn / max(lft_insn, 1)
+            if ratio > 10:
+                return "insn_limit", f"oracle hit 100K insns, lifted only {lft_insn}"
+        if lft_insn >= 100000 and orc_insn < 100000 and orc_insn > 0:
+            ratio = lft_insn / max(orc_insn, 1)
+            if ratio > 10:
+                return "insn_limit", f"lifted hit 100K insns, oracle only {orc_insn}"
+        # Both hit limit
+        if orc_insn >= 100000 and lft_insn >= 100000:
+            if orc_esp != 0 or lft_esp != 0:
+                return "insn_limit", "both hit 100K insns, ESP abnormal"
+
+    # Asymmetric execution: >10x instruction ratio without hitting limit
+    if orc_insn > 0 and lft_insn > 0:
+        ratio = max(orc_insn, lft_insn) / max(min(orc_insn, lft_insn), 1)
+        if ratio > 10 and (orc_esp != lft_esp):
+            return "exec_asymmetry", f"insn ratio {orc_insn}:{lft_insn}, ESP {orc_esp}:{lft_esp}"
+
+    # Abnormal ESP on both sides with non-zero deltas (neither returned normally)
+    if orc_esp != 0 and lft_esp != 0 and orc_esp != lft_esp:
+        # Both have stack issues — likely both took different abnormal paths
+        if abs(orc_esp - lft_esp) > 8:
+            return "stack_divergence", f"ESP oracle={orc_esp} lifted={lft_esp}"
 
     # Coverage-limited: very low coverage means only early-exit tested
     if coverage < 30:
@@ -198,6 +282,10 @@ def classify(row: dict, smoke: dict) -> tuple:
         if pass_rate > 0.5:
             return "genuine", f"{len(fails)} seeds fail, {pass_rate:.0%} pass rate"
         return "genuine", f"{len(fails)}/{row.get('seeds_total', '?')} seeds fail"
+
+    # Stale: summary says fail but smoke log shows no failures (re-run passed)
+    if not fails and smoke.get("exists"):
+        return "stale", "smoke log shows no failures (batch result outdated)"
 
     return "unknown", "unclassified"
 
@@ -234,20 +322,27 @@ def main():
     # Print summary
     print(f"{'Category':<22} {'Count':>5}  Description")
     print(f"{'-'*22} {'-'*5}  {'-'*50}")
-    order = ["genuine", "ftol2", "intrinsic", "assert_path",
-             "stub_asymmetry", "scratch_divergence", "coverage_limited", "unknown"]
+    order = ["genuine", "dirty_eax", "insn_limit", "exec_asymmetry",
+             "stack_divergence", "ftol2", "intrinsic", "assert_path",
+             "stub_asymmetry", "scratch_divergence", "coverage_limited",
+             "stale", "unknown"]
     for cat in order:
         if cat not in categories:
             continue
         entries = categories[cat]
         desc = {
-            "genuine": "Both sides complete, results differ — INVESTIGATE",
+            "genuine": "Both sides complete normally, results differ — INVESTIGATE",
+            "dirty_eax": "Oracle uses mov ax (16-bit), upper EAX bits stale",
+            "insn_limit": "One/both sides hit 100K instruction limit",
+            "exec_asymmetry": "Wildly different execution length (>10x ratio)",
+            "stack_divergence": "Both sides have different abnormal ESP",
             "ftol2": "Oracle _ftol2 stub returns 0 — fix stub",
             "intrinsic": "Oracle calls CRT intrinsic — add stub",
             "assert_path": "Divergence on assert/halt path — low priority",
             "stub_asymmetry": "Oracle/lifted have different reloc patterns",
             "scratch_divergence": "Scratch buffer differs (constant/global)",
             "coverage_limited": "Low coverage, mostly passing — needs state",
+            "stale": "Smoke log passes now — batch result outdated",
             "unknown": "Could not classify",
         }.get(cat, "")
         marker = " ←" if cat == "genuine" else ""
@@ -278,18 +373,22 @@ def main():
     n_genuine = len(categories.get("genuine", []))
     n_ftol2 = len(categories.get("ftol2", []))
     n_intrinsic = len(categories.get("intrinsic", []))
+    n_infra = sum(len(categories.get(c, []))
+                  for c in ("dirty_eax", "insn_limit", "exec_asymmetry", "stack_divergence"))
     n_noise = sum(len(categories.get(c, []))
                   for c in ("assert_path", "coverage_limited", "stub_asymmetry", "unknown"))
     print(f"\n{'='*70}")
     print(f"ACTION ITEMS:")
-    if n_ftol2:
-        print(f"  1. Fix _ftol2 stub → resolves {n_ftol2} failures")
-    if n_intrinsic:
-        print(f"  2. Add CRT intrinsic stubs → resolves {n_intrinsic} failures")
     if n_genuine:
-        print(f"  3. Investigate {n_genuine} genuine divergences (real bugs)")
+        print(f"  1. Investigate {n_genuine} genuine divergences (real bugs)")
+    if n_ftol2:
+        print(f"  2. Fix _ftol2 stub → resolves {n_ftol2} failures")
+    if n_intrinsic:
+        print(f"  3. Add CRT intrinsic stubs → resolves {n_intrinsic} failures")
+    if n_infra:
+        print(f"  ({n_infra} test infra issues: dirty EAX, instruction limits, execution asymmetry)")
     if n_noise:
-        print(f"  ({n_noise} noise failures: assert paths, low coverage, stub asymmetry)")
+        print(f"  ({n_noise} noise: assert paths, low coverage, stub asymmetry)")
 
 
 if __name__ == "__main__":
