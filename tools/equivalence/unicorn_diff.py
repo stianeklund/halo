@@ -972,15 +972,17 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     if not delinked_path:
         # Try matching address to a FUN_XXXXXXXX name in delinked/
-        addr_sym = f"FUN_{int(addr, 16):08X}" if addr.startswith("0x") else None
-        if addr_sym:
+        addr_int_for_search = int(addr, 16) if addr.startswith("0x") else None
+        if addr_int_for_search is not None:
+            addr_sym_upper = f"FUN_{addr_int_for_search:08X}"
+            addr_sym_lower = f"FUN_{addr_int_for_search:08x}"
             for d in DELINKED_DIR.glob("*.obj"):
                 try:
                     result = subprocess.run(
                         ["llvm-objdump", "-t", str(d)],
                         capture_output=True, text=True
                     )
-                    if addr_sym in result.stdout:
+                    if addr_sym_upper in result.stdout or addr_sym_lower in result.stdout:
                         delinked_path = d
                         break
                 except Exception:
@@ -1033,9 +1035,32 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                     log(f"  (also tried split ref '{per_func_ref.name}': {e3})")
                     return finish("not_applicable", False, "oracle_extract_failed", 2)
             else:
-                log(f"ERROR extracting oracle: {e}")
-                log(f"  (also tried '{func_name}': {e2})")
-                return finish("not_applicable", False, "oracle_extract_failed", 2)
+                # Chunked-fallback: scan sibling chunked delinked refs in same dir
+                base_stem = delinked_path.stem  # e.g. "real_math"
+                chunked_match = None
+                for chunked in delinked_path.parent.glob(f"{base_stem}_*.obj"):
+                    try:
+                        result = subprocess.run(
+                            ["llvm-objdump", "-t", str(chunked)],
+                            capture_output=True, text=True
+                        )
+                        if delinked_sym in result.stdout or delinked_sym.upper() in result.stdout:
+                            chunked_match = chunked
+                            break
+                    except Exception:
+                        pass
+                if chunked_match:
+                    try:
+                        oracle_slice = extract_function(str(chunked_match), delinked_sym)
+                        delinked_path = chunked_match
+                    except CoffParseError as e3:
+                        log(f"ERROR extracting oracle: {e}")
+                        log(f"  (also tried chunked '{chunked_match.name}': {e3})")
+                        return finish("not_applicable", False, "oracle_extract_failed", 2)
+                else:
+                    log(f"ERROR extracting oracle: {e}")
+                    log(f"  (also tried '{func_name}': {e2})")
+                    return finish("not_applicable", False, "oracle_extract_failed", 2)
 
     try:
         lifted_slice = extract_function(str(build_path), func_name)
