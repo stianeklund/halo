@@ -10851,7 +10851,7 @@
         {
           "decl": "uint32_t FUN_000d1c90(float *color);",
           "addr": "0xd1c90",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_000d1dd0(void);",
@@ -12219,17 +12219,17 @@
         {
           "decl": "bool FUN_00129130(int conn1, int conn2);",
           "addr": "0x129130",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool FUN_001298f0(int connection, void *buffer, int *size, void *addr);",
           "addr": "0x1298f0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool FUN_00129cf0(int connection, int flag, int *output);",
           "addr": "0x129cf0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool network_game_in_progress(void);",
@@ -12448,7 +12448,7 @@
         {
           "decl": "bool FUN_00127070(void *server);",
           "addr": "0x127070",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_00124730(void);",
@@ -18109,7 +18109,7 @@
         {
           "decl": "float FUN_00013070(float *a, float *b);",
           "addr": "0x13070",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_00012000(void);",
@@ -25110,7 +25110,7 @@
         {
           "decl": "int FUN_001bec30(int16_t format, uint16_t flags);",
           "addr": "0x1bec30",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void xbox_texture_cache_setup_d3d_texture(void *bitmap@<esi>, void *texture@<edi>);",
