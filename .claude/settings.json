@@ -11,6 +11,17 @@
             "statusMessage": "Token-discipline tracker"
           }
         ]
+      },
+      {
+        "matcher": "mcp__ghidra__decompile_function|mcp__ghidra__batch_decompile|mcp__ghidra__force_decompile",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /mnt/g/dev/halo && python3 tools/retrieval/decompile_hook.py",
+            "timeout": 15,
+            "statusMessage": "Retrieval: finding similar ported functions"
+          }
+        ]
       }
     ],
     "Stop": [

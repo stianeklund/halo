@@ -43,20 +43,25 @@ Steps:
      lookup or filter
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
    - prefer `batch_decompile` when comparing related helpers
-4. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
+4. **Retrieval neighbor injection** — fires automatically via hook the moment the
+   Ghidra decompile completes. Similar already-ported functions will appear in
+   your context as a `[retrieval-hook]` system message. Use them as worked
+   examples when writing the C implementation. If no neighbors are above
+   threshold the hook reports that; proceed without.
+5. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
    before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
    and to `tools/kb_reg_baseline.json`, then call by name from C.
    Do not use inline assembly or raw function pointer casts — the build
    generates thunks automatically. Never remove or change existing `@<reg>`
    slot assignments.
-5. Produce a structurally faithful C implementation.
-6. Write the implementation directly to the source file at the correct
+6. Produce a structurally faithful C implementation.
+7. Write the implementation directly to the source file at the correct
    address-ordered position.
-7. If the `kb.json` declaration needs updating, update it conservatively.
+8. If the `kb.json` declaration needs updating, update it conservatively.
    If the target or any callee has `@<reg>` annotations, also add/update
    `tools/kb_reg_baseline.json` — the pre-commit hook requires these in sync.
-8. Run `rtk python3 tools/analysis/maintain.py <source_file>` to sort and reformat.
-9. Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits and fix any target-relevant hazards.
+9. Run `rtk python3 tools/analysis/maintain.py <source_file>` to sort and reformat.
+10. Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits and fix any target-relevant hazards.
 
 Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
 
@@ -101,3 +106,5 @@ Notes:
 - Use `/verify structural <target> <new_address>` for explicit verify payload runs with a known lifted function address.
 - `/auto-lift` auto-commits on success and reverts+logs on failure. See `artifacts/auto_lift/failures/` for failure records.
 - Use `/maintain` for a standalone sort + format pass.
+- **After a successful commit**, update the retrieval index so future lifts benefit:
+  `rtk python3 tools/retrieval/build_index.py extract && rtk python3 tools/retrieval/build_index.py embed`
