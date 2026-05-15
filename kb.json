@@ -6167,15 +6167,18 @@
         },
         {
           "decl": "void FUN_000977e0(void);",
-          "addr": "0x977e0"
+          "addr": "0x977e0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00097800(void);",
-          "addr": "0x97800"
+          "decl": "bool FUN_00097800(void);",
+          "addr": "0x97800",
+          "ported": true
         },
         {
-          "decl": "void FUN_00097870(void);",
-          "addr": "0x97870"
+          "decl": "float FUN_00097870(float param_1, float param_2, uint32_t param_3, uint8_t param_4);",
+          "addr": "0x97870",
+          "ported": true
         }
       ],
       "source": "game/editor_stubs.c"

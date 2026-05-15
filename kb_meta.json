@@ -1187,7 +1187,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x977e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x977f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x97800": {
       "kind": "function",
       "status": "ported"
     },
@@ -1212,6 +1220,10 @@
       "status": "ported"
     },
     "0x97860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x97870": {
       "kind": "function",
       "status": "ported"
     },
