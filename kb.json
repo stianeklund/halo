@@ -2462,8 +2462,9 @@
           "addr": "0x37630"
         },
         {
-          "decl": "void FUN_000377d0(int param_1, int param_2);",
-          "addr": "0x377d0"
+          "decl": "void FUN_000377d0(int actor_handle, int prop_handle);",
+          "addr": "0x377d0",
+          "ported": true
         },
         {
           "decl": "void FUN_000378e0(void);",
@@ -28398,7 +28399,7 @@
           "addr": "0x30b80"
         },
         {
-          "decl": "void actor_emotion_flee_with_friends(void);",
+          "decl": "unsigned int FUN_00030d10(int actor_handle, float *chance_inout);",
           "addr": "0x30d10"
         },
         {
