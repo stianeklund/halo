@@ -1,25 +1,13 @@
 {
   "results": {
-    "pass": 591,
-    "fail": 513,
+    "pass": 33,
+    "fail": 16,
     "error": 0,
-    "not_applicable": 75,
-    "z3_proven": 19,
-    "total": 1179
+    "not_applicable": 1,
+    "z3_proven": 0,
+    "total": 50
   },
   "failures": [
-    [
-      "FUN_0003a740",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003a760",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003a800",
-      "emulation_error"
-    ],
     [
       "FUN_0003a810",
       "emulation_error"
@@ -38,6 +26,10 @@
     ],
     [
       "FUN_0003b320",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003b3c0",
       "emulation_error"
     ],
     [
@@ -79,2008 +71,756 @@
     [
       "FUN_0003c0c0",
       "emulation_error"
-    ],
-    [
-      "FUN_0003c410",
-      "emulation_error"
-    ],
-    [
-      "actor_set_dormant",
-      "emulation_error"
-    ],
-    [
-      "actor_delete_props",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003cc10",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003cd30",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003cff0",
-      "emulation_error"
-    ],
-    [
-      "actor_set_active",
-      "emulation_error"
-    ],
-    [
-      "actor_swarm_attach_unit",
-      "emulation_error"
-    ],
-    [
-      "actor_erase",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003d9f0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003dc20",
-      "emulation_error"
-    ],
-    [
-      "actor_attach_unit",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003ec80",
-      "emulation_error"
-    ],
-    [
-      "actor_create_for_unit",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003f030",
-      "emulation_error"
-    ],
-    [
-      "FUN_0002a2b0",
-      "emulation_error"
-    ],
-    [
-      "ai_enemies_attacking_player",
-      "emulation_error"
-    ],
-    [
-      "ai_test_line_of_fire",
-      "emulation_error"
-    ],
-    [
-      "FUN_000413c0",
-      "divergence"
-    ],
-    [
-      "FUN_00041420",
-      "emulation_error"
-    ],
-    [
-      "bink_playback_start",
-      "emulation_error"
-    ],
-    [
-      "bink_playback_update",
-      "emulation_error"
-    ],
-    [
-      "bink_playback_trace",
-      "emulation_error"
-    ],
-    [
-      "bink_playback_check_any_button",
-      "emulation_error"
-    ],
-    [
-      "bink_playback_decode_frame",
-      "emulation_error"
-    ],
-    [
-      "bink_playback_render_frame",
-      "emulation_error"
-    ],
-    [
-      "bitmap_format_bits_per_pixel",
-      "divergence"
-    ],
-    [
-      "FUN_0007c940",
-      "emulation_error"
-    ],
-    [
-      "bitmap_verify",
-      "emulation_error"
-    ],
-    [
-      "bitmap_mipmap_width",
-      "emulation_error"
-    ],
-    [
-      "FUN_0007d9f0",
-      "emulation_error"
-    ],
-    [
-      "FUN_00145ad0",
-      "emulation_error"
-    ],
-    [
-      "FUN_00146a90",
-      "emulation_error"
-    ],
-    [
-      "cache_files_precache_is_copying_map",
-      "divergence"
-    ],
-    [
-      "cache_files_precache_map_status",
-      "emulation_error"
-    ],
-    [
-      "cache_files_precache_map_loaded",
-      "emulation_error"
-    ],
-    [
-      "cache_files_precache",
-      "emulation_error"
-    ],
-    [
-      "collision_log_begin_period",
-      "emulation_error"
-    ],
-    [
-      "collision_log_continue_period",
-      "emulation_error"
-    ],
-    [
-      "FUN_0014ec30",
-      "emulation_error"
-    ],
-    [
-      "FUN_0014d840",
-      "divergence"
-    ],
-    [
-      "collision_log_query_counter",
-      "emulation_error"
-    ],
-    [
-      "collision_log_add_time",
-      "emulation_error"
-    ],
-    [
-      "collision_log_add_call",
-      "emulation_error"
-    ],
-    [
-      "console_update",
-      "emulation_error"
-    ],
-    [
-      "contrail_set_state_for_object",
-      "emulation_error"
-    ],
-    [
-      "contrails_update",
-      "emulation_error"
-    ],
-    [
-      "FUN_00097e40",
-      "emulation_error"
-    ],
-    [
-      "debug_free",
-      "emulation_error"
-    ],
-    [
-      "csstr_tolower",
-      "divergence"
-    ],
-    [
-      "crc_table_init",
-      "divergence"
-    ],
-    [
-      "FUN_0011e5a0",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_initialize",
-      "emulation_error"
-    ],
-    [
-      "FUN_0011ea50",
-      "divergence"
-    ],
-    [
-      "FUN_0011ea90",
-      "divergence"
-    ],
-    [
-      "FUN_0011eb40",
-      "divergence"
-    ],
-    [
-      "FUN_0011ebc0",
-      "divergence"
-    ],
-    [
-      "FUN_0011ec10",
-      "divergence"
-    ],
-    [
-      "FUN_0011ee80",
-      "emulation_error"
-    ],
-    [
-      "memory_block_valid",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_valid_block",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_unlink_block",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_mark_used",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_alloc_internal",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_deallocate",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_alloc_or_resize",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_allocate",
-      "emulation_error"
-    ],
-    [
-      "stack_memory_pool_realloc",
-      "emulation_error"
-    ],
-    [
-      "data_initialize",
-      "divergence"
-    ],
-    [
-      "data_dispose",
-      "emulation_error"
-    ],
-    [
-      "data_new_datum",
-      "emulation_error"
-    ],
-    [
-      "data_new_at_index",
-      "emulation_error"
-    ],
-    [
-      "datum_delete",
-      "emulation_error"
-    ],
-    [
-      "data_delete_all",
-      "emulation_error"
-    ],
-    [
-      "data_iterator_new",
-      "emulation_error"
-    ],
-    [
-      "data_next_index",
-      "emulation_error"
-    ],
-    [
-      "FUN_00098b20",
-      "divergence"
-    ],
-    [
-      "decals_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "FUN_000992d0",
-      "divergence"
-    ],
-    [
-      "FUN_00099400",
-      "divergence"
-    ],
-    [
-      "real_a_rgb_color_to_pixel32",
-      "divergence"
-    ],
-    [
-      "FUN_000998b0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009a300",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009a5a0",
-      "emulation_error"
-    ],
-    [
-      "decal_new_from_collision",
-      "emulation_error"
-    ],
-    [
-      "director_set_player_camera_normal",
-      "emulation_error"
-    ],
-    [
-      "director_set_player_camera_scripted",
-      "emulation_error"
-    ],
-    [
-      "director_apply_replay_mode_for_player",
-      "emulation_error"
-    ],
-    [
-      "director_compute_camera_input",
-      "emulation_error"
-    ],
-    [
-      "director_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "director_update",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009caf0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009cca0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009cdd0",
-      "emulation_error"
-    ],
-    [
-      "dangerous_effects_near_player",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009d1f0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009d2d0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009d4e0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009d590",
-      "emulation_error"
-    ],
-    [
-      "effects_start_on_first_person_weapon",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009e180",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009e310",
-      "emulation_error"
-    ],
-    [
-      "effect_update",
-      "emulation_error"
-    ],
-    [
-      "effect_new_attached_from_markers",
-      "emulation_error"
-    ],
-    [
-      "effect_new_unattached_from_markers",
-      "emulation_error"
-    ],
-    [
-      "effects_update",
-      "emulation_error"
-    ],
-    [
-      "memory_check",
-      "emulation_error"
-    ],
-    [
-      "debug_realloc",
-      "emulation_error"
-    ],
-    [
-      "debug_string_to_display",
-      "emulation_error"
-    ],
-    [
-      "error",
-      "emulation_error"
-    ],
-    [
-      "error_occurred",
-      "emulation_error"
-    ],
-    [
-      "event_manager_initialize",
-      "emulation_error"
-    ],
-    [
-      "event_manager_dispose",
-      "emulation_error"
-    ],
-    [
-      "event_manager_flush",
-      "emulation_error"
-    ],
-    [
-      "event_manager_get_next_event",
-      "emulation_error"
-    ],
-    [
-      "event_manager_dispatch",
-      "emulation_error"
-    ],
-    [
-      "FUN_000dc800",
-      "emulation_error"
-    ],
-    [
-      "file_reference_add_directory",
-      "emulation_error"
-    ],
-    [
-      "file_reference_set_name",
-      "emulation_error"
-    ],
-    [
-      "find_files",
-      "emulation_error"
-    ],
-    [
-      "file_reference_get_name",
-      "emulation_error"
-    ],
-    [
-      "file_read_into_buffer",
-      "emulation_error"
-    ],
-    [
-      "file_exists",
-      "emulation_error"
-    ],
-    [
-      "find_files_begin",
-      "emulation_error"
-    ],
-    [
-      "path_from_file_reference",
-      "emulation_error"
-    ],
-    [
-      "file_error",
-      "emulation_error"
-    ],
-    [
-      "file_open",
-      "emulation_error"
-    ],
-    [
-      "file_close",
-      "emulation_error"
-    ],
-    [
-      "file_get_eof",
-      "emulation_error"
-    ],
-    [
-      "file_read",
-      "emulation_error"
-    ],
-    [
-      "find_files_next",
-      "emulation_error"
-    ],
-    [
-      "FUN_000dc8c0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000dc9d0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000dcd60",
-      "divergence"
-    ],
-    [
-      "FUN_000ddbd0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000dde80",
-      "emulation_error"
-    ],
-    [
-      "FUN_000de140",
-      "emulation_error"
-    ],
-    [
-      "FUN_000de3b0",
-      "emulation_error"
-    ],
-    [
-      "first_person_weapons_update",
-      "emulation_error"
-    ],
-    [
-      "game_initialize",
-      "emulation_error"
-    ],
-    [
-      "game_dispose",
-      "emulation_error"
-    ],
-    [
-      "game_dispose_from_old_map",
-      "emulation_error"
-    ],
-    [
-      "game_tick",
-      "emulation_error"
-    ],
-    [
-      "game_initial_pulse",
-      "emulation_error"
-    ],
-    [
-      "game_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "game_allegiance_initialize",
-      "emulation_error"
-    ],
-    [
-      "game_allegiance_set",
-      "divergence"
-    ],
-    [
-      "game_allegiance_create",
-      "emulation_error"
-    ],
-    [
-      "game_engine_spawn_equipment",
-      "emulation_error"
-    ],
-    [
-      "game_engine_start_over",
-      "emulation_error"
-    ],
-    [
-      "game_engine_load_sounds",
-      "emulation_error"
-    ],
-    [
-      "game_engine_initialize",
-      "emulation_error"
-    ],
-    [
-      "game_engine_get_score_hud_text",
-      "emulation_error"
-    ],
-    [
-      "game_engine_periodic_equipment_spawn",
-      "emulation_error"
-    ],
-    [
-      "game_engine_hud_update_player",
-      "emulation_error"
-    ],
-    [
-      "game_engine_player_update_netgame_flag",
-      "emulation_error"
-    ],
-    [
-      "game_engine_get_variant_by_name",
-      "emulation_error"
-    ],
-    [
-      "game_engine_validate_map_netgame_flags",
-      "emulation_error"
-    ],
-    [
-      "game_engine_player_added",
-      "emulation_error"
-    ],
-    [
-      "game_engine_post_event",
-      "emulation_error"
-    ],
-    [
-      "game_engine_score_reset",
-      "emulation_error"
-    ],
-    [
-      "FUN_001c7e70",
-      "emulation_error"
-    ],
-    [
-      "game_sound_update",
-      "emulation_error"
-    ],
-    [
-      "sound_compute_source_obstruction",
-      "divergence"
-    ],
-    [
-      "sound_looping_start",
-      "emulation_error"
-    ],
-    [
-      "game_state_call_after_load_procs",
-      "emulation_error"
-    ],
-    [
-      "game_state_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "game_state_save",
-      "emulation_error"
-    ],
-    [
-      "game_state_load_core",
-      "emulation_error"
-    ],
-    [
-      "xbox_game_state_dispose_buffer",
-      "emulation_error"
-    ],
-    [
-      "xbox_game_state_close_file",
-      "emulation_error"
-    ],
-    [
-      "FUN_001c0910",
-      "emulation_error"
-    ],
-    [
-      "FUN_000b5650",
-      "emulation_error"
-    ],
-    [
-      "game_time_statistics_frame",
-      "emulation_error"
-    ],
-    [
-      "game_time_start",
-      "emulation_error"
-    ],
-    [
-      "game_time_update",
-      "emulation_error"
-    ],
-    [
-      "FUN_000c6b00",
-      "emulation_error"
-    ],
-    [
-      "FUN_000c6d90",
-      "emulation_error"
-    ],
-    [
-      "FUN_000c71c0",
-      "divergence"
-    ],
-    [
-      "FUN_000c74c0",
-      "emulation_error"
-    ],
-    [
-      "FUN_000c7b10",
-      "emulation_error"
-    ],
-    [
-      "hs_compile_recompile_scripts",
-      "emulation_error"
-    ],
-    [
-      "hs_validate_syntax",
-      "divergence"
-    ],
-    [
-      "hs_compile",
-      "emulation_error"
-    ],
-    [
-      "hs_compile_source",
-      "emulation_error"
-    ],
-    [
-      "hs_compile_cleanup",
-      "emulation_error"
-    ],
-    [
-      "hs_runtime_dispose_from_old_map",
-      "emulation_error"
-    ],
-    [
-      "hs_thread_push_frame",
-      "emulation_error"
-    ],
-    [
-      "hs_thread_stack_alloc",
-      "emulation_error"
-    ],
-    [
-      "hs_can_cast",
-      "emulation_error"
-    ],
-    [
-      "hs_return",
-      "emulation_error"
-    ],
-    [
-      "FUN_000cc340",
-      "emulation_error"
-    ],
-    [
-      "FUN_000cc3a0",
-      "emulation_error"
-    ],
-    [
-      "hs_macro_function_evaluate",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_begin",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_begin_random",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_if",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_set",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_logical",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_arithmetic",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_equality",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_inequality",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_sleep",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_sleep_until",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_inspect",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_object_cast_up",
-      "emulation_error"
-    ],
-    [
-      "hs_evaluate_debug_string",
-      "emulation_error"
-    ],
-    [
-      "FUN_000cd840",
-      "emulation_error"
-    ],
-    [
-      "hs_runtime_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "hud_update",
-      "emulation_error"
-    ],
-    [
-      "hud_load",
-      "emulation_error"
-    ],
-    [
-      "hud_autosave",
-      "emulation_error"
-    ],
-    [
-      "hud_messaging_set_vehicle_notification",
-      "emulation_error"
-    ],
-    [
-      "input_abstraction_dispose",
-      "emulation_error"
-    ],
-    [
-      "input_abstraction_initialize",
-      "emulation_error"
-    ],
-    [
-      "input_abstraction_update",
-      "emulation_error"
-    ],
-    [
-      "input_check_state_mode",
-      "emulation_error"
-    ],
-    [
-      "input_open_state_file",
-      "emulation_error"
-    ],
-    [
-      "input_flush",
-      "emulation_error"
-    ],
-    [
-      "input_set_rumble",
-      "emulation_error"
-    ],
-    [
-      "input_get_device_states",
-      "emulation_error"
-    ],
-    [
-      "input_update_keyboard_devices",
-      "emulation_error"
-    ],
-    [
-      "input_update",
-      "emulation_error"
-    ],
-    [
-      "input_initialize",
-      "emulation_error"
-    ],
-    [
-      "interface_initialize",
-      "emulation_error"
-    ],
-    [
-      "interface_get_color",
-      "emulation_error"
-    ],
-    [
-      "interface_draw_text",
-      "emulation_error"
-    ],
-    [
-      "interface_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "item_set_position",
-      "emulation_error"
-    ],
-    [
-      "main_rasterizer_throttle",
-      "emulation_error"
-    ],
-    [
-      "main_save_current_solo_map",
-      "emulation_error"
-    ],
-    [
-      "xbox_demos_launch",
-      "emulation_error"
-    ],
-    [
-      "FUN_00126000",
-      "emulation_error"
-    ],
-    [
-      "FUN_00126b60",
-      "emulation_error"
-    ],
-    [
-      "FUN_00126ce0",
-      "emulation_error"
-    ],
-    [
-      "FUN_00126db0",
-      "emulation_error"
-    ],
-    [
-      "network_game_client_idle",
-      "emulation_error"
-    ],
-    [
-      "initialize_network_game_packets",
-      "emulation_error"
-    ],
-    [
-      "encode_network_game_message",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012c1c0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012c290",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012c500",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012d450",
-      "divergence"
-    ],
-    [
-      "FUN_0012d880",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012d9f0",
-      "divergence"
-    ],
-    [
-      "FUN_0012db60",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012dc20",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012de20",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012df50",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012e090",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012e580",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012e750",
-      "emulation_error"
-    ],
-    [
-      "network_game_client_dispose",
-      "emulation_error"
-    ],
-    [
-      "network_game_server_start",
-      "emulation_error"
-    ],
-    [
-      "network_server_manager_pregame_start",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012f5d0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0012bdb0",
-      "divergence"
-    ],
-    [
-      "observer_compute_update",
-      "emulation_error"
-    ],
-    [
-      "FUN_0008c150",
-      "emulation_error"
-    ],
-    [
-      "observer_update_result",
-      "emulation_error"
-    ],
-    [
-      "FUN_0008c440",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009f920",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009f9d0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0009fd30",
-      "emulation_error"
-    ],
-    [
-      "FUN_000a0080",
-      "divergence"
-    ],
-    [
-      "FUN_000a0180",
-      "emulation_error"
-    ],
-    [
-      "particle_new",
-      "emulation_error"
-    ],
-    [
-      "particles_update",
-      "emulation_error"
-    ],
-    [
-      "FUN_000a1770",
-      "emulation_error"
-    ],
-    [
-      "player_control_set_action_flags",
-      "emulation_error"
-    ],
-    [
-      "player_control_new_unit",
-      "emulation_error"
-    ],
-    [
-      "player_control_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "player_control_get_facing",
-      "emulation_error"
-    ],
-    [
-      "player_control_update",
-      "emulation_error"
-    ],
-    [
-      "player_clear_aim_assist",
-      "emulation_error"
-    ],
-    [
-      "player_control_set_unit_seat",
-      "emulation_error"
-    ],
-    [
-      "player_control_set_facing",
-      "emulation_error"
-    ],
-    [
-      "player_effect_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "player_effect_update",
-      "emulation_error"
-    ],
-    [
-      "player_effect_apply",
-      "emulation_error"
-    ],
-    [
-      "update_client_new",
-      "emulation_error"
-    ],
-    [
-      "FUN_000b8fa0",
-      "divergence"
-    ],
-    [
-      "update_server_new",
-      "emulation_error"
-    ],
-    [
-      "update_server_start",
-      "emulation_error"
-    ],
-    [
-      "update_server_get_update",
-      "emulation_error"
-    ],
-    [
-      "player_control_get_current_actions",
-      "emulation_error"
-    ],
-    [
-      "update_server_create_snapshot",
-      "emulation_error"
-    ],
-    [
-      "update_client_apply_actions",
-      "emulation_error"
-    ],
-    [
-      "rumble_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "rumble_clear_for_local_player",
-      "emulation_error"
-    ],
-    [
-      "rumble_clear_all_players",
-      "emulation_error"
-    ],
-    [
-      "rumble_dispose_from_old_map",
-      "emulation_error"
-    ],
-    [
-      "rumble_calculate",
-      "emulation_error"
-    ],
-    [
-      "rumble_update",
-      "emulation_error"
-    ],
-    [
-      "player_ui_dispose",
-      "emulation_error"
-    ],
-    [
-      "player_ui_get_single_player_local_player_controller",
-      "divergence"
-    ],
-    [
-      "player_ui_initialize",
-      "emulation_error"
-    ],
-    [
-      "players_initialize",
-      "emulation_error"
-    ],
-    [
-      "players_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "local_player_exists",
-      "emulation_error"
-    ],
-    [
-      "local_player_set_player_index",
-      "divergence"
-    ],
-    [
-      "player_index_from_unit_index",
-      "emulation_error"
-    ],
-    [
-      "players_update_pvs",
-      "divergence"
-    ],
-    [
-      "FUN_001548a0",
-      "emulation_error"
-    ],
-    [
-      "profile_enter_private",
-      "emulation_error"
-    ],
-    [
-      "profile_frame_start",
-      "emulation_error"
-    ],
-    [
-      "projectile_set_target_object_index",
-      "emulation_error"
-    ],
-    [
-      "projectile_handle_deleted_object",
-      "emulation_error"
-    ],
-    [
-      "projectile_export_function_values",
-      "emulation_error"
-    ],
-    [
-      "projectile_aim_ballistic",
-      "emulation_error"
-    ],
-    [
-      "projectile_aim_linear",
-      "divergence"
-    ],
-    [
-      "projectile_aim",
-      "divergence"
-    ],
-    [
-      "FUN_000f8640",
-      "emulation_error"
-    ],
-    [
-      "FUN_000f8720",
-      "emulation_error"
-    ],
-    [
-      "FUN_000f8920",
-      "emulation_error"
-    ],
-    [
-      "projectile_new",
-      "emulation_error"
-    ],
-    [
-      "projectile_accelerate",
-      "emulation_error"
-    ],
-    [
-      "FUN_000f90d0",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_set_quad_texcoords",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_compute_screen_rect",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_draw_fullscreen_overlay",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_decode_texture",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_generate_gradient_texture",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_draw_loading_bar",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_screen_initialize",
-      "emulation_error"
-    ],
-    [
-      "progress_bar_render",
-      "emulation_error"
-    ],
-    [
-      "random_math_real",
-      "divergence"
-    ],
-    [
-      "random_real_range",
-      "divergence"
-    ],
-    [
-      "random_direction_table_get_element",
-      "divergence"
-    ],
-    [
-      "random_seed_get_direction3d",
-      "emulation_error"
-    ],
-    [
-      "random_direction3d",
-      "emulation_error"
-    ],
-    [
-      "FUN_0010c510",
-      "divergence"
-    ],
-    [
-      "FUN_0010c8e0",
-      "emulation_error"
-    ],
-    [
-      "rasterizer_window_begin",
-      "divergence"
-    ],
-    [
-      "FUN_0015b460",
-      "emulation_error"
-    ],
-    [
-      "rasterizer_preinitialize",
-      "emulation_error"
-    ],
-    [
-      "rasterizer_get_default_hardware_format",
-      "emulation_error"
-    ],
-    [
-      "recorded_animations_initialize_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "render_window_pregame",
-      "emulation_error"
-    ],
-    [
-      "render_frame_pregame",
-      "emulation_error"
-    ],
-    [
-      "render_window",
-      "emulation_error"
-    ],
-    [
-      "render_frame",
-      "emulation_error"
-    ],
-    [
-      "saved_game_files_initialize",
-      "emulation_error"
-    ],
-    [
-      "scenario_load",
-      "emulation_error"
-    ],
-    [
-      "scenario_location_from_point",
-      "divergence"
-    ],
-    [
-      "FUN_0018f2d0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0018f510",
-      "emulation_error"
-    ],
-    [
-      "shell_initialize",
-      "emulation_error"
-    ],
-    [
-      "shell_dispose",
-      "emulation_error"
-    ],
-    [
-      "update_loaded_module_section_attributes",
-      "emulation_error"
-    ],
-    [
-      "main",
-      "emulation_error"
-    ],
-    [
-      "FUN_0018f3e0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0018e770",
-      "divergence"
-    ],
-    [
-      "FUN_0018e7d0",
-      "emulation_error"
-    ],
-    [
-      "sound_class_get_gain",
-      "emulation_error"
-    ],
-    [
-      "sound_classes_update",
-      "emulation_error"
-    ],
-    [
-      "sound_dsound_get_sample_rate",
-      "divergence"
-    ],
-    [
-      "sound_dsound_gain_to_volume",
-      "divergence"
-    ],
-    [
-      "sound_dsound_channel_update_3d",
-      "emulation_error"
-    ],
-    [
-      "sound_dsound_channel_stop_check",
-      "emulation_error"
-    ],
-    [
-      "sound_dsound_channel_try_resolve",
-      "emulation_error"
-    ],
-    [
-      "sound_dsound_channel_resolve",
-      "emulation_error"
-    ],
-    [
-      "sound_dsound_update_channel_properties",
-      "emulation_error"
-    ],
-    [
-      "sound_dsound_set_channel_properties",
-      "emulation_error"
-    ],
-    [
-      "sound_get_default_priority",
-      "emulation_error"
-    ],
-    [
-      "sound_class_get_min_distance",
-      "emulation_error"
-    ],
-    [
-      "sound_select_pitch_range",
-      "divergence"
-    ],
-    [
-      "sound_get_permutation_pitch",
-      "emulation_error"
-    ],
-    [
-      "sound_set_music_enabled",
-      "emulation_error"
-    ],
-    [
-      "sound_can_play",
-      "emulation_error"
-    ],
-    [
-      "sound_check_promotion",
-      "emulation_error"
-    ],
-    [
-      "sound_collect_like_sounds",
-      "emulation_error"
-    ],
-    [
-      "sound_channel_start_new",
-      "emulation_error"
-    ],
-    [
-      "sound_channel_set_properties",
-      "emulation_error"
-    ],
-    [
-      "sound_channel_update_status",
-      "emulation_error"
-    ],
-    [
-      "sound_channel_stop",
-      "emulation_error"
-    ],
-    [
-      "sound_update_channel_attenuation",
-      "emulation_error"
-    ],
-    [
-      "sound_start_fade",
-      "emulation_error"
-    ],
-    [
-      "sound_stop_channel",
-      "emulation_error"
-    ],
-    [
-      "sound_find_oldest_channel",
-      "emulation_error"
-    ],
-    [
-      "sound_update_channel",
-      "emulation_error"
-    ],
-    [
-      "sound_start_next_looping_permutation",
-      "emulation_error"
-    ],
-    [
-      "sound_stop_impulse",
-      "emulation_error"
-    ],
-    [
-      "sound_create_looping_entry",
-      "emulation_error"
-    ],
-    [
-      "sound_update_music_channel",
-      "emulation_error"
-    ],
-    [
-      "sound_start",
-      "emulation_error"
-    ],
-    [
-      "FUN_001cf2f0",
-      "emulation_error"
-    ],
-    [
-      "stack_walk",
-      "emulation_error"
-    ],
-    [
-      "tag_block_add_element",
-      "emulation_error"
-    ],
-    [
-      "tag_get_name",
-      "emulation_error"
-    ],
-    [
-      "tag_get_group_tag",
-      "emulation_error"
-    ],
-    [
-      "FUN_00099220",
-      "divergence"
-    ],
-    [
-      "FUN_00099270",
-      "divergence"
-    ],
-    [
-      "FUN_00193a80",
-      "emulation_error"
-    ],
-    [
-      "FUN_00193b00",
-      "emulation_error"
-    ],
-    [
-      "telnet_console_initialize",
-      "emulation_error"
-    ],
-    [
-      "terminal_age_lines",
-      "emulation_error"
-    ],
-    [
-      "terminal_get_line",
-      "emulation_error"
-    ],
-    [
-      "thread_new",
-      "emulation_error"
-    ],
-    [
-      "thread_is_done",
-      "emulation_error"
-    ],
-    [
-      "thread_close",
-      "emulation_error"
-    ],
-    [
-      "FUN_00081870",
-      "emulation_error"
-    ],
-    [
-      "FUN_000818d0",
-      "emulation_error"
-    ],
-    [
-      "recv_endpoint",
-      "emulation_error"
-    ],
-    [
-      "FUN_00083a60",
-      "emulation_error"
-    ],
-    [
-      "FUN_00083ce0",
-      "emulation_error"
-    ],
-    [
-      "FUN_00084300",
-      "emulation_error"
-    ],
-    [
-      "FUN_00084520",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_close_children",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_close",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_begin_filesystem_checks",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_process_event",
-      "emulation_error"
-    ],
-    [
-      "render_ui_widgets",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_load_by_name_or_tag",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_display_error",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_load_error_screen",
-      "emulation_error"
-    ],
-    [
-      "ui_widgets_process_pause",
-      "emulation_error"
-    ],
-    [
-      "process_ui_widgets",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_set_focus",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_event_handler_dispatch",
-      "emulation_error"
-    ],
-    [
-      "ui_widget_game_data_function_invoke",
-      "emulation_error"
-    ],
-    [
-      "vehicle_get_estimated_position",
-      "emulation_error"
-    ],
-    [
-      "vehicle_moving_near_any_player",
-      "emulation_error"
-    ],
-    [
-      "lruv_cache_initialize",
-      "emulation_error"
-    ],
-    [
-      "lruv_cache_dispose",
-      "emulation_error"
-    ],
-    [
-      "lruv_block_delete",
-      "emulation_error"
-    ],
-    [
-      "lruv_cache_dispose_all",
-      "emulation_error"
-    ],
-    [
-      "lruv_debug_to_file",
-      "emulation_error"
-    ],
-    [
-      "FUN_0011db90",
-      "emulation_error"
-    ],
-    [
-      "FUN_0007ace0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0007b020",
-      "divergence"
-    ],
-    [
-      "edit_text_clamp_cursor",
-      "divergence"
-    ],
-    [
-      "edit_text_set_cursor_to_end",
-      "emulation_error"
-    ],
-    [
-      "edit_text_get_selection_range",
-      "emulation_error"
-    ],
-    [
-      "edit_text_initialize",
-      "emulation_error"
-    ],
-    [
-      "edit_text_process_key",
-      "emulation_error"
-    ],
-    [
-      "weapon_is_flag",
-      "emulation_error"
-    ],
-    [
-      "weapon_get_animation_frame",
-      "emulation_error"
-    ],
-    [
-      "weapon_has_activity",
-      "emulation_error"
-    ],
-    [
-      "weapon_start_effect",
-      "divergence"
-    ],
-    [
-      "weapon_set_animation_state",
-      "emulation_error"
-    ],
-    [
-      "FUN_000fc290",
-      "emulation_error"
-    ],
-    [
-      "FUN_000fc990",
-      "emulation_error"
-    ],
-    [
-      "FUN_000fcaf0",
-      "emulation_error"
-    ],
-    [
-      "weapon_reset_state",
-      "emulation_error"
-    ],
-    [
-      "weapon_activate",
-      "emulation_error"
-    ],
-    [
-      "weapon_try_place",
-      "emulation_error"
-    ],
-    [
-      "FUN_000fd400",
-      "emulation_error"
-    ],
-    [
-      "actor_combat_get_burst_parameters",
-      "emulation_error"
-    ],
-    [
-      "actor_combat_set_fire_timer",
-      "emulation_error"
-    ],
-    [
-      "actor_combat_check_fire_target",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005a4e0",
-      "emulation_error"
-    ],
-    [
-      "encounter_squad_timer_expire",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005ae70",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005b200",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005c940",
-      "emulation_error"
-    ],
-    [
-      "encounter_update_status",
-      "emulation_error"
-    ],
-    [
-      "encounters_create_for_new_map",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005dc00",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005de80",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005af70",
-      "emulation_error"
-    ],
-    [
-      "FUN_00058a40",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005a050",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005aab0",
-      "emulation_error"
-    ],
-    [
-      "prop_iterator_next",
-      "emulation_error"
-    ],
-    [
-      "circular_queue_free_space",
-      "emulation_error"
-    ],
-    [
-      "FUN_00118ec0",
-      "emulation_error"
-    ],
-    [
-      "quaternion_decompress_8byte",
-      "divergence"
-    ],
-    [
-      "FUN_00120870",
-      "divergence"
-    ],
-    [
-      "FUN_00120d10",
-      "divergence"
-    ],
-    [
-      "model_animation_choose_random",
-      "divergence"
-    ],
-    [
-      "animation_get_node_orientations",
-      "emulation_error"
-    ],
-    [
-      "overlay_animation_apply_continuous_scaled",
-      "emulation_error"
-    ],
-    [
-      "FUN_00121d60",
-      "divergence"
-    ],
-    [
-      "collision_features_test_los",
-      "divergence"
-    ],
-    [
-      "collision_features_from_vertex",
-      "emulation_error"
-    ],
-    [
-      "collision_features_from_polygon",
-      "emulation_error"
-    ],
-    [
-      "FUN_0014b620",
-      "emulation_error"
-    ],
-    [
-      "collision_features_add",
-      "emulation_error"
-    ],
-    [
-      "FUN_0014b220",
-      "divergence"
-    ],
-    [
-      "collision_features_from_line",
-      "emulation_error"
-    ],
-    [
-      "FUN_00136840",
-      "emulation_error"
-    ],
-    [
-      "object_deplete_shield",
-      "emulation_error"
-    ],
-    [
-      "FUN_00136f40",
-      "emulation_error"
-    ],
-    [
-      "object_deplete_body",
-      "emulation_error"
-    ],
-    [
-      "object_destroy",
-      "emulation_error"
-    ],
-    [
-      "FUN_00137690",
-      "emulation_error"
-    ],
-    [
-      "object_cause_damage",
-      "emulation_error"
-    ],
-    [
-      "object_damage_update",
-      "emulation_error"
-    ],
-    [
-      "FUN_00138e30",
-      "emulation_error"
-    ],
-    [
-      "FUN_00138eb0",
-      "emulation_error"
-    ],
-    [
-      "path_state_new",
-      "emulation_error"
-    ],
-    [
-      "path_3d_available",
-      "divergence"
-    ],
-    [
-      "FUN_0005e920",
-      "emulation_error"
-    ],
-    [
-      "FUN_0005ff70",
-      "emulation_error"
     ]
   ],
-  "z3_proven": [
-    "data_allocation_size",
-    "data_make_invalid",
-    "FUN_000ad270",
-    "hud_find_message_slot",
-    "network_game_server_adjust_machine_settings",
-    "random_range",
-    "random_seed_step",
-    "rasterizer_set_vblank_callback",
-    "vector3d_scale_add",
-    "vector3d_add",
-    "FUN_00012140",
-    "scenario_location_reset",
-    "ui_widget_find_by_tag",
-    "FUN_00108db0",
-    "paths_dispose",
-    "path_input_set_start",
-    "path_input_set_attractor",
-    "path_input_set_search_bounds",
-    "FUN_0005e0d0"
+  "errors": [],
+  "z3_proven": [],
+  "rows": [
+    {
+      "addr": "0x1c3e0",
+      "name": "actor_action_control",
+      "class": "stubbable",
+      "obj": "actions.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c450",
+      "name": "actor_action_replace_prop",
+      "class": "stubbable",
+      "obj": "actions.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 45,
+      "seeds_total": 45,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c4c0",
+      "name": "FUN_0001c4c0",
+      "class": "stubbable",
+      "obj": "actions.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1d5c0",
+      "name": "FUN_0001d5c0",
+      "class": "data_only",
+      "obj": "actions.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1d6d0",
+      "name": "actor_action_try_to_panic",
+      "class": "stubbable",
+      "obj": "actions.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1d730",
+      "name": "FUN_0001d730",
+      "class": "data_only",
+      "obj": "actions.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x210f0",
+      "name": "FUN_000210f0",
+      "class": "stubbable",
+      "obj": "actions.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x2a360",
+      "name": "FUN_0002a360",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 45,
+      "seeds_total": 45,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36960",
+      "name": "FUN_00036960",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x369c0",
+      "name": "FUN_000369c0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36a20",
+      "name": "FUN_00036a20",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36bd0",
+      "name": "FUN_00036bd0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36da0",
+      "name": "FUN_00036da0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36dc0",
+      "name": "FUN_00036dc0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36e30",
+      "name": "FUN_00036e30",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a810",
+      "name": "FUN_0003a810",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a840",
+      "name": "FUN_0003a840",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a8a0",
+      "name": "FUN_0003a8a0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3aa60",
+      "name": "actor_in_combat",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3aac0",
+      "name": "FUN_0003aac0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3ab80",
+      "name": "FUN_0003ab80",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3ac20",
+      "name": "FUN_0003ac20",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 45,
+      "seeds_total": 45,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3aca0",
+      "name": "actor_verify_activation",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3ad80",
+      "name": "actor_detach_from_unit",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3ae60",
+      "name": "actor_swarm_detach_from_unit",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b030",
+      "name": "actor_swarm_cache_delete",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b0b0",
+      "name": "actor_switch_props",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b100",
+      "name": "FUN_0003b100",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b120",
+      "name": "FUN_0003b120",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b150",
+      "name": "FUN_0003b150",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b190",
+      "name": "FUN_0003b190",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b240",
+      "name": "FUN_0003b240",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b270",
+      "name": "actor_attacking_target",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b320",
+      "name": "FUN_0003b320",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b380",
+      "name": "FUN_0003b380",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b3c0",
+      "name": "FUN_0003b3c0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b410",
+      "name": "FUN_0003b410",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b5e0",
+      "name": "FUN_0003b5e0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b7e0",
+      "name": "FUN_0003b7e0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b860",
+      "name": "FUN_0003b860",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b900",
+      "name": "actors_freeze",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b940",
+      "name": "FUN_0003b940",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3ba00",
+      "name": "actors_move_randomly",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3baa0",
+      "name": "FUN_0003baa0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3bb50",
+      "name": "FUN_0003bb50",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3bbf0",
+      "name": "FUN_0003bbf0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3bc90",
+      "name": "FUN_0003bc90",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 40,
+      "seeds_total": 40,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3bde0",
+      "name": "FUN_0003bde0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3be90",
+      "name": "FUN_0003be90",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c0c0",
+      "name": "FUN_0003c0c0",
+      "class": "stubbable",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    }
   ],
-  "elapsed_seconds": 2700.284035205841
+  "by_object": {
+    "actions.obj": {
+      "pass": 6,
+      "total": 7,
+      "not_applicable": 1
+    },
+    "actors.obj": {
+      "pass": 27,
+      "total": 43,
+      "fail": 16
+    }
+  },
+  "comparison": {
+    "baseline": "",
+    "new_failures": [
+      {
+        "addr": "0x3a810",
+        "name": "FUN_0003a810",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a840",
+        "name": "FUN_0003a840",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a8a0",
+        "name": "FUN_0003a8a0",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3aca0",
+        "name": "actor_verify_activation",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3b320",
+        "name": "FUN_0003b320",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3b3c0",
+        "name": "FUN_0003b3c0",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3b410",
+        "name": "FUN_0003b410",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3b7e0",
+        "name": "FUN_0003b7e0",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3b860",
+        "name": "FUN_0003b860",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3b900",
+        "name": "actors_freeze",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3b940",
+        "name": "FUN_0003b940",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3ba00",
+        "name": "actors_move_randomly",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3baa0",
+        "name": "FUN_0003baa0",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3bde0",
+        "name": "FUN_0003bde0",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3be90",
+        "name": "FUN_0003be90",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3c0c0",
+        "name": "FUN_0003c0c0",
+        "class": "stubbable",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      }
+    ],
+    "known_failures": [],
+    "allowlisted": []
+  },
+  "elapsed_seconds": 59.67372679710388
 }
