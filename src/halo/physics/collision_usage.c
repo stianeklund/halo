@@ -84,10 +84,10 @@ short FUN_0014d840(short collision_function /* @<edi> */)
   return user;
 }
 
-/* 0x14d940 — wraps QueryPerformanceCounter (FUN_001d33e6) */
+/* 0x14d940 — wraps QueryPerformanceCounter (QueryPerformanceCounter) */
 void collision_log_query_counter(void *counter)
 {
-  FUN_001d33e6(counter);
+  QueryPerformanceCounter(counter);
 }
 
 /* 0x14d950 — records elapsed time for a collision function type.
@@ -104,7 +104,7 @@ void collision_log_add_time(short collision_function, unsigned int start_lo,
   int user_off;
   unsigned int prev;
 
-  FUN_001d33e6(current);
+  QueryPerformanceCounter(current);
 
   user = FUN_0014d840(collision_function);
   if (user == -1)
@@ -185,8 +185,9 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
     int results_buf[0x406]; /* 0x1018 bytes */
 
     bsp_surface_data = breakable_surfaces_get_bsp_surface_data();
-    bsp_hit = (char)collision_bsp_test_sphere((int)bsp, 0x100, (int)bsp_surface_data,
-                                 (int)pos, *(int *)&search_radius, results_buf);
+    bsp_hit = (char)collision_bsp_test_sphere(
+      (int)bsp, 0x100, (int)bsp_surface_data, (int)pos, *(int *)&search_radius,
+      results_buf);
 
     if (bsp_hit && (flags & 0x20) != 0) {
       collision_features_add((int)bsp, results_buf, 0, *(int *)&dist_b,

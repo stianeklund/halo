@@ -102,7 +102,7 @@ void FUN_001bc830(char *buffer, int index)
 /* Signal the cache I/O event at DAT_004e9248. */
 void FUN_001bc850(void)
 {
-  FUN_001cfeaa(*(void **)0x4e9248);
+  SetEvent(*(void **)0x4e9248);
 }
 
 /* FUN_001bc860 — IO completion callback for cache read/write.
@@ -182,7 +182,7 @@ void cache_file_close(void)
  * Returns the request slot index.
  */
 short cache_file_read(int param_1, int offset, unsigned int size, int buffer,
-                   char *completion_flag, char async_flag)
+                      char *completion_flag, char async_flag)
 {
   short request_index;
   char *req;
@@ -227,7 +227,7 @@ short cache_file_read(int param_1, int offset, unsigned int size, int buffer,
   *(char *)(req + 0x1d) = 1;
   *(char *)(req + 0x1c) = async_flag;
   *(char *)(req + 0x1e) = 0;
-  FUN_001cfeaa(*(void **)0x4e9248);
+  SetEvent(*(void **)0x4e9248);
   return request_index;
 }
 
@@ -245,9 +245,9 @@ void cache_files_io_request_enable(int16_t request_index)
   *(uint8_t *)(*(int *)0x4e9250 + (int)request_index * 0x20 + 0x1c) = 1;
 }
 
-/* cache_file_block_until_not_busy — spin-wait until all 512 cache IO request slots are idle.
- * Loops: sleeps 1ms (FUN_001d01c4(0,1)), then scans all slots checking the
- * active byte at +0x1d. If any slot is still active, repeat.
+/* cache_file_block_until_not_busy — spin-wait until all 512 cache IO request
+ * slots are idle. Loops: sleeps 1ms (SleepEx(0,1)), then scans all slots
+ * checking the active byte at +0x1d. If any slot is still active, repeat.
  * DAT_004e9250 = base of the 512-entry request array (each 0x20 bytes).
  */
 void cache_file_block_until_not_busy(void)
@@ -257,7 +257,7 @@ void cache_file_block_until_not_busy(void)
   int offset;
 
   do {
-    FUN_001d01c4(0, 1);
+    SleepEx(0, 1);
     active = 0;
     i = 0;
     offset = 0;
@@ -277,11 +277,12 @@ void cache_file_block_until_not_busy(void)
   } while (active);
 }
 
-/* tags_header_register_vertex_and_index_buffers — register D3D vertex and index buffers from a block.
- * block+0x10: vertex buffer count; block+0x14: vertex buffer array base (stride
- * 0xc). block+0x18: index buffer count; block+0x1c: index buffer array base
- * (stride 0xc). Writes 1 to the first dword of each vertex buffer entry and
- * calls D3DResource_Register; writes 0x10001 to each index buffer entry.
+/* tags_header_register_vertex_and_index_buffers — register D3D vertex and index
+ * buffers from a block. block+0x10: vertex buffer count; block+0x14: vertex
+ * buffer array base (stride 0xc). block+0x18: index buffer count; block+0x1c:
+ * index buffer array base (stride 0xc). Writes 1 to the first dword of each
+ * vertex buffer entry and calls D3DResource_Register; writes 0x10001 to each
+ * index buffer entry.
  */
 void tags_header_register_vertex_and_index_buffers(void *block)
 {
@@ -311,9 +312,10 @@ void tags_header_register_vertex_and_index_buffers(void *block)
   }
 }
 
-/* tags_header_deregister_vertex_and_index_buffers — wait for D3D vertex and index buffers to become idle.
- * Calls D3DResource_BlockUntilNotBusy then asserts !IsBusy for each buffer.
- * Same block layout as tags_header_register_vertex_and_index_buffers.
+/* tags_header_deregister_vertex_and_index_buffers — wait for D3D vertex and
+ * index buffers to become idle. Calls D3DResource_BlockUntilNotBusy then
+ * asserts !IsBusy for each buffer. Same block layout as
+ * tags_header_register_vertex_and_index_buffers.
  */
 void tags_header_deregister_vertex_and_index_buffers(void *block)
 {
@@ -355,11 +357,12 @@ void tags_header_deregister_vertex_and_index_buffers(void *block)
   }
 }
 
-/* structure_bsp_header_register_vertex_buffers — register D3D vertex and index buffers from a geometry block.
- * block+4/8: vertex count/array; block+0xc/0x10: index count/array (stride
- * 0xc). Writes 1 to first dword of each buffer entry and calls
- * D3DResource_Register. Same as tags_header_register_vertex_and_index_buffers but uses offsets +4/+8/+0xc/+0x10
- * instead of +0x10/+0x14/+0x18/+0x1c.
+/* structure_bsp_header_register_vertex_buffers — register D3D vertex and index
+ * buffers from a geometry block. block+4/8: vertex count/array; block+0xc/0x10:
+ * index count/array (stride 0xc). Writes 1 to first dword of each buffer entry
+ * and calls D3DResource_Register. Same as
+ * tags_header_register_vertex_and_index_buffers but uses offsets
+ * +4/+8/+0xc/+0x10 instead of +0x10/+0x14/+0x18/+0x1c.
  */
 void structure_bsp_header_register_vertex_buffers(void *block)
 {
@@ -391,9 +394,10 @@ void structure_bsp_header_register_vertex_buffers(void *block)
   }
 }
 
-/* structure_bsp_header_deregister_vertex_buffers — wait for all vertex and index buffers in a geometry block.
- * Sets DAT_00325652=0x11 (render state), blocks until each D3D resource is
- * idle, then clears DAT_00325652=0. Same struct layout as structure_bsp_header_register_vertex_buffers.
+/* structure_bsp_header_deregister_vertex_buffers — wait for all vertex and
+ * index buffers in a geometry block. Sets DAT_00325652=0x11 (render state),
+ * blocks until each D3D resource is idle, then clears DAT_00325652=0. Same
+ * struct layout as structure_bsp_header_register_vertex_buffers.
  */
 void structure_bsp_header_deregister_vertex_buffers(void *block)
 {
@@ -440,7 +444,7 @@ void FUN_001bcea0(short map_file_index)
     count = (unsigned int)(unsigned short)(0x14 - start);
     do {
       csprintf(local_buf, "z:\\cache%03d.map", i);
-      FUN_001d0ff9(local_buf);
+      DeleteFileA(local_buf);
       i = i + 1;
       count = count - 1;
     } while (count != 0);
@@ -483,7 +487,7 @@ __int16 cache_files_precache_map_status(float *progress)
 
 /* FUN_001bcfb0 — open/map the cache file for the given slot (@<ax> =
  * map_file_index). Initializes a local OBJECT_ATTRIBUTES-like struct, fills it
- * with the file path pointer at entry+4, and calls FUN_001d1910 to create a
+ * with the file path pointer at entry+4, and calls SetFileTime to create a
  * file mapping. Cache file entry at DAT_004e61d8 + index*0x80c; file handle at
  * offset +0.
  */
@@ -499,9 +503,9 @@ void FUN_001bcfb0(short map_file_index)
     system_exit(-1);
   }
   entry = (char *)0x4e61d8 + (int)map_file_index * 0x80c;
-  FUN_001d051d(local_buf);
-  FUN_001d05f4(local_buf, entry + 4);
-  FUN_001d1910(*(int *)entry, entry + 4, 0, 0);
+  GetLocalTime(local_buf);
+  SystemTimeToFileTime(local_buf, entry + 4);
+  SetFileTime(*(int *)entry, entry + 4, 0, 0);
 }
 
 /* Returns true if the named map has already been precached.
@@ -533,13 +537,13 @@ bool cache_files_precache_map_loaded(char *map_name)
  */
 void FUN_001bda90(void)
 {
-  *(void **)0x4e9248 = FUN_001cfded(NULL, 0, 0, NULL);
+  *(void **)0x4e9248 = CreateEventA(NULL, 0, 0, NULL);
   if (!*(void **)0x4e9248) {
     display_assert("cache_file_globals.sleep_event",
                    "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x4b2, 1);
     system_exit(-1);
   }
-  *(void **)0x4e924c = FUN_001cfd8c(NULL, 0x4000, FUN_001bd3a0, NULL, 0, NULL);
+  *(void **)0x4e924c = CreateThread(NULL, 0x4000, FUN_001bd3a0, NULL, 0, NULL);
   if (!*(void **)0x4e924c) {
     display_assert("cache_file_globals.thread",
                    "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x4b6, 1);
@@ -646,8 +650,8 @@ void cache_files_precache(void)
 {
   char header[0x14c];
 
-  if (!game_state_read_header_from_persistent_storage(header, (uint32_t *)(header + 0x148), sizeof(header),
-                    0x345000, NULL)) {
+  if (!game_state_read_header_from_persistent_storage(
+        header, (uint32_t *)(header + 0x148), sizeof(header), 0x345000, NULL)) {
     return;
   }
 

@@ -14600,8 +14600,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a12e0(void);",
-          "addr": "0xa12e0"
+          "decl": "int FUN_000a12e0(int particle_tag_index, int object_handle, int16_t attach_index);",
+          "addr": "0xa12e0",
+          "ported": true
         },
         {
           "decl": "void particle_delete(int datum_handle);",
@@ -27019,7 +27020,7 @@
           "addr": "0x1d0f63"
         },
         {
-          "decl": "void __stdcall FUN_001d0ff9(const char *path);",
+          "decl": "bool __stdcall DeleteFileA(const char *path);",
           "addr": "0x1d0ff9"
         },
         {
@@ -27063,7 +27064,7 @@
           "addr": "0x1d18aa"
         },
         {
-          "decl": "void __stdcall FUN_001d1910(int handle, void *data, int param_3, int param_4);",
+          "decl": "bool __stdcall SetFileTime(int handle, void *creation_time, void *last_access_time, void *last_write_time);",
           "addr": "0x1d1910"
         },
         {
@@ -27217,7 +27218,7 @@
           "addr": "0x1d33a2"
         },
         {
-          "decl": "int __stdcall FUN_001d33e6(void *counter);",
+          "decl": "bool __stdcall QueryPerformanceCounter(void *counter);",
           "addr": "0x1d33e6"
         },
         {
@@ -27430,7 +27431,7 @@
           "addr": "0x1d04f1"
         },
         {
-          "decl": "void __stdcall FUN_001d051d(void *ptr);",
+          "decl": "void __stdcall GetLocalTime(void *system_time);",
           "addr": "0x1d051d"
         },
         {
@@ -27442,7 +27443,7 @@
           "addr": "0x1d0589"
         },
         {
-          "decl": "void __stdcall FUN_001d05f4(void *a, void *b);",
+          "decl": "bool __stdcall SystemTimeToFileTime(void *system_time, void *file_time);",
           "addr": "0x1d05f4"
         },
         {
@@ -32460,7 +32461,7 @@
           "addr": "0x1cfca4"
         },
         {
-          "decl": "void * __stdcall FUN_001cfd8c(void *security, int stack_size, void *func, void *param, int flags, int *thread_id);",
+          "decl": "void * __stdcall CreateThread(void *security, int stack_size, void *func, void *param, int flags, int *thread_id);",
           "addr": "0x1cfd8c"
         },
         {
@@ -32468,7 +32469,7 @@
           "addr": "0x1cfde0"
         },
         {
-          "decl": "void * __stdcall FUN_001cfded(void *security, int manual_reset, int initial_state, const char *name);",
+          "decl": "void * __stdcall CreateEventA(void *security, int manual_reset, int initial_state, const char *name);",
           "addr": "0x1cfded"
         },
         {
@@ -32476,7 +32477,7 @@
           "addr": "0x1cfe4e"
         },
         {
-          "decl": "void __stdcall FUN_001cfeaa(void *handle);",
+          "decl": "bool __stdcall SetEvent(void *handle);",
           "addr": "0x1cfeaa"
         },
         {
@@ -32516,7 +32517,7 @@
           "addr": "0x1d0144"
         },
         {
-          "decl": "void FUN_001d01c4(unsigned int milliseconds, int alertable);",
+          "decl": "void SleepEx(unsigned int milliseconds, int alertable);",
           "addr": "0x1d01c4"
         },
         {
