@@ -6445,8 +6445,9 @@
           "addr": "0x8e9f0"
         },
         {
-          "decl": "void FUN_0008ead0(void);",
-          "addr": "0x8ead0"
+          "decl": "void debug_malloc_check_all(const char *file, int line);",
+          "addr": "0x8ead0",
+          "ported": true
         },
         {
           "decl": "void FUN_0008f1e0(void);",
