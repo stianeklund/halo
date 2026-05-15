@@ -7342,11 +7342,11 @@
           "addr": "0xa7c30"
         },
         {
-          "decl": "void FUN_000a8110(void);",
+          "decl": "int FUN_000a8110(int param_1, int param_2);",
           "addr": "0xa8110"
         },
         {
-          "decl": "void FUN_000a8130(void);",
+          "decl": "int FUN_000a8130(int param_1);",
           "addr": "0xa8130"
         }
       ]
