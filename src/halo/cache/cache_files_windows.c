@@ -92,6 +92,19 @@ int FUN_001bc7e0(short map_file_index)
   return result;
 }
 
+/* Build cache map filename "z:\\cache%03d.map" into buffer.
+ * buffer in @<ecx>, index in @<eax> (caller sign-extends short to int). */
+void FUN_001bc830(char *buffer, int index)
+{
+  crt_sprintf(buffer, "z:\\cache%03d.map", index);
+}
+
+/* Signal the cache I/O event at DAT_004e9248. */
+void FUN_001bc850(void)
+{
+  FUN_001cfeaa(*(void **)0x4e9248);
+}
+
 /* FUN_001bc860 — IO completion callback for cache read/write.
  * Called by Windows when an overlapped IO request completes.
  * Validates error_code==ERROR_SUCCESS and bytes_transferred==request->size,
@@ -134,21 +147,19 @@ void __stdcall FUN_001bc860(int error_code, int bytes_transferred,
 void __stdcall FUN_001bc8f0(int error_code, unsigned int param_2,
                             void *overlapped)
 {
-  char *req = (char *)overlapped;
-  char *event_ptr;
-
   if (error_code != 0) {
     display_assert("error_code==ERROR_SUCCESS",
                    "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x54a, 1);
     system_exit(-1);
   }
-  event_ptr = *(char **)(req + 0x10);
-  if (!event_ptr) {
+  if (*(int *)((char *)overlapped + 0x10) == 0) {
     display_assert("overlapped->hEvent",
                    "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x54b, 1);
     system_exit(-1);
+    **(char **)((char *)overlapped + 0x10) = 1;
+    return;
   }
-  *event_ptr = 1;
+  **(char **)((char *)overlapped + 0x10) = 1;
 }
 
 /* FUN_001bc9c0 — close the currently-open map file if any is open.
@@ -499,11 +510,20 @@ bool cache_files_precache_map_loaded(char *map_name)
 {
   int _edi = (int)((char *(*)(char *))0x19b0d0)(map_name);
   int16_t result;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    mov edi, _edi
+    mov eax, 0x1bd1b0
+    call eax
+    mov result, ax
+  }
+#else
   asm volatile("movl $0x1bd1b0, %%eax\n\t"
                "call *%%eax"
                : "+D"(_edi), "=a"(result)
                :
                : "ecx", "edx", "memory", "cc");
+#endif
   return result != -1;
 }
 

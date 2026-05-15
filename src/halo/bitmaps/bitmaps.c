@@ -685,9 +685,9 @@ int FUN_0007d820(void *bitmap, short mipmap_index)
   assert_halt(mipmap_index >= 0 && mipmap_index <= *(short *)(b + 0x14));
 
   depth = *(short *)(b + 0x8);
-  if (depth >> (mipmap_index & 0x1f) < 2)
-    return 1;
-  return depth >> (mipmap_index & 0x1f);
+  if (1 < depth >> mipmap_index)
+    return depth >> mipmap_index;
+  return 1;
 }
 
 /* FUN_0007d8b0 — total number of texels in one mipmap slice (pixels per face).

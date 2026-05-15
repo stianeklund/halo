@@ -125,6 +125,8 @@ void cheats_initialize_for_new_map(void)
  * (or weapon if not in a vehicle) to the camera position using
  * object_set_position. Frameless in the original binary.
  */
+typedef void (*terminal_output_2_t)(void *, const char *);
+
 void FUN_000a6830(void)
 {
   int player_handle;
@@ -146,17 +148,16 @@ void FUN_000a6830(void)
     display_assert("result", "c:\\halo\\SOURCE\\game\\cheats.c", 0x100, 1);
     system_exit(-1);
   }
-  if (*(short *)(camera + 0x10) == (short)-1) {
-    terminal_output(*(void **)0x2ee6f0,
-                    "Camera is outside BSP... cannot initiate teleportation...",
-                    NULL);
+  if (*(short *)(camera + 0x10) != (short)-1) {
+    weapon_obj = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+    object_handle = *(int *)(weapon_obj + 0xcc);
+    if (object_handle == -1)
+      object_handle = *(int *)(player + 0x34);
+    object_set_position(object_handle, (float *)camera, NULL, NULL);
     return;
   }
-  weapon_obj = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
-  object_handle = *(int *)(weapon_obj + 0xcc);
-  if (object_handle == -1)
-    object_handle = *(int *)(player + 0x34);
-  object_set_position(object_handle, (float *)camera, NULL, NULL);
+  ((terminal_output_2_t)terminal_output)(*(void **)0x2ee6f0,
+      "Camera is outside BSP... cannot initiate teleportation...");
 }
 
 /* FUN_000a68e0 — give weapon infinite ammo for the first armed player.

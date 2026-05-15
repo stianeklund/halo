@@ -124,9 +124,9 @@ char FUN_00145a60(short breakable_surface_index)
   }
   idx = (int)breakable_surface_index;
   bsp_data = breakable_surfaces_get_bsp_surface_data();
-  if (!(*(uint32_t *)(bsp_data + (idx >> 5) * 4) & (1U << (idx & 0x1f))))
-    return 0;
-  return 1;
+  if (*(uint32_t *)(bsp_data + (idx >> 5) * 4) & (1 << (idx & 0x1f)))
+    return 1;
+  return 0;
 }
 
 /* 0x145ad0 — Breakable surface destruction effect spawner.

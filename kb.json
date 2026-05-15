@@ -13574,6 +13574,16 @@
           "ported": true
         },
         {
+          "decl": "void FUN_001bc830(char *buffer@<ecx>, int index@<eax>);",
+          "addr": "0x1bc830",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_001bc850(void);",
+          "addr": "0x1bc850",
+          "ported": true
+        },
+        {
           "decl": "void __stdcall FUN_001bc860(int error_code, int bytes_transferred, void *finished_request);",
           "addr": "0x1bc860",
           "status": "ported",
