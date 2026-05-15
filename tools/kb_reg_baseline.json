@@ -250,6 +250,7 @@
     "0x1bc7a0": "unsigned int FUN_001bc7a0(short map_file_index@<si>);",
     "0x1bc7e0": "int FUN_001bc7e0(short map_file_index@<si>);",
     "0x1bc830": "void FUN_001bc830(char *buffer@<ecx>, int index@<eax>);",
+    "0x1bcb80": "bool FUN_001bcb80(const char *map_name@<eax>, void *header_buf@<edi>);",
     "0x1bcea0": "void FUN_001bcea0(short map_file_index@<ax>);",
     "0x1bcfb0": "void FUN_001bcfb0(short map_file_index@<ax>);",
     "0x1bdd80": "void FUN_001bdd80(int tag_index @<eax>);",

@@ -112,6 +112,14 @@
       }
     },
     {
+      "name": "halo/cache_files_windows_FUN_001bcb80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/cache_files_windows.c.obj",
+      "base_path": "delinked/cache_files_windows_FUN_001bcb80.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/cache_files_windows.c"
+      }
+    },
+    {
       "name": "halo/cheats",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/game/cheats.c.obj",
       "base_path": "delinked/cheats.obj",

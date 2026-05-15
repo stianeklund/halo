@@ -245,6 +245,38 @@ void cache_files_io_request_enable(int16_t request_index)
   *(uint8_t *)(*(int *)0x4e9250 + (int)request_index * 0x20 + 0x1c) = 1;
 }
 
+/* Validate a map file by name (0x1bcb80). Builds the path
+ * "d:\\maps\\<map_name>.map" into a 256-byte stack buffer, opens it read-
+ * only, reads the first 0x800 bytes into the caller-supplied header buffer
+ * (passed in EDI), and asks cache_file_header_verify whether the header is
+ * legitimate (signature, version, etc). Returns true only if the file
+ * exists, the read returned exactly 0x800 bytes, and the header passes
+ * verification. Always closes the handle if it was opened.
+ *
+ * Register args: EAX = map name (for the printf substitution),
+ * EDI = 0x800-byte caller buffer that receives the header.
+ */
+bool FUN_001bcb80(const char *map_name /* @<eax> */,
+                  void *header_buf /* @<edi> */)
+{
+  char path[256];
+  int handle;
+  uint32_t bytes_read;
+  bool ok;
+
+  ok = false;
+  crt_sprintf(path, "d:\\maps\\%s.map", map_name);
+  handle = CreateFileA(path, 0x80000000, 0, 0, 3, 0, 0);
+  if (handle != -1) {
+    if (ReadFile(handle, header_buf, 0x800, &bytes_read, 0) != 0 &&
+        bytes_read == 0x800 && cache_file_header_verify(header_buf, path, 1)) {
+      ok = true;
+    }
+    CloseHandle(handle);
+  }
+  return ok;
+}
+
 /* cache_file_block_until_not_busy — spin-wait until all 512 cache IO request
  * slots are idle. Loops: sleeps 1ms (SleepEx(0,1)), then scans all slots
  * checking the active byte at +0x1d. If any slot is still active, repeat.

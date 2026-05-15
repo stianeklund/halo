@@ -4248,8 +4248,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001bcb80(void);",
-          "addr": "0x1bcb80"
+          "decl": "bool FUN_001bcb80(const char *map_name@<eax>, void *header_buf@<edi>);",
+          "addr": "0x1bcb80",
+          "ported": true
         },
         {
           "decl": "void FUN_001bcc10(void);",
@@ -5429,7 +5430,7 @@
           "addr": "0x1cf840"
         },
         {
-          "decl": "void FUN_001cf900(void);",
+          "decl": "int __stdcall CloseHandle(int handle);",
           "addr": "0x1cf900"
         },
         {
@@ -27075,7 +27076,7 @@
           "addr": "0x1d12c1"
         },
         {
-          "decl": "void FUN_001d13c9(void);",
+          "decl": "int __stdcall ReadFile(int handle, void *buffer, uint32_t size, uint32_t *bytes_read, void *overlapped);",
           "addr": "0x1d13c9"
         },
         {
@@ -32118,7 +32119,7 @@
           "addr": "0x1b98d0"
         },
         {
-          "decl": "void cache_file_header_verify(void);",
+          "decl": "bool cache_file_header_verify(void *header, const char *path, int report_errors);",
           "addr": "0x1b9ce0"
         },
         {
