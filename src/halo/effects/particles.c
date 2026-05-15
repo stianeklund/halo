@@ -334,7 +334,7 @@ bool FUN_000a1a90(int datum_handle)
   int frame_count;
   bool result;
 
-  datum    = (char *)datum_get(particle_data, datum_handle);
+  datum = (char *)datum_get(particle_data, datum_handle);
   part_tag = (char *)tag_get(0x70617274, *(int *)(datum + 0x04));
   bitm_tag = (char *)tag_get(0x6269746d, *(int *)(part_tag + 0x10));
   *(uint32_t *)(datum + 0x1c) = 0;
@@ -347,16 +347,16 @@ bool FUN_000a1a90(int datum_handle)
     }
     result = FUN_000a1910(datum_handle);
     if (result) {
-      seq_elem = (char *)tag_block_get_element(bitm_tag + 0x54,
-                                               (int)(*(int16_t *)(datum + 0x24)), 0x40);
+      seq_elem = (char *)tag_block_get_element(
+        bitm_tag + 0x54, (int)(*(int16_t *)(datum + 0x24)), 0x40);
       *(int16_t *)(datum + 0x26) = *(int16_t *)(seq_elem + 0x34) - 1;
     }
     return result;
   }
   /* Forward: increment toward frame_count */
-  seq_elem    = (char *)tag_block_get_element(bitm_tag + 0x54,
-                                              (int)(*(int16_t *)(datum + 0x24)), 0x40);
-  frame_count   = *(int32_t *)(seq_elem + 0x34);
+  seq_elem = (char *)tag_block_get_element(
+    bitm_tag + 0x54, (int)(*(int16_t *)(datum + 0x24)), 0x40);
+  frame_count = *(int32_t *)(seq_elem + 0x34);
   frame_counter = *(int16_t *)(datum + 0x26);
   if ((int)(frame_counter + 1) < frame_count) {
     *(int16_t *)(datum + 0x26) = frame_counter + 1;
@@ -380,8 +380,8 @@ bool FUN_000a1b60(int datum_handle, float delta_time)
   float frame_remainder;
   bool result;
 
-  datum  = (char *)datum_get(particle_data, datum_handle);
-  flags  = *(uint32_t *)tag_get(0x70617274, *(int *)(datum + 0x04));
+  datum = (char *)datum_get(particle_data, datum_handle);
+  flags = *(uint32_t *)tag_get(0x70617274, *(int *)(datum + 0x04));
   result = 1;
   if ((flags & 0x2) != 0 && (*(uint8_t *)(datum + 0x2) & 0x2) != 0)
     return result;
@@ -400,7 +400,7 @@ bool FUN_000a1b60(int datum_handle, float delta_time)
           *(float *)(datum + 0x1c) += delta_time;
           return result;
         }
-        result     = (bool)FUN_000a1a90(datum_handle);
+        result = (bool)FUN_000a1a90(datum_handle);
         delta_time -= frame_remainder;
         if (delta_time <= 0.0f)
           return result;
@@ -603,7 +603,8 @@ void particle_new(void *spawn_params)
     float phys_scale = particle_get_radius(datum_handle);
     float *phys_tag =
       (float *)tag_get(0x70706879, *(int *)((char *)tag + 0x20));
-    float phys_vel = point_physics_definition_get_mass((int)phys_tag, phys_scale);
+    float phys_vel =
+      point_physics_definition_get_mass((int)phys_tag, phys_scale);
     *(float *)(datum + 0x48) += phys_vel * *(float *)(sp + 0x34);
     *(float *)(datum + 0x4c) += phys_vel * *(float *)(sp + 0x38);
     *(float *)(datum + 0x50) += phys_vel * *(float *)(sp + 0x3c);
@@ -655,7 +656,8 @@ void particle_new(void *spawn_params)
 
     if (*tag & 0x4) {
       /* randomized animated sprite */
-      int16_t frame_count = local_random_range(0, *(uint16_t *)(seq_element + 0x34));
+      int16_t frame_count =
+        local_random_range(0, *(uint16_t *)(seq_element + 0x34));
       int16_t direction = (*(uint8_t *)(datum + 0x02) & 1) ? 1 : -1;
       *(int16_t *)(datum + 0x26) = frame_count + direction;
       return;
@@ -691,31 +693,10 @@ void particles_update(float delta_time)
       *(float *)(datum + 0x14) = new_lifetime;
       if (new_lifetime < *(float *)(datum + 0x18) || just_created ||
           *(int16_t *)(tag + 0x9e) != 0) {
-        {
-          /* particle_step at 0xa1b60: EDI=datum_handle, stack=delta_time */
-          int _edi = datum_handle;
-          int _dt = *(int *)&delta_time;
-          int _result;
-          asm volatile("pushl %[dt]\n\t"
-                       "movl $0xa1b60, %%eax\n\t"
-                       "call *%%eax\n\t"
-                       "addl $4, %%esp"
-                       : "+D"(_edi), "=a"(_result)
-                       : [dt] "r"(_dt)
-                       : "ecx", "edx", "memory", "cc");
-          if ((char)_result)
-            ((bool (*)(int, float))0xa1c30)(datum_handle, delta_time);
-        }
+        if (FUN_000a1b60(datum_handle, delta_time))
+          FUN_000a1c30(datum_handle, delta_time);
       } else {
-        {
-          /* particle_delete at 0xa18c0: EBX=datum_handle */
-          int _ebx = datum_handle;
-          asm volatile("movl $0xa18c0, %%eax\n\t"
-                       "call *%%eax"
-                       : "+b"(_ebx)
-                       :
-                       : "eax", "ecx", "edx", "esi", "edi", "memory", "cc");
-        }
+        FUN_000a18c0(datum_handle);
       }
     } else {
       datum_delete(particle_data, datum_handle);

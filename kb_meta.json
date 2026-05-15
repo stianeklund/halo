@@ -149,6 +149,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2a470": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2a7e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2a860": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2b5d0": {
       "kind": "function",
       "status": "ported",
@@ -159,11 +171,23 @@
         "Table element semantics are inferred from math pattern and write layout; symbolic names for backing globals/constants remain unknown."
       ]
     },
+    "0x2b720": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2cdb0": {
       "kind": "function",
       "status": "ported"
     },
     "0x2d350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2d850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2d9b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -266,6 +290,14 @@
         "Whether actors.obj contains additional unported functions such as actors_initialize_for_new_map at 0x3a990 has not been confirmed."
       ]
     },
+    "0x3aac0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3ab80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3ac20": {
       "kind": "function",
       "status": "ported"
@@ -290,6 +322,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3b100": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b240": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3b270": {
       "kind": "function",
       "status": "ported"
@@ -298,11 +342,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3b380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b3c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3b410": {
       "kind": "function",
       "status": "ported"
     },
     "0x3b5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b630": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b6f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3b700": {
       "kind": "function",
       "status": "ported"
     },
@@ -338,6 +402,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3bc90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3bde0": {
       "kind": "function",
       "status": "ported"
@@ -346,7 +414,35 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3c0c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3c260": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3c2a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3c2d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3c330": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3c370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3c3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3c3e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -376,7 +472,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3cd30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3cff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3d330": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3d3d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -467,7 +575,43 @@
       "name": "ai_place",
       "name_confidence": "high"
     },
+    "0x3f770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3f7b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3f800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3f850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3f970": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3fa40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3fdc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3fe30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3feb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3ff40": {
       "kind": "function",
       "status": "ported"
     },
@@ -481,11 +625,35 @@
         "0x5ab270 (extended actor iterator data) and 0x5ab23c (clump data_t) are not yet in kb.json; used via raw pointer access."
       ]
     },
+    "0x40280": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x40360": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x40570": {
       "kind": "function",
       "status": "ported"
     },
+    "0x40690": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x409a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x409e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x40f80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x41040": {
       "kind": "function",
       "status": "ported"
     },
@@ -536,6 +704,34 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x48fa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x49000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x49080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x49220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4ab10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4b1b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4c0f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x58fa0": {
       "kind": "function",
       "status": "ported"
@@ -560,6 +756,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x59930": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x59a00": {
       "kind": "function",
       "status": "ported"
@@ -576,7 +776,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5aab0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5adc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5b200": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5b2a0": {
       "kind": "function",
       "status": "ported"
     },
@@ -659,6 +871,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5e920": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5eae0": {
       "kind": "function",
       "status": "ported"
@@ -723,7 +939,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7c750": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7c7c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7c840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7c8b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -735,6 +963,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7cb60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7cdf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d000": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7d440": {
       "kind": "function",
       "status": "ported"
@@ -743,7 +983,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7d5d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d650": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7d6e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d780": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d8b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d960": {
       "kind": "function",
       "status": "ported"
     },
@@ -767,6 +1031,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x81870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x818d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82130": {
       "kind": "function",
       "status": "ported",
@@ -783,6 +1055,10 @@
       "status": "ported"
     },
     "0x82300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x82850": {
       "kind": "function",
       "status": "ported"
     },
@@ -817,6 +1093,10 @@
         "winsock_error_report at 0x83310 is cdecl with 1 int arg and void return, based on PUSH EAX / CALL / ADD ESP,4 pattern and no use of return value.",
         "xnet_closesocket at 0x225cc6 is stdcall with 1 int arg returning int, based on PUSH EAX / CALL and callee RET 4."
       ]
+    },
+    "0x84300": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x848c0": {
       "kind": "function",
@@ -996,6 +1276,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8ddd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8de70": {
       "kind": "function",
       "status": "ported"
@@ -1029,6 +1313,10 @@
       "status": "ported"
     },
     "0x8e7c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8ead0": {
       "kind": "function",
       "status": "ported"
     },
@@ -1109,6 +1397,22 @@
       "status": "ported"
     },
     "0x91800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x92440": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x92460": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x92710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x92d30": {
       "kind": "function",
       "status": "ported"
     },
@@ -1563,6 +1867,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa14f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa1510": {
       "kind": "function",
       "status": "ported"
@@ -1663,7 +1971,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa6760": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa6820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa6830": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa68e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -1798,6 +2118,26 @@
         "summary": "Returns whether two teams are friendly by checking a 10x10 bitfield at game_allegiance_globals+0xa4"
       }
     },
+    "0xa7a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa7ae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa7b40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa7bc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa7c30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa7c90": {
       "kind": "function",
       "status": "ported",
@@ -1890,6 +2230,10 @@
       "status": "ported"
     },
     "0xa8e30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8e40": {
       "kind": "function",
       "status": "ported"
     },
@@ -2039,6 +2383,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xad530": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xad600": {
       "kind": "function",
       "status": "ported"
@@ -2116,6 +2464,10 @@
       "status": "ported"
     },
     "0xb5650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb56e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2886,6 +3238,10 @@
       "status": "ported"
     },
     "0xcb7b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcb980": {
       "kind": "function",
       "status": "ported"
     },
@@ -3757,6 +4113,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf7ce0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf7d30": {
       "kind": "function",
       "status": "ported"
@@ -4171,6 +4531,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x106510": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x108a70": {
       "kind": "function",
       "status": "ported"
@@ -4341,6 +4705,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10b600": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10b620": {
       "kind": "function",
       "status": "ported",
@@ -4354,6 +4722,14 @@
       "inferred": [
         "Rodrigues rotation formula: rotates vector[0..2] around axis[0..2] by angle specified via sin_angle and cos_angle arguments."
       ]
+    },
+    "0x10b7d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10b820": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x10bc70": {
       "kind": "function",
@@ -4381,6 +4757,10 @@
       "inferred": [
         "angles[0]=yaw, angles[1]=pitch; standard spherical-to-cartesian conversion."
       ]
+    },
+    "0x10cc70": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x10e040": {
       "kind": "function",
@@ -4491,6 +4871,10 @@
       "status": "ported"
     },
     "0x11d9d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11db00": {
       "kind": "function",
       "status": "ported"
     },
@@ -4618,6 +5002,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x120870": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x120f20": {
       "kind": "function",
       "status": "ported"
@@ -4638,6 +5026,10 @@
       }
     },
     "0x1249b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x124a30": {
       "kind": "function",
       "status": "ported"
     },
@@ -4662,6 +5054,10 @@
       "status": "ported"
     },
     "0x125820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x125860": {
       "kind": "function",
       "status": "ported"
     },
@@ -5401,6 +5797,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x145990": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1459e0": {
       "kind": "function",
       "status": "ported",
@@ -5409,6 +5809,10 @@
       "inferred": [
         "global_structure_bsp_index is an int16_t at 0x326a0c immediately following global_scenario_index (int at 0x326a08); the function returns a pointer into the 16-entry, 32-byte-per-BSP bitfield region starting at breakable_surface_globals+1."
       ]
+    },
+    "0x145a60": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x14ad40": {
       "kind": "function",
@@ -5889,6 +6293,10 @@
         "summary": "Sets both visibility toggle bytes at 0x505702 and 0x505701 to param_1."
       }
     },
+    "0x1965f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1983c0": {
       "kind": "function",
       "status": "ported"
@@ -6238,6 +6646,10 @@
         "summary": "Resolves a unit handle via object_get_and_verify_type(mask 3) and returns bit 6 of unit_data_t.unk_436 as the alive flag."
       }
     },
+    "0x1a9ad0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1aa3c0": {
       "kind": "function",
       "status": "ported",
@@ -6475,6 +6887,10 @@
         "The anim_index parameter doubles as the EDI register value passed to unit_animation_state_allows_impulse (0x1a96f0) via register leak \u2014 the callee uses DI to gate impulses 0xc and 0xd."
       ]
     },
+    "0x1b1d00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b1db0": {
       "kind": "function",
       "status": "ported"
@@ -6558,6 +6974,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bc9c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bc9e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bcb30": {
       "kind": "function",
       "status": "ported",
@@ -6565,6 +6989,26 @@
         "Global at 0x4e9250 is a pointer to an array of 0x20-byte cache request structures; field at offset 0x1c is an enable/active flag byte.",
         "MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS is 0x200 (512), derived from the CMP SI,0x200 bounds check."
       ]
+    },
+    "0x1bcc50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bccb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bcd10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bcdc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bce30": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1bcf00": {
       "kind": "function",

@@ -78,6 +78,8 @@
     "0xa0080": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
     "0xa1770": "void FUN_000a1770(int particle@<eax>, int tag_group@<ecx>, int physics_tag@<esi>, int param);",
     "0xa18c0": "void FUN_000a18c0(int datum_handle@<ebx>);",
+    "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
+    "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
     "0xa2ba0": "void FUN_000a2ba0(int unit_index, float damage_amount, float scale, float *effect_data@<eax>, void *effect@<ebx>);",
     "0xa3890": "void FUN_000a3890(int unit_index, float *rumble_def, void *direction, float damage_amount, float scale, float *effect@<eax>);",
     "0xa8780": "void game_engine_update_flag_state(int weapon_index@<esi>);",
@@ -104,7 +106,7 @@
     "0xbdb00": "void player_update_spawn_state(int datum_handle@<ebx>);",
     "0xc4660": "bool hs_load_source_file(void *file_ref@<ebx>);",
     "0xc4900": "void hs_report_compile_error(void *error_info, char *error_text@<esi>, char *script_element@<ebx>, void *source_start@<edi>);",
-    "0xc5730": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);",
+    "0xc5730": "char *hs_compile_initialize(int source_file_size@<edi>, void *source_ptr);",
     "0xc57d0": "int FUN_000c57d0(char *str@<ebx>);",
     "0xc5840": "bool FUN_000c5840(int datum_index @<eax>);",
     "0xc5960": "void FUN_000c5960(int datum_index @<eax>);",
@@ -217,7 +219,7 @@
     "0x13e7b0": "void object_compute_function_values(int object_handle@<eax>);",
     "0x13ee60": "void object_propagate_flag_to_children(int object_handle@<eax>, int param_1, int param_2);",
     "0x13eff0": "void object_remove_from_name_list(int object_handle@<edi>);",
-    "0x140ad0": "void FUN_00140ad0(int object_handle@<edi>);",
+    "0x140ad0": "void object_choose_random_region_permutations(int object_handle@<edi>);",
     "0x14d080": "void collision_log_period_helper(int time_period@<esi>, int begin_flag);",
     "0x14d840": "short FUN_0014d840(short collision_function @<edi>);",
     "0x155110": "void FUN_00155110(int stage@<eax>, int sub_index@<ecx>, unsigned int *result);",
@@ -283,5 +285,7 @@
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
-  }
+  },
+  "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
+  "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);"
 }
