@@ -18594,8 +18594,9 @@
           "ported": true
         },
         {
-          "decl": "void point_in_rectangle2d(void);",
-          "addr": "0x10bd70"
+          "decl": "int FUN_0010bd70(float *point, float *rect);",
+          "addr": "0x10bd70",
+          "ported": true
         },
         {
           "decl": "void point_in_rectangle3d(void);",
@@ -18615,12 +18616,14 @@
           "ported": true
         },
         {
-          "decl": "void yaw_vectors(void);",
-          "addr": "0x10c690"
+          "decl": "void FUN_0010c690(float *v1, float *axis, float scale1, float scale2);",
+          "addr": "0x10c690",
+          "ported": true
         },
         {
-          "decl": "void FUN_0010c700(void);",
-          "addr": "0x10c700"
+          "decl": "void FUN_0010c700(float *v1, float *v2, float scale1, float scale2);",
+          "addr": "0x10c700",
+          "ported": true
         },
         {
           "decl": "void sphere_intersects_rectangle3d(float *quaternion);",
@@ -18628,8 +18631,9 @@
           "ported": true
         },
         {
-          "decl": "void quaternion_from_angle_and_vector(void);",
-          "addr": "0x10cab0"
+          "decl": "void FUN_0010cab0(float *out, float angle, float *axis);",
+          "addr": "0x10cab0",
+          "ported": true
         },
         {
           "decl": "void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3);",
@@ -18660,12 +18664,14 @@
           "ported": true
         },
         {
-          "decl": "void point_in_pill2d(void);",
-          "addr": "0x10cc90"
+          "decl": "int FUN_0010cc90(float *p1, float *p2, float *p3, float r);",
+          "addr": "0x10cc90",
+          "ported": true
         },
         {
-          "decl": "void point_to_line_distance_squared3d(void);",
-          "addr": "0x10cd40"
+          "decl": "float FUN_0010cd40(float *p1, float *p2, float *p3);",
+          "addr": "0x10cd40",
+          "ported": true
         },
         {
           "decl": "void vector_to_line_distance_squared3d(void);",
@@ -18680,12 +18686,14 @@
           "addr": "0x10d4c0"
         },
         {
-          "decl": "void fast_vector_intersection_with_sphere(void);",
-          "addr": "0x10d680"
+          "decl": "float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center, float radius);",
+          "addr": "0x10d680",
+          "ported": true
         },
         {
-          "decl": "void point_in_triangle2d(void);",
-          "addr": "0x10d770"
+          "decl": "char FUN_0010d770(float *p1, float *p2, float *p3, float *p4, float *out_u, float *out_v);",
+          "addr": "0x10d770",
+          "ported": true
         },
         {
           "decl": "void point_in_triangle3d(void);",

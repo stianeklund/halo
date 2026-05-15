@@ -1511,3 +1511,168 @@ void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles)
   matrix4x3_decompose(matrix, local_position, forward, up);
 }
 
+/* 0x10bd70 — Point-in-rectangle test (2D, fully inclusive). */
+int FUN_0010bd70(float *point, float *rect)
+{
+  if (rect[0] <= point[0] && point[0] <= rect[1] &&
+      rect[2] <= point[1] && point[1] <= rect[3]) {
+    return 1;
+  }
+  return 0;
+}
+
+/* 0x10c690 — Update v1 = scale1 * cross(axis, v1) + scale2 * v1.
+ * Uses temporaries for aliasing safety. */
+void FUN_0010c690(float *v1, float *axis, float scale1, float scale2)
+{
+  float a = v1[0];
+  float ax2 = axis[2];
+  float ax0 = axis[0];
+  float b = v1[1];
+  float ax0b = axis[0];
+  float c = v1[0];
+  float ax1 = axis[1];
+
+  v1[0] = (axis[1] * v1[2] - v1[1] * axis[2]) * scale1 + scale2 * v1[0];
+  v1[1] = (a * ax2 - ax0 * v1[2]) * scale1 + scale2 * v1[1];
+  v1[2] = scale2 * v1[2] + (b * ax0b - c * ax1) * scale1;
+}
+
+/* 0x10c700 — Rotate two 3D vectors around an axis: rotate v1 toward v2 and v2
+ * away from v1 by (scale1, scale2). Uses temporaries to allow aliasing. */
+void FUN_0010c700(float *v1, float *v2, float scale1, float scale2)
+{
+  float a = v1[0];
+  float b = v1[1];
+  float c = v1[2];
+
+  v1[0] = scale1 * v2[0] + scale2 * v1[0];
+  v1[1] = scale1 * v2[1] + scale2 * v1[1];
+  v1[2] = scale1 * v2[2] + scale2 * v1[2];
+  v2[0] = -a * scale1 + scale2 * v2[0];
+  v2[1] = scale2 * v2[1] + -b * scale1;
+  v2[2] = -c * scale1 + scale2 * v2[2];
+}
+
+/* 0x10cab0 — Build a quaternion from an axis and angle.
+ * out = (axis * sin(angle/2), cos(angle/2)). */
+void FUN_0010cab0(float *out, float angle, float *axis)
+{
+  float s = sinf(angle * 0.5f);
+  float c = cosf(angle * 0.5f);
+
+  out[3] = c;
+  out[0] = s * axis[0];
+  out[1] = s * axis[1];
+  out[2] = s * axis[2];
+}
+
+/* 0x10cc90 — Test if a 2D circle intersects a line segment.
+ * p1=point, p2=line start, p3=line direction, r=radius². */
+int FUN_0010cc90(float *p1, float *p2, float *p3, float r)
+{
+  float t = ((p1[1] - p2[1]) * p3[1] + (p1[0] - p2[0]) * p3[0]) /
+            (p3[1] * p3[1] + p3[0] * p3[0]);
+  float dx, dy;
+  float clamped_t = 0.0f;
+
+  if (0.0f <= t) {
+    clamped_t = t;
+    if (1.0f < t) {
+      clamped_t = 1.0f;
+    }
+  }
+  dx = -clamped_t * p3[0] + (p1[0] - p2[0]);
+  dy = -clamped_t * p3[1] + (p1[1] - p2[1]);
+  if (r * r < dy * dy + dx * dx) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10cd40 — Squared distance from a 3D point to a line segment.
+ * p1=point, p2=segment start, p3=segment direction.
+ * Returns dot(closest - point, closest - point). */
+float FUN_0010cd40(float *p1, float *p2, float *p3)
+{
+  float t_unclamped = ((p1[0] - p2[0]) * p3[0] +
+                      (p1[1] - p2[1]) * p3[1] +
+                      (p1[2] - p2[2]) * p3[2]) /
+                     (p3[2] * p3[2] + p3[1] * p3[1] + p3[0] * p3[0]);
+  float t;
+  float dx, dy, dz;
+
+  if (0.0f <= t_unclamped) {
+    if (t_unclamped <= 1.0f) {
+      t = t_unclamped;
+    } else {
+      t = 1.0f;
+    }
+  } else {
+    t = 0.0f;
+  }
+  t = -t;
+  dx = t * p3[0] + (p1[0] - p2[0]);
+  dy = t * p3[1] + (p1[1] - p2[1]);
+  dz = t * p3[2] + (p1[2] - p2[2]);
+  return dy * dy + dx * dx + dz * dz;
+}
+
+/* 0x10d680 — Ray vs sphere distance.
+ * Returns t along ray where ray hits sphere, or REAL_MAX if no hit.
+ * Returns 0 if ray origin is inside sphere. */
+float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center,
+                   float radius)
+{
+  float dx = ray_origin[0] - sphere_center[0];
+  float dy = ray_origin[1] - sphere_center[1];
+  float dz = ray_origin[2] - sphere_center[2];
+  float c = (dx * dx + dy * dy + dz * dz) - radius * radius;
+  float dr_x, dr_y, dr_z;
+  float b, a, disc;
+
+  if (c < 0.0f) {
+    return 0.0f;
+  }
+  dr_x = ray_dir[0];
+  dr_y = ray_dir[1];
+  dr_z = ray_dir[2];
+  b = dr_x * dx + dr_y * dy + dr_z * dz;
+  if (b < 0.0f) {
+    a = dr_x * dr_x + dr_y * dr_y + dr_z * dr_z;
+    disc = b * b - a * c;
+    if (disc >= 0.0f) {
+      return (-b - sqrtf(disc)) / a;
+    }
+  }
+  return 3.4028235e+38f;
+}
+
+/* 0x10d770 — 2D triangle barycentric coordinates.
+ * Tests if point p1 is inside triangle (p2, p3, p4) and computes
+ * barycentric coords. Returns 1 if inside, 0 if outside.
+ * Returns char to match MSVC's MOV AL,0x1 (preserves upper EAX bytes). */
+char FUN_0010d770(float *p1, float *p2, float *p3, float *p4,
+                  float *out_u, float *out_v)
+{
+  float det = (p1[1] - p2[1]) * (p3[0] - p2[0]) -
+              (p1[0] - p2[0]) * (p3[1] - p2[1]);
+  float det2, total, inv_total;
+
+  if (0.0f <= det) {
+    det2 = (p1[0] - p2[0]) * (p4[1] - p2[1]) -
+           (p1[1] - p2[1]) * (p4[0] - p2[0]);
+    if (0.0f <= det2) {
+      total = (p4[1] - p2[1]) * (p3[0] - p2[0]) -
+              (p4[0] - p2[0]) * (p3[1] - p2[1]);
+      if (det2 + det <= total) {
+        inv_total = 1.0f / total;
+        *out_u = det2 * inv_total;
+        *out_v = inv_total * det;
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
