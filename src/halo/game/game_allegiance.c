@@ -98,6 +98,35 @@ bool FUN_000a7ae0(int16_t team_a, int16_t team_b)
   return 0;
 }
 
+int16_t FUN_000a7b40(int16_t team_a, int16_t team_b, int16_t *out_threshold)
+{
+  int16_t i;
+  int16_t result;
+  int16_t threshold;
+  int16_t *entry;
+
+  i = 0;
+  entry = (int16_t *)game_allegiance_globals + 1;
+  result = 0;
+  threshold = -1;
+  if (*(int16_t *)game_allegiance_globals > 0) {
+    do {
+      if ((entry[0] == team_a && entry[1] == team_b) ||
+          (entry[1] == team_a && entry[0] == team_b)) {
+        result = entry[7];
+        threshold = entry[2];
+        break;
+      }
+      i++;
+      entry += 9;
+    } while (i < *(int16_t *)game_allegiance_globals);
+  }
+  if (out_threshold != NULL) {
+    *out_threshold = threshold;
+  }
+  return result;
+}
+
 /**
  * Sets the friendship state between two teams in an allegiance entry.
  *
