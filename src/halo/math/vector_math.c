@@ -256,16 +256,7 @@ float FUN_00021380(float x)
 /* 0x21390 — Tangent of a float (x87 FPTAN). */
 float FUN_00021390(float x)
 {
-  float result;
-  __asm__ volatile (
-    "flds %1\n\t"
-    "fptan\n\t"
-    "fstp %%st(0)\n\t"
-    "fstps %0"
-    : "=m"(result)
-    : "m"(x)
-  );
-  return result;
+  return sinf(x) / cosf(x);
 }
 
 /* 0x213a0 — 2D cross product (z-component): a[0]*b[1] - a[1]*b[0]. */
