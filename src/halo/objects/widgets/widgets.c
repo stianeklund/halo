@@ -22,6 +22,13 @@ void widgets_update(float delta_time)
   }
 }
 
+/* widgets_dispose — clears the per-widget debug handle slot, called from
+ * objects_dispose.  Verified: single store of 0xffffffff to 0x0046f070. */
+void widgets_dispose(void)
+{
+  *(int *)0x0046f070 = -1;
+}
+
 /* widgets_dispose_from_old_map — empty in the shipped build; reserved hook
  * called from objects_dispose_from_old_map. Verified: single RET at 0x1365b0.
  */
