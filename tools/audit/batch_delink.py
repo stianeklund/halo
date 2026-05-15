@@ -58,7 +58,12 @@ DEFAULT_EXPORTER = "Relocatable Object File (COFF)"
 
 # How many bytes past the last known function start to pad the range end.
 # This is a heuristic — the real size isn't in kb.json.
+# Starting pad for the stabilization probe; doubled each round until size stops growing.
 RANGE_END_PAD = 0x200
+# Stop growing when two successive exports differ by less than this fraction.
+_PAD_STABLE_THRESHOLD = 0.05
+# Maximum pad doublings before we give up (0x200 → 0x400 → 0x800 → 0x1000 → 0x2000).
+_PAD_MAX_DOUBLINGS = 4
 
 # Pad for per-function exports of split TUs — generous enough to cover most functions.
 RANGE_PAD_PER_FUNC = 0x2000
@@ -100,6 +105,40 @@ def compute_range(obj: dict) -> tuple[int, int] | None:
     if not addrs:
         return None
     return min(addrs), max(addrs) + RANGE_END_PAD
+
+
+def stabilize_export_rpc(export_path: str, lo: int, max_addr: int) -> tuple[int, int]:
+    """Export with progressively larger pads until the obj size stops growing.
+
+    The last function in an object can be arbitrarily large; a fixed RANGE_END_PAD
+    after its start address truncates it when it exceeds the pad.  We detect this
+    by doubling the pad and re-exporting: if the new obj is more than
+    _PAD_STABLE_THRESHOLD larger, the first export was cut short — keep growing.
+
+    Returns (final_hi, final_obj_bytes).
+    """
+    pad = RANGE_END_PAD
+    hi = max_addr + pad
+    export_via_rpc(export_path, range_str(lo, hi))
+    prev_size = Path(export_path).stat().st_size
+
+    for _ in range(_PAD_MAX_DOUBLINGS):
+        pad *= 2
+        hi2 = max_addr + pad
+        try:
+            export_via_rpc(export_path, range_str(lo, hi2))
+        except Exception:
+            break
+        new_size = Path(export_path).stat().st_size
+        growth = (new_size - prev_size) / max(prev_size, 1)
+        if growth < _PAD_STABLE_THRESHOLD:
+            # Size stabilized — the larger export is fine; keep it.
+            return hi2, new_size
+        # Grew significantly; the previous export was truncated — keep probing.
+        hi = hi2
+        prev_size = new_size
+
+    return hi, prev_size
 
 
 def compute_truncated_range(obj: dict) -> tuple[int, int] | None:
@@ -498,7 +537,19 @@ def main() -> int:
 
         try:
             if backend == "rpc":
-                export_via_rpc(str(export_path), addr_range)
+                # Stabilization probe: double the pad until obj size stops growing,
+                # catching truncated last functions (e.g. RANGE_END_PAD < function size).
+                lo_addr = lo
+                max_func_addr = hi - RANGE_END_PAD  # recover max_addr before pad
+                final_hi, obj_bytes = stabilize_export_rpc(
+                    str(export_path), lo_addr, max_func_addr
+                )
+                if final_hi != hi:
+                    manifest[name]["addr_range"] = f"0x{lo_addr:08x}-0x{final_hi:08x}"
+                    pad_used = final_hi - max_func_addr
+                    print(f"  ok  {name}  -> {export_path.name}  ({obj_bytes}B)  [pad grown to 0x{pad_used:x}]")
+                else:
+                    print(f"  ok  {name}  -> {export_path.name}  ({obj_bytes}B)")
             else:
                 export_via_headless(
                     str(export_path),
@@ -507,7 +558,8 @@ def main() -> int:
                     args.project_dir,
                     args.script_dir,
                 )
-            print(f"  ok  {name}  -> {export_path.name}")
+                obj_bytes = export_path.stat().st_size
+                print(f"  ok  {name}  -> {export_path.name}  ({obj_bytes}B)")
             success += 1
         except Exception as exc:
             trunc = compute_truncated_range(obj)

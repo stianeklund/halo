@@ -332,9 +332,10 @@ def main():
         n_r = len(reference_funcs[fn])
         status = "PASS" if pct >= args.threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
+        trunc_tag = " [REF-TRUNCATED?]" if n_r > 0 and n_c > n_r * 1.4 else ""
 
         if not args.fpu_only:
-            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}")
+            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}{trunc_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True

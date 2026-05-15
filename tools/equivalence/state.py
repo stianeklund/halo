@@ -128,6 +128,7 @@ class CPUState:
     scratch_data: bytes = b''  # contents of scratch buffer after run
     error: Optional[str] = None
     insn_count: int = 0
+    visited_pcs: dict = field(default_factory=dict)
 
 
 def capture(uc, scratch_base: int, scratch_size: int, entry_esp: int) -> CPUState:

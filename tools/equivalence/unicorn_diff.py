@@ -485,12 +485,15 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     entry_esp = esp_after_args  # ESP at function entry (after pushing ret addr)
 
-    # Track instruction count
+    # Track instruction count and code coverage (address -> instruction size)
     insn_count = [0]
     stub_trace_count = [0]
+    visited_pcs = {}
 
     def hook_code(uc, address, size, user_data):
         insn_count[0] += 1
+        if address not in visited_pcs:
+            visited_pcs[address] = size
         if verbose and address in stub_addrs and stub_trace_count[0] < 64:
             symbol_name = ""
             if stub_manager is not None:
@@ -616,6 +619,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     s = state_mod.capture(uc, SCRATCH_BASE, SCRATCH_SIZE, entry_esp + 4)
     s.error = err_msg
     s.insn_count = insn_count[0]
+    s.visited_pcs = visited_pcs
     return s
 
 
@@ -1056,6 +1060,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     failed = 0
     errors = 0
     first_diff = None
+    all_visited_pcs = {}
+    oracle_returns = set()
+    oracle_func_base = (CODE_BASE + oracle_slice.section_offset) if oracle_text else CODE_BASE
+    oracle_func_end = oracle_func_base + len(oracle_code_patched)
 
     for si, seed_vec in enumerate(seeds):
         seed_label = f"seed[{si:3d}]"
@@ -1094,6 +1102,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             errors += 1
             continue
 
+        # Collect coverage data from oracle execution
+        for pc, sz in oracle_state.visited_pcs.items():
+            if oracle_func_base <= pc < oracle_func_end and pc not in all_visited_pcs:
+                all_visited_pcs[pc] = sz
+        if not abi['ret_void']:
+            oracle_returns.add(oracle_state.eax)
+
         # Determine what to compare based on return type
         ret_eax = not abi['ret_void'] and not abi['ret_st0'] and not abi.get('ret_is_ptr', False)
         diff = state_mod.compare(
@@ -1130,6 +1145,30 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                 info(f"  {seed_label} PASS")
                 info(state_mod.format_state_verbose(oracle_state, "oracle"))
 
+    # Coverage and confidence analysis
+    oracle_func_size = len(oracle_code_patched)
+    covered_bytes = sum(all_visited_pcs.values())
+    coverage_pct = covered_bytes / oracle_func_size * 100 if oracle_func_size > 0 else 0
+    unique_returns = len(oracle_returns)
+    monotonic_return = unique_returns <= 1 and not abi['ret_void'] and passed > 0
+
+    if monotonic_return:
+        confidence = "weak"
+    elif coverage_pct >= 60:
+        confidence = "high"
+    elif coverage_pct >= 30:
+        confidence = "moderate"
+    else:
+        confidence = "weak"
+
+    info("")
+    info(f"  coverage: {covered_bytes}/{oracle_func_size} bytes ({coverage_pct:.1f}%) — confidence: {confidence}")
+    if monotonic_return:
+        ret_val = next(iter(oracle_returns)) if oracle_returns else 0
+        log(f"  WARNING: all {passed} seeds returned identical value (0x{ret_val:08x}) — low path diversity")
+    if coverage_pct < 30 and passed > 0:
+        log(f"  WARNING: only {coverage_pct:.1f}% code coverage — likely testing only early-exit path")
+
     info("")
     log(f"=== RESULTS: {passed} passed, {failed} failed, {errors} errors / {len(seeds)} seeds ===")
 
@@ -1148,12 +1187,18 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     if failed == 0 and errors == 0:
         return finish("pass", True, None, 0,
                       passed=passed, failed=failed, errors=errors,
-                      seeds=len(seeds))
+                      seeds=len(seeds),
+                      coverage_pct=round(coverage_pct, 1),
+                      unique_returns=unique_returns,
+                      confidence=confidence)
 
     reason = "emulation_error" if errors else "divergence"
     return finish("fail", True, reason, 1,
                   passed=passed, failed=failed, errors=errors,
-                  seeds=len(seeds))
+                  seeds=len(seeds),
+                  coverage_pct=round(coverage_pct, 1),
+                  unique_returns=unique_returns,
+                  confidence=confidence)
 
 
 def _format_inputs(params, seed_vec) -> str:

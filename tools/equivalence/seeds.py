@@ -259,9 +259,7 @@ def generate_seeds(params: list, num_seeds: int = 100, base_seed: int = 0,
             if p.is_pointer:
                 slot_rng = random.Random(base_seed ^ (ri * 0xABCD + 7))
                 if safe_mode:
-                    floats = []
-                    for fi in range(64):
-                        floats.append(float_corners[(ri + fi) % len(float_corners)])
+                    floats = [slot_rng.uniform(-100.0, 100.0) for _ in range(64)]
                 else:
                     floats = _random_floats(slot_rng, 64)
                 blob = b""
@@ -273,21 +271,21 @@ def generate_seeds(params: list, num_seeds: int = 100, base_seed: int = 0,
                 vec.append(blob)
             elif p.is_float:
                 if safe_mode:
-                    rv = float_corners[ri % len(float_corners)]
+                    rv = rng.uniform(-100.0, 100.0)
                 else:
                     rv = _random_floats(rng, 1)[0]
                 vec.append(rv)
             elif p.is_double:
                 if safe_mode:
-                    rv = float(float_corners[ri % len(float_corners)])
+                    rv = rng.uniform(-100.0, 100.0)
                 else:
                     rv = rng.uniform(-1e15, 1e15)
                 vec.append(rv)
             else:
                 if safe_mode and _is_size_like_param(p.name):
-                    vec.append(SAFE_SIZE_CORNERS[ri % len(SAFE_SIZE_CORNERS)])
+                    vec.append(rng.randint(0, 128))
                 elif safe_mode:
-                    vec.append(SAFE_INT_CORNERS[ri % len(SAFE_INT_CORNERS)])
+                    vec.append(rng.randint(-128, 255))
                 else:
                     vec.append(_random_ints(rng, 1)[0])
         if safe_mode:
