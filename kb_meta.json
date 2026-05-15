@@ -1032,6 +1032,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8eb80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8ec60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8ee60": {
       "kind": "function",
       "status": "ported"
@@ -7200,7 +7208,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ed620": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ed930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ed980": {
       "kind": "function",
       "status": "ported"
     },
