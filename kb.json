@@ -17624,8 +17624,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001550c0(void);",
-          "addr": "0x1550c0"
+          "decl": "void FUN_001550c0(unsigned int arg_eax@<eax>, unsigned int arg_ecx@<ecx>, unsigned int arg_edx@<edx>, unsigned int unused_stack0, unsigned int stack_arg1, unsigned int stack_arg2, unsigned int stack_arg3);",
+          "addr": "0x1550c0",
+          "ported": true
         },
         {
           "decl": "void FUN_00155110(int stage@<eax>, int sub_index@<ecx>, unsigned int *result);",
