@@ -86,7 +86,8 @@ int FUN_000a12e0(int particle_tag_index, int object_handle,
       *(int *)(datum + 0x44) = *(int *)(default_color + 12);
     }
 
-    object_get_markers_by_string_id(object_handle, ps_elem + 0x10, marker_buf, 1);
+    object_get_markers_by_string_id(object_handle, ps_elem + 0x10, marker_buf,
+                                    1);
     *(int *)(datum + 0x20) = *(int *)(marker_buf + 0x60);
     *(int *)(datum + 0x24) = *(int *)(marker_buf + 0x64);
     *(int *)(datum + 0x28) = *(int *)(marker_buf + 0x68);
@@ -488,6 +489,174 @@ bool FUN_000a1b60(int datum_handle, float delta_time)
   }
 done:
   return result;
+}
+
+/* Step a single particle: physics, collision, effects, and aging (0xa1c30).
+ * Free-floating particles run point physics (FUN_00154a50) for gravity and
+ * collision; attached particles apply velocity damping. Returns false if the
+ * particle was deleted during this step. */
+bool FUN_000a1c30(int datum_handle, float delta_time)
+{
+  char *particle;
+  int *tag;
+  char *physics_tag;
+  char *velocity;
+  float collision_normal[3];
+  int surface_index;
+  int physics_result;
+  int hit_flags;
+  float speed_ratio;
+  float radius;
+  float drag;
+  float mass_val;
+  float damping;
+  float new_vel_x;
+  float new_vel_y;
+  char stopped;
+
+  particle = (char *)datum_get(particle_data, datum_handle);
+  tag = (int *)tag_get(0x70617274, *(int *)(particle + 4));
+
+  /* Settled/dying particle: verify parent object still exists */
+  if (*(uint8_t *)(particle + 2) & 2) {
+    if (*(int *)(particle + 8) == -1)
+      return 1;
+    if (object_try_and_get_and_verify_type(*(int *)(particle + 8), -1) != NULL)
+      return 1;
+    datum_delete(particle_data, datum_handle);
+    return 0;
+  }
+
+  stopped = 0;
+  physics_tag = (char *)tag_get(0x70706879, tag[8]);
+
+  if (*(int *)(particle + 8) == -1) {
+    /* Free-floating particle — run point physics */
+    velocity = particle + 0x48;
+    radius = particle_get_radius(datum_handle);
+
+    physics_result = FUN_00154a50(
+      0, (int)physics_tag, (int *)(particle + 0x28), -1,
+      (float *)(particle + 0x30), (float *)(particle + 0x48), NULL,
+      collision_normal, (int16_t *)&surface_index, radius, delta_time);
+
+    hit_flags = physics_result & 4;
+
+    if (hit_flags) {
+      if (tag[0x15] != -1 || tag[0xc] != 0) {
+        /* Compute speed ratio from velocity magnitude */
+        float vz = *(float *)(velocity + 8);
+        float vy = *(float *)(velocity + 4);
+        float vx = *(float *)velocity;
+        float mag;
+
+        mag = sqrtf(vx * vx + vy * vy + vz * vz);
+
+        speed_ratio = (mag - *(float *)0x26ad4c) /
+                      (*(float *)0x26ad48 - *(float *)0x26ad4c);
+        if (speed_ratio < 0.0f)
+          speed_ratio = 0.0f;
+        else if (speed_ratio > 1.0f)
+          speed_ratio = 1.0f;
+
+        if (tag[0x15] != -1) {
+          FUN_000a1770((int)particle, tag[0x12], tag[0x15],
+                       *(int *)&speed_ratio);
+        }
+        if (tag[0xc] != -1 && FUN_0009f3b0(particle + 0x30)) {
+          FUN_0009f430(tag[0xc], 8, surface_index, particle + 0x30,
+                       collision_normal, particle + 0x28, *(int *)&speed_ratio);
+        }
+      }
+
+      /* Die on contact */
+      if (*(uint8_t *)tag & 0x20) {
+        if (tag[0x15] == -1) {
+          FUN_000a18c0(datum_handle);
+          return 0;
+        }
+        particle_delete(datum_handle);
+        return 0;
+      }
+    }
+
+    /* Death on ground/water contact */
+    if ((physics_result & 1) && (*(uint32_t *)tag & 0x100))
+      goto delete_particle;
+    if ((physics_result & 2) && (*(int8_t *)tag < 0))
+      goto delete_particle;
+
+    /* Collision normal / ground check */
+    if (hit_flags || (physics_result & 8)) {
+      if (collision_normal[2] > *(float *)0x2533f0)
+        stopped = 1;
+      *(float *)(particle + 0x20) =
+        *(float *)(particle + 0x20) + *(float *)((char *)tag + 0x88);
+    }
+  } else {
+    /* Attached particle — velocity damping */
+    if (!(*(uint8_t *)(particle + 2) & 0x40) &&
+        object_try_and_get_and_verify_type(*(int *)(particle + 8), -1) ==
+          NULL) {
+      datum_delete(particle_data, datum_handle);
+      return 0;
+    }
+
+    velocity = particle + 0x48;
+    radius = particle_get_radius(datum_handle);
+    drag = radius * *(float *)(physics_tag + 0x24) * radius;
+    mass_val = point_physics_definition_get_mass((int)physics_tag, radius);
+
+    if (mass_val == 0.0f) {
+      if (drag != 0.0f)
+        damping = 1.0f;
+      else
+        damping = 0.0f;
+    } else {
+      damping = 1.0f - (drag / mass_val) * delta_time;
+      if (damping < 0.0f)
+        damping = 0.0f;
+      else if (damping > 1.0f)
+        damping = 1.0f;
+    }
+
+    new_vel_x = damping * *(float *)velocity;
+    stopped = 1;
+    *(float *)velocity = new_vel_x;
+    new_vel_y = damping * *(float *)(velocity + 4);
+    *(float *)(velocity + 4) = new_vel_y;
+    *(float *)(velocity + 8) = damping * *(float *)(velocity + 8);
+
+    *(float *)(particle + 0x30) += new_vel_x * delta_time;
+    *(float *)(particle + 0x34) += new_vel_y * delta_time;
+    *(float *)(particle + 0x38) += *(float *)(velocity + 8) * delta_time;
+  }
+
+  /* Velocity magnitude check — update heading or mark settled */
+  {
+    float vz = *(float *)(velocity + 8);
+    float vy = *(float *)(velocity + 4);
+    float vx = *(float *)velocity;
+    float mag_sq = vx * vx + vy * vy + vz * vz;
+
+    if (mag_sq >= *(float *)0x255d90) {
+      *(int *)(particle + 0x3c) = *(int *)velocity;
+      *(int *)(particle + 0x40) = *(int *)(velocity + 4);
+      *(int *)(particle + 0x44) = *(int *)(velocity + 8);
+    } else if (stopped) {
+      if (*(uint8_t *)tag & 0x10)
+        goto delete_particle;
+      *(uint8_t *)(particle + 2) |= 2;
+    }
+  }
+
+  /* Age update */
+  *(float *)(particle + 0x54) += delta_time * *(float *)(particle + 0x58);
+  return 1;
+
+delete_particle:
+  FUN_000a18c0(datum_handle);
+  return 0;
 }
 
 /* Create a single particle from spawn parameters (0xa1fd0).

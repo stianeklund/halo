@@ -14621,7 +14621,8 @@
         },
         {
           "decl": "bool FUN_000a1c30(int datum_handle, float delta_time);",
-          "addr": "0xa1c30"
+          "addr": "0xa1c30",
+          "ported": true
         }
       ]
     },
@@ -16422,7 +16423,7 @@
           "addr": "0x154a20"
         },
         {
-          "decl": "void FUN_00154a50(void);",
+          "decl": "int FUN_00154a50(int flags, int physics_tag_data, int *collision_location, int object_handle, float *position, float *velocity, float *force, float *collision_normal_out, int16_t *surface_index_out, float radius, float delta_time);",
           "addr": "0x154a50"
         }
       ]
