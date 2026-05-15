@@ -7090,7 +7090,7 @@
         {
           "decl": "void FUN_000A7470(void);",
           "addr": "0xa7470",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void game_set_game_variant(game_variant_t *variant);",
@@ -19837,7 +19837,7 @@
         {
           "decl": "int FUN_0018EAB0(int16_t bsp3d_node_index);",
           "addr": "0x18eab0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "bool scenario_switch_structure_bsp(__int16 a1);",
