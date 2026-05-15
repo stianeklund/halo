@@ -2877,8 +2877,9 @@
           "addr": "0x3ce40"
         },
         {
-          "decl": "void actor_kill(void);",
-          "addr": "0x3cf10"
+          "decl": "void actor_kill(int actor_handle, char by_player, char no_delete);",
+          "addr": "0x3cf10",
+          "ported": true
         },
         {
           "decl": "void actor_died(int actor_handle);",

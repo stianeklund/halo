@@ -3058,6 +3058,76 @@ void actor_swarm_cache_new(int actor_handle)
   }
 }
 
+/* actor_kill (0x3cf10) — actor_set_unit_dead_flag
+ *
+ * Marks actor's unit(s) with a "dead" flag in the unit's flags byte at
+ * offset 0xb6, then triggers actor_delete and encounter status update.
+ * If param_2 is non-zero, sets bit 0x40 (killed by player?); otherwise
+ * sets bit 0x20 (killed by AI?). If param_3 is non-zero, only sets the
+ * flag without performing deletion/encounter update.
+ *
+ * For non-swarm actors (actor+0x6 == 0): operates on the single unit at
+ * actor+0x18, then calls actor_detach_from_unit.
+ * For swarm actors (actor+0x6 != 0): iterates the swarm unit chain
+ * starting at actor+0x24, following unit+0x1ac links, calling
+ * actor_swarm_detach_from_unit for each unless param_3 is set.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3cf20.
+ * Confirmed: actor+0x6 (swarm flag) tested at 0x3cf2e.
+ * Confirmed: actor+0x34 stored as encounter_handle at 0x3cf28/0x3cf30.
+ * Confirmed: actor+0x18 (unit_handle) for non-swarm path at 0x3cfae.
+ * Confirmed: actor+0x24 (first swarm unit) for swarm path at 0x3cf36.
+ * Confirmed: unit+0xb6 OR 0x20 or 0x40 at 0x3cf52/0x3cf5b/0x3cfc3/0x3cfcc.
+ * Confirmed: unit+0x1ac (next swarm unit link) at 0x3cf76.
+ * Confirmed: actor_swarm_detach_from_unit(actor_handle, unit_handle) at 0x3cf6e.
+ * Confirmed: actor_detach_from_unit(actor_handle) at 0x3cfdb.
+ * Confirmed: actor_delete(actor_handle, 1) at 0x3cf92.
+ * Confirmed: encounter_update_status(encounter_handle) at 0x3cfa0 if != -1. */
+void actor_kill(int actor_handle, char by_player, char no_delete)
+{
+  char *actor;
+  int encounter_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  encounter_handle = *(int *)(actor + 0x34);
+
+  if (*(char *)(actor + 0x6) != 0) {
+    /* Swarm: iterate unit chain */
+    int unit_handle = *(int *)(actor + 0x24);
+    while (unit_handle != -1) {
+      char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
+      if (by_player != 0) {
+        *(unsigned char *)(unit + 0xb6) |= (unsigned char)0x40;
+      } else {
+        *(unsigned char *)(unit + 0xb6) |= (unsigned char)0x20;
+      }
+      if (no_delete == 0) {
+        actor_swarm_detach_from_unit(actor_handle, unit_handle);
+      }
+      unit_handle = *(int *)(unit + 0x1ac);
+    }
+    if (no_delete != 0) {
+      return;
+    }
+  } else {
+    /* Non-swarm: single unit */
+    char *unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+    if (by_player != 0) {
+      *(unsigned char *)(unit + 0xb6) |= 0x40;
+    } else {
+      *(unsigned char *)(unit + 0xb6) |= 0x20;
+    }
+    if (no_delete != 0) {
+      return;
+    }
+    actor_detach_from_unit(actor_handle);
+  }
+  actor_delete(actor_handle, 1);
+  if (encounter_handle != -1) {
+    encounter_update_status(encounter_handle);
+  }
+}
+
 /* actor_died (0x3cff0) — actor_update_weapon_state
  *
  * Update weapon firing state for an actor. If the actor is in combat state 3

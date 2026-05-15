@@ -476,6 +476,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3cf10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3cff0": {
       "kind": "function",
       "status": "ported"
