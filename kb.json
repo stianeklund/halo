@@ -7494,8 +7494,9 @@
           "ported": true
         },
         {
-          "decl": "char FUN_000a8e40(void);",
-          "addr": "0xa8e40"
+          "decl": "bool FUN_000a8e40(void);",
+          "addr": "0xa8e40",
+          "ported": true
         },
         {
           "decl": "bool game_engine_force_single_screen(void);",
@@ -31138,7 +31139,8 @@
         },
         {
           "decl": "const char *FUN_001205f0(void *string_table, int16_t index);",
-          "addr": "0x1205f0"
+          "addr": "0x1205f0",
+          "ported": true
         },
         {
           "decl": "void FUN_00120620(void);",
