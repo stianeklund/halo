@@ -7334,7 +7334,7 @@
           "addr": "0xa7b40"
         },
         {
-          "decl": "void FUN_000a7bc0(void);",
+          "decl": "void FUN_000a7bc0(int16_t team_a, int16_t team_b);",
           "addr": "0xa7bc0"
         },
         {
