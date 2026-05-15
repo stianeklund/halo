@@ -320,11 +320,12 @@ bool network_game_client_start_frame(void)
 {
   int16_t state;
   int local_4;
+  int reason;
+  bool result;
 
   if (*(uint8_t *)0x46e8c6 == 1) {
     set_game_connection(0);
 
-    int reason;
     if (*(void **)0x46e8bc != NULL) {
       reason = network_game_server_get_game(*(void **)0x46e8bc);
     } else if (*(void **)0x46e8c0 != NULL) {
@@ -349,7 +350,7 @@ bool network_game_client_start_frame(void)
     return true;
   }
 
-  bool result = FUN_00127070(*(void **)0x46e8c0);
+  result = FUN_00127070(*(void **)0x46e8c0);
   if (!result)
     return false;
 
@@ -403,6 +404,7 @@ bool network_game_client_end_frame(void)
   int last_send;
   bool result;
   uint32_t flags;
+  uint16_t *msg;
   uint8_t local_124[128];
   uint32_t msg_buf[34];
   uint8_t local_1c[24];
@@ -440,8 +442,7 @@ bool network_game_client_end_frame(void)
       csmemcpy((char *)msg_buf + 8, local_124, 0x80);
       *(uint16_t *)((char *)msg_buf + 6) = (uint16_t)local_player_count();
 
-      uint16_t *msg =
-        (uint16_t *)encode_network_game_message(0x19, msg_buf, 0x88);
+      msg = (uint16_t *)encode_network_game_message(0x19, msg_buf, 0x88);
       last_send = now;
 
       if (msg == NULL) {

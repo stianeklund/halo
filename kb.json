@@ -5170,8 +5170,10 @@
           "ported": true
         },
         {
-          "decl": "void crc_new(void);",
-          "addr": "0x1190b0"
+          "decl": "void crc_new(uint32_t *checksum);",
+          "addr": "0x1190b0",
+          "ported": true,
+          "source_path": "src/halo/memory/crc.c"
         }
       ]
     },
