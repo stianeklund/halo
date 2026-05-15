@@ -317,6 +317,11 @@ bool game_engine_running(void)
   return current_game_engine != 0;
 }
 
+bool FUN_000a8e40(void)
+{
+  return *(int *)0x456b60 == 0 || *(int *)0x5aa730 == 0;
+}
+
 bool game_engine_force_single_screen(void)
 {
   return current_game_engine && game_engine_variant_index > 1 &&

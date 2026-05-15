@@ -46,6 +46,20 @@ void *FUN_00120500(void *animation, short frame_index)
   return (void *)(data + (int)*(short *)(anim + 0x24) * (int)frame_index);
 }
 
+/* FUN_001205f0 (0x1205f0) — look up a string in an indexed string table.
+ * Returns "#<invalid>" if the index is out of range or the entry is NULL. */
+const char *FUN_001205f0(void *string_table, int16_t index)
+{
+  int16_t *table = (int16_t *)string_table;
+  const char *result;
+
+  if (index >= *table || (result = *(const char **)(*(int32_t *)(table + 2) +
+                                                    index * 8)) == NULL) {
+    result = "#<invalid>";
+  }
+  return result;
+}
+
 /* quaternion_decompress_8byte (0x120810) — Convert 4 packed int16 values to
  * normalized floats.
  *
