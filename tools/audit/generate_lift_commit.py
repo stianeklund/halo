@@ -185,13 +185,19 @@ def source_files_changed():
     return [l for l in diff.splitlines() if l.endswith(".c")]
 
 
+_TIMESTAMP_RUN_RE = re.compile(r'^\d{8}-\d{6}$')
+
 def _find_latest_vc71_match():
-    """Find the VC71 match % from the most recent lift run summary."""
+    """Find the VC71 match % from the most recent timestamped lift run summary."""
     runs_dir = REPO_ROOT / "artifacts" / "lift_runs"
     if not runs_dir.exists():
         return None
-    summaries = sorted(runs_dir.glob("*/summary.json"), reverse=True)
-    for s in summaries[:3]:
+    summaries = sorted(
+        (s for s in runs_dir.glob("*/summary.json")
+         if _TIMESTAMP_RUN_RE.match(s.parent.name)),
+        reverse=True,
+    )
+    for s in summaries[:10]:
         try:
             data = json.loads(s.read_text())
             for stage in data.get("stages", []):
