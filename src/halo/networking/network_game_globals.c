@@ -29,8 +29,8 @@ bool FUN_00129130(int server_connection, int client_connection)
 
   if (*(int *)client_connection != 0) {
     short result = remove_endpoint_from_set(
-      *(int *)*(int *)(server_connection + 0x3c + i * 4),
-      *(int *)(server_connection + 0x38));
+      (int *)*(int *)(server_connection + 0x3c + i * 4),
+      (uint32_t *)*(int *)(server_connection + 0x38));
     if (result != 0) {
       error(2,
             "failed to remove a client endpoint from the server's endpoint set "
@@ -146,7 +146,7 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
 
     if (!is_connected) {
       bytes_read =
-        FUN_00084520(*(int *)(connection + 0x4), recv_buf, 400, addr_buf);
+        FUN_00084520((int *)*(int *)(connection + 0x4), recv_buf, 400, addr_buf);
 
       if (bytes_read > 0) {
         if (*(int *)(connection + 0x18) != 0) {
@@ -164,10 +164,10 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
         goto process_datagram;
       }
     } else {
-      bytes_read = FUN_00082e50(*(int *)(connection + 0x4), recv_buf, 400);
+      bytes_read = recv_endpoint((int *)*(int *)(connection + 0x4), recv_buf, 400);
 
       if (bytes_read > 0) {
-        addr_result = FUN_00083a60(*(int *)(connection + 0x4), addr_buf);
+        addr_result = FUN_00083a60((int *)*(int *)(connection + 0x4), addr_buf);
         if (addr_result != 0) {
           csmemset(addr_buf, 0, 0x18);
           *(uint16_t *)(addr_buf + 0x10) = 4;
@@ -322,13 +322,13 @@ bool network_game_client_start_frame(void)
   int local_4;
 
   if (*(uint8_t *)0x46e8c6 == 1) {
-    FUN_000fff70(0);
+    set_game_connection(0);
 
     int reason;
     if (*(void **)0x46e8bc != NULL) {
       reason = network_game_server_get_game(*(void **)0x46e8bc);
     } else if (*(void **)0x46e8c0 != NULL) {
-      reason = (int)(intptr_t)network_game_client_get_machine_index(
+      reason = (int)network_game_client_get_machine_index(
         *(void **)0x46e8c0);
     } else {
       reason = 0;
@@ -410,7 +410,7 @@ bool network_game_client_end_frame(void)
   result = true;
 
   if (*(void **)0x46e8c0 == NULL) {
-    FUN_000fff70(0);
+    set_game_connection(0);
     main_reset_player_actions();
     return true;
   }
@@ -450,9 +450,7 @@ bool network_game_client_end_frame(void)
         result = false;
       } else {
         network_game_client_switch_to_postgame(*(void **)0x46e8c0, local_1c);
-        int send_result = network_game_client_get_seconds_to_game_start(
-          *(void **)0x46e8c0, msg, *msg >> 4, local_1c, 0);
-        result = FUN_00124d40(send_result);
+        result = FUN_00124d40(*(void **)0x46e8c0, msg, *msg >> 4, *(int *)local_1c, 0);
         if (!result) {
           network_game_log("failed to send a game update to the server");
           *(int *)0x46e8c8 = now;
