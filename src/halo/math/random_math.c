@@ -258,16 +258,7 @@ float FUN_0010c510(float *v1, float *v2)
   else if (cos2theta != cos2theta)
     return 0.0f;
 
-  /* Inline acos to avoid x87 FPU stack issues with xbox_acosf function
-   * call. Clamp 1-x*x to >= 0 to prevent sqrt(negative) from excess
-   * precision. acos(x) = atan2(sqrt(1-x*x), x). */
-  {
-    volatile float c2t = cos2theta;
-    float one_minus_sq = 1.0f - c2t * c2t;
-    if (one_minus_sq < 0.0f)
-      one_minus_sq = 0.0f;
-    half_angle = (float)(atan2((double)sqrtf(one_minus_sq), (double)c2t) * 0.5);
-  }
+  half_angle = acosf(cos2theta) * 0.5f;
 
   if (dot < 0.0f)
     return 3.1415927f - half_angle;
