@@ -167,7 +167,12 @@ def parse_smoke_log(path: Path) -> dict:
 
 
 def _is_dirty_eax(fails: list) -> bool:
-    """Check if EAX divergence is only in upper 16 bits (mov ax artifact)."""
+    """Check if EAX divergence is only in upper bits (mov ax/mov al artifact).
+
+    Matches both mov ax (low 16 match) and mov al (low 8 match) patterns.
+    Also catches the case where oracle EAX is constant across all seeds
+    (same stale upper bits, consistent return value).
+    """
     eax_diffs = [f for f in fails if "EAX:" in f["diff"]]
     if not eax_diffs:
         return False
@@ -177,9 +182,38 @@ def _is_dirty_eax(fails: list) -> bool:
             return False
         orc = int(m.group(1), 16)
         lft = int(m.group(2), 16)
-        if (orc & 0xFFFF) != (lft & 0xFFFF) or orc == lft:
+        if orc == lft:
             return False
+        # mov ax: low 16 bits match
+        if (orc & 0xFFFF) == (lft & 0xFFFF):
+            continue
+        # mov al: low 8 bits match, upper 24 differ
+        if (orc & 0xFF) == (lft & 0xFF):
+            continue
+        return False
     return True
+
+
+def _is_stub_residual(fails: list) -> bool:
+    """Check if oracle EAX is random garbage while lifted EAX is 0 or small.
+
+    Pattern: stub callee leaves its return value in EAX, oracle doesn't clear
+    it before returning. Lifted code uses XOR EAX,EAX. Detectable because
+    oracle EAX values vary wildly across seeds while lifted is constant 0.
+    """
+    eax_diffs = [f for f in fails if "EAX:" in f["diff"]]
+    if len(eax_diffs) < 3:
+        return False
+    orc_vals = set()
+    lft_vals = set()
+    for f in eax_diffs:
+        m = re.search(r'EAX: oracle=(0x[0-9a-f]+) lifted=(0x[0-9a-f]+)', f["diff"])
+        if not m:
+            return False
+        orc_vals.add(int(m.group(1), 16))
+        lft_vals.add(int(m.group(2), 16))
+    # Oracle has many distinct values (garbage), lifted has 1-2 (constant)
+    return len(orc_vals) >= 3 and len(lft_vals) <= 2
 
 
 def classify(row: dict, smoke: dict) -> tuple:
@@ -226,6 +260,22 @@ def classify(row: dict, smoke: dict) -> tuple:
         )
         if only_eax:
             return "dirty_eax", "oracle mov ax leaves upper 16 bits dirty"
+
+    # Stub residual: oracle EAX is random garbage from a stubbed callee,
+    # lifted EAX is consistently 0 (proper XOR EAX,EAX)
+    if fails and _is_stub_residual(fails):
+        eax_count = sum(1 for f in fails if "EAX:" in f["diff"])
+        if eax_count >= len(fails) * 0.5:
+            return "stub_residual", "oracle EAX is callee stub garbage, lifted returns 0"
+
+    # Leaf mismatch: oracle is "stubbable" but lifted is "leaf" (same-TU callees
+    # compiled into one .obj). Lifted runs real callee code with garbage input
+    # and crashes/diverges. Detectable: different class + lifted ESP abnormal.
+    orc_class = smoke.get("oracle_class", "")
+    lft_class = smoke.get("lifted_class", "")
+    if orc_class == "stubbable" and lft_class == "leaf":
+        if lft_esp != 0 or lft_insn >= 100000:
+            return "leaf_mismatch", "lifted is leaf (same-TU callees), crashes on garbage input"
 
     # Instruction limit: one or both sides hit 100K — didn't complete normally
     if orc_insn >= 100000 or lft_insn >= 100000:
@@ -322,8 +372,9 @@ def main():
     # Print summary
     print(f"{'Category':<22} {'Count':>5}  Description")
     print(f"{'-'*22} {'-'*5}  {'-'*50}")
-    order = ["genuine", "dirty_eax", "insn_limit", "exec_asymmetry",
-             "stack_divergence", "ftol2", "intrinsic", "assert_path",
+    order = ["genuine", "dirty_eax", "stub_residual", "leaf_mismatch",
+             "insn_limit", "exec_asymmetry", "stack_divergence",
+             "ftol2", "intrinsic", "assert_path",
              "stub_asymmetry", "scratch_divergence", "coverage_limited",
              "stale", "unknown"]
     for cat in order:
@@ -333,6 +384,8 @@ def main():
         desc = {
             "genuine": "Both sides complete normally, results differ — INVESTIGATE",
             "dirty_eax": "Oracle uses mov ax (16-bit), upper EAX bits stale",
+            "stub_residual": "Oracle EAX is callee stub garbage, lifted returns 0",
+            "leaf_mismatch": "Lifted is leaf (same-TU callees), crashes on garbage",
             "insn_limit": "One/both sides hit 100K instruction limit",
             "exec_asymmetry": "Wildly different execution length (>10x ratio)",
             "stack_divergence": "Both sides have different abnormal ESP",
@@ -374,7 +427,8 @@ def main():
     n_ftol2 = len(categories.get("ftol2", []))
     n_intrinsic = len(categories.get("intrinsic", []))
     n_infra = sum(len(categories.get(c, []))
-                  for c in ("dirty_eax", "insn_limit", "exec_asymmetry", "stack_divergence"))
+                  for c in ("dirty_eax", "stub_residual", "leaf_mismatch",
+                            "insn_limit", "exec_asymmetry", "stack_divergence"))
     n_noise = sum(len(categories.get(c, []))
                   for c in ("assert_path", "coverage_limited", "stub_asymmetry", "unknown"))
     print(f"\n{'='*70}")
