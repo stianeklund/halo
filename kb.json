@@ -18285,20 +18285,24 @@
       "source": "math/real_math.c",
       "functions": [
         {
-          "decl": "void FUN_0001acb0(void);",
-          "addr": "0x1acb0"
+          "decl": "void FUN_0001acb0(float *base, float *dir, float scale, float *out);",
+          "addr": "0x1acb0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0001ace0(void);",
-          "addr": "0x1ace0"
+          "decl": "float FUN_0001ace0(float *a, float *b);",
+          "addr": "0x1ace0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0001ad10(void);",
-          "addr": "0x1ad10"
+          "decl": "float FUN_0001ad10(float *a, float *b);",
+          "addr": "0x1ad10",
+          "ported": true
         },
         {
-          "decl": "void FUN_0001ad40(void);",
-          "addr": "0x1ad40"
+          "decl": "void FUN_0001ad40(float *in, float *out);",
+          "addr": "0x1ad40",
+          "ported": true
         },
         {
           "decl": "float FUN_0001ad60(float *a, float *b);",
@@ -18322,16 +18326,19 @@
           "addr": "0x1b750"
         },
         {
-          "decl": "void FUN_00109010(void);",
-          "addr": "0x109010"
+          "decl": "void FUN_00109010(short *param_1, short *param_2, uint32_t *param_3, short param_4);",
+          "addr": "0x109010",
+          "ported": true
         },
         {
-          "decl": "void FUN_001090e0(void);",
-          "addr": "0x1090e0"
+          "decl": "void FUN_001090e0(float *out);",
+          "addr": "0x1090e0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00109120(void);",
-          "addr": "0x109120"
+          "decl": "void FUN_00109120(float *m);",
+          "addr": "0x109120",
+          "ported": true
         },
         {
           "decl": "void matrix_inverse(float *src, float *dst);",
@@ -18339,8 +18346,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00109240(void);",
-          "addr": "0x109240"
+          "decl": "void FUN_00109240(float *out, float scale);",
+          "addr": "0x109240",
+          "ported": true
         },
         {
           "decl": "void matrix4x3_identity_with_position(float *out, float *position);",
@@ -18353,8 +18361,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001093b0(void);",
-          "addr": "0x1093b0"
+          "decl": "void FUN_001093b0(float *out, float *q);",
+          "addr": "0x1093b0",
+          "ported": true
         },
         {
           "decl": "void component_vectors_from_normal3d(float *out_matrix, float *position, float *basis_data);",
@@ -18362,8 +18371,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00109500(void);",
-          "addr": "0x109500"
+          "decl": "void FUN_00109500(float *out, float *qsp);",
+          "addr": "0x109500",
+          "ported": true
         },
         {
           "decl": "void matrix4x3_decompose(float *matrix, float *forward, float *up, float *position);",
@@ -18378,7 +18388,7 @@
         {
           "decl": "void matrix_scale_transform_vector(float *matrix, float *in, float *out);",
           "addr": "0x109610",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void matrix_transform_vector(float *matrix, float *in, float *out);",
@@ -18407,24 +18417,28 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001099a0(void);",
-          "addr": "0x1099a0"
+          "decl": "float FUN_001099a0(float *m);",
+          "addr": "0x1099a0",
+          "ported": true
         },
         {
-          "decl": "void FUN_001099f0(void);",
-          "addr": "0x1099f0"
+          "decl": "void FUN_001099f0(float *src, float *dst);",
+          "addr": "0x1099f0",
+          "ported": true
         },
         {
           "decl": "void FUN_00109a60(void);",
           "addr": "0x109a60"
         },
         {
-          "decl": "void FUN_00109ba0(void);",
-          "addr": "0x109ba0"
+          "decl": "void FUN_00109ba0(float *out, float *axis, float sine, float cosine);",
+          "addr": "0x109ba0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00109c70(void);",
-          "addr": "0x109c70"
+          "decl": "void FUN_00109c70(float *a, float *b, float *out);",
+          "addr": "0x109c70",
+          "ported": true
         },
         {
           "decl": "void FUN_00109d90(void);",

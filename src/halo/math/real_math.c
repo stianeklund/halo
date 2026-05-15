@@ -1018,3 +1018,300 @@ distance_check:
     return 0;
   return 1;
 }
+
+/* 0x1acb0 — 2D scale-add: out = base + scale * dir. */
+void FUN_0001acb0(float *base, float *dir, float scale, float *out)
+{
+  out[0] = scale * dir[0] + base[0];
+  out[1] = scale * dir[1] + base[1];
+}
+
+/* 0x1ace0 — Squared distance between two 2D points. */
+float FUN_0001ace0(float *a, float *b)
+{
+  float dx = b[0] - a[0];
+  float dy = b[1] - a[1];
+  return dx * dx + dy * dy;
+}
+
+/* 0x1ad10 — Distance between two 2D points. */
+float FUN_0001ad10(float *a, float *b)
+{
+  float dx = b[0] - a[0];
+  float dy = b[1] - a[1];
+  return sqrtf(dx * dx + dy * dy);
+}
+
+/* 0x1ad40 — Negate a 2D vector: out = -in. */
+void FUN_0001ad40(float *in, float *out)
+{
+  out[0] = -in[0];
+  out[1] = -in[1];
+}
+
+/* 0x109010 — Scale a rectangle (short coords) by a fraction param_4/256,
+ * clamping the aspect ratio to the smaller dimension of param_2. */
+void FUN_00109010(short *param_1, short *param_2, uint32_t *param_3, short param_4)
+{
+  int w1 = param_1[2] - param_1[0];
+  int h1 = param_1[3] - param_1[1];
+  int w2 = param_2[2] - param_2[0];
+  int h2 = param_2[3] - param_2[1];
+  short sw, sh;
+  short x0, y0;
+
+  if (w1 * h2 - h1 * w2 == 0 || w1 * h2 < h1 * w2) {
+    h1 = (short)(w1 * h2 / w2);
+  } else {
+    w1 = (short)(h1 * w2 / h2);
+  }
+
+  sw = (short)((uint32_t)(w1 * param_4) >> 8);
+  sh = (short)((uint32_t)(h1 * param_4) >> 8);
+  x0 = (short)((w1 - sw) / 2) + param_1[0];
+  y0 = (short)((h1 - sh) / 2) + param_1[1];
+
+  ((short *)param_3)[0] = x0;
+  ((short *)param_3)[1] = y0;
+  ((short *)param_3)[2] = x0 + sw;
+  ((short *)param_3)[3] = y0 + sh;
+}
+
+/* 0x1090e0 — Initialize a 4x3 identity matrix (13 floats). */
+void FUN_001090e0(float *out)
+{
+  ((uint32_t *)out)[0] = 0x3f800000;
+  ((uint32_t *)out)[1] = 0x3f800000;
+  ((uint32_t *)out)[2] = 0;
+  ((uint32_t *)out)[3] = 0;
+  ((uint32_t *)out)[4] = 0;
+  ((uint32_t *)out)[5] = 0x3f800000;
+  ((uint32_t *)out)[6] = 0;
+  ((uint32_t *)out)[7] = 0;
+  ((uint32_t *)out)[8] = 0;
+  ((uint32_t *)out)[9] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+}
+
+/* 0x109120 — Transpose the rotation part of a 4x3 matrix in-place.
+ * Swaps [2]<->[4], [3]<->[7], [6]<->[8] (0-indexed from float[1]). */
+void FUN_00109120(float *m)
+{
+  uint32_t *p = (uint32_t *)m;
+  uint32_t t;
+
+  t = p[2];
+  p[2] = p[4];
+  p[4] = t;
+
+  t = p[3];
+  p[3] = p[7];
+  p[7] = t;
+
+  t = p[6];
+  p[6] = p[8];
+  p[8] = t;
+}
+
+/* 0x109240 — Initialize a scaled 4x3 identity matrix. */
+void FUN_00109240(float *out, float scale)
+{
+  *(uint32_t *)&out[0] = *(uint32_t *)&scale;
+  ((uint32_t *)out)[1] = 0x3f800000;
+  ((uint32_t *)out)[2] = 0;
+  ((uint32_t *)out)[3] = 0;
+  ((uint32_t *)out)[4] = 0;
+  ((uint32_t *)out)[5] = 0x3f800000;
+  ((uint32_t *)out)[6] = 0;
+  ((uint32_t *)out)[7] = 0;
+  ((uint32_t *)out)[8] = 0;
+  ((uint32_t *)out)[9] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+}
+
+/* 0x1093b0 — Convert a quaternion to a 3x3 rotation matrix (inside a 4x3 frame).
+ * Sets scale=1.0 and translation=0.
+ * Original keeps sq0 (s*q[0]) in 80-bit FPU while sq1/sq2 spill to float32. */
+void FUN_001093b0(float *out, float *q)
+{
+  float norm = q[3] * q[3] + q[2] * q[2] + q[1] * q[1] + q[0] * q[0];
+  float s = 0.0f;
+  float sq1, sq2;
+  float xw, yw, zw;
+  float xx, xy, xz, yy, zy, zz;
+
+  if (norm != 0.0f) {
+    s = 2.0f / norm;
+  }
+
+  sq1 = s * q[1];
+  sq2 = s * q[2];
+  xw = s * q[0] * q[3];
+  yw = sq1 * q[3];
+  zw = sq2 * q[3];
+
+  xx = s * q[0] * q[0];
+  xy = sq1 * q[0];
+  xz = sq2 * q[0];
+  yy = sq1 * q[1];
+  zy = sq2 * q[1];
+  zz = sq2 * q[2];
+
+  ((uint32_t *)out)[0] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+
+  out[1] = 1.0f - (yy + zz);
+  out[2] = xy - zw;
+  out[3] = xz + yw;
+  out[4] = xy + zw;
+  out[5] = 1.0f - (zz + xx);
+  out[6] = zy - xw;
+  out[7] = xz - yw;
+  out[8] = zy + xw;
+  out[9] = 1.0f - (yy + xx);
+}
+
+/* 0x109500 — Convert a quaternion+scale+position to a full 4x3 matrix.
+ * param_2 layout: [quat(4), pos(3), scale(1)] at offsets 0..0x1c. */
+void FUN_00109500(float *out, float *qsp)
+{
+  FUN_001093b0(out, qsp);
+  out[0] = qsp[7];
+  out[10] = qsp[4];
+  out[11] = qsp[5];
+  out[12] = qsp[6];
+}
+
+/* 0x109610 — Scale-transform a vector by a 4x3 matrix.
+ * If matrix scale != 1.0, scales the input vector components first. */
+void matrix_scale_transform_vector(float *matrix, float *in, float *out)
+{
+  float x = in[0];
+  float y = in[1];
+  float z = in[2];
+
+  if (*(uint32_t *)&matrix[0] != 0x3f800000) {
+    x = x * matrix[0];
+    y = y * matrix[0];
+    z = z * matrix[0];
+  }
+  out[0] = z * matrix[7] + y * matrix[4] + x * matrix[1];
+  out[1] = z * matrix[8] + y * matrix[5] + x * matrix[2];
+  out[2] = z * matrix[9] + y * matrix[6] + x * matrix[3];
+}
+
+/* 0x1099a0 — Determinant of a 3x3 matrix (row-major, float[9]). */
+float FUN_001099a0(float *m)
+{
+  return (m[8] * m[0] * m[4] +
+          m[2] * m[3] * m[7] +
+          m[6] * m[1] * m[5]) -
+         m[0] * m[7] * m[5] -
+         m[8] * m[1] * m[3] -
+         m[6] * m[2] * m[4];
+}
+
+/* 0x1099f0 — Transpose a 3x3 matrix. Supports src == dst (in-place). */
+void FUN_001099f0(float *src, float *dst)
+{
+  uint32_t t;
+  uint32_t *s = (uint32_t *)src;
+  uint32_t *d = (uint32_t *)dst;
+
+  if (src == dst) {
+    t = s[3];
+    d[3] = s[1];
+    d[1] = t;
+    t = s[6];
+    d[6] = s[2];
+    d[2] = t;
+    t = s[7];
+    d[7] = s[5];
+    d[5] = t;
+    return;
+  }
+  d[0] = s[0];
+  d[1] = s[3];
+  d[2] = s[6];
+  d[3] = s[1];
+  d[4] = s[4];
+  d[5] = s[7];
+  d[6] = s[2];
+  d[7] = s[5];
+  d[8] = s[8];
+}
+
+/* 0x109ba0 — Build a 3x3 rotation matrix from an axis and sin/cos values.
+ * Rodrigues' rotation formula. */
+void FUN_00109ba0(float *out, float *axis, float sine, float cosine)
+{
+  float xx = axis[0] * axis[0];
+  float yy = axis[1] * axis[1];
+  float zz = axis[2] * axis[2];
+  float one_minus_cos = 1.0f - cosine;
+  float xy, xz, yz;
+
+  out[0] = (1.0f - xx) * cosine + xx;
+
+  xy = axis[1] * axis[0] * one_minus_cos;
+  out[1] = xy;
+  out[3] = xy - sine * axis[2];
+  out[1] = sine * axis[2] + out[1];
+
+  out[4] = (1.0f - yy) * cosine + yy;
+
+  xz = axis[2] * axis[0] * one_minus_cos;
+  out[2] = xz;
+  out[6] = xz + sine * axis[1];
+  out[2] = out[2] - sine * axis[1];
+
+  out[8] = (1.0f - zz) * cosine + zz;
+
+  yz = axis[2] * axis[1] * one_minus_cos;
+  out[5] = yz;
+  out[7] = yz - sine * axis[0];
+  out[5] = sine * axis[0] + out[5];
+}
+
+/* 0x109c70 — Multiply two 3x3 matrices: out = a * b. Supports aliasing. */
+void FUN_00109c70(float *a, float *b, float *out)
+{
+  int i;
+  float *p;
+  float local_a[9];
+  float local_b[9];
+
+  if (a == out) {
+    p = local_a;
+    for (i = 9; i != 0; i--) {
+      *p = *a;
+      a++;
+      p++;
+    }
+    a = local_a;
+  }
+  if (b == out) {
+    p = local_b;
+    for (i = 9; i != 0; i--) {
+      *p = *b;
+      b++;
+      p++;
+    }
+    b = local_b;
+  }
+  out[0] = b[2] * a[6] + a[3] * b[1] + a[0] * b[0];
+  out[1] = a[7] * b[2] + a[1] * b[0] + a[4] * b[1];
+  out[2] = a[8] * b[2] + a[2] * b[0] + a[5] * b[1];
+  out[3] = b[5] * a[6] + b[3] * a[0] + a[3] * b[4];
+  out[4] = a[1] * b[3] + a[4] * b[4] + a[7] * b[5];
+  out[5] = a[2] * b[3] + a[5] * b[4] + a[8] * b[5];
+  out[6] = a[6] * b[8] + a[3] * b[7] + a[0] * b[6];
+  out[7] = a[1] * b[6] + a[4] * b[7] + a[7] * b[8];
+  out[8] = a[2] * b[6] + a[5] * b[7] + a[8] * b[8];
+}
