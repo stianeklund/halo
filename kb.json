@@ -1135,7 +1135,7 @@
           "addr": "0x1da19f"
         },
         {
-          "decl": "void FUN_001da1d8(void);",
+          "decl": "int crt_toupper(int c);",
           "addr": "0x1da1d8"
         },
         {
@@ -4830,7 +4830,7 @@
         {
           "decl": "void console_process_enter(void);",
           "addr": "0xff680",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void console_startup(void);",
@@ -9825,7 +9825,7 @@
           "addr": "0xc41e0"
         },
         {
-          "decl": "void FUN_000c4580(void);",
+          "decl": "int16_t FUN_000c4580(const char *prefix, uint32_t type_mask, char **tokens, int16_t max_tokens);",
           "addr": "0xc4580"
         },
         {
