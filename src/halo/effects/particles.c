@@ -41,6 +41,85 @@ int FUN_000a1210(int tag_index, float *position, float *velocity,
   return handle;
 }
 
+/* Create a particle system header from an object attachment (0xa12e0).
+ * Looks up the object's particle system element at attach_index in the
+ * object tag's particle_systems block (obje+0x140), copies spawn data
+ * into the new datum, resolves the marker position, samples the object's
+ * root location, sets up velocity and function-value flag, then calls
+ * FUN_000a0fd0 to allocate the particle pool.
+ * Returns the datum handle, or -1 on failure. */
+int FUN_000a12e0(int particle_tag_index, int object_handle,
+                 int16_t attach_index)
+{
+  int datum_handle;
+  char *datum;
+  char *object_ptr;
+  char *obje_tag;
+  char *ps_elem;
+  char marker_buf[0x6c];
+
+  datum_handle = data_new_at_index(particle_system_header_data);
+  if (datum_handle != -1) {
+    datum = (char *)datum_get(particle_system_header_data, datum_handle);
+    object_ptr = (char *)object_get_and_verify_type(object_handle, -1);
+    obje_tag = (char *)tag_get(0x6f626a65, *(int *)object_ptr);
+    ps_elem =
+      (char *)tag_block_get_element(obje_tag + 0x140, (int)attach_index, 0x48);
+
+    *(int *)(datum + 0x8) = particle_tag_index;
+    *(int *)(datum + 0xc) = object_handle;
+    *(int16_t *)(datum + 0x10) = attach_index;
+    *(int16_t *)(datum + 0x12) = *(int16_t *)(ps_elem + 0x30) - 1;
+
+    if (*(int16_t *)(ps_elem + 0x34) != 0) {
+      int node_idx = ((int)(*(int16_t *)(ps_elem + 0x34)) + 0x1e) * 3;
+      char *node = object_ptr + node_idx * 4;
+      *(int *)(datum + 0x3c) = *(int *)node;
+      *(int *)(datum + 0x40) = *(int *)(node + 4);
+      *(int *)(datum + 0x44) = *(int *)(node + 8);
+      *(uint32_t *)(datum + 0x38) = 0x3f800000;
+    } else {
+      char *default_color = *(char **)0x2ee6c4;
+      *(int *)(datum + 0x38) = *(int *)default_color;
+      *(int *)(datum + 0x3c) = *(int *)(default_color + 4);
+      *(int *)(datum + 0x40) = *(int *)(default_color + 8);
+      *(int *)(datum + 0x44) = *(int *)(default_color + 12);
+    }
+
+    object_get_markers_by_string_id(object_handle, ps_elem + 0x10, marker_buf, 1);
+    *(int *)(datum + 0x20) = *(int *)(marker_buf + 0x60);
+    *(int *)(datum + 0x24) = *(int *)(marker_buf + 0x64);
+    *(int *)(datum + 0x28) = *(int *)(marker_buf + 0x68);
+
+    object_get_root_location(object_handle, (float *)(datum + 0x2c), NULL);
+    *(float *)(datum + 0x2c) *= *(float *)0x253394;
+    *(float *)(datum + 0x30) *= *(float *)0x253394;
+    *(float *)(datum + 0x34) *= *(float *)0x253394;
+
+    {
+      char *default_vel = *(char **)0x2ee708;
+      *(int *)(datum + 0x48) = *(int *)default_vel;
+      *(int *)(datum + 0x4c) = *(int *)(default_vel + 4);
+      *(int *)(datum + 0x50) = *(int *)(default_vel + 8);
+    }
+
+    {
+      bool has_value;
+      uint32_t f;
+      has_value = (bool)object_get_function_value(
+        object_handle, (int)(*(uint16_t *)(datum + 0x12)), datum + 0x14);
+      f = *(uint32_t *)(datum + 0x4);
+      *(uint32_t *)(datum + 0x4) = has_value ? (f | 0x1) : (f & ~0x1U);
+    }
+
+    if (!FUN_000a0fd0(datum_handle)) {
+      datum_delete(particle_system_header_data, datum_handle);
+      datum_handle = -1;
+    }
+  }
+  return datum_handle;
+}
+
 void particles_initialize(void)
 {
   particle_data = game_state_data_new("particle", 0x400, 0x70);
