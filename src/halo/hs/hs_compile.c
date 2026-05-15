@@ -2,7 +2,7 @@
  * Reallocates the buffer at 0x46b6e8 to hold source_size + file_size + 1,
  * copies the file data, updates source_size at 0x46b6e4, and null-terminates.
  * Returns pointer to the appended data, or NULL on allocation failure. */
-char *FUN_000c5730(int source_file_size, void *source_ptr)
+char *hs_compile_initialize(int source_file_size, void *source_ptr)
 {
   int old_size;
   char *new_buf;

@@ -453,7 +453,7 @@ void collision_features_from_polygon(int param_1, int object_handle,
 }
 
 /* 0x14b620 — Look up a sphere collision surface by handle, collect its
- * vertex points via the BSP edge walk (FUN_00147410), resolve the surface
+ * vertex points via the BSP edge walk (collision_surface_polygon), resolve the surface
  * plane via the material element's plane reference, optionally transform
  * all points and the plane through a matrix, then add the surface as a
  * prism collision feature via FUN_0014b220.
@@ -469,7 +469,7 @@ void FUN_0014b620(int param_1, int param_2, int param_3, int param_4,
 
   material_elem =
     (int *)tag_block_get_element((void *)(param_1 + 0x3c), param_2, 0xc);
-  point_count_packed = FUN_00147410(param_1, param_2, (void *)points);
+  point_count_packed = collision_surface_polygon(param_1, param_2, (void *)points);
   bsp3d_get_plane_from_designator(param_1, (uint32_t)*material_elem, plane);
 
   if (param_3 != 0) {

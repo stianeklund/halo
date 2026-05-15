@@ -320,6 +320,96 @@ skip_phase2:
   return false;
 }
 
+/* Advance particle bitmap frame counter by one step (0xa1a90).
+ * Selects forward or backward animation based on datum flag bit 0x1.
+ * When the last/first frame is reached, calls FUN_000a1910 to pick the
+ * next sequence. Returns true while the animation is still alive. */
+bool FUN_000a1a90(int datum_handle)
+{
+  char *datum;
+  char *part_tag;
+  char *bitm_tag;
+  char *seq_elem;
+  int16_t frame_counter;
+  int frame_count;
+  bool result;
+
+  datum    = (char *)datum_get(particle_data, datum_handle);
+  part_tag = (char *)tag_get(0x70617274, *(int *)(datum + 0x04));
+  bitm_tag = (char *)tag_get(0x6269746d, *(int *)(part_tag + 0x10));
+  *(uint32_t *)(datum + 0x1c) = 0;
+  if ((*(uint8_t *)(datum + 0x2) & 0x1) != 0) {
+    /* Backward: decrement toward zero */
+    frame_counter = *(int16_t *)(datum + 0x26);
+    if (frame_counter > 0) {
+      *(int16_t *)(datum + 0x26) = frame_counter - 1;
+      return 1;
+    }
+    result = FUN_000a1910(datum_handle);
+    if (result) {
+      seq_elem = (char *)tag_block_get_element(bitm_tag + 0x54,
+                                               (int)(*(int16_t *)(datum + 0x24)), 0x40);
+      *(int16_t *)(datum + 0x26) = *(int16_t *)(seq_elem + 0x34) - 1;
+    }
+    return result;
+  }
+  /* Forward: increment toward frame_count */
+  seq_elem    = (char *)tag_block_get_element(bitm_tag + 0x54,
+                                              (int)(*(int16_t *)(datum + 0x24)), 0x40);
+  frame_count   = *(int32_t *)(seq_elem + 0x34);
+  frame_counter = *(int16_t *)(datum + 0x26);
+  if ((int)(frame_counter + 1) < frame_count) {
+    *(int16_t *)(datum + 0x26) = frame_counter + 1;
+    return 1;
+  }
+  result = FUN_000a1910(datum_handle);
+  *(int16_t *)(datum + 0x26) = 0;
+  return result;
+}
+
+/* Advance particle frame timer by delta_time (0xa1b60).
+ * datum_handle via @edi. Handles three animation modes via tag flags:
+ *   bit 1+2: early-exit (both must be set),
+ *   bit 3: random-start (advance once if delta_time != 0),
+ *   default: accumulate time and advance frames in a loop.
+ * Returns true while the particle is still alive. */
+bool FUN_000a1b60(int datum_handle, float delta_time)
+{
+  char *datum;
+  uint32_t flags;
+  float frame_remainder;
+  bool result;
+
+  datum  = (char *)datum_get(particle_data, datum_handle);
+  flags  = *(uint32_t *)tag_get(0x70617274, *(int *)(datum + 0x04));
+  result = 1;
+  if ((flags & 0x2) != 0 && (*(uint8_t *)(datum + 0x2) & 0x2) != 0)
+    return result;
+  if (flags & 0x8) {
+    if (delta_time != 0.0f)
+      return (bool)FUN_000a1a90(datum_handle);
+  } else {
+    if (*(uint32_t *)(datum + 0x1c) == 0xbf800000u) {
+      result = (bool)FUN_000a1a90(datum_handle);
+      *(uint32_t *)(datum + 0x1c) = 0;
+    }
+    if (delta_time > 0.0f && result) {
+      while (result) {
+        frame_remainder = *(float *)(datum + 0x20) - *(float *)(datum + 0x1c);
+        if (frame_remainder > delta_time) {
+          *(float *)(datum + 0x1c) += delta_time;
+          return result;
+        }
+        result     = (bool)FUN_000a1a90(datum_handle);
+        delta_time -= frame_remainder;
+        if (delta_time <= 0.0f)
+          return result;
+      }
+    }
+  }
+  return result;
+}
+
 /* Create a single particle from spawn parameters (0xa1fd0).
  * Validates
  * velocity, position, and color vectors. Resolves the spawn

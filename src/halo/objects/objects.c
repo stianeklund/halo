@@ -4683,7 +4683,7 @@ int object_new(void *placement)
 
     /* --- Run initialisation chain --- */
     object_choose_random_change_colors(object_handle, p + 0x58);
-    FUN_00140ad0(object_handle);
+    object_choose_random_region_permutations(object_handle);
     FUN_001365d0(object_handle, 0, 0);
     object_compute_node_matrices(object_handle);
     object_connect_to_map(object_handle, 0);

@@ -1226,7 +1226,7 @@ bool network_server_manager_pregame_start(void *server)
     flags_ptr += 0x10;
   }
 
-  FUN_0012abc0(s + 8, 0);
+  network_game_reset_for_next_round(s + 8, 0);
 
   if (FUN_0012dc20((int)server)) {
     csmemcpy(local_buf, s + 8, 0x434);
@@ -1292,7 +1292,7 @@ bool FUN_0012f430(void *server, void *message)
       system_exit(-1);
     }
     csmemcpy(local_buf, message, msg_len);
-    if (!FUN_00128e00((void *)connection, local_buf, msg_len, 0, 1)) {
+    if (!network_connection_write((void *)connection, local_buf, msg_len, 0, 1)) {
       network_game_log("network_game_server_write() failed in "
                        "network_game_server_send_message_to_all_machines()");
       result = false;

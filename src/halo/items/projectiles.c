@@ -9,7 +9,7 @@ void projectile_kill_tracer(int projectile_handle)
  * Walks every projectile in the object table via object_iterator_new/next
  * and calls object_delete on each handle. Used during level teardown or
  * game reset to purge all in-flight projectiles. */
-void FUN_000f7ce0(void)
+void projectiles_delete_all(void)
 {
   object_iter_t iter;
 

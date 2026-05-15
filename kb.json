@@ -3923,7 +3923,7 @@
           "addr": "0x7d0d0"
         },
         {
-          "decl": "void FUN_0007d300(void);",
+          "decl": "void palette_find_closest_match(void);",
           "addr": "0x7d300"
         },
         {
@@ -4914,7 +4914,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000978f0(void);",
+          "decl": "void contrail_delete(void);",
           "addr": "0x978f0"
         },
         {
@@ -5215,7 +5215,7 @@
           "addr": "0x11e3a0"
         },
         {
-          "decl": "void FUN_0011e3c0(void);",
+          "decl": "void memory_pool_get_contiguous_free_size(void);",
           "addr": "0x11e3c0"
         },
         {
@@ -6114,7 +6114,7 @@
           "addr": "0x87f20"
         },
         {
-          "decl": "void FUN_00088050(void);",
+          "decl": "void director_update(void);",
           "addr": "0x88050"
         },
         {
@@ -6331,7 +6331,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0009c910(void);",
+          "decl": "void effects_information_get(void);",
           "addr": "0x9c910"
         },
         {
@@ -6359,11 +6359,11 @@
           "addr": "0x9cf40"
         },
         {
-          "decl": "void FUN_0009f3b0(void);",
+          "decl": "bool FUN_0009f3b0(void *data);",
           "addr": "0x9f3b0"
         },
         {
-          "decl": "void FUN_0009f430(void);",
+          "decl": "void FUN_0009f430(int arg1, int arg2, int arg3, void *arg4, void *arg5, void *arg6, int arg7);",
           "addr": "0x9f430"
         }
       ]
@@ -7504,7 +7504,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a8e80(void);",
+          "decl": "void get_blink_alpha(void);",
           "addr": "0xa8e80"
         },
         {
@@ -8036,7 +8036,7 @@
           "addr": "0xae920"
         },
         {
-          "decl": "void FUN_000aebd0(void);",
+          "decl": "void game_engine_post_rasterize_post_game(void);",
           "addr": "0xaebd0"
         },
         {
@@ -9903,7 +9903,7 @@
           "addr": "0xc4e20"
         },
         {
-          "decl": "void FUN_000c4e90(void);",
+          "decl": "void hs_doc(void);",
           "addr": "0xc4e90"
         },
         {
@@ -9950,7 +9950,7 @@
       "functions": [
         {
           "addr": "0xc5730",
-          "decl": "char *FUN_000c5730(int source_file_size@<edi>, void *source_ptr);",
+          "decl": "char *hs_compile_initialize(int source_file_size@<edi>, void *source_ptr);",
           "ported": true
         },
         {
@@ -12016,7 +12016,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00101bc0(void);",
+          "decl": "void main_movie_start(void);",
           "addr": "0x101bc0"
         },
         {
@@ -12203,7 +12203,7 @@
           "addr": "0xe02d0"
         },
         {
-          "decl": "void FUN_000e0430(void);",
+          "decl": "void xbox_demos_available(void);",
           "addr": "0xe0430"
         },
         {
@@ -12818,7 +12818,7 @@
           "addr": "0x11c310"
         },
         {
-          "decl": "void FUN_0011c430(void);",
+          "decl": "void network_event(void);",
           "addr": "0x11c430"
         },
         {
@@ -13837,7 +13837,7 @@
           "addr": "0x13e3f0"
         },
         {
-          "decl": "void FUN_0013e460(void);",
+          "decl": "void object_determine_variant_number(void);",
           "addr": "0x13e460"
         },
         {
@@ -14056,7 +14056,7 @@
           "addr": "0x140a00"
         },
         {
-          "decl": "void FUN_00140ad0(int object_handle@<edi>);",
+          "decl": "void object_choose_random_region_permutations(int object_handle@<edi>);",
           "addr": "0x140ad0",
           "ported": false
         },
@@ -14608,16 +14608,19 @@
           "addr": "0xa12e0"
         },
         {
-          "decl": "void particle_delete(void);",
-          "addr": "0xa14f0"
+          "decl": "void particle_delete(int datum_handle);",
+          "addr": "0xa14f0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000a1a90(void);",
-          "addr": "0xa1a90"
+          "decl": "bool FUN_000a1a90(int datum_handle@<eax>);",
+          "addr": "0xa1a90",
+          "ported": true
         },
         {
-          "decl": "void FUN_000a1b60(void);",
-          "addr": "0xa1b60"
+          "decl": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
+          "addr": "0xa1b60",
+          "ported": true
         },
         {
           "decl": "void FUN_000a1c30(void);",
@@ -14720,7 +14723,7 @@
           "addr": "0xb6430"
         },
         {
-          "decl": "void FUN_000b64c0(void);",
+          "decl": "void evaluate_piecewise_linear_function(void);",
           "addr": "0xb64c0"
         },
         {
@@ -16701,7 +16704,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000f7ce0(void);",
+          "decl": "void projectiles_delete_all(void);",
           "addr": "0xf7ce0",
           "ported": true
         },
@@ -17205,7 +17208,7 @@
           "addr": "0x16fa40"
         },
         {
-          "decl": "void FUN_0016fb80(void);",
+          "decl": "void rasterizer_initialize(void);",
           "addr": "0x16fb80"
         },
         {
@@ -17949,7 +17952,7 @@
           "addr": "0x155a40"
         },
         {
-          "decl": "void FUN_00155a70(void);",
+          "decl": "void _rasterizer_frame_end(void);",
           "addr": "0x155a70"
         },
         {
@@ -17957,7 +17960,7 @@
           "addr": "0x155b60"
         },
         {
-          "decl": "void FUN_00155b90(void);",
+          "decl": "void _rasterizer_dispose(void);",
           "addr": "0x155b90"
         },
         {
@@ -17977,7 +17980,7 @@
           "addr": "0x155cf0"
         },
         {
-          "decl": "void FUN_00155da0(void);",
+          "decl": "void rasterizer_set_texture_direct_non_blocking(void);",
           "addr": "0x155da0"
         },
         {
@@ -17993,7 +17996,7 @@
           "addr": "0x1560a0"
         },
         {
-          "decl": "void FUN_00156250(void);",
+          "decl": "void rasterizer_get_target(void);",
           "addr": "0x156250"
         },
         {
@@ -18009,7 +18012,7 @@
           "addr": "0x156710"
         },
         {
-          "decl": "void FUN_00156850(void);",
+          "decl": "void rasterizer_set_model_lighting_point_light(void);",
           "addr": "0x156850"
         },
         {
@@ -19822,7 +19825,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_0018eab0(int16_t bsp3d_node_index);",
+          "decl": "int scenario_get_structure_reference_index_from_tag_index(int16_t bsp3d_node_index);",
           "addr": "0x18eab0",
           "ported": true
         },
@@ -19901,7 +19904,7 @@
           "addr": "0x190710"
         },
         {
-          "decl": "void FUN_00190830(void);",
+          "decl": "void shader_is_mirror(void);",
           "addr": "0x190830"
         },
         {
@@ -20047,7 +20050,7 @@
           "addr": "0x18aef0"
         },
         {
-          "decl": "void FUN_0018af90(void);",
+          "decl": "void scenario_initialize_for_new_map(void);",
           "addr": "0x18af90"
         },
         {
@@ -20071,7 +20074,7 @@
           "addr": "0x18b080"
         },
         {
-          "decl": "void FUN_0018b130(void);",
+          "decl": "void global_structure_bsp_tag_index_get(void);",
           "addr": "0x18b130"
         },
         {
@@ -20079,7 +20082,7 @@
           "addr": "0x18b190"
         },
         {
-          "decl": "void FUN_0018b610(void);",
+          "decl": "void scenario_material_definition_get(void);",
           "addr": "0x18b610"
         },
         {
@@ -20095,7 +20098,7 @@
           "addr": "0x18b830"
         },
         {
-          "decl": "void FUN_0018b930(void);",
+          "decl": "void scenario_illumination_at_point(void);",
           "addr": "0x18b930"
         },
         {
@@ -20123,7 +20126,7 @@
           "addr": "0x18c370"
         },
         {
-          "decl": "void FUN_0018c3a0(void);",
+          "decl": "void scenario_test_pvs(void);",
           "addr": "0x18c3a0"
         },
         {
@@ -20131,7 +20134,7 @@
           "addr": "0x18c460"
         },
         {
-          "decl": "void FUN_0018c4d0(void);",
+          "decl": "void scenario_location_potentially_visible_local(void);",
           "addr": "0x18c4d0"
         },
         {
@@ -20151,7 +20154,7 @@
           "addr": "0x18cf10"
         },
         {
-          "decl": "void FUN_0018d040(void);",
+          "decl": "void scenario_object_name_index_from_string(void);",
           "addr": "0x18d040"
         },
         {
@@ -20175,7 +20178,7 @@
           "addr": "0x18d490"
         },
         {
-          "decl": "void FUN_0018d670(void);",
+          "decl": "void scenario_reload_structure_bsp_if_necessary(void);",
           "addr": "0x18d670"
         },
         {
@@ -20199,7 +20202,7 @@
           "addr": "0x18e140"
         },
         {
-          "decl": "void FUN_0018e1d0(void);",
+          "decl": "void scenario_debug_to_file(void);",
           "addr": "0x18e1d0"
         },
         {
@@ -20212,7 +20215,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0018e5c0(void);",
+          "decl": "void scenario_load(void);",
           "addr": "0x18e5c0"
         },
         {
@@ -20220,7 +20223,7 @@
           "addr": "0x18e690"
         },
         {
-          "decl": "void FUN_0018e6a0(void);",
+          "decl": "void scenario_location_from_point(void);",
           "addr": "0x18e6a0"
         },
         {
@@ -20234,7 +20237,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0018e800(void);",
+          "decl": "void scenario_ensure_point_within_world(void);",
           "addr": "0x18e800"
         },
         {
@@ -20274,7 +20277,7 @@
           "addr": "0x18f230"
         },
         {
-          "decl": "void FUN_0018f250(void);",
+          "decl": "void scenario_location_underwater(void);",
           "addr": "0x18f250"
         },
         {
@@ -22594,7 +22597,7 @@
           "addr": "0xe4d40"
         },
         {
-          "decl": "void FUN_000e4da0(void);",
+          "decl": "void remap_sticks_for_local_player(void);",
           "addr": "0xe4da0"
         },
         {
@@ -22835,7 +22838,7 @@
           "addr": "0xea1f0"
         },
         {
-          "decl": "void FUN_000ea210(void);",
+          "decl": "void display_scenario_help(void);",
           "addr": "0xea210"
         },
         {
@@ -23538,7 +23541,7 @@
           "addr": "0x1a0680"
         },
         {
-          "decl": "void FUN_001a07c0(void);",
+          "decl": "void biped_place(void);",
           "addr": "0x1a07c0"
         },
         {
@@ -24582,7 +24585,7 @@
           "addr": "0x1b5500"
         },
         {
-          "decl": "void FUN_001b5580(void);",
+          "decl": "void vehicle_causes_collision_damage(void);",
           "addr": "0x1b5580"
         },
         {
@@ -24789,7 +24792,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00136450(void);",
+          "decl": "void widgets_initialize(void);",
           "addr": "0x136450"
         },
         {
@@ -27827,7 +27830,7 @@
           "addr": "0xfafe0"
         },
         {
-          "decl": "void FUN_000fb010(void);",
+          "decl": "void weapon_compute_movement_penalty(void);",
           "addr": "0xfb010"
         },
         {
@@ -28748,7 +28751,7 @@
           "addr": "0x495b0"
         },
         {
-          "decl": "void FUN_000496c0(void);",
+          "decl": "void ai_debug_highlight_cluster(void);",
           "addr": "0x496c0"
         },
         {
@@ -29023,7 +29026,7 @@
           "addr": "0x545a0"
         },
         {
-          "decl": "void FUN_00054680(void);",
+          "decl": "void ai_profile_update(void);",
           "addr": "0x54680"
         },
         {
@@ -31272,7 +31275,7 @@
           "addr": "0x123d80"
         },
         {
-          "decl": "void FUN_00123e20(void);",
+          "decl": "void animation_get_root_matrix(void);",
           "addr": "0x123e20"
         },
         {
@@ -31323,7 +31326,7 @@
           "addr": "0x128d30"
         },
         {
-          "decl": "bool FUN_00128e00(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
+          "decl": "bool network_connection_write(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
           "addr": "0x128e00"
         },
         {
@@ -31406,7 +31409,7 @@
           "addr": "0x12ab80"
         },
         {
-          "decl": "void FUN_0012abc0(void *settings, int flag);",
+          "decl": "void network_game_reset_for_next_round(void *settings, int flag);",
           "addr": "0x12abc0"
         },
         {
@@ -31983,7 +31986,7 @@
           "addr": "0x168e70"
         },
         {
-          "decl": "void FUN_00168fd0(void);",
+          "decl": "void _rasterizer_dynamic_unlit_geometry_draw(void);",
           "addr": "0x168fd0"
         },
         {
@@ -32075,7 +32078,7 @@
           "addr": "0x1b98c0"
         },
         {
-          "decl": "void FUN_001b98d0(void);",
+          "decl": "void tag_groups_checksum(void);",
           "addr": "0x1b98d0"
         },
         {
@@ -32991,7 +32994,7 @@
         },
         {
           "addr": "0x147410",
-          "decl": "int FUN_00147410(int param_1, int param_2, void *out_points);"
+          "decl": "int collision_surface_polygon(int param_1, int param_2, void *out_points);"
         },
         {
           "decl": "void render_debug_collision_vertex(void);",

@@ -373,7 +373,7 @@ bool hs_compile_source(int source_file_size, void *source_ptr,
   bool ok;
   int expr_datum;
 
-  cursor = FUN_000c5730(source_file_size, source_ptr);
+  cursor = hs_compile_initialize(source_file_size, source_ptr);
 
   if (cursor == NULL) {
     *(int *)error_info = (int)"couldn't allocate memory for compiled source.";
