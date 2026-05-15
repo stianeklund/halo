@@ -101,6 +101,18 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
   - *Usage:* Add tests to `src/halo/test_harness.c`. Ensure your function is unmapped in `kb.json` (`"ported": false`), run `rtk python3 tools/verify/run_golden_tests.py` to capture the original FPU hex values. Then map your function (`"ported": true`) and press Enter to verify your C implementation.
   - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
+- **Build error triage — undeclared/renamed symbols:** When the compiler reports `call to undeclared function 'FUN_XXXXXXXX'` or `wrong argument count`, do NOT read source files first. Use two shell commands:
+  ```bash
+  rtk rg "FUN_XXXXXXXX" build/generated/decl.h   # → not there = renamed
+  rtk jq '[.. | objects | select(.addr? == "0xXXXXX")] | .[0] | {name, decl}' kb.json  # → real name + signature
+  ```
+  The function was renamed in kb.json; update the call site to use the new name. Source reads are only needed if the signature itself is wrong.
+- **Build error triage — `ported=true` symbol absent from EXE exports:** When `patched_xbe` fails with "symbol absent from EXE exports", the **first** step is always:
+  ```bash
+  grep -rn "FUN_XXXXXXXX" src/
+  ```
+  - **Implementation found** → the source file has compile errors or is missing from `CMakeLists.txt`. Fix the errors; do NOT set `ported=false`.
+  - **No implementation found** → the function was marked ported without an implementation being written. Set `ported=false` until a proper lift is done.
 - **VC71 Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/vc71_verify.py src/path/to/file.c` to compile with Visual C++ 7.1 and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Delinked-reference precondition (REQUIRED before VC71 verify):** Before running `vc71_verify.py` for any newly lifted target, confirm the function's symbol exists in the delinked reference:
   ```
