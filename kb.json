@@ -24804,8 +24804,10 @@
           "ported": true
         },
         {
-          "decl": "void widgets_initialize(void);",
-          "addr": "0x136450"
+          "decl": "void widgets_render_object_widgets(int object_handle, int lighting, void *parent_model_effect);",
+          "addr": "0x136450",
+          "ported": true,
+          "source_path": "objects/widgets/widgets.c"
         },
         {
           "decl": "void widgets_initialize_for_new_map(void);",

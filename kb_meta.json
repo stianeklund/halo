@@ -5296,6 +5296,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x136450": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x136520": {
       "kind": "function",
       "status": "ported"
