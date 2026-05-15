@@ -384,7 +384,7 @@ bool FUN_000a1b60(int datum_handle, float delta_time)
   flags = *(uint32_t *)tag_get(0x70617274, *(int *)(datum + 0x04));
   result = 1;
   if ((flags & 0x2) != 0 && (*(uint8_t *)(datum + 0x2) & 0x2) != 0)
-    return result;
+    goto done;
   if (flags & 0x8) {
     if (delta_time != 0.0f)
       return (bool)FUN_000a1a90(datum_handle);
@@ -407,6 +407,7 @@ bool FUN_000a1b60(int datum_handle, float delta_time)
       }
     }
   }
+done:
   return result;
 }
 
