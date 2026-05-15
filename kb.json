@@ -7326,7 +7326,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a7ae0(void);",
+          "decl": "bool FUN_000a7ae0(int16_t team_a, int16_t team_b);",
           "addr": "0xa7ae0"
         },
         {
