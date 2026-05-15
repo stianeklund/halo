@@ -86,27 +86,28 @@ bool FUN_001298f0(int connection, void *buffer, int *size, void *addr)
 bool FUN_00129cf0(int connection, int timeout, int *output)
 {
   unsigned int now;
+  uint32_t raw_flags;
   uint32_t flags;
   bool ok;
   bool is_connected;
   int bytes_read;
   short addr_result;
+  int elapsed;
+  double dval;
   unsigned int queue_space;
   uint8_t recv_buf[400];
   uint8_t addr_buf[24];
-  void *log_stream;
 
   now = system_milliseconds();
   ok = true;
 
   assert_halt(connection);
 
-  flags = *(uint32_t *)(connection + 0x30) & ~0x20u;
+  raw_flags = *(uint32_t *)(connection + 0x30);
+  flags = raw_flags & ~0x20u;
   *(uint32_t *)(connection + 0x30) = flags;
 
-  if (timeout == 0) {
-    *(unsigned int *)(connection + 0x8) = now;
-  } else {
+  if (timeout != 0) {
     if (now > (unsigned int)(*(int *)(connection + 0x8) + 5000)) {
       *(uint32_t *)(connection + 0x30) = flags | 0x20;
     }
@@ -118,6 +119,8 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
       error(2, "dont timeout is active so not timing out of a connection");
       *(unsigned int *)(connection + 0x8) = now;
     }
+  } else {
+    *(unsigned int *)(connection + 0x8) = now;
   }
 
   if ((*(uint32_t *)(connection + 0x30) & 1) != 0) {
@@ -126,13 +129,11 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
       error(2, "network_connection_idle_server_reliable_endpoint failed");
       return false;
     }
-  } else {
-    if ((*(uint32_t *)(connection + 0x30) & 6) != 0) {
-      ok = FUN_001294d0(connection);
-      if (!ok) {
-        error(2, "network_connection_idle_client_reliable_endpoint failed");
-        return false;
-      }
+  } else if ((*(uint32_t *)(connection + 0x30) & 6) != 0) {
+    ok = FUN_001294d0(connection);
+    if (!ok) {
+      error(2, "network_connection_idle_client_reliable_endpoint failed");
+      return false;
     }
   }
 
@@ -142,30 +143,12 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
   queue_space = circular_queue_free_space(*(int *)(connection + 0x14));
 
   while (ok && queue_space > 0x193) {
+    bytes_read = 0;
     is_connected = FUN_000831a0(*(int *)(connection + 0x4));
 
-    if (!is_connected) {
+    if (is_connected) {
       bytes_read =
-        FUN_00084520((int *)*(int *)(connection + 0x4), recv_buf, 400, addr_buf);
-
-      if (bytes_read > 0) {
-        if (*(int *)(connection + 0x18) != 0) {
-          int elapsed =
-            (int)(system_milliseconds() - *(unsigned int *)(connection + 0x1c));
-          double dval = (double)elapsed;
-          if (elapsed < 0)
-            dval = dval + *(double *)0x265d40;
-          dval = dval * *(double *)0x294bf0;
-          crt_fprintf(*(void **)(connection + 0x18), "%g\t%ld\t%ld\t%ld\t%ld\n",
-                      dval, 0, bytes_read, 0, 0);
-          log_stream = *(void **)(connection + 0x18);
-          goto flush_log;
-        }
-        goto process_datagram;
-      }
-    } else {
-      bytes_read = recv_endpoint((int *)*(int *)(connection + 0x4), recv_buf, 400);
-
+        recv_endpoint((int *)*(int *)(connection + 0x4), recv_buf, 400);
       if (bytes_read > 0) {
         addr_result = FUN_00083a60((int *)*(int *)(connection + 0x4), addr_buf);
         if (addr_result != 0) {
@@ -174,19 +157,33 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
         }
 
         if (*(int *)(connection + 0x18) != 0) {
-          int elapsed =
+          elapsed =
             (int)(system_milliseconds() - *(unsigned int *)(connection + 0x1c));
-          double dval = (double)elapsed;
+          dval = (double)elapsed;
           if (elapsed < 0)
             dval = dval + *(double *)0x265d40;
           dval = dval * *(double *)0x294bf0;
           crt_fprintf(*(void **)(connection + 0x18), "%g\t%ld\t%ld\t%ld\t%ld\n",
                       dval, 0, bytes_read, 0, 0);
-          log_stream = *(void **)(connection + 0x18);
-        flush_log:
-          crt_fflush(log_stream);
+          crt_fflush(*(void **)(connection + 0x18));
         }
-      process_datagram:
+        *(int *)(connection + 0x24) = *(int *)(connection + 0x24) + 1;
+      }
+    } else {
+      bytes_read = FUN_00084520((int *)*(int *)(connection + 0x4), recv_buf,
+                                400, addr_buf);
+      if (bytes_read > 0) {
+        if (*(int *)(connection + 0x18) != 0) {
+          elapsed =
+            (int)(system_milliseconds() - *(unsigned int *)(connection + 0x1c));
+          dval = (double)elapsed;
+          if (elapsed < 0)
+            dval = dval + *(double *)0x265d40;
+          dval = dval * *(double *)0x294bf0;
+          crt_fprintf(*(void **)(connection + 0x18), "%g\t%ld\t%ld\t%ld\t%ld\n",
+                      dval, 0, bytes_read, 0, 0);
+          crt_fflush(*(void **)(connection + 0x18));
+        }
         *(int *)(connection + 0x24) = *(int *)(connection + 0x24) + 1;
       }
     }
@@ -329,8 +326,7 @@ bool network_game_client_start_frame(void)
     if (*(void **)0x46e8bc != NULL) {
       reason = network_game_server_get_game(*(void **)0x46e8bc);
     } else if (*(void **)0x46e8c0 != NULL) {
-      reason = (int)network_game_client_get_machine_index(
-        *(void **)0x46e8c0);
+      reason = (int)network_game_client_get_machine_index(*(void **)0x46e8c0);
     } else {
       reason = 0;
     }
@@ -451,7 +447,8 @@ bool network_game_client_end_frame(void)
         result = false;
       } else {
         network_game_client_switch_to_postgame(*(void **)0x46e8c0, local_1c);
-        result = FUN_00124d40(*(void **)0x46e8c0, msg, *msg >> 4, *(int *)local_1c, 0);
+        result =
+          FUN_00124d40(*(void **)0x46e8c0, msg, *msg >> 4, *(int *)local_1c, 0);
         if (!result) {
           network_game_log("failed to send a game update to the server");
           *(int *)0x46e8c8 = now;
