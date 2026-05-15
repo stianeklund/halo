@@ -92,17 +92,30 @@ def cmd_reclassify(args):
     med_conf = [e for e in classify_json if e.get("confidence") == "medium"]
     candidates = high_conf + med_conf
 
-    # Filter: only move if proposed target is NOT <common> and NOT a LIBC/XDK bucket
+    # Build object lookup early so we can allow moves into existing platform-stub objects
+    obj_by_name = {o.get("name"): o for o in kb["objects"] if o.get("name")}
+
+    _PLATFORM_PREFIXES = ("LIBCMT", "XAPILIB", "D3D8", "XNET")
+
+    def _resolve_target(proposed: str) -> str:
+        """Pick the best concrete target from a possibly ambiguous proposal."""
+        options = [t.strip() for t in proposed.split(" or ")]
+        # Prefer the first option that is not <common> itself
+        for opt in options:
+            if opt == "<common>":
+                continue  # already there
+            return opt
+        return ""  # only option was <common>
+
+    # Filter: only move if resolved target is non-empty and not a new platform-stub object
     moves = []
     for entry in candidates:
-        target = entry.get("proposed_target", "")
-        if " or " in target:
-            # Ambiguous — skip for now, or take first option
-            target = target.split(" or ")[0]
-        if target.startswith("<") and target.endswith(">"):
-            continue  # Skip stub buckets
-        if target.startswith("LIBCMT") or target.startswith("XAPILIB") or target.startswith("D3D8") or target.startswith("XNET"):
-            continue  # Skip platform stubs
+        target = _resolve_target(entry.get("proposed_target", ""))
+        if not target:
+            continue  # all options were stub buckets
+        is_platform = target.startswith(_PLATFORM_PREFIXES)
+        if is_platform and target not in obj_by_name:
+            continue  # skip creating brand-new platform stub objects
         moves.append(entry)
 
     print(f"Proposed reclassifications: {len(moves)} (of {len(candidates)} candidates)")
@@ -118,7 +131,6 @@ def cmd_reclassify(args):
         return 0
 
     # Apply moves
-    obj_by_name = {o.get("name"): o for o in kb["objects"] if o.get("name")}
     common_obj = None
     common_idx = None
     for i, o in enumerate(kb["objects"]):
@@ -138,9 +150,7 @@ def cmd_reclassify(args):
     for f in common_obj.get("functions", []):
         addr = f.get("addr", "")
         if addr in addr_to_move:
-            target = addr_to_move[addr].get("proposed_target", "")
-            if " or " in target:
-                target = target.split(" or ")[0]
+            target = _resolve_target(addr_to_move[addr].get("proposed_target", ""))
             if target in obj_by_name:
                 obj = obj_by_name[target]
                 if "functions" not in obj:
@@ -149,7 +159,7 @@ def cmd_reclassify(args):
                 obj["functions"].sort(key=lambda x: int(x.get("addr", "0x0"), 16))
                 moved_funcs.append((addr, target))
             else:
-                # Create new object
+                # Create new object (only non-platform targets reach here)
                 new_obj = {"name": target, "functions": [f], "data": []}
                 kb["objects"].append(new_obj)
                 obj_by_name[target] = new_obj

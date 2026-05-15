@@ -163,40 +163,8 @@
       ],
       "functions": [
         {
-          "decl": "int __stdcall FUN_001d33e6(void *counter);",
-          "addr": "0x1d33e6"
-        },
-        {
           "decl": "void FUN_001a4a70(int handle, float *velocity);",
           "addr": "0x1a4a70"
-        },
-        {
-          "decl": "void FUN_00056320(void);",
-          "addr": "0x56320"
-        },
-        {
-          "decl": "void FUN_000563c0(void);",
-          "addr": "0x563c0"
-        },
-        {
-          "decl": "void FUN_000564b0(void);",
-          "addr": "0x564b0"
-        },
-        {
-          "decl": "void FUN_000565c0(void);",
-          "addr": "0x565c0"
-        },
-        {
-          "decl": "void FUN_000566a0(void);",
-          "addr": "0x566a0"
-        },
-        {
-          "decl": "void FUN_00056790(void);",
-          "addr": "0x56790"
-        },
-        {
-          "decl": "void FUN_000567e0(void);",
-          "addr": "0x567e0"
         },
         {
           "decl": "void FUN_00067710(void);",
@@ -255,10 +223,6 @@
           "addr": "0x680a0"
         },
         {
-          "decl": "void FUN_0006ba70(void);",
-          "addr": "0x6ba70"
-        },
-        {
           "decl": "void FUN_0006bcb0(void);",
           "addr": "0x6bcb0"
         },
@@ -271,44 +235,8 @@
           "addr": "0x6c080"
         },
         {
-          "decl": "void FUN_0006e740(void);",
-          "addr": "0x6e740"
-        },
-        {
-          "decl": "void FUN_0006e7d0(void);",
-          "addr": "0x6e7d0"
-        },
-        {
-          "decl": "void FUN_0006e870(void);",
-          "addr": "0x6e870"
-        },
-        {
-          "decl": "void FUN_0006e930(void);",
-          "addr": "0x6e930"
-        },
-        {
-          "decl": "void FUN_0006e980(void);",
-          "addr": "0x6e980"
-        },
-        {
           "decl": "void FUN_00074fb0(void);",
           "addr": "0x74fb0"
-        },
-        {
-          "decl": "void FUN_00075380(void);",
-          "addr": "0x75380"
-        },
-        {
-          "decl": "void FUN_00075630(void);",
-          "addr": "0x75630"
-        },
-        {
-          "decl": "void FUN_00075800(void);",
-          "addr": "0x75800"
-        },
-        {
-          "decl": "void FUN_00075a20(void);",
-          "addr": "0x75a20"
         },
         {
           "decl": "void FUN_0007ece0(void);",
@@ -339,80 +267,8 @@
           "addr": "0x88d50"
         },
         {
-          "decl": "void FUN_000a54b0(void);",
-          "addr": "0xa54b0"
-        },
-        {
-          "decl": "void FUN_000b3c60(void);",
-          "addr": "0xb3c60"
-        },
-        {
-          "decl": "void FUN_000b3cf0(void);",
-          "addr": "0xb3cf0"
-        },
-        {
           "decl": "void FUN_000b3df0(void);",
           "addr": "0xb3df0"
-        },
-        {
-          "decl": "void FUN_000c07f0(void);",
-          "addr": "0xc07f0"
-        },
-        {
-          "decl": "void FUN_000c0830(void);",
-          "addr": "0xc0830"
-        },
-        {
-          "decl": "void FUN_000c0870(void);",
-          "addr": "0xc0870"
-        },
-        {
-          "decl": "void FUN_000c08b0(void);",
-          "addr": "0xc08b0"
-        },
-        {
-          "decl": "void FUN_000c08f0(void);",
-          "addr": "0xc08f0"
-        },
-        {
-          "decl": "void FUN_000c0930(void);",
-          "addr": "0xc0930"
-        },
-        {
-          "decl": "void FUN_000c0970(void);",
-          "addr": "0xc0970"
-        },
-        {
-          "decl": "void FUN_000c09b0(void);",
-          "addr": "0xc09b0"
-        },
-        {
-          "decl": "void FUN_000c09f0(void);",
-          "addr": "0xc09f0"
-        },
-        {
-          "decl": "void FUN_000c0a30(void);",
-          "addr": "0xc0a30"
-        },
-        {
-          "decl": "void FUN_000c0a70(void);",
-          "addr": "0xc0a70"
-        },
-        {
-          "decl": "void FUN_000c0ab0(void);",
-          "addr": "0xc0ab0"
-        },
-        {
-          "decl": "void FUN_000c0af0(void);",
-          "addr": "0xc0af0"
-        },
-        {
-          "decl": "void FUN_000c0b30(void);",
-          "addr": "0xc0b30"
-        },
-        {
-          "decl": "void FUN_000c0b70(void);",
-          "addr": "0xc0b70"
         },
         {
           "decl": "void FUN_000c0bb0(void);",
@@ -421,70 +277,6 @@
         {
           "decl": "void FUN_000c0bf0(void);",
           "addr": "0xc0bf0"
-        },
-        {
-          "decl": "void FUN_000c0c30(void);",
-          "addr": "0xc0c30"
-        },
-        {
-          "decl": "void FUN_000c0c70(void);",
-          "addr": "0xc0c70"
-        },
-        {
-          "decl": "void FUN_000c0cb0(void);",
-          "addr": "0xc0cb0"
-        },
-        {
-          "decl": "void FUN_000c0cd0(void);",
-          "addr": "0xc0cd0"
-        },
-        {
-          "decl": "void FUN_000c0d10(void);",
-          "addr": "0xc0d10"
-        },
-        {
-          "decl": "void FUN_000c0d50(void);",
-          "addr": "0xc0d50"
-        },
-        {
-          "decl": "void FUN_000c0d90(void);",
-          "addr": "0xc0d90"
-        },
-        {
-          "decl": "void FUN_000c0dd0(void);",
-          "addr": "0xc0dd0"
-        },
-        {
-          "decl": "void FUN_000c0e10(void);",
-          "addr": "0xc0e10"
-        },
-        {
-          "decl": "void FUN_000c0e50(void);",
-          "addr": "0xc0e50"
-        },
-        {
-          "decl": "void FUN_000c0e90(void);",
-          "addr": "0xc0e90"
-        },
-        {
-          "decl": "void FUN_000c0ed0(void);",
-          "addr": "0xc0ed0"
-        },
-        {
-          "decl": "void FUN_000c0f10(void);",
-          "addr": "0xc0f10"
-        },
-        {
-          "decl": "void FUN_000c0f50(void);",
-          "addr": "0xc0f50"
-        },
-        {
-          "decl": "void FUN_000c0f90(void);",
-          "addr": "0xc0f90"
-        },
-        {
-          "decl": "void FUN_000c0fd0(void);",
-          "addr": "0xc0fd0"
         },
         {
           "decl": "void FUN_000d3080(void);",
@@ -547,18 +339,6 @@
           "addr": "0xd8ff0"
         },
         {
-          "decl": "void FUN_000ecd50(void);",
-          "addr": "0xecd50"
-        },
-        {
-          "decl": "void FUN_000ece10(void);",
-          "addr": "0xece10"
-        },
-        {
-          "decl": "void FUN_000eceb0(void);",
-          "addr": "0xeceb0"
-        },
-        {
           "decl": "void FUN_000ed240(void);",
           "addr": "0xed240"
         },
@@ -569,22 +349,6 @@
         {
           "decl": "void FUN_000ed7c0(void);",
           "addr": "0xed7c0"
-        },
-        {
-          "decl": "void FUN_000f3740(void);",
-          "addr": "0xf3740"
-        },
-        {
-          "decl": "void FUN_000f3850(void);",
-          "addr": "0xf3850"
-        },
-        {
-          "decl": "void FUN_000f3960(void);",
-          "addr": "0xf3960"
-        },
-        {
-          "decl": "void FUN_000f39c0(void);",
-          "addr": "0xf39c0"
         },
         {
           "decl": "void FUN_000f3c80(void);",
@@ -875,1116 +639,8 @@
           "addr": "0x1c4990"
         },
         {
-          "decl": "void FUN_001cfca4(void);",
-          "addr": "0x1cfca4"
-        },
-        {
-          "decl": "void * __stdcall FUN_001cfd8c(void *security, int stack_size, void *func, void *param, int flags, int *thread_id);",
-          "addr": "0x1cfd8c"
-        },
-        {
-          "decl": "void FUN_001d0b9c(void);",
-          "addr": "0x1d0b9c"
-        },
-        {
-          "decl": "void FUN_001d0bb3(void);",
-          "addr": "0x1d0bb3"
-        },
-        {
-          "decl": "void *__stdcall FUN_001d0bb9(unsigned int flags, unsigned int size);",
-          "addr": "0x1d0bb9"
-        },
-        {
-          "decl": "void FUN_001d0c02(void);",
-          "addr": "0x1d0c02"
-        },
-        {
-          "decl": "void *__stdcall FUN_001d0c16(void *ptr);",
-          "addr": "0x1d0c16"
-        },
-        {
-          "decl": "void FUN_001d0c48(void);",
-          "addr": "0x1d0c48"
-        },
-        {
-          "decl": "void FUN_001d0c65(void);",
-          "addr": "0x1d0c65"
-        },
-        {
-          "decl": "void FUN_001d0c91(void);",
-          "addr": "0x1d0c91"
-        },
-        {
-          "decl": "void FUN_001d2367(void);",
-          "addr": "0x1d2367"
-        },
-        {
-          "decl": "void FUN_001d23d9(void);",
-          "addr": "0x1d23d9"
-        },
-        {
-          "decl": "void FUN_001d243e(void);",
-          "addr": "0x1d243e"
-        },
-        {
-          "decl": "void FUN_001d2518(void);",
-          "addr": "0x1d2518"
-        },
-        {
-          "decl": "void FUN_001d259b(void);",
-          "addr": "0x1d259b"
-        },
-        {
-          "decl": "void FUN_001d25e0(void);",
-          "addr": "0x1d25e0"
-        },
-        {
-          "decl": "void FUN_001d3254(void);",
-          "addr": "0x1d3254"
-        },
-        {
-          "decl": "void FUN_001d335b(void);",
-          "addr": "0x1d335b"
-        },
-        {
-          "decl": "void FUN_001d33a2(void);",
-          "addr": "0x1d33a2"
-        },
-        {
-          "decl": "void FUN_001d33fb(void);",
-          "addr": "0x1d33fb"
-        },
-        {
-          "decl": "void FUN_001d3410(void);",
-          "addr": "0x1d3410"
-        },
-        {
-          "decl": "void FUN_001d347c(void);",
-          "addr": "0x1d347c"
-        },
-        {
-          "decl": "void FUN_001d350a(void);",
-          "addr": "0x1d350a"
-        },
-        {
-          "decl": "void FUN_001d3576(void);",
-          "addr": "0x1d3576"
-        },
-        {
-          "decl": "void FUN_001d3a91(void);",
-          "addr": "0x1d3a91"
-        },
-        {
-          "decl": "void FUN_001d3c95(void);",
-          "addr": "0x1d3c95"
-        },
-        {
-          "decl": "void FUN_001d3d80(void);",
-          "addr": "0x1d3d80"
-        },
-        {
-          "decl": "void FUN_001d3ee5(void);",
-          "addr": "0x1d3ee5"
-        },
-        {
-          "decl": "void FUN_001d3f42(void);",
-          "addr": "0x1d3f42"
-        },
-        {
-          "decl": "void FUN_001d3fe1(void);",
-          "addr": "0x1d3fe1"
-        },
-        {
-          "decl": "void FUN_001d407c(void);",
-          "addr": "0x1d407c"
-        },
-        {
-          "decl": "void FUN_001d4157(void);",
-          "addr": "0x1d4157"
-        },
-        {
-          "decl": "void FUN_001d41be(void);",
-          "addr": "0x1d41be"
-        },
-        {
-          "decl": "void FUN_001d4230(void);",
-          "addr": "0x1d4230"
-        },
-        {
-          "decl": "void FUN_001d426b(void);",
-          "addr": "0x1d426b"
-        },
-        {
-          "decl": "void FUN_001d42a9(void);",
-          "addr": "0x1d42a9"
-        },
-        {
-          "decl": "void FUN_001d42c3(void);",
-          "addr": "0x1d42c3"
-        },
-        {
-          "decl": "void FUN_001d4345(void);",
-          "addr": "0x1d4345"
-        },
-        {
-          "decl": "void FUN_001d43b4(void);",
-          "addr": "0x1d43b4"
-        },
-        {
-          "decl": "void FUN_001d440e(void);",
-          "addr": "0x1d440e"
-        },
-        {
-          "decl": "void FUN_001d4436(void);",
-          "addr": "0x1d4436"
-        },
-        {
-          "decl": "void FUN_001d4464(void);",
-          "addr": "0x1d4464"
-        },
-        {
-          "decl": "void FUN_001d4486(void);",
-          "addr": "0x1d4486"
-        },
-        {
-          "decl": "void FUN_001d44b3(void);",
-          "addr": "0x1d44b3"
-        },
-        {
-          "decl": "void FUN_001d44dc(void);",
-          "addr": "0x1d44dc"
-        },
-        {
-          "decl": "void FUN_001d4507(void);",
-          "addr": "0x1d4507"
-        },
-        {
-          "decl": "void FUN_001d454b(void);",
-          "addr": "0x1d454b"
-        },
-        {
-          "decl": "void FUN_001d4570(void);",
-          "addr": "0x1d4570"
-        },
-        {
-          "decl": "void FUN_001d46a3(void);",
-          "addr": "0x1d46a3"
-        },
-        {
-          "decl": "void FUN_001d47c3(void);",
-          "addr": "0x1d47c3"
-        },
-        {
-          "decl": "void FUN_001d47e4(void);",
-          "addr": "0x1d47e4"
-        },
-        {
-          "decl": "void FUN_001d4877(void);",
-          "addr": "0x1d4877"
-        },
-        {
-          "decl": "void FUN_001d4a02(void);",
-          "addr": "0x1d4a02"
-        },
-        {
-          "decl": "void FUN_001d4a34(void);",
-          "addr": "0x1d4a34"
-        },
-        {
-          "decl": "void FUN_001d4cd9(void);",
-          "addr": "0x1d4cd9"
-        },
-        {
-          "decl": "void FUN_001d4dd3(void);",
-          "addr": "0x1d4dd3"
-        },
-        {
-          "decl": "void FUN_001d4e37(void);",
-          "addr": "0x1d4e37"
-        },
-        {
-          "decl": "void FUN_001d4ec6(void);",
-          "addr": "0x1d4ec6"
-        },
-        {
-          "decl": "void FUN_001d52c4(void);",
-          "addr": "0x1d52c4"
-        },
-        {
-          "decl": "void FUN_001d52f3(void);",
-          "addr": "0x1d52f3"
-        },
-        {
-          "decl": "void FUN_001d5411(void);",
-          "addr": "0x1d5411"
-        },
-        {
-          "decl": "void FUN_001d5598(void);",
-          "addr": "0x1d5598"
-        },
-        {
-          "decl": "void FUN_001d5842(void);",
-          "addr": "0x1d5842"
-        },
-        {
           "decl": "void FUN_001d5c66(void);",
           "addr": "0x1d5c66"
-        },
-        {
-          "decl": "void FUN_001d63d5(void);",
-          "addr": "0x1d63d5"
-        },
-        {
-          "decl": "void FUN_001d6ca8(void);",
-          "addr": "0x1d6ca8"
-        },
-        {
-          "decl": "void FUN_001d6e65(void);",
-          "addr": "0x1d6e65"
-        },
-        {
-          "decl": "void FUN_001d703b(void);",
-          "addr": "0x1d703b"
-        },
-        {
-          "decl": "void FUN_001d76fc(void);",
-          "addr": "0x1d76fc"
-        },
-        {
-          "decl": "void FUN_001d771c(void);",
-          "addr": "0x1d771c"
-        },
-        {
-          "decl": "void FUN_001d7749(void);",
-          "addr": "0x1d7749"
-        },
-        {
-          "decl": "void FUN_001d7a59(void);",
-          "addr": "0x1d7a59"
-        },
-        {
-          "decl": "void FUN_001d7b37(void);",
-          "addr": "0x1d7b37"
-        },
-        {
-          "decl": "void FUN_001d88ef(void);",
-          "addr": "0x1d88ef"
-        },
-        {
-          "decl": "void FUN_001dd91b(void);",
-          "addr": "0x1dd91b"
-        },
-        {
-          "decl": "void FUN_001dd957(void);",
-          "addr": "0x1dd957"
-        },
-        {
-          "decl": "void FUN_001dda3d(void);",
-          "addr": "0x1dda3d"
-        },
-        {
-          "decl": "void FUN_001ddcc6(void);",
-          "addr": "0x1ddcc6"
-        },
-        {
-          "decl": "void FUN_001ddd09(void);",
-          "addr": "0x1ddd09"
-        },
-        {
-          "decl": "void FUN_001ddda3(void);",
-          "addr": "0x1ddda3"
-        },
-        {
-          "decl": "void FUN_001ddda8(void);",
-          "addr": "0x1ddda8"
-        },
-        {
-          "decl": "void FUN_001dddbf(void);",
-          "addr": "0x1dddbf"
-        },
-        {
-          "decl": "void FUN_001ddde6(void);",
-          "addr": "0x1ddde6"
-        },
-        {
-          "decl": "void FUN_001dde12(void);",
-          "addr": "0x1dde12"
-        },
-        {
-          "decl": "void FUN_001dde24(void);",
-          "addr": "0x1dde24"
-        },
-        {
-          "decl": "void FUN_001dde73(void);",
-          "addr": "0x1dde73"
-        },
-        {
-          "decl": "void FUN_001dde7c(void);",
-          "addr": "0x1dde7c"
-        },
-        {
-          "decl": "void FUN_001ddf39(void);",
-          "addr": "0x1ddf39"
-        },
-        {
-          "decl": "void FUN_001ddf77(void);",
-          "addr": "0x1ddf77"
-        },
-        {
-          "decl": "void FUN_001ddf9a(void);",
-          "addr": "0x1ddf9a"
-        },
-        {
-          "decl": "void FUN_001de043(void);",
-          "addr": "0x1de043"
-        },
-        {
-          "decl": "void FUN_001de0a3(void);",
-          "addr": "0x1de0a3"
-        },
-        {
-          "decl": "void FUN_001de14a(void);",
-          "addr": "0x1de14a"
-        },
-        {
-          "decl": "void FUN_001de19c(void);",
-          "addr": "0x1de19c"
-        },
-        {
-          "decl": "void FUN_001de229(void);",
-          "addr": "0x1de229"
-        },
-        {
-          "decl": "void FUN_001de27a(void);",
-          "addr": "0x1de27a"
-        },
-        {
-          "decl": "void FUN_001de28c(void);",
-          "addr": "0x1de28c"
-        },
-        {
-          "decl": "void FUN_001de3a5(void);",
-          "addr": "0x1de3a5"
-        },
-        {
-          "decl": "void FUN_001de3d8(void);",
-          "addr": "0x1de3d8"
-        },
-        {
-          "decl": "void FUN_001de3fc(void);",
-          "addr": "0x1de3fc"
-        },
-        {
-          "decl": "void FUN_001de452(void);",
-          "addr": "0x1de452"
-        },
-        {
-          "decl": "void FUN_001deba0(void);",
-          "addr": "0x1deba0"
-        },
-        {
-          "decl": "void FUN_001dec07(void);",
-          "addr": "0x1dec07"
-        },
-        {
-          "decl": "void FUN_001ded6c(void);",
-          "addr": "0x1ded6c"
-        },
-        {
-          "decl": "void FUN_001ded83(void);",
-          "addr": "0x1ded83"
-        },
-        {
-          "decl": "void FUN_001dedc0(void);",
-          "addr": "0x1dedc0"
-        },
-        {
-          "decl": "void FUN_001dedd5(void);",
-          "addr": "0x1dedd5"
-        },
-        {
-          "decl": "void FUN_001dedec(void);",
-          "addr": "0x1dedec"
-        },
-        {
-          "decl": "void FUN_001dee05(void);",
-          "addr": "0x1dee05"
-        },
-        {
-          "decl": "void FUN_001dee48(void);",
-          "addr": "0x1dee48"
-        },
-        {
-          "decl": "void FUN_001dee5e(void);",
-          "addr": "0x1dee5e"
-        },
-        {
-          "decl": "void FUN_001dee6b(void);",
-          "addr": "0x1dee6b"
-        },
-        {
-          "decl": "void FUN_001deea9(void);",
-          "addr": "0x1deea9"
-        },
-        {
-          "decl": "void FUN_001def4c(void);",
-          "addr": "0x1def4c"
-        },
-        {
-          "decl": "void FUN_001defb3(void);",
-          "addr": "0x1defb3"
-        },
-        {
-          "decl": "void FUN_001defd9(void);",
-          "addr": "0x1defd9"
-        },
-        {
-          "decl": "void FUN_001df055(void);",
-          "addr": "0x1df055"
-        },
-        {
-          "decl": "void FUN_001df083(void);",
-          "addr": "0x1df083"
-        },
-        {
-          "decl": "void FUN_001df10b(void);",
-          "addr": "0x1df10b"
-        },
-        {
-          "decl": "void FUN_001df1bd(void);",
-          "addr": "0x1df1bd"
-        },
-        {
-          "decl": "void FUN_001df20a(void);",
-          "addr": "0x1df20a"
-        },
-        {
-          "decl": "void FUN_001df285(void);",
-          "addr": "0x1df285"
-        },
-        {
-          "decl": "void FUN_001df28e(void);",
-          "addr": "0x1df28e"
-        },
-        {
-          "decl": "void FUN_001df419(void);",
-          "addr": "0x1df419"
-        },
-        {
-          "decl": "void FUN_001df4a0(void);",
-          "addr": "0x1df4a0"
-        },
-        {
-          "decl": "void FUN_001df4c4(void);",
-          "addr": "0x1df4c4"
-        },
-        {
-          "decl": "void FUN_001df562(void);",
-          "addr": "0x1df562"
-        },
-        {
-          "decl": "void FUN_001df57e(void);",
-          "addr": "0x1df57e"
-        },
-        {
-          "decl": "void FUN_001df822(void);",
-          "addr": "0x1df822"
-        },
-        {
-          "decl": "void FUN_001dfa0d(void);",
-          "addr": "0x1dfa0d"
-        },
-        {
-          "decl": "void FUN_001dfa55(void);",
-          "addr": "0x1dfa55"
-        },
-        {
-          "decl": "void FUN_001dfa82(void);",
-          "addr": "0x1dfa82"
-        },
-        {
-          "decl": "void FUN_001dfb20(void);",
-          "addr": "0x1dfb20"
-        },
-        {
-          "decl": "void FUN_001dfb73(void);",
-          "addr": "0x1dfb73"
-        },
-        {
-          "decl": "void FUN_001dfbd2(void);",
-          "addr": "0x1dfbd2"
-        },
-        {
-          "decl": "void FUN_001dfc72(void);",
-          "addr": "0x1dfc72"
-        },
-        {
-          "decl": "void FUN_001dfd23(void);",
-          "addr": "0x1dfd23"
-        },
-        {
-          "decl": "void FUN_001dfd36(void);",
-          "addr": "0x1dfd36"
-        },
-        {
-          "decl": "void FUN_001dfd9f(void);",
-          "addr": "0x1dfd9f"
-        },
-        {
-          "decl": "void FUN_001dfdc4(void);",
-          "addr": "0x1dfdc4"
-        },
-        {
-          "decl": "void FUN_001dfe1f(void);",
-          "addr": "0x1dfe1f"
-        },
-        {
-          "decl": "void FUN_001dfed1(void);",
-          "addr": "0x1dfed1"
-        },
-        {
-          "decl": "void FUN_001dfede(void);",
-          "addr": "0x1dfede"
-        },
-        {
-          "decl": "void FUN_001dfeec(void);",
-          "addr": "0x1dfeec"
-        },
-        {
-          "decl": "void FUN_001dff10(void);",
-          "addr": "0x1dff10"
-        },
-        {
-          "decl": "void FUN_001dff91(void);",
-          "addr": "0x1dff91"
-        },
-        {
-          "decl": "void FUN_001e0013(void);",
-          "addr": "0x1e0013"
-        },
-        {
-          "decl": "void FUN_001e0446(void);",
-          "addr": "0x1e0446"
-        },
-        {
-          "decl": "void FUN_001e055f(void);",
-          "addr": "0x1e055f"
-        },
-        {
-          "decl": "void FUN_001e075f(void);",
-          "addr": "0x1e075f"
-        },
-        {
-          "decl": "void FUN_001e07c0(void);",
-          "addr": "0x1e07c0"
-        },
-        {
-          "decl": "void FUN_001e0912(void);",
-          "addr": "0x1e0912"
-        },
-        {
-          "decl": "void FUN_001e0944(void);",
-          "addr": "0x1e0944"
-        },
-        {
-          "decl": "void FUN_001e0984(void);",
-          "addr": "0x1e0984"
-        },
-        {
-          "decl": "void FUN_001e153d(void);",
-          "addr": "0x1e153d"
-        },
-        {
-          "decl": "void FUN_001e155e(void);",
-          "addr": "0x1e155e"
-        },
-        {
-          "decl": "void FUN_001e1610(void);",
-          "addr": "0x1e1610"
-        },
-        {
-          "decl": "void FUN_001e17c8(void);",
-          "addr": "0x1e17c8"
-        },
-        {
-          "decl": "void FUN_001e1953(void);",
-          "addr": "0x1e1953"
-        },
-        {
-          "decl": "void FUN_001e1997(void);",
-          "addr": "0x1e1997"
-        },
-        {
-          "decl": "void FUN_001e19b7(void);",
-          "addr": "0x1e19b7"
-        },
-        {
-          "decl": "void FUN_001e1abe(void);",
-          "addr": "0x1e1abe"
-        },
-        {
-          "decl": "void FUN_001e1ba0(void);",
-          "addr": "0x1e1ba0"
-        },
-        {
-          "decl": "void FUN_001e1bde(void);",
-          "addr": "0x1e1bde"
-        },
-        {
-          "decl": "void FUN_001e1c1b(void);",
-          "addr": "0x1e1c1b"
-        },
-        {
-          "decl": "void FUN_001e1c63(void);",
-          "addr": "0x1e1c63"
-        },
-        {
-          "decl": "void FUN_001e1c6a(void);",
-          "addr": "0x1e1c6a"
-        },
-        {
-          "decl": "void FUN_001e1db1(void);",
-          "addr": "0x1e1db1"
-        },
-        {
-          "decl": "void FUN_001e1de4(void);",
-          "addr": "0x1e1de4"
-        },
-        {
-          "decl": "void FUN_001e1e20(void);",
-          "addr": "0x1e1e20"
-        },
-        {
-          "decl": "void FUN_001e1ea5(void);",
-          "addr": "0x1e1ea5"
-        },
-        {
-          "decl": "void FUN_001e1ed5(void);",
-          "addr": "0x1e1ed5"
-        },
-        {
-          "decl": "void FUN_001e209e(void);",
-          "addr": "0x1e209e"
-        },
-        {
-          "decl": "void FUN_001e2125(void);",
-          "addr": "0x1e2125"
-        },
-        {
-          "decl": "void FUN_001e2460(void);",
-          "addr": "0x1e2460"
-        },
-        {
-          "decl": "void FUN_001e24d2(void);",
-          "addr": "0x1e24d2"
-        },
-        {
-          "decl": "void FUN_001e2559(void);",
-          "addr": "0x1e2559"
-        },
-        {
-          "decl": "void FUN_001e257d(void);",
-          "addr": "0x1e257d"
-        },
-        {
-          "decl": "void FUN_001e2669(void);",
-          "addr": "0x1e2669"
-        },
-        {
-          "decl": "void FUN_001e26a0(void);",
-          "addr": "0x1e26a0"
-        },
-        {
-          "decl": "void FUN_001e270c(void);",
-          "addr": "0x1e270c"
-        },
-        {
-          "decl": "void FUN_001e2747(void);",
-          "addr": "0x1e2747"
-        },
-        {
-          "decl": "void FUN_001e2751(void);",
-          "addr": "0x1e2751"
-        },
-        {
-          "decl": "void FUN_001e2879(void);",
-          "addr": "0x1e2879"
-        },
-        {
-          "decl": "void FUN_001e28a4(void);",
-          "addr": "0x1e28a4"
-        },
-        {
-          "decl": "void FUN_001e28e8(void);",
-          "addr": "0x1e28e8"
-        },
-        {
-          "decl": "void FUN_001e290d(void);",
-          "addr": "0x1e290d"
-        },
-        {
-          "decl": "void FUN_001e2932(void);",
-          "addr": "0x1e2932"
-        },
-        {
-          "decl": "void FUN_001e2984(void);",
-          "addr": "0x1e2984"
-        },
-        {
-          "decl": "void FUN_001e3110(void);",
-          "addr": "0x1e3110"
-        },
-        {
-          "decl": "void FUN_001e327f(void);",
-          "addr": "0x1e327f"
-        },
-        {
-          "decl": "void FUN_001e32c5(void);",
-          "addr": "0x1e32c5"
-        },
-        {
-          "decl": "void FUN_001e330e(void);",
-          "addr": "0x1e330e"
-        },
-        {
-          "decl": "void FUN_001e334f(void);",
-          "addr": "0x1e334f"
-        },
-        {
-          "decl": "void FUN_001e33c2(void);",
-          "addr": "0x1e33c2"
-        },
-        {
-          "decl": "void FUN_001e33e4(void);",
-          "addr": "0x1e33e4"
-        },
-        {
-          "decl": "void FUN_001e35a9(void);",
-          "addr": "0x1e35a9"
-        },
-        {
-          "decl": "void FUN_001e35d8(void);",
-          "addr": "0x1e35d8"
-        },
-        {
-          "decl": "void FUN_001e3776(void);",
-          "addr": "0x1e3776"
-        },
-        {
-          "decl": "void FUN_001e37af(void);",
-          "addr": "0x1e37af"
-        },
-        {
-          "decl": "void FUN_001e37da(void);",
-          "addr": "0x1e37da"
-        },
-        {
-          "decl": "void FUN_001e3805(void);",
-          "addr": "0x1e3805"
-        },
-        {
-          "decl": "void FUN_001e3830(void);",
-          "addr": "0x1e3830"
-        },
-        {
-          "decl": "void FUN_001e385e(void);",
-          "addr": "0x1e385e"
-        },
-        {
-          "decl": "void FUN_001e388c(void);",
-          "addr": "0x1e388c"
-        },
-        {
-          "decl": "void FUN_001e38d1(void);",
-          "addr": "0x1e38d1"
-        },
-        {
-          "decl": "void FUN_001e3a50(void);",
-          "addr": "0x1e3a50"
-        },
-        {
-          "decl": "void FUN_001e3a9a(void);",
-          "addr": "0x1e3a9a"
-        },
-        {
-          "decl": "void FUN_001e3c37(void);",
-          "addr": "0x1e3c37"
-        },
-        {
-          "decl": "void FUN_001e3c81(void);",
-          "addr": "0x1e3c81"
-        },
-        {
-          "decl": "void FUN_001e3c9c(void);",
-          "addr": "0x1e3c9c"
-        },
-        {
-          "decl": "void FUN_001e3cce(void);",
-          "addr": "0x1e3cce"
-        },
-        {
-          "decl": "void FUN_001e3d1b(void);",
-          "addr": "0x1e3d1b"
-        },
-        {
-          "decl": "void FUN_001e3d8d(void);",
-          "addr": "0x1e3d8d"
-        },
-        {
-          "decl": "void FUN_001e3da8(void);",
-          "addr": "0x1e3da8"
-        },
-        {
-          "decl": "void FUN_001e3db4(void);",
-          "addr": "0x1e3db4"
-        },
-        {
-          "decl": "void FUN_001e3dcd(void);",
-          "addr": "0x1e3dcd"
-        },
-        {
-          "decl": "void FUN_001e3e48(void);",
-          "addr": "0x1e3e48"
-        },
-        {
-          "decl": "void FUN_001e3fa0(void);",
-          "addr": "0x1e3fa0"
-        },
-        {
-          "decl": "void FUN_001e3fb6(void);",
-          "addr": "0x1e3fb6"
-        },
-        {
-          "decl": "void FUN_001e3fcc(void);",
-          "addr": "0x1e3fcc"
-        },
-        {
-          "decl": "void FUN_001e4048(void);",
-          "addr": "0x1e4048"
-        },
-        {
-          "decl": "void FUN_001e4075(void);",
-          "addr": "0x1e4075"
-        },
-        {
-          "decl": "void FUN_001e40a3(void);",
-          "addr": "0x1e40a3"
-        },
-        {
-          "decl": "void FUN_001e40d0(void);",
-          "addr": "0x1e40d0"
-        },
-        {
-          "decl": "void FUN_001e414f(void);",
-          "addr": "0x1e414f"
-        },
-        {
-          "decl": "void FUN_001e4209(void);",
-          "addr": "0x1e4209"
-        },
-        {
-          "decl": "void FUN_001e426f(void);",
-          "addr": "0x1e426f"
-        },
-        {
-          "decl": "void FUN_001e4278(void);",
-          "addr": "0x1e4278"
-        },
-        {
-          "decl": "void FUN_001e42b0(void);",
-          "addr": "0x1e42b0"
-        },
-        {
-          "decl": "void FUN_001e4345(void);",
-          "addr": "0x1e4345"
-        },
-        {
-          "decl": "void FUN_001e4422(void);",
-          "addr": "0x1e4422"
-        },
-        {
-          "decl": "void FUN_001e4432(void);",
-          "addr": "0x1e4432"
-        },
-        {
-          "decl": "void FUN_001e4493(void);",
-          "addr": "0x1e4493"
-        },
-        {
-          "decl": "void FUN_001e45d2(void);",
-          "addr": "0x1e45d2"
-        },
-        {
-          "decl": "void FUN_001e4601(void);",
-          "addr": "0x1e4601"
-        },
-        {
-          "decl": "void FUN_001e47af(void);",
-          "addr": "0x1e47af"
-        },
-        {
-          "decl": "void FUN_001e484a(void);",
-          "addr": "0x1e484a"
-        },
-        {
-          "decl": "void FUN_001e4c1c(void);",
-          "addr": "0x1e4c1c"
-        },
-        {
-          "decl": "void FUN_001e4eb2(void);",
-          "addr": "0x1e4eb2"
-        },
-        {
-          "decl": "void FUN_001e4ef7(void);",
-          "addr": "0x1e4ef7"
-        },
-        {
-          "decl": "void FUN_001e4f07(void);",
-          "addr": "0x1e4f07"
-        },
-        {
-          "decl": "void FUN_001e4f4c(void);",
-          "addr": "0x1e4f4c"
-        },
-        {
-          "decl": "void FUN_001e4f5c(void);",
-          "addr": "0x1e4f5c"
-        },
-        {
-          "decl": "void FUN_001e53d3(void);",
-          "addr": "0x1e53d3"
-        },
-        {
-          "decl": "void FUN_001e540f(void);",
-          "addr": "0x1e540f"
-        },
-        {
-          "decl": "void FUN_001e56fe(void);",
-          "addr": "0x1e56fe"
-        },
-        {
-          "decl": "void FUN_001e5743(void);",
-          "addr": "0x1e5743"
-        },
-        {
-          "decl": "void FUN_001e5753(void);",
-          "addr": "0x1e5753"
-        },
-        {
-          "decl": "void FUN_001e5794(void);",
-          "addr": "0x1e5794"
-        },
-        {
-          "decl": "void FUN_001e57d2(void);",
-          "addr": "0x1e57d2"
-        },
-        {
-          "decl": "void FUN_001e57fc(void);",
-          "addr": "0x1e57fc"
-        },
-        {
-          "decl": "void FUN_001e5823(void);",
-          "addr": "0x1e5823"
-        },
-        {
-          "decl": "void FUN_001e583d(void);",
-          "addr": "0x1e583d"
-        },
-        {
-          "decl": "void FUN_001e58aa(void);",
-          "addr": "0x1e58aa"
-        },
-        {
-          "decl": "void FUN_001e58db(void);",
-          "addr": "0x1e58db"
-        },
-        {
-          "decl": "void FUN_001e58f6(void);",
-          "addr": "0x1e58f6"
-        },
-        {
-          "decl": "void FUN_001e592f(void);",
-          "addr": "0x1e592f"
-        },
-        {
-          "decl": "void FUN_001e596b(void);",
-          "addr": "0x1e596b"
-        },
-        {
-          "decl": "void FUN_001e59c1(void);",
-          "addr": "0x1e59c1"
-        },
-        {
-          "decl": "void FUN_001e59e3(void);",
-          "addr": "0x1e59e3"
-        },
-        {
-          "decl": "void FUN_001e5a04(void);",
-          "addr": "0x1e5a04"
-        },
-        {
-          "decl": "void FUN_001e5a62(void);",
-          "addr": "0x1e5a62"
-        },
-        {
-          "decl": "void FUN_001e5a90(void);",
-          "addr": "0x1e5a90"
-        },
-        {
-          "decl": "void FUN_001e5abd(void);",
-          "addr": "0x1e5abd"
-        },
-        {
-          "decl": "void FUN_001e5b8b(void);",
-          "addr": "0x1e5b8b"
-        },
-        {
-          "decl": "void FUN_001e5e02(void);",
-          "addr": "0x1e5e02"
-        },
-        {
-          "decl": "void FUN_001e5fbc(void);",
-          "addr": "0x1e5fbc"
-        },
-        {
-          "decl": "void FUN_001e61de(void);",
-          "addr": "0x1e61de"
-        },
-        {
-          "decl": "void FUN_001e6254(void);",
-          "addr": "0x1e6254"
-        },
-        {
-          "decl": "void FUN_001e629f(void);",
-          "addr": "0x1e629f"
-        },
-        {
-          "decl": "void FUN_001e63a0(void);",
-          "addr": "0x1e63a0"
-        },
-        {
-          "decl": "void FUN_001e643e(void);",
-          "addr": "0x1e643e"
-        },
-        {
-          "decl": "void FUN_001e64ec(void);",
-          "addr": "0x1e64ec"
-        },
-        {
-          "decl": "void FUN_001e6520(void);",
-          "addr": "0x1e6520"
-        },
-        {
-          "decl": "void FUN_001e6584(void);",
-          "addr": "0x1e6584"
-        },
-        {
-          "decl": "void FUN_001e6596(void);",
-          "addr": "0x1e6596"
-        },
-        {
-          "decl": "void FUN_001e65eb(void);",
-          "addr": "0x1e65eb"
         },
         {
           "decl": "void FUN_001e67e7(void);",
@@ -2603,8 +1259,188 @@
       "name": "LIBCMT:close.obj",
       "functions": [
         {
-          "decl": "int __close(int fd);",
-          "addr": "0x1e0218"
+          "decl": "void FUN_001deba0(void);",
+          "addr": "0x1deba0"
+        },
+        {
+          "decl": "void FUN_001dec07(void);",
+          "addr": "0x1dec07"
+        },
+        {
+          "decl": "void FUN_001ded6c(void);",
+          "addr": "0x1ded6c"
+        },
+        {
+          "decl": "void FUN_001ded83(void);",
+          "addr": "0x1ded83"
+        },
+        {
+          "decl": "void FUN_001dedc0(void);",
+          "addr": "0x1dedc0"
+        },
+        {
+          "decl": "void FUN_001dedd5(void);",
+          "addr": "0x1dedd5"
+        },
+        {
+          "decl": "void FUN_001dedec(void);",
+          "addr": "0x1dedec"
+        },
+        {
+          "decl": "void FUN_001dee05(void);",
+          "addr": "0x1dee05"
+        },
+        {
+          "decl": "void FUN_001dee48(void);",
+          "addr": "0x1dee48"
+        },
+        {
+          "decl": "void FUN_001dee5e(void);",
+          "addr": "0x1dee5e"
+        },
+        {
+          "decl": "void FUN_001dee6b(void);",
+          "addr": "0x1dee6b"
+        },
+        {
+          "decl": "void FUN_001deea9(void);",
+          "addr": "0x1deea9"
+        },
+        {
+          "decl": "void FUN_001def4c(void);",
+          "addr": "0x1def4c"
+        },
+        {
+          "decl": "void FUN_001defb3(void);",
+          "addr": "0x1defb3"
+        },
+        {
+          "decl": "void FUN_001defd9(void);",
+          "addr": "0x1defd9"
+        },
+        {
+          "decl": "void FUN_001df055(void);",
+          "addr": "0x1df055"
+        },
+        {
+          "decl": "void FUN_001df083(void);",
+          "addr": "0x1df083"
+        },
+        {
+          "decl": "void FUN_001df10b(void);",
+          "addr": "0x1df10b"
+        },
+        {
+          "decl": "void FUN_001df1bd(void);",
+          "addr": "0x1df1bd"
+        },
+        {
+          "decl": "void FUN_001df20a(void);",
+          "addr": "0x1df20a"
+        },
+        {
+          "decl": "void FUN_001df285(void);",
+          "addr": "0x1df285"
+        },
+        {
+          "decl": "void FUN_001df28e(void);",
+          "addr": "0x1df28e"
+        },
+        {
+          "decl": "void FUN_001df419(void);",
+          "addr": "0x1df419"
+        },
+        {
+          "decl": "void FUN_001df4a0(void);",
+          "addr": "0x1df4a0"
+        },
+        {
+          "decl": "void FUN_001df4c4(void);",
+          "addr": "0x1df4c4"
+        },
+        {
+          "decl": "void FUN_001df562(void);",
+          "addr": "0x1df562"
+        },
+        {
+          "decl": "void FUN_001df57e(void);",
+          "addr": "0x1df57e"
+        },
+        {
+          "decl": "void FUN_001df822(void);",
+          "addr": "0x1df822"
+        },
+        {
+          "decl": "void FUN_001dfa0d(void);",
+          "addr": "0x1dfa0d"
+        },
+        {
+          "decl": "void FUN_001dfa55(void);",
+          "addr": "0x1dfa55"
+        },
+        {
+          "decl": "void FUN_001dfa82(void);",
+          "addr": "0x1dfa82"
+        },
+        {
+          "decl": "void FUN_001dfb20(void);",
+          "addr": "0x1dfb20"
+        },
+        {
+          "decl": "void FUN_001dfb73(void);",
+          "addr": "0x1dfb73"
+        },
+        {
+          "decl": "void FUN_001dfbd2(void);",
+          "addr": "0x1dfbd2"
+        },
+        {
+          "decl": "void FUN_001dfc72(void);",
+          "addr": "0x1dfc72"
+        },
+        {
+          "decl": "void FUN_001dfd23(void);",
+          "addr": "0x1dfd23"
+        },
+        {
+          "decl": "void FUN_001dfd36(void);",
+          "addr": "0x1dfd36"
+        },
+        {
+          "decl": "void FUN_001dfd9f(void);",
+          "addr": "0x1dfd9f"
+        },
+        {
+          "decl": "void FUN_001dfdc4(void);",
+          "addr": "0x1dfdc4"
+        },
+        {
+          "decl": "void FUN_001dfe1f(void);",
+          "addr": "0x1dfe1f"
+        },
+        {
+          "decl": "void FUN_001dfed1(void);",
+          "addr": "0x1dfed1"
+        },
+        {
+          "decl": "void FUN_001dfede(void);",
+          "addr": "0x1dfede"
+        },
+        {
+          "decl": "void FUN_001dfeec(void);",
+          "addr": "0x1dfeec"
+        },
+        {
+          "decl": "void FUN_001dff10(void);",
+          "addr": "0x1dff10"
+        },
+        {
+          "decl": "void FUN_001dff91(void);",
+          "addr": "0x1dff91"
+        },
+        {
+          "decl": "void FUN_001e0013(void);",
+          "addr": "0x1e0013"
         },
         {
           "decl": "void FUN_001e011f(void);",
@@ -2619,6 +1455,10 @@
           "addr": "0x1e0197"
         },
         {
+          "decl": "int __close(int fd);",
+          "addr": "0x1e0218"
+        },
+        {
           "decl": "void FUN_001e028f(void);",
           "addr": "0x1e028f"
         },
@@ -2629,6 +1469,530 @@
         {
           "decl": "void FUN_001e02de(void);",
           "addr": "0x1e02de"
+        },
+        {
+          "decl": "void FUN_001e0446(void);",
+          "addr": "0x1e0446"
+        },
+        {
+          "decl": "void FUN_001e055f(void);",
+          "addr": "0x1e055f"
+        },
+        {
+          "decl": "void FUN_001e075f(void);",
+          "addr": "0x1e075f"
+        },
+        {
+          "decl": "void FUN_001e07c0(void);",
+          "addr": "0x1e07c0"
+        },
+        {
+          "decl": "void FUN_001e0912(void);",
+          "addr": "0x1e0912"
+        },
+        {
+          "decl": "void FUN_001e0944(void);",
+          "addr": "0x1e0944"
+        },
+        {
+          "decl": "void FUN_001e0984(void);",
+          "addr": "0x1e0984"
+        },
+        {
+          "decl": "void FUN_001e153d(void);",
+          "addr": "0x1e153d"
+        },
+        {
+          "decl": "void FUN_001e155e(void);",
+          "addr": "0x1e155e"
+        },
+        {
+          "decl": "void FUN_001e1610(void);",
+          "addr": "0x1e1610"
+        },
+        {
+          "decl": "void FUN_001e17c8(void);",
+          "addr": "0x1e17c8"
+        },
+        {
+          "decl": "void FUN_001e1953(void);",
+          "addr": "0x1e1953"
+        },
+        {
+          "decl": "void FUN_001e1997(void);",
+          "addr": "0x1e1997"
+        },
+        {
+          "decl": "void FUN_001e19b7(void);",
+          "addr": "0x1e19b7"
+        },
+        {
+          "decl": "void FUN_001e1abe(void);",
+          "addr": "0x1e1abe"
+        },
+        {
+          "decl": "void FUN_001e1ba0(void);",
+          "addr": "0x1e1ba0"
+        },
+        {
+          "decl": "void FUN_001e1bde(void);",
+          "addr": "0x1e1bde"
+        },
+        {
+          "decl": "void FUN_001e1c1b(void);",
+          "addr": "0x1e1c1b"
+        },
+        {
+          "decl": "void FUN_001e1c63(void);",
+          "addr": "0x1e1c63"
+        },
+        {
+          "decl": "void FUN_001e1c6a(void);",
+          "addr": "0x1e1c6a"
+        },
+        {
+          "decl": "void FUN_001e1db1(void);",
+          "addr": "0x1e1db1"
+        },
+        {
+          "decl": "void FUN_001e1de4(void);",
+          "addr": "0x1e1de4"
+        },
+        {
+          "decl": "void FUN_001e1e20(void);",
+          "addr": "0x1e1e20"
+        },
+        {
+          "decl": "void FUN_001e1ea5(void);",
+          "addr": "0x1e1ea5"
+        },
+        {
+          "decl": "void FUN_001e1ed5(void);",
+          "addr": "0x1e1ed5"
+        },
+        {
+          "decl": "void FUN_001e209e(void);",
+          "addr": "0x1e209e"
+        },
+        {
+          "decl": "void FUN_001e2125(void);",
+          "addr": "0x1e2125"
+        },
+        {
+          "decl": "void FUN_001e2460(void);",
+          "addr": "0x1e2460"
+        },
+        {
+          "decl": "void FUN_001e24d2(void);",
+          "addr": "0x1e24d2"
+        },
+        {
+          "decl": "void FUN_001e2559(void);",
+          "addr": "0x1e2559"
+        },
+        {
+          "decl": "void FUN_001e257d(void);",
+          "addr": "0x1e257d"
+        },
+        {
+          "decl": "void FUN_001e2669(void);",
+          "addr": "0x1e2669"
+        },
+        {
+          "decl": "void FUN_001e26a0(void);",
+          "addr": "0x1e26a0"
+        },
+        {
+          "decl": "void FUN_001e270c(void);",
+          "addr": "0x1e270c"
+        },
+        {
+          "decl": "void FUN_001e2747(void);",
+          "addr": "0x1e2747"
+        },
+        {
+          "decl": "void FUN_001e2751(void);",
+          "addr": "0x1e2751"
+        },
+        {
+          "decl": "void FUN_001e2879(void);",
+          "addr": "0x1e2879"
+        },
+        {
+          "decl": "void FUN_001e28a4(void);",
+          "addr": "0x1e28a4"
+        },
+        {
+          "decl": "void FUN_001e28e8(void);",
+          "addr": "0x1e28e8"
+        },
+        {
+          "decl": "void FUN_001e290d(void);",
+          "addr": "0x1e290d"
+        },
+        {
+          "decl": "void FUN_001e2932(void);",
+          "addr": "0x1e2932"
+        },
+        {
+          "decl": "void FUN_001e2984(void);",
+          "addr": "0x1e2984"
+        },
+        {
+          "decl": "void FUN_001e3110(void);",
+          "addr": "0x1e3110"
+        },
+        {
+          "decl": "void FUN_001e327f(void);",
+          "addr": "0x1e327f"
+        },
+        {
+          "decl": "void FUN_001e32c5(void);",
+          "addr": "0x1e32c5"
+        },
+        {
+          "decl": "void FUN_001e330e(void);",
+          "addr": "0x1e330e"
+        },
+        {
+          "decl": "void FUN_001e334f(void);",
+          "addr": "0x1e334f"
+        },
+        {
+          "decl": "void FUN_001e33c2(void);",
+          "addr": "0x1e33c2"
+        },
+        {
+          "decl": "void FUN_001e33e4(void);",
+          "addr": "0x1e33e4"
+        },
+        {
+          "decl": "void FUN_001e35a9(void);",
+          "addr": "0x1e35a9"
+        },
+        {
+          "decl": "void FUN_001e35d8(void);",
+          "addr": "0x1e35d8"
+        },
+        {
+          "decl": "void FUN_001e3776(void);",
+          "addr": "0x1e3776"
+        },
+        {
+          "decl": "void FUN_001e37af(void);",
+          "addr": "0x1e37af"
+        },
+        {
+          "decl": "void FUN_001e37da(void);",
+          "addr": "0x1e37da"
+        },
+        {
+          "decl": "void FUN_001e3805(void);",
+          "addr": "0x1e3805"
+        },
+        {
+          "decl": "void FUN_001e3830(void);",
+          "addr": "0x1e3830"
+        },
+        {
+          "decl": "void FUN_001e385e(void);",
+          "addr": "0x1e385e"
+        },
+        {
+          "decl": "void FUN_001e388c(void);",
+          "addr": "0x1e388c"
+        },
+        {
+          "decl": "void FUN_001e38d1(void);",
+          "addr": "0x1e38d1"
+        },
+        {
+          "decl": "void FUN_001e3a50(void);",
+          "addr": "0x1e3a50"
+        },
+        {
+          "decl": "void FUN_001e3a9a(void);",
+          "addr": "0x1e3a9a"
+        },
+        {
+          "decl": "void FUN_001e3c37(void);",
+          "addr": "0x1e3c37"
+        },
+        {
+          "decl": "void FUN_001e3c81(void);",
+          "addr": "0x1e3c81"
+        },
+        {
+          "decl": "void FUN_001e3c9c(void);",
+          "addr": "0x1e3c9c"
+        },
+        {
+          "decl": "void FUN_001e3cce(void);",
+          "addr": "0x1e3cce"
+        },
+        {
+          "decl": "void FUN_001e3d1b(void);",
+          "addr": "0x1e3d1b"
+        },
+        {
+          "decl": "void FUN_001e3d8d(void);",
+          "addr": "0x1e3d8d"
+        },
+        {
+          "decl": "void FUN_001e3da8(void);",
+          "addr": "0x1e3da8"
+        },
+        {
+          "decl": "void FUN_001e3db4(void);",
+          "addr": "0x1e3db4"
+        },
+        {
+          "decl": "void FUN_001e3dcd(void);",
+          "addr": "0x1e3dcd"
+        },
+        {
+          "decl": "void FUN_001e3e48(void);",
+          "addr": "0x1e3e48"
+        },
+        {
+          "decl": "void FUN_001e3fa0(void);",
+          "addr": "0x1e3fa0"
+        },
+        {
+          "decl": "void FUN_001e3fb6(void);",
+          "addr": "0x1e3fb6"
+        },
+        {
+          "decl": "void FUN_001e3fcc(void);",
+          "addr": "0x1e3fcc"
+        },
+        {
+          "decl": "void FUN_001e4048(void);",
+          "addr": "0x1e4048"
+        },
+        {
+          "decl": "void FUN_001e4075(void);",
+          "addr": "0x1e4075"
+        },
+        {
+          "decl": "void FUN_001e40a3(void);",
+          "addr": "0x1e40a3"
+        },
+        {
+          "decl": "void FUN_001e40d0(void);",
+          "addr": "0x1e40d0"
+        },
+        {
+          "decl": "void FUN_001e414f(void);",
+          "addr": "0x1e414f"
+        },
+        {
+          "decl": "void FUN_001e4209(void);",
+          "addr": "0x1e4209"
+        },
+        {
+          "decl": "void FUN_001e426f(void);",
+          "addr": "0x1e426f"
+        },
+        {
+          "decl": "void FUN_001e4278(void);",
+          "addr": "0x1e4278"
+        },
+        {
+          "decl": "void FUN_001e42b0(void);",
+          "addr": "0x1e42b0"
+        },
+        {
+          "decl": "void FUN_001e4345(void);",
+          "addr": "0x1e4345"
+        },
+        {
+          "decl": "void FUN_001e4422(void);",
+          "addr": "0x1e4422"
+        },
+        {
+          "decl": "void FUN_001e4432(void);",
+          "addr": "0x1e4432"
+        },
+        {
+          "decl": "void FUN_001e4493(void);",
+          "addr": "0x1e4493"
+        },
+        {
+          "decl": "void FUN_001e45d2(void);",
+          "addr": "0x1e45d2"
+        },
+        {
+          "decl": "void FUN_001e4601(void);",
+          "addr": "0x1e4601"
+        },
+        {
+          "decl": "void FUN_001e47af(void);",
+          "addr": "0x1e47af"
+        },
+        {
+          "decl": "void FUN_001e484a(void);",
+          "addr": "0x1e484a"
+        },
+        {
+          "decl": "void FUN_001e4c1c(void);",
+          "addr": "0x1e4c1c"
+        },
+        {
+          "decl": "void FUN_001e4eb2(void);",
+          "addr": "0x1e4eb2"
+        },
+        {
+          "decl": "void FUN_001e4ef7(void);",
+          "addr": "0x1e4ef7"
+        },
+        {
+          "decl": "void FUN_001e4f07(void);",
+          "addr": "0x1e4f07"
+        },
+        {
+          "decl": "void FUN_001e4f4c(void);",
+          "addr": "0x1e4f4c"
+        },
+        {
+          "decl": "void FUN_001e4f5c(void);",
+          "addr": "0x1e4f5c"
+        },
+        {
+          "decl": "void FUN_001e53d3(void);",
+          "addr": "0x1e53d3"
+        },
+        {
+          "decl": "void FUN_001e540f(void);",
+          "addr": "0x1e540f"
+        },
+        {
+          "decl": "void FUN_001e56fe(void);",
+          "addr": "0x1e56fe"
+        },
+        {
+          "decl": "void FUN_001e5743(void);",
+          "addr": "0x1e5743"
+        },
+        {
+          "decl": "void FUN_001e5753(void);",
+          "addr": "0x1e5753"
+        },
+        {
+          "decl": "void FUN_001e5794(void);",
+          "addr": "0x1e5794"
+        },
+        {
+          "decl": "void FUN_001e57d2(void);",
+          "addr": "0x1e57d2"
+        },
+        {
+          "decl": "void FUN_001e57fc(void);",
+          "addr": "0x1e57fc"
+        },
+        {
+          "decl": "void FUN_001e5823(void);",
+          "addr": "0x1e5823"
+        },
+        {
+          "decl": "void FUN_001e583d(void);",
+          "addr": "0x1e583d"
+        },
+        {
+          "decl": "void FUN_001e58aa(void);",
+          "addr": "0x1e58aa"
+        },
+        {
+          "decl": "void FUN_001e58db(void);",
+          "addr": "0x1e58db"
+        },
+        {
+          "decl": "void FUN_001e58f6(void);",
+          "addr": "0x1e58f6"
+        },
+        {
+          "decl": "void FUN_001e592f(void);",
+          "addr": "0x1e592f"
+        },
+        {
+          "decl": "void FUN_001e596b(void);",
+          "addr": "0x1e596b"
+        },
+        {
+          "decl": "void FUN_001e59c1(void);",
+          "addr": "0x1e59c1"
+        },
+        {
+          "decl": "void FUN_001e59e3(void);",
+          "addr": "0x1e59e3"
+        },
+        {
+          "decl": "void FUN_001e5a04(void);",
+          "addr": "0x1e5a04"
+        },
+        {
+          "decl": "void FUN_001e5a62(void);",
+          "addr": "0x1e5a62"
+        },
+        {
+          "decl": "void FUN_001e5a90(void);",
+          "addr": "0x1e5a90"
+        },
+        {
+          "decl": "void FUN_001e5abd(void);",
+          "addr": "0x1e5abd"
+        },
+        {
+          "decl": "void FUN_001e5b8b(void);",
+          "addr": "0x1e5b8b"
+        },
+        {
+          "decl": "void FUN_001e5e02(void);",
+          "addr": "0x1e5e02"
+        },
+        {
+          "decl": "void FUN_001e5fbc(void);",
+          "addr": "0x1e5fbc"
+        },
+        {
+          "decl": "void FUN_001e61de(void);",
+          "addr": "0x1e61de"
+        },
+        {
+          "decl": "void FUN_001e6254(void);",
+          "addr": "0x1e6254"
+        },
+        {
+          "decl": "void FUN_001e629f(void);",
+          "addr": "0x1e629f"
+        },
+        {
+          "decl": "void FUN_001e63a0(void);",
+          "addr": "0x1e63a0"
+        },
+        {
+          "decl": "void FUN_001e643e(void);",
+          "addr": "0x1e643e"
+        },
+        {
+          "decl": "void FUN_001e64ec(void);",
+          "addr": "0x1e64ec"
+        },
+        {
+          "decl": "void FUN_001e6520(void);",
+          "addr": "0x1e6520"
+        },
+        {
+          "decl": "void FUN_001e6584(void);",
+          "addr": "0x1e6584"
+        },
+        {
+          "decl": "void FUN_001e6596(void);",
+          "addr": "0x1e6596"
+        },
+        {
+          "decl": "void FUN_001e65eb(void);",
+          "addr": "0x1e65eb"
         }
       ]
     },
@@ -5002,6 +4366,10 @@
       "name": "cheats.obj",
       "source": "game/cheats.c",
       "functions": [
+        {
+          "decl": "void FUN_000a54b0(void);",
+          "addr": "0xa54b0"
+        },
         {
           "decl": "void FUN_000a5590(void);",
           "addr": "0xa5590"
@@ -8977,6 +8345,14 @@
         {
           "decl": "void FUN_000b3b30(void);",
           "addr": "0xb3b30"
+        },
+        {
+          "decl": "void FUN_000b3c60(void);",
+          "addr": "0xb3c60"
+        },
+        {
+          "decl": "void FUN_000b3cf0(void);",
+          "addr": "0xb3cf0"
         }
       ]
     },
@@ -9515,6 +8891,70 @@
       "name": "hs.obj",
       "source": "hs/hs.c",
       "functions": [
+        {
+          "decl": "void FUN_000c0c30(void);",
+          "addr": "0xc0c30"
+        },
+        {
+          "decl": "void FUN_000c0c70(void);",
+          "addr": "0xc0c70"
+        },
+        {
+          "decl": "void FUN_000c0cb0(void);",
+          "addr": "0xc0cb0"
+        },
+        {
+          "decl": "void FUN_000c0cd0(void);",
+          "addr": "0xc0cd0"
+        },
+        {
+          "decl": "void FUN_000c0d10(void);",
+          "addr": "0xc0d10"
+        },
+        {
+          "decl": "void FUN_000c0d50(void);",
+          "addr": "0xc0d50"
+        },
+        {
+          "decl": "void FUN_000c0d90(void);",
+          "addr": "0xc0d90"
+        },
+        {
+          "decl": "void FUN_000c0dd0(void);",
+          "addr": "0xc0dd0"
+        },
+        {
+          "decl": "void FUN_000c0e10(void);",
+          "addr": "0xc0e10"
+        },
+        {
+          "decl": "void FUN_000c0e50(void);",
+          "addr": "0xc0e50"
+        },
+        {
+          "decl": "void FUN_000c0e90(void);",
+          "addr": "0xc0e90"
+        },
+        {
+          "decl": "void FUN_000c0ed0(void);",
+          "addr": "0xc0ed0"
+        },
+        {
+          "decl": "void FUN_000c0f10(void);",
+          "addr": "0xc0f10"
+        },
+        {
+          "decl": "void FUN_000c0f50(void);",
+          "addr": "0xc0f50"
+        },
+        {
+          "decl": "void FUN_000c0f90(void);",
+          "addr": "0xc0f90"
+        },
+        {
+          "decl": "void FUN_000c0fd0(void);",
+          "addr": "0xc0fd0"
+        },
         {
           "decl": "void FUN_000c1010(void);",
           "addr": "0xc1010"
@@ -16850,6 +16290,66 @@
         {
           "decl": "void FUN_000c07b0(void);",
           "addr": "0xc07b0"
+        },
+        {
+          "decl": "void FUN_000c07f0(void);",
+          "addr": "0xc07f0"
+        },
+        {
+          "decl": "void FUN_000c0830(void);",
+          "addr": "0xc0830"
+        },
+        {
+          "decl": "void FUN_000c0870(void);",
+          "addr": "0xc0870"
+        },
+        {
+          "decl": "void FUN_000c08b0(void);",
+          "addr": "0xc08b0"
+        },
+        {
+          "decl": "void FUN_000c08f0(void);",
+          "addr": "0xc08f0"
+        },
+        {
+          "decl": "void FUN_000c0930(void);",
+          "addr": "0xc0930"
+        },
+        {
+          "decl": "void FUN_000c0970(void);",
+          "addr": "0xc0970"
+        },
+        {
+          "decl": "void FUN_000c09b0(void);",
+          "addr": "0xc09b0"
+        },
+        {
+          "decl": "void FUN_000c09f0(void);",
+          "addr": "0xc09f0"
+        },
+        {
+          "decl": "void FUN_000c0a30(void);",
+          "addr": "0xc0a30"
+        },
+        {
+          "decl": "void FUN_000c0a70(void);",
+          "addr": "0xc0a70"
+        },
+        {
+          "decl": "void FUN_000c0ab0(void);",
+          "addr": "0xc0ab0"
+        },
+        {
+          "decl": "void FUN_000c0af0(void);",
+          "addr": "0xc0af0"
+        },
+        {
+          "decl": "void FUN_000c0b30(void);",
+          "addr": "0xc0b30"
+        },
+        {
+          "decl": "void FUN_000c0b70(void);",
+          "addr": "0xc0b70"
         }
       ]
     },
@@ -23403,6 +22903,18 @@
         {
           "decl": "void FUN_000ecb60(void);",
           "addr": "0xecb60"
+        },
+        {
+          "decl": "void FUN_000ecd50(void);",
+          "addr": "0xecd50"
+        },
+        {
+          "decl": "void FUN_000ece10(void);",
+          "addr": "0xece10"
+        },
+        {
+          "decl": "void FUN_000eceb0(void);",
+          "addr": "0xeceb0"
         }
       ]
     },
@@ -23694,6 +23206,22 @@
         {
           "decl": "void FUN_000f3690(void);",
           "addr": "0xf3690"
+        },
+        {
+          "decl": "void FUN_000f3740(void);",
+          "addr": "0xf3740"
+        },
+        {
+          "decl": "void FUN_000f3850(void);",
+          "addr": "0xf3850"
+        },
+        {
+          "decl": "void FUN_000f3960(void);",
+          "addr": "0xf3960"
+        },
+        {
+          "decl": "void FUN_000f39c0(void);",
+          "addr": "0xf39c0"
         }
       ]
     },
@@ -26774,10 +26302,6 @@
       "name": "LIBCMT:stricmp.obj",
       "functions": [
         {
-          "decl": "int crt_stricmp(const char *a, const char *b);",
-          "addr": "0x1dd801"
-        },
-        {
           "decl": "void FUN_001dd1d1(void);",
           "addr": "0x1dd1d1"
         },
@@ -26850,12 +26374,124 @@
           "addr": "0x1dd7e0"
         },
         {
+          "decl": "int crt_stricmp(const char *a, const char *b);",
+          "addr": "0x1dd801"
+        },
+        {
           "decl": "void FUN_001dd850(void);",
           "addr": "0x1dd850"
         },
         {
           "decl": "void FUN_001dd8fa(void);",
           "addr": "0x1dd8fa"
+        },
+        {
+          "decl": "void FUN_001dd91b(void);",
+          "addr": "0x1dd91b"
+        },
+        {
+          "decl": "void FUN_001dd957(void);",
+          "addr": "0x1dd957"
+        },
+        {
+          "decl": "void FUN_001dda3d(void);",
+          "addr": "0x1dda3d"
+        },
+        {
+          "decl": "void FUN_001ddcc6(void);",
+          "addr": "0x1ddcc6"
+        },
+        {
+          "decl": "void FUN_001ddd09(void);",
+          "addr": "0x1ddd09"
+        },
+        {
+          "decl": "void FUN_001ddda3(void);",
+          "addr": "0x1ddda3"
+        },
+        {
+          "decl": "void FUN_001ddda8(void);",
+          "addr": "0x1ddda8"
+        },
+        {
+          "decl": "void FUN_001dddbf(void);",
+          "addr": "0x1dddbf"
+        },
+        {
+          "decl": "void FUN_001ddde6(void);",
+          "addr": "0x1ddde6"
+        },
+        {
+          "decl": "void FUN_001dde12(void);",
+          "addr": "0x1dde12"
+        },
+        {
+          "decl": "void FUN_001dde24(void);",
+          "addr": "0x1dde24"
+        },
+        {
+          "decl": "void FUN_001dde73(void);",
+          "addr": "0x1dde73"
+        },
+        {
+          "decl": "void FUN_001dde7c(void);",
+          "addr": "0x1dde7c"
+        },
+        {
+          "decl": "void FUN_001ddf39(void);",
+          "addr": "0x1ddf39"
+        },
+        {
+          "decl": "void FUN_001ddf77(void);",
+          "addr": "0x1ddf77"
+        },
+        {
+          "decl": "void FUN_001ddf9a(void);",
+          "addr": "0x1ddf9a"
+        },
+        {
+          "decl": "void FUN_001de043(void);",
+          "addr": "0x1de043"
+        },
+        {
+          "decl": "void FUN_001de0a3(void);",
+          "addr": "0x1de0a3"
+        },
+        {
+          "decl": "void FUN_001de14a(void);",
+          "addr": "0x1de14a"
+        },
+        {
+          "decl": "void FUN_001de19c(void);",
+          "addr": "0x1de19c"
+        },
+        {
+          "decl": "void FUN_001de229(void);",
+          "addr": "0x1de229"
+        },
+        {
+          "decl": "void FUN_001de27a(void);",
+          "addr": "0x1de27a"
+        },
+        {
+          "decl": "void FUN_001de28c(void);",
+          "addr": "0x1de28c"
+        },
+        {
+          "decl": "void FUN_001de3a5(void);",
+          "addr": "0x1de3a5"
+        },
+        {
+          "decl": "void FUN_001de3d8(void);",
+          "addr": "0x1de3d8"
+        },
+        {
+          "decl": "void FUN_001de3fc(void);",
+          "addr": "0x1de3fc"
+        },
+        {
+          "decl": "void FUN_001de452(void);",
+          "addr": "0x1de452"
         }
       ]
     },
@@ -27063,6 +26699,22 @@
       "name": "bitmap_utilities.obj",
       "source": "bitmaps/bitmap_utilities.c",
       "functions": [
+        {
+          "decl": "void FUN_00075380(void);",
+          "addr": "0x75380"
+        },
+        {
+          "decl": "void FUN_00075630(void);",
+          "addr": "0x75630"
+        },
+        {
+          "decl": "void FUN_00075800(void);",
+          "addr": "0x75800"
+        },
+        {
+          "decl": "void FUN_00075a20(void);",
+          "addr": "0x75a20"
+        },
         {
           "decl": "void FUN_00075e70(void);",
           "addr": "0x75e70"
@@ -27447,12 +27099,12 @@
       "name": "XAPILIB:lasterr.obj",
       "functions": [
         {
-          "decl": "int xapi_GetLastError(void);",
-          "addr": "0x1d2240"
-        },
-        {
           "decl": "void FUN_001d21f2(void);",
           "addr": "0x1d21f2"
+        },
+        {
+          "decl": "int xapi_GetLastError(void);",
+          "addr": "0x1d2240"
         },
         {
           "decl": "void __stdcall SetLastError(unsigned int error);",
@@ -27465,6 +27117,30 @@
         {
           "decl": "void FUN_001d22ad(void);",
           "addr": "0x1d22ad"
+        },
+        {
+          "decl": "void FUN_001d2367(void);",
+          "addr": "0x1d2367"
+        },
+        {
+          "decl": "void FUN_001d23d9(void);",
+          "addr": "0x1d23d9"
+        },
+        {
+          "decl": "void FUN_001d243e(void);",
+          "addr": "0x1d243e"
+        },
+        {
+          "decl": "void FUN_001d2518(void);",
+          "addr": "0x1d2518"
+        },
+        {
+          "decl": "void FUN_001d259b(void);",
+          "addr": "0x1d259b"
+        },
+        {
+          "decl": "void FUN_001d25e0(void);",
+          "addr": "0x1d25e0"
         },
         {
           "decl": "void FUN_001d26f3(void);",
@@ -27500,14 +27176,6 @@
       "name": "XAPILIB:physmem.obj",
       "functions": [
         {
-          "decl": "void *__stdcall XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
-          "addr": "0x1d36d4"
-        },
-        {
-          "decl": "void __stdcall physical_memory_protect(void *addr, unsigned int size, unsigned int protect);",
-          "addr": "0x1d371d"
-        },
-        {
           "decl": "void FUN_001d2d48(void);",
           "addr": "0x1d2d48"
         },
@@ -27528,8 +27196,52 @@
           "addr": "0x1d3185"
         },
         {
+          "decl": "void FUN_001d3254(void);",
+          "addr": "0x1d3254"
+        },
+        {
+          "decl": "void FUN_001d335b(void);",
+          "addr": "0x1d335b"
+        },
+        {
+          "decl": "void FUN_001d33a2(void);",
+          "addr": "0x1d33a2"
+        },
+        {
+          "decl": "int __stdcall FUN_001d33e6(void *counter);",
+          "addr": "0x1d33e6"
+        },
+        {
+          "decl": "void FUN_001d33fb(void);",
+          "addr": "0x1d33fb"
+        },
+        {
+          "decl": "void FUN_001d3410(void);",
+          "addr": "0x1d3410"
+        },
+        {
+          "decl": "void FUN_001d347c(void);",
+          "addr": "0x1d347c"
+        },
+        {
+          "decl": "void FUN_001d350a(void);",
+          "addr": "0x1d350a"
+        },
+        {
+          "decl": "void FUN_001d3576(void);",
+          "addr": "0x1d3576"
+        },
+        {
           "decl": "void FUN_001d3683(void);",
           "addr": "0x1d3683"
+        },
+        {
+          "decl": "void *__stdcall XPhysicalAlloc(size_t size, unsigned int addr, unsigned int alignment, unsigned int protect);",
+          "addr": "0x1d36d4"
+        },
+        {
+          "decl": "void __stdcall physical_memory_protect(void *addr, unsigned int size, unsigned int protect);",
+          "addr": "0x1d371d"
         },
         {
           "decl": "void __stdcall MmFreeContiguousMemory(void *base_address);",
@@ -27542,16 +27254,168 @@
         {
           "decl": "void FUN_001d3739(void);",
           "addr": "0x1d3739"
+        },
+        {
+          "decl": "void FUN_001d3a91(void);",
+          "addr": "0x1d3a91"
+        },
+        {
+          "decl": "void FUN_001d3c95(void);",
+          "addr": "0x1d3c95"
+        },
+        {
+          "decl": "void FUN_001d3d80(void);",
+          "addr": "0x1d3d80"
+        },
+        {
+          "decl": "void FUN_001d3ee5(void);",
+          "addr": "0x1d3ee5"
+        },
+        {
+          "decl": "void FUN_001d3f42(void);",
+          "addr": "0x1d3f42"
+        },
+        {
+          "decl": "void FUN_001d3fe1(void);",
+          "addr": "0x1d3fe1"
+        },
+        {
+          "decl": "void FUN_001d407c(void);",
+          "addr": "0x1d407c"
+        },
+        {
+          "decl": "void FUN_001d4157(void);",
+          "addr": "0x1d4157"
+        },
+        {
+          "decl": "void FUN_001d41be(void);",
+          "addr": "0x1d41be"
+        },
+        {
+          "decl": "void FUN_001d4230(void);",
+          "addr": "0x1d4230"
+        },
+        {
+          "decl": "void FUN_001d426b(void);",
+          "addr": "0x1d426b"
+        },
+        {
+          "decl": "void FUN_001d42a9(void);",
+          "addr": "0x1d42a9"
+        },
+        {
+          "decl": "void FUN_001d42c3(void);",
+          "addr": "0x1d42c3"
+        },
+        {
+          "decl": "void FUN_001d4345(void);",
+          "addr": "0x1d4345"
+        },
+        {
+          "decl": "void FUN_001d43b4(void);",
+          "addr": "0x1d43b4"
+        },
+        {
+          "decl": "void FUN_001d440e(void);",
+          "addr": "0x1d440e"
+        },
+        {
+          "decl": "void FUN_001d4436(void);",
+          "addr": "0x1d4436"
+        },
+        {
+          "decl": "void FUN_001d4464(void);",
+          "addr": "0x1d4464"
+        },
+        {
+          "decl": "void FUN_001d4486(void);",
+          "addr": "0x1d4486"
+        },
+        {
+          "decl": "void FUN_001d44b3(void);",
+          "addr": "0x1d44b3"
+        },
+        {
+          "decl": "void FUN_001d44dc(void);",
+          "addr": "0x1d44dc"
+        },
+        {
+          "decl": "void FUN_001d4507(void);",
+          "addr": "0x1d4507"
+        },
+        {
+          "decl": "void FUN_001d454b(void);",
+          "addr": "0x1d454b"
+        },
+        {
+          "decl": "void FUN_001d4570(void);",
+          "addr": "0x1d4570"
+        },
+        {
+          "decl": "void FUN_001d46a3(void);",
+          "addr": "0x1d46a3"
+        },
+        {
+          "decl": "void FUN_001d47c3(void);",
+          "addr": "0x1d47c3"
+        },
+        {
+          "decl": "void FUN_001d47e4(void);",
+          "addr": "0x1d47e4"
+        },
+        {
+          "decl": "void FUN_001d4877(void);",
+          "addr": "0x1d4877"
+        },
+        {
+          "decl": "void FUN_001d4a02(void);",
+          "addr": "0x1d4a02"
+        },
+        {
+          "decl": "void FUN_001d4a34(void);",
+          "addr": "0x1d4a34"
+        },
+        {
+          "decl": "void FUN_001d4cd9(void);",
+          "addr": "0x1d4cd9"
+        },
+        {
+          "decl": "void FUN_001d4dd3(void);",
+          "addr": "0x1d4dd3"
+        },
+        {
+          "decl": "void FUN_001d4e37(void);",
+          "addr": "0x1d4e37"
+        },
+        {
+          "decl": "void FUN_001d4ec6(void);",
+          "addr": "0x1d4ec6"
+        },
+        {
+          "decl": "void FUN_001d52c4(void);",
+          "addr": "0x1d52c4"
+        },
+        {
+          "decl": "void FUN_001d52f3(void);",
+          "addr": "0x1d52f3"
+        },
+        {
+          "decl": "void FUN_001d5411(void);",
+          "addr": "0x1d5411"
+        },
+        {
+          "decl": "void FUN_001d5598(void);",
+          "addr": "0x1d5598"
+        },
+        {
+          "decl": "void FUN_001d5842(void);",
+          "addr": "0x1d5842"
         }
       ]
     },
     {
       "name": "XAPILIB:xvutil.obj",
       "functions": [
-        {
-          "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
-          "addr": "0x1d0da1"
-        },
         {
           "decl": "void FUN_001d04f1(void);",
           "addr": "0x1d04f1"
@@ -27605,12 +27469,48 @@
           "addr": "0x1d0b31"
         },
         {
+          "decl": "void FUN_001d0b9c(void);",
+          "addr": "0x1d0b9c"
+        },
+        {
+          "decl": "void FUN_001d0bb3(void);",
+          "addr": "0x1d0bb3"
+        },
+        {
+          "decl": "void *__stdcall FUN_001d0bb9(unsigned int flags, unsigned int size);",
+          "addr": "0x1d0bb9"
+        },
+        {
+          "decl": "void FUN_001d0c02(void);",
+          "addr": "0x1d0c02"
+        },
+        {
+          "decl": "void *__stdcall FUN_001d0c16(void *ptr);",
+          "addr": "0x1d0c16"
+        },
+        {
+          "decl": "void FUN_001d0c48(void);",
+          "addr": "0x1d0c48"
+        },
+        {
+          "decl": "void FUN_001d0c65(void);",
+          "addr": "0x1d0c65"
+        },
+        {
+          "decl": "void FUN_001d0c91(void);",
+          "addr": "0x1d0c91"
+        },
+        {
           "decl": "void FUN_001d0cbf(void);",
           "addr": "0x1d0cbf"
         },
         {
           "decl": "void FUN_001d0cfb(void);",
           "addr": "0x1d0cfb"
+        },
+        {
+          "decl": "void __stdcall xbox_query_global_memory_status(void *status);",
+          "addr": "0x1d0da1"
         },
         {
           "decl": "void FUN_001d0df0(void);",
@@ -27621,10 +27521,6 @@
     {
       "name": "XNET:xnet.obj",
       "functions": [
-        {
-          "decl": "uint32_t XNetGetEthernetLinkStatus(void);",
-          "addr": "0x1d8b76"
-        },
         {
           "decl": "void FUN_001d8259(void);",
           "addr": "0x1d8259"
@@ -27650,6 +27546,10 @@
           "addr": "0x1d8766"
         },
         {
+          "decl": "void FUN_001d88ef(void);",
+          "addr": "0x1d88ef"
+        },
+        {
           "decl": "void FUN_001d8a88(void);",
           "addr": "0x1d8a88"
         },
@@ -27664,6 +27564,10 @@
         {
           "decl": "void FUN_001d8b64(void);",
           "addr": "0x1d8b64"
+        },
+        {
+          "decl": "uint32_t XNetGetEthernetLinkStatus(void);",
+          "addr": "0x1d8b76"
         },
         {
           "decl": "void FUN_001d8df8(void);",
@@ -29316,6 +29220,34 @@
           "ported": true
         },
         {
+          "decl": "void FUN_00056320(void);",
+          "addr": "0x56320"
+        },
+        {
+          "decl": "void FUN_000563c0(void);",
+          "addr": "0x563c0"
+        },
+        {
+          "decl": "void FUN_000564b0(void);",
+          "addr": "0x564b0"
+        },
+        {
+          "decl": "void FUN_000565c0(void);",
+          "addr": "0x565c0"
+        },
+        {
+          "decl": "void FUN_000566a0(void);",
+          "addr": "0x566a0"
+        },
+        {
+          "decl": "void FUN_00056790(void);",
+          "addr": "0x56790"
+        },
+        {
+          "decl": "void FUN_000567e0(void);",
+          "addr": "0x567e0"
+        },
+        {
           "decl": "void FUN_00056830(void);",
           "addr": "0x56830"
         },
@@ -30351,6 +30283,10 @@
         {
           "decl": "void FUN_0006b8e0(void);",
           "addr": "0x6b8e0"
+        },
+        {
+          "decl": "void FUN_0006ba70(void);",
+          "addr": "0x6ba70"
         }
       ]
     },
@@ -30530,6 +30466,26 @@
       "source": "bitmaps/libtiff/tif_write.c",
       "data": [],
       "functions": [
+        {
+          "decl": "void FUN_0006e740(void);",
+          "addr": "0x6e740"
+        },
+        {
+          "decl": "void FUN_0006e7d0(void);",
+          "addr": "0x6e7d0"
+        },
+        {
+          "decl": "void FUN_0006e870(void);",
+          "addr": "0x6e870"
+        },
+        {
+          "decl": "void FUN_0006e930(void);",
+          "addr": "0x6e930"
+        },
+        {
+          "decl": "void FUN_0006e980(void);",
+          "addr": "0x6e980"
+        },
         {
           "decl": "void FUN_0006ea50(void);",
           "addr": "0x6ea50"
@@ -32458,155 +32414,6 @@
       "data": [],
       "functions": [
         {
-          "decl": "void SwitchToThread(void);",
-          "addr": "0x1cfb98"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_CreateTexture(uint32_t width, uint32_t height, uint32_t levels, uint32_t usage, uint32_t format, uint32_t pool, void *out_texture);",
-          "addr": "0x1e6ae0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTransform(uint32_t type, void *matrix);",
-          "addr": "0x1e6bd0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_GetTransform(uint32_t type, void *matrix_out);",
-          "addr": "0x1e6ce0"
-        },
-        {
-          "decl": "void D3DDevice_BlockUntilVerticalBlank(void);",
-          "addr": "0x1e7110"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
-          "addr": "0x1e7af0"
-        },
-        {
-          "decl": "int __stdcall D3DDevice_GetBackBuffer(int back_buffer, uint32_t type, void **out_surface);",
-          "addr": "0x1e7d50"
-        },
-        {
-          "decl": "int __stdcall D3DDevice_GetDepthStencilSurface(void **out_surface);",
-          "addr": "0x1e8270"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTexture(uint32_t stage, void *texture);",
-          "addr": "0x1e8700"
-        },
-        {
-          "decl": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
-          "addr": "0x1e9350"
-        },
-        {
-          "decl": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-          "addr": "0x1e9380"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
-          "addr": "0x1e9410"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetRenderState_CullMode(uint32_t mode);",
-          "addr": "0x1e96d0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetTextureState_BorderColor(uint32_t stage, uint32_t color);",
-          "addr": "0x1e9c20"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetRenderState_ZEnable(uint32_t enable);",
-          "addr": "0x1ea290"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
-          "addr": "0x1ea650"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetVertexShader(uint32_t shader);",
-          "addr": "0x1eb7f0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetPixelShaderProgram(void *program);",
-          "addr": "0x1ec120"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetVertexData2f(uint32_t reg, float a, float b);",
-          "addr": "0x1ed280"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_SetVertexData4f(uint32_t reg, float a, float b, float c, float d);",
-          "addr": "0x1ed2c0"
-        },
-        {
-          "decl": "void __stdcall D3DDevice_Begin(uint32_t primitive_type);",
-          "addr": "0x1ed450"
-        },
-        {
-          "decl": "void D3DDevice_End(void);",
-          "addr": "0x1ed490"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetVolume(void *buffer, int volume);",
-          "addr": "0x204f23"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
-          "addr": "0x204f3f"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetLoopRegion(void *buffer, uint32_t start, uint32_t length);",
-          "addr": "0x20519e"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetCurrentPosition(void *buffer, uint32_t position);",
-          "addr": "0x2051fa"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetVolume(void *stream, int volume);",
-          "addr": "0x205266"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetConeAngles(void *stream, int inner_angle, int outer_angle, int deferred);",
-          "addr": "0x2052e8"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetConeOutsideVolume(void *stream, int volume, int deferred);",
-          "addr": "0x205316"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetMaxDistance(void *stream, float distance, int deferred);",
-          "addr": "0x20531b"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetMinDistance(void *stream, float distance, int deferred);",
-          "addr": "0x205333"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetAllParameters(void *stream, void *params, int deferred);",
-          "addr": "0x2053a7"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_Play(void *buffer, uint32_t reserved, uint32_t priority, uint32_t flags);",
-          "addr": "0x205b43"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundBuffer_SetBufferData(void *buffer, void *data, uint32_t size);",
-          "addr": "0x205b7f"
-        },
-        {
-          "decl": "int __stdcall IDirectSoundStream_SetFrequency(void *stream, int frequency);",
-          "addr": "0x205bbf"
-        },
-        {
-          "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
-          "addr": "0x2062d0"
-        },
-        {
-          "addr": "0x1efd60",
-          "decl": "void D3D_KickOffAndWaitForIdle(void);",
-          "ported": false
-        },
-        {
           "decl": "void FUN_001cfa3f(void);",
           "addr": "0x1cfa3f"
         },
@@ -32627,12 +32434,24 @@
           "addr": "0x1cfb12"
         },
         {
+          "decl": "void SwitchToThread(void);",
+          "addr": "0x1cfb98"
+        },
+        {
           "decl": "void FUN_001cfbbd(void);",
           "addr": "0x1cfbbd"
         },
         {
           "decl": "void FUN_001cfc1b(void);",
           "addr": "0x1cfc1b"
+        },
+        {
+          "decl": "void FUN_001cfca4(void);",
+          "addr": "0x1cfca4"
+        },
+        {
+          "decl": "void * __stdcall FUN_001cfd8c(void *security, int stack_size, void *func, void *param, int flags, int *thread_id);",
+          "addr": "0x1cfd8c"
         },
         {
           "decl": "void FUN_001cfde0(void);",
@@ -32733,6 +32552,151 @@
         {
           "decl": "void FUN_001d0447(void);",
           "addr": "0x1d0447"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_CreateTexture(uint32_t width, uint32_t height, uint32_t levels, uint32_t usage, uint32_t format, uint32_t pool, void *out_texture);",
+          "addr": "0x1e6ae0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTransform(uint32_t type, void *matrix);",
+          "addr": "0x1e6bd0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_GetTransform(uint32_t type, void *matrix_out);",
+          "addr": "0x1e6ce0"
+        },
+        {
+          "decl": "void D3DDevice_BlockUntilVerticalBlank(void);",
+          "addr": "0x1e7110"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderTarget(void *render_target, void *depth_stencil);",
+          "addr": "0x1e7af0"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetBackBuffer(int back_buffer, uint32_t type, void **out_surface);",
+          "addr": "0x1e7d50"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_GetDepthStencilSurface(void **out_surface);",
+          "addr": "0x1e8270"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTexture(uint32_t stage, void *texture);",
+          "addr": "0x1e8700"
+        },
+        {
+          "decl": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
+          "addr": "0x1e9350"
+        },
+        {
+          "decl": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
+          "addr": "0x1e9380"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+          "addr": "0x1e9410"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderState_CullMode(uint32_t mode);",
+          "addr": "0x1e96d0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetTextureState_BorderColor(uint32_t stage, uint32_t color);",
+          "addr": "0x1e9c20"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetRenderState_ZEnable(uint32_t enable);",
+          "addr": "0x1ea290"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_Clear(uint32_t count, void *rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);",
+          "addr": "0x1ea650"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexShader(uint32_t shader);",
+          "addr": "0x1eb7f0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetPixelShaderProgram(void *program);",
+          "addr": "0x1ec120"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexData2f(uint32_t reg, float a, float b);",
+          "addr": "0x1ed280"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_SetVertexData4f(uint32_t reg, float a, float b, float c, float d);",
+          "addr": "0x1ed2c0"
+        },
+        {
+          "decl": "void __stdcall D3DDevice_Begin(uint32_t primitive_type);",
+          "addr": "0x1ed450"
+        },
+        {
+          "decl": "void D3DDevice_End(void);",
+          "addr": "0x1ed490"
+        },
+        {
+          "addr": "0x1efd60",
+          "decl": "void D3D_KickOffAndWaitForIdle(void);",
+          "ported": false
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetVolume(void *buffer, int volume);",
+          "addr": "0x204f23"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetPitch(void *buffer, int pitch);",
+          "addr": "0x204f3f"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetLoopRegion(void *buffer, uint32_t start, uint32_t length);",
+          "addr": "0x20519e"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetCurrentPosition(void *buffer, uint32_t position);",
+          "addr": "0x2051fa"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetVolume(void *stream, int volume);",
+          "addr": "0x205266"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetConeAngles(void *stream, int inner_angle, int outer_angle, int deferred);",
+          "addr": "0x2052e8"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetConeOutsideVolume(void *stream, int volume, int deferred);",
+          "addr": "0x205316"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetMaxDistance(void *stream, float distance, int deferred);",
+          "addr": "0x20531b"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetMinDistance(void *stream, float distance, int deferred);",
+          "addr": "0x205333"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetAllParameters(void *stream, void *params, int deferred);",
+          "addr": "0x2053a7"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_Play(void *buffer, uint32_t reserved, uint32_t priority, uint32_t flags);",
+          "addr": "0x205b43"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundBuffer_SetBufferData(void *buffer, void *data, uint32_t size);",
+          "addr": "0x205b7f"
+        },
+        {
+          "decl": "int __stdcall IDirectSoundStream_SetFrequency(void *stream, int frequency);",
+          "addr": "0x205bbf"
+        },
+        {
+          "decl": "int __stdcall DirectSoundCreateBuffer(void *desc, void **out_buffer);",
+          "addr": "0x2062d0"
         }
       ]
     },
@@ -33427,9 +33391,32 @@
       "source": "cseries/xbox_crt.c",
       "functions": [
         {
-          "decl": "char * __stdcall FUN_001d789a(char *dst, const char *src, int count);",
-          "addr": "0x1d789a",
-          "ported": true
+          "decl": "void FUN_001d63d5(void);",
+          "addr": "0x1d63d5"
+        },
+        {
+          "decl": "void FUN_001d6ca8(void);",
+          "addr": "0x1d6ca8"
+        },
+        {
+          "decl": "void FUN_001d6e65(void);",
+          "addr": "0x1d6e65"
+        },
+        {
+          "decl": "void FUN_001d703b(void);",
+          "addr": "0x1d703b"
+        },
+        {
+          "decl": "void FUN_001d76fc(void);",
+          "addr": "0x1d76fc"
+        },
+        {
+          "decl": "void FUN_001d771c(void);",
+          "addr": "0x1d771c"
+        },
+        {
+          "decl": "void FUN_001d7749(void);",
+          "addr": "0x1d7749"
         },
         {
           "decl": "void FUN_001d77b3(void);",
@@ -33438,6 +33425,19 @@
         {
           "decl": "void FUN_001d7817(void);",
           "addr": "0x1d7817"
+        },
+        {
+          "decl": "char * __stdcall FUN_001d789a(char *dst, const char *src, int count);",
+          "addr": "0x1d789a",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_001d7a59(void);",
+          "addr": "0x1d7a59"
+        },
+        {
+          "decl": "void FUN_001d7b37(void);",
+          "addr": "0x1d7b37"
         },
         {
           "decl": "void FUN_001d7cb4(void);",
