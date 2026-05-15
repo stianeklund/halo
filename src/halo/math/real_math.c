@@ -1315,3 +1315,199 @@ void FUN_00109c70(float *a, float *b, float *out)
   out[7] = a[1] * b[6] + a[4] * b[7] + a[7] * b[8];
   out[8] = a[2] * b[6] + a[5] * b[7] + a[8] * b[8];
 }
+
+/* 0x109d90 — Transform a 3D vector by a 3x3 matrix. Supports b==out aliasing. */
+void FUN_00109d90(float *m, float *v, float *out)
+{
+  float local[3];
+
+  if (v == out) {
+    local[0] = v[0];
+    local[1] = v[1];
+    local[2] = v[2];
+    v = local;
+  }
+  out[0] = m[0] * v[0] + m[3] * v[1] + m[6] * v[2];
+  out[1] = m[4] * v[1] + m[1] * v[0] + m[7] * v[2];
+  out[2] = m[5] * v[1] + m[2] * v[0] + m[8] * v[2];
+}
+
+/* 0x109e90 — Build a 4x3 rotation matrix from euler angles (yaw, pitch, roll). */
+void FUN_00109e90(float *out, float yaw, float pitch, float roll)
+{
+  float cr, sr, sp, cy, sy;
+  float cp_f;
+
+  cr = cosf(roll);
+  ((uint32_t *)out)[0] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+  sr = sinf(roll);
+  cp_f = cosf(pitch);
+  sp = sinf(pitch);
+  cy = cosf(yaw);
+  sy = sinf(yaw);
+  out[1] = cy * cp_f;
+  out[2] = sy * cr - (float)(sp * sr) * cy;
+  out[3] = sy * sr + sp * cr * cy;
+  out[4] = -(sy * cp_f);
+  out[5] = cy * cr + (float)(sp * sr) * sy;
+  out[6] = cy * sr - sp * cr * sy;
+  out[7] = -sp;
+  out[8] = -(cp_f * sr);
+  out[9] = cp_f * cr;
+}
+
+/* 0x10a2c0 — Build a 3x3 basis matrix from forward and up vectors.
+ * Row 0 = forward, row 1 = cross(forward, up), row 2 = up. */
+void FUN_0010a2c0(float *out, float *forward, float *up)
+{
+  float f0, f1, f2, u0, u1, u2;
+
+  out[0] = forward[0];
+  out[1] = forward[1];
+  out[2] = forward[2];
+  f0 = forward[0];
+  f1 = forward[1];
+  f2 = forward[2];
+  u0 = up[0];
+  u1 = up[1];
+  u2 = up[2];
+  out[3] = u1 * f2 - f1 * u2;
+  out[4] = f0 * u2 - u0 * f2;
+  out[5] = f1 * u0 - u1 * f0;
+  out[6] = up[0];
+  out[7] = up[1];
+  out[8] = up[2];
+}
+
+/* 0x10a480 — Validate a real_point4d (quaternion/plane): all 4 components
+ * must be a valid normal3d AND w must not be infinity. */
+int FUN_0010a480(int p)
+{
+  char valid;
+
+  valid = (char)valid_real_normal3d((float *)p);
+  if (valid != '\0' && (*(uint32_t *)(p + 0xc) & 0x7f800000) != 0x7f800000) {
+    return 1;
+  }
+  return 0;
+}
+
+/* 0x10b5c0 — real_math_initialize: init random tables and periodic functions. */
+void real_math_initialize(void)
+{
+  random_math_initialize();
+  FUN_0010ad10();
+}
+
+/* 0x10b5d0 — real_math_dispose: dispose random tables and periodic functions. */
+void real_math_dispose(void)
+{
+  random_math_dispose();
+  FUN_0010a570();
+}
+
+/* 0x10b6b0 — Compute a perpendicular 4D vector (swizzle + negate). */
+void perpendicular4d(float *in, float *out)
+{
+  out[0] = in[2];
+  out[1] = in[3];
+  out[2] = -in[0];
+  out[3] = -in[1];
+}
+
+/* 0x10b780 — Linearly interpolate between two 3D vectors: out = a*(1-t) + b*t. */
+void vectors_interpolate(float *a, float *b, float t, float *out)
+{
+  float one_minus_t = 1.0f - t;
+  out[0] = t * b[0] + one_minus_t * a[0];
+  out[1] = t * b[1] + one_minus_t * a[1];
+  out[2] = t * b[2] + one_minus_t * a[2];
+}
+
+/* 0x10b840 — Interpolate two scalars and clamp result to [0, 1]. */
+void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t, float *out)
+{
+  float result = b * t + (1.0f - t) * a;
+  if (result < 0.0f) {
+    *out = 0.0f;
+    return;
+  }
+  if (1.0f < result) {
+    *out = 1.0f;
+    return;
+  }
+  *out = result;
+}
+
+/* 0x10b8a0 — Project a vector onto an axis: parallel = dot(v,axis)*axis,
+ * perpendicular = v - parallel. Either output can be NULL. */
+void FUN_0010b8a0(float *v, float *axis, float *parallel, float *perpendicular)
+{
+  float dot;
+  float local[3];
+
+  dot = v[0] * axis[0] + axis[2] * v[2] + v[1] * axis[1];
+  if (parallel == (float *)0) {
+    parallel = local;
+  }
+  parallel[0] = dot * axis[0];
+  parallel[1] = dot * axis[1];
+  parallel[2] = dot * axis[2];
+  if (perpendicular != (float *)0) {
+    perpendicular[0] = v[0] - parallel[0];
+    perpendicular[1] = v[1] - parallel[1];
+    perpendicular[2] = v[2] - parallel[2];
+  }
+}
+
+/* 0x10bb20 — Rotate a point by a quaternion: q * v * q_conjugate. */
+void quaternion_transform_point(float *q, float *v, float *out)
+{
+  float ww = q[3] * q[3];
+  float ww2_minus_1 = (ww + ww) - 1.0f;
+  float dot2 = q[1] * v[1] + q[2] * v[2] + q[0] * v[0];
+  float w2;
+  float q2, v0, v2, q0, q0b, v1, q1, v0b;
+
+  dot2 = dot2 + dot2;
+  w2 = q[3] + q[3];
+  q2 = q[2];
+  v0 = v[0];
+  v2 = v[2];
+  q0 = q[0];
+  q0b = q[0];
+  v1 = v[1];
+  q1 = q[1];
+  v0b = v[0];
+  out[0] = ww2_minus_1 * v[0] +
+           dot2 * q[0] + (q[1] * v[2] - q[2] * v[1]) * w2;
+  out[1] = (q2 * v0 - v2 * q0) * w2 + ww2_minus_1 * v[1] + dot2 * q[1];
+  out[2] = (q0b * v1 - q1 * v0b) * w2 + ww2_minus_1 * v[2] + dot2 * q[2];
+}
+
+/* 0x10bbc0 — Build forward/up vectors from euler angles by computing the
+ * rotation matrix and then decomposing it. */
+void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles)
+{
+  float matrix[13];
+  float local_position[3];
+
+  if (forward == (float *)0) {
+    display_assert("forward", "c:\\halo\\SOURCE\\math\\real_math.c", 0x340, 1);
+    halt_and_catch_fire();
+  }
+  if (up == (float *)0) {
+    display_assert("up", "c:\\halo\\SOURCE\\math\\real_math.c", 0x341, 1);
+    halt_and_catch_fire();
+  }
+  if (angles == (float *)0) {
+    display_assert("angles", "c:\\halo\\SOURCE\\math\\real_math.c", 0x342, 1);
+    halt_and_catch_fire();
+  }
+  FUN_00109e90(matrix, angles[0], angles[1], angles[2]);
+  matrix4x3_decompose(matrix, local_position, forward, up);
+}
+

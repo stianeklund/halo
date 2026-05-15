@@ -18376,7 +18376,7 @@
           "ported": true
         },
         {
-          "decl": "void matrix4x3_decompose(float *matrix, float *forward, float *up, float *position);",
+          "decl": "void matrix4x3_decompose(float *matrix, float *out_pos, float *out_forward, float *out_up);",
           "addr": "0x109540",
           "ported": true
         },
@@ -18441,8 +18441,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00109d90(void);",
-          "addr": "0x109d90"
+          "decl": "void FUN_00109d90(float *m, float *v, float *out);",
+          "addr": "0x109d90",
+          "ported": true
         },
         {
           "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
@@ -18450,8 +18451,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00109e90(void);",
-          "addr": "0x109e90"
+          "decl": "void FUN_00109e90(float *out, float yaw, float pitch, float roll);",
+          "addr": "0x109e90",
+          "ported": true
         },
         {
           "decl": "void FUN_00109f40(void);",
@@ -18482,16 +18484,18 @@
           "addr": "0x10a240"
         },
         {
-          "decl": "void FUN_0010a2c0(void);",
-          "addr": "0x10a2c0"
+          "decl": "void FUN_0010a2c0(float *out, float *forward, float *up);",
+          "addr": "0x10a2c0",
+          "ported": true
         },
         {
           "decl": "void FUN_0010a330(void);",
           "addr": "0x10a330"
         },
         {
-          "decl": "void FUN_0010a480(void);",
-          "addr": "0x10a480"
+          "decl": "int FUN_0010a480(int p);",
+          "addr": "0x10a480",
+          "ported": true
         },
         {
           "decl": "void FUN_0010a4c0(void);",
@@ -18515,11 +18519,13 @@
         },
         {
           "decl": "void real_math_initialize(void);",
-          "addr": "0x10b5c0"
+          "addr": "0x10b5c0",
+          "ported": true
         },
         {
           "decl": "void real_math_dispose(void);",
-          "addr": "0x10b5d0"
+          "addr": "0x10b5d0",
+          "ported": true
         },
         {
           "decl": "void real_math_reset_precision(void);",
@@ -18537,8 +18543,9 @@
           "ported": true
         },
         {
-          "decl": "void perpendicular4d(void);",
-          "addr": "0x10b6b0"
+          "decl": "void perpendicular4d(float *in, float *out);",
+          "addr": "0x10b6b0",
+          "ported": true
         },
         {
           "decl": "void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle, float cos_angle);",
@@ -18547,8 +18554,9 @@
           "ported": true
         },
         {
-          "decl": "void vectors_interpolate(void);",
-          "addr": "0x10b780"
+          "decl": "void vectors_interpolate(float *a, float *b, float t, float *out);",
+          "addr": "0x10b780",
+          "ported": true
         },
         {
           "decl": "void points_interpolate(float *a, float *b, float blend, float *out);",
@@ -18561,20 +18569,24 @@
           "ported": true
         },
         {
-          "decl": "void scalars_interpolate_and_clamp_0_to_1(void);",
-          "addr": "0x10b840"
+          "decl": "void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t, float *out);",
+          "addr": "0x10b840",
+          "ported": true
         },
         {
-          "decl": "void FUN_0010b8a0(void);",
-          "addr": "0x10b8a0"
+          "decl": "void FUN_0010b8a0(float *v, float *axis, float *parallel, float *perpendicular);",
+          "addr": "0x10b8a0",
+          "ported": true
         },
         {
-          "decl": "void quaternion_transform_point(void);",
-          "addr": "0x10bb20"
+          "decl": "void quaternion_transform_point(float *q, float *v, float *out);",
+          "addr": "0x10bb20",
+          "ported": true
         },
         {
-          "decl": "void vectors3d_from_euler_angles3d(void);",
-          "addr": "0x10bbc0"
+          "decl": "void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles);",
+          "addr": "0x10bbc0",
+          "ported": false
         },
         {
           "decl": "bool fast_vector_intersects_sphere(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
