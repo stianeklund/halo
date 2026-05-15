@@ -51,6 +51,44 @@ uint16_t FUN_0008e7c0(void)
   return random_seed_step(random_math_get_local_seed_address());
 }
 
+/* debug_malloc_check_all (0x8ead0) — walk every debug-tracked allocation,
+ * validate each header, and check the end-of-buffer sentinel word. Reports
+ * overruns via display_assert and exits. Also guards against an uninitialized
+ * heap manager before iterating. */
+void debug_malloc_check_all(const char *file, int line)
+{
+  debug_allocation_header_t *node;
+
+  if (*(uint32_t *)0x2ee74c != 0x53414654 ||
+      *(uint32_t *)0x2ee768 != 0x53414654) {
+    display_assert(csprintf((char *)0x267c70, file, line),
+                   "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x91, 1);
+    system_exit(-1);
+  }
+
+  for (node = *(debug_allocation_header_t **)0x2ee758; node != NULL;
+       node = node->next) {
+    {
+      int _esi = (int)node;
+      int _ebx = (int)file;
+      int _edi = line;
+      asm volatile("movl $0x8e7d0, %%eax\n\tcall *%%eax"
+                   : "+S"(_esi), "+b"(_ebx), "+D"(_edi)
+                   :
+                   : "eax", "ecx", "edx", "memory", "cc");
+    }
+    if (*(uint32_t *)((char *)node + 0x20 + node->size) != 0x3c2d2d2d) {
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "Pointer allocated at %s, %d has overrun the end of its "
+                 "buffer. (Size: %d) (%s:%d)",
+                 node->file, node->line, node->size, file, line),
+        "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0xc7, 1);
+      system_exit(-1);
+    }
+  }
+}
+
 /* Reallocate a debug-tracked allocation, preserving the original file/line.
  * Validates the debug memory sentinel and existing header before reallocating.
  * If ptr is NULL, behaves like debug_malloc; if new_size is 0, frees. */

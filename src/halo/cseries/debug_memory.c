@@ -1,3 +1,5 @@
+void debug_malloc_check_all(const char *file, int line);
+
 typedef struct debug_allocation_header {
   uint32_t begin_guard;
   struct debug_allocation_header *next;
@@ -15,7 +17,7 @@ void FUN_0008eb80(const char *tag_filter)
   void *stream;
   int total;
 
-  FUN_0008ead0();
+  debug_malloc_check_all("c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x201);
   node = *(debug_allocation_header_t **)0x2ee758;
   stream = NULL;
   total = 0;
@@ -61,7 +63,7 @@ void FUN_0008ec60(void)
   total_size = 0;
   alloc_count = 0;
   file_count = 0;
-  FUN_0008ead0();
+  debug_malloc_check_all("c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x229);
   if (node != NULL) {
     do {
       total_size += (int)node->size;
