@@ -917,7 +917,7 @@ def to_json(results: list[CommonFunction]) -> str:
     return json.dumps(
         [
             {
-                "addr": f"0x{r.addr:06x}",
+                "addr": f"0x{r.addr:x}",
                 "name": r.name,
                 "decl": r.decl,
                 "is_unnamed": r.is_unnamed,
