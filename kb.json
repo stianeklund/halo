@@ -18704,16 +18704,19 @@
           "addr": "0x10d9e0"
         },
         {
-          "decl": "void point_in_cone3d(void);",
-          "addr": "0x10da90"
+          "decl": "char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
+          "addr": "0x10da90",
+          "ported": true
         },
         {
-          "decl": "void point_in_sector2d(void);",
-          "addr": "0x10db50"
+          "decl": "char FUN_0010db50(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
+          "addr": "0x10db50",
+          "ported": true
         },
         {
-          "decl": "void point_in_sector3d(void);",
-          "addr": "0x10dbf0"
+          "decl": "char FUN_0010dbf0(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
+          "addr": "0x10dbf0",
+          "ported": true
         },
         {
           "decl": "void vector_intersects_pill2d(void);",
@@ -18733,12 +18736,14 @@
           "addr": "0x10e6f0"
         },
         {
-          "decl": "void circle_intersects_rectangle2d(void);",
-          "addr": "0x10e8a0"
+          "decl": "char FUN_0010e8a0(float *point, float radius, float *rect);",
+          "addr": "0x10e8a0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0010E930(void);",
-          "addr": "0x10e930"
+          "decl": "char FUN_0010e930(float *point, float radius, float *aabb);",
+          "addr": "0x10e930",
+          "ported": true
         },
         {
           "decl": "void circle_intersects_triangle2d(void);",

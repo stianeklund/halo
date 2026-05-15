@@ -1676,3 +1676,161 @@ char FUN_0010d770(float *p1, float *p2, float *p3, float *p4,
   return 0;
 }
 
+/* 0x10da90 — 3D cone vs sphere test.
+ * Tests if sphere(center=p1, radius=cone_radius*cosine) is intersected
+ * by the cone with apex=p2, axis=p3, half-angle whose cos=cosine. */
+char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
+                          float cosine)
+{
+  float dx, dy, dz;
+  float dot;
+  float rsq, dist_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x57c, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dz = p1[2] - p2[2];
+  dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dot > cone_radius) {
+    return 0;
+  }
+  rsq = dot * dot;
+  dist_sq = (dy * dy + dx * dx + dz * dz) * cosine * cosine;
+  if (dist_sq < rsq) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10db50 — 2D cone vs circle test. */
+char FUN_0010db50(float *p1, float *p2, float *p3, float cone_radius,
+                          float cosine)
+{
+  float dx, dy;
+  float dist_sq;
+  float dot;
+  float radius_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x599, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dist_sq = dy * dy + dx * dx;
+  radius_sq = cone_radius * cone_radius;
+  if (radius_sq < dist_sq) {
+    return 0;
+  }
+  dot = dx * p3[0] + dy * p3[1];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dist_sq * cosine * cosine < dot * dot) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10dbf0 — 3D cone vs sphere test (variant). */
+char FUN_0010dbf0(float *p1, float *p2, float *p3, float cone_radius,
+                          float cosine)
+{
+  float dx, dy, dz;
+  float dist_sq;
+  float dot;
+  float radius_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x5b6, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dz = p1[2] - p2[2];
+  dist_sq = dy * dy + dx * dx + dz * dz;
+  radius_sq = cone_radius * cone_radius;
+  if (radius_sq < dist_sq) {
+    return 0;
+  }
+  dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dist_sq * cosine * cosine < dot * dot) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10e8a0 — 2D point-to-rectangle distance test.
+ * Returns 1 if point is within radius of rectangle. */
+char FUN_0010e8a0(float *point, float radius, float *rect)
+{
+  float dx, dy;
+
+  if (point[0] > rect[1]) {
+    dx = point[0] - rect[1];
+  } else {
+    dx = 0.0f;
+    if (point[0] < rect[0]) {
+      dx = rect[0] - point[0];
+    }
+  }
+  if (point[1] > rect[3]) {
+    dy = point[1] - rect[3];
+  } else {
+    dy = 0.0f;
+    if (point[1] < rect[2]) {
+      dy = rect[2] - point[1];
+    }
+  }
+  if (radius * radius < dx * dx + dy * dy) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10e930 — 3D point-to-AABB distance test.
+ * Returns 1 if point is within radius of AABB.
+ * Layout: rect[0..1]=x bounds, rect[2..3]=y bounds, rect[4..5]=z bounds. */
+char FUN_0010e930(float *point, float radius, float *aabb)
+{
+  float dx, dy, dz;
+
+  if (point[0] > aabb[1]) {
+    dx = point[0] - aabb[1];
+  } else {
+    dx = 0.0f;
+    if (point[0] < aabb[0]) {
+      dx = aabb[0] - point[0];
+    }
+  }
+  if (point[1] > aabb[3]) {
+    dy = point[1] - aabb[3];
+  } else {
+    dy = 0.0f;
+    if (point[1] < aabb[2]) {
+      dy = aabb[2] - point[1];
+    }
+  }
+  if (point[2] > aabb[5]) {
+    dz = point[2] - aabb[5];
+  } else {
+    dz = 0.0f;
+    if (point[2] < aabb[4]) {
+      dz = aabb[4] - point[2];
+    }
+  }
+  if (radius * radius <= dx * dx + dy * dy + dz * dz) {
+    return 0;
+  }
+  return 1;
+}
+
