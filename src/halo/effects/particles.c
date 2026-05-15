@@ -152,7 +152,7 @@ void particle_delete(int datum_handle)
 
 /* Delete all particles owned by a local player that have an attached
    object (flag 0x40 set and object handle != -1). */
-void FUN_000a1510(int local_player_index)
+void FUN_000a1510(int16_t local_player_index)
 {
   int handle;
   char *datum;

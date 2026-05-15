@@ -7298,7 +7298,7 @@
           "ported": true
         },
         {
-          "decl": "void game_allegiance_set(int16_t *entry, char friendship, char force);",
+          "decl": "void game_allegiance_set(int16_t *entry@<eax>, char friendship@<ebx>, char force);",
           "addr": "0xa7c90",
           "ported": true
         },
@@ -14601,7 +14601,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a1510(int local_player_index);",
+          "decl": "void FUN_000a1510(int16_t local_player_index);",
           "addr": "0xa1510",
           "ported": true
         },
@@ -14629,6 +14629,11 @@
           "decl": "bool FUN_000a1c30(int datum_handle, float delta_time);",
           "addr": "0xa1c30",
           "ported": true
+        },
+        {
+          "addr": "0xa1590",
+          "decl": "void FUN_000a1590(void);",
+          "ported": false
         }
       ]
     },
