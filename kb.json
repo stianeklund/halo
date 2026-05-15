@@ -24816,8 +24816,10 @@
           "addr": "0x1365a0"
         },
         {
-          "decl": "void FUN_001365b0(void);",
-          "addr": "0x1365b0"
+          "decl": "void widgets_dispose_from_old_map(void);",
+          "addr": "0x1365b0",
+          "ported": true,
+          "source_path": "objects/widgets/widgets.c"
         }
       ]
     },

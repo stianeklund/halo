@@ -5300,6 +5300,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1365b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1365d0": {
       "kind": "function",
       "status": "ported"
