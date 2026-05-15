@@ -22,6 +22,13 @@ void widgets_update(float delta_time)
   }
 }
 
+/* widgets_initialize_for_new_map — empty in the shipped build; reserved hook
+ * called from objects_initialize_for_new_map. Verified: single RET at 0x136580.
+ */
+void widgets_initialize_for_new_map(void)
+{
+}
+
 /* widgets_dispose — clears the per-widget debug handle slot, called from
  * objects_dispose.  Verified: single store of 0xffffffff to 0x0046f070. */
 void widgets_dispose(void)

@@ -24808,8 +24808,10 @@
           "addr": "0x136450"
         },
         {
-          "decl": "void FUN_00136580(void);",
-          "addr": "0x136580"
+          "decl": "void widgets_initialize_for_new_map(void);",
+          "addr": "0x136580",
+          "ported": true,
+          "source_path": "objects/widgets/widgets.c"
         },
         {
           "decl": "void widgets_dispose(void);",
