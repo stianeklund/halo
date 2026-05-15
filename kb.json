@@ -2016,7 +2016,7 @@
           "addr": "0x1daf7e"
         },
         {
-          "decl": "void FUN_001daf96(void);",
+          "decl": "double crt_atof(const char *str);",
           "addr": "0x1daf96"
         }
       ]
@@ -6230,7 +6230,7 @@
         {
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6291,7 +6291,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -9979,8 +9979,9 @@
           "addr": "0xc5a20"
         },
         {
-          "decl": "void FUN_000c5b50(void);",
-          "addr": "0xc5b50"
+          "decl": "bool FUN_000c5b50(int datum_index);",
+          "addr": "0xc5b50",
+          "ported": true
         },
         {
           "decl": "void FUN_000c5c40(void);",
@@ -10154,7 +10155,8 @@
           "addr": "0xc93f0",
           "ported": true
         }
-      ]
+      ],
+      "source_path": "src/halo/hs/hs_compile.c"
     },
     {
       "name": "hs_runtime.obj",
@@ -14642,7 +14644,7 @@
         {
           "addr": "0xa1590",
           "decl": "void FUN_000a1590(void);",
-          "ported": false
+          "ported": true
         }
       ]
     },
@@ -26160,7 +26162,7 @@
           "addr": "0x1daaaa"
         },
         {
-          "decl": "void FUN_001dab2a(void);",
+          "decl": "int crt_isdigit(int c);",
           "addr": "0x1dab2a"
         },
         {

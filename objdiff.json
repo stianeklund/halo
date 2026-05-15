@@ -496,6 +496,14 @@
       }
     },
     {
+      "name": "halo/particles_FUN_000a1590",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/particles.c.obj",
+      "base_path": "delinked/particles_FUN_000a1590.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/particles.c"
+      }
+    },
+    {
       "name": "halo/physical_memory_map",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/physical_memory_map.c.obj",
       "base_path": "delinked/physical_memory_map.obj",

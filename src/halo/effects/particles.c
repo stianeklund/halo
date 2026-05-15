@@ -167,6 +167,64 @@ void FUN_000a1510(int16_t local_player_index)
   }
 }
 
+/* Walk all live particles and reattach each one's location to its owner
+ * (0xa1590). For each particle:
+ *   - If owner handle (particle+0x8) is -1 (free / unparented): use the
+ *     embedded marker matrix at particle+0x30 as the position source.
+ *   - Else if flag 0x40 is set in particle+0x2: position from the
+ *     first-person weapon node matrix indexed by particle+0xf (marker)
+ *     and particle+0xc (node).
+ *   - Else: verify the owner object is still alive; if so, position
+ *     from the object's node matrix; if dead, delete the particle.
+ * The position pointer always advances by 0x28 (past the matrix header
+ * to the translation column) before scenario_location_from_point is
+ * called to write the new location at particle+0x28. If the resulting
+ * scenario location's leaf index (particle+0x2c) is -1 the particle
+ * has left the BSP and is deleted.
+ *
+ * Referenced from a function-pointer table at 0x326a20 — appears to be
+ * a per-frame engine update callback. */
+void FUN_000a1590(void)
+{
+  int handle;
+  char *particle;
+  int owner;
+  void *position;
+
+  handle = data_next_index(particle_data, -1);
+  while (handle != -1) {
+    particle = (char *)datum_get(particle_data, handle);
+    owner = *(int *)(particle + 0x8);
+    if (owner == -1) {
+      position = particle + 0x30;
+    } else {
+      if ((*(uint8_t *)(particle + 0x2) & 0x40) != 0) {
+        position =
+          (char *)first_person_weapon_get_node_matrix(
+            *(uint8_t *)(particle + 0xf), *(int16_t *)(particle + 0xc)) +
+          0x28;
+      } else if (object_try_and_get_and_verify_type(owner, -1) != 0) {
+        position = (char *)object_get_node_matrix(
+                     *(int *)(particle + 0x8), *(int16_t *)(particle + 0xc)) +
+                   0x28;
+      } else {
+        datum_delete(particle_data, handle);
+        goto next;
+      }
+    }
+    if (position == NULL) {
+      datum_delete(particle_data, handle);
+    } else {
+      scenario_location_from_point(particle + 0x28, position);
+      if (*(int16_t *)(particle + 0x2c) == -1) {
+        datum_delete(particle_data, handle);
+      }
+    }
+  next:
+    handle = data_next_index(particle_data, handle);
+  }
+}
+
 /* Compute the particle's current visual size (0xa1670).
  * Interpolates between the tag's min/max size based on the ratio of
  * elapsed time to total lifetime, then scales by the particle's
