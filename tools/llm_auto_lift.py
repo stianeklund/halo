@@ -489,6 +489,10 @@ class LiftabilityScorer:
                 if leaf_entry.get("z3_proven"):
                     score += 5
                     details["z3_proven"] = 5
+                cached_confidence = leaf_entry.get("confidence", "")
+                if cached_confidence == "high":
+                    score += 3
+                    details["eq_high_conf"] = 3
 
                 # Cached Ghidra context available
                 cache_file = CONTEXT_CACHE / f"{name}.json"
