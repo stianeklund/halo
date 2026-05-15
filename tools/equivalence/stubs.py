@@ -339,22 +339,33 @@ class StubManager:
         "cisqrt", "cilog", "cilog10", "cipow", "cifmod", "citan",
     ))
     _FTOL2_ADDRS = frozenset(("fun_001d9068", "_ftol2", "ftol2"))
+    # XBE address → _CI* intrinsic name for FUN_XXXXXXXX symbols
+    _CRT_MATH_ADDRS = {
+        "fun_001d94f0": "ciacos",
+    }
+
+    def _resolve_name(self, address: int) -> str:
+        """Resolve a stub address to its effective intercept name."""
+        raw = self._stub_names.get(address, "").lstrip("_").lower()
+        if raw in self._CRT_MATH_ADDRS:
+            return self._CRT_MATH_ADDRS[raw]
+        canonical = self._canonical_names.get(address, "").lower()
+        if canonical in self._CRT_MATH_ADDRS:
+            return self._CRT_MATH_ADDRS[canonical]
+        if canonical in self._INTERCEPT_NAMES:
+            return canonical
+        return raw
 
     def should_intercept(self, address: int) -> bool:
-        symbol_name = self._stub_names.get(address, "").lstrip("_").lower()
-        if symbol_name in self._INTERCEPT_NAMES or symbol_name in self._FTOL2_ADDRS:
-            return True
-        canonical = self._canonical_names.get(address, "").lower()
-        return canonical in self._INTERCEPT_NAMES or canonical in self._FTOL2_ADDRS
+        name = self._resolve_name(address)
+        return name in self._INTERCEPT_NAMES or name in self._FTOL2_ADDRS
 
     def get_stub_code(self, address: int) -> bytes:
         """Return machine code for a tiny trampoline stub at a sentinel address."""
         stub = self._stubs.get(address)
-        symbol_name = self._stub_names.get(address, "").lstrip("_").lower()
-        canonical = self._canonical_names.get(address, "").lower()
+        symbol_name = self._resolve_name(address)
 
-        if symbol_name == "fabs" or canonical == "fabs":
-            # double fabs(double): load arg from [esp+4], apply x87 FABS, return in ST0
+        if symbol_name == "fabs":
             return b"\xDD\x44\x24\x04\xD9\xE1\xC3"
 
         if stub is not None:
@@ -403,9 +414,7 @@ class StubManager:
 
             # Read caller's current state
             caller_esp = uc.reg_read(UC_X86_REG_ESP)
-            raw_name = self._stub_names.get(address, "").lstrip("_").lower()
-            canonical = self._canonical_names.get(address, "").lower()
-            symbol_name = canonical if canonical in self._INTERCEPT_NAMES else raw_name
+            symbol_name = self._resolve_name(address)
 
             if symbol_name in ("csmemcpy", "memcpy"):
                 dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
