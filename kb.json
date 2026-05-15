@@ -8784,7 +8784,7 @@
         {
           "decl": "void FUN_000b56f0(int handle, int param_2, int param_3, int param_4);",
           "addr": "0xb56f0",
-          "ported": false
+          "ported": true
         }
       ]
     },
