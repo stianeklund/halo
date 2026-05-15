@@ -4958,12 +4958,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0008eb80(void);",
-          "addr": "0x8eb80"
+          "decl": "void FUN_0008eb80(const char *tag_filter);",
+          "addr": "0x8eb80",
+          "ported": true
         },
         {
           "decl": "void FUN_0008ec60(void);",
-          "addr": "0x8ec60"
+          "addr": "0x8ec60",
+          "ported": true
         }
       ]
     },
@@ -6420,7 +6422,7 @@
           "addr": "0x8e720"
         },
         {
-          "decl": "void FUN_0008e750(void);",
+          "decl": "int __cdecl FUN_0008e750(const void *a, const void *b);",
           "addr": "0x8e750"
         },
         {

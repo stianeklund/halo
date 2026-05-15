@@ -9,6 +9,126 @@ typedef struct debug_allocation_header {
   uint32_t checksum;
 } debug_allocation_header_t;
 
+void FUN_0008eb80(const char *tag_filter)
+{
+  debug_allocation_header_t *node;
+  void *stream;
+  int total;
+
+  FUN_0008ead0();
+  node = *(debug_allocation_header_t **)0x2ee758;
+  stream = NULL;
+  total = 0;
+  if (node != NULL) {
+    do {
+      if (tag_filter == NULL ||
+          crt_strstr(node->file, tag_filter) != NULL) {
+        if (stream == NULL) {
+          stream = crt_fopen("d:\\heap_dump.txt", "a+b");
+          if (stream != NULL) {
+            crt_fprintf(stream, "% 40s  % 6s % 10s % 10s\r\n",
+                        "file", "line", "id", "size");
+            goto write_entry;
+          }
+        } else {
+        write_entry:
+          crt_fprintf(stream, "% 40s  % 6d % 10d % 10d bytes\r\n",
+                      node->file, node->line, node->sequence, node->size);
+        }
+        total += (int)node->size;
+      }
+      node = node->next;
+    } while (node != NULL);
+    if (stream != NULL) {
+      crt_fprintf(stream, "\r\nTotal Allocated: %d bytes\r\n\r\n", total);
+      crt_fclose(stream);
+    }
+  }
+}
+
+void FUN_0008ec60(void)
+{
+  uint32_t table[0x200][5];
+  debug_allocation_header_t *node;
+  void *stream;
+  int total_size;
+  int alloc_count;
+  int32_t idx;
+  uint32_t i;
+  uint16_t file_count;
+  uint16_t j;
+
+  node = *(debug_allocation_header_t **)0x2ee758;
+  total_size = 0;
+  alloc_count = 0;
+  file_count = 0;
+  FUN_0008ead0();
+  if (node != NULL) {
+    do {
+      total_size += (int)node->size;
+      alloc_count++;
+      j = 0;
+      while ((int16_t)j < (int16_t)file_count) {
+        if (table[j][0] == (uint32_t)(uintptr_t)node->file)
+          break;
+        j++;
+      }
+      if (j == file_count) {
+        if ((int16_t)file_count > 0x1ff) {
+          display_assert("file_count<MAXIMUM_FILES_WITH_POINTERS",
+                         "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x249,
+                         true);
+          system_exit(-1);
+        }
+        idx = (int16_t)file_count;
+        table[idx][0] = (uint32_t)(uintptr_t)node->file;
+        table[idx][1] = 1;
+        table[idx][2] = node->size;
+        table[idx][3] = node->size;
+        table[idx][4] = node->size;
+        file_count++;
+      } else {
+        idx = (int16_t)j;
+        table[idx][1]++;
+        table[idx][4] += node->size;
+        if (node->size < table[idx][2])
+          table[idx][2] = node->size;
+        if (table[idx][3] < node->size)
+          table[idx][3] = node->size;
+      }
+      node = node->next;
+    } while (node != NULL);
+    if (file_count != 0) {
+      stream = crt_fopen("d:\\heap_dump.txt", "a+b");
+      if (stream != NULL) {
+        qsort(table, (size_t)(int16_t)file_count, sizeof(table[0]),
+              FUN_0008e750);
+        if ((int16_t)file_count > 0) {
+          for (i = 0; i < (uint32_t)(uint16_t)file_count; i++) {
+            crt_fprintf(
+              stream,
+              "File: %32s %8d bytes in %4d pointers. (Min: %8d Max: %8d Avg: %5.3f)\r\n",
+              (const char *)table[i][0], (int)table[i][4], (int)table[i][1],
+              (int)table[i][2], (int)table[i][3],
+              (double)table[i][4] / (double)table[i][1]);
+          }
+        }
+        if (total_size != *(int *)0x2ee750) {
+          display_assert(
+            "total_pointer_size==debug_memory_globals.current_heap_size",
+            "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x264, true);
+          system_exit(-1);
+        }
+        crt_fprintf(
+          stream,
+          "\r\nTotal: %40d bytes in %4d pointers\r\nLargest Heap Size: %28d bytes\r\n\r\n",
+          total_size, alloc_count, *(int *)0x2ee754);
+        crt_fclose(stream);
+      }
+    }
+  }
+}
+
 void *debug_malloc(uint32_t size, bool zero, const char *file, int line)
 {
   debug_allocation_header_t *header;
