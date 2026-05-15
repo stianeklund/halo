@@ -20,15 +20,17 @@ from datetime import datetime
 import pefile
 from xbe import Xbe, XbeSection, XbeSectionHeader, XbeKernelImage
 
+# Configure logging BEFORE importing modules that use logging
+logging.basicConfig(
+    level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper()),
+    format='%(levelname)s:%(name)s:%(message)s'
+)
+
 from internal import color
 from analysis.knowledge import Function, KnowledgeBase
 
 
 log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper()),
-    format='%(levelname)s:%(name)s:%(message)s'
-)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 KB_REG_BASELINE_PATH = os.path.join(root_dir, 'tools', 'kb_reg_baseline.json')
 KB_OVERLAY_ENV = 'HALO_KB_OVERLAY'
