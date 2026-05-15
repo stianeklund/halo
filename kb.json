@@ -6229,7 +6229,7 @@
         {
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6290,7 +6290,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -12204,20 +12204,24 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000e02d0(void);",
-          "addr": "0xe02d0"
+          "decl": "void FUN_000e02d0(int param_1, short *param_2, float *param_3, float param_4, float param_5, float param_6, short param_7);",
+          "addr": "0xe02d0",
+          "ported": false
         },
         {
-          "decl": "void xbox_demos_available(void);",
-          "addr": "0xe0430"
+          "decl": "unsigned char xbox_demos_available(void);",
+          "addr": "0xe0430",
+          "ported": true
         },
         {
           "decl": "void clean_up_for_image_launch(void);",
-          "addr": "0xe04a0"
+          "addr": "0xe04a0",
+          "ported": true
         },
         {
           "decl": "void FUN_000e0570(void);",
-          "addr": "0xe0570"
+          "addr": "0xe0570",
+          "ported": true
         }
       ]
     },
@@ -26995,6 +26999,10 @@
         {
           "decl": "void __stdcall matrix_build_ortho_projection(void *matrix_out, float scale_x, float scale_y, float z_near, float z_far);",
           "addr": "0x1ffc57"
+        },
+        {
+          "decl": "int __stdcall D3DDevice_PersistDisplay(void);",
+          "addr": "0x1e9190"
         }
       ]
     },
@@ -27173,7 +27181,7 @@
           "addr": "0x1d259b"
         },
         {
-          "decl": "void FUN_001d25e0(void);",
+          "decl": "int __stdcall XLaunchNewImageA(const char *image_path, void *launch_data);",
           "addr": "0x1d25e0"
         },
         {

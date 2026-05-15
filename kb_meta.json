@@ -3672,6 +3672,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe0430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe04a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe0500": {
       "kind": "function",
       "status": "ported"
