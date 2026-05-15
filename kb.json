@@ -2169,7 +2169,7 @@
           "addr": "0x1d350"
         },
         {
-          "decl": "void actor_action_try_to_panic(void);",
+          "decl": "void FUN_0001d3c0(void);",
           "addr": "0x1d3c0"
         },
         {
@@ -3383,7 +3383,7 @@
           "addr": "0x278e0"
         },
         {
-          "decl": "void valid_real_normal2d(void);",
+          "decl": "void FUN_00027A10(void);",
           "addr": "0x27a10"
         },
         {
@@ -6070,7 +6070,7 @@
           "ported": true
         },
         {
-          "decl": "void director_initialize_for_new_map(void);",
+          "decl": "void FUN_00087800(void);",
           "addr": "0x87800"
         },
         {
@@ -6114,7 +6114,7 @@
           "addr": "0x87f20"
         },
         {
-          "decl": "void director_update(void);",
+          "decl": "void FUN_00088050(void);",
           "addr": "0x88050"
         },
         {
@@ -6331,7 +6331,7 @@
           "ported": true
         },
         {
-          "decl": "void effects_information_get(void);",
+          "decl": "void FUN_0009C910(void);",
           "addr": "0x9c910"
         },
         {
@@ -7087,13 +7087,9 @@
           "ported": true
         },
         {
-          "decl": "int game_difficulty_level_get_ignore_easy(void);",
+          "decl": "void FUN_000A7470(void);",
           "addr": "0xa7470",
           "ported": true
-        },
-        {
-          "decl": "void game_difficulty_level_get_ignore_easy(void);",
-          "addr": "0xa7470"
         },
         {
           "decl": "void game_set_game_variant(game_variant_t *variant);",
@@ -7186,7 +7182,7 @@
           "addr": "0xb46b0"
         },
         {
-          "decl": "void game_initialize_for_new_map(void);",
+          "decl": "void FUN_000B4800(void);",
           "addr": "0xb4800"
         },
         {
@@ -10379,7 +10375,7 @@
           "addr": "0xca670"
         },
         {
-          "decl": "void hs_runtime_initialize(void);",
+          "decl": "void FUN_000CA700(void);",
           "addr": "0xca700"
         },
         {
@@ -11866,7 +11862,7 @@
           "addr": "0x100370"
         },
         {
-          "decl": "void main_lost_map(void);",
+          "decl": "void FUN_00100380(void);",
           "addr": "0x100380"
         },
         {
@@ -12311,7 +12307,7 @@
           "addr": "0x12a0d0"
         },
         {
-          "decl": "void network_game_accept_remote_connections(void);",
+          "decl": "void FUN_0012A150(void);",
           "addr": "0x12a150"
         },
         {
@@ -12479,11 +12475,11 @@
           "addr": "0x124c10"
         },
         {
-          "decl": "void network_game_client_get_available_games(void);",
+          "decl": "void FUN_00124C80(void);",
           "addr": "0x124c80"
         },
         {
-          "decl": "void network_game_client_get_seconds_to_game_start(void);",
+          "decl": "void FUN_00124D00(void);",
           "addr": "0x124d00"
         },
         {
@@ -12523,7 +12519,7 @@
           "addr": "0x125510"
         },
         {
-          "decl": "void network_game_client_switch_to_postgame(void);",
+          "decl": "void FUN_00125610(void);",
           "addr": "0x125610"
         },
         {
@@ -12607,7 +12603,7 @@
           "addr": "0x127440"
         },
         {
-          "decl": "void network_game_client_idle(void);",
+          "decl": "void FUN_001274E0(void);",
           "addr": "0x1274e0"
         },
         {
@@ -12798,7 +12794,7 @@
           "addr": "0x11c1b0"
         },
         {
-          "decl": "void initialize_network_game_packets(void);",
+          "decl": "void FUN_0011C1D0(void);",
           "addr": "0x11c1d0"
         },
         {
@@ -13057,11 +13053,11 @@
           "addr": "0x12c690"
         },
         {
-          "decl": "void get_unique_random_name(void);",
+          "decl": "void FUN_0012C6D0(void);",
           "addr": "0x12c6d0"
         },
         {
-          "decl": "void get_unique_random_color(void);",
+          "decl": "void FUN_0012C750(void);",
           "addr": "0x12c750"
         },
         {
@@ -13073,7 +13069,7 @@
           "addr": "0x12c920"
         },
         {
-          "decl": "void network_game_server_adjust_machine_settings(void);",
+          "decl": "void FUN_0012CA00(void);",
           "addr": "0x12ca00"
         },
         {
@@ -14623,7 +14619,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a1c30(void);",
+          "decl": "bool FUN_000a1c30(int datum_handle, float delta_time);",
           "addr": "0xa1c30"
         }
       ]
@@ -15530,7 +15526,7 @@
           "addr": "0xbb220"
         },
         {
-          "decl": "void random_direction3d(void);",
+          "decl": "void FUN_000BB290(void);",
           "addr": "0xbb290"
         },
         {
@@ -17220,11 +17216,11 @@
           "addr": "0x16fcf0"
         },
         {
-          "decl": "void rasterizer_frame_begin(void);",
+          "decl": "void FUN_0016FDD0(void);",
           "addr": "0x16fdd0"
         },
         {
-          "decl": "void rasterizer_windows_begin(void);",
+          "decl": "void FUN_0016FEB0(void);",
           "addr": "0x16feb0"
         },
         {
@@ -17260,7 +17256,7 @@
           "addr": "0x172590"
         },
         {
-          "decl": "void rasterizer_window_begin(void);",
+          "decl": "void FUN_00172640(void);",
           "addr": "0x172640"
         },
         {
@@ -17368,7 +17364,7 @@
           "addr": "0x1792a0"
         },
         {
-          "decl": "void rasterizer_window_end(void);",
+          "decl": "void FUN_001792C0(void);",
           "addr": "0x1792c0"
         },
         {
@@ -17472,7 +17468,7 @@
           "addr": "0x17c790"
         },
         {
-          "decl": "void rasterizer_windows_end(void);",
+          "decl": "void FUN_0017C7D0(void);",
           "addr": "0x17c7d0"
         },
         {
@@ -18677,7 +18673,7 @@
           "addr": "0x10e8a0"
         },
         {
-          "decl": "void sphere_intersects_rectangle3d(void);",
+          "decl": "void FUN_0010E930(void);",
           "addr": "0x10e930"
         },
         {
@@ -19825,7 +19821,7 @@
           "ported": true
         },
         {
-          "decl": "int scenario_get_structure_reference_index_from_tag_index(int16_t bsp3d_node_index);",
+          "decl": "int FUN_0018EAB0(int16_t bsp3d_node_index);",
           "addr": "0x18eab0",
           "ported": true
         },
@@ -19999,7 +19995,7 @@
           "ported": true
         },
         {
-          "decl": "void shell_dispose(void);",
+          "decl": "void FUN_00191180(void);",
           "addr": "0x191180"
         },
         {
@@ -20015,7 +20011,7 @@
           "addr": "0x191220"
         },
         {
-          "decl": "void shell_application_is_paused(void);",
+          "decl": "void FUN_00191230(void);",
           "addr": "0x191230"
         }
       ]
@@ -20050,11 +20046,11 @@
           "addr": "0x18aef0"
         },
         {
-          "decl": "void scenario_initialize_for_new_map(void);",
+          "decl": "void FUN_0018AF90(void);",
           "addr": "0x18af90"
         },
         {
-          "decl": "void scenario_dispose_from_old_map(void);",
+          "decl": "void FUN_0018AFD0(void);",
           "addr": "0x18afd0"
         },
         {
@@ -20062,11 +20058,11 @@
           "addr": "0x18afe0"
         },
         {
-          "decl": "void scenario_frame_update(void);",
+          "decl": "void FUN_0018B000(void);",
           "addr": "0x18b000"
         },
         {
-          "decl": "void scenario_unload(void);",
+          "decl": "void FUN_0018B010(void);",
           "addr": "0x18b010"
         },
         {
@@ -20134,7 +20130,7 @@
           "addr": "0x18c460"
         },
         {
-          "decl": "void scenario_location_potentially_visible_local(void);",
+          "decl": "void FUN_0018C4D0(void);",
           "addr": "0x18c4d0"
         },
         {
@@ -20162,7 +20158,7 @@
           "addr": "0x18d0b0"
         },
         {
-          "decl": "void scenario_switch_structure_bsp(void);",
+          "decl": "void FUN_0018D140(void);",
           "addr": "0x18d140"
         },
         {
@@ -20190,7 +20186,7 @@
           "addr": "0x18dcf0"
         },
         {
-          "decl": "void scenario_get_structure_reference_index_from_tag_index(void);",
+          "decl": "void FUN_0018DF70(void);",
           "addr": "0x18df70"
         },
         {
@@ -20215,7 +20211,7 @@
           "ported": true
         },
         {
-          "decl": "void scenario_load(void);",
+          "decl": "void FUN_0018E5C0(void);",
           "addr": "0x18e5c0"
         },
         {
@@ -20223,7 +20219,7 @@
           "addr": "0x18e690"
         },
         {
-          "decl": "void scenario_location_from_point(void);",
+          "decl": "void FUN_0018E6A0(void);",
           "addr": "0x18e6a0"
         },
         {
@@ -20764,7 +20760,7 @@
           "addr": "0x1ac0a0"
         },
         {
-          "decl": "void sound_valid_for_channel(void);",
+          "decl": "void FUN_001AC0E0(void);",
           "addr": "0x1ac0e0"
         },
         {
@@ -21046,7 +21042,7 @@
           "addr": "0x19b320"
         },
         {
-          "decl": "void tag_data_get_pointer(void);",
+          "decl": "void FUN_0019B330(void);",
           "addr": "0x19b330"
         },
         {
@@ -21793,7 +21789,7 @@
           "addr": "0x198cb0"
         },
         {
-          "decl": "void structure_get_planar_fog(void);",
+          "decl": "void FUN_00198F10(void);",
           "addr": "0x198f10"
         },
         {
@@ -22814,7 +22810,7 @@
           "addr": "0xe9cb0"
         },
         {
-          "decl": "void display_error_damaged_media(void);",
+          "decl": "void FUN_000E9D40(void);",
           "addr": "0xe9d40"
         },
         {
@@ -23055,7 +23051,7 @@
           "addr": "0xf0250"
         },
         {
-          "decl": "void ui_widget_game_data_function_invoke(void);",
+          "decl": "void FUN_000F03D0(void);",
           "addr": "0xf03d0"
         },
         {
@@ -24050,11 +24046,11 @@
           "addr": "0x1a9e40"
         },
         {
-          "decl": "void unit_scripting_unit_driver(void);",
+          "decl": "void FUN_001A9EC0(void);",
           "addr": "0x1a9ec0"
         },
         {
-          "decl": "void unit_scripting_unit_gunner(void);",
+          "decl": "void FUN_001A9EF0(void);",
           "addr": "0x1a9ef0"
         },
         {
@@ -24066,7 +24062,7 @@
           "addr": "0x1aa080"
         },
         {
-          "decl": "void units_debug_get_closest_unit(void);",
+          "decl": "void FUN_001AA170(void);",
           "addr": "0x1aa170"
         },
         {
@@ -25549,7 +25545,7 @@
           "addr": "0x19b790"
         },
         {
-          "decl": "void draw_string_set_font(void);",
+          "decl": "void FUN_0019B7E0(void);",
           "addr": "0x19b7e0"
         },
         {
@@ -26781,7 +26777,7 @@
           "addr": "0x77540"
         },
         {
-          "decl": "void bitmap_clone(void);",
+          "decl": "void FUN_00077590(void);",
           "addr": "0x77590"
         },
         {
@@ -28252,7 +28248,7 @@
           "addr": "0x2b400"
         },
         {
-          "decl": "void actor_move_get_avoidance_direction(void);",
+          "decl": "void FUN_0002B490(void);",
           "addr": "0x2b490"
         },
         {
@@ -28307,7 +28303,7 @@
           "addr": "0x2f2b0"
         },
         {
-          "decl": "void actor_get_perception_knowledge(void);",
+          "decl": "void FUN_0002F380(void);",
           "addr": "0x2f380"
         },
         {
@@ -28703,7 +28699,7 @@
           "addr": "0x49080"
         },
         {
-          "decl": "void ai_debug_get_last_path(void);",
+          "decl": "void FUN_000490C0(void);",
           "addr": "0x490c0"
         },
         {
@@ -28727,7 +28723,7 @@
           "addr": "0x49300"
         },
         {
-          "decl": "void set_real_point3d(void);",
+          "decl": "void FUN_000493B0(void);",
           "addr": "0x493b0"
         },
         {
@@ -29546,7 +29542,7 @@
           "addr": "0x59990"
         },
         {
-          "decl": "void encounter_iterator_next(void);",
+          "decl": "void FUN_000599C0(void);",
           "addr": "0x599c0"
         },
         {
@@ -29692,7 +29688,7 @@
           "addr": "0x5b6e0"
         },
         {
-          "decl": "bool encounter_get_actor_starting_location(int encounter_handle, int platoon_index, int flag);",
+          "decl": "bool FUN_0005B790(int encounter_handle, int platoon_index, int flag);",
           "addr": "0x5b790"
         },
         {
