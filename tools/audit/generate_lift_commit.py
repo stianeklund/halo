@@ -186,6 +186,9 @@ def source_files_changed():
 
 
 _TIMESTAMP_RUN_RE = re.compile(r'^\d{8}-\d{6}$')
+_EQUIV_RESULTS_RE = re.compile(
+    r'RESULTS:\s*(\d+)\s+passed,\s*(\d+)\s+(?:failed|diverged),\s*(\d+)\s+errors\s*/\s*(\d+)\s+seeds'
+)
 
 def _find_latest_vc71_match():
     """Find the VC71 match % from the most recent timestamped lift run summary."""
@@ -210,8 +213,39 @@ def _find_latest_vc71_match():
     return None
 
 
+def _find_latest_equivalence():
+    """Find passed/total seed counts from the most recent equivalence smoke log."""
+    equiv_dir = REPO_ROOT / "artifacts" / "equivalence"
+    if not equiv_dir.exists():
+        return None
+    logs = sorted(equiv_dir.glob("*_smoke.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for log in logs[:5]:
+        try:
+            text = log.read_text(errors="replace")
+            m = _EQUIV_RESULTS_RE.search(text)
+            if m:
+                passed, failed, errors, seeds = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+                if seeds > 0 and failed == 0 and errors == 0 and passed == seeds:
+                    return f"{passed}/{seeds}"
+        except OSError:
+            continue
+    return None
+
+
+def _build_match_tag(vc71_match, equivalence):
+    """Format the verification tag for the commit title."""
+    parts = []
+    if vc71_match:
+        parts.append(f"{vc71_match}% VC71")
+    if equivalence:
+        parts.append(f"{equivalence} equiv")
+    if not parts:
+        return ""
+    return " (" + ", ".join(parts) + ")"
+
+
 def generate_message(batch_name=None, since_ref=None, vc71_match=None,
-                     ports_renames=None):
+                     equivalence=None, ports_renames=None):
     if ports_renames is not None:
         ports, renames = ports_renames
     elif since_ref:
@@ -229,8 +263,10 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
 
     if vc71_match is None:
         vc71_match = _find_latest_vc71_match()
+    if equivalence is None:
+        equivalence = _find_latest_equivalence()
 
-    match_tag = f" ({vc71_match}% VC71 match)" if vc71_match else ""
+    match_tag = _build_match_tag(vc71_match, equivalence)
 
     # Identify objects affected by ports/renames to include in subject
     affected_addrs = [addr for addr, _ in ports] + [addr for addr, _, _ in renames]
@@ -294,6 +330,9 @@ def main():
                     help="Skip ABI audit gate (emergency bypass)")
     ap.add_argument("--vc71-match", default=None,
                     help="VC71 match %% to include in commit title (auto-detected from latest lift run if omitted)")
+    ap.add_argument("--equivalence", default=None,
+                    help="Equivalence result to include in commit title, e.g. '100/100' "
+                         "(auto-detected from latest artifacts/equivalence/*_smoke.log if omitted)")
     args = ap.parse_args()
 
     if args.since:
@@ -352,6 +391,7 @@ def main():
 
     msg = generate_message(batch_name=args.batch_name, since_ref=args.since,
                            vc71_match=args.vc71_match,
+                           equivalence=args.equivalence,
                            ports_renames=(ports, renames))
     print(msg)
 
