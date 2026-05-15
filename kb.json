@@ -19289,7 +19289,7 @@
           "addr": "0x184de0"
         },
         {
-          "decl": "void rendered_cluster_get(void);",
+          "decl": "void *rendered_cluster_get(int rendered_cluster_index);",
           "addr": "0x184e50"
         },
         {
@@ -19365,7 +19365,7 @@
           "addr": "0x186790"
         },
         {
-          "decl": "void render_frustum_cube_visible(void);",
+          "decl": "short render_frustum_cube_visible(void *param_1, int param_2, int param_3);",
           "addr": "0x1867f0"
         },
         {
@@ -21886,8 +21886,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001966b0(void);",
-          "addr": "0x1966b0"
+          "decl": "void FUN_001966b0(int param_1);",
+          "addr": "0x1966b0",
+          "ported": true
         },
         {
           "decl": "void FUN_00196850(void);",
@@ -21901,7 +21902,8 @@
           "decl": "void FUN_00196b10(void);",
           "addr": "0x196b10"
         }
-      ]
+      ],
+      "delinked": "delinked/structure_visibility_FUN_001966b0.obj"
     },
     {
       "name": "telnet_console.obj",
