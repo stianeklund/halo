@@ -160,6 +160,7 @@ def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
         "--seeds", str(seeds),
         "--z3-equiv",
         "--allow-stubs",
+        "--mem-trace",
         "--output-json", str(result_json),
         "--no-leaf-cache",
     ]
@@ -208,6 +209,8 @@ def main():
                         help="JSON allowlist for known failures or not_applicable reasons")
     parser.add_argument("--fail-on-new", action="store_true",
                         help="Exit non-zero when baseline comparison finds new failures")
+    parser.add_argument("--skip-existing", action="store_true",
+                        help="Skip functions that already have a result JSON in --output-dir")
     args = parser.parse_args()
 
     classes = set(args.classes.split(","))
@@ -225,73 +228,161 @@ def main():
 
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
-    csv_rows = []
 
+    existing = set()
+    if args.skip_existing:
+        for p in output_dir.glob("*.json"):
+            if p.name == "summary.json":
+                continue
+            existing.add(p.stem)
+
+    csv_rows = []
     results = {"pass": 0, "fail": 0, "error": 0, "not_applicable": 0,
                "z3_proven": 0, "total": len(candidates)}
     failures = []
     error_failures = []
     proven = []
     rows = []
+    skipped = 0
+    interrupted = False
     t0 = time.time()
 
-    for i, c in enumerate(candidates):
-        name = c["name"]
+    def _write_summary():
         elapsed = time.time() - t0
-        rate = (i / elapsed) if elapsed > 0 and i > 0 else 0
-        eta = ((len(candidates) - i) / rate) if rate > 0 else 0
-        print(f"[{i+1}/{len(candidates)}] {name:40s} ", end="", flush=True)
-
-        result = run_verify(name, output_dir, seeds=args.seeds, timeout=args.timeout,
-                            float_tolerance=args.float_tolerance,
-                            skip_esp=args.skip_esp)
-        status = result.get("status", "error")
-
-        if status == "pass":
-            results["pass"] += 1
-            if result.get("z3_proven"):
-                results["z3_proven"] += 1
-                proven.append(name)
-                print(f"Z3 PROVEN")
-            else:
-                seeds_run = result.get("seeds", 0)
-                print(f"PASS ({result.get('passed', 0)}/{seeds_run} seeds)")
-        elif status == "fail":
-            results["fail"] += 1
-            failures.append((name, result.get("reason", "")))
-            print(f"FAIL ({result.get('failed', 0)} diverged)")
-        elif status == "not_applicable":
-            results["not_applicable"] += 1
-            print(f"N/A ({result.get('reason', '')})")
-        else:
-            results["error"] += 1
-            error_failures.append((name, result.get("reason", "")))
-            print(f"ERROR ({result.get('reason', '')})")
-
-        row = {
-            "addr": c["addr"],
-            "name": name,
-            "class": c["class"],
-            "obj": c["obj"],
-            "status": status,
-            "reason": result.get("reason", ""),
-            "seeds_passed": result.get("passed", 0),
-            "seeds_total": result.get("seeds", 0),
-            "z3_proven": "1" if result.get("z3_proven") else "0",
+        allowlist = load_allowlist(args.allowlist)
+        allowlisted = [row for row in rows if is_allowlisted(row, allowlist)]
+        current_failure_rows = [row for row in rows
+                                if row["status"] in FAIL_STATUSES
+                                and not is_allowlisted(row, allowlist)]
+        baseline_keys = baseline_failure_keys(args.baseline)
+        new_failure_rows = [row for row in current_failure_rows
+                            if failure_key(row) not in baseline_keys]
+        comparison = {
+            "baseline": str(args.baseline) if args.baseline else "",
+            "new_failures": new_failure_rows,
+            "known_failures": [row for row in current_failure_rows
+                               if failure_key(row) in baseline_keys],
+            "allowlisted": allowlisted,
         }
-        csv_rows.append(row)
-        rows.append(row)
+        summary_path = output_dir / "summary.json"
+        summary_path.write_text(json.dumps({
+            "results": results,
+            "failures": [(n, r) for n, r in failures],
+            "errors": [(n, r) for n, r in error_failures],
+            "z3_proven": proven,
+            "rows": rows,
+            "by_object": summarize_by_object(rows),
+            "comparison": comparison,
+            "elapsed_seconds": elapsed,
+            "interrupted": interrupted,
+            "skipped": skipped,
+        }, indent=2) + "\n", encoding="utf-8")
+        return summary_path, elapsed, comparison
 
-    elapsed = time.time() - t0
+    import signal
+
+    def _sigint_handler(signum, frame):
+        nonlocal interrupted
+        interrupted = True
+        print("\n\nInterrupted — writing summary...")
+
+    prev_handler = signal.signal(signal.SIGINT, _sigint_handler)
+
+    try:
+        for i, c in enumerate(candidates):
+            if interrupted:
+                break
+
+            name = c["name"]
+
+            if name in existing:
+                result_path = output_dir / f"{name}.json"
+                try:
+                    result = json.loads(result_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    result = None
+                if result:
+                    status = result.get("status", "error")
+                    results[status] = results.get(status, 0) + 1
+                    if result.get("z3_proven"):
+                        results["z3_proven"] += 1
+                        proven.append(name)
+                    if status == "fail":
+                        failures.append((name, result.get("reason", "")))
+                    elif status == "error":
+                        error_failures.append((name, result.get("reason", "")))
+                    rows.append({
+                        "addr": c["addr"], "name": name, "class": c["class"],
+                        "obj": c["obj"], "status": status,
+                        "reason": result.get("reason", ""),
+                        "seeds_passed": result.get("passed", 0),
+                        "seeds_total": result.get("seeds", 0),
+                        "z3_proven": "1" if result.get("z3_proven") else "0",
+                    })
+                    csv_rows.append(rows[-1])
+                    skipped += 1
+                    continue
+
+            elapsed = time.time() - t0
+            rate = ((i - skipped) / elapsed) if elapsed > 0 and (i - skipped) > 0 else 0
+            eta = ((len(candidates) - i) / rate) if rate > 0 else 0
+            print(f"[{i+1}/{len(candidates)}] {name:40s} ", end="", flush=True)
+
+            result = run_verify(name, output_dir, seeds=args.seeds, timeout=args.timeout,
+                                float_tolerance=args.float_tolerance,
+                                skip_esp=args.skip_esp)
+            status = result.get("status", "error")
+
+            if status == "pass":
+                results["pass"] += 1
+                if result.get("z3_proven"):
+                    results["z3_proven"] += 1
+                    proven.append(name)
+                    print(f"Z3 PROVEN")
+                else:
+                    seeds_run = result.get("seeds", 0)
+                    print(f"PASS ({result.get('passed', 0)}/{seeds_run} seeds)")
+            elif status == "fail":
+                results["fail"] += 1
+                failures.append((name, result.get("reason", "")))
+                print(f"FAIL ({result.get('failed', 0)} diverged)")
+            elif status == "not_applicable":
+                results["not_applicable"] += 1
+                print(f"N/A ({result.get('reason', '')})")
+            else:
+                results["error"] += 1
+                error_failures.append((name, result.get("reason", "")))
+                print(f"ERROR ({result.get('reason', '')})")
+
+            row = {
+                "addr": c["addr"],
+                "name": name,
+                "class": c["class"],
+                "obj": c["obj"],
+                "status": status,
+                "reason": result.get("reason", ""),
+                "seeds_passed": result.get("passed", 0),
+                "seeds_total": result.get("seeds", 0),
+                "z3_proven": "1" if result.get("z3_proven") else "0",
+            }
+            csv_rows.append(row)
+            rows.append(row)
+    finally:
+        signal.signal(signal.SIGINT, prev_handler)
+
+    summary_path, elapsed, comparison = _write_summary()
 
     print(f"\n{'='*60}")
     print(f"BATCH VERIFY RESULTS ({elapsed:.1f}s)")
     print(f"{'='*60}")
-    print(f"  Total:          {results['total']}")
+    tested = results["pass"] + results["fail"] + results["error"] + results["not_applicable"]
+    print(f"  Total:          {results['total']} ({tested} tested, {skipped} reused)")
     print(f"  Pass:           {results['pass']} ({results['z3_proven']} Z3 proven)")
     print(f"  Fail:           {results['fail']}")
-    print(f"  Not applicable: {results['not_applicable']}")
     print(f"  Error:          {results['error']}")
+    print(f"  Not applicable: {results['not_applicable']}")
+    if interrupted:
+        print(f"  (interrupted — {results['total'] - tested - skipped} remaining)")
 
     if failures:
         print(f"\nFAILURES:")
@@ -303,39 +394,12 @@ def main():
         for name in proven:
             print(f"  {name}")
 
-    allowlist = load_allowlist(args.allowlist)
-    allowlisted = [row for row in rows if is_allowlisted(row, allowlist)]
-    current_failure_rows = [row for row in rows
-                            if row["status"] in FAIL_STATUSES
-                            and not is_allowlisted(row, allowlist)]
-    baseline_keys = baseline_failure_keys(args.baseline)
-    new_failure_rows = [row for row in current_failure_rows
-                        if failure_key(row) not in baseline_keys]
-    comparison = {
-        "baseline": str(args.baseline) if args.baseline else "",
-        "new_failures": new_failure_rows,
-        "known_failures": [row for row in current_failure_rows
-                           if failure_key(row) in baseline_keys],
-        "allowlisted": allowlisted,
-    }
-
     if args.baseline:
         print(f"\nBASELINE COMPARISON:")
-        print(f"  New failures:   {len(new_failure_rows)}")
+        print(f"  New failures:   {len(comparison['new_failures'])}")
         print(f"  Known failures: {len(comparison['known_failures'])}")
-        print(f"  Allowlisted:    {len(allowlisted)}")
+        print(f"  Allowlisted:    {len(comparison['allowlisted'])}")
 
-    summary_path = output_dir / "summary.json"
-    summary_path.write_text(json.dumps({
-        "results": results,
-        "failures": [(n, r) for n, r in failures],
-        "errors": [(n, r) for n, r in error_failures],
-        "z3_proven": proven,
-        "rows": rows,
-        "by_object": summarize_by_object(rows),
-        "comparison": comparison,
-        "elapsed_seconds": elapsed,
-    }, indent=2) + "\n", encoding="utf-8")
     print(f"\nSummary: {summary_path}")
 
     if args.csv:
@@ -349,7 +413,7 @@ def main():
             writer.writerows(csv_rows)
         print(f"CSV: {csv_path}")
 
-    if args.fail_on_new and new_failure_rows:
+    if args.fail_on_new and comparison.get("new_failures"):
         return 1
     return 1 if results["fail"] > 0 else 0
 

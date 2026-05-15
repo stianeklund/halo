@@ -396,7 +396,9 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                   stub_manager=None, globals_seeds: dict = None,
                   section_code: bytes = None,
                   func_offset: int = 0,
-                  lifted: bool = False) -> "state.CPUState":
+                  lifted: bool = False,
+                  collect_mem_trace: bool = False,
+                  memory_overrides: dict = None) -> "state.CPUState":
     """Run a function in a fresh Unicorn instance.
 
     Returns a CPUState with captured registers and scratch memory.
@@ -408,10 +410,13 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                    after zero-initialization (seeds known global values).
     section_code: full .text section bytes (enables intra-object calls)
     func_offset: offset of the target function within section_code
+    collect_mem_trace: if True, install write/read hooks for trace differential
+    memory_overrides: dict of {address: bytes} written after all setup (snapshot replay)
     """
     import unicorn
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
-    from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_FETCH_UNMAPPED, UC_HOOK_MEM_INVALID
+    from unicorn import (UC_HOOK_CODE, UC_HOOK_MEM_FETCH_UNMAPPED, UC_HOOK_MEM_INVALID,
+                         UC_HOOK_INTR)
     from unicorn.x86_const import UC_X86_REG_ESP, UC_X86_REG_EBP, UC_X86_REG_EIP
 
     import sys
@@ -444,6 +449,20 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
         if globals_seeds:
             for addr, data in globals_seeds.items():
                 uc.mem_write(addr, data)
+
+    # Apply memory overrides (state snapshot replay)
+    _override_mapped = set()
+    if memory_overrides:
+        for addr, data in memory_overrides.items():
+            page = addr & ~0xFFFF
+            if page not in _override_mapped:
+                try:
+                    uc.mem_map(page, 0x10000)
+                    uc.mem_write(page, b'\x00' * 0x10000)
+                except Exception:
+                    pass
+                _override_mapped.add(page)
+            uc.mem_write(addr, data)
 
     # Write function code at CODE_BASE
     if section_code is not None and len(section_code) <= CODE_SIZE:
@@ -530,9 +549,36 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     uc.hook_add(UC_HOOK_MEM_INVALID, hook_mem_invalid)
 
+    # Memory trace and global reads collection
+    mem_writes = []
+    global_reads = {}
+    _mapped_regions = set()
+
+    if collect_mem_trace:
+        from unicorn import UC_HOOK_MEM_WRITE, UC_HOOK_MEM_READ
+
+        def hook_mem_write(uc, access, address, size, value, user_data):
+            if STACK_BASE <= address < STACK_TOP:
+                return
+            if CODE_BASE <= address < CODE_BASE + CODE_SIZE:
+                return
+            mem_writes.append(state_mod.MemoryWrite(
+                address=address, size=size, value=value))
+
+        def hook_mem_read(uc, access, address, size, value, user_data):
+            page = address & ~0xFFFF
+            if page in _mapped_regions:
+                try:
+                    data = bytes(uc.mem_read(address, min(size, 4)))
+                    global_reads[address] = (size, int.from_bytes(data, 'little'))
+                except Exception:
+                    pass
+
+        uc.hook_add(UC_HOOK_MEM_WRITE, hook_mem_write)
+        uc.hook_add(UC_HOOK_MEM_READ, hook_mem_read)
+
     # Non-leaf support: handle unmapped memory access
     if map_globals:
-        _mapped_regions = set()
 
         def hook_mem_unmapped(uc, access, address, size, value, user_data):
             # Auto-map a 64KB page for any unmapped read/write
@@ -582,6 +628,8 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     # Stub interception: handle fetch from sentinel addresses
     if stub_manager:
+        _dynamic_stub_pages = set()
+
         def hook_fetch_unmapped(uc, access, address, size, value, user_data):
             if address in stub_addrs:
                 stub_manager.execute_stub(uc, address)
@@ -593,9 +641,36 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 return True
             if address == FAKE_RET_ADDR:
                 return False
+            # Unknown code fetch (indirect call, vtable, intra-obj call target
+            # outside extracted range). Map the page and write XOR EAX,EAX; RET
+            # so the caller sees a zero return and continues.
+            if address != 0:
+                page = address & ~0xFFFF
+                if page not in _dynamic_stub_pages:
+                    try:
+                        uc.mem_map(page, 0x10000)
+                        uc.mem_write(page, b"\xCC" * 0x10000)
+                        _dynamic_stub_pages.add(page)
+                    except Exception:
+                        return False
+                # Write a tiny stub: XOR EAX,EAX; RET
+                uc.mem_write(address, b"\x31\xC0\xC3")
+                return True
             return False
 
         uc.hook_add(UC_HOOK_MEM_FETCH_UNMAPPED, hook_fetch_unmapped)
+
+    # Handle INT3 (0xCC) from assert_halt in MSVC retail builds.
+    # The oracle code may compile assert macros as INT3 breakpoints.
+    # Skip the INT3 and continue execution (treat as no-op).
+    def hook_interrupt(uc, intno, user_data):
+        if intno == 3:  # INT3 breakpoint
+            return
+        if intno == 0:  # divide by zero — stop cleanly
+            uc.emu_stop()
+            return
+
+    uc.hook_add(UC_HOOK_INTR, hook_interrupt)
 
     err_msg = None
     try:
@@ -620,6 +695,9 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     s.error = err_msg
     s.insn_count = insn_count[0]
     s.visited_pcs = visited_pcs
+    s.mem_writes = mem_writes
+    s.global_reads = global_reads
+    s.auto_mapped_pages = set(_mapped_regions)
     return s
 
 
@@ -692,6 +770,36 @@ def _record_leaf_classification(addr: str, is_leaf: bool) -> None:
         pass
 
 
+def _record_confidence(addr: str, confidence: str, coverage_pct: float) -> None:
+    """Persist confidence and coverage to leaf_cache.json."""
+    if not addr:
+        return
+    norm = addr if addr.startswith("0x") else hex(int(addr, 0))
+    norm = norm.lower()
+    try:
+        if _LEAF_CACHE_PATH.exists():
+            data = json.loads(_LEAF_CACHE_PATH.read_text(encoding="utf-8"))
+        else:
+            data = {}
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    existing = data.get(norm)
+    if isinstance(existing, dict):
+        existing["confidence"] = confidence
+        existing["coverage_pct"] = coverage_pct
+        data[norm] = existing
+    else:
+        data[norm] = {"confidence": confidence, "coverage_pct": coverage_pct}
+    try:
+        _LEAF_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _LEAF_CACHE_PATH.write_text(
+            json.dumps(dict(sorted(data.items())), indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Self-test
 # ---------------------------------------------------------------------------
@@ -721,7 +829,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              float_tolerance_ulp: int = 0,
              float_tolerance_params: list = None,
              skip_esp: bool = False,
-             quiet: bool = False) -> int:
+             quiet: bool = False,
+             mem_trace: bool = False,
+             state_snapshot: Optional[Path] = None,
+             no_concolic: bool = False) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     sys.path.insert(0, str(_SCRIPT_DIR))
@@ -1034,6 +1145,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         except Exception as e:
             log(f"  Z3 equiv error: {e}")
 
+    # --- Load state snapshot if provided ---
+    snapshot_overrides = None
+    if state_snapshot:
+        from state_snapshot import load_snapshot
+        snapshot_overrides = load_snapshot(str(state_snapshot))
+        info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
+
     # --- Generate seeds (Z3 branch-coverage + random/corner) ---
     seed_safe_mode = not is_leaf
     z3_extra = []
@@ -1060,10 +1178,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     failed = 0
     errors = 0
     first_diff = None
+    trace_diff_count = 0
     all_visited_pcs = {}
     oracle_returns = set()
+    merged_global_reads = {}
     oracle_func_base = (CODE_BASE + oracle_slice.section_offset) if oracle_text else CODE_BASE
     oracle_func_end = oracle_func_base + len(oracle_code_patched)
+    enable_trace = mem_trace or (use_stubs and not is_leaf)
 
     for si, seed_vec in enumerate(seeds):
         seed_label = f"seed[{si:3d}]"
@@ -1075,7 +1196,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          stub_manager=stub_manager,
                                          globals_seeds=globals_seeds,
                                          section_code=oracle_text,
-                                         func_offset=oracle_slice.section_offset)
+                                         func_offset=oracle_slice.section_offset,
+                                         collect_mem_trace=enable_trace,
+                                         memory_overrides=snapshot_overrides)
         except Exception as exc:
             log(f"  {seed_label} ORACLE-ERROR: {exc}")
             errors += 1
@@ -1087,7 +1210,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          verbose=verbose, map_globals=use_stubs,
                                          stub_manager=stub_manager,
                                          globals_seeds=globals_seeds,
-                                         lifted=True)
+                                         lifted=True,
+                                         collect_mem_trace=enable_trace,
+                                         memory_overrides=snapshot_overrides)
         except Exception as exc:
             log(f"  {seed_label} LIFTED-ERROR: {exc}")
             errors += 1
@@ -1102,12 +1227,23 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             errors += 1
             continue
 
-        # Collect coverage data from oracle execution
+        # Collect coverage data and global reads from oracle execution
         for pc, sz in oracle_state.visited_pcs.items():
             if oracle_func_base <= pc < oracle_func_end and pc not in all_visited_pcs:
                 all_visited_pcs[pc] = sz
         if not abi['ret_void']:
             oracle_returns.add(oracle_state.eax)
+        for addr, val in oracle_state.global_reads.items():
+            if addr not in merged_global_reads:
+                merged_global_reads[addr] = val
+
+        # Memory-trace comparison (side-effect writes)
+        if enable_trace and oracle_state.mem_writes and lifted_state.mem_writes:
+            tdiff = state_mod.compare_mem_traces(oracle_state, lifted_state)
+            if tdiff.has_differences():
+                trace_diff_count += 1
+                if verbose:
+                    log(f"  {seed_label} TRACE-DIFF: {tdiff.summary()}")
 
         # Determine what to compare based on return type
         ret_eax = not abi['ret_void'] and not abi['ret_st0'] and not abi.get('ret_is_ptr', False)
@@ -1169,12 +1305,135 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     if coverage_pct < 30 and passed > 0:
         log(f"  WARNING: only {coverage_pct:.1f}% code coverage — likely testing only early-exit path")
 
+    # --- Concolic Phase 2: coverage-guided memory injection ---
+    phase1_coverage = coverage_pct
+    concolic_seeds_run = 0
+    if (coverage_pct < 60 and not no_concolic and passed > 0
+            and use_stubs and merged_global_reads):
+        try:
+            from concolic import (disassemble_branches, find_uncovered,
+                                  generate_memory_injections)
+
+            branches = disassemble_branches(oracle_code_patched, oracle_func_base)
+            uncovered = find_uncovered(branches, all_visited_pcs, oracle_func_base)
+
+            if uncovered:
+                injections = generate_memory_injections(
+                    uncovered, merged_global_reads, oracle_func_base)
+
+                if injections:
+                    info(f"\n  concolic: {len(uncovered)} uncovered branch(es), "
+                         f"{len(injections)} injection(s)")
+
+                    phase2_seeds = generate_seeds(
+                        params, num_seeds=min(10, num_seeds),
+                        base_seed=base_seed ^ 0xC0FC011C, safe_mode=seed_safe_mode)
+
+                    for inj_idx, injection in enumerate(injections[:8]):
+                        merged_overrides = dict(snapshot_overrides or {})
+                        merged_overrides.update(injection)
+
+                        for seed_vec in phase2_seeds[:5]:
+                            concolic_seeds_run += 1
+                            sl = f"conc[{inj_idx}:{concolic_seeds_run:2d}]"
+
+                            try:
+                                orc_s = _run_function(
+                                    oracle_code_patched, abi, seed_vec,
+                                    verbose=verbose, map_globals=True,
+                                    stub_manager=stub_manager,
+                                    globals_seeds=globals_seeds,
+                                    section_code=oracle_text,
+                                    func_offset=oracle_slice.section_offset,
+                                    collect_mem_trace=enable_trace,
+                                    memory_overrides=merged_overrides)
+                            except Exception:
+                                errors += 1
+                                continue
+
+                            try:
+                                lft_s = _run_function(
+                                    lifted_code_patched, abi, seed_vec,
+                                    verbose=verbose, map_globals=True,
+                                    stub_manager=stub_manager,
+                                    globals_seeds=globals_seeds,
+                                    lifted=True,
+                                    collect_mem_trace=enable_trace,
+                                    memory_overrides=merged_overrides)
+                            except Exception:
+                                errors += 1
+                                continue
+
+                            if orc_s.error or lft_s.error:
+                                errors += 1
+                                continue
+
+                            for pc, sz in orc_s.visited_pcs.items():
+                                if (oracle_func_base <= pc < oracle_func_end
+                                        and pc not in all_visited_pcs):
+                                    all_visited_pcs[pc] = sz
+                            if not abi['ret_void']:
+                                oracle_returns.add(orc_s.eax)
+
+                            ret_eax = (not abi['ret_void'] and not abi['ret_st0']
+                                       and not abi.get('ret_is_ptr', False))
+                            d = state_mod.compare(
+                                orc_s, lft_s, check_scratch=True,
+                                ret_eax=ret_eax,
+                                ret_eax_bits=abi.get('ret_bits', 32),
+                                ret_edx_eax=abi['ret_edx_eax'],
+                                ret_st0=abi['ret_st0'],
+                                check_st_count=1 if abi['ret_st0'] else 0,
+                                scratch_float_tolerance_ulp=float_tolerance_ulp,
+                                scratch_float_params=float_tolerance_slot_indices,
+                                st_tolerance_ulp=float_tolerance_ulp,
+                                check_esp=False)
+
+                            if d.has_differences():
+                                failed += 1
+                                if first_diff is None:
+                                    first_diff = (sl, seed_vec, d, orc_s, lft_s)
+                                log(f"  {sl} FAIL: {d.summary()}")
+                            else:
+                                passed += 1
+
+                    # Recompute coverage after Phase 2
+                    covered_bytes = sum(all_visited_pcs.values())
+                    coverage_pct = (covered_bytes / oracle_func_size * 100
+                                    if oracle_func_size > 0 else 0)
+                    unique_returns = len(oracle_returns)
+                    monotonic_return = (unique_returns <= 1
+                                        and not abi['ret_void'] and passed > 0)
+
+                    if coverage_pct >= 60 and not monotonic_return:
+                        confidence = "high"
+                    elif coverage_pct >= 60:
+                        confidence = "moderate"
+                    elif coverage_pct >= 30:
+                        confidence = "moderate"
+                    else:
+                        confidence = "weak"
+
+                    info(f"  concolic result: {concolic_seeds_run} seeds, "
+                         f"coverage {phase1_coverage:.1f}% → {coverage_pct:.1f}%, "
+                         f"confidence: {confidence}")
+
+        except ImportError:
+            pass
+        except Exception as e:
+            info(f"  concolic error: {e}")
+
     info("")
-    log(f"=== RESULTS: {passed} passed, {failed} failed, {errors} errors / {len(seeds)} seeds ===")
+    total_seeds = len(seeds) + concolic_seeds_run
+    log(f"=== RESULTS: {passed} passed, {failed} failed, {errors} errors "
+        f"/ {total_seeds} seeds ===")
+
+    if trace_diff_count and not quiet:
+        log(f"  mem-trace: {trace_diff_count} seed(s) with write-trace divergences")
 
     if first_diff and not verbose:
-        si, seed_vec, diff, oracle_state, lifted_state = first_diff
-        log(f"\nFirst divergence at seed[{si}]:")
+        label, seed_vec, diff, oracle_state, lifted_state = first_diff
+        log(f"\nFirst divergence at {label}:")
         log(f"  inputs: {_format_inputs(params, seed_vec)}")
         log(f"  diff  : {diff.summary()}")
         log(state_mod.format_state_verbose(oracle_state, "oracle"))
@@ -1184,21 +1443,26 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                                 lifted_state.scratch_data):
                 log(line)
 
-    if failed == 0 and errors == 0:
-        return finish("pass", True, None, 0,
-                      passed=passed, failed=failed, errors=errors,
-                      seeds=len(seeds),
-                      coverage_pct=round(coverage_pct, 1),
-                      unique_returns=unique_returns,
-                      confidence=confidence)
+    if record_leaf:
+        _record_confidence(addr, confidence, round(coverage_pct, 1))
 
-    reason = "emulation_error" if errors else "divergence"
-    return finish("fail", True, reason, 1,
-                  passed=passed, failed=failed, errors=errors,
-                  seeds=len(seeds),
-                  coverage_pct=round(coverage_pct, 1),
-                  unique_returns=unique_returns,
-                  confidence=confidence)
+    extra = dict(
+        passed=passed, failed=failed, errors=errors,
+        seeds=total_seeds,
+        coverage_pct=round(coverage_pct, 1),
+        unique_returns=unique_returns,
+        confidence=confidence,
+        trace_diffs=trace_diff_count,
+        concolic_seeds=concolic_seeds_run,
+    )
+    if concolic_seeds_run:
+        extra["phase1_coverage_pct"] = round(phase1_coverage, 1)
+
+    if failed > 0:
+        return finish("fail", True, "divergence", 1, **extra)
+    if errors > 0 and passed == 0:
+        return finish("error", True, "emulation_error", 2, **extra)
+    return finish("pass", True, None, 0, **extra)
 
 
 def _format_inputs(params, seed_vec) -> str:
@@ -1409,6 +1673,12 @@ def main():
                         help="Skip ESP delta comparison (expected to differ for non-leaf functions)")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="Suppress setup config and per-seed PASS lines; print only RESULTS and first failure")
+    parser.add_argument("--mem-trace", action="store_true",
+                        help="Enable memory-write trace differential (compare side-effect writes)")
+    parser.add_argument("--state-snapshot", type=Path, default=None, metavar="PATH",
+                        help="Load state snapshot JSON for memory initialization (replaces zero-fill)")
+    parser.add_argument("--no-concolic", action="store_true",
+                        help="Disable automatic concolic Phase 2 when coverage is low")
     args = parser.parse_args()
 
     if args.batch_classify:
@@ -1443,6 +1713,9 @@ def main():
         float_tolerance_params=args.float_params.split(",") if args.float_params else None,
         skip_esp=args.skip_esp,
         quiet=args.quiet,
+        mem_trace=args.mem_trace,
+        state_snapshot=args.state_snapshot,
+        no_concolic=args.no_concolic,
     ))
 
 

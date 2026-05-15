@@ -286,7 +286,9 @@ class StubManager:
 
     def should_intercept(self, address: int) -> bool:
         symbol_name = self._stub_names.get(address, "").lstrip("_").lower()
-        return symbol_name in ("csmemcpy", "memcpy", "csstrncpy", "csmemset", "memset", "crt_sprintf", "debug_string_to_display")
+        return symbol_name in ("csmemcpy", "memcpy", "csstrncpy", "csmemset", "memset",
+                               "crt_sprintf", "debug_string_to_display",
+                               "system_exit", "display_assert")
 
     def get_stub_code(self, address: int) -> bytes:
         """Return machine code for a tiny trampoline stub at a sentinel address."""
@@ -378,6 +380,14 @@ class StubManager:
                 return True
 
             if symbol_name in ("crt_sprintf", "debug_string_to_display"):
+                uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            if symbol_name == "system_exit":
+                uc.emu_stop()
+                return True
+
+            if symbol_name == "display_assert":
                 uc.reg_write(UC_X86_REG_EAX, 0)
                 return True
 

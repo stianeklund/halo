@@ -117,6 +117,14 @@ def _get_regs():
 
 
 @dataclass
+class MemoryWrite:
+    """A single memory write observed during emulation."""
+    address: int
+    size: int
+    value: int
+
+
+@dataclass
 class CPUState:
     """Captured register + memory state after emulation."""
     eax: int = 0
@@ -129,6 +137,9 @@ class CPUState:
     error: Optional[str] = None
     insn_count: int = 0
     visited_pcs: dict = field(default_factory=dict)
+    mem_writes: list = field(default_factory=list)
+    global_reads: dict = field(default_factory=dict)
+    auto_mapped_pages: set = field(default_factory=set)
 
 
 def capture(uc, scratch_base: int, scratch_size: int, entry_esp: int) -> CPUState:
@@ -297,6 +308,60 @@ def compare(oracle: CPUState, lifted: CPUState,
         diff.lifted_esp_delta = lifted.esp_delta
 
     return diff
+
+
+@dataclass
+class TraceDiff:
+    """Differences in memory-write traces between oracle and lifted."""
+    value_diffs: list = field(default_factory=list)
+    oracle_only: list = field(default_factory=list)
+    lifted_only: list = field(default_factory=list)
+
+    def has_differences(self) -> bool:
+        return bool(self.value_diffs or self.oracle_only or self.lifted_only)
+
+    def summary(self) -> str:
+        parts = []
+        if self.value_diffs:
+            parts.append(f"{len(self.value_diffs)} value diff(s)")
+        if self.oracle_only:
+            parts.append(f"{len(self.oracle_only)} oracle-only write(s)")
+        if self.lifted_only:
+            parts.append(f"{len(self.lifted_only)} lifted-only write(s)")
+        return "; ".join(parts) if parts else "traces match"
+
+
+def compare_mem_traces(oracle: CPUState, lifted: CPUState) -> TraceDiff:
+    """Compare memory write traces between oracle and lifted.
+
+    Builds final-value maps keyed by (address, size) and diffs them.
+    """
+    def _build_finals(writes):
+        finals = {}
+        for w in writes:
+            finals[(w.address, w.size)] = w.value
+        return finals
+
+    orc = _build_finals(oracle.mem_writes)
+    lft = _build_finals(lifted.mem_writes)
+    all_keys = set(orc) | set(lft)
+
+    value_diffs = []
+    oracle_only = []
+    lifted_only = []
+    for key in sorted(all_keys):
+        ov = orc.get(key)
+        lv = lft.get(key)
+        if ov is not None and lv is not None:
+            if ov != lv:
+                value_diffs.append((key[0], ov, lv))
+        elif ov is not None:
+            oracle_only.append(key[0])
+        else:
+            lifted_only.append(key[0])
+
+    return TraceDiff(value_diffs=value_diffs, oracle_only=oracle_only,
+                     lifted_only=lifted_only)
 
 
 def format_state_verbose(state: CPUState, label: str) -> str:
