@@ -71,9 +71,72 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
         lines = functions[fn]
         while lines and lines[-1].strip().split()[0].startswith('nop'):
             lines.pop()
-        functions[fn] = lines
+        functions[fn] = _trim_trailing_thunks(lines)
 
     return functions
+
+
+_RET_MNEMS = {'ret', 'retl', 'retw', 'retq', 'retn'}
+_THUNK_BODY_MNEMS = {'push', 'pushl', 'pushw', 'call', 'calll', 'callw',
+                     'add', 'addl', 'nop', 'pop', 'popl'}
+
+def _trim_trailing_thunks(insns: list) -> list:
+    """Strip NOP padding and push/call/ret thunk stubs after the real function RET.
+
+    The delinked reference sometimes bundles MSVC thunk stubs under the preceding
+    symbol when there is no next-symbol boundary.  These inflate the reference
+    instruction count and cause false low-match scores.
+
+    Strategy: scan forward for the first RET that is followed by nothing but
+    [nop*] [push+call+ret]+ sequences consuming the entire remainder.  That RET
+    is the true function epilogue; everything after it is thunks.
+    """
+    if not insns:
+        return insns
+    n = len(insns)
+
+    for i, insn in enumerate(insns):
+        if mnemonic(insn).lower() not in _RET_MNEMS:
+            continue
+
+        # Skip alignment NOPs following this ret
+        j = i + 1
+        while j < n and mnemonic(insns[j]).lower() == 'nop':
+            j += 1
+
+        if j >= n:
+            continue  # nothing meaningful after this ret — not a thunk boundary
+
+        # Try to consume everything from j to end as push+call+ret thunk stubs
+        pos = j
+        thunks_found = 0
+        while pos < n:
+            if mnemonic(insns[pos]).lower() not in {'push', 'pushl', 'pushw'}:
+                break  # unexpected — not a thunk start
+            sub = pos + 1
+            found_call = found_ret = False
+            while sub < n:
+                sm = mnemonic(insns[sub]).lower()
+                if sm in {'call', 'calll', 'callw'}:
+                    found_call = True
+                elif sm in _RET_MNEMS and found_call:
+                    found_ret = True
+                    pos = sub + 1
+                    while pos < n and mnemonic(insns[pos]).lower() == 'nop':
+                        pos += 1
+                    break
+                elif sm not in _THUNK_BODY_MNEMS:
+                    break
+                sub += 1
+            if not (found_call and found_ret):
+                break
+            thunks_found += 1
+
+        if pos >= n and thunks_found > 0:
+            # All remaining instructions were valid thunk stubs — trim them
+            return insns[:i + 1]
+
+    return insns
 
 
 def normalize(insn: str) -> str:

@@ -395,7 +395,8 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                   verbose: bool = False, map_globals: bool = False,
                   stub_manager=None, globals_seeds: dict = None,
                   section_code: bytes = None,
-                  func_offset: int = 0) -> "state.CPUState":
+                  func_offset: int = 0,
+                  lifted: bool = False) -> "state.CPUState":
     """Run a function in a fresh Unicorn instance.
 
     Returns a CPUState with captured registers and scratch memory.
@@ -472,7 +473,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     # Set up arguments and fill scratch buffer
     scratch_writes = {}
-    setup_args(uc, abi, arg_values, scratch_writes)
+    setup_args(uc, abi, arg_values, scratch_writes, lifted=lifted)
     for offset, data in scratch_writes.items():
         uc.mem_write(SCRATCH_BASE + offset, data)
 
@@ -1077,7 +1078,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             lifted_state = _run_function(lifted_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
                                          stub_manager=stub_manager,
-                                         globals_seeds=globals_seeds)
+                                         globals_seeds=globals_seeds,
+                                         lifted=True)
         except Exception as exc:
             log(f"  {seed_label} LIFTED-ERROR: {exc}")
             errors += 1
