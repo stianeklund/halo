@@ -82,7 +82,27 @@ After Phase 1 completes:
 2. If Phase 1 retrieved caller disassembly from Ghidra (callers of the target
    function showing register setup before CALL instructions), save it to
    `/tmp/lift_caller_disasm.txt`.
-3. Run:
+3. **Ensure a delinked reference exists** — VC71 verify is skipped without one,
+   costing a full extra pipeline pass. Check and export now if missing:
+   ```bash
+   # Does a per-function delinked obj exist?
+   rtk jq '[.units[] | select(.name | contains("<ADDR>"))] | length' objdiff.json
+   ```
+   If the result is `0`, export it before running the pipeline:
+   - Get the function body range: `mcp__ghidra__get_function_by_address` at target address
+   - Export: `mcp__ghidra-live__export_delinked_object` to
+     `G:\dev\halo\delinked\<obj>_FUN_<ADDR>.obj` with `selection_mode=range`
+   - Add entry to `objdiff.json` under `.units`:
+     ```json
+     {
+       "name": "halo/<obj>_FUN_<ADDR>",
+       "target_path": "build/CMakeFiles/halo.dir/src/<source_path>.obj",
+       "base_path": "delinked/<obj>_FUN_<ADDR>.obj",
+       "metadata": { "source_path": "<source_path>" }
+     }
+     ```
+   - `rtk git add delinked/<obj>_FUN_<ADDR>.obj objdiff.json`
+4. Run:
    ```
    rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
      --abi-caller-disasm-file /tmp/lift_caller_disasm.txt
@@ -98,8 +118,8 @@ Notes:
 - If the build fails, fix the error before re-running — do not repeat Phase 1.
 - **VC71 verify is the primary structural verification.** The lift pipeline runs
   `vc71_verify.py` automatically when a delinked reference exists in `delinked/`
-  (mapped via `objdiff.json`). If no delinked reference exists, offer to run
-  `/verify delink <target>` after the pipeline.
+  (mapped via `objdiff.json`). Step 3 above ensures this is done before the
+  pipeline runs — never skip it and then offer a second pass.
 - **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console
   is available. Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
 - Use `/verify option3 <target>` only as a runtime/xemu fallback lane, not as primary structural proof.
