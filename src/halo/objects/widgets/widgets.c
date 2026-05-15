@@ -21,3 +21,10 @@ void widgets_update(float delta_time)
     }
   }
 }
+
+/* widgets_dispose_from_old_map — empty in the shipped build; reserved hook
+ * called from objects_dispose_from_old_map. Verified: single RET at 0x1365b0.
+ */
+void widgets_dispose_from_old_map(void)
+{
+}
