@@ -18510,12 +18510,12 @@
         {
           "decl": "void FUN_0010b7d0(float *a, float *b, float blend, float *out);",
           "addr": "0x10b7d0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0010b820(float a, float b, float blend, float *out);",
           "addr": "0x10b820",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0010b840(void);",
@@ -18601,7 +18601,8 @@
         },
         {
           "decl": "void FUN_0010cc70(float *output, float angle);",
-          "addr": "0x10cc70"
+          "addr": "0x10cc70",
+          "ported": true
         },
         {
           "decl": "void FUN_0010cc90(void);",

@@ -852,6 +852,15 @@ void angles_to_vector(float *out, float *angles)
   out[2] = sinf(angles[1]);
 }
 
+/* Convert an angle to a 2D direction vector stored as (cos, sin, 0) (0x10cc70). */
+void FUN_0010cc70(float *out, float angle)
+{
+  float c = cosf(angle);
+  out[2] = 0.0f;
+  out[0] = c;
+  out[1] = sinf(angle);
+}
+
 /* FUN_0010e040 (0x10e040) — Test if two line segments are within a given
  * radius. Computes closest points between segments A (start_a + s*dir_a, s in
  * [0,1]) and B (start_b + t*dir_b, t in [0,1]). Returns true if distance <
