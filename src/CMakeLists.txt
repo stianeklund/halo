@@ -73,7 +73,6 @@
 	halo/units/units.c
 	halo/units/vehicles.c
 	halo/networking/network_client_manager.c
-	halo/networking/network_game_globals.c
 	halo/networking/network_messages.c
 	halo/networking/network_server_manager.c
 	halo/main/console.c
@@ -129,7 +128,6 @@
 	halo/tag_files/tag_groups.c
 	halo/shell.c
 	halo/shell_xbox.c
-	halo/cache/xbox_texture_cache.c
 	halo/cache/physical_memory_map.c
 	halo/cache/predicted_resources.c
 	halo/cache/tags.c
