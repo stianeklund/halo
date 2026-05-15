@@ -102,6 +102,11 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
   - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
 - **VC71 Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/vc71_verify.py src/path/to/file.c` to compile with Visual C++ 7.1 and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
+- **Delinked-reference precondition (REQUIRED before VC71 verify):** Before running `vc71_verify.py` for any newly lifted target, confirm the function's symbol exists in the delinked reference:
+  ```
+  objdump -t delinked/<object>.obj | grep -E "FUN_<addr_no_0x>|<funcname>"
+  ```
+  If the target's symbol is missing, you **MUST** export a new delinked reference via `mcp__ghidra-live__export_delinked_object` covering the correct address range (start at the earliest unported function in the TU, end past the last function) before running VC71 verify. Committing a lift without a delinked reference for the target is not allowed — there is no byte-match evidence without one.
 - **Permuter (`/verify permute`):** Last-mile match optimizer. Use ONLY when VC71 match is in **[85, 98]%** with a mapped delinked reference. Below 85% the lift has a structural bug — fix it first; permuter cannot recover from real correctness issues. Above 98% it is not worth the cycles. Never accept a permutation that lowers the existing match; always re-run the lift pipeline against the new source.
 - **Equivalence (`/verify equivalence`):** Unicorn-Engine behavioral differential with seeded inputs, coverage tracking, and concolic feedback. Use when byte-match is weak evidence: FPU-heavy code, hashes/serializers, or structurally capped lifts (e.g. SEH wrappers stuck at ~55%). Works for both leaf and non-leaf functions:
   - **Pure leaves:** Run `rtk python3 tools/equivalence/unicorn_diff.py <target> --seeds 100`
