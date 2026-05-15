@@ -1,9 +1,8 @@
 {
-  "editor_stubs.obj": {
-    "obj_path": "/mnt/g/dev/halo/delinked/editor_stubs.obj",
-    "source": "game/editor_stubs.c",
-    "addr_range": "0x000977e0-0x00097890",
-    "func_count": 10,
-    "truncated": false
+  "actors.obj": {
+    "obj_path": "/mnt/g/dev/halo/delinked/actors.obj",
+    "source": "ai/actors.c",
+    "addr_range": "0x0002a360-0x0003f230",
+    "func_count": 124
   }
 }

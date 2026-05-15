@@ -682,20 +682,36 @@ def run_pipeline(args: argparse.Namespace) -> int:
     vc71_source = Path(target.source_path) if target.source_path else None
     vc71_ref = None
     if vc71_source:
-      # First: try TU-level delinked ref via objdiff.json
+      # Try delinked ref via objdiff.json.
+      # Priority: (1) unit whose name ends with the function address, (2) first
+      # unit whose source_path matches and whose base_path file exists.
       try:
         with open(ROOT / "objdiff.json") as f:
           objdiff_cfg = json.load(f)
+        addr_suffix = None
+        if target.addr:
+          try:
+            addr_suffix = f"FUN_{int(target.addr, 16):08x}"
+          except (ValueError, TypeError):
+            pass
+        tu_fallback = None
         for u in objdiff_cfg.get("units", []):
-          src = u.get("metadata", {}).get("source_path", "")
-          if src and str(vc71_source).endswith(src):
-            ref_path = ROOT / u.get("base_path", "")
-            if ref_path.exists():
-              vc71_ref = ref_path
+          ref_path = ROOT / u.get("base_path", "")
+          unit_name = u.get("name", "").split("/")[-1]
+          # Exact per-function match wins immediately
+          if addr_suffix and addr_suffix in unit_name and ref_path.exists():
+            vc71_ref = ref_path
             break
+          # TU-level: first existing file whose source matches
+          if tu_fallback is None:
+            src = u.get("metadata", {}).get("source_path", "")
+            if src and str(vc71_source).endswith(src) and ref_path.exists():
+              tu_fallback = ref_path
+        if not vc71_ref:
+          vc71_ref = tu_fallback
       except (FileNotFoundError, json.JSONDecodeError):
         pass
-      # Fallback: per-function delinked ref for split TUs
+      # Fallback: per-function delinked ref in delinked/functions/
       if not vc71_ref and target.addr:
         try:
           addr_hex = f"{int(target.addr, 16):08x}"
