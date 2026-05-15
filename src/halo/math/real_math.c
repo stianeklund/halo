@@ -1834,3 +1834,121 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10bdc0 — Point-in-3D-box test (inclusive on both ends). */
+int FUN_0010bdc0(float *point, float *box)
+{
+  if (box[0] <= point[0] && point[0] <= box[1] &&
+      box[2] <= point[1] && point[1] <= box[3] &&
+      box[4] <= point[2] && point[2] <= box[5]) {
+    return 1;
+  }
+  return 0;
+}
+
+/* 0x10d9e0 — 2D point in cone test.
+ * Returns 1 if point in 2D cone (apex=p2, axis=p3, max length=cone_radius,
+ * half-angle whose cos=cosine). */
+char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius,
+                  float cosine)
+{
+  float dx, dy;
+  float dot;
+  float rsq, dist_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x55f, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dot = dx * p3[0] + dy * p3[1];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dot > cone_radius) {
+    return 0;
+  }
+  rsq = dot * dot;
+  dist_sq = (dy * dy + dx * dx) * cosine * cosine;
+  if (dist_sq < rsq) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10f310 — Intersect three planes (homogeneous): solve for the point
+ * that lies on all three planes. Returns 0 if planes are parallel/degenerate. */
+char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
+{
+  float det;
+  float d0;
+
+  det = (p2[2] * p1[1] - p1[2] * p2[1]) * p3[0] +
+        (p1[2] * p2[0] - p1[0] * p2[2]) * p3[1] +
+        (p1[0] * p2[1] - p2[0] * p1[1]) * p3[2];
+  if (fabsf(det) < *(double *)0x2533d0) {
+    return 0;
+  }
+
+  d0 = p1[3];
+  out[0] = (p3[2] * p2[1] - p3[1] * p2[2]) * d0;
+  out[1] = (p2[2] * p3[0] - p3[2] * p2[0]) * d0;
+  out[2] = (p3[1] * p2[0] - p3[0] * p2[1]) * d0;
+
+  d0 = p2[3];
+  out[0] = (p1[2] * p3[1] - p3[2] * p1[1]) * d0 + out[0];
+  out[1] = (p3[2] * p1[0] - p1[2] * p3[0]) * d0 + out[1];
+  out[2] = (p3[0] * p1[1] - p3[1] * p1[0]) * d0 + out[2];
+
+  d0 = p3[3];
+  det = 1.0f / det;
+  out[0] = ((p2[2] * p1[1] - p1[2] * p2[1]) * d0 + out[0]) * det;
+  out[1] = ((p1[2] * p2[0] - p1[0] * p2[2]) * d0 + out[1]) * det;
+  out[2] = ((p1[0] * p2[1] - p2[0] * p1[1]) * d0 + out[2]) * det;
+  return 1;
+}
+
+/* 0x10f480 — Intersect a line (described by two planes p1, p2) with a third
+ * plane to get the point. param_3 receives the line-direction cross,
+ * param_4 receives the cross of the input planes. */
+char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out)
+{
+  float cy, cz;
+  float det, inv_det;
+  float d;
+
+  cross_out[2] = p1[0] * p2[1] - p1[1] * p2[0];
+  cy = p2[0] * p1[2] - p1[0] * p2[2];
+  cz = p1[1] * p2[2] - p1[2] * p2[1];
+  cross_out[0] = cz;
+  cross_out[1] = cy;
+  det = cross_out[2] * cross_out[2] + cy * cy + cz * cz;
+  if (fabsf(det) < *(double *)0x2533d0) {
+    return 0;
+  }
+
+  d = p1[3];
+  out[0] = (cross_out[2] * p2[1] - cy * p2[2]) * d;
+  out[1] = (p2[2] * cross_out[0] - cross_out[2] * p2[0]) * d;
+  out[2] = (cy * p2[0] - cross_out[0] * p2[1]) * d;
+
+  d = p2[3];
+  inv_det = 1.0f / det;
+  out[0] = ((cross_out[1] * p1[2] - p1[1] * cross_out[2]) * d + out[0]) * inv_det;
+  out[1] = ((p1[0] * cross_out[2] - p1[2] * cross_out[0]) * d + out[1]) * inv_det;
+  out[2] = ((cross_out[0] * p1[1] - cross_out[1] * p1[0]) * d + out[2]) * inv_det;
+  return 1;
+}
+
+/* 0x10fe80 — Validate 2D normal: x²+y² close to 1.0 and not NaN/Inf. */
+int FUN_0010fe80(float x, float y)
+{
+  float diff = (y * y + x * x) - 1.0f;
+  if ((*(unsigned int *)&diff & 0x7f800000) != 0x7f800000 &&
+      fabsf(diff) < *(float *)0x2549d8) {
+    return 1;
+  }
+  return 0;
+}
+
+
