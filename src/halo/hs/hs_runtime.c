@@ -2450,8 +2450,8 @@ void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum,
 
 /* 0xcd6c0 — HS debug_string evaluator. Collects up to 32 evaluated arguments
  * into a buffer, then dispatches to one of three output functions based on
- * function_index: 0x18 → ai_debug_communication_suppress, 0x19 → ai_debug_communication_ignore, 0x1a →
- * ai_debug_communication_focus.
+ * function_index: 0x18 → ai_debug_communication_suppress, 0x19 →
+ * ai_debug_communication_ignore, 0x1a → ai_debug_communication_focus.
  *
  * Stack allocations:
  *   4 bytes — current expression datum (int*)

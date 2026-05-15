@@ -29,27 +29,30 @@
 #pragma pack(push)
 #pragma pack()
 
-typedef long          NTSTATUS;
+typedef long NTSTATUS;
 typedef unsigned long ULONG;
-typedef void         *HANDLE;
+typedef void *HANDLE;
 
-typedef struct { unsigned long LowPart; long HighPart; } XAPI_LARGE_INTEGER;
+typedef struct {
+  unsigned long LowPart;
+  long HighPart;
+} XAPI_LARGE_INTEGER;
 
 typedef struct {
   unsigned short Length;
   unsigned short MaximumLength;
-  char          *Buffer;
+  char *Buffer;
 } XAPI_ANSI_STRING;
 
 typedef struct {
-  HANDLE            RootDirectory;
+  HANDLE RootDirectory;
   XAPI_ANSI_STRING *ObjectName;
-  ULONG             Attributes;
+  ULONG Attributes;
 } XAPI_OBJECT_ATTRIBUTES;
 
 typedef struct {
   NTSTATUS Status;
-  ULONG   *Information;
+  ULONG *Information;
 } XAPI_IO_STATUS_BLOCK;
 
 /* DISK_GEOMETRY as returned by IOCTL 0x70000 (24 bytes).
@@ -81,32 +84,26 @@ typedef struct {
 #define OBJ_CASE_INSENSITIVE 0x00000040UL
 
 /* Xbox NT kernel functions -- resolved via xboxkrnl.exe import library. */
-extern NTSTATUS __stdcall NtOpenFile(
-    HANDLE *FileHandle, ULONG DesiredAccess,
-    XAPI_OBJECT_ATTRIBUTES *ObjectAttributes,
-    XAPI_IO_STATUS_BLOCK *IoStatusBlock,
-    ULONG ShareAccess, ULONG OpenOptions);
+extern NTSTATUS __stdcall NtOpenFile(HANDLE *FileHandle, ULONG DesiredAccess,
+                                     XAPI_OBJECT_ATTRIBUTES *ObjectAttributes,
+                                     XAPI_IO_STATUS_BLOCK *IoStatusBlock,
+                                     ULONG ShareAccess, ULONG OpenOptions);
 
 extern NTSTATUS __stdcall NtDeviceIoControlFile(
-    HANDLE FileHandle, HANDLE Event,
-    void *ApcRoutine, void *ApcContext,
-    XAPI_IO_STATUS_BLOCK *IoStatusBlock, ULONG IoControlCode,
-    void *InputBuffer, ULONG InputBufferLength,
-    void *OutputBuffer, ULONG OutputBufferLength);
+  HANDLE FileHandle, HANDLE Event, void *ApcRoutine, void *ApcContext,
+  XAPI_IO_STATUS_BLOCK *IoStatusBlock, ULONG IoControlCode, void *InputBuffer,
+  ULONG InputBufferLength, void *OutputBuffer, ULONG OutputBufferLength);
 
 extern NTSTATUS __stdcall NtFsControlFile(
-    HANDLE FileHandle, HANDLE Event,
-    void *ApcRoutine, void *ApcContext,
-    XAPI_IO_STATUS_BLOCK *IoStatusBlock, ULONG FsControlCode,
-    void *InputBuffer, ULONG InputBufferLength,
-    void *OutputBuffer, ULONG OutputBufferLength);
+  HANDLE FileHandle, HANDLE Event, void *ApcRoutine, void *ApcContext,
+  XAPI_IO_STATUS_BLOCK *IoStatusBlock, ULONG FsControlCode, void *InputBuffer,
+  ULONG InputBufferLength, void *OutputBuffer, ULONG OutputBufferLength);
 
-extern NTSTATUS __stdcall NtWriteFile(
-    HANDLE FileHandle, HANDLE Event,
-    void *ApcRoutine, void *ApcContext,
-    XAPI_IO_STATUS_BLOCK *IoStatusBlock,
-    void *Buffer, ULONG Length,
-    XAPI_LARGE_INTEGER *ByteOffset);
+extern NTSTATUS __stdcall NtWriteFile(HANDLE FileHandle, HANDLE Event,
+                                      void *ApcRoutine, void *ApcContext,
+                                      XAPI_IO_STATUS_BLOCK *IoStatusBlock,
+                                      void *Buffer, ULONG Length,
+                                      XAPI_LARGE_INTEGER *ByteOffset);
 
 extern void __stdcall NtClose(HANDLE Handle);
 
@@ -119,13 +116,13 @@ extern void __stdcall KeQuerySystemTime(XAPI_LARGE_INTEGER *CurrentTime);
 
 int __stdcall XapiFormatFATVolume(void *device_path)
 {
-  XAPI_ANSI_STRING       *ansi_path = (XAPI_ANSI_STRING *)device_path;
-  XAPI_OBJECT_ATTRIBUTES  oa;
-  XAPI_IO_STATUS_BLOCK    iosb;
-  HANDLE                  hdev;
-  NTSTATUS                status;
+  XAPI_ANSI_STRING *ansi_path = (XAPI_ANSI_STRING *)device_path;
+  XAPI_OBJECT_ATTRIBUTES oa;
+  XAPI_IO_STATUS_BLOCK iosb;
+  HANDLE hdev;
+  NTSTATUS status;
 
-  XAPI_DISK_GEOMETRY  geom;
+  XAPI_DISK_GEOMETRY geom;
   XAPI_PARTITION_INFO part;
 
   ULONG bytes_per_sector;
@@ -148,8 +145,8 @@ int __stdcall XapiFormatFATVolume(void *device_path)
   NTSTATUS write_status;
 
   oa.RootDirectory = 0;
-  oa.ObjectName    = ansi_path;
-  oa.Attributes    = OBJ_CASE_INSENSITIVE;
+  oa.ObjectName = ansi_path;
+  oa.Attributes = OBJ_CASE_INSENSITIVE;
 
   status = NtOpenFile(&hdev, 0x100003, &oa, &iosb, 0, 0x18);
   if (status < 0) {
@@ -158,19 +155,19 @@ int __stdcall XapiFormatFATVolume(void *device_path)
   }
 
   /* Query disk geometry: BytesPerSector at offset 20. */
-  status = NtDeviceIoControlFile(hdev, 0, 0, 0, &iosb,
-                                 0x70000, 0, 0, &geom, sizeof(geom));
+  status = NtDeviceIoControlFile(hdev, 0, 0, 0, &iosb, 0x70000, 0, 0, &geom,
+                                 sizeof(geom));
   if (status < 0) {
     NtClose(hdev);
     goto fail;
   }
 
   bytes_per_sector = geom.bytes_per_sector;
-  sector_shift     = FUN_001d8750(bytes_per_sector) & 0xff;
+  sector_shift = FUN_001d8750(bytes_per_sector) & 0xff;
 
   /* Query partition info: PartitionLength at offset 8. */
-  status = NtDeviceIoControlFile(hdev, 0, 0, 0, &iosb,
-                                 0x74004, 0, 0, &part, sizeof(part));
+  status = NtDeviceIoControlFile(hdev, 0, 0, 0, &iosb, 0x74004, 0, 0, &part,
+                                 sizeof(part));
   if (status < 0) {
     NtClose(hdev);
     goto fail;
@@ -180,8 +177,10 @@ int __stdcall XapiFormatFATVolume(void *device_path)
   partition_hi = part.partition_length_hi;
 
   sector_size_aligned = (bytes_per_sector + 0xfffU) & 0xfffff000U;
-  cluster_size     = (sector_size_aligned > 0x4000U) ? sector_size_aligned : 0x4000U;
-  min_cluster_size = (sector_size_aligned > 0x1000U) ? sector_size_aligned : 0x1000U;
+  cluster_size =
+    (sector_size_aligned > 0x4000U) ? sector_size_aligned : 0x4000U;
+  min_cluster_size =
+    (sector_size_aligned > 0x1000U) ? sector_size_aligned : 0x1000U;
 
   if ((partition_hi == 0) && (partition_lo <= min_cluster_size)) {
     NtClose(hdev);
@@ -199,7 +198,8 @@ int __stdcall XapiFormatFATVolume(void *device_path)
   }
   cluster_count = (partition_lo / cluster_size) + 1U;
 
-  fat_raw  = (cluster_count > 0xffefU) ? (cluster_count * 4U) : (cluster_count * 2U);
+  fat_raw =
+    (cluster_count > 0xffefU) ? (cluster_count * 4U) : (cluster_count * 2U);
   fat_size = (fat_raw - 1U + sector_size_aligned) & ~(sector_size_aligned - 1U);
 
   /* Check full layout fits.  min_cluster_size + fat_size + cluster_size won't
@@ -225,23 +225,24 @@ int __stdcall XapiFormatFATVolume(void *device_path)
     *p++ = 0xffffffffU;
 
   buf[0] = FATX_MAGIC;
-  buf[2] = (cluster_size >> (sector_shift & 0x1f)) & 0xff; /* sectors per cluster */
+  buf[2] =
+    (cluster_size >> (sector_shift & 0x1f)) & 0xff; /* sectors per cluster */
   buf[3] = 1; /* root directory first cluster */
   *(unsigned short *)(buf + 4) = 0;
   KeQuerySystemTime(&timestamp);
   buf[1] = timestamp.LowPart; /* volume serial */
 
-  off_lo    = 0;
-  off_hi    = 0;
+  off_lo = 0;
+  off_hi = 0;
   remaining = min_cluster_size;
 
   /* Region 1: superblock at sector 0, zeroed sectors to min_cluster_size. */
   do {
     XAPI_LARGE_INTEGER byte_offset;
-    byte_offset.LowPart  = off_lo;
+    byte_offset.LowPart = off_lo;
     byte_offset.HighPart = (long)off_hi;
-    write_status = NtWriteFile(hdev, 0, 0, 0, &iosb,
-                               buf, sector_size_aligned, &byte_offset);
+    write_status =
+      NtWriteFile(hdev, 0, 0, 0, &iosb, buf, sector_size_aligned, &byte_offset);
     off_lo += sector_size_aligned;
     if (off_lo < sector_size_aligned)
       off_hi++;
@@ -264,16 +265,16 @@ int __stdcall XapiFormatFATVolume(void *device_path)
     ((unsigned short *)buf)[1] = 0xffff;
   }
 
-  off_lo    = min_cluster_size;
-  off_hi    = 0;
+  off_lo = min_cluster_size;
+  off_hi = 0;
   remaining = fat_size;
 
   do {
     XAPI_LARGE_INTEGER byte_offset;
-    byte_offset.LowPart  = off_lo;
+    byte_offset.LowPart = off_lo;
     byte_offset.HighPart = (long)off_hi;
-    write_status = NtWriteFile(hdev, 0, 0, 0, &iosb,
-                               buf, sector_size_aligned, &byte_offset);
+    write_status =
+      NtWriteFile(hdev, 0, 0, 0, &iosb, buf, sector_size_aligned, &byte_offset);
     off_lo += sector_size_aligned;
     if (off_lo < sector_size_aligned)
       off_hi++;
@@ -293,10 +294,10 @@ int __stdcall XapiFormatFATVolume(void *device_path)
 
   do {
     XAPI_LARGE_INTEGER byte_offset;
-    byte_offset.LowPart  = off_lo;
+    byte_offset.LowPart = off_lo;
     byte_offset.HighPart = (long)off_hi;
-    write_status = NtWriteFile(hdev, 0, 0, 0, &iosb,
-                               buf, sector_size_aligned, &byte_offset);
+    write_status =
+      NtWriteFile(hdev, 0, 0, 0, &iosb, buf, sector_size_aligned, &byte_offset);
     off_lo += sector_size_aligned;
     if (off_lo < sector_size_aligned)
       off_hi++;

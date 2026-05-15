@@ -5,15 +5,15 @@
  * GPU flags set (bits 19-22 of resource[0]). */
 static int d3d_resource_is_persistent(uint32_t *r)
 {
-    uint32_t *face;
-    if (r[0] & 0x780000u)
-        return 1;
-    if ((r[0] & 0x70000u) == 0x50000u) {
-        face = (uint32_t *)r[5];
-        if (face != NULL && (face[0] & 0x780000u))
-            return 1;
-    }
-    return 0;
+  uint32_t *face;
+  if (r[0] & 0x780000u)
+    return 1;
+  if ((r[0] & 0x70000u) == 0x50000u) {
+    face = (uint32_t *)r[5];
+    if (face != NULL && (face[0] & 0x780000u))
+      return 1;
+  }
+  return 0;
 }
 
 /* Blocks the CPU until the GPU has finished using the resource.
@@ -21,81 +21,34 @@ static int d3d_resource_is_persistent(uint32_t *r)
  * separately. Clears the fence timestamp after blocking. */
 void __stdcall D3DResource_BlockUntilNotBusy(void *resource)
 {
-    uint32_t *r = (uint32_t *)resource;
-    uint32_t *face;
-    uint32_t fence;
-    uint8_t *dev;
+  uint32_t *r = (uint32_t *)resource;
+  uint32_t *face;
+  uint32_t fence;
+  uint8_t *dev;
 
-    dev = (uint8_t *)D3D_g_pDevice;
-    if (dev == NULL)
+  dev = (uint8_t *)D3D_g_pDevice;
+  if (dev == NULL)
+    return;
+
+  if ((r[0] & 0x70000u) == 0x50000u) {
+    face = (uint32_t *)r[5];
+    if (face != NULL) {
+      if (d3d_resource_is_persistent(r)) {
+        D3D_BlockOnTime(*(uint32_t *)(dev + 0x1cu), 0);
         return;
-
-    if ((r[0] & 0x70000u) == 0x50000u) {
-        face = (uint32_t *)r[5];
-        if (face != NULL) {
-            if (d3d_resource_is_persistent(r)) {
-                D3D_BlockOnTime(*(uint32_t *)(dev + 0x1cu), 0);
-                return;
-            }
-            r = face;
-        }
+      }
+      r = face;
     }
+  }
 
-    fence = r[2];
-    if (d3d_resource_is_persistent(r)) {
-        D3D_BlockOnTime(*(uint32_t *)((uint8_t *)D3D_g_pDevice + 0x1cu), 0);
-        r[2] = 0;
-        return;
-    }
-    D3D_BlockOnTime(fence, 0);
+  fence = r[2];
+  if (d3d_resource_is_persistent(r)) {
+    D3D_BlockOnTime(*(uint32_t *)((uint8_t *)D3D_g_pDevice + 0x1cu), 0);
     r[2] = 0;
-}
-
-/* Returns 1 if the GPU is still using the resource (fence not yet passed),
- * 0 if the resource is free. Clears the fence timestamp when done. */
-int __stdcall D3DResource_IsBusy(void *resource)
-{
-    uint32_t *r = (uint32_t *)resource;
-    uint32_t *face;
-    uint32_t fence;
-    uint32_t current_time;
-    uint32_t counter;
-    uint8_t *dev;
-
-    dev = (uint8_t *)D3D_g_pDevice;
-
-    if ((r[0] & 0x70000u) == 0x50000u) {
-        face = (uint32_t *)r[5];
-        if (face != NULL) {
-            if (r[0] & 0x780000u)
-                return 1;
-            if (face[0] & 0x780000u)
-                return 1;
-            r = face;
-        }
-    }
-
-    if (r[0] & 0x780000u)
-        return 1;
-    if ((r[0] & 0x70000u) == 0x50000u) {
-        face = (uint32_t *)r[5];
-        if (face != NULL && (face[0] & 0x780000u))
-            return 1;
-    }
-
-    fence = r[2];
-    if (fence == 0u) {
-        r[2] = 0;
-        return 0;
-    }
-
-    current_time = *(uint32_t *)(dev + 0x1cu);
-    counter = **(uint32_t **)(dev + 0x3f0u);
-    if ((current_time - fence) >= (current_time - counter)) {
-        r[2] = 0;
-        return 0;
-    }
-    return 1;
+    return;
+  }
+  D3D_BlockOnTime(fence, 0);
+  r[2] = 0;
 }
 
 /* Decrements the reference count on a D3D resource. When the count
@@ -118,6 +71,53 @@ uint32_t __stdcall D3DResource_Release(void *resource)
   }
   r[0] = common - 1;
   return (common - 1) & 0xFFFF;
+}
+
+/* Returns 1 if the GPU is still using the resource (fence not yet passed),
+ * 0 if the resource is free. Clears the fence timestamp when done. */
+int __stdcall D3DResource_IsBusy(void *resource)
+{
+  uint32_t *r = (uint32_t *)resource;
+  uint32_t *face;
+  uint32_t fence;
+  uint32_t current_time;
+  uint32_t counter;
+  uint8_t *dev;
+
+  dev = (uint8_t *)D3D_g_pDevice;
+
+  if ((r[0] & 0x70000u) == 0x50000u) {
+    face = (uint32_t *)r[5];
+    if (face != NULL) {
+      if (r[0] & 0x780000u)
+        return 1;
+      if (face[0] & 0x780000u)
+        return 1;
+      r = face;
+    }
+  }
+
+  if (r[0] & 0x780000u)
+    return 1;
+  if ((r[0] & 0x70000u) == 0x50000u) {
+    face = (uint32_t *)r[5];
+    if (face != NULL && (face[0] & 0x780000u))
+      return 1;
+  }
+
+  fence = r[2];
+  if (fence == 0u) {
+    r[2] = 0;
+    return 0;
+  }
+
+  current_time = *(uint32_t *)(dev + 0x1cu);
+  counter = **(uint32_t **)(dev + 0x3f0u);
+  if ((current_time - fence) >= (current_time - counter)) {
+    r[2] = 0;
+    return 0;
+  }
+  return 1;
 }
 
 /* Registers a D3D resource by adding a base data address to the

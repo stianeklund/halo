@@ -28,9 +28,9 @@ bool FUN_00129130(int server_connection, int client_connection)
   }
 
   if (*(int *)client_connection != 0) {
-    short result =
-      remove_endpoint_from_set(*(int *)*(int *)(server_connection + 0x3c + i * 4),
-                   *(int *)(server_connection + 0x38));
+    short result = remove_endpoint_from_set(
+      *(int *)*(int *)(server_connection + 0x3c + i * 4),
+      *(int *)(server_connection + 0x38));
     if (result != 0) {
       error(2,
             "failed to remove a client endpoint from the server's endpoint set "

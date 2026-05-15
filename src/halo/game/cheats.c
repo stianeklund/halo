@@ -70,10 +70,10 @@ void cheats_load_from_file(void)
   crt_fclose(stream);
 }
 
-/* cheat_active_camouflage_local_player — give weapon infinite ammo cheat for one local player.
- * Finds the player's primary weapon, sets its vitality to 1.0f (full), and
- * sets bit 4 (+optionally bit 5) in the weapon's flags at +0x1b4.
- * Source: cheats.c, local_player_index in [0,3].
+/* cheat_active_camouflage_local_player — give weapon infinite ammo cheat for
+ * one local player. Finds the player's primary weapon, sets its vitality
+ * to 1.0f (full), and sets bit 4 (+optionally bit 5) in the weapon's flags at
+ * +0x1b4. Source: cheats.c, local_player_index in [0,3].
  */
 void cheat_active_camouflage_local_player(int local_player_index)
 {
@@ -120,9 +120,9 @@ void cheats_initialize_for_new_map(void)
   cheats_load_from_file();
 }
 
-/* cheat_teleport_to_camera — teleport cheat: move a player's vehicle/weapon to the camera.
- * Finds a player with a weapon (via FUN_000a67c0), then teleports the vehicle
- * (or weapon if not in a vehicle) to the camera position using
+/* cheat_teleport_to_camera — teleport cheat: move a player's vehicle/weapon to
+ * the camera. Finds a player with a weapon (via FUN_000a67c0), then teleports
+ * the vehicle (or weapon if not in a vehicle) to the camera position using
  * object_set_position. Frameless in the original binary.
  */
 typedef void (*terminal_output_2_t)(void *, const char *);
@@ -156,14 +156,15 @@ void cheat_teleport_to_camera(void)
     object_set_position(object_handle, (float *)camera, NULL, NULL);
     return;
   }
-  ((terminal_output_2_t)terminal_output)(*(void **)0x2ee6f0,
-      "Camera is outside BSP... cannot initiate teleportation...");
+  ((terminal_output_2_t)terminal_output)(
+    *(void **)0x2ee6f0,
+    "Camera is outside BSP... cannot initiate teleportation...");
 }
 
 /* cheat_all_powerups — give weapon infinite ammo for the first armed player.
- * Same weapon modification logic as cheat_active_camouflage_local_player but targets the first player
- * that has a weapon equipped (via FUN_000a67c0) rather than a specific local
- * index. Frameless in the original binary.
+ * Same weapon modification logic as cheat_active_camouflage_local_player but
+ * targets the first player that has a weapon equipped (via FUN_000a67c0) rather
+ * than a specific local index. Frameless in the original binary.
  */
 void cheat_all_powerups(void)
 {

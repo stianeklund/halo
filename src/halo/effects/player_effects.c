@@ -188,8 +188,8 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
     FUN_000a2ba0(unit_index, damage_amount, 1.0f,
                  (float *)(jpt_tag + 0xcc) /* @<eax> */,
                  (void *)effect /* @<ebx> */);
-    rumble_player_impulse((short)unit_index, (float *)(jpt_tag + 0x5c), damage_amount,
-                 1.0f);
+    rumble_player_impulse((short)unit_index, (float *)(jpt_tag + 0x5c),
+                          damage_amount, 1.0f);
 
     if (*(int *)(jpt_tag + 0x120) != -1) {
       sound_impulse_start(*(int *)(jpt_tag + 0x120), 1.0f);

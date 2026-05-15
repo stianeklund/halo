@@ -98,7 +98,8 @@ bool game_team_ally_status_changed(int16_t team_a, int16_t team_b)
   return 0;
 }
 
-int16_t game_allegiance_get_incidents(int16_t team_a, int16_t team_b, int16_t *out_threshold)
+int16_t game_allegiance_get_incidents(int16_t team_a, int16_t team_b,
+                                      int16_t *out_threshold)
 {
   int16_t i;
   int16_t result;

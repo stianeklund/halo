@@ -114,8 +114,11 @@ char game_state_write_to_file(void)
  * optional output byte; set to 1 if checksum mismatch with a non-zero expected
  * checksum
  */
-char game_state_read_header_from_persistent_storage(void *header, uint32_t *scratch, int header_size,
-                  int buffer_size, char *flags)
+char game_state_read_header_from_persistent_storage(void *header,
+                                                    uint32_t *scratch,
+                                                    int header_size,
+                                                    int buffer_size,
+                                                    char *flags)
 {
   static char scratch_buffer[0x20000]; /* 128KB — avoids _chkstk */
   char path_buffer[0x100];

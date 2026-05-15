@@ -24,9 +24,9 @@
  *
  * Ported: FUN_00058a40 (ai_magically_see_players), encounters_dispose (stub),
  * encounter_compute_activation_cluster_bit_vector (dispose pools),
- * encounterless_attach_actor (encounter_enter), encounterless_detach_actor (encounter_leave),
- * encounters_create_for_new_map (tally reset), FUN_0005de80 (encounter_update),
- * encounter lifecycle stubs (0x5df80–0x5dfb0).
+ * encounterless_attach_actor (encounter_enter), encounterless_detach_actor
+ * (encounter_leave), encounters_create_for_new_map (tally reset), FUN_0005de80
+ * (encounter_update), encounter lifecycle stubs (0x5df80–0x5dfb0).
  */
 
 #include "../../common.h"
@@ -99,10 +99,12 @@ char *FUN_00054020(char *encounter, short platoon_index)
  *   - global_scenario_get() at 0x58a62 takes 0 args; return in EAX.
  *   - Pre-push pattern: 0x100 and local_114 pushed before global_scenario_get
  *     for subsequent FUN_00054220 call; ADD ESP,0x10 at 0x58a74 cleans 4 args.
- *   - Pre-push pattern: local_114 pushed before hs_runtime_get_executing_thread_name (0-arg) as 4th
- *     arg to console_printf; ADD ESP,0x10 at 0x58a8a cleans 4 dwords.
+ *   - Pre-push pattern: local_114 pushed before
+ * hs_runtime_get_executing_thread_name (0-arg) as 4th arg to console_printf;
+ * ADD ESP,0x10 at 0x58a8a cleans 4 dwords.
  *   - console_printf(2, fmt, cb980_result, name_buf): first %s = scenario
- *     tag name from hs_runtime_get_executing_thread_name, second %s = encounter name in name_buf.
+ *     tag name from hs_runtime_get_executing_thread_name, second %s = encounter
+ * name in name_buf.
  *   - MOV EDX,[0x005aa6d4] dereferences player_data before data_iterator_new.
  *   - player+0x34 is the field passed as arg2 to FUN_00055110.
  */
@@ -116,7 +118,8 @@ void FUN_00058a40(int combined_handle)
     FUN_00054220((unsigned int)combined_handle, (void *)global_scenario_get(),
                  name_buf, 0x100);
     console_printf(2, "%s: ai_magically_see_players %s",
-                   (const char *)hs_runtime_get_executing_thread_name(), name_buf);
+                   (const char *)hs_runtime_get_executing_thread_name(),
+                   name_buf);
   }
   if (combined_handle != -1) {
     data_iterator_new((data_iter_t *)iter_buf, *(data_t **)0x5aa6d4);
@@ -1258,7 +1261,7 @@ LAB_encounters:
       /* BSP matches: compute cluster visibility */
       FUN_00058fd0(encounter_handle, 1, 0x200, (int)pvs, cluster_bv);
       vis_result = bit_vector_and(*(int16_t *)(scenario + 0x134), (int)pvs,
-                                (int)cluster_bv, 0);
+                                  (int)cluster_bv, 0);
       if (!((enc_active == '\0' && in_editor == '\0') &&
             (enc_timer < 1 && override_flag == '\0') && vis_result == '\0')) {
         /* Trigger activation */
@@ -1790,10 +1793,12 @@ void encounters_initialize_for_new_map(void)
  *     zero-extended) → game_allegiance_get_team_is_friendly(enc_team,
  *     unit_team).
  *   - INC word ptr [ESI+0x4c] at 0x5b359 = ++encounter->tally.
- *   - encounter+0x42 = reset/active flag (set to 1 by encounter_clear_active_props).
+ *   - encounter+0x42 = reset/active flag (set to 1 by
+ * encounter_clear_active_props).
  *   - encounter+0x43 = condition-met flag.
  *   - encounter+0x47 = exclusion flag.
- *   - encounter+0x4c = uint16_t live-unit tally (cleared by encounter_clear_active_props).
+ *   - encounter+0x4c = uint16_t live-unit tally (cleared by
+ * encounter_clear_active_props).
  *
  * Caller: ai_handle_death (ai.obj) — unit-update routine.
  */
@@ -2054,7 +2059,7 @@ LAB_0005d365:
     if (flag == 0) {
       /* Actor drives its own team assignment */
       actor_set_team(actor_handle,
-                   (int)(unsigned short)*(short *)(encounter + 2));
+                     (int)(unsigned short)*(short *)(encounter + 2));
     } else if (*(short *)(encounter + 0x2a) == 0) {
       /* Encounter has no fixed team: adopt actor's team */
       *(short *)(encounter + 2) = *(short *)(actor + 0x3e);
@@ -2067,7 +2072,7 @@ LAB_0005d365:
         "to change teams",
         enc_def, squad_def);
       actor_set_team(actor_handle,
-                   (int)(unsigned short)*(short *)(encounter + 2));
+                     (int)(unsigned short)*(short *)(encounter + 2));
     }
   }
 
@@ -2107,12 +2112,11 @@ LAB_0005d365:
  *        - if actor+0x18 == -1 (no live unit): weight = actor+0x1e / actor+0x20
  *        - else: weight = 1, vitality = *(float*)(unit+0x90)
  *      Then accumulate per-squad, per-platoon (if actor+0x3c != -1), and
- *      encounter-level counters.  Also calls FUN_0003b120/actor_is_fighting with
- *      the actor handle for dead/fleeing status.
- *      Sets encounter enemy-visible/alive flags from unit state when
- *      actor+0x270 != -1.
- *   4. If no longer active (enemy gone), calls encounter_stand_down or FUN_0005bbe0
- *      depending on encounter state.
+ *      encounter-level counters.  Also calls FUN_0003b120/actor_is_fighting
+ * with the actor handle for dead/fleeing status. Sets encounter
+ * enemy-visible/alive flags from unit state when actor+0x270 != -1.
+ *   4. If no longer active (enemy gone), calls encounter_stand_down or
+ * FUN_0005bbe0 depending on encounter state.
  *   5. Finalise: compute vitality ratio = sum_vitality / actor_count - 0.001f,
  *      clamped to 0.0f, for encounter and each squad/platoon.
  *   6. Clear encounter+0x28 (dirty flag).
@@ -2259,7 +2263,8 @@ void encounter_update_status(int encounter_handle)
       unit = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
       *(char *)(encounter + 0x43) = 1;
 
-      if (!game_team_is_ally(*(short *)(actor + 0x3e), *(short *)(unit + 0x12))) {
+      if (!game_team_is_ally(*(short *)(actor + 0x3e),
+                             *(short *)(unit + 0x12))) {
         not_same_team = 1;
       }
 

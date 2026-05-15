@@ -172,8 +172,9 @@ bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
 
   cache_block_index = FUN_0011de10(*(void **)0x4ea980, cache_block_index);
   if (cache_block_index != -1) {
-    int cache_page_index = lruv_block_get_address(*(void **)0x4ea980, cache_block_index) +
-                           *(int32_t *)0x4ea97c;
+    int cache_page_index =
+      lruv_block_get_address(*(void **)0x4ea980, cache_block_index) +
+      *(int32_t *)0x4ea97c;
     int new_texture_index = FUN_00119570(*(void **)0x4ea978, cache_block_index);
     char *cache_entry = datum_get(*(void **)0x4ea978, cache_block_index);
 
@@ -190,9 +191,9 @@ bool xbox_texture_cache_request(void *hardware_format @<eax>, bool block)
     xbox_texture_cache_setup_d3d_texture(hardware_format, cache_entry + 0xc);
     *(int16_t *)(cache_entry + 2) =
       cache_file_read(*(int32_t *)((char *)hardware_format + 0x20),
-                   *(int32_t *)((char *)hardware_format + 0x18),
-                   *(int32_t *)((char *)hardware_format + 0x1c),
-                   cache_page_index, cache_entry + 4, block);
+                      *(int32_t *)((char *)hardware_format + 0x18),
+                      *(int32_t *)((char *)hardware_format + 0x1c),
+                      cache_page_index, cache_entry + 4, block);
     return true;
   }
 

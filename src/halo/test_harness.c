@@ -10,10 +10,11 @@ extern void object_placement_data_new(void *placement, int tag_index,
 extern void matrix_inverse(float *src, float *dst);
 extern void matrix4x3_multiply(float *a, float *b, float *out);
 extern void matrix_from_forward_and_up(float *out, float *forward, float *up);
-extern int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points, float *line,
-                            int16_t max_count, float *out_points,
-                            uint32_t *out_bitmask, uint8_t *changed,
-                            float epsilon);
+extern int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points,
+                                              float *line, int16_t max_count,
+                                              float *out_points,
+                                              uint32_t *out_bitmask,
+                                              uint8_t *changed, float epsilon);
 
 extern void *csstrncpy(char *destination, const char *source, size_t size);
 extern char *csstrtok(char *string, const char *delimiters);
@@ -101,24 +102,23 @@ void run_tests(void)
     passed += check("v3d_scale_add z", *(uint32_t *)&out[2], 0x3FE66666, buf);
   }
 
-    /* matrix_transform_point */
-    {
-        float mat[12] = {
-            1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 1.0f,
-            10.0f, 20.0f, 30.0f
-        };
-        float in_point[3] = { 5.0f, 5.0f, 5.0f };
-        float out_point[3];
+  /* matrix_transform_point */
+  {
+    float mat[12] = { 1.0f, 0.0f, 0.0f, 0.0f,  1.0f,  0.0f,
+                      0.0f, 0.0f, 1.0f, 10.0f, 20.0f, 30.0f };
+    float in_point[3] = { 5.0f, 5.0f, 5.0f };
+    float out_point[3];
 
-        matrix_transform_point(mat, in_point, out_point);
-        
-        total += 3;
-        passed += check("mat_transform_pt x", *(uint32_t*)&out_point[0], 0x41C80000, buf);
-        passed += check("mat_transform_pt y", *(uint32_t*)&out_point[1], 0x420C0000, buf);
-        passed += check("mat_transform_pt z", *(uint32_t*)&out_point[2], 0xD00A2A04, buf);
-    }
+    matrix_transform_point(mat, in_point, out_point);
+
+    total += 3;
+    passed +=
+      check("mat_transform_pt x", *(uint32_t *)&out_point[0], 0x41C80000, buf);
+    passed +=
+      check("mat_transform_pt y", *(uint32_t *)&out_point[1], 0x420C0000, buf);
+    passed +=
+      check("mat_transform_pt z", *(uint32_t *)&out_point[2], 0xD00A2A04, buf);
+  }
 
   /* perpendicular3d */
   {
@@ -182,29 +182,23 @@ void run_tests(void)
       check("mat_inv trans_x", *(uint32_t *)&dst_mat[9], 0x00000000, buf);
   }
 
-    /* matrix4x3_multiply */
-    {
-        float mat_a[12] = {
-            1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 1.0f,
-            1.0f, 2.0f, 3.0f
-        };
-        float mat_b[12] = {
-            0.0f, 1.0f, 0.0f,
-            -1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f,
-            5.0f, 5.0f, 5.0f
-        };
-        float out_mat[12];
+  /* matrix4x3_multiply */
+  {
+    float mat_a[12] = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 1.0f, 2.0f, 3.0f };
+    float mat_b[12] = { 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 5.0f,  5.0f, 5.0f };
+    float out_mat[12];
 
-        matrix4x3_multiply(mat_a, mat_b, out_mat);
+    matrix4x3_multiply(mat_a, mat_b, out_mat);
 
-        total += 3;
-        passed += check("mat_mul m01", *(uint32_t*)&out_mat[1], 0x00000000, buf);
-        passed += check("mat_mul trans_y", *(uint32_t*)&out_mat[10], 0x40E00000, buf);
-        passed += check("mat_mul trans_z", *(uint32_t*)&out_mat[11], 0x40400000, buf);
-    }
+    total += 3;
+    passed += check("mat_mul m01", *(uint32_t *)&out_mat[1], 0x00000000, buf);
+    passed +=
+      check("mat_mul trans_y", *(uint32_t *)&out_mat[10], 0x40E00000, buf);
+    passed +=
+      check("mat_mul trans_z", *(uint32_t *)&out_mat[11], 0x40400000, buf);
+  }
 
   /* matrix_from_forward_and_up */
   {
@@ -288,9 +282,12 @@ void run_tests(void)
     float out[3];
     points_interpolate(a, b, 0.25f, out);
     total += 3;
-    passed += check("points_interpolate x", *(uint32_t *)&out[0], 0x41480000, buf);
-    passed += check("points_interpolate y", *(uint32_t *)&out[1], 0x41480000, buf);
-    passed += check("points_interpolate z", *(uint32_t *)&out[2], 0x41B40000, buf);
+    passed +=
+      check("points_interpolate x", *(uint32_t *)&out[0], 0x41480000, buf);
+    passed +=
+      check("points_interpolate y", *(uint32_t *)&out[1], 0x41480000, buf);
+    passed +=
+      check("points_interpolate z", *(uint32_t *)&out[2], 0x41B40000, buf);
   }
 
   /* scalars_interpolate (interpolate_float) */
@@ -298,7 +295,8 @@ void run_tests(void)
     float out;
     scalars_interpolate(10.0f, 20.0f, 0.75f, &out);
     total += 1;
-    passed += check("scalars_interpolate out", *(uint32_t *)&out, 0x418C0000, buf);
+    passed +=
+      check("scalars_interpolate out", *(uint32_t *)&out, 0x418C0000, buf);
   }
 
   /* FUN_000d1c90 (real_argb_color_to_pixel32) */
@@ -326,8 +324,8 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = convex_polygon2d_clip_to_plane(4, in_points, line_x_ge_0, 0xc, out_points, &out_mask,
-                         &changed, 0.0f);
+      ret = convex_polygon2d_clip_to_plane(
+        4, in_points, line_x_ge_0, 0xc, out_points, &out_mask, &changed, 0.0f);
       dump_clip_case("clip_cross", ret, out_mask, changed, out_points, buf);
     }
 
@@ -338,8 +336,10 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = convex_polygon2d_clip_to_plane(4, alias_points, line_y_ge_0, 0xc, alias_points, /* dup-args-ok: in-place clipping test */
-                         &out_mask, &changed, 0.0f);
+      ret = convex_polygon2d_clip_to_plane(
+        4, alias_points, line_y_ge_0, 0xc,
+        alias_points, /* dup-args-ok: in-place clipping test */
+        &out_mask, &changed, 0.0f);
       dump_clip_case("clip_alias", ret, out_mask, changed, alias_points, buf);
     }
 
@@ -349,8 +349,8 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc, out_points, NULL,
-                         &changed, 0.0f);
+      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc,
+                                           out_points, NULL, &changed, 0.0f);
       dump_clip_case("clip_inside", ret, 0, changed, out_points, buf);
     }
 
@@ -360,8 +360,8 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc, out_points, NULL,
-                         &changed, 0.0f);
+      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc,
+                                           out_points, NULL, &changed, 0.0f);
       dump_clip_case("clip_outside", ret, 0, changed, out_points, buf);
     }
 
@@ -372,8 +372,9 @@ void run_tests(void)
       uint8_t changed = 0xcc;
       int16_t ret;
 
-      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc, out_points, &out_mask,
-                         &changed, 0.0001f);
+      ret = convex_polygon2d_clip_to_plane(3, in_points, line_x_ge_0, 0xc,
+                                           out_points, &out_mask, &changed,
+                                           0.0001f);
       dump_clip_case("clip_duplicate", ret, out_mask, changed, out_points, buf);
     }
   }

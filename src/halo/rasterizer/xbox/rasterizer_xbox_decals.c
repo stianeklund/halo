@@ -348,10 +348,10 @@ void rasterizer_decals_dispose(void)
  *
  * Lock a region of the decal vertex buffer for writing.
  * Asserts that cache_index, vertex cache, and D3D device are all valid.
- * Translates the LRUV cache block index into a byte offset via lruv_block_get_address,
- * then locks that region of the D3D vertex buffer. Sets the GPU lock flag
- * (0x325652) to 5 during the lock operation, clears it afterward.
- * Returns a pointer to the locked vertex buffer memory. */
+ * Translates the LRUV cache block index into a byte offset via
+ * lruv_block_get_address, then locks that region of the D3D vertex buffer. Sets
+ * the GPU lock flag (0x325652) to 5 during the lock operation, clears it
+ * afterward. Returns a pointer to the locked vertex buffer memory. */
 void *FUN_0015b890(int cache_index, uint32_t cache_size)
 {
   uint32_t offset;

@@ -8,7 +8,8 @@
  * to control which .map file is loaded (e.g. when running off HDD). */
 
 /* Globals in the stack-walk/profiler data region */
-/* 0x2ee780: int32_t  g_sw_offset   — bias from map RVA to runtime VA; -1 = not loaded */
+/* 0x2ee780: int32_t  g_sw_offset   — bias from map RVA to runtime VA; -1 = not
+ * loaded */
 /* 0x2ee784: uint8_t  g_sw_failed   — 1 if map load failed */
 /* 0x2ee788: int32_t[3] g_sw_symtab — {count, name_pool_ptr, entries_ptr} */
 /* 0x449ef8: uint32_t * g_sw_frame  — current frame ptr during walk */
@@ -20,9 +21,12 @@
 /* Parse a hex digit; returns 0-15 or -1 on non-hex. */
 static int hex_digit(int c)
 {
-  if (c >= '0' && c <= '9') return c - '0';
-  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
   return -1;
 }
 
@@ -165,9 +169,8 @@ int load_symbol_table(const char *map_path, int32_t *symtab_out)
     char *p;
 
     len = csstrlen(line);
-    while (len > 0 &&
-           (line[len - 1] == '\r' || line[len - 1] == '\n' ||
-            line[len - 1] == ' '  || line[len - 1] == '\t')) {
+    while (len > 0 && (line[len - 1] == '\r' || line[len - 1] == '\n' ||
+                       line[len - 1] == ' ' || line[len - 1] == '\t')) {
       line[--len] = '\0';
     }
     p = line;
@@ -197,9 +200,9 @@ int load_symbol_table(const char *map_path, int32_t *symtab_out)
     *tok = '\0';
     off_tok = tok + 1;
 
-    rva_tok  = crt_strtok(NULL, " \t");
+    rva_tok = crt_strtok(NULL, " \t");
     name_tok = crt_strtok(NULL, " \t");
-    obj_tok  = crt_strtok(NULL, " \t");
+    obj_tok = crt_strtok(NULL, " \t");
 
     if (rva_tok == NULL || name_tok == NULL)
       continue;
@@ -223,11 +226,11 @@ int load_symbol_table(const char *map_path, int32_t *symtab_out)
       int base_idx;
 
       name_len = csstrlen(name_tok) + 1;
-      obj_len  = obj_tok != NULL ? csstrlen(obj_tok) + 1 : 1;
+      obj_len = obj_tok != NULL ? csstrlen(obj_tok) + 1 : 1;
 
       if (name_pool_pos + name_len > (int)sizeof(name_pool))
         continue;
-      if (obj_pool_pos  + obj_len  > (int)sizeof(obj_pool))
+      if (obj_pool_pos + obj_len > (int)sizeof(obj_pool))
         continue;
 
       base_idx = count * 4;

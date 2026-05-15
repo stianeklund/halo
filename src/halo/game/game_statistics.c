@@ -29,8 +29,8 @@ void game_statistics_stop(short param_1)
   *(char *)0x457060 = 0;
 }
 
-void game_statistics_record_damage(int handle, float vitality, int param_3, int param_4,
-                  int param_5)
+void game_statistics_record_damage(int handle, float vitality, int param_3,
+                                   int param_4, int param_5)
 {
 }
 
@@ -169,5 +169,6 @@ b56f0_assist_loop:
       att2 += 4;
     }
   }
-  game_engine_player_killed(param_2, param_3, (int)player_index, (int)is_team_kill);
+  game_engine_player_killed(param_2, param_3, (int)player_index,
+                            (int)is_team_kill);
 }

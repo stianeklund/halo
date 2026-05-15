@@ -207,7 +207,8 @@ void network_server_manager_game_over(void *server)
 /* Check if a machine is marked as valid/active on this server (0x12c500).
  * Asserts both server and machine are non-null, then returns bit 1 of the
  * flags byte at machine+0xe (shifted right by 1, masked to a bool). */
-bool network_game_server_client_machine_is_joined_to_game(int server, int machine)
+bool network_game_server_client_machine_is_joined_to_game(int server,
+                                                          int machine)
 {
   if (!server) {
     display_assert("server",
@@ -323,8 +324,8 @@ bool get_unique_random_color(void *server)
 
 /* Check whether enough machine slots have valid team indices (0x12d150).
  * Counts slots in [0,4) across the 4 machine entries at server+0x448
- * (stride 0x10). If network_game_is_splitscreen_local returns true the threshold is 1,
- * otherwise 2. Returns count >= threshold. */
+ * (stride 0x10). If network_game_is_splitscreen_local returns true the
+ * threshold is 1, otherwise 2. Returns count >= threshold. */
 bool server_has_enough_machines(void *server)
 {
   char *s = (char *)server;
@@ -355,7 +356,8 @@ int network_game_server_adjust_machine_settings(void *machine)
 /* Get a pointer to the machine entry at the given index (0x12d450).
  * Asserts server is non-null and index < MAXIMUM_NETWORK_MACHINE_COUNT (4).
  * Each machine entry is 0x10 bytes, starting at server+0x43c. */
-int network_game_server_get_client_machine_at_index(int server, int machine_index)
+int network_game_server_get_client_machine_at_index(int server,
+                                                    int machine_index)
 {
   if (!server || machine_index >= 4) {
     display_assert("server && (index<MAXIMUM_NETWORK_MACHINE_COUNT)",
@@ -429,7 +431,8 @@ bool FUN_0012d880(int server, int new_connection)
           network_game_invalidate_machine(s + 8, i);
           *(short *)(s + i * 0x10 + 0x448) = (short)i;
           *(short *)(s + i * 0x10 + 0x44a) = 1;
-          result = network_connection_server_accept_client_connection(*(int *)s, new_connection);
+          result = network_connection_server_accept_client_connection(
+            *(int *)s, new_connection);
           if (result == 1) {
             addr_str = transport_address_to_string(addr_buf);
             network_game_log("new remote connection accepted from %s",
@@ -1277,7 +1280,8 @@ bool FUN_0012f430(void *server, void *message)
 
   for (i = 0; i < 4; i++) {
     machine = network_game_server_get_client_machine_at_index((int)server, i);
-    if (!network_game_server_client_machine_is_joined_to_game((int)server, machine))
+    if (!network_game_server_client_machine_is_joined_to_game((int)server,
+                                                              machine))
       continue;
     connection = network_game_server_adjust_machine_settings((void *)machine);
     if (!connection)
@@ -1292,7 +1296,8 @@ bool FUN_0012f430(void *server, void *message)
       system_exit(-1);
     }
     csmemcpy(local_buf, message, msg_len);
-    if (!network_connection_write((void *)connection, local_buf, msg_len, 0, 1)) {
+    if (!network_connection_write((void *)connection, local_buf, msg_len, 0,
+                                  1)) {
       network_game_log("network_game_server_write() failed in "
                        "network_game_server_send_message_to_all_machines()");
       result = false;
@@ -1303,8 +1308,8 @@ bool FUN_0012f430(void *server, void *message)
 }
 
 /* Send updated game settings to all client machines (0x12f5d0).
- * Gets the game data pointer via network_game_server_get_game, copies 0x434 bytes
- * into a local buffer, builds a type-6 message, and broadcasts it.
+ * Gets the game data pointer via network_game_server_get_game, copies 0x434
+ * bytes into a local buffer, builds a type-6 message, and broadcasts it.
  * Returns true on success. */
 bool FUN_0012f5d0(void *server)
 {

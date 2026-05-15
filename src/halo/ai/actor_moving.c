@@ -18,8 +18,8 @@ void FUN_0002a3a0(int actor_handle)
  *   - Gets the vehi tag via tag_get('vehi', vehicle[0])
  *   - Overrides unit_handle with the vehicle handle (actor[0x158])
  *   - If vehi_tag[0x38c] > constant at 0x2533c0, overrides local_8 with it
- * Calls actor_find_pathfinding_location(actor_handle), then fills nav_state_out via
- * path_input_new and path_input_set_start.
+ * Calls actor_find_pathfinding_location(actor_handle), then fills nav_state_out
+ * via path_input_new and path_input_set_start.
  *
  * Confirmed: datum_get + tag_get('actr', actor[0x58]) at 0x2a481-0x2a491.
  * Confirmed: tag[0x8c] → local_8; actor[0x18] → unit_handle default.
@@ -62,7 +62,8 @@ void actor_path_input_new(int actor_handle, char *nav_state_out)
  * and vehicle-in-air state. On success writes param_2 to +0x418 and
  * copies two ints from param_3 to +0x41c/+0x420. Returns 1 on success, 0 on
  * failure. */
-int actor_move_animation_impulse(int actor_handle, int16_t param_2, int *param_3)
+int actor_move_animation_impulse(int actor_handle, int16_t param_2,
+                                 int *param_3)
 {
   char *actor;
   char *actor2;
@@ -85,9 +86,10 @@ int actor_move_animation_impulse(int actor_handle, int16_t param_2, int *param_3
 }
 
 /* 0x2a860 — Clear actor destination and trigger flee movement.
- * Returns 0 if actor has a goal slot, is in a flying vehicle, or actor_action_deny_transition
- * returns true. Otherwise zeroes the swarm flag, copies 12 bytes from the
- * global pointer at 0x31fc38, calls actor_unit_control_stop_animation_impulse, and returns 1. */
+ * Returns 0 if actor has a goal slot, is in a flying vehicle, or
+ * actor_action_deny_transition returns true. Otherwise zeroes the swarm flag,
+ * copies 12 bytes from the global pointer at 0x31fc38, calls
+ * actor_unit_control_stop_animation_impulse, and returns 1. */
 int actor_move_force_stop(int actor_handle)
 {
   char *actor;
@@ -298,7 +300,8 @@ char actor_path_refresh(int actor_handle, char store_distance,
   char local_nav[44]; /* [EBP-0x60]: nav-state struct (waypoint init output) */
   static char
     large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
-  void *path_state; /* allocated path cache slot from ai_debug_get_path_storage */
+  void
+    *path_state; /* allocated path cache slot from ai_debug_get_path_storage */
   int scenario;
   int squad_elem;
   int order_elem;
@@ -437,7 +440,8 @@ char actor_path_refresh(int actor_handle, char store_distance,
     prop = (int)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x470));
     if ((*(short *)(prop + 0x24) < 4) || (*(short *)(prop + 0x24) > 5)) {
       /* Prop state invalid: notify and continue (don't abort). */
-      actor_perception_find_prop_pathfinding_location(actor_handle, *(int *)(actor + 0x470));
+      actor_perception_find_prop_pathfinding_location(actor_handle,
+                                                      *(int *)(actor + 0x470));
     }
     if (*(char *)(actor + 0x99) != '\0') {
       *(unsigned int *)(actor + 0x488) = *(unsigned int *)(prop + 0xc8);
@@ -465,19 +469,19 @@ LAB_check_dest:
   /*
    * Validate destination. Two branches:
    *
-   * B) actor[0x99]!=0 (mounted): call actor_path_3d_available to check whether the
-   *    destination is accessible for a mounted actor; output dist.
-   *    Confirmed at 0x0002ceab-0x0002cebf:
-   *      JZ skip (actor[0x99]==0)
-   *      PUSH LEA[EBP-0xc](&dist); PUSH EDI(&actor[0x488]); PUSH ECX
-   *      CALL actor_path_3d_available
+   * B) actor[0x99]!=0 (mounted): call actor_path_3d_available to check whether
+   * the destination is accessible for a mounted actor; output dist. Confirmed
+   * at 0x0002ceab-0x0002cebf: JZ skip (actor[0x99]==0) PUSH
+   * LEA[EBP-0xc](&dist); PUSH EDI(&actor[0x488]); PUSH ECX CALL
+   * actor_path_3d_available
    *
    * A) actor[0x99]==0 (on foot): if actor[0x498]==0.0f, check
    *    actor[0x494]!=-1. If -1, fail. If actor[0x498]!=0.0f, fall through.
    *    Confirmed at 0x0002d096-0x0002d0b3.
    */
   if (*(char *)(actor + 0x99) != '\0') {
-    path_found = actor_path_3d_available(actor_handle, (float *)(actor + 0x488), &dist);
+    path_found =
+      actor_path_3d_available(actor_handle, (float *)(actor + 0x488), &dist);
     if (path_found == '\0') {
       goto LAB_fail;
     }
@@ -519,8 +523,8 @@ LAB_check_dest:
   }
 
   /*
-   * actor_test_destination failed. Compute actual 3D distance from actor position to
-   * destination, allocate path cache, and run the pathfinder.
+   * actor_test_destination failed. Compute actual 3D distance from actor
+   * position to destination, allocate path cache, and run the pathfinder.
    *
    * tag_get at 0x0002d0f7: PUSH [ESI+0x58]; PUSH 0x61637472 ('rtra'='actr')
    * FUN_0001ad60 at 0x0002d10d: PUSH EDI(&actor[0x488]); PUSH &actor[0x12c]
@@ -547,8 +551,9 @@ LAB_check_dest:
      *                     &actor[0x4a8])
      * ADD ESP,0x14 = 5 args.
      */
-    path_found = path_3d_build_path((int)scenario_get(), (int *)(actor + 0x12c), 0,
-                              (int *)(actor + 0x488), (char *)(actor + 0x4a8));
+    path_found =
+      path_3d_build_path((int)scenario_get(), (int *)(actor + 0x12c), 0,
+                         (int *)(actor + 0x488), (char *)(actor + 0x4a8));
   } else if (override_path != (void *)0) {
     /*
      * Caller provided a pre-computed path override.
@@ -571,14 +576,15 @@ LAB_check_dest:
   } else {
     /*
      * Normal on-foot pathfinding pipeline:
-     *  1. actor_path_input_new(actor_handle, local_nav): initialize nav-state struct
-     *     (actor position, facing, vehicle info, etc.).
+     *  1. actor_path_input_new(actor_handle, local_nav): initialize nav-state
+     * struct (actor position, facing, vehicle info, etc.).
      *  2. paths_dispose(local_nav, actor[0x480]): if ignore_object!=-1,
      *     store it at local_nav+0xc.
      *  3. (Optional) path_input_set_attractor: encode movement-constraint
      * orders into local_nav when actor has standing orders (actor[0x280]>0,
      *     actor[0x28a]==0, tag flag bit 4 clear). Float arg 0x41200000=10.0f.
-     *  4. ai_debug_get_path_storage(actor_handle): allocate/find path cache slot.
+     *  4. ai_debug_get_path_storage(actor_handle): allocate/find path cache
+     * slot.
      *  5. path_state_new(local_nav, large_buf, path_state): init path-build
      *     state in large_buf from local_nav and the cache slot.
      *  6. FUN_0005e0d0(large_buf, &actor[0x488], actor[0x494], actor[0x498]):
@@ -652,8 +658,8 @@ LAB_path_ok:
   return '\x01';
 }
 
-/* 0x2d350 — actor_destination_update: Update actor path state and compute target
- * destination.
+/* 0x2d350 — actor_destination_update: Update actor path state and compute
+ * target destination.
  *
  * Called every tick for an actor. Has three main branches:
  *
@@ -855,9 +861,9 @@ void actor_destination_update(int actor_handle)
         FUN_0002a3a0(actor_handle);
       } else if (*(char *)0x5aca62 != '\0') {
         /* Debug: log "fell off end of unfinished path".
-         * ai_debug_describe_actor: actor_describe_name(actor_handle, -1, 1, buf, 0x200)
-         * Disasm 0x2d518-0x2d529:
-         *   PUSH 0x200; PUSH EDX(local_218); PUSH 1; PUSH -1; PUSH EBX
+         * ai_debug_describe_actor: actor_describe_name(actor_handle, -1, 1,
+         * buf, 0x200) Disasm 0x2d518-0x2d529: PUSH 0x200; PUSH EDX(local_218);
+         * PUSH 1; PUSH -1; PUSH EBX
          */
         ai_debug_describe_actor(actor_handle, -1, 1, name_buf, 0x200);
         error(2, "%s: fell off end of unfinished path %d/%d", name_buf,
@@ -1087,7 +1093,8 @@ char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
   *(int16_t *)(actor + 0x3b8) = -1;
   actor_set_dormant(actor_handle, 0);
   active_state = (int *)(actor + 0x46c);
-  if (*(int16_t *)active_state == 5 && *(int *)(actor + 0x470) == encounter_handle &&
+  if (*(int16_t *)active_state == 5 &&
+      *(int *)(actor + 0x470) == encounter_handle &&
       *(float *)(actor + 0x474) == distance) {
     if (*(char *)(actor + 0x4c) == 0) {
       return 1;
@@ -1102,8 +1109,8 @@ char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
   *(int16_t *)(actor + 0x400) = 5;
   *(char *)(actor + 0x402) = 0;
   *(float *)(actor + 0x408) = distance;
-  node_handle = *(int *)(encounter + 0x110) == -1 ? *(int *)(encounter + 0x18)
-                                                   : *(int *)(encounter + 0x110);
+  node_handle = *(int *)(encounter + 0x110) == -1 ? *(int *)(encounter + 0x18) :
+                                                    *(int *)(encounter + 0x110);
   *(int *)(actor + 0x414) = node_handle;
   pending_state = (int *)(actor + 0x400);
   for (node_handle = 6; node_handle != 0; node_handle--) {
