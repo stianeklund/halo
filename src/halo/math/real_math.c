@@ -1834,6 +1834,28 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10a570 — periodic_functions_dispose: free all 12 periodic + 6 transition
+ * function tables and clear the initialized flag. */
+void FUN_0010a570(void)
+{
+  void **table;
+  int i;
+
+  if (*(char *)0x46e39c != '\0') {
+    table = (void **)0x46e3b8;
+    for (i = 0xc; i != 0; i--) {
+      debug_free(*table, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x7a);
+      table++;
+    }
+    table = (void **)0x46e3a0;
+    for (i = 6; i != 0; i--) {
+      debug_free(*table, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x84);
+      table++;
+    }
+    *(char *)0x46e39c = '\0';
+  }
+}
+
 /* 0x10bdc0 — Point-in-3D-box test (inclusive on both ends). */
 int FUN_0010bdc0(float *point, float *box)
 {

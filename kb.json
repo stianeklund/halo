@@ -18503,7 +18503,8 @@
         },
         {
           "decl": "void FUN_0010a570(void);",
-          "addr": "0x10a570"
+          "addr": "0x10a570",
+          "ported": true
         },
         {
           "decl": "void FUN_0010a5e0(void);",
