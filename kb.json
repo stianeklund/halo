@@ -18483,8 +18483,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010a240(void);",
-          "addr": "0x10a240"
+          "decl": "void FUN_0010a240(float *matrix, float *plane, int out);",
+          "addr": "0x10a240",
+          "ported": true
         },
         {
           "decl": "void FUN_0010a2c0(float *out, float *forward, float *up);",
@@ -18501,8 +18502,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010a4c0(void);",
-          "addr": "0x10a4c0"
+          "decl": "void FUN_0010a4c0(int out_matrix, float *plane);",
+          "addr": "0x10a4c0",
+          "ported": true
         },
         {
           "decl": "void FUN_0010a570(void);",

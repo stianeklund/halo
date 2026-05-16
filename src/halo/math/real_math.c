@@ -2810,6 +2810,48 @@ char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
   return 1;
 }
 
+/* Transform a plane by a matrix. Computes new plane distance and normal. */
+void FUN_0010a240(float *matrix, float *plane, int out)
+{
+  float d;
+
+  if (*matrix == 0.0f) {
+    *(int *)(out + 0xc) = 0;
+    real_matrix3x3_transform_vector(matrix, (void *)plane, (void *)out);
+    return;
+  }
+  d = plane[3] - (matrix[10] * plane[0] + matrix[11] * plane[1] +
+                   matrix[12] * plane[2]);
+  *(float *)(out + 0xc) = d;
+  if (*matrix != 1.0f) {
+    *(float *)(out + 0xc) = d / *matrix;
+  }
+  real_matrix3x3_transform_vector(matrix, (void *)plane, (void *)out);
+}
+
+/* Construct a matrix from a 3D plane (normal + distance). */
+void FUN_0010a4c0(int out_matrix, float *plane)
+{
+  float axis[3];
+  float point[3];
+
+  if (!valid_real_normal3d(plane) ||
+      (*(unsigned int *)&plane[3] & 0x7f800000) == 0x7f800000) {
+    display_assert("valid_real_plane3d(plane)",
+                   "c:\\halo\\SOURCE\\math\\matrix_math.c", 0x172, 1);
+    system_exit(-1);
+  }
+  perpendicular3d(plane, axis);
+  normalize3d(axis);
+  point[0] = plane[3] * plane[0];
+  point[1] = plane[1] * plane[3];
+  point[2] = plane[2] * plane[3];
+  matrix_from_forward_and_up((float *)out_matrix, axis, plane);
+  *(float *)(out_matrix + 0x28) = point[0];
+  *(float *)(out_matrix + 0x2c) = point[1];
+  *(float *)(out_matrix + 0x30) = point[2];
+}
+
 /* Initialize a vector tree structure (k-d tree for spatial lookups). */
 void FUN_00110730(int *param_1, short param_2, int param_3, int param_4,
                   int param_5)
