@@ -1837,3 +1837,11 @@ int FUN_00138ee0(int hardware_format)
   profile_texture_end();
   return result;
 }
+
+/* FUN_00138f10 (0x138f10) — Bilinear interpolation of a scalar.
+ * Computes: base + (a - base) * t1 + (b - base) * t2
+ * Used to interpolate damage values between thresholds. */
+float FUN_00138f10(float base, float a, float b, float t1, float t2)
+{
+  return base + (a - base) * t1 + (b - base) * t2;
+}

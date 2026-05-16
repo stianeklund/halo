@@ -32545,8 +32545,9 @@
           "addr": "0x136700"
         },
         {
-          "decl": "void FUN_00138f10(void);",
-          "addr": "0x138f10"
+          "decl": "float FUN_00138f10(float base, float a, float b, float t1, float t2);",
+          "addr": "0x138f10",
+          "ported": true
         },
         {
           "decl": "void FUN_00138f30(void);",
