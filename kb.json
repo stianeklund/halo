@@ -18489,8 +18489,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00109f40(void);",
-          "addr": "0x109f40"
+          "decl": "void FUN_00109f40(float *matrix, float *euler);",
+          "addr": "0x109f40",
+          "ported": false
         },
         {
           "decl": "void FUN_00109fc0(float *matrix4x3, float *out_quat4);",
@@ -18513,8 +18514,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010a240(void);",
-          "addr": "0x10a240"
+          "decl": "void FUN_0010a240(float *matrix, float *plane, int out);",
+          "addr": "0x10a240",
+          "ported": true
         },
         {
           "decl": "void FUN_0010a2c0(float *out, float *forward, float *up);",
@@ -18522,8 +18524,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010a330(void);",
-          "addr": "0x10a330"
+          "decl": "void FUN_0010a330(float *matrix, float *quat);",
+          "addr": "0x10a330",
+          "ported": true
         },
         {
           "decl": "int FUN_0010a480(int p);",
@@ -18531,8 +18534,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010a4c0(void);",
-          "addr": "0x10a4c0"
+          "decl": "void FUN_0010a4c0(int out_matrix, float *plane);",
+          "addr": "0x10a4c0",
+          "ported": true
         },
         {
           "decl": "void FUN_0010a570(void);",
@@ -18678,12 +18682,14 @@
           "ported": true
         },
         {
-          "decl": "void quaternions_interpolate_and_normalize(void);",
-          "addr": "0x10cb60"
+          "decl": "void quaternions_interpolate_and_normalize(float *q1, float *q2, float t, float *out);",
+          "addr": "0x10cb60",
+          "ported": true
         },
         {
-          "decl": "void orientations_interpolate(void);",
-          "addr": "0x10cb90"
+          "decl": "void orientations_interpolate(float *orient1, float *orient2, float t, float *out);",
+          "addr": "0x10cb90",
+          "ported": true
         },
         {
           "decl": "void vector_to_angles(float *out_angles, float *in_vector);",
@@ -18760,7 +18766,7 @@
           "ported": true
         },
         {
-          "decl": "void vector_intersects_pill2d(void);",
+          "decl": "int vector_intersects_pill2d(float *line_start, float *line_dir, float *pill_center, float *pill_dir, float pill_radius);",
           "addr": "0x10dcb0"
         },
         {
@@ -18793,20 +18799,24 @@
           "ported": true
         },
         {
-          "decl": "void sphere_intersects_triangle3d(void);",
-          "addr": "0x10eb10"
+          "decl": "char sphere_intersects_triangle3d(float *center, float radius, float *v0, float *v1, float *v2);",
+          "addr": "0x10eb10",
+          "ported": true
         },
         {
-          "decl": "void pill_intersects_rectangle2d(void);",
-          "addr": "0x10ed70"
+          "decl": "char pill_intersects_rectangle2d(float *pill_center, float *pill_dir, float pill_radius, float *rect);",
+          "addr": "0x10ed70",
+          "ported": true
         },
         {
-          "decl": "void pill_intersects_triangle2d(void);",
-          "addr": "0x10eeb0"
+          "decl": "char pill_intersects_triangle2d(float *pill_center, float *pill_dir, float pill_radius, float *v0, float *v1, float *v2);",
+          "addr": "0x10eeb0",
+          "ported": true
         },
         {
-          "decl": "void pill_intersects_triangle3d(void);",
-          "addr": "0x10efd0"
+          "decl": "int pill_intersects_triangle3d(float *pill_start, float *pill_dir, float pill_radius, float *v0, float *v1, float *v2);",
+          "addr": "0x10efd0",
+          "ported": true
         },
         {
           "decl": "char FUN_0010f310(float *p1, float *p2, float *p3, float *out);",
@@ -18835,16 +18845,19 @@
           "addr": "0x10fa30"
         },
         {
-          "decl": "void quantize_real_to_byte_lower_bound(void);",
-          "addr": "0x10fb20"
+          "decl": "unsigned char quantize_real_to_byte_lower_bound(float min, float max, float value);",
+          "addr": "0x10fb20",
+          "ported": true
         },
         {
-          "decl": "void quantize_real_to_byte_upper_bound(void);",
-          "addr": "0x10fc60"
+          "decl": "unsigned char quantize_real_to_byte_upper_bound(float min, float max, float value);",
+          "addr": "0x10fc60",
+          "ported": true
         },
         {
-          "decl": "void quantize_real_to_byte_rectangle3d(void);",
-          "addr": "0x10fd90"
+          "decl": "unsigned char *quantize_real_to_byte_rectangle3d(float *bounds, int *rect, unsigned char *out);",
+          "addr": "0x10fd90",
+          "ported": false
         },
         {
           "decl": "int FUN_0010fe80(float x, float y);",
@@ -18852,8 +18865,9 @@
           "ported": true
         },
         {
-          "decl": "void pin_normal_to_cone3d(void);",
-          "addr": "0x10fed0"
+          "decl": "char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle, float cos_half_angle, float *result);",
+          "addr": "0x10fed0",
+          "ported": true
         },
         {
           "decl": "char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5, float sine, float cosine);",
@@ -18880,12 +18894,14 @@
           "addr": "0x110650"
         },
         {
-          "decl": "void FUN_00110730(void);",
-          "addr": "0x110730"
+          "decl": "void FUN_00110730(int *param_1, short param_2, int param_3, int param_4, int param_5);",
+          "addr": "0x110730",
+          "ported": true
         },
         {
-          "decl": "void FUN_00110800(void);",
-          "addr": "0x110800"
+          "decl": "void FUN_00110800(int param_1);",
+          "addr": "0x110800",
+          "ported": true
         },
         {
           "decl": "void FUN_00110820(void);",
@@ -31155,7 +31171,7 @@
           "addr": "0x117b00"
         },
         {
-          "decl": "void FUN_00117b20(void);",
+          "decl": "void FUN_00117b20(int *table, int element_size);",
           "addr": "0x117b20"
         },
         {
@@ -31163,7 +31179,7 @@
           "addr": "0x117b90"
         },
         {
-          "decl": "void FUN_00117cf0(void);",
+          "decl": "void FUN_00117cf0(int *table);",
           "addr": "0x117cf0"
         },
         {

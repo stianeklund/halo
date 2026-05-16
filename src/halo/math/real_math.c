@@ -801,6 +801,28 @@ void sphere_intersects_rectangle3d(float *quaternion)
   }
 }
 
+/* Interpolate two quaternions via slerp and normalize the result. */
+void quaternions_interpolate_and_normalize(float *q1, float *q2, float t, float *out)
+{
+  FUN_0010ba90(q1, q2, t, out);
+  sphere_intersects_rectangle3d(out);
+}
+
+/* Interpolate two orientations (quaternion[4] + scale/translation[4]).
+ * Quaternion part is slerped, remaining 4 floats are linearly interpolated. */
+void orientations_interpolate(float *orient1, float *orient2, float t, float *out)
+{
+  float inv_t;
+
+  FUN_0010ba90(orient1, orient2, t, out);
+  sphere_intersects_rectangle3d(out);
+  inv_t = 1.0f - t;
+  out[4] = t * orient2[4] + inv_t * orient1[4];
+  out[5] = t * orient2[5] + inv_t * orient1[5];
+  out[6] = t * orient2[6] + inv_t * orient1[6];
+  out[7] = t * orient2[7] + inv_t * orient1[7];
+}
+
 /* Convert a unit quaternion [x,y,z,w] to axis-angle representation.
  * Extracts the rotation axis (normalized) and the angle in radians.
  * If the angle exceeds pi, flips to the shorter equivalent rotation. */
@@ -1973,6 +1995,254 @@ char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
   return result;
 }
 
+/* Test if a sphere intersects a 3D triangle. Checks plane distance, then
+ * tests each edge if the projected point falls outside that edge's half-plane. */
+char sphere_intersects_triangle3d(float *center, float radius, float *v0,
+                                  float *v1, float *v2)
+{
+  float d0[3], e01[3], e12[3], n[3];
+  float c12[3], c20[3];
+  float plane_dot, n_mag_sq;
+  char result;
+
+  d0[0] = center[0] - v0[0];
+  result = 1;
+  d0[1] = center[1] - v0[1];
+  d0[2] = center[2] - v0[2];
+
+  e01[0] = v1[0] - v0[0];
+  e01[1] = v1[1] - v0[1];
+  e01[2] = v1[2] - v0[2];
+
+  e12[0] = v2[0] - v1[0];
+  e12[1] = v2[1] - v1[1];
+  e12[2] = v2[2] - v1[2];
+
+  n[0] = e12[2] * e01[1] - e12[1] * e01[2];
+  n[1] = e01[2] * e12[0] - e12[2] * e01[0];
+  n[2] = e12[1] * e01[0] - e01[1] * e12[0];
+
+  plane_dot = n[0] * d0[0] + n[1] * d0[1] + n[2] * d0[2];
+  n_mag_sq = n[0] * n[0] + n[1] * n[1] + n[2] * n[2];
+  if (n_mag_sq * radius * radius < plane_dot * plane_dot)
+    return 0;
+
+  if (0.0f < (e01[1] * d0[2] - d0[1] * e01[2]) * n[0] +
+             (d0[0] * e01[2] - e01[0] * d0[2]) * n[1] +
+             n[2] * (e01[0] * d0[1] - e01[1] * d0[0])) {
+    if (fast_vector_intersects_sphere(v0, e01, center, radius))
+      return 1;
+    result = 0;
+  }
+
+  c12[0] = e12[2] * (center[1] - v1[1]) - e12[1] * (center[2] - v1[2]);
+  c12[1] = (center[2] - v1[2]) * e12[0] - e12[2] * (center[0] - v1[0]);
+  if (0.0f < c12[0] * n[0] + c12[1] * n[1] +
+             n[2] * (e12[1] * (center[0] - v1[0]) -
+                     e12[0] * (center[1] - v1[1]))) {
+    if (fast_vector_intersects_sphere(v1, e12, center, radius))
+      return 1;
+    result = 0;
+  }
+
+  c20[0] = v0[0] - v2[0];
+  c20[1] = v0[1] - v2[1];
+  c20[2] = v0[2] - v2[2];
+  e12[0] = c20[2] * (center[1] - v2[1]) - c20[1] * (center[2] - v2[2]);
+  e12[1] = (center[2] - v2[2]) * c20[0] - c20[2] * (center[0] - v2[0]);
+  if (e12[0] * n[0] + e12[1] * n[1] +
+      n[2] * (c20[1] * (center[0] - v2[0]) -
+              c20[0] * (center[1] - v2[1])) < 0.0f) {
+    if (fast_vector_intersects_sphere(v2, c20, center, radius))
+      return 1;
+    result = 0;
+  }
+  return result;
+}
+
+/* Test if a 2D pill intersects an axis-aligned rectangle.
+ * rect = {x0, x1, y0, y1}. Tests each edge the pill center is outside of. */
+char pill_intersects_rectangle2d(float *pill_center, float *pill_dir,
+                                 float pill_radius, float *rect)
+{
+  float edge_start[2], edge_dir[2];
+  char result;
+
+  result = 1;
+  if (pill_center[0] < rect[0]) {
+    edge_start[0] = rect[0];
+    edge_start[1] = rect[2];
+    edge_dir[0] = 0.0f;
+    edge_dir[1] = rect[3] - rect[2];
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  if (pill_center[1] < rect[2]) {
+    edge_start[0] = rect[0];
+    edge_start[1] = rect[2];
+    edge_dir[0] = rect[1] - rect[0];
+    edge_dir[1] = 0.0f;
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  if (rect[1] < pill_center[0]) {
+    edge_start[0] = rect[1];
+    edge_start[1] = rect[2];
+    edge_dir[0] = 0.0f;
+    edge_dir[1] = rect[3] - rect[2];
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  if (rect[3] < pill_center[1]) {
+    edge_start[0] = rect[0];
+    edge_start[1] = rect[3];
+    edge_dir[0] = rect[1] - rect[0];
+    edge_dir[1] = 0.0f;
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  return result;
+}
+
+/* Test if a 2D pill intersects a triangle (3 vertices, 2D).
+ * Tests each edge where the pill center is outside the edge half-plane. */
+char pill_intersects_triangle2d(float *pill_center, float *pill_dir,
+                                float pill_radius, float *v0, float *v1,
+                                float *v2)
+{
+  float edge_dir[2];
+  char result;
+
+  result = 1;
+  edge_dir[0] = v1[0] - v0[0];
+  edge_dir[1] = v1[1] - v0[1];
+  if (0.0f < edge_dir[1] * (pill_center[0] - v0[0]) -
+             edge_dir[0] * (pill_center[1] - v0[1])) {
+    if (vector_intersects_pill2d(v0, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+
+  edge_dir[0] = v2[0] - v1[0];
+  edge_dir[1] = v2[1] - v1[1];
+  if (0.0f < edge_dir[1] * (pill_center[0] - v1[0]) -
+             edge_dir[0] * (pill_center[1] - v1[1])) {
+    if (vector_intersects_pill2d(v1, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+
+  edge_dir[0] = v0[0] - v2[0];
+  edge_dir[1] = v0[1] - v2[1];
+  if (0.0f < edge_dir[1] * (pill_center[0] - v2[0]) -
+             edge_dir[0] * (pill_center[1] - v2[1])) {
+    if (vector_intersects_pill2d(v2, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  return result;
+}
+
+/* Test if a 3D pill (capsule) intersects a triangle.
+ * Projects pill onto triangle plane, tests edges for outside half-planes. */
+int pill_intersects_triangle3d(float *pill_start, float *pill_dir,
+                               float pill_radius, float *v0, float *v1,
+                               float *v2)
+{
+  float e01[3], e12[3], n[3];
+  float e20[3], cp[3];
+  float proj[3];
+  float t, closest_x, closest_y;
+  char outside;
+
+  e01[0] = v1[0] - v0[0];
+  outside = 0;
+  e01[1] = v1[1] - v0[1];
+  e01[2] = v1[2] - v0[2];
+  e12[0] = v2[0] - v1[0];
+  e12[1] = v2[1] - v1[1];
+  e12[2] = v2[2] - v1[2];
+
+  n[0] = e12[2] * e01[1] - e12[1] * e01[2];
+  n[1] = e01[2] * e12[0] - e12[2] * e01[0];
+  n[2] = e12[1] * e01[0] - e01[1] * e12[0];
+
+  t = (n[0] * (v0[0] - pill_start[0]) + n[1] * (v0[1] - pill_start[1]) +
+       n[2] * (v0[2] - pill_start[2])) /
+      (n[1] * pill_dir[1] + n[2] * pill_dir[2] + n[0] * pill_dir[0]);
+
+  if (t < 0.0f) {
+    closest_x = 0.0f;
+  } else if (t > 1.0f) {
+    closest_x = 1.0f;
+  } else {
+    closest_x = t;
+  }
+  proj[0] = closest_x * pill_dir[0] + pill_start[0];
+  proj[1] = closest_x * pill_dir[1] + pill_start[1];
+  proj[2] = closest_x * pill_dir[2] + pill_start[2];
+
+  if ((e01[1] * (proj[2] - v0[2]) - (proj[1] - v0[1]) * e01[2]) * n[0] +
+      (e01[2] * (proj[0] - v0[0]) - (proj[2] - v0[2]) * e01[0]) * n[1] +
+      n[2] * ((proj[1] - v0[1]) * e01[0] - (proj[0] - v0[0]) * e01[1]) <
+      0.0f) {
+    if (vector_intersects_pill3d(v0, e01, pill_start, pill_dir, pill_radius))
+      return 1;
+    outside = 1;
+  }
+
+  if (outside == 0) {
+    if ((e12[1] * (proj[2] - v1[2]) - (proj[1] - v1[1]) * e12[2]) * n[0] +
+        (e12[2] * (proj[0] - v1[0]) - (proj[2] - v1[2]) * e12[0]) * n[1] +
+        n[2] * ((proj[1] - v1[1]) * e12[0] -
+                e12[1] * (proj[0] - v1[0])) < 0.0f) {
+      if (vector_intersects_pill3d(v1, e12, pill_start, pill_dir, pill_radius))
+        return 1;
+      outside = 1;
+    }
+  } else {
+    if (vector_intersects_pill3d(v1, e12, pill_start, pill_dir, pill_radius))
+      return 1;
+  }
+
+  e20[0] = v0[0] - v2[0];
+  e20[1] = v0[1] - v2[1];
+  e20[2] = v0[2] - v2[2];
+  cp[0] = proj[0] - v2[0];
+  cp[1] = proj[1] - v2[1];
+  cp[2] = proj[2] - v2[2];
+
+  if (0.0f <= (e20[1] * cp[2] - e20[2] * cp[1]) * n[0] +
+              (e20[2] * cp[0] - e20[0] * cp[2]) * n[1] +
+              n[2] * (e20[0] * cp[1] - e20[1] * cp[0])) {
+    if (outside == 0) {
+      if (0.0f < t && t < 1.0f)
+        return 1;
+      closest_y = n[0] * cp[0] + n[1] * cp[1] + n[2] * cp[2];
+      if (closest_y * closest_y <=
+          (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * pill_radius *
+              pill_radius)
+        return 1;
+      return 0;
+    }
+  } else {
+    if (vector_intersects_pill3d(v2, e20, pill_start, pill_dir, pill_radius))
+      return 1;
+  }
+  return 0;
+}
+
 /* 0x10d4c0 — Ray vs cylinder intersection (cylinder along z-axis).
  * p1=ray_origin, p2=cylinder_height, p3=cylinder_radius, p4=cylinder_center,
  * p5=ray_direction, p6=out_t, p7=out_normal. */
@@ -2479,4 +2749,307 @@ int FUN_0010fe80(float x, float y)
   return 0;
 }
 
+/* Pin a normal vector to the boundary of a cone if it falls outside.
+ * Returns 1 if the normal was pinned, 0 if it was already inside the cone. */
+char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
+                          float cos_half_angle, float *result)
+{
+  float axis[3];
+  float dot;
+  float mag;
+
+  if (!valid_real_normal3d(normal)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)", "normal",
+             (double)normal[0], (double)normal[1], (double)normal[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x203, 1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d(direction)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)", "direction",
+             (double)direction[0], (double)direction[1], (double)direction[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x204, 1);
+    system_exit(-1);
+  }
+
+  dot = normal[0] * direction[0] + normal[1] * direction[1] +
+        normal[2] * direction[2];
+
+  if (dot >= cos_half_angle) {
+    result[0] = normal[0];
+    result[1] = normal[1];
+    result[2] = normal[2];
+    return 0;
+  }
+
+  axis[0] = normal[2] * direction[1] - normal[1] * direction[2];
+  axis[1] = normal[0] * direction[2] - direction[0] * normal[2];
+  axis[2] = direction[0] * normal[1] - normal[0] * direction[1];
+  mag = normalize3d(axis);
+  if (mag == 0.0f) {
+    perpendicular3d(direction, axis);
+    normalize3d(axis);
+  }
+
+  result[0] = direction[0];
+  result[1] = direction[1];
+  result[2] = direction[2];
+  rotate_vector3d_by_sincos(result, axis, sin_half_angle, cos_half_angle);
+
+  if (!valid_real_normal3d(result)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)", "result",
+             (double)result[0], (double)result[1], (double)result[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x21c, 1);
+    system_exit(-1);
+  }
+  return 1;
+}
+
+/* Convert a 3x3 rotation matrix to a unit quaternion [x,y,z,w].
+ * Uses the Shepperd method for numerical stability. */
+void FUN_0010a330(float *m, float *quat)
+{
+  float trace;
+  float s;
+  int i, j, k;
+  float local_10[3];
+
+  trace = m[4] + m[0] + m[8];
+  if (trace > 0.0f) {
+    s = sqrtf(trace + 1.0f);
+    quat[3] = 0.5f * s;
+    s = 0.5f / s;
+    quat[0] = (m[7] - m[5]) * s;
+    quat[1] = (m[2] - m[6]) * s;
+    quat[2] = (m[3] - m[1]) * s;
+    return;
+  }
+
+  i = (m[4] > m[0]) ? 1 : 0;
+  if (m[8] > m[i * 4])
+    i = 2;
+
+  j = *(short *)((char *)0x31fb8c + i * 2);
+  k = *(short *)((char *)0x31fb8c + j * 2);
+
+  s = sqrtf(m[i * 4] - (m[k * 4] + m[j * 4]) + 1.0f);
+  local_10[i] = 0.5f * s;
+  if (s != 0.0f)
+    s = 0.5f / s;
+  local_10[j] = (m[i * 3 + j] + m[j * 3 + i]) * s;
+  local_10[k] = (m[i * 3 + k] + m[k * 3 + i]) * s;
+  quat[0] = local_10[0];
+  quat[1] = local_10[1];
+  quat[2] = local_10[2];
+  quat[3] = (m[k * 3 + j] - m[j * 3 + k]) * s;
+}
+
+/* Transform a plane by a matrix. Computes new plane distance and normal. */
+void FUN_0010a240(float *matrix, float *plane, int out)
+{
+  float d;
+
+  if (*matrix == 0.0f) {
+    *(int *)(out + 0xc) = 0;
+    real_matrix3x3_transform_vector(matrix, (void *)plane, (void *)out);
+    return;
+  }
+  d = plane[3] - (matrix[10] * plane[0] + matrix[11] * plane[1] +
+                   matrix[12] * plane[2]);
+  *(float *)(out + 0xc) = d;
+  if (*matrix != 1.0f) {
+    *(float *)(out + 0xc) = d / *matrix;
+  }
+  real_matrix3x3_transform_vector(matrix, (void *)plane, (void *)out);
+}
+
+/* Construct a matrix from a 3D plane (normal + distance). */
+void FUN_0010a4c0(int out_matrix, float *plane)
+{
+  float axis[3];
+  float point[3];
+
+  if (!valid_real_normal3d(plane) ||
+      (*(unsigned int *)&plane[3] & 0x7f800000) == 0x7f800000) {
+    display_assert("valid_real_plane3d(plane)",
+                   "c:\\halo\\SOURCE\\math\\matrix_math.c", 0x172, 1);
+    system_exit(-1);
+  }
+  perpendicular3d(plane, axis);
+  normalize3d(axis);
+  point[0] = plane[3] * plane[0];
+  point[1] = plane[1] * plane[3];
+  point[2] = plane[2] * plane[3];
+  matrix_from_forward_and_up((float *)out_matrix, axis, plane);
+  *(float *)(out_matrix + 0x28) = point[0];
+  *(float *)(out_matrix + 0x2c) = point[1];
+  *(float *)(out_matrix + 0x30) = point[2];
+}
+
+/* Quantize a float to a byte, finding the largest byte whose dequantized
+ * value is <= the input value (lower bound). */
+unsigned char quantize_real_to_byte_lower_bound(float min, float max,
+                                                float value)
+{
+  float range;
+  unsigned char test;
+  float dequant;
+
+  range = max - min;
+  test = (unsigned char)(int)((value - min) / range * 255.0f);
+
+  if (!(min - *(float *)0x253f44 < value) ||
+      max + *(float *)0x253f44 < value) {
+    csprintf((char *)0x5ab100, "%lf is not between %lf and %lf",
+             (double)value, (double)min, (double)max);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0xaf3, 1);
+    system_exit(-1);
+  }
+
+  for (; test != 0; test--) {
+    if (test != 0xff)
+      dequant = (float)test * (1.0f / 255.0f) * range + min;
+    else
+      dequant = max;
+    if (dequant <= value)
+      break;
+  }
+
+  if (test != 0xff)
+    dequant = (float)test * (1.0f / 255.0f) * range + min;
+  else
+    dequant = max;
+  if (!(dequant <= value) &&
+      !(test == 0 && range * 0.0f + min <= value + *(float *)0x253f44)) {
+    display_assert(
+        "dequantize_byte_to_real(min, max, test)<=value || "
+        "(test==0 && dequantize_byte_to_real(min, max, test)"
+        "<=value+_real_epsilon)",
+        "c:\\halo\\SOURCE\\math\\real_math.c", 0xaf9, 1);
+    system_exit(-1);
+  }
+  return test;
+}
+
+/* Quantize a float to a byte, finding the smallest byte whose dequantized
+ * value is >= the input value (upper bound). */
+unsigned char quantize_real_to_byte_upper_bound(float min, float max,
+                                                float value)
+{
+  unsigned char test;
+  float dequant;
+
+  test = (unsigned char)(int)((value - min) / (max - min) * 255.0f);
+
+  if (!(min - *(float *)0x253f44 < value) ||
+      max + *(float *)0x253f44 < value) {
+    csprintf((char *)0x5ab100, "%lf is not between %lf and %lf",
+             (double)value, (double)min, (double)max);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0xb07, 1);
+    system_exit(-1);
+  }
+
+  if (test != 0xff) {
+    dequant = max;
+    if (test != 0xff) {
+      dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
+    }
+    while (dequant < value && (test = test + 1, test != 0xff)) {
+      dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
+    }
+  }
+
+  if (test != 0xff)
+    dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
+  else
+    dequant = max;
+  if (dequant < value) {
+    if (test == 0xff && value - *(float *)0x253f44 < max)
+      return 0xff;
+    display_assert(
+        "dequantize_byte_to_real(min, max, test)>=value || "
+        "(test==UNSIGNED_CHAR_MAX && dequantize_byte_to_real(min, max, test)"
+        ">=value-_real_epsilon)",
+        "c:\\halo\\SOURCE\\math\\real_math.c", 0xb0d, 1);
+    system_exit(-1);
+  }
+  return test;
+}
+
+/* Quantize a 3D rectangle (6 floats: x0,x1,y0,y1,z0,z1) to 6 bytes. */
+unsigned char *quantize_real_to_byte_rectangle3d(float *bounds, int *rect,
+                                                 unsigned char *out)
+{
+  if (*rect == 0x7f7fffff) {
+    if (rect[1] != (int)0xff7fffff || rect[2] != 0x7f7fffff ||
+        rect[3] != (int)0xff7fffff || rect[4] != 0x7f7fffff ||
+        rect[5] != (int)0xff7fffff) {
+      display_assert(
+          "rectangle->x1==REAL_MIN && rectangle->y0==REAL_MAX && "
+          "rectangle->y1==REAL_MIN && rectangle->z0==REAL_MAX && "
+          "rectangle->z1==REAL_MIN",
+          "c:\\halo\\SOURCE\\math\\real_math.c", 0xb1b, 1);
+      system_exit(-1);
+    }
+    csmemset(out, 0, 6);
+    return out;
+  }
+  out[0] = quantize_real_to_byte_lower_bound(bounds[0], bounds[1],
+                                             *(float *)&rect[0]);
+  out[1] = quantize_real_to_byte_upper_bound(bounds[0], bounds[1],
+                                             *(float *)&rect[1]);
+  out[2] = quantize_real_to_byte_lower_bound(bounds[2], bounds[3],
+                                             *(float *)&rect[2]);
+  out[3] = quantize_real_to_byte_upper_bound(bounds[2], bounds[3],
+                                             *(float *)&rect[3]);
+  out[4] = quantize_real_to_byte_lower_bound(bounds[4], bounds[5],
+                                             *(float *)&rect[4]);
+  out[5] = quantize_real_to_byte_upper_bound(bounds[4], bounds[5],
+                                             *(float *)&rect[5]);
+  return out;
+}
+
+/* Initialize a vector tree structure (k-d tree for spatial lookups). */
+void FUN_00110730(int *param_1, short param_2, int param_3, int param_4,
+                  int param_5)
+{
+  if (param_1 == (int *)0) {
+    display_assert("tree", "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x2b, 1);
+    system_exit(-1);
+  }
+  if (param_4 == 0) {
+    display_assert("get_vector", "c:\\halo\\SOURCE\\math\\vector_tree.c",
+                   0x2c, 1);
+    system_exit(-1);
+  }
+  if (param_5 == 0) {
+    display_assert("compare_component",
+                   "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x2d, 1);
+    system_exit(-1);
+  }
+  if (param_2 < 1) {
+    display_assert("component_count>0",
+                   "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x2e, 1);
+    system_exit(-1);
+  }
+  FUN_00117b20(param_1 + 1, 0x10);
+  *(short *)(param_1 + 4) = param_2;
+  param_1[7] = param_5;
+  *param_1 = -1;
+  param_1[5] = param_3;
+  param_1[6] = param_4;
+}
+
+/* Dispose a vector tree (free the backing table). */
+void FUN_00110800(int param_1)
+{
+  FUN_00117cf0((int *)(param_1 + 4));
+}
 
