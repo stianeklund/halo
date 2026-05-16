@@ -2891,6 +2891,131 @@ void FUN_0010a4c0(int out_matrix, float *plane)
   *(float *)(out_matrix + 0x30) = point[2];
 }
 
+/* Quantize a float to a byte, finding the largest byte whose dequantized
+ * value is <= the input value (lower bound). */
+unsigned char quantize_real_to_byte_lower_bound(float min, float max,
+                                                float value)
+{
+  float range;
+  unsigned char test;
+  float dequant;
+
+  range = max - min;
+  test = (unsigned char)(int)((value - min) / range * 255.0f);
+
+  if (!(min - *(float *)0x253f44 < value) ||
+      max + *(float *)0x253f44 < value) {
+    csprintf((char *)0x5ab100, "%lf is not between %lf and %lf",
+             (double)value, (double)min, (double)max);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0xaf3, 1);
+    system_exit(-1);
+  }
+
+  for (; test != 0; test--) {
+    if (test != 0xff)
+      dequant = (float)test * (1.0f / 255.0f) * range + min;
+    else
+      dequant = max;
+    if (dequant <= value)
+      break;
+  }
+
+  if (test != 0xff)
+    dequant = (float)test * (1.0f / 255.0f) * range + min;
+  else
+    dequant = max;
+  if (!(dequant <= value) &&
+      !(test == 0 && range * 0.0f + min <= value + *(float *)0x253f44)) {
+    display_assert(
+        "dequantize_byte_to_real(min, max, test)<=value || "
+        "(test==0 && dequantize_byte_to_real(min, max, test)"
+        "<=value+_real_epsilon)",
+        "c:\\halo\\SOURCE\\math\\real_math.c", 0xaf9, 1);
+    system_exit(-1);
+  }
+  return test;
+}
+
+/* Quantize a float to a byte, finding the smallest byte whose dequantized
+ * value is >= the input value (upper bound). */
+unsigned char quantize_real_to_byte_upper_bound(float min, float max,
+                                                float value)
+{
+  unsigned char test;
+  float dequant;
+
+  test = (unsigned char)(int)((value - min) / (max - min) * 255.0f);
+
+  if (!(min - *(float *)0x253f44 < value) ||
+      max + *(float *)0x253f44 < value) {
+    csprintf((char *)0x5ab100, "%lf is not between %lf and %lf",
+             (double)value, (double)min, (double)max);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0xb07, 1);
+    system_exit(-1);
+  }
+
+  if (test != 0xff) {
+    dequant = max;
+    if (test != 0xff) {
+      dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
+    }
+    while (dequant < value && (test = test + 1, test != 0xff)) {
+      dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
+    }
+  }
+
+  if (test != 0xff)
+    dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
+  else
+    dequant = max;
+  if (dequant < value) {
+    if (test == 0xff && value - *(float *)0x253f44 < max)
+      return 0xff;
+    display_assert(
+        "dequantize_byte_to_real(min, max, test)>=value || "
+        "(test==UNSIGNED_CHAR_MAX && dequantize_byte_to_real(min, max, test)"
+        ">=value-_real_epsilon)",
+        "c:\\halo\\SOURCE\\math\\real_math.c", 0xb0d, 1);
+    system_exit(-1);
+  }
+  return test;
+}
+
+/* Quantize a 3D rectangle (6 floats: x0,x1,y0,y1,z0,z1) to 6 bytes. */
+unsigned char *quantize_real_to_byte_rectangle3d(float *bounds, int *rect,
+                                                 unsigned char *out)
+{
+  if (*rect == 0x7f7fffff) {
+    if (rect[1] != (int)0xff7fffff || rect[2] != 0x7f7fffff ||
+        rect[3] != (int)0xff7fffff || rect[4] != 0x7f7fffff ||
+        rect[5] != (int)0xff7fffff) {
+      display_assert(
+          "rectangle->x1==REAL_MIN && rectangle->y0==REAL_MAX && "
+          "rectangle->y1==REAL_MIN && rectangle->z0==REAL_MAX && "
+          "rectangle->z1==REAL_MIN",
+          "c:\\halo\\SOURCE\\math\\real_math.c", 0xb1b, 1);
+      system_exit(-1);
+    }
+    csmemset(out, 0, 6);
+    return out;
+  }
+  out[0] = quantize_real_to_byte_lower_bound(bounds[0], bounds[1],
+                                             *(float *)&rect[0]);
+  out[1] = quantize_real_to_byte_upper_bound(bounds[0], bounds[1],
+                                             *(float *)&rect[1]);
+  out[2] = quantize_real_to_byte_lower_bound(bounds[2], bounds[3],
+                                             *(float *)&rect[2]);
+  out[3] = quantize_real_to_byte_upper_bound(bounds[2], bounds[3],
+                                             *(float *)&rect[3]);
+  out[4] = quantize_real_to_byte_lower_bound(bounds[4], bounds[5],
+                                             *(float *)&rect[4]);
+  out[5] = quantize_real_to_byte_upper_bound(bounds[4], bounds[5],
+                                             *(float *)&rect[5]);
+  return out;
+}
+
 /* Initialize a vector tree structure (k-d tree for spatial lookups). */
 void FUN_00110730(int *param_1, short param_2, int param_3, int param_4,
                   int param_5)

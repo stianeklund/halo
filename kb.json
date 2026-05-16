@@ -18815,16 +18815,19 @@
           "addr": "0x10fa30"
         },
         {
-          "decl": "void quantize_real_to_byte_lower_bound(void);",
-          "addr": "0x10fb20"
+          "decl": "unsigned char quantize_real_to_byte_lower_bound(float min, float max, float value);",
+          "addr": "0x10fb20",
+          "ported": true
         },
         {
-          "decl": "void quantize_real_to_byte_upper_bound(void);",
-          "addr": "0x10fc60"
+          "decl": "unsigned char quantize_real_to_byte_upper_bound(float min, float max, float value);",
+          "addr": "0x10fc60",
+          "ported": true
         },
         {
-          "decl": "void quantize_real_to_byte_rectangle3d(void);",
-          "addr": "0x10fd90"
+          "decl": "unsigned char *quantize_real_to_byte_rectangle3d(float *bounds, int *rect, unsigned char *out);",
+          "addr": "0x10fd90",
+          "ported": false
         },
         {
           "decl": "int FUN_0010fe80(float x, float y);",
