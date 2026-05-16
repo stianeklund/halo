@@ -181,6 +181,19 @@ void decals_update_for_new_map(bool full_reset)
   decal_counts_1 = 0;
 }
 
+/* decal_cluster_get_first_index (0x98fe0)
+ *
+ * Returns the first decal datum index for the given cluster and layer.
+ * Validates that cluster_index is in [0, 512) and layer is in [0, 5).
+ * Indexes into the decal_globals array: [layer * 512 + cluster_index]. */
+int FUN_00098fe0(int16_t cluster_index, int16_t layer)
+{
+  assert_halt(cluster_index >= 0 && cluster_index < 0x200);
+  assert_halt(layer >= 0 && layer < 5);
+
+  return *(int *)(decal_globals + ((int)layer * 0x200 + (int)cluster_index) * 4);
+}
+
 /* Projection axis remapping table at 0x28cb10. */
 static const int16_t g_projection_axes[6][2] = {
   { 2, 1 }, { 1, 2 }, { 0, 2 }, { 2, 0 }, { 1, 0 }, { 0, 1 },

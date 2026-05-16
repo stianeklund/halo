@@ -5662,8 +5662,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00098fe0(void);",
-          "addr": "0x98fe0"
+          "decl": "int FUN_00098fe0(int16_t cluster_index, int16_t layer);",
+          "addr": "0x98fe0",
+          "ported": true
         },
         {
           "decl": "void project_point2d(float *point_2d, float *plane, int16_t projection, uint8_t sign, float *out_point);",
