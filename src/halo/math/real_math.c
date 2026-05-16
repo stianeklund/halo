@@ -2810,6 +2810,45 @@ char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
   return 1;
 }
 
+/* Convert a 3x3 rotation matrix to a unit quaternion [x,y,z,w].
+ * Uses the Shepperd method for numerical stability. */
+void FUN_0010a330(float *m, float *quat)
+{
+  float trace;
+  float s;
+  int i, j, k;
+  float local_10[3];
+
+  trace = m[4] + m[0] + m[8];
+  if (trace > 0.0f) {
+    s = sqrtf(trace + 1.0f);
+    quat[3] = 0.5f * s;
+    s = 0.5f / s;
+    quat[0] = (m[7] - m[5]) * s;
+    quat[1] = (m[2] - m[6]) * s;
+    quat[2] = (m[3] - m[1]) * s;
+    return;
+  }
+
+  i = (m[4] > m[0]) ? 1 : 0;
+  if (m[8] > m[i * 4])
+    i = 2;
+
+  j = *(short *)((char *)0x31fb8c + i * 2);
+  k = *(short *)((char *)0x31fb8c + j * 2);
+
+  s = sqrtf(m[i * 4] - (m[k * 4] + m[j * 4]) + 1.0f);
+  local_10[i] = 0.5f * s;
+  if (s != 0.0f)
+    s = 0.5f / s;
+  local_10[j] = (m[i * 3 + j] + m[j * 3 + i]) * s;
+  local_10[k] = (m[i * 3 + k] + m[k * 3 + i]) * s;
+  quat[0] = local_10[0];
+  quat[1] = local_10[1];
+  quat[2] = local_10[2];
+  quat[3] = (m[k * 3 + j] - m[j * 3 + k]) * s;
+}
+
 /* Transform a plane by a matrix. Computes new plane distance and normal. */
 void FUN_0010a240(float *matrix, float *plane, int out)
 {
