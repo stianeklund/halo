@@ -221,10 +221,7 @@ class KnowledgeBase:
 		name_alternate = name + '__thunk'
 		mangled_name_alternate = mangled_name.replace(name, name_alternate)
 
-		if len(reg_args) == 1 and reg_args[0][0] == 0:
-			return self._gen_thunk_single_reg(s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate)
-		else:
-			return self._gen_thunk_multi_reg(s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate)
+		return self._gen_thunk_multi_reg(s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate)
 
 	def _gen_thunk_single_reg(self, s, reg_args, rtype, fname, args, name, mangled_name, mangled_name_alternate):
 		"""Generate thunk for single first-arg register (original path)."""
