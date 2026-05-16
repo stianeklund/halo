@@ -144,6 +144,62 @@ void FUN_000c5960(int datum_index)
   *(int16_t *)(node + 0x2) = *(int16_t *)(predicate + 0x2);
 }
 
+/* 0xc5b50 — Validate and parse a real (float) literal from an HS expression.
+ * Checks each character is a digit or single decimal point, then calls atof
+ * to store the parsed value. Sets compile error on invalid input. */
+bool FUN_000c5b50(int datum_index)
+{
+  char c;
+  char seen_dot;
+  char *node;
+  char *str;
+  bool result;
+
+  result = true;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  str = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+  seen_dot = 0;
+
+  if (*(int16_t *)(node + 0x4) != 6) {
+    display_assert("expression->type==_hs_type_real",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x5d6, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)(node + 0x2) != *(int16_t *)(node + 0x4)) {
+    display_assert("expression->constant_type==expression->type",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x5d7, 1);
+    system_exit(-1);
+  }
+
+  if (*str == '-') {
+    str = str + 1;
+  }
+
+  c = *str;
+  if (c != '\0') {
+    do {
+      if (crt_isdigit((int)c) == 0) {
+        if (seen_dot || *str != '.') {
+          *(const char **)0x46b6fc = "this is not a valid real number.";
+          *(int *)0x46b700 = *(int *)(node + 0xc);
+          result = false;
+          goto done;
+        }
+        seen_dot = 1;
+      }
+      c = str[1];
+      str = str + 1;
+    } while (c != '\0');
+  }
+
+done:
+  *(float *)(node + 0x10) =
+    (float)crt_atof((const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+
+  return result;
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
@@ -774,15 +830,27 @@ bool FUN_000c73a0(int datum_index)
  */
 bool FUN_000c74c0(int datum_index)
 {
+  char *node;
+  char *node2;
+  int first_child;
+  char *child_node;
+  int16_t type;
+  char *child_node2;
+  int16_t fn_idx;
+  void *fn_desc;
+  int16_t fn_ret;
+  typedef bool (*hs_parse_fn_t)(int16_t function_index, int datum_index);
+  hs_parse_fn_t parse_fn;
+
   /* Three datum_get calls at entry (matching binary) to load expression node
    * and first-child node. */
-  char *node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
-  char *node2 = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
-  int first_child = *(int *)(node2 + 0x10);
-  char *child_node = (char *)datum_get(*(data_t **)0x5aa6c8, first_child);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node2 = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  first_child = *(int *)(node2 + 0x10);
+  child_node = (char *)datum_get(*(data_t **)0x5aa6c8, first_child);
 
   /* Validate expression type. */
-  int16_t type = *(int16_t *)(node + 0x4);
+  type = *(int16_t *)(node + 0x4);
   if (!((type >= 4 && type <= 0x30) || type == 1 || type == 0)) {
     display_assert(
       "hs_type_valid(expression->type) || expression->type==_hs_special_form"
@@ -792,8 +860,9 @@ bool FUN_000c74c0(int datum_index)
   }
 
   /* Reload child node (fourth datum_get, matches binary). */
-  char *child_node2 = (char *)datum_get(*(data_t **)0x5aa6c8, first_child);
+  child_node2 = (char *)datum_get(*(data_t **)0x5aa6c8, first_child);
   if (!(*(uint8_t *)(child_node2 + 0x6) & 0x1)) {
+    {
     /* Child is not compiled — emit error. */
     const char *what = (*(int16_t *)(node + 0x4) == 1) ?
                          "\"script\" or \"global\"" :
@@ -803,6 +872,7 @@ bool FUN_000c74c0(int datum_index)
     *(const char **)0x46b6fc = (const char *)0x46b704;
     *(int *)0x46b700 = *(int *)(child_node + 0xc);
     return false;
+    }
   }
 
   if (*(int16_t *)(node + 0x4) == 1) {
@@ -822,7 +892,7 @@ bool FUN_000c74c0(int datum_index)
   /* Resolve expression name: function_index written into node+0x2. */
   FUN_000c5960(datum_index);
 
-  int16_t fn_idx = *(int16_t *)(node + 0x2);
+  fn_idx = *(int16_t *)(node + 0x2);
   if (fn_idx == -1) {
     *(const char **)0x46b6fc = "this is not a valid function or script name.";
     *(int *)0x46b700 = *(int *)(child_node + 0xc);
@@ -863,8 +933,8 @@ bool FUN_000c74c0(int datum_index)
   }
 
   /* Function reference: get descriptor. */
-  void *fn_desc = hs_function_table_get((int16_t)fn_idx);
-  int16_t fn_ret = *(int16_t *)fn_desc;
+  fn_desc = hs_function_table_get((int16_t)fn_idx);
+  fn_ret = *(int16_t *)fn_desc;
 
   if (*(int16_t *)(node + 0x4) != 0) {
     /* Validate return type compatibility. */
@@ -909,8 +979,7 @@ bool FUN_000c74c0(int datum_index)
                    0x58c, 1);
     system_exit(-1);
   }
-  typedef bool (*hs_parse_fn_t)(int16_t function_index, int datum_index);
-  hs_parse_fn_t parse_fn = *(hs_parse_fn_t *)(((char *)fn_desc) + 0x8);
+  parse_fn = *(hs_parse_fn_t *)(((char *)fn_desc) + 0x8);
   return parse_fn(*(int16_t *)(node + 0x2), datum_index);
 }
 
@@ -932,24 +1001,29 @@ bool FUN_000c74c0(int datum_index)
  */
 void FUN_000c7b10(int datum_index)
 {
-  char *node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  char *node;
+  char *node2;
+  int16_t type;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
   *(uint8_t *)(node + 0x6) |= 0x8;
 
   /* Re-read the node flags to test bit 0 (function vs expression). */
-  char *node2 = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node2 = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
   if (!(*(uint8_t *)(node2 + 0x6) & 0x1)) {
     /* Non-function node: recurse into children. */
     int child = *(int *)(node + 0x10);
     while (child != -1) {
+      char *child_node;
       FUN_000c7b10(child);
-      char *child_node = (char *)datum_get(*(data_t **)0x5aa6c8, child);
+      child_node = (char *)datum_get(*(data_t **)0x5aa6c8, child);
       child = *(int *)(child_node + 0x8);
     }
     return;
   }
 
   /* Function node: re-intern the string constant for recompilation. */
-  int16_t type = *(int16_t *)(node + 0x4);
+  type = *(int16_t *)(node + 0x4);
   if (type == 2) {
     int str_offset = *(int *)(node + 0xc);
     char *str_ptr;
