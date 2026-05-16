@@ -110,20 +110,21 @@ float normalize3d(float *v)
   float mag;
   float scale;
 
-  if (v[0] != v[0] || v[1] != v[1] || v[2] != v[2]) {
-    error(2, "normalize3d: NaN INPUT (%f, %f, %f)", (double)v[0], (double)v[1], (double)v[2]);
-    v[0] = v[1] = v[2] = 0.0f;
+  mag = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  if (!(fabsf(mag) >= *(double *)0x2533d0)) {
+    /* Only zero for NaN input — NaN mag means NaN input components.
+       Near-zero non-NaN vectors are left unchanged (original behavior);
+       callers may check the 0.0f return and skip use of the vector. */
+    if (v[0] != v[0] || v[1] != v[1] || v[2] != v[2]) {
+      v[0] = v[1] = v[2] = 0.0f;
+    }
     return 0.0f;
   }
-  mag = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-  if (fabsf(mag) >= *(double *)0x2533d0) {
-    scale = 1.0f / mag;
-    v[0] = v[0] * scale;
-    v[1] = v[1] * scale;
-    v[2] = v[2] * scale;
-    return mag;
-  }
-  return 0.0f;
+  scale = 1.0f / mag;
+  v[0] = v[0] * scale;
+  v[1] = v[1] * scale;
+  v[2] = v[2] * scale;
+  return mag;
 }
 
 /* FUN_00013070 (0x13070) — Dot product of two 3D vectors.
