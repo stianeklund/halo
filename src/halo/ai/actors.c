@@ -5051,7 +5051,7 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
     system_exit(-1);
   }
 
-  FUN_00144b50();
+  objects_garbage_collect_tick();
 
   actv_data = (char *)tag_get(0x61637476, actv_tag_index);
 

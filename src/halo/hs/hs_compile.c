@@ -144,6 +144,45 @@ void FUN_000c5960(int datum_index)
   *(int16_t *)(node + 0x2) = *(int16_t *)(predicate + 0x2);
 }
 
+/* 0xc5a20 — Compile a boolean literal expression. Compares the source string
+ * against known true/false synonyms and stores 1 or 0 in the value field. */
+bool FUN_000c5a20(int datum_index)
+{
+  char *node;
+  char *str;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  str = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+
+  if (*(int16_t *)(node + 0x4) != 5) {
+    display_assert("expression->type==_hs_type_boolean",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x5b3, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)(node + 0x2) != *(int16_t *)(node + 0x4)) {
+    display_assert("expression->constant_type==expression->type",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x5b4, 1);
+    system_exit(-1);
+  }
+
+  if (csstrcmp(str, "false") == 0 || csstrcmp(str, "off") == 0 ||
+      csstrcmp(str, "0") == 0) {
+    *(char *)(node + 0x10) = 0;
+    return true;
+  }
+
+  if (csstrcmp(str, "true") == 0 || csstrcmp(str, "on") == 0 ||
+      csstrcmp(str, "1") == 0) {
+    *(char *)(node + 0x10) = 1;
+    return true;
+  }
+
+  *(const char **)0x46b6fc = "i expected \"true\" or \"false\".";
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return false;
+}
+
 /* 0xc5b50 — Validate and parse a real (float) literal from an HS expression.
  * Checks each character is a digit or single decimal point, then calls atof
  * to store the parsed value. Sets compile error on invalid input. */
