@@ -4919,8 +4919,9 @@
           "ported": true
         },
         {
-          "decl": "void contrail_delete(void);",
-          "addr": "0x978f0"
+          "decl": "void contrail_delete(int contrail_handle);",
+          "addr": "0x978f0",
+          "ported": true
         },
         {
           "decl": "void contrails_reconnect_to_structure_bsp(void);",

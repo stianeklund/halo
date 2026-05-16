@@ -1583,6 +1583,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x978f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x97a50": {
       "kind": "function",
       "status": "ported"

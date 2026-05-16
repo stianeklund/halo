@@ -18,6 +18,35 @@ void contrails_dispose(void)
     contrail_data = 0;
 }
 
+/* 0x978f0 — contrail_delete. Walks the 4 point chains attached to a contrail
+ * datum (starting at datum+0x34), deletes every point datum in each chain,
+ * then deletes the contrail datum itself. */
+void contrail_delete(int contrail_handle)
+{
+  char *datum;
+  int *chain_ptr;
+  int point_handle;
+  int next_handle;
+  char *point_datum;
+  int i;
+
+  datum = (char *)datum_get(contrail_data, contrail_handle);
+  chain_ptr = (int *)(datum + 0x34);
+
+  for (i = 4; i != 0; i--) {
+    point_handle = *chain_ptr;
+    while (point_handle != -1) {
+      point_datum = (char *)datum_get(contrail_point_data, point_handle);
+      next_handle = *(int *)(point_datum + 0x34);
+      datum_delete(contrail_point_data, point_handle);
+      point_handle = next_handle;
+    }
+    chain_ptr++;
+  }
+
+  datum_delete(contrail_data, contrail_handle);
+}
+
 /*
  * FUN_00097a50 (0x97a50): contrail tick counter — given a contrail handle and
  * delta_time, computes how many full emission periods fit in delta_time and
