@@ -291,6 +291,39 @@ bool FUN_000c5d60(int datum_index)
   return true;
 }
 
+/* 0xc5de0 — Compile a script name reference. Asserts type is _hs_type_script
+ * (10), looks up the script by name, stores the index in the value field. */
+bool FUN_000c5de0(int datum_index)
+{
+  int16_t script_idx;
+  char *node;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+
+  if (*(int16_t *)(node + 0x4) != 10) {
+    display_assert("expression->type==_hs_type_script",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x62d, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)(node + 0x2) != *(int16_t *)(node + 0x4)) {
+    display_assert("expression->constant_type==expression->type",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x62e, 1);
+    system_exit(-1);
+  }
+
+  script_idx = hs_find_script_by_name(
+    (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+  if (script_idx != -1) {
+    *(int16_t *)(node + 0x10) = script_idx;
+    return true;
+  }
+
+  *(const char **)0x46b6fc = "this is not a valid script name.";
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return false;
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
