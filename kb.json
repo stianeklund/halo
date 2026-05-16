@@ -18682,8 +18682,9 @@
           "addr": "0x10ce10"
         },
         {
-          "decl": "void sphere_test_vector3d(void);",
-          "addr": "0x10d380"
+          "decl": "char FUN_0010d380(float *p1, float p2, float *p3, float *p4, float *out_t, float *out_normal);",
+          "addr": "0x10d380",
+          "ported": true
         },
         {
           "decl": "void pill_test_vector3d(void);",

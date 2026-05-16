@@ -1834,6 +1834,48 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10d380 — Ray-sphere intersection.
+ * p1=ray_origin, p2=sphere_radius, p3=sphere_center, p4=ray_direction.
+ * Returns 1 if intersect, sets *out_t and *out_normal. */
+char FUN_0010d380(float *p1, float p2, float *p3, float *p4,
+                  float *out_t, float *out_normal)
+{
+  float dx, dy, dz;
+  float dot;
+  float dist_sq, c;
+  float a, disc;
+  void (*normalize3d_in_place)(float *) = (void (*)(float *))FUN_0010c2e0;
+
+  dx = p3[0] - p1[0];
+  dy = p3[1] - p1[1];
+  dz = p3[2] - p1[2];
+  dot = dx * p4[0] + dy * p4[1] + dz * p4[2];
+  if (dot < 0.0f) {
+    dist_sq = dy * dy + dx * dx + dz * dz;
+    c = dist_sq - p2 * p2;
+    if (c <= 0.0f) {
+      *out_t = 0.0f;
+      a = 1.0f / sqrtf(dist_sq);
+      out_normal[0] = dx * a;
+      out_normal[1] = dy * a;
+      out_normal[2] = dz * a;
+      return 1;
+    }
+    a = p4[2] * p4[2] + p4[1] * p4[1] + p4[0] * p4[0];
+    disc = dot * dot - a * c;
+    if (0.0f <= disc) {
+      dot = -(sqrtf(disc) + dot);
+      if (dot < a) {
+        *out_t = dot / a;
+        vector3d_scale_add(&dx, p4, dot / a, out_normal);
+        normalize3d_in_place(out_normal);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 /* 0x1104e0 — 3D capsule vs cone test (calls FUN_0010dbf0 for cone test). */
 char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
                   float sine, float cosine)
