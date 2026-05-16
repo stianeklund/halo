@@ -1834,6 +1834,64 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10d4c0 — Ray vs cylinder intersection (cylinder along z-axis).
+ * p1=ray_origin, p2=cylinder_height, p3=cylinder_radius, p4=cylinder_center,
+ * p5=ray_direction, p6=out_t, p7=out_normal. */
+char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
+                  float *p6, float *p7)
+{
+  float dx, dy;
+  float bp, c2;
+  float a, t;
+  char hit;
+  float local_10;
+
+  dx = p4[0] - p1[0];
+  dy = p4[1] - p1[1];
+  bp = dy * p5[1] + dx * p5[0];
+  c2 = (dx * dx + dy * dy) - p3 * p3;
+  t = 0.0f;
+  if (c2 <= 0.0f) {
+    a = p5[1] * p5[1] + p5[0] * p5[0];
+    c2 = bp * bp - a * c2;
+    if (c2 < 0.0f) return 0;
+    c2 = -(sqrtf(c2) + bp);
+    if (c2 <= a) return 0;
+    t = c2 / a;
+  }
+  hit = 1;
+  c2 = (t * p5[2] + (p4[2] - p1[2])) / (p2 * p2);
+  if (0.0f <= c2) {
+    if (c2 <= 1.0f) {
+      if (0.0f <= bp) return 0;
+      *p6 = t;
+      p7[0] = t * p5[0] + dx;
+      p7[1] = t * p5[1] + dy;
+      FUN_0010c290(p7);
+      p7[2] = 0.0f;
+      goto check;
+    }
+    local_10 = p1[0];
+    dy = p2 + p1[2];
+    dx = p1[1];
+    {
+      float local_origin[3];
+      local_origin[0] = local_10;
+      local_origin[1] = dx;
+      local_origin[2] = dy;
+      hit = FUN_0010d380(local_origin, p3, p4, p5, p6, p7);
+    }
+  } else {
+    hit = FUN_0010d380(p1, p3, p4, p5, p6, p7);
+  }
+  if (hit == 0) return 0;
+check:
+  if (p5[0] * p7[0] + p7[1] * p5[1] + p7[2] * p5[2] <= 0.0f) {
+    return hit;
+  }
+  return 0;
+}
+
 /* 0x10d380 — Ray-sphere intersection.
  * p1=ray_origin, p2=sphere_radius, p3=sphere_center, p4=ray_direction.
  * Returns 1 if intersect, sets *out_t and *out_normal. */

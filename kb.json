@@ -18687,8 +18687,9 @@
           "ported": true
         },
         {
-          "decl": "void pill_test_vector3d(void);",
-          "addr": "0x10d4c0"
+          "decl": "char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5, float *p6, float *p7);",
+          "addr": "0x10d4c0",
+          "ported": true
         },
         {
           "decl": "float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center, float radius);",
