@@ -10010,8 +10010,9 @@
           "addr": "0xc5f60"
         },
         {
-          "decl": "void FUN_000c6130(void);",
-          "addr": "0xc6130"
+          "decl": "bool FUN_000c6130(int datum_index @<eax>, void *tag_block @<ebx>, int element_size @<edi>, short offset);",
+          "addr": "0xc6130",
+          "ported": true
         },
         {
           "decl": "void FUN_000c6230(void);",

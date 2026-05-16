@@ -111,6 +111,7 @@
     "0xc57d0": "int FUN_000c57d0(char *str@<ebx>);",
     "0xc5840": "bool FUN_000c5840(int datum_index @<eax>);",
     "0xc5960": "void FUN_000c5960(int datum_index @<eax>);",
+    "0xc6130": "bool FUN_000c6130(int datum_index @<eax>, void *tag_block @<ebx>, int element_size @<edi>, short offset);",
     "0xc6a70": "int FUN_000c6a70(char *str @<eax>);",
     "0xc71c0": "void FUN_000c71c0(int datum_index@<eax>, char **cursor@<esi>);",
     "0xc72b0": "void FUN_000c72b0(char **cursor@<esi>);",
@@ -290,5 +291,13 @@
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
   },
   "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
-  "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);"
+  "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
+  "FUN_000c6130": {
+    "addr": "0xc6130",
+    "args": {
+      "datum_index": "eax",
+      "tag_block": "ebx",
+      "element_size": "edi"
+    }
+  }
 }

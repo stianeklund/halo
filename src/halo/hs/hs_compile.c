@@ -406,6 +406,52 @@ bool FUN_000c5e90(int datum_index)
   return true;
 }
 
+/* 0xc6130 — Generic tag-block name lookup for HS literal compilation.
+ * Iterates elements in tag_block (passed via EBX), comparing the string at
+ * element+offset against the node's source string using case-insensitive match.
+ * On match, stores the element index (as short) into node+0x10.
+ * On failure, formats "this is not a valid %s name" error. */
+bool FUN_000c6130(int datum_index, void *tag_block, int element_size, short offset)
+{
+  char *node;
+  int i;
+  char *element;
+  int cmp;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+
+  if (element_size > 0x7fff) {
+    display_assert("element_size<=SHORT_MAX",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x6f1, 1);
+    system_exit(-1);
+  }
+  if ((int)offset + 0x1f >= element_size) {
+    display_assert("offset+TAG_STRING_LENGTH<element_size",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x6f2, 1);
+    system_exit(-1);
+  }
+
+  i = 0;
+  if (*(int *)tag_block > 0) {
+    do {
+      element = (char *)tag_block_get_element(tag_block, i, element_size);
+      cmp = crt_stricmp(element + (int)offset,
+                        (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+      if (cmp == 0) {
+        *(int *)(node + 0x10) = (int)(int16_t)i;
+        return true;
+      }
+      i++;
+    } while ((int)(int16_t)i < *(int *)tag_block);
+  }
+
+  crt_sprintf((char *)0x46b704, "this is not a valid %s name",
+              ((const char **)0x2f14a8)[(int)*(int16_t *)(node + 0x4)]);
+  *(const char **)0x46b6fc = (const char *)0x46b704;
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return false;
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
