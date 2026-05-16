@@ -679,7 +679,6 @@ void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
     error(2, "rotate_vector3d_by_sincos: NaN OUTPUT v=(%f,%f,%f) axis=(%f,%f,%f) sin=%f cos=%f",
           (double)vector[0], (double)vector[1], (double)vector[2],
           (double)a0, (double)a1, (double)a2, (double)sin_angle, (double)cos_angle);
-    stack_walk(0);
   }
 }
 

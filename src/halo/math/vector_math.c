@@ -112,7 +112,6 @@ float normalize3d(float *v)
 
   if (v[0] != v[0] || v[1] != v[1] || v[2] != v[2]) {
     error(2, "normalize3d: NaN INPUT (%f, %f, %f)", (double)v[0], (double)v[1], (double)v[2]);
-    stack_walk(0);
     v[0] = v[1] = v[2] = 0.0f;
     return 0.0f;
   }

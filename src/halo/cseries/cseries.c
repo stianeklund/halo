@@ -24,12 +24,12 @@ char *csprintf(char *buffer, const char *format, ...)
 void display_assert(const char *reason, const char *filepath, int lineno,
                     bool halt)
 {
-  if (halt) {
-    stack_walk(0);
-  }
   error(2, "EXCEPTION %s in %s,#%d: %s [rev=%s]", halt ? "halt" : "warn",
         filepath, lineno, reason ? reason : "<no reason given>",
         build_rev ? build_rev : "unknown");
+  if (halt) {
+    stack_walk(0);
+  }
 }
 
 /* Byte-compare two buffers with assertions on non-null pointers and

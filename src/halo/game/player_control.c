@@ -220,8 +220,8 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
   csmemset(action, 0xfa, 0x20);
   {
     /* player_control_get_input reads EBX as the output action struct.
-     * Use register constraints for push operands to avoid ESP-relative
-     * memory references being invalidated by the pushes. */
+     * With -fno-omit-frame-pointer, EBP-relative memory refs are stable
+     * across pushes, so push operands can use memory constraints. */
     int _dt_bits = *(int *)&delta_time;
     int _idx = (int)local_player_index;
     int _ebx = (int)action;
@@ -231,7 +231,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
       "call *%[fn]\n\t"
       "addl $8, %%esp"
       : "+b"(_ebx)
-      : [fn] "r"((void *)0xb70b0), [dt] "r"(_dt_bits), [idx] "r"(_idx)
+      : [fn] "r"((void *)0xb70b0), [dt] "g"(_dt_bits), [idx] "g"(_idx)
       : "eax", "ecx", "edx", "memory", "cc");
   }
 

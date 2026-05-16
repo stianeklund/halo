@@ -70,7 +70,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 	set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -fno-omit-frame-pointer")
 
 if(MSVC)
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
