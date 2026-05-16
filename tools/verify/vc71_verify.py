@@ -279,6 +279,7 @@ def run_compare_cached(
     threshold = 50.0
     show_diffs = False
     fpu_only = False
+    reg_normalize = False
     i = 0
     while i < len(extra_args):
         a = extra_args[i]
@@ -290,6 +291,8 @@ def run_compare_cached(
             show_diffs = True; i += 1
         elif a == "--fpu-only":
             fpu_only = True; i += 1
+        elif a in ("--reg-normalize", "-r"):
+            reg_normalize = True; i += 1
         else:
             i += 1
 
@@ -345,7 +348,8 @@ def run_compare_cached(
         else:
             misses += 1
             pct, diffs, fpu_warnings = co.compare_functions(
-                compiled_funcs[fn], reference_funcs[fn]
+                compiled_funcs[fn], reference_funcs[fn],
+                reg_normalize=reg_normalize,
             )
             cache_tag = ""
             # Store result; always save diff_lines so future --show-diffs works
@@ -357,11 +361,17 @@ def run_compare_cached(
         status = "PASS" if pct >= threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
 
+        reg_tag = ""
+        if reg_normalize:
+            mnem_pct, _, _ = co.compare_functions(
+                compiled_funcs[fn], reference_funcs[fn], reg_normalize=False)
+            reg_tag = f" [struct:{mnem_pct:.1f}%]"
+
         if not fpu_only:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
@@ -412,6 +422,8 @@ def main():
                     help="Disable cache: always recompile and recompare")
     ap.add_argument("--rebuild-cache", action="store_true",
                     help="Drop existing cache entries for this source before run")
+    ap.add_argument("--reg-normalize", "-r", action="store_true",
+                    help="Use register-alias normalization for operand-level comparison")
     args = ap.parse_args()
 
     units = load_units()
@@ -523,6 +535,8 @@ def main():
         extra += ["--show-diffs"]
     if args.fpu_only:
         extra += ["--fpu-only"]
+    if args.reg_normalize:
+        extra += ["--reg-normalize"]
     extra += ["--threshold", str(args.threshold)]
 
     rc = run_compare_cached(

@@ -156,6 +156,84 @@ def mnemonic(insn: str) -> str:
     return insn.split()[0] if insn.split() else insn
 
 
+# --- Register-alias normalization ---
+
+_REG_FAMILIES = {
+    'eax': ['eax', 'ax', 'al', 'ah'],
+    'ecx': ['ecx', 'cx', 'cl', 'ch'],
+    'edx': ['edx', 'dx', 'dl', 'dh'],
+    'ebx': ['ebx', 'bx', 'bl', 'bh'],
+    'esi': ['esi', 'si'],
+    'edi': ['edi', 'di'],
+}
+_FIXED_REGS = frozenset(['esp', 'sp', 'ebp', 'bp'])
+
+_REG_TO_FAMILY = {}
+_SUBREG_SUFFIX = {}
+for _base, _members in _REG_FAMILIES.items():
+    for _r in _members:
+        _REG_TO_FAMILY[_r] = _base
+        if _r == _base:
+            _SUBREG_SUFFIX[_r] = ''
+        elif _r.endswith('x') or _r in ('si', 'di'):
+            _SUBREG_SUFFIX[_r] = 'w'
+        elif _r.endswith('l'):
+            _SUBREG_SUFFIX[_r] = 'l'
+        elif _r.endswith('h'):
+            _SUBREG_SUFFIX[_r] = 'h'
+
+_REG_PATTERN = re.compile(r'%(' + '|'.join(
+    sorted(_REG_TO_FAMILY.keys(), key=len, reverse=True)) + r')\b')
+
+
+def canonicalize_registers(insns: list[str]) -> list[str]:
+    """Canonicalize GP registers to positional aliases based on first-appearance order.
+
+    Fixed registers (ESP, EBP) are preserved. All others are mapped to R0, R1, ...
+    based on the order their family first appears in the instruction stream.
+    Sub-registers keep a size suffix: R0l (low byte), R0h (high byte), R0w (16-bit).
+    """
+    family_order = {}
+    next_idx = [0]
+
+    def _replace_reg(m):
+        reg = m.group(1).lower()
+        if reg in _FIXED_REGS:
+            return m.group(0)
+        family = _REG_TO_FAMILY.get(reg)
+        if family is None:
+            return m.group(0)
+        if family not in family_order:
+            family_order[family] = next_idx[0]
+            next_idx[0] += 1
+        idx = family_order[family]
+        suffix = _SUBREG_SUFFIX.get(reg, '')
+        return '%R' + str(idx) + suffix
+
+    result = []
+    for insn in insns:
+        result.append(_REG_PATTERN.sub(_replace_reg, insn))
+    return result
+
+
+def normalize_instruction(insn: str) -> str:
+    """Full instruction normalization: mnemonic + operand shape with canonical registers."""
+    # Strip disassembler label annotations: <symbol+0xNN> or <LAB_xxx>
+    s = re.sub(r'\s*<[^>]+>', '', insn)
+    s = re.sub(r'\$0x[0-9a-f]+', '$IMM', s)
+    s = re.sub(r'\b0x[0-9a-f]+\b', 'IMM', s)
+    s = re.sub(r'\b[0-9a-f]{5,}\b', 'IMM', s)
+    s = re.sub(r'-?0x[0-9a-f]+\(', 'OFF(', s)
+    s = re.sub(r'-?\d+\(', 'OFF(', s)
+    return s.strip()
+
+
+def extract_normalized_sequence(insns: list[str]) -> list[str]:
+    """Canonicalize registers then normalize each instruction for LCS."""
+    canonical = canonicalize_registers(insns)
+    return [normalize_instruction(i) for i in canonical]
+
+
 def extract_mnemonic_sequence(insns: list[str]) -> list[str]:
     """Get ordered mnemonic sequence for LCS matching."""
     return [mnemonic(i) for i in insns]
@@ -217,16 +295,27 @@ def compare_fpu_blocks(compiled_blocks: list[list[str]], ref_blocks: list[list[s
     return warnings
 
 
-def compare_functions(compiled: list[str], reference: list[str]) -> tuple[float, list[str], list[str]]:
-    """Compare two functions. Returns (match_pct, diff_summary, fpu_warnings)."""
-    c_mnems = extract_mnemonic_sequence(compiled)
-    r_mnems = extract_mnemonic_sequence(reference)
+def compare_functions(compiled: list[str], reference: list[str],
+                      reg_normalize: bool = False) -> tuple[float, list[str], list[str]]:
+    """Compare two functions. Returns (match_pct, diff_summary, fpu_warnings).
 
-    ratio = lcs_ratio(c_mnems, r_mnems)
+    When reg_normalize=True, uses full normalized instructions with register
+    canonicalization for LCS instead of mnemonic-only. This catches operand-level
+    bugs (argument order swaps, wrong memory sources) while being tolerant of
+    benign register allocation differences between compilers.
+    """
+    if reg_normalize:
+        c_seq = extract_normalized_sequence(compiled)
+        r_seq = extract_normalized_sequence(reference)
+    else:
+        c_seq = extract_mnemonic_sequence(compiled)
+        r_seq = extract_mnemonic_sequence(reference)
 
-    # Generate unified diff summary
+    ratio = lcs_ratio(c_seq, r_seq)
+
+    # Generate unified diff summary (always show raw instructions for readability)
     diffs = []
-    sm = SequenceMatcher(None, c_mnems, r_mnems, autojunk=False)
+    sm = SequenceMatcher(None, c_seq, r_seq, autojunk=False)
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == 'replace':
             for k in range(min(i2 - i1, j2 - j1)):
@@ -261,6 +350,8 @@ def main():
                     help="Show instruction-level diffs")
     ap.add_argument("--fpu-only", action="store_true",
                     help="Only report FPU operand warnings")
+    ap.add_argument("--reg-normalize", "-r", action="store_true",
+                    help="Use register-alias normalization for LCS (canonical operands)")
     args = ap.parse_args()
 
     compiled_funcs = disassemble(args.compiled)
@@ -327,15 +418,23 @@ def main():
     any_fpu_warn = False
 
     for fn in sorted(matched):
-        pct, diffs, fpu_warnings = compare_functions(compiled_funcs[fn], reference_funcs[fn])
+        pct, diffs, fpu_warnings = compare_functions(compiled_funcs[fn], reference_funcs[fn],
+                                                      reg_normalize=args.reg_normalize)
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
         status = "PASS" if pct >= args.threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
         trunc_tag = " [REF-TRUNCATED?]" if n_r > 0 and n_c > n_r * 1.4 else ""
 
+        # When reg-normalize is on, also compute mnemonic % to show the gap
+        reg_tag = ""
+        if args.reg_normalize:
+            mnem_pct, _, _ = compare_functions(compiled_funcs[fn], reference_funcs[fn],
+                                              reg_normalize=False)
+            reg_tag = f" [struct:{mnem_pct:.1f}%]"
+
         if not args.fpu_only:
-            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){fpu_tag}{trunc_tag}")
+            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{trunc_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
