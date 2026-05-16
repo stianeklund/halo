@@ -13,3 +13,10 @@ uint32_t system_milliseconds(void)
 {
   return ((uint32_t(*)(void))0x1d0581)();
 }
+
+/* Returns the current time in seconds since the epoch (Unix time).
+ * Wraps the CRT time() function with a NULL argument. */
+uint32_t system_seconds(void)
+{
+  return crt_time(NULL);
+}

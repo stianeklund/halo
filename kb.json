@@ -5123,7 +5123,8 @@
         },
         {
           "decl": "unsigned int system_seconds(void);",
-          "addr": "0x8e380"
+          "addr": "0x8e380",
+          "ported": true
         },
         {
           "decl": "void system_get_user_name(void);",
@@ -26304,7 +26305,7 @@
       "name": "LIBCMT:time.obj",
       "functions": [
         {
-          "decl": "void crt_time(int *timer);",
+          "decl": "unsigned int crt_time(int *timer);",
           "addr": "0x1d9d28"
         },
         {
