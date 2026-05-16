@@ -5085,8 +5085,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0008e190(void);",
-          "addr": "0x8e190"
+          "decl": "int csstricmp(const char *s1, const char *s2);",
+          "addr": "0x8e190",
+          "name": "csstricmp",
+          "ported": true
         }
       ],
       "source_path": "src/halo/cseries/cseries.c"

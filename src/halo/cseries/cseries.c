@@ -233,3 +233,44 @@ void *csmemcpy(void *destination, void *source, size_t size)
 
   return destination;
 }
+
+/* Case-insensitive string comparison with assertion on non-null pointers.
+ * Returns -1 if s1 < s2, 0 if equal, 1 if s1 > s2 (case-insensitive). */
+int csstricmp(const char *s1, const char *s2)
+{
+  int c1;
+  int c2;
+  int offset;
+
+  assert_halt(s1 && s2);
+
+  c1 = crt_toupper((unsigned char)*s1);
+  c2 = crt_toupper((unsigned char)*s2);
+
+  if (c1 == 0)
+    goto check_end;
+
+  offset = (int)(s1 - s2);
+
+  for (;;) {
+    if (c2 == 0)
+      return 1;
+    if (c2 != c1)
+      goto not_equal;
+    s2++;
+    c1 = crt_toupper((unsigned char)s2[offset]);
+    c2 = crt_toupper((unsigned char)*s2);
+    if (c1 == 0)
+      break;
+  }
+
+check_end:
+  if (c2 != 0)
+    return -1;
+  return 0;
+
+not_equal:
+  if (c1 > c2)
+    return 1;
+  return -1;
+}
