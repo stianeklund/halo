@@ -324,6 +324,49 @@ bool FUN_000c5de0(int datum_index)
   return false;
 }
 
+/* 0xc5e90 — Compile a tag reference expression. Asserts type is a tag reference
+ * (0x18..0x1f), looks up the matching scenario source file by name and tag
+ * group, stores the tag datum index from element+0x24 into node+0x10.
+ * Always returns true regardless of whether a match is found. */
+bool FUN_000c5e90(int datum_index)
+{
+  char *node;
+  char *scenario;
+  int tag_group;
+  int i;
+  char *element;
+  int cmp;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  scenario = (char *)global_scenario_get();
+
+  if (*(int16_t *)(node + 0x4) < 0x18 || *(int16_t *)(node + 0x4) > 0x1f) {
+    display_assert("HS_TYPE_IS_TAG_REFERENCE(expression->type)",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x69e, 1);
+    system_exit(-1);
+  }
+
+  tag_group =
+    *(int *)(0x26f2cc + (int)*(int16_t *)(node + 0x4) * 4);
+
+  i = 0;
+  if (*(int *)(scenario + 0x4b4) > 0) {
+    do {
+      element = (char *)tag_block_get_element(
+        (void *)(scenario + 0x4b4), (int)(int16_t)i, 0x28);
+      cmp = csstrcmp(*(const char **)(element + 0x1c),
+                     (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+      if (cmp == 0 && *(int *)(element + 0x18) == tag_group) {
+        *(int *)(node + 0x10) = *(int *)(element + 0x24);
+        break;
+      }
+      i++;
+    } while ((int)(int16_t)i < *(int *)(scenario + 0x4b4));
+  }
+
+  return true;
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function

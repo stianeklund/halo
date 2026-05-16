@@ -10000,8 +10000,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000c5e90(void);",
-          "addr": "0xc5e90"
+          "decl": "bool FUN_000c5e90(int datum_index);",
+          "addr": "0xc5e90",
+          "ported": true
         },
         {
           "decl": "void FUN_000c5f60(void);",
