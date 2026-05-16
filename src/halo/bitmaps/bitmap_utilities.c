@@ -17,6 +17,7 @@ short FUN_00075380(void *bitmap /* @<eax> */)
   short mipmap_count;
   short new_bitmap_index;
   int format;
+  unsigned char *flags_ptr;
   void *pixel_data;
   char *bitmap_data;
   char *bm;
@@ -50,7 +51,7 @@ short FUN_00075380(void *bitmap /* @<eax> */)
 
     max_mipmaps = *(short *)(group + 0x4c);
     if (max_mipmaps > 0) {
-      short limit = max_mipmaps - 1;
+      unsigned int limit = max_mipmaps - 1;
       if (limit <= (short)mipmap_count) {
         mipmap_count = limit;
       }
@@ -74,7 +75,8 @@ short FUN_00075380(void *bitmap /* @<eax> */)
 
   group = *(char **)0x33414c;
 
-  if ((*(unsigned char *)(group + 0x6) & 0x8) != 0) {
+  flags_ptr = (unsigned char *)(group + 0x6);
+  if ((*flags_ptr & 0x8) != 0) {
     *(short *)(bitmap_data + 0x10) = (short)((*(short *)(bm + 0x10) + 1) / 2);
     *(short *)(bitmap_data + 0x12) = (short)((*(short *)(bm + 0x12) + 1) / 2);
   } else {
@@ -162,17 +164,19 @@ float *bitmap_clone(float *rgb, float *hsv_out)
     system_exit(-1);
   }
 
-  max_component = rgb[0];
-  if (max_component < rgb[1])
+  if (rgb[1] > rgb[2])
     max_component = rgb[1];
-  if (max_component < rgb[2])
+  else
     max_component = rgb[2];
+  if (rgb[0] > max_component)
+    max_component = rgb[0];
 
-  min_component = rgb[0];
-  if (min_component > rgb[1])
+  if (rgb[1] < rgb[2])
     min_component = rgb[1];
-  if (min_component > rgb[2])
+  else
     min_component = rgb[2];
+  if (rgb[0] < min_component)
+    min_component = rgb[0];
 
   chroma = max_component - min_component;
   hsv_out[2] = max_component;
@@ -292,14 +296,12 @@ bool valid_real_rgb_color(float *rgb)
   if ((component_bits & 0x7f800000) == 0x7f800000)
     return false;
 
-  if (rgb[0] < *(float *)0x2533c0 || rgb[0] > *(float *)0x2533c8)
-    return false;
-  if (rgb[1] < *(float *)0x2533c0 || rgb[1] > *(float *)0x2533c8)
-    return false;
-  if (rgb[2] < *(float *)0x2533c0 || rgb[2] > *(float *)0x2533c8)
-    return false;
+  if (rgb[0] >= *(float *)0x2533c0 && rgb[0] <= *(float *)0x2533c8 &&
+      rgb[1] >= *(float *)0x2533c0 && rgb[1] <= *(float *)0x2533c8 &&
+      rgb[2] >= *(float *)0x2533c0 && rgb[2] <= *(float *)0x2533c8)
+    return true;
 
-  return true;
+  return false;
 }
 
 /*
