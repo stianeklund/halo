@@ -17829,7 +17829,8 @@
         },
         {
           "decl": "void FUN_0015b220(void);",
-          "addr": "0x15b220"
+          "addr": "0x15b220",
+          "ported": true
         },
         {
           "decl": "int FUN_0015b460(uint32_t cache_size);",
@@ -26842,7 +26843,7 @@
           "ported": true
         },
         {
-          "decl": "void lruv_idle(void);",
+          "decl": "void lruv_idle(void *cache);",
           "addr": "0x11d8d0"
         },
         {
