@@ -18610,8 +18610,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010bff0(void);",
-          "addr": "0x10bff0"
+          "decl": "char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb);",
+          "addr": "0x10bff0",
+          "ported": true
         },
         {
           "decl": "float angle_between_normals3d(float *a, float *b);",
