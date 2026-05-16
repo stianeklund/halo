@@ -1995,6 +1995,71 @@ char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
   return result;
 }
 
+/* Test if a sphere intersects a 3D triangle. Checks plane distance, then
+ * tests each edge if the projected point falls outside that edge's half-plane. */
+char sphere_intersects_triangle3d(float *center, float radius, float *v0,
+                                  float *v1, float *v2)
+{
+  float d0[3], e01[3], e12[3], n[3];
+  float c12[3], c20[3];
+  float plane_dot, n_mag_sq;
+  char result;
+
+  d0[0] = center[0] - v0[0];
+  result = 1;
+  d0[1] = center[1] - v0[1];
+  d0[2] = center[2] - v0[2];
+
+  e01[0] = v1[0] - v0[0];
+  e01[1] = v1[1] - v0[1];
+  e01[2] = v1[2] - v0[2];
+
+  e12[0] = v2[0] - v1[0];
+  e12[1] = v2[1] - v1[1];
+  e12[2] = v2[2] - v1[2];
+
+  n[0] = e12[2] * e01[1] - e12[1] * e01[2];
+  n[1] = e01[2] * e12[0] - e12[2] * e01[0];
+  n[2] = e12[1] * e01[0] - e01[1] * e12[0];
+
+  plane_dot = n[0] * d0[0] + n[1] * d0[1] + n[2] * d0[2];
+  n_mag_sq = n[0] * n[0] + n[1] * n[1] + n[2] * n[2];
+  if (n_mag_sq * radius * radius < plane_dot * plane_dot)
+    return 0;
+
+  if (0.0f < (e01[1] * d0[2] - d0[1] * e01[2]) * n[0] +
+             (d0[0] * e01[2] - e01[0] * d0[2]) * n[1] +
+             n[2] * (e01[0] * d0[1] - e01[1] * d0[0])) {
+    if (fast_vector_intersects_sphere(v0, e01, center, radius))
+      return 1;
+    result = 0;
+  }
+
+  c12[0] = e12[2] * (center[1] - v1[1]) - e12[1] * (center[2] - v1[2]);
+  c12[1] = (center[2] - v1[2]) * e12[0] - e12[2] * (center[0] - v1[0]);
+  if (0.0f < c12[0] * n[0] + c12[1] * n[1] +
+             n[2] * (e12[1] * (center[0] - v1[0]) -
+                     e12[0] * (center[1] - v1[1]))) {
+    if (fast_vector_intersects_sphere(v1, e12, center, radius))
+      return 1;
+    result = 0;
+  }
+
+  c20[0] = v0[0] - v2[0];
+  c20[1] = v0[1] - v2[1];
+  c20[2] = v0[2] - v2[2];
+  e12[0] = c20[2] * (center[1] - v2[1]) - c20[1] * (center[2] - v2[2]);
+  e12[1] = (center[2] - v2[2]) * c20[0] - c20[2] * (center[0] - v2[0]);
+  if (e12[0] * n[0] + e12[1] * n[1] +
+      n[2] * (c20[1] * (center[0] - v2[0]) -
+              c20[0] * (center[1] - v2[1])) < 0.0f) {
+    if (fast_vector_intersects_sphere(v2, c20, center, radius))
+      return 1;
+    result = 0;
+  }
+  return result;
+}
+
 /* 0x10d4c0 — Ray vs cylinder intersection (cylinder along z-axis).
  * p1=ray_origin, p2=cylinder_height, p3=cylinder_radius, p4=cylinder_center,
  * p5=ray_direction, p6=out_t, p7=out_normal. */

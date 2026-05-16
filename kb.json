@@ -18765,8 +18765,9 @@
           "ported": true
         },
         {
-          "decl": "void sphere_intersects_triangle3d(void);",
-          "addr": "0x10eb10"
+          "decl": "char sphere_intersects_triangle3d(float *center, float radius, float *v0, float *v1, float *v2);",
+          "addr": "0x10eb10",
+          "ported": true
         },
         {
           "decl": "void pill_intersects_rectangle2d(void);",
