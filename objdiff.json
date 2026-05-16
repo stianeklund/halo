@@ -1164,6 +1164,14 @@
       "metadata": {
         "source_path": "src/halo/cseries/xbox_crt.c"
       }
+    },
+    {
+      "name": "halo/objects_FUN_00144b50",
+      "target_path": "build/vc71/objects.obj",
+      "base_path": "delinked/objects_FUN_00144b50.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }
