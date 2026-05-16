@@ -3986,7 +3986,7 @@
           "ported": true
         },
         {
-          "decl": "void bitmap_2d_get_pixel(void);",
+          "decl": "unsigned int bitmap_2d_get_pixel(int bitmap_ref, float *uv, float level, float *out);",
           "addr": "0x7dad0"
         },
         {
@@ -25455,7 +25455,7 @@
           "addr": "0x180570"
         },
         {
-          "decl": "void FUN_001805f0(void);",
+          "decl": "void FUN_001805f0(int vertex_data, float *uv_out);",
           "addr": "0x1805f0"
         },
         {
@@ -32593,8 +32593,9 @@
           "addr": "0x138fd0"
         },
         {
-          "decl": "void FUN_001390d0(void);",
-          "addr": "0x1390d0"
+          "decl": "void FUN_001390d0(int material, int bitmap_ref, uint16_t *indices, float bary_u, float bary_v, float *out_rgb);",
+          "addr": "0x1390d0",
+          "ported": true
         }
       ],
       "src": "src/halo/objects/damage.c"

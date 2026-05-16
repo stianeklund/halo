@@ -1845,3 +1845,47 @@ float FUN_00138f10(float base, float a, float b, float t1, float t2)
 {
   return base + (a - base) * t1 + (b - base) * t2;
 }
+
+/*
+ * FUN_001390d0 — Sample a material lightmap at a barycentrically interpolated
+ * UV position and write the result as float RGB.
+ *
+ * Reads UV coordinates from three environment vertices (indexed by
+ * indices[0..2]), interpolates using barycentric weights bary_u/bary_v, samples
+ * the 2D bitmap at that position, and converts the resulting 32-bit pixel to
+ * float RGB in out_rgb.
+ *
+ * Asserts material vertices are environment_uncompressed (0) or compressed (1).
+ * Source: c:\halo\SOURCE\objects\object_lights.c:0xa7
+ *
+ * 0x1390d0 / damage.obj
+ */
+void FUN_001390d0(int material, int bitmap_ref, uint16_t *indices, float bary_u,
+                  float bary_v, float *out_rgb)
+{
+  float v0[2];
+  float v1[2];
+  float v2[2];
+  float uv[2];
+
+  if (*(int16_t *)(material + 0xb0) != 0 &&
+      *(int16_t *)(material + 0xb0) != 1) {
+    display_assert(
+      "material->vertices.type==_rasterizer_vertex_type_environment_"
+      "uncompressed"
+      " || "
+      "material->vertices.type==_rasterizer_vertex_type_environment_compressed",
+      "c:\\halo\\SOURCE\\objects\\object_lights.c", 0xa7, 1);
+    system_exit(-1);
+  }
+
+  FUN_001805f0((int)indices[0] * 0x20 + *(int *)(material + 0xf8), v0);
+  FUN_001805f0((int)indices[1] * 0x20 + *(int *)(material + 0xf8), v1);
+  FUN_001805f0((int)indices[2] * 0x20 + *(int *)(material + 0xf8), v2);
+
+  uv[0] = v0[0] + (v1[0] - v0[0]) * bary_u + (v2[0] - v0[0]) * bary_v;
+  uv[1] = v0[1] + (v1[1] - v0[1]) * bary_u + (v2[1] - v0[1]) * bary_v;
+
+  pixel32_to_real_rgb_color(bitmap_2d_get_pixel(bitmap_ref, uv, 0.3f, out_rgb),
+                            out_rgb);
+}
