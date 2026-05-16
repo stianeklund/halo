@@ -661,6 +661,27 @@ bool FUN_000c68b0(int datum_index)
   return FUN_000c6130(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
 }
 
+/* 0xc69d0 — Compile object_list literal (type 0x17).
+ * Temporarily sets type/constant_type to 0x2b (enum range for FUN_000c66d0),
+ * delegates to FUN_000c66d0, then restores type to 0x17. */
+bool FUN_000c69d0(int datum_index)
+{
+  char *node;
+  bool result;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0x17) {
+    display_assert("expression->type==_hs_type_object_list",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x7cf, 1);
+    system_exit(-1);
+  }
+  *(short *)(node + 0x2) = 0x2b;
+  *(short *)(node + 0x4) = 0x2b;
+  result = FUN_000c66d0(datum_index);
+  *(short *)(node + 0x4) = 0x17;
+  return result;
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
