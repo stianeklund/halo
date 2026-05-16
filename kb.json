@@ -31000,7 +31000,8 @@
       "functions": [
         {
           "decl": "float FUN_000849f0(float min, float max);",
-          "addr": "0x849f0"
+          "addr": "0x849f0",
+          "ported": true
         }
       ]
     },

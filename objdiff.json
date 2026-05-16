@@ -1252,6 +1252,14 @@
       "metadata": {
         "source_path": "src/halo/physics/collision_usage.c"
       }
+    },
+    {
+      "name": "halo/bored_camera",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/bored_camera.c.obj",
+      "base_path": "delinked/bored_camera.obj",
+      "metadata": {
+        "source_path": "src/halo/camera/bored_camera.c"
+      }
     }
   ]
 }

@@ -18,6 +18,7 @@
 	halo/bungie_net/thread_win32.c
 	halo/bink/bink_playback.c
 	halo/bink/bink_sound.c
+	halo/camera/bored_camera.c
 	halo/camera/director.c
 	halo/camera/observer.c
 	halo/common.c
