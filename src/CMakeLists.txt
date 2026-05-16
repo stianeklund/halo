@@ -119,6 +119,7 @@
 	halo/shaders/shaders.c
 	halo/sound/game_sound.c
 	halo/sound/sound_classes.c
+	halo/sound/sound_definitions.c
 	halo/sound/sound_dsound_xbox.c
 	halo/sound/sound_manager.c
 	halo/objects/damage.c
