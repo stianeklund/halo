@@ -4749,8 +4749,9 @@
           "addr": "0x14da20"
         },
         {
-          "decl": "void FUN_0014da80(void);",
-          "addr": "0x14da80"
+          "decl": "int FUN_0014da80(int tag_data, int16_t collision_fn_index);",
+          "addr": "0x14da80",
+          "ported": true
         },
         {
           "decl": "void FUN_0014dab0(void);",

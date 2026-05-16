@@ -140,6 +140,29 @@ void collision_log_add_call(short collision_function)
   *(int *)(0x5a80f8 + ((int)collision_function * 0x17 + (int)user) * 0x10) += 1;
 }
 
+/*
+ * FUN_0014da80 — look up a collision-function attribute from its tag block.
+ *
+ * Indexes the block at tag_data+0x234 (0x48-byte elements) by
+ * collision_fn_index and returns the int16_t at element+0x24, or -1 if index is
+ * -1.
+ *
+ * Confirmed: cdecl, 2 stack args: int tag_data at [EBP+8], int16_t index at
+ * [EBP+C]. Confirmed: CMP AX,0xffff → OR EAX,-1 for -1 case. Confirmed: PUSH
+ * 0x48; PUSH index; PUSH tag+0x234; CALL 0x19b210 (tag_block_get_element).
+ * Confirmed: MOVSX EAX,word ptr [EAX+0x24].
+ */
+int FUN_0014da80(int tag_data, int16_t collision_fn_index)
+{
+  void *elem;
+
+  if (collision_fn_index == (int16_t)-1)
+    return -1;
+  elem = tag_block_get_element((void *)(tag_data + 0x234),
+                               (int)collision_fn_index, 0x48);
+  return (int)*(int16_t *)((char *)elem + 0x24);
+}
+
 /* 0x14ec30 — Collision test against BSP surfaces and nearby objects.
  * Performs a BSP surface collision query with the given search radius,
  * optionally adds BSP collision features, then iterates over objects in
