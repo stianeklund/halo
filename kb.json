@@ -18739,8 +18739,9 @@
           "addr": "0x10e4d0"
         },
         {
-          "decl": "void vector_intersects_triangle3d(void);",
-          "addr": "0x10e6f0"
+          "decl": "char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5, float *p6);",
+          "addr": "0x10e6f0",
+          "ported": true
         },
         {
           "decl": "char FUN_0010e8a0(float *point, float radius, float *rect);",

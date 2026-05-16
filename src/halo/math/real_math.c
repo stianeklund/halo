@@ -1834,6 +1834,55 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10e6f0 — 3D ray vs triangle intersection (Möller–Trumbore-like).
+ * p1=ray_origin, p2=ray_direction, p3,p4,p5=triangle vertices,
+ * p6=out_t. Returns 1 if ray hits triangle. */
+char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4,
+                  float *p5, float *p6)
+{
+  float e1[3], e2[3];
+  float n[3];
+  float det, inv_det;
+  float origin_to_v0[3];
+  float t, u, v;
+  float scratch[3];
+
+  e1[0] = p4[0] - p3[0];
+  e1[1] = p4[1] - p3[1];
+  e1[2] = p4[2] - p3[2];
+  e2[0] = p5[0] - p3[0];
+  e2[1] = p5[1] - p3[1];
+  e2[2] = p5[2] - p3[2];
+  n[0] = e2[2] * e1[1] - e2[1] * e1[2];
+  n[1] = e1[2] * e2[0] - e2[2] * e1[0];
+  n[2] = e2[1] * e1[0] - e2[0] * e1[1];
+  det = n[0] * p2[0] + n[1] * p2[1] + n[2] * p2[2];
+
+  if (fabsf(det) < *(double *)0x2533d0) {
+    return 0;
+  }
+
+  inv_det = 1.0f / det;
+  origin_to_v0[0] = p3[0] - p1[0];
+  origin_to_v0[1] = p3[1] - p1[1];
+  origin_to_v0[2] = p3[2] - p1[2];
+  t = (origin_to_v0[0] * n[0] +
+       origin_to_v0[1] * n[1] +
+       origin_to_v0[2] * n[2]) * inv_det;
+  if (t < 0.0f) return 0;
+  if (t > 1.0f) return 0;
+
+  cross_product3d(origin_to_v0, p2, scratch);
+  u = (e2[0] * scratch[0] + scratch[1] * e2[1] + scratch[2] * e2[2]) * inv_det;
+  if (u < 0.0f) return 0;
+  if (u > 1.0f) return 0;
+  v = -((e1[0] * scratch[0] + scratch[1] * e1[1] + scratch[2] * e1[2]) * inv_det);
+  if (v < 0.0f) return 0;
+  if (u + v > 1.0f) return 0;
+  *p6 = t;
+  return 1;
+}
+
 /* 0x10e9f0 — 2D triangle vs circle test. Tests the 3 edges (cw winding)
  * with FUN_0010cc90 (point-segment intersect). Returns 1 if any edge or
  * point intersects. */
