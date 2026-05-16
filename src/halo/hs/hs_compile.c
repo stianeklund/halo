@@ -266,6 +266,31 @@ store_long:
   return result;
 }
 
+/* 0xc5d60 — Compile a string literal expression. Asserts type is _hs_type_string
+ * (9), stores the string pointer (source_offset + source_base) in the value
+ * field, and always returns true. */
+bool FUN_000c5d60(int datum_index)
+{
+  char *node;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+
+  if (*(int16_t *)(node + 0x4) != 9) {
+    display_assert("expression->type==_hs_type_string",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x61e, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)(node + 0x2) != *(int16_t *)(node + 0x4)) {
+    display_assert("expression->constant_type==expression->type",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x61f, 1);
+    system_exit(-1);
+  }
+
+  *(int *)(node + 0x10) = *(int *)(node + 0xc) + *(int *)0x46b6e8;
+  return true;
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
