@@ -2016,7 +2016,7 @@
           "addr": "0x1daf7e"
         },
         {
-          "decl": "double crt_atof(const char *str);",
+          "decl": "double atof(const char *str);",
           "addr": "0x1daf96"
         }
       ]
@@ -9985,8 +9985,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000c5c40(void);",
-          "addr": "0xc5c40"
+          "decl": "bool FUN_000c5c40(int datum_index);",
+          "addr": "0xc5c40",
+          "ported": true
         },
         {
           "decl": "void FUN_000c5d60(void);",
@@ -26222,7 +26223,7 @@
           "addr": "0x1daaaa"
         },
         {
-          "decl": "int crt_isdigit(int c);",
+          "decl": "int isdigit(int c);",
           "addr": "0x1dab2a"
         },
         {
@@ -26398,7 +26399,7 @@
           "addr": "0x1daff2"
         },
         {
-          "decl": "void FUN_001db04a(void);",
+          "decl": "long atol(const char *str);",
           "addr": "0x1db04a"
         }
       ]

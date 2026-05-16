@@ -179,7 +179,7 @@ bool FUN_000c5b50(int datum_index)
   c = *str;
   if (c != '\0') {
     do {
-      if (crt_isdigit((int)c) == 0) {
+      if (isdigit((int)c) == 0) {
         if (seen_dot || *str != '.') {
           *(const char **)0x46b6fc = "this is not a valid real number.";
           *(int *)0x46b700 = *(int *)(node + 0xc);
@@ -195,8 +195,74 @@ bool FUN_000c5b50(int datum_index)
 
 done:
   *(float *)(node + 0x10) =
-    (float)crt_atof((const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+    (float)atof((const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
 
+  return result;
+}
+
+/* 0xc5c40 — Validate and parse an integer literal (short or long) from an HS
+ * expression. Checks each character is a digit, then calls atol. For short
+ * integers (type 7) validates range [-32768, 32767]. */
+bool FUN_000c5c40(int datum_index)
+{
+  char c;
+  char *node;
+  char *str;
+  long val;
+  bool result;
+
+  result = true;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  str = (char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8);
+
+  if (*(int16_t *)(node + 0x4) != 7 && *(int16_t *)(node + 0x4) != 8) {
+    display_assert("expression->type==_hs_type_short_integer || "
+                   "expression->type==_hs_type_long_integer",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x5f7, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)(node + 0x2) != *(int16_t *)(node + 0x4)) {
+    display_assert("expression->constant_type==expression->type",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x5f8, 1);
+    system_exit(-1);
+  }
+
+  if (*str == '-') {
+    str = str + 1;
+  }
+
+  c = *str;
+  while (c != '\0') {
+    if (isdigit((int)c) == 0) {
+      *(const char **)0x46b6fc = "this is not a valid integer.";
+      *(int *)0x46b700 = *(int *)(node + 0xc);
+      result = false;
+      break;
+    }
+    c = str[1];
+    str = str + 1;
+  }
+
+  val = atol((const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+
+  if (result) {
+    if (*(int16_t *)(node + 0x4) == 8)
+      goto store_long;
+    if (val > 0x7fff || val < (long)-0x8000) {
+      *(const char **)0x46b6fc = "shorts must be in the range [-32767, 32768].";
+      *(int *)0x46b700 = *(int *)(node + 0xc);
+      result = false;
+    }
+  }
+
+  if (*(int16_t *)(node + 0x4) != 8) {
+    *(int16_t *)(node + 0x10) = (int16_t)val;
+    return result;
+  }
+
+store_long:
+  *(long *)(node + 0x10) = val;
   return result;
 }
 
@@ -863,15 +929,15 @@ bool FUN_000c74c0(int datum_index)
   child_node2 = (char *)datum_get(*(data_t **)0x5aa6c8, first_child);
   if (!(*(uint8_t *)(child_node2 + 0x6) & 0x1)) {
     {
-    /* Child is not compiled — emit error. */
-    const char *what = (*(int16_t *)(node + 0x4) == 1) ?
-                         "\"script\" or \"global\"" :
-                         "a function name";
-    crt_sprintf((char *)0x46b704, "i expected %s, but i got an expression.",
-                what);
-    *(const char **)0x46b6fc = (const char *)0x46b704;
-    *(int *)0x46b700 = *(int *)(child_node + 0xc);
-    return false;
+      /* Child is not compiled — emit error. */
+      const char *what = (*(int16_t *)(node + 0x4) == 1) ?
+                           "\"script\" or \"global\"" :
+                           "a function name";
+      crt_sprintf((char *)0x46b704, "i expected %s, but i got an expression.",
+                  what);
+      *(const char **)0x46b6fc = (const char *)0x46b704;
+      *(int *)0x46b700 = *(int *)(child_node + 0xc);
+      return false;
     }
   }
 
