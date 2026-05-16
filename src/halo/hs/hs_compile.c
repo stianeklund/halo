@@ -452,6 +452,25 @@ bool FUN_000c6130(int datum_index, void *tag_block, int element_size, short offs
   return false;
 }
 
+/* 0xc6230 — Compile trigger_volume literal. Asserts type==0xb, then delegates
+ * to FUN_000c6130 searching scenario+0x360 (trigger volumes, elem size 0x60,
+ * name at offset 4). */
+bool FUN_000c6230(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0xb) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_trigger_volume",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x711, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x360), 0x60, 4);
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
