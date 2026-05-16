@@ -542,7 +542,10 @@ def unlock_console(host: str, qmp_script: str, dry_run: bool) -> bool:
                 print("  | waiting 2.0s for xemu to settle after reset")
                 time.sleep(2.0)
                 return True
-    return _send_xbdm_reboot(host, dry_run)
+    if _send_xbdm_reboot(host, dry_run):
+        print("  | waiting for XBDM to return after reboot")
+        return wait_for_xbdm(host)
+    return False
 
 
 def delete_state_files(
@@ -553,22 +556,21 @@ def delete_state_files(
 ) -> bool:
     """Delete state files, unlocking the console via QMP/XBDM if access is denied.
 
-    On a 414 (access denied) response the console is ejected/rebooted and all
-    paths are retried once so a still-running title cannot block the deploy.
+    On a 414 (access denied) response the console is ejected/rebooted and the
+    failed paths are retried once so a still-running title cannot block the deploy.
     """
-    needs_unlock = False
+    failed_paths = []
     for path in paths:
         code = delete_remote_file(host, path, dry_run)
         if code == 414:
-            needs_unlock = True
+            failed_paths.append(path)
         elif code not in (0, 402):
             return False
 
-    if needs_unlock:
+    if failed_paths:
         if not unlock_console(host, qmp_script, dry_run):
             print("  warning: unlock failed; retrying deletes anyway", file=sys.stderr)
-        time.sleep(1.0)
-        for path in paths:
+        for path in failed_paths:
             code = delete_remote_file(host, path, dry_run)
             if code not in (0, 402):
                 return False
