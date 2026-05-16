@@ -18753,8 +18753,9 @@
           "ported": true
         },
         {
-          "decl": "void circle_intersects_triangle2d(void);",
-          "addr": "0x10e9f0"
+          "decl": "char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4, float *p5);",
+          "addr": "0x10e9f0",
+          "ported": true
         },
         {
           "decl": "void sphere_intersects_triangle3d(void);",

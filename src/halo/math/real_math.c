@@ -1834,6 +1834,45 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10e9f0 — 2D triangle vs circle test. Tests the 3 edges (cw winding)
+ * with FUN_0010cc90 (point-segment intersect). Returns 1 if any edge or
+ * point intersects. */
+char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
+                  float *p5)
+{
+  float local_c, local_8;
+
+  char result = 1;
+  local_c = p4[0] - p3[0];
+  local_8 = p4[1] - p3[1];
+  if (0.0f < local_8 * (circle_center[0] - p3[0]) -
+             local_c * (circle_center[1] - p3[1])) {
+    if (FUN_0010cc90(circle_center, p3, &local_c, radius)) {
+      return 1;
+    }
+    result = 0;
+  }
+  local_c = p5[0] - p4[0];
+  local_8 = p5[1] - p4[1];
+  if (local_8 * (circle_center[0] - p4[0]) -
+      local_c * (circle_center[1] - p4[1]) < 0.0f) {
+    if (FUN_0010cc90(circle_center, p4, &local_c, radius)) {
+      return 1;
+    }
+    result = 0;
+  }
+  local_c = p3[0] - p5[0];
+  local_8 = p3[1] - p5[1];
+  if (0.0f < local_8 * (circle_center[0] - p5[0]) -
+             local_c * (circle_center[1] - p5[1])) {
+    if (FUN_0010cc90(circle_center, p5, &local_c, radius)) {
+      return 1;
+    }
+    result = 0;
+  }
+  return result;
+}
+
 /* 0x10d4c0 — Ray vs cylinder intersection (cylinder along z-axis).
  * p1=ray_origin, p2=cylinder_height, p3=cylinder_radius, p4=cylinder_center,
  * p5=ray_direction, p6=out_t, p7=out_normal. */
