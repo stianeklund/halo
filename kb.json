@@ -13754,7 +13754,7 @@
           "ported": true
         },
         {
-          "decl": "void object_get_next_cluster(void);",
+          "decl": "int16_t object_get_next_cluster(void *iter_state, int object_handle);",
           "addr": "0x13d5f0"
         },
         {
@@ -14004,7 +14004,7 @@
           "ported": true
         },
         {
-          "decl": "void object_get_first_cluster(void);",
+          "decl": "int16_t object_get_first_cluster(void *iter_state, int object_handle);",
           "addr": "0x13fe10"
         },
         {
@@ -14078,7 +14078,8 @@
         },
         {
           "decl": "int object_visible_to_any_player(int object_handle);",
-          "addr": "0x1407e0"
+          "addr": "0x1407e0",
+          "ported": true
         },
         {
           "decl": "void object_pvs_activate(void);",

@@ -1204,6 +1204,14 @@
       "metadata": {
         "source_path": "src/halo/bitmaps/bitmap_utilities.c"
       }
+    },
+    {
+      "name": "halo/objects_FUN_1407e0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_1407e0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }

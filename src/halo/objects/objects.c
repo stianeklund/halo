@@ -92,6 +92,7 @@ int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
  *   0x140160  object_set_region_count
  *   0x140230  object_adjust_interpolation_position
  *   0x140420  object_find_in_cluster
+ *   0x1407e0  object_visible_to_any_player
  *   0x140bc0  object_delete_internal
  *   0x140cc0  object_delete
  *   0x140ce0  object_connect_to_map
@@ -2543,6 +2544,157 @@ int object_name_list_get_handle(int16_t index)
 }
 
 /*
+ * object_visible_to_any_player — check if an object is visible to any player.
+ *
+ * Returns true (1) if the object occupies a PVS-visible cluster AND is within
+ * at least one player's field of view (or within the object's bounding sphere
+ * distance from the player's head).
+ *
+ * The algorithm:
+ *   1. Validate the object header flag (bit 0 of unk_2) and object flags
+ *      (must have 0x800 set, must NOT have 0x200000 set).
+ *   2. Iterate the object's clusters; for each, test visibility against the
+ *      combined player PVS bitfield.
+ *   3. If a visible cluster is found, iterate all players:
+ *      a. Compute distance_squared from player head to object center.
+ *      b. If dist_sq < radius_sq (player inside bounding sphere), visible.
+ *      c. Otherwise, compute the half-angle subtended by the bounding sphere
+ *         plus a PI/4 margin, and check if the object direction lies within
+ *         the player's facing cone (dot product vs cos of half-angle).
+ *
+ * Confirmed: cdecl, 1 arg (object_handle at [EBP+8]).
+ * Confirmed: Returns byte in AL (0 or 1).
+ * Confirmed: CALL 0x119320 (datum_get) with object data table (0x5a8d50).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with mask -1 and 3.
+ * Confirmed: CALL 0xba6c0 (players_get_combined_pvs) with no args.
+ * Confirmed: CALL 0x13fe10 (object_get_first_cluster) with 2 cdecl args.
+ * Confirmed: CALL 0x13d5f0 (object_get_next_cluster) with 2 cdecl args.
+ * Confirmed: CALL 0x1198f0 (data_next_index) with player_data, prev_index.
+ * Confirmed: CALL 0x1a9200 (unit_get_head_position) with unit_handle, &out.
+ * Confirmed: CALL 0x13010 (normalize3d) with delta vector pointer.
+ * Confirmed: PVS bit test pattern: (1 << (cluster & 0x1f)) & pvs[cluster >> 5].
+ * Confirmed: Float at 0x254a58 = PI/4 (0.7854f).
+ * Confirmed: Player unit handle at player_datum + 0x34.
+ * Confirmed: Unit forward vector at unit_obj + 0x1E0 (vector3_t unk_480).
+ * Confirmed: Object position at obj + 0x50 (unk_80/unk_84/unk_88).
+ * Confirmed: Object bounding radius at obj + 0x5C (unk_92).
+ */
+int object_visible_to_any_player(int object_handle)
+{
+  object_header_data_t *header;
+  object_data_t *obj;
+  int *pvs;
+  int16_t cluster_index;
+  char iter_state[16];
+  int player_index;
+  char *player;
+  float radius_sq;
+  float head_pos[3];
+  float dx, dy, dz;
+  float dist_sq;
+  float delta[3];
+  float magnitude;
+  float half_angle;
+  float dot;
+  char *unit_obj;
+  int unit_handle;
+  char result;
+
+  result = 0;
+
+  /* Validate object header and flags */
+  header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  if (!(header->unk_2 & 1))
+    return result;
+  if (!(obj->flags & 0x800))
+    return result;
+  if (obj->flags & 0x200000)
+    return result;
+
+  /* Get combined PVS and iterate object clusters */
+  pvs = (int *)players_get_combined_pvs();
+  cluster_index = object_get_first_cluster(iter_state, object_handle);
+  if (cluster_index == (int16_t)0xFFFF)
+    return result;
+
+  /* Check each cluster against PVS */
+  for (;;) {
+    int edx = (int)cluster_index;
+    int bit_index = edx & 0x1f;
+    int dword_index = edx >> 5;
+    int bit_mask = 1 << bit_index;
+
+    if (pvs[dword_index] & bit_mask)
+      break;
+
+    cluster_index = object_get_next_cluster(iter_state, object_handle);
+    if (cluster_index == (int16_t)0xFFFF)
+      return result;
+  }
+
+  /* Object is in a visible cluster — check per-player visibility */
+  if (cluster_index == (int16_t)0xFFFF)
+    return result;
+
+  radius_sq = obj->unk_92 * obj->unk_92;
+
+  player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
+  if (player_index == -1)
+    return result;
+
+  while (player_index != -1) {
+    player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
+    unit_handle = *(int *)(player + 0x34);
+
+    if (unit_handle == -1)
+      goto next_player;
+
+    /* Get player head position */
+    unit_get_head_position(unit_handle, head_pos);
+
+    /* Distance check: is player head within bounding sphere? */
+    dx = obj->unk_80 - head_pos[0];
+    dy = obj->unk_84 - head_pos[1];
+    dz = obj->unk_88 - head_pos[2];
+    dist_sq = dz * dz + dy * dy + dx * dx;
+
+    if (dist_sq < radius_sq) {
+      result = 1;
+      return result;
+    }
+
+    /* FOV check: is object within player's viewing cone? */
+    unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+
+    delta[0] = obj->unk_80 - head_pos[0];
+    delta[1] = obj->unk_84 - head_pos[1];
+    delta[2] = obj->unk_88 - head_pos[2];
+    magnitude = normalize3d(delta);
+
+    /* half_angle = atan2(radius, magnitude) + PI/4 */
+    half_angle = (float)(xbox_atan2((double)obj->unk_92, (double)magnitude)
+                         + (double)0.7853981852531433f);
+
+    /* dot product of normalized delta with unit forward vector */
+    dot = delta[2] * *(float *)(unit_obj + 0x1E8)
+        + delta[1] * *(float *)(unit_obj + 0x1E4)
+        + delta[0] * *(float *)(unit_obj + 0x1E0);
+
+    if (xbox_cosf(half_angle) < dot) {
+      result = 1;
+      return result;
+    }
+
+next_player:
+    player_index = data_next_index(*(data_t **)0x5aa6d4, player_index);
+  }
+
+  return result;
+}
+
+/*
  * object_delete_internal — recursive object deletion implementation.
  *
  * Recursively deletes an object's child chain (obj+0xC8), and optionally
@@ -3301,6 +3453,25 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
   return found_count;
 }
 
+/* Type-cast helpers for object_compute_node_matrices — kept at file scope for C89 compliance */
+typedef void (*animation_set_default_fn)(void *model_tag, void *anim_data);
+typedef void (*animation_decode_fn)(void *model_tag, void *anim_entry,
+                                    int frame_index, void *anim_data);
+typedef void (*animation_overlay_keyframe_fn)(
+  void *anim_entry, float frame_value, void *anim_data);
+typedef void (*animation_overlay_interpolate_fn)(
+  void *anim_entry, int frame_index, void *anim_data, void *node_data);
+typedef void (*overlay_adjust_fn)(int object_handle, void *anim_data);
+typedef void (*anim_interpolate_fn)(uint16_t node_count, void *interp_data,
+                                    void *anim_data, int16_t frame_index,
+                                    int16_t frame_count);
+typedef int (*valid_real_vectors_fn)(float *fwd, float *left, float *up);
+typedef int (*valid_real_matrix4x3_fn)(float *m);
+typedef int (*valid_fwd_and_up_fn)(float *fwd, float *up);
+typedef void (*matrix_4x3_multiply_fn)(float *a, float *b, float *out);
+typedef void (*matrix_4x3_from_point_fn)(float *out, float *point);
+typedef void (*model_node_set_default_fn)(float *out, void *anim_data);
+
 /*
  * object_compute_node_matrices — compute the full node matrix hierarchy for an
  * object, transforming each node from local (animation) space into world space.
@@ -3345,39 +3516,25 @@ void object_compute_node_matrices(int object_handle)
   /* MSVC original: SUB ESP,0xa44. Pad to match so unported callees that
      read from overlapping MSVC stack offsets see valid memory. */
   volatile char _msvc_frame_pad[92];
+  object_data_t *obj;
+  void *object_tag;
+  float *node_matrices;
+  uint8_t obj_type_byte;
+  int cannot_interpolate;
+  void *anim_data;
+  char anim_data_stack[2048];
+
   (void)_msvc_frame_pad;
 
-  /* Type-cast helpers for unported callees */
-  typedef void (*animation_set_default_fn)(void *model_tag, void *anim_data);
-  typedef void (*animation_decode_fn)(void *model_tag, void *anim_entry,
-                                      int frame_index, void *anim_data);
-  typedef void (*animation_overlay_keyframe_fn)(
-    void *anim_entry, float frame_value, void *anim_data);
-  typedef void (*animation_overlay_interpolate_fn)(
-    void *anim_entry, int frame_index, void *anim_data, void *node_data);
-  typedef void (*overlay_adjust_fn)(int object_handle, void *anim_data);
-  typedef void (*anim_interpolate_fn)(uint16_t node_count, void *interp_data,
-                                      void *anim_data, int16_t frame_index,
-                                      int16_t frame_count);
-  typedef int (*valid_real_vectors_fn)(float *fwd, float *left, float *up);
-  typedef int (*valid_real_matrix4x3_fn)(float *m);
-  typedef int (*valid_fwd_and_up_fn)(float *fwd, float *up);
-  typedef void (*matrix_4x3_multiply_fn)(float *a, float *b, float *out);
-  typedef void (*matrix_4x3_from_point_fn)(float *out, float *point);
-  typedef void (*model_node_set_default_fn)(float *out, void *anim_data);
-
-  object_data_t *obj =
-    (object_data_t *)object_get_and_verify_type(object_handle, -1);
-  void *object_tag = tag_get(0x6f626a65, *(int *)obj);
-  float *node_matrices = (float *)object_header_block_reference_get(
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  object_tag = tag_get(0x6f626a65, *(int *)obj);
+  node_matrices = (float *)object_header_block_reference_get(
     object_handle, (void *)((char *)obj + 0x1a0));
 
   /* Objects with type bits 5..11 set cannot interpolate and use a stack
    * buffer for animation data; others use the block reference at +0x19c. */
-  uint8_t obj_type_byte = *(uint8_t *)((char *)obj + 0x64);
-  int cannot_interpolate = ((1 << (obj_type_byte & 0x1f)) & 0xfe0u) != 0;
-  void *anim_data;
-  char anim_data_stack[2048];
+  obj_type_byte = *(uint8_t *)((char *)obj + 0x64);
+  cannot_interpolate = ((1 << (obj_type_byte & 0x1f)) & 0xfe0u) != 0;
 
   if (cannot_interpolate) {
     anim_data = anim_data_stack;
