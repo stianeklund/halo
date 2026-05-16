@@ -18818,8 +18818,9 @@
           "addr": "0x10fed0"
         },
         {
-          "decl": "void FUN_001100c0(void);",
-          "addr": "0x1100c0"
+          "decl": "char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5, float sine, float cosine);",
+          "addr": "0x1100c0",
+          "ported": true
         },
         {
           "decl": "void FUN_00110210(void);",
