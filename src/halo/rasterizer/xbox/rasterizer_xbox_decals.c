@@ -73,6 +73,18 @@ void FUN_0015b1e0(void)
   lruv_cache_dispose_all(*(void **)0x476adc);
 }
 
+/* 0x15b220
+ *
+ * rasterizer_decals_idle
+ *
+ * Performs idle maintenance on the decal vertex LRUV cache (e.g. eviction
+ * of stale entries).
+ */
+void FUN_0015b220(void)
+{
+  lruv_idle(*(void **)0x476adc);
+}
+
 /* 0x15b460
  *
  * Allocate vertex cache space for decal vertices.
