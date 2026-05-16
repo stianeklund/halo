@@ -18823,8 +18823,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00110210(void);",
-          "addr": "0x110210"
+          "decl": "char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5, float sine, float cosine);",
+          "addr": "0x110210",
+          "ported": true
         },
         {
           "decl": "void circle_intersects_cone2d(void);",

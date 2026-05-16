@@ -1834,6 +1834,52 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x110210 — 3D capsule-cone intersection (variant of 0x1100c0). */
+char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
+                  float sine, float cosine)
+{
+  float dx, dy, dz;
+  float dot;
+  float far_lim;
+  float dist_sq;
+
+  if (sine <= 0.0f || cosine < 0.0f) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
+             "sine>0.0f && cosine>=0.0f",
+             "c:\\halo\\SOURCE\\math\\real_math.c", 0x897, 1);
+    display_assert("sine>0.0f && cosine>=0.0f",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x897, 1);
+    halt_and_catch_fire();
+  }
+  {
+    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
+        *(double *)0x2549d8 <= fabsf(diff)) {
+      csprintf((char *)0x5ab100, "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+               "sine", "cosine",
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
+      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
+      halt_and_catch_fire();
+    }
+  }
+  dx = p1[0] - p3[0];
+  dy = p1[1] - p3[1];
+  dz = p1[2] - p3[2];
+  dot = dx * p4[0] + dy * p4[1] + dz * p4[2];
+  far_lim = -p2;
+  if (far_lim < dot) {
+    far_lim = p2 + p5;
+    if (far_lim >= dot) {
+      dist_sq = p2 * p2 + (p2 * sine + p2 * sine + dot) * dot;
+      cosine = (dx * dx + dy * dy + dz * dz) * cosine * cosine;
+      if (cosine < dist_sq) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 /* 0x1100c0 — 2D capsule-cone intersection. Tests if a 2D capsule
  * (point=p1, radius=p2, half-axis=p4*p5) is intersected by a cone
  * (apex=p3, axis=p4, length cap, half-angle cos=p7, sin=p6). */
