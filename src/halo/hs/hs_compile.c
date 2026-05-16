@@ -556,6 +556,36 @@ bool FUN_000c6460(int datum_index)
   return FUN_000c6130(datum_index, (void *)(scenario + 0x288), 0x34, 0);
 }
 
+/* 0xc64d0 — Compile AI encounter/squad literal (type 0x11).
+ * Asserts type==_hs_type_ai and constant_type==type, then delegates to
+ * FUN_000540f0 to look up an AI encounter or squad by name from the scenario. */
+bool FUN_000c64d0(int datum_index)
+{
+  char *node;
+  bool result;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)((char *)datum_get(*(data_t **)0x5aa6c8, datum_index) + 0x4) !=
+      0x11) {
+    display_assert("hs_syntax_get(expression_index)->type==_hs_type_ai",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x744, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(node + 0x2) != *(short *)(node + 0x4)) {
+    display_assert("expression->constant_type==expression->type",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x745, 1);
+    system_exit(-1);
+  }
+  result = FUN_000540f0((void *)global_scenario_get(),
+                        (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8),
+                        (int *)(node + 0x10));
+  if (!result) {
+    *(const char **)0x46b6fc = "this is not a valid ai encounter or squad.";
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+  }
+  return result;
+}
+
 /* 0xc6580 — Compile ai_command_list literal (type 0x12). */
 bool FUN_000c6580(int datum_index)
 {

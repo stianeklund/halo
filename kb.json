@@ -10045,8 +10045,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000c64d0(void);",
-          "addr": "0xc64d0"
+          "decl": "bool FUN_000c64d0(int datum_index);",
+          "addr": "0xc64d0",
+          "ported": true
         },
         {
           "decl": "bool FUN_000c6580(int datum_index);",
@@ -29129,7 +29130,7 @@
           "addr": "0x540e0"
         },
         {
-          "decl": "void FUN_000540f0(void);",
+          "decl": "bool FUN_000540f0(void *scenario, const char *name, int *out_value);",
           "addr": "0x540f0"
         },
         {
