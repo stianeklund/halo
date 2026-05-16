@@ -156,6 +156,21 @@ static float __attribute__((noinline, unused)) xbox_acosf(float x)
   return (float)xbox_atan2((double)s, (double)x);
 }
 
+static inline double xbox_fmod(double a, double b)
+{
+  double result;
+  asm volatile (
+    "1: fprem1\n\t"
+    "fnstsw %%ax\n\t"
+    "testb $0x04, %%ah\n\t"
+    "jnz 1b"
+    : "=t"(result)
+    : "0"(a), "u"(b)
+    : "ax", "st(1)"
+  );
+  return result;
+}
+
 static inline double xbox_log10(double x)
 {
   double result;
@@ -228,6 +243,7 @@ static inline size_t xbox_strlen(const char *s)
   #define sqrtf   xbox_sqrtf
   #define fabsf   xbox_fabsf
   #define acosf   xbox_acosf
+  #define fmod    xbox_fmod
   #define atan2   xbox_atan2
   #define log10   xbox_log10
   #define pow     xbox_pow

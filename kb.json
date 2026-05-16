@@ -17158,7 +17158,8 @@
         },
         {
           "decl": "void FUN_0010aa60(int type_index, void *buffer);",
-          "addr": "0x10aa60"
+          "addr": "0x10aa60",
+          "ported": true
         },
         {
           "decl": "void periodic_functions_initialize(void);",
@@ -18599,7 +18600,7 @@
           "addr": "0x10a710"
         },
         {
-          "decl": "void FUN_0010a830(void);",
+          "decl": "void FUN_0010a830(float *buf@<ebx>);",
           "addr": "0x10a830"
         },
         {

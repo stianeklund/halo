@@ -1,4 +1,129 @@
 /*
+ * FUN_0010aa60 — fill a 0x400-byte periodic function lookup table for one of
+ * 12 types: one(0), zero(1), cosine(2), cosine_variable(3), diagonal_saw(4),
+ * saw_wave(5), triangle(6), soft_triangle(7), gaussian(8),
+ * stutter_4harmonic x2 (9,10), square_wave(11).
+ *
+ * gaussian_scratch is filled by FUN_0010a830 (takes buffer via EBX).
+ * Samples are computed for indices 0..0x3FF scaled by *(float*)0x28c8f4.
+ * Output bytes are normalized: (sample - min) / (max - min) * 255, clamped.
+ * Types 6 and 7 skip the min-subtract step (range forced to 0).
+ *
+ * 0x10aa60 / random_math.obj (periodic_functions.c)
+ */
+void FUN_0010aa60(int type_index, void *buffer)
+{
+  float gaussian_scratch[0x400];
+  float sample_scratch[0x400];
+  float sample;
+  float max_val;
+  float min_val;
+  float phase;
+  float phase_var;
+  float range;
+  float p;
+  unsigned char *out;
+  int i;
+  int byte_val;
+  int k;
+
+  FUN_0010a830(gaussian_scratch);
+
+  max_val = -3.4028235e+38f;
+  min_val = 3.4028235e+38f;
+
+  for (i = 0; i < 0x400; i++) {
+    phase = (float)i * *(float *)0x28c8f4;
+    phase_var = gaussian_scratch[i] * *(float *)0x28c8f0;
+
+    switch (type_index) {
+    case 0:
+      sample = 1.0f;
+      break;
+    case 1:
+      sample = 0.0f;
+      break;
+    case 2:
+      sample = cosf(phase * *(float *)0x255a54);
+      break;
+    case 3:
+      sample = cosf(phase_var * *(float *)0x255a54);
+      break;
+    case 4:
+      sample = (float)fmod((double)phase, *(double *)0x2573d8);
+      break;
+    case 5:
+      sample = (float)fmod((double)phase_var, *(double *)0x2573d8);
+      break;
+    case 6:
+      p = (float)fmod((double)phase, *(double *)0x2573d8);
+      if (p < *(float *)0x253398)
+        sample = p + p;
+      else
+        sample = *(float *)0x2533c8 -
+                 ((p - *(float *)0x253398) + (p - *(float *)0x253398));
+      break;
+    case 7:
+      p = (float)fmod((double)phase_var, *(double *)0x2573d8);
+      if (p < *(float *)0x253398)
+        sample = p + p;
+      else
+        sample = *(float *)0x2533c8 -
+                 ((p - *(float *)0x253398) + (p - *(float *)0x253398));
+      break;
+    case 8:
+      sample =
+        random_math_real((unsigned int *)get_global_random_seed_address());
+      break;
+    case 9:
+    case 10:
+      sample =
+        (cosf(phase * *(float *)0x28c8ec) * cosf(phase * *(float *)0x28c8e8) +
+         cosf(phase * *(float *)0x28c8e4) * sinf(phase * *(float *)0x2568bc)) *
+          *(float *)0x253398 +
+        sinf(phase * *(float *)0x256980) * cosf(phase * *(float *)0x255a54);
+      break;
+    case 11:
+      p = (float)fmod((double)phase_var, *(double *)0x2573d8);
+      sample = p * p;
+      break;
+    default:
+      display_assert(0, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x1f3,
+                     1);
+      system_exit(-1);
+      sample = 0.0f;
+      break;
+    }
+
+    if (sample > max_val)
+      max_val = sample;
+    if (sample < min_val)
+      min_val = sample;
+    sample_scratch[i] = sample;
+  }
+
+  if ((1 << type_index) & 0xc0)
+    range = *(float *)0x2533c0;
+  else
+    range = max_val - min_val;
+
+  out = (unsigned char *)buffer;
+  for (k = 0; k < 0x400; k++) {
+    float v = sample_scratch[k];
+    if (range != *(float *)0x2533c0) {
+      v = (v - min_val) / range;
+    }
+    v *= *(float *)0x2602c8;
+    byte_val = (int)v;
+    if (byte_val < 0)
+      byte_val = 0;
+    if (byte_val > 0xff)
+      byte_val = 0xff;
+    out[k] = (unsigned char)byte_val;
+  }
+}
+
+/*
  * periodic_functions_initialize — allocate and pre-compute all
  * periodic/transition function lookup tables used by the animation and effect
  * systems.

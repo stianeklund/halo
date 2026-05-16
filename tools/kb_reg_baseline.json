@@ -174,6 +174,7 @@
     "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
     "0xfc990": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
     "0x102510": "void screenshot_render(void *a1@<edi>);",
+    "0x10a830": "void FUN_0010a830(float *buf@<ebx>);",
     "0x10a930": "void FUN_0010a930(int16_t type_index@<bx>, void *buffer);",
     "0x10b300": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
     "0x118d70": "void FUN_00118d70(int queue@<eax>);",
