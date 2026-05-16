@@ -1,10 +1,42 @@
 # Object Data Corruption → Game Freeze
 
-**Status:** Partially mitigated, root cause unknown
-**Severity:** Critical — kills the main game thread, freezing the game
-**Regression:** Confirmed — original cachebeta.xbe does not exhibit this behavior
+**Status:** FIXED — root cause identified and patched
+**Severity:** Critical — was killing the main game thread, freezing the game
+**Regression:** Confirmed — original cachebeta.xbe did not exhibit this behavior
 **Affected map:** Halo (a30), possibly others
 **Discovered:** 2026-05-16
+**Fixed:** 2026-05-16
+
+## Root Cause (IDENTIFIED AND FIXED)
+
+The crash was caused by a **forward thunk generator bug** in `tools/analysis/knowledge.py`.
+
+The `_gen_thunk_single_reg` method used MSVC-style `asm mov <reg>, arg0` to load
+register arguments into place. Under clang (`-target i386-pc-win32`), this asm block
+has no clobber declaration, so the optimizer freely reused the register for argument
+marshalling — overwriting the value set by the asm before the call.
+
+**Specific crash path:**
+- `FUN_00136bc0(int current_object_handle@<edi>, ..., float *shield_damage, float *body_damage)`
+- The thunk loaded `EDI = current_object_handle`, then the compiler overwrote `EDI`
+  with `&shield_damage` for a push instruction
+- FUN_00136bc0 received a **stack pointer** as its object handle
+- `datum_get` assert fired: `data.c#79: object index #9668 (0xd00a25c4) is unused or changed`
+- This killed the main game thread
+
+**Fix (commit after `da7c69bc`):** Removed the `_gen_thunk_single_reg` special case.
+All `@<reg>` thunks now use `_gen_thunk_multi_reg` which emits naked GCC-style asm
+that pushes all stack args first, then loads register args last — no clobber possible.
+
+## normalize3d NaN Messages (pre-existing, not a regression)
+
+After the crash fix, `normalize3d: NaN INPUT` messages continue to appear
+(callers: `0x13ad84`, `0x13ae48` inside FUN_0013ab20, plus `0x18b818`, `0x13bff6`).
+**Investigation confirmed these are in unported code only** — the lighting probe
+computation (FUN_0013ab20 / FUN_0013bce0) produces NaN when objects are in
+transitional states (e.g. AI exiting Covenant Spirit dropship). The original XBE
+had the same NaN but normalize3d silently propagated it; our guard zeros it safely.
+This is **not a regression** — just cosmetic lighting artifacts for transitioning objects.
 
 ## Symptoms
 
