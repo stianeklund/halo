@@ -18702,8 +18702,9 @@
           "ported": true
         },
         {
-          "decl": "void point_in_triangle3d(void);",
-          "addr": "0x10d830"
+          "decl": "char FUN_0010d830(float *p1, float *p2, float *p3, float *p4, float *out_u, float *out_v);",
+          "addr": "0x10d830",
+          "ported": true
         },
         {
           "decl": "char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius, float cosine);",

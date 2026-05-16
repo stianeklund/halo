@@ -1834,6 +1834,57 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10d830 — 3D triangle barycentric coordinates: project to dominant
+ * axis and compute barycentric (u,v). p1=point, p2,p3,p4=triangle vertices. */
+char FUN_0010d830(float *p1, float *p2, float *p3, float *p4,
+                  float *out_u, float *out_v)
+{
+  float v3[3], v1[3], v2[3];
+  float n[3];
+  float dot_n;
+  uint32_t basis;
+  uint8_t axis;
+  float p1_proj[3];
+  float v1_proj[3];
+  float v2_proj[3];
+  float det, det2, total, inv_total;
+
+  v3[0] = p1[0] - p2[0];
+  v3[1] = p1[1] - p2[1];
+  v3[2] = p1[2] - p2[2];
+  v1[0] = p3[0] - p2[0];
+  v1[1] = p3[1] - p2[1];
+  v1[2] = p3[2] - p2[2];
+  v2[0] = p4[0] - p2[0];
+  v2[1] = p4[1] - p2[1];
+  v2[2] = p4[2] - p2[2];
+  n[0] = v2[2] * v1[1] - v1[2] * v2[1];
+  n[1] = v1[2] * v2[0] - v2[2] * v1[0];
+  n[2] = v2[1] * v1[0] - v1[1] * v2[0];
+  dot_n = n[0] * v3[0] + n[1] * v3[1] + n[2] * v3[2];
+  if (dot_n * dot_n < (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * (*(float *)0x253f44)) {
+    basis = FUN_00099220(n);
+    axis = FUN_00099270(n, basis);
+    FUN_00061df0(v1, basis, axis, p1_proj);
+    FUN_00061df0(v3, basis, axis, v1_proj);
+    det = v1[2] * p1_proj[0] - p1_proj[2] * v1_proj[0];
+    if (det >= 0.0f) {
+      FUN_00061df0(v2, basis, axis, v2_proj);
+      det2 = v2_proj[2] * v1_proj[0] - v1[2] * v2_proj[0];
+      if (det2 >= 0.0f) {
+        total = v2_proj[2] * p1_proj[0] - p1_proj[2] * v2_proj[0];
+        if (det2 + det <= total) {
+          inv_total = 1.0f / total;
+          *out_u = det2 * inv_total;
+          *out_v = inv_total * det;
+          return 1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 /* 0x10e6f0 — 3D ray vs triangle intersection (Möller–Trumbore-like).
  * p1=ray_origin, p2=ray_direction, p3,p4,p5=triangle vertices,
  * p6=out_t. Returns 1 if ray hits triangle. */
