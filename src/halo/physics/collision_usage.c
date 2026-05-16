@@ -141,6 +141,33 @@ void collision_log_add_call(short collision_function)
 }
 
 /*
+ * FUN_0014da20 — append collision sphere statistics to a display line buffer.
+ *
+ * If collision logging is active (0x5a5e40 flag), appends a formatted line of
+ * sphere/structure-vector/object-vector test counts to the end of display_line.
+ *
+ * Confirmed: cdecl, 1 arg (char *display_line).
+ * Confirmed: PUSH ESI; CALL 0x8df60 (csstrlen); ADD ESP,4 → end-of-string.
+ * Confirmed: PUSH end; PUSH format(0x29d548); PUSH 6 globals; CALL 0x1d90f0 (crt_sprintf).
+ * Confirmed: globals: 0x5a6128, 0x5a66e8+0x5a6858, 0x5a5e48, 0x5a6578, 0x5a5fb8, 0x5a6408.
+ */
+void FUN_0014da20(char *display_line)
+{
+  char *end;
+
+  if (!*(uint8_t *)0x5a5e40)
+    return;
+  end = display_line + csstrlen(display_line);
+  crt_sprintf(end, (char *)0x29d548,
+              *(int *)0x5a6128,
+              *(int *)0x5a66e8 + *(int *)0x5a6858,
+              *(int *)0x5a5e48,
+              *(int *)0x5a6578,
+              *(int *)0x5a5fb8,
+              *(int *)0x5a6408);
+}
+
+/*
  * FUN_0014da80 — look up a collision-function attribute from its tag block.
  *
  * Indexes the block at tag_data+0x234 (0x48-byte elements) by
