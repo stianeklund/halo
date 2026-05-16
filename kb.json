@@ -18732,7 +18732,7 @@
           "ported": true
         },
         {
-          "decl": "void vector_intersects_pill2d(void);",
+          "decl": "int vector_intersects_pill2d(float *line_start, float *line_dir, float *pill_center, float *pill_dir, float pill_radius);",
           "addr": "0x10dcb0"
         },
         {
@@ -18770,16 +18770,19 @@
           "ported": true
         },
         {
-          "decl": "void pill_intersects_rectangle2d(void);",
-          "addr": "0x10ed70"
+          "decl": "char pill_intersects_rectangle2d(float *pill_center, float *pill_dir, float pill_radius, float *rect);",
+          "addr": "0x10ed70",
+          "ported": true
         },
         {
-          "decl": "void pill_intersects_triangle2d(void);",
-          "addr": "0x10eeb0"
+          "decl": "char pill_intersects_triangle2d(float *pill_center, float *pill_dir, float pill_radius, float *v0, float *v1, float *v2);",
+          "addr": "0x10eeb0",
+          "ported": true
         },
         {
-          "decl": "void pill_intersects_triangle3d(void);",
-          "addr": "0x10efd0"
+          "decl": "int pill_intersects_triangle3d(float *pill_start, float *pill_dir, float pill_radius, float *v0, float *v1, float *v2);",
+          "addr": "0x10efd0",
+          "ported": true
         },
         {
           "decl": "char FUN_0010f310(float *p1, float *p2, float *p3, float *out);",

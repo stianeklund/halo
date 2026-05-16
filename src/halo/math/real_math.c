@@ -2060,6 +2060,189 @@ char sphere_intersects_triangle3d(float *center, float radius, float *v0,
   return result;
 }
 
+/* Test if a 2D pill intersects an axis-aligned rectangle.
+ * rect = {x0, x1, y0, y1}. Tests each edge the pill center is outside of. */
+char pill_intersects_rectangle2d(float *pill_center, float *pill_dir,
+                                 float pill_radius, float *rect)
+{
+  float edge_start[2], edge_dir[2];
+  char result;
+
+  result = 1;
+  if (pill_center[0] < rect[0]) {
+    edge_start[0] = rect[0];
+    edge_start[1] = rect[2];
+    edge_dir[0] = 0.0f;
+    edge_dir[1] = rect[3] - rect[2];
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  if (pill_center[1] < rect[2]) {
+    edge_start[0] = rect[0];
+    edge_start[1] = rect[2];
+    edge_dir[0] = rect[1] - rect[0];
+    edge_dir[1] = 0.0f;
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  if (rect[1] < pill_center[0]) {
+    edge_start[0] = rect[1];
+    edge_start[1] = rect[2];
+    edge_dir[0] = 0.0f;
+    edge_dir[1] = rect[3] - rect[2];
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  if (rect[3] < pill_center[1]) {
+    edge_start[0] = rect[0];
+    edge_start[1] = rect[3];
+    edge_dir[0] = rect[1] - rect[0];
+    edge_dir[1] = 0.0f;
+    if (vector_intersects_pill2d(edge_start, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  return result;
+}
+
+/* Test if a 2D pill intersects a triangle (3 vertices, 2D).
+ * Tests each edge where the pill center is outside the edge half-plane. */
+char pill_intersects_triangle2d(float *pill_center, float *pill_dir,
+                                float pill_radius, float *v0, float *v1,
+                                float *v2)
+{
+  float edge_dir[2];
+  char result;
+
+  result = 1;
+  edge_dir[0] = v1[0] - v0[0];
+  edge_dir[1] = v1[1] - v0[1];
+  if (0.0f < edge_dir[1] * (pill_center[0] - v0[0]) -
+             edge_dir[0] * (pill_center[1] - v0[1])) {
+    if (vector_intersects_pill2d(v0, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+
+  edge_dir[0] = v2[0] - v1[0];
+  edge_dir[1] = v2[1] - v1[1];
+  if (0.0f < edge_dir[1] * (pill_center[0] - v1[0]) -
+             edge_dir[0] * (pill_center[1] - v1[1])) {
+    if (vector_intersects_pill2d(v1, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+
+  edge_dir[0] = v0[0] - v2[0];
+  edge_dir[1] = v0[1] - v2[1];
+  if (0.0f < edge_dir[1] * (pill_center[0] - v2[0]) -
+             edge_dir[0] * (pill_center[1] - v2[1])) {
+    if (vector_intersects_pill2d(v2, edge_dir, pill_center, pill_dir,
+                                 pill_radius))
+      return 1;
+    result = 0;
+  }
+  return result;
+}
+
+/* Test if a 3D pill (capsule) intersects a triangle.
+ * Projects pill onto triangle plane, tests edges for outside half-planes. */
+int pill_intersects_triangle3d(float *pill_start, float *pill_dir,
+                               float pill_radius, float *v0, float *v1,
+                               float *v2)
+{
+  float e01[3], e12[3], n[3];
+  float e20[3], cp[3];
+  float proj[3];
+  float t, closest_x, closest_y;
+  char outside;
+
+  e01[0] = v1[0] - v0[0];
+  outside = 0;
+  e01[1] = v1[1] - v0[1];
+  e01[2] = v1[2] - v0[2];
+  e12[0] = v2[0] - v1[0];
+  e12[1] = v2[1] - v1[1];
+  e12[2] = v2[2] - v1[2];
+
+  n[0] = e12[2] * e01[1] - e12[1] * e01[2];
+  n[1] = e01[2] * e12[0] - e12[2] * e01[0];
+  n[2] = e12[1] * e01[0] - e01[1] * e12[0];
+
+  t = (n[0] * (v0[0] - pill_start[0]) + n[1] * (v0[1] - pill_start[1]) +
+       n[2] * (v0[2] - pill_start[2])) /
+      (n[1] * pill_dir[1] + n[2] * pill_dir[2] + n[0] * pill_dir[0]);
+
+  if (t < 0.0f) {
+    closest_x = 0.0f;
+  } else if (t > 1.0f) {
+    closest_x = 1.0f;
+  } else {
+    closest_x = t;
+  }
+  proj[0] = closest_x * pill_dir[0] + pill_start[0];
+  proj[1] = closest_x * pill_dir[1] + pill_start[1];
+  proj[2] = closest_x * pill_dir[2] + pill_start[2];
+
+  if ((e01[1] * (proj[2] - v0[2]) - (proj[1] - v0[1]) * e01[2]) * n[0] +
+      (e01[2] * (proj[0] - v0[0]) - (proj[2] - v0[2]) * e01[0]) * n[1] +
+      n[2] * ((proj[1] - v0[1]) * e01[0] - (proj[0] - v0[0]) * e01[1]) <
+      0.0f) {
+    if (vector_intersects_pill3d(v0, e01, pill_start, pill_dir, pill_radius))
+      return 1;
+    outside = 1;
+  }
+
+  if (outside == 0) {
+    if ((e12[1] * (proj[2] - v1[2]) - (proj[1] - v1[1]) * e12[2]) * n[0] +
+        (e12[2] * (proj[0] - v1[0]) - (proj[2] - v1[2]) * e12[0]) * n[1] +
+        n[2] * ((proj[1] - v1[1]) * e12[0] -
+                e12[1] * (proj[0] - v1[0])) < 0.0f) {
+      if (vector_intersects_pill3d(v1, e12, pill_start, pill_dir, pill_radius))
+        return 1;
+      outside = 1;
+    }
+  } else {
+    if (vector_intersects_pill3d(v1, e12, pill_start, pill_dir, pill_radius))
+      return 1;
+  }
+
+  e20[0] = v0[0] - v2[0];
+  e20[1] = v0[1] - v2[1];
+  e20[2] = v0[2] - v2[2];
+  cp[0] = proj[0] - v2[0];
+  cp[1] = proj[1] - v2[1];
+  cp[2] = proj[2] - v2[2];
+
+  if (0.0f <= (e20[1] * cp[2] - e20[2] * cp[1]) * n[0] +
+              (e20[2] * cp[0] - e20[0] * cp[2]) * n[1] +
+              n[2] * (e20[0] * cp[1] - e20[1] * cp[0])) {
+    if (outside == 0) {
+      if (0.0f < t && t < 1.0f)
+        return 1;
+      closest_y = n[0] * cp[0] + n[1] * cp[1] + n[2] * cp[2];
+      if (closest_y * closest_y <=
+          (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * pill_radius *
+              pill_radius)
+        return 1;
+      return 0;
+    }
+  } else {
+    if (vector_intersects_pill3d(v2, e20, pill_start, pill_dir, pill_radius))
+      return 1;
+  }
+  return 0;
+}
+
 /* 0x10d4c0 — Ray vs cylinder intersection (cylinder along z-axis).
  * p1=ray_origin, p2=cylinder_height, p3=cylinder_radius, p4=cylinder_center,
  * p5=ray_direction, p6=out_t, p7=out_normal. */
