@@ -1834,6 +1834,534 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10d830 — 3D triangle barycentric coordinates: project to dominant
+ * axis and compute barycentric (u,v). p1=point, p2,p3,p4=triangle vertices. */
+char FUN_0010d830(float *p1, float *p2, float *p3, float *p4,
+                  float *out_u, float *out_v)
+{
+  float v3[3], v1[3], v2[3];
+  float n[3];
+  float dot_n;
+  uint32_t basis;
+  uint8_t axis;
+  float p1_proj[3];
+  float v1_proj[3];
+  float v2_proj[3];
+  float det, det2, total, inv_total;
+
+  v3[0] = p1[0] - p2[0];
+  v3[1] = p1[1] - p2[1];
+  v3[2] = p1[2] - p2[2];
+  v1[0] = p3[0] - p2[0];
+  v1[1] = p3[1] - p2[1];
+  v1[2] = p3[2] - p2[2];
+  v2[0] = p4[0] - p2[0];
+  v2[1] = p4[1] - p2[1];
+  v2[2] = p4[2] - p2[2];
+  n[0] = v2[2] * v1[1] - v1[2] * v2[1];
+  n[1] = v1[2] * v2[0] - v2[2] * v1[0];
+  n[2] = v2[1] * v1[0] - v1[1] * v2[0];
+  dot_n = n[0] * v3[0] + n[1] * v3[1] + n[2] * v3[2];
+  if (dot_n * dot_n < (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * (*(float *)0x253f44)) {
+    basis = FUN_00099220(n);
+    axis = FUN_00099270(n, basis);
+    FUN_00061df0(v1, basis, axis, p1_proj);
+    FUN_00061df0(v3, basis, axis, v1_proj);
+    det = v1[2] * p1_proj[0] - p1_proj[2] * v1_proj[0];
+    if (det >= 0.0f) {
+      FUN_00061df0(v2, basis, axis, v2_proj);
+      det2 = v2_proj[2] * v1_proj[0] - v1[2] * v2_proj[0];
+      if (det2 >= 0.0f) {
+        total = v2_proj[2] * p1_proj[0] - p1_proj[2] * v2_proj[0];
+        if (det2 + det <= total) {
+          inv_total = 1.0f / total;
+          *out_u = det2 * inv_total;
+          *out_v = inv_total * det;
+          return 1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+/* 0x10e6f0 — 3D ray vs triangle intersection (Möller–Trumbore-like).
+ * p1=ray_origin, p2=ray_direction, p3,p4,p5=triangle vertices,
+ * p6=out_t. Returns 1 if ray hits triangle. */
+char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4,
+                  float *p5, float *p6)
+{
+  float e1[3], e2[3];
+  float n[3];
+  float det, inv_det;
+  float origin_to_v0[3];
+  float t, u, v;
+  float scratch[3];
+
+  e1[0] = p4[0] - p3[0];
+  e1[1] = p4[1] - p3[1];
+  e1[2] = p4[2] - p3[2];
+  e2[0] = p5[0] - p3[0];
+  e2[1] = p5[1] - p3[1];
+  e2[2] = p5[2] - p3[2];
+  n[0] = e2[2] * e1[1] - e2[1] * e1[2];
+  n[1] = e1[2] * e2[0] - e2[2] * e1[0];
+  n[2] = e2[1] * e1[0] - e2[0] * e1[1];
+  det = n[0] * p2[0] + n[1] * p2[1] + n[2] * p2[2];
+
+  if (fabsf(det) < *(double *)0x2533d0) {
+    return 0;
+  }
+
+  inv_det = 1.0f / det;
+  origin_to_v0[0] = p3[0] - p1[0];
+  origin_to_v0[1] = p3[1] - p1[1];
+  origin_to_v0[2] = p3[2] - p1[2];
+  t = (origin_to_v0[0] * n[0] +
+       origin_to_v0[1] * n[1] +
+       origin_to_v0[2] * n[2]) * inv_det;
+  if (t < 0.0f) return 0;
+  if (t > 1.0f) return 0;
+
+  cross_product3d(origin_to_v0, p2, scratch);
+  u = (e2[0] * scratch[0] + scratch[1] * e2[1] + scratch[2] * e2[2]) * inv_det;
+  if (u < 0.0f) return 0;
+  if (u > 1.0f) return 0;
+  v = -((e1[0] * scratch[0] + scratch[1] * e1[1] + scratch[2] * e1[2]) * inv_det);
+  if (v < 0.0f) return 0;
+  if (u + v > 1.0f) return 0;
+  *p6 = t;
+  return 1;
+}
+
+/* 0x10e9f0 — 2D triangle vs circle test. Tests the 3 edges (cw winding)
+ * with FUN_0010cc90 (point-segment intersect). Returns 1 if any edge or
+ * point intersects. */
+char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
+                  float *p5)
+{
+  float local_c, local_8;
+
+  char result = 1;
+  local_c = p4[0] - p3[0];
+  local_8 = p4[1] - p3[1];
+  if (0.0f < local_8 * (circle_center[0] - p3[0]) -
+             local_c * (circle_center[1] - p3[1])) {
+    if (FUN_0010cc90(circle_center, p3, &local_c, radius)) {
+      return 1;
+    }
+    result = 0;
+  }
+  local_c = p5[0] - p4[0];
+  local_8 = p5[1] - p4[1];
+  if (local_8 * (circle_center[0] - p4[0]) -
+      local_c * (circle_center[1] - p4[1]) < 0.0f) {
+    if (FUN_0010cc90(circle_center, p4, &local_c, radius)) {
+      return 1;
+    }
+    result = 0;
+  }
+  local_c = p3[0] - p5[0];
+  local_8 = p3[1] - p5[1];
+  if (0.0f < local_8 * (circle_center[0] - p5[0]) -
+             local_c * (circle_center[1] - p5[1])) {
+    if (FUN_0010cc90(circle_center, p5, &local_c, radius)) {
+      return 1;
+    }
+    result = 0;
+  }
+  return result;
+}
+
+/* 0x10d4c0 — Ray vs cylinder intersection (cylinder along z-axis).
+ * p1=ray_origin, p2=cylinder_height, p3=cylinder_radius, p4=cylinder_center,
+ * p5=ray_direction, p6=out_t, p7=out_normal. */
+char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
+                  float *p6, float *p7)
+{
+  float dx, dy;
+  float bp, c2;
+  float a, t;
+  char hit;
+  float local_10;
+
+  dx = p4[0] - p1[0];
+  dy = p4[1] - p1[1];
+  bp = dy * p5[1] + dx * p5[0];
+  c2 = (dx * dx + dy * dy) - p3 * p3;
+  t = 0.0f;
+  if (c2 <= 0.0f) {
+    a = p5[1] * p5[1] + p5[0] * p5[0];
+    c2 = bp * bp - a * c2;
+    if (c2 < 0.0f) return 0;
+    c2 = -(sqrtf(c2) + bp);
+    if (c2 <= a) return 0;
+    t = c2 / a;
+  }
+  hit = 1;
+  c2 = (t * p5[2] + (p4[2] - p1[2])) / (p2 * p2);
+  if (0.0f <= c2) {
+    if (c2 <= 1.0f) {
+      if (0.0f <= bp) return 0;
+      *p6 = t;
+      p7[0] = t * p5[0] + dx;
+      p7[1] = t * p5[1] + dy;
+      FUN_0010c290(p7);
+      p7[2] = 0.0f;
+      goto check;
+    }
+    local_10 = p1[0];
+    dy = p2 + p1[2];
+    dx = p1[1];
+    {
+      float local_origin[3];
+      local_origin[0] = local_10;
+      local_origin[1] = dx;
+      local_origin[2] = dy;
+      hit = FUN_0010d380(local_origin, p3, p4, p5, p6, p7);
+    }
+  } else {
+    hit = FUN_0010d380(p1, p3, p4, p5, p6, p7);
+  }
+  if (hit == 0) return 0;
+check:
+  if (p5[0] * p7[0] + p7[1] * p5[1] + p7[2] * p5[2] <= 0.0f) {
+    return hit;
+  }
+  return 0;
+}
+
+/* 0x10d380 — Ray-sphere intersection.
+ * p1=ray_origin, p2=sphere_radius, p3=sphere_center, p4=ray_direction.
+ * Returns 1 if intersect, sets *out_t and *out_normal. */
+char FUN_0010d380(float *p1, float p2, float *p3, float *p4,
+                  float *out_t, float *out_normal)
+{
+  float dx, dy, dz;
+  float dot;
+  float dist_sq, c;
+  float a, disc;
+  void (*normalize3d_in_place)(float *) = (void (*)(float *))FUN_0010c2e0;
+
+  dx = p3[0] - p1[0];
+  dy = p3[1] - p1[1];
+  dz = p3[2] - p1[2];
+  dot = dx * p4[0] + dy * p4[1] + dz * p4[2];
+  if (dot < 0.0f) {
+    dist_sq = dy * dy + dx * dx + dz * dz;
+    c = dist_sq - p2 * p2;
+    if (c <= 0.0f) {
+      *out_t = 0.0f;
+      a = 1.0f / sqrtf(dist_sq);
+      out_normal[0] = dx * a;
+      out_normal[1] = dy * a;
+      out_normal[2] = dz * a;
+      return 1;
+    }
+    a = p4[2] * p4[2] + p4[1] * p4[1] + p4[0] * p4[0];
+    disc = dot * dot - a * c;
+    if (0.0f <= disc) {
+      dot = -(sqrtf(disc) + dot);
+      if (dot < a) {
+        *out_t = dot / a;
+        vector3d_scale_add(&dx, p4, dot / a, out_normal);
+        normalize3d_in_place(out_normal);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+/* 0x1104e0 — 3D capsule vs cone test (calls FUN_0010dbf0 for cone test). */
+char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
+                  float sine, float cosine)
+{
+  float dot;
+
+  if (sine <= 0.0f || cosine < 0.0f) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
+             "sine>0.0f && cosine>=0.0f",
+             "c:\\halo\\SOURCE\\math\\real_math.c", 0x8dd, 1);
+    display_assert("sine>0.0f && cosine>=0.0f",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x8dd, 1);
+    halt_and_catch_fire();
+  }
+  {
+    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
+        *(double *)0x2549d8 <= fabsf(diff)) {
+      csprintf((char *)0x5ab100, "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+               "sine", "cosine",
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
+      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
+      halt_and_catch_fire();
+    }
+  }
+  dot = (p1[1] - p3[1]) * p4[1] +
+        (p1[2] - p3[2]) * p4[2] + (p1[0] - p3[0]) * p4[0];
+  if (-p2 <= dot) {
+    if (dot <= p2 + p5 && FUN_0010dbf0(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* 0x110380 — 2D capsule vs cone test (calls FUN_0010db50 for cone test). */
+char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
+                  float sine, float cosine)
+{
+  float dot;
+
+  if (sine <= 0.0f || cosine < 0.0f) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
+             "sine>0.0f && cosine>=0.0f",
+             "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b7, 1);
+    display_assert("sine>0.0f && cosine>=0.0f",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b7, 1);
+    halt_and_catch_fire();
+  }
+  {
+    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
+        *(double *)0x2549d8 <= fabsf(diff)) {
+      csprintf((char *)0x5ab100, "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+               "sine", "cosine",
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
+      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
+      halt_and_catch_fire();
+    }
+  }
+  dot = (p1[1] - p3[1]) * p4[1] + (p1[0] - p3[0]) * p4[0];
+  if (-p2 <= dot) {
+    if (dot <= p2 + p5 && FUN_0010db50(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* 0x110210 — 3D capsule-cone intersection (variant of 0x1100c0). */
+char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
+                  float sine, float cosine)
+{
+  float dx, dy, dz;
+  float dot;
+  float far_lim;
+  float dist_sq;
+
+  if (sine <= 0.0f || cosine < 0.0f) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
+             "sine>0.0f && cosine>=0.0f",
+             "c:\\halo\\SOURCE\\math\\real_math.c", 0x897, 1);
+    display_assert("sine>0.0f && cosine>=0.0f",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x897, 1);
+    halt_and_catch_fire();
+  }
+  {
+    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
+        *(double *)0x2549d8 <= fabsf(diff)) {
+      csprintf((char *)0x5ab100, "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+               "sine", "cosine",
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
+      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
+      halt_and_catch_fire();
+    }
+  }
+  dx = p1[0] - p3[0];
+  dy = p1[1] - p3[1];
+  dz = p1[2] - p3[2];
+  dot = dx * p4[0] + dy * p4[1] + dz * p4[2];
+  far_lim = -p2;
+  if (far_lim < dot) {
+    far_lim = p2 + p5;
+    if (far_lim >= dot) {
+      dist_sq = p2 * p2 + (p2 * sine + p2 * sine + dot) * dot;
+      cosine = (dx * dx + dy * dy + dz * dz) * cosine * cosine;
+      if (cosine < dist_sq) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+/* 0x1100c0 — 2D capsule-cone intersection. Tests if a 2D capsule
+ * (point=p1, radius=p2, half-axis=p4*p5) is intersected by a cone
+ * (apex=p3, axis=p4, length cap, half-angle cos=p7, sin=p6). */
+char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
+                  float sine, float cosine)
+{
+  float dx, dy;
+  float dot;
+  float far_lim;
+  float dist_sq;
+
+  if (sine <= 0.0f || cosine < 0.0f) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
+             "sine>0.0f && cosine>=0.0f",
+             "c:\\halo\\SOURCE\\math\\real_math.c", 0x877, 1);
+    display_assert("sine>0.0f && cosine>=0.0f",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x877, 1);
+    halt_and_catch_fire();
+  }
+  {
+    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
+        *(double *)0x2549d8 <= fabsf(diff)) {
+      csprintf((char *)0x5ab100, "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+               "sine", "cosine",
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
+      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
+      halt_and_catch_fire();
+    }
+  }
+  dx = p1[0] - p3[0];
+  dy = p1[1] - p3[1];
+  dot = dx * p4[0] + dy * p4[1];
+  far_lim = -p2;
+  if (far_lim < dot) {
+    far_lim = p2 + p5;
+    if (far_lim >= dot) {
+      dist_sq = p2 * p2 + (p2 * sine + p2 * sine + dot) * dot;
+      cosine = (dx * dx + dy * dy) * cosine * cosine;
+      if (cosine < dist_sq) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+/* 0x10bff0 — 3D ray vs AABB intersection (slab method).
+ * ray_origin=p1, ray_dir=p2, aabb=p3 (xmin,xmax,ymin,ymax,zmin,zmax). */
+char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
+{
+  float tmin = -3.4028235e+38f;
+  float tmax = 3.4028235e+38f;
+  float t1, t2;
+
+  if (fabsf(ray_dir[0]) < *(double *)0x2533d0) {
+    if (ray_origin[0] < aabb[0]) return 0;
+    if (ray_origin[0] > aabb[1]) return 0;
+  } else {
+    t1 = (aabb[0] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    t2 = (aabb[1] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    if (ray_dir[0] <= 0.0f) {
+      if (t2 > -3.4028235e+38f) tmin = t2;
+      if (t1 < 3.4028235e+38f) tmax = t1;
+    } else {
+      if (t1 > -3.4028235e+38f) tmin = t1;
+      if (t2 < 3.4028235e+38f) tmax = t2;
+    }
+    if (tmin > tmax) return 0;
+  }
+
+  if (fabsf(ray_dir[1]) < *(double *)0x2533d0) {
+    if (ray_origin[1] < aabb[2]) return 0;
+    if (ray_origin[1] > aabb[3]) return 0;
+  } else {
+    t1 = (aabb[2] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    t2 = (aabb[3] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    if (ray_dir[1] <= 0.0f) {
+      if (tmin < t2) tmin = t2;
+      if (t1 < tmax) tmax = t1;
+    } else {
+      if (tmin < t1) tmin = t1;
+      if (t2 < tmax) tmax = t2;
+    }
+    if (tmin > tmax) return 0;
+  }
+
+  if (fabsf(ray_dir[2]) < *(double *)0x2533d0) {
+    if (ray_origin[2] < aabb[4]) return 0;
+    if (ray_origin[2] > aabb[5]) return 0;
+  } else {
+    t1 = (aabb[4] - ray_origin[2]) * (1.0f / ray_dir[2]);
+    t2 = (aabb[5] - ray_origin[2]) * (1.0f / ray_dir[2]);
+    if (ray_dir[2] <= 0.0f) {
+      if (tmin < t2) tmin = t2;
+      if (t1 < tmax) tmax = t1;
+    } else {
+      if (tmin < t1) tmin = t1;
+      if (t2 < tmax) tmax = t2;
+    }
+    if (tmin > tmax) return 0;
+  }
+
+  if (0.0f <= tmax && tmin <= 1.0f) return 1;
+  return 0;
+}
+
+/* 0x10be20 — 2D ray vs AABB intersection (slab method).
+ * ray_origin=p1, ray_dir=p2, aabb=p3 (xmin,xmax,ymin,ymax).
+ * Returns 1 if ray intersects with t in [0,1]. */
+char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb)
+{
+  float tmin = -3.4028235e+38f;
+  float tmax = 3.4028235e+38f;
+  float t1, t2;
+
+  if (fabsf(ray_dir[0]) < *(double *)0x2533d0) {
+    if (ray_origin[0] < aabb[0]) return 0;
+    if (ray_origin[0] > aabb[1]) return 0;
+  } else {
+    t1 = (aabb[0] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    t2 = (aabb[1] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    if (ray_dir[0] <= 0.0f) {
+      if (t2 > -3.4028235e+38f) tmin = t2;
+      if (t1 < 3.4028235e+38f) tmax = t1;
+    } else {
+      if (t1 > -3.4028235e+38f) tmin = t1;
+      if (t2 < 3.4028235e+38f) tmax = t2;
+    }
+    if (tmin > tmax) return 0;
+  }
+
+  if (fabsf(ray_dir[1]) < *(double *)0x2533d0) {
+    if (ray_origin[1] < aabb[2]) return 0;
+    if (ray_origin[1] > aabb[3]) return 0;
+  } else {
+    t1 = (aabb[2] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    t2 = (aabb[3] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    if (ray_dir[1] <= 0.0f) {
+      if (tmin < t2) tmin = t2;
+      if (t1 < tmax) tmax = t1;
+    } else {
+      if (tmin < t1) tmin = t1;
+      if (t2 < tmax) tmax = t2;
+    }
+    if (tmin > tmax) return 0;
+  }
+
+  if (0.0f <= tmax && tmin <= 1.0f) return 1;
+  return 0;
+}
+
+/* 0x10a570 — periodic_functions_dispose: free all 12 periodic + 6 transition
+ * function tables and clear the initialized flag. */
+void FUN_0010a570(void)
+{
+  void **table;
+  int i;
+
+  if (*(char *)0x46e39c != '\0') {
+    table = (void **)0x46e3b8;
+    for (i = 0xc; i != 0; i--) {
+      debug_free(*table, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x7a);
+      table++;
+    }
+    table = (void **)0x46e3a0;
+    for (i = 6; i != 0; i--) {
+      debug_free(*table, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x84);
+      table++;
+    }
+    *(char *)0x46e39c = '\0';
+  }
+}
+
 /* 0x10bdc0 — Point-in-3D-box test (inclusive on both ends). */
 int FUN_0010bdc0(float *point, float *box)
 {
