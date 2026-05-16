@@ -5856,11 +5856,13 @@
         },
         {
           "decl": "void FUN_0017cbc0(void);",
-          "addr": "0x17cbc0"
+          "addr": "0x17cbc0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cbd0(void);",
-          "addr": "0x17cbd0"
+          "addr": "0x17cbd0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cbe0(void);",
@@ -5876,11 +5878,13 @@
         },
         {
           "decl": "void FUN_0017cc10(void);",
-          "addr": "0x17cc10"
+          "addr": "0x17cc10",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cc20(void);",
-          "addr": "0x17cc20"
+          "addr": "0x17cc20",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cc40(void);",
@@ -5896,7 +5900,8 @@
         },
         {
           "decl": "void FUN_0017cc70(void);",
-          "addr": "0x17cc70"
+          "addr": "0x17cc70",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cc80(void);",
@@ -5912,15 +5917,18 @@
         },
         {
           "decl": "void FUN_0017ccb0(void);",
-          "addr": "0x17ccb0"
+          "addr": "0x17ccb0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017ccc0(void);",
-          "addr": "0x17ccc0"
+          "addr": "0x17ccc0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017ccd0(void);",
-          "addr": "0x17ccd0"
+          "addr": "0x17ccd0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cce0(void);",
@@ -5928,7 +5936,8 @@
         },
         {
           "decl": "void FUN_0017ccf0(void);",
-          "addr": "0x17ccf0"
+          "addr": "0x17ccf0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cd00(void);",
@@ -5944,7 +5953,8 @@
         },
         {
           "decl": "void FUN_0017cd30(void);",
-          "addr": "0x17cd30"
+          "addr": "0x17cd30",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cd40(void);",

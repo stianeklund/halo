@@ -1943,3 +1943,63 @@ void FUN_0017cbb0(void)
 {
   FUN_0016bed0();
 }
+
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0). */
+void FUN_0017cbc0(void)
+{
+  FUN_0016c5a0();
+}
+
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090). */
+void FUN_0017cbd0(void)
+{
+  FUN_0016c090();
+}
+
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160dc0). */
+void FUN_0017cc10(void)
+{
+  FUN_00160dc0();
+}
+
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160f50). */
+void FUN_0017cc20(void)
+{
+  FUN_00160f50();
+}
+
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162560). */
+void FUN_0017cc70(void)
+{
+  FUN_00162560();
+}
+
+/* Tail-call thunk to rasterizer decal rendering (FUN_00172a30). */
+void FUN_0017ccb0(void)
+{
+  FUN_00172a30();
+}
+
+/* Tail-call thunk to rasterizer decal rendering (FUN_00172590). */
+void FUN_0017ccc0(void)
+{
+  FUN_00172590();
+}
+
+/* Tail-call thunk to rasterizer decal rendering (FUN_00172de0). */
+void FUN_0017ccd0(void)
+{
+  FUN_00172de0();
+}
+
+/* Tail-call thunk to rasterizer decal rendering (FUN_00173090). */
+void FUN_0017ccf0(void)
+{
+  FUN_00173090();
+}
+
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162920). */
+void FUN_0017cd30(void)
+{
+  FUN_00162920();
+}
