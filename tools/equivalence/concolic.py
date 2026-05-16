@@ -197,6 +197,24 @@ def _value_for_branch(jcc_id: int, cmp_imm: int, untaken_is_target: bool,
     return candidates
 
 
+def _is_spurious_address(addr: int) -> bool:
+    """Reject injection targets that cause false positives.
+
+    NULL-page reads (addr < 0x10000) and very-high addresses (>= 0x80000000)
+    are auto-mapped artifacts, not real game data.  The GLOBALS region
+    (0x500000-0x600000) holds DIR32-relocated oracle slots — injecting there
+    changes oracle behavior without a matching effect on the lifted code,
+    which reads constants at original XBE addresses.
+    """
+    if addr < 0x10000:
+        return True
+    if addr >= 0x80000000:
+        return True
+    if 0x500000 <= addr < 0x600000:
+        return True
+    return False
+
+
 def generate_memory_injections(uncovered: list, global_reads: dict,
                                code_base: int) -> list:
     """Generate memory override dicts that might force untaken branches.
@@ -212,7 +230,7 @@ def generate_memory_injections(uncovered: list, global_reads: dict,
         return []
 
     zero_reads = {addr: (sz, val) for addr, (sz, val) in global_reads.items()
-                  if val == 0}
+                  if val == 0 and not _is_spurious_address(addr)}
 
     injections = []
 
@@ -224,6 +242,8 @@ def generate_memory_injections(uncovered: list, global_reads: dict,
         matched_reads = _find_relevant_reads(br, global_reads)
         if matched_reads:
             for read_addr, (read_sz, _) in matched_reads:
+                if _is_spurious_address(read_addr):
+                    continue
                 for val in values[:3]:
                     fmt = {1: '<B', 2: '<H', 4: '<I'}.get(read_sz, '<I')
                     try:

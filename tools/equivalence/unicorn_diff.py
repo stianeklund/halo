@@ -459,6 +459,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 try:
                     uc.mem_map(page, 0x10000)
                     uc.mem_write(page, b'\x00' * 0x10000)
+                    _seed_known_globals(uc, page, 0x10000)
                 except Exception:
                     pass
                 _override_mapped.add(page)
@@ -796,11 +797,14 @@ def _record_leaf_classification(addr: str, is_leaf: bool) -> None:
         pass
 
 
-def _record_confidence(addr: str, confidence: str, coverage_pct: float) -> None:
+def _record_confidence(addr, confidence: str, coverage_pct: float) -> None:
     """Persist confidence and coverage to leaf_cache.json."""
     if not addr:
         return
-    norm = addr if addr.startswith("0x") else hex(int(addr, 0))
+    if isinstance(addr, int):
+        norm = hex(addr)
+    else:
+        norm = addr if addr.startswith("0x") else hex(int(addr, 0))
     norm = norm.lower()
     try:
         if _LEAF_CACHE_PATH.exists():
@@ -1212,11 +1216,15 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
 
     # --- Generate seeds (Z3 branch-coverage + random/corner) ---
-    seed_safe_mode = not is_leaf
+    # Stubbable non-leaf functions (all calls intercepted) are safe for Z3
+    # seeds and full corner-case values — the stub manager handles callees.
+    seed_safe_mode = not is_leaf and not use_stubs
     z3_extra = []
     if seed_safe_mode:
         info("  seed mode: non-leaf valid-path execution (z3 branch seeds disabled)")
-    else:
+    elif not is_leaf:
+        info("  seed mode: stubbable non-leaf (z3 branch seeds + full corners enabled)")
+    if not seed_safe_mode:
         try:
             from z3_seeds import extract_branch_seeds
             z3_extra = extract_branch_seeds(oracle_slice.code, abi)
@@ -1241,6 +1249,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     all_visited_pcs = {}
     oracle_returns = set()
     merged_global_reads = {}
+    merged_auto_mapped_pages = set()
     oracle_func_base = (CODE_BASE + oracle_slice.section_offset) if oracle_text else CODE_BASE
     oracle_func_end = oracle_func_base + len(oracle_code_patched)
     enable_trace = mem_trace or (use_stubs and not is_leaf)
@@ -1295,6 +1304,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         for addr, val in oracle_state.global_reads.items():
             if addr not in merged_global_reads:
                 merged_global_reads[addr] = val
+        merged_auto_mapped_pages.update(oracle_state.auto_mapped_pages)
 
         # Memory-trace comparison (side-effect writes)
         if enable_trace and oracle_state.mem_writes and lifted_state.mem_writes:
@@ -1516,6 +1526,19 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         trace_diffs=trace_diff_count,
         concolic_seeds=concolic_seeds_run,
     )
+    if merged_global_reads:
+        reads = []
+        for addr, (size, value) in sorted(merged_global_reads.items()):
+            reads.append({
+                "address": f"0x{addr:08x}",
+                "size": size,
+                "value": f"0x{value:0{max(2, size * 2)}x}",
+            })
+        extra["global_reads"] = reads
+    if merged_auto_mapped_pages:
+        extra["auto_mapped_pages"] = [
+            f"0x{addr:08x}" for addr in sorted(merged_auto_mapped_pages)
+        ]
     if concolic_seeds_run:
         extra["phase1_coverage_pct"] = round(phase1_coverage, 1)
 
