@@ -801,6 +801,13 @@ void sphere_intersects_rectangle3d(float *quaternion)
   }
 }
 
+/* Interpolate two quaternions via slerp and normalize the result. */
+void quaternions_interpolate_and_normalize(float *q1, float *q2, float t, float *out)
+{
+  FUN_0010ba90(q1, q2, t, out);
+  sphere_intersects_rectangle3d(out);
+}
+
 /* Convert a unit quaternion [x,y,z,w] to axis-angle representation.
  * Extracts the rotation axis (normalized) and the angle in radians.
  * If the angle exceeds pi, flips to the shorter equivalent rotation. */
