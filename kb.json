@@ -18605,8 +18605,9 @@
           "ported": true
         },
         {
-          "decl": "void vector_intersects_rectangle2d(void);",
-          "addr": "0x10be20"
+          "decl": "char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb);",
+          "addr": "0x10be20",
+          "ported": true
         },
         {
           "decl": "void FUN_0010bff0(void);",

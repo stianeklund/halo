@@ -1834,6 +1834,51 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x10be20 — 2D ray vs AABB intersection (slab method).
+ * ray_origin=p1, ray_dir=p2, aabb=p3 (xmin,xmax,ymin,ymax).
+ * Returns 1 if ray intersects with t in [0,1]. */
+char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb)
+{
+  float tmin = -3.4028235e+38f;
+  float tmax = 3.4028235e+38f;
+  float t1, t2;
+
+  if (fabsf(ray_dir[0]) < *(double *)0x2533d0) {
+    if (ray_origin[0] < aabb[0]) return 0;
+    if (ray_origin[0] > aabb[1]) return 0;
+  } else {
+    t1 = (aabb[0] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    t2 = (aabb[1] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    if (ray_dir[0] <= 0.0f) {
+      if (t2 > -3.4028235e+38f) tmin = t2;
+      if (t1 < 3.4028235e+38f) tmax = t1;
+    } else {
+      if (t1 > -3.4028235e+38f) tmin = t1;
+      if (t2 < 3.4028235e+38f) tmax = t2;
+    }
+    if (tmin > tmax) return 0;
+  }
+
+  if (fabsf(ray_dir[1]) < *(double *)0x2533d0) {
+    if (ray_origin[1] < aabb[2]) return 0;
+    if (ray_origin[1] > aabb[3]) return 0;
+  } else {
+    t1 = (aabb[2] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    t2 = (aabb[3] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    if (ray_dir[1] <= 0.0f) {
+      if (tmin < t2) tmin = t2;
+      if (t1 < tmax) tmax = t1;
+    } else {
+      if (tmin < t1) tmin = t1;
+      if (t2 < tmax) tmax = t2;
+    }
+    if (tmin > tmax) return 0;
+  }
+
+  if (0.0f <= tmax && tmin <= 1.0f) return 1;
+  return 0;
+}
+
 /* 0x10a570 — periodic_functions_dispose: free all 12 periodic + 6 transition
  * function tables and clear the initialized flag. */
 void FUN_0010a570(void)
