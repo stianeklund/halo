@@ -2810,3 +2810,40 @@ char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
   return 1;
 }
 
+/* Initialize a vector tree structure (k-d tree for spatial lookups). */
+void FUN_00110730(int *param_1, short param_2, int param_3, int param_4,
+                  int param_5)
+{
+  if (param_1 == (int *)0) {
+    display_assert("tree", "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x2b, 1);
+    system_exit(-1);
+  }
+  if (param_4 == 0) {
+    display_assert("get_vector", "c:\\halo\\SOURCE\\math\\vector_tree.c",
+                   0x2c, 1);
+    system_exit(-1);
+  }
+  if (param_5 == 0) {
+    display_assert("compare_component",
+                   "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x2d, 1);
+    system_exit(-1);
+  }
+  if (param_2 < 1) {
+    display_assert("component_count>0",
+                   "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x2e, 1);
+    system_exit(-1);
+  }
+  FUN_00117b20(param_1 + 1, 0x10);
+  *(short *)(param_1 + 4) = param_2;
+  param_1[7] = param_5;
+  *param_1 = -1;
+  param_1[5] = param_3;
+  param_1[6] = param_4;
+}
+
+/* Dispose a vector tree (free the backing table). */
+void FUN_00110800(int param_1)
+{
+  FUN_00117cf0((int *)(param_1 + 4));
+}
+
