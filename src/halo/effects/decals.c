@@ -1,3 +1,56 @@
+/*
+ * FUN_00098970 — consistency check for a doubly-linked decal entry.
+ * Verifies that the decal's prev (0x30) and next (0x34) neighbors share the
+ * same cluster_index (+4) and, if layer_check is true, the same layer (+6).
+ * Calls datum_get twice per neighbor to read each field independently,
+ * matching the original MSVC codegen.
+ *
+ * 0x98970 / decals.obj
+ */
+void FUN_00098970(int handle, bool layer_check)
+{
+  void *decal;
+  void *other;
+  int16_t cluster;
+  int16_t lyr;
+
+  decal = datum_get(global_decal_data, handle);
+
+  if (*(int *)((char *)decal + 0x30) != -1) {
+    other = datum_get(global_decal_data, *(int *)((char *)decal + 0x30));
+    cluster = *(int16_t *)((char *)other + 4);
+    other = datum_get(global_decal_data, *(int *)((char *)decal + 0x30));
+    lyr = *(int16_t *)((char *)other + 6);
+    if (cluster != *(int16_t *)((char *)decal + 4)) {
+      display_assert("cluster_index==decal->cluster_index",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0xc2, 1);
+      system_exit(-1);
+    }
+    if (layer_check && lyr != *(int16_t *)((char *)decal + 6)) {
+      display_assert("!layer_check || layer==decal->layer",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0xc3, 1);
+      system_exit(-1);
+    }
+  }
+
+  if (*(int *)((char *)decal + 0x34) != -1) {
+    other = datum_get(global_decal_data, *(int *)((char *)decal + 0x34));
+    cluster = *(int16_t *)((char *)other + 4);
+    other = datum_get(global_decal_data, *(int *)((char *)decal + 0x34));
+    lyr = *(int16_t *)((char *)other + 6);
+    if (cluster != *(int16_t *)((char *)decal + 4)) {
+      display_assert("cluster_index==decal->cluster_index",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0xcb, 1);
+      system_exit(-1);
+    }
+    if (layer_check && lyr != *(int16_t *)((char *)decal + 6)) {
+      display_assert("!layer_check || layer==decal->layer",
+                     "c:\\halo\\SOURCE\\effects\\decals.c", 0xcc, 1);
+      system_exit(-1);
+    }
+  }
+}
+
 void FUN_00098b20(float *sprite_bounds, void *definition,
                   int16_t sequence_index, int16_t sprite_index, float extent,
                   float *out_extent)
@@ -191,7 +244,8 @@ int FUN_00098fe0(int16_t cluster_index, int16_t layer)
   assert_halt(cluster_index >= 0 && cluster_index < 0x200);
   assert_halt(layer >= 0 && layer < 5);
 
-  return *(int *)(decal_globals + ((int)layer * 0x200 + (int)cluster_index) * 4);
+  return *(int *)(decal_globals +
+                  ((int)layer * 0x200 + (int)cluster_index) * 4);
 }
 
 /* Projection axis remapping table at 0x28cb10. */
@@ -1910,7 +1964,8 @@ void FUN_0017ca80(void)
   rasterizer_decals_initialize();
 }
 
-/* Tail-call thunk to rasterizer_decals_initialize_for_new_map (FUN_0015b190). */
+/* Tail-call thunk to rasterizer_decals_initialize_for_new_map (FUN_0015b190).
+ */
 void FUN_0017caa0(void)
 {
   rasterizer_decals_initialize_for_new_map();
@@ -1980,7 +2035,8 @@ void FUN_0017cb50(void)
   FUN_0015c6f0();
 }
 
-/* Tail-call thunk to rasterizer decal geometry initialization (FUN_0015c980). */
+/* Tail-call thunk to rasterizer decal geometry initialization (FUN_0015c980).
+ */
 void FUN_0017cb60(void)
 {
   FUN_0015c980();
@@ -2010,31 +2066,36 @@ void FUN_0017cbb0(void)
   FUN_0016bed0();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0). */
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0).
+ */
 void FUN_0017cbc0(void)
 {
   FUN_0016c5a0();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090). */
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090).
+ */
 void FUN_0017cbd0(void)
 {
   FUN_0016c090();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160dc0). */
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160dc0).
+ */
 void FUN_0017cc10(void)
 {
   FUN_00160dc0();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160f50). */
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160f50).
+ */
 void FUN_0017cc20(void)
 {
   FUN_00160f50();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162560). */
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162560).
+ */
 void FUN_0017cc70(void)
 {
   FUN_00162560();
@@ -2064,7 +2125,8 @@ void FUN_0017ccf0(void)
   FUN_00173090();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162920). */
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162920).
+ */
 void FUN_0017cd30(void)
 {
   FUN_00162920();
