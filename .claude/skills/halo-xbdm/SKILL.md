@@ -22,6 +22,16 @@ Use this skill whenever work talks to a real Xbox through XBDM or RDCP via
 - `203` means binary data; provide `--binary-length` and `--output` when needed.
 - When reading memory, the binary length must match the requested length.
 
+## magicboot — title launch
+
+Always use the `debug` form. Without `debug` the console reboots to dashboard instead of loading the XBE:
+
+```
+magicboot title=E:\GAMES\halo-patched\default.xbe debug
+```
+
+Do NOT quote the path value. `title="E:\..."` (with quotes) causes the file lookup to fail, also falling through to dashboard.
+
 ## Common workflows
 
 - Raw command passthrough: send the RDCP command string as provided.

@@ -419,7 +419,16 @@ def remote_file_missing(attributes: dict) -> bool:
     )
 
 
-def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
+def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> int:
+    """Delete a file on the Xbox via XBDM.
+
+    Returns the XBDM response code:
+      0   — success (file confirmed gone)
+      402 — file was already absent (treated as success by callers)
+      414 — access denied (title still holds the file open)
+      -1  — local error (subprocess / JSON parse failure)
+      other non-zero — XBDM reported an unexpected error
+    """
     rdcp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_rdcp.py")
     cmd = build_windows_python_command(
         rdcp_script,
@@ -437,7 +446,7 @@ def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
 
     if dry_run:
         print(f"  [DRY-RUN] {' '.join(cmd)}")
-        return True
+        return 0
 
     print(f"  deleting {xbox_path}...")
     try:
@@ -450,10 +459,10 @@ def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
         )
     except FileNotFoundError:
         print(f"error: failed to run {rdcp_script}", file=sys.stderr)
-        return False
+        return -1
     except OSError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return False
+        return -1
 
     try:
         payload = json.loads(result.stdout)
@@ -465,18 +474,18 @@ def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
             f"  verify failed: could not parse delete response for {xbox_path}",
             file=sys.stderr,
         )
-        return False
+        return -1
 
     code = int(payload.get("code", 0) or 0)
     message = str(payload.get("message", "")).strip()
     if code == 402:
         filename = xbox_path.split("\\")[-1]
         print(f"  {filename} already absent")
-        return True
+        return 402
 
     if not payload.get("ok"):
         print(f"  delete failed: {code}- {message}", file=sys.stderr)
-        return False
+        return code
 
     attributes = query_remote_file_attributes(host, xbox_path)
     if attributes is None:
@@ -484,20 +493,87 @@ def delete_remote_file(host: str, xbox_path: str, dry_run: bool) -> bool:
             f"  verify failed: could not confirm deletion of {xbox_path}",
             file=sys.stderr,
         )
-        return False
+        return -1
     if remote_file_missing(attributes):
         print(f"  deleted {xbox_path}")
-        return True
+        return 0
 
     if attributes.get("ok"):
         print(f"  verify failed: {xbox_path} still exists", file=sys.stderr)
-        return False
+        return -1
 
     print(
         f"  verify failed: could not confirm deletion of {xbox_path}",
         file=sys.stderr,
     )
-    return False
+    return -1
+
+
+def _send_xbdm_reboot(host: str, dry_run: bool) -> bool:
+    """Send a warm reboot via XBDM to stop the running title and free file locks."""
+    rdcp_script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_rdcp.py")
+    cmd = build_windows_python_command(rdcp_script, ["--json", "reboot warm"])
+    if cmd is None:
+        cmd = [sys.executable, rdcp_script, "--json", "reboot warm"]
+    if host:
+        cmd += ["--host", host]
+    if dry_run:
+        print(f"  [DRY-RUN] {' '.join(cmd)}")
+        return True
+    print("  rebooting via XBDM to release file locks...")
+    try:
+        result = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True, check=False)
+        if result.stdout:
+            for line in result.stdout.strip().splitlines():
+                print(f"  | {line}")
+        return result.returncode == 0
+    except OSError:
+        return False
+
+
+def unlock_console(host: str, qmp_script: str, dry_run: bool) -> bool:
+    """Eject+reset via QMP (xemu) or reboot via XBDM to free locked files."""
+    print("  unlocking console (access denied on delete)...")
+    if should_prepare_xemu(host) and os.path.isfile(qmp_script):
+        eject_rc = run_xemu_qmp_command(qmp_script, "eject")
+        if eject_rc.returncode == 0:
+            reset_rc = run_xemu_qmp_command(qmp_script, "reset")
+            if reset_rc.returncode == 0:
+                print("  | waiting 2.0s for xemu to settle after reset")
+                time.sleep(2.0)
+                return True
+    return _send_xbdm_reboot(host, dry_run)
+
+
+def delete_state_files(
+    host: str,
+    paths: list,
+    dry_run: bool,
+    qmp_script: str,
+) -> bool:
+    """Delete state files, unlocking the console via QMP/XBDM if access is denied.
+
+    On a 414 (access denied) response the console is ejected/rebooted and all
+    paths are retried once so a still-running title cannot block the deploy.
+    """
+    needs_unlock = False
+    for path in paths:
+        code = delete_remote_file(host, path, dry_run)
+        if code == 414:
+            needs_unlock = True
+        elif code not in (0, 402):
+            return False
+
+    if needs_unlock:
+        if not unlock_console(host, qmp_script, dry_run):
+            print("  warning: unlock failed; retrying deletes anyway", file=sys.stderr)
+        time.sleep(1.0)
+        for path in paths:
+            code = delete_remote_file(host, path, dry_run)
+            if code not in (0, 402):
+                return False
+
+    return True
 
 
 def extract_remote_size(attributes: dict) -> int | None:
@@ -699,13 +775,7 @@ def main() -> int:
         )
         if rc != 0:
             return rc
-        if not delete_remote_file(host, debug_txt_dest, args.dry_run):
-            return 1
-        if not delete_remote_file(host, gamestate_txt_dest, args.dry_run):
-            return 1
-        if not delete_remote_file(host, stabbed_txt_dest, args.dry_run):
-            return 1
-        if not delete_remote_file(host, crashdump_dest, args.dry_run):
+        if not delete_state_files(host, [debug_txt_dest, gamestate_txt_dest, stabbed_txt_dest, crashdump_dest], args.dry_run, qmp_script):
             return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
@@ -732,13 +802,7 @@ def main() -> int:
                 any_failed = True
         if any_failed:
             return 1
-        if not delete_remote_file(host, debug_txt_dest, args.dry_run):
-            return 1
-        if not delete_remote_file(host, gamestate_txt_dest, args.dry_run):
-            return 1
-        if not delete_remote_file(host, stabbed_txt_dest, args.dry_run):
-            return 1
-        if not delete_remote_file(host, crashdump_dest, args.dry_run):
+        if not delete_state_files(host, [debug_txt_dest, gamestate_txt_dest, stabbed_txt_dest, crashdump_dest], args.dry_run, qmp_script):
             return 1
         print("done.")
         rc = launch_xbe(args.dest, host, args.dry_run)
@@ -759,13 +823,7 @@ def main() -> int:
     )
     if rc != 0:
         return rc
-    if not delete_remote_file(host, debug_txt_dest, args.dry_run):
-        return 1
-    if not delete_remote_file(host, gamestate_txt_dest, args.dry_run):
-        return 1
-    if not delete_remote_file(host, stabbed_txt_dest, args.dry_run):
-        return 1
-    if not delete_remote_file(host, crashdump_dest, args.dry_run):
+    if not delete_state_files(host, [debug_txt_dest, gamestate_txt_dest, stabbed_txt_dest, crashdump_dest], args.dry_run, qmp_script):
         return 1
 
     # Then push maps/ and bink/ if --full, or just maps/ by default

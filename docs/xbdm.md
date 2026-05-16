@@ -446,10 +446,15 @@ xbdm_context_primer:
           - 'deftitle name=STRING'
 
       magicboot:
-        summary: "Boot/launch another XBE; debug flag keeps XBDM loaded."
+        summary: "Boot/launch another XBE. Always use 'debug' flag or the console reboots to dashboard. PATH must NOT be quoted."
         syntax_candidates:
-          - 'magicboot title=STRING'
           - 'magicboot title=STRING debug'
+        notes: |
+          The 'debug' keyword is REQUIRED for title launch. Without it the Xbox
+          reboots to dashboard instead of loading the XBE.
+          The path value must NOT be quoted: title=E:\GAMES\foo\default.xbe
+          (not title="E:\GAMES\foo\default.xbe"). Quotes cause the file lookup
+          to fail, which also falls through to the dashboard.
 
       reboot:
         summary: "Reboot console or reboot into title."
