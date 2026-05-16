@@ -675,6 +675,12 @@ void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
   vector[0] = k * a0 + cos_angle * v0 - cx * sin_angle;
   vector[1] = k * a1 + cos_angle * v1 - cy * sin_angle;
   vector[2] = k * a2 + cos_angle * v2 - cz * sin_angle;
+  if (vector[0] != vector[0] || vector[1] != vector[1] || vector[2] != vector[2]) {
+    error(2, "rotate_vector3d_by_sincos: NaN OUTPUT v=(%f,%f,%f) axis=(%f,%f,%f) sin=%f cos=%f",
+          (double)vector[0], (double)vector[1], (double)vector[2],
+          (double)a0, (double)a1, (double)a2, (double)sin_angle, (double)cos_angle);
+    stack_walk(0);
+  }
 }
 
 /* Linearly interpolate between two vec3 values (0x10b7d0).

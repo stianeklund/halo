@@ -260,6 +260,9 @@ float FUN_0010c510(float *v1, float *v2)
 
   half_angle = acosf(cos2theta) * 0.5f;
 
+  if (half_angle != half_angle) {
+    half_angle = 0.0f;
+  }
   if (dot < 0.0f)
     return 3.1415927f - half_angle;
   return half_angle;

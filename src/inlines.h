@@ -134,33 +134,7 @@ static inline float xbox_sqrtf(float x)
 
 static inline float xbox_fabsf(float x)
 {
-  float r;
-  asm volatile ("fabs" : "=t"(r) : "0"(x));
-  return r;
-}
-
-/* noinline: the x87 inline asm pushes 2 extra values onto the FPU stack.
- * When inlined into a complex function, the compiler may already have 6+
- * values live on the 8-slot x87 stack, causing a stack overflow (NaN). */
-static float __attribute__((noinline, unused)) xbox_acosf(float x)
-{
-  /* acos(x) = atan2(sqrt(1-x^2), x) via x87 FPATAN.
-   * Clamp x to [-1,1]: x87 excess precision in callers can produce values
-   * epsilon outside the domain, making 1-x^2 negative and fsqrt return NaN. */
-  float r;
-  if (x >= 1.0f) return 0.0f;
-  if (x <= -1.0f) return 3.14159265f;
-  asm volatile (
-    "fld %%st(0)\n\t"          /* ST0=x, ST1=x */
-    "fmul %%st(0), %%st(0)\n\t" /* ST0=x^2, ST1=x */
-    "fld1\n\t"                  /* ST0=1, ST1=x^2, ST2=x */
-    "fsubrp\n\t"                /* ST0=1-x^2, ST1=x */
-    "fsqrt\n\t"                 /* ST0=sqrt(1-x^2), ST1=x */
-    "fxch %%st(1)\n\t"          /* ST0=x, ST1=sqrt(1-x^2) */
-    "fpatan\n\t"                /* atan(ST1/ST0) = atan(sqrt(1-x^2)/x) = acos(x) */
-    : "=t"(r) : "0"(x)
-  );
-  return r;
+  return __builtin_fabsf(x);
 }
 
 static inline double xbox_atan2(double y, double x)
@@ -168,6 +142,18 @@ static inline double xbox_atan2(double y, double x)
   double r = 0;
   asm volatile ("fpatan" : "=t"(r) : "u"(y), "0"(x) : "st(1)");
   return r;
+}
+
+/* noinline: ensures clean FPU stack on entry (cdecl ABI boundary).
+ * Uses (1+x)(1-x) instead of 1-x^2 for numerical stability near +/-1,
+ * matching the original MSVC CRT _CIacos approach. */
+static float __attribute__((noinline, unused)) xbox_acosf(float x)
+{
+  float s;
+  if (x >= 1.0f) return 0.0f;
+  if (x <= -1.0f) return 3.14159265f;
+  s = xbox_sqrtf((1.0f + x) * (1.0f - x));
+  return (float)xbox_atan2((double)s, (double)x);
 }
 
 static inline double xbox_log10(double x)
@@ -179,14 +165,17 @@ static inline double xbox_log10(double x)
     "fyl2x"
     : "=t"(result)
     : "0"(x)
+    : "st(1)"
   );
   return result;
 }
 
+/* Only valid for base > 0. Returns 0.0 for base <= 0.
+ * This matches the original binary where base is always a probability
+ * value clamped to [0, 1] (breakable_surfaces.c callers). */
 static inline double xbox_pow(double base, double exponent)
 {
   double result;
-  /* fyl2x requires base > 0; log2(0) = -inf produces NaN via -inf - -inf */
   if (base <= 0.0)
     return 0.0;
   asm volatile (
