@@ -92,6 +92,61 @@ void random_seed_debug_log(bool a1)
 {
 }
 
+/*
+ * random_math_initialize — seed the local RNG and load the direction geosphere
+ * table used by random_direction and related functions.
+ *
+ * Seeds 0x46e3f8 (local seed) from XOR of system_seconds, system_milliseconds,
+ * and CRT rand(). Loads geosphere tag (type 0x10) and copies its vertex array
+ * (3 floats each) into a debug_malloc buffer. Stores buffer pointer at 0x46e3e8
+ * and vertex count at 0x46e3ec.
+ *
+ * Confirmed: cdecl, no args, void return.
+ * Confirmed: CALL 0x8e380 (system_seconds), CALL 0x8e370 (system_milliseconds),
+ *            CALL 0x1d9d06 (rand) — XOR into [0x46e3f8].
+ * Confirmed: PUSH 0x10; CALL 0x1087b0 — load geosphere tag, assert non-null.
+ * Confirmed: MOVSX EAX,[ESI+0xc] * 12 = byte size; debug_malloc to 0x46e3e8.
+ * Confirmed: MOV CX,[ESI+0xc]; MOV [0x46e3ec],CX — store vertex count (16-bit).
+ * Confirmed: Source data at [tag+4]; 12-byte vertex stride (3 floats).
+ * Confirmed: PUSH ESI; CALL 0x1056e0 — release tag after copy.
+ */
+void random_math_initialize(void)
+{
+  unsigned int seed;
+  void *tag;
+  int16_t count;
+  int16_t i;
+  float *src;
+  float *dst;
+
+  seed = system_seconds() ^ system_milliseconds() ^ (unsigned int)rand();
+  *(unsigned int *)0x46e3f8 = seed;
+
+  tag = FUN_001087b0(0x10);
+  if (!tag) {
+    display_assert("random_direction_geosphere",
+                   "c:\\halo\\SOURCE\\math\\random_math.c", 0xae, 1);
+    system_exit(-1);
+  }
+
+  count = *(int16_t *)((char *)tag + 0xc);
+  *(void **)0x46e3e8 = debug_malloc(
+    (int)count * 12, 0, "c:\\halo\\SOURCE\\math\\random_math.c", 0xb0);
+  *(int16_t *)0x46e3ec = count;
+
+  if (count > 0) {
+    src = *(float **)((char *)tag + 4);
+    dst = *(float **)0x46e3e8;
+    for (i = 0; i < count; i++) {
+      dst[i * 3 + 0] = src[i * 3 + 0];
+      dst[i * 3 + 1] = src[i * 3 + 1];
+      dst[i * 3 + 2] = src[i * 3 + 2];
+    }
+  }
+
+  FUN_001056e0(tag);
+}
+
 /* Generate a random float in [0.0, ~1.0] from an LCG seed.
  * Advances *seed with the Numerical Recipes LCG (a=0x19660d, c=0x3c6ef35f),
  * extracts the upper 16 bits (0..65535), and normalizes to approximately

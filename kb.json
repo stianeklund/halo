@@ -5120,7 +5120,7 @@
           "addr": "0x8e320"
         },
         {
-          "decl": "void system_seconds(void);",
+          "decl": "unsigned int system_seconds(void);",
           "addr": "0x8e380"
         },
         {
@@ -17150,7 +17150,8 @@
         },
         {
           "decl": "void random_math_initialize(void);",
-          "addr": "0x10b160"
+          "addr": "0x10b160",
+          "ported": true
         },
         {
           "decl": "void random_math_dispose(void);",
@@ -21508,7 +21509,7 @@
           "addr": "0x105610"
         },
         {
-          "decl": "void FUN_001056e0(void);",
+          "decl": "void FUN_001056e0(void *handle);",
           "addr": "0x1056e0"
         },
         {
@@ -26129,7 +26130,7 @@
           "addr": "0x108400"
         },
         {
-          "decl": "void FUN_001087b0(void);",
+          "decl": "void *FUN_001087b0(int type);",
           "addr": "0x1087b0"
         },
         {
