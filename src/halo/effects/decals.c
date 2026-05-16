@@ -1886,6 +1886,54 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
   }
 }
 
+/* Tail-call thunk to rasterizer decal initialization (FUN_0015abe0). */
+void FUN_0017ca50(void)
+{
+  FUN_0015abe0();
+}
+
+/* Tail-call thunk to rasterizer decal initialization (FUN_0015acc0). */
+void FUN_0017ca60(void)
+{
+  FUN_0015acc0();
+}
+
+/* Tail-call thunk to rasterizer decal setup (FUN_0015a4e0). */
+void FUN_0017ca70(void)
+{
+  FUN_0015a4e0();
+}
+
+/* Tail-call thunk to rasterizer_decals_initialize (FUN_0015b6d0). */
+void FUN_0017ca80(void)
+{
+  rasterizer_decals_initialize();
+}
+
+/* Tail-call thunk to rasterizer_decals_initialize_for_new_map (FUN_0015b190). */
+void FUN_0017caa0(void)
+{
+  rasterizer_decals_initialize_for_new_map();
+}
+
+/* Tail-call thunk to rasterizer_decals_dispose_from_old_map (FUN_0015b1a0). */
+void FUN_0017cab0(void)
+{
+  rasterizer_decals_dispose_from_old_map();
+}
+
+/* Tail-call thunk to rasterizer decal (FUN_0015b1e0). */
+void FUN_0017cac0(void)
+{
+  FUN_0015b1e0();
+}
+
+/* Tail-call thunk to rasterizer_decals_dispose (FUN_0015b7e0). */
+void FUN_0017cad0(void)
+{
+  rasterizer_decals_dispose();
+}
+
 int FUN_0017cae0(uint32_t cache_size)
 {
   return FUN_0015b460(cache_size);
@@ -1920,6 +1968,18 @@ void FUN_0017cb30(int rendered_cluster_data)
   FUN_0015bc40(rendered_cluster_data);
 }
 
+/* Tail-call thunk to rasterizer decal geometry (FUN_0015b5e0). */
+void FUN_0017cb40(void)
+{
+  FUN_0015b5e0();
+}
+
+/* Tail-call thunk to rasterizer decal geometry (FUN_0015c6f0). */
+void FUN_0017cb50(void)
+{
+  FUN_0015c6f0();
+}
+
 /* Tail-call thunk to rasterizer decal geometry initialization (FUN_0015c980). */
 void FUN_0017cb60(void)
 {
@@ -1930,6 +1990,12 @@ void FUN_0017cb60(void)
 void FUN_0017cb70(void)
 {
   FUN_0015cbb0();
+}
+
+/* Tail-call thunk to rasterizer decal geometry (FUN_0015c5f0). */
+void FUN_0017cb80(void)
+{
+  FUN_0015c5f0();
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00170c90). */

@@ -5758,35 +5758,43 @@
         },
         {
           "decl": "void FUN_0017ca50(void);",
-          "addr": "0x17ca50"
+          "addr": "0x17ca50",
+          "ported": true
         },
         {
           "decl": "void FUN_0017ca60(void);",
-          "addr": "0x17ca60"
+          "addr": "0x17ca60",
+          "ported": true
         },
         {
           "decl": "void FUN_0017ca70(void);",
-          "addr": "0x17ca70"
+          "addr": "0x17ca70",
+          "ported": true
         },
         {
           "decl": "void FUN_0017ca80(void);",
-          "addr": "0x17ca80"
+          "addr": "0x17ca80",
+          "ported": true
         },
         {
           "decl": "void FUN_0017caa0(void);",
-          "addr": "0x17caa0"
+          "addr": "0x17caa0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cab0(void);",
-          "addr": "0x17cab0"
+          "addr": "0x17cab0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cac0(void);",
-          "addr": "0x17cac0"
+          "addr": "0x17cac0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cad0(void);",
-          "addr": "0x17cad0"
+          "addr": "0x17cad0",
+          "ported": true
         },
         {
           "decl": "int FUN_0017cae0(uint32_t cache_size);",
@@ -5820,11 +5828,13 @@
         },
         {
           "decl": "void FUN_0017cb40(void);",
-          "addr": "0x17cb40"
+          "addr": "0x17cb40",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cb50(void);",
-          "addr": "0x17cb50"
+          "addr": "0x17cb50",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cb60(void);",
@@ -5838,7 +5848,8 @@
         },
         {
           "decl": "void FUN_0017cb80(void);",
-          "addr": "0x17cb80"
+          "addr": "0x17cb80",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cb90(void);",
