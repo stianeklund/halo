@@ -301,3 +301,183 @@ bool valid_real_rgb_color(float *rgb)
 
   return true;
 }
+
+/*
+ * FUN_00076bb0 -- bitmap tag_block element delete wrapper.
+ *
+ * Gets an element from a tag_block at the given index (element size 0x30),
+ * then passes it to bitmap_delete.
+ */
+void FUN_00076bb0(void *tag_block, int index)
+{
+    void *element;
+
+    element = tag_block_get_element(tag_block, index, 0x30);
+    bitmap_delete(element);
+}
+
+/*
+ * FUN_00076ff0 -- get bitmap data element from a bitmap tag.
+ *
+ * Looks up a 'bitm' tag by index, then returns a pointer to the bitmap
+ * data entry at the given bitmap_index within the tag's bitmap block
+ * (offset 0x60, element size 0x30). Returns NULL on failure.
+ */
+void *FUN_00076ff0(int tag_index, short bitmap_index)
+{
+    int iVar1;
+    void *uVar2;
+
+    iVar1 = (int)tag_get(0x6269746d, tag_index);
+    uVar2 = 0;
+    if ((iVar1 != 0) && (bitmap_index >= 0)) {
+        if ((int)bitmap_index < *(int *)(iVar1 + 0x60)) {
+            uVar2 = tag_block_get_element((int *)(iVar1 + 0x60), (int)bitmap_index, 0x30);
+        }
+    }
+    return uVar2;
+}
+
+/*
+ * FUN_00077510 -- bitmap_fill: fill all pixels of a bitmap with a dword value.
+ *
+ * Gets the pixel base address via bitmap_2d_address(0,0,0), gets the pixel
+ * count, then fills that many dwords with the given color. The original uses
+ * REP STOSD.
+ */
+void FUN_00077510(void *bitmap, int fill_color)
+{
+    int *pixels;
+    int count;
+    int i;
+
+    pixels = (int *)bitmap_2d_address(bitmap, 0, 0, 0);
+    count = bitmap_get_pixel_count(bitmap);
+    if (count > 0) {
+        for (i = 0; i < count; i++) {
+            pixels[i] = fill_color;
+        }
+    }
+}
+
+/*
+ * FUN_00077540 -- bitmap_alpha_to_rgb: spread alpha byte to all 4 channels.
+ *
+ * For each pixel, reads byte [+3] (alpha), builds 0xAAAAAAAA by shifting
+ * and OR-ing, then stores back as the full pixel. Converts an alpha-only
+ * bitmap into a grayscale ARGB bitmap.
+ */
+void FUN_00077540(void *bitmap)
+{
+    unsigned int *pixels;
+    int count;
+    unsigned char alpha;
+    unsigned int expanded;
+
+    pixels = (unsigned int *)bitmap_2d_address(bitmap, 0, 0, 0);
+    count = bitmap_get_pixel_count(bitmap);
+    if (count > 0) {
+        do {
+            alpha = ((unsigned char *)pixels)[3];
+            expanded = alpha;
+            expanded = (expanded << 8) | alpha;
+            expanded = (expanded << 8) | alpha;
+            expanded = (expanded << 8) | alpha;
+            *pixels = expanded;
+            pixels++;
+            count--;
+        } while (count != 0);
+    }
+}
+
+/*
+ * FUN_0007a750 -- real_rgb_color_brightness: compute luminance of an RGB color.
+ *
+ * Returns the dot product of the color with standard luminance coefficients
+ * (0.299, 0.587, 0.114) stored at globals 0x2647c0-c8.
+ */
+float real_rgb_color_brightness(float *color)
+{
+    return color[0] * *(float *)0x2647c0
+         + color[1] * *(float *)0x2647c4
+         + color[2] * *(float *)0x2647c8;
+}
+
+/*
+ * FUN_0007ae70 -- argb_color_to_real_argb_color: convert 4 unsigned shorts
+ * to 4 floats, scaled by 1/65535.
+ *
+ * Each component is zero-extended from ushort to int, then converted to float
+ * and multiplied by the scale factor at 0x264154.
+ */
+void argb_color_to_real_argb_color(unsigned short *src, float *dst)
+{
+    int val;
+
+    val = src[0];
+    dst[0] = (float)val * *(float *)0x264154;
+    val = src[1];
+    dst[1] = (float)val * *(float *)0x264154;
+    val = src[2];
+    dst[2] = (float)val * *(float *)0x264154;
+    val = src[3];
+    dst[3] = (float)val * *(float *)0x264154;
+}
+
+/*
+ * FUN_0007aed0 -- rgb_color_to_real_rgb_color: convert 3 unsigned shorts
+ * to 3 floats, scaled by 1/65535.
+ *
+ * Same pattern as argb_color_to_real_argb_color but only 3 components.
+ */
+void rgb_color_to_real_rgb_color(unsigned short *src, float *dst)
+{
+    int val;
+
+    val = src[0];
+    dst[0] = (float)val * *(float *)0x264154;
+    val = src[1];
+    dst[1] = (float)val * *(float *)0x264154;
+    val = src[2];
+    dst[2] = (float)val * *(float *)0x264154;
+}
+
+/*
+ * FUN_0007af20 -- pixel32_to_real_argb_color: extract ARGB from a packed
+ * uint32 into 4 floats, scaled by 1/255.
+ *
+ * Byte layout: bits 31-24 = A, 23-16 = R, 15-8 = G, 7-0 = B.
+ * Uses MSVC's unsigned-to-float pattern (FILD + TEST/JGE/FADD fixup).
+ */
+void pixel32_to_real_argb_color(unsigned int color, float *dst)
+{
+    unsigned int a, r, g, b;
+
+    a = color >> 24;
+    dst[0] = (float)a * *(float *)0x261518;
+    r = (color >> 16) & 0xff;
+    dst[1] = (float)r * *(float *)0x261518;
+    g = (color >> 8) & 0xff;
+    dst[2] = (float)g * *(float *)0x261518;
+    b = color & 0xff;
+    dst[3] = (float)b * *(float *)0x261518;
+}
+
+/*
+ * FUN_0007afb0 -- pixel32_to_real_rgb_color: extract RGB from a packed
+ * uint32 into 3 floats, scaled by 1/255.
+ *
+ * Byte layout: bits 23-16 = R, 15-8 = G, 7-0 = B (alpha ignored).
+ * Uses MSVC's unsigned-to-float pattern (FILD + TEST/JGE/FADD fixup).
+ */
+void pixel32_to_real_rgb_color(unsigned int color, float *dst)
+{
+    unsigned int r, g, b;
+
+    r = (color >> 16) & 0xff;
+    dst[0] = (float)r * *(float *)0x261518;
+    g = (color >> 8) & 0xff;
+    dst[1] = (float)g * *(float *)0x261518;
+    b = color & 0xff;
+    dst[2] = (float)b * *(float *)0x261518;
+}

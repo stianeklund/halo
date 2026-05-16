@@ -3988,7 +3988,7 @@
           "addr": "0x7dad0"
         },
         {
-          "decl": "void bitmap_get_pixel_count(void);",
+          "decl": "int bitmap_get_pixel_count(void *bitmap);",
           "addr": "0x7dfe0"
         },
         {
@@ -26782,16 +26782,18 @@
           "addr": "0x76a70"
         },
         {
-          "decl": "void FUN_00076bb0(void);",
-          "addr": "0x76bb0"
+          "decl": "void FUN_00076bb0(void *tag_block, int index);",
+          "addr": "0x76bb0",
+          "ported": true
         },
         {
           "decl": "void FUN_00076bd0(void);",
           "addr": "0x76bd0"
         },
         {
-          "decl": "void FUN_00076ff0(void);",
-          "addr": "0x76ff0"
+          "decl": "void *FUN_00076ff0(int tag_index, short bitmap_index);",
+          "addr": "0x76ff0",
+          "ported": true
         },
         {
           "decl": "void FUN_00077040(void);",
@@ -26802,12 +26804,14 @@
           "addr": "0x77120"
         },
         {
-          "decl": "void bitmap_fill(void);",
-          "addr": "0x77510"
+          "decl": "void FUN_00077510(void *bitmap, int fill_color);",
+          "addr": "0x77510",
+          "ported": true
         },
         {
-          "decl": "void bitmap_alpha_to_rgb(void);",
-          "addr": "0x77540"
+          "decl": "void FUN_00077540(void *bitmap);",
+          "addr": "0x77540",
+          "ported": true
         },
         {
           "decl": "void *FUN_00077590(void *bitmap);",
@@ -26894,8 +26898,9 @@
           "addr": "0x7a4a0"
         },
         {
-          "decl": "void real_rgb_color_brightness(void);",
-          "addr": "0x7a750"
+          "decl": "float real_rgb_color_brightness(float *color);",
+          "addr": "0x7a750",
+          "ported": true
         },
         {
           "decl": "void rgb_color_to_hsv_color(void);",
@@ -26916,20 +26921,24 @@
           "ported": true
         },
         {
-          "decl": "void argb_color_to_real_argb_color(void);",
-          "addr": "0x7ae70"
+          "decl": "void argb_color_to_real_argb_color(unsigned short *src, float *dst);",
+          "addr": "0x7ae70",
+          "ported": true
         },
         {
-          "decl": "void rgb_color_to_real_rgb_color(void);",
-          "addr": "0x7aed0"
+          "decl": "void rgb_color_to_real_rgb_color(unsigned short *src, float *dst);",
+          "addr": "0x7aed0",
+          "ported": true
         },
         {
-          "decl": "void pixel32_to_real_argb_color(void);",
-          "addr": "0x7af20"
+          "decl": "void pixel32_to_real_argb_color(unsigned int color, float *dst);",
+          "addr": "0x7af20",
+          "ported": true
         },
         {
-          "decl": "void pixel32_to_real_rgb_color(void);",
-          "addr": "0x7afb0"
+          "decl": "void pixel32_to_real_rgb_color(unsigned int color, float *dst);",
+          "addr": "0x7afb0",
+          "ported": true
         },
         {
           "decl": "bool valid_real_rgb_color(float *rgb);",
