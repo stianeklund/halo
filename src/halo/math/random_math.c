@@ -1,3 +1,62 @@
+/*
+ * periodic_functions_initialize — allocate and pre-compute all
+ * periodic/transition function lookup tables used by the animation and effect
+ * systems.
+ *
+ * Two table arrays (each entry is a 0x400-byte buffer of uint8 samples):
+ *   0x46e3b8[0..11] — 12 periodic function types (one=1, zero=0, cosine, cosine
+ *       variable, diagonal-saw, saw-wave, triangle, soft-triangle, gaussian,
+ *       stutter 4-harmonic x2, square-wave).
+ *   0x46e3a0[0..5]  — 6 transition function types.
+ *
+ * Confirmed: cdecl, no args, void return.
+ * Confirmed: 0x46e39c = function_tables_initialized byte flag.
+ * Confirmed: CALL 0x10b0d0 (get_global_random_seed_address), seed set to
+ * 0x20f3f660. Confirmed: PUSH EBX(0); PUSH 0x400; CALL 0x8ee60 (debug_malloc)
+ * per table. Confirmed: PUSH EAX; PUSH EDI → CALL 0x10aa60
+ * (FUN_0010aa60(type_index, buf)). Confirmed: MOV EBX,EDI; PUSH EAX → CALL
+ * 0x10a930 (FUN_0010a930 BX=type, buf). Confirmed: CMP DI,0xc loop limit (12);
+ * CMP DI,0x6 (6).
+ */
+void periodic_functions_initialize(void)
+{
+  int i;
+  void *buf;
+  int *tables;
+
+  if (*(uint8_t *)0x46e39c) {
+    display_assert("!function_tables_initialized",
+                   "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x43, 1);
+    system_exit(-1);
+  }
+  *(uint8_t *)0x46e39c = 1;
+  *(int *)0x46e3f4 = 0x20f3f660;
+
+  tables = (int *)0x46e3b8;
+  for (i = 0; i < 12; i++, tables++) {
+    buf = debug_malloc(0x400, 0, "c:\\halo\\SOURCE\\math\\periodic_functions.c",
+                       0x4e);
+    *tables = (int)buf;
+    if (!buf) {
+      *(uint8_t *)0x46e39c = 0;
+    } else {
+      FUN_0010aa60(i, buf);
+    }
+  }
+
+  tables = (int *)0x46e3a0;
+  for (i = 0; i < 6; i++, tables++) {
+    buf = debug_malloc(0x400, 0, "c:\\halo\\SOURCE\\math\\periodic_functions.c",
+                       0x60);
+    *tables = (int)buf;
+    if (!buf) {
+      *(uint8_t *)0x46e39c = 0;
+    } else {
+      FUN_0010a930(i, buf);
+    }
+  }
+}
+
 void lock_global_random_seed(void)
 {
   *(int *)0x46e3f0 = *(int *)0x46e3f0 + 1;

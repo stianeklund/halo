@@ -17112,16 +17112,17 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010a930(void);",
+          "decl": "void FUN_0010a930(int16_t type_index@<bx>, void *buffer);",
           "addr": "0x10a930"
         },
         {
-          "decl": "void FUN_0010aa60(void);",
+          "decl": "void FUN_0010aa60(int type_index, void *buffer);",
           "addr": "0x10aa60"
         },
         {
-          "decl": "void FUN_0010ad10(void);",
-          "addr": "0x10ad10"
+          "decl": "void periodic_functions_initialize(void);",
+          "addr": "0x10ad10",
+          "ported": true
         },
         {
           "decl": "void FUN_0010add0(void);",
