@@ -1018,3 +1018,937 @@ distance_check:
     return 0;
   return 1;
 }
+
+/* 0x1acb0 — 2D scale-add: out = base + scale * dir. */
+void FUN_0001acb0(float *base, float *dir, float scale, float *out)
+{
+  out[0] = scale * dir[0] + base[0];
+  out[1] = scale * dir[1] + base[1];
+}
+
+/* 0x1ace0 — Squared distance between two 2D points. */
+float FUN_0001ace0(float *a, float *b)
+{
+  float dx = b[0] - a[0];
+  float dy = b[1] - a[1];
+  return dx * dx + dy * dy;
+}
+
+/* 0x1ad10 — Distance between two 2D points. */
+float FUN_0001ad10(float *a, float *b)
+{
+  float dx = b[0] - a[0];
+  float dy = b[1] - a[1];
+  return sqrtf(dx * dx + dy * dy);
+}
+
+/* 0x1ad40 — Negate a 2D vector: out = -in. */
+void FUN_0001ad40(float *in, float *out)
+{
+  out[0] = -in[0];
+  out[1] = -in[1];
+}
+
+/* 0x109010 — Scale a rectangle (short coords) by a fraction param_4/256,
+ * clamping the aspect ratio to the smaller dimension of param_2. */
+void FUN_00109010(short *param_1, short *param_2, uint32_t *param_3, short param_4)
+{
+  int w1 = param_1[2] - param_1[0];
+  int h1 = param_1[3] - param_1[1];
+  int w2 = param_2[2] - param_2[0];
+  int h2 = param_2[3] - param_2[1];
+  short sw, sh;
+  short x0, y0;
+
+  if (w1 * h2 - h1 * w2 == 0 || w1 * h2 < h1 * w2) {
+    h1 = (short)(w1 * h2 / w2);
+  } else {
+    w1 = (short)(h1 * w2 / h2);
+  }
+
+  sw = (short)((uint32_t)(w1 * param_4) >> 8);
+  sh = (short)((uint32_t)(h1 * param_4) >> 8);
+  x0 = (short)((w1 - sw) / 2) + param_1[0];
+  y0 = (short)((h1 - sh) / 2) + param_1[1];
+
+  ((short *)param_3)[0] = x0;
+  ((short *)param_3)[1] = y0;
+  ((short *)param_3)[2] = x0 + sw;
+  ((short *)param_3)[3] = y0 + sh;
+}
+
+/* 0x1090e0 — Initialize a 4x3 identity matrix (13 floats). */
+void FUN_001090e0(float *out)
+{
+  ((uint32_t *)out)[0] = 0x3f800000;
+  ((uint32_t *)out)[1] = 0x3f800000;
+  ((uint32_t *)out)[2] = 0;
+  ((uint32_t *)out)[3] = 0;
+  ((uint32_t *)out)[4] = 0;
+  ((uint32_t *)out)[5] = 0x3f800000;
+  ((uint32_t *)out)[6] = 0;
+  ((uint32_t *)out)[7] = 0;
+  ((uint32_t *)out)[8] = 0;
+  ((uint32_t *)out)[9] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+}
+
+/* 0x109120 — Transpose the rotation part of a 4x3 matrix in-place.
+ * Swaps [2]<->[4], [3]<->[7], [6]<->[8] (0-indexed from float[1]). */
+void FUN_00109120(float *m)
+{
+  uint32_t *p = (uint32_t *)m;
+  uint32_t t;
+
+  t = p[2];
+  p[2] = p[4];
+  p[4] = t;
+
+  t = p[3];
+  p[3] = p[7];
+  p[7] = t;
+
+  t = p[6];
+  p[6] = p[8];
+  p[8] = t;
+}
+
+/* 0x109240 — Initialize a scaled 4x3 identity matrix. */
+void FUN_00109240(float *out, float scale)
+{
+  *(uint32_t *)&out[0] = *(uint32_t *)&scale;
+  ((uint32_t *)out)[1] = 0x3f800000;
+  ((uint32_t *)out)[2] = 0;
+  ((uint32_t *)out)[3] = 0;
+  ((uint32_t *)out)[4] = 0;
+  ((uint32_t *)out)[5] = 0x3f800000;
+  ((uint32_t *)out)[6] = 0;
+  ((uint32_t *)out)[7] = 0;
+  ((uint32_t *)out)[8] = 0;
+  ((uint32_t *)out)[9] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+}
+
+/* 0x1093b0 — Convert a quaternion to a 3x3 rotation matrix (inside a 4x3 frame).
+ * Sets scale=1.0 and translation=0.
+ * Original keeps sq0 (s*q[0]) in 80-bit FPU while sq1/sq2 spill to float32. */
+void FUN_001093b0(float *out, float *q)
+{
+  float norm = q[3] * q[3] + q[2] * q[2] + q[1] * q[1] + q[0] * q[0];
+  float s = 0.0f;
+  float sq1, sq2;
+  float xw, yw, zw;
+  float xx, xy, xz, yy, zy, zz;
+
+  if (norm != 0.0f) {
+    s = 2.0f / norm;
+  }
+
+  sq1 = s * q[1];
+  sq2 = s * q[2];
+  xw = s * q[0] * q[3];
+  yw = sq1 * q[3];
+  zw = sq2 * q[3];
+
+  xx = s * q[0] * q[0];
+  xy = sq1 * q[0];
+  xz = sq2 * q[0];
+  yy = sq1 * q[1];
+  zy = sq2 * q[1];
+  zz = sq2 * q[2];
+
+  ((uint32_t *)out)[0] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+
+  out[1] = 1.0f - (yy + zz);
+  out[2] = xy - zw;
+  out[3] = xz + yw;
+  out[4] = xy + zw;
+  out[5] = 1.0f - (zz + xx);
+  out[6] = zy - xw;
+  out[7] = xz - yw;
+  out[8] = zy + xw;
+  out[9] = 1.0f - (yy + xx);
+}
+
+/* 0x109500 — Convert a quaternion+scale+position to a full 4x3 matrix.
+ * param_2 layout: [quat(4), pos(3), scale(1)] at offsets 0..0x1c. */
+void FUN_00109500(float *out, float *qsp)
+{
+  FUN_001093b0(out, qsp);
+  out[0] = qsp[7];
+  out[10] = qsp[4];
+  out[11] = qsp[5];
+  out[12] = qsp[6];
+}
+
+/* 0x109610 — Scale-transform a vector by a 4x3 matrix.
+ * If matrix scale != 1.0, scales the input vector components first. */
+void matrix_scale_transform_vector(float *matrix, float *in, float *out)
+{
+  float x = in[0];
+  float y = in[1];
+  float z = in[2];
+
+  if (*(uint32_t *)&matrix[0] != 0x3f800000) {
+    x = x * matrix[0];
+    y = y * matrix[0];
+    z = z * matrix[0];
+  }
+  out[0] = z * matrix[7] + y * matrix[4] + x * matrix[1];
+  out[1] = z * matrix[8] + y * matrix[5] + x * matrix[2];
+  out[2] = z * matrix[9] + y * matrix[6] + x * matrix[3];
+}
+
+/* 0x1099a0 — Determinant of a 3x3 matrix (row-major, float[9]). */
+float FUN_001099a0(float *m)
+{
+  return (m[8] * m[0] * m[4] +
+          m[2] * m[3] * m[7] +
+          m[6] * m[1] * m[5]) -
+         m[0] * m[7] * m[5] -
+         m[8] * m[1] * m[3] -
+         m[6] * m[2] * m[4];
+}
+
+/* 0x1099f0 — Transpose a 3x3 matrix. Supports src == dst (in-place). */
+void FUN_001099f0(float *src, float *dst)
+{
+  uint32_t t;
+  uint32_t *s = (uint32_t *)src;
+  uint32_t *d = (uint32_t *)dst;
+
+  if (src == dst) {
+    t = s[3];
+    d[3] = s[1];
+    d[1] = t;
+    t = s[6];
+    d[6] = s[2];
+    d[2] = t;
+    t = s[7];
+    d[7] = s[5];
+    d[5] = t;
+    return;
+  }
+  d[0] = s[0];
+  d[1] = s[3];
+  d[2] = s[6];
+  d[3] = s[1];
+  d[4] = s[4];
+  d[5] = s[7];
+  d[6] = s[2];
+  d[7] = s[5];
+  d[8] = s[8];
+}
+
+/* 0x109ba0 — Build a 3x3 rotation matrix from an axis and sin/cos values.
+ * Rodrigues' rotation formula. */
+void FUN_00109ba0(float *out, float *axis, float sine, float cosine)
+{
+  float xx = axis[0] * axis[0];
+  float yy = axis[1] * axis[1];
+  float zz = axis[2] * axis[2];
+  float one_minus_cos = 1.0f - cosine;
+  float xy, xz, yz;
+
+  out[0] = (1.0f - xx) * cosine + xx;
+
+  xy = axis[1] * axis[0] * one_minus_cos;
+  out[1] = xy;
+  out[3] = xy - sine * axis[2];
+  out[1] = sine * axis[2] + out[1];
+
+  out[4] = (1.0f - yy) * cosine + yy;
+
+  xz = axis[2] * axis[0] * one_minus_cos;
+  out[2] = xz;
+  out[6] = xz + sine * axis[1];
+  out[2] = out[2] - sine * axis[1];
+
+  out[8] = (1.0f - zz) * cosine + zz;
+
+  yz = axis[2] * axis[1] * one_minus_cos;
+  out[5] = yz;
+  out[7] = yz - sine * axis[0];
+  out[5] = sine * axis[0] + out[5];
+}
+
+/* 0x109c70 — Multiply two 3x3 matrices: out = a * b. Supports aliasing. */
+void FUN_00109c70(float *a, float *b, float *out)
+{
+  int i;
+  float *p;
+  float local_a[9];
+  float local_b[9];
+
+  if (a == out) {
+    p = local_a;
+    for (i = 9; i != 0; i--) {
+      *p = *a;
+      a++;
+      p++;
+    }
+    a = local_a;
+  }
+  if (b == out) {
+    p = local_b;
+    for (i = 9; i != 0; i--) {
+      *p = *b;
+      b++;
+      p++;
+    }
+    b = local_b;
+  }
+  out[0] = b[2] * a[6] + a[3] * b[1] + a[0] * b[0];
+  out[1] = a[7] * b[2] + a[1] * b[0] + a[4] * b[1];
+  out[2] = a[8] * b[2] + a[2] * b[0] + a[5] * b[1];
+  out[3] = b[5] * a[6] + b[3] * a[0] + a[3] * b[4];
+  out[4] = a[1] * b[3] + a[4] * b[4] + a[7] * b[5];
+  out[5] = a[2] * b[3] + a[5] * b[4] + a[8] * b[5];
+  out[6] = a[6] * b[8] + a[3] * b[7] + a[0] * b[6];
+  out[7] = a[1] * b[6] + a[4] * b[7] + a[7] * b[8];
+  out[8] = a[2] * b[6] + a[5] * b[7] + a[8] * b[8];
+}
+
+/* 0x109d90 — Transform a 3D vector by a 3x3 matrix. Supports b==out aliasing. */
+void FUN_00109d90(float *m, float *v, float *out)
+{
+  float local[3];
+
+  if (v == out) {
+    local[0] = v[0];
+    local[1] = v[1];
+    local[2] = v[2];
+    v = local;
+  }
+  out[0] = m[0] * v[0] + m[3] * v[1] + m[6] * v[2];
+  out[1] = m[4] * v[1] + m[1] * v[0] + m[7] * v[2];
+  out[2] = m[5] * v[1] + m[2] * v[0] + m[8] * v[2];
+}
+
+/* 0x109e90 — Build a 4x3 rotation matrix from euler angles (yaw, pitch, roll). */
+void FUN_00109e90(float *out, float yaw, float pitch, float roll)
+{
+  float cr, sr, sp, cy, sy;
+  float cp_f;
+
+  cr = cosf(roll);
+  ((uint32_t *)out)[0] = 0x3f800000;
+  ((uint32_t *)out)[10] = 0;
+  ((uint32_t *)out)[11] = 0;
+  ((uint32_t *)out)[12] = 0;
+  sr = sinf(roll);
+  cp_f = cosf(pitch);
+  sp = sinf(pitch);
+  cy = cosf(yaw);
+  sy = sinf(yaw);
+  out[1] = cy * cp_f;
+  out[2] = sy * cr - (float)(sp * sr) * cy;
+  out[3] = sy * sr + sp * cr * cy;
+  out[4] = -(sy * cp_f);
+  out[5] = cy * cr + (float)(sp * sr) * sy;
+  out[6] = cy * sr - sp * cr * sy;
+  out[7] = -sp;
+  out[8] = -(cp_f * sr);
+  out[9] = cp_f * cr;
+}
+
+/* 0x10a2c0 — Build a 3x3 basis matrix from forward and up vectors.
+ * Row 0 = forward, row 1 = cross(forward, up), row 2 = up. */
+void FUN_0010a2c0(float *out, float *forward, float *up)
+{
+  float f0, f1, f2, u0, u1, u2;
+
+  out[0] = forward[0];
+  out[1] = forward[1];
+  out[2] = forward[2];
+  f0 = forward[0];
+  f1 = forward[1];
+  f2 = forward[2];
+  u0 = up[0];
+  u1 = up[1];
+  u2 = up[2];
+  out[3] = u1 * f2 - f1 * u2;
+  out[4] = f0 * u2 - u0 * f2;
+  out[5] = f1 * u0 - u1 * f0;
+  out[6] = up[0];
+  out[7] = up[1];
+  out[8] = up[2];
+}
+
+/* 0x10a480 — Validate a real_point4d (quaternion/plane): all 4 components
+ * must be a valid normal3d AND w must not be infinity. */
+int FUN_0010a480(int p)
+{
+  char valid;
+
+  valid = (char)valid_real_normal3d((float *)p);
+  if (valid != '\0' && (*(uint32_t *)(p + 0xc) & 0x7f800000) != 0x7f800000) {
+    return 1;
+  }
+  return 0;
+}
+
+/* 0x10b5c0 — real_math_initialize: init random tables and periodic functions. */
+void real_math_initialize(void)
+{
+  random_math_initialize();
+  FUN_0010ad10();
+}
+
+/* 0x10b5d0 — real_math_dispose: dispose random tables and periodic functions. */
+void real_math_dispose(void)
+{
+  random_math_dispose();
+  FUN_0010a570();
+}
+
+/* 0x10b6b0 — Compute a perpendicular 4D vector (swizzle + negate). */
+void perpendicular4d(float *in, float *out)
+{
+  out[0] = in[2];
+  out[1] = in[3];
+  out[2] = -in[0];
+  out[3] = -in[1];
+}
+
+/* 0x10b780 — Linearly interpolate between two 3D vectors: out = a*(1-t) + b*t. */
+void vectors_interpolate(float *a, float *b, float t, float *out)
+{
+  float one_minus_t = 1.0f - t;
+  out[0] = t * b[0] + one_minus_t * a[0];
+  out[1] = t * b[1] + one_minus_t * a[1];
+  out[2] = t * b[2] + one_minus_t * a[2];
+}
+
+/* 0x10b840 — Interpolate two scalars and clamp result to [0, 1]. */
+void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t, float *out)
+{
+  float result = b * t + (1.0f - t) * a;
+  if (result < 0.0f) {
+    *out = 0.0f;
+    return;
+  }
+  if (1.0f < result) {
+    *out = 1.0f;
+    return;
+  }
+  *out = result;
+}
+
+/* 0x10b8a0 — Project a vector onto an axis: parallel = dot(v,axis)*axis,
+ * perpendicular = v - parallel. Either output can be NULL. */
+void FUN_0010b8a0(float *v, float *axis, float *parallel, float *perpendicular)
+{
+  float dot;
+  float local[3];
+
+  dot = v[0] * axis[0] + axis[2] * v[2] + v[1] * axis[1];
+  if (parallel == (float *)0) {
+    parallel = local;
+  }
+  parallel[0] = dot * axis[0];
+  parallel[1] = dot * axis[1];
+  parallel[2] = dot * axis[2];
+  if (perpendicular != (float *)0) {
+    perpendicular[0] = v[0] - parallel[0];
+    perpendicular[1] = v[1] - parallel[1];
+    perpendicular[2] = v[2] - parallel[2];
+  }
+}
+
+/* 0x10bb20 — Rotate a point by a quaternion: q * v * q_conjugate. */
+void quaternion_transform_point(float *q, float *v, float *out)
+{
+  float ww = q[3] * q[3];
+  float ww2_minus_1 = (ww + ww) - 1.0f;
+  float dot2 = q[1] * v[1] + q[2] * v[2] + q[0] * v[0];
+  float w2;
+  float q2, v0, v2, q0, q0b, v1, q1, v0b;
+
+  dot2 = dot2 + dot2;
+  w2 = q[3] + q[3];
+  q2 = q[2];
+  v0 = v[0];
+  v2 = v[2];
+  q0 = q[0];
+  q0b = q[0];
+  v1 = v[1];
+  q1 = q[1];
+  v0b = v[0];
+  out[0] = ww2_minus_1 * v[0] +
+           dot2 * q[0] + (q[1] * v[2] - q[2] * v[1]) * w2;
+  out[1] = (q2 * v0 - v2 * q0) * w2 + ww2_minus_1 * v[1] + dot2 * q[1];
+  out[2] = (q0b * v1 - q1 * v0b) * w2 + ww2_minus_1 * v[2] + dot2 * q[2];
+}
+
+/* 0x10bbc0 — Build forward/up vectors from euler angles by computing the
+ * rotation matrix and then decomposing it. */
+void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles)
+{
+  float matrix[13];
+  float local_position[3];
+
+  if (forward == (float *)0) {
+    display_assert("forward", "c:\\halo\\SOURCE\\math\\real_math.c", 0x340, 1);
+    halt_and_catch_fire();
+  }
+  if (up == (float *)0) {
+    display_assert("up", "c:\\halo\\SOURCE\\math\\real_math.c", 0x341, 1);
+    halt_and_catch_fire();
+  }
+  if (angles == (float *)0) {
+    display_assert("angles", "c:\\halo\\SOURCE\\math\\real_math.c", 0x342, 1);
+    halt_and_catch_fire();
+  }
+  FUN_00109e90(matrix, angles[0], angles[1], angles[2]);
+  matrix4x3_decompose(matrix, local_position, forward, up);
+}
+
+/* 0x10bd70 — Point-in-rectangle test (2D, fully inclusive). */
+int FUN_0010bd70(float *point, float *rect)
+{
+  if (rect[0] <= point[0] && point[0] <= rect[1] &&
+      rect[2] <= point[1] && point[1] <= rect[3]) {
+    return 1;
+  }
+  return 0;
+}
+
+/* 0x10c690 — Update v1 = scale1 * cross(axis, v1) + scale2 * v1.
+ * Uses temporaries for aliasing safety. */
+void FUN_0010c690(float *v1, float *axis, float scale1, float scale2)
+{
+  float a = v1[0];
+  float ax2 = axis[2];
+  float ax0 = axis[0];
+  float b = v1[1];
+  float ax0b = axis[0];
+  float c = v1[0];
+  float ax1 = axis[1];
+
+  v1[0] = (axis[1] * v1[2] - v1[1] * axis[2]) * scale1 + scale2 * v1[0];
+  v1[1] = (a * ax2 - ax0 * v1[2]) * scale1 + scale2 * v1[1];
+  v1[2] = scale2 * v1[2] + (b * ax0b - c * ax1) * scale1;
+}
+
+/* 0x10c700 — Rotate two 3D vectors around an axis: rotate v1 toward v2 and v2
+ * away from v1 by (scale1, scale2). Uses temporaries to allow aliasing. */
+void FUN_0010c700(float *v1, float *v2, float scale1, float scale2)
+{
+  float a = v1[0];
+  float b = v1[1];
+  float c = v1[2];
+
+  v1[0] = scale1 * v2[0] + scale2 * v1[0];
+  v1[1] = scale1 * v2[1] + scale2 * v1[1];
+  v1[2] = scale1 * v2[2] + scale2 * v1[2];
+  v2[0] = -a * scale1 + scale2 * v2[0];
+  v2[1] = scale2 * v2[1] + -b * scale1;
+  v2[2] = -c * scale1 + scale2 * v2[2];
+}
+
+/* 0x10cab0 — Build a quaternion from an axis and angle.
+ * out = (axis * sin(angle/2), cos(angle/2)). */
+void FUN_0010cab0(float *out, float angle, float *axis)
+{
+  float s = sinf(angle * 0.5f);
+  float c = cosf(angle * 0.5f);
+
+  out[3] = c;
+  out[0] = s * axis[0];
+  out[1] = s * axis[1];
+  out[2] = s * axis[2];
+}
+
+/* 0x10cc90 — Test if a 2D circle intersects a line segment.
+ * p1=point, p2=line start, p3=line direction, r=radius². */
+int FUN_0010cc90(float *p1, float *p2, float *p3, float r)
+{
+  float t = ((p1[1] - p2[1]) * p3[1] + (p1[0] - p2[0]) * p3[0]) /
+            (p3[1] * p3[1] + p3[0] * p3[0]);
+  float dx, dy;
+  float clamped_t = 0.0f;
+
+  if (0.0f <= t) {
+    clamped_t = t;
+    if (1.0f < t) {
+      clamped_t = 1.0f;
+    }
+  }
+  dx = -clamped_t * p3[0] + (p1[0] - p2[0]);
+  dy = -clamped_t * p3[1] + (p1[1] - p2[1]);
+  if (r * r < dy * dy + dx * dx) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10cd40 — Squared distance from a 3D point to a line segment.
+ * p1=point, p2=segment start, p3=segment direction.
+ * Returns dot(closest - point, closest - point). */
+float FUN_0010cd40(float *p1, float *p2, float *p3)
+{
+  float t_unclamped = ((p1[0] - p2[0]) * p3[0] +
+                      (p1[1] - p2[1]) * p3[1] +
+                      (p1[2] - p2[2]) * p3[2]) /
+                     (p3[2] * p3[2] + p3[1] * p3[1] + p3[0] * p3[0]);
+  float t;
+  float dx, dy, dz;
+
+  if (0.0f <= t_unclamped) {
+    if (t_unclamped <= 1.0f) {
+      t = t_unclamped;
+    } else {
+      t = 1.0f;
+    }
+  } else {
+    t = 0.0f;
+  }
+  t = -t;
+  dx = t * p3[0] + (p1[0] - p2[0]);
+  dy = t * p3[1] + (p1[1] - p2[1]);
+  dz = t * p3[2] + (p1[2] - p2[2]);
+  return dy * dy + dx * dx + dz * dz;
+}
+
+/* 0x10d680 — Ray vs sphere distance.
+ * Returns t along ray where ray hits sphere, or REAL_MAX if no hit.
+ * Returns 0 if ray origin is inside sphere. */
+float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center,
+                   float radius)
+{
+  float dx = ray_origin[0] - sphere_center[0];
+  float dy = ray_origin[1] - sphere_center[1];
+  float dz = ray_origin[2] - sphere_center[2];
+  float c = (dx * dx + dy * dy + dz * dz) - radius * radius;
+  float dr_x, dr_y, dr_z;
+  float b, a, disc;
+
+  if (c < 0.0f) {
+    return 0.0f;
+  }
+  dr_x = ray_dir[0];
+  dr_y = ray_dir[1];
+  dr_z = ray_dir[2];
+  b = dr_x * dx + dr_y * dy + dr_z * dz;
+  if (b < 0.0f) {
+    a = dr_x * dr_x + dr_y * dr_y + dr_z * dr_z;
+    disc = b * b - a * c;
+    if (disc >= 0.0f) {
+      return (-b - sqrtf(disc)) / a;
+    }
+  }
+  return 3.4028235e+38f;
+}
+
+/* 0x10d770 — 2D triangle barycentric coordinates.
+ * Tests if point p1 is inside triangle (p2, p3, p4) and computes
+ * barycentric coords. Returns 1 if inside, 0 if outside.
+ * Returns char to match MSVC's MOV AL,0x1 (preserves upper EAX bytes). */
+char FUN_0010d770(float *p1, float *p2, float *p3, float *p4,
+                  float *out_u, float *out_v)
+{
+  float det = (p1[1] - p2[1]) * (p3[0] - p2[0]) -
+              (p1[0] - p2[0]) * (p3[1] - p2[1]);
+  float det2, total, inv_total;
+
+  if (0.0f <= det) {
+    det2 = (p1[0] - p2[0]) * (p4[1] - p2[1]) -
+           (p1[1] - p2[1]) * (p4[0] - p2[0]);
+    if (0.0f <= det2) {
+      total = (p4[1] - p2[1]) * (p3[0] - p2[0]) -
+              (p4[0] - p2[0]) * (p3[1] - p2[1]);
+      if (det2 + det <= total) {
+        inv_total = 1.0f / total;
+        *out_u = det2 * inv_total;
+        *out_v = inv_total * det;
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+/* 0x10da90 — 3D cone vs sphere test.
+ * Tests if sphere(center=p1, radius=cone_radius*cosine) is intersected
+ * by the cone with apex=p2, axis=p3, half-angle whose cos=cosine. */
+char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
+                          float cosine)
+{
+  float dx, dy, dz;
+  float dot;
+  float rsq, dist_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x57c, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dz = p1[2] - p2[2];
+  dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dot > cone_radius) {
+    return 0;
+  }
+  rsq = dot * dot;
+  dist_sq = (dy * dy + dx * dx + dz * dz) * cosine * cosine;
+  if (dist_sq < rsq) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10db50 — 2D cone vs circle test. */
+char FUN_0010db50(float *p1, float *p2, float *p3, float cone_radius,
+                          float cosine)
+{
+  float dx, dy;
+  float dist_sq;
+  float dot;
+  float radius_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x599, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dist_sq = dy * dy + dx * dx;
+  radius_sq = cone_radius * cone_radius;
+  if (radius_sq < dist_sq) {
+    return 0;
+  }
+  dot = dx * p3[0] + dy * p3[1];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dist_sq * cosine * cosine < dot * dot) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10dbf0 — 3D cone vs sphere test (variant). */
+char FUN_0010dbf0(float *p1, float *p2, float *p3, float cone_radius,
+                          float cosine)
+{
+  float dx, dy, dz;
+  float dist_sq;
+  float dot;
+  float radius_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x5b6, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dz = p1[2] - p2[2];
+  dist_sq = dy * dy + dx * dx + dz * dz;
+  radius_sq = cone_radius * cone_radius;
+  if (radius_sq < dist_sq) {
+    return 0;
+  }
+  dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dist_sq * cosine * cosine < dot * dot) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10e8a0 — 2D point-to-rectangle distance test.
+ * Returns 1 if point is within radius of rectangle. */
+char FUN_0010e8a0(float *point, float radius, float *rect)
+{
+  float dx, dy;
+
+  if (point[0] > rect[1]) {
+    dx = point[0] - rect[1];
+  } else {
+    dx = 0.0f;
+    if (point[0] < rect[0]) {
+      dx = rect[0] - point[0];
+    }
+  }
+  if (point[1] > rect[3]) {
+    dy = point[1] - rect[3];
+  } else {
+    dy = 0.0f;
+    if (point[1] < rect[2]) {
+      dy = rect[2] - point[1];
+    }
+  }
+  if (radius * radius < dx * dx + dy * dy) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10e930 — 3D point-to-AABB distance test.
+ * Returns 1 if point is within radius of AABB.
+ * Layout: rect[0..1]=x bounds, rect[2..3]=y bounds, rect[4..5]=z bounds. */
+char FUN_0010e930(float *point, float radius, float *aabb)
+{
+  float dx, dy, dz;
+
+  if (point[0] > aabb[1]) {
+    dx = point[0] - aabb[1];
+  } else {
+    dx = 0.0f;
+    if (point[0] < aabb[0]) {
+      dx = aabb[0] - point[0];
+    }
+  }
+  if (point[1] > aabb[3]) {
+    dy = point[1] - aabb[3];
+  } else {
+    dy = 0.0f;
+    if (point[1] < aabb[2]) {
+      dy = aabb[2] - point[1];
+    }
+  }
+  if (point[2] > aabb[5]) {
+    dz = point[2] - aabb[5];
+  } else {
+    dz = 0.0f;
+    if (point[2] < aabb[4]) {
+      dz = aabb[4] - point[2];
+    }
+  }
+  if (radius * radius <= dx * dx + dy * dy + dz * dz) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10bdc0 — Point-in-3D-box test (inclusive on both ends). */
+int FUN_0010bdc0(float *point, float *box)
+{
+  if (box[0] <= point[0] && point[0] <= box[1] &&
+      box[2] <= point[1] && point[1] <= box[3] &&
+      box[4] <= point[2] && point[2] <= box[5]) {
+    return 1;
+  }
+  return 0;
+}
+
+/* 0x10d9e0 — 2D point in cone test.
+ * Returns 1 if point in 2D cone (apex=p2, axis=p3, max length=cone_radius,
+ * half-angle whose cos=cosine). */
+char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius,
+                  float cosine)
+{
+  float dx, dy;
+  float dot;
+  float rsq, dist_sq;
+
+  if (cosine < 0.0f) {
+    display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x55f, 1);
+    halt_and_catch_fire();
+  }
+  dx = p1[0] - p2[0];
+  dy = p1[1] - p2[1];
+  dot = dx * p3[0] + dy * p3[1];
+  if (dot < 0.0f) {
+    return 0;
+  }
+  if (dot > cone_radius) {
+    return 0;
+  }
+  rsq = dot * dot;
+  dist_sq = (dy * dy + dx * dx) * cosine * cosine;
+  if (dist_sq < rsq) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x10f310 — Intersect three planes (homogeneous): solve for the point
+ * that lies on all three planes. Returns 0 if planes are parallel/degenerate. */
+char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
+{
+  float det;
+  float d0;
+
+  det = (p2[2] * p1[1] - p1[2] * p2[1]) * p3[0] +
+        (p1[2] * p2[0] - p1[0] * p2[2]) * p3[1] +
+        (p1[0] * p2[1] - p2[0] * p1[1]) * p3[2];
+  if (fabsf(det) < *(double *)0x2533d0) {
+    return 0;
+  }
+
+  d0 = p1[3];
+  out[0] = (p3[2] * p2[1] - p3[1] * p2[2]) * d0;
+  out[1] = (p2[2] * p3[0] - p3[2] * p2[0]) * d0;
+  out[2] = (p3[1] * p2[0] - p3[0] * p2[1]) * d0;
+
+  d0 = p2[3];
+  out[0] = (p1[2] * p3[1] - p3[2] * p1[1]) * d0 + out[0];
+  out[1] = (p3[2] * p1[0] - p1[2] * p3[0]) * d0 + out[1];
+  out[2] = (p3[0] * p1[1] - p3[1] * p1[0]) * d0 + out[2];
+
+  d0 = p3[3];
+  det = 1.0f / det;
+  out[0] = ((p2[2] * p1[1] - p1[2] * p2[1]) * d0 + out[0]) * det;
+  out[1] = ((p1[2] * p2[0] - p1[0] * p2[2]) * d0 + out[1]) * det;
+  out[2] = ((p1[0] * p2[1] - p2[0] * p1[1]) * d0 + out[2]) * det;
+  return 1;
+}
+
+/* 0x10f480 — Intersect a line (described by two planes p1, p2) with a third
+ * plane to get the point. param_3 receives the line-direction cross,
+ * param_4 receives the cross of the input planes. */
+char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out)
+{
+  float cy, cz;
+  float det, inv_det;
+  float d;
+
+  cross_out[2] = p1[0] * p2[1] - p1[1] * p2[0];
+  cy = p2[0] * p1[2] - p1[0] * p2[2];
+  cz = p1[1] * p2[2] - p1[2] * p2[1];
+  cross_out[0] = cz;
+  cross_out[1] = cy;
+  det = cross_out[2] * cross_out[2] + cy * cy + cz * cz;
+  if (fabsf(det) < *(double *)0x2533d0) {
+    return 0;
+  }
+
+  d = p1[3];
+  out[0] = (cross_out[2] * p2[1] - cy * p2[2]) * d;
+  out[1] = (p2[2] * cross_out[0] - cross_out[2] * p2[0]) * d;
+  out[2] = (cy * p2[0] - cross_out[0] * p2[1]) * d;
+
+  d = p2[3];
+  inv_det = 1.0f / det;
+  out[0] = ((cross_out[1] * p1[2] - p1[1] * cross_out[2]) * d + out[0]) * inv_det;
+  out[1] = ((p1[0] * cross_out[2] - p1[2] * cross_out[0]) * d + out[1]) * inv_det;
+  out[2] = ((cross_out[0] * p1[1] - cross_out[1] * p1[0]) * d + out[2]) * inv_det;
+  return 1;
+}
+
+/* 0x10fe80 — Validate 2D normal: x²+y² close to 1.0 and not NaN/Inf. */
+int FUN_0010fe80(float x, float y)
+{
+  float diff = (y * y + x * x) - 1.0f;
+  if ((*(unsigned int *)&diff & 0x7f800000) != 0x7f800000 &&
+      fabsf(diff) < *(float *)0x2549d8) {
+    return 1;
+  }
+  return 0;
+}
+
+
