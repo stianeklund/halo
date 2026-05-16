@@ -26818,15 +26818,15 @@
           "addr": "0x77590"
         },
         {
-          "decl": "void FUN_00077720(void);",
+          "decl": "void *FUN_00077720(void *bitmap, int param_3, int param_4);",
           "addr": "0x77720"
         },
         {
-          "decl": "void FUN_000779b0(void);",
+          "decl": "void *FUN_000779b0(void *bitmap, int param_3, int param_4);",
           "addr": "0x779b0"
         },
         {
-          "decl": "void FUN_00077cd0(void);",
+          "decl": "void *FUN_00077cd0(void *bitmap, short mipmap_count, int param_3, int param_4);",
           "addr": "0x77cd0"
         },
         {
@@ -26842,36 +26842,40 @@
           "addr": "0x78460"
         },
         {
-          "decl": "void FUN_00078b80(void);",
-          "addr": "0x78b80"
+          "decl": "void FUN_00078b80(int unused, int filter_coefficients, void *bitmap /* @<esi> */);",
+          "addr": "0x78b80",
+          "ported": true
         },
         {
           "decl": "void FUN_00078c30(void);",
           "addr": "0x78c30"
         },
         {
-          "decl": "void FUN_000790b0(void);",
-          "addr": "0x790b0"
+          "decl": "void FUN_000790b0(int unused, int positive_table, int negative_table, void *bitmap /* @<esi> */);",
+          "addr": "0x790b0",
+          "ported": true
         },
         {
           "decl": "void FUN_00079180(void);",
           "addr": "0x79180"
         },
         {
-          "decl": "void FUN_00079250(void);",
+          "decl": "void FUN_00079250(void *bitmap);",
           "addr": "0x79250"
         },
         {
-          "decl": "void FUN_00079480(void);",
+          "decl": "void FUN_00079480(short passes, void *bitmap /* @<edi> */);",
           "addr": "0x79480"
         },
         {
-          "decl": "void FUN_00079590(void);",
-          "addr": "0x79590"
+          "decl": "void FUN_00079590(short passes, void *bitmap /* @<esi> */);",
+          "addr": "0x79590",
+          "ported": true
         },
         {
           "decl": "void FUN_00079630(float bump_height, void *bitmap /* @<esi> */);",
-          "addr": "0x79630"
+          "addr": "0x79630",
+          "ported": true
         },
         {
           "decl": "void FUN_000796e0(void);",
@@ -26946,8 +26950,9 @@
           "ported": true
         },
         {
-          "decl": "void bitmap_shrink(void);",
-          "addr": "0x7b0e0"
+          "decl": "void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4);",
+          "addr": "0x7b0e0",
+          "ported": true
         },
         {
           "decl": "void bitmap_smooth(void *pixel_data, float smooth_factor);",
@@ -26958,8 +26963,9 @@
           "addr": "0x7b310"
         },
         {
-          "decl": "void bitmap_alpha_bleed(void);",
-          "addr": "0x7b470"
+          "decl": "void bitmap_alpha_bleed(void *bitmap, short passes);",
+          "addr": "0x7b470",
+          "ported": false
         },
         {
           "decl": "void FUN_0007b510(float bump_height, void *bitmap /* @<esi> */);",

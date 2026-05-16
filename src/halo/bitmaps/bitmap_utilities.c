@@ -481,3 +481,253 @@ void pixel32_to_real_rgb_color(unsigned int color, float *dst)
     b = color & 0xff;
     dst[2] = (float)b * *(float *)0x261518;
 }
+
+/*
+ * FUN_00078b80 -- cube_map smooth stub.
+ *
+ * Validates the bitmap (must be cube_map type) and the filter_coefficients
+ * pointer, then prints a warning that smoothing a cube map is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). Two stack params: unused, filter_coefficients.
+ */
+void FUN_00078b80(int unused, int filter_coefficients, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x353, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_cube_map */
+    if (*(short *)((char *)bitmap + 0xa) != 2) {
+        display_assert("bitmap->type==_bitmap_type_cube_map",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x354, 1);
+        system_exit(-1);
+    }
+
+    /* assert filter_coefficients != NULL */
+    if (filter_coefficients == 0) {
+        display_assert("filter_coefficients",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x355, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to smooth a cube map",
+                (void *)0x261f2c);
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_000790b0 -- 3D bitmap sharpen stub.
+ *
+ * Validates the bitmap (must be 3D type) and positive/negative table pointers,
+ * then prints a warning that sharpening a 3D bitmap is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). Three stack params: unused, positive_table,
+ * negative_table.
+ */
+void FUN_000790b0(int unused, int positive_table, int negative_table, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e2, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_3d */
+    if (*(short *)((char *)bitmap + 0xa) != 1) {
+        display_assert("bitmap->type==_bitmap_type_3d",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e3, 1);
+        system_exit(-1);
+    }
+
+    /* assert positive_table != NULL */
+    if (positive_table == 0) {
+        display_assert("positive_table",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e4, 1);
+        system_exit(-1);
+    }
+
+    /* assert negative_table != NULL */
+    if (negative_table == 0) {
+        display_assert("negative_table",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e5, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to sharpen a 3d bitmap",
+                (void *)0x261f2c);
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_00079590 -- cube_map alpha_bleed stub.
+ *
+ * Validates the bitmap (must be cube_map type) and that passes > 0,
+ * then prints a warning that alpha-bleeding a cube map is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). One stack param: passes (short).
+ */
+void FUN_00079590(short passes, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x4a1, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_cube_map */
+    if (*(short *)((char *)bitmap + 0xa) != 2) {
+        display_assert("bitmap->type==_bitmap_type_cube_map",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x4a2, 1);
+        system_exit(-1);
+    }
+
+    /* assert passes > 0 */
+    if (passes <= 0) {
+        display_assert("passes>0",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x4a3, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to alpha-bleed a cube map (skipping)");
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_00079630 -- cube_map height_map stub.
+ *
+ * Validates the bitmap (must be cube_map type) and that bump_height > 0.0f,
+ * then prints a warning that using a cube map as a height map is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). One stack param: bump_height (float).
+ */
+void FUN_00079630(float bump_height, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x55c, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_cube_map */
+    if (*(short *)((char *)bitmap + 0xa) != 2) {
+        display_assert("bitmap->type==_bitmap_type_cube_map",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x55d, 1);
+        system_exit(-1);
+    }
+
+    /* assert bump_height > 0.0f */
+    if (!(bump_height > *(float *)0x2533c0)) {
+        display_assert("bump_height>0.0f",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x55e, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to use a cube map as a height map\r\n");
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_0007b470 -- bitmap_alpha_bleed: dispatcher for alpha bleed by bitmap type.
+ *
+ * Validates the bitmap, checks that passes > 0, then dispatches based on
+ * bitmap->type: 2D -> FUN_00079250, 3D -> FUN_00079480 (bitmap in EDI),
+ * cube_map -> FUN_00079590 (bitmap in ESI).
+ * On unsupported type, fires an assert.
+ */
+void bitmap_alpha_bleed(void *bitmap, short passes)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x402, 1);
+        system_exit(-1);
+    }
+
+    if (passes <= 0) {
+        return;
+    }
+
+    switch (*(short *)((char *)bitmap + 0xa)) {
+    case 0:
+        FUN_00079250(bitmap);
+        break;
+    case 1:
+        FUN_00079480(passes, bitmap);
+        break;
+    case 2:
+        FUN_00079590(passes, bitmap);
+        break;
+    default:
+        display_assert("### ERROR unsupported bitmap type",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x410, 1);
+        system_exit(-1);
+        break;
+    }
+}
+
+/*
+ * FUN_0007b0e0 -- bitmap_shrink: dispatcher for bitmap mipmap shrinking.
+ *
+ * Validates the bitmap. If mipmap_count < 2, delegates to FUN_00077590.
+ * Otherwise dispatches based on bitmap->type: 2D -> FUN_00077720,
+ * 3D -> FUN_000779b0, cube_map -> FUN_00077cd0.
+ * Returns a pointer to the shrunk bitmap (or NULL on error).
+ */
+void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(source_bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0xe1, 1);
+        system_exit(-1);
+    }
+
+    if (mipmap_count <= 1) {
+        return FUN_00077590(bitmap);
+    }
+
+    switch (*(short *)((char *)bitmap + 0xa)) {
+    case 0:
+        return FUN_00077720(bitmap, param_3, param_4);
+    case 1:
+        return FUN_000779b0(bitmap, param_3, param_4);
+    case 2:
+        return FUN_00077cd0(bitmap, mipmap_count, param_3, param_4);
+    default:
+        display_assert("### ERROR unupported bitmap type",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0xf3, 1);
+        system_exit(-1);
+        return (void *)0;
+    }
+}
