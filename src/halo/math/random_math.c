@@ -134,14 +134,14 @@ void random_math_initialize(void)
     (int)count * 12, 0, "c:\\halo\\SOURCE\\math\\random_math.c", 0xb0);
   *(int16_t *)0x46e3ec = count;
 
-  if (count > 0) {
-    src = *(float **)((char *)tag + 4);
-    dst = *(float **)0x46e3e8;
-    for (i = 0; i < count; i++) {
-      dst[i * 3 + 0] = src[i * 3 + 0];
-      dst[i * 3 + 1] = src[i * 3 + 1];
-      dst[i * 3 + 2] = src[i * 3 + 2];
-    }
+  i = 0;
+  src = *(float **)((char *)tag + 4);
+  dst = *(float **)0x46e3e8;
+  while (i < *(int16_t *)((char *)tag + 0xc)) {
+    dst[i * 3 + 0] = src[i * 3 + 0];
+    dst[i * 3 + 1] = src[i * 3 + 1];
+    dst[i * 3 + 2] = src[i * 3 + 2];
+    i++;
   }
 
   FUN_001056e0(tag);
