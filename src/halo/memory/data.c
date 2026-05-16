@@ -95,6 +95,27 @@ void data_verify(data_t *data)
   assert_halt(data->unk_48 <= data->current_count);
 }
 
+/*
+ * datum_initialize — zero a datum slot and stamp it with the next identifier.
+ *
+ * Zeroes the datum buffer (data->size bytes), copies the current identifier
+ * counter (data->unk_50) into the datum's first 2 bytes, then increments the
+ * counter. Wraps 0 → 0x8000 to keep valid (non-null) identifiers.
+ *
+ * Confirmed: ESI = data_t*, EDI = datum buffer pointer (both register args).
+ * Confirmed: CALL 0x8db80 (csmemset) with (EDI, 0, data->size).
+ * Confirmed: 16-bit copy [ESI+0x32] → [EDI]; INC word [ESI+0x32]; wrap
+ * 0→0x8000.
+ */
+void datum_initialize(data_t *data, void *datum)
+{
+  csmemset(datum, 0, (int)data->size);
+  *(int16_t *)datum = *(int16_t *)((char *)data + 0x32);
+  *(int16_t *)((char *)data + 0x32) += 1;
+  if (*(int16_t *)((char *)data + 0x32) == 0)
+    *(int16_t *)((char *)data + 0x32) = 0x8000;
+}
+
 data_t *data_new(char *name, int16_t maximum_count, int16_t size)
 {
   data_t *data;

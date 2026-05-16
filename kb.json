@@ -5536,8 +5536,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001194a0(void);",
-          "addr": "0x1194a0"
+          "decl": "void datum_initialize(data_t *data@<esi>, void *datum@<edi>);",
+          "addr": "0x1194a0",
+          "ported": true
         },
         {
           "decl": "void data_prev_index(void);",

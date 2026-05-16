@@ -1426,7 +1426,7 @@ int FUN_0010a480(int p)
 void real_math_initialize(void)
 {
   random_math_initialize();
-  FUN_0010ad10();
+  periodic_functions_initialize();
 }
 
 /* 0x10b5d0 — real_math_dispose: dispose random tables and periodic functions. */
