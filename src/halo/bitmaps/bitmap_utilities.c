@@ -1,3 +1,147 @@
+/*
+ * FUN_00075380 -- bitmap_extract: create a new bitmap entry in the group.
+ *
+ * Validates the source bitmap, determines format and mipmap count,
+ * adds a new bitmap entry to the group's tag_block, copies registration
+ * point, optionally smooths, then copies pixel data from source to dest.
+ *
+ * Source TU: bitmap_extract.c (assert strings confirm)
+ * ABI: bitmap passed in EAX (@EAX), returns short (new bitmap index or -1).
+ */
+short FUN_00075380(void *bitmap /* @<eax> */)
+{
+  char *group;
+  short bitmap_type;
+  short bitmap_usage;
+  short max_mipmaps;
+  short mipmap_count;
+  short new_bitmap_index;
+  int format;
+  void *pixel_data;
+  char *bitmap_data;
+  char *bm;
+  int pixel_size;
+  int kb_size;
+  char *format_str;
+
+  bm = (char *)bitmap;
+
+  /* bitmap_verify(bitmap, TRUE) */
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x487, 1);
+    system_exit(-1);
+  }
+
+  format = FUN_00073fd0(bitmap);
+
+  group = *(char **)0x33414c;
+  bitmap_type = *(short *)(group + 0x0);
+  bitmap_usage = *(short *)(group + 0x4);
+
+  if (bitmap_type == 4 || bitmap_usage == 4) {
+    mipmap_count = 0;
+  } else {
+    mipmap_count = (short)bitmap_get_max_mipmap_count(bitmap);
+
+    if (*(short *)(group + 0x0) == 3 && mipmap_count >= 2) {
+      mipmap_count = 2;
+    }
+
+    max_mipmaps = *(short *)(group + 0x4c);
+    if (max_mipmaps > 0) {
+      short limit = max_mipmaps - 1;
+      if (limit <= (short)mipmap_count) {
+        mipmap_count = limit;
+      }
+    }
+  }
+
+  new_bitmap_index = FUN_00077120(
+    *(void **)0x33414c, *(short *)(bm + 0x4), *(short *)(bm + 0x6),
+    *(short *)(bm + 0x8), *(short *)(bm + 0xa), format, (int)mipmap_count);
+
+  *(short *)0x33415e = new_bitmap_index;
+
+  if (new_bitmap_index == -1) {
+    return new_bitmap_index;
+  }
+
+  pixel_data = FUN_00077590(bitmap);
+
+  bitmap_data = (char *)tag_block_get_element(*(char **)0x33414c + 0x60,
+                                              (int)new_bitmap_index, 0x30);
+
+  group = *(char **)0x33414c;
+
+  if ((*(unsigned char *)(group + 0x6) & 0x8) != 0) {
+    *(short *)(bitmap_data + 0x10) = (short)((*(short *)(bm + 0x10) + 1) / 2);
+    *(short *)(bitmap_data + 0x12) = (short)((*(short *)(bm + 0x12) + 1) / 2);
+  } else {
+    *(int *)(bitmap_data + 0x10) = *(int *)(bm + 0x10);
+  }
+
+  if (pixel_data == 0) {
+    return new_bitmap_index;
+  }
+
+  if (*(int *)((char *)pixel_data + 0x2c) == 0) {
+    return new_bitmap_index;
+  }
+
+  group = *(char **)0x33414c;
+
+  if (*(float *)(group + 0x44) > *(float *)0x2533c0) {
+    switch (*(short *)(group + 0x0)) {
+    case 0:
+    case 1:
+    case 2:
+      bitmap_smooth(pixel_data, *(float *)(group + 0x44));
+      break;
+    case 3:
+      crt_fprintf((void *)0x331050,
+                  "### WARNING tried to smooth a sprite group",
+                  (void *)0x261f2c);
+      crt_fflush((void *)0x331050);
+      break;
+    case 4:
+      crt_fprintf((void *)0x331050,
+                  "### WARNING tried to smooth an interface-bitmap group",
+                  (void *)0x261f2c);
+      crt_fflush((void *)0x331050);
+      break;
+    default:
+      display_assert("### ERROR unsupported bitmap group type",
+                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x4d0, 1);
+      system_exit(-1);
+    }
+  }
+
+  FUN_00074fb0(pixel_data, bitmap_data);
+
+  if (*(short *)(bitmap_data + 0xa) == 1) {
+    pixel_size = bitmap_get_pixel_data_size(bitmap_data);
+    kb_size = (pixel_size + (((unsigned int)pixel_size >> 31) & 0x3ff)) >> 10;
+    format_str = (char *)bitmap_format_get_string(*(short *)(bitmap_data + 0xc));
+    crt_fprintf(
+      (void *)0x331050, "bitmap created: #%dx#%dx#%d, %s, %dK-bytes\r\n",
+      (int)*(short *)(bitmap_data + 0x4), (int)*(short *)(bitmap_data + 0x6),
+      (int)*(short *)(bitmap_data + 0x8), format_str, kb_size);
+    crt_fflush((void *)0x331050);
+    return new_bitmap_index;
+  }
+
+  pixel_size = bitmap_get_pixel_data_size(bitmap_data);
+  kb_size = (pixel_size + (((unsigned int)pixel_size >> 31) & 0x3ff)) >> 10;
+  format_str = (char *)bitmap_format_get_string(*(short *)(bitmap_data + 0xc));
+  crt_fprintf((void *)0x331050, "bitmap created: #%dx#%d, %s, %dK-bytes\r\n",
+              (int)*(short *)(bitmap_data + 0x4),
+              (int)*(short *)(bitmap_data + 0x6), format_str, kb_size);
+  crt_fflush((void *)0x331050);
+
+  return new_bitmap_index;
+}
+
 float *bitmap_clone(float *rgb, float *hsv_out)
 {
   float max_component;
@@ -156,4 +300,434 @@ bool valid_real_rgb_color(float *rgb)
     return false;
 
   return true;
+}
+
+/*
+ * FUN_00076bb0 -- bitmap tag_block element delete wrapper.
+ *
+ * Gets an element from a tag_block at the given index (element size 0x30),
+ * then passes it to bitmap_delete.
+ */
+void FUN_00076bb0(void *tag_block, int index)
+{
+    void *element;
+
+    element = tag_block_get_element(tag_block, index, 0x30);
+    bitmap_delete(element);
+}
+
+/*
+ * FUN_00076ff0 -- get bitmap data element from a bitmap tag.
+ *
+ * Looks up a 'bitm' tag by index, then returns a pointer to the bitmap
+ * data entry at the given bitmap_index within the tag's bitmap block
+ * (offset 0x60, element size 0x30). Returns NULL on failure.
+ */
+void *FUN_00076ff0(int tag_index, short bitmap_index)
+{
+    int iVar1;
+    void *uVar2;
+
+    iVar1 = (int)tag_get(0x6269746d, tag_index);
+    uVar2 = 0;
+    if ((iVar1 != 0) && (bitmap_index >= 0)) {
+        if ((int)bitmap_index < *(int *)(iVar1 + 0x60)) {
+            uVar2 = tag_block_get_element((int *)(iVar1 + 0x60), (int)bitmap_index, 0x30);
+        }
+    }
+    return uVar2;
+}
+
+/*
+ * FUN_00077510 -- bitmap_fill: fill all pixels of a bitmap with a dword value.
+ *
+ * Gets the pixel base address via bitmap_2d_address(0,0,0), gets the pixel
+ * count, then fills that many dwords with the given color. The original uses
+ * REP STOSD.
+ */
+void FUN_00077510(void *bitmap, int fill_color)
+{
+    int *pixels;
+    int count;
+    int i;
+
+    pixels = (int *)bitmap_2d_address(bitmap, 0, 0, 0);
+    count = bitmap_get_pixel_count(bitmap);
+    if (count > 0) {
+        for (i = 0; i < count; i++) {
+            pixels[i] = fill_color;
+        }
+    }
+}
+
+/*
+ * FUN_00077540 -- bitmap_alpha_to_rgb: spread alpha byte to all 4 channels.
+ *
+ * For each pixel, reads byte [+3] (alpha), builds 0xAAAAAAAA by shifting
+ * and OR-ing, then stores back as the full pixel. Converts an alpha-only
+ * bitmap into a grayscale ARGB bitmap.
+ */
+void FUN_00077540(void *bitmap)
+{
+    unsigned int *pixels;
+    int count;
+    unsigned char alpha;
+    unsigned int expanded;
+
+    pixels = (unsigned int *)bitmap_2d_address(bitmap, 0, 0, 0);
+    count = bitmap_get_pixel_count(bitmap);
+    if (count > 0) {
+        do {
+            alpha = ((unsigned char *)pixels)[3];
+            expanded = alpha;
+            expanded = (expanded << 8) | alpha;
+            expanded = (expanded << 8) | alpha;
+            expanded = (expanded << 8) | alpha;
+            *pixels = expanded;
+            pixels++;
+            count--;
+        } while (count != 0);
+    }
+}
+
+/*
+ * FUN_0007a750 -- real_rgb_color_brightness: compute luminance of an RGB color.
+ *
+ * Returns the dot product of the color with standard luminance coefficients
+ * (0.299, 0.587, 0.114) stored at globals 0x2647c0-c8.
+ */
+float real_rgb_color_brightness(float *color)
+{
+    return color[0] * *(float *)0x2647c0
+         + color[1] * *(float *)0x2647c4
+         + color[2] * *(float *)0x2647c8;
+}
+
+/*
+ * FUN_0007ae70 -- argb_color_to_real_argb_color: convert 4 unsigned shorts
+ * to 4 floats, scaled by 1/65535.
+ *
+ * Each component is zero-extended from ushort to int, then converted to float
+ * and multiplied by the scale factor at 0x264154.
+ */
+void argb_color_to_real_argb_color(unsigned short *src, float *dst)
+{
+    int val;
+
+    val = src[0];
+    dst[0] = (float)val * *(float *)0x264154;
+    val = src[1];
+    dst[1] = (float)val * *(float *)0x264154;
+    val = src[2];
+    dst[2] = (float)val * *(float *)0x264154;
+    val = src[3];
+    dst[3] = (float)val * *(float *)0x264154;
+}
+
+/*
+ * FUN_0007aed0 -- rgb_color_to_real_rgb_color: convert 3 unsigned shorts
+ * to 3 floats, scaled by 1/65535.
+ *
+ * Same pattern as argb_color_to_real_argb_color but only 3 components.
+ */
+void rgb_color_to_real_rgb_color(unsigned short *src, float *dst)
+{
+    int val;
+
+    val = src[0];
+    dst[0] = (float)val * *(float *)0x264154;
+    val = src[1];
+    dst[1] = (float)val * *(float *)0x264154;
+    val = src[2];
+    dst[2] = (float)val * *(float *)0x264154;
+}
+
+/*
+ * FUN_0007af20 -- pixel32_to_real_argb_color: extract ARGB from a packed
+ * uint32 into 4 floats, scaled by 1/255.
+ *
+ * Byte layout: bits 31-24 = A, 23-16 = R, 15-8 = G, 7-0 = B.
+ * Uses MSVC's unsigned-to-float pattern (FILD + TEST/JGE/FADD fixup).
+ */
+void pixel32_to_real_argb_color(unsigned int color, float *dst)
+{
+    unsigned int a, r, g, b;
+
+    a = color >> 24;
+    dst[0] = (float)a * *(float *)0x261518;
+    r = (color >> 16) & 0xff;
+    dst[1] = (float)r * *(float *)0x261518;
+    g = (color >> 8) & 0xff;
+    dst[2] = (float)g * *(float *)0x261518;
+    b = color & 0xff;
+    dst[3] = (float)b * *(float *)0x261518;
+}
+
+/*
+ * FUN_0007afb0 -- pixel32_to_real_rgb_color: extract RGB from a packed
+ * uint32 into 3 floats, scaled by 1/255.
+ *
+ * Byte layout: bits 23-16 = R, 15-8 = G, 7-0 = B (alpha ignored).
+ * Uses MSVC's unsigned-to-float pattern (FILD + TEST/JGE/FADD fixup).
+ */
+void pixel32_to_real_rgb_color(unsigned int color, float *dst)
+{
+    unsigned int r, g, b;
+
+    r = (color >> 16) & 0xff;
+    dst[0] = (float)r * *(float *)0x261518;
+    g = (color >> 8) & 0xff;
+    dst[1] = (float)g * *(float *)0x261518;
+    b = color & 0xff;
+    dst[2] = (float)b * *(float *)0x261518;
+}
+
+/*
+ * FUN_00078b80 -- cube_map smooth stub.
+ *
+ * Validates the bitmap (must be cube_map type) and the filter_coefficients
+ * pointer, then prints a warning that smoothing a cube map is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). Two stack params: unused, filter_coefficients.
+ */
+void FUN_00078b80(int unused, int filter_coefficients, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x353, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_cube_map */
+    if (*(short *)((char *)bitmap + 0xa) != 2) {
+        display_assert("bitmap->type==_bitmap_type_cube_map",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x354, 1);
+        system_exit(-1);
+    }
+
+    /* assert filter_coefficients != NULL */
+    if (filter_coefficients == 0) {
+        display_assert("filter_coefficients",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x355, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to smooth a cube map",
+                (void *)0x261f2c);
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_000790b0 -- 3D bitmap sharpen stub.
+ *
+ * Validates the bitmap (must be 3D type) and positive/negative table pointers,
+ * then prints a warning that sharpening a 3D bitmap is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). Three stack params: unused, positive_table,
+ * negative_table.
+ */
+void FUN_000790b0(int unused, int positive_table, int negative_table, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e2, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_3d */
+    if (*(short *)((char *)bitmap + 0xa) != 1) {
+        display_assert("bitmap->type==_bitmap_type_3d",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e3, 1);
+        system_exit(-1);
+    }
+
+    /* assert positive_table != NULL */
+    if (positive_table == 0) {
+        display_assert("positive_table",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e4, 1);
+        system_exit(-1);
+    }
+
+    /* assert negative_table != NULL */
+    if (negative_table == 0) {
+        display_assert("negative_table",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x3e5, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to sharpen a 3d bitmap",
+                (void *)0x261f2c);
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_00079590 -- cube_map alpha_bleed stub.
+ *
+ * Validates the bitmap (must be cube_map type) and that passes > 0,
+ * then prints a warning that alpha-bleeding a cube map is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). One stack param: passes (short).
+ */
+void FUN_00079590(short passes, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x4a1, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_cube_map */
+    if (*(short *)((char *)bitmap + 0xa) != 2) {
+        display_assert("bitmap->type==_bitmap_type_cube_map",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x4a2, 1);
+        system_exit(-1);
+    }
+
+    /* assert passes > 0 */
+    if (passes <= 0) {
+        display_assert("passes>0",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x4a3, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to alpha-bleed a cube map (skipping)");
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_00079630 -- cube_map height_map stub.
+ *
+ * Validates the bitmap (must be cube_map type) and that bump_height > 0.0f,
+ * then prints a warning that using a cube map as a height map is not supported
+ * and returns without doing any work.
+ *
+ * ABI: bitmap passed in ESI (@ESI). One stack param: bump_height (float).
+ */
+void FUN_00079630(float bump_height, void *bitmap /* @<esi> */)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x55c, 1);
+        system_exit(-1);
+    }
+
+    /* assert bitmap->type == _bitmap_type_cube_map */
+    if (*(short *)((char *)bitmap + 0xa) != 2) {
+        display_assert("bitmap->type==_bitmap_type_cube_map",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x55d, 1);
+        system_exit(-1);
+    }
+
+    /* assert bump_height > 0.0f */
+    if (!(bump_height > *(float *)0x2533c0)) {
+        display_assert("bump_height>0.0f",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x55e, 1);
+        system_exit(-1);
+    }
+
+    crt_fprintf((void *)0x331050,
+                "### WARNING tried to use a cube map as a height map\r\n");
+    crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_0007b470 -- bitmap_alpha_bleed: dispatcher for alpha bleed by bitmap type.
+ *
+ * Validates the bitmap, checks that passes > 0, then dispatches based on
+ * bitmap->type: 2D -> FUN_00079250, 3D -> FUN_00079480 (bitmap in EDI),
+ * cube_map -> FUN_00079590 (bitmap in ESI).
+ * On unsupported type, fires an assert.
+ */
+void bitmap_alpha_bleed(void *bitmap, short passes)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x402, 1);
+        system_exit(-1);
+    }
+
+    if (passes <= 0) {
+        return;
+    }
+
+    switch (*(short *)((char *)bitmap + 0xa)) {
+    case 0:
+        FUN_00079250(bitmap);
+        break;
+    case 1:
+        FUN_00079480(passes, bitmap);
+        break;
+    case 2:
+        FUN_00079590(passes, bitmap);
+        break;
+    default:
+        display_assert("### ERROR unsupported bitmap type",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0x410, 1);
+        system_exit(-1);
+        break;
+    }
+}
+
+/*
+ * FUN_0007b0e0 -- bitmap_shrink: dispatcher for bitmap mipmap shrinking.
+ *
+ * Validates the bitmap. If mipmap_count < 2, delegates to FUN_00077590.
+ * Otherwise dispatches based on bitmap->type: 2D -> FUN_00077720,
+ * 3D -> FUN_000779b0, cube_map -> FUN_00077cd0.
+ * Returns a pointer to the shrunk bitmap (or NULL on error).
+ */
+void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4)
+{
+    /* bitmap_verify(bitmap, TRUE) */
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(source_bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0xe1, 1);
+        system_exit(-1);
+    }
+
+    if (mipmap_count <= 1) {
+        return FUN_00077590(bitmap);
+    }
+
+    switch (*(short *)((char *)bitmap + 0xa)) {
+    case 0:
+        return FUN_00077720(bitmap, param_3, param_4);
+    case 1:
+        return FUN_000779b0(bitmap, param_3, param_4);
+    case 2:
+        return FUN_00077cd0(bitmap, mipmap_count, param_3, param_4);
+    default:
+        display_assert("### ERROR unupported bitmap type",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                       0xf3, 1);
+        system_exit(-1);
+        return (void *)0;
+    }
 }
