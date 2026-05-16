@@ -5822,11 +5822,13 @@
         },
         {
           "decl": "void FUN_0017cb60(void);",
-          "addr": "0x17cb60"
+          "addr": "0x17cb60",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cb70(void);",
-          "addr": "0x17cb70"
+          "addr": "0x17cb70",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cb80(void);",
@@ -5834,7 +5836,8 @@
         },
         {
           "decl": "void FUN_0017cb90(void);",
-          "addr": "0x17cb90"
+          "addr": "0x17cb90",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cba0(void);",
@@ -5842,7 +5845,8 @@
         },
         {
           "decl": "void FUN_0017cbb0(void);",
-          "addr": "0x17cbb0"
+          "addr": "0x17cbb0",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cbc0(void);",

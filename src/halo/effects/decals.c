@@ -1888,3 +1888,27 @@ void FUN_0017cb30(int rendered_cluster_data)
 {
   FUN_0015bc40(rendered_cluster_data);
 }
+
+/* Tail-call thunk to rasterizer decal geometry initialization (FUN_0015c980). */
+void FUN_0017cb60(void)
+{
+  FUN_0015c980();
+}
+
+/* Tail-call thunk to rasterizer decal geometry disposal (FUN_0015cbb0). */
+void FUN_0017cb70(void)
+{
+  FUN_0015cbb0();
+}
+
+/* Tail-call thunk to rasterizer decal rendering (FUN_00170c90). */
+void FUN_0017cb90(void)
+{
+  FUN_00170c90();
+}
+
+/* Tail-call thunk to dynamic vertex geometry decal flush (FUN_0016bed0). */
+void FUN_0017cbb0(void)
+{
+  FUN_0016bed0();
+}
