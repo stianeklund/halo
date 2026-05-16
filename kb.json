@@ -5633,8 +5633,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00098aa0(void);",
-          "addr": "0x98aa0"
+          "decl": "void FUN_00098aa0(int16_t cluster_index@<si>, int16_t layer@<di>, int param_1);",
+          "addr": "0x98aa0",
+          "ported": true
         },
         {
           "decl": "void FUN_00098b20(float *sprite_bounds@<eax>, void *definition, int16_t sequence_index, int16_t sprite_index, float extent, float *out_extent);",

@@ -51,6 +51,31 @@ void FUN_00098970(int handle, bool layer_check)
   }
 }
 
+/*
+ * FUN_00098aa0 — set the first decal datum index for a cluster/layer slot.
+ * Validates cluster_index in [0, 512) and layer in [0, 5), then writes
+ * param_1 into decal_globals at [layer * 512 + cluster_index].
+ * Counterpart to FUN_00098fe0 (getter). Takes cluster_index in SI, layer in DI.
+ *
+ * 0x98aa0 / decals.obj
+ */
+void FUN_00098aa0(int16_t cluster_index, int16_t layer, int param_1)
+{
+  if (cluster_index < 0 || cluster_index >= 0x200) {
+    display_assert(
+      "cluster_index>=0 && cluster_index<MAXIMUM_CLUSTERS_PER_STRUCTURE",
+      "c:\\halo\\SOURCE\\effects\\decals.c", 0xd8, 1);
+    system_exit(-1);
+  }
+  if (layer < 0 || layer >= 5) {
+    display_assert("layer>=0 && layer<NUMBER_OF_DECAL_LAYERS",
+                   "c:\\halo\\SOURCE\\effects\\decals.c", 0xd9, 1);
+    system_exit(-1);
+  }
+  *(int *)(decal_globals + ((int)layer * 0x200 + (int)cluster_index) * 4) =
+    param_1;
+}
+
 void FUN_00098b20(float *sprite_bounds, void *definition,
                   int16_t sequence_index, int16_t sprite_index, float extent,
                   float *out_extent)
