@@ -5673,7 +5673,9 @@
         },
         {
           "decl": "float triple_product3d(float *param_1, float *param_2, float *param_3);",
-          "addr": "0x993b0"
+          "addr": "0x993b0",
+          "name": "triple_product3d",
+          "ported": true
         },
         {
           "decl": "float *plane2d_from_points(float *out_line, float *point_a, float *point_b);",

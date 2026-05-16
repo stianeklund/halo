@@ -249,6 +249,24 @@ void project_point2d(float *point_2d, float *plane, int16_t projection,
                       plane[proj_i];
 }
 
+/* triple_product3d (0x993b0)
+ *
+ * Computes the scalar triple product: dot(cross(p, q), r).
+ * Equivalent to the signed volume of the parallelepiped formed by vectors
+ * p, q, r. Returns a float. */
+float triple_product3d(float *p, float *q, float *r)
+{
+  float cross_x;
+  float cross_y;
+  float cross_z;
+
+  cross_x = p[1] * q[2] - p[2] * q[1];
+  cross_y = p[2] * q[0] - p[0] * q[2];
+  cross_z = p[0] * q[1] - q[0] * p[1];
+
+  return cross_x * r[0] + cross_y * r[1] + cross_z * r[2];
+}
+
 /* plane2d_from_points (0x99400)
  *
  * Computes a 2D line equation (normal + distance) from two 2D points.
