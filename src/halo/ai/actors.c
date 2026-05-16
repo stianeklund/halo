@@ -1176,6 +1176,57 @@ void actor_switch_props(int unit_handle, int swarm_component_handle)
   *(int *)(swarm_component + 0x10) = target_handle;
 }
 
+/* 0x3a3b0
+ *
+ * actor_action_handle_status_change
+ *
+ * Processes an actor's action status: handles initial action, pending command
+ * lists, potential combat transitions, and status-dependent behavior based on
+ * the actor's current action type (field +0x6c).
+ */
+void FUN_0003a3b0(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_combat_transition(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 4:
+  case 6:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_combat_failure(actor_handle);
+      return;
+    }
+    break;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_exit_pursuit(actor_handle);
+      return;
+    }
+    break;
+  case 11:
+    actor_action_handle_combat_status(
+      actor_handle,
+      (int)*(unsigned char *)(actor + 0x9e),
+      (int)*(unsigned char *)(actor + 0xa1));
+    break;
+  default:
+    break;
+  }
+}
+
 /* 0x3b100 — Return true if actor has fewer than 3 active slots (field +0x6a).
  */
 bool actor_is_noncombat(int actor_handle)

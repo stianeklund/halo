@@ -2224,11 +2224,11 @@
           "addr": "0x1d7c0"
         },
         {
-          "decl": "void actor_action_handle_initial_action(void);",
+          "decl": "void actor_action_handle_initial_action(int actor_handle);",
           "addr": "0x1dab0"
         },
         {
-          "decl": "void actor_action_handle_pending_command_list(void);",
+          "decl": "void actor_action_handle_pending_command_list(int actor_handle);",
           "addr": "0x1daf0"
         },
         {
@@ -2268,15 +2268,15 @@
           "addr": "0x1f6e0"
         },
         {
-          "decl": "void actor_action_handle_combat_status(void);",
+          "decl": "char actor_action_handle_combat_status(int actor_handle, int param2, int param3);",
           "addr": "0x1f770"
         },
         {
-          "decl": "void actor_action_handle_combat_failure(void);",
+          "decl": "void actor_action_handle_combat_failure(int actor_handle);",
           "addr": "0x1f920"
         },
         {
-          "decl": "void actor_action_handle_exit_pursuit(void);",
+          "decl": "void actor_action_handle_exit_pursuit(int actor_handle);",
           "addr": "0x1f9a0"
         },
         {
@@ -2308,7 +2308,7 @@
           "addr": "0x20470"
         },
         {
-          "decl": "void actor_action_handle_combat_transition(void);",
+          "decl": "void actor_action_handle_combat_transition(int actor_handle);",
           "addr": "0x204f0"
         },
         {
@@ -2531,8 +2531,9 @@
           "addr": "0x3a190"
         },
         {
-          "decl": "void FUN_0003a3b0(void);",
-          "addr": "0x3a3b0"
+          "decl": "void FUN_0003a3b0(int actor_handle);",
+          "addr": "0x3a3b0",
+          "ported": true
         },
         {
           "decl": "void FUN_0003a480(void);",
