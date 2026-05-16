@@ -2501,4 +2501,64 @@ int FUN_0010fe80(float x, float y)
   return 0;
 }
 
+/* Pin a normal vector to the boundary of a cone if it falls outside.
+ * Returns 1 if the normal was pinned, 0 if it was already inside the cone. */
+char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
+                          float cos_half_angle, float *result)
+{
+  float axis[3];
+  float dot;
+  float mag;
+
+  if (!valid_real_normal3d(normal)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)", "normal",
+             (double)normal[0], (double)normal[1], (double)normal[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x203, 1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d(direction)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)", "direction",
+             (double)direction[0], (double)direction[1], (double)direction[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x204, 1);
+    system_exit(-1);
+  }
+
+  dot = normal[0] * direction[0] + normal[1] * direction[1] +
+        normal[2] * direction[2];
+
+  if (dot >= cos_half_angle) {
+    result[0] = normal[0];
+    result[1] = normal[1];
+    result[2] = normal[2];
+    return 0;
+  }
+
+  axis[0] = normal[2] * direction[1] - normal[1] * direction[2];
+  axis[1] = normal[0] * direction[2] - direction[0] * normal[2];
+  axis[2] = direction[0] * normal[1] - normal[0] * direction[1];
+  mag = normalize3d(axis);
+  if (mag == 0.0f) {
+    perpendicular3d(direction, axis);
+    normalize3d(axis);
+  }
+
+  result[0] = direction[0];
+  result[1] = direction[1];
+  result[2] = direction[2];
+  rotate_vector3d_by_sincos(result, axis, sin_half_angle, cos_half_angle);
+
+  if (!valid_real_normal3d(result)) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)", "result",
+             (double)result[0], (double)result[1], (double)result[2]);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x21c, 1);
+    system_exit(-1);
+  }
+  return 1;
+}
 
