@@ -18170,8 +18170,9 @@
           "addr": "0x129f0"
         },
         {
-          "decl": "void FUN_00012a80(void);",
-          "addr": "0x12a80"
+          "decl": "void FUN_00012a80(int actor_handle);",
+          "addr": "0x12a80",
+          "ported": true
         },
         {
           "decl": "void FUN_00012ad0(void);",
