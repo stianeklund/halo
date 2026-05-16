@@ -18648,8 +18648,9 @@
           "ported": true
         },
         {
-          "decl": "void quaternions_interpolate_and_normalize(void);",
-          "addr": "0x10cb60"
+          "decl": "void quaternions_interpolate_and_normalize(float *q1, float *q2, float t, float *out);",
+          "addr": "0x10cb60",
+          "ported": true
         },
         {
           "decl": "void orientations_interpolate(void);",
