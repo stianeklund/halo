@@ -1834,6 +1834,41 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   return 1;
 }
 
+/* 0x1104e0 — 3D capsule vs cone test (calls FUN_0010dbf0 for cone test). */
+char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
+                  float sine, float cosine)
+{
+  float dot;
+
+  if (sine <= 0.0f || cosine < 0.0f) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
+             "sine>0.0f && cosine>=0.0f",
+             "c:\\halo\\SOURCE\\math\\real_math.c", 0x8dd, 1);
+    display_assert("sine>0.0f && cosine>=0.0f",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x8dd, 1);
+    halt_and_catch_fire();
+  }
+  {
+    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
+        *(double *)0x2549d8 <= fabsf(diff)) {
+      csprintf((char *)0x5ab100, "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+               "sine", "cosine",
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
+      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
+      halt_and_catch_fire();
+    }
+  }
+  dot = (p1[1] - p3[1]) * p4[1] +
+        (p1[2] - p3[2]) * p4[2] + (p1[0] - p3[0]) * p4[0];
+  if (-p2 <= dot) {
+    if (dot <= p2 + p5 && FUN_0010dbf0(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /* 0x110380 — 2D capsule vs cone test (calls FUN_0010db50 for cone test). */
 char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
                   float sine, float cosine)

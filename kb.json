@@ -18833,8 +18833,9 @@
           "ported": true
         },
         {
-          "decl": "void sphere_intersects_cone3d(void);",
-          "addr": "0x1104e0"
+          "decl": "char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5, float sine, float cosine);",
+          "addr": "0x1104e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00110650(void);",
