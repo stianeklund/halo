@@ -1657,6 +1657,10 @@
         "Originally inlined from real_math.h around line 0x36f; unprojects 2D point to 3D via plane equation."
       ]
     },
+    "0x993b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x99400": {
       "kind": "function",
       "status": "ported",
