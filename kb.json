@@ -17134,15 +17134,15 @@
           "addr": "0x10b9c0"
         },
         {
-          "decl": "void FUN_0010ba90(void);",
+          "decl": "void FUN_0010ba90(float *q1, float *q2, float t, float *out);",
           "addr": "0x10ba90"
         },
         {
-          "decl": "void FUN_0010c290(void);",
+          "decl": "float *FUN_0010c290(float *v);",
           "addr": "0x10c290"
         },
         {
-          "decl": "void FUN_0010c2e0(void);",
+          "decl": "float *FUN_0010c2e0(float *v);",
           "addr": "0x10c2e0"
         },
         {
