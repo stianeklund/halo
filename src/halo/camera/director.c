@@ -42,6 +42,35 @@ void director_set_local_player_context(int16_t player_index)
   ((char *)0x335302)[(int)player_index * 0xf8] = 1;
 }
 
+/*
+ * FUN_000865a0 — set player director mode entry fields.
+ * Writes param_1 to [base+0x8], 1.0f to [base+0xc4], clears [base+0xc0],
+ * and if param_2 is true writes 1.0f to [base+0x4].
+ * Base = 0x3352b0 + local_player_index * 0xf8.
+ * local_player_index passed in SI.
+ *
+ * 0x865a0 / director.obj
+ */
+void FUN_000865a0(int16_t local_player_index, int param_1, bool param_2)
+{
+  char *base;
+
+  if (local_player_index < 0 ||
+      local_player_index >= MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) {
+    display_assert("local_player_index>=0 && "
+                   "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\camera\\director.c", 0xb3, 1);
+    system_exit(-1);
+  }
+  base = (char *)0x3352b0 + (int)local_player_index * 0xf8;
+  *(int *)(base + 0x8) = param_1;
+  *(int *)(base + 0xc4) = 0x3f800000;
+  *(unsigned char *)(base + 0xc0) = 0;
+  if (param_2) {
+    *(int *)(base + 0x4) = 0x3f800000;
+  }
+}
+
 /* Per-player default-state init (0x86600). Fills four 12-byte slots at
  * struct offset 0x194/0x1a0/0x1ac/0x1b8 (relative to 0x3352b4 + player*0xf8).
  * Each slot's first dword is seeded from a const table at 0x2ee604 (0x1c

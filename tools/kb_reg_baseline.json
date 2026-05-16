@@ -43,6 +43,7 @@
     "0x7bd90": "void FUN_0007bd90(void *bitmap@<ebx>);",
     "0x7d440": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
     "0x83930": "int FUN_00083930(int af @<ecx>, int type @<edx>, int protocol @<eax>);",
+    "0x865a0": "void FUN_000865a0(int16_t local_player_index@<si>, int param_1, bool param_2);",
     "0x86600": "void director_init_player_cameras(int16_t local_player_index@<ax>);",
     "0x86de0": "void director_set_player_camera_normal(int16_t local_player_index@<ax>, char reset_flag, char mode_flags);",
     "0x86fa0": "void director_set_player_camera_scripted(int16_t local_player_index@<si>, char reset_flag);",

@@ -6046,8 +6046,9 @@
           "addr": "0x864b0"
         },
         {
-          "decl": "void FUN_000865a0(void);",
-          "addr": "0x865a0"
+          "decl": "void FUN_000865a0(int16_t local_player_index@<si>, int param_1, bool param_2);",
+          "addr": "0x865a0",
+          "ported": true
         },
         {
           "decl": "void director_init_player_cameras(int16_t local_player_index@<ax>);",
