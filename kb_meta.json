@@ -4713,6 +4713,14 @@
         "The function returns the result pointer in EAX but is declared void since no known callers use the return value."
       ]
     },
+    "0x10b5c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10b5d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10b5e0": {
       "kind": "function",
       "status": "ported"
@@ -4728,6 +4736,10 @@
         "The function finds the component with the smallest absolute value and produces a perpendicular vector by zeroing that component and swapping the other two with one negated."
       ]
     },
+    "0x10b6b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10b6e0": {
       "kind": "function",
       "status": "ported",
@@ -4735,11 +4747,27 @@
         "Rodrigues rotation formula: rotates vector[0..2] around axis[0..2] by angle specified via sin_angle and cos_angle arguments."
       ]
     },
+    "0x10b780": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10b7d0": {
       "kind": "function",
       "status": "ported"
     },
     "0x10b820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10b840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10bb20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10bbc0": {
       "kind": "function",
       "status": "ported"
     },
