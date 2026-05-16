@@ -4935,8 +4935,9 @@
           "addr": "0x97ca0"
         },
         {
-          "decl": "void FUN_00097db0(void);",
-          "addr": "0x97db0"
+          "decl": "void FUN_00097db0(char *datum @<esi>);",
+          "addr": "0x97db0",
+          "ported": true
         },
         {
           "decl": "void FUN_00098200(void);",
@@ -32287,7 +32288,8 @@
       "functions": [
         {
           "decl": "void *FUN_001c8d90(int permutation_block_ptr, int tick_index);",
-          "addr": "0x1c8d90"
+          "addr": "0x1c8d90",
+          "ported": true
         }
       ]
     },

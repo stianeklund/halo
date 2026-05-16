@@ -117,6 +117,52 @@ void contrails_initialize(void)
   error(0, "couldn't allocate contrail globals");
 }
 
+/* 0x97db0 — contrail_advance_bitmap_frame. Advances the frame counter for
+ * the contrail's bitmap animation sequence. If the current sequence is
+ * complete or invalid, picks a new random sequence index from the bitmap tag
+ * and resets the frame counter. Also zeroes the render time accumulator
+ * (datum+0x24). ESI = contrail datum pointer. */
+void FUN_00097db0(char *datum /* @<esi> */)
+{
+  char *tag;
+  char *bitmap;
+  int16_t sequence_index;
+  int16_t frame_counter;
+  char *sequences_block;
+  char *seq_element;
+  int16_t seq_min;
+  int16_t seq_max;
+
+  tag = (char *)tag_get(0x636f6e74, *(int *)(datum + 4));
+  bitmap = (char *)tag_get(0x6269746d, *(int *)(tag + 0x3c));
+
+  sequence_index = *(int16_t *)(datum + 0x14);
+  *(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;
+  frame_counter = *(int16_t *)(datum + 0x16);
+  *(float *)(datum + 0x24) = 0.0f;
+
+  if (sequence_index < 0)
+    goto pick_random;
+  sequences_block = bitmap + 0x54;
+  if ((int)sequence_index >= *(int *)sequences_block)
+    goto pick_random;
+  if (frame_counter < 0)
+    goto pick_random;
+
+  seq_element = (char *)tag_block_get_element(sequences_block,
+                                              (int)sequence_index, 0x40);
+  frame_counter = *(int16_t *)(datum + 0x16);
+  if (frame_counter < *(int16_t *)(seq_element + 0x22))
+    return;
+
+pick_random:
+  seq_min = *(int16_t *)(tag + 0x40);
+  seq_max = seq_min + *(int16_t *)(tag + 0x42);
+  *(int16_t *)(datum + 0x14) = random_range(
+      random_math_get_local_seed_address(), seq_min, seq_max);
+  *(int16_t *)(datum + 0x16) = 0;
+}
+
 /* 0x97e40 — contrail_add_point.  For each marker on the contrail's attached
  * object, allocates 'count' new contrail-point datums and prepends them to
  * the per-marker point chain.
@@ -400,16 +446,7 @@ void contrails_update(float delta_time)
           *(float *)(datum + 0x24) += remaining;
           break;
         }
-        /* contrail_add_point takes ESI as a register param in the original
-         * binary. Call the original directly to avoid thunk mismatch. */
-        {
-          char *_esi = datum;
-          asm volatile("movl $0x97db0, %%eax\n\t"
-                       "call *%%eax"
-                       : "+S"(_esi)
-                       :
-                       : "eax", "ecx", "edx", "edi", "memory", "cc");
-        }
+        FUN_00097db0(datum);
         remaining -= step;
       } while (remaining > *(float *)0x2533c0);
     }
