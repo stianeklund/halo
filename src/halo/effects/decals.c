@@ -1874,3 +1874,17 @@ void FUN_0017cb10(int decal_index)
 {
   FUN_0015b530(decal_index);
 }
+
+/* Tail-call thunk to decal rendering pass setup (FUN_0015b970).
+ * pass_index selects the rendering pass type. */
+void FUN_0017cb20(short pass_index)
+{
+  FUN_0015b970(pass_index);
+}
+
+/* Tail-call thunk to per-cluster decal rendering (FUN_0015bc40).
+ * rendered_cluster_data is a pointer to the cluster render data. */
+void FUN_0017cb30(int rendered_cluster_data)
+{
+  FUN_0015bc40(rendered_cluster_data);
+}

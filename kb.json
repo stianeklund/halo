@@ -5803,12 +5803,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0017cb20(void);",
-          "addr": "0x17cb20"
+          "decl": "void FUN_0017cb20(short pass_index);",
+          "addr": "0x17cb20",
+          "ported": true
         },
         {
-          "decl": "void FUN_0017cb30(void);",
-          "addr": "0x17cb30"
+          "decl": "void FUN_0017cb30(int rendered_cluster_data);",
+          "addr": "0x17cb30",
+          "ported": true
         },
         {
           "decl": "void FUN_0017cb40(void);",
@@ -17840,11 +17842,11 @@
           "addr": "0x15b960"
         },
         {
-          "decl": "void FUN_0015b970(void);",
+          "decl": "void FUN_0015b970(short pass_index);",
           "addr": "0x15b970"
         },
         {
-          "decl": "void FUN_0015bc40(void);",
+          "decl": "void FUN_0015bc40(int rendered_cluster_data);",
           "addr": "0x15bc40"
         },
         {
