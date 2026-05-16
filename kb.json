@@ -5212,7 +5212,7 @@
           "addr": "0x11e340"
         },
         {
-          "decl": "void memory_pool_get_free_size(void);",
+          "decl": "int memory_pool_get_free_size(void *pool);",
           "addr": "0x11e390"
         },
         {
@@ -5220,7 +5220,7 @@
           "addr": "0x11e3a0"
         },
         {
-          "decl": "void memory_pool_get_contiguous_free_size(void);",
+          "decl": "int memory_pool_get_contiguous_free_size(void *pool);",
           "addr": "0x11e3c0"
         },
         {
@@ -5236,7 +5236,7 @@
           "addr": "0x11e690"
         },
         {
-          "decl": "void memory_pool_compact(void);",
+          "decl": "void memory_pool_compact(void *pool);",
           "addr": "0x11e840"
         },
         {
@@ -9976,8 +9976,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000c5a20(void);",
-          "addr": "0xc5a20"
+          "decl": "bool FUN_000c5a20(int datum_index);",
+          "addr": "0xc5a20",
+          "ported": true
         },
         {
           "decl": "bool FUN_000c5b50(int datum_index);",
@@ -14062,7 +14063,7 @@
           "addr": "0x140750"
         },
         {
-          "decl": "void object_visible_to_any_player(void);",
+          "decl": "int object_visible_to_any_player(int object_handle);",
           "addr": "0x1407e0"
         },
         {
@@ -14233,8 +14234,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00144b50(void);",
-          "addr": "0x144b50"
+          "decl": "void objects_garbage_collect_tick(void);",
+          "addr": "0x144b50",
+          "ported": true
         },
         {
           "decl": "void objects_update(void);",
