@@ -4392,7 +4392,7 @@
           "addr": "0xa57a0"
         },
         {
-          "decl": "void FUN_000a57b0(void);",
+          "decl": "short FUN_000a57b0(float *vec, float max_length);",
           "addr": "0xa57b0"
         },
         {
@@ -18136,12 +18136,14 @@
           "addr": "0x12090"
         },
         {
-          "decl": "void FUN_000120e0(void);",
-          "addr": "0x120e0"
+          "decl": "void FUN_000120e0(int actor_handle);",
+          "addr": "0x120e0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00012110(void);",
-          "addr": "0x12110"
+          "decl": "void FUN_00012110(int actor_handle);",
+          "addr": "0x12110",
+          "ported": true
         },
         {
           "decl": "void FUN_00012200(void);",
@@ -18794,7 +18796,7 @@
           "addr": "0x10f770"
         },
         {
-          "decl": "void accelerate_to_velocity3d(void);",
+          "decl": "void FUN_0010f9b0(void);",
           "addr": "0x10f9b0"
         },
         {
