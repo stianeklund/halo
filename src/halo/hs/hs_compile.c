@@ -471,6 +471,142 @@ bool FUN_000c6230(int datum_index)
   return FUN_000c6130(datum_index, (void *)(scenario + 0x360), 0x60, 4);
 }
 
+/* 0xc62a0 — Compile cutscene_flag literal (type 0xc). */
+bool FUN_000c62a0(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0xc) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_cutscene_flag",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x719, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x4e4), 0x5c, 4);
+}
+
+/* 0xc6310 — Compile cutscene_camera_point literal (type 0xd). */
+bool FUN_000c6310(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0xd) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_cutscene_camera_point",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x721, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x4f0), 0x68, 4);
+}
+
+/* 0xc6380 — Compile cutscene_title literal (type 0xe). */
+bool FUN_000c6380(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0xe) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_cutscene_title",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x729, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x4fc), 0x60, 4);
+}
+
+/* 0xc63f0 — Compile cutscene_recording literal (type 0xf). */
+bool FUN_000c63f0(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0xf) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_cutscene_recording",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x731, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x36c), 0x40, 0);
+}
+
+/* 0xc6460 — Compile device_group literal (type 0x10). */
+bool FUN_000c6460(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0x10) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_device_group",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x739, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x288), 0x34, 0);
+}
+
+/* 0xc6580 — Compile ai_command_list literal (type 0x12). */
+bool FUN_000c6580(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0x12) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_ai_command_list",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x755, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x438), 0x60, 0);
+}
+
+/* 0xc65f0 — Compile starting_profile literal (type 0x13). */
+bool FUN_000c65f0(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0x13) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_starting_profile",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x75d, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x348), 0x68, 0);
+}
+
+/* 0xc6660 — Compile conversation literal (type 0x14). */
+bool FUN_000c6660(int datum_index)
+{
+  char *node;
+  char *scenario;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0x14) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_conversation",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x765, 1);
+    system_exit(-1);
+  }
+  scenario = (char *)global_scenario_get();
+  return FUN_000c6130(datum_index, (void *)(scenario + 0x468), 0x74, 0);
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function

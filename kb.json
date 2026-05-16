@@ -10020,40 +10020,48 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000c62a0(void);",
-          "addr": "0xc62a0"
+          "decl": "bool FUN_000c62a0(int datum_index);",
+          "addr": "0xc62a0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000c6310(void);",
-          "addr": "0xc6310"
+          "decl": "bool FUN_000c6310(int datum_index);",
+          "addr": "0xc6310",
+          "ported": true
         },
         {
-          "decl": "void FUN_000c6380(void);",
-          "addr": "0xc6380"
+          "decl": "bool FUN_000c6380(int datum_index);",
+          "addr": "0xc6380",
+          "ported": true
         },
         {
-          "decl": "void FUN_000c63f0(void);",
-          "addr": "0xc63f0"
+          "decl": "bool FUN_000c63f0(int datum_index);",
+          "addr": "0xc63f0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000c6460(void);",
-          "addr": "0xc6460"
+          "decl": "bool FUN_000c6460(int datum_index);",
+          "addr": "0xc6460",
+          "ported": true
         },
         {
           "decl": "void FUN_000c64d0(void);",
           "addr": "0xc64d0"
         },
         {
-          "decl": "void FUN_000c6580(void);",
-          "addr": "0xc6580"
+          "decl": "bool FUN_000c6580(int datum_index);",
+          "addr": "0xc6580",
+          "ported": true
         },
         {
-          "decl": "void FUN_000c65f0(void);",
-          "addr": "0xc65f0"
+          "decl": "bool FUN_000c65f0(int datum_index);",
+          "addr": "0xc65f0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000c6660(void);",
-          "addr": "0xc6660"
+          "decl": "bool FUN_000c6660(int datum_index);",
+          "addr": "0xc6660",
+          "ported": true
         },
         {
           "decl": "void FUN_000c66d0(void);",
