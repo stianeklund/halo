@@ -33405,7 +33405,7 @@
         {
           "addr": "0x5eae0",
           "decl": "char path_state_build_path(unsigned int path_buf, unsigned int *nav_state_out);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x5ef80",
