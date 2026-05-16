@@ -281,3 +281,42 @@ int FUN_00021f70(float a, float b)
     return 1;
   return 0;
 }
+
+/* 0x12a80 — action_alert: decrement squad-vehicle-passenger counter
+ * if actor is in state 4 (vehicle) and target's state is 3. */
+void FUN_00012a80(int actor_handle)
+{
+  int actor;
+  int other_actor;
+
+  actor = (int)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(short *)(actor + 0xa0) == 4) {
+    other_actor = (int)actor_combat_get_firing_variant_definition(actor_handle);
+    if (*(short *)(other_actor + 0x156) == 3 && 0 < *(short *)(actor + 0x5fe)) {
+      *(short *)(actor + 0x5fe) = *(short *)(actor + 0x5fe) + -1;
+    }
+  }
+}
+
+/* 0x120e0 — action_alert: clear alert state on actor.
+ * Sets actor->state_data1 (0xa2) and state_data2 (0xa4) to 0xffff. */
+void FUN_000120e0(int actor_handle)
+{
+  int actor;
+
+  actor = (int)datum_get(*(data_t **)0x6325a4, actor_handle);
+  *(unsigned short *)(actor + 0xa2) = 0xffff;
+  *(unsigned short *)(actor + 0xa4) = 0xffff;
+}
+
+/* 0x12110 — action_alert: clear another alert/avoid state.
+ * Sets actor->field_d0 (short) to 0xffff and field_f4 (int) to -1. */
+void FUN_00012110(int actor_handle)
+{
+  int actor;
+
+  actor = (int)datum_get(*(data_t **)0x6325a4, actor_handle);
+  *(unsigned short *)(actor + 0xd0) = 0xffff;
+  *(unsigned int *)(actor + 0xf4) = 0xffffffff;
+}
+
