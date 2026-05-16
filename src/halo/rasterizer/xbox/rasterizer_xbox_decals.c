@@ -244,6 +244,33 @@ LAB_0015b105:
   return 1;
 }
 
+/* 0x15b5e0
+ *
+ * Sets the appropriate rasterizer blend/render state for decals based on
+ * the current decal rendering mode (global at 0x476ac8). If mode is 3
+ * (shadow), calls FUN_00158ae0 to set up shadow state first. Then selects
+ * a texture stage configuration from a local lookup table indexed by mode.
+ */
+void FUN_0015b5e0(void)
+{
+  short mode;
+  short stage_table[5];
+
+  mode = *(short *)0x476ac8;
+  if (mode == 3) {
+    FUN_00158ae0(2);
+    mode = *(short *)0x476ac8;
+  }
+  stage_table[0] = 9;
+  stage_table[1] = 10;
+  stage_table[2] = 6;
+  stage_table[3] = 7;
+  stage_table[4] = 0x14;
+  if (mode >= 0 && mode < 5) {
+    FUN_0016fa40((int)stage_table[mode]);
+  }
+}
+
 /* 0x15b6d0
  *
  * rasterizer_decals_initialize
