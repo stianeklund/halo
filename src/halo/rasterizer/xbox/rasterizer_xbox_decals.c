@@ -54,6 +54,25 @@ void rasterizer_decals_dispose_from_old_map(void)
   lruv_cache_dispose_all(*(void **)0x476adc);
 }
 
+/* 0x15b1e0
+ *
+ * rasterizer_decals_dispose
+ *
+ * Asserts the LRUV vertex cache exists, resets decal state (non-full reset),
+ * and evicts all cached vertex entries.
+ */
+void FUN_0015b1e0(void)
+{
+  if (*(void **)0x476adc == 0) {
+    display_assert(
+      "local_vertex_cache",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x8e, 1);
+    system_exit(-1);
+  }
+  decals_update_for_new_map(0);
+  lruv_cache_dispose_all(*(void **)0x476adc);
+}
+
 /* 0x15b460
  *
  * Allocate vertex cache space for decal vertices.
