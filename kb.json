@@ -18824,8 +18824,9 @@
           "ported": true
         },
         {
-          "decl": "void pin_normal_to_cone3d(void);",
-          "addr": "0x10fed0"
+          "decl": "char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle, float cos_half_angle, float *result);",
+          "addr": "0x10fed0",
+          "ported": true
         },
         {
           "decl": "char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5, float sine, float cosine);",
