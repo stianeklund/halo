@@ -5628,8 +5628,9 @@
       "source": "effects/decals.c",
       "functions": [
         {
-          "decl": "void FUN_00098970(void);",
-          "addr": "0x98970"
+          "decl": "void FUN_00098970(int handle@<eax>, bool layer_check);",
+          "addr": "0x98970",
+          "ported": true
         },
         {
           "decl": "void FUN_00098aa0(void);",
