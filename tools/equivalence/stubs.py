@@ -34,7 +34,10 @@ def _st80_to_double(b: bytes) -> float:
     if exp == 0x7FFF:
         return float('inf') * sign if mantissa == (1 << 63) else float('nan')
     power = exp - 16383 - 63
-    return sign * mantissa * (2.0 ** power)
+    try:
+        return sign * mantissa * (2.0 ** power)
+    except OverflowError:
+        return float('inf') * sign
 
 
 def _write_st0_double(uc, val: float):
@@ -409,7 +412,7 @@ class StubManager:
             from unicorn.x86_const import (
                 UC_X86_REG_EAX, UC_X86_REG_EDX, UC_X86_REG_ESP,
                 UC_X86_REG_ECX, UC_X86_REG_EBP,
-                UC_X86_REG_ST0,
+                UC_X86_REG_ST0, UC_X86_REG_FPSW, UC_X86_REG_FPTAG,
             )
 
             # Read caller's current state
@@ -457,22 +460,34 @@ class StubManager:
                 return True
 
             if symbol_name in self._FTOL2_ADDRS:
-                import struct as _st
-                st0_raw = uc.reg_read(UC_X86_REG_ST0)
-                st0_bytes = st0_raw.to_bytes(10, 'little')
-                mantissa = int.from_bytes(st0_bytes[:8], 'little')
-                exp_sign = int.from_bytes(st0_bytes[8:10], 'little')
-                sign = -1 if (exp_sign >> 15) else 1
-                exp = exp_sign & 0x7FFF
-                if exp == 0 and mantissa == 0:
-                    result = 0
-                elif exp == 0x7FFF:
-                    result = 0
-                else:
-                    power = exp - 16383 - 63
-                    val = sign * mantissa * (2.0 ** power)
-                    result = int(val)
+                import struct as _struct
+                from unicorn.x86_const import UC_X86_REG_FP0
+                # UC_X86_REG_FP0..FP7 are the PHYSICAL x87 data registers; reading
+                # one returns a (mantissa: uint64, exponent: uint16) tuple for the
+                # full 80-bit value.  UC_X86_REG_ST0..ST7 are LOGICAL but only
+                # return the 64-bit mantissa (no exponent word — unusable for decode).
+                # Logical ST0 = physical R[TOP]; TOP = FPSW bits 13-11.
+                fpsw = uc.reg_read(UC_X86_REG_FPSW)
+                old_top = (fpsw >> 11) & 0x7
+                fp = uc.reg_read(UC_X86_REG_FP0 + old_top)
+                mantissa, exponent_word = fp
+                # Reassemble as 10 bytes and use the existing robust helper.
+                raw80 = _struct.pack('<QH', mantissa, exponent_word)
+                try:
+                    val = _st80_to_double(raw80)
+                except (OverflowError, ValueError, ZeroDivisionError):
+                    val = float('inf')
+                try:
+                    result = int(val)  # truncates toward zero, matching _ftol2
+                except (OverflowError, ValueError):
+                    result = 0x80000000  # MSVC _ftol2 saturates to INT_MIN on overflow
                 uc.reg_write(UC_X86_REG_EAX, result & 0xFFFFFFFF)
+                # Pop ST0 from the x87 stack: increment TOP in FPSW (bits 13-11)
+                # and mark the vacated physical slot as empty (11b) in FPTAG.
+                new_top = (old_top + 1) & 0x7
+                uc.reg_write(UC_X86_REG_FPSW, (fpsw & ~(0x7 << 11)) | (new_top << 11))
+                fptag = uc.reg_read(UC_X86_REG_FPTAG)
+                uc.reg_write(UC_X86_REG_FPTAG, fptag | (0x3 << (old_top * 2)))
                 return True
 
             if symbol_name == "display_assert":
