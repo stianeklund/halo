@@ -10073,8 +10073,9 @@
           "addr": "0xc6810"
         },
         {
-          "decl": "void FUN_000c68b0(void);",
-          "addr": "0xc68b0"
+          "decl": "bool FUN_000c68b0(int datum_index);",
+          "addr": "0xc68b0",
+          "ported": true
         },
         {
           "decl": "void FUN_000c6940(void);",

@@ -637,6 +637,30 @@ bool FUN_000c6660(int datum_index)
   return FUN_000c6130(datum_index, (void *)(scenario + 0x468), 0x74, 0);
 }
 
+/* 0xc68b0 — Compile navpoint literal (type 0x15).
+ * Looks up a waypoint by name from the HUD globals tag (hudg+0x160,
+ * element size 0x68). Returns false if no HUD globals tag is available. */
+bool FUN_000c68b0(int datum_index)
+{
+  char *node;
+  int tag_index;
+  char *hud_tag;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0x15) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_navpoint",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x7b1, 1);
+    system_exit(-1);
+  }
+  tag_index = interface_get_tag_index(6);
+  if (tag_index == -1) {
+    return false;
+  }
+  hud_tag = (char *)tag_get(0x68756467, interface_get_tag_index(6));
+  return FUN_000c6130(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
+}
+
 /* Compile an HS function-call expression node (0xc73a0).
  *
  * Called from hs_type_check when a syntax node has flag bit 0 set (function
