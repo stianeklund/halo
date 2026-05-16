@@ -1140,6 +1140,30 @@
       "metadata": {
         "source_path": "src/halo/cseries/xbox_crt.c"
       }
+    },
+    {
+      "name": "halo/bitmap_utilities_FUN_00075380",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/bitmap_utilities.c.obj",
+      "base_path": "delinked/bitmap_utilities_FUN_00075380.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/bitmap_utilities.c"
+      }
+    },
+    {
+      "name": "halo/bitmap_utilities_FUN_00075630",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/bitmap_utilities.c.obj",
+      "base_path": "delinked/bitmap_utilities_FUN_00075630.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/bitmap_utilities.c"
+      }
+    },
+    {
+      "name": "halo/bitmap_utilities_FUN_00075800",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/bitmap_utilities.c.obj",
+      "base_path": "delinked/bitmap_utilities_FUN_00075800.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/bitmap_utilities.c"
+      }
     }
   ]
 }

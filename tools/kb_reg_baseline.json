@@ -285,7 +285,9 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "0x75380": "short FUN_00075380(void *bitmap /* @<eax> */);",
+    "0x73fd0": "int FUN_00073fd0(void *bitmap /* @<eax> */);"
   },
   "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
   "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);"

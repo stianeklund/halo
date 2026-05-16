@@ -1,3 +1,147 @@
+/*
+ * FUN_00075380 -- bitmap_extract: create a new bitmap entry in the group.
+ *
+ * Validates the source bitmap, determines format and mipmap count,
+ * adds a new bitmap entry to the group's tag_block, copies registration
+ * point, optionally smooths, then copies pixel data from source to dest.
+ *
+ * Source TU: bitmap_extract.c (assert strings confirm)
+ * ABI: bitmap passed in EAX (@EAX), returns short (new bitmap index or -1).
+ */
+short FUN_00075380(void *bitmap /* @<eax> */)
+{
+  char *group;
+  short bitmap_type;
+  short bitmap_usage;
+  short max_mipmaps;
+  short mipmap_count;
+  short new_bitmap_index;
+  int format;
+  void *pixel_data;
+  char *bitmap_data;
+  char *bm;
+  int pixel_size;
+  int kb_size;
+  char *format_str;
+
+  bm = (char *)bitmap;
+
+  /* bitmap_verify(bitmap, TRUE) */
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x487, 1);
+    system_exit(-1);
+  }
+
+  format = FUN_00073fd0(bitmap);
+
+  group = *(char **)0x33414c;
+  bitmap_type = *(short *)(group + 0x0);
+  bitmap_usage = *(short *)(group + 0x4);
+
+  if (bitmap_type == 4 || bitmap_usage == 4) {
+    mipmap_count = 0;
+  } else {
+    mipmap_count = (short)bitmap_get_max_mipmap_count(bitmap);
+
+    if (*(short *)(group + 0x0) == 3 && mipmap_count >= 2) {
+      mipmap_count = 2;
+    }
+
+    max_mipmaps = *(short *)(group + 0x4c);
+    if (max_mipmaps > 0) {
+      short limit = max_mipmaps - 1;
+      if (limit <= (short)mipmap_count) {
+        mipmap_count = limit;
+      }
+    }
+  }
+
+  new_bitmap_index = FUN_00077120(
+    *(void **)0x33414c, *(short *)(bm + 0x4), *(short *)(bm + 0x6),
+    *(short *)(bm + 0x8), *(short *)(bm + 0xa), format, (int)mipmap_count);
+
+  *(short *)0x33415e = new_bitmap_index;
+
+  if (new_bitmap_index == -1) {
+    return new_bitmap_index;
+  }
+
+  pixel_data = FUN_00077590(bitmap);
+
+  bitmap_data = (char *)tag_block_get_element(*(char **)0x33414c + 0x60,
+                                              (int)new_bitmap_index, 0x30);
+
+  group = *(char **)0x33414c;
+
+  if ((*(unsigned char *)(group + 0x6) & 0x8) != 0) {
+    *(short *)(bitmap_data + 0x10) = (short)((*(short *)(bm + 0x10) + 1) / 2);
+    *(short *)(bitmap_data + 0x12) = (short)((*(short *)(bm + 0x12) + 1) / 2);
+  } else {
+    *(int *)(bitmap_data + 0x10) = *(int *)(bm + 0x10);
+  }
+
+  if (pixel_data == 0) {
+    return new_bitmap_index;
+  }
+
+  if (*(int *)((char *)pixel_data + 0x2c) == 0) {
+    return new_bitmap_index;
+  }
+
+  group = *(char **)0x33414c;
+
+  if (*(float *)(group + 0x44) > *(float *)0x2533c0) {
+    switch (*(short *)(group + 0x0)) {
+    case 0:
+    case 1:
+    case 2:
+      bitmap_smooth(pixel_data, *(float *)(group + 0x44));
+      break;
+    case 3:
+      crt_fprintf((void *)0x331050,
+                  "### WARNING tried to smooth a sprite group",
+                  (void *)0x261f2c);
+      crt_fflush((void *)0x331050);
+      break;
+    case 4:
+      crt_fprintf((void *)0x331050,
+                  "### WARNING tried to smooth an interface-bitmap group",
+                  (void *)0x261f2c);
+      crt_fflush((void *)0x331050);
+      break;
+    default:
+      display_assert("### ERROR unsupported bitmap group type",
+                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x4d0, 1);
+      system_exit(-1);
+    }
+  }
+
+  FUN_00074fb0(pixel_data, bitmap_data);
+
+  if (*(short *)(bitmap_data + 0xa) == 1) {
+    pixel_size = bitmap_get_pixel_data_size(bitmap_data);
+    kb_size = (pixel_size + (((unsigned int)pixel_size >> 31) & 0x3ff)) >> 10;
+    format_str = (char *)bitmap_format_get_string(*(short *)(bitmap_data + 0xc));
+    crt_fprintf(
+      (void *)0x331050, "bitmap created: #%dx#%dx#%d, %s, %dK-bytes\r\n",
+      (int)*(short *)(bitmap_data + 0x4), (int)*(short *)(bitmap_data + 0x6),
+      (int)*(short *)(bitmap_data + 0x8), format_str, kb_size);
+    crt_fflush((void *)0x331050);
+    return new_bitmap_index;
+  }
+
+  pixel_size = bitmap_get_pixel_data_size(bitmap_data);
+  kb_size = (pixel_size + (((unsigned int)pixel_size >> 31) & 0x3ff)) >> 10;
+  format_str = (char *)bitmap_format_get_string(*(short *)(bitmap_data + 0xc));
+  crt_fprintf((void *)0x331050, "bitmap created: #%dx#%d, %s, %dK-bytes\r\n",
+              (int)*(short *)(bitmap_data + 0x4),
+              (int)*(short *)(bitmap_data + 0x6), format_str, kb_size);
+  crt_fflush((void *)0x331050);
+
+  return new_bitmap_index;
+}
+
 float *bitmap_clone(float *rgb, float *hsv_out)
 {
   float max_component;
