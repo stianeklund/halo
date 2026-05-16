@@ -661,6 +661,32 @@ bool FUN_000c68b0(int datum_index)
   return FUN_000c6130(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
 }
 
+/* 0xc6810 — Compile object name literal (types 0x25-0x2a).
+ * "none" resolves to -1. Otherwise adds 6 to type (mapping object types to
+ * enum range 0x2b-0x30), delegates to FUN_000c66d0, then restores type. */
+bool FUN_000c6810(int datum_index)
+{
+  char *node;
+  bool result;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) < 0x25 || *(short *)(node + 0x4) > 0x2a) {
+    display_assert("HS_TYPE_IS_OBJECT(expression->type)",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x79a, 1);
+    system_exit(-1);
+  }
+  if (csstrcmp((const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8),
+               (const char *)0x254384) == 0) {
+    *(int *)(node + 0x10) = -1;
+    return true;
+  }
+  *(short *)(node + 0x4) += 6;
+  *(short *)(node + 0x2) = *(short *)(node + 0x4);
+  result = FUN_000c66d0(datum_index);
+  *(short *)(node + 0x4) -= 6;
+  return result;
+}
+
 /* 0xc69d0 — Compile object_list literal (type 0x17).
  * Temporarily sets type/constant_type to 0x2b (enum range for FUN_000c66d0),
  * delegates to FUN_000c66d0, then restores type to 0x17. */
