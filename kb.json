@@ -4932,8 +4932,9 @@
           "addr": "0x97ae0"
         },
         {
-          "decl": "void local_random_vector_in_cone3d(void);",
-          "addr": "0x97ca0"
+          "decl": "void local_random_vector_in_cone3d(float *forward, float zero, float angle, float *result);",
+          "addr": "0x97ca0",
+          "ported": true
         },
         {
           "decl": "void FUN_00097db0(char *datum @<esi>);",

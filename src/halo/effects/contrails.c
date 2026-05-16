@@ -106,6 +106,15 @@ int16_t local_random_range(int16_t min, int16_t max)
   return random_range(random_math_get_local_seed_address(), min, max);
 }
 
+/* 0x97ca0 — Generate a random direction within a cone using the module-local
+ * seed. Wraps random_direction3d with the local random seed. */
+void local_random_vector_in_cone3d(float *forward, float zero, float angle,
+                                   float *result)
+{
+  random_direction3d((int *)random_math_get_local_seed_address(), forward, zero,
+                     angle, result);
+}
+
 /* 0x97cd0 — compute random value in a flag-adjusted range.
  * base = range_min (scaled by datum_scale if flag bit set).
  * range = (range_max - range_min) (scaled by datum_scale if next bit set).
