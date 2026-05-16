@@ -808,6 +808,21 @@ void quaternions_interpolate_and_normalize(float *q1, float *q2, float t, float 
   sphere_intersects_rectangle3d(out);
 }
 
+/* Interpolate two orientations (quaternion[4] + scale/translation[4]).
+ * Quaternion part is slerped, remaining 4 floats are linearly interpolated. */
+void orientations_interpolate(float *orient1, float *orient2, float t, float *out)
+{
+  float inv_t;
+
+  FUN_0010ba90(orient1, orient2, t, out);
+  sphere_intersects_rectangle3d(out);
+  inv_t = 1.0f - t;
+  out[4] = t * orient2[4] + inv_t * orient1[4];
+  out[5] = t * orient2[5] + inv_t * orient1[5];
+  out[6] = t * orient2[6] + inv_t * orient1[6];
+  out[7] = t * orient2[7] + inv_t * orient1[7];
+}
+
 /* Convert a unit quaternion [x,y,z,w] to axis-angle representation.
  * Extracts the rotation axis (normalized) and the angle in radians.
  * If the angle exceeds pi, flips to the shorter equivalent rotation. */

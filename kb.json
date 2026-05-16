@@ -18653,8 +18653,9 @@
           "ported": true
         },
         {
-          "decl": "void orientations_interpolate(void);",
-          "addr": "0x10cb90"
+          "decl": "void orientations_interpolate(float *orient1, float *orient2, float t, float *out);",
+          "addr": "0x10cb90",
+          "ported": true
         },
         {
           "decl": "void vector_to_angles(float *out_angles, float *in_vector);",
