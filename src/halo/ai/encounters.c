@@ -1458,6 +1458,48 @@ void FUN_000585d0(int param_1)
   FUN_00046b60(param_1, 1);
 }
 
+/* 0x00058640 — FUN_00058640 (ai_conversation_stop script command).
+ *
+ * Script command handler for "ai_conversation_stop". If the AI trace flag at
+ * 0x5aca59 is set, resolves the conversation name from the scenario tag's
+ * conversations block (offset +0x468, element size 0x74), defaults to
+ * "<error>" if the index is out of bounds, and logs via error().
+ * Then unconditionally calls ai_conversation_stop(param_1).
+ *
+ * Confirmed:
+ *   - ESI = param_1 (conversation index, loaded from [EBP+8]).
+ *   - tag_block at scenario+0x468 is conversations; element size 0x74.
+ *   - EDI = default "<error>" at 0x253b58; overwritten by
+ * tag_block_get_element.
+ *   - Pre-push pattern: PUSH EDI before hs_runtime_get_executing_thread_name()
+ *     call; EDI is 4th arg to error(), not arg to hs_runtime_get.
+ *   - error(2, "%s: ai_conversation_stop %s", thread_name, conv_name).
+ *   - ai_conversation_stop(param_1) called unconditionally at end.
+ *   - ADD ESP,0x10 cleans error() args (4 dwords).
+ *   - ADD ESP,0x04 cleans ai_conversation_stop arg (1 dword).
+ */
+void FUN_00058640(int param_1)
+{
+  scenario_t *scenario;
+  short index;
+  const char *conv_name;
+
+  if (*(char *)0x5aca59) {
+    scenario = global_scenario_get();
+    index = (short)param_1;
+    conv_name = "<error>";
+    if (index >= 0) {
+      if ((int)index < *(int *)((char *)scenario + 0x468)) {
+        conv_name = (const char *)tag_block_get_element(
+          (char *)scenario + 0x468, (int)index, 0x74);
+      }
+    }
+    error(2, "%s: ai_conversation_stop %s",
+          hs_runtime_get_executing_thread_name(), conv_name);
+  }
+  ai_conversation_stop(param_1);
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
