@@ -1003,6 +1003,81 @@ void FUN_00058110(int param_1)
   }
 }
 
+/*
+ * FUN_000581b0 — direct an actor to look at an object (ai_look_at_object).
+ * Gets actor from unit (field_0x1a4), builds a look_buf {6, object_handle},
+ * calls FUN_00027a60(actor, 0xd, 1, look_buf). Logs if trace on.
+ * 0x581b0 / encounters.obj
+ */
+void FUN_000581b0(int param_1, int param_2)
+{
+  int look_buf[2]; /* [0]low16=type, [1]=object handle */
+  int iVar2;
+
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_look_at_object <some unit> <some object>",
+          hs_runtime_get_executing_thread_name());
+
+  if (param_1 != -1 && param_2 != -1) {
+    iVar2 = (int)object_get_and_verify_type(param_1, 3);
+    if (*(int *)((char *)iVar2 + 0x1a4) != -1) {
+      *(short *)look_buf = 6;
+      look_buf[1] = param_2;
+      FUN_00027a60(*(int *)((char *)iVar2 + 0x1a4), 0xd, 1, (short *)look_buf);
+    }
+  }
+}
+
+/*
+ * FUN_00058220 — stop an actor from looking (ai_stop_looking).
+ * Gets actor from unit (field_0x1a4), calls FUN_00027870(actor).
+ * 0x58220 / encounters.obj
+ */
+void FUN_00058220(int param_1)
+{
+  int iVar2;
+
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_stop_looking <some unit>",
+          hs_runtime_get_executing_thread_name());
+
+  if (param_1 != -1) {
+    iVar2 = (int)object_get_and_verify_type(param_1, 3);
+    if (*(int *)((char *)iVar2 + 0x1a4) != -1)
+      FUN_00027870(*(int *)((char *)iVar2 + 0x1a4));
+  }
+}
+
+/*
+ * FUN_00058270 — set automatic migration target flag for an encounter's
+ * platoons. Iterates platoons via FUN_000544a0/FUN_000545a0 and sets field
+ * +0x10 = param_2. Logs "[thread]: ai_automatic_migration_target [enc]
+ * [true|false]" if trace on. 0x58270 / encounters.obj
+ */
+void FUN_00058270(int param_1, char param_2)
+{
+  char local_218[512];
+  char local_18[20];
+  void *uVar1;
+  int iVar3;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_218, 0x200);
+    error(2, "%s: ai_automatic_migration_target %s %s",
+          hs_runtime_get_executing_thread_name(), local_218,
+          param_2 ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  if (param_1 != -1) {
+    FUN_000544a0(param_1, local_18);
+    iVar3 = FUN_000545a0(local_18);
+    while (iVar3 != 0) {
+      *(char *)((char *)iVar3 + 0x10) = param_2;
+      iVar3 = FUN_000545a0(local_18);
+    }
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
