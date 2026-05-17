@@ -78,6 +78,39 @@ char *FUN_00054020(char *encounter, short platoon_index)
   return *(char **)0x5ab274 + (int)platoon_absolute_index * 0x10;
 }
 
+/*
+ * FUN_00056320 — migrate AI from one encounter to another (ai_migrate).
+ *
+ * If either debug trace flag (0x5aca57 = ai_trace_detail or 0x5aca59 =
+ * ai_trace) is set, logs the migration via:
+ *   "[thread]: ai_migrate [encounter1_name] [encounter2_name]"
+ * using FUN_00054220 to format each encounter handle into a name buffer via
+ * global_scenario_get(), then hs_runtime_get_executing_thread_name() for the
+ * thread prefix. The two buffers (local_404, local_204) are pre-pushed before
+ * hs_runtime_get_executing_thread_name to match MSVC's argument batching.
+ *
+ * Finally calls FUN_00055dd0(encounter_handle_1@<eax>, encounter_handle_2, 0,
+ * 0) to perform the actual migration.
+ *
+ * 0x56320 / encounters.obj
+ */
+void FUN_00056320(int encounter_handle_1, int encounter_handle_2)
+{
+  char local_404[512];
+  char local_204[512];
+  scenario_t *uVar1;
+
+  if (*(char *)0x5aca57 || *(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(encounter_handle_1, uVar1, local_404, 0x200);
+    uVar1 = global_scenario_get();
+    FUN_00054220(encounter_handle_2, uVar1, local_204, 0x200);
+    error(2, "%s: ai_migrate %s %s", hs_runtime_get_executing_thread_name(),
+          local_404, local_204);
+  }
+  FUN_00055dd0(encounter_handle_1, encounter_handle_2, 0, 0);
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
