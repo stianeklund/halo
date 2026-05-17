@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import sys, os
+import os
+import sys
 _tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _tools_dir not in sys.path:
     sys.path.insert(0, _tools_dir)
@@ -13,6 +14,22 @@ from mcp_server import (
     list_symbols_in_range as list_symbols_in_range_rpc,
     run_relocation_synthesizer as run_relocation_synthesizer_rpc,
 )
+
+
+class _SSEEndpoint:
+    """ASGI endpoint wrapper to avoid duplicate response emission on Starlette 1.x."""
+
+    def __init__(self, mcp_server, sse_transport):
+        self._mcp_server = mcp_server
+        self._sse_transport = sse_transport
+
+    async def __call__(self, scope, receive, send):
+        async with self._sse_transport.connect_sse(scope, receive, send) as streams:
+            await self._mcp_server.run(
+                streams[0],
+                streams[1],
+                self._mcp_server.create_initialization_options(),
+            )
 
 
 def main():
@@ -84,8 +101,6 @@ def main():
     def get_last_export_status():
         return get_last_export_status_rpc()
 
-    import sys
-    import time
     transport = "sse"
     host = "127.0.0.1"
     port = 8091
@@ -98,25 +113,26 @@ def main():
             transport = "stdio"
     mcp.settings.host = host
     mcp.settings.port = port
-    if transport == "sse":
-        print(f"ghidra-live MCP listening on http://{host}:{port}/sse", file=sys.stderr)
+    if transport == "stdio":
+        mcp.run(transport=transport)
+        return
 
-    # Work around intermittent Starlette/Uvicorn response-state errors seen on
-    # SSE disconnect/exception paths; keep the server alive instead of exiting.
-    while True:
-        try:
-            mcp.run(transport=transport)
-            break
-        except RuntimeError as exc:
-            if "Expected ASGI message 'http.response.body'" not in str(exc):
-                raise
-            print(
-                "ghidra-live MCP recovered from ASGI response-order error; continuing",
-                file=sys.stderr,
-            )
-            if transport != "sse":
-                raise
-            time.sleep(0.25)
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Mount, Route
+    import uvicorn
+
+    sse = SseServerTransport("/messages/")
+    app = Starlette(
+        routes=[
+            Route("/sse", endpoint=_SSEEndpoint(mcp._mcp_server, sse), methods=["GET"]),
+            Mount("/messages/", app=sse.handle_post_message),
+        ],
+    )
+    print(f"ghidra-live MCP listening on http://{host}:{port}/sse", file=sys.stderr)
+    config = uvicorn.Config(app, host=host, port=port, log_level="warning")
+    server = uvicorn.Server(config)
+    server.run()
 
 
 if __name__ == "__main__":

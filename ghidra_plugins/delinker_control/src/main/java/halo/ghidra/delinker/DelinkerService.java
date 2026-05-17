@@ -21,6 +21,11 @@ import java.util.Map;
 
 public class DelinkerService {
   private static final String RELOCATION_ANALYZER_NAME = "Relocation table synthesizer";
+  private static final String[] EVAL_REPORT_OPTION_CANDIDATES = {
+      "Reloc Synthesizer.Enable Evaluation Reports",
+      "Relocation table synthesizer.Enable Evaluation Reports",
+      "Relocation Table Synthesizer.Enable Evaluation Reports"
+  };
 
   private final ProgramPluginAccess access;
   private final ExportStatus lastStatus;
@@ -64,12 +69,16 @@ public class DelinkerService {
     // Suppress evaluation report warnings that cause popup dialogs
     // by disabling the analyzer's evaluation reports option
     Options analysisOptions = program.getOptions(Program.ANALYSIS_PROPERTIES);
-    String evalReportOption = "Reloc Synthesizer.Enable Evaluation Reports";
+    String evalReportOption = null;
     boolean originalEvalSetting = true;
     try {
-      if (analysisOptions.contains(evalReportOption)) {
-        originalEvalSetting = analysisOptions.getBoolean(evalReportOption, true);
-        analysisOptions.setBoolean(evalReportOption, false);
+      for (String candidate : EVAL_REPORT_OPTION_CANDIDATES) {
+        if (analysisOptions.contains(candidate)) {
+          evalReportOption = candidate;
+          originalEvalSetting = analysisOptions.getBoolean(candidate, true);
+          analysisOptions.setBoolean(candidate, false);
+          break;
+        }
       }
     } catch (Exception e) {
       // Ignore - option may not exist in this Ghidra version
@@ -81,7 +90,7 @@ public class DelinkerService {
     } finally {
       // Restore original setting
       try {
-        if (analysisOptions.contains(evalReportOption)) {
+        if (evalReportOption != null && analysisOptions.contains(evalReportOption)) {
           analysisOptions.setBoolean(evalReportOption, originalEvalSetting);
         }
       } catch (Exception e) {
