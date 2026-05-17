@@ -930,6 +930,46 @@ void FUN_00057900(int param_1, char param_2)
   }
 }
 
+/*
+ * FUN_000579d0 — ai_set_return_state.
+ *
+ * Sets the return state for all actors in an encounter. If the AI trace flag
+ * (0x5aca59) is set, logs the thread name, encounter name, and state value.
+ * Then iterates actors in the encounter via FUN_00054680/FUN_00054750.
+ * For each actor, writes the return_state into actor+0x62. If actor+0x6e == 0
+ * and the result of actor_action_try_to_panic is 0, 1, or 2, calls
+ * actor_action_set_default_state with -1.
+ * 0x579d0 / encounters.obj
+ */
+void FUN_000579d0(int encounter_handle, short return_state)
+{
+  int16_t action_state;
+  int actor;
+  char local_21c[512];
+  char local_1c[24];
+  scenario_t *scenario;
+
+  if (*(char *)0x5aca59 != '\0') {
+    scenario = global_scenario_get();
+    FUN_00054220(encounter_handle, scenario, local_21c, 0x200);
+    error(2, "%s: ai_set_return_state %s %d",
+          hs_runtime_get_executing_thread_name(), local_21c, (int)return_state);
+  }
+  if (return_state >= 0 && return_state < 0xc) {
+    FUN_00054680(encounter_handle, local_1c);
+    actor = FUN_00054750(local_1c);
+    while (actor != 0) {
+      action_state = actor_action_try_to_panic(*(int *)(local_1c + 0x10));
+      *(short *)((char *)actor + 0x62) = return_state;
+      if (*(short *)((char *)actor + 0x6e) == 0 &&
+          (action_state == 0 || action_state == 1 || action_state == 2)) {
+        actor_action_set_default_state(*(int *)(local_1c + 0x10), -1);
+      }
+      actor = FUN_00054750(local_1c);
+    }
+  }
+}
+
 /* FUN_00057c60 — empty stub. 0x57c60 / encounters.obj */
 void FUN_00057c60(void)
 {
