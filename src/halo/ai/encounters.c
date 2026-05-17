@@ -262,6 +262,41 @@ void FUN_000568e0(int param_1)
   }
 }
 
+/*
+ * FUN_00056980 — set braindead state for all actors in an encounter.
+ *
+ * If AI trace (0x5aca59) is set, logs via pre-push pattern:
+ *   "[thread]: ai_braindead [encounter_name] [true|false]"
+ * If param_1 != -1, iterates actors via FUN_00054680/FUN_00054750 and
+ * calls actor_braindead(actor_handle, param_2) for each actor. The actor
+ * handle is at local_1c+0x10 (offset 0x10 into the iterator state).
+ * param_2 = 0 means un-braindead; non-zero means braindead.
+ *
+ * 0x56980 / encounters.obj
+ */
+void FUN_00056980(int param_1, char param_2)
+{
+  char local_11c[256];
+  char local_1c[16];
+  void *uVar1;
+  int iVar3;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_11c, 0x100);
+    error(2, "%s: ai_braindead %s %s", hs_runtime_get_executing_thread_name(),
+          local_11c, param_2 ? (void *)0x25c530 : (void *)0x25c52c);
+  }
+  if (param_1 != -1) {
+    FUN_00054680(param_1, local_1c);
+    iVar3 = FUN_00054750(local_1c);
+    while (iVar3 != 0) {
+      actor_braindead(*(int *)(local_1c + 0x10), param_2);
+      iVar3 = FUN_00054750(local_1c);
+    }
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter

@@ -29507,7 +29507,8 @@
         },
         {
           "decl": "void FUN_00056980(int param_1, char param_2);",
-          "addr": "0x56980"
+          "addr": "0x56980",
+          "ported": true
         },
         {
           "decl": "void FUN_00056a20(void);",
