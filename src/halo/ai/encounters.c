@@ -225,6 +225,43 @@ short FUN_00056880(int param_1)
   return sVar2;
 }
 
+/*
+ * FUN_000568e0 — make all actors in an encounter exit their vehicles.
+ *
+ * If AI trace (0x5aca59) is set, logs via pre-push pattern:
+ *   "[thread]: ai_exit_vehicle [encounter_name]"
+ * Then iterates actors in the encounter via FUN_00054680/FUN_00054750.
+ * For each actor whose field_0x158 != -1 and unit handle (field_0x18) != -1,
+ * calls unit_try_and_exit_seat on the unit handle.
+ *
+ * 0x568e0 / encounters.obj
+ */
+void FUN_000568e0(int param_1)
+{
+  char local_11c[256];
+  char local_1c[24];
+  void *uVar1;
+  int iVar2;
+  int unit_handle;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_11c, 0x100);
+    error(2, "%s: ai_exit_vehicle %s", hs_runtime_get_executing_thread_name(),
+          local_11c);
+  }
+  FUN_00054680(param_1, local_1c);
+  iVar2 = FUN_00054750(local_1c);
+  while (iVar2 != 0) {
+    if (*(int *)((char *)iVar2 + 0x158) != -1) {
+      unit_handle = *(int *)((char *)iVar2 + 0x18);
+      if (unit_handle != -1)
+        unit_try_and_exit_seat(unit_handle);
+    }
+    iVar2 = FUN_00054750(local_1c);
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter

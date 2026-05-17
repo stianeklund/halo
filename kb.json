@@ -24748,7 +24748,7 @@
           "addr": "0x1b3400"
         },
         {
-          "decl": "void unit_try_and_exit_seat(void);",
+          "decl": "void unit_try_and_exit_seat(int unit_handle);",
           "addr": "0x1b3580"
         },
         {
@@ -29253,11 +29253,11 @@
           "addr": "0x545a0"
         },
         {
-          "decl": "void ai_profile_update(void);",
+          "decl": "void FUN_00054680(int encounter_handle, void *iter);",
           "addr": "0x54680"
         },
         {
-          "decl": "void ai_profile_display(void);",
+          "decl": "int FUN_00054750(void *iter);",
           "addr": "0x54750"
         },
         {
@@ -29502,7 +29502,8 @@
         },
         {
           "decl": "void FUN_000568e0(int param_1);",
-          "addr": "0x568e0"
+          "addr": "0x568e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00056980(int param_1, char param_2);",
