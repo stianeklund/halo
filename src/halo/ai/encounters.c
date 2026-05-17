@@ -862,6 +862,65 @@ int *FUN_00057ef0(int param_1)
   return piVar3;
 }
 
+/*
+ * FUN_00057f90 — set the enterable-distance for a vehicle entry.
+ * Calls FUN_00057ef0(param_1) to get/create an entry and sets
+ * entry[+4] = param_2 (float distance).
+ * Logs "[thread]: ai_vehicle_enterable_distance <some vehicle>" if trace on.
+ * 0x57f90 / encounters.obj
+ */
+void FUN_00057f90(int param_1, float param_2)
+{
+  int *iVar2;
+
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_vehicle_enterable_distance <some vehicle>",
+          hs_runtime_get_executing_thread_name());
+
+  if (param_1 != -1) {
+    iVar2 = FUN_00057ef0(param_1);
+    if (iVar2 != 0)
+      *(float *)((char *)iVar2 + 4) = param_2;
+  }
+}
+
+/*
+ * FUN_00058070 — append an encounter to a vehicle's enterable-actors list.
+ * Gets/creates a vehicle entry via FUN_00057ef0(param_1). If the actor-group
+ * count (entry[+0xc] as short) < 6, appends param_2 (encounter handle) to the
+ * array at entry[+0x10] and increments the count.
+ * Logs "[thread]: ai_vehicle_enterable_actors <some vehicle> [enc]" if trace
+ * on. 0x58070 / encounters.obj
+ */
+void FUN_00058070(int param_1, int param_2)
+{
+  char local_204[512];
+  void *uVar1;
+  int *iVar2;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_2, uVar1, local_204, 0x200);
+    error(2, "%s: ai_vehicle_enterable_actors <some vehicle> %s",
+          hs_runtime_get_executing_thread_name(), local_204);
+  }
+  if (param_1 != -1 && param_2 != -1) {
+    iVar2 = FUN_00057ef0(param_1);
+    if (iVar2 != 0) {
+      if (*(short *)((char *)iVar2 + 0xc) < 6) {
+        *(int *)((char *)iVar2 + 0x10 +
+                 (int)*(short *)((char *)iVar2 + 0xc) * 4) = param_2;
+        *(short *)((char *)iVar2 + 0xc) =
+          (short)(*(short *)((char *)iVar2 + 0xc) + 1);
+        return;
+      }
+      error(
+        2, "ai_vehicle_enterable_actors: too many groups of actors (max is %d)",
+        6);
+    }
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter

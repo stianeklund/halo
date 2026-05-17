@@ -29647,8 +29647,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00057f90(void);",
-          "addr": "0x57f90"
+          "decl": "void FUN_00057f90(int param_1, float param_2);",
+          "addr": "0x57f90",
+          "ported": true
         },
         {
           "decl": "void FUN_00057fd0(void);",
@@ -29659,8 +29660,9 @@
           "addr": "0x58020"
         },
         {
-          "decl": "void FUN_00058070(void);",
-          "addr": "0x58070"
+          "decl": "void FUN_00058070(int param_1, int param_2);",
+          "addr": "0x58070",
+          "ported": true
         },
         {
           "decl": "void FUN_00058110(void);",
