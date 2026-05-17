@@ -29619,11 +29619,11 @@
           "addr": "0x57aa0"
         },
         {
-          "decl": "void FUN_00057b40(void);",
+          "decl": "int FUN_00057b40(int actor_handle@<eax>);",
           "addr": "0x57b40"
         },
         {
-          "decl": "void FUN_00057bc0(void);",
+          "decl": "short FUN_00057bc0(int param_1);",
           "addr": "0x57bc0"
         },
         {
