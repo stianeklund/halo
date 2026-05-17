@@ -29537,12 +29537,14 @@
           "addr": "0x56de0"
         },
         {
-          "decl": "void FUN_00056e40(void);",
-          "addr": "0x56e40"
+          "decl": "void FUN_00056e40(int param_1);",
+          "addr": "0x56e40",
+          "ported": true
         },
         {
-          "decl": "void FUN_00056ed0(void);",
-          "addr": "0x56ed0"
+          "decl": "void FUN_00056ed0(int param_1, int param_2);",
+          "addr": "0x56ed0",
+          "ported": true
         },
         {
           "decl": "void FUN_00056fa0(void);",

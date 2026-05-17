@@ -359,6 +359,64 @@ void FUN_00056bc0(int param_1, char param_2)
   }
 }
 
+/*
+ * FUN_00056e40 — clear the target-selection field (0x1d4) for all actors.
+ * Logs "[thread]: ai_try_to_fight_nothing [encounter]", then iterates
+ * encounter actors and clears field_0x1d4 (short) to 0.
+ * 0x56e40 / encounters.obj
+ */
+void FUN_00056e40(int param_1)
+{
+  char local_11c[256];
+  char local_1c[24];
+  void *uVar1;
+  int iVar2;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_11c, 0x100);
+    error(2, "%s: ai_try_to_fight_nothing %s",
+          hs_runtime_get_executing_thread_name(), local_11c);
+  }
+  FUN_00054680(param_1, local_1c);
+  iVar2 = FUN_00054750(local_1c);
+  while (iVar2 != 0) {
+    *(short *)((char *)iVar2 + 0x1d4) = 0;
+    iVar2 = FUN_00054750(local_1c);
+  }
+}
+
+/*
+ * FUN_00056ed0 — set all actors to target a given encounter (ai_try_to_fight).
+ * Logs "[thread]: ai_try_to_fight [enc1] [enc2]", then iterates encounter
+ * actors in param_1 and sets field_0x1d4=1, field_0x1d8=param_2.
+ * 0x56ed0 / encounters.obj
+ */
+void FUN_00056ed0(int param_1, int param_2)
+{
+  char local_21c[256];
+  char local_11c[256];
+  char local_1c[24];
+  void *uVar1;
+  int iVar2;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_21c, 0x100);
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_2, uVar1, local_11c, 0x100);
+    error(2, "%s: ai_try_to_fight %s %s",
+          hs_runtime_get_executing_thread_name(), local_21c, local_11c);
+  }
+  FUN_00054680(param_1, local_1c);
+  iVar2 = FUN_00054750(local_1c);
+  while (iVar2 != 0) {
+    *(short *)((char *)iVar2 + 0x1d4) = 1;
+    *(int *)((char *)iVar2 + 0x1d8) = param_2;
+    iVar2 = FUN_00054750(local_1c);
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
