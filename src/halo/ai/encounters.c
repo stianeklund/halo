@@ -529,6 +529,86 @@ void FUN_000572c0(int param_1)
   }
 }
 
+/*
+ * FUN_000575d0 — free (detach) all actors from an encounter (ai_free).
+ * Logs "[thread]: ai_free [encounter]", then for each actor in the
+ * encounter asserts encounter_index != NONE, then calls
+ * actor_flush_position_indices, encounter_detach_actor(handle, 0), and
+ * encounterless_attach_actor. Finally calls encounters_update_dirty_status.
+ * Actor handle is at local_1c+0x10 (iterator offset).
+ * 0x575d0 / encounters.obj
+ */
+void FUN_000575d0(int param_1)
+{
+  char local_21c[512];
+  char local_1c[16];
+  void *uVar1;
+  int iVar2;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_21c, 0x200);
+    error(2, "%s: ai_free %s", hs_runtime_get_executing_thread_name(),
+          local_21c);
+  }
+  if (param_1 != -1) {
+    FUN_00054680(param_1, local_1c);
+    iVar2 = FUN_00054750(local_1c);
+    while (iVar2 != 0) {
+      if (*(int *)((char *)iVar2 + 0x34) == -1) {
+        display_assert("actor->meta.encounter_index != NONE",
+                       "c:\\halo\\SOURCE\\ai\\ai_script.c", 0xad1, 1);
+        system_exit(-1);
+      }
+      actor_flush_position_indices(*(int *)(local_1c + 0x10));
+      encounter_detach_actor(*(int *)(local_1c + 0x10), 0);
+      encounterless_attach_actor(*(int *)(local_1c + 0x10));
+      iVar2 = FUN_00054750(local_1c);
+    }
+    encounters_update_dirty_status();
+  }
+}
+
+/*
+ * FUN_000576a0 — free actors from units in an encounter (ai_free_units).
+ * Iterates units via FUN_000ce450/FUN_000ce320. For each biped/vehicle
+ * (type mask 3) with an actor (field_0x1a4 != -1) whose encounter_index
+ * (field_0x34) != -1, frees the actor and increments a count. Calls
+ * encounters_update_dirty_status if any actors were freed.
+ * 0x576a0 / encounters.obj
+ */
+void FUN_000576a0(int param_1)
+{
+  int local_8;
+  int iVar1;
+  int iVar3;
+  short count;
+
+  iVar1 = FUN_000ce450(param_1, &local_8);
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_free_units <some units>",
+          hs_runtime_get_executing_thread_name());
+
+  if (iVar1 != -1) {
+    count = 0;
+    do {
+      iVar1 = (int)object_try_and_get_and_verify_type(iVar1, 3);
+      if (iVar1 != 0 && *(int *)((char *)iVar1 + 0x1a4) != -1) {
+        iVar3 = (int)datum_get(actor_data, *(int *)((char *)iVar1 + 0x1a4));
+        if (*(int *)((char *)iVar3 + 0x34) != -1) {
+          actor_flush_position_indices(*(int *)((char *)iVar1 + 0x1a4));
+          encounter_detach_actor(*(int *)((char *)iVar1 + 0x1a4), 0);
+          encounterless_attach_actor(*(int *)((char *)iVar1 + 0x1a4));
+          count = (short)(count + 1);
+        }
+      }
+      iVar1 = FUN_000ce320(param_1, &local_8);
+    } while (iVar1 != -1);
+    if (count > 0)
+      encounters_update_dirty_status();
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter

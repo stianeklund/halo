@@ -29583,12 +29583,14 @@
           "addr": "0x57380"
         },
         {
-          "decl": "void FUN_000575d0(void);",
-          "addr": "0x575d0"
+          "decl": "void FUN_000575d0(int param_1);",
+          "addr": "0x575d0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000576a0(void);",
-          "addr": "0x576a0"
+          "decl": "void FUN_000576a0(int param_1);",
+          "addr": "0x576a0",
+          "ported": true
         },
         {
           "decl": "void FUN_00057770(void);",
