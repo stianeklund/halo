@@ -29385,7 +29385,7 @@
           "addr": "0x559a0"
         },
         {
-          "decl": "void FUN_00055dd0(void);",
+          "decl": "void FUN_00055dd0(int encounter_handle@<eax>, int dest_encounter, int param_3, int param_4);",
           "addr": "0x55dd0"
         }
       ]
@@ -29452,8 +29452,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00056320(void);",
-          "addr": "0x56320"
+          "decl": "void FUN_00056320(int encounter_handle_1, int encounter_handle_2);",
+          "addr": "0x56320",
+          "ported": true
         },
         {
           "decl": "void FUN_000563c0(void);",
