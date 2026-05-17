@@ -297,6 +297,68 @@ void FUN_00056980(int param_1, char param_2)
   }
 }
 
+/*
+ * FUN_00056b20 — set/clear the ai_disregard bit (0x400) on actors by unit.
+ * Iterates units in the encounter via FUN_000ce450/FUN_000ce320.
+ * For each biped/vehicle (type mask 3), sets or clears field_0x1b4 bit 0x400.
+ * param_2 != 0: set (disregard on); param_2 == 0: clear (disregard off).
+ * Logs "[thread]: ai_disregard <some guys> [true|false]" if trace is on.
+ * 0x56b20 / encounters.obj
+ */
+void FUN_00056b20(int param_1, char param_2)
+{
+  int local_8;
+  int iVar1;
+  const void *puVar2;
+
+  iVar1 = FUN_000ce450(param_1, &local_8);
+  if (*(char *)0x5aca59) {
+    puVar2 = param_2 ? (const void *)0x25c530 : (const void *)0x25c52c;
+    error(2, "%s: ai_disregard <some guys> %s",
+          hs_runtime_get_executing_thread_name(), puVar2);
+  }
+  while (iVar1 != -1) {
+    iVar1 = (int)object_try_and_get_and_verify_type(iVar1, 3);
+    if (iVar1 != 0) {
+      if (param_2 == '\0')
+        *(unsigned int *)((char *)iVar1 + 0x1b4) &= ~0x400u;
+      else
+        *(unsigned int *)((char *)iVar1 + 0x1b4) |= 0x400u;
+    }
+    iVar1 = FUN_000ce320(param_1, &local_8);
+  }
+}
+
+/*
+ * FUN_00056bc0 — set/clear the ai_prefer_target bit (0x800) on actors by unit.
+ * Identical to FUN_00056b20 but uses bit 0x800 instead of 0x400.
+ * Logs "[thread]: ai_prefer_target <some guys> [true|false]" if trace is on.
+ * 0x56bc0 / encounters.obj
+ */
+void FUN_00056bc0(int param_1, char param_2)
+{
+  int local_8;
+  int iVar1;
+  const void *puVar2;
+
+  iVar1 = FUN_000ce450(param_1, &local_8);
+  if (*(char *)0x5aca59) {
+    puVar2 = param_2 ? (const void *)0x25c530 : (const void *)0x25c52c;
+    error(2, "%s: ai_prefer_target <some guys> %s",
+          hs_runtime_get_executing_thread_name(), puVar2);
+  }
+  while (iVar1 != -1) {
+    iVar1 = (int)object_try_and_get_and_verify_type(iVar1, 3);
+    if (iVar1 != 0) {
+      if (param_2 == '\0')
+        *(unsigned int *)((char *)iVar1 + 0x1b4) &= ~0x800u;
+      else
+        *(unsigned int *)((char *)iVar1 + 0x1b4) |= 0x800u;
+    }
+    iVar1 = FUN_000ce320(param_1, &local_8);
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter

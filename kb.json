@@ -29515,12 +29515,14 @@
           "addr": "0x56a20"
         },
         {
-          "decl": "void FUN_00056b20(void);",
-          "addr": "0x56b20"
+          "decl": "void FUN_00056b20(int param_1, char param_2);",
+          "addr": "0x56b20",
+          "ported": true
         },
         {
-          "decl": "void FUN_00056bc0(void);",
-          "addr": "0x56bc0"
+          "decl": "void FUN_00056bc0(int param_1, char param_2);",
+          "addr": "0x56bc0",
+          "ported": true
         },
         {
           "decl": "void FUN_00056c60(void);",
