@@ -724,6 +724,38 @@ void FUN_0013c800(int object_handle, void *block_data)
 }
 
 /*
+ * FUN_0013c860 — dispatch per-type reset callbacks for an object.
+ *
+ * Looks up the object's type via FUN_0013c100(object_type), then iterates
+ * the null-terminated handler array at type_data+0x5c. For each handler,
+ * calls the reset function pointer at handler+0x4c with object_handle.
+ * Used internally by object_reset to apply type-specific re-initialization.
+ *
+ * 0x13c860 / objects.obj
+ */
+void FUN_0013c860(int object_handle)
+{
+  char *obj;
+  char *type_data;
+  int *ptr;
+  void (*reset_fn)(int);
+  short cnt;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  type_data = (char *)FUN_0013c100((int16_t) * (short *)(obj + 0x64));
+  ptr = (int *)(type_data + 0x5c);
+  cnt = 0;
+
+  while (*ptr != 0) {
+    reset_fn = *(void (**)(int))((char *)*ptr + 0x4c);
+    if (reset_fn != NULL)
+      reset_fn(object_handle);
+    cnt++;
+    ptr = (int *)(type_data + 0x5c + (int)cnt * 4);
+  }
+}
+
+/*
  * cluster_partition_object_iter_first (0x13d5b0) — begin iteration over
  * objects in a BSP cluster using the collideable partition (0x5a8d40).
  *

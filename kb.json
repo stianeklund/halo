@@ -13736,7 +13736,8 @@
         },
         {
           "decl": "void FUN_0013c860(int object_handle);",
-          "addr": "0x13c860"
+          "addr": "0x13c860",
+          "ported": true
         },
         {
           "decl": "void FUN_0013c8c0(void);",
