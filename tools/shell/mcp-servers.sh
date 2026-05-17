@@ -11,8 +11,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-BRIDGE_PY="C:/Users/stian/Documents/ghidra-mcp-bridge.py"
+BRIDGE_PY="$REPO_DIR/tools/ghidra/ghidra_mcp_bridge.py"
 LIVE_PY="$REPO_DIR/tools/ghidra_live_mcp/server.py"
+BRIDGE_PY_WIN="$(wslpath -w "$BRIDGE_PY")"
 
 PYTHON_WIN="/mnt/c/Users/stian/scoop/shims/python3.exe"
 PYTHON_VENV="$REPO_DIR/.venv/bin/python3"
@@ -26,6 +27,7 @@ trap cleanup EXIT INT TERM
 
 # Kill any stale MCP server processes before starting
 pkill -f "ghidra-mcp-bridge.py.*--port=8090" 2>/dev/null || true
+pkill -f "ghidra_mcp_bridge.py.*--port=8090" 2>/dev/null || true
 pkill -f "ghidra_live_mcp/server.py.*--port=8091" 2>/dev/null || true
 pkill -f "tools/retrieval/server.py" 2>/dev/null || true
 sleep 1
@@ -35,7 +37,7 @@ echo "[mcp-servers] Starting retrieval embedding server ..."
 PID_RETRIEVAL=$!
 
 echo "[mcp-servers] Starting ghidra bridge on :8090 ..."
-"$PYTHON_WIN" "$BRIDGE_PY" --port=8090 &
+"$PYTHON_WIN" "$BRIDGE_PY_WIN" --port=8090 &
 PID_BRIDGE=$!
 
 echo "[mcp-servers] Starting ghidra-live on :8091 ..."
