@@ -125,6 +125,68 @@ void FUN_0019b3c0(int param_1, int param_2, int param_3, int param_4,
 }
 
 /*
+ * FUN_0019b430 — cursor hit-test callback for text layout.
+ *
+ * Computes the Chebyshev (L∞) distance from the reference point at globals
+ * 0x4d9af0 (ref_x, short) / 0x4d9af2 (ref_y, short) to the four edges of
+ * the text element bounding box [param_5..param_5+param_9] ×
+ * [param_6..param_6+param_10]. If this distance beats the current best
+ * (0x4d9af6), updates it and sets the cursor position markers at 0x4d9af4 and
+ * 0x4d9af8 based on which half of the element the reference point falls in.
+ * Always updates 0x4d9af8.
+ *
+ * param_1 = pointer to text element; *(short*)(param_1+0xc) = cursor position
+ * value.
+ *
+ * 0x19b430 / draw_string.obj
+ */
+void FUN_0019b430(int param_1, int param_2, int param_3, int param_4,
+                  short param_5, short param_6, int param_7, int param_8,
+                  short param_9, short param_10)
+{
+  short ref_x = *(short *)0x4d9af0;
+  short dx_left = (short)param_5 - ref_x;
+  short dx_right = (short)(param_5 + param_9) - ref_x;
+  short dy_top = (short)param_6 - *(short *)0x4d9af2;
+  short dy_bottom = (short)param_10 + dy_top;
+  short max_dist;
+  int edx;
+  int ecx;
+
+  if (dx_left < 0)
+    dx_left = -dx_left;
+  if (dx_right < 0)
+    dx_right = -dx_right;
+  if (dy_top < 0)
+    dy_top = -dy_top;
+  if (dy_bottom < 0)
+    dy_bottom = -dy_bottom;
+
+  max_dist = dx_left;
+  if (max_dist <= dx_right)
+    max_dist = dx_right;
+  if (max_dist <= dy_top)
+    max_dist = dy_top;
+  if (max_dist <= dy_bottom)
+    max_dist = dy_bottom;
+
+  if (max_dist < *(short *)0x4d9af6) {
+    *(short *)0x4d9af6 = max_dist;
+    edx = (int)ref_x - (int)(short)param_5;
+    ecx = ((int)(short)(param_5 + param_9) - (int)(short)param_5) >> 1;
+    if (edx < ecx) {
+      *(short *)0x4d9af4 = *(short *)0x4d9af8;
+      *(short *)0x4d9af8 = *(short *)(param_1 + 0xc);
+      return;
+    }
+    *(short *)0x4d9af4 = *(short *)(param_1 + 0xc);
+    *(short *)0x4d9af8 = *(short *)(param_1 + 0xc);
+    return;
+  }
+  *(short *)0x4d9af8 = *(short *)(param_1 + 0xc);
+}
+
+/*
  * draw_string_set_tab_stops — set the tab stop array for subsequent draws.
  *
  * Validates count is in [0, MAXIMUM_NUMBER_OF_TAB_STOPS).  Stores the

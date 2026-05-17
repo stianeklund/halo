@@ -25720,8 +25720,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0019b430(void);",
-          "addr": "0x19b430"
+          "decl": "void FUN_0019b430(int param_1, int param_2, int param_3, int param_4, short param_5, short param_6, int param_7, int param_8, short param_9, short param_10);",
+          "addr": "0x19b430",
+          "ported": true
         },
         {
           "decl": "void draw_string_get_string(void);",
