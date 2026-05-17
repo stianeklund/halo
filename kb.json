@@ -25770,8 +25770,9 @@
           "addr": "0x19b910"
         },
         {
-          "decl": "void FUN_0019bcc0(void);",
-          "addr": "0x19bcc0"
+          "decl": "void *FUN_0019bcc0(int16_t style@<si>, int font_index@<edi>);",
+          "addr": "0x19bcc0",
+          "ported": true
         },
         {
           "decl": "void FUN_0019bd30(void);",

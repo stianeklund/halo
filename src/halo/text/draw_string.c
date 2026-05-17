@@ -328,3 +328,38 @@ void draw_string_set_font(int tag_index, int style, int justify, int flags,
   draw_string_set_color(color);
   draw_string_set_style_justify_flags((short)style, (short)justify, flags);
 }
+
+/*
+ * FUN_0019bcc0 — resolve the effective font tag for a given style.
+ *
+ * If style == -1 (plain): returns tag_get("font", font_index) directly.
+ * Otherwise asserts style in [0, 3], gets the font tag for font_index,
+ * looks up the per-style font override at [font_tag+0x48 + style*0x10],
+ * and falls back to font_index if the style entry is -1.
+ * Returns the final tag_get("font", resolved_index) pointer.
+ *
+ * Frameless function: style@<si>, font_index@<edi>.
+ *
+ * 0x19bcc0 / draw_string.obj
+ */
+void *FUN_0019bcc0(int16_t style, int font_index)
+{
+  int tag_handle;
+  void *font_tag;
+
+  if (style != (int16_t)-1) {
+    if (style < 0 || style >= 4) {
+      display_assert(
+        "style==_text_style_plain || (style>=0 && style<NUMBER_OF_TEXT_STYLES)",
+        "c:\\halo\\SOURCE\\text\\draw_string.c", 0x406, 1);
+      system_exit(-1);
+    }
+    font_tag = tag_get(0x666f6e74, font_index);
+    tag_handle = *(int *)((char *)font_tag + 0x48 + (int)style * 0x10);
+    if (tag_handle == -1)
+      tag_handle = font_index;
+  } else {
+    tag_handle = font_index;
+  }
+  return tag_get(0x666f6e74, tag_handle);
+}
