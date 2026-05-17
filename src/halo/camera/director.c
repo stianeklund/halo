@@ -470,6 +470,41 @@ bool director_compute_camera_input(short *out_buf, int local_player_index)
   }
 }
 
+/*
+ * FUN_000874d0 — dispatch per-player camera update based on director mode.
+ *
+ * Reads the global director mode from 0x3352ac (short) and calls the
+ * appropriate per-player camera function:
+ *   mode 0, 1 → director_set_player_camera_normal(local_player_index,
+ * reset_flag, mode_flags) mode 2    →
+ * director_set_player_camera_scripted(local_player_index, reset_flag) mode 4 →
+ * director_apply_replay_mode_for_player(reset_flag, local_player_index,
+ * mode_flags) other     → no-op
+ *
+ * local_player_index@<ecx>, reset_flag@<eax>, mode_flags@<edx>.
+ *
+ * 0x874d0 / director.obj
+ */
+void FUN_000874d0(int16_t local_player_index, char reset_flag, char mode_flags)
+{
+  switch (*(int16_t *)0x3352ac) {
+  case 0:
+  case 1:
+    director_set_player_camera_normal(local_player_index, reset_flag,
+                                      mode_flags);
+    return;
+  case 2:
+    director_set_player_camera_scripted(local_player_index, reset_flag);
+    return;
+  case 4:
+    director_apply_replay_mode_for_player(reset_flag, local_player_index,
+                                          mode_flags);
+    return;
+  default:
+    return;
+  }
+}
+
 /* Set director mode and reset per-player camera state for a new map.
  * Director mode is 2 (scripted) in editor, 0 (normal) otherwise.
  * For each player: zeros timer, two unknown fields, then dispatches to the

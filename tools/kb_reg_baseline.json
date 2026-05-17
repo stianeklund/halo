@@ -49,6 +49,7 @@
     "0x86de0": "void director_set_player_camera_normal(int16_t local_player_index@<ax>, char reset_flag, char mode_flags);",
     "0x86fa0": "void director_set_player_camera_scripted(int16_t local_player_index@<si>, char reset_flag);",
     "0x87050": "void director_apply_replay_mode_for_player(char reset_flag@<al>, int16_t local_player_index@<si>, char mode_flags);",
+    "0x874d0": "void FUN_000874d0(int16_t local_player_index@<ecx>, char reset_flag@<eax>, char mode_flags@<edx>);",
     "0x87110": "bool director_compute_camera_input(short *out_buf@<eax>, int local_player_index);",
     "0x8a350": "void observer_result_initialize(void *observer @<esi>);",
     "0x8a660": "void observer_apply_acceleration(int16_t local_player_index @<eax>);",
