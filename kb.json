@@ -17202,7 +17202,8 @@
         },
         {
           "decl": "void random_math_dispose(void);",
-          "addr": "0x10b220"
+          "addr": "0x10b220",
+          "ported": true
         },
         {
           "decl": "void seed_random_orientation(void);",
