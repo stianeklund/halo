@@ -29387,7 +29387,7 @@
           "addr": "0x55900"
         },
         {
-          "decl": "void FUN_000559a0(void);",
+          "decl": "int16_t FUN_000559a0(unsigned int encounter_handle@<eax>, int field_0x34, int16_t squad_index, void *actr_tag, void *actv_tag, char match_flag, const void *debug_str);",
           "addr": "0x559a0"
         },
         {
@@ -29463,8 +29463,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000563c0(void);",
-          "addr": "0x563c0"
+          "decl": "void FUN_000563c0(int actor_datum@<eax>, unsigned int encounter_handle, char do_migrate, int param_3);",
+          "addr": "0x563c0",
+          "ported": true
         },
         {
           "decl": "void FUN_000564b0(void);",

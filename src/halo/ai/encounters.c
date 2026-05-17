@@ -111,6 +111,60 @@ void FUN_00056320(int encounter_handle_1, int encounter_handle_2)
   FUN_00055dd0(encounter_handle_1, encounter_handle_2, 0, 0);
 }
 
+/*
+ * FUN_000563c0 — set squad/actor-variant for an actor given an encounter.
+ *
+ * Verifies the actor object (type mask 3), retrieves its primary actor handle
+ * from [+0x1a4] (fallback [+0x1a8]), then looks up the actor's squad and
+ * variant tags. Calls FUN_000559a0 to find the best matching squad index
+ * given the encounter_handle. If a valid squad is found and conditions allow,
+ * updates the actor's squad assignment via FUN_0003baa0, and if do_migrate is
+ * set, migrates the actor via FUN_00036dc0.
+ *
+ * actor_datum@<eax>: actor object datum handle.
+ *
+ * 0x563c0 / encounters.obj
+ */
+void FUN_000563c0(int actor_datum, unsigned int encounter_handle,
+                  char do_migrate, int param_3)
+{
+  char *obj;
+  int iVar4;
+  void *actr_tag;
+  void *actv_tag;
+  char *aptr;
+  char cVar5;
+  int16_t squad_result;
+
+  obj = (char *)object_get_and_verify_type(actor_datum, 3);
+  iVar4 = *(int *)(obj + 0x1a4);
+  if (iVar4 == -1)
+    iVar4 = *(int *)(obj + 0x1a8);
+  if (iVar4 == -1 || encounter_handle == 0xffffffff)
+    return;
+
+  aptr = (char *)datum_get(actor_data, iVar4);
+  actr_tag = tag_get(0x61637472, *(int *)(aptr + 0x58));
+  actv_tag = tag_get(0x61637476, *(int *)(aptr + 0x5c));
+  cVar5 =
+    (char)(((*(unsigned int *)(aptr + 0x34) ^ (encounter_handle & 0xffff)) &
+            0xffff) == 0 ?
+             1 :
+             0);
+
+  squad_result = FUN_000559a0(encounter_handle, *(int *)(aptr + 0x34),
+                              *(int16_t *)(aptr + 0x3a), actr_tag, actv_tag,
+                              cVar5, (const void *)0x25c8ec);
+  if (squad_result == (int16_t)-1)
+    return;
+
+  if (cVar5 == 0 || squad_result != *(int16_t *)(aptr + 0x3a)) {
+    FUN_0003baa0(iVar4, (int16_t)(encounter_handle & 0xffff), squad_result);
+    if (do_migrate != 0)
+      FUN_00036dc0(iVar4, param_3, 0);
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
