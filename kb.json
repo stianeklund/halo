@@ -29621,8 +29621,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00057aa0(void);",
-          "addr": "0x57aa0"
+          "decl": "void FUN_00057aa0(int encounter_handle, short state);",
+          "addr": "0x57aa0",
+          "ported": true
         },
         {
           "decl": "int FUN_00057b40(int actor_handle@<eax>);",
