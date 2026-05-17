@@ -93,6 +93,38 @@ lost:
 }
 
 /*
+ * FUN_0019b3c0 — update text-bounds tracking globals.
+ *
+ * Records the min/max extents of a rendered text element for layout tracking.
+ * param_5/param_6 = left/top corner (shorts); param_9/param_10 = width/height.
+ * param_2 (int) is stored as an associated handle at 0x4d9b04.
+ *
+ * Globals (in a tightly packed block at 0x4d9af8):
+ *   0x4d9afc (short) min_y   0x4d9afe (short) min_x
+ *   0x4d9b00 (short) max_y   0x4d9b02 (short) max_x
+ *   0x4d9b04 (int)   tag/handle
+ *
+ * 0x19b3c0 / draw_string.obj
+ */
+void FUN_0019b3c0(int param_1, int param_2, int param_3, int param_4,
+                  short param_5, short param_6, int param_7, int param_8,
+                  short param_9, short param_10)
+{
+  if (param_5 < *(short *)0x4d9afe)
+    *(short *)0x4d9afe = param_5;
+  if (param_6 < *(short *)0x4d9afc)
+    *(short *)0x4d9afc = param_6;
+  if (*(short *)0x4d9b02 < (short)(param_5 + param_9))
+    *(short *)0x4d9b02 = (short)(param_5 + param_9);
+  if (*(short *)0x4d9b00 < (short)(param_10 + param_6)) {
+    *(short *)0x4d9b00 = (short)(param_10 + param_6);
+    *(int *)0x4d9b04 = param_2;
+    return;
+  }
+  *(int *)0x4d9b04 = param_2;
+}
+
+/*
  * draw_string_set_tab_stops — set the tab stop array for subsequent draws.
  *
  * Validates count is in [0, MAXIMUM_NUMBER_OF_TAB_STOPS).  Stores the

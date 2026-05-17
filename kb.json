@@ -25715,8 +25715,9 @@
           "addr": "0x130b70"
         },
         {
-          "decl": "void FUN_0019b3c0(void);",
-          "addr": "0x19b3c0"
+          "decl": "void FUN_0019b3c0(int param_1, int param_2, int param_3, int param_4, short param_5, short param_6, int param_7, int param_8, short param_9, short param_10);",
+          "addr": "0x19b3c0",
+          "ported": true
         },
         {
           "decl": "void FUN_0019b430(void);",
