@@ -22,6 +22,17 @@ from build.patch import (
     validate_reg_annotation_baseline_completeness,
 )
 
+# Suppress unittest chatter when running under quiet mode.
+if os.environ.get('LOG_LEVEL') in ('WARNING', 'ERROR'):
+    import unittest.runner
+    _original_TextTestRunner = unittest.runner.TextTestRunner
+    class _QuietTextTestRunner(_original_TextTestRunner):
+        def __init__(self, stream=None, **kwargs):
+            stream = open(os.devnull, 'w')
+            super().__init__(stream, **kwargs)
+    unittest.runner.TextTestRunner = _QuietTextTestRunner
+    unittest.TextTestRunner = _QuietTextTestRunner
+
 
 def rel32(call_site, target):
     return struct.pack('<i', target - (call_site + 5))
@@ -167,4 +178,8 @@ class RegAnnotationBaselineTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    import os
+    if os.environ.get('LOG_LEVEL') in ('WARNING', 'ERROR'):
+        unittest.main(exit=False, verbosity=0)
+    else:
+        unittest.main()

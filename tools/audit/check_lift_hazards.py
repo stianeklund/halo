@@ -576,7 +576,7 @@ def _collect_c_files(changed_only=False, cached=False):
 
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
-    quiet = '-q' in sys.argv or '--quiet' in sys.argv
+    quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
     changed_only = '--changed-only' in sys.argv
     cached = '--cached' in sys.argv
 
@@ -614,7 +614,11 @@ def main():
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
-        print(counts, file=sys.stderr)
+        total = (len(all_intrinsic_errors) + len(all_buffer_errors) +
+                 len(all_duplicate_errors) + len(all_ptr_float_errors) +
+                 len(all_alias_errors) + len(all_frame_errors))
+        if total:
+            print(counts, file=sys.stderr)
     else:
         if all_intrinsic_errors:
             print(

@@ -498,7 +498,7 @@ def main():
 	ap.add_argument('--update', action='store_true', help='Re-serialize the KB')
 	args = ap.parse_args()
 
-	logging.basicConfig(level=logging.INFO)
+	logging.basicConfig(level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper(), logging.INFO))
 	kb = KnowledgeBase.deserialize()
 
 	if args.gen_header:

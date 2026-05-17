@@ -119,7 +119,7 @@ def sort_object_name(row: dict[str, object]) -> str:
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, handlers=[color.ColorLogHandler()])
+    logging.basicConfig(level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper(), logging.INFO), handlers=[color.ColorLogHandler()])
     ap = argparse.ArgumentParser(description='Rank frontier objects from current ported code.')
     ap.add_argument('--limit', type=int, default=20)
     ap.add_argument('--json', action='store_true', help='Emit machine-readable frontier data')

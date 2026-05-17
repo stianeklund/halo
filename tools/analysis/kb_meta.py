@@ -326,7 +326,7 @@ def validate_fast() -> list[str]:
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, handlers=[color.ColorLogHandler()])
+    logging.basicConfig(level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper(), logging.INFO), handlers=[color.ColorLogHandler()])
     args = build_parser().parse_args()
 
     if args.command == 'validate':
