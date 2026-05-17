@@ -813,6 +813,55 @@ void FUN_000576a0(int param_1)
   }
 }
 
+/* FUN_00057c60 — empty stub. 0x57c60 / encounters.obj */
+void FUN_00057c60(void)
+{
+}
+
+/*
+ * FUN_00057ef0 — find or create an enterable-vehicle entry for param_1.
+ * Searches DAT_00632574+0x3b8 array (stride 0x28, count at +0x3b6) for
+ * an entry matching param_1. If found, returns its pointer. If not found
+ * and count < 32, creates a new entry (zeroed, param_1 at +0, 0x41000000 at
+ * +4), increments count, and returns pointer. Returns NULL if param_1==-1 or
+ * overflow. 0x57ef0 / encounters.obj
+ */
+int *FUN_00057ef0(int param_1)
+{
+  int *piVar3;
+  short sVar1;
+  short sVar2;
+
+  piVar3 = (int *)0;
+  if (param_1 != -1) {
+    sVar1 = *(short *)((char *)*(int *)0x632574 + 0x3b6);
+    sVar2 = 0;
+    if (0 < sVar1) {
+      do {
+        if (*(int *)((char *)*(int *)0x632574 + 0x3b8 + (int)sVar2 * 0x28) ==
+            param_1)
+          break;
+        sVar2 = (short)(sVar2 + 1);
+      } while (sVar2 < sVar1);
+      if (0x1f < sVar2) {
+        error(2,
+              "ai_vehicle_enterable: too many enterable vehicles (max is %d)",
+              0x20);
+        return (int *)0;
+      }
+    }
+    piVar3 = (int *)((char *)*(int *)0x632574 + 0x3b8 + (int)sVar2 * 0x28);
+    if (sVar1 <= sVar2) {
+      csmemset(piVar3, 0, 0x28);
+      *piVar3 = param_1;
+      piVar3[1] = 0x41000000;
+      *(short *)((char *)*(int *)0x632574 + 0x3b6) =
+        (short)(*(short *)((char *)*(int *)0x632574 + 0x3b6) + 1);
+    }
+  }
+  return piVar3;
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
