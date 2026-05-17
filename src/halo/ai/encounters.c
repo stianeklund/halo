@@ -1581,7 +1581,7 @@ int encounter_actor_iterator_next(int *iter)
  *   ESI+0x18 : -1    (next linked-list handle)
  *   ESI+0x14 : -1    (current handle)
  *   ESI+0x11 : DL    (param_2 = filter_flag) */
-void encounter_iterator_next(void *iter, char flag)
+__declspec(noinline) void encounter_iterator_next(void *iter, char flag)
 {
   char *p = (char *)iter;
 
