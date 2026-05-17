@@ -4716,8 +4716,9 @@
           "src": "src/halo/physics/collision_usage.c"
         },
         {
-          "decl": "void FUN_0014cde0(void);",
-          "addr": "0x14cde0"
+          "decl": "char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4, int param_5, int param_6);",
+          "addr": "0x14cde0",
+          "ported": true
         },
         {
           "decl": "void FUN_0014cf20(int param_1);",

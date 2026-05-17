@@ -2629,6 +2629,14 @@
       "metadata": {
         "source_path": "src/halo/input/input_xbox.c"
       }
+    },
+    {
+      "name": "halo/collision_usage_FUN_0014cde0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014cde0.obj",
+      "metadata": {
+        "source_path": "halo/physics/collision_usage.c"
+      }
     }
   ]
 }

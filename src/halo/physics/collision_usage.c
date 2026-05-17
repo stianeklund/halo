@@ -377,6 +377,79 @@ bool FUN_0014cc80(int param_1, int param_2, int param_3, float param_4,
   return local_5;
 }
 
+/* 0x14cde0 — BSP sphere test loop for object collision (no log calls).
+ * For each block element: inverse-transforms the matrix, transforms the origin
+ * (param_2) to local space, scales local_48[0]*param_3 as the sphere radius,
+ * calls collision_bsp_test_sphere. On hit: calls collision_features_add and
+ * sets the return flag. 0x1058-byte frame triggers _chkstk. */
+char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
+                  int param_5, int param_6)
+{
+  short bVar1;
+  char cVar2;
+  int *piVar3;
+  int iVar3;
+  int iVar4;
+  int iVar5;
+  int iVar6;
+  float radius_f;
+  unsigned char local_1058[0x1010];
+  float local_48[13];
+  float local_14[3];
+  int local_c;
+  char local_1;
+
+  piVar3 = (int *)(*(int *)(param_1 + 4) + 0x28c);
+  iVar6 = 0;
+  local_c = 0;
+  local_1 = 0;
+  if (0 < *piVar3) {
+    do {
+      iVar3 = (int)tag_block_get_element(piVar3, iVar6, 0x40);
+      if (*(short *)(iVar3 + 0x20) != -1) {
+        bVar1 = (short)*(unsigned char *)(*(int *)(param_1 + 8) +
+                                          (int)*(short *)(iVar3 + 0x20));
+        if (bVar1 != -1) {
+          iVar4 = *(int *)(iVar3 + 0x34);
+          if (0 < iVar4) {
+            if ((short)bVar1 < 0) {
+              iVar5 = 0;
+            } else {
+              iVar5 = (int)(short)bVar1;
+              iVar4 = iVar4 - 1;
+              if (iVar5 <= iVar4) {
+                iVar4 = iVar5;
+              }
+              iVar5 = iVar4;
+            }
+            piVar3 = (int *)tag_block_get_element((void *)(iVar3 + 0x34),
+                                                   (int)(short)iVar5, 0x60);
+            if (0 < *piVar3) {
+              matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
+                             local_48);
+              matrix_transform_point(local_48, (float *)param_2, local_14);
+              radius_f = local_48[0] * param_3;
+              cVar2 = (char)collision_bsp_test_sphere(
+                  (int)piVar3, 0, 0, (int)local_14,
+                  *(int *)&radius_f, (int *)local_1058);
+              if (cVar2 != '\0') {
+                collision_features_add((int)piVar3, (int *)local_1058,
+                                       iVar6, param_4, param_5,
+                                       *(int *)param_1, (void *)param_6);
+                local_1 = 1;
+              }
+            }
+          }
+        }
+      }
+      local_c = local_c + 1;
+      piVar3 = (int *)(*(int *)(param_1 + 4) + 0x28c);
+      iVar6 = (int)(short)local_c;
+    } while (iVar6 < *piVar3);
+  }
+  return local_1;
+}
+
 /* Iterates collision elements; calls render_debug_collision_bsp for those with
  * valid BSP data. 0x14cf20 / collision_usage.obj
  */
