@@ -417,6 +417,62 @@ void FUN_00056ed0(int param_1, int param_2)
   }
 }
 
+/*
+ * FUN_00056fa0 — set target-selection field to 2 (ai_try_to_fight_player).
+ * Logs "[thread]: ai_try_to_fight_player [encounter]", then iterates
+ * encounter actors and sets field_0x1d4 (short) to 2.
+ * 0x56fa0 / encounters.obj
+ */
+void FUN_00056fa0(int param_1)
+{
+  char local_11c[256];
+  char local_1c[24];
+  void *uVar1;
+  int iVar2;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_11c, 0x100);
+    error(2, "%s: ai_try_to_fight_player %s",
+          hs_runtime_get_executing_thread_name(), local_11c);
+  }
+  FUN_00054680(param_1, local_1c);
+  iVar2 = FUN_00054750(local_1c);
+  while (iVar2 != 0) {
+    *(short *)((char *)iVar2 + 0x1d4) = 2;
+    iVar2 = FUN_00054750(local_1c);
+  }
+}
+
+/*
+ * FUN_00057030 — enable or disable charge for all actors in an encounter.
+ * Logs "[thread]: ai_allow_charge [encounter] [true|false]", then sets
+ * field_0x1cb (bool) in each actor to (param_2 == 0) — i.e., 1 when
+ * charge is being disallowed, 0 when it is being allowed.
+ * 0x57030 / encounters.obj
+ */
+void FUN_00057030(int param_1, char param_2)
+{
+  char local_11c[256];
+  char local_1c[24];
+  void *uVar1;
+  int iVar3;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_11c, 0x100);
+    error(2, "%s: ai_allow_charge %s %s",
+          hs_runtime_get_executing_thread_name(), local_11c,
+          param_2 ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  FUN_00054680(param_1, local_1c);
+  iVar3 = FUN_00054750(local_1c);
+  while (iVar3 != 0) {
+    *(unsigned char *)((char *)iVar3 + 0x1cb) = (param_2 == '\0') ? 1 : 0;
+    iVar3 = FUN_00054750(local_1c);
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
