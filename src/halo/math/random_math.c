@@ -1,3 +1,53 @@
+/* Fill a 0x400-byte periodic function lookup table for one of 6 types:
+ * raw(0), pow_a(1), pow_b(2), pow_c(3), pow_d(4), sine_wave(5).
+ * Each sample is scaled by *(float*)0x2602c8 then clamped to [0, 255].
+ * type_index is passed in BX (sign-extended to EBX for the switch).
+ *
+ * 0x10a930 / random_math.obj
+ */
+void FUN_0010a930(int16_t type_index, void *buffer)
+{
+  float phase;
+  float sample;
+  int result;
+  int i;
+
+  for (i = 0; i < 0x400; i++) {
+    phase = (float)i * *(float *)0x28c8e0;
+    switch (type_index) {
+    case 0:
+      sample = phase;
+      break;
+    case 1:
+      sample = (float)pow((double)phase, *(double *)0x25fea8);
+      break;
+    case 2:
+      sample = (float)pow((double)phase, *(double *)0x28c8d8);
+      break;
+    case 3:
+      sample = (float)pow((double)phase, *(double *)0x28c8d0);
+      break;
+    case 4:
+      sample = (float)pow((double)phase, *(double *)0x281de8);
+      break;
+    case 5:
+      sample = (sinf(phase * *(float *)0x256980 - *(float *)0x2568bc) + 1.0f) *
+               *(float *)0x253398;
+      break;
+    default:
+      display_assert(0, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x19b, 1);
+      system_exit(-1);
+      break;
+    }
+    result = (int)(sample * *(float *)0x2602c8);
+    if (result < 0)
+      result = 0;
+    else if (result > 0xff)
+      result = 0xff;
+    ((unsigned char *)buffer)[i] = (unsigned char)result;
+  }
+}
+
 /*
  * FUN_0010aa60 — fill a 0x400-byte periodic function lookup table for one of
  * 12 types: one(0), zero(1), cosine(2), cosine_variable(3), triangle(4),

@@ -17282,7 +17282,8 @@
         },
         {
           "decl": "void FUN_0010a930(int16_t type_index@<bx>, void *buffer);",
-          "addr": "0x10a930"
+          "addr": "0x10a930",
+          "ported": true
         },
         {
           "decl": "void FUN_0010aa60(short type_index, void *buffer);",
