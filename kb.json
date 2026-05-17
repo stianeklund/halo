@@ -491,11 +491,11 @@
           "addr": "0x1508b0"
         },
         {
-          "decl": "void FUN_001509c0(void);",
+          "decl": "char FUN_001509c0(int *out, int obj_idx);",
           "addr": "0x1509c0"
         },
         {
-          "decl": "void FUN_00150ac0(void);",
+          "decl": "char FUN_00150ac0(int *data, int *point);",
           "addr": "0x150ac0"
         },
         {
@@ -4770,8 +4770,9 @@
           "addr": "0x14dab0"
         },
         {
-          "decl": "void FUN_0014db10(void);",
-          "addr": "0x14db10"
+          "decl": "char FUN_0014db10(int param_1, int param_2, int param_3, int param_4);",
+          "addr": "0x14db10",
+          "ported": true
         },
         {
           "decl": "bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",

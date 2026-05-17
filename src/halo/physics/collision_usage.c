@@ -566,6 +566,59 @@ int FUN_0014da80(int tag_data, int16_t collision_fn_index)
   return (int)*(int16_t *)((char *)elem + 0x24);
 }
 
+/* 0x14db10 — Walk a linked list of objects (via [obj+0xC4] sibling index),
+ * testing each against a sphere (radius at [obj+0x5C], position at [obj+0x50]).
+ * Dispatches to FUN_001509c0/FUN_00150ac0 (type-flag branch A) or
+ * FUN_0014c8e0/FUN_0014c950 (branch B). Recurses on child index [obj+0xC8].
+ * Returns 1 if any match found. */
+char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
+{
+  int *obj;
+  int type_short;
+  int cur;
+  int child;
+  float dx;
+  float dy;
+  float dz;
+  float r;
+  int local_a[19];
+  int local_b[4];
+
+  cur = param_1;
+  do {
+    obj = (int *)object_get_and_verify_type(cur, -1);
+    if (cur != param_4 && !(*(unsigned char *)((char *)obj + 4) & 1)) {
+      type_short = (int)*(short *)((char *)obj + 0x64);
+      if (param_2 & (1 << (type_short + 8))) {
+        r = *(float *)((char *)obj + 0x5c);
+        dx = *(float *)((char *)obj + 0x50) - ((float *)param_3)[0];
+        dy = *(float *)((char *)obj + 0x54) - ((float *)param_3)[1];
+        dz = *(float *)((char *)obj + 0x58) - ((float *)param_3)[2];
+        if (r * r >= dx * dx + dy * dy + dz * dz) {
+          if ((1 << type_short) & 2 && param_2 & 0x400000) {
+            if (FUN_001509c0(local_a, cur) &&
+                FUN_00150ac0(local_a, (int *)param_3)) {
+              return 1;
+            }
+          } else {
+            if (FUN_0014c8e0(local_b, cur) &&
+                FUN_0014c950((int)local_b, param_3)) {
+              return 1;
+            }
+          }
+          child = *(int *)((char *)obj + 0xc8);
+          if (child != -1 &&
+              FUN_0014db10(child, param_2, param_3, param_4)) {
+            return 1;
+          }
+        }
+      }
+    }
+    cur = *(int *)((char *)obj + 0xc4);
+  } while (cur != -1);
+  return 0;
+}
+
 /* 0x14ec30 — Collision test against BSP surfaces and nearby objects.
  * Performs a BSP surface collision query with the given search radius,
  * optionally adds BSP collision features, then iterates over objects in
