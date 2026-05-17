@@ -29487,8 +29487,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000567e0(void);",
-          "addr": "0x567e0"
+          "decl": "bool FUN_000567e0(int16_t param_1, int16_t param_2);",
+          "addr": "0x567e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00056830(void);",

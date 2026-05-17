@@ -184,6 +184,21 @@ void FUN_00056790(int16_t param_1, int16_t param_2)
     game_allegiance_remove(param_1, param_2);
 }
 
+/*
+ * FUN_000567e0 — check that two teams are both allied and friendly.
+ * Returns true iff param_1 != -1 AND param_2 != -1 AND game_team_is_ally
+ * AND game_allegiance_get_team_is_friendly both return true.
+ * 0x567e0 / encounters.obj
+ */
+bool FUN_000567e0(int16_t param_1, int16_t param_2)
+{
+  if (param_1 != (int16_t)-1 && param_2 != (int16_t)-1 &&
+      game_team_is_ally(param_1, param_2) &&
+      game_allegiance_get_team_is_friendly(param_1, param_2))
+    return 1;
+  return 0;
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
