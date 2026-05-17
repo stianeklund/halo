@@ -29611,8 +29611,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00057900(void);",
-          "addr": "0x57900"
+          "decl": "void FUN_00057900(int param_1, char param_2);",
+          "addr": "0x57900",
+          "ported": true
         },
         {
           "decl": "void FUN_000579d0(void);",

@@ -892,6 +892,44 @@ void FUN_00057850(unsigned int param_1, char param_2)
   }
 }
 
+/*
+ * FUN_00057900 — ai_force_active_by_unit.
+ * Sets the "force active" flag on a unit's actor. If the actor belongs to an
+ * encounter (i.e. actor+9 is zero), logs an error telling the user to use
+ * ai_force_active on the encounter directly instead.
+ * If AI trace (0x5aca59) is set, logs the HS thread name and the boolean.
+ * 0x57900 / encounters.obj
+ */
+void FUN_00057900(int param_1, char param_2)
+{
+  char *actor;
+  char *encounter_def;
+  char *squad_def;
+  void *unit;
+
+  if (*(char *)0x5aca59) {
+    error(2, (const char *)0x25ccec, hs_runtime_get_executing_thread_name(),
+          param_2 ? (const char *)0x25cb44 : (const char *)0x25cb3c);
+  }
+  if (param_1 != -1) {
+    unit = object_get_and_verify_type(param_1, 3);
+    if (*(int *)((char *)unit + 0x1a4) != -1) {
+      actor =
+        (char *)datum_get(*(data_t **)0x6325a4, *(int *)((char *)unit + 0x1a4));
+      if (*(char *)(actor + 9) != '\0') {
+        *(char *)(actor + 0xa) = param_2;
+        return;
+      }
+      encounter_def = (char *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x42c,
+        *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+      squad_def = (char *)tag_block_get_element(
+        encounter_def + 0x80, (int)*(short *)(actor + 0x3a), 0xe8);
+      error(2, (const char *)0x25cc88, encounter_def, squad_def);
+    }
+  }
+}
+
 /* FUN_00057c60 — empty stub. 0x57c60 / encounters.obj */
 void FUN_00057c60(void)
 {
