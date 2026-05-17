@@ -98,3 +98,14 @@ opencode.json
 # Semantic-retrieval index (rebuildable from kb.json + sources)
 tools/retrieval/index.duckdb
 tools/retrieval/index.duckdb.wal
+
+# Ephemeral worktrees
+.claude/worktrees/
+
+# Backup and generated DB files
+*.bak
+mizuchi-db.json
+
+# Ad-hoc screenshot captures
+xemu-*.png
+xbox_ss*.raw
