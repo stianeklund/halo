@@ -29525,16 +29525,18 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00056c60(void);",
+          "decl": "void FUN_00056c60(int encounter_handle@<ecx>, char param_2);",
           "addr": "0x56c60"
         },
         {
-          "decl": "void FUN_00056d80(void);",
-          "addr": "0x56d80"
+          "decl": "void FUN_00056d80(int param_1);",
+          "addr": "0x56d80",
+          "ported": true
         },
         {
-          "decl": "void FUN_00056de0(void);",
-          "addr": "0x56de0"
+          "decl": "void FUN_00056de0(int param_1);",
+          "addr": "0x56de0",
+          "ported": true
         },
         {
           "decl": "void FUN_00056e40(int param_1);",

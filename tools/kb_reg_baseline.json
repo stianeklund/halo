@@ -26,6 +26,7 @@
     "0x5a640": "void FUN_0005a640(int encounter_handle /* @<eax> */);",
     "0x5acf0": "void FUN_0005acf0(int encounter_handle /* @<eax> */);",
     "0x55dd0": "void FUN_00055dd0(int encounter_handle@<eax>, int dest_encounter, int param_3, int param_4);",
+    "0x56c60": "void FUN_00056c60(int encounter_handle@<ecx>, char param_2);",
     "0x559a0": "int16_t FUN_000559a0(unsigned int encounter_handle@<eax>, int field_0x34, int16_t squad_index, void *actr_tag, void *actv_tag, char match_flag, const void *debug_str);",
     "0x563c0": "void FUN_000563c0(int actor_datum@<eax>, unsigned int encounter_handle, char do_migrate, int param_3);",
     "0x5af70": "bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */);",

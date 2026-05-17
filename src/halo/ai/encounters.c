@@ -360,6 +360,46 @@ void FUN_00056bc0(int param_1, char param_2)
 }
 
 /*
+ * FUN_00056d80 — teleport actors to starting location if unsupported.
+ * Logs "[thread]: ai_teleport_starting_location_if_unsupported [encounter]"
+ * then calls FUN_00056c60(param_1, 1) — which checks if_unsupported=true.
+ * 0x56d80 / encounters.obj
+ */
+void FUN_00056d80(int param_1)
+{
+  char local_104[256];
+  void *uVar1;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_104, 0x100);
+    error(2, "%s: ai_teleport_starting_location_if_unsupported %s",
+          hs_runtime_get_executing_thread_name(), local_104);
+  }
+  FUN_00056c60(param_1, 1);
+}
+
+/*
+ * FUN_00056de0 — unconditionally teleport actors to starting location.
+ * Logs "[thread]: ai_teleport_starting_location [encounter]"
+ * then calls FUN_00056c60(param_1, 0) — which teleports all=true.
+ * 0x56de0 / encounters.obj
+ */
+void FUN_00056de0(int param_1)
+{
+  char local_104[256];
+  void *uVar1;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_104, 0x100);
+    error(2, "%s: ai_teleport_starting_location %s",
+          hs_runtime_get_executing_thread_name(), local_104);
+  }
+  FUN_00056c60(param_1, 0);
+}
+
+/*
  * FUN_00056e40 — clear the target-selection field (0x1d4) for all actors.
  * Logs "[thread]: ai_try_to_fight_nothing [encounter]", then iterates
  * encounter actors and clears field_0x1d4 (short) to 0.
