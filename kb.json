@@ -29606,8 +29606,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00057850(void);",
-          "addr": "0x57850"
+          "decl": "void FUN_00057850(unsigned int param_1, char param_2);",
+          "addr": "0x57850",
+          "ported": true
         },
         {
           "decl": "void FUN_00057900(void);",

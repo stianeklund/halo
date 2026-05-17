@@ -857,6 +857,41 @@ void FUN_00057770(unsigned int param_1, int param_2)
   }
 }
 
+/* 0x57850 — ai_force_active (FUN_00057850).
+ *
+ * HS command handler: forces an encounter's "active" flag on or off.
+ * If the AI trace flag (0x5aca59) is set, logs the encounter name and
+ * the boolean value via error(). Then, if ai_globals+1 is nonzero and
+ * the encounter handle is valid (within scenario encounter block bounds),
+ * sets field +0x0c of the encounter datum to param_2.
+ *
+ * 0x57850 / encounters.obj
+ */
+void FUN_00057850(unsigned int param_1, char param_2)
+{
+  char buffer[512];
+  void *scenario;
+  int encounter_index;
+  char *encounter;
+
+  if (*(char *)0x5aca59) {
+    scenario = global_scenario_get();
+    FUN_00054220(param_1, scenario, buffer, 0x200);
+    error(2, (const char *)0x25cc68, hs_runtime_get_executing_thread_name(),
+          buffer, param_2 ? (const char *)0x25cb44 : (const char *)0x25cb3c);
+  }
+
+  if (*(char *)(*(int *)0x632574 + 1) != '\0' && param_1 != 0xffffffff) {
+    encounter_index = (int)(param_1 & 0xffff);
+    scenario = global_scenario_get();
+    if (encounter_index >= 0 &&
+        encounter_index < *(int *)((char *)scenario + 0x42c)) {
+      encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_index);
+      *(char *)(encounter + 0xc) = param_2;
+    }
+  }
+}
+
 /* FUN_00057c60 — empty stub. 0x57c60 / encounters.obj */
 void FUN_00057c60(void)
 {
