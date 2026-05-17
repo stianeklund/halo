@@ -298,6 +298,53 @@ void FUN_00056980(int param_1, char param_2)
 }
 
 /*
+ * FUN_00056a20 — ai_braindead_by_unit: set braindead on actors for units.
+ * Iterates units via FUN_000ce450/FUN_000ce320 (using local_8 as 4-byte state).
+ * For each biped/vehicle (type mask 3), sets braindead on the primary actor
+ * (field_0x1a4 or fallback 0x1a8). Then iterates child objects via sibling
+ * links (first child at object+0xc8, next sibling at object+0xc4), and for
+ * each biped/vehicle child also sets braindead.
+ * Logs "[thread]: ai_braindead_by_unit <some units> [true|false]" if trace on.
+ * 0x56a20 / encounters.obj
+ */
+void FUN_00056a20(int param_1, char param_2)
+{
+  int local_8;
+  int iVar1;
+  int iVar4;
+
+  iVar1 = FUN_000ce450(param_1, &local_8);
+  if (*(char *)0x5aca59) {
+    error(2, "%s: ai_braindead_by_unit <some units> %s",
+          hs_runtime_get_executing_thread_name(),
+          param_2 ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  while (iVar1 != -1) {
+    iVar1 = (int)object_try_and_get_and_verify_type(iVar1, 3);
+    if (iVar1 != 0) {
+      iVar4 = *(int *)((char *)iVar1 + 0x1a4);
+      if (iVar4 == -1)
+        iVar4 = *(int *)((char *)iVar1 + 0x1a8);
+      if (iVar4 != -1)
+        actor_braindead(iVar4, param_2);
+      for (iVar1 = *(int *)((char *)iVar1 + 0xc8); iVar1 != -1;
+           iVar1 = *(int *)((char *)iVar1 + 0xc4)) {
+        iVar1 = (int)object_get_and_verify_type(iVar1, -1);
+        if ((1 << (*(unsigned char *)((char *)iVar1 + 0x64) & 0x1f) & 3u) !=
+            0) {
+          iVar4 = *(int *)((char *)iVar1 + 0x1a4);
+          if (iVar4 == -1)
+            iVar4 = *(int *)((char *)iVar1 + 0x1a8);
+          if (iVar4 != -1)
+            actor_braindead(iVar4, param_2);
+        }
+      }
+    }
+    iVar1 = FUN_000ce320(param_1, &local_8);
+  }
+}
+
+/*
  * FUN_00056b20 — set/clear the ai_disregard bit (0x400) on actors by unit.
  * Iterates units in the encounter via FUN_000ce450/FUN_000ce320.
  * For each biped/vehicle (type mask 3), sets or clears field_0x1b4 bit 0x400.
