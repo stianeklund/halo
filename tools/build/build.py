@@ -42,6 +42,8 @@ def _run_cmake_build(target: str = "", quiet: bool = False) -> int:
 
 def _run_cmake_configure(extra_args: list[str] = None, quiet: bool = False) -> int:
     command = ["cmake", "-B", BUILD_DIR, "-S", ROOT_DIR]
+    if quiet:
+        command.append("-Wno-dev")
     if extra_args:
         command.extend(extra_args)
     stdout = subprocess.DEVNULL if quiet else None

@@ -283,7 +283,7 @@ class SourceManager:
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, handlers=[color.ColorLogHandler()])
+    logging.basicConfig(level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper(), logging.INFO), handlers=[color.ColorLogHandler()])
 
     ap = argparse.ArgumentParser(description='Performs some automated maintenance on the tree: '
                                              'moving functions into place and re-formatting.')

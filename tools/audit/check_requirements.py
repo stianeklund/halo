@@ -34,5 +34,6 @@ def main():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, handlers=[color.ColorLogHandler()])
+    import os
+    logging.basicConfig(level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper(), logging.INFO), handlers=[color.ColorLogHandler()])
     main()
