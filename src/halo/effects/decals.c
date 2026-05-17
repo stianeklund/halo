@@ -451,6 +451,39 @@ void bsp3d_get_plane_from_designator(int structure_bsp,
   }
 }
 
+/*
+ * FUN_00099840 — prepend a decal to the cluster/layer linked list.
+ *
+ * Reads the current list head via FUN_00098fe0, then initialises the decal's
+ * link fields (prev=-1, next=old_head, cluster_index, layer) via datum_get on
+ * global_decal_data. If the old head exists it back-links its prev to the new
+ * decal. Finally calls FUN_00098aa0 to update the list head.
+ *
+ * cluster_index@<ecx>, layer@<ax> are register args; decal_handle is on the
+ * stack. ESI=cluster_index, EDI=layer are preserved throughout for the
+ * FUN_00098aa0 call.
+ *
+ * 0x99840 / decals.obj
+ */
+void FUN_00099840(int16_t cluster_index, int16_t layer, int decal_handle)
+{
+  int old_head;
+  char *decal;
+  char *old_head_decal;
+
+  old_head = FUN_00098fe0(cluster_index, layer);
+  decal = (char *)datum_get(global_decal_data, decal_handle);
+  *(int *)(decal + 0x30) = -1;
+  *(int *)(decal + 0x34) = old_head;
+  *(int16_t *)(decal + 4) = cluster_index;
+  *(int16_t *)(decal + 6) = layer;
+  if (old_head != -1) {
+    old_head_decal = (char *)datum_get(global_decal_data, old_head);
+    *(int *)(old_head_decal + 0x30) = decal_handle;
+  }
+  FUN_00098aa0(cluster_index, layer, decal_handle);
+}
+
 static void decals_log_invalid_decal_type_once(
   int16_t decal_type, int decal_tag_index, const char *decal_name,
   int bitmap_tag_index, const char *bitmap_name, const char *context);

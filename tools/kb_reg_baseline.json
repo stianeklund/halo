@@ -303,7 +303,8 @@
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
     "0x97db0": "void FUN_00097db0(char *datum @<esi>);",
     "0x98970": "void FUN_00098970(int handle@<eax>, bool layer_check);",
-    "0x98aa0": "void FUN_00098aa0(int16_t cluster_index@<si>, int16_t layer@<di>, int param_1);"
+    "0x98aa0": "void FUN_00098aa0(int16_t cluster_index@<si>, int16_t layer@<di>, int param_1);",
+    "0x99840": "void FUN_00099840(int16_t cluster_index@<ecx>, int16_t layer@<eax>, int decal_handle);"
   },
   "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
   "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",

@@ -5713,8 +5713,9 @@
           "addr": "0x996b0"
         },
         {
-          "decl": "void FUN_00099840(void);",
-          "addr": "0x99840"
+          "decl": "void FUN_00099840(int16_t cluster_index@<ecx>, int16_t layer@<eax>, int decal_handle);",
+          "addr": "0x99840",
+          "ported": true
         },
         {
           "decl": "int FUN_000998b0(int new_index_hint@<eax>, int16_t cluster_index, int16_t layer, int old_index, bool randomize);",
