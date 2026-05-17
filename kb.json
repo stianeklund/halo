@@ -29496,15 +29496,16 @@
           "addr": "0x56830"
         },
         {
-          "decl": "void FUN_00056880(void);",
-          "addr": "0x56880"
+          "decl": "short FUN_00056880(int param_1);",
+          "addr": "0x56880",
+          "ported": true
         },
         {
-          "decl": "void FUN_000568e0(void);",
+          "decl": "void FUN_000568e0(int param_1);",
           "addr": "0x568e0"
         },
         {
-          "decl": "void FUN_00056980(void);",
+          "decl": "void FUN_00056980(int param_1, char param_2);",
           "addr": "0x56980"
         },
         {
