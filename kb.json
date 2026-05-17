@@ -29687,12 +29687,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00058310(void);",
-          "addr": "0x58310"
+          "decl": "void FUN_00058310(unsigned int param_1);",
+          "addr": "0x58310",
+          "ported": true
         },
         {
-          "decl": "void FUN_00058390(void);",
-          "addr": "0x58390"
+          "decl": "void FUN_00058390(unsigned int param_1);",
+          "addr": "0x58390",
+          "ported": true
         },
         {
           "decl": "void FUN_00058410(void);",
