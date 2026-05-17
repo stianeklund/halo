@@ -124,7 +124,7 @@ bink_sound.obj,true,0x001C93F0-0x001C96B0,2
 lruv_cache.obj,true,0x0011C530-0x001C0090,46
 bitmap_utilities.obj,true,0x00075380-0x0007BB40,54
 D3D8:d3dresource.obj,true,0x001ED7D0-0x001EFC80,2
-D3D8:d3dsurface.obj,true,0x001F4140-0x001FFE57,5
+D3D8:d3dsurface.obj,true,0x001E9190-0x001FFE57,6
 XAPILIB:fileio.obj,true,0x001D0E96-0x001D2110,25
 XAPILIB:lasterr.obj,true,0x001D21F2-0x001D2DBD,18
 XAPILIB:physmem.obj,true,0x001D2D48-0x001D5A42,59
