@@ -111,6 +111,35 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
   }
 }
 
+/*
+ * FUN_00036b50 — trigger a swarm damage/retreat reaction.
+ *
+ * Looks up the swarm component datum for param_2, then fires stimulus
+ * FUN_00036890 to the actor (param_1) at priority 1 referencing the
+ * swarm component data block. If the component has a linked secondary handle
+ * (field_0x1c) and the secondary datum's field_0x74 (short) is positive,
+ * also fires a scalar stimulus via FUN_000369c0 with value 0x1c2 (450).
+ *
+ * Globals: 0x5ab23c = encounter data; actor_data (0x6325a4) for secondary.
+ *
+ * 0x36b50 / actors.obj
+ */
+void FUN_00036b50(int param_1, int param_2)
+{
+  char *iVar1;
+  char *iVar2;
+
+  iVar1 = (char *)datum_get(*(data_t **)0x5ab23c, param_2);
+  FUN_00036890(param_1, NULL, 1, (int *)(iVar1 + 0xe0), -1, 0, 0x5a, param_2,
+               0x96, 0);
+  if (*(int *)(iVar1 + 0x1c) != -1) {
+    iVar2 = (char *)datum_get(actor_data, *(int *)(iVar1 + 0x1c));
+    if (*(short *)(iVar2 + 0x74) > 0) {
+      FUN_000369c0(param_1, *(short *)(iVar2 + 0x74), 0x1c2);
+    }
+  }
+}
+
 /* 0x36bd0 — Post an object-look stimulus (type 5, priority 1) to an actor.
  * Builds a look_buf with word 0x1 and passes param_2 (object handle) adjacent
  * so FUN_00027a60 can read it as part of the buffer. */
@@ -457,6 +486,56 @@ void FUN_000377d0(int actor_handle, int prop_handle)
   }
   *(int16_t *)(actor + 0x308) = 2;
   *(int *)(actor + 0x30c) = new_payload;
+}
+
+/* 0x3a3b0
+ *
+ * actor_action_handle_status_change
+ *
+ * Processes an actor's action status: handles initial action, pending command
+ * lists, potential combat transitions, and status-dependent behavior based on
+ * the actor's current action type (field +0x6c).
+ */
+void FUN_0003a3b0(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_combat_transition(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 4:
+  case 6:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_combat_failure(actor_handle);
+      return;
+    }
+    break;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_exit_pursuit(actor_handle);
+      return;
+    }
+    break;
+  case 11:
+    actor_action_handle_combat_status(actor_handle,
+                                      (int)*(unsigned char *)(actor + 0x9e),
+                                      (int)*(unsigned char *)(actor + 0xa1));
+    break;
+  default:
+    break;
+  }
 }
 
 void *FUN_0003a600(short actor_type /* @<ax> */)
@@ -1174,57 +1253,6 @@ void actor_switch_props(int unit_handle, int swarm_component_handle)
   }
   object_get_world_position(unit_handle, (vector3_t *)(swarm_component + 4));
   *(int *)(swarm_component + 0x10) = target_handle;
-}
-
-/* 0x3a3b0
- *
- * actor_action_handle_status_change
- *
- * Processes an actor's action status: handles initial action, pending command
- * lists, potential combat transitions, and status-dependent behavior based on
- * the actor's current action type (field +0x6c).
- */
-void FUN_0003a3b0(int actor_handle)
-{
-  char *actor;
-  char cVar1;
-
-  actor = (char *)datum_get(actor_data, actor_handle);
-  actor_action_handle_initial_action(actor_handle);
-  actor_action_handle_pending_command_list(actor_handle);
-  cVar1 = actor_action_deny_transition(actor_handle);
-  if (cVar1 == '\0') {
-    actor_action_handle_combat_transition(actor_handle);
-  }
-  switch (*(short *)(actor + 0x6c)) {
-  case 3:
-  case 4:
-  case 6:
-  case 10:
-    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
-    if (cVar1 == '\0') {
-      actor_action_handle_combat_failure(actor_handle);
-      return;
-    }
-    break;
-  case 5:
-  case 7:
-  case 8:
-    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
-    if (cVar1 == '\0') {
-      actor_action_handle_exit_pursuit(actor_handle);
-      return;
-    }
-    break;
-  case 11:
-    actor_action_handle_combat_status(
-      actor_handle,
-      (int)*(unsigned char *)(actor + 0x9e),
-      (int)*(unsigned char *)(actor + 0xa1));
-    break;
-  default:
-    break;
-  }
 }
 
 /* 0x3b100 — Return true if actor has fewer than 3 active slots (field +0x6a).
@@ -3130,8 +3158,8 @@ void actor_swarm_cache_new(int actor_handle)
  * Confirmed: actor+0x24 (first swarm unit) for swarm path at 0x3cf36.
  * Confirmed: unit+0xb6 OR 0x20 or 0x40 at 0x3cf52/0x3cf5b/0x3cfc3/0x3cfcc.
  * Confirmed: unit+0x1ac (next swarm unit link) at 0x3cf76.
- * Confirmed: actor_swarm_detach_from_unit(actor_handle, unit_handle) at 0x3cf6e.
- * Confirmed: actor_detach_from_unit(actor_handle) at 0x3cfdb.
+ * Confirmed: actor_swarm_detach_from_unit(actor_handle, unit_handle) at
+ * 0x3cf6e. Confirmed: actor_detach_from_unit(actor_handle) at 0x3cfdb.
  * Confirmed: actor_delete(actor_handle, 1) at 0x3cf92.
  * Confirmed: encounter_update_status(encounter_handle) at 0x3cfa0 if != -1. */
 void actor_kill(int actor_handle, char by_player, char no_delete)
