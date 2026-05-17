@@ -4766,8 +4766,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014dab0(void);",
-          "addr": "0x14dab0"
+          "decl": "char FUN_0014dab0(int param_1, int param_2);",
+          "addr": "0x14dab0",
+          "ported": true
         },
         {
           "decl": "char FUN_0014db10(int param_1, int param_2, int param_3, int param_4);",

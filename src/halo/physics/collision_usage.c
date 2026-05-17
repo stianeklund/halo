@@ -566,6 +566,24 @@ int FUN_0014da80(int tag_data, int16_t collision_fn_index)
   return (int)*(int16_t *)((char *)elem + 0x24);
 }
 
+/* 0x14dab0 — Tests whether a point (param_1) passes a sphere–BSP collision check.
+ * Finds the BSP3D leaf for param_1 via FUN_0018e420; if found, tests the collision
+ * BSP sphere. Returns 1 if outside BSP or collision sphere intersects, 0 on pass.
+ * Confirmed: cdecl, 2 stack args. _chkstk(0x1010) for 4112-byte buf local. */
+char FUN_0014dab0(int param_1, int param_2)
+{
+  char buf[0x1010];
+  if ((int)bsp3d_find_leaf(FUN_0018e420(), 0, (void *)param_1) == -1)
+    goto fail;
+  if (!(char)collision_bsp_test_sphere(
+          (int)global_collision_bsp_get(), 0x100,
+          (int)breakable_surfaces_get_bsp_surface_data(),
+          param_1, param_2, (int *)buf))
+    return 0;
+fail:
+  return 1;
+}
+
 /* 0x14db10 — Walk a linked list of objects (via [obj+0xC4] sibling index),
  * testing each against a sphere (radius at [obj+0x5C], position at [obj+0x50]).
  * Dispatches to FUN_001509c0/FUN_00150ac0 (type-flag branch A) or

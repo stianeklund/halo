@@ -1765,6 +1765,14 @@
       "metadata": {
         "source_path": "halo/physics/collision_usage.c"
       }
+    },
+    {
+      "name": "halo/collision_usage_FUN_0014dab0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014dab0.obj",
+      "metadata": {
+        "source_path": "halo/physics/collision_usage.c"
+      }
     }
   ]
 }
