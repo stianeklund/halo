@@ -813,6 +813,50 @@ void FUN_000576a0(int param_1)
   }
 }
 
+/*
+ * FUN_00057770 — attach a free actor to a unit (ai_attach_free).
+ *
+ * If the AI trace flag (0x5aca59) is set, logs the unit index and actor
+ * variant tag name. Then validates that the AI subsystem is active, the
+ * unit and actv tag index are both valid, the actv tag's referenced actr
+ * tag does not have the swarm flag (bit 26) set, and finally calls
+ * actor_create_for_unit to attach a new actor.
+ *
+ * 0x57770 / encounters.obj
+ */
+void FUN_00057770(unsigned int param_1, int param_2)
+{
+  const char *name;
+  int actv_data;
+  int actr_tag_index;
+  unsigned int *actr_data;
+
+  if (*(char *)0x5aca59) {
+    if (param_2 == -1) {
+      name = "<error>";
+    } else {
+      name = tag_name_strip_path(tag_get_name(param_2));
+    }
+    error(2, "%s: ai_attach_free 0x%04X %s",
+          hs_runtime_get_executing_thread_name(), param_1 & 0xffff, name);
+  }
+  if (*(char *)(*(int *)0x632574 + 1) != '\0' && param_1 != 0xffffffff &&
+      param_2 != -1) {
+    actv_data = (int)tag_get(0x61637476, param_2);
+    actr_tag_index = *(int *)(actv_data + 0x10);
+    if (actr_tag_index != -1) {
+      actr_data = (unsigned int *)tag_get(0x61637472, actr_tag_index);
+      if ((*actr_data & 0x4000000) != 0) {
+        error(2, "%s: ai_attach_free %s cannot be used for swarm actors",
+              hs_runtime_get_executing_thread_name(),
+              tag_name_strip_path(tag_get_name(param_2)));
+        return;
+      }
+      actor_create_for_unit(0, param_1, param_2, -1, -1, 0, -1, 0, 2, 0, -1, 0);
+    }
+  }
+}
+
 /* FUN_00057c60 — empty stub. 0x57c60 / encounters.obj */
 void FUN_00057c60(void)
 {
