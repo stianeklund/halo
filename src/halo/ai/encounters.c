@@ -473,6 +473,62 @@ void FUN_00057030(int param_1, char param_2)
   }
 }
 
+/*
+ * FUN_00057230 — advance command list for all actors in an encounter.
+ * Logs "[thread]: ai_command_list_advance [encounter]", then iterates
+ * encounter actors via FUN_00054680/FUN_00054750 and calls
+ * FUN_00017090(actor_handle) for each. Actor handle is at local_1c+0x10.
+ * 0x57230 / encounters.obj
+ */
+void FUN_00057230(int param_1)
+{
+  char local_11c[256];
+  char local_1c[16];
+  void *uVar1;
+  int iVar2;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220(param_1, uVar1, local_11c, 0x100);
+    error(2, "%s: ai_command_list_advance %s",
+          hs_runtime_get_executing_thread_name(), local_11c);
+  }
+  FUN_00054680(param_1, local_1c);
+  iVar2 = FUN_00054750(local_1c);
+  while (iVar2 != 0) {
+    FUN_00017090(*(int *)(local_1c + 0x10));
+    iVar2 = FUN_00054750(local_1c);
+  }
+}
+
+/*
+ * FUN_000572c0 — advance command list for the actor attached to a unit.
+ * Logs "[thread]: ai_command_list_advance_by_unit <some unit>". If
+ * param_1 != -1 and the object has an actor at field_0x1a4 (or 0x1a8),
+ * calls FUN_00017090 on that actor handle.
+ * 0x572c0 / encounters.obj
+ */
+void FUN_000572c0(int param_1)
+{
+  int iVar2;
+
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_command_list_advance_by_unit <some unit>",
+          hs_runtime_get_executing_thread_name());
+
+  if (param_1 != -1) {
+    iVar2 = (int)object_try_and_get_and_verify_type(param_1, 3);
+    if (iVar2 != 0) {
+      if (*(int *)((char *)iVar2 + 0x1a4) != -1) {
+        FUN_00017090(*(int *)((char *)iVar2 + 0x1a4));
+        return;
+      }
+      if (*(int *)((char *)iVar2 + 0x1a8) != -1)
+        FUN_00017090(*(int *)((char *)iVar2 + 0x1a8));
+    }
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
