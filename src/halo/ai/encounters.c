@@ -885,6 +885,46 @@ void FUN_00057f90(int param_1, float param_2)
 }
 
 /*
+ * FUN_00057fd0 — set a team bit in vehicle enterable entry.
+ * Sets bit (1<<param_2) in entry[+8] (team bitmask).
+ * 0x57fd0 / encounters.obj
+ */
+void FUN_00057fd0(int param_1, short param_2)
+{
+  int *iVar2;
+
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_vehicle_enterable_team <some vehicle> %d",
+          hs_runtime_get_executing_thread_name(), (int)param_2);
+  if (param_1 != -1) {
+    iVar2 = FUN_00057ef0(param_1);
+    if (iVar2 != 0)
+      *(unsigned short *)((char *)iVar2 + 8) |=
+        (unsigned short)(1u << ((unsigned char)param_2 & 0x1f));
+  }
+}
+
+/*
+ * FUN_00058020 — set an actor-type bit in vehicle enterable entry.
+ * Sets bit (1<<param_2) in entry[+10] (actor type bitmask).
+ * 0x58020 / encounters.obj
+ */
+void FUN_00058020(int param_1, short param_2)
+{
+  int *iVar2;
+
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_vehicle_enterable_actor_type <some vehicle> %d",
+          hs_runtime_get_executing_thread_name(), (int)param_2);
+  if (param_1 != -1) {
+    iVar2 = FUN_00057ef0(param_1);
+    if (iVar2 != 0)
+      *(unsigned short *)((char *)iVar2 + 10) |=
+        (unsigned short)(1u << ((unsigned char)param_2 & 0x1f));
+  }
+}
+
+/*
  * FUN_00058070 — append an encounter to a vehicle's enterable-actors list.
  * Gets/creates a vehicle entry via FUN_00057ef0(param_1). If the actor-group
  * count (entry[+0xc] as short) < 6, appends param_2 (encounter handle) to the
@@ -917,6 +957,48 @@ void FUN_00058070(int param_1, int param_2)
       error(
         2, "ai_vehicle_enterable_actors: too many groups of actors (max is %d)",
         6);
+    }
+  }
+}
+
+/*
+ * FUN_00058110 — remove a vehicle from the enterable-vehicle list.
+ * Searches for param_1 in the array. If found, decrements count and if the
+ * found entry is not the last, copies the last entry over it (swap-remove,
+ * 10-dword copy = 0x28 bytes).
+ * 0x58110 / encounters.obj
+ */
+void FUN_00058110(int param_1)
+{
+  char *base;
+  short sVar1;
+  short sVar2;
+  unsigned int *puVar5;
+  unsigned int *puVar6;
+  int iVar4;
+
+  if (*(char *)0x5aca59)
+    error(2, "%s: ai_vehicle_enterable_disable <some vehicle>",
+          hs_runtime_get_executing_thread_name());
+
+  if (param_1 != -1) {
+    base = (char *)*(int *)0x632574;
+    sVar1 = *(short *)(base + 0x3b6);
+    sVar2 = 0;
+    if (0 < sVar1) {
+      while (*(int *)(base + 0x3b8 + (int)sVar2 * 0x28) != param_1) {
+        sVar2 = (short)(sVar2 + 1);
+        if (sVar1 <= sVar2)
+          return;
+      }
+      *(short *)(base + 0x3b6) = (short)(sVar1 - 1);
+      if (sVar2 < *(short *)(base + 0x3b6)) {
+        puVar5 =
+          (unsigned int *)(base + 0x3b8 + (int)*(short *)(base + 0x3b6) * 0x28);
+        puVar6 = (unsigned int *)(base + 0x3b8 + (int)sVar2 * 0x28);
+        for (iVar4 = 10; iVar4 != 0; iVar4--)
+          *puVar6++ = *puVar5++;
+      }
     }
   }
 }

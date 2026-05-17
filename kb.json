@@ -29652,12 +29652,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00057fd0(void);",
-          "addr": "0x57fd0"
+          "decl": "void FUN_00057fd0(int param_1, short param_2);",
+          "addr": "0x57fd0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00058020(void);",
-          "addr": "0x58020"
+          "decl": "void FUN_00058020(int param_1, short param_2);",
+          "addr": "0x58020",
+          "ported": true
         },
         {
           "decl": "void FUN_00058070(int param_1, int param_2);",
@@ -29665,8 +29667,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00058110(void);",
-          "addr": "0x58110"
+          "decl": "void FUN_00058110(int param_1);",
+          "addr": "0x58110",
+          "ported": true
         },
         {
           "decl": "void FUN_000581b0(void);",
