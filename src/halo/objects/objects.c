@@ -1751,6 +1751,37 @@ void object_deactivate(int object_handle)
 }
 
 /*
+ * object_reset — reset an object to its default world position.
+ *
+ * Copies the 3-float default-position vector from *(float**)0x31fc38 into
+ * both the object's position (+0x18..+0x20) and forward/up (+0x3c..+0x44),
+ * clears the "at-rest" flag (bit 5 of object[+4]), then calls
+ * FUN_0013c860 to perform a final physics/placement update.
+ *
+ * Confirmed: single call to object_get_and_verify_type(handle, -1), then
+ * two identical 3-dword copies from [0x31fc38]. The 3 cdecl args
+ * (−1, handle, handle) are batch-cleaned by ADD ESP,0xc after FUN_0013c860.
+ *
+ * 0x13fbc0 / objects.obj
+ */
+void object_reset(int object_handle)
+{
+  char *obj;
+  float *def;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  def = *(float **)0x31fc38;
+  *(float *)(obj + 0x18) = def[0];
+  *(float *)(obj + 0x1c) = def[1];
+  *(float *)(obj + 0x20) = def[2];
+  *(float *)(obj + 0x3c) = def[0];
+  *(float *)(obj + 0x40) = def[1];
+  *(float *)(obj + 0x44) = def[2];
+  *(unsigned int *)(obj + 4) &= ~0x20u;
+  FUN_0013c860(object_handle);
+}
+
+/*
  * object_placement_data_new — initialise an object placement data struct.
  *
  * Zeroes the 0x88-byte placement buffer, stores the tag index at +0x00,
@@ -2603,7 +2634,8 @@ int object_visible_to_any_player(int object_handle)
   result = 0;
 
   /* Validate object header and flags */
-  header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
   if (!(header->unk_2 & 1))
@@ -2674,20 +2706,20 @@ int object_visible_to_any_player(int object_handle)
     magnitude = normalize3d(delta);
 
     /* half_angle = atan2(radius, magnitude) + PI/4 */
-    half_angle = (float)(xbox_atan2((double)obj->unk_92, (double)magnitude)
-                         + (double)0.7853981852531433f);
+    half_angle = (float)(xbox_atan2((double)obj->unk_92, (double)magnitude) +
+                         (double)0.7853981852531433f);
 
     /* dot product of normalized delta with unit forward vector */
-    dot = delta[2] * *(float *)(unit_obj + 0x1E8)
-        + delta[1] * *(float *)(unit_obj + 0x1E4)
-        + delta[0] * *(float *)(unit_obj + 0x1E0);
+    dot = delta[2] * *(float *)(unit_obj + 0x1E8) +
+          delta[1] * *(float *)(unit_obj + 0x1E4) +
+          delta[0] * *(float *)(unit_obj + 0x1E0);
 
     if (xbox_cosf(half_angle) < dot) {
       result = 1;
       return result;
     }
 
-next_player:
+  next_player:
     player_index = data_next_index(*(data_t **)0x5aa6d4, player_index);
   }
 
@@ -3453,14 +3485,18 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
   return found_count;
 }
 
-/* Type-cast helpers for object_compute_node_matrices — kept at file scope for C89 compliance */
+/* Type-cast helpers for object_compute_node_matrices — kept at file scope for
+ * C89 compliance */
 typedef void (*animation_set_default_fn)(void *model_tag, void *anim_data);
 typedef void (*animation_decode_fn)(void *model_tag, void *anim_entry,
                                     int frame_index, void *anim_data);
-typedef void (*animation_overlay_keyframe_fn)(
-  void *anim_entry, float frame_value, void *anim_data);
-typedef void (*animation_overlay_interpolate_fn)(
-  void *anim_entry, int frame_index, void *anim_data, void *node_data);
+typedef void (*animation_overlay_keyframe_fn)(void *anim_entry,
+                                              float frame_value,
+                                              void *anim_data);
+typedef void (*animation_overlay_interpolate_fn)(void *anim_entry,
+                                                 int frame_index,
+                                                 void *anim_data,
+                                                 void *node_data);
 typedef void (*overlay_adjust_fn)(int object_handle, void *anim_data);
 typedef void (*anim_interpolate_fn)(uint16_t node_count, void *interp_data,
                                     void *anim_data, int16_t frame_index,
@@ -5366,17 +5402,18 @@ void objects_garbage_collection(int object_handle)
  * Confirmed: globals at 0x46f080 (pool), 0x46f084 (object_globals),
  *   0x5a8d50 (object_header_data), 0x5a8d4c (debug flag).
  * Confirmed: thresholds 0xcccc, 0x19999, 0x6666, 0x67, 0xCC, 0x32, 0x1E, 150.
- * Confirmed: three deletion calls in sequence: set_garbage_flag, delete_internal,
- *   delete_recursive — all with (handle, 0).
- * Confirmed: callback table 2 entries: {NULL, 0x3fa40}, {0x3fb40, 0x3fc90}.
- * Confirmed: FILD + FMUL 100.0f + FMUL (1/1048576.0f) for percentage calc.
+ * Confirmed: three deletion calls in sequence: set_garbage_flag,
+ * delete_internal, delete_recursive — all with (handle, 0). Confirmed: callback
+ * table 2 entries: {NULL, 0x3fa40}, {0x3fb40, 0x3fc90}. Confirmed: FILD + FMUL
+ * 100.0f + FMUL (1/1048576.0f) for percentage calc.
  */
 /* 0x144b50 */
 void objects_garbage_collect_tick(void)
 {
   typedef struct {
     void (*init)(void *working_mem, uint16_t mem_size);
-    int (*iterate)(char *result_desc, char *more_to_release, void *working_mem, uint16_t mem_size);
+    int (*iterate)(char *result_desc, char *more_to_release, void *working_mem,
+                   uint16_t mem_size);
   } gc_callback_entry_t;
 
   int garbage_handles[2048];
@@ -5439,9 +5476,8 @@ void objects_garbage_collect_tick(void)
   if (*(char *)0x5a8d4c) {
     contiguous_free = memory_pool_get_contiguous_free_size(pool);
     console_printf(0, "#%d objects using 0x%x bytes (0x%x contiguous free)",
-      (int)*(int16_t *)((char *)data + 0x2e),
-      (int)memory_pool_get_free_size(pool),
-      contiguous_free);
+                   (int)*(int16_t *)((char *)data + 0x2e),
+                   (int)memory_pool_get_free_size(pool), contiguous_free);
   }
 
   /* Phase 3: build garbage object list */
@@ -5452,18 +5488,18 @@ void objects_garbage_collect_tick(void)
     obj = hdr->object;
     type = obj->type;
     if ((1 << (type & 0x1f)) == 0) {
-      display_assert(
-        csprintf((char *)0x5ab100,
-          "got an object type we didn't expect (expected one of 0x%08x but got #%d).",
-          -1, (int)type),
-        "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      display_assert(csprintf((char *)0x5ab100,
+                              "got an object type we didn't expect (expected "
+                              "one of 0x%08x but got #%d).",
+                              -1, (int)type),
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
       system_exit(-1);
     }
     garbage_handles[garbage_object_count] = handle;
     garbage_object_count++;
     if (!(garbage_object_count < 2048)) {
       display_assert("garbage_object_count<MAXIMUM_OBJECTS_PER_MAP",
-        "c:\\halo\\SOURCE\\objects\\objects.c", 0x10c1, 1);
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0x10c1, 1);
       system_exit(-1);
     }
     handle = (int)obj->unk_192;
@@ -5490,8 +5526,8 @@ void objects_garbage_collect_tick(void)
     }
     break;
   default:
-    display_assert("unreachable",
-      "c:\\halo\\SOURCE\\objects\\objects.c", 0x10da, 1);
+    display_assert("unreachable", "c:\\halo\\SOURCE\\objects\\objects.c",
+                   0x10da, 1);
     system_exit(-1);
     break;
   }
@@ -5509,11 +5545,11 @@ void objects_garbage_collect_tick(void)
     if (!object_visible_to_any_player(handle)) {
       type = obj->type;
       if ((1 << (type & 0x1f)) == 0) {
-        display_assert(
-          csprintf((char *)0x5ab100,
-            "got an object type we didn't expect (expected one of 0x%08x but got #%d).",
-            -1, (int)type),
-          "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+        display_assert(csprintf((char *)0x5ab100,
+                                "got an object type we didn't expect (expected "
+                                "one of 0x%08x but got #%d).",
+                                -1, (int)type),
+                       "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
         system_exit(-1);
       }
       if ((type & 3) <= 1) {
@@ -5538,7 +5574,7 @@ compact_and_callbacks:
   if (*(char *)0x5a8d4c) {
     contiguous_free = memory_pool_get_contiguous_free_size(pool);
     console_printf(0, "compacted to #%d with 0x%x contiguous bytes free",
-      (int)*(int16_t *)((char *)data + 0x2e), contiguous_free);
+                   (int)*(int16_t *)((char *)data + 0x2e), contiguous_free);
   }
 
   if (should_delete) {
@@ -5570,7 +5606,8 @@ compact_and_callbacks:
     if (gc_level == 2) {
       if (contiguous_free < (int)0x6666 || slots_free < 0x33) {
         is_critical = 1;
-        crt_sprintf(status_buf, "%.2f%% memory free, %d object slots free",
+        crt_sprintf(
+          status_buf, "%.2f%% memory free, %d object slots free",
           (double)((float)contiguous_free * 100.0f * (1.0f / 1048576.0f)),
           slots_free);
       }
@@ -5581,7 +5618,8 @@ compact_and_callbacks:
         goto finalize;
       if (timed_out) {
         if (contiguous_free < (int)0x6666 || slots_free < 0x33) {
-          crt_sprintf(status_buf, "%.2f%% memory free, %d object slots free",
+          crt_sprintf(
+            status_buf, "%.2f%% memory free, %d object slots free",
             (double)((float)contiguous_free * 100.0f * (1.0f / 1048576.0f)),
             slots_free);
           error(2, "garbage collection warning (%s)", status_buf);
@@ -5594,10 +5632,10 @@ compact_and_callbacks:
     /* Critical path */
     if (is_critical) {
       crt_sprintf(critical_buf, "garbage collection %scritical (%s)",
-        previously_critical ? "" : "now ", status_buf);
+                  previously_critical ? "" : "now ", status_buf);
     } else {
       crt_sprintf(critical_buf, "garbage collection %scritical (%s)",
-        "no longer ", status_buf);
+                  "no longer ", status_buf);
     }
     console_printf(0, "%s", critical_buf);
     error(3, "%s", critical_buf);
@@ -5611,7 +5649,8 @@ compact_and_callbacks:
           init_called = 1;
         }
         more_to_release = 0;
-        if (entry->iterate(result_buf, &more_to_release, gc_working_mem, 0x1000)) {
+        if (entry->iterate(result_buf, &more_to_release, gc_working_mem,
+                           0x1000)) {
           crt_sprintf(message_buf, "removing objects: %s", result_buf);
           console_printf(0, "%s", message_buf);
           error(3, "%s", message_buf);

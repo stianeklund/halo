@@ -13735,7 +13735,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0013c860(void);",
+          "decl": "void FUN_0013c860(int object_handle);",
           "addr": "0x13c860"
         },
         {
@@ -14038,7 +14038,8 @@
         },
         {
           "decl": "void object_reset(int object_handle);",
-          "addr": "0x13fbc0"
+          "addr": "0x13fbc0",
+          "ported": true
         },
         {
           "decl": "void object_placement_data_new(void *placement, int tag_index, int parent_handle);",
