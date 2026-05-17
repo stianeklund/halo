@@ -25708,7 +25708,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00130b70(void);",
+          "decl": "char FUN_00130b70(void *client@<esi>, const char *data, int count);",
           "addr": "0x130b70"
         },
         {
@@ -26328,12 +26328,14 @@
           "addr": "0x1dab2a"
         },
         {
-          "decl": "void FUN_001dabaa(void);",
-          "addr": "0x1dabaa"
+          "decl": "int _ispunct(int c);",
+          "addr": "0x1dabaa",
+          "name": "_ispunct"
         },
         {
-          "decl": "void FUN_001dabd3(void);",
-          "addr": "0x1dabd3"
+          "decl": "int _isalnum(int c);",
+          "addr": "0x1dabd3",
+          "name": "_isalnum"
         },
         {
           "decl": "void FUN_001dac2f(void);",
@@ -32951,7 +32953,7 @@
           "addr": "0x81a90"
         },
         {
-          "decl": "void FUN_00081c80(void);",
+          "decl": "const char *FUN_00081c80(int error_code);",
           "addr": "0x81c80"
         },
         {
