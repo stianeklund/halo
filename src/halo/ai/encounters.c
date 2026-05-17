@@ -972,10 +972,10 @@ void FUN_00058110(int param_1)
 {
   char *base;
   short sVar1;
-  short sVar2;
-  unsigned int *puVar5;
-  unsigned int *puVar6;
-  int iVar4;
+  int sVar2;
+  int *pdst;
+  int *psrc;
+  int i;
 
   if (*(char *)0x5aca59)
     error(2, "%s: ai_vehicle_enterable_disable <some vehicle>",
@@ -986,18 +986,22 @@ void FUN_00058110(int param_1)
     sVar1 = *(short *)(base + 0x3b6);
     sVar2 = 0;
     if (0 < sVar1) {
-      while (*(int *)(base + 0x3b8 + (int)sVar2 * 0x28) != param_1) {
-        sVar2 = (short)(sVar2 + 1);
-        if (sVar1 <= sVar2)
-          return;
-      }
-      *(short *)(base + 0x3b6) = (short)(sVar1 - 1);
-      if (sVar2 < *(short *)(base + 0x3b6)) {
-        puVar5 =
-          (unsigned int *)(base + 0x3b8 + (int)*(short *)(base + 0x3b6) * 0x28);
-        puVar6 = (unsigned int *)(base + 0x3b8 + (int)sVar2 * 0x28);
-        for (iVar4 = 10; iVar4 != 0; iVar4--)
-          *puVar6++ = *puVar5++;
+      do {
+        if (*(int *)(base + 0x3b8 + (short)sVar2 * 0x28) == param_1)
+          goto found;
+        sVar2++;
+      } while ((short)sVar2 < sVar1);
+      return;
+    found:
+      sVar1 = (short)(sVar1 - 1);
+      *(short *)(base + 0x3b6) = sVar1;
+      base = (char *)*(int *)0x632574;
+      sVar1 = *(short *)(base + 0x3b6);
+      if ((short)sVar2 < sVar1) {
+        psrc = (int *)(base + 0x3b8 + (int)sVar1 * 0x28);
+        pdst = (int *)(base + 0x3b8 + sVar2 * 0x28);
+        for (i = 10; i != 0; i--)
+          *pdst++ = *psrc++;
       }
     }
   }
