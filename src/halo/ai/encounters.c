@@ -1346,6 +1346,39 @@ void FUN_00058410(unsigned int param_1, int param_2)
   }
 }
 
+/*
+ * FUN_000584a0 — set follow-target-AI mode for an encounter.
+ * Gets encounter datum at (DAT_005ab270, param_1&0xffff) and sets field +0x62
+ * = 3, field +0x64 = param_2 (AI datum index). If param_2 == -1, disables
+ * follow mode (sets +0x62 = 0). Logs "[thread]: ai_follow_target_ai [enc]
+ * [enc]" if trace on. 0x584a0 / encounters.obj
+ */
+void FUN_000584a0(unsigned int param_1, int param_2)
+{
+  char local_404[512];
+  char local_204[512];
+  void *uVar1;
+  int iVar2;
+
+  if (*(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    FUN_00054220((int)param_1, uVar1, local_404, 0x200);
+    uVar1 = global_scenario_get();
+    FUN_00054220((int)param_1, uVar1, local_204, 0x200);
+    error(2, "%s: ai_follow_target_ai %s %s",
+          hs_runtime_get_executing_thread_name(), local_404, local_204);
+  }
+  if (param_1 != 0xffffffff) {
+    iVar2 = (int)datum_get(*(data_t **)0x5ab270, (int)(param_1 & 0xffff));
+    if (param_2 == -1) {
+      *(short *)((char *)iVar2 + 0x62) = 0;
+      return;
+    }
+    *(short *)((char *)iVar2 + 0x62) = 3;
+    *(int *)((char *)iVar2 + 0x64) = param_2;
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
