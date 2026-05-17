@@ -199,6 +199,32 @@ bool FUN_000567e0(int16_t param_1, int16_t param_2)
   return 0;
 }
 
+/*
+ * FUN_00056880 — count actors in encounters with squad_type==9 and the
+ * given actor handle. Iterates all encounters with flag=1, checks each
+ * actor's field_0x6c (squad type) and field_0x9c (actor handle).
+ * Returns the count of matching actors.
+ *
+ * 0x56880 / encounters.obj
+ */
+short FUN_00056880(int param_1)
+{
+  char local_20[28];
+  int iVar1;
+  short sVar2;
+
+  sVar2 = 0;
+  encounter_iterator_next(local_20, 1);
+  iVar1 = FUN_00059b50(local_20);
+  while (iVar1 != 0) {
+    if (*(short *)((char *)iVar1 + 0x6c) == 9 &&
+        *(int *)((char *)iVar1 + 0x9c) == param_1)
+      sVar2 = (short)(sVar2 + 1);
+    iVar1 = FUN_00059b50(local_20);
+  }
+  return sVar2;
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
