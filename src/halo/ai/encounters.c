@@ -277,7 +277,7 @@ void FUN_000568e0(int param_1)
 void FUN_00056980(int param_1, char param_2)
 {
   char local_11c[256];
-  char local_1c[16];
+  char local_1c[24];
   void *uVar1;
   int iVar3;
 
@@ -631,7 +631,7 @@ void FUN_000570d0(int param_1, int16_t param_2)
 {
   char local_11c[124];
   char local_a0[132];
-  char local_1c[16];
+  char local_1c[24];
   void *uVar1;
   int iVar3;
 
@@ -687,7 +687,7 @@ void FUN_00057190(int param_1, int16_t param_2)
 void FUN_00057230(int param_1)
 {
   char local_11c[256];
-  char local_1c[16];
+  char local_1c[24];
   void *uVar1;
   int iVar2;
 
@@ -745,7 +745,7 @@ void FUN_000572c0(int param_1)
 void FUN_000575d0(int param_1)
 {
   char local_21c[512];
-  char local_1c[16];
+  char local_1c[24];
   void *uVar1;
   int iVar2;
 
