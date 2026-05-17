@@ -1,8 +1,778 @@
 {
-  "actors.obj": {
-    "obj_path": "/mnt/g/dev/halo/delinked/actors.obj",
-    "source": "ai/actors.c",
-    "addr_range": "0x0002a360-0x0003f230",
-    "func_count": 124
+  "objects.obj": {
+    "obj_path": "/mnt/g/dev/halo/delinked/objects.obj",
+    "source": "objects/objects.c",
+    "addr_range": "0x00084a10-0x000ae250",
+    "func_count": 216,
+    "truncated": true,
+    "split": true
+  },
+  "functions/00085000": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00085000.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00085000",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00085110": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00085110.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00085110",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00085150": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00085150.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00085150",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00085180": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00085180.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00085180",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00085260": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00085260.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00085260",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00085280": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00085280.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00085280",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00085350": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00085350.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00085350",
+    "parent_obj": "objects.obj"
+  },
+  "functions/000853a0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/000853a0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x000853a0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/000853c0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/000853c0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x000853c0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0009eb40": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0009eb40.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0009eb40",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0009ec30": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0009ec30.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0009ec30",
+    "parent_obj": "objects.obj"
+  },
+  "functions/000adf70": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/000adf70.obj",
+    "source": "objects/objects.c",
+    "addr": "0x000adf70",
+    "parent_obj": "objects.obj"
+  },
+  "functions/000ae110": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/000ae110.obj",
+    "source": "objects/objects.c",
+    "addr": "0x000ae110",
+    "parent_obj": "objects.obj"
+  },
+  "functions/000ae250": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/000ae250.obj",
+    "source": "objects/objects.c",
+    "addr": "0x000ae250",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001342a0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001342a0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001342a0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00134350": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00134350.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00134350",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001345b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001345b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001345b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00134ae0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00134ae0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00134ae0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00134be0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00134be0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00134be0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00134c40": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00134c40.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00134c40",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00134e50": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00134e50.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00134e50",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00134e80": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00134e80.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00134e80",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00135210": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00135210.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00135210",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001353b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001353b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001353b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001353f0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001353f0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001353f0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00135420": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00135420.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00135420",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00135510": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00135510.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00135510",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00135f20": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00135f20.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00135f20",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00135f90": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00135f90.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00135f90",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00136040": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00136040.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00136040",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001360a0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001360a0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001360a0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00136100": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00136100.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00136100",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001363d0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001363d0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001363d0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001365d0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001365d0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001365d0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001366b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001366b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001366b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001397f0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001397f0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001397f0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00139810": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00139810.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00139810",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00139990": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00139990.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00139990",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00139a30": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00139a30.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00139a30",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00139b40": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00139b40.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00139b40",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00139c20": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00139c20.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00139c20",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00139e50": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00139e50.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00139e50",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013a250": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013a250.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013a250",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013a340": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013a340.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013a340",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013a420": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013a420.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013a420",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013a5f0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013a5f0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013a5f0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013a740": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013a740.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013a740",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013aa10": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013aa10.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013aa10",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013ab20": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013ab20.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013ab20",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013b150": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013b150.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013b150",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013b1b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013b1b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013b1b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013b380": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013b380.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013b380",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013bce0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013bce0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013bce0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c030": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c030.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c030",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c080": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c080.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c080",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c100": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c100.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c100",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c1b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c1b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c1b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c250": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c250.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c250",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c2e0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c2e0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c2e0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c3a0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c3a0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c3a0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c3d0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c3d0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c3d0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c400": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c400.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c400",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c430": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c430.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c430",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c490": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c490.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c490",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c500": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c500.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c500",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c560": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c560.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c560",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c5c0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c5c0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c5c0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c620": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c620.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c620",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c680": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c680.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c680",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c7a0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c7a0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c7a0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c920": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c920.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c920",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c980": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c980.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c980",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013c9e0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013c9e0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013c9e0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013ca30": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013ca30.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013ca30",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013cab0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013cab0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013cab0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013cb30": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013cb30.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013cb30",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013cb80": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013cb80.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013cb80",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013cdd0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013cdd0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013cdd0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013ce90": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013ce90.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013ce90",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013cf50": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013cf50.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013cf50",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013d570": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013d570.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013d570",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013d590": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013d590.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013d590",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013d5f0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013d5f0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013d5f0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013d880": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013d880.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013d880",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013d8b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013d8b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013d8b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013db50": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013db50.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013db50",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013db60": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013db60.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013db60",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013dbe0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013dbe0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013dbe0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013dc10": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013dc10.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013dc10",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013dcb0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013dcb0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013dcb0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013dcc0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013dcc0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013dcc0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013dda0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013dda0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013dda0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013ddd0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013ddd0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013ddd0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013de80": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013de80.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013de80",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013df70": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013df70.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013df70",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013e050": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013e050.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013e050",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013e1f0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013e1f0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013e1f0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013e3f0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013e3f0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013e3f0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013e460": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013e460.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013e460",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013e5d0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013e5d0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013e5d0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013e7b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013e7b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013e7b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013eb30": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013eb30.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013eb30",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013ec00": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013ec00.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013ec00",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013ecb0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013ecb0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013ecb0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013ef70": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013ef70.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013ef70",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013f080": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013f080.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013f080",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013f120": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013f120.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013f120",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013f380": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013f380.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013f380",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013f3b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013f3b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013f3b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013f440": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013f440.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013f440",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013f4b0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013f4b0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013f4b0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013fe10": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013fe10.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013fe10",
+    "parent_obj": "objects.obj"
+  },
+  "functions/0013fe70": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/0013fe70.obj",
+    "source": "objects/objects.c",
+    "addr": "0x0013fe70",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00140750": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00140750.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00140750",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00140a00": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00140a00.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00140a00",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00140ad0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00140ad0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00140ad0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00140b80": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00140b80.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00140b80",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001414e0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001414e0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001414e0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001417c0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001417c0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001417c0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00141900": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00141900.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00141900",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00141970": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00141970.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00141970",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00143510": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00143510.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00143510",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00143550": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00143550.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00143550",
+    "parent_obj": "objects.obj"
+  },
+  "functions/001444f0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/001444f0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x001444f0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00144770": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00144770.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00144770",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00144940": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00144940.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00144940",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00144ae0": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00144ae0.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00144ae0",
+    "parent_obj": "objects.obj"
+  },
+  "functions/00145490": {
+    "obj_path": "/mnt/g/dev/halo/delinked/functions/00145490.obj",
+    "source": "objects/objects.c",
+    "addr": "0x00145490",
+    "parent_obj": "objects.obj"
   }
 }
