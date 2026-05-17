@@ -3166,7 +3166,7 @@
           "addr": "0x16d40"
         },
         {
-          "decl": "void FUN_00016e70(void);",
+          "decl": "bool FUN_00016e70(int actor_handle, int16_t param_2, void *output_buf);",
           "addr": "0x16e70"
         },
         {
@@ -29563,12 +29563,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000570d0(void);",
-          "addr": "0x570d0"
+          "decl": "void FUN_000570d0(int param_1, int16_t param_2);",
+          "addr": "0x570d0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00057190(void);",
-          "addr": "0x57190"
+          "decl": "void FUN_00057190(int param_1, int16_t param_2);",
+          "addr": "0x57190",
+          "ported": true
         },
         {
           "decl": "void FUN_00057230(int param_1);",
