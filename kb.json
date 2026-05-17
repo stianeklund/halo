@@ -29482,8 +29482,9 @@
           "addr": "0x566a0"
         },
         {
-          "decl": "void FUN_00056790(void);",
-          "addr": "0x56790"
+          "decl": "void FUN_00056790(int16_t param_1, int16_t param_2);",
+          "addr": "0x56790",
+          "ported": true
         },
         {
           "decl": "void FUN_000567e0(void);",

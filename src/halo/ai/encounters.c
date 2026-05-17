@@ -165,6 +165,25 @@ void FUN_000563c0(int actor_datum, unsigned int encounter_handle,
   }
 }
 
+/*
+ * FUN_00056790 — debug-logged wrapper for game_allegiance_remove.
+ *
+ * If AI trace flag (0x5aca59) is set, logs the removal using the MSVC
+ * pre-push optimization (team_a/team_b pushed before thread_name call).
+ * If both params are not -1, calls game_allegiance_remove.
+ *
+ * 0x56790 / encounters.obj
+ */
+void FUN_00056790(int16_t param_1, int16_t param_2)
+{
+  if (*(char *)0x5aca59) {
+    error(2, "%s: ai_allegiance_remove %d %d",
+          hs_runtime_get_executing_thread_name(), (int)param_1, (int)param_2);
+  }
+  if (param_1 != (int16_t)-1 && param_2 != (int16_t)-1)
+    game_allegiance_remove(param_1, param_2);
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
