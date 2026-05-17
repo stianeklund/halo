@@ -1379,6 +1379,42 @@ void FUN_000584a0(unsigned int param_1, int param_2)
   }
 }
 
+/* 0x00058550 — ai_follow_distance (FUN_00058550).
+ *
+ * Sets the follow distance for an encounter. If the AI trace flag at 0x5aca59
+ * is set, logs the encounter name and the new distance via error(). Then, if
+ * the encounter handle is valid (!= -1), stores the float distance at offset
+ * +0x68 in the encounter record.
+ *
+ * Confirmed:
+ *   - ESI = param_1 (encounter_handle, callee-saved).
+ *   - [ebp+0xc] = param_2 (follow_distance, float).
+ *   - Uses push-then-fstp for variadic double promotion of param_2.
+ *   - encounter_data at *(data_t**)0x5ab270.
+ *   - FUN_00054220 formats encounter handle into a name string.
+ *   - 0x5aca59 = AI trace flag.
+ *   - encounter+0x68 = follow_distance field.
+ *   - Format string: "%s: ai_follow_distance %s %.1f" at 0x25d034.
+ */
+void FUN_00058550(unsigned int param_1, float param_2)
+{
+  char buffer[512];
+  void *scenario;
+  char *encounter;
+
+  if (*(char *)0x5aca59) {
+    scenario = global_scenario_get();
+    FUN_00054220((int)param_1, scenario, buffer, 0x200);
+    error(2, "%s: ai_follow_distance %s %.1f",
+          hs_runtime_get_executing_thread_name(), buffer, param_2);
+  }
+  if (param_1 != 0xffffffff) {
+    encounter =
+      (char *)datum_get(*(data_t **)0x5ab270, (int)(param_1 & 0xffff));
+    *(float *)(encounter + 0x68) = param_2;
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
