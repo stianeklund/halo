@@ -14037,7 +14037,7 @@
           "ported": true
         },
         {
-          "decl": "void object_reset(void);",
+          "decl": "void object_reset(int object_handle);",
           "addr": "0x13fbc0"
         },
         {
@@ -23812,7 +23812,7 @@
           "addr": "0x1a1a10"
         },
         {
-          "decl": "void biped_approximate_surface_index(void);",
+          "decl": "int biped_approximate_surface_index(int unit_handle, int param_2);",
           "addr": "0x1a1b90"
         },
         {
@@ -28522,7 +28522,7 @@
       "data": [],
       "functions": [
         {
-          "decl": "void FUN_0002f1a0(void);",
+          "decl": "void FUN_0002f1a0(int actor_handle);",
           "addr": "0x2f1a0"
         },
         {
@@ -29526,7 +29526,8 @@
         },
         {
           "decl": "void FUN_00056c60(int encounter_handle@<ecx>, char param_2);",
-          "addr": "0x56c60"
+          "addr": "0x56c60",
+          "ported": true
         },
         {
           "decl": "void FUN_00056d80(int param_1);",
