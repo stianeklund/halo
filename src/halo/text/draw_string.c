@@ -363,3 +363,59 @@ void *FUN_0019bcc0(int16_t style, int font_index)
   }
   return tag_get(0x666f6e74, tag_handle);
 }
+
+/*
+ * FUN_0019c0a0 — advance a wide-char string tokenizer by one character.
+ *
+ * Reads the next wide character (int16_t) from state->buffer[pos], stores it
+ * in state->current_char (+0x12), increments state->pos (+0xc), then
+ * classifies and stores the token type at state->token_type (+0x14):
+ *   '\0' (0)    → type 0 (end of string)
+ *   '\t' (9)    → type 3 (tab)
+ *   '\r' (13)   → type 1 (newline)
+ *   '|n' (7c 6e) → type 1, char = '\r' (escape sequence for newline)
+ *   other        → type 6 (printable/other)
+ * Returns the token type.
+ *
+ * state@<eax>: pointer to { ...; int *buffer (+8); short pos (+0xc);
+ *              short current_char (+0x12); short token_type (+0x14); ... }
+ *
+ * 0x19c0a0 / draw_string.obj
+ */
+int16_t FUN_0019c0a0(void *state)
+{
+  char *s = (char *)state;
+  short pos;
+  int16_t c;
+  int16_t c2;
+
+  pos = *(short *)(s + 0xc);
+  c = *(int16_t *)(*(int *)(s + 0x8) + (int)pos * 2);
+  *(int16_t *)(s + 0x12) = c;
+  *(short *)(s + 0xc) = (short)(pos + 1);
+
+  switch ((unsigned short)c) {
+  case 0:
+    *(int16_t *)(s + 0x14) = 0;
+    return *(int16_t *)(s + 0x14);
+  case 9:
+    *(int16_t *)(s + 0x14) = 3;
+    return *(int16_t *)(s + 0x14);
+  case 0xd:
+    *(int16_t *)(s + 0x14) = 1;
+    return *(int16_t *)(s + 0x14);
+  case 0x7c:
+    c2 = *(int16_t *)(*(int *)(s + 0x8) + (int)(short)(pos + 1) * 2);
+    *(short *)(s + 0xc) = (short)(pos + 2);
+    if (c2 == 0x6e) {
+      *(int16_t *)(s + 0x12) = 0xd;
+      *(int16_t *)(s + 0x14) = 1;
+      return *(int16_t *)(s + 0x14);
+    }
+    /* fall through */
+  default:
+    *(int16_t *)(s + 0x14) = 6;
+    break;
+  }
+  return *(int16_t *)(s + 0x14);
+}

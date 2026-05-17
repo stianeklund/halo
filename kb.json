@@ -25783,8 +25783,9 @@
           "addr": "0x19be30"
         },
         {
-          "decl": "void FUN_0019c0a0(void);",
-          "addr": "0x19c0a0"
+          "decl": "int16_t FUN_0019c0a0(void *state@<eax>);",
+          "addr": "0x19c0a0",
+          "ported": true
         },
         {
           "decl": "void FUN_0019c1b0(void);",

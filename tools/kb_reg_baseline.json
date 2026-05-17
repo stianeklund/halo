@@ -222,6 +222,7 @@
     "0x12e750": "bool FUN_0012e750(int server@<esi>);",
     "0x130b70": "char FUN_00130b70(void *client@<esi>, const char *data, int count);",
     "0x19bcc0": "void *FUN_0019bcc0(int16_t style@<si>, int font_index@<edi>);",
+    "0x19c0a0": "int16_t FUN_0019c0a0(void *state@<eax>);",
     "0x136890": "int FUN_00136890(int object_index@<eax>);",
     "0x1369e0": "void FUN_001369e0(int object_handle @<eax>, int effect_tag_index);",
     "0x136a00": "void FUN_00136a00(int object_handle @<eax>, char param_1);",
