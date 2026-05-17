@@ -360,6 +360,65 @@ void FUN_00056bc0(int param_1, char param_2)
 }
 
 /*
+ * FUN_00056c60 — teleport actors in an encounter to their starting locations.
+ *
+ * Iterates encounter actors. For each actor with a unit (field_0x18) and
+ * a valid encounter handle (field_0x34):
+ *   - If param_2 != 0 (if_unsupported mode): only teleport if the actor
+ *     is not in a vehicle (field_0x158 == -1) AND has no surface contact
+ *     (biped_approximate_surface_index returns -1).
+ *   - Looks up the actor's squad starting location via tag_block_get_element
+ *     chains, selects the first starting location via FUN_0005B790, then:
+ *     vector3d_from_angle → object_set_position → object_reset → FUN_0002f1a0.
+ *
+ * encounter_handle@<ecx>; local_28[16]=iterator, local_28+0x10=actor handle.
+ *
+ * 0x56c60 / encounters.obj
+ */
+void FUN_00056c60(int encounter_handle, char param_2)
+{
+  char local_28[16]; /* iterator state; local_28+0x10 = actor handle */
+  char local_10[12]; /* output buffer for vector3d_from_angle */
+  int iVar2;
+  int iVar3;
+  short sVar1;
+
+  FUN_00054680(encounter_handle, local_28);
+  iVar2 = FUN_00054750(local_28);
+  while (iVar2 != 0) {
+    if (*(int *)((char *)iVar2 + 0x18) != -1) {
+      if (param_2 != '\0') {
+        if (*(int *)((char *)iVar2 + 0x158) != -1 ||
+            biped_approximate_surface_index(*(int *)((char *)iVar2 + 0x18),
+                                            0) != -1)
+          goto next;
+      }
+      if (*(int *)((char *)iVar2 + 0x34) != -1) {
+        iVar3 = (int)global_scenario_get();
+        iVar3 = (int)tag_block_get_element(
+          (char *)iVar3 + 0x42c, *(int *)((char *)iVar2 + 0x34) & 0xffff, 0xb0);
+        iVar3 = (int)tag_block_get_element(
+          (char *)iVar3 + 0x80, (int)*(short *)((char *)iVar2 + 0x3a), 0xe8);
+        sVar1 = FUN_0005B790(*(int *)((char *)iVar2 + 0x34),
+                             (int)*(short *)((char *)iVar2 + 0x3a), 1);
+        if (sVar1 != (short)-1) {
+          iVar3 =
+            (int)tag_block_get_element((char *)iVar3 + 0xd0, (int)sVar1, 0x1c);
+          vector3d_from_angle((float *)local_10,
+                              *(float *)((char *)iVar3 + 0xc));
+          object_set_position(*(int *)((char *)iVar2 + 0x18), (float *)iVar3,
+                              (float *)local_10, 0);
+          object_reset(*(int *)((char *)iVar2 + 0x18));
+          FUN_0002f1a0(*(int *)(local_28 + 0x10));
+        }
+      }
+    }
+  next:
+    iVar2 = FUN_00054750(local_28);
+  }
+}
+
+/*
  * FUN_00056d80 — teleport actors to starting location if unsupported.
  * Logs "[thread]: ai_teleport_starting_location_if_unsupported [encounter]"
  * then calls FUN_00056c60(param_1, 1) — which checks if_unsupported=true.
