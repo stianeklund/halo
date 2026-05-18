@@ -1611,6 +1611,53 @@ void FUN_000587d0(int param_1, int param_2)
   }
 }
 
+/* 0x00058970 — ai_magically_see_encounter (FUN_00058970).
+ *
+ * Makes all actors in param_1 encounter "magically see" the units/vehicles
+ * belonging to actors in param_2 encounter.  For each actor in encounter
+ * param_2, grabs the actor's unit handle (offset 0x18); if that is NONE,
+ * falls back to the vehicle handle (offset 0x24).  Calls FUN_00055110 to
+ * register the sighting with encounter param_1.
+ *
+ * Confirmed:
+ *   - param_1, param_2 = encounter handles (int).
+ *   - DAT_005aca59 gates debug trace output.
+ *   - FUN_00054220(handle, scenario, buf, 0x100) formats encounter name.
+ *   - FUN_00054680/FUN_00054750 = encounter actor iterator init/next.
+ *   - Iterator return value is pointer to actor datum.
+ *   - actor+0x18 = unit_handle, actor+0x24 = vehicle unit list head handle.
+ *   - FUN_00055110(encounter_handle, unit_handle) registers the sighting.
+ */
+void FUN_00058970(int param_1, int param_2)
+{
+  char local_21c[256];
+  char local_11c[256];
+  char local_1c[24];
+  void *scenario;
+  int iVar2;
+  int iVar3;
+
+  if (*(char *)0x5aca59 != '\0') {
+    scenario = global_scenario_get();
+    FUN_00054220(param_1, scenario, local_21c, 0x100);
+    scenario = global_scenario_get();
+    FUN_00054220(param_2, scenario, local_11c, 0x100);
+    error(2, "%s: ai_magically_see_encounter %s %s",
+          hs_runtime_get_executing_thread_name(), local_21c, local_11c);
+  }
+  if (param_1 != -1 && param_2 != -1) {
+    FUN_00054680(param_2, local_1c);
+    iVar2 = FUN_00054750(local_1c);
+    while (iVar2 != 0) {
+      iVar3 = *(int *)(iVar2 + 0x18);
+      if (iVar3 != -1 || (iVar3 = *(int *)(iVar2 + 0x24), iVar3 != -1)) {
+        FUN_00055110(param_1, iVar3);
+      }
+      iVar2 = FUN_00054750(local_1c);
+    }
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
