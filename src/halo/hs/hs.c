@@ -460,6 +460,24 @@ void FUN_000c4b40(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc4b60 — HS script function handler: random integer in range.
+ * Evaluates the macro arguments to get (min, max) short values from the
+ * hs_macro_function_evaluate result. Advances the global random seed and
+ * returns a random value in [min, max] to the HS thread. */
+void FUN_000c4b60(int16_t function_index, int thread_datum, char init)
+{
+  short *result;
+  int16_t value;
+
+  result =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value = random_range((unsigned int *)get_global_random_seed_address(),
+                         result[0], result[2]);
+    hs_return(thread_datum, (int)value);
+  }
+}
+
 /* Load scenario scripts from the scenario tag.  Allocates a fresh syntax
  * data table via hs_scripts_initialize, then either validates existing
  * compiled scripts or recompiles from source.  If the scenario has no

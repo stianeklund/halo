@@ -567,6 +567,54 @@ void game_set_game_variant_from_name(const char *name)
   qmemcpy(&game_variant_global, &variant_copy, sizeof(game_variant_t));
 }
 
+/* FUN_000b4170 (0xb4170) — race/team score computation.
+ * Given a player handle and a mode flag, computes a score:
+ *   mode 1: returns a per-team value from the table at 0x456f98.
+ *   otherwise: counts set bits in the per-team bitmask at 0x456f54
+ *              (8 bits per loop iteration, 4 iterations for all 32 bits),
+ *              then returns player->c2 * 0x21 + bit_count. */
+int FUN_000b4170(int player_handle, int param_2)
+{
+  int iVar1;
+  unsigned int uVar2;
+  unsigned char bVar3;
+  int iVar5;
+  int iVar6;
+  char *player;
+  int team_index;
+
+  player = (char *)datum_get(player_data, player_handle);
+  team_index = *(int *)(player + 0x20);
+  if (param_2 == 1) {
+    return ((int *)0x456f98)[team_index];
+  }
+  uVar2 = ((unsigned int *)0x456f54)[team_index];
+  iVar6 = 0;
+  iVar5 = 2;
+  do {
+    bVar3 = (unsigned char)iVar5;
+    if ((uVar2 & (1 << (bVar3 - 2))) != 0)
+      iVar6 = iVar6 + 1;
+    if ((uVar2 & (1 << (bVar3 - 1))) != 0)
+      iVar6 = iVar6 + 1;
+    if ((uVar2 & (1 << bVar3)) != 0)
+      iVar6 = iVar6 + 1;
+    if ((uVar2 & (1 << (bVar3 + 1))) != 0)
+      iVar6 = iVar6 + 1;
+    if ((uVar2 & (1 << (bVar3 + 2))) != 0)
+      iVar6 = iVar6 + 1;
+    if ((uVar2 & (1 << (bVar3 + 3))) != 0)
+      iVar6 = iVar6 + 1;
+    if ((uVar2 & (1 << (bVar3 + 4))) != 0)
+      iVar6 = iVar6 + 1;
+    if ((uVar2 & (1 << (bVar3 + 5))) != 0)
+      iVar6 = iVar6 + 1;
+    iVar1 = iVar5 + 6;
+    iVar5 = iVar5 + 8;
+  } while (iVar1 < 0x20);
+  return (int)*(int16_t *)(player + 0xc2) * 0x21 + iVar6;
+}
+
 /* FUN_000b4250 (0xb4250) — race score string
  *
  * Formats the player's race score (lap/flag count) into a wide string buffer.

@@ -7201,8 +7201,9 @@
           "addr": "0xb40f0"
         },
         {
-          "decl": "void FUN_000b4170(void);",
-          "addr": "0xb4170"
+          "decl": "int FUN_000b4170(int player_handle, int param_2);",
+          "addr": "0xb4170",
+          "ported": true
         },
         {
           "decl": "wchar_t *FUN_000b4250(wchar_t *dst, int player_handle);",
@@ -9957,8 +9958,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000c4b60(void);",
-          "addr": "0xc4b60"
+          "decl": "void FUN_000c4b60(int16_t function_index, int thread_datum, char init);",
+          "addr": "0xc4b60",
+          "ported": true
         },
         {
           "decl": "void FUN_000c4bb0(void);",
