@@ -6692,14 +6692,6 @@
           "addr": "0xdc730"
         },
         {
-          "decl": "void FUN_000dc750(void);",
-          "addr": "0xdc750"
-        },
-        {
-          "decl": "void FUN_000dc7a0(void);",
-          "addr": "0xdc7a0"
-        },
-        {
           "decl": "int16_t FUN_000dc800(int event @<eax>);",
           "addr": "0xdc800",
           "ported": true
@@ -6906,6 +6898,16 @@
       "name": "first_person_weapons.obj",
       "source": "interface/first_person_weapons.c",
       "functions": [
+        {
+          "decl": "void FUN_000dc750(void);",
+          "addr": "0xdc750",
+          "ported": true
+        },
+        {
+          "decl": "void FUN_000dc7a0(void);",
+          "addr": "0xdc7a0",
+          "ported": false
+        },
         {
           "decl": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
           "addr": "0xdc8c0",

@@ -1,3 +1,42 @@
+/* Allocate the first-person weapons game state block (0xdc750).
+ * Reserves 0x7a80 bytes (4 slots of 0x1ea0 each) via game_state_malloc.
+ * Asserts on allocation failure. */
+void FUN_000dc750(void)
+{
+  *(void **)0x46bea8 = game_state_malloc("first person weapons", 0, 0x7a80);
+  if (*(void **)0x46bea8 == 0) {
+    display_assert("first_person_weapons",
+                   "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0xf0,
+                   1);
+    system_exit(-1);
+  }
+}
+
+/* Initialize (clear) all 4 first-person weapon slots (0xdc7a0).
+ * Each slot is 0x1ea0 bytes. After zeroing, sets sentinel values:
+ *   slot+0x04 = -1 (0xffffffff)
+ *   slot+0x1e98 = -1 (0xffffffff)
+ *   slot+0x1e9c = -1 (0xffff, 16-bit) */
+void FUN_000dc7a0(void)
+{
+  int i;
+  int offset;
+  int base;
+
+  offset = 0;
+  i = 4;
+  base = *(int *)0x46bea8;
+  do {
+    csmemset((void *)(base + offset), 0, 0x1ea0);
+    base = *(int *)0x46bea8;
+    *(int *)(offset + 4 + base) = -1;
+    *(int *)(offset + 0x1e98 + base) = -1;
+    *(short *)(offset + 0x1e9c + base) = -1;
+    offset += 0x1ea0;
+    i--;
+  } while (i != 0);
+}
+
 /* Map a first-person weapon state to an animation graph index (0xdc8c0).
  * Pure lookup table: 24 states (0..23) map to animation indices; any
  * out-of-range state returns -1. */
