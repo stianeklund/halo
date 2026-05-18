@@ -3116,6 +3116,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc4e20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc4e90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc5050": {
       "kind": "function",
       "status": "ported"

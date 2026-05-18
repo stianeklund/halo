@@ -26,10 +26,10 @@ director.obj,true,0x00085A40-0x00088460,44
 editor_stubs.obj,true,0x000977E0-0x00097A70,10
 effects.obj,true,0x0009C650-0x0009F630,37
 errors.obj,true,0x0008E5F0-0x0008FA10,26
-event_manager.obj,true,0x000D98C0-0x000DCA00,37
+event_manager.obj,true,0x000D98C0-0x000DCA00,35
 files.obj,true,0x00199420-0x0019A8D0,17
 files_windows.obj,true,0x00199D40-0x0019B0D0,24
-first_person_weapons.obj,true,0x000DC8C0-0x000DED60,28
+first_person_weapons.obj,true,0x000DC750-0x000DED60,30
 game.obj,true,0x000A6A80-0x000B57B0,59
 game_allegiance.obj,true,0x000A7940-0x000A8330,17
 game_engine.obj,true,0x000A81A0-0x000B3EF0,237
