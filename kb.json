@@ -5573,16 +5573,18 @@
           "addr": "0x119b40"
         },
         {
-          "decl": "void FUN_00119bb0(void);",
-          "addr": "0x119bb0"
+          "decl": "unsigned int FUN_00119bb0(unsigned int *buf, unsigned int size);",
+          "addr": "0x119bb0",
+          "ported": true
         },
         {
           "decl": "void FUN_00119bf0(void);",
           "addr": "0x119bf0"
         },
         {
-          "decl": "void FUN_00119c50(void);",
-          "addr": "0x119c50"
+          "decl": "void FUN_00119c50(int *state, int buf, int buf_size);",
+          "addr": "0x119c50",
+          "ported": true
         },
         {
           "decl": "void FUN_00119cc0(void);",

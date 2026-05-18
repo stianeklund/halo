@@ -388,6 +388,41 @@ void data_compact(data_t *data)
     }
 }
 
+/* Decode first 4 bytes of buf as a big-endian uint32, if size >= 4.
+ * 0x119bb0 / data.obj
+ */
+unsigned int FUN_00119bb0(unsigned int *buf, unsigned int size)
+{
+    unsigned int uVar1;
+
+    uVar1 = 0;
+    if (3 < size) {
+        uVar1 = *buf;
+        uVar1 = ((uVar1 & 0xff0000) | uVar1 >> 0x10) >> 8 |
+                ((uVar1 << 0x10) | (uVar1 & 0xff00)) << 8;
+    }
+    return uVar1;
+}
+
+/* Initialize a data encoding state struct with buffer and size.
+ * Zeroes the 16-byte struct, then sets buf and buf_size fields.
+ * 0x119c50 / data.obj
+ */
+void FUN_00119c50(int *state, int buf, int buf_size)
+{
+    if (buf == 0) {
+        display_assert("buffer", "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x19, 1);
+        system_exit(-1);
+    }
+    if (buf_size < 0) {
+        display_assert("buffer_size>=0", "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x1a, 1);
+        system_exit(-1);
+    }
+    csmemset(state, 0, 0x10);
+    *state = buf;
+    state[2] = buf_size;
+}
+
 void data_delete_all(data_t *data)
 {
   data_verify(data);
