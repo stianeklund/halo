@@ -7469,8 +7469,9 @@
           "addr": "0xa84f0"
         },
         {
-          "decl": "void FUN_000a8580(void);",
-          "addr": "0xa8580"
+          "decl": "void FUN_000a8580(unsigned int *param_1, unsigned int *param_2, unsigned int *param_3);",
+          "addr": "0xa8580",
+          "ported": true
         },
         {
           "decl": "void FUN_000a85d0(void);",

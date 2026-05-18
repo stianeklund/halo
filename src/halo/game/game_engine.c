@@ -118,6 +118,28 @@ int game_engine_player_count(void)
   return count;
 }
 
+/* Initialize three 4-float color vectors (stored as integer hex)
+ * used by the post-game scoreboard highlight rendering.
+ * param_1 = primary highlight color (pinkish: 1.0, 0.459, 0.729, 1.0)
+ * param_2 = secondary highlight color (white: 1.0, 1.0, 1.0, 0.0)
+ * param_3 = tertiary highlight color (off-white: 1.0, 0.979, 0.961, 0.961) */
+void FUN_000a8580(unsigned int *param_1, unsigned int *param_2,
+                  unsigned int *param_3)
+{
+  param_1[1] = 0x3eeaeaeb;
+  param_1[2] = 0x3f3ababb;
+  param_1[3] = 0x3f800000;
+  *param_1 = 0x3f800000;
+  param_2[1] = 0x3f800000;
+  param_2[2] = 0x3f800000;
+  param_2[3] = 0;
+  *param_2 = 0x3f800000;
+  param_3[1] = 0x3f7ae148;
+  param_3[2] = 0x3f75c28f;
+  param_3[3] = 0x3f75c28f;
+  *param_3 = 0x3f800000;
+}
+
 /* Remove dropped weapons older than 900 ticks (30 seconds) and
  * equipment items whose idle timer exceeds 900 ticks.
  * Weapons that are CTF flags or attached to vehicles are preserved. */
