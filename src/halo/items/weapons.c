@@ -885,6 +885,12 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
   if (trigger_index < 0)
     return false;
 
+  /* param_7 is the target position (float *). When NULL fall back to param_4
+   * (the pre-fix behavior) — callers that set target=0 typically have a valid
+   * param_4; returning false here broke initialization call sites. */
+  if (param_7 == 0)
+    param_7 = (int)param_4;
+
   int trigger_count = *(int *)(weap_tag + 0x4fc);
   int trig_idx = (int)trigger_index;
   if (trig_idx >= trigger_count)
@@ -898,12 +904,18 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
   int proj_ref = *(int *)(trigger_elem + 0xa0);
 
   /* tag_get + projectile_aim share a single stack cleanup.
-   * The 12 args pushed before tag_get's own 2 args are left on the stack
-   * and become args 2-13 for projectile_aim. Represent faithfully as two
-   * separate calls passing the same set of parameters. */
+   * Binary push order at 0xfd49f (right-to-left, 14 total, 2 cleaned):
+   *   param_9, param_8, param_7, 0, param_6(aim_vec), param_5, 0,0,0,0,
+   *   param_7, param_3, proj_ref, 'proj'
+   * tag_get pops 'proj' + proj_ref → 12 stale args remain.
+   * → projectile_aim: arg2=param_3(origin), arg3=param_7(target),
+   *   arg9=param_6(aim_vector). param_7 repeats at arg3 and arg11.
+   * Bug: original code had param_4 here; correct arg is param_7. */
   void *proj_tag = tag_get(0x70726f6a, proj_ref);
   ((void (*)(void *, void *, void *, int, int, int, int, int, float *, int, int,
-             void *, void *))0xf84d0)(proj_tag, param_3, param_4, 0, 0, 0, 0,
+             void *, void *))0xf84d0)(proj_tag, param_3,
+                                      (void *)param_7,
+                                      0, 0, 0, 0,
                                       param_5, param_6, 0, param_7, param_8,
                                       param_9);
 
