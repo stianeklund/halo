@@ -29884,8 +29884,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0005a430(void);",
-          "addr": "0x5a430"
+          "decl": "void FUN_0005a430(int actor_handle);",
+          "addr": "0x5a430",
+          "ported": true
         },
         {
           "decl": "char FUN_0005a4e0(int encounter_index /* @<eax> */);",

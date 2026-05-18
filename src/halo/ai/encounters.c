@@ -2494,6 +2494,30 @@ short FUN_0005a3b0(void *squad_def)
   return 0xe;
 }
 
+/* FUN_0005a430 (0x5a430) — actor_activate_encounterless.
+ * Asserts the actor is marked encounterless (actor+9 != 0), sets the actor's
+ * encounter timer (actor+0x10) to 90 ticks (0x5a), then activates the actor.
+ * Called when an encounterless actor is being brought into active duty.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x5a43a.
+ * Confirmed: assertion "actor->meta.encounterless" at line 0x720.
+ * Confirmed: *(int16_t*)(actor+0x10) = 0x5a at 0x5a46a.
+ * Confirmed: actor_set_active(actor_handle, 1) at 0x5a474.
+ */
+void FUN_0005a430(int actor_handle)
+{
+  char *actor_ptr;
+
+  actor_ptr = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(char *)(actor_ptr + 9) == '\0') {
+    display_assert("actor->meta.encounterless",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x720, 1);
+    system_exit(-1);
+  }
+  *(int16_t *)(actor_ptr + 0x10) = 0x5a;
+  actor_set_active(actor_handle, 1);
+}
+
 /* 0x5a4e0 — encounter_activate.
  * Activates an encounter if its BSP requirement is satisfied (enc_def+0x7e is
  * NONE or matches the current global_structure_bsp_index).  When the encounter
