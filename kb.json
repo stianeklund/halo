@@ -7205,12 +7205,14 @@
           "addr": "0xb4170"
         },
         {
-          "decl": "void FUN_000b4250(void);",
-          "addr": "0xb4250"
+          "decl": "wchar_t *FUN_000b4250(wchar_t *dst, int player_handle);",
+          "addr": "0xb4250",
+          "ported": true
         },
         {
-          "decl": "void FUN_000b4290(void);",
-          "addr": "0xb4290"
+          "decl": "wchar_t *FUN_000b4290(wchar_t *dst);",
+          "addr": "0xb4290",
+          "ported": true
         },
         {
           "decl": "void FUN_000b42d0(void);",
@@ -7598,7 +7600,7 @@
           "addr": "0xa9310"
         },
         {
-          "decl": "void game_engine_get_variant(void);",
+          "decl": "void *game_engine_get_variant(void);",
           "addr": "0xa9350"
         },
         {
@@ -23625,7 +23627,7 @@
           "addr": "0x19e980"
         },
         {
-          "decl": "void usprintf(void);",
+          "decl": "wchar_t *usprintf(wchar_t *dst, const wchar_t *fmt, ...);",
           "addr": "0x19eaa0"
         },
         {

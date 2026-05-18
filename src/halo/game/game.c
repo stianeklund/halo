@@ -567,6 +567,39 @@ void game_set_game_variant_from_name(const char *name)
   qmemcpy(&game_variant_global, &variant_copy, sizeof(game_variant_t));
 }
 
+/* FUN_000b4250 (0xb4250) — race score string
+ *
+ * Formats the player's race score (lap/flag count) into a wide string buffer.
+ * Looks up the player datum by handle, reads the int16 score at offset 0xc2,
+ * and formats it via usprintf with the format string at 0x26c118 (likely
+ * L"%d"). */
+wchar_t *FUN_000b4250(wchar_t *dst, int player_handle)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, player_handle);
+  usprintf(dst, (const wchar_t *)0x26c118, (int)*(int16_t *)(player + 0xc2));
+  return dst;
+}
+
+/* FUN_000b4290 (0xb4290) — race score header string
+ *
+ * Returns the header label for the race score column.
+ * If the game variant modifier (offset 0x4c) is 2 (flags mode), returns
+ * L"Flags". Otherwise returns L"Laps". */
+wchar_t *FUN_000b4290(wchar_t *dst)
+{
+  void *variant;
+
+  variant = game_engine_get_variant();
+  if (*(int *)((char *)variant + 0x4c) == 2) {
+    usprintf(dst, L"Flags");
+    return dst;
+  }
+  usprintf(dst, L"Laps");
+  return dst;
+}
+
 /* 0xb5490 — FUN_000b5490
  *
  * Returns the name string for a given material type index.
