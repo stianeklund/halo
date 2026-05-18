@@ -129,13 +129,17 @@ void *hs_external_global_get(int16_t global_index)
  * Bit 15 clear: scenario global (element+0x20, block at scenario+0x4a8). */
 int16_t hs_global_get_type(uint16_t script_ref)
 {
+  char *scenario;
+  void *element;
+  void *desc;
+
   if (script_ref & 0x8000) {
-    void *desc = hs_external_global_get((int16_t)(script_ref & 0x7fff));
+    desc = hs_external_global_get((int16_t)(script_ref & 0x7fff));
     return *(int16_t *)((char *)desc + 0x4);
   }
-  char *scenario = (char *)global_scenario_get();
-  void *element = tag_block_get_element((void *)(scenario + 0x4a8),
-                                        (int)(script_ref & 0x7fff), 0x5c);
+  scenario = (char *)global_scenario_get();
+  element = tag_block_get_element((void *)(scenario + 0x4a8),
+                                  (int)(script_ref & 0x7fff), 0x5c);
   return *(int16_t *)((char *)element + 0x20);
 }
 
@@ -145,11 +149,14 @@ int16_t hs_global_get_type(uint16_t script_ref)
  * tag_block at scenario+0x4a8. */
 const char *hs_global_get_name(uint16_t global_ref)
 {
+  void *desc;
+  char *scenario;
+
   if (global_ref & 0x8000) {
-    void *desc = hs_external_global_get((int16_t)(global_ref & 0x7fff));
+    desc = hs_external_global_get((int16_t)(global_ref & 0x7fff));
     return *(const char **)desc;
   }
-  char *scenario = (char *)global_scenario_get();
+  scenario = (char *)global_scenario_get();
   return (const char *)tag_block_get_element((void *)(scenario + 0x4a8),
                                              (int)(global_ref & 0x7fff), 0x5c);
 }
@@ -444,6 +451,15 @@ cleanup:
   return (bool)ok;
 }
 
+/* 0xc4b40 — HS console command handler: set the recompile flag.
+ * Sets the global recompile flag at 0x46b6d8 to 1, then returns void
+ * to the HS thread via hs_return(thread_datum, 0). */
+void FUN_000c4b40(int16_t function_index, int thread_datum, char init)
+{
+  *(uint8_t *)0x46b6d8 = 1;
+  hs_return(thread_datum, 0);
+}
+
 /* Load scenario scripts from the scenario tag.  Allocates a fresh syntax
  * data table via hs_scripts_initialize, then either validates existing
  * compiled scripts or recompiles from source.  If the scenario has no
@@ -576,6 +592,30 @@ void hs_dispose_from_old_map(void)
   }
   hs_runtime_dispose_from_old_map();
   hs_runtime_dispose();
+}
+
+/* 0xc4ff0 — HS console command handler: print documentation.
+ * Calls hs_doc() to dump HaloScript documentation to the console,
+ * then returns void to the HS thread. */
+void FUN_000c4ff0(int16_t function_index, int thread_datum, char init)
+{
+  hs_doc();
+  hs_return(thread_datum, 0);
+}
+
+/* 0xc5010 — HS console command handler: context-sensitive help.
+ * Evaluates the macro argument via hs_macro_function_evaluate. If
+ * evaluation succeeds (non-zero return), calls hs_help() and returns
+ * void to the HS thread. */
+void FUN_000c5010(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+
+  result = hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    hs_help();
+    hs_return(thread_datum, 0);
+  }
 }
 
 /* Initialize the scripting engine: validate type names, set up
