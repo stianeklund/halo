@@ -7263,24 +7263,28 @@
           "addr": "0xb4d00"
         },
         {
-          "decl": "void FUN_000b4d50(void);",
-          "addr": "0xb4d50"
+          "decl": "int FUN_000b4d50(unsigned int player_handle, int param_2);",
+          "addr": "0xb4d50",
+          "ported": true
         },
         {
           "decl": "void FUN_000b4d90(void);",
           "addr": "0xb4d90"
         },
         {
-          "decl": "void FUN_000b4da0(void);",
-          "addr": "0xb4da0"
+          "decl": "wchar_t *FUN_000b4da0(unsigned int player_handle, wchar_t *dst);",
+          "addr": "0xb4da0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000b4dd0(void);",
-          "addr": "0xb4dd0"
+          "decl": "wchar_t *FUN_000b4dd0(wchar_t *dst);",
+          "addr": "0xb4dd0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000b4df0(void);",
-          "addr": "0xb4df0"
+          "decl": "wchar_t *FUN_000b4df0(int index, wchar_t *dst);",
+          "addr": "0xb4df0",
+          "ported": true
         },
         {
           "decl": "void FUN_000b4e20(void);",

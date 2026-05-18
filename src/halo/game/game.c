@@ -600,6 +600,52 @@ wchar_t *FUN_000b4290(wchar_t *dst)
   return dst;
 }
 
+/* FUN_000b4d50 (0xb4d50) — race score lookup
+ *
+ * Looks up a player's race score value. If param_2 == 1, reads score from
+ * the 0x456fe0 table indexed by the player's int at offset 0x20. Otherwise
+ * reads from the 0x457020 table indexed by the player handle's low 16 bits. */
+int FUN_000b4d50(unsigned int player_handle, int param_2)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, player_handle);
+  if (param_2 == 1) {
+    return *(int *)(0x456fe0 + *(int *)(player + 0x20) * 4);
+  }
+  return *(int *)(0x457020 + (player_handle & 0xffff) * 4);
+}
+
+/* FUN_000b4da0 (0xb4da0) — race score format by handle
+ *
+ * Formats a race score string from the 0x457020 table, indexed by the
+ * low 16 bits of the player handle. Uses the format string at 0x26c118. */
+wchar_t *FUN_000b4da0(unsigned int player_handle, wchar_t *dst)
+{
+  usprintf(dst, *(const wchar_t **)0x26c118,
+           *(int *)(0x457020 + (player_handle & 0xffff) * 4));
+  return dst;
+}
+
+/* FUN_000b4dd0 (0xb4dd0) — race score header "Score"
+ *
+ * Formats the static header string L"Score" into the destination buffer. */
+wchar_t *FUN_000b4dd0(wchar_t *dst)
+{
+  usprintf(dst, L"Score");
+  return dst;
+}
+
+/* FUN_000b4df0 (0xb4df0) — race score format by index
+ *
+ * Formats a race score string from the 0x456fe0 table, indexed directly
+ * by param_1. Uses the format string at 0x26c118. */
+wchar_t *FUN_000b4df0(int index, wchar_t *dst)
+{
+  usprintf(dst, *(const wchar_t **)0x26c118, *(int *)(0x456fe0 + index * 4));
+  return dst;
+}
+
 /* 0xb5490 — FUN_000b5490
  *
  * Returns the name string for a given material type index.
