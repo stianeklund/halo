@@ -1,3 +1,26 @@
+/* Retrieve the collision model components for an object.
+ * Looks up the object's "obje" tag, checks if it has a "coll" subtag.
+ * If yes, fills out[0..3] with: handle, coll_tag, object_node_ptr, node_matrices.
+ * Returns 1 if the object has a collision model, 0 otherwise.
+ * 0x14c8e0 / collision_usage.obj
+ */
+int FUN_0014c8e0(int *out, int object_handle)
+{
+    int *obj;
+    int obje_tag;
+
+    obj = (int *)object_get_and_verify_type(object_handle, 0xffffffff);
+    obje_tag = (int)tag_get(0x6f626a65, *obj);
+    if (*(int *)(obje_tag + 0x7c) != -1) {
+        out[0] = object_handle;
+        out[1] = (int)tag_get(0x636f6c6c, *(int *)(obje_tag + 0x7c));
+        out[2] = (int)(obj + 0x4c);
+        out[3] = (int)object_get_node_matrices(object_handle);
+        return 1;
+    }
+    return 0;
+}
+
 void collision_log_initialize(void)
 {
   csmemset((void *)0x5a5e40, 0, 0x2298);

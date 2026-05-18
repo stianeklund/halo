@@ -4658,8 +4658,9 @@
           "addr": "0x14c7b0"
         },
         {
-          "decl": "void FUN_0014c8e0(void);",
-          "addr": "0x14c8e0"
+          "decl": "int FUN_0014c8e0(int *out, int object_handle);",
+          "addr": "0x14c8e0",
+          "ported": true
         },
         {
           "decl": "void FUN_0014c950(void);",
@@ -14095,7 +14096,7 @@
           "addr": "0x13fe10"
         },
         {
-          "decl": "void object_get_node_matrices(void);",
+          "decl": "int *object_get_node_matrices(int object_handle);",
           "addr": "0x13fe70"
         },
         {
