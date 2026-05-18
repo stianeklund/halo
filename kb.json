@@ -7675,16 +7675,19 @@
           "addr": "0xa95c0"
         },
         {
-          "decl": "void game_engine_has_shield(void);",
-          "addr": "0xa95f0"
+          "decl": "char game_engine_has_shield(int param_1);",
+          "addr": "0xa95f0",
+          "ported": true
         },
         {
-          "decl": "void weapon_definition_index_to_list_index(void);",
-          "addr": "0xa9620"
+          "decl": "int weapon_definition_index_to_list_index(int param_1);",
+          "addr": "0xa9620",
+          "ported": null
         },
         {
-          "decl": "void list_index_to_weapon_definition_index(void);",
-          "addr": "0xa9680"
+          "decl": "int list_index_to_weapon_definition_index(int param_1);",
+          "addr": "0xa9680",
+          "ported": true
         },
         {
           "decl": "void game_engine_remap_vehicle(void);",
@@ -7695,8 +7698,9 @@
           "addr": "0xa9770"
         },
         {
-          "decl": "void game_engine_man_out(void);",
-          "addr": "0xa9900"
+          "decl": "char game_engine_man_out(int param_1);",
+          "addr": "0xa9900",
+          "ported": true
         },
         {
           "decl": "void game_engine_state_message(void);",
