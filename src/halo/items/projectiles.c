@@ -319,9 +319,14 @@ char projectile_aim_ballistic(float speed, float gravity, float *origin,
    *
    * Source ref: c:\halo\SOURCE\items\projectiles.c lines 0x2ee-0x36f.
    */
-  float local_38; /* aim_vec[0] */
-  float local_34; /* aim_vec[1] */
-  float local_30; /* aim_vec[2] / aim_z */
+  /* Declare as contiguous array so normalize3d reads all three components.
+   * MSVC placed local_38/34/30 adjacent (EBP-0x34/-0x30/-0x2c); clang may
+   * insert a gap (local_14 lands between Y and Z), causing normalize3d to
+   * read the wrong Z and leave it unnormalized → assert_valid_real_normal3d. */
+  float aim_xyz[3]; /* [0]=local_38 (X), [1]=local_34 (Y), [2]=local_30 (Z) */
+#define local_38 aim_xyz[0]
+#define local_34 aim_xyz[1]
+#define local_30 aim_xyz[2]
   float local_2c; /* dx */
   float local_28; /* dy */
   float local_24; /* dz */
@@ -458,13 +463,13 @@ LAB_output:
    */
   a_coeff = speed * V;
 
-  if (normalize3d(&local_38) == *(float *)0x2533c0) {
+  if (normalize3d(aim_xyz) == *(float *)0x2533c0) {
     /* Degenerate: fall back to displacement direction. */
     local_38 = local_2c;
     local_5 = 0;
     local_34 = local_28;
     local_30 = local_24;
-    if (normalize3d(&local_38) == *(float *)0x2533c0) {
+    if (normalize3d(aim_xyz) == *(float *)0x2533c0) {
       /* Degenerate displacement: use global up vector. */
       local_30 = *(float *)(*(int *)0x31fc44 + 8);
       local_38 = *(float *)(*(int *)0x31fc44);
@@ -498,6 +503,9 @@ LAB_output:
     *param_11 = speed; /* t_sol */
   }
   return local_5;
+#undef local_38
+#undef local_34
+#undef local_30
 }
 
 /* Compute the straight-line aim vector and travel parameters for a projectile
