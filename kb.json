@@ -7474,8 +7474,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a85d0(void);",
-          "addr": "0xa85d0"
+          "decl": "bool FUN_000a85d0(int, int *);",
+          "addr": "0xa85d0",
+          "ported": true
         },
         {
           "decl": "void get_postgame_hilite_colors(void);",
@@ -7701,8 +7702,9 @@
           "addr": "0xa9ff0"
         },
         {
-          "decl": "void FUN_000aa010(void);",
-          "addr": "0xaa010"
+          "decl": "void FUN_000aa010(short, const char *);",
+          "addr": "0xaa010",
+          "ported": true
         },
         {
           "decl": "void FUN_000aa0b0(void);",

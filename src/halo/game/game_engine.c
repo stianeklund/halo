@@ -140,6 +140,30 @@ void FUN_000a8580(unsigned int *param_1, unsigned int *param_2,
   *param_3 = 0x3f800000;
 }
 
+/* Check whether an object is a live biped whose controlling player
+ * differs from the value pointed to by param_2. Returns 1 (true) if
+ * the object is alive, is a biped (type 0), does not have the
+ * equipment-despawn flag (0xb6 bit 2), and is controlled by a player
+ * other than *param_2. Used by game-engine iteration filters. */
+bool FUN_000a85d0(int param_1, int *param_2)
+{
+  int target;
+  bool result;
+  char *obj;
+
+  target = *param_2;
+  result = false;
+  obj = (char *)object_get_and_verify_type(param_1, -1);
+  if ((*(uint8_t *)(obj + 4) & 1) == 0 &&
+      (1 << (*(uint8_t *)(obj + 0x64) & 0x1f) & 1U) != 0 &&
+      (*(uint8_t *)(obj + 0xb6) & 4) == 0) {
+    if (player_index_from_unit_index(param_1) != target) {
+      result = true;
+    }
+  }
+  return result;
+}
+
 /* Remove dropped weapons older than 900 ticks (30 seconds) and
  * equipment items whose idle timer exceeds 900 ticks.
  * Weapons that are CTF flags or attached to vehicles are preserved. */
@@ -421,6 +445,50 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
   }
 
   return result;
+}
+
+/* Check scenario netgame flags (scenario+0x378, element size 0x94) for
+ * duplicate entries: two flags with the same type (param_1) AND same
+ * team (offset 0x12). For each duplicate pair found, calls error()
+ * with the supplied format string and the team index. Triangle-loop:
+ * outer i, inner j = i+1..count-1. */
+void FUN_000aa010(short param_1, const char *param_2)
+{
+  char *scenario_ptr;
+  int *flags_block;
+  int i;
+  int j;
+  short outer_next;
+  short inner_idx;
+  char *elem_i;
+  char *elem_j;
+
+  scenario_ptr = (char *)global_scenario_get();
+  flags_block = (int *)(scenario_ptr + 0x378);
+  if (0 < *flags_block) {
+    i = 0;
+    outer_next = 1;
+    do {
+      elem_i = (char *)tag_block_get_element(flags_block, i, 0x94);
+      if (param_1 == *(short *)(elem_i + 0x10)) {
+        j = (int)outer_next;
+        inner_idx = outer_next;
+        if (j < *flags_block) {
+          do {
+            elem_j = (char *)tag_block_get_element(flags_block, j, 0x94);
+            if (param_1 == *(short *)(elem_j + 0x10) &&
+                *(short *)(elem_j + 0x12) == *(short *)(elem_i + 0x12)) {
+              error(2, param_2, (int)*(short *)(elem_j + 0x12));
+            }
+            inner_idx = inner_idx + 1;
+            j = (int)inner_idx;
+          } while (j < *flags_block);
+        }
+      }
+      i = (int)outer_next;
+      outer_next = outer_next + 1;
+    } while (i < *flags_block);
+  }
 }
 
 /* game_engine_slayer_default (0xaa190)
