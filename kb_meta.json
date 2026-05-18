@@ -2371,6 +2371,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa9970": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xaa190": {
       "kind": "function",
       "status": "ported"

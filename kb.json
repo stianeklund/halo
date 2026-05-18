@@ -7703,16 +7703,18 @@
           "ported": true
         },
         {
-          "decl": "void game_engine_state_message(void);",
-          "addr": "0xa9970"
+          "decl": "void game_engine_state_message(int param_1, int param_2, int param_3);",
+          "addr": "0xa9970",
+          "ported": true
         },
         {
           "decl": "void game_engine_player_get_change_color(void);",
           "addr": "0xa99a0"
         },
         {
-          "decl": "void game_engine_player_has_flag(void);",
-          "addr": "0xa9a30"
+          "decl": "int game_engine_player_has_flag(int param_1);",
+          "addr": "0xa9a30",
+          "ported": null
         },
         {
           "decl": "void game_engine_player_depower_active_camo(void);",
