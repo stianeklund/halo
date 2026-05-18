@@ -8163,8 +8163,9 @@
           "addr": "0xb0210"
         },
         {
-          "decl": "void FUN_000b04a0(void);",
-          "addr": "0xb04a0"
+          "decl": "void FUN_000b04a0(int weapon_index);",
+          "addr": "0xb04a0",
+          "ported": true
         },
         {
           "decl": "void FUN_000b04e0(void);",

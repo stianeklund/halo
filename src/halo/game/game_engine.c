@@ -2243,6 +2243,21 @@ void game_engine_update(void)
   }
 }
 
+/* FUN_000b04a0 (0xb04a0) — game_engine_ctf.c:0x3f5
+ *
+ * Assert that the given weapon index refers to a flag weapon.
+ * Source file is game_engine_ctf.c but the function is linked into
+ * game_engine.obj.
+ */
+void FUN_000b04a0(int weapon_index)
+{
+  if (!weapon_is_flag(weapon_index)) {
+    display_assert("weapon_is_flag(weapon_index)",
+                   "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x3f5, true);
+    system_exit(-1);
+  }
+}
+
 /* Play the score sound for the given event index. Looks up the sound
  * tag from game_globals multiplayer_information sounds block.
  * event_index passed in ESI (register arg). */
