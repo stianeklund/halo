@@ -1574,6 +1574,43 @@ void FUN_00058720(unsigned int param_1, int param_2)
   }
 }
 
+/* 0x000587d0 — FUN_000587d0 (ai_berserk script command).
+ *
+ * Makes all actors in an encounter go berserk. If the AI trace flag
+ * (0x5aca59) is set, logs the encounter name via error(). Then iterates
+ * actors in the encounter via FUN_00054680/FUN_00054750, calling
+ * actor_berserk(actor_handle, param_2) for each actor.
+ *
+ * Confirmed:
+ *   - param_1 = encounter handle (int).
+ *   - param_2 = berserk flag (int).
+ *   - DAT_005aca59 gates debug output.
+ *   - Actor handle at iterator offset 0x10 (local_1c + 0x10).
+ *   - actor_berserk takes (int actor_handle, int berserk_flag).
+ */
+void FUN_000587d0(int param_1, int param_2)
+{
+  char local_11c[256];
+  char local_1c[24];
+  void *scenario;
+  int iVar2;
+
+  if (*(char *)0x5aca59 != '\0') {
+    scenario = global_scenario_get();
+    FUN_00054220(param_1, scenario, local_11c, 0x100);
+    error(2, "%s: ai_berserk %s", hs_runtime_get_executing_thread_name(),
+          local_11c);
+  }
+  if (param_1 != -1) {
+    FUN_00054680(param_1, local_1c);
+    iVar2 = FUN_00054750(local_1c);
+    while (iVar2 != 0) {
+      actor_berserk(*(int *)(local_1c + 0x10), param_2);
+      iVar2 = FUN_00054750(local_1c);
+    }
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter

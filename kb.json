@@ -28630,7 +28630,7 @@
           "addr": "0x30f50"
         },
         {
-          "decl": "void actor_berserk(void);",
+          "decl": "void actor_berserk(int actor_handle, int berserk_flag);",
           "addr": "0x31440"
         },
         {
@@ -29745,8 +29745,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000587d0(void);",
-          "addr": "0x587d0"
+          "decl": "void FUN_000587d0(int param_1, int param_2);",
+          "addr": "0x587d0",
+          "ported": true
         },
         {
           "decl": "void FUN_00058860(void);",
