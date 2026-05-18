@@ -388,6 +388,23 @@ bool game_engine_allow_weapon_pick_up(int unit_handle, int weapon_handle)
   return true;
 }
 
+/* game_engine_player_damaged_player (0xa8b50)
+ *
+ * Asserts that dead_player_index is valid, then dispatches to vtable
+ * slot 0x5c/4 (slot 23) of current_game_engine with all three params.
+ */
+void game_engine_player_damaged_player(int param_1, int dead_player_index,
+                                       int param_3)
+{
+  assert_halt(dead_player_index != NONE);
+  if (current_game_engine) {
+    void (*fn)(int, int, int) =
+      ((void (**)(int, int, int))current_game_engine)[0x5c / 4];
+    if (fn)
+      fn(param_1, dead_player_index, param_3);
+  }
+}
+
 /* game_engine_is_player_leading (0xa8ba0)
  *
  * Returns true if the given player has the highest kill count among all
@@ -421,6 +438,70 @@ bool game_engine_is_player_leading(int player_handle)
       leading = false;
   }
   return leading;
+}
+
+/* game_engine_player_is_out_of_lives (0xa8c40)
+ *
+ * Returns true if the player has no vehicle (object +0x34 == NONE) and
+ * their death count (+0xaa) meets or exceeds the lives threshold at
+ * 0x456b30.  Returns false when the threshold is zero (unlimited lives).
+ */
+bool game_engine_player_is_out_of_lives(int player_handle)
+{
+  bool result;
+  char *player;
+
+  result = false;
+  if (*(int *)0x456b30 > 0) {
+    player = (char *)datum_get(*(void **)0x5aa6d4, player_handle);
+    if (*(int *)(player + 0x34) == NONE &&
+        (int)*(short *)(player + 0xaa) >= *(int *)0x456b30)
+      result = true;
+  }
+  return result;
+}
+
+/* game_engine_player_get_team_index (0xa8d80)
+ *
+ * Asserts that current_game_engine is non-NULL.  If the engine has a
+ * team-count override at vtable+0x74, returns 1.  Otherwise returns the
+ * player's team index (offset +2, a short) modulo 2.
+ */
+unsigned int game_engine_player_get_team_index(int player_handle)
+{
+  char *player;
+  unsigned int team;
+
+  assert_halt_msg(current_game_engine, "game_engine");
+  if (*(int *)((char *)current_game_engine + 0x74) == 0) {
+    player = (char *)datum_get(*(void **)0x5aa6d4, player_handle);
+    team = (int)*(short *)(player + 2) % 2;
+    return team;
+  }
+  return 1;
+}
+
+/* game_engine_prespawn_player_update (0xa8df0)
+ *
+ * If the engine has a vtable slot at +0x6c, tail-calls it with the
+ * player handle.  Otherwise computes team = team_index % 2 and writes
+ * it to the player datum at +0x20.
+ */
+void game_engine_prespawn_player_update(int player_handle)
+{
+  char *player;
+  unsigned int team;
+
+  if (current_game_engine) {
+    void (*fn)(int) = ((void (**)(int))current_game_engine)[0x6c / 4];
+    if (fn) {
+      fn(player_handle);
+      return;
+    }
+    player = (char *)datum_get(*(void **)0x5aa6d4, player_handle);
+    team = (int)*(short *)(player + 2) % 2;
+    *(unsigned int *)(player + 0x20) = team;
+  }
 }
 
 bool game_engine_running(void)
@@ -510,6 +591,38 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
   }
 
   return result;
+}
+
+/* get_flag_definition_index (0xa92b0)
+ *
+ * Returns the flag definition tag index from the first multiplayer
+ * information element (game_globals+0x164, element size 0xa0, offset 0xc).
+ */
+int get_flag_definition_index(void)
+{
+  void *block;
+  char *element;
+
+  global_scenario_get();
+  block = (char *)game_globals_get() + 0x164;
+  element = (char *)tag_block_get_element(block, 0, 0xa0);
+  return *(int *)(element + 0xc);
+}
+
+/* get_ball_definition_index (0xa92e0)
+ *
+ * Returns the ball definition tag index from the first multiplayer
+ * information element (game_globals+0x164, element size 0xa0, offset 0x58).
+ */
+int get_ball_definition_index(void)
+{
+  void *block;
+  char *element;
+
+  global_scenario_get();
+  block = (char *)game_globals_get() + 0x164;
+  element = (char *)tag_block_get_element(block, 0, 0xa0);
+  return *(int *)(element + 0x58);
 }
 
 /* Check scenario netgame flags (scenario+0x378, element size 0x94) for
