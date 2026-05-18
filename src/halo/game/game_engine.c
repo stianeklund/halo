@@ -2258,6 +2258,68 @@ void FUN_000b04a0(int weapon_index)
   }
 }
 
+/* FUN_000b04e0 (0xb04e0) — CTF/game-engine score lookup
+ *
+ * Returns the player's individual score or team score depending on param_2.
+ * If param_2 == 0, returns the int16 score at player+0xc4.
+ * Otherwise, returns the team score from the 0x456b84 array indexed by
+ * the player's team field at player+0x20. */
+int FUN_000b04e0(int player_handle, int param_2)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, player_handle);
+  if (param_2 == 0) {
+    return (int)*(int16_t *)(player + 0xc4);
+  }
+  return ((int *)0x456b84)[*(int *)(player + 0x20)];
+}
+
+/* FUN_000b0530 (0xb0530) — CTF/game-engine score format by player
+ *
+ * Formats the player's score (int16 at player+0xc4) into a wide string
+ * buffer using the format string pointer at 0x26c118. */
+wchar_t *FUN_000b0530(int player_handle, wchar_t *dst)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, player_handle);
+  usprintf(dst, *(const wchar_t **)0x26c118, (int)*(int16_t *)(player + 0xc4));
+  return dst;
+}
+
+/* FUN_000b0570 (0xb0570) — CTF/game-engine score header "Score"
+ *
+ * Formats the static header string L"Score" into the destination buffer. */
+wchar_t *FUN_000b0570(wchar_t *dst)
+{
+  usprintf(dst, L"Score");
+  return dst;
+}
+
+/* FUN_000b0590 (0xb0590) — CTF/game-engine team score format
+ *
+ * Formats a team score from the 0x456b84 array, indexed by param_1,
+ * into a wide string buffer using the format string at 0x26c118. */
+wchar_t *FUN_000b0590(int param_1, wchar_t *dst)
+{
+  usprintf(dst, *(const wchar_t **)0x26c118, ((int *)0x456b84)[param_1]);
+  return dst;
+}
+
+/* FUN_000b1de0 (0xb1de0) — CTF/game-engine time-based score format
+ *
+ * Reads the player's tick count at player+0xc0 and formats it as a
+ * unicode time string using ticks_to_unicode_time_string. */
+wchar_t *FUN_000b1de0(int player_handle, wchar_t *dst)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, player_handle);
+  ticks_to_unicode_time_string((int)*(int16_t *)(player + 0xc0), 0x100, dst);
+  return dst;
+}
+
 /* Play the score sound for the given event index. Looks up the sound
  * tag from game_globals multiplayer_information sounds block.
  * event_index passed in ESI (register arg). */

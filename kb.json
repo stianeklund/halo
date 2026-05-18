@@ -7866,7 +7866,7 @@
           "ported": true
         },
         {
-          "decl": "void ticks_to_unicode_time_string(void);",
+          "decl": "void ticks_to_unicode_time_string(int ticks, int buf_size, wchar_t *dst);",
           "addr": "0xab450"
         },
         {
@@ -8168,24 +8168,28 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000b04e0(void);",
-          "addr": "0xb04e0"
+          "decl": "int FUN_000b04e0(int player_handle, int param_2);",
+          "addr": "0xb04e0",
+          "ported": true
         },
         {
           "decl": "void FUN_000b0520(void);",
           "addr": "0xb0520"
         },
         {
-          "decl": "void FUN_000b0530(void);",
-          "addr": "0xb0530"
+          "decl": "wchar_t *FUN_000b0530(int player_handle, wchar_t *dst);",
+          "addr": "0xb0530",
+          "ported": true
         },
         {
-          "decl": "void FUN_000b0570(void);",
-          "addr": "0xb0570"
+          "decl": "wchar_t *FUN_000b0570(wchar_t *dst);",
+          "addr": "0xb0570",
+          "ported": true
         },
         {
-          "decl": "void FUN_000b0590(void);",
-          "addr": "0xb0590"
+          "decl": "wchar_t *FUN_000b0590(int param_1, wchar_t *dst);",
+          "addr": "0xb0590",
+          "ported": true
         },
         {
           "decl": "void FUN_000b05c0(void);",
@@ -8256,8 +8260,9 @@
           "addr": "0xb1b30"
         },
         {
-          "decl": "void FUN_000b1de0(void);",
-          "addr": "0xb1de0"
+          "decl": "wchar_t *FUN_000b1de0(int player_handle, wchar_t *dst);",
+          "addr": "0xb1de0",
+          "ported": true
         },
         {
           "decl": "void FUN_000b1e20(void);",
