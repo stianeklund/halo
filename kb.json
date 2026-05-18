@@ -31413,12 +31413,14 @@
           "ported": true
         },
         {
-          "decl": "void circular_queue_new(void);",
-          "addr": "0x118de0"
+          "decl": "int *circular_queue_new(int param_1, int param_2);",
+          "addr": "0x118de0",
+          "ported": true
         },
         {
-          "decl": "void circular_queue_delete(void);",
-          "addr": "0x118e40"
+          "decl": "void circular_queue_delete(int queue);",
+          "addr": "0x118e40",
+          "ported": true
         },
         {
           "decl": "void circular_queue_size(void);",
