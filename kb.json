@@ -28805,7 +28805,7 @@
           "addr": "0x434c0"
         },
         {
-          "decl": "void ai_conversation_advance(void);",
+          "decl": "void ai_conversation_advance(int param_1);",
           "addr": "0x43520"
         },
         {
@@ -29727,8 +29727,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000586a0(void);",
-          "addr": "0x586a0"
+          "decl": "void FUN_000586a0(int param_1);",
+          "addr": "0x586a0",
+          "ported": true
         },
         {
           "decl": "void FUN_00058700(void);",
