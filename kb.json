@@ -8750,7 +8750,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001c0780(void);",
+          "decl": "int FUN_001c0780(int param_1);",
           "addr": "0x1c0780"
         },
         {
@@ -8768,20 +8768,23 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001c0cd0(void);",
-          "addr": "0x1c0cd0"
+          "decl": "void FUN_001c0cd0(int param_1);",
+          "addr": "0x1c0cd0",
+          "ported": true
         },
         {
           "decl": "void FUN_001c0cf0(void);",
-          "addr": "0x1c0cf0"
+          "addr": "0x1c0cf0",
+          "ported": true
         },
         {
           "decl": "void FUN_001c0d50(void);",
           "addr": "0x1c0d50"
         },
         {
-          "decl": "void FUN_001c0d70(void);",
-          "addr": "0x1c0d70"
+          "decl": "void FUN_001c0d70(int param_1);",
+          "addr": "0x1c0d70",
+          "ported": true
         },
         {
           "decl": "void FUN_001c0da0(void);",
@@ -19955,7 +19958,7 @@
           "addr": "0x1c4600"
         },
         {
-          "decl": "void delete_enumerated_saved_game_file(void);",
+          "decl": "char delete_enumerated_saved_game_file(int param_1);",
           "addr": "0x1c46c0"
         },
         {
