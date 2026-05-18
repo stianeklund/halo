@@ -125,6 +125,60 @@ void FUN_0014c6d0(int param_1, void *param_2)
     }
 }
 
+/* Validate collision feature counts and dispatch feature computation
+ * for each prism, cylinder, and sphere in the feature buffer.
+ * 0x14c7b0 / collision_usage.obj
+ */
+void FUN_0014c7b0(int16_t *param_1)
+{
+    short sVar2;
+    int iVar1;
+
+    if (0x100 < *param_1) {
+        display_assert("features->count[_collision_feature_sphere]<=MAXIMUM_COLLISION_FEATURES_PER_TEST",
+                       "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x454, 1);
+        system_exit(-1);
+    }
+    if (0x100 < param_1[1]) {
+        display_assert("features->count[_collision_feature_cylinder]<=MAXIMUM_COLLISION_FEATURES_PER_TEST",
+                       "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x455, 1);
+        system_exit(-1);
+    }
+    if (0x100 < param_1[2]) {
+        display_assert("features->count[_collision_feature_prism]<=MAXIMUM_COLLISION_FEATURES_PER_TEST",
+                       "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x456, 1);
+        system_exit(-1);
+    }
+    sVar2 = 0;
+    if (0 < param_1[2]) {
+        do {
+            FUN_0014c6d0((int)(param_1 + sVar2 * 0x34 + 0x2204),
+                         *(void **)0x2ee6d8);
+            sVar2 = sVar2 + 1;
+        } while (sVar2 < param_1[2]);
+    }
+    sVar2 = 0;
+    if (0 < param_1[1]) {
+        do {
+            iVar1 = (int)sVar2;
+            FUN_001896d0(1, param_1 + iVar1 * 0x14 + 0xe0a,
+                         param_1 + iVar1 * 0x14 + 0xe10,
+                         *(int *)(param_1 + iVar1 * 0x14 + 0xe16),
+                         *(void **)0x2ee6d4);
+            sVar2 = sVar2 + 1;
+        } while (sVar2 < param_1[1]);
+    }
+    sVar2 = 0;
+    if (0 < *param_1) {
+        do {
+            FUN_00189540(1, param_1 + sVar2 * 0xe + 10,
+                         *(int *)(param_1 + sVar2 * 0xe + 0x10),
+                         *(void **)0x2ee6d0);
+            sVar2 = sVar2 + 1;
+        } while (sVar2 < *param_1);
+    }
+}
+
 /* Cylinder collision test: for each cylinder, invert the cylinder local
  * frame matrix and transform the test point into cylinder space.
  * 0x14ca30 / collision_usage.obj
