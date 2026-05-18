@@ -102,6 +102,18 @@ char game_state_write_to_file(void)
   return 0;
 }
 
+/* 0x1c0750
+ * Delete the local player's save game file. Gets the profile directory
+ * path and, if valid, deletes the file at that path. */
+void FUN_001c0750(void)
+{
+  char path_buffer[256];
+
+  if (xbox_saved_game_get_path(0, path_buffer)) {
+    XDeleteFile(path_buffer);
+  }
+}
+
 /* 0x1c0910
  * Read and verify a saved game from persistent storage. Reads header first,
  * then checksums the remaining data in 128KB chunks. Returns 1 on success.
