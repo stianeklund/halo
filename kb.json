@@ -29740,8 +29740,9 @@
           "addr": "0x58710"
         },
         {
-          "decl": "void FUN_00058720(void);",
-          "addr": "0x58720"
+          "decl": "void FUN_00058720(unsigned int param_1, int param_2);",
+          "addr": "0x58720",
+          "ported": true
         },
         {
           "decl": "void FUN_000587d0(void);",
@@ -29890,7 +29891,7 @@
           "ported": true
         },
         {
-          "decl": "void encounter_link_activation(void);",
+          "decl": "char encounter_link_activation(short encounter_index, int param_2);",
           "addr": "0x5a5a0"
         },
         {

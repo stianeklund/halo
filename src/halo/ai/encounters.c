@@ -1534,6 +1534,46 @@ void FUN_000586a0(int param_1)
   ai_conversation_advance(param_1);
 }
 
+/* 0x00058720 — FUN_00058720 (ai_link_activation script command).
+ *
+ * Links two encounter activation states together. If the AI trace flag
+ * (0x5aca59) is set, logs both encounter names via error(). Then, if
+ * neither handle is NONE (-1), calls encounter_link_activation to
+ * register the link. Logs an error if the maximum activation link
+ * indices per encounter (3) is exceeded.
+ *
+ * Confirmed:
+ *   - param_1 and param_2 are combined encounter handles.
+ *   - DAT_005aca59 gates debug output (same pattern as FUN_00056320).
+ *   - encounter_link_activation takes (short, int) and returns char (bool).
+ *   - MAXIMUM_ACTIVATION_LINK_INDICES_PER_ENCOUNTER is 3.
+ */
+void FUN_00058720(unsigned int param_1, int param_2)
+{
+  char local_404[512];
+  char local_204[512];
+  scenario_t *scenario;
+  char result;
+
+  if (*(char *)0x5aca59) {
+    scenario = global_scenario_get();
+    FUN_00054220(param_1, scenario, local_404, 0x200);
+    scenario = global_scenario_get();
+    FUN_00054220(param_2, scenario, local_204, 0x200);
+    error(2, "%s: ai_link_activation %s %s",
+          hs_runtime_get_executing_thread_name(), local_404, local_204);
+  }
+  if (param_1 != 0xffffffff && param_2 != (int)-1) {
+    result = encounter_link_activation((short)(param_1 & 0xffff), param_2);
+    if (result == '\0') {
+      error(2,
+            "ai_link_activation: cannot link to another encounter, "
+            "MAXIMUM_ACTIVATION_LINK_INDICES_PER_ENCOUNTER is %d",
+            3);
+    }
+  }
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
