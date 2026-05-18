@@ -4655,8 +4655,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014c7b0(void);",
-          "addr": "0x14c7b0"
+          "decl": "void FUN_0014c7b0(int16_t *features);",
+          "addr": "0x14c7b0",
+          "ported": true
         },
         {
           "decl": "int FUN_0014c8e0(int *out, int object_handle);",
@@ -19678,11 +19679,11 @@
           "addr": "0x1894d0"
         },
         {
-          "decl": "void FUN_00189540(void);",
+          "decl": "void FUN_00189540(int flag, void *p1, int val, void *ctx);",
           "addr": "0x189540"
         },
         {
-          "decl": "void FUN_001896d0(void);",
+          "decl": "void FUN_001896d0(int flag, void *p1, void *p2, int val, void *ctx);",
           "addr": "0x1896d0"
         },
         {
