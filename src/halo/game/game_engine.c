@@ -745,6 +745,19 @@ char game_engine_man_out(int param_1)
   return 1;
 }
 
+/* game_engine_state_message (0xa9970)
+ *
+ * Sets the player's state message fields (player+0x74 and player+0x78)
+ * from param_2 and param_3. */
+void game_engine_state_message(int param_1, int param_2, int param_3)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, param_1);
+  *(int *)(player + 0x74) = param_2;
+  *(int *)(player + 0x78) = param_3;
+}
+
 /* Check scenario netgame flags (scenario+0x378, element size 0x94) for
  * duplicate entries: two flags with the same type (param_1) AND same
  * team (offset 0x12). For each duplicate pair found, calls error()
