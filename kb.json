@@ -7232,8 +7232,9 @@
           "addr": "0xb4490"
         },
         {
-          "decl": "void FUN_000b45c0(void);",
-          "addr": "0xb45c0"
+          "decl": "int FUN_000b45c0(int param_1);",
+          "addr": "0xb45c0",
+          "ported": true
         },
         {
           "decl": "void FUN_000b46b0(void);",
@@ -7244,8 +7245,9 @@
           "addr": "0xb4800"
         },
         {
-          "decl": "void FUN_000b4960(void);",
-          "addr": "0xb4960"
+          "decl": "int FUN_000b4960(void);",
+          "addr": "0xb4960",
+          "ported": true
         },
         {
           "decl": "void FUN_000b4a70(void);",
@@ -7619,7 +7621,7 @@
           "addr": "0xa9380"
         },
         {
-          "decl": "void game_engine_set_goal_position(void);",
+          "decl": "void game_engine_set_goal_position(int flag_index, void *element, int param3, const char *name, int param5, int param6, int param7);",
           "addr": "0xa93e0"
         },
         {
