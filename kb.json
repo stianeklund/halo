@@ -8248,8 +8248,9 @@
           "addr": "0xb1940"
         },
         {
-          "decl": "void FUN_000b1a60(void);",
-          "addr": "0xb1a60"
+          "decl": "int FUN_000b1a60(int player_handle, int param_2);",
+          "addr": "0xb1a60",
+          "ported": true
         },
         {
           "decl": "void FUN_000b1aa0(void);",
@@ -8265,12 +8266,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000b1e20(void);",
-          "addr": "0xb1e20"
+          "decl": "wchar_t *FUN_000b1e20(wchar_t *dst);",
+          "addr": "0xb1e20",
+          "ported": true
         },
         {
-          "decl": "void FUN_000b1e40(void);",
-          "addr": "0xb1e40"
+          "decl": "wchar_t *FUN_000b1e40(int team_index, wchar_t *dst);",
+          "addr": "0xb1e40",
+          "ported": true
         },
         {
           "decl": "void FUN_000b1e70(void);",

@@ -2307,6 +2307,23 @@ wchar_t *FUN_000b0590(int param_1, wchar_t *dst)
   return dst;
 }
 
+/* FUN_000b1a60 (0xb1a60) — game-engine score lookup (time-based variant)
+ *
+ * Returns the player's individual tick-count score or team score depending
+ * on param_2. If param_2 == 0, returns the int16 tick count at player+0xc0.
+ * Otherwise, returns the team score from the 0x456ba8 array indexed by the
+ * player's team field at player+0x20. */
+int FUN_000b1a60(int player_handle, int param_2)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, player_handle);
+  if (param_2 == 0) {
+    return (int)*(int16_t *)(player + 0xc0);
+  }
+  return ((int *)0x456ba8)[*(int *)(player + 0x20)];
+}
+
 /* FUN_000b1de0 (0xb1de0) — CTF/game-engine time-based score format
  *
  * Reads the player's tick count at player+0xc0 and formats it as a
@@ -2317,6 +2334,25 @@ wchar_t *FUN_000b1de0(int player_handle, wchar_t *dst)
 
   player = (char *)datum_get(player_data, player_handle);
   ticks_to_unicode_time_string((int)*(int16_t *)(player + 0xc0), 0x100, dst);
+  return dst;
+}
+
+/* FUN_000b1e20 (0xb1e20) — game-engine score header "Time"
+ *
+ * Formats the static header string L"Time" into the destination buffer. */
+wchar_t *FUN_000b1e20(wchar_t *dst)
+{
+  usprintf(dst, L"Time");
+  return dst;
+}
+
+/* FUN_000b1e40 (0xb1e40) — game-engine team time score format
+ *
+ * Formats a team's time-based score from the 0x456ba8 array, indexed by
+ * team_index, into a wide string buffer using ticks_to_unicode_time_string. */
+wchar_t *FUN_000b1e40(int team_index, wchar_t *dst)
+{
+  ticks_to_unicode_time_string(((int *)0x456ba8)[team_index], 0x100, dst);
   return dst;
 }
 
