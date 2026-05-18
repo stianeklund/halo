@@ -4673,7 +4673,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014cb00(void);",
+          "decl": "char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4, int16_t *param_5);",
           "addr": "0x14cb00"
         },
         {
@@ -17260,7 +17260,8 @@
         },
         {
           "decl": "void FUN_0010ba90(float *q1, float *q2, float t, float *out);",
-          "addr": "0x10ba90"
+          "addr": "0x10ba90",
+          "ported": true
         },
         {
           "decl": "float *FUN_0010c290(float *v);",

@@ -455,6 +455,27 @@ void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out)
   }
 }
 
+/* Quaternion LERP: blend q1 toward q2 by t, writing result to out.
+ * fVar1 = 1.0f - t. If dot(q1,q2) < 0, t is negated (shortest arc).
+ * out[i] = t*q2[i] + (1-t)*q1[i] for i in {0,1,2,3}.
+ * FPU-WARN reviewed: ECX/EDX register assignment differs from reference,
+ * all flagged ops are commutative multiplications — no semantic difference.
+ * 0x10ba90 / random_math.obj
+ */
+void FUN_0010ba90(float *q1, float *q2, float t, float *out)
+{
+    float fVar1;
+
+    fVar1 = *(float *)0x2533c8 - t;
+    if (q2[3] * q1[3] + *q1 * *q2 + q2[1] * q1[1] + q2[2] * q1[2] < *(float *)0x2533c0) {
+        t = -t;
+    }
+    *out = t * *q2 + fVar1 * *q1;
+    out[1] = fVar1 * q1[1] + t * q2[1];
+    out[2] = fVar1 * q1[2] + t * q2[2];
+    out[3] = fVar1 * q1[3] + t * q2[3];
+}
+
 /* Normalize a 2D vector v in-place; returns the input pointer.
  * If the vector is zero-length (|v|^2 == 0.0f), it is left unchanged.
  * 0x10c290 / random_math.obj
