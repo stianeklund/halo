@@ -5215,11 +5215,11 @@
           "ported": true
         },
         {
-          "decl": "void memory_pool_allocation_size(void);",
+          "decl": "int memory_pool_allocation_size(int pool_config);",
           "addr": "0x11e330"
         },
         {
-          "decl": "void memory_pool_initialize(void);",
+          "decl": "void memory_pool_initialize(void *pool, const char *name, int pool_config);",
           "addr": "0x11e340"
         },
         {
@@ -8687,8 +8687,9 @@
           "addr": "0x1bfb60"
         },
         {
-          "decl": "void FUN_001bfe50(void);",
-          "addr": "0x1bfe50"
+          "decl": "void *game_state_memory_pool_new(const char *name, int pool_config);",
+          "addr": "0x1bfe50",
+          "ported": true
         },
         {
           "decl": "void game_state_lruv_cache_new(void);",
@@ -8745,7 +8746,8 @@
         },
         {
           "decl": "void FUN_001c0750(void);",
-          "addr": "0x1c0750"
+          "addr": "0x1c0750",
+          "ported": true
         },
         {
           "decl": "void FUN_001c0780(void);",

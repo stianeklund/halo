@@ -162,6 +162,20 @@ data_t *game_state_data_new(char *name, __int16 maximum_count, __int16 size)
   return data;
 }
 
+/* Allocate and initialize a memory pool from game state (0x1bfe50).
+ * Computes required allocation size from pool_config, allocates from
+ * game state with group name "memory pool", then initializes the pool. */
+void *game_state_memory_pool_new(const char *name, int pool_config)
+{
+  void *pool;
+  int size;
+
+  size = memory_pool_allocation_size(pool_config);
+  pool = game_state_malloc(name, "memory pool", size);
+  memory_pool_initialize(pool, name, pool_config);
+  return pool;
+}
+
 /* Load a core save file. Validates the header, then restores game state
  * and calls 13 initialize-for-new-map callbacks. */
 void game_state_load_core(const char *name)
