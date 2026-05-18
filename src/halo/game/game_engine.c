@@ -118,6 +118,27 @@ int game_engine_player_count(void)
   return count;
 }
 
+/* sort_statistic_buffer (0xa8440)
+ *
+ * qsort-style comparator. Compares field at offset +4 of two entries.
+ * Returns -1 if param_2's field < param_1's field (descending sort),
+ * 1 if greater, 0 if equal. */
+int sort_statistic_buffer(int param_1, int param_2)
+{
+  int a;
+  int b;
+  int result;
+
+  a = *(int *)(param_1 + 4);
+  b = *(int *)(param_2 + 4);
+  result = 0;
+  if (b < a)
+    return -1;
+  if (b > a)
+    result = 1;
+  return result;
+}
+
 /* Initialize three 4-float color vectors (stored as integer hex)
  * used by the post-game scoreboard highlight rendering.
  * param_1 = primary highlight color (pinkish: 1.0, 0.459, 0.729, 1.0)
@@ -162,6 +183,19 @@ bool FUN_000a85d0(int param_1, int *param_2)
     }
   }
   return result;
+}
+
+/* get_postgame_hilite_colors (0xa8630)
+ *
+ * Dispatch to vtable slot 12 (offset 0x30) of the current game engine.
+ * No frame pointer in the original binary. */
+void get_postgame_hilite_colors(void)
+{
+  if (current_game_engine) {
+    void (**vtable)(void) = (void (**)(void))current_game_engine;
+    if (vtable[12])
+      vtable[12]();
+  }
 }
 
 /* Remove dropped weapons older than 900 ticks (30 seconds) and
@@ -279,6 +313,37 @@ void game_engine_spawn_equipment(void)
         }
       }
     }
+  }
+}
+
+/* game_engine_load_stage (0xa8a20)
+ *
+ * Load a game stage. If param_1 is non-null and matches the current
+ * multiplayer map name, skip the map name update. Otherwise update
+ * the map name from the buffer at 0x5aa760, set the game variant
+ * from 0x5aa7a0, and reset the map if not in a network game. */
+void game_engine_load_stage(const char *param_1)
+{
+  if (param_1 == NULL || csstrcmp((const char *)0x5aa760, param_1) != 0) {
+    main_set_multiplayer_map_name((const char *)0x5aa760);
+  }
+  game_set_game_variant((game_variant_t *)0x5aa7a0);
+  if (!network_game_in_progress()) {
+    main_reset_map();
+  }
+}
+
+/* game_engine_playlist_begin (0xa8a70)
+ *
+ * Begin a playlist: set the multiplayer map name from 0x5aa760,
+ * set the game variant from 0x5aa7a0, and reset the map if not
+ * in a network game. No frame pointer in the original binary. */
+void game_engine_playlist_begin(void)
+{
+  main_set_multiplayer_map_name((const char *)0x5aa760);
+  game_set_game_variant((game_variant_t *)0x5aa7a0);
+  if (!network_game_in_progress()) {
+    main_reset_map();
   }
 }
 

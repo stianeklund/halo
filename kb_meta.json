@@ -2250,6 +2250,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa8440": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8630": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa8680": {
       "kind": "function",
       "status": "ported"
@@ -2259,6 +2267,14 @@
       "status": "ported"
     },
     "0xa8820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8a20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8a70": {
       "kind": "function",
       "status": "ported"
     },
@@ -4914,6 +4930,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x118de0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x118e40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x118e90": {
       "kind": "function",
       "status": "ported"
@@ -4991,6 +5015,14 @@
       "status": "ported"
     },
     "0x1198f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x119980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x119a10": {
       "kind": "function",
       "status": "ported"
     },
@@ -6043,6 +6075,10 @@
       "status": "ported"
     },
     "0x14d010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14d070": {
       "kind": "function",
       "status": "ported"
     },
