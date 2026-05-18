@@ -1969,6 +1969,17 @@ void object_disconnect_from_map(int object_handle)
   header->unk_2 &= ~0x20;
 }
 
+/* Get the node matrices reference block for an object.
+ * Returns the header block reference at offset 0x1a0 from the object header.
+ * 0x13fe70 / objects.obj
+ */
+void *object_get_node_matrices(int object_handle)
+{
+    void *obj = object_get_and_verify_type(object_handle, 0xffffffff);
+    return object_header_block_reference_get(object_handle,
+                                             (char *)obj + 0x1a0);
+}
+
 /*
  * object_get_child_marker_definition — get a marker definition from the
  * object's child model tag.

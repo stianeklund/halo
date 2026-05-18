@@ -1341,6 +1341,14 @@
       "metadata": {
         "source_path": "src/halo/sound/sound_classes.c"
       }
+    },
+    {
+      "name": "halo/objects_FUN_0013fe70",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013fe70.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }

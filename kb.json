@@ -14096,8 +14096,9 @@
           "addr": "0x13fe10"
         },
         {
-          "decl": "int *object_get_node_matrices(int object_handle);",
-          "addr": "0x13fe70"
+          "decl": "void *object_get_node_matrices(int object_handle);",
+          "addr": "0x13fe70",
+          "ported": true
         },
         {
           "decl": "void *object_get_child_marker_definition(int object_handle, int16_t marker_index);",

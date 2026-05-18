@@ -5745,6 +5745,10 @@
         "The re-fetch of header at 0x13fdc8 after the partition-remove call may be needed because the partition-remove could invalidate the cached header pointer, but this is not confirmed."
       ]
     },
+    "0x13fe70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13fea0": {
       "kind": "function",
       "status": "ported"
