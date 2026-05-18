@@ -2293,7 +2293,23 @@
         "Tail-call to vtable slot 0x58/4=22; original uses JMP ECX after POP EBP so the vtable entry executes as if it were the original function."
       ]
     },
+    "0xa8b50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa8ba0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8df0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2318,6 +2334,30 @@
       "uncertain": [
         "The disassembly shows param_2 (seat_object_handle) is passed to FUN_000fb0c0 (weapon_is_flag) which checks for CTF/oddball flags, not vehicle seats. The seat semantics may differ from what the name implies."
       ]
+    },
+    "0xa92b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa92e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9460": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xaa190": {
       "kind": "function",

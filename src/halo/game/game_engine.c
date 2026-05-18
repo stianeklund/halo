@@ -625,6 +625,65 @@ int get_ball_definition_index(void)
   return *(int *)(element + 0x58);
 }
 
+/* game_engine_switch_to_postgame (0xa9310)
+ *
+ * If the postgame state (0x5aa730) is 0, attempts to get the network
+ * game server. If non-null, transitions to state 1 with a 7-second timer
+ * (0x40e00000 = 7.0f). Otherwise jumps directly to state 3. */
+void game_engine_switch_to_postgame(void)
+{
+  int iVar1;
+
+  if (*(int *)0x5aa730 == 0) {
+    iVar1 = (int)network_game_server_get();
+    if (iVar1 != 0) {
+      *(int *)0x5aa730 = 1;
+      *(int *)0x5aa728 = 0x40e00000;
+      return;
+    }
+    *(int *)0x5aa730 = 3;
+  }
+}
+
+/* game_engine_get_goal_in_use (0xa9360)
+ *
+ * Returns whether the goal at the given index is in use.
+ * Reads from global_goals array (stride 0x20, base 0x456704). */
+char game_engine_get_goal_in_use(short param_1)
+{
+  return *(char *)(0x456704 + (int)param_1 * 0x20);
+}
+
+/* game_engine_get_goal_position (0xa9380)
+ *
+ * Copies the position (3 floats) of the goal at index param_2 into param_1.
+ * Asserts the goal is in use. */
+void game_engine_get_goal_position(int *param_1, short param_2)
+{
+  int iVar1;
+  char *src;
+
+  iVar1 = (int)param_2;
+  if (*(char *)(0x456704 + iVar1 * 0x20) == '\0') {
+    display_assert("global_goal[index].in_use",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0xf5c, true);
+    system_exit(-1);
+  }
+  src = (char *)(0x4566f8 + iVar1 * 0x20);
+  *param_1 = *(int *)src;
+  param_1[1] = *(int *)(src + 4);
+  param_1[2] = *(int *)(src + 8);
+}
+
+/* game_engine_clear_goal_position (0xa9460)
+ *
+ * Clears the goal entry at the given index (0x20 bytes starting at
+ * 0x4566f8 + index * 0x20). */
+void game_engine_clear_goal_position(short param_1)
+{
+  csmemset((char *)(0x4566f8 + (int)param_1 * 0x20), 0, 0x20);
+}
+
 /* Check scenario netgame flags (scenario+0x378, element size 0x94) for
  * duplicate entries: two flags with the same type (param_1) AND same
  * team (offset 0x12). For each duplicate pair found, calls error()
