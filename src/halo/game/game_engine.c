@@ -2243,6 +2243,44 @@ void game_engine_update(void)
   }
 }
 
+/* FUN_000af9a0 (0xaf9a0) — game_engine post-rasterize hook
+ *
+ * Called during post-rasterize. For game types 2 (post-game scoreboard)
+ * and 3 (post-game delay), renders post-game UI widgets across all four
+ * local player slots and clears rumble for each.
+ * Game types 0 and 1 are no-ops; any other value asserts unreachable. */
+void FUN_000af9a0(void)
+{
+  int i;
+  int16_t bounds[4];
+
+  i = 0;
+  if (*(int *)0x456b60 != 0) {
+    switch (*(int *)0x5aa730) {
+    case 0:
+    case 1:
+      break;
+    case 2:
+    case 3:
+      game_engine_post_rasterize_post_game();
+      bounds[0] = 0;
+      bounds[1] = 0;
+      bounds[2] = 0x1e0;
+      bounds[3] = 0x280;
+      do {
+        render_ui_widgets_postgame((int16_t)i, bounds);
+        rumble_clear_for_local_player((int16_t)i);
+        i = i + 1;
+      } while (i < 4);
+      return;
+    default:
+      display_assert("!\"unreachable\"",
+                     "c:\\halo\\SOURCE\\game\\game_engine.c", 0xdb5, true);
+      system_exit(-1);
+    }
+  }
+}
+
 /* FUN_000b04a0 (0xb04a0) — game_engine_ctf.c:0x3f5
  *
  * Assert that the given weapon index refers to a flag weapon.

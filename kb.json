@@ -8131,7 +8131,8 @@
         },
         {
           "decl": "void FUN_000af9a0(void);",
-          "addr": "0xaf9a0"
+          "addr": "0xaf9a0",
+          "ported": true
         },
         {
           "decl": "void FUN_000afa40(void);",
@@ -22977,7 +22978,7 @@
           "addr": "0xe76b0"
         },
         {
-          "decl": "void render_ui_widgets_postgame(void);",
+          "decl": "void render_ui_widgets_postgame(__int16 local_player_index, __int16 *bounds);",
           "addr": "0xe7760"
         },
         {
