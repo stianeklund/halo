@@ -1,3 +1,57 @@
+/* Cylinder collision test: for each cylinder, invert the cylinder local
+ * frame matrix and transform the test point into cylinder space.
+ * 0x14ca30 / collision_usage.obj
+ */
+unsigned int FUN_0014ca30(int param_1, void *param_2)
+{
+    uint8_t bVar1;
+    unsigned int uVar2;
+    int iVar3;
+    int iVar4;
+    int *piVar5;
+    int iVar6;
+    short sVar7;
+    int iVar8;
+    float local_44[13];
+    float local_10[3];
+
+    uVar2 = *(unsigned int *)(param_1 + 4) + 0x28c;
+    sVar7 = 0;
+    if (0 < *(int *)(*(int *)(param_1 + 4) + 0x28c)) {
+        iVar8 = 0;
+        do {
+            iVar3 = (int)tag_block_get_element((void *)uVar2, iVar8, 0x40);
+            if (*(short *)(iVar3 + 0x20) != -1) {
+                bVar1 = *(uint8_t *)(*(int *)(param_1 + 8) +
+                                    (int)*(short *)(iVar3 + 0x20));
+                if ((uint16_t)bVar1 != 0xffff) {
+                    iVar4 = *(int *)(iVar3 + 0x34);
+                    if (0 < iVar4) {
+                        iVar6 = (int)(short)(uint16_t)bVar1;
+                        iVar4 = iVar4 - 1;
+                        if (iVar6 <= iVar4) {
+                            iVar4 = iVar6;
+                        }
+                        piVar5 = (int *)tag_block_get_element(
+                            (int *)(iVar3 + 0x34), (int)(short)iVar4, 0x60);
+                        if (0 < *piVar5) {
+                            matrix_inverse(
+                                (float *)(iVar8 * 0x34 + *(int *)(param_1 + 0xc)),
+                                local_44);
+                            matrix_transform_point(local_44, (float *)param_2,
+                                                   local_10);
+                        }
+                    }
+                }
+            }
+            sVar7 = sVar7 + 1;
+            uVar2 = *(unsigned int *)(param_1 + 4) + 0x28c;
+            iVar8 = (int)sVar7;
+        } while (iVar8 < *(int *)(*(int *)(param_1 + 4) + 0x28c));
+    }
+    return uVar2 & 0xffffff00;
+}
+
 /* Collision sphere test: for each sphere in the collision bsp3d,
  * transform the test point by the sphere's local frame and find
  * the bsp3d leaf. Returns 1 if any leaf lookup failed, 0 otherwise.
