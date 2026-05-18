@@ -308,6 +308,86 @@ int data_next_index(data_t *data, int prev_index)
   return NONE;
 }
 
+/* Find the previous valid element before datum, or before the end if datum==-1.
+ * Returns handle (salt<<16|index) or 0xffffffff if none found.
+ * 0x119980 / data.obj
+ */
+unsigned int data_prev_index(data_t *data, int datum)
+{
+    short *psVar1;
+    short sVar2;
+    unsigned int uVar3;
+
+    data_verify(data);
+    if (!data->valid) {
+        display_assert("data->valid", "c:\\halo\\SOURCE\\memory\\data.c", 0x14f, 1);
+        system_exit(-1);
+    }
+    if (datum == -1) {
+        uVar3 = (unsigned int)(unsigned short)(data->current_count - 1);
+    } else {
+        uVar3 = datum - 1;
+    }
+    sVar2 = (short)uVar3;
+    if (sVar2 >= 0 && sVar2 < data->current_count) {
+        psVar1 = (short *)((int)sVar2 * data->size + (int)data->data);
+        do {
+            sVar2 = (short)uVar3;
+            if (*psVar1 != 0) {
+                return (int)*psVar1 << 16 | (int)sVar2;
+            }
+            psVar1 = (short *)((int)psVar1 - data->size);
+            uVar3--;
+        } while (sVar2 >= 0);
+    }
+    return -1;
+}
+
+/* Compact the data array: removes gaps by copying all live elements
+ * into a temporary buffer and copying back.
+ * 0x119a10 / data.obj
+ */
+void data_compact(data_t *data)
+{
+    short sVar1;
+    int iVar2;
+    short sVar3;
+    short *psVar4;
+    int iVar5;
+
+    sVar3 = 0;
+    iVar2 = (int)debug_malloc((int)data->size * (int)data->maximum_count, 0,
+                               "c:\\halo\\SOURCE\\memory\\data.c", 0x1a5);
+    data_verify(data);
+    if (!data->valid) {
+        display_assert("data->valid", "c:\\halo\\SOURCE\\memory\\data.c", 0x1a8, 1);
+        system_exit(-1);
+    }
+    if (iVar2 != 0) {
+        psVar4 = data->data;
+        sVar1 = 0;
+        if (0 < data->current_count) {
+            do {
+                if (*psVar4 != 0) {
+                    csmemcpy((void *)(iVar2 + (int)sVar3 * (int)data->size), psVar4,
+                             (int)data->size);
+                    sVar3 = sVar3 + 1;
+                }
+                sVar1 = sVar1 + 1;
+                psVar4 = (short *)((int)psVar4 + data->size);
+            } while (sVar1 < data->current_count);
+        }
+        iVar5 = (int)sVar3;
+        csmemcpy(data->data, (void *)iVar2, (int)data->size * iVar5);
+        csmemset((void *)(iVar5 * (int)data->size + (int)data->data), 0,
+                 (int)(data->maximum_count - iVar5) * (int)data->size);
+        data->unk_48 = sVar3;
+        data->current_count = sVar3;
+        *(int16_t *)data->unk_44 = sVar3;
+        debug_free((void *)iVar2, "c:\\halo\\SOURCE\\memory\\data.c", 0x1bf);
+    }
+}
+
 void data_delete_all(data_t *data)
 {
   data_verify(data);
