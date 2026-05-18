@@ -77,6 +77,16 @@ void event_manager_tab_process(void)
     *(unsigned int *)0x46bd38 = system_milliseconds();
 }
 
+/**
+ * Stop attract mode and all sounds, then play the credits Bink video.
+ */
+void FUN_000dc110(void)
+{
+  ui_widget_stop_attract_mode();
+  sound_stop_all();
+  bink_playback_start("d:\\bink\\credits.bik", 0x2e);
+}
+
 void event_manager_initialize(void)
 {
   csmemset(event_manager_globals, 0, 0x108);
