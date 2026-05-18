@@ -455,6 +455,25 @@ void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out)
   }
 }
 
+/* Normalize a 2D vector v in-place; returns the input pointer.
+ * If the vector is zero-length (|v|^2 == 0.0f), it is left unchanged.
+ * 0x10c290 / random_math.obj
+ */
+float *FUN_0010c290(float *v)
+{
+    float mag_sq;
+    float inv_mag;
+
+    mag_sq = v[1] * v[1] + v[0] * v[0];
+    if (mag_sq != *(float *)0x2533c0) {
+        inv_mag = *(float *)0x2533c8 / sqrtf(mag_sq);
+        v[0] = inv_mag * v[0];
+        v[1] = inv_mag * v[1];
+        return v;
+    }
+    return v;
+}
+
 /* Compute the angle (radians) between two 3D vectors v1 and v2.
  *
  * Returns acos(dot(v1,v2) / (|v1| * |v2|)), the geometric angle between

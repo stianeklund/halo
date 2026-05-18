@@ -17260,7 +17260,8 @@
         },
         {
           "decl": "float *FUN_0010c290(float *v);",
-          "addr": "0x10c290"
+          "addr": "0x10c290",
+          "ported": true
         },
         {
           "decl": "float *FUN_0010c2e0(float *v);",

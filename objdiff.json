@@ -1223,6 +1223,14 @@
       }
     },
     {
+      "name": "halo/random_math_FUN_10c290",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c290.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
       "name": "halo/data_FUN_1194a0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/data.c.obj",
       "base_path": "delinked/data_FUN_1194a0.obj",
