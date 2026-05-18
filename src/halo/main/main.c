@@ -32,6 +32,51 @@ void display_error_damaged_media(void)
   main_halt_entry();
 }
 
+/* Guard wrapper: if param_1 is nonzero, change the selected AI encounter
+ * by calling ai_debug_change_selected_encounter with direction 0. */
+void FUN_000ffe10(char param_1)
+{
+  if (param_1 != '\0') {
+    ai_debug_change_selected_encounter(0);
+  }
+}
+
+/* Guard wrapper: if param_1 is nonzero, change the selected AI actor
+ * by calling ai_debug_change_selected_actor with direction 1 (next). */
+void FUN_000ffe30(char param_1)
+{
+  if (param_1 != '\0') {
+    ai_debug_change_selected_actor(1);
+  }
+}
+
+/* Guard wrapper: if param_1 is nonzero, change the selected AI actor
+ * by calling ai_debug_change_selected_actor with direction 0 (prev). */
+void FUN_000ffe50(char param_1)
+{
+  if (param_1 != '\0') {
+    ai_debug_change_selected_actor(0);
+  }
+}
+
+/* Guard wrapper: if param_1 is nonzero, call FUN_00053890. */
+void FUN_000ffe70(char param_1)
+{
+  if (param_1 != '\0') {
+    FUN_00053890();
+    return;
+  }
+}
+
+/* Guard wrapper: if param_1 is nonzero, call FUN_0008f630. */
+void FUN_000ffe90(char param_1)
+{
+  if (param_1 != '\0') {
+    FUN_0008f630();
+    return;
+  }
+}
+
 /* Set the game connection state (network connection type).
  * Stores the low 16 bits of param into the global word_46DA0C.
  * 0 = local/singleplayer, 2 = client, other values used for host/dedicated. */

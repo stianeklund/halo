@@ -7234,7 +7234,7 @@
         {
           "decl": "int FUN_000b45c0(int param_1);",
           "addr": "0xb45c0",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_000b46b0(void);",
@@ -7247,7 +7247,7 @@
         {
           "decl": "int FUN_000b4960(void);",
           "addr": "0xb4960",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_000b4a70(void);",
@@ -11858,24 +11858,29 @@
           "addr": "0xe8e20"
         },
         {
-          "decl": "void FUN_000ffe10(void);",
-          "addr": "0xffe10"
+          "decl": "void FUN_000ffe10(char param_1);",
+          "addr": "0xffe10",
+          "ported": true
         },
         {
-          "decl": "void FUN_000ffe30(void);",
-          "addr": "0xffe30"
+          "decl": "void FUN_000ffe30(char param_1);",
+          "addr": "0xffe30",
+          "ported": true
         },
         {
-          "decl": "void FUN_000ffe50(void);",
-          "addr": "0xffe50"
+          "decl": "void FUN_000ffe50(char param_1);",
+          "addr": "0xffe50",
+          "ported": true
         },
         {
-          "decl": "void FUN_000ffe70(void);",
-          "addr": "0xffe70"
+          "decl": "void FUN_000ffe70(char param_1);",
+          "addr": "0xffe70",
+          "ported": true
         },
         {
-          "decl": "void FUN_000ffe90(void);",
-          "addr": "0xffe90"
+          "decl": "void FUN_000ffe90(char param_1);",
+          "addr": "0xffe90",
+          "ported": true
         },
         {
           "decl": "void FUN_000ffeb0(void);",
@@ -29145,7 +29150,7 @@
           "addr": "0x4c0f0"
         },
         {
-          "decl": "void ai_debug_change_selected_actor(void);",
+          "decl": "void ai_debug_change_selected_actor(int param);",
           "addr": "0x4c170"
         },
         {
