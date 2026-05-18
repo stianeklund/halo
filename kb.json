@@ -6278,7 +6278,7 @@
         {
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6339,7 +6339,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -9952,8 +9952,9 @@
           "addr": "0xc4b00"
         },
         {
-          "decl": "void FUN_000c4b40(void);",
-          "addr": "0xc4b40"
+          "decl": "void FUN_000c4b40(int16_t function_index, int thread_datum, char init);",
+          "addr": "0xc4b40",
+          "ported": true
         },
         {
           "decl": "void FUN_000c4b60(void);",
@@ -9987,12 +9988,14 @@
           "addr": "0xc4e90"
         },
         {
-          "decl": "void FUN_000c4ff0(void);",
-          "addr": "0xc4ff0"
+          "decl": "void FUN_000c4ff0(int16_t function_index, int thread_datum, char init);",
+          "addr": "0xc4ff0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000c5010(void);",
-          "addr": "0xc5010"
+          "decl": "void FUN_000c5010(int16_t function_index, int thread_datum, char init);",
+          "addr": "0xc5010",
+          "ported": true
         },
         {
           "decl": "void hs_initialize(void);",
