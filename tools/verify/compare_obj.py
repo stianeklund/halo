@@ -35,8 +35,10 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
         sys.exit(1)
 
     functions: dict[str, list[str]] = OrderedDict()
+    _label_positions: dict[str, set[int]] = {}
     current_func = None
     current_lines: list[str] = []
+    current_labels: set[int] = set()
 
     for raw_line in result.stdout.splitlines():
         line = raw_line.rstrip()
@@ -44,11 +46,14 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
         if m:
             sym = m.group(1)
             if sym.startswith("LAB_") or sym.startswith("switchD_") or sym.startswith("$L"):
+                current_labels.add(len(current_lines))
                 continue
             if current_func and current_lines:
                 functions[current_func] = current_lines
+                _label_positions[current_func] = current_labels
             current_func = re.sub(r'@\d+$', '', sym.lstrip("_"))
             current_lines = []
+            current_labels = set()
             continue
 
         stripped = line.strip()
@@ -66,19 +71,59 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
 
     if current_func and current_lines:
         functions[current_func] = current_lines
+        _label_positions[current_func] = current_labels
 
     for fn in functions:
         lines = functions[fn]
         while lines and lines[-1].strip().split()[0].startswith('nop'):
             lines.pop()
-        functions[fn] = _trim_trailing_thunks(lines)
+        lines = _trim_trailing_thunks(lines)
+        functions[fn] = _trim_unlabeled_bleed(lines, _label_positions.get(fn, set()))
 
     return functions
 
 
 _RET_MNEMS = {'ret', 'retl', 'retw', 'retq', 'retn'}
+_NOP_MNEMS = {'nop', 'nopl', 'nopw'}
 _THUNK_BODY_MNEMS = {'push', 'pushl', 'pushw', 'call', 'calll', 'callw',
                      'add', 'addl', 'nop', 'pop', 'popl'}
+
+
+def _trim_unlabeled_bleed(insns: list, label_positions: set[int]) -> list:
+    """Trim unlabeled trailing code that bleeds into a function's parsed output.
+
+    When an unlabeled helper sits between two named symbols, the parser lumps
+    it under the preceding symbol.  MSVC emits 3+ NOP alignment padding between
+    functions, so: RET + 3+ NOPs (no internal label in the sled) + code = bleed.
+    Scans backward so the last qualifying RET is treated as the true epilogue.
+    """
+    if not insns:
+        return insns
+    n = len(insns)
+
+    for i in range(n - 1, -1, -1):
+        if mnemonic(insns[i]).lower() not in _RET_MNEMS:
+            continue
+
+        j = i + 1
+        nop_count = 0
+        while j < n and mnemonic(insns[j]).lower() in _NOP_MNEMS:
+            nop_count += 1
+            j += 1
+
+        if nop_count < 3:
+            continue
+
+        if j >= n:
+            continue
+
+        has_label_in_sled = any(pos > i and pos <= j for pos in label_positions)
+        if has_label_in_sled:
+            continue
+
+        return insns[:i + 1]
+
+    return insns
 
 def _trim_trailing_thunks(insns: list) -> list:
     """Strip NOP padding and push/call/ret thunk stubs after the real function RET.
