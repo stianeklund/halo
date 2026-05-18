@@ -684,6 +684,67 @@ void game_engine_clear_goal_position(short param_1)
   csmemset((char *)(0x4566f8 + (int)param_1 * 0x20), 0, 0x20);
 }
 
+/* game_engine_has_shield (0xa95f0)
+ *
+ * Returns true (1) if the game engine is inactive or player_index is NONE.
+ * Otherwise returns bit 3 of the engine flags (0x456b18), inverted. */
+char game_engine_has_shield(int param_1)
+{
+  char result;
+
+  result = 1;
+  if (*(int *)0x456b60 != 0 && param_1 != -1) {
+    result = (~(*(int *)0x456b18 >> 3)) & 1;
+  }
+  return result;
+}
+
+/* list_index_to_weapon_definition_index (0xa9680)
+ *
+ * Returns the weapon definition tag index for a given list index by reading
+ * game_globals+0x14c element at param_1 (size 0x10, offset 0xc).
+ * Returns -1 if param_1 is -1. */
+int list_index_to_weapon_definition_index(int param_1)
+{
+  int result;
+  int iVar1;
+
+  result = -1;
+  if (param_1 != -1) {
+    iVar1 = (int)game_globals_get();
+    result = *(int *)((char *)tag_block_get_element(
+        (void *)(iVar1 + 0x14c), param_1, 0x10) + 0xc);
+  }
+  return result;
+}
+
+/* game_engine_man_out (0xa9900)
+ *
+ * Returns true if the player is "out" (eliminated). A player is out if:
+ *   - their quit flag (player+0xd1) is set, OR
+ *   - lives are limited (0x456b30 > 0), they have no biped (player+0x34 == -1),
+ *     AND their death count (player+0xaa) >= the lives limit, OR
+ *   - they are leading (game_engine_is_player_leading). */
+char game_engine_man_out(int param_1)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, param_1);
+  if (*(char *)(player + 0xd1) == '\0') {
+    if (*(int *)0x456b30 > 0) {
+      player = (char *)datum_get(player_data, param_1);
+      if (*(int *)(player + 0x34) == -1 &&
+          (int)*(short *)(player + 0xaa) >= *(int *)0x456b30) {
+        return 1;
+      }
+    }
+    if (game_engine_is_player_leading(param_1) == '\0') {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 /* Check scenario netgame flags (scenario+0x378, element size 0x94) for
  * duplicate entries: two flags with the same type (param_1) AND same
  * team (offset 0x12). For each duplicate pair found, calls error()
