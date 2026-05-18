@@ -4650,8 +4650,9 @@
       "source": "physics/collision_usage.c",
       "functions": [
         {
-          "decl": "void FUN_0014c6d0(void);",
-          "addr": "0x14c6d0"
+          "decl": "void FUN_0014c6d0(int prism, void *context);",
+          "addr": "0x14c6d0",
+          "ported": true
         },
         {
           "decl": "void FUN_0014c7b0(void);",
@@ -4674,7 +4675,8 @@
         },
         {
           "decl": "char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4, int16_t *param_5);",
-          "addr": "0x14cb00"
+          "addr": "0x14cb00",
+          "ported": true
         },
         {
           "decl": "void FUN_0014cc80(void);",
@@ -19656,7 +19658,7 @@
           "addr": "0x189150"
         },
         {
-          "decl": "void FUN_00189270(void);",
+          "decl": "void FUN_00189270(int flag, float *point_a, float *point_b, void *context);",
           "addr": "0x189270"
         },
         {
