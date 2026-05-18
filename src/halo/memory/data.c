@@ -423,6 +423,29 @@ void FUN_00119c50(int *state, int buf, int buf_size)
     state[2] = buf_size;
 }
 
+
+/* Deserialize a 4-byte big-endian value and delegate to FUN_00110b40.
+ * Returns 1 on success, 0 if insufficient data (param_5 <= 3).
+ * 0x119b40 / data.obj
+ */
+int FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4, unsigned int p5)
+{
+    int iVar1;
+
+    if (3 < p5) {
+        *p3 = (((p2 & 0xff0000) | p2 >> 0x10) >> 8) |
+              (((p2 & 0xff00) | p2 << 0x10) << 8);
+        *p4 = p5 - 4;
+        iVar1 = FUN_00110b40(p3 + 1, p4, p1, p2, 9);
+        if (iVar1 == 0) {
+            *p4 = *p4 + 4;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
 void data_delete_all(data_t *data)
 {
   data_verify(data);

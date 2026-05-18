@@ -5569,8 +5569,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00119b40(void);",
-          "addr": "0x119b40"
+          "decl": "int FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4, unsigned int p5);",
+          "addr": "0x119b40",
+          "ported": true
         },
         {
           "decl": "unsigned int FUN_00119bb0(unsigned int *buf, unsigned int size);",
@@ -19025,7 +19026,7 @@
           "addr": "0x110a10"
         },
         {
-          "decl": "void FUN_00110b40(void);",
+          "decl": "int FUN_00110b40(unsigned int *p1, int *p2, int p3, unsigned int p4, int p5);",
           "addr": "0x110b40"
         },
         {
@@ -31319,7 +31320,7 @@
           "addr": "0x1177c0"
         },
         {
-          "decl": "void FUN_001179e0(void);",
+          "decl": "int FUN_001179e0(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4);",
           "addr": "0x1179e0"
         },
         {
@@ -31383,7 +31384,7 @@
           "addr": "0x118520"
         },
         {
-          "decl": "void FUN_00118620(void);",
+          "decl": "void FUN_00118620(void *data, int count, int element_size);",
           "addr": "0x118620"
         },
         {
