@@ -1,3 +1,130 @@
+/* Cylinder BSP vector test: tests a ray against each cylinder collision element.
+ * 0x14cb00 / collision_usage.obj
+ */
+char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4,
+                  int16_t *param_5)
+{
+    short bVar1;
+    char cVar2;
+    int *piVar3;
+    int iVar4;
+    int iVar5;
+    int iVar6;
+    float local_5c[13];
+    float local_28[3];
+    float local_1c[3];
+    int local_10;
+    int local_c;
+    char local_5;
+
+    local_5 = 0;
+    collision_log_add_call(3);
+    collision_log_query_counter((void *)0x4761c8);
+    *(int *)(param_5 + 2) = 0x7f7fffff;
+    piVar3 = (int *)(*(int *)(param_1 + 4) + 0x28c);
+    iVar6 = 0;
+    local_c = 0;
+    if (0 < *(int *)(*(int *)(param_1 + 4) + 0x28c)) {
+        do {
+            local_10 = (int)tag_block_get_element(piVar3, iVar6, 0x40);
+            if (*(short *)(local_10 + 0x20) != -1) {
+                bVar1 = (short)(uint16_t)(*(uint8_t *)(*(int *)(param_1 + 8) +
+                                    (int)*(short *)(local_10 + 0x20)));
+                if (bVar1 != -1) {
+                    iVar4 = *(int *)(local_10 + 0x34);
+                    if (0 < iVar4) {
+                        iVar5 = (int)bVar1;
+                        iVar4 = iVar4 - 1;
+                        if (iVar4 < iVar5) {
+                            iVar5 = iVar4;
+                        }
+                        piVar3 = (int *)tag_block_get_element(
+                            (int *)(local_10 + 0x34), (int)(short)iVar5, 0x60);
+                        if (0 < *piVar3) {
+                            matrix_inverse(
+                                (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
+                                local_5c);
+                            matrix_transform_point(local_5c, (float *)param_3,
+                                                   local_28);
+                            matrix_scale_transform_vector(local_5c, (float *)param_4,
+                                                          local_1c);
+                            cVar2 = collision_bsp_test_vector(
+                                (int)param_2, (int)piVar3, 0, 0,
+                                (int)local_28, (int)local_1c,
+                                *(float *)(param_5 + 2),
+                                (float *)(param_5 + 2));
+                            if (cVar2 != '\0') {
+                                *param_5 = (int16_t)local_c;
+                                param_5[1] = *(int16_t *)(local_10 + 0x20);
+                                param_5[2] = (int16_t)iVar5;
+                                local_5 = 1;
+                            }
+                        }
+                    }
+                }
+            }
+            local_c = local_c + 1;
+            piVar3 = (int *)(*(int *)(param_1 + 4) + 0x28c);
+            iVar6 = (int)(short)local_c;
+        } while (iVar6 < *piVar3);
+    }
+    collision_log_add_time(3, *(unsigned int *)0x4761c8, *(int *)0x4761cc);
+    return local_5;
+}
+
+/* Build collision prism feature list from a collision prism descriptor.
+ * FPU-WARN reviewed: ECX/EDX register assignment for origin y-component;
+ * semantic value is correct (origin_y) in both paths — false positive.
+ * 0x14c6d0 / collision_usage.obj
+ */
+void FUN_0014c6d0(int param_1, void *param_2)
+{
+    float *pfVar1;
+    float fVar2;
+    short sVar5;
+    float local_64[24];
+    int i;
+    int n;
+
+    if (8 < *(int *)(param_1 + 0x24)) {
+        display_assert("prism->point_count<=MAXIMUM_POINTS_PER_COLLISION_PRISM",
+                       "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x437, 1);
+        system_exit(-1);
+    }
+    sVar5 = 0;
+    if (0 < *(int *)(param_1 + 0x24)) {
+        i = 0;
+        do {
+            pfVar1 = local_64 + i * 3;
+            project_point2d((float *)(param_1 + 0x28 + i * 8),
+                            (float *)(param_1 + 0xc),
+                            *(int16_t *)(param_1 + 0x20),
+                            *(uint8_t *)(param_1 + 0x22),
+                            pfVar1);
+            fVar2 = *(float *)(param_1 + 0x1c);
+            n = *(int *)(param_1 + 0x24);
+            sVar5 = sVar5 + 1;
+            *pfVar1 = fVar2 * *(float *)(param_1 + 0xc) + *pfVar1;
+            local_64[i * 3 + 1] = fVar2 * *(float *)(param_1 + 0x10) + local_64[i * 3 + 1];
+            local_64[i * 3 + 2] = fVar2 * *(float *)(param_1 + 0x14) + local_64[i * 3 + 2];
+            i = (int)sVar5;
+        } while (sVar5 < n);
+    }
+    n = *(int *)(param_1 + 0x24);
+    sVar5 = 0;
+    if (0 < n) {
+        i = 0;
+        do {
+            FUN_00189270(1, local_64 + i * 3,
+                         local_64 + ((i + 1) % n) * 3,
+                         param_2);
+            n = *(int *)(param_1 + 0x24);
+            sVar5 = sVar5 + 1;
+            i = (int)sVar5;
+        } while (i < n);
+    }
+}
+
 /* Cylinder collision test: for each cylinder, invert the cylinder local
  * frame matrix and transform the test point into cylinder space.
  * 0x14ca30 / collision_usage.obj
