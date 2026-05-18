@@ -15,6 +15,14 @@ extern const char *build_rev;
 extern const char *build_date;
 extern const char *build_ui_widget_text;
 
+float __cdecl sinf(float);
+float __cdecl cosf(float);
+float __cdecl sqrtf(float);
+float __cdecl fabsf(float);
+double __cdecl sin(double);
+double __cdecl cos(double);
+double __cdecl sqrt(double);
+
 #include "types.h"
 #define XBOX_REPLACE_STANDARD_NAMES
 #include "inlines.h"

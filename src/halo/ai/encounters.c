@@ -1014,35 +1014,35 @@ void FUN_00057c60(void)
  */
 int *FUN_00057ef0(int param_1)
 {
+  char *base;
   int *piVar3;
   short sVar1;
   short sVar2;
 
   piVar3 = (int *)0;
   if (param_1 != -1) {
-    sVar1 = *(short *)((char *)*(int *)0x632574 + 0x3b6);
+    base = *(char **)0x632574;
+    sVar1 = *(short *)(base + 0x3b6);
     sVar2 = 0;
     if (0 < sVar1) {
       do {
-        if (*(int *)((char *)*(int *)0x632574 + 0x3b8 + (int)sVar2 * 0x28) ==
-            param_1)
+        if (*(int *)(base + 0x3b8 + (int)sVar2 * 0x28) == param_1)
           break;
         sVar2 = (short)(sVar2 + 1);
       } while (sVar2 < sVar1);
-      if (0x1f < sVar2) {
+      if (sVar2 >= 0x20) {
         error(2,
               "ai_vehicle_enterable: too many enterable vehicles (max is %d)",
               0x20);
-        return (int *)0;
+        return piVar3;
       }
     }
-    piVar3 = (int *)((char *)*(int *)0x632574 + 0x3b8 + (int)sVar2 * 0x28);
+    piVar3 = (int *)(base + 0x3b8 + (int)sVar2 * 0x28);
     if (sVar1 <= sVar2) {
       csmemset(piVar3, 0, 0x28);
       *piVar3 = param_1;
       piVar3[1] = 0x41000000;
-      *(short *)((char *)*(int *)0x632574 + 0x3b6) =
-        (short)(*(short *)((char *)*(int *)0x632574 + 0x3b6) + 1);
+      { char *p = *(char **)0x632574; (*(short *)(p + 0x3b6))++; }
     }
   }
   return piVar3;

@@ -17203,7 +17203,7 @@
           "addr": "0x10a930"
         },
         {
-          "decl": "void FUN_0010aa60(int type_index, void *buffer);",
+          "decl": "void FUN_0010aa60(short type_index, void *buffer);",
           "addr": "0x10aa60",
           "ported": true
         },

@@ -125,6 +125,20 @@ static inline float xbox_cosf(float x)
   return r;
 }
 
+static inline double xbox_sin(double x)
+{
+  double r;
+  asm volatile ("fsin" : "=t"(r) : "0"(x));
+  return r;
+}
+
+static inline double xbox_cos(double x)
+{
+  double r;
+  asm volatile ("fcos" : "=t"(r) : "0"(x));
+  return r;
+}
+
 static inline float xbox_sqrtf(float x)
 {
   float r;
@@ -240,6 +254,8 @@ static inline size_t xbox_strlen(const char *s)
 #ifdef XBOX_COMPILER_GCC_X86
   #define sinf    xbox_sinf
   #define cosf    xbox_cosf
+  #define sin     xbox_sin
+  #define cos     xbox_cos
   #define sqrtf   xbox_sqrtf
   #define fabsf   xbox_fabsf
   #define acosf   xbox_acosf

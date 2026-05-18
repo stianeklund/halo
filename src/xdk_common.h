@@ -13,6 +13,8 @@ float __cdecl sinf(float);
 float __cdecl cosf(float);
 float __cdecl sqrtf(float);
 float __cdecl fabsf(float);
+double __cdecl sin(double);
+double __cdecl cos(double);
 double __cdecl sqrt(double);
 
 #if defined(_MSC_VER) && !defined(__clang__)
