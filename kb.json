@@ -7717,8 +7717,9 @@
           "ported": null
         },
         {
-          "decl": "void game_engine_player_depower_active_camo(void);",
-          "addr": "0xa9aa0"
+          "decl": "void game_engine_player_depower_active_camo(int param_1);",
+          "addr": "0xa9aa0",
+          "ported": true
         },
         {
           "decl": "void FUN_000a9af0(void);",

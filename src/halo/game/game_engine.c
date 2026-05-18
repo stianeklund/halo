@@ -758,6 +758,27 @@ void game_engine_state_message(int param_1, int param_2, int param_3)
   *(int *)(player + 0x78) = param_3;
 }
 
+/* game_engine_player_depower_active_camo (0xa9aa0)
+ *
+ * If the player has a biped that is a unit (type mask 3) and has the
+ * active camo bit (byte 0x1b4, bit 4) set, sets the camo power field
+ * (offset 0x32c) to 0.5f (0x3f000000). */
+void game_engine_player_depower_active_camo(int param_1)
+{
+  char *player;
+  char *unit;
+
+  if (param_1 != -1) {
+    player = (char *)datum_get(player_data, param_1);
+    if (*(int *)(player + 0x34) != -1) {
+      unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+      if ((*(unsigned char *)(unit + 0x1b4) & 0x10) != 0) {
+        *(int *)(unit + 0x32c) = 0x3f000000;
+      }
+    }
+  }
+}
+
 /* Check scenario netgame flags (scenario+0x378, element size 0x94) for
  * duplicate entries: two flags with the same type (param_1) AND same
  * team (offset 0x12). For each duplicate pair found, calls error()
