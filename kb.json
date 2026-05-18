@@ -5559,12 +5559,14 @@
           "ported": true
         },
         {
-          "decl": "void data_prev_index(void);",
-          "addr": "0x119980"
+          "decl": "unsigned int data_prev_index(data_t *data, int datum);",
+          "addr": "0x119980",
+          "ported": true
         },
         {
-          "decl": "void data_compact(void);",
-          "addr": "0x119a10"
+          "decl": "void data_compact(data_t *data);",
+          "addr": "0x119a10",
+          "ported": true
         },
         {
           "decl": "void FUN_00119b40(void);",
