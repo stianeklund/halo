@@ -1317,6 +1317,30 @@
       "metadata": {
         "source_path": "src/halo/camera/bored_camera.c"
       }
+    },
+    {
+      "name": "halo/sound_classes_FUN_001c8a40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
+      "base_path": "delinked/sound_classes_FUN_001c8a40.obj",
+      "metadata": {
+        "source_path": "src/halo/sound/sound_classes.c"
+      }
+    },
+    {
+      "name": "halo/sound_classes_FUN_001c8a90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
+      "base_path": "delinked/sound_classes_FUN_001c8a90.obj",
+      "metadata": {
+        "source_path": "src/halo/sound/sound_classes.c"
+      }
+    },
+    {
+      "name": "halo/sound_classes_FUN_001c8ae0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
+      "base_path": "delinked/sound_classes_FUN_001c8ae0.obj",
+      "metadata": {
+        "source_path": "src/halo/sound/sound_classes.c"
+      }
     }
   ]
 }

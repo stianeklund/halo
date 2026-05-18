@@ -32,6 +32,56 @@ void *sound_class_get(int class_index /* @<si> */)
   return (void *)(*(int *)0x50548c + (int)idx * 0xc);
 }
 
+/* Search sound class names for pattern and set their enabled flag.
+ * enable == 0 means enable (sets the disabled field to false).
+ * 0x1c8a40 / sound_classes.obj
+ */
+void debug_sound_classes_enable(char *pattern, char enable)
+{
+    char **pp;
+    int i;
+    void *def;
+
+    i = 0;
+    pp = (char **)0x32f5d0;
+    do {
+        if (**pp != '\0') {
+            if (crt_strstr(*pp, pattern) != NULL) {
+                def = sound_class_get_definition((short)i);
+                *(bool *)((char *)def + 0x28) = (enable == '\0');
+            }
+        }
+        i++;
+        pp++;
+    } while ((short)i < 0x33);
+}
+
+/* Search sound class names for pattern and set their min/max distances.
+ * 0x1c8a90 / sound_classes.obj
+ */
+void debug_sound_classes_set_distances(char *pattern, float dist1, float dist2)
+{
+    char **pp;
+    int i;
+    void *def;
+
+    i = 0;
+    pp = (char **)0x32f5d0;
+    do {
+        if (**pp != '\0') {
+            if (crt_strstr(*pp, pattern) != NULL) {
+                def = sound_class_get_definition((short)i);
+                *(float *)((char *)def + 0x18) = dist1;
+                def = sound_class_get_definition((short)i);
+                *(float *)((char *)def + 0x1c) = dist2;
+            }
+        }
+        i++;
+        pp++;
+    } while ((short)i < 0x33);
+}
+
+
 void sound_classes_initialize_for_new_map(void)
 {
   int16_t i;

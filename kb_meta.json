@@ -7528,6 +7528,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c8a40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c8a90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c8b70": {
       "kind": "function",
       "status": "ported"

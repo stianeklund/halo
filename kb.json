@@ -20577,15 +20577,17 @@
           "ported": true
         },
         {
-          "decl": "void debug_sound_classes_enable(void);",
-          "addr": "0x1c8a40"
+          "decl": "void debug_sound_classes_enable(char *pattern, char enable);",
+          "addr": "0x1c8a40",
+          "ported": true
         },
         {
-          "decl": "void debug_sound_classes_set_distances(void);",
-          "addr": "0x1c8a90"
+          "decl": "void debug_sound_classes_set_distances(char *pattern, float dist1, float dist2);",
+          "addr": "0x1c8a90",
+          "ported": true
         },
         {
-          "decl": "void debug_sound_classes_set_wet(void);",
+          "decl": "void debug_sound_classes_set_wet(char *pattern, float wet);",
           "addr": "0x1c8ae0"
         },
         {
