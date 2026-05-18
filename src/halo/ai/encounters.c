@@ -1500,6 +1500,40 @@ void FUN_00058640(int param_1)
   ai_conversation_stop(param_1);
 }
 
+/* 0x000586a0 — FUN_000586a0 (ai_conversation_advance script command wrapper).
+ *
+ * Logs the conversation advance via error() if debug tracing is enabled,
+ * then delegates to ai_conversation_advance to actually step the conversation.
+ * Identical pattern to FUN_00058640 (ai_conversation_stop wrapper).
+ *
+ * Confirmed:
+ *   - param_1 is a conversation index (cast to short for bounds check).
+ *   - Scenario conversations block at scenario+0x468, element size 0x74.
+ *   - DAT_005aca59 gates debug output.
+ *   - Unconditionally calls ai_conversation_advance(param_1).
+ */
+void FUN_000586a0(int param_1)
+{
+  scenario_t *scenario;
+  short index;
+  const char *conv_name;
+
+  if (*(char *)0x5aca59) {
+    scenario = global_scenario_get();
+    index = (short)param_1;
+    conv_name = "<error>";
+    if (index >= 0) {
+      if ((int)index < *(int *)((char *)scenario + 0x468)) {
+        conv_name = (const char *)tag_block_get_element(
+          (char *)scenario + 0x468, (int)index, 0x74);
+      }
+    }
+    error(2, "%s: ai_conversation_advance %s",
+          hs_runtime_get_executing_thread_name(), conv_name);
+  }
+  ai_conversation_advance(param_1);
+}
+
 /* 0x00058a40 — ai_magically_see_players (FUN_00058a40).
  *
  * Forces all active players to be "magically seen" by the encounter
