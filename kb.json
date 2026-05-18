@@ -4701,8 +4701,9 @@
           "ported": true
         },
         {
-          "decl": "void collision_log_enable(void);",
-          "addr": "0x14d070"
+          "decl": "void collision_log_enable(char enable);",
+          "addr": "0x14d070",
+          "ported": true
         },
         {
           "decl": "void collision_log_period_helper(int time_period@<esi>, int begin_flag);",

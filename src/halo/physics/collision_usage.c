@@ -320,6 +320,15 @@ void collision_log_initialize(void)
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 + 1;
 }
 
+/* Enable or disable collision logging globally.
+ * Sets the byte at 0x325054 to the enable flag.
+ * 0x14d070 / collision_usage.obj
+ */
+void collision_log_enable(char enable)
+{
+    *(char *)0x325054 = enable;
+}
+
 /* Helper shared by begin/continue_period. Asserts no period is active,
  * validates time_period is in [0,3), zeros the scratch buffer at 0x5a80e0,
  * and sets the current period. time_period passed in ESI. */
