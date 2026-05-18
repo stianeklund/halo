@@ -1,3 +1,59 @@
+/* Collision sphere test: for each sphere in the collision bsp3d,
+ * transform the test point by the sphere's local frame and find
+ * the bsp3d leaf. Returns 1 if any leaf lookup failed, 0 otherwise.
+ * 0x14c950 / collision_usage.obj
+ */
+unsigned int FUN_0014c950(int param_1, void *param_2)
+{
+    uint8_t bVar1;
+    int *piVar2;
+    int iVar3;
+    int iVar4;
+    int iVar5;
+    int iVar6;
+    float local_14[3];
+    int local_8;
+
+    piVar2 = (int *)(*(int *)(param_1 + 4) + 0x28c);
+    iVar6 = 0;
+    local_8 = 0;
+    if (0 < *(int *)(*(int *)(param_1 + 4) + 0x28c)) {
+        do {
+            iVar3 = (int)tag_block_get_element(piVar2, iVar6, 0x40);
+            if (*(short *)(iVar3 + 0x20) != -1) {
+                bVar1 = *(uint8_t *)(*(int *)(param_1 + 8) +
+                                    (int)*(short *)(iVar3 + 0x20));
+                if ((uint16_t)bVar1 != 0xffff) {
+                    iVar4 = *(int *)(iVar3 + 0x34);
+                    if (0 < iVar4) {
+                        iVar5 = (int)(short)(uint16_t)bVar1;
+                        iVar4 = iVar4 - 1;
+                        if (iVar5 <= iVar4) {
+                            iVar4 = iVar5;
+                        }
+                        piVar2 = (int *)tag_block_get_element(
+                            (int *)(iVar3 + 0x34), (int)(short)iVar4, 0x60);
+                        if (0 < *piVar2) {
+                            real_matrix3x3_transform_point(
+                                (void *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
+                                (float *)param_2, local_14);
+                            iVar6 = (int)bsp3d_find_leaf(piVar2, 0,
+                                                          local_14);
+                            if (iVar6 == -1) {
+                                return 1;
+                            }
+                        }
+                    }
+                }
+            }
+            local_8 = local_8 + 1;
+            piVar2 = (int *)(*(int *)(param_1 + 4) + 0x28c);
+            iVar6 = (int)(short)local_8;
+        } while (iVar6 < *piVar2);
+    }
+    return 0;
+}
+
 /* Retrieve the collision model components for an object.
  * Looks up the object's "obje" tag, checks if it has a "coll" subtag.
  * If yes, fills out[0..3] with: handle, coll_tag, object_node_ptr, node_matrices.
