@@ -7476,11 +7476,12 @@
           "addr": "0xa8420"
         },
         {
-          "decl": "void sort_statistic_buffer(void);",
-          "addr": "0xa8440"
+          "decl": "int sort_statistic_buffer(int param_1, int param_2);",
+          "addr": "0xa8440",
+          "ported": true
         },
         {
-          "decl": "void FUN_000a8470(void);",
+          "decl": "int FUN_000a8470(int param_1, int param_2);",
           "addr": "0xa8470"
         },
         {
@@ -7499,7 +7500,8 @@
         },
         {
           "decl": "void get_postgame_hilite_colors(void);",
-          "addr": "0xa8630"
+          "addr": "0xa8630",
+          "ported": true
         },
         {
           "decl": "void game_engine_remove_dropped_weapons(void);",
@@ -7521,12 +7523,14 @@
           "addr": "0xa8970"
         },
         {
-          "decl": "void game_engine_load_stage(void);",
-          "addr": "0xa8a20"
+          "decl": "void game_engine_load_stage(const char *param_1);",
+          "addr": "0xa8a20",
+          "ported": true
         },
         {
           "decl": "void game_engine_playlist_begin(void);",
-          "addr": "0xa8a70"
+          "addr": "0xa8a70",
+          "ported": true
         },
         {
           "decl": "bool game_engine_get_current_stage(void *game_variant_dst, void *game_variant_src);",
@@ -11928,7 +11932,7 @@
           "ported": true
         },
         {
-          "decl": "void main_set_multiplayer_map_name(void);",
+          "decl": "void main_set_multiplayer_map_name(const char *name);",
           "addr": "0x100010"
         },
         {
