@@ -774,5 +774,16 @@
     "source": "objects/objects.c",
     "addr": "0x00145490",
     "parent_obj": "objects.obj"
-  }
+  },
+  "objects": [
+    {
+      "obj_file": "delinked/collision_usage_FUN_0014cfe0.obj",
+      "start_addr": "0x14cfe0",
+      "end_addr": "0x14d003",
+      "functions": [
+        "FUN_0014cfe0"
+      ],
+      "source_file": "src/halo/physics/collision_usage.c"
+    }
+  ]
 }

@@ -4692,8 +4692,9 @@
           "addr": "0x14cf20"
         },
         {
-          "decl": "void FUN_0014cfe0(void);",
-          "addr": "0x14cfe0"
+          "decl": "int FUN_0014cfe0(int param_1, int param_2);",
+          "addr": "0x14cfe0",
+          "ported": true
         },
         {
           "decl": "void collision_log_initialize(void);",
