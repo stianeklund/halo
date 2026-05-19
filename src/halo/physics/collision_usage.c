@@ -312,6 +312,17 @@ int FUN_0014c8e0(int *out, int object_handle)
     return 0;
 }
 
+/* Comparator: returns -1/0/1 based on *(int *)(a+8) vs *(int *)(b+8).
+ * 0x14cfe0 / collision_usage.obj
+ */
+int FUN_0014cfe0(int param_1, int param_2)
+{
+    if (*(int *)(param_2 + 8) < *(int *)(param_1 + 8)) {
+        return -1;
+    }
+    return *(int *)(param_1 + 8) < *(int *)(param_2 + 8);
+}
+
 void collision_log_initialize(void)
 {
   csmemset((void *)0x5a5e40, 0, 0x2298);
