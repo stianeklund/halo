@@ -77,11 +77,13 @@ void FUN_0010aa60(short type_index, void *buffer)
       break;
     case 9:
     case 10:
-      sample =
-        ((float)cos((double)(phase * *(float *)0x28c8ec)) * (float)cos((double)(phase * *(float *)0x28c8e8)) +
-         (float)cos((double)(phase * *(float *)0x28c8e4)) * (float)sin((double)(phase * *(float *)0x2568bc))) *
-          *(float *)0x253398 +
-        (float)sin((double)(phase * *(float *)0x256980)) * (float)cos((double)(phase * *(float *)0x255a54));
+      sample = ((float)cos((double)(phase * *(float *)0x28c8ec)) *
+                  (float)cos((double)(phase * *(float *)0x28c8e8)) +
+                (float)cos((double)(phase * *(float *)0x28c8e4)) *
+                  (float)sin((double)(phase * *(float *)0x2568bc))) *
+                 *(float *)0x253398 +
+               (float)sin((double)(phase * *(float *)0x256980)) *
+                 (float)cos((double)(phase * *(float *)0x255a54));
       break;
     case 11:
       p = (float)fmod((double)phase_var, *(double *)0x2573d8);
@@ -180,6 +182,201 @@ void periodic_functions_initialize(void)
       FUN_0010a930(i, buf);
     }
   }
+}
+
+/* Factorial: n! for n>=0; returns 1 for n<=1, 0 for n<0.
+ * 0x10add0 / random_math.obj (probability.c)
+ */
+int FUN_0010add0(short param_1)
+{
+  int iVar1;
+  int iVar2;
+  unsigned int uVar3;
+
+  iVar1 = 0;
+  if (param_1 >= 0) {
+    iVar1 = 1;
+    if (param_1 > 1) {
+      iVar2 = (int)param_1;
+      uVar3 = (unsigned int)(unsigned short)(param_1 - 1);
+      do {
+        iVar1 = iVar1 * iVar2;
+        iVar2 = iVar2 - 1;
+        uVar3 = uVar3 - 1;
+      } while (uVar3 != 0);
+    }
+  }
+  return iVar1;
+}
+
+/* Falling factorial: param_1 * (param_1-1) * ... * (param_1-param_2+1).
+ * Returns 1 if param_2==0; 0 if param_2>param_1 or param_2<0.
+ * 0x10ae00 / random_math.obj (probability.c)
+ */
+int FUN_0010ae00(short param_1, short param_2)
+{
+  int iVar1;
+  unsigned int uVar2;
+
+  iVar1 = 0;
+  if (param_1 >= param_2 && param_2 >= 0) {
+    iVar1 = 1;
+    if (param_2 != 0) {
+      uVar2 = (unsigned int)(unsigned short)param_2;
+      do {
+        iVar1 = iVar1 * (int)param_1;
+        param_1 = param_1 - 1;
+        uVar2 = uVar2 - 1;
+      } while (uVar2 != 0);
+    }
+  }
+  return iVar1;
+}
+
+/* Binomial coefficient C(param_1, param_2).
+ * Uses symmetry: if param_2 > param_1-param_2, substitutes param_1-param_2.
+ * 0x10ae30 / random_math.obj (probability.c)
+ */
+int FUN_0010ae30(int param_1, int param_2)
+{
+  int iVar1;
+  int iVar2;
+  short sVar3;
+  unsigned int uVar4;
+
+  iVar1 = 0;
+  sVar3 = (short)param_2;
+  if ((short)param_1 >= sVar3 && sVar3 >= 0) {
+    if ((int)(short)param_1 - (int)sVar3 < (int)sVar3)
+      param_2 = param_1 - param_2;
+    iVar1 = FUN_0010ae00((short)param_1, (short)param_2);
+    if ((short)param_2 > 1) {
+      iVar2 = (int)(short)param_2;
+      uVar4 = (unsigned int)(unsigned short)((short)param_2 - 1);
+      do {
+        iVar1 = iVar1 / iVar2;
+        iVar2 = iVar2 - 1;
+        uVar4 = uVar4 - 1;
+      } while (uVar4 != 0);
+    }
+  }
+  return iVar1;
+}
+
+/* next_combination — advance a k-combination of [0,base) to the next in
+ * lexicographic order. param_3 is an array of param_2 short indices.
+ * If any index is out of range, the array is zeroed.
+ * Returns 1 on success, 0 if the last combination was already reached.
+ * 0x10ae80 / random_math.obj (probability.c)
+ */
+char FUN_0010ae80(short param_1, unsigned int param_2, unsigned int *param_3)
+{
+  short *psVar1;
+  short sVar2;
+  unsigned int uVar3;
+  int iVar4;
+  short sVar5;
+  short sVar6;
+  short *fill_p;
+  unsigned short fill_n;
+
+  assert_halt(param_1 > 0);
+  sVar6 = (short)param_2;
+  assert_halt(sVar6 > 0);
+  assert_halt((int)param_3);
+  sVar5 = 0;
+  if (0 < sVar6) {
+    do {
+      sVar2 = *(short *)((int)param_3 + (int)sVar5 * 2);
+      if ((sVar2 < 0) || (param_1 <= sVar2))
+        goto LAB_0010af53;
+      sVar5 = sVar5 + 1;
+    } while (sVar5 < sVar6);
+  }
+  uVar3 = param_2 - 1;
+  if (-1 < (short)uVar3) {
+    do {
+      if ((int)*(short *)((int)param_3 + (short)uVar3 * 2) < (int)param_1 - 1) {
+        psVar1 = (short *)((int)param_3 + (short)uVar3 * 2);
+        *psVar1 = *psVar1 + 1;
+        iVar4 = uVar3 + 1;
+        if ((short)iVar4 < sVar6) {
+          param_3 = (unsigned int *)((int)param_3 + (short)iVar4 * 2);
+          param_2 = param_2 - iVar4;
+        LAB_0010af53:
+          fill_p = (short *)param_3;
+          fill_n = (unsigned short)param_2;
+          while (fill_n != 0) {
+            *fill_p++ = 0;
+            fill_n--;
+          }
+        }
+        return 1;
+      }
+      uVar3 = uVar3 - 1;
+    } while (-1 < (short)uVar3);
+  }
+  return 0;
+}
+
+/* next_combination_strict — advance a k-combination of [0,base) in strictly
+ * increasing order. param_3 must be strictly increasing; if invalid, resets to
+ * {0,1,...,count-1}. Returns 1 on success, 0 if already at last combination.
+ * 0x10af70 / random_math.obj (probability.c)
+ */
+char FUN_0010af70(short param_1, int param_2, short *param_3)
+{
+  short sVar1;
+  short sVar2;
+  unsigned int uVar3;
+  int iVar4;
+  short *psVar5;
+  short sVar6;
+
+  sVar6 = (short)param_2;
+  assert_halt(param_1 >= sVar6);
+  assert_halt(sVar6 > 0);
+  assert_halt((int)param_3);
+  sVar2 = 0;
+  if (0 < sVar6) {
+    do {
+      sVar1 = param_3[sVar2];
+      if ((sVar1 < 0) || (param_1 <= sVar1) ||
+          (0 < sVar2 && (sVar1 <= param_3[sVar2 - 1]))) {
+        iVar4 = 0;
+        do {
+          *param_3 = (short)iVar4;
+          iVar4 = iVar4 + 1;
+          param_3 = param_3 + 1;
+        } while ((short)iVar4 < sVar6);
+        return 1;
+      }
+      sVar2 = sVar2 + 1;
+    } while (sVar2 < sVar6);
+  }
+  uVar3 = (unsigned int)((int)sVar6 - 1);
+  if ((short)uVar3 >= 0) {
+    do {
+      sVar2 = (short)uVar3;
+      if ((int)param_3[sVar2] < ((int)param_1 - (int)sVar6) + (int)sVar2) {
+        param_3[sVar2] = param_3[sVar2] + 1;
+        iVar4 = uVar3 + 1;
+        if ((short)iVar4 < sVar6) {
+          psVar5 = param_3 + (short)iVar4;
+          uVar3 = (param_2 - iVar4) & 0xffff;
+          do {
+            *psVar5 = psVar5[-1] + 1;
+            psVar5 = psVar5 + 1;
+            uVar3 = uVar3 - 1;
+            iVar4 = 0;
+          } while (uVar3 != 0);
+        }
+        return 1;
+      }
+      uVar3 = uVar3 - 1;
+    } while ((short)uVar3 >= 0);
+  }
+  return 0;
 }
 
 void lock_global_random_seed(void)
@@ -464,16 +661,17 @@ void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out)
  */
 void FUN_0010ba90(float *q1, float *q2, float t, float *out)
 {
-    float fVar1;
+  float fVar1;
 
-    fVar1 = *(float *)0x2533c8 - t;
-    if (q2[3] * q1[3] + *q1 * *q2 + q2[1] * q1[1] + q2[2] * q1[2] < *(float *)0x2533c0) {
-        t = -t;
-    }
-    *out = t * *q2 + fVar1 * *q1;
-    out[1] = fVar1 * q1[1] + t * q2[1];
-    out[2] = fVar1 * q1[2] + t * q2[2];
-    out[3] = fVar1 * q1[3] + t * q2[3];
+  fVar1 = *(float *)0x2533c8 - t;
+  if (q2[3] * q1[3] + *q1 * *q2 + q2[1] * q1[1] + q2[2] * q1[2] <
+      *(float *)0x2533c0) {
+    t = -t;
+  }
+  *out = t * *q2 + fVar1 * *q1;
+  out[1] = fVar1 * q1[1] + t * q2[1];
+  out[2] = fVar1 * q1[2] + t * q2[2];
+  out[3] = fVar1 * q1[3] + t * q2[3];
 }
 
 /* Normalize a 2D vector v in-place; returns the input pointer.
@@ -482,17 +680,17 @@ void FUN_0010ba90(float *q1, float *q2, float t, float *out)
  */
 float *FUN_0010c290(float *v)
 {
-    float mag_sq;
-    float inv_mag;
+  float mag_sq;
+  float inv_mag;
 
-    mag_sq = v[1] * v[1] + v[0] * v[0];
-    if (mag_sq != *(float *)0x2533c0) {
-        inv_mag = *(float *)0x2533c8 / sqrtf(mag_sq);
-        v[0] = inv_mag * v[0];
-        v[1] = inv_mag * v[1];
-        return v;
-    }
+  mag_sq = v[1] * v[1] + v[0] * v[0];
+  if (mag_sq != *(float *)0x2533c0) {
+    inv_mag = *(float *)0x2533c8 / sqrtf(mag_sq);
+    v[0] = inv_mag * v[0];
+    v[1] = inv_mag * v[1];
     return v;
+  }
+  return v;
 }
 
 /* Compute the angle (radians) between two 3D vectors v1 and v2.

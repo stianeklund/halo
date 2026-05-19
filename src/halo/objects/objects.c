@@ -58,6 +58,90 @@ int valid_real_normal3d_perpendicular(float *a, float *b)
   return fabsf(dot) < 0.001f;
 }
 
+/* FUN_00136150 — create widgets for an object from its tag definition.
+ *
+ * Looks up the object's tag (group 'obje'), reads the widget attachments
+ * tag block at tag+0x14c, and for each attachment, searches the global
+ * widget_types table (5 entries at 0x323528, each 0x28 bytes) for a
+ * matching group_tag. When found, allocates a new widget datum from the
+ * widget data pool at 0x5a90c4, sets its type field, and either:
+ *   - calls the widget type's "new" function (entry+0x18) with the
+ *     attachment's definition index (element+0x0c), linking on success
+ *   - or directly links the widget with definition_handle = -1 if no
+ *     "new" function is defined.
+ * Widgets are prepended to a singly-linked list rooted at obj+0x11c.
+ *
+ * Source: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
+ *
+ * Confirmed: 1 cdecl arg (object_handle).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x1ba140 (tag_get) with (0x6f626a65, obj[0]).
+ * Confirmed: CALL 0x19b210 (tag_block_get_element) with (block, index, 0x20).
+ * Confirmed: CALL 0x119610 (data_new_at_index) with (*(data_t**)0x5a90c4).
+ * Confirmed: CALL 0x119320 (datum_get) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: CALL 0x1196d0 (datum_delete) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: widget_types table at 0x323528: [+0x00]=group_tag, [+0x18]=new_fn.
+ * Confirmed: ADD ESP,0x10 cleans both object_get_and_verify_type + tag_get
+ * pushes. Confirmed: outer loop counter is int16_t (MOVSX EAX,AX at 0x1362b2).
+ * Confirmed: inner loop counter is int16_t (MOVSX ECX,SI; CMP SI,0x5).
+ * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
+ * Confirmed: assert_halt for type range check at 0x1361fe.
+ */
+
+/* Allocates a new entry in the 0x46f020 data table and stores param_1 at +4.
+ * Returns the datum handle, or -1 on failure.
+ * 0x134be0 / objects.obj
+ */
+int FUN_00134be0(int param_1)
+{
+  int iVar1;
+  int iVar2;
+
+  iVar1 = data_new_at_index(*(data_t **)0x46f020);
+  if (iVar1 != -1) {
+    iVar2 = (int)datum_get(*(data_t **)0x46f020, iVar1);
+    *(int *)(iVar2 + 4) = param_1;
+  }
+  return iVar1;
+}
+
+/* Deletes the entry at param_1 from the 0x46f020 data table.
+ * 0x134c20 / objects.obj
+ */
+void FUN_00134c20(int param_1)
+{
+  if (param_1 != -1) {
+    datum_delete(*(data_t **)0x46f020, param_1);
+  }
+}
+
+/* Allocates a new entry in the 0x46f024 data table and stores param_1 at +4.
+ * Returns the datum handle, or -1 on failure.
+ * 0x1353b0 / objects.obj
+ */
+int FUN_001353b0(int param_1)
+{
+  int iVar1;
+  int iVar2;
+
+  iVar1 = data_new_at_index(*(data_t **)0x46f024);
+  if (iVar1 != -1) {
+    iVar2 = (int)datum_get(*(data_t **)0x46f024, iVar1);
+    *(int *)(iVar2 + 4) = param_1;
+  }
+  return iVar1;
+}
+
+/* Deletes the entry at param_1 from the 0x46f024 data table.
+ * 0x1353f0 / objects.obj
+ */
+void FUN_001353f0(int param_1)
+{
+  if (param_1 != -1) {
+    datum_delete(*(data_t **)0x46f024, param_1);
+  }
+}
+
 int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
                  int marker, int arg4, int arg5, int arg6, int arg7);
 
@@ -146,35 +230,122 @@ int FUN_000ae0a0(int tag_index);
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
  * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
  */
-/* FUN_00136150 — create widgets for an object from its tag definition.
- *
- * Looks up the object's tag (group 'obje'), reads the widget attachments
- * tag block at tag+0x14c, and for each attachment, searches the global
- * widget_types table (5 entries at 0x323528, each 0x28 bytes) for a
- * matching group_tag. When found, allocates a new widget datum from the
- * widget data pool at 0x5a90c4, sets its type field, and either:
- *   - calls the widget type's "new" function (entry+0x18) with the
- *     attachment's definition index (element+0x0c), linking on success
- *   - or directly links the widget with definition_handle = -1 if no
- *     "new" function is defined.
- * Widgets are prepended to a singly-linked list rooted at obj+0x11c.
- *
- * Source: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
- *
- * Confirmed: 1 cdecl arg (object_handle).
- * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
- * Confirmed: CALL 0x1ba140 (tag_get) with (0x6f626a65, obj[0]).
- * Confirmed: CALL 0x19b210 (tag_block_get_element) with (block, index, 0x20).
- * Confirmed: CALL 0x119610 (data_new_at_index) with (*(data_t**)0x5a90c4).
- * Confirmed: CALL 0x119320 (datum_get) with (*(data_t**)0x5a90c4, handle).
- * Confirmed: CALL 0x1196d0 (datum_delete) with (*(data_t**)0x5a90c4, handle).
- * Confirmed: widget_types table at 0x323528: [+0x00]=group_tag, [+0x18]=new_fn.
- * Confirmed: ADD ESP,0x10 cleans both object_get_and_verify_type + tag_get
- * pushes. Confirmed: outer loop counter is int16_t (MOVSX EAX,AX at 0x1362b2).
- * Confirmed: inner loop counter is int16_t (MOVSX ECX,SI; CMP SI,0x5).
- * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
- * Confirmed: assert_halt for type range check at 0x1361fe.
+/* Find widget type index by group tag. Returns 0-4 on match, 0xffff if not
+ * found. 0x135f20 / objects.obj
  */
+/* Allocate widget data pool, then call each widget type's initialize function.
+ * 0x135f90 / objects.obj
+ */
+void FUN_00135f90(void)
+{
+  short sVar1;
+  void **ppuVar2;
+
+  *(data_t **)0x5a90c4 = game_state_data_new("widget", 0x40, 0xc);
+  if (*(data_t **)0x5a90c4 == 0) {
+    display_assert("widget_data",
+                   "c:\\halo\\SOURCE\\objects\\widgets\\widgets.c", 0x2e, 1);
+    system_exit(-1);
+  }
+  sVar1 = 0;
+  ppuVar2 = (void **)0x323530;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
+    }
+    if (ppuVar2[-2] == 0) {
+      display_assert("type_definition->group_tag",
+                     "c:\\halo\\SOURCE\\objects\\widgets\\widgets.c", 0x37, 1);
+      system_exit(-1);
+    }
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
+}
+
+/* Reset widget data pool, then call each widget type's initialize_for_new_map.
+ * 0x136040 / objects.obj
+ */
+void FUN_00136040(void)
+{
+  short sVar1;
+  void **ppuVar2;
+
+  data_delete_all(*(data_t **)0x5a90c4);
+  sVar1 = 0;
+  ppuVar2 = (void **)0x323534;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
+    }
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
+}
+
+/* Call each widget type's dispose_from_old_map, then invalidate widget data
+ * pool. 0x1360a0 / objects.obj
+ */
+void FUN_001360a0(void)
+{
+  short sVar1;
+  void **ppuVar2;
+
+  sVar1 = 0;
+  ppuVar2 = (void **)0x323538;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
+    }
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
+  data_make_invalid(*(data_t **)0x5a90c4);
+}
+
+/* Call each widget type's dispose function.
+ * 0x136100 / objects.obj
+ */
+void FUN_00136100(void)
+{
+  short sVar1;
+  void **ppuVar2;
+
+  sVar1 = 0;
+  ppuVar2 = (void **)0x32353c;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
+    }
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
+}
+
 void FUN_00136150(int object_handle)
 {
   int *obj;
@@ -357,6 +528,42 @@ void object_wake(int object_handle)
   cluster_partition_remove_object((void *)0x5a90b0, object_handle,
                                   (void *)(light + 0x10));
   *(uint8_t *)(light + 0x2) &= ~0x4;
+}
+
+/* Call cluster_partition_iter_first on the object cluster partition at
+ * 0x5a90b0. 0x1398b0 / objects.obj
+ */
+void FUN_001398b0(int *param_1, int param_2)
+{
+  cluster_partition_iter_first((void *)0x5a90b0, param_1, (int16_t)param_2);
+}
+
+/* Call cluster_partition_iter_next on the object cluster partition at 0x5a90b0.
+ * 0x1398d0 / objects.obj
+ */
+void FUN_001398d0(int *param_1)
+{
+  cluster_partition_iter_next((void *)0x5a90b0, param_1);
+}
+
+/* Check if the lights marker global has changed; update it and return 1 if so.
+ * 0x139990 / objects.obj
+ */
+int FUN_00139990(int param_1)
+{
+  int iVar1;
+
+  iVar1 = (int)datum_get(*(data_t **)0x5a90bc, param_1);
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x67f, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(iVar1 + 0xc) != *(int *)0x5a8d64) {
+    *(int *)(iVar1 + 0xc) = *(int *)0x5a8d64;
+    return 1;
+  }
+  return 0;
 }
 
 /*
@@ -575,13 +782,196 @@ int FUN_0013b290(int tag_index, int object_handle, int16_t marker,
 
 void *FUN_0013c100(int16_t object_type);
 
-void FUN_0013c430(int object_handle, void *placement);
-
 int FUN_0013c490(int object_handle);
 
-void FUN_0013c560(int object_handle);
+/* 0x13c250 / objects.obj */
+void *FUN_0013c250(int16_t param_1)
+{
+  int iVar1;
 
-void FUN_0013c620(int object_handle);
+  if (param_1 < 0 || 0xb < param_1) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "#%d isn't a valid object type in [#0,#%d)",
+                            (int)param_1, 0xc),
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x28c, 1);
+    system_exit(-1);
+  }
+  iVar1 = (int)param_1;
+  if (((void **)0x324608)[iVar1] == (void *)0) {
+    display_assert("object_type_definitions[object_type]",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x28d, 1);
+    system_exit(-1);
+  }
+  return *(void **)((void **)0x324608)[iVar1];
+}
+
+/* Walk the object type definition list and call dispose at +0x14 on each.
+ * 0x13c3a0 / objects.obj
+ */
+void FUN_0013c3a0(void)
+{
+  int iVar1;
+
+  for (iVar1 = *(int *)0x5a8d54; iVar1 != 0; iVar1 = *(int *)(iVar1 + 0x9c)) {
+    if (*(void (**)(void))(iVar1 + 0x14) != 0) {
+      (*(void (**)(void))(iVar1 + 0x14))();
+    }
+  }
+}
+
+/* Reset slot counter, walk the list and call initialize_for_new_map at +0x18.
+ * 0x13c3d0 / objects.obj
+ */
+void FUN_0013c3d0(void)
+{
+  int iVar1;
+
+  *(int *)0x46f078 = 0;
+  for (iVar1 = *(int *)0x5a8d54; iVar1 != 0; iVar1 = *(int *)(iVar1 + 0x9c)) {
+    if (*(void (**)(void))(iVar1 + 0x18) != 0) {
+      (*(void (**)(void))(iVar1 + 0x18))();
+    }
+  }
+}
+
+/* Walk the object type definition list and call dispose_from_old_map at +0x1c.
+ * 0x13c400 / objects.obj
+ */
+void FUN_0013c400(void)
+{
+  int iVar1;
+
+  for (iVar1 = *(int *)0x5a8d54; iVar1 != 0; iVar1 = *(int *)(iVar1 + 0x9c)) {
+    if (*(void (**)(void))(iVar1 + 0x1c) != 0) {
+      (*(void (**)(void))(iVar1 + 0x1c))();
+    }
+  }
+}
+
+/* Dispatch object placement callback at vtable +0x20 for all type extensions.
+ * 0x13c430 / objects.obj
+ */
+void FUN_0013c430(int param_1, void *param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, void *))(*piVar1 + 0x20) != 0) {
+      (*(void (**)(int, void *))(*piVar1 + 0x20))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Dispatch object type extension callback at vtable +0x28 for all extensions.
+ * 0x13c500 / objects.obj
+ */
+void FUN_0013c500(int param_1, int param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int))(*piVar1 + 0x28) != 0) {
+      (*(void (**)(int, int))(*piVar1 + 0x28))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Dispatch object type extension callback at vtable +0x2c for all extensions.
+ * 0x13c560 / objects.obj
+ */
+void FUN_0013c560(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x2c) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x2c))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Dispatch object type extension callback at vtable +0x34 for all extensions.
+ * 0x13c620 / objects.obj
+ */
+void FUN_0013c620(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x34) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x34))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Dispatch vtable slot +0x38 for each extension in the object type's table.
+ * 0x13c680 / objects.obj
+ */
+void FUN_0013c680(int param_1, int param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int))(*piVar1 + 0x38) != 0) {
+      (*(void (**)(int, int))(*piVar1 + 0x38))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
 
 /*
  * FUN_0013c6e0 — dispatch a region-destroyed callback through the object
@@ -677,6 +1067,31 @@ char FUN_0013c740(int object_handle)
   return result;
 }
 
+/* Dispatch vtable slot +0x44 for each extension in the object type's table.
+ * 0x13c7a0 / objects.obj
+ */
+void FUN_0013c7a0(int param_1, int param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int))(*piVar1 + 0x44) != 0) {
+      (*(void (**)(int, int))(*piVar1 + 0x44))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
 int object_header_block_allocate(int object_handle, int offset, int size);
 /*
  * FUN_0013c800 — dispatch an animation-block initializer callback through the
@@ -753,6 +1168,150 @@ void FUN_0013c860(int object_handle)
     cnt++;
     ptr = (int *)(type_data + 0x5c + (int)cnt * 4);
   }
+}
+
+/* Dispatch vtable slot +0x50 for each extension in the object type's table.
+ * 0x13c8c0 / objects.obj
+ */
+void FUN_0013c8c0(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x50) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x50))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *piVar1;
+  }
+}
+
+/* Dispatch vtable slot +0x58 for each extension in the object type's table.
+ * 0x13c920 / objects.obj
+ */
+void FUN_0013c920(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x58) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x58))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *piVar1;
+  }
+}
+
+/* Dispatch vtable slot +0x54 for each extension in the object type's table.
+ * 0x13c980 / objects.obj
+ */
+void FUN_0013c980(int param_1, int param_2, int param_3)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int, int))(*piVar1 + 0x54) != 0) {
+      (*(void (**)(int, int, int))(*piVar1 + 0x54))(param_1, param_2, param_3);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Return a pointer into the scenario's placement block for an object type.
+ * 0x13ca30 / objects.obj
+ */
+int FUN_0013ca30(int param_1, int param_2, int *param_3)
+{
+  int iVar1;
+
+  iVar1 = (int)FUN_0013c100((short)param_2);
+  if (*(short *)(iVar1 + 10) == -1) {
+    display_assert("definition->placement_tag_block_offset!=NONE",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x4ff, 1);
+    system_exit(-1);
+  }
+  if (((short)*(unsigned short *)(iVar1 + 10) < 0) ||
+      (0x5bc < *(unsigned short *)(iVar1 + 10))) {
+    display_assert(
+      "definition->placement_tag_block_offset>=0 && "
+      "definition->placement_tag_block_offset<=sizeof(struct scenario)"
+      "+sizeof(struct tag_block)",
+      "c:\\halo\\SOURCE\\objects\\object_types.c", 0x500, 1);
+    system_exit(-1);
+  }
+  if (param_3 != (int *)0x0) {
+    *param_3 = (int)*(short *)(iVar1 + 0xe);
+  }
+  return *(short *)(iVar1 + 10) + param_1;
+}
+
+/* Return a pointer into the scenario's palette block for an object type.
+ * 0x13cab0 / objects.obj
+ */
+int FUN_0013cab0(int param_1, int param_2)
+{
+  int iVar1;
+
+  iVar1 = (int)FUN_0013c100((short)param_2);
+  if (*(short *)(iVar1 + 0xc) == -1) {
+    display_assert("definition->palette_tag_block_offset!=NONE",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x50d, 1);
+    system_exit(-1);
+  }
+  if (((short)*(unsigned short *)(iVar1 + 0xc) < 0) ||
+      (0x5bc < *(unsigned short *)(iVar1 + 0xc))) {
+    display_assert(
+      "definition->palette_tag_block_offset>=0 && "
+      "definition->palette_tag_block_offset<=sizeof(struct scenario)"
+      "+sizeof(struct tag_block)",
+      "c:\\halo\\SOURCE\\objects\\object_types.c", 0x50e, 1);
+    system_exit(-1);
+  }
+  return *(short *)(iVar1 + 0xc) + param_1;
+}
+
+/* Wrap cluster_partition_iter_first for the non-collideable partition
+ * (0x5a8d30). 0x13d570 / objects.obj
+ */
+void cluster_get_first_noncollideable_object(int *param_1, int param_2)
+{
+  cluster_partition_iter_first((void *)0x5a8d30, param_1, (int16_t)param_2);
+}
+
+/* Wrap cluster_partition_iter_next for the non-collideable partition
+ * (0x5a8d30). 0x13d590 / objects.obj
+ */
+void cluster_get_next_noncollideable_object(int *param_1)
+{
+  cluster_partition_iter_next((void *)0x5a8d30, param_1);
 }
 
 /*
@@ -1009,6 +1568,10 @@ int object_get_root_parent(int object_handle)
   return result;
 }
 
+void FUN_0013d870(void)
+{
+}
+
 void object_set_garbage_flag(int object_handle, int is_garbage)
 {
   object_data_t *obj =
@@ -1113,6 +1676,54 @@ done:
       }
       handle = gobj->unk_192;
     }
+  }
+}
+
+void garbage_collect_now(void)
+{
+  *(unsigned char *)(*(int *)0x46f084 + 2) = 1;
+}
+
+void FUN_0013dbe0(int param_1)
+{
+  int iVar1;
+
+  iVar1 = *(int *)0x46f084;
+  if (param_1 == -1) {
+    *(short *)(*(int *)0x46f084 + 0x90) = 0;
+    return;
+  }
+  *(short *)(iVar1 + 0x90) = 1;
+  *(int *)(iVar1 + 0x94) = param_1;
+}
+
+void FUN_0013dcb0(void)
+{
+  *(short *)(*(int *)0x46f084 + 0x90) = 0;
+}
+
+void object_definition_predict(int param_1)
+{
+  void *tag;
+
+  if (param_1 != -1) {
+    tag = tag_get(0x6f626a65, param_1);
+    predicted_resources_precache((char *)tag + 0x170);
+  }
+}
+
+void object_beautify(int param_1, char param_2)
+{
+  int iVar1;
+
+  if (param_1 != -1) {
+    if (param_2 != '\0') {
+      iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+      *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) | 0x400000;
+      return;
+    }
+    iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+    *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) & 0xffbfffff;
   }
 }
 
@@ -1287,6 +1898,20 @@ void object_child_list_remove(void *list_head /* @<eax> */,
   }
 }
 
+void object_scripting_set_collideable(int param_1, char param_2)
+{
+  int iVar1;
+
+  if (param_1 != -1) {
+    iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+    if (param_2 == '\0') {
+      *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) | 0x1000000;
+      return;
+    }
+    *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) & 0xfeffffff;
+  }
+}
+
 /*
  * object_reset_markers — begin a marker sweep pass.
  *
@@ -1457,6 +2082,14 @@ void objects_place(void)
 
   /* Clear object_is_being_placed */
   object_globals->object_is_being_placed = 0;
+}
+
+int sort_dumps(int param_1, int param_2)
+{
+  if (*(int *)(param_1 + 8) < *(int *)(param_2 + 8)) {
+    return 1;
+  }
+  return (*(int *)(param_1 + 8) <= *(int *)(param_2 + 8)) - 1;
 }
 
 /*
@@ -1975,9 +2608,8 @@ void object_disconnect_from_map(int object_handle)
  */
 void *object_get_node_matrices(int object_handle)
 {
-    void *obj = object_get_and_verify_type(object_handle, 0xffffffff);
-    return object_header_block_reference_get(object_handle,
-                                             (char *)obj + 0x1a0);
+  void *obj = object_get_and_verify_type(object_handle, 0xffffffff);
+  return object_header_block_reference_get(object_handle, (char *)obj + 0x1a0);
 }
 
 /*
@@ -2767,6 +3399,34 @@ int object_visible_to_any_player(int object_handle)
   }
 
   return result;
+}
+
+void object_pvs_activate(int param_1)
+{
+  int iVar1;
+
+  iVar1 = *(int *)0x46f084;
+  if (param_1 == -1) {
+    *(short *)(iVar1 + 0x90) = 0;
+    return;
+  }
+  *(short *)(iVar1 + 0x90) = 1;
+  *(int *)(iVar1 + 0x94) = param_1;
+}
+
+void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
+{
+  int iVar1;
+  unsigned char cl;
+
+  if (param_1 != -1) {
+    iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+    *(int *)(iVar1 + 0x60) = param_2;
+    cl = *(unsigned char *)(iVar1 + 0x64);
+    if ((((unsigned int)1 << cl) & 0xfe0) == 0) {
+      object_set_region_count(param_1, param_3);
+    }
+  }
 }
 
 /*
@@ -4504,6 +5164,23 @@ void object_compute_node_matrices(int object_handle)
     *(float *)((char *)obj + 0x5c) = radius;
     if (*(float *)((char *)obj + 0x60) > *(float *)0x2533c0) {
       *(float *)((char *)obj + 0x5c) = radius * *(float *)((char *)obj + 0x60);
+    }
+  }
+}
+
+/* objects_scripting_detach — scripting wrapper: detach param_2 from param_1.
+ * Checks that param_2's parent_object_index (+0xcc) matches param_1, then
+ * calls object_detach_from_parent on param_2.
+ * 0x143510 / objects.obj
+ */
+void objects_scripting_detach(int param_1, int param_2)
+{
+  int iVar1;
+
+  if (param_1 != -1 && param_2 != -1) {
+    iVar1 = (int)object_get_and_verify_type(param_2, 0xffffffff);
+    if (*(int *)(iVar1 + 0xcc) == param_1) {
+      object_detach_from_parent(param_2);
     }
   }
 }

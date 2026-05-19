@@ -1335,11 +1335,11 @@
       }
     },
     {
-      "name": "halo/sound_classes_FUN_001c8ae0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
-      "base_path": "delinked/sound_classes_FUN_001c8ae0.obj",
+      "name": "halo/objects_FUN_0013f080",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013f080.obj",
       "metadata": {
-        "source_path": "src/halo/sound/sound_classes.c"
+        "source_path": "src/halo/objects/objects.c"
       }
     },
     {
@@ -1356,6 +1356,398 @@
       "base_path": "delinked/xbox_crt_FUN_001d7817.obj",
       "metadata": {
         "source_path": "src/halo/cseries/xbox_crt.c"
+      }
+    },
+    {
+      "name": "halo/collision_usage_FUN_0014cfe0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014cfe0.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/collision_usage_FUN_0014cf20",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014cf20.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00134be0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00134be0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00134c20",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00134c20.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_001353b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_001353b0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_001353f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_001353f0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00135f90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00135f90.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00136040",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00136040.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_001360a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_001360a0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00136100",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00136100.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_001398b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_001398b0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_001398d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_001398d0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c250",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c250.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c3a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c3a0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c3d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c3d0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c400",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c400.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c430",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c430.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c500",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c500.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c560",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c560.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c620",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c620.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c680",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c680.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c7a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c7a0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c8c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c8c0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c920",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c920.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c980",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c980.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013ca30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013ca30.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013cab0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013cab0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_cluster_get_first_noncollideable_object",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_cluster_get_first_noncollideable_object.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_cluster_get_next_noncollideable_object",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_cluster_get_next_noncollideable_object.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013d870",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013d870.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013dbe0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013dbe0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013dcb0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013dcb0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_garbage_collect_now",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_garbage_collect_now.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_definition_predict",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_definition_predict.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_beautify",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_beautify.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_scripting_set_collideable",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_scripting_set_collideable.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_sort_dumps",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_sort_dumps.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_get_first_cluster",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_get_first_cluster.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_pvs_activate",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_pvs_activate.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_objects_scripting_set_scale",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_objects_scripting_set_scale.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10add0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10add0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10ae00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10ae00.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10ae30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10ae30.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/objects_objects_scripting_detach",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_objects_scripting_detach.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10ae80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10ae80.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10af70",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10af70.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/data_encoding_FUN_119cc0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/data.c.obj",
+      "base_path": "delinked/data_encoding_FUN_119cc0.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/data.c"
+      }
+    },
+    {
+      "name": "halo/data_encoding_FUN_119ef0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/data.c.obj",
+      "base_path": "delinked/data_encoding_FUN_119ef0.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/data.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00139990",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00139990.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
       }
     }
   ]
