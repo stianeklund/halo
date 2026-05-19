@@ -7700,6 +7700,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c8ae0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c8b70": {
       "kind": "function",
       "status": "ported"

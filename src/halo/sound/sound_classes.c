@@ -81,6 +81,36 @@ void debug_sound_classes_set_distances(char *pattern, float dist1, float dist2)
     } while ((short)i < 0x33);
 }
 
+/* Set wet-mix gain on all sound classes matching pattern.
+ * Stores (1.0 - wet), clamped to [0, 1], at class+0x10.
+ * 0x1c8ae0 / sound_classes.obj
+ */
+void debug_sound_classes_set_wet(char *pattern, float wet)
+{
+    char **pp;
+    int i;
+    void *def;
+    float val;
+
+    val = 1.0f - wet;
+    if (val < 0.0f)
+        val = 0.0f;
+    else if (val > 1.0f)
+        val = 1.0f;
+    i = 0;
+    pp = (char **)0x32f5d0;
+    do {
+        if (**pp != '\0') {
+            if (crt_strstr(*pp, pattern) != NULL) {
+                def = sound_class_get_definition((short)i);
+                *(float *)((char *)def + 0x10) = val;
+            }
+        }
+        i++;
+        pp++;
+    } while ((short)i < 0x33);
+}
+
 
 void sound_classes_initialize_for_new_map(void)
 {

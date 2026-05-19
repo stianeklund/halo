@@ -20678,7 +20678,8 @@
         },
         {
           "decl": "void debug_sound_classes_set_wet(char *pattern, float wet);",
-          "addr": "0x1c8ae0"
+          "addr": "0x1c8ae0",
+          "ported": true
         },
         {
           "decl": "void sound_classes_update(int delta_ticks);",
