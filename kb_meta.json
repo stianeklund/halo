@@ -5090,6 +5090,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x119cc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11a930": {
       "kind": "function",
       "status": "ported"
@@ -5640,6 +5644,10 @@
         "The light data table lives at 0x5a90bc; the cluster partition at 0x5a90b0."
       ]
     },
+    "0x139990": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13aed0": {
       "kind": "function",
       "status": "ported",
@@ -5728,6 +5736,18 @@
         "object_data_t+0xC0 (unk_192) is the garbage linked list next-pointer field."
       ]
     },
+    "0x13db50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13dda0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13de80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13ded0": {
       "kind": "function",
       "status": "ported"
@@ -5764,6 +5784,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13eb30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13eb70": {
       "kind": "function",
       "status": "ported"
@@ -5793,6 +5817,14 @@
       "status": "ported",
       "name": "objects_place",
       "name_confidence": "high"
+    },
+    "0x13f080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13f380": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x13f810": {
       "kind": "function",
@@ -5844,6 +5876,10 @@
       "uncertain": [
         "The re-fetch of header at 0x13fdc8 after the partition-remove call may be needed because the partition-remove could invalidate the cached header pointer, but this is not confirmed."
       ]
+    },
+    "0x13fe10": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x13fe70": {
       "kind": "function",
@@ -5912,7 +5948,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1409d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x140ad0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x140b80": {
       "kind": "function",
       "status": "ported"
     },
@@ -6000,6 +6044,10 @@
       "uncertain": [
         "The 0xfe0 type mask (bits 5-11) is labeled _object_mask_cannot_interpolate based on the assertion string; exact bit-to-type mapping not fully verified."
       ]
+    },
+    "0x143510": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x143a00": {
       "kind": "function",
