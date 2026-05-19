@@ -191,8 +191,8 @@ bool sound_cluster_is_audible(void *location)
 /* Check whether the global lsnd tag's playlist contains any snd! entry
  * whose flags field (int16 at offset 4) equals 0x20.  The 0x20 flag
  * identifies sounds that should play for vehicle-related music contexts.
- * Called by FUN_001c7d70 to decide whether to suppress normal music
- * playback (0x1c7d70).
+ * Called by game_sound_music_stop_for_vehicle (0x1c7d70) to decide
+ * whether to suppress normal music playback.
  *
  * Returns true if any playlist entry references a 'snd!' tag with
  * flags == 0x20; false otherwise.
@@ -222,6 +222,53 @@ bool game_sound_music_has_vehicle_sound(void)
     i = i + 1;
   }
   return false;
+}
+
+/* Suppress non-vehicle music when a vehicle sound should take over
+ * (0x1c7d70).
+ *
+ * Iterates all active looping-sound entries.  For each entry whose music
+ * override slot ([+0x10]) is NONE (-1), and whose lsnd tag reference ([+0xc])
+ * is valid, and where game_sound_music_has_vehicle_sound() is true, the
+ * function fetches the lsnd tag and, if it currently has a playing sound
+ * ([tag+0x1c] != -1):
+ *   - Clears bit 0x10 (non-vehicle music flag) from the playing entry flags.
+ *   - Sets  bit 0x02 (stop/fade flag) on the playing entry flags.
+ *   - Clears the tag's runtime handle ([tag+0x1c] = NONE).
+ *   - Sets  bit 0x04 on the playing entry flags.
+ *
+ * Called from sound_looping_start (0x1c8510) when the lsnd definition has
+ * bit 0x04 set in its flags, before starting the new looping sound.
+ */
+void game_sound_music_stop_for_vehicle(void)
+{
+  int handle;
+  char *entry;
+  void *lsnd_tag;
+  int playing_handle;
+  char *playing_entry;
+
+  for (handle = data_next_index(*(data_t **)0x5054e4, -1); handle != -1;
+       handle = data_next_index(*(data_t **)0x5054e4, handle)) {
+    entry = (char *)datum_get(*(data_t **)0x5054e4, handle);
+    if (*(int *)(entry + 0x10) != -1)
+      continue;
+    if (!game_sound_music_has_vehicle_sound())
+      continue;
+    if (*(int *)(entry + 0xc) == -1)
+      continue;
+    lsnd_tag = tag_get(0x6c736e64, *(int *)(entry + 0xc));
+    playing_handle = *(int *)((char *)lsnd_tag + 0x1c);
+    if (playing_handle == -1)
+      continue;
+    playing_entry = (char *)datum_get(*(data_t **)0x5054e4, playing_handle);
+    *(uint32_t *)(playing_entry + 0x4) &= ~0x10u;
+    /* Re-fetch using the same handle (result is the same pointer). */
+    *(uint32_t *)((char *)datum_get(*(data_t **)0x5054e4, playing_handle) +
+                  0x4) |= 0x2;
+    *(int *)((char *)lsnd_tag + 0x1c) = -1;
+    *(uint32_t *)(playing_entry + 0x4) |= 0x4;
+  }
 }
 
 void game_sound_dispose_from_old_map(void)
@@ -573,8 +620,8 @@ void sound_compute_source_obstruction(int channel_index, void *source,
  * definition.
  * - Asserts that definition+0x1c (runtime_scripting_sound_index)
  * is NONE.
- * - If definition flags has bit 0x04 set, calls 0x1c7d70 before
- * start.
+ * - If definition flags has bit 0x04 set, calls
+ *   game_sound_music_stop_for_vehicle (0x1c7d70) before start.
  * - Calls 0x1c7710(sound_tag_index, object_index, scale), stores
  * returned
  *   looping-sound handle into definition+0x1c, and when valid sets
@@ -597,7 +644,7 @@ void sound_looping_start(int sound_tag_index, int object_index, float scale)
                   "definition->runtime_scripting_sound_index==NONE");
 
   if ((*(uint8_t *)definition & 4) != 0)
-    ((void (*)(void))0x1c7d70)();
+    game_sound_music_stop_for_vehicle();
 
   looping_sound_handle =
     ((int (*)(int, int, float))0x1c7710)(sound_tag_index, object_index, scale);

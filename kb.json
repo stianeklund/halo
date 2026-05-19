@@ -8635,8 +8635,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001c7d70(void);",
-          "addr": "0x1c7d70"
+          "decl": "void game_sound_music_stop_for_vehicle(void);",
+          "addr": "0x1c7d70",
+          "ported": true
         },
         {
           "decl": "void scripted_sound_new(void);",

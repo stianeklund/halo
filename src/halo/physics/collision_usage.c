@@ -620,7 +620,7 @@ char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
             }
           } else {
             if (FUN_0014c8e0(local_b, cur) &&
-                FUN_0014c950((int)local_b, param_3)) {
+                FUN_0014c950((int)local_b, (void *)param_3)) {
               return 1;
             }
           }
