@@ -98,10 +98,16 @@ void debug_sound_classes_set_wet(char *pattern, float wet)
         if (**pp != '\0') {
             if (crt_strstr(*pp, pattern) != NULL) {
                 val = 1.0f - wet;
-                if (val < 0.0f)
+                if (val < 0.0f) {
                     val = 0.0f;
-                else if (val > 1.0f)
-                    val = 1.0f;
+                } else {
+                    /* permuter: triple-mask + val±1 forces MSVC to keep val in
+                     * FPU ST0 across both comparisons instead of spilling */
+                    if ((((val > 1.0f) & 0xFFFFu) & 0xFFFFu) & 0xFFFFu)
+                        val = 1.0f;
+                    val++;
+                    val--;
+                }
                 def = sound_class_get_definition((short)i);
                 *(float *)((char *)def + 0x10) = val;
             }
