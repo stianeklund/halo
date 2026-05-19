@@ -818,6 +818,7 @@ float FUN_0010c340(float *v1, float *v2)
   return sqrtf(cy * cy + cx * cx + cz * cz);
 }
 
+
 /* Compute the angle (radians) between two 3D vectors v1 and v2.
  *
  * Returns acos(dot(v1,v2) / (|v1| * |v2|)), the geometric angle between
@@ -890,6 +891,55 @@ void FUN_0010c780(float *v1, float *v2, float t, float *out)
   out[1] = t * v2[1] + s * v1[1];
   out[2] = t * v2[2] + s * v1[2];
   FUN_0010c2e0(out);
+}
+
+/* Spherical rotation: rotate param_1 toward param_2 by blend factor param_3
+ * in [0, 1].  Writes normalised result into param_4.
+ *
+ * The blend is slerp-like:
+ *   t = param_3
+ *   angle = FUN_0010c510(param_1, param_2)   (angle between the 3-D vectors)
+ *   if t < 0.5:
+ *     rotate param_1 by (angle * t) around cross(param_1, param_2)
+ *   else:
+ *     rotate param_2 by (angle * (1 - t)) around cross(param_2, param_1)
+ * The cross-product axis is normalised by normalize3d before use.
+ * If the axis magnitude is 0 (parallel vectors), no rotation is applied.
+ *
+ * Threshold for branch selection: 0.5f (_DAT_00253398).
+ * 1.0f constant: _DAT_002533c8.
+ *
+ * 0x10c7d0 / random_math.obj
+ */
+void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
+{
+  float axis[3];
+  float angle;
+  float blend;
+
+  angle = FUN_0010c510(param_1, param_2);
+  if (param_3 < 0.5f) {
+    /* Rotate from param_1 side: scale angle by t, axis = cross(param_1, param_2) */
+    blend = angle * param_3;
+    axis[0] = param_2[2] * param_1[1] - param_2[1] * param_1[2];
+    axis[1] = param_2[0] * param_1[2] - param_2[2] * param_1[0];
+    axis[2] = param_2[1] * param_1[0] - param_1[1] * param_2[0];
+    param_4[0] = param_1[0];
+    param_4[1] = param_1[1];
+    param_4[2] = param_1[2];
+  } else {
+    /* Rotate from param_2 side: scale angle by (1-t), axis = cross(param_2, param_1) */
+    blend = angle * (1.0f - param_3);
+    axis[0] = param_2[1] * param_1[2] - param_2[2] * param_1[1];
+    axis[1] = param_2[2] * param_1[0] - param_2[0] * param_1[2];
+    axis[2] = param_1[1] * param_2[0] - param_2[1] * param_1[0];
+    param_4[0] = param_2[0];
+    param_4[1] = param_2[1];
+    param_4[2] = param_2[2];
+  }
+  if (normalize3d(axis) > 0.0f) {
+    rotate_vector3d_by_sincos(param_4, axis, sinf(blend), cosf(blend));
+  }
 }
 
 /* Reflect vector v about surface normal n into out.
