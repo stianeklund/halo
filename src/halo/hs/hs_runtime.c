@@ -253,6 +253,7 @@ int hs_compile(int source_length, const char *source, int *error_info,
                char **error_text)
 {
   int base_offset;
+  int expr_datum;
   char *src_cursor;
 
   if (source_length >= 0x400)
@@ -302,7 +303,7 @@ int hs_compile(int source_length, const char *source, int *error_info,
   if (*src_cursor == '\0')
     return -1;
 
-  int expr_datum = FUN_000c7be0(&src_cursor);
+  expr_datum = FUN_000c7be0(&src_cursor);
 
   if (*(int *)0x46b6fc != 0)
     goto compile_error;
@@ -1296,11 +1297,15 @@ const char *hs_runtime_get_executing_thread_name(void)
  */
 static void hs_return(int thread_handle, int value)
 {
-  /* Resolve thread and current syntax node. */
   char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
   char *stack_ptr = *(char **)(thread + 0x10);
   int node_handle = *(int *)(stack_ptr + 0x4);
   char *node = (char *)datum_get(*(data_t **)0x5aa6c8, node_handle);
+  int16_t actual_type;
+  int16_t desired_type;
+  int result;
+  char *top_frame;
+  char *cur_sp;
 
   /* valid_thread(thread) — assert the thread and its stack are sane. */
   {
@@ -1324,7 +1329,6 @@ static void hs_return(int thread_handle, int value)
   }
 
   /* Resolve the actual return type of the callee. */
-  int16_t actual_type;
   if (*(uint8_t *)(node + 0x6) & 0x2) {
     /* Script reference: look up the scenario script element. */
     int script_index = (int)*(int16_t *)(node + 0x2);
@@ -1340,14 +1344,14 @@ static void hs_return(int thread_handle, int value)
   }
 
   /* Cast value to the desired type and store into the current frame's dest. */
-  int16_t desired_type = (int16_t) * (uint16_t *)(node + 0x4);
-  int result = hs_can_cast(thread_handle, actual_type, desired_type, value);
-  char *top_frame = *(char **)(*(char **)(thread + 0x10));
+  desired_type = (int16_t) * (uint16_t *)(node + 0x4);
+  result = hs_can_cast(thread_handle, actual_type, desired_type, value);
+  top_frame = *(char **)(*(char **)(thread + 0x10));
   *(int32_t *)(*(int32_t **)(top_frame + 0x8)) = result;
 
   /* Pop the top stack frame: advance thread->stack_ptr to previous frame. */
   thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
-  char *cur_sp = *(char **)(thread + 0x10);
+  cur_sp = *(char **)(thread + 0x10);
   *(char **)(thread + 0x10) = *(char **)cur_sp;
 }
 
@@ -1491,11 +1495,12 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
   expr_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
 
   if (init) {
+    char *node;
+    char *child;
     *arg_index = 0;
-    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
-                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
-    char *child =
-      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                             *(int *)(*(char **)(thread + 0x10) + 0x4));
+    child = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
     *expr_ptr = *(int *)(child + 0x8);
   }
 
@@ -1524,10 +1529,11 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
 
   {
     char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
+    char *name;
     if (*(int16_t *)(expr + 0x4) !=
         *(int16_t *)(formal_params + (int)*arg_index * 2)) {
       datum_get(*(data_t **)0x5aa6c4, thread_datum);
-      char *name = hs_get_thread_script_name(thread_datum);
+      name = hs_get_thread_script_name(thread_datum);
       error(2, "script %s needs to be recompiled. (%s: %s)", name,
             "unexpected actual parameters.",
             "hs_syntax_get(*expression_index)->type=="
@@ -1589,8 +1595,9 @@ void hs_evaluate_begin(int16_t function_index, int thread_datum, char init)
   }
 
   if (*expr_ptr != -1) {
+    char *expr;
     FUN_000cc1d0(thread_datum, *expr_ptr, result_ptr);
-    char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
+    expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
     *expr_ptr = *(int *)(expr + 0x8);
     return;
   }
@@ -1746,12 +1753,13 @@ void hs_evaluate_if(int16_t function_index, int thread_datum, char init)
   }
 
   if (init) {
+    char *node;
+    char *child;
     *(int *)cond_result = 0;
     *branch_ptr = -1;
-    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
-                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
-    char *child =
-      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                             *(int *)(*(char **)(thread + 0x10) + 0x4));
+    child = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
     FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), cond_result);
     return;
   }
@@ -1916,11 +1924,12 @@ void hs_evaluate_arithmetic(int16_t function_index, int thread_datum, char init)
   accum = (float *)hs_thread_stack_alloc(thread_datum, 4);
 
   if (init) {
+    char *node;
+    char *child;
     *counter = 0;
-    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
-                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
-    char *child =
-      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+    node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                             *(int *)(*(char **)(thread + 0x10) + 0x4));
+    child = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
     *expr_ptr = *(int *)(child + 0x8);
   } else {
     if (*counter == 0) {
@@ -2101,6 +2110,8 @@ void hs_evaluate_inequality(int16_t function_index, int thread_datum, char init)
     }
   } else {
     /* short_integer or enum (type==7 or 0x20..0x24): load as int16 → float */
+    float a;
+    float b;
     if (type != 7 && (type < 0x20 || type > 0x24)) {
       display_assert("parameter_types[0]==_hs_type_short_integer || "
                      "HS_TYPE_IS_ENUM(parameter_types[0])",
@@ -2108,8 +2119,8 @@ void hs_evaluate_inequality(int16_t function_index, int thread_datum, char init)
                      0x171, 1);
       system_exit(-1);
     }
-    float a = (float)(int)*(int16_t *)&values[0];
-    float b = (float)(int)*(int16_t *)&values[1];
+    a = (float)(int)*(int16_t *)&values[0];
+    b = (float)(int)*(int16_t *)&values[1];
     switch (function_index) {
     case 0xf:
       result = (a > b) ? 1 : 0;
@@ -2436,12 +2447,13 @@ void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum,
     int type_bit = 1 << (*(uint8_t *)(obj + 0x64) & 0x1f);
     int type_mask = (int)*(int16_t *)(0x26f320 + type_idx * 2);
 
+    const char *tag_name;
     if (type_mask & type_bit) {
       hs_return(thread_datum, *result_ptr);
       return;
     }
 
-    const char *tag_name = tag_get_name(*(int *)obj);
+    tag_name = tag_get_name(*(int *)obj);
     error(2, "attempt to convert object %s to type %s", tag_name,
           *(const char **)(0x2f153c + type_idx * 4));
     hs_return(thread_datum, -1);
