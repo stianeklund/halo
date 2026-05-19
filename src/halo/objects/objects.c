@@ -784,6 +784,27 @@ void *FUN_0013c100(int16_t object_type);
 
 int FUN_0013c490(int object_handle);
 
+/* 0x13c250 / objects.obj */
+void *FUN_0013c250(int16_t param_1)
+{
+  int iVar1;
+
+  if (param_1 < 0 || 0xb < param_1) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "#%d isn't a valid object type in [#0,#%d)",
+                            (int)param_1, 0xc),
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x28c, 1);
+    system_exit(-1);
+  }
+  iVar1 = (int)param_1;
+  if (((void **)0x324608)[iVar1] == (void *)0) {
+    display_assert("object_type_definitions[object_type]",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x28d, 1);
+    system_exit(-1);
+  }
+  return *(void **)((void **)0x324608)[iVar1];
+}
+
 /* Walk the object type definition list and call dispose at +0x14 on each.
  * 0x13c3a0 / objects.obj
  */

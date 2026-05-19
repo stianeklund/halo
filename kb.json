@@ -13752,8 +13752,9 @@
           "addr": "0x13c1b0"
         },
         {
-          "decl": "void FUN_0013c250(void);",
-          "addr": "0x13c250"
+          "decl": "void *FUN_0013c250(int16_t param_1);",
+          "addr": "0x13c250",
+          "ported": true
         },
         {
           "decl": "void FUN_0013c2e0(void);",

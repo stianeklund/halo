@@ -1335,6 +1335,14 @@
       }
     },
     {
+      "name": "halo/objects_FUN_0013f080",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013f080.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
       "name": "halo/objects_FUN_0013fe70",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
       "base_path": "delinked/objects_FUN_0013fe70.obj",
@@ -1442,6 +1450,14 @@
       "name": "halo/objects_FUN_001398d0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
       "base_path": "delinked/objects_FUN_001398d0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_0013c250",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_0013c250.obj",
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
