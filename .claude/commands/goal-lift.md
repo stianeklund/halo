@@ -1,7 +1,7 @@
 ---
 description: Goal-mode auto-lift — run until N functions committed at >=90% VC71 or queue exhausted
 model: sonnet
-subtask: true
+subtask: false
 ---
 
 Use `halo-re-lift` for lift rules and `halo-verify-debug` for validation gates.
