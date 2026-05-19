@@ -17375,9 +17375,10 @@
           "ported": true
         },
         {
-          "decl": "void seed_random_orientation(void);",
+          "decl": "void seed_random_orientation(unsigned int *seed, float *facing, float *up);",
           "addr": "0x10b3c0",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void FUN_0010b9c0(float *q1, float *q2, float *out);",
