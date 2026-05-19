@@ -1343,6 +1343,14 @@
       }
     },
     {
+      "name": "halo/sound_classes_FUN_001c8ae0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
+      "base_path": "delinked/sound_classes_FUN_001c8ae0.obj",
+      "metadata": {
+        "source_path": "halo/sound/sound_classes.c"
+      }
+    },
+    {
       "name": "halo/objects_FUN_0013f080",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
       "base_path": "delinked/objects_FUN_0013f080.obj",
