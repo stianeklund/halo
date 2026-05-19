@@ -470,3 +470,24 @@ void network_game_abort(void)
 {
   *(unsigned char *)0x46e8c6 = 1;
 }
+
+/* network_player_reset (0x12a920)
+ *
+ * Resets a network player entry: clears the player index (uint16 at offset 0)
+ * to 0 and marks bytes at offsets 0x1c-0x1f as 0xFF (invalid/unused sentinel).
+ * Source: network_game_manager.c line 88.
+ */
+void network_player_reset(uint8_t *player)
+{
+  if (player == NULL) {
+    display_assert("player",
+                   "c:\\halo\\SOURCE\\networking\\network_game_manager.c", 0x58,
+                   1);
+    system_exit(-1);
+  }
+  player[0x1c] = 0xff;
+  player[0x1d] = 0xff;
+  player[0x1e] = 0xff;
+  player[0x1f] = 0xff;
+  *(uint16_t *)player = 0;
+}

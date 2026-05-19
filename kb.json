@@ -12432,7 +12432,7 @@
         {
           "decl": "bool network_game_server_start_frame(void);",
           "addr": "0x12a210",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void *network_game_client_get(void);",
@@ -12442,7 +12442,7 @@
         {
           "decl": "void dispose_global_network_game_server(void);",
           "addr": "0x12a2a0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "bool network_game_client_start_frame(void);",
@@ -12520,8 +12520,10 @@
           "addr": "0x12a890"
         },
         {
-          "decl": "void FUN_0012a920(void);",
-          "addr": "0x12a920"
+          "name": "network_player_reset",
+          "decl": "void network_player_reset(uint8_t *player);",
+          "addr": "0x12a920",
+          "ported": true
         }
       ]
     },
