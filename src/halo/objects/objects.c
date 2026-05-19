@@ -5127,6 +5127,23 @@ void object_compute_node_matrices(int object_handle)
   }
 }
 
+/* objects_scripting_detach — scripting wrapper: detach param_2 from param_1.
+ * Checks that param_2's parent_object_index (+0xcc) matches param_1, then
+ * calls object_detach_from_parent on param_2.
+ * 0x143510 / objects.obj
+ */
+void objects_scripting_detach(int param_1, int param_2)
+{
+  int iVar1;
+
+  if (param_1 != -1 && param_2 != -1) {
+    iVar1 = (int)object_get_and_verify_type(param_2, 0xffffffff);
+    if (*(int *)(iVar1 + 0xcc) == param_1) {
+      object_detach_from_parent(param_2);
+    }
+  }
+}
+
 /* attachments_delete — delete object attachments (effects, sounds, lights,
  * etc.).
  *

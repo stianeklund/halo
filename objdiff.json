@@ -1685,6 +1685,14 @@
       "metadata": {
         "source_path": "src/halo/math/random_math.c"
       }
+    },
+    {
+      "name": "halo/objects_objects_scripting_detach",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_objects_scripting_detach.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }

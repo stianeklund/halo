@@ -14338,8 +14338,9 @@
           "ported": true
         },
         {
-          "decl": "void objects_scripting_detach(void);",
-          "addr": "0x143510"
+          "decl": "void objects_scripting_detach(int param_1, int param_2);",
+          "addr": "0x143510",
+          "ported": true
         },
         {
           "decl": "void object_render_debug(void);",
