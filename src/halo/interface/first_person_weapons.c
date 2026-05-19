@@ -201,6 +201,49 @@ void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
   }
 }
 
+/* Copy animation node transforms from the animation graph into the
+ * first-person node buffer using a node remap table (0xdcbd0).
+ * For each model node i, node_remap[i] gives the source index in the
+ * animation graph node array. Copies 0x34 bytes (13 dwords) per node.
+ * Asserts that every remap index is within [0, antr->nodes.count). */
+void fp_anim_apply_node_remap(int fp_nodes, int antr_tag_index, int anim_nodes,
+                              int16_t *node_remap)
+{
+  char *mode_tag;
+  char *antr_tag;
+  int node_count;
+  int16_t i;
+  int16_t remap_idx;
+  int src_off;
+  int dst_off;
+  int j;
+  unsigned int *src;
+  unsigned int *dst;
+
+  mode_tag = (char *)tag_get(0x6d6f6465, 0);
+  antr_tag = (char *)tag_get(0x616e7472, antr_tag_index);
+  node_count = *(int *)(mode_tag + 0xb8);
+  if (node_count <= 0)
+    return;
+
+  i = 0;
+  do {
+    remap_idx = node_remap[(int)i];
+    assert_halt(remap_idx >= 0 &&
+                (int)remap_idx < *(int *)(antr_tag + 0x68));
+    src_off = (int)remap_idx * 0x34;
+    dst_off = (int)i * 0x34;
+    src = (unsigned int *)(anim_nodes + src_off);
+    dst = (unsigned int *)(fp_nodes + dst_off);
+    for (j = 0xd; j != 0; j--) {
+      *dst = *src;
+      src++;
+      dst++;
+    }
+    i++;
+  } while ((int)i < *(int *)(mode_tag + 0xb8));
+}
+
 /* Match animation node labels between a model tag and an animation graph tag
  * (0xdcc80). For each node in the model's node block, searches the animation
  * graph's node block for a matching string label via csstrcmp. Stores the

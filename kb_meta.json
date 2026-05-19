@@ -3726,6 +3726,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xdcbd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdcc80": {
       "kind": "function",
       "status": "ported"
@@ -7637,6 +7641,10 @@
       "status": "ported"
     },
     "0x1c7c30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c7d10": {
       "kind": "function",
       "status": "ported"
     },
