@@ -13539,12 +13539,14 @@
           "addr": "0x134ae0"
         },
         {
-          "decl": "void FUN_00134be0(void);",
-          "addr": "0x134be0"
+          "decl": "int FUN_00134be0(int param_1);",
+          "addr": "0x134be0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00134c20(void);",
-          "addr": "0x134c20"
+          "decl": "void FUN_00134c20(int param_1);",
+          "addr": "0x134c20",
+          "ported": true
         },
         {
           "decl": "void FUN_00134c40(void);",
@@ -13563,8 +13565,9 @@
           "addr": "0x135210"
         },
         {
-          "decl": "void FUN_001353b0(void);",
-          "addr": "0x1353b0"
+          "decl": "int FUN_001353b0(int param_1);",
+          "addr": "0x1353b0",
+          "ported": true
         },
         {
           "decl": "void FUN_001353f0(void);",

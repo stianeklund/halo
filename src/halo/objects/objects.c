@@ -175,6 +175,51 @@ int FUN_000ae0a0(int tag_index);
  * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
  * Confirmed: assert_halt for type range check at 0x1361fe.
  */
+
+/* Allocates a new entry in the 0x46f020 data table and stores param_1 at +4.
+ * Returns the datum handle, or -1 on failure.
+ * 0x134be0 / objects.obj
+ */
+int FUN_00134be0(int param_1)
+{
+    int iVar1;
+    int iVar2;
+
+    iVar1 = data_new_at_index(*(data_t **)0x46f020);
+    if (iVar1 != -1) {
+        iVar2 = (int)datum_get(*(data_t **)0x46f020, iVar1);
+        *(int *)(iVar2 + 4) = param_1;
+    }
+    return iVar1;
+}
+
+/* Deletes the entry at param_1 from the 0x46f020 data table.
+ * 0x134c20 / objects.obj
+ */
+void FUN_00134c20(int param_1)
+{
+    if (param_1 != -1) {
+        datum_delete(*(data_t **)0x46f020, param_1);
+    }
+}
+
+/* Allocates a new entry in the 0x46f024 data table and stores param_1 at +4.
+ * Returns the datum handle, or -1 on failure.
+ * 0x1353b0 / objects.obj
+ */
+int FUN_001353b0(int param_1)
+{
+    int iVar1;
+    int iVar2;
+
+    iVar1 = data_new_at_index(*(data_t **)0x46f024);
+    if (iVar1 != -1) {
+        iVar2 = (int)datum_get(*(data_t **)0x46f024, iVar1);
+        *(int *)(iVar2 + 4) = param_1;
+    }
+    return iVar1;
+}
+
 void FUN_00136150(int object_handle)
 {
   int *obj;

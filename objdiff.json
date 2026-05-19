@@ -1335,14 +1335,6 @@
       }
     },
     {
-      "name": "halo/sound_classes_FUN_001c8ae0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
-      "base_path": "delinked/sound_classes_FUN_001c8ae0.obj",
-      "metadata": {
-        "source_path": "src/halo/sound/sound_classes.c"
-      }
-    },
-    {
       "name": "halo/objects_FUN_0013fe70",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
       "base_path": "delinked/objects_FUN_0013fe70.obj",
@@ -1372,6 +1364,30 @@
       "base_path": "delinked/collision_usage_FUN_0014cf20.obj",
       "metadata": {
         "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00134be0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00134be0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00134c20",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00134c20.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_001353b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_001353b0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
       }
     }
   ]
