@@ -3044,7 +3044,7 @@ void FUN_00110730(int *param_1, short param_2, int param_3, int param_4,
                    "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x2e, 1);
     system_exit(-1);
   }
-  FUN_00117b20(param_1 + 1, 0x10);
+  array_new(param_1 + 1, 0x10);
   *(short *)(param_1 + 4) = param_2;
   param_1[7] = param_5;
   *param_1 = -1;

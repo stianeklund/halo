@@ -1,3 +1,22 @@
+/* Initialize an array header struct: store element_size and zero count/head.
+ * Asserts that the table pointer is non-null and element_size > 0.
+ * 0x117b20 / circular_queue.obj (array.c line 16-17) */
+void array_new(int *table, int element_size)
+{
+  if (table == (int *)0x0) {
+    display_assert("array", "c:\\halo\\SOURCE\\memory\\array.c", 0x10, 1);
+    system_exit(-1);
+  }
+  if (element_size < 1) {
+    display_assert("element_size>0", "c:\\halo\\SOURCE\\memory\\array.c", 0x11,
+                   1);
+    system_exit(-1);
+  }
+  table[0] = element_size;
+  table[1] = 0;
+  table[2] = 0;
+}
+
 /* Validate that a circular queue structure is not corrupt (0x118d70).
  * Checks: non-null pointer, signature == "circ" (0x63697263), non-null buffer,
  * positive size, and read/write offsets within [0, size). If any check fails,
