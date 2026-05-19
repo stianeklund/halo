@@ -319,6 +319,66 @@ char FUN_0010ae80(short param_1, unsigned int param_2, unsigned int *param_3)
   return 0;
 }
 
+/* next_combination_strict — advance a k-combination of [0,base) in strictly
+ * increasing order. param_3 must be strictly increasing; if invalid, resets to
+ * {0,1,...,count-1}. Returns 1 on success, 0 if already at last combination.
+ * 0x10af70 / random_math.obj (probability.c)
+ */
+char FUN_0010af70(short param_1, int param_2, short *param_3)
+{
+  short sVar1;
+  short sVar2;
+  unsigned int uVar3;
+  int iVar4;
+  short *psVar5;
+  short sVar6;
+
+  sVar6 = (short)param_2;
+  assert_halt(param_1 >= sVar6);
+  assert_halt(sVar6 > 0);
+  assert_halt((int)param_3);
+  sVar2 = 0;
+  if (0 < sVar6) {
+    do {
+      sVar1 = param_3[sVar2];
+      if ((sVar1 < 0) || (param_1 <= sVar1) ||
+          (0 < sVar2 && (sVar1 <= param_3[sVar2 - 1]))) {
+        iVar4 = 0;
+        do {
+          *param_3 = (short)iVar4;
+          iVar4 = iVar4 + 1;
+          param_3 = param_3 + 1;
+        } while ((short)iVar4 < sVar6);
+        return 1;
+      }
+      sVar2 = sVar2 + 1;
+    } while (sVar2 < sVar6);
+  }
+  uVar3 = (unsigned int)((int)sVar6 - 1);
+  if ((short)uVar3 >= 0) {
+    do {
+      sVar2 = (short)uVar3;
+      if ((int)param_3[sVar2] < ((int)param_1 - (int)sVar6) + (int)sVar2) {
+        param_3[sVar2] = param_3[sVar2] + 1;
+        iVar4 = uVar3 + 1;
+        if ((short)iVar4 < sVar6) {
+          psVar5 = param_3 + (short)iVar4;
+          uVar3 = (param_2 - iVar4) & 0xffff;
+          do {
+            *psVar5 = psVar5[-1] + 1;
+            psVar5 = psVar5 + 1;
+            uVar3 = uVar3 - 1;
+            iVar4 = 0;
+          } while (uVar3 != 0);
+        }
+        return 1;
+      }
+      uVar3 = uVar3 - 1;
+    } while ((short)uVar3 >= 0);
+  }
+  return 0;
+}
+
 void lock_global_random_seed(void)
 {
   *(int *)0x46e3f0 = *(int *)0x46e3f0 + 1;
