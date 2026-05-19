@@ -58,6 +58,90 @@ int valid_real_normal3d_perpendicular(float *a, float *b)
   return fabsf(dot) < 0.001f;
 }
 
+/* FUN_00136150 — create widgets for an object from its tag definition.
+ *
+ * Looks up the object's tag (group 'obje'), reads the widget attachments
+ * tag block at tag+0x14c, and for each attachment, searches the global
+ * widget_types table (5 entries at 0x323528, each 0x28 bytes) for a
+ * matching group_tag. When found, allocates a new widget datum from the
+ * widget data pool at 0x5a90c4, sets its type field, and either:
+ *   - calls the widget type's "new" function (entry+0x18) with the
+ *     attachment's definition index (element+0x0c), linking on success
+ *   - or directly links the widget with definition_handle = -1 if no
+ *     "new" function is defined.
+ * Widgets are prepended to a singly-linked list rooted at obj+0x11c.
+ *
+ * Source: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
+ *
+ * Confirmed: 1 cdecl arg (object_handle).
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
+ * Confirmed: CALL 0x1ba140 (tag_get) with (0x6f626a65, obj[0]).
+ * Confirmed: CALL 0x19b210 (tag_block_get_element) with (block, index, 0x20).
+ * Confirmed: CALL 0x119610 (data_new_at_index) with (*(data_t**)0x5a90c4).
+ * Confirmed: CALL 0x119320 (datum_get) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: CALL 0x1196d0 (datum_delete) with (*(data_t**)0x5a90c4, handle).
+ * Confirmed: widget_types table at 0x323528: [+0x00]=group_tag, [+0x18]=new_fn.
+ * Confirmed: ADD ESP,0x10 cleans both object_get_and_verify_type + tag_get
+ * pushes. Confirmed: outer loop counter is int16_t (MOVSX EAX,AX at 0x1362b2).
+ * Confirmed: inner loop counter is int16_t (MOVSX ECX,SI; CMP SI,0x5).
+ * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
+ * Confirmed: assert_halt for type range check at 0x1361fe.
+ */
+
+/* Allocates a new entry in the 0x46f020 data table and stores param_1 at +4.
+ * Returns the datum handle, or -1 on failure.
+ * 0x134be0 / objects.obj
+ */
+int FUN_00134be0(int param_1)
+{
+  int iVar1;
+  int iVar2;
+
+  iVar1 = data_new_at_index(*(data_t **)0x46f020);
+  if (iVar1 != -1) {
+    iVar2 = (int)datum_get(*(data_t **)0x46f020, iVar1);
+    *(int *)(iVar2 + 4) = param_1;
+  }
+  return iVar1;
+}
+
+/* Deletes the entry at param_1 from the 0x46f020 data table.
+ * 0x134c20 / objects.obj
+ */
+void FUN_00134c20(int param_1)
+{
+  if (param_1 != -1) {
+    datum_delete(*(data_t **)0x46f020, param_1);
+  }
+}
+
+/* Allocates a new entry in the 0x46f024 data table and stores param_1 at +4.
+ * Returns the datum handle, or -1 on failure.
+ * 0x1353b0 / objects.obj
+ */
+int FUN_001353b0(int param_1)
+{
+  int iVar1;
+  int iVar2;
+
+  iVar1 = data_new_at_index(*(data_t **)0x46f024);
+  if (iVar1 != -1) {
+    iVar2 = (int)datum_get(*(data_t **)0x46f024, iVar1);
+    *(int *)(iVar2 + 4) = param_1;
+  }
+  return iVar1;
+}
+
+/* Deletes the entry at param_1 from the 0x46f024 data table.
+ * 0x1353f0 / objects.obj
+ */
+void FUN_001353f0(int param_1)
+{
+  if (param_1 != -1) {
+    datum_delete(*(data_t **)0x46f024, param_1);
+  }
+}
+
 int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
                  int marker, int arg4, int arg5, int arg6, int arg7);
 
@@ -146,88 +230,117 @@ int FUN_000ae0a0(int tag_index);
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
  * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
  */
-/* FUN_00136150 — create widgets for an object from its tag definition.
- *
- * Looks up the object's tag (group 'obje'), reads the widget attachments
- * tag block at tag+0x14c, and for each attachment, searches the global
- * widget_types table (5 entries at 0x323528, each 0x28 bytes) for a
- * matching group_tag. When found, allocates a new widget datum from the
- * widget data pool at 0x5a90c4, sets its type field, and either:
- *   - calls the widget type's "new" function (entry+0x18) with the
- *     attachment's definition index (element+0x0c), linking on success
- *   - or directly links the widget with definition_handle = -1 if no
- *     "new" function is defined.
- * Widgets are prepended to a singly-linked list rooted at obj+0x11c.
- *
- * Source: c:\halo\source\objects\widgets\widget_types.h (line 0x96)
- *
- * Confirmed: 1 cdecl arg (object_handle).
- * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with (handle, -1).
- * Confirmed: CALL 0x1ba140 (tag_get) with (0x6f626a65, obj[0]).
- * Confirmed: CALL 0x19b210 (tag_block_get_element) with (block, index, 0x20).
- * Confirmed: CALL 0x119610 (data_new_at_index) with (*(data_t**)0x5a90c4).
- * Confirmed: CALL 0x119320 (datum_get) with (*(data_t**)0x5a90c4, handle).
- * Confirmed: CALL 0x1196d0 (datum_delete) with (*(data_t**)0x5a90c4, handle).
- * Confirmed: widget_types table at 0x323528: [+0x00]=group_tag, [+0x18]=new_fn.
- * Confirmed: ADD ESP,0x10 cleans both object_get_and_verify_type + tag_get
- * pushes. Confirmed: outer loop counter is int16_t (MOVSX EAX,AX at 0x1362b2).
- * Confirmed: inner loop counter is int16_t (MOVSX ECX,SI; CMP SI,0x5).
- * Confirmed: indirect CALL EAX at 0x13625a for widget new function.
- * Confirmed: assert_halt for type range check at 0x1361fe.
+/* Allocate widget data pool, then call each widget type's initialize function.
+ * 0x135f90 / objects.obj
  */
-
-/* Allocates a new entry in the 0x46f020 data table and stores param_1 at +4.
- * Returns the datum handle, or -1 on failure.
- * 0x134be0 / objects.obj
- */
-int FUN_00134be0(int param_1)
+void FUN_00135f90(void)
 {
-    int iVar1;
-    int iVar2;
+  short sVar1;
+  void **ppuVar2;
 
-    iVar1 = data_new_at_index(*(data_t **)0x46f020);
-    if (iVar1 != -1) {
-        iVar2 = (int)datum_get(*(data_t **)0x46f020, iVar1);
-        *(int *)(iVar2 + 4) = param_1;
+  *(data_t **)0x5a90c4 = game_state_data_new("widget", 0x40, 0xc);
+  if (*(data_t **)0x5a90c4 == 0) {
+    display_assert("widget_data",
+                   "c:\\halo\\SOURCE\\objects\\widgets\\widgets.c", 0x2e, 1);
+    system_exit(-1);
+  }
+  sVar1 = 0;
+  ppuVar2 = (void **)0x323530;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
     }
-    return iVar1;
+    if (ppuVar2[-2] == 0) {
+      display_assert("type_definition->group_tag",
+                     "c:\\halo\\SOURCE\\objects\\widgets\\widgets.c", 0x37, 1);
+      system_exit(-1);
+    }
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
 }
 
-/* Deletes the entry at param_1 from the 0x46f020 data table.
- * 0x134c20 / objects.obj
+/* Reset widget data pool, then call each widget type's initialize_for_new_map.
+ * 0x136040 / objects.obj
  */
-void FUN_00134c20(int param_1)
+void FUN_00136040(void)
 {
-    if (param_1 != -1) {
-        datum_delete(*(data_t **)0x46f020, param_1);
+  short sVar1;
+  void **ppuVar2;
+
+  data_delete_all(*(data_t **)0x5a90c4);
+  sVar1 = 0;
+  ppuVar2 = (void **)0x323534;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
     }
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
 }
 
-/* Deletes the entry at param_1 from the 0x46f024 data table.
- * 0x1353f0 / objects.obj
+/* Call each widget type's dispose_from_old_map, then invalidate widget data
+ * pool. 0x1360a0 / objects.obj
  */
-void FUN_001353f0(int param_1)
+void FUN_001360a0(void)
 {
-    if (param_1 != -1) {
-        datum_delete(*(data_t **)0x46f024, param_1);
+  short sVar1;
+  void **ppuVar2;
+
+  sVar1 = 0;
+  ppuVar2 = (void **)0x323538;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
     }
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
+  data_make_invalid(*(data_t **)0x5a90c4);
 }
 
-/* Allocates a new entry in the 0x46f024 data table and stores param_1 at +4.
- * Returns the datum handle, or -1 on failure.
- * 0x1353b0 / objects.obj
+/* Call each widget type's dispose function.
+ * 0x136100 / objects.obj
  */
-int FUN_001353b0(int param_1)
+void FUN_00136100(void)
 {
-    int iVar1;
-    int iVar2;
+  short sVar1;
+  void **ppuVar2;
 
-    iVar1 = data_new_at_index(*(data_t **)0x46f024);
-    if (iVar1 != -1) {
-        iVar2 = (int)datum_get(*(data_t **)0x46f024, iVar1);
-        *(int *)(iVar2 + 4) = param_1;
+  sVar1 = 0;
+  ppuVar2 = (void **)0x32353c;
+  do {
+    if ((sVar1 < 0) || (4 < sVar1)) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
     }
-    return iVar1;
+    if (*ppuVar2 != 0) {
+      ((void (*)(void)) * ppuVar2)();
+    }
+    sVar1 = sVar1 + 1;
+    ppuVar2 = ppuVar2 + 10;
+  } while (sVar1 < 5);
 }
 
 void FUN_00136150(int object_handle)
@@ -2030,9 +2143,8 @@ void object_disconnect_from_map(int object_handle)
  */
 void *object_get_node_matrices(int object_handle)
 {
-    void *obj = object_get_and_verify_type(object_handle, 0xffffffff);
-    return object_header_block_reference_get(object_handle,
-                                             (char *)obj + 0x1a0);
+  void *obj = object_get_and_verify_type(object_handle, 0xffffffff);
+  return object_header_block_reference_get(object_handle, (char *)obj + 0x1a0);
 }
 
 /*

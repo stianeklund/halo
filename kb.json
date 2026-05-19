@@ -13588,19 +13588,23 @@
         },
         {
           "decl": "void FUN_00135f90(void);",
-          "addr": "0x135f90"
+          "addr": "0x135f90",
+          "ported": true
         },
         {
           "decl": "void FUN_00136040(void);",
-          "addr": "0x136040"
+          "addr": "0x136040",
+          "ported": true
         },
         {
           "decl": "void FUN_001360a0(void);",
-          "addr": "0x1360a0"
+          "addr": "0x1360a0",
+          "ported": true
         },
         {
           "decl": "void FUN_00136100(void);",
-          "addr": "0x136100"
+          "addr": "0x136100",
+          "ported": true
         },
         {
           "decl": "void FUN_00136150(int object_handle);",
