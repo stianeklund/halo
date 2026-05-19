@@ -17411,8 +17411,10 @@
           "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010c7d0(void);",
-          "addr": "0x10c7d0"
+          "decl": "void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4);",
+          "addr": "0x10c7d0",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void FUN_0010c920(float *v1, float *v2, float t, float *out);",
