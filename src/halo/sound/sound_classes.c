@@ -92,16 +92,16 @@ void debug_sound_classes_set_wet(char *pattern, float wet)
     void *def;
     float val;
 
-    val = 1.0f - wet;
-    if (val < 0.0f)
-        val = 0.0f;
-    else if (val > 1.0f)
-        val = 1.0f;
     i = 0;
     pp = (char **)0x32f5d0;
     do {
         if (**pp != '\0') {
             if (crt_strstr(*pp, pattern) != NULL) {
+                val = 1.0f - wet;
+                if (val < 0.0f)
+                    val = 0.0f;
+                else if (val > 1.0f)
+                    val = 1.0f;
                 def = sound_class_get_definition((short)i);
                 *(float *)((char *)def + 0x10) = val;
             }
