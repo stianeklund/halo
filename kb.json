@@ -4688,8 +4688,9 @@
           "addr": "0x14cde0"
         },
         {
-          "decl": "void FUN_0014cf20(void);",
-          "addr": "0x14cf20"
+          "decl": "void FUN_0014cf20(int param_1);",
+          "addr": "0x14cf20",
+          "ported": true
         },
         {
           "decl": "int FUN_0014cfe0(int param_1, int param_2);",
@@ -33375,7 +33376,7 @@
           "addr": "0x1475f0"
         },
         {
-          "decl": "void render_debug_collision_bsp(void);",
+          "decl": "void render_debug_collision_bsp(int param_1, int param_2);",
           "addr": "0x147660"
         },
         {
