@@ -20,7 +20,7 @@ char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4,
     local_5 = 0;
     collision_log_add_call(3);
     collision_log_query_counter((void *)0x4761c8);
-    *(int *)(param_5 + 2) = 0x7f7fffff;
+    *(int *)(param_5 + 4) = 0x7f7fffff;
     piVar3 = (int *)(*(int *)(param_1 + 4) + 0x28c);
     iVar6 = 0;
     local_c = 0;
@@ -51,8 +51,8 @@ char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4,
                             cVar2 = collision_bsp_test_vector(
                                 (int)param_2, (int)piVar3, 0, 0,
                                 (int)local_28, (int)local_1c,
-                                *(float *)(param_5 + 2),
-                                (float *)(param_5 + 2));
+                                *(float *)(param_5 + 4),
+                                (float *)(param_5 + 4));
                             if (cVar2 != '\0') {
                                 *param_5 = (int16_t)local_c;
                                 param_5[1] = *(int16_t *)(local_10 + 0x20);
