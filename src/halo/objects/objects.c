@@ -203,6 +203,16 @@ void FUN_00134c20(int param_1)
     }
 }
 
+/* Deletes the entry at param_1 from the 0x46f024 data table.
+ * 0x1353f0 / objects.obj
+ */
+void FUN_001353f0(int param_1)
+{
+    if (param_1 != -1) {
+        datum_delete(*(data_t **)0x46f024, param_1);
+    }
+}
+
 /* Allocates a new entry in the 0x46f024 data table and stores param_1 at +4.
  * Returns the datum handle, or -1 on failure.
  * 0x1353b0 / objects.obj

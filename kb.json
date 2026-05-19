@@ -13570,8 +13570,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001353f0(void);",
-          "addr": "0x1353f0"
+          "decl": "void FUN_001353f0(int param_1);",
+          "addr": "0x1353f0",
+          "ported": true
         },
         {
           "decl": "void FUN_00135420(void);",
