@@ -86,35 +86,34 @@ for endpoint in ["decompile_function", "get_function_callees"]:
 
 ## Lift procedure
 
-For each viable candidate, use the `xbox-halo-re-analyst` subagent if available, otherwise perform directly.
+For each viable candidate:
 
-### Steps
+### Phase 1 — RE analysis + implementation (subagent)
 
-1. Inspect KB entry:
-   ```bash
-   rtk jq '[.. | objects | select(.addr? == "0xADDR")] | .[0]' kb.json
-   ```
+Gather lightweight context in the orchestrator:
+```bash
+rtk jq '[.. | objects | select(.addr? == "0xADDR")] | .[0]' kb.json
+```
+Fetch decompilation via Ghidra MCP (`decompile_function`). Then spawn:
+```
+Agent(subagent_type="xbox-halo-re-analyst", model="sonnet", prompt=<brief>)
+```
+The prompt must include: target address, decompilation output, KB entry JSON,
+source file path, and these file-write instructions:
+- Write the C89 implementation to the source file at the correct address-ordered position
+- Update kb.json declaration if needed (conservatively)
+- Update `tools/kb_reg_baseline.json` for any `@<reg>` annotations
+- Run `rtk python3 tools/analysis/maintain.py <source_file>`
+- Run `rtk python3 tools/audit/check_lift_hazards.py` and fix target-relevant hazards
+- Report: RESOLVED_TARGET, Confirmed/Inferred/Uncertain, kb.json updates made
 
-2. Implement faithful C89:
-   - All variables declared at top of block scope (no C99 mixed declarations)
-   - Preserve original control flow shape
-   - No cleanup refactors that hurt codegen
-   - Place at correct address-ordered position in source file
+### Phase 2 — build + verify (orchestrator)
 
-3. Normalize:
-   ```bash
-   rtk python3 tools/analysis/maintain.py <source_file>
-   ```
-
-4. Hazard scan:
-   ```bash
-   rtk python3 tools/audit/check_lift_hazards.py
-   ```
-
-5. Verify:
-   ```bash
-   rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --verify-policy auto
-   ```
+After the agent returns, ensure a delinked reference exists (export via
+`mcp__ghidra-live__export_delinked_object` if missing), then run:
+```bash
+rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --verify-policy auto
+```
 
 ### Pass/fail decision
 
@@ -157,13 +156,17 @@ rtk git status --short
 
 ## Opus escalation
 
-Escalate to Opus (via Agent with `model: opus`) when:
+Escalate by re-running Phase 1 with `Agent(subagent_type="xbox-halo-re-analyst")`
+without the `model: "sonnet"` override — the agent's default model (Opus) kicks in.
+Revert the Sonnet attempt first: `rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json`
+
+Escalate when:
 - VC71 < 65% (control flow / structure wrong)
 - ABI audit fails (calling convention reasoning)
 - FPU-WARN (operand order)
 - Build fails on second attempt (not a simple typo)
 
-Do NOT escalate when:
+Do NOT escalate (revert+skip instead):
 - Target has SEH prolog/epilog (not liftable with current tooling)
 - Target has >3 register args (disqualified)
 - Build fails on an unrelated file (repo state issue)
