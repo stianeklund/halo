@@ -11793,14 +11793,18 @@
           "addr": "0xf6820"
         },
         {
-          "decl": "void FUN_000f6860(void);",
-          "addr": "0xf6860"
+          "name": "item_begin_garbage_collection",
+          "decl": "bool item_begin_garbage_collection(int item_handle);",
+          "addr": "0xf6860",
+          "ported": true
         },
         {
+          "name": "FUN_000f68b0",
           "decl": "void FUN_000f68b0(void);",
           "addr": "0xf68b0"
         },
         {
+          "name": "item_activate",
           "decl": "void FUN_000f6910(void);",
           "addr": "0xf6910"
         },
@@ -31564,8 +31568,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00120590(void);",
-          "addr": "0x120590"
+          "decl": "void FUN_00120590(void *animation, short frame_index, short frame_size);",
+          "addr": "0x120590",
+          "ported": true
         },
         {
           "decl": "const char *FUN_001205f0(void *string_table, int16_t index);",

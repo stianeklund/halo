@@ -46,6 +46,44 @@ void *FUN_00120500(void *animation, short frame_index)
   return (void *)(data + (int)*(short *)(anim + 0x24) * (int)frame_index);
 }
 
+/* FUN_00120590 (0x120590) — Resolve a pointer to a specific animation frame's
+ * raw data block via tag_data_get_pointer.
+ *
+ * Given an animation structure pointer, a frame_index, and the per-frame
+ * stride (frame_size), bounds-checks frame_index against animation->frame_count
+ * (int16 at +0x22), then calls tag_data_get_pointer on the tag_data block at
+ * animation+0x48 with offset = frame_index * frame_size and size = frame_size.
+ * The return value of tag_data_get_pointer is discarded; the call is for its
+ * side effect of resolving the tag_data reference.
+ *
+ * Confirmed: cdecl, 3 args (animation ptr, frame_index short, frame_size
+ * short). Confirmed: assert "frame_index>=0 &&
+ * frame_index<animation->frame_count" at 0x1205a7. Confirmed: MOVSX
+ * EAX,[EBP+0x10] (frame_size); MOVSX ECX,SI (frame_index); IMUL ECX,EAX; PUSH
+ * EAX; PUSH ECX; ADD EDI,0x48; PUSH EDI; CALL tag_data_get_pointer at 0x1205d7.
+ * Source: c:\halo\SOURCE\models\model_animation_definitions.c, line 0x48e
+ * (1166).
+ */
+void FUN_00120590(void *animation, short frame_index, short frame_size)
+{
+  char *anim;
+  int offset;
+  int size;
+
+  anim = (char *)animation;
+
+  if (frame_index < 0 || frame_index >= *(short *)(anim + 0x22)) {
+    display_assert("frame_index>=0 && frame_index<animation->frame_count",
+                   "c:\\halo\\SOURCE\\models\\model_animation_definitions.c",
+                   0x48e, 1);
+    system_exit(-1);
+  }
+
+  size = (int)frame_size;
+  offset = (int)frame_index * size;
+  tag_data_get_pointer(anim + 0x48, offset, size);
+}
+
 /* FUN_001205f0 (0x1205f0) — look up a string in an indexed string table.
  * Returns "#<invalid>" if the index is out of range or the entry is NULL. */
 const char *FUN_001205f0(void *string_table, int16_t index)

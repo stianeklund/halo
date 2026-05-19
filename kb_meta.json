@@ -4245,6 +4245,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf6860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf6910": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf6970": {
       "kind": "function",
       "status": "ported"

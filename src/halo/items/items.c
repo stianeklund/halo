@@ -25,6 +25,25 @@ void FUN_000f67f0(int equipment_tag_index)
   }
 }
 
+/* Mark an item (type mask 0x10 = garbage item type) for garbage collection.
+ * Sets the garbage flag, ORs object flags bits 18 and 19 (0xc0000), and
+ * picks a random despawn timer in [300, 600] ticks stored at item_obj+0x1dc.
+ * Returns true on success. */
+bool item_begin_garbage_collection(int item_handle)
+{
+  char *item_obj;
+  unsigned int *seed;
+  unsigned int flags;
+
+  item_obj = (char *)object_get_and_verify_type(item_handle, 0x10);
+  object_set_garbage_flag(item_handle, 1);
+  flags = *(unsigned int *)(item_obj + 0x4);
+  *(unsigned int *)(item_obj + 0x4) = flags | 0xc0000;
+  seed = (unsigned int *)get_global_random_seed_address();
+  *(int16_t *)(item_obj + 0x1dc) = random_range(seed, 300, 600);
+  return 1;
+}
+
 /* Iterate all item objects (type 0x1c) and return true if any have
  * a positive danger count, indicating a dangerous item is near a player. */
 bool dangerous_items_near_player(void)
