@@ -4938,7 +4938,9 @@
         },
         {
           "decl": "void contrails_reconnect_to_structure_bsp(void);",
-          "addr": "0x97980"
+          "addr": "0x97980",
+          "ported": true,
+          "src": "src/halo/effects/contrails.c"
         },
         {
           "decl": "void FUN_00097ae0(void);",
@@ -6401,8 +6403,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0009C910(void);",
-          "addr": "0x9c910"
+          "decl": "void FUN_0009C910(short *out);",
+          "addr": "0x9c910",
+          "ported": null
         },
         {
           "decl": "void FUN_0009c9a0(void);",
@@ -6413,12 +6416,15 @@
           "addr": "0x9c9f0"
         },
         {
-          "decl": "void real_local_random(void);",
-          "addr": "0x9ce80"
+          "decl": "float real_local_random(void);",
+          "addr": "0x9ce80",
+          "ported": null
         },
         {
-          "decl": "void local_random_direction3d(void);",
-          "addr": "0x9ce90"
+          "decl": "void local_random_direction3d(float *out);",
+          "addr": "0x9ce90",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
           "decl": "void effect_stop(void);",
@@ -6426,7 +6432,9 @@
         },
         {
           "decl": "void effects_reconnect_to_structure_bsp(void);",
-          "addr": "0x9cf40"
+          "addr": "0x9cf40",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
           "decl": "bool FUN_0009f3b0(void *data);",
@@ -15366,15 +15374,18 @@
         },
         {
           "decl": "void rumble_player_impulse(short unit_index, float *rumble_def, float damage_amount, float scale);",
-          "addr": "0xb9bc0"
+          "addr": "0xb9bc0",
+          "ported": null
         },
         {
-          "decl": "void rumble_player_set_scripted_values(void);",
-          "addr": "0xb9b80"
+          "decl": "void rumble_player_set_scripted_values(float left_motor, float right_motor);",
+          "addr": "0xb9b80",
+          "ported": null
         },
         {
-          "decl": "void rumble_player_set_scale(void);",
-          "addr": "0xb9ba0"
+          "decl": "void rumble_player_set_scale(float scale);",
+          "addr": "0xb9ba0",
+          "ported": null
         },
         {
           "decl": "void rumble_set_direct_motors(short local_player_index, int left_motor, int right_motor);",

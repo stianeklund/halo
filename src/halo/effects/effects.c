@@ -132,6 +132,7 @@ void effects_stop_on_first_person_weapon(int local_player_index)
   }
 }
 
+
 /* Effect part volume filter (0x9caf0). Tests whether an effect part should
  * spawn based on its creation type and the effect's trigger/kill volume.
  * type 0=always, 1=outside volume, 2=inside volume, 3=never. */
@@ -295,6 +296,56 @@ float FUN_0009cdd0(uint16_t transition_type, float t)
     system_exit(-1);
     return t;
   }
+}
+
+void local_random_direction3d(float *out)
+{
+  random_seed_get_direction3d(random_math_get_local_seed_address(), out);
+}
+
+/* Iterate all active effects whose BSP leaf index (effect+0x3c) is unset
+ * (NONE). For each such effect, look up its attached location datum; if the
+ * location's short field at +2 is valid and negative (pending reconnect flag),
+ * attempt to re-acquire a location via FUN_0009cca0. On success, refresh the
+ * effect's world-point from the new location. On failure (or no location),
+ * delete the effect entirely. */
+void effects_reconnect_to_structure_bsp(void)
+{
+  int effect_index;
+  char *effect;
+  int location_handle;
+  char *effect_location;
+  void *new_location;
+
+  effect_index = data_next_index(effect_data, NONE);
+  do {
+    if (effect_index == NONE) {
+      return;
+    }
+    effect = (char *)datum_get(effect_data, effect_index);
+    if (*(int *)(effect + 0x3c) == NONE) {
+      location_handle = *(int *)(effect + 0x5c);
+      if (location_handle != NONE) {
+        effect_location =
+          (char *)datum_get(effect_location_data, location_handle);
+        location_handle = *(int *)(effect_location + 4);
+        if ((*(int16_t *)(effect_location + 2) != (int16_t)NONE) &&
+            (*(int16_t *)(effect_location + 2) < 0)) {
+          new_location = FUN_0009cca0(effect, &location_handle, 0);
+        } else {
+          new_location = 0;
+        }
+        if (new_location != 0) {
+          scenario_location_from_point(effect + 0x10,
+                                       (char *)new_location + 0x30);
+          goto next;
+        }
+      }
+      effect_delete(effect_index);
+    }
+  next:
+    effect_index = data_next_index(effect_data, effect_index);
+  } while (1);
 }
 
 /* Check if any active effect with a nonzero danger radius is close enough
