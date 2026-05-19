@@ -3816,6 +3816,10 @@
         "The 16-byte local buffer is a 4-float ARGB color filled by interface_get_color and passed to draw_string_set_font."
       ]
     },
+    "0xdfdc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdfea0": {
       "kind": "function",
       "status": "ported"
@@ -5131,6 +5135,14 @@
       "status": "ported"
     },
     "0x11b850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11b950": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11b960": {
       "kind": "function",
       "status": "ported"
     },

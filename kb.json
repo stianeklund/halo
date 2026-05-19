@@ -4551,7 +4551,7 @@
           "addr": "0x92e90"
         },
         {
-          "decl": "void draw_quad(void);",
+          "decl": "void draw_quad(int16_t *rect, int color);",
           "addr": "0x92ec0"
         },
         {
@@ -11649,11 +11649,13 @@
           "addr": "0xdf4e0"
         },
         {
-          "decl": "void FUN_000dfdc0(void);",
-          "addr": "0xdfdc0"
+          "decl": "void interface_draw_splitscreen_dividers(void);",
+          "addr": "0xdfdc0",
+          "name": "interface_draw_splitscreen_dividers",
+          "ported": true
         },
         {
-          "decl": "void interface_get_rgb_color(void);",
+       "decl": "void interface_get_rgb_color(void);",
           "addr": "0xdff00"
         },
         {
@@ -12932,12 +12934,16 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0011b950(void);",
-          "addr": "0x11b950"
+          "decl": "void hashtable_set_user_data(void *table, int user_data);",
+          "addr": "0x11b950",
+          "name": "hashtable_set_user_data",
+          "ported": true
         },
         {
-          "decl": "void FUN_0011b960(void);",
-          "addr": "0x11b960"
+          "decl": "void hashtable_dispose(short *table);",
+          "addr": "0x11b960",
+          "name": "hashtable_dispose",
+          "ported": true
         },
         {
           "decl": "void FUN_0011ba00(void);",

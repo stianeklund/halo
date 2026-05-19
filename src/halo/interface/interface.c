@@ -99,6 +99,66 @@ void interface_draw_text(int font_index, int style, int justify, int flags,
   draw_string_set_font(tag_index, style, justify, flags, color);
 }
 
+/* Draw black divider bars between split-screen viewports.
+ * Called every frame when 2-4 local players are active.
+ * rect layout: {top, left, bottom, right} as int16_t[4].
+ * 2 players: horizontal bar at y=239-241 across full width (640px).
+ * 3 players: horizontal bar at y=239-241 top half; vertical bar at x=319-321
+ *            bottom half (y=319-480).
+ * 4 players: same as 3-player plus vertical bar top half (y=0-480). */
+void interface_draw_splitscreen_dividers(void)
+{
+  bool forced_single;
+  bool cinematic;
+  __int16 player_count;
+  int16_t rect[4]; /* {top, left, bottom, right} */
+
+  forced_single = game_engine_force_single_screen();
+  if (forced_single) {
+    return;
+  }
+  cinematic = cinematic_in_progress();
+  if (cinematic) {
+    return;
+  }
+  player_count = local_player_count();
+  if (player_count <= 1) {
+    return;
+  }
+
+  /* 2-player: thin horizontal bar at y=239-241 across full width */
+  rect[0] = 0xef; /* top    = 239 */
+  rect[1] = 0; /* left   = 0   */
+  rect[2] = 0xf1; /* bottom = 241 */
+  rect[3] = 0x280; /* right  = 640 */
+  draw_quad(rect, (int)0xff000000);
+
+  if (player_count <= 2) {
+    return;
+  }
+
+  /* 3/4-player: vertical right side of divider (bottom half) */
+  rect[3] = 0x141; /* right  = 321 */
+  rect[2] = 0x1e0; /* bottom = 480 */
+  rect[1] = 0x13f; /* left   = 319 */
+
+  if (player_count == 3) {
+    /* 3-player: vertical bar at x=319-321, y=240-480 */
+    rect[0] = 0xf0; /* top = 240 */
+    draw_quad(rect, (int)0xff000000);
+    return;
+  }
+
+  /* 4-player: vertical bar at x=319-321, y=0-480 */
+  rect[0] = 0; /* top = 0 */
+  if (player_count != 4) {
+    display_assert("window_count==4",
+                   "c:\\halo\\SOURCE\\interface\\interface.c", 0x374, 1);
+    system_exit(-1);
+  }
+  draw_quad(rect, (int)0xff000000);
+}
+
 /* Initialize interface for a new map: set up HUD elements and load the
  * first interface globals tag block entry for widget rendering. */
 void interface_initialize_for_new_map(void)
