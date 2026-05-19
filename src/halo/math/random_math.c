@@ -620,6 +620,45 @@ void random_seed_get_direction3d(unsigned int *seed, float *out)
   random_direction_table_get_element(index, out);
 }
 
+/* Generate a random orientation (facing + up vectors) from three LCG steps.
+ *
+ * LCG steps and angle computations are interleaved to match MSVC scheduler.
+ * Azimuth in [0, 2pi], elevation in [-pi/2, pi/2], roll in [0, 2pi].
+ * Uses FUN_0010c690 to rotate the up vector around facing by roll.
+ *
+ * 0x10b3c0 / random_math.obj
+ */
+void seed_random_orientation(unsigned int *seed, float *facing, float *up)
+{
+  unsigned int s1, s2, s3;
+  float az_sin, az_cos, el_sin, el_cos;
+  float azimuth, elevation, roll;
+
+  s1 = *seed * 0x19660d + 0x3c6ef35f;
+  azimuth = (float)(s1 >> 16) * *(float *)0x2647f4 * *(float *)0x255a54;
+  s2 = s1 * 0x19660d + 0x3c6ef35f;
+  elevation = (float)(s2 >> 16) * *(float *)0x2647f4 * *(float *)0x256980
+              - *(float *)0x2568bc;
+  s3 = s2 * 0x19660d + 0x3c6ef35f;
+  *seed = s3;
+  roll = (float)(s3 >> 16) * *(float *)0x2647f4 * *(float *)0x255a54;
+
+  az_cos = (float)cos((double)azimuth);
+  az_sin = (float)sin((double)azimuth);
+  el_cos = (float)cos((double)elevation);
+  el_sin = (float)sin((double)elevation);
+
+  facing[0] = el_cos * az_cos;
+  facing[1] = el_cos * az_sin;
+  facing[2] = el_sin;
+
+  up[0] = -(az_cos * el_sin);
+  up[1] = -(az_sin * el_sin);
+  up[2] = el_cos;
+
+  FUN_0010c690(up, facing, (float)sin((double)roll), (float)cos((double)roll));
+}
+
 /* Generate a random 3D direction within a cone around a forward vector.
  *
  * Picks a random unit vector from a precomputed sphere table, computes the
