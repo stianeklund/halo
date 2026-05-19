@@ -230,6 +230,9 @@ int FUN_000ae0a0(int tag_index);
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
  * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
  */
+/* Find widget type index by group tag. Returns 0-4 on match, 0xffff if not
+ * found. 0x135f20 / objects.obj
+ */
 /* Allocate widget data pool, then call each widget type's initialize function.
  * 0x135f90 / objects.obj
  */
@@ -527,6 +530,22 @@ void object_wake(int object_handle)
   *(uint8_t *)(light + 0x2) &= ~0x4;
 }
 
+/* Call cluster_partition_iter_first on the object cluster partition at
+ * 0x5a90b0. 0x1398b0 / objects.obj
+ */
+void FUN_001398b0(int *param_1, int param_2)
+{
+  cluster_partition_iter_first((void *)0x5a90b0, param_1, (int16_t)param_2);
+}
+
+/* Call cluster_partition_iter_next on the object cluster partition at 0x5a90b0.
+ * 0x1398d0 / objects.obj
+ */
+void FUN_001398d0(int *param_1)
+{
+  cluster_partition_iter_next((void *)0x5a90b0, param_1);
+}
+
 /*
  * object_move_to_limbo — compute a point light's world-space position,
  * direction, and range from its parent object, then add it to the cluster
@@ -743,13 +762,150 @@ int FUN_0013b290(int tag_index, int object_handle, int16_t marker,
 
 void *FUN_0013c100(int16_t object_type);
 
-void FUN_0013c430(int object_handle, void *placement);
-
 int FUN_0013c490(int object_handle);
 
-void FUN_0013c560(int object_handle);
+/* Walk the object type definition list and call dispose at +0x14 on each.
+ * 0x13c3a0 / objects.obj
+ */
+void FUN_0013c3a0(void)
+{
+  int iVar1;
 
-void FUN_0013c620(int object_handle);
+  for (iVar1 = *(int *)0x5a8d54; iVar1 != 0; iVar1 = *(int *)(iVar1 + 0x9c)) {
+    if (*(void (**)(void))(iVar1 + 0x14) != 0) {
+      (*(void (**)(void))(iVar1 + 0x14))();
+    }
+  }
+}
+
+/* Reset slot counter, walk the list and call initialize_for_new_map at +0x18.
+ * 0x13c3d0 / objects.obj
+ */
+void FUN_0013c3d0(void)
+{
+  int iVar1;
+
+  *(int *)0x46f078 = 0;
+  for (iVar1 = *(int *)0x5a8d54; iVar1 != 0; iVar1 = *(int *)(iVar1 + 0x9c)) {
+    if (*(void (**)(void))(iVar1 + 0x18) != 0) {
+      (*(void (**)(void))(iVar1 + 0x18))();
+    }
+  }
+}
+
+/* Walk the object type definition list and call dispose_from_old_map at +0x1c.
+ * 0x13c400 / objects.obj
+ */
+void FUN_0013c400(void)
+{
+  int iVar1;
+
+  for (iVar1 = *(int *)0x5a8d54; iVar1 != 0; iVar1 = *(int *)(iVar1 + 0x9c)) {
+    if (*(void (**)(void))(iVar1 + 0x1c) != 0) {
+      (*(void (**)(void))(iVar1 + 0x1c))();
+    }
+  }
+}
+
+/* Dispatch object placement callback at vtable +0x20 for all type extensions.
+ * 0x13c430 / objects.obj
+ */
+void FUN_0013c430(int param_1, void *param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, void *))(*piVar1 + 0x20) != 0) {
+      (*(void (**)(int, void *))(*piVar1 + 0x20))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Dispatch object type extension callback at vtable +0x28 for all extensions.
+ * 0x13c500 / objects.obj
+ */
+void FUN_0013c500(int param_1, int param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int))(*piVar1 + 0x28) != 0) {
+      (*(void (**)(int, int))(*piVar1 + 0x28))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Dispatch object type extension callback at vtable +0x2c for all extensions.
+ * 0x13c560 / objects.obj
+ */
+void FUN_0013c560(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x2c) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x2c))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Dispatch object type extension callback at vtable +0x34 for all extensions.
+ * 0x13c620 / objects.obj
+ */
+void FUN_0013c620(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x34) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x34))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
 
 /*
  * FUN_0013c6e0 — dispatch a region-destroyed callback through the object
