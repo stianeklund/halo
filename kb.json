@@ -5582,7 +5582,8 @@
         },
         {
           "decl": "void FUN_00119bf0(void);",
-          "addr": "0x119bf0"
+          "addr": "0x119bf0",
+          "ported": false
         },
         {
           "decl": "void FUN_00119c50(int *state, int buf, int buf_size);",
@@ -13801,8 +13802,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0013c680(void);",
-          "addr": "0x13c680"
+          "decl": "void FUN_0013c680(int param_1, int param_2);",
+          "addr": "0x13c680",
+          "ported": true
         },
         {
           "decl": "void FUN_0013c6e0(int object_handle, int region_index, unsigned int flags);",

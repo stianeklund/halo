@@ -907,6 +907,31 @@ void FUN_0013c620(int param_1)
   }
 }
 
+/* Dispatch vtable slot +0x38 for each extension in the object type's table.
+ * 0x13c680 / objects.obj
+ */
+void FUN_0013c680(int param_1, int param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int))(*piVar1 + 0x38) != 0) {
+      (*(void (**)(int, int))(*piVar1 + 0x38))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
 /*
  * FUN_0013c6e0 — dispatch a region-destroyed callback through the object
  * type definition's extension table.
