@@ -198,6 +198,28 @@ void main_queue_map_name(char *map_name)
   }
 }
 
+/*
+ * main_precache_map_tick - 0x1005d0
+ *
+ * Advances the map precaching state machine. Called periodically to poll
+ * precache progress. If a precache is in progress and its status is 1
+ * (complete), ends the precache. Then, if no precache is active, begins
+ * precaching the queued map name and clears the queue flag.
+ */
+void main_precache_map_tick(void)
+{
+  float status;
+  if (cache_files_precache_in_progress()) {
+    if (cache_files_precache_map_status(&status) == 1) {
+      cache_files_precache_map_end();
+    }
+  }
+  if (!cache_files_precache_in_progress()) {
+    cache_files_precache_map_begin(&byte_46DC55, false);
+    byte_46DA50 = 0;
+  }
+}
+
 void main_goto_main_menu(void)
 {
   word_46DA40 = -1;

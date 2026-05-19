@@ -12075,8 +12075,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001005d0(void);",
-          "addr": "0x1005d0"
+          "decl": "void main_precache_map_tick(void);",
+          "addr": "0x1005d0",
+          "ported": true
         },
         {
           "decl": "void main_goto_main_menu(void);",
@@ -12925,8 +12926,10 @@
           "addr": "0x11b750"
         },
         {
-          "decl": "void FUN_0011b850(void);",
-          "addr": "0x11b850"
+          "decl": "void hashtable_new(void *table, short key_size, short element_size, float load_factor, int param_5, int param_6);",
+          "addr": "0x11b850",
+          "name": "hashtable_new",
+          "ported": true
         },
         {
           "decl": "void FUN_0011b950(void);",
@@ -31432,8 +31435,9 @@
           "addr": "0x117b00"
         },
         {
-          "decl": "void FUN_00117b20(int *table, int element_size);",
-          "addr": "0x117b20"
+          "decl": "void array_new(int *table, int element_size);",
+          "addr": "0x117b20",
+          "ported": true
         },
         {
           "decl": "void FUN_00117b90(void);",
