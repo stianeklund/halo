@@ -161,6 +161,23 @@ def _probe_with_retry(url: str, timeout_s: float, startup_wait_s: float) -> tupl
         time.sleep(0.25)
 
 
+def _print_health(url: str) -> None:
+    try:
+        with urllib.request.urlopen(url, timeout=3) as resp:
+            data = json.loads(resp.read().decode())
+            print(
+                f"[check_ghidra_mcp] bridge health: "
+                f"ghidra={data.get('ghidra','?')} "
+                f"sessions={data.get('active_sessions','?')} "
+                f"writers={data.get('sdk_writers','?')} "
+                f"tools={data.get('tools','?')} "
+                f"schema_age={data.get('schema_age_s','?')}s",
+                file=sys.stderr,
+            )
+    except Exception:
+        pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -194,6 +211,9 @@ def main() -> int:
             for failure in failures:
                 print(f"[check_ghidra_mcp] {failure}", file=sys.stderr)
         return 1
+
+    if args.verbose:
+        _print_health("http://127.0.0.1:8090/health")
 
     return 0
 
