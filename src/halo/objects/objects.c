@@ -1219,10 +1219,11 @@ int FUN_0013ca30(int param_1, int param_2, int *param_3)
   }
   if (((short)*(unsigned short *)(iVar1 + 10) < 0) ||
       (0x5bc < *(unsigned short *)(iVar1 + 10))) {
-    display_assert("definition->placement_tag_block_offset>=0 && "
-                   "definition->placement_tag_block_offset<=sizeof(struct scenario)"
-                   "+sizeof(struct tag_block)",
-                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x500, 1);
+    display_assert(
+      "definition->placement_tag_block_offset>=0 && "
+      "definition->placement_tag_block_offset<=sizeof(struct scenario)"
+      "+sizeof(struct tag_block)",
+      "c:\\halo\\SOURCE\\objects\\object_types.c", 0x500, 1);
     system_exit(-1);
   }
   if (param_3 != (int *)0x0) {
@@ -1246,25 +1247,26 @@ int FUN_0013cab0(int param_1, int param_2)
   }
   if (((short)*(unsigned short *)(iVar1 + 0xc) < 0) ||
       (0x5bc < *(unsigned short *)(iVar1 + 0xc))) {
-    display_assert("definition->palette_tag_block_offset>=0 && "
-                   "definition->palette_tag_block_offset<=sizeof(struct scenario)"
-                   "+sizeof(struct tag_block)",
-                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x50e, 1);
+    display_assert(
+      "definition->palette_tag_block_offset>=0 && "
+      "definition->palette_tag_block_offset<=sizeof(struct scenario)"
+      "+sizeof(struct tag_block)",
+      "c:\\halo\\SOURCE\\objects\\object_types.c", 0x50e, 1);
     system_exit(-1);
   }
   return *(short *)(iVar1 + 0xc) + param_1;
 }
 
-/* Wrap cluster_partition_iter_first for the non-collideable partition (0x5a8d30).
- * 0x13d570 / objects.obj
+/* Wrap cluster_partition_iter_first for the non-collideable partition
+ * (0x5a8d30). 0x13d570 / objects.obj
  */
 void cluster_get_first_noncollideable_object(int *param_1, int param_2)
 {
   cluster_partition_iter_first((void *)0x5a8d30, param_1, (int16_t)param_2);
 }
 
-/* Wrap cluster_partition_iter_next for the non-collideable partition (0x5a8d30).
- * 0x13d590 / objects.obj
+/* Wrap cluster_partition_iter_next for the non-collideable partition
+ * (0x5a8d30). 0x13d590 / objects.obj
  */
 void cluster_get_next_noncollideable_object(int *param_1)
 {
@@ -1525,6 +1527,10 @@ int object_get_root_parent(int object_handle)
   return result;
 }
 
+void FUN_0013d870(void)
+{
+}
+
 void object_set_garbage_flag(int object_handle, int is_garbage)
 {
   object_data_t *obj =
@@ -1630,6 +1636,24 @@ done:
       handle = gobj->unk_192;
     }
   }
+}
+
+void FUN_0013dbe0(int param_1)
+{
+  int iVar1;
+
+  iVar1 = *(int *)0x46f084;
+  if (param_1 == -1) {
+    *(short *)(*(int *)0x46f084 + 0x90) = 0;
+    return;
+  }
+  *(short *)(iVar1 + 0x90) = 1;
+  *(int *)(iVar1 + 0x94) = param_1;
+}
+
+void FUN_0013dcb0(void)
+{
+  *(short *)(*(int *)0x46f084 + 0x90) = 0;
 }
 
 /*

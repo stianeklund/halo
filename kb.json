@@ -13931,12 +13931,14 @@
           "ported": true
         },
         {
-          "decl": "void object_add_scenario_permutation(void);",
-          "addr": "0x13d870"
+          "decl": "void FUN_0013d870(void);",
+          "addr": "0x13d870",
+          "ported": true
         },
         {
-          "decl": "void object_set_object_index_for_name_index(void);",
-          "addr": "0x13d880"
+          "decl": "void FUN_0013d880(short param_1, int param_2);",
+          "addr": "0x13d880",
+          "ported": false
         },
         {
           "decl": "void objects_fix_for_deleted_object(void);",
@@ -13956,20 +13958,23 @@
           "addr": "0x13db60"
         },
         {
-          "decl": "void object_pvs_set_object(void);",
-          "addr": "0x13dbe0"
+          "decl": "void FUN_0013dbe0(int param_1);",
+          "addr": "0x13dbe0",
+          "ported": true
         },
         {
           "decl": "void object_pvs_set_camera_point(void);",
           "addr": "0x13dc10"
         },
         {
-          "decl": "void object_pvs_clear(void);",
-          "addr": "0x13dcb0"
+          "decl": "void FUN_0013dcb0(void);",
+          "addr": "0x13dcb0",
+          "ported": true
         },
         {
-          "decl": "void objects_get_activating_cluster_index(void);",
-          "addr": "0x13dcc0"
+          "decl": "unsigned short FUN_0013dcc0(void);",
+          "addr": "0x13dcc0",
+          "ported": false
         },
         {
           "decl": "void object_definition_predict(void);",
