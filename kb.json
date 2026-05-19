@@ -11655,7 +11655,7 @@
           "ported": true
         },
         {
-       "decl": "void interface_get_rgb_color(void);",
+          "decl": "void interface_get_rgb_color(void);",
           "addr": "0xdff00"
         },
         {
@@ -17345,8 +17345,10 @@
           "ported": true
         },
         {
-          "decl": "void get_random_seed(void);",
-          "addr": "0x10b110"
+          "decl": "unsigned int get_random_seed(void);",
+          "addr": "0x10b110",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void random_math_initialize(void);",
@@ -17363,8 +17365,10 @@
           "addr": "0x10b3c0"
         },
         {
-          "decl": "void FUN_0010b9c0(void);",
-          "addr": "0x10b9c0"
+          "decl": "void FUN_0010b9c0(float *q1, float *q2, float *out);",
+          "addr": "0x10b9c0",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void FUN_0010ba90(float *q1, float *q2, float t, float *out);",
@@ -17378,11 +17382,15 @@
         },
         {
           "decl": "float *FUN_0010c2e0(float *v);",
-          "addr": "0x10c2e0"
+          "addr": "0x10c2e0",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010c340(void);",
-          "addr": "0x10c340"
+          "decl": "float FUN_0010c340(float *v1, float *v2);",
+          "addr": "0x10c340",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void FUN_0010c390(void);",
@@ -17397,16 +17405,20 @@
           "addr": "0x10c440"
         },
         {
-          "decl": "void FUN_0010c780(void);",
-          "addr": "0x10c780"
+          "decl": "void FUN_0010c780(float *v1, float *v2, float t, float *out);",
+          "addr": "0x10c780",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void FUN_0010c7d0(void);",
           "addr": "0x10c7d0"
         },
         {
-          "decl": "void FUN_0010c920(void);",
-          "addr": "0x10c920"
+          "decl": "void FUN_0010c920(float *v1, float *v2, float t, float *out);",
+          "addr": "0x10c920",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         }
       ]
     },

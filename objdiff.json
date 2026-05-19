@@ -1781,6 +1781,86 @@
       "metadata": {
         "source_path": "halo/physics/collision_usage.c"
       }
+    },
+    {
+      "name": "halo/random_math_FUN_10b9c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b9c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c2e0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c2e0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c340",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c340.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c390",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c390.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c780",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c780.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c920",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c920.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10b110",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b110.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c7d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c7d0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10b3c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b3c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10b110",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b110.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
     }
   ]
 }

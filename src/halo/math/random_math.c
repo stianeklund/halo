@@ -35,7 +35,8 @@ void FUN_0010a930(int16_t type_index, void *buffer)
                *(float *)0x253398;
       break;
     default:
-      display_assert(0, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x19b, 1);
+      display_assert(0, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x19b,
+                     1);
       system_exit(-1);
       break;
     }
@@ -451,6 +452,15 @@ int *get_global_random_seed_address(void)
   return (int *)0x46e3f4;
 }
 
+/* Returns the current global random seed value.
+ *
+ * 0x10b110 / random_math.obj
+ */
+unsigned int get_random_seed(void)
+{
+  return *(unsigned int *)0x46e3f4;
+}
+
 /* Returns the address of the thread-local random seed.
  * Used by callers that need a local (non-global) RNG state
  * to avoid contention with the global seed. */
@@ -702,6 +712,36 @@ void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out)
   }
 }
 
+/* Quaternion multiply: out = q1 * q2. Handles aliasing: if q1 or q2
+ * overlaps out, a local copy is made before computing. All arrays are
+ * 4-element [x, y, z, w] (index 3 = w).
+ *
+ * 0x10b9c0 / random_math.obj
+ */
+void FUN_0010b9c0(float *q1, float *q2, float *out)
+{
+  float buf[4];
+
+  if (q1 == out) {
+    buf[0] = q1[0];
+    buf[1] = q1[1];
+    buf[3] = q1[3];
+    buf[2] = q1[2];
+    q1 = buf;
+  }
+  if (q2 == out) {
+    buf[0] = q2[0];
+    buf[1] = q2[1];
+    buf[2] = q2[2];
+    buf[3] = q2[3];
+    q2 = buf;
+  }
+  out[0] = (q1[3] * q2[0] + q2[2] * q1[1] + q2[3] * q1[0]) - q2[1] * q1[2];
+  out[1] = (q1[3] * q2[1] + q2[3] * q1[1] + q1[2] * q2[0]) - q1[0] * q2[2];
+  out[2] = (q1[3] * q2[2] + q2[1] * q1[0] + q2[3] * q1[2]) - q2[0] * q1[1];
+  out[3] = ((q2[3] * q1[3] - q1[0] * q2[0]) - q2[1] * q1[1]) - q1[2] * q2[2];
+}
+
 /* Quaternion LERP: blend q1 toward q2 by t, writing result to out.
  * fVar1 = 1.0f - t. If dot(q1,q2) < 0, t is negated (shortest arc).
  * out[i] = t*q2[i] + (1-t)*q1[i] for i in {0,1,2,3}.
@@ -741,6 +781,41 @@ float *FUN_0010c290(float *v)
     return v;
   }
   return v;
+}
+
+/* Normalize a 3-element float vector in-place.
+ * Returns the input pointer. If zero-length, vector is left unchanged.
+ *
+ * 0x10c2e0 / random_math.obj
+ */
+float *FUN_0010c2e0(float *v)
+{
+  float len_sq;
+  float inv_len;
+  len_sq = v[2] * v[2] + v[1] * v[1] + v[0] * v[0];
+  if (len_sq != 0.0f) {
+    inv_len = 1.0f / sqrtf(len_sq);
+    v[0] = inv_len * v[0];
+    v[1] = inv_len * v[1];
+    v[2] = inv_len * v[2];
+  }
+  return v;
+}
+
+/* Returns the magnitude of the cross product of two 3-element vectors.
+ * |cross(v1,v2)| = |(v1 x v2)|.
+ *
+ * 0x10c340 / random_math.obj
+ */
+float FUN_0010c340(float *v1, float *v2)
+{
+  float cx;
+  float cy;
+  float cz;
+  cx = v2[2] * v1[1] - v1[2] * v2[1];
+  cy = v1[2] * v2[0] - v2[2] * v1[0];
+  cz = v1[0] * v2[1] - v2[0] * v1[1];
+  return sqrtf(cy * cy + cx * cx + cz * cz);
 }
 
 /* Compute the angle (radians) between two 3D vectors v1 and v2.
@@ -802,6 +877,21 @@ float FUN_0010c510(float *v1, float *v2)
   return half_angle;
 }
 
+/* Linear interpolation of two 3D vectors, then normalize result into out.
+ * Computes out[i] = t*v2[i] + (1-t)*v1[i], then normalizes out in-place.
+ *
+ * 0x10c780 / random_math.obj
+ */
+void FUN_0010c780(float *v1, float *v2, float t, float *out)
+{
+  float s;
+  s = 1.0f - t;
+  out[0] = t * v2[0] + s * v1[0];
+  out[1] = t * v2[1] + s * v1[1];
+  out[2] = t * v2[2] + s * v1[2];
+  FUN_0010c2e0(out);
+}
+
 /* Reflect vector v about surface normal n into out.
  *
  * Computes: out = v - 2*dot(v,n)*n
@@ -820,4 +910,38 @@ void FUN_0010c8e0(float *v, float *n, float *out)
   out[0] = v[0] - dot2 * n[0];
   out[1] = v[1] - dot2 * n[1];
   out[2] = v[2] - dot2 * n[2];
+}
+
+/* Spherical rotation: rotate v1 toward v2 by angle t (radians), writing
+ * normalized result into out. Uses the cross product axis and dot product
+ * to blend v2 against v1, then rescales to preserve the original magnitude.
+ *
+ * 0x10c920 / random_math.obj
+ */
+void FUN_0010c920(float *v1, float *v2, float t, float *out)
+{
+  float fVar1;
+  float fVar2;
+  float fVar3;
+  float fVar4;
+  float fVar5;
+
+  fVar1 = sqrtf(v1[2] * v1[2] + v1[1] * v1[1] + v1[0] * v1[0]);
+  fVar2 = 1.0f / fVar1;
+  fVar4 = v2[2] * v1[1] - v2[1] * v1[2];
+  fVar5 = v2[0] * v1[2] - v2[2] * v1[0];
+  fVar3 = v2[1] * v1[0] - v2[0] * v1[1];
+  fVar3 = sqrtf(fVar5 * fVar5 + fVar4 * fVar4 + fVar3 * fVar3) * fVar2;
+  t = t * fVar3;
+  t = ((v1[0] * v2[0] + v2[1] * v1[1] + v2[2] * v1[2]) * fVar2 * t +
+       sqrtf(1.0f - t * t) * fVar3) /
+      t;
+  out[0] = t * v2[0] + v1[0];
+  out[1] = t * v2[1] + v1[1];
+  fVar2 = t * v2[2] + v1[2];
+  out[2] = fVar2;
+  fVar1 = fVar1 / sqrtf(fVar2 * fVar2 + out[1] * out[1] + out[0] * out[0]);
+  out[0] = fVar1 * out[0];
+  out[1] = fVar1 * out[1];
+  out[2] = fVar1 * out[2];
 }
