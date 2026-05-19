@@ -17310,8 +17310,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010af70(void);",
-          "addr": "0x10af70"
+          "decl": "char FUN_0010af70(short param_1, int param_2, short *param_3);",
+          "addr": "0x10af70",
+          "ported": true
         },
         {
           "decl": "void get_random_seed(void);",
