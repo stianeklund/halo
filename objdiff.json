@@ -1717,6 +1717,22 @@
       "metadata": {
         "source_path": "src/halo/memory/data.c"
       }
+    },
+    {
+      "name": "halo/data_encoding_FUN_119ef0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/data.c.obj",
+      "base_path": "delinked/data_encoding_FUN_119ef0.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/data.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00139990",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00139990.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }

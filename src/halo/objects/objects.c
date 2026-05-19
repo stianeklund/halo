@@ -546,6 +546,26 @@ void FUN_001398d0(int *param_1)
   cluster_partition_iter_next((void *)0x5a90b0, param_1);
 }
 
+/* Check if the lights marker global has changed; update it and return 1 if so.
+ * 0x139990 / objects.obj
+ */
+int FUN_00139990(int param_1)
+{
+  int iVar1;
+
+  iVar1 = (int)datum_get(*(data_t **)0x5a90bc, param_1);
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x67f, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(iVar1 + 0xc) != *(int *)0x5a8d64) {
+    *(int *)(iVar1 + 0xc) = *(int *)0x5a8d64;
+    return 1;
+  }
+  return 0;
+}
+
 /*
  * object_move_to_limbo — compute a point light's world-space position,
  * direction, and range from its parent object, then add it to the cluster

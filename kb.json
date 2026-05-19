@@ -13660,8 +13660,9 @@
           "addr": "0x139930"
         },
         {
-          "decl": "void FUN_00139990(void);",
-          "addr": "0x139990"
+          "decl": "int FUN_00139990(int param_1);",
+          "addr": "0x139990",
+          "ported": true
         },
         {
           "decl": "void FUN_00139a30(void);",
