@@ -381,6 +381,12 @@ async def main() -> None:
     _ghidra_up = _ghidra_ping()
     _log(f"Ghidra initial state: {'up' if _ghidra_up else 'down'}")
 
+    if _ghidra_up:
+        try:
+            _ensure_loaded()
+        except Exception as exc:
+            _log(f"Schema pre-load failed (will retry on first request): {exc}")
+
     asyncio.ensure_future(_health_loop())
 
     _log(f"SSE server listening on http://{host}:{port}/sse")
