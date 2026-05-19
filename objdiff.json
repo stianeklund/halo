@@ -1877,6 +1877,94 @@
       "metadata": {
         "source_path": "src/halo/math/random_math.c"
       }
+    },
+    {
+      "name": "halo/effects_real_local_random",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9ce80.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_FUN_9c910",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9c910.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_reconnect_9cf40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9cf40.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/contrails_reconnect_97980",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+      "base_path": "delinked/contrails_97980.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
+      }
+    },
+    {
+      "name": "halo/player_rumble_b9b80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_rumble.c.obj",
+      "base_path": "delinked/player_rumble_b9b80.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_rumble.c"
+      }
+    },
+    {
+      "name": "halo/player_rumble_impulse",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_rumble.c.obj",
+      "base_path": "delinked/player_rumble_b9bc0.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_rumble.c"
+      }
+    },
+    {
+      "name": "halo/effects_9ceb0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9ceb0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_9f3b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9f3b0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_9c9a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9c9a0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/random_math_10b3c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_10b3c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/contrails_97ae0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+      "base_path": "delinked/contrails_97ae0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
+      }
     }
   ]
 }

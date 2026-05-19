@@ -4944,7 +4944,8 @@
         },
         {
           "decl": "void FUN_00097ae0(void);",
-          "addr": "0x97ae0"
+          "addr": "0x97ae0",
+          "ported": null
         },
         {
           "decl": "void local_random_vector_in_cone3d(float *forward, float zero, float angle, float *result);",
@@ -6409,7 +6410,8 @@
         },
         {
           "decl": "void FUN_0009c9a0(void);",
-          "addr": "0x9c9a0"
+          "addr": "0x9c9a0",
+          "ported": null
         },
         {
           "decl": "void FUN_0009c9f0(void);",
@@ -6438,7 +6440,8 @@
         },
         {
           "decl": "bool FUN_0009f3b0(void *data);",
-          "addr": "0x9f3b0"
+          "addr": "0x9f3b0",
+          "ported": null
         },
         {
           "decl": "void FUN_0009f430(int arg1, int arg2, int arg3, void *arg4, void *arg5, void *arg6, int arg7);",
@@ -17373,7 +17376,8 @@
         },
         {
           "decl": "void seed_random_orientation(void);",
-          "addr": "0x10b3c0"
+          "addr": "0x10b3c0",
+          "ported": null
         },
         {
           "decl": "void FUN_0010b9c0(float *q1, float *q2, float *out);",
@@ -17404,8 +17408,9 @@
           "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010c390(void);",
-          "addr": "0x10c390"
+          "decl": "float FUN_0010c390(float param_1, float param_2, uint8_t param_3);",
+          "addr": "0x10c390",
+          "ported": null
         },
         {
           "decl": "void FUN_0010c3c0(void);",
