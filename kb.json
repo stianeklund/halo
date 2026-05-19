@@ -17305,8 +17305,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010ae80(void);",
-          "addr": "0x10ae80"
+          "decl": "char FUN_0010ae80(short param_1, unsigned int param_2, unsigned int *param_3);",
+          "addr": "0x10ae80",
+          "ported": true
         },
         {
           "decl": "void FUN_0010af70(void);",

@@ -263,6 +263,62 @@ int FUN_0010ae30(int param_1, int param_2)
   return iVar1;
 }
 
+/* next_combination — advance a k-combination of [0,base) to the next in
+ * lexicographic order. param_3 is an array of param_2 short indices.
+ * If any index is out of range, the array is zeroed.
+ * Returns 1 on success, 0 if the last combination was already reached.
+ * 0x10ae80 / random_math.obj (probability.c)
+ */
+char FUN_0010ae80(short param_1, unsigned int param_2, unsigned int *param_3)
+{
+  short *psVar1;
+  short sVar2;
+  unsigned int uVar3;
+  int iVar4;
+  short sVar5;
+  short sVar6;
+  short *fill_p;
+  unsigned short fill_n;
+
+  assert_halt(param_1 > 0);
+  sVar6 = (short)param_2;
+  assert_halt(sVar6 > 0);
+  assert_halt((int)param_3);
+  sVar5 = 0;
+  if (0 < sVar6) {
+    do {
+      sVar2 = *(short *)((int)param_3 + (int)sVar5 * 2);
+      if ((sVar2 < 0) || (param_1 <= sVar2))
+        goto LAB_0010af53;
+      sVar5 = sVar5 + 1;
+    } while (sVar5 < sVar6);
+  }
+  uVar3 = param_2 - 1;
+  if (-1 < (short)uVar3) {
+    do {
+      if ((int)*(short *)((int)param_3 + (short)uVar3 * 2) < (int)param_1 - 1) {
+        psVar1 = (short *)((int)param_3 + (short)uVar3 * 2);
+        *psVar1 = *psVar1 + 1;
+        iVar4 = uVar3 + 1;
+        if ((short)iVar4 < sVar6) {
+          param_3 = (unsigned int *)((int)param_3 + (short)iVar4 * 2);
+          param_2 = param_2 - iVar4;
+        LAB_0010af53:
+          fill_p = (short *)param_3;
+          fill_n = (unsigned short)param_2;
+          while (fill_n != 0) {
+            *fill_p++ = 0;
+            fill_n--;
+          }
+        }
+        return 1;
+      }
+      uVar3 = uVar3 - 1;
+    } while (-1 < (short)uVar3);
+  }
+  return 0;
+}
+
 void lock_global_random_seed(void)
 {
   *(int *)0x46e3f0 = *(int *)0x46e3f0 + 1;
