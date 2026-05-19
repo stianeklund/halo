@@ -11544,16 +11544,20 @@
           "addr": "0xce500"
         },
         {
-          "decl": "void FUN_000ce530(void);",
+          "decl": "void FUN_000ce530(void *state);",
           "addr": "0xce530"
         },
         {
-          "decl": "void FUN_000ce590(void);",
-          "addr": "0xce590"
+          "decl": "void input_recording_write_packet(void *state);",
+          "addr": "0xce590",
+          "name": "input_recording_write_packet",
+          "ported": true
         },
         {
-          "decl": "void FUN_000ce620(void);",
-          "addr": "0xce620"
+          "decl": "void input_state_process_packet(void *state);",
+          "addr": "0xce620",
+          "name": "input_state_process_packet",
+          "ported": true
         },
         {
           "decl": "void input_dispose(void);",
@@ -26970,12 +26974,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0011d4a0(void);",
-          "addr": "0x11d4a0"
+          "decl": "void lruv_cache_set_callbacks(void *cache, void (*delete_cb)(int), int (*query_cb)(int));",
+          "addr": "0x11d4a0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0011d4f0(void);",
-          "addr": "0x11d4f0"
+          "decl": "bool lruv_cache_has_query_cb(void *cache);",
+          "addr": "0x11d4f0",
+          "ported": true
         },
         {
           "decl": "void lruv_cache_verify(void *cache, char do_full_check);",
@@ -27406,8 +27412,9 @@
           "addr": "0x1d13c9"
         },
         {
-          "decl": "void FUN_001d14b6(void);",
-          "addr": "0x1d14b6"
+          "decl": "int __stdcall WriteFile(int handle, void *buffer, uint32_t size, uint32_t *bytes_written, void *overlapped);",
+          "addr": "0x1d14b6",
+          "name": "WriteFile"
         },
         {
           "decl": "void FUN_001d158c(void);",

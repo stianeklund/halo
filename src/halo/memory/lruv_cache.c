@@ -1,11 +1,3 @@
-/* 0x11d480: Compute the total allocation size needed for an lruv_cache
- * with the given maximum block count. Returns sizeof(lruv_cache_t) + data
- * allocation for the block datums. */
-int lruv_cache_allocation_size(int maximum_block_count)
-{
-  return data_allocation_size(maximum_block_count, 0x1c) + 0x44;
-}
-
 /* LRU-V (Least Recently Used - Virtual) cache management.
  * Manages a block-based cache with linked list ordering, delete/query
  * callbacks, and page-granularity allocation tracking. Source:
@@ -39,6 +31,37 @@ typedef struct {
   int previous_block_index; ///< offset=0x10  datum handle of previous block
   char unk_14[8]; ///< offset=0x14
 } lruv_cache_block_t;
+
+/* 0x11d480: Compute the total allocation size needed for an lruv_cache
+ * with the given maximum block count. Returns sizeof(lruv_cache_t) + data
+ * allocation for the block datums. */
+int lruv_cache_allocation_size(int maximum_block_count)
+{
+  return data_allocation_size(maximum_block_count, 0x1c) + 0x44;
+}
+
+/* 0x11d4a0: Set the delete and query callbacks on an lruv_cache.
+ * param_1 must be non-NULL (asserted). Writes delete_cb to offset 0x20
+ * and query_cb to offset 0x24 of the cache header. */
+void lruv_cache_set_callbacks(void *cache, void (*delete_cb)(int),
+                              int (*query_cb)(int))
+{
+  lruv_cache_t *c;
+  assert_halt(cache);
+  c = (lruv_cache_t *)cache;
+  c->delete_cb = delete_cb;
+  c->query_cb = query_cb;
+}
+
+/* 0x11d4f0: Return non-zero if the cache has a query callback set.
+ * param_1 must be non-NULL (asserted). Returns bool: query_cb != NULL. */
+bool lruv_cache_has_query_cb(void *cache)
+{
+  lruv_cache_t *c;
+  assert_halt(cache);
+  c = (lruv_cache_t *)cache;
+  return c->query_cb != 0;
+}
 
 /* 0x11d550: Verify the integrity of an lruv_cache.
  * Checks the signature, validates the data_t, and optionally walks

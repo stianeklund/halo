@@ -390,6 +390,18 @@ void input_check_state_mode(void)
   }
 }
 
+/* input_recording_write_packet (0xce590)
+ * Write one input_gamepad_state packet (0x28 bytes) to the input state
+ * recording file.  Called unconditionally — the caller is responsible for
+ * checking the recording mode before invoking this. */
+void input_recording_write_packet(void *state)
+{
+  uint32_t bytes_written;
+  bytes_written = 0;
+  WriteFile(*input_state_file_handle(), state, sizeof(input_gamepad_state),
+            &bytes_written, NULL);
+}
+
 /* input_open_state_file (0xce5c0)
  * Check for sentinel files to select input state recording/playback mode,
  * then open d:\state.data with the appropriate access flags. */
@@ -405,6 +417,32 @@ void input_open_state_file(void)
   if (*input_state_mode() == 4 || *input_state_mode() == 5) {
     *input_state_file_handle() =
       CreateFileA("d:\\state.data", 0x80000000, 0, 0, 3, 0x8000000, 0);
+  }
+}
+
+/* input_state_process_packet (0xce620)
+ * Dispatch one input_gamepad_state packet according to the current input
+ * state mode:
+ *   mode 3 (record)  — write packet to the state file
+ *   mode 4 (playback)— read  packet from the state file
+ *   mode 5 (loop)    — delegate to FUN_000ce530 for loop-playback handling */
+void input_state_process_packet(void *state)
+{
+  uint32_t bytes_transferred;
+  switch (*input_state_mode()) {
+  case 3:
+    bytes_transferred = 0;
+    WriteFile(*input_state_file_handle(), state, sizeof(input_gamepad_state),
+              &bytes_transferred, NULL);
+    break;
+  case 4:
+    bytes_transferred = 0;
+    ReadFile(*input_state_file_handle(), state, sizeof(input_gamepad_state),
+             &bytes_transferred, NULL);
+    break;
+  case 5:
+    FUN_000ce530(state);
+    break;
   }
 }
 
@@ -815,7 +853,7 @@ void input_update(void)
   }
   input_update_keyboard_devices();
   for (i = 0; i < MAXIMUM_GAMEPADS; i++)
-    ((void (*)(void *))0xce620)(&input_gamepad_states()[i]);
+    input_state_process_packet(&input_gamepad_states()[i]);
 }
 
 void input_frame_begin(void)

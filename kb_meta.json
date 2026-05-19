@@ -3504,7 +3504,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xce590": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xce5c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce620": {
       "kind": "function",
       "status": "ported"
     },
@@ -5107,6 +5115,14 @@
       "status": "ported"
     },
     "0x11d480": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11d4a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11d4f0": {
       "kind": "function",
       "status": "ported"
     },
