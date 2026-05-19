@@ -314,33 +314,33 @@ int data_next_index(data_t *data, int prev_index)
  */
 unsigned int data_prev_index(data_t *data, int datum)
 {
-    short *psVar1;
-    short sVar2;
-    unsigned int uVar3;
+  short *psVar1;
+  short sVar2;
+  unsigned int uVar3;
 
-    data_verify(data);
-    if (!data->valid) {
-        display_assert("data->valid", "c:\\halo\\SOURCE\\memory\\data.c", 0x14f, 1);
-        system_exit(-1);
-    }
-    if (datum == -1) {
-        uVar3 = (unsigned int)(unsigned short)(data->current_count - 1);
-    } else {
-        uVar3 = datum - 1;
-    }
-    sVar2 = (short)uVar3;
-    if (sVar2 >= 0 && sVar2 < data->current_count) {
-        psVar1 = (short *)((int)sVar2 * data->size + (int)data->data);
-        do {
-            sVar2 = (short)uVar3;
-            if (*psVar1 != 0) {
-                return (int)*psVar1 << 16 | (int)sVar2;
-            }
-            psVar1 = (short *)((int)psVar1 - data->size);
-            uVar3--;
-        } while (sVar2 >= 0);
-    }
-    return -1;
+  data_verify(data);
+  if (!data->valid) {
+    display_assert("data->valid", "c:\\halo\\SOURCE\\memory\\data.c", 0x14f, 1);
+    system_exit(-1);
+  }
+  if (datum == -1) {
+    uVar3 = (unsigned int)(unsigned short)(data->current_count - 1);
+  } else {
+    uVar3 = datum - 1;
+  }
+  sVar2 = (short)uVar3;
+  if (sVar2 >= 0 && sVar2 < data->current_count) {
+    psVar1 = (short *)((int)sVar2 * data->size + (int)data->data);
+    do {
+      sVar2 = (short)uVar3;
+      if (*psVar1 != 0) {
+        return (int)*psVar1 << 16 | (int)sVar2;
+      }
+      psVar1 = (short *)((int)psVar1 - data->size);
+      uVar3--;
+    } while (sVar2 >= 0);
+  }
+  return -1;
 }
 
 /* Compact the data array: removes gaps by copying all live elements
@@ -349,43 +349,72 @@ unsigned int data_prev_index(data_t *data, int datum)
  */
 void data_compact(data_t *data)
 {
-    short sVar1;
-    int iVar2;
-    short sVar3;
-    short *psVar4;
-    int iVar5;
+  short sVar1;
+  int iVar2;
+  short sVar3;
+  short *psVar4;
+  int iVar5;
 
-    sVar3 = 0;
-    iVar2 = (int)debug_malloc((int)data->size * (int)data->maximum_count, 0,
-                               "c:\\halo\\SOURCE\\memory\\data.c", 0x1a5);
-    data_verify(data);
-    if (!data->valid) {
-        display_assert("data->valid", "c:\\halo\\SOURCE\\memory\\data.c", 0x1a8, 1);
-        system_exit(-1);
-    }
-    if (iVar2 != 0) {
-        psVar4 = data->data;
-        sVar1 = 0;
-        if (0 < data->current_count) {
-            do {
-                if (*psVar4 != 0) {
-                    csmemcpy((void *)(iVar2 + (int)sVar3 * (int)data->size), psVar4,
-                             (int)data->size);
-                    sVar3 = sVar3 + 1;
-                }
-                sVar1 = sVar1 + 1;
-                psVar4 = (short *)((int)psVar4 + data->size);
-            } while (sVar1 < data->current_count);
+  sVar3 = 0;
+  iVar2 = (int)debug_malloc((int)data->size * (int)data->maximum_count, 0,
+                            "c:\\halo\\SOURCE\\memory\\data.c", 0x1a5);
+  data_verify(data);
+  if (!data->valid) {
+    display_assert("data->valid", "c:\\halo\\SOURCE\\memory\\data.c", 0x1a8, 1);
+    system_exit(-1);
+  }
+  if (iVar2 != 0) {
+    psVar4 = data->data;
+    sVar1 = 0;
+    if (0 < data->current_count) {
+      do {
+        if (*psVar4 != 0) {
+          csmemcpy((void *)(iVar2 + (int)sVar3 * (int)data->size), psVar4,
+                   (int)data->size);
+          sVar3 = sVar3 + 1;
         }
-        iVar5 = (int)sVar3;
-        csmemcpy(data->data, (void *)iVar2, (int)data->size * iVar5);
-        csmemset((void *)(iVar5 * (int)data->size + (int)data->data), 0,
-                 (int)(data->maximum_count - iVar5) * (int)data->size);
-        data->unk_48 = sVar3;
-        data->current_count = sVar3;
-        *(int16_t *)data->unk_44 = sVar3;
-        debug_free((void *)iVar2, "c:\\halo\\SOURCE\\memory\\data.c", 0x1bf);
+        sVar1 = sVar1 + 1;
+        psVar4 = (short *)((int)psVar4 + data->size);
+      } while (sVar1 < data->current_count);
     }
+    iVar5 = (int)sVar3;
+    csmemcpy(data->data, (void *)iVar2, (int)data->size * iVar5);
+    csmemset((void *)(iVar5 * (int)data->size + (int)data->data), 0,
+             (int)(data->maximum_count - iVar5) * (int)data->size);
+    data->unk_48 = sVar3;
+    data->current_count = sVar3;
+    *(int16_t *)data->unk_44 = sVar3;
+    debug_free((void *)iVar2, "c:\\halo\\SOURCE\\memory\\data.c", 0x1bf);
+  }
+}
+
+void data_delete_all(data_t *data)
+{
+  data_verify(data);
+  data->valid = 1;
+  data_make_valid(data);
+}
+
+/* Deserialize a 4-byte big-endian value and delegate to FUN_00110b40.
+ * Returns 1 on success, 0 if insufficient data (param_5 <= 3).
+ * 0x119b40 / data.obj
+ */
+int FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4,
+                 unsigned int p5)
+{
+  int iVar1;
+
+  if (3 < p5) {
+    *p3 = (((p2 & 0xff0000) | p2 >> 0x10) >> 8) |
+          (((p2 & 0xff00) | p2 << 0x10) << 8);
+    *p4 = p5 - 4;
+    iVar1 = FUN_00110b40(p3 + 1, p4, p1, p2, 9);
+    if (iVar1 == 0) {
+      *p4 = *p4 + 4;
+      return 1;
+    }
+  }
+  return 0;
 }
 
 /* Decode first 4 bytes of buf as a big-endian uint32, if size >= 4.
@@ -393,15 +422,15 @@ void data_compact(data_t *data)
  */
 unsigned int FUN_00119bb0(unsigned int *buf, unsigned int size)
 {
-    unsigned int uVar1;
+  unsigned int uVar1;
 
-    uVar1 = 0;
-    if (3 < size) {
-        uVar1 = *buf;
-        uVar1 = ((uVar1 & 0xff0000) | uVar1 >> 0x10) >> 8 |
-                ((uVar1 << 0x10) | (uVar1 & 0xff00)) << 8;
-    }
-    return uVar1;
+  uVar1 = 0;
+  if (3 < size) {
+    uVar1 = *buf;
+    uVar1 = ((uVar1 & 0xff0000) | uVar1 >> 0x10) >> 8 |
+            ((uVar1 << 0x10) | (uVar1 & 0xff00)) << 8;
+  }
+  return uVar1;
 }
 
 /* Initialize a data encoding state struct with buffer and size.
@@ -410,45 +439,68 @@ unsigned int FUN_00119bb0(unsigned int *buf, unsigned int size)
  */
 void FUN_00119c50(int *state, int buf, int buf_size)
 {
-    if (buf == 0) {
-        display_assert("buffer", "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x19, 1);
-        system_exit(-1);
-    }
-    if (buf_size < 0) {
-        display_assert("buffer_size>=0", "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x1a, 1);
-        system_exit(-1);
-    }
-    csmemset(state, 0, 0x10);
-    *state = buf;
-    state[2] = buf_size;
+  if (buf == 0) {
+    display_assert("buffer", "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x19,
+                   1);
+    system_exit(-1);
+  }
+  if (buf_size < 0) {
+    display_assert("buffer_size>=0",
+                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x1a, 1);
+    system_exit(-1);
+  }
+  csmemset(state, 0, 0x10);
+  *state = buf;
+  state[2] = buf_size;
 }
 
-
-/* Deserialize a 4-byte big-endian value and delegate to FUN_00110b40.
- * Returns 1 on success, 0 if insufficient data (param_5 <= 3).
- * 0x119b40 / data.obj
+/* Write count elements of element_size bytes from src into the encoding state
+ * buffer. Handles byte-swap for multi-byte elements. 0x119cc0 / data.obj
  */
-int FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4, unsigned int p5)
+int FUN_00119cc0(int *param_1, int param_2, short param_3, int param_4)
 {
-    int iVar1;
+  int iVar1;
+  int iVar2;
 
-    if (3 < p5) {
-        *p3 = (((p2 & 0xff0000) | p2 >> 0x10) >> 8) |
-              (((p2 & 0xff00) | p2 << 0x10) << 8);
-        *p4 = p5 - 4;
-        iVar1 = FUN_00110b40(p3 + 1, p4, p1, p2, 9);
-        if (iVar1 == 0) {
-            *p4 = *p4 + 4;
-            return 1;
-        }
+  if (param_1 == (int *)0 || *param_1 == 0 || param_1[1] < 0 ||
+      param_1[2] <= param_1[1]) {
+    display_assert("state && state->buffer && state->offset>=0 && "
+                   "state->offset<state->buffer_size",
+                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x2b, 1);
+    system_exit(-1);
+  }
+  switch (param_4) {
+  case 1:
+    iVar1 = (int)param_3;
+    break;
+  case -8:
+    iVar1 = (int)param_3 << 3;
+    break;
+  case -4:
+    iVar1 = (int)param_3 << 2;
+    break;
+  case -2:
+    iVar1 = (int)param_3 << 1;
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x33, 1);
+    system_exit(-1);
+    iVar1 = param_4;
+    break;
+  }
+  if (param_1[1] + iVar1 <= param_1[2] && (char)param_1[3] == '\0') {
+    iVar2 = *param_1 + param_1[1];
+    if (param_2 == 0) {
+      csmemset((void *)iVar2, 0, iVar1);
+    } else {
+      csmemcpy((void *)iVar2, (void *)param_2, iVar1);
     }
-    return 0;
-}
-
-
-void data_delete_all(data_t *data)
-{
-  data_verify(data);
-  data->valid = 1;
-  data_make_valid(data);
+    if (param_4 != 1) {
+      FUN_00118620((void *)iVar2, (int)param_3, param_4);
+    }
+    param_1[1] = param_1[1] + iVar1;
+    return (char)param_1[3] == '\0';
+  }
+  *(char *)(param_1 + 3) = 1;
+  return (char)param_1[3] == '\0';
 }

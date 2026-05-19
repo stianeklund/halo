@@ -312,6 +312,59 @@ int FUN_0014c8e0(int *out, int object_handle)
     return 0;
 }
 
+/* Iterates collision elements; calls render_debug_collision_bsp for those with valid BSP data.
+ * 0x14cf20 / collision_usage.obj
+ */
+void FUN_0014cf20(int param_1)
+{
+    unsigned char bVar1;
+    int iVar2;
+    int iVar3;
+    int iVar4;
+    short sVar5;
+    int iVar6;
+
+    iVar2 = *(int *)(param_1 + 4);
+    sVar5 = 0;
+    if (0 < *(int *)(iVar2 + 0x28c)) {
+        iVar6 = 0;
+        do {
+            iVar2 = (int)tag_block_get_element((void *)(iVar2 + 0x28c), iVar6, 0x40);
+            if ((*(short *)(iVar2 + 0x20) != -1) &&
+                (bVar1 = *(unsigned char *)(*(int *)(param_1 + 8) + (int)*(short *)(iVar2 + 0x20)),
+                 bVar1 != 0xff)) {
+                iVar3 = *(int *)(iVar2 + 0x34);
+                if (0 < iVar3) {
+                    iVar4 = (int)(short)(unsigned short)bVar1;
+                    iVar3 = iVar3 - 1;
+                    if (iVar4 <= iVar3) {
+                        iVar3 = iVar4;
+                    }
+                    iVar2 = (int)tag_block_get_element((void *)(iVar2 + 0x34), (int)(short)iVar3, 0x60);
+                    if (((0 < *(int *)(iVar2 + 0x3c)) && (0 < *(int *)(iVar2 + 0x48))) &&
+                        (0 < *(int *)(iVar2 + 0x54))) {
+                        render_debug_collision_bsp(iVar2, iVar6 * 0x34 + *(int *)(param_1 + 0xc));
+                    }
+                }
+            }
+            iVar2 = *(int *)(param_1 + 4);
+            sVar5 = sVar5 + 1;
+            iVar6 = (int)sVar5;
+        } while (iVar6 < *(int *)(iVar2 + 0x28c));
+    }
+}
+
+/* Comparator: returns -1/0/1 based on *(int *)(a+8) vs *(int *)(b+8).
+ * 0x14cfe0 / collision_usage.obj
+ */
+int FUN_0014cfe0(int param_1, int param_2)
+{
+    if (*(int *)(param_2 + 8) < *(int *)(param_1 + 8)) {
+        return -1;
+    }
+    return *(int *)(param_1 + 8) < *(int *)(param_2 + 8);
+}
+
 void collision_log_initialize(void)
 {
   csmemset((void *)0x5a5e40, 0, 0x2298);
