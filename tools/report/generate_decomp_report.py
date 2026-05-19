@@ -36,6 +36,10 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     """Compute per-unit statistics in decomp.dev format."""
     
     units = []
+    drift = {
+        'kb_ported_missing_meta': 0,
+        'meta_ported_missing_kb': 0,
+    }
     functions_data = function_cache.get('functions', {})
     
     # Group functions by object file
@@ -72,7 +76,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             # Get status from kb_meta
             meta = store.symbols.get(f'{addr:#x}')
             status = meta.status if meta else 'unknown'
-            is_ported = status in ('ported', 'verified')
+            is_ported = bool(func_info['symbol'].ported)
+            meta_is_ported = status in ('ported', 'verified')
+            if is_ported and not meta_is_ported:
+                drift['kb_ported_missing_meta'] += 1
+            elif meta_is_ported and not is_ported:
+                drift['meta_ported_missing_kb'] += 1
             
             func_entry = {
                 'address': addr_hex,
@@ -111,7 +120,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     
     # Sort by ported percentage (most complete first)
     units.sort(key=lambda x: x['summary']['percent'], reverse=True)
-    return units
+    return units, drift
 
 
 def generate_report(output_path: str, with_functions: bool = False) -> dict:
@@ -129,7 +138,7 @@ def generate_report(output_path: str, with_functions: bool = False) -> dict:
     function_cache = load_function_sizes(cache_path)
     
     # Compute unit stats
-    units = compute_unit_stats(kb, store, function_cache)
+    units, drift = compute_unit_stats(kb, store, function_cache)
     
     # Compute overall stats
     total_funcs = sum(u['summary']['total'] for u in units)
@@ -178,6 +187,11 @@ def generate_report(output_path: str, with_functions: bool = False) -> dict:
             'commit': commit,
             'branch': branch,
             'tool_version': '1.0.0'
+        },
+        'consistency': {
+            'ported_source_of_truth': 'kb.json',
+            'kb_ported_missing_meta': drift['kb_ported_missing_meta'],
+            'meta_ported_missing_kb': drift['meta_ported_missing_kb']
         }
     }
     
