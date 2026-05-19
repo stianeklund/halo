@@ -78,6 +78,24 @@ bool FUN_00124d40(void *connection, void *message, unsigned short size,
                                   reliable);
 }
 
+/* network_client_switch_to_postgame (0x125610)
+ *
+ * Asserts client is non-null, then switches the game engine to the postgame
+ * state, sets the client state field (offset 0xca6) to 4 (postgame), and
+ * logs "switching to postgame". */
+void network_client_switch_to_postgame(void *client)
+{
+  if (client == NULL) {
+    display_assert("client",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x48c, 1);
+    system_exit(-1);
+  }
+  game_engine_switch_to_postgame();
+  *(int16_t *)((char *)client + 0xca6) = 4;
+  network_game_log("switching to postgame");
+}
+
 /* 0x125710 — Asserts client is non-null and returns the connection handle
  * (int) stored at offset 0x82c in the client structure. The returned handle
  * is used by the caller (network_game_client_end_frame) as the first argument

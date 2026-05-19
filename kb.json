@@ -12697,8 +12697,10 @@
           "addr": "0x125510"
         },
         {
-          "decl": "void FUN_00125610(void);",
-          "addr": "0x125610"
+          "name": "network_client_switch_to_postgame",
+          "decl": "void network_client_switch_to_postgame(void *client);",
+          "addr": "0x125610",
+          "ported": true
         },
         {
           "decl": "void network_game_client_switch_to_pregame(void);",
