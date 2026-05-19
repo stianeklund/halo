@@ -885,12 +885,6 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
   if (trigger_index < 0)
     return false;
 
-  /* param_7 is the target position (float *). When NULL fall back to param_4
-   * (the pre-fix behavior) — callers that set target=0 typically have a valid
-   * param_4; returning false here broke initialization call sites. */
-  if (param_7 == 0)
-    param_7 = (int)param_4;
-
   int trigger_count = *(int *)(weap_tag + 0x4fc);
   int trig_idx = (int)trigger_index;
   if (trig_idx >= trigger_count)
@@ -904,18 +898,19 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
   int proj_ref = *(int *)(trigger_elem + 0xa0);
 
   /* tag_get + projectile_aim share a single stack cleanup.
-   * Binary push order at 0xfd49f (right-to-left, 14 total, 2 cleaned):
-   *   param_9, param_8, param_7, 0, param_6(aim_vec), param_5, 0,0,0,0,
-   *   param_7, param_3, proj_ref, 'proj'
-   * tag_get pops 'proj' + proj_ref → 12 stale args remain.
-   * → projectile_aim: arg2=param_3(origin), arg3=param_7(target),
-   *   arg9=param_6(aim_vector). param_7 repeats at arg3 and arg11.
-   * Bug: original code had param_4 here; correct arg is param_7. */
+   * Disassembly-verified push sequence at 0xfd46d–0xfd495 (14 pushes, right-to-left):
+   *   [P1] ECX=param_9, [P2] EDX=param_8, [P3] ECX=param_7, [P4] 0,
+   *   [P5] ESI=param_6, [P6] EDX=param_5, [P7-P10] 0,0,0,0,
+   *   [P11] ECX=param_4 (ECX reloaded via MOV ECX,[EBP+0x14] at 0xfd47c),
+   *   [P12] EDX=param_3, [P13] EAX=proj_ref, [P14] 'proj'
+   * tag_get (at 0xfd496) uses P14+'proj' and P13=proj_ref; ADD ESP,8 cleans them.
+   * PUSH EAX (proj_tag) at 0xfd49e, then CALL projectile_aim at 0xfd49f:
+   *   arg2=P12=param_3(origin), arg3=P11=param_4(target), arg8=P6=param_5,
+   *   arg9=P5=param_6(aim_vector), arg11=P3=param_7, arg12=P2=param_8,
+   *   arg13=P1=param_9. */
   void *proj_tag = tag_get(0x70726f6a, proj_ref);
   ((void (*)(void *, void *, void *, int, int, int, int, int, float *, int, int,
-             void *, void *))0xf84d0)(proj_tag, param_3,
-                                      (void *)param_7,
-                                      0, 0, 0, 0,
+             void *, void *))0xf84d0)(proj_tag, param_3, param_4, 0, 0, 0, 0,
                                       param_5, param_6, 0, param_7, param_8,
                                       param_9);
 
