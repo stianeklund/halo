@@ -4,7 +4,7 @@ import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
 import ghidra.app.services.Analyzer;
 import ghidra.app.util.Option;
 import ghidra.app.util.exporter.Exporter;
-import ghidra.framework.options.Options;
+import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.address.AddressSetView;
 import ghidra.program.model.listing.Program;
@@ -21,11 +21,6 @@ import java.util.Map;
 
 public class DelinkerService {
   private static final String RELOCATION_ANALYZER_NAME = "Relocation table synthesizer";
-  private static final String[] EVAL_REPORT_OPTION_CANDIDATES = {
-      "Reloc Synthesizer.Enable Evaluation Reports",
-      "Relocation table synthesizer.Enable Evaluation Reports",
-      "Relocation Table Synthesizer.Enable Evaluation Reports"
-  };
 
   private final ProgramPluginAccess access;
   private final ExportStatus lastStatus;
@@ -66,42 +61,27 @@ public class DelinkerService {
           "Relocation table synthesizer analyzer is not available");
     }
 
-    // Suppress evaluation report warnings that cause popup dialogs
-    // by disabling the analyzer's evaluation reports option
-    Options analysisOptions = program.getOptions(Program.ANALYSIS_PROPERTIES);
-    String evalReportOption = null;
-    boolean originalEvalSetting = true;
+    // Call analyzer.added() directly with a local MessageLog instead of going
+    // through scheduleOneTimeAnalysis, which routes messages to the shared
+    // AutoAnalysisManager log and triggers popup dialogs on warnings.
+    MessageLog localLog = new MessageLog();
+    int txId = program.startTransaction("Relocation Synthesizer");
+    boolean committed = false;
     try {
-      for (String candidate : EVAL_REPORT_OPTION_CANDIDATES) {
-        if (analysisOptions.contains(candidate)) {
-          evalReportOption = candidate;
-          originalEvalSetting = analysisOptions.getBoolean(candidate, true);
-          analysisOptions.setBoolean(candidate, false);
-          break;
-        }
-      }
-    } catch (Exception e) {
-      // Ignore - option may not exist in this Ghidra version
-    }
-
-    try {
-      autoAnalysisManager.scheduleOneTimeAnalysis(analyzer, set);
-      autoAnalysisManager.waitForAnalysis(null, TaskMonitor.DUMMY);
+      analyzer.added(program, set, TaskMonitor.DUMMY, localLog);
+      committed = true;
     } finally {
-      // Restore original setting
-      try {
-        if (evalReportOption != null && analysisOptions.contains(evalReportOption)) {
-          analysisOptions.setBoolean(evalReportOption, originalEvalSetting);
-        }
-      } catch (Exception e) {
-        // Ignore
-      }
+      program.endTransaction(txId, committed);
     }
 
     Map<String, Object> out = new LinkedHashMap<>();
     out.put("status", "ok");
     out.put("analyzer", RELOCATION_ANALYZER_NAME);
     out.put("target_ranges", SelectionUtils.toRangeList(set));
+    String warnings = localLog.toString().trim();
+    if (!warnings.isEmpty()) {
+      out.put("warnings", warnings);
+    }
     return out;
   }
 
