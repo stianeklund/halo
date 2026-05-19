@@ -77,11 +77,13 @@ void FUN_0010aa60(short type_index, void *buffer)
       break;
     case 9:
     case 10:
-      sample =
-        ((float)cos((double)(phase * *(float *)0x28c8ec)) * (float)cos((double)(phase * *(float *)0x28c8e8)) +
-         (float)cos((double)(phase * *(float *)0x28c8e4)) * (float)sin((double)(phase * *(float *)0x2568bc))) *
-          *(float *)0x253398 +
-        (float)sin((double)(phase * *(float *)0x256980)) * (float)cos((double)(phase * *(float *)0x255a54));
+      sample = ((float)cos((double)(phase * *(float *)0x28c8ec)) *
+                  (float)cos((double)(phase * *(float *)0x28c8e8)) +
+                (float)cos((double)(phase * *(float *)0x28c8e4)) *
+                  (float)sin((double)(phase * *(float *)0x2568bc))) *
+                 *(float *)0x253398 +
+               (float)sin((double)(phase * *(float *)0x256980)) *
+                 (float)cos((double)(phase * *(float *)0x255a54));
       break;
     case 11:
       p = (float)fmod((double)phase_var, *(double *)0x2573d8);
@@ -180,6 +182,85 @@ void periodic_functions_initialize(void)
       FUN_0010a930(i, buf);
     }
   }
+}
+
+/* Factorial: n! for n>=0; returns 1 for n<=1, 0 for n<0.
+ * 0x10add0 / random_math.obj (probability.c)
+ */
+int FUN_0010add0(short param_1)
+{
+  int iVar1;
+  int iVar2;
+  unsigned int uVar3;
+
+  iVar1 = 0;
+  if (param_1 >= 0) {
+    iVar1 = 1;
+    if (param_1 > 1) {
+      iVar2 = (int)param_1;
+      uVar3 = (unsigned int)(unsigned short)(param_1 - 1);
+      do {
+        iVar1 = iVar1 * iVar2;
+        iVar2 = iVar2 - 1;
+        uVar3 = uVar3 - 1;
+      } while (uVar3 != 0);
+    }
+  }
+  return iVar1;
+}
+
+/* Falling factorial: param_1 * (param_1-1) * ... * (param_1-param_2+1).
+ * Returns 1 if param_2==0; 0 if param_2>param_1 or param_2<0.
+ * 0x10ae00 / random_math.obj (probability.c)
+ */
+int FUN_0010ae00(short param_1, short param_2)
+{
+  int iVar1;
+  unsigned int uVar2;
+
+  iVar1 = 0;
+  if (param_1 >= param_2 && param_2 >= 0) {
+    iVar1 = 1;
+    if (param_2 != 0) {
+      uVar2 = (unsigned int)(unsigned short)param_2;
+      do {
+        iVar1 = iVar1 * (int)param_1;
+        param_1 = param_1 - 1;
+        uVar2 = uVar2 - 1;
+      } while (uVar2 != 0);
+    }
+  }
+  return iVar1;
+}
+
+/* Binomial coefficient C(param_1, param_2).
+ * Uses symmetry: if param_2 > param_1-param_2, substitutes param_1-param_2.
+ * 0x10ae30 / random_math.obj (probability.c)
+ */
+int FUN_0010ae30(int param_1, int param_2)
+{
+  int iVar1;
+  int iVar2;
+  short sVar3;
+  unsigned int uVar4;
+
+  iVar1 = 0;
+  sVar3 = (short)param_2;
+  if ((short)param_1 >= sVar3 && sVar3 >= 0) {
+    if ((int)(short)param_1 - (int)sVar3 < (int)sVar3)
+      param_2 = param_1 - param_2;
+    iVar1 = FUN_0010ae00((short)param_1, (short)param_2);
+    if ((short)param_2 > 1) {
+      iVar2 = (int)(short)param_2;
+      uVar4 = (unsigned int)(unsigned short)((short)param_2 - 1);
+      do {
+        iVar1 = iVar1 / iVar2;
+        iVar2 = iVar2 - 1;
+        uVar4 = uVar4 - 1;
+      } while (uVar4 != 0);
+    }
+  }
+  return iVar1;
 }
 
 void lock_global_random_seed(void)
@@ -464,16 +545,17 @@ void FUN_0010b910(float *v, float *n, float *proj_out, float *perp_out)
  */
 void FUN_0010ba90(float *q1, float *q2, float t, float *out)
 {
-    float fVar1;
+  float fVar1;
 
-    fVar1 = *(float *)0x2533c8 - t;
-    if (q2[3] * q1[3] + *q1 * *q2 + q2[1] * q1[1] + q2[2] * q1[2] < *(float *)0x2533c0) {
-        t = -t;
-    }
-    *out = t * *q2 + fVar1 * *q1;
-    out[1] = fVar1 * q1[1] + t * q2[1];
-    out[2] = fVar1 * q1[2] + t * q2[2];
-    out[3] = fVar1 * q1[3] + t * q2[3];
+  fVar1 = *(float *)0x2533c8 - t;
+  if (q2[3] * q1[3] + *q1 * *q2 + q2[1] * q1[1] + q2[2] * q1[2] <
+      *(float *)0x2533c0) {
+    t = -t;
+  }
+  *out = t * *q2 + fVar1 * *q1;
+  out[1] = fVar1 * q1[1] + t * q2[1];
+  out[2] = fVar1 * q1[2] + t * q2[2];
+  out[3] = fVar1 * q1[3] + t * q2[3];
 }
 
 /* Normalize a 2D vector v in-place; returns the input pointer.
@@ -482,17 +564,17 @@ void FUN_0010ba90(float *q1, float *q2, float t, float *out)
  */
 float *FUN_0010c290(float *v)
 {
-    float mag_sq;
-    float inv_mag;
+  float mag_sq;
+  float inv_mag;
 
-    mag_sq = v[1] * v[1] + v[0] * v[0];
-    if (mag_sq != *(float *)0x2533c0) {
-        inv_mag = *(float *)0x2533c8 / sqrtf(mag_sq);
-        v[0] = inv_mag * v[0];
-        v[1] = inv_mag * v[1];
-        return v;
-    }
+  mag_sq = v[1] * v[1] + v[0] * v[0];
+  if (mag_sq != *(float *)0x2533c0) {
+    inv_mag = *(float *)0x2533c8 / sqrtf(mag_sq);
+    v[0] = inv_mag * v[0];
+    v[1] = inv_mag * v[1];
     return v;
+  }
+  return v;
 }
 
 /* Compute the angle (radians) between two 3D vectors v1 and v2.

@@ -1661,6 +1661,30 @@
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
+    },
+    {
+      "name": "halo/random_math_FUN_10add0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10add0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10ae00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10ae00.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10ae30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10ae30.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
     }
   ]
 }

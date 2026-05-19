@@ -17289,16 +17289,19 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010add0(void);",
-          "addr": "0x10add0"
+          "decl": "int FUN_0010add0(short param_1);",
+          "addr": "0x10add0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0010ae00(void);",
-          "addr": "0x10ae00"
+          "decl": "int FUN_0010ae00(short param_1, short param_2);",
+          "addr": "0x10ae00",
+          "ported": true
         },
         {
-          "decl": "void FUN_0010ae30(void);",
-          "addr": "0x10ae30"
+          "decl": "int FUN_0010ae30(int param_1, int param_2);",
+          "addr": "0x10ae30",
+          "ported": true
         },
         {
           "decl": "void FUN_0010ae80(void);",
