@@ -1255,6 +1255,22 @@ int FUN_0013cab0(int param_1, int param_2)
   return *(short *)(iVar1 + 0xc) + param_1;
 }
 
+/* Wrap cluster_partition_iter_first for the non-collideable partition (0x5a8d30).
+ * 0x13d570 / objects.obj
+ */
+void cluster_get_first_noncollideable_object(int *param_1, int param_2)
+{
+  cluster_partition_iter_first((void *)0x5a8d30, param_1, (int16_t)param_2);
+}
+
+/* Wrap cluster_partition_iter_next for the non-collideable partition (0x5a8d30).
+ * 0x13d590 / objects.obj
+ */
+void cluster_get_next_noncollideable_object(int *param_1)
+{
+  cluster_partition_iter_next((void *)0x5a8d30, param_1);
+}
+
 /*
  * cluster_partition_object_iter_first (0x13d5b0) — begin iteration over
  * objects in a BSP cluster using the collideable partition (0x5a8d40).

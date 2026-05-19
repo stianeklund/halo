@@ -13882,12 +13882,14 @@
           "addr": "0x13cf50"
         },
         {
-          "decl": "void cluster_get_first_noncollideable_object(void);",
-          "addr": "0x13d570"
+          "decl": "void cluster_get_first_noncollideable_object(int *param_1, int param_2);",
+          "addr": "0x13d570",
+          "ported": true
         },
         {
-          "decl": "void cluster_get_next_noncollideable_object(void);",
-          "addr": "0x13d590"
+          "decl": "void cluster_get_next_noncollideable_object(int *param_1);",
+          "addr": "0x13d590",
+          "ported": true
         },
         {
           "decl": "int cluster_partition_object_iter_first(int *state, int16_t cluster_idx);",

@@ -5676,6 +5676,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13d570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13d590": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13d5b0": {
       "kind": "function",
       "status": "ported"
