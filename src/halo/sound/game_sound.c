@@ -188,6 +188,42 @@ bool sound_cluster_is_audible(void *location)
   system_exit(-1);
 }
 
+/* Check whether the global lsnd tag's playlist contains any snd! entry
+ * whose flags field (int16 at offset 4) equals 0x20.  The 0x20 flag
+ * identifies sounds that should play for vehicle-related music contexts.
+ * Called by FUN_001c7d70 to decide whether to suppress normal music
+ * playback (0x1c7d70).
+ *
+ * Returns true if any playlist entry references a 'snd!' tag with
+ * flags == 0x20; false otherwise.
+ */
+bool game_sound_music_has_vehicle_sound(void)
+{
+  void *lsnd_tag;
+  int *playlist; /* pointer to the block at lsnd+0x3c (count, ptr) */
+  int16_t i;
+  void *element;
+  int sound_handle;
+  void *snd_tag;
+
+  lsnd_tag = tag_get(0x6c736e64, -1);
+  playlist = (int *)((char *)lsnd_tag + 0x3c);
+
+  i = 0;
+  while ((int)i < *playlist) {
+    element = tag_block_get_element(playlist, (int)i, 0xa0);
+    sound_handle = *(int *)((char *)element + 0x4c);
+    if (sound_handle != -1) {
+      snd_tag = tag_get(0x736e6421, sound_handle);
+      if (*(int16_t *)((char *)snd_tag + 0x4) == 0x20) {
+        return true;
+      }
+    }
+    i = i + 1;
+  }
+  return false;
+}
+
 void game_sound_dispose_from_old_map(void)
 {
   if (*(void **)0x5054e4 != 0 && *(uint8_t *)(*(char **)0x5054e4 + 0x24) != 0) {

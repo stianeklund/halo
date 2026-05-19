@@ -6994,8 +6994,9 @@
           "addr": "0xdcaf0"
         },
         {
-          "decl": "void FUN_000dcbd0(void);",
-          "addr": "0xdcbd0"
+          "decl": "void fp_anim_apply_node_remap(int fp_nodes, int antr_tag_index, int anim_nodes, int16_t *node_remap);",
+          "addr": "0xdcbd0",
+          "ported": true
         },
         {
           "decl": "void FUN_000dcdc0(void);",
@@ -8627,8 +8628,9 @@
           "addr": "0x1c7ca0"
         },
         {
-          "decl": "void FUN_001c7d10(void);",
-          "addr": "0x1c7d10"
+          "decl": "bool game_sound_music_has_vehicle_sound(void);",
+          "addr": "0x1c7d10",
+          "ported": true
         },
         {
           "decl": "void FUN_001c7d70(void);",
