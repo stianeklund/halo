@@ -14101,8 +14101,9 @@
           "addr": "0x13f120"
         },
         {
-          "decl": "void sort_dumps(void);",
-          "addr": "0x13f380"
+          "decl": "int sort_dumps(int param_1, int param_2);",
+          "addr": "0x13f380",
+          "ported": true
         },
         {
           "decl": "void object_add_to_dump(void);",
@@ -14163,7 +14164,8 @@
         },
         {
           "decl": "int16_t object_get_first_cluster(void *iter_state, int object_handle);",
-          "addr": "0x13fe10"
+          "addr": "0x13fe10",
+          "ported": false
         },
         {
           "decl": "void *object_get_node_matrices(int object_handle);",
@@ -14241,8 +14243,9 @@
           "ported": true
         },
         {
-          "decl": "void object_pvs_activate(void);",
-          "addr": "0x1409d0"
+          "decl": "void object_pvs_activate(int param_1);",
+          "addr": "0x1409d0",
+          "ported": true
         },
         {
           "decl": "void object_select_random_region_permutations_by_variant(void);",
@@ -14254,8 +14257,9 @@
           "ported": false
         },
         {
-          "decl": "void objects_scripting_set_scale(void);",
-          "addr": "0x140b80"
+          "decl": "void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3);",
+          "addr": "0x140b80",
+          "ported": true
         },
         {
           "decl": "void object_delete_internal(int object_handle, int delete_sibling);",
@@ -21767,7 +21771,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00191690(void);",
+          "decl": "int FUN_00191690(void *cluster_list, int *out_cluster, int cluster_handle);",
           "addr": "0x191690"
         },
         {

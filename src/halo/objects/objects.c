@@ -2043,6 +2043,14 @@ void objects_place(void)
   object_globals->object_is_being_placed = 0;
 }
 
+int sort_dumps(int param_1, int param_2)
+{
+  if (*(int *)(param_1 + 8) < *(int *)(param_2 + 8)) {
+    return 1;
+  }
+  return (*(int *)(param_1 + 8) <= *(int *)(param_2 + 8)) - 1;
+}
+
 /*
  * objects_initialize — one-time initialisation of the object subsystem.
  *
@@ -3350,6 +3358,34 @@ int object_visible_to_any_player(int object_handle)
   }
 
   return result;
+}
+
+void object_pvs_activate(int param_1)
+{
+  int iVar1;
+
+  iVar1 = *(int *)0x46f084;
+  if (param_1 == -1) {
+    *(short *)(iVar1 + 0x90) = 0;
+    return;
+  }
+  *(short *)(iVar1 + 0x90) = 1;
+  *(int *)(iVar1 + 0x94) = param_1;
+}
+
+void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
+{
+  int iVar1;
+  unsigned char cl;
+
+  if (param_1 != -1) {
+    iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+    *(int *)(iVar1 + 0x60) = param_2;
+    cl = *(unsigned char *)(iVar1 + 0x64);
+    if ((((unsigned int)1 << cl) & 0xfe0) == 0) {
+      object_set_region_count(param_1, param_3);
+    }
+  }
 }
 
 /*
