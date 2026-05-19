@@ -13817,8 +13817,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0013c7a0(void);",
-          "addr": "0x13c7a0"
+          "decl": "void FUN_0013c7a0(int param_1, int param_2);",
+          "addr": "0x13c7a0",
+          "ported": true
         },
         {
           "decl": "void FUN_0013c800(int object_handle, void *block_data);",
@@ -13831,28 +13832,34 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0013c8c0(void);",
-          "addr": "0x13c8c0"
+          "decl": "void FUN_0013c8c0(int param_1);",
+          "addr": "0x13c8c0",
+          "ported": true
         },
         {
-          "decl": "void FUN_0013c920(void);",
-          "addr": "0x13c920"
+          "decl": "void FUN_0013c920(int param_1);",
+          "addr": "0x13c920",
+          "ported": true
         },
         {
-          "decl": "void FUN_0013c980(void);",
-          "addr": "0x13c980"
+          "decl": "void FUN_0013c980(int param_1, int param_2, int param_3);",
+          "addr": "0x13c980",
+          "ported": true
         },
         {
           "decl": "void FUN_0013c9e0(void);",
-          "addr": "0x13c9e0"
+          "addr": "0x13c9e0",
+          "ported": false
         },
         {
-          "decl": "void FUN_0013ca30(void);",
-          "addr": "0x13ca30"
+          "decl": "int FUN_0013ca30(int param_1, int param_2, int *param_3);",
+          "addr": "0x13ca30",
+          "ported": true
         },
         {
-          "decl": "void FUN_0013cab0(void);",
-          "addr": "0x13cab0"
+          "decl": "int FUN_0013cab0(int param_1, int param_2);",
+          "addr": "0x13cab0",
+          "ported": true
         },
         {
           "decl": "void FUN_0013cb30(void);",

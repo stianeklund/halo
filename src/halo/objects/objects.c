@@ -1026,6 +1026,31 @@ char FUN_0013c740(int object_handle)
   return result;
 }
 
+/* Dispatch vtable slot +0x44 for each extension in the object type's table.
+ * 0x13c7a0 / objects.obj
+ */
+void FUN_0013c7a0(int param_1, int param_2)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int))(*piVar1 + 0x44) != 0) {
+      (*(void (**)(int, int))(*piVar1 + 0x44))(param_1, param_2);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
 int object_header_block_allocate(int object_handle, int offset, int size);
 /*
  * FUN_0013c800 — dispatch an animation-block initializer callback through the
@@ -1102,6 +1127,132 @@ void FUN_0013c860(int object_handle)
     cnt++;
     ptr = (int *)(type_data + 0x5c + (int)cnt * 4);
   }
+}
+
+/* Dispatch vtable slot +0x50 for each extension in the object type's table.
+ * 0x13c8c0 / objects.obj
+ */
+void FUN_0013c8c0(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x50) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x50))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *piVar1;
+  }
+}
+
+/* Dispatch vtable slot +0x58 for each extension in the object type's table.
+ * 0x13c920 / objects.obj
+ */
+void FUN_0013c920(int param_1)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int))(*piVar1 + 0x58) != 0) {
+      (*(void (**)(int))(*piVar1 + 0x58))(param_1);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *piVar1;
+  }
+}
+
+/* Dispatch vtable slot +0x54 for each extension in the object type's table.
+ * 0x13c980 / objects.obj
+ */
+void FUN_0013c980(int param_1, int param_2, int param_3)
+{
+  int *piVar1;
+  int iVar2;
+  int iVar3;
+  short sVar4;
+
+  iVar2 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+  iVar3 = (int)FUN_0013c100((int16_t) * (short *)(iVar2 + 100));
+  piVar1 = (int *)(iVar3 + 0x5c);
+  sVar4 = 0;
+  iVar2 = *(int *)(iVar3 + 0x5c);
+  while (iVar2 != 0) {
+    if (*(void (**)(int, int, int))(*piVar1 + 0x54) != 0) {
+      (*(void (**)(int, int, int))(*piVar1 + 0x54))(param_1, param_2, param_3);
+    }
+    sVar4 = sVar4 + 1;
+    piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+    iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/* Return a pointer into the scenario's placement block for an object type.
+ * 0x13ca30 / objects.obj
+ */
+int FUN_0013ca30(int param_1, int param_2, int *param_3)
+{
+  int iVar1;
+
+  iVar1 = (int)FUN_0013c100((short)param_2);
+  if (*(short *)(iVar1 + 10) == -1) {
+    display_assert("definition->placement_tag_block_offset!=NONE",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x4ff, 1);
+    system_exit(-1);
+  }
+  if (((short)*(unsigned short *)(iVar1 + 10) < 0) ||
+      (0x5bc < *(unsigned short *)(iVar1 + 10))) {
+    display_assert("definition->placement_tag_block_offset>=0 && "
+                   "definition->placement_tag_block_offset<=sizeof(struct scenario)"
+                   "+sizeof(struct tag_block)",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x500, 1);
+    system_exit(-1);
+  }
+  if (param_3 != (int *)0x0) {
+    *param_3 = (int)*(short *)(iVar1 + 0xe);
+  }
+  return *(short *)(iVar1 + 10) + param_1;
+}
+
+/* Return a pointer into the scenario's palette block for an object type.
+ * 0x13cab0 / objects.obj
+ */
+int FUN_0013cab0(int param_1, int param_2)
+{
+  int iVar1;
+
+  iVar1 = (int)FUN_0013c100((short)param_2);
+  if (*(short *)(iVar1 + 0xc) == -1) {
+    display_assert("definition->palette_tag_block_offset!=NONE",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x50d, 1);
+    system_exit(-1);
+  }
+  if (((short)*(unsigned short *)(iVar1 + 0xc) < 0) ||
+      (0x5bc < *(unsigned short *)(iVar1 + 0xc))) {
+    display_assert("definition->palette_tag_block_offset>=0 && "
+                   "definition->palette_tag_block_offset<=sizeof(struct scenario)"
+                   "+sizeof(struct tag_block)",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x50e, 1);
+    system_exit(-1);
+  }
+  return *(short *)(iVar1 + 0xc) + param_1;
 }
 
 /*
