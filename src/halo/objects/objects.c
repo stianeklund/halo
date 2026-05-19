@@ -1638,6 +1638,11 @@ done:
   }
 }
 
+void garbage_collect_now(void)
+{
+  *(unsigned char *)(*(int *)0x46f084 + 2) = 1;
+}
+
 void FUN_0013dbe0(int param_1)
 {
   int iVar1;
@@ -1654,6 +1659,31 @@ void FUN_0013dbe0(int param_1)
 void FUN_0013dcb0(void)
 {
   *(short *)(*(int *)0x46f084 + 0x90) = 0;
+}
+
+void object_definition_predict(int param_1)
+{
+  void *tag;
+
+  if (param_1 != -1) {
+    tag = tag_get(0x6f626a65, param_1);
+    predicted_resources_precache((char *)tag + 0x170);
+  }
+}
+
+void object_beautify(int param_1, char param_2)
+{
+  int iVar1;
+
+  if (param_1 != -1) {
+    if (param_2 != '\0') {
+      iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+      *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) | 0x400000;
+      return;
+    }
+    iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+    *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) & 0xffbfffff;
+  }
 }
 
 /*
@@ -1824,6 +1854,20 @@ void object_child_list_remove(void *list_head /* @<eax> */,
       if (*head == -1)
         return;
     }
+  }
+}
+
+void object_scripting_set_collideable(int param_1, char param_2)
+{
+  int iVar1;
+
+  if (param_1 != -1) {
+    iVar1 = (int)object_get_and_verify_type(param_1, 0xffffffff);
+    if (param_2 == '\0') {
+      *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) | 0x1000000;
+      return;
+    }
+    *(unsigned int *)(iVar1 + 4) = *(unsigned int *)(iVar1 + 4) & 0xfeffffff;
   }
 }
 

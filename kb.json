@@ -13951,7 +13951,8 @@
         },
         {
           "decl": "void garbage_collect_now(void);",
-          "addr": "0x13db50"
+          "addr": "0x13db50",
+          "ported": true
         },
         {
           "decl": "void objects_information_get(void);",
@@ -13977,16 +13978,18 @@
           "ported": false
         },
         {
-          "decl": "void object_definition_predict(void);",
-          "addr": "0x13dda0"
+          "decl": "void object_definition_predict(int param_1);",
+          "addr": "0x13dda0",
+          "ported": true
         },
         {
           "decl": "void object_predict(void);",
           "addr": "0x13ddd0"
         },
         {
-          "decl": "void object_beautify(void);",
-          "addr": "0x13de80"
+          "decl": "void object_beautify(int param_1, char param_2);",
+          "addr": "0x13de80",
+          "ported": true
         },
         {
           "decl": "int object_header_new(data_t *data, int16_t datum_size, int type_hint@<eax>);",
@@ -14042,8 +14045,9 @@
           "ported": false
         },
         {
-          "decl": "void object_scripting_set_collideable(void);",
-          "addr": "0x13eb30"
+          "decl": "void object_scripting_set_collideable(int param_1, char param_2);",
+          "addr": "0x13eb30",
+          "ported": true
         },
         {
           "decl": "void object_reset_markers(void);",

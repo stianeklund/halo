@@ -1597,6 +1597,38 @@
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
+    },
+    {
+      "name": "halo/objects_garbage_collect_now",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_garbage_collect_now.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_definition_predict",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_definition_predict.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_beautify",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_beautify.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_object_scripting_set_collideable",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_object_scripting_set_collideable.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }
