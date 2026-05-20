@@ -226,8 +226,8 @@ int FUN_00115a90(int *z)
     q = q + 1;
     avail_in--;
   } while (avail_in != 0);
+  z[2] = z[2] + (int)((int)q - (int)p);
   z[0] = (int)q;
-  z[2] = (int)((int)q + (z[2] - (int)p));
   z[1] = (int)avail_in;
   *(unsigned int *)(z[7] + 4) = n;
   if (n != 4) {
