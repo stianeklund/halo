@@ -60,6 +60,38 @@ void update_client_start(void)
   }
 }
 
+void update_client_add_player(int handle)
+{
+  int queue_index;
+  queue_index = data_new_datum(*(data_t **)0x45b260, handle);
+  if (queue_index == -1) {
+    display_assert("queue_index!=NONE",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x182, 1);
+    system_exit(-1);
+  }
+}
+
+void update_client_queue(void *data)
+{
+  int i;
+  int *dst;
+  int *src;
+  dst = (int *)(0x45b1dc + *(int *)0x45b25c * 0x20);
+  src = (int *)data;
+  for (i = 8; i != 0; i--) {
+    *dst = *src;
+    dst++;
+    src++;
+  }
+  *(int *)0x45b25c = *(int *)0x45b25c + 1;
+}
+
+void update_client_queue_push(void)
+{
+  *(int *)0x45b25c = 0;
+  csmemset((void *)0x45b1dc, 0, 0x80);
+}
+
 /* Return the number of queued action ticks (inclusive range from
  * first_action_index to last_action_index in the client globals). */
 int update_get_maximum_actions(void)
@@ -79,6 +111,18 @@ void update_client_build_client_update(void *action_collection)
     system_exit(-1);
   }
   csmemcpy(action_collection, (void *)0x45b1dc, 0x80);
+}
+
+int player_new_queue(int handle)
+{
+  int queue_index;
+  queue_index = data_new_datum(*(data_t **)0x4570c8, handle);
+  if (queue_index == -1) {
+    display_assert("queue_index!=NONE",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x292, 1);
+    system_exit(-1);
+  }
+  return queue_index;
 }
 
 /* Look up a snapshot buffer entry by index. Returns a pointer into the
@@ -532,6 +576,72 @@ void update_server_apply_actions(int16_t machine_index, void *actions)
   } while (i < 4);
 }
 
+/* Store a client update snapshot into the action ring-buffer at 0x45b264.
+ *
+ * The ring buffer holds 0x80 slots of 0x208 bytes each (base 0x45b264).
+ * Each slot consists of a 4-byte sequence index followed by 0x204 bytes
+ * of update data. The slot is selected by (sequence_index & 0x7f).
+ *
+ * If sequence_index is within [first_action_index, first_action_index+0x80):
+ *   - Writes sequence_index at slot+0x00.
+ *   - Copies 0x204 bytes from data into slot+0x04 via csmemcpy.
+ *   - If sequence_index > last_action_index, updates last_action_index.
+ *     If there is a gap (last_action_index+1 < sequence_index before update),
+ *     marks slot+0x04 with 0xFFFF (16-bit) to signal the gap.
+ *
+ * If out of range, checks whether we are the network server or client.
+ * If neither, and not in the main menu, logs three error messages.
+ *
+ * Tail-calls main_menu_is_active() when game_connection() returns 0..2. */
+void FUN_000b97b0(void *data, int sequence_index)
+{
+  /* first_action_index (0x45b1d4), last_action_index (0x45b1d8) */
+  int first_idx;
+  char *slot;
+  int last_idx;
+  const char *map_name;
+  int conn;
+
+  first_idx = *(int *)0x45b1d4;
+  if (sequence_index >= first_idx && sequence_index < first_idx + 0x80) {
+    slot = (char *)0x45b264 + (sequence_index & 0x7f) * 0x208;
+    /* Binary has TEST EAX,EAX; JZ — always non-NULL but preserved. */
+    if (slot != (char *)0) {
+      *(int *)slot = sequence_index;
+      csmemcpy(slot + 4, data, 0x204);
+      last_idx = *(int *)0x45b1d8;
+      if (sequence_index > last_idx) {
+        if (last_idx + 1 < sequence_index) {
+          /* Gap in sequence: mark first word of data area invalid. */
+          *(short *)(slot + 4) = (short)0xffff;
+        }
+        *(int *)0x45b1d8 = sequence_index;
+      }
+      goto done;
+    }
+  }
+
+  if (network_game_client_get() != (void *)0) {
+    if (network_game_server_get() != (void *)0) {
+      goto done;
+    }
+  }
+  if (!main_menu_is_active()) {
+    map_name = main_get_map_name();
+    error(2, "failed to get an update (#%d); sp scenario= '%s'", sequence_index,
+          map_name);
+    error(2, "if you're in a multiplayer game, you might be out of sync now");
+    error(2,
+          "if you're playing single player/coop, you can probably ignore this");
+  }
+
+done:
+  conn = game_connection();
+  if (conn >= 0 && conn <= 2) {
+    main_menu_is_active();
+  }
+}
+
 /* Create a server-side update snapshot from the current server queue state.
  *
  * Asserts server globals are initialized. Saves the current snapshot index
@@ -592,7 +702,7 @@ void update_server_create_snapshot(void)
 
   /* Call internal store function at 0xb97b0(action_count_ptr, old_index)
    * to push the snapshot into the client action buffer. */
-  ((void(__cdecl *)(int16_t *, int))0xb97b0)(action_count_ptr, old_index);
+  FUN_000b97b0(action_count_ptr, old_index);
 }
 
 /* Apply queued client actions for the given number of simulation ticks.

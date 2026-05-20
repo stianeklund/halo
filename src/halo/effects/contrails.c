@@ -47,6 +47,36 @@ void contrail_delete(int contrail_handle)
   datum_delete(contrail_data, contrail_handle);
 }
 
+void contrails_reconnect_to_structure_bsp(void)
+{
+  int contrail_index;
+  char *contrail_datum;
+  int *chain_ptr;
+  int local_c;
+  int point_index;
+  char *point_datum;
+
+  for (contrail_index = data_next_index(contrail_data, -1);
+       contrail_index != -1;
+       contrail_index = data_next_index(contrail_data, contrail_index)) {
+    contrail_datum = (char *)datum_get(contrail_data, contrail_index);
+    tag_get(0x636f6e74, *(int *)(contrail_datum + 4));
+    chain_ptr = (int *)(contrail_datum + 0x34);
+    local_c = 4;
+    do {
+      for (point_index = *chain_ptr; point_index != -1;
+           point_index = *(int *)(point_datum + 0x34)) {
+        point_datum = (char *)datum_get(contrail_point_data, point_index);
+        if (*(short *)(point_datum + 0x18) != -1) {
+          scenario_location_from_point(point_datum + 0x14, point_datum + 0x1c);
+        }
+      }
+      chain_ptr++;
+      local_c--;
+    } while (local_c != 0);
+  }
+}
+
 /*
  * FUN_00097a50 (0x97a50): contrail tick counter — given a contrail handle and
  * delta_time, computes how many full emission periods fit in delta_time and
@@ -187,8 +217,8 @@ void FUN_00097db0(char *datum /* @<esi> */)
   if (frame_counter < 0)
     goto pick_random;
 
-  seq_element = (char *)tag_block_get_element(sequences_block,
-                                              (int)sequence_index, 0x40);
+  seq_element =
+    (char *)tag_block_get_element(sequences_block, (int)sequence_index, 0x40);
   frame_counter = *(int16_t *)(datum + 0x16);
   if (frame_counter < *(int16_t *)(seq_element + 0x22))
     return;
@@ -196,8 +226,8 @@ void FUN_00097db0(char *datum /* @<esi> */)
 pick_random:
   seq_min = *(int16_t *)(tag + 0x40);
   seq_max = seq_min + *(int16_t *)(tag + 0x42);
-  *(int16_t *)(datum + 0x14) = random_range(
-      random_math_get_local_seed_address(), seq_min, seq_max);
+  *(int16_t *)(datum + 0x14) =
+    random_range(random_math_get_local_seed_address(), seq_min, seq_max);
   *(int16_t *)(datum + 0x16) = 0;
 }
 
@@ -425,11 +455,19 @@ void contrails_update(float delta_time)
     /* contrail_validate: EAX = datum_handle */
     {
       int _eax = datum_handle;
+#if defined(_MSC_VER) && !defined(__clang__)
+      __asm {
+        mov eax, _eax
+        mov edx, 0x97ae0
+        call edx
+      }
+#else
       asm volatile("movl $0x97ae0, %%edx\n\t"
                    "call *%%edx"
                    : "+a"(_eax)
                    :
                    : "ecx", "edx", "esi", "edi", "memory", "cc");
+#endif
     }
     *(int *)(datum + 0x28) = 0;
     if (*(int *)(datum + 8) != -1) {
@@ -442,6 +480,16 @@ void contrails_update(float delta_time)
         /* contrail_set_state: EAX = datum_handle, stack = (1, 1) */
         {
           int _eax = datum_handle;
+#if defined(_MSC_VER) && !defined(__clang__)
+          __asm {
+            push 1
+            push 1
+            mov eax, _eax
+            mov edx, 0x97e40
+            call edx
+            add esp, 8
+          }
+#else
           asm volatile("pushl $1\n\t"
                        "pushl $1\n\t"
                        "movl $0x97e40, %%edx\n\t"
@@ -450,6 +498,7 @@ void contrails_update(float delta_time)
                        : "+a"(_eax)
                        :
                        : "ecx", "edx", "esi", "edi", "memory", "cc");
+#endif
         }
         *(int *)(datum + 0x10) = saved_point;
       }
@@ -461,6 +510,16 @@ void contrails_update(float delta_time)
         /* contrail_set_state: EAX = datum_handle, stack = (result, 1) */
         {
           int _eax = datum_handle;
+#if defined(_MSC_VER) && !defined(__clang__)
+          __asm {
+            push 1
+            push result
+            mov eax, _eax
+            mov edx, 0x97e40
+            call edx
+            add esp, 8
+          }
+#else
           asm volatile("pushl $1\n\t"
                        "pushl %[r]\n\t"
                        "movl $0x97e40, %%edx\n\t"
@@ -469,6 +528,7 @@ void contrails_update(float delta_time)
                        : "+a"(_eax)
                        : [r] "r"(result)
                        : "ecx", "edx", "esi", "edi", "memory", "cc");
+#endif
         }
       }
     }
@@ -516,11 +576,19 @@ void contrails_update(float delta_time)
     /* contrail_validate: EAX = datum_handle */
     {
       int _eax = datum_handle;
+#if defined(_MSC_VER) && !defined(__clang__)
+      __asm {
+        mov eax, _eax
+        mov edx, 0x97ae0
+        call edx
+      }
+#else
       asm volatile("movl $0x97ae0, %%edx\n\t"
                    "call *%%edx"
                    : "+a"(_eax)
                    :
                    : "ecx", "edx", "esi", "edi", "memory", "cc");
+#endif
     }
     if (i == 4 && *(int *)(datum + 8) == -1)
       ((void (*)(int))0x978f0)(datum_handle);

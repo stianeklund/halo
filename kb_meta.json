@@ -1587,6 +1587,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x97980": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x97a50": {
       "kind": "function",
       "status": "ported"
@@ -1773,6 +1777,29 @@
       "status": "ported"
     },
     "0x9cdd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ce80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ce90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ceb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Register allocation difference: MSVC chose EBX for effect_handle (parameter saved across calls), clang chose EDI; this causes structural prologue/epilogue differences contributing to the 87.3% VC71 ceiling.",
+        "FUN_0009cb90 thunk mechanism: reference uses direct register-arg setup (lea+mov before CALL); compiled version uses cdecl push+thunk, adding 2 extra instructions per call path which prevents memory-direct 'orb' emission from VC71."
+      ],
+      "uncertain": [
+        "HDATA dllimport on effect_data adds an extra dereference instruction in compiled code (mov (%eax),%ecx) versus the original single-load; this costs 1 LCS match and is a build-system artifact not fixable in C."
+      ]
+    },
+    "0x9cf40": {
       "kind": "function",
       "status": "ported"
     },
@@ -2748,11 +2775,27 @@
         "Globals 0x45b1d0 (initialized byte) and 0x45b260 (queue data_t*) are not yet declared in kb.json; function uses hardcoded addresses. If/when player_queues_new has more functions ported, consider formalising update_client_globals in types.h."
       ]
     },
+    "0xb8f00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb8f40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb8f70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb8f90": {
       "kind": "function",
       "status": "ported"
     },
     "0xb8fa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb8ff0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2811,6 +2854,13 @@
         "The REP MOVSD copies exactly 8 dwords (0x20 bytes) matching the player action structure size."
       ]
     },
+    "0xb97b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "vc71 score 74.9% is suppressed by oracle obj spanning to 0xb9900 and including NOPs+next function; actual per-function instruction match is near-identical."
+      ]
+    },
     "0xb9990": {
       "kind": "function",
       "status": "ported",
@@ -2839,6 +2889,18 @@
       "status": "ported"
     },
     "0xb9b60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9ba0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9bc0": {
       "kind": "function",
       "status": "ported"
     },
@@ -3589,6 +3651,18 @@
       "status": "ported"
     },
     "0xd01c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd0340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd0360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd03e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4826,6 +4900,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10b110": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10b120": {
       "kind": "function",
       "status": "ported",
@@ -4870,6 +4948,10 @@
       ]
     },
     "0x10b380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10b3c0": {
       "kind": "function",
       "status": "ported"
     },

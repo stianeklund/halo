@@ -623,7 +623,7 @@ bool FUN_000a1c30(int datum_handle, float delta_time)
         }
         if (tag[0xc] != -1 && FUN_0009f3b0(particle + 0x30)) {
           FUN_0009f430(tag[0xc], 8, surface_index, particle + 0x30,
-                       collision_normal, particle + 0x28, *(int *)&speed_ratio);
+                       collision_normal, particle + 0x28, speed_ratio);
         }
       }
 
