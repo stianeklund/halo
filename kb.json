@@ -23801,7 +23801,7 @@
           "addr": "0x19e560"
         },
         {
-          "decl": "void uisgraph(void);",
+          "decl": "int uisgraph(int c);",
           "addr": "0x19e580"
         },
         {
@@ -31401,52 +31401,62 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00115a90(void);",
-          "addr": "0x115a90"
+          "decl": "int FUN_00115a90(int *z);",
+          "addr": "0x115a90",
+          "ported": true
         },
         {
-          "decl": "void FUN_00115b70(void);",
-          "addr": "0x115b70"
+          "decl": "int FUN_00115b70(int z);",
+          "addr": "0x115b70",
+          "ported": true
         },
         {
-          "decl": "void FUN_00115ba0(void);",
-          "addr": "0x115ba0"
+          "decl": "int FUN_00115ba0(int *param_1, unsigned int param_2, unsigned int param_3, int param_4, int param_5, int *param_6, int param_7, unsigned int *param_8, unsigned int *param_9);",
+          "addr": "0x115ba0",
+          "ported": null
         },
         {
-          "decl": "void FUN_00116010(void);",
-          "addr": "0x116010"
+          "decl": "int FUN_00116010(int *c, int *bb, int tl, int td, int z);",
+          "addr": "0x116010",
+          "ported": true
         },
         {
-          "decl": "void FUN_001160c0(void);",
-          "addr": "0x1160c0"
+          "decl": "int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4, int *param_5, int param_6, int param_7, int param_8, int param_9);",
+          "addr": "0x1160c0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00116250(void);",
-          "addr": "0x116250"
+          "decl": "int FUN_00116250(int *param_1, int *param_2, int **param_3, int **param_4);",
+          "addr": "0x116250",
+          "ported": true
         },
         {
           "decl": "void FUN_00116280(void);",
           "addr": "0x116280"
         },
         {
-          "decl": "void FUN_00116390(void);",
-          "addr": "0x116390"
+          "decl": "void FUN_00116390(int value @<eax>, int length @<ebx>, int state @<esi>);",
+          "addr": "0x116390",
+          "ported": true
         },
         {
-          "decl": "void FUN_00116460(void);",
-          "addr": "0x116460"
+          "decl": "void FUN_00116460(int state @<edx>);",
+          "addr": "0x116460",
+          "ported": true
         },
         {
-          "decl": "void FUN_001164d0(void);",
-          "addr": "0x1164d0"
+          "decl": "void FUN_001164d0(int param_1, int state @<eax>, int tree @<edi>);",
+          "addr": "0x1164d0",
+          "ported": true
         },
         {
           "decl": "void FUN_001165b0(void);",
           "addr": "0x1165b0"
         },
         {
-          "decl": "void FUN_001167f0(void);",
-          "addr": "0x1167f0"
+          "decl": "void FUN_001167f0(int param_1, int param_2, int tree @<eax>);",
+          "addr": "0x1167f0",
+          "ported": true
         },
         {
           "decl": "void FUN_001168e0(void);",
@@ -31457,36 +31467,43 @@
           "addr": "0x116b00"
         },
         {
-          "decl": "void FUN_00116d10(void);",
-          "addr": "0x116d10"
+          "decl": "int FUN_00116d10(int param_1, int param_2, int param_3);",
+          "addr": "0x116d10",
+          "ported": true
         },
         {
           "decl": "void FUN_00116e00(void);",
           "addr": "0x116e00"
         },
         {
-          "decl": "void FUN_00117000(void);",
-          "addr": "0x117000"
+          "decl": "void FUN_00117000(int state @<ecx>);",
+          "addr": "0x117000",
+          "ported": true
         },
         {
-          "decl": "void FUN_001170b0(void);",
-          "addr": "0x1170b0"
+          "decl": "void FUN_001170b0(int state @<eax>);",
+          "addr": "0x1170b0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00117130(void);",
-          "addr": "0x117130"
+          "decl": "int FUN_00117130(int state @<eax>);",
+          "addr": "0x117130",
+          "ported": true
         },
         {
-          "decl": "void FUN_001171a0(void);",
-          "addr": "0x1171a0"
+          "decl": "void FUN_001171a0(int len @<ecx>, unsigned char *buf @<edx>, int state @<eax>, int header);",
+          "addr": "0x1171a0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00117250(void);",
-          "addr": "0x117250"
+          "decl": "void FUN_00117250(int param_1);",
+          "addr": "0x117250",
+          "ported": true
         },
         {
-          "decl": "void FUN_001172d0(void);",
-          "addr": "0x1172d0"
+          "decl": "void FUN_001172d0(int *param_1, int param_2, short *bl_count @<eax>);",
+          "addr": "0x1172d0",
+          "ported": true
         },
         {
           "decl": "void FUN_001173f0(void);",
@@ -31513,8 +31530,9 @@
           "addr": "0x1179e0"
         },
         {
-          "decl": "void FUN_00117a80(void);",
-          "addr": "0x117a80"
+          "decl": "void FUN_00117a80(const char *msg);",
+          "addr": "0x117a80",
+          "ported": true
         },
         {
           "decl": "void FUN_00117ab0(void);",
@@ -31522,11 +31540,13 @@
         },
         {
           "decl": "void *FUN_00117ad0(void *opaque, unsigned int items, unsigned int size);",
-          "addr": "0x117ad0"
+          "addr": "0x117ad0",
+          "ported": true
         },
         {
           "decl": "void FUN_00117b00(void *opaque, void *ptr);",
-          "addr": "0x117b00"
+          "addr": "0x117b00",
+          "ported": true
         },
         {
           "decl": "void array_new(int *table, int element_size);",

@@ -186,6 +186,672 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
   return 0;
 }
 
+/* inflateSync: scan for a zlib sync point (0x00 0x00 0xff 0xff) in next_in.
+ * 0x115a90 / circular_queue.obj (inflate.c) */
+int FUN_00115a90(int *z)
+{
+  int *state;
+  char *p;
+  int saved_total_in;
+  int saved_total_out;
+  unsigned int n;
+  char *q;
+
+  if (z == (int *)0 || z[7] == 0) {
+    return (int)0xfffffffe;
+  }
+  state = (int *)z[7];
+  if (*state != 0xd) {
+    *state = 0xd;
+    *(unsigned int *)(z[7] + 4) = 0;
+  }
+  if (z[1] == 0) {
+    return (int)0xfffffffb;
+  }
+  p = (char *)z[0];
+  n = *(unsigned int *)(z[7] + 4);
+  q = p;
+  while ((int *)z[1] != (int *)0) {
+    if (n > 3)
+      break;
+    if (*q == ((unsigned char *)0x28d850)[n]) {
+      n = n + 1;
+    } else if (*q == '\0') {
+      n = 4 - n;
+    } else {
+      n = 0;
+    }
+    q = q + 1;
+    z[1] = z[1] - 1;
+  }
+  z[0] = (int)q;
+  z[2] = (int)((int)q + (z[2] - (int)p));
+  *(unsigned int *)(z[7] + 4) = n;
+  if (n != 4) {
+    return (int)0xfffffffd;
+  }
+  saved_total_in = z[2];
+  saved_total_out = z[5];
+  FUN_001153c0((int)z);
+  z[2] = saved_total_in;
+  z[5] = saved_total_out;
+  *(int *)z[7] = 7;
+  return 0;
+}
+
+/* inflateSyncPoint: return 1 if inflate blocks are at a sync point.
+ * 0x115b70 / circular_queue.obj (inflate.c) */
+int FUN_00115b70(int z)
+{
+  int iVar1;
+  int uVar2;
+
+  if (z != 0 && *(int *)(z + 0x1c) != 0) {
+    iVar1 = *(int *)(*(int *)(z + 0x1c) + 0x14);
+    if (iVar1 != 0) {
+      uVar2 = FUN_001146c0((int *)iVar1);
+      return uVar2;
+    }
+  }
+  return (int)0xfffffffe;
+}
+
+
+/* inflate_trees_bits: build decode table for bit-length codes.
+ * 0x116010 / circular_queue.obj (inflate.c) */
+int FUN_00116010(int *c, int *bb, int tl, int td, int z)
+{
+  int iVar1;
+  int iVar2;
+  unsigned int local_8;
+
+  local_8 = 0;
+  iVar1 = (*(int (**)(int, int, int))(z + 0x20))(*(int *)(z + 0x28), 0x13, 4);
+  if (iVar1 == 0)
+    return -4;
+  iVar2 = FUN_00115ba0(c, 0x13, 0x13, 0, 0, (int *)tl, td, &local_8,
+                       (unsigned int *)iVar1);
+  if (iVar2 == -3) {
+    *(const char **)(z + 0x18) = "oversubscribed dynamic bit lengths tree";
+    (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), iVar1);
+    return -3;
+  }
+  if (iVar2 == -5 || *bb == 0) {
+    *(const char **)(z + 0x18) = "incomplete dynamic bit lengths tree";
+    iVar2 = -3;
+  }
+  (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), iVar1);
+  return iVar2;
+}
+
+/* inflate_trees_dynamic: build decode tables for dynamic Huffman block.
+ * 0x1160c0 / circular_queue.obj (inflate.c) */
+int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
+                 int *param_5, int param_6, int param_7, int param_8,
+                 int param_9)
+{
+  int iVar1;
+  int iVar2;
+  unsigned int local_8;
+
+  local_8 = 0;
+  iVar1 = (*(int (**)(int, int, int))(param_9 + 0x20))(*(int *)(param_9 + 0x28),
+                                                       0x120, 4);
+  if (iVar1 == 0)
+    return -4;
+  iVar2 = FUN_00115ba0((int *)param_3, param_1, 0x101, (int)0x28d960,
+                       (int)0x28d9e0, (int *)param_6, param_8, &local_8,
+                       (unsigned int *)iVar1);
+  if (iVar2 == 0) {
+    if (*param_4 != 0) {
+      iVar2 =
+        FUN_00115ba0((int *)(param_3 + (int)param_1 * 4), (unsigned int)param_2,
+                     0, (int)0x28da60, (int)0x28dad8, (int *)param_7,
+                     param_8, &local_8, (unsigned int *)iVar1);
+      if (iVar2 == 0) {
+        if (*param_5 != 0 || param_1 < 0x102) {
+          (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
+                                                   iVar1);
+          return 0;
+        }
+      } else if (iVar2 == -3) {
+        *(const char **)(param_9 + 0x18) = "oversubscribed distance tree";
+        (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
+                                                 iVar1);
+        return -3;
+      } else if (iVar2 == -5) {
+        *(const char **)(param_9 + 0x18) = "incomplete distance tree";
+        (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
+                                                 iVar1);
+        return -3;
+      } else if (iVar2 == -4) {
+        (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
+                                                 iVar1);
+        return iVar2;
+      }
+      *(const char **)(param_9 + 0x18) = "empty distance tree with lengths";
+      iVar2 = -3;
+      (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
+      return iVar2;
+    }
+  } else if (iVar2 == -3) {
+    *(const char **)(param_9 + 0x18) = "oversubscribed literal/length tree";
+    (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
+    return -3;
+  } else if (iVar2 == -4) {
+    (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
+    return iVar2;
+  }
+  *(const char **)(param_9 + 0x18) = "incomplete literal/length tree";
+  iVar2 = -3;
+  (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
+  return iVar2;
+}
+
+/* inflate_trees_fixed: set pointers to fixed Huffman decode tables.
+ * 0x116250 / circular_queue.obj (inflate.c) */
+int FUN_00116250(int *param_1, int *param_2, int **param_3, int **param_4)
+{
+  *param_1 = *(int *)0x31fc80;
+  *param_2 = *(int *)0x31fc84;
+  *param_3 = (int *)0x31fc88;
+  *param_4 = (int *)0x320c88;
+  return 0;
+}
+
+/* send_bits: output val (length bits) to deflate bit buffer.
+ * 0x116390 / circular_queue.obj (deflate.c)
+ * ABI: @eax=value, @ebx=length, @esi=deflate_state */
+void FUN_00116390(int value, int length, int state)
+{
+  int iVar1;
+
+  if (*(int *)0x320e30 > 1) {
+    crt_fprintf(*(void **)0x331070, " l %2d v %4x ", length, value);
+  }
+  if (length < 1 || length > 0xf) {
+    FUN_00117a80("invalid length");
+  }
+  iVar1 = *(int *)(state + 0x16bc);
+  *(int *)(state + 0x16b4) = *(int *)(state + 0x16b4) + length;
+  if (0x10 - length < iVar1) {
+    *(unsigned short *)(state + 0x16b8) =
+      *(unsigned short *)(state + 0x16b8) |
+      (unsigned short)(value << (iVar1 & 0x1f));
+    *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
+      *(unsigned char *)(state + 0x16b8);
+    iVar1 = *(int *)(state + 0x14) + 1;
+    *(int *)(state + 0x14) = iVar1;
+    *(unsigned char *)(iVar1 + *(int *)(state + 8)) =
+      *(unsigned char *)(state + 0x16b9);
+    *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
+    iVar1 = *(int *)(state + 0x16bc);
+    *(int *)(state + 0x16bc) = iVar1 + -0x10 + length;
+    *(unsigned short *)(state + 0x16b8) =
+      (unsigned short)value >> ((unsigned int)(0x10 - (char)iVar1) & 0x1f);
+    return;
+  }
+  *(int *)(state + 0x16bc) = iVar1 + length;
+  *(unsigned short *)(state + 0x16b8) =
+    *(unsigned short *)(state + 0x16b8) |
+    (unsigned short)(value << (iVar1 & 0x1f));
+}
+
+/* init_block: zero per-block frequency counts and set EOB count to 1.
+ * 0x116460 / circular_queue.obj (deflate.c)
+ * ABI: @edx=state */
+void FUN_00116460(int state)
+{
+  unsigned short *puVar1;
+  int iVar2;
+
+  puVar1 = (unsigned short *)(state + 0x8c);
+  iVar2 = 0x11e;
+  do {
+    *puVar1 = 0;
+    puVar1 += 2;
+    iVar2--;
+  } while (iVar2 != 0);
+  puVar1 = (unsigned short *)(state + 0x980);
+  iVar2 = 0x1e;
+  do {
+    *puVar1 = 0;
+    puVar1 += 2;
+    iVar2--;
+  } while (iVar2 != 0);
+  puVar1 = (unsigned short *)(state + 0xa74);
+  iVar2 = 0x13;
+  do {
+    *puVar1 = 0;
+    puVar1 += 2;
+    iVar2--;
+  } while (iVar2 != 0);
+  *(unsigned int *)(state + 0x16a4) = 0;
+  *(unsigned int *)(state + 0x16a0) = 0;
+  *(unsigned int *)(state + 0x16a8) = 0;
+  *(unsigned int *)(state + 0x1698) = 0;
+  *(unsigned short *)(state + 0x48c) = 1;
+}
+
+/* pqdownheap: restore heap ordering by sifting element down.
+ * 0x1164d0 / circular_queue.obj (deflate.c)
+ * ABI: @eax=deflate_state, @edi=freq_table(ct_data*), cdecl param_1=heap_index
+ */
+void FUN_001164d0(int param_1, int state, int tree)
+{
+  unsigned short uVar1;
+  unsigned short uVar2;
+  int iVar3;
+  int iVar4;
+  int iVar5;
+  int iVar6;
+  int iVar7;
+  int heap_len;
+
+  heap_len = *(int *)(state + 0x1448);
+  iVar3 = *(int *)(state + 0xb54 + param_1 * 4);
+  iVar7 = param_1 * 2;
+  iVar5 = iVar7 - heap_len;
+  if (heap_len < iVar7) {
+    *(int *)(state + 0xb54 + param_1 * 4) = iVar3;
+    return;
+  }
+  while (1) {
+    iVar6 = iVar7;
+    if (iVar7 < heap_len) {
+      iVar5 = *(int *)(state + 0xb58 + iVar7 * 4);
+      uVar1 = *(unsigned short *)(tree + iVar5 * 4);
+      uVar2 =
+        *(unsigned short *)(tree + *(int *)(state + 0xb54 + iVar7 * 4) * 4);
+      if (uVar1 < uVar2 ||
+          (uVar1 == uVar2 &&
+           *(unsigned char *)(iVar5 + 0x1450 + state) <=
+             *(unsigned char *)(*(int *)(state + 0xb54 + iVar7 * 4) + 0x1450 +
+                                state))) {
+        iVar6 = iVar7 + 1;
+      }
+    }
+    iVar5 = *(int *)(state + 0xb54 + iVar6 * 4);
+    uVar1 = *(unsigned short *)(tree + iVar3 * 4);
+    uVar2 = *(unsigned short *)(tree + iVar5 * 4);
+    if (uVar1 < uVar2 ||
+        (uVar1 == uVar2 && *(unsigned char *)(iVar3 + 0x1450 + state) <=
+                             *(unsigned char *)(iVar5 + 0x1450 + state)))
+      break;
+    *(int *)(state + 0xb54 + param_1 * 4) = iVar5;
+    iVar4 = *(int *)(state + 0x1448);
+    iVar7 = iVar6 * 2;
+    iVar5 = iVar7 - iVar4;
+    param_1 = iVar6;
+    if (iVar5 != 0 && iVar4 <= iVar7) {
+      *(int *)(state + 0xb54 + iVar6 * 4) = iVar3;
+      return;
+    }
+  }
+  *(int *)(state + 0xb54 + param_1 * 4) = iVar3;
+}
+
+/* scan_tree: scan a Huffman tree to determine code lengths and run statistics.
+ * 0x1167f0 / circular_queue.obj (deflate.c)
+ * ABI: @eax=tree(ct_data*), cdecl param_1=max_code, param_2=deflate_state */
+void FUN_001167f0(int param_1, int param_2, int tree)
+{
+  short *psVar1;
+  unsigned short uVar2;
+  int iVar3;
+  int iVar4;
+  int iVar5;
+  unsigned int uVar6;
+  unsigned int uVar7;
+  int local_10;
+  unsigned int local_c;
+  unsigned short *local_8;
+
+  uVar2 = *(unsigned short *)(tree + 2);
+  iVar5 = 0;
+  local_c = 0xffffffff;
+  iVar3 = 7;
+  iVar4 = 4;
+  if (uVar2 == 0) {
+    iVar3 = 0x8a;
+    iVar4 = 3;
+  }
+  *(unsigned short *)(tree + 6 + param_1 * 4) = 0xffff;
+  if (param_1 >= 0) {
+    local_8 = (unsigned short *)(tree + 6);
+    local_10 = param_1 + 1;
+    uVar6 = (unsigned int)uVar2;
+    do {
+      uVar7 = (unsigned int)*local_8;
+      iVar5++;
+      if (iVar3 <= iVar5 || uVar6 != uVar7) {
+        if (iVar5 < iVar4) {
+          psVar1 = (short *)(param_2 + 0xa74 + uVar6 * 4);
+          *psVar1 += (short)iVar5;
+        } else if (uVar6 == 0) {
+          if (iVar5 < 0xb)
+            *(short *)(param_2 + 0xab8) += 1;
+          else
+            *(short *)(param_2 + 0xabc) += 1;
+        } else {
+          if (uVar6 != local_c) {
+            *(short *)(param_2 + 0xa74 + uVar6 * 4) += 1;
+          }
+          *(short *)(param_2 + 0xab4) += 1;
+        }
+        iVar5 = 0;
+        local_c = uVar6;
+        if (uVar7 == 0) {
+          iVar3 = 0x8a;
+          iVar4 = 3;
+        } else if (uVar6 == uVar7) {
+          iVar3 = 6;
+          iVar4 = 3;
+        } else {
+          iVar3 = 7;
+          iVar4 = 4;
+        }
+      }
+      local_8 += 2;
+      local_10--;
+      uVar6 = uVar7;
+    } while (local_10 != 0);
+  }
+}
+
+/* _tr_tally: record a literal or a match (distance/length) in deflate buffers.
+ * 0x116d10 / circular_queue.obj (deflate.c) */
+int FUN_00116d10(int param_1, int param_2, int param_3)
+{
+  short *psVar1;
+  unsigned char bVar2;
+  unsigned int uVar3;
+
+  *(short *)(*(int *)(param_1 + 0x169c) + *(int *)(param_1 + 0x1698) * 2) =
+    (short)param_2;
+  *(char *)(*(int *)(param_1 + 0x1690) + *(int *)(param_1 + 0x1698)) =
+    (char)param_3;
+  *(int *)(param_1 + 0x1698) = *(int *)(param_1 + 0x1698) + 1;
+  if (param_2 == 0) {
+    psVar1 = (short *)(param_1 + 0x8c + param_3 * 4);
+    *psVar1 += 1;
+  } else {
+    *(int *)(param_1 + 0x16a8) += 1;
+    uVar3 = (unsigned int)(param_2 - 1);
+    if ((unsigned short)uVar3 <
+          (unsigned short)(*(short *)(param_1 + 0x24) - 0x106) &&
+        (unsigned short)param_3 < 0x100) {
+      if (uVar3 < 0x100) {
+        bVar2 =
+          *(unsigned char *)((unsigned int)0x28e287 + (unsigned int)param_2);
+      } else {
+        bVar2 = *(unsigned char *)(0x28e388 + (uVar3 >> 7));
+      }
+      if (bVar2 > 0x1d) {
+        FUN_00117a80("_tr_tally: bad match");
+      }
+    } else {
+      FUN_00117a80("_tr_tally: bad match");
+    }
+    psVar1 = (short *)(param_1 + 0x490 +
+                       (unsigned int)(unsigned char)(*(
+                         unsigned char *)(0x28e488 + (unsigned int)param_3)) *
+                         4);
+    *psVar1 += 1;
+    if (uVar3 < 0x100) {
+      bVar2 = *(unsigned char *)(0x28e287 + (unsigned int)param_2);
+    } else {
+      bVar2 = *(unsigned char *)(0x28e388 + (uVar3 >> 7));
+    }
+    psVar1 = (short *)(param_1 + 0x980 + (unsigned int)bVar2 * 4);
+    *psVar1 += 1;
+  }
+  return *(int *)(param_1 + 0x1698) == *(int *)(param_1 + 0x1694) + -1;
+}
+
+/* set_data_type: set data_type field based on literal frequency counts.
+ * 0x117000 / circular_queue.obj (deflate.c)
+ * ABI: @ecx=deflate_state */
+void FUN_00117000(int state)
+{
+  unsigned int uVar1;
+  unsigned int uVar3;
+  unsigned short *puVar2;
+  int iVar4;
+
+  uVar3 = 0;
+  uVar1 = (unsigned int)*(unsigned short *)(state + 0xa4) +
+          (unsigned int)*(unsigned short *)(state + 0xa0) +
+          (unsigned int)*(unsigned short *)(state + 0x9c) +
+          (unsigned int)*(unsigned short *)(state + 0x98) +
+          (unsigned int)*(unsigned short *)(state + 0x94) +
+          (unsigned int)*(unsigned short *)(state + 0x90) +
+          (unsigned int)*(unsigned short *)(state + 0x8c);
+  puVar2 = (unsigned short *)(state + 0xa8);
+  iVar4 = 0x79;
+  do {
+    uVar3 += *puVar2;
+    puVar2 += 2;
+    iVar4--;
+  } while (iVar4 != 0);
+  puVar2 = (unsigned short *)(state + 0x28c);
+  iVar4 = 0x80;
+  do {
+    uVar1 += *puVar2;
+    puVar2 += 2;
+    iVar4--;
+  } while (iVar4 != 0);
+  *(char *)(state + 0x1c) = (char)(1 - (uVar3 >> 2 < uVar1));
+}
+
+/* bi_flush: flush the bit buffer if at least 8 bits are pending.
+ * 0x1170b0 / circular_queue.obj (deflate.c)
+ * ABI: @eax=deflate_state */
+void FUN_001170b0(int state)
+{
+  int iVar1;
+
+  if (*(int *)(state + 0x16bc) == 0x10) {
+    *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
+      *(unsigned char *)(state + 0x16b8);
+    iVar1 = *(int *)(state + 0x14) + 1;
+    *(int *)(state + 0x14) = iVar1;
+    *(unsigned char *)(iVar1 + *(int *)(state + 8)) =
+      *(unsigned char *)(state + 0x16b9);
+    *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
+    *(unsigned short *)(state + 0x16b8) = 0;
+    *(unsigned int *)(state + 0x16bc) = 0;
+    return;
+  }
+  if (*(int *)(state + 0x16bc) > 7) {
+    *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
+      *(unsigned char *)(state + 0x16b8);
+    *(unsigned short *)(state + 0x16b8) =
+      (unsigned short)*(unsigned char *)(state + 0x16b9);
+    *(int *)(state + 0x14) += 1;
+    *(int *)(state + 0x16bc) -= 8;
+  }
+}
+
+/* bi_windup: flush any remaining bits, byte-align the bit buffer.
+ * 0x117130 / circular_queue.obj (deflate.c)
+ * ABI: @eax=deflate_state; returns state (EAX unchanged) */
+int FUN_00117130(int state)
+{
+  int iVar1;
+  int iVar2;
+  unsigned char uVar3;
+
+  if (*(int *)(state + 0x16bc) < 9) {
+    if (*(int *)(state + 0x16bc) < 1) {
+      goto zero_bi;
+    }
+    iVar1 = *(int *)(state + 8);
+    iVar2 = *(int *)(state + 0x14);
+    uVar3 = *(unsigned char *)(state + 0x16b8);
+  } else {
+    *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
+      *(unsigned char *)(state + 0x16b8);
+    uVar3 = *(unsigned char *)(state + 0x16b9);
+    iVar1 = *(int *)(state + 0x14) + 1;
+    *(int *)(state + 0x14) = iVar1;
+    iVar2 = *(int *)(state + 8);
+  }
+  *(unsigned char *)(iVar1 + iVar2) = uVar3;
+  *(int *)(state + 0x14) += 1;
+zero_bi:
+  *(unsigned short *)(state + 0x16b8) = 0;
+  *(unsigned int *)(state + 0x16bc) = 0;
+  *(unsigned int *)(state + 0x16b4) =
+    (*(unsigned int *)(state + 0x16b4) + 7u) & 0xfffffff8u;
+  return state;
+}
+
+/* deflate_stored block copy: copy stored block to output with optional header.
+ * 0x1171a0 / circular_queue.obj (deflate.c)
+ * ABI: @ecx=len, @edx=buf, @eax=state (threaded through FUN_00117130), cdecl
+ * param_3=header */
+void FUN_001171a0(int len, unsigned char *buf, int state, int header)
+{
+  int iVar1;
+  int iVar2;
+  unsigned char bVar3;
+
+  iVar1 = FUN_00117130(state);
+  *(unsigned int *)(iVar1 + 0x16ac) = 8;
+  if (header != 0) {
+    *(unsigned char *)(*(int *)(iVar1 + 0x14) + *(int *)(iVar1 + 8)) =
+      (unsigned char)len;
+    iVar2 = *(int *)(iVar1 + 0x14) + 1;
+    *(int *)(iVar1 + 0x14) = iVar2;
+    bVar3 = (unsigned char)((unsigned int)len >> 8);
+    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = bVar3;
+    iVar2 = *(int *)(iVar1 + 0x14) + 1;
+    *(int *)(iVar1 + 0x14) = iVar2;
+    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~(unsigned char)len;
+    iVar2 = *(int *)(iVar1 + 0x14) + 1;
+    *(int *)(iVar1 + 0x14) = iVar2;
+    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~bVar3;
+    *(int *)(iVar1 + 0x14) = *(int *)(iVar1 + 0x14) + 1;
+    *(int *)(iVar1 + 0x16b4) += 0x20;
+  }
+  *(int *)(iVar1 + 0x16b4) += len * 8;
+  for (; len != 0; len--) {
+    *(unsigned char *)(*(int *)(iVar1 + 0x14) + *(int *)(iVar1 + 8)) = *buf++;
+    *(int *)(iVar1 + 0x14) += 1;
+  }
+}
+
+/* deflate state init: initialize tree, block, and bit-buffer fields.
+ * 0x117250 / circular_queue.obj (deflate.c) */
+void FUN_00117250(int param_1)
+{
+  *(int *)(param_1 + 0xb10) = param_1 + 0x8c;
+  *(int *)(param_1 + 0xb28) = param_1 + 0xa74;
+  *(int **)(param_1 + 0xb18) = (int *)0x320dcc;
+  *(int *)(param_1 + 0xb1c) = param_1 + 0x980;
+  *(int **)(param_1 + 0xb24) = (int *)0x320de0;
+  *(int **)(param_1 + 0xb30) = (int *)0x320df4;
+  *(unsigned short *)(param_1 + 0x16b8) = 0;
+  *(unsigned int *)(param_1 + 0x16bc) = 0;
+  *(unsigned int *)(param_1 + 0x16ac) = 8;
+  *(unsigned int *)(param_1 + 0x16b0) = 0;
+  *(unsigned int *)(param_1 + 0x16b4) = 0;
+  FUN_00116460(param_1);
+}
+
+/* gen_codes: generate Huffman codes from code-length counts and tree lengths.
+ * 0x1172d0 / circular_queue.obj (deflate.c)
+ * ABI: @eax=bl_count(short[16]), cdecl param_1=tree(ct_data*), param_2=max_code
+ */
+void FUN_001172d0(int *param_1, int param_2, short *bl_count)
+{
+  unsigned int uVar1;
+  int iVar2;
+  int iVar4;
+  int iVar5;
+  unsigned int uVar3;
+  unsigned int uVar7;
+  unsigned int uVar8;
+  unsigned int uVar9;
+  unsigned int uVar10;
+  unsigned short auStack_28[16];
+  unsigned int local_8;
+  unsigned short uVar6;
+
+  uVar6 = 0;
+  iVar2 = 1;
+  do {
+    uVar6 =
+      (unsigned short)((*(short *)((int)bl_count + iVar2 * 2 - 2) + uVar6) * 2);
+    auStack_28[iVar2] = uVar6;
+    iVar2++;
+  } while (iVar2 < 0x10);
+  if (((unsigned int)(*(unsigned short *)((int)bl_count + 0x1e) - 1) +
+       (unsigned int)uVar6) != 0x7fff) {
+    FUN_00117a80("inconsistent bit counts");
+  }
+  if (*(int *)0x320e30 > 0) {
+    crt_fprintf(*(void **)0x331070, "\ngen_codes: max_code %d ", param_2);
+  }
+  iVar2 = 0;
+  if (param_2 >= 0) {
+    do {
+      uVar10 = (unsigned int)*(unsigned short *)((int)param_1 + iVar2 * 4 + 2);
+      if (uVar10 != 0) {
+        uVar7 = (unsigned int)auStack_28[uVar10];
+        local_8 = (unsigned int)auStack_28[uVar10] + 1;
+        auStack_28[uVar10] = (unsigned short)local_8;
+        uVar1 = 0;
+        uVar8 = uVar10;
+        do {
+          uVar3 = uVar1;
+          uVar9 = uVar7 & 1;
+          uVar7 >>= 1;
+          uVar8--;
+          uVar1 = (uVar3 | uVar9) << 1;
+        } while ((int)uVar8 > 0);
+        *(unsigned short *)((int)param_1 + iVar2 * 4) =
+          (unsigned short)uVar3 | (unsigned short)uVar9;
+        if (*(int *)0x320e30 > 1 && param_1 != (int *)0x28dd90) {
+          iVar4 = uisgraph(iVar2);
+          iVar5 = iVar2;
+          if (iVar4 == 0)
+            iVar5 = 0x20;
+          crt_fprintf(
+            *(void **)0x331070, "\nn %3d %c l %2d c %4x (%x) ", iVar2, iVar5,
+            uVar10, (unsigned int)*(unsigned short *)((int)param_1 + iVar2 * 4),
+            (local_8 & 0xffff) - 1);
+        }
+      }
+      iVar2++;
+    } while (iVar2 <= param_2);
+  }
+}
+
+/* z_error: print assertion message and exit.
+ * 0x117a80 / circular_queue.obj (zutil.c) */
+void FUN_00117a80(const char *msg)
+{
+  display_assert(msg, "c:\\halo\\SOURCE\\memory\\zlib\\zutil.c", 0x30, 1);
+  system_exit(-1);
+}
+
+/* zcalloc: zlib allocator — wraps debug_malloc.
+ * 0x117ad0 / circular_queue.obj (zutil.c) */
+void *FUN_00117ad0(void *opaque, unsigned int items, unsigned int size)
+{
+  return (void *)debug_malloc(items * size, 1,
+                              "c:\\halo\\SOURCE\\memory\\zlib\\zutil.c", 0xdd);
+}
+
+/* zcfree: zlib free — wraps debug_free (ignores opaque).
+ * 0x117b00 / circular_queue.obj (zutil.c) */
+void FUN_00117b00(void *opaque, void *ptr)
+{
+  debug_free(ptr, "c:\\halo\\SOURCE\\memory\\zlib\\zutil.c", 0xe4);
+}
+
 /* Initialize an array header struct: store element_size and zero count/head.
  * Asserts that the table pointer is non-null and element_size > 0.
  * 0x117b20 / circular_queue.obj (array.c line 16-17) */
