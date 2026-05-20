@@ -2775,11 +2775,27 @@
         "Globals 0x45b1d0 (initialized byte) and 0x45b260 (queue data_t*) are not yet declared in kb.json; function uses hardcoded addresses. If/when player_queues_new has more functions ported, consider formalising update_client_globals in types.h."
       ]
     },
+    "0xb8f00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb8f40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb8f70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb8f90": {
       "kind": "function",
       "status": "ported"
     },
     "0xb8fa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb8ff0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2836,6 +2852,13 @@
       },
       "inferred": [
         "The REP MOVSD copies exactly 8 dwords (0x20 bytes) matching the player action structure size."
+      ]
+    },
+    "0xb97b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "vc71 score 74.9% is suppressed by oracle obj spanning to 0xb9900 and including NOPs+next function; actual per-function instruction match is near-identical."
       ]
     },
     "0xb9990": {
@@ -3632,6 +3655,10 @@
       "status": "ported"
     },
     "0xd0340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd0360": {
       "kind": "function",
       "status": "ported"
     },

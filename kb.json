@@ -12007,7 +12007,7 @@
           "addr": "0x100010"
         },
         {
-          "decl": "void main_get_map_name(void);",
+          "decl": "const char *main_get_map_name(void);",
           "addr": "0x100040"
         },
         {
@@ -15357,8 +15357,10 @@
           "src": "src/halo/game/player_queues_new.c"
         },
         {
-          "decl": "void FUN_000b97b0(void);",
-          "addr": "0xb97b0"
+          "decl": "void FUN_000b97b0(void *data, int sequence_index);",
+          "addr": "0xb97b0",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         }
       ]
     },
@@ -22905,7 +22907,7 @@
           "addr": "0xe43d0"
         },
         {
-          "decl": "void main_menu_is_active(void);",
+          "decl": "bool main_menu_is_active(void);",
           "addr": "0xe43e0"
         },
         {
