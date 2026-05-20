@@ -1501,25 +1501,24 @@ bool FUN_00118ec0(int queue, void *data, int data_size)
     used = used + *(int *)(queue + 0x10);
   }
 
-  if (used + data_size >= *(int *)(queue + 0x10)) {
-    return 0;
-  }
+  if (used + data_size < *(int *)(queue + 0x10)) {
+    remaining = *(int *)(queue + 0x10) - write_offset;
+    if (data_size >= remaining) {
+      csmemcpy((void *)(*(int *)(queue + 0x14) + write_offset), data, remaining);
+      data = (char *)data + remaining;
+      *(int *)(queue + 0x0c) = 0;
+      data_size = data_size - remaining;
+    }
 
-  remaining = *(int *)(queue + 0x10) - write_offset;
-  if (data_size >= remaining) {
-    csmemcpy((void *)(*(int *)(queue + 0x14) + write_offset), data, remaining);
-    data = (char *)data + remaining;
-    *(int *)(queue + 0x0c) = 0;
-    data_size = data_size - remaining;
-  }
+    if (data_size > 0) {
+      csmemcpy((void *)(*(int *)(queue + 0x14) + *(int *)(queue + 0x0c)), data,
+               data_size);
+      *(int *)(queue + 0x0c) = *(int *)(queue + 0x0c) + data_size;
+    }
 
-  if (data_size > 0) {
-    csmemcpy((void *)(*(int *)(queue + 0x14) + *(int *)(queue + 0x0c)), data,
-             data_size);
-    *(int *)(queue + 0x0c) = *(int *)(queue + 0x0c) + data_size;
+    assert_halt(*(int *)(queue + 0x0c) >= 0 &&
+                *(int *)(queue + 0x0c) < *(int *)(queue + 0x10));
+    return 1;
   }
-
-  assert_halt(*(int *)(queue + 0x0c) >= 0 &&
-              *(int *)(queue + 0x0c) < *(int *)(queue + 0x10));
-  return 1;
+  return 0;
 }
