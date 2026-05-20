@@ -13295,15 +13295,18 @@
         },
         {
           "decl": "void network_game_server_add_player_to_game(void);",
-          "addr": "0x12c7e0"
+          "addr": "0x12c7e0",
+          "ported": null
         },
         {
-          "decl": "void network_game_server_remove_player_from_game(void);",
-          "addr": "0x12c920"
+          "decl": "char network_game_server_remove_player_from_game(int param_1, int param_2, int param_3);",
+          "addr": "0x12c920",
+          "ported": true
         },
         {
-          "decl": "void FUN_0012CA00(void);",
-          "addr": "0x12ca00"
+          "decl": "char FUN_0012ca00(int param_1, int param_2, int param_3);",
+          "addr": "0x12ca00",
+          "ported": true
         },
         {
           "decl": "void network_game_server_client_machine_game_loading_complete(void);",
@@ -32013,7 +32016,7 @@
           "addr": "0x12a960"
         },
         {
-          "decl": "void network_game_update_machine(void);",
+          "decl": "char network_game_update_machine(int game, int machine_description);",
           "addr": "0x12a9f0"
         },
         {
@@ -32045,7 +32048,7 @@
           "addr": "0x12b1f0"
         },
         {
-          "decl": "void network_game_remove_player(void);",
+          "decl": "char network_game_remove_player(int game, int player);",
           "addr": "0x12b290"
         },
         {

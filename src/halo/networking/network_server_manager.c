@@ -395,6 +395,81 @@ bool network_game_server_client_machine_is_joined_to_game(int server,
   return (*(uint8_t *)((char *)machine + 0xe) >> 1) & 1;
 }
 
+/* network_game_server_remove_player_from_game — 0x12c920
+ * Removes a player from the game if machine IDs match. Asserts server,
+ * machine, and player are all non-null. Returns 1 on success. */
+char network_game_server_remove_player_from_game(int param_1, int param_2,
+                                                  int param_3)
+{
+  char cVar1;
+
+  if (param_1 == 0) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x4a0, 1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert("machine",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x4a1, 1);
+    system_exit(-1);
+  }
+  if (param_3 == 0) {
+    display_assert("player",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x4a2, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(param_2 + 0xc) == (short)*(char *)(param_3 + 0x1c)) {
+    cVar1 = network_game_remove_player(param_1 + 8, param_3);
+    if (cVar1 == '\x01') {
+      network_game_log(
+        "server removed player from machine #%d at controller index #%d from the game",
+        (int)*(char *)(param_3 + 0x1c), (int)*(char *)(param_3 + 0x1d));
+      return '\x01';
+    }
+    network_game_log(
+      "network_game_remove_player() failed in "
+      "network_game_server_remove_player_from_game()");
+    return cVar1;
+  }
+  network_game_log(
+    "client machine tried to remove a player with a non-matching machine identifier");
+  return '\0';
+}
+
+/* FUN_0012ca00 — 0x12ca00
+ * Validates and updates machine description if the machine's ID matches.
+ * Asserts server, machine, and machine_description non-null. Returns 1
+ * on success, or the error code from network_game_update_machine. */
+char FUN_0012ca00(int param_1, int param_2, int param_3)
+{
+  char cVar1;
+
+  if (((param_1 == 0) || (param_2 == 0)) || (param_3 == 0)) {
+    display_assert("server && machine && machine_description",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x4bf, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(param_2 + 0xc) == (short)*(char *)(param_3 + 0x40)) {
+    cVar1 = network_game_update_machine(param_1 + 8, param_3);
+    if (cVar1 == '\x01') {
+      network_game_log("server updated machine #%d settings",
+                       (int)*(char *)(param_3 + 0x40));
+      return '\x01';
+    }
+    network_game_log(
+      "network_game_update_machine() failed in "
+      "network_game_server_adjust_machine_settings()");
+    return cVar1;
+  }
+  network_game_log(
+    "client machine tried to update itself with a non-matching machine identifier");
+  return '\0';
+}
+
 /* Finalize server loading after all machines have loaded (0x12caa0).
  * Sets the server state to 1, clears the timer at +0x484, then copies a
  * "local game data loaded" flag from the client's game-data region into
