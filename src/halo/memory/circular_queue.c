@@ -166,13 +166,13 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
   int *new_var;
   unsigned int n;
   new_var = (int *)0;
+  n = dictLength;
   if (z != 0 && *(int **)(z + 0x1c) != new_var && **(int **)(z + 0x1c) == 6) {
     adler_check = FUN_00110a10(1, dictionary, (int)dictLength);
     if (adler_check != *(int *)(z + 0x30))
       return (int)0xfffffffd;
     *(int *)(z + 0x30) = 1;
     wsize = 1 << (*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
-    n = dictLength;
     if (dictLength >= wsize) {
       n = wsize - 1;
       dictionary = dictionary + (int)(dictLength - n);
