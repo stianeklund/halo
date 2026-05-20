@@ -837,6 +837,13 @@ void FUN_00117a80(const char *msg)
   system_exit(-1);
 }
 
+/* zError: return the error message string for a zlib error code.
+ * 0x117ab0 / circular_queue.obj (zutil.c) */
+const char *FUN_00117ab0(int errcode)
+{
+  return ((const char **)0x320e10)[-errcode];
+}
+
 /* zcalloc: zlib allocator — wraps debug_malloc.
  * 0x117ad0 / circular_queue.obj (zutil.c) */
 void *FUN_00117ad0(void *opaque, unsigned int items, unsigned int size)

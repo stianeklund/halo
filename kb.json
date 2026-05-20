@@ -31535,8 +31535,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00117ab0(void);",
-          "addr": "0x117ab0"
+          "decl": "const char *FUN_00117ab0(int errcode);",
+          "addr": "0x117ab0",
+          "ported": true
         },
         {
           "decl": "void *FUN_00117ad0(void *opaque, unsigned int items, unsigned int size);",
