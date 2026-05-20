@@ -1,3 +1,191 @@
+/* inflate_blocks_free: reset blocks state, free window, workaround, and state.
+ * 0x114630 / circular_queue.obj (inflate.c) */
+int FUN_00114630(int s, int z)
+{
+  FUN_00113930(s, z, 0);
+  ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
+                                                     *(void **)(s + 0x28));
+  ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
+                                                     *(void **)(s + 0x24));
+  ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
+                                                     (void *)s);
+  if (*(int *)0x320e30 > 0)
+    crt_fprintf(*(void **)0x331070, "inflate:   blocks freed\n");
+  return 0;
+}
+
+/* inflate_blocks_set_dictionary: copy dictionary into sliding window.
+ * 0x114690 / circular_queue.obj (inflate.c) */
+void FUN_00114690(int s, int d, int n)
+{
+  csmemcpy((void *)*(int *)(s + 0x28), (void *)d, n);
+  n = n + *(int *)(s + 0x28);
+  *(int *)(s + 0x34) = n;
+  *(int *)(s + 0x30) = n;
+}
+
+/* inflate_blocks_sync_point: return 1 if blocks state == 1.
+ * 0x1146c0 / circular_queue.obj (inflate.c) */
+int FUN_001146c0(int *param_1)
+{
+  return *param_1 == 1;
+}
+
+/* inflate_codes_new: allocate and initialize a codes state struct.
+ * 0x1146e0 / circular_queue.obj (inflate.c) */
+void *FUN_001146e0(int bl, int bd, int tl, int td, int z)
+{
+  int *c;
+  c = (int *)(*(void *(*)(void *, unsigned int, unsigned int))(
+    *(void **)(z + 0x20)))(*(void **)(z + 0x28), 1, 0x1c);
+  if (c != (int *)0) {
+    *((char *)c + 0x10) = (char)bl;
+    c[0] = 0;
+    *((char *)c + 0x11) = (char)bd;
+    c[5] = tl;
+    c[6] = td;
+    if (*(int *)0x320e30 > 0)
+      crt_fprintf(*(void **)0x331070, "inflate:       codes new\n");
+  }
+  return (void *)c;
+}
+
+/* inflate_codes_free: free a codes state struct.
+ * 0x114f60 / circular_queue.obj (inflate.c) */
+void FUN_00114f60(int c, int z)
+{
+  ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
+                                                     (void *)c);
+  if (*(int *)0x320e30 > 0)
+    crt_fprintf(*(void **)0x331070, "inflate:       codes free\n");
+}
+
+/* inflateReset: reset inflate stream state to initial values.
+ * 0x1153c0 / circular_queue.obj (inflate.c) */
+int FUN_001153c0(int z)
+{
+  unsigned int *s;
+  if (z == 0)
+    return (int)0xfffffffe;
+  s = *(unsigned int **)(z + 0x1c);
+  if (s == (unsigned int *)0)
+    return (int)0xfffffffe;
+  *(int *)(z + 0x14) = 0;
+  *(int *)(z + 0x08) = 0;
+  *(int *)(z + 0x18) = 0;
+  *s = (unsigned int)(-(int)(s[3] != 0)) & 7u;
+  FUN_00113930(*(int *)(*(int *)(z + 0x1c) + 0x14), z, 0);
+  if (*(int *)0x320e30 > 0)
+    crt_fprintf(*(void **)0x331070, "inflate: reset\n");
+  return 0;
+}
+
+/* inflateEnd: tear down inflate stream and free internal state.
+ * 0x115430 / circular_queue.obj (inflate.c) */
+int FUN_00115430(int z)
+{
+  int blocks;
+  if (z == 0)
+    return (int)0xfffffffe;
+  if (*(int *)(z + 0x1c) == 0)
+    return (int)0xfffffffe;
+  if (*(int *)(z + 0x24) == 0)
+    return (int)0xfffffffe;
+  blocks = *(int *)(*(int *)(z + 0x1c) + 0x14);
+  if (blocks != 0)
+    FUN_00114630(blocks, z);
+  ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
+                                                     *(void **)(z + 0x1c));
+  *(int *)(z + 0x1c) = 0;
+  if (*(int *)0x320e30 > 0)
+    crt_fprintf(*(void **)0x331070, "inflate: end\n");
+  return 0;
+}
+
+/* inflateInit2_: initialize inflate stream with explicit window bits and
+ * version check. 0x1154a0 / circular_queue.obj (inflate.c) */
+int FUN_001154a0(int z, int w, char *version, int stream_size)
+{
+  int iVar1;
+  int nowrap_flag;
+  int adler_fn;
+  if (version == (char *)0 || *version != '1' || stream_size != 0x38)
+    return (int)0xfffffffa;
+  if (z == 0)
+    return (int)0xfffffffe;
+  *(int *)(z + 0x18) = 0;
+  if (*(int *)(z + 0x20) == 0) {
+    *(void **)(z + 0x20) = (void *)FUN_00117ad0;
+    *(int *)(z + 0x28) = 0;
+  }
+  if (*(int *)(z + 0x24) == 0) {
+    *(void **)(z + 0x24) = (void *)FUN_00117b00;
+  }
+  iVar1 = (int)(*(void *(*)(void *, unsigned int, unsigned int))(
+    *(void **)(z + 0x20)))(*(void **)(z + 0x28), 1, 0x18);
+  *(int *)(z + 0x1c) = iVar1;
+  if (iVar1 == 0)
+    return (int)0xfffffffc;
+  *(int *)(iVar1 + 0x14) = 0;
+  *(int *)(*(int *)(z + 0x1c) + 0x0c) = 0;
+  if (w < 0) {
+    w = -w;
+    *(int *)(*(int *)(z + 0x1c) + 0x0c) = 1;
+  }
+  if (w < 8 || w > 15) {
+    FUN_00115430(z);
+    return (int)0xfffffffe;
+  }
+  *(int *)(*(int *)(z + 0x1c) + 0x10) = w;
+  nowrap_flag = *(int *)(*(int *)(z + 0x1c) + 0x0c);
+  adler_fn = ((nowrap_flag != 0) - 1) & 0x110a10;
+  *(void **)(*(int *)(z + 0x1c) + 0x14) =
+    FUN_001139d0(z, adler_fn, 1 << ((unsigned char)w & 0x1f));
+  if (*(int *)(*(int *)(z + 0x1c) + 0x14) != 0) {
+    if (*(int *)0x320e30 > 0)
+      crt_fprintf(*(void **)0x331070, "inflate: allocated\n");
+    FUN_001153c0(z);
+    return 0;
+  }
+  FUN_00115430(z);
+  return (int)0xfffffffc;
+}
+
+/* inflateInit: initialize inflate stream with default window bits
+ * (MAX_WBITS=15). 0x1155c0 / circular_queue.obj (inflate.c) */
+int FUN_001155c0(int z, char *version, int stream_size)
+{
+  return FUN_001154a0(z, 0xf, version, stream_size);
+}
+
+/* inflateSetDictionary: set the decompression dictionary after DICT check.
+ * 0x115a00 / circular_queue.obj (inflate.c) */
+int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
+{
+  int adler_check;
+  unsigned int wsize;
+  unsigned int n;
+  if (z == 0)
+    return (int)0xfffffffe;
+  if (*(int **)(z + 0x1c) == (int *)0)
+    return (int)0xfffffffe;
+  if (**(int **)(z + 0x1c) != 6)
+    return (int)0xfffffffe;
+  adler_check = FUN_00110a10(1, dictionary, (int)dictLength);
+  if (adler_check != *(int *)(z + 0x30))
+    return (int)0xfffffffd;
+  *(int *)(z + 0x30) = 1;
+  wsize = 1u << ((unsigned char)*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
+  n = dictLength;
+  if (wsize <= dictLength) {
+    n = wsize - 1;
+    dictionary = dictionary + (int)(dictLength - n);
+  }
+  FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
+  **(int **)(z + 0x1c) = 7;
+  return 0;
+}
+
 /* Initialize an array header struct: store element_size and zero count/head.
  * Asserts that the table pointer is non-null and element_size > 0.
  * 0x117b20 / circular_queue.obj (array.c line 16-17) */

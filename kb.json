@@ -19197,7 +19197,7 @@
           "addr": "0x1108b0"
         },
         {
-          "decl": "void FUN_00110a10(void);",
+          "decl": "int FUN_00110a10(int adler, int buf, int len);",
           "addr": "0x110a10"
         },
         {
@@ -19381,11 +19381,11 @@
           "addr": "0x113910"
         },
         {
-          "decl": "void FUN_00113930(void);",
+          "decl": "void FUN_00113930(int s, int z, int last);",
           "addr": "0x113930"
         },
         {
-          "decl": "void FUN_001139d0(void);",
+          "decl": "void *FUN_001139d0(int z, int adler_fn, int wsize);",
           "addr": "0x1139d0"
         },
         {
@@ -31339,56 +31339,66 @@
       "data": [],
       "functions": [
         {
-          "decl": "void FUN_00114630(void);",
-          "addr": "0x114630"
+          "decl": "int FUN_00114630(int s, int z);",
+          "addr": "0x114630",
+          "ported": true
         },
         {
-          "decl": "void FUN_00114690(void);",
-          "addr": "0x114690"
+          "decl": "void FUN_00114690(int s, int d, int n);",
+          "addr": "0x114690",
+          "ported": true
         },
         {
-          "decl": "void FUN_001146c0(void);",
-          "addr": "0x1146c0"
+          "decl": "int FUN_001146c0(int *param_1);",
+          "addr": "0x1146c0",
+          "ported": true
         },
         {
-          "decl": "void FUN_001146e0(void);",
-          "addr": "0x1146e0"
+          "decl": "void *FUN_001146e0(int bl, int bd, int tl, int td, int z);",
+          "addr": "0x1146e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00114740(void);",
           "addr": "0x114740"
         },
         {
-          "decl": "void FUN_00114f60(void);",
-          "addr": "0x114f60"
+          "decl": "void FUN_00114f60(int c, int z);",
+          "addr": "0x114f60",
+          "ported": true
         },
         {
           "decl": "void FUN_00114fa0(void);",
           "addr": "0x114fa0"
         },
         {
-          "decl": "void FUN_001153c0(void);",
-          "addr": "0x1153c0"
+          "decl": "int FUN_001153c0(int z);",
+          "addr": "0x1153c0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00115430(void);",
-          "addr": "0x115430"
+          "decl": "int FUN_00115430(int z);",
+          "addr": "0x115430",
+          "ported": true
         },
         {
-          "decl": "void FUN_001154a0(void);",
-          "addr": "0x1154a0"
+          "decl": "int FUN_001154a0(int z, int w, char *version, int stream_size);",
+          "addr": "0x1154a0",
+          "ported": true
         },
         {
-          "decl": "void FUN_001155c0(void);",
-          "addr": "0x1155c0"
+          "decl": "int FUN_001155c0(int z, char *version, int stream_size);",
+          "addr": "0x1155c0",
+          "ported": true
         },
         {
           "decl": "void FUN_001155e0(void);",
           "addr": "0x1155e0"
         },
         {
-          "decl": "void FUN_00115a00(void);",
-          "addr": "0x115a00"
+          "decl": "int FUN_00115a00(int z, int dictionary, unsigned int dictLength);",
+          "addr": "0x115a00",
+          "ported": true
         },
         {
           "decl": "void FUN_00115a90(void);",
@@ -31511,11 +31521,11 @@
           "addr": "0x117ab0"
         },
         {
-          "decl": "void FUN_00117ad0(void);",
+          "decl": "void *FUN_00117ad0(void *opaque, unsigned int items, unsigned int size);",
           "addr": "0x117ad0"
         },
         {
-          "decl": "void FUN_00117b00(void);",
+          "decl": "void FUN_00117b00(void *opaque, void *ptr);",
           "addr": "0x117b00"
         },
         {
