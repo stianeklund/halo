@@ -5104,11 +5104,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x117b90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x117ff0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "array[0]=element_size, array[1]=count, array[2]=elements pointer \u2014 struct layout inferred from parallel functions in same TU (0x117ee0, 0x117c60).",
+        "profiling section at 0x321a28 uses enable flag at 0x321a30 (section_base+8); consistent with dynamic_array profiling section label in decompiler."
+      ]
+    },
+    "0x118d60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x118de0": {
       "kind": "function",
       "status": "ported"
     },
     "0x118e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x118e70": {
       "kind": "function",
       "status": "ported"
     },
