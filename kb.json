@@ -5588,9 +5588,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00119bf0(void);",
+          "decl": "bool FUN_00119bf0(unsigned int *param_1, unsigned int param_2, int param_3, unsigned int *param_4);",
           "addr": "0x119bf0",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_00119c50(int *state, int buf, int buf_size);",

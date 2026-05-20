@@ -2077,6 +2077,14 @@
       "metadata": {
         "source_path": "src/halo/memory/data.c"
       }
+    },
+    {
+      "name": "halo/data_encoding_FUN_119bf0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/data.c.obj",
+      "base_path": "delinked/data_encoding_FUN_119bf0.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/data.c"
+      }
     }
   ]
 }

@@ -433,6 +433,33 @@ unsigned int FUN_00119bb0(unsigned int *buf, unsigned int size)
   return uVar1;
 }
 
+/* Byte-swap the first 4 bytes of param_1 (if param_2 > 3), store in *param_4,
+ * then call FUN_001179e0 to decode remaining elements.
+ * Returns true if FUN_001179e0 returned 0.
+ * 0x119bf0 / data.obj (data_encoding.c)
+ */
+bool FUN_00119bf0(unsigned int *param_1, unsigned int param_2, int param_3,
+                  unsigned int *param_4)
+{
+  unsigned char bVar1;
+  unsigned int uVar1;
+  int iVar2;
+
+  bVar1 = 0;
+  uVar1 = 0;
+  if (3 < param_2) {
+    uVar1 = *param_1;
+    uVar1 = ((uVar1 & 0xff0000) | uVar1 >> 0x10) >> 8 |
+            ((uVar1 << 0x10) | (uVar1 & 0xff00)) << 8;
+  }
+  *param_4 = uVar1;
+  iVar2 = FUN_001179e0(param_3, param_4, param_1 + 1, param_2);
+  if (iVar2 == 0) {
+    bVar1 = 1;
+  }
+  return bVar1;
+}
+
 /* Initialize a data encoding state struct with buffer and size.
  * Zeroes the 16-byte struct, then sets buf and buf_size fields.
  * 0x119c50 / data.obj
