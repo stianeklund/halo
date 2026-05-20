@@ -11034,8 +11034,10 @@
           "addr": "0xd1dd0"
         },
         {
-          "decl": "void FUN_000d1e90(void);",
-          "addr": "0xd1e90"
+          "decl": "void FUN_000d1e90(float alpha, float intensity);",
+          "addr": "0xd1e90",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void FUN_000d1f40(void);",
