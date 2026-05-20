@@ -60,6 +60,38 @@ void update_client_start(void)
   }
 }
 
+void update_client_add_player(int handle)
+{
+  int queue_index;
+  queue_index = data_new_datum(*(data_t **)0x45b260, handle);
+  if (queue_index == -1) {
+    display_assert("queue_index!=NONE",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x182, 1);
+    system_exit(-1);
+  }
+}
+
+void update_client_queue(void *data)
+{
+  int i;
+  int *dst;
+  int *src;
+  dst = (int *)(0x45b1dc + *(int *)0x45b25c * 0x20);
+  src = (int *)data;
+  for (i = 8; i != 0; i--) {
+    *dst = *src;
+    dst++;
+    src++;
+  }
+  *(int *)0x45b25c = *(int *)0x45b25c + 1;
+}
+
+void update_client_queue_push(void)
+{
+  *(int *)0x45b25c = 0;
+  csmemset((void *)0x45b1dc, 0, 0x80);
+}
+
 /* Return the number of queued action ticks (inclusive range from
  * first_action_index to last_action_index in the client globals). */
 int update_get_maximum_actions(void)
@@ -79,6 +111,18 @@ void update_client_build_client_update(void *action_collection)
     system_exit(-1);
   }
   csmemcpy(action_collection, (void *)0x45b1dc, 0x80);
+}
+
+int player_new_queue(int handle)
+{
+  int queue_index;
+  queue_index = data_new_datum(*(data_t **)0x4570c8, handle);
+  if (queue_index == -1) {
+    display_assert("queue_index!=NONE",
+                   "c:\\halo\\SOURCE\\game\\player_queues_new.c", 0x292, 1);
+    system_exit(-1);
+  }
+  return queue_index;
 }
 
 /* Look up a snapshot buffer entry by index. Returns a pointer into the

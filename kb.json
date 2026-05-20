@@ -15334,20 +15334,27 @@
           "ported": true
         },
         {
-          "decl": "void update_client_add_player(void);",
-          "addr": "0xb8f00"
+          "decl": "void update_client_add_player(int handle);",
+          "addr": "0xb8f00",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         },
         {
-          "decl": "void update_client_queue(void);",
-          "addr": "0xb8f40"
+          "decl": "void update_client_queue(void *data);",
+          "addr": "0xb8f40",
+          "ported": null
         },
         {
           "decl": "void update_client_queue_push(void);",
-          "addr": "0xb8f70"
+          "addr": "0xb8f70",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         },
         {
-          "decl": "void player_new_queue(void);",
-          "addr": "0xb8ff0"
+          "decl": "int player_new_queue(int handle);",
+          "addr": "0xb8ff0",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         },
         {
           "decl": "void FUN_000b97b0(void);",
