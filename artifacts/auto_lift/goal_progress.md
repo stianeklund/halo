@@ -27,3 +27,4 @@
 | FUN_001bdd70 | 0x1bdd70 | predicted_resources.c | pass | 100% | committed | 2-insn leaf: MOV EAX,[0x4e9260]; RET |
 | FUN_001bde90 | 0x1bde90 | predicted_resources.c | pass | 100% | committed | data_dispose + lruv_cache_dispose + zero flag |
 | FUN_001bdec0 | 0x1bdec0 | predicted_resources.c | pass | 100% | committed | data_delete_all single call |
+| FUN_000b97b0 | 0xb97b0 | player_queues_new.c | pass | 90.5% | committed | update action buffer slot; boundary artifact in wide ref corrected to b9880 |
