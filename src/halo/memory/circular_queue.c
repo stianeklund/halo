@@ -300,15 +300,15 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
                                                        0x120, 4);
   if (iVar1 == 0)
     return -4;
-  iVar2 = FUN_00115ba0((int *)param_3, param_1, 0x101, (int)0x28d960,
-                       (int)0x28d9e0, (int *)param_6, param_8, &local_8,
-                       (unsigned int *)iVar1);
+  iVar2 =
+    FUN_00115ba0((int *)param_3, param_1, 0x101, (int)0x28d960, (int)0x28d9e0,
+                 (int *)param_6, param_8, &local_8, (unsigned int *)iVar1);
   if (iVar2 == 0) {
     if (*param_4 != 0) {
       iVar2 =
         FUN_00115ba0((int *)(param_3 + (int)param_1 * 4), (unsigned int)param_2,
-                     0, (int)0x28da60, (int)0x28dad8, (int *)param_7,
-                     param_8, &local_8, (unsigned int *)iVar1);
+                     0, (int)0x28da60, (int)0x28dad8, (int *)param_7, param_8,
+                     &local_8, (unsigned int *)iVar1);
       if (iVar2 == 0) {
         if (*param_5 != 0 || param_1 < 0x102) {
           (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
@@ -872,6 +872,72 @@ void array_new(int *table, int element_size)
   table[2] = 0;
 }
 
+/* Resize a dynamic array to new_count elements. Reallocates the element
+ * buffer via debug_realloc and zero-initializes any newly allocated entries.
+ * Returns 1 on success, 0 if new_count < 0, new_count > INT_MAX, or
+ * if the realloc result is inconsistent with new_count (allocation failure).
+ * Wrapped in profiling guards (0x449ef1 / 0x320e40 / 0x320e38).
+ * 0x117b90 / circular_queue.obj (array.c line 33-44) */
+int array_resize(int *array, int new_count)
+{
+  int success;
+  int old_count;
+  int element_size;
+  int new_elements;
+  int new_nonzero;
+  int old_nonzero;
+
+  success = 0;
+  if (array == (int *)0x0) {
+    display_assert("array", "c:\\halo\\SOURCE\\memory\\array.c", 0x21, 1);
+    system_exit(-1);
+  }
+  if (array[0] < 1) {
+    display_assert("array->element_size>0", "c:\\halo\\SOURCE\\memory\\array.c",
+                   0x22, 1);
+    system_exit(-1);
+  }
+  if (array[1] < 0) {
+    display_assert("array->count>=0", "c:\\halo\\SOURCE\\memory\\array.c", 0x23,
+                   1);
+    system_exit(-1);
+  }
+  old_nonzero = (array[1] != 0);
+  if (old_nonzero != (array[2] != 0)) {
+    display_assert("(array->count!=0)==(array->elements!=NULL)",
+                   "c:\\halo\\SOURCE\\memory\\array.c", 0x24, 1);
+    system_exit(-1);
+  }
+  if (*(char *)0x449ef1 != 0 && *(char *)0x320e40 != 0) {
+    profile_enter_private((void *)0x320e38);
+  }
+  if (new_count >= 0) {
+    if (new_count != array[1]) {
+      new_elements =
+        (int)debug_realloc((void *)array[2], array[0] * new_count,
+                           "c:\\halo\\SOURCE\\memory\\array.c", 0x2c);
+      new_nonzero = (new_elements != 0);
+      if ((new_count != 0) != (new_nonzero != 0)) {
+        goto done;
+      }
+      old_count = array[1];
+      if (old_count < new_count) {
+        element_size = array[0];
+        csmemset((void *)(new_elements + old_count * element_size), 0,
+                 (new_count - old_count) * element_size);
+      }
+      array[1] = new_count;
+      array[2] = new_elements;
+    }
+    success = 1;
+  }
+done:
+  if (*(char *)0x449ef1 != 0 && *(char *)0x320e40 != 0) {
+    profile_exit_private((void *)0x320e38);
+  }
+  return success;
+}
+
 /* Dispose of a dynamic array: free its element buffer and reset fields.
  * Asserts non-null array, non-negative count, and consistency between
  * count and element pointer. Frees via debug_realloc(ptr, 0) and stores
@@ -899,6 +965,64 @@ void FUN_00117cf0(int *param_1)
     param_1[2] = (int)debug_realloc((void *)param_1[2], 0,
                                     "c:\\halo\\SOURCE\\memory\\array.c", 0x50);
   }
+}
+
+/* Append one element to a dynamic array, growing via realloc.
+ * Validates array integrity, then reallocs to count+1 elements, zeroes the
+ * new slot, and returns the old count (= index of the new element).
+ * Returns -1 if count is already INT_MAX or if realloc fails.
+ * 0x117da0 / circular_queue.obj (array.c line 93) */
+int FUN_00117da0(int *array)
+{
+    int new_count;
+    void *new_elements;
+    int old_index;
+
+    if (array == (int *)0x0) {
+        display_assert("array", "c:\\halo\\SOURCE\\memory\\array.c", 0x5d, 1);
+        system_exit(-1);
+    }
+    if (array[0] < 1) {
+        display_assert("array->element_size>0",
+                       "c:\\halo\\SOURCE\\memory\\array.c", 0x5e, 1);
+        system_exit(-1);
+    }
+    if (array[1] < 0) {
+        display_assert("array->count>=0",
+                       "c:\\halo\\SOURCE\\memory\\array.c", 0x5f, 1);
+        system_exit(-1);
+    }
+    if ((array[1] != 0) != (array[2] != 0)) {
+        display_assert("(array->count!=0)==(array->elements!=NULL)",
+                       "c:\\halo\\SOURCE\\memory\\array.c", 0x60, 1);
+        system_exit(-1);
+    }
+
+    if (*(char *)0x449ef1 != 0 && *(char *)0x321438 != 0) {
+        profile_enter_private((void *)0x321430);
+    }
+
+    old_index = -1;
+    if (array[1] < 0x7fffffff) {
+        new_count = array[1] + 1;
+        new_elements = debug_realloc((void *)array[2],
+                                     array[0] * new_count,
+                                     "c:\\halo\\SOURCE\\memory\\array.c",
+                                     0x67);
+        if (new_elements != (void *)0x0) {
+            old_index = array[1];
+            csmemset((void *)(array[0] * old_index + (int)new_elements),
+                     0, array[0]);
+            array[1] = new_count;
+            array[2] = (int)new_elements;
+        }
+    }
+
+    if (*(char *)0x449ef1 != 0 && *(char *)0x321438 != 0) {
+        profile_exit_private((void *)0x321430);
+    }
+
+    return old_index;
 }
 
 /* Return the address of an element at the given index in a dynamic array.
@@ -938,6 +1062,65 @@ int FUN_00117ee0(int *array, int index, int element_size)
     system_exit(-1);
   }
   return array[0] * index + array[2];
+}
+
+/* Remove the element at index from a dynamic array, shifting subsequent
+ * elements down via csmemmove, then shrink the allocation via debug_realloc.
+ * Validates array integrity and index bounds before and after the operation.
+ * 0x117ff0 / circular_queue.obj (array.c line 0x8b) */
+void FUN_00117ff0(int *array, int index)
+{
+  int element_size;
+  int new_count;
+  int dest;
+  void *new_ptr;
+
+  if (array == (int *)0x0) {
+    display_assert("array", "c:\\halo\\SOURCE\\memory\\array.c", 0x8b, 1);
+    system_exit(-1);
+  }
+  if (array[0] < 1) {
+    display_assert("array->element_size>0", "c:\\halo\\SOURCE\\memory\\array.c",
+                   0x8c, 1);
+    system_exit(-1);
+  }
+  if (array[1] < 0) {
+    display_assert("array->count>=0", "c:\\halo\\SOURCE\\memory\\array.c", 0x8d,
+                   1);
+    system_exit(-1);
+  }
+  if ((array[1] != 0) != (array[2] != 0)) {
+    display_assert("(array->count!=0)==(array->elements!=NULL)",
+                   "c:\\halo\\SOURCE\\memory\\array.c", 0x8e, 1);
+    system_exit(-1);
+  }
+  if ((index < 0) || (array[1] <= index)) {
+    display_assert("index>=0 && index<array->count",
+                   "c:\\halo\\SOURCE\\memory\\array.c", 0x8f, 1);
+    system_exit(-1);
+  }
+  if (*(char *)0x449ef1 != 0 && *(char *)0x321a30 != 0) {
+    profile_enter_private((void *)0x321a28);
+  }
+  element_size = array[0];
+  new_count = array[1] - 1;
+  array[1] = new_count;
+  if (index < new_count) {
+    dest = element_size * index + array[2];
+    csmemmove((void *)dest, (const void *)(element_size + dest),
+              (unsigned int)((new_count - index) * element_size));
+  }
+  new_ptr = debug_realloc((void *)array[2], element_size * array[1],
+                          "c:\\halo\\SOURCE\\memory\\array.c", 0x9c);
+  array[2] = (int)new_ptr;
+  if ((array[1] != 0) != (array[2] != 0)) {
+    display_assert("(array->count!=0)==(array->elements!=NULL)",
+                   "c:\\halo\\SOURCE\\memory\\array.c", 0x9d, 1);
+    system_exit(-1);
+  }
+  if (*(char *)0x449ef1 != 0 && *(char *)0x321a30 != 0) {
+    profile_exit_private((void *)0x321a28);
+  }
 }
 
 /* Initialize a small fixed-size array: zero the count byte and fill

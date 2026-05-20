@@ -31555,8 +31555,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00117b90(void);",
-          "addr": "0x117b90"
+          "decl": "int array_resize(int *array, int new_count);",
+          "addr": "0x117b90",
+          "name": "array_resize",
+          "ported": true
         },
         {
           "decl": "void FUN_00117cf0(int *table);",
@@ -31564,8 +31566,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00117da0(void);",
-          "addr": "0x117da0"
+          "decl": "int FUN_00117da0(int *array);",
+          "addr": "0x117da0",
+          "ported": true
         },
         {
           "decl": "int FUN_00117ee0(int *array, int index, int element_size);",
@@ -31573,8 +31576,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00117ff0(void);",
-          "addr": "0x117ff0"
+          "decl": "void FUN_00117ff0(int *array, int index);",
+          "addr": "0x117ff0",
+          "ported": true
         },
         {
           "decl": "void FUN_00118190(unsigned char *count, int elements, short element_size, short maximum_count);",
