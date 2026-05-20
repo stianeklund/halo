@@ -1263,6 +1263,14 @@
       }
     },
     {
+      "name": "halo/collision_usage_FUN_0014cde0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014cde0.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
       "name": "halo/collision_usage_FUN_14da80",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
       "base_path": "delinked/collision_usage_FUN_14da80.obj",
@@ -1988,6 +1996,14 @@
       "base_path": "delinked/effects_9c910_tight.obj",
       "metadata": {
         "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/hud_d0340_d0440",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d0340_d0440.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
       }
     }
   ]

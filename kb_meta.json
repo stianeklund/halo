@@ -1587,6 +1587,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x97980": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x97a50": {
       "kind": "function",
       "status": "ported"
@@ -1773,6 +1777,29 @@
       "status": "ported"
     },
     "0x9cdd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ce80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ce90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9ceb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Register allocation difference: MSVC chose EBX for effect_handle (parameter saved across calls), clang chose EDI; this causes structural prologue/epilogue differences contributing to the 87.3% VC71 ceiling.",
+        "FUN_0009cb90 thunk mechanism: reference uses direct register-arg setup (lea+mov before CALL); compiled version uses cdecl push+thunk, adding 2 extra instructions per call path which prevents memory-direct 'orb' emission from VC71."
+      ],
+      "uncertain": [
+        "HDATA dllimport on effect_data adds an extra dereference instruction in compiled code (mov (%eax),%ecx) versus the original single-load; this costs 1 LCS match and is a build-system artifact not fixable in C."
+      ]
+    },
+    "0x9cf40": {
       "kind": "function",
       "status": "ported"
     },
@@ -2842,6 +2869,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb9b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9ba0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb9bc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb9d30": {
       "kind": "function",
       "status": "ported"
@@ -3589,6 +3628,14 @@
       "status": "ported"
     },
     "0xd01c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd0340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd03e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4874,6 +4921,10 @@
       ]
     },
     "0x10b380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10b3c0": {
       "kind": "function",
       "status": "ported"
     },

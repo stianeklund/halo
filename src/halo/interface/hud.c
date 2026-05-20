@@ -1,3 +1,21 @@
+void hud_dispose(void)
+{
+  FUN_000db140();
+  FUN_000d6020();
+  FUN_000d8b80();
+  FUN_000d7430();
+  FUN_000d46e0();
+}
+
+void hud_dispose_from_old_map(void)
+{
+  FUN_000db1b0();
+  FUN_000d6010();
+  FUN_000d8b70();
+  FUN_000d7420();
+  FUN_000d46d0();
+}
+
 void hud_update(void)
 {
   int i;

@@ -10902,7 +10902,9 @@
       "functions": [
         {
           "decl": "void hud_dispose(void);",
-          "addr": "0xd0340"
+          "addr": "0xd0340",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void hud_initialize_for_new_map(void);",
@@ -10910,7 +10912,9 @@
         },
         {
           "decl": "void hud_dispose_from_old_map(void);",
-          "addr": "0xd03e0"
+          "addr": "0xd03e0",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void scripted_show_hud(void);",
@@ -11086,6 +11090,14 @@
         {
           "decl": "void FUN_000d46a0(void);",
           "addr": "0xd46a0"
+        },
+        {
+          "decl": "void FUN_000d46d0(void);",
+          "addr": "0xd46d0"
+        },
+        {
+          "decl": "void FUN_000d46e0(void);",
+          "addr": "0xd46e0"
         },
         {
           "decl": "void scripted_hud_set_state_message(void);",
