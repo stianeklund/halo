@@ -639,7 +639,7 @@ void FUN_00117000(int state)
     puVar2 += 2;
     iVar4--;
   } while (iVar4 != 0);
-  *(char *)(state + 0x1c) = (char)(1 - (uVar3 >> 2 < uVar1));
+  *(char *)(state + 0x1c) = (char)(uVar3 >> 2 >= uVar1);
 }
 
 /* bi_flush: flush the bit buffer if at least 8 bits are pending.
@@ -647,21 +647,18 @@ void FUN_00117000(int state)
  * ABI: @eax=deflate_state */
 void FUN_001170b0(int state)
 {
-  int iVar1;
-
   if (*(int *)(state + 0x16bc) == 0x10) {
     *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b8);
-    iVar1 = *(int *)(state + 0x14) + 1;
-    *(int *)(state + 0x14) = iVar1;
-    *(unsigned char *)(iVar1 + *(int *)(state + 8)) =
+    *(int *)(state + 0x14) += 1;
+    *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b9);
-    *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
+    *(int *)(state + 0x14) += 1;
     *(unsigned short *)(state + 0x16b8) = 0;
     *(unsigned int *)(state + 0x16bc) = 0;
     return;
   }
-  if (*(int *)(state + 0x16bc) > 7) {
+  if (*(int *)(state + 0x16bc) >= 8) {
     *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b8);
     *(unsigned short *)(state + 0x16b8) =
@@ -720,7 +717,7 @@ void FUN_001171a0(int len, unsigned char *buf, int state, int header)
     *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = bVar3;
     iVar2 = *(int *)(iVar1 + 0x14) + 1;
     *(int *)(iVar1 + 0x14) = iVar2;
-    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~(unsigned char)len;
+    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = (unsigned char)(~len);
     iVar2 = *(int *)(iVar1 + 0x14) + 1;
     *(int *)(iVar1 + 0x14) = iVar2;
     *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~bVar3;
