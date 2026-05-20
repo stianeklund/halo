@@ -13336,9 +13336,9 @@
           "ported": true
         },
         {
-          "decl": "void network_game_server_begin_game_start_countdown(void);",
+          "decl": "void network_game_server_begin_game_start_countdown(int param_1, int param_2);",
           "addr": "0x12cfd0",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void server_ok_to_countdown(void);",
