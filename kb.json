@@ -10908,7 +10908,9 @@
         },
         {
           "decl": "void hud_initialize_for_new_map(void);",
-          "addr": "0xd0360"
+          "addr": "0xd0360",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void hud_dispose_from_old_map(void);",

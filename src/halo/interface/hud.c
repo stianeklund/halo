@@ -7,6 +7,23 @@ void hud_dispose(void)
   FUN_000d46e0();
 }
 
+void hud_initialize_for_new_map(void)
+{
+  csmemset(*(void **)0x46bd10, 0, 4);
+  *(char *)*(void **)0x46bd10 = 1;
+  if (interface_get_tag_index(6) == -1) {
+    display_assert("interface_get_tag_index(_interface_hud_globals)!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\hud.c", 0x71, 1);
+    system_exit(-1);
+  }
+  hud_globals = tag_get(0x68756467, interface_get_tag_index(6));
+  FUN_000d46a0();
+  FUN_000d7330();
+  FUN_000d8b30();
+  FUN_000d5ff0();
+  FUN_000db150();
+}
+
 void hud_dispose_from_old_map(void)
 {
   FUN_000db1b0();
