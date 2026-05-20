@@ -226,6 +226,42 @@ bool network_game_in_progress(void)
   return true;
 }
 
+/* Set the number of games played in both server and client game globals.
+ * 0x12a020 / network_game_globals.obj
+ */
+void network_game_set_number_of_games_played(int games_played)
+{
+    int game;
+    int server = *(int *)0x46e8bc;
+    if (server != 0) {
+        game = network_game_server_get_game((void *)server);
+        *(int *)(game + 0x42c) = games_played;
+    }
+    server = *(int *)0x46e8c0;
+    if (server != 0) {
+        game = (int)network_game_client_get_machine_index((void *)server);
+        *(int *)(game + 0x42c) = games_played;
+    }
+}
+
+/* Set the random seed in both server and client game globals.
+ * 0x12a060 / network_game_globals.obj
+ */
+void network_game_set_random_seed(int seed)
+{
+    int game;
+    int server = *(int *)0x46e8bc;
+    if (server != 0) {
+        game = network_game_server_get_game((void *)server);
+        *(int *)(game + 0x428) = seed;
+    }
+    server = *(int *)0x46e8c0;
+    if (server != 0) {
+        game = (int)network_game_client_get_machine_index((void *)server);
+        *(int *)(game + 0x428) = seed;
+    }
+}
+
 /* network_game_accept_remote_connections (0x12a160)
  *
  * Returns the network game globals byte at 0x46e8c4.

@@ -12506,12 +12506,14 @@
           "addr": "0x129980"
         },
         {
-          "decl": "void network_game_set_number_of_games_played(void);",
-          "addr": "0x12a020"
+          "decl": "void network_game_set_number_of_games_played(int games_played);",
+          "addr": "0x12a020",
+          "ported": true
         },
         {
-          "decl": "void network_game_set_random_seed(void);",
-          "addr": "0x12a060"
+          "decl": "void network_game_set_random_seed(int seed);",
+          "addr": "0x12a060",
+          "ported": true
         },
         {
           "decl": "void network_game_get_game(void);",

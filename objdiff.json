@@ -456,6 +456,22 @@
       }
     },
     {
+      "name": "halo/network_game_globals_FUN_0012a020",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a020.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a060",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a060.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
       "name": "halo/network_client_manager",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_client_manager.c.obj",
       "base_path": "delinked/network_client_manager.obj",
