@@ -1,3 +1,29 @@
+/* Decode a network game message from an encoded buffer.
+ * Returns true on success; logs an error on failure.
+ * 0x12bce0 / network_server_manager.obj */
+bool FUN_0012bce0(int param_1, int param_2, short *param_3, short *param_4,
+                  short *param_5, int param_6)
+{
+  bool cVar1;
+
+  if ((((param_1 == 0 || param_2 == 0) || param_3 == (short *)0) ||
+       (*param_3 < 1 || param_4 == (short *)0)) ||
+      (*param_4 < 0 || (param_5 == (short *)0 || *param_5 < 1))) {
+    display_assert(
+      "message_struct && encoded_message && encoded_message_size && "
+      "(*encoded_message_size>0) && packet_type && (*packet_type>=0) && "
+      "packet_version && (*packet_version>0)",
+      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0x139, 1);
+    system_exit(-1);
+  }
+  cVar1 = FUN_0011aa40((int)0x323510, param_1, param_2, param_3, param_4,
+                       param_5, param_6);
+  if (!cVar1) {
+    network_game_log("decode_network_game_message() failed");
+  }
+  return cVar1;
+}
+
 /* Tick a millisecond countdown timer. Subtracts elapsed time from
    time_remaining, clamps to zero, and returns the remaining value.
    countdown[0] = time_remaining, countdown[1] = last_tick_time. */
@@ -21,6 +47,98 @@ int countdown_timer_get_time_remaining(void *countdown)
   timer[1] = now;
   assert_halt(remaining >= 0);
   return remaining;
+}
+
+/* countdown_timer_increment — 0x12be10
+ * Ticks the timer forward, then adds param_2 ms clamped to [0, param_3]. */
+void countdown_timer_increment(int *param_1, int param_2, int param_3)
+{
+  int iVar1;
+  int iVar2;
+  iVar1 = system_milliseconds();
+  if (iVar1 > param_1[1]) {
+    iVar2 = iVar1 - param_1[1];
+    if (iVar2 < *param_1) {
+      *param_1 = *param_1 - iVar2;
+    } else {
+      *param_1 = 0;
+    }
+  }
+  param_1[1] = iVar1;
+  if (param_2 < 0) {
+    display_assert("adjustment >= 0",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x68, 1);
+    system_exit(-1);
+  }
+  iVar1 = *param_1 + param_2;
+  if (iVar1 < param_2) {
+    *param_1 = param_3;
+  } else {
+    *param_1 = iVar1;
+    if (param_3 < iVar1) {
+      iVar1 = param_3;
+    }
+    *param_1 = iVar1;
+  }
+  if (*param_1 < 0) {
+    display_assert("timer->time_remaining >= 0",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x75, 1);
+    system_exit(-1);
+  }
+}
+
+/* countdown_timer_decrement — 0x12bea0
+ * Ticks the timer forward, then subtracts param_2 ms (floor at 0). */
+void countdown_timer_decrement(int *param_1, int param_2)
+{
+  int iVar1;
+  int iVar2;
+  iVar1 = system_milliseconds();
+  if (iVar1 > param_1[1]) {
+    iVar2 = iVar1 - param_1[1];
+    if (iVar2 < *param_1) {
+      *param_1 = *param_1 - iVar2;
+    } else {
+      *param_1 = 0;
+    }
+  }
+  param_1[1] = iVar1;
+  if (param_2 < 0) {
+    display_assert("adjustment >= 0",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x7e, 1);
+    system_exit(-1);
+  }
+  if (param_2 < *param_1) {
+    param_2 = *param_1 - param_2;
+    *param_1 = param_2;
+    if (param_2 < 0) {
+      display_assert("timer->time_remaining >= 0",
+                     "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                     0x89, 1);
+      system_exit(-1);
+    }
+    return;
+  }
+  *param_1 = 0;
+}
+
+/* countdown_timer_set_time_remaining — 0x12bf30
+ * Resets the timer to param_2 ms and records the current tick time. */
+void countdown_timer_set_time_remaining(int *param_1, int param_2)
+{
+  int iVar1;
+  iVar1 = system_milliseconds();
+  *param_1 = param_2;
+  param_1[1] = iVar1;
+  if (param_2 < 0) {
+    display_assert("timer->time_remaining >= 0",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x95, 1);
+    system_exit(-1);
+  }
 }
 
 /* Open the server's game (0x12c060).

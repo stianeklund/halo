@@ -2061,6 +2061,14 @@
       "metadata": {
         "source_path": "src/halo/memory/data.c"
       }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_12bce0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_12bce0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
     }
   ]
 }

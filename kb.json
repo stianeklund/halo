@@ -12947,7 +12947,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0011aa40(void);",
+          "decl": "bool FUN_0011aa40(int group, int param_2, int param_3, short *param_4, short *param_5, short *param_6, int param_7);",
           "addr": "0x11aa40"
         },
         {
@@ -13233,24 +13233,28 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0012bce0(void);",
-          "addr": "0x12bce0"
+          "decl": "bool FUN_0012bce0(int param_1, int param_2, short *param_3, short *param_4, short *param_5, int param_6);",
+          "addr": "0x12bce0",
+          "ported": true
         },
         {
-          "decl": "void countdown_timer_update(void);",
+          "decl": "void countdown_timer_update(int *param_1);",
           "addr": "0x12bd80"
         },
         {
-          "decl": "void countdown_timer_increment(void);",
-          "addr": "0x12be10"
+          "decl": "void countdown_timer_increment(int *param_1, int param_2, int param_3);",
+          "addr": "0x12be10",
+          "ported": true
         },
         {
-          "decl": "void countdown_timer_decrement(void);",
-          "addr": "0x12bea0"
+          "decl": "void countdown_timer_decrement(int *param_1, int param_2);",
+          "addr": "0x12bea0",
+          "ported": true
         },
         {
-          "decl": "void countdown_timer_set_time_remaining(void);",
-          "addr": "0x12bf30"
+          "decl": "void countdown_timer_set_time_remaining(int *param_1, int param_2);",
+          "addr": "0x12bf30",
+          "ported": true
         },
         {
           "decl": "void network_game_server_set_game_name(void);",
