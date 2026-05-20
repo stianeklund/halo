@@ -27,7 +27,7 @@ void FUN_00114690(int s, int d, int n)
 
 /* inflate_blocks_sync_point: return 1 if blocks state == 1.
  * 0x1146c0 / circular_queue.obj (inflate.c) */
-int FUN_001146c0(int *param_1)
+__declspec(noinline) int FUN_001146c0(int *param_1)
 {
   return *param_1 == 1;
 }
@@ -66,19 +66,17 @@ void FUN_00114f60(int c, int z)
 int FUN_001153c0(int z)
 {
   unsigned int *s;
-  if (z == 0)
-    return (int)0xfffffffe;
-  s = *(unsigned int **)(z + 0x1c);
-  if (s == (unsigned int *)0)
-    return (int)0xfffffffe;
-  *(int *)(z + 0x14) = 0;
-  *(int *)(z + 0x08) = 0;
-  *(int *)(z + 0x18) = 0;
-  *s = s[3] ? 7u : 0u;
-  FUN_00113930(*(int *)(*(int *)(z + 0x1c) + 0x14), z, 0);
-  if (*(int *)0x320e30 > 0)
-    crt_fprintf(*(void **)0x331070, "inflate: reset\n");
-  return 0;
+  if (z != 0 && (s = *(unsigned int **)(z + 0x1c)) != (unsigned int *)0) {
+    *(int *)(z + 0x14) = 0;
+    *(int *)(z + 0x08) = 0;
+    *(int *)(z + 0x18) = 0;
+    *s = s[3] ? 7u : 0u;
+    FUN_00113930(*(int *)(*(int *)(z + 0x1c) + 0x14), z, 0);
+    if (*(int *)0x320e30 > 0)
+      crt_fprintf(*(void **)0x331070, "inflate: reset\n");
+    return 0;
+  }
+  return (int)0xfffffffe;
 }
 
 /* inflateEnd: tear down inflate stream and free internal state.
@@ -86,21 +84,18 @@ int FUN_001153c0(int z)
 int FUN_00115430(int z)
 {
   int blocks;
-  if (z == 0)
-    return (int)0xfffffffe;
-  if (*(int *)(z + 0x1c) == 0)
-    return (int)0xfffffffe;
-  if (*(int *)(z + 0x24) == 0)
-    return (int)0xfffffffe;
-  blocks = *(int *)(*(int *)(z + 0x1c) + 0x14);
-  if (blocks != 0)
-    FUN_00114630(blocks, z);
-  ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
-                                                     *(void **)(z + 0x1c));
-  *(int *)(z + 0x1c) = 0;
-  if (*(int *)0x320e30 > 0)
-    crt_fprintf(*(void **)0x331070, "inflate: end\n");
-  return 0;
+  if (z != 0 && *(int *)(z + 0x1c) != 0 && *(int *)(z + 0x24) != 0) {
+    blocks = *(int *)(*(int *)(z + 0x1c) + 0x14);
+    if (blocks != 0)
+      FUN_00114630(blocks, z);
+    ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
+                                                       *(void **)(z + 0x1c));
+    *(int *)(z + 0x1c) = 0;
+    if (*(int *)0x320e30 > 0)
+      crt_fprintf(*(void **)0x331070, "inflate: end\n");
+    return 0;
+  }
+  return (int)0xfffffffe;
 }
 
 /* inflateInit2_: initialize inflate stream with explicit window bits and
@@ -110,6 +105,7 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
   int iVar1;
   int nowrap_flag;
   int adler_fn;
+  int wbits;
   if (version == (char *)0 || *version != '1' || stream_size != 0x38)
     return (int)0xfffffffa;
   if (z == 0)
@@ -125,30 +121,31 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
   iVar1 = (int)(*(void *(*)(void *, unsigned int, unsigned int))(
     *(void **)(z + 0x20)))(*(void **)(z + 0x28), 1, 0x18);
   *(int *)(z + 0x1c) = iVar1;
-  if (iVar1 == 0)
-    return (int)0xfffffffc;
-  *(int *)(iVar1 + 0x14) = 0;
-  *(int *)(*(int *)(z + 0x1c) + 0x0c) = 0;
-  if (w < 0) {
-    w = -w;
-    *(int *)(*(int *)(z + 0x1c) + 0x0c) = 1;
-  }
-  if (w < 8 || w > 15) {
+  if (iVar1 != 0) {
+    adler_fn = 0x0c;
+    *(int *)(iVar1 + 0x14) = 0;
+    *(int *)(*(int *)(z + 0x1c) + adler_fn) = 0;
+    if (w < 0) {
+      w = -w;
+      *(int *)(*(int *)(z + 0x1c) + adler_fn) = 1;
+    }
+    wbits = 1 << ((unsigned char)w & 0x1f);
+    if (w < 8 || w > 15) {
+      FUN_00115430(z);
+      return (int)0xfffffffe;
+    }
+    *(int *)(*(int *)(z + 0x1c) + 0x10) = w;
+    nowrap_flag = *(int *)(*(int *)(z + 0x1c) + adler_fn);
+    adler_fn = ((nowrap_flag != 0) - 1) & 0x110a10;
+    *(void **)(*(int *)(z + 0x1c) + 0x14) = FUN_001139d0(z, adler_fn, wbits);
+    if (*(int *)(*(int *)(z + 0x1c) + 0x14) != 0) {
+      if (*(int *)0x320e30 > 0)
+        crt_fprintf(*(void **)0x331070, "inflate: allocated\n");
+      FUN_001153c0(z);
+      return 0;
+    }
     FUN_00115430(z);
-    return (int)0xfffffffe;
   }
-  *(int *)(*(int *)(z + 0x1c) + 0x10) = w;
-  nowrap_flag = *(int *)(*(int *)(z + 0x1c) + 0x0c);
-  adler_fn = ((nowrap_flag != 0) - 1) & 0x110a10;
-  *(void **)(*(int *)(z + 0x1c) + 0x14) =
-    FUN_001139d0(z, adler_fn, 1 << ((unsigned char)w & 0x1f));
-  if (*(int *)(*(int *)(z + 0x1c) + 0x14) != 0) {
-    if (*(int *)0x320e30 > 0)
-      crt_fprintf(*(void **)0x331070, "inflate: allocated\n");
-    FUN_001153c0(z);
-    return 0;
-  }
-  FUN_00115430(z);
   return (int)0xfffffffc;
 }
 
@@ -165,26 +162,26 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
 {
   int adler_check;
   unsigned int wsize;
+  int *new_var;
   unsigned int n;
-  if (z == 0)
-    return (int)0xfffffffe;
-  if (*(int **)(z + 0x1c) == (int *)0)
-    return (int)0xfffffffe;
-  if (**(int **)(z + 0x1c) != 6)
-    return (int)0xfffffffe;
-  adler_check = FUN_00110a10(1, dictionary, (int)dictLength);
-  if (adler_check != *(int *)(z + 0x30))
-    return (int)0xfffffffd;
-  *(int *)(z + 0x30) = 1;
-  wsize = 1u << ((unsigned char)*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
-  n = dictLength;
-  if (wsize <= dictLength) {
-    n = wsize - 1;
-    dictionary = dictionary + (int)(dictLength - n);
+  new_var = (int *)0;
+  if (z != 0 && *(int **)(z + 0x1c) != new_var && **(int **)(z + 0x1c) == 6) {
+    adler_check = FUN_00110a10(1, dictionary, (int)dictLength);
+    if (adler_check != *(int *)(z + 0x30))
+      return (int)0xfffffffd;
+    *(int *)(z + 0x30) = 1;
+    wsize = 1 << (*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
+    n = dictLength;
+    if (wsize <= dictLength) {
+      n = wsize - 1;
+      adler_check = n;
+      dictionary = dictionary + (int)(dictLength - adler_check);
+    }
+    FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)adler_check);
+    **(int **)(z + 0x1c) = 7;
+    return 0;
   }
-  FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
-  **(int **)(z + 0x1c) = 7;
-  return 0;
+  return (int)0xfffffffe;
 }
 
 /* inflateSync: scan for a zlib sync point (0x00 0x00 0xff 0xff) in next_in.
@@ -332,12 +329,11 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
                                                  iVar1);
         return iVar2;
       } else if (iVar2 == -4) {
-        (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
-                                                 iVar1);
-        return iVar2;
+        goto free_and_return_inner;
       }
       *(const char **)(param_9 + 0x18) = "empty distance tree with lengths";
       iVar2 = -3;
+    free_and_return_inner:
       (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
       return iVar2;
     }
@@ -346,11 +342,11 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
     (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
     return iVar2;
   } else if (iVar2 == -4) {
-    (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
-    return iVar2;
+    goto free_and_return_outer;
   }
   *(const char **)(param_9 + 0x18) = "incomplete literal/length tree";
   iVar2 = -3;
+free_and_return_outer:
   (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
   return iVar2;
 }
@@ -1206,6 +1202,7 @@ int FUN_00118260(unsigned char *count, int elements, short element_size,
 unsigned short FUN_00118370(unsigned char *count, int elements,
                             short element_size, short maximum_count)
 {
+  volatile short new_var;
   unsigned char bVar1;
 
   if (count == (unsigned char *)0x0) {
@@ -1229,9 +1226,9 @@ unsigned short FUN_00118370(unsigned char *count, int elements,
   }
   bVar1 = *count;
   if ((short)(unsigned short)bVar1 < maximum_count) {
+    new_var = (int)((short)(unsigned short)bVar1);
     *count = bVar1 + 1;
-    csmemset((void *)((int)(short)(unsigned short)bVar1 * (int)element_size +
-                      elements),
+    csmemset((void *)(new_var * (int)element_size + elements),
              0, (int)element_size);
     return (unsigned short)bVar1;
   }
