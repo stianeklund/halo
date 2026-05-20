@@ -13313,28 +13313,32 @@
           "addr": "0x12cb20"
         },
         {
-          "decl": "void network_game_server_client_machine_is_precached(void);",
-          "addr": "0x12cbe0"
+          "decl": "void network_game_server_client_machine_is_precached(int param_1, int param_2, int param_3);",
+          "addr": "0x12cbe0",
+          "ported": true
         },
         {
           "decl": "void network_game_server_handle_client_update_packet(void);",
           "addr": "0x12cc10"
         },
         {
-          "decl": "void network_game_server_switch_machine_from_postgame_to_pregame(void);",
-          "addr": "0x12cd60"
+          "decl": "int network_game_server_switch_machine_from_postgame_to_pregame(int param_1, int param_2);",
+          "addr": "0x12cd60",
+          "ported": true
         },
         {
           "decl": "void network_game_server_update_ticks(void);",
           "addr": "0x12cdb0"
         },
         {
-          "decl": "void network_game_server_queue_player_for_addition(void);",
-          "addr": "0x12cf60"
+          "decl": "void network_game_server_queue_player_for_addition(int param_1, int param_2);",
+          "addr": "0x12cf60",
+          "ported": true
         },
         {
           "decl": "void network_game_server_begin_game_start_countdown(void);",
-          "addr": "0x12cfd0"
+          "addr": "0x12cfd0",
+          "ported": null
         },
         {
           "decl": "void server_ok_to_countdown(void);",

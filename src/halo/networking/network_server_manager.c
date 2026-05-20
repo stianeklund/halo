@@ -399,7 +399,7 @@ bool network_game_server_client_machine_is_joined_to_game(int server,
  * Removes a player from the game if machine IDs match. Asserts server,
  * machine, and player are all non-null. Returns 1 on success. */
 char network_game_server_remove_player_from_game(int param_1, int param_2,
-                                                  int param_3)
+                                                 int param_3)
 {
   char cVar1;
 
@@ -424,18 +424,18 @@ char network_game_server_remove_player_from_game(int param_1, int param_2,
   if (*(short *)(param_2 + 0xc) == (short)*(char *)(param_3 + 0x1c)) {
     cVar1 = network_game_remove_player(param_1 + 8, param_3);
     if (cVar1 == '\x01') {
-      network_game_log(
-        "server removed player from machine #%d at controller index #%d from the game",
-        (int)*(char *)(param_3 + 0x1c), (int)*(char *)(param_3 + 0x1d));
+      network_game_log("server removed player from machine #%d at controller "
+                       "index #%d from the game",
+                       (int)*(char *)(param_3 + 0x1c),
+                       (int)*(char *)(param_3 + 0x1d));
       return '\x01';
     }
-    network_game_log(
-      "network_game_remove_player() failed in "
-      "network_game_server_remove_player_from_game()");
+    network_game_log("network_game_remove_player() failed in "
+                     "network_game_server_remove_player_from_game()");
     return cVar1;
   }
-  network_game_log(
-    "client machine tried to remove a player with a non-matching machine identifier");
+  network_game_log("client machine tried to remove a player with a "
+                   "non-matching machine identifier");
   return '\0';
 }
 
@@ -460,13 +460,12 @@ char FUN_0012ca00(int param_1, int param_2, int param_3)
                        (int)*(char *)(param_3 + 0x40));
       return '\x01';
     }
-    network_game_log(
-      "network_game_update_machine() failed in "
-      "network_game_server_adjust_machine_settings()");
+    network_game_log("network_game_update_machine() failed in "
+                     "network_game_server_adjust_machine_settings()");
     return cVar1;
   }
-  network_game_log(
-    "client machine tried to update itself with a non-matching machine identifier");
+  network_game_log("client machine tried to update itself with a non-matching "
+                   "machine identifier");
   return '\0';
 }
 
@@ -500,6 +499,54 @@ void network_game_server_all_machines_have_loaded(void *server)
                    "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
                    0x4e0, 1);
     system_exit(-1);
+  }
+}
+
+/* network_game_server_client_machine_is_precached — 0x12cbe0 */
+void network_game_server_client_machine_is_precached(int param_1, int param_2,
+                                                     int param_3)
+{
+  char *map_name;
+  int iVar2;
+  map_name = main_get_multiplayer_map_name();
+  iVar2 = csstrcmp(map_name, (const char *)param_3);
+  if (iVar2 == 0) {
+    *(unsigned char *)(param_2 + 0xe) = *(unsigned char *)(param_2 + 0xe) | 8;
+  }
+}
+
+/* network_game_server_switch_machine_from_postgame_to_pregame — 0x12cd60 */
+int network_game_server_switch_machine_from_postgame_to_pregame(int param_1,
+                                                                int param_2)
+{
+  if ((param_1 == 0) || (param_2 == 0)) {
+    display_assert("server && machine",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x547, 1);
+    system_exit(-1);
+  }
+  network_game_log("machine #%d has successfully switched to pregame",
+                   (int)*(short *)(param_2 + 0xc));
+  *(unsigned char *)(param_2 + 0xe) = *(unsigned char *)(param_2 + 0xe) & 0xfb;
+  return 1;
+}
+
+/* network_game_server_queue_player_for_addition — 0x12cf60 */
+void network_game_server_queue_player_for_addition(int param_1, int param_2)
+{
+  char cVar1;
+  if ((param_1 == 0) || (param_2 == 0)) {
+    display_assert("server && player",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x5de, 1);
+    system_exit(-1);
+  }
+  if (*(char *)(param_1 + 0x4b8) == '\0') {
+    cVar1 = network_player_is_valid((void *)param_2);
+    if (cVar1 != '\0') {
+      csmemcpy((void *)(param_1 + 0x498), (void *)param_2, 0x20);
+      *(unsigned char *)(param_1 + 0x4b8) = 1;
+    }
   }
 }
 
