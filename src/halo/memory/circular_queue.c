@@ -1208,6 +1208,15 @@ void FUN_00118cb0(const char *name, int size, int *codes, int data_count,
   FUN_00118be0(definition, data, data_count);
 }
 
+/* Reset a circular queue by zeroing the write and read offsets.
+ * Sets write_offset (queue+0xc) and read_offset (queue+0x8) to zero.
+ * 0x118d60 / circular_queue.obj */
+void circular_queue_reset(int queue)
+{
+  *(int *)(queue + 0xc) = 0;
+  *(int *)(queue + 0x8) = 0;
+}
+
 /* Validate that a circular queue structure is not corrupt (0x118d70).
  * Checks: non-null pointer, signature == "circ" (0x63697263), non-null buffer,
  * positive size, and read/write offsets within [0, size). If any check fails,
@@ -1257,6 +1266,21 @@ void circular_queue_delete(int queue)
 {
   FUN_00118d70(queue);
   debug_free((void *)queue, "c:\\halo\\SOURCE\\memory\\circular_queue.c", 0x48);
+}
+
+/* Return the number of bytes currently used (queued) in a circular queue.
+ * Validates the queue, then computes write_offset - read_offset, wrapping
+ * via buffer_size when the result is negative.
+ * 0x118e70 / circular_queue.obj */
+int circular_queue_size(int queue)
+{
+  int used;
+
+  FUN_00118d70(queue);
+  used = *(int *)(queue + 0xc) - *(int *)(queue + 0x8);
+  if (used < 0)
+    used = used + *(int *)(queue + 0x10);
+  return used;
 }
 
 /* Return the number of free bytes available in a circular queue (0x118e90).
