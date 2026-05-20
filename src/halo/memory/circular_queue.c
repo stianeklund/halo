@@ -18,10 +18,11 @@ int FUN_00114630(int s, int z)
  * 0x114690 / circular_queue.obj (inflate.c) */
 void FUN_00114690(int s, int d, int n)
 {
+  int sum;
   csmemcpy((void *)*(int *)(s + 0x28), (void *)d, n);
-  n = n + *(int *)(s + 0x28);
-  *(int *)(s + 0x34) = n;
-  *(int *)(s + 0x30) = n;
+  sum = n + *(int *)(s + 0x28);
+  *(int *)(s + 0x34) = sum;
+  *(int *)(s + 0x30) = sum;
 }
 
 /* inflate_blocks_sync_point: return 1 if blocks state == 1.
@@ -73,7 +74,7 @@ int FUN_001153c0(int z)
   *(int *)(z + 0x14) = 0;
   *(int *)(z + 0x08) = 0;
   *(int *)(z + 0x18) = 0;
-  *s = (unsigned int)(-(int)(s[3] != 0)) & 7u;
+  *s = s[3] ? 7u : 0u;
   FUN_00113930(*(int *)(*(int *)(z + 0x1c) + 0x14), z, 0);
   if (*(int *)0x320e30 > 0)
     crt_fprintf(*(void **)0x331070, "inflate: reset\n");
@@ -564,14 +565,14 @@ void FUN_001167f0(int param_1, int param_2, int tree)
 int FUN_00116d10(int param_1, int param_2, int param_3)
 {
   short *psVar1;
-  unsigned char bVar2;
+  unsigned int bVar2;
   unsigned int uVar3;
+  int sym_idx;
 
-  *(short *)(*(int *)(param_1 + 0x169c) + *(int *)(param_1 + 0x1698) * 2) =
-    (short)param_2;
-  *(char *)(*(int *)(param_1 + 0x1690) + *(int *)(param_1 + 0x1698)) =
-    (char)param_3;
-  *(int *)(param_1 + 0x1698) = *(int *)(param_1 + 0x1698) + 1;
+  sym_idx = *(int *)(param_1 + 0x1698);
+  *(short *)(*(int *)(param_1 + 0x169c) + sym_idx * 2) = (short)param_2;
+  *(char *)(*(int *)(param_1 + 0x1690) + sym_idx) = (char)param_3;
+  *(int *)(param_1 + 0x1698) = sym_idx + 1;
   if (param_2 == 0) {
     psVar1 = (short *)(param_1 + 0x8c + param_3 * 4);
     *psVar1 += 1;
@@ -580,14 +581,13 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
     uVar3 = (unsigned int)(param_2 - 1);
     if ((unsigned short)uVar3 <
           (unsigned short)(*(short *)(param_1 + 0x24) - 0x106) &&
-        (unsigned short)param_3 < 0x100) {
+        (unsigned short)param_3 <= 0xff) {
       if (uVar3 < 0x100) {
-        bVar2 =
-          *(unsigned char *)((unsigned int)0x28e287 + (unsigned int)param_2);
+        bVar2 = *(unsigned char *)(0x28e288 + uVar3);
       } else {
         bVar2 = *(unsigned char *)(0x28e388 + (uVar3 >> 7));
       }
-      if (bVar2 > 0x1d) {
+      if (bVar2 >= 0x1e) {
         FUN_00117a80("_tr_tally: bad match");
       }
     } else {
@@ -599,14 +599,14 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
                          4);
     *psVar1 += 1;
     if (uVar3 < 0x100) {
-      bVar2 = *(unsigned char *)(0x28e287 + (unsigned int)param_2);
+      bVar2 = *(unsigned char *)(0x28e288 + uVar3);
     } else {
       bVar2 = *(unsigned char *)(0x28e388 + (uVar3 >> 7));
     }
     psVar1 = (short *)(param_1 + 0x980 + (unsigned int)bVar2 * 4);
     *psVar1 += 1;
   }
-  return *(int *)(param_1 + 0x1698) == *(int *)(param_1 + 0x1694) + -1;
+  return *(int *)(param_1 + 0x1698) == *(int *)(param_1 + 0x1694) - 1;
 }
 
 /* set_data_type: set data_type field based on literal frequency counts.
@@ -678,32 +678,26 @@ void FUN_001170b0(int state)
  * ABI: @eax=deflate_state; returns state (EAX unchanged) */
 int FUN_00117130(int state)
 {
-  int iVar1;
-  int iVar2;
-  unsigned char uVar3;
+  int bi_valid;
+  unsigned int new_bi_count;
 
-  if (*(int *)(state + 0x16bc) < 9) {
-    if (*(int *)(state + 0x16bc) < 1) {
-      goto zero_bi;
-    }
-    iVar1 = *(int *)(state + 8);
-    iVar2 = *(int *)(state + 0x14);
-    uVar3 = *(unsigned char *)(state + 0x16b8);
-  } else {
+  bi_valid = *(int *)(state + 0x16bc);
+  if (bi_valid > 8) {
     *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b8);
-    uVar3 = *(unsigned char *)(state + 0x16b9);
-    iVar1 = *(int *)(state + 0x14) + 1;
-    *(int *)(state + 0x14) = iVar1;
-    iVar2 = *(int *)(state + 8);
+    *(int *)(state + 0x14) += 1;
+    *(unsigned char *)(*(int *)(state + 0x14) + *(int *)(state + 8)) =
+      *(unsigned char *)(state + 0x16b9);
+    *(int *)(state + 0x14) += 1;
+  } else if (bi_valid > 0) {
+    *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
+      *(unsigned char *)(state + 0x16b8);
+    *(int *)(state + 0x14) += 1;
   }
-  *(unsigned char *)(iVar1 + iVar2) = uVar3;
-  *(int *)(state + 0x14) += 1;
-zero_bi:
+  new_bi_count = (*(unsigned int *)(state + 0x16b4) + 7u) & 0xfffffff8u;
   *(unsigned short *)(state + 0x16b8) = 0;
   *(unsigned int *)(state + 0x16bc) = 0;
-  *(unsigned int *)(state + 0x16b4) =
-    (*(unsigned int *)(state + 0x16b4) + 7u) & 0xfffffff8u;
+  *(unsigned int *)(state + 0x16b4) = new_bi_count;
   return state;
 }
 
@@ -868,7 +862,7 @@ void array_new(int *table, int element_size)
     display_assert("array", "c:\\halo\\SOURCE\\memory\\array.c", 0x10, 1);
     system_exit(-1);
   }
-  if (element_size < 1) {
+  if (element_size <= 0) {
     display_assert("element_size>0", "c:\\halo\\SOURCE\\memory\\array.c", 0x11,
                    1);
     system_exit(-1);
@@ -960,7 +954,7 @@ void FUN_00118190(unsigned char *count, int elements, short element_size,
     display_assert("elements", "c:\\halo\\SOURCE\\memory\\array.c", 0xac, 1);
     system_exit(-1);
   }
-  if (element_size < 1) {
+  if (element_size <= 0) {
     display_assert("element_size>0", "c:\\halo\\SOURCE\\memory\\array.c", 0xad,
                    1);
     system_exit(-1);
@@ -994,7 +988,7 @@ int FUN_00118260(unsigned char *count, int elements, short element_size,
     display_assert("elements", "c:\\halo\\SOURCE\\memory\\array.c", 0xc0, 1);
     system_exit(-1);
   }
-  if (element_size < 1) {
+  if (element_size <= 0) {
     display_assert("element_size>0", "c:\\halo\\SOURCE\\memory\\array.c", 0xc1,
                    1);
     system_exit(-1);
@@ -1038,7 +1032,7 @@ unsigned short FUN_00118370(unsigned char *count, int elements,
     display_assert("elements", "c:\\halo\\SOURCE\\memory\\array.c", 0xe7, 1);
     system_exit(-1);
   }
-  if (element_size < 1) {
+  if (element_size <= 0) {
     display_assert("element_size>0", "c:\\halo\\SOURCE\\memory\\array.c", 0xe8,
                    1);
     system_exit(-1);
@@ -1056,7 +1050,7 @@ unsigned short FUN_00118370(unsigned char *count, int elements,
              0, (int)element_size);
     return (unsigned short)bVar1;
   }
-  return 0xffff;
+  return (unsigned short)(-1);
 }
 
 /* Return the address of a specific element by index in a small fixed-size
@@ -1073,7 +1067,7 @@ int FUN_00118460(unsigned char count, int elements, short element_size,
     display_assert("elements", "c:\\halo\\SOURCE\\memory\\array.c", 0xfc, 1);
     system_exit(-1);
   }
-  if (element_size < 1) {
+  if (element_size <= 0) {
     display_assert("element_size>0", "c:\\halo\\SOURCE\\memory\\array.c", 0xfd,
                    1);
     system_exit(-1);
@@ -1106,7 +1100,7 @@ void FUN_00118520(unsigned char *count, int elements, short element_size,
     display_assert("elements", "c:\\halo\\SOURCE\\memory\\array.c", 0x10a, 1);
     system_exit(-1);
   }
-  if (element_size < 1) {
+  if (element_size <= 0) {
     display_assert("element_size>0", "c:\\halo\\SOURCE\\memory\\array.c", 0x10b,
                    1);
     system_exit(-1);
@@ -1142,8 +1136,6 @@ int FUN_00118ba0(const char *name, int *codes)
   definition[1] = 0;
   definition[2] = (int)codes;
   definition[3] = 0x62797377;
-  out_size = 0;
-  out_step = 0;
   FUN_001187f0(definition, 0, codes, &out_size, &out_step);
   return out_size;
 }
