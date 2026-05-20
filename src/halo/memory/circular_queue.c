@@ -27,7 +27,7 @@ void FUN_00114690(int s, int d, int n)
 
 /* inflate_blocks_sync_point: return 1 if blocks state == 1.
  * 0x1146c0 / circular_queue.obj (inflate.c) */
-int FUN_001146c0(int *param_1)
+__declspec(noinline) int FUN_001146c0(int *param_1)
 {
   return *param_1 == 1;
 }
@@ -66,19 +66,17 @@ void FUN_00114f60(int c, int z)
 int FUN_001153c0(int z)
 {
   unsigned int *s;
-  if (z == 0)
-    return (int)0xfffffffe;
-  s = *(unsigned int **)(z + 0x1c);
-  if (s == (unsigned int *)0)
-    return (int)0xfffffffe;
-  *(int *)(z + 0x14) = 0;
-  *(int *)(z + 0x08) = 0;
-  *(int *)(z + 0x18) = 0;
-  *s = s[3] ? 7u : 0u;
-  FUN_00113930(*(int *)(*(int *)(z + 0x1c) + 0x14), z, 0);
-  if (*(int *)0x320e30 > 0)
-    crt_fprintf(*(void **)0x331070, "inflate: reset\n");
-  return 0;
+  if (z != 0 && (s = *(unsigned int **)(z + 0x1c)) != (unsigned int *)0) {
+    *(int *)(z + 0x14) = 0;
+    *(int *)(z + 0x08) = 0;
+    *(int *)(z + 0x18) = 0;
+    *s = s[3] ? 7u : 0u;
+    FUN_00113930(*(int *)(*(int *)(z + 0x1c) + 0x14), z, 0);
+    if (*(int *)0x320e30 > 0)
+      crt_fprintf(*(void **)0x331070, "inflate: reset\n");
+    return 0;
+  }
+  return (int)0xfffffffe;
 }
 
 /* inflateEnd: tear down inflate stream and free internal state.
@@ -86,21 +84,18 @@ int FUN_001153c0(int z)
 int FUN_00115430(int z)
 {
   int blocks;
-  if (z == 0)
-    return (int)0xfffffffe;
-  if (*(int *)(z + 0x1c) == 0)
-    return (int)0xfffffffe;
-  if (*(int *)(z + 0x24) == 0)
-    return (int)0xfffffffe;
-  blocks = *(int *)(*(int *)(z + 0x1c) + 0x14);
-  if (blocks != 0)
-    FUN_00114630(blocks, z);
-  ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
-                                                     *(void **)(z + 0x1c));
-  *(int *)(z + 0x1c) = 0;
-  if (*(int *)0x320e30 > 0)
-    crt_fprintf(*(void **)0x331070, "inflate: end\n");
-  return 0;
+  if (z != 0 && *(int *)(z + 0x1c) != 0 && *(int *)(z + 0x24) != 0) {
+    blocks = *(int *)(*(int *)(z + 0x1c) + 0x14);
+    if (blocks != 0)
+      FUN_00114630(blocks, z);
+    ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
+                                                       *(void **)(z + 0x1c));
+    *(int *)(z + 0x1c) = 0;
+    if (*(int *)0x320e30 > 0)
+      crt_fprintf(*(void **)0x331070, "inflate: end\n");
+    return 0;
+  }
+  return (int)0xfffffffe;
 }
 
 /* inflateInit2_: initialize inflate stream with explicit window bits and
@@ -110,6 +105,7 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
   int iVar1;
   int nowrap_flag;
   int adler_fn;
+  int wbits;
   if (version == (char *)0 || *version != '1' || stream_size != 0x38)
     return (int)0xfffffffa;
   if (z == 0)
@@ -125,30 +121,32 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
   iVar1 = (int)(*(void *(*)(void *, unsigned int, unsigned int))(
     *(void **)(z + 0x20)))(*(void **)(z + 0x28), 1, 0x18);
   *(int *)(z + 0x1c) = iVar1;
-  if (iVar1 == 0)
-    return (int)0xfffffffc;
-  *(int *)(iVar1 + 0x14) = 0;
-  *(int *)(*(int *)(z + 0x1c) + 0x0c) = 0;
-  if (w < 0) {
-    w = -w;
-    *(int *)(*(int *)(z + 0x1c) + 0x0c) = 1;
+  if (iVar1 != 0) {
+    adler_fn = 0x0c;
+    *(int *)(iVar1 + 0x14) = 0;
+    *(int *)(*(int *)(z + 0x1c) + adler_fn) = 0;
+    if (w < 0) {
+      w = -w;
+      *(int *)(*(int *)(z + 0x1c) + adler_fn) = 1;
+    }
+    wbits = 1 << ((unsigned char)w & 0x1f);
+    if (w < 8 || w > 15) {
+      FUN_00115430(z);
+      return (int)0xfffffffe;
+    }
+    *(int *)(*(int *)(z + 0x1c) + 0x10) = w;
+    nowrap_flag = *(int *)(*(int *)(z + 0x1c) + adler_fn);
+    adler_fn = ((nowrap_flag != 0) - 1) & 0x110a10;
+    *(void **)(*(int *)(z + 0x1c) + 0x14) = FUN_001139d0(z, adler_fn, wbits);
+    if (*(int *)(*(int *)(z + 0x1c) + 0x14) == 0) {
+      FUN_00115430(z);
+    } else {
+      if (*(int *)0x320e30 > 0)
+        crt_fprintf(*(void **)0x331070, "inflate: allocated\n");
+      FUN_001153c0(z);
+      return 0;
+    }
   }
-  if (w < 8 || w > 15) {
-    FUN_00115430(z);
-    return (int)0xfffffffe;
-  }
-  *(int *)(*(int *)(z + 0x1c) + 0x10) = w;
-  nowrap_flag = *(int *)(*(int *)(z + 0x1c) + 0x0c);
-  adler_fn = ((nowrap_flag != 0) - 1) & 0x110a10;
-  *(void **)(*(int *)(z + 0x1c) + 0x14) =
-    FUN_001139d0(z, adler_fn, 1 << ((unsigned char)w & 0x1f));
-  if (*(int *)(*(int *)(z + 0x1c) + 0x14) != 0) {
-    if (*(int *)0x320e30 > 0)
-      crt_fprintf(*(void **)0x331070, "inflate: allocated\n");
-    FUN_001153c0(z);
-    return 0;
-  }
-  FUN_00115430(z);
   return (int)0xfffffffc;
 }
 
@@ -165,26 +163,25 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
 {
   int adler_check;
   unsigned int wsize;
+  int *new_var;
   unsigned int n;
-  if (z == 0)
-    return (int)0xfffffffe;
-  if (*(int **)(z + 0x1c) == (int *)0)
-    return (int)0xfffffffe;
-  if (**(int **)(z + 0x1c) != 6)
-    return (int)0xfffffffe;
-  adler_check = FUN_00110a10(1, dictionary, (int)dictLength);
-  if (adler_check != *(int *)(z + 0x30))
-    return (int)0xfffffffd;
-  *(int *)(z + 0x30) = 1;
-  wsize = 1u << ((unsigned char)*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
+  new_var = (int *)0;
   n = dictLength;
-  if (wsize <= dictLength) {
-    n = wsize - 1;
-    dictionary = dictionary + (int)(dictLength - n);
+  if (z != 0 && *(int **)(z + 0x1c) != new_var && **(int **)(z + 0x1c) == 6) {
+    adler_check = FUN_00110a10(1, dictionary, (int)dictLength);
+    if (adler_check != *(int *)(z + 0x30))
+      return (int)0xfffffffd;
+    *(int *)(z + 0x30) = 1;
+    wsize = 1 << (*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
+    if (dictLength >= wsize) {
+      n = wsize - 1;
+      dictionary = dictionary + (int)(dictLength - n);
+    }
+    FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
+    **(int **)(z + 0x1c) = 7;
+    return 0;
   }
-  FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
-  **(int **)(z + 0x1c) = 7;
-  return 0;
+  return (int)0xfffffffe;
 }
 
 /* inflateSync: scan for a zlib sync point (0x00 0x00 0xff 0xff) in next_in.
@@ -229,8 +226,8 @@ int FUN_00115a90(int *z)
     q = q + 1;
     avail_in--;
   } while (avail_in != 0);
+  z[2] = z[2] + (int)((int)q - (int)p);
   z[0] = (int)q;
-  z[2] = (int)((int)q + (z[2] - (int)p));
   z[1] = (int)avail_in;
   *(unsigned int *)(z[7] + 4) = n;
   if (n != 4) {
@@ -332,12 +329,11 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
                                                  iVar1);
         return iVar2;
       } else if (iVar2 == -4) {
-        (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
-                                                 iVar1);
-        return iVar2;
+        goto free_and_return_inner;
       }
       *(const char **)(param_9 + 0x18) = "empty distance tree with lengths";
       iVar2 = -3;
+    free_and_return_inner:
       (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
       return iVar2;
     }
@@ -346,11 +342,11 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
     (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
     return iVar2;
   } else if (iVar2 == -4) {
-    (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
-    return iVar2;
+    goto free_and_return_outer;
   }
   *(const char **)(param_9 + 0x18) = "incomplete literal/length tree";
   iVar2 = -3;
+free_and_return_outer:
   (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
   return iVar2;
 }
@@ -459,7 +455,7 @@ void FUN_001164d0(int param_1, int state, int tree)
   iVar3 = *(int *)(state + 0xb54 + param_1 * 4);
   iVar7 = param_1 * 2;
   iVar5 = iVar7 - heap_len;
-  if (heap_len < iVar7) {
+  if (iVar7 > heap_len) {
     *(int *)(state + 0xb54 + param_1 * 4) = iVar3;
     return;
   }
@@ -519,7 +515,8 @@ void FUN_001167f0(int param_1, int param_2, int tree)
   local_c = 0xffffffff;
   iVar3 = 7;
   iVar4 = 4;
-  if (uVar2 == 0) {
+  iVar3 = 0;
+  if (uVar2 == iVar3) {
     iVar3 = 0x8a;
     iVar4 = 3;
   }
@@ -535,16 +532,16 @@ void FUN_001167f0(int param_1, int param_2, int tree)
         if (iVar5 < iVar4) {
           psVar1 = (short *)(param_2 + 0xa74 + uVar6 * 4);
           *psVar1 += (short)iVar5;
-        } else if (uVar6 == 0) {
-          if (iVar5 < 0xb)
-            *(short *)(param_2 + 0xab8) += 1;
-          else
-            *(short *)(param_2 + 0xabc) += 1;
-        } else {
+        } else if (uVar6 != 0) {
           if (uVar6 != local_c) {
             *(short *)(param_2 + 0xa74 + uVar6 * 4) += 1;
           }
           *(short *)(param_2 + 0xab4) += 1;
+        } else {
+          if (iVar5 < 0xb)
+            *(short *)(param_2 + 0xab8) += 1;
+          else
+            *(short *)(param_2 + 0xabc) += 1;
         }
         iVar5 = 0;
         local_c = uVar6;
@@ -643,7 +640,7 @@ void FUN_00117000(int state)
     puVar2 += 2;
     iVar4--;
   } while (iVar4 != 0);
-  *(char *)(state + 0x1c) = (char)(1 - (uVar3 >> 2 < uVar1));
+  *(char *)(state + 0x1c) = (char)(uVar3 >> 2 >= uVar1);
 }
 
 /* bi_flush: flush the bit buffer if at least 8 bits are pending.
@@ -651,21 +648,18 @@ void FUN_00117000(int state)
  * ABI: @eax=deflate_state */
 void FUN_001170b0(int state)
 {
-  int iVar1;
-
   if (*(int *)(state + 0x16bc) == 0x10) {
     *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b8);
-    iVar1 = *(int *)(state + 0x14) + 1;
-    *(int *)(state + 0x14) = iVar1;
-    *(unsigned char *)(iVar1 + *(int *)(state + 8)) =
+    *(int *)(state + 0x14) += 1;
+    *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b9);
-    *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
+    *(int *)(state + 0x14) += 1;
     *(unsigned short *)(state + 0x16b8) = 0;
     *(unsigned int *)(state + 0x16bc) = 0;
     return;
   }
-  if (*(int *)(state + 0x16bc) > 7) {
+  if (*(int *)(state + 0x16bc) >= 8) {
     *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b8);
     *(unsigned short *)(state + 0x16b8) =
@@ -1206,6 +1200,7 @@ int FUN_00118260(unsigned char *count, int elements, short element_size,
 unsigned short FUN_00118370(unsigned char *count, int elements,
                             short element_size, short maximum_count)
 {
+  volatile short new_var;
   unsigned char bVar1;
 
   if (count == (unsigned char *)0x0) {
@@ -1229,9 +1224,9 @@ unsigned short FUN_00118370(unsigned char *count, int elements,
   }
   bVar1 = *count;
   if ((short)(unsigned short)bVar1 < maximum_count) {
+    new_var = (int)((short)(unsigned short)bVar1);
     *count = bVar1 + 1;
-    csmemset((void *)((int)(short)(unsigned short)bVar1 * (int)element_size +
-                      elements),
+    csmemset((void *)(new_var * (int)element_size + elements),
              0, (int)element_size);
     return (unsigned short)bVar1;
   }
@@ -1507,25 +1502,24 @@ bool FUN_00118ec0(int queue, void *data, int data_size)
     used = used + *(int *)(queue + 0x10);
   }
 
-  if (used + data_size >= *(int *)(queue + 0x10)) {
-    return 0;
-  }
+  if (used + data_size < *(int *)(queue + 0x10)) {
+    remaining = *(int *)(queue + 0x10) - write_offset;
+    if (data_size >= remaining) {
+      csmemcpy((void *)(*(int *)(queue + 0x14) + write_offset), data, remaining);
+      data = (char *)data + remaining;
+      *(int *)(queue + 0x0c) = 0;
+      data_size = data_size - remaining;
+    }
 
-  remaining = *(int *)(queue + 0x10) - write_offset;
-  if (data_size >= remaining) {
-    csmemcpy((void *)(*(int *)(queue + 0x14) + write_offset), data, remaining);
-    data = (char *)data + remaining;
-    *(int *)(queue + 0x0c) = 0;
-    data_size = data_size - remaining;
-  }
+    if (data_size > 0) {
+      csmemcpy((void *)(*(int *)(queue + 0x14) + *(int *)(queue + 0x0c)), data,
+               data_size);
+      *(int *)(queue + 0x0c) = *(int *)(queue + 0x0c) + data_size;
+    }
 
-  if (data_size > 0) {
-    csmemcpy((void *)(*(int *)(queue + 0x14) + *(int *)(queue + 0x0c)), data,
-             data_size);
-    *(int *)(queue + 0x0c) = *(int *)(queue + 0x0c) + data_size;
+    assert_halt(*(int *)(queue + 0x0c) >= 0 &&
+                *(int *)(queue + 0x0c) < *(int *)(queue + 0x10));
+    return 1;
   }
-
-  assert_halt(*(int *)(queue + 0x0c) >= 0 &&
-              *(int *)(queue + 0x0c) < *(int *)(queue + 0x10));
-  return 1;
+  return 0;
 }
