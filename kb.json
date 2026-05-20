@@ -10909,7 +10909,7 @@
         {
           "decl": "void hud_initialize_for_new_map(void);",
           "addr": "0xd0360",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/interface/hud.c"
         },
         {
@@ -10929,7 +10929,7 @@
         {
           "decl": "void hud_update(void);",
           "addr": "0xd0440",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_000d04a0(void);",
