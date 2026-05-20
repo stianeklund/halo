@@ -5603,12 +5603,15 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00119df0(void);",
-          "addr": "0x119df0"
+          "decl": "bool FUN_00119df0(int *param_1, int param_2, int param_3);",
+          "addr": "0x119df0",
+          "name": "FUN_00119df0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00119ef0(void);",
-          "addr": "0x119ef0"
+          "decl": "int FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4);",
+          "addr": "0x119ef0",
+          "ported": true
         },
         {
           "decl": "void FUN_00119ff0(void);",
