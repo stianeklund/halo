@@ -666,6 +666,7 @@ void network_game_server_invalidate_network_machine(void *machine)
     *(char *)((char *)machine + 0x40) = (char)0xff;
 }
 
+
 /* Return the connection object from the server (server[0]).
  * 0x12d380 / network_server_manager.obj
  */
@@ -677,7 +678,6 @@ int network_game_server_get_connection(void *server)
     }
     return *(int *)server;
 }
-
 
 /* Return the connection handle from a machine struct (0x12d3b0).
  * Returns the first dword at machine+0, or 0 if machine is NULL. */
