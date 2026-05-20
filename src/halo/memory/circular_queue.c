@@ -197,6 +197,8 @@ int FUN_00115a90(int *z)
   int saved_total_out;
   unsigned int n;
   char *q;
+  unsigned int avail_in;
+  unsigned char qval;
 
   if (z == (int *)0 || z[7] == 0) {
     return (int)0xfffffffe;
@@ -206,27 +208,30 @@ int FUN_00115a90(int *z)
     *state = 0xd;
     *(unsigned int *)(z[7] + 4) = 0;
   }
-  if (z[1] == 0) {
+  avail_in = (unsigned int)z[1];
+  if (avail_in == 0) {
     return (int)0xfffffffb;
   }
   p = (char *)z[0];
   n = *(unsigned int *)(z[7] + 4);
   q = p;
-  while ((int *)z[1] != (int *)0) {
-    if (n > 3)
+  do {
+    if (n >= 4)
       break;
-    if (*q == ((unsigned char *)0x28d850)[n]) {
+    qval = *(unsigned char *)q;
+    if (qval == ((unsigned char *)0x28d850)[n]) {
       n = n + 1;
-    } else if (*q == '\0') {
+    } else if (qval == '\0') {
       n = 4 - n;
     } else {
       n = 0;
     }
     q = q + 1;
-    z[1] = z[1] - 1;
-  }
+    avail_in--;
+  } while (avail_in != 0);
   z[0] = (int)q;
   z[2] = (int)((int)q + (z[2] - (int)p));
+  z[1] = (int)avail_in;
   *(unsigned int *)(z[7] + 4) = n;
   if (n != 4) {
     return (int)0xfffffffd;
@@ -319,12 +324,13 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
         *(const char **)(param_9 + 0x18) = "oversubscribed distance tree";
         (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
                                                  iVar1);
-        return -3;
+        return iVar2;
       } else if (iVar2 == -5) {
         *(const char **)(param_9 + 0x18) = "incomplete distance tree";
+        iVar2 = -3;
         (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
                                                  iVar1);
-        return -3;
+        return iVar2;
       } else if (iVar2 == -4) {
         (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
                                                  iVar1);
@@ -338,7 +344,7 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
   } else if (iVar2 == -3) {
     *(const char **)(param_9 + 0x18) = "oversubscribed literal/length tree";
     (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
-    return -3;
+    return iVar2;
   } else if (iVar2 == -4) {
     (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
     return iVar2;
@@ -578,7 +584,8 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
     *psVar1 += 1;
   } else {
     *(int *)(param_1 + 0x16a8) += 1;
-    uVar3 = (unsigned int)(param_2 - 1);
+    param_2--;
+    uVar3 = (unsigned int)param_2;
     if ((unsigned short)uVar3 <
           (unsigned short)(*(short *)(param_1 + 0x24) - 0x106) &&
         (unsigned short)param_3 <= 0xff) {
