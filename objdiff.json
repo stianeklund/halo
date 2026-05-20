@@ -2029,6 +2029,30 @@
       "metadata": {
         "source_path": "src/halo/game/player_queues_new.c"
       }
+    },
+    {
+      "name": "halo/predicted_resources_1bdd40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/predicted_resources.c.obj",
+      "base_path": "delinked/predicted_resources_1bdd40_1bdf00.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/predicted_resources.c"
+      }
+    },
+    {
+      "name": "halo/player_queues_b97b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_queues_new.c.obj",
+      "base_path": "delinked/player_queues_b97b0_b9900.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_queues_new.c"
+      }
+    },
+    {
+      "name": "halo/contrails_98580",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c",
+      "base_path": "delinked/contrails_98580_98730.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
+      }
     }
   ]
 }
