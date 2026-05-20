@@ -572,8 +572,8 @@ int FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4)
     system_exit(-1);
   }
   if (param_4 == 0) {
-    display_assert("bs_definition",
-                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x70, 1);
+    display_assert("bs_definition", "c:\\halo\\SOURCE\\memory\\data_encoding.c",
+                   0x70, 1);
     system_exit(-1);
   }
   sVar1 = *(short *)(param_4 + 4) * param_3;
@@ -589,4 +589,101 @@ int FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4)
     }
   }
   return *(char *)(param_1 + 3) == '\0';
+}
+
+/*
+ * FUN_00119ff0 — data_encoding.c encode_element_array (line 0x8d–0xa5)
+ * Encodes a single-element array into the bit-stream state buffer.
+ * param_1: encoding state (int[4]: buffer ptr, offset, buffer_size,
+ * overflow_flag) param_2: element type selector (1=byte, -2=uint16, -4=int32,
+ * -8=int64, else=assert) param_3: source array pointer param_4: element_count
+ * (value, not pointer; used as count and value to encode) param_5:
+ * bs_definition pointer
+ */
+bool FUN_00119ff0(int *param_1, int param_2, int param_3, int param_4,
+                  int param_5)
+{
+  int *piVar1;
+  int local_8[2];
+  unsigned char byte_val;
+
+  piVar1 = param_1;
+  /* assert: state valid */
+  if (param_1 == (int *)0 || *param_1 == 0 || param_1[1] < 0 ||
+      param_1[2] <= param_1[1]) {
+    display_assert("state && state->buffer && state->offset>=0 && "
+                   "state->offset<state->buffer_size",
+                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x8d, 1);
+    system_exit(-1);
+  }
+  /* assert: source_array */
+  if (param_3 == 0) {
+    display_assert("source_array", "c:\\halo\\SOURCE\\memory\\data_encoding.c",
+                   0x8e, 1);
+    system_exit(-1);
+  }
+  /* assert: bs_definition */
+  if (param_5 == 0) {
+    display_assert("bs_definition", "c:\\halo\\SOURCE\\memory\\data_encoding.c",
+                   0x8f, 1);
+    system_exit(-1);
+  }
+  /* assert: element_count >= 0 */
+  if (param_4 < 0) {
+    display_assert("element_count>=0",
+                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x90, 1);
+    system_exit(-1);
+  }
+
+  switch (param_2) {
+  case 1:
+    /* assert: element_count <= UNSIGNED_CHAR_MAX */
+    if (param_4 > 0xff) {
+      display_assert("element_count<=UNSIGNED_CHAR_MAX",
+                     "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x96, 1);
+      system_exit(-1);
+    }
+    byte_val = (unsigned char)param_4;
+    /* inner state assert (same as FUN_00119df0:0x2b) */
+    if (piVar1 == (int *)0 || *piVar1 == 0 || piVar1[1] < 0 ||
+        piVar1[2] <= piVar1[1]) {
+      display_assert("state && state->buffer && state->offset>=0 && "
+                     "state->offset<state->buffer_size",
+                     "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x2b, 1);
+      system_exit(-1);
+    }
+    if (piVar1[2] < piVar1[1] + 1 || *(char *)(piVar1 + 3) != '\0') {
+      *(char *)(piVar1 + 3) = 1;
+    } else {
+      csmemcpy((void *)(*piVar1 + piVar1[1]), (void *)&byte_val, 1);
+      piVar1[1] = piVar1[1] + 1;
+    }
+    break;
+  case -2:
+    /* assert: element_count <= UNSIGNED_SHORT_MAX */
+    if (param_4 > 0xffff) {
+      display_assert("element_count<=UNSIGNED_SHORT_MAX",
+                     "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x9a, 1);
+      system_exit(-1);
+    }
+    param_1 = (int *)param_4;
+    FUN_00119cc0(piVar1, (int)&param_1, 1, (int)0xfffffffe);
+    break;
+  case -4:
+    param_1 = (int *)param_4;
+    FUN_00119cc0(piVar1, (int)&param_1, 1, (int)0xfffffffc);
+    break;
+  case -8:
+    local_8[0] = param_4;
+    local_8[1] = param_4 >> 31;
+    FUN_00119cc0(piVar1, (int)local_8, 1, (int)0xfffffff8);
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0xa5, 1);
+    system_exit(-1);
+    break;
+  }
+
+  FUN_00119ef0(piVar1, param_3, (short)param_4, param_5);
+  return *(char *)(piVar1 + 3) == '\0';
 }
