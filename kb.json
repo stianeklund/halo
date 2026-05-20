@@ -13347,8 +13347,9 @@
           "addr": "0x12d1c0"
         },
         {
-          "decl": "void network_game_server_invalidate_network_machine(void);",
-          "addr": "0x12d210"
+          "decl": "void network_game_server_invalidate_network_machine(void *machine);",
+          "addr": "0x12d210",
+          "ported": true
         },
         {
           "decl": "void network_game_generate_join_game_token(void);",
@@ -13387,8 +13388,9 @@
           "addr": "0x12d6f0"
         },
         {
-          "decl": "void network_game_server_change_game_variant(void);",
-          "addr": "0x12d7f0"
+          "decl": "void network_game_server_change_game_variant(void *server, void *variant);",
+          "addr": "0x12d7f0",
+          "ported": true
         },
         {
           "decl": "void FUN_0012da90(void);",

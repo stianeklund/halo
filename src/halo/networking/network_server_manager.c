@@ -653,6 +653,32 @@ bool server_has_enough_machines(void *server)
   return count >= threshold;
 }
 
+/* Zero out a machine struct (0x44 bytes) and set byte at +0x40 to 0xff.
+ * 0x12d210 / network_server_manager.obj
+ */
+void network_game_server_invalidate_network_machine(void *machine)
+{
+    if (!machine) {
+        display_assert(0, 0, 0x6c9, 1);
+        system_exit(-1);
+    }
+    csmemset(machine, 0, 0x44);
+    *(char *)((char *)machine + 0x40) = (char)0xff;
+}
+
+/* Return the connection object from the server (server[0]).
+ * 0x12d380 / network_server_manager.obj
+ */
+int network_game_server_get_connection(void *server)
+{
+    if (!server) {
+        display_assert(0, 0, 0x712, 1);
+        system_exit(-1);
+    }
+    return *(int *)server;
+}
+
+
 /* Return the connection handle from a machine struct (0x12d3b0).
  * Returns the first dword at machine+0, or 0 if machine is NULL. */
 int network_game_server_adjust_machine_settings(void *machine)
@@ -689,6 +715,59 @@ int network_game_server_get_game(void *server)
   }
   return (int)((char *)server + 8);
 }
+
+/* Return true if the server can start counting down (state 0, machines joined).
+ * 0x12d640 / network_server_manager.obj
+ */
+int network_game_server_game_can_start(void *server)
+{
+    if (!server) {
+        display_assert(0, 0, 0x782, 1);
+        system_exit(-1);
+    }
+    if (*(short *)((char *)server + 4) == 0 &&
+        *(char *)((char *)server + 0x115) <= *(short *)((char *)server + 0x22c)) {
+        return 1;
+    }
+    return 0;
+}
+
+/* Set or clear the countdown pause flag; clear the countdown struct if pausing.
+ * 0x12d690 / network_server_manager.obj
+ */
+void network_game_server_pause_countdown(void *server, char flag)
+{
+    if (!server) {
+        display_assert(0, 0, 0x78c, 1);
+        system_exit(-1);
+    }
+    if (flag == '\x01') {
+        csmemset((char *)server + 0x488, 0, 0x10);
+    }
+    *(char *)((char *)server + 0x495) = flag;
+}
+
+/* Copy game variant data into server and broadcast it to clients.
+ * 0x12d7f0 / network_server_manager.obj
+ */
+void network_game_server_change_game_variant(void *server, void *variant)
+{
+    char cVar1;
+    if (!server || !variant) {
+        display_assert(0, 0, 0x7be, 1);
+        system_exit(-1);
+    }
+    if (*(short *)((char *)server + 4) != 0) {
+        display_assert(0, 0, 0x7bf, 1);
+        system_exit(-1);
+    }
+    csmemcpy((char *)server + 0xac, variant, 0x68);
+    cVar1 = (char)FUN_0012f5d0(server);
+    if (!cVar1) {
+        network_game_log("network_game_server_change_game_variant() failed to send updated game settings to clients");
+    }
+}
+
 
 /* Add a new client connection to the server (0x12d880).
  * Finds the first empty machine slot (short == -1 at +0x448 stride 0x10),

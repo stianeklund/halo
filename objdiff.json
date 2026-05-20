@@ -1359,6 +1359,86 @@
       }
     },
     {
+      "name": "halo/collision_usage_FUN_0014db10",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014db10.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012bf70",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012bf70.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012bfe0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012bfe0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012c020",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012c020.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012d1c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012d1c0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012d210",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012d210.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012d380",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012d380.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012d640",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012d640.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012d690",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012d690.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012d7f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012d7f0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
       "name": "halo/bored_camera",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/bored_camera.c.obj",
       "base_path": "delinked/bored_camera.obj",
