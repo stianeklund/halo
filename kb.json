@@ -13360,8 +13360,9 @@
           "addr": "0x12d2f0"
         },
         {
-          "decl": "void network_game_server_get_connection(void);",
-          "addr": "0x12d380"
+          "decl": "int network_game_server_get_connection(void *server);",
+          "addr": "0x12d380",
+          "ported": true
         },
         {
           "decl": "void network_game_server_get_machine_connection(void);",
@@ -13376,12 +13377,14 @@
           "addr": "0x12d5b0"
         },
         {
-          "decl": "void network_game_server_game_can_start(void);",
-          "addr": "0x12d640"
+          "decl": "int network_game_server_game_can_start(void *server);",
+          "addr": "0x12d640",
+          "ported": true
         },
         {
-          "decl": "void network_game_server_pause_countdown(void);",
-          "addr": "0x12d690"
+          "decl": "void network_game_server_pause_countdown(void *server, char flag);",
+          "addr": "0x12d690",
+          "ported": true
         },
         {
           "decl": "void network_game_server_change_map_name(void);",
