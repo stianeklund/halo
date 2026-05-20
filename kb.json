@@ -459,7 +459,7 @@
           "addr": "0x1339a0"
         },
         {
-          "decl": "void FUN_00149c60(void);",
+          "decl": "char FUN_00149c60(int *param_1, float *param_2, float *param_3, float param_4, float param_5, float *param_6);",
           "addr": "0x149c60"
         },
         {
@@ -4680,8 +4680,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014cc80(void);",
-          "addr": "0x14cc80"
+          "decl": "int FUN_0014cc80(int param_1, int param_2, int param_3, float param_4, int16_t *param_5);",
+          "addr": "0x14cc80",
+          "ported": true,
+          "src": "src/halo/physics/collision_usage.c"
         },
         {
           "decl": "void FUN_0014cde0(void);",
