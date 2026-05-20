@@ -179,3 +179,24 @@ uint32_t FUN_000d1c90(float *color)
 
   return result;
 }
+
+void FUN_000d1e90(float alpha, float intensity)
+{
+  float color[4];
+
+  if (alpha < 0.0f || alpha > 1.0f) {
+    display_assert("alpha>=0.0f && alpha<=1.0f",
+                   "..\\bitmaps\\bitmaps_inlines.h", 0x13f, true);
+    system_exit(-1);
+  }
+  if (intensity < 0.0f || intensity > 1.0f) {
+    display_assert("intensity>=0.0f && intensity<=1.0f",
+                   "..\\bitmaps\\bitmaps_inlines.h", 0x140, true);
+    system_exit(-1);
+  }
+  color[0] = alpha;
+  color[1] = intensity;
+  color[2] = intensity;
+  color[3] = intensity;
+  FUN_000d1c90(color);
+}
