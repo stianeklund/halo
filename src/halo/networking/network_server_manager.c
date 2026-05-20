@@ -141,6 +141,58 @@ void countdown_timer_set_time_remaining(int *param_1, int param_2)
   }
 }
 
+/* network_game_server_set_game_name — 0x12bf70
+ * Copies up to 15 wchars from param_2 into server->game_name (server+8),
+ * then zeros the trailing terminator at server+0x26. Returns '\0'. */
+char network_game_server_set_game_name(int param_1, int param_2)
+{
+  if (param_1 == 0) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x1dd, 1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert("name",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x1de, 1);
+    system_exit(-1);
+  }
+  ustrncpy((wchar_t *)(param_1 + 8), (wchar_t *)param_2, 0xf);
+  *(short *)(param_1 + 0x26) = 0;
+  return '\0';
+}
+
+/* network_game_server_get_game_name — 0x12bfe0
+ * Returns a pointer to the server's game name buffer (wchar_t at server+8). */
+int network_game_server_get_game_name(int param_1)
+{
+  if (param_1 == 0) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x1e9, 1);
+    system_exit(-1);
+  }
+  return param_1 + 8;
+}
+
+/* network_game_server_get_state — 0x12c020
+ * Returns server->state (short at server+4). If param_2 is non-NULL,
+ * zeroes *param_2 before returning. */
+short network_game_server_get_state(int param_1, short *param_2)
+{
+  if (param_1 == 0) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x1f2, 1);
+    system_exit(-1);
+  }
+  if (param_2 != NULL) {
+    *param_2 = 0;
+  }
+  return *(short *)(param_1 + 4);
+}
+
 /* Open the server's game (0x12c060).
  * Sets bit 0 of the flags byte at server+6 (marking the game as open),
  * then tells the underlying connection to open, and logs "opening game". */

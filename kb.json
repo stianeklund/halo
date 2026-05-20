@@ -13258,20 +13258,24 @@
           "ported": true
         },
         {
-          "decl": "void network_game_server_set_game_name(void);",
-          "addr": "0x12bf70"
+          "decl": "char network_game_server_set_game_name(int param_1, int param_2);",
+          "addr": "0x12bf70",
+          "ported": true
         },
         {
-          "decl": "void network_game_server_get_game_name(void);",
-          "addr": "0x12bfe0"
+          "decl": "int network_game_server_get_game_name(int param_1);",
+          "addr": "0x12bfe0",
+          "ported": true
         },
         {
-          "decl": "void network_game_server_get_state(void);",
-          "addr": "0x12c020"
+          "decl": "short network_game_server_get_state(int param_1, short *param_2);",
+          "addr": "0x12c020",
+          "ported": true
         },
         {
           "decl": "void network_game_server_graceful_shutdown(void);",
-          "addr": "0x12c410"
+          "addr": "0x12c410",
+          "ported": null
         },
         {
           "decl": "void network_game_server_accept_client_machine_into_game(void);",
