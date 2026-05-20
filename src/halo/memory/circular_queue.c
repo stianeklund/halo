@@ -572,46 +572,41 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
 {
   short *psVar1;
   unsigned int bVar2;
-  unsigned int uVar3;
-  int sym_idx;
 
-  sym_idx = *(int *)(param_1 + 0x1698);
-  *(short *)(*(int *)(param_1 + 0x169c) + sym_idx * 2) = (short)param_2;
-  *(char *)(*(int *)(param_1 + 0x1690) + sym_idx) = (char)param_3;
-  *(int *)(param_1 + 0x1698) = sym_idx + 1;
+  *(short *)(*(int *)(param_1 + 0x169c) + *(int *)(param_1 + 0x1698) * 2) = (short)param_2;
+  *(char *)(*(int *)(param_1 + 0x1690) + *(int *)(param_1 + 0x1698)) = (char)param_3;
+  *(int *)(param_1 + 0x1698) = *(int *)(param_1 + 0x1698) + 1;
   if (param_2 == 0) {
     psVar1 = (short *)(param_1 + 0x8c + param_3 * 4);
     *psVar1 += 1;
   } else {
     *(int *)(param_1 + 0x16a8) += 1;
     param_2--;
-    uVar3 = (unsigned int)param_2;
-    if ((unsigned short)uVar3 <
-          (unsigned short)(*(short *)(param_1 + 0x24) - 0x106) &&
-        (unsigned short)param_3 <= 0xff) {
-      if (uVar3 < 0x100) {
-        bVar2 = *(unsigned char *)(0x28e288 + uVar3);
-      } else {
-        bVar2 = *(unsigned char *)(0x28e388 + (uVar3 >> 7));
-      }
-      if (bVar2 >= 0x1e) {
-        FUN_00117a80("_tr_tally: bad match");
-      }
+    if ((unsigned short)param_2 >= (unsigned short)(*(short *)(param_1 + 0x24) - 0x106))
+      goto bad_match;
+    if ((unsigned short)param_3 > 0xff)
+      goto bad_match;
+    if ((unsigned int)param_2 < 0x100) {
+      bVar2 = *(unsigned char *)(0x28e288 + (unsigned int)param_2);
     } else {
-      FUN_00117a80("_tr_tally: bad match");
+      bVar2 = *(unsigned char *)(0x28e388 + ((unsigned int)param_2 >> 7));
     }
+    if ((unsigned short)bVar2 < 0x1e)
+      goto after_assert;
+bad_match:
+    FUN_00117a80("_tr_tally: bad match");
+after_assert:
     psVar1 = (short *)(param_1 + 0x490 +
                        (unsigned int)(unsigned char)(*(
                          unsigned char *)(0x28e488 + (unsigned int)param_3)) *
                          4);
     *psVar1 += 1;
-    if (uVar3 < 0x100) {
-      bVar2 = *(unsigned char *)(0x28e288 + uVar3);
+    if ((unsigned int)param_2 < 0x100) {
+      bVar2 = *(unsigned char *)(0x28e288 + (unsigned int)param_2);
     } else {
-      bVar2 = *(unsigned char *)(0x28e388 + (uVar3 >> 7));
+      bVar2 = *(unsigned char *)(0x28e388 + ((unsigned int)param_2 >> 7));
     }
-    psVar1 = (short *)(param_1 + 0x980 + (unsigned int)bVar2 * 4);
-    *psVar1 += 1;
+    *(short *)(param_1 + 0x980 + bVar2 * 4) += 1;
   }
   return *(int *)(param_1 + 0x1698) == *(int *)(param_1 + 0x1694) - 1;
 }
@@ -832,7 +827,7 @@ void FUN_001172d0(int *param_1, int param_2, short *bl_count)
 
 /* z_error: print assertion message and exit.
  * 0x117a80 / circular_queue.obj (zutil.c) */
-void FUN_00117a80(const char *msg)
+__declspec(noinline) void FUN_00117a80(const char *msg)
 {
   display_assert(msg, "c:\\halo\\SOURCE\\memory\\zlib\\zutil.c", 0x30, 1);
   system_exit(-1);
