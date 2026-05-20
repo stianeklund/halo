@@ -172,12 +172,11 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
     *(int *)(z + 0x30) = 1;
     wsize = 1 << (*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
     n = dictLength;
-    if (wsize <= dictLength) {
+    if (dictLength >= wsize) {
       n = wsize - 1;
-      adler_check = n;
-      dictionary = dictionary + (int)(dictLength - adler_check);
+      dictionary = dictionary + (int)(dictLength - n);
     }
-    FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)adler_check);
+    FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
     **(int **)(z + 0x1c) = 7;
     return 0;
   }
@@ -515,7 +514,8 @@ void FUN_001167f0(int param_1, int param_2, int tree)
   local_c = 0xffffffff;
   iVar3 = 7;
   iVar4 = 4;
-  if (uVar2 == 0) {
+  iVar3 = 0;
+  if (uVar2 == iVar3) {
     iVar3 = 0x8a;
     iVar4 = 3;
   }
@@ -717,7 +717,7 @@ void FUN_001171a0(int len, unsigned char *buf, int state, int header)
     *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = bVar3;
     iVar2 = *(int *)(iVar1 + 0x14) + 1;
     *(int *)(iVar1 + 0x14) = iVar2;
-    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = (unsigned char)(~len);
+    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~(unsigned char)len;
     iVar2 = *(int *)(iVar1 + 0x14) + 1;
     *(int *)(iVar1 + 0x14) = iVar2;
     *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~bVar3;
