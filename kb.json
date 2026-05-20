@@ -6430,8 +6430,10 @@
           "src": "src/halo/effects/effects.c"
         },
         {
-          "decl": "void effect_stop(void);",
-          "addr": "0x9ceb0"
+          "decl": "void effect_stop(int effect_handle, char fade_out);",
+          "addr": "0x9ceb0",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
           "decl": "void effects_reconnect_to_structure_bsp(void);",
@@ -6445,7 +6447,7 @@
           "ported": null
         },
         {
-          "decl": "void FUN_0009f430(int arg1, int arg2, int arg3, void *arg4, void *arg5, void *arg6, int arg7);",
+          "decl": "void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4, void *param_5, void *param_6, float param_7);",
           "addr": "0x9f430"
         }
       ]

@@ -1943,6 +1943,14 @@
       }
     },
     {
+      "name": "halo/effects_9f430",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9f430.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
       "name": "halo/effects_9c9a0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
       "base_path": "delinked/effects_9c9a0.obj",
