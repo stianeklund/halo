@@ -153,6 +153,11 @@ void hud_autosave(int16_t param)
   }
 }
 
+float FUN_000d1690(void)
+{
+  return *(float *)0x002533c8;
+}
+
 uint32_t FUN_000d1c90(float *color)
 {
   int a;

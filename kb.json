@@ -11007,8 +11007,10 @@
           "addr": "0xd1580"
         },
         {
-          "decl": "void FUN_000d1690(void);",
-          "addr": "0xd1690"
+          "decl": "float FUN_000d1690(void);",
+          "addr": "0xd1690",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void FUN_000d16a0(void);",
