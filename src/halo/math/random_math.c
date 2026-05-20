@@ -857,6 +857,17 @@ float FUN_0010c340(float *v1, float *v2)
   return sqrtf(cy * cy + cx * cx + cz * cz);
 }
 
+/* Linearly interpolate between param_1 and param_2 using a byte fraction
+ * param_3.  If param_3 == 0xff, returns param_2 exactly.  Otherwise returns
+ * param_1 + (param_2 - param_1) * param_3 / 255.
+ *
+ * 0x10c390 / random_math.obj */
+float FUN_0010c390(float param_1, float param_2, uint8_t param_3)
+{
+  if (param_3 == 0xff)
+    return param_2;
+  return (param_2 - param_1) * param_3 * *(float *)0x261518 + param_1;
+}
 
 /* Compute the angle (radians) between two 3D vectors v1 and v2.
  *

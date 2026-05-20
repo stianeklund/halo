@@ -12,6 +12,25 @@ void rumble_initialize_for_new_map(void)
   csmemset(rumble_globals, 0, 0x82c);
 }
 
+/* Set scripted (script-driven) left/right motor values for the current player.
+ * Stored at rumble_globals+0x820 (left) and +0x824 (right).
+ *
+ * 0xb9b80 / player_rumble.obj */
+void rumble_player_set_scripted_values(float left_motor, float right_motor)
+{
+  *(float *)(rumble_globals + 0x820) = left_motor;
+  *(float *)(rumble_globals + 0x824) = right_motor;
+}
+
+/* Set the rumble scale multiplier for the current player slot.
+ * Stored at rumble_globals+0x828.
+ *
+ * 0xb9ba0 / player_rumble.obj */
+void rumble_player_set_scale(float scale)
+{
+  *(float *)(rumble_globals + 0x828) = scale;
+}
+
 void rumble_clear_for_local_player(int16_t local_player_index)
 {
   csmemset(rumble_globals + local_player_index * 0x208, 0, 0x208);

@@ -15342,7 +15342,7 @@
         {
           "decl": "void update_client_queue(void *data);",
           "addr": "0xb8f40",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void update_client_queue_push(void);",
@@ -15416,12 +15416,12 @@
         {
           "decl": "void rumble_player_set_scripted_values(float left_motor, float right_motor);",
           "addr": "0xb9b80",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void rumble_player_set_scale(float scale);",
           "addr": "0xb9ba0",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void rumble_set_direct_motors(short local_player_index, int left_motor, int right_motor);",
@@ -17456,7 +17456,7 @@
         {
           "decl": "float FUN_0010c390(float param_1, float param_2, uint8_t param_3);",
           "addr": "0x10c390",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void FUN_0010c3c0(void);",
