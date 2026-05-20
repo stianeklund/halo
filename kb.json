@@ -459,7 +459,7 @@
           "addr": "0x1339a0"
         },
         {
-          "decl": "char FUN_00149c60(int *param_1, float *param_2, float *param_3, float param_4, float param_5, float *param_6);",
+          "decl": "char FUN_00149c60(int *block_ptr, void *transformed_2c, void *transformed_20, float scale, unsigned int best_dist, unsigned short *result);",
           "addr": "0x149c60"
         },
         {
