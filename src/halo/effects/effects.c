@@ -133,6 +133,27 @@ void effects_stop_on_first_person_weapon(int local_player_index)
 }
 
 
+/* Get active effect and location counts.
+ * out[0] = effect_data capacity, out[1] = effect_location_data capacity,
+ * out[2] = number of active effects without looping/attached flags (bits 3-4).
+ * 0x9c910 / effects.obj */
+void FUN_0009c910(short *out)
+{
+  int iVar1;
+  char *effect;
+
+  out[0] = (*(data_t **)0x5aa8b0)->unk_48;
+  out[1] = (*(data_t **)0x5aa8ac)->unk_48;
+  out[2] = 0;
+  for (iVar1 = data_next_index(*(data_t **)0x5aa8b0, -1); iVar1 != -1;
+       iVar1 = data_next_index(*(data_t **)0x5aa8b0, iVar1)) {
+    effect = (char *)datum_get(*(data_t **)0x5aa8b0, iVar1);
+    if ((*(unsigned char *)(effect + 2) & 0x18) == 0) {
+      out[2]++;
+    }
+  }
+}
+
 /* Effect part volume filter (0x9caf0). Tests whether an effect part should
  * spawn based on its creation type and the effect's trigger/kill volume.
  * type 0=always, 1=outside volume, 2=inside volume, 3=never. */

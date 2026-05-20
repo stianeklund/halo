@@ -1965,6 +1965,14 @@
       "metadata": {
         "source_path": "src/halo/effects/contrails.c"
       }
+    },
+    {
+      "name": "halo/effects_9c910_tight",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9c910_tight.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
     }
   ]
 }

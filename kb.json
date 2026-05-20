@@ -6404,9 +6404,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0009C910(short *out);",
+          "decl": "void FUN_0009c910(short *out);",
           "addr": "0x9c910",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
           "decl": "void FUN_0009c9a0(void);",
