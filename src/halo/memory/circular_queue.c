@@ -532,16 +532,16 @@ void FUN_001167f0(int param_1, int param_2, int tree)
         if (iVar5 < iVar4) {
           psVar1 = (short *)(param_2 + 0xa74 + uVar6 * 4);
           *psVar1 += (short)iVar5;
-        } else if (uVar6 == 0) {
-          if (iVar5 < 0xb)
-            *(short *)(param_2 + 0xab8) += 1;
-          else
-            *(short *)(param_2 + 0xabc) += 1;
-        } else {
+        } else if (uVar6 != 0) {
           if (uVar6 != local_c) {
             *(short *)(param_2 + 0xa74 + uVar6 * 4) += 1;
           }
           *(short *)(param_2 + 0xab4) += 1;
+        } else {
+          if (iVar5 < 0xb)
+            *(short *)(param_2 + 0xab8) += 1;
+          else
+            *(short *)(param_2 + 0xabc) += 1;
         }
         iVar5 = 0;
         local_c = uVar6;
