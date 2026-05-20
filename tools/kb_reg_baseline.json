@@ -312,7 +312,16 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "0x116390": "void FUN_00116390(int value @<eax>, int length @<ebx>, int state @<esi>);",
+    "0x116460": "void FUN_00116460(int state @<edx>);",
+    "0x1164d0": "void FUN_001164d0(int param_1, int state @<eax>, int tree @<edi>);",
+    "0x1167f0": "void FUN_001167f0(int param_1, int param_2, int tree @<eax>);",
+    "0x117000": "void FUN_00117000(int state @<ecx>);",
+    "0x1170b0": "void FUN_001170b0(int state @<eax>);",
+    "0x117130": "int FUN_00117130(int state @<eax>);",
+    "0x1171a0": "void FUN_001171a0(int len @<ecx>, unsigned char *buf @<edx>, int state @<eax>, int header);",
+    "0x1172d0": "void FUN_001172d0(int *param_1, int param_2, short *bl_count @<eax>);"
   },
   "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
   "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
