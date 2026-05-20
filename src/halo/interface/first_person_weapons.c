@@ -206,7 +206,8 @@ void FUN_000dcb30(int16_t local_player_index, uint8_t activate)
  * For each model node i, node_remap[i] gives the source index in the
  * animation graph node array. Copies 0x34 bytes (13 dwords) per node.
  * Asserts that every remap index is within [0, antr->nodes.count). */
-void fp_anim_apply_node_remap(int fp_nodes, int antr_tag_index, int anim_nodes,
+void fp_anim_apply_node_remap(int mode_tag_index, int fp_nodes,
+                              int antr_tag_index, int anim_nodes,
                               int16_t *node_remap)
 {
   char *mode_tag;
@@ -220,7 +221,7 @@ void fp_anim_apply_node_remap(int fp_nodes, int antr_tag_index, int anim_nodes,
   unsigned int *src;
   unsigned int *dst;
 
-  mode_tag = (char *)tag_get(0x6d6f6465, 0);
+  mode_tag = (char *)tag_get(0x6d6f6465, mode_tag_index);
   antr_tag = (char *)tag_get(0x616e7472, antr_tag_index);
   node_count = *(int *)(mode_tag + 0xb8);
   if (node_count <= 0)

@@ -154,6 +154,7 @@
     "0xdc8c0": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
     "0xdc9d0": "void FUN_000dc9d0(int param_2@<eax>, int object_handle@<ebx>);",
     "0xdcb30": "void FUN_000dcb30(int16_t local_player_index@<di>, uint8_t activate@<bl>);",
+    "0xdcbd0": "void fp_anim_apply_node_remap(int mode_tag_index @<eax>, int fp_nodes, int antr_tag_index, int anim_nodes, int16_t *node_remap);",
     "0xdcc80": "uint8_t FUN_000dcc80(int mode_tag_index@<eax>, int antr_tag_index, int16_t *output);",
     "0xdcd60": "int16_t FUN_000dcd60(int object_handle@<edi>);",
     "0xdce00": "void FUN_000dce00(int16_t local_player_index@<ax>);",

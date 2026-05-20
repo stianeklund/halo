@@ -7013,7 +7013,7 @@
           "addr": "0xdcaf0"
         },
         {
-          "decl": "void fp_anim_apply_node_remap(int fp_nodes, int antr_tag_index, int anim_nodes, int16_t *node_remap);",
+          "decl": "void fp_anim_apply_node_remap(int mode_tag_index @<eax>, int fp_nodes, int antr_tag_index, int anim_nodes, int16_t *node_remap);",
           "addr": "0xdcbd0",
           "ported": true
         },
@@ -10909,7 +10909,7 @@
         {
           "decl": "void hud_initialize_for_new_map(void);",
           "addr": "0xd0360",
-          "ported": true,
+          "ported": false,
           "src": "src/halo/interface/hud.c"
         },
         {
@@ -10929,7 +10929,7 @@
         {
           "decl": "void hud_update(void);",
           "addr": "0xd0440",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_000d04a0(void);",
