@@ -31529,59 +31529,69 @@
         },
         {
           "decl": "void FUN_00117cf0(int *table);",
-          "addr": "0x117cf0"
+          "addr": "0x117cf0",
+          "ported": true
         },
         {
           "decl": "void FUN_00117da0(void);",
           "addr": "0x117da0"
         },
         {
-          "decl": "void FUN_00117ee0(void);",
-          "addr": "0x117ee0"
+          "decl": "int FUN_00117ee0(int *array, int index, int element_size);",
+          "addr": "0x117ee0",
+          "ported": true
         },
         {
           "decl": "void FUN_00117ff0(void);",
           "addr": "0x117ff0"
         },
         {
-          "decl": "void FUN_00118190(void);",
-          "addr": "0x118190"
+          "decl": "void FUN_00118190(unsigned char *count, int elements, short element_size, short maximum_count);",
+          "addr": "0x118190",
+          "ported": true
         },
         {
-          "decl": "void FUN_00118260(void);",
-          "addr": "0x118260"
+          "decl": "int FUN_00118260(unsigned char *count, int elements, short element_size, short maximum_count, short new_count);",
+          "addr": "0x118260",
+          "ported": true
         },
         {
-          "decl": "void FUN_00118370(void);",
-          "addr": "0x118370"
+          "decl": "unsigned short FUN_00118370(unsigned char *count, int elements, short element_size, short maximum_count);",
+          "addr": "0x118370",
+          "ported": true
         },
         {
-          "decl": "void FUN_00118460(void);",
-          "addr": "0x118460"
+          "decl": "int FUN_00118460(unsigned char count, int elements, short element_size, short index);",
+          "addr": "0x118460",
+          "ported": true
         },
         {
-          "decl": "void FUN_00118520(void);",
-          "addr": "0x118520"
+          "decl": "void FUN_00118520(unsigned char *count, int elements, short element_size, short index);",
+          "addr": "0x118520",
+          "ported": true
         },
         {
           "decl": "void FUN_00118620(void *data, int count, int element_size);",
           "addr": "0x118620"
         },
         {
-          "decl": "void FUN_001187f0(void);",
+          "decl": "void FUN_001187f0(void *bs_definition, int data_ptr, int *codes, int *out_size, int *out_step);",
           "addr": "0x1187f0"
         },
         {
-          "decl": "void FUN_00118ba0(void);",
-          "addr": "0x118ba0"
+          "decl": "int FUN_00118ba0(const char *name, int *codes);",
+          "addr": "0x118ba0",
+          "ported": true
         },
         {
           "decl": "void FUN_00118be0(void *definition, void *data, int count);",
-          "addr": "0x118be0"
+          "addr": "0x118be0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00118cb0(void);",
-          "addr": "0x118cb0"
+          "decl": "void FUN_00118cb0(const char *name, int size, int *codes, int data_count, void *data);",
+          "addr": "0x118cb0",
+          "ported": true
         },
         {
           "decl": "void circular_queue_reset(void);",
