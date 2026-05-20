@@ -455,7 +455,7 @@ void FUN_001164d0(int param_1, int state, int tree)
   iVar3 = *(int *)(state + 0xb54 + param_1 * 4);
   iVar7 = param_1 * 2;
   iVar5 = iVar7 - heap_len;
-  if (heap_len < iVar7) {
+  if (iVar7 > heap_len) {
     *(int *)(state + 0xb54 + param_1 * 4) = iVar3;
     return;
   }
