@@ -138,13 +138,14 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
     nowrap_flag = *(int *)(*(int *)(z + 0x1c) + adler_fn);
     adler_fn = ((nowrap_flag != 0) - 1) & 0x110a10;
     *(void **)(*(int *)(z + 0x1c) + 0x14) = FUN_001139d0(z, adler_fn, wbits);
-    if (*(int *)(*(int *)(z + 0x1c) + 0x14) != 0) {
+    if (*(int *)(*(int *)(z + 0x1c) + 0x14) == 0) {
+      FUN_00115430(z);
+    } else {
       if (*(int *)0x320e30 > 0)
         crt_fprintf(*(void **)0x331070, "inflate: allocated\n");
       FUN_001153c0(z);
       return 0;
     }
-    FUN_00115430(z);
   }
   return (int)0xfffffffc;
 }
