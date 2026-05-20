@@ -1,3 +1,38 @@
+void hud_dispose(void)
+{
+  FUN_000db140();
+  FUN_000d6020();
+  FUN_000d8b80();
+  FUN_000d7430();
+  FUN_000d46e0();
+}
+
+void hud_initialize_for_new_map(void)
+{
+  csmemset(*(void **)0x46bd10, 0, 4);
+  *(char *)*(void **)0x46bd10 = 1;
+  if (interface_get_tag_index(6) == -1) {
+    display_assert("interface_get_tag_index(_interface_hud_globals)!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\hud.c", 0x71, 1);
+    system_exit(-1);
+  }
+  hud_globals = tag_get(0x68756467, interface_get_tag_index(6));
+  FUN_000d46a0();
+  FUN_000d7330();
+  FUN_000d8b30();
+  FUN_000d5ff0();
+  FUN_000db150();
+}
+
+void hud_dispose_from_old_map(void)
+{
+  FUN_000db1b0();
+  FUN_000d6010();
+  FUN_000d8b70();
+  FUN_000d7420();
+  FUN_000d46d0();
+}
+
 void hud_update(void)
 {
   int i;
@@ -118,6 +153,11 @@ void hud_autosave(int16_t param)
   }
 }
 
+float FUN_000d1690(void)
+{
+  return *(float *)0x002533c8;
+}
+
 uint32_t FUN_000d1c90(float *color)
 {
   int a;
@@ -160,4 +200,25 @@ uint32_t FUN_000d1c90(float *color)
   }
 
   return result;
+}
+
+void FUN_000d1e90(float alpha, float intensity)
+{
+  float color[4];
+
+  if (alpha < 0.0f || alpha > 1.0f) {
+    display_assert("alpha>=0.0f && alpha<=1.0f",
+                   "..\\bitmaps\\bitmaps_inlines.h", 0x13f, true);
+    system_exit(-1);
+  }
+  if (intensity < 0.0f || intensity > 1.0f) {
+    display_assert("intensity>=0.0f && intensity<=1.0f",
+                   "..\\bitmaps\\bitmaps_inlines.h", 0x140, true);
+    system_exit(-1);
+  }
+  color[0] = alpha;
+  color[1] = intensity;
+  color[2] = intensity;
+  color[3] = intensity;
+  FUN_000d1c90(color);
 }

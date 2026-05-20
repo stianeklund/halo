@@ -132,6 +132,27 @@ void effects_stop_on_first_person_weapon(int local_player_index)
   }
 }
 
+/* Get active effect and location counts.
+ * out[0] = effect_data capacity, out[1] = effect_location_data capacity,
+ * out[2] = number of active effects without looping/attached flags (bits 3-4).
+ * 0x9c910 / effects.obj */
+void FUN_0009c910(short *out)
+{
+  int iVar1;
+  char *effect;
+
+  out[0] = (*(data_t **)0x5aa8b0)->unk_48;
+  out[1] = (*(data_t **)0x5aa8ac)->unk_48;
+  out[2] = 0;
+  for (iVar1 = data_next_index(*(data_t **)0x5aa8b0, -1); iVar1 != -1;
+       iVar1 = data_next_index(*(data_t **)0x5aa8b0, iVar1)) {
+    effect = (char *)datum_get(*(data_t **)0x5aa8b0, iVar1);
+    if ((*(unsigned char *)(effect + 2) & 0x18) == 0) {
+      out[2]++;
+    }
+  }
+}
+
 /* Effect part volume filter (0x9caf0). Tests whether an effect part should
  * spawn based on its creation type and the effect's trigger/kill volume.
  * type 0=always, 1=outside volume, 2=inside volume, 3=never. */
@@ -295,6 +316,92 @@ float FUN_0009cdd0(uint16_t transition_type, float t)
     system_exit(-1);
     return t;
   }
+}
+
+void local_random_direction3d(float *out)
+{
+  random_seed_get_direction3d(random_math_get_local_seed_address(), out);
+}
+
+/* Stop or fade-out a looping effect. If fade_out is set, the loop-fade flag
+ * (bit 5 of effect+2) is raised instead of cleared. When the effect's current
+ * loop index is valid and there is a next event available, schedule the next
+ * event transition; otherwise mark the effect as fully stopped (bit 3). */
+void effect_stop(int effect_handle, char fade_out)
+{
+  char *effect;
+  void *tag_data;
+  unsigned short flags;
+  short cur_loop;
+
+  effect = (char *)datum_absolute_index_to_index(effect_data, effect_handle);
+  if (effect != 0) {
+    tag_data = tag_get(0x65666665, *(int *)(effect + 4));
+    flags = *(unsigned short *)(effect + 2);
+    if ((flags & 2) != 0) {
+      if (fade_out) {
+        flags = flags | 0x20;
+      } else {
+        flags = flags & 0xffdf;
+      }
+      *(unsigned short *)(effect + 2) = flags;
+      cur_loop = *(short *)((char *)tag_data + 6);
+      if ((cur_loop >= 0) &&
+          (cur_loop + 1 < *(int *)((char *)tag_data + 0x34))) {
+        FUN_0009cb90(effect_handle, cur_loop + 1);
+        *(unsigned char *)(effect + 2) |= 4;
+        return;
+      }
+      *(unsigned char *)(effect + 2) |= 8;
+      return;
+    }
+    effect_delete(effect_handle);
+  }
+}
+
+/* Iterate all active effects whose BSP leaf index (effect+0x3c) is unset
+ * (NONE). For each such effect, look up its attached location datum; if the
+ * location's short field at +2 is valid and negative (pending reconnect flag),
+ * attempt to re-acquire a location via FUN_0009cca0. On success, refresh the
+ * effect's world-point from the new location. On failure (or no location),
+ * delete the effect entirely. */
+void effects_reconnect_to_structure_bsp(void)
+{
+  int effect_index;
+  char *effect;
+  int location_handle;
+  char *effect_location;
+  void *new_location;
+
+  effect_index = data_next_index(effect_data, NONE);
+  do {
+    if (effect_index == NONE) {
+      return;
+    }
+    effect = (char *)datum_get(effect_data, effect_index);
+    if (*(int *)(effect + 0x3c) == NONE) {
+      location_handle = *(int *)(effect + 0x5c);
+      if (location_handle != NONE) {
+        effect_location =
+          (char *)datum_get(effect_location_data, location_handle);
+        location_handle = *(int *)(effect_location + 4);
+        if ((*(int16_t *)(effect_location + 2) != (int16_t)NONE) &&
+            (*(int16_t *)(effect_location + 2) < 0)) {
+          new_location = FUN_0009cca0(effect, &location_handle, 0);
+        } else {
+          new_location = 0;
+        }
+        if (new_location != 0) {
+          scenario_location_from_point(effect + 0x10,
+                                       (char *)new_location + 0x30);
+          goto next;
+        }
+      }
+      effect_delete(effect_index);
+    }
+  next:
+    effect_index = data_next_index(effect_data, effect_index);
+  } while (1);
 }
 
 /* Check if any active effect with a nonzero danger radius is close enough
@@ -1515,7 +1622,7 @@ void effect_update(int effect_index, float elapsed)
           goto delete_effect;
         }
         if ((*(uint8_t *)((char *)effect + 2) & 0xc) == 0)
-          ((void (*)(int, int))0x9ceb0)(effect_index, 0);
+          effect_stop(effect_index, 0);
       } else {
         /* marker found — check if effect was waiting to restart */
         uint16_t ef = *(uint16_t *)((char *)effect + 2);
@@ -1977,4 +2084,99 @@ bool effects_update(float elapsed)
   }
 
   return false;
+}
+
+/* Check whether position is within camera proximity threshold for any local
+ * player. Returns 1 if local_player_count() > 2 (split-screen shortcut), if
+ * distance-squared to any active local player's camera is below the threshold
+ * at 0x253f00, or 0 otherwise. (0x9f3b0) */
+int FUN_0009f3b0(void *param_1)
+{
+  float *position;
+  int i;
+  int player_index;
+  float *camera;
+  float dx;
+  float dy;
+  float dz;
+
+  position = (float *)param_1;
+  if (local_player_count() > 2) {
+    return 1;
+  }
+  i = 0;
+  do {
+    player_index = local_player_get_player_index(i);
+    if (player_index != -1) {
+      camera = (float *)observer_get_camera(i);
+      dx = position[0] - camera[0];
+      dy = position[1] - camera[1];
+      dz = position[2] - camera[2];
+      if (dx * dx + dz * dz + dy * dy < *(float *)0x253f00) {
+        return 1;
+      }
+    }
+    i++;
+  } while ((short)i < 4);
+  return 0;
+}
+
+/* Spawn a foot effect and/or impulse sound from a foot tag block (0x9f430).
+ * Looks up the 'foot' tag by handle, walks two block levels using param_2 and
+ * param_3 as indices, computes a position offset (param_4 + param_5 * dt),
+ * then conditionally creates an unattached effect and/or impulse sound. */
+void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4,
+                  void *param_5, void *param_6, float param_7)
+{
+  int *tag_data;
+  int *block_elem;
+  char *event_elem;
+  float pos_x;
+  float pos_y;
+  float pos_z;
+  float loc[11];
+  float *zero_vec;
+
+  tag_data = (int *)tag_get(0x666f6f74, param_1);
+  if ((int)param_2 >= *tag_data) {
+    return;
+  }
+  block_elem = (int *)tag_block_get_element(tag_data, (int)param_2, 0x1c);
+  if (param_3 == -1) {
+    return;
+  }
+  if ((int)param_3 >= *block_elem) {
+    return;
+  }
+  event_elem = tag_block_get_element(block_elem, (int)param_3, 0x30);
+
+  pos_x = *(float *)0x25bb10 * ((float *)param_5)[0] + ((float *)param_4)[0];
+  pos_y = *(float *)0x25bb10 * ((float *)param_5)[1] + ((float *)param_4)[1];
+  pos_z = *(float *)0x25bb10 * ((float *)param_5)[2] + ((float *)param_4)[2];
+
+  if (*(int *)(event_elem + 0xc) != -1) {
+    effect_new_unattached_from_markers(*(int *)(event_elem + 0xc), -1, NULL, 1,
+                                       NULL, &pos_x, (float *)param_5, param_7,
+                                       0.0f, 0.0f, 0.0f, 0.0f);
+  }
+
+  if (*(int *)(event_elem + 0x1c) != -1) {
+    loc[0] = pos_x;
+    loc[1] = pos_y;
+    loc[2] = pos_z;
+    loc[3] = ((float *)param_5)[0];
+    loc[4] = ((float *)param_5)[1];
+    loc[5] = ((float *)param_5)[2];
+    zero_vec = *(float **)0x31fc38;
+    loc[6] = zero_vec[0];
+    loc[7] = zero_vec[1];
+    loc[8] = zero_vec[2];
+    loc[9] = ((float *)param_6)[0];
+    loc[10] = ((float *)param_6)[1];
+    unattached_impulse_sound_new(*(int *)(event_elem + 0x1c), loc, param_7);
+  }
+
+  if (*(char *)0x4557e9 != '\0') {
+    FUN_00189540(0, param_4, 0x3d4ccccd, *(void **)0x2ee6dc);
+  }
 }

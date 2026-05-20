@@ -1255,6 +1255,22 @@
       }
     },
     {
+      "name": "halo/collision_usage_FUN_0014cc80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014cc80.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/collision_usage_FUN_0014cde0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage_FUN_0014cde0.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/collision_usage.c"
+      }
+    },
+    {
       "name": "halo/collision_usage_FUN_14da80",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
       "base_path": "delinked/collision_usage_FUN_14da80.obj",
@@ -1780,6 +1796,262 @@
       "base_path": "delinked/collision_usage_FUN_0014dab0.obj",
       "metadata": {
         "source_path": "halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10b9c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b9c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c2e0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c2e0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c340",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c340.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c390",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c390.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c3c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c3c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c440",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c440.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c780",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c780.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c920",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c920.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10b110",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b110.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10c7d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c7d0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10b3c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b3c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/random_math_FUN_10b110",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10b110.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/effects_real_local_random",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9ce80.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_FUN_9c910",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9c910.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_reconnect_9cf40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9cf40.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/contrails_reconnect_97980",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+      "base_path": "delinked/contrails_97980.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
+      }
+    },
+    {
+      "name": "halo/player_rumble_b9b80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_rumble.c.obj",
+      "base_path": "delinked/player_rumble_b9b80.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_rumble.c"
+      }
+    },
+    {
+      "name": "halo/player_rumble_impulse",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_rumble.c.obj",
+      "base_path": "delinked/player_rumble_b9bc0.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_rumble.c"
+      }
+    },
+    {
+      "name": "halo/effects_9ceb0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9ceb0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_9f3b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9f3b0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_9f430",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9f430.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_9c9a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9c9a0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/random_math_10b3c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_10b3c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/contrails_97ae0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+      "base_path": "delinked/contrails_97ae0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
+      }
+    },
+    {
+      "name": "halo/effects_9c910_tight",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9c910_tight.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/hud_d0340_d0440",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d0340_d0440.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
+      "name": "halo/hud_d1dd0_d1f00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1dd0_d1f00.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
+      "name": "halo/hud_d1690_d1700",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1690_d1700.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
+      "name": "halo/player_queues_b8f00_b9040",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_queues_new.c.obj",
+      "base_path": "delinked/player_queues_b8f00_b9040.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_queues_new.c"
+      }
+    },
+    {
+      "name": "halo/predicted_resources_1bdd40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cache/predicted_resources.c.obj",
+      "base_path": "delinked/predicted_resources_1bdd40_1bdf00.obj",
+      "metadata": {
+        "source_path": "src/halo/cache/predicted_resources.c"
+      }
+    },
+    {
+      "name": "halo/player_queues_b97b0",
+      "base_path": "delinked/player_queues_b97b0_b9880.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_queues_new.c.obj",
+      "metadata": {
+        "source_path": "src/halo/game/player_queues_new.c"
+      }
+    },
+    {
+      "name": "halo/contrails_98580",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c",
+      "base_path": "delinked/contrails_98580_98730.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/contrails.c"
       }
     }
   ]

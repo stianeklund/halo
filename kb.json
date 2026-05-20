@@ -459,7 +459,7 @@
           "addr": "0x1339a0"
         },
         {
-          "decl": "void FUN_00149c60(void);",
+          "decl": "char FUN_00149c60(int *param_1, float *param_2, float *param_3, float param_4, float param_5, float *param_6);",
           "addr": "0x149c60"
         },
         {
@@ -4680,8 +4680,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014cc80(void);",
-          "addr": "0x14cc80"
+          "decl": "int FUN_0014cc80(int param_1, int param_2, int param_3, float param_4, int16_t *param_5);",
+          "addr": "0x14cc80",
+          "ported": true,
+          "src": "src/halo/physics/collision_usage.c"
         },
         {
           "decl": "void FUN_0014cde0(void);",
@@ -4938,11 +4940,14 @@
         },
         {
           "decl": "void contrails_reconnect_to_structure_bsp(void);",
-          "addr": "0x97980"
+          "addr": "0x97980",
+          "ported": true,
+          "src": "src/halo/effects/contrails.c"
         },
         {
           "decl": "void FUN_00097ae0(void);",
-          "addr": "0x97ae0"
+          "addr": "0x97ae0",
+          "ported": null
         },
         {
           "decl": "void local_random_vector_in_cone3d(float *forward, float zero, float angle, float *result);",
@@ -6401,39 +6406,51 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0009C910(void);",
-          "addr": "0x9c910"
+          "decl": "void FUN_0009c910(short *out);",
+          "addr": "0x9c910",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
           "decl": "void FUN_0009c9a0(void);",
-          "addr": "0x9c9a0"
+          "addr": "0x9c9a0",
+          "ported": null
         },
         {
           "decl": "void FUN_0009c9f0(void);",
           "addr": "0x9c9f0"
         },
         {
-          "decl": "void real_local_random(void);",
-          "addr": "0x9ce80"
+          "decl": "float real_local_random(void);",
+          "addr": "0x9ce80",
+          "ported": null
         },
         {
-          "decl": "void local_random_direction3d(void);",
-          "addr": "0x9ce90"
+          "decl": "void local_random_direction3d(float *out);",
+          "addr": "0x9ce90",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
-          "decl": "void effect_stop(void);",
-          "addr": "0x9ceb0"
+          "decl": "void effect_stop(int effect_handle, char fade_out);",
+          "addr": "0x9ceb0",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
           "decl": "void effects_reconnect_to_structure_bsp(void);",
-          "addr": "0x9cf40"
+          "addr": "0x9cf40",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
-          "decl": "bool FUN_0009f3b0(void *data);",
-          "addr": "0x9f3b0"
+          "decl": "int FUN_0009f3b0(void *param_1);",
+          "addr": "0x9f3b0",
+          "ported": true,
+          "src": "src/halo/effects/effects.c"
         },
         {
-          "decl": "void FUN_0009f430(int arg1, int arg2, int arg3, void *arg4, void *arg5, void *arg6, int arg7);",
+          "decl": "void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4, void *param_5, void *param_6, float param_7);",
           "addr": "0x9f430"
         }
       ]
@@ -10885,15 +10902,21 @@
       "functions": [
         {
           "decl": "void hud_dispose(void);",
-          "addr": "0xd0340"
+          "addr": "0xd0340",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void hud_initialize_for_new_map(void);",
-          "addr": "0xd0360"
+          "addr": "0xd0360",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void hud_dispose_from_old_map(void);",
-          "addr": "0xd03e0"
+          "addr": "0xd03e0",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void scripted_show_hud(void);",
@@ -10984,8 +11007,10 @@
           "addr": "0xd1580"
         },
         {
-          "decl": "void FUN_000d1690(void);",
-          "addr": "0xd1690"
+          "decl": "float FUN_000d1690(void);",
+          "addr": "0xd1690",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void FUN_000d16a0(void);",
@@ -11013,8 +11038,10 @@
           "addr": "0xd1dd0"
         },
         {
-          "decl": "void FUN_000d1e90(void);",
-          "addr": "0xd1e90"
+          "decl": "void FUN_000d1e90(float alpha, float intensity);",
+          "addr": "0xd1e90",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "decl": "void FUN_000d1f40(void);",
@@ -11069,6 +11096,14 @@
         {
           "decl": "void FUN_000d46a0(void);",
           "addr": "0xd46a0"
+        },
+        {
+          "decl": "void FUN_000d46d0(void);",
+          "addr": "0xd46d0"
+        },
+        {
+          "decl": "void FUN_000d46e0(void);",
+          "addr": "0xd46e0"
         },
         {
           "decl": "void scripted_hud_set_state_message(void);",
@@ -11655,7 +11690,7 @@
           "ported": true
         },
         {
-       "decl": "void interface_get_rgb_color(void);",
+          "decl": "void interface_get_rgb_color(void);",
           "addr": "0xdff00"
         },
         {
@@ -11972,7 +12007,7 @@
           "addr": "0x100010"
         },
         {
-          "decl": "void main_get_map_name(void);",
+          "decl": "const char *main_get_map_name(void);",
           "addr": "0x100040"
         },
         {
@@ -15299,24 +15334,33 @@
           "ported": true
         },
         {
-          "decl": "void update_client_add_player(void);",
-          "addr": "0xb8f00"
+          "decl": "void update_client_add_player(int handle);",
+          "addr": "0xb8f00",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         },
         {
-          "decl": "void update_client_queue(void);",
-          "addr": "0xb8f40"
+          "decl": "void update_client_queue(void *data);",
+          "addr": "0xb8f40",
+          "ported": null
         },
         {
           "decl": "void update_client_queue_push(void);",
-          "addr": "0xb8f70"
+          "addr": "0xb8f70",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         },
         {
-          "decl": "void player_new_queue(void);",
-          "addr": "0xb8ff0"
+          "decl": "int player_new_queue(int handle);",
+          "addr": "0xb8ff0",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         },
         {
-          "decl": "void FUN_000b97b0(void);",
-          "addr": "0xb97b0"
+          "decl": "void FUN_000b97b0(void *data, int sequence_index);",
+          "addr": "0xb97b0",
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         }
       ]
     },
@@ -15366,15 +15410,18 @@
         },
         {
           "decl": "void rumble_player_impulse(short unit_index, float *rumble_def, float damage_amount, float scale);",
-          "addr": "0xb9bc0"
+          "addr": "0xb9bc0",
+          "ported": null
         },
         {
-          "decl": "void rumble_player_set_scripted_values(void);",
-          "addr": "0xb9b80"
+          "decl": "void rumble_player_set_scripted_values(float left_motor, float right_motor);",
+          "addr": "0xb9b80",
+          "ported": null
         },
         {
-          "decl": "void rumble_player_set_scale(void);",
-          "addr": "0xb9ba0"
+          "decl": "void rumble_player_set_scale(float scale);",
+          "addr": "0xb9ba0",
+          "ported": null
         },
         {
           "decl": "void rumble_set_direct_motors(short local_player_index, int left_motor, int right_motor);",
@@ -16680,28 +16727,40 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001bdd40(void);",
-          "addr": "0x1bdd40"
+          "decl": "int FUN_001bdd40(void);",
+          "addr": "0x1bdd40",
+          "ported": true,
+          "src": "src/halo/cache/predicted_resources.c"
         },
         {
-          "decl": "void FUN_001bdd50(void);",
-          "addr": "0x1bdd50"
+          "decl": "int FUN_001bdd50(void);",
+          "addr": "0x1bdd50",
+          "ported": true,
+          "src": "src/halo/cache/predicted_resources.c"
         },
         {
           "decl": "void *FUN_001bdd60(void);",
-          "addr": "0x1bdd60"
+          "addr": "0x1bdd60",
+          "ported": true,
+          "src": "src/halo/cache/predicted_resources.c"
         },
         {
-          "decl": "void FUN_001bdd70(void);",
-          "addr": "0x1bdd70"
+          "decl": "int FUN_001bdd70(void);",
+          "addr": "0x1bdd70",
+          "ported": true,
+          "src": "src/halo/cache/predicted_resources.c"
         },
         {
           "decl": "void FUN_001bde90(void);",
-          "addr": "0x1bde90"
+          "addr": "0x1bde90",
+          "ported": true,
+          "src": "src/halo/cache/predicted_resources.c"
         },
         {
           "decl": "void FUN_001bdec0(void);",
-          "addr": "0x1bdec0"
+          "addr": "0x1bdec0",
+          "ported": true,
+          "src": "src/halo/cache/predicted_resources.c"
         }
       ]
     },
@@ -17345,8 +17404,10 @@
           "ported": true
         },
         {
-          "decl": "void get_random_seed(void);",
-          "addr": "0x10b110"
+          "decl": "unsigned int get_random_seed(void);",
+          "addr": "0x10b110",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void random_math_initialize(void);",
@@ -17359,12 +17420,16 @@
           "ported": true
         },
         {
-          "decl": "void seed_random_orientation(void);",
-          "addr": "0x10b3c0"
+          "decl": "void seed_random_orientation(unsigned int *seed, float *facing, float *up);",
+          "addr": "0x10b3c0",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010b9c0(void);",
-          "addr": "0x10b9c0"
+          "decl": "void FUN_0010b9c0(float *q1, float *q2, float *out);",
+          "addr": "0x10b9c0",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
           "decl": "void FUN_0010ba90(float *q1, float *q2, float t, float *out);",
@@ -17378,15 +17443,20 @@
         },
         {
           "decl": "float *FUN_0010c2e0(float *v);",
-          "addr": "0x10c2e0"
+          "addr": "0x10c2e0",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010c340(void);",
-          "addr": "0x10c340"
+          "decl": "float FUN_0010c340(float *v1, float *v2);",
+          "addr": "0x10c340",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010c390(void);",
-          "addr": "0x10c390"
+          "decl": "float FUN_0010c390(float param_1, float param_2, uint8_t param_3);",
+          "addr": "0x10c390",
+          "ported": null
         },
         {
           "decl": "void FUN_0010c3c0(void);",
@@ -17397,16 +17467,22 @@
           "addr": "0x10c440"
         },
         {
-          "decl": "void FUN_0010c780(void);",
-          "addr": "0x10c780"
+          "decl": "void FUN_0010c780(float *v1, float *v2, float t, float *out);",
+          "addr": "0x10c780",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010c7d0(void);",
-          "addr": "0x10c7d0"
+          "decl": "void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4);",
+          "addr": "0x10c7d0",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         },
         {
-          "decl": "void FUN_0010c920(void);",
-          "addr": "0x10c920"
+          "decl": "void FUN_0010c920(float *v1, float *v2, float t, float *out);",
+          "addr": "0x10c920",
+          "ported": true,
+          "src": "src/halo/math/random_math.c"
         }
       ]
     },
@@ -22831,7 +22907,7 @@
           "addr": "0xe43d0"
         },
         {
-          "decl": "void main_menu_is_active(void);",
+          "decl": "bool main_menu_is_active(void);",
           "addr": "0xe43e0"
         },
         {
