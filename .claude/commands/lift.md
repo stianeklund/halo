@@ -118,8 +118,8 @@ Notes:
   `vc71_verify.py` automatically when a delinked reference exists in `delinked/`
   (mapped via `objdiff.json`). Step 3 above ensures this is done before the
   pipeline runs — never skip it and then offer a second pass.
-- **Prefer XBDM verification on real Xbox** over xemu+ISO whenever a console
-  is available. Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
+- **Prefer XBDM verification on real Xbox** whenever a console is available.
+  Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
 - Use `/verify option3 <target>` only as a runtime/xemu fallback lane, not as primary structural proof.
 - Use `/verify structural <target> <new_address>` for explicit verify payload runs with a known lifted function address.
 - `/auto-lift` auto-commits on success and reverts+logs on failure. See `artifacts/auto_lift/failures/` for failure records.

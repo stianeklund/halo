@@ -188,7 +188,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - `halo-xbox-re`: RE doctrine and evidence rules.
 - `halo-re-lift`: Lift workflow and ABI-specific execution.
 - `halo-verify-debug`: Verification lanes, delink comparison, and regression debugging.
-- `halo-build-xemu`: Build/ISO/xemu workflow.
+- `halo-build-xemu`: Build and XBE deployment workflow.
 - `halo-xbdm`: RDCP/XBDM workflow for real Xbox.
 
 <!-- rtk-instructions v2 -->
