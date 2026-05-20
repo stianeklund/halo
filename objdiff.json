@@ -2069,6 +2069,14 @@
       "metadata": {
         "source_path": "src/halo/networking/network_server_manager.c"
       }
+    },
+    {
+      "name": "halo/data_encoding_FUN_119ff0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/data.c.obj",
+      "base_path": "delinked/data_encoding_FUN_119ff0.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/data.c"
+      }
     }
   ]
 }
