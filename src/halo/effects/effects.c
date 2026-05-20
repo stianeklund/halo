@@ -132,7 +132,6 @@ void effects_stop_on_first_person_weapon(int local_player_index)
   }
 }
 
-
 /* Get active effect and location counts.
  * out[0] = effect_data capacity, out[1] = effect_location_data capacity,
  * out[2] = number of active effects without looping/attached flags (bits 3-4).
@@ -319,6 +318,11 @@ float FUN_0009cdd0(uint16_t transition_type, float t)
   }
 }
 
+void local_random_direction3d(float *out)
+{
+  random_seed_get_direction3d(random_math_get_local_seed_address(), out);
+}
+
 /* Stop or fade-out a looping effect. If fade_out is set, the loop-fade flag
  * (bit 5 of effect+2) is raised instead of cleared. When the effect's current
  * loop index is valid and there is a next event available, schedule the next
@@ -342,7 +346,8 @@ void effect_stop(int effect_handle, char fade_out)
       }
       *(unsigned short *)(effect + 2) = flags;
       cur_loop = *(short *)((char *)tag_data + 6);
-      if ((cur_loop >= 0) && (cur_loop + 1 < *(int *)((char *)tag_data + 0x34))) {
+      if ((cur_loop >= 0) &&
+          (cur_loop + 1 < *(int *)((char *)tag_data + 0x34))) {
         FUN_0009cb90(effect_handle, cur_loop + 1);
         *(unsigned char *)(effect + 2) |= 4;
         return;
@@ -352,11 +357,6 @@ void effect_stop(int effect_handle, char fade_out)
     }
     effect_delete(effect_handle);
   }
-}
-
-void local_random_direction3d(float *out)
-{
-  random_seed_get_direction3d(random_math_get_local_seed_address(), out);
 }
 
 /* Iterate all active effects whose BSP leaf index (effect+0x3c) is unset
@@ -2074,13 +2074,59 @@ int effect_new_unattached_from_markers(
   return handle;
 }
 
+bool effects_update(float elapsed)
+{
+  int effect_index;
+
+  for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
+       effect_index = data_next_index(effect_data, effect_index)) {
+    effect_update(effect_index, elapsed);
+  }
+
+  return false;
+}
+
+/* Check whether position is within camera proximity threshold for any local
+ * player. Returns 1 if local_player_count() > 2 (split-screen shortcut), if
+ * distance-squared to any active local player's camera is below the threshold
+ * at 0x253f00, or 0 otherwise. (0x9f3b0) */
+int FUN_0009f3b0(void *param_1)
+{
+  float *position;
+  int i;
+  int player_index;
+  float *camera;
+  float dx;
+  float dy;
+  float dz;
+
+  position = (float *)param_1;
+  if (local_player_count() > 2) {
+    return 1;
+  }
+  i = 0;
+  do {
+    player_index = local_player_get_player_index(i);
+    if (player_index != -1) {
+      camera = (float *)observer_get_camera(i);
+      dx = position[0] - camera[0];
+      dy = position[1] - camera[1];
+      dz = position[2] - camera[2];
+      if (dx * dx + dz * dz + dy * dy < *(float *)0x253f00) {
+        return 1;
+      }
+    }
+    i++;
+  } while ((short)i < 4);
+  return 0;
+}
+
 /* Spawn a foot effect and/or impulse sound from a foot tag block (0x9f430).
  * Looks up the 'foot' tag by handle, walks two block levels using param_2 and
  * param_3 as indices, computes a position offset (param_4 + param_5 * dt),
  * then conditionally creates an unattached effect and/or impulse sound. */
-void FUN_0009f430(int param_1, short param_2, short param_3,
-                  void *param_4, void *param_5,
-                  void *param_6, float param_7)
+void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4,
+                  void *param_5, void *param_6, float param_7)
 {
   int *tag_data;
   int *block_elem;
@@ -2109,9 +2155,9 @@ void FUN_0009f430(int param_1, short param_2, short param_3,
   pos_z = *(float *)0x25bb10 * ((float *)param_5)[2] + ((float *)param_4)[2];
 
   if (*(int *)(event_elem + 0xc) != -1) {
-    effect_new_unattached_from_markers(
-      *(int *)(event_elem + 0xc), -1, NULL, 1, NULL, &pos_x,
-      (float *)param_5, param_7, 0.0f, 0.0f, 0.0f, 0.0f);
+    effect_new_unattached_from_markers(*(int *)(event_elem + 0xc), -1, NULL, 1,
+                                       NULL, &pos_x, (float *)param_5, param_7,
+                                       0.0f, 0.0f, 0.0f, 0.0f);
   }
 
   if (*(int *)(event_elem + 0x1c) != -1) {
@@ -2125,7 +2171,7 @@ void FUN_0009f430(int param_1, short param_2, short param_3,
     loc[6] = zero_vec[0];
     loc[7] = zero_vec[1];
     loc[8] = zero_vec[2];
-    loc[9]  = ((float *)param_6)[0];
+    loc[9] = ((float *)param_6)[0];
     loc[10] = ((float *)param_6)[1];
     unattached_impulse_sound_new(*(int *)(event_elem + 0x1c), loc, param_7);
   }
@@ -2133,16 +2179,4 @@ void FUN_0009f430(int param_1, short param_2, short param_3,
   if (*(char *)0x4557e9 != '\0') {
     FUN_00189540(0, param_4, 0x3d4ccccd, *(void **)0x2ee6dc);
   }
-}
-
-bool effects_update(float elapsed)
-{
-  int effect_index;
-
-  for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
-       effect_index = data_next_index(effect_data, effect_index)) {
-    effect_update(effect_index, elapsed);
-  }
-
-  return false;
 }
