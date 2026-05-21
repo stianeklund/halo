@@ -170,6 +170,22 @@ void hud_autosave(int16_t param)
   }
 }
 
+/* Scan int array backwards from index 127, return first index where element
+ * is not the sentinel 0x62626262 ("bbbb"). Returns -1 if all are sentinel.
+ * Loop counter is short (16-bit); OR AX,0xffff sign-extends -1 to int. */
+int FUN_000d1550(int param_1)
+{
+  short iVar1;
+
+  iVar1 = 0x7f;
+  do {
+    if (*(int *)(param_1 + (int)iVar1 * 4) != 0x62626262)
+      return (int)iVar1;
+    iVar1--;
+  } while (iVar1 >= 0);
+  return iVar1;
+}
+
 float FUN_000d1690(void)
 {
   return *(float *)0x002533c8;

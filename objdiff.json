@@ -2263,6 +2263,22 @@
       }
     },
     {
+      "name": "halo/hud_d1550_d1578",
+      "base_path": "delinked/hud_d1550_d1578.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
+      "name": "halo/hud_d1c50_d1c88",
+      "base_path": "delinked/hud_d1c50_d1c88.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
       "name": "halo/player_queues_b8f00_b9040",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/game/player_queues_new.c.obj",
       "base_path": "delinked/player_queues_b8f00_b9040.obj",
