@@ -6568,7 +6568,8 @@
         },
         {
           "decl": "void FUN_0008f630(void);",
-          "addr": "0x8f630"
+          "addr": "0x8f630",
+          "ported": true
         },
         {
           "decl": "void FUN_0008f6b0(void);",
@@ -7097,11 +7098,13 @@
         },
         {
           "decl": "void FUN_000a6b50(void);",
-          "addr": "0xa6b50"
+          "addr": "0xa6b50",
+          "ported": true
         },
         {
           "decl": "void FUN_000a6ba0(void);",
-          "addr": "0xa6ba0"
+          "addr": "0xa6ba0",
+          "ported": true
         },
         {
           "decl": "void game_initialize(void);",
@@ -11595,7 +11598,8 @@
         },
         {
           "decl": "void FUN_000ce530(void *state);",
-          "addr": "0xce530"
+          "addr": "0xce530",
+          "ported": true
         },
         {
           "decl": "void input_recording_write_packet(void *state);",
@@ -27577,7 +27581,7 @@
           "addr": "0x1d158c"
         },
         {
-          "decl": "void FUN_001d1610(void);",
+          "decl": "unsigned int FUN_001d1610(int handle, unsigned int offset, unsigned int *high_ptr, int method);",
           "addr": "0x1d1610"
         },
         {

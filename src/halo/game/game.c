@@ -1,3 +1,33 @@
+void FUN_000a6b50(void)
+{
+  int *block;
+  void *element;
+
+  block = (int *)((char *)game_globals_get() + 0x158);
+  if (*block != 0) {
+    element = tag_block_get_element(block, 0, 0x10);
+    FUN_000a6930((int)element, *(unsigned short *)block);
+    return;
+  }
+  FUN_000a6930(0, *(unsigned short *)block);
+}
+
+void FUN_000a6ba0(void)
+{
+  int *block;
+  void *elem0;
+  void *elem1;
+  int index;
+
+  block = (int *)((char *)game_globals_get() + 0x164);
+  if (*block != 0) {
+    elem0 = tag_block_get_element(block, 0, 0xa0);
+    index = (int)*(short *)((char *)elem0 + 0x20);
+    elem1 = tag_block_get_element(block, 0, 0xa0);
+    FUN_000a6930(*(int *)((char *)elem1 + 0x24), (unsigned short)index);
+  }
+}
+
 void game_initialize(void)
 {
   game_globals = (game_globals_t *)game_state_malloc("game globals", 0,
@@ -692,12 +722,12 @@ int FUN_000b45c0(int param_1)
     count = count + -1;
   }
   if (count < 1) {
-    display_assert("count > 0",
-                   "c:\\halo\\SOURCE\\game\\game_engine_race.c", 0x2a7, 1);
+    display_assert("count > 0", "c:\\halo\\SOURCE\\game\\game_engine_race.c",
+                   0x2a7, 1);
     system_exit(-1);
   }
-  sVar1 = random_range(
-      (unsigned int *)get_global_random_seed_address(), 0, (short)count);
+  sVar1 = random_range((unsigned int *)get_global_random_seed_address(), 0,
+                       (short)count);
   piVar6 = (int *)(iVar2 + 0x378);
   iVar5 = (int)sVar1;
   iVar4 = 0;
@@ -762,10 +792,11 @@ int FUN_000b4960(void)
           if (sVar1 < iVar4) {
             iVar4 = (int)sVar1;
           }
-          *(int *)0x456f10 = *(int *)0x456f10 | (1 << ((unsigned char)sVar1 & 0x1f));
-          game_engine_set_goal_position(
-              (int)*(short *)(iVar3 + 0x12), (void *)iVar3, 0,
-              "flag_blue", -1, -1, -1);
+          *(int *)0x456f10 =
+            *(int *)0x456f10 | (1 << ((unsigned char)sVar1 & 0x1f));
+          game_engine_set_goal_position((int)*(short *)(iVar3 + 0x12),
+                                        (void *)iVar3, 0, "flag_blue", -1, -1,
+                                        -1);
         } else {
           error(2,
                 "one of the netgameflags that defines the track was out of "
