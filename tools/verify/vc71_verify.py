@@ -181,11 +181,149 @@ def choose_unit(source: str, units: list[dict], function: str | None) -> dict | 
     return None
 
 
-def compile_vc71(source: Path, output: Path) -> bool:
-    """Compile a source file with VC++ 7.1 cl.exe. Returns True on success."""
+def _get_regarg_callees(source: Path) -> dict[str, str]:
+    """Identify register-arg functions callable from this source file.
+
+    Returns {func_name: cast_expr} where cast_expr is a C cast that
+    generates the right call-site instruction sequence for VC71 comparison.
+    Only includes functions with @<reg> annotations in kb.json.
+    """
+    kb = _load_kb()
+    src_text = source.read_text()
+
+    # Collect all register-arg functions from kb.json
+    regarg_funcs: dict[str, list[tuple[int, str]]] = {}
+    for obj in kb.get("objects", []):
+        for fn in obj.get("functions", []):
+            decl = fn.get("decl", "")
+            if "@<" not in decl:
+                continue
+            m = re.search(r"\b(\w+)\s*\(", decl)
+            if not m:
+                continue
+            name = m.group(1)
+            # Parse @<reg> annotations to get (param_idx, reg) pairs
+            params_str = decl[decl.index("(") + 1 : decl.rindex(")")]
+            regs = []
+            for i, p in enumerate(params_str.split(",")):
+                rm = re.search(r"@<(\w+)>", p)
+                if rm:
+                    regs.append((i, rm.group(1).lower()))
+            if regs:
+                regarg_funcs[name] = regs
+
+    # Only include functions that are CALLED from (not just defined in) this source
+    result: dict[str, str] = {}
+    for name, regs in regarg_funcs.items():
+        if name not in src_text:
+            continue
+
+        # Find full declaration to extract return type and param info
+        decl = ""
+        for obj in kb.get("objects", []):
+            for fn in obj.get("functions", []):
+                d = fn.get("decl", "")
+                m = re.search(r"\b" + re.escape(name) + r"\s*\(", d)
+                if m:
+                    decl = d
+                    break
+            if decl:
+                break
+        if not decl:
+            continue
+
+        # Extract return type (everything before the function name)
+        ret_match = re.match(r"(.+?)\b" + re.escape(name) + r"\s*\(", decl)
+        ret_type = ret_match.group(1).strip() if ret_match else "void"
+
+        params_str = decl[decl.index("(") + 1 : decl.rindex(")")]
+        params = [p.strip() for p in params_str.split(",") if p.strip()]
+        stack_params = sum(1 for p in params if "@<" not in p and p != "void")
+
+        # Single register-arg, no stack args: __fastcall(int) generates mov+call
+        if len(regs) == 1 and stack_params == 0:
+            result[name] = f"(({ret_type}(__fastcall*)(int)){name})"
+        # All register-args, no stack args: void-cast enables tail-call/bare call
+        elif stack_params == 0 and ret_type == "void":
+            result[name] = f"((void(*)(void)){name})"
+
+    return result
+
+
+def _preprocess_regcall(source: Path, callees: dict[str, str]) -> Path:
+    """Generate a VC71-specific source with register-arg calls using casts.
+
+    For each callee in the map, replaces call-site invocations with the
+    cast expression. Function definitions are preserved unchanged.
+    Returns path to the preprocessed temp file.
+    """
+    lines = source.read_text().split("\n")
+    out = []
+
+    for line in lines:
+        stripped = line.lstrip()
+        # Skip function definitions — they start with a return type
+        is_def = False
+        for name in callees:
+            if re.match(rf"^[\w\s\*]+\b{name}\s*\(", stripped):
+                is_def = True
+                break
+        if is_def:
+            out.append(line)
+            continue
+
+        # Replace call sites
+        for name, cast in callees.items():
+            idx = 0
+            while True:
+                pos = line.find(name + "(", idx)
+                if pos < 0:
+                    break
+                # Find matching closing paren
+                depth = 0
+                start = pos + len(name)
+                end = start
+                for i in range(start, len(line)):
+                    if line[i] == "(":
+                        depth += 1
+                    elif line[i] == ")":
+                        depth -= 1
+                        if depth == 0:
+                            end = i + 1
+                            break
+                if end <= start:
+                    break
+
+                if "void(void)" in cast:
+                    replacement = cast + "()"
+                else:
+                    args = line[start + 1 : end - 1]
+                    replacement = cast + "(" + args + ")"
+                line = line[:pos] + replacement + line[end:]
+                idx = pos + len(replacement)
+        out.append(line)
+
+    tmp = source.parent / f".vc71_regcall_{source.name}"
+    tmp.write_text("\n".join(out))
+    return tmp
+
+
+def compile_vc71(source: Path, output: Path, regcall_elide: bool = False) -> bool:
+    """Compile a source file with VC++ 7.1 cl.exe. Returns True on success.
+
+    When regcall_elide=True, preprocesses the source to cast register-arg
+    callee invocations so VC71 generates matching call-site instruction
+    sequences (mov+call instead of push+call+add).
+    """
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    src_win = wsl_to_win(source)
+    actual_source = source
+    if regcall_elide:
+        callees = _get_regarg_callees(source)
+        if callees:
+            actual_source = _preprocess_regcall(source, callees)
+
+    src_win = wsl_to_win(actual_source)
     out_win = wsl_to_win(output)
     fi_win = wsl_to_win(REPO_ROOT / "src" / "xdk_common.h")
     gen_inc = wsl_to_win(BUILD_DIR / "generated")
@@ -424,6 +562,9 @@ def main():
                     help="Drop existing cache entries for this source before run")
     ap.add_argument("--reg-normalize", "-r", action="store_true",
                     help="Use register-alias normalization for operand-level comparison")
+    ap.add_argument("--regcall-elide", action="store_true",
+                    help="Cast register-arg callee calls so VC71 generates matching "
+                         "call-site sequences (mov+call instead of push+call+add)")
     args = ap.parse_args()
 
     units = load_units()
@@ -508,7 +649,7 @@ def main():
         if not args.quiet:
             print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
         t0 = time.perf_counter()
-        if not compile_vc71(source, vc71_obj):
+        if not compile_vc71(source, vc71_obj, regcall_elide=args.regcall_elide):
             sys.exit(1)
         if not args.quiet:
             elapsed = time.perf_counter() - t0
@@ -521,7 +662,7 @@ def main():
         if not args.quiet:
             print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
         t0 = time.perf_counter()
-        if not compile_vc71(source, vc71_obj):
+        if not compile_vc71(source, vc71_obj, regcall_elide=args.regcall_elide):
             sys.exit(1)
         if not args.quiet:
             print(f"Compiled in {time.perf_counter() - t0:.1f}s", flush=True)

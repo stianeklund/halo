@@ -26,21 +26,26 @@ from pathlib import Path
 from typing import Optional
 
 
-def load_snapshot(path: str) -> dict:
+def load_snapshot(path: str) -> tuple[dict, dict]:
     """Load a snapshot JSON file.
 
-    Returns {int_address: bytes} suitable for passing as memory_overrides
-    to unicorn_diff._run_function().
+    Returns (memory_overrides, arg_overrides) where:
+      memory_overrides: {int_address: bytes} for unicorn memory setup
+      arg_overrides: {param_name: value_or_range} for seed constraining
+        - Fixed: {"eax": 0x500000} — every seed uses this value
+        - Range: {"param_1": [1, 10]} — seeder picks from [lo, hi]
     """
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
     regions = data.get("regions", {})
-    result = {}
+    mem = {}
     for addr_hex, val_hex in regions.items():
         addr = int(addr_hex, 16)
-        result[addr] = bytes.fromhex(val_hex)
-    return result
+        mem[addr] = bytes.fromhex(val_hex)
+
+    arg_overrides = data.get("arg_overrides", {})
+    return mem, arg_overrides
 
 
 def save_snapshot(regions: dict, path: str, description: str = ""):
