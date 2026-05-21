@@ -1210,10 +1210,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     # --- Load state snapshot if provided ---
     snapshot_overrides = None
+    snapshot_arg_overrides = {}
     if state_snapshot:
         from state_snapshot import load_snapshot
-        snapshot_overrides = load_snapshot(str(state_snapshot))
+        snapshot_overrides, snapshot_arg_overrides = load_snapshot(str(state_snapshot))
         info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
+        if snapshot_arg_overrides:
+            info(f"  arg overrides: {list(snapshot_arg_overrides.keys())}")
 
     # --- Generate seeds (Z3 branch-coverage + random/corner) ---
     # Stubbable non-leaf functions (all calls intercepted) are safe for Z3
@@ -1238,6 +1241,30 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     params = abi['params']
     seeds = generate_seeds(params, num_seeds=num_seeds, base_seed=base_seed,
                            z3_seeds=z3_extra, safe_mode=seed_safe_mode)
+
+    # Apply snapshot arg overrides: constrain specific params to fixed/range values
+    # For pointer params, use hex string value as scratch buffer content.
+    # For scalar params, use int or [lo, hi] range.
+    if snapshot_arg_overrides:
+        import random as _rng_mod
+        _ov_rng = _rng_mod.Random(base_seed + 0x55AA)
+        param_idx_map = {}
+        for pi, p in enumerate(params):
+            param_idx_map[p.name] = pi
+            if p.reg:
+                param_idx_map[p.reg.lower()] = pi
+        for key, val in snapshot_arg_overrides.items():
+            idx = param_idx_map.get(key)
+            if idx is None:
+                continue
+            for sv in seeds:
+                if isinstance(val, str):
+                    sv[idx] = bytes.fromhex(val)
+                elif isinstance(val, list) and len(val) == 2:
+                    sv[idx] = _ov_rng.randint(val[0], val[1])
+                else:
+                    sv[idx] = int(val)
+
     info(f"\n  Running {len(seeds)} seeds...")
     info("")
 
