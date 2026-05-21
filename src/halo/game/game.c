@@ -648,6 +648,16 @@ wchar_t *FUN_000b4290(wchar_t *dst)
   return dst;
 }
 
+/* FUN_000b42d0 (0xb42d0) — race score format by position index
+ *
+ * Formats the race score at 0x456f98[param_1] into dst using the
+ * format string pointer at 0x26c118. Returns dst. */
+wchar_t *FUN_000b42d0(int param_1, wchar_t *dst)
+{
+  usprintf(dst, (const wchar_t *)0x26c118, ((int *)0x456f98)[param_1]);
+  return dst;
+}
+
 /* FUN_000b45c0 (0xb45c0) — race engine: pick random flag.
  *
  * Counts the number of valid race flags from the bitmask at 0x456f10.
