@@ -459,7 +459,7 @@
           "addr": "0x1339a0"
         },
         {
-          "decl": "char FUN_00149c60(int *block_ptr, void *transformed_2c, void *transformed_20, float scale, unsigned int best_dist, unsigned short *result);",
+          "decl": "char FUN_00149c60(int *block_ptr, void *transformed_2c, void *transformed_20, float scale, float best_dist, float *result);",
           "addr": "0x149c60"
         },
         {
@@ -4773,7 +4773,7 @@
           "ported": true
         },
         {
-          "decl": "unsigned int FUN_0014db10(int param_1, unsigned int param_2, float *param_3, int param_4);",
+          "decl": "char FUN_0014db10(int param_1, int param_2, int param_3, int param_4);",
           "addr": "0x14db10",
           "ported": true
         },
@@ -21883,7 +21883,7 @@
           "addr": "0x1913c0",
           "decl": "void reference_list_remove(data_t *data, int *head, int value);",
           "comment": "Walk a reference list and unlink the entry whose +4 field matches value.",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_00191440(void);",
@@ -21930,13 +21930,13 @@
           "addr": "0x1917a0",
           "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
           "comment": "Find clusters overlapping position+radius and add the object to both per-object and per-cluster reference lists.",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1919a0",
           "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
           "comment": "Walk the object's cluster reference chain, removing each cluster-side reference and freeing both datums.",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x191a50",

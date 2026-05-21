@@ -606,6 +606,7 @@ void network_game_server_begin_game_start_countdown(int param_1, int param_2)
     *(unsigned char *)(param_1 + 0x494) = 1;
     network_game_log("server game start countdown started");
   }
+}
 
 /* Check whether any team (0 or 1) has zero active clients among the 16 client
  * slots at server+0x22E..+0x44C (stride 0x20).  Returns true when at least one
