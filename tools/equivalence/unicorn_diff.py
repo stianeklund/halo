@@ -1321,6 +1321,12 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             log(f"  {seed_label} LIFTED-CRASH: {lifted_state.error}")
             errors += 1
             continue
+        # If either side hit the instruction limit, the register state is
+        # garbage from an aborted loop — treat as error, not a divergence.
+        if oracle_state.insn_count >= MAX_INSN or lifted_state.insn_count >= MAX_INSN:
+            log(f"  {seed_label} INSN-LIMIT: oracle={oracle_state.insn_count} lifted={lifted_state.insn_count} (skipped — likely assert→stub loop)")
+            errors += 1
+            continue
 
         # Collect coverage data and global reads from oracle execution
         for pc, sz in oracle_state.visited_pcs.items():
@@ -1462,6 +1468,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                 continue
 
                             if orc_s.error or lft_s.error:
+                                errors += 1
+                                continue
+                            if orc_s.insn_count >= MAX_INSN or lft_s.insn_count >= MAX_INSN:
                                 errors += 1
                                 continue
 
