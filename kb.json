@@ -4730,8 +4730,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0014d1b0(void);",
-          "addr": "0x14d1b0"
+          "decl": "void collision_log_format_stat(char *buf @<edi>, void *stat @<esi>);",
+          "addr": "0x14d1b0",
+          "ported": true
         },
         {
           "decl": "void collision_log_render(void);",
@@ -15370,7 +15371,8 @@
         {
           "decl": "void update_client_queue(void *data);",
           "addr": "0xb8f40",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/game/player_queues_new.c"
         },
         {
           "decl": "void update_client_queue_push(void);",
@@ -27718,7 +27720,7 @@
           "addr": "0x1d33e6"
         },
         {
-          "decl": "void FUN_001d33fb(void);",
+          "decl": "bool __stdcall QueryPerformanceFrequency(void *freq);",
           "addr": "0x1d33fb"
         },
         {
@@ -28048,7 +28050,7 @@
           "addr": "0x1d8750"
         },
         {
-          "decl": "void FUN_001d8766(void);",
+          "decl": "int __stdcall FUN_001d8766(int flags, const char *a, int a_len, const char *b, int b_len);",
           "addr": "0x1d8766"
         },
         {
@@ -31694,8 +31696,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00118fb0(void);",
-          "addr": "0x118fb0"
+          "decl": "int circular_queue_try_read(int queue, void *data, int data_size, char advance);",
+          "addr": "0x118fb0",
+          "ported": true
         }
       ]
     },
@@ -34004,6 +34007,8 @@
     {
       "name": "XAPILIB:xbox_crt.obj",
       "source": "cseries/xbox_crt.c",
+      "src": "src/halo/cseries/xbox_crt.c",
+      "source_path": "src/halo/cseries/xbox_crt.c",
       "functions": [
         {
           "decl": "void FUN_001d63d5(void);",
@@ -34038,8 +34043,9 @@
           "addr": "0x1d77b3"
         },
         {
-          "decl": "void FUN_001d7817(void);",
-          "addr": "0x1d7817"
+          "decl": "int __stdcall FUN_001d7817(const char *a, const char *b);",
+          "addr": "0x1d7817",
+          "ported": true
         },
         {
           "decl": "char * __stdcall FUN_001d789a(char *dst, const char *src, int count);",

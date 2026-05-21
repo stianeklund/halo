@@ -500,6 +500,36 @@ void collision_log_end_period(void)
   *(int16_t *)0x325058 = -1;
 }
 
+/*
+ * collision_log_format_stat — format one collision stat accumulator into a
+ * display string buffer.
+ *
+ * If the timing flag at 0x4761d4 is set, captures the current performance
+ * frequency via QueryPerformanceFrequency and formats "count/ms" where ms =
+ * (accumulated_ticks * 1000.0f) / frequency. Otherwise formats just "count".
+ *
+ * Register args: buf @<edi> (output char buffer), stat @<esi> (pointer to
+ * accumulator: int count at [+0], int64 ticks at [+8]).
+ *
+ * Confirmed: PUSH EDI/%d/%.2f pattern; FILD [ESI+8]; FMUL 1000.0f; FDIVP;
+ * FSTP double [ESP]; PUSH [ESI]; PUSH 0x29d438; PUSH EDI; CALL crt_sprintf.
+ * Confirmed: else branch: PUSH [ESI]; PUSH 0x25acb8; PUSH EDI; CALL sprintf.
+ * 0x14d1b0 / collision_usage.obj
+ */
+void collision_log_format_stat(char *buf /* @<edi> */, void *stat /* @<esi> */)
+{
+  int64_t freq;
+  double ms;
+
+  if (*(uint8_t *)0x4761d4) {
+    QueryPerformanceFrequency(&freq);
+    ms = (double)(*(int64_t *)((char *)stat + 8)) * 1000.0f / (double)freq;
+    crt_sprintf(buf, "%d/%.2f", *(int *)stat, ms);
+  } else {
+    crt_sprintf(buf, "%d", *(int *)stat);
+  }
+}
+
 /* 0x14d840 — returns the current collision user if collision logging is
  * active, or -1 if logging is disabled / not applicable.
  * Validates depth > 0, user in [0,22), collision_function in [0,8),
