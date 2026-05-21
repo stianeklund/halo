@@ -2288,8 +2288,8 @@
     },
     {
       "name": "halo/contrails_98580",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c",
-      "base_path": "delinked/contrails_98580_98730.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+      "base_path": "delinked/contrails_98580_tight.obj",
       "metadata": {
         "source_path": "src/halo/effects/contrails.c"
       }
