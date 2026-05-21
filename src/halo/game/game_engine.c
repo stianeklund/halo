@@ -2654,7 +2654,7 @@ wchar_t *FUN_000b0530(int player_handle, wchar_t *dst)
   char *player;
 
   player = (char *)datum_get(player_data, player_handle);
-  usprintf(dst, *(const wchar_t **)0x26c118, (int)*(int16_t *)(player + 0xc4));
+  usprintf(dst, (const wchar_t *)0x26c118, (int)*(int16_t *)(player + 0xc4));
   return dst;
 }
 
@@ -2673,7 +2673,7 @@ wchar_t *FUN_000b0570(wchar_t *dst)
  * into a wide string buffer using the format string at 0x26c118. */
 wchar_t *FUN_000b0590(int param_1, wchar_t *dst)
 {
-  usprintf(dst, *(const wchar_t **)0x26c118, ((int *)0x456b84)[param_1]);
+  usprintf(dst, (const wchar_t *)0x26c118, ((int *)0x456b84)[param_1]);
   return dst;
 }
 
