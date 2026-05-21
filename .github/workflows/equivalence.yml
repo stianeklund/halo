@@ -49,6 +49,10 @@ jobs:
           ${{ env.VENV_PYTHON }} -c "import unicorn, capstone; print('ok')"
           test -d delinked
 
+      - name: Build candidate objects
+        run: |
+          ${{ env.VENV_PYTHON }} tools/build/build.py -q --target halo
+
       - name: Run regression tests
         run: |
           ${{ env.VENV_PYTHON }} tools/equivalence/regression_test.py --quick

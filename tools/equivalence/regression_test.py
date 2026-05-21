@@ -32,10 +32,15 @@ def load_targets(filter_name=None):
 
 
 def check_prerequisites(target):
-    delinked = ROOT / "delinked" / target["obj"]
-    if not delinked.exists():
-        return f"missing delinked oracle: {delinked}"
-    return None
+    delinked_dir = ROOT / "delinked"
+    obj_path = delinked_dir / target["obj"]
+    if obj_path.exists():
+        return None
+    addr = target.get("addr", "").replace("0x", "")
+    for d in delinked_dir.glob("*.obj"):
+        if addr and addr in d.stem:
+            return None
+    return f"missing delinked oracle for {target['name']} (checked {target['obj']} and *{addr}*.obj)"
 
 
 def run_target(target, seed_override=None):
