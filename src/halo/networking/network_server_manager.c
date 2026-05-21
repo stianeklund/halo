@@ -779,6 +779,33 @@ int network_game_server_get_game(void *server)
   return (int)((char *)server + 8);
 }
 
+/* Return the smallest last-update tick across all 4 machine slots that are
+ * joined and have a valid update tick. Returns 0xffffffff if none qualify.
+ * 0x12d5b0 / network_server_manager.obj */
+unsigned int FUN_0012d5b0(int param_1)
+{
+  unsigned int uVar1;
+
+  uVar1 = 0xffffffff;
+  if ((*(short *)(param_1 + 0x448) >= 0) && (*(short *)(param_1 + 0x448) < 4) &&
+      (*(unsigned int *)(param_1 + 0x440) != 0xffffffff)) {
+    uVar1 = *(unsigned int *)(param_1 + 0x440);
+  }
+  if ((*(short *)(param_1 + 0x458) >= 0) && (*(short *)(param_1 + 0x458) < 4) &&
+      (uVar1 > *(unsigned int *)(param_1 + 0x450))) {
+    uVar1 = *(unsigned int *)(param_1 + 0x450);
+  }
+  if ((*(short *)(param_1 + 0x468) >= 0) && (*(short *)(param_1 + 0x468) < 4) &&
+      (uVar1 > *(unsigned int *)(param_1 + 0x460))) {
+    uVar1 = *(unsigned int *)(param_1 + 0x460);
+  }
+  if ((*(short *)(param_1 + 0x478) >= 0) && (*(short *)(param_1 + 0x478) < 4) &&
+      (uVar1 > *(unsigned int *)(param_1 + 0x470))) {
+    uVar1 = *(unsigned int *)(param_1 + 0x470);
+  }
+  return uVar1;
+}
+
 /* Return true if the server can start counting down (state 0, machines joined).
  * 0x12d640 / network_server_manager.obj
  */

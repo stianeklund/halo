@@ -13384,8 +13384,10 @@
           "addr": "0x12d4a0"
         },
         {
-          "decl": "void network_game_server_get_oldest_client_update_received(void);",
-          "addr": "0x12d5b0"
+          "decl": "unsigned int FUN_0012d5b0(int param_1);",
+          "addr": "0x12d5b0",
+          "src": "src/halo/networking/network_server_manager.c",
+          "ported": true
         },
         {
           "decl": "int network_game_server_game_can_start(void *server);",
