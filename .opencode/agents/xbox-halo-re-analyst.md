@@ -6,7 +6,7 @@ description: >
   infer prototypes and structs, map Xbox/XDK calls, produce faithful C lifts,
   and propose conservative kb.json updates.
 model: opus
-color: warning
+color: yellow
 memory: project
 ---
 
