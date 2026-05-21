@@ -15,6 +15,44 @@
  */
 
 /*
+ * FUN_001d7817  (XAPI case-insensitive string compare, 68 bytes)
+ *
+ * Locale-aware lstrcmpiA implementation. Tries FUN_001d8766 (internal
+ * CompareString) first; on failure (returns 0) falls back to crt_stricmp.
+ * Maps CompareString result (1=LESS,2=EQUAL,3=GREATER) to strcmp-style
+ * (-1, 0, +1) via result-2.  NULL pointers are handled before the
+ * fallback: NULL < non-NULL, NULL == NULL.
+ *
+ * Confirmed:
+ *   - __stdcall: RET 0x8 pops 2 args (a@[EBP+8], b@[EBP+C])
+ *   - ESI saves param b across calls
+ *   - NEG EAX; SBB EAX,EAX pattern for null-a path: -1 if b!=0, 0 if both null
+ *   - FUN_001d8766(1, a, -1, b, -1): 5 stack args, __stdcall
+ *   - crt_stricmp(a, b): __cdecl fallback (POP ECX; POP ECX cleanup)
+ */
+int __stdcall FUN_001d7817(const char *a, const char *b)
+{
+  int result;
+
+  result = FUN_001d8766(1, a, -1, b, -1);
+  if (result != 0) {
+    return result - 2;
+  }
+
+  if (a == 0) {
+    if (b != 0)
+      return -1;
+    return 0;
+  }
+
+  if (b == 0) {
+    return 1;
+  }
+
+  return crt_stricmp(a, b);
+}
+
+/*
  * FUN_001d789a  (XAPI strncpy helper, 101 bytes)
  *
  * Copies up to `count` characters from `src` to `dst`.  Stops at NUL or
