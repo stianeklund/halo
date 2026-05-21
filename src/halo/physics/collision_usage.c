@@ -131,7 +131,7 @@ int FUN_0014c8e0(int *out, int object_handle)
  * the bsp3d leaf. Returns 1 if any leaf lookup failed, 0 otherwise.
  * 0x14c950 / collision_usage.obj
  */
-unsigned int FUN_0014c950(int param_1, void *param_2)
+bool FUN_0014c950(int param_1, void *param_2)
 {
   uint8_t bVar1;
   int *piVar2;
@@ -185,7 +185,7 @@ unsigned int FUN_0014c950(int param_1, void *param_2)
  * frame matrix and transform the test point into cylinder space.
  * 0x14ca30 / collision_usage.obj
  */
-unsigned int FUN_0014ca30(int param_1, void *param_2)
+bool FUN_0014ca30(int param_1, void *param_2)
 {
   uint8_t bVar1;
   unsigned int uVar2;
@@ -309,8 +309,8 @@ char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4,
  * No collision_log calls (differs from FUN_0014cb00 which has them).
  * 0x14cc80 / collision_usage.obj
  */
-int FUN_0014cc80(int param_1, int param_2, int param_3, float param_4,
-                 int16_t *param_5)
+bool FUN_0014cc80(int param_1, int param_2, int param_3, float param_4,
+                  int16_t *param_5)
 {
   uint8_t bVar1;
   char cVar2;
