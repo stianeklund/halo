@@ -318,6 +318,12 @@ float FUN_0009cdd0(uint16_t transition_type, float t)
   }
 }
 
+/* Return a random float using the local random seed (0x9ce80). */
+float real_local_random(void)
+{
+  return random_math_real(random_math_get_local_seed_address());
+}
+
 void local_random_direction3d(float *out)
 {
   random_seed_get_direction3d(random_math_get_local_seed_address(), out);

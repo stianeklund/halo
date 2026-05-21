@@ -2453,6 +2453,22 @@
       "metadata": {
         "source_path": "src/halo/game/game_allegiance.c"
       }
+    },
+    {
+      "name": "halo/circular_queue_FUN_00118fb0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/circular_queue.c.obj",
+      "base_path": "delinked/circular_queue_FUN_00118fb0.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/circular_queue.c"
+      }
+    },
+    {
+      "name": "halo/effects_FUN_0009ce80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_FUN_0009ce80.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
     }
   ]
 }
