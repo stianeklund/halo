@@ -51,7 +51,7 @@ def _run_cmake_configure(extra_args: list[str] = None, quiet: bool = False) -> i
     return result.returncode
 
 
-def build(target: str = "", quiet: bool = False) -> int:
+def build(target: str = "", quiet: bool = False, test_harness: bool = False) -> int:
     if not os.path.isdir(BUILD_DIR):
         print(
             f"error: build directory not found: {BUILD_DIR}\n"
@@ -60,10 +60,8 @@ def build(target: str = "", quiet: bool = False) -> int:
         )
         return 1
 
-    # Reconfigure to ensure HALO_TEST_HARNESS is OFF for regular builds
-    cfg_result = _run_cmake_configure(
-        extra_args=["-DHALO_TEST_HARNESS=OFF"], quiet=quiet
-    )
+    harness_flag = "-DHALO_TEST_HARNESS=" + ("ON" if test_harness else "OFF")
+    cfg_result = _run_cmake_configure(extra_args=[harness_flag], quiet=quiet)
     if cfg_result != 0:
         return cfg_result
 
@@ -87,8 +85,13 @@ def main() -> int:
         action="store_true",
         help="Only show warnings and errors.",
     )
+    parser.add_argument(
+        "-t", "--test",
+        action="store_true",
+        help="Build with the in-engine test harness enabled (HALO_TEST_HARNESS=ON).",
+    )
     args = parser.parse_args()
-    return build(target=args.target, quiet=args.quiet)
+    return build(target=args.target, quiet=args.quiet, test_harness=args.test)
 
 
 if __name__ == "__main__":
