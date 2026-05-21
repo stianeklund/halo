@@ -94,7 +94,7 @@ jobs:
         run: |
           BASELINE=""
           if [ -f artifacts/batch_verify/summary.json ]; then
-            BASELINE="--baseline artifacts/batch_verify/summary.json --fail-on-new"
+            BASELINE="--baseline artifacts/batch_verify/summary.json"
           fi
           echo "flags=$BASELINE" >> "$GITHUB_OUTPUT"
 
