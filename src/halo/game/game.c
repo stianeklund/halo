@@ -810,7 +810,7 @@ int FUN_000b4d50(unsigned int player_handle, int param_2)
  * low 16 bits of the player handle. Uses the format string at 0x26c118. */
 wchar_t *FUN_000b4da0(unsigned int player_handle, wchar_t *dst)
 {
-  usprintf(dst, *(const wchar_t **)0x26c118,
+  usprintf(dst, (const wchar_t *)0x26c118,
            *(int *)(0x457020 + (player_handle & 0xffff) * 4));
   return dst;
 }
@@ -830,7 +830,7 @@ wchar_t *FUN_000b4dd0(wchar_t *dst)
  * by param_1. Uses the format string at 0x26c118. */
 wchar_t *FUN_000b4df0(int index, wchar_t *dst)
 {
-  usprintf(dst, *(const wchar_t **)0x26c118, *(int *)(0x456fe0 + index * 4));
+  usprintf(dst, (const wchar_t *)0x26c118, *(int *)(0x456fe0 + index * 4));
   return dst;
 }
 
