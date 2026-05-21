@@ -804,6 +804,12 @@ int FUN_000b4d50(unsigned int player_handle, int param_2)
   return *(int *)(0x457020 + (player_handle & 0xffff) * 4);
 }
 
+/* FUN_000b4d90 (0xb4d90) — check race state == 1 */
+bool FUN_000b4d90(int param_1)
+{
+  return param_1 == 1;
+}
+
 /* FUN_000b4da0 (0xb4da0) — race score format by handle
  *
  * Formats a race score string from the 0x457020 table, indexed by the

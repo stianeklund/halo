@@ -4494,7 +4494,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000a6930(void);",
+          "decl": "void FUN_000a6930(int, unsigned short);",
           "addr": "0xa6930"
         }
       ]
@@ -7313,8 +7313,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000b4d90(void);",
-          "addr": "0xb4d90"
+          "decl": "bool FUN_000b4d90(int);",
+          "addr": "0xb4d90",
+          "ported": true
         },
         {
           "decl": "wchar_t *FUN_000b4da0(unsigned int player_handle, wchar_t *dst);",
@@ -8240,8 +8241,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000b0520(void);",
-          "addr": "0xb0520"
+          "decl": "bool FUN_000b0520(int);",
+          "addr": "0xb0520",
+          "ported": true
         },
         {
           "decl": "wchar_t *FUN_000b0530(int player_handle, wchar_t *dst);",

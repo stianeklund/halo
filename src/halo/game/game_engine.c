@@ -2645,6 +2645,12 @@ int FUN_000b04e0(int player_handle, int param_2)
   return ((int *)0x456b84)[*(int *)(player + 0x20)];
 }
 
+/* FUN_000b0520 (0xb0520) — check game state == 0 */
+bool FUN_000b0520(int param_1)
+{
+  return param_1 == 0;
+}
+
 /* FUN_000b0530 (0xb0530) — CTF/game-engine score format by player
  *
  * Formats the player's score (int16 at player+0xc4) into a wide string
