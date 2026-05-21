@@ -30,6 +30,13 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify structural <target> <new_address>` for explicit patched-XBE address verification.
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
+- `/verify equivalence <target>` for Unicorn differential testing; use xemu
+  `pmemsave` or XBDM `getmem` state snapshots when zero-filled globals
+  under-cover live paths.
+- `/verify golden <target>` for runtime oracle comparison through
+  `tools/verify/run_golden_tests.py`.
+- `/verify dual-oracle <target>` for same-process original-vs-candidate
+  runtime comparison once a target has a dual-oracle harness case.
 - `/verify option3 <target>` for legacy runtime/xemu fallback.
 - `/verify failure <artifact_dir>` for failed artifact triage.
 
@@ -64,6 +71,48 @@ Run after source edits or when reviewing auto-lift output:
 
 Treat intrinsic calls, undersized buffers, duplicate suspicious arguments, and
 pointer-as-float warnings as blockers until investigated against disassembly.
+
+### Equivalence with xemu/XBDM state snapshots
+
+Use this when Unicorn/Z3 equivalence is applicable but zero-filled global memory
+only reaches early exits or weak coverage:
+
+`rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --state-snapshot artifacts/snapshots/<name>.json`
+
+Capture snapshots from a live xemu engine state with QMP `pmemsave` or XBDM
+`getmem` via `tools/equivalence/state_snapshot.py` or
+`tools/equivalence/capture_snapshot_from_diff.py`. These snapshots are selected
+memory regions, not QEMU VM snapshots. Prefer QMP `pmemsave` when available;
+use `--backend xbdm` when the running xemu is reachable through XBDM but not
+QMP. Do not use `savevm`/`loadvm` for oracle testing because those restore old
+loaded-XBE code pages and invalidate original-vs-candidate comparisons.
+
+Report:
+
+- snapshot path and captured region intent
+- coverage and confidence before/after the snapshot
+- memory-trace differential result
+- whether remaining gaps require a live runtime oracle instead of more seeds
+
+### Runtime golden and dual-oracle checks
+
+Use runtime golden checks for functions whose behavior depends on live engine
+state or Xbox-side effects:
+
+`rtk python3 tools/verify/run_golden_tests.py --target <target>`
+
+For high-value or stateful targets, prefer a dual-oracle harness case when one
+exists: one XBE should clone inputs, call the original implementation, restore
+inputs, call the candidate implementation, and compare return values, output
+buffers, selected globals, and structured debug records inside the same
+initialized engine state.
+
+Report:
+
+- runtime artifact directory under `artifacts/runtime_oracle/`
+- oracle/candidate or dual-oracle pass/fail summary
+- first structured mismatch, memory mismatch, crash, or assertion
+- whether real Xbox XBDM confirmation is still required
 
 ### Option 3 fallback ladder
 

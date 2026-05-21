@@ -27,7 +27,7 @@ python3 tools/equivalence/unicorn_diff.py FUN_000a7ae0 --allow-stubs --seeds 50
 # With memory-trace comparison:
 python3 tools/equivalence/unicorn_diff.py FUN_000a7ae0 --allow-stubs --mem-trace
 
-# With real game state from xemu snapshot:
+# With selected real game-state memory from xemu/XBDM capture:
 python3 tools/equivalence/unicorn_diff.py FUN_000a7ae0 --allow-stubs \
     --state-snapshot artifacts/snapshots/multiplayer_lobby.json
 
@@ -97,15 +97,21 @@ This catches bugs that return-value comparison misses:
 Enabled by default in `lift_pipeline.py` and `batch_verify.py`.
 Use `--verbose` to see per-seed trace diffs.
 
-## State Snapshots
+## pmemsave State Snapshots
 
 For functions that depend on complex runtime state (linked lists, hash
 tables, game state structs), zero-filled memory won't exercise real code
 paths even with concolic feedback.
 
-State snapshots capture real memory from a running xemu instance:
+State snapshots capture selected real memory regions from a running xemu
+instance via QMP/HMP `pmemsave` or XBDM `getmem`. They are JSON memory-region
+snapshots for Unicorn replay, not QEMU VM snapshots. Prefer QMP `pmemsave` when
+available; use `capture_snapshot_from_diff.py --backend xbdm` when the running
+xemu is reachable through XBDM but not QMP. Do not use `savevm`/`loadvm` for
+oracle testing because it restores old loaded-XBE code pages and invalidates
+original-vs-candidate comparisons.
 
-### Capture a snapshot
+### Capture explicit regions
 
 ```python
 from tools.equivalence.state_snapshot import capture_from_xemu, save_snapshot
@@ -116,6 +122,27 @@ regions = capture_from_xemu([
     (0x00480000, 0x10000),  # game_state page
 ], output_path="artifacts/snapshots/multiplayer_lobby.json",
    description="4-player FFA, 2 minutes in")
+```
+
+### Capture regions from a failed/weak diff
+
+When `unicorn_diff.py --output-json` reports auto-mapped pages or global reads,
+use the helper to turn those into xemu capture regions:
+
+```bash
+python3 tools/equivalence/unicorn_diff.py FUN_000a7ae0 --allow-stubs \
+    --mem-trace --output-json artifacts/equivalence/FUN_000a7ae0.json
+python3 tools/equivalence/capture_snapshot_from_diff.py \
+    artifacts/equivalence/FUN_000a7ae0.json --dry-run
+python3 tools/equivalence/capture_snapshot_from_diff.py \
+    artifacts/equivalence/FUN_000a7ae0.json \
+    --description "live xemu state for FUN_000a7ae0"
+
+# Fallback when QMP is unavailable but XBDM is reachable:
+python3 tools/equivalence/capture_snapshot_from_diff.py \
+    artifacts/equivalence/FUN_000a7ae0.json \
+    --backend xbdm \
+    --description "live XBDM state for FUN_000a7ae0"
 ```
 
 ### Manual snapshot (no xemu needed)
@@ -141,6 +168,9 @@ python3 tools/equivalence/unicorn_diff.py FUN_000a7ae0 --allow-stubs \
 
 The snapshot data is written into Unicorn's memory before execution,
 replacing zero-fill. Both oracle and candidate see identical initial state.
+
+If coverage remains weak with a real memory snapshot, stop adding random seeds
+and move the target to runtime oracle or dual-oracle harness coverage.
 
 ## JSON Output Schema
 

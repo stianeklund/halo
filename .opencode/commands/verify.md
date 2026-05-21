@@ -17,8 +17,11 @@ Modes:
 2. `structural <target> <new_address> [extra lift_pipeline flags]` — explicit patched-XBE address verification.
 3. `hazards` — run the lift hazard scanner.
 4. `delink <target>` — export/reference-map a delinked object and run structural comparison.
-5. `option3 <target> [extra verify_option3 flags]` — legacy runtime/xemu fallback.
-6. `failure <artifact_dir>` — classify a failed lift pipeline or auto-lift artifact and recommend the next narrow action.
+5. `equivalence <target> [extra unicorn_diff flags]` — Unicorn behavioral differential; use `--state-snapshot` for xemu/XBDM memory captures.
+6. `golden <target> [extra run_golden_tests flags]` — runtime oracle comparison through the Xbox harness.
+7. `dual-oracle <target>` — same-process original-vs-candidate harness case when implemented for the target.
+8. `option3 <target> [extra verify_option3 flags]` — legacy runtime/xemu fallback.
+9. `failure <artifact_dir>` — classify a failed lift pipeline or auto-lift artifact and recommend the next narrow action.
 
 If no mode is supplied, treat the first token as `<target>` and run `normal`.
 
@@ -28,8 +31,20 @@ rtk python3 tools/lift_pipeline.py --target <target> --no-metadata-update --veri
 rtk python3 tools/lift_pipeline.py --target <target> --verify-auto --verify-new-address <new_address> --no-metadata-update <extra_flags>
 rtk python3 tools/audit/check_lift_hazards.py
 rtk python3 tools/audit/batch_delink.py --object <object>
+rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace <extra_flags>
+rtk python3 tools/verify/run_golden_tests.py --target <target> <extra_flags>
 rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>
 ```
+
+Equivalence mode:
+1. Use regular seeded/mem-trace equivalence first for leaf, data-only, or stubbable targets.
+2. If coverage/confidence is weak because globals are zero-filled, capture selected live xemu memory with `tools/equivalence/state_snapshot.py` or `tools/equivalence/capture_snapshot_from_diff.py`, then rerun with `--state-snapshot artifacts/snapshots/<name>.json`.
+3. Prefer QMP `pmemsave`; use `capture_snapshot_from_diff.py --backend xbdm` when xemu is reachable through XBDM but not QMP. Do not use QEMU `savevm`/`loadvm` for oracle testing because it restores old loaded-XBE code pages.
+
+Golden and dual-oracle modes:
+1. Use `golden` for two-build original-vs-candidate runtime captures through `run_golden_tests.py`.
+2. Use `dual-oracle` when a target has a harness case that calls original and candidate inside the same initialized engine state.
+3. A dual-oracle case should compare return values, mutated input/output buffers, selected globals, structured debug output, and assertion/crash status.
 
 Delink mode:
 1. Resolve `<target>` to object/source in `kb.json` using `rtk jq`.

@@ -122,3 +122,52 @@ def capture_from_xemu(addresses: list,
         save_snapshot(regions, output_path, description=description)
 
     return regions
+
+
+def capture_from_xbdm(addresses: list,
+                      output_path: Optional[str] = None,
+                      description: str = "",
+                      host: str = "localhost",
+                      port: int = 731,
+                      timeout: float = 5.0) -> dict:
+    """Capture memory from a running Xbox/xemu instance via XBDM getmem.
+
+    This is a transport fallback for environments where xemu is reachable via
+    XBDM but was not launched with QMP. Prefer capture_from_xemu for xemu
+    pmemsave captures when QMP is available.
+    """
+    _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+    tools_dir = _REPO_ROOT / "tools"
+
+    rdcp_script = tools_dir / "xbox" / "xbdm_rdcp.py"
+
+    regions = {}
+    for base_addr, size in addresses:
+        proc = subprocess.run(
+            [
+                "python3",
+                str(rdcp_script),
+                "--host",
+                host,
+                "--port",
+                str(port),
+                "--timeout",
+                str(timeout),
+                "--json",
+                f"getmem addr={base_addr:#x} length={size:#x}",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stderr.strip() or proc.stdout.strip())
+        response = json.loads(proc.stdout)
+        data = bytes.fromhex("".join(response.get("lines", [])))
+        if len(data) >= size:
+            regions[base_addr] = data[:size]
+
+    if output_path:
+        save_snapshot(regions, output_path, description=description)
+
+    return regions
