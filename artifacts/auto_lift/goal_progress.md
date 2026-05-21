@@ -33,3 +33,73 @@ Completed: 2026-05-22 (30/30 committed)
 | file_rename | 0x19a6d0 | tag_files/files.c | pass | 100.0% | committed | byte-match (files_windows.obj) |
 | file_reference_get_location | 0x1997f0 | tag_files/files.c | pass | 100.0% | committed | byte-match (files.obj) |
 | file_references_equal | 0x1999a0 | tag_files/files.c | pass | 86.7% | committed | meets policy (files.obj) |
+---
+
+## Batch Verify False-Positive Analysis (2026-05-21)
+
+The first full batch_verify run reported 14 diverging functions. All 14 are **false positives** — test
+harness artifacts, not real behavioral bugs. Root causes by category:
+
+### Category 1: Instruction-limit artifacts (5 functions)
+Functions that trigger the assert → system_exit stub path. The stub returns instead of exiting,
+causing infinite loops in validation code. The emulator hits the 100,001-instruction limit,
+leaving garbage in EAX.
+
+| Function | File | Divergence | Root cause |
+|----------|------|------------|------------|
+| `circular_queue_size` (0x118e70) | circular_queue.c | 4/50 | Loop past system_exit stub |
+| `circular_queue_free_space` (0x118ea0) | circular_queue.c | 9/50 | Same |
+| `FUN_00118ec0` (0x118ec0) | circular_queue.c | 3/50 | Same |
+| `FUN_0010ae30` (0x10ae30) | random_math.c | 14/50 | Same |
+| `FUN_0010af70` (0x10af70) | random_math.c | 4/50 | Same |
+
+### Category 2: MSVC AL-only bool returns (4 functions)
+MSVC compiles bool-returning functions with `SETZ AL` / `MOV AL, 0x1`, leaving EAX upper bytes
+as garbage from prior arithmetic. unicorn_diff compares full 32-bit EAX, producing false mismatches
+on seeds where prior arithmetic differs. Callers correctly use `TEST AL, AL`.
+
+**Fix applied:** Changed return types from `unsigned int`/`int` → `bool` in kb.json and source.
+
+| Function | File | Divergence | Confirmed |
+|----------|------|------------|-----------|
+| `FUN_0014c950` (0x14c950) | collision_usage.c | 50/50 | `MOV AL,0x1` / `XOR AL,AL` pattern |
+| `FUN_0014ca30` (0x14ca30) | collision_usage.c | 50/50 | Same |
+| `FUN_0014cc80` (0x14cc80) | collision_usage.c | 50/50 | `MOV AL,[EBP-1]` / `MOV AL,CL` pattern |
+| `FUN_0009f3b0` (0x9f3b0) | effects.c | 50/50 | `MOV AL,BL` / `MOV AL,1` pattern |
+
+### Category 3: Data global not initialized in oracle (2 functions)
+Oracle delinked object references global constants (e.g., `DAT_002533c8` = 1.0f) that unicorn_diff
+doesn't initialize. VC71 verify confirms 100% byte match.
+
+| Function | File | Divergence | Note |
+|----------|------|------------|------|
+| `FUN_0010c780` (0x10c780) | random_math.c | 45/50 | VC71=100% ✓ |
+| `FUN_0010c2e0` (0x10c2e0) | random_math.c | partial | Callee of above |
+
+### Category 4: Oracle stub mismatch — callee is ported (1 function)
+The oracle delinked object has `FUN_00119cc0` as an external reloc (stub = no-op), but the lifted
+code calls the ported implementation which correctly sets the overflow flag on out-of-bounds writes.
+Divergence only occurs in degenerate seeds where the assert-then-continue path fires AND the buffer
+is full. VC71 verify: 90.7% (structural MSVC optimizations, not behavioral).
+
+| Function | File | Divergence | Note |
+|----------|------|------------|------|
+| `FUN_00119df0` (0x119df0) | data.c | 4/50 | VC71=90.7%, behavior correct |
+
+Wide-range re-export to include `FUN_00119cc0` failed due to a relocation synthesizer gap: the
+`MOVZX EAX, [EAX + 0x119ddc]` byte-index table reference is not patched, causing ORACLE-CRASH on
+switch entry. Narrow delinked reference restored.
+
+### Category 5: Already passing
+| Function | File | Note |
+|----------|------|------|
+| `FUN_0010b9c0` | real_math.c | 10/10 seeds ✓ |
+| `FUN_0010a1c0` | real_math.c | 10/10 seeds ✓ |
+
+### Open items
+- **actors.obj failing batch_verify (16 functions):** All `emulation_error` due to missing
+  `delinked/actors.obj` reference. Separate issue from the above; actors.c was recently ported
+  and the delinked reference hasn't been exported yet.
+- **Reloc synthesizer gap:** The delinker doesn't add a reloc for `MOVZX EAX, [EAX + imm32]`
+  absolute-address operands in switch dispatch code. Workaround: export narrow ranges that don't
+  include switch-heavy functions when a callee has this pattern.

@@ -4665,12 +4665,12 @@
           "ported": true
         },
         {
-          "decl": "unsigned int FUN_0014c950(int param_1, void *param_2);",
+          "decl": "bool FUN_0014c950(int param_1, void *param_2);",
           "addr": "0x14c950",
           "ported": true
         },
         {
-          "decl": "unsigned int FUN_0014ca30(int param_1, void *param_2);",
+          "decl": "bool FUN_0014ca30(int param_1, void *param_2);",
           "addr": "0x14ca30",
           "ported": true
         },
@@ -4680,7 +4680,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_0014cc80(int param_1, int param_2, int param_3, float param_4, int16_t *param_5);",
+          "decl": "bool FUN_0014cc80(int param_1, int param_2, int param_3, float param_4, int16_t *param_5);",
           "addr": "0x14cc80",
           "ported": true,
           "src": "src/halo/physics/collision_usage.c"
@@ -6307,7 +6307,7 @@
         {
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6368,7 +6368,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -6450,7 +6450,7 @@
           "src": "src/halo/effects/effects.c"
         },
         {
-          "decl": "int FUN_0009f3b0(void *param_1);",
+          "decl": "bool FUN_0009f3b0(void *param_1);",
           "addr": "0x9f3b0",
           "ported": true,
           "src": "src/halo/effects/effects.c"

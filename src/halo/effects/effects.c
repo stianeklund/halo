@@ -2096,7 +2096,7 @@ bool effects_update(float elapsed)
  * player. Returns 1 if local_player_count() > 2 (split-screen shortcut), if
  * distance-squared to any active local player's camera is below the threshold
  * at 0x253f00, or 0 otherwise. (0x9f3b0) */
-int FUN_0009f3b0(void *param_1)
+bool FUN_0009f3b0(void *param_1)
 {
   float *position;
   int i;
