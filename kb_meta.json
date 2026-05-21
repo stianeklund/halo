@@ -1167,6 +1167,38 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x76bb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x76ff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x77510": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x77540": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x78b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x790b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x79590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x79630": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7a750": {
       "kind": "function",
       "status": "ported"
@@ -1379,6 +1411,10 @@
       "uncertain": [
         "close_endpoint (0x84000) and endpoint_pool_cleanup (0x82d30) are grouped under transport_endpoint_set_winsock.obj in kb.json for convenience, but their XBE assert strings reference transport_endpoint_winsock.c (line 0x221/0x222 for close_endpoint), suggesting they may belong to a separate unrecovered transport_endpoint_winsock.obj."
       ]
+    },
+    "0x849f0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x84a10": {
       "kind": "function",
@@ -6290,6 +6326,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x136840": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1368e0": {
       "kind": "function",
       "status": "ported"
@@ -6303,6 +6343,14 @@
       "status": "ported"
     },
     "0x1369b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1369e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136a00": {
       "kind": "function",
       "status": "ported"
     },
@@ -6330,6 +6378,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x137690": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x137d20": {
       "kind": "function",
       "status": "ported"
@@ -6343,6 +6395,18 @@
       "status": "ported"
     },
     "0x138eb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x138ee0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x138f10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1390d0": {
       "kind": "function",
       "status": "ported"
     },
