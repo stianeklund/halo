@@ -348,6 +348,24 @@ void *network_game_client_get(void)
   return *(void **)0x46e8c0;
 }
 
+/* Create and initialize the global network game client.
+ * Asserts the client slot is empty, then allocates via FUN_00126fe0.
+ * 0x12a250 / network_game_globals.obj */
+bool FUN_0012a250(void)
+{
+  if (*(void **)0x0046e8c0 != NULL) {
+    display_assert("global_network_game_client==NULL",
+                   "c:\\halo\\SOURCE\\networking\\network_game_globals.c",
+                   0x10f, 1);
+    system_exit(-1);
+  }
+  *(void **)0x0046e8c0 = FUN_00126fe0();
+  if (*(void **)0x0046e8c0 != NULL) {
+    *(unsigned char *)0x0046e8c6 = 0;
+  }
+  return *(void **)0x0046e8c0 != NULL;
+}
+
 /* dispose_global_network_game_server (0x12a2a0)
  *
  * Tear down the global network game server if one exists.

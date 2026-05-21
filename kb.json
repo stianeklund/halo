@@ -12548,8 +12548,10 @@
           "ported": true
         },
         {
-          "decl": "void create_global_network_game_client(void);",
-          "addr": "0x12a250"
+          "decl": "bool FUN_0012a250(void);",
+          "addr": "0x12a250",
+          "src": "src/halo/networking/network_game_globals.c",
+          "ported": true
         },
         {
           "decl": "void network_game_client_get_local_machine_index(void);",
@@ -12812,7 +12814,7 @@
           "addr": "0x1267c0"
         },
         {
-          "decl": "void FUN_00126fe0(void);",
+          "decl": "void *FUN_00126fe0(void);",
           "addr": "0x126fe0"
         },
         {
