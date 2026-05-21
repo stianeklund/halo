@@ -414,3 +414,34 @@ bool error_occurred(void)
   *(int16_t *)0x5aa8e6 = 0;
   return occurred;
 }
+
+/* FUN_0008f630 (0x8f630) — reset error-tracking ring buffer
+ *
+ * Stamps the ring buffer header with a magic value, then iterates through
+ * any live entry pointers, clearing their handle field to INVALID (0xffffffff).
+ * Resets all ring buffer counters and flags to their initial states. */
+void FUN_0008f630(void)
+{
+  int16_t i;
+  int32_t *entry;
+
+  *(int32_t *)0x3361a0 = 0x2bb5c755;
+  *(int32_t *)0x3361a4 = 0;
+  if (*(int16_t *)0x3361b0 > 0) {
+    i = 0;
+    do {
+      entry = (int32_t *)(((int32_t *)0x3361b4)[i]);
+      i++;
+      entry[1] = (int32_t)0xffffffff;
+    } while (i < *(int16_t *)0x3361b0);
+  }
+  *(uint8_t *)0x449ef1 = 1;
+  *(int16_t *)0x3361b0 = 0;
+  *(int16_t *)0x3361a8 = 0;
+  *(uint8_t *)0x3361aa = 1;
+  *(int32_t *)0x3361ac = 0;
+  *(int16_t *)0x3365c2 = 0;
+  *(int16_t *)0x3365c4 = 0;
+  *(int32_t *)0x3365bc = 999;
+  *(int32_t *)0x3365b4 = 0;
+}

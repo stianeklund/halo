@@ -390,6 +390,23 @@ void input_check_state_mode(void)
   }
 }
 
+/* FUN_000ce530 (0xce530) — read input state packet with seek-and-retry
+ *
+ * Reads 0x28 bytes from the state file into the provided buffer. If no
+ * bytes were read (end-of-file or first read), seeks back to the start
+ * of the file and retries once. Used for loop-playback of recorded input. */
+void FUN_000ce530(void *state)
+{
+  uint32_t bytes_read;
+
+  bytes_read = 0;
+  ReadFile(*(int *)0x46b814, state, 0x28, &bytes_read, NULL);
+  if (bytes_read == 0) {
+    FUN_001d1610(*(int *)0x46b814, 0, NULL, 0);
+    ReadFile(*(int *)0x46b814, state, 0x28, &bytes_read, NULL);
+  }
+}
+
 /* input_recording_write_packet (0xce590)
  * Write one input_gamepad_state packet (0x28 bytes) to the input state
  * recording file.  Called unconditionally — the caller is responsible for
