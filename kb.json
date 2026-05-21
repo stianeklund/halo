@@ -7095,7 +7095,8 @@
       "functions": [
         {
           "decl": "void FUN_000a6a80(void);",
-          "addr": "0xa6a80"
+          "addr": "0xa6a80",
+          "ported": true
         },
         {
           "decl": "void FUN_000a6b50(void);",
@@ -21556,11 +21557,11 @@
           "addr": "0x1b9b50"
         },
         {
-          "decl": "void FUN_001b9b60(void);",
+          "decl": "void FUN_001b9b60(int state, int tag_class);",
           "addr": "0x1b9b60"
         },
         {
-          "decl": "void FUN_001b9b80(void);",
+          "decl": "int FUN_001b9b80(int state);",
           "addr": "0x1b9b80"
         }
       ]
