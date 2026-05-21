@@ -24,6 +24,28 @@ bool FUN_0012bce0(int param_1, int param_2, short *param_3, short *param_4,
   return cVar1;
 }
 
+/* Update a countdown timer without reading its value.
+ * countdown[0] = time_remaining, countdown[1] = last_tick_time.
+ * 0x12bd80 / network_server_manager.obj */
+void countdown_timer_update(int *param_1)
+{
+  int now;
+  int old;
+  int elapsed;
+
+  now = system_milliseconds();
+  old = param_1[1];
+  param_1[1] = now;
+  if (now > old) {
+    elapsed = now - old;
+    if (elapsed < param_1[0]) {
+      param_1[0] -= elapsed;
+    } else {
+      param_1[0] = 0;
+    }
+  }
+}
+
 /* Tick a millisecond countdown timer. Subtracts elapsed time from
    time_remaining, clamps to zero, and returns the remaining value.
    countdown[0] = time_remaining, countdown[1] = last_tick_time. */
