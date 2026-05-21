@@ -7258,8 +7258,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000b42d0(void);",
-          "addr": "0xb42d0"
+          "decl": "wchar_t *FUN_000b42d0(int, wchar_t *);",
+          "addr": "0xb42d0",
+          "ported": true
         },
         {
           "decl": "void FUN_000b4300(void);",
