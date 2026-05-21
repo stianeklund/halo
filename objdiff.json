@@ -2437,6 +2437,22 @@
       "metadata": {
         "source_path": "src/halo/effects/contrails.c"
       }
+    },
+    {
+      "name": "halo/effects_9ce80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9ce80.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/game_allegiance_a8110_a8192",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game_allegiance.c.obj",
+      "base_path": "delinked/game_allegiance_a8110_a8192.obj",
+      "metadata": {
+        "source_path": "src/halo/game/game_allegiance.c"
+      }
     }
   ]
 }
