@@ -13425,7 +13425,9 @@
         },
         {
           "decl": "void network_game_server_update_countdown(void *server, short param_2);",
-          "addr": "0x12e3a0"
+          "addr": "0x12e3a0",
+          "src": "src/halo/networking/network_server_manager.c",
+          "ported": true
         },
         {
           "decl": "void FUN_0012eef0(void);",
