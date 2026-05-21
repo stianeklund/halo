@@ -13819,8 +13819,9 @@
           "addr": "0x13b380"
         },
         {
-          "decl": "void FUN_0013bce0(void);",
-          "addr": "0x13bce0"
+          "decl": "void FUN_0013bce0(int object_handle, float *lighting);",
+          "addr": "0x13bce0",
+          "ported": true
         },
         {
           "decl": "void FUN_0013c030(void);",
