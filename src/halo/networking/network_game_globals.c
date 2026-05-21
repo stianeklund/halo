@@ -581,7 +581,7 @@ void network_game_abort(void)
 bool FUN_0012a890(void)
 {
   unsigned int *seed_addr;
-  unsigned short seed_step;
+  unsigned int seed_step;
   int game;
 
   if (*(void **)0x0046e8bc != NULL) {
@@ -593,14 +593,14 @@ bool FUN_0012a890(void)
   *(void **)0x0046e8bc = FUN_0012eef0();
   if (*(void **)0x0046e8bc != NULL) {
     seed_addr = random_math_get_local_seed_address();
-    seed_step = random_seed_step(seed_addr);
+    seed_step = (unsigned int)random_seed_step(seed_addr);
     if (*(void **)0x0046e8bc != NULL) {
       game = network_game_server_get_game(*(void **)0x0046e8bc);
-      *(unsigned int *)(game + 0x428) = (unsigned int)(seed_step & 0xffff);
+      *(unsigned int *)(game + 0x428) = seed_step;
     }
     if (*(void **)0x0046e8c0 != NULL) {
       game = (int)network_game_client_get_machine_index(*(void **)0x0046e8c0);
-      *(unsigned int *)(game + 0x428) = (unsigned int)(seed_step & 0xffff);
+      *(unsigned int *)(game + 0x428) = seed_step;
     }
   }
   return *(void **)0x0046e8bc != NULL;
