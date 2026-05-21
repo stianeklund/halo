@@ -570,8 +570,10 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
   short *psVar1;
   unsigned int bVar2;
 
-  *(short *)(*(int *)(param_1 + 0x169c) + *(int *)(param_1 + 0x1698) * 2) = (short)param_2;
-  *(char *)(*(int *)(param_1 + 0x1690) + *(int *)(param_1 + 0x1698)) = (char)param_3;
+  *(short *)(*(int *)(param_1 + 0x169c) + *(int *)(param_1 + 0x1698) * 2) =
+    (short)param_2;
+  *(char *)(*(int *)(param_1 + 0x1690) + *(int *)(param_1 + 0x1698)) =
+    (char)param_3;
   *(int *)(param_1 + 0x1698) = *(int *)(param_1 + 0x1698) + 1;
   if (param_2 == 0) {
     psVar1 = (short *)(param_1 + 0x8c + param_3 * 4);
@@ -579,7 +581,8 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
   } else {
     *(int *)(param_1 + 0x16a8) += 1;
     param_2--;
-    if ((unsigned short)param_2 >= (unsigned short)(*(short *)(param_1 + 0x24) - 0x106))
+    if ((unsigned short)param_2 >=
+        (unsigned short)(*(short *)(param_1 + 0x24) - 0x106))
       goto bad_match;
     if ((unsigned short)param_3 > 0xff)
       goto bad_match;
@@ -590,9 +593,9 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
     }
     if ((unsigned short)bVar2 < 0x1e)
       goto after_assert;
-bad_match:
+  bad_match:
     FUN_00117a80("_tr_tally: bad match");
-after_assert:
+  after_assert:
     psVar1 = (short *)(param_1 + 0x490 +
                        (unsigned int)(unsigned char)(*(
                          unsigned char *)(0x28e488 + (unsigned int)param_3)) *
@@ -970,55 +973,52 @@ void FUN_00117cf0(int *param_1)
  * 0x117da0 / circular_queue.obj (array.c line 93) */
 int FUN_00117da0(int *array)
 {
-    int new_count;
-    void *new_elements;
-    int old_index;
+  int new_count;
+  void *new_elements;
+  int old_index;
 
-    if (array == (int *)0x0) {
-        display_assert("array", "c:\\halo\\SOURCE\\memory\\array.c", 0x5d, 1);
-        system_exit(-1);
-    }
-    if (array[0] < 1) {
-        display_assert("array->element_size>0",
-                       "c:\\halo\\SOURCE\\memory\\array.c", 0x5e, 1);
-        system_exit(-1);
-    }
-    if (array[1] < 0) {
-        display_assert("array->count>=0",
-                       "c:\\halo\\SOURCE\\memory\\array.c", 0x5f, 1);
-        system_exit(-1);
-    }
-    if ((array[1] != 0) != (array[2] != 0)) {
-        display_assert("(array->count!=0)==(array->elements!=NULL)",
-                       "c:\\halo\\SOURCE\\memory\\array.c", 0x60, 1);
-        system_exit(-1);
-    }
+  if (array == (int *)0x0) {
+    display_assert("array", "c:\\halo\\SOURCE\\memory\\array.c", 0x5d, 1);
+    system_exit(-1);
+  }
+  if (array[0] < 1) {
+    display_assert("array->element_size>0", "c:\\halo\\SOURCE\\memory\\array.c",
+                   0x5e, 1);
+    system_exit(-1);
+  }
+  if (array[1] < 0) {
+    display_assert("array->count>=0", "c:\\halo\\SOURCE\\memory\\array.c", 0x5f,
+                   1);
+    system_exit(-1);
+  }
+  if ((array[1] != 0) != (array[2] != 0)) {
+    display_assert("(array->count!=0)==(array->elements!=NULL)",
+                   "c:\\halo\\SOURCE\\memory\\array.c", 0x60, 1);
+    system_exit(-1);
+  }
 
-    if (*(char *)0x449ef1 != 0 && *(char *)0x321438 != 0) {
-        profile_enter_private((void *)0x321430);
-    }
+  if (*(char *)0x449ef1 != 0 && *(char *)0x321438 != 0) {
+    profile_enter_private((void *)0x321430);
+  }
 
-    old_index = -1;
-    if (array[1] < 0x7fffffff) {
-        new_count = array[1] + 1;
-        new_elements = debug_realloc((void *)array[2],
-                                     array[0] * new_count,
-                                     "c:\\halo\\SOURCE\\memory\\array.c",
-                                     0x67);
-        if (new_elements != (void *)0x0) {
-            old_index = array[1];
-            csmemset((void *)(array[0] * old_index + (int)new_elements),
-                     0, array[0]);
-            array[1] = new_count;
-            array[2] = (int)new_elements;
-        }
+  old_index = -1;
+  if (array[1] < 0x7fffffff) {
+    new_count = array[1] + 1;
+    new_elements = debug_realloc((void *)array[2], array[0] * new_count,
+                                 "c:\\halo\\SOURCE\\memory\\array.c", 0x67);
+    if (new_elements != (void *)0x0) {
+      old_index = array[1];
+      csmemset((void *)(array[0] * old_index + (int)new_elements), 0, array[0]);
+      array[1] = new_count;
+      array[2] = (int)new_elements;
     }
+  }
 
-    if (*(char *)0x449ef1 != 0 && *(char *)0x321438 != 0) {
-        profile_exit_private((void *)0x321430);
-    }
+  if (*(char *)0x449ef1 != 0 && *(char *)0x321438 != 0) {
+    profile_exit_private((void *)0x321430);
+  }
 
-    return old_index;
+  return old_index;
 }
 
 /* Return the address of an element at the given index in a dynamic array.
@@ -1226,8 +1226,8 @@ unsigned short FUN_00118370(unsigned char *count, int elements,
   if ((short)(unsigned short)bVar1 < maximum_count) {
     new_var = (int)((short)(unsigned short)bVar1);
     *count = bVar1 + 1;
-    csmemset((void *)(new_var * (int)element_size + elements),
-             0, (int)element_size);
+    csmemset((void *)(new_var * (int)element_size + elements), 0,
+             (int)element_size);
     return (unsigned short)bVar1;
   }
   return (unsigned short)(-1);
@@ -1505,7 +1505,8 @@ bool FUN_00118ec0(int queue, void *data, int data_size)
   if (used + data_size < *(int *)(queue + 0x10)) {
     remaining = *(int *)(queue + 0x10) - write_offset;
     if (data_size >= remaining) {
-      csmemcpy((void *)(*(int *)(queue + 0x14) + write_offset), data, remaining);
+      csmemcpy((void *)(*(int *)(queue + 0x14) + write_offset), data,
+               remaining);
       data = (char *)data + remaining;
       *(int *)(queue + 0x0c) = 0;
       data_size = data_size - remaining;
@@ -1522,4 +1523,51 @@ bool FUN_00118ec0(int queue, void *data, int data_size)
     return 1;
   }
   return 0;
+}
+
+/* Try to read data_size bytes from a circular queue without removing them
+ * unless advance is set. Returns true if enough data was available, false
+ * otherwise. Handles the wrap-around case the same way as the enqueue path:
+ * split copy at the buffer boundary (0x118fb0). */
+bool circular_queue_try_read(int queue, void *data, int data_size, char advance)
+{
+  int read_offset;
+  int available;
+  int remaining;
+
+  FUN_00118d70(queue);
+  assert_halt(data && data_size > 0 && data_size < *(int *)(queue + 0x10));
+
+  FUN_00118d70(queue);
+
+  read_offset = *(int *)(queue + 0x8);
+  available = *(int *)(queue + 0xc) - read_offset;
+  if (available < 0) {
+    available = available + *(int *)(queue + 0x10);
+  }
+
+  if (data_size > available) {
+    return 0;
+  }
+
+  remaining = *(int *)(queue + 0x10) - read_offset;
+  if (data_size >= remaining) {
+    csmemcpy(data, (void *)(*(int *)(queue + 0x14) + read_offset), remaining);
+    data = (char *)data + remaining;
+    read_offset = 0;
+    data_size = data_size - remaining;
+  }
+
+  if (data_size > 0) {
+    csmemcpy(data, (void *)(*(int *)(queue + 0x14) + read_offset), data_size);
+    read_offset = read_offset + data_size;
+  }
+
+  assert_halt(read_offset >= 0 && read_offset < *(int *)(queue + 0x10));
+
+  if (advance != 0) {
+    *(int *)(queue + 0x8) = read_offset;
+  }
+
+  return 1;
 }
