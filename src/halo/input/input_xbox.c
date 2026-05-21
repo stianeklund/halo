@@ -463,6 +463,32 @@ void input_state_process_packet(void *state)
   }
 }
 
+/* FUN_000cf490 (0xcf490) */
+void FUN_000cf490(void)
+{
+  int *piVar1;
+  int iVar2;
+  int handle;
+
+  FUN_000ce4a0();
+  if (*input_keyboard_handle() != 0) {
+    ((xinput_close_fn)0x24c1b8)(*input_keyboard_handle());
+    *input_keyboard_handle() = 0;
+  }
+  piVar1 = input_gamepad_handles();
+  iVar2 = 4;
+  do {
+    if (*piVar1 != 0) {
+      handle = *piVar1;
+      ((xinput_close_fn)0x24c1b8)(handle);
+      *piVar1 = 0;
+    }
+    piVar1 = piVar1 + 1;
+    iVar2 = iVar2 + -1;
+  } while (iVar2 != 0);
+  return;
+}
+
 void input_flush(void)
 {
   csmemset(input_gamepad_states(), 0,

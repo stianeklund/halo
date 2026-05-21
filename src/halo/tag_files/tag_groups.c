@@ -168,3 +168,25 @@ int16_t tag_block_add_element(void *tag_block)
   error(2, "tag_block_add_element() is not supported with a cache file active");
   return -1;
 }
+
+/* Stub: tag_load is not supported when running from a cache file.
+ * Logs an error and returns an invalid tag handle (-1).
+ * All three parameters are intentionally unused in this stub. */
+int FUN_001b9b00(int tag_class, const char *name, int flags)
+{
+  (void)tag_class;
+  (void)name;
+  (void)flags;
+  error(2, "tag_load() is not supported with a cache file active");
+  return -1;
+}
+
+/* Stub: tag_file_get_path is not supported when running from a cache file.
+ * Logs an error and writes a NUL byte to the output path buffer. */
+void FUN_001b9b30(int tag_class, int param_2, char *out_path)
+{
+  (void)tag_class;
+  (void)param_2;
+  error(2, "tag_file_get_path() is not supported with a cache file active");
+  *out_path = 0;
+}

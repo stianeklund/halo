@@ -11620,12 +11620,14 @@
           "addr": "0xcf3e0"
         },
         {
-          "decl": "void FUN_000cf430(void);",
-          "addr": "0xcf430"
+          "decl": "void FUN_000cf430(uint8_t *counter, char increment);",
+          "addr": "0xcf430",
+          "ported": false
         },
         {
           "decl": "void FUN_000cf490(void);",
-          "addr": "0xcf490"
+          "addr": "0xcf490",
+          "ported": true
         },
         {
           "decl": "void FUN_000cf690(void);",
@@ -21545,12 +21547,14 @@
           "addr": "0x19b3b0"
         },
         {
-          "decl": "void FUN_001b9b00(void);",
-          "addr": "0x1b9b00"
+          "decl": "int FUN_001b9b00(int tag_class, const char *name, int flags);",
+          "addr": "0x1b9b00",
+          "ported": true
         },
         {
-          "decl": "void FUN_001b9b30(void);",
-          "addr": "0x1b9b30"
+          "decl": "void FUN_001b9b30(int tag_class, int param_2, char *out_path);",
+          "addr": "0x1b9b30",
+          "ported": true
         },
         {
           "decl": "void FUN_001b9b50(void);",
