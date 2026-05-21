@@ -502,6 +502,47 @@ void network_game_server_all_machines_have_loaded(void *server)
   }
 }
 
+/* Mark machine as loading-complete and check if all machines are loaded.
+ * 0x12cb20 / network_server_manager.obj
+ */
+void network_game_server_client_machine_game_loading_completed(void *server, void *machine)
+{
+    short sVar1;
+    bool bVar2;
+    short *psVar4;
+    int iVar5;
+
+    bVar2 = 1;
+    if (!server) {
+        display_assert(0, 0, 0x4ed, 1);
+        system_exit(-1);
+    }
+    if (!machine) {
+        display_assert(0, 0, 0x4ee, 1);
+        system_exit(-1);
+    }
+    *(unsigned char *)((char *)machine + 0xe) |= 4;
+    psVar4 = (short *)((char *)server + 0x448);
+    iVar5 = 4;
+    do {
+        sVar1 = *psVar4;
+        if (sVar1 >= 0 && sVar1 < 4 &&
+            !(*(unsigned char *)((char *)psVar4 + 2) & 4)) {
+            network_game_log("still waiting on machine #%d to finish loading",
+                             (int)sVar1);
+            bVar2 = 0;
+        }
+        psVar4 = (short *)((char *)psVar4 + 0x10);
+        iVar5--;
+    } while (iVar5 != 0);
+    if (bVar2) {
+        network_game_server_all_machines_have_loaded(server);
+    }
+    if (*(int *)((char *)server + 0x484) == 0) {
+        *(unsigned int *)((char *)server + 0x484) = system_milliseconds();
+    }
+}
+
 /* network_game_server_client_machine_is_precached — 0x12cbe0 */
 void network_game_server_client_machine_is_precached(int param_1, int param_2,
                                                      int param_3)
@@ -565,7 +606,6 @@ void network_game_server_begin_game_start_countdown(int param_1, int param_2)
     *(unsigned char *)(param_1 + 0x494) = 1;
     network_game_log("server game start countdown started");
   }
-}
 
 /* Check whether any team (0 or 1) has zero active clients among the 16 client
  * slots at server+0x22E..+0x44C (stride 0x20).  Returns true when at least one

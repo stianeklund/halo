@@ -13311,8 +13311,9 @@
           "ported": true
         },
         {
-          "decl": "void network_game_server_client_machine_game_loading_complete(void);",
-          "addr": "0x12cb20"
+          "decl": "void network_game_server_client_machine_game_loading_completed(void *server, void *machine);",
+          "addr": "0x12cb20",
+          "ported": true
         },
         {
           "decl": "void network_game_server_client_machine_is_precached(int param_1, int param_2, int param_3);",
