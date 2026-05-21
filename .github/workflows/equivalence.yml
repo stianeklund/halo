@@ -1,0 +1,133 @@
+name: Equivalence Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'kb.json'
+      - 'tools/equivalence/**'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'kb.json'
+      - 'tools/equivalence/**'
+  schedule:
+    # Nightly at 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Test mode'
+        required: false
+        default: 'batch'
+        type: choice
+        options:
+          - regression
+          - batch
+          - discover
+
+env:
+  VENV_PYTHON: .venv/bin/python3
+
+jobs:
+  regression:
+    name: Unicorn regression (quick)
+    runs-on: self-hosted
+    if: github.event_name != 'schedule'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify prerequisites
+        run: |
+          ${{ env.VENV_PYTHON }} -c "import unicorn, capstone; print('ok')"
+
+      - name: Run regression tests
+        run: |
+          ${{ env.VENV_PYTHON }} tools/equivalence/regression_test.py --quick
+
+  batch-verify:
+    name: Batch equivalence (${{ github.event.inputs.mode || 'batch' }})
+    runs-on: self-hosted
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch')
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify prerequisites
+        run: |
+          ${{ env.VENV_PYTHON }} -c "import unicorn, capstone, z3; print('ok')"
+          which llvm-objdump
+
+      - name: Build candidate objects
+        run: |
+          ${{ env.VENV_PYTHON }} tools/build/build.py -q --target halo
+
+      - name: Determine mode
+        id: mode
+        run: |
+          MODE="${{ github.event.inputs.mode || 'batch' }}"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          EXTRA_FLAGS=""
+          if [ "$MODE" = "discover" ]; then
+            EXTRA_FLAGS="--discover"
+          fi
+          echo "extra_flags=$EXTRA_FLAGS" >> "$GITHUB_OUTPUT"
+
+      - name: Load previous baseline
+        id: baseline
+        run: |
+          BASELINE=""
+          if [ -f artifacts/batch_verify/summary.json ]; then
+            BASELINE="--baseline artifacts/batch_verify/summary.json --fail-on-new"
+          fi
+          echo "flags=$BASELINE" >> "$GITHUB_OUTPUT"
+
+      - name: Run batch verification
+        run: |
+          ${{ env.VENV_PYTHON }} tools/equivalence/batch_verify.py \
+            --seeds 50 \
+            --timeout 120 \
+            --csv \
+            --skip-existing \
+            ${{ steps.mode.outputs.extra_flags }} \
+            ${{ steps.baseline.outputs.flags }} \
+            --output-dir artifacts/batch_verify
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: equivalence-results-${{ github.run_number }}
+          path: artifacts/batch_verify/
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f artifacts/batch_verify/summary.json ]; then
+            ${{ env.VENV_PYTHON }} -c "
+          import json, sys
+          s = json.load(open('artifacts/batch_verify/summary.json'))
+          r = s['results']
+          elapsed = s.get('elapsed_seconds', 0)
+          print('## Equivalence Test Results')
+          print()
+          print(f'| Metric | Count |')
+          print(f'|--------|-------|')
+          print(f'| Total candidates | {r[\"total\"]} |')
+          print(f'| Pass | {r[\"pass\"]} |')
+          print(f'| Fail | {r[\"fail\"]} |')
+          print(f'| Error | {r[\"error\"]} |')
+          print(f'| Z3 proven | {r[\"z3_proven\"]} |')
+          print(f'| Elapsed | {elapsed:.0f}s |')
+          if s.get('comparison', {}).get('new_failures'):
+              print()
+              print('### New Failures (regressions)')
+              for f in s['comparison']['new_failures']:
+                  print(f'- **{f[\"name\"]}** ({f[\"obj\"]}): {f[\"reason\"]}')
+          " >> "$GITHUB_STEP_SUMMARY"
+          fi

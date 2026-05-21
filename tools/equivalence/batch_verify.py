@@ -30,15 +30,44 @@ RESULTS_DIR = ROOT / "artifacts" / "batch_verify"
 FAIL_STATUSES = {"fail", "error"}
 
 
-def load_candidates(leaf_only: bool = False, classes: set = None):
-    """Find ported functions that exist in both leaf_cache and kb.json."""
+DELINKED_DIR = ROOT / "delinked"
+
+
+def _has_delinked_ref(addr_str: str, obj_name: str) -> bool:
+    """Check if a delinked oracle exists for a function address."""
+    try:
+        addr_int = int(addr_str, 16)
+    except ValueError:
+        return False
+    sym_upper = f"FUN_{addr_int:08X}"
+    sym_lower = f"FUN_{addr_int:08x}"
+    addr_no_0x = addr_str.replace("0x", "")
+    for d in DELINKED_DIR.glob("*.obj"):
+        if addr_no_0x in d.stem or sym_lower in d.stem or sym_upper in d.stem:
+            return True
+    if (DELINKED_DIR / f"{obj_name}.obj").exists():
+        return True
+    return False
+
+
+def load_candidates(leaf_only: bool = False, classes: set = None,
+                    discover: bool = False):
+    """Find ported functions that can be verified.
+
+    Default mode: only functions already in leaf_cache.json.
+    Discovery mode (--discover): all ported functions with a delinked oracle,
+    regardless of leaf_cache presence.  Cached entries still get their class
+    label; uncached ones are tagged 'uncached'.
+    """
     if classes is None:
         classes = {"leaf", "data_only", "stubbable"}
     if leaf_only:
         classes = {"leaf"}
 
     kb = json.loads(KB_JSON.read_text(encoding="utf-8"))
-    cache = json.loads(LEAF_CACHE.read_text(encoding="utf-8"))
+    cache = {}
+    if LEAF_CACHE.exists():
+        cache = json.loads(LEAF_CACHE.read_text(encoding="utf-8"))
 
     cache_by_int = {}
     for addr_str, entry in cache.items():
@@ -62,11 +91,18 @@ def load_candidates(leaf_only: bool = False, classes: set = None):
                 continue
 
             entry = cache_by_int.get(addr_int)
-            if not entry:
-                continue
-            cls = entry.get("class", "") if isinstance(entry, dict) else entry
-            if cls not in classes:
-                continue
+
+            if discover:
+                if not entry and not _has_delinked_ref(addr_str, obj_name):
+                    continue
+                cls = (entry.get("class", "uncached") if isinstance(entry, dict)
+                       else entry) if entry else "uncached"
+            else:
+                if not entry:
+                    continue
+                cls = entry.get("class", "") if isinstance(entry, dict) else entry
+                if cls not in classes:
+                    continue
 
             decl = fn.get("decl", "")
             m = re.search(r'\b(\w+)\s*\(', decl)
@@ -211,10 +247,13 @@ def main():
                         help="Exit non-zero when baseline comparison finds new failures")
     parser.add_argument("--skip-existing", action="store_true",
                         help="Skip functions that already have a result JSON in --output-dir")
+    parser.add_argument("--discover", action="store_true",
+                        help="Test all ported functions with delinked refs, not just leaf_cache entries")
     args = parser.parse_args()
 
     classes = set(args.classes.split(","))
-    candidates = load_candidates(leaf_only=args.leaf_only, classes=classes)
+    candidates = load_candidates(leaf_only=args.leaf_only, classes=classes,
+                                 discover=args.discover)
 
     if args.limit > 0:
         candidates = candidates[:args.limit]

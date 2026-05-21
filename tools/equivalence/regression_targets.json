@@ -6,15 +6,19 @@
       "name": "FUN_000b4da0",
       "obj": "game.obj",
       "seeds": 20,
-      "flags": ["--allow-stubs"],
-      "reason": "format string dereference bug — Ghidra showed *(wchar_t**)0x26c118 instead of (wchar_t*)0x26c118"
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "format string dereference bug \u2014 Ghidra showed *(wchar_t**)0x26c118 instead of (wchar_t*)0x26c118"
     },
     {
       "addr": "0xb4dd0",
       "name": "FUN_000b4dd0",
       "obj": "game.obj",
       "seeds": 20,
-      "flags": ["--allow-stubs"],
+      "flags": [
+        "--allow-stubs"
+      ],
       "reason": "related score format function, same TU as dereference bug"
     },
     {
@@ -22,8 +26,20 @@
       "name": "FUN_000b4df0",
       "obj": "game.obj",
       "seeds": 20,
-      "flags": ["--allow-stubs"],
-      "reason": "format string dereference bug — same pattern as FUN_000b4da0"
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "format string dereference bug \u2014 same pattern as FUN_000b4da0"
+    },
+    {
+      "addr": "0x1172d0",
+      "name": "FUN_001172d0",
+      "obj": "circular_queue.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: high confidence, 66% coverage"
     }
   ]
 }
