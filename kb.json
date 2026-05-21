@@ -6899,8 +6899,9 @@
           "addr": "0x19a400"
         },
         {
-          "decl": "void FUN_0019a490(void);",
-          "addr": "0x19a490"
+          "decl": "bool FUN_0019a490(file_ref_t *info);",
+          "addr": "0x19a490",
+          "ported": true
         },
         {
           "decl": "void file_get_position(void);",
@@ -27759,11 +27760,11 @@
           "addr": "0x1d33fb"
         },
         {
-          "decl": "void FUN_001d3410(void);",
+          "decl": "int FUN_001d3410(const char *path, int access);",
           "addr": "0x1d3410"
         },
         {
-          "decl": "void FUN_001d347c(void);",
+          "decl": "bool FUN_001d347c(const char *path);",
           "addr": "0x1d347c"
         },
         {
@@ -28056,7 +28057,7 @@
           "addr": "0x1d0da1"
         },
         {
-          "decl": "void FUN_001d0df0(void);",
+          "decl": "bool FUN_001d0df0(const char *path, unsigned int attributes);",
           "addr": "0x1d0df0"
         }
       ]

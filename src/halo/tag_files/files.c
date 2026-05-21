@@ -23,6 +23,7 @@ typedef int (*is_alpha_fn)(int c);
 typedef void (*debug_log_fn)(int level, const char *format, ...);
 typedef uint32_t(__stdcall *xget_last_error_fn)(void);
 typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
+typedef int(__stdcall *nt_create_file_fn)(const char *path, int access);
 
 #define XFindFirstFile ((find_first_file_fn)0x1d3576)
 #define XFindNextFile ((find_next_file_fn)0x1d3683)
@@ -36,6 +37,7 @@ typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
 #define DEBUG_LOG ((debug_log_fn)0x8f390)
 #define XGetLastError ((xget_last_error_fn)0x1d2240)
 #define XSetLastError ((xset_last_error_fn)0x1d2268)
+#define XNtCreateFile ((nt_create_file_fn)0x1d3410)
 
 static uint32_t g_find_files_flags;
 static int16_t g_find_files_index = -1;
@@ -487,6 +489,51 @@ void file_error(file_ref_t *info, const char *function_name)
   error = XGetLastError();
   DEBUG_LOG(2, "%s('%s') error 0x%08x", function_name, ref->unk_8, error);
   XSetLastError(0);
+}
+
+/**
+ * file_create - create a file referenced by info.
+ *
+ * Builds the full path from the file reference.
+ * If the write-mode bit (bit 0 of unk_4[0]) is clear, uses the NT
+ * NtCreateFile wrapper (FUN_001d3410) with default access flags.
+ * If the write-mode bit is set, uses CreateFileA (XCreateFile) with
+ * GENERIC_WRITE | FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_SEQUENTIAL_SCAN.
+ * On success, closes the returned handle. On failure, logs the error and
+ * clears it. Returns true on success, false on failure.
+ */
+bool FUN_0019a490(file_ref_t *info)
+{
+  file_ref_t *ref;
+  char path[256];
+  int handle;
+
+  ref = file_reference_verify(info);
+
+  csmemset(path, 0, sizeof(path));
+
+  path_from_file_reference(ref->unk_6, ref->unk_8, path);
+
+  if ((ref->unk_4[0] & 1) == 0) {
+    handle = XNtCreateFile(path, 0);
+    if (handle == 0) {
+      goto error;
+    }
+  } else {
+    handle = XCreateFile(path, 0x40000000, 0, 0, 2, 0x80, 0);
+    if (handle == -1) {
+      goto error;
+    }
+    XCloseHandle(handle);
+  }
+  return true;
+
+error:
+  ref = file_reference_verify(info);
+  DEBUG_LOG(2, "%s('%s') error 0x%08x", "file_create", ref->unk_8,
+            XGetLastError());
+  XSetLastError(0);
+  return false;
 }
 
 /**
