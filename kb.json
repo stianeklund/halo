@@ -10925,12 +10925,16 @@
           "src": "src/halo/interface/hud.c"
         },
         {
-          "decl": "void scripted_show_hud(void);",
-          "addr": "0xd0400"
+          "decl": "char scripted_show_hud(char visible);",
+          "addr": "0xd0400",
+          "src": "src/halo/interface/hud.c",
+          "ported": true
         },
         {
-          "decl": "void scripted_show_hud_help_text(void);",
-          "addr": "0xd0420"
+          "decl": "char scripted_show_hud_help_text(char visible);",
+          "addr": "0xd0420",
+          "src": "src/halo/interface/hud.c",
+          "ported": true
         },
         {
           "decl": "void hud_update(void);",

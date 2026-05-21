@@ -33,6 +33,23 @@ void hud_dispose_from_old_map(void)
   FUN_000d46d0();
 }
 
+/* HaloScript: set whether the HUD is shown. Writes param to HUD control
+ * block byte 0 and returns the updated value (double-reads the global
+ * pointer to match MSVC register allocation). */
+char scripted_show_hud(char visible)
+{
+  **(char **)0x0046bd10 = visible;
+  return **(char **)0x0046bd10;
+}
+
+/* HaloScript: set whether HUD help text is shown. Same pattern as
+ * scripted_show_hud but targets HUD control block byte 1. */
+char scripted_show_hud_help_text(char visible)
+{
+  (*(char **)0x0046bd10)[1] = visible;
+  return (*(char **)0x0046bd10)[1];
+}
+
 void hud_update(void)
 {
   int i;
