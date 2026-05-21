@@ -18,6 +18,9 @@ The repo already has the right foundations:
   structural comparison.
 - `tools/verify/verify_option3.py` for runtime/xemu fallback.
 - `src/halo/test_harness.c` for Xbox-context runtime checks.
+- `tools/equivalence/state_snapshot.py` and
+  `tools/equivalence/capture_snapshot_from_diff.py` for xemu QMP `pmemsave` or
+  XBDM `getmem` memory captures that seed Unicorn with real engine state.
 - `agent-content` as the canonical source for generated Claude and OpenCode
   workflow surfaces.
 
@@ -28,6 +31,10 @@ The weak points are repeatability and reporting:
 - there is no single inventory of which ported functions are Unicorn/Z3-ready
 - batch equivalence needs no-regression baseline comparison
 - runtime oracle capture should be noninteractive and machine-readable
+- xemu state capture should use selected `pmemsave`/`getmem` memory regions,
+  not QEMU `savevm`/`loadvm`, because VM snapshots restore old loaded-XBE code pages
+- high-value stateful targets need a same-process dual-oracle harness path, not
+  just two separate oracle/candidate emulator runs
 - the current `TEST_HARNESS` hook is small and should not block higher-value
   verification work
 
@@ -37,8 +44,10 @@ The weak points are repeatability and reporting:
 |---|---|---|---|
 | Agent workflow audit | command/skill/agent policy drift | `agent-content` | `sync_agent_content.py`, `audit_agent_content.py` |
 | Unicorn/Z3 equivalence | leaf, data-only, stubbable lifted functions | oracle `.obj` vs candidate `.obj` | `unicorn_diff.py`, `batch_verify.py` |
+| xemu/XBDM state replay | non-leaf functions that need live globals for meaningful coverage | selected live engine memory pages | `state_snapshot.py`, `capture_snapshot_from_diff.py`, `unicorn_diff.py --state-snapshot` |
 | VC71/delink compare | structural lift quality and FPU warning triage | delinked reference object | `vc71_verify.py`, `compare_obj.py` |
 | Runtime oracle | functions needing live engine state | original Xbox behavior | `run_golden_tests.py`, XBDM debug capture |
+| Dual-oracle runtime harness | high-value stateful functions needing same-state comparison | original and candidate in one initialized engine state | `src/halo/test_harness.c`, future dual-oracle runner |
 | Option 3 fallback | xemu/runtime smoke fallback | boot/load/assert behavior | `verify_option3.py` |
 | Host deterministic tests | narrow pure helpers with binary-backed expected values | fixed captures or math identities | focused Python/C helpers only |
 
@@ -191,7 +200,65 @@ Acceptance:
 - parser rejects malformed output
 - `diff.txt` and `summary.json` clearly show pass/fail and first mismatch
 
-## Phase 7: Temporary Metadata Overlays
+## Phase 7: Promote xemu/XBDM State Replay
+
+Use xemu/XBDM as live memory samplers for functions that Unicorn can execute but
+cannot cover meaningfully from zero-filled globals. Prefer QMP `pmemsave` when
+available; use `--backend xbdm` when the running xemu is reachable through XBDM
+but not QMP. This is not a VM snapshot lane: QEMU `savevm`/`loadvm` restores
+loaded-XBE code pages and is not suitable for original-vs-candidate oracle
+testing.
+
+Workflow:
+
+```bash
+rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --output-json artifacts/equivalence/<target>.json
+rtk python3 tools/equivalence/capture_snapshot_from_diff.py artifacts/equivalence/<target>.json --dry-run
+rtk python3 tools/equivalence/capture_snapshot_from_diff.py artifacts/equivalence/<target>.json --description "live engine state for <target>"
+rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --state-snapshot artifacts/snapshots/<snapshot>.json
+```
+
+XBDM fallback:
+
+```bash
+rtk python3 tools/equivalence/capture_snapshot_from_diff.py artifacts/equivalence/<target>.json --backend xbdm --description "live XBDM state for <target>"
+```
+
+Acceptance:
+
+- weak coverage or early-exit equivalence results identify required regions
+- captured snapshot JSON records selected regions and description
+- rerun with `--state-snapshot` improves coverage/confidence or proves that the
+  target needs runtime oracle coverage instead
+- no workflow relies on `savevm`/`loadvm` for oracle/candidate comparison
+
+## Phase 8: Add Dual-Oracle Runtime Harness
+
+For high-value stateful targets, add same-process harness cases that compare the
+original implementation and lifted candidate inside one initialized engine run.
+This should supersede two-build golden capture when both entry points are
+available.
+
+Harness shape:
+
+```text
+clone seed inputs
+call original implementation
+capture return value, output buffers, selected globals
+restore seed inputs and relevant globals
+call candidate implementation
+compare return value, output buffers, selected globals, and structured records
+```
+
+Acceptance:
+
+- at least one simple math/data target proves the dual-oracle path end to end
+- structured output distinguishes return mismatches, memory mismatches,
+  assertions, and crashes
+- dual-oracle cases run without changing `kb.json` by hand
+- real Xbox XBDM remains the promotion lane for critical behavior
+
+## Phase 9: Temporary Metadata Overlays
 
 Runtime oracle builds use a temporary overlay consumed by `tools/build/patch.py`
 through `HALO_KB_OVERLAY` or `--kb-overlay`. The overlay changes build-time
@@ -219,8 +286,10 @@ These are useful, but they should not block the verification lanes above:
 1. Split `TEST_HARNESS` entrypoints after the runtime oracle path is useful.
 2. Move harness cases out of the monolithic file when structured capture is
    stable.
-3. Add subsystem smoke scenarios after Option 3/XBDM orchestration is healthy.
-4. Add narrow host deterministic tests only for pure helpers with binary-backed
+3. Add a generated descriptor format for dual-oracle cases once the first manual
+   cases prove the entrypoint strategy.
+4. Add subsystem smoke scenarios after Option 3/XBDM orchestration is healthy.
+5. Add narrow host deterministic tests only for pure helpers with binary-backed
    expected values, math identities, or existing golden captures.
 
 ## Standard Verification

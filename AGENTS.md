@@ -92,6 +92,8 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - **Golden Master Test Harness:** A specialized test harness intercepts the engine boot in `src/halo/shell_xbox.c`. It lets you run functions inside the engine context and verify their side-effects/return values against the exact Xbox ASM output. 
   - *Usage:* Add tests to `src/halo/test_harness.c`. Ensure your function is unmapped in `kb.json` (`"ported": false`), run `rtk python3 tools/verify/run_golden_tests.py` to capture the original FPU hex values. Then map your function (`"ported": true`) and press Enter to verify your C implementation.
   - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
+- **xemu/XBDM State Snapshots:** For Unicorn equivalence that under-covers live engine paths, capture selected memory regions from a running xemu with QMP `pmemsave` or XBDM `getmem` via `tools/equivalence/state_snapshot.py` or `tools/equivalence/capture_snapshot_from_diff.py`, then rerun `unicorn_diff.py --state-snapshot <path>`. Use region snapshots only; do not use QEMU `savevm`/`loadvm` for oracle tests because those restore old loaded-XBE code pages.
+- **Dual-Oracle Runtime Harness:** For high-value stateful targets, prefer a same-process harness case over two separate emulator runs. Clone inputs, call the original implementation, restore inputs, call the candidate implementation, then compare return values, mutated buffers, selected globals, and structured debug records in one initialized engine state.
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
 - **VC71 Verify:** After lifting FPU-heavy functions (geometry, math, projections), run `rtk python3 tools/verify/vc71_verify.py src/path/to/file.c` to compile with Visual C++ 7.1 and compare against the delinked reference. Review any `[FPU-WARN]` output — it flags potential operand-order bugs. Requires a delinked reference in `delinked/` (export via `ghidra-live` MCP).
 - **Auto-Lift Selector:** Use `rtk python3 tools/llm_auto_lift.py select` for target selection and `cache-context` for Ghidra context caching. Code generation is delegated to `/lift`.
@@ -124,6 +126,8 @@ Maintain a mental ledger of files already read in this conversation. If you need
 - Need manual implementation: `/lift <target>`.
 - Need auto-lift candidate: `/auto-lift` to select + cache context, then `/lift <target>`.
 - Need validation, delink, hazards, or failure triage: `/verify <mode> ...`.
+- Need live-state equivalence: capture xemu/XBDM memory regions, then run `/verify equivalence <target> --state-snapshot <path>`.
+- Need runtime oracle coverage: `/verify golden <target>` or `/verify dual-oracle <target>` when a same-process harness case exists.
 - Need real Xbox probing: `/deploy --xbe-only`, then `/xbdm <mode>`.
 - Need xemu build/load: `/build` or `/xemu build-load`.
 - Need regression investigation: `/debug-regression <symptom>`.

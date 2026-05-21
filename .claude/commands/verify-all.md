@@ -43,6 +43,8 @@ rtk python3 tools/equivalence/batch_verify.py --dry-run
 ```
 - Lists all Unicorn/Z3 candidates from `kb.json` + `leaf_cache.json`
 - Does not execute any emulation
+- Targets with weak coverage should be rerun later with xemu `pmemsave` state
+  snapshots through `unicorn_diff.py --state-snapshot`.
 
 **Phase 4b: Limited Batch Run (with --limit)**
 ```bash
@@ -52,6 +54,12 @@ rtk python3 tools/equivalence/batch_verify.py \
 - Runs N candidates with CSV output and baseline comparison
 - Fails if new regressions vs known failures
 - Use `--limit 0` to skip the batch run
+
+**Phase 5: Runtime Oracle Follow-Up**
+- Use `rtk python3 tools/verify/run_golden_tests.py --target <target>` for
+  stateful targets that cannot be proven through delink/equivalence.
+- Prefer dual-oracle harness cases for high-value stateful targets once
+  available; they compare original and candidate in one initialized engine run.
 
 Flags:
 - `--limit N` — run N candidates in batch_verify (0=skip batch run)
