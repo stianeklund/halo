@@ -13418,7 +13418,10 @@
         },
         {
           "decl": "void network_game_server_stalled_on_client(void *server, bool stalled);",
-          "addr": "0x12e1d0"
+          "addr": "0x12e1d0",
+          "name": "network_game_server_stalled_on_client",
+          "src": "src/halo/networking/network_server_manager.c",
+          "ported": true
         },
         {
           "decl": "void network_game_server_update_countdown(void *server, short param_2);",
