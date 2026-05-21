@@ -730,6 +730,119 @@ void object_move_to_limbo(int object_handle)
   }
 }
 
+/* FUN_0013bce0 — Compute object lighting from BSP lightmap/environment.
+ * Samples lighting at the object's position and 4 offset positions, averages
+ * successful samples. The original left local_88 uninitialized; when all 5
+ * lookups fail (BSP transition), stack residue from clang-compiled ported
+ * functions contains x87 NaN that permanently poisons the render state shadow
+ * color. Fixed by zero-initializing the fallback buffer.
+ * (0x13bce0 / objects.obj, object_lights.c:0x3ca) */
+void FUN_0013bce0(int object_handle, float *lighting)
+{
+  int *obj;
+  int tag_data;
+  uint32_t flags;
+  float local_88[29];
+  float offset_pos[3];
+  int16_t sample_count;
+  uint16_t corner;
+  char ok;
+  float scale;
+  int i;
+
+  obj = (int *)object_get_and_verify_type(object_handle, -1);
+  flags = 0;
+
+  if (lighting == NULL) {
+    display_assert("lighting",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x3ca, 1);
+    system_exit(-1);
+  }
+
+  if ((uint8_t)(obj[1] >> 8) & 0x80)
+    flags = 1;
+
+  tag_data = (int)tag_get(0x6f626a65, *obj);
+  if (*(uint8_t *)(tag_data + 2) & 4)
+    flags |= 4;
+
+  csmemset(local_88, 0, sizeof(local_88));
+
+  ok = ((char (*)(uint32_t, int *, float *))0x13ab20)(flags, obj + 0x14, lighting);
+
+  if ((obj[1] & 0x4000) != 0)
+    return;
+
+  if (ok == '\0') {
+    sample_count = 0;
+    csmemset(lighting, 0, 0x74);
+    *(uint16_t *)(lighting + 3) = 2;
+  } else {
+    sample_count = 1;
+  }
+
+  for (corner = 0; (int16_t)corner < 4; corner++) {
+    float xoff;
+    float yoff;
+
+    xoff = *(float *)0x29b5e0;
+    if (corner & 1)
+      xoff = *(float *)0x254b50;
+    yoff = *(float *)0x29b5e0;
+    if (corner & 2)
+      yoff = *(float *)0x254b50;
+
+    offset_pos[0] = xoff * *(float *)(obj + 0x17) + *(float *)(obj + 0x14);
+    offset_pos[1] = yoff * *(float *)(obj + 0x17) + *(float *)(obj + 0x15);
+    *(int *)(offset_pos + 2) = obj[0x16];
+
+    ok = ((char (*)(uint32_t, float *, float *))0x13ab20)(flags, offset_pos, local_88);
+    if (ok != '\0') {
+      sample_count++;
+      for (i = 0; i < 3; i++)
+        lighting[i] += local_88[i];
+      lighting[0x13] += local_88[0x13];
+      lighting[0x14] += local_88[0x14];
+      lighting[0x15] += local_88[0x15];
+      lighting[0x16] += local_88[0x16];
+      for (i = 4; i <= 0xf; i++)
+        lighting[i] += local_88[i];
+      lighting[0x1a] += local_88[0x1a];
+      lighting[0x1b] += local_88[0x1b];
+      lighting[0x1c] += local_88[0x1c];
+      lighting[0x17] += local_88[0x17];
+      lighting[0x18] += local_88[0x18];
+      lighting[0x19] += local_88[0x19];
+    }
+  }
+
+  if (sample_count > 1) {
+    scale = *(float *)0x2533c8 / (float)(int)sample_count;
+    for (i = 0; i < 3; i++)
+      lighting[i] *= scale;
+    lighting[0x13] *= scale;
+    lighting[0x14] *= scale;
+    lighting[0x15] *= scale;
+    lighting[0x16] *= scale;
+    for (i = 4; i <= 6; i++)
+      lighting[i] *= scale;
+    normalize3d(lighting + 7);
+    for (i = 10; i <= 12; i++)
+      lighting[i] *= scale;
+    normalize3d(lighting + 0xd);
+    lighting[0x1a] *= scale;
+    lighting[0x1b] *= scale;
+    lighting[0x1c] *= scale;
+    lighting[0x17] *= scale;
+    lighting[0x18] *= scale;
+    lighting[0x19] *= scale;
+    normalize3d(lighting + 0x17);
+  } else if (sample_count == 0) {
+    for (i = 0; i < 29; i++)
+      lighting[i] = local_88[i];
+  }
+}
+
 /* Create a new point light datum from a light tag (0x13b290).
  * Allocates from the light data table (0x5a90bc), validates the 'ligh' tag,
  * initializes fields, then calls object_move_to_limbo to resolve world-space
