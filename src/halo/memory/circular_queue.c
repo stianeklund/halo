@@ -272,8 +272,8 @@ int FUN_00116010(int *c, int *bb, int tl, int td, int z)
   iVar1 = (*(int (**)(int, int, int))(z + 0x20))(*(int *)(z + 0x28), 0x13, 4);
   if (iVar1 == 0)
     return -4;
-  iVar2 = FUN_00115ba0(c, 0x13, 0x13, 0, 0, (int *)tl, td, &local_8,
-                       (unsigned int *)iVar1);
+  iVar2 = FUN_00115ba0((unsigned int *)bb, c, 0x13, 0x13, 0, 0, (int *)tl, td,
+                       &local_8, (unsigned int *)iVar1);
   if (iVar2 == -3) {
     *(const char **)(z + 0x18) = "oversubscribed dynamic bit lengths tree";
     (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), iVar1);
@@ -303,14 +303,15 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
   if (iVar1 == 0)
     return -4;
   iVar2 =
-    FUN_00115ba0((int *)param_3, param_1, 0x101, (int)0x28d960, (int)0x28d9e0,
-                 (int *)param_6, param_8, &local_8, (unsigned int *)iVar1);
+    FUN_00115ba0((unsigned int *)param_4, (int *)param_3, param_1, 0x101,
+                 (int)0x28d960, (int)0x28d9e0, (int *)param_6, param_8,
+                 &local_8, (unsigned int *)iVar1);
   if (iVar2 == 0) {
     if (*param_4 != 0) {
       iVar2 =
-        FUN_00115ba0((int *)(param_3 + (int)param_1 * 4), (unsigned int)param_2,
-                     0, (int)0x28da60, (int)0x28dad8, (int *)param_7, param_8,
-                     &local_8, (unsigned int *)iVar1);
+        FUN_00115ba0((unsigned int *)param_5, (int *)(param_3 + (int)param_1 * 4),
+                     (unsigned int)param_2, 0, (int)0x28da60, (int)0x28dad8,
+                     (int *)param_7, param_8, &local_8, (unsigned int *)iVar1);
       if (iVar2 == 0) {
         if (*param_5 != 0 || param_1 < 0x102) {
           (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),

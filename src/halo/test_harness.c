@@ -27,6 +27,7 @@ extern void points_interpolate(float *a, float *b, float blend, float *out);
 extern void scalars_interpolate(float a, float b, float blend, float *out);
 extern uint32_t FUN_000d1c90(float *color);
 
+
 static int check(const char *name, uint32_t got, uint32_t expected, char *buf)
 {
   if (got == expected) {
@@ -377,6 +378,43 @@ void run_tests(void)
                                            0.0001f);
       dump_clip_case("clip_duplicate", ret, out_mask, changed, out_points, buf);
     }
+  }
+
+  /* inflate round-trip: exercises FUN_00116010 / FUN_001160c0 which call
+   * FUN_00115ba0 with @<eax>=bb.  A missing @<eax> annotation causes the
+   * Huffman tables to be built with a garbage bit-count pointer, corrupting
+   * s->trees.bb and s->trees.tb and freezing the game on map selection. */
+  {
+    /* "HaloInflateTest" compressed with zlib -9 (23 bytes, includes header) */
+    static const unsigned char compressed[23] = {
+      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc,
+      0x4b, 0xcb, 0x49, 0x2c, 0x49, 0x0d, 0x49, 0x2d,
+      0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
+    };
+    unsigned char out_buf[32];
+    int zs[14]; /* z_stream = 0x38 bytes */
+    int init_ret, inflate_ret;
+
+    csmemset(zs, 0, sizeof(zs));
+    init_ret = FUN_001155c0((int)zs, "1.1.3", 0x38);
+
+    inflate_ret = (int)0xfffffffe; /* Z_STREAM_ERROR fallback */
+    if (init_ret == 0) {
+      zs[0] = (int)compressed;    /* next_in  */
+      zs[1] = sizeof(compressed); /* avail_in */
+      zs[3] = (int)out_buf;       /* next_out */
+      zs[4] = sizeof(out_buf);    /* avail_out */
+      inflate_ret = FUN_001155e0((int)zs, 4 /* Z_FINISH */);
+      FUN_00115430((int)zs);
+    }
+
+    total += 4;
+    passed += check("inflate_init", (uint32_t)init_ret, 0, buf);
+    passed += check("inflate_z_stream_end", (uint32_t)inflate_ret, 1, buf);
+    /* "Halo" in little-endian = 0x6F6C6148 */
+    passed += check("inflate_out[0..3]", *(uint32_t *)&out_buf[0], 0x6F6C6148, buf);
+    /* "Infl" in little-endian = 0x6C666E49 */
+    passed += check("inflate_out[4..7]", *(uint32_t *)&out_buf[4], 0x6C666E49, buf);
   }
 
   crt_sprintf(buf, "RUN|END|passed=%d|failed=%d|total=%d\n", passed,

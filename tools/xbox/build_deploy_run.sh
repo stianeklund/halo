@@ -4,6 +4,15 @@ set -euo pipefail
 xbox_host="${XBOX_HOST:-127.0.0.1}"
 build_args=()
 
+log() {
+  printf '[build_deploy_run][%s] %s\n' "$(date '+%H:%M:%S')" "$*"
+}
+
+reset_terminal_input_modes() {
+  # Disable common mouse-tracking modes in case a prior TUI left them on.
+  printf '\033[?1000l\033[?1002l\033[?1003l\033[?1006l\033[?1015l' || true
+}
+
 while (($#)); do
   case "$1" in
     --xbox)
@@ -26,9 +35,24 @@ while (($#)); do
   esac
 done
 
-if [[ ! -d build ]]; then
-    cmake -Bbuild -S. -DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake
+log "starting (xbox host: ${xbox_host})"
+reset_terminal_input_modes
+log "terminal mouse-tracking modes disabled"
+if ((${#build_args[@]})); then
+  log "build args: ${build_args[*]}"
+else
+  log "build args: <none>"
 fi
 
+if [[ ! -d build ]]; then
+    log "configuring CMake build directory"
+    cmake -Bbuild -S. -DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake
+else
+    log "using existing build directory"
+fi
+
+log "running build"
 python3 tools/build/build.py "${build_args[@]}"
+log "deploying XBE to Xbox (${xbox_host})"
 python3 tools/xbox/deploy_xbox.py --xbox "$xbox_host" --xbe-only
+log "done"

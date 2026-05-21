@@ -31425,7 +31425,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_001155e0(void);",
+          "decl": "int FUN_001155e0(int z, int flush);",
           "addr": "0x1155e0"
         },
         {
@@ -31444,7 +31444,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00115ba0(int *param_1, unsigned int param_2, unsigned int param_3, int param_4, int param_5, int *param_6, int param_7, unsigned int *param_8, unsigned int *param_9);",
+          "decl": "int FUN_00115ba0(unsigned int *bb@<eax>, int *param_1, unsigned int param_2, unsigned int param_3, int param_4, int param_5, int *param_6, int param_7, unsigned int *param_8, unsigned int *param_9);",
           "addr": "0x115ba0",
           "ported": null
         },

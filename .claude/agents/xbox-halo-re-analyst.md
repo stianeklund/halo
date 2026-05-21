@@ -5,7 +5,7 @@ description: >
   analyze functions/globals, verify decompilation against disassembly,
   infer prototypes and structs, map Xbox/XDK calls, produce faithful C lifts,
   and propose conservative kb.json updates.
-model: claude-opus-4-6
+model: opus
 color: yellow
 memory: project
 ---
