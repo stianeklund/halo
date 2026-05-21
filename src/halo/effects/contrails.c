@@ -402,6 +402,94 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
   }
 }
 
+/* 0x98580 — contrail_new: allocates a new contrail datum and initialises it.
+ *
+ * Validates both object_index and definition_index, then calls
+ * data_new_at_index to obtain a slot.  On success the datum is populated:
+ *   datum+0x02 : flags (cleared)
+ *   datum+0x04 : definition_index (tag handle)
+ *   datum+0x08 : object_index (object handle)
+ *   datum+0x0c : attachment_index (marker index into object tag's contrail
+ * list) datum+0x0e : initial sequence frame ceiling (from tag element's
+ * max-frame field - 1) datum+0x10 : out_value buffer (filled by
+ * object_get_function_value) datum+0x14 : sequence index (set to 0xffff)
+ *   datum+0x18 : zeroed
+ *   datum+0x1c : zeroed
+ *   datum+0x2c..0x33: 4 x int16_t point counts zeroed
+ *   datum+0x34..0x43: 4 x int32_t chain heads set to -1
+ *
+ * If object_get_function_value reports the function is active the attached
+ * flag (datum+0x02 bit 0) is set and one initial point is spawned.
+ *
+ * Returns the new datum handle, or -1 if allocation failed or param_1==-1. */
+int contrail_new(int definition_index, int object_index, short attachment_index)
+{
+  char *datum;
+  void *obj_struct;
+  char *obj_tag_elem;
+  int iVar2;
+  unsigned short *puVar6;
+  int *puVar4;
+  int iVar5;
+
+  if (object_index == -1) {
+    display_assert("object_index!=NONE",
+                   "c:\\halo\\SOURCE\\effects\\contrails.c", 0x61, 1);
+    system_exit(-1);
+  }
+
+  if (definition_index == -1) {
+    display_assert("definition_index!=NONE",
+                   "c:\\halo\\SOURCE\\effects\\contrails.c", 0x62, 1);
+    system_exit(-1);
+    return -1;
+  }
+
+  tag_get(0x636f6e74, definition_index);
+  iVar2 = data_new_at_index(contrail_data);
+  if (iVar2 == -1)
+    return iVar2;
+
+  datum = (char *)datum_get(contrail_data, iVar2);
+  obj_struct = object_get_and_verify_type(object_index, -1);
+
+  *(short *)(datum + 0xc) = attachment_index;
+  *(short *)(datum + 0x2) = 0;
+  *(int *)(datum + 0x4) = definition_index;
+  *(int *)(datum + 0x8) = object_index;
+
+  obj_tag_elem = (char *)tag_get(0x6f626a65, *(int *)obj_struct);
+  obj_tag_elem = (char *)tag_block_get_element(obj_tag_elem + 0x140,
+                                               (int)attachment_index, 0x48);
+  *(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;
+  *(short *)(datum + 0x14) = (short)0xffff;
+
+  FUN_00097db0(datum);
+
+  *(int *)(datum + 0x18) = 0;
+  *(int *)(datum + 0x1c) = 0;
+
+  puVar6 = (unsigned short *)(datum + 0x2c);
+  puVar4 = (int *)(datum + 0x34);
+  iVar5 = 4;
+  do {
+    *puVar6 = 0;
+    *puVar4 = -1;
+    puVar6++;
+    puVar4++;
+    iVar5--;
+  } while (iVar5 != 0);
+
+  if (object_get_function_value(*(int *)(datum + 0x8),
+                                (unsigned short)*(short *)(datum + 0xe),
+                                datum + 0x10)) {
+    *(unsigned char *)(datum + 0x2) |= 1;
+    FUN_00097e40(iVar2, 1, 1);
+  }
+
+  return iVar2;
+}
+
 /*
  * contrail_set_state_for_object (0x986d0): given a contrail datum handle and a
  * delta-time, conditionally spawns new contrail points (if the contrail is

@@ -4965,8 +4965,9 @@
           "addr": "0x98200"
         },
         {
-          "decl": "void contrail_new(void);",
-          "addr": "0x98580"
+          "decl": "int contrail_new(int definition_index, int object_index, short attachment_index);",
+          "addr": "0x98580",
+          "ported": true
         }
       ]
     },
@@ -6428,7 +6429,7 @@
         {
           "decl": "float real_local_random(void);",
           "addr": "0x9ce80",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void local_random_direction3d(float *out);",
@@ -31696,7 +31697,7 @@
           "ported": true
         },
         {
-          "decl": "int circular_queue_try_read(int queue, void *data, int data_size, char advance);",
+          "decl": "bool circular_queue_try_read(int queue, void *data, int data_size, char advance);",
           "addr": "0x118fb0",
           "ported": true
         }
