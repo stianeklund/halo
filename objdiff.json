@@ -1407,6 +1407,22 @@
       }
     },
     {
+      "name": "halo/network_server_manager_FUN_0012cbe0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012cbe0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012cfd0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012cfd0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
       "name": "halo/network_server_manager_FUN_0012d210",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
       "base_path": "delinked/network_server_manager_FUN_0012d210.obj",
