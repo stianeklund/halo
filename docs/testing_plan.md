@@ -31,7 +31,7 @@ The weak points are repeatability and reporting:
 - there is no single inventory of which ported functions are Unicorn/Z3-ready
 - batch equivalence needs no-regression baseline comparison
 - runtime oracle capture should be noninteractive and machine-readable
-- xemu state capture should use selected `pmemsave`/`getmem` memory regions,
+- xemu/XBDM live memory capture should use selected `pmemsave`/`getmem` regions,
   not QEMU `savevm`/`loadvm`, because VM snapshots restore old loaded-XBE code pages
 - high-value stateful targets need a same-process dual-oracle harness path, not
   just two separate oracle/candidate emulator runs
@@ -44,7 +44,7 @@ The weak points are repeatability and reporting:
 |---|---|---|---|
 | Agent workflow audit | command/skill/agent policy drift | `agent-content` | `sync_agent_content.py`, `audit_agent_content.py` |
 | Unicorn/Z3 equivalence | leaf, data-only, stubbable lifted functions | oracle `.obj` vs candidate `.obj` | `unicorn_diff.py`, `batch_verify.py` |
-| xemu/XBDM state replay | non-leaf functions that need live globals for meaningful coverage | selected live engine memory pages | `state_snapshot.py`, `capture_snapshot_from_diff.py`, `unicorn_diff.py --state-snapshot` |
+| live memory replay | non-leaf functions that need live globals for meaningful coverage | selected live engine memory pages | `state_snapshot.py`, `capture_snapshot_from_diff.py`, `unicorn_diff.py --state-snapshot` |
 | VC71/delink compare | structural lift quality and FPU warning triage | delinked reference object | `vc71_verify.py`, `compare_obj.py` |
 | Runtime oracle | functions needing live engine state | original Xbox behavior | `run_golden_tests.py`, XBDM debug capture |
 | Dual-oracle runtime harness | high-value stateful functions needing same-state comparison | original and candidate in one initialized engine state | `src/halo/test_harness.c`, future dual-oracle runner |
@@ -200,7 +200,7 @@ Acceptance:
 - parser rejects malformed output
 - `diff.txt` and `summary.json` clearly show pass/fail and first mismatch
 
-## Phase 7: Promote xemu/XBDM State Replay
+## Phase 7: Promote Live Memory Replay
 
 Use xemu/XBDM as live memory samplers for functions that Unicorn can execute but
 cannot cover meaningfully from zero-filled globals. Prefer QMP `pmemsave` when

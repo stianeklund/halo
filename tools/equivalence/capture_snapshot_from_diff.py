@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture xemu memory snapshot regions inferred from unicorn_diff JSON output.
+"""Capture live memory regions inferred from unicorn_diff JSON output.
 
 Typical usage:
   rtk python3 tools/equivalence/capture_snapshot_from_diff.py \
@@ -91,7 +91,7 @@ def default_output_path(diff_json: Path, target: str) -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Capture xemu snapshot regions inferred from unicorn_diff JSON"
+        description="Capture live memory regions inferred from unicorn_diff JSON"
     )
     parser.add_argument(
         "diff_json",

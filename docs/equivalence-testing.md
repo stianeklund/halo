@@ -47,7 +47,7 @@ coverage: 47/47 bytes (100.0%) — confidence: high
 |------------|---------|--------|
 | `high` | >60% coverage, diverse return values | Strong evidence of equivalence |
 | `moderate` | >60% coverage after concolic, or >30% with diversity | Reasonable evidence; investigate if critical |
-| `weak` | <30% coverage or all returns identical | Only early-exit tested; use state snapshot or investigate |
+| `weak` | <30% coverage or all returns identical | Only early-exit tested; use live memory replay or investigate |
 
 Coverage and confidence are persisted to `tools/equivalence/leaf_cache.json`
 and consumed by:
@@ -97,15 +97,15 @@ This catches bugs that return-value comparison misses:
 Enabled by default in `lift_pipeline.py` and `batch_verify.py`.
 Use `--verbose` to see per-seed trace diffs.
 
-## pmemsave State Snapshots
+## Live Memory Capture And Replay
 
 For functions that depend on complex runtime state (linked lists, hash
 tables, game state structs), zero-filled memory won't exercise real code
 paths even with concolic feedback.
 
-State snapshots capture selected real memory regions from a running xemu
+Live memory captures record selected real memory regions from a running xemu
 instance via QMP/HMP `pmemsave` or XBDM `getmem`. They are JSON memory-region
-snapshots for Unicorn replay, not QEMU VM snapshots. Prefer QMP `pmemsave` when
+captures for Unicorn replay, not QEMU VM snapshots. Prefer QMP `pmemsave` when
 available; use `capture_snapshot_from_diff.py --backend xbdm` when the running
 xemu is reachable through XBDM but not QMP. Do not use `savevm`/`loadvm` for
 oracle testing because it restores old loaded-XBE code pages and invalidates
@@ -220,7 +220,7 @@ and move the target to runtime oracle or dual-oracle harness coverage.
 tools/equivalence/
   unicorn_diff.py       — Main differential tester (Phase 1 + 2 + trace)
   concolic.py           — Branch analysis and memory injection generation
-  state_snapshot.py     — Snapshot capture (xemu) and replay
+  state_snapshot.py     — Live memory capture and replay
   seeds.py              — Input seed generator (corner + random + safe-mode)
   state.py              — CPU state capture, comparison, trace diff
   stubs.py              — Non-leaf callee stubbing and relocation patching

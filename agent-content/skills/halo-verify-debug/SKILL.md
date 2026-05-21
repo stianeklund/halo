@@ -31,7 +31,7 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
 - `/verify equivalence <target>` for Unicorn differential testing; use xemu
-  `pmemsave` or XBDM `getmem` state snapshots when zero-filled globals
+  `pmemsave` or XBDM `getmem` live memory captures when zero-filled globals
   under-cover live paths.
 - `/verify golden <target>` for runtime oracle comparison through
   `tools/verify/run_golden_tests.py`.
@@ -72,16 +72,16 @@ Run after source edits or when reviewing auto-lift output:
 Treat intrinsic calls, undersized buffers, duplicate suspicious arguments, and
 pointer-as-float warnings as blockers until investigated against disassembly.
 
-### Equivalence with xemu/XBDM state snapshots
+### Equivalence with live memory replay
 
 Use this when Unicorn/Z3 equivalence is applicable but zero-filled global memory
 only reaches early exits or weak coverage:
 
 `rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --state-snapshot artifacts/snapshots/<name>.json`
 
-Capture snapshots from a live xemu engine state with QMP `pmemsave` or XBDM
+Capture selected memory regions from a live xemu engine state with QMP `pmemsave` or XBDM
 `getmem` via `tools/equivalence/state_snapshot.py` or
-`tools/equivalence/capture_snapshot_from_diff.py`. These snapshots are selected
+`tools/equivalence/capture_snapshot_from_diff.py`. These captures are selected
 memory regions, not QEMU VM snapshots. Prefer QMP `pmemsave` when available;
 use `--backend xbdm` when the running xemu is reachable through XBDM but not
 QMP. Do not use `savevm`/`loadvm` for oracle testing because those restore old
