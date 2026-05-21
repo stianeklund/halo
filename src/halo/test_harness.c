@@ -103,22 +103,26 @@ void run_tests(void)
     passed += check("v3d_scale_add z", *(uint32_t *)&out[2], 0x3FE66666, buf);
   }
 
-  /* matrix_transform_point */
+  /* matrix_transform_point: layout is [scale, 3x3-rotation-row-major, tx, ty, tz] = 13 floats */
   {
-    float mat[12] = { 1.0f, 0.0f, 0.0f, 0.0f,  1.0f,  0.0f,
-                      0.0f, 0.0f, 1.0f, 10.0f, 20.0f, 30.0f };
+    float mat[13] = { 1.0f,               /* scale (1 = no scaling) */
+                      1.0f, 0.0f, 0.0f,   /* row 0 of 3x3 rotation */
+                      0.0f, 1.0f, 0.0f,   /* row 1 */
+                      0.0f, 0.0f, 1.0f,   /* row 2 */
+                      10.0f, 20.0f, 30.0f /* translation */};
     float in_point[3] = { 5.0f, 5.0f, 5.0f };
     float out_point[3];
 
     matrix_transform_point(mat, in_point, out_point);
 
     total += 3;
+    /* identity rotation + translation [10,20,30] applied to [5,5,5] = [15,25,35] */
     passed +=
-      check("mat_transform_pt x", *(uint32_t *)&out_point[0], 0x41C80000, buf);
+      check("mat_transform_pt x", *(uint32_t *)&out_point[0], 0x41700000, buf);
     passed +=
-      check("mat_transform_pt y", *(uint32_t *)&out_point[1], 0x420C0000, buf);
+      check("mat_transform_pt y", *(uint32_t *)&out_point[1], 0x41C80000, buf);
     passed +=
-      check("mat_transform_pt z", *(uint32_t *)&out_point[2], 0xD00A2A04, buf);
+      check("mat_transform_pt z", *(uint32_t *)&out_point[2], 0x420C0000, buf);
   }
 
   /* perpendicular3d */
