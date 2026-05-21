@@ -1895,6 +1895,10 @@
         "FUN_0018f230 is a 4-arg wrapper for scenario_location_from_point that discards args 2 and 3, passing only arg1 (location_out) and arg4 (point); the C lift calls scenario_location_from_point directly as an equivalent."
       ]
     },
+    "0x98580": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x986d0": {
       "kind": "function",
       "status": "ported"
@@ -5636,6 +5640,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x118fb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1190b0": {
       "kind": "function",
       "status": "ported"
@@ -6995,6 +7003,14 @@
     "0x14d140": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x14d1b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Register args: EDI=char *buf (output), ESI=void *stat (accumulator with int count at [+0] and int64 ticks at [+8]); confirmed from collision_log_render caller disassembly at 0x14d450, 0x14d650, 0x14d703.",
+        "FUN_001d33fb at 0x1d33fb identified as QueryPerformanceFrequency wrapper: calls IAT slot [0x253208] which is adjacent to [0x253204] (QueryPerformanceCounter); Xbox ordinals 0x5e/0x5f confirm consecutive ordering."
+      ]
     },
     "0x14d840": {
       "kind": "function",
@@ -8877,6 +8893,14 @@
     "0x1cf880": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1d7817": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_001d8766 is a locale/collation pre-screen (__stdcall, 5 args, RET 0x14); non-zero return means ordering was resolved and is returned as result-2.",
+        "The duplicate 0xffffffff args (arg3 and arg5) to FUN_001d8766 are intentional: they represent unbounded length sentinels, confirmed by two separate PUSH -0x1 instructions in the disassembly."
+      ]
     },
     "0x1d8368": {
       "kind": "function",
