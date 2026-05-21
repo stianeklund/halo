@@ -30,6 +30,7 @@ on:
 env:
   VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
   DELINKED_DIR: /mnt/g/dev/halo/delinked
+  BUILD_DIR: /mnt/g/dev/halo/build
 
 jobs:
   regression:
@@ -43,15 +44,13 @@ jobs:
       - name: Link local assets
         run: |
           ln -sf ${{ env.DELINKED_DIR }} delinked
+          ln -sf ${{ env.BUILD_DIR }} build
 
       - name: Verify prerequisites
         run: |
           ${{ env.VENV_PYTHON }} -c "import unicorn, capstone; print('ok')"
           test -d delinked
-
-      - name: Build candidate objects
-        run: |
-          ${{ env.VENV_PYTHON }} tools/build/build.py -q --target halo
+          test -d build
 
       - name: Run regression tests
         run: |
@@ -70,16 +69,14 @@ jobs:
       - name: Link local assets
         run: |
           ln -sf ${{ env.DELINKED_DIR }} delinked
+          ln -sf ${{ env.BUILD_DIR }} build
 
       - name: Verify prerequisites
         run: |
           ${{ env.VENV_PYTHON }} -c "import unicorn, capstone, z3; print('ok')"
           which llvm-objdump
           test -d delinked
-
-      - name: Build candidate objects
-        run: |
-          ${{ env.VENV_PYTHON }} tools/build/build.py -q --target halo
+          test -d build
 
       - name: Determine mode
         id: mode
