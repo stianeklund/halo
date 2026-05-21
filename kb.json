@@ -13250,7 +13250,9 @@
         },
         {
           "decl": "void countdown_timer_update(int *param_1);",
-          "addr": "0x12bd80"
+          "addr": "0x12bd80",
+          "src": "src/halo/networking/network_server_manager.c",
+          "ported": true
         },
         {
           "decl": "void countdown_timer_increment(int *param_1, int param_2, int param_3);",
