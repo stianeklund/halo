@@ -4773,7 +4773,7 @@
           "ported": true
         },
         {
-          "decl": "char FUN_0014db10(int param_1, int param_2, int param_3, int param_4);",
+          "decl": "unsigned int FUN_0014db10(int param_1, unsigned int param_2, float *param_3, int param_4);",
           "addr": "0x14db10",
           "ported": true
         },
@@ -5609,7 +5609,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4);",
+          "decl": "bool FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4);",
           "addr": "0x119ef0",
           "ported": true
         },
@@ -13341,7 +13341,7 @@
           "ported": true
         },
         {
-          "decl": "void server_ok_to_countdown(void);",
+          "decl": "bool server_ok_to_countdown(void *server);",
           "addr": "0x12d1c0"
         },
         {
@@ -13397,11 +13397,11 @@
           "addr": "0x12db30"
         },
         {
-          "decl": "void network_game_server_stalled_on_client(void);",
+          "decl": "void network_game_server_stalled_on_client(void *server, bool stalled);",
           "addr": "0x12e1d0"
         },
         {
-          "decl": "void network_game_server_update_countdown(void);",
+          "decl": "void network_game_server_update_countdown(void *server, short param_2);",
           "addr": "0x12e3a0"
         },
         {
@@ -21900,7 +21900,7 @@
         {
           "addr": "0x191660",
           "decl": "int cluster_partition_iter_next(void *partition, int *state);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "int FUN_00191690(void *cluster_list, int *out_cluster, int cluster_handle);",
@@ -21933,7 +21933,7 @@
         {
           "addr": "0x191a50",
           "decl": "int cluster_partition_iter_first(void *partition, int *state, int16_t cluster_idx);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_00191ad0(void);",

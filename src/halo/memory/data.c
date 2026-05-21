@@ -574,20 +574,21 @@ bool FUN_00119df0(int *param_1, int param_2, int param_3)
   return *(char *)(param_1 + 3) == '\0';
 }
 
-/* Encode an array of structures into the encoding state buffer.
- * Each element is *(short *)(bs_definition+4) bytes wide;
- * param_3 elements are copied then byte-swapped via FUN_00118be0.
- * Returns true if the overflow flag is still clear.
- * 0x119ef0 / data.obj (data_encoding.c:0x6d)
- */
-int FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4)
+/* Append encoded structures into a bitstream state buffer.
+ * Multiplies the field size (bs_definition[+4] short) by count to get
+ * the copy size. If the copy fits and no overflow, memcpy's the source
+ * structures then calls FUN_00118be0 to encode/endian-swap them in place.
+ * Sets overflow flag and returns false if the copy would overflow.
+ * Returns true when overflow byte is still zero after the operation. */
+bool FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4)
 {
   short sVar1;
   int iVar2;
-  int iVar3;
+  char *overflow;
+  int dest;
 
-  if (param_1 == (int *)0 || *param_1 == 0 || param_1[1] < 0 ||
-      param_1[2] <= param_1[1]) {
+  if ((param_1 == (int *)0x0) || (*param_1 == 0) || (param_1[1] < 0) ||
+      (param_1[2] <= param_1[1])) {
     display_assert("state && state->buffer && state->offset>=0 && "
                    "state->offset<state->buffer_size",
                    "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x6e, 1);
@@ -604,18 +605,20 @@ int FUN_00119ef0(int *param_1, int param_2, short param_3, int param_4)
     system_exit(-1);
   }
   sVar1 = *(short *)(param_4 + 4) * param_3;
+  overflow = (char *)(param_1 + 3);
   if (0 < sVar1) {
     iVar2 = (int)sVar1;
-    if (iVar2 + param_1[1] <= param_1[2] && *(char *)(param_1 + 3) == '\0') {
-      iVar3 = *param_1 + param_1[1];
-      csmemcpy((void *)iVar3, (void *)param_2, iVar2);
-      FUN_00118be0((void *)param_4, (void *)iVar3, (int)param_3);
+    if ((iVar2 + param_1[1] <= param_1[2]) && (*overflow == '\0')) {
+      dest = *param_1 + param_1[1];
+      csmemcpy((void *)dest, (void *)param_2, iVar2);
+      FUN_00118be0((void *)param_4, (void *)dest, (int)param_3);
       param_1[1] = param_1[1] + iVar2;
-    } else {
-      *(char *)(param_1 + 3) = 1;
+      return *overflow == '\0';
     }
+    *overflow = 1;
+    return *overflow == '\0';
   }
-  return *(char *)(param_1 + 3) == '\0';
+  return *overflow == '\0';
 }
 
 /*
