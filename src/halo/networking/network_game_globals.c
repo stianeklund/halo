@@ -262,6 +262,24 @@ void network_game_set_random_seed(int seed)
     }
 }
 
+/* Return the active game object: server's game if server exists,
+ * else client's machine index, else NULL.
+ * 0x12a0a0 / network_game_globals.obj */
+int FUN_0012a0a0(void)
+{
+  int uVar1;
+
+  if (*(void **)0x0046e8bc != NULL) {
+    uVar1 = network_game_server_get_game(*(void **)0x0046e8bc);
+    return uVar1;
+  }
+  if (*(void **)0x0046e8c0 != NULL) {
+    uVar1 = (int)network_game_client_get_machine_index(*(void **)0x0046e8c0);
+    return uVar1;
+  }
+  return 0;
+}
+
 /* network_game_accept_remote_connections (0x12a160)
  *
  * Returns the network game globals byte at 0x46e8c4.
@@ -535,6 +553,18 @@ bool network_game_client_end_frame(void)
   return result;
 }
 
+/* Request a game start from the network client (request_type=3).
+ * Logs a warning if the request fails.
+ * 0x12a7a0 / network_game_globals.obj */
+void FUN_0012a7a0(void)
+{
+  if (*(void **)0x0046e8c0 != NULL) {
+    if (!FUN_00125b90(*(void **)0x0046e8c0, 3)) {
+      error(2, "network_game_client_request_start() failed");
+    }
+  }
+}
+
 /* network_game_abort (0x12a780)
  *
  * Signals network-game abort by setting the global abort flag byte.
@@ -542,6 +572,38 @@ bool network_game_client_end_frame(void)
 void network_game_abort(void)
 {
   *(unsigned char *)0x46e8c6 = 1;
+}
+
+/* Create and initialize the global network game server.
+ * Asserts the server slot is empty, allocates via FUN_0012eef0,
+ * then seeds both server and client with a random step value.
+ * 0x12a890 / network_game_globals.obj */
+bool FUN_0012a890(void)
+{
+  unsigned int *seed_addr;
+  unsigned short seed_step;
+  int game;
+
+  if (*(void **)0x0046e8bc != NULL) {
+    display_assert("global_network_game_server==NULL",
+                   "c:\\halo\\SOURCE\\networking\\network_game_globals.c",
+                   0xd6, 1);
+    system_exit(-1);
+  }
+  *(void **)0x0046e8bc = FUN_0012eef0();
+  if (*(void **)0x0046e8bc != NULL) {
+    seed_addr = random_math_get_local_seed_address();
+    seed_step = random_seed_step(seed_addr);
+    if (*(void **)0x0046e8bc != NULL) {
+      game = network_game_server_get_game(*(void **)0x0046e8bc);
+      *(unsigned int *)(game + 0x428) = (unsigned int)(seed_step & 0xffff);
+    }
+    if (*(void **)0x0046e8c0 != NULL) {
+      game = (int)network_game_client_get_machine_index(*(void **)0x0046e8c0);
+      *(unsigned int *)(game + 0x428) = (unsigned int)(seed_step & 0xffff);
+    }
+  }
+  return *(void **)0x0046e8bc != NULL;
 }
 
 /* network_player_reset (0x12a920)

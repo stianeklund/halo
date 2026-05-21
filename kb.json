@@ -12524,8 +12524,10 @@
           "ported": true
         },
         {
-          "decl": "void network_game_get_game(void);",
-          "addr": "0x12a0a0"
+          "decl": "int FUN_0012a0a0(void);",
+          "addr": "0x12a0a0",
+          "src": "src/halo/networking/network_game_globals.c",
+          "ported": true
         },
         {
           "decl": "void network_game_player_is_local(void);",
@@ -12567,15 +12569,19 @@
         },
         {
           "decl": "void FUN_0012a7a0(void);",
-          "addr": "0x12a7a0"
+          "addr": "0x12a7a0",
+          "src": "src/halo/networking/network_game_globals.c",
+          "ported": true
         },
         {
           "decl": "void network_game_get_number_of_games_played(void);",
           "addr": "0x12a830"
         },
         {
-          "decl": "void FUN_0012a890(void);",
-          "addr": "0x12a890"
+          "decl": "bool FUN_0012a890(void);",
+          "addr": "0x12a890",
+          "src": "src/halo/networking/network_game_globals.c",
+          "ported": true
         },
         {
           "name": "network_player_reset",
@@ -12770,7 +12776,7 @@
           "addr": "0x125a90"
         },
         {
-          "decl": "void network_game_client_request_start_time_change(void);",
+          "decl": "int FUN_00125b90(void *client, short request_type);",
           "addr": "0x125b90"
         },
         {
@@ -13436,7 +13442,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0012eef0(void);",
+          "decl": "void *FUN_0012eef0(void);",
           "addr": "0x12eef0"
         },
         {
