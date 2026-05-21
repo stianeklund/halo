@@ -12536,12 +12536,16 @@
           "addr": "0x12a150"
         },
         {
-          "decl": "void network_game_set_quickstart_local(void);",
-          "addr": "0x12a190"
+          "decl": "void FUN_0012a190(void);",
+          "addr": "0x12a190",
+          "src": "src/halo/networking/network_game_globals.c",
+          "ported": true
         },
         {
-          "decl": "void network_game_is_quickstart_local(void);",
-          "addr": "0x12a1a0"
+          "decl": "unsigned int FUN_0012a1a0(void);",
+          "addr": "0x12a1a0",
+          "src": "src/halo/networking/network_game_globals.c",
+          "ported": true
         },
         {
           "decl": "void create_global_network_game_client(void);",

@@ -2525,6 +2525,54 @@
       "metadata": {
         "source_path": "src/halo/effects/effects.c"
       }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a1e0",
+      "base_path": "delinked/network_game_globals_FUN_0012a1e0.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a210",
+      "base_path": "delinked/network_game_globals_FUN_0012a210.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a250",
+      "base_path": "delinked/network_game_globals_FUN_0012a250.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a2a0",
+      "base_path": "delinked/network_game_globals_FUN_0012a2a0.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a7a0",
+      "base_path": "delinked/network_game_globals_FUN_0012a7a0.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a890",
+      "base_path": "delinked/network_game_globals_FUN_0012a890.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
     }
   ]
 }

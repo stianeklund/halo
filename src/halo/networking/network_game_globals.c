@@ -284,6 +284,25 @@ bool network_game_is_splitscreen_local(void)
   return false;
 }
 
+/* Set the quickstart-local flag (0x46e8c5) to 1.
+ * 0x12a190 / network_game_globals.obj */
+void FUN_0012a190(void)
+{
+  *(unsigned char *)0x0046e8c5 = 1;
+}
+
+/* Return true if this is a quickstart-local session:
+ * server exists AND not accepting remote connections AND quickstart flag set.
+ * 0x12a1a0 / network_game_globals.obj */
+unsigned int FUN_0012a1a0(void)
+{
+  if ((*(void **)0x0046e8bc == NULL) || (*(unsigned char *)0x0046e8c4 != '\0') ||
+      (*(unsigned char *)0x0046e8c5 != '\x01')) {
+    return 0;
+  }
+  return 1;
+}
+
 /* network_game_server_get (0x12a1d0)
  *
  * Returns the global network game server pointer.
