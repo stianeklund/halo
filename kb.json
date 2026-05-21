@@ -11009,8 +11009,10 @@
           "addr": "0xd1540"
         },
         {
-          "decl": "void FUN_000d1550(void);",
-          "addr": "0xd1550"
+          "decl": "int FUN_000d1550(int param_1);",
+          "addr": "0xd1550",
+          "src": "src/halo/interface/hud.c",
+          "ported": true
         },
         {
           "decl": "void FUN_000d1580(void);",
