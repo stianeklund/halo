@@ -1,3 +1,19 @@
+/* Store a short value through a pointer.
+ * 0x11c780 / lruv_cache.obj
+ */
+void FUN_0011c780(short *param_1, short param_2)
+{
+    *param_1 = param_2;
+}
+
+/* Store 0xffff into a short through a pointer.
+ * 0x11c790 / lruv_cache.obj
+ */
+void FUN_0011c790(short *param_1)
+{
+    *param_1 = (short)0xffff;
+}
+
 /* LRU-V (Least Recently Used - Virtual) cache management.
  * Manages a block-based cache with linked list ordering, delete/query
  * callbacks, and page-granularity allocation tracking. Source:

@@ -216,6 +216,22 @@
       }
     },
     {
+      "name": "halo/lruv_cache_FUN_0011c780",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/lruv_cache.c.obj",
+      "base_path": "delinked/lruv_cache_FUN_0011c780.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/lruv_cache.c"
+      }
+    },
+    {
+      "name": "halo/lruv_cache_FUN_0011c790",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/lruv_cache.c.obj",
+      "base_path": "delinked/lruv_cache_FUN_0011c790.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/lruv_cache.c"
+      }
+    },
+    {
       "name": "halo/stack_memory_pool",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/stack_memory_pool.c.obj",
       "base_path": "delinked/stack_memory_pool.obj",
@@ -467,6 +483,70 @@
       "name": "halo/network_game_globals_FUN_0012a060",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
       "base_path": "delinked/network_game_globals_FUN_0012a060.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a000",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a000.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a2d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a2d0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a500",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a500.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a0a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a0a0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a0d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a0d0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a190",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a190.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a1a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a1a0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_globals.c"
+      }
+    },
+    {
+      "name": "halo/network_game_globals_FUN_0012a920",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
+      "base_path": "delinked/network_game_globals_FUN_0012a920.obj",
       "metadata": {
         "source_path": "src/halo/networking/network_game_globals.c"
       }
@@ -944,14 +1024,6 @@
       }
     },
     {
-      "name": "halo/lruv_cache",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/lruv_cache.c.obj",
-      "base_path": "delinked/lruv_cache.obj",
-      "metadata": {
-        "source_path": "src/halo/memory/lruv_cache.c"
-      }
-    },
-    {
       "name": "halo/bitmap_utilities",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/bitmap_utilities.c.obj",
       "base_path": "delinked/bitmap_utilities.obj",
@@ -1399,6 +1471,14 @@
       }
     },
     {
+      "name": "halo/network_server_manager_FUN_0012c920",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012c920.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
       "name": "halo/network_server_manager_FUN_0012cb20",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
       "base_path": "delinked/network_server_manager_FUN_0012cb20.obj",
@@ -1474,6 +1554,22 @@
       "name": "halo/network_server_manager_FUN_0012d7f0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
       "base_path": "delinked/network_server_manager_FUN_0012d7f0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012e1d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012e1d0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012e3a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012e3a0.obj",
       "metadata": {
         "source_path": "src/halo/networking/network_server_manager.c"
       }

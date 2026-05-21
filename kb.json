@@ -26993,12 +26993,14 @@
           "addr": "0x11c5f0"
         },
         {
-          "decl": "void FUN_0011c780(void);",
-          "addr": "0x11c780"
+          "decl": "void FUN_0011c780(short *param_1, short param_2);",
+          "addr": "0x11c780",
+          "ported": true
         },
         {
-          "decl": "void FUN_0011c790(void);",
-          "addr": "0x11c790"
+          "decl": "void FUN_0011c790(short *param_1);",
+          "addr": "0x11c790",
+          "ported": true
         },
         {
           "decl": "void lruv_allocation_size(void);",
