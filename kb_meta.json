@@ -1753,6 +1753,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9c910": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x9ca70": {
       "kind": "function",
       "status": "ported",
@@ -1871,6 +1875,10 @@
       "status": "ported"
     },
     "0x9f320": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x9f3b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -2856,7 +2864,7 @@
     },
     "0xb97b0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "vc71 score 74.9% is suppressed by oracle obj spanning to 0xb9900 and including NOPs+next function; actual per-function instruction match is near-identical."
       ]
@@ -3704,6 +3712,14 @@
       "status": "ported"
     },
     "0xd0db0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd1690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd1e90": {
       "kind": "function",
       "status": "ported"
     },
@@ -5017,6 +5033,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10b9c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10bb20": {
       "kind": "function",
       "status": "ported"
@@ -5029,7 +5049,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10c2e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10c340": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10c600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10c780": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10c7d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10c920": {
       "kind": "function",
       "status": "ported"
     },
@@ -5491,6 +5531,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12a020": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a060": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12a160": {
       "kind": "function",
       "status": "ported"
@@ -5547,6 +5595,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12be10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12bea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12bf30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12bf70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12bfe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12c020": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12c060": {
       "kind": "function",
       "status": "ported"
@@ -5579,7 +5651,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12c920": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12caa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12cb20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12cbe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12cd60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12cf60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12cfd0": {
       "kind": "function",
       "status": "ported"
     },
@@ -5602,6 +5698,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12d210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d380": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12d3b0": {
       "kind": "function",
       "status": "ported"
@@ -5611,6 +5715,18 @@
       "status": "ported"
     },
     "0x12d570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12d7f0": {
       "kind": "function",
       "status": "ported"
     },
@@ -6349,6 +6465,10 @@
       "status": "ported"
     },
     "0x14bc10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14cc80": {
       "kind": "function",
       "status": "ported"
     },
@@ -7540,11 +7660,35 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bdd40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdd50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdd60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdd70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bdd80": {
       "kind": "function",
       "status": "ported"
     },
     "0x1bde10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bde90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdec0": {
       "kind": "function",
       "status": "ported"
     },
