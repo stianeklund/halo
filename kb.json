@@ -21558,15 +21558,18 @@
         },
         {
           "decl": "void FUN_001b9b50(void);",
-          "addr": "0x1b9b50"
+          "addr": "0x1b9b50",
+          "ported": true
         },
         {
           "decl": "void FUN_001b9b60(int state, int tag_class);",
-          "addr": "0x1b9b60"
+          "addr": "0x1b9b60",
+          "ported": true
         },
         {
           "decl": "int FUN_001b9b80(int state);",
-          "addr": "0x1b9b80"
+          "addr": "0x1b9b80",
+          "ported": true
         }
       ]
     },

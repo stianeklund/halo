@@ -190,3 +190,49 @@ void FUN_001b9b30(int tag_class, int param_2, char *out_path)
   error(2, "tag_file_get_path() is not supported with a cache file active");
   *out_path = 0;
 }
+
+/* Stub: tag_reference_set is not supported when running from a cache file.
+ * Logs an error and returns immediately. */
+void FUN_001b9b50(void)
+{
+  error(2, "tag_reference_set() is not supported with a cache file active");
+  return;
+}
+
+/* Tag group iterator init: initialize iterator state at 'state' for tag class
+ * 'tag_class'. Sets the index counter to 0 and stores the class filter. */
+void FUN_001b9b60(int state, int tag_class)
+{
+  *(short *)(state + 4) = 0;
+  *(int *)(state + 0x10) = tag_class;
+  return;
+}
+
+/* Tag group iterator step: advance iterator 'state' to the next tag group
+ * entry matching the stored class filter. Returns the datum handle
+ * (entry[3]) on match, or -1 when no more entries remain.
+ * 0x4e5504: ptr to globals (count at +0xc); 0x5054f0: tag group table base */
+int FUN_001b9b80(int state)
+{
+  int iVar1;
+  int iVar2;
+  int *piVar3;
+
+  iVar2 = -1;
+  if ((int)*(short *)(state + 4) < *(int *)(*(int *)0x4e5504 + 0xc)) {
+    while (1) {
+      piVar3 = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);
+      *(short *)(state + 4) = *(short *)(state + 4) + 1;
+      if ((piVar3 != (int *)0) &&
+          (iVar1 = *(int *)(state + 0x10),
+           iVar1 == -1 || iVar1 == piVar3[0] || iVar1 == piVar3[1] || iVar1 == piVar3[2])) {
+        break;
+      }
+      if (*(int *)(*(int *)0x4e5504 + 0xc) <= (int)*(short *)(state + 4)) {
+        return iVar2;
+      }
+    }
+    iVar2 = piVar3[3];
+  }
+  return iVar2;
+}
