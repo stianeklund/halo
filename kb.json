@@ -2176,7 +2176,7 @@
           "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_can_stop_conversing(void);",
+          "decl": "int actor_action_can_stop_conversing(int actor_handle, int flag);",
           "addr": "0x1cfa0"
         },
         {
@@ -2530,8 +2530,10 @@
           "addr": "0x38880"
         },
         {
-          "decl": "void FUN_00038b10(void);",
-          "addr": "0x38b10"
+          "decl": "void FUN_00038b10(int actor_handle);",
+          "addr": "0x38b10",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "decl": "void FUN_00038c70(void);",
