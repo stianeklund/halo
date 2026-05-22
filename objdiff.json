@@ -2653,6 +2653,30 @@
       "metadata": {
         "source_path": "halo/items/weapons.c"
       }
+    },
+    {
+      "name": "halo/weapons_FUN_000fb090",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fb090.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fb0f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fb0f0.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fb2f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fb2f0.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
     }
   ]
 }

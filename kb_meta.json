@@ -4938,11 +4938,23 @@
         "FUN_000f7da0 second parameter (param_3) is passed as a float on the stack via a standard push; the original MSVC code pushes EDX (from [EBP+0x10]) directly so param_3 is treated as float bits, not an int \u2014 the actual semantic of the value is unknown."
       ]
     },
+    "0xfb090": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xfb0c0": {
       "kind": "function",
       "status": "ported"
     },
+    "0xfb0f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xfb140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfb2f0": {
       "kind": "function",
       "status": "ported"
     },

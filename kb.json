@@ -28503,8 +28503,11 @@
           "addr": "0xfb010"
         },
         {
-          "decl": "void weapon_must_be_readied(void);",
-          "addr": "0xfb090"
+          "decl": "int weapon_must_be_readied(int weapon_handle);",
+          "addr": "0xfb090",
+          "name": "weapon_must_be_readied",
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "bool weapon_is_flag(int object_index);",
@@ -28512,8 +28515,11 @@
           "ported": true
         },
         {
-          "decl": "void weapon_prevents_grenade_throwing(void);",
-          "addr": "0xfb0f0"
+          "decl": "int weapon_prevents_grenade_throwing(int weapon_handle);",
+          "addr": "0xfb0f0",
+          "name": "weapon_prevents_grenade_throwing",
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2, int16_t param_3, int16_t param_4);",
@@ -28521,8 +28527,11 @@
           "ported": true
         },
         {
-          "decl": "void weapon_overcharged(void);",
-          "addr": "0xfb2f0"
+          "decl": "int weapon_overcharged(int weapon_handle);",
+          "addr": "0xfb2f0",
+          "name": "weapon_overcharged",
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void FUN_000fb320(void);",

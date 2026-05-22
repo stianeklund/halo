@@ -67,12 +67,60 @@ float weapon_estimate_time_to_target(int weapon_handle, int16_t trigger_index,
   return result;
 }
 
+/* 0xfb090 — weapon_must_be_readied
+ *
+ * Returns non-zero if the weapon's 'must be readied' flag is set
+ * (bit 3 of the weapon definition flags at tag+0x308).
+ *
+ * Confirmed: cdecl, 1 stack arg (weapon_handle).
+ * Confirmed: CALL object_get_and_verify_type(weapon_handle, 4).
+ * Confirmed: CALL tag_get(0x77656170, *obj).
+ * Confirmed: SHR EAX,3; AND EAX,1 on *(uint *)(tag+0x308).
+ */
+int weapon_must_be_readied(int weapon_handle)
+{
+  int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+  int tag = (int)tag_get(0x77656170, *obj);
+  return (*(uint32_t *)(tag + 0x308) >> 3) & 1;
+}
+
 /* 0xfb0c0 — weapon_is_flag */
 bool weapon_is_flag(int object_index)
 {
   int *obj = (int *)object_get_and_verify_type(object_index, 4);
   uint32_t *tag = (uint32_t *)tag_get(0x77656170, *obj);
   return (tag[0x308 / 4] >> 3) & 1;
+}
+
+/* 0xfb0f0 — weapon_prevents_grenade_throwing
+ *
+ * Returns 1 if weapon_handle == -1 (no weapon), 1 if the weapon's animation
+ * state at +0x1e8 is in range (4, 11), or the flag bit 6 of tag+0x308 is set.
+ *
+ * Confirmed: cdecl, 1 stack arg (param_1 = weapon_handle).
+ * Confirmed: returns 1 immediately if param_1 == -1.
+ * Confirmed: CALL object_get_and_verify_type(param_1, 4).
+ * Confirmed: CALL tag_get(0x77656170, *obj).
+ * Confirmed: SHR EAX,6; AND EAX,1 on *(uint *)(tag+0x308).
+ * Confirmed: range check on *(char *)(obj+0x1e8): returns 1 if in (4,11).
+ */
+int weapon_prevents_grenade_throwing(int weapon_handle)
+{
+  int *obj;
+  int tag;
+  char result;
+
+  result = 1;
+  if (weapon_handle != -1) {
+    obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+    tag = (int)tag_get(0x77656170, *obj);
+    result = (char)((*(uint32_t *)(tag + 0x308) >> 6) & 1);
+    if (*(char *)((char *)obj + 0x1e8) >= 5 &&
+        *(char *)((char *)obj + 0x1e8) <= 10) {
+      result = 1;
+    }
+  }
+  return result;
 }
 
 /* 0xfb140 — weapon_get_animation_frame
@@ -185,6 +233,24 @@ void *FUN_000fb370(void *weapon_obj, int16_t magazine_index)
               magazine_index < *(int *)((char *)tag_data + 0x4f0));
 
   return (void *)((char *)weapon_obj + (magazine_index + 50) * 12);
+}
+
+/* 0xfb2f0 — weapon_overcharged
+ *
+ * Returns 1 if the weapon's trigger state at +0x211 is 2 (overcharge) or
+ * 3 (overcharge-releasing), 0 otherwise.
+ *
+ * Confirmed: cdecl, 1 stack arg (weapon_handle).
+ * Confirmed: CALL object_get_and_verify_type(weapon_handle, 4).
+ * Confirmed: CMP BYTE PTR [EAX+0x211], 2 / JE; CMP ..., 3 / JE.
+ * Confirmed: returns 1 if state == 2 or 3, else 0.
+ */
+int weapon_overcharged(int weapon_handle)
+{
+  int obj = (int)object_get_and_verify_type(weapon_handle, 4);
+  if (*(char *)(obj + 0x211) != 2 && *(char *)(obj + 0x211) != 3)
+    return 0;
+  return 1;
 }
 
 /* 0xfb3c0 — weapon_has_activity
