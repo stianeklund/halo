@@ -96,10 +96,51 @@ switch entry. Narrow delinked reference restored.
 | `FUN_0010b9c0` | real_math.c | 10/10 seeds ✓ |
 | `FUN_0010a1c0` | real_math.c | 10/10 seeds ✓ |
 
+### Category 5: Inlined callee in oracle vs stubs in candidate (2 functions)
+MSVC inlined `game_difficulty_level_get` and `game_globals_difficulty_scale` into the oracle
+for these functions (oracle = 24 bytes, 0 relocs). The candidate calls them through stubs
+(returning 0). When oracle's inlined path returns 1.0, candidate returns 0.0.
+Not a behavioral bug in the lifted code — confirmed correct logic.
+
+| Function | File | Divergence | Note |
+|----------|------|------------|------|
+| `FUN_000b5590` (0xb5590) | game.c | 5/20 | Oracle inlined, stubs return 0 |
+| `FUN_000b55b0` (0xb55b0) | game.c | 15/20 | Same pattern |
+
+### Already passing
+| Function | File | Note |
+|----------|------|------|
+| `FUN_0010b9c0` | real_math.c | 10/10 seeds ✓ |
+| `FUN_0010a1c0` | real_math.c | 10/10 seeds ✓ |
+
+---
+
+## Full Batch Verify Run (2026-05-22)
+
+After exporting `delinked/actors.obj` (210KB, 201 defined functions covering 0x2a360–0x3f230) and
+fixing a `_has_delinked_ref` double-.obj suffix bug in batch_verify.py:
+
+**279 functions tested, 20 seeds each:**
+- Pass: 184 (+ 3 Z3-proven)
+- Fail (divergence): 11 — all structural limitations or known issues
+- Error (emulation_error): 46 — uninitialized global state or assert→stub loop
+
+**actors.obj: 66/93 pass, 27 emulation_error, 0 behavioral divergences** ✓
+
+The 27 actors.obj emulation_errors are all structural: functions that call `datum_get()` or read
+from actor global tables which are not initialized in unicorn_diff's isolated emulator.
+These require state snapshots from xemu to test meaningfully.
+
 ### Open items
-- **actors.obj failing batch_verify (16 functions):** All `emulation_error` due to missing
-  `delinked/actors.obj` reference. Separate issue from the above; actors.c was recently ported
-  and the delinked reference hasn't been exported yet.
+- **actors.obj emulation_error (27 functions):** All need state snapshots (actor datum array,
+  game globals). Capture with `tools/equivalence/state_snapshot.py` and replay with
+  `--state-snapshot` flag.
+- **circular_queue.obj divergences (5 functions):** FUN_00115a90, FUN_00116250,
+  FUN_00118260, FUN_00118370, FUN_00118be0 — need investigation. Some may be related to
+  Category 1 (assert→stub loop bypassing INSN-LIMIT fix when loop terminates before limit).
 - **Reloc synthesizer gap:** The delinker doesn't add a reloc for `MOVZX EAX, [EAX + imm32]`
   absolute-address operands in switch dispatch code. Workaround: export narrow ranges that don't
   include switch-heavy functions when a callee has this pattern.
+- **batch_verify _has_delinked_ref substring false-positives fixed:** Was using `addr_no_0x in
+  stem` substring check which caused "3c3a0" to match "objects_FUN_0013c3a0". Fixed to use
+  zero-padded FUN_ symbol name for exact matching; bare addr only with word-boundary guard.

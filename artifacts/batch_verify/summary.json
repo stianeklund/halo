@@ -1,13 +1,95 @@
 {
   "results": {
-    "pass": 33,
-    "fail": 16,
-    "error": 0,
-    "not_applicable": 1,
-    "z3_proven": 0,
-    "total": 50
+    "pass": 184,
+    "fail": 11,
+    "error": 46,
+    "not_applicable": 38,
+    "z3_proven": 3,
+    "total": 279
   },
   "failures": [
+    [
+      "FUN_00119df0",
+      "divergence"
+    ],
+    [
+      "FUN_000b5590",
+      "divergence"
+    ],
+    [
+      "FUN_000b55b0",
+      "divergence"
+    ],
+    [
+      "FUN_0010ae30",
+      "divergence"
+    ],
+    [
+      "FUN_0010c780",
+      "divergence"
+    ],
+    [
+      "FUN_00115a90",
+      "divergence"
+    ],
+    [
+      "FUN_00116250",
+      "divergence"
+    ],
+    [
+      "FUN_00118260",
+      "divergence"
+    ],
+    [
+      "FUN_00118370",
+      "divergence"
+    ],
+    [
+      "FUN_00118be0",
+      "divergence"
+    ],
+    [
+      "circular_queue_free_space",
+      "divergence"
+    ]
+  ],
+  "errors": [
+    [
+      "FUN_00036860",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a740",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a760",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a770",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a790",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a7b0",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a7d0",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a7f0",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a800",
+      "emulation_error"
+    ],
     [
       "FUN_0003a810",
       "emulation_error"
@@ -21,19 +103,7 @@
       "emulation_error"
     ],
     [
-      "actor_verify_activation",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003b320",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003b3c0",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003b410",
+      "actors_initialize",
       "emulation_error"
     ],
     [
@@ -41,23 +111,7 @@
       "emulation_error"
     ],
     [
-      "FUN_0003b860",
-      "emulation_error"
-    ],
-    [
-      "actors_freeze",
-      "emulation_error"
-    ],
-    [
       "FUN_0003b940",
-      "emulation_error"
-    ],
-    [
-      "actors_move_randomly",
-      "emulation_error"
-    ],
-    [
-      "FUN_0003baa0",
       "emulation_error"
     ],
     [
@@ -69,105 +123,154 @@
       "emulation_error"
     ],
     [
-      "FUN_0003c0c0",
+      "actors_handle_spatial_effect",
+      "emulation_error"
+    ],
+    [
+      "actor_delete_props",
+      "emulation_error"
+    ],
+    [
+      "actor_delete",
+      "emulation_error"
+    ],
+    [
+      "actor_died",
+      "emulation_error"
+    ],
+    [
+      "actor_swarm_unit_died",
+      "emulation_error"
+    ],
+    [
+      "actor_erase",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003dc20",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003e7a0",
+      "emulation_error"
+    ],
+    [
+      "actor_attach_unit",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003f030",
+      "emulation_error"
+    ],
+    [
+      "FUN_0014cfe0",
+      "emulation_error"
+    ],
+    [
+      "FUN_0014dab0",
+      "emulation_error"
+    ],
+    [
+      "FUN_0014db10",
+      "emulation_error"
+    ],
+    [
+      "contrails_reconnect_to_structure_bsp",
+      "emulation_error"
+    ],
+    [
+      "FUN_0009c910",
+      "emulation_error"
+    ],
+    [
+      "effects_reconnect_to_structure_bsp",
+      "emulation_error"
+    ],
+    [
+      "game_initialize",
+      "emulation_error"
+    ],
+    [
+      "game_initial_pulse",
+      "emulation_error"
+    ],
+    [
+      "game_initialize_for_new_map",
+      "emulation_error"
+    ],
+    [
+      "FUN_001155c0",
+      "emulation_error"
+    ],
+    [
+      "FUN_001164d0",
+      "emulation_error"
+    ],
+    [
+      "FUN_001167f0",
+      "emulation_error"
+    ],
+    [
+      "FUN_00117000",
+      "emulation_error"
+    ],
+    [
+      "FUN_001170b0",
+      "emulation_error"
+    ],
+    [
+      "FUN_00117130",
+      "emulation_error"
+    ],
+    [
+      "FUN_001171a0",
+      "emulation_error"
+    ],
+    [
+      "FUN_00117250",
+      "emulation_error"
+    ],
+    [
+      "circular_queue_delete",
+      "emulation_error"
+    ],
+    [
+      "FUN_00118ec0",
       "emulation_error"
     ]
   ],
-  "errors": [],
-  "z3_proven": [],
+  "z3_proven": [
+    "FUN_0010add0",
+    "FUN_0010ae00",
+    "FUN_001146c0"
+  ],
   "rows": [
-    {
-      "addr": "0x1c3e0",
-      "name": "actor_action_control",
-      "class": "stubbable",
-      "obj": "actions.obj",
-      "status": "pass",
-      "reason": null,
-      "seeds_passed": 20,
-      "seeds_total": 20,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x1c450",
-      "name": "actor_action_replace_prop",
-      "class": "stubbable",
-      "obj": "actions.obj",
-      "status": "pass",
-      "reason": null,
-      "seeds_passed": 45,
-      "seeds_total": 45,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x1c4c0",
-      "name": "FUN_0001c4c0",
-      "class": "stubbable",
-      "obj": "actions.obj",
-      "status": "pass",
-      "reason": null,
-      "seeds_passed": 20,
-      "seeds_total": 20,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x1d5c0",
-      "name": "FUN_0001d5c0",
-      "class": "data_only",
-      "obj": "actions.obj",
-      "status": "pass",
-      "reason": null,
-      "seeds_passed": 20,
-      "seeds_total": 20,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x1d6d0",
-      "name": "actor_action_try_to_panic",
-      "class": "stubbable",
-      "obj": "actions.obj",
-      "status": "pass",
-      "reason": null,
-      "seeds_passed": 20,
-      "seeds_total": 20,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x1d730",
-      "name": "FUN_0001d730",
-      "class": "data_only",
-      "obj": "actions.obj",
-      "status": "pass",
-      "reason": null,
-      "seeds_passed": 20,
-      "seeds_total": 20,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x210f0",
-      "name": "FUN_000210f0",
-      "class": "stubbable",
-      "obj": "actions.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
-      "seeds_passed": 0,
-      "seeds_total": 0,
-      "z3_proven": "0"
-    },
     {
       "addr": "0x2a360",
       "name": "FUN_0002a360",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
-      "seeds_passed": 45,
-      "seeds_total": 45,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36860",
+      "name": "FUN_00036860",
+      "class": "non_leaf",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x36960",
       "name": "FUN_00036960",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -178,7 +281,7 @@
     {
       "addr": "0x369c0",
       "name": "FUN_000369c0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -189,7 +292,18 @@
     {
       "addr": "0x36a20",
       "name": "FUN_00036a20",
-      "class": "stubbable",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36b50",
+      "name": "FUN_00036b50",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -200,7 +314,18 @@
     {
       "addr": "0x36bd0",
       "name": "FUN_00036bd0",
-      "class": "stubbable",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x36c00",
+      "name": "FUN_00036c00",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -211,7 +336,7 @@
     {
       "addr": "0x36da0",
       "name": "FUN_00036da0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -222,7 +347,7 @@
     {
       "addr": "0x36dc0",
       "name": "FUN_00036dc0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -233,7 +358,7 @@
     {
       "addr": "0x36e30",
       "name": "FUN_00036e30",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -242,11 +367,154 @@
       "z3_proven": "0"
     },
     {
+      "addr": "0x373b0",
+      "name": "FUN_000373b0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x374f0",
+      "name": "FUN_000374f0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x377d0",
+      "name": "FUN_000377d0",
+      "class": "non_leaf",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a3b0",
+      "name": "FUN_0003a3b0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a600",
+      "name": "FUN_0003a600",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a740",
+      "name": "FUN_0003a740",
+      "class": "leaf",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a760",
+      "name": "FUN_0003a760",
+      "class": "leaf",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a770",
+      "name": "FUN_0003a770",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a790",
+      "name": "FUN_0003a790",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a7b0",
+      "name": "FUN_0003a7b0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a7d0",
+      "name": "FUN_0003a7d0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a7f0",
+      "name": "FUN_0003a7f0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a800",
+      "name": "FUN_0003a800",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
       "addr": "0x3a810",
       "name": "FUN_0003a810",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
       "seeds_total": 20,
@@ -255,9 +523,9 @@
     {
       "addr": "0x3a840",
       "name": "FUN_0003a840",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
       "seeds_total": 20,
@@ -266,18 +534,51 @@
     {
       "addr": "0x3a8a0",
       "name": "FUN_0003a8a0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
       "seeds_total": 20,
       "z3_proven": "0"
     },
     {
+      "addr": "0x3a990",
+      "name": "actors_initialize",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3aa50",
+      "name": "actors_dispose",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
       "addr": "0x3aa60",
       "name": "actor_in_combat",
-      "class": "stubbable",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3aa90",
+      "name": "actors_dispose_from_old_map",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -287,19 +588,19 @@
     },
     {
       "addr": "0x3aac0",
-      "name": "FUN_0003aac0",
-      "class": "stubbable",
+      "name": "actor_set_team",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
-      "seeds_passed": 60,
-      "seeds_total": 60,
+      "seeds_passed": 20,
+      "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3ab80",
-      "name": "FUN_0003ab80",
-      "class": "stubbable",
+      "name": "actor_activation_debug_color",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -310,29 +611,29 @@
     {
       "addr": "0x3ac20",
       "name": "FUN_0003ac20",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
-      "seeds_passed": 45,
-      "seeds_total": 45,
+      "seeds_passed": 20,
+      "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3aca0",
       "name": "actor_verify_activation",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 3,
       "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3ad80",
       "name": "actor_detach_from_unit",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -343,7 +644,7 @@
     {
       "addr": "0x3ae60",
       "name": "actor_swarm_detach_from_unit",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -354,7 +655,7 @@
     {
       "addr": "0x3b030",
       "name": "actor_swarm_cache_delete",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -365,7 +666,7 @@
     {
       "addr": "0x3b0b0",
       "name": "actor_switch_props",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -375,8 +676,8 @@
     },
     {
       "addr": "0x3b100",
-      "name": "FUN_0003b100",
-      "class": "stubbable",
+      "name": "actor_is_noncombat",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -387,7 +688,7 @@
     {
       "addr": "0x3b120",
       "name": "FUN_0003b120",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -397,8 +698,8 @@
     },
     {
       "addr": "0x3b150",
-      "name": "FUN_0003b150",
-      "class": "stubbable",
+      "name": "actor_is_fighting",
+      "class": "non_leaf",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -409,18 +710,18 @@
     {
       "addr": "0x3b190",
       "name": "FUN_0003b190",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 20,
+      "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3b240",
-      "name": "FUN_0003b240",
-      "class": "stubbable",
+      "name": "actor_is_leaping",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -431,7 +732,7 @@
     {
       "addr": "0x3b270",
       "name": "actor_attacking_target",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -441,19 +742,19 @@
     },
     {
       "addr": "0x3b320",
-      "name": "FUN_0003b320",
-      "class": "stubbable",
+      "name": "actor_has_ranged_weapon",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 11,
       "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3b380",
-      "name": "FUN_0003b380",
-      "class": "stubbable",
+      "name": "actor_target_unit_index",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -463,30 +764,8 @@
     },
     {
       "addr": "0x3b3c0",
-      "name": "FUN_0003b3c0",
-      "class": "stubbable",
-      "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
-      "seeds_total": 20,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x3b410",
-      "name": "FUN_0003b410",
-      "class": "stubbable",
-      "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
-      "seeds_total": 20,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x3b5e0",
-      "name": "FUN_0003b5e0",
-      "class": "stubbable",
+      "name": "actor_derive_target_information",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -495,11 +774,66 @@
       "z3_proven": "0"
     },
     {
+      "addr": "0x3b410",
+      "name": "FUN_0003b410",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b5e0",
+      "name": "actor_flush_position_indices",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b630",
+      "name": "actor_flush_structure_indices",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b6f0",
+      "name": "actor_has_unlimited_grenades",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3b700",
+      "name": "actor_handle_damage",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 4,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
       "addr": "0x3b7e0",
       "name": "FUN_0003b7e0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
       "seeds_total": 20,
@@ -508,31 +842,31 @@
     {
       "addr": "0x3b860",
       "name": "FUN_0003b860",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
       "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3b900",
       "name": "actors_freeze",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
       "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3b940",
       "name": "FUN_0003b940",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
       "seeds_total": 20,
@@ -541,29 +875,29 @@
     {
       "addr": "0x3ba00",
       "name": "actors_move_randomly",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
       "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3baa0",
       "name": "FUN_0003baa0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
-      "reason": "emulation_error",
-      "seeds_passed": 0,
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 10,
       "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3bb50",
       "name": "FUN_0003bb50",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -574,7 +908,7 @@
     {
       "addr": "0x3bbf0",
       "name": "FUN_0003bbf0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
@@ -584,21 +918,21 @@
     },
     {
       "addr": "0x3bc90",
-      "name": "FUN_0003bc90",
-      "class": "stubbable",
+      "name": "actor_find_pathfinding_location",
+      "class": "uncached",
       "obj": "actors.obj",
       "status": "pass",
       "reason": null,
-      "seeds_passed": 40,
-      "seeds_total": 40,
+      "seeds_passed": 20,
+      "seeds_total": 20,
       "z3_proven": "0"
     },
     {
       "addr": "0x3bde0",
       "name": "FUN_0003bde0",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
       "seeds_total": 20,
@@ -607,9 +941,9 @@
     {
       "addr": "0x3be90",
       "name": "FUN_0003be90",
-      "class": "stubbable",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
       "seeds_total": 20,
@@ -617,37 +951,2566 @@
     },
     {
       "addr": "0x3c0c0",
-      "name": "FUN_0003c0c0",
-      "class": "stubbable",
+      "name": "actors_handle_spatial_effect",
+      "class": "uncached",
       "obj": "actors.obj",
-      "status": "fail",
+      "status": "error",
       "reason": "emulation_error",
       "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c1c0",
+      "name": "FUN_0003c1c0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c260",
+      "name": "actor_unit_control_crouch",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c2a0",
+      "name": "actor_unit_control_jump",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c2d0",
+      "name": "actor_unit_control_primary_trigger",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c330",
+      "name": "actor_unit_control_secondary_trigger",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c370",
+      "name": "actor_handle_communication",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c3a0",
+      "name": "actor_unit_control_exact_facing",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c3e0",
+      "name": "actor_unit_control_stop_animation_impulse",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c410",
+      "name": "FUN_0003c410",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 1,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3c7c0",
+      "name": "actor_customize_unit",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3ca40",
+      "name": "actor_set_dormant",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 11,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3cbc0",
+      "name": "actor_delete_props",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3cc10",
+      "name": "actor_delete",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3cd30",
+      "name": "actor_swarm_cache_new",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3cf10",
+      "name": "actor_kill",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 13,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3cff0",
+      "name": "actor_died",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3d330",
+      "name": "actor_swarm_unit_died",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3d3d0",
+      "name": "actor_braindead",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 6,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3d5f0",
+      "name": "actor_set_active",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 13,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3d6c0",
+      "name": "actor_swarm_attach_unit",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 10,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3d950",
+      "name": "actor_erase",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3d9f0",
+      "name": "FUN_0003d9f0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 16,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3dc20",
+      "name": "FUN_0003dc20",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3e7a0",
+      "name": "FUN_0003e7a0",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3eab0",
+      "name": "actor_attach_unit",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3ec80",
+      "name": "FUN_0003ec80",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 25,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3edc0",
+      "name": "actor_create_for_unit",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 15,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3f030",
+      "name": "FUN_0003f030",
+      "class": "uncached",
+      "obj": "actors.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14c6d0",
+      "name": "FUN_0014c6d0",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14c7b0",
+      "name": "FUN_0014c7b0",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14c8e0",
+      "name": "FUN_0014c8e0",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14c950",
+      "name": "FUN_0014c950",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 40,
+      "seeds_total": 40,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14ca30",
+      "name": "FUN_0014ca30",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14cb00",
+      "name": "FUN_0014cb00",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 37,
+      "seeds_total": 40,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14cc80",
+      "name": "FUN_0014cc80",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14cf20",
+      "name": "FUN_0014cf20",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14cfe0",
+      "name": "FUN_0014cfe0",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14da20",
+      "name": "FUN_0014da20",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14da80",
+      "name": "FUN_0014da80",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14dab0",
+      "name": "FUN_0014dab0",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x14db10",
+      "name": "FUN_0014db10",
+      "class": "uncached",
+      "obj": "collision_usage.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x97980",
+      "name": "contrails_reconnect_to_structure_bsp",
+      "class": "uncached",
+      "obj": "contrails.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x98580",
+      "name": "contrail_new",
+      "class": "uncached",
+      "obj": "contrails.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1194a0",
+      "name": "datum_initialize",
+      "class": "uncached",
+      "obj": "data.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 12,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x119df0",
+      "name": "FUN_00119df0",
+      "class": "uncached",
+      "obj": "data.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 17,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x119ff0",
+      "name": "FUN_00119ff0",
+      "class": "uncached",
+      "obj": "data.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x9c910",
+      "name": "FUN_0009c910",
+      "class": "uncached",
+      "obj": "effects.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x9ce80",
+      "name": "real_local_random",
+      "class": "uncached",
+      "obj": "effects.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x9ce90",
+      "name": "local_random_direction3d",
+      "class": "uncached",
+      "obj": "effects.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x9ceb0",
+      "name": "effect_stop",
+      "class": "uncached",
+      "obj": "effects.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x9cf40",
+      "name": "effects_reconnect_to_structure_bsp",
+      "class": "uncached",
+      "obj": "effects.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x9f3b0",
+      "name": "FUN_0009f3b0",
+      "class": "uncached",
+      "obj": "effects.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x19a9a0",
+      "name": "file_get_position",
+      "class": "non_leaf",
+      "obj": "files_windows.obj",
+      "status": "not_applicable",
+      "reason": "missing_delinked_reference",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6a80",
+      "name": "FUN_000a6a80",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6b50",
+      "name": "FUN_000a6b50",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6ba0",
+      "name": "FUN_000a6ba0",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6bf0",
+      "name": "game_initialize",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6d00",
+      "name": "game_dispose",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6dc0",
+      "name": "game_precache_new_map",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6fb0",
+      "name": "game_map_loading_in_progress",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa6fd0",
+      "name": "game_unload",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7050",
+      "name": "game_dispose_from_old_map",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7110",
+      "name": "game_frame",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa71b0",
+      "name": "remove_quitting_players_from_game",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7260",
+      "name": "game_tick",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7370",
+      "name": "game_options_new",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa73a0",
+      "name": "game_options_verify",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa73c0",
+      "name": "game_initial_pulse",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7410",
+      "name": "game_set_players_are_double_speed",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7430",
+      "name": "game_players_are_double_speed",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7440",
+      "name": "game_difficulty_level_set",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7460",
+      "name": "game_difficulty_level_get",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7490",
+      "name": "game_set_game_variant",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa74c0",
+      "name": "game_set_game_engine_index",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa74f0",
+      "name": "game_all_quiet",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7530",
+      "name": "game_safe_to_save",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7670",
+      "name": "game_safe_to_speak",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7690",
+      "name": "game_is_cooperative",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa76a0",
+      "name": "set_random_seed",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa76b0",
+      "name": "game_load",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa7780",
+      "name": "game_initialize_for_new_map",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa78e0",
+      "name": "game_set_game_variant_from_name",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4170",
+      "name": "FUN_000b4170",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4250",
+      "name": "FUN_000b4250",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4290",
+      "name": "FUN_000b4290",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb42d0",
+      "name": "FUN_000b42d0",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4d50",
+      "name": "FUN_000b4d50",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4d90",
+      "name": "FUN_000b4d90",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4da0",
+      "name": "FUN_000b4da0",
+      "class": "non_leaf",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4dd0",
+      "name": "FUN_000b4dd0",
+      "class": "non_leaf",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4df0",
+      "name": "FUN_000b4df0",
+      "class": "non_leaf",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb5490",
+      "name": "FUN_000b5490",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb54e0",
+      "name": "game_globals_difficulty_scale",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb5590",
+      "name": "FUN_000b5590",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 5,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb55b0",
+      "name": "FUN_000b55b0",
+      "class": "uncached",
+      "obj": "game.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 15,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xa8110",
+      "name": "FUN_000a8110",
+      "class": "uncached",
+      "obj": "game_allegiance.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xd0340",
+      "name": "hud_dispose",
+      "class": "uncached",
+      "obj": "hud.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xd0440",
+      "name": "hud_update",
+      "class": "uncached",
+      "obj": "hud.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xd1550",
+      "name": "FUN_000d1550",
+      "class": "uncached",
+      "obj": "hud.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xd1690",
+      "name": "FUN_000d1690",
+      "class": "uncached",
+      "obj": "hud.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xd1e90",
+      "name": "FUN_000d1e90",
+      "class": "uncached",
+      "obj": "hud.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x12bf70",
+      "name": "network_game_server_set_game_name",
+      "class": "uncached",
+      "obj": "network_server_manager.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x134be0",
+      "name": "FUN_00134be0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x134c20",
+      "name": "FUN_00134c20",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1353b0",
+      "name": "FUN_001353b0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1353f0",
+      "name": "FUN_001353f0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x135f90",
+      "name": "FUN_00135f90",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x136040",
+      "name": "FUN_00136040",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1360a0",
+      "name": "FUN_001360a0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x136100",
+      "name": "FUN_00136100",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1398b0",
+      "name": "FUN_001398b0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1398d0",
+      "name": "FUN_001398d0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c3a0",
+      "name": "FUN_0013c3a0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c3d0",
+      "name": "FUN_0013c3d0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c400",
+      "name": "FUN_0013c400",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c430",
+      "name": "FUN_0013c430",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c500",
+      "name": "FUN_0013c500",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c560",
+      "name": "FUN_0013c560",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c620",
+      "name": "FUN_0013c620",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c680",
+      "name": "FUN_0013c680",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c7a0",
+      "name": "FUN_0013c7a0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c8c0",
+      "name": "FUN_0013c8c0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c920",
+      "name": "FUN_0013c920",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13c980",
+      "name": "FUN_0013c980",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13ca30",
+      "name": "FUN_0013ca30",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13cab0",
+      "name": "FUN_0013cab0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13d870",
+      "name": "FUN_0013d870",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13dbe0",
+      "name": "FUN_0013dbe0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13dcb0",
+      "name": "FUN_0013dcb0",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x13fe70",
+      "name": "object_get_node_matrices",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1407e0",
+      "name": "object_visible_to_any_player",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x144b50",
+      "name": "objects_garbage_collect_tick",
+      "class": "uncached",
+      "obj": "objects.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb9040",
+      "name": "update_get_buffer_entry",
+      "class": "uncached",
+      "obj": "player_queues_new.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb8f00",
+      "name": "update_client_add_player",
+      "class": "uncached",
+      "obj": "player_queues_new.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb97b0",
+      "name": "FUN_000b97b0",
+      "class": "uncached",
+      "obj": "player_queues_new.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bdd40",
+      "name": "FUN_001bdd40",
+      "class": "uncached",
+      "obj": "predicted_resources.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bdd50",
+      "name": "FUN_001bdd50",
+      "class": "uncached",
+      "obj": "predicted_resources.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bdd60",
+      "name": "FUN_001bdd60",
+      "class": "uncached",
+      "obj": "predicted_resources.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bdd70",
+      "name": "FUN_001bdd70",
+      "class": "uncached",
+      "obj": "predicted_resources.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10a930",
+      "name": "FUN_0010a930",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 16,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10ad10",
+      "name": "periodic_functions_initialize",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10add0",
+      "name": "FUN_0010add0",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "1"
+    },
+    {
+      "addr": "0x10ae00",
+      "name": "FUN_0010ae00",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "1"
+    },
+    {
+      "addr": "0x10ae30",
+      "name": "FUN_0010ae30",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 7,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10ae80",
+      "name": "FUN_0010ae80",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 19,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10af70",
+      "name": "FUN_0010af70",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 18,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10b110",
+      "name": "get_random_seed",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10b160",
+      "name": "random_math_initialize",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10b3c0",
+      "name": "seed_random_orientation",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10b9c0",
+      "name": "FUN_0010b9c0",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10ba90",
+      "name": "FUN_0010ba90",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10c290",
+      "name": "FUN_0010c290",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10c2e0",
+      "name": "FUN_0010c2e0",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10c340",
+      "name": "FUN_0010c340",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10c780",
+      "name": "FUN_0010c780",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 3,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10c7d0",
+      "name": "FUN_0010c7d0",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10c920",
+      "name": "FUN_0010c920",
+      "class": "uncached",
+      "obj": "random_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x10a1c0",
+      "name": "FUN_0010a1c0",
+      "class": "uncached",
+      "obj": "real_math.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c8a40",
+      "name": "debug_sound_classes_enable",
+      "class": "uncached",
+      "obj": "sound_classes.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c8a90",
+      "name": "debug_sound_classes_set_distances",
+      "class": "uncached",
+      "obj": "sound_classes.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c8ae0",
+      "name": "debug_sound_classes_set_wet",
+      "class": "uncached",
+      "obj": "sound_classes.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x75380",
+      "name": "FUN_00075380",
+      "class": "uncached",
+      "obj": "bitmap_utilities.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x114630",
+      "name": "FUN_00114630",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 13,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x114690",
+      "name": "FUN_00114690",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 10,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1146c0",
+      "name": "FUN_001146c0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "1"
+    },
+    {
+      "addr": "0x1146e0",
+      "name": "FUN_001146e0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 12,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x114f60",
+      "name": "FUN_00114f60",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 12,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1153c0",
+      "name": "FUN_001153c0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x115430",
+      "name": "FUN_00115430",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1154a0",
+      "name": "FUN_001154a0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1155c0",
+      "name": "FUN_001155c0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x115a00",
+      "name": "FUN_00115a00",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x115a90",
+      "name": "FUN_00115a90",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 5,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x115b70",
+      "name": "FUN_00115b70",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 2,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x116010",
+      "name": "FUN_00116010",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 15,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1160c0",
+      "name": "FUN_001160c0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x116250",
+      "name": "FUN_00116250",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x116390",
+      "name": "FUN_00116390",
+      "class": "non_leaf",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x116460",
+      "name": "FUN_00116460",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1164d0",
+      "name": "FUN_001164d0",
+      "class": "leaf",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1167f0",
+      "name": "FUN_001167f0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x116d10",
+      "name": "FUN_00116d10",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 10,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117000",
+      "name": "FUN_00117000",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1170b0",
+      "name": "FUN_001170b0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117130",
+      "name": "FUN_00117130",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1171a0",
+      "name": "FUN_001171a0",
+      "class": "leaf",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117250",
+      "name": "FUN_00117250",
+      "class": "non_leaf",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1172d0",
+      "name": "FUN_001172d0",
+      "class": "non_leaf",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 40,
+      "seeds_total": 40,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117a80",
+      "name": "FUN_00117a80",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117ab0",
+      "name": "FUN_00117ab0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117ad0",
+      "name": "FUN_00117ad0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117b00",
+      "name": "FUN_00117b00",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117b20",
+      "name": "array_new",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117b90",
+      "name": "array_resize",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117cf0",
+      "name": "FUN_00117cf0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117da0",
+      "name": "FUN_00117da0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117ee0",
+      "name": "FUN_00117ee0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x117ff0",
+      "name": "FUN_00117ff0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118190",
+      "name": "FUN_00118190",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 15,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118260",
+      "name": "FUN_00118260",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 15,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118370",
+      "name": "FUN_00118370",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 2,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118460",
+      "name": "FUN_00118460",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118520",
+      "name": "FUN_00118520",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 18,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118ba0",
+      "name": "FUN_00118ba0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 11,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118be0",
+      "name": "FUN_00118be0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 13,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118cb0",
+      "name": "FUN_00118cb0",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 11,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118d60",
+      "name": "circular_queue_reset",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118d70",
+      "name": "FUN_00118d70",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 60,
+      "seeds_total": 60,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118de0",
+      "name": "circular_queue_new",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118e40",
+      "name": "circular_queue_delete",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118e70",
+      "name": "circular_queue_size",
+      "class": "non_leaf",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 1,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118e90",
+      "name": "circular_queue_free_space",
+      "class": "non_leaf",
+      "obj": "circular_queue.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118ec0",
+      "name": "FUN_00118ec0",
+      "class": "non_leaf",
+      "obj": "circular_queue.obj",
+      "status": "error",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x118fb0",
+      "name": "circular_queue_try_read",
+      "class": "uncached",
+      "obj": "circular_queue.obj",
+      "status": "pass",
+      "reason": null,
+      "seeds_passed": 20,
       "seeds_total": 20,
       "z3_proven": "0"
     }
   ],
   "by_object": {
-    "actions.obj": {
-      "pass": 6,
-      "total": 7,
+    "actors.obj": {
+      "pass": 66,
+      "total": 93,
+      "error": 27
+    },
+    "bitmap_utilities.obj": {
+      "pass": 1,
+      "total": 1
+    },
+    "circular_queue.obj": {
+      "pass": 36,
+      "total": 52,
+      "error": 10,
+      "fail": 6
+    },
+    "collision_usage.obj": {
+      "pass": 10,
+      "total": 13,
+      "error": 3
+    },
+    "contrails.obj": {
+      "error": 1,
+      "total": 2,
+      "pass": 1
+    },
+    "data.obj": {
+      "pass": 2,
+      "total": 3,
+      "fail": 1
+    },
+    "effects.obj": {
+      "error": 2,
+      "total": 6,
+      "pass": 4
+    },
+    "files_windows.obj": {
+      "not_applicable": 1,
+      "total": 1
+    },
+    "game.obj": {
+      "not_applicable": 5,
+      "total": 42,
+      "error": 3,
+      "pass": 32,
+      "fail": 2
+    },
+    "game_allegiance.obj": {
+      "pass": 1,
+      "total": 1
+    },
+    "hud.obj": {
+      "pass": 3,
+      "total": 5,
+      "not_applicable": 2
+    },
+    "network_server_manager.obj": {
+      "pass": 1,
+      "total": 1
+    },
+    "objects.obj": {
+      "not_applicable": 29,
+      "total": 30,
+      "pass": 1
+    },
+    "player_queues_new.obj": {
+      "pass": 3,
+      "total": 3
+    },
+    "predicted_resources.obj": {
+      "pass": 4,
+      "total": 4
+    },
+    "random_math.obj": {
+      "pass": 15,
+      "total": 18,
+      "fail": 2,
       "not_applicable": 1
     },
-    "actors.obj": {
-      "pass": 27,
-      "total": 43,
-      "fail": 16
+    "real_math.obj": {
+      "pass": 1,
+      "total": 1
+    },
+    "sound_classes.obj": {
+      "pass": 3,
+      "total": 3
     }
   },
   "comparison": {
     "baseline": "",
     "new_failures": [
       {
+        "addr": "0x36860",
+        "name": "FUN_00036860",
+        "class": "non_leaf",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a740",
+        "name": "FUN_0003a740",
+        "class": "leaf",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a760",
+        "name": "FUN_0003a760",
+        "class": "leaf",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a770",
+        "name": "FUN_0003a770",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a790",
+        "name": "FUN_0003a790",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a7b0",
+        "name": "FUN_0003a7b0",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a7d0",
+        "name": "FUN_0003a7d0",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a7f0",
+        "name": "FUN_0003a7f0",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a800",
+        "name": "FUN_0003a800",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
         "addr": "0x3a810",
         "name": "FUN_0003a810",
-        "class": "stubbable",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -656,9 +3519,9 @@
       {
         "addr": "0x3a840",
         "name": "FUN_0003a840",
-        "class": "stubbable",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -667,53 +3530,20 @@
       {
         "addr": "0x3a8a0",
         "name": "FUN_0003a8a0",
-        "class": "stubbable",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
         "z3_proven": "0"
       },
       {
-        "addr": "0x3aca0",
-        "name": "actor_verify_activation",
-        "class": "stubbable",
+        "addr": "0x3a990",
+        "name": "actors_initialize",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
-        "reason": "emulation_error",
-        "seeds_passed": 0,
-        "seeds_total": 20,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x3b320",
-        "name": "FUN_0003b320",
-        "class": "stubbable",
-        "obj": "actors.obj",
-        "status": "fail",
-        "reason": "emulation_error",
-        "seeds_passed": 0,
-        "seeds_total": 20,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x3b3c0",
-        "name": "FUN_0003b3c0",
-        "class": "stubbable",
-        "obj": "actors.obj",
-        "status": "fail",
-        "reason": "emulation_error",
-        "seeds_passed": 0,
-        "seeds_total": 20,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x3b410",
-        "name": "FUN_0003b410",
-        "class": "stubbable",
-        "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -722,31 +3552,9 @@
       {
         "addr": "0x3b7e0",
         "name": "FUN_0003b7e0",
-        "class": "stubbable",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
-        "reason": "emulation_error",
-        "seeds_passed": 0,
-        "seeds_total": 20,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x3b860",
-        "name": "FUN_0003b860",
-        "class": "stubbable",
-        "obj": "actors.obj",
-        "status": "fail",
-        "reason": "emulation_error",
-        "seeds_passed": 0,
-        "seeds_total": 20,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x3b900",
-        "name": "actors_freeze",
-        "class": "stubbable",
-        "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -755,31 +3563,9 @@
       {
         "addr": "0x3b940",
         "name": "FUN_0003b940",
-        "class": "stubbable",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
-        "reason": "emulation_error",
-        "seeds_passed": 0,
-        "seeds_total": 20,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x3ba00",
-        "name": "actors_move_randomly",
-        "class": "stubbable",
-        "obj": "actors.obj",
-        "status": "fail",
-        "reason": "emulation_error",
-        "seeds_passed": 0,
-        "seeds_total": 20,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x3baa0",
-        "name": "FUN_0003baa0",
-        "class": "stubbable",
-        "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -788,9 +3574,9 @@
       {
         "addr": "0x3bde0",
         "name": "FUN_0003bde0",
-        "class": "stubbable",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -799,9 +3585,9 @@
       {
         "addr": "0x3be90",
         "name": "FUN_0003be90",
-        "class": "stubbable",
+        "class": "uncached",
         "obj": "actors.obj",
-        "status": "fail",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -809,10 +3595,439 @@
       },
       {
         "addr": "0x3c0c0",
-        "name": "FUN_0003c0c0",
-        "class": "stubbable",
+        "name": "actors_handle_spatial_effect",
+        "class": "uncached",
         "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3cbc0",
+        "name": "actor_delete_props",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3cc10",
+        "name": "actor_delete",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3cff0",
+        "name": "actor_died",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3d330",
+        "name": "actor_swarm_unit_died",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3d950",
+        "name": "actor_erase",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3dc20",
+        "name": "FUN_0003dc20",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3e7a0",
+        "name": "FUN_0003e7a0",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3eab0",
+        "name": "actor_attach_unit",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3f030",
+        "name": "FUN_0003f030",
+        "class": "uncached",
+        "obj": "actors.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x14cfe0",
+        "name": "FUN_0014cfe0",
+        "class": "uncached",
+        "obj": "collision_usage.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x14dab0",
+        "name": "FUN_0014dab0",
+        "class": "uncached",
+        "obj": "collision_usage.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x14db10",
+        "name": "FUN_0014db10",
+        "class": "uncached",
+        "obj": "collision_usage.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x97980",
+        "name": "contrails_reconnect_to_structure_bsp",
+        "class": "uncached",
+        "obj": "contrails.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x119df0",
+        "name": "FUN_00119df0",
+        "class": "uncached",
+        "obj": "data.obj",
         "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 17,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x9c910",
+        "name": "FUN_0009c910",
+        "class": "uncached",
+        "obj": "effects.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x9cf40",
+        "name": "effects_reconnect_to_structure_bsp",
+        "class": "uncached",
+        "obj": "effects.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0xa6bf0",
+        "name": "game_initialize",
+        "class": "uncached",
+        "obj": "game.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0xa73c0",
+        "name": "game_initial_pulse",
+        "class": "uncached",
+        "obj": "game.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0xa7780",
+        "name": "game_initialize_for_new_map",
+        "class": "uncached",
+        "obj": "game.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0xb5590",
+        "name": "FUN_000b5590",
+        "class": "uncached",
+        "obj": "game.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 5,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0xb55b0",
+        "name": "FUN_000b55b0",
+        "class": "uncached",
+        "obj": "game.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 15,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x10ae30",
+        "name": "FUN_0010ae30",
+        "class": "uncached",
+        "obj": "random_math.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 7,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x10c780",
+        "name": "FUN_0010c780",
+        "class": "uncached",
+        "obj": "random_math.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 3,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1155c0",
+        "name": "FUN_001155c0",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x115a90",
+        "name": "FUN_00115a90",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 5,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x116250",
+        "name": "FUN_00116250",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1164d0",
+        "name": "FUN_001164d0",
+        "class": "leaf",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1167f0",
+        "name": "FUN_001167f0",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x117000",
+        "name": "FUN_00117000",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1170b0",
+        "name": "FUN_001170b0",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x117130",
+        "name": "FUN_00117130",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1171a0",
+        "name": "FUN_001171a0",
+        "class": "leaf",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x117250",
+        "name": "FUN_00117250",
+        "class": "non_leaf",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x118260",
+        "name": "FUN_00118260",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 15,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x118370",
+        "name": "FUN_00118370",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 2,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x118be0",
+        "name": "FUN_00118be0",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 13,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x118e40",
+        "name": "circular_queue_delete",
+        "class": "uncached",
+        "obj": "circular_queue.obj",
+        "status": "error",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x118e90",
+        "name": "circular_queue_free_space",
+        "class": "non_leaf",
+        "obj": "circular_queue.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x118ec0",
+        "name": "FUN_00118ec0",
+        "class": "non_leaf",
+        "obj": "circular_queue.obj",
+        "status": "error",
         "reason": "emulation_error",
         "seeds_passed": 0,
         "seeds_total": 20,
@@ -822,5 +4037,7 @@
     "known_failures": [],
     "allowlisted": []
   },
-  "elapsed_seconds": 59.67372679710388
+  "elapsed_seconds": 1683.9876444339752,
+  "interrupted": false,
+  "skipped": 0
 }
