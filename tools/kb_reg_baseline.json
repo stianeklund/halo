@@ -323,7 +323,12 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "0x8e7d0": "void FUN_0008e7d0(void *header /* @<esi> */, const char *file /* @<ebx> */, int line /* @<edi> */);",
+    "0x8e6d0": "void FUN_0008e6d0(void *ptr /* @<eax> */, const char *file, int line);",
+    "0x8e8e0": "void FUN_0008e8e0(void *ptr /* @<ebx> */, uint32_t size);",
+    "0x8e950": "void FUN_0008e950(void *header /* @<esi> */);",
+    "0x8e9f0": "void FUN_0008e9f0(void *header /* @<eax> */, const char *file, int line);"
   },
   "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
   "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
