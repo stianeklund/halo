@@ -2613,6 +2613,22 @@
       "metadata": {
         "source_path": "src/halo/interface/hud_messaging.c"
       }
+    },
+    {
+      "name": "halo/input_xbox_FUN_0cf3e0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/input/input_xbox.c.obj",
+      "base_path": "delinked/input_xbox_FUN_0cf3e0.obj",
+      "metadata": {
+        "source_path": "src/halo/input/input_xbox.c"
+      }
+    },
+    {
+      "name": "halo/input_xbox_FUN_0cf690",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/input/input_xbox.c.obj",
+      "base_path": "delinked/input_xbox_FUN_0cf690.obj",
+      "metadata": {
+        "source_path": "src/halo/input/input_xbox.c"
+      }
     }
   ]
 }

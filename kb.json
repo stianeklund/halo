@@ -11709,8 +11709,10 @@
           "ported": true
         },
         {
-          "decl": "void update_ticks(void);",
-          "addr": "0xce500"
+          "decl": "void FUN_000ce500(void *param_1);",
+          "addr": "0xce500",
+          "ported": true,
+          "source_path": "src/halo/input/input_xbox.c"
         },
         {
           "decl": "void FUN_000ce530(void *state);",
@@ -11730,8 +11732,10 @@
           "ported": true
         },
         {
-          "decl": "void input_dispose(void);",
-          "addr": "0xcf3e0"
+          "decl": "int FUN_000cf3e0(short param_1, short param_2);",
+          "addr": "0xcf3e0",
+          "ported": true,
+          "source_path": "src/halo/input/input_xbox.c"
         },
         {
           "decl": "void FUN_000cf430(uint8_t *counter, char increment);",
@@ -11745,9 +11749,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000cf690(void);",
+          "decl": "int FUN_000cf690(void);",
           "addr": "0xcf690",
-          "ported": null
+          "ported": true,
+          "source_path": "src/halo/input/input_xbox.c"
         },
         {
           "decl": "void input_get_raw_data_string(void);",
