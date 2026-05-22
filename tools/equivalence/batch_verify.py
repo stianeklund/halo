@@ -41,11 +41,25 @@ def _has_delinked_ref(addr_str: str, obj_name: str) -> bool:
         return False
     sym_upper = f"FUN_{addr_int:08X}"
     sym_lower = f"FUN_{addr_int:08x}"
-    addr_no_0x = addr_str.replace("0x", "")
+    addr_no_0x = addr_str.replace("0x", "").lstrip("0") or "0"
     for d in DELINKED_DIR.glob("*.obj"):
-        if addr_no_0x in d.stem or sym_lower in d.stem or sym_upper in d.stem:
+        # Use whole-word boundary check on the zero-padded symbol form to
+        # avoid substring false-positives (e.g. "3c3a0" matching
+        # "objects_FUN_0013c3a0" when the target is at 0x3c3a0).
+        if sym_lower in d.stem or sym_upper in d.stem:
             return True
-    if (DELINKED_DIR / f"{obj_name}.obj").exists():
+        # Allow bare hex addr only when it is word-bounded (preceded by '_' or
+        # start-of-stem).
+        stem = d.stem
+        idx = stem.find(addr_no_0x)
+        while idx != -1:
+            before = stem[idx - 1] if idx > 0 else "_"
+            if not before.isalnum():
+                return True
+            idx = stem.find(addr_no_0x, idx + 1)
+    # obj_name already includes ".obj" (e.g. "actors.obj") — use it directly.
+    bare_name = obj_name if obj_name.endswith(".obj") else f"{obj_name}.obj"
+    if (DELINKED_DIR / bare_name).exists():
         return True
     return False
 
