@@ -26,16 +26,22 @@ Current snapshot (local analysis)
 The following numbers are from this fork's current checkout (May 2026), using
 repo analysis tools:
 
-* Ported functions: `1,477 / 7,390` (`20.0%`)
-* Ported function bytes: `306.6 KB / 1.8 MB` (`16.35%`)
+* Ported functions: `1,915 / 7,390` (`25.9%`)
+* Ported function bytes: `366.0 KB / 1.8 MB` (`19.53%`)
 * Functions declared in `kb.json`: `7,371` (`99.7%` of discovered function entries)
-* Retrieval index rows: `1,577` total, `1,535` with embeddings
+* Retrieval index rows: `2,246` total, `2,212` with embeddings
+
+An alternative view (from `kb_meta` + delinked object analysis) shows:
+
+* Ported functions: `2,203 / 7,534` (`29.24%`)
+* Ported bytes: `413,488 / 1,795,009` (`23.04%`)
 
 These are generated from:
 
 ```bash
 rtk python3 tools/analysis/progress.py
 rtk python3 tools/retrieval/usage_report.py
+rtk python3 tools/report/generate_decomp_report.py --html artifacts/progress/index.html
 ```
 
 Community
