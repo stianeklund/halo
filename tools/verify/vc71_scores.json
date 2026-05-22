@@ -384,6 +384,10 @@
       "score": 78.4,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_0008dc30": {
+      "score": 71.0,
+      "source": "src/halo/units/units.c"
+    },
     "FUN_0008e770": {
       "score": 79.5,
       "source": "src/halo/cseries/errors.c"

@@ -13711,24 +13711,31 @@
           "addr": "0x84ae0"
         },
         {
-          "decl": "void FUN_00084fe0(void);",
-          "addr": "0x84fe0"
+          "decl": "void FUN_00084fe0(unsigned char param_1);",
+          "addr": "0x84fe0",
+          "ported": true,
+          "source_path": "camera/bored_camera.c"
         },
         {
           "decl": "void FUN_00085000(void);",
           "addr": "0x85000"
         },
         {
-          "decl": "void FUN_000850d0(void);",
-          "addr": "0x850d0"
+          "decl": "void FUN_000850d0(int param_1);",
+          "addr": "0x850d0",
+          "ported": true,
+          "source_path": "camera/bored_camera.c"
         },
         {
-          "decl": "void FUN_00085110(void);",
-          "addr": "0x85110"
+          "decl": "void FUN_00085110(int param_1);",
+          "addr": "0x85110",
+          "ported": true,
+          "source_path": "camera/bored_camera.c"
         },
         {
-          "decl": "void FUN_00085150(void);",
-          "addr": "0x85150"
+          "decl": "int FUN_00085150(int param_1);",
+          "addr": "0x85150",
+          "ported": false
         },
         {
           "decl": "void FUN_00085180(void);",
