@@ -99,6 +99,44 @@ _BYTE *scripted_hud_messages_clear(void)
   return 0;
 }
 
+/* hud_get_font_index (0xd5160)
+ * Returns font index: multiplayer-specific if 2+ local players and valid,
+ * otherwise falls back to the default font index. */
+int hud_get_font_index(void)
+{
+  short count;
+  int base;
+  int result;
+
+  count = local_player_count();
+  base = *(int *)0x5aa68c;
+  if (count <= 1 || (result = *(int *)(base + 0x64), result == -1)) {
+    result = *(int *)(base + 0x54);
+  }
+  return result;
+}
+
+/* hud_get_text_color (0xd5180)
+ * Copies 4 HUD text color words from the messaging globals into param_1[0..3].
+ */
+void hud_get_text_color(int *param_1)
+{
+  int *src;
+
+  src = (int *)(*(int *)0x5aa68c + 0x70);
+  param_1[0] = src[0];
+  param_1[1] = src[1];
+  param_1[2] = src[2];
+  param_1[3] = src[3];
+}
+
+/* hud_messaging_globals_update (0xd51b0)
+ * Resets the HUD message priority counter to 0. */
+void hud_messaging_globals_update(void)
+{
+  *(uint8_t *)(*(char **)0x46bd18 + 0x1185) = 0;
+}
+
 /* Display a message on a player's HUD. Finds an empty message slot,
  * copies the wide string, and initializes the display timer. */
 void hud_print_message(__int16 player, wchar_t *message)

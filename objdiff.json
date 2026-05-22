@@ -2597,6 +2597,22 @@
       "metadata": {
         "source_path": "src/halo/interface/hud_messaging.c"
       }
+    },
+    {
+      "name": "halo/hud_messaging_FUN_0d5160",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
+      "base_path": "delinked/hud_messaging_FUN_0d5160.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_messaging.c"
+      }
+    },
+    {
+      "name": "halo/hud_messaging_FUN_0d5180",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
+      "base_path": "delinked/hud_messaging_FUN_0d5180.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_messaging.c"
+      }
     }
   ]
 }

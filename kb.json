@@ -11323,16 +11323,25 @@
           "ported": true
         },
         {
-          "decl": "void hud_get_font_index(void);",
-          "addr": "0xd5160"
+          "decl": "int hud_get_font_index(void);",
+          "addr": "0xd5160",
+          "name": "hud_get_font_index",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
-          "decl": "void hud_get_text_color(void);",
-          "addr": "0xd5180"
+          "decl": "void hud_get_text_color(int *param_1);",
+          "addr": "0xd5180",
+          "name": "hud_get_text_color",
+          "ported": false,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "decl": "void hud_messaging_globals_update(void);",
-          "addr": "0xd51b0"
+          "addr": "0xd51b0",
+          "name": "hud_messaging_globals_update",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "decl": "void hud_print_message(__int16 player, wchar_t *message);",
