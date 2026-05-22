@@ -129,6 +129,80 @@ int16_t FUN_00097a50(int contrail_handle, float delta_time)
   return count;
 }
 
+/* 0x97ae0 — contrail_verify: validate a contrail datum's integrity.
+ * Checks attachment-index range, object back-reference, and per-lobe point
+ * counts match the stored counts. Asserts + exits on any violation. */
+void FUN_00097ae0(int contrail_handle /* @<eax> */)
+{
+  char *datum;
+  void *obj;
+  short attachment_index;
+  short count_stored;
+  short count_actual;
+  int point_handle;
+  char *point_datum;
+  short *count_ptr;
+  int *head_ptr;
+  int counter;
+
+  datum = (char *)datum_get(contrail_data, contrail_handle);
+  tag_get(0x636f6e74, *(int *)(datum + 4));
+
+  if (*(int *)(datum + 8) != -1) {
+    obj = object_get_and_verify_type(*(int *)(datum + 8), 0xffffffff);
+    attachment_index = *(short *)(datum + 0xc);
+    if (attachment_index < 0 ||
+        (int)attachment_index >=
+          *(int *)((char *)tag_get(0x6f626a65, *(int *)obj) + 0x140)) {
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "contrail %s attachment index %d is outside the valid range.",
+                 tag_get_name(*(int *)(datum + 4)), (int)attachment_index),
+        "c:\\halo\\SOURCE\\effects\\contrails.c", 0x28e, 1);
+      system_exit(-1);
+    }
+    if (*(int *)((char *)obj + (int)attachment_index * 4 + 0xfc) !=
+        contrail_handle) {
+      display_assert(
+        csprintf(
+          (char *)0x5ab100,
+          "contrail %s (%ld) has an object that thinks it's attached to %ld",
+          tag_get_name(*(int *)(datum + 4)), contrail_handle,
+          *(int *)((char *)obj + (int)attachment_index * 4 + 0xfc)),
+        "c:\\halo\\SOURCE\\effects\\contrails.c", 0x28f, 1);
+      system_exit(-1);
+    }
+  }
+
+  count_ptr = (short *)(datum + 0x2c);
+  head_ptr = (int *)(datum + 0x34);
+  counter = 4;
+  do {
+    count_actual = 0;
+    point_handle = *head_ptr;
+    if (point_handle != -1) {
+      do {
+        point_datum = (char *)datum_get(contrail_point_data, point_handle);
+        point_handle = *(int *)(point_datum + 0x34);
+        count_actual++;
+      } while (point_handle != -1);
+    }
+    count_stored = *count_ptr;
+    if (count_actual != count_stored) {
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "contrail %s thinks it has %d points but really it has %d",
+                 tag_get_name(*(int *)(datum + 4)), (int)count_stored,
+                 (int)count_actual),
+        "c:\\halo\\SOURCE\\effects\\contrails.c", 0x2a5, 1);
+      system_exit(-1);
+    }
+    count_ptr++;
+    head_ptr++;
+    counter--;
+  } while (counter != 0);
+}
+
 /* 0x97c80 — Draw a random short in [min, max) using the module-local LCG seed.
  */
 int16_t local_random_range(int16_t min, int16_t max)

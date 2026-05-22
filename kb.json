@@ -4946,9 +4946,13 @@
           "src": "src/halo/effects/contrails.c"
         },
         {
-          "decl": "void FUN_00097ae0(void);",
+          "decl": "void FUN_00097ae0(int contrail_handle /* @<eax> */);",
           "addr": "0x97ae0",
-          "ported": null
+          "ported": true,
+          "source_path": "halo/effects/contrails.c",
+          "reg_args": {
+            "contrail_handle": "eax"
+          }
         },
         {
           "decl": "void local_random_vector_in_cone3d(float *forward, float zero, float angle, float *result);",
