@@ -102,6 +102,13 @@ char game_state_write_to_file(void)
   return 0;
 }
 
+/* 0x1c0720 — return the Xbox save-game filename.
+ * Used as the leaf file name when constructing the save path. */
+const char *FUN_001c0720(void)
+{
+  return "savegame.bin";
+}
+
 /* 0x1c0750
  * Delete the local player's save game file. Gets the profile directory
  * path and, if valid, deletes the file at that path. */

@@ -6904,12 +6904,14 @@
           "ported": true
         },
         {
-          "decl": "void file_get_position(void);",
-          "addr": "0x19a9a0"
+          "decl": "int file_get_position(file_ref_t *info);",
+          "addr": "0x19a9a0",
+          "ported": true
         },
         {
-          "decl": "void file_set_position(void);",
-          "addr": "0x19aa00"
+          "decl": "bool file_set_position(file_ref_t *info, int offset);",
+          "addr": "0x19aa00",
+          "ported": true
         },
         {
           "decl": "void file_set_eof(void);",
@@ -6921,7 +6923,8 @@
         },
         {
           "decl": "bool file_read_from_position(file_ref_t *info, int offset, int size, void *buffer);",
-          "addr": "0x19acb0"
+          "addr": "0x19acb0",
+          "ported": true
         },
         {
           "decl": "void file_write_to_position(void);",
@@ -8818,8 +8821,9 @@
           "addr": "0x1c0680"
         },
         {
-          "decl": "void FUN_001c0720(void);",
-          "addr": "0x1c0720"
+          "decl": "const char *FUN_001c0720(void);",
+          "addr": "0x1c0720",
+          "ported": true
         },
         {
           "decl": "void FUN_001c0750(void);",

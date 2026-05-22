@@ -644,6 +644,46 @@ bool file_close(file_ref_t *info)
   return false;
 }
 
+/* 0x19a9a0 — return the current byte offset within the open file.
+ * Calls SetFilePointer with move=0 from FILE_CURRENT (1) to query the
+ * position without moving. On failure, logs an error and returns -1. */
+int file_get_position(file_ref_t *info)
+{
+  file_ref_t *ref;
+  int pos;
+  unsigned int err;
+
+  ref = file_reference_verify(info);
+  pos = XSetFilePointer(*(int *)&ref->unk_8[256], 0, NULL, 1);
+  if (pos == -1) {
+    ref = file_reference_verify(info);
+    err = XGetLastError();
+    error(2, "%s('%s') error 0x%08x", "file_get_position", ref->unk_8, err);
+    XSetLastError(0);
+  }
+  return pos;
+}
+
+/* 0x19aa00 — seek to an absolute byte offset within the open file.
+ * Calls SetFilePointer with method=FILE_BEGIN (0). Returns true on
+ * success, false on failure; logs an error on failure. */
+bool file_set_position(file_ref_t *info, int offset)
+{
+  file_ref_t *ref;
+  int result;
+  unsigned int err;
+
+  ref = file_reference_verify(info);
+  result = XSetFilePointer(*(int *)&ref->unk_8[256], offset, NULL, 0);
+  if (result == -1) {
+    ref = file_reference_verify(info);
+    err = XGetLastError();
+    error(2, "%s('%s') error 0x%08x", "file_set_position", ref->unk_8, err);
+    XSetLastError(0);
+  }
+  return result != -1;
+}
+
 int file_get_eof(file_ref_t *info)
 {
   file_ref_t *ref;
@@ -680,6 +720,24 @@ bool file_read(file_ref_t *info, int size, void *buffer)
 
   file_error(info, "file_read");
   return false;
+}
+
+/* 0x19acb0 — seek to 'offset' then read 'size' bytes into 'buffer'.
+ * Combines file_set_position and file_read; returns true only if both
+ * succeed, false otherwise. */
+bool file_read_from_position(file_ref_t *info, int offset, int size, void *buffer)
+{
+  char ok_pos;
+  char ok_read;
+
+  ok_pos = file_set_position(info, offset);
+  if (ok_pos != '\0') {
+    ok_read = file_read(info, size, buffer);
+    if (ok_read != '\0') {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 bool find_files_next(file_ref_t *result, int param2)
