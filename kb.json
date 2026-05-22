@@ -14353,8 +14353,10 @@
           "ported": true
         },
         {
-          "decl": "void recursive_object_adder(void);",
-          "addr": "0x13f080"
+          "decl": "int FUN_0013f080(int param_1, char (*param_2)(int, int), int param_3, int param_4, int param_5, int *param_6);",
+          "addr": "0x13f080",
+          "source_path": "objects/objects.c",
+          "ported": true
         },
         {
           "decl": "void find_objects_from_point_vector(void);",
