@@ -778,3 +778,66 @@ short actor_action_get_default_state(short param_1)
     return 0;
   return *(short *)(0x254300 + (int)param_1 * 2);
 }
+
+/* actor_action_handle_initial_action (0x1dab0)
+ * If the actor is in the idle action (0x6c == 0) and has a non-zero
+ * default-state index (0x6a), runs actor_action_set_default_state to
+ * initiate that default state. Returns 1 if the state was set, 0 otherwise.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle); actor+0x6c = short action;
+ * actor+0x6a = short default_state_index. */
+char actor_action_handle_initial_action(int actor_handle)
+{
+  char *actor;
+  char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  result = 0;
+  if ((*(short *)(actor + 0x6c) == 0) && (*(short *)(actor + 0x6a) != 0)) {
+    result = actor_action_set_default_state(actor_handle, 0xffff);
+  }
+  return result;
+}
+
+/* actor_action_handle_pending_command_list (0x1daf0)
+ * Handles any pending command-list action stored in actor+0x90.
+ * Returns 0 if no pending command, if guarding with no default state, or
+ * if the current transition is denied. Otherwise starts the command-list
+ * action (type 0xb), clears the pending entry, and returns 1.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle); actor+0x90 = short
+ * pending_action; actor+0x8e = char flag; actor+0x6a = short state.
+ * actor_action_deny_transition at 0x1ca90; FUN_00016e70 at 0x16e70;
+ * actor_action_change(actor_handle, 0xb, buf); actor+0x8e cleared. */
+char actor_action_handle_pending_command_list(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  char result;
+  char action_buf[132];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  result = 0;
+  if (*(short *)(actor + 0x90) == -1) {
+    return 0;
+  }
+  if (*(char *)(actor + 0x8e) != '\0') {
+    goto do_action;
+  }
+  if (*(short *)(actor + 0x6a) == 0) {
+    return 0;
+  }
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 != '\0') {
+    return 0;
+  }
+do_action:
+  cVar1 = FUN_00016e70(actor_handle, *(short *)(actor + 0x90), action_buf);
+  if (cVar1 != '\0') {
+    actor_action_change(actor_handle, 0xb, (int)action_buf);
+    result = 1;
+  }
+  *(char *)(actor + 0x8e) = 0;
+  *(short *)(actor + 0x90) = -1;
+  return result;
+}

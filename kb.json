@@ -2244,16 +2244,20 @@
           "addr": "0x1d7a0"
         },
         {
-          "decl": "void actor_action_set_default_state(int actor_handle, short state);",
+          "decl": "char actor_action_set_default_state(int actor_handle, short state);",
           "addr": "0x1d7c0"
         },
         {
-          "decl": "void actor_action_handle_initial_action(int actor_handle);",
-          "addr": "0x1dab0"
+          "decl": "char actor_action_handle_initial_action(int actor_handle);",
+          "addr": "0x1dab0",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_pending_command_list(int actor_handle);",
-          "addr": "0x1daf0"
+          "decl": "char actor_action_handle_pending_command_list(int actor_handle);",
+          "addr": "0x1daf0",
+          "ported": false,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
           "decl": "void actor_action_handle_surprise(void);",
@@ -2280,11 +2284,11 @@
           "addr": "0x1e700"
         },
         {
-          "decl": "void actor_action_handle_combat_selection(void);",
+          "decl": "char actor_action_handle_combat_selection(int actor_handle);",
           "addr": "0x1e8a0"
         },
         {
-          "decl": "void actor_action_handle_lost_contact(void);",
+          "decl": "char actor_action_handle_lost_contact(int actor_handle);",
           "addr": "0x1ef90"
         },
         {
