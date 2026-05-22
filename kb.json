@@ -2423,13 +2423,13 @@
         {
           "decl": "void FUN_00036a90(int actor_handle, int prop_handle);",
           "addr": "0x36a90",
-          "ported": true,
+          "ported": false,
           "source_path": "ai/actors.c"
         },
         {
           "decl": "void FUN_00036b10(int actor_handle, int prop_handle);",
           "addr": "0x36b10",
-          "ported": true,
+          "ported": false,
           "source_path": "ai/actors.c"
         },
         {
@@ -24373,7 +24373,7 @@
         {
           "decl": "short FUN_001a67e0(const char *param_1);",
           "addr": "0x1a67e0",
-          "ported": true,
+          "ported": false,
           "source_path": "units/units.c"
         },
         {

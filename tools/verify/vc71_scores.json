@@ -376,6 +376,14 @@
       "score": 70.2,
       "source": "src/halo/ai/actors.c"
     },
+    "FUN_00084a10": {
+      "score": 36.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00084a70": {
+      "score": 78.4,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_0008e770": {
       "score": 79.5,
       "source": "src/halo/cseries/errors.c"
@@ -787,6 +795,10 @@
     "FUN_000add50": {
       "score": 98.2,
       "source": "src/halo/game/game_engine.c"
+    },
+    "FUN_000ae0a0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
     },
     "FUN_000ae4d0": {
       "score": 80.3,

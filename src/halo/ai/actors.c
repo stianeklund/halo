@@ -111,6 +111,7 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
   }
 }
 
+
 /*
  * FUN_00036b50 — trigger a swarm damage/retreat reaction.
  *

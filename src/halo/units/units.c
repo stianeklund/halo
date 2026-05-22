@@ -61,6 +61,65 @@ void FUN_00123470(void *mode_tag, void *animation, int animation_index,
                                   (float *)node_data);
 }
 
+/* FUN_001a67b0 (0x1a67b0)
+ *
+ * Returns the animation state string for the given animation index (param_1)
+ * and column (param_2, 0 or 1) from the global animation-name table at
+ * 0x32d7c8. The table has 0xd1 rows of 2 char* pointers each.
+ * Returns "<error>" if param_1 is out of range [0, 0xd0].
+ *
+ * Confirmed: MOVSX EAX,CX (sign-extends param_1); MOVZX ECX (zero-extends
+ * param_2); LEA EDX,[ECX + EAX*2]; MOV EAX,[EDX*4 + 0x32d7c8].
+ */
+char *FUN_001a67b0(short param_1, unsigned char param_2)
+{
+  char *result;
+
+  result = "<error>";
+  if (param_1 >= 0 && param_1 < 0xd1) {
+    result = ((char **)0x32d7c8)[(unsigned int)param_2 +
+                                 (unsigned int)(short)param_1 * 2];
+  }
+  return result;
+}
+
+
+/* FUN_001a6bc0 (0x1a6bc0)
+ *
+ * Returns non-zero if the unit's animation count field at offset 0x338
+ * (a signed short) is greater than zero. Uses object_get_and_verify_type
+ * with type_mask=3 (biped|vehicle).
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with type_mask=3;
+ * CMP word ptr [EAX+0x338],CX (CX=0); SETG CL; MOV AL,CL.
+ */
+int FUN_001a6bc0(int param_1)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(param_1, 3);
+  return *(short *)(unit + 0x338) > 0;
+}
+
+/* FUN_001a6ca0 (0x1a6ca0)
+ *
+ * Returns the dialogue-category string for the given index (param_1) from the
+ * global pointer table at 0x32de50. The table has 0xb entries (indices 0-10).
+ * Returns "<error>" if param_1 is out of range.
+ *
+ * Confirmed: MOVSX EAX,CX (sign-extends param_1); MOV EAX,[EAX*4 + 0x32de50].
+ */
+char *FUN_001a6ca0(short param_1)
+{
+  char *result;
+
+  result = "<error>";
+  if (param_1 >= 0 && param_1 < 0xb) {
+    result = ((char **)0x32de50)[(short)param_1];
+  }
+  return result;
+}
+
 /* unit_set_actively_controlled_flag (0x1a7f80)
  *
  * Sets bit 5 (0x20) of the byte at object_data_t+0xb6 (offset 182,
