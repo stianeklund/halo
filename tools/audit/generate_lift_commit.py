@@ -185,6 +185,65 @@ def source_files_changed():
     return [l for l in diff.splitlines() if l.endswith(".c")]
 
 
+_VC71_LINE_RE = re.compile(
+    r"(?:PASS|FAIL)\s+(\S+):\s+([\d.]+)%\s+match\s+\((\d+)/(\d+)\s+insns\)"
+)
+
+
+def _run_vc71_on_staged_sources() -> dict:
+    """Run vc71_verify on every staged .c file; return {fn_name: {score, n_c, n_r}}.
+
+    Uses the existing vc71 cache — changed files will miss and recompute
+    automatically since the cache key includes the source hash.
+    """
+    scores: dict = {}
+    for src in source_files_changed():
+        src_path = REPO_ROOT / src
+        if not src_path.exists():
+            continue
+        result = subprocess.run(
+            [sys.executable,
+             str(REPO_ROOT / "tools" / "verify" / "vc71_verify.py"),
+             str(src_path), "--quiet"],
+            capture_output=True, text=True, cwd=REPO_ROOT,
+        )
+        for line in (result.stdout + result.stderr).splitlines():
+            m = _VC71_LINE_RE.search(line)
+            if m:
+                scores[m.group(1)] = {
+                    "score": float(m.group(2)),
+                    "n_c":   int(m.group(3)),
+                    "n_r":   int(m.group(4)),
+                }
+    return scores
+
+
+def _lookup_vc71_score(addr: str, decl: str, scores: dict):
+    """Return the vc71 score entry for a ported function, or None."""
+    try:
+        fun_key = f"FUN_{int(addr, 16):08x}"
+        if fun_key in scores:
+            return scores[fun_key]
+    except (ValueError, TypeError):
+        pass
+    m = re.search(r"\b(\w+)\s*\(", decl)
+    if m and m.group(1) in scores:
+        return scores[m.group(1)]
+    return None
+
+
+def _update_regression_baseline(src_files: list[str]) -> None:
+    """Call vc71_regression.py update for the given source files (best-effort)."""
+    regression_tool = REPO_ROOT / "tools" / "verify" / "vc71_regression.py"
+    if not src_files or not regression_tool.exists():
+        return
+    abs_files = [str(REPO_ROOT / f) for f in src_files]
+    subprocess.run(
+        [sys.executable, str(regression_tool), "update", "--source"] + abs_files,
+        capture_output=True, cwd=REPO_ROOT,
+    )
+
+
 _TIMESTAMP_RUN_RE = re.compile(r'^\d{8}-\d{6}$')
 _EQUIV_RESULTS_RE = re.compile(
     r'RESULTS:\s*(\d+)\s+passed,\s*(\d+)\s+(?:failed|diverged),\s*(\d+)\s+errors\s*/\s*(\d+)\s+seeds'
@@ -261,8 +320,23 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
     ported_after, total_after, pct_after = kb_summary()
     prev = previous_kb_summary()
 
+    # --- Fresh VC71 scores from staged source files -------------------------
+    vc71_scores = _run_vc71_on_staged_sources()
+
     if vc71_match is None:
-        vc71_match = _find_latest_vc71_match()
+        if ports and vc71_scores:
+            # Compute aggregate from the newly ported functions
+            port_scores = [
+                _lookup_vc71_score(addr, decl, vc71_scores)["score"]
+                for addr, decl in ports
+                if _lookup_vc71_score(addr, decl, vc71_scores) is not None
+            ]
+            if port_scores:
+                avg = sum(port_scores) / len(port_scores)
+                vc71_match = f"{avg:.1f}"
+        if vc71_match is None:
+            vc71_match = _find_latest_vc71_match()  # fallback
+
     if equivalence is None:
         equivalence = _find_latest_equivalence()
 
@@ -290,7 +364,15 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
         for addr, decl in sorted(ports, key=lambda x: x[0]):
             name = decl.split("(")[0].split()[-1]
             obj = object_for_addr(addr)
-            lines.append(f"- {name} @ {addr} ({obj})")
+            score_info = _lookup_vc71_score(addr, decl, vc71_scores)
+            if score_info:
+                score_tag = (
+                    f" [{score_info['score']:.1f}% VC71,"
+                    f" {score_info['n_c']}/{score_info['n_r']} insns]"
+                )
+            else:
+                score_tag = ""
+            lines.append(f"- {name} @ {addr} ({obj}){score_tag}")
         lines.append("")
 
     if renames:
@@ -318,6 +400,10 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
         lines.append(
             f"Coverage: {pct_after:.1f}% ({ported_after}/{total_after} symbols)"
         )
+
+    # Update the regression baseline with fresh scores (best-effort, silent)
+    if vc71_scores:
+        _update_regression_baseline(source_files_changed())
 
     return "\n".join(lines)
 
