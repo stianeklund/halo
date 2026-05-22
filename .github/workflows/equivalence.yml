@@ -54,7 +54,17 @@ jobs:
 
       - name: Run regression tests
         run: |
-          ${{ env.VENV_PYTHON }} tools/equivalence/regression_test.py --quick
+          set +e
+          OUTPUT=$(${{ env.VENV_PYTHON }} tools/equivalence/regression_test.py --quick 2>&1)
+          RC=$?
+          echo "$OUTPUT"
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ Regression Tests Failed\n\n```\n%s\n```\n' "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            SUMMARY_LINE=$(echo "$OUTPUT" | grep "^Done in")
+            printf '## ✅ Regression Tests\n\n```\n%s\n```\n' "$SUMMARY_LINE" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC
 
   batch-verify:
     name: Batch equivalence (${{ github.event.inputs.mode || 'batch' }})
