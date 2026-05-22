@@ -2637,6 +2637,22 @@
       "metadata": {
         "source_path": "halo/physics/collision_usage.c"
       }
+    },
+    {
+      "name": "halo/actors_FUN_00036a90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
+      "base_path": "delinked/actors_FUN_00036a90.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actors.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000faeb0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000faeb0.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
     }
   ]
 }

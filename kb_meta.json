@@ -450,6 +450,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x3bd50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3bde0": {
       "kind": "function",
       "status": "ported"
@@ -521,6 +525,10 @@
       "status": "ported"
     },
     "0x3cd30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x3ce40": {
       "kind": "function",
       "status": "ported"
     },
@@ -4916,6 +4924,10 @@
       "status": "ported"
     },
     "0xfae80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfaeb0": {
       "kind": "function",
       "status": "ported"
     },
