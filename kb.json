@@ -6510,8 +6510,13 @@
           "addr": "0x8e680"
         },
         {
-          "decl": "void FUN_0008e6d0(void);",
-          "addr": "0x8e6d0"
+          "decl": "void FUN_0008e6d0(void *ptr /* @<eax> */, const char *file, int line);",
+          "addr": "0x8e6d0",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c",
+          "reg_args": {
+            "ptr": "eax"
+          }
         },
         {
           "decl": "void FUN_0008e720(void);",
@@ -6522,20 +6527,35 @@
           "addr": "0x8e750"
         },
         {
-          "decl": "void FUN_0008e7d0(void);",
+          "decl": "void FUN_0008e7d0(void *header /* @<esi> */, const char *file /* @<ebx> */, int line /* @<edi> */);",
           "addr": "0x8e7d0"
         },
         {
-          "decl": "void FUN_0008e8e0(void);",
-          "addr": "0x8e8e0"
+          "decl": "void FUN_0008e8e0(void *ptr /* @<ebx> */, uint32_t size);",
+          "addr": "0x8e8e0",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c",
+          "reg_args": {
+            "ptr": "ebx"
+          }
         },
         {
-          "decl": "void FUN_0008e950(void);",
-          "addr": "0x8e950"
+          "decl": "void FUN_0008e950(void *header /* @<esi> */);",
+          "addr": "0x8e950",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c",
+          "reg_args": {
+            "header": "esi"
+          }
         },
         {
-          "decl": "void FUN_0008e9f0(void);",
-          "addr": "0x8e9f0"
+          "decl": "void FUN_0008e9f0(void *header /* @<eax> */, const char *file, int line);",
+          "addr": "0x8e9f0",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c",
+          "reg_args": {
+            "header": "eax"
+          }
         },
         {
           "decl": "void debug_malloc_check_all(const char *file, int line);",
