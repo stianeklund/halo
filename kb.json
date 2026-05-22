@@ -2423,14 +2423,12 @@
         {
           "decl": "void FUN_00036a90(int actor_handle, int prop_handle);",
           "addr": "0x36a90",
-          "ported": false,
-          "source_path": "ai/actors.c"
+          "ported": false
         },
         {
           "decl": "void FUN_00036b10(int actor_handle, int prop_handle);",
           "addr": "0x36b10",
-          "ported": false,
-          "source_path": "ai/actors.c"
+          "ported": false
         },
         {
           "decl": "void FUN_00036b50(int param_1, int param_2);",
@@ -2448,8 +2446,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00036c50(void);",
-          "addr": "0x36c50"
+          "decl": "void FUN_00036c50(int actor_handle, int prop_handle);",
+          "addr": "0x36c50",
+          "ported": false
         },
         {
           "decl": "void FUN_00036da0(int actor_handle);",
@@ -2469,8 +2468,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00036e50(void);",
-          "addr": "0x36e50"
+          "decl": "void FUN_00036e50(int actor_handle);",
+          "addr": "0x36e50",
+          "ported": false
         },
         {
           "decl": "void FUN_00036f20(void);",

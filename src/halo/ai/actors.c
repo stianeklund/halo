@@ -112,6 +112,7 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
 }
 
 
+
 /*
  * FUN_00036b50 — trigger a swarm damage/retreat reaction.
  *
@@ -191,6 +192,7 @@ void FUN_00036c00(int actor_handle, int object_handle, float *position,
   }
 }
 
+
 /* 0x36da0 — Set actor stimulus-received flag at offset +0x2f0 to 1. */
 void FUN_00036da0(int actor_handle)
 {
@@ -245,6 +247,54 @@ void FUN_00036e30(int ai_handle)
 
   actor = (char *)datum_get(actor_data, ai_handle);
   *(char *)(actor + 0x2ed) = 1;
+}
+
+/* FUN_00036e50 (0x36e50) — handle actor flight-duration countdown.
+ *
+ * If actor+0x358 (flight-active bool) is set AND the actor's actr tag field
+ * at +0x334 exceeds the global zero constant (0x2533c0), clears the bool and:
+ *   1. Converts (tag+0x334 * [0x253394]) to short → stores at actor+0x35a.
+ *      (Ghidra shows _ftol2 call; disassembly: FLD [tag+0x334] / FMUL
+ * [0x253394] / CALL _ftol2 at 0x36ea1-0x36ead.)
+ *   2. If actor+0x270 (encounter handle) != -1:
+ *        datum_get(0x5ab23c, encounter_handle) → encounter.
+ *        If encounter+0x11c < [0x2533d8]:
+ *          If actor+0x354 > [0x255154]:
+ *            actor+0x354 = [0x255154]  (cap / floor to constant).
+ *          Else:
+ *            actor+0x354 = actor+0x354  (FPU precision normalize no-op).
+ *
+ * Confirmed: FLD [ECX+0x334] / FCOMP [0x2533c0] / FNSTSW / TEST AH,0x41 / JNZ
+ * at 0x36e87-0x36e98; FLD [ECX+0x334] / FMUL [0x253394] / CALL 0x1d9068 at
+ * 0x36ea1-0x36ead; CMP [ESI+0x270],-1 / JZ at 0x36ebf-0x36ec2; FLD/FCOMP/TEST
+ * AH,0x5 / JP at 0x36ed0-0x36ee4; FLD/FCOMP/TEST AH,0x41/JNZ for the +0x354 cap
+ * at 0x36ee6-0x36ef7. */
+void FUN_00036e50(int actor_handle)
+{
+  char *actor;
+  char *actor_tag;
+  char *encounter;
+  int encounter_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  if (*(char *)(actor + 0x358) != 0 &&
+      *(float *)0x2533c0 < *(float *)(actor_tag + 0x334)) {
+    *(char *)(actor + 0x358) = 0;
+    *(short *)(actor + 0x35a) =
+      (short)(*(float *)(actor_tag + 0x334) * *(float *)0x253394);
+    encounter_handle = *(int *)(actor + 0x270);
+    if (encounter_handle != -1) {
+      encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+      if (*(float *)(encounter + 0x11c) < *(float *)0x2533d8) {
+        if (*(float *)0x255154 >= *(float *)(actor + 0x354)) {
+          *(float *)(actor + 0x354) = *(float *)0x255154;
+        } else {
+          *(float *)(actor + 0x354) = *(float *)(actor + 0x354);
+        }
+      }
+    }
+  }
 }
 
 /* FUN_000373b0 (0x373b0) — charge effect dispatch (audible AI broadcast).
@@ -487,6 +537,88 @@ void FUN_000377d0(int actor_handle, int prop_handle)
   }
   *(int16_t *)(actor + 0x308) = 2;
   *(int *)(actor + 0x30c) = new_payload;
+}
+
+/* FUN_000379f0 (0x379f0) — actor action state-machine tick (basic).
+ *
+ * A lighter variant of FUN_00038b10. Calls the standard action preamble
+ * (initial_action, pending_command_list, surprise with type 4), then if
+ * actor_action_deny_transition returns false, runs the berserking helpers and
+ * combat transition. After that, dispatches per-state behavior based on
+ * *(short *)(actor + 0x6c):
+ *
+ *   3, 10: handle_combat_status(actor, 1, 0). If both that and
+ *          handle_combat_failure return false, call handle_evasion and return.
+ *   4:     If actor+0xaa, handle_combat_status(actor, 1, 1) and return.
+ *          Else handle_done_fleeing and return.
+ *   5,7,8: handle_combat_status(actor, 1, 0). If false, handle_exit_pursuit.
+ *   6:     can_stop_guarding(actor,3,6,0) result → handle_combat_status(actor,
+ *          result, actor_handle [MSVC batch-cleanup residue]).
+ *   0xb:   handle_combat_status(actor, actor+0x9e, actor+0xa1).
+ *
+ * Confirmed: tag_get(0x61637472, actor+0x58) called but result unused (cache
+ * warm); SUB not needed; batch ADD ESP,0x24 covers datum_get×2+calls at
+ * 0x37a2e; MOVSX EAX,word[EDI+0x6c] / ADD -3 / CMP 8 / JA → switch table at
+ * 0x37a58-0x37a68; case 6 uses push-residue 3rd arg (actor_handle) at
+ * 0x37aa2-0x37ab8. */
+void FUN_000379f0(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  int uVar3;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  (void)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  actor_action_handle_surprise(actor_handle, 4);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_berserking_from_attacking_mode(actor_handle);
+    actor_action_handle_berserking_from_damage(actor_handle);
+    actor_action_handle_berserking_from_proximity(actor_handle);
+    actor_action_handle_berserk_transition(actor_handle, 1);
+    actor_action_handle_combat_transition(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0' &&
+        (cVar1 = actor_action_handle_combat_failure(actor_handle),
+         cVar1 == '\0')) {
+      actor_action_handle_evasion(actor_handle);
+      return;
+    }
+    break;
+  case 6:
+    /* PUSH 0x0 at 0x37aa2 is pre-positioned residue for handle_combat_status 3rd arg;
+     * actor_action_can_stop_guarding takes 3 args (ADD ESP,0xc at 0x37aae cleans 3). */
+    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
+    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    return;
+  case 4:
+    if (*(char *)(actor + 0xaa) != '\0') {
+      actor_action_handle_combat_status(actor_handle, 1, 1);
+      return;
+    }
+    actor_action_handle_done_fleeing(actor_handle);
+    return;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_exit_pursuit(actor_handle);
+      return;
+    }
+    break;
+  case 0xb:
+    actor_action_handle_combat_status(actor_handle,
+                                      *(unsigned char *)(actor + 0x9e),
+                                      *(unsigned char *)(actor + 0xa1));
+    break;
+  }
 }
 
 /* FUN_00038b10 (0x38b10) — actor action state-machine tick for fighter/retreat

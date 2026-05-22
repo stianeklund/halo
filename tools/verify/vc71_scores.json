@@ -384,6 +384,22 @@
       "score": 78.4,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_00084fe0": {
+      "score": 100.0,
+      "source": "src/halo/camera/bored_camera.c"
+    },
+    "FUN_000850d0": {
+      "score": 90.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00085110": {
+      "score": 90.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00085180": {
+      "score": 91.7,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_0008dc30": {
       "score": 71.0,
       "source": "src/halo/units/units.c"
