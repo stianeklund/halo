@@ -50,16 +50,13 @@ void FUN_000a6b50(void)
 void FUN_000a6ba0(void)
 {
   int *block;
-  void *elem0;
-  void *elem1;
   int index;
 
   block = (int *)((char *)game_globals_get() + 0x164);
   if (*block != 0) {
-    elem0 = tag_block_get_element(block, 0, 0xa0);
-    index = (int)*(short *)((char *)elem0 + 0x20);
-    elem1 = tag_block_get_element(block, 0, 0xa0);
-    FUN_000a6930(*(int *)((char *)elem1 + 0x24), (unsigned short)index);
+    index = (int)*(short *)((char *)tag_block_get_element(block, 0, 0xa0) + 0x20);
+    FUN_000a6930(*(int *)((char *)tag_block_get_element(block, 0, 0xa0) + 0x24),
+                 (unsigned short)index);
   }
 }
 

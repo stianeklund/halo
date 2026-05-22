@@ -551,7 +551,7 @@ bool FUN_0019a490(file_ref_t *info)
   path_from_file_reference(ref->unk_6, ref->unk_8, path);
 
   if ((ref->unk_4[0] & 1) == 0) {
-    handle = XNtCreateFile(path, 0);
+    handle = XNtCreateFile(ref->unk_8, 0);
     if (handle == 0) {
       goto error;
     }
