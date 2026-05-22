@@ -2169,6 +2169,55 @@ void actor_find_pathfinding_location(int actor_handle)
 done:;
 }
 
+/*
+ * actor_destination_tolerance (0x3bd50) — Compute the destination arrival
+ * tolerance radius for an actor.
+ *
+ * Loads the default tolerance from the global at 0x253398. If the actor has
+ * a vehicle (actor+0x158 != -1), overrides by reading the vehicle's unit tag
+ * (tag_get('vehi', unit[0])) and taking the float at tag+0x384.
+ *
+ * Special cases:
+ *   actor_type (actor+0x6c) == 0xb AND actor+0xf0 != 0 → return actor+0xf4
+ *   actor_type == 9 → return constant at 0x2533c4 (water/flood override)
+ *
+ * Clamps result to minimum at 0x2549d4 before returning.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3bd5f.
+ * Confirmed: FLD [0x253398] default at 0x3bd64; FSTP ST0 discard at 0x3bd7c.
+ * Confirmed: object_get_and_verify_type(actor+0x158, 2) at 0x3bd7f.
+ * Confirmed: tag_get(0x76656869, unit_obj[0]) at 0x3bd8c.
+ * Confirmed: FLD [EAX+0x384] at 0x3bd91 (tag offset 900 = 0x384).
+ * Confirmed: CMP AX,0xb / CMP AX,0x9 actor_type tests at 0x3bd9e/0x3bdb6.
+ * Confirmed: FCOM [0x2549d4] / TEST AH,0x41 / JZ keep at 0x3bdc7.
+ * actors.obj / actors.c
+ */
+float actor_destination_tolerance(int actor_handle)
+{
+  char *actor;
+  char *unit_obj;
+  char *tag;
+  float result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  result = *(float *)0x253398;
+  if (*(int *)(actor + 0x158) != -1) {
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    tag = (char *)tag_get(0x76656869, *(int *)unit_obj);
+    result = *(float *)(tag + 0x384);
+  }
+  if ((*(short *)(actor + 0x6c) == 0xb) && (*(char *)(actor + 0xf0) != '\0')) {
+    return *(float *)(actor + 0xf4);
+  }
+  if (*(short *)(actor + 0x6c) == 9) {
+    return *(float *)0x2533c4;
+  }
+  if (result < *(float *)0x2549d4) {
+    result = *(float *)0x2549d4;
+  }
+  return result;
+}
+
 /* FUN_0003bde0 (0x3bde0) — actor_fill_unit_input_block
  *
  * Populates an input block structure with the unit's world position,
