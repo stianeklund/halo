@@ -737,6 +737,98 @@ void FUN_00038000(int actor_handle)
   actor_action_handle_combat_status(actor_handle, 1, 1);
 }
 
+/* FUN_00038200 (0x38200) — actor action state-machine tick (berserking/guarding
+ * variant).
+ *
+ * Sibling of FUN_00038000. Preamble: datum_get, tag_get(0x61637472,actor+0x58)
+ * result unused (cache warm), handle_initial_action, handle_pending_command_list,
+ * handle_surprise(actor_handle,4), deny_transition check. If deny=false:
+ * handle_berserking_from_damage, handle_berserk_transition(3),
+ * handle_combat_transition, FUN_00020990.
+ *
+ * Switch physical layout (EAX = *(short*)(actor+0x6c)-3, range 0–0xa):
+ *   3,10 → 0x38279; 4 → 0x382ac; 6 → 0x382c3; 5,7,8 → 0x382e0;
+ *   0xb → 0x382fe; 0xd → 0x3831d. Shared tail 0x38327: combat_status(1,1).
+ *   States 9 and 0xc are absent → default (just return).
+ *
+ * Case 4: when actor+0xaa!=0, JNZ to 0x38327 shared tail (combat_status(1,1)).
+ *   When actor+0xaa==0: handle_done_fleeing and return.
+ * Case 6: PUSH 0x0 at 0x382c3 is pre-positioned residue for combat_status 3rd
+ *   arg; ADD ESP,0xc at 0x382cf cleans 3 args for can_stop_guarding.
+ * Case 0xb: XOR+MOV pattern loads zero-extended unsigned bytes actor+0xa1 (EDX)
+ *   and actor+0x9e (EAX) for the 3rd and 2nd args of combat_status.
+ * Confirmed: disassembly 0x38200–0x38337 cross-checked. */
+void FUN_00038200(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  int uVar3;
+  unsigned char bVar1;
+  unsigned char bVar2;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  (void)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  actor_action_handle_surprise(actor_handle, 4);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_berserking_from_damage(actor_handle);
+    actor_action_handle_berserk_transition(actor_handle, 3);
+    actor_action_handle_combat_transition(actor_handle);
+    FUN_00020990(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0' &&
+        (cVar1 = actor_action_handle_combat_failure(actor_handle),
+         cVar1 == '\0')) {
+      actor_action_handle_evasion(actor_handle);
+      return;
+    }
+    break;
+  case 4:
+    if (*(char *)(actor + 0xaa) == '\0') {
+      actor_action_handle_done_fleeing(actor_handle);
+      return;
+    }
+    /* fall through to shared tail */
+    goto shared_tail;
+  case 6:
+    /* PUSH 0x0 at 0x382c3 is pre-positioned residue for combat_status 3rd arg;
+     * ADD ESP,0xc at 0x382cf cleans 3 args for can_stop_guarding. */
+    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
+    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    return;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_exit_pursuit(actor_handle);
+      return;
+    }
+    break;
+  case 0xb:
+    bVar2 = *(unsigned char *)(actor + 0x9e);
+    bVar1 = *(unsigned char *)(actor + 0xa1);
+    actor_action_handle_combat_status(actor_handle, bVar2, bVar1);
+    return;
+  case 0xd:
+    if (*(short *)(actor + 0x280) != 0) {
+      return;
+    }
+    goto shared_tail;
+  default:
+    return;
+  }
+  return;
+shared_tail:
+  actor_action_handle_combat_status(actor_handle, 1, 1);
+}
+
 /* FUN_00038b10 (0x38b10) — actor action state-machine tick for fighter/retreat
  * type. Handles initial action, combat targeting, berserk transitions, and
  * behavior dispatch. Confirmed from disassembly: switch on
