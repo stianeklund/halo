@@ -2589,6 +2589,14 @@
       "metadata": {
         "source_path": "src/halo/cseries/errors.c"
       }
+    },
+    {
+      "name": "halo/hud_messaging_FUN_0d4680",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
+      "base_path": "delinked/hud_messaging_FUN_0d4680.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_messaging.c"
+      }
     }
   ]
 }

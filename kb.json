@@ -11206,11 +11206,16 @@
         },
         {
           "decl": "void hud_messaging_initialize(void);",
-          "addr": "0xd4680"
+          "addr": "0xd4680",
+          "name": "hud_messaging_initialize",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "decl": "void FUN_000d46a0(void);",
-          "addr": "0xd46a0"
+          "addr": "0xd46a0",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "decl": "void FUN_000d46d0(void);",

@@ -1,5 +1,24 @@
 /* HUD message display system. */
 
+/* hud_messaging_initialize (0xd4680)
+ * Allocates the hud messaging globals buffer via game_state_malloc. */
+void hud_messaging_initialize(void)
+{
+  *(void **)0x46bd18 = game_state_malloc("hud messaging", 0, 0x11a8);
+}
+
+/* FUN_000d46a0 (0xd46a0)
+ * Sets the player globals pointer and zeroes the hud messaging buffer. */
+void FUN_000d46a0(void)
+{
+  void *buf;
+  int val;
+  buf = *(void **)0x46bd18;
+  val = *(int *)0x46bd0c;
+  *(int *)0x5aa68c = val;
+  csmemset(buf, 0, 0x11a8);
+}
+
 /* Find a message slot in the 4-entry array at base (each 0x8c bytes).
  * Prefers: exact match (tag_handle + param2), then free slot, then oldest.
  * tag_handle passed in ESI (register arg). */
