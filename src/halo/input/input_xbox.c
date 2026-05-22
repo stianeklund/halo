@@ -463,6 +463,30 @@ void input_state_process_packet(void *state)
   }
 }
 
+/* FUN_000cf430 (0xcf430)
+ * Saturating byte counter update. If increment is zero, clears the
+ * counter. Otherwise increments it, clamping at 0xff.
+ *
+ * Reference layout (je/jle): increment path inline, saturation before
+ * shared store; set_to_0 is the je target. */
+void FUN_000cf430(uint8_t *counter, char increment)
+{
+  int new_val;
+
+  if (increment != '\0') {
+    new_val = (int)*counter + 1;
+    if (new_val <= 0xff) {
+      goto store;
+    }
+    new_val = 0xff;
+    *counter = (uint8_t)new_val;
+    return;
+  }
+  new_val = 0;
+store:
+  *counter = (uint8_t)new_val;
+}
+
 /* FUN_000cf490 (0xcf490) */
 void FUN_000cf490(void)
 {

@@ -42,6 +42,27 @@ void *hud_find_message_slot(int base, int param2, int tag_handle /* @<esi> */)
   return result;
 }
 
+/* hud_messaging_slot_compare (0xd50f0)
+ * qsort comparator for hud message slots. Sort order:
+ * primary: display timer (int at +0), ascending (oldest first);
+ * secondary: int field at +0x84;
+ * tertiary: byte priority field at +0x83.
+ * Confirmed: three-level comparison via Ghidra decompile. */
+int hud_messaging_slot_compare(int *param_1, int *param_2)
+{
+  int diff;
+
+  diff = *param_2 - *param_1;
+  if (diff == 0) {
+    diff = param_2[0x21] - param_1[0x21];
+    if (diff == 0) {
+      diff = (int)(unsigned char)((char *)param_2 + 0x83)[0] -
+             (int)(unsigned char)((char *)param_1 + 0x83)[0];
+    }
+  }
+  return diff;
+}
+
 /* Clear all scripted HUD message slots across all 4 players x 4 slots. */
 _BYTE *scripted_hud_messages_clear(void)
 {
@@ -110,4 +131,39 @@ void hud_messaging_set_vehicle_notification(int16_t local_player_index,
   *(uint8_t *)(slot + 0x83) = *(uint8_t *)(*(char **)0x46bd18 + 0x1185);
   *(uint8_t *)(*(char **)0x46bd18 + 0x1185) += 1;
   *(uint8_t *)(base + 0x45e) = 0;
+}
+
+/* FUN_000d52e0 (0xd52e0)
+ * Sends a scripted HUD message to all local players whose object is
+ * on the same team as the given actor. Iterates all 4 local player
+ * slots, looks up each player's object, compares team (offset 0x20)
+ * with the actor's team, and calls hud_print_message for matches.
+ * Only runs if a game engine is active (game_engine_running).
+ *
+ * Confirmed: game_engine_running at 0xa8e30; local_player_get_player_index
+ * at 0xba3c0; datum_get(0x5aa6d4) for player objects; +0x20 = team field;
+ * hud_print_message at 0xd51c0. */
+void FUN_000d52e0(int actor_handle, wchar_t *message)
+{
+  char cVar1;
+  int player_obj;
+  int actor_obj;
+  int player_index;
+  int i;
+
+  cVar1 = game_engine_running();
+  if (cVar1 != '\0') {
+    i = 0;
+    do {
+      player_index = local_player_get_player_index((int16_t)i);
+      if (player_index != -1) {
+        player_obj = (int)datum_get(*(data_t **)0x5aa6d4, player_index);
+        actor_obj = (int)datum_get(*(data_t **)0x5aa6d4, actor_handle);
+        if (*(int *)(player_obj + 0x20) == *(int *)(actor_obj + 0x20)) {
+          hud_print_message((int16_t)i, message);
+        }
+      }
+      i++;
+    } while ((int16_t)i < 4);
+  }
 }
