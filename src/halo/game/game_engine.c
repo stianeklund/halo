@@ -2648,7 +2648,12 @@ int FUN_000b04e0(int player_handle, int param_2)
 /* FUN_000b0520 (0xb0520) — check game state == 0 */
 bool FUN_000b0520(int param_1)
 {
-  return param_1 == 0;
+  bool result;
+  result = 0;
+  if (param_1 == 0) {
+    result = 1;
+  }
+  return result;
 }
 
 /* FUN_000b0530 (0xb0530) — CTF/game-engine score format by player

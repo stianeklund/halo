@@ -880,7 +880,12 @@ int FUN_000b4d50(unsigned int player_handle, int param_2)
 /* FUN_000b4d90 (0xb4d90) — check race state == 1 */
 bool FUN_000b4d90(int param_1)
 {
-  return param_1 == 1;
+  bool result;
+  result = 0;
+  if (--param_1 == 0) {
+    result = 1;
+  }
+  return result;
 }
 
 /* FUN_000b4da0 (0xb4da0) — race score format by handle
