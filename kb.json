@@ -6780,11 +6780,6 @@
           "ported": true
         },
         {
-          "decl": "bool file_exists(file_ref_t *info);",
-          "addr": "0x19a640",
-          "ported": true
-        },
-        {
           "decl": "void file_reference_create(void);",
           "addr": "0x199420"
         },
@@ -6811,14 +6806,6 @@
         {
           "decl": "void FUN_00199b20(void);",
           "addr": "0x199b20"
-        },
-        {
-          "decl": "void FUN_0019a560(void);",
-          "addr": "0x19a560"
-        },
-        {
-          "decl": "void FUN_0019a6d0(void);",
-          "addr": "0x19a6d0"
         }
       ]
     },
@@ -6826,6 +6813,14 @@
       "name": "files_windows.obj",
       "source": "tag_files/files.c",
       "functions": [
+        {
+          "decl": "void FUN_00199d40(void);",
+          "addr": "0x199d40"
+        },
+        {
+          "decl": "void file_compare_last_modification_dates(void);",
+          "addr": "0x19a020"
+        },
         {
           "decl": "void find_files_begin(int flags, file_ref_t *dir);",
           "addr": "0x19a040",
@@ -6857,8 +6852,32 @@
           "ported": true
         },
         {
+          "decl": "void file_read_only(void);",
+          "addr": "0x19a400"
+        },
+        {
           "decl": "void file_error(file_ref_t *info, const char *function_name);",
           "addr": "0x19a450",
+          "ported": true
+        },
+        {
+          "decl": "bool FUN_0019a490(file_ref_t *info);",
+          "addr": "0x19a490",
+          "ported": true
+        },
+        {
+          "decl": "bool file_delete(file_ref_t *info);",
+          "addr": "0x19a560",
+          "ported": true
+        },
+        {
+          "decl": "bool file_exists(file_ref_t *info);",
+          "addr": "0x19a640",
+          "ported": true
+        },
+        {
+          "decl": "bool file_rename(file_ref_t *info, const char *new_name);",
+          "addr": "0x19a6d0",
           "ported": true
         },
         {
@@ -6872,38 +6891,6 @@
           "ported": true
         },
         {
-          "decl": "int file_get_eof(file_ref_t *info);",
-          "addr": "0x19aa70",
-          "ported": true
-        },
-        {
-          "decl": "bool file_read(file_ref_t *info, int size, void *buffer);",
-          "addr": "0x19ab50",
-          "ported": true
-        },
-        {
-          "decl": "bool find_files_next(file_ref_t *result, int param2);",
-          "addr": "0x19aed0",
-          "ported": true
-        },
-        {
-          "decl": "void FUN_00199d40(void);",
-          "addr": "0x199d40"
-        },
-        {
-          "decl": "void file_compare_last_modification_dates(void);",
-          "addr": "0x19a020"
-        },
-        {
-          "decl": "void file_read_only(void);",
-          "addr": "0x19a400"
-        },
-        {
-          "decl": "bool FUN_0019a490(file_ref_t *info);",
-          "addr": "0x19a490",
-          "ported": true
-        },
-        {
           "decl": "int file_get_position(file_ref_t *info);",
           "addr": "0x19a9a0",
           "ported": true
@@ -6914,8 +6901,18 @@
           "ported": true
         },
         {
+          "decl": "int file_get_eof(file_ref_t *info);",
+          "addr": "0x19aa70",
+          "ported": true
+        },
+        {
           "decl": "void file_set_eof(void);",
           "addr": "0x19aad0"
+        },
+        {
+          "decl": "bool file_read(file_ref_t *info, int size, void *buffer);",
+          "addr": "0x19ab50",
+          "ported": true
         },
         {
           "decl": "void file_write(void);",
@@ -6937,6 +6934,11 @@
         {
           "decl": "void file_get_size(void);",
           "addr": "0x19adf0"
+        },
+        {
+          "decl": "bool find_files_next(file_ref_t *result, int param2);",
+          "addr": "0x19aed0",
+          "ported": true
         }
       ]
     },
@@ -21532,8 +21534,9 @@
           "ported": true
         },
         {
-          "decl": "void verify_tag_reference(void);",
-          "addr": "0x19b120"
+          "decl": "int verify_tag_reference(int *tag_ref);",
+          "addr": "0x19b120",
+          "ported": true
         },
         {
           "decl": "void FUN_0019b320(void);",

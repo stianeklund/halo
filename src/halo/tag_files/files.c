@@ -24,6 +24,12 @@ typedef void (*debug_log_fn)(int level, const char *format, ...);
 typedef uint32_t(__stdcall *xget_last_error_fn)(void);
 typedef void(__stdcall *xset_last_error_fn)(uint32_t error);
 typedef int(__stdcall *nt_create_file_fn)(const char *path, int access);
+typedef bool(__stdcall *remove_directory_fn)(const char *path);
+typedef bool(__stdcall *set_file_attributes_fn)(const char *path,
+                                                uint32_t attributes);
+typedef bool(__stdcall *delete_file_fn)(const char *path);
+typedef bool(__stdcall *move_file_fn)(const char *existing_path,
+                                      const char *new_path);
 
 #define XFindFirstFile ((find_first_file_fn)0x1d3576)
 #define XFindNextFile ((find_next_file_fn)0x1d3683)
@@ -38,6 +44,10 @@ typedef int(__stdcall *nt_create_file_fn)(const char *path, int access);
 #define XGetLastError ((xget_last_error_fn)0x1d2240)
 #define XSetLastError ((xset_last_error_fn)0x1d2268)
 #define XNtCreateFile ((nt_create_file_fn)0x1d3410)
+#define XRemoveDirectory ((remove_directory_fn)0x1d347c)
+#define XSetFileAttributes ((set_file_attributes_fn)0x1d0df0)
+#define XDeleteFile ((delete_file_fn)0x1d0ff9)
+#define XMoveFile ((move_file_fn)0x1d0f63)
 
 static uint32_t g_find_files_flags;
 static int16_t g_find_files_index = -1;
@@ -536,6 +546,39 @@ error:
   return false;
 }
 
+/* 0x19a560 — delete the file (or directory) referenced by info.
+ * For directories (unk_4[0] bit 0 clear), uses XRemoveDirectory.
+ * For regular files (unk_4[0] bit 0 set), clears FILE_ATTRIBUTE_NORMAL
+ * then calls XDeleteFile. Returns true on success, logs error and
+ * returns false on failure. */
+bool file_delete(file_ref_t *info)
+{
+  file_ref_t *ref;
+  char path[256];
+
+  ref = file_reference_verify(info);
+  csmemset(path, 0, sizeof(path));
+  path_from_file_reference(ref->unk_6, ref->unk_8, path);
+
+  if ((ref->unk_4[0] & 1) == 0) {
+    if (XRemoveDirectory(path)) {
+      return true;
+    }
+  } else {
+    if (XSetFileAttributes(path, 0x80)) {
+      if (XDeleteFile(path)) {
+        return true;
+      }
+    }
+  }
+
+  ref = file_reference_verify(info);
+  DEBUG_LOG(2, "%s('%s') error 0x%08x", "file_delete", ref->unk_8,
+            XGetLastError());
+  XSetLastError(0);
+  return false;
+}
+
 /**
  * file_exists - check whether a file referenced by info exists on disk.
  *
@@ -568,6 +611,33 @@ bool file_exists(file_ref_t *info)
     }
   }
 
+  return false;
+}
+
+/* 0x19a6d0 — rename (or move) the file referenced by info to new_name.
+ * Builds the full source path from info; builds the destination path by
+ * copying the source path, stripping the filename, and appending new_name.
+ * Calls XMoveFile to perform the rename. On success also updates the
+ * file_ref's internal path. Returns true on success, false on failure. */
+bool file_rename(file_ref_t *info, const char *new_name)
+{
+  file_ref_t *ref;
+  char src_path[256];
+  char dst_path[256];
+
+  ref = file_reference_verify(info);
+  csmemset(src_path, 0, sizeof(src_path));
+  csmemset(dst_path, 0, sizeof(dst_path));
+  path_from_file_reference(ref->unk_6, ref->unk_8, src_path);
+  csstrcpy(dst_path, src_path);
+  path_remove_filename(dst_path);
+  path_add_directory(dst_path, new_name);
+
+  if (XMoveFile(src_path, dst_path)) {
+    path_remove_filename(ref->unk_8);
+    path_add_directory(ref->unk_8, new_name);
+    return true;
+  }
   return false;
 }
 
