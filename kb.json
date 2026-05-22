@@ -28488,8 +28488,10 @@
           "source_path": "halo/items/weapons.c"
         },
         {
-          "decl": "void weapon_set_integrated_light_power(void);",
-          "addr": "0xfaeb0"
+          "decl": "void weapon_set_integrated_light_power(int weapon_handle, int light_power);",
+          "addr": "0xfaeb0",
+          "source_path": "halo/items/weapons.c",
+          "ported": true
         },
         {
           "decl": "float weapon_estimate_time_to_target(int weapon_handle, int16_t trigger_index, float param_3);",
