@@ -2749,6 +2749,14 @@
       "metadata": {
         "source_path": "halo/items/weapons.c"
       }
+    },
+    {
+      "name": "halo/actors_FUN_00038b10",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
+      "base_path": "delinked/actors_FUN_00038b10.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actors.c"
+      }
     }
   ]
 }

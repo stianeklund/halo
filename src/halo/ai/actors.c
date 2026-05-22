@@ -488,6 +488,73 @@ void FUN_000377d0(int actor_handle, int prop_handle)
   *(int *)(actor + 0x30c) = new_payload;
 }
 
+/* FUN_00038b10 (0x38b10) — actor action state-machine tick for fighter/retreat
+ * type. Handles initial action, combat targeting, berserk transitions, and
+ * behavior dispatch. Confirmed from disassembly: switch on
+ * *(short*)(actor+0x6c); actor_action_can_stop_conversing takes 2 params (flag
+ * 0/1); case 0xb loads bytes via local unsigned char vars (XOR+MOV pattern);
+ * case 0xc uses batched-cleanup residue: 3rd arg to handle_combat_status is
+ * the flag (0/1) pushed before can_stop_conversing and partially cleaned. */
+void FUN_00038b10(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  int uVar3;
+  unsigned char bVar1;
+  unsigned char bVar2;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_berserking_from_damage(actor_handle);
+    actor_action_handle_combat_targeting(actor_handle);
+    actor_action_handle_berserk_transition(actor_handle, 3);
+    actor_action_handle_combat_transition(actor_handle);
+    FUN_00020990(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 4:
+  case 6:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_combat_failure(actor_handle);
+      return;
+    }
+    break;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 == '\0') {
+      actor_action_handle_exit_pursuit(actor_handle);
+      return;
+    }
+    break;
+  case 0xb:
+    bVar1 = *(unsigned char *)(actor + 0x9e);
+    bVar2 = *(unsigned char *)(actor + 0xa1);
+    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    return;
+  case 0xc:
+    if (*(char *)(actor + 0xa0) == '\0' && *(int *)(actor + 0x1dc) != -1) {
+      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      return;
+    }
+    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    return;
+  case 0xd:
+    if (*(short *)(actor + 0x280) == 0) {
+      actor_action_handle_combat_status(actor_handle, 1, 1);
+    }
+  }
+}
+
 /* 0x3a3b0
  *
  * actor_action_handle_status_change

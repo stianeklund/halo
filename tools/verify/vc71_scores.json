@@ -916,6 +916,10 @@
       "score": 2.2,
       "source": "src/halo/game/game.c"
     },
+    "FUN_000faeb0": {
+      "score": 100.0,
+      "source": "src/halo/items/weapons.c"
+    },
     "FUN_001994a0": {
       "score": 81.5,
       "source": "src/halo/tag_files/files.c"
