@@ -2765,6 +2765,46 @@
       "metadata": {
         "source_path": "src/halo/camera/bored_camera.c"
       }
+    },
+    {
+      "name": "halo/units_FUN_001a6820",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units_FUN_001a6820.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/units_FUN_001a6870",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units_FUN_001a6870.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/units_FUN_001a6cd0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units_FUN_001a6cd0.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00085000",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00085000.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00085180",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00085180.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }

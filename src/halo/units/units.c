@@ -84,6 +84,68 @@ char *FUN_001a67b0(short param_1, unsigned char param_2)
 }
 
 
+/* FUN_001a6820 (0x1a6820)
+ *
+ * Returns verify_tag_reference result for the animation at index bool(param_2)
+ * (0 or 1, clamped to count-1) from the tag block at param_1+0x2a8.
+ * Returns -1 if clamped index is negative (count == 0).
+ *
+ * Confirmed: MOV AL,[ebp+0xc]; XOR ECX,ECX; TEST AL,AL; MOV EAX,[edx+0x2a8];
+ * SETNE CL; ADD EDX,0x2a8; DEC EAX; MOVSX ECX,CX; CMP ECX,EAX; JG skip;
+ * MOV EAX,ECX; TEST AX,AX; JGE proceed; OR EAX,-1; RET.
+ */
+int FUN_001a6820(int param_1, char param_2)
+{
+  int iVar1;
+  int *block;
+  int bVal;
+
+  bVal = (int)(short)(unsigned short)(param_2 != '\0');
+  iVar1 = *(int *)(param_1 + 0x2a8) - 1;
+  block = (int *)(param_1 + 0x2a8);
+  if (bVal <= iVar1) {
+    iVar1 = bVal;
+  }
+  if ((short)iVar1 < 0) {
+    return -1;
+  }
+  return (int)verify_tag_reference(
+    (int *)tag_block_get_element(block, (int)(short)iVar1, 0x30));
+}
+
+/* FUN_001a6870 (0x1a6870)
+ *
+ * Returns verify_tag_reference result for the animation at index bool(param_3)
+ * (0 or 1, clamped) from a nested tag block. First gets element param_2 from
+ * the block at param_1+0x2e4 (stride 0x11c), then reads sub-block at +0xdc.
+ * Returns -1 if clamped index is negative.
+ *
+ * Confirmed: MOVSX EAX,CX (param_2); ADD ECX,0x2e4; CALL tag_block_get_element;
+ * MOV DL,[ebp+0x10] (param_3); XOR ECX,ECX; TEST DL,DL; SETNE CL;
+ * LEA EDX,[EAX+0xdc]; MOV EAX,[EDX]; DEC EAX; MOVSX ECX,CX; ...
+ */
+int FUN_001a6870(int param_1, short param_2, char param_3)
+{
+  int iVar1;
+  int iVar2;
+  int *block;
+  int bVal;
+
+  iVar1 =
+    (int)tag_block_get_element((void *)(param_1 + 0x2e4), (int)param_2, 0x11c);
+  bVal = (int)(short)(unsigned short)(param_3 != '\0');
+  iVar2 = *(int *)(iVar1 + 0xdc) - 1;
+  block = (int *)(iVar1 + 0xdc);
+  if (bVal <= iVar2) {
+    iVar2 = bVal;
+  }
+  if ((short)iVar2 < 0) {
+    return -1;
+  }
+  return (int)verify_tag_reference(
+    (int *)tag_block_get_element(block, (int)(short)iVar2, 0x30));
+}
+
 /* FUN_001a6bc0 (0x1a6bc0)
  *
  * Returns non-zero if the unit's animation count field at offset 0x338
@@ -118,6 +180,33 @@ char *FUN_001a6ca0(short param_1)
     result = ((char **)0x32de50)[(short)param_1];
   }
   return result;
+}
+
+/* FUN_001a6cd0 (0x1a6cd0)
+ *
+ * Searches the 11-entry dialogue-category pointer table at 0x32de50 for a
+ * case-sensitive match with param_1 using csstrcmp. Returns the index (0–10)
+ * on success. On no match, returns 0 (BX register held zero throughout).
+ *
+ * Confirmed: XOR EBX,EBX; XOR ESI,ESI; MOVSX EAX,SI; MOV ECX,[EAX*4+table];
+ * PUSH EDI; PUSH ECX; CALL csstrcmp; TEST EAX,EAX; JE found;
+ * INC ESI; CMP SI,0xb; JL loop; MOV AX,BX; RET.
+ * found: MOV AX,SI; RET.
+ */
+short FUN_001a6cd0(const char *param_1)
+{
+  unsigned short result;
+  unsigned short i;
+
+  result = 0;
+  i = 0;
+  do {
+    if (csstrcmp(((char **)0x32de50)[(short)i], param_1) == 0) {
+      return (short)i;
+    }
+    i++;
+  } while ((short)i < 0xb);
+  return (short)result;
 }
 
 /* unit_set_actively_controlled_flag (0x1a7f80)

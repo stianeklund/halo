@@ -13717,8 +13717,10 @@
           "source_path": "camera/bored_camera.c"
         },
         {
-          "decl": "void FUN_00085000(void);",
-          "addr": "0x85000"
+          "decl": "void FUN_00085000(int param_1, const char *param_2);",
+          "addr": "0x85000",
+          "ported": false,
+          "source_path": "objects/objects.c"
         },
         {
           "decl": "void FUN_000850d0(int param_1);",
@@ -13738,8 +13740,10 @@
           "ported": false
         },
         {
-          "decl": "void FUN_00085180(void);",
-          "addr": "0x85180"
+          "decl": "void FUN_00085180(short param_1, short param_2, int param_3);",
+          "addr": "0x85180",
+          "ported": true,
+          "source_path": "objects/objects.c"
         },
         {
           "decl": "void FUN_00085260(void);",
@@ -24384,12 +24388,16 @@
           "source_path": "units/units.c"
         },
         {
-          "decl": "void FUN_001a6820(void);",
-          "addr": "0x1a6820"
+          "decl": "int FUN_001a6820(int param_1, char param_2);",
+          "addr": "0x1a6820",
+          "ported": true,
+          "source_path": "units/units.c"
         },
         {
-          "decl": "void FUN_001a6870(void);",
-          "addr": "0x1a6870"
+          "decl": "int FUN_001a6870(int param_1, short param_2, char param_3);",
+          "addr": "0x1a6870",
+          "ported": true,
+          "source_path": "units/units.c"
         },
         {
           "decl": "void FUN_001a68d0(void);",
@@ -24412,8 +24420,10 @@
           "source_path": "units/units.c"
         },
         {
-          "decl": "void FUN_001a6cd0(void);",
-          "addr": "0x1a6cd0"
+          "decl": "short FUN_001a6cd0(const char *param_1);",
+          "addr": "0x1a6cd0",
+          "ported": true,
+          "source_path": "units/units.c"
         },
         {
           "decl": "void FUN_001a6d10(void);",
