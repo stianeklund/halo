@@ -1,12 +1,13 @@
 /* 0xfae80 — weapon_get_label */
 char *weapon_get_label(int weapon_handle)
 {
+  char *result = (char *)0x25386f;
   int *obj;
-  if (weapon_handle == -1) {
-    return (char *)0x25386f;
+  if (weapon_handle != -1) {
+    obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+    result = (char *)tag_get(0x77656170, *obj) + 0x30c;
   }
-  obj = (int *)object_get_and_verify_type(weapon_handle, 4);
-  return (char *)tag_get(0x77656170, *obj) + 0x30c;
+  return result;
 }
 
 /* 0xfaeb0 — weapon_set_integrated_light_power */
