@@ -6532,7 +6532,14 @@
         },
         {
           "decl": "void FUN_0008e7d0(void *header /* @<esi> */, const char *file /* @<ebx> */, int line /* @<edi> */);",
-          "addr": "0x8e7d0"
+          "addr": "0x8e7d0",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c",
+          "reg_args": {
+            "header": "esi",
+            "file": "ebx",
+            "line": "edi"
+          }
         },
         {
           "decl": "void FUN_0008e8e0(void *ptr /* @<ebx> */, uint32_t size);",
