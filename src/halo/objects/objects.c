@@ -7006,52 +7006,6 @@ void FUN_001a9520(int object_handle, float *out_position)
   out_position[2] = *(float *)(marker_buf + 0x68);
 }
 
-/* FUN_00084fe0 (0x84fe0) — Set the bored-camera enable flag and mark the
- * camera state dirty so it will be re-evaluated this tick.
- * Object: objects.obj / source: bored_camera.c
- *
- * Confirmed: MOV AL,[param_1]; MOV [0x2ee5a0],AL; MOV byte ptr [0x2ee5a1],1.
- */
-void FUN_00084fe0(unsigned char param_1)
-{
-  *(char *)0x2ee5a0 = param_1;
-  *(char *)0x2ee5a1 = 1;
-}
-
-/* FUN_000850d0 (0x850d0) — Switch to first-person camera mode 2 for the
- * given unit handle, or report an error if the handle is -1.
- * Object: objects.obj / source: bored_camera.c
- *
- * Confirmed: CMP [param_1],-1; JE error_path; MOV [0x2ee5a2],2;
- * MOV [0x2ee5a1],1; MOV [0x2ee5d4],param_1; RET.
- */
-void FUN_000850d0(int param_1)
-{
-  if (param_1 != -1) {
-    *(char *)0x2ee5a2 = 2;
-    *(char *)0x2ee5a1 = 1;
-    *(int *)0x2ee5d4 = param_1;
-    return;
-  }
-  error(2, "cannot set first person camera on a unit that doesn't exist.");
-}
-
-/* FUN_00085110 (0x85110) — Switch to first-person camera mode 3 for the
- * given unit handle, or report an error if the handle is -1.
- * Object: objects.obj / source: bored_camera.c
- *
- * Confirmed: identical to FUN_000850d0 but stores 3 in DAT_002ee5a2.
- */
-void FUN_00085110(int param_1)
-{
-  if (param_1 != -1) {
-    *(char *)0x2ee5a2 = 3;
-    *(char *)0x2ee5a1 = 1;
-    *(int *)0x2ee5d4 = param_1;
-    return;
-  }
-  error(2, "cannot set first person camera on a unit that doesn't exist.");
-}
 
 /* FUN_00085180 (0x85180) — Configure camera globals from a cutscene-camera
  * entry (param_1) in the scenario, using param_2 as tick-based time and

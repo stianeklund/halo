@@ -112,7 +112,6 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
 }
 
 
-
 /*
  * FUN_00036b50 — trigger a swarm damage/retreat reaction.
  *
@@ -592,8 +591,9 @@ void FUN_000379f0(int actor_handle)
     }
     break;
   case 6:
-    /* PUSH 0x0 at 0x37aa2 is pre-positioned residue for handle_combat_status 3rd arg;
-     * actor_action_can_stop_guarding takes 3 args (ADD ESP,0xc at 0x37aae cleans 3). */
+    /* PUSH 0x0 at 0x37aa2 is pre-positioned residue for handle_combat_status
+     * 3rd arg; actor_action_can_stop_guarding takes 3 args (ADD ESP,0xc at
+     * 0x37aae cleans 3). */
     uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
     actor_action_handle_combat_status(actor_handle, uVar3, 0);
     return;
@@ -619,6 +619,122 @@ void FUN_000379f0(int actor_handle)
                                       *(unsigned char *)(actor + 0xa1));
     break;
   }
+}
+
+/* FUN_00038000 (0x38000) — actor action state-machine tick (panic/ambush
+ * variant).
+ *
+ * Sibling of FUN_000379f0 but with an expanded deny=false block (panic helpers
+ * + grenade/evasion setup) and a wider switch covering states 3–0xd.  No
+ * tag_get warm-up call (unlike FUN_000379f0).
+ *
+ * Preamble: datum_get, handle_initial_action, handle_pending_command_list,
+ * handle_surprise(1), deny_transition check.  If deny=false: panic helpers
+ * (from_damage, from_attached_projectiles, from_attached_melee_attackers,
+ * from_burning_to_death), handle_panic_transition(1,0,9),
+ * handle_combat_transition, handle_grenade_throwing, FUN_00020990.
+ *
+ * Switch physical layout (from jump table at 0x381c8, EAX=value-3):
+ *   3,10 → 0x38087; 6 → 0x380ba; 4 → 0x380d7; 5,7,8 → 0x380f2;
+ *   9 → 0x38114; 0xb → 0x38141; 0xc → 0x38160; 0xd → 0x381aa.
+ * Shared tail at 0x381b4: handle_combat_status(actor_handle,1,1).
+ *
+ * Case 6: actor_action_can_stop_guarding(actor_handle,3,6,0) — 4 args
+ *   (ADD ESP,0xc at 0x380c6 cleans 3; 4th arg 0 is PUSH residue
+ * pre-positioned). Case 0xc: actor_action_can_stop_conversing(actor_handle,
+ * flag) — batch-cleanup residue pattern (ADD ESP,0x4 cleans only flag; ESI
+ * cleaned by later ADD ESP,0xc). Case 0xb: XOR+MOV pattern for unsigned byte
+ * loads at actor+0xa1, actor+0x9e. Confirmed: disassembly 0x38000–0x381c4
+ * cross-checked. */
+void FUN_00038000(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  int uVar3;
+  unsigned char bVar1;
+  unsigned char bVar2;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  actor_action_handle_surprise(actor_handle, 1);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_panic_from_damage(actor_handle);
+    actor_action_handle_panic_from_attached_projectiles(actor_handle);
+    actor_action_handle_panic_from_attached_melee_attackers(actor_handle);
+    actor_action_handle_panic_from_burning_to_death(actor_handle);
+    actor_action_handle_panic_transition(actor_handle, 1, 0, 9);
+    actor_action_handle_combat_transition(actor_handle);
+    actor_action_handle_grenade_throwing(actor_handle);
+    FUN_00020990(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    cVar1 = actor_action_handle_combat_failure(actor_handle);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_evasion(actor_handle);
+    return;
+  case 6:
+    /* PUSH 0x0 at 0x380ba is pre-positioned residue for handle_combat_status
+     * 3rd arg; ADD ESP,0xc at 0x380c6 cleans 3 args for can_stop_guarding. */
+    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
+    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    return;
+  case 4:
+    if (*(char *)(actor + 0xaa) == '\0') {
+      actor_action_handle_done_fleeing(actor_handle);
+      return;
+    }
+    break;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_exit_pursuit(actor_handle);
+    return;
+  case 9:
+    if (*(char *)(actor + 0xa5) != '\0') {
+      break;
+    }
+    if (*(char *)(actor + 0xa6) == '\0') {
+      return;
+    }
+    actor_action_handle_combat_status(actor_handle, 1, 1);
+    return;
+  case 0xb:
+    bVar2 = *(unsigned char *)(actor + 0x9e);
+    bVar1 = *(unsigned char *)(actor + 0xa1);
+    actor_action_handle_combat_status(actor_handle, bVar2, bVar1);
+    return;
+  case 0xc:
+    if (*(char *)(actor + 0xa0) == '\0' && *(int *)(actor + 0x1dc) != -1) {
+      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      return;
+    }
+    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    return;
+  case 0xd:
+    if (*(short *)(actor + 0x280) != 0) {
+      return;
+    }
+    break;
+  default:
+    return;
+  }
+  actor_action_handle_combat_status(actor_handle, 1, 1);
 }
 
 /* FUN_00038b10 (0x38b10) — actor action state-machine tick for fighter/retreat
