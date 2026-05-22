@@ -1,3 +1,116 @@
+/* cseries_initialize (0x8d830) — initialise debug allocation and profiling
+ * subsystems, then clear the profiling-enable flag. */
+void cseries_initialize(void)
+{
+  FUN_0008e650();
+  FUN_0008f630();
+  *(uint8_t *)0x449ef1 = 0;
+}
+
+/* cseries_dispose (0x8d850) — thunk → debug_dump_memory_for_file(NULL). */
+void cseries_dispose(void)
+{
+  FUN_0008f1e0();
+}
+
+/* string_to_tag (0x8d860) — byte-swap the 4-character tag stored at *param_1
+ * so it can be compared as a uint32 regardless of endianness. */
+uint32_t string_to_tag(uint32_t *param_1)
+{
+  uint32_t v;
+  v = *param_1;
+  return ((v & 0xff0000) | v >> 0x10) >> 8 | ((v & 0xff00) | v << 0x10) << 8;
+}
+
+/* tag_to_string (0x8d890) — byte-swap param_1 and write it to *param_2,
+ * then null-terminate the byte immediately after the stored value. */
+void tag_to_string(uint32_t param_1, uint32_t *param_2)
+{
+  *param_2 = ((param_1 & 0xff0000) | param_1 >> 0x10) >> 8 |
+             ((param_1 & 0xff00) | param_1 << 0x10) << 8;
+  *(uint8_t *)(param_2 + 1) = 0;
+}
+
+/* strnlen (0x8d8d0) — bounded strlen: count non-null chars in s up to n.
+ * Returns the number of characters before the first null, at most n. */
+int strnlen(const char *s, int n)
+{
+  int count;
+  char c;
+
+  count = 0;
+  if (0 < n) {
+    do {
+      c = *s;
+      s = s + 1;
+      if (c == '\0')
+        return count;
+      count = count + 1;
+    } while (count < n);
+  }
+  return count;
+}
+
+/* strnupr (0x8d8f0) — convert up to n characters of s to uppercase in
+ * place using the CRT toupper function. Returns s. */
+char *strnupr(char *s, int n)
+{
+  char c;
+  char *p;
+
+  p = s;
+  if (*p == '\0')
+    return s;
+  do {
+    if (n-- <= 0)
+      break;
+    c = (char)FUN_001da19f((unsigned char)*p);
+    *p = c;
+    c = p[1];
+    p++;
+  } while (c != '\0');
+  return s;
+}
+
+/* strnlwr (0x8d930) — convert up to n characters of s to lowercase in
+ * place using the CRT tolower function. Returns s. */
+char *strnlwr(char *s, int n)
+{
+  char c;
+  char *p;
+
+  p = s;
+  if (*p == '\0')
+    return s;
+  do {
+    if (n-- <= 0)
+      break;
+    c = (char)crt_toupper((unsigned char)*p);
+    *p = c;
+    c = p[1];
+    p++;
+  } while (c != '\0');
+  return s;
+}
+
+/* strupr (0x8d970) — convert entire string s to uppercase in place using
+ * the CRT toupper function. Returns s. */
+char *strupr(char *s)
+{
+  char *p;
+  char c;
+
+  p = s;
+  c = *p;
+  while (c != '\0') {
+    c = FUN_001da19f(*p);
+    *p = c;
+    p++;
+    c = *p;
+  }
+  return s;
+}
+
 #include <stdarg.h>
 
 /* Convert a string to lowercase in place and return it. */

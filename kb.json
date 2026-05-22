@@ -1131,7 +1131,7 @@
           "addr": "0x1da0e9"
         },
         {
-          "decl": "void FUN_001da19f(void);",
+          "decl": "int FUN_001da19f(int c);",
           "addr": "0x1da19f"
         },
         {
@@ -5076,35 +5076,51 @@
         },
         {
           "decl": "void cseries_initialize(void);",
-          "addr": "0x8d830"
+          "addr": "0x8d830",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
           "decl": "void cseries_dispose(void);",
-          "addr": "0x8d850"
+          "addr": "0x8d850",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
-          "decl": "void string_to_tag(void);",
-          "addr": "0x8d860"
+          "decl": "uint32_t string_to_tag(uint32_t *param_1);",
+          "addr": "0x8d860",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
-          "decl": "void tag_to_string(void);",
-          "addr": "0x8d890"
+          "decl": "void tag_to_string(uint32_t param_1, uint32_t *param_2);",
+          "addr": "0x8d890",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
-          "decl": "void strnlen(void);",
-          "addr": "0x8d8d0"
+          "decl": "int strnlen(const char *s, int n);",
+          "addr": "0x8d8d0",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
-          "decl": "void strnupr(void);",
-          "addr": "0x8d8f0"
+          "decl": "char *strnupr(char *s, int n);",
+          "addr": "0x8d8f0",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
-          "decl": "void strnlwr(void);",
-          "addr": "0x8d930"
+          "decl": "char *strnlwr(char *s, int n);",
+          "addr": "0x8d930",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
-          "decl": "void strupr(void);",
-          "addr": "0x8d970"
+          "decl": "char *strupr(char *s);",
+          "addr": "0x8d970",
+          "ported": true,
+          "source_path": "halo/cseries/cseries.c"
         },
         {
           "decl": "int csstrncmp(char *s1, char *s2, unsigned int size);",

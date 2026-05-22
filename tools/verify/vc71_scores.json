@@ -1,5 +1,65 @@
 {
   "scores": {
+    "FUN_0008e770": {
+      "score": 79.5,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008e7c0": {
+      "score": 100.0,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008e7d0": {
+      "score": 91.1,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008e8e0": {
+      "score": 83.5,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008e950": {
+      "score": 85.7,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008e9f0": {
+      "score": 86.3,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008ead0": {
+      "score": 96.0,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f040": {
+      "score": 84.9,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f1e0": {
+      "score": 100.0,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f230": {
+      "score": 91.6,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f390": {
+      "score": 92.0,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f600": {
+      "score": 83.3,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f630": {
+      "score": 84.6,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f6b0": {
+      "score": 75.3,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f810": {
+      "score": 100.0,
+      "source": "src/halo/cseries/errors.c"
+    },
     "FUN_000a6a80": {
       "score": 86.8,
       "source": "src/halo/game/game.c"

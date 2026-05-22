@@ -1545,6 +1545,38 @@
         "summary": "Per-tick update for all local-player observers: records delta_time, validates header/trailer signatures and updated_for_frame, then dispatches three unported sub-updates (0x8b060 input, 0x8cd40 integration when dt changed, 0x8c4b0 post) via inline asm passing index in EAX."
       }
     },
+    "0x8d830": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8d850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8d860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8d890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8d8d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8d8f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8d930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8d970": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8d9a0": {
       "kind": "function",
       "status": "ported"
