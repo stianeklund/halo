@@ -58,6 +58,49 @@ int valid_real_normal3d_perpendicular(float *a, float *b)
   return fabsf(dot) < 0.001f;
 }
 
+/*
+ * FUN_000ae0a0 — game-engine tag-index remapping dispatch.
+ *
+ * When a game engine is active (*(int *)0x456b60 != 0) and tag_index is
+ * valid (!= -1), reads the object type word from the 'obje' tag header
+ * (first 2 bytes) and dispatches to the appropriate engine-specific
+ * tag-remapping helper:
+ *   type 1 (vehicle) → game_engine_remap_vehicle(tag_index)
+ *   type 2 (weapon)  → game_engine_remap_weapon(tag_index)
+ *   type 3 (?)       → FUN_000adf70(tag_index)
+ * Returns the (possibly remapped) tag index, or the original tag_index
+ * if no engine is active, tag_index is -1, or the type is not 1/2/3.
+ *
+ * Confirmed: MOV EAX,[0x456b60] / TEST EAX,EAX — bool check on engine ptr.
+ * Confirmed: PUSH ESI / PUSH 0x6f626a65 / CALL tag_get — 'obje' tag lookup.
+ * Confirmed: MOV AX,[EAX] — first 2 bytes of tag data = object type word.
+ * Confirmed: CMP AX,1 / CMP AX,2 / CMP AX,3 — three dispatch branches.
+ * Confirmed: each branch PUSH ESI / CALL callee / ADD ESP,4; returns EAX.
+ * Confirmed: fallthrough MOV EAX,ESI — returns original tag_index unchanged.
+ * Note: callee decls carry wrong void return type; binary shows they return
+ * int.
+ */
+int FUN_000ae0a0(int tag_index)
+{
+  short obj_type;
+  short *tag_data;
+
+  if ((*(int *)0x456b60 != 0) && (tag_index != -1)) {
+    tag_data = (short *)tag_get(0x6f626a65, tag_index);
+    obj_type = *tag_data;
+    if (obj_type == 1) {
+      return game_engine_remap_vehicle(tag_index);
+    }
+    if (obj_type == 2) {
+      return game_engine_remap_weapon(tag_index);
+    }
+    if (obj_type == 3) {
+      return FUN_000adf70(tag_index);
+    }
+  }
+  return tag_index;
+}
+
 /* FUN_00136150 — create widgets for an object from its tag definition.
  *
  * Looks up the object's tag (group 'obje'), reads the widget attachments
@@ -206,7 +249,11 @@ typedef void (*pfn_int_t)(int);
 typedef int (*valid_real_point3d_fn)(float *p);
 typedef void (*object_type_validate_fn)(int16_t type);
 
-int FUN_000ae0a0(int tag_index);
+/* game engine tag-index remapping helpers (called from FUN_000ae0a0).
+ * Binary: each takes 1 cdecl int arg, returns int in EAX. */
+int game_engine_remap_vehicle(int tag_index);
+int game_engine_remap_weapon(int tag_index);
+int FUN_000adf70(int tag_index);
 
 /*
  * object_set_position — reposition an object and recompute its orientation.
@@ -895,7 +942,31 @@ void FUN_0013bce0(int object_handle, float *lighting)
   }
 }
 
-void *FUN_0013c100(int16_t object_type);
+/* 0x13c100 / objects.obj */
+void *FUN_0013c100(int16_t object_type)
+{
+  int iVar1;
+
+  if ((object_type < 0) || (0xb < object_type)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "#%d isn't a valid object type in [#0,#%d)",
+                            (int)object_type, 0xc),
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x277, 1);
+    system_exit(-1);
+  }
+  iVar1 = (int)object_type;
+  if (((void **)0x324608)[iVar1] == (void *)0) {
+    display_assert("object_type_definitions[object_type]",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x278, 1);
+    system_exit(-1);
+  }
+  if (*(int *)((char *)((void **)0x324608)[iVar1] + 4) == 0) {
+    display_assert("object_type_definitions[object_type]->group_tag",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x279, 1);
+    system_exit(-1);
+  }
+  return ((void **)0x324608)[iVar1];
+}
 
 int FUN_0013c490(int object_handle);
 
@@ -1685,6 +1756,30 @@ int object_get_root_parent(int object_handle)
 
 void FUN_0013d870(void)
 {
+}
+
+/*
+ * object_name_list_set_handle — store an object handle at a name-table index.
+ *
+ * Validates that param_1 is non-negative (TEST AX,AX / JL) and less than the
+ * scenario's object-name count (at scenario+0x204), then writes param_2 into
+ * the object_name_list array (pointer at 0x46f07c) at the given index.
+ *
+ * Confirmed: MOVSX ESI,AX — sign-extends param_1 before use.
+ * Confirmed: MOV ECX,[0x46f07c] — dereferences pointer, not direct array.
+ * Confirmed: MOV [ECX + ESI*4],EAX — stores param_2 at name_table[param_1].
+ * Confirmed: cdecl, caller at 0x45ffb does ADD ESP,0x8 after call.
+ */
+void object_name_list_set_handle(short param_1, int param_2)
+{
+  int iVar1;
+
+  if (param_1 < 0)
+    return;
+  iVar1 = (int)global_scenario_get();
+  if (param_1 < *(int *)(iVar1 + 0x204)) {
+    (*(int **)0x46f07c)[param_1] = param_2;
+  }
 }
 
 void object_set_garbage_flag(int object_handle, int is_garbage)

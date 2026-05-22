@@ -2421,12 +2421,16 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00036a90(void);",
-          "addr": "0x36a90"
+          "decl": "void FUN_00036a90(int actor_handle, int prop_handle);",
+          "addr": "0x36a90",
+          "ported": true,
+          "source_path": "ai/actors.c"
         },
         {
-          "decl": "void FUN_00036b10(void);",
-          "addr": "0x36b10"
+          "decl": "void FUN_00036b10(int actor_handle, int prop_handle);",
+          "addr": "0x36b10",
+          "ported": true,
+          "source_path": "ai/actors.c"
         },
         {
           "decl": "void FUN_00036b50(int param_1, int param_2);",
@@ -7828,11 +7832,11 @@
           "ported": true
         },
         {
-          "decl": "void game_engine_remap_vehicle(void);",
+          "decl": "int game_engine_remap_vehicle(int tag_index);",
           "addr": "0xa96b0"
         },
         {
-          "decl": "void game_engine_remap_weapon(void);",
+          "decl": "int game_engine_remap_weapon(int tag_index);",
           "addr": "0xa9770"
         },
         {
@@ -13760,13 +13764,14 @@
           "ported": false
         },
         {
-          "decl": "void FUN_000adf70(void);",
+          "decl": "int FUN_000adf70(int tag_index);",
           "addr": "0xadf70"
         },
         {
           "decl": "int FUN_000ae0a0(int tag_index);",
           "addr": "0xae0a0",
-          "ported": false
+          "ported": true,
+          "source_path": "objects/objects.c"
         },
         {
           "decl": "void FUN_000ae110(void);",
@@ -14002,7 +14007,8 @@
         {
           "decl": "void *FUN_0013c100(int16_t object_type);",
           "addr": "0x13c100",
-          "ported": false
+          "ported": true,
+          "source_path": "objects/objects.c"
         },
         {
           "decl": "void FUN_0013c1b0(void);",
@@ -14196,9 +14202,11 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0013d880(short param_1, int param_2);",
+          "name": "object_name_list_set_handle",
+          "decl": "void object_name_list_set_handle(int16_t param_1, int param_2);",
           "addr": "0x13d880",
-          "ported": false
+          "ported": true,
+          "source_path": "objects/objects.c"
         },
         {
           "decl": "void objects_fix_for_deleted_object(void);",
@@ -24357,12 +24365,16 @@
           "addr": "0x1a6350"
         },
         {
-          "decl": "void FUN_001a67b0(void);",
-          "addr": "0x1a67b0"
+          "decl": "char *FUN_001a67b0(short param_1, unsigned char param_2);",
+          "addr": "0x1a67b0",
+          "ported": true,
+          "source_path": "units/units.c"
         },
         {
-          "decl": "void FUN_001a67e0(void);",
-          "addr": "0x1a67e0"
+          "decl": "short FUN_001a67e0(const char *param_1);",
+          "addr": "0x1a67e0",
+          "ported": true,
+          "source_path": "units/units.c"
         },
         {
           "decl": "void FUN_001a6820(void);",
@@ -24377,16 +24389,20 @@
           "addr": "0x1a68d0"
         },
         {
-          "decl": "void FUN_001a6bc0(void);",
-          "addr": "0x1a6bc0"
+          "decl": "int FUN_001a6bc0(int param_1);",
+          "addr": "0x1a6bc0",
+          "ported": true,
+          "source_path": "units/units.c"
         },
         {
           "decl": "void FUN_001a6bf0(void);",
           "addr": "0x1a6bf0"
         },
         {
-          "decl": "void FUN_001a6ca0(void);",
-          "addr": "0x1a6ca0"
+          "decl": "char *FUN_001a6ca0(short param_1);",
+          "addr": "0x1a6ca0",
+          "ported": true,
+          "source_path": "units/units.c"
         },
         {
           "decl": "void FUN_001a6cd0(void);",
