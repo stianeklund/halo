@@ -3186,6 +3186,63 @@ void actor_swarm_cache_new(int actor_handle)
   }
 }
 
+/*
+ * actor_get_running_blind_vector (0x3ce40) — compute the run-blind direction
+ * for an actor and normalize it.
+ *
+ * Asserts vector_out != NULL (display_assert + system_exit if NULL).
+ * If actor[6] != 0 (swarm): return 0 immediately (no vector).
+ * If actor[0x504] != 0: integer-copy the 3 floats at actor+0x518 to vector_out.
+ * Else if actor[0x4a8] != 0: compute difference
+ *   actor+0x488/0x48c/0x490 minus actor+0x12c/0x130/0x134.
+ * Else: return 0 immediately (no blind target).
+ * Then: normalize3d(vector_out); if length == 0, return 1 (degenerate).
+ * On successful normalization, return 0.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x3ce51.
+ * Confirmed: NULL assert with display_assert("run_vector", ..., 0x7ae, 1)
+ *   + system_exit(-1) at 0x3ce75/0x3ce7c.
+ * Confirmed: TEST [ESI+6] / JNZ 0x3cf04 at 0x3ce84/0x3ce89 (swarm guard).
+ * Confirmed: TEST [ESI+0x504] / JZ 0x3ceaf at 0x3ce8b/0x3ce93.
+ * Confirmed: MOV EAX/ECX/EAX integer copy from ESI+0x518 at 0x3ce9b-0x3ceaa.
+ * Confirmed: FLD/FSUB/FSTP triples for 0x488-0x12c, 0x48c-0x130, 0x490-0x134
+ *   at 0x3ceb9-0x3cee2.
+ * Confirmed: CALL normalize3d(0x13010) at 0x3cee8.
+ * Confirmed: FCOMP [0x2533c0] / TEST AH,0x44 / JP 0x3cf04 at 0x3ceed-0x3cefb.
+ * Confirmed: XOR AL,AL at 0x3ceff (return 0 = normalized ok).
+ * Confirmed: MOV AL,BL at 0x3cf06 (return BL = initial 0 or 1 after normalize).
+ * actors.obj / actors.c
+ */
+char actor_get_running_blind_vector(int actor_handle, float *vector_out)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (vector_out == NULL) {
+    display_assert("run_vector", "c:\\halo\\SOURCE\\ai\\actors.c", 0x7ae, 1);
+    system_exit(-1);
+  }
+  if (*(char *)(actor + 6) != '\0') {
+    return 0;
+  }
+  if (*(char *)(actor + 0x504) != '\0') {
+    ((int *)vector_out)[0] = *(int *)(actor + 0x518);
+    ((int *)vector_out)[1] = *(int *)(actor + 0x51c);
+    ((int *)vector_out)[2] = *(int *)(actor + 0x520);
+  } else {
+    if (*(char *)(actor + 0x4a8) == '\0') {
+      return 0;
+    }
+    vector_out[0] = *(float *)(actor + 0x488) - *(float *)(actor + 0x12c);
+    vector_out[1] = *(float *)(actor + 0x48c) - *(float *)(actor + 0x130);
+    vector_out[2] = *(float *)(actor + 0x490) - *(float *)(actor + 0x134);
+  }
+  if (normalize3d(vector_out) != *(float *)0x2533c0) {
+    return 0;
+  }
+  return 1;
+}
+
 /* actor_kill (0x3cf10) — actor_set_unit_dead_flag
  *
  * Marks actor's unit(s) with a "dead" flag in the unit's flags byte at
