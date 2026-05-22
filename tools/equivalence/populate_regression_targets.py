@@ -102,7 +102,7 @@ def discover_from_batch(kb_index):
             continue
         candidates.append({
             "addr": addr,
-            "name": row["name"],
+            "name": kb_entry["name"],
             "obj": kb_entry["obj"],
             "seeds": DEFAULT_SEEDS,
             "flags": ["--allow-stubs"],
