@@ -2092,36 +2092,52 @@
           "ported": true
         },
         {
-          "decl": "void actor_action_flush_structure_indices(void);",
-          "addr": "0x1c530"
+          "decl": "void actor_action_flush_structure_indices(int actor_handle);",
+          "addr": "0x1c530",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_panic_from_surprise(void);",
-          "addr": "0x1c5a0"
+          "decl": "int actor_action_handle_panic_from_surprise(int actor_handle);",
+          "addr": "0x1c5a0",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_panic_from_damage(void);",
-          "addr": "0x1c660"
+          "decl": "char actor_action_handle_panic_from_damage(int actor_handle);",
+          "addr": "0x1c660",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_panic_from_burning_to_death(void);",
-          "addr": "0x1c750"
+          "decl": "int actor_action_handle_panic_from_burning_to_death(int actor_handle);",
+          "addr": "0x1c750",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_panic_from_attached_projectiles(void);",
-          "addr": "0x1c7f0"
+          "decl": "int actor_action_handle_panic_from_attached_projectiles(int actor_handle);",
+          "addr": "0x1c7f0",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_panic_from_attached_melee_attackers(void);",
-          "addr": "0x1c880"
+          "decl": "char actor_action_handle_panic_from_attached_melee_attackers(int actor_handle);",
+          "addr": "0x1c880",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_berserking_from_attacking_mode(void);",
-          "addr": "0x1c8d0"
+          "decl": "char actor_action_handle_berserking_from_attacking_mode(int actor_handle);",
+          "addr": "0x1c8d0",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_berserking_from_proximity(void);",
-          "addr": "0x1c940"
+          "decl": "char actor_action_handle_berserking_from_proximity(int actor_handle);",
+          "addr": "0x1c940",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
           "decl": "void actor_action_handle_berserking_from_damage(void);",
@@ -6327,7 +6343,7 @@
         {
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
           "addr": "0x9ca70",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6388,7 +6404,7 @@
         {
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
           "addr": "0x9dcf0",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -28944,7 +28960,7 @@
           "addr": "0x2f9b0"
         },
         {
-          "decl": "void FUN_0002fa70(void);",
+          "decl": "int FUN_0002fa70(int actor_handle, char prefer_passenger);",
           "addr": "0x2fa70"
         },
         {

@@ -1678,7 +1678,7 @@ void actor_flush_structure_indices(int actor_handle)
       *(int *)(comp + 0x10) = -1;
     }
   }
-  actor_action_flush_structure_indices();
+  actor_action_flush_structure_indices(actor_handle);
 }
 
 /* 0x3b6f0 — Always returns true (actor type capability stub). */
