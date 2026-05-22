@@ -2500,8 +2500,10 @@
           "addr": "0x378e0"
         },
         {
-          "decl": "void FUN_000379f0(void);",
-          "addr": "0x379f0"
+          "decl": "void FUN_000379f0(int actor_handle);",
+          "addr": "0x379f0",
+          "source_path": "halo/ai/actors.c",
+          "ported": true
         },
         {
           "decl": "void FUN_00037b50(void);",
@@ -10451,8 +10453,8 @@
           "addr": "0xc8b90"
         },
         {
-          "decl": "void FUN_000c8c50(void);",
-          "addr": "0xc8c50"
+          "addr": "0xc8c50",
+          "decl": "void FUN_000c8c50(void);"
         },
         {
           "decl": "void FUN_000c8d30(void);",
@@ -11304,8 +11306,11 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000d50f0(void);",
-          "addr": "0xd50f0"
+          "decl": "int hud_messaging_slot_compare(int *param_1, int *param_2);",
+          "addr": "0xd50f0",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c",
+          "name": "hud_messaging_slot_compare"
         },
         {
           "decl": "_BYTE *scripted_hud_messages_clear(void);",
@@ -11335,8 +11340,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000d52e0(void);",
-          "addr": "0xd52e0"
+          "decl": "void FUN_000d52e0(int actor_handle, wchar_t *message);",
+          "addr": "0xd52e0",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "decl": "void FUN_000d5350(void);",
@@ -11715,7 +11722,8 @@
         {
           "decl": "void FUN_000cf430(uint8_t *counter, char increment);",
           "addr": "0xcf430",
-          "ported": false
+          "ported": true,
+          "source_path": "src/halo/input/input_xbox.c"
         },
         {
           "decl": "void FUN_000cf490(void);",
