@@ -11635,7 +11635,8 @@
         },
         {
           "decl": "void FUN_000cf690(void);",
-          "addr": "0xcf690"
+          "addr": "0xcf690",
+          "ported": null
         },
         {
           "decl": "void input_get_raw_data_string(void);",
@@ -21536,7 +21537,8 @@
         },
         {
           "decl": "void FUN_0019b320(void);",
-          "addr": "0x19b320"
+          "addr": "0x19b320",
+          "ported": true
         },
         {
           "decl": "void FUN_0019B330(void);",
@@ -21544,11 +21546,13 @@
         },
         {
           "decl": "void FUN_0019b3a0(void);",
-          "addr": "0x19b3a0"
+          "addr": "0x19b3a0",
+          "ported": true
         },
         {
           "decl": "void FUN_0019b3b0(void);",
-          "addr": "0x19b3b0"
+          "addr": "0x19b3b0",
+          "ported": true
         },
         {
           "decl": "int FUN_001b9b00(int tag_class, const char *name, int flags);",

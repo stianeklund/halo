@@ -142,6 +142,26 @@ void *tag_block_get_element(void *block, int index, int element_size)
   return (char *)b->address + index * element_size;
 }
 
+/* 0x19b320 — no-op placeholder (cache build: read-only tag groups). */
+void FUN_0019b320(void)
+{
+  return;
+}
+
+/* 0x19b3a0 — reset the cached localization tag index to -1.
+ * Clears the module-level tag_index stored at 0x4d9b08. */
+void FUN_0019b3a0(void)
+{
+  *(int *)0x4d9b08 = -1;
+  return;
+}
+
+/* 0x19b3b0 — no-op placeholder (cache build: read-only tag groups). */
+void FUN_0019b3b0(void)
+{
+  return;
+}
+
 /* Stub: tag_block_resize is not supported when running from a cache file
  * (the map is memory-mapped read-only). Logs an error and returns false.
  * In the tools build this would perform actual reallocation. */
