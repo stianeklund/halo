@@ -205,16 +205,20 @@ def generate_github_summary(old_report: dict, new_report: dict, changes: dict):
     """Generate GitHub Actions step summary format."""
     old_summary = old_report['summary']
     new_summary = new_report['summary']
-    
+
     func_delta = new_summary['functions']['ported'] - old_summary['functions']['ported']
     bytes_delta = new_summary['bytes']['ported'] - old_summary['bytes']['ported']
-    
+
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
     if not summary_file:
         return
-    
+
+    regression = func_delta < 0
     with open(summary_file, 'a') as f:
-        f.write("## 📊 Progress Comparison\n\n")
+        if regression:
+            f.write(f"## ❌ Regression: functions dropped by {-func_delta}\n\n")
+        else:
+            f.write("## ✅ Progress Comparison\n\n")
         f.write("| Metric | Before | After | Delta |\n")
         f.write("|--------|--------|-------|-------|\n")
         f.write(f"| Functions | {old_summary['functions']['ported']:,} | "
@@ -299,7 +303,9 @@ def main():
                    help='Output JSON instead of text')
     ap.add_argument('--github-summary', action='store_true',
                    help='Write GitHub Actions step summary')
-    
+    ap.add_argument('--fail-on-regression', action='store_true',
+                   help='Exit 1 if ported function count dropped')
+
     args = ap.parse_args()
     
     if args.git:
@@ -338,6 +344,13 @@ def main():
     
     if args.github_summary:
         generate_github_summary(old_report, new_report, changes)
+
+    if args.fail_on_regression:
+        func_delta = (new_report['summary']['functions']['ported'] -
+                      old_report['summary']['functions']['ported'])
+        if func_delta < 0:
+            print(f"REGRESSION: ported function count dropped by {-func_delta}", file=sys.stderr)
+            sys.exit(1)
 
 
 if __name__ == '__main__':

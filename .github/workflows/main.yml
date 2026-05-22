@@ -18,7 +18,16 @@ jobs:
 
       - name: Check AGENTS/CLAUDE sync
         run: |
-          python3 tools/audit/check_agent_docs.py
+          set +e
+          OUTPUT=$(python3 tools/audit/check_agent_docs.py 2>&1)
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ Agent Docs Out of Sync\n\n```\n%s\n```\n' "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ Agent Docs\n\n%s\n' "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "$OUTPUT"
+          exit $RC
 
   BuildUbuntu:
     name: Build on Ubuntu with clang (${{ matrix.configuration }})
@@ -38,6 +47,11 @@ jobs:
         run: |
           docker run --rm  -u $(id -u):$(id -g) -v $PWD:/work -w /work halo /bin/bash -c "cmake -Bbuild -S. -DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake -DCMAKE_BUILD_TYPE=${{ matrix.configuration }} && cmake --build build --target halo"
 
+      - name: Build failure summary
+        if: failure()
+        run: |
+          printf '## ❌ Ubuntu Build Failed: %s\n\nSee the **Build** step log for compiler errors.\n' "${{ matrix.configuration }}" >> "$GITHUB_STEP_SUMMARY"
+
   BuildMacos:
     name: Build on macOS with clang (${{ matrix.configuration }})
     runs-on: macos-latest
@@ -55,3 +69,29 @@ jobs:
           export PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH"
           cmake -Bbuild -S. -DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
           cmake --build build --target halo
+
+      - name: Build failure summary
+        if: failure()
+        run: |
+          printf '## ❌ macOS Build Failed: %s\n\nSee the **Build** step log for compiler errors.\n' "${{ matrix.configuration }}" >> "$GITHUB_STEP_SUMMARY"
+
+  ProgressGate:
+    name: Regression gate (ported function count)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Tree
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Install dependencies
+        run: pip3 install setuptools -r requirements.txt
+
+      - name: Check for regression
+        run: |
+          python3 tools/report/compare_reports.py \
+            --git \
+            --base-ref HEAD~1 \
+            --head-ref HEAD \
+            --github-summary \
+            --fail-on-regression
