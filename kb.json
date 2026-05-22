@@ -2518,8 +2518,10 @@
           "addr": "0x37d50"
         },
         {
-          "decl": "void FUN_00038000(void);",
-          "addr": "0x38000"
+          "decl": "void FUN_00038000(int actor_handle);",
+          "addr": "0x38000",
+          "ported": true,
+          "source_path": "ai/actors.c"
         },
         {
           "decl": "void FUN_00038200(void);",
