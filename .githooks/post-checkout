@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+exec "$REPO_ROOT/tools/hooks/post-checkout.sh" "$@"
