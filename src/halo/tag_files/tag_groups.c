@@ -60,6 +60,36 @@ const char *tag_name_strip_path(const char *tag_name)
   return tag_name;
 }
 
+/* 0x19b120 — verify that a tag_reference's cached datum index is consistent
+ * with what tag_loaded() returns for the same group_tag and name. Asserts
+ * and exits if the stored index mismatches. Returns the actual datum index.
+ *
+ * tag_ref layout:
+ *   [0] int  group_tag (e.g. 0x6669656c for 'fiel')
+ *   [1] char *name     (tag asset path)
+ *   [2] int  (unused here)
+ *   [3] int  expected datum index */
+int verify_tag_reference(int *tag_ref)
+{
+  int iVar1;
+
+  if (tag_ref == NULL) {
+    display_assert("reference",
+                   "c:\\halo\\SOURCE\\tag_files\\tag_groups.c", 0xbef, 1);
+    system_exit(-1);
+  }
+  iVar1 = tag_loaded(tag_ref[0], (const char *)tag_ref[1]);
+  if (tag_ref[3] != iVar1) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "tag reference \"%s\" and actual index do not match:"
+                            " is %08lX but should be %08lX",
+                            (const char *)tag_ref[1], tag_ref[3], iVar1),
+                   "c:\\halo\\SOURCE\\tag_files\\tag_groups.c", 0xbf5, 1);
+    system_exit(-1);
+  }
+  return iVar1;
+}
+
 /* Returns a pointer into the raw data buffer of a tag_data at the given
  * offset. Asserts that size >= 0 and that offset+size fits within the
  * tag_data's total size. Used to obtain typed pointers into tag data blobs.
