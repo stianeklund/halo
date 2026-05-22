@@ -28473,13 +28473,17 @@
           "addr": "0xfad60"
         },
         {
-          "decl": "void weapon_preprocess_node_orientations(void);",
-          "addr": "0xfae30"
+          "decl": "void weapon_preprocess_node_orientations(int weapon_handle);",
+          "addr": "0xfae30",
+          "name": "weapon_preprocess_node_orientations",
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "char *weapon_get_label(int weapon_handle);",
           "addr": "0xfae80",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void weapon_set_integrated_light_power(void);",
@@ -28488,7 +28492,8 @@
         {
           "decl": "float weapon_estimate_time_to_target(int weapon_handle, int16_t trigger_index, float param_3);",
           "addr": "0xfaed0",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void weapon_can_be_fired(void);",
@@ -28512,7 +28517,8 @@
         {
           "decl": "bool weapon_is_flag(int object_index);",
           "addr": "0xfb0c0",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "int weapon_prevents_grenade_throwing(int weapon_handle);",
@@ -28524,7 +28530,8 @@
         {
           "decl": "int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2, int16_t param_3, int16_t param_4);",
           "addr": "0xfb140",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "int weapon_overcharged(int weapon_handle);",
@@ -28540,12 +28547,14 @@
         {
           "decl": "void *FUN_000fb370(void *weapon_obj@<edi>, int16_t magazine_index@<si>);",
           "addr": "0xfb370",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "bool weapon_has_activity(int weapon_handle @<eax>);",
           "addr": "0xfb3c0",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void FUN_000fb510(void);",
@@ -28562,7 +28571,8 @@
         {
           "decl": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
           "addr": "0xfb6e0",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void FUN_000fb7d0(void);",
@@ -28587,12 +28597,14 @@
         {
           "decl": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
           "addr": "0xfba20",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void weapon_set_total_rounds(int weapon_handle, int16_t *rounds_array);",
           "addr": "0xfbbd0",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void FUN_000fbcf0(void);",
@@ -28613,7 +28625,8 @@
         {
           "decl": "bool weapon_handle_potential_inventory_item(int seat_occupant, int object_handle, uint16_t local_player_index, int16_t *seat_index);",
           "addr": "0xfc290",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void weapon_owner_update(void);",
@@ -28646,12 +28659,14 @@
         {
           "decl": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
           "addr": "0xfc990",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void FUN_000fcaf0(int weapon_handle, int magazine_index);",
           "addr": "0xfcaf0",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void FUN_000fcbd0(void);",
@@ -28680,7 +28695,8 @@
         {
           "decl": "void weapon_reset_state(int weapon_handle);",
           "addr": "0xfcf20",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void FUN_000fd0b0(void);",
@@ -28693,25 +28709,29 @@
         {
           "decl": "void weapon_set_current_amount(int weapon_handle, float ammo_fraction);",
           "addr": "0xfd180",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void weapon_activate(int weapon_handle);",
           "addr": "0xfd2e0",
           "comment": "Initialize a weapon after it becomes the active weapon for a unit.",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "bool weapon_try_place(int weapon_handle, int flag);",
           "addr": "0xfd360",
           "comment": "Attempt to put away a weapon; returns false if the weapon has active triggers.",
-          "ported": true
+          "ported": true,
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3, void *param_4, int param_5, float *param_6, int param_7, void *param_8, void *param_9);",
           "addr": "0xfd400",
           "ported": true,
-          "signature": "bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3, void *param_4, int param_5, float *param_6, int param_7, void *param_8, void *param_9)"
+          "signature": "bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3, void *param_4, int param_5, float *param_6, int param_7, void *param_8, void *param_9)",
+          "source_path": "halo/items/weapons.c"
         },
         {
           "decl": "void weapon_stop_reload(void);",

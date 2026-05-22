@@ -4923,6 +4923,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xfae30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xfae80": {
       "kind": "function",
       "status": "ported"

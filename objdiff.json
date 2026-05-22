@@ -2677,6 +2677,78 @@
       "metadata": {
         "source_path": "halo/items/weapons.c"
       }
+    },
+    {
+      "name": "halo/weapons_FUN_000fae30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fae30.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fae80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fae80.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000faed0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000faed0.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fb0c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fb0c0.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fb140",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fb140.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fbbd0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fbbd0.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fcaf0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fcaf0.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fcf20",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fcf20.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/weapons_FUN_000fd180",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons_FUN_000fd180.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
     }
   ]
 }

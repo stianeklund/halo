@@ -16,6 +16,34 @@ void weapon_set_integrated_light_power(int weapon_handle, int light_power)
   *(int *)(weapon_obj + 0x1f8) = light_power;
 }
 
+/* 0xfae30 — weapon_preprocess_node_orientations
+ *
+ * Prefetches the weapon's animation graph block element for node orientation
+ * processing. Resolves the weapon tag, finds the 'antr' tag, and calls
+ * tag_block_get_element on the first animation element if the block is non-empty.
+ * The result is discarded; the call likely primes an internal cache.
+ *
+ * Confirmed: cdecl, 1 stack arg (weapon_handle).
+ * Confirmed: CALL object_get_and_verify_type(weapon_handle, 4).
+ * Confirmed: CALL tag_get(0x77656170, *obj) → weap_tag.
+ * Confirmed: CALL tag_get(0x616e7472, *(weap_tag+0x44)) → antr.
+ * Confirmed: CMP *(int *)(antr+0x18), 0; JZ exit.
+ * Confirmed: CALL tag_block_get_element(antr+0x18, 0, 0x1c) (result unused).
+ */
+void weapon_preprocess_node_orientations(int weapon_handle)
+{
+  int *obj;
+  int tag;
+  int antr;
+
+  obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (int)tag_get(0x77656170, *obj);
+  antr = (int)tag_get(0x616e7472, *(int *)(tag + 0x44));
+  if (*(int *)(antr + 0x18) != 0) {
+    tag_block_get_element((void *)(antr + 0x18), 0, 0x1c);
+  }
+}
+
 /* 0xfaed0 — weapon_estimate_time_to_target
  *
  * Given a weapon object handle, a trigger index, and a float value, returns
