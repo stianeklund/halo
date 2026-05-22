@@ -6575,7 +6575,9 @@
         },
         {
           "decl": "void FUN_0008f1e0(void);",
-          "addr": "0x8f1e0"
+          "addr": "0x8f1e0",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c"
         },
         {
           "decl": "void errors_dispose(void);",
@@ -6603,12 +6605,16 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0008f6b0(void);",
-          "addr": "0x8f6b0"
+          "decl": "int FUN_0008f6b0(void);",
+          "addr": "0x8f6b0",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c"
         },
         {
-          "decl": "void FUN_0008f810(void);",
-          "addr": "0x8f810"
+          "decl": "void FUN_0008f810(int param_1, int param_2);",
+          "addr": "0x8f810",
+          "ported": true,
+          "source_path": "halo/cseries/errors.c"
         }
       ]
     },

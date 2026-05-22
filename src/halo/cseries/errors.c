@@ -359,6 +359,12 @@ update_stats:
   return result;
 }
 
+/* FUN_0008f1e0 (0x8f1e0) — dump all debug allocations to heap_dump.txt. */
+void FUN_0008f1e0(void)
+{
+  debug_dump_memory_for_file(NULL);
+}
+
 /*
  * debug_string_to_display — write a debug message to d:\debug.txt.
  *
@@ -576,4 +582,95 @@ void FUN_0008f630(void)
   *(int16_t *)0x3365c4 = 0;
   *(int32_t *)0x3365bc = 999;
   *(int32_t *)0x3365b4 = 0;
+}
+
+/* FUN_0008f6b0 (0x8f6b0) — advance the profiling frame counter and accumulate
+ * per-frame timing stats for all active entries.
+ * Returns 1 when a full second (120 frames) has elapsed, 0 otherwise. */
+int FUN_0008f6b0(void)
+{
+  int16_t i;
+  int32_t entry;
+  int32_t frame;
+  uint32_t old_frame_low;
+  uint32_t rolling_low;
+  uint32_t snap_low;
+  int32_t snap_high;
+  int32_t snap_int;
+  uint32_t *acc_low_ptr;
+  uint32_t acc_old;
+  int32_t new_frame;
+
+  if (*(uint8_t *)0x449ef1 != 0 && *(int16_t *)0x3361b0 > 0) {
+    i = 0;
+    do {
+      entry = ((int32_t *)0x3361b4)[i];
+      if (*(uint8_t *)(entry + 8) != 0) {
+        frame = *(int32_t *)0x3361ac;
+
+        /* subtract old per-frame snapshot from rolling totals */
+        old_frame_low = *(uint32_t *)(entry + 0x208 + frame * 8);
+        rolling_low = *(uint32_t *)(entry + 0x20);
+        *(uint32_t *)(entry + 0x20) = rolling_low - old_frame_low;
+        *(int32_t *)(entry + 0x24) =
+          (*(int32_t *)(entry + 0x24) -
+           *(int32_t *)(entry + 0x20c + frame * 8)) -
+          (int32_t)(rolling_low < old_frame_low ? 1U : 0U);
+        *(int32_t *)(entry + 0x18) -= *(int32_t *)(entry + 0x28 + frame * 4);
+
+        /* store new snapshot into per-frame history slot */
+        *(int32_t *)(entry + 0x208 + frame * 8) = *(int32_t *)(entry + 0x5d0);
+        *(int32_t *)(entry + 0x20c + frame * 8) = *(int32_t *)(entry + 0x5d4);
+        *(int32_t *)(entry + 0x28 + frame * 4) = *(int32_t *)(entry + 0x5cc);
+
+        /* add new snapshot to rolling totals */
+        rolling_low = *(uint32_t *)(entry + 0x20);
+        snap_low = *(uint32_t *)(entry + 0x5d0);
+        snap_high = *(int32_t *)(entry + 0x5d4);
+        *(uint32_t *)(entry + 0x20) = rolling_low + snap_low;
+        *(int32_t *)(entry + 0x24) +=
+          snap_high +
+          (int32_t)(*(uint32_t *)(entry + 0x20) < rolling_low ? 1U : 0U);
+        snap_int = *(int32_t *)(entry + 0x5cc);
+        *(int32_t *)(entry + 0x18) += snap_int;
+
+        /* update uint64 max */
+        if (*(int32_t *)(entry + 0x5f4) <= snap_high &&
+            (*(int32_t *)(entry + 0x5f4) < snap_high ||
+             *(uint32_t *)(entry + 0x5f0) < snap_low)) {
+          *(uint32_t *)(entry + 0x5f0) = snap_low;
+          *(int32_t *)(entry + 0x5f4) = snap_high;
+        }
+        /* update int max */
+        if (*(int32_t *)(entry + 0x5e8) < snap_int)
+          *(int32_t *)(entry + 0x5e8) = snap_int;
+
+        /* accumulate into all-time totals */
+        acc_low_ptr = (uint32_t *)(entry + 0x5e0);
+        acc_old = *acc_low_ptr;
+        *acc_low_ptr += snap_low;
+        *(int32_t *)(entry + 0x5d0) = 0;
+        *(uint32_t *)(entry + 0x5e4) +=
+          (uint32_t)snap_high + (*acc_low_ptr < acc_old ? 1U : 0U);
+        *(int32_t *)(entry + 0x5d8) += snap_int;
+        *(int32_t *)(entry + 0x5d4) = 0;
+        *(int32_t *)(entry + 0x5cc) = 0;
+        *(int32_t *)(entry + 0x5c8) += 1;
+      }
+      i++;
+    } while (i < *(int16_t *)0x3361b0);
+  }
+
+  new_frame = *(int32_t *)0x3361ac + 1;
+  *(uint8_t *)0x3361aa = 0;
+  *(int32_t *)0x3361ac = new_frame % 0x78;
+  return new_frame / 0x78;
+}
+
+/* FUN_0008f810 (0x8f810) — store two 32-bit performance counter values into
+ * globals at 0x449ed8 / 0x449edc. */
+void FUN_0008f810(int param_1, int param_2)
+{
+  *(int *)0x449ed8 = param_1;
+  *(int *)0x449edc = param_2;
 }
