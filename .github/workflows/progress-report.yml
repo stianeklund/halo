@@ -31,8 +31,8 @@ jobs:
       - name: Install Dependencies
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install clang
-      
+          python3 -m pip install -r requirements.txt
+
       - name: Generate Progress Report
         run: |
           python3 tools/report/generate_decomp_report.py \
@@ -41,24 +41,9 @@ jobs:
       
       - name: Update README Badge Data
         run: |
-          # Extract current percentage for badge
-          PERCENT=$(python3 -c "
-import json
-with open('artifacts/progress/report.json') as f:
-    data = json.load(f)
-print(f\"{data['summary']['functions']['percent']:.1f}\")
-")
+          PERCENT=$(python3 -c "import json; d=json.load(open('artifacts/progress/report.json')); print('%.1f' % d['summary']['functions']['percent'])")
           echo "PROGRESS_PERCENT=$PERCENT" >> $GITHUB_ENV
-          
-          # Create badge JSON
-          cat > artifacts/progress/badge.json << EOF
-{
-  "schemaVersion": 1,
-  "label": "progress",
-  "message": "${PERCENT}%",
-  "color": "blue"
-}
-EOF
+          printf '{"schemaVersion":1,"label":"progress","message":"%s%%","color":"blue"}\n' "$PERCENT" > artifacts/progress/badge.json
       
       - name: Download Existing History
         run: |
@@ -157,8 +142,8 @@ EOF
       - name: Install Dependencies
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install clang
-      
+          python3 -m pip install -r requirements.txt
+
       - name: Generate Base Report
         run: |
           git checkout ${{ github.event.pull_request.base.sha }}
@@ -174,8 +159,8 @@ EOF
       - name: Compare Reports
         run: |
           python3 << 'EOF'
-          import json
-          
+          import json, os
+
           with open('/tmp/base_report.json') as f:
               base = json.load(f)
           with open('/tmp/pr_report.json') as f:

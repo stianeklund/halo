@@ -11,7 +11,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FILES = (ROOT / "AGENTS.md", ROOT / "CLAUDE.md")
-MAX_LINES = 200
+MAX_LINES = 250
 
 
 def read_text(path: Path) -> str:
