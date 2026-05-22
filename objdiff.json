@@ -2581,6 +2581,14 @@
       "metadata": {
         "source_path": "src/halo/tag_files/files.c"
       }
+    },
+    {
+      "name": "halo/errors_FUN_8e650",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/errors.c.obj",
+      "base_path": "delinked/errors.obj_FUN_8e650.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/errors.c"
+      }
     }
   ]
 }

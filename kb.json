@@ -6523,7 +6523,9 @@
         },
         {
           "decl": "void FUN_0008e650(void);",
-          "addr": "0x8e650"
+          "addr": "0x8e650",
+          "ported": true,
+          "source_path": "src/halo/cseries/errors.c"
         },
         {
           "decl": "void FUN_0008e680(void);",

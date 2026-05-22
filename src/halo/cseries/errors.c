@@ -11,6 +11,20 @@ typedef struct debug_allocation_header {
   uint32_t checksum;
 } debug_allocation_header_t;
 
+/* debug_memory_initialize (0x8e650) — initialize the debug memory manager
+ * sentinel structure: writes SAFT guards at both ends and zeroes the
+ * counters/state fields between them. */
+void FUN_0008e650(void)
+{
+  *(uint32_t *)0x2ee74c = 0x53414654; /* begin SAFT guard */
+  *(uint32_t *)0x2ee750 = 0;
+  *(uint32_t *)0x2ee754 = 0;
+  *(uint32_t *)0x2ee758 = 0;
+  *(uint32_t *)0x2ee75c = 0;
+  *(uint32_t *)0x2ee760 = 0;
+  *(uint32_t *)0x2ee768 = 0x53414654; /* end SAFT guard */
+}
+
 /* debug_alloc_verify (0x8e6d0) — check end-of-buffer sentinel for a pointer.
  * Called before free/realloc to verify no overrun occurred.
  * @eax: ptr (void *) — user pointer (header+0x20) */
