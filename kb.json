@@ -6792,12 +6792,16 @@
           "addr": "0x1996d0"
         },
         {
-          "decl": "void file_reference_get_location(void);",
-          "addr": "0x1997f0"
+          "decl": "int16_t file_reference_get_location(file_ref_t *info);",
+          "addr": "0x1997f0",
+          "name": "file_reference_get_location",
+          "ported": true
         },
         {
-          "decl": "void file_references_equal(void);",
-          "addr": "0x1999a0"
+          "decl": "bool file_references_equal(file_ref_t *info1, file_ref_t *info2);",
+          "addr": "0x1999a0",
+          "name": "file_references_equal",
+          "ported": true
         },
         {
           "decl": "void directory_create_or_delete_contents(void);",

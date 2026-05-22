@@ -216,6 +216,15 @@ file_ref_t *file_reference_set_name(file_ref_t *info, const char *name)
   return info;
 }
 
+/* 0x1997f0 — return the location field (unk_6) of a validated file reference.
+ * The location is a small integer: -1=relative, 0=E:, 1=D:, etc. */
+int16_t file_reference_get_location(file_ref_t *info)
+{
+  file_ref_t *ref;
+  ref = file_reference_verify(info);
+  return ref->unk_6;
+}
+
 /**
  * file_reference_get_name - extract a formatted name string from a file
  * reference.
@@ -292,6 +301,23 @@ char *file_reference_get_name(file_ref_t *info, int flags, char *name_out)
   }
 
   return name_out;
+}
+
+/* 0x1999a0 — return true if two file references point to the same path.
+ * Compares the location field (unk_6) and path string (unk_8) of both
+ * validated references. */
+bool file_references_equal(file_ref_t *info1, file_ref_t *info2)
+{
+  file_ref_t *ref1;
+  file_ref_t *ref2;
+  ref1 = file_reference_verify(info1);
+  ref2 = file_reference_verify(info2);
+  if (ref1->unk_6 == ref2->unk_6) {
+    if (csstrcmp(ref1->unk_8, ref2->unk_8) == 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -795,7 +821,8 @@ bool file_read(file_ref_t *info, int size, void *buffer)
 /* 0x19acb0 — seek to 'offset' then read 'size' bytes into 'buffer'.
  * Combines file_set_position and file_read; returns true only if both
  * succeed, false otherwise. */
-bool file_read_from_position(file_ref_t *info, int offset, int size, void *buffer)
+bool file_read_from_position(file_ref_t *info, int offset, int size,
+                             void *buffer)
 {
   char ok_pos;
   char ok_read;
