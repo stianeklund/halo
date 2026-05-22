@@ -2140,20 +2140,26 @@
           "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_berserking_from_damage(void);",
-          "addr": "0x1ca00"
+          "decl": "char actor_action_handle_berserking_from_damage(int actor_handle);",
+          "addr": "0x1ca00",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
           "decl": "char actor_action_deny_transition(int actor_handle);",
-          "addr": "0x1ca90"
+          "addr": "0x1ca90",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
           "decl": "void FUN_0001cb30(void);",
           "addr": "0x1cb30"
         },
         {
-          "decl": "void actor_action_handle_vehicle_exit(void);",
-          "addr": "0x1cb70"
+          "decl": "char actor_action_handle_vehicle_exit(int actor_handle);",
+          "addr": "0x1cb70",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
           "decl": "void actor_action_allow_cover_seeking(void);",
@@ -2164,8 +2170,10 @@
           "addr": "0x1cda0"
         },
         {
-          "decl": "void actor_action_can_stop_guarding(void);",
-          "addr": "0x1cf10"
+          "decl": "char actor_action_can_stop_guarding(int actor_handle, short min_state, short max_state);",
+          "addr": "0x1cf10",
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
           "decl": "void actor_action_can_stop_conversing(void);",
@@ -25141,7 +25149,7 @@
           "addr": "0x1b3400"
         },
         {
-          "decl": "void unit_try_and_exit_seat(int unit_handle);",
+          "decl": "char unit_try_and_exit_seat(int unit_handle);",
           "addr": "0x1b3580"
         },
         {
