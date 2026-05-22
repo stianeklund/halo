@@ -40,6 +40,336 @@
         "--allow-stubs"
       ],
       "reason": "auto: high confidence, 66% coverage"
+    },
+    {
+      "addr": "0x1c3e0",
+      "name": "actor_action_control",
+      "obj": "actions.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x1c450",
+      "name": "actor_action_replace_prop",
+      "obj": "actions.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 45/45 seeds"
+    },
+    {
+      "addr": "0x1d6d0",
+      "name": "actor_action_try_to_panic",
+      "obj": "actions.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x2a360",
+      "name": "FUN_0002a360",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 45/45 seeds"
+    },
+    {
+      "addr": "0x36960",
+      "name": "FUN_00036960",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x369c0",
+      "name": "FUN_000369c0",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x36a20",
+      "name": "FUN_00036a20",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x36bd0",
+      "name": "FUN_00036bd0",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x36da0",
+      "name": "FUN_00036da0",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x36dc0",
+      "name": "FUN_00036dc0",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x36e30",
+      "name": "FUN_00036e30",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3aa60",
+      "name": "actor_in_combat",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3ac20",
+      "name": "FUN_0003ac20",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 45/45 seeds"
+    },
+    {
+      "addr": "0x3ad80",
+      "name": "actor_detach_from_unit",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3ae60",
+      "name": "actor_swarm_detach_from_unit",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b030",
+      "name": "actor_swarm_cache_delete",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b0b0",
+      "name": "actor_switch_props",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b120",
+      "name": "FUN_0003b120",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b190",
+      "name": "FUN_0003b190",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 50/50 seeds"
+    },
+    {
+      "addr": "0x3b270",
+      "name": "actor_attacking_target",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3bb50",
+      "name": "FUN_0003bb50",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3bbf0",
+      "name": "FUN_0003bbf0",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x1c4c0",
+      "name": "actor_action_flush_position_indices",
+      "obj": "actions.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x1d5c0",
+      "name": "actor_action_name",
+      "obj": "actions.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x1d730",
+      "name": "actor_action_get_default_state",
+      "obj": "actions.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3aac0",
+      "name": "actor_set_team",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 60/60 seeds"
+    },
+    {
+      "addr": "0x3ab80",
+      "name": "actor_activation_debug_color",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b100",
+      "name": "actor_is_noncombat",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b150",
+      "name": "actor_is_fighting",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b240",
+      "name": "actor_is_leaping",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b380",
+      "name": "actor_target_unit_index",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3b5e0",
+      "name": "actor_flush_position_indices",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 20/20 seeds"
+    },
+    {
+      "addr": "0x3bc90",
+      "name": "actor_find_pathfinding_location",
+      "obj": "actors.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs"
+      ],
+      "reason": "auto: batch pass 40/40 seeds"
     }
   ]
 }
