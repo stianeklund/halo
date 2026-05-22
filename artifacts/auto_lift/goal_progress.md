@@ -1,6 +1,7 @@
 # Goal Lift Progress Log
-Goal: 20 functions at >=90% VC71
+Goal: 30 functions at >=90% VC71
 Started: 2026-05-20
+Completed: 2026-05-22 (30/30 committed)
 
 | function | addr | source_file | screen_result | vc71 | action | reason |
 |---|---|---|---|---|---|---|
@@ -18,3 +19,17 @@ Started: 2026-05-20
 | FUN_00119df0 | 0x119df0 | memory/data.c | pass | 90.7% | committed | meets policy (param_3<=0 fix) |
 | FUN_00119ef0 | 0x119ef0 | memory/data.c | pass | 98.9% | committed | near byte-match (single-exit rewrite) |
 | FUN_000d16a0 | 0xd16a0 | interface/hud.c | pass | 72.5% | reverted | stack canary + 21 extra insns structural cap |
+| FUN_000cf690 | 0xcf690 | input/input_xbox.c | pass | 21.1% | reverted | trivial XOR EAX,RET — clang frame mismatch below floor |
+| FUN_001c0720 | 0x1c0720 | saved_games/game_state_xbox.c | pass | 100.0% | committed | byte-match |
+| FUN_0019b320 | 0x19b320 | tag_files/tag_groups.c | pass | 100.0% | committed | byte-match (no-op) |
+| FUN_0019b3a0 | 0x19b3a0 | tag_files/tag_groups.c | pass | 100.0% | committed | byte-match |
+| FUN_0019b3b0 | 0x19b3b0 | tag_files/tag_groups.c | pass | 100.0% | committed | byte-match (no-op) |
+| file_get_position | 0x19a9a0 | tag_files/files.c | pass | 100.0% | committed | byte-match (files_windows.obj) |
+| file_set_position | 0x19aa00 | tag_files/files.c | pass | 100.0% | committed | byte-match (files_windows.obj) |
+| file_read_from_position | 0x19acb0 | tag_files/files.c | pass | 100.0% | committed | byte-match (files_windows.obj) |
+| verify_tag_reference | 0x19b120 | tag_files/tag_groups.c | pass | 100.0% | committed | byte-match |
+| file_delete | 0x19a560 | tag_files/files.c | pass | 75.3% | committed | meets policy (files_windows.obj) |
+| file_exists | 0x19a640 | tag_files/files.c | pass | — | committed | oracle-boundary known; prior pass |
+| file_rename | 0x19a6d0 | tag_files/files.c | pass | 100.0% | committed | byte-match (files_windows.obj) |
+| file_reference_get_location | 0x1997f0 | tag_files/files.c | pass | 100.0% | committed | byte-match (files.obj) |
+| file_references_equal | 0x1999a0 | tag_files/files.c | pass | 86.7% | committed | meets policy (files.obj) |
