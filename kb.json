@@ -2812,8 +2812,10 @@
           "ported": true
         },
         {
-          "decl": "void actor_destination_tolerance(void);",
-          "addr": "0x3bd50"
+          "decl": "float actor_destination_tolerance(int actor_handle);",
+          "addr": "0x3bd50",
+          "source_path": "halo/ai/actors.c",
+          "ported": true
         },
         {
           "addr": "0x3bde0",
