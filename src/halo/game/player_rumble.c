@@ -141,7 +141,6 @@ uint32_t rumble_calculate(char *slot)
   float motors[2];
   float *effect_ptr;
   float *timer_ptr;
-  float *effect_start;
   float timer_val;
   float blend;
   float scaled;
@@ -153,9 +152,9 @@ uint32_t rumble_calculate(char *slot)
   effect_ptr = (float *)(slot + 4);
   timer_ptr = (float *)(slot + 0x1e0);
 
-  for (i = 0; i < 8; i++) {
+  i = 8;
+  do {
     timer_val = *timer_ptr;
-    effect_start = effect_ptr;
     for (j = 0; j < 2; j++) {
       if (timer_val < *effect_ptr) {
         blend = *(float *)0x2533c8 - timer_val / *effect_ptr;
@@ -169,9 +168,10 @@ uint32_t rumble_calculate(char *slot)
       }
       effect_ptr += 5;
     }
-    effect_ptr = effect_start + 15;
+    effect_ptr += 5;
     timer_ptr++;
-  }
+    i--;
+  } while (i);
 
   if (*(float *)(rumble_globals + 0x828) != *(float *)0x2533c0) {
     motors[0] +=
