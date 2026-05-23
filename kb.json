@@ -2260,15 +2260,15 @@
           "source_path": "src/halo/ai/actions.c"
         },
         {
-          "decl": "void actor_action_handle_surprise(void);",
+          "decl": "void actor_action_handle_surprise(int actor_handle, int type);",
           "addr": "0x1db90"
         },
         {
-          "decl": "void actor_action_handle_panic_transition(void);",
+          "decl": "void actor_action_handle_panic_transition(int actor_handle, short a, char b, short c);",
           "addr": "0x1dd40"
         },
         {
-          "decl": "void actor_action_handle_berserking_from_attached_projectiles(void);",
+          "decl": "void actor_action_handle_combat_targeting(int actor_handle);",
           "addr": "0x1dea0"
         },
         {
@@ -2292,7 +2292,7 @@
           "addr": "0x1ef90"
         },
         {
-          "decl": "void actor_action_handle_done_fleeing(void);",
+          "decl": "void actor_action_handle_done_fleeing(int actor_handle);",
           "addr": "0x1f6e0"
         },
         {
@@ -2300,7 +2300,7 @@
           "addr": "0x1f770"
         },
         {
-          "decl": "void actor_action_handle_combat_failure(int actor_handle);",
+          "decl": "char actor_action_handle_combat_failure(int actor_handle);",
           "addr": "0x1f920"
         },
         {
@@ -2332,7 +2332,7 @@
           "addr": "0x20280"
         },
         {
-          "decl": "void actor_action_handle_berserk_transition(void);",
+          "decl": "void actor_action_handle_berserk_transition(int actor_handle, int type);",
           "addr": "0x20470"
         },
         {
@@ -2340,15 +2340,15 @@
           "addr": "0x204f0"
         },
         {
-          "decl": "void actor_action_handle_grenade_throwing(void);",
+          "decl": "void actor_action_handle_grenade_throwing(int actor_handle);",
           "addr": "0x205a0"
         },
         {
-          "decl": "void actor_action_handle_evasion(void);",
+          "decl": "void actor_action_handle_evasion(int actor_handle);",
           "addr": "0x20670"
         },
         {
-          "decl": "void FUN_00020990(void);",
+          "decl": "void FUN_00020990(int actor_handle);",
           "addr": "0x20990"
         },
         {
@@ -2507,7 +2507,7 @@
           "decl": "void FUN_000379f0(int actor_handle);",
           "addr": "0x379f0",
           "source_path": "halo/ai/actors.c",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_00037b50(void);",
@@ -2521,12 +2521,12 @@
           "decl": "void FUN_00038000(int actor_handle);",
           "addr": "0x38000",
           "ported": true,
-          "source_path": "ai/actors.c"
+          "source_path": "src/halo/ai/actors.c"
         },
         {
           "decl": "void FUN_00038200(int actor_handle);",
           "addr": "0x38200",
-          "ported": true,
+          "ported": false,
           "source_path": "ai/actors.c"
         },
         {
@@ -4732,7 +4732,8 @@
         {
           "decl": "char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4, int param_5, int param_6);",
           "addr": "0x14cde0",
-          "ported": true
+          "ported": true,
+          "source_path": "src/halo/physics/collision_usage.c"
         },
         {
           "decl": "void FUN_0014cf20(int param_1);",
