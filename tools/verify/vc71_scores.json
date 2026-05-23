@@ -1132,6 +1132,70 @@
       "score": 95.2,
       "source": "src/halo/interface/hud_messaging.c"
     },
+    "FUN_0014d010": {
+      "score": 90.5,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d070": {
+      "score": 100.0,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d080": {
+      "score": 90.6,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d100": {
+      "score": 84.2,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d120": {
+      "score": 84.2,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d140": {
+      "score": 72.7,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d1b0": {
+      "score": 91.4,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d840": {
+      "score": 90.4,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d940": {
+      "score": 100.0,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d950": {
+      "score": 70.6,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014d9d0": {
+      "score": 80.0,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014da20": {
+      "score": 85.7,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014da80": {
+      "score": 78.9,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014dab0": {
+      "score": 100.0,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014db10": {
+      "score": 97.4,
+      "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014ec30": {
+      "score": 89.3,
+      "source": "src/halo/physics/collision_usage.c"
+    },
     "FUN_001994a0": {
       "score": 81.5,
       "source": "src/halo/tag_files/files.c"
