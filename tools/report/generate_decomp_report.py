@@ -33,12 +33,16 @@ def load_function_sizes(cache_path: str) -> dict:
 
 def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore, 
                        function_cache: dict,
-                       vc71_scores: dict = None) -> list[dict]:
+                       vc71_scores: dict = None,
+                       leaf_cache: dict = None) -> list[dict]:
     """Compute per-unit statistics in decomp.dev format."""
 
     if vc71_scores is None:
         vc71_scores = {}
     scores_data = vc71_scores.get('scores', {})
+    
+    if leaf_cache is None:
+        leaf_cache = {}
     
     units = []
     drift = {
@@ -51,6 +55,11 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     tracked_match_weighted_sum = 0.0
     tracked_scored_count = 0
     tracked_scored_weighted = 0
+    
+    tracked_equiv_tested = 0
+    tracked_equiv_high_conf = 0
+    tracked_equiv_avg_cov_sum = 0.0
+    tracked_equiv_cov_count = 0
     
     # Group functions by object file
     obj_to_funcs = defaultdict(list)
@@ -101,13 +110,22 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             if is_ported and name in scores_data:
                 match_pct = scores_data[name].get('score')
             
+            # Look up equivalence data from leaf_cache
+            eq = leaf_cache.get(addr_hex, {})
+            equiv_class = eq.get('class')
+            equiv_coverage = eq.get('coverage_pct')
+            equiv_confidence = eq.get('confidence')
+            
             func_entry = {
                 'address': addr_hex,
                 'name': name,
                 'size': size,
                 'status': status,
                 'ported': is_ported,
-                'match_percent': match_pct
+                'match_percent': match_pct,
+                'equiv_class': equiv_class,
+                'equiv_coverage': equiv_coverage,
+                'equiv_confidence': equiv_confidence,
             }
             unit_funcs.append(func_entry)
             
@@ -132,6 +150,22 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             tracked_scored_count += len(match_scores)
             tracked_match_weighted_sum += match_weighted_sum
             tracked_scored_weighted += match_scored_bytes
+        
+        # Per-unit equivalence summary
+        equiv_tested = sum(1 for f in unit_funcs if f['equiv_coverage'] is not None)
+        equiv_high_conf = sum(1 for f in unit_funcs if f['equiv_confidence'] == 'high')
+        equiv_cov_sum = sum(f['equiv_coverage'] for f in unit_funcs if f['equiv_coverage'] is not None)
+        equiv_avg_cov = round(equiv_cov_sum / equiv_tested, 1) if equiv_tested > 0 else None
+        equiv_classes = {}
+        for f in unit_funcs:
+            c = f['equiv_class'] or 'uncached'
+            equiv_classes[c] = equiv_classes.get(c, 0) + 1
+        
+        tracked_equiv_tested += equiv_tested
+        tracked_equiv_high_conf += equiv_high_conf
+        if equiv_tested > 0:
+            tracked_equiv_avg_cov_sum += equiv_cov_sum
+            tracked_equiv_cov_count += equiv_tested
             
         unit = {
             'name': obj_name.replace('.obj', ''),
@@ -147,6 +181,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'bytes_percent': round(ported_bytes / total_bytes * 100, 2) if total_bytes else 0,
                 'match_avg': match_avg,
                 'match_weighted': match_weighted,
+            },
+            'equivalence': {
+                'tested': equiv_tested,
+                'high_confidence': equiv_high_conf,
+                'avg_coverage': equiv_avg_cov,
+                'classes': equiv_classes,
             }
         }
         units.append(unit)
@@ -160,9 +200,18 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             'scored_count': tracked_scored_count,
         }
     
+    # Compute overall equivalence summary
+    overall_equiv = None
+    if tracked_equiv_tested > 0:
+        overall_equiv = {
+            'tested': tracked_equiv_tested,
+            'high_confidence': tracked_equiv_high_conf,
+            'avg_coverage': round(tracked_equiv_avg_cov_sum / tracked_equiv_cov_count, 1) if tracked_equiv_cov_count > 0 else None,
+        }
+    
     # Sort by ported percentage (most complete first)
     units.sort(key=lambda x: x['summary']['percent'], reverse=True)
-    return units, drift, overall_match
+    return units, drift, overall_match, overall_equiv
 
 
 def generate_report(output_path: str) -> dict:
@@ -171,6 +220,7 @@ def generate_report(output_path: str) -> dict:
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
     cache_path = os.path.join(root_dir, 'build', 'function_sizes.json')
     vc71_path = os.path.join(root_dir, 'tools', 'verify', 'vc71_scores.json')
+    leaf_cache_path = os.path.join(root_dir, 'tools', 'equivalence', 'leaf_cache.json')
     
     # Load knowledge base
     kb = KnowledgeBase.deserialize()
@@ -186,8 +236,14 @@ def generate_report(output_path: str) -> dict:
         with open(vc71_path) as f:
             vc71_scores = json.load(f)
     
+    # Load equivalence leaf cache
+    leaf_cache = {}
+    if os.path.exists(leaf_cache_path):
+        with open(leaf_cache_path) as f:
+            leaf_cache = json.load(f)
+    
     # Compute unit stats
-    units, drift, overall_match = compute_unit_stats(kb, store, function_cache, vc71_scores)
+    units, drift, overall_match, overall_equiv = compute_unit_stats(kb, store, function_cache, vc71_scores, leaf_cache)
     
     # Compute overall stats
     total_funcs = sum(u['summary']['total'] for u in units)
@@ -230,7 +286,8 @@ def generate_report(output_path: str) -> dict:
                 'ported': ported_bytes,
                 'percent': round(ported_bytes / total_bytes * 100, 2) if total_bytes else 0
             },
-            'match': overall_match
+            'match': overall_match,
+            'equivalence': overall_equiv,
         },
         'meta': {
             'timestamp': datetime.now().astimezone().isoformat(),
@@ -573,6 +630,44 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             border-radius: 12px; padding: 20px; height: 260px;
             margin-bottom: 20px; position: relative;
         }
+        /* ===== EQUIVALENCE ===== */
+        .equiv-badge {
+            display: inline-block; padding: 2px 7px; border-radius: 4px;
+            font-size: 0.72em; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .equiv-badge.leaf { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
+        .equiv-badge.non_leaf { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+        .equiv-badge.stubbable { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
+        .equiv-badge.data_only { background: rgba(212, 118, 10, 0.15); color: var(--accent-orange); }
+        .equiv-badge.uncached { background: transparent; color: var(--text-secondary); opacity: 0.5; }
+        .equiv-confidence {
+            display: inline-block; padding: 2px 7px; border-radius: 4px;
+            font-size: 0.72em; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .equiv-confidence.high { background: rgba(35, 134, 54, 0.15); color: #3fb950; }
+        .equiv-confidence.moderate { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
+        .equiv-confidence.weak { background: rgba(218, 54, 51, 0.15); color: var(--accent-red); }
+        .equiv-cov-bar {
+            display: inline-flex; align-items: center; gap: 5px;
+            width: 80px;
+        }
+        .equiv-cov-track {
+            flex: 1; height: 5px; background: var(--bg-tertiary);
+            border-radius: 3px; overflow: hidden;
+        }
+        .equiv-cov-fill {
+            height: 100%; border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .equiv-cov-fill.high { background: #3fb950; }
+        .equiv-cov-fill.ok { background: var(--accent-blue); }
+        .equiv-cov-fill.warn { background: var(--accent-yellow); }
+        .equiv-cov-fill.low { background: var(--accent-red); }
+        .equiv-cov-text {
+            font-size: 0.78em; font-variant-numeric: tabular-nums; min-width: 32px;
+        }
         @media (prefers-reduced-motion: reduce) {
             .progress-fill, .live-badge.online .dot { animation: none; transition: none; }
         }
@@ -659,15 +754,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     <canvas id="detailChart"></canvas>
                 </div>
 
-                <h2>Functions</h2>
-                <div class="table-controls">
-                    <div class="search-wrapper">
-                        <span class="search-icon">&#x1F50D;</span>
-                        <input type="text" id="func-search" placeholder="Filter functions by name..." autocomplete="off">
-                    </div>
-                    <span class="search-count" id="func-count"></span>
-                </div>
-                <div class="table-wrap">
+                    <h2>Functions</h2>
                     <table>
                         <thead>
                             <tr>
@@ -676,6 +763,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                                 <th data-fcol="2" class="num">Size <span class="sort-arrow"></span></th>
                                 <th data-fcol="3" class="num">Status <span class="sort-arrow"></span></th>
                                 <th data-fcol="4" class="num">Match % <span class="sort-arrow"></span></th>
+                                <th data-fcol="5" class="num">Equiv Cov <span class="sort-arrow"></span></th>
+                                <th data-fcol="6" class="num">Confidence <span class="sort-arrow"></span></th>
+                                <th data-fcol="7">Class <span class="sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="func-table-body"></tbody>
@@ -806,6 +896,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<div class="stat-value" style="color:' + matchColor(s.match.weighted) + '">' + s.match.weighted.toFixed(1) + '%</div>' +
                     '<div class="stat-label">Byte-weighted avg &middot; ' + fmtNum(s.match.scored_count) + ' functions scored</div>' +
                     '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.match.weighted, 2) + '%;background:linear-gradient(90deg,var(--accent-green),#2ea043)"><span class="progress-text">' + s.match.weighted.toFixed(1) + '%</span></div></div>' +
+                '</div>' : '') +
+                (s.equivalence && s.equivalence.tested > 0 ? 
+                '<div class="card" title="Unicorn-Engine equivalence verification. Tests ported functions against original Xbox binary bytecode in a sandboxed x86 emulator.">' +
+                    '<div class="stat-label">Equivalence Verified</div>' +
+                    '<div class="stat-value" style="color:#58a6ff">' + fmtNum(s.equivalence.tested) + '</div>' +
+                    '<div class="stat-label">functions tested &middot; ' + s.equivalence.avg_coverage.toFixed(1) + '% avg coverage &middot; ' + fmtNum(s.equivalence.high_confidence) + ' high conf.</div>' +
                 '</div>' : '');
         }
 
@@ -1019,6 +1115,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             // Header
             document.getElementById('detail-unit-name').textContent = unit.name;
+            var eq = unit.equivalence || {};
             document.getElementById('detail-meta').innerHTML =
                 '<span class="unit-meta-item">Source: <strong>' + escHtml(unit.source_path || '?') + '</strong></span>' +
                 '<span class="unit-meta-item">Functions: <strong>' + s.total + '</strong></span>' +
@@ -1027,7 +1124,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 (s.match_weighted !== null && s.match_weighted !== undefined ?
                     '<span class="unit-meta-item">Match: <strong style="color:' + matchColor(s.match_weighted) + '">' + s.match_weighted.toFixed(1) + '%</strong></span>' : '') +
                 (s.match_avg !== null && s.match_avg !== undefined ?
-                    '<span class="unit-meta-item">Avg Match: <strong>' + s.match_avg.toFixed(1) + '%</strong></span>' : '');
+                    '<span class="unit-meta-item">Avg Match: <strong>' + s.match_avg.toFixed(1) + '%</strong></span>' : '') +
+                (eq.tested > 0 ?
+                    '<span class="unit-meta-item">Equiv: <strong>' + eq.tested + '</strong> tested &middot; <strong>' + (eq.avg_coverage !== null ? eq.avg_coverage.toFixed(1) + '%' : '?') + '</strong> avg cov &middot; <strong>' + eq.high_confidence + '</strong> high conf.</span>' : '');
 
             // Match distribution chart (embedded Chart.js)
             renderDetailChart(funcs);
@@ -1134,12 +1233,36 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     ? '<span class="num"><span class="match-dot ' + mClass + '"></span>' + f.match_percent.toFixed(1) + '%</span>'
                     : (f.ported ? '<span class="pct-none">Not scored</span>' : '<span class="pct-none">\u2014</span>');
 
+                // Equivalence coverage
+                var covDisplay = '<span class="pct-none">\u2014</span>';
+                if (f.equiv_coverage !== null && f.equiv_coverage !== undefined) {
+                    var covClass = f.equiv_coverage >= 90 ? 'high' : (f.equiv_coverage >= 60 ? 'ok' : (f.equiv_coverage >= 30 ? 'warn' : 'low'));
+                    covDisplay = '<span class="equiv-cov-bar">' +
+                        '<span class="equiv-cov-track"><span class="equiv-cov-fill ' + covClass + '" style="width:' + f.equiv_coverage + '%"></span></span>' +
+                        '<span class="equiv-cov-text" style="color:' + matchColor(f.equiv_coverage) + '">' + f.equiv_coverage.toFixed(1) + '%</span></span>';
+                }
+
+                // Equivalence confidence
+                var confDisplay = '<span class="pct-none">\u2014</span>';
+                if (f.equiv_confidence) {
+                    confDisplay = '<span class="equiv-confidence ' + f.equiv_confidence + '">' + f.equiv_confidence + '</span>';
+                }
+
+                // Equivalence class
+                var classDisplay = '<span class="pct-none">\u2014</span>';
+                if (f.equiv_class) {
+                    classDisplay = '<span class="equiv-badge ' + f.equiv_class + '">' + f.equiv_class + '</span>';
+                }
+
                 html += '<tr>' +
                     '<td class="func-address">' + f.address + '</td>' +
                     '<td class="func-name">' + escHtml(f.name) + '</td>' +
                     '<td class="num">' + fmtNum(f.size) + '</td>' +
                     '<td class="num">' + statusBadge(f.ported) + '</td>' +
                     '<td class="num">' + matchDisplay + '</td>' +
+                    '<td class="num">' + covDisplay + '</td>' +
+                    '<td class="num">' + confDisplay + '</td>' +
+                    '<td>' + classDisplay + '</td>' +
                 '</tr>';
             }
             document.getElementById('func-table-body').innerHTML = html;
@@ -1152,6 +1275,15 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 case 2: return func.size;
                 case 3: return func.ported ? 1 : 0;
                 case 4: return func.match_percent !== null && func.match_percent !== undefined ? func.match_percent : -1;
+                case 5: return func.equiv_coverage !== null && func.equiv_coverage !== undefined ? func.equiv_coverage : -1;
+                case 6: {
+                    var order = {'high': 3, 'moderate': 2, 'weak': 1};
+                    return func.equiv_confidence ? (order[func.equiv_confidence] || 0) : -1;
+                }
+                case 7: {
+                    var order = {'leaf': 4, 'stubbable': 3, 'data_only': 2, 'non_leaf': 1};
+                    return func.equiv_class ? (order[func.equiv_class] || 0) : -1;
+                }
                 default: return '';
             }
         }
