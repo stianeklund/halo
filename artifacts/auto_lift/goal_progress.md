@@ -144,3 +144,18 @@ These require state snapshots from xemu to test meaningfully.
 - **batch_verify _has_delinked_ref substring false-positives fixed:** Was using `addr_no_0x in
   stem` substring check which caused "3c3a0" to match "objects_FUN_0013c3a0". Fixed to use
   zero-padded FUN_ symbol name for exact matching; bare addr only with word-boundary guard.
+## Goal-Lift Progress (Session 2 - 2026-05-22)
+
+| function | addr | source_file | screen_result | vc71 | action | reason |
+|---|---|---|---|---|---|---|
+| FUN_001a6820 | 0x1a6820 | units.c | pass | 93.1% | committed | prior session |
+| FUN_001a6870 | 0x1a6870 | units.c | pass | 97.2% | committed | prior session |
+| FUN_001a6cd0 | 0x1a6cd0 | units.c | pass | 90.0% | committed | prior session |
+| FUN_00085180 | 0x85180 | objects.c | pass | 91.7% | committed | jp→jne fix |
+| FUN_000379f0 | 0x379f0 | actors.c | pass | 95.5% | committed | switch case reorder fix |
+| FUN_00038000 | 0x38000 | actors.c | pass | 95.1% | committed | state-machine tick variant |
+| FUN_00036a90 | 0x36a90 | actors.c | skip | 88.6% cap | reverted | calls reg-arg FUN_00036890 |
+| FUN_00036b10 | 0x36b10 | actors.c | skip | 76% cap | reverted | calls reg-arg FUN_00036890 |
+| FUN_00036c50 | 0x36c50 | actors.c | skip | 87.8% cap | reverted | calls reg-arg FUN_00036890 |
+| FUN_00036e50 | 0x36e50 | actors.c | in-progress | 87.0% | permuting | jp/movl vs jne/fpu structural mismatch |
+| FUN_00038200 | 0x38200 | actors.c | in-progress | TBD | agent | state-machine tick variant |
