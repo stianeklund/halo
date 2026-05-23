@@ -6237,6 +6237,14 @@
       "metadata": {
         "source_path": "src/halo/cseries/xcontent.c"
       }
+    },
+    {
+      "name": "halo/projectiles_f9c40_fad17",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/projectiles.c.obj",
+      "base_path": "delinked/projectiles_f9c40_fad17.obj",
+      "metadata": {
+        "source_path": "src/halo/items/projectiles.c"
+      }
     }
   ]
 }

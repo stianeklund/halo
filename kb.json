@@ -17338,7 +17338,8 @@
         },
         {
           "decl": "int FUN_000f9c40(int projectile_handle);",
-          "addr": "0xf9c40"
+          "addr": "0xf9c40",
+          "ported": true
         },
         {
           "decl": "float FUN_000fac20(int weapon_tag_index, float *out_field8);",
@@ -17346,12 +17347,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000face0(void);",
-          "addr": "0xface0"
+          "decl": "void FUN_000face0(int animation_graph_tag_index, short *state, int *out_sound);",
+          "addr": "0xface0",
+          "ported": true
         },
         {
-          "decl": "void FUN_000fad00(void);",
-          "addr": "0xfad00"
+          "decl": "void FUN_000fad00(int animation_graph_tag_index, int16_t animation_index);",
+          "addr": "0xfad00",
+          "ported": true
         }
       ],
       "src": "src/halo/items/projectiles.c"
@@ -19052,7 +19055,7 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0010a5e0(void);",
+          "decl": "float FUN_0010a5e0(int16_t function_type, float input);",
           "addr": "0x10a5e0"
         },
         {
@@ -32077,7 +32080,7 @@
           "ported": true
         },
         {
-          "decl": "void animation_update_internal(void);",
+          "decl": "int animation_update_internal(int update_kind, int animation_graph_tag_index, short *state, int *out_sound);",
           "addr": "0x121c30"
         },
         {

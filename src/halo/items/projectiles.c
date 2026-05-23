@@ -2037,6 +2037,667 @@ apply_speed_scale:
 }
 
 /*
+ * Main projectile physics update tick (FUN_000f9c40).
+ *
+ * Processes one game-tick worth of physics for a single projectile:
+ *   1. Contrail cleanup: if the projectile is not already detonating and has
+ *      an active contrail sub-object, deletes it and clears the reference.
+ *   2. Time/distance accumulation: advances the per-tick timer fields.
+ *   3. Detonation flag: sets the detonating flag (bit 5) when the detonation
+ *      timer (_DAT_002533c8) has elapsed, and forces the detonation state to
+ *      at least 1 when the max-range field (_DAT_002533c8) is exceeded.
+ *   4. Exports function values, then enters the main physics do-while loop:
+ *      a. Copies current velocity/speed; validates the velocity vector.
+ *      b. Guided-missile steering: if a target is locked, rotates the
+ *         velocity vector toward the target using sin/cos.
+ *      c. Speed clamping / deceleration based on max-range remaining.
+ *      d. Gravity integration.
+ *      e. Range limit (local_64 fraction) that proportionally clamps
+ *         displacement and flags detonation.
+ *      f. Computes new_pos; validates it.
+ *      g. Collision depth push/pop around FUN_000f8720.
+ *      h. Bounce limit (max 10) or detonation-state check -> time=0.
+ *      i. On collision hit: adjusts velocity for bounce, calls FUN_000f90d0
+ *         for detonation effects and FUN_000425c0 for sound, increments
+ *         bounce counter.
+ *      j. Accumulates total distance; proximity-checks up to 4 local players
+ *         for 3D sound trigger (unattached_impulse_sound_new).
+ *      k. Updates orientation (forward/up) from velocity direction.
+ *      l. Translates object to new_pos; writes back velocity.
+ *      m. If bounced: updates contrail node-matrices and contrail state.
+ *   5. Post-loop detonation handling: FUN_000f8920 (velocity/impact) or
+ *      object_delete.
+ *   6. Validates axes; exits profiling section.
+ */
+int FUN_000f9c40(int projectile_handle)
+{
+  char *proj; /* object data for the projectile                     */
+  char *proj_tag; /* tag data ('proj') for the projectile               */
+  int contrail_handle; /* handle of the attached contrail sub-object         */
+  int time_tick; /* game_time_get() result for seeding randomness      */
+  int player_idx; /* loop var: local player index (0-3)                 */
+  int player_handle; /* result of local_player_get_player_index            */
+  int player_obj; /* pointer to player object data                      */
+  int obj_handle; /* misc object handle from datum_get result           */
+  float dot; /* dot product for sound proximity check              */
+  float mag_sq; /* magnitude-squared for proximity                    */
+  float sound_range; /* sound trigger range from tag                       */
+  /* Velocity components (float[3] at proj+0x18). */
+  float vel_x, vel_y, vel_z;
+
+  /* Average velocity for position integration (float[3]). */
+  float avg_vel_x, avg_vel_y, avg_vel_z;
+
+  /* New position after one tick (float[3]). */
+  float new_pos_x, new_pos_y, new_pos_z;
+
+  /* Guidance target position. */
+  float target_pos_x, target_pos_y, target_pos_z;
+
+  /* Local copies for perpendicular decomposition. */
+  float perp_vec[3]; /* perpendicular component (local_bc area)           */
+  float angles_out[3]; /* angles_to_vector output area (local_9c area)      */
+  float steer_delta[3]; /* delta toward target (local_88 area)               */
+
+  /* Forward / up vector copies for the orientation update. */
+  float fwd_copy[3]; /* copy of proj->forward (local_7c area)             */
+
+  /* Intermediate buffers for FUN_000178d0 / cross_product3d. */
+  float cross_buf[3]; /* result of cross_product3d (local_10c area)        */
+  float cross_buf2[3]; /* second cross buffer (local_f4 area = location)    */
+
+  /* Distance/range helpers. */
+  float speed; /* |velocity| at start of tick (local_3c)            */
+  float speed_prev; /* copy of speed before deceleration (local_20)      */
+  float range_frac; /* fraction of tick before max-range hit (local_64)  */
+  float dist_at_hit; /* deceleration-adjusted distance (local_30)        */
+  float dist_post; /* post-decel speed (local_3c updated)               */
+
+  /* Gravity / deceleration temps. */
+  float gravity; /* local_8 — gravity deceleration magnitude          */
+  float decel_frac; /* fVar2 — generic float scratch                     */
+  float tmp_frac; /* fVar5/fVar6 — secondary scratch                   */
+
+  /* Steering helpers. */
+  float target_dist; /* distance to guidance target (local_8 scratch)     */
+  float steer_frac; /* lateral blend weight (local_2c)                   */
+
+  /* Bounce count, time remaining, found-sound flag, hit flag. */
+  int bounce_count; /* local_38: number of bounces so far in this tick   */
+  float time_remaining; /* local_1c: fraction of tick remaining (starts 1.0) */
+  char found_sound; /* local_21: set once a proximity sound is triggered  */
+  char hit_flag; /* local_15: set when FUN_000f8720 reports a hit      */
+  char col_hit; /* local_15 updated after detonation check            */
+
+  /* Saved object target index (proj+0x1e4). */
+  int saved_target; /* local_90: *(int*)(proj+0x1e4) at tick start       */
+
+  /* Steering turn rate. */
+  float steer_turn_rate; /* local_34: steering turn rate (radians/tick)     */
+
+  /* Collision result buffer (at least 0x3c bytes per FUN_000f90d0 usage). */
+  int16_t collision_result[0x1e]; /* 0x3c bytes                              */
+
+  /* Collision normal z component for bounce-angle check. */
+  float col_normal_z; /* local_13c: collision normal z component            */
+
+  /* Temp for object-data pointer (object_get_and_verify_type returns int). */
+  int obj_type_f; /* pointer to target object data (used as int for field access) */
+
+  /* Location passed to unattached_impulse_sound_new reuses cross_buf2.       */
+
+  /* Misc integer temps. */
+  int cd_slot; /* collision-depth slot index                        */
+  int tmp_int; /* miscellaneous integer scratch                     */
+
+  /* ----------------------------------------------------------------------- */
+  /* 1. Resolve object and tag data.                                         */
+  /* ----------------------------------------------------------------------- */
+  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  proj_tag = (char *)tag_get(0x70726f6a, *(int *)proj);
+
+  time_remaining = 1.0f;
+  bounce_count = 0;
+  found_sound = '\0';
+
+  /* Cache proj_tag in local_28 equivalent. */
+
+  /* ----------------------------------------------------------------------- */
+  /* 2. Profiling entry.                                                     */
+  /* ----------------------------------------------------------------------- */
+  if ((*(char *)0x449ef1 != '\0') && (*(char *)0x31edb0 != '\0')) {
+    profile_enter_private(*(void **)0x31eda8);
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* 3. Contrail cleanup.                                                    */
+  /* ----------------------------------------------------------------------- */
+  if (((*(uint8_t *)(proj + 0x1dc) & 2) == 0) &&
+      (*(int *)(proj + 0x1ec) != -1)) {
+    contrail_handle = *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4);
+    if (contrail_handle != -1) {
+      contrail_delete(contrail_handle);
+    }
+    *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) = -1;
+    *(int *)(proj + 0x1ec) = -1;
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* 4. Time/distance accumulation.                                          */
+  /* ----------------------------------------------------------------------- */
+  *(float *)(proj + 0x1f8) =
+    *(float *)(proj + 0x1fc) + *(float *)(proj + 0x1f8);
+  *(float *)(proj + 0x204) =
+    *(float *)(proj + 0x208) + *(float *)(proj + 0x204);
+
+  /* ----------------------------------------------------------------------- */
+  /* 5. Detonation flag check.                                               */
+  /* ----------------------------------------------------------------------- */
+  {
+    uint8_t det_type;
+    det_type = 0;
+    if ((*(int16_t *)(proj_tag + 0x180) == 1) ||
+        (*(int16_t *)(proj_tag + 0x180) == 2)) {
+      det_type = (uint8_t)((*(uint32_t *)(proj + 0x1dc) >> 4) & 1);
+    } else {
+      det_type = 1;
+    }
+    {
+      uint32_t flags = *(uint32_t *)(proj + 0x1dc);
+      if (((flags & 0x20) != 0) || ((flags & 8) != 0) || (det_type != 0)) {
+        if ((flags & 0x20) == 0) {
+          *(uint32_t *)(proj + 0x1dc) = flags | 0x20;
+        }
+        {
+          float timer_val = *(float *)(proj + 500) + *(float *)(proj + 0x1f0);
+          *(float *)(proj + 0x1f0) = timer_val;
+          if (*(float *)0x2533c8 <= timer_val) {
+            char *tmp_proj2 =
+              (char *)object_get_and_verify_type(projectile_handle, 0x20);
+            if (*(int16_t *)(tmp_proj2 + 0x1e0) < 1) {
+              *(int16_t *)(tmp_proj2 + 0x1e0) = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* 6. Export function values.                                              */
+  /* ----------------------------------------------------------------------- */
+  projectile_export_function_values(projectile_handle);
+
+  /* ----------------------------------------------------------------------- */
+  /* 7. Main physics do-while loop.                                          */
+  /* ----------------------------------------------------------------------- */
+  do {
+    float *pfVel; /* pointer to proj velocity (proj+0x18) */
+
+    /* Bail conditions. */
+    if ((*(int16_t *)(proj + 0x1e0) != 0) &&
+        (((*(int16_t *)(proj + 0x1e0) != 1) ||
+          (*(float *)(proj + 0x1fc) == *(float *)0x2533c0) ||
+          (*(float *)0x2533c8 <= *(float *)(proj + 0x1f8))))) {
+      break;
+    }
+    if (((*(uint8_t *)(proj + 0x1dc) & 8) != 0) ||
+        ((*(uint8_t *)(proj + 4) & 0x20) != 0) ||
+        (*(int *)(proj + 0xcc) != -1)) {
+      break;
+    }
+
+    pfVel = (float *)(proj + 0x18);
+    vel_x = *pfVel;
+    vel_y = *(float *)(proj + 0x1c);
+    vel_z = *(float *)(proj + 0x20);
+    avg_vel_x = *pfVel;
+    avg_vel_y = *(float *)(proj + 0x1c);
+    avg_vel_z = *(float *)(proj + 0x20);
+    saved_target = *(int *)(proj + 0x1e4);
+    hit_flag = '\0';
+
+    speed = sqrtf(*(float *)(proj + 0x20) * *(float *)(proj + 0x20) +
+                  *(float *)(proj + 0x1c) * *(float *)(proj + 0x1c) +
+                  *pfVel * *pfVel);
+    dist_at_hit = speed;
+    speed_prev = speed;
+
+    if (!real_vector3d_valid(pfVel)) {
+      display_assert("bad velocity", "c:\\halo\\SOURCE\\items\\projectiles.c",
+                     0x146, 1);
+      halt_and_catch_fire();
+    }
+
+    /* -------------------------------------------------------------------- */
+    /* 7a. Guided-missile steering.                                          */
+    /* -------------------------------------------------------------------- */
+    if ((*(int *)(proj + 0x1e8) != -1) &&
+        (*(float *)0x2533c0 < *(float *)(proj_tag + 0x1ec))) {
+      obj_type_f = (int)object_get_and_verify_type(
+        *(int *)(proj + 0x1e8), 0xffffffff);
+      steer_turn_rate = *(float *)(proj_tag + 0x1ec) * *(float *)0x2546a4;
+      if (((1u << (*(uint8_t *)(obj_type_f + 100) & 0x1f)) & 3u) != 0) {
+        tmp_int = (int)object_get_and_verify_type(*(int *)(proj + 0x1e8), 3);
+        if (*(int *)(tmp_int + 0x1c8) != -1) {
+          steer_turn_rate *= (float)FUN_000b5590(0x13);
+        }
+      }
+      target_dist = (float)FUN_0001ad60((float *)(obj_type_f + 0x50),
+                                        (float *)(proj + 0x50));
+      if ((double)target_dist <= (double)*(float *)0x253f34) {
+        if ((target_dist > *(float *)0x253f40) &&
+            ((steer_frac = (target_dist - *(float *)0x253f40) *
+                           *(float *)0x268ed0) >= *(float *)0x2533c0)) {
+          if (steer_frac > *(float *)0x2533c8) {
+            steer_frac = 1.0f;
+          }
+        } else {
+          steer_frac = 0.0f;
+        }
+      } else {
+        steer_frac = 1.0f;
+      }
+      FUN_001a9520(*(int *)(proj + 0x1e8), &target_pos_x);
+      time_tick = game_time_get();
+      target_dist =
+        (float)(time_tick + (projectile_handle >> 0x10) * 7 & 0xffff);
+      {
+        float angle_noise1 =
+          (float)FUN_0010a5e0(10,
+                               (float)(int)target_dist * *(float *)0x26f2e0);
+        angles_out[0] = (float)(angle_noise1 * *(float *)0x255a54);
+        time_tick = game_time_get();
+        target_dist =
+          (float)(time_tick + (projectile_handle >> 0x10) * 3 & 0xffff);
+        {
+          float angle_noise2 =
+            (float)FUN_0010a5e0(10,
+                                 (float)(int)target_dist * *(float *)0x26f2e0);
+          angles_out[2] =
+            (float)(*(float *)0x256980 - angle_noise2 * *(float *)0x2568bc);
+        }
+      }
+      angles_out[1] = angles_out[0];
+      angles_to_vector(perp_vec, angles_out);
+      target_pos_x = perp_vec[0] * steer_frac + target_pos_x;
+      target_pos_y = perp_vec[1] * steer_frac + target_pos_y;
+      target_pos_z = perp_vec[2] * steer_frac + target_pos_z;
+      steer_delta[0] = target_pos_x - *(float *)(proj + 0xc);
+      steer_delta[1] = target_pos_y - *(float *)(proj + 0x10);
+      steer_delta[2] = target_pos_z - *(float *)(proj + 0x14);
+      cross_product3d(pfVel, steer_delta, cross_buf);
+      dot = steer_delta[0] * *pfVel + steer_delta[1] * *(float *)(proj + 0x1c) +
+            steer_delta[2] * *(float *)(proj + 0x20);
+      if ((*(float *)0x2533c0 < dot) &&
+          ((float)normalize3d(cross_buf) > *(float *)0x2533c0)) {
+        rotate_vector3d_by_sincos(pfVel, cross_buf,
+                                  sinf(steer_turn_rate),
+                                  cosf(steer_turn_rate));
+      }
+    }
+
+    if (!real_vector3d_valid(&vel_x)) {
+      display_assert("projectile velocity is bad after steering.",
+                     "c:\\halo\\SOURCE\\items\\projectiles.c", 0x19d, 1);
+      halt_and_catch_fire();
+    }
+
+    /* -------------------------------------------------------------------- */
+    /* 7b. Speed clamping / deceleration.                                   */
+    /* -------------------------------------------------------------------- */
+    if (*(float *)0x2533c8 <= *(float *)(proj + 0x204)) {
+      if ((speed_prev <= *(float *)(proj_tag + 0x1e8)) ||
+          (*(float *)(proj + 0x20c) == *(float *)0x2533c0)) {
+        /* Already at or below max speed, or no deceleration. */
+        if (((*(float *)(proj_tag + 0x1c8) != *(float *)0x2533c0) ||
+             ((*(float *)(proj_tag + 0x1c0) != *(float *)0x2533c0) ||
+              (*(float *)(proj_tag + 0x1c4) < *(float *)(proj_tag + 0x1e8) ==
+               (*(float *)(proj_tag + 0x1c4) ==
+                *(float *)(proj_tag + 0x1e8))))) ||
+            ((*(float *)(proj + 0x20c) == *(float *)0x2533c0) &&
+             (*(float *)(proj + 0x200) < *(float *)(proj + 0x210)))) {
+          if ((speed_prev < *(float *)(proj_tag + 0x1e8)) &&
+              (*(float *)0x2533c0 < speed_prev)) {
+            decel_frac =
+              (*(float *)(proj_tag + 0x1e8) / speed_prev) * *(float *)0x28ace8;
+            vel_x *= decel_frac;
+            vel_y *= decel_frac;
+            vel_z *= decel_frac;
+          }
+        } else {
+          FUN_000f7e40(projectile_handle, 2);
+        }
+      } else {
+        decel_frac = time_remaining * *(float *)(proj + 0x20c);
+        dist_at_hit = speed_prev - decel_frac;
+        if (dist_at_hit < *(float *)(proj_tag + 0x1e8) ==
+            (dist_at_hit == *(float *)(proj_tag + 0x1e8))) {
+          /* Speed stays above min: normal decel. */
+          dist_post = speed_prev - decel_frac * *(float *)0x253398;
+          decel_frac = dist_at_hit / speed_prev;
+          vel_x *= decel_frac;
+          vel_y *= decel_frac;
+          vel_z *= decel_frac;
+          avg_vel_x = (vel_x + *pfVel) * *(float *)0x253398;
+          avg_vel_y = (vel_y + *(float *)(proj + 0x1c)) * *(float *)0x253398;
+          avg_vel_z = (vel_z + *(float *)(proj + 0x20)) * *(float *)0x253398;
+        } else {
+          /* Speed will cross min: split tick. */
+          decel_frac = (speed_prev - *(float *)(proj_tag + 0x1e8)) / decel_frac;
+          dist_at_hit = *(float *)(proj_tag + 0x1e8) * *(float *)0x28ace8;
+          tmp_frac = *(float *)0x2533c8 - decel_frac;
+          dist_post =
+            tmp_frac * *(float *)(proj_tag + 0x1e8) +
+            (dist_at_hit + speed_prev) * decel_frac * *(float *)0x253398;
+          decel_frac = dist_at_hit / speed_prev;
+          vel_x *= decel_frac;
+          vel_y *= decel_frac;
+          vel_z *= decel_frac;
+          avg_vel_x = tmp_frac * vel_x +
+                      (vel_x + *pfVel) * decel_frac * *(float *)0x253398;
+          avg_vel_y = tmp_frac * vel_y + (vel_y + *(float *)(proj + 0x1c)) *
+                                           decel_frac * *(float *)0x253398;
+          avg_vel_z = tmp_frac * vel_z + (vel_z + *(float *)(proj + 0x20)) *
+                                           decel_frac * *(float *)0x253398;
+        }
+      }
+    }
+
+    if (!real_vector3d_valid(&vel_x)) {
+      display_assert("projectile velocity is bad after deceleration.",
+                     "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1cd, 1);
+      halt_and_catch_fire();
+    }
+
+    /* -------------------------------------------------------------------- */
+    /* 7c. Gravity integration.                                             */
+    /* -------------------------------------------------------------------- */
+    if ((*(uint8_t *)(proj + 4) & 0x10) == 0) {
+      gravity = *(float *)(proj_tag + 0x1cc);
+    } else {
+      gravity = *(float *)(proj_tag + 0x1d8);
+    }
+    gravity = *(float *)0x32512c * gravity;
+    vel_z -= gravity * time_remaining;
+    avg_vel_z -= gravity * time_remaining * *(float *)0x253398;
+
+    if (!real_vector3d_valid(&vel_x)) {
+      display_assert("projectile velocity is bad after gravity.",
+                     "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1dc, 1);
+      halt_and_catch_fire();
+    }
+
+    /* -------------------------------------------------------------------- */
+    /* 7d. Max-range limit.                                                 */
+    /* -------------------------------------------------------------------- */
+    if ((*(float *)(proj_tag + 0x1c8) == *(float *)0x2533c0) ||
+        (dist_post * time_remaining + *(float *)(proj + 0x200) <=
+         *(float *)(proj_tag + 0x1c8))) {
+      range_frac = 1.0f;
+    } else {
+      if (dist_post == *(float *)0x2533c0) {
+        range_frac = 0.0f;
+      } else {
+        range_frac =
+          ((*(float *)(proj_tag + 0x1c8) - *(float *)(proj + 0x200)) /
+           dist_post) *
+          time_remaining;
+      }
+      tmp_int = (int)object_get_and_verify_type(projectile_handle, 0x20);
+      if (*(int16_t *)(tmp_int + 0x1e0) < 1) {
+        *(int16_t *)(tmp_int + 0x1e0) = 1;
+      }
+    }
+
+    /* -------------------------------------------------------------------- */
+    /* 7e. New position computation.                                        */
+    /* -------------------------------------------------------------------- */
+    decel_frac = range_frac * time_remaining;
+    new_pos_x = avg_vel_x * decel_frac + *(float *)(proj + 0xc);
+    new_pos_y = avg_vel_y * decel_frac + *(float *)(proj + 0x10);
+    new_pos_z = avg_vel_z * decel_frac + *(float *)(proj + 0x14);
+
+    if (!valid_real_point3d(&new_pos_x)) {
+      display_assert("bad new_pos", "c:\\halo\\SOURCE\\items\\projectiles.c",
+                     0x1f9, 1);
+      halt_and_catch_fire();
+    }
+
+    /* -------------------------------------------------------------------- */
+    /* 7f. Collision depth push.                                            */
+    /* -------------------------------------------------------------------- */
+    if (*(uint32_t *)0x4761d8 > 0x1f) {
+      display_assert("global_current_collision_user_depth < "
+                     "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                     "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1fb, 1);
+      halt_and_catch_fire();
+    }
+    cd_slot = (int)*(uint32_t *)0x4761d8;
+    *(uint32_t *)0x4761d8 = *(uint32_t *)0x4761d8 + 1;
+    *(int16_t *)((char *)0x5a8c80 + cd_slot * 2) = 0xe;
+
+    /* -------------------------------------------------------------------- */
+    /* 7g. Bounce-limit / detonation check, collision test.                */
+    /* -------------------------------------------------------------------- */
+    if ((short)bounce_count == 10) {
+      tmp_int = (int)object_get_and_verify_type(projectile_handle, 0x20);
+      if (*(int16_t *)(tmp_int + 0x1e0) < 1) {
+        *(int16_t *)(tmp_int + 0x1e0) = 1;
+      }
+      time_remaining = 0.0f;
+    } else if (*(int16_t *)(proj + 0x1e0) == 2) {
+      time_remaining = 0.0f;
+    } else {
+      hit_flag = '\x01';
+      col_hit =
+        (char)FUN_000f8720(projectile_handle, &new_pos_x, collision_result);
+      if (col_hit == '\0') {
+        time_remaining = 0.0f;
+      } else {
+        /* After hit: adjust time and post-decel velocity. */
+        time_remaining =
+          *(float *)0x2533c8 - *(float *)((char *)collision_result + 0x14);
+        vel_z += gravity * time_remaining;
+        if (dist_at_hit != *(float *)0x2533c0) {
+          decel_frac = time_remaining * *(float *)(proj + 0x20c) + dist_at_hit;
+          if (decel_frac > speed_prev) {
+            decel_frac = speed_prev;
+          }
+          decel_frac /= dist_at_hit;
+          vel_x *= decel_frac;
+          vel_y *= decel_frac;
+          vel_z *= decel_frac;
+        }
+        /* Set bit 2 if normal angle exceeds threshold. */
+        col_normal_z = *(float *)((char *)collision_result + 0x2c);
+        if (*(float *)0x2533e4 < col_normal_z) {
+          *(uint32_t *)(proj + 0x1dc) |= 4;
+        }
+        *(int *)(proj + 0x1e4) = -1;
+        FUN_000f90d0(projectile_handle, &new_pos_x, time_remaining, &vel_x,
+                     (int16_t *)collision_result);
+        bounce_count++;
+        FUN_000425c0(projectile_handle,
+                     (float *)((char *)collision_result + 0x18), 1,
+                     *(int16_t *)(proj_tag + 0x182), 1);
+        if ((*(uint8_t *)(proj + 0x1dc) & 8) != 0) {
+          hit_flag = '\0';
+        }
+      }
+    }
+
+    /* -------------------------------------------------------------------- */
+    /* 7h. Collision depth pop.                                             */
+    /* -------------------------------------------------------------------- */
+    if (*(uint32_t *)0x4761d8 < 2) {
+      display_assert("global_current_collision_user_depth > 1",
+                     "c:\\halo\\SOURCE\\items\\projectiles.c", 0x230, 1);
+      halt_and_catch_fire();
+    }
+    *(uint32_t *)0x4761d8 = *(uint32_t *)0x4761d8 - 1;
+
+    /* -------------------------------------------------------------------- */
+    /* 7i. Post-hit processing.                                             */
+    /* -------------------------------------------------------------------- */
+    if (hit_flag != '\0') {
+      /* Accumulate total travel distance. */
+      {
+        float dx, dy, dz;
+        dx = new_pos_x - *(float *)(proj + 0xc);
+        dy = new_pos_y - *(float *)(proj + 0x10);
+        dz = new_pos_z - *(float *)(proj + 0x14);
+        *(float *)(proj + 0x200) +=
+          sqrtf(dx * dx + dy * dy + dz * dz);
+      }
+
+      /* Proximity sound check (up to 4 local players). */
+      if ((found_sound == '\0') && (*(int *)(proj_tag + 0x210) != -1)) {
+        for (player_idx = 0; (short)player_idx < 4; player_idx++) {
+          player_handle = local_player_get_player_index(player_idx);
+          if (player_handle != -1) {
+            tmp_int = local_player_get_player_index(player_idx);
+            obj_handle =
+              *(int *)((char *)datum_get(*(void **)0x5aa6d4, tmp_int) + 0x34);
+            if ((obj_handle != -1) && (obj_handle != saved_target)) {
+              player_obj =
+                (int)object_get_and_verify_type(obj_handle, 0xffffffff);
+              pfVel = (float *)(player_obj + 0x50);
+              sound_range =
+                (float)sound_get_default_priority(*(int *)(proj_tag + 0x210));
+              steer_delta[0] = *pfVel - *(float *)(proj + 0xc);
+              steer_delta[1] =
+                *(float *)(player_obj + 0x54) - *(float *)(proj + 0x10);
+              steer_delta[2] =
+                *(float *)(player_obj + 0x58) - *(float *)(proj + 0x14);
+              FUN_0010b910(steer_delta, &new_pos_x, perp_vec, cross_buf2);
+              dot = perp_vec[0] * (new_pos_x - *(float *)(proj + 0xc)) +
+                    perp_vec[1] * (new_pos_y - *(float *)(proj + 0x10)) +
+                    perp_vec[2] * (new_pos_z - *(float *)(proj + 0x14));
+              if ((*(float *)0x2533c0 <= dot) &&
+                  ((float)FUN_00012170(&new_pos_x) > dot)) {
+                mag_sq = (float)FUN_00012170(cross_buf2);
+                if (mag_sq < sound_range * sound_range) {
+                  /* sound origin = player_pos + (-1)*perp_component; reuse cross_buf2 */
+                  vector3d_scale_add((float *)(player_obj + 0x50), cross_buf2,
+                                     -1.0f, cross_buf2);
+                  unattached_impulse_sound_new(*(int *)(proj_tag + 0x210),
+                                               cross_buf2, 1.0f);
+                  found_sound = '\x01';
+                }
+              }
+            }
+          }
+        }
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* 7j. Orientation update.                                            */
+      /* ------------------------------------------------------------------ */
+      if (((*(uint8_t *)(proj_tag + 0x17c) & 1) == 0) ||
+          ((*(float *)(proj + 0x18) == *(float *)0x2533c0) &&
+           (*(float *)(proj + 0x1c) == *(float *)0x2533c0) &&
+           (*(float *)(proj + 0x20) == *(float *)0x2533c0))) {
+        /* Apply stored rotation (sin/cos at proj+0x220/0x224) if flag set. */
+        if ((*(uint8_t *)(proj + 0x1dc) & 1) != 0) {
+          float *fwd = (float *)(proj + 0x24);
+          float *up  = (float *)(proj + 0x30);
+          rotate_vector3d_by_sincos(up,  fwd,
+                                    *(float *)(proj + 0x220),
+                                    *(float *)(proj + 0x224));
+          rotate_vector3d_by_sincos(fwd, (float *)(proj + 0x214),
+                                    *(float *)(proj + 0x220),
+                                    *(float *)(proj + 0x224));
+        }
+      } else {
+        /* Align forward to current velocity direction. */
+        {
+          float *fwd = (float *)(proj + 0x24);
+          float *up  = (float *)(proj + 0x30);
+          fwd_copy[0] = *(float *)(proj + 0x18);
+          fwd_copy[1] = *(float *)(proj + 0x1c);
+          fwd_copy[2] = *(float *)(proj + 0x20);
+          if ((float)normalize3d(fwd_copy) > *(float *)0x2533c0) {
+            fwd[0] = fwd_copy[0];
+            fwd[1] = fwd_copy[1];
+            fwd[2] = fwd_copy[2];
+            cross_product3d(up, fwd, cross_buf2);
+            cross_product3d(fwd, cross_buf2, up);
+            if ((float)normalize3d(up) == *(float *)0x2533c0) {
+              perpendicular3d(fwd, up);
+              normalize3d(up);
+            }
+          }
+        }
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* 7k. Translate object to new position.                              */
+      /* ------------------------------------------------------------------ */
+      object_translate(projectile_handle, &new_pos_x,
+                       (void *)((char *)collision_result + 0x0c));
+      /* Write back velocity. */
+      {
+        float local_1c_cmp = time_remaining;
+        *(float *)(proj + 0x18) = vel_x;
+        *(float *)(proj + 0x1c) = vel_y;
+        *(float *)(proj + 0x20) = vel_z;
+        if ((local_1c_cmp != *(float *)0x2533c0) &&
+            ((short)bounce_count != 0) && (*(int *)(proj + 0x1ec) != -1) &&
+            (*(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) != -1)) {
+          object_compute_node_matrices(projectile_handle);
+          contrail_set_state_for_object(
+            *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4), 0,
+            (*(float *)0x2533c8 - time_remaining) * *(float *)0x28ab38);
+        }
+      }
+    }
+
+    if (!real_vector3d_valid((float *)(proj + 0x18))) {
+      display_assert("bad velocity", "c:\\halo\\SOURCE\\items\\projectiles.c",
+                     0x2a0, 1);
+      halt_and_catch_fire();
+    }
+  } while (*(float *)0x2533c0 < time_remaining);
+
+  /* ----------------------------------------------------------------------- */
+  /* 8. Post-loop detonation dispatch.                                       */
+  /* ----------------------------------------------------------------------- */
+  if (*(int16_t *)(proj + 0x1e0) == 1) {
+    {
+      float fval = *(float *)(proj + 0x1fc);
+      int skip = 0;
+      if (fval != *(float *)0x2533c0) {
+        if (*(float *)(proj + 0x1f8) < *(float *)0x2533c8) {
+          skip = 1;
+        }
+      }
+      if (!skip) {
+        FUN_000f8920(projectile_handle, (char)(bounce_count == 0),
+                     time_remaining);
+      }
+    }
+  } else if (*(int16_t *)(proj + 0x1e0) == 2) {
+    object_delete(projectile_handle);
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* 9. Validate axes and profiling exit.                                    */
+  /* ----------------------------------------------------------------------- */
+  if (!valid_real_normal3d_perpendicular((float *)(proj + 0x24),
+                                         (float *)(proj + 0x30))) {
+    /* csprintf assert — matches the assert string in the decompile. */
+    display_assert("axes invalid", "c:\\halo\\SOURCE\\items\\projectiles.c",
+                   0x2b0, 1);
+    halt_and_catch_fire();
+  }
+  if ((*(char *)0x449ef1 != '\0') && (*(char *)0x31edb0 != '\0')) {
+    profile_exit_private(*(void **)0x31eda8);
+  }
+  return 1;
+}
+
+/*
  * Compute the average damage value for the given weapon tag's projectile.
  *
  * Looks up the weapon tag (group 'weap') and retrieves the first element of
@@ -2086,4 +2747,28 @@ float FUN_000fac20(int weapon_tag_index, float *out_field8)
   return (*(float *)(jpt_tag + 0x1d8) + *(float *)(jpt_tag + 0x1d4)) *
            *(float *)0x253398 +
          local_float;
+}
+
+/*
+ * Wrapper: advance animation state by one frame (update_kind=1) for the
+ * given animation graph tag and animation state pointer. Thin wrapper around
+ * animation_update_internal with a fixed update_kind of 1.
+ * No known direct call-graph callers (likely dispatched via function pointer
+ * or animation callback table).
+ */
+void FUN_000face0(int animation_graph_tag_index, short *state, int *out_sound)
+{
+  animation_update_internal(1, animation_graph_tag_index, state, out_sound);
+}
+
+/*
+ * Wrapper: choose a random animation from the given animation graph
+ * for the given animation index, using update_kind=1 (normal update).
+ * Calls model_animation_choose_random(1, animation_graph_tag_index,
+ * animation_index). Called by FUN_001b3580 when transitioning a unit
+ * to a new animation state after a melee/scripted override.
+ */
+void FUN_000fad00(int animation_graph_tag_index, int16_t animation_index)
+{
+  model_animation_choose_random(1, animation_graph_tag_index, animation_index);
 }
