@@ -1525,6 +1525,11 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
       system_exit(-1);
     }
     damage_data_new(damage_params, *(int *)(proj_tag + 0x230));
+    *(uint32_t *)(damage_params + 4) |= 8u;
+    *(int *)(damage_params + 0x08) = *(int *)((char *)proj + 0x70);
+    *(int *)(damage_params + 0x0c) = *(int *)((char *)proj + 0x74);
+    *(short *)(damage_params + 0x10) = *(short *)((char *)proj + 0x68);
+    *(float *)(damage_params + 0x40) = det_frac;
     /* Copy marker positions from col_result. */
     col_pos[0] = *(float *)((char *)col_result + 0x18);
     col_pos[1] = *(float *)((char *)col_result + 0x1c);
