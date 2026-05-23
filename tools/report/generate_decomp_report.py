@@ -668,6 +668,75 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         .equiv-cov-text {
             font-size: 0.78em; font-variant-numeric: tabular-nums; min-width: 32px;
         }
+        /* ===== VERIFICATION COVERAGE SECTION ===== */
+        .verif-two-col {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;
+        }
+        @media (max-width: 860px) { .verif-two-col { grid-template-columns: 1fr; } }
+        .funnel-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 9px;
+        }
+        .funnel-label {
+            color: var(--text-secondary); font-size: 0.78em; min-width: 110px;
+            text-align: right; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .funnel-bar-track {
+            flex: 1; height: 18px; background: var(--bg-tertiary);
+            border-radius: 4px; overflow: hidden; position: relative;
+        }
+        .funnel-bar-fill {
+            height: 100%; border-radius: 4px; display: flex; align-items: center;
+            padding-left: 7px; font-size: 0.72em; font-weight: 700; color: rgba(255,255,255,0.9);
+            min-width: 3px; transition: width 0.6s ease;
+        }
+        .funnel-count {
+            color: var(--text-primary); font-size: 0.78em; min-width: 140px;
+            font-variant-numeric: tabular-nums;
+        }
+        .funnel-sub { color: var(--text-secondary); }
+        .tu-heatmap-grid {
+            display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px;
+        }
+        .tu-tile {
+            width: 14px; height: 14px; border-radius: 2px; cursor: pointer;
+            transition: transform 0.1s; flex-shrink: 0;
+        }
+        .tu-tile:hover { transform: scale(1.8); z-index: 10; }
+        .tu-legend {
+            display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
+        }
+        .tu-legend-item {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.72em; color: var(--text-secondary);
+        }
+        .tu-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+        .addr-strip-wrap {
+            height: 56px; background: var(--bg-tertiary); border-radius: 6px;
+            overflow: hidden; position: relative; margin-top: 4px;
+        }
+        #addrStripCanvas { display: block; width: 100%; height: 100%; }
+        .addr-legend {
+            display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px;
+        }
+        .addr-legend-item {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.72em; color: var(--text-secondary);
+        }
+        .addr-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+        .priority-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        .priority-table th {
+            color: var(--text-secondary); font-size: 0.82em; text-transform: uppercase;
+            letter-spacing: 0.5px; font-weight: 600; text-align: left;
+            background: var(--bg-tertiary); padding: 12px 14px; border-bottom: 1px solid var(--border);
+            cursor: pointer; user-select: none; white-space: nowrap;
+        }
+        .priority-table th:hover { color: var(--text-primary); }
+        .priority-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+        .priority-table td code { font-family: 'SF Mono', 'Cascadia Code', monospace; font-weight: 500; font-size: 0.88em; }
+        .priority-table tr:last-child td { border-bottom: none; }
+        .priority-table tr:hover td { background: rgba(88,166,255,0.04); }
+        .priority-rank { color: var(--text-secondary); font-weight: 700; }
+        .priority-reason { color: var(--text-secondary); }
         @media (prefers-reduced-motion: reduce) {
             .progress-fill, .live-badge.online .dot { animation: none; transition: none; }
         }
@@ -701,6 +770,28 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     <div class="chart-title">Daily Velocity</div>
                     <canvas id="velocityChart"></canvas>
                 </div>
+            </div>
+
+            <h2>Verification Coverage</h2>
+            <div class="verif-two-col">
+                <div class="card">
+                    <div class="chart-title">Verification Pipeline</div>
+                    <div id="verif-funnel"></div>
+                </div>
+                <div class="card">
+                    <div class="chart-title">Unit Evidence Map &mdash; <span style="font-weight:400;text-transform:none;letter-spacing:0">click a tile to open unit</span></div>
+                    <div class="tu-heatmap-grid" id="tu-heatmap"></div>
+                    <div class="tu-legend" id="tu-legend"></div>
+                </div>
+            </div>
+            <div class="card" style="margin-bottom:16px">
+                <div class="chart-title">Binary Address Space &mdash; <span style="font-weight:400;text-transform:none;letter-spacing:0">every function plotted at its real address</span></div>
+                <div class="addr-strip-wrap"><canvas id="addrStripCanvas"></canvas></div>
+                <div class="addr-legend" id="addr-legend"></div>
+            </div>
+            <div class="card" style="margin-bottom:16px">
+                <div class="chart-title">Equivalence Test Priority Queue &mdash; <span style="font-weight:400;text-transform:none;letter-spacing:0">top candidates for unicorn_diff.py</span></div>
+                <div id="priority-queue-content"></div>
             </div>
 
             <h2>Per-Unit Breakdown</h2>
@@ -755,6 +846,13 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 </div>
 
                     <h2>Functions</h2>
+                    <div class="table-controls">
+                        <div class="search-wrapper">
+                            <span class="search-icon">&#x1F50D;</span>
+                            <input type="text" id="func-search" placeholder="Filter functions..." autocomplete="off">
+                        </div>
+                        <span class="search-count" id="func-count"></span>
+                    </div>
                     <table>
                         <thead>
                             <tr>
@@ -796,6 +894,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         var funcSortAsc = true;
         var funcFilterText = '';
         var currentUnitName = null;
+        var pqSortCol = -1;
+        var pqSortAsc = true;
 
         /* ===== ROUTER ===== */
         function router() {
@@ -846,6 +946,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         function render() {
             renderSummary();
             renderCharts();
+            renderVerifSection();
             renderTable();
             renderMeta();
         }
@@ -877,19 +978,18 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<div class="stat-value">' + s.functions.percent.toFixed(1) + '%</div>' +
                     '<div class="stat-label">' + fmtNum(s.functions.ported) + ' / ' + fmtNum(s.functions.total) + ' functions</div>' +
                     '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.functions.percent, 2) + '%"><span class="progress-text">' + s.functions.percent.toFixed(1) + '%</span></div></div>' +
-                '</div>' +
-                '<div class="card" title="Total binary bytes covered by ported functions. Each ported function\\'s code size is counted.">' +
-                    '<div class="stat-label">Byte Coverage</div>' +
-                    '<div class="stat-value">' + s.bytes.percent.toFixed(1) + '%</div>' +
-                    '<div class="stat-label">' + fmtNum(s.bytes.ported) + ' / ' + fmtNum(s.bytes.total) + ' bytes</div>' +
-                    '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.bytes.percent, 2) + '%"><span class="progress-text">' + s.bytes.percent.toFixed(1) + '%</span></div></div>' +
-                '</div>' +
-                '<div class="card" title="Object files (.obj) tracked. Each unit maps to a C source file in the project.">' +
-                    '<div class="stat-label">Translation Units</div>' +
-                    '<div class="stat-value">' + totalUnits + '</div>' +
-                    '<div class="stat-label">Object files tracked</div>' +
                     vel +
                 '</div>' +
+                (function() {
+                    var completedUnits = u.filter(function(unit) { return unit.summary.percent === 100 && unit.summary.total > 0; }).length;
+                    var completedPct = Math.round(completedUnits / totalUnits * 100);
+                    return '<div class="card" title="Source files where every function has been ported. A fully-reimplemented translation unit.">' +
+                        '<div class="stat-label">Files Complete</div>' +
+                        '<div class="stat-value">' + completedUnits + '</div>' +
+                        '<div class="stat-label">' + completedUnits + ' / ' + totalUnits + ' source files fully ported</div>' +
+                        '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(completedPct, 2) + '%"><span class="progress-text">' + completedPct + '%</span></div></div>' +
+                    '</div>';
+                })() +
                 (s.match ? 
                 '<div class="card" title="Byte-level accuracy of ported code when compiled with MSVC 7.1 and compared against the original Xbox binary.">' +
                     '<div class="stat-label">Match Quality</div>' +
@@ -897,11 +997,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<div class="stat-label">Byte-weighted avg &middot; ' + fmtNum(s.match.scored_count) + ' functions scored</div>' +
                     '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.match.weighted, 2) + '%;background:linear-gradient(90deg,var(--accent-green),#2ea043)"><span class="progress-text">' + s.match.weighted.toFixed(1) + '%</span></div></div>' +
                 '</div>' : '') +
-                (s.equivalence && s.equivalence.tested > 0 ? 
+                (s.equivalence ?
                 '<div class="card" title="Unicorn-Engine equivalence verification. Tests ported functions against original Xbox binary bytecode in a sandboxed x86 emulator.">' +
                     '<div class="stat-label">Equivalence Verified</div>' +
-                    '<div class="stat-value" style="color:#58a6ff">' + fmtNum(s.equivalence.tested) + '</div>' +
-                    '<div class="stat-label">functions tested &middot; ' + s.equivalence.avg_coverage.toFixed(1) + '% avg coverage &middot; ' + fmtNum(s.equivalence.high_confidence) + ' high conf.</div>' +
+                    '<div class="stat-value" style="color:' + (s.equivalence.tested > 0 ? '#58a6ff' : 'var(--text-secondary)') + '">' + fmtNum(s.equivalence.tested || 0) + '</div>' +
+                    '<div class="stat-label">' + (s.equivalence.tested > 0 ? (s.equivalence.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.equivalence.high_confidence || 0) + ' high conf.</div>' +
+                    (s.equivalence.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.equivalence.tested / s.functions.ported * 100, 0.3) + '%;background:linear-gradient(90deg,#1f6feb,#388bfd)"><span class="progress-text">' + (s.equivalence.tested / s.functions.ported * 100).toFixed(1) + '%</span></div></div>' : '') +
                 '</div>' : '');
         }
 
@@ -1013,6 +1114,268 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     }
                 }
             };
+        }
+
+        /* ===== VERIFICATION COVERAGE RENDERERS ===== */
+        function renderVerifSection() {
+            renderVerifFunnel();
+            renderTuHeatmap();
+            renderAddrStrip();
+            renderPriorityQueue();
+        }
+
+        function renderVerifFunnel() {
+            var s = REPORT.summary;
+            var total = s.functions.total;
+            var ported = s.functions.ported;
+            var vc71 = s.match ? (s.match.scored_count || 0) : 0;
+            var eqTested = s.equivalence ? (s.equivalence.tested || 0) : 0;
+            var eqHigh = s.equivalence ? (s.equivalence.high_confidence || 0) : 0;
+
+            var steps = [
+                { label: 'All functions', count: total,    color: '#3d444d', pct: 100 },
+                { label: 'Ported',        count: ported,   color: '#388bfd', pct: ported / total * 100 },
+                { label: 'VC71 scored',   count: vc71,     color: '#d29922', pct: vc71 / total * 100 },
+                { label: 'Equiv tested',  count: eqTested, color: '#d4760a', pct: eqTested / total * 100 },
+                { label: 'High conf.',    count: eqHigh,   color: '#3fb950', pct: eqHigh / total * 100 }
+            ];
+
+            var html = '';
+            for (var i = 0; i < steps.length; i++) {
+                var st = steps[i];
+                var sub = '';
+                if (i === 1) sub = ' <span class="funnel-sub">(' + st.count + '/' + total + ')</span>';
+                else if (i > 1) sub = ' <span class="funnel-sub">(' + (ported > 0 ? (st.count / ported * 100).toFixed(1) : '0') + '% of ported)</span>';
+                var showLabel = st.pct > 12;
+                html += '<div class="funnel-row">' +
+                    '<div class="funnel-label">' + st.label + '</div>' +
+                    '<div class="funnel-bar-track">' +
+                        '<div class="funnel-bar-fill" style="width:' + Math.max(st.pct, 0.4) + '%;background:' + st.color + '">' +
+                            (showLabel ? fmtNum(st.count) : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="funnel-count">' + fmtNum(st.count) + sub + '</div>' +
+                '</div>';
+            }
+            var el = document.getElementById('verif-funnel');
+            if (el) el.innerHTML = html;
+        }
+
+        function tuEvidenceLevel(unit) {
+            if (!unit.summary || !unit.summary.ported) return 'no_ported';
+            var eq = unit.equivalence || {};
+            if (eq.high_confidence > 0) return 'eq_high';
+            if (eq.tested > 0) return 'eq_some';
+            if (unit.summary.match_weighted !== null && unit.summary.match_weighted !== undefined) return 'vc71';
+            return 'unverified';
+        }
+
+        var EVIDENCE_COLORS = {
+            no_ported: '#21262d',
+            unverified: '#3d444d',
+            vc71: '#388bfd',
+            eq_some: '#d4760a',
+            eq_high: '#3fb950'
+        };
+        var EVIDENCE_LABELS = {
+            no_ported: 'No ported functions',
+            unverified: 'Ported, no verification',
+            vc71: 'VC71 byte-match scored',
+            eq_some: 'Equiv tested',
+            eq_high: 'Equiv high-confidence'
+        };
+
+        function renderTuHeatmap() {
+            var units = REPORT.units;
+            var html = '';
+            for (var i = 0; i < units.length; i++) {
+                var u = units[i];
+                var level = tuEvidenceLevel(u);
+                var color = EVIDENCE_COLORS[level];
+                var s = u.summary;
+                var eq = u.equivalence || {};
+                var tip = u.name + '\\n' + EVIDENCE_LABELS[level] +
+                    '\\n' + s.ported + '/' + s.total + ' ported';
+                if (s.match_weighted !== null && s.match_weighted !== undefined) tip += '\\nVC71: ' + s.match_weighted.toFixed(1) + '%';
+                if (eq.tested > 0) tip += '\\nEquiv: ' + eq.tested + ' tested, ' + (eq.avg_coverage || 0).toFixed(1) + '% cov, ' + eq.high_confidence + ' high';
+                html += '<div class="tu-tile" style="background:' + color + '" title="' + escHtml(tip) + '" onclick="goToUnit(\\'' + jsEsc(u.name) + '\\')"></div>';
+            }
+            var el = document.getElementById('tu-heatmap');
+            if (el) el.innerHTML = html;
+
+            var legEl = document.getElementById('tu-legend');
+            if (legEl) {
+                var legHtml = '';
+                var keys = ['no_ported', 'unverified', 'vc71', 'eq_some', 'eq_high'];
+                for (var j = 0; j < keys.length; j++) {
+                    var k = keys[j];
+                    legHtml += '<div class="tu-legend-item"><div class="tu-legend-dot" style="background:' + EVIDENCE_COLORS[k] + '"></div>' + EVIDENCE_LABELS[k] + '</div>';
+                }
+                legEl.innerHTML = legHtml;
+            }
+        }
+
+        function renderAddrStrip() {
+            var canvas = document.getElementById('addrStripCanvas');
+            if (!canvas) return;
+            var wrap = canvas.parentNode;
+            var W = wrap.clientWidth || 1200;
+            var H = 56;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.round(W * dpr);
+            canvas.height = Math.round(H * dpr);
+            canvas.style.width = W + 'px';
+            canvas.style.height = H + 'px';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            var fns = [];
+            var minA = Infinity, maxA = 0;
+            for (var ui = 0; ui < REPORT.units.length; ui++) {
+                var funcs = REPORT.units[ui].functions || [];
+                for (var fi = 0; fi < funcs.length; fi++) {
+                    var f = funcs[fi];
+                    var addr = parseInt(f.address, 16);
+                    if (!addr || addr < 0x1000) continue;
+                    if (addr < minA) minA = addr;
+                    if (addr > maxA) maxA = addr;
+                    fns.push(f);
+                }
+            }
+            if (!fns.length || minA >= maxA) return;
+
+            var range = maxA - minA;
+            ctx.fillStyle = '#161b22';
+            ctx.fillRect(0, 0, W, H);
+
+            for (var i = 0; i < fns.length; i++) {
+                var fn = fns[i];
+                var addr = parseInt(fn.address, 16);
+                var x = Math.floor((addr - minA) / range * (W - 1));
+                var barW = Math.max(1, Math.round((fn.size || 1) / range * W));
+
+                var col;
+                if (!fn.ported) { col = '#2d333b'; }
+                else if (fn.equiv_confidence === 'high') { col = '#3fb950'; }
+                else if (fn.equiv_confidence === 'moderate') { col = '#d29922'; }
+                else if (fn.equiv_coverage !== null && fn.equiv_coverage !== undefined) { col = '#d4760a'; }
+                else if (fn.match_percent !== null && fn.match_percent !== undefined) {
+                    col = fn.match_percent >= 95 ? '#2ea043' : fn.match_percent >= 85 ? '#388bfd' : '#6e5030';
+                } else { col = '#444c56'; }
+
+                ctx.fillStyle = col;
+                ctx.fillRect(x, 0, barW, H);
+            }
+
+            var legendItems = [
+                ['#2d333b', 'Unported'], ['#444c56', 'Ported/unscored'],
+                ['#6e5030', 'VC71 <85%'], ['#388bfd', 'VC71 85-95%'], ['#2ea043', 'VC71 ≥95%'],
+                ['#d4760a', 'Equiv tested'], ['#d29922', 'Equiv moderate'], ['#3fb950', 'Equiv high conf.']
+            ];
+            var legEl = document.getElementById('addr-legend');
+            if (legEl) {
+                var lh = '';
+                for (var li = 0; li < legendItems.length; li++) {
+                    lh += '<div class="addr-legend-item"><div class="addr-legend-dot" style="background:' + legendItems[li][0] + '"></div>' + legendItems[li][1] + '</div>';
+                }
+                legEl.innerHTML = lh;
+            }
+        }
+
+        function renderPriorityQueue() {
+            var candidates = [];
+            for (var ui = 0; ui < REPORT.units.length; ui++) {
+                var unit = REPORT.units[ui];
+                var funcs = unit.functions || [];
+                for (var fi = 0; fi < funcs.length; fi++) {
+                    var f = funcs[fi];
+                    if (!f.ported) continue;
+                    if (f.equiv_coverage !== null && f.equiv_coverage !== undefined) continue;
+                    var score = (f.size || 0) / 80.0;
+                    if (f.match_percent !== null && f.match_percent !== undefined) score += f.match_percent * 0.4;
+                    if (f.equiv_class === 'leaf') score += 20;
+                    var reasons = [];
+                    if (f.match_percent !== null && f.match_percent !== undefined) {
+                        if (f.match_percent >= 95) reasons.push('VC71 ' + f.match_percent.toFixed(0) + '%');
+                        else if (f.match_percent >= 85) reasons.push('near-match');
+                    }
+                    if (f.equiv_class === 'leaf') reasons.push('leaf');
+                    if ((f.size || 0) >= 200) reasons.push('large');
+                    candidates.push({f: f, unit: unit.name, score: score, reasons: reasons});
+                }
+            }
+            candidates.sort(function(a, b) { return b.score - a.score; });
+            var top = candidates.slice(0, 12);
+
+            var el = document.getElementById('priority-queue-content');
+            if (!el) return;
+            if (!top.length) {
+                el.innerHTML = '<div style="color:var(--text-secondary);padding:12px 0">No untested ported functions found.</div>';
+                return;
+            }
+
+            // Apply sort if a column is selected
+            if (pqSortCol >= 0) {
+                candidates.sort(function(a, b) {
+                    var va, vb;
+                    switch (pqSortCol) {
+                        case 0: va = b.score; vb = a.score; break; // rank (desc by default = lower number first)
+                        case 1: va = a.f.name; vb = b.f.name; break;
+                        case 2: va = a.unit; vb = b.unit; break;
+                        case 3: va = a.f.size || 0; vb = b.f.size || 0; break;
+                        case 4: va = a.f.match_percent !== null && a.f.match_percent !== undefined ? a.f.match_percent : -1;
+                                vb = b.f.match_percent !== null && b.f.match_percent !== undefined ? b.f.match_percent : -1; break;
+                        case 5: va = a.f.equiv_class || ''; vb = b.f.equiv_class || ''; break;
+                        default: va = b.score; vb = a.score;
+                    }
+                    if (typeof va === 'number') return pqSortAsc ? va - vb : vb - va;
+                    return pqSortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+                });
+            }
+            top = candidates.slice(0, 12);
+
+            var pqArrow = function(col) {
+                if (pqSortCol !== col) return '<span class="sort-arrow"></span>';
+                return '<span class="sort-arrow"> ' + (pqSortAsc ? '\\u25B2' : '\\u25BC') + '</span>';
+            };
+            var html = '<table class="priority-table" id="priority-table"><thead><tr>' +
+                '<th data-pqcol="0">Rank ' + pqArrow(0) + '</th>' +
+                '<th data-pqcol="1">Function ' + pqArrow(1) + '</th>' +
+                '<th data-pqcol="2">Unit ' + pqArrow(2) + '</th>' +
+                '<th data-pqcol="3" class="num">Size ' + pqArrow(3) + '</th>' +
+                '<th data-pqcol="4" class="num">VC71 ' + pqArrow(4) + '</th>' +
+                '<th data-pqcol="5">Class ' + pqArrow(5) + '</th>' +
+                '<th>Why</th>' +
+                '</tr></thead><tbody>';
+            for (var i = 0; i < top.length; i++) {
+                var c = top[i];
+                var f = c.f;
+                var mp = f.match_percent !== null && f.match_percent !== undefined;
+                html += '<tr>' +
+                    '<td class="priority-rank">' + (i + 1) + '</td>' +
+                    '<td><code style="color:var(--accent-blue)">' + escHtml(f.name) + '</code></td>' +
+                    '<td style="color:var(--text-secondary)">' + escHtml(c.unit) + '</td>' +
+                    '<td class="num">' + fmtNum(f.size || 0) + '</td>' +
+                    '<td class="num">' + (mp ? '<span style="color:' + matchColor(f.match_percent) + '">' + f.match_percent.toFixed(1) + '%</span>' : '<span style="color:var(--text-secondary)">—</span>') + '</td>' +
+                    '<td>' + (f.equiv_class ? '<span class="equiv-badge ' + f.equiv_class + '">' + f.equiv_class + '</span>' : '<span style="color:var(--text-secondary)">—</span>') + '</td>' +
+                    '<td class="priority-reason">' + (c.reasons.length ? c.reasons.join(', ') : 'size') + '</td>' +
+                '</tr>';
+            }
+            html += '</tbody></table>';
+            el.innerHTML = html;
+
+            // Wire up sort headers for priority table
+            var pqHeaders = document.querySelectorAll('#priority-table th[data-pqcol]');
+            for (var hi = 0; hi < pqHeaders.length; hi++) {
+                pqHeaders[hi].addEventListener('click', (function(hh) {
+                    return function() {
+                        var col = parseInt(hh.getAttribute('data-pqcol'));
+                        if (pqSortCol === col) { pqSortAsc = !pqSortAsc; }
+                        else { pqSortCol = col; pqSortAsc = (col === 0); }
+                        renderPriorityQueue();
+                    };
+                })(pqHeaders[hi]));
+            }
         }
 
         function renderTable() {
