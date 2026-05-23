@@ -15690,7 +15690,7 @@
           "addr": "0xe0740"
         },
         {
-          "decl": "void player_ui_get_single_player_local_player_from_controller(void);",
+          "decl": "int player_ui_get_single_player_local_player_from_controller(short local_player_index);",
           "addr": "0xe0810"
         },
         {
@@ -15734,7 +15734,7 @@
           "addr": "0xe0ab0"
         },
         {
-          "decl": "void player_ui_rumble_disabled(void);",
+          "decl": "bool player_ui_rumble_disabled(int controller_index);",
           "addr": "0xe0b00"
         },
         {
@@ -19056,7 +19056,7 @@
           "addr": "0x10a5e0"
         },
         {
-          "decl": "void FUN_0010a710(void);",
+          "decl": "float transition_function_evaluate(short function_type, float t);",
           "addr": "0x10a710"
         },
         {
