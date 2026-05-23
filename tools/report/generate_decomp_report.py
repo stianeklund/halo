@@ -165,7 +165,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     return units, drift, overall_match
 
 
-def generate_report(output_path: str, with_functions: bool = False) -> dict:
+def generate_report(output_path: str) -> dict:
     """Generate full decomp.dev-compatible report."""
     
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -245,15 +245,8 @@ def generate_report(output_path: str, with_functions: bool = False) -> dict:
         }
     }
     
-    # Include per-unit breakdown (always)
-    report['units'] = [
-        {k: v for k, v in u.items() if k != 'functions'}  # Exclude function list for brevity
-        for u in units
-    ]
-    
-    # Include per-function data if requested
-    if with_functions:
-        report['units_with_functions'] = units
+    # Include per-unit breakdown with per-function data
+    report['units'] = units
     
     # Write output
     os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
@@ -518,6 +511,68 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             th, td { padding: 8px 10px; font-size: 0.82em; }
             .source-path { max-width: 120px; }
         }
+        /* ===== VIEW ROUTING ===== */
+        .view { display: none; }
+        .view.active { display: block; }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: var(--accent-blue); cursor: pointer; font-size: 0.9em;
+            padding: 6px 12px; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--bg-secondary);
+            text-decoration: none; margin-bottom: 16px;
+        }
+        .back-btn:hover {
+            background: var(--bg-tertiary);
+        }
+        .unit-title {
+            font-family: 'SF Mono', 'Cascadia Code', monospace;
+            font-size: 1.4em; color: var(--accent-blue); font-weight: 700;
+        }
+        .unit-meta-row {
+            display: flex; gap: 24px; flex-wrap: wrap;
+            margin: 12px 0 20px; font-size: 0.9em;
+        }
+        .unit-meta-item {
+            color: var(--text-secondary);
+        }
+        .unit-meta-item strong {
+            color: var(--text-primary);
+        }
+        .func-status {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.78em; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .func-status.ported {
+            background: rgba(35, 134, 54, 0.15); color: #3fb950;
+        }
+        .func-status.unported {
+            background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow);
+        }
+        .func-name {
+            font-family: 'SF Mono', 'Cascadia Code', monospace;
+            font-size: 0.88em;
+        }
+        .func-address {
+            font-family: 'SF Mono', 'Cascadia Code', monospace;
+            font-size: 0.82em; color: var(--text-secondary);
+        }
+        td.num .match-dot {
+            display: inline-block;
+            width: 7px; height: 7px; border-radius: 50%; margin-right: 5px;
+            vertical-align: middle;
+        }
+        .unit-name-link {
+            cursor: pointer; color: var(--accent-blue); text-decoration: none;
+        }
+        .unit-name-link:hover {
+            text-decoration: underline;
+        }
+        .detail-chart-container {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; height: 260px;
+            margin-bottom: 20px; position: relative;
+        }
         @media (prefers-reduced-motion: reduce) {
             .progress-fill, .live-badge.online .dot { animation: none; transition: none; }
         }
@@ -525,57 +580,116 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="header-row">
-                <h1>Halo: Combat Evolved (Xbox)</h1>
-                <span class="live-badge offline" id="live-badge">
-                    <span class="dot"></span>
-                    <span id="live-text">Static</span>
-                </span>
-            </div>
-            <div class="subtitle">Decompilation Progress Dashboard</div>
-        </header>
 
-        <div class="summary" id="summary-cards"></div>
+        <!-- ===== OVERVIEW ===== -->
+        <div id="view-overview" class="view active">
+            <header>
+                <div class="header-row">
+                    <h1>Halo: Combat Evolved (Xbox)</h1>
+                    <span class="live-badge offline" id="live-badge">
+                        <span class="dot"></span>
+                        <span id="live-text">Static</span>
+                    </span>
+                </div>
+                <div class="subtitle">Decompilation Progress Dashboard</div>
+            </header>
 
-        <h2>Historical Progress</h2>
-        <div class="charts-grid" id="charts-grid">
-            <div class="chart-container">
-                <div class="chart-title">Functions Ported Over Time</div>
-                <canvas id="progressChart"></canvas>
+            <div class="summary" id="summary-cards"></div>
+
+            <h2>Historical Progress</h2>
+            <div class="charts-grid" id="charts-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Functions Ported Over Time</div>
+                    <canvas id="progressChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Daily Velocity</div>
+                    <canvas id="velocityChart"></canvas>
+                </div>
             </div>
-            <div class="chart-container">
-                <div class="chart-title">Daily Velocity</div>
-                <canvas id="velocityChart"></canvas>
+
+            <h2>Per-Unit Breakdown</h2>
+            <div class="table-controls">
+                <div class="search-wrapper">
+                    <span class="search-icon">&#x1F50D;</span>
+                    <input type="text" id="unit-search" placeholder="Filter units by name or path..." autocomplete="off">
+                </div>
+                <span class="search-count" id="search-count"></span>
             </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-col="0">Unit Name <span class="sort-arrow"></span></th>
+                            <th data-col="1">Source Path <span class="sort-arrow"></span></th>
+                            <th data-col="2" class="num">Functions <span class="sort-arrow"></span></th>
+                            <th data-col="3" class="num">Ported <span class="sort-arrow"></span></th>
+                            <th data-col="4" class="num">Progress <span class="sort-arrow"></span></th>
+                            <th data-col="5" class="num">Bytes <span class="sort-arrow"></span></th>
+                            <th data-col="6" class="num">Match % <span class="sort-arrow"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="meta" id="meta"></div>
         </div>
 
-        <h2>Per-Unit Breakdown</h2>
-        <div class="table-controls">
-            <div class="search-wrapper">
-                <span class="search-icon">&#x1F50D;</span>
-                <input type="text" id="unit-search" placeholder="Filter units by name or path..." autocomplete="off">
+        <!-- ===== UNIT DETAIL ===== -->
+        <div id="view-detail" class="view">
+            <header>
+                <div class="header-row">
+                    <h1>Halo: Combat Evolved (Xbox)</h1>
+                    <span class="live-badge offline" id="live-badge-detail">
+                        <span class="dot"></span>
+                        <span id="live-text-detail">Static</span>
+                    </span>
+                </div>
+                <div class="subtitle">Translation Unit Detail</div>
+            </header>
+
+            <div id="detail-content">
+                <a class="back-btn" href="#" id="detail-back">&#x2190; Back to Overview</a>
+                <div class="unit-title" id="detail-unit-name"></div>
+                <div class="unit-meta-row" id="detail-meta"></div>
+
+                <div class="detail-chart-container">
+                    <div class="chart-title">Match Score Distribution</div>
+                    <canvas id="detailChart"></canvas>
+                </div>
+
+                <h2>Functions</h2>
+                <div class="table-controls">
+                    <div class="search-wrapper">
+                        <span class="search-icon">&#x1F50D;</span>
+                        <input type="text" id="func-search" placeholder="Filter functions by name..." autocomplete="off">
+                    </div>
+                    <span class="search-count" id="func-count"></span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-fcol="0">Address <span class="sort-arrow"></span></th>
+                                <th data-fcol="1">Function Name <span class="sort-arrow"></span></th>
+                                <th data-fcol="2" class="num">Size <span class="sort-arrow"></span></th>
+                                <th data-fcol="3" class="num">Status <span class="sort-arrow"></span></th>
+                                <th data-fcol="4" class="num">Match % <span class="sort-arrow"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="func-table-body"></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <a class="back-btn" href="#" id="detail-back-bottom">&#x2190; Back to Overview</a>
+                </div>
             </div>
-            <span class="search-count" id="search-count"></span>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th data-col="0">Unit Name <span class="sort-arrow"></span></th>
-                        <th data-col="1">Source Path <span class="sort-arrow"></span></th>
-                        <th data-col="2" class="num">Functions <span class="sort-arrow"></span></th>
-                        <th data-col="3" class="num">Ported <span class="sort-arrow"></span></th>
-                        <th data-col="4" class="num">Progress <span class="sort-arrow"></span></th>
-                        <th data-col="5" class="num">Bytes <span class="sort-arrow"></span></th>
-                        <th data-col="6" class="num">Match % <span class="sort-arrow"></span></th>
-                    </tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
+
+            <div class="meta" id="meta-detail"></div>
         </div>
 
-        <div class="meta" id="meta"></div>
     </div>
 
     <script>
@@ -588,8 +702,57 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         var sortCol = -1;
         var sortAsc = true;
         var filterText = '';
+        var funcSortCol = -1;
+        var funcSortAsc = true;
+        var funcFilterText = '';
+        var currentUnitName = null;
 
-        /* ===== RENDER ===== */
+        /* ===== ROUTER ===== */
+        function router() {
+            var hash = window.location.hash || '#';
+            if (hash.indexOf('#unit/') === 0) {
+                var name = decodeURIComponent(hash.slice(6));
+                showDetail(name);
+            } else {
+                showOverview();
+            }
+        }
+
+        function goToUnit(name) {
+            window.location.hash = '#unit/' + encodeURIComponent(name);
+        }
+
+        function goHome() {
+            window.location.hash = '#';
+        }
+
+        function showOverview() {
+            document.getElementById('view-overview').classList.add('active');
+            document.getElementById('view-detail').classList.remove('active');
+            render();
+            updateLiveBadge('overview');
+        }
+
+        function showDetail(name) {
+            document.getElementById('view-overview').classList.remove('active');
+            document.getElementById('view-detail').classList.add('active');
+            currentUnitName = name;
+            renderUnitDetail(name);
+            updateLiveBadge('detail');
+        }
+
+        function updateLiveBadge(view) {
+            var liveEl = document.getElementById(view === 'detail' ? 'live-badge-detail' : 'live-badge');
+            var textEl = document.getElementById(view === 'detail' ? 'live-text-detail' : 'live-text');
+            // Sync detail badge state from overview badge
+            var srcBadge = document.getElementById('live-badge');
+            if (view === 'detail') {
+                liveEl.className = srcBadge.className;
+                textEl.textContent = srcBadge.querySelector('#live-text').textContent;
+            }
+        }
+
+        /* ===== OVERVIEW RENDER ===== */
         function render() {
             renderSummary();
             renderCharts();
@@ -653,6 +816,18 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             return '#da3633';
         }
 
+        function matchBadge(pct) {
+            if (pct === null || pct === undefined) return 'none';
+            if (pct >= 95) return 'high';
+            if (pct >= 85) return 'ok';
+            if (pct >= 70) return 'warn';
+            return 'low';
+        }
+
+        function statusBadge(ported) {
+            return ported ? '<span class="func-status ported">Ported</span>' : '<span class="func-status unported">Unported</span>';
+        }
+
         function renderCharts() {
             var grid = document.getElementById('charts-grid');
             grid.style.display = '';
@@ -669,47 +844,46 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 return;
             }
 
-            // Progress + Velocity charts (require history snapshots)
             var snaps = HISTORY.snapshots.slice(-90);
-                var labels = snaps.map(function(s) { return s.timestamp.slice(0, 10); });
-                var funcs = snaps.map(function(s) { return s.summary.functions.ported; });
+            var labels = snaps.map(function(s) { return s.timestamp.slice(0, 10); });
+            var funcs = snaps.map(function(s) { return s.summary.functions.ported; });
 
-                destroyChart('progressChart');
-                var ctx1 = document.getElementById('progressChart').getContext('2d');
-                chartInstances.progressChart = new Chart(ctx1, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Functions Ported',
-                            data: funcs,
-                            borderColor: '#58a6ff',
-                            backgroundColor: 'rgba(88, 166, 255, 0.08)',
-                            borderWidth: 2, tension: 0.35, fill: true,
-                            pointRadius: 2, pointHoverRadius: 5
-                        }]
-                    },
-                    options: chartOpts()
-                });
+            destroyChart('progressChart');
+            var ctx1 = document.getElementById('progressChart').getContext('2d');
+            chartInstances.progressChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Functions Ported',
+                        data: funcs,
+                        borderColor: '#58a6ff',
+                        backgroundColor: 'rgba(88, 166, 255, 0.08)',
+                        borderWidth: 2, tension: 0.35, fill: true,
+                        pointRadius: 2, pointHoverRadius: 5
+                    }]
+                },
+                options: chartOpts()
+            });
 
-                var velData = [0];
-                for (var i = 1; i < funcs.length; i++) { velData.push(funcs[i] - funcs[i - 1]); }
-                destroyChart('velocityChart');
-                var ctx2 = document.getElementById('velocityChart').getContext('2d');
-                chartInstances.velocityChart = new Chart(ctx2, {
-                    type: 'bar',
-                    data: {
-                        labels: labels.slice(1),
-                        datasets: [{
-                            label: 'Functions/Day',
-                            data: velData.slice(1),
-                            backgroundColor: 'rgba(35, 134, 54, 0.6)',
-                            borderColor: '#238636',
-                            borderWidth: 1, borderRadius: 3
-                        }]
-                    },
-                    options: chartOpts()
-                });
+            var velData = [0];
+            for (var i = 1; i < funcs.length; i++) { velData.push(funcs[i] - funcs[i - 1]); }
+            destroyChart('velocityChart');
+            var ctx2 = document.getElementById('velocityChart').getContext('2d');
+            chartInstances.velocityChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: labels.slice(1),
+                    datasets: [{
+                        label: 'Functions/Day',
+                        data: velData.slice(1),
+                        backgroundColor: 'rgba(35, 134, 54, 0.6)',
+                        borderColor: '#238636',
+                        borderWidth: 1, borderRadius: 3
+                    }]
+                },
+                options: chartOpts()
+            });
         }
 
         function destroyChart(id) {
@@ -752,7 +926,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                        (u.source_path || '').toLowerCase().indexOf(query) !== -1;
             });
 
-            // Sort
             if (sortCol >= 0) {
                 units.sort(function(a, b) {
                     var va = getSortVal(a, sortCol);
@@ -771,11 +944,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 var name = u.name;
                 var source = u.source_path || '?';
                 var fp = s.percent;
-                var bp = s.bytes_total > 0 ? (s.bytes_ported / s.bytes_total * 100) : 0;
 
                 var pctClass = fp >= 100 ? 'pct-complete' : (fp > 0 ? 'pct-partial' : 'pct-none');
 
-                // Match quality: VC71 verify score (byte-level accuracy of ported functions)
                 var matchHtml = '';
                 var sc = s.match_avg;
                 if (sc !== null && sc !== undefined) {
@@ -785,10 +956,10 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     tip += 'Average: ' + sc.toFixed(1) + '%  Byte-weighted: ' + sw.toFixed(1) + '%';
                     matchHtml = '<span class="match-indicator" title="' + tip + '"><span class="match-dot ' + mClass + '"></span>' + sw.toFixed(1) + '%</span>';
                 } else {
-                    matchHtml = '<span class="pct-none">—</span>';
+                    matchHtml = '<span class="pct-none">\u2014</span>';
                 }
                 html += '<tr>' +
-                    '<td class="unit-name">' + escHtml(name) + '</td>' +
+                    '<td class="unit-name"><a class="unit-name-link" onclick="goToUnit(\\'' + jsEsc(name) + '\\')">' + escHtml(name) + '</a></td>' +
                     '<td class="source-path" title="' + escHtml(source) + '">' + escHtml(source) + '</td>' +
                     '<td class="num">' + s.total + '</td>' +
                     '<td class="num">' + s.ported + '</td>' +
@@ -822,6 +993,167 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 'Generated: ' + m.timestamp + ' &middot; ' +
                 'Commit: ' + m.commit + ' (' + m.branch + ') &middot; ' +
                 'Tool: generate_decomp_report.py ' + m.tool_version;
+            document.getElementById('meta-detail').innerHTML =
+                'Generated: ' + m.timestamp + ' &middot; ' +
+                'Commit: ' + m.commit + ' (' + m.branch + ') &middot; ' +
+                'Tool: generate_decomp_report.py ' + m.tool_version;
+        }
+
+        /* ===== UNIT DETAIL RENDER ===== */
+        function renderUnitDetail(name) {
+            // Find the unit
+            var unit = null;
+            for (var i = 0; i < REPORT.units.length; i++) {
+                if (REPORT.units[i].name === name) {
+                    unit = REPORT.units[i];
+                    break;
+                }
+            }
+            if (!unit) {
+                document.getElementById('detail-content').innerHTML = '<div class="pct-none" style="text-align:center;padding:60px;">Unit not found: ' + escHtml(name) + '</div>';
+                return;
+            }
+
+            var funcs = unit.functions || [];
+            var s = unit.summary;
+
+            // Header
+            document.getElementById('detail-unit-name').textContent = unit.name;
+            document.getElementById('detail-meta').innerHTML =
+                '<span class="unit-meta-item">Source: <strong>' + escHtml(unit.source_path || '?') + '</strong></span>' +
+                '<span class="unit-meta-item">Functions: <strong>' + s.total + '</strong></span>' +
+                '<span class="unit-meta-item">Ported: <strong>' + s.ported + '</strong> (' + s.percent.toFixed(1) + '%)</span>' +
+                '<span class="unit-meta-item">Bytes: <strong>' + fmtNum(s.bytes_ported) + ' / ' + fmtNum(s.bytes_total) + '</strong></span>' +
+                (s.match_weighted !== null && s.match_weighted !== undefined ?
+                    '<span class="unit-meta-item">Match: <strong style="color:' + matchColor(s.match_weighted) + '">' + s.match_weighted.toFixed(1) + '%</strong></span>' : '') +
+                (s.match_avg !== null && s.match_avg !== undefined ?
+                    '<span class="unit-meta-item">Avg Match: <strong>' + s.match_avg.toFixed(1) + '%</strong></span>' : '');
+
+            // Match distribution chart (embedded Chart.js)
+            renderDetailChart(funcs);
+
+            // Function table
+            renderFuncTable(funcs);
+        }
+
+        function renderDetailChart(funcs) {
+            var ctx = document.getElementById('detailChart').getContext('2d');
+            destroyChart('detailChart');
+
+            var scored = funcs.filter(function(f) { return f.match_percent !== null && f.match_percent !== undefined && f.ported; });
+            if (scored.length < 2) {
+                // Not enough data for a meaningful chart — hide or show placeholder
+                var parent = ctx.canvas.parentNode;
+                parent.style.display = 'none';
+                return;
+            }
+            parent.style.display = '';
+
+            // Bin match scores into ranges
+            var bins = { '0-50%': 0, '50-70%': 0, '70-85%': 0, '85-95%': 0, '95-100%': 0 };
+            var colors = ['#da3633', '#d4760a', '#d29922', '#58a6ff', '#3fb950'];
+            var labels = ['0-50%', '50-70%', '70-85%', '85-95%', '95-100%'];
+
+            for (var i = 0; i < scored.length; i++) {
+                var p = scored[i].match_percent;
+                if (p < 50) bins['0-50%']++;
+                else if (p < 70) bins['50-70%']++;
+                else if (p < 85) bins['70-85%']++;
+                else if (p < 95) bins['85-95%']++;
+                else bins['95-100%']++;
+            }
+
+            var data = labels.map(function(l) { return bins[l]; });
+
+            chartInstances.detailChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Functions',
+                        data: data,
+                        backgroundColor: colors.map(function(c) { return c + '99'; }),
+                        borderColor: colors,
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+                            titleColor: '#c9d1d9', bodyColor: '#c9d1d9',
+                            padding: 12, cornerRadius: 8,
+                            callbacks: {
+                                label: function(ctx) {
+                                    var total = scored.length;
+                                    return ctx.raw + ' functions (' + (ctx.raw / total * 100).toFixed(1) + '%)';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#21262d' },
+                            ticks: { color: '#8b949e' }
+                        },
+                        y: {
+                            grid: { color: '#21262d' },
+                            ticks: { color: '#8b949e', precision: 0 },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderFuncTable(funcs) {
+            var query = funcFilterText.toLowerCase();
+            var filtered = funcs.filter(function(f) {
+                return f.name.toLowerCase().indexOf(query) !== -1;
+            });
+
+            if (funcSortCol >= 0) {
+                filtered.sort(function(a, b) {
+                    var va = getFuncSortVal(a, funcSortCol);
+                    var vb = getFuncSortVal(b, funcSortCol);
+                    if (typeof va === 'number') return funcSortAsc ? va - vb : vb - va;
+                    return funcSortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+                });
+            }
+
+            document.getElementById('func-count').textContent = filtered.length + ' / ' + funcs.length + ' functions';
+
+            var html = '';
+            for (var i = 0; i < filtered.length; i++) {
+                var f = filtered[i];
+                var mClass = matchBadge(f.match_percent);
+                var matchDisplay = f.match_percent !== null && f.match_percent !== undefined
+                    ? '<span class="num"><span class="match-dot ' + mClass + '"></span>' + f.match_percent.toFixed(1) + '%</span>'
+                    : (f.ported ? '<span class="pct-none">Not scored</span>' : '<span class="pct-none">\u2014</span>');
+
+                html += '<tr>' +
+                    '<td class="func-address">' + f.address + '</td>' +
+                    '<td class="func-name">' + escHtml(f.name) + '</td>' +
+                    '<td class="num">' + fmtNum(f.size) + '</td>' +
+                    '<td class="num">' + statusBadge(f.ported) + '</td>' +
+                    '<td class="num">' + matchDisplay + '</td>' +
+                '</tr>';
+            }
+            document.getElementById('func-table-body').innerHTML = html;
+        }
+
+        function getFuncSortVal(func, col) {
+            switch (col) {
+                case 0: return parseInt(func.address, 16) || 0;
+                case 1: return func.name;
+                case 2: return func.size;
+                case 3: return func.ported ? 1 : 0;
+                case 4: return func.match_percent !== null && func.match_percent !== undefined ? func.match_percent : -1;
+                default: return '';
+            }
         }
 
         /* ===== HELPERS ===== */
@@ -834,17 +1166,25 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        function jsEsc(s) {
+            if (!s) return '';
+            return s.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'").replace(/"/g, '&quot;');
+        }
+
         /* ===== SSE / POLLING ===== */
         function connectSSE() {
             var badge = document.getElementById('live-badge');
             var text = document.getElementById('live-text');
+            var badgeDetail = document.getElementById('live-badge-detail');
+            var textDetail = document.getElementById('live-text-detail');
 
             if (window.EventSource) {
                 var es = new EventSource('/events');
                 var timeout = setTimeout(function() {
-                    // SSE didn't fire within 3s — fall back to polling
                     badge.className = 'live-badge offline';
                     text.textContent = 'Polling';
+                    badgeDetail.className = 'live-badge offline';
+                    textDetail.textContent = 'Polling';
                     startPolling();
                 }, 3000);
 
@@ -852,16 +1192,18 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     clearTimeout(timeout);
                     badge.className = 'live-badge online';
                     text.textContent = 'Live';
+                    badgeDetail.className = 'live-badge online';
+                    textDetail.textContent = 'Live';
                     try {
                         REPORT = JSON.parse(e.data);
-                        render();
+                        router();
                     } catch(err) {}
                 });
 
                 es.addEventListener('history', function(e) {
                     try {
                         HISTORY = JSON.parse(e.data);
-                        render();
+                        router();
                     } catch(err) {}
                 });
 
@@ -869,11 +1211,15 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     clearTimeout(timeout);
                     badge.className = 'live-badge offline';
                     text.textContent = 'Polling';
+                    badgeDetail.className = 'live-badge offline';
+                    textDetail.textContent = 'Polling';
                     startPolling();
                 };
             } else {
                 badge.className = 'live-badge offline';
                 text.textContent = 'Polling';
+                badgeDetail.className = 'live-badge offline';
+                textDetail.textContent = 'Polling';
                 startPolling();
             }
         }
@@ -884,20 +1230,33 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             pollTimer = setInterval(function() {
                 fetch('report.json').then(function(r) { return r.json(); }).then(function(data) {
                     REPORT = data;
-                    render();
+                    router();
                 }).catch(function() {});
             }, 5000);
         }
 
-        /* ===== SEARCH ===== */
+        /* ===== EVENT BINDING ===== */
         document.addEventListener('DOMContentLoaded', function() {
+            // Overview search
             var searchInput = document.getElementById('unit-search');
-            searchInput.addEventListener('input', function() {
-                filterText = this.value;
-                renderTable();
-            });
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    filterText = this.value;
+                    renderTable();
+                });
+            }
 
-            // Sort on header click
+            // Function search (detail view)
+            var funcSearch = document.getElementById('func-search');
+            if (funcSearch) {
+                funcSearch.addEventListener('input', function() {
+                    funcFilterText = this.value;
+                    var unit = findUnit(currentUnitName);
+                    if (unit) renderFuncTable(unit.functions || []);
+                });
+            }
+
+            // Overview sort on header click
             var headers = document.querySelectorAll('th[data-col]');
             for (var i = 0; i < headers.length; i++) {
                 headers[i].addEventListener('click', function() {
@@ -908,7 +1267,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                         sortCol = col;
                         sortAsc = true;
                     }
-                    // Update arrows
                     for (var j = 0; j < headers.length; j++) {
                         var arrow = headers[j].querySelector('.sort-arrow');
                         var c = parseInt(headers[j].getAttribute('data-col'));
@@ -921,10 +1279,54 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     renderTable();
                 });
             }
+
+            // Function sort on header click (detail view)
+            var fHeaders = document.querySelectorAll('th[data-fcol]');
+            for (var i = 0; i < fHeaders.length; i++) {
+                fHeaders[i].addEventListener('click', function() {
+                    var col = parseInt(this.getAttribute('data-fcol'));
+                    if (funcSortCol === col) {
+                        funcSortAsc = !funcSortAsc;
+                    } else {
+                        funcSortCol = col;
+                        funcSortAsc = true;
+                    }
+                    for (var j = 0; j < fHeaders.length; j++) {
+                        var arrow = fHeaders[j].querySelector('.sort-arrow');
+                        var c = parseInt(fHeaders[j].getAttribute('data-fcol'));
+                        if (c === col) {
+                            arrow.textContent = funcSortAsc ? ' \\u25B2' : ' \\u25BC';
+                        } else {
+                            arrow.textContent = '';
+                        }
+                    }
+                    var unit = findUnit(currentUnitName);
+                    if (unit) renderFuncTable(unit.functions || []);
+                });
+            }
+
+            // Back buttons
+            var backBtns = document.querySelectorAll('#detail-back, #detail-back-bottom');
+            for (var i = 0; i < backBtns.length; i++) {
+                backBtns[i].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    goHome();
+                });
+            }
+
+            // Hash change
+            window.addEventListener('hashchange', router);
         });
 
+        function findUnit(name) {
+            for (var i = 0; i < REPORT.units.length; i++) {
+                if (REPORT.units[i].name === name) return REPORT.units[i];
+            }
+            return null;
+        }
+
         /* ===== INIT ===== */
-        render();
+        router();
         connectSSE();
     </script>
 </body>
@@ -943,8 +1345,6 @@ def main():
                     help='Output JSON file path')
     ap.add_argument('--html', metavar='PATH', 
                     help='Also generate HTML dashboard at specified path')
-    ap.add_argument('--with-functions', action='store_true',
-                    help='Include per-function data (large file)')
     ap.add_argument('--pretty', action='store_true',
                     help='Pretty print JSON output')
     ap.add_argument('--history', default='artifacts/progress/history.json',
@@ -953,7 +1353,7 @@ def main():
     
     print('Generating decomp.dev-compatible report...')
     
-    report = generate_report(args.output, args.with_functions)
+    report = generate_report(args.output)
     
     print(f'\n✓ Report written to: {args.output}')
     print(f'\nSummary:')
