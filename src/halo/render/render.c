@@ -122,9 +122,18 @@ void render_window(int16_t *win, void *offset_or_null)
   int rendered_reflection = 0;
   char reflection_info[28];
   camera_t reflection_cam;
-  float render_frustum[99];
-  float rasterizer_frustum[99];
-  float reflection_frustum[99];
+  /* Keep gameplay frustum buffers sized to the full window-parameter frustum
+   * storage. The scene-render path writes effect metadata in the tail region
+   * (beyond the 0x63 floats built by render_camera_build_frustum). */
+  float render_frustum[127];
+  float rasterizer_frustum[127];
+  float reflection_frustum[127];
+
+  /* Build only initializes the actively used frustum core. Clear full buffers
+   * so any tail fields consumed by scoped/screen-effect code stay deterministic. */
+  csmemset(render_frustum, 0, sizeof(render_frustum));
+  csmemset(rasterizer_frustum, 0, sizeof(rasterizer_frustum));
+  csmemset(reflection_frustum, 0, sizeof(reflection_frustum));
 
   /* initialize render pass for this camera */
   ((void (*)(void *))0x1965f0)(render_cam);

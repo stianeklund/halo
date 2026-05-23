@@ -393,6 +393,7 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
   int iVar5;
   int iVar6;
   float radius_f;
+  float *node_matrix;
   unsigned char local_1058[0x1010];
   float local_48[13];
   float local_14[3];
@@ -425,8 +426,8 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
             piVar3 = (int *)tag_block_get_element((void *)(iVar3 + 0x34),
                                                    (int)(short)iVar5, 0x60);
             if (0 < *piVar3) {
-              matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
-                             local_48);
+              node_matrix = (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc));
+              matrix_inverse(node_matrix, local_48);
               matrix_transform_point(local_48, (float *)param_2, local_14);
               radius_f = local_48[0] * param_3;
               cVar2 = (char)collision_bsp_test_sphere(
@@ -434,7 +435,7 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
                   *(int *)&radius_f, (int *)local_1058);
               if (cVar2 != '\0') {
                 collision_features_add((int)piVar3, (int *)local_1058,
-                                       iVar6, param_4, param_5,
+                                       (int)node_matrix, param_4, param_5,
                                        *(int *)param_1, (void *)param_6);
                 local_1 = 1;
               }
