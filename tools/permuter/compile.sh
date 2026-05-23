@@ -87,7 +87,7 @@ SRC_INC="$(wsl_to_win "$REPO_ROOT/src")"
     /nologo /c /TC \
     /O2 /Oy- /GF /Gy /Gd \
     /W0 /Zl /X \
-    /DMSVC /DXDK_BUILD \
+    /DMSVC /DXDK_BUILD /DHDATA= \
     "/FI${FI_WIN}" \
     "/I${GEN_INC}" \
     "/I${SRC_INC}" \
