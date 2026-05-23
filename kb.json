@@ -15634,17 +15634,17 @@
         {
           "decl": "void rumble_player_impulse(short unit_index, float *rumble_def, float damage_amount, float scale);",
           "addr": "0xb9bc0",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void rumble_player_set_scripted_values(float left_motor, float right_motor);",
           "addr": "0xb9b80",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void rumble_player_set_scale(float scale);",
           "addr": "0xb9ba0",
-          "ported": null
+          "ported": true
         },
         {
           "decl": "void rumble_set_direct_motors(short local_player_index, int left_motor, int right_motor);",
