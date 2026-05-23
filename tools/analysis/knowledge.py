@@ -322,7 +322,9 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 					'// AUTOMATICALLY GENERATED. DO NOT EDIT.\n'
 					'//\n\n'
 					'#define HFUNC __declspec(dllexport)\n'
+					'#ifndef HDATA\n'
 					'#define HDATA __declspec(dllimport)\n'
+					'#endif\n'
 					'\n')
 
 			objs_sorted = sorted(n for n in self.object_to_symbols if n is not None)
