@@ -908,7 +908,7 @@ void ai_reconnect_to_structure_bsp(void)
     if (*(char *)(actor + 0x9) == '\0') {
       display_assert("actor->meta.encounterless", "c:\\halo\\SOURCE\\ai\\ai.c",
                      0x96f, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
     encounter_ref = *(int *)(actor + 0x30);
     if (encounter_ref != -1) {

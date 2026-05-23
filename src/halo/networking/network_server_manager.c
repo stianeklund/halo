@@ -1411,7 +1411,7 @@ void network_game_server_update_countdown(void *server, short param_2)
     display_assert(
       "server && server->state == _network_game_server_state_pregame",
       "c:\\halo\\SOURCE\\networking\\network_server_manager.c", 0x66e, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if ((*(unsigned char *)(param_1 + 0x495) == '\0') &&
       ((cVar1 = server_ok_to_countdown((void *)param_1),

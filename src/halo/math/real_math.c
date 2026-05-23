@@ -1524,15 +1524,15 @@ void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles)
 
   if (forward == (float *)0) {
     display_assert("forward", "c:\\halo\\SOURCE\\math\\real_math.c", 0x340, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (up == (float *)0) {
     display_assert("up", "c:\\halo\\SOURCE\\math\\real_math.c", 0x341, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (angles == (float *)0) {
     display_assert("angles", "c:\\halo\\SOURCE\\math\\real_math.c", 0x342, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   FUN_00109e90(matrix, angles[0], angles[1], angles[2]);
   matrix4x3_decompose(matrix, local_position, forward, up);
@@ -1715,7 +1715,7 @@ char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
 
   if (cosine < 0.0f) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x57c, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
@@ -1746,7 +1746,7 @@ char FUN_0010db50(float *p1, float *p2, float *p3, float cone_radius,
 
   if (cosine < 0.0f) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x599, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
@@ -1776,7 +1776,7 @@ char FUN_0010dbf0(float *p1, float *p2, float *p3, float cone_radius,
 
   if (cosine < 0.0f) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x5b6, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
@@ -2360,7 +2360,7 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
              "c:\\halo\\SOURCE\\math\\real_math.c", 0x8dd, 1);
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x8dd, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   {
     float diff = (cosine * cosine + sine * sine) - 1.0f;
@@ -2370,7 +2370,7 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
                "sine", "cosine",
                "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
       display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
   }
   dot = (p1[1] - p3[1]) * p4[1] +
@@ -2395,7 +2395,7 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
              "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b7, 1);
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b7, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   {
     float diff = (cosine * cosine + sine * sine) - 1.0f;
@@ -2405,7 +2405,7 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
                "sine", "cosine",
                "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
       display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
   }
   dot = (p1[1] - p3[1]) * p4[1] + (p1[0] - p3[0]) * p4[0];
@@ -2432,7 +2432,7 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
              "c:\\halo\\SOURCE\\math\\real_math.c", 0x897, 1);
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x897, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   {
     float diff = (cosine * cosine + sine * sine) - 1.0f;
@@ -2442,7 +2442,7 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
                "sine", "cosine",
                "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
       display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
   }
   dx = p1[0] - p3[0];
@@ -2480,7 +2480,7 @@ char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
              "c:\\halo\\SOURCE\\math\\real_math.c", 0x877, 1);
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x877, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   {
     float diff = (cosine * cosine + sine * sine) - 1.0f;
@@ -2490,7 +2490,7 @@ char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
                "sine", "cosine",
                "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
       display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
   }
   dx = p1[0] - p3[0];
@@ -2660,7 +2660,7 @@ char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius,
 
   if (cosine < 0.0f) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x55f, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];

@@ -2264,9 +2264,14 @@ int FUN_000f9c40(int projectile_handle)
     speed_prev = speed;
 
     if (!real_vector3d_valid(pfVel)) {
-      display_assert("bad velocity", "c:\\halo\\SOURCE\\items\\projectiles.c",
-                     0x146, 1);
-      halt_and_catch_fire();
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                 "&projectile->object.translational_velocity",
+                 (double)*pfVel, (double)*(float *)(proj + 0x1c),
+                 (double)*(float *)(proj + 0x20)),
+        "c:\\halo\\SOURCE\\items\\projectiles.c", 0x146, 1);
+      system_exit(-1);
     }
 
     /* -------------------------------------------------------------------- */
@@ -2285,7 +2290,7 @@ int FUN_000f9c40(int projectile_handle)
       }
       target_dist = (float)FUN_0001ad60((float *)(obj_type_f + 0x50),
                                         (float *)(proj + 0x50));
-      if ((double)target_dist <= (double)*(float *)0x253f34) {
+      if (target_dist <= *(float *)0x253f34) {
         if ((target_dist > *(float *)0x253f40) &&
             ((steer_frac = (target_dist - *(float *)0x253f40) *
                            *(float *)0x268ed0) >= *(float *)0x2533c0)) {
@@ -2331,16 +2336,22 @@ int FUN_000f9c40(int projectile_handle)
             steer_delta[2] * *(float *)(proj + 0x20);
       if ((*(float *)0x2533c0 < dot) &&
           ((float)normalize3d(cross_buf) > *(float *)0x2533c0)) {
-        rotate_vector3d_by_sincos(pfVel, cross_buf,
-                                  sinf(steer_turn_rate),
-                                  cosf(steer_turn_rate));
+        float steer_cos, steer_sin;
+#ifdef XDK_BUILD
+        __asm fld steer_turn_rate __asm fcos __asm fstp steer_cos
+        __asm fld steer_turn_rate __asm fsin __asm fstp steer_sin
+#else
+        steer_cos = cosf(steer_turn_rate);
+        steer_sin = sinf(steer_turn_rate);
+#endif
+        rotate_vector3d_by_sincos(pfVel, cross_buf, steer_sin, steer_cos);
       }
     }
 
     if (!real_vector3d_valid(&vel_x)) {
       display_assert("projectile velocity is bad after steering.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x19d, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
 
     /* -------------------------------------------------------------------- */
@@ -2352,9 +2363,7 @@ int FUN_000f9c40(int projectile_handle)
         /* Already at or below max speed, or no deceleration. */
         if (((*(float *)(proj_tag + 0x1c8) != *(float *)0x2533c0) ||
              ((*(float *)(proj_tag + 0x1c0) != *(float *)0x2533c0) ||
-              (*(float *)(proj_tag + 0x1c4) < *(float *)(proj_tag + 0x1e8) ==
-               (*(float *)(proj_tag + 0x1c4) ==
-                *(float *)(proj_tag + 0x1e8))))) ||
+              !(*(float *)(proj_tag + 0x1c4) <= *(float *)(proj_tag + 0x1e8)))) ||
             ((*(float *)(proj + 0x20c) == *(float *)0x2533c0) &&
              (*(float *)(proj + 0x200) < *(float *)(proj + 0x210)))) {
           if ((speed_prev < *(float *)(proj_tag + 0x1e8)) &&
@@ -2371,8 +2380,7 @@ int FUN_000f9c40(int projectile_handle)
       } else {
         decel_frac = time_remaining * *(float *)(proj + 0x20c);
         dist_at_hit = speed_prev - decel_frac;
-        if (dist_at_hit < *(float *)(proj_tag + 0x1e8) ==
-            (dist_at_hit == *(float *)(proj_tag + 0x1e8))) {
+        if (!(dist_at_hit <= *(float *)(proj_tag + 0x1e8))) {
           /* Speed stays above min: normal decel. */
           dist_post = speed_prev - decel_frac * *(float *)0x253398;
           decel_frac = dist_at_hit / speed_prev;
@@ -2407,7 +2415,7 @@ int FUN_000f9c40(int projectile_handle)
     if (!real_vector3d_valid(&vel_x)) {
       display_assert("projectile velocity is bad after deceleration.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1cd, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
 
     /* -------------------------------------------------------------------- */
@@ -2425,7 +2433,7 @@ int FUN_000f9c40(int projectile_handle)
     if (!real_vector3d_valid(&vel_x)) {
       display_assert("projectile velocity is bad after gravity.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1dc, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
 
     /* -------------------------------------------------------------------- */
@@ -2459,22 +2467,26 @@ int FUN_000f9c40(int projectile_handle)
     new_pos_z = avg_vel_z * decel_frac + *(float *)(proj + 0x14);
 
     if (!valid_real_point3d(&new_pos_x)) {
-      display_assert("bad new_pos", "c:\\halo\\SOURCE\\items\\projectiles.c",
-                     0x1f9, 1);
-      halt_and_catch_fire();
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "%s: assert_valid_real_point3d(%f, %f, %f)",
+                 "&new_position",
+                 (double)new_pos_x, (double)new_pos_y, (double)new_pos_z),
+        "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1f9, 1);
+      system_exit(-1);
     }
 
     /* -------------------------------------------------------------------- */
     /* 7f. Collision depth push.                                            */
     /* -------------------------------------------------------------------- */
-    if (*(uint32_t *)0x4761d8 > 0x1f) {
+    if (*(int16_t *)0x4761d8 > 0x1f) {
       display_assert("global_current_collision_user_depth < "
                      "MAXIMUM_COLLISION_USER_STACK_DEPTH",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1fb, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
-    cd_slot = (int)*(uint32_t *)0x4761d8;
-    *(uint32_t *)0x4761d8 = *(uint32_t *)0x4761d8 + 1;
+    cd_slot = (int)*(int16_t *)0x4761d8;
+    *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 + 1;
     *(int16_t *)((char *)0x5a8c80 + cd_slot * 2) = 0xe;
 
     /* -------------------------------------------------------------------- */
@@ -2530,12 +2542,12 @@ int FUN_000f9c40(int projectile_handle)
     /* -------------------------------------------------------------------- */
     /* 7h. Collision depth pop.                                             */
     /* -------------------------------------------------------------------- */
-    if (*(uint32_t *)0x4761d8 < 2) {
+    if (*(int16_t *)0x4761d8 < 2) {
       display_assert("global_current_collision_user_depth > 1",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x230, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
-    *(uint32_t *)0x4761d8 = *(uint32_t *)0x4761d8 - 1;
+    *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
 
     /* -------------------------------------------------------------------- */
     /* 7i. Post-hit processing.                                             */
@@ -2654,9 +2666,15 @@ int FUN_000f9c40(int projectile_handle)
     }
 
     if (!real_vector3d_valid((float *)(proj + 0x18))) {
-      display_assert("bad velocity", "c:\\halo\\SOURCE\\items\\projectiles.c",
-                     0x2a0, 1);
-      halt_and_catch_fire();
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                 "&projectile->object.translational_velocity",
+                 (double)*(float *)(proj + 0x18),
+                 (double)*(float *)(proj + 0x1c),
+                 (double)*(float *)(proj + 0x20)),
+        "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2a0, 1);
+      system_exit(-1);
     }
   } while (*(float *)0x2533c0 < time_remaining);
 
@@ -2664,18 +2682,12 @@ int FUN_000f9c40(int projectile_handle)
   /* 8. Post-loop detonation dispatch.                                       */
   /* ----------------------------------------------------------------------- */
   if (*(int16_t *)(proj + 0x1e0) == 1) {
-    {
-      float fval = *(float *)(proj + 0x1fc);
-      int skip = 0;
-      if (fval != *(float *)0x2533c0) {
-        if (*(float *)(proj + 0x1f8) < *(float *)0x2533c8) {
-          skip = 1;
-        }
-      }
-      if (!skip) {
-        FUN_000f8920(projectile_handle, (char)(bounce_count == 0),
-                     time_remaining);
-      }
+    float fval = *(float *)(proj + 0x1fc);
+    if (fval == *(float *)0x2533c0 ||
+        *(float *)(proj + 0x1f8) >= *(float *)0x2533c8) {
+      FUN_000f8920(projectile_handle, (char)(bounce_count == 0),
+                   time_remaining);
+      object_delete(projectile_handle);
     }
   } else if (*(int16_t *)(proj + 0x1e0) == 2) {
     object_delete(projectile_handle);
@@ -2686,10 +2698,20 @@ int FUN_000f9c40(int projectile_handle)
   /* ----------------------------------------------------------------------- */
   if (!valid_real_normal3d_perpendicular((float *)(proj + 0x24),
                                          (float *)(proj + 0x30))) {
-    /* csprintf assert — matches the assert string in the decompile. */
-    display_assert("axes invalid", "c:\\halo\\SOURCE\\items\\projectiles.c",
-                   0x2b0, 1);
-    halt_and_catch_fire();
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "%s, %s: assert_valid_real_vector3d_axes2"
+               "(%f, %f, %f / %f, %f, %f)",
+               "&projectile->object.forward",
+               "&projectile->object.up",
+               (double)*(float *)(proj + 0x24),
+               (double)*(float *)(proj + 0x28),
+               (double)*(float *)(proj + 0x2c),
+               (double)*(float *)(proj + 0x30),
+               (double)*(float *)(proj + 0x34),
+               (double)*(float *)(proj + 0x38)),
+      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2b0, 1);
+    system_exit(-1);
   }
   if ((*(char *)0x449ef1 != '\0') && (*(char *)0x31edb0 != '\0')) {
     profile_exit_private(*(void **)0x31eda8);
