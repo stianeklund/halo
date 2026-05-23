@@ -334,7 +334,7 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False) -> boo
         "/nologo", "/c", "/TC",
         "/O2", "/Oy-", "/GF", "/Gy", "/Gd",
         "/W0", "/Zl", "/X",
-        "/DMSVC", "/DXDK_BUILD",
+        "/DMSVC", "/DXDK_BUILD", "/DHDATA=",
         f"/FI{fi_win}",
         f"/I{gen_inc}",
         f"/I{src_inc}",
