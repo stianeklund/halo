@@ -723,20 +723,25 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             font-size: 0.72em; color: var(--text-secondary);
         }
         .addr-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-        .priority-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-        .priority-table th {
-            color: var(--text-secondary); font-size: 0.82em; text-transform: uppercase;
-            letter-spacing: 0.5px; font-weight: 600; text-align: left;
-            background: var(--bg-tertiary); padding: 12px 14px; border-bottom: 1px solid var(--border);
-            cursor: pointer; user-select: none; white-space: nowrap;
-        }
-        .priority-table th:hover { color: var(--text-primary); }
-        .priority-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
-        .priority-table td code { font-family: 'SF Mono', 'Cascadia Code', monospace; font-weight: 500; font-size: 0.88em; }
-        .priority-table tr:last-child td { border-bottom: none; }
-        .priority-table tr:hover td { background: rgba(88,166,255,0.04); }
         .priority-rank { color: var(--text-secondary); font-weight: 700; }
-        .priority-reason { color: var(--text-secondary); }
+        .priority-reason { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        .priority-reason-badge {
+            display: inline-block; padding: 1px 6px; border-radius: 4px;
+            font-size: 0.72em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .priority-reason-badge.vc71-great { background: rgba(35,134,54,0.15); color: #3fb950; }
+        .priority-reason-badge.vc71-good { background: rgba(88,166,255,0.15); color: var(--accent-blue); }
+        .priority-reason-badge.leaf { background: rgba(88,166,255,0.15); color: var(--accent-blue); }
+        .priority-reason-badge.large { background: rgba(210,153,34,0.15); color: var(--accent-yellow); }
+        .priority-reason-badge.size { background: rgba(139,148,158,0.15); color: var(--text-secondary); }
+        .copy-cmd-btn {
+            padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border);
+            background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer;
+            font-size: 0.72em; font-weight: 600; white-space: nowrap;
+            transition: background 0.15s, color 0.15s;
+        }
+        .copy-cmd-btn:hover { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+        .copy-cmd-btn.copied { background: var(--accent-green); color: #fff; border-color: var(--accent-green); }
         @media (prefers-reduced-motion: reduce) {
             .progress-fill, .live-badge.online .dot { animation: none; transition: none; }
         }
@@ -760,7 +765,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             <div class="summary" id="summary-cards"></div>
 
-            <h2>Historical Progress</h2>
+            <h2 id="charts-section-heading">Historical Progress</h2>
             <div class="charts-grid" id="charts-grid">
                 <div class="chart-container">
                     <div class="chart-title">Functions Ported Over Time</div>
@@ -853,6 +858,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                         </div>
                         <span class="search-count" id="func-count"></span>
                     </div>
+                    <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
@@ -868,12 +874,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                         </thead>
                         <tbody id="func-table-body"></tbody>
                     </table>
+                    </div>
                 </div>
 
                 <div style="margin-top: 20px;">
                     <a class="back-btn" href="#" id="detail-back-bottom">&#x2190; Back to Overview</a>
                 </div>
-            </div>
 
             <div class="meta" id="meta-detail"></div>
         </div>
@@ -887,8 +893,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
         /* ===== STATE ===== */
         var chartInstances = {};
-        var sortCol = -1;
-        var sortAsc = true;
+        var sortCol = 4;
+        var sortAsc = false;
         var filterText = '';
         var funcSortCol = -1;
         var funcSortAsc = true;
@@ -927,6 +933,11 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             document.getElementById('view-overview').classList.remove('active');
             document.getElementById('view-detail').classList.add('active');
             currentUnitName = name;
+            funcFilterText = '';
+            funcSortCol = -1;
+            funcSortAsc = true;
+            var fs = document.getElementById('func-search');
+            if (fs) fs.value = '';
             renderUnitDetail(name);
             updateLiveBadge('detail');
         }
@@ -1032,8 +1043,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var hasHistory = HISTORY && HISTORY.snapshots && HISTORY.snapshots.length >= 2;
             var progParent = document.getElementById('progressChart').parentNode;
             var velParent = document.getElementById('velocityChart').parentNode;
+            var heading = document.getElementById('charts-section-heading');
+            var grid = document.getElementById('charts-grid');
             progParent.style.display = hasHistory ? '' : 'none';
             velParent.style.display = hasHistory ? '' : 'none';
+            if (heading) heading.style.display = hasHistory ? '' : 'none';
+            if (grid) grid.style.display = hasHistory ? '' : 'none';
 
             if (!hasHistory) {
                 destroyChart('progressChart');
@@ -1305,7 +1320,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 }
             }
             candidates.sort(function(a, b) { return b.score - a.score; });
-            var top = candidates.slice(0, 12);
+            var top = candidates.slice(0, 25);
 
             var el = document.getElementById('priority-queue-content');
             if (!el) return;
@@ -1332,36 +1347,49 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     return pqSortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
                 });
             }
-            top = candidates.slice(0, 12);
+            top = candidates.slice(0, 25);
 
             var pqArrow = function(col) {
                 if (pqSortCol !== col) return '<span class="sort-arrow"></span>';
                 return '<span class="sort-arrow"> ' + (pqSortAsc ? '\\u25B2' : '\\u25BC') + '</span>';
             };
-            var html = '<table class="priority-table" id="priority-table"><thead><tr>' +
-                '<th data-pqcol="0">Rank ' + pqArrow(0) + '</th>' +
+            var reasonBadge = function(tag) {
+                if (tag.indexOf('VC71') === 0 && parseFloat(tag.slice(5)) >= 95) return '<span class="priority-reason-badge vc71-great">' + escHtml(tag) + '</span>';
+                if (tag.indexOf('VC71') === 0) return '<span class="priority-reason-badge vc71-good">' + escHtml(tag) + '</span>';
+                if (tag === 'leaf') return '<span class="priority-reason-badge leaf">leaf</span>';
+                if (tag === 'near-match') return '<span class="priority-reason-badge vc71-good">near-match</span>';
+                if (tag === 'large') return '<span class="priority-reason-badge large">large</span>';
+                return '<span class="priority-reason-badge size">' + escHtml(tag) + '</span>';
+            };
+            var html = '<div class="table-wrap"><table id="priority-table"><thead><tr>' +
+                '<th data-pqcol="0"># ' + pqArrow(0) + '</th>' +
                 '<th data-pqcol="1">Function ' + pqArrow(1) + '</th>' +
                 '<th data-pqcol="2">Unit ' + pqArrow(2) + '</th>' +
                 '<th data-pqcol="3" class="num">Size ' + pqArrow(3) + '</th>' +
                 '<th data-pqcol="4" class="num">VC71 ' + pqArrow(4) + '</th>' +
                 '<th data-pqcol="5">Class ' + pqArrow(5) + '</th>' +
                 '<th>Why</th>' +
+                '<th>Command</th>' +
                 '</tr></thead><tbody>';
             for (var i = 0; i < top.length; i++) {
                 var c = top[i];
                 var f = c.f;
                 var mp = f.match_percent !== null && f.match_percent !== undefined;
+                var isLeaf = f.equiv_class === 'leaf';
+                var cmd = 'python3 tools/equivalence/unicorn_diff.py ' + f.address + ' --seeds 100' + (isLeaf ? '' : ' --allow-stubs --float-tolerance 32');
+                var badges = c.reasons.length ? c.reasons.map(reasonBadge).join('') : reasonBadge('size');
                 html += '<tr>' +
                     '<td class="priority-rank">' + (i + 1) + '</td>' +
-                    '<td><code style="color:var(--accent-blue)">' + escHtml(f.name) + '</code></td>' +
-                    '<td style="color:var(--text-secondary)">' + escHtml(c.unit) + '</td>' +
+                    '<td class="func-name" style="color:var(--accent-blue)">' + escHtml(f.name) + '</td>' +
+                    '<td class="source-path"><a class="unit-name-link" onclick="goToUnit(\\'' + jsEsc(c.unit) + '\\')">' + escHtml(c.unit) + '</a></td>' +
                     '<td class="num">' + fmtNum(f.size || 0) + '</td>' +
                     '<td class="num">' + (mp ? '<span style="color:' + matchColor(f.match_percent) + '">' + f.match_percent.toFixed(1) + '%</span>' : '<span style="color:var(--text-secondary)">—</span>') + '</td>' +
                     '<td>' + (f.equiv_class ? '<span class="equiv-badge ' + f.equiv_class + '">' + f.equiv_class + '</span>' : '<span style="color:var(--text-secondary)">—</span>') + '</td>' +
-                    '<td class="priority-reason">' + (c.reasons.length ? c.reasons.join(', ') : 'size') + '</td>' +
+                    '<td class="priority-reason">' + badges + '</td>' +
+                    '<td><button class="copy-cmd-btn" data-cmd="' + escHtml(cmd) + '" onclick="copyPqCmd(this)">Copy cmd</button></td>' +
                 '</tr>';
             }
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             el.innerHTML = html;
 
             // Wire up sort headers for priority table
@@ -1378,7 +1406,17 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             }
         }
 
+        function syncSortArrows() {
+            var headers = document.querySelectorAll('th[data-col]');
+            for (var i = 0; i < headers.length; i++) {
+                var arrow = headers[i].querySelector('.sort-arrow');
+                var c = parseInt(headers[i].getAttribute('data-col'));
+                if (arrow) arrow.textContent = c === sortCol ? (sortAsc ? ' \\u25B2' : ' \\u25BC') : '';
+            }
+        }
+
         function renderTable() {
+            syncSortArrows();
             var query = filterText.toLowerCase();
             var units = REPORT.units.filter(function(u) {
                 return u.name.toLowerCase().indexOf(query) !== -1 ||
@@ -1651,6 +1689,18 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         }
 
         /* ===== HELPERS ===== */
+        function copyPqCmd(btn) {
+            var cmd = btn.getAttribute('data-cmd');
+            navigator.clipboard.writeText(cmd).then(function() {
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(function() { btn.textContent = 'Copy cmd'; btn.classList.remove('copied'); }, 1800);
+            }).catch(function() {
+                btn.textContent = cmd;
+                setTimeout(function() { btn.textContent = 'Copy cmd'; }, 3000);
+            });
+        }
+
         function fmtNum(n) {
             return n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');
         }
@@ -1761,15 +1811,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                         sortCol = col;
                         sortAsc = true;
                     }
-                    for (var j = 0; j < headers.length; j++) {
-                        var arrow = headers[j].querySelector('.sort-arrow');
-                        var c = parseInt(headers[j].getAttribute('data-col'));
-                        if (c === col) {
-                            arrow.textContent = sortAsc ? ' \\u25B2' : ' \\u25BC';
-                        } else {
-                            arrow.textContent = '';
-                        }
-                    }
                     renderTable();
                 });
             }
@@ -1810,6 +1851,13 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             // Hash change
             window.addEventListener('hashchange', router);
+
+            // Redraw address strip on resize
+            var resizeTimer = null;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(renderAddrStrip, 200);
+            });
         });
 
         function findUnit(name) {
