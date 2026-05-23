@@ -268,6 +268,9 @@ void FUN_00036e30(int ai_handle)
  * 0x36ea1-0x36ead; CMP [ESI+0x270],-1 / JZ at 0x36ebf-0x36ec2; FLD/FCOMP/TEST
  * AH,0x5 / JP at 0x36ed0-0x36ee4; FLD/FCOMP/TEST AH,0x41/JNZ for the +0x354 cap
  * at 0x36ee6-0x36ef7. */
+#ifdef __clang__
+__attribute__((target("arch=i486")))
+#endif
 void FUN_00036e50(int actor_handle)
 {
   char *actor;
@@ -278,7 +281,7 @@ void FUN_00036e50(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
   if (*(char *)(actor + 0x358) != 0 &&
-      *(float *)0x2533c0 < *(float *)(actor_tag + 0x334)) {
+      *(float *)(actor_tag + 0x334) > *(float *)0x2533c0) {
     *(char *)(actor + 0x358) = 0;
     *(short *)(actor + 0x35a) =
       (short)(*(float *)(actor_tag + 0x334) * *(float *)0x253394);
@@ -288,8 +291,8 @@ void FUN_00036e50(int actor_handle)
       if (*(float *)(encounter + 0x11c) < *(float *)0x2533d8) {
         if (*(float *)(actor + 0x354) > *(float *)0x255154) {
           float tmp;
-          tmp = *(volatile float *)(actor + 0x354);
-          *(float *)(actor + 0x354) = tmp;
+          tmp = *(float *)(actor + 0x354);
+          *(volatile float *)(actor + 0x354) = tmp;
         } else {
           *(float *)(actor + 0x354) = *(float *)0x255154;
         }
