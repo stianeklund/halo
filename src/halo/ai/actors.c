@@ -286,10 +286,12 @@ void FUN_00036e50(int actor_handle)
     if (encounter_handle != -1) {
       encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
       if (*(float *)(encounter + 0x11c) < *(float *)0x2533d8) {
-        if (*(float *)0x255154 >= *(float *)(actor + 0x354)) {
-          *(float *)(actor + 0x354) = *(float *)0x255154;
+        if (*(float *)(actor + 0x354) > *(float *)0x255154) {
+          float tmp;
+          tmp = *(volatile float *)(actor + 0x354);
+          *(float *)(actor + 0x354) = tmp;
         } else {
-          *(float *)(actor + 0x354) = *(float *)(actor + 0x354);
+          *(float *)(actor + 0x354) = *(float *)0x255154;
         }
       }
     }
