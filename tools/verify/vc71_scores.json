@@ -3992,8 +3992,20 @@
       "score": 73.9,
       "source": "src/halo/items/projectiles.c"
     },
+    "FUN_000f9c40": {
+      "score": 77.9,
+      "source": "src/halo/items/projectiles.c"
+    },
     "FUN_000fac20": {
       "score": 85.2,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "FUN_000face0": {
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "FUN_000fad00": {
+      "score": 27.5,
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000fae30": {
