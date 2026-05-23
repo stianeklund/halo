@@ -2470,7 +2470,7 @@
         {
           "decl": "void FUN_00036e50(int actor_handle);",
           "addr": "0x36e50",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_00036f20(void);",
