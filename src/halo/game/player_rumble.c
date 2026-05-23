@@ -163,7 +163,7 @@ uint32_t rumble_calculate(char *slot)
           blend = 0.0f;
         else if (blend > *(float *)0x2533c8)
           blend = 1.0f;
-        motors[j] += ((float (*)(uint16_t, float))0x10a710)(
+        motors[j] += transition_function_evaluate(
                        *(uint16_t *)((char *)effect_ptr + 4), blend) *
                      effect_ptr[-1];
       }
@@ -225,8 +225,8 @@ void rumble_update(void)
       player = (char *)datum_get(player_data, player_handle);
       local_player_index = *(int16_t *)(player + 2);
       if (local_player_index != NONE) {
-        controller = ((int (*)(int16_t))0xe0810)(local_player_index);
-        if (((bool (*)(int))0xe0b00)(controller)) {
+        controller = player_ui_get_single_player_local_player_from_controller(local_player_index);
+        if (player_ui_rumble_disabled(controller)) {
           input_set_rumble(local_player_index, 0, 0);
         } else {
           input_set_rumble(local_player_index, (uint16_t)rumble,
