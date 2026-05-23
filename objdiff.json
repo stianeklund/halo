@@ -32,6 +32,22 @@
       }
     },
     {
+      "name": "halo/actors_FUN_00038000",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
+      "base_path": "delinked/actors_FUN_00038000.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actors.c"
+      }
+    },
+    {
+      "name": "halo/actors_FUN_00038200",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
+      "base_path": "delinked/actors_FUN_00038200.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actors.c"
+      }
+    },
+    {
       "name": "halo/actors_FUN_0003b150",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
       "base_path": "delinked/actors_FUN_0003b150.obj",

@@ -3882,6 +3882,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc8c50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name hs_compile_sleep_until inferred from assert string 'function_index==_hs_function_sleep_until' and source file hs_library_internal_compile.h at line 0x235; no caller cross-reference available to confirm the name from the call site.",
+        "hs_type values 5=boolean, 7=real/short, 8=long inferred from the argument checking sequence and match the sleep_until signature (condition: bool, period: real, timeout: long); binary does not encode the type names."
+      ],
+      "uncertain": [
+        "76.6% VC71 match (75/79 insns); mismatch is structural layout (assert block placement, register save order) not logic; unicorn_diff hit assert-path on all 50 seeds due to function_index guard, so behavioral equivalence was not independently confirmed."
+      ]
+    },
     "0xc9050": {
       "kind": "function",
       "status": "ported",
@@ -4245,11 +4256,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd4680": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd5070": {
       "kind": "function",
       "status": "ported"
     },
+    "0xd50f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd5120": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd5160": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd5180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd51b0": {
       "kind": "function",
       "status": "ported"
     },
