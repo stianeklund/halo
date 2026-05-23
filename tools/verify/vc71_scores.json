@@ -1596,6 +1596,10 @@
       "score": 68.3,
       "source": "src/halo/cseries/cseries_windows.c"
     },
+    "FUN_0008e650": {
+      "score": 100.0,
+      "source": "src/halo/cseries/errors.c"
+    },
     "FUN_0008e6d0": {
       "score": 98.2,
       "source": "src/halo/cseries/errors.c"
@@ -4697,7 +4701,11 @@
       "source": "src/halo/memory/data.c"
     },
     "FUN_00119cc0": {
-      "score": 45.6,
+      "score": 92.8,
+      "source": "src/halo/memory/data.c"
+    },
+    "FUN_00119df0": {
+      "score": 90.7,
       "source": "src/halo/memory/data.c"
     },
     "FUN_00119ef0": {
@@ -5648,6 +5656,18 @@
       "score": 20.0,
       "source": "src/halo/physics/point_physics.c"
     },
+    "FUN_00154fc0": {
+      "score": 87.0,
+      "source": "src/halo/rasterizer/common/rasterizer_common.c"
+    },
+    "FUN_00155070": {
+      "score": 80.0,
+      "source": "src/halo/rasterizer/common/rasterizer_common.c"
+    },
+    "FUN_00155090": {
+      "score": 70.6,
+      "source": "src/halo/rasterizer/common/rasterizer_common.c"
+    },
     "FUN_001550c0": {
       "score": 87.5,
       "source": "src/halo/rasterizer/common/rasterizer_common.c"
@@ -5699,6 +5719,18 @@
     "FUN_0017c950": {
       "score": 33.3,
       "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017cae0": {
+      "score": 100.0,
+      "source": "src/halo/effects/decals.c"
+    },
+    "FUN_0017caf0": {
+      "score": 100.0,
+      "source": "src/halo/effects/decals.c"
+    },
+    "FUN_0017cb10": {
+      "score": 100.0,
+      "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cb20": {
       "score": 100.0,
@@ -5763,6 +5795,18 @@
     "FUN_0017cd30": {
       "score": 40.0,
       "source": "src/halo/effects/decals.c"
+    },
+    "FUN_0018e280": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e2a0": {
+      "score": 78.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e310": {
+      "score": 87.5,
+      "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018e3b0": {
       "score": 100.0,
@@ -6976,6 +7020,10 @@
       "score": 100.0,
       "source": "src/halo/math/random_math.c"
     },
+    "global_scenario_get": {
+      "score": 92.3,
+      "source": "src/halo/scenario/scenario.c"
+    },
     "hs_console_evaluate": {
       "score": 76.5,
       "source": "src/halo/hs/hs.c"
@@ -7259,6 +7307,10 @@
     "tag_block_get_element": {
       "score": 96.5,
       "source": "src/halo/tag_files/tag_groups.c"
+    },
+    "thunk_FUN_0015b960": {
+      "score": 0.0,
+      "source": "src/halo/effects/decals.c"
     },
     "transport_dispose": {
       "score": 43.5,
