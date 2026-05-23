@@ -1140,9 +1140,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             destroyChart('detailChart');
 
             var scored = funcs.filter(function(f) { return f.match_percent !== null && f.match_percent !== undefined && f.ported; });
+            var parent = ctx.canvas.parentNode;
             if (scored.length < 2) {
-                // Not enough data for a meaningful chart — hide or show placeholder
-                var parent = ctx.canvas.parentNode;
                 parent.style.display = 'none';
                 return;
             }
