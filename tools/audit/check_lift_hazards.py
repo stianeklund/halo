@@ -492,6 +492,48 @@ def _sum_locals(lines):
     return total
 
 
+KNOWN_2OUTPUT_CALLEES = {
+    'FUN_00061df0',
+}
+
+_CALL_LAST_ARG_RE = re.compile(
+    r'FUN_00061df0\s*\([^)]*,\s*(\w+)\s*\)'
+)
+
+def check_callee_output_size(filepath, content, lines):
+    """Flag calls to known 2-output projection helpers where the output
+    buffer is declared with more than 2 elements.
+
+    FUN_00061df0 writes exactly 2 floats (3D→2D axis projection). If the
+    output buffer is declared as float[3], subsequent code may index with [2]
+    and read uninitialized data — or worse, miss stack-alias overwrites from
+    the original MSVC layout (hazard #5).
+    """
+    errors = []
+    array_decls = {}
+    for i, line in enumerate(lines):
+        m = re.search(r'float\s+(\w+)\s*\[\s*(\d+)\s*\]', line)
+        if m:
+            array_decls[m.group(1)] = (int(m.group(2)), i + 1)
+
+    for i, line in enumerate(lines):
+        m = _CALL_LAST_ARG_RE.search(line)
+        if not m:
+            continue
+        out_arg = m.group(1)
+        if out_arg in array_decls:
+            arr_size, decl_line = array_decls[out_arg]
+            if arr_size > 2:
+                relpath = os.path.relpath(filepath, ROOT_DIR)
+                errors.append(
+                    f'  {relpath}:{i+1}: FUN_00061df0 outputs 2 floats but '
+                    f'{out_arg} is declared as [{arr_size}] at line '
+                    f'{decl_line} — should be [2] to prevent index-past-end '
+                    f'and buffer-alias confusion'
+                )
+    return errors
+
+
 def check_frame_sizes(filepath, content, lines):
     """Check ported functions where SUB ESP,N is documented in a comment.
 
@@ -590,6 +632,7 @@ def main():
     all_ptr_float_errors = []
     all_alias_errors = []
     all_frame_errors = []
+    all_output_size_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -601,6 +644,7 @@ def main():
         all_duplicate_errors.extend(check_duplicate_args(fpath, content, lines))
         all_ptr_float_errors.extend(check_pointer_as_float(fpath, content, lines, params_map))
         all_alias_errors.extend(check_buffer_alias(fpath, content, lines))
+        all_output_size_errors.extend(check_callee_output_size(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -610,13 +654,15 @@ def main():
             f'buffer_sizes: {len(all_buffer_errors)}, '
             f'duplicate_args: {len(all_duplicate_errors)}, '
             f'pointer_as_float: {len(all_ptr_float_errors)}, '
-            f'buffer_alias: {len(all_alias_errors)}'
+            f'buffer_alias: {len(all_alias_errors)}, '
+            f'callee_output_size: {len(all_output_size_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
         total = (len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
-                 len(all_alias_errors) + len(all_frame_errors))
+                 len(all_alias_errors) + len(all_frame_errors) +
+                 len(all_output_size_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -675,6 +721,18 @@ def main():
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
+        if all_output_size_errors:
+            print(
+                'ERROR: callee output buffer oversized.\n'
+                'A known 2-output function (e.g. FUN_00061df0, 3D→2D projection)\n'
+                'is called with a buffer declared larger than 2 elements.\n'
+                'This causes index-past-end reads and buffer-alias confusion:\n',
+                file=sys.stderr,
+            )
+            for e in all_output_size_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
         if all_frame_errors:
             print(
                 'WARNING: stack frame size mismatch in ported functions.\n'
@@ -687,7 +745,7 @@ def main():
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
-    if all_intrinsic_errors or all_buffer_errors:
+    if all_intrinsic_errors or all_buffer_errors or all_output_size_errors:
         return 1
 
     return 0
