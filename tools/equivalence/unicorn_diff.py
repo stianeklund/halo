@@ -110,6 +110,7 @@ stubs.py.
 
 import argparse
 import json
+import re
 import os
 import re
 import struct
@@ -367,12 +368,14 @@ def _seed_known_globals(uc, base: int, size: int):
             uc.mem_write(addr, data)
 
 
-def _build_globals_seeds(*slot_maps: dict) -> dict:
-    """Build {slot_address: bytes} from DIR32 slot mappings + _KNOWN_GLOBAL_BYTES.
+def _build_globals_seeds(*slot_maps: dict,
+                         snapshot_overrides: dict = None) -> dict:
+    """Build {slot_address: bytes} from DIR32 slot mappings + _KNOWN_GLOBAL_BYTES
+    + optional state-snapshot overrides.
 
     Each slot_map has symbol_name -> slot_address.  Symbol names like
     DAT_002533c8 encode the original XBE address.  If that address is in
-    _KNOWN_GLOBAL_BYTES, the slot gets seeded with the correct value.
+    _KNOWN_GLOBAL_BYTES or in snapshot_overrides, the slot gets seeded.
     """
     import re
     seeds = {}
@@ -384,6 +387,11 @@ def _build_globals_seeds(*slot_maps: dict) -> dict:
             orig_addr = int(m.group(1), 16)
             if orig_addr in _KNOWN_GLOBAL_BYTES:
                 seeds[slot_addr] = _KNOWN_GLOBAL_BYTES[orig_addr]
+            elif snapshot_overrides and orig_addr in snapshot_overrides:
+                # Seed from state-snapshot data, capped at 4 bytes
+                # (the slot size is 256, but the relocation is typically a dword)
+                data = snapshot_overrides[orig_addr]
+                seeds[slot_addr] = data[:4]
     return seeds
 
 
@@ -454,14 +462,22 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     _override_mapped = set()
     if memory_overrides:
         for addr, data in memory_overrides.items():
-            page = addr & ~0xFFFF
-            if page not in _override_mapped:
+            # Map all 64KB pages spanned by this override entry
+            start_page = addr & ~0xFFFF
+            end_addr = addr + len(data)
+            end_page = (end_addr + 0xFFFF) & ~0xFFFF
+            for page in range(start_page, end_page, 0x10000):
+                if page in _override_mapped:
+                    continue
                 try:
                     uc.mem_map(page, 0x10000)
                     uc.mem_write(page, b'\x00' * 0x10000)
                     _seed_known_globals(uc, page, 0x10000)
                 except Exception:
-                    pass
+                    try:
+                        uc.mem_protect(page, 0x10000, unicorn.UC_PROT_ALL)
+                    except Exception:
+                        pass
                 _override_mapped.add(page)
             uc.mem_write(addr, data)
 
@@ -474,6 +490,34 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     else:
         uc.mem_write(CODE_BASE, code)
         entry_point = CODE_BASE
+
+    # Pre-map pages for indirect call targets: hardcoded absolute addresses
+    # in the function code that match known stub targets (FUN_XXXXXXXX).
+    # These addresses are reached via `call reg`, not REL32-relocated calls.
+    # Pre-mapping them avoids run-time fetch-hook cascading on the lifted side.
+    _known_targets = set()
+    if stub_manager is not None:
+        for _sentinel, _sym in stub_manager._stub_names.items():
+            _m = re.match(r'FUN_([0-9a-fA-F]+)', _sym.lstrip('_'))
+            if _m:
+                _known_targets.add(int(_m.group(1), 16))
+    _pre_mapped = set()
+    for _i in range(len(code) - 3):
+        _v = struct.unpack_from('<I', code, _i)[0]
+        if _v in _known_targets:
+            _page = _v & ~0xFFFF
+            if _page not in _pre_mapped:
+                try:
+                    uc.mem_map(_page, 0x10000)
+                    uc.mem_write(_page, b"\xCC" * 0x10000)
+                    _pre_mapped.add(_page)
+                except Exception:
+                    try:
+                        uc.mem_protect(_page, 0x10000, unicorn.UC_PROT_ALL)
+                        _pre_mapped.add(_page)
+                    except Exception:
+                        pass
+            uc.mem_write(_v, b"\x31\xC0\xC3")
 
     if stub_addrs:
         stub_page_base = min(stub_addrs) & ~0xFFFF
@@ -587,7 +631,10 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     if map_globals:
 
         def hook_mem_unmapped(uc, access, address, size, value, user_data):
-            # Auto-map a 64KB page for any unmapped read/write
+            # Auto-map a 64KB page for any unmapped read/write.
+            # Fill with 0xCC (INT3) so that accidental code execution on
+            # data pages stops immediately instead of sliding through zero
+            # bytes as 2-byte ADD [eax],al instructions.
             page_base = address & ~0xFFFF
             last_unmapped_access[0] = (
                 f"page={page_base:#x} addr={address:#x} size={size} access={access}"
@@ -658,8 +705,14 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                         uc.mem_write(page, b"\xCC" * 0x10000)
                         _dynamic_stub_pages.add(page)
                     except Exception:
-                        return False
-                # Write a tiny stub: XOR EAX,EAX; RET
+                        # Page already mapped (e.g. by hook_mem_unmapped
+                        # auto-map). Ensure execute permission.
+                        try:
+                            import unicorn as _uc
+                            uc.mem_protect(page, 0x10000, _uc.UC_PROT_ALL)
+                            _dynamic_stub_pages.add(page)
+                        except Exception:
+                            return False
                 uc.mem_write(address, b"\x31\xC0\xC3")
                 return True
             return False
@@ -872,6 +925,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     import state as state_mod
 
     log_lines = []
+    snapshot_overrides = None
+    snapshot_arg_overrides = {}
 
     def log(msg: str = ""):
         print(msg)
@@ -1133,7 +1188,18 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             return_slots=True, rdata_map=lft_rdata)
         lifted_code_patched = bytes(lifted_code_patched)
 
-        globals_seeds = _build_globals_seeds(orc_data_slots, lft_data_slots)
+        # Load state snapshot early so _build_globals_seeds can seed
+        # globals slots from real game-state data (e.g. game_state_globals at
+        # 0x4EA990+).  Snapshot regions are {addr: bytes}.
+        if state_snapshot:
+            from state_snapshot import load_snapshot
+            snapshot_overrides, snapshot_arg_overrides = load_snapshot(str(state_snapshot))
+            info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
+            if snapshot_arg_overrides:
+                info(f"  arg overrides: {list(snapshot_arg_overrides.keys())}")
+
+        globals_seeds = _build_globals_seeds(orc_data_slots, lft_data_slots,
+                                             snapshot_overrides=snapshot_overrides)
         globals_seeds.update(orc_rdata_seeds)
         globals_seeds.update(lft_rdata_seeds)
         shared_stub_sentinels = {}
@@ -1207,16 +1273,6 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             pass
         except Exception as e:
             log(f"  Z3 equiv error: {e}")
-
-    # --- Load state snapshot if provided ---
-    snapshot_overrides = None
-    snapshot_arg_overrides = {}
-    if state_snapshot:
-        from state_snapshot import load_snapshot
-        snapshot_overrides, snapshot_arg_overrides = load_snapshot(str(state_snapshot))
-        info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
-        if snapshot_arg_overrides:
-            info(f"  arg overrides: {list(snapshot_arg_overrides.keys())}")
 
     # --- Generate seeds (Z3 branch-coverage + random/corner) ---
     # Stubbable non-leaf functions (all calls intercepted) are safe for Z3

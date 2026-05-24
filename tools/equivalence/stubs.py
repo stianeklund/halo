@@ -414,6 +414,27 @@ class StubManager:
                 UC_X86_REG_ECX, UC_X86_REG_EBP,
                 UC_X86_REG_ST0, UC_X86_REG_FPSW, UC_X86_REG_FPTAG,
             )
+            from unicorn import UcError, UC_PROT_ALL
+
+            def _safe_write(addr, data):
+                """Write to emulator memory, auto-mapping the page if needed."""
+                try:
+                    uc.mem_write(addr, data)
+                except UcError:
+                    page = addr & ~0xFFFF
+                    uc.mem_map(page, 0x10000)
+                    uc.mem_write(page, b'\x00' * 0x10000)
+                    uc.mem_write(addr, data)
+
+            def _safe_read(addr, size):
+                """Read from emulator memory, auto-mapping the page if needed."""
+                try:
+                    return bytes(uc.mem_read(addr, size))
+                except UcError:
+                    page = addr & ~0xFFFF
+                    uc.mem_map(page, 0x10000)
+                    uc.mem_write(page, b'\x00' * 0x10000)
+                    return bytes(uc.mem_read(addr, size))
 
             # Read caller's current state
             caller_esp = uc.reg_read(UC_X86_REG_ESP)
@@ -424,8 +445,30 @@ class StubManager:
                 src = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little")
                 size = int.from_bytes(bytes(uc.mem_read(caller_esp + 12, 4)), "little")
                 if size > 0:
-                    data = bytes(uc.mem_read(src, size))
-                    uc.mem_write(dst, data)
+                    data = _safe_read(src, size)
+                    _safe_write(dst, data)
+                uc.reg_write(UC_X86_REG_EAX, dst)
+                return True
+
+            if symbol_name == "csstrncpy":
+                dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
+                src = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little")
+                n = int.from_bytes(bytes(uc.mem_read(caller_esp + 12, 4)), "little")
+                if n > 0:
+                    data = _safe_read(src, n)
+                    idx = data.find(b'\0')
+                    if idx != -1:
+                        data = data[:idx+1]
+                    _safe_write(dst, data)
+                uc.reg_write(UC_X86_REG_EAX, dst)
+                return True
+
+            if symbol_name in ("csmemset", "memset"):
+                dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
+                val = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little") & 0xFF
+                n = int.from_bytes(bytes(uc.mem_read(caller_esp + 12, 4)), "little")
+                if n > 0:
+                    _safe_write(dst, bytes([val] * n))
                 uc.reg_write(UC_X86_REG_EAX, dst)
                 return True
 
