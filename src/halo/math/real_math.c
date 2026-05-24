@@ -1871,9 +1871,9 @@ char FUN_0010d830(float *p1, float *p2, float *p3, float *p4,
   float dot_n;
   uint32_t basis;
   uint8_t axis;
-  float p1_proj[3];
-  float v1_proj[3];
-  float v2_proj[3];
+  float p1_proj[2];
+  float v1_proj[2];
+  float v2_proj[2];
   float det, det2, total, inv_total;
 
   v3[0] = p1[0] - p2[0];
@@ -1894,12 +1894,12 @@ char FUN_0010d830(float *p1, float *p2, float *p3, float *p4,
     axis = FUN_00099270(n, basis);
     FUN_00061df0(v1, basis, axis, p1_proj);
     FUN_00061df0(v3, basis, axis, v1_proj);
-    det = v1[2] * p1_proj[0] - p1_proj[2] * v1_proj[0];
+    det = v1_proj[1] * p1_proj[0] - p1_proj[1] * v1_proj[0];
     if (det >= 0.0f) {
       FUN_00061df0(v2, basis, axis, v2_proj);
-      det2 = v2_proj[2] * v1_proj[0] - v1[2] * v2_proj[0];
+      det2 = v2_proj[1] * v1_proj[0] - v1_proj[1] * v2_proj[0];
       if (det2 >= 0.0f) {
-        total = v2_proj[2] * p1_proj[0] - p1_proj[2] * v2_proj[0];
+        total = v2_proj[1] * p1_proj[0] - p1_proj[1] * v2_proj[0];
         if (det2 + det <= total) {
           inv_total = 1.0f / total;
           *out_u = det2 * inv_total;
