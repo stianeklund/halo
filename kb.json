@@ -14283,9 +14283,10 @@
           "ported": true
         },
         {
-          "decl": "void object_postprocess_node_matrices(data_t *data);",
+          "decl": "void object_postprocess_node_matrices(data_t *data, int object_handle /* @<ebx> */);",
           "addr": "0x13df70",
-          "ported": false
+          "ported": false,
+          "reg_args": {"object_handle": "ebx"}
         },
         {
           "decl": "void *object_header_block_reference_get(int object_handle, void *reference);",

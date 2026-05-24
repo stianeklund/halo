@@ -2104,7 +2104,7 @@ int object_header_new(data_t *data, int16_t datum_size, int type_hint)
   return handle;
 }
 
-void object_postprocess_node_matrices(data_t *data);
+void object_postprocess_node_matrices(data_t *data, int object_handle /* @<ebx> */);
 
 /*
  * object_header_block_reference_get — resolve an object's inline
@@ -6011,7 +6011,7 @@ int object_new(void *placement)
 
   /* --- Failure: free the allocated datum --- */
   FUN_0013c560(object_handle);
-  object_postprocess_node_matrices(*(data_t **)0x5a8d50);
+  object_postprocess_node_matrices(*(data_t **)0x5a8d50, object_handle);
   object_handle = -1;
 
 out_of_objects: {
