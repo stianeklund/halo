@@ -109,11 +109,11 @@ def snapshot_to_unicorn(snapshot_path: str) -> str:
     return out_path
 
 
-def enumerate_pool_functions(objects: Optional[list[str]] = None) -> list[tuple[int | None, str]]:
+def enumerate_pool_functions(objects: Optional[list[str]] = None) -> list[tuple[int | None, str, str]]:
     """List ported functions from specified or all objects in kb.json.
 
     Uses kb.json to find ported functions filtered by object name.
-    Returns sorted list of (address_or_None, name) pairs.
+    Returns sorted list of (address_or_None, name, obj_name) triples.
     """
     kb_path = ROOT / "kb.json"
     if not kb_path.exists():
@@ -122,7 +122,7 @@ def enumerate_pool_functions(objects: Optional[list[str]] = None) -> list[tuple[
     with open(kb_path, encoding="utf-8") as f:
         kb = json.load(f)
 
-    results: list[tuple[int | None, str]] = []
+    results: list[tuple[int | None, str, str]] = []
     for obj in kb.get("objects", []):
         obj_name = obj.get("name", "")
         if objects and obj_name not in objects:
@@ -133,14 +133,10 @@ def enumerate_pool_functions(objects: Optional[list[str]] = None) -> list[tuple[
             fname = func.get("decl", "")
             if not fname:
                 continue
-            # Extract function name from declaration
-            # "void game_state_malloc(const char *n, ...);" → "game_state_malloc"
-            # "void *game_state_malloc(...);" → strip leading *
-            # "void FUN_001bf870(void);" → "FUN_001bf870"
-            fname = fname.split("(", 1)[0].strip()  # strip params
+            fname = fname.split("(", 1)[0].strip()
             parts = fname.split()
             if len(parts) >= 2:
-                fname = parts[-1]  # last word is the function name
+                fname = parts[-1]
             fname = fname.lstrip("*")
 
             addr_str = func.get("addr", "")
@@ -151,7 +147,7 @@ def enumerate_pool_functions(objects: Optional[list[str]] = None) -> list[tuple[
                 except ValueError:
                     pass
 
-            results.append((addr, fname))
+            results.append((addr, fname, obj_name))
 
     return sorted(set(results), key=lambda x: x[0] or 0)
 
@@ -159,6 +155,7 @@ def enumerate_pool_functions(objects: Optional[list[str]] = None) -> list[tuple[
 def verify_snapshot(snapshot_path: str,
                     functions: Optional[list[str]] = None,
                     objects: Optional[list[str]] = None,
+                    all_portable: bool = False,
                     seeds: int = 100,
                     timeout: int = 300,
                     verbose: bool = False,
@@ -198,10 +195,11 @@ def verify_snapshot(snapshot_path: str,
                     addr = int(fname[4:], 16)
                 except ValueError:
                     addr = None
-            targets.append((addr, fname))
+            targets.append((addr, fname, ""))  # no object for --funcs mode
     else:
         targets = enumerate_pool_functions(objects)
-        print(f"  targets : {len(targets)} pool-referencing functions "
+        label = "all ported" if all_portable else "pool-referencing"
+        print(f"  targets : {len(targets)} {label} functions "
               f"(auto-detected)")
 
     if not targets:
@@ -215,7 +213,7 @@ def verify_snapshot(snapshot_path: str,
     improved = 0
     total_cov = 0.0
 
-    for i, (addr, fname) in enumerate(targets):
+    for i, (addr, fname, obj_name) in enumerate(targets):
         print(f"\n  [{i + 1}/{n}] {fname}")
         t0 = time.time()
         result = run_unicorn_diff(fname, unicorn_path, seeds=seeds,
@@ -223,6 +221,7 @@ def verify_snapshot(snapshot_path: str,
         elapsed = time.time() - t0
         result["elapsed_s"] = round(elapsed, 1)
         result["addr"] = f"0x{addr:x}" if addr and addr > 0 else "?"
+        result["object"] = obj_name
 
         if result.get("error"):
             status = f"ERROR ({result['error']})"
@@ -252,6 +251,23 @@ def verify_snapshot(snapshot_path: str,
     print(f"\n{'=' * 60}")
     print(f"  Summary: {passed}/{len(targets)} passed "
           f"(avg coverage {avg_cov:.1f}%)")
+    if all_portable:
+        _obj_stats = {}
+        for r in report["results"]:
+            obj = r.get("object", "?")
+            if obj not in _obj_stats:
+                _obj_stats[obj] = {"total": 0, "passed": 0, "cov_sum": 0.0}
+            _obj_stats[obj]["total"] += 1
+            if r.get("passed", 0) == r.get("total_seeds", 0) and r.get("errors", 0) == 0:
+                _obj_stats[obj]["passed"] += 1
+            _obj_stats[obj]["cov_sum"] += r.get("coverage", 0.0)
+        print(f"  {'─' * 40}")
+        print(f"  {'Object':<35s} {'P/F/T':>8s} {'Cov%':>7s}")
+        for o in sorted(_obj_stats):
+            s = _obj_stats[o]
+            avg = s["cov_sum"] / s["total"] if s["total"] else 0
+            print(f"  {o:<35s} {s['passed']:>1d}/{s['total']-s['passed']:>1d}/{s['total']:>1d} {avg:>6.1f}%")
+        report["summary"]["per_object"] = _obj_stats
     print(f"{'=' * 60}")
 
     if output:
@@ -278,6 +294,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Comma-separated function names to test")
     p.add_argument("--objects", default=None,
                    help="Comma-separated object names (e.g. game_state,ai)")
+    p.add_argument("--all", action="store_true",
+                   help="Test ALL ported functions in kb.json (ignores --objects/--funcs)")
     p.add_argument("--seeds", type=int, default=100,
                    help="Seeds per function (default: 100)")
     p.add_argument("--timeout", type=int, default=300,
@@ -304,14 +322,18 @@ def main() -> int:
     if args.funcs:
         functions = [f.strip() for f in args.funcs.split(",") if f.strip()]
 
+    if args.all:
+        objects = None
+        functions = None
+
     if args.list_targets:
         targets = enumerate_pool_functions(objects)
         seen = set()
-        for addr, name in targets:
+        for addr, name, obj_name in targets:
             if addr is not None:
-                print(f"  0x{addr:08x}  {name}")
+                print(f"  0x{addr:08x}  {name:<40s} [{obj_name}]")
             else:
-                print(f"         ?  {name}")
+                print(f"         ?  {name:<40s} [{obj_name}]")
         print(f"\n  {len(targets)} functions found")
         return 0
 
@@ -319,6 +341,7 @@ def main() -> int:
         snapshot_path=args.snapshot,
         functions=functions,
         objects=objects,
+        all_portable=args.all,
         seeds=args.seeds,
         timeout=args.timeout,
         verbose=args.verbose,
