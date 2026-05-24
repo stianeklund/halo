@@ -955,8 +955,17 @@ class GhidraMCPClient:
                      "params": {"protocolVersion": "2024-11-05",
                                 "capabilities": {},
                                 "clientInfo": {"name": "auto-lift", "version": "0.1.0"}}})
-        self._post({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}})
         self._read_response(0)
+        self._post({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}})
+
+    def _reset_session(self):
+        self._session_url = None
+        if self._sse_stream is not None:
+            try:
+                self._sse_stream.close()
+            except Exception:
+                pass
+        self._sse_stream = None
 
     def _post(self, payload: dict):
         import urllib.request
@@ -992,16 +1001,23 @@ class GhidraMCPClient:
         raise RuntimeError(f"Timed out waiting for response to request {rpc_id}")
 
     def call_tool(self, tool_name: str, arguments: dict) -> dict:
-        self._ensure_session()
-        rpc_id = self._next_id
-        self._next_id += 1
-        self._post({
-            "jsonrpc": "2.0",
-            "id": rpc_id,
-            "method": "tools/call",
-            "params": {"name": tool_name, "arguments": arguments},
-        })
-        return self._read_response(rpc_id)
+        for attempt in (1, 2):
+            try:
+                self._ensure_session()
+                rpc_id = self._next_id
+                self._next_id += 1
+                self._post({
+                    "jsonrpc": "2.0",
+                    "id": rpc_id,
+                    "method": "tools/call",
+                    "params": {"name": tool_name, "arguments": arguments},
+                })
+                return self._read_response(rpc_id)
+            except Exception:
+                if attempt == 2:
+                    raise
+                self._reset_session()
+        raise RuntimeError("unreachable")
 
 
 # ---------------------------------------------------------------------------
