@@ -548,6 +548,84 @@ void FUN_000374f0(int actor_handle, int object_handle, float *position,
   FUN_00027a60(actor_handle, 6, 1, look_buf);
 }
 
+/* FUN_00037630 (0x37630) — actor surprise-encounter update.
+ *
+ * Marks actor field_0x8d = 1. Bails if prop is "active" (field_0x60 != 0).
+ * Re-fetches actor + tag. Calls actor_perception_find_killer_prop_index to
+ * find the associated killer prop handle. If prop->field_10 matches the tag's
+ * field_0x2a4 (encounter threshold) and actor's emotion priority < 8, does a
+ * random roll vs tag->field_0x2a8 and sets priority to 8.
+ *
+ * Then checks the killer prop: if out of range (prop->field_11c >= global
+ * 0x253f78), or no killer prop (handle==-1), or killer not active
+ * (killer_prop->field_60 == 0): bail.
+ *
+ * If killer_prop->field_32 > 0 and field_122 <= 2: optionally gates via
+ * game_time_get() > actor->field_39c + tag bit5, then calls FUN_00030d10
+ * (chance scaler). Falls back to a random roll vs the (possibly scaled)
+ * chance. On success, sets emotion priority to 3 with killer prop handle.
+ *
+ * Always checks killer_prop->field_a4; if set, increments field_a6 and
+ * sets field_a8 = 0x2ee. */
+void FUN_00037630(int actor_handle, int prop_handle)
+{
+  char *actor;
+  char *prop;
+  char *tag;
+  int killer_handle;
+  float chance;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  prop = (char *)datum_get(prop_data, prop_handle);
+  *(char *)(actor + 0x8d) = 1;
+  if (*(char *)(prop + 0x60) != 0)
+    return;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  killer_handle =
+    actor_perception_find_killer_prop_index(actor_handle, prop_handle, 1);
+
+  if (*(int16_t *)(prop + 0x10) == *(int16_t *)(tag + 0x2a4) &&
+      *(int16_t *)(actor + 0x308) < 8) {
+    if (random_math_real((unsigned int *)get_global_random_seed_address()) <
+        *(float *)(tag + 0x2a8)) {
+      *(int16_t *)(actor + 0x308) = 8;
+      *(int *)(actor + 0x30c) = killer_handle;
+    }
+  }
+
+  if (*(float *)(prop + 0x11c) >= *(float *)0x253f78)
+    return;
+  if (killer_handle == -1)
+    return;
+
+  prop = (char *)datum_get(prop_data, killer_handle);
+  if (*(char *)(prop + 0x60) == 0)
+    return;
+
+  if (*(int16_t *)(prop + 0x32) > 0 && *(char *)(prop + 0x122) <= 2) {
+    chance = *(float *)(tag + 0x2a0);
+    if ((*(unsigned char *)(tag + 4) & 0x20) &&
+        game_time_get() > *(int *)(actor + 0x39c)) {
+      if (FUN_00030d10(actor_handle, &chance))
+        goto set_alert;
+    }
+    if (chance <= random_math_real((unsigned int *)get_global_random_seed_address()))
+      goto lab_a2;
+  set_alert:
+    if (*(int16_t *)(actor + 0x308) < 3) {
+      *(int16_t *)(actor + 0x308) = 3;
+      *(int *)(actor + 0x30c) = killer_handle;
+    }
+  }
+lab_a2:
+  if (*(char *)(prop + 0xa4) != 0) {
+    *(int16_t *)(prop + 0xa6) += 1;
+    *(int16_t *)(prop + 0xa8) = 0x2ee;
+  }
+}
+
 /* FUN_000377d0 (0x377d0) — actor reaction to a flee-effect from a prop.
  *
  * Case-4 handler from FUN_0003c1c0 (effect dispatch). Given an actor handle
