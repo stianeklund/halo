@@ -2,6 +2,18 @@
   "description": "Curated high-risk ported functions for fast regression testing. Run with: python3 tools/equivalence/regression_test.py",
   "targets": [
     {
+      "addr": "0xf9c40",
+      "name": "FUN_000f9c40",
+      "obj": "projectiles.obj",
+      "seeds": 20,
+      "flags": [
+        "--allow-stubs",
+        "--state-snapshot",
+        "artifacts/snapshots/projectile_unicorn_snap.json"
+      ],
+      "reason": "projectile physics tick — bail/detonation path; depth-counter bug fixed (0x4761d8); state snapshot required for datum handle resolution"
+    },
+    {
       "addr": "0xb4da0",
       "name": "FUN_000b4da0",
       "obj": "game.obj",

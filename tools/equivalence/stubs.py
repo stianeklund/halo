@@ -168,7 +168,7 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
 # Must be within signed-int32 range of CODE_BASE (0x00400000) to avoid
 # rel32 displacement overflow when patching CALL instructions.
 STUB_BASE = 0x40000000
-STUB_SLOT = 0x100  # 256 bytes between sentinel addresses
+STUB_SLOT = 0x4000  # 16KB per sentinel slot — enough for real callee code
 MAX_RECURSION_DEPTH = 3
 
 
@@ -179,6 +179,7 @@ class CalleeStub:
     code: bytes
     abi: dict
     sentinel_addr: int
+    has_real_code: bool = False  # True when code is patched oracle bytes, not a trampoline
 
 
 def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
@@ -204,10 +205,11 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
         if sym in defined_symbols:
             continue
 
-        sentinel = symbol_sentinels.get(sym)
+        sym_key = sym.lstrip("_")
+        sentinel = symbol_sentinels.get(sym_key)
         if sentinel is None:
             sentinel = STUB_BASE + next_idx * STUB_SLOT
-            symbol_sentinels[sym] = sentinel
+            symbol_sentinels[sym_key] = sentinel
             next_idx += 1
         call_addr = code_base + r.virtual_address
         # REL32: displacement = target - (call_addr + 4)
@@ -266,8 +268,11 @@ class StubManager:
                     return dict(fn, _obj_name=obj.get("name", ""))
         return None
 
-    def _load_callee_code(self, symbol_name: str, kb_entry: dict) -> Optional[bytes]:
-        """Extract callee's oracle code from delinked .obj."""
+    def _load_callee_code(self, symbol_name: str, kb_entry: dict):
+        """Extract callee's oracle code from delinked .obj.
+
+        Returns a FunctionSlice on success, or None if not found.
+        """
         _SCRIPT_DIR = Path(__file__).resolve().parent
         sys.path.insert(0, str(_SCRIPT_DIR))
         from coff_loader import extract_function, CoffParseError
@@ -277,13 +282,14 @@ class StubManager:
         if not candidates:
             candidates = list(self.delinked_dir.glob("*.obj"))
 
-        for obj_path in candidates:
-            try:
-                fs = extract_function(str(obj_path), symbol_name)
-                if fs.code:
-                    return fs.code
-            except (CoffParseError, Exception):
-                continue
+        for try_sym in dict.fromkeys([symbol_name, symbol_name.lstrip("_")]):
+            for obj_path in candidates:
+                try:
+                    fs = extract_function(str(obj_path), try_sym)
+                    if fs.code:
+                        return fs
+                except (CoffParseError, Exception):
+                    continue
         return None
 
     def prepare_stubs(self, stub_map: dict) -> int:
@@ -309,10 +315,6 @@ class StubManager:
             if fn_m:
                 self._canonical_names[sentinel_addr] = fn_m.group(1)
 
-            code = self._load_callee_code(symbol_name, kb_entry)
-            if not code:
-                continue
-
             try:
                 abi = parse_decl(decl)
             except Exception:
@@ -320,9 +322,10 @@ class StubManager:
 
             self._stubs[sentinel_addr] = CalleeStub(
                 name=symbol_name,
-                code=code,
+                code=b"",
                 abi=abi,
                 sentinel_addr=sentinel_addr,
+                has_real_code=False,
             )
             prepared += 1
 
@@ -340,6 +343,10 @@ class StubManager:
         "system_exit", "display_assert", "halt_and_catch_fire",
         "ciacos", "ciasin", "ciatan2", "cisin", "cicos",
         "cisqrt", "cilog", "cilog10", "cipow", "cifmod", "citan",
+        "object_get_and_verify_type",
+        "tag_get",
+        "real_vector3d_valid", "valid_real_point3d",
+        "valid_real_normal3d_perpendicular", "valid_real_vector3d",
     ))
     _FTOL2_ADDRS = frozenset(("fun_001d9068", "_ftol2", "ftol2"))
     # XBE address → _CI* intrinsic name for FUN_XXXXXXXX symbols
@@ -360,12 +367,28 @@ class StubManager:
         return raw
 
     def should_intercept(self, address: int) -> bool:
+        # Named intercepts always take priority — even if oracle code was loaded.
         name = self._resolve_name(address)
-        return name in self._INTERCEPT_NAMES or name in self._FTOL2_ADDRS
+        if name in self._INTERCEPT_NAMES or name in self._FTOL2_ADDRS:
+            return True
+        stub = self._stubs.get(address)
+        # Real-code stubs execute natively via Unicorn; their RET pops the return addr.
+        if stub is not None and stub.has_real_code:
+            return False
+        return False
 
     def get_stub_code(self, address: int) -> bytes:
-        """Return machine code for a tiny trampoline stub at a sentinel address."""
+        """Return machine code to write at a sentinel address.
+
+        For real-code stubs, returns the oracle bytes directly — the page is
+        pre-filled with 0xCC (INT3), so no padding is needed.
+        For trampoline stubs, returns a tiny synthetic return sequence.
+        """
         stub = self._stubs.get(address)
+
+        if stub is not None and stub.has_real_code:
+            return stub.code
+
         symbol_name = self._resolve_name(address)
 
         if symbol_name == "fabs":
@@ -535,6 +558,99 @@ class StubManager:
 
             if symbol_name == "display_assert":
                 uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            if symbol_name == "object_get_and_verify_type":
+                # Replicate datum_get + type check without calling the real function.
+                # datum array pointer lives at 0x5A8D50 in the XBE's global data.
+                # object_header_data_t entry layout (12 bytes):
+                #   +0x00 uint16 salt, +0x02 uint16 object_type_byte (byte[3] used),
+                #   +0x08 ptr object_data_t*
+                # object_data_t.type (int16) is at obj_ptr+0x64.
+                try:
+                    datum_handle = int.from_bytes(_safe_read(caller_esp + 4, 4), "little")
+                    type_mask = int.from_bytes(_safe_read(caller_esp + 8, 4), "little")
+                    arr_ptr = int.from_bytes(_safe_read(0x5A8D50, 4), "little")
+                    if arr_ptr:
+                        max_elements = int.from_bytes(_safe_read(arr_ptr + 0x20, 2), "little")
+                        elem_size = int.from_bytes(_safe_read(arr_ptr + 0x22, 2), "little")
+                        data_ptr = int.from_bytes(_safe_read(arr_ptr + 0x34, 4), "little")
+                        index = datum_handle & 0xFFFF
+                        handle_salt = (datum_handle >> 16) & 0xFFFF
+                        if (index < max_elements and elem_size >= 12
+                                and data_ptr and handle_salt):
+                            entry_addr = data_ptr + index * elem_size
+                            entry_salt = int.from_bytes(_safe_read(entry_addr, 2), "little")
+                            if entry_salt == handle_salt:
+                                obj_ptr = int.from_bytes(
+                                    _safe_read(entry_addr + 8, 4), "little")
+                                if obj_ptr:
+                                    raw16 = _safe_read(obj_ptr + 0x64, 2)
+                                    obj_type = struct.unpack('<h', raw16)[0]
+                                    if type_mask & (1 << (obj_type & 0x1f)):
+                                        uc.reg_write(UC_X86_REG_EAX, obj_ptr)
+                                        return True
+                except Exception:
+                    pass
+                uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            if symbol_name == "tag_get":
+                # Return a pointer to a synthetic projectile tag block.
+                # tag_get(group_tag, datum_handle) → void* tag_data
+                # Projectile physics (FUN_000f9c40) uses these key offsets:
+                #   +0x1c8 max_range (float): must be non-zero to avoid FUN_000f7e40
+                #           intra-COFF call in the speed-clamp/deceleration section.
+                #   +0x1b8 / +0x198 / +0x220: tag references (-1 = absent).
+                _SYNTH_TAG_ADDR = 0x601000
+                _SYNTH_TAG_SIZE = 0x280
+                _SYNTH_SENTINEL = b'\xDE\xAD\xBE\xEF'
+                try:
+                    _tail = bytes(uc.mem_read(_SYNTH_TAG_ADDR + _SYNTH_TAG_SIZE - 4, 4))
+                    _initialized = (_tail == _SYNTH_SENTINEL)
+                except UcError:
+                    _initialized = False
+                if not _initialized:
+                    import struct as _struct
+                    _page = _SYNTH_TAG_ADDR & ~0xFFFF
+                    try:
+                        uc.mem_map(_page, 0x10000)
+                    except UcError:
+                        pass
+                    uc.mem_write(_page, b'\x00' * 0x10000)
+                    _tag_bytes = bytearray(_SYNTH_TAG_SIZE)
+                    _struct.pack_into('<f',  _tag_bytes, 0x1c8, 60.0)   # max_range (non-zero)
+                    _struct.pack_into('<f',  _tag_bytes, 0x1cc, 0.0)    # gravity_scale_normal
+                    _struct.pack_into('<f',  _tag_bytes, 0x1d8, 0.0)    # gravity_scale_super
+                    _struct.pack_into('<f',  _tag_bytes, 0x1e8, 0.0)    # min_speed
+                    _struct.pack_into('<f',  _tag_bytes, 0x1ec, 0.0)    # lock_on_rate (no steering)
+                    _struct.pack_into('<i',  _tag_bytes, 0x1b8, -1)     # effect_tag (absent)
+                    _struct.pack_into('<i',  _tag_bytes, 0x198, -1)     # burst_centre_effect (absent)
+                    _struct.pack_into('<i',  _tag_bytes, 0x220, -1)     # area_damage_tag (absent)
+                    _tag_bytes[_SYNTH_TAG_SIZE - 4:] = _SYNTH_SENTINEL
+                    uc.mem_write(_SYNTH_TAG_ADDR, bytes(_tag_bytes))
+                uc.reg_write(UC_X86_REG_EAX, _SYNTH_TAG_ADDR)
+                return True
+
+            # real_vector3d_valid / valid_real_point3d / valid_real_normal3d_perpendicular /
+            # valid_real_vector3d: cdecl (float* vec) -> bool
+            # Return 1 if all three floats at the pointer are finite, 0 otherwise.
+            _VECTOR3D_VALID = frozenset((
+                "real_vector3d_valid", "valid_real_point3d",
+                "valid_real_normal3d_perpendicular", "valid_real_vector3d",
+            ))
+            if symbol_name in _VECTOR3D_VALID:
+                result = 0
+                try:
+                    vec_ptr = int.from_bytes(_safe_read(caller_esp + 4, 4), "little")
+                    if vec_ptr:
+                        raw = _safe_read(vec_ptr, 12)
+                        x, y, z = struct.unpack('<fff', raw)
+                        if math.isfinite(x) and math.isfinite(y) and math.isfinite(z):
+                            result = 1
+                except Exception:
+                    pass
+                uc.reg_write(UC_X86_REG_EAX, result)
                 return True
 
             # _CI* CRT math intrinsics: arg(s) in ST0 (and ST1), result in ST0
