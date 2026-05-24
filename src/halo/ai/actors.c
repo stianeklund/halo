@@ -388,6 +388,125 @@ void FUN_00036e50(int actor_handle)
   }
 }
 
+/* FUN_00036f20 (0x36f20) — actor surprise reaction handler.
+ *
+ * Called when a prop triggers a surprise event for an actor. Computes a
+ * surprise intensity (uVar11) from combat state, flanking angle, and range,
+ * issues a look command toward the prop, then optionally fires a unit
+ * reaction event. Kills the actor at exit if the prop requests it. */
+void FUN_00036f20(int actor_handle, int prop_handle, int param_3, char param_4)
+{
+  char *actor;
+  char *tag;
+  char *prop;
+  const char *names[8];
+  short look_buf[4];
+  unsigned short uVar11;
+  unsigned short uVar1;
+  char bVar2;
+  const char *pcVar7;
+  const char *pcVar10;
+  const char *puVar9;
+  const char *local_14;
+  const char *local_10;
+  int local_c;
+
+  (void)param_3;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  prop = (char *)datum_get(prop_data, prop_handle);
+  if (*(char *)(prop + 0x127) != '\0')
+    goto exit_fun;
+  look_buf[0] = 1;
+  *(int *)&look_buf[2] = prop_handle;
+  FUN_00027a60(actor_handle, 4, 1, look_buf);
+  if (*(char *)(prop + 0x60) == '\0')
+    goto exit_fun;
+
+  bVar2 = *(float *)(prop + 0xe0) * *(float *)(actor + 0x174) +
+          *(float *)(prop + 0xe4) * *(float *)(actor + 0x178) +
+          *(float *)(prop + 0xe8) * *(float *)(actor + 0x17c)
+          < *(float *)0x253398;
+  uVar11 = 0;
+  uVar1 = *(unsigned short *)(actor + 0x6e);
+
+  if (uVar1 == 0) {
+    param_4 = 0;
+    if (*(short *)(actor + 0x6a) < 3) {
+      uVar11 = 0;
+      if (*(char *)(prop + 0x12f) != '\0')
+        uVar11 = 1;
+      if (*(float *)(prop + 0x11c) < *(float *)(tag + 0x2b0) && (short)uVar11 <= 3)
+        uVar11 = 3;
+    }
+  } else if ((short)uVar1 >= 5 && !bVar2) {
+    param_4 = 1;
+    goto after_surprise;
+  } else if (param_4 != '\0') {
+    goto after_surprise;
+  }
+
+  if (*(char *)(prop + 0x12f) != '\0' &&
+      *(float *)(prop + 0x11c) < *(float *)(tag + 0x2b0)) {
+    if (bVar2) {
+      if ((short)uVar11 <= 7)
+        uVar11 = 7;
+    } else if ((short)uVar11 <= 6) {
+      uVar11 = 6;
+    }
+  }
+
+after_surprise:
+  if (*(char *)0x5aca5a != '\0' && *(char *)(prop + 0x12e) != '\0') {
+    names[0] = "none";
+    names[1] = "enemy-shoot";
+    names[2] = "impact";
+    names[3] = "enemy-close";
+    names[4] = "grenade";
+    names[5] = "damage";
+    names[6] = "unexp-close-shoot";
+    names[7] = "unexp-behind-shoot";
+    local_c = 0x3c;
+    if (*(float *)(tag + 0x2b0) <= *(float *)(prop + 0x11c))
+      local_c = 0x3e;
+    local_10 = "close";
+    if (*(float *)(tag + 0x2b0) <= *(float *)(prop + 0x11c))
+      local_10 = "far";
+    local_14 = (const char *)0x25386f;
+    if (*(char *)(prop + 0x12f) == '\0')
+      local_14 = (const char *)0x256784;
+    pcVar10 = (const char *)0x25677c;
+    if (!bVar2)
+      pcVar10 = (const char *)0x256774;
+    puVar9 = (const char *)0x25386f;
+    if (param_4 == '\0')
+      puVar9 = (const char *)0x253e94;
+    pcVar7 = (const char *)0x25676c;
+    if (uVar1 != 0)
+      pcVar7 = (const char *)0x253b24;
+    console_printf(0, "%s %d: surprise %s: %s %sexp %s %sshoot %s (%.1f%c%.1f)",
+                   FUN_0003a760(*(short *)(actor + 4)), actor_handle & 0xffff,
+                   names[(short)uVar11], pcVar7, puVar9, pcVar10, local_14,
+                   local_10, (double)*(float *)(prop + 0x11c), local_c,
+                   (double)*(float *)(tag + 0x2b0));
+  }
+
+  if (uVar11 != 0)
+    FUN_00036960(actor_handle, (short)uVar11, prop_handle,
+                 (int *)(prop + 0xe0));
+  if (*(short *)(actor + 0x6e) < 3 && param_4 == '\0' &&
+      *(short *)(prop + 0x32) < 2 && *(int *)(actor + 0x18) != -1)
+    FUN_00046f10(6, *(int *)(actor + 0x18), *(int *)(prop + 0x18), 3, -1, -1,
+                 0);
+
+exit_fun:
+  if (*(char *)(prop + 0x12e) != '\0' && *(char *)(prop + 0x60) != '\0' &&
+      *(char *)(prop + 0x127) == '\0' && *(short *)(actor + 4) != 0xf &&
+      *(char *)0x5aa896 != '\0')
+    actor_kill(actor_handle, 0, 1);
+}
+
 /* FUN_000373b0 (0x373b0) — charge effect dispatch (audible AI broadcast).
  *
  * Dispatched from actors_handle_spatial_effect with effect_type=1 (charge) when
