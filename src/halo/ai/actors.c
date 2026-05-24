@@ -425,9 +425,9 @@ void FUN_00036f20(int actor_handle, int prop_handle, int param_3, char param_4)
     goto exit_fun;
 
   bVar2 = *(float *)(prop + 0xe0) * *(float *)(actor + 0x174) +
-          *(float *)(prop + 0xe4) * *(float *)(actor + 0x178) +
-          *(float *)(prop + 0xe8) * *(float *)(actor + 0x17c)
-          < *(float *)0x253398;
+            *(float *)(prop + 0xe4) * *(float *)(actor + 0x178) +
+            *(float *)(prop + 0xe8) * *(float *)(actor + 0x17c) <
+          *(float *)0x253398;
   uVar11 = 0;
   uVar1 = *(unsigned short *)(actor + 0x6e);
 
@@ -437,7 +437,8 @@ void FUN_00036f20(int actor_handle, int prop_handle, int param_3, char param_4)
       uVar11 = 0;
       if (*(char *)(prop + 0x12f) != '\0')
         uVar11 = 1;
-      if (*(float *)(prop + 0x11c) < *(float *)(tag + 0x2b0) && (short)uVar11 <= 3)
+      if (*(float *)(prop + 0x11c) < *(float *)(tag + 0x2b0) &&
+          (short)uVar11 <= 3)
         uVar11 = 3;
     }
   } else if ((short)uVar1 >= 5 && !bVar2) {
