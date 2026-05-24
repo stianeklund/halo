@@ -32,6 +32,33 @@ def _log(msg: str) -> None:
     print(f"[ghidra-mcp] {msg}", file=sys.stderr, flush=True)
 
 
+def _install_windows_disconnect_noise_filter() -> None:
+    """Suppress benign Proactor disconnect noise on Windows."""
+    if sys.platform != "win32":
+        return
+
+    loop = asyncio.get_running_loop()
+    previous_handler = loop.get_exception_handler()
+
+    def _handler(active_loop, context) -> None:
+        exc = context.get("exception")
+        handle = context.get("handle")
+        callback = getattr(handle, "_callback", None)
+        callback_name = getattr(callback, "__qualname__", "")
+        if (
+            isinstance(exc, ConnectionResetError)
+            and getattr(exc, "winerror", None) == 10054
+            and "_ProactorBasePipeTransport._call_connection_lost" in callback_name
+        ):
+            return
+        if previous_handler is not None:
+            previous_handler(active_loop, context)
+        else:
+            active_loop.default_exception_handler(context)
+
+    loop.set_exception_handler(_handler)
+
+
 # ---------------------------------------------------------------------------
 # HTTP layer
 # ---------------------------------------------------------------------------
@@ -166,6 +193,7 @@ _schema_loaded_at: float = 0.0
 _schema_lock = threading.Lock()
 _ghidra_up: bool = False
 _active_sessions: int = 0
+_next_session_id: int = 0
 _ghidra_sem: asyncio.Semaphore | None = None
 
 
@@ -277,9 +305,26 @@ class _SSEEndpoint:
         self._sse_transport = sse_transport
 
     async def __call__(self, scope, receive, send) -> None:
-        global _active_sessions
+        global _active_sessions, _next_session_id
+        _next_session_id += 1
+        session_id = _next_session_id
+        headers_raw = scope.get("headers", [])
+        headers = {
+            k.decode("latin-1", errors="replace"): v.decode("latin-1", errors="replace")
+            for k, v in headers_raw
+        }
+        client = scope.get("client") or ("?", "?")
+        client_host = client[0]
+        client_port = client[1]
+        user_agent = headers.get("user-agent", "?")
+        xff = headers.get("x-forwarded-for")
+        if xff:
+            client_host = xff.split(",", 1)[0].strip()
         _active_sessions += 1
-        _log(f"Session connected ({_active_sessions} active)")
+        _log(
+            f"Session {session_id} connected "
+            f"({client_host}:{client_port}, ua={user_agent!r}, {_active_sessions} active)"
+        )
         try:
             async with self._sse_transport.connect_sse(scope, receive, send) as streams:
                 await self._mcp_server.run(
@@ -289,7 +334,7 @@ class _SSEEndpoint:
                 )
         finally:
             _active_sessions -= 1
-            _log(f"Session disconnected ({_active_sessions} active)")
+            _log(f"Session {session_id} disconnected ({_active_sessions} active)")
             _cleanup_stale_writers(self._sse_transport)
 
 
@@ -338,6 +383,7 @@ def _parse_args() -> tuple[str, str, int]:
 async def main() -> None:
     global _ghidra_sem, _ghidra_up
     _ghidra_sem = asyncio.Semaphore(_MAX_CONCURRENT)
+    _install_windows_disconnect_noise_filter()
 
     transport, host, port = _parse_args()
     if transport == "stdio":

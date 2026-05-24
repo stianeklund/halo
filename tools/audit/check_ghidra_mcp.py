@@ -60,6 +60,24 @@ def _post_json(url: str, payload: dict, timeout_s: float) -> tuple[bool, str]:
     return True, "ok"
 
 
+def _wait_for_rpc_response(resp, deadline: float, rpc_id: int) -> tuple[bool, dict | str]:
+    while time.monotonic() < deadline:
+        ok, payload = _read_sse_data(resp, deadline)
+        if not ok:
+            return False, payload
+        if not payload.startswith("{"):
+            continue
+        try:
+            message = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+        if message.get("id") == rpc_id:
+            if "error" in message:
+                return False, f"rpc {rpc_id} error: {message['error']}"
+            return True, message.get("result", {})
+    return False, f"timed out waiting for rpc {rpc_id} response"
+
+
 def _probe(url: str, timeout_s: float) -> tuple[bool, str]:
     req = urllib.request.Request(url, method="GET")
     deadline = time.monotonic() + timeout_s
@@ -94,6 +112,12 @@ def _probe(url: str, timeout_s: float) -> tuple[bool, str]:
             if not ok:
                 return False, f"initialize POST failed: {detail}"
 
+            ok, init_result = _wait_for_rpc_response(resp, deadline, 1)
+            if not ok:
+                return False, f"initialize response failed: {init_result}"
+            if not isinstance(init_result, dict):
+                return False, "initialize result was not an object"
+
             ok, detail = _post_json(
                 post_url,
                 {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
@@ -110,37 +134,14 @@ def _probe(url: str, timeout_s: float) -> tuple[bool, str]:
             if not ok:
                 return False, f"tools/list POST failed: {detail}"
 
-            saw_initialize = False
-            saw_tools_list = False
-            while time.monotonic() < deadline:
-                ok, payload = _read_sse_data(resp, deadline)
-                if not ok:
-                    return False, f"SSE response read failed: {payload}"
-                if not payload.startswith("{"):
-                    continue
-                try:
-                    message = json.loads(payload)
-                except json.JSONDecodeError:
-                    continue
-
-                if message.get("id") == 1:
-                    if "error" in message:
-                        return False, f"initialize error: {message['error']}"
-                    saw_initialize = True
-                elif message.get("id") == 2:
-                    if "error" in message:
-                        return False, f"tools/list error: {message['error']}"
-                    result = message.get("result")
-                    if not isinstance(result, dict):
-                        return False, "tools/list result was not an object"
-                    if not isinstance(result.get("tools"), list):
-                        return False, "tools/list result missing tools array"
-                    saw_tools_list = True
-
-                if saw_initialize and saw_tools_list:
-                    return True, "ok"
-
-            return False, "timed out waiting for initialize/tools/list responses"
+            ok, tools_result = _wait_for_rpc_response(resp, deadline, 2)
+            if not ok:
+                return False, f"tools/list response failed: {tools_result}"
+            if not isinstance(tools_result, dict):
+                return False, "tools/list result was not an object"
+            if not isinstance(tools_result.get("tools"), list):
+                return False, "tools/list result missing tools array"
+            return True, "ok"
     except urllib.error.URLError as exc:
         return False, str(exc.reason)
     except Exception as exc:  # defensive: surface any transport/runtime issue
