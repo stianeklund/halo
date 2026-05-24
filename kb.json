@@ -2505,8 +2505,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000378e0(void);",
-          "addr": "0x378e0"
+          "decl": "void FUN_000378e0(int actor_handle, short param_2, short param_3, int param_4, float *param_5);",
+          "addr": "0x378e0",
+          "ported": true,
+          "source_path": "src/halo/ai/actors.c"
         },
         {
           "decl": "void FUN_000379f0(int actor_handle);",

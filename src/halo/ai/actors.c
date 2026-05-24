@@ -611,7 +611,8 @@ void FUN_00037630(int actor_handle, int prop_handle)
       if (FUN_00030d10(actor_handle, &chance))
         goto set_alert;
     }
-    if (chance <= random_math_real((unsigned int *)get_global_random_seed_address()))
+    if (chance <=
+        random_math_real((unsigned int *)get_global_random_seed_address()))
       goto lab_a2;
   set_alert:
     if (*(int16_t *)(actor + 0x308) < 3) {
@@ -706,6 +707,59 @@ void FUN_000377d0(int actor_handle, int prop_handle)
   }
   *(int16_t *)(actor + 0x308) = 2;
   *(int *)(actor + 0x30c) = new_payload;
+}
+
+/* FUN_000378e0 (0x378e0) — actor prop-reaction: impact/projectile look.
+ *
+ * If actor has a linked unit (actor+0x18 != -1):
+ *   - When param_2 == 2: maps param_3 (0→3, 1→2, 2→1, else -1) to a
+ *     communication type and broadcasts via FUN_00046f10(0xb, unit, -1,
+ *     type, -1, -1, 0).
+ *   - Computes delta from param_5 (position) to actor world position
+ *     (actor+0x120), normalizes it via normalize3d.
+ *   - If state < 3 AND magnitude < tag->field_0x2b0 AND param_2 == 2:
+ *     posts a priority-4 alert stimulus via FUN_00036960.
+ *   - Always posts FUN_00036890 with priority 4, delta as secondary
+ *     vector, and stack args (-1, 0, 0, -1, 0, 0).
+ * param_4 is unused (dispatch table padding). */
+void FUN_000378e0(int actor_handle, short param_2, short param_3, int param_4,
+                  float *param_5)
+{
+  char *actor;
+  char *tag;
+  float delta[3];
+  float mag;
+  int unit_handle;
+  int type;
+
+  (void)param_4;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  unit_handle = *(int *)(actor + 0x18);
+  if (unit_handle == -1)
+    return;
+
+  if (param_2 == 2) {
+    type = -1;
+    if (param_3 == 0)
+      type = 3;
+    else if (param_3 == 1)
+      type = 2;
+    else if (param_3 == 2)
+      type = 1;
+    FUN_00046f10(0xb, unit_handle, -1, type, -1, -1, 0);
+  }
+
+  delta[0] = param_5[0] - *(float *)(actor + 0x120);
+  delta[1] = param_5[1] - *(float *)(actor + 0x124);
+  delta[2] = param_5[2] - *(float *)(actor + 0x128);
+  mag = normalize3d(delta);
+  if (*(short *)(actor + 0x6a) < 3 && mag < *(float *)(tag + 0x2b0) &&
+      param_2 == 2) {
+    FUN_00036960(actor_handle, 4, -1, (int *)delta);
+  }
+  FUN_00036890(actor_handle, NULL, 4, (int *)delta, -1, 0, 0, -1, 0, 0);
 }
 
 /* FUN_000379f0 (0x379f0) — actor action state-machine tick (basic).
