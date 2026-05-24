@@ -1139,6 +1139,135 @@ void FUN_00037b50(int actor_handle)
   actor_action_handle_combat_status(actor_handle, 1, 1);
 }
 
+/* FUN_00037d50 (0x37d50) — actor action state-machine tick (guard/cover-seek
+ * variant). Sibling of FUN_00037b50 and FUN_00038000. Preamble: datum_get,
+ * tag_get(0x61637472,actor+0x58), handle_initial_action,
+ * handle_pending_command_list, handle_surprise(4), deny_transition.
+ * If deny=false: berserking_from_attacking_mode, berserking_from_damage,
+ * berserking_from_proximity, handle_combat_targeting, berserk_transition(1).
+ * If actor+0x378==0: panic_from_attached_projectiles,
+ * panic_from_attached_melee_attackers, panic_transition(9,0,0xb).
+ * Then: combat_transition, active_cover_seeking(0,0), vehicle_entry,
+ * vehicle_exit, grenade_throwing, FUN_00020990.
+ * Case 6: if actor+0xa4!=0 && actor+0xa5==0 && actor+0xa6==0: FPU compare
+ * tag+0x2e0 (or 0x2e4 if actor+0x6e<4) vs actor+0x1bc; updates actor+0xa4/0xa8.
+ * Then can_stop_guarding(3,6) → combat_status(result,0).
+ * Confirmed: disassembly 0x37d50–0x37fca cross-checked. */
+void FUN_00037d50(int actor_handle)
+{
+  char *actor;
+  char *tag;
+  char cVar1;
+  int uVar3;
+  unsigned char bVar1;
+  unsigned char bVar2;
+  float fVar4;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  actor_action_handle_surprise(actor_handle, 4);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_berserking_from_attacking_mode(actor_handle);
+    actor_action_handle_berserking_from_damage(actor_handle);
+    actor_action_handle_berserking_from_proximity(actor_handle);
+    actor_action_handle_combat_targeting(actor_handle);
+    actor_action_handle_berserk_transition(actor_handle, 1);
+    if (*(char *)(actor + 0x378) == '\0') {
+      actor_action_handle_panic_from_attached_projectiles(actor_handle);
+      actor_action_handle_panic_from_attached_melee_attackers(actor_handle);
+      actor_action_handle_panic_transition(actor_handle, 9, 0, 0xb);
+    }
+    actor_action_handle_combat_transition(actor_handle);
+    actor_action_handle_active_cover_seeking(actor_handle, 0, 0);
+    actor_action_handle_vehicle_entry(actor_handle);
+    actor_action_handle_vehicle_exit(actor_handle);
+    actor_action_handle_grenade_throwing(actor_handle);
+    FUN_00020990(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    cVar1 = actor_action_handle_combat_failure(actor_handle);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_evasion(actor_handle);
+    return;
+  case 6:
+    if (*(char *)(actor + 0xa4) != '\0' && *(char *)(actor + 0xa5) == '\0' &&
+        *(char *)(actor + 0xa6) == '\0') {
+      if (*(short *)(actor + 0x6e) < 4) {
+        fVar4 = *(float *)(tag + 0x2e4);
+      } else {
+        fVar4 = *(float *)(tag + 0x2e0);
+      }
+      if (fVar4 <= *(float *)(actor + 0x1bc)) {
+        *(char *)(actor + 0xa4) = 0;
+        *(short *)(actor + 0xa8) = 0;
+      } else {
+        *(char *)(actor + 0xa4) = 1;
+        *(short *)(actor + 0xa8) = 0x1e;
+      }
+    }
+    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
+    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    return;
+  case 4:
+    if (*(char *)(actor + 0xaa) != '\0') {
+      break;
+    }
+    actor_action_handle_done_fleeing(actor_handle);
+    return;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_exit_pursuit(actor_handle);
+    return;
+  case 9:
+    if (*(char *)(actor + 0xa5) != '\0') {
+      break;
+    }
+    if (*(char *)(actor + 0xa6) == '\0') {
+      return;
+    }
+    actor_action_handle_combat_status(actor_handle, 1, 1);
+    return;
+  case 0xb:
+    bVar2 = *(unsigned char *)(actor + 0x9e);
+    bVar1 = *(unsigned char *)(actor + 0xa1);
+    actor_action_handle_combat_status(actor_handle, bVar2, bVar1);
+    return;
+  case 0xc:
+    if (*(char *)(actor + 0xa0) == '\0' && *(int *)(actor + 0x1dc) != -1) {
+      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      return;
+    }
+    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    return;
+  case 0xd:
+    if (*(short *)(actor + 0x280) != 0) {
+      return;
+    }
+    break;
+  default:
+    return;
+  }
+  actor_action_handle_combat_status(actor_handle, 1, 1);
+}
+
 /* FUN_00038000 (0x38000) — actor action state-machine tick (panic/ambush
  * variant).
  *

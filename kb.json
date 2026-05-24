@@ -2272,7 +2272,7 @@
           "addr": "0x1dea0"
         },
         {
-          "decl": "void actor_action_handle_vehicle_entry(void);",
+          "decl": "void actor_action_handle_vehicle_entry(int actor_handle);",
           "addr": "0x1dfa0"
         },
         {
@@ -2280,7 +2280,7 @@
           "addr": "0x1e360"
         },
         {
-          "decl": "void actor_action_handle_active_cover_seeking(void);",
+          "decl": "void actor_action_handle_active_cover_seeking(int actor_handle, int param2, int param3);",
           "addr": "0x1e700"
         },
         {
@@ -2527,8 +2527,10 @@
           "source_path": "src/halo/ai/actors.c"
         },
         {
-          "decl": "void FUN_00037d50(void);",
-          "addr": "0x37d50"
+          "decl": "void FUN_00037d50(int actor_handle);",
+          "addr": "0x37d50",
+          "ported": true,
+          "source_path": "src/halo/ai/actors.c"
         },
         {
           "decl": "void FUN_00038000(int actor_handle);",
