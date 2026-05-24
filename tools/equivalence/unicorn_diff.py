@@ -519,9 +519,47 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                         pass
             uc.mem_write(_v, b"\x31\xC0\xC3")
 
+    # Second pre-map pass: scan globals_seeds for 4-byte values that look
+    # like XBE function pointers (0x000100–0x01FFFFFF).  These are callback
+    # addresses loaded from snapshots (e.g. PTR_FUN_0032eaa0 contains the
+    # pre-save callback at 0x001BF760).  Pre-mapping them prevents the
+    # emulator from hitting the fetch_hook when memory-indirect calls like
+    # `call dword ptr [globals_slot]` resolve to these addresses.
+    if globals_seeds:
+        for _slot_addr, _seed_data in globals_seeds.items():
+            for _j in range(0, len(_seed_data) - 3, 4):
+                _ptr = struct.unpack_from('<I', _seed_data, _j)[0]
+                if 0x000100 <= _ptr <= 0x01FFFFFF and _ptr not in _known_targets:
+                    if CODE_BASE <= _ptr < CODE_BASE + CODE_SIZE:
+                        continue
+                    # Skip the page containing FAKE_RET_ADDR stack sentinel
+                    _ptr_page = _ptr & ~0xFFFF
+                    if _ptr_page == (STACK_TOP & ~0xFFFF):
+                        continue
+                    if map_globals:
+                        from stubs import GLOBALS_BASE, GLOBALS_SIZE
+                        if GLOBALS_BASE <= _ptr < GLOBALS_BASE + GLOBALS_SIZE:
+                            continue
+                    _page = _ptr & ~0xFFFF
+                    if _page not in _pre_mapped:
+                        try:
+                            uc.mem_map(_page, 0x10000)
+                            uc.mem_write(_page, b"\xCC" * 0x10000)
+                            _pre_mapped.add(_page)
+                        except Exception:
+                            try:
+                                uc.mem_protect(_page, 0x10000, unicorn.UC_PROT_ALL)
+                                _pre_mapped.add(_page)
+                            except Exception:
+                                pass  # region limit — fetch_hook fallback
+                    try:
+                        uc.mem_write(_ptr, b"\x31\xC0\xC3")
+                    except Exception:
+                        pass  # page not mapped — fetch_hook fallback
+
     if stub_addrs:
         stub_page_base = min(stub_addrs) & ~0xFFFF
-        stub_page_end = (max(stub_addrs) & ~0xFFFF) + 0x10000
+        stub_page_end = (max(stub_addrs) & ~0xFFFF) + 0x20000  # 2-page safety margin
         uc.mem_map(stub_page_base, stub_page_end - stub_page_base)
         uc.mem_write(stub_page_base, b"\xCC" * (stub_page_end - stub_page_base))
         for stub_addr in stub_addrs:
