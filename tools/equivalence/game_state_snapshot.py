@@ -553,6 +553,15 @@ def convert_to_unicorn_snapshot(snapshot_path: str,
         data = bytes.fromhex(gpu_info["data"])
         regions_out[addr] = data
 
+    # Additional memory regions (callbacks, scenario index, map type, etc.)
+    for key, entry in snap.get("regions", {}).items():
+        if key in ("cpu_pool", "gpu_pool"):
+            continue
+        if isinstance(entry, dict) and "data" in entry:
+            addr = int(entry.get("virtual_addr", entry.get("base", "0")), 16)
+            data = bytes.fromhex(entry["data"])
+            regions_out[addr] = data
+
     result = {
         "description": f"converted from {snapshot_path}",
         "captured_at": snap.get("captured_at", ""),

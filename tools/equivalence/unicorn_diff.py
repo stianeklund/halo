@@ -381,7 +381,7 @@ def _build_globals_seeds(*slot_maps: dict,
     seeds = {}
     for smap in slot_maps:
         for sym_name, slot_addr in smap.items():
-            m = re.match(r'DAT_([0-9a-fA-F]{4,})', sym_name)
+            m = re.match(r'(?:DAT|PTR|PTR_FUN|PTR_DAT|s)_([0-9a-fA-F]{4,})', sym_name)
             if not m:
                 continue
             orig_addr = int(m.group(1), 16)
@@ -695,9 +695,11 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
             if address == FAKE_RET_ADDR:
                 return False
             # Unknown code fetch (indirect call, vtable, intra-obj call target
-            # outside extracted range). Map the page and write XOR EAX,EAX; RET
-            # so the caller sees a zero return and continues.
+            # outside extracted range). Treat as a zero-return function:
+            # set EAX=0, pop return address, set EIP directly — same pattern
+            # as sentinel stubs. Avoids cascading through wild RET target.
             if address != 0:
+                # Best-effort page setup (safety net if re-entered without CALL)
                 page = address & ~0xFFFF
                 if page not in _dynamic_stub_pages:
                     try:
@@ -705,15 +707,23 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                         uc.mem_write(page, b"\xCC" * 0x10000)
                         _dynamic_stub_pages.add(page)
                     except Exception:
-                        # Page already mapped (e.g. by hook_mem_unmapped
-                        # auto-map). Ensure execute permission.
                         try:
                             import unicorn as _uc
                             uc.mem_protect(page, 0x10000, _uc.UC_PROT_ALL)
                             _dynamic_stub_pages.add(page)
                         except Exception:
-                            return False
+                            pass
                 uc.mem_write(address, b"\x31\xC0\xC3")
+                # Directly handle the call/return
+                uc.reg_write(UC_X86_REG_EAX, 0)
+                cur_esp = uc.reg_read(UC_X86_REG_ESP)
+                ret_addr_bytes = uc.mem_read(cur_esp, 4)
+                ret_addr = struct.unpack('<I', bytes(ret_addr_bytes))[0]
+                uc.reg_write(UC_X86_REG_ESP, cur_esp + 4)
+                uc.reg_write(UC_X86_REG_EIP, ret_addr)
+                insn_count[0] += 2
+                if address not in visited_pcs:
+                    visited_pcs[address] = 2
                 return True
             return False
 
