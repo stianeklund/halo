@@ -508,6 +508,83 @@ exit_fun:
     actor_kill(actor_handle, 0, 1);
 }
 
+/* FUN_00037240 (0x37240) — post prop or direction stimulus to an actor.
+ *
+ * If prop_handle != -1, resolves the prop datum (asserts type in [2,3]),
+ * sets position_b = prop+0xe0. Otherwise if position is non-NULL and its
+ * magnitude > 0x25337c, normalizes (scaled by [0x255e94]) to local_dir and
+ * sets position_b = local_dir, has_direction = 1.
+ * Always sets actor+0x2ec = 1.
+ * If (no prop OR prop+0x60 != 0) AND actor+0x6a < 3:
+ *   calls FUN_00036960(actor, 5, prop_handle, position_b)
+ *   calls FUN_00036890(actor, NULL, 5, position_b,
+ * -1,0,0x5a,prop_handle,0x96,0) Then builds a type-1 (prop) or type-4
+ * (direction) look buf and calls FUN_00027a60(actor, 0xb, 1, buf). Source:
+ * c:\halo\SOURCE\ai\actor_stimulus.c line ~0x154. */
+void FUN_00037240(int actor_handle, int prop_handle, int unused_param_3,
+                  float *position)
+{
+  char *actor;
+  char *prop;
+  int *position_b;
+  float dot;
+  float inv_len;
+  float local_dir[3];
+  short local_buf[8];
+  char has_direction;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  position_b = NULL;
+  prop = NULL;
+  has_direction = 0;
+
+  if (prop_handle != -1) {
+    prop = (char *)datum_get(prop_data, prop_handle);
+    if (*(short *)(prop + 0x24) < 2 || *(short *)(prop + 0x24) > 3) {
+      display_assert("prop_acknowledged(prop)",
+                     "c:\\halo\\SOURCE\\ai\\actor_stimulus.c", 0x154, 1);
+      system_exit(-1);
+    }
+    position_b = (int *)(prop + 0xe0);
+  } else {
+    if (position != NULL) {
+      dot = position[0] * position[0] + position[1] * position[1] +
+            position[2] * position[2];
+      if (*(float *)0x25337c < dot) {
+        inv_len = *(float *)0x255e94 / sqrtf(dot);
+        local_dir[0] = inv_len * position[0];
+        local_dir[1] = inv_len * position[1];
+        local_dir[2] = inv_len * position[2];
+        position_b = (int *)local_dir;
+        has_direction = 1;
+      }
+    }
+  }
+
+  *(char *)(actor + 0x2ec) = 1;
+
+  if ((prop == NULL || *(char *)(prop + 0x60) != 0) &&
+      *(short *)(actor + 0x6a) < 3) {
+    FUN_00036960(actor_handle, 5, prop_handle, position_b);
+    FUN_00036890(actor_handle, NULL, 5, position_b, -1, 0, 0x5a, prop_handle,
+                 0x96, 0);
+  }
+
+  if (prop_handle != -1) {
+    local_buf[0] = 1;
+    *(int *)((char *)local_buf + 4) = prop_handle;
+  } else {
+    if (!has_direction)
+      return;
+    local_buf[0] = 4;
+    *(unsigned int *)((char *)local_buf + 4) = *(unsigned int *)&local_dir[0];
+    *(unsigned int *)((char *)local_buf + 8) = *(unsigned int *)&local_dir[1];
+    *(unsigned int *)((char *)local_buf + 12) = *(unsigned int *)&local_dir[2];
+  }
+
+  FUN_00027a60(actor_handle, 0xb, 1, local_buf);
+}
+
 /* FUN_000373b0 (0x373b0) — charge effect dispatch (audible AI broadcast).
  *
  * Dispatched from actors_handle_spatial_effect with effect_type=1 (charge) when
@@ -2607,7 +2684,7 @@ void actor_handle_damage(int param_1, int prop_handle, float param_3,
         prop_handle2 = -1;
       }
     }
-    FUN_00037240(param_1, prop_handle2, param_3, param_4);
+    FUN_00037240(param_1, prop_handle2, param_3, (float *)param_4);
   }
 }
 
