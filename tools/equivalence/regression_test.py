@@ -35,12 +35,21 @@ def check_prerequisites(target):
     delinked_dir = ROOT / "delinked"
     obj_path = delinked_dir / target["obj"]
     if obj_path.exists():
-        return None
-    addr = target.get("addr", "").replace("0x", "")
-    for d in delinked_dir.glob("*.obj"):
-        if addr and addr in d.stem:
-            return None
-    return f"missing delinked oracle for {target['name']} (checked {target['obj']} and *{addr}*.obj)"
+        pass
+    else:
+        addr = target.get("addr", "").replace("0x", "")
+        found = any(addr and addr in d.stem for d in delinked_dir.glob("*.obj"))
+        if not found:
+            return f"missing delinked oracle for {target['name']} (checked {target['obj']} and *{addr}*.obj)"
+
+    flags = target.get("flags", [])
+    for i, flag in enumerate(flags):
+        if flag == "--state-snapshot" and i + 1 < len(flags):
+            snap_path = ROOT / flags[i + 1]
+            if not snap_path.exists():
+                return f"missing state snapshot: {flags[i + 1]} (capture with game_state_snapshot.py)"
+
+    return None
 
 
 def run_target(target, seed_override=None):
