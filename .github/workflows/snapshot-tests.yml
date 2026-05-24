@@ -40,12 +40,21 @@ jobs:
 
       - name: Run snapshot verification
         run: |
+          mkdir -p artifacts/progress
           python3 tools/equivalence/game_state_verify.py \
             --snapshot ci/snapshot.json \
             --objects game_state.obj \
             --seeds 25 \
             --output artifacts/equivalence/ci_results.json
+          cp artifacts/equivalence/ci_results.json artifacts/progress/snapshot_results.json
         timeout-minutes: 20
+
+      - name: Generate progress report
+        if: always()
+        run: |
+          python3 tools/report/generate_decomp_report.py \
+            -o artifacts/progress/report.json \
+            --html artifacts/progress/index.html
 
       - name: Report results
         if: always()
@@ -57,7 +66,7 @@ jobs:
           s = r.get('summary', {})
           total = s.get('total', 0)
           passed = s.get('passed', 0)
-          print(f'{passed}/{total} functions passed')
+          print(f'{passed}/{total} functions passed snapshot verification')
           for res in r.get('results', []):
               if res.get('error'):
                   print(f'  FAIL  {res[\"func\"]}  {res[\"error\"]}')

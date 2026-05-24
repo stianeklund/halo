@@ -31,10 +31,39 @@ def load_function_sizes(cache_path: str) -> dict:
         return json.load(f)
 
 
+def _load_snapshot_data(results_path: str = None) -> dict:
+    """Load snapshot verification results from game_state_verify.py output.
+    Returns a dict keyed by function name: {passed, coverage, confidence, object}.
+    """
+    if results_path is None:
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+        results_path = os.path.join(root_dir, 'artifacts', 'equivalence', 'ci_results.json')
+    if not os.path.exists(results_path):
+        return {}
+    with open(results_path, encoding='utf-8') as f:
+        data = json.load(f)
+    out = {}
+    for r in data.get('results', []):
+        name = r.get('func', '')
+        if not name:
+            continue
+        total_seeds = r.get('total_seeds', 0)
+        passed = r.get('passed', 0)
+        errors = r.get('errors', 0)
+        out[name] = {
+            'snapshot_passed': passed == total_seeds and errors == 0 and total_seeds > 0,
+            'snapshot_coverage': r.get('coverage', 0.0),
+            'snapshot_confidence': r.get('confidence', 'unknown'),
+            'snapshot_object': r.get('object', '?'),
+        }
+    return out
+
+
 def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore, 
                        function_cache: dict,
                        vc71_scores: dict = None,
-                       leaf_cache: dict = None) -> list[dict]:
+                       leaf_cache: dict = None,
+                       snapshot_data: dict = None) -> list[dict]:
     """Compute per-unit statistics in decomp.dev format."""
 
     if vc71_scores is None:
@@ -43,6 +72,9 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     
     if leaf_cache is None:
         leaf_cache = {}
+    
+    if snapshot_data is None:
+        snapshot_data = {}
     
     units = []
     drift = {
@@ -60,6 +92,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     tracked_equiv_high_conf = 0
     tracked_equiv_avg_cov_sum = 0.0
     tracked_equiv_cov_count = 0
+    
+    tracked_snap_tested = 0
+    tracked_snap_passed = 0
+    tracked_snap_high_conf = 0
+    tracked_snap_cov_sum = 0.0
+    tracked_snap_cov_count = 0
     
     # Group functions by object file
     obj_to_funcs = defaultdict(list)
@@ -116,6 +154,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             equiv_coverage = eq.get('coverage_pct')
             equiv_confidence = eq.get('confidence')
             
+            # Look up snapshot verification data
+            snap = snapshot_data.get(name, {})
+            snapshot_passed = snap.get('snapshot_passed', None)
+            snapshot_coverage = snap.get('snapshot_coverage', None)
+            snapshot_confidence = snap.get('snapshot_confidence', None)
+            
             func_entry = {
                 'address': addr_hex,
                 'name': name,
@@ -126,6 +170,9 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'equiv_class': equiv_class,
                 'equiv_coverage': equiv_coverage,
                 'equiv_confidence': equiv_confidence,
+                'snapshot_passed': snapshot_passed,
+                'snapshot_coverage': snapshot_coverage,
+                'snapshot_confidence': snapshot_confidence,
             }
             unit_funcs.append(func_entry)
             
@@ -166,6 +213,20 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
         if equiv_tested > 0:
             tracked_equiv_avg_cov_sum += equiv_cov_sum
             tracked_equiv_cov_count += equiv_tested
+        
+        # Per-unit snapshot verification summary
+        snap_tested = sum(1 for f in unit_funcs if f['snapshot_passed'] is not None)
+        snap_passed = sum(1 for f in unit_funcs if f['snapshot_passed'] is True)
+        snap_cov_sum = sum(f['snapshot_coverage'] for f in unit_funcs if f['snapshot_coverage'] is not None)
+        snap_avg_cov = round(snap_cov_sum / snap_tested, 1) if snap_tested > 0 else None
+        snap_high_conf = sum(1 for f in unit_funcs if f['snapshot_confidence'] == 'high')
+        
+        tracked_snap_tested += snap_tested
+        tracked_snap_passed += snap_passed
+        tracked_snap_high_conf += snap_high_conf
+        if snap_tested > 0:
+            tracked_snap_cov_sum += snap_cov_sum
+            tracked_snap_cov_count += snap_tested
             
         unit = {
             'name': obj_name.replace('.obj', ''),
@@ -187,6 +248,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'high_confidence': equiv_high_conf,
                 'avg_coverage': equiv_avg_cov,
                 'classes': equiv_classes,
+            },
+            'snapshot': {
+                'tested': snap_tested,
+                'passed': snap_passed,
+                'avg_coverage': snap_avg_cov,
+                'high_confidence': snap_high_conf,
             }
         }
         units.append(unit)
@@ -209,9 +276,19 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             'avg_coverage': round(tracked_equiv_avg_cov_sum / tracked_equiv_cov_count, 1) if tracked_equiv_cov_count > 0 else None,
         }
     
+    # Compute overall snapshot summary
+    overall_snapshot = None
+    if tracked_snap_tested > 0:
+        overall_snapshot = {
+            'tested': tracked_snap_tested,
+            'passed': tracked_snap_passed,
+            'high_confidence': tracked_snap_high_conf,
+            'avg_coverage': round(tracked_snap_cov_sum / tracked_snap_cov_count, 1) if tracked_snap_cov_count > 0 else None,
+        }
+    
     # Sort by ported percentage (most complete first)
     units.sort(key=lambda x: x['summary']['percent'], reverse=True)
-    return units, drift, overall_match, overall_equiv
+    return units, drift, overall_match, overall_equiv, overall_snapshot
 
 
 def generate_report(output_path: str) -> dict:
@@ -242,8 +319,13 @@ def generate_report(output_path: str) -> dict:
         with open(leaf_cache_path) as f:
             leaf_cache = json.load(f)
     
+    # Load snapshot verification results
+    snapshot_data = _load_snapshot_data()
+    
     # Compute unit stats
-    units, drift, overall_match, overall_equiv = compute_unit_stats(kb, store, function_cache, vc71_scores, leaf_cache)
+    units, drift, overall_match, overall_equiv, overall_snapshot = compute_unit_stats(
+        kb, store, function_cache, vc71_scores, leaf_cache, snapshot_data
+    )
     
     # Compute overall stats
     total_funcs = sum(u['summary']['total'] for u in units)
@@ -288,6 +370,7 @@ def generate_report(output_path: str) -> dict:
             },
             'match': overall_match,
             'equivalence': overall_equiv,
+            'snapshot': overall_snapshot,
         },
         'meta': {
             'timestamp': datetime.now().astimezone().isoformat(),
@@ -870,6 +953,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                                 <th data-fcol="5" class="num">Equiv Cov <span class="sort-arrow"></span></th>
                                 <th data-fcol="6" class="num">Confidence <span class="sort-arrow"></span></th>
                                 <th data-fcol="7">Class <span class="sort-arrow"></span></th>
+                                <th data-fcol="8" class="num" title="Snapshot verification pass/fail">Snap <span class="sort-arrow"></span></th>
+                                <th data-fcol="9" class="num" title="Snapshot coverage %">Snap Cov <span class="sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="func-table-body"></tbody>
@@ -1014,6 +1099,13 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<div class="stat-value" style="color:' + (s.equivalence.tested > 0 ? '#58a6ff' : 'var(--text-secondary)') + '">' + fmtNum(s.equivalence.tested || 0) + '</div>' +
                     '<div class="stat-label">' + (s.equivalence.tested > 0 ? (s.equivalence.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.equivalence.high_confidence || 0) + ' high conf.</div>' +
                     (s.equivalence.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.equivalence.tested / s.functions.ported * 100, 0.3) + '%;background:linear-gradient(90deg,#1f6feb,#388bfd)"><span class="progress-text">' + (s.equivalence.tested / s.functions.ported * 100).toFixed(1) + '%</span></div></div>' : '') +
+                '</div>' : '') +
+                (s.snapshot ?
+                '<div class="card" title="Game-state snapshot verification. Functions tested with real xemu-captured game memory against the original Xbox binary.">' +
+                    '<div class="stat-label">Snapshot Verified</div>' +
+                    '<div class="stat-value" style="color:' + (s.snapshot.tested > 0 ? '#a855f7' : 'var(--text-secondary)') + '">' + fmtNum(s.snapshot.passed || 0) + ' / ' + fmtNum(s.snapshot.tested || 0) + '</div>' +
+                    '<div class="stat-label">' + (s.snapshot.tested > 0 ? (s.snapshot.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.snapshot.passed || 0) + ' passed</div>' +
+                    (s.snapshot.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.snapshot.passed / s.snapshot.tested * 100, 0.3) + '%;background:linear-gradient(90deg,#7c3aed,#a855f7)"><span class="progress-text">' + (s.snapshot.tested > 0 ? (s.snapshot.passed / s.snapshot.tested * 100).toFixed(1) : '0') + '% pass rate</span></div></div>' : '') +
                 '</div>' : '');
         }
 
@@ -1146,13 +1238,17 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var vc71 = s.match ? (s.match.scored_count || 0) : 0;
             var eqTested = s.equivalence ? (s.equivalence.tested || 0) : 0;
             var eqHigh = s.equivalence ? (s.equivalence.high_confidence || 0) : 0;
+            var snapTested = s.snapshot ? (s.snapshot.tested || 0) : 0;
+            var snapPassed = s.snapshot ? (s.snapshot.passed || 0) : 0;
 
             var steps = [
-                { label: 'All functions', count: total,    color: '#3d444d', pct: 100 },
-                { label: 'Ported',        count: ported,   color: '#388bfd', pct: ported / total * 100 },
-                { label: 'VC71 scored',   count: vc71,     color: '#d29922', pct: vc71 / total * 100 },
-                { label: 'Equiv tested',  count: eqTested, color: '#d4760a', pct: eqTested / total * 100 },
-                { label: 'High conf.',    count: eqHigh,   color: '#3fb950', pct: eqHigh / total * 100 }
+                { label: 'All functions',   count: total,      color: '#3d444d', pct: 100 },
+                { label: 'Ported',          count: ported,     color: '#388bfd', pct: ported / total * 100 },
+                { label: 'VC71 scored',     count: vc71,       color: '#d29922', pct: vc71 / total * 100 },
+                { label: 'Equiv tested',    count: eqTested,   color: '#d4760a', pct: eqTested / total * 100 },
+                { label: 'Snap verified',   count: snapTested, color: '#8b5cf6', pct: snapTested / total * 100 },
+                { label: 'Snap passed',     count: snapPassed, color: '#a855f7', pct: snapPassed / total * 100 },
+                { label: 'High conf.',      count: eqHigh,     color: '#3fb950', pct: eqHigh / total * 100 }
             ];
 
             var html = '';
@@ -1179,7 +1275,10 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         function tuEvidenceLevel(unit) {
             if (!unit.summary || !unit.summary.ported) return 'no_ported';
             var eq = unit.equivalence || {};
+            var snap = unit.snapshot || {};
             if (eq.high_confidence > 0) return 'eq_high';
+            if (snap.passed > 0) return 'snap_pass';
+            if (snap.tested > 0) return 'snap_some';
             if (eq.tested > 0) return 'eq_some';
             if (unit.summary.match_weighted !== null && unit.summary.match_weighted !== undefined) return 'vc71';
             return 'unverified';
@@ -1190,14 +1289,18 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             unverified: '#3d444d',
             vc71: '#388bfd',
             eq_some: '#d4760a',
-            eq_high: '#3fb950'
+            eq_high: '#3fb950',
+            snap_some: '#7c3aed',
+            snap_pass: '#a855f7'
         };
         var EVIDENCE_LABELS = {
             no_ported: 'No ported functions',
             unverified: 'Ported, no verification',
             vc71: 'VC71 byte-match scored',
             eq_some: 'Equiv tested',
-            eq_high: 'Equiv high-confidence'
+            eq_high: 'Equiv high-confidence',
+            snap_some: 'Snapshot tested',
+            snap_pass: 'Snapshot verified & passes'
         };
 
         function renderTuHeatmap() {
@@ -1213,6 +1316,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '\\n' + s.ported + '/' + s.total + ' ported';
                 if (s.match_weighted !== null && s.match_weighted !== undefined) tip += '\\nVC71: ' + s.match_weighted.toFixed(1) + '%';
                 if (eq.tested > 0) tip += '\\nEquiv: ' + eq.tested + ' tested, ' + (eq.avg_coverage || 0).toFixed(1) + '% cov, ' + eq.high_confidence + ' high';
+                var snap = u.snapshot || {};
+                if (snap.tested > 0) tip += '\\nSnapshot: ' + snap.tested + ' tested, ' + snap.passed + ' passed, ' + (snap.avg_coverage || 0).toFixed(1) + '% cov';
                 html += '<div class="tu-tile" style="background:' + color + '" title="' + escHtml(tip) + '" onclick="goToUnit(\\'' + jsEsc(u.name) + '\\')"></div>';
             }
             var el = document.getElementById('tu-heatmap');
@@ -1221,7 +1326,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var legEl = document.getElementById('tu-legend');
             if (legEl) {
                 var legHtml = '';
-                var keys = ['no_ported', 'unverified', 'vc71', 'eq_some', 'eq_high'];
+                var keys = ['no_ported', 'unverified', 'vc71', 'eq_some', 'eq_high', 'snap_some', 'snap_pass'];
                 for (var j = 0; j < keys.length; j++) {
                     var k = keys[j];
                     legHtml += '<div class="tu-legend-item"><div class="tu-legend-dot" style="background:' + EVIDENCE_COLORS[k] + '"></div>' + EVIDENCE_LABELS[k] + '</div>';
@@ -1517,6 +1622,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             // Header
             document.getElementById('detail-unit-name').textContent = unit.name;
             var eq = unit.equivalence || {};
+            var snap = unit.snapshot || {};
             document.getElementById('detail-meta').innerHTML =
                 '<span class="unit-meta-item">Source: <strong>' + escHtml(unit.source_path || '?') + '</strong></span>' +
                 '<span class="unit-meta-item">Functions: <strong>' + s.total + '</strong></span>' +
@@ -1527,7 +1633,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 (s.match_avg !== null && s.match_avg !== undefined ?
                     '<span class="unit-meta-item">Avg Match: <strong>' + s.match_avg.toFixed(1) + '%</strong></span>' : '') +
                 (eq.tested > 0 ?
-                    '<span class="unit-meta-item">Equiv: <strong>' + eq.tested + '</strong> tested &middot; <strong>' + (eq.avg_coverage !== null ? eq.avg_coverage.toFixed(1) + '%' : '?') + '</strong> avg cov &middot; <strong>' + eq.high_confidence + '</strong> high conf.</span>' : '');
+                    '<span class="unit-meta-item">Equiv: <strong>' + eq.tested + '</strong> tested &middot; <strong>' + (eq.avg_coverage !== null ? eq.avg_coverage.toFixed(1) + '%' : '?') + '</strong> avg cov &middot; <strong>' + eq.high_confidence + '</strong> high conf.</span>' : '') +
+                (snap.tested > 0 ?
+                    '<span class="unit-meta-item">Snapshot: <strong style="color:#a855f7">' + snap.tested + '</strong> tested &middot; <strong>' + snap.passed + '</strong> passed &middot; <strong>' + (snap.avg_coverage !== null ? snap.avg_coverage.toFixed(1) + '%' : '?') + '</strong> avg cov</span>' : '');
 
             // Match distribution chart (embedded Chart.js)
             renderDetailChart(funcs);
@@ -1654,6 +1762,23 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     classDisplay = '<span class="equiv-badge ' + f.equiv_class + '">' + f.equiv_class + '</span>';
                 }
 
+                // Snapshot verification
+                var snapDisplay = '<span class="pct-none">\u2014</span>';
+                if (f.snapshot_passed !== null && f.snapshot_passed !== undefined) {
+                    snapDisplay = f.snapshot_passed
+                        ? '<span class="equiv-confidence high" style="background:#2ea043">passed</span>'
+                        : '<span class="equiv-confidence low" style="background:#da3633">failed</span>';
+                }
+
+                // Snapshot coverage
+                var snapCovDisplay = '<span class="pct-none">\u2014</span>';
+                if (f.snapshot_coverage !== null && f.snapshot_coverage !== undefined) {
+                    var snapCovClass = f.snapshot_coverage >= 90 ? 'high' : (f.snapshot_coverage >= 60 ? 'ok' : (f.snapshot_coverage >= 30 ? 'warn' : 'low'));
+                    snapCovDisplay = '<span class="equiv-cov-bar">' +
+                        '<span class="equiv-cov-track"><span class="equiv-cov-fill ' + snapCovClass + '" style="width:' + f.snapshot_coverage + '%"></span></span>' +
+                        '<span class="equiv-cov-text" style="color:' + matchColor(f.snapshot_coverage) + '">' + f.snapshot_coverage.toFixed(1) + '%</span></span>';
+                }
+
                 html += '<tr>' +
                     '<td class="func-address">' + f.address + '</td>' +
                     '<td class="func-name">' + escHtml(f.name) + '</td>' +
@@ -1663,6 +1788,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<td class="num">' + covDisplay + '</td>' +
                     '<td class="num">' + confDisplay + '</td>' +
                     '<td>' + classDisplay + '</td>' +
+                    '<td class="num">' + snapDisplay + '</td>' +
+                    '<td class="num">' + snapCovDisplay + '</td>' +
                 '</tr>';
             }
             document.getElementById('func-table-body').innerHTML = html;
@@ -1677,13 +1804,15 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 case 4: return func.match_percent !== null && func.match_percent !== undefined ? func.match_percent : -1;
                 case 5: return func.equiv_coverage !== null && func.equiv_coverage !== undefined ? func.equiv_coverage : -1;
                 case 6: {
-                    var order = {'high': 3, 'moderate': 2, 'weak': 1};
-                    return func.equiv_confidence ? (order[func.equiv_confidence] || 0) : -1;
+                    var conf = func.equiv_confidence;
+                    if (conf === 'high') return 3;
+                    if (conf === 'moderate') return 2;
+                    if (conf === 'low') return 1;
+                    return 0;
                 }
-                case 7: {
-                    var order = {'leaf': 4, 'stubbable': 3, 'data_only': 2, 'non_leaf': 1};
-                    return func.equiv_class ? (order[func.equiv_class] || 0) : -1;
-                }
+                case 7: return func.equiv_class || '';
+                case 8: return func.snapshot_passed === true ? 1 : (func.snapshot_passed === false ? 0 : -1);
+                case 9: return func.snapshot_coverage !== null && func.snapshot_coverage !== undefined ? func.snapshot_coverage : -1;
                 default: return '';
             }
         }
