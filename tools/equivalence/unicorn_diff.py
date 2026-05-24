@@ -406,7 +406,8 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                   func_offset: int = 0,
                   lifted: bool = False,
                   collect_mem_trace: bool = False,
-                  memory_overrides: dict = None) -> "state.CPUState":
+                  memory_overrides: dict = None,
+                  max_insn: int = None) -> "state.CPUState":
     """Run a function in a fresh Unicorn instance.
 
     Returns a CPUState with captured registers and scratch memory.
@@ -782,7 +783,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     err_msg = None
     try:
         uc.emu_start(entry_point, entry_point + len(code), timeout=TIMEOUT_MS * 1000,
-                     count=MAX_INSN)
+                     count=max_insn if max_insn is not None else MAX_INSN)
     except unicorn.UcError as e:
         err_str = str(e)
         cur_eip = uc.reg_read(UC_X86_REG_EIP)
@@ -963,8 +964,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              quiet: bool = False,
              mem_trace: bool = False,
              state_snapshot: Optional[Path] = None,
-             no_concolic: bool = False) -> int:
+             no_concolic: bool = False,
+             max_insn: int = None) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
+
+    # In --allow-stubs mode each callee stub executes real oracle code, consuming
+    # many more instructions than a 2-byte trampoline.  Use a higher default limit.
+    _max_insn = max_insn if max_insn is not None else (1_000_000 if allow_stubs else MAX_INSN)
 
     sys.path.insert(0, str(_SCRIPT_DIR))
     from coff_loader import extract_function, CoffParseError
@@ -1254,13 +1260,19 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         orc_stub_map = {}
         lft_stub_map = {}
 
-        # Patch REL32 calls for oracle
+        # Patch REL32 calls for oracle.
+        # When oracle_text is set the full .text section is mapped at CODE_BASE
+        # and the function lives at CODE_BASE+section_offset — use that base.
+        # When oracle_text is None the function is loaded directly at CODE_BASE.
         if orc_cls.call_count > 0:
+            orc_code_base = (CODE_BASE + oracle_slice.section_offset) if oracle_text is not None else CODE_BASE
             oracle_code_patched, orc_stub_map = patch_rel32_calls(
                 bytes(oracle_code_patched), oracle_slice.relocs, orc_defined,
+                code_base=orc_code_base,
                 symbol_sentinels=shared_stub_sentinels)
 
-        # For lifted code, also patch REL32 if present
+        # For lifted code, also patch REL32 if present.
+        # Lifted runs from CODE_BASE directly (no section prefix).
         if lft_cls.call_count > 0:
             lifted_code_patched, lft_stub_map = patch_rel32_calls(
                 bytes(lifted_code_patched), lifted_slice.relocs, lft_defined,
@@ -1397,7 +1409,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          section_code=oracle_text,
                                          func_offset=oracle_slice.section_offset,
                                          collect_mem_trace=enable_trace,
-                                         memory_overrides=snapshot_overrides)
+                                         memory_overrides=snapshot_overrides,
+                                         max_insn=_max_insn)
         except Exception as exc:
             log(f"  {seed_label} ORACLE-ERROR: {exc}")
             errors += 1
@@ -1411,7 +1424,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          globals_seeds=globals_seeds,
                                          lifted=True,
                                          collect_mem_trace=enable_trace,
-                                         memory_overrides=snapshot_overrides)
+                                         memory_overrides=snapshot_overrides,
+                                         max_insn=_max_insn)
         except Exception as exc:
             log(f"  {seed_label} LIFTED-ERROR: {exc}")
             errors += 1
@@ -1427,7 +1441,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             continue
         # If either side hit the instruction limit, the register state is
         # garbage from an aborted loop — treat as error, not a divergence.
-        if oracle_state.insn_count >= MAX_INSN or lifted_state.insn_count >= MAX_INSN:
+        if oracle_state.insn_count >= _max_insn or lifted_state.insn_count >= _max_insn:
             log(f"  {seed_label} INSN-LIMIT: oracle={oracle_state.insn_count} lifted={lifted_state.insn_count} (skipped — likely assert→stub loop)")
             errors += 1
             continue
@@ -1553,7 +1567,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                     section_code=oracle_text,
                                     func_offset=oracle_slice.section_offset,
                                     collect_mem_trace=enable_trace,
-                                    memory_overrides=merged_overrides)
+                                    memory_overrides=merged_overrides,
+                                    max_insn=_max_insn)
                             except Exception:
                                 errors += 1
                                 continue
@@ -1566,7 +1581,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                     globals_seeds=globals_seeds,
                                     lifted=True,
                                     collect_mem_trace=enable_trace,
-                                    memory_overrides=merged_overrides)
+                                    memory_overrides=merged_overrides,
+                                    max_insn=_max_insn)
                             except Exception:
                                 errors += 1
                                 continue
@@ -1889,6 +1905,8 @@ def main():
                         help="Attempt Z3 formal equivalence proof before Unicorn testing")
     parser.add_argument("--allow-stubs", action="store_true",
                         help="Enable non-leaf emulation with callee stubbing and DIR32 patching")
+    parser.add_argument("--max-insn", type=int, default=None, metavar="N",
+                        help="Maximum instructions per emulation run (default: 1M with --allow-stubs, 100K otherwise)")
     parser.add_argument("--float-tolerance", type=int, default=0, metavar="ULP",
                         help="Allow N ULP difference for float pointer params in scratch comparison")
     parser.add_argument("--float-params", type=str, default=None, metavar="NAMES",
@@ -1940,6 +1958,7 @@ def main():
         mem_trace=args.mem_trace,
         state_snapshot=args.state_snapshot,
         no_concolic=args.no_concolic,
+        max_insn=args.max_insn,
     ))
 
 
