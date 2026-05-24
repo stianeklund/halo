@@ -516,6 +516,21 @@ def run_pipeline(args: argparse.Namespace) -> int:
     if not build_ok:
       return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
 
+  # --- hazard scan (runs on the source file after a successful build) ---
+  if target.source_path:
+    hazard_cmd = ["python3", "tools/audit/check_lift_hazards.py", target.source_path]
+    proc = run_command(hazard_cmd, cwd=ROOT, log_path=artifact_dir / "hazard_scan.log")
+    hazard_ok = proc.returncode == 0
+    hazard_detail = "clean" if hazard_ok else "HAZARDS DETECTED"
+    if proc.stdout:
+      hazard_detail = proc.stdout.strip().splitlines()[-1]
+    stages.append(StageResult("hazard_scan", ran=True, ok=hazard_ok, details=hazard_detail))
+    if not hazard_ok:
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
+  else:
+    stages.append(StageResult("hazard_scan", ran=False, ok=True,
+                              details="skipped (no source path)"))
+
   risk_assessment = assess_verify_risk(target, args.verify_risk_threshold)
   trigger_text = ",".join(risk_assessment.triggers) if risk_assessment.triggers else "none"
 
