@@ -48,6 +48,15 @@ XBOX_GS_GLOBALS_ADDR = 0x4EA9B0
 # Save header size
 GS_HEADER_SIZE = 0x14C
 
+# ── object datum array ─────────────────────────────────────────────────
+# data_t** at virtual 0x5A8D50 → data_t* → header (0x38 bytes) + entries
+OBJECT_DATA_TABLE_PTR  = 0x5A8D50   # holds pointer to the object data_t
+DATA_T_HEADER_SIZE     = 0x38       # sizeof(data_t) header
+DATA_T_MAGIC           = 0x64407440 # b'd@t@' as LE uint32
+OBJECT_TYPE_PROJECTILE = 5
+# Conservative body read: covers highest known field at +0x224+4
+OBJECT_BODY_READ_SIZE  = 0x240
+
 # ── struct offsets (must match types.h:game_state_globals_t) ───────────
 # game_state_globals_t at 0x4ea990:
 #   +0x00: log_file (void*)
@@ -207,6 +216,45 @@ def parse_ptr(data: bytes, offset: int) -> int:
     return struct.unpack_from("<I", data, offset)[0]
 
 
+def gdb_continue() -> None:
+    """Send GDB 'c' (continue) and return immediately without waiting for
+    stop-reply.  Used as a fallback when QMP 'cont' fails."""
+    sock = gdb_connect()
+    try:
+        wire = b"$c#63"
+        sock.sendall(wire)
+        ack = sock.recv(1)
+        if ack != b"+":
+            raise RuntimeError(f"GDB no ACK for continue, got: {ack!r}")
+    finally:
+        sock.close()
+
+
+def resume(qmp) -> None:
+    """Resume xemu after a paused capture/inject operation.
+
+    Uses QMP 'cont' as the primary mechanism; falls back to GDB 'c'
+    if the QMP session is dead.
+    """
+    if qmp is None:
+        return
+    try:
+        print("[*] Resuming xemu via QMP...")
+        qmp.command("cont")
+    except (RuntimeError, OSError):
+        print("[!] QMP resume failed, trying GDB fallback...")
+        try:
+            gdb_continue()
+            print("[*] Resumed via GDB fallback")
+        except Exception as exc:
+            print(f"[!] GDB resume also failed: {exc}")
+    finally:
+        try:
+            qmp.close()
+        except (OSError, RuntimeError):
+            pass
+
+
 def read_globals_via_gdb() -> tuple[bytes, bytes]:
     """Read game_state_globals and xbox_game_state_globals via GDB RSP."""
     sock = gdb_connect()
@@ -227,8 +275,96 @@ def read_data_via_gdb(addr: int, size: int) -> bytes:
         sock.close()
 
 
+def capture_object_heap(sock: socket.socket,
+                        filter_type: int = OBJECT_TYPE_PROJECTILE) -> dict:
+    """Scan the object datum array and capture live object bodies.
+
+    Returns a dict with memory regions and handle metadata:
+      table_ptr_addr/value, datum_header, datum_entries, bodies, handles,
+      first_handle.  All 'data' fields are raw bytes objects (not hex strings).
+    """
+    print(f"[*] Capturing object heap (filter type={filter_type})...")
+
+    # 1. Resolve the data_t* pointer
+    ptr_raw  = gdb_read_mem(sock, OBJECT_DATA_TABLE_PTR, 4)
+    data_ptr = struct.unpack_from("<I", ptr_raw, 0)[0]
+    if not data_ptr:
+        print("    [!] Object data table pointer is NULL")
+        return {}
+    print(f"    data_t* = 0x{data_ptr:08x}")
+
+    # 2. Parse the data_t header
+    hdr         = gdb_read_mem(sock, data_ptr, DATA_T_HEADER_SIZE)
+    max_count   = struct.unpack_from("<h", hdr, 0x20)[0]
+    datum_size  = struct.unpack_from("<h", hdr, 0x22)[0]
+    magic       = struct.unpack_from("<I", hdr, 0x28)[0]
+    count       = struct.unpack_from("<h", hdr, 0x2c)[0]
+    datums_ptr  = struct.unpack_from("<I", hdr, 0x34)[0]
+    tbl_name    = hdr[:32].rstrip(b"\x00").decode("ascii", errors="replace")
+
+    print(f"    name={tbl_name!r}  max={max_count}  datum_size={datum_size}"
+          f"  count={count}  magic=0x{magic:08x}")
+    print(f"    datums_ptr=0x{datums_ptr:08x}")
+
+    if magic != DATA_T_MAGIC:
+        print(f"    [!] Bad magic 0x{magic:08x} (expected 0x{DATA_T_MAGIC:08x})")
+        return {}
+    if max_count <= 0 or datum_size < 12 or not datums_ptr:
+        print("    [!] Invalid datum table parameters")
+        return {}
+
+    # 3. Read all datum entries at once
+    datums_bytes = max_count * datum_size
+    print(f"    Reading {datums_bytes:#x} bytes of datum entries "
+          f"at 0x{datums_ptr:08x}...")
+    all_datums = gdb_read_mem(sock, datums_ptr, datums_bytes)
+
+    # 4. Scan for live entries of the target type
+    handles: list[int] = []
+    bodies: list[dict] = []
+    for slot in range(max_count):
+        off  = slot * datum_size
+        entry = all_datums[off : off + datum_size]
+        salt     = struct.unpack_from("<h", entry, 0)[0]
+        obj_type = entry[3]
+        body_ptr = struct.unpack_from("<I", entry, 8)[0]
+        if salt == 0 or not body_ptr:
+            continue
+        if obj_type != filter_type:
+            continue
+        handle = ((salt & 0xFFFF) << 16) | (slot & 0xFFFF)
+        handles.append(handle)
+        try:
+            body_data = gdb_read_mem(sock, body_ptr, OBJECT_BODY_READ_SIZE)
+        except RuntimeError as exc:
+            print(f"    [!] Skip body 0x{body_ptr:08x}: {exc}")
+            continue
+        print(f"    + slot={slot}  handle=0x{handle:08x}  body=0x{body_ptr:08x}")
+        bodies.append({
+            "handle": handle,
+            "slot":   slot,
+            "salt":   salt,
+            "addr":   body_ptr,
+            "size":   OBJECT_BODY_READ_SIZE,
+            "data":   body_data,   # raw bytes; callers hex-encode for JSON
+        })
+
+    print(f"    Captured {len(bodies)} live type-{filter_type} bodies")
+    return {
+        "table_ptr_addr":  OBJECT_DATA_TABLE_PTR,
+        "table_ptr_value": data_ptr,
+        "datum_header":    {"addr": data_ptr,   "data": hdr},
+        "datum_entries":   {"addr": datums_ptr, "count": max_count,
+                            "datum_size": datum_size, "data": all_datums},
+        "bodies":          bodies,
+        "handles":         handles,
+        "first_handle":    handles[0] if handles else None,
+    }
+
+
 def capture_snapshot(description: str = "",
-                     output_path: Optional[str] = None) -> dict:
+                     output_path: Optional[str] = None,
+                     with_objects: bool = False) -> dict:
     """Capture a full game-state snapshot from a running xemu instance.
 
     Automatically pauses xemu via QMP for a consistent point-in-time
@@ -360,6 +496,57 @@ def capture_snapshot(description: str = "",
             "data": mt_data.hex(),
         }
 
+        # Step 6 (optional): capture object datum array + live projectile bodies
+        if with_objects:
+            sock_obj = gdb_connect()
+            try:
+                obj_heap = capture_object_heap(sock_obj,
+                                               filter_type=OBJECT_TYPE_PROJECTILE)
+            finally:
+                sock_obj.close()
+
+            if obj_heap:
+                # data_t* pointer value at OBJECT_DATA_TABLE_PTR
+                result["regions"]["object_table_ptr"] = {
+                    "base": f"0x{obj_heap['table_ptr_addr']:08x}",
+                    "virtual_addr": f"0x{obj_heap['table_ptr_addr']:08x}",
+                    "size": "0x4",
+                    "data": struct.pack("<I", obj_heap["table_ptr_value"]).hex(),
+                }
+                # data_t header block
+                hdr_info = obj_heap["datum_header"]
+                result["regions"]["object_datum_header"] = {
+                    "base": f"0x{hdr_info['addr']:08x}",
+                    "virtual_addr": f"0x{hdr_info['addr']:08x}",
+                    "size": f"0x{DATA_T_HEADER_SIZE:x}",
+                    "data": hdr_info["data"].hex(),
+                }
+                # datum entries block
+                ent_info = obj_heap["datum_entries"]
+                ent_bytes = ent_info["count"] * ent_info["datum_size"]
+                result["regions"]["object_datum_entries"] = {
+                    "base": f"0x{ent_info['addr']:08x}",
+                    "virtual_addr": f"0x{ent_info['addr']:08x}",
+                    "size": f"0x{ent_bytes:x}",
+                    "data": ent_info["data"].hex(),
+                }
+                # individual object bodies keyed by handle
+                for body in obj_heap["bodies"]:
+                    key = f"obj_body_{body['handle']:08x}"
+                    result["regions"][key] = {
+                        "base": f"0x{body['addr']:08x}",
+                        "virtual_addr": f"0x{body['addr']:08x}",
+                        "size": f"0x{body['size']:x}",
+                        "data": body["data"].hex(),
+                    }
+                # arg_overrides for unicorn_diff --state-snapshot
+                first = obj_heap.get("first_handle")
+                if first is not None:
+                    result["arg_overrides"] = {"param_1": first}
+                result["object_handles"] = [
+                    f"0x{h:08x}" for h in obj_heap["handles"]
+                ]
+
         total_captured = cpu_size + GS_HEADER_SIZE + gpu_region_size
         print(f"[✓] Snapshot captured: {total_captured:#x} bytes total")
 
@@ -373,26 +560,8 @@ def capture_snapshot(description: str = "",
 
         return result
     finally:
-        if qmp is not None:
-            print("[*] Resuming xemu...")
-            qmp.command("cont")
-            qmp.close()
+        resume(qmp)
 
-
-def gdb_write_mem(sock: socket.socket, addr: int, data: bytes) -> None:
-    """Write memory to the guest via GDB RSP `M` packet."""
-    if not data:
-        return
-    offset = 0
-    while offset < len(data):
-        chunk = min(len(data) - offset, 4096)
-        chunk_data = data[offset:offset + chunk]
-        hex_data = chunk_data.hex()
-        packet = f"M{addr + offset:x},{chunk:x}:{hex_data}"
-        resp = gdb_send_recv(sock, packet)
-        if resp != "OK":
-            raise RuntimeError(f"GDB write error at 0x{addr + offset:x}: {resp}")
-        offset += chunk
 
 
 _GDB_REG_EIP = 8
@@ -504,10 +673,7 @@ def inject_snapshot(snapshot_path: str) -> None:
         finally:
             sock.close()
     finally:
-        if qmp is not None:
-            print("[*] Resuming xemu...")
-            qmp.command("cont")
-            qmp.close()
+        resume(qmp)
 
     print("[✓] Snapshot injected.")
 
@@ -567,6 +733,9 @@ def convert_to_unicorn_snapshot(snapshot_path: str,
         "captured_at": snap.get("captured_at", ""),
         "regions": {f"0x{a:08x}": d.hex() for a, d in sorted(regions_out.items())},
     }
+    # Propagate arg_overrides so unicorn_diff receives valid handles
+    if "arg_overrides" in snap:
+        result["arg_overrides"] = snap["arg_overrides"]
 
     if output_path:
         out = Path(output_path)
@@ -579,6 +748,9 @@ def convert_to_unicorn_snapshot(snapshot_path: str,
         print(f"    {len(regions_out)} regions, {total:#x} bytes total")
 
     return result
+
+
+def load_snapshot(path: str) -> dict:
     """Load a previously captured snapshot."""
     with open(path, encoding="utf-8") as f:
         return json.load(f)
@@ -603,6 +775,8 @@ def build_parser() -> argparse.ArgumentParser:
                      help="xemu GDB stub host")
     cap.add_argument("--gdb-port", type=int, default=1234,
                      help="xemu GDB stub port")
+    cap.add_argument("--objects", action="store_true",
+                     help="Also capture object datum array and live projectile bodies")
     cap.set_defaults(func=cmd_capture)
 
     # inject
@@ -641,7 +815,8 @@ def cmd_capture(args) -> int:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         output = str(DEFAULT_OUT_DIR / f"snapshot-{stamp}.json")
 
-    capture_snapshot(description=args.description, output_path=output)
+    capture_snapshot(description=args.description, output_path=output,
+                     with_objects=args.objects)
     return 0
 
 
