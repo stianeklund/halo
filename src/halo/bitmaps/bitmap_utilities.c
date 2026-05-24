@@ -378,6 +378,185 @@ void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap,
 }
 
 /*
+ * FUN_000779b0 -- box-filter downscale for a 3D (volume) ARGB bitmap.
+ *
+ * Allocates a new ARGB (format 0xb) 3D bitmap at
+ * (width/scale)x(height/scale)x(depth/scale), averaging scale×scale×scale
+ * source voxel blocks per output voxel. Only includes non-transparent voxels in
+ * the average when alpha_weighted != 0. brightness_adjust is added to the
+ * computed alpha channel value.
+ * @<eax> = scale: box filter kernel size (must be >= 2).
+ */
+void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
+                   short brightness_adjust, char alpha_weighted)
+{
+  unsigned short src_width;
+  unsigned short src_height;
+  unsigned short src_depth;
+  int kernel_x;
+  int kernel_y;
+  int kernel_z;
+  int new_width;
+  int new_height;
+  int new_depth;
+  void *dst_bitmap;
+  short dst_z;
+  short dst_y;
+  short dst_x;
+  int src_z_base;
+  int src_y_base;
+  int src_x_base;
+  int inner_z;
+  int inner_y;
+  int inner_x;
+  unsigned int *dst_pixel;
+  unsigned int *src_pixel;
+  unsigned int src_val;
+  unsigned int src_alpha;
+  int alpha_sum;
+  int ch1_sum;
+  int ch2_sum;
+  int ch3_sum;
+  int count;
+  int half;
+  int alpha_final;
+  short new_width_s;
+  short new_height_s;
+  short new_depth_s;
+
+  if (!bitmap_verify(source_bitmap, 1)) {
+    display_assert("bitmap_verify(source_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x15d, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)source_bitmap + 0xa) != 1) {
+    display_assert("source_bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x15e, 1);
+    system_exit(-1);
+  }
+  if (scale < 2) {
+    display_assert("scale>1", "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                   0x15f, 1);
+    system_exit(-1);
+  }
+
+  src_width = *(unsigned short *)((char *)source_bitmap + 4);
+  kernel_x = (int)(unsigned short)src_width;
+  if (scale <= (short)src_width)
+    kernel_x = (int)scale;
+
+  src_height = *(unsigned short *)((char *)source_bitmap + 6);
+  kernel_y = (int)(unsigned short)src_height;
+  if (scale <= (short)src_height)
+    kernel_y = (int)scale;
+
+  src_depth = *(unsigned short *)((char *)source_bitmap + 8);
+  kernel_z = (int)(unsigned short)src_depth;
+  if (scale <= (short)src_depth)
+    kernel_z = (int)scale;
+
+  new_width = (int)(short)src_width / (int)(short)kernel_x;
+  new_height = (int)(short)src_height / (int)(short)kernel_y;
+  new_depth = (int)(short)src_depth / (int)(short)kernel_z;
+
+  dst_bitmap =
+    bitmap_3d_new((unsigned short)new_width, (unsigned short)new_height,
+                  (unsigned short)new_depth, 0, 0xb);
+
+  if (dst_bitmap == 0 || *(int *)((char *)dst_bitmap + 0x2c) == 0) {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+    return dst_bitmap;
+  }
+
+  new_depth_s = (short)new_depth;
+  dst_z = 0;
+  if (new_depth_s > 0) {
+    src_z_base = 0;
+    do {
+      new_height_s = (short)new_height;
+      dst_y = 0;
+      if (new_height_s > 0) {
+        src_y_base = 0;
+        do {
+          new_width_s = (short)new_width;
+          dst_x = 0;
+          if (new_width_s > 0) {
+            src_x_base = 0;
+            do {
+              alpha_sum = 0;
+              ch1_sum = 0;
+              ch2_sum = 0;
+              ch3_sum = 0;
+              count = 0;
+              dst_pixel = (unsigned int *)bitmap_3d_address(
+                dst_bitmap, dst_x, dst_y, (short)dst_z, 0);
+              inner_z = 0;
+              if ((short)kernel_z < 1)
+                goto store_zero_3d;
+              do {
+                inner_y = 0;
+                if ((short)kernel_y > 0) {
+                  do {
+                    inner_x = 0;
+                    if ((short)kernel_x > 0) {
+                      do {
+                        src_pixel = (unsigned int *)bitmap_3d_address(
+                          source_bitmap, (short)(src_x_base + inner_x),
+                          (short)(src_y_base + inner_y),
+                          (short)(src_z_base + inner_z), 0);
+                        src_val = *src_pixel;
+                        src_alpha = src_val >> 0x18;
+                        if (src_alpha != 0 || alpha_weighted == '\0') {
+                          alpha_sum += (int)src_alpha;
+                          ch1_sum += (int)((src_val >> 0x10) & 0xff);
+                          ch2_sum += (int)((src_val >> 0x8) & 0xff);
+                          ch3_sum += (int)(src_val & 0xff);
+                          count++;
+                        }
+                        inner_x++;
+                      } while ((short)inner_x < (short)kernel_x);
+                    }
+                    inner_y++;
+                  } while ((short)inner_y < (short)kernel_y);
+                }
+                inner_z++;
+              } while ((short)inner_z < (short)kernel_z);
+              if (count == 0)
+                goto store_zero_3d;
+              half = count / 2;
+              alpha_final = (alpha_sum + half) / count + (int)brightness_adjust;
+              if (alpha_final < 0)
+                alpha_final = 0;
+              else if (alpha_final > 0xff)
+                alpha_final = 0xff;
+              *dst_pixel =
+                (unsigned int)((((ch1_sum + half) / count | alpha_final << 8)
+                                  << 8 |
+                                (half + ch2_sum) / count)
+                                 << 8 |
+                               (ch3_sum + half) / count);
+              goto skip_zero_3d;
+            store_zero_3d:
+              *dst_pixel = 0;
+            skip_zero_3d:
+              dst_x++;
+              src_x_base += kernel_x;
+            } while ((short)dst_x < new_width_s);
+          }
+          dst_y++;
+          src_y_base += kernel_y;
+        } while ((short)dst_y < new_height_s);
+      }
+      src_z_base += kernel_z;
+      dst_z++;
+      if ((short)dst_z >= new_depth_s)
+        return dst_bitmap;
+    } while (1);
+  }
+  return dst_bitmap;
+}
+
+/*
  * FUN_00078b80 -- cube_map smooth stub.
  *
  * Validates the bitmap (must be cube_map type) and the filter_coefficients
@@ -813,7 +992,8 @@ void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4)
     return FUN_00077720((short)mipmap_count, bitmap, (short)param_3,
                         (char)param_4);
   case 1:
-    return FUN_000779b0(bitmap, param_3, param_4);
+    return FUN_000779b0((short)mipmap_count, bitmap, (short)param_3,
+                        (char)param_4);
   case 2:
     return FUN_00077cd0(bitmap, mipmap_count, param_3, param_4);
   default:
