@@ -1,0 +1,68 @@
+name: Snapshot Verification
+
+on:
+  push:
+    paths:
+      - "src/**"
+      - "tools/equivalence/**"
+      - "kb.json"
+      - "delinked/game_state.obj"
+      - ".github/workflows/snapshot-tests.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tools/equivalence/**"
+      - "kb.json"
+      - "delinked/game_state.obj"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: pip install unicorn lief capstone
+
+      - name: Build
+        run: python3 tools/build/build.py -q --target halo
+        timeout-minutes: 10
+
+      - name: Run snapshot verification
+        run: |
+          python3 tools/equivalence/game_state_verify.py \
+            --snapshot ci/snapshot.json \
+            --objects game_state.obj \
+            --seeds 25 \
+            --output artifacts/equivalence/ci_results.json
+        timeout-minutes: 20
+
+      - name: Report results
+        if: always()
+        run: |
+          python3 -c "
+          import json
+          with open('artifacts/equivalence/ci_results.json') as f:
+              r = json.load(f)
+          s = r.get('summary', {})
+          total = s.get('total', 0)
+          passed = s.get('passed', 0)
+          print(f'{passed}/{total} functions passed')
+          for res in r.get('results', []):
+              if res.get('error'):
+                  print(f'  FAIL  {res[\"func\"]}  {res[\"error\"]}')
+              elif res.get('passed', 0) != res.get('total_seeds', 0) or res.get('errors', 0):
+                  print(f'  FAIL  {res[\"func\"]}  cov={res.get(\"coverage\", 0):.0f}%')
+              else:
+                  print(f'  PASS  {res[\"func\"]}  cov={res.get(\"coverage\", 0):.0f}%')
+          "
