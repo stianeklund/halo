@@ -27506,8 +27506,13 @@
           "source_path": "src/halo/bitmaps/bitmap_utilities.c"
         },
         {
-          "decl": "void *FUN_000779b0(void *bitmap, int param_3, int param_4);",
-          "addr": "0x779b0"
+          "decl": "void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",
+          "addr": "0x779b0",
+          "reg_args": {
+            "scale": "eax"
+          },
+          "ported": true,
+          "source_path": "src/halo/bitmaps/bitmap_utilities.c"
         },
         {
           "decl": "void *FUN_00077cd0(void *bitmap, short mipmap_count, int param_3, int param_4);",
