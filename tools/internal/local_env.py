@@ -38,7 +38,7 @@ def is_wsl() -> bool:
 
 
 def to_windows_path(path: str) -> str:
-    path = os.path.abspath(path).replace("\\", "/")
+    path = os.path.realpath(path).replace("\\", "/")
     if (
         len(path) >= 7
         and path.startswith("/mnt/")
