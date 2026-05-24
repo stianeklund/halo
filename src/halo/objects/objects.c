@@ -58,6 +58,132 @@ int valid_real_normal3d_perpendicular(float *a, float *b)
   return fabsf(dot) < 0.001f;
 }
 
+/* FUN_00085180 (0x85180) — Configure camera globals from a cutscene-camera
+ * entry (param_1) in the scenario, using param_2 as tick-based time and
+ * param_3 as unit handle. Triggers director_update and observer_update.
+ * Object: objects.obj / source: bored_camera.c
+ *
+ * Confirmed: CALL global_scenario_get; CALL
+ * tag_block_get_element(+0x4f0,param_1,0x68); stores to 0x2ee5a1..0x2ee5d4;
+ * CALL vectors3d_from_euler_angles3d; float compare for default speed
+ * (0x3f9c61aa); CALL director_update(0); CALL observer_update(0x38d1b717).
+ */
+void FUN_00085180(short param_1, short param_2, int param_3)
+{
+  int iVar1;
+
+  iVar1 = (int)tag_block_get_element((char *)global_scenario_get() + 0x4f0,
+                                     (int)param_1, 0x68);
+  *(short *)0x2ee5a2 = 0;
+  *(char *)0x2ee5a1 = 1;
+  *(short *)0x2ee5a4 = param_1;
+  *(int *)0x2ee5ac = *(int *)(iVar1 + 0x28);
+  *(int *)0x2ee5b0 = *(int *)(iVar1 + 0x2c);
+  *(int *)0x2ee5b4 = *(int *)(iVar1 + 0x30);
+  vectors3d_from_euler_angles3d((float *)0x2ee5b8, (float *)0x2ee5c4,
+                                (float *)(iVar1 + 0x34));
+  if (*(float *)(iVar1 + 0x40) != *(float *)0x2533c0) {
+    *(int *)0x2ee5d0 = *(int *)(iVar1 + 0x40);
+  } else {
+    *(int *)0x2ee5d0 = 0x3f9c61aa;
+  }
+  *(float *)0x2ee5a8 = (float)((int)param_2 / 0x1e);
+  *(int *)0x2ee5d4 = param_3;
+  director_update(0.0f);
+  observer_update(9.9957275390625e-5f);
+}
+
+/*
+ * FUN_000adf70 — equipment tag-index remapper for game engine mode 3.
+ *
+ * Called from FUN_000ae0a0 when the 'obje' type word is 3 (equipment).
+ * Remaps or blocks equipment spawn based on:
+ *   - weapon_definition_index_to_list_index returning 0xc or 0xd
+ *   - The 'eqip' tag's type field at offset 0x308 vs variant flags at 0x456b18
+ *   - Game engine type at 0x456b3c (3→list 0xd, 9→list 0xc, 10→none)
+ *   - Complexity flags at 0x5aa720 (bit 3=team game, bit 2=split-screen)
+ *   - Random probability gate against 0x2533e4 (team) or 0x26c744 (split)
+ * Returns the remapped equipment tag index from game_globals block at +0x14c,
+ * tag_index unchanged if not applicable, or -1 if blocked.
+ *
+ * Confirmed: PUSH 0x65716970 / CALL tag_get — 'eqip' tag lookup.
+ * Confirmed: CALL 0xa9620 — weapon_definition_index_to_list_index, cdecl 1 arg.
+ * Confirmed: CMP ESI,0xc / CMP ESI,0xd — two special list slot checks.
+ * Confirmed: MOV AX,[EBX+0x308] / CMP AX,2 / CMP AX,3 — category field checks.
+ * Confirmed: TEST byte ptr [0x456b18],0x8 / 0x10 — variant flags at 0x456b18.
+ * Confirmed: MOV EAX,[0x456b3c] / SUB 3 / SUB 6 / DEC chain — game type remap.
+ * Confirmed: AND EAX,4 / JNZ skip; SHR EDX,2 / AND DL,1 — conditional flag
+ * gate. Confirmed: CALL 0x10b0d0 / CALL 0x10b240 / FCOMP — random probability
+ * gate. Confirmed: CALL 0x18e450 / ADD EAX,0x14c / PUSH 0x10 — game_globals
+ * block lookup.
+ */
+/* 0xadf70 */
+int FUN_000adf70(int tag_index)
+{
+  int list_index;
+  void *tag;
+  void *globals;
+  void *element;
+  float fRandom;
+
+  if (tag_index == -1)
+    tag = NULL;
+  else
+    tag = tag_get(0x65716970, tag_index);
+
+  list_index = weapon_definition_index_to_list_index(tag_index);
+
+  if (list_index != 0xc && list_index != 0xd) {
+    if (tag == NULL)
+      return tag_index;
+    if (*(short *)((char *)tag + 0x308) == 2) {
+      if ((*(unsigned char *)0x456b18 & 0x8) == 0)
+        return tag_index;
+      return -1;
+    }
+    if (*(short *)((char *)tag + 0x308) != 3)
+      return tag_index;
+    if ((*(unsigned char *)0x456b18 & 0x10) == 0)
+      return tag_index;
+    return -1;
+  }
+
+  {
+    int game_type = *(int *)0x456b3c;
+    if (game_type == 3)
+      list_index = 0xd;
+    else if (game_type == 9)
+      list_index = 0xc;
+    else if (game_type == 10)
+      list_index = -1;
+  }
+
+  if ((*(unsigned int *)0x5aa720 & 4) == 0) {
+    unsigned char flag = (unsigned char)((*(unsigned int *)0x456b18 >> 2) & 1);
+    if (flag)
+      list_index = -1;
+  }
+
+  if (*(unsigned int *)0x5aa720 & 8) {
+    fRandom =
+      random_math_real((unsigned int *)get_global_random_seed_address());
+    if (fRandom > *(float *)0x2533e4)
+      list_index = -1;
+  } else if (*(unsigned int *)0x5aa720 & 4) {
+    fRandom =
+      random_math_real((unsigned int *)get_global_random_seed_address());
+    if (fRandom > *(float *)0x26c744)
+      list_index = -1;
+  }
+
+  if (list_index == -1)
+    return -1;
+
+  globals = game_globals_get();
+  element = tag_block_get_element((char *)globals + 0x14c, list_index, 0x10);
+  return *(int *)((char *)element + 0xc);
+}
+
 /*
  * FUN_000ae0a0 — game-engine tag-index remapping dispatch.
  *
@@ -253,7 +379,7 @@ typedef void (*object_type_validate_fn)(int16_t type);
  * Binary: each takes 1 cdecl int arg, returns int in EAX. */
 int game_engine_remap_vehicle(int tag_index);
 int game_engine_remap_weapon(int tag_index);
-int FUN_000adf70(int tag_index);
+int weapon_definition_index_to_list_index(int param_1);
 
 /*
  * object_set_position — reposition an object and recompute its orientation.
@@ -7004,38 +7130,4 @@ void FUN_001a9520(int object_handle, float *out_position)
   out_position[0] = *(float *)(marker_buf + 0x60);
   out_position[1] = *(float *)(marker_buf + 0x64);
   out_position[2] = *(float *)(marker_buf + 0x68);
-}
-
-
-/* FUN_00085180 (0x85180) — Configure camera globals from a cutscene-camera
- * entry (param_1) in the scenario, using param_2 as tick-based time and
- * param_3 as unit handle. Triggers director_update and observer_update.
- * Object: objects.obj / source: bored_camera.c
- *
- * Confirmed: CALL global_scenario_get; CALL tag_block_get_element(+0x4f0,param_1,0x68);
- * stores to 0x2ee5a1..0x2ee5d4; CALL vectors3d_from_euler_angles3d;
- * float compare for default speed (0x3f9c61aa); CALL director_update(0);
- * CALL observer_update(0x38d1b717).
- */
-void FUN_00085180(short param_1, short param_2, int param_3)
-{
-  int iVar1;
-
-  iVar1 = (int)tag_block_get_element((char *)global_scenario_get() + 0x4f0, (int)param_1, 0x68);
-  *(short *)0x2ee5a2 = 0;
-  *(char *)0x2ee5a1 = 1;
-  *(short *)0x2ee5a4 = param_1;
-  *(int *)0x2ee5ac = *(int *)(iVar1 + 0x28);
-  *(int *)0x2ee5b0 = *(int *)(iVar1 + 0x2c);
-  *(int *)0x2ee5b4 = *(int *)(iVar1 + 0x30);
-  vectors3d_from_euler_angles3d((float *)0x2ee5b8, (float *)0x2ee5c4, (float *)(iVar1 + 0x34));
-  if (*(float *)(iVar1 + 0x40) != *(float *)0x2533c0) {
-    *(int *)0x2ee5d0 = *(int *)(iVar1 + 0x40);
-  } else {
-    *(int *)0x2ee5d0 = 0x3f9c61aa;
-  }
-  *(float *)0x2ee5a8 = (float)((int)param_2 / 0x1e);
-  *(int *)0x2ee5d4 = param_3;
-  director_update(0.0f);
-  observer_update(9.9957275390625e-5f);
 }

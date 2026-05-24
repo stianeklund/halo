@@ -13781,7 +13781,9 @@
         },
         {
           "decl": "int FUN_000adf70(int tag_index);",
-          "addr": "0xadf70"
+          "addr": "0xadf70",
+          "ported": true,
+          "source_path": "objects/objects.c"
         },
         {
           "decl": "int FUN_000ae0a0(int tag_index);",

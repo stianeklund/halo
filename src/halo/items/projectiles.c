@@ -2082,14 +2082,20 @@ int FUN_000f9c40(int projectile_handle)
   float dot; /* dot product for sound proximity check              */
   float mag_sq; /* magnitude-squared for proximity                    */
   float sound_range; /* sound trigger range from tag                       */
-  /* Velocity components (float[3] at proj+0x18). */
-  float vel_x, vel_y, vel_z;
+  /* Velocity components (float[3] at proj+0x18).
+   * Must be an array: separate floats let clang place vel[1]=EBP-0xC (saved
+   * ESI) and vel[2]=EBP-0x8 (saved EDI). FUN_000f90d0 writes through the
+   * velocity pointer and would corrupt the saved register slots. */
+  float vel[3];
 
   /* Average velocity for position integration (float[3]). */
-  float avg_vel_x, avg_vel_y, avg_vel_z;
+  float avg_vel[3];
 
-  /* New position after one tick (float[3]). */
-  float new_pos_x, new_pos_y, new_pos_z;
+  /* New position after one tick (float[3]).
+   * Declared as an array to prevent clang from aliasing new_pos[1] with
+   * proj_tag when separate float variables are laid out contiguously on the
+   * stack (new_pos_y at EBP-0x20 overlapped proj_tag at EBP-0x20). */
+  float new_pos[3];
 
   /* Guidance target position. */
   float target_pos_x, target_pos_y, target_pos_z;
@@ -2135,8 +2141,8 @@ int FUN_000f9c40(int projectile_handle)
   /* Steering turn rate. */
   float steer_turn_rate; /* local_34: steering turn rate (radians/tick)     */
 
-  /* Collision result buffer (at least 0x3c bytes per FUN_000f90d0 usage). */
-  int16_t collision_result[0x1e]; /* 0x3c bytes                              */
+  /* collision_bsp_test_vector result; FUN_000f90d0 reads up to offset 0x4e. */
+  char collision_result[0x50]; /* 80 bytes required                          */
 
   /* Collision normal z component for bounce-angle check. */
   float col_normal_z; /* local_13c: collision normal z component            */
@@ -2248,12 +2254,12 @@ int FUN_000f9c40(int projectile_handle)
     }
 
     pfVel = (float *)(proj + 0x18);
-    vel_x = *pfVel;
-    vel_y = *(float *)(proj + 0x1c);
-    vel_z = *(float *)(proj + 0x20);
-    avg_vel_x = *pfVel;
-    avg_vel_y = *(float *)(proj + 0x1c);
-    avg_vel_z = *(float *)(proj + 0x20);
+    vel[0] = *pfVel;
+    vel[1] = *(float *)(proj + 0x1c);
+    vel[2] = *(float *)(proj + 0x20);
+    avg_vel[0] = *pfVel;
+    avg_vel[1] = *(float *)(proj + 0x1c);
+    avg_vel[2] = *(float *)(proj + 0x20);
     saved_target = *(int *)(proj + 0x1e4);
     hit_flag = '\0';
 
@@ -2348,7 +2354,7 @@ int FUN_000f9c40(int projectile_handle)
       }
     }
 
-    if (!real_vector3d_valid(&vel_x)) {
+    if (!real_vector3d_valid(vel)) {
       display_assert("projectile velocity is bad after steering.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x19d, 1);
       system_exit(-1);
@@ -2370,9 +2376,9 @@ int FUN_000f9c40(int projectile_handle)
               (*(float *)0x2533c0 < speed_prev)) {
             decel_frac =
               (*(float *)(proj_tag + 0x1e8) / speed_prev) * *(float *)0x28ace8;
-            vel_x *= decel_frac;
-            vel_y *= decel_frac;
-            vel_z *= decel_frac;
+            vel[0] *= decel_frac;
+            vel[1] *= decel_frac;
+            vel[2] *= decel_frac;
           }
         } else {
           FUN_000f7e40(projectile_handle, 2);
@@ -2384,12 +2390,12 @@ int FUN_000f9c40(int projectile_handle)
           /* Speed stays above min: normal decel. */
           dist_post = speed_prev - decel_frac * *(float *)0x253398;
           decel_frac = dist_at_hit / speed_prev;
-          vel_x *= decel_frac;
-          vel_y *= decel_frac;
-          vel_z *= decel_frac;
-          avg_vel_x = (vel_x + *pfVel) * *(float *)0x253398;
-          avg_vel_y = (vel_y + *(float *)(proj + 0x1c)) * *(float *)0x253398;
-          avg_vel_z = (vel_z + *(float *)(proj + 0x20)) * *(float *)0x253398;
+          vel[0] *= decel_frac;
+          vel[1] *= decel_frac;
+          vel[2] *= decel_frac;
+          avg_vel[0] = (vel[0] + *pfVel) * *(float *)0x253398;
+          avg_vel[1] = (vel[1] + *(float *)(proj + 0x1c)) * *(float *)0x253398;
+          avg_vel[2] = (vel[2] + *(float *)(proj + 0x20)) * *(float *)0x253398;
         } else {
           /* Speed will cross min: split tick. */
           decel_frac = (speed_prev - *(float *)(proj_tag + 0x1e8)) / decel_frac;
@@ -2399,20 +2405,20 @@ int FUN_000f9c40(int projectile_handle)
             tmp_frac * *(float *)(proj_tag + 0x1e8) +
             (dist_at_hit + speed_prev) * decel_frac * *(float *)0x253398;
           decel_frac = dist_at_hit / speed_prev;
-          vel_x *= decel_frac;
-          vel_y *= decel_frac;
-          vel_z *= decel_frac;
-          avg_vel_x = tmp_frac * vel_x +
-                      (vel_x + *pfVel) * decel_frac * *(float *)0x253398;
-          avg_vel_y = tmp_frac * vel_y + (vel_y + *(float *)(proj + 0x1c)) *
+          vel[0] *= decel_frac;
+          vel[1] *= decel_frac;
+          vel[2] *= decel_frac;
+          avg_vel[0] = tmp_frac * vel[0] +
+                      (vel[0] + *pfVel) * decel_frac * *(float *)0x253398;
+          avg_vel[1] = tmp_frac * vel[1] + (vel[1] + *(float *)(proj + 0x1c)) *
                                            decel_frac * *(float *)0x253398;
-          avg_vel_z = tmp_frac * vel_z + (vel_z + *(float *)(proj + 0x20)) *
+          avg_vel[2] = tmp_frac * vel[2] + (vel[2] + *(float *)(proj + 0x20)) *
                                            decel_frac * *(float *)0x253398;
         }
       }
     }
 
-    if (!real_vector3d_valid(&vel_x)) {
+    if (!real_vector3d_valid(vel)) {
       display_assert("projectile velocity is bad after deceleration.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1cd, 1);
       system_exit(-1);
@@ -2427,10 +2433,10 @@ int FUN_000f9c40(int projectile_handle)
       gravity = *(float *)(proj_tag + 0x1d8);
     }
     gravity = *(float *)0x32512c * gravity;
-    vel_z -= gravity * time_remaining;
-    avg_vel_z -= gravity * time_remaining * *(float *)0x253398;
+    vel[2] -= gravity * time_remaining;
+    avg_vel[2] -= gravity * time_remaining * *(float *)0x253398;
 
-    if (!real_vector3d_valid(&vel_x)) {
+    if (!real_vector3d_valid(vel)) {
       display_assert("projectile velocity is bad after gravity.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1dc, 1);
       system_exit(-1);
@@ -2462,16 +2468,16 @@ int FUN_000f9c40(int projectile_handle)
     /* 7e. New position computation.                                        */
     /* -------------------------------------------------------------------- */
     decel_frac = range_frac * time_remaining;
-    new_pos_x = avg_vel_x * decel_frac + *(float *)(proj + 0xc);
-    new_pos_y = avg_vel_y * decel_frac + *(float *)(proj + 0x10);
-    new_pos_z = avg_vel_z * decel_frac + *(float *)(proj + 0x14);
+    new_pos[0] = avg_vel[0] * decel_frac + *(float *)(proj + 0xc);
+    new_pos[1] = avg_vel[1] * decel_frac + *(float *)(proj + 0x10);
+    new_pos[2] = avg_vel[2] * decel_frac + *(float *)(proj + 0x14);
 
-    if (!valid_real_point3d(&new_pos_x)) {
+    if (!valid_real_point3d(new_pos)) {
       display_assert(
         csprintf((char *)0x5ab100,
                  "%s: assert_valid_real_point3d(%f, %f, %f)",
                  "&new_position",
-                 (double)new_pos_x, (double)new_pos_y, (double)new_pos_z),
+                 (double)new_pos[0], (double)new_pos[1], (double)new_pos[2]),
         "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1f9, 1);
       system_exit(-1);
     }
@@ -2503,23 +2509,23 @@ int FUN_000f9c40(int projectile_handle)
     } else {
       hit_flag = '\x01';
       col_hit =
-        (char)FUN_000f8720(projectile_handle, &new_pos_x, collision_result);
+        (char)FUN_000f8720(projectile_handle, new_pos, (int16_t *)collision_result);
       if (col_hit == '\0') {
         time_remaining = 0.0f;
       } else {
         /* After hit: adjust time and post-decel velocity. */
         time_remaining =
           *(float *)0x2533c8 - *(float *)((char *)collision_result + 0x14);
-        vel_z += gravity * time_remaining;
+        vel[2] += gravity * time_remaining;
         if (dist_at_hit != *(float *)0x2533c0) {
           decel_frac = time_remaining * *(float *)(proj + 0x20c) + dist_at_hit;
           if (decel_frac > speed_prev) {
             decel_frac = speed_prev;
           }
           decel_frac /= dist_at_hit;
-          vel_x *= decel_frac;
-          vel_y *= decel_frac;
-          vel_z *= decel_frac;
+          vel[0] *= decel_frac;
+          vel[1] *= decel_frac;
+          vel[2] *= decel_frac;
         }
         /* Set bit 2 if normal angle exceeds threshold. */
         col_normal_z = *(float *)((char *)collision_result + 0x2c);
@@ -2527,7 +2533,7 @@ int FUN_000f9c40(int projectile_handle)
           *(uint32_t *)(proj + 0x1dc) |= 4;
         }
         *(int *)(proj + 0x1e4) = -1;
-        FUN_000f90d0(projectile_handle, &new_pos_x, time_remaining, &vel_x,
+        FUN_000f90d0(projectile_handle, new_pos, time_remaining, vel,
                      (int16_t *)collision_result);
         bounce_count++;
         FUN_000425c0(projectile_handle,
@@ -2556,9 +2562,9 @@ int FUN_000f9c40(int projectile_handle)
       /* Accumulate total travel distance. */
       {
         float dx, dy, dz;
-        dx = new_pos_x - *(float *)(proj + 0xc);
-        dy = new_pos_y - *(float *)(proj + 0x10);
-        dz = new_pos_z - *(float *)(proj + 0x14);
+        dx = new_pos[0] - *(float *)(proj + 0xc);
+        dy = new_pos[1] - *(float *)(proj + 0x10);
+        dz = new_pos[2] - *(float *)(proj + 0x14);
         *(float *)(proj + 0x200) +=
           sqrtf(dx * dx + dy * dy + dz * dz);
       }
@@ -2582,12 +2588,12 @@ int FUN_000f9c40(int projectile_handle)
                 *(float *)(player_obj + 0x54) - *(float *)(proj + 0x10);
               steer_delta[2] =
                 *(float *)(player_obj + 0x58) - *(float *)(proj + 0x14);
-              FUN_0010b910(steer_delta, &new_pos_x, perp_vec, cross_buf2);
-              dot = perp_vec[0] * (new_pos_x - *(float *)(proj + 0xc)) +
-                    perp_vec[1] * (new_pos_y - *(float *)(proj + 0x10)) +
-                    perp_vec[2] * (new_pos_z - *(float *)(proj + 0x14));
+              FUN_0010b910(steer_delta, new_pos, perp_vec, cross_buf2);
+              dot = perp_vec[0] * (new_pos[0] - *(float *)(proj + 0xc)) +
+                    perp_vec[1] * (new_pos[1] - *(float *)(proj + 0x10)) +
+                    perp_vec[2] * (new_pos[2] - *(float *)(proj + 0x14));
               if ((*(float *)0x2533c0 <= dot) &&
-                  ((float)FUN_00012170(&new_pos_x) > dot)) {
+                  ((float)FUN_00012170(new_pos) > dot)) {
                 mag_sq = (float)FUN_00012170(cross_buf2);
                 if (mag_sq < sound_range * sound_range) {
                   /* sound origin = player_pos + (-1)*perp_component; reuse cross_buf2 */
@@ -2610,19 +2616,26 @@ int FUN_000f9c40(int projectile_handle)
           ((*(float *)(proj + 0x18) == *(float *)0x2533c0) &&
            (*(float *)(proj + 0x1c) == *(float *)0x2533c0) &&
            (*(float *)(proj + 0x20) == *(float *)0x2533c0))) {
-        /* Apply stored rotation (sin/cos at proj+0x220/0x224) if flag set. */
+        /* Apply stored rotation (sin/cos at proj+0x220/0x224) if flag set.
+         * Both fwd and up rotate around the stored angular velocity axis
+         * (proj+0x214). After rotation, Gram-Schmidt re-orthogonalizes to
+         * prevent FP drift across ticks (original: 0xfa9d9-0xfaa21). */
         if ((*(uint8_t *)(proj + 0x1dc) & 1) != 0) {
-          float *fwd = (float *)(proj + 0x24);
-          float *up  = (float *)(proj + 0x30);
-          rotate_vector3d_by_sincos(up,  fwd,
-                                    *(float *)(proj + 0x220),
-                                    *(float *)(proj + 0x224));
-          rotate_vector3d_by_sincos(fwd, (float *)(proj + 0x214),
-                                    *(float *)(proj + 0x220),
-                                    *(float *)(proj + 0x224));
+          float *fwd  = (float *)(proj + 0x24);
+          float *up   = (float *)(proj + 0x30);
+          float *axis = (float *)(proj + 0x214);
+          float sin_a = *(float *)(proj + 0x220);
+          float cos_a = *(float *)(proj + 0x224);
+          rotate_vector3d_by_sincos(fwd, axis, sin_a, cos_a);
+          rotate_vector3d_by_sincos(up,  axis, sin_a, cos_a);
+          normalize3d(fwd);
+          cross_product3d(up, fwd, cross_buf2);
+          cross_product3d(fwd, cross_buf2, up);
+          normalize3d(up);
         }
       } else {
-        /* Align forward to current velocity direction. */
+        /* Align forward to current velocity direction. After Gram-Schmidt,
+         * spin up around the new fwd by the stored tumble angle (0xfa9ad). */
         {
           float *fwd = (float *)(proj + 0x24);
           float *up  = (float *)(proj + 0x30);
@@ -2640,20 +2653,23 @@ int FUN_000f9c40(int projectile_handle)
               normalize3d(up);
             }
           }
+          rotate_vector3d_by_sincos(up, fwd,
+                                    *(float *)(proj + 0x220),
+                                    *(float *)(proj + 0x224));
         }
       }
 
       /* ------------------------------------------------------------------ */
       /* 7k. Translate object to new position.                              */
       /* ------------------------------------------------------------------ */
-      object_translate(projectile_handle, &new_pos_x,
+      object_translate(projectile_handle, new_pos,
                        (void *)((char *)collision_result + 0x0c));
       /* Write back velocity. */
       {
         float local_1c_cmp = time_remaining;
-        *(float *)(proj + 0x18) = vel_x;
-        *(float *)(proj + 0x1c) = vel_y;
-        *(float *)(proj + 0x20) = vel_z;
+        *(float *)(proj + 0x18) = vel[0];
+        *(float *)(proj + 0x1c) = vel[1];
+        *(float *)(proj + 0x20) = vel[2];
         if ((local_1c_cmp != *(float *)0x2533c0) &&
             ((short)bounce_count != 0) && (*(int *)(proj + 0x1ec) != -1) &&
             (*(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) != -1)) {
