@@ -2494,8 +2494,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00037630(void);",
-          "addr": "0x37630"
+          "decl": "void FUN_00037630(int actor_handle, int prop_handle);",
+          "addr": "0x37630",
+          "ported": true,
+          "source_path": "src/halo/ai/actors.c"
         },
         {
           "decl": "void FUN_000377d0(int actor_handle, int prop_handle);",
@@ -29082,7 +29084,7 @@
           "decl": "void actor_perception_find_prop_pathfinding_location(int actor_handle, int prop_handle);"
         },
         {
-          "decl": "void actor_perception_find_killer_prop_index(void);",
+          "decl": "int actor_perception_find_killer_prop_index(int actor_handle, int prop_handle, int flag);",
           "addr": "0x2f9b0"
         },
         {
