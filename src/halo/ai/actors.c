@@ -112,6 +112,37 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
 }
 
 
+/* FUN_00036a90 (0x36a90) — actor seek-prop approach: record timestamp,
+ * find pathfinding location, post priority-2 move stimulus toward prop+0xf0.
+ * Stack args to FUN_00036890: prop->0xec, 1.5, prop_handle, 90, 90, 1. */
+void FUN_00036a90(int actor_handle, int prop_handle)
+{
+  char *actor;
+  char *prop;
+  int game_time;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  prop = (char *)datum_get(prop_data, prop_handle);
+  game_time = game_time_get();
+  *(int *)(actor + 0x3a0) = game_time;
+  actor_perception_find_prop_pathfinding_location(actor_handle, prop_handle);
+  FUN_00036890(actor_handle, (int *)(prop + 0xf0), 2, NULL,
+               *(int *)(prop + 0xec), 0x3fc00000, prop_handle, 0x5a, 0x5a, 1);
+}
+
+/* FUN_00036b10 (0x36b10) — actor prop-approach stimulus, priority 6.
+ * Like FUN_00036b50 but priority 6; stack args: -1, 0, 90, prop_handle, 150, 0.
+ */
+void FUN_00036b10(int actor_handle, int prop_handle)
+{
+  char *prop;
+
+  prop = (char *)datum_get(prop_data, prop_handle);
+  FUN_00036890(actor_handle, NULL, 6, (int *)(prop + 0xe0), -1, 0, 0x5a,
+               prop_handle, 0x96, 0);
+}
+
+
 /*
  * FUN_00036b50 — trigger a swarm damage/retreat reaction.
  *
@@ -189,6 +220,62 @@ void FUN_00036c00(int actor_handle, int object_handle, float *position,
     *(float *)&look_buf[6] = position[2];
     FUN_00027a60(actor_handle, 1, 1, look_buf);
   }
+}
+
+/* FUN_00036c50 (0x36c50) — actor prop-reaction: if prop is "active" (field_0x60
+ * != 0), post priority-6 stimulus to prop+0xe0. Otherwise call FUN_00036b50,
+ * then check linked player/actor handles for perception and team-friendliness.
+ * Always finishes with a look-at-prop stimulus (type 7, priority 1) via
+ * FUN_00027a60. */
+void FUN_00036c50(int actor_handle, int prop_handle)
+{
+  char *prop;
+  char *obj;
+  char *player_datum;
+  char *actor;
+  char *actor_2;
+  char *obj_type2;
+  int related_handle;
+  int game_time;
+  short look_buf[8];
+
+  prop = (char *)datum_get(prop_data, prop_handle);
+  if (*(char *)(prop + 0x60) != 0) {
+    prop = (char *)datum_get(prop_data, prop_handle);
+    FUN_00036890(actor_handle, NULL, 6, (int *)(prop + 0xe0), -1, 0, 0x5a,
+                 prop_handle, 0x96, 0);
+    goto exit_look;
+  }
+  obj = (char *)object_get_and_verify_type(*(int *)(prop + 0x18), 3);
+  FUN_00036b50(actor_handle, prop_handle);
+  related_handle = *(int *)(obj + 0x1c8);
+  if (related_handle != -1) {
+    player_datum = (char *)datum_get(player_data, related_handle);
+    if (*(int *)(player_datum + 0x40) != -1) {
+      game_time = game_time_get();
+      if (*(int *)(player_datum + 0x44) + 0x5a >= game_time) {
+        actor = (char *)datum_get(actor_data, actor_handle);
+        obj_type2 =
+          (char *)object_get_and_verify_type(*(int *)(player_datum + 0x40), 3);
+        if (game_allegiance_get_team_is_friendly(
+              *(int16_t *)(actor + 0x3e), *(int16_t *)(obj_type2 + 0x68))) {
+          actor_perception_create_orphan_from_friend(
+            actor_handle, *(int *)(player_datum + 0x40), -1, -1);
+        }
+      }
+    }
+    goto exit_look;
+  }
+  if (*(int *)(obj + 0x1a4) == -1)
+    goto exit_look;
+  actor_2 = (char *)datum_get(actor_data, *(int *)(obj + 0x1a4));
+  if (*(short *)(actor_2 + 0x6e) < 4)
+    goto exit_look;
+  actor_derive_target_information(actor_handle, *(int *)(obj + 0x1a4));
+exit_look:
+  look_buf[0] = 1;
+  *(int *)&look_buf[2] = prop_handle;
+  FUN_00027a60(actor_handle, 7, 1, look_buf);
 }
 
 
@@ -746,10 +833,10 @@ void FUN_00038000(int actor_handle)
  * variant).
  *
  * Sibling of FUN_00038000. Preamble: datum_get, tag_get(0x61637472,actor+0x58)
- * result unused (cache warm), handle_initial_action, handle_pending_command_list,
- * handle_surprise(actor_handle,4), deny_transition check. If deny=false:
- * handle_berserking_from_damage, handle_berserk_transition(3),
- * handle_combat_transition, FUN_00020990.
+ * result unused (cache warm), handle_initial_action,
+ * handle_pending_command_list, handle_surprise(actor_handle,4), deny_transition
+ * check. If deny=false: handle_berserking_from_damage,
+ * handle_berserk_transition(3), handle_combat_transition, FUN_00020990.
  *
  * Switch physical layout (EAX = *(short*)(actor+0x6c)-3, range 0–0xa):
  *   3,10 → 0x38279; 4 → 0x382ac; 6 → 0x382c3; 5,7,8 → 0x382e0;

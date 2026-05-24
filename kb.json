@@ -2423,12 +2423,14 @@
         {
           "decl": "void FUN_00036a90(int actor_handle, int prop_handle);",
           "addr": "0x36a90",
-          "ported": false
+          "ported": true,
+          "source_path": "src/halo/ai/actors.c"
         },
         {
           "decl": "void FUN_00036b10(int actor_handle, int prop_handle);",
           "addr": "0x36b10",
-          "ported": false
+          "ported": false,
+          "source_path": "src/halo/ai/actors.c"
         },
         {
           "decl": "void FUN_00036b50(int param_1, int param_2);",
@@ -2448,7 +2450,8 @@
         {
           "decl": "void FUN_00036c50(int actor_handle, int prop_handle);",
           "addr": "0x36c50",
-          "ported": false
+          "ported": true,
+          "source_path": "src/halo/ai/actors.c"
         },
         {
           "decl": "void FUN_00036da0(int actor_handle);",
