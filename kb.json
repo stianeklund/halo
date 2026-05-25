@@ -29533,7 +29533,7 @@
           "decl": "void ai_debug_initialize(void);",
           "addr": "0x48e90",
           "name": "ai_debug_initialize",
-          "ported": true,
+          "ported": false,
           "src": "src/halo/ai/ai_debug.c"
         }
       ]
@@ -31848,7 +31848,7 @@
         {
           "decl": "int FUN_00116280(int param_1, int param_2, int param_3);",
           "addr": "0x116280",
-          "ported": true,
+          "ported": false,
           "src": "src/halo/memory/circular_queue.c"
         },
         {
