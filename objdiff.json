@@ -1167,6 +1167,15 @@
       }
     },
     {
+      "name": "halo/bitmap_utilities_FUN_00077120",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/bitmap_utilities.c.obj",
+      "base_path": "delinked/structures.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/bitmap_utilities.c",
+        "symbol": "FUN_00077120"
+      }
+    },
+    {
       "name": "halo/objects_FUN_1407e0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
       "base_path": "delinked/objects_FUN_1407e0.obj",
