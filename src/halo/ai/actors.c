@@ -1735,54 +1735,75 @@ void FUN_00038c70(int actor_handle)
 }
 
 /*
- * FUN_00038da0 -- actor timer for unit-effect durations (main set).
- *
- * Returns a random tick count scaled by DAT_00253394 for the given hit type.
- * unit_effect 1 → [4.0, 5.0]s, 2 → [2.0, 2.8]s, 3 → [0.4, 1.0]s.
- * Falls back to *(float*)0x2533c8 for unknown types.
- * Clamps result to 255.
- */
+  * FUN_00038da0 -- actor timer for unit-effect durations (main set).
+  *
+  * Returns a random tick count scaled by DAT_00253394 for the given hit type.
+  * unit_effect 1 → [4.0, 5.0]s, 2 → [2.0, 2.8]s, 3 → [0.4, 1.0]s.
+  * Falls back to *(float*)0x2533c8 for unknown types.
+  * Clamps result to 255.
+  *
+  * Disassembly: DEC/JZ/DEC/JZ/DEC/JNZ chain; default float FLD'd first,
+  * popped (FSTP ST0) at merge.  Multiplied by [0x253394], _ftol2, CMP
+  * AX,0xff / JLE clamp, MOVSX EAX,AX return.
+  */
 int FUN_00038da0(short unit_effect /* @<eax> */)
 {
-  float timer_f;
-  int timer;
+  float timer_raw;
+  short final_val;
 
-  timer_f = *(float *)0x2533c8;
-  if (unit_effect == 1) {
-    timer_f = random_real_range(get_global_random_seed_address(), 4.0f, 5.0f);
-  } else if (unit_effect == 2) {
-    timer_f = random_real_range(get_global_random_seed_address(), 2.0f, 2.8f);
-  } else if (unit_effect == 3) {
-    timer_f = random_real_range(get_global_random_seed_address(), 0.4f, 1.0f);
+  switch (unit_effect) {
+  case 1:
+    timer_raw = random_real_range(get_global_random_seed_address(), 4.0f, 5.0f);
+    goto compute;
+  case 2:
+    timer_raw = random_real_range(get_global_random_seed_address(), 2.0f, 2.8f);
+    goto compute;
+  case 3:
+    timer_raw = random_real_range(get_global_random_seed_address(), 0.4f, 1.0f);
+    goto compute;
+  default:
+    timer_raw = *(float *)0x2533c8;
+    goto compute;
   }
-  timer = (int)(timer_f * *(float *)0x253394);
-  if ((int)(short)timer > 0xff)
+compute:
+  final_val = (short)(int)(timer_raw * *(float *)0x253394);
+  if (final_val > 0xff)
     return 0xff;
-  return (int)(short)timer;
+  return final_val;
 }
 
 /*
- * FUN_00038e00 -- actor timer for unit-effect durations (secondary set).
- *
- * unit_effect 1 → [1.0, 2.5]s, 2-3 → [0.6, 1.8]s.
- * Falls back to *(float*)0x2533c8 for other types.
- * Clamps result to 255.
- */
+  * FUN_00038e00 -- actor timer for unit-effect durations (secondary set).
+  *
+  * unit_effect 1 → [1.0, 2.5]s, 2-3 → [0.6, 1.8]s.
+  * Falls back to *(float*)0x2533c8 for other types.
+  * Clamps result to 255.
+  *
+  * Disassembly: FLD default → MOVSX → CMP AX,1 / JZ case_1 / JLE skip /
+  * CMP AX,3 / JG skip; matching ranges FSTP ST0 + random; others keep
+  * default on x87 stack.  FMUL [0x253394], _ftol2, CMP AX,0xff / JLE,
+  * MOVSX EAX,AX return.
+  */
 int FUN_00038e00(short unit_effect /* @<eax> */)
 {
-  float timer_f;
-  int timer;
+  float timer_raw;
+  short final_val;
 
-  timer_f = *(float *)0x2533c8;
+  timer_raw = *(float *)0x2533c8;
   if (unit_effect == 1) {
-    timer_f = random_real_range(get_global_random_seed_address(), 1.0f, 2.5f);
-  } else if (unit_effect >= 2 && unit_effect <= 3) {
-    timer_f = random_real_range(get_global_random_seed_address(), 0.6f, 1.8f);
+    timer_raw = random_real_range(get_global_random_seed_address(), 1.0f, 2.5f);
+  } else if (unit_effect <= 1) {
+    goto scale;
+  } else if (unit_effect > 3) {
+    goto scale;
+  } else {
+    timer_raw = random_real_range(get_global_random_seed_address(), 0.6f, 1.8f);
   }
-  timer = (int)(timer_f * *(float *)0x253394);
-  if ((int)(short)timer > 0xff)
+scale:
+  final_val = (short)(int)(timer_raw * *(float *)0x253394);
+  if (final_val > 0xff)
     return 0xff;
-  return (int)(short)timer;
+  return final_val;
 }
 
 /* FUN_00039f30 (0x39f30) — actor action state-machine tick (active-cover

@@ -1660,7 +1660,7 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
           if (width > 0) {
             do {
               pixel = *(unsigned int *)((unsigned char *)row_ptr + x * 4);
-              if ((pixel >> 24) == 0) {
+              if ((pixel & 0xff000000) == 0) {
                 found = 0;
                 dy = -1;
                 iy = y - 1;
@@ -1674,8 +1674,8 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
                       if (dx > 1)
                         break;
                       if ((short)ix >= 0 && (short)iy >= 0 &&
-                          (short)ix < *(short *)((char *)bitmap + 4) &&
-                          (short)iy < *(short *)((char *)bitmap + 6)) {
+                          (short)ix < width &&
+                          (short)iy < height) {
                         neighbor_ptr =
                           (unsigned int *)bitmap_2d_address(bitmap, ix, iy, 0);
                         if (*neighbor_ptr != 0) {
@@ -1692,7 +1692,7 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
                 } while (!found);
               }
               *(unsigned int *)((unsigned char *)temp_buf +
-                                x * 4 + width * y * 4) = pixel;
+                                x * 4 + (int)width * y * 4) = pixel;
               x++;
             } while ((short)x < width);
           }
