@@ -2970,8 +2970,10 @@
           "ported": true
         },
         {
-          "decl": "void actor_handle_unit_effect(int param_1, int param_2, int param_3);",
-          "addr": "0x3d430"
+          "decl": "void actor_handle_unit_effect(int actor_handle, int prop_handle, int16_t unit_effect);",
+          "addr": "0x3d430",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "decl": "char actor_set_active(int actor_handle, char active_flag);",
@@ -29247,7 +29249,7 @@
           "decl": "void actor_emotion_update(int actor_handle);"
         },
         {
-          "decl": "void actor_perception_become_acknowledged(void);",
+          "decl": "void actor_perception_become_acknowledged(int actor_handle, int prop_handle, int param_3);",
           "addr": "0x33330"
         },
         {
