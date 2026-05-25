@@ -27693,7 +27693,7 @@
         {
           "decl": "void bitmap_alpha_bleed(void *bitmap, short passes);",
           "addr": "0x7b470",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0007b510(float bump_height, void *bitmap /* @<esi> */);",
