@@ -236,7 +236,10 @@ async def list_tools() -> list[types.Tool]:
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextContent]:
+async def call_tool(
+    name: str, arguments: dict[str, Any] | None = None
+) -> list[types.TextContent]:
+    arguments = arguments or {}
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, _ensure_loaded)
 
