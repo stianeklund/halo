@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy pre-decompressed cache files to Xbox z:\ partition via XBDM.
+r"""Deploy pre-decompressed cache files to Xbox z:\ partition via XBDM.
 
 Halo CE Xbox maps are compressed on disc (d:\maps\*.map) and decompressed
 to z:\cache000.map–cache005.map on the HDD during loading. Pre-populating
@@ -86,12 +86,14 @@ def verify_local_files(src_dir: str, slots: list[int] | None) -> list[tuple[int,
 
 
 def list_xbox_cache(client: RdcpClient) -> dict[str, int]:
-    resp = client.send_command_and_read('dirlist name="z:\\"')
+    resp = client.command('dirlist name="z:\\"')
     if resp.code != 202:
         print(f"  z:\\ listing failed: {resp.code} {resp.message}")
         return {}
 
     files = {}
+    if resp.lines is None:
+        return files
     for line in resp.lines:
         parts = {}
         for token in line.split():
@@ -171,6 +173,7 @@ def main() -> int:
 
     try:
         client = RdcpClient(args.host, args.port, timeout=args.timeout)
+        client.connect()
     except RdcpError as e:
         print(f"ERROR: cannot connect to Xbox at {args.host}:{args.port}: {e}",
               file=sys.stderr)
