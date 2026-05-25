@@ -507,8 +507,9 @@ char FUN_00076bd0(int tag_index)
            * first starting at 0, or the next sequence starts exactly where
            * this one ends (contiguous allocation). */
           if ((i == 0 && first_bmp == 0) ||
-              (next_seq != (void *)0 && (int)*(short *)((char *)next_seq + 0x20) ==
-                                          (int)first_bmp + (int)bmp_count)) {
+              (next_seq != (void *)0 &&
+               (int)*(short *)((char *)next_seq + 0x20) ==
+                 (int)first_bmp + (int)bmp_count)) {
             goto skip_range_warning;
           }
         }
@@ -598,7 +599,7 @@ void *FUN_00077040(int tag_index, short sequence_index, short frame_index)
   short bitmap_idx;
 
   if (tag_index == -1)
-    return NULL;
+    goto cleanup_null;
   if (sequence_index < 0 || frame_index < 0) {
     display_assert("sequence_index>=0 && frame_index>=0",
                    "c:\\halo\\SOURCE\\bitmaps\\bitmap_group.c", 0x2a6, 1);
@@ -606,7 +607,7 @@ void *FUN_00077040(int tag_index, short sequence_index, short frame_index)
   }
   tag = (int)tag_get(0x6269746d, tag_index);
   if (tag == 0)
-    return NULL;
+    goto cleanup_null;
   if (*(int *)(tag + 0x54) > 0) {
     sequence = (int)tag_block_get_element(
       (int *)(tag + 0x54), (int)sequence_index % *(int *)(tag + 0x54), 0x40);
@@ -628,10 +629,12 @@ fallback:
   bitmap_idx = frame_index;
 ret_check:
   if (bitmap_idx < 0)
-    return NULL;
+    goto cleanup_null;
   if ((int)bitmap_idx >= *(int *)(tag + 0x60))
-    return NULL;
+    goto cleanup_null;
   return tag_block_get_element((int *)(tag + 0x60), (int)bitmap_idx, 0x30);
+cleanup_null:
+  return NULL;
 }
 
 /*
@@ -1613,7 +1616,6 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
   int y;
   int x;
   unsigned int *row_ptr;
-  unsigned int *dest_row;
   unsigned int pixel;
   void *dest;
   int dy;
@@ -1646,60 +1648,62 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
     return;
   }
   pass_counter = (unsigned int)(unsigned short)passes;
-  do {
-    width = *(short *)((char *)bitmap + 4);
-    height = *(short *)((char *)bitmap + 6);
-    y = 0;
-    if (height > 0) {
-      do {
-        row_ptr = (unsigned int *)bitmap_2d_address(bitmap, 0, y, 0);
-        dest_row = temp_buf + (int)(short)width * y;
-        x = 0;
-        if (width > 0) {
-          do {
-            pixel = row_ptr[x];
-            if ((pixel >> 24) == 0) {
-              found = 0;
-              dy = -1;
-              iy = y - 1;
-              do {
-                if (dy > 1)
-                  break;
-                if (!found) {
-                  dx = -1;
-                  ix = x - 1;
-                  do {
-                    if (dx > 1)
-                      break;
-                    if ((short)ix >= 0 && (short)iy >= 0 &&
-                        (short)ix < *(short *)((char *)bitmap + 4) &&
-                        (short)iy < *(short *)((char *)bitmap + 6)) {
-                      neighbor_ptr =
-                        (unsigned int *)bitmap_2d_address(bitmap, ix, iy, 0);
-                      if (*neighbor_ptr != 0) {
-                        pixel = *neighbor_ptr & 0x00ffffff;
-                        found = 1;
+  if ((short)pass_counter > 0) {
+    do {
+      width = *(short *)((char *)bitmap + 4);
+      height = *(short *)((char *)bitmap + 6);
+      y = 0;
+      if (height > 0) {
+        do {
+          row_ptr = (unsigned int *)bitmap_2d_address(bitmap, 0, y, 0);
+          x = 0;
+          if (width > 0) {
+            do {
+              pixel = *(unsigned int *)((unsigned char *)row_ptr + x * 4);
+              if ((pixel >> 24) == 0) {
+                found = 0;
+                dy = -1;
+                iy = y - 1;
+                do {
+                  if (dy > 1)
+                    break;
+                  if (!found) {
+                    dx = -1;
+                    ix = x - 1;
+                    do {
+                      if (dx > 1)
+                        break;
+                      if ((short)ix >= 0 && (short)iy >= 0 &&
+                          (short)ix < *(short *)((char *)bitmap + 4) &&
+                          (short)iy < *(short *)((char *)bitmap + 6)) {
+                        neighbor_ptr =
+                          (unsigned int *)bitmap_2d_address(bitmap, ix, iy, 0);
+                        if (*neighbor_ptr != 0) {
+                          pixel = *neighbor_ptr & 0x00ffffff;
+                          found = 1;
+                        }
                       }
-                    }
-                    dx++;
-                    ix++;
-                  } while (!found);
-                }
-                dy++;
-                iy++;
-              } while (!found);
-            }
-            dest_row[x] = pixel;
-            x++;
-          } while (x < (int)(short)width);
-        }
-        y++;
-      } while (y < (int)height);
-    }
-    dest = bitmap_mipmap_address(bitmap, 0);
-    csmemcpy(dest, temp_buf, size);
-    pass_counter--;
-  } while (pass_counter != 0);
+                      dx++;
+                      ix++;
+                    } while (!found);
+                  }
+                  dy++;
+                  iy++;
+                } while (!found);
+              }
+              *(unsigned int *)((unsigned char *)temp_buf +
+                                x * 4 + width * y * 4) = pixel;
+              x++;
+            } while ((short)x < width);
+          }
+          y++;
+        } while ((short)y < height);
+      }
+      dest = bitmap_mipmap_address(bitmap, 0);
+      csmemcpy(dest, temp_buf, size);
+      pass_counter--;
+    } while (pass_counter != 0);
+  }
   debug_free(temp_buf, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x462);
 }
 
@@ -1800,7 +1804,7 @@ float *bitmap_clone(float *rgb, float *hsv_out)
   } else {
     max_component = rgb[1];
   }
-  if (rgb[0] <= max_component) {
+  if (max_component >= rgb[0]) {
     if (rgb[1] <= rgb[2]) {
       max_component = rgb[2];
     } else {
@@ -1815,7 +1819,7 @@ float *bitmap_clone(float *rgb, float *hsv_out)
   } else {
     min_component = rgb[2];
   }
-  if (rgb[0] <= min_component) {
+  if (min_component >= rgb[0]) {
     min_component = rgb[0];
   } else if (rgb[1] <= rgb[2]) {
     min_component = rgb[1];
