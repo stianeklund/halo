@@ -1,0 +1,113 @@
+{
+  "description": "Curated runtime-oracle golden-test targets. These are expected to pass in nightly CI and are backed by stable test_harness coverage.",
+  "targets": [
+    {
+      "target": "FUN_00012140",
+      "obj": "rasterizer.obj",
+      "timeout": 120,
+      "reason": "curated initial runtime-oracle target; currently passes golden harness"
+    },
+    {
+      "target": "FUN_00012170",
+      "obj": "rasterizer.obj",
+      "timeout": 120,
+      "reason": "curated initial runtime-oracle target; currently passes golden harness"
+    },
+    {
+      "target": "normalize3d",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks magnitude and normalized vector components"
+    },
+    {
+      "target": "vector3d_scale_add",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks all three output components"
+    },
+    {
+      "target": "matrix_transform_point",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks translated point output"
+    },
+    {
+      "target": "perpendicular3d",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks perpendicular basis result"
+    },
+    {
+      "target": "angles_to_vector",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks spherical-angle conversion output"
+    },
+    {
+      "target": "object_placement_data_new",
+      "obj": "objects.obj",
+      "timeout": 120,
+      "reason": "harness checks placement buffer fields and tail byte"
+    },
+    {
+      "target": "matrix_inverse",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks representative inverse-matrix cells"
+    },
+    {
+      "target": "matrix4x3_multiply",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks composed matrix output cells"
+    },
+    {
+      "target": "matrix_from_forward_and_up",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks generated orientation matrix"
+    },
+    {
+      "target": "FUN_00013070",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks dot-product result"
+    },
+    {
+      "target": "points_interpolate",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks vector interpolation result"
+    },
+    {
+      "target": "scalars_interpolate",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness checks scalar interpolation result"
+    },
+    {
+      "target": "scalars_interpolate_and_clamp_0_to_1",
+      "obj": "math.obj",
+      "timeout": 120,
+      "reason": "harness golden case checks clamp-low and clamp-high interpolation outputs"
+    },
+    {
+      "target": "FUN_000d1c90",
+      "obj": "rasterizer.obj",
+      "timeout": 120,
+      "reason": "harness checks ARGB-to-pixel conversion"
+    },
+    {
+      "target": "FUN_00115430",
+      "obj": "zlib.obj",
+      "timeout": 120,
+      "reason": "inflate round-trip harness validates stream teardown path"
+    },
+    {
+      "target": "FUN_001155c0",
+      "obj": "zlib.obj",
+      "timeout": 120,
+      "reason": "inflate round-trip harness validates zlib init path"
+    }
+  ]
+}
