@@ -68,80 +68,146 @@ void FUN_00014540(int actor_handle)
 }
 
 /* FUN_000145c0 (0x145c0)
- * If actor+0x1dc is a valid conversation handle, finish it via
- * ai_conversation_finish.  Called on actor deactivation. */
+ * Stop any active conversation for this actor.
+ *
+ * Reads the actor's conversation handle at actor+0x1dc.  If it is not -1
+ * (i.e. there is an active conversation), calls ai_conversation_finish with
+ * that handle, no advance (0), and no explicit end (0).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) pattern from disassembly.
+ * Confirmed: guard on [actor+0x1dc] != -1 before call.
+ * Confirmed: ADD ESP,0xC after call — 3 cdecl args.
+ * Confirmed: ai_conversation_finish(*(int *)(actor+0x1dc), 0, 0). */
 void FUN_000145c0(int actor_handle)
 {
-  char *actor = (char *)datum_get(actor_data, actor_handle);
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
   if (*(int *)(actor + 0x1dc) != -1) {
     ai_conversation_finish(*(int *)(actor + 0x1dc), 0, 0);
   }
 }
 
 /* FUN_000145f0 (0x145f0)
- * Same as FUN_000145c0 — second copy for a different calling context. */
+ * Stop any active conversation for this actor (second variant).
+ *
+ * Structurally identical to FUN_000145c0.  Two separate functions exist in
+ * the binary at distinct addresses; both read actor+0x1dc and call
+ * ai_conversation_finish if a conversation is active.
+ *
+ * Confirmed: identical decompile to FUN_000145c0 at 0x145f0.
+ * Inferred: two entry points probably correspond to different calling
+ *   contexts (e.g. voluntary vs forced conversation stop). */
 void FUN_000145f0(int actor_handle)
 {
-  char *actor = (char *)datum_get(actor_data, actor_handle);
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
   if (*(int *)(actor + 0x1dc) != -1) {
     ai_conversation_finish(*(int *)(actor + 0x1dc), 0, 0);
   }
 }
 
 /* FUN_000146f0 (0x146f0)
- * Initialize actor looking state: copy seed byte, set look priority/spec/frame
- * type fields, clear look state flags, optionally override priority. */
+ * Initialize actor scripted-look state (type 5 target, scripted look mode).
+ *
+ * Copies the scripted-look timer seed from actor+0x358 to actor+0x426.
+ * Sets look priority (actor+0x3e8) to 5, look-spec type (actor+0x3ec) to 2,
+ * another look field (actor+0x3fc) to 4, and clears four flag bytes starting
+ * at actor+0x424.
+ *
+ * If the actor's behavior type (actor+0x15e) is not 4 AND the actor's team
+ * type (actor+0x6e) is > 4, also sets actor+0x454 = 1 and raises the look
+ * priority to 7.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) from decompile.
+ * Inferred: actor+0x3e8 = look priority (int16_t); actor+0x3ec = look spec
+ *   type (int16_t); actor+0x3fc = look frame type (int16_t).
+ * Inferred: actor+0x424..0x428 = look state flags (char[5]).
+ * Inferred: actor+0x15e = behavior type (int16_t); actor+0x6e = team (int16_t).
+ * Inferred: actor+0x454 = scripted look override flag (char). */
 void FUN_000146f0(int actor_handle)
 {
-  char *actor = (char *)datum_get(actor_data, actor_handle);
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
   *(char *)(actor + 0x426) = *(char *)(actor + 0x358);
-  *(short *)(actor + 0x3e8) = 5;
-  *(short *)(actor + 0x3ec) = 2;
-  *(short *)(actor + 0x3fc) = 4;
+  *(short *)(actor + 1000) = 5; /* actor+0x3e8 = look priority */
+  *(short *)(actor + 0x3ec) = 2; /* look spec type */
+  *(short *)(actor + 0x3fc) = 4; /* look frame type */
   *(char *)(actor + 0x427) = 0;
   *(char *)(actor + 0x428) = 0;
   *(char *)(actor + 0x424) = 0;
   *(char *)(actor + 0x425) = 0;
-  if (*(short *)(actor + 0x15e) != 4 && *(short *)(actor + 0x6e) >= 4) {
+  if ((*(short *)(actor + 0x15e) != 4) && (*(short *)(actor + 0x6e) >= 4)) {
     *(char *)(actor + 0x454) = 1;
-    *(short *)(actor + 0x3e8) = 7;
+    *(short *)(actor + 1000) = 7; /* raise look priority */
   }
 }
 
 /* FUN_00014b40 (0x14b40)
- * If actor has an associated unit (actor+0x18 != -1), stop it running blindly.
- */
+ * Stop the actor's host unit from running blindly.
+ *
+ * Reads the unit handle at actor+0x18.  If valid (not -1), calls
+ * unit_stop_running_blindly with that unit handle, clearing the blindly-running
+ * flag on the unit.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) from decompile.
+ * Confirmed: guard on [actor+0x18] != -1.
+ * Confirmed: unit_stop_running_blindly(*(int *)(actor+0x18)) — single cdecl
+ * arg. Inferred: actor+0x18 = unit datum handle. */
 void FUN_00014b40(int actor_handle)
 {
-  char *actor = (char *)datum_get(actor_data, actor_handle);
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
   if (*(int *)(actor + 0x18) != -1) {
     unit_stop_running_blindly(*(int *)(actor + 0x18));
   }
 }
 
 /* FUN_00014b70 (0x14b70)
- * Set actor control-override handle to 0xffff and controlled flag to 1. */
+ * Mark actor as controlled (scripted look override active).
+ *
+ * Sets the actor's control word at actor+0xa4 to 0xffff (all bits set) and
+ * sets the controlled flag byte at actor+0xa2 to 1.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) from decompile.
+ * Inferred: actor+0xa4 = control/override handle (int16_t, 0xffff = all).
+ * Inferred: actor+0xa2 = controlled flag (char). */
 void FUN_00014b70(int actor_handle)
 {
-  char *actor = (char *)datum_get(actor_data, actor_handle);
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
   *(short *)(actor + 0xa4) = (short)0xffff;
   *(char *)(actor + 0xa2) = 1;
 }
 
 /* FUN_00014ff0 (0x14ff0)
- * If actor+0xb8 equals param_2 (current look-frame id), replace it with
- * param_3. */
+ * Conditionally update the actor's look-frame field.
+ *
+ * If the current look-frame value at actor+0xb8 equals param_2, replaces
+ * it with param_3.  This acts as a guarded transition — only fires if the
+ * actor is in the expected look state.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) from decompile.
+ * Confirmed: compare [actor+0xb8] == param_2 before write.
+ * Inferred: actor+0xb8 = look frame / look state id (int). */
 void FUN_00014ff0(int actor_handle, int param_2, int param_3)
 {
-  char *actor = (char *)datum_get(actor_data, actor_handle);
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
   if (*(int *)(actor + 0xb8) == param_2) {
     *(int *)(actor + 0xb8) = param_3;
   }
 }
 
 /* FUN_00015020 (0x15020)
- * Return 1 if param_1 is in the exclusive range (8, 13), else 0.
- * Confirmed: 16-bit load (MOV AX,[EBP+8]) at 0x15023; CMP AX,9 / CMP AX,0xC. */
+ * Test whether a look-state value is in the scripted-look priority range
+ * [9,12].
+ *
+ * Returns 1 (true) if param_1 is in the half-open interval (8, 0xD), i.e.
+ * 9 <= param_1 <= 12, else returns 0.
+ *
+ * Confirmed: 16-bit load via MOV AX,WORD PTR[EBP+8] at 0x15023 — param is
+ *   a signed 16-bit short pushed as a dword.
+ * Confirmed: CMP AX,9 / JL; CMP AX,0xC / JG; return 1 else return 0. */
 int FUN_00015020(short param_1)
 {
   if (param_1 >= 9 && param_1 <= 0xc) {

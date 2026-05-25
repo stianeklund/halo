@@ -798,6 +798,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x48e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x48f50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x48fa0": {
       "kind": "function",
       "status": "ported"
