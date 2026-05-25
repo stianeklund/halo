@@ -27553,12 +27553,14 @@
           "addr": "0x77e60"
         },
         {
-          "decl": "void FUN_00077ff0(void *bitmap, int filter_radius, short *filter_coefficients);",
-          "addr": "0x77ff0"
+          "decl": "void FUN_00077ff0(void *bitmap, short filter_radius, short *filter_coefficients);",
+          "addr": "0x77ff0",
+          "ported": true
         },
         {
-          "decl": "void FUN_00078460(void *bitmap, int filter_radius, short *filter_coefficients);",
-          "addr": "0x78460"
+          "decl": "void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients);",
+          "addr": "0x78460",
+          "ported": true
         },
         {
           "decl": "void FUN_00078b80(int filter_radius, short *filter_coefficients, void *bitmap /* @<esi> */);",
