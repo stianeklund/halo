@@ -2004,15 +2004,13 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
     system_exit(-1);
   }
 
-  /* If spatialization_mode != 0, validate source forward vector. */
-  if (*(short *)source != 0) {
-    if (!valid_real_normal3d((float *)((char *)source + 0x18))) {
-      display_assert(
-        "source->spatialization_mode==_sound_spatialization_mode_none || "
-        "valid_real_normal3d(&source->location.forward)",
-        "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x242, 1);
-      system_exit(-1);
-    }
+  if (*(short *)source != 0 &&
+      !valid_real_normal3d((float *)((char *)source + 0x18))) {
+    display_assert(
+      "source->spatialization_mode==_sound_spatialization_mode_none || "
+      "valid_real_normal3d(&source->location.forward)",
+      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x242, 1);
+    system_exit(-1);
   }
 
   /* Check sound class for fade-related classes (0x2c, 0x2e, 0x2f). */

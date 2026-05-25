@@ -15293,8 +15293,9 @@
           "addr": "0xb6740"
         },
         {
-          "decl": "void player_control_get_unit_index(void);",
-          "addr": "0xb6870"
+          "decl": "int player_control_get_unit_index(short local_player_index);",
+          "addr": "0xb6870",
+          "name": "player_control_get_unit_index"
         },
         {
           "decl": "void player_control_get_desired_weapon(void);",
@@ -29512,8 +29513,11 @@
           "addr": "0x46f10"
         },
         {
-          "decl": "void FUN_00048e90(void);",
-          "addr": "0x48e90"
+          "decl": "void ai_debug_initialize(void);",
+          "addr": "0x48e90",
+          "name": "ai_debug_initialize",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         }
       ]
     },
@@ -29523,20 +29527,32 @@
       "data": [],
       "functions": [
         {
-          "decl": "void FUN_00048f50(void);",
-          "addr": "0x48f50"
+          "decl": "void ai_debug_dispose(void);",
+          "addr": "0x48f50",
+          "name": "ai_debug_dispose",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_dispose_from_old_map(void);",
-          "addr": "0x48fa0"
+          "addr": "0x48fa0",
+          "name": "ai_debug_dispose_from_old_map",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_clear_storage(void);",
-          "addr": "0x49000"
+          "addr": "0x49000",
+          "name": "ai_debug_clear_storage",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_actor_deleted(int actor_handle);",
-          "addr": "0x49080"
+          "addr": "0x49080",
+          "name": "ai_debug_actor_deleted",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void FUN_000490C0(void);",
@@ -29547,8 +29563,11 @@
           "decl": "void *ai_debug_get_path_storage(int actor_handle);"
         },
         {
-          "decl": "void ai_debug_select_encounter(void);",
-          "addr": "0x49220"
+          "decl": "void ai_debug_select_encounter(int encounter_idx);",
+          "addr": "0x49220",
+          "name": "ai_debug_select_encounter",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_sound_point_set(void);",
@@ -29679,8 +29698,11 @@
           "addr": "0x4b0f0"
         },
         {
-          "decl": "void ai_debug_select_actor(void);",
-          "addr": "0x4b1b0"
+          "decl": "void ai_debug_select_actor(int encounter_idx, int param_2);",
+          "addr": "0x4b1b0",
+          "name": "ai_debug_select_actor",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void FUN_0004b220(void);",
@@ -29716,7 +29738,10 @@
         },
         {
           "decl": "void ai_debug_initialize_for_new_map(void);",
-          "addr": "0x4c0f0"
+          "addr": "0x4c0f0",
+          "name": "ai_debug_initialize_for_new_map",
+          "ported": false,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_change_selected_actor(int param);",
