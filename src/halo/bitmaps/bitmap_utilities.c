@@ -419,6 +419,77 @@ void FUN_00077540(void *bitmap)
   }
 }
 
+/* FUN_00077590 (0x77590) — clone a bitmap: allocates a new bitmap of the same type/format,
+ * copies pixel data from source to the clone, copies the flags field (+0xe). */
+void *FUN_00077590(void *bitmap)
+{
+    void *cloned;
+    void *src_data;
+    void *dst_data;
+    int src_size;
+    int dst_size;
+    short type;
+
+    if (bitmap == 0) {
+        display_assert("source_bitmap",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x67, 1);
+        system_exit(-1);
+    }
+    if (*(int *)((char *)bitmap + 0x2c) == 0) {
+        display_assert("source_bitmap->base_address",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x68, 1);
+        system_exit(-1);
+    }
+
+    type = *(short *)((char *)bitmap + 0xa);
+    cloned = 0;
+    switch (type) {
+    case 0:
+        cloned = bitmap_2d_new(
+            *(unsigned short *)((char *)bitmap + 4),
+            *(unsigned short *)((char *)bitmap + 6),
+            *(unsigned short *)((char *)bitmap + 0x14),
+            *(unsigned short *)((char *)bitmap + 0xc));
+        break;
+    case 1:
+        cloned = bitmap_3d_new(
+            *(unsigned short *)((char *)bitmap + 4),
+            *(unsigned short *)((char *)bitmap + 6),
+            *(unsigned short *)((char *)bitmap + 8),
+            *(unsigned short *)((char *)bitmap + 0x14),
+            *(unsigned short *)((char *)bitmap + 0xc));
+        break;
+    case 2:
+        cloned = bitmap_cube_map_new(
+            *(unsigned short *)((char *)bitmap + 4),
+            *(unsigned short *)((char *)bitmap + 0x14),
+            *(unsigned short *)((char *)bitmap + 0xc));
+        break;
+    default:
+        display_assert("### ERROR unsupported bitmap type",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x83, 1);
+        system_exit(-1);
+        break;
+    }
+
+    if (cloned != 0 && *(int *)((char *)cloned + 0x2c) != 0) {
+        src_data = bitmap_mipmap_address(bitmap, 0);
+        dst_data = bitmap_mipmap_address(cloned, 0);
+        src_size = bitmap_get_pixel_data_size(bitmap);
+        dst_size = bitmap_get_pixel_data_size(cloned);
+        if (src_size != dst_size) {
+            display_assert("bitmap_get_pixel_data_size(cloned_bitmap)==pixel_data_size",
+                           "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x8d, 1);
+            system_exit(-1);
+        }
+        csmemcpy(dst_data, src_data, src_size);
+        *(short *)((char *)cloned + 0xe) = *(short *)((char *)bitmap + 0xe);
+        return cloned;
+    }
+    error(2, "### ERROR failed to allocate temporary bitmap");
+    return cloned;
+}
+
 /*
  * FUN_00077720 -- box-filter 2x downscale for a 2D ARGB bitmap.
  *
