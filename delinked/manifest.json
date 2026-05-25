@@ -1,8 +1,8 @@
 {
-  "actors.obj": {
-    "obj_path": "/mnt/g/dev/halo/.claude/worktrees/debug-mp-freeze/delinked/actors.obj",
-    "source": "ai/actors.c",
-    "addr_range": "0x0002a360-0x0003f230",
-    "func_count": 124
+  "actor_looking.obj": {
+    "obj_path": "/mnt/g/dev/halo/.claude/worktrees/worktree-lift/delinked/actor_looking.obj",
+    "source": "ai/actor_looking.c",
+    "addr_range": "0x00013dd0-0x0002a830",
+    "func_count": 120
   }
 }
