@@ -152,9 +152,9 @@ bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
       matrix_transform_point(node_matrix,
                              (float *)((char *)attachment_data + 4),
                              (float *)((char *)source + 0xc));
-      matrix_transform_vector(node_matrix,
-                              (float *)((char *)attachment_data + 0x10),
-                              (float *)((char *)source + 0x18));
+      matrix_scale_transform_vector(node_matrix,
+                                   (float *)((char *)attachment_data + 0x10),
+                                   (float *)((char *)source + 0x18));
       object_get_root_location(object_handle, (float *)((char *)source + 0x24),
                                0);
 
