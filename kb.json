@@ -3265,7 +3265,7 @@
           "addr": "0x16cf0"
         },
         {
-          "decl": "void actor_look_compute_prop_interest(void);",
+          "decl": "void actor_look_compute_prop_interest(int actor_handle, int param_2, short *param_3, void (*callback)(void), int param_5);",
           "addr": "0x16d40"
         },
         {
@@ -3282,7 +3282,10 @@
         },
         {
           "decl": "void FUN_00017090(int actor_handle);",
-          "addr": "0x17090"
+          "addr": "0x17090",
+          "name": "FUN_00017090",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "decl": "void FUN_000170c0(void);",

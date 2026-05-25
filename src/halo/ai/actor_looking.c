@@ -292,6 +292,24 @@ void FUN_000151b0(int actor_handle)
   }
 }
 
+/* FUN_00017090 (0x17090)
+ * Compute actor prop-interest for the prop list at actor+0x9c.
+ *
+ * Fetches the actor record, then calls actor_look_compute_prop_interest with
+ * reset=0, prop_state=actor+0x9c, callback=FUN_00016cd0, param_5=0.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1709e.
+ * Confirmed: PUSH 0x0; PUSH 0x16cd0; ADD EAX,0x9c; PUSH EAX; PUSH 0x0;
+ *   PUSH ESI; CALL 0x16d40; ADD ESP,0x1c at 0x170a3-0x170b8.
+ * Inferred: actor+0x9c = scripted-look prop state array. */
+void FUN_00017090(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+                                   FUN_00016cd0, 0);
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b
