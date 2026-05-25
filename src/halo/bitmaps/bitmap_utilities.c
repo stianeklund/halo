@@ -146,6 +146,102 @@ short FUN_00075380(void *bitmap /* @<eax> */)
 }
 
 /*
+ * FUN_00075630 -- 3D texture group extraction.
+ *
+ * Iterates over the pending bitmap array (base at DAT_00334134, count in
+ * DAT_00334138). Groups consecutive entries with matching mip_count. For each
+ * power-of-two group, creates a 3D bitmap, copies the slices into it via
+ * bitmap_cube_map_face_extract, registers it with FUN_00075380, then frees
+ * it. Logs warnings for incompatible-dimension or non-power-of-two groups.
+ *
+ * Returns 1 on success, 0 if a temporary bitmap allocation failed.
+ */
+char FUN_00075630(void)
+{
+  short mip_count;
+  short width;
+  short height;
+  int outer;
+  int slice_idx;
+  char bvar4;
+  char success;
+  void *new_bitmap;
+  short handle;
+  void *tag_element;
+  char *base;
+  int i;
+
+  success = 1;
+  outer = 0;
+  do {
+    if ((short)outer >= *(short *)0x334138)
+      break;
+    base = *(char **)0x334134;
+    mip_count = *(short *)(base + (short)outer * 0x10 + 4);
+    width = *(short *)(*(char **)(base + (short)outer * 0x10) + 4);
+    height = *(short *)(*(char **)(base + (short)outer * 0x10) + 6);
+    slice_idx = 0;
+    bvar4 = 0;
+
+    while (*(short *)(base + ((short)outer + (short)slice_idx) * 0x10 + 4) ==
+           mip_count) {
+      if (*(short *)(*(char **)(base +
+                                ((short)outer + (short)slice_idx) * 0x10) +
+                     4) != width ||
+          *(short *)(*(char **)(base +
+                                ((short)outer + (short)slice_idx) * 0x10) +
+                     6) != height) {
+        bvar4 = 1;
+      }
+      slice_idx++;
+      if (bvar4) {
+        crt_fprintf((void *)0x331050,
+                    "skipping 3D texture with incompatible slices\r\n");
+        crt_fflush((void *)0x331050);
+        goto next_group;
+      }
+    }
+
+    if (slice_idx & (slice_idx - 1)) {
+      crt_fprintf((void *)0x331050,
+                  "skipping 3D texture with non power-of-two slice count\r\n");
+      crt_fflush((void *)0x331050);
+      goto next_group;
+    }
+
+    new_bitmap = bitmap_3d_new((unsigned short)width, (unsigned short)height,
+                               (unsigned short)slice_idx, 0, 0xb);
+    if (!new_bitmap || *(int *)((char *)new_bitmap + 0x2c) == 0) {
+      error(2, "### ERROR extract: failed to allocate temporary bitmap");
+      success = 0;
+    } else {
+      for (i = 0; (short)i < (short)slice_idx; i++) {
+        bitmap_cube_map_face_extract(
+          *(void **)(*(char **)0x334134 + ((short)outer + i) * 0x10),
+          new_bitmap, 0, i);
+      }
+      *(short *)0x33415c = mip_count;
+      handle = FUN_00075380(new_bitmap);
+      if (handle != (short)-1) {
+        tag_element = tag_block_get_element(*(char **)0x33414c + 0x54,
+                                            (int)mip_count, 0x40);
+        if (*(short *)((char *)tag_element + 0x20) == (short)-1) {
+          *(short *)((char *)tag_element + 0x20) = handle;
+          *(short *)((char *)tag_element + 0x22) = 1;
+        } else {
+          *(short *)((char *)tag_element + 0x22) += 1;
+        }
+      }
+    }
+    bitmap_delete(new_bitmap);
+
+  next_group:
+    outer += slice_idx;
+  } while (success);
+  return success;
+}
+
+/*
  * FUN_00076bb0 -- bitmap tag_block element delete wrapper.
  *
  * Gets an element from a tag_block at the given index (element size 0x30),
