@@ -27527,7 +27527,8 @@
         },
         {
           "decl": "void *FUN_00077590(void *bitmap);",
-          "addr": "0x77590"
+          "addr": "0x77590",
+          "ported": true
         },
         {
           "decl": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",
