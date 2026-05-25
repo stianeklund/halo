@@ -563,10 +563,10 @@ void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
  * pointer, then prints a warning that smoothing a cube map is not supported
  * and returns without doing any work.
  *
- * ABI: bitmap passed in ESI (@ESI). Two stack params: unused,
+ * ABI: bitmap passed in ESI (@ESI). Two stack params: filter_radius,
  * filter_coefficients.
  */
-void FUN_00078b80(int unused, int filter_coefficients,
+void FUN_00078b80(int filter_radius, short *filter_coefficients,
                   void *bitmap /* @<esi> */)
 {
   /* bitmap_verify(bitmap, TRUE) */
@@ -1104,6 +1104,76 @@ void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4)
                    "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0xf3, 1);
     system_exit(-1);
     return (void *)0;
+  }
+}
+
+/*
+ * bitmap_smooth (0x7b1b0) -- dispatcher for bitmap smoothing by type.
+ *
+ * Validates the bitmap, checks filter_size range, then builds a 1-D
+ * Gaussian kernel of radius floor(smooth_factor) by iterating Pascal's
+ * triangle accumulation into a 10-element short array at DAT_00334560.
+ * Dispatches: type 0 -> FUN_00077ff0, type 1 -> FUN_00078460,
+ * type 2 -> FUN_00078b80 (cube map, stub).
+ */
+void bitmap_smooth(void *pixel_data, float smooth_factor)
+{
+  short *psVar4;
+  int filter_radius;
+  int iVar5;
+  unsigned int diameter;
+  short *filter_table;
+
+  filter_radius = (int)smooth_factor;
+
+  if (!bitmap_verify(pixel_data, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x21e, 1);
+    system_exit(-1);
+  }
+
+  if (smooth_factor > *(float *)0x253f34) {
+    display_assert("filter_size<=(float)MAXIMUM_FILTER_SIZE",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x21f, 1);
+    system_exit(-1);
+  }
+
+  if ((float)(int16_t)filter_radius <= *(float *)0x2533c0) {
+    return;
+  }
+
+  filter_table = (short *)0x334560;
+  csmemset(filter_table, 0, 0x14);
+  if ((int16_t)(filter_radius * 2) >= 0) {
+    diameter = (unsigned short)(filter_radius * 2 + 1);
+    do {
+      psVar4 = (short *)0x334572;
+      iVar5 = 9;
+      do {
+        *psVar4 = *psVar4 + *(psVar4 - 1);
+        psVar4 = psVar4 - 1;
+        iVar5 = iVar5 - 1;
+      } while (iVar5 != 0);
+      diameter = diameter - 1;
+      *(short *)0x334560 = 1;
+    } while (diameter != 0);
+  }
+
+  switch ((int16_t)(*(short *)((char *)pixel_data + 0xa))) {
+  case 0:
+    FUN_00077ff0(pixel_data, filter_radius, filter_table);
+    return;
+  case 1:
+    FUN_00078460(pixel_data, filter_radius, filter_table);
+    return;
+  case 2:
+    FUN_00078b80(filter_radius, filter_table, pixel_data);
+    return;
+  default:
+    display_assert("### ERROR unsupported bitmap type",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x244, 1);
+    system_exit(-1);
+    return;
   }
 }
 

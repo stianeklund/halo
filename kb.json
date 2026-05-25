@@ -27541,15 +27541,15 @@
           "addr": "0x77e60"
         },
         {
-          "decl": "void FUN_00077ff0(void);",
+          "decl": "void FUN_00077ff0(void *bitmap, int filter_radius, short *filter_coefficients);",
           "addr": "0x77ff0"
         },
         {
-          "decl": "void FUN_00078460(void);",
+          "decl": "void FUN_00078460(void *bitmap, int filter_radius, short *filter_coefficients);",
           "addr": "0x78460"
         },
         {
-          "decl": "void FUN_00078b80(int unused, int filter_coefficients, void *bitmap /* @<esi> */);",
+          "decl": "void FUN_00078b80(int filter_radius, short *filter_coefficients, void *bitmap /* @<esi> */);",
           "addr": "0x78b80",
           "ported": true
         },
@@ -27668,7 +27668,9 @@
         },
         {
           "decl": "void bitmap_smooth(void *pixel_data, float smooth_factor);",
-          "addr": "0x7b1b0"
+          "addr": "0x7b1b0",
+          "ported": true,
+          "source_path": "halo/bitmaps/bitmap_utilities.c"
         },
         {
           "decl": "void bitmap_sharpen(void);",
