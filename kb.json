@@ -2583,8 +2583,10 @@
           "addr": "0x39c80"
         },
         {
-          "decl": "void FUN_00039f30(void);",
-          "addr": "0x39f30"
+          "decl": "void FUN_00039f30(int actor_handle);",
+          "addr": "0x39f30",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "decl": "void FUN_0003a190(void);",
