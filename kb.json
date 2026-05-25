@@ -3483,7 +3483,10 @@
         },
         {
           "decl": "void FUN_00027870(int actor_handle);",
-          "addr": "0x27870"
+          "addr": "0x27870",
+          "name": "FUN_00027870",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "decl": "void FUN_000278e0(void);",
@@ -29630,7 +29633,7 @@
         },
         {
           "addr": "0x49ac0",
-          "decl": "void ai_debug_describe_actor(int actor_handle, int object_handle, char with_actor, char *buf, int buf_size);"
+          "decl": "char *ai_debug_describe_actor(int actor_handle, int object_handle, char with_actor, char *buf, int buf_size);"
         },
         {
           "decl": "void FUN_00049c70(void);",

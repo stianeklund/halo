@@ -313,6 +313,38 @@ void cross_product3d(float *a, float *b, float *out)
   out[2] = a0 * b1 - a1 * b0;
 }
 
+/* FUN_00027870 (0x27870)
+ * Stop scripted look: log debug message and clear the scripted-look fields.
+ *
+ * If the scripted-look counter at actor+0x544 is > 0 AND the AI debug display
+ * flag (0x5aca5d) is non-zero, describes the actor via ai_debug_describe_actor
+ * and prints a console "look-stop" line.  Then clears actor+0x544, actor+0x546,
+ * and actor+0x548 (scripted-look timer/type/state words).
+ *
+ * Confirmed: CMP word ptr [ESI+0x544],0x0 / JLE at 0x27889/0x27891 — signed.
+ * Confirmed: MOV AL,[0x5aca5d] / TEST AL,AL / JZ at 0x27893/0x27898/0x2789a.
+ * Confirmed: PUSH 0x100; PUSH 0x5ab100 (error_string_buffer); PUSH 0x0;
+ *   PUSH -0x1; PUSH EDI; CALL 0x49ac0 at 0x2789c.
+ * Confirmed: PUSH EAX (return ptr from ai_debug_describe_actor);
+ *   PUSH 0x255144 ("%s: look-stop"); PUSH 0x0; CALL 0xff4d0 at 0x278b0.
+ * Confirmed: MOV word [ESI+0x546],0x0; MOV word [ESI+0x544],0x0;
+ *   MOV word [ESI+0x548],0x0 at 0x278c0-0x278d3.
+ * Inferred: actor+0x544 = scripted-look state counter (int16_t).
+ * Inferred: actor+0x546, actor+0x548 = scripted-look type/state words. */
+void FUN_00027870(int actor_handle)
+{
+  char *actor;
+  char *desc;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x544) > 0 && *(char *)0x5aca5d != '\0') {
+    desc = ai_debug_describe_actor(actor_handle, -1, 0, error_string_buffer, 0x100);
+    console_printf(0, "%s: look-stop", desc);
+  }
+  *(short *)(actor + 0x546) = 0;
+  *(short *)(actor + 0x544) = 0;
+  *(short *)(actor + 0x548) = 0;
+}
+
 /* FUN_0002a2b0 (0x2a2b0)
  * Update the actor's look-direction validity flag (actor+0x505).
  *
