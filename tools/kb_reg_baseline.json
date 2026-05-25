@@ -41,6 +41,7 @@
     "0x77720": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",
     "0x779b0": "void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",
     "0x78b80": "void FUN_00078b80(int filter_radius, short *filter_coefficients, void *bitmap /* @<esi> */);",
+    "0x79180": "void FUN_00079180(int unused, int positive_table, int negative_table, void *bitmap /* @<esi> */);",
     "0x790b0": "void FUN_000790b0(int unused, int positive_table, int negative_table, void *bitmap /* @<esi> */);",
     "0x79250": "void FUN_00079250(short passes /* @<eax> */, void *bitmap);",
     "0x79480": "void FUN_00079480(short passes, void *bitmap /* @<edi> */);",

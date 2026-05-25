@@ -27580,8 +27580,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00079180(void);",
-          "addr": "0x79180"
+          "decl": "void FUN_00079180(int unused, int positive_table, int negative_table, void *bitmap /* @<esi> */);",
+          "addr": "0x79180",
+          "reg_args": { "bitmap": "esi" },
+          "ported": true
         },
         {
           "decl": "void FUN_00079250(short passes /* @<eax> */, void *bitmap);",

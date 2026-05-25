@@ -1184,6 +1184,36 @@ void FUN_00078b80(int filter_radius, short *filter_coefficients,
   crt_fflush((void *)0x331050);
 }
 
+/* FUN_00079180 (0x79180) — cube map sharpen stub. Validates bitmap (@esi) is cube type,
+ * checks positive/negative table pointers, then prints warning and returns. */
+void FUN_00079180(int unused, int positive_table, int negative_table,
+                  void *bitmap /* @<esi> */)
+{
+    if (!bitmap_verify(bitmap, 1)) {
+        display_assert("bitmap_verify(bitmap, TRUE)",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f3, 1);
+        system_exit(-1);
+    }
+    if (*(short *)((char *)bitmap + 0xa) != 2) {
+        display_assert("bitmap->type==_bitmap_type_cube_map",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f4, 1);
+        system_exit(-1);
+    }
+    if (positive_table == 0) {
+        display_assert("positive_table",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f5, 1);
+        system_exit(-1);
+    }
+    if (negative_table == 0) {
+        display_assert("negative_table",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f6, 1);
+        system_exit(-1);
+    }
+    crt_fprintf((void *)0x331050, "### WARNING tried to sharpen a cube map",
+                (void *)0x261f2c);
+    crt_fflush((void *)0x331050);
+}
+
 /*
  * FUN_000790b0 -- 3D bitmap sharpen stub.
  *
