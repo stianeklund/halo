@@ -1784,6 +1784,88 @@ void FUN_0003a3b0(int actor_handle)
   }
 }
 
+/* FUN_0003a480 (0x3a480) — actor action state-machine tick (combat-only,
+ * no berserking/panic). Preamble: datum_get, initial_action,
+ * pending_command_list, handle_surprise(1), deny_transition. If deny==false:
+ * handle_combat_transition + FUN_00020990 only. Switch on actor+0x6c:
+ * cases 3/10 → combat_status+failure+evasion; case 6 → guard check;
+ * case 4 → aa-check+done_fleeing or combat_status(1,1);
+ * cases 5/7/8 → pursuit; case 11 → combat_status(9e,a1); case 13 → a280;
+ * case 12 → can_stop_conversing+combat_status(flag,flag). */
+void FUN_0003a480(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  int uVar2;
+  int uVar3;
+  unsigned char bVar1;
+  unsigned char bVar2;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  actor_action_handle_surprise(actor_handle, 1);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_combat_transition(actor_handle);
+    FUN_00020990(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    cVar1 = actor_action_handle_combat_failure(actor_handle);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_evasion(actor_handle);
+    return;
+  case 6:
+    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
+    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    return;
+  case 4:
+    if (*(char *)(actor + 0xaa) != '\0') {
+      actor_action_handle_combat_status(actor_handle, 1, 1);
+      return;
+    }
+    actor_action_handle_done_fleeing(actor_handle);
+    return;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_exit_pursuit(actor_handle);
+    return;
+  case 11:
+    bVar2 = *(unsigned char *)(actor + 0xa1);
+    bVar1 = *(unsigned char *)(actor + 0x9e);
+    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    return;
+  case 13:
+    if (*(short *)(actor + 0x280) != 0) {
+      return;
+    }
+    actor_action_handle_combat_status(actor_handle, 1, 1);
+    return;
+  case 12:
+    uVar3 = (*(char *)(actor + 0xa0) != '\0' || *(int *)(actor + 0x1dc) == -1) ?
+              1 :
+              0;
+    uVar2 = actor_action_can_stop_conversing(actor_handle, uVar3);
+    actor_action_handle_combat_status(actor_handle, uVar2, uVar3);
+    return;
+  default:
+    return;
+  }
+}
+
 void *FUN_0003a600(short actor_type /* @<ax> */)
 {
   void **actor_type_definitions = (void **)0x2c86a8;
