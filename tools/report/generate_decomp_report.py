@@ -59,11 +59,50 @@ def _load_snapshot_data(results_path: str = None) -> dict:
     return out
 
 
+def _load_runtime_oracle_data(results_root: str = None) -> dict:
+    """Load latest runtime-oracle result per target function."""
+    if results_root is None:
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+        results_root = os.path.join(root_dir, 'artifacts', 'runtime_oracle')
+    root = Path(results_root)
+    if not root.exists():
+        return {}
+
+    latest = {}
+    for summary_path in root.glob('*/summary.json'):
+        try:
+            with summary_path.open(encoding='utf-8') as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        target = data.get('target', '')
+        if not target:
+            continue
+
+        finished = data.get('finished_utc') or data.get('started_utc') or ''
+        current = latest.get(target)
+        if current and current.get('finished_utc', '') >= finished:
+            continue
+
+        latest[target] = {
+            'runtime_oracle_tested': True,
+            'runtime_oracle_passed': bool(data.get('ok')),
+            'runtime_oracle_run_id': data.get('run_id', ''),
+            'runtime_oracle_finished_utc': data.get('finished_utc'),
+            'runtime_oracle_artifact': data.get('artifact_dir', str(summary_path.parent)),
+            'runtime_oracle_summary': str(summary_path),
+        }
+
+    return latest
+
+
 def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore, 
                        function_cache: dict,
                        vc71_scores: dict = None,
                        leaf_cache: dict = None,
-                       snapshot_data: dict = None) -> list[dict]:
+                       snapshot_data: dict = None,
+                       runtime_oracle_data: dict = None) -> list[dict]:
     """Compute per-unit statistics in decomp.dev format."""
 
     if vc71_scores is None:
@@ -75,6 +114,9 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     
     if snapshot_data is None:
         snapshot_data = {}
+
+    if runtime_oracle_data is None:
+        runtime_oracle_data = {}
     
     units = []
     drift = {
@@ -98,6 +140,9 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     tracked_snap_high_conf = 0
     tracked_snap_cov_sum = 0.0
     tracked_snap_cov_count = 0
+
+    tracked_runtime_tested = 0
+    tracked_runtime_passed = 0
     
     # Group functions by object file
     obj_to_funcs = defaultdict(list)
@@ -159,6 +204,19 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             snapshot_passed = snap.get('snapshot_passed', None)
             snapshot_coverage = snap.get('snapshot_coverage', None)
             snapshot_confidence = snap.get('snapshot_confidence', None)
+
+            # Look up runtime-oracle data (latest run wins)
+            runtime = (runtime_oracle_data.get(name) or
+                       runtime_oracle_data.get(addr_hex) or
+                       runtime_oracle_data.get(addr_hex.lower()) or
+                       runtime_oracle_data.get(f'0x{addr:08x}') or
+                       runtime_oracle_data.get(f'FUN_{addr:08X}'))
+            runtime_tested = runtime.get('runtime_oracle_tested') if runtime else None
+            runtime_passed = runtime.get('runtime_oracle_passed') if runtime else None
+            runtime_run_id = runtime.get('runtime_oracle_run_id') if runtime else None
+            runtime_finished_utc = runtime.get('runtime_oracle_finished_utc') if runtime else None
+            runtime_artifact = runtime.get('runtime_oracle_artifact') if runtime else None
+            runtime_summary = runtime.get('runtime_oracle_summary') if runtime else None
             
             func_entry = {
                 'address': addr_hex,
@@ -173,6 +231,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'snapshot_passed': snapshot_passed,
                 'snapshot_coverage': snapshot_coverage,
                 'snapshot_confidence': snapshot_confidence,
+                'runtime_oracle_tested': runtime_tested,
+                'runtime_oracle_passed': runtime_passed,
+                'runtime_oracle_run_id': runtime_run_id,
+                'runtime_oracle_finished_utc': runtime_finished_utc,
+                'runtime_oracle_artifact': runtime_artifact,
+                'runtime_oracle_summary': runtime_summary,
             }
             unit_funcs.append(func_entry)
             
@@ -227,6 +291,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
         if snap_tested > 0:
             tracked_snap_cov_sum += snap_cov_sum
             tracked_snap_cov_count += snap_tested
+
+        runtime_tested = sum(1 for f in unit_funcs if f['runtime_oracle_tested'])
+        runtime_passed = sum(1 for f in unit_funcs if f['runtime_oracle_passed'] is True)
+
+        tracked_runtime_tested += runtime_tested
+        tracked_runtime_passed += runtime_passed
             
         unit = {
             'name': obj_name.replace('.obj', ''),
@@ -254,6 +324,10 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'passed': snap_passed,
                 'avg_coverage': snap_avg_cov,
                 'high_confidence': snap_high_conf,
+            },
+            'runtime_oracle': {
+                'tested': runtime_tested,
+                'passed': runtime_passed,
             }
         }
         units.append(unit)
@@ -288,7 +362,14 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     
     # Sort by ported percentage (most complete first)
     units.sort(key=lambda x: x['summary']['percent'], reverse=True)
-    return units, drift, overall_match, overall_equiv, overall_snapshot
+    overall_runtime_oracle = None
+    if tracked_runtime_tested > 0:
+        overall_runtime_oracle = {
+            'tested': tracked_runtime_tested,
+            'passed': tracked_runtime_passed,
+        }
+
+    return units, drift, overall_match, overall_equiv, overall_snapshot, overall_runtime_oracle
 
 
 def generate_report(output_path: str) -> dict:
@@ -321,10 +402,13 @@ def generate_report(output_path: str) -> dict:
     
     # Load snapshot verification results
     snapshot_data = _load_snapshot_data()
+
+    # Load runtime-oracle verification results
+    runtime_oracle_data = _load_runtime_oracle_data()
     
     # Compute unit stats
-    units, drift, overall_match, overall_equiv, overall_snapshot = compute_unit_stats(
-        kb, store, function_cache, vc71_scores, leaf_cache, snapshot_data
+    units, drift, overall_match, overall_equiv, overall_snapshot, overall_runtime_oracle = compute_unit_stats(
+        kb, store, function_cache, vc71_scores, leaf_cache, snapshot_data, runtime_oracle_data
     )
     
     # Compute overall stats
@@ -371,6 +455,7 @@ def generate_report(output_path: str) -> dict:
             'match': overall_match,
             'equivalence': overall_equiv,
             'snapshot': overall_snapshot,
+            'runtime_oracle': overall_runtime_oracle,
         },
         'meta': {
             'timestamp': datetime.now().astimezone().isoformat(),
@@ -732,6 +817,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         .equiv-confidence.high { background: rgba(35, 134, 54, 0.15); color: #3fb950; }
         .equiv-confidence.moderate { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
         .equiv-confidence.weak { background: rgba(218, 54, 51, 0.15); color: var(--accent-red); }
+        .equiv-confidence.runtime { background: rgba(31, 111, 235, 0.18); color: #79c0ff; }
         .equiv-cov-bar {
             display: inline-flex; align-items: center; gap: 5px;
             width: 80px;
@@ -825,6 +911,15 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         }
         .copy-cmd-btn:hover { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
         .copy-cmd-btn.copied { background: var(--accent-green); color: #fff; border-color: var(--accent-green); }
+        .score-btn {
+            padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border);
+            background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer;
+            font-size: 0.72em; font-weight: 600; white-space: nowrap;
+            transition: background 0.15s, color 0.15s;
+        }
+        .score-btn:hover:not(:disabled) { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+        .score-btn:disabled { opacity: 0.5; cursor: default; }
+        .score-btn.error { background: #da363322; color: #f85149; border-color: #f85149; }
         @media (prefers-reduced-motion: reduce) {
             .progress-fill, .live-badge.online .dot { animation: none; transition: none; }
         }
@@ -955,6 +1050,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                                 <th data-fcol="7">Class <span class="sort-arrow"></span></th>
                                 <th data-fcol="8" class="num" title="Snapshot verification pass/fail">Snap <span class="sort-arrow"></span></th>
                                 <th data-fcol="9" class="num" title="Snapshot coverage %">Snap Cov <span class="sort-arrow"></span></th>
+                                <th data-fcol="10" class="num" title="Runtime oracle golden test pass/fail">Oracle <span class="sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="func-table-body"></tbody>
@@ -1038,6 +1134,47 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             }
         }
 
+        /* ===== SCORE BUTTON ===== */
+        function scoreFunction(btn) {
+            var unit = btn.getAttribute('data-unit');
+            if (!unit) return;
+            btn.disabled = true;
+            btn.classList.remove('error');
+            btn.textContent = '⏳ Scoring…';
+            fetch('/api/score', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({unit: unit})
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                if (d.ok) {
+                    // Update REPORT in memory so re-renders show the score immediately
+                    var scores = d.scores || {};
+                    for (var i = 0; i < REPORT.units.length; i++) {
+                        if (REPORT.units[i].name === unit) {
+                            var funcs = REPORT.units[i].functions || [];
+                            for (var j = 0; j < funcs.length; j++) {
+                                if (funcs[j].name in scores) {
+                                    funcs[j].match_percent = scores[funcs[j].name];
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    renderUnitDetail(currentUnitName);
+                } else {
+                    btn.disabled = false;
+                    btn.classList.add('error');
+                    btn.textContent = d.error === 'no_reference' ? '⚠ No ref' : '⚠ Error';
+                    btn.title = d.error || 'Scoring failed';
+                }
+            }).catch(function() {
+                btn.disabled = false;
+                btn.classList.add('error');
+                btn.textContent = '⚠ Server offline';
+                btn.title = 'progress_server.py is not running';
+            });
+        }
+
         /* ===== OVERVIEW RENDER ===== */
         function render() {
             renderSummary();
@@ -1106,6 +1243,13 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<div class="stat-value" style="color:' + (s.snapshot.tested > 0 ? '#a855f7' : 'var(--text-secondary)') + '">' + fmtNum(s.snapshot.passed || 0) + ' / ' + fmtNum(s.snapshot.tested || 0) + '</div>' +
                     '<div class="stat-label">' + (s.snapshot.tested > 0 ? (s.snapshot.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.snapshot.passed || 0) + ' passed</div>' +
                     (s.snapshot.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.snapshot.passed / s.snapshot.tested * 100, 0.3) + '%;background:linear-gradient(90deg,#7c3aed,#a855f7)"><span class="progress-text">' + (s.snapshot.tested > 0 ? (s.snapshot.passed / s.snapshot.tested * 100).toFixed(1) : '0') + '% pass rate</span></div></div>' : '') +
+                '</div>' : '') +
+                (s.runtime_oracle ?
+                '<div class="card" title="Runtime golden tests captured from the Xbox harness. Latest run per target function wins.">' +
+                    '<div class="stat-label">Runtime Oracle</div>' +
+                    '<div class="stat-value" style="color:' + (s.runtime_oracle.tested > 0 ? '#79c0ff' : 'var(--text-secondary)') + '">' + fmtNum(s.runtime_oracle.passed || 0) + ' / ' + fmtNum(s.runtime_oracle.tested || 0) + '</div>' +
+                    '<div class="stat-label">' + (s.runtime_oracle.tested > 0 ? (s.runtime_oracle.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.runtime_oracle.passed || 0) + ' passed</div>' +
+                    (s.runtime_oracle.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.runtime_oracle.passed / s.runtime_oracle.tested * 100, 0.3) + '%;background:linear-gradient(90deg,#1f6feb,#79c0ff)"><span class="progress-text">' + (s.runtime_oracle.tested > 0 ? (s.runtime_oracle.passed / s.runtime_oracle.tested * 100).toFixed(1) : '0') + '% pass rate</span></div></div>' : '') +
                 '</div>' : '');
         }
 
@@ -1240,6 +1384,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var eqHigh = s.equivalence ? (s.equivalence.high_confidence || 0) : 0;
             var snapTested = s.snapshot ? (s.snapshot.tested || 0) : 0;
             var snapPassed = s.snapshot ? (s.snapshot.passed || 0) : 0;
+            var goldenTested = s.runtime_oracle ? (s.runtime_oracle.tested || 0) : 0;
+            var goldenPassed = s.runtime_oracle ? (s.runtime_oracle.passed || 0) : 0;
 
             var steps = [
                 { label: 'All functions',   count: total,      color: '#3d444d', pct: 100 },
@@ -1248,6 +1394,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 { label: 'Equiv tested',    count: eqTested,   color: '#d4760a', pct: eqTested / total * 100 },
                 { label: 'Snap verified',   count: snapTested, color: '#8b5cf6', pct: snapTested / total * 100 },
                 { label: 'Snap passed',     count: snapPassed, color: '#a855f7', pct: snapPassed / total * 100 },
+                { label: 'Oracle tested',   count: goldenTested, color: '#1f6feb', pct: goldenTested / total * 100 },
+                { label: 'Oracle passed',   count: goldenPassed, color: '#79c0ff', pct: goldenPassed / total * 100 },
                 { label: 'High conf.',      count: eqHigh,     color: '#3fb950', pct: eqHigh / total * 100 }
             ];
 
@@ -1276,7 +1424,10 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             if (!unit.summary || !unit.summary.ported) return 'no_ported';
             var eq = unit.equivalence || {};
             var snap = unit.snapshot || {};
+            var golden = unit.runtime_oracle || {};
             if (eq.high_confidence > 0) return 'eq_high';
+            if (golden.passed > 0) return 'oracle_pass';
+            if (golden.tested > 0) return 'oracle_some';
             if (snap.passed > 0) return 'snap_pass';
             if (snap.tested > 0) return 'snap_some';
             if (eq.tested > 0) return 'eq_some';
@@ -1290,6 +1441,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             vc71: '#388bfd',
             eq_some: '#d4760a',
             eq_high: '#3fb950',
+            oracle_some: '#1f6feb',
+            oracle_pass: '#79c0ff',
             snap_some: '#7c3aed',
             snap_pass: '#a855f7'
         };
@@ -1299,6 +1452,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             vc71: 'VC71 byte-match scored',
             eq_some: 'Equiv tested',
             eq_high: 'Equiv high-confidence',
+            oracle_some: 'Runtime oracle tested',
+            oracle_pass: 'Runtime oracle passed',
             snap_some: 'Snapshot tested',
             snap_pass: 'Snapshot verified & passes'
         };
@@ -1316,6 +1471,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '\\n' + s.ported + '/' + s.total + ' ported';
                 if (s.match_weighted !== null && s.match_weighted !== undefined) tip += '\\nVC71: ' + s.match_weighted.toFixed(1) + '%';
                 if (eq.tested > 0) tip += '\\nEquiv: ' + eq.tested + ' tested, ' + (eq.avg_coverage || 0).toFixed(1) + '% cov, ' + eq.high_confidence + ' high';
+                var golden = u.runtime_oracle || {};
+                if (golden.tested > 0) tip += '\\nRuntime oracle: ' + golden.tested + ' tested, ' + golden.passed + ' passed';
                 var snap = u.snapshot || {};
                 if (snap.tested > 0) tip += '\\nSnapshot: ' + snap.tested + ' tested, ' + snap.passed + ' passed, ' + (snap.avg_coverage || 0).toFixed(1) + '% cov';
                 html += '<div class="tu-tile" style="background:' + color + '" title="' + escHtml(tip) + '" onclick="goToUnit(\\'' + jsEsc(u.name) + '\\')"></div>';
@@ -1326,7 +1483,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var legEl = document.getElementById('tu-legend');
             if (legEl) {
                 var legHtml = '';
-                var keys = ['no_ported', 'unverified', 'vc71', 'eq_some', 'eq_high', 'snap_some', 'snap_pass'];
+                var keys = ['no_ported', 'unverified', 'vc71', 'eq_some', 'eq_high', 'oracle_some', 'oracle_pass', 'snap_some', 'snap_pass'];
                 for (var j = 0; j < keys.length; j++) {
                     var k = keys[j];
                     legHtml += '<div class="tu-legend-item"><div class="tu-legend-dot" style="background:' + EVIDENCE_COLORS[k] + '"></div>' + EVIDENCE_LABELS[k] + '</div>';
@@ -1376,6 +1533,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
                 var col;
                 if (!fn.ported) { col = '#2d333b'; }
+                else if (fn.runtime_oracle_passed === true) { col = '#79c0ff'; }
+                else if (fn.runtime_oracle_tested) { col = '#1f6feb'; }
                 else if (fn.equiv_confidence === 'high') { col = '#3fb950'; }
                 else if (fn.equiv_confidence === 'moderate') { col = '#d29922'; }
                 else if (fn.equiv_coverage !== null && fn.equiv_coverage !== undefined) { col = '#d4760a'; }
@@ -1389,6 +1548,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             var legendItems = [
                 ['#2d333b', 'Unported'], ['#444c56', 'Ported/unscored'],
+                ['#1f6feb', 'Runtime oracle tested'], ['#79c0ff', 'Runtime oracle passed'],
                 ['#6e5030', 'VC71 <85%'], ['#388bfd', 'VC71 85-95%'], ['#2ea043', 'VC71 ≥95%'],
                 ['#d4760a', 'Equiv tested'], ['#d29922', 'Equiv moderate'], ['#3fb950', 'Equiv high conf.']
             ];
@@ -1623,6 +1783,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             document.getElementById('detail-unit-name').textContent = unit.name;
             var eq = unit.equivalence || {};
             var snap = unit.snapshot || {};
+            var golden = unit.runtime_oracle || {};
             document.getElementById('detail-meta').innerHTML =
                 '<span class="unit-meta-item">Source: <strong>' + escHtml(unit.source_path || '?') + '</strong></span>' +
                 '<span class="unit-meta-item">Functions: <strong>' + s.total + '</strong></span>' +
@@ -1634,6 +1795,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<span class="unit-meta-item">Avg Match: <strong>' + s.match_avg.toFixed(1) + '%</strong></span>' : '') +
                 (eq.tested > 0 ?
                     '<span class="unit-meta-item">Equiv: <strong>' + eq.tested + '</strong> tested &middot; <strong>' + (eq.avg_coverage !== null ? eq.avg_coverage.toFixed(1) + '%' : '?') + '</strong> avg cov &middot; <strong>' + eq.high_confidence + '</strong> high conf.</span>' : '') +
+                (golden.tested > 0 ?
+                    '<span class="unit-meta-item">Runtime Oracle: <strong style="color:#79c0ff">' + golden.passed + '</strong> / <strong>' + golden.tested + '</strong> passed</span>' : '') +
                 (snap.tested > 0 ?
                     '<span class="unit-meta-item">Snapshot: <strong style="color:#a855f7">' + snap.tested + '</strong> tested &middot; <strong>' + snap.passed + '</strong> passed &middot; <strong>' + (snap.avg_coverage !== null ? snap.avg_coverage.toFixed(1) + '%' : '?') + '</strong> avg cov</span>' : '');
 
@@ -1739,7 +1902,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 var mClass = matchBadge(f.match_percent);
                 var matchDisplay = f.match_percent !== null && f.match_percent !== undefined
                     ? '<span class="num"><span class="match-dot ' + mClass + '"></span>' + f.match_percent.toFixed(1) + '%</span>'
-                    : (f.ported ? '<span class="pct-none">Not scored</span>' : '<span class="pct-none">\u2014</span>');
+                    : (f.ported
+                        ? '<button class="score-btn" data-unit="' + escHtml(currentUnitName) + '" data-func="' + escHtml(f.name) + '" onclick="scoreFunction(this)" title="Run objdiff to compute match%">&#x25B6; Score</button>'
+                        : '<span class="pct-none">\u2014</span>');
 
                 // Equivalence coverage
                 var covDisplay = '<span class="pct-none">\u2014</span>';
@@ -1779,6 +1944,16 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                         '<span class="equiv-cov-text" style="color:' + matchColor(f.snapshot_coverage) + '">' + f.snapshot_coverage.toFixed(1) + '%</span></span>';
                 }
 
+                var runtimeDisplay = '<span class="pct-none">—</span>';
+                if (f.runtime_oracle_tested) {
+                    var runtimeTitle = 'Runtime oracle';
+                    if (f.runtime_oracle_run_id) runtimeTitle += ' run ' + f.runtime_oracle_run_id;
+                    if (f.runtime_oracle_finished_utc) runtimeTitle += ' at ' + f.runtime_oracle_finished_utc;
+                    runtimeDisplay = f.runtime_oracle_passed
+                        ? '<span class="equiv-confidence runtime" title="' + escHtml(runtimeTitle) + '">passed</span>'
+                        : '<span class="equiv-confidence weak" title="' + escHtml(runtimeTitle) + '">failed</span>';
+                }
+
                 html += '<tr>' +
                     '<td class="func-address">' + f.address + '</td>' +
                     '<td class="func-name">' + escHtml(f.name) + '</td>' +
@@ -1790,6 +1965,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<td>' + classDisplay + '</td>' +
                     '<td class="num">' + snapDisplay + '</td>' +
                     '<td class="num">' + snapCovDisplay + '</td>' +
+                    '<td class="num">' + runtimeDisplay + '</td>' +
                 '</tr>';
             }
             document.getElementById('func-table-body').innerHTML = html;
@@ -1813,6 +1989,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 case 7: return func.equiv_class || '';
                 case 8: return func.snapshot_passed === true ? 1 : (func.snapshot_passed === false ? 0 : -1);
                 case 9: return func.snapshot_coverage !== null && func.snapshot_coverage !== undefined ? func.snapshot_coverage : -1;
+                case 10: return func.runtime_oracle_passed === true ? 1 : (func.runtime_oracle_tested ? 0 : -1);
                 default: return '';
             }
         }

@@ -69,98 +69,162 @@ class MatchingTracker:
         
         return None
     
-    def _run_objdiff(self, base_path: str, target_path: str) -> Optional[dict]:
-        """Run objdiff CLI and return results."""
-        if not self.objdiff_path.exists():
-            print(f"Warning: objdiff CLI not found at {self.objdiff_path}")
-            return None
-        
-        # Check if target exists (built object)
-        if not Path(target_path).exists():
-            return None
-        
-        # Check if base exists (delinked reference)
-        if not Path(base_path).exists():
-            return None
-        
+    def _run_objdiff_all(self, base_path: str, target_path: str) -> Optional[dict]:
+        """Run objdiff once for a unit, return {sym_name: match_pct} for all functions."""
+        import tempfile, os as _os
+        from difflib import SequenceMatcher
+
+        tmp = tempfile.mktemp(suffix='.json')
         cmd = [
             str(self.objdiff_path),
             'diff',
-            '--base', base_path,
-            '--target', target_path,
-            '--format', 'json'
+            '-1', base_path,
+            '-2', target_path,
+            '--format', 'json-pretty',
+            '-o', tmp,
         ]
-        
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if result.returncode != 0:
-                print(f"objdiff error: {result.stderr}")
+            subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            if not _os.path.exists(tmp) or _os.path.getsize(tmp) == 0:
                 return None
-            
-            return json.loads(result.stdout)
-        except subprocess.TimeoutExpired:
-            print(f"objdiff timeout for {base_path}")
+            with open(tmp) as f:
+                data = json.load(f)
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
             return None
-        except json.JSONDecodeError as e:
-            print(f"Failed to parse objdiff output: {e}")
-            return None
-        except Exception as e:
-            print(f"objdiff failed: {e}")
-            return None
-    
-    def check_unit(self, unit_name: str, force: bool = False) -> Optional[dict]:
-        """Check matching percentage for a single unit."""
+        finally:
+            try:
+                _os.unlink(tmp)
+            except OSError:
+                pass
+
+        def extract_mnems(side, strip_prefix=False):
+            result = {}
+            for sym in data.get(side, {}).get('symbols', []):
+                name = sym.get('name', '')
+                if not name or name.startswith('['):
+                    continue
+                if strip_prefix and name.startswith('_'):
+                    name = name[1:]
+                seq = []
+                for insn_obj in sym.get('instructions', []):
+                    for part in insn_obj.get('instruction', {}).get('parts', []):
+                        op = part.get('opcode')
+                        if op and 'mnemonic' in op:
+                            seq.append(op['mnemonic'])
+                            break
+                if seq:
+                    result[name] = seq
+            return result
+
+        left_seqs = extract_mnems('left', strip_prefix=False)
+        right_seqs = extract_mnems('right', strip_prefix=True)
+
+        scores = {}
+        for name, left in left_seqs.items():
+            right = right_seqs.get(name)
+            if right is None:
+                scores[name] = 0.0
+            elif not left and not right:
+                scores[name] = 100.0
+            else:
+                scores[name] = SequenceMatcher(None, left, right, autojunk=False).ratio() * 100.0
+        return scores
+
+    def _get_unit_symbols(self, base_path: str) -> List[str]:
+        """Return function symbol names from a COFF .obj via objdump -t."""
+        import subprocess as _sp, re as _re
+        try:
+            r = _sp.run(['objdump', '-t', base_path], capture_output=True, text=True, timeout=10)
+            syms = []
+            # COFF symbol table lines look like:
+            #   [  4](sec  1)(fl 0x00)(ty   20)(scl   2) (nx 0) 0x00000000 console_initialize
+            # ty=20 means function; scl=2 = external, scl=3 = static
+            pat = _re.compile(r'\(ty\s+20\)\(scl\s+[23]\).*\)\s+0x[0-9a-f]+\s+(\S+)$')
+            for line in r.stdout.splitlines():
+                m = pat.search(line)
+                if m:
+                    name = m.group(1)
+                    # Skip local labels and section symbols
+                    if not name.startswith('LAB_') and not name.startswith('.'):
+                        syms.append(name)
+            return syms
+        except Exception:
+            return []
+
+    def check_unit(self, unit_name: str, force: bool = False,
+                   symbols: Optional[List[str]] = None) -> Optional[dict]:
+        """Check matching percentage for functions in a single unit.
+
+        symbols: if provided, only diff these names (e.g. the ported subset).
+                 If None, extracts all function symbols from the delinked obj.
+        """
         # Check cache first
         if not force and unit_name in self.cache['units']:
             cached = self.cache['units'][unit_name]
-            # Check if cache is recent (within 24 hours)
             if 'timestamp' in cached:
                 cache_time = datetime.fromisoformat(cached['timestamp'].replace('Z', '+00:00'))
                 if (datetime.utcnow() - cache_time.replace(tzinfo=None)).total_seconds() < 86400:
                     return cached
-        
-        # Get unit config
+
+        if not self.objdiff_path.exists():
+            print(f"Warning: objdiff CLI not found at {self.objdiff_path}")
+            return None
+
         config = self._get_unit_config(unit_name)
         if not config:
             print(f"Unit {unit_name} not found in objdiff.json")
             return None
-        
-        # Run objdiff
-        result = self._run_objdiff(config['base_path'], config['target_path'])
-        if not result:
+
+        base_path = config['base_path']
+        target_path = config['target_path']
+
+        if not Path(base_path).exists():
+            print(f"Base (delinked) object not found: {base_path}")
             return None
-        
-        # Extract overall match percentage
-        match_percent = result.get('overall_match', 0)
-        
-        # Store in cache
+        if not Path(target_path).exists():
+            print(f"Target (built) object not found: {target_path}")
+            return None
+
+        all_scores = self._run_objdiff_all(base_path, target_path)
+        if all_scores is None:
+            print(f"objdiff failed for unit {unit_name}")
+            return None
+
+        # Filter to requested symbols if provided
+        if symbols is not None:
+            symbol_set = set(symbols)
+            all_scores = {k: v for k, v in all_scores.items() if k in symbol_set}
+
+        if not all_scores:
+            print(f"objdiff produced no matching results for unit {unit_name}")
+            return None
+
+        timestamp = datetime.utcnow().isoformat() + 'Z'
+        func_results = []
+        total_match = 0.0
+
+        for sym, pct in all_scores.items():
+            func_results.append({'name': sym, 'match': pct})
+            total_match += pct
+            self.cache['functions'][f"{unit_name}::{sym}"] = {
+                'unit': unit_name, 'name': sym,
+                'match_percent': pct, 'timestamp': timestamp
+            }
+
+        if not func_results:
+            print(f"objdiff produced no results for unit {unit_name}")
+            return None
+
+        overall = total_match / len(func_results)
         unit_data = {
             'name': unit_name,
-            'match_percent': match_percent,
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'base_path': config['base_path'],
-            'target_path': config['target_path'],
-            'functions': result.get('functions', [])
+            'match_percent': overall,
+            'timestamp': timestamp,
+            'base_path': base_path,
+            'target_path': target_path,
+            'functions': func_results,
         }
-        
         self.cache['units'][unit_name] = unit_data
-        
-        # Also cache per-function data
-        for func in result.get('functions', []):
-            func_name = func.get('name', 'unknown')
-            self.cache['functions'][f"{unit_name}::{func_name}"] = {
-                'unit': unit_name,
-                'name': func_name,
-                'match_percent': func.get('match', 0),
-                'timestamp': unit_data['timestamp']
-            }
-        
         return unit_data
     
     def check_all_ported(self, report: dict, force: bool = False) -> dict:

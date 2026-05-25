@@ -15,8 +15,13 @@ import time
 import json
 import argparse
 import logging
+import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
+
+# Scoring lock: one objdiff run at a time per unit
+_score_locks = {}
+_score_locks_mu = threading.Lock()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +43,120 @@ class SSEHandler(SimpleHTTPRequestHandler):
                 # Clients can disconnect mid-response (e.g. browser refresh/abort).
                 # Treat this as normal and avoid noisy socketserver tracebacks.
                 pass
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def do_POST(self):
+        if self.path == '/api/score':
+            self.handle_score()
+        else:
+            self.send_error(404, 'Not found')
+
+    def _json_response(self, status, body):
+        data = json.dumps(body).encode('utf-8')
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(data)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(data)
+
+    def handle_score(self):
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(length) if length else b'{}')
+        except (ValueError, json.JSONDecodeError) as e:
+            self._json_response(400, {'error': f'Bad request: {e}'})
+            return
+
+        unit_name = body.get('unit')
+        if not unit_name:
+            self._json_response(400, {'error': 'Missing "unit" field'})
+            return
+
+        # Per-unit lock so we don't run two objdiff instances for the same unit
+        with _score_locks_mu:
+            if unit_name not in _score_locks:
+                _score_locks[unit_name] = threading.Lock()
+            lock = _score_locks[unit_name]
+
+        with lock:
+            result = self._run_score(unit_name)
+
+        if result is None:
+            self._json_response(404, {'error': 'no_reference', 'unit': unit_name})
+            return
+
+        self._json_response(200, result)
+
+    def _run_score(self, unit_name):
+        """Run objdiff scoring for unit_name, update report.json in-place, return scores dict."""
+        import sys as _sys
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        _sys.path.insert(0, script_dir)
+        from matching import MatchingTracker
+
+        # Collect ported function names from report so we only diff those
+        report_path = os.path.join(self.directory, 'report.json')
+        ported_symbols = None
+        try:
+            with open(report_path) as f:
+                report = json.load(f)
+            for unit in report.get('units', []):
+                if unit['name'] == unit_name:
+                    ported_symbols = [
+                        fn['name'] for fn in unit.get('functions', [])
+                        if fn.get('ported')
+                    ]
+                    break
+        except Exception:
+            report = None
+
+        tracker = MatchingTracker()
+        unit_data = tracker.check_unit(unit_name, force=True, symbols=ported_symbols)
+        if unit_data is None:
+            logging.warning('Scoring failed for unit %s (no reference or objdiff error)', unit_name)
+            return None
+
+        tracker.save_cache()
+
+        if report is None:
+            logging.error('Cannot read report.json')
+            return None
+
+        # Build func-name → match_percent from objdiff results
+        func_scores = {}
+        for fn in unit_data.get('functions', []):
+            fname = fn.get('name')
+            if fname:
+                func_scores[fname] = fn.get('match', 0)
+
+        # Update matching unit in report
+        updated_funcs = {}
+        for unit in report.get('units', []):
+            if unit['name'] == unit_name:
+                for func in unit.get('functions', []):
+                    fname = func.get('name')
+                    if fname in func_scores:
+                        func['match_percent'] = round(func_scores[fname], 2)
+                        updated_funcs[fname] = func['match_percent']
+                break
+
+        try:
+            with open(report_path, 'w') as f:
+                json.dump(report, f)
+            os.utime(report_path, None)  # ensure mtime bumped for SSE polling
+        except Exception as e:
+            logging.error('Cannot write report.json: %s', e)
+            return None
+
+        logging.info('Scored unit %s: %d functions updated', unit_name, len(updated_funcs))
+        return {'ok': True, 'unit': unit_name, 'scores': updated_funcs}
 
     def log_message(self, format, *args):
         logging.info("%s - %s", self.client_address[0], format % args)
