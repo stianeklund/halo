@@ -2596,8 +2596,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_0003a480(void);",
-          "addr": "0x3a480"
+          "decl": "void FUN_0003a480(int actor_handle);",
+          "addr": "0x3a480",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "decl": "void *FUN_0003a600(int16_t actor_type@<ax>);",
