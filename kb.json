@@ -6592,7 +6592,9 @@
 				{
 					"decl": "void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4, void *param_5, void *param_6, float param_7);",
 					"addr": "0x9f430"
-				}
+				,
+    "ported": true
+  }
 			]
 		},
 		{
