@@ -27004,7 +27004,7 @@
           "addr": "0x1d9c22"
         },
         {
-          "decl": "void FUN_001d9c2b(void);",
+          "decl": "double floor(double x);",
           "addr": "0x1d9c2b"
         }
       ]
@@ -27575,8 +27575,10 @@
           "addr": "0x77cd0"
         },
         {
-          "decl": "void bitmap_fade(void);",
-          "addr": "0x77e60"
+          "decl": "void bitmap_fade(void *bitmap, unsigned int color, float fade_amount);",
+          "addr": "0x77e60",
+          "ported": true,
+          "source_path": "src/halo/bitmaps/bitmap_utilities.c"
         },
         {
           "decl": "void FUN_00077ff0(void *bitmap, short filter_radius, short *filter_coefficients);",
