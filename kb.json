@@ -27553,8 +27553,13 @@
           "addr": "0x79180"
         },
         {
-          "decl": "void FUN_00079250(void *bitmap);",
-          "addr": "0x79250"
+          "decl": "void FUN_00079250(short passes /* @<eax> */, void *bitmap);",
+          "addr": "0x79250",
+          "reg_args": {
+            "passes": "eax"
+          },
+          "ported": true,
+          "source_path": "src/halo/bitmaps/bitmap_utilities.c"
         },
         {
           "decl": "void FUN_00079480(short passes, void *bitmap /* @<edi> */);",
