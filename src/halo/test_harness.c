@@ -25,6 +25,8 @@ extern float magnitude3d(float *v);
 extern float FUN_00013070(float *a, float *b);
 extern void points_interpolate(float *a, float *b, float blend, float *out);
 extern void scalars_interpolate(float a, float b, float blend, float *out);
+extern void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t,
+                                                 float *out);
 extern uint32_t FUN_000d1c90(float *color);
 
 
@@ -70,6 +72,41 @@ static void dump_clip_case(const char *name, int16_t ret, uint32_t mask,
   debug_string_to_display(buf, 0);
 }
 
+static void dump_float_case(const char *group, const char *name, float *values,
+                            int value_count, char *buf)
+{
+  int i;
+
+  crt_sprintf(buf, "CASE|BEGIN|%s|%s\n", group, name);
+  debug_string_to_display(buf, 0);
+
+  for (i = 0; i < value_count; i++) {
+    crt_sprintf(buf, "VALUE|%s.v%d|value=%08X\n", name, i,
+                *(uint32_t *)&values[i]);
+    debug_string_to_display(buf, 0);
+  }
+
+  crt_sprintf(buf, "CASE|END|%s|%s|PASS\n", group, name);
+  debug_string_to_display(buf, 0);
+}
+
+static void dump_u32_case(const char *group, const char *name,
+                          uint32_t *values, int value_count, char *buf)
+{
+  int i;
+
+  crt_sprintf(buf, "CASE|BEGIN|%s|%s\n", group, name);
+  debug_string_to_display(buf, 0);
+
+  for (i = 0; i < value_count; i++) {
+    crt_sprintf(buf, "VALUE|%s.v%d|value=%08X\n", name, i, values[i]);
+    debug_string_to_display(buf, 0);
+  }
+
+  crt_sprintf(buf, "CASE|END|%s|%s|PASS\n", group, name);
+  debug_string_to_display(buf, 0);
+}
+
 void run_tests(void)
 {
   char buf[128];
@@ -87,6 +124,18 @@ void run_tests(void)
     passed += check("normalize3d x", *(uint32_t *)&v[0], 0x3F650690, buf);
     passed += check("normalize3d y", *(uint32_t *)&v[1], 0xBEB73873, buf);
     passed += check("normalize3d z", *(uint32_t *)&v[2], 0x3E88FAA9, buf);
+  }
+
+  {
+    float v[3] = { -100.0f, 0.25f, 50.0f };
+    float dump_values[4];
+    float mag = normalize3d(v);
+
+    dump_values[0] = mag;
+    dump_values[1] = v[0];
+    dump_values[2] = v[1];
+    dump_values[3] = v[2];
+    dump_float_case("normalize3d", "normalize3d_large", dump_values, 4, buf);
   }
 
   /* vector3d_scale_add */
@@ -123,6 +172,20 @@ void run_tests(void)
       check("mat_transform_pt y", *(uint32_t *)&out_point[1], 0x41C80000, buf);
     passed +=
       check("mat_transform_pt z", *(uint32_t *)&out_point[2], 0x420C0000, buf);
+  }
+
+  {
+    float mat[13] = { 2.0f,
+                      0.0f, -1.0f, 0.0f,
+                      1.0f,  0.0f, 0.0f,
+                      0.0f,  0.0f, 1.0f,
+                      -3.0f, 4.0f, 5.0f };
+    float in_point[3] = { 2.0f, -1.0f, 0.5f };
+    float out_point[3];
+
+    matrix_transform_point(mat, in_point, out_point);
+    dump_float_case("matrix_transform_point", "mat_transform_rot_scale",
+                    out_point, 3, buf);
   }
 
   /* perpendicular3d */
@@ -169,6 +232,26 @@ void run_tests(void)
     passed += check("placement tail", placement[0x87], 0x0000003F, buf);
   }
 
+  {
+    uint8_t placement[0x88];
+    uint32_t dump_values[5];
+    int i;
+
+    for (i = 0; i < sizeof(placement); i++) {
+      placement[i] = 0xAA;
+    }
+
+    object_placement_data_new(placement, 0x55AA, 0x10203);
+
+    dump_values[0] = *(uint32_t *)&placement[0x00];
+    dump_values[1] = *(uint32_t *)&placement[0x04];
+    dump_values[2] = *(uint32_t *)&placement[0x58];
+    dump_values[3] = *(uint32_t *)&placement[0x7C];
+    dump_values[4] = *(uint32_t *)&placement[0x84];
+    dump_u32_case("object_placement", "placement_parented", dump_values, 5,
+                  buf);
+  }
+
   /* matrix_inverse */
   {
     float src_mat[12] = { 0.0f, -1.0f, 0.0f, 1.0f,  0.0f,  0.0f,
@@ -185,6 +268,15 @@ void run_tests(void)
     passed += check("mat_inv m10", *(uint32_t *)&dst_mat[3], 0x00000000, buf);
     passed +=
       check("mat_inv trans_x", *(uint32_t *)&dst_mat[9], 0x00000000, buf);
+  }
+
+  {
+    float src_mat[12] = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+                          0.0f, 1.0f, 0.0f, -4.0f, 8.0f, 12.0f };
+    float dst_mat[12];
+
+    matrix_inverse(src_mat, dst_mat);
+    dump_float_case("matrix_inverse", "mat_inv_rot_trans", dst_mat, 12, buf);
   }
 
   /* matrix4x3_multiply */
@@ -295,6 +387,16 @@ void run_tests(void)
       check("points_interpolate z", *(uint32_t *)&out[2], 0x41B40000, buf);
   }
 
+  {
+    float a[3] = { -2.0f, 4.0f, 10.0f };
+    float b[3] = { 8.0f, -8.0f, -2.0f };
+    float out[3];
+
+    points_interpolate(a, b, 1.25f, out);
+    dump_float_case("points_interpolate", "points_interpolate_extrap", out, 3,
+                    buf);
+  }
+
   /* scalars_interpolate (interpolate_float) */
   {
     float out;
@@ -302,6 +404,19 @@ void run_tests(void)
     total += 1;
     passed +=
       check("scalars_interpolate out", *(uint32_t *)&out, 0x418C0000, buf);
+  }
+
+  {
+    float dump_values[2];
+    float out_low;
+    float out_high;
+
+    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, -0.25f, &out_low);
+    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, 1.25f, &out_high);
+    dump_values[0] = out_low;
+    dump_values[1] = out_high;
+    dump_float_case("scalars_interpolate", "scalars_interpolate_clamp",
+                    dump_values, 2, buf);
   }
 
   /* FUN_000d1c90 (real_argb_color_to_pixel32) */
@@ -419,6 +534,71 @@ void run_tests(void)
     passed += check("inflate_out[0..3]", *(uint32_t *)&out_buf[0], 0x6F6C6148, buf);
     /* "Infl" in little-endian = 0x6C666E49 */
     passed += check("inflate_out[4..7]", *(uint32_t *)&out_buf[4], 0x6C666E49, buf);
+  }
+
+  {
+    static const unsigned char compressed[23] = {
+      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc,
+      0x4b, 0xcb, 0x49, 0x2c, 0x49, 0x0d, 0x49, 0x2d,
+      0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
+    };
+    unsigned char out_buf[4];
+    uint32_t dump_values[4];
+    int zs[14];
+    int init_ret;
+    int inflate_ret;
+
+    csmemset(zs, 0, sizeof(zs));
+    csmemset(out_buf, 0xCC, sizeof(out_buf));
+    init_ret = FUN_001155c0((int)zs, "1.1.3", 0x38);
+    inflate_ret = (int)0xfffffffe;
+    if (init_ret == 0) {
+      zs[0] = (int)compressed;
+      zs[1] = sizeof(compressed);
+      zs[3] = (int)out_buf;
+      zs[4] = sizeof(out_buf);
+      inflate_ret = FUN_001155e0((int)zs, 4);
+      FUN_00115430((int)zs);
+    }
+
+    dump_values[0] = (uint32_t)init_ret;
+    dump_values[1] = (uint32_t)inflate_ret;
+    dump_values[2] = *(uint32_t *)&out_buf[0];
+    dump_values[3] = (uint32_t)zs[4];
+    dump_u32_case("inflate", "inflate_tiny_outbuf", dump_values, 4, buf);
+  }
+
+  {
+    static const unsigned char compressed[23] = {
+      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc,
+      0x4b, 0xcb, 0x49, 0x2c, 0x49, 0x0d, 0x49, 0x2d,
+      0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
+    };
+    unsigned char out_buf[16];
+    uint32_t dump_values[5];
+    int zs[14];
+    int init_ret;
+    int inflate_ret;
+
+    csmemset(zs, 0, sizeof(zs));
+    csmemset(out_buf, 0xCC, sizeof(out_buf));
+    init_ret = FUN_001155c0((int)zs, "1.1.3", 0x38);
+    inflate_ret = (int)0xfffffffe;
+    if (init_ret == 0) {
+      zs[0] = (int)compressed;
+      zs[1] = 8;
+      zs[3] = (int)out_buf;
+      zs[4] = sizeof(out_buf);
+      inflate_ret = FUN_001155e0((int)zs, 4);
+      FUN_00115430((int)zs);
+    }
+
+    dump_values[0] = (uint32_t)init_ret;
+    dump_values[1] = (uint32_t)inflate_ret;
+    dump_values[2] = *(uint32_t *)&out_buf[0];
+    dump_values[3] = *(uint32_t *)&out_buf[4];
+    dump_values[4] = (uint32_t)zs[1];
+    dump_u32_case("inflate", "inflate_truncated_input", dump_values, 5, buf);
   }
 
   crt_sprintf(buf, "RUN|END|passed=%d|failed=%d|total=%d\n", passed,
