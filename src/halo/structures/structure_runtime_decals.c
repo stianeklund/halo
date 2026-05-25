@@ -18,7 +18,8 @@ void FUN_001963c0(uint32_t *old_cluster_visibility,
     return;
   }
 
-  for (int cluster_index = 0; cluster_index < cluster_count; ++cluster_index) {
+  int cluster_index;
+  for (cluster_index = 0; cluster_index < cluster_count; ++cluster_index) {
     bool should_render_cluster_decals;
     bool should_delete_cluster_decals;
     uint32_t cluster_bit;
@@ -56,7 +57,8 @@ void FUN_001963c0(uint32_t *old_cluster_visibility,
     }
 
     if (should_render_cluster_decals) {
-      for (int runtime_decal_offset = 0;
+      int runtime_decal_offset;
+      for (runtime_decal_offset = 0;
            runtime_decal_offset < runtime_decal_count; ++runtime_decal_offset) {
         char *runtime_decal = tag_block_get_element(
           structure_runtime_decals, first_runtime_decal + runtime_decal_offset,

@@ -1,0 +1,41 @@
+{
+  "description": "Allowlist for batch_verify.py — functions that structurally cannot pass with random-integer register seeds. Wire in with --allowlist tools/equivalence/batch_verify_allowlist.json.",
+  "targets": {
+    "FUN_00116390": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @esi=deflate_state* — random seed dereferences state struct fields immediately"]
+    },
+    "FUN_00116460": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @edx=state (deflate_state*) — random seed dereferences state struct fields immediately"]
+    },
+    "FUN_001164d0": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @eax=deflate_state* — random seed dereferences state+0x1448 (heap_len) on first access"]
+    },
+    "FUN_001167f0": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @eax=tree (ct_data*) — random seed used as struct pointer, crashes on first field access"]
+    },
+    "FUN_00117000": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @ecx=deflate_state* — random seed dereferences state struct fields immediately"]
+    },
+    "FUN_001170b0": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @eax=deflate_state* — random seed dereferences state struct fields immediately"]
+    },
+    "FUN_00117130": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @eax=deflate_state* — random seed dereferences state struct fields, returns state in eax"]
+    },
+    "FUN_001171a0": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @eax=state (deflate_state*) threaded through FUN_00117130 — random seed dereferences state+0x16ac"]
+    },
+    "FUN_001172d0": {
+      "statuses": ["*"],
+      "reasons": ["oracle crash: @eax=bl_count (short[16]*) — random seed used as array pointer, crashes on first element access"]
+    }
+  }
+}

@@ -30,7 +30,8 @@ static void init_kernel_imports(void)
   uint32_t export_table_offset = *(uint32_t *)(kernel_image_base + export_dir_offset + 0x1c);
   uint32_t *kernel_export_table = (uint32_t *)(kernel_image_base + export_table_offset);
 
-  for (int i = 0;; i++) {
+  int i;
+  for (i = 0;; i++) {
     uint32_t ordinal = exe_import_table[i] & 0xffff;
     if (ordinal == 0) {
       break;
