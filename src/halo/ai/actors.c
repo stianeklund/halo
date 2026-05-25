@@ -5165,6 +5165,88 @@ void actor_braindead(int actor_handle, char param_2)
     *(int16_t *)(actor + 0x6a) = 2;
 }
 
+void actor_handle_unit_effect(int actor_handle, int prop_handle,
+                              int16_t unit_effect)
+{
+  char *actor;
+  char *prop;
+  char local_1;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  prop = (char *)datum_get(prop_data, prop_handle);
+
+  if (*(int *)(actor + 0x34) != -1) {
+    local_1 = *(
+      char *)((char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34)) +
+              0x41);
+  } else {
+    local_1 = 0;
+  }
+
+  if (game_connection() == 0 && *(char *)0x5ac9cc != 0) {
+    local_1 = 1;
+  }
+
+  if (*(int16_t *)(prop + 0x66) == (int16_t)-1 ||
+      unit_effect >= *(int16_t *)(prop + 0x66)) {
+    *(int16_t *)(prop + 0x66) = unit_effect;
+    *(int16_t *)(prop + 0x68) =
+      (unit_effect == 3) ? (int16_t)0x96 : (int16_t)0x1e;
+  }
+
+  switch (unit_effect) {
+  case 1:
+    if (local_1 != 0)
+      return;
+    if (*(char *)(prop + 0x133) != 0)
+      return;
+    *(char *)(prop + 0x12f) = 1;
+    *(int16_t *)(prop + 0x34) = 3;
+    *(int16_t *)(prop + 0x30) = 3;
+    *(char *)(prop + 0x64) = 1;
+    if (*(char *)(prop + 0x12e) != 0) {
+      actor_set_dormant(actor_handle, 0);
+    }
+    FUN_00036c50(actor_handle, prop_handle);
+    return;
+  case 2:
+    if (local_1 != 0)
+      return;
+    if (*(char *)(prop + 0x133) != 0)
+      return;
+    *(char *)(prop + 0x127) = 1;
+    *(int16_t *)(prop + 0x34) = 3;
+    *(int16_t *)(prop + 0x30) = 3;
+    *(char *)(prop + 0x64) = 1;
+    if (*(char *)(prop + 0x12e) != 0) {
+      actor_set_dormant(actor_handle, 0);
+    }
+    FUN_00037630(actor_handle, prop_handle);
+    return;
+  case 0:
+    if (*(char *)(prop + 0x133) != 0)
+      return;
+    *(int16_t *)(prop + 0x36) = 3;
+    *(int16_t *)(prop + 0x30) = 3;
+    *(char *)(prop + 0x64) = 1;
+    FUN_00036bd0(actor_handle, prop_handle);
+    return;
+  case 3:
+    if (*(char *)(prop + 0x133) != 0)
+      return;
+    *(int16_t *)(prop + 0x36) = 3;
+    *(int16_t *)(prop + 0x30) = 3;
+    *(char *)(prop + 0x64) = 1;
+    if (*(char *)(prop + 0x12e) != 0) {
+      actor_set_dormant(actor_handle, 0);
+    }
+    actor_perception_become_acknowledged(actor_handle, prop_handle, 0);
+    return;
+  default:
+    return;
+  }
+}
+
 /* actor_set_active (0x3d5f0) — actor_set_activation_state
  *
  * Transition an actor between active (1) and inactive (0) states.
