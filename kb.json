@@ -8919,8 +8919,9 @@
           "addr": "0x1bf9e0"
         },
         {
-          "decl": "void FUN_001bfa00(void);",
-          "addr": "0x1bfa00"
+          "decl": "bool game_state_validate_core_header(char *header@<esi>, bool fatal@<bl>);",
+          "addr": "0x1bfa00",
+          "ported": true
         },
         {
           "decl": "void FUN_001bfb60(void);",
