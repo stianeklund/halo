@@ -251,22 +251,23 @@ char FUN_00075630(void)
  */
 char FUN_000766e0(void)
 {
-  char cVar1;
-  short sVar2;
-  int iVar3;
   int local_8;
+  int iVar3;
+  short sVar2;
+  char cVar1;
 
   cVar1 = 1;
   local_8 = 1;
   while (1) {
-    if (*(short *)(*(char **)0x334150 + 6) <= (short)local_8) {
+    if (*(short *)(*(char **)0x334150 + 6) <= (short)local_8)
       return cVar1;
-    }
     iVar3 = FUN_00073960(&local_8);
     FUN_00073a80();
     sVar2 = tag_block_add_element(*(char **)0x33414c + 0x54);
-    if (sVar2 == -1)
-      break;
+    if (sVar2 == -1) {
+      error(2, "### ERROR extract: failed to allocate sequence");
+      return 0;
+    }
     *(short *)0x33415c = sVar2;
     *(void **)0x334158 =
       tag_block_get_element(*(char **)0x33414c + 0x54, (int)sVar2, 0x40);
@@ -274,12 +275,9 @@ char FUN_000766e0(void)
     *(short *)(*(char **)0x334158 + 0x22) = 0;
     cVar1 = FUN_00076410(local_8, (short)iVar3);
     local_8 = iVar3 + 1;
-    if (!cVar1) {
+    if (!cVar1)
       return 0;
-    }
   }
-  error(2, "### ERROR extract: failed to allocate sequence");
-  return 0;
 }
 
 /* FUN_00076a70 (0x76a70) — bitmap extract: compress color plate pixel data into
@@ -347,6 +345,220 @@ void FUN_00076bb0(void *tag_block, int index)
 }
 
 /*
+ * FUN_00076bd0 -- bitmap_group_postprocess: validate and initialize a bitmap
+ * group tag.
+ *
+ * Called during tag loading. For each bitmap in the group: sets FORCE_POW2 flag
+ * for interface bitmaps, verifies the bitmap, and registers it with the texture
+ * cache. For each sequence: fixes up sprite-type bitmap indices and trims
+ * trailing empty sequences. When DAT_00336194 is set (debug/validation mode),
+ * emits diagnostic errors for malformed bitmaps, sequences, and sprites.
+ *
+ * Source TU: bitmap_utilities.c (confirmed by address placement)
+ */
+char FUN_00076bd0(int tag_index)
+{
+  char success;
+  void *tag;
+  void *bmp;
+  void *seq;
+  void *last_seq;
+  void *next_seq;
+  void *sprite;
+  int *bitmaps_block;
+  int *sequences_block;
+  int *sprites_block;
+  int bitmaps_count;
+  int sequences_count;
+  int sprites_count;
+  int n;
+  int i;
+  int j;
+  int w;
+  int h;
+  short first_bmp;
+  short bmp_count;
+  short bmp_idx;
+
+  tag = tag_get(0x6269746d, tag_index);
+  success = 1;
+
+  /* Initialize bitmaps: set FORCE_POW2 for interface type, verify, register
+   * with texture cache. */
+  for (i = 0; i < *(int *)((char *)tag + 0x60); i++) {
+    bmp = tag_block_get_element((int *)((char *)tag + 0x60), i, 0x30);
+    if (*(short *)tag == 4) {
+      /* interface bitmaps must be power-of-two: set FORCE_POW2 flag */
+      *(unsigned char *)((char *)bmp + 0x0e) |= 0x10;
+    }
+    if (!bitmap_verify(bmp, 0)) {
+      success = 0;
+    } else {
+      texture_cache_bitmap_new(tag_index, bmp);
+    }
+  }
+
+  /* Fix up sequences: for sprite-type groups, clear first_bitmap_index and
+   * bitmap_count fields if they are nonzero. */
+  for (i = 0; i < *(int *)((char *)tag + 0x54); i++) {
+    seq = tag_block_get_element((int *)((char *)tag + 0x54), i, 0x40);
+    if (i < *(int *)((char *)tag + 0x54) - 1) {
+      /* lookahead: touch next sequence element (side-effect order preservation)
+       */
+      tag_block_get_element((int *)((char *)tag + 0x54), i + 1, 0x40);
+    }
+    if (*(short *)tag == 3) {
+      if (*(short *)((char *)seq + 0x20) || *(short *)((char *)seq + 0x22)) {
+        seq = tag_block_get_element((int *)((char *)tag + 0x54), i, 0x40);
+        *(short *)((char *)seq + 0x20) = 0;
+        seq = tag_block_get_element((int *)((char *)tag + 0x54), i, 0x40);
+        *(short *)((char *)seq + 0x22) = 0;
+      }
+    }
+  }
+
+  /* Trim trailing empty sequence: if the last sequence has bitmap_count == 0
+   * and no sprites, shrink the sequences block by one. */
+  n = *(int *)((char *)tag + 0x54);
+  if (n > 0) {
+    last_seq = tag_block_get_element((int *)((char *)tag + 0x54), n - 1, 0x40);
+    if (*(short *)((char *)last_seq + 0x22) == 0 &&
+        *(int *)((char *)last_seq + 0x34) == 0) {
+      if (!tag_block_resize((int *)((char *)tag + 0x54), n - 1)) {
+        error(0, "### FATAL_ERROR failed to fix bitmap group '%s'",
+              tag_get_name(tag_index));
+        success = 0;
+      }
+    }
+  }
+
+  /* Validation section: only active when DAT_00336194 is set. */
+  if (*(uint8_t *)0x336194) {
+    bitmaps_block = (int *)((char *)tag + 0x60);
+
+    /* Check each bitmap for problematic formats and flags. */
+    for (i = 0; i < *bitmaps_block; i++) {
+      bmp = tag_block_get_element(bitmaps_block, i, 0x30);
+      if (*(short *)((char *)bmp + 0x0c) == 3) {
+        /* bitmap format is a8y8 -- must be fixed */
+        error(2, "!!MUST BE FIXED: bitmap #%d of group '%s' has a8y8 format", i,
+              tag_get_name(tag_index));
+      }
+      if (*(unsigned char *)((char *)bmp + 0x0e) & 0x10) {
+        /* FORCE_POW2 flag set: check if actually power-of-two */
+        w = (int)*(short *)((char *)bmp + 0x04);
+        h = (int)*(short *)((char *)bmp + 0x06);
+        if (!((w - 1) & w) && !((h - 1) & h)) {
+          /* both dimensions are powers of two: linear bitmap does not need
+           * forcing; flag is redundant/erroneous */
+          error(2,
+                "!!MUST BE FIXED: bitmap #%d of group '%s' is linear and "
+                "power-of-two",
+                i, tag_get_name(tag_index));
+        }
+      }
+    }
+
+    /* Check that the group has at least one bitmap. */
+    bitmaps_count = *bitmaps_block;
+    if (bitmaps_count < 1) {
+      /* BUG (faithful reproduction): format and description were split into
+       * two args by a missing string concatenation in the original source. */
+      error(2, "!!MUST BE FIXED: ", "bitmap group '%s' has %d bitmaps",
+            tag_get_name(tag_index), bitmaps_count);
+    }
+
+    /* Check that the group has at least one sequence, then validate each. */
+    sequences_block = (int *)((char *)tag + 0x54);
+    sequences_count = *(int *)((char *)tag + 0x54);
+    if (sequences_count < 1) {
+      /* BUG (faithful reproduction): same split-format bug as above. */
+      error(2, "!!MUST BE FIXED: ", "bitmap group '%s' has %d sequences",
+            tag_get_name(tag_index), sequences_count);
+    }
+
+    for (i = 0; i < *sequences_block; i++) {
+      seq = tag_block_get_element(sequences_block, i, 0x40);
+      next_seq = (i < *sequences_block - 1) ?
+                   tag_block_get_element(sequences_block, i + 1, 0x40) :
+                   (void *)0;
+
+      if (*(short *)tag == 3) {
+        /* sprites bitmap group */
+        if (*(short *)((char *)seq + 0x20) == 0 &&
+            *(short *)((char *)seq + 0x22) == 0) {
+          /* sequence correctly has no direct bitmaps -- proceed to sprite
+           * block check below */
+        } else {
+          error(2,
+                "!!MUST BE FIXED: bitmap group '%s' (type=%d) sequence #%d"
+                " doesn't know it's a sprite sequence",
+                tag_get_name(tag_index), (int)*(short *)tag, i);
+        }
+      } else {
+        /* non-sprite bitmap group: validate the bitmap range */
+        first_bmp = *(short *)((char *)seq + 0x20);
+        bmp_count = *(short *)((char *)seq + 0x22);
+        bitmaps_count = *(int *)((char *)tag + 0x60);
+        if (first_bmp >= 0 && (int)first_bmp < bitmaps_count &&
+            bmp_count >= 1 &&
+            (int)first_bmp + (int)bmp_count <= bitmaps_count) {
+          /* Range is within bounds. Skip the warning if: the sequence is the
+           * first starting at 0, or the next sequence starts exactly where
+           * this one ends (contiguous allocation). */
+          if ((i == 0 && first_bmp == 0) ||
+              (next_seq != (void *)0 && *(short *)((char *)next_seq + 0x20) ==
+                                          (short)(first_bmp + bmp_count))) {
+            goto skip_range_warning;
+          }
+        }
+        error(2,
+              "!!MUST BE FIXED: bitmap group '%s' sequence #%d"
+              " references bitmaps [#%d..#%d]",
+              tag_get_name(tag_index), i, (int)*(short *)((char *)seq + 0x20),
+              (int)*(short *)((char *)seq + 0x20) +
+                (int)*(short *)((char *)seq + 0x22));
+      skip_range_warning:;
+      }
+
+      /* Check the sprite sub-block regardless of type. */
+      sprites_block = (int *)((char *)seq + 0x34);
+      sprites_count = *sprites_block;
+      if (*(short *)tag == 3) {
+        /* sprites group: must have at least one sprite per sequence */
+        if (sprites_count < 1) {
+          error(
+            2, "!!MUST BE FIXED: bitmap group '%s' sequence #%d has %d sprites",
+            tag_get_name(tag_index), i, sprites_count);
+        } else {
+          for (j = 0; j < sprites_count; j++) {
+            sprite = tag_block_get_element(sprites_block, j, 0x20);
+            bmp_idx = *(short *)sprite;
+            bitmaps_count = *(int *)((char *)tag + 0x60);
+            if (bmp_idx < 0 || (int)bmp_idx >= bitmaps_count) {
+              error(2,
+                    "!!MUST BE FIXED: bitmap group '%s' sequence #%d"
+                    " sprite #%d references bitmap #%d",
+                    tag_get_name(tag_index), i, j, (int)bmp_idx);
+            }
+          }
+        }
+      } else {
+        /* non-sprite group: must have zero sprites per sequence */
+        if (sprites_count > 0) {
+          error(2,
+                "!!MUST BE FIXED: bitmap group '%s' (type=%d) sequence #%d"
+                " has %d sprites",
+                tag_get_name(tag_index), (int)*(short *)tag, i, sprites_count);
+        }
+      }
+    }
+  }
+
+  return success;
+}
+
+/*
  * FUN_00076ff0 -- get bitmap data element from a bitmap tag.
  *
  * Looks up a 'bitm' tag by index, then returns a pointer to the bitmap
@@ -395,26 +607,31 @@ void *FUN_00077040(int tag_index, short sequence_index, short frame_index)
   tag = (int)tag_get(0x6269746d, tag_index);
   if (tag == 0)
     return NULL;
-  bitmap_idx = frame_index;
   if (*(int *)(tag + 0x54) > 0) {
     sequence = (int)tag_block_get_element(
       (int *)(tag + 0x54), (int)sequence_index % *(int *)(tag + 0x54), 0x40);
-    if (*(short *)(sequence + 0x22) < 1) {
-      if (*(int *)(sequence + 0x34) != 0) {
-        bitmap_idx = *(short *)tag_block_get_element((int *)(sequence + 0x34),
-                                                     (int)frame_index, 0x20);
-      }
-    } else {
+    if (*(short *)(sequence + 0x22) > 0) {
       bitmap_idx =
         (short)((int)frame_index % (int)*(short *)(sequence + 0x22)) +
         *(short *)(sequence + 0x20);
+      goto done;
     }
-    if (bitmap_idx == -1)
-      bitmap_idx = frame_index;
+    if (*(int *)(sequence + 0x34) == 0)
+      goto fallback;
+    bitmap_idx = *(short *)tag_block_get_element((int *)(sequence + 0x34),
+                                                 (int)frame_index, 0x20);
+  done:
+    if (bitmap_idx != -1)
+      goto ret_check;
   }
-  if (bitmap_idx >= 0 && (int)bitmap_idx < *(int *)(tag + 0x60))
-    return tag_block_get_element((int *)(tag + 0x60), (int)bitmap_idx, 0x30);
-  return NULL;
+fallback:
+  bitmap_idx = frame_index;
+ret_check:
+  if (bitmap_idx < 0)
+    return NULL;
+  if ((int)bitmap_idx >= *(int *)(tag + 0x60))
+    return NULL;
+  return tag_block_get_element((int *)(tag + 0x60), (int)bitmap_idx, 0x30);
 }
 
 /*
@@ -1404,7 +1621,7 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
   int dx;
   int ix;
   unsigned int *neighbor_ptr;
-  int found;
+  char found;
 
   if (!bitmap_verify(bitmap, 1)) {
     display_assert("bitmap_verify(bitmap, TRUE)",
@@ -1445,30 +1662,32 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
               found = 0;
               dy = -1;
               iy = y - 1;
-              while (dy <= 1) {
+              do {
+                if (dy > 1)
+                  break;
                 if (!found) {
                   dx = -1;
                   ix = x - 1;
-                  while (dx <= 1) {
-                    if (!found) {
-                      if ((short)ix >= 0 && (short)iy >= 0 &&
-                          (short)ix < *(short *)((char *)bitmap + 4) &&
-                          (short)iy < *(short *)((char *)bitmap + 6)) {
-                        neighbor_ptr =
-                          (unsigned int *)bitmap_2d_address(bitmap, ix, iy, 0);
-                        if (*neighbor_ptr != 0) {
-                          pixel = *neighbor_ptr & 0x00ffffff;
-                          found = 1;
-                        }
+                  do {
+                    if (dx > 1)
+                      break;
+                    if ((short)ix >= 0 && (short)iy >= 0 &&
+                        (short)ix < *(short *)((char *)bitmap + 4) &&
+                        (short)iy < *(short *)((char *)bitmap + 6)) {
+                      neighbor_ptr =
+                        (unsigned int *)bitmap_2d_address(bitmap, ix, iy, 0);
+                      if (*neighbor_ptr != 0) {
+                        pixel = *neighbor_ptr & 0x00ffffff;
+                        found = 1;
                       }
                     }
                     dx++;
                     ix++;
-                  }
+                  } while (!found);
                 }
                 dy++;
                 iy++;
-              }
+              } while (!found);
             }
             dest_row[x] = pixel;
             x++;
@@ -1575,14 +1794,42 @@ float *bitmap_clone(float *rgb, float *hsv_out)
   float max_component;
   float min_component;
   float chroma;
-  float hue;
+
+  if (rgb[1] <= rgb[2]) {
+    max_component = rgb[2];
+  } else {
+    max_component = rgb[1];
+  }
+  if (rgb[0] <= max_component) {
+    if (rgb[1] <= rgb[2]) {
+      max_component = rgb[2];
+    } else {
+      max_component = rgb[1];
+    }
+  } else {
+    max_component = rgb[0];
+  }
+
+  if (rgb[1] <= rgb[2]) {
+    min_component = rgb[1];
+  } else {
+    min_component = rgb[2];
+  }
+  if (rgb[0] <= min_component) {
+    min_component = rgb[0];
+  } else if (rgb[1] <= rgb[2]) {
+    min_component = rgb[1];
+  } else {
+    min_component = rgb[2];
+  }
+
+  chroma = max_component - min_component;
 
   if (hsv_out == (float *)0) {
     display_assert("hsv", "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
                    0x8b2, true);
     system_exit(-1);
   }
-
   if (rgb == hsv_out) {
     display_assert("rgb!=(real_rgb_color *)hsv",
                    "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x8b3,
@@ -1590,21 +1837,6 @@ float *bitmap_clone(float *rgb, float *hsv_out)
     system_exit(-1);
   }
 
-  if (rgb[1] > rgb[2])
-    max_component = rgb[1];
-  else
-    max_component = rgb[2];
-  if (rgb[0] > max_component)
-    max_component = rgb[0];
-
-  if (rgb[1] < rgb[2])
-    min_component = rgb[1];
-  else
-    min_component = rgb[2];
-  if (rgb[0] < min_component)
-    min_component = rgb[0];
-
-  chroma = max_component - min_component;
   hsv_out[2] = max_component;
   if (max_component == *(float *)0x2533c0) {
     hsv_out[1] = *(float *)0x2533c0;
@@ -1612,22 +1844,20 @@ float *bitmap_clone(float *rgb, float *hsv_out)
     hsv_out[1] = chroma / max_component;
   }
 
-  if (hsv_out[1] == *(float *)0x2533c0) {
-    hsv_out[0] = 0.0f;
+  if (hsv_out[1] != *(float *)0x2533c0) {
+    if (rgb[0] == max_component) {
+      hsv_out[0] = (rgb[1] - rgb[2]) / chroma;
+    } else if (rgb[1] == max_component) {
+      hsv_out[0] = (rgb[2] - rgb[0]) / chroma + *(float *)0x253f40;
+    } else {
+      hsv_out[0] = (rgb[0] - rgb[1]) / chroma + *(float *)0x2533d8;
+    }
+    hsv_out[0] = hsv_out[0] * *(float *)0x2647d4;
+    if (hsv_out[0] < *(float *)0x2533c0)
+      hsv_out[0] = hsv_out[0] + *(float *)0x2533c8;
     return hsv_out;
   }
-
-  if (rgb[0] == max_component) {
-    hue = (rgb[1] - rgb[2]) / chroma;
-  } else if (rgb[1] == max_component) {
-    hue = (rgb[2] - rgb[0]) / chroma + *(float *)0x253f40;
-  } else {
-    hue = (rgb[0] - rgb[1]) / chroma + *(float *)0x2533d8;
-  }
-
-  hsv_out[0] = hue * *(float *)0x2647d4;
-  if (hsv_out[0] < *(float *)0x2533c0)
-    hsv_out[0] = hsv_out[0] + *(float *)0x2533c8;
+  hsv_out[0] = 0.0f;
   return hsv_out;
 }
 
