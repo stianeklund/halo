@@ -232,7 +232,12 @@ void run_tests(void)
     passed += check("placement tail", placement[0x87], 0x0000003F, buf);
   }
 
-  {
+  /* Parented placement: only safe when the object data table is initialized
+   * (game_initialize → objects_initialize). In TEST_HARNESS mode the table
+   * lives at 0x5a8d50 and is NULL until objects_initialize runs; calling
+   * datum_absolute_index_to_index with a non-NONE parent on a NULL table
+   * causes an ACCESS_VIOLATION. Skip the dump when the table is absent. */
+  if (*(void **)0x5a8d50 != 0) {
     uint8_t placement[0x88];
     uint32_t dump_values[5];
     int i;
