@@ -155,7 +155,7 @@ void ai_debug_update(void)
       int actor = player_control_get_unit_index(0);
       if (actor != -1 && object_try_and_get_and_verify_type(actor, 1) != NULL) {
         float pos[3];
-        int bone = biped_find_pathfinding_surface_index(actor, pos);
+        int bone = biped_find_pathfinding_surface_index(actor, (vector3_t *)pos);
         if (bone != -1) {
           *(float *)0x5f91ac = pos[0];
           *(float *)0x5f91b0 = pos[1];
@@ -229,7 +229,7 @@ void ai_debug_update(void)
         FUN_0005e0d0((void *)0x5f91dc, (void *)0x5f91c4, *(int32_t *)0x5f91d0,
                      *(int32_t *)0x5aca10);
       }
-      path_state_build_path((void *)0x5f91dc, (void *)0x60d268);
+      path_state_build_path((unsigned int)0x5f91dc, (unsigned int *)0x60d268);
       *(uint8_t *)0x5f91d8 = 1;
       *(uint8_t *)0x60d2d0 = 1;
       *(int32_t *)0x60d2c8 = game_time_get();
@@ -404,7 +404,7 @@ void ai_debug_initialize_for_new_map(void)
   uint8_t *p;
   int n;
 
-  enc_idx = encounter_get_by_name((const char *)0x5ac9d2);
+  enc_idx = encounter_get_by_name((char *)0x5ac9d2);
   ai_debug_clear_storage();
   if (*(int32_t *)0x5ac9f4 != enc_idx || *(int32_t *)0x5ac9f8 != -1) {
     ai_debug_select_encounter(enc_idx);
