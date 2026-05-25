@@ -3123,7 +3123,7 @@
           "src": "src/halo/ai/actor_looking.c"
         },
         {
-          "decl": "void FUN_00014ba0(void);",
+          "decl": "void FUN_00014ba0(int actor_handle, int *param_2);",
           "addr": "0x14ba0"
         },
         {
@@ -25883,7 +25883,7 @@
           "addr": "0x1be950"
         },
         {
-          "decl": "void texture_cache_bitmap_new(int tag_index, void *bitmap);",
+          "decl": "void texture_cache_bitmap_new(void);",
           "addr": "0x1be960"
         },
         {
@@ -27517,10 +27517,8 @@
           "ported": true
         },
         {
-          "decl": "char FUN_00076bd0(int tag_index);",
-          "addr": "0x76bd0",
-          "ported": true,
-          "source_path": "halo/bitmaps/bitmap_utilities.c"
+          "decl": "void FUN_00076bd0(void);",
+          "addr": "0x76bd0"
         },
         {
           "decl": "void *FUN_00076ff0(int tag_index, short bitmap_index);",
@@ -29420,7 +29418,7 @@
           "addr": "0x43520"
         },
         {
-          "decl": "void ai_conversation_finish(int handle, char param_2, char param_3);",
+          "decl": "void ai_conversation_finish(int conversation_handle, char param_2, char param_3);",
           "addr": "0x435b0"
         },
         {
@@ -29519,7 +29517,7 @@
           "decl": "void ai_debug_initialize(void);",
           "addr": "0x48e90",
           "name": "ai_debug_initialize",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         }
       ]
@@ -29533,28 +29531,28 @@
           "decl": "void ai_debug_dispose(void);",
           "addr": "0x48f50",
           "name": "ai_debug_dispose",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_dispose_from_old_map(void);",
           "addr": "0x48fa0",
           "name": "ai_debug_dispose_from_old_map",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_clear_storage(void);",
           "addr": "0x49000",
           "name": "ai_debug_clear_storage",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         },
         {
           "decl": "void ai_debug_actor_deleted(int actor_handle);",
           "addr": "0x49080",
           "name": "ai_debug_actor_deleted",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         },
         {
@@ -29569,7 +29567,7 @@
           "decl": "void ai_debug_select_encounter(int encounter_idx);",
           "addr": "0x49220",
           "name": "ai_debug_select_encounter",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         },
         {
@@ -29704,7 +29702,7 @@
           "decl": "void ai_debug_select_actor(int encounter_idx, int param_2);",
           "addr": "0x4b1b0",
           "name": "ai_debug_select_actor",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         },
         {
@@ -29743,7 +29741,7 @@
           "decl": "void ai_debug_initialize_for_new_map(void);",
           "addr": "0x4c0f0",
           "name": "ai_debug_initialize_for_new_map",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/ai/ai_debug.c"
         },
         {
@@ -31832,8 +31830,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00116280(void);",
-          "addr": "0x116280"
+          "decl": "int FUN_00116280(int param_1, int param_2, int param_3);",
+          "addr": "0x116280",
+          "ported": true,
+          "src": "src/halo/memory/circular_queue.c"
         },
         {
           "decl": "void FUN_00116390(int value @<eax>, int length @<ebx>, int state @<esi>);",
