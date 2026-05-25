@@ -669,13 +669,18 @@ def should_prepare_xemu(host: str) -> bool:
 
 def deploy_init_txt(dest: str, host: str, dry_run: bool, common_kwargs: dict) -> None:
     init_path = os.path.join(ROOT_DIR, "init.txt")
+    remote_init = f"{dest.lstrip('x')}\\init.txt"
     if os.path.isfile(init_path):
         print(f"  init.txt ({os.path.getsize(init_path)} bytes)")
         if not dry_run:
-            rc = upload_via_xbdm(init_path, f"{dest.lstrip('x')}\\init.txt", host)
+            rc = upload_via_xbdm(init_path, remote_init, host)
             if rc != 0:
                 print("  falling back to xbcp for init.txt...", file=sys.stderr)
                 run_xbcp(src=to_windows_path(init_path), dest=f"{dest}\\init.txt", **common_kwargs)
+    else:
+        print("  deleting init.txt...")
+        if not dry_run:
+            delete_remote_file(host, remote_init, dry_run)
 
 def main() -> int:
     parser = argparse.ArgumentParser(
