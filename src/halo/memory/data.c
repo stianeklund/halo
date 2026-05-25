@@ -399,8 +399,8 @@ void data_delete_all(data_t *data)
  * Returns 1 on success, 0 if insufficient data (param_5 <= 3).
  * 0x119b40 / data.obj
  */
-int FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4,
-                 unsigned int p5)
+char FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4,
+                  unsigned int p5)
 {
   int iVar1;
 

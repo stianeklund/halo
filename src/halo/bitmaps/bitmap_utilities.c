@@ -282,6 +282,56 @@ char FUN_000766e0(void)
   return 0;
 }
 
+/* FUN_00076a70 (0x76a70) — bitmap extract: compress color plate pixel data into
+ * group buffer. Validates plate and group, allocates a temporary buffer,
+ * compresses the pixel data using FUN_00119b40, reallocates to compressed size,
+ * stores width/height/pointer in group, then calls FUN_00076790 to continue.
+ * Source: bitmap_extract.c */
+char FUN_00076a70(void *plate, void *group, int param_3)
+{
+  int size;
+  void *t;
+
+  if (!bitmap_verify(plate, 1)) {
+    display_assert("bitmap_verify(plate, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x83, 1);
+    system_exit(-1);
+  }
+  if (!group) {
+    display_assert("group", "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x84,
+                   1);
+    system_exit(-1);
+  }
+
+  size = bitmap_get_pixel_data_size(plate);
+  *(unsigned short *)((char *)group + 0x18) =
+    *(unsigned short *)((char *)plate + 4);
+  *(unsigned short *)((char *)group + 0x1a) =
+    *(unsigned short *)((char *)plate + 6);
+
+  *(int *)((char *)group + 0x28) = (int)debug_malloc(
+    size, 0, "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x8a);
+  if (*(int *)((char *)group + 0x28)) {
+    if (FUN_00119b40((int)bitmap_mipmap_address(plate, 0), (unsigned int)size,
+                     (unsigned int *)*(int *)((char *)group + 0x28), &size,
+                     (unsigned int)size)) {
+      t = debug_realloc((void *)*(int *)((char *)group + 0x28), size,
+                        "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x90);
+      if (t) {
+        *(int *)((char *)group + 0x28) = (int)t;
+        *(int *)((char *)group + 0x1c) = size;
+        return FUN_00076790(group, param_3);
+      }
+      error(2, "### ERROR extract: failed to realloc color plate");
+      return 0;
+    }
+    error(2, "### ERROR extract: failed to compress color plate");
+    return 0;
+  }
+  error(2, "### ERROR extract: failed to allocate temporary buffer");
+  return 0;
+}
+
 /*
  * FUN_00076bb0 -- bitmap tag_block element delete wrapper.
  *
@@ -331,40 +381,40 @@ void *FUN_00076ff0(int tag_index, short bitmap_index)
  */
 void *FUN_00077040(int tag_index, short sequence_index, short frame_index)
 {
-    int tag;
-    int sequence;
-    short bitmap_idx;
+  int tag;
+  int sequence;
+  short bitmap_idx;
 
-    if (tag_index == -1)
-        return NULL;
-    if (sequence_index < 0 || frame_index < 0) {
-        display_assert("sequence_index>=0 && frame_index>=0",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_group.c", 0x2a6, 1);
-        system_exit(-1);
-    }
-    tag = (int)tag_get(0x6269746d, tag_index);
-    if (tag == 0)
-        return NULL;
-    bitmap_idx = frame_index;
-    if (*(int *)(tag + 0x54) > 0) {
-        sequence = (int)tag_block_get_element(
-            (int *)(tag + 0x54),
-            (int)sequence_index % *(int *)(tag + 0x54), 0x40);
-        if (*(short *)(sequence + 0x22) < 1) {
-            if (*(int *)(sequence + 0x34) != 0) {
-                bitmap_idx = *(short *)tag_block_get_element(
-                    (int *)(sequence + 0x34), (int)frame_index, 0x20);
-            }
-        } else {
-            bitmap_idx = (short)((int)frame_index % (int)*(short *)(sequence + 0x22))
-                         + *(short *)(sequence + 0x20);
-        }
-        if (bitmap_idx == -1)
-            bitmap_idx = frame_index;
-    }
-    if (bitmap_idx >= 0 && (int)bitmap_idx < *(int *)(tag + 0x60))
-        return tag_block_get_element((int *)(tag + 0x60), (int)bitmap_idx, 0x30);
+  if (tag_index == -1)
     return NULL;
+  if (sequence_index < 0 || frame_index < 0) {
+    display_assert("sequence_index>=0 && frame_index>=0",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_group.c", 0x2a6, 1);
+    system_exit(-1);
+  }
+  tag = (int)tag_get(0x6269746d, tag_index);
+  if (tag == 0)
+    return NULL;
+  bitmap_idx = frame_index;
+  if (*(int *)(tag + 0x54) > 0) {
+    sequence = (int)tag_block_get_element(
+      (int *)(tag + 0x54), (int)sequence_index % *(int *)(tag + 0x54), 0x40);
+    if (*(short *)(sequence + 0x22) < 1) {
+      if (*(int *)(sequence + 0x34) != 0) {
+        bitmap_idx = *(short *)tag_block_get_element((int *)(sequence + 0x34),
+                                                     (int)frame_index, 0x20);
+      }
+    } else {
+      bitmap_idx =
+        (short)((int)frame_index % (int)*(short *)(sequence + 0x22)) +
+        *(short *)(sequence + 0x20);
+    }
+    if (bitmap_idx == -1)
+      bitmap_idx = frame_index;
+  }
+  if (bitmap_idx >= 0 && (int)bitmap_idx < *(int *)(tag + 0x60))
+    return tag_block_get_element((int *)(tag + 0x60), (int)bitmap_idx, 0x30);
+  return NULL;
 }
 
 /*
@@ -419,75 +469,74 @@ void FUN_00077540(void *bitmap)
   }
 }
 
-/* FUN_00077590 (0x77590) — clone a bitmap: allocates a new bitmap of the same type/format,
- * copies pixel data from source to the clone, copies the flags field (+0xe). */
+/* FUN_00077590 (0x77590) — clone a bitmap: allocates a new bitmap of the same
+ * type/format, copies pixel data from source to the clone, copies the flags
+ * field (+0xe). */
 void *FUN_00077590(void *bitmap)
 {
-    void *cloned;
-    void *src_data;
-    void *dst_data;
-    int src_size;
-    int dst_size;
-    short type;
+  void *cloned;
+  void *src_data;
+  void *dst_data;
+  int src_size;
+  int dst_size;
+  short type;
 
-    if (bitmap == 0) {
-        display_assert("source_bitmap",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x67, 1);
-        system_exit(-1);
-    }
-    if (*(int *)((char *)bitmap + 0x2c) == 0) {
-        display_assert("source_bitmap->base_address",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x68, 1);
-        system_exit(-1);
-    }
+  if (bitmap == 0) {
+    display_assert("source_bitmap",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x67, 1);
+    system_exit(-1);
+  }
+  if (*(int *)((char *)bitmap + 0x2c) == 0) {
+    display_assert("source_bitmap->base_address",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x68, 1);
+    system_exit(-1);
+  }
 
-    type = *(short *)((char *)bitmap + 0xa);
-    cloned = 0;
-    switch (type) {
-    case 0:
-        cloned = bitmap_2d_new(
-            *(unsigned short *)((char *)bitmap + 4),
-            *(unsigned short *)((char *)bitmap + 6),
-            *(unsigned short *)((char *)bitmap + 0x14),
-            *(unsigned short *)((char *)bitmap + 0xc));
-        break;
-    case 1:
-        cloned = bitmap_3d_new(
-            *(unsigned short *)((char *)bitmap + 4),
-            *(unsigned short *)((char *)bitmap + 6),
-            *(unsigned short *)((char *)bitmap + 8),
-            *(unsigned short *)((char *)bitmap + 0x14),
-            *(unsigned short *)((char *)bitmap + 0xc));
-        break;
-    case 2:
-        cloned = bitmap_cube_map_new(
-            *(unsigned short *)((char *)bitmap + 4),
-            *(unsigned short *)((char *)bitmap + 0x14),
-            *(unsigned short *)((char *)bitmap + 0xc));
-        break;
-    default:
-        display_assert("### ERROR unsupported bitmap type",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x83, 1);
-        system_exit(-1);
-        break;
-    }
+  type = *(short *)((char *)bitmap + 0xa);
+  cloned = 0;
+  switch (type) {
+  case 0:
+    cloned = bitmap_2d_new(*(unsigned short *)((char *)bitmap + 4),
+                           *(unsigned short *)((char *)bitmap + 6),
+                           *(unsigned short *)((char *)bitmap + 0x14),
+                           *(unsigned short *)((char *)bitmap + 0xc));
+    break;
+  case 1:
+    cloned = bitmap_3d_new(*(unsigned short *)((char *)bitmap + 4),
+                           *(unsigned short *)((char *)bitmap + 6),
+                           *(unsigned short *)((char *)bitmap + 8),
+                           *(unsigned short *)((char *)bitmap + 0x14),
+                           *(unsigned short *)((char *)bitmap + 0xc));
+    break;
+  case 2:
+    cloned = bitmap_cube_map_new(*(unsigned short *)((char *)bitmap + 4),
+                                 *(unsigned short *)((char *)bitmap + 0x14),
+                                 *(unsigned short *)((char *)bitmap + 0xc));
+    break;
+  default:
+    display_assert("### ERROR unsupported bitmap type",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x83, 1);
+    system_exit(-1);
+    break;
+  }
 
-    if (cloned != 0 && *(int *)((char *)cloned + 0x2c) != 0) {
-        src_data = bitmap_mipmap_address(bitmap, 0);
-        dst_data = bitmap_mipmap_address(cloned, 0);
-        src_size = bitmap_get_pixel_data_size(bitmap);
-        dst_size = bitmap_get_pixel_data_size(cloned);
-        if (src_size != dst_size) {
-            display_assert("bitmap_get_pixel_data_size(cloned_bitmap)==pixel_data_size",
-                           "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x8d, 1);
-            system_exit(-1);
-        }
-        csmemcpy(dst_data, src_data, src_size);
-        *(short *)((char *)cloned + 0xe) = *(short *)((char *)bitmap + 0xe);
-        return cloned;
+  if (cloned != 0 && *(int *)((char *)cloned + 0x2c) != 0) {
+    src_data = bitmap_mipmap_address(bitmap, 0);
+    dst_data = bitmap_mipmap_address(cloned, 0);
+    src_size = bitmap_get_pixel_data_size(bitmap);
+    dst_size = bitmap_get_pixel_data_size(cloned);
+    if (src_size != dst_size) {
+      display_assert(
+        "bitmap_get_pixel_data_size(cloned_bitmap)==pixel_data_size",
+        "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x8d, 1);
+      system_exit(-1);
     }
-    error(2, "### ERROR failed to allocate temporary bitmap");
+    csmemcpy(dst_data, src_data, src_size);
+    *(short *)((char *)cloned + 0xe) = *(short *)((char *)bitmap + 0xe);
     return cloned;
+  }
+  error(2, "### ERROR failed to allocate temporary bitmap");
+  return cloned;
 }
 
 /*
@@ -1255,36 +1304,6 @@ void FUN_00078b80(int filter_radius, short *filter_coefficients,
   crt_fflush((void *)0x331050);
 }
 
-/* FUN_00079180 (0x79180) — cube map sharpen stub. Validates bitmap (@esi) is cube type,
- * checks positive/negative table pointers, then prints warning and returns. */
-void FUN_00079180(int unused, int positive_table, int negative_table,
-                  void *bitmap /* @<esi> */)
-{
-    if (!bitmap_verify(bitmap, 1)) {
-        display_assert("bitmap_verify(bitmap, TRUE)",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f3, 1);
-        system_exit(-1);
-    }
-    if (*(short *)((char *)bitmap + 0xa) != 2) {
-        display_assert("bitmap->type==_bitmap_type_cube_map",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f4, 1);
-        system_exit(-1);
-    }
-    if (positive_table == 0) {
-        display_assert("positive_table",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f5, 1);
-        system_exit(-1);
-    }
-    if (negative_table == 0) {
-        display_assert("negative_table",
-                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f6, 1);
-        system_exit(-1);
-    }
-    crt_fprintf((void *)0x331050, "### WARNING tried to sharpen a cube map",
-                (void *)0x261f2c);
-    crt_fflush((void *)0x331050);
-}
-
 /*
  * FUN_000790b0 -- 3D bitmap sharpen stub.
  *
@@ -1327,6 +1346,37 @@ void FUN_000790b0(int unused, int positive_table, int negative_table,
   }
 
   crt_fprintf((void *)0x331050, "### WARNING tried to sharpen a 3d bitmap",
+              (void *)0x261f2c);
+  crt_fflush((void *)0x331050);
+}
+
+/* FUN_00079180 (0x79180) — cube map sharpen stub. Validates bitmap (@esi) is
+ * cube type, checks positive/negative table pointers, then prints warning and
+ * returns. */
+void FUN_00079180(int unused, int positive_table, int negative_table,
+                  void *bitmap /* @<esi> */)
+{
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f3, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)bitmap + 0xa) != 2) {
+    display_assert("bitmap->type==_bitmap_type_cube_map",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f4, 1);
+    system_exit(-1);
+  }
+  if (positive_table == 0) {
+    display_assert("positive_table",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f5, 1);
+    system_exit(-1);
+  }
+  if (negative_table == 0) {
+    display_assert("negative_table",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x3f6, 1);
+    system_exit(-1);
+  }
+  crt_fprintf((void *)0x331050, "### WARNING tried to sharpen a cube map",
               (void *)0x261f2c);
   crt_fflush((void *)0x331050);
 }
