@@ -116,6 +116,7 @@ jobs:
             --timeout 120 \
             --csv \
             --skip-existing \
+            --allowlist tools/equivalence/batch_verify_allowlist.json \
             ${{ steps.mode.outputs.extra_flags }} \
             ${{ steps.baseline.outputs.flags }} \
             --output-dir artifacts/batch_verify

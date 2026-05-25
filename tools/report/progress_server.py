@@ -32,7 +32,12 @@ class SSEHandler(SimpleHTTPRequestHandler):
         if self.path == '/events':
             self.handle_sse()
         else:
-            super().do_GET()
+            try:
+                super().do_GET()
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                # Clients can disconnect mid-response (e.g. browser refresh/abort).
+                # Treat this as normal and avoid noisy socketserver tracebacks.
+                pass
 
     def log_message(self, format, *args):
         logging.info("%s - %s", self.client_address[0], format % args)

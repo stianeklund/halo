@@ -2268,6 +2268,7 @@ int FUN_000f9c40(int projectile_handle)
                   *pfVel * *pfVel);
     dist_at_hit = speed;
     speed_prev = speed;
+    dist_post = speed; /* MSVC local_3c aliases speed; no-decel path reads dist_post before any decel sets it */
 
     if (!real_vector3d_valid(pfVel)) {
       display_assert(
