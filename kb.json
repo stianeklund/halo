@@ -3081,12 +3081,16 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000145c0(void);",
-          "addr": "0x145c0"
+          "decl": "void FUN_000145c0(int actor_handle);",
+          "addr": "0x145c0",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
-          "decl": "void FUN_000145f0(void);",
-          "addr": "0x145f0"
+          "decl": "void FUN_000145f0(int actor_handle);",
+          "addr": "0x145f0",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "decl": "void FUN_00014620(void);",
@@ -3097,20 +3101,26 @@
           "addr": "0x14680"
         },
         {
-          "decl": "void FUN_000146f0(void);",
-          "addr": "0x146f0"
+          "decl": "void FUN_000146f0(int actor_handle);",
+          "addr": "0x146f0",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "decl": "void FUN_00014770(void);",
           "addr": "0x14770"
         },
         {
-          "decl": "void FUN_00014b40(void);",
-          "addr": "0x14b40"
+          "decl": "void FUN_00014b40(int actor_handle);",
+          "addr": "0x14b40",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
-          "decl": "void FUN_00014b70(void);",
-          "addr": "0x14b70"
+          "decl": "void FUN_00014b70(int actor_handle);",
+          "addr": "0x14b70",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "decl": "void FUN_00014ba0(void);",
@@ -3125,12 +3135,16 @@
           "addr": "0x14e90"
         },
         {
-          "decl": "void FUN_00014ff0(void);",
-          "addr": "0x14ff0"
+          "decl": "void FUN_00014ff0(int actor_handle, int param_2, int param_3);",
+          "addr": "0x14ff0",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
-          "decl": "char FUN_00015020(int value);",
-          "addr": "0x15020"
+          "decl": "int FUN_00015020(short param_1);",
+          "addr": "0x15020",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "decl": "void FUN_00015040(void);",
@@ -24976,7 +24990,7 @@
           "addr": "0x1ac450"
         },
         {
-          "decl": "void unit_stop_running_blindly(void);",
+          "decl": "void unit_stop_running_blindly(int unit_handle);",
           "addr": "0x1ac520"
         },
         {
@@ -29402,7 +29416,7 @@
           "addr": "0x43520"
         },
         {
-          "decl": "void ai_conversation_finish(void);",
+          "decl": "void ai_conversation_finish(int handle, char param_2, char param_3);",
           "addr": "0x435b0"
         },
         {
