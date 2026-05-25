@@ -25895,7 +25895,7 @@
           "addr": "0x1be950"
         },
         {
-          "decl": "void texture_cache_bitmap_new(void);",
+          "decl": "void texture_cache_bitmap_new(int tag_index, void *bitmap);",
           "addr": "0x1be960"
         },
         {
@@ -27529,8 +27529,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00076bd0(void);",
-          "addr": "0x76bd0"
+          "decl": "char FUN_00076bd0(int tag_index);",
+          "addr": "0x76bd0",
+          "ported": true,
+          "source_path": "halo/bitmaps/bitmap_utilities.c"
         },
         {
           "decl": "void *FUN_00076ff0(int tag_index, short bitmap_index);",
