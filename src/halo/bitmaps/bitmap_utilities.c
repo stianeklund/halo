@@ -906,7 +906,8 @@ void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients)
                                      (int)width +
                                    (int)x) *
                                     4) =
-                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift) << 8 |
+                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift)
+                     << 8 |
                    (rounding + g) >> shift)
                     << 8 |
                   (rounding + b) >> shift;
@@ -967,7 +968,8 @@ void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients)
                                      (int)width +
                                    (int)x) *
                                     4) =
-                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift) << 8 |
+                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift)
+                     << 8 |
                    (rounding + g) >> shift)
                     << 8 |
                   (rounding + b) >> shift;
@@ -1029,7 +1031,8 @@ void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients)
                                      (int)width +
                                    (int)x) *
                                     4) =
-                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift) << 8 |
+                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift)
+                     << 8 |
                    (rounding + g) >> shift)
                     << 8 |
                   (rounding + b) >> shift;
