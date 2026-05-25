@@ -1,3 +1,43 @@
+/* Returns required allocation size for a memory pool of given capacity
+ * (0x11e330). */
+int memory_pool_allocation_size(int pool_config)
+{
+  return pool_config + 0x38;
+}
+
+/* Initialize a memory pool in pre-allocated memory (0x11e340).
+ * Zeroes 0x38-byte header, sets signature/name/pointers. */
+void memory_pool_initialize(void *pool, const char *name, int pool_config)
+{
+  unsigned int *p = (unsigned int *)pool;
+  csmemset(pool, 0, 0x38);
+  p[0] = 0x706f6f6c;
+  csstrncpy((char *)(p + 1), name, 0x1f);
+  p[9] = (unsigned int)(p + 0xe);
+  p[10] = (unsigned int)pool_config;
+  p[0xb] = (unsigned int)pool_config;
+  p[0xc] = 0;
+  p[0xd] = 0;
+}
+
+/* Returns pool->free_size (0x11e390). */
+int memory_pool_get_free_size(void *pool)
+{
+  return *(int *)((char *)pool + 0x2c);
+}
+
+/* Returns bytes used (end of last block minus base address), 0 if empty
+ * (0x11e3a0). */
+int memory_pool_get_used_size(void *pool)
+{
+  int last_block = *(int *)((char *)pool + 0x34);
+  if (last_block == 0)
+    return 0;
+  return (*(int *)(last_block + 4) - *(int *)((char *)pool + 0x24)) +
+         last_block;
+}
+
+
 /* Validate pool structure and all blocks in the linked list (0x11e430).
  * Checks pool/block signatures, linked list consistency, and address bounds. */
 void FUN_0011e430(void *pool)
@@ -105,6 +145,28 @@ void *FUN_0011e5a0(void *pool, void **block_reference)
                  0x184, 1);
   system_exit(-1);
   return block;
+}
+
+/* Allocate and initialize a new memory pool (0x11e650).
+ * Allocates pool_config+0x38 bytes via debug_malloc then calls
+ * memory_pool_initialize. */
+void *memory_pool_new(const char *name, int pool_config)
+{
+  void *pool;
+  pool = debug_malloc(pool_config + 0x38, 0,
+                      "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x46);
+  if (pool != 0) {
+    memory_pool_initialize(pool, name, pool_config);
+  }
+  return pool;
+}
+
+/* Validate and free a memory pool allocated by memory_pool_new (0x11e690). */
+void memory_pool_delete(void *pool)
+{
+  FUN_0011e430(pool);
+  csmemset(pool, 0, 0x38);
+  debug_free(pool, "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x55);
 }
 
 /* Allocate a block from a memory pool (0x11e6c0).
