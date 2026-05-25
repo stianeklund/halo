@@ -1543,6 +1543,71 @@ void FUN_00038b10(int actor_handle)
   }
 }
 
+/* FUN_00038c70 (0x38c70) — actor action state-machine tick (combat-only
+ * variant). Preamble: datum_get, tag_get(0x61637472, actor+0x58) (cache warm),
+ * handle_initial_action, handle_pending_command_list, deny_transition.
+ * If deny==false: handle_combat_transition only (no
+ * berserking/panic/targeting). Switch on actor+0x6c: cases 3,10 →
+ * combat_status(1,0)+combat_failure; case 4 → if actor+0xaa!=0:
+ * combat_status(1,1), else done_fleeing; cases 5,7,8 →
+ * combat_status(1,0)+exit_pursuit; case 6 →
+ * can_stop_guarding(3,6)+combat_status(result,0); case 11 →
+ * combat_status(actor+0x9e, actor+0xa1); case 9 → return. */
+void FUN_00038c70(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  int uVar3;
+  unsigned char bVar1;
+  unsigned char bVar2;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  (void)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_combat_transition(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_combat_failure(actor_handle);
+    return;
+  case 4:
+    if (*(char *)(actor + 0xaa) != '\0') {
+      actor_action_handle_combat_status(actor_handle, 1, 1);
+      return;
+    }
+    actor_action_handle_done_fleeing(actor_handle);
+    return;
+  case 6:
+    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
+    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    return;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_exit_pursuit(actor_handle);
+    return;
+  case 11:
+    bVar2 = *(unsigned char *)(actor + 0xa1);
+    bVar1 = *(unsigned char *)(actor + 0x9e);
+    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    return;
+  default:
+    return;
+  }
+}
+
 /* 0x3a3b0
  *
  * actor_action_handle_status_change
