@@ -366,7 +366,7 @@ bool scenario_load(const char *map_name)
   char *scenario_tag;
   bool result = 0;
 
-  ((void (*)(void *, const char *))0x8e770)((void *)0x326a6c, "cache\\");
+  ((void (*)(void *, const char *))0x8e770)((void *)0x326a6c, "scenario_load");
   tag_index = ((int (*)(const char *))0x1b9e70)(map_name);
   *(int *)0x326a08 = tag_index;
 
