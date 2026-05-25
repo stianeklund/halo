@@ -155,16 +155,22 @@ def choose_unit(source: str, units: list[dict], function: str | None) -> dict | 
         if ref.exists():
             existing.append(unit)
 
-    def full_object_first(unit: dict) -> tuple[bool, str]:
-        base = Path(unit.get("base_path", "")).name
-        return ("_FUN_" in base, base)
+    aliases = function_aliases(function) if function else set()
 
-    existing.sort(key=full_object_first)
+    def unit_priority(unit: dict) -> tuple[bool, bool, str]:
+        name = unit.get("name", "")
+        base = Path(unit.get("base_path", "")).name
+        # Prefer units whose name explicitly contains the function address (per-function export)
+        name_matches = any(alias in name for alias in aliases if alias.startswith("FUN_"))
+        # Then prefer full object files over chunk exports
+        is_chunk = bool(re.match(r"[0-9a-f]{8}\.obj$", base, re.IGNORECASE))
+        return (not name_matches, is_chunk, base)
+
+    existing.sort(key=unit_priority)
 
     if not function:
         return existing[0] if existing else None
 
-    aliases = function_aliases(function)
     for unit in existing:
         ref_path = REPO_ROOT / unit["base_path"]
         if object_symbols(ref_path) & aliases:

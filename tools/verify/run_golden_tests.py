@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 ARTIFACT_ROOT = ROOT / "artifacts" / "runtime_oracle"
+DEBUG_TXT_PATH = ROOT / "xbdm" / "debug.txt"
 RUN_BEGIN = "RUN|BEGIN|"
 RUN_END = "RUN|END|"
 LEGACY_BEGIN = "--- TEST_HARNESS_START ---"
@@ -178,8 +179,14 @@ def capture_variant(label: str, args: argparse.Namespace, overlay: Path,
         proc = subprocess.run(fetch_cmd, cwd=str(ROOT), capture_output=True,
                               text=True)
         last_output = proc.stdout
+        if proc.returncode != 0:
+            continue
         try:
-            lines = extract_harness_lines(last_output)
+            debug_text = DEBUG_TXT_PATH.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        try:
+            lines = extract_harness_lines(debug_text)
         except RuntimeError:
             continue
 
