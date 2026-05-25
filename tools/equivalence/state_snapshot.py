@@ -95,7 +95,16 @@ def capture_from_xemu(addresses: list,
     xemu_qmp = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(xemu_qmp)
 
-    session = xemu_qmp.discover_session()
+    # Compatibility with both discover_session() signatures:
+    # legacy: discover_session()
+    # current: discover_session(host, port=None)
+    discover = xemu_qmp.discover_session
+    try:
+        session = discover()
+    except TypeError:
+        host = getattr(xemu_qmp, "DEFAULT_HOST", "localhost")
+        port = getattr(xemu_qmp, "DEFAULT_PORT", None)
+        session = discover(host, port)
     if session is None:
         raise RuntimeError("No running xemu QMP session found")
 
