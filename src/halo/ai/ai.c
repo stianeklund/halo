@@ -85,7 +85,7 @@ void ai_initialize(void)
  * Confirmed: 7 CALL + 1 JMP (tail call to FUN_00048f50) in disassembly. */
 void ai_dispose(void)
 {
-  FUN_00042b80();
+  ai_communication_dispose();
   ai_profile_dispose();
   encounters_dispose();
   FUN_00064140();

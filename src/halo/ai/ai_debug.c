@@ -124,6 +124,15 @@ void ai_debug_select_encounter(int encounter_idx)
   }
 }
 
+/* FUN_000494d0: set debug ray-test success flag.
+ *
+ * No __FILE__ string. Called from FUN_000493d0 (ray setup) and
+ * FUN_000494e0 (ray render). */
+void FUN_000494d0(char success)
+{
+  *(uint8_t *)0x5acab9 = success;
+}
+
 /* ai_debug_update: per-tick AI debug update.  Three independent debug actions:
  *
  *   1. Camera-follow (0x5ac9fc):  acquire actor or LOS-hit target, then
@@ -155,7 +164,8 @@ void ai_debug_update(void)
       int actor = player_control_get_unit_index(0);
       if (actor != -1 && object_try_and_get_and_verify_type(actor, 1) != NULL) {
         float pos[3];
-        int bone = biped_find_pathfinding_surface_index(actor, (vector3_t *)pos);
+        int bone =
+          biped_find_pathfinding_surface_index(actor, (vector3_t *)pos);
         if (bone != -1) {
           *(float *)0x5f91ac = pos[0];
           *(float *)0x5f91b0 = pos[1];

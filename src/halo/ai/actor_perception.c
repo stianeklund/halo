@@ -6,6 +6,42 @@
 
 #include "../../common.h"
 
+/* FUN_0002f1a0: set actor movement destination or refresh path.
+ *
+ * If the actor is moving-to-point (field_15e == 4) and has a pending
+ * destination (field_504 != 0), delegates to actor_move_to_point with
+ * the actor's position at +0x12c, surface index at +0x164, and -1.
+ *
+ * Otherwise sets field_3b8 = -1, copies the 6-dword block from +0x400
+ * to +0x46c (after setting field_400 = 1 as a short), and calls
+ * actor_path_refresh(actor_handle, 1, NULL).
+ *
+ * No __FILE__ string. */
+void FUN_0002f1a0(int actor_handle)
+{
+  char *actor;
+  int i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(short *)(actor + 0x15e) == 4 && *(char *)(actor + 0x504) != '\0') {
+    actor_move_to_point(actor_handle, (float *)(actor + 0x12c),
+                        *(int *)(actor + 0x164), -1);
+    return;
+  }
+
+  *(short *)(actor + 0x3b8) = -1;
+
+  if (*(short *)(actor + 0x46c) != 1) {
+    *(short *)(actor + 0x400) = 1;
+    for (i = 0; i < 6; i++) {
+      *(int *)(actor + 0x46c + i * 4) = *(int *)(actor + 0x400 + i * 4);
+    }
+  }
+
+  actor_path_refresh(actor_handle, 1, NULL);
+}
+
 /* actor_get_perception_knowledge (0x2fc20)
  * Evaluate whether an actor should engage a prop. Checks prop type,
  * visibility flags, and actor state to determine engagement eligibility.
