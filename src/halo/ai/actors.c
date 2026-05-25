@@ -2254,6 +2254,25 @@ void FUN_0003a8a0(int actor_handle)
   (*(void (*)(int)) * (int *)((char *)type_def + 0x18))(actor_handle);
 }
 
+void FUN_0003a920(int actor_handle, int a2, int a3, int a4)
+{
+  char *actor;
+  char *type_def;
+  void (*fn)(int, int, int, int);
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  type_def = (char *)FUN_0003a600(*(short *)(actor + 4));
+  if (*(char *)(type_def + 0xd) == 0) {
+    display_assert("actor_type_definition->swarm",
+                   "c:\\halo\\SOURCE\\ai\\actor_types.c", 0x9d, 1);
+    system_exit(-1);
+  }
+  fn = (void (*)(int, int, int, int)) * (int *)(type_def + 0x1c);
+  if (fn != NULL) {
+    fn(actor_handle, a2, a3, a4);
+  }
+}
+
 /* actors.c — AI actor/swarm data lifecycle.
  *
  * Corresponds to actors.obj (XBE address range ~0x3a990–0x3aab7).
