@@ -667,6 +667,16 @@ def should_prepare_xemu(host: str) -> bool:
     return normalized in {"", "127.0.0.1", "::1", "localhost"}
 
 
+def deploy_init_txt(dest: str, host: str, dry_run: bool, common_kwargs: dict) -> None:
+    init_path = os.path.join(ROOT_DIR, "init.txt")
+    if os.path.isfile(init_path):
+        print(f"  init.txt ({os.path.getsize(init_path)} bytes)")
+        if not dry_run:
+            rc = upload_via_xbdm(init_path, f"{dest.lstrip('x')}\\init.txt", host)
+            if rc != 0:
+                print("  falling back to xbcp for init.txt...", file=sys.stderr)
+                run_xbcp(src=to_windows_path(init_path), dest=f"{dest}\\init.txt", **common_kwargs)
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Deploy patched Halo build to Xbox via xbcp (XDK)"
@@ -792,6 +802,7 @@ def main() -> int:
         if not delete_state_files(host, [debug_txt_dest, gamestate_txt_dest, stabbed_txt_dest, crashdump_dest], args.dry_run, qmp_script):
             return 1
         print("done.")
+        deploy_init_txt(args.dest, host, args.dry_run, common_kwargs)
         rc = launch_xbe(args.dest, host, args.dry_run)
         if rc != 0:
             return rc
@@ -819,6 +830,7 @@ def main() -> int:
         if not delete_state_files(host, [debug_txt_dest, gamestate_txt_dest, stabbed_txt_dest, crashdump_dest], args.dry_run, qmp_script):
             return 1
         print("done.")
+        deploy_init_txt(args.dest, host, args.dry_run, common_kwargs)
         rc = launch_xbe(args.dest, host, args.dry_run)
         if rc != 0:
             return rc
@@ -866,6 +878,7 @@ def main() -> int:
             return rc
 
     print("done.")
+    deploy_init_txt(args.dest, host, args.dry_run, common_kwargs)
     rc = launch_xbe(args.dest, host, args.dry_run)
     if rc != 0:
         return rc
