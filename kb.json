@@ -5076,8 +5076,11 @@
 					"ported": true
 				},
 				{
-					"decl": "void FUN_00098200(void);",
-					"addr": "0x98200"
+					"decl": "void FUN_00098200(int contrail_handle, float delta_time);",
+					"addr": "0x98200",
+					"ported": true,
+					"src": "src/halo/effects/contrails.c",
+					"delinked": "delinked/contrails_98200.obj"
 				},
 				{
 					"decl": "int contrail_new(int definition_index, int object_index, short attachment_index);",
