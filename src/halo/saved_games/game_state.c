@@ -176,6 +176,91 @@ void *game_state_memory_pool_new(const char *name, int pool_config)
   return pool;
 }
 
+/*
+ * game_state_validate_core_header - 0x1bfa00
+ *
+ * Validates a core save header against the current game state expectations.
+ * If fatal is true, validation failures trigger a halt.
+ *
+ * The original binary had a format string bug where build_version and
+ * scenario_name string pointers were printed with %d instead of %s.
+ * This lift fixes those format specifiers.
+ */
+bool game_state_validate_core_header(char *header, bool fatal)
+{
+  const char *expected_map_name;
+  int16_t expected_players;
+  int16_t saved_players;
+  int expected_checksum;
+  typedef int(__cdecl * fn_csstrcmp_t)(const char *, const char *);
+  typedef char *(__cdecl * fn_csprintf_t)(char *, const char *, ...);
+  typedef void(__cdecl * fn_display_assert_t)(const char *, const char *, int, bool);
+  typedef void(__cdecl * fn_system_exit_t)(int);
+  typedef char *(__cdecl * fn_tag_get_name_t)(int);
+  typedef int(__cdecl * fn_get_map_checksum_t)(void);
+
+  fn_csstrcmp_t fn_csstrcmp = (fn_csstrcmp_t)0x8dcb0;
+
+  if (fn_csstrcmp(header + 0x104, "01.10.12.2276") != 0) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "expected build #%s but got #%s",
+                               "01.10.12.2276", header + 0x104),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x195, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  expected_map_name = ((fn_tag_get_name_t)0x1ba1f0)(*(int *)0x326a08);
+  if (fn_csstrcmp(header + 0x4, expected_map_name) != 0) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "expected \"%s\" but got \"%s\"",
+                               expected_map_name, header + 0x4),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x199, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  if (*(int *)header != *(int *)0x4ea9a0) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "allocation checksum mismatch"),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x19d, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  expected_players = *(int16_t *)0x31fa94;
+  saved_players = *(int16_t *)(header + 0x124);
+  if (saved_players != expected_players) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "expected #%d players but got #%d",
+                               (int)expected_players, (int)saved_players),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x1a1, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  expected_checksum = ((fn_get_map_checksum_t)0x1b9920)();
+  if (*(int *)(header + 0x128) != expected_checksum) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "checksum from map file doesn't match"),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x1a6, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  return true;
+}
+
 /* Load a core save file. Validates the header, then restores game state
  * and calls 13 initialize-for-new-map callbacks. */
 void game_state_load_core(const char *name)
@@ -185,7 +270,7 @@ void game_state_load_core(const char *name)
   if (!((char (*)(const char *, void *, int))0x1c0600)(name, header, 0x14c))
     goto fail;
 
-  if (!((char (*)(void))0x1bfa00)())
+  if (!game_state_validate_core_header(header, 1))
     goto fail;
 
   (*(void (**)())0x32eaa4)();
