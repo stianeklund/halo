@@ -85,7 +85,35 @@
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00014540": {
-      "score": 85.7,
+      "score": 86.7,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_000145c0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_000145f0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_000146f0": {
+      "score": 92.6,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00014b40": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00014b70": {
+      "score": 96.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00014ff0": {
+      "score": 97.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00015020": {
+      "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000178d0": {
@@ -249,7 +277,7 @@
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_0002a2b0": {
-      "score": 85.1,
+      "score": 89.1,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0002a360": {
@@ -261,7 +289,7 @@
       "source": "src/halo/ai/actor_moving.c"
     },
     "FUN_0002a3d0": {
-      "score": 95.7,
+      "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0002a470": {
