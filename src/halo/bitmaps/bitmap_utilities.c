@@ -653,6 +653,407 @@ void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
 }
 
 /*
+ * FUN_00077ff0 -- 2D bitmap separable Gaussian filter.
+ * Horizontal pass (pixels->tmp) then vertical pass (tmp->pixels).
+ * Circular boundary wrapping. filter_coefficients: 2*filter_radius+1 entries.
+ */
+void FUN_00077ff0(void *bitmap, short filter_radius, short *filter_coefficients)
+{
+  unsigned int pix_size;
+  void *pixels;
+  void *tmp;
+  short y, x;
+  short k;
+  short width;
+  unsigned char shift;
+  int rounding;
+  int row_base;
+  int wrap_x;
+  int y_wrap;
+  unsigned int count;
+  short *kptr;
+  unsigned int pix;
+  int coeff;
+  int a, r, g, b;
+
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x250, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)bitmap + 10) != 0) {
+    display_assert("bitmap->type==_bitmap_type_2d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x251, 1);
+    system_exit(-1);
+  }
+  if (!filter_coefficients) {
+    display_assert("filter_coefficients",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x252, 1);
+    system_exit(-1);
+  }
+  if ((filter_radius <= *(short *)((char *)bitmap + 4)) &&
+      (filter_radius <= *(short *)((char *)bitmap + 6))) {
+    pix_size = (unsigned int)bitmap_get_pixel_data_size(bitmap);
+    pixels = bitmap_mipmap_address(bitmap, 0);
+    tmp = debug_malloc(pix_size, 0,
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x25d);
+    if (!tmp) {
+      error(2, "### ERROR failed to allocate temporary buffer");
+      return;
+    }
+    /* horizontal pass: pixels -> tmp */
+    y = 0;
+    if (0 < *(short *)((char *)bitmap + 6)) {
+      width = *(short *)((char *)bitmap + 4);
+      do {
+        x = 0;
+        if (0 < width) {
+          shift = (unsigned char)filter_radius * 2;
+          k = -filter_radius;
+          rounding = 1 << (shift - 1);
+          do {
+            a = 0;
+            r = 0;
+            g = 0;
+            b = 0;
+            if (k <= filter_radius) {
+              row_base = (int)y * (int)width;
+              wrap_x = (int)x + (int)k + (int)width;
+              count = (unsigned int)(unsigned short)(filter_radius - k + 1);
+              kptr = filter_coefficients + filter_radius + k;
+              do {
+                pix =
+                  *(unsigned int *)((char *)pixels +
+                                    ((short)(wrap_x % (int)width) + row_base) *
+                                      4);
+                coeff = (int)*kptr;
+                a += (pix >> 24) * coeff;
+                r += ((pix >> 16) & 0xff) * coeff;
+                g += ((pix >> 8) & 0xff) * coeff;
+                b += (pix & 0xff) * coeff;
+                wrap_x++;
+                count--;
+                kptr++;
+                width = *(short *)((char *)bitmap + 4);
+              } while (count != 0);
+            }
+            *(unsigned int *)((char *)tmp +
+                              ((int)width * (int)y + (int)x) * 4) =
+              ((((rounding + a) >> shift) << 8 | (r + rounding) >> shift) << 8 |
+               (rounding + g) >> shift)
+                << 8 |
+              (rounding + b) >> shift;
+            width = *(short *)((char *)bitmap + 4);
+            x++;
+          } while (x < width);
+        }
+        y++;
+      } while (y < *(short *)((char *)bitmap + 6));
+    }
+    /* vertical pass: tmp -> pixels */
+    y = 0;
+    if (0 < *(short *)((char *)bitmap + 6)) {
+      width = *(short *)((char *)bitmap + 4);
+      do {
+        x = 0;
+        if (0 < width) {
+          shift = (unsigned char)filter_radius * 2;
+          k = -filter_radius;
+          rounding = 1 << (shift - 1);
+          do {
+            a = 0;
+            r = 0;
+            g = 0;
+            b = 0;
+            if (k <= filter_radius) {
+              y_wrap = (int)k + (int)*(short *)((char *)bitmap + 6) + (int)y;
+              count = (unsigned int)(unsigned short)(filter_radius - k + 1);
+              kptr = filter_coefficients + filter_radius + k;
+              do {
+                pix =
+                  *(unsigned int *)((char *)tmp +
+                                    ((short)(y_wrap %
+                                             (int)*(short *)((char *)bitmap +
+                                                             6)) *
+                                       (int)width +
+                                     (int)x) *
+                                      4);
+                coeff = (int)*kptr;
+                a += (pix >> 24) * coeff;
+                r += ((pix >> 16) & 0xff) * coeff;
+                g += ((pix >> 8) & 0xff) * coeff;
+                b += (pix & 0xff) * coeff;
+                y_wrap++;
+                count--;
+                kptr++;
+              } while (count != 0);
+            }
+            *(unsigned int *)((char *)pixels +
+                              ((int)width * (int)y + (int)x) * 4) =
+              ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift) << 8 |
+               (rounding + g) >> shift)
+                << 8 |
+              (rounding + b) >> shift;
+            width = *(short *)((char *)bitmap + 4);
+            x++;
+          } while (x < width);
+        }
+        y++;
+      } while (y < *(short *)((char *)bitmap + 6));
+    }
+    debug_free(tmp, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x2a5);
+    return;
+  }
+  crt_fprintf(
+    (void *)0x331050,
+    "### WARNING tried to smooth a bitmap with a filter which is too large\n");
+  crt_fflush((void *)0x331050);
+}
+
+/*
+ * FUN_00078460 -- 3D bitmap separable Gaussian filter.
+ * X-pass (pixels->tmp), Y-pass (tmp->pixels), Z-pass (pixels->tmp),
+ * then csmemcpy(pixels, tmp). Circular boundary wrapping.
+ */
+void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients)
+{
+  char *bmp;
+  unsigned int pix_size;
+  void *pixels;
+  void *tmp;
+  short z, y, x;
+  short k;
+  short width;
+  unsigned char shift;
+  int rounding;
+  int wrap;
+  int row_base;
+  unsigned int count;
+  short *kptr;
+  unsigned int pix;
+  int coeff;
+  int a, r, g, b;
+
+  bmp = (char *)bitmap;
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x2ba, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(bmp + 10) != 1) {
+    display_assert("bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x2bb, 1);
+    system_exit(-1);
+  }
+  if (!filter_coefficients) {
+    display_assert("filter_coefficients",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x2bc, 1);
+    system_exit(-1);
+  }
+  if ((filter_radius <= *(short *)(bmp + 4)) &&
+      (filter_radius <= *(short *)(bmp + 6)) &&
+      (filter_radius <= *(short *)(bmp + 8))) {
+    pix_size = (unsigned int)bitmap_get_pixel_data_size(bitmap);
+    pixels = bitmap_mipmap_address(bitmap, 0);
+    tmp = debug_malloc(pix_size, 0,
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x2c7);
+    if (!tmp) {
+      error(2, "### ERROR failed to allocate temporary buffer");
+      return;
+    }
+    /* X-pass: pixels -> tmp */
+    z = 0;
+    if (0 < *(short *)(bmp + 8)) {
+      do {
+        y = 0;
+        if (0 < *(short *)(bmp + 6)) {
+          width = *(short *)(bmp + 4);
+          do {
+            x = 0;
+            if (0 < width) {
+              shift = (unsigned char)filter_radius * 2;
+              k = -filter_radius;
+              rounding = 1 << (shift - 1);
+              do {
+                a = 0;
+                r = 0;
+                g = 0;
+                b = 0;
+                if (k <= filter_radius) {
+                  row_base = (int)*(short *)(bmp + 6) * (int)z + (int)y;
+                  wrap = (int)x + (int)k + (int)width;
+                  count = (unsigned int)(unsigned short)(filter_radius - k + 1);
+                  kptr = filter_coefficients + filter_radius + k;
+                  do {
+                    pix = *(unsigned int *)((char *)pixels +
+                                            ((short)(wrap % (int)width) +
+                                             row_base * (int)width) *
+                                              4);
+                    coeff = (int)*kptr;
+                    a += (pix >> 24) * coeff;
+                    r += ((pix >> 16) & 0xff) * coeff;
+                    g += ((pix >> 8) & 0xff) * coeff;
+                    b += (pix & 0xff) * coeff;
+                    wrap++;
+                    count--;
+                    kptr++;
+                    width = *(short *)(bmp + 4);
+                  } while (count != 0);
+                }
+                *(unsigned int *)((char *)tmp +
+                                  (((int)*(short *)(bmp + 6) * (int)z +
+                                    (int)y) *
+                                     (int)width +
+                                   (int)x) *
+                                    4) =
+                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift) << 8 |
+                   (rounding + g) >> shift)
+                    << 8 |
+                  (rounding + b) >> shift;
+                width = *(short *)(bmp + 4);
+                x++;
+              } while (x < width);
+            }
+            y++;
+          } while (y < *(short *)(bmp + 6));
+        }
+        z++;
+      } while (z < *(short *)(bmp + 8));
+    }
+    /* Y-pass: tmp -> pixels */
+    z = 0;
+    if (0 < *(short *)(bmp + 8)) {
+      do {
+        y = 0;
+        if (0 < *(short *)(bmp + 6)) {
+          width = *(short *)(bmp + 4);
+          do {
+            x = 0;
+            if (0 < width) {
+              shift = (unsigned char)filter_radius * 2;
+              k = -filter_radius;
+              rounding = 1 << (shift - 1);
+              do {
+                a = 0;
+                r = 0;
+                g = 0;
+                b = 0;
+                if (k <= filter_radius) {
+                  wrap = (int)y + (int)k + (int)*(short *)(bmp + 6);
+                  count = (unsigned int)(unsigned short)(filter_radius - k + 1);
+                  kptr = filter_coefficients + filter_radius + k;
+                  do {
+                    pix =
+                      *(unsigned int *)((char *)tmp +
+                                        (((short)(wrap %
+                                                  (int)*(short *)(bmp + 6)) +
+                                          (int)z * (int)*(short *)(bmp + 6)) *
+                                           (int)width +
+                                         (int)x) *
+                                          4);
+                    coeff = (int)*kptr;
+                    a += (pix >> 24) * coeff;
+                    r += ((pix >> 16) & 0xff) * coeff;
+                    g += ((pix >> 8) & 0xff) * coeff;
+                    b += (pix & 0xff) * coeff;
+                    kptr++;
+                    wrap++;
+                    count--;
+                  } while (count != 0);
+                }
+                *(unsigned int *)((char *)pixels +
+                                  (((int)*(short *)(bmp + 6) * (int)z +
+                                    (int)y) *
+                                     (int)width +
+                                   (int)x) *
+                                    4) =
+                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift) << 8 |
+                   (rounding + g) >> shift)
+                    << 8 |
+                  (rounding + b) >> shift;
+                width = *(short *)(bmp + 4);
+                x++;
+              } while (x < width);
+            }
+            y++;
+          } while (y < *(short *)(bmp + 6));
+        }
+        z++;
+      } while (z < *(short *)(bmp + 8));
+    }
+    /* Z-pass: pixels -> tmp */
+    z = 0;
+    if (0 < *(short *)(bmp + 8)) {
+      do {
+        y = 0;
+        if (0 < *(short *)(bmp + 6)) {
+          width = *(short *)(bmp + 4);
+          do {
+            x = 0;
+            if (0 < width) {
+              shift = (unsigned char)filter_radius * 2;
+              k = -filter_radius;
+              rounding = 1 << (shift - 1);
+              do {
+                a = 0;
+                r = 0;
+                g = 0;
+                b = 0;
+                if (k <= filter_radius) {
+                  wrap = (int)*(short *)(bmp + 8) + (int)k + (int)z;
+                  count = (unsigned int)(unsigned short)(filter_radius - k + 1);
+                  kptr = filter_coefficients + filter_radius + k;
+                  do {
+                    pix =
+                      *(unsigned int *)((char *)pixels +
+                                        (((short)(wrap %
+                                                  (int)*(short *)(bmp + 8)) *
+                                            (int)*(short *)(bmp + 6) +
+                                          (int)y) *
+                                           (int)width +
+                                         (int)x) *
+                                          4);
+                    coeff = (int)*kptr;
+                    a += (pix >> 24) * coeff;
+                    r += ((pix >> 16) & 0xff) * coeff;
+                    g += ((pix >> 8) & 0xff) * coeff;
+                    b += (pix & 0xff) * coeff;
+                    kptr++;
+                    wrap++;
+                    count--;
+                  } while (count != 0);
+                }
+                *(unsigned int *)((char *)tmp +
+                                  (((int)*(short *)(bmp + 6) * (int)z +
+                                    (int)y) *
+                                     (int)width +
+                                   (int)x) *
+                                    4) =
+                  ((((rounding + a) >> shift) << 8 | (rounding + r) >> shift) << 8 |
+                   (rounding + g) >> shift)
+                    << 8 |
+                  (rounding + b) >> shift;
+                width = *(short *)(bmp + 4);
+                x++;
+              } while (x < width);
+            }
+            y++;
+          } while (y < *(short *)(bmp + 6));
+        }
+        z++;
+      } while (z < *(short *)(bmp + 8));
+    }
+    csmemcpy(pixels, tmp, pix_size);
+    debug_free(tmp, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x33e);
+    return;
+  }
+  crt_fprintf(
+    (void *)0x331050,
+    "### WARNING tried to smooth a bitmap with a filter which is too large\n");
+  crt_fflush((void *)0x331050);
+}
+
+/*
  * FUN_00078b80 -- cube_map smooth stub.
  *
  * Validates the bitmap (must be cube_map type) and the filter_coefficients
