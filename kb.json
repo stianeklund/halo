@@ -27475,12 +27475,13 @@
           "addr": "0x76300"
         },
         {
-          "decl": "void FUN_00076410(void);",
+          "decl": "char FUN_00076410(int param_1, short param_2);",
           "addr": "0x76410"
         },
         {
-          "decl": "void FUN_000766e0(void);",
-          "addr": "0x766e0"
+          "decl": "char FUN_000766e0(void);",
+          "addr": "0x766e0",
+          "ported": true
         },
         {
           "decl": "void FUN_00076790(void);",
@@ -27505,8 +27506,10 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00077040(void);",
-          "addr": "0x77040"
+          "decl": "void *FUN_00077040(int tag_index, short sequence_index, short frame_index);",
+          "addr": "0x77040",
+          "name": "FUN_00077040",
+          "ported": true
         },
         {
           "decl": "short FUN_00077120(void *group, short type, short width, short height, short depth, int format, int mipmap_count);",
@@ -31626,7 +31629,7 @@
           "addr": "0x73830"
         },
         {
-          "decl": "void FUN_00073960(void);",
+          "decl": "int FUN_00073960(int *param_1);",
           "addr": "0x73960"
         },
         {

@@ -242,6 +242,47 @@ char FUN_00075630(void)
 }
 
 /*
+ * FUN_000766e0 -- bitmap extract: allocate and process all sequences.
+ *
+ * Iterates source bitmap rows (up to *(short*)(*(char**)0x334150+6) count),
+ * allocating a new sequence element in the group's sequences block for each
+ * run, initialising its frame range fields, then calling FUN_00076410 to
+ * extract bitmaps into it. Returns 1 on full success, 0 on any failure.
+ */
+char FUN_000766e0(void)
+{
+  char cVar1;
+  short sVar2;
+  int iVar3;
+  int local_8;
+
+  cVar1 = 1;
+  local_8 = 1;
+  while (1) {
+    if (*(short *)(*(char **)0x334150 + 6) <= (short)local_8) {
+      return cVar1;
+    }
+    iVar3 = FUN_00073960(&local_8);
+    FUN_00073a80();
+    sVar2 = tag_block_add_element(*(char **)0x33414c + 0x54);
+    if (sVar2 == -1)
+      break;
+    *(short *)0x33415c = sVar2;
+    *(void **)0x334158 =
+      tag_block_get_element(*(char **)0x33414c + 0x54, (int)sVar2, 0x40);
+    *(short *)(*(char **)0x334158 + 0x20) = (short)0xffff;
+    *(short *)(*(char **)0x334158 + 0x22) = 0;
+    cVar1 = FUN_00076410(local_8, (short)iVar3);
+    local_8 = iVar3 + 1;
+    if (!cVar1) {
+      return 0;
+    }
+  }
+  error(2, "### ERROR extract: failed to allocate sequence");
+  return 0;
+}
+
+/*
  * FUN_00076bb0 -- bitmap tag_block element delete wrapper.
  *
  * Gets an element from a tag_block at the given index (element size 0x30),
@@ -276,6 +317,54 @@ void *FUN_00076ff0(int tag_index, short bitmap_index)
     }
   }
   return uVar2;
+}
+
+/*
+ * FUN_00077040 -- bitmap_group_get_bitmap: resolve sequence/frame index pair
+ * to a bitmap data element in a 'bitm' tag.
+ *
+ * Walks the tag's sequence block to find the correct bitmap index, handling
+ * direct-bitmap sequences (frame_count >= 1) and sprite sequences. Falls back
+ * to frame_index if the resolved bitmap index is -1.
+ *
+ * Source TU: bitmap_group.c (assert strings confirm)
+ */
+void *FUN_00077040(int tag_index, short sequence_index, short frame_index)
+{
+    int tag;
+    int sequence;
+    short bitmap_idx;
+
+    if (tag_index == -1)
+        return NULL;
+    if (sequence_index < 0 || frame_index < 0) {
+        display_assert("sequence_index>=0 && frame_index>=0",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_group.c", 0x2a6, 1);
+        system_exit(-1);
+    }
+    tag = (int)tag_get(0x6269746d, tag_index);
+    if (tag == 0)
+        return NULL;
+    bitmap_idx = frame_index;
+    if (*(int *)(tag + 0x54) > 0) {
+        sequence = (int)tag_block_get_element(
+            (int *)(tag + 0x54),
+            (int)sequence_index % *(int *)(tag + 0x54), 0x40);
+        if (*(short *)(sequence + 0x22) < 1) {
+            if (*(int *)(sequence + 0x34) != 0) {
+                bitmap_idx = *(short *)tag_block_get_element(
+                    (int *)(sequence + 0x34), (int)frame_index, 0x20);
+            }
+        } else {
+            bitmap_idx = (short)((int)frame_index % (int)*(short *)(sequence + 0x22))
+                         + *(short *)(sequence + 0x20);
+        }
+        if (bitmap_idx == -1)
+            bitmap_idx = frame_index;
+    }
+    if (bitmap_idx >= 0 && (int)bitmap_idx < *(int *)(tag + 0x60))
+        return tag_block_get_element((int *)(tag + 0x60), (int)bitmap_idx, 0x30);
+    return NULL;
 }
 
 /*
