@@ -67,6 +67,89 @@ void FUN_00014540(int actor_handle)
   FUN_00027a60(actor_handle, 8, 5, look_buf);
 }
 
+/* FUN_000145c0 (0x145c0)
+ * If actor+0x1dc is a valid conversation handle, finish it via
+ * ai_conversation_finish.  Called on actor deactivation. */
+void FUN_000145c0(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0x1dc) != -1) {
+    ai_conversation_finish(*(int *)(actor + 0x1dc), 0, 0);
+  }
+}
+
+/* FUN_000145f0 (0x145f0)
+ * Same as FUN_000145c0 — second copy for a different calling context. */
+void FUN_000145f0(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0x1dc) != -1) {
+    ai_conversation_finish(*(int *)(actor + 0x1dc), 0, 0);
+  }
+}
+
+/* FUN_000146f0 (0x146f0)
+ * Initialize actor looking state: copy seed byte, set look priority/spec/frame
+ * type fields, clear look state flags, optionally override priority. */
+void FUN_000146f0(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  *(char *)(actor + 0x426) = *(char *)(actor + 0x358);
+  *(short *)(actor + 0x3e8) = 5;
+  *(short *)(actor + 0x3ec) = 2;
+  *(short *)(actor + 0x3fc) = 4;
+  *(char *)(actor + 0x427) = 0;
+  *(char *)(actor + 0x428) = 0;
+  *(char *)(actor + 0x424) = 0;
+  *(char *)(actor + 0x425) = 0;
+  if (*(short *)(actor + 0x15e) != 4 && *(short *)(actor + 0x6e) >= 4) {
+    *(char *)(actor + 0x454) = 1;
+    *(short *)(actor + 0x3e8) = 7;
+  }
+}
+
+/* FUN_00014b40 (0x14b40)
+ * If actor has an associated unit (actor+0x18 != -1), stop it running blindly.
+ */
+void FUN_00014b40(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0x18) != -1) {
+    unit_stop_running_blindly(*(int *)(actor + 0x18));
+  }
+}
+
+/* FUN_00014b70 (0x14b70)
+ * Set actor control-override handle to 0xffff and controlled flag to 1. */
+void FUN_00014b70(int actor_handle)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  *(short *)(actor + 0xa4) = (short)0xffff;
+  *(char *)(actor + 0xa2) = 1;
+}
+
+/* FUN_00014ff0 (0x14ff0)
+ * If actor+0xb8 equals param_2 (current look-frame id), replace it with
+ * param_3. */
+void FUN_00014ff0(int actor_handle, int param_2, int param_3)
+{
+  char *actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0xb8) == param_2) {
+    *(int *)(actor + 0xb8) = param_3;
+  }
+}
+
+/* FUN_00015020 (0x15020)
+ * Return 1 if param_1 is in the exclusive range (8, 13), else 0.
+ * Confirmed: 16-bit load (MOV AX,[EBP+8]) at 0x15023; CMP AX,9 / CMP AX,0xC. */
+int FUN_00015020(short param_1)
+{
+  if (param_1 >= 9 && param_1 <= 0xc) {
+    return 1;
+  }
+  return 0;
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b
