@@ -476,6 +476,260 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
   }
 }
 
+/*
+ * FUN_00098200 (0x98200): contrail point keyframe tick — for each active chain
+ * attached to the contrail datum, walks every point datum in the chain,
+ * advances its normalised time, transitions it to the next keyframe when the
+ * current one expires, applies physics if the keyframe defines a physics
+ * element, and collects point handles for deferred deletion.  After walking the
+ * chain, pairs of adjacent expired points at the tail are deleted.  If only one
+ * point remains and it is expired the chain is fully retired.
+ *
+ * Point datum layout (accessed via pt):
+ *   +0x02 : flags byte
+ *           bit 0 = first-frame (cleared on first keyframe advance)
+ *           bit 1 = non-wrap advance pending (set by branch-2 advance)
+ *           bit 2 = expired (set when no more keyframes remain)
+ *   +0x03 : frame_index (signed byte, current keyframe)
+ *   +0x04 : time accumulator (float, 0..1 normalised within keyframe)
+ *   +0x08 : decay_rate (float = 1/keyframe_duration; 0 = infinite)
+ *   +0x0c : datum_scale (tag function output value)
+ *   +0x14 : collision_location (scenario_location, 8 bytes)
+ *   +0x1c : position (float[3])
+ *   +0x28 : velocity (float[3])
+ *   +0x34 : next_handle (int, linked list, -1 = end)
+ *
+ * Keyframe tag element size = 0x68.  Block at tag+0x138.
+ * Branch-1 keyframe fields: lower=+0x0, upper=+0x4, flags=+0x64 (bits 0,1).
+ * Branch-2 keyframe fields: lower=+0x8, upper=+0xc, flags=+0x64 (bits 2,3).
+ *
+ * Contrail datum layout (datum):
+ *   +0x04 : tag handle
+ *   +0x2c : int16_t[4] per-chain point counts
+ *   +0x34 : int[4] per-chain head handles
+ */
+void FUN_00098200(int contrail_handle, float delta_time)
+{
+  char *datum;
+  char *tag;
+  int *chain_head_ptr;
+  int16_t *count_ptr;
+  int chain_idx;
+  int remaining;
+  int pt_handle;
+  int next_handle;
+  char *pt;
+  char *kf;
+  int kf_count;
+  unsigned int *seed;
+  float base_dur;
+  float range_dur;
+  float new_rate;
+  unsigned int kf_flags;
+  int phys_ref;
+  float radius;
+  char *phys_tag;
+  char *pt_tail;
+  char *pt_pred;
+  int h_tail;
+  int h_pred;
+  int i;
+  int count;
+  /* Handles collected during the forward pass for deferred tail-deletion. */
+  int point_handles[1024];
+
+  datum = (char *)datum_get(contrail_data, contrail_handle);
+  tag = (char *)tag_get(0x636f6e74, *(int *)(datum + 4));
+
+  chain_head_ptr = (int *)(datum + 0x34);
+  count_ptr = (int16_t *)(datum + 0x2c);
+  chain_idx = 0;
+  remaining = 4;
+
+  do {
+    count = 0;
+    pt_handle = *chain_head_ptr;
+
+    if (pt_handle != -1) {
+      /*
+       * Forward pass: walk the linked list of point datums, advance each
+       * point's normalised time, and drive keyframe transitions.
+       */
+      do {
+        pt = (char *)datum_get(contrail_point_data, pt_handle);
+
+        if (!(*(unsigned char *)(pt + 2) & 4)) {
+          /* Advance normalised time: time += delta_time * decay_rate */
+          *(float *)(pt + 4) =
+            delta_time * *(float *)(pt + 8) + *(float *)(pt + 4);
+
+          /*
+           * Keyframe-advance loop: repeat while decay_rate != 0.0 or
+           * time > 1.0.  Each iteration either transitions to the next
+           * keyframe or marks the point as expired.
+           */
+          while (*(float *)(pt + 8) != 0.0f || *(float *)(pt + 4) > 1.0f) {
+            if (*(unsigned char *)(pt + 2) & 2) {
+              /*
+               * Branch 1 (wrap-advance): get keyframe at
+               * frame_index+1, increment stored frame_index,
+               * reset time, compute new decay_rate.
+               */
+              kf = (char *)tag_block_get_element(
+                tag + 0x138, (int)(*(signed char *)(pt + 3)) + 1, 0x68);
+
+              *(signed char *)(pt + 3) += 1;
+              *(float *)(pt + 4) = 0.0f;
+
+              kf_flags = *(unsigned int *)(kf + 0x64);
+              base_dur = *(float *)(kf + 0x0);
+              range_dur = *(float *)(kf + 0x4) - base_dur;
+
+              if (kf_flags & 1) {
+                base_dur = *(float *)(pt + 0xc) * base_dur;
+              }
+              if (kf_flags & 2) {
+                range_dur = range_dur * *(float *)(pt + 0xc);
+              }
+
+              seed = random_math_get_local_seed_address();
+              new_rate =
+                random_real_range((int *)seed, 0.0f, range_dur) + base_dur;
+
+              *(float *)(pt + 8) = new_rate;
+              if (new_rate != 0.0f) {
+                *(float *)(pt + 8) = 1.0f / new_rate;
+              }
+
+              *(unsigned char *)(pt + 2) &= (unsigned char)~0x2;
+
+            } else {
+              /*
+               * Branch 2 (non-wrap advance): check whether a
+               * next keyframe exists.  If not, expire the point.
+               * If yes, get the current keyframe data, reset time,
+               * compute new decay_rate, and set bit 1.
+               */
+              kf_count = *(int *)(tag + 0x138);
+              if ((int)(*(signed char *)(pt + 3)) + 1 >= kf_count) {
+                /* No more keyframes: expire. */
+                *(unsigned char *)(pt + 2) |= 4;
+                break;
+              }
+
+              kf = (char *)tag_block_get_element(
+                tag + 0x138, (int)(*(signed char *)(pt + 3)), 0x68);
+
+              *(float *)(pt + 4) = 0.0f;
+
+              kf_flags = *(unsigned int *)(kf + 0x64);
+              base_dur = *(float *)(kf + 0x8);
+              range_dur = *(float *)(kf + 0xc) - base_dur;
+
+              if (kf_flags & 4) {
+                base_dur = *(float *)(pt + 0xc) * base_dur;
+              }
+              if (kf_flags & 8) {
+                range_dur = range_dur * *(float *)(pt + 0xc);
+              }
+
+              seed = random_math_get_local_seed_address();
+              new_rate =
+                random_real_range((int *)seed, 0.0f, range_dur) + base_dur;
+
+              *(float *)(pt + 8) = new_rate;
+              if (new_rate != 0.0f) {
+                *(float *)(pt + 8) = 1.0f / new_rate;
+              }
+
+              *(unsigned char *)(pt + 2) |= 2;
+            }
+          } /* end keyframe-advance while */
+        } /* end if not expired */
+
+        /*
+         * Post-advance: handle first-frame/expired state and apply
+         * physics if the current keyframe references a physics element.
+         */
+        if (*(unsigned char *)(pt + 2) & 1) {
+          /* First-frame flag: clear it. */
+          *(unsigned char *)(pt + 2) &= (unsigned char)~0x1;
+        } else if (!(*(unsigned char *)(pt + 2) & 4)) {
+          /*
+           * Point is live: apply physics if the current keyframe has
+           * a physics block reference.
+           */
+          kf = (char *)tag_block_get_element(
+            tag + 0x138, (int)(*(signed char *)(pt + 3)), 0x68);
+
+          phys_ref = *(int *)(kf + 0x1c);
+          if (phys_ref != -1) {
+            radius = *(float *)(kf + 0x40) * 0.5f;
+            phys_tag = (char *)tag_get(0x70706879, phys_ref);
+            FUN_00154a50(0, (int)phys_tag, (int *)(pt + 0x14), -1,
+                         (float *)(pt + 0x1c), (float *)(pt + 0x28), NULL, NULL,
+                         NULL, radius, delta_time);
+          }
+        }
+
+        /* Store handle for deferred deletion pass. */
+        point_handles[count] = pt_handle;
+        count++;
+
+        next_handle = *(int *)(pt + 0x34);
+        pt_handle = next_handle;
+
+      } while (pt_handle != -1);
+
+      /*
+       * Backward deletion pass: walk pairs of adjacent expired points
+       * from the tail.  Delete the tail of each qualifying pair and
+       * disconnect the predecessor.  Stop on first non-qualifying pair.
+       */
+      i = count - 1;
+      while (i >= 1) {
+        h_tail = point_handles[i];
+        h_pred = point_handles[i - 1];
+        pt_tail = (char *)datum_get(contrail_point_data, h_tail);
+        pt_pred = (char *)datum_get(contrail_point_data, h_pred);
+
+        if (!(*(unsigned char *)(pt_tail + 2) & 4) ||
+            !(*(unsigned char *)(pt_pred + 2) & 4) ||
+            *(int *)(pt_tail + 0x34) != -1) {
+          break;
+        }
+
+        *(int *)(pt_pred + 0x34) = -1;
+        *(int16_t *)(datum + 0x2c + chain_idx * 2) -= 1;
+        datum_delete(contrail_point_data, h_tail);
+
+        i--;
+      }
+    } /* end if chain not empty */
+
+    /*
+     * If exactly one point remains in the chain and it is expired, retire
+     * the entire chain.
+     */
+    if (*count_ptr == 1) {
+      h_tail = *chain_head_ptr;
+      pt_tail = (char *)datum_get(contrail_point_data, h_tail);
+
+      if (*(unsigned char *)(pt_tail + 2) & 4) {
+        datum_delete(contrail_point_data, h_tail);
+        *chain_head_ptr = -1;
+        *count_ptr = 0;
+      }
+    }
+
+    chain_idx++;
+    chain_head_ptr++;
+    count_ptr++;
+    remaining--;
+
+  } while (remaining != 0);
+}
+
 /* 0x98580 — contrail_new: allocates a new contrail datum and initialises it.
  *
  * Validates both object_index and definition_index, then calls
