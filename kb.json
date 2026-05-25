@@ -2567,12 +2567,22 @@
           "source_path": "halo/ai/actors.c"
         },
         {
-          "decl": "void FUN_00038da0(void);",
-          "addr": "0x38da0"
+          "decl": "int FUN_00038da0(short unit_effect /* @<eax> */);",
+          "addr": "0x38da0",
+          "ported": true,
+          "source_path": "halo/ai/actors.c",
+          "reg_args": {
+            "unit_effect": "eax"
+          }
         },
         {
-          "decl": "void FUN_00038e00(void);",
-          "addr": "0x38e00"
+          "decl": "int FUN_00038e00(short unit_effect /* @<eax> */);",
+          "addr": "0x38e00",
+          "ported": true,
+          "source_path": "halo/ai/actors.c",
+          "reg_args": {
+            "unit_effect": "eax"
+          }
         },
         {
           "decl": "void FUN_00038e60(void);",
