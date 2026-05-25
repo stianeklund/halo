@@ -1489,11 +1489,15 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
   vel_local[2] = dir_z;
   ftemp = normalize3d(vel_local); /* single call; magnitude in ftemp */
 
-  /* If velocity is zero, replace direction with the global up vector. */
+  /* If velocity is zero, replace direction with the global up vector.
+   * Also update vel_local so marker_forwards[3..11] are valid unit vectors. */
   if (ftemp == *(float *)0x2533c0) {
     dir_x = *(float *)(*(int *)0x31fc44);
     dir_y = *(float *)(*(int *)0x31fc44 + 4);
     dir_z = *(float *)(*(int *)0x31fc44 + 8);
+    vel_local[0] = dir_x;
+    vel_local[1] = dir_y;
+    vel_local[2] = dir_z;
   }
 
   /* 3. Compute detonation fraction (det_frac = local_24).              */
@@ -2110,7 +2114,7 @@ int FUN_000f9c40(int projectile_handle)
 
   /* Intermediate buffers for FUN_000178d0 / cross_product3d. */
   float cross_buf[3]; /* result of cross_product3d (local_10c area)        */
-  float cross_buf2[3]; /* second cross buffer (local_f4 area = location)    */
+  float cross_buf2[11]; /* second cross buffer / location for unattached_impulse_sound_new (44 bytes) */
 
   /* Distance/range helpers. */
   float speed; /* |velocity| at start of tick (local_3c)            */
@@ -2600,6 +2604,16 @@ int FUN_000f9c40(int projectile_handle)
                   /* sound origin = player_pos + (-1)*perp_component; reuse cross_buf2 */
                   vector3d_scale_add((float *)(player_obj + 0x50), cross_buf2,
                                      -1.0f, cross_buf2);
+                  /* forward/up must be valid unit vectors for sound_manager assert.
+                   * proj+0x30 is the up vector (always unit); proj+0x24 is acceleration. */
+                  cross_buf2[3] = *(float *)(proj + 0x30);
+                  cross_buf2[4] = *(float *)(proj + 0x34);
+                  cross_buf2[5] = *(float *)(proj + 0x38);
+                  cross_buf2[6] = (*(float **)0x31fc50)[0];
+                  cross_buf2[7] = (*(float **)0x31fc50)[1];
+                  cross_buf2[8] = (*(float **)0x31fc50)[2];
+                  cross_buf2[9] = 0.0f;
+                  cross_buf2[10] = 0.0f;
                   unattached_impulse_sound_new(*(int *)(proj_tag + 0x210),
                                                cross_buf2, 1.0f);
                   found_sound = '\x01';
