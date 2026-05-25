@@ -641,6 +641,109 @@ void FUN_000790b0(int unused, int positive_table, int negative_table,
   crt_fflush((void *)0x331050);
 }
 
+/* FUN_00079250 (0x79250) — 2D bitmap alpha-bleed: for each transparent pixel
+ * (alpha==0), copies RGB from the first non-transparent neighbor found in the
+ * 3x3 neighborhood. Runs `passes` iterations over the whole bitmap, writing
+ * each pass into a temp buffer then memcpy'ing back.
+ * @<eax> = passes (must be > 0). */
+void FUN_00079250(short passes /* @<eax> */, void *bitmap)
+{
+  short width;
+  short height;
+  int size;
+  unsigned int *temp_buf;
+  unsigned int pass_counter;
+  int y;
+  int x;
+  unsigned int *row_ptr;
+  unsigned int *dest_row;
+  unsigned int pixel;
+  void *dest;
+  int dy;
+  int iy;
+  int dx;
+  int ix;
+  unsigned int *neighbor_ptr;
+  int found;
+
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x41d, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)bitmap + 0xa) != 0) {
+    display_assert("bitmap->type==_bitmap_type_2d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x41e, 1);
+    system_exit(-1);
+  }
+  if (passes <= 0) {
+    display_assert("passes>0", "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                   0x41f, 1);
+    system_exit(-1);
+  }
+  size = bitmap_get_pixel_data_size(bitmap);
+  temp_buf = (unsigned int *)debug_malloc(
+    size, 0, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x422);
+  if (temp_buf == NULL) {
+    error(2, "### ERROR failed to allocate temporary buffer");
+    return;
+  }
+  pass_counter = (unsigned int)(unsigned short)passes;
+  do {
+    width = *(short *)((char *)bitmap + 4);
+    height = *(short *)((char *)bitmap + 6);
+    y = 0;
+    if (height > 0) {
+      do {
+        row_ptr = (unsigned int *)bitmap_2d_address(bitmap, 0, y, 0);
+        dest_row = temp_buf + (int)(short)width * y;
+        x = 0;
+        if (width > 0) {
+          do {
+            pixel = row_ptr[x];
+            if ((pixel >> 24) == 0) {
+              found = 0;
+              dy = -1;
+              iy = y - 1;
+              while (dy <= 1) {
+                if (!found) {
+                  dx = -1;
+                  ix = x - 1;
+                  while (dx <= 1) {
+                    if (!found) {
+                      if ((short)ix >= 0 && (short)iy >= 0 &&
+                          (short)ix < *(short *)((char *)bitmap + 4) &&
+                          (short)iy < *(short *)((char *)bitmap + 6)) {
+                        neighbor_ptr =
+                          (unsigned int *)bitmap_2d_address(bitmap, ix, iy, 0);
+                        if (*neighbor_ptr != 0) {
+                          pixel = *neighbor_ptr & 0x00ffffff;
+                          found = 1;
+                        }
+                      }
+                    }
+                    dx++;
+                    ix++;
+                  }
+                }
+                dy++;
+                iy++;
+              }
+            }
+            dest_row[x] = pixel;
+            x++;
+          } while (x < (int)(short)width);
+        }
+        y++;
+      } while (y < (int)height);
+    }
+    dest = bitmap_mipmap_address(bitmap, 0);
+    csmemcpy(dest, temp_buf, size);
+    pass_counter--;
+  } while (pass_counter != 0);
+  debug_free(temp_buf, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x462);
+}
+
 /*
  * FUN_00079590 -- cube_map alpha_bleed stub.
  *
@@ -1028,7 +1131,7 @@ void bitmap_alpha_bleed(void *bitmap, short passes)
 
   switch (*(short *)((char *)bitmap + 0xa)) {
   case 0:
-    FUN_00079250(bitmap);
+    FUN_00079250(passes, bitmap);
     break;
   case 1:
     FUN_00079480(passes, bitmap);
