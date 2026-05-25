@@ -27534,9 +27534,8 @@
           "ported": true
         },
         {
-          "decl": "short FUN_00077120(void *group, short type, short width, short height, short depth, short format, short mipmap_count);",
-          "addr": "0x77120",
-          "ported": true
+          "decl": "short FUN_00077120(void *group, short type, short width, short height, short depth, int format, int mipmap_count);",
+          "addr": "0x77120"
         },
         {
           "decl": "void FUN_00077510(void *bitmap, int fill_color);",
