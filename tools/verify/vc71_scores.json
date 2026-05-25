@@ -116,6 +116,18 @@
       "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "FUN_00015150": {
+      "score": 96.4,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_000151b0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00017090": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_000178d0": {
       "score": 39.3,
       "source": "src/halo/ai/actor_looking.c"
@@ -271,6 +283,10 @@
     "FUN_00021fb0": {
       "score": 80.6,
       "source": "src/halo/math/vector_math.c"
+    },
+    "FUN_00027870": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00028610": {
       "score": 80.6,
@@ -1300,16 +1316,12 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
-    "FUN_00076bd0": {
-      "score": 87.0,
-      "source": "src/halo/bitmaps/bitmap_utilities.c"
-    },
     "FUN_00076ff0": {
       "score": 100.0,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
     "FUN_00077040": {
-      "score": 87.0,
+      "score": 72.6,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
     "FUN_00077510": {
@@ -1353,7 +1365,7 @@
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
     "FUN_00079250": {
-      "score": 72.5,
+      "score": 68.4,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
     "FUN_00079590": {
@@ -1369,7 +1381,7 @@
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
     "FUN_0007ab50": {
-      "score": 92.3,
+      "score": 53.0,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
     "FUN_0007ace0": {
