@@ -4088,7 +4088,7 @@
           "addr": "0x7e560"
         },
         {
-          "decl": "void bitmap_cube_map_face_extract(void);",
+          "decl": "void bitmap_cube_map_face_extract(void *src_bitmap, void *dst_bitmap, int face, int slice);",
           "addr": "0x7e7e0"
         },
         {
@@ -27443,8 +27443,10 @@
           }
         },
         {
-          "decl": "void FUN_00075630(void);",
-          "addr": "0x75630"
+          "decl": "char FUN_00075630(void);",
+          "addr": "0x75630",
+          "ported": true,
+          "source_path": "halo/bitmaps/bitmap_utilities.c"
         },
         {
           "decl": "void FUN_00075800(void);",
