@@ -3151,12 +3151,18 @@
           "addr": "0x15040"
         },
         {
-          "decl": "void FUN_00015150(void);",
-          "addr": "0x15150"
+          "decl": "void FUN_00015150(int actor_handle);",
+          "addr": "0x15150",
+          "name": "FUN_00015150",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
-          "decl": "void FUN_000151b0(void);",
-          "addr": "0x151b0"
+          "decl": "void FUN_000151b0(int actor_handle);",
+          "addr": "0x151b0",
+          "name": "FUN_000151b0",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "decl": "void FUN_00015250(void);",
@@ -24988,7 +24994,7 @@
           "ported": true
         },
         {
-          "decl": "void unit_start_running_blindly(void);",
+          "decl": "void unit_start_running_blindly(int unit_handle);",
           "addr": "0x1ac450"
         },
         {

@@ -216,6 +216,82 @@ int FUN_00015020(short param_1)
   return 0;
 }
 
+/* FUN_00015150 (0x15150)
+ * Reset actor look-frame and conditionally start the unit running blindly.
+ *
+ * Clears actor+0xb4 (look frame id) to 0.  If actor+0xa8 > 0, clears the
+ * byte at actor+0x98.  If actor+0x9e == 0 AND the actor has a unit
+ * (actor+0x18 != -1) AND actor+0xa8 is in the scripted-look range [9, 12],
+ * calls unit_start_running_blindly with the actor's unit handle.
+ *
+ * Confirmed: XOR ECX,ECX; MOV dword ptr [EAX+0xb4],ECX at 0x15163/0x1516f.
+ * Confirmed: CMP word ptr [EAX+0xa8],CX / JLE at 0x15168/0x15175 — clears
+ *   byte [EAX+0x98] if > 0.
+ * Confirmed: CMP word ptr [EAX+0x9e],CX / JNZ at 0x1517d/0x15184.
+ * Confirmed: CMP ECX,-0x1 / JZ at 0x15189/0x1518c (unit handle guard).
+ * Confirmed: MOV AX,word ptr [EAX+0xa8]; CMP AX,0x9 / JL; CMP AX,0xC / JG
+ *   at 0x1518e-0x1519f — range [9, 12].
+ * Confirmed: PUSH ECX; CALL 0x1ac450; ADD ESP,0x4 at 0x151a1.
+ * Inferred: actor+0xa8 = look animation type (int16_t).
+ * Inferred: actor+0x9e = scripted-look countdown (int16_t, 0 = expired).
+ * Inferred: actor+0x98 = look active flag (char). */
+void FUN_00015150(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(int *)(actor + 0xb4) = 0;
+  if (*(short *)(actor + 0xa8) > 0) {
+    *(char *)(actor + 0x98) = 0;
+  }
+  if (*(short *)(actor + 0x9e) == 0 && *(int *)(actor + 0x18) != -1 &&
+      *(short *)(actor + 0xa8) >= 9 && *(short *)(actor + 0xa8) <= 0xc) {
+    unit_start_running_blindly(*(int *)(actor + 0x18));
+  }
+}
+
+/* FUN_000151b0 (0x151b0)
+ * Advance actor look timers and conditionally start the unit running blindly.
+ *
+ * Increments actor+0xb4 (look frame count).  Decrements actor+0x9c if > 0.
+ * Decrements actor+0x9e if > 0; when it reaches exactly 0 AND the actor has
+ * a unit (actor+0x18 != -1) AND actor+0xa8 is in [9, 12], calls
+ * unit_start_running_blindly.  If actor+0xa8 > 0, sets actor+0x39c to
+ * game_time_get() + 0x2ee.
+ *
+ * Confirmed: INC EDX; MOV dword ptr [ESI+0xb4],EDX at 0x151d8/0x151dc.
+ * Confirmed: TEST AX,AX / JLE; DEC AX; MOV word ptr [ESI+0x9c],AX at
+ *   0x151d9-0x151e5 — decrement 0x9c if > 0.
+ * Confirmed: MOV AX,[ESI+0x9e] / TEST / JLE; DEC AX; TEST AX,AX / JNZ at
+ *   0x151ee-0x15205 — decrement 0x9e, proceed only if result == 0.
+ * Confirmed: CMP AX,0x9 / JL; CMP AX,0xC / JG at 0x15216-0x15220.
+ * Confirmed: CALL 0xb5aa0 (game_time_get); ADD EAX,0x2ee;
+ *   MOV dword ptr [ESI+0x39c],EAX at 0x15235-0x1523f.
+ * Inferred: actor+0x9c = secondary look cooldown (int16_t).
+ * Inferred: actor+0x39c = next-look-allowed time (int). */
+void FUN_000151b0(int actor_handle)
+{
+  short counter;
+  int timer;
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(int *)(actor + 0xb4) = *(int *)(actor + 0xb4) + 1;
+  if (*(short *)(actor + 0x9c) > 0) {
+    *(short *)(actor + 0x9c) = *(short *)(actor + 0x9c) - 1;
+  }
+  if (*(short *)(actor + 0x9e) > 0) {
+    counter = *(short *)(actor + 0x9e) - 1;
+    *(short *)(actor + 0x9e) = counter;
+    if (counter == 0 && *(int *)(actor + 0x18) != -1 &&
+        *(short *)(actor + 0xa8) >= 9 && *(short *)(actor + 0xa8) <= 0xc) {
+      unit_start_running_blindly(*(int *)(actor + 0x18));
+    }
+  }
+  if (*(short *)(actor + 0xa8) > 0) {
+    timer = game_time_get();
+    *(int *)(actor + 0x39c) = timer + 0x2ee;
+  }
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b
