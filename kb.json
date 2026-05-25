@@ -5685,7 +5685,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4, unsigned int p5);",
+          "decl": "char FUN_00119b40(int p1, unsigned int p2, unsigned int *p3, int *p4, unsigned int p5);",
           "addr": "0x119b40",
           "ported": true
         },
@@ -27484,12 +27484,14 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00076790(void);",
+          "decl": "char FUN_00076790(void *group, int param_3);",
           "addr": "0x76790"
         },
         {
-          "decl": "void FUN_00076a70(void);",
-          "addr": "0x76a70"
+          "decl": "char FUN_00076a70(void *plate, void *group, int param_3);",
+          "addr": "0x76a70",
+          "ported": true,
+          "source_path": "halo/bitmaps/bitmap_utilities.c"
         },
         {
           "decl": "void FUN_00076bb0(void *tag_block, int index);",
@@ -27583,7 +27585,9 @@
         {
           "decl": "void FUN_00079180(int unused, int positive_table, int negative_table, void *bitmap /* @<esi> */);",
           "addr": "0x79180",
-          "reg_args": { "bitmap": "esi" },
+          "reg_args": {
+            "bitmap": "esi"
+          },
           "ported": true
         },
         {
