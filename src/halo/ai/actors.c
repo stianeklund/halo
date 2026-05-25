@@ -1476,6 +1476,132 @@ shared_tail:
   actor_action_handle_combat_status(actor_handle, 1, 1);
 }
 
+/* FUN_00038880 (0x38880) — actor action state-machine tick (panic/berserking
+ * variant). Preamble: datum_get, save bVar_247=(actor+0x247>0) and
+ * cVar_203=(actor+0x203>0), handle_initial_action, handle_pending_command_list,
+ * handle_surprise(1), deny_transition. If deny==false: full panic chain
+ * (surprise, damage, attached projectiles, melee, burning), panic_transition
+ * (actor_handle,1,cVar_203,7), combat_transition, vehicle_entry/exit,
+ * grenade_throwing, FUN_00020990. Switch cases 3/10, 4, 5/7/8, 6, 9, 11, 12,
+ * 13. Case 4 checks bVar_247 and actor+0xa8 before FUN_00015020(a8); case 9
+ * checks actor+0xa5/0xa6. Cases 12/13 share evasion/converging tail. */
+void FUN_00038880(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  int uVar3;
+  char cVar_203;
+  char bVar_247;
+  unsigned char bVar1;
+  unsigned char bVar2;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  cVar_203 = (signed char)actor[0x203] > 0 ? 1 : 0;
+  bVar_247 = (signed char)actor[0x247] > 0 ? 1 : 0;
+  actor_action_handle_initial_action(actor_handle);
+  actor_action_handle_pending_command_list(actor_handle);
+  actor_action_handle_surprise(actor_handle, 1);
+  cVar1 = actor_action_deny_transition(actor_handle);
+  if (cVar1 == '\0') {
+    actor_action_handle_panic_from_surprise(actor_handle);
+    actor_action_handle_panic_from_damage(actor_handle);
+    actor_action_handle_panic_from_attached_projectiles(actor_handle);
+    actor_action_handle_panic_from_attached_melee_attackers(actor_handle);
+    actor_action_handle_panic_from_burning_to_death(actor_handle);
+    actor_action_handle_panic_transition(actor_handle, 1, cVar_203, 7);
+    actor_action_handle_combat_transition(actor_handle);
+    actor_action_handle_vehicle_entry(actor_handle);
+    actor_action_handle_vehicle_exit(actor_handle);
+    actor_action_handle_grenade_throwing(actor_handle);
+    FUN_00020990(actor_handle);
+  }
+  switch (*(short *)(actor + 0x6c)) {
+  case 3:
+  case 10:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    cVar1 = actor_action_handle_combat_failure(actor_handle);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_evasion(actor_handle);
+    return;
+  case 6:
+    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
+    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    return;
+  case 4:
+    if (bVar_247 != '\0') {
+      uVar3 = (int)(short)*(short *)(actor + 0xa8);
+      if (uVar3 > 0) {
+        cVar1 = FUN_00015020(uVar3);
+        if (cVar1 == '\0') {
+          actor[0xab] = 1;
+        }
+      }
+    }
+    if (*(char *)(actor + 0xaa) != '\0') {
+      actor_action_handle_combat_status(actor_handle, 1, 1);
+      return;
+    }
+    cVar1 = actor_action_handle_done_fleeing(actor_handle);
+    if (cVar1 != '\0') {
+      return;
+    }
+    if (*(short *)(actor + 0xa8) != 0) {
+      return;
+    }
+    if (*(short *)(actor + 0x6e) < 5) {
+      return;
+    }
+    actor_action_consider_grenade(actor_handle);
+    return;
+  case 5:
+  case 7:
+  case 8:
+    cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
+    if (cVar1 != '\0') {
+      return;
+    }
+    actor_action_handle_exit_pursuit(actor_handle);
+    return;
+  case 9:
+    if (*(char *)(actor + 0xa5) != '\0') {
+      actor_action_handle_combat_status(actor_handle, 1, 1);
+      return;
+    }
+    if (*(char *)(actor + 0xa6) == '\0') {
+      return;
+    }
+    actor_action_handle_combat_status(actor_handle, 1, 1);
+    return;
+  case 11:
+    bVar2 = *(unsigned char *)(actor + 0xa1);
+    bVar1 = *(unsigned char *)(actor + 0x9e);
+    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    return;
+  case 12:
+    if (*(char *)(actor + 0xa0) == '\0' && *(int *)(actor + 0x1dc) != -1) {
+      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      return;
+    }
+    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    return;
+  case 13:
+    if (*(short *)(actor + 0x280) != 0) {
+      return;
+    }
+    actor_action_handle_combat_status(actor_handle, 1, 1);
+    return;
+  default:
+    return;
+  }
+}
+
 /* FUN_00038b10 (0x38b10) — actor action state-machine tick for fighter/retreat
  * type. Handles initial action, combat targeting, berserk transitions, and
  * behavior dispatch. Confirmed from disassembly: switch on
