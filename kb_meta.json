@@ -1273,6 +1273,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7b1b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7b470": {
       "kind": "function",
       "status": "ported"
