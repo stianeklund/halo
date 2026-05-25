@@ -2292,7 +2292,7 @@
           "addr": "0x1ef90"
         },
         {
-          "decl": "void actor_action_handle_done_fleeing(int actor_handle);",
+          "decl": "char actor_action_handle_done_fleeing(int actor_handle);",
           "addr": "0x1f6e0"
         },
         {
@@ -2312,7 +2312,7 @@
           "addr": "0x1fa60"
         },
         {
-          "decl": "void actor_action_consider_grenade(void);",
+          "decl": "void actor_action_consider_grenade(int actor_handle);",
           "addr": "0x1fb80"
         },
         {
@@ -2549,8 +2549,10 @@
           "addr": "0x38370"
         },
         {
-          "decl": "void FUN_00038880(void);",
-          "addr": "0x38880"
+          "decl": "void FUN_00038880(int actor_handle);",
+          "addr": "0x38880",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "decl": "void FUN_00038b10(int actor_handle);",
@@ -3107,7 +3109,7 @@
           "addr": "0x14ff0"
         },
         {
-          "decl": "void FUN_00015020(void);",
+          "decl": "char FUN_00015020(int value);",
           "addr": "0x15020"
         },
         {
