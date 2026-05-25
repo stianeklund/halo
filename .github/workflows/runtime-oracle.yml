@@ -1,0 +1,107 @@
+name: Runtime Oracle Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'kb.json'
+      - 'tools/verify/**'
+      - '.github/workflows/runtime-oracle.yml'
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Optional target limit (0 = all)'
+        required: false
+        default: '0'
+      skip_build:
+        description: 'Reuse existing built XBE when possible'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
+
+jobs:
+  runtime-oracle:
+    name: Nightly runtime oracle
+    runs-on: self-hosted
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify prerequisites
+        run: |
+          ${{ env.VENV_PYTHON }} -c "print('ok')"
+          which cmake
+
+      - name: Run runtime-oracle batch
+        continue-on-error: true
+        run: |
+          LIMIT="${{ github.event.inputs.limit || '0' }}"
+          EXTRA_FLAGS=""
+          if [ "${{ github.event.inputs.skip_build || 'false' }}" = "true" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS --skip-build"
+          fi
+          set +e
+          ${{ env.VENV_PYTHON }} tools/verify/runtime_oracle_batch.py \
+            --limit "$LIMIT" \
+            --csv \
+            $EXTRA_FLAGS
+          RC=$?
+          echo "RUNTIME_ORACLE_RC=$RC" >> "$GITHUB_ENV"
+          exit 0
+
+      - name: Generate progress dashboard artifact
+        if: always()
+        run: |
+          mkdir -p artifacts/progress
+          ${{ env.VENV_PYTHON }} tools/report/generate_decomp_report.py \
+            --output artifacts/progress/report.json \
+            --html artifacts/progress/index.html
+
+      - name: Upload runtime-oracle artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-oracle-${{ github.run_number }}
+          path: |
+            artifacts/runtime_oracle/
+            artifacts/runtime_oracle_batch/
+            artifacts/progress/
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          LATEST=$(ls -1dt artifacts/runtime_oracle_batch/* 2>/dev/null | head -n 1)
+          if [ -n "$LATEST" ] && [ -f "$LATEST/summary.json" ]; then
+            LATEST_SUMMARY="$LATEST/summary.json" ${{ env.VENV_PYTHON }} <<'PY' >> "$GITHUB_STEP_SUMMARY"
+            import json
+            import os
+            from pathlib import Path
+
+            s = json.loads(Path(os.environ['LATEST_SUMMARY']).read_text(encoding='utf-8'))
+            r = s['results']
+            print('## Runtime Oracle Results')
+            print()
+            print('| Metric | Count |')
+            print('|--------|-------|')
+            print(f'| Total targets | {r["total"]} |')
+            print(f'| Pass | {r["pass"]} |')
+            print(f'| Fail | {r["fail"]} |')
+            print(f'| Error | {r["error"]} |')
+            for row in s.get('rows', []):
+                status = row['status'].upper()
+                detail = row.get('error', '') or row.get('reason', '')
+                print(f'- **{status}** {row["target"]} ({row.get("obj", "")}) {detail}')
+            PY
+          fi
+
+      - name: Fail on runtime-oracle regressions
+        if: always()
+        run: |
+          test "${RUNTIME_ORACLE_RC:-1}" = "0"
