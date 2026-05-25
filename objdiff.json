@@ -6270,6 +6270,30 @@
       "metadata": {
         "source_path": "src/halo/items/projectiles.c"
       }
+    },
+    {
+      "name": "halo/random_math_FUN_10c390",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+      "base_path": "delinked/random_math_FUN_10c390.obj",
+      "metadata": {
+        "source_path": "src/halo/math/random_math.c"
+      }
+    },
+    {
+      "name": "halo/actors_FUN_00039c80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actors.c.obj",
+      "base_path": "delinked/actors_FUN_00039c80.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actors.c"
+      }
+    },
+    {
+      "name": "halo/effects_FUN_0009f430",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_FUN_0009f430.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
     }
   ]
 }
