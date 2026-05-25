@@ -503,7 +503,7 @@ __int16 cache_files_precache_map_status(float *progress)
   case 1:
     return 2;
   case 2:
-    ((void (*)(void))0x1bc760)();
+    FUN_001bc760(*(int16_t *)0x4e9222);
     return 2;
   case 3:
     return 0;
