@@ -8,6 +8,7 @@
 	halo/ai/actor_looking.c
 	halo/ai/actors.c
 	halo/ai/ai.c
+	halo/ai/ai_debug.c
 	halo/ai/encounters.c
 	halo/ai/path.c
 	halo/ai/props.c
