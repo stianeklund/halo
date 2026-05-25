@@ -1081,6 +1081,77 @@ void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
   return dst_bitmap;
 }
 
+extern double floor(double);
+
+/*
+ * bitmap_fade (0x77e60) — Blend every pixel of a bitmap toward a solid color.
+ *
+ * fade_amount is a [0,1] intensity. If <= 0.0, the function is a no-op.
+ * Each pixel channel is blended:
+ *   result_n = (pixel_n * inv_alpha + color_n * alpha + 0x7f) >> 8
+ * where alpha = (int)floor(clamped * 256.0f + 0.5f), inv_alpha = 256 - alpha.
+ * Color channels: b0=blue(7:0), b1=green(15:8), b2=red(23:16), b3=alpha(31:24).
+ *
+ * Source: bitmap_utilities.obj, assert line 0x1f5 (501).
+ */
+void bitmap_fade(void *bitmap, unsigned int color, float fade_amount)
+{
+  float clamped;
+  int alpha;
+  int inv_alpha;
+  int cb0, cb1, cb2, cb3;
+  unsigned int *pixels;
+  int count;
+  int i;
+  unsigned int pix;
+  unsigned int r, g, b, a;
+
+  /* bitmap_verify(bitmap, TRUE) */
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x1f5, 1);
+    system_exit(-1);
+  }
+
+  if (fade_amount > 0.0f) {
+    /* Clamp to [0, 1] using a local variable so MSVC emits all 3 fcomps */
+    clamped = fade_amount;
+    if (clamped < 0.0f) {
+      clamped = 0.0f;
+    } else if (clamped > 1.0f) {
+      clamped = 1.0f;
+    }
+
+    /* alpha factor in [0, 256]; round-to-nearest via floor(x + 0.5) */
+    alpha = (int)floor(clamped * 256.0f + 0.5f);
+    inv_alpha = 0x100 - alpha;
+
+    /* Pre-compute color_channel * alpha once before the pixel loop */
+    cb2 = (int)((color >> 16) & 0xff) * alpha; /* red   */
+    cb3 = (int)(color >> 24) * alpha;           /* alpha */
+    cb1 = (int)((color >> 8) & 0xff) * alpha;  /* green */
+    cb0 = (int)(color & 0xff) * alpha;          /* blue  */
+
+    pixels = (unsigned int *)bitmap_mipmap_address(bitmap, 0);
+    count = bitmap_get_pixel_count(bitmap);
+
+    for (i = 0; i < count; i++) {
+      pix = pixels[i];
+      r = ((pix >> 16) & 0xff) * inv_alpha;
+      a = (pix >> 24) * inv_alpha;
+      g = ((pix >> 8) & 0xff) * inv_alpha;
+      b = (pix & 0xff) * inv_alpha;
+
+      r = (r + cb2 + 0x7f) >> 8;
+      a = (a + cb3 + 0x7f) >> 8;
+      g = (g + cb1 + 0x7f) >> 8;
+      b = (b + cb0 + 0x7f) >> 8;
+
+      pixels[i] = (a << 24) | (r << 16) | (g << 8) | b;
+    }
+  }
+}
+
 /*
  * FUN_00077ff0 -- 2D bitmap separable Gaussian filter.
  * Horizontal pass (pixels->tmp) then vertical pass (tmp->pixels).
