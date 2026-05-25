@@ -507,8 +507,8 @@ char FUN_00076bd0(int tag_index)
            * first starting at 0, or the next sequence starts exactly where
            * this one ends (contiguous allocation). */
           if ((i == 0 && first_bmp == 0) ||
-              (next_seq != (void *)0 && *(short *)((char *)next_seq + 0x20) ==
-                                          (short)(first_bmp + bmp_count))) {
+              (next_seq != (void *)0 && (int)*(short *)((char *)next_seq + 0x20) ==
+                                          (int)first_bmp + (int)bmp_count)) {
             goto skip_range_warning;
           }
         }
