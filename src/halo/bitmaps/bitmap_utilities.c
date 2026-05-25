@@ -1799,32 +1799,34 @@ float *bitmap_clone(float *rgb, float *hsv_out)
   float min_component;
   float chroma;
 
-  if (rgb[1] <= rgb[2]) {
-    max_component = rgb[2];
-  } else {
+  if (rgb[1] > rgb[2]) {
     max_component = rgb[1];
-  }
-  if (max_component >= rgb[0]) {
-    if (rgb[1] <= rgb[2]) {
-      max_component = rgb[2];
-    } else {
-      max_component = rgb[1];
-    }
   } else {
+    max_component = rgb[2];
+  }
+  if (max_component < rgb[0]) {
     max_component = rgb[0];
+  } else {
+    if (rgb[1] > rgb[2]) {
+      max_component = rgb[1];
+    } else {
+      max_component = rgb[2];
+    }
   }
 
-  if (rgb[1] <= rgb[2]) {
-    min_component = rgb[1];
-  } else {
+  if (rgb[1] > rgb[2]) {
     min_component = rgb[2];
+  } else {
+    min_component = rgb[1];
   }
-  if (min_component >= rgb[0]) {
-    min_component = rgb[0];
-  } else if (rgb[1] <= rgb[2]) {
-    min_component = rgb[1];
+  if (min_component < rgb[0]) {
+    if (rgb[1] > rgb[2]) {
+      min_component = rgb[2];
+    } else {
+      min_component = rgb[1];
+    }
   } else {
-    min_component = rgb[2];
+    min_component = rgb[0];
   }
 
   chroma = max_component - min_component;
@@ -1848,20 +1850,20 @@ float *bitmap_clone(float *rgb, float *hsv_out)
     hsv_out[1] = chroma / max_component;
   }
 
-  if (hsv_out[1] != *(float *)0x2533c0) {
-    if (rgb[0] == max_component) {
-      hsv_out[0] = (rgb[1] - rgb[2]) / chroma;
-    } else if (rgb[1] == max_component) {
-      hsv_out[0] = (rgb[2] - rgb[0]) / chroma + *(float *)0x253f40;
-    } else {
-      hsv_out[0] = (rgb[0] - rgb[1]) / chroma + *(float *)0x2533d8;
-    }
-    hsv_out[0] = hsv_out[0] * *(float *)0x2647d4;
-    if (hsv_out[0] < *(float *)0x2533c0)
-      hsv_out[0] = hsv_out[0] + *(float *)0x2533c8;
+  if (hsv_out[1] == *(float *)0x2533c0) {
+    hsv_out[0] = 0.0f;
     return hsv_out;
   }
-  hsv_out[0] = 0.0f;
+  if (rgb[0] == max_component) {
+    hsv_out[0] = (rgb[1] - rgb[2]) / chroma;
+  } else if (rgb[1] == max_component) {
+    hsv_out[0] = (rgb[2] - rgb[0]) / chroma + *(float *)0x253f40;
+  } else {
+    hsv_out[0] = (rgb[0] - rgb[1]) / chroma + *(float *)0x2533d8;
+  }
+  hsv_out[0] = hsv_out[0] * *(float *)0x2647d4;
+  if (hsv_out[0] < *(float *)0x2533c0)
+    hsv_out[0] = hsv_out[0] + *(float *)0x2533c8;
   return hsv_out;
 }
 
