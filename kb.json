@@ -3472,11 +3472,13 @@
         },
         {
           "addr": "0x1ab70",
-          "decl": "void FUN_0001ab70(void);"
+          "decl": "void FUN_0001ab70(void);",
+          "ported": null
         },
         {
           "addr": "0x1abd0",
-          "decl": "void FUN_0001abd0(void);"
+          "decl": "void FUN_0001abd0(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ac00",
@@ -34601,5 +34603,15 @@
     "decl": "void FUN_00016ff0(int actor_handle);",
     "ported": true,
     "obj": "actor_looking.obj"
+  },
+  "0x1ab70": {
+    "addr": "0x1ab70",
+    "decl": "void FUN_0001ab70(void);",
+    "ported": null
+  },
+  "0x1abd0": {
+    "addr": "0x1abd0",
+    "decl": "void FUN_0001abd0(int actor_handle);",
+    "ported": true
   }
 }

@@ -944,6 +944,17 @@ void FUN_0001aae0(int object_handle, float *center, float *radius)
   *radius = *(float *)(obj + 0x5c);
 }
 
+/* FUN_0001abd0 (0x1abd0)
+ * Clear actor look-at target: set the 32-bit field at actor+0xe4 to -1
+ * (null/invalid handle sentinel).
+ */
+void FUN_0001abd0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(int *)(actor + 0xe4) = -1;
+}
+
 /* FUN_00027870 (0x27870)
  * Stop scripted look: log debug message and clear the scripted-look fields.
  *
