@@ -563,6 +563,134 @@ bool cache_files_precache_map_loaded(char *map_name)
   return result != -1;
 }
 
+/* FUN_001bd5f0 — open or create the 6 cache slot files on Z:.
+ * For each slot: opens with OPEN_ALWAYS, checks if existing file has the
+ * right size. If the file is new or wrong size, reads the old header (0x800
+ * bytes), then resizes via SetFilePointer+SetEndOfFile. After opening,
+ * validates the cached header: build string must match "01.10.12.2276" and
+ * the CRC must match the DVD source map. Clears slot metadata on mismatch.
+ */
+void FUN_001bd5f0(void)
+{
+  char path[256];
+  char dvd_header[0x800];
+  char read_buf[0x800];
+  int expected_size;
+  int handle;
+  short i;
+  bool ok;
+  bool nuke_extra;
+  char *entry_ptr;
+  uint32_t bytes_read;
+  uint32_t last_error;
+
+  FUN_001bcea0(6);
+  nuke_extra = 0;
+  entry_ptr = (char *)0x4e6204;
+
+  for (i = 0; i < 6; i++) {
+    ok = 0;
+
+    if (i < 0 || i >= 6) {
+      display_assert(
+        "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+        "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+      system_exit(-1);
+    }
+
+    crt_sprintf(path, "z:\\cache%03d.map", (int)i);
+
+    if (i < 0 || i >= 6) {
+      display_assert(
+        "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+        "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x49d, 1);
+      system_exit(-1);
+    }
+    if (i <= 1) {
+      expected_size = 0x11600000;
+    } else {
+      int temp = (int)(i > 2) - 1;
+      temp &= (int)0xff400000;
+      expected_size = temp + 0x2f00000;
+    }
+
+    handle = CreateFileA(path, 0xc0000000, 0, 0, 4, 0x60000000, 0);
+    if (handle == -1) {
+      {
+        char err_buf[256];
+        csprintf(err_buf, "couldn't open or create new cache file (#%d)",
+                 xapi_GetLastError());
+        display_assert(err_buf,
+                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
+                       0x305, 1);
+        system_exit(-1);
+      }
+      goto post_process;
+    }
+
+    last_error = xapi_GetLastError();
+    if (last_error == 0xb7 &&
+        GetFileSize(handle, 0) == (unsigned int)expected_size) {
+      ok = 1;
+      goto post_process;
+    }
+
+    if (!nuke_extra) {
+      FUN_001bcea0(i);
+      nuke_extra = 1;
+    }
+
+    ReadFile(handle, read_buf, 0x800, &bytes_read, 0);
+
+    if (SetFilePointer(handle, expected_size, 0, 0) != (unsigned int)-1) {
+      if (SetEndOfFile(handle)) {
+        ok = 1;
+      }
+    }
+
+    if (!ok) {
+      {
+        char err_buf[256];
+        csprintf(err_buf, "setup for new cache file failed (#%d)",
+                 xapi_GetLastError());
+        display_assert(err_buf,
+                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
+                       0x2f9, 1);
+        system_exit(-1);
+      }
+      CloseHandle(handle);
+      handle = -1;
+    }
+
+  post_process:
+    *(int *)(entry_ptr - 0x2c) = handle;
+
+    if (!ok)
+      goto clear_entry;
+
+    cache_file_read_header_into_slot(i);
+
+    if (csstrcmp(entry_ptr + 0x20, "01.10.12.2276") != 0) {
+      ok = 0;
+    }
+
+    if (!FUN_001bcb80(entry_ptr, dvd_header))
+      goto clear_entry;
+
+    if (*(int *)(entry_ptr + 0x44) != *(int *)(dvd_header + 0x64))
+      goto clear_entry;
+
+    if (ok)
+      goto next_slot;
+
+  clear_entry:
+    csmemset(entry_ptr - 0x20, 0, 0x800);
+
+  next_slot:
+    entry_ptr += 0x80c;
+  }
+}
+
 /* FUN_001bda90 — initialize the cache IO system: create the sleep event and
  * the IO dispatcher thread (FUN_001bd3a0) with 0x4000 bytes of stack.
  * DAT_004e9248 = sleep_event handle, DAT_004e924c = thread handle.
@@ -602,7 +730,6 @@ void FUN_001bdb10(void)
   FUN_001bc280();
 }
 
-#if 0 /* bisect: disable map_begin and map_end */
 /* Begin precaching a map from DVD to the cache partition. Returns true
  * if the copy was already done or was successfully started. */
 bool cache_files_precache_map_begin(char *map_name, bool show_error)
@@ -674,7 +801,6 @@ void cache_files_precache_map_end(void)
   *(uint8_t *)0x4e9220 = 0;
   *(int16_t *)0x4e9222 = -1;
 }
-#endif
 
 /* Load cached game state if the cached map metadata matches the currently
  * loaded scenario, map type, checksum, and difficulty. */
