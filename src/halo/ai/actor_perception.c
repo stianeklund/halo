@@ -42,6 +42,70 @@ void FUN_0002f1a0(int actor_handle)
   actor_path_refresh(actor_handle, 1, NULL);
 }
 
+/* actor_get_best_damaging_prop (0x2fa70)
+ * Find the highest-scoring active damaging prop visible to the actor's unit.
+ *
+ * Iterates up to 4 weapon slots on the actor's unit object (+0x3e0),
+ * calling ai_get_responsible_unit and prop_get_active_by_unit_index for
+ * each slot. Selects the prop whose slot score (*slot) is greatest among
+ * those with type in [2,3] and either a visibility flag or no-filter mode.
+ *
+ * param_2 (prefer_visible): when 0, accept props regardless of visibility
+ * flag; when non-zero, require prop visibility byte (+0x60) != 0.
+ *
+ * Returns the best damaging prop handle, or -1 if none found.
+ * Asserts damaging_prop_index != 0 (handle 0 is reserved/invalid). */
+int actor_get_best_damaging_prop(int actor_handle, char prefer_visible)
+{
+  char *unit;
+  char *prop_rec;
+  unsigned int *slot;
+  int unit_handle;
+  int unit_result;
+  int prop_handle;
+  unsigned int best_score;
+  int damaging_prop_index;
+  short prop_type;
+  int iter;
+
+  unit_handle = *(int *)((char *)datum_get(actor_data, actor_handle) + 0x18);
+  damaging_prop_index = -1;
+  if (unit_handle != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    best_score = 0;
+    slot = (unsigned int *)(unit + 0x3e0);
+    iter = 4;
+    do {
+      unit_result = ai_get_responsible_unit(slot[2], 1);
+      if (unit_result != -1) {
+        prop_handle = prop_get_active_by_unit_index(actor_handle, unit_result);
+        if (prop_handle != -1) {
+          prop_rec = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+          prop_type = *(short *)(prop_rec + 0x24);
+          if (prop_type >= 2 && prop_type <= 3) {
+            if (*(char *)(prop_rec + 0x60) != '\0' || prefer_visible == '\0') {
+              if (*slot > best_score) {
+                best_score = *slot;
+                damaging_prop_index = prop_handle;
+              }
+            }
+          }
+        }
+      }
+      slot += 4;
+      iter--;
+    } while (iter != 0);
+
+    if (damaging_prop_index == 0) {
+      display_assert("damaging_prop_index != 0x00000000",
+                     "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0xe8e, 1);
+      system_exit(-1);
+    }
+    return damaging_prop_index;
+  }
+  return damaging_prop_index;
+}
+
 /* actor_get_perception_knowledge (0x2fc20)
  * Evaluate whether an actor should engage a prop. Checks prop type,
  * visibility flags, and actor state to determine engagement eligibility.

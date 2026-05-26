@@ -17327,7 +17327,9 @@
         },
         {
           "addr": "0x92090",
-          "decl": "void FUN_00092090(int32_t *symtab);"
+          "decl": "void symbol_table_dispose(int32_t *symtab);",
+          "name": "symbol_table_dispose",
+          "ported": true
         },
         {
           "addr": "0x92110",
@@ -29251,7 +29253,10 @@
         },
         {
           "addr": "0x2fa70",
-          "decl": "int FUN_0002fa70(int actor_handle, char prefer_passenger);"
+          "decl": "int actor_get_best_damaging_prop(int actor_handle, char prefer_visible);",
+          "name": "actor_get_best_damaging_prop",
+          "ported": true,
+          "source_path": "src/halo/ai/actor_perception.c"
         },
         {
           "addr": "0x2fb60",

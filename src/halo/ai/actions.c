@@ -280,7 +280,7 @@ char actor_action_handle_panic_from_damage(int actor_handle)
     }
     panic_type = *(short *)(actor + 0x308);
     if ((panic_type == 0) || (*(int *)(actor + 0x30c) == -1)) {
-      *(int *)(actor + 0x30c) = FUN_0002fa70(actor_handle, 1);
+      *(int *)(actor + 0x30c) = actor_get_best_damaging_prop(actor_handle, 1);
     }
     if (*(short *)(actor + 0x308) < 2) {
       *(short *)(actor + 0x308) = 1;

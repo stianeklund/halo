@@ -434,3 +434,30 @@ do_output: {
   } while ((int16_t)idx != *(int16_t *)0x3365c4);
 }
 }
+/* -----------------------------------------------------------------------
+ * symbol_table_dispose (0x92090) — free name_pool and entries buffers and
+ * zero the symtab struct.
+ *
+ * symtab layout: int32_t[3] = { count, name_pool_ptr, entries_ptr }
+ * Called from the error path of load_symbol_table to clean up a partially
+ * filled symtab when loading fails.
+ * ----------------------------------------------------------------------- */
+void symbol_table_dispose(int32_t *symtab)
+{
+  if (symtab == NULL) {
+    display_assert("symbol_table",
+                   "c:\\halo\\SOURCE\\cseries\\stack_walk_windows.c", 0x225, 1);
+    system_exit(-1);
+  }
+  if (symtab[1] != 0) {
+    debug_free((void *)symtab[1],
+               "c:\\halo\\SOURCE\\cseries\\stack_walk_windows.c", 0x227);
+  }
+  if (symtab[2] != 0) {
+    debug_free((void *)symtab[2],
+               "c:\\halo\\SOURCE\\cseries\\stack_walk_windows.c", 0x228);
+  }
+  symtab[0] = 0;
+  symtab[1] = 0;
+  symtab[2] = 0;
+}
