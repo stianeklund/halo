@@ -7,6 +7,25 @@
 
 #include "../../common.h"
 
+/* actor_set_prop_if_match (0x14510)
+ * Conditionally replace an actor's prop handle if it matches old_prop.
+ *
+ * If the actor's current prop handle at actor+0xac equals old_prop, replace
+ * it with new_prop.  Used to safely swap out a prop reference without
+ * touching actors that already moved to a different prop.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) from decompile.
+ * Confirmed: compare *(int *)(actor+0xac) == old_prop; store new_prop on
+ *   match. */
+void actor_set_prop_if_match(int actor_handle, int old_prop, int new_prop)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0xac) == old_prop) {
+    *(int *)(actor + 0xac) = new_prop;
+  }
+}
+
 /* FUN_00014540 (0x14540)
  * Initialize actor looking state from the scripted look target at activation.
  *
@@ -355,7 +374,8 @@ void FUN_00027870(int actor_handle)
   char *desc;
   actor = (char *)datum_get(actor_data, actor_handle);
   if (*(short *)(actor + 0x544) > 0 && *(char *)0x5aca5d != '\0') {
-    desc = ai_debug_describe_actor(actor_handle, -1, 0, error_string_buffer, 0x100);
+    desc =
+      ai_debug_describe_actor(actor_handle, -1, 0, error_string_buffer, 0x100);
     console_printf(0, "%s: look-stop", desc);
   }
   *(short *)(actor + 0x546) = 0;
