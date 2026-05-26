@@ -3624,6 +3624,22 @@
       "score": 95.2,
       "source": "src/halo/interface/hud_messaging.c"
     },
+    "FUN_000db0f0": {
+      "score": 100.0,
+      "source": "src/halo/interface/event_manager.c"
+    },
+    "FUN_000db140": {
+      "score": 100.0,
+      "source": "src/halo/interface/event_manager.c"
+    },
+    "FUN_000db150": {
+      "score": 100.0,
+      "source": "src/halo/interface/event_manager.c"
+    },
+    "FUN_000db1b0": {
+      "score": 100.0,
+      "source": "src/halo/interface/event_manager.c"
+    },
     "FUN_000dc070": {
       "score": 85.7,
       "source": "src/halo/interface/event_manager.c"
@@ -3641,11 +3657,11 @@
       "source": "src/halo/interface/event_manager.c"
     },
     "FUN_000dc1d0": {
-      "score": 85.7,
+      "score": 100.0,
       "source": "src/halo/interface/event_manager.c"
     },
     "FUN_000dc200": {
-      "score": 92.3,
+      "score": 100.0,
       "source": "src/halo/interface/event_manager.c"
     },
     "FUN_000dc220": {
@@ -3657,7 +3673,7 @@
       "source": "src/halo/interface/event_manager.c"
     },
     "FUN_000dc250": {
-      "score": 75.5,
+      "score": 78.3,
       "source": "src/halo/interface/event_manager.c"
     },
     "FUN_000dc310": {
@@ -3669,7 +3685,11 @@
       "source": "src/halo/interface/event_manager.c"
     },
     "FUN_000dc620": {
-      "score": 90.5,
+      "score": 92.1,
+      "source": "src/halo/interface/event_manager.c"
+    },
+    "FUN_000dc730": {
+      "score": 100.0,
       "source": "src/halo/interface/event_manager.c"
     },
     "FUN_000dc750": {
@@ -3705,11 +3725,15 @@
       "source": "src/halo/interface/first_person_weapons.c"
     },
     "FUN_000dcd60": {
-      "score": 82.1,
+      "score": 83.1,
       "source": "src/halo/interface/first_person_weapons.c"
     },
     "FUN_000dce00": {
       "score": 93.2,
+      "source": "src/halo/interface/first_person_weapons.c"
+    },
+    "FUN_000dd110": {
+      "score": 96.5,
       "source": "src/halo/interface/first_person_weapons.c"
     },
     "FUN_000dd410": {
@@ -3737,7 +3761,7 @@
       "source": "src/halo/interface/first_person_weapons.c"
     },
     "FUN_000deb60": {
-      "score": 91.0,
+      "score": 91.6,
       "source": "src/halo/interface/first_person_weapons.c"
     },
     "FUN_000dec50": {
@@ -4568,6 +4592,10 @@
       "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
+    "FUN_00116280": {
+      "score": 95.9,
+      "source": "src/halo/memory/circular_queue.c"
+    },
     "FUN_00116390": {
       "score": 69.8,
       "source": "src/halo/memory/circular_queue.c"
@@ -4888,12 +4916,40 @@
       "score": 100.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
+    "FUN_0011e330": {
+      "score": 100.0,
+      "source": "src/halo/memory/memory_pool.c"
+    },
+    "FUN_0011e340": {
+      "score": 100.0,
+      "source": "src/halo/memory/memory_pool.c"
+    },
+    "FUN_0011e390": {
+      "score": 100.0,
+      "source": "src/halo/memory/memory_pool.c"
+    },
+    "FUN_0011e3a0": {
+      "score": 100.0,
+      "source": "src/halo/memory/memory_pool.c"
+    },
     "FUN_0011e430": {
       "score": 95.7,
       "source": "src/halo/memory/memory_pool.c"
     },
     "FUN_0011e5a0": {
       "score": 82.6,
+      "source": "src/halo/memory/memory_pool.c"
+    },
+    "FUN_0011e650": {
+      "score": 100.0,
+      "source": "src/halo/memory/memory_pool.c"
+    },
+    "FUN_0011e690": {
+      "score": 97.1,
+      "source": "src/halo/memory/memory_pool.c"
+    },
+    "FUN_0011e8a0": {
+      "score": 91.3,
       "source": "src/halo/memory/memory_pool.c"
     },
     "FUN_0011e9c0": {

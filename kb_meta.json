@@ -616,6 +616,10 @@
         "FUN_0001c270 return value used as squad pointer; declared as char* but internal layout not confirmed from binary evidence in this analysis."
       ]
     },
+    "0x3e570": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x3e7a0": {
       "kind": "function",
       "status": "ported"
@@ -1985,6 +1989,14 @@
         "FUN_0018f230 is a 4-arg wrapper for scenario_location_from_point that discards args 2 and 3, passing only arg1 (location_out) and arg4 (point); the C lift calls scenario_location_from_point directly as an equivalent."
       ]
     },
+    "0x98200": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "VC71 match is 81.9% (297/299 insns) \u2014 structural ceiling due to MSVC FPU scheduler reordering datum_scale loads and generating fcomps/fucompp vs fcomp for the while-loop decay_rate != 0.0f check; no semantic errors detected (--fpu-only clean).",
+        "Sole caller is FUN_00098750 (0x98750): PUSH ECX (delta_time float bits from [EBP+8]) then PUSH EBX (contrail_handle from data_next_index result), ADD ESP,8 after; confirms cdecl signature (int contrail_handle, float delta_time)."
+      ]
+    },
     "0x98580": {
       "kind": "function",
       "status": "ported"
@@ -2683,6 +2695,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa83e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8400": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa8420": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa8440": {
       "kind": "function",
       "status": "ported"
@@ -2785,6 +2809,10 @@
       "status": "ported"
     },
     "0xa9310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9350": {
       "kind": "function",
       "status": "ported"
     },
@@ -4320,6 +4348,10 @@
         "The internal helper 0xd5070 uses ESI as a register arg for vehicle tag matching; not yet in kb.json to avoid thunk recursion."
       ]
     },
+    "0xdb0f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdc070": {
       "kind": "function",
       "status": "ported",
@@ -4413,6 +4445,10 @@
       ]
     },
     "0xdce00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xdd110": {
       "kind": "function",
       "status": "ported"
     },
@@ -5949,6 +5985,26 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11e330": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e390": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e3c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11e430": {
       "kind": "function",
       "status": "ported"
@@ -5957,11 +6013,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11e650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e690": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11e6c0": {
       "kind": "function",
       "status": "ported"
     },
     "0x11e7a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11e8a0": {
       "kind": "function",
       "status": "ported"
     },
