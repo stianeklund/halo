@@ -4266,7 +4266,8 @@
         },
         {
           "addr": "0x1459d0",
-          "decl": "void breakable_surfaces_reset(void);"
+          "decl": "void breakable_surfaces_reset(void);",
+          "ported": false
         },
         {
           "addr": "0x145a60",
@@ -6611,7 +6612,7 @@
         {
           "addr": "0x9c9a0",
           "decl": "void FUN_0009c9a0(void);",
-          "ported": null
+          "ported": false
         },
         {
           "addr": "0x9c9f0",
@@ -8992,19 +8993,23 @@
         },
         {
           "addr": "0x1bf760",
-          "decl": "void FUN_001bf760(void);"
+          "decl": "void FUN_001bf760(void);",
+          "ported": true
         },
         {
           "addr": "0x1bf8e0",
-          "decl": "void game_state_save_to_persistent_storage(void);"
+          "decl": "void game_state_save_to_persistent_storage(void);",
+          "ported": true
         },
         {
           "addr": "0x1bf920",
-          "decl": "void game_state_test_persistent_storage(void);"
+          "decl": "int game_state_test_persistent_storage(int *header, int16_t *flags, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x1bf9e0",
-          "decl": "void game_state_reverted(void);"
+          "decl": "bool game_state_reverted(void);",
+          "ported": true
         },
         {
           "addr": "0x1bfa00",
@@ -9090,7 +9095,7 @@
         },
         {
           "addr": "0x1c0ac0",
-          "decl": "void game_state_write_to_persistent_storage(void);"
+          "decl": "void game_state_write_to_persistent_storage(int param_1, void *param_2, int param_3, int param_4);"
         },
         {
           "addr": "0x1c0c20",
@@ -15390,7 +15395,8 @@
         {
           "addr": "0xb6870",
           "decl": "int player_control_get_unit_index(short local_player_index);",
-          "name": "player_control_get_unit_index"
+          "name": "player_control_get_unit_index",
+          "ported": false
         },
         {
           "addr": "0xb68c0",
@@ -17838,7 +17844,7 @@
         {
           "addr": "0x10c390",
           "decl": "float FUN_0010c390(float param_1, float param_2, uint8_t param_3);",
-          "ported": null
+          "ported": false
         },
         {
           "addr": "0x10c3c0",
@@ -21851,7 +21857,8 @@
         },
         {
           "addr": "0x19b330",
-          "decl": "void FUN_0019B330(void);"
+          "decl": "void FUN_0019B330(void);",
+          "ported": true
         },
         {
           "addr": "0x19b3a0",
@@ -28641,7 +28648,7 @@
         },
         {
           "addr": "0x19d060",
-          "decl": "void set_language_code(void);"
+          "decl": "void set_language_code(short code);"
         },
         {
           "addr": "0x19d080",
@@ -28669,7 +28676,7 @@
         },
         {
           "addr": "0x19d3c0",
-          "decl": "void FUN_0019d3c0(void);"
+          "decl": "char *FUN_0019d3c0(int index, short param_2);"
         },
         {
           "addr": "0x19d420",
