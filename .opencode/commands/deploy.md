@@ -6,7 +6,7 @@ subtask: true
 
 Use the `halo-deploy-xbdm` skill for the standard build-and-deploy workflow.
 This is the **preferred verification path** — always deploy to a real Xbox via
-XBDM rather than building an ISO for xemu when a console is available.
+XBDM when a console is available.
 
 Build the project, then deploy recently modified files to a real Xbox using
 `tools/xbox/deploy_xbox.py` (which wraps the XDK `xbcp.exe` file transfer tool).

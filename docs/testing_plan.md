@@ -42,7 +42,7 @@ The weak points are repeatability and reporting:
 
 | Lane | Best For | Ground Truth | Primary Tooling |
 |---|---|---|---|
-| Agent workflow audit | command/skill/agent policy drift | `agent-content` | `sync_agent_content.py`, `audit_agent_content.py` |
+| Agent workflow sync | command/skill parity between agent trees | `.claude/` ↔ `.opencode/` | manual `diff -rq` |
 | Unicorn/Z3 equivalence | leaf, data-only, stubbable lifted functions | oracle `.obj` vs candidate `.obj` | `unicorn_diff.py`, `batch_verify.py` |
 | live memory replay | non-leaf functions that need live globals for meaningful coverage | selected live engine memory pages | `state_snapshot.py`, `capture_snapshot_from_diff.py`, `unicorn_diff.py --state-snapshot` |
 | VC71/delink compare | structural lift quality and FPU warning triage | delinked reference object | `vc71_verify.py`, `compare_obj.py` |
@@ -57,20 +57,20 @@ the fallback lane.
 
 ## Phase 1: Align Agent Workflow Policy
 
-Keep `agent-content` canonical and regenerate the derived surfaces.
+Keep `.claude/` as source of truth, sync `.opencode/` from it.
 
 Commands:
 
 ```bash
-rtk python3 tools/analysis/sync_agent_content.py --check
-rtk python3 tools/audit/audit_agent_content.py --strict
+diff -rq .claude/commands/ .opencode/commands/ | grep -v '~'
+diff -rq .claude/skills/ .opencode/skills/ | grep -v '~'
 ```
 
 Acceptance:
 
-- `.claude` and `.opencode` match generated `agent-content`
-- command, skill, and agent parity audits pass
-- safety-critical review/no-commit policy is not weakened in derived files
+- `.claude` and `.opencode` commands and skills match
+- no stale `*~` backup files in either tree
+- safety-critical review/no-commit policy is not weakened
 
 ## Phase 2: Repair Runtime Fallback Health
 
@@ -297,8 +297,6 @@ These are useful, but they should not block the verification lanes above:
 Run the narrowest meaningful checks first:
 
 ```bash
-rtk python3 tools/analysis/sync_agent_content.py --check
-rtk python3 tools/audit/audit_agent_content.py --strict
 rtk python3 -m py_compile tools/verify/verify_option3.py tools/verify/test_inventory.py tools/equivalence/batch_verify.py tools/verify/run_golden_tests.py tools/build/patch.py
 rtk python3 tools/verify/verify_option3.py --target smoke --skip-build --skip-iso
 rtk python3 tools/verify/test_inventory.py --no-write

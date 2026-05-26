@@ -4,22 +4,14 @@ agent: fast
 subtask: false
 ---
 
-Run the standard verification chain covering agent content sync, audit,
-inventory, and batch equivalence. Non-interactive; suitable for CI.
+Run the standard verification chain covering audit, inventory, and batch
+equivalence. Non-interactive; suitable for CI.
 
 Argument: $ARGUMENTS (`[--limit N] [--batch-csv] [--skip-build] [--skip-iso]`)
 
 The standard chain executes these phases in order:
 
-**Phase 1: Agent Content Sync & Audit**
-```bash
-rtk python3 tools/analysis/sync_agent_content.py --check
-rtk python3 tools/audit/audit_agent_content.py --strict
-```
-- Fails if `.claude` or `.opencode` content drifts from `agent-content/`
-- Fails if any wrapper/frontmatter differences exist in `--strict` mode
-
-**Phase 2: Python Syntax & Runtime Fallback Smoke**
+**Phase 1: Python Syntax & Runtime Fallback Smoke**
 ```bash
 rtk python3 -m py_compile \
   tools/verify/verify_option3.py \
@@ -30,14 +22,14 @@ rtk python3 -m py_compile \
 rtk python3 tools/verify/verify_option3.py --target smoke --skip-build --skip-iso
 ```
 
-**Phase 3: Coverage Inventory**
+**Phase 2: Coverage Inventory**
 ```bash
 rtk python3 tools/verify/test_inventory.py --no-write
 ```
 - Reports: total functions, ported, Unicorn/Z3 verifiable, lane counts
 - Artifacts: `artifacts/test_inventory/summary.json`, `by_object.json`, `blocked_report.json`
 
-**Phase 4: Batch Equivalence Dry-Run**
+**Phase 3: Batch Equivalence Dry-Run**
 ```bash
 rtk python3 tools/equivalence/batch_verify.py --dry-run
 ```
@@ -46,7 +38,7 @@ rtk python3 tools/equivalence/batch_verify.py --dry-run
 - Targets with weak coverage should be rerun later with xemu `pmemsave` state
   snapshots through `unicorn_diff.py --state-snapshot`.
 
-**Phase 4b: Limited Batch Run (with --limit)**
+**Phase 3b: Limited Batch Run (with --limit)**
 ```bash
 rtk python3 tools/equivalence/batch_verify.py \
   --limit N --csv --baseline artifacts/batch_verify/summary.json --fail-on-new
@@ -55,7 +47,7 @@ rtk python3 tools/equivalence/batch_verify.py \
 - Fails if new regressions vs known failures
 - Use `--limit 0` to skip the batch run
 
-**Phase 5: Runtime Oracle Follow-Up**
+**Phase 4: Runtime Oracle Follow-Up**
 - Use `rtk python3 tools/verify/run_golden_tests.py --target <target>` for
   stateful targets that cannot be proven through delink/equivalence.
 - Prefer dual-oracle harness cases for high-value stateful targets once
