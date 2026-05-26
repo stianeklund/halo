@@ -80,6 +80,46 @@ void FUN_0002f230(int actor_handle)
   actor_path_refresh(actor_handle, 1, NULL);
 }
 
+/* actor_perception_acknowledge (0x2f2b0)
+ * Acknowledge a damaging prop for an actor. Validates ownership and prop type,
+ * clears acknowledgement fields, sets the acknowledged flag, then dispatches
+ * to the update function.
+ *
+ * Asserts: prop->owner_actor_index == actor_index (line 0x40d)
+ *          prop_acknowledged(prop) — type in [2,3] (line 0x40e)
+ *          prop->orphan_prop_index == NONE (line 0x40f) */
+void actor_perception_acknowledge(int actor_handle, int prop_handle, int param_3, char param_4)
+{
+  char *prop;
+
+  prop = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+
+  if (*(int *)(prop + 4) != actor_handle) {
+    display_assert("prop->owner_actor_index == actor_index",
+                   "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0x40d, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)(prop + 0x24) < 2 || *(short *)(prop + 0x24) > 3) {
+    display_assert("prop_acknowledged(prop)",
+                   "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0x40e, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)(prop + 0xc) != -1) {
+    display_assert("prop->orphan_prop_index == NONE",
+                   "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0x40f, 1);
+    system_exit(-1);
+  }
+
+  *(char *)(prop + 0xba) = 0;
+  *(char *)(prop + 0xb9) = 0;
+  *(char *)(prop + 0xbb) = 0;
+  *(char *)(prop + 0x64) = 1;
+
+  FUN_00036f20(actor_handle, prop_handle, param_3, param_4);
+}
+
 /* actor_get_best_damaging_prop (0x2fa70)
  * Find the highest-scoring active damaging prop visible to the actor's unit.
  *

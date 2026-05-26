@@ -223,6 +223,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2f2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2fa70": {
       "kind": "function",
       "status": "ported"
