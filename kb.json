@@ -3273,7 +3273,8 @@
         },
         {
           "addr": "0x16c40",
-          "decl": "void FUN_00016c40(void);"
+          "decl": "void FUN_00016c40(int param_1, int param_2, short param_3, char *param_4);",
+          "ported": true
         },
         {
           "addr": "0x16c80",
