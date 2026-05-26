@@ -6799,8 +6799,11 @@
           "addr": "0xdb0b0"
         },
         {
-          "decl": "void FUN_000db0f0(void);",
-          "addr": "0xdb0f0"
+          "decl": "void motion_sensor_initialize(void);",
+          "addr": "0xdb0f0",
+          "name": "motion_sensor_initialize",
+          "ported": true,
+          "file": "src/halo/interface/event_manager.c"
         },
         {
           "decl": "void FUN_000db140(void);",
@@ -6809,7 +6812,9 @@
         },
         {
           "decl": "void FUN_000db150(void);",
-          "addr": "0xdb150"
+          "addr": "0xdb150",
+          "ported": true,
+          "file": "src/halo/interface/event_manager.c"
         },
         {
           "decl": "void FUN_000db1b0(void);",
