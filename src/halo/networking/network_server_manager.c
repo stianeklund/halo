@@ -417,6 +417,82 @@ bool network_game_server_client_machine_is_joined_to_game(int server,
   return (*(uint8_t *)((char *)machine + 0xe) >> 1) & 1;
 }
 
+/* FUN_0012c6d0 — 0x12c6d0
+ * Pick a random player name that is not already used by any active player.
+ * Iterates up to 0x10 player slots at param_1+0x22e (0x20 bytes each).
+ * Retries FUN_0012b5e0 until the returned name does not match any active
+ * player's name via ustrcmp. Copies the chosen name to param_2 (0xb wide
+ * chars) and writes a null short at param_2+0x16. */
+void FUN_0012c6d0(int param_1, int param_2)
+{
+  wchar_t *name;
+  int match_count;
+  char *player_slot;
+  int slot_count;
+
+  do {
+    name = FUN_0012b5e0();
+    player_slot = (char *)param_1 + 0x22e;
+    match_count = 0;
+    slot_count = 0x10;
+    do {
+      if (network_player_is_valid((void *)player_slot)) {
+        if (ustrcmp((wchar_t *)player_slot, name) == 0) {
+          match_count++;
+        }
+      }
+      player_slot += 0x20;
+      slot_count--;
+    } while (slot_count != 0);
+  } while (match_count != 0);
+
+  ustrncpy((wchar_t *)param_2, name, 0xb);
+  *(short *)((char *)param_2 + 0x16) = 0;
+}
+
+/* FUN_0012c750 — 0x12c750
+ * Pick a random team index not already occupied by any active player.
+ * For the first 10 retries uses FUN_001c19a0, then FUN_001c19c0.
+ * Player slots start at param_1+0x246 (0x20 bytes each, 0x10 slots).
+ * network_player_is_valid is called with slot-0x18 (slot base pointer).
+ * The team value is a short at slot[0] (= player_base+0x18).
+ * Stores the chosen team as a short at param_2+0x18. */
+void FUN_0012c750(int param_1, int param_2)
+{
+  int random_team;
+  char unique;
+  char *player_slot;
+  int retry_count;
+  int i;
+
+  retry_count = 0;
+  do {
+    if (retry_count < 0xa) {
+      random_team = FUN_001c19a0();
+    } else {
+      random_team = FUN_001c19c0();
+    }
+    unique = 1;
+    i = 0;
+    player_slot = (char *)param_1 + 0x246;
+    do {
+      if (network_player_is_valid((void *)(player_slot - 0x18))) {
+        if (*(short *)player_slot == (short)random_team) {
+          unique = 0;
+          break;
+        }
+      }
+      i++;
+      player_slot += 0x20;
+    } while (i < 0x10);
+    retry_count++;
+    if (unique) {
+      *(short *)((char *)param_2 + 0x18) = (short)random_team;
+      return;
+    }
+  } while (1);
+}
+
 /* network_game_server_remove_player_from_game — 0x12c920
  * Removes a player from the game if machine IDs match. Asserts server,
  * machine, and player are all non-null. Returns 1 on success. */
