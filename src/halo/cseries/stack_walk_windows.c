@@ -260,7 +260,7 @@ int load_symbol_table(const char *map_path, int32_t *symtab_out)
   symtab_out[0] = count;
   symtab_out[1] = (int32_t)name_pool;
   symtab_out[2] = (int32_t)entries;
-  FUN_00092090(symtab_out);
+  symbol_table_dispose(symtab_out);
 
   *(int32_t *)0x2ee780 = bias;
   return 1;
