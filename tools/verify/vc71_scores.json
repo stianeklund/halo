@@ -132,6 +132,26 @@
       "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "FUN_00015b70": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00015eb0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00015f30": {
+      "score": 96.3,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00016000": {
+      "score": 97.8,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00017060": {
+      "score": 96.6,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_00017090": {
       "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
