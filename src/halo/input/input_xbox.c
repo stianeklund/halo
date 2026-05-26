@@ -416,7 +416,7 @@ void FUN_000ce530(void *state)
   bytes_read = 0;
   ReadFile(*(int *)0x46b814, state, 0x28, &bytes_read, NULL);
   if (bytes_read == 0) {
-    FUN_001d1610(*(int *)0x46b814, 0, NULL, 0);
+    SetFilePointer(*(int *)0x46b814, 0, NULL, 0);
     ReadFile(*(int *)0x46b814, state, 0x28, &bytes_read, NULL);
   }
 }

@@ -4465,7 +4465,8 @@
         },
         {
           "addr": "0x1bd020",
-          "decl": "void FUN_001bd020(void);"
+          "decl": "void cache_file_read_header_into_slot(short map_file_index);",
+          "name": "cache_file_read_header_into_slot"
         },
         {
           "addr": "0x1bd1b0",
@@ -4485,7 +4486,8 @@
         },
         {
           "addr": "0x1bd5f0",
-          "decl": "void FUN_001bd5f0(void);"
+          "decl": "void FUN_001bd5f0(void);",
+          "ported": true
         },
         {
           "addr": "0x1bd8e0",
@@ -4521,7 +4523,8 @@
         }
       ],
       "name": "cache_files_windows.obj",
-      "source": "cache/cache_files_windows.c"
+      "source": "cache/cache_files_windows.c",
+      "source_path": "src/halo/cache/cache_files_windows.c"
     },
     {
       "functions": [
@@ -27953,11 +27956,13 @@
         },
         {
           "addr": "0x1d158c",
-          "decl": "void FUN_001d158c(void);"
+          "decl": "bool __stdcall SetEndOfFile(int handle);",
+          "name": "SetEndOfFile"
         },
         {
           "addr": "0x1d1610",
-          "decl": "unsigned int FUN_001d1610(int handle, unsigned int offset, unsigned int *high_ptr, int method);"
+          "decl": "unsigned int __stdcall SetFilePointer(int handle, int distance, int *distance_high, unsigned int method);",
+          "name": "SetFilePointer"
         },
         {
           "addr": "0x1d170a",
@@ -28005,7 +28010,8 @@
         },
         {
           "addr": "0x1d1d4a",
-          "decl": "void FUN_001d1d4a(void);"
+          "decl": "unsigned int __stdcall GetFileSize(int handle, unsigned int *high_size);",
+          "name": "GetFileSize"
         },
         {
           "addr": "0x1d1f10",
