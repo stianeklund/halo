@@ -29230,7 +29230,10 @@
         },
         {
           "addr": "0x2f380",
-          "decl": "void FUN_0002F380(void);"
+          "decl": "uint16_t FUN_0002f380(int actor_handle, int prop_handle);",
+          "name": "FUN_0002f380",
+          "source_path": "src/halo/ai/actor_perception.c",
+          "ported": true
         },
         {
           "addr": "0x2f470",
@@ -29238,7 +29241,10 @@
         },
         {
           "addr": "0x2f5b0",
-          "decl": "void FUN_0002f5b0(void);"
+          "decl": "int FUN_0002f5b0(int param_1, int param_2);",
+          "name": "FUN_0002f5b0",
+          "source_path": "src/halo/ai/actor_perception.c",
+          "ported": true
         },
         {
           "addr": "0x2f5f0",
