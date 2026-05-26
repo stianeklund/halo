@@ -230,8 +230,7 @@ void fp_anim_apply_node_remap(int mode_tag_index, int fp_nodes,
   i = 0;
   do {
     remap_idx = node_remap[(int)i];
-    assert_halt(remap_idx >= 0 &&
-                (int)remap_idx < *(int *)(antr_tag + 0x68));
+    assert_halt(remap_idx >= 0 && (int)remap_idx < *(int *)(antr_tag + 0x68));
     src_off = (int)remap_idx * 0x34;
     dst_off = (int)i * 0x34;
     src = (unsigned int *)(anim_nodes + src_off);
@@ -367,6 +366,33 @@ void FUN_000dce00(int16_t local_player_index)
   }
 
   *(int16_t *)(fp + 0x12) = 0x1e;
+}
+
+/* Search the 4 first-person weapon slots for the one owning object_handle.
+ * Returns the local player index (0-3), or -1 if not found (0xdd110). */
+int first_person_weapon_get_local_index(int object_handle)
+{
+  int base;
+  int16_t i;
+
+  i = 0;
+  do {
+    if ((i < 0) || (3 < i)) {
+      display_assert("local_player_index>=0 && "
+                     "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                     "c:\\halo\\SOURCE\\interface\\first_person_weapons.c",
+                     0x599, 1);
+      system_exit(-1);
+    }
+    base = *(int *)0x46bea8;
+    if ((*(int *)(base + (int)i * 0x1ea0 + 8) == object_handle) &&
+        (*(char *)(base + (int)i * 0x1ea0) != 0))
+      break;
+    i++;
+  } while (i < 4);
+  if (i == 4)
+    return -1;
+  return (int)i;
 }
 
 /* Return a pointer to the node transform for a given node in the local
