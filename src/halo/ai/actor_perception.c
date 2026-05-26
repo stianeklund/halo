@@ -178,6 +178,89 @@ int FUN_0002f5b0(int param_1, int param_2)
   return 0;
 }
 
+/* actor_perception_find_prop_pathfinding_location (0x2f910)
+ * Fills prop->pathfinding_surface_index (+0xec) if not already set.
+ * If prop has a vehicle handle (+0x110), uses vehicle_get_estimated_position;
+ * otherwise if unit is a biped, uses biped_find_pathfinding_surface_index.
+ * Output position written to prop->pathfinding_position (+0xf0).
+ */
+void actor_perception_find_prop_pathfinding_location(int actor_handle,
+                                                     int prop_handle)
+{
+  char *prop;
+  int unit_handle;
+
+  prop = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+  if (*(int *)(prop + 4) != actor_handle) {
+    display_assert("prop->owner_actor_index == actor_index",
+                   "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0xe01, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(prop + 0xec) == -1) {
+    if (*(int *)(prop + 0x110) != -1) {
+      *(int *)(prop + 0xec) = vehicle_get_estimated_position(
+        *(int *)(prop + 0x110), (vector3_t *)(prop + 0xf0));
+      return;
+    }
+    unit_handle = *(int *)(prop + 0x18);
+    if (object_try_and_get_and_verify_type(unit_handle, 1) != NULL) {
+      *(int *)(prop + 0xec) = biped_find_pathfinding_surface_index(
+        unit_handle, (vector3_t *)(prop + 0xf0));
+    }
+  }
+}
+
+/* actor_perception_find_killer_prop_index (0x2f9b0)
+ * Find the highest-scoring active damaging prop visible to the unit that owns
+ * the given prop. Similar to actor_get_best_damaging_prop but uses the prop's
+ * owning unit as the source of weapon slots.
+ * flag: when non-zero, require prop visibility; when 0, accept any.
+ */
+int actor_perception_find_killer_prop_index(int actor_handle, int prop_handle,
+                                            int flag)
+{
+  char *prop_rec;
+  char *unit;
+  char *cand_prop;
+  int *slot;
+  int score;
+  int responsible;
+  int cand_handle;
+  int best_handle;
+  int best_score;
+  int count;
+  short prop_type;
+
+  prop_rec = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+  unit = (char *)object_get_and_verify_type(*(int *)(prop_rec + 0x18), 3);
+  best_handle = -1;
+  best_score = 0;
+  slot = (int *)(unit + 0x3e8);
+  count = 4;
+  do {
+    score = slot[-2];
+    responsible = ai_get_responsible_unit((unsigned int)*slot, 1);
+    if (responsible != -1) {
+      cand_handle = prop_get_active_by_unit_index(actor_handle, responsible);
+      if (cand_handle != -1) {
+        cand_prop = (char *)datum_get(*(data_t **)0x5ab23c, cand_handle);
+        prop_type = *(short *)(cand_prop + 0x24);
+        if (prop_type >= 2 && prop_type <= 3) {
+          if (*(char *)(cand_prop + 0x60) != '\0' || flag == '\0') {
+            if (best_score < score) {
+              best_handle = cand_handle;
+              best_score = score;
+            }
+          }
+        }
+      }
+    }
+    slot += 4;
+    count--;
+  } while (count != 0);
+  return best_handle;
+}
+
 /* actor_get_best_damaging_prop (0x2fa70)
  * Find the highest-scoring active damaging prop visible to the actor's unit.
  *
