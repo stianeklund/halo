@@ -622,6 +622,17 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
   }
 }
 
+/* FUN_00016c40 (0x16c40) */
+void FUN_00016c40(int param_1, int param_2, short param_3, char *param_4)
+{
+  int iVar1;
+  iVar1 = (int)tag_block_get_element(
+      (char *)global_scenario_get() + 0x438, (int)param_3, 0x60);
+  if ((int)(unsigned char)*param_4 >= *(int *)(iVar1 + 0x30)) {
+    *param_4 = (char)0xff;
+  }
+}
+
 /* actor_clear_aim_target (0x17060)
  * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
  * target handle (actor+0xdc) to the -1 sentinel.
