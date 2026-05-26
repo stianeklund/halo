@@ -47,7 +47,8 @@ def build_variant(label: str, overlay: Path, artifact_dir: Path, skip_build: boo
     env = os.environ.copy()
     env["HALO_KB_OVERLAY"] = str(overlay)
     run_command(
-        ["cmake", "-B", "build", "-S", str(ROOT), "-DHALO_TEST_HARNESS=ON"],
+        ["cmake", "-B", "build", "-S", str(ROOT), "-DHALO_TEST_HARNESS=ON",
+         "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake"],
         ROOT,
         env,
         artifact_dir / f"{label}_configure.txt",
