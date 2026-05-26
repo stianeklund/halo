@@ -3060,8 +3060,10 @@
           "addr": "0x142a0"
         },
         {
-          "decl": "void FUN_00014360(void);",
-          "addr": "0x14360"
+          "name": "actor_update_prop_desire",
+          "decl": "char actor_update_prop_desire(int actor_handle);",
+          "addr": "0x14360",
+          "ported": true
         },
         {
           "decl": "void FUN_00014460(void);",
