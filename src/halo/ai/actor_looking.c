@@ -65,6 +65,50 @@ char actor_update_prop_desire(int actor_handle)
   return *(char *)(actor + 0xa0);
 }
 
+/* FUN_00014480 (0x14480)
+ * Set up an actor's prop-look reference from its conversation or existing prop.
+ *
+ * Looks up the actor's conversation handle (actor+0x9c).  If a conversation
+ * is active, fetches the conversation record and, if the actor has no current
+ * prop (actor+0xac == -1), looks up the active prop for the conversation's
+ * unit (conversation+0x10) via prop_get_active_by_unit_index.  Then marks
+ * actor+0x3fc = 1 (look-spec active).  If a prop was resolved, sets the
+ * look-type word at actor+0x3e8 = 3, the look-active flag at actor+0x3ec = 1,
+ * and stores the prop handle at actor+0x3f0.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle); ESI = actor record.
+ * Confirmed: CMP dword [ESI+0x9c],-0x1; JZ skip; PUSH [ESI+0x9c]; MOV
+ *   ECX,[0x6324ec]; PUSH ECX; CALL datum_get → EAX = conversation ptr.
+ * Confirmed: MOV ECX,[ESI+0xac]; CMP ECX,-0x1; JZ prop_none;
+ *   MOV EDI,ECX.
+ * Confirmed: TEST EAX,EAX; JZ done; MOV EAX,[EAX+0x10]; CMP EAX,-0x1;
+ *   JZ done; PUSH EAX; PUSH EBX; CALL 0x64ab0 → prop_get_active_by_unit_index.
+ * Confirmed: MOV word [ESI+0x3fc],1; if EDI!=-1: MOV word [ESI+0x3e8],3;
+ *   MOV word [ESI+0x3ec],1; MOV dword [ESI+0x3f0],EDI. */
+void FUN_00014480(int actor_handle)
+{
+  char *actor;
+  char *conversation;
+  int prop_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  conversation = NULL;
+  if (*(int *)(actor + 0x9c) != -1)
+    conversation =
+      (char *)datum_get(*(data_t **)0x6324ec, *(int *)(actor + 0x9c));
+  prop_handle = *(int *)(actor + 0xac);
+  if (prop_handle == -1 && conversation != NULL &&
+      *(int *)(conversation + 0x10) != -1)
+    prop_handle = prop_get_active_by_unit_index(actor_handle,
+                                                *(int *)(conversation + 0x10));
+  *(int16_t *)(actor + 0x3fc) = 1;
+  if (prop_handle != -1) {
+    *(int16_t *)(actor + 0x3e8) = 3;
+    *(int16_t *)(actor + 0x3ec) = 1;
+    *(int *)(actor + 0x3f0) = prop_handle;
+  }
+}
+
 /* actor_set_prop_if_match (0x14510)
  * Conditionally replace an actor's prop handle if it matches old_prop.
  *
@@ -517,6 +561,24 @@ void cross_product3d(float *a, float *b, float *out)
   out[2] = a0 * b1 - a1 * b0;
 }
 
+/* FUN_00017940 (0x17940)
+ * Draw a random int16_t in [min, max] using the global random seed.
+ *
+ * Calls get_global_random_seed_address() to obtain a pointer to the global
+ * RNG seed, then passes it together with min and max to random_range.
+ *
+ * Note: MSVC pre-pushed min/max before calling get_global_random_seed_address
+ * (which is void), reusing that stack space.  The seed pointer (EAX) is then
+ * pushed last, making it the first C argument to random_range.
+ *
+ * Confirmed: PUSH EAX (max); PUSH ECX (min); CALL 0x10b0d0
+ *   (get_global_random_seed_address, takes no params); PUSH EAX (seed);
+ *   CALL 0x10b2d0 (random_range); ADD ESP,0xc. */
+int16_t FUN_00017940(int16_t min, int16_t max)
+{
+  return random_range((unsigned int *)get_global_random_seed_address(), min, max);
+}
+
 /* FUN_00019ac0 (0x19ac0)
  * Mark actor look-state as interrupted (target type 1 path).
  *
@@ -603,6 +665,40 @@ void FUN_0001a5d0(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   *(short *)(actor + 0xa8) = -1;
   *(int *)(actor + 0xac) = -1;
+}
+
+/* FUN_0001aae0 (0x1aae0)
+ * Get an object's bounding sphere (center and radius).
+ *
+ * Resolves the object via object_get_and_verify_type with type_mask=0xffffffff
+ * (all types accepted).  Asserts that center and radius pointers are non-NULL.
+ * Copies the three-float center position from object+0x50..0x58 and the scalar
+ * radius from object+0x5c.
+ *
+ * Confirmed: PUSH -0x1; PUSH param_1; CALL 0x13d680
+ * (object_get_and_verify_type). Confirmed: MOV ESI,[EBP+0xc] (center); TEST
+ * ESI,ESI; JNZ ok; display_assert("center","..\\objects\\objects.h",0x217,1);
+ * system_exit(-1). Confirmed: MOV EBX,[EBP+0x10] (radius); TEST EBX,EBX; JNZ
+ * ok; display_assert("radius","..\\objects\\objects.h",0x218,1);
+ * system_exit(-1). Confirmed: LEA ECX,[EDI+0x50]; MOV EDX,[ECX]; MOV [ESI],EDX;
+ *   MOV EAX,[ECX+0x4]; MOV [ESI+0x4],EAX; MOV ECX,[ECX+0x8]; MOV [ESI+0x8],ECX;
+ *   MOV EDX,[EDI+0x5c]; MOV [EBX],EDX. */
+void FUN_0001aae0(int object_handle, float *center, float *radius)
+{
+  char *obj;
+  obj = (char *)object_get_and_verify_type(object_handle, 0xffffffff);
+  if (center == NULL) {
+    display_assert("center", "..\\objects\\objects.h", 0x217, 1);
+    system_exit(-1);
+  }
+  if (radius == NULL) {
+    display_assert("radius", "..\\objects\\objects.h", 0x218, 1);
+    system_exit(-1);
+  }
+  center[0] = *(float *)(obj + 0x50);
+  center[1] = *(float *)(obj + 0x54);
+  center[2] = *(float *)(obj + 0x58);
+  *radius = *(float *)(obj + 0x5c);
 }
 
 /* FUN_00027870 (0x27870)
