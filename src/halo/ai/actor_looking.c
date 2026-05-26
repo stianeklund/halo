@@ -565,6 +565,40 @@ void FUN_00017090(int actor_handle)
                                    FUN_00016cd0, 0);
 }
 
+/* FUN_000170c0 (0x170c0)
+ * Compute actor prop-interest for the prop list at actor+0x9c using the
+ * guard-zone boundary callback (FUN_00016c80).
+ *
+ * Same pattern as FUN_00017090 but selects the guard-specific callback.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle);
+ * actor_look_compute_prop_interest with callback=FUN_00016c80, reset=0,
+ * prop_state=actor+0x9c, param_5=0. */
+void FUN_000170c0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+                                   FUN_00016c80, 0);
+}
+
+/* FUN_000170f0 (0x170f0)
+ * Compute actor prop-interest for the prop list at actor+0x9c using the
+ * danger-zone update callback (FUN_00016cf0).
+ *
+ * Same pattern as FUN_00017090 but selects the danger-update callback.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle);
+ * actor_look_compute_prop_interest with callback=FUN_00016cf0, reset=0,
+ * prop_state=actor+0x9c, param_5=0. */
+void FUN_000170f0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+                                   FUN_00016cf0, 0);
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b
@@ -601,7 +635,8 @@ void cross_product3d(float *a, float *b, float *out)
  *   CALL 0x10b2d0 (random_range); ADD ESP,0xc. */
 int16_t FUN_00017940(int16_t min, int16_t max)
 {
-  return random_range((unsigned int *)get_global_random_seed_address(), min, max);
+  return random_range((unsigned int *)get_global_random_seed_address(), min,
+                      max);
 }
 
 /* FUN_00019ac0 (0x19ac0)

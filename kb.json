@@ -3311,11 +3311,15 @@
         },
         {
           "addr": "0x170c0",
-          "decl": "void FUN_000170c0(void);"
+          "decl": "void FUN_000170c0(int actor_handle);",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "addr": "0x170f0",
-          "decl": "void FUN_000170f0(void);"
+          "decl": "void FUN_000170f0(int actor_handle);",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "addr": "0x17120",
