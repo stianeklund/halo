@@ -532,41 +532,6 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
   }
 }
 
-/* FUN_00016ff0 (0x16ff0)
- * Update actor scripted-look prop interest, or invalidate if out of range.
- *
- * Fetches actor record; prop_state = (short*)(actor+0x9c).  If the prop
- * index (*prop_state) is valid (>= 0) and within the scenario prop count
- * (*(int*)(scenario+0x438)), delegates to actor_look_compute_prop_interest
- * with reset=0, callback=FUN_00016c40, param_5=0.  Otherwise marks the
- * prop as invalid: *prop_state = -1, actor+0xa1 = 1, then calls
- * actor_action_change(actor_handle, 0, 0).
- *
- * Confirmed: cdecl, single stack arg (actor_handle).
- * Confirmed: datum_get(actor_data, actor_handle); ADD ESI,0x9c.
- * Confirmed: MOV CX,[ESI]; TEST CX,CX; JL else; MOV EDX,[EAX+0x438].
- * Confirmed: MOV word [ESI],0xffff; MOV byte [ESI+0x5],0x1 in else-branch.
- * Confirmed: CALL actor_action_change(actor_handle, 0, 0) in else-branch.
- * Inferred: actor+0x9c = scripted-look prop state (short index);
- *   actor+0xa1 = scripted-look valid flag; scenario+0x438 = prop count. */
-void FUN_00016ff0(int actor_handle)
-{
-  int scenario;
-  char *actor;
-  short *prop_state;
-  actor = (char *)datum_get(actor_data, actor_handle);
-  prop_state = (short *)(actor + 0x9c);
-  scenario = (int)global_scenario_get();
-  if ((*prop_state >= 0) && ((int)*prop_state < *(int *)(scenario + 0x438))) {
-    actor_look_compute_prop_interest(actor_handle, 0, prop_state, FUN_00016c40,
-                                     0);
-    return;
-  }
-  *prop_state = -1;
-  *(char *)(actor + 0xa1) = 1;
-  actor_action_change(actor_handle, 0, 0);
-}
-
 /* actor_clear_aim_target (0x17060)
  * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
  * target handle (actor+0xdc) to the -1 sentinel.
