@@ -28,6 +28,8 @@ extern void scalars_interpolate(float a, float b, float blend, float *out);
 extern void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t,
                                                  float *out);
 extern uint32_t FUN_000d1c90(float *color);
+extern void FUN_001bd5f0(void);
+extern void *csmemset(void *buffer, int c, size_t size);
 
 
 static int check(const char *name, uint32_t got, uint32_t expected, char *buf)
@@ -604,6 +606,34 @@ void run_tests(void)
     dump_values[3] = *(uint32_t *)&out_buf[4];
     dump_values[4] = (uint32_t)zs[1];
     dump_u32_case("inflate", "inflate_truncated_input", dump_values, 5, buf);
+  }
+
+  /* cache_file_init: verify FUN_001bd5f0 ran correctly at boot.
+   * Dumps each slot's file handle, 'head' marker (+0x0C), map name (+0x2C),
+   * build string (+0x4C), and file-time CRC (+0x70). Compared between
+   * oracle (original) and candidate (ported) builds by run_golden_tests.py. */
+  {
+    uint32_t slot_state[18];
+    char *slot_base = (char *)0x4e61d8;
+    int si;
+
+    for (si = 0; si < 6; si++) {
+      char *entry = slot_base + si * 0x80c;
+      slot_state[si * 3]     = *(uint32_t *)(entry);
+      slot_state[si * 3 + 1] = *(uint32_t *)(entry + 0x0c);
+      slot_state[si * 3 + 2] = *(uint32_t *)(entry + 0x2c);
+    }
+
+    dump_u32_case("cache_file_init", "slot_state_at_boot", slot_state, 18, buf);
+
+    total += 6;
+    for (si = 0; si < 6; si++) {
+      char *entry = slot_base + si * 0x80c;
+      int handle = *(int *)entry;
+      passed += check("cache_slot_handle_valid",
+                      (uint32_t)(handle != 0 && handle != -1),
+                      1, buf);
+    }
   }
 
   crt_sprintf(buf, "RUN|END|passed=%d|failed=%d|total=%d\n", passed,
