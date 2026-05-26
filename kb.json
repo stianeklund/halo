@@ -29223,7 +29223,10 @@
         },
         {
           "addr": "0x2f2b0",
-          "decl": "void actor_perception_acknowledge(void);"
+          "decl": "void actor_perception_acknowledge(int actor_handle, int prop_handle, int param_3, char param_4);",
+          "name": "actor_perception_acknowledge",
+          "source_path": "src/halo/ai/actor_perception.c",
+          "ported": true
         },
         {
           "addr": "0x2f380",
