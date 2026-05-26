@@ -645,6 +645,13 @@ void game_engine_switch_to_postgame(void)
   }
 }
 
+/* Returns pointer to the game engine variant data structure at 0x456af8
+ * (0xa9350). */
+void *game_engine_get_variant(void)
+{
+  return (void *)0x456af8;
+}
+
 /* game_engine_get_goal_in_use (0xa9360)
  *
  * Returns whether the goal at the given index is in use.
@@ -712,8 +719,9 @@ int list_index_to_weapon_definition_index(int param_1)
   result = -1;
   if (param_1 != -1) {
     iVar1 = (int)game_globals_get();
-    result = *(int *)((char *)tag_block_get_element(
-        (void *)(iVar1 + 0x14c), param_1, 0x10) + 0xc);
+    result = *(int *)((char *)tag_block_get_element((void *)(iVar1 + 0x14c),
+                                                    param_1, 0x10) +
+                      0xc);
   }
   return result;
 }
