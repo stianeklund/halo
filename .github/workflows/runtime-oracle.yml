@@ -79,26 +79,7 @@ jobs:
         run: |
           LATEST=$(ls -1dt artifacts/runtime_oracle_batch/* 2>/dev/null | head -n 1)
           if [ -n "$LATEST" ] && [ -f "$LATEST/summary.json" ]; then
-            LATEST_SUMMARY="$LATEST/summary.json" ${{ env.VENV_PYTHON }} <<'PY' >> "$GITHUB_STEP_SUMMARY"
-            import json
-            import os
-            from pathlib import Path
-
-            s = json.loads(Path(os.environ['LATEST_SUMMARY']).read_text(encoding='utf-8'))
-            r = s['results']
-            print('## Runtime Oracle Results')
-            print()
-            print('| Metric | Count |')
-            print('|--------|-------|')
-            print(f'| Total targets | {r["total"]} |')
-            print(f'| Pass | {r["pass"]} |')
-            print(f'| Fail | {r["fail"]} |')
-            print(f'| Error | {r["error"]} |')
-            for row in s.get('rows', []):
-                status = row['status'].upper()
-                detail = row.get('error', '') or row.get('reason', '')
-                print(f'- **{status}** {row["target"]} ({row.get("obj", "")}) {detail}')
-            PY
+            LATEST_SUMMARY="$LATEST/summary.json" ${{ env.VENV_PYTHON }} tools/report/runtime_oracle_summary.py >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Fail on runtime-oracle regressions
