@@ -3072,8 +3072,10 @@
           "addr": "0x14480"
         },
         {
-          "decl": "void FUN_00014510(void);",
-          "addr": "0x14510"
+          "decl": "void actor_set_prop_if_match(int actor_handle, int old_prop, int new_prop);",
+          "addr": "0x14510",
+          "name": "actor_set_prop_if_match",
+          "ported": true
         },
         {
           "addr": "0x14540",
