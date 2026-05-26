@@ -160,6 +160,26 @@
       "score": 39.3,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "FUN_00019ac0": {
+      "score": 93.3,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00019af0": {
+      "score": 96.3,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_0001a050": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_0001a590": {
+      "score": 96.8,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_0001a5d0": {
+      "score": 96.3,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_0001acb0": {
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
