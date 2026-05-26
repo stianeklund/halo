@@ -29371,8 +29371,10 @@
       "data": [],
       "functions": [
         {
-          "decl": "void FUN_00042a30(void);",
-          "addr": "0x42a30"
+          "decl": "void ai_communication_initialize(void);",
+          "addr": "0x42a30",
+          "name": "ai_communication_initialize",
+          "ported": false
         },
         {
           "decl": "void ai_communication_dispose(void);",
@@ -29381,12 +29383,16 @@
           "ported": true
         },
         {
-          "decl": "void FUN_00042b90(void);",
-          "addr": "0x42b90"
+          "decl": "void ai_communication_initialize_for_new_map(void);",
+          "addr": "0x42b90",
+          "name": "ai_communication_initialize_for_new_map",
+          "ported": true
         },
         {
-          "decl": "void FUN_00042ca0(void);",
-          "addr": "0x42ca0"
+          "decl": "void ai_communication_dispose_from_old_map(void);",
+          "addr": "0x42ca0",
+          "name": "ai_communication_dispose_from_old_map",
+          "ported": true
         },
         {
           "decl": "void ai_communication_get_type_name(void);",
