@@ -438,6 +438,84 @@ void FUN_000151b0(int actor_handle)
   }
 }
 
+/* FUN_00015880 (0x15880)
+ * Initializes a guard state block (0x44 bytes) for the given actor.
+ * Copies 3 floats from actor+0x174..0x17c into state_data+0x18..0x20,
+ * sets state_data+0x24 = 1 (short), state_data+0x14 = 1 (byte),
+ * state_data+0x3c = -1 (sentinel), and clears the rest to zero.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) call at 0x15890.
+ * Confirmed: assert on state_data != NULL (line 0x72 in action_guard.c).
+ * Confirmed: csmemset(state_data, 0, 0x44) at 0x158be.
+ * Confirmed: all field offsets from raw disassembly MOV stores.
+ */
+int FUN_00015880(int actor_handle, char *state_data)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_guard.c", 0x72,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x44);
+  *(short *)(state_data + 0x24) = 1;
+  *(char *)(state_data + 0x14) = 1;
+  *(int *)(state_data + 0x18) = *(int *)(actor + 0x174);
+  *(int *)(state_data + 0x1c) = *(int *)(actor + 0x178);
+  *(int *)(state_data + 0x20) = *(int *)(actor + 0x17c);
+  *(int *)(state_data + 0x3c) = -1;
+  return 1;
+}
+
+/* FUN_00015900 (0x15900)
+ * Initializes a guard state block (0x44 bytes) for the given actor,
+ * conditionally populating fields based on actor flags and param_2.
+ *
+ * If actor+0x160 != 0 OR actor+6 != 0 (actor already has guard/prop state):
+ *   sets state_data+0x24 = 1, state_data+0x3c = -1 and returns 1.
+ * Otherwise writes param_2 to *state_data (short), then:
+ *   - if param_2 == 0: sets state_data+0xe = 1, state_data+0x24 = 0, +0x3c =
+ * -1.
+ *   - if param_2 != 0: sets state_data+0x24 = 1, state_data+0x14 = 1, copies
+ *     actor+0x174..0x17c into state_data+0x18..0x20, state_data+0x3c = -1.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) call at 0x15911.
+ * Confirmed: assert on state_data != NULL (line 0x86 in action_guard.c).
+ * Confirmed: csmemset(state_data, 0, 0x44) at 0x1594b.
+ * Confirmed: all branch conditions and field offsets from raw disassembly.
+ */
+int FUN_00015900(int actor_handle, short param_2, char *state_data)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_guard.c", 0x86,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x44);
+  if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0')) {
+    *(short *)state_data = param_2;
+    if (param_2 == 0) {
+      *(char *)(state_data + 0xe) = 1;
+      *(short *)(state_data + 0x24) = 0;
+      *(int *)(state_data + 0x3c) = -1;
+      return 1;
+    }
+    *(short *)(state_data + 0x24) = 1;
+    *(char *)(state_data + 0x14) = 1;
+    *(int *)(state_data + 0x18) = *(int *)(actor + 0x174);
+    *(int *)(state_data + 0x1c) = *(int *)(actor + 0x178);
+    *(int *)(state_data + 0x20) = *(int *)(actor + 0x17c);
+    *(int *)(state_data + 0x3c) = -1;
+    return 1;
+  }
+  *(short *)(state_data + 0x24) = 1;
+  *(int *)(state_data + 0x3c) = -1;
+  return 1;
+}
+
 /* actor_clear_guard_state (0x15b70)
  * Clears the actor's prop/guard encounter state when the prop-ready flag is
  * set.

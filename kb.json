@@ -3190,11 +3190,13 @@
         },
         {
           "addr": "0x15880",
-          "decl": "void FUN_00015880(void);"
+          "decl": "int FUN_00015880(int actor_handle, char *state_data);",
+          "ported": true
         },
         {
           "addr": "0x15900",
-          "decl": "void FUN_00015900(void);"
+          "decl": "int FUN_00015900(int actor_handle, short param_2, char *state_data);",
+          "ported": true
         },
         {
           "addr": "0x159d0",
