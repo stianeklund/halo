@@ -88,7 +88,8 @@ void FUN_0002f230(int actor_handle)
  * Asserts: prop->owner_actor_index == actor_index (line 0x40d)
  *          prop_acknowledged(prop) — type in [2,3] (line 0x40e)
  *          prop->orphan_prop_index == NONE (line 0x40f) */
-void actor_perception_acknowledge(int actor_handle, int prop_handle, int param_3, char param_4)
+void actor_perception_acknowledge(int actor_handle, int prop_handle,
+                                  int param_3, char param_4)
 {
   char *prop;
 
@@ -118,6 +119,63 @@ void actor_perception_acknowledge(int actor_handle, int prop_handle, int param_3
   *(char *)(prop + 0x64) = 1;
 
   FUN_00036f20(actor_handle, prop_handle, param_3, param_4);
+}
+
+/* FUN_0002f380 (0x2f380)
+ * Returns the engagement level (0-3) for a prop relative to actor.
+ * 3 = actively targeting/seen; 2/3 = based on orphan state; 0/1/2 = based
+ * on actor awareness level when no prop or no orphan.
+ */
+uint16_t FUN_0002f380(int actor_handle, int prop_handle)
+{
+  char *actor;
+  char *prop;
+  char *orphan;
+  uint16_t r;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (prop_handle != -1) {
+    prop = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+    if (*(int *)(prop + 4) != actor_handle) {
+      display_assert("prop->owner_actor_index == actor_index",
+                     "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0x572, 1);
+      system_exit(-1);
+    }
+    if ((*(short *)(prop + 0x24) >= 2 && *(short *)(prop + 0x24) <= 3) ||
+        *(short *)(prop + 0x66) == 1 || *(short *)(prop + 0x66) == 2 ||
+        (*(char *)(prop + 0x60) == 0 &&
+         (*(char *)(prop + 0x127) == 0 || *(short *)(actor + 0x6a) >= 3))) {
+      return 3;
+    }
+    if (*(int *)(prop + 0xc) != -1) {
+      orphan = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(prop + 0xc));
+      r = (uint16_t)((*(char *)(orphan + 0xb8) != 0) + 2);
+      if (r != 0xffff) {
+        return r;
+      }
+    }
+  }
+  if (*(short *)(actor + 0x6e) >= 2)
+    return 2;
+  return (uint16_t)(*(short *)(actor + 0x6a) >= 3);
+}
+
+/* FUN_0002f5b0 (0x2f5b0)
+ * Compare two prop-like structs by their float[2] field (offset +8).
+ * Returns -1, 0, or 1 (strcmp-style).
+ */
+int FUN_0002f5b0(int param_1, int param_2)
+{
+  float f1;
+  float f2;
+
+  f1 = *(float *)(param_1 + 8);
+  f2 = *(float *)(param_2 + 8);
+  if (f1 < f2)
+    return -1;
+  if (f2 < f1)
+    return 1;
+  return 0;
 }
 
 /* actor_get_best_damaging_prop (0x2fa70)
