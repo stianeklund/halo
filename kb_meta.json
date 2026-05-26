@@ -77,6 +77,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x17060": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x178d0": {
       "kind": "function",
       "status": "ported"

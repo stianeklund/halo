@@ -463,6 +463,21 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
   }
 }
 
+/* actor_clear_aim_target (0x17060)
+ * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
+ * target handle (actor+0xdc) to the -1 sentinel.
+ *
+ * Confirmed: datum_get(DAT_006325a4, param_1) from decompile.
+ * Confirmed: actor+0xcc flag check (char), actor+0xdc reset to 0xffffffff. */
+void actor_clear_aim_target(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0xcc) != '\0') {
+    *(int *)(actor + 0xdc) = -1;
+  }
+}
+
 /* FUN_00017090 (0x17090)
  * Compute actor prop-interest for the prop list at actor+0x9c.
  *
