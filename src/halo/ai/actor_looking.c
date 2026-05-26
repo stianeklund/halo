@@ -532,6 +532,41 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
   }
 }
 
+/* FUN_00016ff0 (0x16ff0)
+ * Update actor scripted-look prop interest, or invalidate if out of range.
+ *
+ * Fetches actor record; prop_state = (short*)(actor+0x9c).  If the prop
+ * index (*prop_state) is valid (>= 0) and within the scenario prop count
+ * (*(int*)(scenario+0x438)), delegates to actor_look_compute_prop_interest
+ * with reset=0, callback=FUN_00016c40, param_5=0.  Otherwise marks the
+ * prop as invalid: *prop_state = -1, actor+0xa1 = 1, then calls
+ * actor_action_change(actor_handle, 0, 0).
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get(actor_data, actor_handle); ADD ESI,0x9c.
+ * Confirmed: MOV CX,[ESI]; TEST CX,CX; JL else; MOV EDX,[EAX+0x438].
+ * Confirmed: MOV word [ESI],0xffff; MOV byte [ESI+0x5],0x1 in else-branch.
+ * Confirmed: CALL actor_action_change(actor_handle, 0, 0) in else-branch.
+ * Inferred: actor+0x9c = scripted-look prop state (short index);
+ *   actor+0xa1 = scripted-look valid flag; scenario+0x438 = prop count. */
+void FUN_00016ff0(int actor_handle)
+{
+  int scenario;
+  char *actor;
+  short *prop_state;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  prop_state = (short *)(actor + 0x9c);
+  scenario = (int)global_scenario_get();
+  if ((*prop_state >= 0) && ((int)*prop_state < *(int *)(scenario + 0x438))) {
+    actor_look_compute_prop_interest(actor_handle, 0, prop_state, FUN_00016c40,
+                                     0);
+    return;
+  }
+  *prop_state = -1;
+  *(char *)(actor + 0xa1) = 1;
+  actor_action_change(actor_handle, 0, 0);
+}
+
 /* actor_clear_aim_target (0x17060)
  * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
  * target handle (actor+0xdc) to the -1 sentinel.
@@ -761,6 +796,37 @@ void FUN_0001a050(int actor_handle)
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
   *(short *)(actor + 0x3fc) = 0;
+}
+
+/* FUN_0001a080 (0x1a080)
+ * Initialize action_uncover state data for a non-retreating, non-berserk actor.
+ *
+ * Validates state_data != NULL, zeros the 0x34-byte buffer, then checks
+ * two actor flags: if the actor is not retreating (actor+0x160 == 0) AND
+ * not berserk (actor+6 == 0), fills in the initial state: type=0 at
+ * state_data+8, param_2 at state_data+3, and returns 1.  Returns 0 if
+ * either flag is set.
+ *
+ * Confirmed: display_assert "state_data", action_uncover.c line 0x22.
+ * Confirmed: csmemset(state_data, 0, 0x34); MOV word [state_data+8],0x0.
+ * Confirmed: MOV byte [state_data+3],param_2; actor+0x160 and actor+6 checks.
+ * Confirmed: MOV AL,0x1 (success path); MOV AL,BL (BL=0, failure path). */
+int FUN_0001a080(int actor_handle, char param_2, char *state_data)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_uncover.c", 0x22,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x34);
+  if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0')) {
+    *(short *)(state_data + 8) = 0;
+    *(char *)(state_data + 3) = param_2;
+    return 1;
+  }
+  return 0;
 }
 
 /* FUN_0001a590 (0x1a590)
