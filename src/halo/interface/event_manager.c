@@ -1,3 +1,13 @@
+/* (0xdb140) */
+void FUN_000db140(void)
+{
+}
+
+/* (0xdb1b0) */
+void FUN_000db1b0(void)
+{
+}
+
 /**
  * Check whether it is time to start the attract-mode tab sequence.
  *
@@ -39,6 +49,16 @@ bool event_manager_tab_check(void)
 }
 
 /**
+ * Stop attract mode and all sounds, then play the credits Bink video.
+ */
+void FUN_000dc110(void)
+{
+  ui_widget_stop_attract_mode();
+  sound_stop_all();
+  bink_playback_start("d:\\bink\\credits.bik", 0x2e);
+}
+
+/**
  * Record the current time as the "mark" timestamp, used by
  * event_manager_tab_check to measure idle duration.
  */
@@ -75,16 +95,6 @@ void event_manager_tab_process(void)
 
   if (!bink_playback_active())
     *(unsigned int *)0x46bd38 = system_milliseconds();
-}
-
-/**
- * Stop attract mode and all sounds, then play the credits Bink video.
- */
-void FUN_000dc110(void)
-{
-  ui_widget_stop_attract_mode();
-  sound_stop_all();
-  bink_playback_start("d:\\bink\\credits.bik", 0x2e);
 }
 
 void event_manager_initialize(void)
@@ -387,6 +397,13 @@ void event_manager_update(void)
     empty_event[3] = 0;
     event_manager_dispatch(empty_event, (int16_t)i);
   }
+}
+
+/* Wrapper: forward three args to animation_update_internal with update_kind=0
+ * (0xdc730). */
+void FUN_000dc730(int param_1, short *param_2, int *param_3)
+{
+  animation_update_internal(0, param_1, param_2, param_3);
 }
 
 /* Map a game-event type to a UI-widget event type. */

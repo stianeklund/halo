@@ -6804,7 +6804,8 @@
         },
         {
           "decl": "void FUN_000db140(void);",
-          "addr": "0xdb140"
+          "addr": "0xdb140",
+          "ported": true
         },
         {
           "decl": "void FUN_000db150(void);",
@@ -6812,7 +6813,8 @@
         },
         {
           "decl": "void FUN_000db1b0(void);",
-          "addr": "0xdb1b0"
+          "addr": "0xdb1b0",
+          "ported": true
         },
         {
           "decl": "void FUN_000db1e0(void);",
@@ -6907,8 +6909,9 @@
           "ported": true
         },
         {
-          "decl": "void FUN_000dc730(void);",
-          "addr": "0xdc730"
+          "decl": "void FUN_000dc730(int param_1, short *param_2, int *param_3);",
+          "addr": "0xdc730",
+          "ported": true
         },
         {
           "decl": "int16_t FUN_000dc800(int event @<eax>);",
@@ -7688,15 +7691,18 @@
         },
         {
           "decl": "void game_engine_statistics_append(void);",
-          "addr": "0xa83e0"
+          "addr": "0xa83e0",
+          "ported": null
         },
         {
           "decl": "void game_engine_handle_client_message(void);",
-          "addr": "0xa8400"
+          "addr": "0xa8400",
+          "ported": null
         },
         {
           "decl": "void game_engine_handle_server_message(void);",
-          "addr": "0xa8420"
+          "addr": "0xa8420",
+          "ported": null
         },
         {
           "decl": "int sort_statistic_buffer(int param_1, int param_2);",
@@ -7856,7 +7862,8 @@
         },
         {
           "decl": "void *game_engine_get_variant(void);",
-          "addr": "0xa9350"
+          "addr": "0xa9350",
+          "ported": true
         },
         {
           "decl": "char game_engine_get_goal_in_use(short param_1);",
