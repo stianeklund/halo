@@ -390,6 +390,49 @@ void actor_clear_guard_state(int actor_handle)
   }
 }
 
+/* actor_reset_action_state (0x15eb0)
+ * If actor is active (actor+0xa4 != 0) and in state 3, clears the prop flags
+ * at a4, a6, a8. If state==3 or (state==1 and not suppressed at 0x160),
+ * resets action state: c0=0 (idle), c4=0xffff, aa=1.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x15ebe.
+ * Confirmed: field offsets a4, a6, a8, aa, c0, c4, 160 from disassembly.
+ * Inferred: state 3 = fleeing/post-action; state 1 = normal; 0x160 = suppressed
+ * flag. */
+void actor_reset_action_state(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0xa4) != '\0' && *(int16_t *)(actor + 0xc0) == 3) {
+    *(char *)(actor + 0xa4) = 0;
+    *(int16_t *)(actor + 0xa8) = 0;
+    *(char *)(actor + 0xa6) = 0;
+  }
+  if (*(int16_t *)(actor + 0xc0) == 3 ||
+      (*(int16_t *)(actor + 0xc0) == 1 && *(char *)(actor + 0x160) == '\0')) {
+    *(int16_t *)(actor + 0xc0) = 0;
+    *(int16_t *)(actor + 0xc4) = (int16_t)0xffff;
+    *(char *)(actor + 0xaa) = 1;
+  }
+}
+
+/* actor_clear_flee_target (0x15f30)
+ * If the actor is in flee state (action state 2 at actor+0xc0), clears the
+ * flee target handle at actor+0xd0 to -1 (invalid datum).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x15f3e.
+ * Confirmed: cmp word ptr [eax+0xc0], 2 and mov dword ptr [eax+0xd0], -1 from
+ * disassembly. Inferred: actor+0xc0 = action state enum; actor+0xd0 =
+ * flee-target datum handle. */
+void actor_clear_flee_target(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int16_t *)(actor + 0xc0) == 2) {
+    *(int *)(actor + 0xd0) = -1;
+  }
+}
+
 /* FUN_00017090 (0x17090)
  * Compute actor prop-interest for the prop list at actor+0x9c.
  *

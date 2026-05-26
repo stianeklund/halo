@@ -3211,12 +3211,16 @@
           "addr": "0x15cf0"
         },
         {
-          "decl": "void FUN_00015eb0(void);",
-          "addr": "0x15eb0"
+          "decl": "void actor_reset_action_state(int actor_handle);",
+          "addr": "0x15eb0",
+          "name": "actor_reset_action_state",
+          "ported": true
         },
         {
-          "decl": "void FUN_00015f30(void);",
-          "addr": "0x15f30"
+          "decl": "void actor_clear_flee_target(int actor_handle);",
+          "addr": "0x15f30",
+          "name": "actor_clear_flee_target",
+          "ported": true
         },
         {
           "decl": "void FUN_00015f60(void);",
