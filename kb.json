@@ -3294,7 +3294,8 @@
         },
         {
           "addr": "0x16ff0",
-          "decl": "void FUN_00016ff0(void);"
+          "decl": "void FUN_00016ff0(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x17060",
@@ -3426,7 +3427,8 @@
         },
         {
           "addr": "0x1a080",
-          "decl": "void FUN_0001a080(void);"
+          "decl": "int FUN_0001a080(int actor_handle, char param_2, char *state_data);",
+          "ported": true
         },
         {
           "addr": "0x1a100",
@@ -34586,5 +34588,17 @@
       "name": "XAPILIB:xcontent.obj",
       "source": "cseries/xcontent.c"
     }
-  ]
+  ],
+  "0x1a080": {
+    "name": "FUN_0001a080",
+    "decl": "int FUN_0001a080(int actor_handle, char param_2, char *state_data);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16ff0": {
+    "name": "FUN_00016ff0",
+    "decl": "void FUN_00016ff0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  }
 }
