@@ -4360,6 +4360,18 @@
         "The internal helper 0xd5070 uses ESI as a register arg for vehicle tag matching; not yet in kb.json to avoid thunk recursion."
       ]
     },
+    "0xd5ff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd6010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd6020": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdb0f0": {
       "kind": "function",
       "status": "ported"

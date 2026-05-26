@@ -1,7 +1,7 @@
 void hud_dispose(void)
 {
   FUN_000db140();
-  FUN_000d6020();
+  hud_messaging_dispose();
   FUN_000d8b80();
   FUN_000d7430();
   FUN_000d46e0();
@@ -20,14 +20,14 @@ void hud_initialize_for_new_map(void)
   FUN_000d46a0();
   FUN_000d7330();
   FUN_000d8b30();
-  FUN_000d5ff0();
+  hud_messaging_initialize_for_new_map();
   FUN_000db150();
 }
 
 void hud_dispose_from_old_map(void)
 {
   FUN_000db1b0();
-  FUN_000d6010();
+  hud_messaging_dispose_from_old_map();
   FUN_000d8b70();
   FUN_000d7420();
   FUN_000d46d0();

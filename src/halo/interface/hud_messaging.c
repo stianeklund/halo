@@ -224,3 +224,23 @@ void FUN_000d52e0(int actor_handle, wchar_t *message)
     } while ((int16_t)i < 4);
   }
 }
+
+/* hud_messaging_initialize_for_new_map: clear the messaging slot table.
+ * Called from hud_initialize_for_new_map (0xd0360).
+ * Fills *(void**)0x46bd1c with 0xff for 0xc0 bytes (all slots invalid). */
+void hud_messaging_initialize_for_new_map(void)
+{
+  csmemset(*(void **)0x46bd1c, 0xff, 0xc0);
+}
+
+/* hud_messaging_dispose_from_old_map: no-op stub.
+ * Called from hud_dispose_from_old_map (0xd03e0). */
+void hud_messaging_dispose_from_old_map(void)
+{
+}
+
+/* hud_messaging_dispose: no-op stub.
+ * Called from hud_dispose (0xd0340). */
+void hud_messaging_dispose(void)
+{
+}
