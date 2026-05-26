@@ -11486,16 +11486,22 @@
           "addr": "0xd5fb0"
         },
         {
-          "decl": "void FUN_000d5ff0(void);",
-          "addr": "0xd5ff0"
+          "decl": "void hud_messaging_initialize_for_new_map(void);",
+          "addr": "0xd5ff0",
+          "name": "hud_messaging_initialize_for_new_map",
+          "ported": true
         },
         {
-          "decl": "void FUN_000d6010(void);",
-          "addr": "0xd6010"
+          "decl": "void hud_messaging_dispose_from_old_map(void);",
+          "addr": "0xd6010",
+          "name": "hud_messaging_dispose_from_old_map",
+          "ported": true
         },
         {
-          "decl": "void FUN_000d6020(void);",
-          "addr": "0xd6020"
+          "decl": "void hud_messaging_dispose(void);",
+          "addr": "0xd6020",
+          "name": "hud_messaging_dispose",
+          "ported": true
         },
         {
           "decl": "void FUN_000d6030(void);",
