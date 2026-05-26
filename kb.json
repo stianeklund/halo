@@ -9167,11 +9167,11 @@
         },
         {
           "addr": "0x1c19a0",
-          "decl": "void FUN_001c19a0(void);"
+          "decl": "int FUN_001c19a0(void);"
         },
         {
           "addr": "0x1c19c0",
-          "decl": "void FUN_001c19c0(void);"
+          "decl": "int FUN_001c19c0(void);"
         },
         {
           "addr": "0x1c19e0",
@@ -13612,11 +13612,13 @@
         },
         {
           "addr": "0x12c6d0",
-          "decl": "void FUN_0012C6D0(void);"
+          "decl": "void FUN_0012c6d0(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x12c750",
-          "decl": "void FUN_0012C750(void);"
+          "decl": "void FUN_0012c750(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x12c7e0",
@@ -24084,7 +24086,7 @@
         },
         {
           "addr": "0x19d810",
-          "decl": "void ustrcmp(void);"
+          "decl": "int ustrcmp(const wchar_t *s1, const wchar_t *s2);"
         },
         {
           "addr": "0x19d8c0",
@@ -32582,7 +32584,7 @@
         },
         {
           "addr": "0x12b5e0",
-          "decl": "void FUN_0012b5e0(void);"
+          "decl": "wchar_t *FUN_0012b5e0(void);"
         },
         {
           "addr": "0x12b6b0",
