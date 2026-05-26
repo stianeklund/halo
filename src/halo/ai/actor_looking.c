@@ -7,6 +7,64 @@
 
 #include "../../common.h"
 
+/* actor_update_prop_desire (0x14360)
+ * Update actor's desire to reach its prop target.
+ *
+ * If the actor has no current prop (field_ac == -1) but has a follow-prop
+ * handle (field_a8 != -1), acquires a prop near the follow target via
+ * FUN_00064b40.  Then, if a prop is held, checks whether the prop's type
+ * qualifies (field_32 >= 2) and its distance (field_11c) is within the
+ * actor's tolerance (field_a4), or the prop distance is less than 0.7f; if
+ * so, marks the actor as ready (field_a1 = 1).  When ready, calls
+ * FUN_0002f1a0 (perception acknowledge) and returns the current state byte
+ * (field_a0).  Otherwise tries to move toward the prop via
+ * actor_move_to_prop; sets field_a0 = 1 if no prop at all, or if
+ * actor_move_to_prop returns 0.
+ *
+ * Confirmed: EBX = 1 set at 0x1438c; used as literal arg to FUN_00064b40
+ *   and as byte written to field_a1 at 0x14408 and field_a0 at 0x14447.
+ * Confirmed: actor_move_to_prop pushes [ESI+0xa4] raw (float bits) as 3rd arg.
+ * Confirmed: field_32 comparison is signed short CMP vs 2 (JL 0x143f5).
+ * Confirmed: float threshold at 0x2533c4 = 0.7f (0x3f333333).
+ * Confirmed: early return at 0x1441e returns field_a0 without setting it. */
+char actor_update_prop_desire(int actor_handle)
+{
+  char *actor;
+  char *prop;
+  char a1_flag;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0x4c) == '\0') {
+    return *(char *)(actor + 0xa0);
+  }
+  if ((*(int *)(actor + 0xac) == -1) && (*(int *)(actor + 0xa8) != -1)) {
+    *(int *)(actor + 0xac) =
+      FUN_00064b40(actor_handle, *(int *)(actor + 0xa8), 1, 1);
+  }
+  if (*(int *)(actor + 0xac) == -1) {
+    *(char *)(actor + 0xa0) = 1;
+    return *(char *)(actor + 0xa0);
+  }
+  a1_flag = *(char *)(actor + 0xa1);
+  if (a1_flag == '\0') {
+    prop = (char *)datum_get(prop_data, *(int *)(actor + 0xac));
+    if ((*(short *)(prop + 0x32) >= 2 &&
+         *(float *)(prop + 0x11c) < *(float *)(actor + 0xa4)) ||
+        (*(float *)(prop + 0x11c) < *(float *)0x2533c4)) {
+      *(char *)(actor + 0xa1) = 1;
+    }
+  }
+  if (*(char *)(actor + 0xa1) != '\0') {
+    FUN_0002f1a0(actor_handle);
+    return *(char *)(actor + 0xa0);
+  }
+  if (actor_move_to_prop(actor_handle, *(int *)(actor + 0xac),
+                         *(float *)(actor + 0xa4)) == '\0') {
+    *(char *)(actor + 0xa0) = 1;
+  }
+  return *(char *)(actor + 0xa0);
+}
+
 /* actor_set_prop_if_match (0x14510)
  * Conditionally replace an actor's prop handle if it matches old_prop.
  *
