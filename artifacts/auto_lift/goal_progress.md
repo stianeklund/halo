@@ -43,3 +43,19 @@
 | ai_communication_initialize | 0x42a30 | ai_communication.c | pass | 88% | skipped | structural ceiling (int16_t counter: xorw/incw vs xorl/incl — MSVC 16-bit reg use; ported=false) |
 | ai_communication_initialize_for_new_map | 0x42b90 | ai_communication.c | pass | 94.6% | committed | removed g-cache var + do-while + MOVSX loop counter |
 | ai_communication_dispose_from_old_map | 0x42ca0 | ai_communication.c | pass | 100% | committed | single-call wrapper |
+| FUN_0002fa70 | 0x2fa70 | actor_perception.c | pass | 84.1% | reverted | structural ceiling (ECX prologue/condition inversion/jae-jbe) |
+| actor_set_prop_if_match | 0x14510 | actor_looking.c | pass | 97.0% | committed | compare+swap actor+0xac |
+| actor_update_prop_desire | 0x14360 | actor_looking.c | pass | 92.7% | committed | prop desire state management with float threshold 0.7f |
+| actor_clear_guard_state | 0x15b70 | actor_looking.c | pass | 100.0% | committed | clear int16/int at actor+0x1e4/0x1e8 if actor+0xa1 set |
+| actor_reset_action_state | 0x15eb0 | actor_looking.c | pass | 100.0% | committed | reset action/mode fields based on int16 at actor+0xc0 |
+| actor_clear_flee_target | 0x15f30 | actor_looking.c | pass | 96.3% | committed | clear actor+0xd0 if action mode == 2 |
+| actor_replace_prop_handle | 0x16000 | actor_looking.c | pass | 97.8% | committed | swap old→new handle in actor+0xd8 and actor+0xac |
+| actor_clear_aim_target | 0x17060 | actor_looking.c | pass | 96.6% | committed | clear actor+0xdc if actor+0xcc set |
+| FUN_00019ac0 | 0x19ac0 | actor_looking.c | pass | 93.3% | committed | check actor+0xa4==1, set actor+0xa6=-1, actor+0x9c=1 |
+| FUN_00019af0 | 0x19af0 | actor_looking.c | pass | 96.3% | committed | set actor+0xa8=-1, actor+0xac=-1 |
+| FUN_0001a050 | 0x1a050 | actor_looking.c | pass | 100.0% | committed | set actor+0x3fc=0 |
+| FUN_0001a590 | 0x1a590 | actor_looking.c | pass | 96.8% | committed | check actor+0xa4==1, set actor+0xa6=-1, actor+0x9d=1 |
+| FUN_0001a5d0 | 0x1a5d0 | actor_looking.c | pass | 96.3% | committed | set actor+0xa8=-1, actor+0xac=-1 |
+| FUN_00014480 | 0x14480 | actor_looking.c | pass | 88.2% | committed | actor prop setup via conversation lookup |
+| FUN_00017940 | 0x17940 | actor_looking.c | pass | 100.0% | committed | random_range(seed, min, max) wrapper (MSVC pre-push trick) |
+| FUN_0001aae0 | 0x1aae0 | actor_looking.c | pass | 98.9% | committed | object bounding sphere getter |
