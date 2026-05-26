@@ -433,6 +433,36 @@ void actor_clear_flee_target(int actor_handle)
   }
 }
 
+/* actor_replace_prop_handle (0x16000)
+ * Replace all references to old_handle in actor prop fields with new_handle.
+ *
+ * Checks actor+0xd8 (prop field) and actor+0xac (scripted-look prop handle).
+ * If new_handle is -1 (invalid datum), also clears the byte flag at actor+0xab.
+ *
+ * Confirmed: cdecl, three stack args at [EBP+0x8], [EBP+0xC], [EBP+0x10].
+ * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x1600e.
+ * Confirmed: ADD EAX,0x9c at 0x1601c gives base; [EAX+0x3c]=actor+0xd8,
+ *   [EAX+0x10]=actor+0xac, byte [EAX+0x0f]=actor+0xab.
+ * Confirmed: CMP [EAX+0x3c],EDX / MOV [EAX+0x3c],ECX at 0x16024-0x1602b.
+ * Confirmed: CMP [EAX+0x10],EDX / MOV [EAX+0x10],ECX / CMP ECX,-1 /
+ *   MOV byte [EAX+0xf],0 at 0x1602e-0x1603b.
+ * Inferred: actor+0xd8 = prop datum handle; actor+0xac = scripted-look prop
+ * handle; actor+0xab = scripted-look prop valid flag. */
+void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0xd8) == old_handle) {
+    *(int *)(actor + 0xd8) = new_handle;
+  }
+  if (*(int *)(actor + 0xac) == old_handle) {
+    *(int *)(actor + 0xac) = new_handle;
+    if (new_handle == -1) {
+      *(char *)(actor + 0xab) = 0;
+    }
+  }
+}
+
 /* FUN_00017090 (0x17090)
  * Compute actor prop-interest for the prop list at actor+0x9c.
  *
