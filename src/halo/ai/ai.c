@@ -76,7 +76,7 @@ void ai_initialize(void)
   FUN_00064100();
   FUN_00058eb0();
   FUN_000540b0();
-  FUN_00042a30();
+  ai_communication_initialize();
   actor_move_get_avoidance_direction();
 }
 
@@ -102,7 +102,7 @@ void ai_dispose(void)
  * byte ptr [EAX+1],0 in disassembly. */
 void ai_dispose_from_old_map(void)
 {
-  FUN_00042ca0();
+  ai_communication_dispose_from_old_map();
   ai_profile_dispose_from_old_map();
   encounter_compute_activation_cluster_bit_vector();
   FUN_00064160();
@@ -997,7 +997,7 @@ void ai_initialize_for_new_map(void)
   FUN_00064150();
   encounters_initialize_for_new_map();
   FUN_000540d0();
-  FUN_00042b90();
+  ai_communication_initialize_for_new_map();
 
   *(int16_t *)((char *)g + 0x132) = 0;
   *(int16_t *)((char *)g + 0x130) = 0;

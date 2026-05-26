@@ -802,7 +802,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x42a30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x42b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x42b90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x42ca0": {
       "kind": "function",
       "status": "ported"
     },
