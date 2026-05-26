@@ -29217,7 +29217,9 @@
         },
         {
           "addr": "0x2f230",
-          "decl": "void FUN_0002f230(void);"
+          "decl": "void FUN_0002f230(int actor_handle);",
+          "source_path": "src/halo/ai/actor_perception.c",
+          "ported": true
         },
         {
           "addr": "0x2f2b0",
