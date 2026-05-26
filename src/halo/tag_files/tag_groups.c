@@ -74,17 +74,18 @@ int verify_tag_reference(int *tag_ref)
   int iVar1;
 
   if (tag_ref == NULL) {
-    display_assert("reference",
-                   "c:\\halo\\SOURCE\\tag_files\\tag_groups.c", 0xbef, 1);
+    display_assert("reference", "c:\\halo\\SOURCE\\tag_files\\tag_groups.c",
+                   0xbef, 1);
     system_exit(-1);
   }
   iVar1 = tag_loaded(tag_ref[0], (const char *)tag_ref[1]);
   if (tag_ref[3] != iVar1) {
-    display_assert(csprintf((char *)0x5ab100,
-                            "tag reference \"%s\" and actual index do not match:"
-                            " is %08lX but should be %08lX",
-                            (const char *)tag_ref[1], tag_ref[3], iVar1),
-                   "c:\\halo\\SOURCE\\tag_files\\tag_groups.c", 0xbf5, 1);
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "tag reference \"%s\" and actual index do not match:"
+               " is %08lX but should be %08lX",
+               (const char *)tag_ref[1], tag_ref[3], iVar1),
+      "c:\\halo\\SOURCE\\tag_files\\tag_groups.c", 0xbf5, 1);
     system_exit(-1);
   }
   return iVar1;
@@ -176,6 +177,31 @@ void *tag_block_get_element(void *block, int index, int element_size)
 void FUN_0019b320(void)
 {
   return;
+}
+
+/* Read the localization tag from interface tag index 10, parse the string
+ * as a long integer, and set it as the language code. If the tag is missing
+ * (index == -1), logs an error.
+ * 0x19b330 / tag_groups.obj */
+void FUN_0019b330(void)
+{
+  int tag_index;
+  char *str;
+
+  tag_index = interface_get_tag_index(10);
+  *(int *)0x4d9b08 = tag_index;
+  if (tag_index != -1) {
+    str = FUN_0019d3c0(tag_index, 0);
+    set_language_code((short)atol(str));
+    *(int16_t *)0x4d9b28 = 0;
+    *(int *)0x4d9b10 = 0;
+    *(int16_t *)0x4d9b16 = 0;
+    *(int16_t *)0x4d9b4e = 0;
+    *(int16_t *)0x4d9b50 = 0;
+    *(int *)0x4d9b0c = -1;
+  } else {
+    error(0, "internal string localization tag is missing.");
+  }
 }
 
 /* 0x19b3a0 — reset the cached localization tag index to -1.
@@ -274,8 +300,9 @@ int FUN_001b9b80(int state)
       piVar3 = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);
       *(short *)(state + 4) = *(short *)(state + 4) + 1;
       if ((piVar3 != (int *)0) &&
-          (iVar1 = *(int *)(state + 0x10),
-           iVar1 == -1 || iVar1 == piVar3[0] || iVar1 == piVar3[1] || iVar1 == piVar3[2])) {
+          (iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||
+                                             iVar1 == piVar3[1] ||
+                                             iVar1 == piVar3[2])) {
         break;
       }
       if (*(int *)(*(int *)0x4e5504 + 0xc) <= (int)*(short *)(state + 4)) {

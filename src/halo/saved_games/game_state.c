@@ -1,3 +1,9 @@
+/* Empty placeholder (single RET in the original).
+ * 0x1bf760 / game_state.obj */
+void FUN_001bf760(void)
+{
+}
+
 /* Iterate a table of 13 dispose-from-old-map callbacks. */
 void game_state_call_after_load_procs(void)
 {
@@ -86,6 +92,38 @@ void game_state_revert(void)
   }
 }
 
+/* Save game state header to persistent storage. If the map type is
+ * single-player (DAT_0031fa94 == 1), calls game_state_revert then writes the
+ * header. 0x1bf8e0 / game_state.obj */
+void game_state_save_to_persistent_storage(void)
+{
+  if (*(int16_t *)0x31fa94 == 1) {
+    game_state_revert();
+    game_state_write_to_persistent_storage(
+      *(int *)0x4ea994, (void *)(*(int *)0x4ea9ac + 0x148), 0x14c, 0x345000);
+  }
+}
+
+/* Read and validate game state from persistent storage. Returns 1 on success,
+ * 0 on failure. On success, copies the header and resets checkpoint flags.
+ * 0x1bf920 / game_state.obj */
+int game_state_test_persistent_storage(int *out_header, int16_t *out_flags,
+                                       int param_3)
+{
+  char header[0x14c];
+  uint32_t scratch;
+
+  if (game_state_read_header_from_persistent_storage(
+        header, &scratch, 0x14c, 0x345000, (char *)param_3)) {
+    *out_flags = *(int16_t *)(header + 0x126);
+    csstrcpy((char *)out_header, header + 4);
+    return 1;
+  }
+  *out_flags = 1;
+  csstrcpy((char *)out_header, (const char *)0x25386f);
+  return 0;
+}
+
 /* Save the game state to a named core file. Logs success or failure
  * to the console. */
 void game_state_save_core(const char *name)
@@ -96,6 +134,106 @@ void game_state_save_core(const char *name)
     ((void (*)(int, const char *, ...))0xff4d0)(0, "saved '%s'", name);
   else
     ((void (*)(int, const char *, ...))0xff4d0)(0, "error writing '%s'", name);
+}
+
+/* Check if the game state has been reverted since it was initialized.
+ * Returns true if game_time_get() != *(int*)0x4ea9a8 (the saved-game
+ * "verified-tick" value from initialization).
+ * 0x1bf9e0 / game_state.obj */
+bool game_state_reverted(void)
+{
+  return *(int *)0x4ea9a8 == game_time_get();
+}
+
+/*
+ * game_state_validate_core_header - 0x1bfa00
+ *
+ * Validates a core save header against the current game state expectations.
+ * If fatal is true, validation failures trigger a halt.
+ *
+ * The original binary had a format string bug where build_version and
+ * scenario_name string pointers were printed with %d instead of %s.
+ * This lift fixes those format specifiers.
+ */
+bool game_state_validate_core_header(char *header, bool fatal)
+{
+  const char *expected_map_name;
+  int16_t expected_players;
+  int16_t saved_players;
+  int expected_checksum;
+  typedef int(__cdecl * fn_csstrcmp_t)(const char *, const char *);
+  typedef char *(__cdecl * fn_csprintf_t)(char *, const char *, ...);
+  typedef void(__cdecl * fn_display_assert_t)(const char *, const char *, int,
+                                              bool);
+  typedef void(__cdecl * fn_system_exit_t)(int);
+  typedef char *(__cdecl * fn_tag_get_name_t)(int);
+  typedef int(__cdecl * fn_get_map_checksum_t)(void);
+
+  fn_csstrcmp_t fn_csstrcmp = (fn_csstrcmp_t)0x8dcb0;
+
+  if (fn_csstrcmp(header + 0x104, "01.10.12.2276") != 0) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100,
+                               "expected build #%s but got #%s",
+                               "01.10.12.2276", header + 0x104),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x195, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  expected_map_name = ((fn_tag_get_name_t)0x1ba1f0)(*(int *)0x326a08);
+  if (fn_csstrcmp(header + 0x4, expected_map_name) != 0) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100,
+                               "expected \"%s\" but got \"%s\"",
+                               expected_map_name, header + 0x4),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x199, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  if (*(int *)header != *(int *)0x4ea9a0) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100,
+                               "allocation checksum mismatch"),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x19d, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  expected_players = *(int16_t *)0x31fa94;
+  saved_players = *(int16_t *)(header + 0x124);
+  if (saved_players != expected_players) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100,
+                               "expected #%d players but got #%d",
+                               (int)expected_players, (int)saved_players),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x1a1, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  expected_checksum = ((fn_get_map_checksum_t)0x1b9920)();
+  if (*(int *)(header + 0x128) != expected_checksum) {
+    if (!fatal) {
+      return false;
+    }
+    ((fn_display_assert_t)0x8d9f0)(
+      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100,
+                               "checksum from map file doesn't match"),
+      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x1a6, 1);
+    ((fn_system_exit_t)0x1029a0)(-1);
+  }
+
+  return true;
 }
 
 void *game_state_malloc(const char *name, const char *group_name, int size)
@@ -174,91 +312,6 @@ void *game_state_memory_pool_new(const char *name, int pool_config)
   pool = game_state_malloc(name, "memory pool", size);
   memory_pool_initialize(pool, name, pool_config);
   return pool;
-}
-
-/*
- * game_state_validate_core_header - 0x1bfa00
- *
- * Validates a core save header against the current game state expectations.
- * If fatal is true, validation failures trigger a halt.
- *
- * The original binary had a format string bug where build_version and
- * scenario_name string pointers were printed with %d instead of %s.
- * This lift fixes those format specifiers.
- */
-bool game_state_validate_core_header(char *header, bool fatal)
-{
-  const char *expected_map_name;
-  int16_t expected_players;
-  int16_t saved_players;
-  int expected_checksum;
-  typedef int(__cdecl * fn_csstrcmp_t)(const char *, const char *);
-  typedef char *(__cdecl * fn_csprintf_t)(char *, const char *, ...);
-  typedef void(__cdecl * fn_display_assert_t)(const char *, const char *, int, bool);
-  typedef void(__cdecl * fn_system_exit_t)(int);
-  typedef char *(__cdecl * fn_tag_get_name_t)(int);
-  typedef int(__cdecl * fn_get_map_checksum_t)(void);
-
-  fn_csstrcmp_t fn_csstrcmp = (fn_csstrcmp_t)0x8dcb0;
-
-  if (fn_csstrcmp(header + 0x104, "01.10.12.2276") != 0) {
-    if (!fatal) {
-      return false;
-    }
-    ((fn_display_assert_t)0x8d9f0)(
-      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "expected build #%s but got #%s",
-                               "01.10.12.2276", header + 0x104),
-      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x195, 1);
-    ((fn_system_exit_t)0x1029a0)(-1);
-  }
-
-  expected_map_name = ((fn_tag_get_name_t)0x1ba1f0)(*(int *)0x326a08);
-  if (fn_csstrcmp(header + 0x4, expected_map_name) != 0) {
-    if (!fatal) {
-      return false;
-    }
-    ((fn_display_assert_t)0x8d9f0)(
-      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "expected \"%s\" but got \"%s\"",
-                               expected_map_name, header + 0x4),
-      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x199, 1);
-    ((fn_system_exit_t)0x1029a0)(-1);
-  }
-
-  if (*(int *)header != *(int *)0x4ea9a0) {
-    if (!fatal) {
-      return false;
-    }
-    ((fn_display_assert_t)0x8d9f0)(
-      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "allocation checksum mismatch"),
-      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x19d, 1);
-    ((fn_system_exit_t)0x1029a0)(-1);
-  }
-
-  expected_players = *(int16_t *)0x31fa94;
-  saved_players = *(int16_t *)(header + 0x124);
-  if (saved_players != expected_players) {
-    if (!fatal) {
-      return false;
-    }
-    ((fn_display_assert_t)0x8d9f0)(
-      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "expected #%d players but got #%d",
-                               (int)expected_players, (int)saved_players),
-      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x1a1, 1);
-    ((fn_system_exit_t)0x1029a0)(-1);
-  }
-
-  expected_checksum = ((fn_get_map_checksum_t)0x1b9920)();
-  if (*(int *)(header + 0x128) != expected_checksum) {
-    if (!fatal) {
-      return false;
-    }
-    ((fn_display_assert_t)0x8d9f0)(
-      ((fn_csprintf_t)0x8d9d0)((char *)0x5ab100, "checksum from map file doesn't match"),
-      "c:\\halo\\SOURCE\\saved games\\game_state.c", 0x1a6, 1);
-    ((fn_system_exit_t)0x1029a0)(-1);
-  }
-
-  return true;
 }
 
 /* Load a core save file. Validates the header, then restores game state
