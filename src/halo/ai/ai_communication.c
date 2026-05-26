@@ -97,7 +97,7 @@ void ai_communication_initialize(void)
    * if not found. Confirmed: CMP DI,0x39 / JL loop in disassembly. */
   {
     int16_t *out = (int16_t *)0x632500;
-    for (i = 0; i <= 0x38; i++, out++) {
+    for (i = 0; i < 0x39; i++, out++) {
       int16_t j = 0;
       int16_t *entry = (int16_t *)0x257e48;
       int16_t cur_sentinel;
@@ -157,36 +157,37 @@ void ai_communication_dispose(void)
  *   +0x30  <- csmemset 0, 0x100 bytes */
 void ai_communication_initialize_for_new_map(void)
 {
-  char *g = *(char **)0x632574;
-  int16_t n;
+  int n;
   int i;
 
-  /* set communication-active flag */
-  *(char *)(g + 0x10) = 1;
+  *(uint8_t *)(*(uintptr_t *)0x632574 + 0x10) = 1;
+  csmemset((void *)(*(uintptr_t *)0x632574 + 0x14), 0, 8);
+  csmemset((void *)(*(uintptr_t *)0x632574 + 0x1c), 0, 8);
+  csmemset((void *)(*(uintptr_t *)0x632574 + 0x24), 0, 8);
 
-  /* zero the three 8-byte slots */
-  csmemset(g + 0x14, 0, 8);
-  csmemset(g + 0x1c, 0, 8);
-  csmemset(g + 0x24, 0, 8);
-
-  /* clear dialogue status table (DAT_00331f08 * 2 entries, 8 bytes each) */
-  n = *(int16_t *)0x331f08;
-  for (i = 0; i < (int)n * 2; i++) {
-    *(unsigned int *)(*(char **)0x331f0c + i * 8 + 4) = 0xffffffff;
-    *(unsigned int *)(*(char **)0x331f0c + i * 8) = 0xffffffff;
+  n = (int)(*(int16_t *)0x331f08) << 1;
+  i = 0;
+  if (n > 0) {
+    do {
+      *(unsigned int *)(*(char **)0x331f0c + i * 8 + 4) = ~0u;
+      *(unsigned int *)(*(char **)0x331f0c + i * 8) = ~0u;
+      i = (int16_t)(i + 1);
+    } while (i < (int)(*(int16_t *)0x331f08) << 1);
   }
 
-  /* clear reply status table (DAT_00331f10 * 2 entries, 8 bytes each) */
-  n = *(int16_t *)0x331f10;
-  for (i = 0; i < (int)n * 2; i++) {
-    *(unsigned int *)(*(char **)0x331f14 + i * 8 + 4) = 0xffffffff;
-    *(unsigned int *)(*(char **)0x331f14 + i * 8) = 0xffffffff;
+  n = (int)(*(int16_t *)0x331f10) << 1;
+  i = 0;
+  if (n > 0) {
+    do {
+      *(unsigned int *)(*(char **)0x331f14 + i * 8 + 4) = ~0u;
+      *(unsigned int *)(*(char **)0x331f14 + i * 8) = ~0u;
+      i = (int16_t)(i + 1);
+    } while (i < (int)(*(int16_t *)0x331f10) << 1);
   }
 
-  /* clear conversation state in AI globals */
-  *(int16_t *)(g + 0x2c) = 0;
-  *(int16_t *)(g + 0x2e) = 0;
-  csmemset(g + 0x30, 0, 0x100);
+  *(int16_t *)(*(char **)0x632574 + 0x2c) = 0;
+  *(int16_t *)(*(char **)0x632574 + 0x2e) = 0;
+  csmemset((void *)(*(char **)0x632574 + 0x30), 0, 0x100);
 
   data_delete_all(*(void **)0x6324ec);
 }
