@@ -29256,11 +29256,15 @@
         },
         {
           "addr": "0x2f910",
-          "decl": "void actor_perception_find_prop_pathfinding_location(int actor_handle, int prop_handle);"
+          "decl": "void actor_perception_find_prop_pathfinding_location(int actor_handle, int prop_handle);",
+          "ported": true,
+          "source_path": "src/halo/ai/actor_perception.c"
         },
         {
           "addr": "0x2f9b0",
-          "decl": "int actor_perception_find_killer_prop_index(int actor_handle, int prop_handle, int flag);"
+          "decl": "int actor_perception_find_killer_prop_index(int actor_handle, int prop_handle, int flag);",
+          "ported": true,
+          "source_path": "src/halo/ai/actor_perception.c"
         },
         {
           "addr": "0x2fa70",
