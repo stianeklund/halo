@@ -639,6 +639,80 @@ int16_t FUN_00017940(int16_t min, int16_t max)
                       max);
 }
 
+/* FUN_00019280 (0x19280)
+ * Compute actor prop-interest for the prop list at actor+0x9c using the
+ * scripted-look update callback (FUN_00019230).
+ *
+ * Same pattern as FUN_00017090 but selects the scripted-look callback.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle);
+ * actor_look_compute_prop_interest with callback=FUN_00019230, reset=0,
+ * prop_state=actor+0x9c, param_5=0. */
+void FUN_00019280(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+                                   FUN_00019230, 0);
+}
+
+/* FUN_00019750 (0x19750)
+ * Initialize action_search state for a non-retreating actor (type 0).
+ *
+ * Validates state_data != NULL, zeros the 0x2c-byte buffer, then if the
+ * actor is not in retreat (actor+0x160 == 0) fills in the initial state:
+ * type=0 at state_data+8, param flag at state_data+5, and marks actor
+ * as active (actor+0x98 = 1). Returns 1 on success, 0 if retreating.
+ *
+ * Confirmed: display_assert "state_data", action_search.c line 0x21.
+ * Confirmed: csmemset(state_data, 0, 0x2c); actor+0x160 branch. */
+int FUN_00019750(int actor_handle, char param_2, char *state_data)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_search.c", 0x21,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x2c);
+  if (*(char *)(actor + 0x160) == '\0') {
+    *(short *)(state_data + 8) = 0;
+    *(char *)(state_data + 5) = param_2;
+    *(char *)(actor + 0x98) = 1;
+    return 1;
+  }
+  return 0;
+}
+
+/* FUN_000198d0 (0x198d0)
+ * Initialize action_search state for a berserk actor (type 2).
+ *
+ * Validates state_data != NULL, zeros the 0x2c-byte buffer, then if the
+ * actor is berserk (actor+6 != 0) sets state type=2 at state_data+8 and
+ * marks actor as active (actor+0x98 = 1). Returns 1 on success, 0 if
+ * not berserk.
+ *
+ * Confirmed: display_assert "state_data", action_search.c line 0x57.
+ * Confirmed: csmemset(state_data, 0, 0x2c); actor+6 branch; type=2. */
+int FUN_000198d0(int actor_handle, int param_2, char *state_data)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_search.c", 0x57,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x2c);
+  if (*(char *)(actor + 6) != '\0') {
+    *(short *)(state_data + 8) = 2;
+    *(char *)(actor + 0x98) = 1;
+    return 1;
+  }
+  return 0;
+}
+
 /* FUN_00019ac0 (0x19ac0)
  * Mark actor look-state as interrupted (target type 1 path).
  *
