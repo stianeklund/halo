@@ -84,6 +84,14 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
+    "FUN_00014360": {
+      "score": 92.7,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00014510": {
+      "score": 97.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_00014540": {
       "score": 86.7,
       "source": "src/halo/ai/actor_looking.c"

@@ -49,7 +49,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x14360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14510": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x14540": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15eb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15f30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16000": {
       "kind": "function",
       "status": "ported"
     },
