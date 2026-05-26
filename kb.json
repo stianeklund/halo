@@ -3227,8 +3227,10 @@
           "addr": "0x15f60"
         },
         {
-          "decl": "void FUN_00016000(void);",
-          "addr": "0x16000"
+          "name": "actor_replace_prop_handle",
+          "decl": "void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle);",
+          "addr": "0x16000",
+          "ported": true
         },
         {
           "decl": "void FUN_00016050(void);",
