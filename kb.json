@@ -3108,7 +3108,9 @@
         },
         {
           "addr": "0x14680",
-          "decl": "void FUN_00014680(void);"
+          "decl": "void FUN_00014680(int actor_handle);",
+          "ported": true,
+          "src": "src/halo/ai/actor_looking.c"
         },
         {
           "addr": "0x146f0",
@@ -33242,7 +33244,7 @@
         },
         {
           "addr": "0x24be0",
-          "decl": "void FUN_00024be0(void);"
+          "decl": "void FUN_00024be0(int actor_handle, short param_2, char param_3);"
         }
       ],
       "name": "actor_firing_position.obj",

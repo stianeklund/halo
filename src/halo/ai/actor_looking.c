@@ -227,6 +227,31 @@ void FUN_000145f0(int actor_handle)
   }
 }
 
+/* FUN_00014680 (0x14680)
+ * Countdown timer for actor action state: decrements actor+0x9c when flag
+ * actor+0x484 is set; when the counter hits zero and a pending action state
+ * exists (actor+0x3b8 != -1) with no transition in progress (actor+0x3ba == 0),
+ * dispatches the state via FUN_00024be0.
+ */
+void FUN_00014680(int actor_handle)
+{
+  char *actor;
+  short cnt;
+  short state;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x9c) > 0 && *(char *)(actor + 0x484) != '\0') {
+    cnt = *(short *)(actor + 0x9c) - 1;
+    *(short *)(actor + 0x9c) = cnt;
+    if (cnt == 0) {
+      state = *(short *)(actor + 0x3b8);
+      if (state != -1 && *(char *)(actor + 0x3ba) == '\0') {
+        FUN_00024be0(actor_handle, state, 0);
+      }
+    }
+  }
+}
+
 /* FUN_000146f0 (0x146f0)
  * Initialize actor scripted-look state (type 5 target, scripted look mode).
  *
