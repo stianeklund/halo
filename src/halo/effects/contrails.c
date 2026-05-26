@@ -564,11 +564,12 @@ void FUN_00098200(int contrail_handle, float delta_time)
             delta_time * *(float *)(pt + 8) + *(float *)(pt + 4);
 
           /*
-           * Keyframe-advance loop: repeat while decay_rate != 0.0 or
-           * time > 1.0.  Each iteration either transitions to the next
-           * keyframe or marks the point as expired.
+           * Keyframe-advance loop: runs while decay_rate == 0.0 (sentinel
+           * for "not yet initialised") OR time has overflowed past 1.0.
+           * Exits when decay_rate != 0 AND time <= 1, i.e. the point is
+           * settled into a valid keyframe.
            */
-          while (*(float *)(pt + 8) != 0.0f || *(float *)(pt + 4) > 1.0f) {
+          while (*(float *)(pt + 8) == 0.0f || *(float *)(pt + 4) > 1.0f) {
             if (*(unsigned char *)(pt + 2) & 2) {
               /*
                * Branch 1 (wrap-advance): get keyframe at
