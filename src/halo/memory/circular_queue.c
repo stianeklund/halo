@@ -363,6 +363,74 @@ int FUN_00116250(int *param_1, int *param_2, int **param_3, int **param_4)
   return 0;
 }
 
+/* inflate_flush: copy data from circular window to stream output buffer.
+ * 0x116280 / circular_queue.obj (inflate.c) */
+int FUN_00116280(int param_1, int param_2, int param_3)
+{
+  unsigned int uVar1;
+  unsigned int uVar6;
+  unsigned int uVar2;
+  unsigned int uVar5;
+  unsigned int uVar3;
+  int local_8;
+  int iVar4;
+  unsigned int (*callback)(unsigned int, unsigned int, unsigned int);
+
+  uVar1 = *(unsigned int *)(param_1 + 0x30);
+  uVar6 = *(unsigned int *)(param_1 + 0x34);
+  local_8 = *(int *)(param_2 + 0xc);
+  if (uVar6 < uVar1) {
+    uVar6 = *(unsigned int *)(param_1 + 0x2c);
+  }
+  uVar2 = *(unsigned int *)(param_2 + 0x10);
+  uVar5 = uVar6 - uVar1;
+  if (uVar5 > uVar2) {
+    uVar5 = uVar2;
+  }
+  if ((uVar5 != 0) && (param_3 == -5)) {
+    param_3 = 0;
+  }
+  *(unsigned int *)(param_2 + 0x10) = uVar2 - uVar5;
+  *(int *)(param_2 + 0x14) = *(int *)(param_2 + 0x14) + (int)uVar5;
+  callback = *(unsigned int (**)(unsigned int, unsigned int, unsigned int))(param_1 + 0x38);
+  if (callback != (unsigned int (*)(unsigned int, unsigned int, unsigned int))0) {
+    uVar3 = callback(*(unsigned int *)(param_1 + 0x3c), uVar1, uVar5);
+    *(unsigned int *)(param_1 + 0x3c) = uVar3;
+    *(unsigned int *)(param_2 + 0x30) = uVar3;
+  }
+  csmemcpy((void *)local_8, (void *)uVar1, uVar5);
+  local_8 = local_8 + (int)uVar5;
+  iVar4 = (int)(uVar1 + uVar5);
+  if (iVar4 == *(int *)(param_1 + 0x2c)) {
+    iVar4 = *(int *)(param_1 + 0x28);
+    if (*(int *)(param_1 + 0x34) == *(int *)(param_1 + 0x2c)) {
+      *(int *)(param_1 + 0x34) = iVar4;
+    }
+    uVar2 = *(unsigned int *)(param_2 + 0x10);
+    uVar5 = (unsigned int)(*(int *)(param_1 + 0x34) - iVar4);
+    if (uVar5 > uVar2) {
+      uVar5 = uVar2;
+    }
+    if ((uVar5 != 0) && (param_3 == -5)) {
+      param_3 = 0;
+    }
+    *(unsigned int *)(param_2 + 0x10) = uVar2 - uVar5;
+    *(int *)(param_2 + 0x14) = *(int *)(param_2 + 0x14) + (int)uVar5;
+    callback = *(unsigned int (**)(unsigned int, unsigned int, unsigned int))(param_1 + 0x38);
+    if (callback != (unsigned int (*)(unsigned int, unsigned int, unsigned int))0) {
+      uVar3 = callback(*(unsigned int *)(param_1 + 0x3c), (unsigned int)iVar4, uVar5);
+      *(unsigned int *)(param_1 + 0x3c) = uVar3;
+      *(unsigned int *)(param_2 + 0x30) = uVar3;
+    }
+    csmemcpy((void *)local_8, (void *)iVar4, uVar5);
+    local_8 = local_8 + (int)uVar5;
+    iVar4 = iVar4 + (int)uVar5;
+  }
+  *(int *)(param_2 + 0xc) = local_8;
+  *(int *)(param_1 + 0x30) = iVar4;
+  return param_3;
+}
+
 /* send_bits: output val (length bits) to deflate bit buffer.
  * 0x116390 / circular_queue.obj (deflate.c)
  * ABI: @eax=value, @ebx=length, @esi=deflate_state */

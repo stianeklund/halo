@@ -31880,7 +31880,8 @@
         {
           "decl": "int FUN_00116280(int param_1, int param_2, int param_3);",
           "addr": "0x116280",
-          "src": "src/halo/memory/circular_queue.c"
+          "src": "src/halo/memory/circular_queue.c",
+          "ported": true
         },
         {
           "decl": "void FUN_00116390(int value @<eax>, int length @<ebx>, int state @<esi>);",
