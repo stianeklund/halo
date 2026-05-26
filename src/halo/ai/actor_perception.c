@@ -42,6 +42,44 @@ void FUN_0002f1a0(int actor_handle)
   actor_path_refresh(actor_handle, 1, NULL);
 }
 
+/* FUN_0002f230 (0x2f230): refresh actor path or dispatch to move/firing
+ * position.
+ *
+ * If actor is NOT in move-to-point mode (field_15e != 4):
+ *   copies 6-dword block from +0x400 to +0x46c (if not already done),
+ *   then calls actor_path_refresh(actor_handle, 1, NULL).
+ * If in move-to-point mode and field_3b8 != -1:
+ *   calls actor_move_to_firing_position.
+ * Otherwise falls through to FUN_0002f1a0. */
+void FUN_0002f230(int actor_handle)
+{
+  char *actor;
+  unsigned int *src;
+  unsigned int *dst;
+  int k;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(short *)(actor + 0x15e) == 4) {
+    if (*(short *)(actor + 0x3b8) == -1) {
+      FUN_0002f1a0(actor_handle);
+      return;
+    }
+    actor_move_to_firing_position(actor_handle, *(short *)(actor + 0x3b8), 0);
+    return;
+  }
+
+  if (*(short *)(actor + 0x46c) != 1) {
+    *(short *)(actor + 0x400) = 1;
+    src = (unsigned int *)(actor + 0x400);
+    dst = (unsigned int *)(actor + 0x46c);
+    for (k = 6; k != 0; k--) {
+      *dst++ = *src++;
+    }
+  }
+  actor_path_refresh(actor_handle, 1, NULL);
+}
+
 /* actor_get_best_damaging_prop (0x2fa70)
  * Find the highest-scoring active damaging prop visible to the actor's unit.
  *
