@@ -36,3 +36,10 @@
 | FUN_0003e570 | 0x3e570 | actors.c | pass | 87.2% | reverted | structural ceiling (register alloc + LEA/AND vs ADD/SHL csmemset size; permuter: no improvement) |
 | FUN_0010c3c0 | 0x10c3c0 | random_math.c | skipped | n/a | skipped | structural ceiling (FPU calling convention: callee FUN_001d94f0 reads float10 in_ST0 — unreplicable from C) |
 | FUN_0010c440 | 0x10c440 | random_math.c | skipped | n/a | skipped | structural ceiling (same FPU calling convention dependency as 0x10c3c0) |
+| hud_messaging_initialize_for_new_map | 0xd5ff0 | hud_messaging.c | pass | 100% | committed | single csmemset call |
+| hud_messaging_dispose_from_old_map | 0xd6010 | hud_messaging.c | pass | 100% | committed | empty stub |
+| hud_messaging_dispose | 0xd6020 | hud_messaging.c | pass | 100% | committed | empty stub |
+| FUN_00172590 | 0x172590 | rasterizer.obj | skipped | n/a | skipped | __FILE__=rasterizer_xbox_shadows.c but source file not yet in tree; skip |
+| ai_communication_initialize | 0x42a30 | ai_communication.c | pass | 88% | skipped | structural ceiling (int16_t counter: xorw/incw vs xorl/incl — MSVC 16-bit reg use; ported=false) |
+| ai_communication_initialize_for_new_map | 0x42b90 | ai_communication.c | pass | 94.6% | committed | removed g-cache var + do-while + MOVSX loop counter |
+| ai_communication_dispose_from_old_map | 0x42ca0 | ai_communication.c | pass | 100% | committed | single-call wrapper |

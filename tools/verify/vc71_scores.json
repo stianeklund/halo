@@ -773,7 +773,7 @@
       "source": "src/halo/ai/ai.c"
     },
     "FUN_0003fdc0": {
-      "score": 95.7,
+      "score": 100.0,
       "source": "src/halo/ai/ai.c"
     },
     "FUN_0003fe30": {
@@ -801,7 +801,7 @@
       "source": "src/halo/ai/ai.c"
     },
     "FUN_00040570": {
-      "score": 83.7,
+      "score": 86.3,
       "source": "src/halo/ai/ai.c"
     },
     "FUN_00040690": {
@@ -813,7 +813,7 @@
       "source": "src/halo/ai/ai.c"
     },
     "FUN_000409e0": {
-      "score": 98.6,
+      "score": 100.0,
       "source": "src/halo/ai/ai.c"
     },
     "FUN_00040a40": {
@@ -821,7 +821,7 @@
       "source": "src/halo/ai/ai.c"
     },
     "FUN_00040f80": {
-      "score": 89.1,
+      "score": 91.5,
       "source": "src/halo/ai/ai.c"
     },
     "FUN_00041040": {
@@ -845,8 +845,24 @@
       "source": "src/halo/ai/ai.c"
     },
     "FUN_000425c0": {
-      "score": 33.4,
+      "score": 36.1,
       "source": "src/halo/ai/ai.c"
+    },
+    "FUN_00042a30": {
+      "score": 88.0,
+      "source": "src/halo/ai/ai_communication.c"
+    },
+    "FUN_00042b80": {
+      "score": 100.0,
+      "source": "src/halo/ai/ai_communication.c"
+    },
+    "FUN_00042b90": {
+      "score": 94.6,
+      "source": "src/halo/ai/ai_communication.c"
+    },
+    "FUN_00042ca0": {
+      "score": 100.0,
+      "source": "src/halo/ai/ai_communication.c"
     },
     "FUN_00054020": {
       "score": 100.0,
@@ -3533,7 +3549,7 @@
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d0360": {
-      "score": 98.5,
+      "score": 100.0,
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d03e0": {
@@ -3549,7 +3565,7 @@
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d0440": {
-      "score": 78.7,
+      "score": 80.0,
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d0bf0": {
@@ -3569,11 +3585,11 @@
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d0d50": {
-      "score": 96.6,
+      "score": 100.0,
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d0db0": {
-      "score": 81.4,
+      "score": 84.7,
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d1550": {
@@ -3622,6 +3638,18 @@
     },
     "FUN_000d52e0": {
       "score": 95.2,
+      "source": "src/halo/interface/hud_messaging.c"
+    },
+    "FUN_000d5ff0": {
+      "score": 100.0,
+      "source": "src/halo/interface/hud_messaging.c"
+    },
+    "FUN_000d6010": {
+      "score": 100.0,
+      "source": "src/halo/interface/hud_messaging.c"
+    },
+    "FUN_000d6020": {
+      "score": 100.0,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000db0f0": {
@@ -7281,7 +7309,7 @@
       "source": "src/halo/hs/hs.c"
     },
     "hud_get_item_string": {
-      "score": 90.6,
+      "score": 92.1,
       "source": "src/halo/interface/hud.c"
     },
     "input_get_gamepad_state": {
