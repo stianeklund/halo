@@ -369,6 +369,27 @@ void FUN_000151b0(int actor_handle)
   }
 }
 
+/* actor_clear_guard_state (0x15b70)
+ * Clears the actor's prop/guard encounter state when the prop-ready flag is
+ * set.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) from decompile.
+ * Confirmed: branch on *(char *)(actor+0xa1) != 0 from decompile.
+ * Confirmed: *(int16_t *)(actor+0x1e4) = 0; *(int *)(actor+0x1e8) = -1 from
+ * decompile. Inferred: actor+0xa1 = prop-ready flag (set by
+ * actor_update_prop_desire at 0x14360). Inferred: actor+0x1e4 = guard/prop
+ * state index (int16_t). Inferred: actor+0x1e8 = guard/prop encounter handle,
+ * reset to invalid (-1). */
+void actor_clear_guard_state(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0xa1) != '\0') {
+    *(int16_t *)(actor + 0x1e4) = 0;
+    *(int *)(actor + 0x1e8) = -1;
+  }
+}
+
 /* FUN_00017090 (0x17090)
  * Compute actor prop-interest for the prop list at actor+0x9c.
  *
