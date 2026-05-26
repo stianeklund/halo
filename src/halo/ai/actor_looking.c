@@ -517,6 +517,94 @@ void cross_product3d(float *a, float *b, float *out)
   out[2] = a0 * b1 - a1 * b0;
 }
 
+/* FUN_00019ac0 (0x19ac0)
+ * Mark actor look-state as interrupted (target type 1 path).
+ *
+ * If the look-target type word at actor+0xa4 equals 1, clears the
+ * target-acquired index at actor+0xa6 (set to 0xffff = none) and
+ * sets the look-state byte at actor+0x9c to 1.
+ *
+ * Confirmed: ADD EAX,0x9c after datum_get; CMP word [EAX+0x8],0x1;
+ *   MOV word [EAX+0xa],0xffff; MOV byte [EAX],0x1. */
+void FUN_00019ac0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0xa4) == 1) {
+    *(short *)(actor + 0xa6) = (short)0xffff;
+    *(char *)(actor + 0x9c) = 1;
+  }
+}
+
+/* FUN_00019af0 (0x19af0)
+ * Reset actor look-target handles to invalid (-1).
+ *
+ * Unconditionally clears actor+0xa8 (int16_t) and actor+0xac (int32_t)
+ * to -1 (all-bits-set via OR ECX,0xffffffff).
+ *
+ * Confirmed: ADD EAX,0x9c after datum_get; OR ECX,0xffffffff;
+ *   MOV word [EAX+0xc],CX (actor+0xa8); MOV dword [EAX+0x10],ECX (actor+0xac).
+ */
+void FUN_00019af0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(short *)(actor + 0xa8) = -1;
+  *(int *)(actor + 0xac) = -1;
+}
+
+/* FUN_0001a050 (0x1a050)
+ * Clear the look-spec type word at actor+0x3fc.
+ *
+ * Sets actor+0x3fc to 0 (int16_t write, zero-extending).
+ *
+ * Confirmed: CALL datum_get; ADD ESP,0x8;
+ *   MOV word [EAX+0x3fc],0x0. */
+void FUN_0001a050(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(short *)(actor + 0x3fc) = 0;
+}
+
+/* FUN_0001a590 (0x1a590)
+ * Mark actor look-state as interrupted (target type 1 path, byte +0x9d).
+ *
+ * If the look-target type word at actor+0xa4 equals 1, clears the
+ * target-acquired index at actor+0xa6 (set to 0xffff = none) and
+ * sets the look-state byte at actor+0x9d to 1.  Differs from FUN_00019ac0
+ * only in the byte offset written: 0x9d vs 0x9c.
+ *
+ * Confirmed: ADD EAX,0x9c; MOV ECX,0x1; CMP word [EAX+0x8],CX;
+ *   MOV word [EAX+0xa],0xffff; MOV byte [EAX+0x1],CL. */
+void FUN_0001a590(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0xa4) == 1) {
+    *(short *)(actor + 0xa6) = (short)0xffff;
+    *(char *)(actor + 0x9d) = 1;
+  }
+}
+
+/* FUN_0001a5d0 (0x1a5d0)
+ * Reset actor look-target handles to invalid (-1).
+ *
+ * Identical body to FUN_00019af0: clears actor+0xa8 (int16_t) and
+ * actor+0xac (int32_t) to -1.  Compiled as a separate function at a
+ * different address.
+ *
+ * Confirmed: ADD EAX,0x9c; OR ECX,0xffffffff;
+ *   MOV word [EAX+0xc],CX (actor+0xa8); MOV dword [EAX+0x10],ECX (actor+0xac).
+ */
+void FUN_0001a5d0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(short *)(actor + 0xa8) = -1;
+  *(int *)(actor + 0xac) = -1;
+}
+
 /* FUN_00027870 (0x27870)
  * Stop scripted look: log debug message and clear the scripted-look fields.
  *
