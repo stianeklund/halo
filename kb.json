@@ -3197,8 +3197,10 @@
           "addr": "0x15b30"
         },
         {
-          "decl": "void FUN_00015b70(void);",
-          "addr": "0x15b70"
+          "decl": "void actor_clear_guard_state(int actor_handle);",
+          "addr": "0x15b70",
+          "name": "actor_clear_guard_state",
+          "ported": true
         },
         {
           "decl": "void FUN_00015bb0(void);",
