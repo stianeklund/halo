@@ -1,6 +1,50 @@
+/* Allocate the motion sensor (radar) game state block (0xdb0f0). */
+void motion_sensor_initialize(void)
+{
+  *(void **)0x46bd2c =
+    game_state_malloc("motion sensor (radar)", "sensor data", 0x15a8);
+  if (*(void **)0x46bd2c == 0) {
+    display_assert("motion_sensor_globals",
+                   "c:\\halo\\SOURCE\\interface\\motion_sensor.c", 0x12a, 1);
+    system_exit(-1);
+  }
+}
+
 /* (0xdb140) */
 void FUN_000db140(void)
 {
+}
+
+/* Clear the motion sensor state and pre-initialize slot tables (0xdb150). */
+void FUN_000db150(void)
+{
+  unsigned char *p;
+  unsigned char *row;
+  unsigned char *cell;
+  int i;
+  int j;
+  int k;
+
+  csmemset(*(void **)0x46bd2c, 0, 0x15a8);
+  p = (unsigned char *)*(void **)0x46bd2c + 2;
+  i = 4;
+  do {
+    j = 10;
+    row = p;
+    do {
+      k = 0x10;
+      cell = row;
+      do {
+        *cell = 6;
+        cell += 4;
+        k--;
+      } while (k != 0);
+      row += 0x84;
+      j--;
+    } while (j != 0);
+    p += 0x568;
+    i--;
+  } while (i != 0);
 }
 
 /* (0xdb1b0) */
