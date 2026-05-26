@@ -27,12 +27,31 @@ failures), repeat:
    Skip any targets that already have a failure record in `artifacts/auto_lift/failures/`.
 2. Pick the top `auto-lift` or `cache-context` lane target.
 3. If Ghidra MCP is available and no cached context exists, run `cache-context --target <target>`.
-4. Delegate to `/lift <target>` (includes `maintain.py` via lift_pipeline).
-5. Evaluate pipeline result (see pass/fail criteria below).
-6. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
-7. **On fail**: attempt Opus escalation or revert+log (see escalation below),
+4. **Phase 1 — RE analysis + implementation (subagent):**
+   Gather lightweight context for the target (KB entry via `rtk jq`, decompilation
+   via Ghidra MCP, source file path). Then spawn a subagent:
+   ```
+   Agent(subagent_type="xbox-halo-re-analyst", model="sonnet", prompt=<brief>)
+   ```
+   The prompt must include: target address, decompilation output, KB entry JSON,
+   source file path, and these file-write instructions:
+   - Write the C89 implementation to the source file at the correct address-ordered position
+   - Update kb.json declaration if needed (conservatively)
+   - Update `tools/kb_reg_baseline.json` for any `@<reg>` annotations
+   - Run `rtk python3 tools/analysis/maintain.py <source_file>`
+   - Run `rtk python3 tools/audit/check_lift_hazards.py` and fix target-relevant hazards
+   - Report: RESOLVED_TARGET, Confirmed/Inferred/Uncertain, kb.json updates made
+5. **Phase 2 — build + verify (orchestrator):**
+   After the agent returns, ensure a delinked reference exists (export via
+   `mcp__ghidra-live__export_delinked_object` if missing), then run:
+   ```bash
+   rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto
+   ```
+6. Evaluate pipeline result (see pass/fail criteria below).
+7. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
+8. **On fail**: attempt Opus escalation or revert+log (see escalation below),
    increment consecutive failure counter.
-8. If consecutive failures reach `--stop-on-fail`, stop and report.
+9. If consecutive failures reach `--stop-on-fail`, stop and report.
 
 After the loop ends, print a summary: N attempted, N committed, N failed, N skipped.
 
@@ -81,8 +100,10 @@ to Opus:
 
 **Escalation flow:**
 1. Revert the Sonnet attempt: `rtk git checkout -- src/ kb.json`
-2. Re-run `/lift <target>` using Agent tool with `model: opus`
-3. If Opus also fails, revert+log with both attempts recorded.
+2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst")` without
+   the `model: "sonnet"` override — the agent's default model (Opus) kicks in.
+   Include the same prompt as the original attempt.
+3. Run Phase 2 again. If Opus also fails, revert+log with both attempts recorded.
 
 ## On success — auto-commit
 
