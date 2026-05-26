@@ -3204,7 +3204,8 @@
         },
         {
           "addr": "0x15b30",
-          "decl": "void FUN_00015b30(void);"
+          "decl": "void FUN_00015b30(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x15b70",
@@ -29296,11 +29297,11 @@
         },
         {
           "addr": "0x2fb70",
-          "decl": "void actor_perception_forget_recent_damage(void);"
+          "decl": "void actor_perception_forget_recent_damage(int actor_handle);"
         },
         {
           "addr": "0x2fbc0",
-          "decl": "void actor_perception_retreat_successful(void);"
+          "decl": "void actor_perception_retreat_successful(int actor_handle);"
         },
         {
           "addr": "0x2fc20",

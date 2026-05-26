@@ -516,6 +516,18 @@ int FUN_00015900(int actor_handle, short param_2, char *state_data)
   return 1;
 }
 
+/* FUN_00015b30 (0x15b30) */
+void FUN_00015b30(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_perception_forget_recent_damage(actor_handle);
+  *(char *)(actor + 0x98) = 0;
+  if (*(char *)(actor + 0xa6) != '\0') {
+    actor_perception_retreat_successful(actor_handle);
+  }
+}
+
 /* actor_clear_guard_state (0x15b70)
  * Clears the actor's prop/guard encounter state when the prop-ready flag is
  * set.
