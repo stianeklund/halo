@@ -5410,8 +5410,10 @@
           "addr": "0x11e840"
         },
         {
-          "decl": "void FUN_0011e8a0(void);",
-          "addr": "0x11e8a0"
+          "name": "memory_pool_block_resize",
+          "decl": "bool memory_pool_block_resize(void *pool, void **block_reference, int new_size);",
+          "addr": "0x11e8a0",
+          "ported": true
         }
       ]
     },
