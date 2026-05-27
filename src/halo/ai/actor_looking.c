@@ -831,6 +831,155 @@ void FUN_00015f60(int actor_handle, int *param_2)
   param_2[3] = src[3];
 }
 
+/* FUN_00016590 (0x16590)
+ * Update guard-mode look flags and dispatch navigation target based on
+ * current action state (actor+0xc0).
+ *
+ * Sets look-flag bytes actor+0x426/427/428/424/425 from actr tag bits and
+ * actor stance (a4/a6). Dispatches:
+ *   0/1 → retreat (FUN_0002f1a0)
+ *   2   → approach position (FUN_0002d720 or retreat)
+ *   3   → move to firing position (actor_move_to_firing_position)
+ * On approach success: fires FUN_00015bb0 if prop-ready (actor+0xa1) and
+ * guard state (a3) not set. Then sets nav output (3e8/3ec/3f0/3fc).
+ *
+ * Confirmed: datum_get at 0x165a0. tag_get(actr) at 0x165b0.
+ * Confirmed: CALL FUN_00015bb0 at 0x167f7 with MOV EAX,EDI beforehand.
+ * Confirmed: SETGE+LEA for 3fc at 0x16934-0x16942. */
+void FUN_00016590(int actor_handle)
+{
+  char *actor;
+  char *tag_data;
+  char *prop;
+  float *fwd;
+  char bVar2;
+  int prop_unit;
+  float fsq;
+  float thresh;
+  short sVar1;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  if ((*tag_data & 0x40) != 0 && *(short *)(actor + 0x6e) == 0) {
+    *(char *)(actor + 0x426) = 1;
+    *(char *)(actor + 0x427) = 1;
+  } else {
+    *(char *)(actor + 0x427) = 0;
+    if (*(char *)(actor + 0xa4) == '\0') {
+      if ((*tag_data & 0x80) != 0 && *(short *)(actor + 0x6e) > 0) {
+        *(char *)(actor + 0x426) = 1;
+      } else {
+        *(char *)(actor + 0x426) = 0;
+      }
+    } else if (*(char *)(actor + 0xa6) == '\0') {
+      *(char *)(actor + 0x426) = 1;
+    } else {
+      *(char *)(actor + 0x426) = (char)((*tag_data >> 0x17) & 1);
+    }
+  }
+  *(char *)(actor + 0x428) = 0;
+  *(char *)(actor + 0x424) = 0;
+  *(char *)(actor + 0x425) = 0;
+  if (*(char *)(actor + 0x4c) == '\0' || *(char *)(actor + 6) != '\0') {
+    goto output;
+  }
+  bVar2 = 0;
+  switch (*(short *)(actor + 0xc0)) {
+  case 0:
+  case 1:
+    FUN_0002f1a0(actor_handle);
+    bVar2 = 1;
+    break;
+  case 2:
+    fsq = distance_squared3d((float *)(actor + 0x12c), (float *)(actor + 0xc4));
+    thresh = *(float *)(actor + 0xd4);
+    if (thresh * thresh <= fsq) {
+      actor_move_to_point(actor_handle, (float *)(actor + 0xc4),
+                          *(int *)(actor + 0xd0), -1);
+    } else {
+      FUN_0002f1a0(actor_handle);
+    }
+    if (fsq >= *(float *)0x2536cc) {
+      bVar2 = 0;
+      break;
+    }
+    bVar2 = 1;
+    break;
+  case 3:
+    sVar1 = *(short *)(actor + 0xc4);
+    if (sVar1 != -1) {
+      *(short *)(actor + 0x3b8) = sVar1;
+      *(char *)(actor + 0x3ba) = 0;
+      if (actor_move_to_firing_position(actor_handle, sVar1, 0) == '\0') {
+        FUN_00024be0(actor_handle, *(short *)(actor + 0xc4), 0);
+        *(short *)(actor + 0x3b8) = -1;
+      }
+    }
+    if (*(char *)(actor + 0x4a8) == '\0' ||
+        distance_squared3d((float *)(actor + 0x4ac), (float *)(actor + 0x12c)) <
+        *(float *)0x2536cc) {
+      bVar2 = 1;
+    } else {
+      bVar2 = 0;
+    }
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\ai\\action_guard.c", 0x2a9, 1);
+    system_exit(-1);
+    break;
+  }
+  *(char *)(actor + 0xa0) = 1;
+  if (bVar2) {
+    if (*(char *)(actor + 0xab) != '\0') {
+      prop = (char *)datum_get(prop_data, *(int *)(actor + 0xac));
+      *(char *)(actor + 0xab) = 0;
+      *(int *)(actor + 0xac) = -1;
+      FUN_000369c0(actor_handle, 2, 600);
+      FUN_00046f10(7, *(int *)(actor + 0x18), *(int *)(prop + 0x18),
+                   -1, -1, 2, 0);
+    }
+    if (*(char *)(actor + 0xa1) != '\0') {
+      FUN_00015bb0(actor_handle);
+      if (*(short *)(actor + 0x1e4) == 9 && *(short *)(actor + 0xc0) == 2) {
+        *(char *)(actor + 0xa3) = 1;
+      }
+    }
+  }
+output:
+  if (*(char *)(actor + 0xa3) != '\0') {
+    *(short *)(actor + 0x3e8) = 7;
+    *(short *)(actor + 0x3ec) = 2;
+    *(char *)(actor + 0x454) = 1;
+    *(char *)(actor + 0x45d) = 1;
+    fwd = *(float **)0x31fc44;
+    *(float *)(actor + 0x468) = fwd[2] * *(float *)0x2533e8 + *(float *)(actor + 0xcc);
+    *(float *)(actor + 0x464) = fwd[1] * *(float *)0x2533e8 + *(float *)(actor + 0xc8);
+    *(float *)(actor + 0x460) = fwd[0] * *(float *)0x2533e8 + *(float *)(actor + 0xc4);
+  } else {
+    prop_unit = *(int *)(actor + 0xd8);
+    if (prop_unit != -1) {
+      *(short *)(actor + 0x3e8) = 5;
+      *(short *)(actor + 0x3ec) = 1;
+      *(int *)(actor + 0x3f0) = prop_unit;
+    } else if (*(char *)(actor + 0xb0) != '\0') {
+      *(short *)(actor + 0x3ec) = 4;
+      *(short *)(actor + 0x3e8) =
+          (short)(3 + (*(char *)(actor + 0xb1) != '\0') * 2);
+      *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb4);
+      *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb8);
+      *(int *)(actor + 0x3f8) = *(int *)(actor + 0xbc);
+    } else if (*(short *)(actor + 0x6e) > 0 && *(int *)(actor + 0x270) != -1) {
+      *(short *)(actor + 0x3e8) = 3;
+      *(short *)(actor + 0x3ec) = 1;
+      *(int *)(actor + 0x3f0) = *(int *)(actor + 0x270);
+    } else {
+      *(short *)(actor + 0x3e8) = 0;
+    }
+  }
+  *(short *)(actor + 0x3fc) =
+      (short)(2 + (*(short *)(actor + 0x6e) >= 4) * 2);
+}
+
 /* FUN_00016ff0 (0x16ff0)
  * Update actor scripted-look prop interest, or invalidate if out of range.
  *
