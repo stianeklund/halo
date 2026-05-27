@@ -633,6 +633,21 @@ void FUN_00016c40(int param_1, int param_2, short param_3, char *param_4)
   }
 }
 
+/* FUN_00016c80 (0x16c80) — Scenario encounter guard-zone boundary callback.
+ * Checks if the encounter element at param_3 has the 0x10 flag set at +0x20.
+ * If so, sets bit 0x1000 in the object's flags at +0x1b4. */
+void FUN_00016c80(int param_1, int param_2, short param_3)
+{
+  char *elem;
+  char *obj;
+  elem = (char *)tag_block_get_element((char *)global_scenario_get() + 0x438,
+                                       (int)param_3, 0x60);
+  if ((*(unsigned char *)(elem + 0x20) & 0x10) != 0) {
+    obj = (char *)object_get_and_verify_type(param_2, 3);
+    *(unsigned int *)(obj + 0x1b4) = *(unsigned int *)(obj + 0x1b4) | 0x1000;
+  }
+}
+
 /* actor_clear_aim_target (0x17060)
  * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
  * target handle (actor+0xdc) to the -1 sentinel.
@@ -680,7 +695,7 @@ void FUN_000170c0(int actor_handle)
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
-                                   FUN_00016c80, 0);
+                                   (void (*)(void))FUN_00016c80, 0);
 }
 
 /* FUN_000170f0 (0x170f0)
@@ -967,6 +982,27 @@ void FUN_0001aae0(int object_handle, float *center, float *radius)
   *radius = *(float *)(obj + 0x5c);
 }
 
+/* FUN_0001ab70 (0x1ab70) — Initialize actor look-at snapshot.
+ * Clears the look-at timer (actor+0xaa), records current game time at
+ * actor+0xac, and copies the 3-float vector at actor+0x12c into actor+0xb0. */
+void FUN_0001ab70(int actor_handle)
+{
+  char *actor;
+  char *src;
+  int t;
+  int v;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(short *)(actor + 0xaa) = 0;
+  t = game_time_get();
+  *(int *)(actor + 0xac) = t;
+  src = actor + 0x12c;
+  v = *(int *)src;
+  actor += 0xb0;
+  *(int *)actor = v;
+  *(int *)(actor + 4) = *(int *)(src + 4);
+  *(int *)(actor + 8) = *(int *)(src + 8);
+}
+
 /* FUN_0001abd0 (0x1abd0)
  * Clear actor look-at target: set the 32-bit field at actor+0xe4 to -1
  * (null/invalid handle sentinel).
@@ -1055,6 +1091,16 @@ void FUN_0002a2b0(int actor_handle)
     }
   }
   actor[0x505] = 0;
+}
+
+/* FUN_0002a330 (0x2a330) — Set actor 'looking' active flags.
+ * Sets the byte at actor+0x402 and actor+0x46e both to 1. */
+void FUN_0002a330(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(char *)(actor + 0x402) = 1;
+  *(char *)(actor + 0x46e) = 1;
 }
 
 /* FUN_0002a3d0 (0x2a3d0)
