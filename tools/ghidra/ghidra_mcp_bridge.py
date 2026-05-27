@@ -355,6 +355,7 @@ class _SSEEndpoint:
                     streams[0],
                     streams[1],
                     self._mcp_server.create_initialization_options(),
+                    stateless=True,
                 )
         finally:
             _active_sessions -= 1
@@ -434,7 +435,8 @@ async def main() -> None:
 
         async with stdio_server() as (read_stream, write_stream):
             await server.run(
-                read_stream, write_stream, server.create_initialization_options()
+                read_stream, write_stream, server.create_initialization_options(),
+                stateless=True,
             )
         return
 

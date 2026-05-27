@@ -89,6 +89,7 @@ class _SSEEndpoint:
                     streams[0],
                     streams[1],
                     self._mcp_server.create_initialization_options(),
+                    stateless=True,
                 )
         finally:
             _active_sessions -= 1
