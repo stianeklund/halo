@@ -29138,7 +29138,9 @@
         },
         {
           "addr": "0x2a580",
-          "decl": "char actor_test_destination(int actor_handle);"
+          "decl": "char actor_test_destination(int actor_handle);",
+          "name": "actor_test_destination",
+          "ported": true
         },
         {
           "addr": "0x2cdb0",
@@ -29568,7 +29570,9 @@
         },
         {
           "addr": "0x43520",
-          "decl": "void ai_conversation_advance(int param_1);"
+          "decl": "void ai_conversation_advance(short param_1);",
+          "name": "ai_conversation_advance",
+          "ported": true
         },
         {
           "addr": "0x435b0",
@@ -29675,7 +29679,8 @@
         }
       ],
       "name": "ai_communication.obj",
-      "source": "ai/ai_communication.c"
+      "source": "ai/ai_communication.c",
+      "source_path": "ai/ai_communication.c"
     },
     {
       "data": [],
@@ -29714,7 +29719,9 @@
         },
         {
           "addr": "0x49120",
-          "decl": "void *ai_debug_get_path_storage(int actor_handle);"
+          "decl": "void *ai_debug_get_path_storage(int actor_handle);",
+          "name": "ai_debug_get_path_storage",
+          "ported": true
         },
         {
           "addr": "0x49220",
@@ -29996,7 +30003,8 @@
         }
       ],
       "name": "ai_debug.obj",
-      "source": "ai/ai_debug.c"
+      "source": "ai/ai_debug.c",
+      "source_path": "ai/ai_debug.c"
     },
     {
       "data": [],

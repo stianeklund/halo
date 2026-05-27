@@ -66,6 +66,31 @@ void midpoint3d(float *a, float *b, float *out)
   out[2] = (a[2] + b[2]) * 0.5f;
 }
 
+/* actor_test_destination (0x2a580) — check whether an actor has reached its
+ * destination. Returns 1 if movement state is 0 or 1, or if the squared
+ * distance to the destination is less than the squared tolerance. Stores the
+ * result in actor[0x484]. */
+char actor_test_destination(int actor_handle)
+{
+  char *actor;
+  float tol;
+  float dx, dy, dz;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(short *)(actor + 0x46c) == 0 || *(short *)(actor + 0x46c) == 1) {
+    *(char *)(actor + 0x484) = 1;
+  } else {
+    tol = actor_destination_tolerance(actor_handle);
+    dx = *(float *)(actor + 0x488) - *(float *)(actor + 0x12c);
+    dy = *(float *)(actor + 0x48c) - *(float *)(actor + 0x130);
+    dz = *(float *)(actor + 0x490) - *(float *)(actor + 0x134);
+    if (tol * tol > dz * dz + dx * dx + dy * dy) {
+      *(char *)(actor + 0x484) = 1;
+    }
+  }
+  return *(char *)(actor + 0x484);
+}
+
 /* actor_get_stopping_distances (0x2a610) — Compute stopping distances for an
  * actor.
  *
