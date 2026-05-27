@@ -107,7 +107,7 @@ void game_state_save_to_persistent_storage(void)
 /* Read and validate game state from persistent storage. Returns 1 on success,
  * 0 on failure. On success, copies the header and resets checkpoint flags.
  * 0x1bf920 / game_state.obj */
-int game_state_test_persistent_storage(int *out_header, int16_t *out_flags,
+int game_state_test_persistent_storage(char *out_header, int16_t *out_flags,
                                        int param_3)
 {
   char header[0x14c];
@@ -116,11 +116,11 @@ int game_state_test_persistent_storage(int *out_header, int16_t *out_flags,
   if (game_state_read_header_from_persistent_storage(
         header, &scratch, 0x14c, 0x345000, (char *)param_3)) {
     *out_flags = *(int16_t *)(header + 0x126);
-    csstrcpy((char *)out_header, header + 4);
+    csstrcpy(out_header, header + 4);
     return 1;
   }
   *out_flags = 1;
-  csstrcpy((char *)out_header, (const char *)0x25386f);
+  csstrcpy(out_header, (const char *)0x25386f);
   return 0;
 }
 
@@ -137,8 +137,8 @@ void game_state_save_core(const char *name)
 }
 
 /* Check if the game state has been reverted since it was initialized.
- * Returns true if game_time_get() != *(int*)0x4ea9a8 (the saved-game
- * "verified-tick" value from initialization).
+ * Returns true if the current game tick equals the saved-game
+ * "verified-tick" at 0x4ea9a8 (i.e. no time has advanced since load).
  * 0x1bf9e0 / game_state.obj */
 bool game_state_reverted(void)
 {

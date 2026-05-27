@@ -9007,7 +9007,7 @@
         },
         {
           "addr": "0x1bf920",
-          "decl": "int game_state_test_persistent_storage(int *header, int16_t *flags, int param_3);",
+          "decl": "int game_state_test_persistent_storage(char *header, int16_t *flags, int param_3);",
           "ported": true
         },
         {
