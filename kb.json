@@ -3300,7 +3300,8 @@
         },
         {
           "addr": "0x16ff0",
-          "decl": "void FUN_00016ff0(void);"
+          "decl": "void FUN_00016ff0(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x17060",
