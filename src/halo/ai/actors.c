@@ -2326,11 +2326,11 @@ void FUN_0003a8a0(int actor_handle)
   (*(void (*)(int)) * (int *)((char *)type_def + 0x18))(actor_handle);
 }
 
-void FUN_0003a920(int actor_handle, int a2, int a3, int a4)
+void FUN_0003a920(int actor_handle, int a2, float a3, float *a4)
 {
   char *actor;
   char *type_def;
-  void (*fn)(int, int, int, int);
+  void (*fn)(int, int, float, float *);
 
   actor = (char *)datum_get(actor_data, actor_handle);
   type_def = (char *)FUN_0003a600(*(short *)(actor + 4));
@@ -2339,7 +2339,7 @@ void FUN_0003a920(int actor_handle, int a2, int a3, int a4)
                    "c:\\halo\\SOURCE\\ai\\actor_types.c", 0x9d, 1);
     system_exit(-1);
   }
-  fn = (void (*)(int, int, int, int)) * (int *)(type_def + 0x1c);
+  fn = (void (*)(int, int, float, float *)) * (int *)(type_def + 0x1c);
   if (fn != NULL) {
     fn(actor_handle, a2, a3, a4);
   }
