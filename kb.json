@@ -13903,7 +13903,7 @@
         {
           "addr": "0x85150",
           "decl": "int FUN_00085150(int param_1);",
-          "ported": true,
+          "ported": false,
           "source_path": "camera/bored_camera.c"
         },
         {
@@ -21868,7 +21868,7 @@
         {
           "addr": "0x19b330",
           "decl": "void FUN_0019B330(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x19b3a0",
@@ -32172,7 +32172,7 @@
         {
           "addr": "0x118620",
           "decl": "void FUN_00118620(void *data, int count, int element_size);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1187f0",
