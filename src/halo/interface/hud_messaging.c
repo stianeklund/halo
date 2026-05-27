@@ -19,6 +19,18 @@ void FUN_000d46a0(void)
   csmemset(buf, 0, 0x11a8);
 }
 
+/* FUN_000d46d0 (0xd46d0)
+ * Shared RET stub, tail-called from hud_dispose_from_old_map. Empty body. */
+void FUN_000d46d0(void)
+{
+}
+
+/* FUN_000d46e0 (0xd46e0)
+ * Shared RET stub, tail-called from hud_dispose. Empty body. */
+void FUN_000d46e0(void)
+{
+}
+
 /* Find a message slot in the 4-entry array at base (each 0x8c bytes).
  * Prefers: exact match (tag_handle + param2), then free slot, then oldest.
  * tag_handle passed in ESI (register arg). */
