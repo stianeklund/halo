@@ -1084,6 +1084,61 @@ void actor_clear_aim_target(int actor_handle)
   }
 }
 
+/* actor_look_compute_prop_interest (0x16d40)
+ * Iterate an actor's prop list (or each swarm unit's list for swarm actors)
+ * and invoke the callback for each active entry.
+ *
+ * For swarm actors (actor+6 != 0): iterates swarm units via swarm_data and
+ * swarm_component_data. For each unit with the "active" bit set, calls
+ * callback(actor_handle, unit_handle, *prop_state, component+0x1c, 0, param_5).
+ * For non-swarm: calls callback once with the actor's own unit handle.
+ * If param_2 != 0: resets each component's state (csmemset + set bit 3).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x16d4e.
+ * Confirmed: CALL 0x16d40 from FUN_00017090 at 0x170b2.
+ * Confirmed: swarm_data=DAT_006325a0, swarm_component_data=DAT_0063259c. */
+void actor_look_compute_prop_interest(int actor_handle, int param_2,
+                                       short *param_3,
+                                       void (*callback)(void), int param_5)
+{
+  char *actor;
+  char *swarm;
+  char *component;
+  short i;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 6) != '\0') {
+    if (*(int *)(actor + 0x28) == -1) {
+      display_assert(
+          "!actor->meta.swarm || (actor->meta.swarm_cache_index != NONE)",
+          "c:\\halo\\SOURCE\\ai\\action_obey.c", 0x611, 1);
+      system_exit(-1);
+    }
+    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+    if (*(short *)(swarm + 2) < 1) {
+      return;
+    }
+    for (i = 0; i < *(short *)(swarm + 2); i++) {
+      component = (char *)datum_get(swarm_component_data,
+                                    *(int *)(swarm + 0x58 + i * 4));
+      if (param_2 != 0) {
+        csmemset(component + 0x1c, 0, 0x24);
+        *(unsigned short *)(component + 2) =
+            (*(unsigned short *)(component + 2) & ~4u) | 8;
+      }
+      if ((*(unsigned char *)(component + 2) & 8) != 0) {
+        ((void (*)(int, int, int, char *, int, int))callback)(
+            actor_handle, *(int *)(swarm + 0x18 + i * 4), (int)*param_3,
+            component + 0x1c, 0, param_5);
+      }
+    }
+    return;
+  }
+  ((void (*)(int, int, int, short *, short *, int))callback)(
+      actor_handle, *(int *)(actor + 0x18), (int)*param_3,
+      param_3 + 4, param_3 + 0x16, param_5);
+}
+
 /* FUN_00017090 (0x17090)
  * Compute actor prop-interest for the prop list at actor+0x9c.
  *

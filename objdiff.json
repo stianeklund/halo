@@ -6502,6 +6502,14 @@
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
+    },
+    {
+      "name": "halo/actor_looking_FUN_00016d40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
+      "base_path": "delinked/actor_looking_FUN_00016d40.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
     }
   ]
 }
