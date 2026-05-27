@@ -7,6 +7,49 @@
 
 #include "../../common.h"
 
+/* FUN_000142a0 (0x142a0)
+ * Conversation action initializer (action_converse.c, line 0x21).
+ * Validates actor, looks up the conversation datum via 0x6324ec, fetches the
+ * scenario conversation entry at scenario+0x468[*(short*)(action_ref+2)],
+ * and populates state_data (20 bytes): [0]=action_handle, float@+8 from
+ * tag+0x28, [3]=speaker_handle (if float==REAL_NONE) else -1, [4]=-1,
+ * byte@+5=0. Returns 1 always.
+ *
+ * Confirmed: first datum_get(actor_data, actor_handle) result is discarded.
+ * Confirmed: FCOMP+TEST AH,0x44+JP at 0x1432f — JP taken when PF=1 (NOT equal/NaN)
+ *   → speaker handle; fall-through (equal) → -1. */
+char FUN_000142a0(int actor_handle, int action_handle, int *state_data)
+{
+  char *action_ref;
+  char *tag_elem;
+  float fVar1;
+  int speaker;
+
+  datum_get(actor_data, actor_handle);
+  action_ref = (char *)datum_get(*(data_t **)0x6324ec, action_handle);
+  tag_elem =
+    (char *)tag_block_get_element((char *)global_scenario_get() + 0x468,
+                                  (int)*(int16_t *)(action_ref + 2), 0x74);
+  if (state_data == (int *)0) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_converse.c",
+                   0x21, 1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x14);
+  *state_data = action_handle;
+  fVar1 = *(float *)(tag_elem + 0x28);
+  *(float *)((char *)state_data + 8) = fVar1;
+  if (fVar1 == *(float *)0x2533c0) {
+    speaker = -1;
+  } else {
+    speaker = *(int *)(action_ref + 0x10);
+  }
+  state_data[3] = speaker;
+  state_data[4] = -1;
+  *(char *)((char *)state_data + 5) = 0;
+  return 1;
+}
+
 /* actor_update_prop_desire (0x14360)
  * Update actor's desire to reach its prop target.
  *
@@ -63,6 +106,13 @@ char actor_update_prop_desire(int actor_handle)
     *(char *)(actor + 0xa0) = 1;
   }
   return *(char *)(actor + 0xa0);
+}
+
+/* FUN_00014460 (0x14460)
+ * Validate actor handle by performing a datum lookup (result discarded). */
+void FUN_00014460(int actor_handle)
+{
+  datum_get(actor_data, actor_handle);
 }
 
 /* FUN_00014480 (0x14480)
@@ -825,6 +875,16 @@ void FUN_00016c80(int param_1, int param_2, short param_3)
     obj = (char *)object_get_and_verify_type(param_2, 3);
     *(unsigned int *)(obj + 0x1b4) = *(unsigned int *)(obj + 0x1b4) | 0x1000;
   }
+}
+
+/* FUN_00016cd0 (0x16cd0) — Prop-interest reset callback.
+ * Sets bit 3 (0x08) and clears bit 4 (0x10) in byte at param_4+4.
+ * Called by actor_look_compute_prop_interest as the reset callback.
+ * Dispatcher passes: (actor_handle, object_handle, index, state_data_ptr, ...)
+ */
+void FUN_00016cd0(int param_1, int param_2, int param_3, char *param_4)
+{
+  param_4[4] = (param_4[4] & (char)0xef) | 8;
 }
 
 /* actor_clear_aim_target (0x17060)
