@@ -3427,7 +3427,8 @@
         },
         {
           "addr": "0x19c70",
-          "decl": "void FUN_00019c70(void);"
+          "decl": "void FUN_00019c70(int actor_handle);",
+          "ported": null
         },
         {
           "addr": "0x19d00",
@@ -3445,7 +3446,8 @@
         },
         {
           "addr": "0x1a100",
-          "decl": "void FUN_0001a100(void);"
+          "decl": "int FUN_0001a100(int actor_handle, short param_2, char *state_data);",
+          "ported": true
         },
         {
           "addr": "0x1a200",
@@ -3494,11 +3496,13 @@
         },
         {
           "addr": "0x1ac00",
-          "decl": "void FUN_0001ac00(void);"
+          "decl": "void FUN_0001ac00(int actor_handle);",
+          "ported": null
         },
         {
           "addr": "0x24ca0",
-          "decl": "void FUN_00024ca0(void);"
+          "decl": "int FUN_00024ca0(int actor_handle, short param_2);",
+          "ported": null
         },
         {
           "addr": "0x24cf0",
@@ -6508,7 +6512,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6569,7 +6573,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
