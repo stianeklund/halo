@@ -1218,6 +1218,70 @@ int FUN_0001a100(int actor_handle, short param_2, char *state_data)
   return 0;
 }
 
+/* FUN_0001a420 (0x1a420)
+ * Set up uncover-mode look output fields (movement/navigation type).
+ *
+ * Based on actor+0xa4 (search stance), sets move-type and nav-target:
+ * If actor has a prop (actor+0x270 != -1):
+ *   - Determines sneak threshold based on prop type and actor level (0x268).
+ *   - If stance 0: sets move-type 7 or 3 based on threat level ≥ 6/5.
+ *   - If stance 1: sets move-type 7 or 2 based on prop engagement type.
+ * Sets speed (0x3fc=3), look flags, and approach flags.
+ *
+ * Confirmed: datum_get(actor_data) at 0x1a428; tag_get(actr) at 0x1a430.
+ * Confirmed: SBORROW2(*(short*)(actor+0x268), 6) → (actor+0x268 >= 6). */
+void FUN_0001a420(int actor_handle)
+{
+  char *actor;
+  char *tag_data;
+  char *prop;
+  int prop_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  prop_handle = *(int *)(actor + 0x270);
+  if (prop_handle != -1) {
+    prop = (char *)datum_get(prop_data, prop_handle);
+    if (*(short *)(actor + 0xa4) == 0) {
+      if (*(char *)(actor + 0x162) == '\0') {
+        if ((*tag_data & 0x10) == 0) {
+          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 6);
+        } else {
+          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 5);
+        }
+      } else {
+        *(char *)(actor + 0x454) = 1;
+        *(char *)(actor + 0x455) = 1;
+      }
+    }
+    if ((*(char *)(actor + 0x454) != '\0' &&
+         (*(short *)(prop + 0x38) == 0 || *(short *)(prop + 0x38) == 1)) ||
+        (*(char *)(actor + 0x162) != '\0')) {
+      *(short *)(actor + 0x3e8) = 7;
+    } else if (*(short *)(actor + 0x268) < 5) {
+      *(short *)(actor + 0x3e8) = 3;
+    } else if (*(short *)(prop + 0x38) == 2 || *(short *)(prop + 0x38) == 4) {
+      *(short *)(actor + 0x3e8) = 2;
+    } else {
+      *(short *)(actor + 0x3e8) = 5;
+    }
+    if (*(short *)(actor + 0xa4) == 0) {
+      *(short *)(actor + 0x3ec) = 2;
+    } else if (*(short *)(actor + 0xa4) == 1) {
+      *(short *)(actor + 0x3ec) = 3;
+      *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb0);
+      *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb4);
+      *(int *)(actor + 0x3f8) = *(int *)(actor + 0xb8);
+    }
+  }
+  *(short *)(actor + 0x3fc) = 3;
+  *(char *)(actor + 0x426) = *(char *)(actor + 0x9c);
+  *(char *)(actor + 0x427) = *(char *)(actor + 0x9c);
+  *(char *)(actor + 0x428) = 0;
+  *(char *)(actor + 0x424) = 0;
+  *(char *)(actor + 0x425) = 1;
+}
+
 /* FUN_0001a590 (0x1a590)
  * Mark actor look-state as interrupted (target type 1 path, byte +0x9d).
  *
