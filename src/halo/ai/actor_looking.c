@@ -438,6 +438,113 @@ void FUN_000151b0(int actor_handle)
   }
 }
 
+/* FUN_00015250 (0x15250)
+ * Classify the actor's current looking state and configure the firing-position
+ * state block fields from live actor data.
+ *
+ * First, selects a look-mode value written to actor+0x3e8 (the enum field at
+ * offset 1000).  Priority order:
+ *   1. If actor+0xa8 >= 1 (has props? look-state > 0):
+ *        mode=6, actor+0x3ec=0, actor+0x456=1.
+ *   2. Else if actor+0x270 != -1 and prop_data[actor+0x270]+0x32 > 0:
+ *        mode=7, actor+0x3ec=2, actor+0x454=1.  (forward goto to shared tail)
+ *   3. Else if actor+0xb8 == -1:
+ *        mode=0.
+ *   4. Else:
+ *        mode=3, actor+0x3ec=1, actor+0x3f0 = actor+0xb8.
+ *
+ * Shared tail (always executed):
+ *   - actor+0x3fc = 4
+ *   - actor+0x428 = (actor+0xa8 > 0) (bool byte)
+ *   - actor+0x429 = (actor+0xa8 in [9,12])
+ *   - actor+0x426 = 1, actor+0x427 = 0
+ *   - actor+0x424 = 1, actor+0x425 = 0
+ *
+ * Then dispatches the look target:
+ *   - If actor+0xa4 == -1: call FUN_0002f1a0 and return.
+ *   - If actor+0x4c != 0: try actor_move_to_firing_position.
+ *     On success: copy actor+0xa4..0xa6 into actor+0x3b8..0x3ba and return.
+ *     On failure: if actor+0x3b8 != -1, dispatch FUN_00024be0 + FUN_0002f1a0
+ *                 and clear 0x3b8.  Then set actor+0xa4=-1, actor+0xa2=1.
+ *
+ * Note: The original has a goto from branch 2 to the shared tail, bypassing
+ * branches 3 and 4.  Restructured here with a `handled` flag (no C89 goto).
+ * This produces TEST+JNZ instead of a JMP in VC71, which is a known structural
+ * ceiling.  Disassembly cross-check not performed (Ghidra MCP unavailable at
+ * lift time).
+ *
+ * Confirmed (decompilation): datum_get(actor_data, actor_handle) at entry;
+ *   prop_data lookup at actor+0x270; sentinel comparisons -1 on actor+0xb8,
+ *   actor+0xa4, actor+0x3b8.
+ * Inferred: actor+0xa8 = look state (int16_t); actor+0x270 = prop handle (int);
+ *   actor+0x4c = is_vehicle/prop flag (byte); actor+0x3b8 = cached look target;
+ *   actor+0x3ec, 0x3fc = look-mode sub-fields; 0x424-0x429 = look flags. */
+void FUN_00015250(int actor_handle)
+{
+  char *actor;
+  char *prop;
+  char move_result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(short *)(actor + 0xa8) > 0) {
+    *(short *)(actor + 0x3e8) = 6;
+    *(short *)(actor + 0x3ec) = 0;
+    *(char *)(actor + 0x456) = 1;
+  } else {
+    if (*(int *)(actor + 0x270) != -1) {
+      prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+      if (*(short *)(prop + 0x32) > 0) {
+        *(short *)(actor + 0x3e8) = 7;
+        *(short *)(actor + 0x3ec) = 2;
+        *(char *)(actor + 0x454) = 1;
+        goto FUN_00015250_tail;
+      }
+    }
+    if (*(int *)(actor + 0xb8) != -1) {
+      *(short *)(actor + 0x3e8) = 3;
+      *(short *)(actor + 0x3ec) = 1;
+      *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb8);
+    } else {
+      *(short *)(actor + 0x3e8) = 0;
+    }
+  }
+FUN_00015250_tail:
+
+  *(short *)(actor + 0x3fc) = 4;
+  *(char *)(actor + 0x428) = *(short *)(actor + 0xa8) > 0;
+  if (*(short *)(actor + 0xa8) >= 9 && *(short *)(actor + 0xa8) <= 0xc) {
+    *(char *)(actor + 0x429) = 1;
+  } else {
+    *(char *)(actor + 0x429) = 0;
+  }
+  *(char *)(actor + 0x426) = 1;
+  *(char *)(actor + 0x427) = 0;
+  *(char *)(actor + 0x424) = 1;
+  *(char *)(actor + 0x425) = 0;
+
+  if (*(short *)(actor + 0xa4) == -1) {
+    FUN_0002f1a0(actor_handle);
+    return;
+  }
+  if (*(char *)(actor + 0x4c) != 0) {
+    move_result =
+      actor_move_to_firing_position(actor_handle, *(short *)(actor + 0xa4), 0);
+    if (move_result != 0) {
+      *(short *)(actor + 0x3b8) = *(short *)(actor + 0xa4);
+      *(char *)(actor + 0x3ba) = *(char *)(actor + 0xa6);
+      return;
+    }
+    if (*(short *)(actor + 0x3b8) != -1) {
+      FUN_00024be0(actor_handle, *(short *)(actor + 0x3b8), 0);
+      FUN_0002f1a0(actor_handle);
+      *(short *)(actor + 0x3b8) = -1;
+    }
+    *(short *)(actor + 0xa4) = -1;
+    *(char *)(actor + 0xa2) = 1;
+  }
+}
+
 /* FUN_00015880 (0x15880)
  * Initializes a guard state block (0x44 bytes) for the given actor.
  * Copies 3 floats from actor+0x174..0x17c into state_data+0x18..0x20,
