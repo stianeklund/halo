@@ -1168,6 +1168,56 @@ int FUN_0001a080(int actor_handle, char param_2, char *state_data)
   return 0;
 }
 
+/* FUN_0001a100 (0x1a100)
+ * Initialize uncover action state from a firing-position record.
+ *
+ * Validates state_data, zeros it, then if actor is not suppressed/berserk and
+ * has an encounter (actor+0x34 != -1) AND param_2 != -1: looks up the firing
+ * position in the scenario tag, fills state_data with the position data and
+ * marks actor+0x98 as "new firing position chosen". Returns 1 on success, 0 if
+ * actor has no encounter or param_2 == -1.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1a108.
+ * Confirmed: assert on state_data (action_uncover.c:0x38).
+ * Confirmed: csmemset 0x34 bytes. tag_block_get_element stride 0x18.
+ * Confirmed: pos[5] = *(int*)((char*)pos+0x14) stored at state_data+0x10. */
+int FUN_0001a100(int actor_handle, short param_2, char *state_data)
+{
+  char *actor;
+  char *enc;
+  int *pos;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_uncover.c",
+                   0x38, 1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x34);
+  if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0') &&
+      (*(unsigned int *)(actor + 0x34) != 0xffffffff)) {
+    if (param_2 != -1) {
+      enc = (char *)tag_block_get_element(
+          (char *)global_scenario_get() + 0x42c,
+          *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+      pos = (int *)tag_block_get_element(enc + 0x98, (int)param_2, 0x18);
+      *(short *)(state_data + 10) = param_2;
+      *(short *)(state_data + 8) = 1;
+      *(int *)(state_data + 0x14) = pos[0];
+      *(int *)(state_data + 0x18) = pos[1];
+      *(int *)(state_data + 0x1c) = pos[2];
+      *(int *)(state_data + 0x10) = pos[5];
+      *(short *)(state_data + 0xc) = *(short *)((char *)pos + 0xe);
+      *(char *)(state_data + 0x20) = 0;
+      *(char *)(state_data + 3) = 1;
+      *(char *)(actor + 0x98) = 1;
+      return 1;
+    }
+    return 0;
+  }
+  return 0;
+}
+
 /* FUN_0001a590 (0x1a590)
  * Mark actor look-state as interrupted (target type 1 path, byte +0x9d).
  *
