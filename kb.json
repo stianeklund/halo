@@ -13903,7 +13903,7 @@
         {
           "addr": "0x85150",
           "decl": "int FUN_00085150(int param_1);",
-          "ported": false,
+          "ported": true,
           "source_path": "camera/bored_camera.c"
         },
         {
@@ -32172,7 +32172,7 @@
         {
           "addr": "0x118620",
           "decl": "void FUN_00118620(void *data, int count, int element_size);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1187f0",
@@ -32235,7 +32235,8 @@
         }
       ],
       "name": "circular_queue.obj",
-      "source": "memory/circular_queue.c"
+      "source": "memory/circular_queue.c",
+      "source_path": "src/halo/memory/circular_queue.c"
     },
     {
       "data": [

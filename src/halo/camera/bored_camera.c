@@ -56,3 +56,16 @@ void FUN_00085110(int param_1)
   error(2, "cannot set first person camera on a unit that doesn't exist.");
 }
 
+/* FUN_00085150 (0x85150) — Check if first-person camera mode 2 is active for
+ * the given unit handle. Returns 1 if the bored-camera is enabled, mode is 2,
+ * and the stored unit handle matches param_1; otherwise 0. */
+int FUN_00085150(int param_1)
+{
+  if (*(char *)0x2ee5a0 != '\0' &&
+      *(short *)0x2ee5a2 == 2 &&
+      *(int *)0x2ee5d4 == param_1) {
+    return 1;
+  }
+  return 0;
+}
+

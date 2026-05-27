@@ -224,6 +224,10 @@
   "0x377d0": {
     "class": "non_leaf"
   },
+  "0x378504": {
+    "confidence": "moderate",
+    "coverage_pct": 56.2
+  },
   "0x3a740": {
     "class": "leaf",
     "confidence": "weak",
@@ -312,6 +316,9 @@
   "0x4838b7fe": {
     "confidence": "high",
     "coverage_pct": 86.0
+  },
+  "0x49120": {
+    "class": "non_leaf"
   },
   "0x4ffe70": {
     "confidence": "weak",

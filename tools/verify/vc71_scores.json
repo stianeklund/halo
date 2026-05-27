@@ -1788,8 +1788,20 @@
       "score": 78.4,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_00084fe0": {
+      "score": 100.0,
+      "source": "src/halo/camera/bored_camera.c"
+    },
+    "FUN_000850d0": {
+      "score": 90.0,
+      "source": "src/halo/camera/bored_camera.c"
+    },
     "FUN_00085110": {
       "score": 90.0,
+      "source": "src/halo/camera/bored_camera.c"
+    },
+    "FUN_00085150": {
+      "score": 100.0,
       "source": "src/halo/camera/bored_camera.c"
     },
     "FUN_00085180": {
@@ -4884,6 +4896,10 @@
       "score": 82.7,
       "source": "src/halo/memory/circular_queue.c"
     },
+    "FUN_001179e0": {
+      "score": 92.2,
+      "source": "src/halo/memory/circular_queue.c"
+    },
     "FUN_00117a80": {
       "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
@@ -4942,6 +4958,10 @@
     },
     "FUN_00118520": {
       "score": 92.0,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "FUN_00118620": {
+      "score": 98.2,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00118ba0": {
