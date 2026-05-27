@@ -5238,10 +5238,6 @@
           "ported": true
         },
         {
-          "addr": "0x8d410",
-          "decl": "void FUN_0008d410(void);"
-        },
-        {
           "addr": "0x8d830",
           "decl": "void cseries_initialize(void);",
           "ported": true,
@@ -34642,6 +34638,16 @@
       ],
       "name": "XAPILIB:xcontent.obj",
       "source": "cseries/xcontent.c"
+    },
+    {
+      "name": "static_camera.obj",
+      "source_path": "src/halo/camera/static_camera.c",
+      "functions": [
+        {
+          "addr": "0x8d410",
+          "decl": "void FUN_0008d410(void);"
+        }
+      ]
     }
   ],
   "0x1a080": {
