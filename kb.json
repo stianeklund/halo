@@ -3490,7 +3490,7 @@
         {
           "addr": "0x1a7e0",
           "decl": "void FUN_0001a7e0(int actor_handle);",
-          "ported": true
+          "ported": null
         },
         {
           "addr": "0x1aae0",
