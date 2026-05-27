@@ -311,7 +311,7 @@ char FUN_00076a70(void *plate, void *group, int param_3)
     size, 0, "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x8a);
   if (*(int *)((char *)group + 0x28)) {
     if (FUN_00119b40((int)bitmap_mipmap_address(plate, 0), (unsigned int)size,
-                     (unsigned int *)*(int *)((char *)group + 0x28), &size,
+                     (unsigned int *)*(int *)((char *)group + 0x28), &size, /* dup-args-ok: size is both source limit and output capacity. */
                      (unsigned int)size)) {
       t = debug_realloc((void *)*(int *)((char *)group + 0x28), size,
                         "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x90);
