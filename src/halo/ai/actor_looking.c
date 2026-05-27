@@ -227,6 +227,25 @@ void FUN_000145f0(int actor_handle)
   }
 }
 
+/* FUN_00014620 (0x14620)
+ * Initialize action fight state: asserts non-null state pointer, zeroes 4
+ * bytes, returns true.
+ *
+ * Confirmed: cdecl, two args: [EBP+0x8]=actor_handle (unused),
+ * [EBP+0xc]=state_data. Confirmed: TEST ESI,ESI at 0x14627;
+ * csmemset(state_data,0,4) at 0x1464d. Confirmed: MOV AL,0x1 at 0x14655 (byte
+ * return). */
+char FUN_00014620(int actor_handle, void *state_data)
+{
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_fight.c", 0x1e,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 4);
+  return 1;
+}
+
 /* FUN_00014680 (0x14680)
  * Countdown timer for actor action state: decrements actor+0x9c when flag
  * actor+0x484 is set; when the counter hits zero and a pending action state
@@ -727,6 +746,24 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
       *(char *)(actor + 0xab) = 0;
     }
   }
+}
+
+/* FUN_00016960 (0x16960)
+ * Three-way float comparator: -1 if *a < *b, 1 if *a > *b, 0 if equal.
+ *
+ * Confirmed: FLD [ECX] / FCOMP [EDX] for both comparisons (param_1=ECX,
+ * param_2=EDX). First: TEST AH,0x5; JP (jump if not-less). Second: TEST
+ * AH,0x41; JNZ (jump if equal-or-less → return 0). Fall-through → return 1.
+ * Confirmed: MOV EAX,0xffffffff / MOV EAX,0x1 / XOR EAX,EAX returns. */
+int FUN_00016960(float *param_1, float *param_2)
+{
+  if (*param_1 < *param_2) {
+    return -1;
+  }
+  if (*param_1 > *param_2) {
+    return 1;
+  }
+  return 0;
 }
 
 /* FUN_00016c40 (0x16c40) */
