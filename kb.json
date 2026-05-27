@@ -32068,7 +32068,8 @@
         },
         {
           "addr": "0x1179e0",
-          "decl": "int FUN_001179e0(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4);"
+          "decl": "int FUN_001179e0(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4);",
+          "ported": true
         },
         {
           "addr": "0x117a80",
@@ -32148,7 +32149,8 @@
         },
         {
           "addr": "0x118620",
-          "decl": "void FUN_00118620(void *data, int count, int element_size);"
+          "decl": "void FUN_00118620(void *data, int count, int element_size);",
+          "ported": true
         },
         {
           "addr": "0x1187f0",
