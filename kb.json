@@ -3538,7 +3538,8 @@
         },
         {
           "addr": "0x272d0",
-          "decl": "void FUN_000272d0(void);"
+          "decl": "short FUN_000272d0(int actor_handle, short param_2, short param_3, int param_4, unsigned int param_5, char param_6);",
+          "ported": true
         },
         {
           "addr": "0x27410",
