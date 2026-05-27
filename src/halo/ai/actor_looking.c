@@ -1322,6 +1322,69 @@ void FUN_0001abd0(int actor_handle)
   *(int *)(actor + 0xe4) = -1;
 }
 
+/* FUN_000272d0 (0x272d0)
+ * Assign a firing position to an actor, evicting any previous occupant.
+ *
+ * If param_2 == -1: clears actor firing position via FUN_0002f1a0, sets
+ * actor+0x3b8 = -1. Else: validates encounter, displaces any current
+ * holder of the slot (param_4), sets actor+0x3b8 = param_2, updates the
+ * platform prop if needed, and calls FUN_0005b370.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x272e3.
+ * Confirmed: assert on actor->meta.encounter_index != NONE at 0x27305.
+ * Confirmed: FUN_0002d900 = attempt move to position. */
+short FUN_000272d0(int actor_handle, short param_2, short param_3,
+                   int param_4, unsigned int param_5, char param_6)
+{
+  char *actor;
+  char *prev_actor;
+  char cancel;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if ((short)param_2 == -1) {
+    FUN_0002f1a0(actor_handle);
+  } else {
+    if (*(int *)(actor + 0x34) == -1) {
+      display_assert("actor->meta.encounter_index != NONE",
+                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                     0x97b, 1);
+      system_exit(-1);
+    }
+    if (*(short *)(actor + 0x3b8) != -1 && *(short *)(actor + 0x3b8) != param_2) {
+      FUN_00024be0(actor_handle, *(short *)(actor + 0x3b8), 1);
+    }
+    if (param_4 != -1) {
+      prev_actor = (char *)datum_get(actor_data, param_4);
+      if (actor_handle == param_4) {
+        display_assert("actor_index != previous_owner",
+                       "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                       0x988, 1);
+        system_exit(-1);
+      }
+      FUN_0002f1a0(param_4);
+      *(short *)(prev_actor + 0x3b8) = -1;
+    }
+    if (*(short *)(actor + 0x3b8) != (short)param_2) {
+      *(short *)(actor + 0x3b8) = (short)param_2;
+      *(char *)(actor + 0x3ba) = (char)(param_6 == '\0');
+      *(char *)(actor + 0x3bb) = 0;
+      cancel = (char)actor_move_to_firing_position(actor_handle, param_2,
+                            (void *)(-(unsigned int)(param_6 != '\0') & param_5));
+      if (cancel != '\0') {
+        goto done;
+      }
+    } else {
+      goto done;
+    }
+  }
+  *(short *)(actor + 0x3b8) = -1;
+done:
+  if (*(int *)(actor + 0x34) != -1) {
+    encounter_verify_firing_position_owner_actor_indices();
+  }
+  return *(short *)(actor + 0x3b8);
+}
+
 /* FUN_00027870 (0x27870)
  * Stop scripted look: log debug message and clear the scripted-look fields.
  *
