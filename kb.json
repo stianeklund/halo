@@ -11686,15 +11686,21 @@
         },
         {
           "addr": "0xd7330",
-          "decl": "void FUN_000d7330(void);"
+          "decl": "void FUN_000d7330(void);",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "addr": "0xd7420",
-          "decl": "void FUN_000d7420(void);"
+          "decl": "void FUN_000d7420(void);",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "addr": "0xd7430",
-          "decl": "void FUN_000d7430(void);"
+          "decl": "void FUN_000d7430(void);",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "addr": "0xd7440",
