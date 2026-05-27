@@ -343,6 +343,7 @@ class StubManager:
         "system_exit", "display_assert", "halt_and_catch_fire",
         "ciacos", "ciasin", "ciatan2", "cisin", "cicos",
         "cisqrt", "cilog", "cilog10", "cipow", "cifmod", "citan",
+        "datum_get",
         "object_get_and_verify_type",
         "tag_get",
         "real_vector3d_valid", "valid_real_point3d",
@@ -557,6 +558,34 @@ class StubManager:
                 return True
 
             if symbol_name == "display_assert":
+                uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            if symbol_name == "datum_get":
+                # datum_get(data_t *data @stack+4, int datum_handle @stack+8)
+                # Returns pointer to entry if salt matches identifier, else NULL.
+                try:
+                    data_ptr = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
+                    handle = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little")
+                    import sys as _sys
+                    _g0_b = bytes(uc.mem_read(0x500000, 4)); _g0 = int.from_bytes(_g0_b, "little"); from unicorn.x86_const import UC_X86_REG_ECX as _ECX_R, UC_X86_REG_EAX as _EAX_R; _ecx_v = uc.reg_read(_ECX_R); _eax_v = uc.reg_read(_EAX_R); print(f"[datum_get] data_ptr=0x{data_ptr:08x} handle=0x{handle:08x} glob0=0x{_g0:08x} ECX=0x{_ecx_v:08x} EAX=0x{_eax_v:08x} esp=0x{caller_esp:08x}", file=_sys.stderr)
+                    if data_ptr:
+                        identifier = (handle >> 16) & 0xFFFF
+                        index = handle & 0xFFFF
+                        current_count = int.from_bytes(_safe_read(data_ptr + 0x2e, 2), "little")
+                        elem_size = int.from_bytes(_safe_read(data_ptr + 0x22, 2), "little")
+                        arr_ptr = int.from_bytes(_safe_read(data_ptr + 0x34, 4), "little")
+                        print(f"[datum_get] id={identifier} idx={index} count={current_count} sz={elem_size} arr=0x{arr_ptr:08x}", file=_sys.stderr)
+                        if index < current_count and elem_size > 0 and arr_ptr:
+                            entry_addr = arr_ptr + index * elem_size
+                            salt = int.from_bytes(_safe_read(entry_addr, 2), "little")
+                            print(f"[datum_get] entry=0x{entry_addr:08x} salt={salt}", file=_sys.stderr)
+                            if salt != 0 and (identifier == 0 or identifier == salt):
+                                uc.reg_write(UC_X86_REG_EAX, entry_addr)
+                                return True
+                except Exception as _e:
+                    import sys as _sys
+                    print(f"[datum_get] exception: {_e}", file=_sys.stderr)
                 uc.reg_write(UC_X86_REG_EAX, 0)
                 return True
 

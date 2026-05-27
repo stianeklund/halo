@@ -385,13 +385,12 @@ def _build_globals_seeds(*slot_maps: dict,
             if not m:
                 continue
             orig_addr = int(m.group(1), 16)
-            if orig_addr in _KNOWN_GLOBAL_BYTES:
-                seeds[slot_addr] = _KNOWN_GLOBAL_BYTES[orig_addr]
-            elif snapshot_overrides and orig_addr in snapshot_overrides:
-                # Seed from state-snapshot data, capped at 4 bytes
-                # (the slot size is 256, but the relocation is typically a dword)
+            if snapshot_overrides and orig_addr in snapshot_overrides:
+                # Snapshot overrides take priority over hardcoded known globals
                 data = snapshot_overrides[orig_addr]
                 seeds[slot_addr] = data[:4]
+            elif orig_addr in _KNOWN_GLOBAL_BYTES:
+                seeds[slot_addr] = _KNOWN_GLOBAL_BYTES[orig_addr]
     return seeds
 
 
