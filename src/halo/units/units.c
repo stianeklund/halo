@@ -84,6 +84,34 @@ char *FUN_001a67b0(short param_1, unsigned char param_2)
 }
 
 
+/* FUN_001a67e0 (0x1a67e0)
+ *
+ * Searches the global animation-name table at 0x32d7c8 for an entry whose
+ * first string (column 0) matches param_1. The table has 0xd1 rows of 2
+ * char* pointers each (stride = 8 bytes). Returns the row index [0, 0xd0]
+ * on match, or -1 if not found.
+ *
+ * Confirmed: MOVSX EAX,SI; MOV ECX,[EAX*8 + 0x32d7c8]; PUSH EDI (param_1);
+ * PUSH ECX; CALL csstrcmp; TEST EAX,EAX; JZ found; INC ESI; CMP SI,0xd1;
+ * JL loop. Found: MOV AX,SI; Not-found: MOV AX,BX (BX = -1 via OR EBX,-1).
+ */
+short FUN_001a67e0(const char *param_1)
+{
+  short sVar2;
+  int iVar1;
+
+  sVar2 = 0;
+  do {
+    iVar1 = csstrcmp(((const char **)0x32d7c8)[(int)sVar2 * 2], param_1);
+    if (iVar1 == 0) {
+      return sVar2;
+    }
+    sVar2 = sVar2 + 1;
+  } while (sVar2 < 0xd1);
+  return -1;
+}
+
+
 /* FUN_001a6820 (0x1a6820)
  *
  * Returns verify_tag_reference result for the animation at index bool(param_2)
