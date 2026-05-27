@@ -66,6 +66,114 @@ void midpoint3d(float *a, float *b, float *out)
   out[2] = (a[2] + b[2]) * 0.5f;
 }
 
+/* actor_get_stopping_distances (0x2a610) — Compute stopping distances for an
+ * actor.
+ *
+ * Calculates two stopping-distance values based on the actor's current speed,
+ * maximum speed, and deceleration sourced from the actor's biped or vehicle
+ * tag.
+ *
+ * param_2 = out: current-speed braking distance = speed^2 / (2 * brake_decel)
+ * param_3 = out: lookahead stopping distance =
+ *               effective_max^2 / (2 * brake_decel)
+ *             + (effective_max^2 - speed^2) / (2 * turn_decel)
+ *   where effective_max = max(max_speed, current_speed)
+ *
+ * Confirmed: FLD float [0x255960] default max_speed; MOV [EBP-0xc]=0x3c888889
+ * (turn_decel ~1/60), MOV [EBP-0x8]=0x3cda740e (brake_decel ~1/37.5).
+ * Confirmed: bipd branch gated by actor[0x18]!=-1 at 0x2a6be; loads tag+0x334
+ * (max), tag+0x33c (turn), tag+0x340 (brake) scaled by [0x2546a4]; conditional
+ * multiplier tag+0x34c gated by actor+0x508 and FCOMP [0x2533c0] > 0.
+ * Confirmed: vehicle FST/FSTP tag+0x300 stores same value to both decel slots
+ * at 0x2a6b0/0x2a6b3; object_get_and_verify_type asserts, no NULL check needed.
+ * Confirmed: output section NULL-checks param_2 (0x2a780) and param_3
+ * (0x2a798); max(max_speed, current_speed) lives inside param_3 block only. */
+void actor_get_stopping_distances(int actor_handle, float *param_2,
+                                  float *param_3)
+{
+  char *actor;
+  char *obj;
+  char *tag;
+  int vehicle_handle;
+  int unit_handle;
+  int vehicle_count;
+  float max_speed;
+  float turn_decel;
+  float brake_decel;
+  float current_speed;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  max_speed = *(float *)0x255960;
+  current_speed = 0.0f;
+  turn_decel = 0.016666668f;
+  brake_decel = 0.026666667f;
+
+  vehicle_handle = *(int *)(actor + 0x158);
+  if (vehicle_handle != -1) {
+    vehicle_count = (int)*(int16_t *)(actor + 0x15e);
+    if (vehicle_count >= 2 && vehicle_count <= 3) {
+      /* seated in vehicle: object_get_and_verify_type asserts, no NULL check */
+      obj = (char *)object_get_and_verify_type(vehicle_handle, 2);
+      tag = (char *)tag_get(0x76656869, *(int *)obj);
+      /* disasm 0x2a688: FLD [ESI+0x20]*[ESI+0x2c], FLD [ESI+0x1c]*[ESI+0x28],
+       * FADDP, FLD [ESI+0x18]*[ESI+0x24], FADDP */
+      current_speed = *(float *)(obj + 0x20) * *(float *)(obj + 0x2c) +
+                      *(float *)(obj + 0x1c) * *(float *)(obj + 0x28) +
+                      *(float *)(obj + 0x18) * *(float *)(obj + 0x24);
+      max_speed = *(float *)(tag + 0x2f8);
+      /* FST [EBP-0xc], FSTP [EBP-0x8]: same source tag+0x300 */
+      turn_decel = *(float *)(tag + 0x300);
+      brake_decel = *(float *)(tag + 0x300);
+    }
+  } else {
+    /* no vehicle: check unit handle */
+    unit_handle = *(int *)(actor + 0x18);
+    if (unit_handle != -1) {
+      obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
+      if (obj != NULL) {
+        /* tag_get called before dot product in disasm, ECX=tag at 0x2a6f1 */
+        tag = (char *)tag_get(0x62697064, *(int *)obj);
+        /* dot product: velocity [+0x18,+0x1c,+0x20] . facing
+         * [+0x24,+0x28,+0x2c] disasm at 0x2a6eb: FLD [ESI+0x20]*[ESI+0x2c], FLD
+         * [ESI+0x1c]*[ESI+0x28], FADDP, FLD [ESI+0x24]*[ESI+0x18], FADDP */
+        current_speed = *(float *)(obj + 0x20) * *(float *)(obj + 0x2c) +
+                        *(float *)(obj + 0x1c) * *(float *)(obj + 0x28) +
+                        *(float *)(obj + 0x24) * *(float *)(obj + 0x18);
+        /* bit 2 of byte at tag+0x2f4 enables custom movement params */
+        if (*(unsigned char *)(tag + 0x2f4) & 4) {
+          max_speed = *(float *)(tag + 0x334) * *(float *)0x2546a4;
+          turn_decel = *(float *)(tag + 0x33c) * *(float *)0x2546a4;
+          brake_decel = *(float *)(tag + 0x340) * *(float *)0x2546a4;
+          /* conditional multiplier: only if actor[0x508] != 0 */
+          if (*(unsigned char *)(actor + 0x508) != 0) {
+            /* FCOMP [0x2533c0] + TEST AH,0x41: skip if multiplier <= 0 */
+            if (*(float *)(tag + 0x34c) > *(float *)0x2533c0) {
+              max_speed *= *(float *)(tag + 0x34c);
+              turn_decel *= *(float *)(tag + 0x34c);
+              brake_decel *= *(float *)(tag + 0x34c);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* param_2: braking distance from current speed; NULL-checked at 0x2a780 */
+  if (param_2 != NULL) {
+    *param_2 = (current_speed * current_speed) / (2.0f * brake_decel);
+  }
+  /* param_3: lookahead distance; NULL-checked at 0x2a798;
+   * max() inside this block only (FCOMP at 0x2a79f) */
+  if (param_3 != NULL) {
+    if (current_speed > max_speed) {
+      max_speed = current_speed;
+    }
+    *param_3 = (max_speed * max_speed) / (2.0f * brake_decel) +
+               (max_speed * max_speed - current_speed * current_speed) /
+                 (2.0f * turn_decel);
+  }
+}
+
 /* 0x2a7e0 — Set actor goal destination if not already occupied.
  * Calls actor_set_dormant(actor, 0), then checks actor->goal_slot (+0x418)
  * and vehicle-in-air state. On success writes param_2 to +0x418 and
@@ -121,6 +229,73 @@ int actor_move_force_stop(int actor_handle)
     }
   }
   return (int)result;
+}
+
+/* actor_aim_jump (0x2ace0) — Compute and clamp the jump aim velocity vector.
+ *
+ * Checks actor->swarm_element (-1 at actor[0x158]) and mounted state
+ * (actor[0x6] != 0). If mounted, delegates to the actor-type vtable via
+ * FUN_0003a920 and clears actor[0x530]. If not mounted but jump-aim is
+ * active (actor[0x530] != 0), reads the stored jump velocity:
+ *   param_5[0] = actor[0x534] * actor[0x53c]
+ *   param_5[1] = actor[0x538] * actor[0x53c]
+ *   param_5[2] = actor[0x540]
+ * Computes the magnitude. If the actor is in swarm mode (actor[0x6c]==10
+ * && actor[0xa0]==3), forces clamping on (overrides param_3=0). Otherwise
+ * uses param_3 to control clamping. If clamping is off and
+ * param_4 < magnitude, scales the output vector to length param_4.
+ * Always clears actor[0x530] and returns 1.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x2acf0.
+ * Confirmed: CMP [ESI+0x158],-1 at 0x2acf7-0x2ad03.
+ * Confirmed: TEST [ESI+0x6],AL / JZ at 0x2ad09-0x2ad0e.
+ * Confirmed: FUN_0003a920(actor_handle, a2, param_4, param_5) at 0x2ad1d.
+ * Confirmed: TEST [ESI+0x530] at 0x2ad34-0x2ad3c.
+ * Confirmed: CMP [ESI+0x6c],10 && CMP [ESI+0xa0],3 condition at
+ * 0x2ad42-0x2ad55.
+ * Confirmed: param_5[0]=actor[0x534]*actor[0x53c] (FSTP [ECX]) at 0x2ad7b.
+ * Confirmed: param_5[1]=actor[0x538]*actor[0x53c] (FST [ECX+4]) at 0x2ad7d.
+ * Confirmed: param_5[2]=actor[0x540] (FLD ST1; FSTP [ECX+8]) at
+ * 0x2ad80-0x2ad82. Confirmed: sqrtf via FSQRT; FSTP [EBP-4] at 0x2ad97-0x2ad99.
+ * Confirmed: FCOMP [EBP+0x14] (magnitude vs param_4) at 0x2ada7.
+ * Confirmed: TEST AH,0x41; JNZ skip (param_4 >= magnitude → skip) at 0x2adac.
+ * Confirmed: FUN_00012fb0(param_5, param_4/magnitude, param_5) at 0x2adbd.
+ * Confirmed: actor[0x530]=0; return 1 at 0x2adc6-0x2adcf.
+ */
+int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
+                   float *param_5)
+{
+  char *actor;
+  char cVar3;
+  float magnitude;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(int *)(actor + 0x158) == -1) {
+    if (*(char *)(actor + 0x6) != 0) {
+      FUN_0003a920(actor_handle, a2, param_4, param_5);
+      *(char *)(actor + 0x530) = 0;
+      return 1;
+    }
+    if (*(char *)(actor + 0x530) != 0) {
+      if (*(int16_t *)(actor + 0x6c) == 10 && *(int16_t *)(actor + 0xa0) == 3) {
+        cVar3 = 1;
+      } else {
+        cVar3 = param_3;
+      }
+      param_5[0] = *(float *)(actor + 0x534) * *(float *)(actor + 0x53c);
+      param_5[1] = *(float *)(actor + 0x538) * *(float *)(actor + 0x53c);
+      param_5[2] = *(float *)(actor + 0x540);
+      magnitude = sqrtf(param_5[0] * param_5[0] + param_5[1] * param_5[1] +
+                        param_5[2] * param_5[2]);
+      if (cVar3 == 0) {
+        if (param_4 < magnitude) {
+          FUN_00012fb0(param_5, param_4 / magnitude, param_5);
+        }
+      }
+    }
+  }
+  *(char *)(actor + 0x530) = 0;
+  return 1;
 }
 
 /* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup

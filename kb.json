@@ -2681,7 +2681,7 @@
         },
         {
           "addr": "0x3a920",
-          "decl": "void FUN_0003a920(int actor_handle, int a2, int a3, int a4);",
+          "decl": "void FUN_0003a920(int actor_handle, int a2, float a3, float *a4);",
           "ported": true,
           "source_path": "halo/ai/actors.c"
         },
@@ -29164,7 +29164,9 @@
         },
         {
           "addr": "0x2a610",
-          "decl": "void actor_get_stopping_distances(void);"
+          "decl": "void actor_get_stopping_distances(int actor_handle, float *param_2, float *param_3);",
+          "name": "actor_get_stopping_distances",
+          "ported": true
         },
         {
           "addr": "0x2a7e0",
@@ -29186,7 +29188,10 @@
         },
         {
           "addr": "0x2ace0",
-          "decl": "void actor_aim_jump(void);"
+          "decl": "int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4, float *param_5);",
+          "name": "actor_aim_jump",
+          "ported": true,
+          "source_path": "halo/ai/actor_moving.c"
         },
         {
           "addr": "0x2ade0",
