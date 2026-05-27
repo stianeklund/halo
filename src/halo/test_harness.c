@@ -30,6 +30,8 @@ extern void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t,
 extern uint32_t FUN_000d1c90(float *color);
 extern void FUN_001bd5f0(void);
 extern void *csmemset(void *buffer, int c, size_t size);
+extern void crc_new(uint32_t *checksum);
+extern void crc_checksum_buffer(uint32_t *checksum, void *data, int size);
 
 
 static int check(const char *name, uint32_t got, uint32_t expected, char *buf)
@@ -634,6 +636,38 @@ void run_tests(void)
                       (uint32_t)(handle != 0 && handle != -1),
                       1, buf);
     }
+  }
+
+  /* CRC round-trip: exercises the write→read checksum invariant that broke
+   * when game_state_test_persistent_storage passed a separate scratch variable
+   * instead of a pointer into header+0x148.  Uses the real crc_new /
+   * crc_checksum_buffer from the engine. */
+  {
+    uint8_t header[0x14c];
+    uint32_t write_crc;
+    uint32_t read_saved;
+    uint32_t read_computed;
+    int i;
+
+    for (i = 0; i < 0x14c; i++)
+      header[i] = (uint8_t)(i * 7 + 0x13);
+
+    /* --- write side: zero checksum field, compute, store --- */
+    *(uint32_t *)(header + 0x148) = 0;
+    crc_new(&write_crc);
+    crc_checksum_buffer(&write_crc, header, 0x14c);
+    *(uint32_t *)(header + 0x148) = write_crc;
+
+    /* --- read side: pointer-into-header pattern (the correct way) --- */
+    read_saved = *(uint32_t *)(header + 0x148);
+    *(uint32_t *)(header + 0x148) = 0;
+    crc_new(&read_computed);
+    crc_checksum_buffer(&read_computed, header, 0x14c);
+
+    total += 2;
+    passed += check("crc_roundtrip_match",
+                    (uint32_t)(read_computed == read_saved), 1, buf);
+    passed += check("crc_roundtrip_value", read_computed, write_crc, buf);
   }
 
   crt_sprintf(buf, "RUN|END|passed=%d|failed=%d|total=%d\n", passed,
