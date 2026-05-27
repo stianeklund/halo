@@ -327,7 +327,7 @@ bool weapon_has_activity(int weapon_handle)
  * Confirmed: snd! branch reads globals [0x31fc1c] and [0x31fc3c].
  * Confirmed: effe branch calls FUN_0009ec30 with 8 args.
  */
-int weapon_start_effect(int trigger_effect, int param_2, int param_3,
+int weapon_start_effect(int trigger_effect, float scale, float param_3,
                         int weapon_handle)
 {
   int result = -1;
@@ -366,13 +366,13 @@ int weapon_start_effect(int trigger_effect, int param_2, int param_3,
   if (tag_group == 0x65666665) {
     /* 'effe' — visual/particle effect */
     result = (int)FUN_0009ec30(trigger_effect, object_handle, parent_handle, -1,
-                               param_2, param_3, 0, 0);
+                               scale, param_3, 0, 0);
   } else if (tag_group == 0x736e6421) {
     /* 'snd!' — sound effect */
     float *position = *(float **)0x31fc1c;
     float *forward = *(float **)0x31fc3c;
     object_impulse_sound_new(object_handle, trigger_effect, -1, position,
-                             forward, param_2);
+                             forward, scale);
     result = -1;
   } else {
     display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0x9d2, 1);

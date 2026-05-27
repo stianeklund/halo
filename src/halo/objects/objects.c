@@ -312,7 +312,7 @@ void FUN_001353f0(int param_1)
 }
 
 int FUN_0009ec30(int effect_index, int object_handle, int parent_handle,
-                 int marker, int arg4, int arg5, int arg6, int arg7);
+                 int marker, float scale_a, float scale_b, int arg6, int arg7);
 
 /*
  * objects/objects.c — object system lifecycle and placement
