@@ -1059,6 +1059,53 @@ int FUN_00019750(int actor_handle, char param_2, char *state_data)
   return 0;
 }
 
+/* FUN_000197d0 (0x197d0)
+ * Initialize search action state from a firing-position record (type 1).
+ *
+ * Similar to FUN_0001a100 (uncover variant) but uses a 0x2c-byte buffer
+ * and stores param_3 (byte flag) to state_data+4 instead of state_data+3.
+ * Validates actor conditions, looks up the firing position, fills state.
+ *
+ * Confirmed: 4-arg cdecl: actor_handle, param_2 (short), param_3 (byte),
+ *   state_data (ptr). datum_get at 0x197e1. assert line 0x38.
+ * Confirmed: [EBP+0x10] → MOV [ESI+4],CL (state_data[4] = param_3). */
+int FUN_000197d0(int actor_handle, short param_2, char param_3,
+                 char *state_data)
+{
+  char *actor;
+  char *enc;
+  int *pos;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_search.c",
+                   0x38, 1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x2c);
+  if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0') &&
+      (*(int *)(actor + 0x34) != -1)) {
+    if (param_2 != -1) {
+      enc = (char *)tag_block_get_element(
+          (char *)global_scenario_get() + 0x42c,
+          *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+      pos = (int *)tag_block_get_element(enc + 0x98, (int)param_2, 0x18);
+      *(char *)(state_data + 4) = param_3;
+      *(short *)(state_data + 10) = param_2;
+      *(short *)(state_data + 8) = 1;
+      *(int *)(state_data + 0x14) = pos[0];
+      *(int *)(state_data + 0x18) = pos[1];
+      *(int *)(state_data + 0x1c) = pos[2];
+      *(int *)(state_data + 0x10) = pos[5];
+      *(short *)(state_data + 0xc) = *(short *)((char *)pos + 0xe);
+      *(char *)(actor + 0x98) = 1;
+      return 1;
+    }
+    return 0;
+  }
+  return 0;
+}
+
 /* FUN_000198d0 (0x198d0)
  * Initialize action_search state for a berserk actor (type 2).
  *
