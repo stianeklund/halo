@@ -1409,6 +1409,80 @@ void FUN_00118520(unsigned char *count, int elements, short element_size,
            0xffffffff, (int)element_size);
 }
 
+/* FUN_00118620 (0x118620) — Byte-swap an array of elements in place.
+ * element_size encodes the swap width: -2 = 2-byte, -4 = 4-byte, -8 = 8-byte.
+ * 0x118620 / circular_queue.obj (byte_swapping_codes.c line 113) */
+void FUN_00118620(void *data, int count, int element_size)
+{
+  unsigned short *p2;
+  unsigned int *p4;
+  unsigned long long *p8;
+  int new_var;
+  unsigned int v;
+  unsigned long long v8;
+
+  if (data == 0) {
+    display_assert("memory",
+                   "c:\\halo\\SOURCE\\memory\\byte_swapping_codes.c", 0x71, 1);
+    system_exit(-1);
+  }
+  if (count < 0) {
+    display_assert("count>=0",
+                   "c:\\halo\\SOURCE\\memory\\byte_swapping_codes.c", 0x72, 1);
+    system_exit(-1);
+  }
+  if (element_size != -2 && element_size != -4 &&
+      (new_var = element_size) != -8) {
+    display_assert(
+        "code==_2byte || code==_4byte || code==_8byte",
+        "c:\\halo\\SOURCE\\memory\\byte_swapping_codes.c", 0x73, 1);
+    system_exit(-1);
+  }
+
+  switch (element_size) {
+  case -8:
+    p8 = (unsigned long long *)data;
+    if (count > 0) {
+      do {
+        v8 = *p8;
+        *p8 = ((*p8 >> 56) |
+              ((*p8 >> 40) & 0xff00ULL) |
+              ((*p8 >> 24) & 0xff0000ULL) |
+              ((*p8 >> 8)  & 0xff000000ULL) |
+              ((v8 << 8)   & 0xff00000000ULL) |
+              ((*p8 << 24) & 0xff0000000000ULL) |
+              ((*p8 << 40) & 0xff000000000000ULL) |
+              (*p8 << 56));
+        p8++;
+        count--;
+      } while (count != 0);
+    }
+    break;
+  case -4:
+    p4 = (unsigned int *)data;
+    if (count > 0) {
+      do {
+        v = *p4;
+        *p4 = (v >> 24) | ((v >> 8) & 0xff00) |
+              ((v << 8) & 0xff0000) | (v << 24);
+        p4++;
+        count--;
+      } while (count != 0);
+    }
+    break;
+  case -2:
+    p2 = (unsigned short *)data;
+    if (count > 0) {
+      do {
+        *p2 = (unsigned short)((*p2 >> 8) | (*p2 << 8));
+        p2++;
+        count--;
+      } while (count != 0);
+    }
+    break;
+  }
+}
+
 /* Compute the byte size described by a byte-swap definition by walking
  * the code array with null data. Returns the computed size.
  * 0x118ba0 / circular_queue.obj (byte_swapping.c) */
