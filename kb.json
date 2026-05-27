@@ -13938,7 +13938,7 @@
         },
         {
           "addr": "0x9ec30",
-          "decl": "int FUN_0009ec30(int effect_index, int object_handle, int parent_handle, int marker, int arg4, int arg5, int arg6, int arg7);",
+          "decl": "int FUN_0009ec30(int effect_index, int object_handle, int parent_handle, int marker, float scale_a, float scale_b, int arg6, int arg7);",
           "ported": false
         },
         {
@@ -28830,7 +28830,7 @@
         },
         {
           "addr": "0xfb6e0",
-          "decl": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
+          "decl": "int weapon_start_effect(int trigger_effect, float scale, float param_3, int weapon_handle @<eax>);",
           "ported": true,
           "source_path": "halo/items/weapons.c"
         },
