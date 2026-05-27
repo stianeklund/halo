@@ -3178,7 +3178,7 @@
         },
         {
           "addr": "0x15250",
-          "decl": "void FUN_00015250(void);"
+          "decl": "void FUN_00015250(int actor_handle);"
         },
         {
           "addr": "0x153e0",
