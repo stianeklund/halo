@@ -1432,6 +1432,75 @@ int FUN_000198d0(int actor_handle, int param_2, char *state_data)
   return 0;
 }
 
+/* FUN_00019940 (0x19940)
+ * Per-tick update for action_search: checks if the search has been found
+ * or timed out, increments/decrements counters, fires look-event if needed.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x19948.
+ * Confirmed: tag_get(0x61637472, actor+0x58).
+ * Confirmed: actor+0x9c = search done; actor+0x9e/0xbc/0xc0 = tick counters. */
+void FUN_00019940(int actor_handle)
+{
+  char *actor;
+  char *tag_data;
+  char *prop;
+  int remain;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0x9c) != '\0') {
+    return;
+  }
+  tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  *(char *)(actor + 0x9f) = 0;
+  if ((*(short *)(tag_data + 0x2f8) == 4) ||
+      ((*(tag_data) & 2) != 0 && *(short *)(actor + 0xa4) == 0 &&
+       *(short *)(actor + 0x268) == 5)) {
+    if (*(short *)(tag_data + 0x2f8) != 4) {
+      prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+      if (*(char *)(prop + 0x121) >= 3) {
+        goto skip_flag;
+      }
+    }
+    *(char *)(actor + 0x9f) = 1;
+  }
+skip_flag:
+  if (*(char *)(actor + 0x9e) == '\0') {
+    if ((*(char *)(actor + 0x504) == '\0') && (*(char *)(actor + 6) == '\0')) {
+      *(int *)(actor + 0xc4) = *(int *)(actor + 0xc4) + 1;
+      if (0x78 < *(int *)(actor + 0xc4)) {
+        *(char *)(actor + 0x9d) = 1;
+        *(char *)(actor + 0x9c) = 1;
+      }
+    }
+  } else {
+    if (0 < *(int *)(actor + 0xc0)) {
+      *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) - 1;
+    }
+    remain = *(int *)(actor + 0xc0);
+    if (remain == 0) {
+      *(char *)(actor + 0x9c) = 1;
+    }
+    if (*(int *)(actor + 0x18) != -1) {
+      if (*(short *)(actor + 0xa4) == 0) {
+        if ((*(char *)(actor + 0x3bd) == '\0') &&
+            (*(char *)(actor + 0x9c) != '\0' || (remain + 0x5a < *(int *)(actor + 0xbc)))) {
+          *(int *)(actor + 0x3bd) = 1;
+          FUN_00046f10(0xd, *(int *)(actor + 0x18),
+                       actor_target_unit_index(actor_handle),
+                       -1, -1, -1, 0);
+          *(char *)(actor + 0x3bd) = 1;
+          return;
+        }
+      } else if (remain == 0) {
+        FUN_00046f10(0x12, *(int *)(actor + 0x18),
+                     actor_target_unit_index(actor_handle),
+                     -1, -1, -1, 0);
+        return;
+      }
+    }
+  }
+}
+
 /* FUN_00019ac0 (0x19ac0)
  * Mark actor look-state as interrupted (target type 1 path).
  *
