@@ -692,6 +692,67 @@ int FUN_00015900(int actor_handle, short param_2, char *state_data)
   return 1;
 }
 
+/* FUN_000159d0 (0x159d0)
+ * Initialize a guard action state block (0x44 bytes) for guard behavior.
+ * Returns 1 on success, 0 on early-out (behavior already terminal).
+ * Sets mode=0x78, flag=1, prop=-1 as defaults; populates prop data if
+ * actor has a prop (actor+0x1e8 != -1) and is not suppressed/swarmed.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x159dc.
+ * Confirmed: assert on state_data != NULL (action_guard.c:0xac).
+ * Confirmed: switch on *(short*)(actor+0x1e4)-6 for velocity scale. */
+char FUN_000159d0(int actor_handle, short *state_data)
+{
+  char *actor;
+  char *prop;
+  int prop_handle;
+  int behavior;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_guard.c",
+                   0xac, 1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 0x44);
+  *state_data = 0x78;
+  state_data[0x12] = 1;
+  *(char *)((char *)state_data + 5) = 1;
+  *(int *)((char *)state_data + 0x3c) = -1;
+  if (*(short *)(actor + 0x15e) == 4) {
+    return 0;
+  }
+  if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0') &&
+      ((prop_handle = *(int *)(actor + 0x1e8)) != -1)) {
+    prop = (char *)datum_get(prop_data, prop_handle);
+    *(int *)((char *)state_data + 0x3c) = prop_handle;
+    state_data[1] = 0x78;
+    *(char *)((char *)state_data + 0x40) = 1;
+    behavior = *(short *)(actor + 0x1e4) - 6;
+    switch (behavior) {
+    case 0:
+      *(float *)((char *)state_data + 0x38) = 2.0f;
+      break;
+    case 1:
+    case 2:
+      *(float *)((char *)state_data + 0x38) = 1.0f;
+      break;
+    case 3:
+      *(float *)((char *)state_data + 0x38) = 1.5f;
+      break;
+    default:
+      return 1;
+    }
+    actor_perception_find_prop_pathfinding_location(actor_handle, prop_handle);
+    state_data[0x12] = 2;
+    *(int *)((char *)state_data + 0x28) = *(int *)(prop + 0xf0);
+    *(int *)((char *)state_data + 0x2c) = *(int *)(prop + 0xf4);
+    *(int *)((char *)state_data + 0x30) = *(int *)(prop + 0xf8);
+    *(int *)((char *)state_data + 0x34) = *(int *)(prop + 0xec);
+  }
+  return 1;
+}
+
 /* FUN_00015b30 (0x15b30) */
 void FUN_00015b30(int actor_handle)
 {
