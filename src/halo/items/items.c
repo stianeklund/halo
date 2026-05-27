@@ -44,6 +44,26 @@ bool item_begin_garbage_collection(int item_handle)
   return 1;
 }
 
+/* Read the type byte (offset +3) from an item datum entry (0xf68b0).
+ * Returns as short (zero-extended from byte). */
+short FUN_000f68b0(int item_handle)
+{
+  char *datum;
+  datum = (char *)datum_get(*(data_t **)0x5a8d50, item_handle);
+  return (unsigned char)datum[3];
+}
+
+/* Activate an item: set flags 0x6000, record game time, reset timer (0xf6910). */
+char item_activate(int item_handle)
+{
+  char *item_obj;
+  item_obj = (char *)object_get_and_verify_type(item_handle, 0x1c);
+  *(unsigned int *)(item_obj + 4) = *(unsigned int *)(item_obj + 4) | 0x6000;
+  *(int *)(item_obj + 0x1b4) = game_time_get();
+  *(int *)(item_obj + 0x1b0) = NONE;
+  return 1;
+}
+
 /* Iterate all item objects (type 0x1c) and return true if any have
  * a positive danger count, indicating a dangerous item is near a player. */
 bool dangerous_items_near_player(void)

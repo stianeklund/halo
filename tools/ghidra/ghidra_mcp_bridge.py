@@ -25,7 +25,7 @@ GHIDRA_BASE = "http://localhost:8089"
 
 _SCHEMA_TTL_S = 300
 _HEALTH_CHECK_S = 30
-_MAX_CONCURRENT = 4
+_MAX_CONCURRENT = 10
 _TOOL_TIMEOUT_S = 60
 _SESSION_GC_S = 60
 
@@ -225,7 +225,8 @@ def _ensure_loaded() -> None:
             if _schema_loaded_at:
                 _log(f"Schema refresh failed (serving cached {len(_tools)} tools): {exc}")
                 return
-            raise
+            _log(f"Schema load failed (Ghidra not ready, returning empty tools): {exc}")
+            return
 
 
 @server.list_tools()

@@ -13,29 +13,26 @@ partitions via XBDM/RDCP.
 Run the cache clear tool:
 
 ```bash
-rtk python3 tools/xbox/clear_cache.py [--dry-run] [-x <host>] [-v]
+rtk python3 tools/xbox/clear_cache.py [--dry-run] [--deep] [-x <host>] [-v]
 ```
 
 ## What it clears
 
-The tool scans and removes Halo files from these partitions:
+The tool scans these partitions:
 
-- **P:** - All titles cache (cache000.map, cache001.map, etc.)
-- **T:** - Active title temporary data
-- **U:** - Active title save metadata
-- **Z:** - Title state files (last_solo.txt, lastprof.txt, etc.)
+- **Z:** - Confirmed Halo runtime cache/state paths (`cacheNNN.map`, `last_solo.txt`, `savegame.bin`, etc.)
+- **P/T/U:** - Devkit-visible cache/save aliases, scanned conservatively for Halo map-cache names only
 
-It recurses into subdirectories on P:, T:, and U: to find nested cache files.
-The `z:\saved` directory is always preserved to protect actual save data.
+By default, `z:\saved` is preserved to protect actual save data. Pass `--deep` to also remove confirmed generated files under `z:\saved`, such as `hdmu.map`, default profile `.sav` files, and default playlist `blam.lst` files.
 
 ## Safety
 
 - **Always use `--dry-run` first** to preview what would be deleted.
-- The tool only removes files matching Halo CE cache patterns:
-  - `.map` files (all maps in cache partitions are assumed Halo)
-  - `.xbx` files (Xbox save metadata)
-  - `.txt` files (last_solo.txt, lastprof.txt, etc.)
-  - `savegame.bin`
+- The tool only removes path-specific Halo CE cache targets:
+  - `z:\cacheNNN.map`, including stale `cache006.map` through `cache019.map`
+  - `z:\last_solo.txt`, `z:\lastprof.txt`, `z:\lastmpvr.txt`, `z:\lastmpmp.txt`
+  - `z:\savegame.bin`
+  - With `--deep`: generated files under `z:\saved`
 - Other titles' data and non-Halo files are preserved.
 
 ## Output expectations

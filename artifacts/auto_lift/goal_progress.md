@@ -1,4 +1,6 @@
 | function | addr | source_file | screen_result | vc71 | action | reason |
+| FUN_0012c6d0 | 0x12c6d0 | network_server_manager.c | viable | 96.7% | committed | unique name picker; outer do-while loop |
+| FUN_0012c750 | 0x12c750 | network_server_manager.c | viable | 96.1% | committed | unique team picker; char unique fix |
 |---|---|---|---|---|---|---|
 | FUN_0012c6d0 | 0x12c6d0 | network_server_manager.c | pass | 96.7% | committed | unique name picker; outer do-while loop |
 | FUN_0012c750 | 0x12c750 | network_server_manager.c | pass | 96.1% | committed | unique team picker; char unique fix |
@@ -23,3 +25,19 @@
 | FUN_0002d900 | 0x2d900 | actor_looking.c | pass | 61.4% | skipped | structural ceiling: rep movsl 6-dword copy; C csmemcpy generates CALL |
 | FUN_00014620 | 0x14620 | actor_looking.c | pass | 100% | committed | state init: assert+csmemset+char return; per-function delink (NOP boundary) |
 | FUN_00016960 | 0x16960 | actor_looking.c | pass | 100% | committed | three-way float comparator; FLD param1/FCOMP param2 both passes; byte-match |
+| actor_perception_find_prop_pathfinding_location | 0x2f910 | actor_perception.c | pass | 97.2% | committed | |
+| actor_perception_find_killer_prop_index | 0x2f9b0 | actor_perception.c | pass | 90.5% | committed | |
+| actor_get_vision_distances | 0x2f470 | actor_perception.c | pass | 65.2% | skipped | structural FPU ceiling; equivalence=high/90.2% but VC71 capped at 65% |
+| FUN_00014680 | 0x14680 | actor_looking.c | pass | 100% | committed | byte-match; countdown timer pattern |
+| FUN_000170c0 | 0x170c0 | actor_looking.c | pass | 100% | committed | byte-match; actor_look_compute_prop_interest wrapper |
+| FUN_000170f0 | 0x170f0 | actor_looking.c | pass | 100% | committed | byte-match; actor_look_compute_prop_interest wrapper |
+| FUN_00019280 | 0x19280 | actor_looking.c | pass | 100% | committed | byte-match; actor_look_compute_prop_interest wrapper |
+| FUN_00019750 | 0x19750 | actor_looking.c | pass | 91.3% | committed | MSVC byte-return upper-EAX garbage; equivalence divergence structural not logic |
+| FUN_000198d0 | 0x198d0 | actor_looking.c | pass | 90.9% | committed | MSVC byte-return upper-EAX garbage; equivalence divergence structural not logic |
+| FUN_0001a080 | 0x1a080 | actor_looking.c | pass | 91.7% | committed | MSVC byte-return; action_uncover.c init pattern |
+| FUN_00016ff0 | 0x16ff0 | actor_looking.c | pass | 89.7% | skipped | structural ceiling: LEA vs ADD + push-order; permuter regressed to 88.6% |
+| FUN_00015880 | 0x15880 | actor_looking.c | pass | 90.5% | committed | action_guard.c init; equivalence PASS (zero-fill coverage) |
+| FUN_00015900 | 0x15900 | actor_looking.c | pass | 93.1% | committed | action_guard.c init; 1/100 equivalence diverge = MSVC byte-return structural |
+| FUN_0001abd0 | 0x1abd0 | actor_looking.c | pass | 100% | committed | byte-match; set actor+0xe4 to -1 |
+| FUN_00015b30 | 0x15b30 | actor_looking.c | pass | 95.8% | committed | forget_recent_damage + retreat_successful dispatch |
+| FUN_00016c40 | 0x16c40 | actor_looking.c | pass | 100% | committed | byte-match; tag_block bounds-clamp callback |
