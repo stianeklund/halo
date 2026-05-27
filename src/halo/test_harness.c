@@ -288,22 +288,30 @@ void run_tests(void)
     dump_float_case("matrix_inverse", "mat_inv_rot_trans", dst_mat, 12, buf);
   }
 
-  /* matrix4x3_multiply */
+  /* matrix4x3_multiply: layout is [scale, 3x3-rotation, tx, ty, tz] = 13 floats.
+   * mat_a = identity rotation, scale 1.0, translation (1, 2, 3).
+   * mat_b = 90-degree Z rotation, scale 1.0, translation (5, 5, 5).
+   * Expected: scale=1, rot=B*A, trans=B_trans*A_rot*A_scale+A_trans=(6,7,8). */
   {
-    float mat_a[12] = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-                        0.0f, 0.0f, 1.0f, 1.0f, 2.0f, 3.0f };
-    float mat_b[12] = { 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-                        0.0f, 0.0f, 1.0f, 5.0f,  5.0f, 5.0f };
-    float out_mat[12];
+    float mat_a[13] = { 1.0f,
+                        1.0f, 0.0f, 0.0f,
+                        0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f,
+                        1.0f, 2.0f, 3.0f };
+    float mat_b[13] = { 1.0f,
+                        0.0f, 1.0f, 0.0f,
+                       -1.0f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f,
+                        5.0f, 5.0f, 5.0f };
+    float out_mat[13];
 
     matrix4x3_multiply(mat_a, mat_b, out_mat);
 
-    total += 3;
-    passed += check("mat_mul m01", *(uint32_t *)&out_mat[1], 0x00000000, buf);
-    passed +=
-      check("mat_mul trans_y", *(uint32_t *)&out_mat[10], 0x40E00000, buf);
-    passed +=
-      check("mat_mul trans_z", *(uint32_t *)&out_mat[11], 0x40400000, buf);
+    total += 4;
+    passed += check("mat_mul scale", *(uint32_t *)&out_mat[0], 0x3F800000, buf);
+    passed += check("mat_mul rot_10", *(uint32_t *)&out_mat[4], 0xBF800000, buf);
+    passed += check("mat_mul trans_x", *(uint32_t *)&out_mat[10], 0x40C00000, buf);
+    passed += check("mat_mul trans_z", *(uint32_t *)&out_mat[12], 0x41000000, buf);
   }
 
   /* matrix_from_forward_and_up */
