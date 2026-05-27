@@ -314,7 +314,7 @@ int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
                         param_5[2] * param_5[2]);
       if (cVar3 == 0) {
         if (param_4 < magnitude) {
-          FUN_00012fb0(param_5, param_4 / magnitude, param_5);
+          FUN_00012fb0(param_5, param_4 / magnitude, param_5); /* dup-args-ok: in-place scale matches confirmed call above. */
         }
       }
     }

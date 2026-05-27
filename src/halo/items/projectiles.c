@@ -2602,7 +2602,7 @@ int FUN_000f9c40(int projectile_handle)
                 mag_sq = (float)FUN_00012170(cross_buf2);
                 if (mag_sq < sound_range * sound_range) {
                   /* sound origin = player_pos + (-1)*perp_component; reuse cross_buf2 */
-                  vector3d_scale_add((float *)(player_obj + 0x50), cross_buf2,
+                  vector3d_scale_add((float *)(player_obj + 0x50), cross_buf2, /* dup-args-ok: reuse buffer for sound origin. */
                                      -1.0f, cross_buf2);
                   /* forward/up must be valid unit vectors for sound_manager assert.
                    * proj+0x30 is the up vector (always unit); proj+0x24 is acceleration. */
