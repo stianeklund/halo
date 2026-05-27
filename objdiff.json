@@ -2394,7 +2394,7 @@
     {
       "name": "halo/actor_looking",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
-      "base_path": "delinked/actors.obj",
+      "base_path": "delinked/actor_looking.obj",
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
@@ -6293,6 +6293,14 @@
       "base_path": "delinked/effects_FUN_0009f430.obj",
       "metadata": {
         "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/actor_looking_FUN_0001ab70",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_0001ab70.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
       }
     }
   ]
