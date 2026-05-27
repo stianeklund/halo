@@ -626,8 +626,8 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
 void FUN_00016c40(int param_1, int param_2, short param_3, char *param_4)
 {
   int iVar1;
-  iVar1 = (int)tag_block_get_element(
-      (char *)global_scenario_get() + 0x438, (int)param_3, 0x60);
+  iVar1 = (int)tag_block_get_element((char *)global_scenario_get() + 0x438,
+                                     (int)param_3, 0x60);
   if ((int)(unsigned char)*param_4 >= *(int *)(iVar1 + 0x30)) {
     *param_4 = (char)0xff;
   }
@@ -1071,4 +1071,29 @@ char FUN_0002a3d0(int actor_handle)
 {
   char *actor = (char *)datum_get(actor_data, actor_handle);
   return actor[0x4a8];
+}
+
+/* FUN_0002a3f0 (0x2a3f0) — Check if actor can move (not on active path and
+ * is_moving). Returns 0 if path_active (+0x4a8) is set AND is_moving (+0x484)
+ * is clear, else 1. */
+int FUN_0002a3f0(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0x4a8) != 0 && *(char *)(actor + 0x484) == 0)
+    return 0;
+  return 1;
+}
+
+/* FUN_0002a430 (0x2a430) — Get actor activation value if activation state is 3.
+ * Returns actor[+0x470] (short) if actor[+0x46c] == 3, else -1. */
+short FUN_0002a430(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x46c) == 3)
+    return *(short *)(actor + 0x470);
+  return -1;
 }

@@ -57,6 +57,15 @@ void actor_path_input_new(int actor_handle, char *nav_state_out)
                        *(int *)(actor + 0x164));
 }
 
+/* midpoint3d (0x2a540) — Compute the midpoint of two 3D vectors.
+ * out[i] = (a[i] + b[i]) * 0.5f for i in {0,1,2}. */
+void midpoint3d(float *a, float *b, float *out)
+{
+  out[0] = (a[0] + b[0]) * 0.5f;
+  out[1] = (a[1] + b[1]) * 0.5f;
+  out[2] = (a[2] + b[2]) * 0.5f;
+}
+
 /* 0x2a7e0 — Set actor goal destination if not already occupied.
  * Calls actor_set_dormant(actor, 0), then checks actor->goal_slot (+0x418)
  * and vehicle-in-air state. On success writes param_2 to +0x418 and
