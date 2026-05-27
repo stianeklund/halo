@@ -167,9 +167,83 @@ TRIVIAL_ARGS = frozenset((
     '0', '1', '-1', '0.0f', '0.0', 'NULL', 'NONE', 'true', 'false',
 ))
 
+NUMERIC_LITERAL_ARG = re.compile(
+    r'^\(?\s*(?:unsigned\s+|signed\s+)?(?:int|long|short|char|float|double|void)?\s*\*?\s*\)?\s*'
+    r'-?(?:0x[0-9a-fA-F]+|\d+(?:\.\d*)?|\.\d+)(?:[uUlLfF]*)\s*$'
+)
+
 FUNC_CALL_PATTERN = re.compile(
     r'\b(FUN_[0-9a-fA-F]+|[a-z_][a-z0-9_]*)\s*\('
 )
+
+
+def _blank_comments_and_literals(text):
+    """Preserve positions while blanking comments and string/char literals."""
+    out = []
+    i = 0
+    state = 'code'
+    while i < len(text):
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ''
+        if state == 'code':
+            if ch == '/' and nxt == '/':
+                out.extend((' ', ' '))
+                i += 2
+                state = 'line_comment'
+                continue
+            if ch == '/' and nxt == '*':
+                out.extend((' ', ' '))
+                i += 2
+                state = 'block_comment'
+                continue
+            if ch == '"':
+                out.append(' ')
+                i += 1
+                state = 'string'
+                continue
+            if ch == "'":
+                out.append(' ')
+                i += 1
+                state = 'char'
+                continue
+            out.append(ch)
+            i += 1
+            continue
+        if state == 'line_comment':
+            out.append('\n' if ch == '\n' else ' ')
+            i += 1
+            if ch == '\n':
+                state = 'code'
+            continue
+        if state == 'block_comment':
+            if ch == '*' and nxt == '/':
+                out.extend((' ', ' '))
+                i += 2
+                state = 'code'
+                continue
+            out.append('\n' if ch == '\n' else ' ')
+            i += 1
+            continue
+        if state in ('string', 'char'):
+            quote = '"' if state == 'string' else "'"
+            if ch == '\\' and nxt:
+                out.extend((' ', '\n' if nxt == '\n' else ' '))
+                i += 2
+                continue
+            out.append('\n' if ch == '\n' else ' ')
+            i += 1
+            if ch == quote:
+                state = 'code'
+            continue
+    return ''.join(out)
+
+
+def _is_trivial_duplicate_arg(arg):
+    if arg in TRIVIAL_ARGS:
+        return True
+    if NUMERIC_LITERAL_ARG.match(arg):
+        return True
+    return False
 
 
 def _extract_args(text, start):
@@ -215,7 +289,7 @@ def check_duplicate_args(filepath, content, lines):
     intentional same-arg calls), including multiline call expressions.
     """
     errors = []
-    flat = content
+    flat = _blank_comments_and_literals(content)
     for m in FUNC_CALL_PATTERN.finditer(flat):
         func_name = m.group(1)
         paren_pos = m.end() - 1
@@ -231,7 +305,7 @@ def check_duplicate_args(filepath, content, lines):
             continue
         seen = {}
         for i, arg in enumerate(args):
-            if arg in TRIVIAL_ARGS:
+            if _is_trivial_duplicate_arg(arg):
                 continue
             if len(arg) < 3:
                 continue
