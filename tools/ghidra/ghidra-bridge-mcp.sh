@@ -29,4 +29,8 @@ if [ -f /mnt/c/Windows/System32/netstat.exe ]; then
     )
 fi
 
-exec "$PYTHON_WIN" "$BRIDGE_PY_WIN" --port="$PORT"
+while true; do
+    "$PYTHON_WIN" "$BRIDGE_PY_WIN" --port="$PORT"
+    echo "[ghidra-bridge] exited (status $?), restarting in 5s..." >&2
+    sleep 5
+done

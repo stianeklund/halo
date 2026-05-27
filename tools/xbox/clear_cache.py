@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Clear Halo CE cache files from Xbox cache partitions via XBDM/RDCP.
+r"""Clear Halo CE cache files from Xbox cache partitions via XBDM/RDCP.
 
 This tool surgically removes only Halo CE related cache files from devkit cache
-partitions (P:, T:, U:, and Z:).
+partitions (P:, T:, U:, and Z:). The retail binary's confirmed runtime writes
+use z:\ paths; P:/T:/U: are scanned conservatively for devkit-visible cache
+aliases.
 
 For devkits:
-  P: - All titles cache (cache000.map, etc.)
+  P: - All titles cache (cache000.map, etc.; scanned conservatively)
   T: - Persistent Data - Active Title (temporary data)
   U: - Saved Games - Active Title (save data)
-  Z: - Title state files (last_solo.txt); z:\\saved is preserved
+  Z: - Title cache/state files (cacheNNN.map, last_solo.txt, etc.)
+       z:\saved is preserved unless --deep is passed
 """
 
 from __future__ import annotations
@@ -42,8 +45,8 @@ def make_drive_path(letter: str) -> str:
 
 CACHE_PARTITIONS = ["P", "T", "U", "Z"]
 
-# Known Halo file patterns
-# Note: "halo" is too generic and matches non-Halo files like "TitleMeta.xbx"
+# Known Halo map names for conservative devkit partition scanning.
+# Note: "halo" is too generic and matches non-Halo files like "TitleMeta.xbx".
 HALO_FILE_PATTERNS = [
     "bloodgulch", "chillout", "damnation", "gephyrophobia",
     "hangemhigh", "ratrace", "prisoner", "wizard", "ui",
@@ -53,45 +56,79 @@ HALO_FILE_PATTERNS = [
     "a10", "a30", "a50", "b30", "b40", "c10", "c20", "c40", "d20", "d40",
 ]
 
-# Directories to skip entirely (save data, not cache)
-SKIP_DIRECTORIES = {"saved"}
+# Confirmed root z:\ files written by the Halo CE Xbox binary.
+Z_ROOT_FILES = {
+    "last_solo.txt",
+    "lastprof.txt",
+    "lastmpvr.txt",
+    "lastmpmp.txt",
+    "savegame.bin",
+}
 
 
-def is_halo_cache_file(filename: str) -> bool:
-    """Check if a filename matches Halo CE cache file patterns."""
+def is_cache_slot_map(filename: str) -> bool:
+    """Return true for cache000.map through cache019.map."""
+    filename_lower = filename.lower()
+    if not (filename_lower.startswith("cache") and filename_lower.endswith(".map")):
+        return False
+    slot_text = filename_lower[5:-4]
+    return len(slot_text) == 3 and slot_text.isdigit() and int(slot_text) < 20
+
+
+def is_halo_map_file(filename: str) -> bool:
+    """Check if a map filename matches known Halo CE cache/map patterns."""
     filename_lower = filename.lower()
 
-    # Check for Halo map files (.map extension with Halo map name)
-    if filename_lower.endswith(".map"):
-        name_without_ext = filename_lower[:-4]  # Remove .map
+    if not filename_lower.endswith(".map"):
+        return False
+    if is_cache_slot_map(filename_lower):
+        return True
 
-        # Check for cache*.map files (cache000.map, cache001.map, etc.)
-        # These are Halo's cached maps on P: drive
-        if name_without_ext.startswith("cache"):
+    name_without_ext = filename_lower[:-4]
+    return any(name_without_ext.startswith(pattern.lower())
+               for pattern in HALO_FILE_PATTERNS)
+
+
+def is_halo_cache_path(drive_letter: str, current_path: str, filename: str,
+                       deep: bool) -> bool:
+    """Return true if this exact Xbox path is a confirmed Halo cache target."""
+    drive = drive_letter.upper()
+    filename_lower = filename.lower()
+    full_path = f"{current_path}{filename}".lower()
+
+    if drive == "Z":
+        if full_path.startswith("z:\\saved\\"):
+            if not deep:
+                return False
+            saved_rel = full_path[len("z:\\saved\\"):]
+            if saved_rel == "hdmu.map":
+                return True
+            if (saved_rel.startswith("player_profiles\\default_profile\\") and
+                    filename_lower.endswith(".sav")):
+                return True
+            if (saved_rel.startswith("playlists\\default_playlist\\") and
+                    filename_lower == "blam.lst"):
+                return True
+            return False
+
+        if filename_lower in Z_ROOT_FILES:
             return True
+        return is_cache_slot_map(filename_lower)
 
-        # Check if it matches known Halo map names
-        if any(name_without_ext.startswith(pattern.lower())
-               for pattern in HALO_FILE_PATTERNS):
-            return True
-
-        # Unknown .map files in cache are likely Halo maps too
-        # (cache partitions only contain cached game data)
-        return True
-
-    # Check for Xbox save metadata files
-    if filename_lower.endswith(".xbx"):
-        return True
-
-    # Include all .txt files (last_solo.txt, lastprof.txt, etc.)
-    if filename_lower.endswith(".txt"):
-        return True
-
-    # Include specific metadata files
-    if filename_lower == "savegame.bin":
-        return True
+    if drive in ("P", "T", "U"):
+        return is_halo_map_file(filename_lower)
 
     return False
+
+
+def should_recurse_directory(drive_letter: str, current_path: str, dirname: str,
+                             deep: bool) -> bool:
+    """Decide whether recursion is safe for this directory."""
+    if drive_letter.upper() == "Z":
+        full_path = f"{current_path}{dirname}".lower()
+        if full_path == "z:\\saved":
+            return deep
+    return True
 
 
 def list_files_in_path(client: RdcpClient, path: str) -> tuple[list[dict], int, str]:
@@ -205,7 +242,8 @@ def delete_item(client: RdcpClient, full_path: str, is_dir: bool = False,
 
 def clear_path_recursive(client: RdcpClient, drive_letter: str,
                         current_path: str,
-                        dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str], int, bool]:
+                        dry_run: bool = False, verbose: bool = False,
+                        deep: bool = False) -> tuple[int, int, list[str], int, bool]:
     """Recursively clear Halo cache from a path.
 
     Returns:
@@ -232,48 +270,38 @@ def clear_path_recursive(client: RdcpClient, drive_letter: str,
 
     for item in files:
         item_name = item["name"]
-        item_lower = item_name.lower()
         full_path = f"{current_path}{item_name}"
 
         if item.get("is_dir"):
-            if item_lower in SKIP_DIRECTORIES:
+            if not should_recurse_directory(drive_letter, current_path, item_name, deep):
                 if verbose:
                     print(f"    Skipping protected directory: {full_path}")
                 continue
 
             sub_path = f"{full_path}\\"
             sub_deleted, sub_failed, sub_names, sub_size, sub_locked = clear_path_recursive(
-                client, drive_letter, sub_path, dry_run, verbose
+                client, drive_letter, sub_path, dry_run, verbose, deep
             )
             deleted += sub_deleted
             failed += sub_failed
             deleted_names.extend(sub_names)
             total_size += sub_size
             hit_locked = hit_locked or sub_locked
-
-            if is_halo_cache_file(item_name + ".map") or item_lower in HALO_FILE_PATTERNS:
-                ok, locked = delete_item(client, full_path, is_dir=True, dry_run=dry_run)
-                hit_locked = hit_locked or locked
-                if ok:
-                    deleted += 1
-                    deleted_names.append(item_name)
-                else:
-                    failed += 1
         else:
-            if is_halo_cache_file(item_name):
+            if is_halo_cache_path(drive_letter, current_path, item_name, deep):
                 if dry_run:
                     size_mb = item.get("size", 0) / (1024 * 1024)
                     print(f"      [DRY-RUN] file: {full_path} ({size_mb:.2f} MB)")
                     deleted += 1
                     total_size += item.get("size", 0)
-                    deleted_names.append(item_name)
+                    deleted_names.append(full_path)
                 else:
                     ok, locked = delete_item(client, full_path, is_dir=False, dry_run=dry_run)
                     hit_locked = hit_locked or locked
                     if ok:
                         deleted += 1
                         total_size += item.get("size", 0)
-                        deleted_names.append(item_name)
+                        deleted_names.append(full_path)
                         if verbose:
                             print(f"      Deleted: {full_path}")
                     else:
@@ -283,7 +311,8 @@ def clear_path_recursive(client: RdcpClient, drive_letter: str,
 
 
 def clear_partition(client: RdcpClient, drive_letter: str,
-                   dry_run: bool = False, verbose: bool = False) -> tuple[int, int, list[str], bool]:
+                   dry_run: bool = False, verbose: bool = False,
+                   deep: bool = False) -> tuple[int, int, list[str], bool]:
     """Clear Halo cache from a single partition.
 
     Returns:
@@ -298,7 +327,7 @@ def clear_partition(client: RdcpClient, drive_letter: str,
         print(f"  Scanning {drive_display}...")
 
     deleted, failed, deleted_names, total_size, hit_locked = clear_path_recursive(
-        client, drive_letter, drive_path, dry_run, verbose
+        client, drive_letter, drive_path, dry_run, verbose, deep
     )
 
     if deleted > 0:
@@ -322,10 +351,11 @@ def parse_args() -> argparse.Namespace:
 Examples:
   python tools/xbox/clear_cache.py              # Clear Halo cache
   python tools/xbox/clear_cache.py --dry-run    # Preview what would be deleted
+  python tools/xbox/clear_cache.py --deep       # Include generated z:\\saved files
   python tools/xbox/clear_cache.py -x 192.168.1.42
 
 Clears Halo files from P:, T:, U:, and Z: partitions (devkit cache).
-The z:\\saved directory is always preserved (contains save data).
+The z:\\saved directory is preserved unless --deep is passed.
 """
     )
     parser.add_argument("-x", "--host", default=DEFAULT_HOST,
@@ -338,6 +368,8 @@ The z:\\saved directory is always preserved (contains save data).
                        help="Preview without deleting")
     parser.add_argument("-v", "--verbose", action="store_true",
                        help="Verbose output")
+    parser.add_argument("--deep", action="store_true",
+                       help="Also remove confirmed generated files under z:\\saved")
     return parser.parse_args()
 
 
@@ -350,6 +382,8 @@ def main() -> int:
 
     if args.dry_run:
         print("[DRY-RUN] Preview mode - no files will be deleted\n")
+    if args.deep:
+        print("Deep mode: confirmed generated z:\\saved files are included\n")
 
     try:
         client = RdcpClient(args.host, args.port, args.timeout)
@@ -363,7 +397,7 @@ def main() -> int:
 
         for drive_letter in CACHE_PARTITIONS:
             deleted, failed, deleted_names, hit_locked = clear_partition(
-                client, drive_letter, args.dry_run, args.verbose
+                client, drive_letter, args.dry_run, args.verbose, args.deep
             )
             total_deleted += deleted
             total_failed += failed
@@ -376,7 +410,7 @@ def main() -> int:
                 print("  Retrying cache clear after reboot...\n")
                 for drive_letter in CACHE_PARTITIONS:
                     deleted, failed, deleted_names, _ = clear_partition(
-                        client, drive_letter, args.dry_run, args.verbose
+                        client, drive_letter, args.dry_run, args.verbose, args.deep
                     )
                     total_deleted += deleted
                     total_failed = max(0, total_failed - deleted)
@@ -402,7 +436,7 @@ def main() -> int:
         else:
             print(f"Deleted {total_deleted} Halo cache item(s):")
             for drive, name in all_deleted_files:
-                print(f"  {drive}:\\{name}")
+                print(f"  {name}")
             return 0
 
     except RdcpError as exc:

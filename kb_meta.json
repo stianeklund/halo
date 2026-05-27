@@ -185,11 +185,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2a540": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2a610": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2a7e0": {
       "kind": "function",
       "status": "ported"
     },
     "0x2a860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2ace0": {
       "kind": "function",
       "status": "ported"
     },
@@ -224,6 +236,14 @@
       "status": "ported"
     },
     "0x2f2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2f910": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2f9b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -5869,6 +5889,13 @@
         "profiling section at 0x321a28 uses enable flag at 0x321a30 (section_base+8); consistent with dynamic_array profiling section label in decompiler."
       ]
     },
+    "0x118620": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_001187f0 (byte-swap walk) calls FUN_00118620 in the original TU; since 001187f0 is not yet ported, MSVC dead-code-eliminates FUN_00118620 when compiling circular_queue.c alone, so vc71_verify cannot measure this function until 001187f0 is lifted."
+      ]
+    },
     "0x118d60": {
       "kind": "function",
       "status": "ported"
@@ -7221,6 +7248,10 @@
       "status": "ported"
     },
     "0x145990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1459d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -8637,7 +8668,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bf8e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bf920": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bf990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bf9e0": {
       "kind": "function",
       "status": "ported"
     },
