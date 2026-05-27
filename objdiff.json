@@ -90,7 +90,7 @@
     {
       "name": "halo/actor_moving",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
-      "base_path": "delinked/actor_moving.obj",
+      "base_path": "delinked/actors.obj",
       "metadata": {
         "source_path": "src/halo/ai/actor_moving.c"
       }
@@ -2394,7 +2394,7 @@
     {
       "name": "halo/actor_looking",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
-      "base_path": "delinked/actor_looking.obj",
+      "base_path": "delinked/actors.obj",
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
