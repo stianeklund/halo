@@ -189,6 +189,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2a580": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2a610": {
       "kind": "function",
       "status": "ported"
@@ -874,6 +878,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x43520": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x48e90": {
       "kind": "function",
       "status": "ported"
@@ -891,6 +899,10 @@
       "status": "ported"
     },
     "0x49080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x49120": {
       "kind": "function",
       "status": "ported"
     },
