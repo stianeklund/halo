@@ -111,10 +111,10 @@ int game_state_test_persistent_storage(char *out_header, int16_t *out_flags,
                                        int param_3)
 {
   char header[0x14c];
-  uint32_t scratch;
 
   if (game_state_read_header_from_persistent_storage(
-        header, &scratch, 0x14c, 0x345000, (char *)param_3)) {
+        header, (uint32_t *)(header + 0x148), 0x14c, 0x345000,
+        (char *)param_3)) {
     *out_flags = *(int16_t *)(header + 0x126);
     csstrcpy(out_header, header + 4);
     return 1;
