@@ -534,10 +534,8 @@ def run_compare_cached(
             any_fail = True
 
         if show_diffs and diffs and not fpu_only and not quiet:
-            for d in diffs[:60]:
+            for d in diffs:
                 print(d)
-            if len(diffs) > 60:
-                print(f"  ... and {len(diffs) - 60} more diff lines")
 
     if (hits or misses) and not quiet:
         total = hits + misses

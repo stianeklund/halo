@@ -495,10 +495,8 @@ def main():
             any_fail = True
 
         if args.show_diffs and diffs and not args.fpu_only:
-            for d in diffs[:60]:
+            for d in diffs:
                 print(d)
-            if len(diffs) > 60:
-                print(f"  ... and {len(diffs) - 60} more diff lines")
 
     if any_fpu_warn:
         print("\nWARNING: FPU operand-order differences detected.")
