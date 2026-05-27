@@ -6358,6 +6358,14 @@
       "metadata": {
         "source_path": "src/halo/units/units.c"
       }
+    },
+    {
+      "name": "halo/hud_messaging_FUN_0d46d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
+      "base_path": "delinked/hud_messaging_FUN_0d46d0.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_messaging.c"
+      }
     }
   ]
 }

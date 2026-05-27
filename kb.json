@@ -11386,11 +11386,15 @@
         },
         {
           "addr": "0xd46d0",
-          "decl": "void FUN_000d46d0(void);"
+          "decl": "void FUN_000d46d0(void);",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "addr": "0xd46e0",
-          "decl": "void FUN_000d46e0(void);"
+          "decl": "void FUN_000d46e0(void);",
+          "ported": true,
+          "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
           "addr": "0xd46f0",
