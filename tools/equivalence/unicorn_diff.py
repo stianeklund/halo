@@ -241,12 +241,40 @@ def _find_obj_paths(kb_entry: dict) -> tuple[Optional[Path], Optional[Path]]:
     in delinked/.
     """
     obj_name = kb_entry.get("_obj_name", "")
+    addr = kb_entry.get("addr", "")
     # Strip decorations like "halo/" prefix or ".obj" suffix
     bare = obj_name.replace(".obj", "").replace("LIBCMT:", "")
 
     units = _load_objdiff()
     delinked_path = None
     build_path = None
+
+    # First pass: per-function unit matching the exact function address in base_path.
+    # This must run before the bare-name scan to avoid picking a sibling per-function
+    # unit whose target_path happens to match the shared .obj name.
+    if addr:
+        addr_int = int(addr, 16) if addr.startswith("0x") else int(addr, 16)
+        addr_str_lo = f"FUN_{addr_int:08x}"
+        addr_str_hi = f"FUN_{addr_int:08X}"
+        # Also match short form (e.g. FUN_0013ef0 vs FUN_00013ef0) by checking
+        # that the base_path contains the non-zero-padded hex address.
+        addr_hex_bare = f"{addr_int:x}"
+        for unit in units:
+            base = unit.get("base_path", "")
+            if addr_str_lo in base or addr_str_hi in base or (
+                    addr_hex_bare in base and "FUN_" in base):
+                dp = _REPO_ROOT / base
+                if dp.exists():
+                    delinked_path = dp
+                target = unit.get("target_path", "")
+                if target:
+                    tp = _REPO_ROOT / target
+                    if tp.exists() and tp.suffix == ".obj":
+                        build_path = tp
+                break  # per-function unit is unambiguous; stop here
+
+    if delinked_path and build_path:
+        return delinked_path, build_path
 
     import re as _re
     # Match bare name at a word boundary to prevent "ai" matching "actors_ai..."
@@ -259,7 +287,7 @@ def _find_obj_paths(kb_entry: dict) -> tuple[Optional[Path], Optional[Path]]:
             tp = _REPO_ROOT / target
             if dp.exists():
                 delinked_path = dp
-            if tp.exists():
+            if tp.exists() and tp.suffix == ".obj":
                 build_path = tp
             if delinked_path and build_path:
                 break
@@ -649,6 +677,8 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
             if STACK_BASE <= address < STACK_TOP:
                 return
             if CODE_BASE <= address < CODE_BASE + CODE_SIZE:
+                return
+            if address >= 0x20000000:  # FXSAVE instrumentation region — not program writes
                 return
             mem_writes.append(state_mod.MemoryWrite(
                 address=address, size=size, value=value))
