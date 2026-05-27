@@ -3597,11 +3597,13 @@
         },
         {
           "addr": "0x2a3f0",
-          "decl": "void FUN_0002a3f0(void);"
+          "decl": "int FUN_0002a3f0(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x2a430",
-          "decl": "void FUN_0002a430(void);"
+          "decl": "short FUN_0002a430(int actor_handle);",
+          "ported": true
         }
       ],
       "name": "actor_looking.obj",
@@ -29157,7 +29159,8 @@
         },
         {
           "addr": "0x2a540",
-          "decl": "void midpoint3d(void);"
+          "decl": "void midpoint3d(float *a, float *b, float *out);",
+          "ported": true
         },
         {
           "addr": "0x2a610",
