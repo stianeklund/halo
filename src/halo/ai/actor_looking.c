@@ -798,6 +798,39 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
   }
 }
 
+/* FUN_00015f60 (0x15f60)
+ * Copy 16-byte look-target vector from one of three global pointers based
+ * on actor's look-suppress/phase flags (actor+0xa4, 0xa5, 0xa6).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x15f6c.
+ * Confirmed: PTR_DAT_002ee6f4=default, 002ee6e8=phase1, 002ee704=phase2. */
+void FUN_00015f60(int actor_handle, int *param_2)
+{
+  int *src;
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  src = *(int **)0x2ee700;
+  if (*(char *)(actor + 0xa4) != '\0') {
+    if (*(char *)(actor + 0xa6) != '\0') {
+      src = *(int **)0x2ee704;
+      param_2[0] = src[0]; param_2[1] = src[1];
+      param_2[2] = src[2]; param_2[3] = src[3];
+      return;
+    }
+    src = *(int **)0x2ee6f4;
+    if (*(char *)(actor + 0xa5) != '\0') {
+      src = *(int **)0x2ee6e8;
+      param_2[0] = src[0]; param_2[1] = src[1];
+      param_2[2] = src[2]; param_2[3] = src[3];
+      return;
+    }
+  }
+  param_2[0] = src[0];
+  param_2[1] = src[1];
+  param_2[2] = src[2];
+  param_2[3] = src[3];
+}
+
 /* FUN_00016ff0 (0x16ff0)
  * Update actor scripted-look prop interest, or invalidate if out of range.
  *
