@@ -954,6 +954,15 @@ void FUN_000170f0(int actor_handle)
                                    (void (*)(void))FUN_00016cf0, 0);
 }
 
+/* FUN_000178b0 (0x178b0)
+ * Subtract two 2D vectors: result = b - a.
+ * Confirmed: cdecl, 3 stack params. FLD [ECX]/FSUB [EDX]/FSTP [EAX] twice. */
+void FUN_000178b0(float *a, float *b, float *result)
+{
+  result[0] = b[0] - a[0];
+  result[1] = b[1] - a[1];
+}
+
 /* Compute the cross product of two 3D vectors.
  *
  * out = a × b
@@ -973,6 +982,16 @@ void cross_product3d(float *a, float *b, float *out)
   out[0] = a1 * b2 - a2 * b1;
   out[1] = a2 * b0 - a0 * b2;
   out[2] = a0 * b1 - a1 * b0;
+}
+
+/* FUN_00017910 (0x17910)
+ * Negate a 3D vector: result = -a.
+ * Confirmed: cdecl, 2 stack params. FCHS on each component. */
+void FUN_00017910(float *a, float *result)
+{
+  result[0] = -a[0];
+  result[1] = -a[1];
+  result[2] = -a[2];
 }
 
 /* FUN_00017940 (0x17940)
