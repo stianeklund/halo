@@ -202,3 +202,32 @@ void ai_communication_dispose_from_old_map(void)
 {
   data_make_invalid(*(void **)0x6324ec);
 }
+
+/* ai_conversation_advance (0x43520) — iterate all conversations and mark
+ * matching entries as advanced. For each conversation whose index field
+ * (+0x2) matches param_1, sets byte +0x9 to 1. When the AI debug flag
+ * at 0x5aca5f is set, logs the advance via console_printf with the
+ * conversation name from the scenario tag block at offset 0x468. */
+void ai_conversation_advance(short param_1)
+{
+  data_iter_t iter;
+  char *conversation;
+
+  data_iterator_new(&iter, *(data_t **)0x6324ec);
+  conversation = (char *)data_iterator_next(&iter);
+  if (conversation == 0) {
+    return;
+  }
+  do {
+    if (*(short *)(conversation + 2) == param_1) {
+      if (*(char *)0x5aca5f != '\0') {
+        console_printf(0, "%s: told to advance by scripting",
+          tag_block_get_element(
+            (char *)global_scenario_get() + 0x468,
+            0x74, (int)param_1));
+      }
+      conversation[9] = 1;
+    }
+    conversation = (char *)data_iterator_next(&iter);
+  } while (conversation != 0);
+}

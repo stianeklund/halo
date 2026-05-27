@@ -92,6 +92,70 @@ void ai_debug_actor_deleted(int actor_handle)
   }
 }
 
+/* ai_debug_get_path_storage (0x49120) — find or allocate a path debug storage
+ * slot for actor_handle. Searches 0x20 entries (stride 0x1ca7c) in the
+ * actor_path_debug_array. Returns an exact match, first inactive slot, or
+ * evicts the oldest entry. Returns NULL if eviction finds no slot. */
+void *ai_debug_get_path_storage(int actor_handle)
+{
+  char *base;
+  char *entry;
+  short best_slot;
+  short i;
+  short oldest_slot;
+  int oldest_time;
+  int off;
+
+  best_slot = -1;
+  i = 0;
+  do {
+    base = *(char **)0x331f5c;
+    entry = base + (int)i * 0x1ca7c;
+    if (*(int *)entry == actor_handle && *(char *)(entry + 0xd) == '\0') {
+      best_slot = i;
+      goto found;
+    }
+    if (best_slot == (short)-1 && *(char *)(entry + 0xc) == '\0') {
+      best_slot = i;
+    }
+    i++;
+  } while (i < 0x20);
+
+  if (best_slot == (short)-1) {
+    oldest_slot = -1;
+    oldest_time = 0x7fffffff;
+    off = 0;
+    i = 0;
+    do {
+      base = *(char **)0x331f5c;
+      entry = base + off;
+      if (*(char *)(entry + 0xc) == '\0') {
+        display_assert("path->valid", "c:\\halo\\SOURCE\\ai\\ai_debug.c",
+                       0x123, 1);
+        system_exit(-1);
+      }
+      if (*(int *)(entry + 4) < oldest_time) {
+        oldest_time = *(int *)(entry + 4);
+        oldest_slot = i;
+      }
+      off += 0x1ca7c;
+      i++;
+    } while (i < 0x20);
+    best_slot = oldest_slot;
+    if (best_slot == (short)-1) {
+      return 0;
+    }
+  }
+
+found:
+  entry = *(char **)0x331f5c + (int)best_slot * 0x1ca7c;
+  csmemset(entry, 0, 0x1ca7c);
+  *(char *)(entry + 0xc) = 1;
+  *(int *)entry = actor_handle;
+  *(int *)(entry + 4) = game_time_get();
+  return entry;
+}
+
 /* ai_debug_select_encounter: reset debug encounter state when encounter_idx
  * changes. Checks if the current encounter index (0x5ac9f4) differs from
  * encounter_idx; if so, updates the index, clears the debug-state byte at
