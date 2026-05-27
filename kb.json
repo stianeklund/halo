@@ -3299,7 +3299,9 @@
         },
         {
           "addr": "0x16d40",
-          "decl": "void actor_look_compute_prop_interest(int actor_handle, int param_2, short *param_3, void (*callback)(void), int param_5);"
+          "decl": "void actor_look_compute_prop_interest(int actor_handle, int param_2, short *param_3, void (*callback)(void), int param_5);",
+          "ported": true,
+          "name": "actor_look_compute_prop_interest"
         },
         {
           "addr": "0x16e70",
