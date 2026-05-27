@@ -774,8 +774,8 @@ void FUN_00016ff0(int actor_handle)
   prop_state = (short *)(actor + 0x9c);
   scenario = (int)global_scenario_get();
   if ((*prop_state >= 0) && ((int)*prop_state < *(int *)(scenario + 0x438))) {
-    actor_look_compute_prop_interest(actor_handle, 0, prop_state, FUN_00016c40,
-                                     0);
+    actor_look_compute_prop_interest(actor_handle, 0, prop_state,
+                                     (void (*)(void))FUN_00016c40, 0);
     return;
   }
   *prop_state = -1;
@@ -857,7 +857,7 @@ void FUN_00017090(int actor_handle)
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
-                                   FUN_00016cd0, 0);
+                                   (void (*)(void))FUN_00016cd0, 0);
 }
 
 /* FUN_000170c0 (0x170c0)
@@ -891,7 +891,7 @@ void FUN_000170f0(int actor_handle)
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
-                                   FUN_00016cf0, 0);
+                                   (void (*)(void))FUN_00016cf0, 0);
 }
 
 /* Compute the cross product of two 3D vectors.
@@ -948,7 +948,7 @@ void FUN_00019280(int actor_handle)
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
-                                   FUN_00019230, 0);
+                                   (void (*)(void))FUN_00019230, 0);
 }
 
 /* FUN_00019750 (0x19750)
