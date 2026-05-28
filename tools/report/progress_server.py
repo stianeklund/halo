@@ -30,6 +30,34 @@ logging.basicConfig(
 )
 
 
+def _function_symbol_aliases(func):
+    """Return likely objdiff symbol names for a report function entry."""
+    aliases = []
+    name = func.get('name')
+    if name:
+        aliases.append(name)
+
+    address = func.get('address')
+    if isinstance(address, str):
+        try:
+            addr = int(address, 0)
+        except ValueError:
+            addr = None
+        if addr is not None:
+            suffix = f'{addr:08x}'
+            aliases.append(f'FUN_{suffix}')
+            aliases.append(f'thunk_FUN_{suffix}')
+
+    return aliases
+
+
+def _lookup_score_for_function(func, func_scores):
+    for alias in _function_symbol_aliases(func):
+        if alias in func_scores:
+            return func_scores[alias]
+    return None
+
+
 class SSEHandler(SimpleHTTPRequestHandler):
     """HTTP handler that also serves an SSE endpoint at /events."""
 
@@ -103,22 +131,34 @@ class SSEHandler(SimpleHTTPRequestHandler):
 
         # Collect ported function names from report so we only diff those
         report_path = os.path.join(self.directory, 'report.json')
-        ported_symbols = None
+        ported_funcs = None
         try:
             with open(report_path) as f:
                 report = json.load(f)
             for unit in report.get('units', []):
                 if unit['name'] == unit_name:
-                    ported_symbols = [
-                        fn['name'] for fn in unit.get('functions', [])
+                    ported_funcs = [
+                        fn for fn in unit.get('functions', [])
                         if fn.get('ported')
                     ]
                     break
         except Exception:
             report = None
 
+        ported_symbol_aliases = None
+        if ported_funcs:
+            ported_symbol_aliases = {
+                func['name']: _function_symbol_aliases(func)
+                for func in ported_funcs
+                if func.get('name')
+            }
+
         tracker = MatchingTracker()
-        unit_data = tracker.check_unit(unit_name, force=True, symbols=ported_symbols)
+        unit_data = tracker.check_unit(
+            unit_name,
+            force=True,
+            symbol_aliases=ported_symbol_aliases,
+        )
         if unit_data is None:
             logging.warning('Scoring failed for unit %s (no reference or objdiff error)', unit_name)
             return None
@@ -142,8 +182,9 @@ class SSEHandler(SimpleHTTPRequestHandler):
             if unit['name'] == unit_name:
                 for func in unit.get('functions', []):
                     fname = func.get('name')
-                    if fname in func_scores:
-                        func['match_percent'] = round(func_scores[fname], 2)
+                    score = _lookup_score_for_function(func, func_scores)
+                    if score is not None:
+                        func['match_percent'] = round(score, 2)
                         updated_funcs[fname] = func['match_percent']
                 break
 
