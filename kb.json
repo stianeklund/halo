@@ -3165,7 +3165,7 @@
         },
         {
           "addr": "0x15040",
-          "decl": "int FUN_00015040(int actor_handle, short param_2, int param_3, char param_4, char param_5, char param_6, short *param_7);",
+          "decl": "char FUN_00015040(int actor_handle, short param_2, int param_3, char param_4, char param_5, char param_6, short *param_7);",
           "ported": true
         },
         {
@@ -3260,7 +3260,7 @@
         },
         {
           "addr": "0x16210",
-          "decl": "int FUN_00016210(int actor_handle, int param_2, short *param_3);",
+          "decl": "char FUN_00016210(int actor_handle, int param_2, short *param_3);",
           "ported": true
         },
         {
@@ -3523,7 +3523,7 @@
         },
         {
           "addr": "0x24ca0",
-          "decl": "int FUN_00024ca0(int actor_handle, short param_2);",
+          "decl": "char FUN_00024ca0(int actor_handle, short param_2);",
           "ported": true
         },
         {
