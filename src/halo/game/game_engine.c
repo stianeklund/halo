@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 void game_engine_dispose(void)
 {
   if (current_game_engine) {
@@ -2137,8 +2139,8 @@ void game_engine_player_update_netgame_flag(int player_handle)
     float angle = (float)atan2(unit_pos[1], unit_pos[0]);
     float adjusted = angle + *(float *)(next_goal_entry + 0x0c) -
                      *(float *)(goal_entry + 0x0c);
-    unit_pos[0] = cosf(adjusted);
-    unit_pos[1] = sinf(adjusted);
+    unit_pos[0] = x87_fcos(adjusted);
+    unit_pos[1] = x87_fsin(adjusted);
     normalize3d(unit_pos);
   }
 

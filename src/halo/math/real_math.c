@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* FUN_0001ad60 (0x1ad60) — Euclidean distance between two 3D points.
  * Confirmed: cdecl, 2 pointer args. Pure FPU leaf (FSUB/FMUL/FADD/FSQRT). */
 float FUN_0001ad60(float *a, float *b)
@@ -873,20 +875,20 @@ void angles_to_vector(float *out, float *angles)
 {
   float cos_pitch;
 
-  cos_pitch = cosf(angles[1]);
-  out[0] = cosf(angles[0]) * cos_pitch;
-  out[1] = sinf(angles[0]) * cos_pitch;
-  out[2] = sinf(angles[1]);
+  cos_pitch = x87_fcos(angles[1]);
+  out[0] = x87_fcos(angles[0]) * cos_pitch;
+  out[1] = x87_fsin(angles[0]) * cos_pitch;
+  out[2] = x87_fsin(angles[1]);
 }
 
 /* Convert an angle to a 2D direction vector stored as (cos, sin, 0) (0x10cc70).
  */
 void vector3d_from_angle(float *out, float angle)
 {
-  float c = cosf(angle);
+  float c = x87_fcos(angle);
   out[2] = 0.0f;
   out[0] = c;
-  out[1] = sinf(angle);
+  out[1] = x87_fsin(angle);
 }
 
 /* vector_intersects_pill3d (0x10e040) — Test if two line segments are within a
@@ -1365,16 +1367,16 @@ void FUN_00109e90(float *out, float yaw, float pitch, float roll)
   float cr, sr, sp, cy, sy;
   float cp_f;
 
-  cr = cosf(roll);
+  cr = x87_fcos(roll);
   ((uint32_t *)out)[0] = 0x3f800000;
   ((uint32_t *)out)[10] = 0;
   ((uint32_t *)out)[11] = 0;
   ((uint32_t *)out)[12] = 0;
-  sr = sinf(roll);
-  cp_f = cosf(pitch);
-  sp = sinf(pitch);
-  cy = cosf(yaw);
-  sy = sinf(yaw);
+  sr = x87_fsin(roll);
+  cp_f = x87_fcos(pitch);
+  sp = x87_fsin(pitch);
+  cy = x87_fcos(yaw);
+  sy = x87_fsin(yaw);
   out[1] = cy * cp_f;
   out[2] = sy * cr - (float)(sp * sr) * cy;
   out[3] = sy * sr + sp * cr * cy;
@@ -1585,8 +1587,8 @@ void FUN_0010c700(float *v1, float *v2, float scale1, float scale2)
  * out = (axis * sin(angle/2), cos(angle/2)). */
 void FUN_0010cab0(float *out, float angle, float *axis)
 {
-  float s = sinf(angle * 0.5f);
-  float c = cosf(angle * 0.5f);
+  float s = x87_fsin(angle * 0.5f);
+  float c = x87_fcos(angle * 0.5f);
 
   out[3] = c;
   out[0] = s * axis[0];
