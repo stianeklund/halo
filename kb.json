@@ -30795,11 +30795,11 @@
         },
         {
           "addr": "0x5b370",
-          "decl": "void encounter_verify_firing_position_owner_actor_indices(void);"
+          "decl": "void encounter_verify_firing_position_owner_actor_indices(int encounter_handle);"
         },
         {
           "addr": "0x5b4b0",
-          "decl": "void encounter_build_firing_position_owner_actor_indices(void);"
+          "decl": "void encounter_build_firing_position_owner_actor_indices(int encounter_handle, int *firing_position_owner_actor_indices);"
         },
         {
           "addr": "0x5b5e0",
