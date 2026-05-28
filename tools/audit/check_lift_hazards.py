@@ -608,6 +608,52 @@ def check_callee_output_size(filepath, content, lines):
     return errors
 
 
+X87_MATH_PATTERN = re.compile(
+    r'\b((?:cos|sin|tan|fmod)f?)\s*\('
+)
+X87_MATH_ALLOWLIST = re.compile(
+    r'\bx87_f(?:cos|sin|mod)\b'
+)
+
+
+def check_x87_math(filepath, content, lines):
+    """Flag C math library calls that compile to wrong x87 instructions.
+
+    clang -mno-sse compiles fmod() to FPREM1 (IEEE remainder) instead of FPREM,
+    and cos()/sin() to library calls instead of inline FCOS/FSIN. Use the x87_*
+    inline asm helpers in random_math.c instead.
+    """
+    errors = []
+    in_block_comment = False
+    for lineno, line in enumerate(lines, 1):
+        stripped = line.lstrip()
+        if in_block_comment:
+            if '*/' in line:
+                in_block_comment = False
+            continue
+        if stripped.startswith('//'):
+            continue
+        if stripped.startswith('/*'):
+            if '*/' not in stripped:
+                in_block_comment = True
+            continue
+        if stripped.startswith('* ') or stripped.startswith('*\t') or stripped == '*\n':
+            continue
+        if X87_MATH_ALLOWLIST.search(line):
+            continue
+        for m in X87_MATH_PATTERN.finditer(line):
+            func = m.group(1)
+            if func.startswith('fmod'):
+                fix = 'compiles to FPREM1 (IEEE remainder) not FPREM — use x87_fmod()'
+            else:
+                fix = 'library call differs from hardware FCOS/FSIN — use x87_fcos_mul()/x87_fsin_mul()'
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            errors.append(
+                f'  {relpath}:{lineno}: {func}() — {fix}'
+            )
+    return errors
+
+
 def check_frame_sizes(filepath, content, lines):
     """Check ported functions where SUB ESP,N is documented in a comment.
 
@@ -707,6 +753,7 @@ def main():
     all_alias_errors = []
     all_frame_errors = []
     all_output_size_errors = []
+    all_x87_math_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -719,6 +766,7 @@ def main():
         all_ptr_float_errors.extend(check_pointer_as_float(fpath, content, lines, params_map))
         all_alias_errors.extend(check_buffer_alias(fpath, content, lines))
         all_output_size_errors.extend(check_callee_output_size(fpath, content, lines))
+        all_x87_math_errors.extend(check_x87_math(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -729,14 +777,15 @@ def main():
             f'duplicate_args: {len(all_duplicate_errors)}, '
             f'pointer_as_float: {len(all_ptr_float_errors)}, '
             f'buffer_alias: {len(all_alias_errors)}, '
-            f'callee_output_size: {len(all_output_size_errors)}'
+            f'callee_output_size: {len(all_output_size_errors)}, '
+            f'x87_math: {len(all_x87_math_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
         total = (len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
                  len(all_alias_errors) + len(all_frame_errors) +
-                 len(all_output_size_errors))
+                 len(all_output_size_errors) + len(all_x87_math_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -804,6 +853,18 @@ def main():
                 file=sys.stderr,
             )
             for e in all_output_size_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_x87_math_errors:
+            print(
+                'WARNING: C math library calls that compile to wrong x87 instructions.\n'
+                'clang -mno-sse compiles fmod() to FPREM1 (IEEE remainder, not C fmod)\n'
+                'and cos()/sin() to library calls (not hardware FCOS/FSIN).\n'
+                'Use the x87_* inline asm helpers instead:\n',
+                file=sys.stderr,
+            )
+            for e in all_x87_math_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
