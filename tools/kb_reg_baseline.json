@@ -1,4 +1,19 @@
 {
+  "0x1194a0": "void datum_initialize(data_t *data@<esi>, void *datum@<edi>);",
+  "0x27a10": {
+    "actor_handle": "eax"
+  },
+  "0x77720": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",
+  "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
+  "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
+  "FUN_000c6130": {
+    "addr": "0xc6130",
+    "args": {
+      "datum_index": "eax",
+      "element_size": "edi",
+      "tag_block": "ebx"
+    }
+  },
   "functions": {
     "0x15bb0": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
@@ -7,6 +22,7 @@
     "0x21590": "void actor_combat_set_fire_timer(int actor_handle @<esi>);",
     "0x21640": "bool actor_combat_evaluate_firing(int actor_handle @<eax>, void *timing_data @<edi>);",
     "0x22010": "int actor_combat_check_fire_target(int actor_handle @<edi>, short mode);",
+    "0x27a10": "int FUN_00027a10(int actor_handle /* @<eax> */);",
     "0x28660": "char FUN_00028660(int actor_handle, short *look_spec @<ebx>, float *direction @<edi>);",
     "0x2bd80": "void FUN_0002bd80(int actor_handle @<ecx>, float *facing, float *vel_out, float *speed_out);",
     "0x36890": "void FUN_00036890(int actor_handle /* @<eax> */, int *position_a /* @<ecx> */, short priority /* @<edx> */, int *position_b /* @<ebx> */, int param5, int param6, int param7, int param8, int param9, char param10);",
@@ -340,17 +356,5 @@
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
-  },
-  "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
-  "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
-  "FUN_000c6130": {
-    "addr": "0xc6130",
-    "args": {
-      "datum_index": "eax",
-      "tag_block": "ebx",
-      "element_size": "edi"
-    }
-  },
-  "0x1194a0": "void datum_initialize(data_t *data@<esi>, void *datum@<edi>);",
-  "0x77720": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);"
+  }
 }
