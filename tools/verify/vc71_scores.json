@@ -409,7 +409,7 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0002a360": {
-      "score": 85.7,
+      "score": 87.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0002a3a0": {
@@ -513,23 +513,35 @@
       "source": "src/halo/ai/actor_perception.c"
     },
     "FUN_00036860": {
-      "score": 96.8,
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00036890": {
+      "score": 82.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036960": {
-      "score": 86.7,
+      "score": 94.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_000369c0": {
-      "score": 94.3,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036a20": {
-      "score": 98.8,
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00036a90": {
+      "score": 89.7,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00036b10": {
+      "score": 76.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036b50": {
-      "score": 88.9,
+      "score": 89.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036bd0": {
@@ -537,55 +549,115 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036c00": {
-      "score": 98.4,
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00036c50": {
+      "score": 93.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036da0": {
-      "score": 95.7,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036dc0": {
-      "score": 88.0,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036e30": {
-      "score": 95.7,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00036e50": {
-      "score": 90.3,
+      "score": 92.9,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00036f20": {
+      "score": 86.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00037240": {
+      "score": 96.6,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_000373b0": {
-      "score": 90.7,
+      "score": 91.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_000374f0": {
-      "score": 87.7,
+      "score": 92.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00037630": {
+      "score": 96.6,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_000377d0": {
-      "score": 94.8,
+      "score": 97.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_000378e0": {
+      "score": 90.2,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_000379f0": {
       "score": 95.5,
       "source": "src/halo/ai/actors.c"
     },
+    "FUN_00037b50": {
+      "score": 95.1,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00037d50": {
+      "score": 95.4,
+      "source": "src/halo/ai/actors.c"
+    },
     "FUN_00038000": {
-      "score": 94.5,
+      "score": 95.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038200": {
       "score": 95.5,
       "source": "src/halo/ai/actors.c"
     },
+    "FUN_00038370": {
+      "score": 61.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00038880": {
+      "score": 95.4,
+      "source": "src/halo/ai/actors.c"
+    },
     "FUN_00038b10": {
-      "score": 93.0,
+      "score": 93.4,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00038c70": {
+      "score": 94.7,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00038da0": {
+      "score": 83.9,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00038e00": {
+      "score": 70.4,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_00039f30": {
+      "score": 94.3,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003a190": {
+      "score": 95.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a3b0": {
       "score": 92.4,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003a480": {
+      "score": 95.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a600": {
@@ -625,103 +697,107 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a810": {
-      "score": 88.4,
+      "score": 90.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a840": {
-      "score": 92.3,
+      "score": 93.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a8a0": {
-      "score": 94.3,
+      "score": 95.3,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003a920": {
+      "score": 95.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a990": {
-      "score": 80.3,
+      "score": 92.6,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003aa60": {
-      "score": 88.0,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003aac0": {
-      "score": 55.3,
+      "score": 55.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003ab80": {
-      "score": 93.3,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003ac20": {
-      "score": 94.8,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003aca0": {
-      "score": 64.3,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003ad80": {
-      "score": 97.9,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003ae60": {
-      "score": 93.4,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b030": {
-      "score": 92.8,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b0b0": {
-      "score": 95.5,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b100": {
-      "score": 88.9,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b120": {
-      "score": 97.4,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b150": {
-      "score": 97.6,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b190": {
-      "score": 90.2,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b240": {
-      "score": 90.9,
-      "source": "src/halo/ai/actors.c"
-    },
-    "FUN_0003b270": {
       "score": 94.2,
       "source": "src/halo/ai/actors.c"
     },
+    "FUN_0003ac20": {
+      "score": 97.9,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003aca0": {
+      "score": 76.9,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003ad80": {
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003ae60": {
+      "score": 95.7,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b030": {
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b0b0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b100": {
+      "score": 92.3,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b120": {
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b150": {
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b190": {
+      "score": 90.9,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b240": {
+      "score": 93.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003b270": {
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
     "FUN_0003b320": {
-      "score": 97.5,
+      "score": 98.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b380": {
-      "score": 87.0,
+      "score": 93.3,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b3c0": {
-      "score": 98.3,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b410": {
-      "score": 97.3,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b5e0": {
-      "score": 98.0,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b630": {
-      "score": 94.0,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b6f0": {
@@ -737,7 +813,7 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b860": {
-      "score": 63.4,
+      "score": 71.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003b900": {
@@ -749,19 +825,19 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003ba00": {
-      "score": 82.4,
+      "score": 84.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003baa0": {
-      "score": 98.9,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003bb50": {
-      "score": 80.0,
+      "score": 80.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003bbf0": {
-      "score": 91.3,
+      "score": 92.3,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003bc90": {
@@ -769,7 +845,7 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003bd50": {
-      "score": 90.9,
+      "score": 91.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003bde0": {
@@ -777,11 +853,11 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003be90": {
-      "score": 76.6,
+      "score": 77.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c0c0": {
-      "score": 81.5,
+      "score": 81.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c1c0": {
@@ -789,35 +865,35 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c260": {
-      "score": 97.6,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c2a0": {
-      "score": 96.3,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c2d0": {
-      "score": 73.5,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c330": {
-      "score": 97.6,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c370": {
-      "score": 96.3,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c3a0": {
-      "score": 97.6,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c3e0": {
-      "score": 95.7,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c410": {
-      "score": 90.0,
+      "score": 90.4,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003c7c0": {
@@ -828,40 +904,48 @@
       "score": 66.3,
       "source": "src/halo/ai/actors.c"
     },
+    "FUN_0003cb50": {
+      "score": 89.2,
+      "source": "src/halo/ai/actors.c"
+    },
     "FUN_0003cbc0": {
-      "score": 98.4,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003cc10": {
-      "score": 91.1,
+      "score": 91.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003cd30": {
-      "score": 75.9,
+      "score": 78.3,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003ce40": {
-      "score": 90.5,
+      "score": 91.2,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003cf10": {
-      "score": 75.2,
+      "score": 75.6,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003cff0": {
-      "score": 91.7,
+      "score": 92.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003d330": {
-      "score": 99.1,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003d3d0": {
-      "score": 98.4,
+      "score": 100.0,
+      "source": "src/halo/ai/actors.c"
+    },
+    "FUN_0003d430": {
+      "score": 87.3,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003d5f0": {
-      "score": 76.2,
+      "score": 76.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003d6c0": {
@@ -869,31 +953,31 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003d950": {
-      "score": 98.4,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003d9f0": {
-      "score": 81.6,
+      "score": 81.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003dc20": {
-      "score": 78.3,
+      "score": 80.3,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003e7a0": {
-      "score": 76.7,
+      "score": 78.6,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003eab0": {
-      "score": 92.5,
+      "score": 92.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003ec80": {
-      "score": 84.2,
+      "score": 86.4,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003edc0": {
-      "score": 80.2,
+      "score": 80.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003f030": {
@@ -7265,7 +7349,7 @@
       "source": "src/halo/ai/actors.c"
     },
     "actors_dispose_from_old_map": {
-      "score": 88.0,
+      "score": 100.0,
       "source": "src/halo/ai/actors.c"
     },
     "ai_dispose": {
