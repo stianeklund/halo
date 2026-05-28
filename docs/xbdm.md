@@ -683,3 +683,24 @@ xbdm_context_primer:
     - "414 may mean drive/path/security issue rather than command syntax issue."
     - "Xbox 360 dmserv behavior can guide guesses, but never treat it as proof for Original Xbox."
     - "Maintain separate notes for xemu, real debug kit, and retail+modchip behavior."
+
+  helper_scripts:
+    xdbm_screenshot:
+      path: "tools/xbox/xdbm_screenshot.py"
+      summary: "Capture one or more screenshots over XBDM as raw framebuffer dumps or PNGs."
+      defaults:
+        host: "127.0.0.1"
+        images: 1
+        output_dir: "xbdm/screenshots"
+      examples:
+        - "rtk python3 tools/xbox/xdbm_screenshot.py"
+        - "rtk python3 tools/xbox/xdbm_screenshot.py --png"
+        - "rtk python3 tools/xbox/xdbm_screenshot.py --png --raw"
+        - "rtk python3 tools/xbox/xdbm_screenshot.py --host 192.168.0.10 --images 3 --png"
+        - "rtk python3 tools/xbox/xdbm_screenshot.py --host 192.168.0.10 --count 5 --interval 0.5 --png"
+      notes:
+        - "Use --host to target a specific Xbox or xemu instance reachable over XBDM."
+        - "Use --images or --count to capture a numbered sequence; both flags write into the same count option."
+        - "With no output flags, the tool writes a raw .bin framebuffer dump."
+        - "Add --png to write only a viewable PNG."
+        - "Add --raw alongside --png to save both PNG and raw .bin output."
