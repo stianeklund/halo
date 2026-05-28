@@ -1501,6 +1501,66 @@ skip_flag:
   }
 }
 
+/* FUN_00019b20 (0x19b20)
+ * Set up search-mode look output fields for current actor.
+ * Chooses move-type based on timer elapsed vs threshold (timer/3 min 0x5a).
+ * Sets nav-type based on search stance (actor+0xa4). Sets look-speed=3.
+ * Sets actor+0x454 (sneak flag) from actr tag bit 0x10 and actor+0x268.
+ *
+ * Confirmed: datum_get → tag_get(actr). IMUL 0x55555556 for signed /3.
+ * Confirmed: CMP [ESI+0xa4],0; SETGE for sneak flag.
+ * Confirmed: if (tag[0] & 0x10): check >=5, else check >=6. */
+void FUN_00019b20(int actor_handle)
+{
+  char *actor;
+  char *tag;
+  int timer;
+  int remain;
+  int threshold;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  if (*(char *)(actor + 0x504) != '\0') {
+    *(short *)(actor + 0x3e8) = 3;
+    *(short *)(actor + 0x3ec) = 0;
+  } else {
+    timer = *(int *)(actor + 0xbc);
+    threshold = timer / 3;
+    if (threshold <= 0x5a)
+      threshold = 0x5a;
+    remain = *(int *)(actor + 0xc0);
+    if (timer - remain < threshold) {
+      if (*(short *)(actor + 0xa4) == 0) {
+        *(short *)(actor + 0x3e8) = 3;
+        *(short *)(actor + 0x3ec) = 2;
+      } else if (*(short *)(actor + 0xa4) == 1) {
+        *(short *)(actor + 0x3e8) = 3;
+        *(short *)(actor + 0x3ec) = 3;
+        *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb0);
+        *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb4);
+        *(int *)(actor + 0x3f8) = *(int *)(actor + 0xb8);
+      } else {
+        *(short *)(actor + 0x3e8) = 1;
+      }
+    } else {
+      *(short *)(actor + 0x3e8) = 1;
+    }
+  }
+  *(short *)(actor + 0x3fc) = 3;
+  if (*(short *)(actor + 0xa4) == 0) {
+    if ((*tag & 0x10) != 0) {
+      *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 5);
+    } else {
+      *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 6);
+    }
+  }
+  *(char *)(actor + 0x426) = *(char *)(actor + 0x9f);
+  *(char *)(actor + 0x427) = *(char *)(actor + 0x9f);
+  *(char *)(actor + 0x428) = 0;
+  *(char *)(actor + 0x424) = 0;
+  *(char *)(actor + 0x425) = 1;
+}
+
 /* FUN_00019ac0 (0x19ac0)
  * Mark actor look-state as interrupted (target type 1 path).
  *
