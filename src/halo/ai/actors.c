@@ -7455,3 +7455,85 @@ void FUN_0003cb50(int swarm_handle, int swarm_component_handle, int unit_index)
 
     actor_switch_props(unit_index, swarm_component_handle);
 }
+
+/* actors_handle_unit_effect (0x3e570) — propagate a unit effect (damage/sound)
+ * to nearby encounters. Builds a bitfield of audible BSP clusters, then
+ * iterates encounters checking if they can hear the effect via
+ * actor_audibility_at_point. If audible, finds a prop and dispatches
+ * actor_handle_unit_effect. */
+void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
+{
+  char *unit_obj;
+  char *node;
+  char *scenario;
+  char *prop;
+  int encounter_handle;
+  int prop_handle;
+  float position[3];
+  float sense_block[14];
+  int encounter_iter[5];
+  unsigned int cluster_bits[16];
+  int local_c;
+  short sVar2;
+  int iVar3;
+  int i;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+  encounter_handle = *(int *)(unit_obj + 0x1a8);
+  node = unit_obj + 0x48;
+  if (encounter_handle == -1) {
+    encounter_handle = *(int *)(unit_obj + 0x1a4);
+  }
+  if (*(int *)(unit_obj + 0xcc) != -1) {
+    iVar3 = object_get_root_parent(unit_handle);
+    node = (char *)object_get_and_verify_type(iVar3, -1) + 0x48;
+  }
+  scenario = (char *)scenario_get();
+  csmemset(cluster_bits, 0, ((*(int *)(scenario + 0x134) + 0x1f) >> 5) << 2);
+  if (*(short *)(node + 4) != -1 && *(int *)(scenario + 0x134) > 0) {
+    i = 0;
+    do {
+      iVar3 = (int)(short)i;
+      sVar2 = structure_bsp_cluster_sound_encoding(scenario,
+          *(short *)(node + 4), iVar3);
+      if ((char)sVar2 >= 0) {
+        local_c = (int)(sVar2 & 0x7f);
+        if ((float)local_c * *(float *)0x256148 < *(float *)0x257350) {
+          cluster_bits[iVar3 >> 5] = cluster_bits[iVar3 >> 5] | (1 << (iVar3 & 0x1f));
+        }
+      }
+      i = i + 1;
+      iVar3 = (int)(short)i;
+    } while (iVar3 < *(int *)(scenario + 0x134));
+  }
+  object_get_world_position(unit_handle, (vector3_t *)position);
+  encounter_iterator_next(encounter_iter, 1);
+  iVar3 = FUN_00059b50(encounter_iter);
+  while (iVar3 != 0) {
+    if (*(int *)(encounter_iter + 1) != encounter_handle) {
+      sVar2 = *(short *)(iVar3 + 0x148);
+      if (sVar2 != -1 &&
+          (cluster_bits[(int)sVar2 >> 5] & (1 << ((int)sVar2 & 0x1f))) != 0) {
+        actor_perception_find_sense_position(*(int *)(encounter_iter + 1),
+            position, -1, sense_block);
+        sVar2 = actor_audibility_at_point(*(int *)(encounter_iter + 1),
+            sense_block, position, node, param_3, 1.0f, 0);
+        if (sVar2 >= 2) {
+          prop_handle = FUN_00064b40(*(int *)(encounter_iter + 1),
+              unit_handle, 1, 1);
+          if (prop_handle != -1) {
+            prop = (char *)datum_get(prop_data, prop_handle);
+            sVar2 = actor_audibility_at_point(*(int *)(encounter_iter + 1),
+                sense_block, (float *)(prop + 0xbc), prop + 0xfc, param_3, 1.0f,
+                *(short *)(prop + 0x38));
+            if (sVar2 >= 2) {
+              actor_handle_unit_effect(*(int *)(encounter_iter + 1),
+                  prop_handle, unit_effect);
+            }
+          }
+        }
+      }
+    }
+    iVar3 = FUN_00059b50(encounter_iter);
+  }
+}
