@@ -84,8 +84,16 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
+    "FUN_000142a0": {
+      "score": 94.6,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_00014360": {
       "score": 92.7,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00014460": {
+      "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00014480": {
@@ -154,6 +162,10 @@
     },
     "FUN_000151b0": {
       "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00015250": {
+      "score": 91.9,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00015880": {
@@ -236,8 +248,16 @@
       "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "FUN_000178b0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_000178d0": {
       "score": 39.3,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00017910": {
+      "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00017940": {
@@ -318,6 +338,10 @@
     },
     "FUN_0001aae0": {
       "score": 98.9,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_0001ab70": {
+      "score": 86.8,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0001abd0": {
@@ -508,6 +532,10 @@
       "score": 89.1,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "FUN_0002a330": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_0002a360": {
       "score": 87.5,
       "source": "src/halo/ai/actors.c"
@@ -518,6 +546,14 @@
     },
     "FUN_0002a3d0": {
       "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_0002a3f0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_0002a430": {
+      "score": 90.9,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0002a470": {
@@ -4053,6 +4089,18 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6020": {
+      "score": 100.0,
+      "source": "src/halo/interface/hud_messaging.c"
+    },
+    "FUN_000d7330": {
+      "score": 96.0,
+      "source": "src/halo/interface/hud_messaging.c"
+    },
+    "FUN_000d7420": {
+      "score": 100.0,
+      "source": "src/halo/interface/hud_messaging.c"
+    },
+    "FUN_000d7430": {
       "score": 100.0,
       "source": "src/halo/interface/hud_messaging.c"
     },
