@@ -3140,7 +3140,7 @@
         {
           "addr": "0x14ba0",
           "decl": "void FUN_00014ba0(int actor_handle, int *param_2);",
-          "ported": true
+          "ported": null
         },
         {
           "addr": "0x14c10",
@@ -3226,7 +3226,7 @@
         {
           "addr": "0x15cf0",
           "decl": "void FUN_00015cf0(int actor_handle);",
-          "ported": true
+          "ported": null
         },
         {
           "addr": "0x15eb0",
@@ -3481,7 +3481,7 @@
         {
           "addr": "0x1a600",
           "decl": "void FUN_0001a600(int actor_handle, int *param_2);",
-          "ported": true
+          "ported": null
         },
         {
           "addr": "0x1a670",
@@ -3515,7 +3515,7 @@
         {
           "addr": "0x24ca0",
           "decl": "int FUN_00024ca0(int actor_handle, short param_2);",
-          "ported": true
+          "ported": null
         },
         {
           "addr": "0x24cf0",
