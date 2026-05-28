@@ -2038,7 +2038,7 @@ short FUN_000272d0(int actor_handle, short param_2, short param_3,
   *(short *)(actor + 0x3b8) = -1;
 done:
   if (*(int *)(actor + 0x34) != -1) {
-    encounter_verify_firing_position_owner_actor_indices();
+    encounter_verify_firing_position_owner_actor_indices(*(int *)(actor + 0x34));
   }
   return *(short *)(actor + 0x3b8);
 }
