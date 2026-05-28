@@ -3226,7 +3226,7 @@
         {
           "addr": "0x15cf0",
           "decl": "void FUN_00015cf0(int actor_handle);",
-          "ported": null
+          "ported": true
         },
         {
           "addr": "0x15eb0",
