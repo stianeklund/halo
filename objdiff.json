@@ -5378,7 +5378,7 @@
 		{
 			"name": "halo/FUN_00184b80",
 			"target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-			"base_path": "delinked/functions/00184b80.obj",
+			"base_path": "delinked/functions/0018af90.obj",
 			"metadata": {
 				"source_path": "src/halo/render/render.c"
 			}
@@ -5386,7 +5386,7 @@
 		{
 			"name": "halo/FUN_00184b90",
 			"target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-			"base_path": "delinked/functions/00184b90.obj",
+			"base_path": "delinked/functions/0018afd0.obj",
 			"metadata": {
 				"source_path": "src/halo/render/render.c"
 			}
@@ -5394,7 +5394,7 @@
 		{
 			"name": "halo/FUN_00184ba0",
 			"target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-			"base_path": "delinked/functions/00184ba0.obj",
+			"base_path": "delinked/functions/0018afe0.obj",
 			"metadata": {
 				"source_path": "src/halo/render/render.c"
 			}
@@ -5402,7 +5402,7 @@
 		{
 			"name": "halo/FUN_00184bb0",
 			"target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-			"base_path": "delinked/functions/00184bb0.obj",
+			"base_path": "delinked/functions/0018b000.obj",
 			"metadata": {
 				"source_path": "src/halo/render/render.c"
 			}
