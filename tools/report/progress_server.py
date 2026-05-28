@@ -58,6 +58,42 @@ def _lookup_score_for_function(func, func_scores):
     return None
 
 
+def _function_reference_unit_name(func):
+    address = func.get('address')
+    if not isinstance(address, str):
+        return None
+    try:
+        return f'FUN_{int(address, 0):08x}'
+    except ValueError:
+        return None
+
+
+def _score_function_from_reference_unit(tracker, func):
+    """Fallback to the per-function reference unit for thunked/mis-grouped symbols."""
+    unit_name = _function_reference_unit_name(func)
+    if not unit_name:
+        return None
+
+    config = tracker._get_unit_config(unit_name)
+    if not config:
+        return None
+
+    aliases = tracker._get_unit_symbols(config['base_path'])
+    if not aliases:
+        return None
+
+    result = tracker.check_unit(
+        unit_name,
+        force=True,
+        symbol_aliases={func['name']: aliases},
+    )
+    if not result:
+        return None
+
+    scores = {entry.get('name'): entry.get('match') for entry in result.get('functions', [])}
+    return scores.get(func['name'])
+
+
 class SSEHandler(SimpleHTTPRequestHandler):
     """HTTP handler that also serves an SSE endpoint at /events."""
 
@@ -183,6 +219,8 @@ class SSEHandler(SimpleHTTPRequestHandler):
                 for func in unit.get('functions', []):
                     fname = func.get('name')
                     score = _lookup_score_for_function(func, func_scores)
+                    if score is None and func.get('ported') and fname:
+                        score = _score_function_from_reference_unit(tracker, func)
                     if score is not None:
                         func['match_percent'] = round(score, 2)
                         updated_funcs[fname] = func['match_percent']
