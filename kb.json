@@ -17777,17 +17777,20 @@
         {
           "addr": "0x10a930",
           "decl": "void FUN_0010a930(int16_t type_index@<bx>, void *buffer);",
-          "ported": true
+          "ported": true,
+          "name": "transition_table_fill"
         },
         {
           "addr": "0x10aa60",
           "decl": "void FUN_0010aa60(short type_index, void *buffer);",
-          "ported": true
+          "ported": true,
+          "name": "periodic_table_fill"
         },
         {
           "addr": "0x10ad10",
           "decl": "void periodic_functions_initialize(void);",
-          "ported": true
+          "ported": true,
+          "name": "periodic_functions_initialize"
         },
         {
           "addr": "0x10add0",
@@ -19237,7 +19240,8 @@
         {
           "addr": "0x10a570",
           "decl": "void FUN_0010a570(void);",
-          "ported": true
+          "ported": true,
+          "name": "periodic_functions_dispose"
         },
         {
           "addr": "0x10a5e0",

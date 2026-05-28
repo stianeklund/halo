@@ -1,3 +1,33 @@
+/* x87 helpers matching the original binary's inline instructions.
+ * Library cos()/sin() use different argument reduction and precision.
+ * Library fmod() compiles to FPREM1 (IEEE remainder, rounds quotient to
+ * nearest) instead of FPREM (truncates quotient toward zero). */
+static float x87_fcos_mul(float val, float mul) {
+  float r;
+  __asm__ __volatile__("fmuls %2\n\tfcos" : "=t"(r) : "0"(val), "m"(mul));
+  return r;
+}
+static float x87_fsin_mul(float val, float mul) {
+  float r;
+  __asm__ __volatile__("fmuls %2\n\tfsin" : "=t"(r) : "0"(val), "m"(mul));
+  return r;
+}
+static float x87_fsin_msub(float val, float mul, float sub) {
+  float r;
+  __asm__ __volatile__("fmuls %2\n\tfsubs %3\n\tfsin"
+                       : "=t"(r) : "0"(val), "m"(mul), "m"(sub));
+  return r;
+}
+static float x87_fmod(float val, double divisor) {
+  float r;
+  __asm__ __volatile__("fldl %2\n\tfxch %%st(1)\n\t"
+                       "1: fprem\n\tfnstsw %%ax\n\t"
+                       "testb $4, %%ah\n\tjnz 1b\n\t"
+                       "fstp %%st(1)"
+                       : "=t"(r) : "0"(val), "m"(divisor) : "ax");
+  return r;
+}
+
 /* Fill a 0x400-byte periodic function lookup table for one of 6 types:
  * raw(0), pow_a(1), pow_b(2), pow_c(3), pow_d(4), sine_wave(5).
  * Each sample is scaled by *(float*)0x2602c8 then clamped to [0, 255].
@@ -31,7 +61,8 @@ void FUN_0010a930(int16_t type_index, void *buffer)
       sample = (float)pow((double)phase, *(double *)0x281de8);
       break;
     case 5:
-      sample = (sinf(phase * *(float *)0x256980 - *(float *)0x2568bc) + 1.0f) *
+      sample = (x87_fsin_msub(phase, *(float *)0x256980, *(float *)0x2568bc) +
+                1.0f) *
                *(float *)0x253398;
       break;
     default:
@@ -95,13 +126,13 @@ void FUN_0010aa60(short type_index, void *buffer)
       sample = 0.0f;
       break;
     case 2:
-      sample = (float)cos((double)(phase * *(float *)0x255a54));
+      sample = x87_fcos_mul(phase, *(float *)0x255a54);
       break;
     case 3:
-      sample = (float)cos((double)(phase_var * *(float *)0x255a54));
+      sample = x87_fcos_mul(phase_var, *(float *)0x255a54);
       break;
     case 4:
-      p = (float)fmod((double)phase, *(double *)0x2573d8);
+      p = x87_fmod(phase, *(double *)0x2573d8);
       if (p < *(float *)0x253398)
         sample = p + p;
       else
@@ -109,7 +140,7 @@ void FUN_0010aa60(short type_index, void *buffer)
                  ((p - *(float *)0x253398) + (p - *(float *)0x253398));
       break;
     case 5:
-      p = (float)fmod((double)phase_var, *(double *)0x2573d8);
+      p = x87_fmod(phase_var, *(double *)0x2573d8);
       if (p < *(float *)0x253398)
         sample = p + p;
       else
@@ -117,10 +148,10 @@ void FUN_0010aa60(short type_index, void *buffer)
                  ((p - *(float *)0x253398) + (p - *(float *)0x253398));
       break;
     case 6:
-      sample = (float)fmod((double)phase, *(double *)0x2573d8);
+      sample = x87_fmod(phase, *(double *)0x2573d8);
       break;
     case 7:
-      sample = (float)fmod((double)phase_var, *(double *)0x2573d8);
+      sample = x87_fmod(phase_var, *(double *)0x2573d8);
       break;
     case 8:
       sample =
@@ -128,16 +159,16 @@ void FUN_0010aa60(short type_index, void *buffer)
       break;
     case 9:
     case 10:
-      sample = ((float)cos((double)(phase * *(float *)0x28c8ec)) *
-                  (float)cos((double)(phase * *(float *)0x28c8e8)) +
-                (float)cos((double)(phase * *(float *)0x28c8e4)) *
-                  (float)sin((double)(phase * *(float *)0x2568bc))) *
+      sample = (x87_fcos_mul(phase, *(float *)0x28c8ec) *
+                  x87_fcos_mul(phase, *(float *)0x28c8e8) +
+                x87_fcos_mul(phase, *(float *)0x28c8e4) *
+                  x87_fsin_mul(phase, *(float *)0x2568bc)) *
                  *(float *)0x253398 +
-               (float)sin((double)(phase * *(float *)0x256980)) *
-                 (float)cos((double)(phase * *(float *)0x255a54));
+               x87_fsin_mul(phase, *(float *)0x256980) *
+                 x87_fcos_mul(phase, *(float *)0x255a54);
       break;
     case 11:
-      p = (float)fmod((double)phase_var, *(double *)0x2573d8);
+      p = x87_fmod(phase_var, *(double *)0x2573d8);
       sample = p * p;
       break;
     default:
@@ -208,7 +239,7 @@ void periodic_functions_initialize(void)
     system_exit(-1);
   }
   *(uint8_t *)0x46e39c = 1;
-  *(int *)0x46e3f4 = 0x20f3f660;
+  *get_global_random_seed_address() = 0x20f3f660;
 
   tables = (int *)0x46e3b8;
   for (i = 0; i < 12; i++, tables++) {
