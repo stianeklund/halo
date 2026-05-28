@@ -786,6 +786,85 @@ void actor_clear_guard_state(int actor_handle)
   }
 }
 
+/* FUN_00015cf0 (0x15cf0)
+ * Per-tick guard-state look countdown: decrements guard state counters and
+ * calls FUN_00015bb0 (actor handle in EAX) when the main counter expires.
+ * Also handles fleet-vehicle leave and target-following logic.
+ *
+ * Confirmed: datum_get at 0x15cfd. MOV EAX,EDI / CALL FUN_00015bb0 at 0x15d4b.
+ * Confirmed: CMP/DEC word [ESI+0x9c/0x9e] at 0x15d1d/0x15d7b.
+ * Confirmed: FUN_0003ca40 at 0x15e0c. FUN_0003b380+FUN_00046f10 at 0x15e3a. */
+void FUN_00015cf0(int actor_handle)
+{
+  char *actor;
+  short decval;
+  int uVar3;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if ((*(char *)(actor + 0x13) == '\0') && (*(char *)(actor + 0x484) != '\0') &&
+      (*(short *)(actor + 0x9c) > 0)) {
+    decval = *(short *)(actor + 0x9c) - 1;
+    *(short *)(actor + 0x9c) = decval;
+    if ((decval == 0) && (*(char *)(actor + 0x160) == '\0') &&
+        (*(char *)(actor + 6) == '\0')) {
+      if (*(char *)(actor + 0xa1) != '\0') {
+        FUN_00015bb0(actor_handle);
+        *(short *)(actor + 0x1e4) = 0;
+        *(int *)(actor + 0x1e8) = -1;
+        *(char *)(actor + 0xa1) = 0;
+        *(char *)(actor + 0xa3) = 0;
+        *(int *)(actor + 0xd8) = -1;
+      }
+      *(char *)(actor + 0xaa) = 1;
+    }
+  }
+  if ((*(short *)(actor + 0x9e) > 0) &&
+      ((*(char *)(actor + 0xdc) == '\0') || (*(char *)(actor + 0x484) != '\0'))) {
+    decval = *(short *)(actor + 0x9e) - 1;
+    *(short *)(actor + 0x9e) = decval;
+    if (decval == 0) {
+      *(int *)(actor + 0xd8) = -1;
+    }
+  }
+  if ((*(char *)(actor + 0xa0) == '\0') || (*(char *)(actor + 0x484) == '\0')) {
+    return;
+  }
+  if (*(char *)(actor + 0xa6) != '\0') {
+    *(char *)(actor + 0xa6) = (char)(*(short *)(actor + 0x3a8) > 0);
+    if (*(char *)(actor + 0xa6) != '\0') {
+      return;
+    }
+    goto wake;
+  }
+  if (*(short *)(actor + 0xa8) < 1) {
+    return;
+  }
+  decval = *(short *)(actor + 0xa8) - 1;
+  *(short *)(actor + 0xa8) = decval;
+  if (decval != 0) {
+    return;
+  }
+wake:
+  actor_set_dormant(actor_handle, 0);
+  *(char *)(actor + 0xa4) = 0;
+  *(char *)(actor + 0xa5) = 0;
+  *(char *)(actor + 0xa6) = 0;
+  *(short *)(actor + 0xa8) = 0;
+  if (*(short *)(actor + 0x6e) >= 2 && *(int *)(actor + 0x18) != -1) {
+    uVar3 = actor_target_unit_index(actor_handle);
+    FUN_00046f10(0x23, *(int *)(actor + 0x18), uVar3, -1, -1, -1, 0);
+  }
+  FUN_00024be0(actor_handle, *(short *)(actor + 0xc4), 0);
+  *(short *)(actor + 0x3b8) = -1;
+  *(short *)(actor + 0xc4) = -1;
+  if (*(char *)(actor + 0x160) != '\0') {
+    *(short *)(actor + 0xc0) = 1;
+    return;
+  }
+  *(short *)(actor + 0xc0) = 0;
+  *(char *)(actor + 0xaa) = 1;
+}
+
 /* actor_reset_action_state (0x15eb0)
  * If actor is active (actor+0xa4 != 0) and in state 3, clears the prop flags
  * at a4, a6, a8. If state==3 or (state==1 and not suppressed at 0x160),
