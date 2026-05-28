@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* Camera observer — tracks camera position/orientation per player. */
 
 void observer_initialize(void)
@@ -691,8 +693,8 @@ void observer_compute_update(int16_t local_player_index)
           axis[2] = axis[2] * inv_mag;
 
           if (mag != *(float *)0x2533c0) {
-            float sin_val = sinf(mag);
-            float cos_val = cosf(mag);
+            float sin_val = x87_fsin(mag);
+            float cos_val = x87_fcos(mag);
             rotate_vector3d_by_sincos((float *)result_ptr, axis, sin_val,
                                       cos_val);
             rotate_vector3d_by_sincos((float *)(result_ptr + 0xc), axis,

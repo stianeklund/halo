@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* 0x2a3a0 — Reset actor path/movement state. Clears the path-active flag,
  * sets is_moving to 1, and zeroes the path step counter. */
 void FUN_0002a3a0(int actor_handle)
@@ -360,30 +362,30 @@ void actor_move_get_avoidance_direction(void)
 
   for (i = 0; i < 9; i++) {
     angle = angle_table_9[i];
-    sin_angle = sinf(angle);
-    cos_angle = cosf(angle);
+    sin_angle = x87_fsin(angle);
+    cos_angle = x87_fcos(angle);
     scaled_angle = k_angle * scale_table_9[i];
-    sin_scaled = sinf(scaled_angle);
+    sin_scaled = x87_fsin(scaled_angle);
     scaled_len = k_length * length_table_9[i];
 
     table_a[i][0] = k_base;
     table_a[i][1] = 0.0f;
     table_a[i][2] = scaled_len * cos_angle;
     table_a[i][3] = scaled_len * sin_angle;
-    table_a[i][4] = cosf(scaled_len);
+    table_a[i][4] = x87_fcos(scaled_len);
     table_a[i][5] = sin_scaled * scaled_angle;
     table_a[i][6] = sin_scaled * sin_angle;
   }
 
   for (row = 0; row < 2; row++) {
-    sin_outer = sinf(outer_angles[row]);
-    cos_outer = cosf(outer_angles[row]);
+    sin_outer = x87_fsin(outer_angles[row]);
+    cos_outer = x87_fcos(outer_angles[row]);
     row_scale = outer_scales[row];
 
     for (col = 0; col < 8; col++) {
       inner = inner_angles[col];
-      cos_inner = cosf(inner);
-      sin_inner = sinf(inner);
+      cos_inner = x87_fcos(inner);
+      sin_inner = x87_fsin(inner);
       index = row * 8 + col;
 
       basis[index][0] = 0.0f;

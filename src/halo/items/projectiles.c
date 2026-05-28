@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* Clear bit 1 of projectile flags at offset 0x1dc. */
 void projectile_kill_tracer(int projectile_handle)
 {
@@ -640,8 +642,8 @@ void FUN_000f8590(int projectile_handle)
     *(float *)(obj + 0x214) = inv_speed * vx;
     *(float *)(obj + 0x218) = inv_speed * vy;
     *(float *)(obj + 0x21c) = inv_speed * vz;
-    *(float *)(obj + 0x220) = sinf(speed);
-    *(float *)(obj + 0x224) = cosf(speed);
+    *(float *)(obj + 0x220) = x87_fsin(speed);
+    *(float *)(obj + 0x224) = x87_fcos(speed);
   } else {
     *(uint32_t *)(obj + 0x1dc) = flags & ~0x1u;
     *(float *)(obj + 0x220) = 0.0f;
@@ -2352,8 +2354,8 @@ int FUN_000f9c40(int projectile_handle)
         __asm fld steer_turn_rate __asm fcos __asm fstp steer_cos
         __asm fld steer_turn_rate __asm fsin __asm fstp steer_sin
 #else
-        steer_cos = cosf(steer_turn_rate);
-        steer_sin = sinf(steer_turn_rate);
+        steer_cos = x87_fcos(steer_turn_rate);
+        steer_sin = x87_fsin(steer_turn_rate);
 #endif
         rotate_vector3d_by_sincos(pfVel, cross_buf, steer_sin, steer_cos);
       }

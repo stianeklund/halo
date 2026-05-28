@@ -641,6 +641,8 @@ def check_x87_math(filepath, content, lines):
             continue
         if X87_MATH_ALLOWLIST.search(line):
             continue
+        if re.match(r'^(?:float|double)\s+(?:cos|sin|tan|fmod)f?\s*\(', stripped):
+            continue
         for m in X87_MATH_PATTERN.finditer(line):
             func = m.group(1)
             if func.startswith('fmod'):
