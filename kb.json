@@ -3022,7 +3022,8 @@
         },
         {
           "addr": "0x3e570",
-          "decl": "void actors_handle_unit_effect(void);"
+          "decl": "void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x3e7a0",
