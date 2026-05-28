@@ -7054,3 +7054,404 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
   actor_verify_activation(actor_index);
   return actor_index;
 }
+
+/*
+ * FUN_00038370 (0x38370) — flood actor crouch evaluation.
+ * Source: c:\halo\SOURCE\ai\actor_type_flood.c
+ *
+ * Decides whether a flood combat-form actor should crouch or stand.
+ *
+ * On first call (actor+0x362 == 0): uses the actv tag's base probability,
+ * adjusted by ally crouch/stand counts, compares against a random roll,
+ * and sets should_crouch (actor+0x363) accordingly.
+ *
+ * On subsequent calls (actor+0x362 != 0): manages a switching timer
+ * (actor+0x366) and a change timer (actor+0x364). When both expire and
+ * spatial conditions favour a change (based on dot-product classification
+ * of nearby crouching allies relative to the target direction), the crouch
+ * state is toggled and the change timer is reset via random_real_range,
+ * floored by DAT_00256834, then written to actor+0x364. The switching timer
+ * is reset to 30 (0x1e) ticks.
+ *
+ * Returns: actor+0x363 (should_crouch flag) on the path that updates state;
+ *          1 if the actor is busy or has too little health (early exits);
+ *          0 if ammunition or range conditions are not met.
+ *
+ * Confirmed callers: (none yet identified)
+ */
+char FUN_00038370(int actor_handle)
+{
+    char *actor;
+    char *actv_tag;
+    char *firing_variant;
+    char *prop;
+    char *unit;
+    char *ally_actor;
+    int prop_handle;
+    short switching_timer;
+    short change_timer;
+    char should_crouch;
+    int iter[2]; /* 8-byte iterator state at EBP-0x18 */
+    float vec_result[3]; /* subtract result at EBP-0x24, EBP-0x20, EBP-0x1c */
+    int ahead_count;
+    int behind_count;
+    int lateral_count;
+    float base_prob;
+    int *seed;
+    float timer_f;
+    float dot;
+    int stand_count;
+    int crouching_count;
+    int ally;
+    char bVar10;
+    float fmin;
+    float fmax;
+    float rval;
+
+    actor          = (char *)datum_get(actor_data, actor_handle);
+    actv_tag       = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+    firing_variant = actor_combat_get_firing_variant_definition(actor_handle);
+
+    /* Early exit: actor is busy or in flood-specific suppressed state */
+    if (unit_is_busy(*(int *)(actor + 0x18)) || FUN_0002a3d0(actor_handle)) {
+        *(char *)(actor + 0x362) = 0;
+        return 1;
+    }
+
+    /* Early exit: not enough health ticks */
+    if (*(short *)(actor + 0x6a) < 3) {
+        *(char *)(actor + 0x362) = 0;
+        return 1;
+    }
+
+    /* Early exit: not enough ammo */
+    if (*(short *)(actor + 0x6e) < 5) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+
+    unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+
+    prop_handle = *(int *)(actor + 0x270);
+    if (prop_handle == -1) {
+        prop = 0;
+    } else {
+        prop = (char *)datum_get(prop_data, prop_handle);
+    }
+
+    /* Flood carrier/infection form check: weapon type 0x17 without burst state */
+    if (*(char *)(unit + 0x253) == 0x17 && *(char *)(actor + 0x378) == 0) {
+        *(char *)(actor + 0x362) = 0;
+        return 1;
+    }
+
+    /* Target range checks */
+    if (prop != 0 && *(float *)(firing_variant + 0x74) < *(float *)(prop + 0x11c)) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+    if (*(char *)(actor + 0x378) != 0 && prop != 0 &&
+        *(float *)(firing_variant + 0x16c) < *(float *)(prop + 0x11c)) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+
+    /* Weapon carry-flag check (bit 7 of unit+0xb6) */
+    if (*(char *)(unit + 0xb6) < 0) {
+        *(char *)(actor + 0x362) = 0;
+        return 1;
+    }
+
+    /* Ranged weapon / state / burst checks */
+    if (*(char *)(actor + 0x378) != 0) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+    if (*(short *)(actor + 0x6c) == 10 &&
+        (*(short *)(actor + 0xa0) == 2 || *(short *)(actor + 0xa0) == 3)) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+    if (!actor_has_ranged_weapon(actor_handle)) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+    if (*(char *)(actor + 0x15d) != 0) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+
+    /* actv tag crouch count == 0: skip entirely */
+    if (*(short *)(actv_tag + 0x4c) == 0) {
+        *(char *)(actor + 0x362) = 0;
+        return 0;
+    }
+    /* actv tag crouch count == 1: always reset and return "ok" */
+    if (*(short *)(actv_tag + 0x4c) == 1) {
+        *(char *)(actor + 0x362) = 0;
+        return 1;
+    }
+
+    /* Target max range check */
+    if (prop != 0 && *(float *)(prop + 0x11c) < *(float *)(firing_variant + 0xa0)) {
+        *(char *)(actor + 0x362) = 0;
+        return 1;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* State branch: not yet evaluated vs. already evaluated               */
+    /* ------------------------------------------------------------------ */
+    bVar10 = 0;
+    if (*(char *)(actor + 0x362) == 0) {
+        /* First evaluation: compute probability-adjusted base_prob */
+        base_prob = *(float *)(actv_tag + 0x50);
+
+        if (*(char *)(actor + 0x200) > 0) {
+            /* Count standing vs. crouching allies */
+            stand_count    = 0;
+            crouching_count = 0;
+            FUN_00064540(iter, actor_handle);
+            ally = FUN_00064570(iter);
+            while (ally != 0) {
+                /* Filter: prop type 2 or 3, not dead, not jinking, has actor */
+                if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
+                    *(char *)(ally + 0x60) == 0 && *(char *)(ally + 0x127) == 0 &&
+                    *(int *)(ally + 0x1c) != -1) {
+                    ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
+                    /* Same team (short at +0x4 matches) and sufficient ammo */
+                    if (*(short *)(ally_actor + 4) == *(short *)(actor + 4) &&
+                        *(short *)(ally_actor + 0x6e) > 4) {
+                        if (*(char *)(ally_actor + 0x358) == 0) {
+                            stand_count++;
+                        } else {
+                            crouching_count++;
+                        }
+                    }
+                }
+                ally = FUN_00064570(iter);
+            }
+            /* Adjust probability:
+             * base_prob -= ((-base_prob * stand) +
+             *              (DAT_2533c8 - base_prob) * crouch) * DAT_253398 */
+            base_prob = base_prob -
+                ((-base_prob * (float)stand_count) +
+                 (*(float *)0x002533c8 - base_prob) * (float)crouching_count)
+                * *(float *)0x00253398;
+        }
+
+        /* FCOMP [base_prob]: C0=1 if rval < base_prob → JP not taken → bVar10=1
+         * TEST AH,0x5 (C0|C2); JP fires when C0=0,C2=0 (rval > base_prob)
+         * → should_crouch=1 when random roll < adjusted probability           */
+        seed   = get_global_random_seed_address();
+        rval   = random_math_real((unsigned int *)seed);
+        bVar10 = (rval < base_prob) ? 1 : 0;
+        *(char *)(actor + 0x362) = 1;
+
+    } else {
+        /* Already evaluated: manage switching and change timers.
+         * switching_timer (actor+0x366) counts down before allowing
+         * a new re-evaluation.  change_timer (actor+0x364) counts down
+         * the remaining ticks in the current crouch/stand phase.         */
+        switching_timer = *(short *)(actor + 0x366);
+
+        if (switching_timer > 0) {
+            /* Decrement and fall through to the change_timer section */
+            *(short *)(actor + 0x366) = (short)(switching_timer - 1);
+        } else if ((*(char *)(actv_tag + 0) & 8) != 0 &&
+                   *(char *)(actor + 0x245) > 0) {
+            /* switching_timer == 0 AND ally-scan flag set AND has allies:
+             * reclassify nearby crouching allies to decide whether to toggle */
+            if (*(int *)(actor + 0x270) == -1) {
+                display_assert("actor->target.target_prop_index != NONE",
+                               "c:\\halo\\SOURCE\\ai\\actor_type_flood.c",
+                               0xc9, 1);
+                system_exit(-1);
+            }
+
+            prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+
+            ahead_count   = 0;
+            behind_count  = 0;
+            lateral_count = 0;
+
+            FUN_00064540(iter, actor_handle);
+            ally = FUN_00064570(iter);
+            while (ally != 0) {
+                if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
+                    *(char *)(ally + 0x60) == 0 && *(char *)(ally + 0x127) == 0 &&
+                    *(float *)(ally + 0x11c) < *(float *)0x00254cc0 &&
+                    *(int *)(ally + 0x1c) != -1) {
+                    ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
+                    if (*(char *)(ally_actor + 0x362) != 0) {
+                        FUN_00012140((float *)(actor + 0x12c),
+                                     (float *)(ally_actor + 0x12c),
+                                     vec_result);
+                        dot = vec_result[0] * *(float *)(prop + 0xe0)
+                            + vec_result[1] * *(float *)(prop + 0xe4)
+                            + vec_result[2] * *(float *)(prop + 0xe8);
+                        if (dot > *(float *)0x00256870) {
+                            ahead_count++;
+                        } else if (dot >= *(float *)0x0025686c) {
+                            lateral_count++;
+                        } else {
+                            behind_count++;
+                        }
+                    }
+                }
+                ally = FUN_00064570(iter);
+            }
+
+            should_crouch = *(char *)(actor + 0x363);
+            if (should_crouch != 0) {
+                /* Currently crouching: stop if no lateral allies and
+                 * more ahead than behind                                 */
+                if (lateral_count == 0 && ahead_count > behind_count) {
+                    bVar10 = 0;
+                    goto update_state;
+                }
+                /* else fall through to keep_timer */
+            } else {
+                /* Currently standing: start crouching if all allies are
+                 * behind/lateral but not ahead                           */
+                if (ahead_count == 0 && lateral_count > behind_count) {
+                    bVar10 = 1;
+                    goto update_state;
+                }
+                /* else fall through to keep_timer */
+            }
+        }
+        /* keep_timer: manage the per-phase change_timer */
+        change_timer = *(short *)(actor + 0x364);
+        if (change_timer <= 0) {
+            display_assert("actor->emotions.crouch_switching_change_timer > 0",
+                           "c:\\halo\\SOURCE\\ai\\actor_type_flood.c",
+                           0x100, 1);
+            system_exit(-1);
+        }
+        *(short *)(actor + 0x364) = (short)(change_timer - 1);
+        if (*(short *)(actor + 0x364) != 0) {
+            goto return_current;
+        }
+        /* change_timer expired: toggle crouch state */
+        bVar10 = (*(char *)(actor + 0x363) == 0) ? 1 : 0;
+    }
+
+update_state:
+    *(char *)(actor + 0x363) = bVar10;
+
+    /* Select timer range from actv tag based on new crouch state */
+    if (bVar10 != 0) {
+        /* stand->crouch: use tag+0x54/0x58 range */
+        fmin = *(float *)(actv_tag + 0x54);
+        fmax = *(float *)(actv_tag + 0x58);
+    } else {
+        /* crouch->stand: use tag+0x5c/0x60 range */
+        fmin = *(float *)(actv_tag + 0x5c);
+        fmax = *(float *)(actv_tag + 0x60);
+    }
+
+    seed    = get_global_random_seed_address();
+    timer_f = random_real_range(seed, fmin, fmax);
+    timer_f = timer_f * *(float *)0x00253394;
+
+    /* Floor clamp: timer_f = max(timer_f, DAT_00256834) */
+    if (timer_f < *(float *)0x00256834) {
+        timer_f = *(float *)0x00256834;
+    }
+
+    *(short *)(actor + 0x364) = (short)timer_f;
+    *(short *)(actor + 0x366) = 0x1e;
+
+return_current:
+    return *(char *)(actor + 0x363);
+}
+
+/* 0x36890 — Post a movement directive to an actor's directive fields (actor+0x312..0x348).
+ * Updates the actor's priority and position-pair directive only if the actor state
+ * (actor+0x6a) is below 3 AND the incoming priority is >= the current stored priority.
+ * position_a and position_b may independently be NULL; the corresponding valid flag
+ * byte is cleared when NULL is passed.
+ * Confirmed ABI: actor_handle @<eax>, position_a @<ecx> (float[3] or NULL),
+ *                priority @<edx> (short), position_b @<ebx> (float[3] or NULL),
+ *                plus 6 cdecl stack args.
+ */
+void FUN_00036890(int actor_handle, int *position_a, short priority, int *position_b,
+                  int param5, int param6, int param7, int param8, int param9, char param10)
+{
+    int actor;
+    float *pa;
+    float *pb;
+
+    actor = (int)datum_get(actor_data, actor_handle);
+    if (*(short *)(actor + 0x6a) >= 3) {
+        return;
+    }
+    if (priority < *(short *)(actor + 0x312)) {
+        return;
+    }
+
+    *(short *)(actor + 0x312) = priority;
+
+    pa = (float *)position_a;
+    if (pa == (float *)0) {
+        *(char *)(actor + 0x314) = 0;
+    } else {
+        *(char *)(actor + 0x314) = 1;
+        *(float *)(actor + 0x318) = pa[0];
+        *(float *)(actor + 0x31c) = pa[1];
+        *(float *)(actor + 0x320) = pa[2];
+        *(int *)(actor + 0x324) = param5;
+        *(int *)(actor + 0x328) = param6;
+    }
+
+    pb = (float *)position_b;
+    if (pb == (float *)0) {
+        *(char *)(actor + 0x32c) = 0;
+    } else {
+        *(char *)(actor + 0x32c) = 1;
+        *(float *)(actor + 0x330) = pb[0];
+        *(float *)(actor + 0x334) = pb[1];
+        *(float *)(actor + 0x338) = pb[2];
+    }
+
+    *(int *)(actor + 0x33c) = param7;
+    *(int *)(actor + 0x340) = param8;
+    *(int *)(actor + 0x344) = param9;
+    *(char *)(actor + 0x348) = param10;
+}
+
+/* 0x3cb50 — Register a new unit_index+swarm_component pair into the swarm
+ * record's unit table.
+ * Clears component+0x14 (existing unit reference), appends unit_index to
+ * swarm unit array at swarm+0x18[count] and swarm_component_handle to the
+ * component array at swarm+0x58[count], increments swarm+0x2 (unit_count),
+ * then calls actor_switch_props to link the unit/component.
+ * Asserts unit_count < 16 before insertion.
+ * Confirmed ABI: swarm_handle @<eax>, swarm_component_handle @<edi>,
+ *                unit_index @<ebx>.
+ */
+void FUN_0003cb50(int swarm_handle, int swarm_component_handle, int unit_index)
+{
+    char *swarm;
+    char *component;
+    short count;
+
+    swarm = (char *)datum_get(swarm_data, swarm_handle);
+    component = (char *)datum_get(swarm_component_data, swarm_component_handle);
+    *(int *)(component + 0x14) = -1;
+
+    if (*(short *)(swarm + 0x2) >= 16) {
+        display_assert(
+            "swarm->unit_count < MAXIMUM_NUMBER_OF_UNITS_PER_SWARM",
+            "c:\\halo\\SOURCE\\ai\\actors.c", 0x4dc, 1);
+        system_exit(-1);
+    }
+
+    count = *(short *)(swarm + 0x2);
+    *(int *)(swarm + 0x18 + (int)count * 4) = unit_index;
+    count = *(short *)(swarm + 0x2);
+    *(int *)(swarm + 0x58 + (int)count * 4) = swarm_component_handle;
+    *(short *)(swarm + 0x2) = *(short *)(swarm + 0x2) + 1;
+
+    actor_switch_props(unit_index, swarm_component_handle);
+}

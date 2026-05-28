@@ -195,7 +195,7 @@
     "0xf90d0": "void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3, float *velocity@<eax>, int16_t *col_result@<esi>);",
     "0xfb370": "void *FUN_000fb370(void *weapon_obj@<edi>, int16_t magazine_index@<si>);",
     "0xfb3c0": "bool weapon_has_activity(int weapon_handle @<eax>);",
-    "0xfb6e0": "int weapon_start_effect(int trigger_effect, int param_2, int param_3, int weapon_handle @<eax>);",
+    "0xfb6e0": "int weapon_start_effect(int trigger_effect, float scale, float param_3, int weapon_handle @<eax>);",
     "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
     "0xfc990": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
     "0x102510": "void screenshot_render(void *a1@<edi>);",

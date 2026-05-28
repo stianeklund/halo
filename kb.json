@@ -2407,7 +2407,9 @@
         },
         {
           "addr": "0x36890",
-          "decl": "void FUN_00036890(int actor_handle /* @<eax> */, int *position_a /* @<ecx> */, short priority /* @<edx> */, int *position_b /* @<ebx> */, int param5, int param6, int param7, int param8, int param9, char param10);"
+          "decl": "void FUN_00036890(int actor_handle /* @<eax> */, int *position_a /* @<ecx> */, short priority /* @<edx> */, int *position_b /* @<ebx> */, int param5, int param6, int param7, int param8, int param9, char param10);",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "addr": "0x36960",
@@ -2550,7 +2552,9 @@
         },
         {
           "addr": "0x38370",
-          "decl": "void FUN_00038370(void);"
+          "decl": "char FUN_00038370(int actor_handle);",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "addr": "0x38880",
@@ -2940,7 +2944,9 @@
         },
         {
           "addr": "0x3cb50",
-          "decl": "void FUN_0003cb50(int swarm_handle /* @<eax> */, int swarm_component_handle /* @<edi> */, int unit_index /* @<ebx> */);"
+          "decl": "void FUN_0003cb50(int swarm_handle /* @<eax> */, int swarm_component_handle /* @<edi> */, int unit_index /* @<ebx> */);",
+          "ported": true,
+          "source_path": "halo/ai/actors.c"
         },
         {
           "addr": "0x3cbc0",
