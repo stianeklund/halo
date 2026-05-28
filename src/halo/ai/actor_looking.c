@@ -1939,6 +1939,47 @@ void FUN_0001abd0(int actor_handle)
   *(int *)(actor + 0xe4) = -1;
 }
 
+/* FUN_0001ac00 (0x1ac00)
+ * Set up wander/idle look output block in actor record.
+ * Selects move-type=3/nav=0 if mounted, or move-type=0 only if not. In flee
+ * mode (actor+0xc8 set), sets move-type=4/nav=4 and copies flee target pos.
+ * Clears look-suppression flags; sets look-speed=4.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1ac08.
+ * Confirmed: CMP byte [EAX+0xc8],0; FUN_0002a3d0(actor_handle) for mount check. */
+void FUN_0001ac00(int actor_handle)
+{
+  char *actor;
+  int *src;
+  int *dst;
+  int v;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0xc8) != '\0') {
+    v = 4;
+    *(short *)(actor + 0x3e8) = (short)v;
+    *(short *)(actor + 0x3ec) = (short)v;
+    src = (int *)(actor + 0xd8);
+    dst = (int *)(actor + 0x3f0);
+    *dst = *src;
+    dst[1] = src[1];
+    dst[2] = src[2];
+  } else {
+    if (FUN_0002a3d0(actor_handle) != '\0') {
+      *(short *)(actor + 0x3e8) = 3;
+      *(short *)(actor + 0x3ec) = 0;
+    } else {
+      *(short *)(actor + 0x3e8) = 0;
+    }
+  }
+  *(char *)(actor + 0x454) = 0;
+  *(char *)(actor + 0x426) = 0;
+  *(char *)(actor + 0x427) = 0;
+  *(char *)(actor + 0x428) = 0;
+  *(char *)(actor + 0x424) = 0;
+  *(char *)(actor + 0x425) = 0;
+  *(short *)(actor + 0x3fc) = 4;
+}
+
 /* FUN_000272d0 (0x272d0)
  * Assign a firing position to an actor, evicting any previous occupant.
  *
