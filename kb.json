@@ -3433,7 +3433,7 @@
         {
           "addr": "0x19b20",
           "decl": "void FUN_00019b20(int actor_handle);",
-          "ported": null
+          "ported": true
         },
         {
           "addr": "0x19c70",
