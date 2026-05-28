@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /*
  * FUN_00098970 — consistency check for a doubly-linked decal entry.
  * Verifies that the decal's prev (0x30) and next (0x34) neighbors share the
@@ -1271,8 +1273,8 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
           (*(float *)0x26a810 <= decals_dot3(direction3, normal))) {
         float angle = decals_random_real(0.0f, 6.2831855f);
 
-        rotation_cos = cosf(angle);
-        rotation_sin = sinf(angle);
+        rotation_cos = x87_fcos(angle);
+        rotation_sin = x87_fsin(angle);
         perpendicular3d(normal, tangent);
         decals_cross3(bitangent, normal, tangent);
       } else {
@@ -1641,8 +1643,8 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                   }
 
                   angle = angle_between_normals3d(basis + 7, best_plane) * sign;
-                  sine = sinf(angle);
-                  cosine = cosf(angle);
+                  sine = x87_fsin(angle);
+                  cosine = x87_fcos(angle);
 
                   FUN_001092d0(rotation_matrix, axis, sine, cosine);
 
