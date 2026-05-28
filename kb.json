@@ -20127,7 +20127,8 @@
         },
         {
           "addr": "0x184ea0",
-          "decl": "void FUN_00184ea0(void);"
+          "name": "render_scene",
+          "decl": "void render_scene(int16_t player_index@<ebx>, void *render_cam, void *render_frustum, void *rasterizer_cam, void *rasterizer_frustum, int16_t pass_type, char reflected);"
         }
       ],
       "name": "render.obj",
