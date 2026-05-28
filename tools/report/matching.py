@@ -38,8 +38,11 @@ class MatchingTracker:
     def _load_cache(self) -> dict:
         """Load matching cache from disk."""
         if self.cache_path.exists():
-            with open(self.cache_path) as f:
-                return json.load(f)
+            try:
+                with open(self.cache_path) as f:
+                    return json.load(f)
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"Warning: ignoring invalid matching cache {self.cache_path}: {exc}")
         return {
             'version': '1.0.0',
             'last_updated': None,
