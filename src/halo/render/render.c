@@ -122,18 +122,9 @@ void render_window(int16_t *win, void *offset_or_null)
   int rendered_reflection = 0;
   char reflection_info[28];
   camera_t reflection_cam;
-  /* Keep gameplay frustum buffers sized to the full window-parameter frustum
-   * storage. The scene-render path writes effect metadata in the tail region
-   * (beyond the 0x63 floats built by render_camera_build_frustum). */
-  float render_frustum[127];
-  float rasterizer_frustum[127];
-  float reflection_frustum[127];
-
-  /* Build only initializes the actively used frustum core. Clear full buffers
-   * so any tail fields consumed by scoped/screen-effect code stay deterministic. */
-  csmemset(render_frustum, 0, sizeof(render_frustum));
-  csmemset(rasterizer_frustum, 0, sizeof(rasterizer_frustum));
-  csmemset(reflection_frustum, 0, sizeof(reflection_frustum));
+  float render_frustum[99];
+  float rasterizer_frustum[99];
+  float reflection_frustum[99];
 
   /* initialize render pass for this camera */
   ((void (*)(void *))0x1965f0)(render_cam);
@@ -261,31 +252,8 @@ void render_window(int16_t *win, void *offset_or_null)
       ((void (*)(int))0x17c960)(0);
       *(int *)0x506784 = (int)*(int16_t *)(reflection_info + 0x18);
 
-      /* render_scene at 0x184ea0 reads EBX as the player index.
-       * For reflection: player = -1 (NONE).
-       * Args are packed in an array and pushed via a register pointer
-       * to avoid ESP-relative addressing corruption from pushes. */
-      {
-        int _ebx = -1;
-        void *a[6] = { (void *)&reflection_cam,
-                       (void *)reflection_frustum,
-                       (void *)&reflection_cam,
-                       (void *)reflection_frustum,
-                       (void *)1,
-                       (void *)0 };
-        asm volatile("pushl 20(%[a])\n\t"
-                     "pushl 16(%[a])\n\t"
-                     "pushl 12(%[a])\n\t"
-                     "pushl 8(%[a])\n\t"
-                     "pushl 4(%[a])\n\t"
-                     "pushl (%[a])\n\t"
-                     "movl $0x184ea0, %%eax\n\t"
-                     "call *%%eax\n\t"
-                     "addl $24, %%esp"
-                     : "+b"(_ebx)
-                     : [a] "r"(a)
-                     : "eax", "ecx", "edx", "memory", "cc");
-      }
+      render_scene(-1, &reflection_cam, reflection_frustum,
+                   &reflection_cam, reflection_frustum, 1, 0);
 
       /* restore BSP and switch back to main render target */
       *(int *)0x506784 = saved_bsp;
@@ -295,29 +263,9 @@ void render_window(int16_t *win, void *offset_or_null)
     }
   }
 
-  /* main scene render. EBX = player index from the window struct.
-   * Same args-array approach to avoid ESP-relative corruption. */
-  {
-    int _ebx = (int)*(int16_t *)win;
-    void *a[6] = { (void *)render_cam,
-                   (void *)render_frustum,
-                   (void *)rasterizer_cam,
-                   (void *)rasterizer_frustum,
-                   (void *)0,
-                   (void *)(int)rendered_reflection };
-    asm volatile("pushl 20(%[a])\n\t"
-                 "pushl 16(%[a])\n\t"
-                 "pushl 12(%[a])\n\t"
-                 "pushl 8(%[a])\n\t"
-                 "pushl 4(%[a])\n\t"
-                 "pushl (%[a])\n\t"
-                 "movl $0x184ea0, %%eax\n\t"
-                 "call *%%eax\n\t"
-                 "addl $24, %%esp"
-                 : "+b"(_ebx)
-                 : [a] "r"(a)
-                 : "eax", "ecx", "edx", "memory", "cc");
-  }
+  render_scene(*(int16_t *)win, render_cam, render_frustum,
+               rasterizer_cam, rasterizer_frustum, 0,
+               (char)rendered_reflection);
 }
 
 void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
@@ -327,7 +275,7 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
   float elapsed[2];
   int16_t *win;
   int tick;
-  int offset;
+  int16_t offset[2];
 
   *(int32_t *)0x506540 += 1;
   *(float *)0x50654c = a7;
@@ -345,13 +293,12 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
       render_window_pregame(1, win);
     } else {
       if (a5 != NULL && a4 != NULL) {
-        offset =
-          (int32_t)(*(int16_t *)a4 * *(int16_t *)0x31fa98 + *(int16_t *)a5) |
-          ((int32_t)(((int16_t *)a4)[1] * *(int16_t *)0x31fa98 +
-                     ((int16_t *)a5)[1])
-           << 16);
+        offset[0] = (int16_t)(*(int16_t *)a4 * *(int16_t *)0x31fa98 +
+                              *(int16_t *)a5);
+        offset[1] = (int16_t)(((int16_t *)a4)[1] * *(int16_t *)0x31fa98 +
+                              ((int16_t *)a5)[1]);
       }
-      render_window(win, a5 != NULL ? (void *)&offset : NULL);
+      render_window(win, a5 != NULL ? (void *)offset : NULL);
     }
     win += 0x56;
   }
