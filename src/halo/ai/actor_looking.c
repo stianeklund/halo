@@ -407,10 +407,12 @@ void FUN_00014b70(int actor_handle)
 void FUN_00014ba0(int actor_handle, int *param_2)
 {
   char *actor;
+  char *looking;
   char *src;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(short *)(actor + 0xa8) > 0) {
+  looking = actor + 0x9c;
+  if (*(short *)(looking + 0xc) > 0) {
     src = *(char **)0x2ee6e0;
     *param_2 = *(int *)src;
     param_2[1] = *(int *)(src + 4);
@@ -2378,10 +2380,12 @@ void FUN_0001a5d0(int actor_handle)
 void FUN_0001a600(int actor_handle, int *param_2)
 {
   char *actor;
+  char *looking;
   char *src;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(char *)(actor + 0x9c) != '\0') {
+  looking = actor + 0x9c;
+  if (*looking != '\0') {
     src = *(char **)0x2ee6d8;
     *param_2 = *(int *)src;
     param_2[1] = *(int *)(src + 4);
@@ -2742,18 +2746,18 @@ int FUN_00027a10(int actor_handle)
 {
   char *actor;
   char *tag;
-  short look_type;
+  int look_type;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
-  look_type = *(short *)(actor + 0x3fc);
+  look_type = (int)*(short *)(actor + 0x3fc);
   if (look_type == 2) {
     return (int)(tag + 0xf4);
   }
-  if (look_type > 2 && look_type < 5) {
-    return (int)(tag + 0x10c);
+  if (look_type <= 2 || look_type > 4) {
+    return (int)(tag + 0xdc);
   }
-  return (int)(tag + 0xdc);
+  return (int)(tag + 0x10c);
 }
 
 /* FUN_00027870 (0x27870)
