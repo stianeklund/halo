@@ -464,11 +464,11 @@ char FUN_00014e90(int param_1)
     unit_estimate_position(*(int *)(actor + 0x18), 2, (void *)fp_elem,
                            0, 0, (void *)local_14);
     sVar1 = ai_test_line_of_sight(
-      local_14, *(int *)(fp_elem + 0xe),
-      (float *)(prop + 0x104), *(int *)(prop + 0x100),
+      local_14, (int)*(unsigned short *)(fp_elem + 0xe),
+      (float *)(prop + 0x104), (int)*(unsigned short *)(prop + 0x100),
       1, 0, *(int *)(prop + 0x110),
       *(int *)(actor + 0x158) != -1);
-    if (*(short *)(prop + 0x24) > 1 && *(short *)(prop + 0x24) < 4) {
+    if (*(short *)(prop + 0x24) >= 2 && *(short *)(prop + 0x24) <= 3) {
       local_5 = sVar1 == 0;
     }
     if (sVar1 == 0 || sVar1 == 3) {
@@ -512,7 +512,7 @@ void FUN_00014ff0(int actor_handle, int param_2, int param_3)
  *
  * Confirmed: standard cdecl, 7 stack params.
  * Confirmed: NEG CL; SBB ECX,ECX; AND ECX,0xb4 → condition ? 0xb4 : 0. */
-int FUN_00015040(int actor_handle, short param_2, int param_3,
+char FUN_00015040(int actor_handle, short param_2, int param_3,
                  char param_4, char param_5, char param_6,
                  short *param_7)
 {
@@ -537,7 +537,7 @@ int FUN_00015040(int actor_handle, short param_2, int param_3,
   if (param_3 != -1) {
     actor_situation_try_new_target(actor_handle, param_3);
   }
-  if ((short)param_2 > 8 && (short)param_2 < 0xd) {
+  if ((short)param_2 >= 9 && (short)param_2 <= 0xc) {
     if (random_math_real((unsigned int *)get_global_random_seed_address())
         < *(float *)0x253524) {
       param_7[1] = 0x2d;
@@ -1122,7 +1122,7 @@ void FUN_00015f60(int actor_handle, int *param_2)
  * Confirmed: datum_get(actor_data, actor_handle) → actor.
  * Confirmed: tag_get(0x61637472, actor+0x58) → actor tag.
  * Confirmed: assert path "c:\halo\SOURCE\ai\action_guard.c" at 0xed. */
-int FUN_00016210(int actor_handle, int param_2, short *param_3)
+char FUN_00016210(int actor_handle, int param_2, short *param_3)
 {
   char *actor;
   char *tag;
@@ -1143,7 +1143,7 @@ int FUN_00016210(int actor_handle, int param_2, short *param_3)
     *(char *)(param_3 + 4) = 1;
     param_3[6] = 0;
     *(char *)((char *)param_3 + 9) = 0 < *(short *)(param_2 + 0xc);
-    if (*(short *)(actor + 0x3a8) < 1 || *(char *)((char *)param_3 + 9) != '\0') {
+    if (*(short *)(actor + 0x3a8) <= 0 || *(char *)((char *)param_3 + 9) != '\0') {
       cVar1 = '\0';
     } else {
       cVar1 = '\x01';
@@ -2157,11 +2157,11 @@ void FUN_00019c70(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
   if (*(short *)(actor + 0xa4) == 0) {
-    lo = *(float *)(tag + 0x344);
     hi = *(float *)(tag + 0x348);
+    lo = *(float *)(tag + 0x344);
   } else {
-    lo = *(float *)(tag + 0x34c);
     hi = *(float *)(tag + 0x350);
+    lo = *(float *)(tag + 0x34c);
   }
   ticks = (int)(random_real_range(get_global_random_seed_address(), lo, hi)
                 * *(float *)0x253394);
@@ -2569,7 +2569,7 @@ void FUN_0001ac00(int actor_handle)
  *
  * Confirmed: CMP SI,-1; JZ (short-circuit on NONE).
  * Confirmed: MOVSX EDI,CX; CMP SI,[EDX+EDI*4+0x3ca] loop with CX < 4. */
-int FUN_00024ca0(int actor_handle, short param_2)
+char FUN_00024ca0(int actor_handle, short param_2)
 {
   char *actor;
   short i;
@@ -2665,7 +2665,6 @@ float FUN_000278e0(int actor_handle, int prop_handle)
   float importance;
   float base;
   short combat;
-  char awareness;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   prop = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
@@ -2699,24 +2698,32 @@ float FUN_000278e0(int actor_handle, int prop_handle)
   } else {
     base = *(float *)0x2533c8;
   }
-  awareness = *(char *)(prop + 0x123);
-  if (awareness == 1) {
-    importance = importance + base * *(float *)0x253398;
-  } else if (awareness == 2) {
-    importance = importance + base;
-  } else if (awareness == 3) {
-    importance = importance + base + base;
+  switch (*(char *)(prop + 0x123)) {
+    case 1:
+      importance = importance + base * *(float *)0x253398;
+      break;
+    case 2:
+      importance = importance + base;
+      break;
+    case 3:
+      importance = importance + base + base;
+      break;
+    default:
+      break;
   }
   if (*(char *)(prop + 0x12f) != '\0') {
     importance = importance + base + base;
   }
-  awareness = *(char *)(prop + 0x121);
-  if (awareness == 1) {
-    importance = importance * *(float *)0x253f3c;
-  } else if (awareness == 3) {
-    return importance * *(float *)0x253524;
-  } else if (awareness == 4) {
-    return importance * *(float *)0x2549d4;
+  switch (*(char *)(prop + 0x121)) {
+    case 1:
+      importance = importance * *(float *)0x253f3c;
+      break;
+    case 3:
+      return importance * *(float *)0x253524;
+    case 4:
+      return importance * *(float *)0x2549d4;
+    default:
+      break;
   }
   return importance;
 }
