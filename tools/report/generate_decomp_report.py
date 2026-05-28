@@ -1134,6 +1134,22 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             }
         }
 
+        function fetchJsonFresh(path) {
+            var sep = path.indexOf('?') === -1 ? '?' : '&';
+            return fetch(path + sep + '_ts=' + Date.now(), {cache: 'no-store'})
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                });
+        }
+
+        function hydrateLiveSnapshot() {
+            return Promise.allSettled([
+                fetchJsonFresh('report.json').then(function(data) { REPORT = data; }),
+                fetchJsonFresh('history.json').then(function(data) { HISTORY = data; })
+            ]);
+        }
+
         /* ===== SCORE BUTTON ===== */
         function scoreFunction(btn) {
             var unit = btn.getAttribute('data-unit');
@@ -2078,7 +2094,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         function startPolling() {
             if (pollTimer) return;
             pollTimer = setInterval(function() {
-                fetch('report.json').then(function(r) { return r.json(); }).then(function(data) {
+                fetchJsonFresh('report.json').then(function(data) {
                     REPORT = data;
                     router();
                 }).catch(function() {});
@@ -2174,8 +2190,10 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         }
 
         /* ===== INIT ===== */
-        router();
-        connectSSE();
+        hydrateLiveSnapshot().finally(function() {
+            router();
+            connectSSE();
+        });
     </script>
 </body>
 </html>'''
