@@ -30747,11 +30747,13 @@
         },
         {
           "addr": "0x59990",
-          "decl": "void encounter_iterator_new(void);"
+          "decl": "void encounter_iterator_new(int iter, char param_2);",
+          "ported": true
         },
         {
           "addr": "0x599c0",
-          "decl": "void FUN_000599C0(void);"
+          "decl": "void *FUN_000599c0(int iter);",
+          "ported": true
         },
         {
           "addr": "0x59a00",
