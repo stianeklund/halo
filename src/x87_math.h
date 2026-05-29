@@ -7,42 +7,101 @@
 
 static __inline float x87_fcos(float val) {
   float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fcos
+    fstp DWORD PTR [r]
+  }
+#else
   __asm__ __volatile__("fcos" : "=t"(r) : "0"(val));
+#endif
   return r;
 }
 
 static __inline float x87_fsin(float val) {
   float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fsin
+    fstp DWORD PTR [r]
+  }
+#else
   __asm__ __volatile__("fsin" : "=t"(r) : "0"(val));
+#endif
   return r;
 }
 
 static __inline float x87_fcos_mul(float val, float mul) {
   float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fmul DWORD PTR [mul]
+    fcos
+    fstp DWORD PTR [r]
+  }
+#else
   __asm__ __volatile__("fmuls %2\n\tfcos" : "=t"(r) : "0"(val), "m"(mul));
+#endif
   return r;
 }
 
 static __inline float x87_fsin_mul(float val, float mul) {
   float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fmul DWORD PTR [mul]
+    fsin
+    fstp DWORD PTR [r]
+  }
+#else
   __asm__ __volatile__("fmuls %2\n\tfsin" : "=t"(r) : "0"(val), "m"(mul));
+#endif
   return r;
 }
 
 static __inline float x87_fsin_msub(float val, float mul, float sub) {
   float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fmul DWORD PTR [mul]
+    fsub DWORD PTR [sub]
+    fsin
+    fstp DWORD PTR [r]
+  }
+#else
   __asm__ __volatile__("fmuls %2\n\tfsubs %3\n\tfsin"
                        : "=t"(r) : "0"(val), "m"(mul), "m"(sub));
+#endif
   return r;
 }
 
 static __inline float x87_fmod(float val, double divisor) {
   float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fld QWORD PTR [divisor]
+    fxch st(1)
+x87_fmod_loop:
+    fprem
+    fnstsw ax
+    test ah, 4
+    jnz x87_fmod_loop
+    fstp st(1)
+    fstp DWORD PTR [r]
+  }
+#else
   __asm__ __volatile__("fldl %2\n\tfxch %%st(1)\n\t"
                        "1: fprem\n\tfnstsw %%ax\n\t"
                        "testb $4, %%ah\n\tjnz 1b\n\t"
                        "fstp %%st(1)"
                        : "=t"(r) : "0"(val), "m"(divisor) : "ax");
+#endif
   return r;
 }
 

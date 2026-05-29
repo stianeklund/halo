@@ -6622,6 +6622,14 @@
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
+    },
+    {
+      "name": "halo/game_engine_game_engine_player_killed",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game_engine.c.obj",
+      "base_path": "delinked/game_engine_game_engine_player_killed.obj",
+      "metadata": {
+        "source_path": "src/halo/game/game_engine.c"
+      }
     }
   ]
 }

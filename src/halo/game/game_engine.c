@@ -2611,7 +2611,9 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
   char *dead_player;
   char *killer_player;
   void (*vtable_fn)(int, int, int, int);
-  int is_pvp;
+  char same_player;
+  char both_valid;
+  char is_pvp;
   int penalty;
   int respawn_ticks;
   int kill_event_type;
@@ -2637,13 +2639,17 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
   if (vtable_fn)
     vtable_fn(killer_handle, kill_object_handle, dead_handle, betrayal);
 
-  is_pvp = (killer_handle != NONE && dead_handle != NONE && !betrayal &&
-            killer_handle != dead_handle);
+  same_player = (killer_handle == dead_handle);
+  if (killer_handle != NONE && dead_handle != NONE)
+    both_valid = 1;
+  else
+    both_valid = 0;
+  is_pvp = (!(char)betrayal && both_valid && !same_player);
 
   *(int *)(dead_player + 0x2c) =
     *(int *)(dead_player + 0x30) + *(int *)0x456b28;
 
-  if (*(int *)0x456b24 >= 1) {
+  if (*(int *)0x456b24 > 0) {
     penalty = *(int *)(dead_player + 0x30) + *(int *)0x456b24;
     *(int *)(dead_player + 0x30) = penalty;
     if (penalty > *(int *)0x456b24 * 5)
@@ -2653,9 +2659,9 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
     if (is_pvp) {
       if (killer_handle != NONE) {
         killer_player = (char *)datum_get(player_data, killer_handle);
-        penalty = (int)(*(int *)(killer_player + 0x30) - *(int *)0x456b24);
+        penalty = *(int *)(killer_player + 0x30) - *(int *)0x456b24;
         *(int *)(killer_player + 0x30) = penalty;
-        *(int *)(killer_player + 0x30) = penalty < 1 ? 0 : penalty;
+        *(int *)(killer_player + 0x30) = penalty <= 0 ? 0 : penalty;
       }
       goto apply_clamp;
     }
@@ -2668,7 +2674,7 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
 
 apply_clamp:
   respawn_ticks = *(int *)(dead_player + 0x2c);
-  if (respawn_ticks < 0x5b)
+  if (respawn_ticks <= 0x5a)
     respawn_ticks = 0x5a;
   *(int *)(dead_player + 0x2c) = respawn_ticks;
 
@@ -2676,8 +2682,10 @@ apply_clamp:
 
   if (*(char *)(dead_player + 0xd1) != 0) {
     data_iterator_new(&iter, player_data);
-    while (data_iterator_next(&iter) != NULL) {
-      game_engine_hud_update_player(iter.datum_handle, dead_handle, 0x1c);
+    if (data_iterator_next(&iter) != NULL) {
+      do {
+        game_engine_hud_update_player(iter.datum_handle, dead_handle, 0x1c);
+      } while (data_iterator_next(&iter) != NULL);
     }
     return;
   }
@@ -2703,7 +2711,7 @@ apply_clamp:
   } else if (killer_handle == dead_handle) {
     kill_event_type = 6;
   } else {
-    kill_event_type = 4 + (betrayal != 0);
+    kill_event_type = 4 + ((char)betrayal != 0);
   }
 
   game_engine_player_event(dead_handle, kill_event_type, killer_handle);
@@ -2714,8 +2722,10 @@ apply_clamp:
       return;
     }
     data_iterator_new(&iter, player_data);
-    while (data_iterator_next(&iter) != NULL) {
-      game_engine_hud_update_player(iter.datum_handle, dead_handle, 0xd);
+    if (data_iterator_next(&iter) != NULL) {
+      do {
+        game_engine_hud_update_player(iter.datum_handle, dead_handle, 0xd);
+      } while (data_iterator_next(&iter) != NULL);
     }
     return;
   }
