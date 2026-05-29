@@ -7932,11 +7932,15 @@
         },
         {
           "addr": "0xa8e80",
-          "decl": "void get_blink_alpha(void);"
+          "decl": "int FUN_000a8e80(int param_1@<ecx>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8ec0",
-          "decl": "void FUN_000a8ec0(void);"
+          "decl": "int FUN_000a8ec0(int param_1@<ecx>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8fb0",
@@ -7949,7 +7953,7 @@
         },
         {
           "addr": "0xa9190",
-          "decl": "void FUN_000a9190(void);"
+          "decl": "char FUN_000a9190(int param_1, int eax_param@<eax>, int edi_param@<edi>);"
         },
         {
           "addr": "0xa9210",
@@ -8417,7 +8421,9 @@
         },
         {
           "addr": "0xacd00",
-          "decl": "void FUN_000acd00(void);"
+          "decl": "void FUN_000acd00(int param_1@<eax>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xacd70",
