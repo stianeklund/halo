@@ -7818,6 +7818,8 @@ find_slot:
     *(int *)(0x456ecc + capture_idx * 4) = param_2; }
   }
 clear_dead:
+  /* Note: game_show_score_you_ally_enemy above uses 0x03 for team mode
+   * and 0x21 for FFA mode, matching the decompile's -(uint)bVar1 & 0xffffffde + 0x21 pattern. */
   i = 0;
   if (0 < num_balls) {
     do {
@@ -7975,5 +7977,30 @@ void FUN_000b00c0(int player_handle)
 }
 
 /* CTF: find player carrying enemy flag (b0100 already above). */
+
+/* Validate netgame flag starting locations for a game type (aa0b0). BX = type. */
+void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_type)
+{
+  int *flag_block;
+  int scenario;
+  int16_t i;
+  int elem;
+  int16_t seq;
+
+  scenario = (int)global_scenario_get();
+  flag_block = (int *)(scenario + 0x378);
+  i = 0;
+  if (0 < *flag_block) {
+    do {
+      elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
+      if (game_type == *(int16_t *)(elem + 0x10)) {
+        seq = *(int16_t *)(elem + 0x12);
+        if (seq < param_1 || param_2 < seq)
+          error(2, (char *)param_3, (int)seq);
+      }
+      i++;
+    } while ((int)i < *flag_block);
+  }
+}
 
 /* Race: per-player validate (b3900 already above). */
