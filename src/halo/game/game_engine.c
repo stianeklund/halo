@@ -4214,6 +4214,72 @@ void game_engine_update_player_always_invis(int param_1)
 
 /* game_show_score_team (0xacf90) — deferred, calls game_engine_hud_update_player with register args */
 
+/* game_engine_remap_weapon (0xa9770) — remap weapon tag index based on game type. */
+int game_engine_remap_weapon(int param_1)
+{
+  int index;
+  int result;
+
+  index = weapon_definition_index_to_list_index(param_1);
+  if (index == 10 || index == 11 || index == -1)
+    return param_1;
+  if (index == 1)
+    index = 7;
+  switch (*(int *)0x456b3c) {
+  case 1:
+    switch (index) {
+    case 3: case 4: case 6: case 7:
+      return list_index_to_weapon_definition_index(5);
+    default:
+      return list_index_to_weapon_definition_index(4);
+    }
+  case 2:
+    switch (index) {
+    case 3: case 4: case 6: case 7:
+      return list_index_to_weapon_definition_index(6);
+    }
+    break;
+  case 3:
+    if (index > 2 && index < 6)
+      return list_index_to_weapon_definition_index(5);
+    return list_index_to_weapon_definition_index(6);
+  case 4:
+    if (index != 4 && index != 9)
+      return list_index_to_weapon_definition_index(9);
+    break;
+  case 5:
+    if (index == 4)
+      break;
+    if (index == 9)
+      return list_index_to_weapon_definition_index(8);
+    break;
+  case 6:
+    return list_index_to_weapon_definition_index(7);
+  case 7:
+    return list_index_to_weapon_definition_index(8);
+  case 8:
+    switch (index) {
+    case 0: case 3: case 4: case 9:
+      return list_index_to_weapon_definition_index(8);
+    }
+    break;
+  case 9:
+    if (index == 3)
+      break;
+    if (index == 5)
+      return list_index_to_weapon_definition_index(4);
+    if (index != 6)
+      break;
+    break;
+  default:
+    break;
+  }
+  result = list_index_to_weapon_definition_index(index);
+  return result;
+}
+
+/* game_show_score_you_ally_enemy (0xacff0) — deferred, calls game_engine_hud_update_player with register args */
+
 /* Find a player whose biped is carrying a flag. */
 int FUN_000b0100(void)
 {
