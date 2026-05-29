@@ -1143,3 +1143,128 @@ char actor_action_handle_done_fleeing(int actor_handle)
   actor_action_change(actor_handle, 6, (int)action_buf);
   return 1;
 }
+
+/* actor_action_handle_combat_failure (0x1f920) — Checks if the actor's current
+ * action (offset 0x6c) is type 10 and handles combat failure based on the
+ * actor's state (offset 0xa0). For states 2/3, if flags at 0xa3 or 0xa4 are
+ * set, or 0xc5 is set, delegates to actor_action_handle_combat_selection.
+ * For states 4/5, checks 0xc5 directly. Returns the result of combat
+ * selection, or 0 if no transition occurred. */
+char actor_action_handle_combat_failure(int actor_handle)
+{
+  char *actor;
+  short sVar2;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x6c) == 10) {
+    sVar2 = *(short *)(actor + 0xa0);
+    if ((sVar2 == 2) || (sVar2 == 3)) {
+      if ((*(char *)(actor + 0xa3) != '\0') || (*(char *)(actor + 0xa4) != '\0'))
+        goto do_combat_selection;
+    }
+    else if ((sVar2 != 4) && (sVar2 != 5)) {
+      return 0;
+    }
+    if (*(char *)(actor + 0xc5) != '\0') {
+    do_combat_selection:
+      return actor_action_handle_combat_selection(actor_handle);
+    }
+  }
+  return 0;
+}
+
+/* actor_action_handle_berserk_transition (0x20470) — Handles berserk state
+ * transition. If the actor's berserk timer (offset 0x310) has reached the
+ * threshold and the actor is not already berserking (0x378), calls
+ * actor_berserk. If the actor's action priority (0x6e) is >= 4 (i.e. > 3),
+ * delegates to combat selection. Always clears the berserk timer. Returns
+ * the result of combat selection, or 0 otherwise. */
+char actor_action_handle_berserk_transition(int actor_handle, short param_2)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x310) < param_2 || *(char *)(actor + 0x378) != '\0') {
+    *(short *)(actor + 0x310) = 0;
+    return 0;
+  }
+  actor_berserk(actor_handle, 1);
+  if (*(short *)(actor + 0x6e) > 3) {
+    *(short *)(actor + 0x310) = 0;
+    return actor_action_handle_combat_selection(actor_handle);
+  }
+  *(short *)(actor + 0x310) = 0;
+  return 0;
+}
+
+/* actor_action_handle_combat_transition (0x204f0) — Handles transition into
+ * combat. If the actor's disposition (0x6a) is below 3 and the combat
+ * transition flag (0x312) is nonzero, sets disposition to 3 and attempts to
+ * build a new action buffer. If successful, changes to action type 6;
+ * otherwise delegates to combat selection. If disposition is already 3 and
+ * action priority (0x6e) is 0, tries to panic. Returns 1 if the transition
+ * was performed, 0 otherwise. */
+char actor_action_handle_combat_transition(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  short action_buf[66];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x6a) < 3 && *(short *)(actor + 0x312) != 0) {
+    *(short *)(actor + 0x6a) = 3;
+    cVar1 = FUN_00016050(actor_handle, action_buf);
+    if (cVar1 != '\0') {
+      actor_action_change(actor_handle, 6, (int)action_buf);
+    }
+    else {
+      actor_action_handle_combat_selection(actor_handle);
+    }
+    *(short *)(actor + 0x312) = 0;
+    return 1;
+  }
+  if (*(short *)(actor + 0x6a) == 3 && *(short *)(actor + 0x6e) == 0) {
+    actor_action_try_to_panic(actor_handle);
+  }
+  return 0;
+}
+
+/* actor_action_handle_grenade_throwing (0x205a0) — Evaluates whether the actor
+ * should throw a grenade. If grenade timer (0x268) < 5, or the actor is in
+ * action 4 with positive count at 0xa8, clears the grenade flag (0x6a0) and
+ * returns 0. Otherwise, checks the actor's tag definition (actv) grenade type
+ * at offset 0x184: type 1 requires action priority >= 5; type 2 requires the
+ * prop flag at 0x14 to be set (or action 4 with nonzero 0xa8). If conditions
+ * pass, calls actor_action_consider_grenade. Finally, if the grenade flag
+ * (0x6a0) is set, calls actor_action_try_to_throw_grenade. */
+char actor_action_handle_grenade_throwing(int actor_handle)
+{
+  char *actor;
+  char *actv_tag;
+  char *prop;
+  char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  result = 0;
+  if (*(short *)(actor + 0x268) < 5 ||
+      (*(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) > 0)) {
+    *(char *)(actor + 0x6a0) = 0;
+    return 0;
+  }
+  prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+  if (*(short *)(actv_tag + 0x184) == 1) {
+    if (*(short *)(actor + 0x6e) >= 5) {
+      result = actor_action_consider_grenade(actor_handle);
+    }
+  } else if (*(short *)(actv_tag + 0x184) == 2) {
+    if (*(char *)(prop + 0x14) != '\0' ||
+        (*(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) != 0)) {
+      result = actor_action_consider_grenade(actor_handle);
+    }
+  }
+  if (*(char *)(actor + 0x6a0) != '\0') {
+    actor_action_try_to_throw_grenade(actor_handle, 0);
+  }
+  return result;
+}
