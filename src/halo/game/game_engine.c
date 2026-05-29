@@ -7458,6 +7458,22 @@ void FUN_000b2e70(int16_t slot_index)
   object_set_automatic_deactivation(handle, 0);
 }
 
+/* CTF: reset flag to its home position (b0990). EDI = weapon_handle. */
+void FUN_000b0990(int weapon_handle)
+{
+  int weapon;
+  int16_t team;
+
+  weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+  team = *(int16_t *)(weapon + 0x68);
+  *(char *)(0x456b90 + team) = 0;
+  *(int *)(0x456b94 + team * 4) = 0;
+  if (*(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4) != 0) {
+    FUN_000ab510(weapon_handle, *(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4));
+    *(uint32_t *)(weapon + 0x1dc) = *(uint32_t *)(weapon + 0x1dc) & 0xffffffbf;
+  }
+}
+
 /* Oddball: validate weapon and assert flag (b2b00 already above). */
 
 /* Accumulate weighted float scores from a tag block into an integer sum.
