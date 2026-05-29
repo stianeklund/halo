@@ -8973,7 +8973,9 @@
         },
         {
           "addr": "0xb2e70",
-          "decl": "void FUN_000b2e70(void);"
+          "decl": "void FUN_000b2e70(int16_t slot_index@<di>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb3020",
