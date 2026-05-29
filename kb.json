@@ -7825,7 +7825,7 @@
         },
         {
           "addr": "0xa84f0",
-          "decl": "void FUN_000a84f0(void);"
+          "decl": "void FUN_000a84f0(int param_1, int param_2, int16_t row_index@<si>);"
         },
         {
           "addr": "0xa8580",
@@ -7859,7 +7859,7 @@
         },
         {
           "addr": "0xa8970",
-          "decl": "void FUN_000a8970(void);"
+          "decl": "void FUN_000a8970(int *scores@<eax>);"
         },
         {
           "addr": "0xa8a20",
@@ -8122,7 +8122,7 @@
         },
         {
           "addr": "0xaa0b0",
-          "decl": "void FUN_000aa0b0(void);"
+          "decl": "void FUN_000aa0b0(int16_t param_1, int param_2, int16_t param_3, int16_t type@<bx>);"
         },
         {
           "addr": "0xaa120",
@@ -8286,7 +8286,7 @@
         },
         {
           "addr": "0xab090",
-          "decl": "void FUN_000ab090(void);"
+          "decl": "void FUN_000ab090(int param_1, char param_2, int row@<eax>, int state@<esi>);"
         },
         {
           "addr": "0xab230",
@@ -8456,7 +8456,7 @@
         },
         {
           "addr": "0xaceb0",
-          "decl": "void FUN_000aceb0(int param_1, int param_2);"
+          "decl": "void FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>);"
         },
         {
           "addr": "0xacef0",
@@ -8528,11 +8528,11 @@
         },
         {
           "addr": "0xadb20",
-          "decl": "void FUN_000adb20(void);"
+          "decl": "float FUN_000adb20(int player_handle@<esi>);"
         },
         {
           "addr": "0xadc40",
-          "decl": "void FUN_000adc40(void);"
+          "decl": "float FUN_000adc40(int player_handle@<eax>);"
         },
         {
           "addr": "0xadcf0",
@@ -8551,11 +8551,11 @@
         },
         {
           "addr": "0xae340",
-          "decl": "void FUN_000ae340(void);"
+          "decl": "int FUN_000ae340(int team@<esi>);"
         },
         {
           "addr": "0xae3c0",
-          "decl": "void FUN_000ae3c0(void);"
+          "decl": "void FUN_000ae3c0(int param_1, int param_2, int16_t si_param@<si>);"
         },
         {
           "addr": "0xae400",
@@ -8740,11 +8740,15 @@
         },
         {
           "addr": "0xb1570",
-          "decl": "void FUN_000b1570(void);"
+          "decl": "char FUN_000b1570(int player_handle@<eax>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb1600",
-          "decl": "void FUN_000b1600(void);"
+          "decl": "void FUN_000b1600(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb1760",
@@ -8889,7 +8893,7 @@
         },
         {
           "addr": "0xb2be0",
-          "decl": "void FUN_000b2be0(void);"
+          "decl": "char FUN_000b2be0(int param_1);"
         },
         {
           "addr": "0xb2c00",
