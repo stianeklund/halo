@@ -8077,11 +8077,11 @@
         },
         {
           "addr": "0xa9af0",
-          "decl": "void FUN_000a9af0(void);"
+          "decl": "wchar_t *game_engine_place_to_string(int param_1);"
         },
         {
           "addr": "0xa9e20",
-          "decl": "void game_engine_get_place(void);"
+          "decl": "int game_engine_get_place(int param_1, int param_2);"
         },
         {
           "addr": "0xa9f90",
@@ -8357,7 +8357,9 @@
         },
         {
           "addr": "0xabb90",
-          "decl": "void team_has_players(void);"
+          "decl": "int FUN_000abb90(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xabc80",
@@ -8622,7 +8624,9 @@
         },
         {
           "addr": "0xb0210",
-          "decl": "void FUN_000b0210(void);"
+          "decl": "int FUN_000b0210(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb04a0",
@@ -8710,7 +8714,9 @@
         },
         {
           "addr": "0xb1940",
-          "decl": "void FUN_000b1940(void);"
+          "decl": "int FUN_000b1940(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb1a60",
@@ -8813,7 +8819,9 @@
         },
         {
           "addr": "0xb2900",
-          "decl": "void FUN_000b2900(void);"
+          "decl": "char FUN_000b2900(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb2b00",
