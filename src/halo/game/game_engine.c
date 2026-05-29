@@ -7424,7 +7424,7 @@ void FUN_000b32e0(int weapon_handle, int weapon_obj)
         *(int *)(weapon_obj + 0xcc) == -1) {
       if ((*(uint8_t *)(weapon_obj + 0x1dc) & 0x40) != 0)
         FUN_000ad140(-1, 0x24);
-      FUN_000b3020();
+      FUN_000b3020(weapon_handle);
     }
   }
 }
@@ -7481,6 +7481,38 @@ void FUN_000b09e0(int player_handle, int weapon_handle)
   if (*(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4) != 0) {
     FUN_000ab510(weapon_handle, *(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4));
     *(uint32_t *)(weapon + 0x1dc) &= 0xffffffbf;
+  }
+}
+
+/* Oddball: update weapon tracking for a player (b3090). EDI = player_handle. */
+void FUN_000b3090(int player_handle)
+{
+  int player;
+  int variant;
+  int biped;
+  int weapon_handle;
+  int weapon;
+  int *slot;
+
+  player = (int)datum_get(player_data, player_handle);
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) >= 1 && *(int *)(variant + 0x5c) <= 2)
+    return;
+  slot = (int *)0x456ecc;
+  do {
+    if (*slot == player_handle)
+      *slot = -1;
+    slot++;
+  } while ((int)slot < 0x456f0c);
+  if (*(int *)(player + 0x34) != -1) {
+    biped = (int)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+    if (*(int16_t *)(biped + 0x2a2) != -1) {
+      weapon_handle = *(int *)(biped + 0x2a8 + *(int16_t *)(biped + 0x2a2) * 4);
+      if (weapon_handle != -1 && weapon_is_flag(weapon_handle)) {
+        weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+        *(int *)(0x456ecc + *(int16_t *)(weapon + 0x68) * 4) = player_handle;
+      }
+    }
   }
 }
 
