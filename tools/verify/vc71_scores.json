@@ -6493,7 +6493,7 @@
       "source": "src/halo/shaders/shaders.c"
     },
     "FUN_001910f0": {
-      "score": 68.0,
+      "score": 69.4,
       "source": "src/halo/shell.c"
     },
     "FUN_00191140": {
@@ -6502,6 +6502,14 @@
     },
     "FUN_00191170": {
       "score": 100.0,
+      "source": "src/halo/shell.c"
+    },
+    "FUN_00191180": {
+      "score": 84.6,
+      "source": "src/halo/shell.c"
+    },
+    "FUN_001911b0": {
+      "score": 95.1,
       "source": "src/halo/shell.c"
     },
     "FUN_00191240": {
