@@ -5673,6 +5673,58 @@ void FUN_000acd00(int param_1)
   }
 }
 
+/* Check whether a player should spawn this tick. */
+char game_engine_should_spawn_player(int param_1)
+{
+  int player;
+  int countdown;
+  int tick;
+  uint32_t tick_masked;
+
+  if (current_game_engine == 0)
+    return 0;
+  player = (int)datum_get(player_data, param_1);
+  if (*(char *)(player + 0xd1) == 1)
+    return 0;
+  if (*(int16_t *)(player + 0xaa) == 0)
+    goto check_tick;
+  if (game_engine_player_is_out_of_lives(param_1))
+    return 0;
+  if (game_engine_is_player_leading(param_1))
+    return 0;
+  if (*(int *)0x5aa730 == 3)
+    return 0;
+  if (*(int *)0x5aa730 == 2)
+    return 0;
+  countdown = *(int *)(player + 0x2c);
+  if (countdown < 1)
+    goto check_tick;
+  if (*(int16_t *)(player + 2) != -1) {
+    if (countdown == 90)
+      game_engine_post_event(0x1d);
+    else if (countdown == 60)
+      game_engine_post_event(0x1d);
+    else if (countdown == 30)
+      game_engine_post_event(0x1d);
+    else if (countdown == 1)
+      game_engine_post_event(0x1f);
+  }
+  countdown = *(int *)(player + 0x2c) - 1;
+  *(int *)(player + 0x2c) = countdown;
+  if (countdown != 0)
+    return countdown == 0;
+check_tick:
+  tick = game_time_get();
+  if (tick < 4)
+    return 1;
+  tick_masked = (uint32_t)game_time_get() & 0x8000001f;
+  if ((int)tick_masked < 0)
+    tick_masked = (tick_masked - 1 | 0xffffffe0) + 1;
+  if (tick_masked != (param_1 & 0x1f))
+    return 0;
+  return 1;
+}
+
 /* Dispatch post-rasterize based on game phase (afdf0 already implemented above). */
 
 /* game_engine_player_event (ad0c0) — broadcast a score event to all players. */

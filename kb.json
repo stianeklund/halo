@@ -7903,7 +7903,9 @@
         },
         {
           "addr": "0xa8c80",
-          "decl": "void game_engine_should_spawn_player(void);"
+          "decl": "char game_engine_should_spawn_player(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8d80",
