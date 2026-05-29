@@ -877,6 +877,44 @@ char FUN_0001d3c0(int actor_handle, short param_2, int param_3, char param_4)
   return 0;
 }
 
+/* actor_action_try_to_enter_vehicle (0x1d420) — Attempt to make the actor
+ * enter a vehicle. Iterates seat indices (from param_6 array, or discovered
+ * via vehicle_scripting_find_available_seats if param_6 is NULL). For each
+ * valid seat index, checks unit_has_animation_to_enter_seat then
+ * FUN_0001b750, and on success calls actor_action_change with action type 9.
+ * Marks the consumed seat as -1 in the seat array.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1d437.
+ * Confirmed: actor+0x18 used as unit_handle for seat check at 0x1d48a.
+ * Confirmed: action type 9 at 0x1d4cf.
+ * Confirmed: seat marked 0xffff at 0x1d4df. */
+char actor_action_try_to_enter_vehicle(int actor_handle, int param_2, int param_3,
+                                       int param_4, int16_t param_5, int16_t *param_6)
+{
+  char *actor;
+  int16_t i;
+  int16_t seat_index;
+  int16_t local_seats[16];
+  short action_buf[66];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (param_6 == NULL) {
+    param_6 = local_seats;
+    param_5 = vehicle_scripting_find_available_seats(param_2, param_3, param_4, local_seats, 0x10);
+  }
+  for (i = 0; i < param_5; i++) {
+    seat_index = param_6[i];
+    if (seat_index != -1 &&
+        unit_has_animation_to_enter_seat(*(int *)(actor + 0x18), param_2, seat_index) != '\0' &&
+        FUN_0001b750(actor_handle, param_2, seat_index, action_buf) != '\0') {
+      actor_action_change(actor_handle, 9, (int)action_buf);
+      param_6[i] = (int16_t)0xffff;
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /* actor_action_name (0x1d5c0) — action_type_get_name
  *
  * Returns the name string for a given action type index from the
