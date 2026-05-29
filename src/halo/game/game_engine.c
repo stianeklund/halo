@@ -2585,25 +2585,46 @@ void game_engine_update(void)
   }
 }
 
+/* Player datum field offsets for respawn/kill tracking */
+#define PLAYER_RESPAWN_TICKS      0x2c  /* active countdown (decremented each tick) */
+#define PLAYER_DEATH_PENALTY      0x30  /* accumulated penalty (grows per death) */
+#define PLAYER_LAST_DEATH_TIME    0x84
+#define PLAYER_KILL_STREAK        0x92
+#define PLAYER_MULTI_KILL_COUNT   0x94
+#define PLAYER_IS_QUITTING        0xd1
+
+/* Game variant respawn fields (copied from game_variant_t at match start) */
+#define VARIANT_PENALTY_INCREMENT (*(int *)0x456b24)
+#define VARIANT_BASE_RESPAWN_TIME (*(int *)0x456b28)
+#define VARIANT_SUICIDE_BONUS     (*(int *)0x456b2c)
+
+/* Respawn floor: 90 ticks = 3 seconds at 30 ticks/sec */
+#define MIN_RESPAWN_TICKS  0x5a
+#define MAX_PENALTY_MULTIPLIER  5
+
+/* Kill event types dispatched to game_engine_player_event */
+#define KILL_EVENT_ENVIRONMENT   1
+#define KILL_EVENT_GUARDIANS     2
+#define KILL_EVENT_VEHICLE       3
+#define KILL_EVENT_NORMAL        4
+#define KILL_EVENT_BETRAYAL      5
+#define KILL_EVENT_SUICIDE       6
+#define KILL_EVENT_DOUBLE_KILL   7
+#define KILL_EVENT_GENERIC       8
+#define KILL_EVENT_TRIPLE_KILL   9
+#define KILL_EVENT_KILLTACULAR  10
+#define KILL_EVENT_KILLING_SPREE 11
+#define KILL_EVENT_RUNNING_RIOT  12
+
+/* HUD update event types */
+#define HUD_EVENT_QUIT_NOTIFY   0x1c
+#define HUD_EVENT_BETRAYAL      0xd
+
 /* game_engine_player_killed (0xaf660)
  *
- * Called when a player dies. Records time of death, notifies the active
- * game engine vtable, computes and clamps the respawn countdown at
- * player+0x2c, then broadcasts the appropriate kill/medal event via
- * game_engine_player_event.
- *
- * killer_handle      - player who made the kill, NONE if environment/suicide
- * kill_object_handle - the killing object handle, NONE if none
- * dead_handle        - the player who died (must not be NONE)
- * betrayal           - non-zero if this is a team-kill/betrayal
- *
- * Respawn timer layout (all in game-ticks, 30/sec):
- *   player+0x2c = active respawn countdown (decremented each tick)
- *   player+0x30 = accumulated penalty counter (grows each death, reset on kill)
- *   0x456b28    = variant base respawn time
- *   0x456b24    = per-death penalty increment (0 = disabled)
- *   0x456b2c    = non-PvP / betrayal bonus ticks
- *   Minimum clamp: 0x5a (90 ticks = 3 seconds) — hardcoded here.
+ * Called when a player dies in multiplayer. Records time of death, notifies
+ * the active game engine vtable, computes the respawn countdown with
+ * penalty accumulation, then broadcasts the appropriate kill/medal event.
  */
 void game_engine_player_killed(int killer_handle, int kill_object_handle,
                                int dead_handle, int betrayal)
@@ -2633,7 +2654,7 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
   if (!current_game_engine)
     return;
 
-  *(int *)(dead_player + 0x84) = game_time_get();
+  *(int *)(dead_player + PLAYER_LAST_DEATH_TIME) = game_time_get();
 
   vtable_fn = ((void (**)(int, int, int, int))current_game_engine)[0x60 / 4];
   if (vtable_fn)
@@ -2646,22 +2667,25 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
     both_valid = 0;
   is_pvp = (!(char)betrayal && both_valid && !same_player);
 
-  *(int *)(dead_player + 0x2c) =
-    *(int *)(dead_player + 0x30) + *(int *)0x456b28;
+  /* Base respawn = accumulated penalty + variant base time */
+  *(int *)(dead_player + PLAYER_RESPAWN_TICKS) =
+    *(int *)(dead_player + PLAYER_DEATH_PENALTY) + VARIANT_BASE_RESPAWN_TIME;
 
-  if (*(int *)0x456b24 > 0) {
-    penalty = *(int *)(dead_player + 0x30) + *(int *)0x456b24;
-    *(int *)(dead_player + 0x30) = penalty;
-    if (penalty > *(int *)0x456b24 * 5)
-      penalty = *(int *)0x456b24 * 5;
-    *(int *)(dead_player + 0x30) = penalty;
+  if (VARIANT_PENALTY_INCREMENT > 0) {
+    /* Increase death penalty, capped at 5x the increment */
+    penalty = *(int *)(dead_player + PLAYER_DEATH_PENALTY) + VARIANT_PENALTY_INCREMENT;
+    *(int *)(dead_player + PLAYER_DEATH_PENALTY) = penalty;
+    if (penalty > VARIANT_PENALTY_INCREMENT * MAX_PENALTY_MULTIPLIER)
+      penalty = VARIANT_PENALTY_INCREMENT * MAX_PENALTY_MULTIPLIER;
+    *(int *)(dead_player + PLAYER_DEATH_PENALTY) = penalty;
 
     if (is_pvp) {
+      /* Reward killer: reduce their death penalty */
       if (killer_handle != NONE) {
         killer_player = (char *)datum_get(player_data, killer_handle);
-        penalty = *(int *)(killer_player + 0x30) - *(int *)0x456b24;
-        *(int *)(killer_player + 0x30) = penalty;
-        *(int *)(killer_player + 0x30) = penalty <= 0 ? 0 : penalty;
+        penalty = *(int *)(killer_player + PLAYER_DEATH_PENALTY) - VARIANT_PENALTY_INCREMENT;
+        *(int *)(killer_player + PLAYER_DEATH_PENALTY) = penalty;
+        *(int *)(killer_player + PLAYER_DEATH_PENALTY) = penalty <= 0 ? 0 : penalty;
       }
       goto apply_clamp;
     }
@@ -2670,90 +2694,100 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
       goto apply_clamp;
   }
 
-  *(int *)(dead_player + 0x2c) += *(int *)0x456b2c;
+  /* Non-PvP / betrayal: add bonus time to respawn */
+  *(int *)(dead_player + PLAYER_RESPAWN_TICKS) += VARIANT_SUICIDE_BONUS;
 
 apply_clamp:
-  respawn_ticks = *(int *)(dead_player + 0x2c);
-  if (respawn_ticks <= 0x5a)
-    respawn_ticks = 0x5a;
-  *(int *)(dead_player + 0x2c) = respawn_ticks;
+  respawn_ticks = *(int *)(dead_player + PLAYER_RESPAWN_TICKS);
+  if (respawn_ticks <= MIN_RESPAWN_TICKS)
+    respawn_ticks = MIN_RESPAWN_TICKS;
+  *(int *)(dead_player + PLAYER_RESPAWN_TICKS) = respawn_ticks;
 
   dead_player = (char *)datum_get(player_data, dead_handle);
 
-  if (*(char *)(dead_player + 0xd1) != 0) {
+  /* Quitting player: notify all players with quit HUD event */
+  if (*(char *)(dead_player + PLAYER_IS_QUITTING) != 0) {
     data_iterator_new(&iter, player_data);
     if (data_iterator_next(&iter) != NULL) {
       do {
-        game_engine_hud_update_player(iter.datum_handle, dead_handle, 0x1c);
+        game_engine_hud_update_player(iter.datum_handle, dead_handle,
+                                      HUD_EVENT_QUIT_NOTIFY);
       } while (data_iterator_next(&iter) != NULL);
     }
     return;
   }
 
+  /* Determine kill event type */
   if (killer_handle == NONE) {
     if (kill_object_handle == NONE) {
-      kill_event_type = 1;
+      kill_event_type = KILL_EVENT_ENVIRONMENT;
     } else {
       obj_data = object_get_and_verify_type(kill_object_handle, 0xffffffff);
       object_try_and_get_and_verify_type(kill_object_handle, 3);
       switch (*(short *)((char *)obj_data + 0x64)) {
       case 0:
-        kill_event_type = 2;
+        kill_event_type = KILL_EVENT_GUARDIANS;
         break;
       case 1:
-        kill_event_type = 3;
+        kill_event_type = KILL_EVENT_VEHICLE;
         break;
       default:
-        kill_event_type = 1;
+        kill_event_type = KILL_EVENT_ENVIRONMENT;
         break;
       }
     }
   } else if (killer_handle == dead_handle) {
-    kill_event_type = 6;
+    kill_event_type = KILL_EVENT_SUICIDE;
   } else {
-    kill_event_type = 4 + ((char)betrayal != 0);
+    kill_event_type = KILL_EVENT_NORMAL + ((char)betrayal != 0);
   }
 
   game_engine_player_event(dead_handle, kill_event_type, killer_handle);
 
-  if (kill_event_type == 5) {
+  /* Betrayal: notify killer or broadcast to all players */
+  if (kill_event_type == KILL_EVENT_BETRAYAL) {
     if (killer_handle != NONE) {
-      game_engine_hud_update_player(killer_handle, dead_handle, 0xd);
+      game_engine_hud_update_player(killer_handle, dead_handle,
+                                    HUD_EVENT_BETRAYAL);
       return;
     }
     data_iterator_new(&iter, player_data);
     if (data_iterator_next(&iter) != NULL) {
       do {
-        game_engine_hud_update_player(iter.datum_handle, dead_handle, 0xd);
+        game_engine_hud_update_player(iter.datum_handle, dead_handle,
+                                      HUD_EVENT_BETRAYAL);
       } while (data_iterator_next(&iter) != NULL);
     }
     return;
   }
 
-  if (kill_event_type != 4)
+  if (kill_event_type != KILL_EVENT_NORMAL)
     return;
 
+  /* Medal cascade for normal PvP kills */
   killer_player = (char *)datum_get(player_data, killer_handle);
-  multi_kill = *(short *)(killer_player + 0x94);
+  multi_kill = *(short *)(killer_player + PLAYER_MULTI_KILL_COUNT);
 
   if (multi_kill > 3) {
-    game_engine_player_event(killer_handle, 10, dead_handle);
+    game_engine_player_event(killer_handle, KILL_EVENT_KILLTACULAR, dead_handle);
     return;
   }
   if (multi_kill == 3) {
-    game_engine_player_event(killer_handle, 9, dead_handle);
+    game_engine_player_event(killer_handle, KILL_EVENT_TRIPLE_KILL, dead_handle);
     return;
   }
   if (multi_kill == 2) {
-    game_engine_player_event(killer_handle, 7, dead_handle);
+    game_engine_player_event(killer_handle, KILL_EVENT_DOUBLE_KILL, dead_handle);
     return;
   }
-  kill_streak = *(short *)(killer_player + 0x92);
+  kill_streak = *(short *)(killer_player + PLAYER_KILL_STREAK);
   if (kill_streak == 5) {
-    game_engine_player_event(killer_handle, 0xb, dead_handle);
+    game_engine_player_event(killer_handle, KILL_EVENT_KILLING_SPREE, dead_handle);
     return;
   }
-  game_engine_player_event(killer_handle, (kill_streak % 5 != 0) ? 8 : 12,
+  game_engine_player_event(killer_handle,
+                           (kill_streak % 5 != 0) ? KILL_EVENT_GENERIC
+                                                  : KILL_EVENT_RUNNING_RIOT,
                            dead_handle);
 }
 
