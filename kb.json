@@ -9015,7 +9015,9 @@
         },
         {
           "addr": "0xb3470",
-          "decl": "void FUN_000b3470(void);"
+          "decl": "void FUN_000b3470(int killer_handle@<ecx>, int param_2, int param_3, int dead_player, char param_5);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb3630",
