@@ -8744,7 +8744,9 @@
         },
         {
           "addr": "0xb0a70",
-          "decl": "void FUN_000b0a70(void);"
+          "decl": "char FUN_000b0a70(int team_index@<eax>, float *position, float radius);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb0ac0",
