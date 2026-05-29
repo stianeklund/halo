@@ -8014,7 +8014,9 @@
         },
         {
           "addr": "0xa9480",
-          "decl": "void game_engine_render_nav_points(void);"
+          "decl": "void game_engine_render_nav_points(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9550",

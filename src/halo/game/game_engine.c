@@ -7160,6 +7160,37 @@ void FUN_000a84f0(int text, int color, int16_t row_index)
   ((void (*)(int16_t *, int, int, int, int))rasterizer_draw_string)((int16_t *)rect, 0, 0, 0, text);
 }
 
+/* Render nav points for the active game engine (a9480). */
+void game_engine_render_nav_points(int param_1)
+{
+  int player;
+  int player_saved;
+  int *flag_ptr;
+  char local_18[12];
+  int local_c;
+
+  if (current_game_engine && *(int *)0x456b1c == 1 &&
+      (int16_t)param_1 != -1) {
+    local_c = local_player_get_player_index(param_1);
+    if (local_c != -1) {
+      player = (int)datum_get(player_data, local_c);
+      if (*(int *)(player + 0x34) != -1) {
+        player_saved = player;
+        unit_get_head_position(*(int *)(player + 0x34), (float *)local_18);
+        flag_ptr = (int *)0x4566f8;
+        do {
+          if (FUN_000a9190(0, (int)((char *)flag_ptr - (char *)0x4566f8) / 0x20, player)) {
+            { int dist = ((int (*)(int, void *, int *, int))FUN_000d6550)(param_1, local_18, flag_ptr, -1);
+            ((void (*)(int, int *, int16_t, int))FUN_000d6660)(param_1, flag_ptr, *(int16_t *)((char *)flag_ptr + 0x1c), dist); }
+          }
+          flag_ptr += 8;
+          player = player_saved;
+        } while ((int)flag_ptr < 0x456af8);
+      }
+    }
+  }
+}
+
 /* CTF: notify flag return to offense/defense teams (aff20 already above). */
 
 /* CTF: per-tick flag status check for score popup (b00c0). ESI = player_handle. */
