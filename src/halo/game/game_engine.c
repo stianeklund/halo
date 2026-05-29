@@ -7738,6 +7738,96 @@ int FUN_000b3120(int param_1)
   return 0;
 }
 
+/* Oddball: handle player death — transfer ball possession (b3470). ECX = killer. */
+void FUN_000b3470(int killer_handle, int param_2, int param_3, int dead_player, char param_5)
+{
+  int variant;
+  int num_balls;
+  int capture_idx;
+  int player;
+  int i;
+  int first_empty;
+
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) < 1 || 2 < *(int *)(variant + 0x5c))
+    return;
+  variant = (int)game_engine_get_variant();
+  num_balls = *(int *)(variant + 0x60);
+  capture_idx = -1;
+  if (dead_player == -1) {
+    display_assert("dead_player_index != NONE",
+                   "c:\\halo\\SOURCE\\game\\game_engine_oddball.c", 0x2f2, 1);
+    system_exit(-1);
+  }
+  if (param_2 == -1 || param_5 != 0)
+    goto clear_dead;
+  player = (int)datum_get(player_data, param_2);
+  if (!FUN_000b2890(dead_player)) {
+    if (!FUN_000b2890(param_2)) {
+      if (FUN_000b28c0())
+        goto score_check;
+    } else {
+      *(int16_t *)(player + 0xc4) = *(int16_t *)(player + 0xc4) + 1;
+      if (!FUN_000b2bc0())
+        goto find_slot;
+      if (game_engine_can_score())
+        goto score_check;
+    }
+score_check:
+    if (1)
+      FUN_000b2740(param_2);
+  } else {
+    *(int16_t *)(player + 0xc2) = *(int16_t *)(player + 0xc2) + 1;
+    variant = (int)game_engine_get_variant();
+    if (*(int *)(variant + 0x5c) == 2) {
+      if (game_engine_can_score())
+        FUN_000b2740(param_2);
+    }
+  }
+find_slot:
+  if (*(int *)(player + 0x34) != -1) {
+    first_empty = -1;
+    i = 0;
+    if (0 < num_balls) {
+      do {
+        if (*(int *)(0x456e8c + i * 4) == 0 && first_empty == -1 &&
+            *(int *)(0x456ecc + i * 4) == -1)
+          first_empty = i;
+        if (*(int *)(0x456ecc + i * 4) == dead_player) {
+          capture_idx = i;
+          break;
+        }
+        i++;
+        capture_idx = first_empty;
+      } while (i < num_balls);
+    }
+    if (!FUN_000b28c0()) {
+      if (capture_idx == -1)
+        goto clear_dead;
+    } else if (capture_idx == -1) {
+      display_assert("!ball_available() || (capture_index != NONE)",
+                     "c:\\halo\\SOURCE\\game\\game_engine_oddball.c", 0x325, 1);
+      system_exit(-1);
+      goto clear_dead;
+    }
+    { char is_team_mode;
+    variant = (int)game_engine_get_variant();
+    is_team_mode = *(int *)(variant + 0x5c) >= 1 && *(int *)(variant + 0x5c) <= 2;
+    game_show_score_you_ally_enemy(param_2,
+        is_team_mode ? 0x03 : 0x21, 0x22, 0x23);
+    *(int *)(0x456ecc + capture_idx * 4) = param_2; }
+  }
+clear_dead:
+  i = 0;
+  if (0 < num_balls) {
+    do {
+      if (*(int *)(0x456ecc + i * 4) == dead_player)
+        *(int *)(0x456ecc + i * 4) = -1;
+      i++;
+    } while (i < num_balls);
+  }
+}
+
 /* Oddball: update weapon tracking for a player (b3090). EDI = player_handle. */
 void FUN_000b3090(int player_handle)
 {
