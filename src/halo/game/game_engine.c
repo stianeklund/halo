@@ -4212,7 +4212,20 @@ void game_engine_update_player_always_invis(int param_1)
   }
 }
 
-/* game_show_score_team (0xacf90) — deferred, calls game_engine_hud_update_player with register args */
+/* Show score to all players on a specific team. */
+void game_show_score_team(int param_1, int param_2)
+{
+  data_iter_t iter;
+  int player;
+
+  data_iterator_new(&iter, player_data);
+  player = (int)data_iterator_next(&iter);
+  while (player != 0) {
+    if (*(int *)(player + 0x20) == param_1 && param_2 != -1)
+      game_engine_hud_update_player(iter.datum_handle, param_2, iter.datum_handle);
+    player = (int)data_iterator_next(&iter);
+  }
+}
 
 /* game_engine_remap_weapon (0xa9770) — remap weapon tag index based on game type. */
 int game_engine_remap_weapon(int param_1)
@@ -4278,7 +4291,37 @@ int game_engine_remap_weapon(int param_1)
   return result;
 }
 
-/* game_show_score_you_ally_enemy (0xacff0) — deferred, calls game_engine_hud_update_player with register args */
+/* Show score messages to you, allies, and enemies. */
+void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int param_4)
+{
+  data_iter_t iter;
+  int player;
+  int msg;
+  int local_player;
+
+  local_player = (int)datum_get(player_data, param_1);
+  if (param_1 == -1) {
+    display_assert("NONE != player_index",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0xa98, 1);
+    system_exit(-1);
+  }
+  data_iterator_new(&iter, player_data);
+  player = (int)data_iterator_next(&iter);
+  while (player != 0) {
+    msg = param_2;
+    if (iter.datum_handle != param_1) {
+      if (!game_allegiance_get_team_is_friendly(
+              *(int16_t *)(local_player + 0x20),
+              *(int16_t *)(player + 0x20)))
+        msg = param_3;
+      else
+        msg = param_4;
+    }
+    if (msg != -1)
+      game_engine_hud_update_player(iter.datum_handle, msg, param_1);
+    player = (int)data_iterator_next(&iter);
+  }
+}
 
 /* Find a player whose biped is carrying a flag. */
 int FUN_000b0100(void)
