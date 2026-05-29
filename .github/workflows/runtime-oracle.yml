@@ -33,6 +33,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Link host assets
+        run: |
+          ln -sfn /mnt/g/dev/halo/halo-patched "$GITHUB_WORKSPACE/halo-patched"
+
       - name: Verify prerequisites
         run: |
           ${{ env.VENV_PYTHON }} -c "print('ok')"
