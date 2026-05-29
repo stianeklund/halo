@@ -117,6 +117,16 @@ const researchPrompt = (t) =>
 
 2. KB LOOKUP: rtk jq '[.. | objects | select(.addr? == "${t.addr}")] | .[0]' kb.json
 
+2b. SOURCE CHECK (run before Ghidra to avoid wasted decompile tokens):
+    addr_no0x=$(printf '%08x' $((16#${t.addr.replace('0x', '')})))
+    rtk rg "^[a-zA-Z_][a-zA-Z0-9_*]+ FUN_\${addr_no0x}\\b" src/ --no-heading -l 2>/dev/null
+    Also check the real name if kb entry has one:
+    rtk rg "^[a-zA-Z_][a-zA-Z0-9_*]+ ${t.name}\\b" src/ --no-heading -l 2>/dev/null
+    If either grep returns a .c file path (i.e., a definition exists in source):
+    → pre_screen="skip_already_in_source"
+    → skip_reason="already implemented: <file>"
+    Return immediately — no Ghidra call needed.
+
 3. DECOMPILE: Ghidra MCP decompile_function at ${t.addr}
 
 4. PRE-SCREEN (return immediately with pre_screen=<reason> if any match):
@@ -520,6 +530,59 @@ ${results.map(r => `| ${r.name} | ${r.addr} | ${r.obj || '-'} | ${r.vc71_score ?
 
 Circuit-breaker objects: ${cbObjs.length ? cbObjs.join(', ') : 'none'}`,
   { label: 'progress-log', phase: 'Report' }
+)
+
+// ── Drift report: surface kb.json entries whose ported flag is stale ──────────
+// Functions implemented in src/ but not yet marked ported=true will be
+// re-selected on the next run. Detect and log them now so they can be fixed
+// before wasting lift attempts.
+await agent(
+  `Scan for kb.json ported-flag drift and report any findings.
+
+Run:
+  python3 - <<'EOF'
+import json, re, sys
+from pathlib import Path
+
+ROOT = Path(".")
+kb = json.loads((ROOT / "kb.json").read_text())
+fn_re = re.compile(r'^[A-Za-z_][A-Za-z0-9_*\\s]+\\bFUN_([0-9a-fA-F]{8})\\s*\\(', re.M)
+
+src_addrs = {}
+for f in (ROOT / "src").rglob("*.c"):
+    try:
+        text = f.read_text(errors="ignore")
+    except OSError:
+        continue
+    for m in fn_re.finditer(text):
+        addr = "0x" + hex(int(m.group(1), 16))[2:]
+        if addr not in src_addrs:
+            lineno = text[:m.start()].count("\\n") + 1
+            src_addrs[addr] = f"{f.relative_to(ROOT)}:{lineno}"
+
+drift = []
+for obj in kb.get("objects", []):
+    for func in obj.get("functions", []):
+        addr = func.get("addr", "")
+        if func.get("ported"):
+            continue
+        loc = src_addrs.get(addr)
+        if loc:
+            drift.append({"addr": addr, "name": func.get("decl",""), "loc": loc,
+                          "ported": func.get("ported")})
+
+if drift:
+    print(f"DRIFT: {len(drift)} function(s) in source but not ported=true in kb.json:")
+    for d in drift:
+        print(f"  {d['addr']}  {d['loc']}  (ported={d['ported']})")
+else:
+    print("No kb.json ported-flag drift detected.")
+EOF
+
+If drift is found, include the list in the goal_progress.md summary under a
+"## Drift warnings" section. These should be fixed (ported set to true) before
+the next mass-lift run to avoid re-lifting already-implemented functions.`,
+  { label: 'drift-check', phase: 'Report' }
 )
 
 return { committed: committed.length, skipped: skipped.length, reverted: reverted.length, infra_blocked: infra.length, circuit_breaker_objects: cbObjs, results }
