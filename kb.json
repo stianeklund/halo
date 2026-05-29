@@ -7957,7 +7957,9 @@
         },
         {
           "addr": "0xa9190",
-          "decl": "char FUN_000a9190(int param_1, int eax_param@<eax>, int edi_param@<edi>);"
+          "decl": "char FUN_000a9190(int param_1, int eax_param@<eax>, int edi_param@<edi>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9210",
@@ -8460,7 +8462,9 @@
         },
         {
           "addr": "0xaceb0",
-          "decl": "void FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>);"
+          "decl": "void FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xacef0",
@@ -9005,7 +9009,9 @@
         },
         {
           "addr": "0xb3c60",
-          "decl": "char FUN_000b3c60(int team@<edi>);"
+          "decl": "char FUN_000b3c60(int team@<edi>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb3cf0",

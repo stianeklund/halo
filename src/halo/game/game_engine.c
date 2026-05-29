@@ -6777,6 +6777,75 @@ float game_engine_get_starting_location_rating(int param_1, int param_2)
   return FUN_000adc40(param_1);
 }
 
+/* Check whether a nav point flag applies to a player. EAX=flag_index, EDI=player_handle. */
+char FUN_000a9190(int param_1, int flag_index, int player_handle)
+{
+  int idx;
+
+  if (current_game_engine == 0)
+    return 0;
+  idx = flag_index * 0x20;
+  if (((void (**)(void))current_game_engine)[0x78 / 4] != NULL) {
+    if (*(char *)(0x456704 + idx) != 0)
+      return ((char (*)(void))((void **)current_game_engine)[0x78 / 4])();
+    return 0;
+  }
+  if (*(char *)(0x456704 + idx) != 0 &&
+      (*(int *)(0x456708 + idx) == -1 || player_handle == *(int *)(0x456708 + idx)) &&
+      (*(int16_t *)(0x45670c + idx) == -1 ||
+       *(int *)(param_1 + 0x20) == (int)*(int16_t *)(0x45670c + idx)) &&
+      (*(int *)(0x456710 + idx) == -1 || player_handle != *(int *)(0x456710 + idx)))
+    return 1;
+  return 0;
+}
+
+/* Dispatch HUD update event with register args. ECX=player, EAX=msg, EBX=extra. */
+void FUN_000aceb0(int player_handle, int message_type, int extra)
+{
+  int player;
+
+  player = (int)datum_get(player_data, player_handle);
+  if (*(int16_t *)(player + 2) == -1)
+    return;
+  if (((char (**)(void))current_game_engine)[0x64 / 4] != NULL) {
+    if (((char (*)(int, int, int, wchar_t *, int))((void **)current_game_engine)[0x64 / 4])(
+            player_handle, message_type, extra, (wchar_t *)((char *)player - 0x804 + 0x808), 0x400))
+      goto display;
+  }
+  if (!game_engine_get_score_hud_text(player_handle, message_type, extra,
+                                       (wchar_t *)((char *)player - 0x804 + 0x808), 0x400))
+    return;
+display:
+  { int16_t screen_index = *(int16_t *)(player + 2);
+  *(int16_t *)((char *)player - 2) = 0;
+  hud_print_message(screen_index, (wchar_t *)((char *)player - 0x804 + 0x808)); }
+}
+
+/* Race: check if a team has won (b3c60). EDI = team_index. */
+char FUN_000b3c60(int team)
+{
+  int variant;
+  int player;
+  data_iter_t iter;
+
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x50) == 0) {
+    data_iterator_new(&iter, player_data);
+    player = (int)data_iterator_next(&iter);
+    while (player != 0) {
+      if (*(int *)(player + 0x20) == team) {
+        variant = (int)game_engine_get_variant();
+        if ((int)*(int16_t *)(player + 0xc2) < *(int *)(variant + 0x40) &&
+            (game_engine_player_is_out_of_lives(iter.datum_handle) ||
+             *(char *)(player + 0xd1) != 0))
+          return 0;
+      }
+      player = (int)data_iterator_next(&iter);
+    }
+  }
+  return 1;
+}
+
 /* Get custom motion sensor positions for a player (a9210). */
 int16_t game_engine_player_get_custom_motion_sensor_positions(
     int param_1, int param_2, int param_3, int16_t param_4)
