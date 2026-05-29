@@ -4075,3 +4075,193 @@ void FUN_000b3860(void)
     } while ((int)i < *flag_block);
   }
 }
+
+/* Look up a weapon's index in the game engine weapon list. */
+int weapon_definition_index_to_list_index(int param_1)
+{
+  int game_globals;
+  int *block;
+  int elem;
+  int i;
+
+  game_globals = (int)game_globals_get();
+  block = (int *)(game_globals + 0x14c);
+  if (*block == 0)
+    elem = 0;
+  else
+    elem = (int)tag_block_get_element(block, 0, 0x10);
+  i = -1;
+  if (0 < *block) {
+    int *p = (int *)(elem + 0xc);
+    i = 0;
+    while (param_1 != *p) {
+      i++;
+      p += 4;
+      if (*block <= i)
+        return -1;
+    }
+  }
+  return i;
+}
+
+/* Remap a vehicle tag index based on the current game type variant. */
+int game_engine_remap_vehicle(int param_1)
+{
+  int game_globals;
+  int block;
+  int elem0;
+  int elem1;
+  int elem2;
+  int variant_type;
+
+  if (current_game_engine == 0)
+    return param_1;
+  game_globals = (int)game_globals_get();
+  block = (int)tag_block_get_element((int *)(game_globals + 0x164), 0, 0xa0);
+  block = block + 0x20;
+  elem0 = (int)tag_block_get_element((int *)block, 0, 0x10);
+  elem1 = (int)tag_block_get_element((int *)block, 1, 0x10);
+  elem2 = (int)tag_block_get_element((int *)block, 2, 0x10);
+  if (param_1 != *(int *)(elem0 + 0xc) &&
+      param_1 != *(int *)(elem1 + 0xc) &&
+      param_1 != *(int *)(elem2 + 0xc))
+    param_1 = -1;
+  variant_type = *(int *)0x456b40;
+  switch (variant_type) {
+  case 1:
+    param_1 = -1;
+    break;
+  case 2:
+    elem0 = (int)tag_block_get_element((int *)block, 0, 0x10);
+    if (*(int *)(elem0 + 0xc) != param_1)
+      param_1 = -1;
+    break;
+  case 3:
+    elem0 = (int)tag_block_get_element((int *)block, 1, 0x10);
+    if (*(int *)(elem0 + 0xc) != param_1)
+      param_1 = -1;
+    break;
+  case 4:
+    elem0 = (int)tag_block_get_element((int *)block, 2, 0x10);
+    if (*(int *)(elem0 + 0xc) != param_1)
+      param_1 = -1;
+    break;
+  }
+  return param_1;
+}
+
+/* Check if a player is holding a flag weapon. */
+int game_engine_player_has_flag(int param_1)
+{
+  int player;
+  int biped;
+  int weapon_handle;
+  int i;
+
+  if (param_1 != -1) {
+    player = (int)datum_get(player_data, param_1);
+    if (*(int *)(player + 0x34) != -1) {
+      biped = (int)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+      i = 0;
+      do {
+        weapon_handle = *(int *)(biped + 0x2a8 + i * 4);
+        if (weapon_handle != -1) {
+          if (weapon_is_flag(weapon_handle))
+            return 1;
+        }
+        i++;
+      } while (i < 4);
+    }
+  }
+  return 0;
+}
+
+/* Format ticks as "MM:SS" time string into a wide-char buffer. */
+void ticks_to_unicode_time_string(int param_1, int param_2, wchar_t *param_3)
+{
+  int minutes;
+  int seconds;
+  wchar_t min_buf[64];
+  wchar_t sec_buf[64];
+
+  minutes = (param_1 / 30) / 60;
+  seconds = (param_1 / 30) % 60;
+  if (minutes == 0)
+    unicode_sprintf(min_buf, 0x40, *(wchar_t **)0x26c120);
+  else
+    unicode_sprintf(min_buf, 0x40, *(wchar_t **)0x26c118, minutes);
+  if (seconds < 10)
+    unicode_sprintf(sec_buf, 0x40, *(wchar_t **)0x26c110, seconds);
+  else
+    unicode_sprintf(sec_buf, 0x40, *(wchar_t **)0x26c118, seconds);
+  unicode_sprintf(param_3, param_2, L"%s:%s", min_buf, sec_buf);
+}
+
+/* Update player invisibility based on game engine flags. */
+void game_engine_update_player_always_invis(int param_1)
+{
+  int player;
+
+  if (current_game_engine &&
+      ((*(uint8_t *)0x456b18 & 0x10) != 0 ||
+       (((char (**)(int, int))current_game_engine)[0x80 / 4] != NULL &&
+        ((char (**)(int, int))current_game_engine)[0x80 / 4](param_1, 1)))) {
+    player = (int)datum_get(player_data, param_1);
+    if (*(int *)(player + 0x34) != -1)
+      player_set_respawn_timer(param_1, 0, 0xf);
+  }
+}
+
+/* game_show_score_team (0xacf90) — deferred, calls game_engine_hud_update_player with register args */
+
+/* Find a player whose biped is carrying a flag. */
+int FUN_000b0100(void)
+{
+  data_iter_t iter;
+  int player;
+
+  data_iterator_new(&iter, player_data);
+  player = (int)data_iterator_next(&iter);
+  while (1) {
+    if (player == 0)
+      return -1;
+    if (*(int *)(player + 0x34) != -1 &&
+        ((char (*)(int))FUN_001ac3b0)(*(int *)(player + 0x34)))
+      break;
+    player = (int)data_iterator_next(&iter);
+  }
+  return iter.datum_handle;
+}
+
+/* Adjust player movement speed based on race position. */
+void FUN_000b3cf0(void)
+{
+  int max_laps;
+  int player;
+  int diff;
+  int variant;
+  char iter[16];
+
+  max_laps = 0;
+  data_iterator_new((data_iter_t *)iter, player_data);
+  player = (int)data_iterator_next((data_iter_t *)iter);
+  while (player != 0) {
+    if (max_laps <= *(int16_t *)(player + 0xc2))
+      max_laps = (int)*(int16_t *)(player + 0xc2);
+    player = (int)data_iterator_next((data_iter_t *)iter);
+  }
+  data_iterator_new((data_iter_t *)iter, player_data);
+  player = (int)data_iterator_next((data_iter_t *)iter);
+  while (player != 0) {
+    *(int *)(player + 0x6c) = 0x3f800000;
+    diff = max_laps - *(int16_t *)(player + 0xc2);
+    variant = (int)game_engine_get_variant();
+    if (*(int *)(variant + 0x4c) == 2)
+      diff = diff / 3;
+    if (diff >= 2)
+      *(int *)(player + 0x6c) = *(int *)0x253f48;
+    else if (diff > 0)
+      *(int *)(player + 0x6c) = *(int *)0x253f38;
+    player = (int)data_iterator_next((data_iter_t *)iter);
+  }
+}
