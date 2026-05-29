@@ -7336,6 +7336,71 @@ char FUN_000b0a70(int team_index, float *position, float radius)
   return 0;
 }
 
+/* Find the best vehicle for a player to enter (ac220). */
+int FUN_000ac220(int param_1)
+{
+  int player;
+  int best;
+  int i;
+  int obj;
+  int biped;
+  int player_idx;
+  float dx;
+  float dy;
+  float dz;
+  int local_c8[32];
+  char local_48[12];
+  char local_3c[12];
+  char local_30[12];
+  char local_24[4];
+  float local_20 = 0;
+  float local_1c = 0;
+  float local_18 = 0;
+  int num_found;
+  float local_10;
+  float local_c;
+
+  player = (int)datum_get(player_data, param_1);
+  best = -1;
+  if (*(int16_t *)(player + 2) != -1) {
+    if (((float (*)(int16_t))player_control_get_autoaim_level)(*(int16_t *)(player + 2)) > 0.0f) {
+      best = ((int (*)(int16_t))player_control_get_target_object_index)(*(int16_t *)(player + 2));
+      if (best != -1)
+        return player_index_from_unit_index(best);
+    }
+  }
+  ((void (*)(int, float *))unit_set_seat_state)(*(int *)(player + 0x34), &local_20);
+  ((void (*)(int16_t, float *))player_control_get_facing_direction)(*(int16_t *)(player + 2), (float *)local_30);
+  num_found = ((int (*)(float *, float *, void *, int *, int, int *))find_objects_from_point_vector)(
+      &local_20, (float *)local_30, FUN_000a85d0, &param_1, 0x20, local_c8);
+  i = 0;
+  if (0 < num_found) {
+    do {
+      obj = local_c8[i];
+      biped = (int)object_get_and_verify_type(obj, 3);
+      dx = *(float *)(biped + 0xc) - local_20;
+      dy = *(float *)(biped + 0x10) - local_1c;
+      dz = *(float *)(biped + 0x14) - local_18;
+      local_c = dy * dy + dx * dx + dz * dz;
+      if ((*(float *)(biped + 0x32c) < 1.0f ||
+           (player_idx = player_index_from_unit_index(obj),
+            *(int *)(player + 0x7c) == player_idx)) &&
+          ((char (*)(int, float *, float *, int, char *, char *, char *, float *))FUN_000a5c60)(
+              local_c8[i], &local_20, (float *)local_30, *(int *)(player + 0x34),
+              local_48, local_3c, local_24, &local_10) &&
+          (local_10 > -*(float *)0x26c228 && local_10 < *(float *)0x26c228) &&
+          local_c < *(float *)0x254f90 &&
+          local_c < *(float *)0x254e00) {
+        best = local_c8[i];
+      }
+      i++;
+    } while (i < num_found);
+    if (best != -1)
+      return player_index_from_unit_index(best);
+  }
+  return best;
+}
+
 /* Accumulate weighted float scores from a tag block into an integer sum.
  * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
  * float score at offset +0x20 from data base. */
