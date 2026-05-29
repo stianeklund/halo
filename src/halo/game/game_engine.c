@@ -5987,3 +5987,127 @@ void game_engine_postspawn_player_update(int param_1)
     }
   }
 }
+
+/* Compute a sortable score key with tie-breaking flags.
+ * EAX = raw score, ESI = player handle. */
+int FUN_000abca0(int score, int player_handle)
+{
+  int player;
+  int result;
+
+  result = 0;
+  if (player_handle == -1) {
+    display_assert("player_index!=NONE",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x29c, 1);
+    system_exit(-1);
+  }
+  player = (int)datum_get(player_data, player_handle);
+  if (score < -1000)
+    score = -1000;
+  if (*(int16_t *)(player + 0xaa) < *(int *)0x456b30)
+    result = 0x40000000;
+  if (*(char *)(player + 0xd1) == 0)
+    result |= 0x20000000;
+  return result | (score + 1000);
+}
+
+/* Populate the statistic buffer with all players, sorted by a given stat type. */
+int FUN_000abd20(int *param_1, int param_2, char param_3)
+{
+  int count;
+  int player;
+  int p;
+  int *entry;
+  char invert;
+  int i;
+  data_iter_t iter;
+
+  count = 0;
+  if (param_2 == 4)
+    invert = param_3 == 0;
+  else
+    invert = param_3;
+  data_iterator_new(&iter, player_data);
+  player = (int)data_iterator_next(&iter);
+  entry = param_1;
+  while (player != 0) {
+    if (count < 0x10) {
+      *entry = iter.datum_handle;
+      count++;
+      entry += 7;
+    } else {
+      display_assert("player_count < MULTIPLAYER_MAXIMUM_PLAYERS",
+                     "c:\\halo\\SOURCE\\game\\game_engine.c", 0x2c7, 1);
+      system_exit(-1);
+    }
+    player = (int)data_iterator_next(&iter);
+  }
+  if (0 < count) {
+    entry = param_1 + 1;
+    i = count;
+    do {
+      p = (int)datum_get(player_data, entry[-1]);
+      switch (param_2) {
+      case 0:
+        entry[1] = 0;
+        if (((void (**)(void))current_game_engine)[0x48 / 4] != NULL) {
+          entry[1] = FUN_000abca0(
+            ((int (*)(int, int))((int *)current_game_engine)[0x48 / 4])(entry[-1], 0),
+            entry[-1]);
+        }
+        entry[2] = (int)*(int16_t *)(p + 0x98);
+        entry[4] = (int)*(int16_t *)(p + 0xa0);
+        entry[3] = (int)*(int16_t *)(p + 0xaa);
+        break;
+      case 1:
+        *entry = 0;
+        if (((void (**)(void))current_game_engine)[0x48 / 4] != NULL) {
+          *entry = FUN_000abca0(
+            ((int (*)(int, int))((int *)current_game_engine)[0x48 / 4])(entry[-1], 0),
+            entry[-1]);
+        }
+        break;
+      case 2:
+        *entry = (int)*(int16_t *)(p + 0x98);
+        break;
+      case 3:
+        *entry = (int)*(int16_t *)(p + 0xa0);
+        break;
+      case 4:
+        *entry = (int)*(int16_t *)(p + 0xaa);
+        break;
+      default:
+        display_assert("!\"unreachable\"",
+                       "c:\\halo\\SOURCE\\game\\game_engine.c", 0x2fc, 1);
+        system_exit(-1);
+      }
+      if (invert)
+        *entry = -*entry;
+      entry += 7;
+      i--;
+    } while (i != 0);
+  }
+  qsort(param_1, count, 0x1c,
+        (param_2 == 0) ? (int (*)(const void*, const void*))FUN_000a8470
+                       : (int (*)(const void*, const void*))sort_statistic_buffer);
+  i = 0;
+  if (0 < count) {
+    entry = param_1 - 4;
+    do {
+      if (i == 0) {
+        entry[10] = i;
+      } else {
+        if (entry[6] != entry[-1] || entry[7] != entry[0] ||
+            entry[8] != entry[1] || entry[9] != entry[2]) {
+          entry[10] = i;
+        } else {
+          entry[3] |= (int)0x80000000;
+          entry[10] = entry[3];
+        }
+      }
+      i++;
+      entry += 7;
+    } while (i < count);
+  }
+  return count;
+}
