@@ -9003,7 +9003,9 @@
         },
         {
           "addr": "0xb3120",
-          "decl": "void FUN_000b3120(void);"
+          "decl": "int FUN_000b3120(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb32e0",
