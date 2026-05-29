@@ -6205,7 +6205,7 @@
         },
         {
           "addr": "0x17ccc0",
-          "decl": "void FUN_0017ccc0(void);",
+          "decl": "void FUN_0017ccc0(int param_1);",
           "ported": true
         },
         {
@@ -6543,7 +6543,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6604,7 +6604,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -18030,10 +18030,6 @@
           "decl": "void FUN_00172520(void);"
         },
         {
-          "addr": "0x172590",
-          "decl": "void FUN_00172590(void);"
-        },
-        {
           "addr": "0x172640",
           "decl": "void FUN_00172640(void);"
         },
@@ -18787,7 +18783,7 @@
         },
         {
           "addr": "0x156710",
-          "decl": "void rasterizer_set_model_skinning(void);"
+          "decl": "void rasterizer_set_model_skinning(void *a1);"
         },
         {
           "addr": "0x156850",
@@ -34696,6 +34692,17 @@
         {
           "addr": "0x8d410",
           "decl": "void FUN_0008d410(void);"
+        }
+      ]
+    },
+    {
+      "name": "rasterizer_xbox_shadows.obj",
+      "source": "rasterizer/xbox/rasterizer_xbox_shadows.c",
+      "functions": [
+        {
+          "addr": "0x172590",
+          "decl": "void FUN_00172590(int param_1);",
+          "ported": true
         }
       ]
     }
