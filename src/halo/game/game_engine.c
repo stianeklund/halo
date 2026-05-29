@@ -6169,3 +6169,67 @@ int FUN_000abfd0(int param_1, int param_2, int param_3)
   }
   return place;
 }
+
+/* Spawn weapon equipment at scenario netgame equipment locations (ad2b0). */
+void FUN_000ad2b0(int param_1, int *param_2, int *param_3)
+{
+  int *flag_block;
+  int scenario;
+  int i;
+  int flag;
+  int variant_type;
+  char local_94[136];
+  int obj_handle;
+  char first;
+  int *equip_ptr;
+  int equip_count;
+
+  scenario = (int)global_scenario_get();
+  flag_block = (int *)(scenario + 0x390);
+  i = 0;
+  if (0 < *flag_block) {
+    while (1) {
+      flag = (int)tag_block_get_element(flag_block, i, 0xcc);
+      variant_type = -1;
+      if (current_game_engine)
+        variant_type = *(int *)(current_game_engine + 4);
+      if (match_game_type(variant_type, 4, (int16_t *)(flag + 4)))
+        break;
+      i++;
+      if (*flag_block <= i)
+        return;
+    }
+    first = 1;
+    equip_ptr = (int *)(flag + 0x48);
+    equip_count = 5;
+    do {
+      if (*equip_ptr != -1) {
+        obj_handle = ((int (*)(void))FUN_000aca70)();
+        object_placement_data_new(local_94, obj_handle, -1);
+        obj_handle = (int)object_new(local_94);
+        if (obj_handle != -1) {
+          int *obj = (int *)object_get_and_verify_type(obj_handle, 0x1c);
+          if (!first) {
+            if (((char (*)(int, int))unit_has_weapon_definition_index)(param_1, *obj)) {
+              object_delete(obj_handle);
+              goto next_equip;
+            }
+          }
+          unit_enter_seat(param_1, obj_handle, first ? 2 : 0);
+          first = 0;
+        }
+      }
+next_equip:
+      equip_ptr += 4;
+      equip_count--;
+    } while (equip_count != 0);
+    if (*(char *)flag & 1) {
+      *param_2 = 0;
+      *param_3 = 0;
+    }
+    if (*(char *)flag & 2) {
+      *param_3 = *param_3 + *param_2;
+      *param_2 = 0;
+    }
+  }
+}
