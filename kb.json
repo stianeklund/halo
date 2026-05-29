@@ -7952,7 +7952,9 @@
         },
         {
           "addr": "0xa8fb0",
-          "decl": "void game_engine_rasterize_message(void);"
+          "decl": "void game_engine_rasterize_message(int text, float alpha);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa90b0",
@@ -26649,7 +26651,7 @@
         },
         {
           "addr": "0x184060",
-          "decl": "void rasterizer_draw_string(void);"
+          "decl": "void rasterizer_draw_string(int16_t *rect, int p2, int p3, int p4, int text);"
         },
         {
           "addr": "0x184260",
