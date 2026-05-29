@@ -2261,6 +2261,38 @@ void *FUN_000599c0(int iter)
   return result;
 }
 
+/* encounter_actor_iterator_prev (0x59a90) — Walk the encounter's actor linked
+ * list backward to find the actor preceding iter[1]. Returns actor datum ptr
+ * or 0 if not found. Updates iter[2] = next handle, iter[1] = prev handle. */
+void *encounter_actor_iterator_prev(int *iter)
+{
+  char *encounter;
+  char *actor;
+  int cur;
+  int prev;
+
+  actor = NULL;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, iter[0]);
+    cur = *(int *)(encounter + 0x14);
+    prev = -1;
+    if (cur != iter[1]) {
+      while (cur != -1) {
+        prev = cur;
+        actor = (char *)datum_get(*(data_t **)0x6325a4, cur);
+        cur = *(int *)(actor + 0x2c);
+        if (cur == iter[1]) break;
+      }
+      if (cur != iter[1]) {
+        return 0;
+      }
+    }
+    iter[2] = cur;
+    iter[1] = prev;
+  }
+  return actor;
+}
+
 /* 0x00059b50 — actor_iterator_next (extended AI actor iterator advance).
  * Returns the next actor record pointer, or NULL when done.  Two-phase:
  *

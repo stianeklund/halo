@@ -30767,7 +30767,8 @@
         },
         {
           "addr": "0x59a90",
-          "decl": "void encounter_actor_iterator_prev(void);"
+          "decl": "void *encounter_actor_iterator_prev(int *iter);",
+          "ported": true
         },
         {
           "addr": "0x59b10",
