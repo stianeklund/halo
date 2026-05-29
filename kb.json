@@ -8538,7 +8538,9 @@
         },
         {
           "addr": "0xadcf0",
-          "decl": "float game_engine_get_starting_location_rating(int param_1, int param_2);"
+          "decl": "float game_engine_get_starting_location_rating(int param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xadd50",

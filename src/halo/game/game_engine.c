@@ -6762,6 +6762,21 @@ float game_globals_get_weapon(float param_1)
   return (float)x87_fmod((double)param_1, *(double *)0x26b678);
 }
 
+/* Get the starting location rating for a spawn point (adcf0). */
+float game_engine_get_starting_location_rating(int param_1, int param_2)
+{
+  int variant_type;
+
+  variant_type = -1;
+  if (current_game_engine)
+    variant_type = *(int *)(current_game_engine + 4);
+  if (!match_game_type(variant_type, 4, (int16_t *)(param_2 + 0x14)))
+    return 0.0f;
+  if (FUN_000a8ec0(param_1))
+    return 0.0f;
+  return FUN_000adc40(param_1);
+}
+
 /* Oddball: weapon pickup handler (b3630). */
 char FUN_000b3630(int weapon_handle, int player_handle)
 {
