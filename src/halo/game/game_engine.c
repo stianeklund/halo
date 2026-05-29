@@ -6577,3 +6577,115 @@ update:
   if (*(int *)0x456d3c == 300)
     game_engine_post_event(0x28);
 }
+
+/* King of the Hill: compute hill geometry from scenario flag positions (b1180). */
+void FUN_000b1180(void)
+{
+  int scenario;
+  int *flag_block;
+  int num_flags;
+  float *flag_pos;
+  int i;
+  float x0;
+  float y0;
+  float points_2d[48];
+  int16_t hull_indices[6];
+  int16_t hull_count;
+  int flag_indices[12];
+
+  scenario = (int)global_scenario_get();
+  flag_block = (int *)(scenario + 0x378);
+  num_flags = find_netgame_flags(0, 0, 0, 8, *(int *)0x456d4c, 0xc, flag_indices);
+  *(int *)0x456c38 = num_flags;
+  if (num_flags == 0)
+    return;
+  i = 0;
+  if (0 < num_flags) {
+    float *dst = (float *)0x456c3c;
+    do {
+      flag_pos = (float *)tag_block_get_element(flag_block, flag_indices[i], 0x94);
+      if (flag_pos == NULL) {
+        display_assert("NULL != flag",
+                       "c:\\halo\\SOURCE\\game\\game_engine_king.c", 0xdd, 1);
+        system_exit(-1);
+      }
+      dst[0] = flag_pos[0];
+      dst[1] = flag_pos[1];
+      dst[2] = flag_pos[2];
+      i++;
+      dst += 3;
+    } while (i < num_flags);
+  }
+  x0 = *(float *)0x456c3c;
+  y0 = *(float *)0x456c40;
+  if (num_flags == 1) {
+    *(float *)(0x456c3c + 0*12) = x0 - 1.0f;
+    *(float *)(0x456c40 + 0*12) = y0 - 1.0f;
+    *(float *)(0x456c3c + 1*12) = x0 + 1.0f;
+    *(float *)(0x456c40 + 1*12) = y0 - 1.0f;
+    *(float *)(0x456c3c + 2*12) = x0 - 1.0f;
+    *(float *)(0x456c40 + 2*12) = y0 + 1.0f;
+    *(float *)(0x456c3c + 3*12) = x0 + 1.0f;
+    *(float *)(0x456c40 + 3*12) = y0 + 1.0f;
+    /* z coords copied from first flag */
+    *(float *)(0x456c44 + 1*12) = *(float *)0x456c44;
+    *(float *)(0x456c44 + 2*12) = *(float *)0x456c44;
+    *(float *)(0x456c44 + 3*12) = *(float *)0x456c44;
+    num_flags = 4;
+  }
+  /* Build 2D convex hull from x,y coordinates */
+  i = 0;
+  if (0 < num_flags) {
+    float *src = (float *)0x456c3c;
+    do {
+      points_2d[i * 2] = src[0];
+      points_2d[i * 2 + 1] = src[1];
+      i++;
+      src += 3;
+    } while (i < num_flags);
+  }
+  hull_count = ((int16_t (*)(int, float *, int16_t *))FUN_00105d20)(num_flags, points_2d, hull_indices);
+  *(int *)0x456c38 = (int)hull_count;
+  /* Reorder points by hull and store to globals */
+  i = 0;
+  if (0 < *(int *)0x456c38) {
+    float *dst_pos = (float *)0x456c3c;
+    float *dst_2d = (float *)0x456ccc;
+    do {
+      int idx = (int)hull_indices[i];
+      *dst_pos = *(float *)(0x456c3c + idx * 12);
+      dst_pos[1] = *(float *)(0x456c40 + idx * 12);
+      dst_pos[2] = *(float *)(0x456c44 + idx * 12);
+      dst_2d[0] = points_2d[idx * 2];
+      dst_2d[1] = points_2d[idx * 2 + 1];
+      i++;
+      dst_2d += 2;
+      dst_pos += 3;
+    } while (i < *(int *)0x456c38);
+  }
+  /* Compute bounding box center and vertical bounds */
+  {
+    float minx, miny, minz, maxx, maxy, maxz;
+    minx = *(float *)0x456c3c; miny = *(float *)0x456c40; minz = *(float *)0x456c44;
+    maxx = minx; maxy = miny; maxz = minz;
+    if (0 < *(int *)0x456c38) {
+      float *p = (float *)0x456c40;
+      int count = *(int *)0x456c38;
+      do {
+        if (p[-1] < minx) minx = p[-1];
+        if (*p < miny) miny = *p;
+        if (p[1] < minz) minz = p[1];
+        if (maxx <= p[-1]) maxx = p[-1];
+        if (maxy <= *p) maxy = *p;
+        if (maxz <= p[1]) maxz = p[1];
+        p += 3;
+        count--;
+      } while (count != 0);
+    }
+    *(float *)0x456d48 = minz - *(float *)0x25496c;
+    *(float *)0x456d44 = maxz + *(float *)0x2533f0;
+    *(float *)0x456d2c = (maxx + minx) * 0.5f;
+    *(float *)0x456d30 = (maxy + miny) * 0.5f;
+    *(float *)0x456d34 = (maxz + minz) * 0.5f;
+  }
+}

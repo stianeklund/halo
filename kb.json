@@ -8728,7 +8728,9 @@
         },
         {
           "addr": "0xb1180",
-          "decl": "void FUN_000b1180(void);"
+          "decl": "void FUN_000b1180(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb14e0",
