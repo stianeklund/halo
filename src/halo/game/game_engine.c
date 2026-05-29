@@ -7163,6 +7163,45 @@ void FUN_000b1180(void)
   }
 }
 
+/* Race: check if a specific checkpoint flag is the next one for a player. */
+char FUN_000b3b30(int flag_index, int param_1)
+{
+  int player;
+  int variant;
+  uint32_t unvisited;
+  int idx;
+  int i;
+
+  player = (int)datum_get(player_data, param_1);
+  idx = param_1 & 0xffff;
+  unvisited = ~*(uint32_t *)(0x456f54 + idx * 4) & *(uint32_t *)0x456f10;
+  if (flag_index >= 0x20)
+    return 0;
+  variant = (int)game_engine_get_variant();
+  if ((int)*(int16_t *)(player + 0xc2) >= *(int *)(variant + 0x40))
+    return 0;
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x4c) == 2)
+    return *(int *)0x456f94 == flag_index;
+  if (*(uint32_t *)(0x456f54 + idx * 4) == *(uint32_t *)0x456f10)
+    return flag_index == *(int *)(0x456f14 + idx * 4);
+  if ((unvisited & (1u << ((uint8_t)flag_index & 0x1f))) == 0)
+    return 0;
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x4c) != 0)
+    return 1;
+  for (i = 0; i < 0x20; i++) {
+    if (i == flag_index)
+      return 1;
+    if ((unvisited & (1u << ((uint8_t)i & 0x1f))) != 0)
+      return 0;
+  }
+  display_assert("itr < MAXIMUM_RACE_FLAGS",
+                 "c:\\halo\\SOURCE\\game\\game_engine_race.c", 0x289, 1);
+  system_exit(-1);
+  return 1;
+}
+
 /* Accumulate weighted float scores from a tag block into an integer sum.
  * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
  * float score at offset +0x20 from data base. */
