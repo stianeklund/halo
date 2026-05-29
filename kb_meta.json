@@ -77,6 +77,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x16bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x16d40": {
       "kind": "function",
       "status": "ported"
@@ -3110,6 +3114,10 @@
       ]
     },
     "0xaf370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaf660": {
       "kind": "function",
       "status": "ported"
     },
