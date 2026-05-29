@@ -6689,6 +6689,50 @@ void FUN_000b2740(int player_handle)
     game_engine_start_over();
 }
 
+/* CTF: swap defense/offense team assignments (aff20). EAX = initial team. */
+void FUN_000aff20(int team)
+{
+  uint32_t t0;
+  uint32_t t1;
+
+  t0 = team & 0x80000001;
+  if ((int)t0 < 0)
+    t0 = (t0 - 1 | 0xfffffffe) + 1;
+  game_show_score_team(t0, 0x2d);
+  t1 = (team + 1) & 0x80000001;
+  if ((int)t1 < 0)
+    t1 = (t1 - 1 | 0xfffffffe) + 1;
+  game_show_score_team(t1, 0x2c);
+}
+
+/* Oddball: weapon pickup handler (b3630). */
+char FUN_000b3630(int weapon_handle, int player_handle)
+{
+  int weapon;
+  int variant;
+  int player;
+
+  weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+  if (!weapon_is_flag(weapon_handle)) {
+    display_assert("weapon_is_flag(weapon_index)",
+                   "c:\\halo\\SOURCE\\game\\game_engine_oddball.c", 0x39a, 1);
+    system_exit(-1);
+  }
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) < 1 || 2 < *(int *)(variant + 0x5c)) {
+    player = (int)datum_get(player_data, player_handle);
+    if (*(int *)(player + 0x34) != -1) {
+      if (unit_has_weapon_with_flag(*(int *)(player + 0x34), 3))
+        return 0;
+      *(uint32_t *)(weapon + 0x1dc) = *(uint32_t *)(weapon + 0x1dc) | 0x40;
+      return 1;
+    }
+  } else {
+    game_show_score_you_ally_enemy(player_handle, 0x1e, 0x1f, 0x20);
+  }
+  return 1;
+}
+
 /* Oddball: check return type based on variant mode (b2be0). */
 char FUN_000b2be0(int param_1)
 {
