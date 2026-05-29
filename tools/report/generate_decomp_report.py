@@ -920,6 +920,33 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         .score-btn:hover:not(:disabled) { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
         .score-btn:disabled { opacity: 0.5; cursor: default; }
         .score-btn.error { background: #da363322; color: #f85149; border-color: #f85149; }
+        /* ===== TREEMAP ===== */
+        .treemap-grid {
+            display: grid; grid-template-columns: 1fr 220px; gap: 16px; margin-bottom: 16px;
+        }
+        @media (max-width: 860px) { .treemap-grid { grid-template-columns: 1fr; } }
+        .treemap-wrap {
+            position: relative; height: 420px; cursor: pointer;
+        }
+        #treemapCanvas { display: block; width: 100%; height: 100%; }
+        .treemap-tooltip {
+            position: fixed; padding: 8px 12px; background: #161b22;
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text-primary); font-size: 0.82em;
+            pointer-events: none; z-index: 100; display: none;
+            max-width: 280px; line-height: 1.5;
+        }
+        .donut-center {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center;
+        }
+        .donut-pct {
+            font-size: 1.8em; font-weight: 700; color: var(--accent-blue);
+            margin-top: 8px;
+        }
+        .donut-label {
+            color: var(--text-secondary); font-size: 0.82em; margin-top: 4px;
+        }
         @media (prefers-reduced-motion: reduce) {
             .progress-fill, .live-badge.online .dot { animation: none; transition: none; }
         }
@@ -943,15 +970,10 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             <div class="summary" id="summary-cards"></div>
 
-            <h2 id="charts-section-heading">Historical Progress</h2>
-            <div class="charts-grid" id="charts-grid">
-                <div class="chart-container">
+            <div class="charts-grid" id="charts-grid" style="margin-top:16px">
+                <div class="chart-container" id="charts-section-heading" style="height:220px">
                     <div class="chart-title">Functions Ported Over Time</div>
                     <canvas id="progressChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-title">Daily Velocity</div>
-                    <canvas id="velocityChart"></canvas>
                 </div>
             </div>
 
@@ -972,10 +994,19 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 <div class="addr-strip-wrap"><canvas id="addrStripCanvas"></canvas></div>
                 <div class="addr-legend" id="addr-legend"></div>
             </div>
-            <div class="card" style="margin-bottom:16px">
-                <div class="chart-title">Equivalence Test Priority Queue &mdash; <span style="font-weight:400;text-transform:none;letter-spacing:0">top candidates for unicorn_diff.py</span></div>
-                <div id="priority-queue-content"></div>
+            <h2>Translation Units</h2>
+            <div class="treemap-grid">
+                <div class="card">
+                    <div class="chart-title">Unit Size Map &mdash; <span style="font-weight:400;text-transform:none;letter-spacing:0">sized by bytes, colored by completion &mdash; click to drill down</span></div>
+                    <div class="treemap-wrap"><canvas id="treemapCanvas"></canvas></div>
+                </div>
+                <div class="card donut-center">
+                    <canvas id="overviewDonut" width="160" height="160" style="max-width:160px;max-height:160px"></canvas>
+                    <div class="donut-pct" id="donut-pct"></div>
+                    <div class="donut-label" id="donut-label"></div>
+                </div>
             </div>
+            <div id="treemap-tooltip" class="treemap-tooltip"></div>
 
             <h2>Per-Unit Breakdown</h2>
             <div class="table-controls">
@@ -1045,12 +1076,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                                 <th data-fcol="2" class="num">Size <span class="sort-arrow"></span></th>
                                 <th data-fcol="3" class="num">Status <span class="sort-arrow"></span></th>
                                 <th data-fcol="4" class="num">Match % <span class="sort-arrow"></span></th>
-                                <th data-fcol="5" class="num">Equiv Cov <span class="sort-arrow"></span></th>
-                                <th data-fcol="6" class="num">Confidence <span class="sort-arrow"></span></th>
-                                <th data-fcol="7">Class <span class="sort-arrow"></span></th>
-                                <th data-fcol="8" class="num" title="Snapshot verification pass/fail">Snap <span class="sort-arrow"></span></th>
-                                <th data-fcol="9" class="num" title="Snapshot coverage %">Snap Cov <span class="sort-arrow"></span></th>
-                                <th data-fcol="10" class="num" title="Runtime oracle golden test pass/fail">Oracle <span class="sort-arrow"></span></th>
+                                <th data-fcol="5" class="num" title="Verified: VC71 &ge;90%, equiv high-conf, snapshot pass, or runtime oracle pass">Verified <span class="sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="func-table-body"></tbody>
@@ -1081,8 +1107,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         var funcSortAsc = true;
         var funcFilterText = '';
         var currentUnitName = null;
-        var pqSortCol = -1;
-        var pqSortAsc = true;
 
         /* ===== ROUTER ===== */
         function router() {
@@ -1200,73 +1224,76 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             renderMeta();
         }
 
+        function countVerified() {
+            var count = 0;
+            var byMethod = { vc71: 0, equiv: 0, snap: 0, oracle: 0 };
+            for (var ui = 0; ui < REPORT.units.length; ui++) {
+                var funcs = REPORT.units[ui].functions || [];
+                for (var fi = 0; fi < funcs.length; fi++) {
+                    var f = funcs[fi];
+                    if (!f.ported) continue;
+                    var verified = false;
+                    if (f.match_percent !== null && f.match_percent !== undefined && f.match_percent >= 90) { byMethod.vc71++; verified = true; }
+                    if (f.equiv_confidence === 'high') { byMethod.equiv++; verified = true; }
+                    if (f.snapshot_passed === true) { byMethod.snap++; verified = true; }
+                    if (f.runtime_oracle_passed === true) { byMethod.oracle++; verified = true; }
+                    if (verified) count++;
+                }
+            }
+            return { total: count, byMethod: byMethod };
+        }
+
+        function isVerified(f) {
+            if (!f.ported) return false;
+            if (f.match_percent !== null && f.match_percent !== undefined && f.match_percent >= 90) return true;
+            if (f.equiv_confidence === 'high') return true;
+            if (f.snapshot_passed === true) return true;
+            if (f.runtime_oracle_passed === true) return true;
+            return false;
+        }
+
         function renderSummary() {
             var s = REPORT.summary;
             var u = REPORT.units;
             var totalUnits = REPORT.project.total_units;
+            var vData = countVerified();
 
-            var vel = '';
-            if (HISTORY && HISTORY.snapshots && HISTORY.snapshots.length >= 2) {
-                var snaps = HISTORY.snapshots;
-                var recent = snaps.length >= 7 ? snaps.slice(-7) : snaps;
-                var fDiff = recent[recent.length - 1].summary.functions.ported - recent[0].summary.functions.ported;
-                var days = Math.max(1, recent.length);
-                var v = fDiff / days;
-                var rem = s.functions.total - s.functions.ported;
-                if (v > 0) {
-                    var dRem = Math.ceil(rem / v);
-                    var d = new Date();
-                    d.setDate(d.getDate() + dRem);
-                    vel = '<div class="stat-sub">Velocity: ' + v.toFixed(1) + ' funcs/day &middot; ETA: ' + d.toISOString().slice(0, 10) + ' (' + dRem + ' days)</div>';
-                }
-            }
+            var completedUnits = u.filter(function(unit) { return unit.summary.percent === 100 && unit.summary.total > 0; }).length;
+            var completedPct = Math.round(completedUnits / totalUnits * 100);
+
+            var verifiedPct = s.functions.ported > 0 ? (vData.total / s.functions.ported * 100).toFixed(1) : '0';
+            var verifiedTip = 'Verified by at least one method:\\n';
+            verifiedTip += 'VC71 \\u226590%: ' + vData.byMethod.vc71 + '\\n';
+            verifiedTip += 'Equiv high-conf: ' + vData.byMethod.equiv + '\\n';
+            verifiedTip += 'Snapshot pass: ' + vData.byMethod.snap + '\\n';
+            verifiedTip += 'Runtime oracle pass: ' + vData.byMethod.oracle;
 
             document.getElementById('summary-cards').innerHTML =
-                '<div class="card" title="Functions ported out of total. Measures how many functions have been lifted from assembly to C.">' +
+                '<div class="card" title="Functions ported out of total.">' +
                     '<div class="stat-label">Overall Progress</div>' +
                     '<div class="stat-value">' + s.functions.percent.toFixed(1) + '%</div>' +
                     '<div class="stat-label">' + fmtNum(s.functions.ported) + ' / ' + fmtNum(s.functions.total) + ' functions</div>' +
                     '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.functions.percent, 2) + '%"><span class="progress-text">' + s.functions.percent.toFixed(1) + '%</span></div></div>' +
-                    vel +
                 '</div>' +
-                (function() {
-                    var completedUnits = u.filter(function(unit) { return unit.summary.percent === 100 && unit.summary.total > 0; }).length;
-                    var completedPct = Math.round(completedUnits / totalUnits * 100);
-                    return '<div class="card" title="Source files where every function has been ported. A fully-reimplemented translation unit.">' +
-                        '<div class="stat-label">Files Complete</div>' +
-                        '<div class="stat-value">' + completedUnits + '</div>' +
-                        '<div class="stat-label">' + completedUnits + ' / ' + totalUnits + ' source files fully ported</div>' +
-                        '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(completedPct, 2) + '%"><span class="progress-text">' + completedPct + '%</span></div></div>' +
-                    '</div>';
-                })() +
-                (s.match ? 
-                '<div class="card" title="Byte-level accuracy of ported code when compiled with MSVC 7.1 and compared against the original Xbox binary.">' +
+                '<div class="card" title="Source files where every function has been ported.">' +
+                    '<div class="stat-label">Files Complete</div>' +
+                    '<div class="stat-value">' + completedUnits + '</div>' +
+                    '<div class="stat-label">' + completedUnits + ' / ' + totalUnits + ' source files fully ported</div>' +
+                    '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(completedPct, 2) + '%"><span class="progress-text">' + completedPct + '%</span></div></div>' +
+                '</div>' +
+                (s.match ?
+                '<div class="card" title="Byte-level accuracy of ported code compiled with MSVC 7.1 vs original Xbox binary.">' +
                     '<div class="stat-label">Match Quality</div>' +
                     '<div class="stat-value" style="color:' + matchColor(s.match.weighted) + '">' + s.match.weighted.toFixed(1) + '%</div>' +
-                    '<div class="stat-label">Byte-weighted avg &middot; ' + fmtNum(s.match.scored_count) + ' functions scored</div>' +
+                    '<div class="stat-label">Byte-weighted avg &middot; ' + fmtNum(s.match.scored_count) + ' scored</div>' +
                     '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.match.weighted, 2) + '%;background:linear-gradient(90deg,var(--accent-green),#2ea043)"><span class="progress-text">' + s.match.weighted.toFixed(1) + '%</span></div></div>' +
                 '</div>' : '') +
-                (s.equivalence ?
-                '<div class="card" title="Unicorn-Engine equivalence verification. Tests ported functions against original Xbox binary bytecode in a sandboxed x86 emulator.">' +
-                    '<div class="stat-label">Equivalence Verified</div>' +
-                    '<div class="stat-value" style="color:' + (s.equivalence.tested > 0 ? '#58a6ff' : 'var(--text-secondary)') + '">' + fmtNum(s.equivalence.tested || 0) + '</div>' +
-                    '<div class="stat-label">' + (s.equivalence.tested > 0 ? (s.equivalence.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.equivalence.high_confidence || 0) + ' high conf.</div>' +
-                    (s.equivalence.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.equivalence.tested / s.functions.ported * 100, 0.3) + '%;background:linear-gradient(90deg,#1f6feb,#388bfd)"><span class="progress-text">' + (s.equivalence.tested / s.functions.ported * 100).toFixed(1) + '%</span></div></div>' : '') +
-                '</div>' : '') +
-                (s.snapshot ?
-                '<div class="card" title="Game-state snapshot verification. Functions tested with real xemu-captured game memory against the original Xbox binary.">' +
-                    '<div class="stat-label">Snapshot Verified</div>' +
-                    '<div class="stat-value" style="color:' + (s.snapshot.tested > 0 ? '#a855f7' : 'var(--text-secondary)') + '">' + fmtNum(s.snapshot.passed || 0) + ' / ' + fmtNum(s.snapshot.tested || 0) + '</div>' +
-                    '<div class="stat-label">' + (s.snapshot.tested > 0 ? (s.snapshot.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.snapshot.passed || 0) + ' passed</div>' +
-                    (s.snapshot.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.snapshot.passed / s.snapshot.tested * 100, 0.3) + '%;background:linear-gradient(90deg,#7c3aed,#a855f7)"><span class="progress-text">' + (s.snapshot.tested > 0 ? (s.snapshot.passed / s.snapshot.tested * 100).toFixed(1) : '0') + '% pass rate</span></div></div>' : '') +
-                '</div>' : '') +
-                (s.runtime_oracle ?
-                '<div class="card" title="Runtime golden tests captured from the Xbox harness. Latest run per target function wins.">' +
-                    '<div class="stat-label">Runtime Oracle</div>' +
-                    '<div class="stat-value" style="color:' + (s.runtime_oracle.tested > 0 ? '#79c0ff' : 'var(--text-secondary)') + '">' + fmtNum(s.runtime_oracle.passed || 0) + ' / ' + fmtNum(s.runtime_oracle.tested || 0) + '</div>' +
-                    '<div class="stat-label">' + (s.runtime_oracle.tested > 0 ? (s.runtime_oracle.tested / s.functions.ported * 100).toFixed(1) + '% of ported' : 'none tested yet') + ' &middot; ' + fmtNum(s.runtime_oracle.passed || 0) + ' passed</div>' +
-                    (s.runtime_oracle.tested > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.runtime_oracle.passed / s.runtime_oracle.tested * 100, 0.3) + '%;background:linear-gradient(90deg,#1f6feb,#79c0ff)"><span class="progress-text">' + (s.runtime_oracle.tested > 0 ? (s.runtime_oracle.passed / s.runtime_oracle.tested * 100).toFixed(1) : '0') + '% pass rate</span></div></div>' : '') +
-                '</div>' : '');
+                '<div class="card" title="' + escHtml(verifiedTip) + '">' +
+                    '<div class="stat-label">Verified</div>' +
+                    '<div class="stat-value" style="color:#3fb950">' + fmtNum(vData.total) + '</div>' +
+                    '<div class="stat-label">' + verifiedPct + '% of ported &middot; hover for breakdown</div>' +
+                    (s.functions.ported > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(vData.total / s.functions.ported * 100, 0.3) + '%;background:linear-gradient(90deg,#238636,#3fb950)"><span class="progress-text">' + verifiedPct + '%</span></div></div>' : '') +
+                '</div>';
         }
 
         function matchColor(pct) {
@@ -1294,17 +1321,14 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             var hasHistory = HISTORY && HISTORY.snapshots && HISTORY.snapshots.length >= 2;
             var progParent = document.getElementById('progressChart').parentNode;
-            var velParent = document.getElementById('velocityChart').parentNode;
             var heading = document.getElementById('charts-section-heading');
             var grid = document.getElementById('charts-grid');
             progParent.style.display = hasHistory ? '' : 'none';
-            velParent.style.display = hasHistory ? '' : 'none';
             if (heading) heading.style.display = hasHistory ? '' : 'none';
             if (grid) grid.style.display = hasHistory ? '' : 'none';
 
             if (!hasHistory) {
                 destroyChart('progressChart');
-                destroyChart('velocityChart');
                 return;
             }
 
@@ -1325,25 +1349,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                         backgroundColor: 'rgba(88, 166, 255, 0.08)',
                         borderWidth: 2, tension: 0.35, fill: true,
                         pointRadius: 2, pointHoverRadius: 5
-                    }]
-                },
-                options: chartOpts()
-            });
-
-            var velData = [0];
-            for (var i = 1; i < funcs.length; i++) { velData.push(funcs[i] - funcs[i - 1]); }
-            destroyChart('velocityChart');
-            var ctx2 = document.getElementById('velocityChart').getContext('2d');
-            chartInstances.velocityChart = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: labels.slice(1),
-                    datasets: [{
-                        label: 'Functions/Day',
-                        data: velData.slice(1),
-                        backgroundColor: 'rgba(35, 134, 54, 0.6)',
-                        borderColor: '#238636',
-                        borderWidth: 1, borderRadius: 3
                     }]
                 },
                 options: chartOpts()
@@ -1388,7 +1393,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             renderVerifFunnel();
             renderTuHeatmap();
             renderAddrStrip();
-            renderPriorityQueue();
+            renderTreemap();
+            renderOverviewDonut();
         }
 
         function renderVerifFunnel() {
@@ -1396,23 +1402,13 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var total = s.functions.total;
             var ported = s.functions.ported;
             var vc71 = s.match ? (s.match.scored_count || 0) : 0;
-            var eqTested = s.equivalence ? (s.equivalence.tested || 0) : 0;
-            var eqHigh = s.equivalence ? (s.equivalence.high_confidence || 0) : 0;
-            var snapTested = s.snapshot ? (s.snapshot.tested || 0) : 0;
-            var snapPassed = s.snapshot ? (s.snapshot.passed || 0) : 0;
-            var goldenTested = s.runtime_oracle ? (s.runtime_oracle.tested || 0) : 0;
-            var goldenPassed = s.runtime_oracle ? (s.runtime_oracle.passed || 0) : 0;
+            var vData = countVerified();
 
             var steps = [
-                { label: 'All functions',   count: total,      color: '#3d444d', pct: 100 },
-                { label: 'Ported',          count: ported,     color: '#388bfd', pct: ported / total * 100 },
-                { label: 'VC71 scored',     count: vc71,       color: '#d29922', pct: vc71 / total * 100 },
-                { label: 'Equiv tested',    count: eqTested,   color: '#d4760a', pct: eqTested / total * 100 },
-                { label: 'Snap verified',   count: snapTested, color: '#8b5cf6', pct: snapTested / total * 100 },
-                { label: 'Snap passed',     count: snapPassed, color: '#a855f7', pct: snapPassed / total * 100 },
-                { label: 'Oracle tested',   count: goldenTested, color: '#1f6feb', pct: goldenTested / total * 100 },
-                { label: 'Oracle passed',   count: goldenPassed, color: '#79c0ff', pct: goldenPassed / total * 100 },
-                { label: 'High conf.',      count: eqHigh,     color: '#3fb950', pct: eqHigh / total * 100 }
+                { label: 'All functions',   count: total,       color: '#3d444d', pct: 100 },
+                { label: 'Ported',          count: ported,      color: '#388bfd', pct: total > 0 ? ported / total * 100 : 0 },
+                { label: 'Byte-matched',    count: vc71,        color: '#d29922', pct: total > 0 ? vc71 / total * 100 : 0 },
+                { label: 'Verified',        count: vData.total, color: '#3fb950', pct: total > 0 ? vData.total / total * 100 : 0 }
             ];
 
             var html = '';
@@ -1437,41 +1433,28 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         }
 
         function tuEvidenceLevel(unit) {
-            if (!unit.summary || !unit.summary.ported) return 'no_ported';
-            var eq = unit.equivalence || {};
-            var snap = unit.snapshot || {};
-            var golden = unit.runtime_oracle || {};
-            if (eq.high_confidence > 0) return 'eq_high';
-            if (golden.passed > 0) return 'oracle_pass';
-            if (golden.tested > 0) return 'oracle_some';
-            if (snap.passed > 0) return 'snap_pass';
-            if (snap.tested > 0) return 'snap_some';
-            if (eq.tested > 0) return 'eq_some';
-            if (unit.summary.match_weighted !== null && unit.summary.match_weighted !== undefined) return 'vc71';
-            return 'unverified';
+            if (!unit.summary || !unit.summary.ported) return 'none';
+            var funcs = unit.functions || [];
+            var anyVerified = false;
+            for (var i = 0; i < funcs.length; i++) {
+                if (isVerified(funcs[i])) { anyVerified = true; break; }
+            }
+            if (anyVerified) return 'verified';
+            if (unit.summary.match_weighted !== null && unit.summary.match_weighted !== undefined) return 'matched';
+            return 'ported';
         }
 
         var EVIDENCE_COLORS = {
-            no_ported: '#21262d',
-            unverified: '#3d444d',
-            vc71: '#388bfd',
-            eq_some: '#d4760a',
-            eq_high: '#3fb950',
-            oracle_some: '#1f6feb',
-            oracle_pass: '#79c0ff',
-            snap_some: '#7c3aed',
-            snap_pass: '#a855f7'
+            none: '#21262d',
+            ported: '#3d444d',
+            matched: '#388bfd',
+            verified: '#3fb950'
         };
         var EVIDENCE_LABELS = {
-            no_ported: 'No ported functions',
-            unverified: 'Ported, no verification',
-            vc71: 'VC71 byte-match scored',
-            eq_some: 'Equiv tested',
-            eq_high: 'Equiv high-confidence',
-            oracle_some: 'Runtime oracle tested',
-            oracle_pass: 'Runtime oracle passed',
-            snap_some: 'Snapshot tested',
-            snap_pass: 'Snapshot verified & passes'
+            none: 'Not started',
+            ported: 'Ported, unverified',
+            matched: 'Byte-matched (VC71)',
+            verified: 'Verified'
         };
 
         function renderTuHeatmap() {
@@ -1482,15 +1465,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 var level = tuEvidenceLevel(u);
                 var color = EVIDENCE_COLORS[level];
                 var s = u.summary;
-                var eq = u.equivalence || {};
                 var tip = u.name + '\\n' + EVIDENCE_LABELS[level] +
                     '\\n' + s.ported + '/' + s.total + ' ported';
                 if (s.match_weighted !== null && s.match_weighted !== undefined) tip += '\\nVC71: ' + s.match_weighted.toFixed(1) + '%';
-                if (eq.tested > 0) tip += '\\nEquiv: ' + eq.tested + ' tested, ' + (eq.avg_coverage || 0).toFixed(1) + '% cov, ' + eq.high_confidence + ' high';
-                var golden = u.runtime_oracle || {};
-                if (golden.tested > 0) tip += '\\nRuntime oracle: ' + golden.tested + ' tested, ' + golden.passed + ' passed';
-                var snap = u.snapshot || {};
-                if (snap.tested > 0) tip += '\\nSnapshot: ' + snap.tested + ' tested, ' + snap.passed + ' passed, ' + (snap.avg_coverage || 0).toFixed(1) + '% cov';
                 html += '<div class="tu-tile" style="background:' + color + '" title="' + escHtml(tip) + '" onclick="goToUnit(\\'' + jsEsc(u.name) + '\\')"></div>';
             }
             var el = document.getElementById('tu-heatmap');
@@ -1499,7 +1476,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var legEl = document.getElementById('tu-legend');
             if (legEl) {
                 var legHtml = '';
-                var keys = ['no_ported', 'unverified', 'vc71', 'eq_some', 'eq_high', 'oracle_some', 'oracle_pass', 'snap_some', 'snap_pass'];
+                var keys = ['none', 'ported', 'matched', 'verified'];
                 for (var j = 0; j < keys.length; j++) {
                     var k = keys[j];
                     legHtml += '<div class="tu-legend-item"><div class="tu-legend-dot" style="background:' + EVIDENCE_COLORS[k] + '"></div>' + EVIDENCE_LABELS[k] + '</div>';
@@ -1549,24 +1526,17 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
                 var col;
                 if (!fn.ported) { col = '#2d333b'; }
-                else if (fn.runtime_oracle_passed === true) { col = '#79c0ff'; }
-                else if (fn.runtime_oracle_tested) { col = '#1f6feb'; }
-                else if (fn.equiv_confidence === 'high') { col = '#3fb950'; }
-                else if (fn.equiv_confidence === 'moderate') { col = '#d29922'; }
-                else if (fn.equiv_coverage !== null && fn.equiv_coverage !== undefined) { col = '#d4760a'; }
-                else if (fn.match_percent !== null && fn.match_percent !== undefined) {
-                    col = fn.match_percent >= 95 ? '#2ea043' : fn.match_percent >= 85 ? '#388bfd' : '#6e5030';
-                } else { col = '#444c56'; }
+                else if (isVerified(fn)) { col = '#3fb950'; }
+                else if (fn.match_percent !== null && fn.match_percent !== undefined) { col = '#388bfd'; }
+                else { col = '#444c56'; }
 
                 ctx.fillStyle = col;
                 ctx.fillRect(x, 0, barW, H);
             }
 
             var legendItems = [
-                ['#2d333b', 'Unported'], ['#444c56', 'Ported/unscored'],
-                ['#1f6feb', 'Runtime oracle tested'], ['#79c0ff', 'Runtime oracle passed'],
-                ['#6e5030', 'VC71 <85%'], ['#388bfd', 'VC71 85-95%'], ['#2ea043', 'VC71 ≥95%'],
-                ['#d4760a', 'Equiv tested'], ['#d29922', 'Equiv moderate'], ['#3fb950', 'Equiv high conf.']
+                ['#2d333b', 'Unported'], ['#444c56', 'Ported'],
+                ['#388bfd', 'Byte-matched'], ['#3fb950', 'Verified']
             ];
             var legEl = document.getElementById('addr-legend');
             if (legEl) {
@@ -1578,113 +1548,226 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             }
         }
 
-        function renderPriorityQueue() {
-            var candidates = [];
-            for (var ui = 0; ui < REPORT.units.length; ui++) {
-                var unit = REPORT.units[ui];
-                var funcs = unit.functions || [];
-                for (var fi = 0; fi < funcs.length; fi++) {
-                    var f = funcs[fi];
-                    if (!f.ported) continue;
-                    if (f.equiv_coverage !== null && f.equiv_coverage !== undefined) continue;
-                    var score = (f.size || 0) / 80.0;
-                    if (f.match_percent !== null && f.match_percent !== undefined) score += f.match_percent * 0.4;
-                    if (f.equiv_class === 'leaf') score += 20;
-                    var reasons = [];
-                    if (f.match_percent !== null && f.match_percent !== undefined) {
-                        if (f.match_percent >= 95) reasons.push('VC71 ' + f.match_percent.toFixed(0) + '%');
-                        else if (f.match_percent >= 85) reasons.push('near-match');
-                    }
-                    if (f.equiv_class === 'leaf') reasons.push('leaf');
-                    if ((f.size || 0) >= 200) reasons.push('large');
-                    candidates.push({f: f, unit: unit.name, score: score, reasons: reasons});
-                }
-            }
-            candidates.sort(function(a, b) { return b.score - a.score; });
-            var top = candidates.slice(0, 25);
+        /* ===== TREEMAP ===== */
+        var treemapRects = [];
 
-            var el = document.getElementById('priority-queue-content');
-            if (!el) return;
-            if (!top.length) {
-                el.innerHTML = '<div style="color:var(--text-secondary);padding:12px 0">No untested ported functions found.</div>';
+        function completionColor(pct) {
+            if (pct >= 100) return '#238636';
+            if (pct >= 75) return '#2ea043';
+            if (pct >= 50) return '#d29922';
+            if (pct >= 25) return '#d4760a';
+            if (pct > 0) return '#da3633';
+            return '#21262d';
+        }
+
+        function squarify(items, x, y, w, h, out) {
+            if (!items.length || w <= 0 || h <= 0) return;
+            if (items.length === 1) {
+                out.push({ x: x, y: y, w: w, h: h, item: items[0] });
                 return;
             }
+            var totalVal = 0;
+            for (var i = 0; i < items.length; i++) totalVal += items[i].value;
+            if (totalVal <= 0) return;
 
-            // Apply sort if a column is selected
-            if (pqSortCol >= 0) {
-                candidates.sort(function(a, b) {
-                    var va, vb;
-                    switch (pqSortCol) {
-                        case 0: va = b.score; vb = a.score; break; // rank (desc by default = lower number first)
-                        case 1: va = a.f.name; vb = b.f.name; break;
-                        case 2: va = a.unit; vb = b.unit; break;
-                        case 3: va = a.f.size || 0; vb = b.f.size || 0; break;
-                        case 4: va = a.f.match_percent !== null && a.f.match_percent !== undefined ? a.f.match_percent : -1;
-                                vb = b.f.match_percent !== null && b.f.match_percent !== undefined ? b.f.match_percent : -1; break;
-                        case 5: va = a.f.equiv_class || ''; vb = b.f.equiv_class || ''; break;
-                        default: va = b.score; vb = a.score;
+            var vertical = h > w;
+            var mainDim = vertical ? h : w;
+            var otherDim = vertical ? w : h;
+
+            var row = [];
+            var rowVal = 0;
+            var bestAspect = Infinity;
+            var splitAt = 0;
+
+            for (var i = 0; i < items.length; i++) {
+                row.push(items[i]);
+                rowVal += items[i].value;
+                var rowFrac = rowVal / totalVal;
+                var rowDim = mainDim * rowFrac;
+
+                var worstAspect = 0;
+                var subVal = 0;
+                for (var j = 0; j < row.length; j++) {
+                    subVal += row[j].value;
+                    var cellDim = rowVal > 0 ? otherDim * (row[j].value / rowVal) : 0;
+                    if (cellDim <= 0 || rowDim <= 0) continue;
+                    var aspect = cellDim > rowDim ? cellDim / rowDim : rowDim / cellDim;
+                    if (aspect > worstAspect) worstAspect = aspect;
+                }
+                if (worstAspect <= bestAspect) {
+                    bestAspect = worstAspect;
+                    splitAt = i + 1;
+                } else {
+                    break;
+                }
+            }
+
+            var headItems = items.slice(0, splitAt);
+            var tailItems = items.slice(splitAt);
+            var headVal = 0;
+            for (var i = 0; i < headItems.length; i++) headVal += headItems[i].value;
+            var headFrac = totalVal > 0 ? headVal / totalVal : 0;
+
+            if (vertical) {
+                var headH = h * headFrac;
+                var cx = x, accVal = 0;
+                for (var i = 0; i < headItems.length; i++) {
+                    var frac = headVal > 0 ? headItems[i].value / headVal : 0;
+                    var cw = w * frac;
+                    out.push({ x: cx, y: y, w: cw, h: headH, item: headItems[i] });
+                    cx += cw;
+                }
+                if (tailItems.length) squarify(tailItems, x, y + headH, w, h - headH, out);
+            } else {
+                var headW = w * headFrac;
+                var cy = y, accVal = 0;
+                for (var i = 0; i < headItems.length; i++) {
+                    var frac = headVal > 0 ? headItems[i].value / headVal : 0;
+                    var ch = h * frac;
+                    out.push({ x: x, y: cy, w: headW, h: ch, item: headItems[i] });
+                    cy += ch;
+                }
+                if (tailItems.length) squarify(tailItems, x + headW, y, w - headW, h, out);
+            }
+        }
+
+        function renderTreemap() {
+            var canvas = document.getElementById('treemapCanvas');
+            if (!canvas) return;
+            var wrap = canvas.parentNode;
+            var W = wrap.clientWidth || 900;
+            var H = wrap.clientHeight || 420;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.round(W * dpr);
+            canvas.height = Math.round(H * dpr);
+            canvas.style.width = W + 'px';
+            canvas.style.height = H + 'px';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            var items = [];
+            for (var i = 0; i < REPORT.units.length; i++) {
+                var u = REPORT.units[i];
+                var bytes = u.summary.bytes_total || 1;
+                items.push({ value: bytes, unit: u });
+            }
+            items.sort(function(a, b) { return b.value - a.value; });
+
+            treemapRects = [];
+            squarify(items, 1, 1, W - 2, H - 2, treemapRects);
+
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, W, H);
+
+            for (var i = 0; i < treemapRects.length; i++) {
+                var r = treemapRects[i];
+                var u = r.item.unit;
+                var pct = u.summary.percent;
+                ctx.fillStyle = completionColor(pct);
+                ctx.fillRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+
+                ctx.strokeStyle = '#0d1117';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(r.x, r.y, r.w, r.h);
+
+                if (r.w > 50 && r.h > 28) {
+                    ctx.fillStyle = '#fff';
+                    var fontSize = Math.min(11, Math.max(8, Math.min(r.w / 8, r.h / 3)));
+                    ctx.font = '600 ' + fontSize + 'px -apple-system, sans-serif';
+                    ctx.textBaseline = 'top';
+                    var label = u.name.replace(/\\.obj$/, '');
+                    if (ctx.measureText(label).width > r.w - 8) {
+                        label = label.substring(0, Math.floor((r.w - 16) / (fontSize * 0.6))) + '\\u2026';
                     }
-                    if (typeof va === 'number') return pqSortAsc ? va - vb : vb - va;
-                    return pqSortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
-                });
+                    ctx.fillText(label, r.x + 4, r.y + 4);
+                    if (r.h > 42) {
+                        ctx.font = '700 ' + Math.max(9, fontSize) + 'px -apple-system, sans-serif';
+                        ctx.fillText(pct.toFixed(0) + '%', r.x + 4, r.y + 4 + fontSize + 3);
+                    }
+                }
             }
-            top = candidates.slice(0, 25);
 
-            var pqArrow = function(col) {
-                if (pqSortCol !== col) return '<span class="sort-arrow"></span>';
-                return '<span class="sort-arrow"> ' + (pqSortAsc ? '\\u25B2' : '\\u25BC') + '</span>';
+            var tooltip = document.getElementById('treemap-tooltip');
+            canvas.onmousemove = function(e) {
+                var rect = canvas.getBoundingClientRect();
+                var mx = (e.clientX - rect.left);
+                var my = (e.clientY - rect.top);
+                var hit = null;
+                for (var i = 0; i < treemapRects.length; i++) {
+                    var r = treemapRects[i];
+                    if (mx >= r.x && mx < r.x + r.w && my >= r.y && my < r.y + r.h) { hit = r; break; }
+                }
+                if (hit) {
+                    var u = hit.item.unit;
+                    var s = u.summary;
+                    tooltip.innerHTML = '<strong>' + escHtml(u.name) + '</strong><br>' +
+                        s.ported + ' / ' + s.total + ' functions (' + s.percent.toFixed(1) + '%)<br>' +
+                        fmtNum(s.bytes_ported) + ' / ' + fmtNum(s.bytes_total) + ' bytes' +
+                        (s.match_weighted != null ? '<br>Match: ' + s.match_weighted.toFixed(1) + '%' : '');
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.clientX + 12) + 'px';
+                    tooltip.style.top = (e.clientY - 10) + 'px';
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    tooltip.style.display = 'none';
+                    canvas.style.cursor = 'default';
+                }
             };
-            var reasonBadge = function(tag) {
-                if (tag.indexOf('VC71') === 0 && parseFloat(tag.slice(5)) >= 95) return '<span class="priority-reason-badge vc71-great">' + escHtml(tag) + '</span>';
-                if (tag.indexOf('VC71') === 0) return '<span class="priority-reason-badge vc71-good">' + escHtml(tag) + '</span>';
-                if (tag === 'leaf') return '<span class="priority-reason-badge leaf">leaf</span>';
-                if (tag === 'near-match') return '<span class="priority-reason-badge vc71-good">near-match</span>';
-                if (tag === 'large') return '<span class="priority-reason-badge large">large</span>';
-                return '<span class="priority-reason-badge size">' + escHtml(tag) + '</span>';
+            canvas.onmouseleave = function() { tooltip.style.display = 'none'; };
+            canvas.onclick = function(e) {
+                var rect = canvas.getBoundingClientRect();
+                var mx = (e.clientX - rect.left);
+                var my = (e.clientY - rect.top);
+                for (var i = 0; i < treemapRects.length; i++) {
+                    var r = treemapRects[i];
+                    if (mx >= r.x && mx < r.x + r.w && my >= r.y && my < r.y + r.h) {
+                        tooltip.style.display = 'none';
+                        goToUnit(r.item.unit.name);
+                        return;
+                    }
+                }
             };
-            var html = '<div class="table-wrap"><table id="priority-table"><thead><tr>' +
-                '<th data-pqcol="0"># ' + pqArrow(0) + '</th>' +
-                '<th data-pqcol="1">Function ' + pqArrow(1) + '</th>' +
-                '<th data-pqcol="2">Unit ' + pqArrow(2) + '</th>' +
-                '<th data-pqcol="3" class="num">Size ' + pqArrow(3) + '</th>' +
-                '<th data-pqcol="4" class="num">VC71 ' + pqArrow(4) + '</th>' +
-                '<th data-pqcol="5">Class ' + pqArrow(5) + '</th>' +
-                '<th>Why</th>' +
-                '<th>Command</th>' +
-                '</tr></thead><tbody>';
-            for (var i = 0; i < top.length; i++) {
-                var c = top[i];
-                var f = c.f;
-                var mp = f.match_percent !== null && f.match_percent !== undefined;
-                var isLeaf = f.equiv_class === 'leaf';
-                var cmd = 'python3 tools/equivalence/unicorn_diff.py ' + f.address + ' --seeds 100' + (isLeaf ? '' : ' --allow-stubs --float-tolerance 32');
-                var badges = c.reasons.length ? c.reasons.map(reasonBadge).join('') : reasonBadge('size');
-                html += '<tr>' +
-                    '<td class="priority-rank">' + (i + 1) + '</td>' +
-                    '<td class="func-name" style="color:var(--accent-blue)">' + escHtml(f.name) + '</td>' +
-                    '<td class="source-path"><a class="unit-name-link" onclick="goToUnit(\\'' + jsEsc(c.unit) + '\\')">' + escHtml(c.unit) + '</a></td>' +
-                    '<td class="num">' + fmtNum(f.size || 0) + '</td>' +
-                    '<td class="num">' + (mp ? '<span style="color:' + matchColor(f.match_percent) + '">' + f.match_percent.toFixed(1) + '%</span>' : '<span style="color:var(--text-secondary)">—</span>') + '</td>' +
-                    '<td>' + (f.equiv_class ? '<span class="equiv-badge ' + f.equiv_class + '">' + f.equiv_class + '</span>' : '<span style="color:var(--text-secondary)">—</span>') + '</td>' +
-                    '<td class="priority-reason">' + badges + '</td>' +
-                    '<td><button class="copy-cmd-btn" data-cmd="' + escHtml(cmd) + '" onclick="copyPqCmd(this)">Copy cmd</button></td>' +
-                '</tr>';
-            }
-            html += '</tbody></table></div>';
-            el.innerHTML = html;
+        }
 
-            // Wire up sort headers for priority table
-            var pqHeaders = document.querySelectorAll('#priority-table th[data-pqcol]');
-            for (var hi = 0; hi < pqHeaders.length; hi++) {
-                pqHeaders[hi].addEventListener('click', (function(hh) {
-                    return function() {
-                        var col = parseInt(hh.getAttribute('data-pqcol'));
-                        if (pqSortCol === col) { pqSortAsc = !pqSortAsc; }
-                        else { pqSortCol = col; pqSortAsc = (col === 0); }
-                        renderPriorityQueue();
-                    };
-                })(pqHeaders[hi]));
-            }
+        function renderOverviewDonut() {
+            var ctx = document.getElementById('overviewDonut');
+            if (!ctx) return;
+            destroyChart('overviewDonut');
+            var s = REPORT.summary;
+            var ported = s.bytes.ported || 0;
+            var remaining = (s.bytes.total || 1) - ported;
+            var pctEl = document.getElementById('donut-pct');
+            var lblEl = document.getElementById('donut-label');
+            if (pctEl) pctEl.textContent = s.bytes.percent.toFixed(1) + '%';
+            if (lblEl) lblEl.textContent = fmtNum(ported) + ' / ' + fmtNum(s.bytes.total) + ' bytes';
+
+            chartInstances.overviewDonut = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ported', 'Remaining'],
+                    datasets: [{
+                        data: [ported, remaining],
+                        backgroundColor: ['#238636', '#21262d'],
+                        borderColor: ['#2ea043', '#30363d'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+                            titleColor: '#c9d1d9', bodyColor: '#c9d1d9',
+                            padding: 10, cornerRadius: 6,
+                            callbacks: {
+                                label: function(c) { return c.label + ': ' + fmtNum(c.raw) + ' bytes'; }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function syncSortArrows() {
@@ -1910,7 +1993,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 });
             }
 
-            document.getElementById('func-count').textContent = filtered.length + ' / ' + funcs.length + ' functions';
+            document.getElementById('func-count').textContent = filtered.length + ' / ' + funcs.length + ' funcs';
 
             var html = '';
             for (var i = 0; i < filtered.length; i++) {
@@ -1922,52 +2005,16 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                         ? '<button class="score-btn" data-unit="' + escHtml(currentUnitName) + '" data-func="' + escHtml(f.name) + '" onclick="scoreFunction(this)" title="Run objdiff to compute match%">&#x25B6; Score</button>'
                         : '<span class="pct-none">\u2014</span>');
 
-                // Equivalence coverage
-                var covDisplay = '<span class="pct-none">\u2014</span>';
-                if (f.equiv_coverage !== null && f.equiv_coverage !== undefined) {
-                    var covClass = f.equiv_coverage >= 90 ? 'high' : (f.equiv_coverage >= 60 ? 'ok' : (f.equiv_coverage >= 30 ? 'warn' : 'low'));
-                    covDisplay = '<span class="equiv-cov-bar">' +
-                        '<span class="equiv-cov-track"><span class="equiv-cov-fill ' + covClass + '" style="width:' + f.equiv_coverage + '%"></span></span>' +
-                        '<span class="equiv-cov-text" style="color:' + matchColor(f.equiv_coverage) + '">' + f.equiv_coverage.toFixed(1) + '%</span></span>';
-                }
-
-                // Equivalence confidence
-                var confDisplay = '<span class="pct-none">\u2014</span>';
-                if (f.equiv_confidence) {
-                    confDisplay = '<span class="equiv-confidence ' + f.equiv_confidence + '">' + f.equiv_confidence + '</span>';
-                }
-
-                // Equivalence class
-                var classDisplay = '<span class="pct-none">\u2014</span>';
-                if (f.equiv_class) {
-                    classDisplay = '<span class="equiv-badge ' + f.equiv_class + '">' + f.equiv_class + '</span>';
-                }
-
-                // Snapshot verification
-                var snapDisplay = '<span class="pct-none">\u2014</span>';
-                if (f.snapshot_passed !== null && f.snapshot_passed !== undefined) {
-                    snapDisplay = f.snapshot_passed
-                        ? '<span class="equiv-confidence high" style="background:#2ea043">passed</span>'
-                        : '<span class="equiv-confidence low" style="background:#da3633">failed</span>';
-                }
-
-                // Snapshot coverage
-                var snapCovDisplay = '<span class="pct-none">\u2014</span>';
-                if (f.snapshot_coverage !== null && f.snapshot_coverage !== undefined) {
-                    var snapCovClass = f.snapshot_coverage >= 90 ? 'high' : (f.snapshot_coverage >= 60 ? 'ok' : (f.snapshot_coverage >= 30 ? 'warn' : 'low'));
-                    snapCovDisplay = '<span class="equiv-cov-bar">' +
-                        '<span class="equiv-cov-track"><span class="equiv-cov-fill ' + snapCovClass + '" style="width:' + f.snapshot_coverage + '%"></span></span>' +
-                        '<span class="equiv-cov-text" style="color:' + matchColor(f.snapshot_coverage) + '">' + f.snapshot_coverage.toFixed(1) + '%</span></span>';
-                }
-
-                var runtimeDisplay = '<span class="pct-none">—</span>';
-                if (f.runtime_oracle_tested) {
-                    var runtimeTitle = 'Runtime oracle';
-                    if (f.runtime_oracle_run_id) runtimeTitle += ' run ' + f.runtime_oracle_run_id;
-                    if (f.runtime_oracle_finished_utc) runtimeTitle += ' at ' + f.runtime_oracle_finished_utc;
-                    runtimeDisplay = f.runtime_oracle_passed
-                        ? '<span class="equiv-confidence runtime" title="' + escHtml(runtimeTitle) + '">passed</span>'
-                        : '<span class="equiv-confidence weak" title="' + escHtml(runtimeTitle) + '">failed</span>';
+                var vStatus = '<span class="pct-none">—</span>';
+                if (isVerified(f)) {
+                    var reasons = [];
+                    if (f.match_percent != null && f.match_percent >= 90) reasons.push('VC71 ' + f.match_percent.toFixed(0) + '%');
+                    if (f.equiv_confidence === 'high') reasons.push('Equiv');
+                    if (f.snapshot_passed === true) reasons.push('Snap');
+                    if (f.runtime_oracle_passed === true) reasons.push('Oracle');
+                    vStatus = '<span class="func-status ported" title="' + escHtml(reasons.join(', ')) + '">✓ ' + reasons[0] + '</span>';
+                } else if (f.ported) {
+                    vStatus = '<span class="func-status unported">pending</span>';
                 }
 
                 html += '<tr>' +
@@ -1976,12 +2023,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<td class="num">' + fmtNum(f.size) + '</td>' +
                     '<td class="num">' + statusBadge(f.ported) + '</td>' +
                     '<td class="num">' + matchDisplay + '</td>' +
-                    '<td class="num">' + covDisplay + '</td>' +
-                    '<td class="num">' + confDisplay + '</td>' +
-                    '<td>' + classDisplay + '</td>' +
-                    '<td class="num">' + snapDisplay + '</td>' +
-                    '<td class="num">' + snapCovDisplay + '</td>' +
-                    '<td class="num">' + runtimeDisplay + '</td>' +
+                    '<td class="num">' + vStatus + '</td>' +
                 '</tr>';
             }
             document.getElementById('func-table-body').innerHTML = html;
@@ -1994,18 +2036,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 case 2: return func.size;
                 case 3: return func.ported ? 1 : 0;
                 case 4: return func.match_percent !== null && func.match_percent !== undefined ? func.match_percent : -1;
-                case 5: return func.equiv_coverage !== null && func.equiv_coverage !== undefined ? func.equiv_coverage : -1;
-                case 6: {
-                    var conf = func.equiv_confidence;
-                    if (conf === 'high') return 3;
-                    if (conf === 'moderate') return 2;
-                    if (conf === 'low') return 1;
-                    return 0;
-                }
-                case 7: return func.equiv_class || '';
-                case 8: return func.snapshot_passed === true ? 1 : (func.snapshot_passed === false ? 0 : -1);
-                case 9: return func.snapshot_coverage !== null && func.snapshot_coverage !== undefined ? func.snapshot_coverage : -1;
-                case 10: return func.runtime_oracle_passed === true ? 1 : (func.runtime_oracle_tested ? 0 : -1);
+                case 5: return isVerified(func) ? 1 : (func.ported ? 0 : -1);
                 default: return '';
             }
         }
@@ -2178,7 +2209,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var resizeTimer = null;
             window.addEventListener('resize', function() {
                 clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(renderAddrStrip, 200);
+                resizeTimer = setTimeout(function() { renderAddrStrip(); renderTreemap(); }, 200);
             });
         });
 
