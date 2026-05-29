@@ -8062,7 +8062,9 @@
         },
         {
           "addr": "0xa99a0",
-          "decl": "void game_engine_player_get_change_color(void);"
+          "decl": "float *game_engine_player_get_change_color(float *param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9a30",
@@ -8490,7 +8492,9 @@
         },
         {
           "addr": "0xad9b0",
-          "decl": "void game_engine_get_distance_rating_for_spawn(void);"
+          "decl": "float game_engine_get_distance_rating_for_spawn(int param_1, float *param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xadb20",
@@ -8586,7 +8590,9 @@
         },
         {
           "addr": "0xafdf0",
-          "decl": "void FUN_000afdf0(void);"
+          "decl": "void FUN_000afdf0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xafe50",
