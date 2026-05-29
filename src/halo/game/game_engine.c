@@ -7484,6 +7484,22 @@ void FUN_000b09e0(int player_handle, int weapon_handle)
   }
 }
 
+/* Oddball: reset ball to a new spawn position (b3020). EDI = weapon_handle. */
+void FUN_000b3020(int weapon_handle)
+{
+  int weapon;
+  int variant;
+  int position[3];
+
+  weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+  FUN_000b2d30(position, (int)*(int16_t *)(weapon + 0x68));
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x60) < 3)
+    game_engine_post_event(0x1e);
+  FUN_000ab510(weapon_handle, (int)position);
+  *(uint32_t *)(weapon + 0x1dc) &= 0xffffffbf;
+}
+
 /* Oddball: update weapon tracking for a player (b3090). EDI = player_handle. */
 void FUN_000b3090(int player_handle)
 {
