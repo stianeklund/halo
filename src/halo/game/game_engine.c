@@ -6111,3 +6111,61 @@ int FUN_000abd20(int *param_1, int param_2, char param_3)
   }
   return count;
 }
+
+/* Get the local player's stat entry from the sorted buffer. */
+void FUN_000abf50(int *param_1, int player_handle)
+{
+  int i;
+  int *src;
+  int *dst;
+  int local_1c4[112];
+
+  i = 0;
+  FUN_000abd20(local_1c4, 0, 0);
+  if (local_1c4[0] != player_handle) {
+    src = local_1c4;
+    do {
+      i++;
+      src += 7;
+      if (0xf < i) {
+        display_assert("place<MULTIPLAYER_MAXIMUM_PLAYERS",
+                       "c:\\halo\\SOURCE\\game\\game_engine.c", 0x359, 1);
+        system_exit(-1);
+      }
+    } while (*src != player_handle);
+  }
+  src = local_1c4 + i * 7;
+  dst = param_1;
+  { int n;
+  for (n = 7; n != 0; n--) {
+    *dst = *src;
+    src++;
+    dst++;
+  } }
+}
+
+/* Get the place rating for a player relative to others. */
+int FUN_000abfd0(int param_1, int param_2, int param_3)
+{
+  int count;
+  int place;
+  int *entry;
+  int i;
+  int local_1c4[112];
+
+  count = FUN_000abd20(local_1c4, param_2, param_3);
+  place = 0;
+  if (local_1c4[0] != param_1 && count > 1) {
+    i = 1;
+    entry = local_1c4 + 7;
+    do {
+      if (entry[-7] != *entry)
+        place++;
+      if (entry[-1] == param_1)
+        return place;
+      i++;
+      entry += 7;
+    } while (i < count);
+  }
+  return place;
+}
