@@ -721,6 +721,40 @@ void actor_action_change(int actor_handle, int new_action_type, int param_3)
   }
 }
 
+/* actor_action_try_to_seek_cover (0x1d350) — Attempt to make the actor seek
+ * cover. Gets actor+0x270 as param_2 for FUN_00015040, then calls
+ * actor_action_change with action 4 if successful. */
+char actor_action_try_to_seek_cover(int actor_handle, char param_2, char param_3)
+{
+  char *actor;
+  char cVar1;
+  short local_88[66];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  cVar1 = FUN_00015040(actor_handle, 0, *(int *)(actor + 0x270), 0, param_2, param_3, local_88);
+  if (cVar1 != '\0') {
+    actor_action_change(actor_handle, 4, (int)local_88);
+    return 1;
+  }
+  return 0;
+}
+
+/* FUN_0001d3c0 (0x1d3c0) — Attempt to make the actor seek cover with explicit
+ * parameters. Calls FUN_00015040 with param_2/param_3/param_4 and no actor
+ * lookup, then actor_action_change with action 4 if successful. */
+char FUN_0001d3c0(int actor_handle, short param_2, int param_3, char param_4)
+{
+  char cVar1;
+  short local_88[66];
+
+  cVar1 = FUN_00015040(actor_handle, param_2, param_3, param_4, 0, 0, local_88);
+  if (cVar1 != '\0') {
+    actor_action_change(actor_handle, 4, (int)local_88);
+    return 1;
+  }
+  return 0;
+}
+
 /* actor_action_name (0x1d5c0) — action_type_get_name
  *
  * Returns the name string for a given action type index from the
@@ -735,6 +769,17 @@ const char *actor_action_name(int16_t action_type)
   const char *name = (const char *)0x254608;
   if (action_type >= 0 && action_type < 0xe) {
     name = *(const char **)(0x253fa4 + action_type * 0x38);
+  }
+  return name;
+}
+
+/* actor_mode_name (0x1d5f0) — Returns the name string for a given actor mode
+ * index. Returns "unknown" if out of range [0, 4). Lookup table at 0x2c8510. */
+const char *actor_mode_name(int16_t param_1)
+{
+  const char *name = (const char *)0x254608;
+  if (param_1 >= 0 && param_1 < 4) {
+    name = *(const char **)(0x2c8510 + param_1 * 4);
   }
   return name;
 }
@@ -777,6 +822,14 @@ short actor_action_get_default_state(short param_1)
   if (param_1 < 0 || param_1 >= 12)
     return 0;
   return *(short *)(0x254300 + (int)param_1 * 2);
+}
+
+/* set_real_vector2d (0x1d760) — Store two float values into a 2D vector
+ * output pointer. */
+void set_real_vector2d(float *out, float x, float y)
+{
+  out[0] = x;
+  out[1] = y;
 }
 
 /* actor_action_handle_initial_action (0x1dab0)
