@@ -7500,6 +7500,45 @@ void FUN_000b3020(int weapon_handle)
   *(uint32_t *)(weapon + 0x1dc) &= 0xffffffbf;
 }
 
+/* Per-player vehicle target tracking update (ac3e0). EAX = player_handle. */
+void FUN_000ac3e0(int player_handle)
+{
+  int player;
+  int target;
+  wchar_t target_name[12];
+
+  player = (int)datum_get(player_data, player_handle);
+  target = -1;
+  if (*(int16_t *)(player + 2) != -1 && *(int *)(player + 0x34) != -1) {
+    target = FUN_000ac220(player_handle);
+    if (target == player_handle)
+      target = -1;
+  }
+  if (*(int *)(player + 0x7c) == target) {
+    if (*(int *)(player + 0x80) < 0xf)
+      *(int *)(player + 0x80) = *(int *)(player + 0x80) + 1;
+  } else {
+    if (0 < *(int *)(player + 0x80))
+      *(int *)(player + 0x80) = *(int *)(player + 0x80) - 1;
+    if (*(int *)(player + 0x80) == 0)
+      *(int *)(player + 0x7c) = target;
+  }
+  if (*(int *)(player + 0x7c) != -1) {
+    int target_player;
+    int hold_time;
+
+    target_player = (int)datum_get(player_data, *(int *)(player + 0x7c));
+    hold_time = *(int *)(player + 0x80);
+    csmemset(target_name, 0, sizeof(target_name));
+    if (9 < hold_time)
+      hold_time = 10;
+    ((void (*)(wchar_t *, wchar_t *, int))ustrncpy)(target_name, (wchar_t *)(target_player + 4), 11);
+    target_name[11] = 0;
+    { float alpha = (float)game_globals_get_weapon((float)hold_time * *(float *)0x253398);
+    ((void (*)(wchar_t *, float))game_engine_rasterize_message)(target_name, alpha); }
+  }
+}
+
 /* Oddball: update weapon tracking for a player (b3090). EDI = player_handle. */
 void FUN_000b3090(int player_handle)
 {
