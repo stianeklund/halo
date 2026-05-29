@@ -6030,7 +6030,7 @@
         },
         {
           "addr": "0x17ca50",
-          "decl": "void FUN_0017ca50(void);",
+          "decl": "void FUN_0017ca50(short *p0, short *p1, float *color0, float *color1);",
           "ported": true
         },
         {
@@ -6543,7 +6543,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6604,7 +6604,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -11357,7 +11357,7 @@
         },
         {
           "addr": "0xd1dd0",
-          "decl": "void FUN_000d1dd0(void);"
+          "decl": "unsigned int FUN_000d1dd0(float *color);"
         },
         {
           "addr": "0xd1e90",
@@ -18479,7 +18479,8 @@
         },
         {
           "addr": "0x15abe0",
-          "decl": "void FUN_0015abe0(void);"
+          "decl": "void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1);",
+          "ported": true
         },
         {
           "addr": "0x15acc0",
@@ -33832,6 +33833,14 @@
         {
           "addr": "0x1ed2c0",
           "decl": "void __stdcall D3DDevice_SetVertexData4f(uint32_t reg, float a, float b, float c, float d);"
+        },
+        {
+          "addr": "0x1ed320",
+          "decl": "void __stdcall D3DDevice_SetVertexData2s(unsigned int reg, int a, int b);"
+        },
+        {
+          "addr": "0x1ed400",
+          "decl": "void __stdcall D3DDevice_SetVertexDataColor(unsigned int reg, unsigned int color);"
         },
         {
           "addr": "0x1ed450",
