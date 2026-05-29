@@ -8059,6 +8059,154 @@ void FUN_000b0c10(int weapon_handle, int weapon_obj)
   }
 }
 
+/* CTF: initialize CTF game mode — find flags, create weapons, validate (b05c0). */
+int FUN_000b05c0(void)
+{
+  int variant;
+  int scenario;
+  int flag_idx;
+  int team;
+  uint32_t slot;
+  int16_t rng;
+  int weapon;
+  int weapon_obj;
+  int16_t loc_count;
+  int loc_idx;
+  float *loc_pos;
+  float *flag_pos;
+  float *other_pos;
+  float dist_own;
+  float dist_enemy;
+  uint32_t own_team;
+  uint32_t enemy_team;
+  int16_t loc_team;
+  char placement[0x88];
+
+  variant = (int)game_engine_get_variant();
+  if (*(char *)(variant + 0x1c) == 0)
+    error(2, "ctf started up without teams");
+  csmemset((void *)0x456b74, 0, 0x30);
+  *(int *)0x456b7c = -1;
+  *(int *)0x456b80 = -1;
+  *(int *)0x5aa744 = 0x3c;
+  scenario = (int)global_scenario_get();
+  team = 0;
+  do {
+    flag_idx = find_netgame_flag(0, 0, 0, 0, team);
+    *(int *)(0x456b84 + team * 4) = 0;
+    variant = (int)game_engine_get_variant();
+    slot = team;
+    if (*(char *)(variant + 0x4c) != 0) {
+      slot = (team + 1) & 0x80000001;
+      if ((int)slot < 0)
+        slot = (slot - 1 | 0xfffffffe) + 1;
+    }
+    *(int *)(0x456b74 + slot * 4) = 0;
+    if (flag_idx != -1)
+      *(int *)(0x456b74 + slot * 4) = (int)tag_block_get_element((int *)(scenario + 0x378), flag_idx, 0x94);
+    if (*(int *)(0x456b74 + slot * 4) == 0)
+      error(2, "failed to find one of the ctf flags");
+    team++;
+  } while (team < 2);
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x50) < 1) {
+    team = 0;
+    do {
+      if (*(int *)(0x456b74 + team * 4) != 0) {
+        int tag_idx = get_flag_definition_index();
+        object_placement_data_new(placement, tag_idx, -1);
+        *(int *)(placement + 0x1c) = *(int *)*(int *)(0x456b74 + team * 4);
+        *(int *)(placement + 0x20) = ((int *)*(int *)(0x456b74 + team * 4))[1];
+        *(int *)(placement + 0x24) = ((int *)*(int *)(0x456b74 + team * 4))[2];
+        weapon = object_new(placement);
+        object_set_automatic_deactivation(weapon, 0);
+        if (weapon == -1) {
+          display_assert("NONE != weapon_index", "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0xbc, 1);
+          system_exit(-1);
+          error(2, "failed to create the flag");
+        } else {
+          weapon_obj = (int)object_get_and_verify_type(weapon, 4);
+          *(int16_t *)(weapon_obj + 0x68) = (int16_t)team;
+          *(int *)(0x456b7c + team * 4) = weapon;
+        }
+      }
+      team++;
+    } while (team < 2);
+  } else {
+    { unsigned int *seed = (unsigned int *)get_global_random_seed_address();
+    rng = random_range(seed, 0, 2); }
+    if ((int)rng < 0 || 1 < (int)rng) {
+      display_assert("(flag_to_create >= 0) && (flag_to_create <= 1)",
+                     "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x106, 1);
+      system_exit(-1);
+    }
+    if (*(int *)(0x456b74 + (int)rng * 4) != 0) {
+      weapon = FUN_000afe50((float *)*(int *)(0x456b74 + (int)rng * 4));
+      if (weapon == -1) {
+        display_assert("NONE != weapon_index", "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0xbc, 1);
+        system_exit(-1);
+        error(2, "failed to create the flag");
+      } else {
+        weapon_obj = (int)object_get_and_verify_type(weapon, 4);
+        *(int16_t *)(weapon_obj + 0x68) = rng;
+        *(int *)(0x456b7c + (int)rng * 4) = weapon;
+      }
+    }
+    { uint32_t t0 = (int)rng & 0x80000001;
+    if ((int)t0 < 0) t0 = (t0 - 1 | 0xfffffffe) + 1;
+    game_show_score_team(t0, 0x2d); }
+    { uint32_t t1 = ((int)rng + 1) & 0x80000001;
+    if ((int)t1 < 0) t1 = (t1 - 1 | 0xfffffffe) + 1;
+    game_show_score_team(t1, 0x2c); }
+    variant = (int)game_engine_get_variant();
+    *(int *)0x456b9c = *(int *)(variant + 0x50);
+  }
+  variant = (int)game_engine_get_variant();
+  *(int *)0x456b8c = *(int *)(variant + 0x40);
+  loc_count = ((int16_t (*)(void))player_get_starting_location_count)();
+  loc_idx = 0;
+  if (0 < loc_count) {
+    team = 0;
+    do {
+      loc_pos = (float *)((int (*)(int))player_get_starting_location)(loc_idx);
+      loc_team = *(int16_t *)(loc_pos + 4);
+      if (loc_team == 0 || loc_team == 1) {
+        if (match_game_type(1, 4, (int16_t *)(loc_pos + 5))) {
+          variant = (int)game_engine_get_variant();
+          own_team = (int)loc_team & 0x80000001;
+          if ((int)own_team < 0) own_team = (own_team - 1 | 0xfffffffe) + 1;
+          flag_pos = (float *)*(int *)(0x456b74 + own_team * 4);
+          enemy_team = (own_team + 1) & 0x80000001;
+          dist_own = (loc_pos[2] - flag_pos[2]) * (loc_pos[2] - flag_pos[2]) +
+                     (loc_pos[0] - flag_pos[0]) * (loc_pos[0] - flag_pos[0]) +
+                     (loc_pos[1] - flag_pos[1]) * (loc_pos[1] - flag_pos[1]);
+          if ((int)enemy_team < 0) enemy_team = (enemy_team - 1 | 0xfffffffe) + 1;
+          other_pos = (float *)*(int *)(0x456b74 + enemy_team * 4);
+          dist_enemy = (loc_pos[0] - other_pos[0]) * (loc_pos[0] - other_pos[0]) +
+                       (loc_pos[1] - other_pos[1]) * (loc_pos[1] - other_pos[1]) +
+                       (loc_pos[2] - other_pos[2]) * (loc_pos[2] - other_pos[2]);
+          if (*(char *)(variant + 0x4c) == 0) {
+            if (dist_own >= dist_enemy && dist_own != dist_enemy) {
+              error(2, "NETGAME_FLAG_WARNING starting location %d team %d, too close to enemy flag",
+                    team, (int)loc_team);
+              *(int16_t *)(loc_pos + 4) = 3;
+            }
+          } else if (dist_own < dist_enemy) {
+            error(2, "NETGAME_FLAG_WARNING starting location %d team %d, too close to enemy flag",
+                  team, (int)loc_team);
+            *(int16_t *)(loc_pos + 4) = 3;
+          }
+        }
+      } else {
+        error(2, "NETGAME_FLAG_WARNING starting location %d bad team index %d", team, (int)loc_team);
+      }
+      loc_idx++;
+      team++;
+    } while ((int16_t)loc_idx < loc_count);
+  }
+  return 1;
+}
+
 /* Validate netgame flag starting locations for a game type (aa0b0). BX = type. */
 void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_type)
 {
