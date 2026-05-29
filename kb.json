@@ -30849,11 +30849,13 @@
         },
         {
           "addr": "0x5ad60",
-          "decl": "void encounter_set_blind(void);"
+          "decl": "void encounter_set_blind(int encounter_handle, char param_2);",
+          "ported": true
         },
         {
           "addr": "0x5ad90",
-          "decl": "void encounter_set_deaf(void);"
+          "decl": "void encounter_set_deaf(int encounter_handle, char param_2);",
+          "ported": true
         },
         {
           "addr": "0x5adc0",
@@ -30903,11 +30905,13 @@
         },
         {
           "addr": "0x5ba70",
-          "decl": "void encounter_force_activate(void);"
+          "decl": "void encounter_force_activate(int encounter_handle);",
+          "ported": false
         },
         {
           "addr": "0x5baa0",
-          "decl": "void encounter_force_deactivate(void);"
+          "decl": "void encounter_force_deactivate(int encounter_handle);",
+          "ported": false
         },
         {
           "addr": "0x5bad0",

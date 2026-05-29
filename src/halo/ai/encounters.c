@@ -3184,6 +3184,26 @@ void FUN_0005acf0(int encounter_handle)
   }
 }
 
+/* encounter_set_blind (0x5ad60) — Set the blind flag for an encounter. */
+void encounter_set_blind(int encounter_handle, char param_2)
+{
+  char *encounter;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    *(char *)(encounter + 0x40) = param_2;
+  }
+}
+
+/* encounter_set_deaf (0x5ad90) — Set the deaf flag for an encounter. */
+void encounter_set_deaf(int encounter_handle, char param_2)
+{
+  char *encounter;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    *(char *)(encounter + 0x41) = param_2;
+  }
+}
+
 /* 0x5adc0 — encounter_squad_delay_timer_finished.
  * Called when a squad's delay timer expires (count < 0x10 ticks).
  * Resets the squad's delay counter to 0, then optionally triggers
@@ -3480,6 +3500,26 @@ void encounters_initialize_for_new_map(void)
                    &platoon_counter);
     }
   }
+}
+
+/* encounter_force_activate (0x5ba70) — Force an encounter active by setting
+ * the respawn timer to 150 ticks and calling the activation handler. */
+void encounter_force_activate(int encounter_handle)
+{
+  char *encounter;
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  *(int16_t *)(encounter + 0xe) = 0x96;
+  FUN_0005a4e0(encounter_handle);
+}
+
+/* encounter_force_deactivate (0x5baa0) — Force an encounter inactive by setting
+ * the respawn timer to 0 and calling the deactivation handler. */
+void encounter_force_deactivate(int encounter_handle)
+{
+  char *encounter;
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  *(int16_t *)(encounter + 0xe) = 0;
+  FUN_0005a640(encounter_handle);
 }
 
 /* 0x0005b2a0 — encounter_increment_unit_tally (encounters_unit_died).
