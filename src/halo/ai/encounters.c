@@ -1640,6 +1640,38 @@ void FUN_000587d0(int param_1, int param_2)
   }
 }
 
+/* 0x00058860 — FUN_00058860 (encounter_set_team).
+ *
+ * Sets the team field (offset +2) of the encounter datum, then iterates
+ * over all actors in the encounter and updates each actor's team via
+ * actor_set_team.  Finishes with ai_update_team_status to recalculate
+ * global team allegiance state.
+ *
+ * Confirmed:
+ *   - param_1 = encounter handle (int), masked to 16-bit index for datum_get.
+ *   - param_2 = team value (int); low 16 bits stored to encounter datum +0x2.
+ *   - datum_get(*(data_t**)0x5ab270, handle & 0xffff) returns encounter datum.
+ *   - encounter_actor_iterator_new/next iterate actors in the encounter.
+ *   - iter[1] holds current actor handle after _next returns non-zero.
+ *   - actor_set_team(iter[1], param_2) sets each actor's team.
+ *   - ai_update_team_status() recalculates team status afterwards.
+ */
+void FUN_00058860(int encounter_handle, int team)
+{
+  int iter[3];
+  char *encounter;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, (int)(encounter_handle & 0xffff));
+  *(short *)(encounter + 2) = (short)team;
+  encounter_actor_iterator_new(iter, (int)(encounter_handle & 0xffff));
+  if (encounter_actor_iterator_next(iter)) {
+    do {
+      actor_set_team(iter[1], (int16_t)team);
+    } while (encounter_actor_iterator_next(iter));
+  }
+  ai_update_team_status();
+}
+
 /* 0x00058970 — ai_magically_see_encounter (FUN_00058970).
  *
  * Makes all actors in param_1 encounter "magically see" the units/vehicles
@@ -2079,7 +2111,7 @@ int encounter_get_by_name(char *name)
  *   ESI+0x0 : param_2 (clump_handle)
  *   ESI+0x4 : 0xffffffff (-1)
  *   ESI+0x8 : encounter->field_0x14 OR ai_globals->field_8 */
-void encounter_actor_iterator_new(int *iter, int clump_handle)
+__declspec(noinline) void encounter_actor_iterator_new(int *iter, int clump_handle)
 {
   char *encounter;
   char *ai_globals;
@@ -2112,7 +2144,7 @@ void encounter_actor_iterator_new(int *iter, int clump_handle)
  *   PUSH EDX ([0x6325a4])          → datum_get arg1  YES
  *   MOV ECX,[EAX+0x2c]             → actor->next_member  YES
  *   MOV [ESI+0x8],ECX              → iter[2]         YES */
-int encounter_actor_iterator_next(int *iter)
+__declspec(noinline) int encounter_actor_iterator_next(int *iter)
 {
   int handle;
   char *actor;
@@ -2605,6 +2637,53 @@ char FUN_0005a4e0(int encounter_index /* @<eax> */)
   }
 
   return *(char *)(encounter + 0xd);
+}
+
+/* 0x5a5a0 — encounter_link_activation.
+ * Links two encounters by adding link_encounter_index to the encounter's
+ * link array (up to 3 entries at encounter+0x22, count at encounter+0x20).
+ * Returns 1 if the link already exists or was successfully added.
+ * Returns 0 if the link array is full (3 entries).
+ *
+ * Confirmed: datum_get(encounter_data, encounter_handle) at 0x5a5b1.
+ * Confirmed: global_scenario_get()->ai_encounters.count at +0x42c.
+ * Confirmed: display_assert + system_exit(-1) at 0x5a5e9/0x5a5f0.
+ * Confirmed: link count at encounter+0x20, link array at encounter+0x22.
+ * Confirmed: max 3 links (CMP CX,3 at 0x5a614).
+ * Confirmed: return AL=1 at 0x5a628, AL=BL(0) at 0x5a62f.
+ */
+char encounter_link_activation(int encounter_handle, short link_encounter_index)
+{
+  char *encounter;
+  short count;
+  short i;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+
+  if (link_encounter_index < 0 ||
+      link_encounter_index >= *(int *)((char *)global_scenario_get() + 0x42c)) {
+    display_assert(
+      "(link_encounter_index >= 0) && (link_encounter_index < global_scenario_get()->ai_encounters.count)",
+      "c:\\halo\\SOURCE\\ai\\encounters.c", 0x77c, 1);
+    system_exit(-1);
+  }
+
+  count = *(short *)(encounter + 0x20);
+  i = 0;
+  if (i < count) {
+    do {
+      if (*(short *)(encounter + 0x22 + i * 2) == link_encounter_index)
+        return 1;
+      i++;
+    } while (i < *(short *)(encounter + 0x20));
+  }
+
+  if (count >= 3)
+    return 0;
+
+  *(short *)(encounter + 0x22 + count * 2) = link_encounter_index;
+  *(short *)(encounter + 0x20) = *(short *)(encounter + 0x20) + 1;
+  return 1;
 }
 
 /* 0x5a640 — encounter_deactivate.
