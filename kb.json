@@ -34659,7 +34659,8 @@
         },
         {
           "addr": "0x1d7d21",
-          "decl": "void FUN_001d7d21(void);"
+          "decl": "int __stdcall FUN_001d7d21(void *object_name_field);",
+          "ported": true
         },
         {
           "addr": "0x1d7d84",
