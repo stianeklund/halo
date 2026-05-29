@@ -1016,6 +1016,39 @@ void FUN_00057aa0(int encounter_handle, short state)
   }
 }
 
+/* FUN_00057bc0 — ai_status.
+ *
+ * Returns the maximum status level across all platoons in an encounter.
+ * If the AI trace flag (0x5aca59) is set, logs the thread name and encounter
+ * name. Then iterates platoons via FUN_00054680/FUN_00054750 and calls
+ * FUN_00057b40 for each actor to get individual status, tracking the maximum.
+ * 0x57bc0 / encounters.obj
+ */
+short FUN_00057bc0(int encounter_handle)
+{
+  char local_21c[512];
+  char local_1c[24];
+  scenario_t *scenario;
+  short max_status;
+  short status;
+
+  max_status = 0;
+  if (*(char *)0x5aca59) {
+    scenario = global_scenario_get();
+    FUN_00054220(encounter_handle, scenario, local_21c, 0x200);
+    error(2, "%s: ai_status %s",
+          hs_runtime_get_executing_thread_name(), local_21c);
+  }
+  FUN_00054680(encounter_handle, local_1c);
+  while (FUN_00054750(local_1c) != 0) {
+    status = (short)FUN_00057b40(*(int *)(local_1c + 0x10));
+    if (max_status <= status) {
+      max_status = status;
+    }
+  }
+  return max_status;
+}
+
 /* FUN_00057c60 — empty stub. 0x57c60 / encounters.obj */
 void FUN_00057c60(void)
 {
