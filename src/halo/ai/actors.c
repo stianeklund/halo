@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* Check if an actor has a swarm component or its unit is in a vehicle seat. */
 int FUN_0002a360(int actor_handle)
 {
@@ -14,6 +16,61 @@ void FUN_00036860(int actor_handle)
 {
   char *actor = (char *)datum_get(actor_data, actor_handle);
   csmemset(actor + 0x2ec, 0, 0x64);
+}
+
+/* 0x36890 — Post a movement directive to an actor's directive fields
+ * (actor+0x312..0x348). Updates the actor's priority and position-pair
+ * directive only if the actor state (actor+0x6a) is below 3 AND the incoming
+ * priority is >= the current stored priority. position_a and position_b may
+ * independently be NULL; the corresponding valid flag byte is cleared when NULL
+ * is passed. Confirmed ABI: actor_handle @<eax>, position_a @<ecx> (float[3] or
+ * NULL), priority @<edx> (short), position_b @<ebx> (float[3] or NULL), plus 6
+ * cdecl stack args.
+ */
+void FUN_00036890(int actor_handle, int *position_a, short priority,
+                  int *position_b, int param5, int param6, int param7,
+                  int param8, int param9, char param10)
+{
+  int actor;
+  float *pa;
+  float *pb;
+
+  actor = (int)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x6a) >= 3) {
+    return;
+  }
+  if (priority < *(short *)(actor + 0x312)) {
+    return;
+  }
+
+  *(short *)(actor + 0x312) = priority;
+
+  pa = (float *)position_a;
+  if (pa == (float *)0) {
+    *(char *)(actor + 0x314) = 0;
+  } else {
+    *(char *)(actor + 0x314) = 1;
+    *(float *)(actor + 0x318) = pa[0];
+    *(float *)(actor + 0x31c) = pa[1];
+    *(float *)(actor + 0x320) = pa[2];
+    *(int *)(actor + 0x324) = param5;
+    *(int *)(actor + 0x328) = param6;
+  }
+
+  pb = (float *)position_b;
+  if (pb == (float *)0) {
+    *(char *)(actor + 0x32c) = 0;
+  } else {
+    *(char *)(actor + 0x32c) = 1;
+    *(float *)(actor + 0x330) = pb[0];
+    *(float *)(actor + 0x334) = pb[1];
+    *(float *)(actor + 0x338) = pb[2];
+  }
+
+  *(int *)(actor + 0x33c) = param7;
+  *(int *)(actor + 0x340) = param8;
+  *(int *)(actor + 0x344) = param9;
+  *(char *)(actor + 0x348) = param10;
 }
 
 /* FUN_00036960 (0x36960) — post direction/position stimulus at a given
@@ -111,7 +168,6 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
   }
 }
 
-
 /* FUN_00036a90 (0x36a90) — actor seek-prop approach: record timestamp,
  * find pathfinding location, post priority-2 move stimulus toward prop+0xf0.
  * Stack args to FUN_00036890: prop->0xec, 1.5, prop_handle, 90, 90, 1. */
@@ -141,7 +197,6 @@ void FUN_00036b10(int actor_handle, int prop_handle)
   FUN_00036890(actor_handle, NULL, 6, (int *)(prop + 0xe0), -1, 0, 0x5a,
                prop_handle, 0x96, 0);
 }
-
 
 /*
  * FUN_00036b50 — trigger a swarm damage/retreat reaction.
@@ -277,7 +332,6 @@ exit_look:
   *(int *)&look_buf[2] = prop_handle;
   FUN_00027a60(actor_handle, 7, 1, look_buf);
 }
-
 
 /* 0x36da0 — Set actor stimulus-received flag at offset +0x2f0 to 1. */
 void FUN_00036da0(int actor_handle)
@@ -1476,6 +1530,316 @@ shared_tail:
   actor_action_handle_combat_status(actor_handle, 1, 1);
 }
 
+/*
+ * FUN_00038370 (0x38370) — flood actor crouch evaluation.
+ * Source: c:\halo\SOURCE\ai\actor_type_flood.c
+ *
+ * Decides whether a flood combat-form actor should crouch or stand.
+ *
+ * On first call (actor+0x362 == 0): uses the actv tag's base probability,
+ * adjusted by ally crouch/stand counts, compares against a random roll,
+ * and sets should_crouch (actor+0x363) accordingly.
+ *
+ * On subsequent calls (actor+0x362 != 0): manages a switching timer
+ * (actor+0x366) and a change timer (actor+0x364). When both expire and
+ * spatial conditions favour a change (based on dot-product classification
+ * of nearby crouching allies relative to the target direction), the crouch
+ * state is toggled and the change timer is reset via random_real_range,
+ * floored by DAT_00256834, then written to actor+0x364. The switching timer
+ * is reset to 30 (0x1e) ticks.
+ *
+ * Returns: actor+0x363 (should_crouch flag) on the path that updates state;
+ *          1 if the actor is busy or has too little health (early exits);
+ *          0 if ammunition or range conditions are not met.
+ *
+ * Confirmed callers: (none yet identified)
+ */
+char FUN_00038370(int actor_handle)
+{
+  char *actor;
+  char *actv_tag;
+  char *firing_variant;
+  char *prop;
+  char *unit;
+  char *ally_actor;
+  int prop_handle;
+  short switching_timer;
+  short change_timer;
+  char should_crouch;
+  int iter[2]; /* 8-byte iterator state at EBP-0x18 */
+  float vec_result[3]; /* subtract result at EBP-0x24, EBP-0x20, EBP-0x1c */
+  int ahead_count;
+  int behind_count;
+  int lateral_count;
+  float base_prob;
+  int *seed;
+  float timer_f;
+  float dot;
+  int stand_count;
+  int crouching_count;
+  int ally;
+  char bVar10;
+  float fmin;
+  float fmax;
+  float rval;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  firing_variant = actor_combat_get_firing_variant_definition(actor_handle);
+
+  /* Early exit: actor is busy or in flood-specific suppressed state */
+  if (unit_is_busy(*(int *)(actor + 0x18)) || FUN_0002a3d0(actor_handle)) {
+    *(char *)(actor + 0x362) = 0;
+    return 1;
+  }
+
+  /* Early exit: not enough health ticks */
+  if (*(short *)(actor + 0x6a) < 3) {
+    *(char *)(actor + 0x362) = 0;
+    return 1;
+  }
+
+  /* Early exit: not enough ammo */
+  if (*(short *)(actor + 0x6e) < 5) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+
+  unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+
+  prop_handle = *(int *)(actor + 0x270);
+  if (prop_handle == -1) {
+    prop = 0;
+  } else {
+    prop = (char *)datum_get(prop_data, prop_handle);
+  }
+
+  /* Flood carrier/infection form check: weapon type 0x17 without burst state */
+  if (*(char *)(unit + 0x253) == 0x17 && *(char *)(actor + 0x378) == 0) {
+    *(char *)(actor + 0x362) = 0;
+    return 1;
+  }
+
+  /* Target range checks */
+  if (prop != 0 &&
+      *(float *)(firing_variant + 0x74) < *(float *)(prop + 0x11c)) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+  if (*(char *)(actor + 0x378) != 0 && prop != 0 &&
+      *(float *)(firing_variant + 0x16c) < *(float *)(prop + 0x11c)) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+
+  /* Weapon carry-flag check (bit 7 of unit+0xb6) */
+  if (*(char *)(unit + 0xb6) < 0) {
+    *(char *)(actor + 0x362) = 0;
+    return 1;
+  }
+
+  /* Ranged weapon / state / burst checks */
+  if (*(char *)(actor + 0x378) != 0) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+  if (*(short *)(actor + 0x6c) == 10 &&
+      (*(short *)(actor + 0xa0) == 2 || *(short *)(actor + 0xa0) == 3)) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+  if (!actor_has_ranged_weapon(actor_handle)) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+  if (*(char *)(actor + 0x15d) != 0) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+
+  /* actv tag crouch count == 0: skip entirely */
+  if (*(short *)(actv_tag + 0x4c) == 0) {
+    *(char *)(actor + 0x362) = 0;
+    return 0;
+  }
+  /* actv tag crouch count == 1: always reset and return "ok" */
+  if (*(short *)(actv_tag + 0x4c) == 1) {
+    *(char *)(actor + 0x362) = 0;
+    return 1;
+  }
+
+  /* Target max range check */
+  if (prop != 0 &&
+      *(float *)(prop + 0x11c) < *(float *)(firing_variant + 0xa0)) {
+    *(char *)(actor + 0x362) = 0;
+    return 1;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* State branch: not yet evaluated vs. already evaluated               */
+  /* ------------------------------------------------------------------ */
+  bVar10 = 0;
+  if (*(char *)(actor + 0x362) == 0) {
+    /* First evaluation: compute probability-adjusted base_prob */
+    base_prob = *(float *)(actv_tag + 0x50);
+
+    if (*(char *)(actor + 0x200) > 0) {
+      /* Count standing vs. crouching allies */
+      stand_count = 0;
+      crouching_count = 0;
+      FUN_00064540(iter, actor_handle);
+      ally = FUN_00064570(iter);
+      while (ally != 0) {
+        /* Filter: prop type 2 or 3, not dead, not jinking, has actor */
+        if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
+            *(char *)(ally + 0x60) == 0 && *(char *)(ally + 0x127) == 0 &&
+            *(int *)(ally + 0x1c) != -1) {
+          ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
+          /* Same team (short at +0x4 matches) and sufficient ammo */
+          if (*(short *)(ally_actor + 4) == *(short *)(actor + 4) &&
+              *(short *)(ally_actor + 0x6e) > 4) {
+            if (*(char *)(ally_actor + 0x358) == 0) {
+              stand_count++;
+            } else {
+              crouching_count++;
+            }
+          }
+        }
+        ally = FUN_00064570(iter);
+      }
+      /* Adjust probability:
+       * base_prob -= ((-base_prob * stand) +
+       *              (DAT_2533c8 - base_prob) * crouch) * DAT_253398 */
+      base_prob = base_prob - ((-base_prob * (float)stand_count) +
+                               (*(float *)0x002533c8 - base_prob) *
+                                 (float)crouching_count) *
+                                *(float *)0x00253398;
+    }
+
+    /* FCOMP [base_prob]: C0=1 if rval < base_prob → JP not taken → bVar10=1
+     * TEST AH,0x5 (C0|C2); JP fires when C0=0,C2=0 (rval > base_prob)
+     * → should_crouch=1 when random roll < adjusted probability           */
+    seed = get_global_random_seed_address();
+    rval = random_math_real((unsigned int *)seed);
+    bVar10 = (rval < base_prob) ? 1 : 0;
+    *(char *)(actor + 0x362) = 1;
+
+  } else {
+    /* Already evaluated: manage switching and change timers.
+     * switching_timer (actor+0x366) counts down before allowing
+     * a new re-evaluation.  change_timer (actor+0x364) counts down
+     * the remaining ticks in the current crouch/stand phase.         */
+    switching_timer = *(short *)(actor + 0x366);
+
+    if (switching_timer > 0) {
+      /* Decrement and fall through to the change_timer section */
+      *(short *)(actor + 0x366) = (short)(switching_timer - 1);
+    } else if ((*(char *)(actv_tag + 0) & 8) != 0 &&
+               *(char *)(actor + 0x245) > 0) {
+      /* switching_timer == 0 AND ally-scan flag set AND has allies:
+       * reclassify nearby crouching allies to decide whether to toggle */
+      if (*(int *)(actor + 0x270) == -1) {
+        display_assert("actor->target.target_prop_index != NONE",
+                       "c:\\halo\\SOURCE\\ai\\actor_type_flood.c", 0xc9, 1);
+        system_exit(-1);
+      }
+
+      prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+
+      ahead_count = 0;
+      behind_count = 0;
+      lateral_count = 0;
+
+      FUN_00064540(iter, actor_handle);
+      ally = FUN_00064570(iter);
+      while (ally != 0) {
+        if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
+            *(char *)(ally + 0x60) == 0 && *(char *)(ally + 0x127) == 0 &&
+            *(float *)(ally + 0x11c) < *(float *)0x00254cc0 &&
+            *(int *)(ally + 0x1c) != -1) {
+          ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
+          if (*(char *)(ally_actor + 0x362) != 0) {
+            FUN_00012140((float *)(actor + 0x12c),
+                         (float *)(ally_actor + 0x12c), vec_result);
+            dot = vec_result[0] * *(float *)(prop + 0xe0) +
+                  vec_result[1] * *(float *)(prop + 0xe4) +
+                  vec_result[2] * *(float *)(prop + 0xe8);
+            if (dot > *(float *)0x00256870) {
+              ahead_count++;
+            } else if (dot >= *(float *)0x0025686c) {
+              lateral_count++;
+            } else {
+              behind_count++;
+            }
+          }
+        }
+        ally = FUN_00064570(iter);
+      }
+
+      should_crouch = *(char *)(actor + 0x363);
+      if (should_crouch != 0) {
+        /* Currently crouching: stop if no lateral allies and
+         * more ahead than behind                                 */
+        if (lateral_count == 0 && ahead_count > behind_count) {
+          bVar10 = 0;
+          goto update_state;
+        }
+        /* else fall through to keep_timer */
+      } else {
+        /* Currently standing: start crouching if all allies are
+         * behind/lateral but not ahead                           */
+        if (ahead_count == 0 && lateral_count > behind_count) {
+          bVar10 = 1;
+          goto update_state;
+        }
+        /* else fall through to keep_timer */
+      }
+    }
+    /* keep_timer: manage the per-phase change_timer */
+    change_timer = *(short *)(actor + 0x364);
+    if (change_timer <= 0) {
+      display_assert("actor->emotions.crouch_switching_change_timer > 0",
+                     "c:\\halo\\SOURCE\\ai\\actor_type_flood.c", 0x100, 1);
+      system_exit(-1);
+    }
+    *(short *)(actor + 0x364) = (short)(change_timer - 1);
+    if (*(short *)(actor + 0x364) != 0) {
+      goto return_current;
+    }
+    /* change_timer expired: toggle crouch state */
+    bVar10 = (*(char *)(actor + 0x363) == 0) ? 1 : 0;
+  }
+
+update_state:
+  *(char *)(actor + 0x363) = bVar10;
+
+  /* Select timer range from actv tag based on new crouch state */
+  if (bVar10 != 0) {
+    /* stand->crouch: use tag+0x54/0x58 range */
+    fmin = *(float *)(actv_tag + 0x54);
+    fmax = *(float *)(actv_tag + 0x58);
+  } else {
+    /* crouch->stand: use tag+0x5c/0x60 range */
+    fmin = *(float *)(actv_tag + 0x5c);
+    fmax = *(float *)(actv_tag + 0x60);
+  }
+
+  seed = get_global_random_seed_address();
+  timer_f = random_real_range(seed, fmin, fmax);
+  timer_f = timer_f * *(float *)0x00253394;
+
+  /* Floor clamp: timer_f = max(timer_f, DAT_00256834) */
+  if (timer_f < *(float *)0x00256834) {
+    timer_f = *(float *)0x00256834;
+  }
+
+  *(short *)(actor + 0x364) = (short)timer_f;
+  *(short *)(actor + 0x366) = 0x1e;
+
+return_current:
+  return *(char *)(actor + 0x363);
+}
+
 /* FUN_00038880 (0x38880) — actor action state-machine tick (panic/berserking
  * variant). Preamble: datum_get, save bVar_247=(actor+0x247>0) and
  * cVar_203=(actor+0x203>0), handle_initial_action, handle_pending_command_list,
@@ -1735,17 +2099,17 @@ void FUN_00038c70(int actor_handle)
 }
 
 /*
-  * FUN_00038da0 -- actor timer for unit-effect durations (main set).
-  *
-  * Returns a random tick count scaled by DAT_00253394 for the given hit type.
-  * unit_effect 1 → [4.0, 5.0]s, 2 → [2.0, 2.8]s, 3 → [0.4, 1.0]s.
-  * Falls back to *(float*)0x2533c8 for unknown types.
-  * Clamps result to 255.
-  *
-  * Disassembly: DEC/JZ/DEC/JZ/DEC/JNZ chain; default float FLD'd first,
-  * popped (FSTP ST0) at merge.  Multiplied by [0x253394], _ftol2, CMP
-  * AX,0xff / JLE clamp, MOVSX EAX,AX return.
-  */
+ * FUN_00038da0 -- actor timer for unit-effect durations (main set).
+ *
+ * Returns a random tick count scaled by DAT_00253394 for the given hit type.
+ * unit_effect 1 → [4.0, 5.0]s, 2 → [2.0, 2.8]s, 3 → [0.4, 1.0]s.
+ * Falls back to *(float*)0x2533c8 for unknown types.
+ * Clamps result to 255.
+ *
+ * Disassembly: DEC/JZ/DEC/JZ/DEC/JNZ chain; default float FLD'd first,
+ * popped (FSTP ST0) at merge.  Multiplied by [0x253394], _ftol2, CMP
+ * AX,0xff / JLE clamp, MOVSX EAX,AX return.
+ */
 int FUN_00038da0(short unit_effect /* @<eax> */)
 {
   float timer_raw;
@@ -1773,17 +2137,17 @@ compute:
 }
 
 /*
-  * FUN_00038e00 -- actor timer for unit-effect durations (secondary set).
-  *
-  * unit_effect 1 → [1.0, 2.5]s, 2-3 → [0.6, 1.8]s.
-  * Falls back to *(float*)0x2533c8 for other types.
-  * Clamps result to 255.
-  *
-  * Disassembly: FLD default → MOVSX → CMP AX,1 / JZ case_1 / JLE skip /
-  * CMP AX,3 / JG skip; matching ranges FSTP ST0 + random; others keep
-  * default on x87 stack.  FMUL [0x253394], _ftol2, CMP AX,0xff / JLE,
-  * MOVSX EAX,AX return.
-  */
+ * FUN_00038e00 -- actor timer for unit-effect durations (secondary set).
+ *
+ * unit_effect 1 → [1.0, 2.5]s, 2-3 → [0.6, 1.8]s.
+ * Falls back to *(float*)0x2533c8 for other types.
+ * Clamps result to 255.
+ *
+ * Disassembly: FLD default → MOVSX → CMP AX,1 / JZ case_1 / JLE skip /
+ * CMP AX,3 / JG skip; matching ranges FSTP ST0 + random; others keep
+ * default on x87 stack.  FMUL [0x253394], _ftol2, CMP AX,0xff / JLE,
+ * MOVSX EAX,AX return.
+ */
 int FUN_00038e00(short unit_effect /* @<eax> */)
 {
   float timer_raw;
@@ -1804,6 +2168,569 @@ scale:
   if (final_val > 0xff)
     return 0xff;
   return final_val;
+}
+
+/*
+ * FUN_00038e60 (0x38e60) -- actor_type_infection per-tick swarm update.
+ * (c:\halo\SOURCE\ai\actor_type_infection.c)
+ *
+ * Updates every component of an infection swarm. Maintains a global "make
+ * sound" cooldown (swarm+8) for behavior modes 7/10: when it expires, re-rolls
+ * it from a random 6..8s base divided by component count and scaled by 30
+ * (ticks/sec), floored at [0x254640], then picks one random component index
+ * in [0,count) allowed to vocalize. Per component it copies the unit facing
+ * (unit+0x30, or unit+0x46c when the unit holds a parent slot), scans audible
+ * encounters (when actor+0x6e>=3) for the best hostile target into
+ * component+0x14, derives a steering mode + movement type from the actor
+ * behavior selector (actor+0x6c), manages parent grab/detach bookkeeping on
+ * component+2, produces a steering direction (wander / pursue prop / obey
+ * marker), applies flocking separation against sibling components,
+ * orthonormalizes, and issues unit_set_control.
+ *
+ * Verified against disassembly 0x38e60-0x39c2e. Ghidra renders the datum-handle
+ * sentinel 0xffffffff as float "-NAN"; those are integer "!= -1" checks. The
+ * two wander-timer helpers (FUN_00038da0/FUN_00038e00) receive the steering
+ * mode in EAX (the decompiler hides the register argument).
+ */
+void FUN_00038e60(int actor_handle)
+{
+  char *actor;
+  char *actor_tag;
+  char *swarm;
+  char *component;
+  char *unit;
+  char *parent_unit;
+  char *unit_tag;
+  char *target_prop;
+  char *neighbor;
+  char *encounter;
+  char *forward_default;
+  char *best_target;
+  int unit_handle;
+  int component_handle;
+  int special_index;
+  int best_handle;
+  int target_handle;
+  int i;
+  int j;
+  int icount;
+  int mode;
+  short count;
+  char movement_type;
+  char use_facing;
+  char moving_toward;
+  char audible_in_range;
+  char has_direction;
+  char no_target_flag;
+  char unit_passive;
+  char control_flag;
+  char obey_negate;
+  unsigned char parent_is_grabber;
+  unsigned short flags;
+  float cooldown;
+  float audibility_range;
+  float best_score;
+  float best_dist;
+  float score;
+  float dist;
+  float sqlen;
+  float dx, dy, dz;
+  float cx, cy, cz;
+  float facing[3];
+  float dir[3];
+  float look[3];
+  float right_vec[3];
+  float cross_tmp[3];
+  float ndelta[3];
+  float separation;
+  float weight;
+  float mag, recip;
+  float wander_tmp;
+  float angle;
+  int iter[2];
+  float wander_delta[3];
+  char control[0x40];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+  special_index = -1;
+  if (*(short *)(swarm + 8) < 1) {
+    if ((*(short *)(actor + 0x6c) == 7) || (*(short *)(actor + 0x6c) == 10)) {
+      count = *(short *)(swarm + 2);
+      icount = count;
+      cooldown =
+        random_real_range(get_global_random_seed_address(), 6.0f, 8.0f) /
+        icount * *(float *)0x253394;
+      if (cooldown <= *(float *)0x254640)
+        cooldown = *(float *)0x254640;
+      *(short *)(swarm + 8) = (short)(int)cooldown;
+      special_index = random_range(
+        (unsigned int *)get_global_random_seed_address(), 0, count);
+    }
+  } else {
+    *(short *)(swarm + 8) = *(short *)(swarm + 8) + -1;
+  }
+  i = 0;
+  if (*(short *)(swarm + 2) < 1)
+    return;
+  do {
+    unit_handle = *(int *)(swarm + 0x18 + i * 4);
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    component_handle = *(int *)(swarm + 0x58 + i * 4);
+    component = (char *)datum_get(swarm_component_data, component_handle);
+    facing[0] = *(float *)(unit + 0x30);
+    facing[1] = *(float *)(unit + 0x34);
+    facing[2] = *(float *)(unit + 0x38);
+    mode = 0;
+    target_handle = -1;
+    movement_type = 3;
+    use_facing = 1;
+    moving_toward = 0;
+    audible_in_range = 0;
+    has_direction = 0;
+    no_target_flag = 0;
+    unit_passive = 0;
+    if (*(short *)(unit + 0x64) == 0) {
+      if (*(int *)(unit + 0x430) != -1) {
+        facing[0] = *(float *)(unit + 0x46c);
+        facing[1] = *(float *)(unit + 0x470);
+        facing[2] = *(float *)(unit + 0x474);
+      }
+      unit_passive = *(unsigned char *)(unit + 0x424) & 1;
+    }
+    if (*(short *)(actor + 0x6e) < 3) {
+      *(int *)(component + 0x14) = -1;
+      best_target = 0;
+    } else {
+      audibility_range = *(float *)(actor_tag + 0xa0);
+      best_target = 0;
+      best_handle = -1;
+      best_score = 0.0f;
+      best_dist = 0.0f;
+      FUN_00064540(iter, actor_handle);
+      encounter = (char *)FUN_00064570(iter);
+      while (encounter != 0) {
+        if (*(float *)0x2533c0 < *(float *)(encounter + 0x50)) {
+          dx = *(float *)(component + 4) - *(float *)(encounter + 0xbc);
+          dy = *(float *)(component + 8) - *(float *)(encounter + 0xc0);
+          dz = *(float *)(component + 0xc) - *(float *)(encounter + 0xc4);
+          dist = sqrtf(dx * dx + dz * dz + dy * dy);
+          score = *(float *)0x2533c0;
+          if (dist < audibility_range)
+            score = (*(float *)0x2533c8 - dist / audibility_range) *
+                    *(float *)0x253f34;
+          if ((*(short *)(encounter + 0x24) >= 2) &&
+              (*(short *)(encounter + 0x24) <= 3)) {
+            weight = *(float *)0x254cc4;
+            if (iter[0] == *(int *)(component + 0x14))
+              weight = *(float *)0x2548f4;
+            score = score + weight;
+            if (*(char *)(encounter + 0x125) == '\0')
+              score = score + *(float *)0x254cc4;
+          }
+          if (best_score < score) {
+            best_target = encounter;
+            best_handle = iter[0];
+            best_score = score;
+            best_dist = dist;
+          }
+        }
+        encounter = (char *)FUN_00064570(iter);
+      }
+      *(int *)(component + 0x14) = best_handle;
+      if (((best_handle != -1) &&
+           (best_dist < *(float *)(actor_tag + 0x160))) &&
+          ((*(short *)(best_target + 0x24) >= 2) &&
+           (*(short *)(best_target + 0x24) <= 3))) {
+        audible_in_range = 1;
+      }
+    }
+    switch (*(short *)(actor + 0x6c)) {
+    case 1:
+      mode = 0;
+      movement_type = 0;
+      break;
+    case 2:
+      mode = 1;
+      movement_type = 1;
+      break;
+    case 4:
+      movement_type = (char)((0 < *(short *)(actor + 0xa8)) * 2 + 3);
+      if (*(int *)(actor + 0xb8) != -1) {
+        mode = 5;
+        target_handle = *(int *)(actor + 0xb8);
+      }
+      break;
+    case 6:
+      mode = 2;
+      movement_type = 1;
+      break;
+    case 7:
+      if ((*(short *)(actor + 0xa4) == 0) && (*(int *)(actor + 0x270) != -1)) {
+        mode = 4;
+        movement_type = 3;
+        target_handle = *(int *)(actor + 0x270);
+      } else {
+        mode = 3;
+        movement_type = 3;
+      }
+      break;
+    case 10:
+    case 0xb:
+      movement_type = 3;
+      if ((*(short *)(actor + 0x6c) == 0xb) &&
+          ((*(unsigned char *)(component + 2) & 8) != 0)) {
+        mode = 6;
+      } else if (*(int *)(component + 0x14) == -1) {
+        mode = 3;
+      } else {
+        use_facing = 0;
+        mode = (*(char *)(component + 0x1a) != '\0') + 4;
+        target_handle = *(int *)(component + 0x14);
+      }
+    }
+    if (*(int *)(unit + 0xcc) == -1) {
+      *(unsigned char *)(component + 0x18) = 0;
+      if (*(char *)(component + 0x1a) != '\0')
+        *(char *)(component + 0x1a) = *(char *)(component + 0x1a) + -1;
+    } else {
+      parent_unit =
+        (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
+      parent_is_grabber = *(unsigned char *)(parent_unit + 0xb6) >> 2 & 1;
+      if (*(char *)(component + 0x18) != -1)
+        *(char *)(component + 0x18) = *(char *)(component + 0x18) + '\x01';
+      if (parent_is_grabber == 0) {
+        unit_tag = (char *)tag_get(0x756e6974, *(int *)parent_unit);
+        if (((*(short *)(parent_unit + 0x64) != 0) ||
+             ((char)((unsigned int)*(int *)(unit_tag + 0x17c) >> 8) < '\0')) &&
+            (0x2d < *(unsigned char *)(component + 0x18))) {
+          *(unsigned char *)(component + 0x1a) = 0x2d;
+          goto LAB_detach;
+        }
+      } else if ((((*(int *)(parent_unit + 0x3cc) != -1) &&
+                   (*(int *)(parent_unit + 0x3cc) + 0x4b < game_time_get())) &&
+                  ((best_target != 0) &&
+                   ((*(int *)(best_target + 0x18) != *(int *)(unit + 0xcc)) &&
+                    (*(short *)(best_target + 0x24) >= 2)))) &&
+                 (*(short *)(best_target + 0x24) <= 3)) {
+      LAB_detach:
+        unit_detach_from_parent(unit_handle);
+        *(unsigned char *)(component + 2) =
+          *(unsigned char *)(component + 2) & 0xfc;
+        goto LAB_after_parent;
+      }
+      *(unsigned char *)(component + 2) = *(unsigned char *)(component + 2) | 2;
+      if (parent_is_grabber == 0)
+        flags = *(unsigned short *)(component + 2) | 1;
+      else
+        flags = *(unsigned short *)(component + 2) & 0xfffe;
+      *(unsigned short *)(component + 2) = flags;
+    }
+  LAB_after_parent:
+    if (*(int *)(unit + 0xcc) == -1) {
+      if (unit_passive == 0) {
+        if (*(char *)(component + 0x19) != -1)
+          *(char *)(component + 0x19) = *(char *)(component + 0x19) + '\x01';
+        *(unsigned char *)(component + 2) =
+          *(unsigned char *)(component + 2) & 0xfc;
+        switch ((short)mode) {
+        case 1:
+        case 2:
+        case 3:
+          if ((*(unsigned short *)(component + 2) & 4) == 0) {
+            csmemset(component + 0x1c, 0, 0x14);
+            *(unsigned short *)(component + 2) =
+              (*(unsigned short *)(component + 2) & 0xfff7) | 4;
+          }
+          if (*(char *)(component + 0x1d) == '\0') {
+            if (*(char *)(component + 0x1c) != '\0')
+              *(char *)(component + 0x1c) = *(char *)(component + 0x1c) + -1;
+            if (*(char *)(component + 0x1c) == '\0') {
+              *(unsigned char *)(component + 0x1d) =
+                (unsigned char)FUN_00038e00((short)mode);
+              FUN_00012140((float *)(component + 4), (float *)(swarm + 0xc),
+                           wander_delta);
+              sqlen = FUN_00012170(wander_delta);
+              if (*(float *)0x25337c <= sqlen) {
+                wander_tmp = (float)((double)*(float *)0x253398 / sqrtf(sqlen) *
+                                     (double)*(float *)0x256980);
+                angle = FUN_000121e0(-wander_tmp, wander_tmp);
+                *(float *)(component + 0x20) = wander_delta[0];
+                *(float *)(component + 0x24) = wander_delta[1];
+                *(float *)(component + 0x28) = wander_delta[2];
+              } else {
+                angle = FUN_000121e0(-3.1415927f, 3.1415927f);
+                *(int *)(component + 0x20) = *(int *)(unit + 0x24);
+                *(int *)(component + 0x24) = *(int *)(unit + 0x28);
+                *(int *)(component + 0x28) = *(int *)(unit + 0x2c);
+              }
+              rotate_vector3d_by_sincos((float *)(component + 0x20), facing,
+                                        x87_fsin(angle), x87_fcos(angle));
+              *(int *)(component + 0x2c) = 0;
+            }
+          } else {
+            *(char *)(component + 0x1d) = *(char *)(component + 0x1d) + -1;
+            if (*(char *)(component + 0x1d) == '\0') {
+              *(unsigned char *)(component + 0x1c) =
+                (unsigned char)FUN_00038da0((short)mode);
+            } else {
+              wander_tmp = *(float *)(component + 0x2c) * *(float *)0x256984;
+              angle = FUN_000121e0(-0.020943952f, 0.020943952f);
+              angle = angle + *(float *)(component + 0x2c) + wander_tmp;
+              *(float *)(component + 0x2c) = angle;
+              rotate_vector3d_by_sincos((float *)(component + 0x20), facing,
+                                        x87_fsin(angle), x87_fcos(angle));
+            }
+          }
+          if (*(char *)(component + 0x1d) == '\0') {
+            if (*(char *)(component + 0x1c) == '\0') {
+              display_assert("swarm_component->wander.move_ticks || "
+                             "swarm_component->wander.pause_ticks",
+                             "c:\\halo\\SOURCE\\ai\\actor_type_infection.c",
+                             0x1ed, 1);
+              system_exit(-1);
+            }
+            if (*(char *)(component + 0x1d) == '\0')
+              goto switchD_default;
+          }
+          dir[0] = *(float *)(component + 0x20);
+          dir[1] = *(float *)(component + 0x24);
+          dir[2] = *(float *)(component + 0x28);
+          has_direction = 1;
+          break;
+        case 4:
+        case 5:
+          target_prop = (char *)datum_get(prop_data, target_handle);
+          dir[0] = *(float *)(target_prop + 0xbc) - *(float *)(component + 4);
+          dir[1] = *(float *)(target_prop + 0xc0) - *(float *)(component + 8);
+          dir[2] = *(float *)(target_prop + 0xc4) - *(float *)(component + 0xc);
+          if ((short)mode == 5) {
+            dir[0] = -dir[0];
+            dir[1] = -dir[1];
+            dir[2] = -dir[2];
+          }
+          has_direction = 1;
+          break;
+        case 6:
+          if ((*(unsigned short *)(component + 2) & 8) == 0) {
+            display_assert(
+              "TEST_FLAG(swarm_component->flags, _swarm_component_obey_bit)",
+              "c:\\halo\\SOURCE\\ai\\actor_type_infection.c", 0x204, 1);
+            system_exit(-1);
+          }
+          if ((*(unsigned char *)(component + 0x21) & 1) != 0) {
+            has_direction = 1;
+            if ((*(short *)(component + 0x24) < 2) ||
+                (3 < *(short *)(component + 0x24))) {
+              dir[0] = *(float *)(component + 0x28);
+              dir[1] = *(float *)(component + 0x2c);
+              dir[2] = *(float *)(component + 0x30);
+              obey_negate = (*(short *)(component + 0x24) == 1);
+            } else {
+              cross_product3d(facing, (float *)(component + 0x28), dir);
+              obey_negate = (*(short *)(component + 0x24) == 3);
+            }
+            if (obey_negate) {
+              dir[0] = -dir[0];
+              dir[1] = -dir[1];
+              dir[2] = -dir[2];
+            }
+          }
+          if ((*(unsigned char *)(component + 0x21) & 4) == 0) {
+            if (has_direction == 0)
+              goto switchD_default;
+          } else {
+            if (((*(unsigned char *)(component + 0x21) & 8) == 0) &&
+                (*(short *)(component + 0x24) == 0) &&
+                (unit_is_busy(unit_handle) == '\0')) {
+              *(unsigned char *)(component + 2) =
+                *(unsigned char *)(component + 2) | 0x10;
+              *(unsigned char *)(component + 0x21) =
+                *(unsigned char *)(component + 0x21) | 8;
+            }
+            dir[0] = *(float *)(unit + 0x24);
+            dir[1] = *(float *)(unit + 0x28);
+            dir[2] = *(float *)(unit + 0x2c);
+            has_direction = 1;
+          }
+          break;
+        default:
+          goto switchD_default;
+        }
+        mag = sqrtf(dir[2] * dir[2] + dir[1] * dir[1] + dir[0] * dir[0]);
+        if (fabsf(mag) >= (float)*(double *)0x2533d0) {
+          recip = *(float *)0x2533c8 / mag;
+          dir[0] = dir[0] * recip;
+          dir[1] = dir[1] * recip;
+          dir[2] = dir[2] * recip;
+        }
+        if (*(float *)0x2555d0 <
+            facing[2] * dir[2] + facing[1] * dir[1] + facing[0] * dir[0])
+          moving_toward = 1;
+        if (*(float *)0x2568c0 <=
+            facing[2] * dir[2] + facing[1] * dir[1] + facing[0] * dir[0]) {
+          cx = facing[1] * dir[2] - facing[2] * dir[1];
+          cz = facing[2] * dir[0] - dir[2] * facing[0];
+          cy = dir[1] * facing[0] - facing[1] * dir[0];
+          dir[0] = cz * facing[2] - cy * facing[1];
+          dir[1] = cy * facing[0] - facing[2] * cx;
+          dir[2] = facing[1] * cx - cz * facing[0];
+          if (normalize3d(dir) == *(float *)0x2533c0) {
+            dir[0] = *(float *)(unit + 0x24);
+            dir[1] = *(float *)(unit + 0x28);
+            dir[2] = *(float *)(unit + 0x2c);
+          }
+        } else {
+          dir[0] = *(float *)(unit + 0x24);
+          dir[1] = *(float *)(unit + 0x28);
+          dir[2] = *(float *)(unit + 0x2c);
+        }
+        if ((short)mode != 6) {
+          separation = 0.0f;
+          look[0] = *(float *)(component + 4) - dir[0] * *(float *)0x2549d4;
+          look[1] = *(float *)(component + 8) - dir[1] * *(float *)0x2549d4;
+          look[2] = *(float *)(component + 0xc) - dir[2] * *(float *)0x2549d4;
+          right_vec[0] = facing[1] * dir[2] - facing[2] * dir[1];
+          right_vec[1] = facing[2] * dir[0] - dir[2] * facing[0];
+          right_vec[2] = dir[1] * facing[0] - facing[1] * dir[0];
+          if (0 < *(short *)(swarm + 2)) {
+            j = 0;
+            do {
+              if (j != (short)i) {
+                neighbor = (char *)datum_get(swarm_component_data,
+                                             *(int *)(swarm + 0x58 + j * 4));
+                ndelta[0] = *(float *)(neighbor + 4) - look[0];
+                ndelta[1] = *(float *)(neighbor + 8) - look[1];
+                ndelta[2] = *(float *)(neighbor + 0xc) - look[2];
+                sqlen = ndelta[0] * ndelta[0] + ndelta[1] * ndelta[1] +
+                        ndelta[2] * ndelta[2];
+                if ((sqlen < *(float *)0x253dc8) &&
+                    (sqlen = (ndelta[0] * dir[0] + ndelta[1] * dir[1] +
+                              ndelta[2] * dir[2]) /
+                             sqrtf(sqlen),
+                     *(float *)0x253398 < sqlen)) {
+                  weight = (sqlen - *(float *)0x253398) * *(float *)0x253398;
+                  if (ndelta[0] * right_vec[0] + ndelta[1] * right_vec[1] +
+                        ndelta[2] * right_vec[2] <=
+                      *(float *)0x2533c0)
+                    separation = weight + separation;
+                  else
+                    separation = separation - weight;
+                }
+              }
+              j = j + 1;
+            } while (j < *(short *)(swarm + 2));
+            if (separation != *(float *)0x2533c0) {
+              if (separation <= *(float *)0x2533c8) {
+                if (*(float *)0x255e94 <= separation)
+                  angle = separation * *(float *)0x2568bc;
+                else
+                  angle = *(float *)0x2568b8;
+              } else {
+                angle = *(float *)0x2568bc;
+              }
+              rotate_vector3d_by_sincos(dir, facing, x87_fsin(angle),
+                                        x87_fcos(angle));
+            }
+          }
+        }
+        cross_tmp[0] = facing[1] * dir[2] - facing[2] * dir[1];
+        cross_tmp[1] = facing[2] * dir[0] - dir[2] * facing[0];
+        cross_tmp[2] = dir[1] * facing[0] - facing[1] * dir[0];
+        mag = sqrtf(cross_tmp[0] * cross_tmp[0] + cross_tmp[1] * cross_tmp[1] +
+                    cross_tmp[2] * cross_tmp[2]);
+        if (fabsf(mag) >= (float)*(double *)0x2533d0) {
+          recip = *(float *)0x2533c8 / mag;
+          cross_tmp[0] = cross_tmp[0] * recip;
+          cross_tmp[1] = cross_tmp[1] * recip;
+          cross_tmp[2] = cross_tmp[2] * recip;
+          if (mag != *(float *)0x2533c0) {
+            dir[0] = cross_tmp[1] * facing[2] - cross_tmp[2] * facing[1];
+            dir[1] = cross_tmp[2] * facing[0] - facing[2] * cross_tmp[0];
+            dir[2] = facing[1] * cross_tmp[0] - cross_tmp[1] * facing[0];
+            goto switchD_default;
+          }
+        }
+        dir[0] = *(float *)(unit + 0x24);
+        dir[1] = *(float *)(unit + 0x28);
+        dir[2] = *(float *)(unit + 0x2c);
+      } else {
+        *(unsigned char *)(component + 2) =
+          *(unsigned char *)(component + 2) & 0xfd;
+        *(unsigned char *)(component + 0x19) = 0;
+      }
+    }
+  switchD_default:
+    flags = *(unsigned short *)(component + 2);
+    if ((flags & 0x10) == 0) {
+      if ((has_direction == '\0') ||
+          (*(unsigned char *)(component + 0x19) < 0x2d)) {
+        control_flag = no_target_flag;
+      } else if ((short)i == (short)special_index) {
+        control_flag = 1;
+      } else if (audible_in_range == '\0') {
+        control_flag = 1;
+        if (moving_toward == '\0')
+          control_flag = no_target_flag;
+      } else {
+        control_flag = 1;
+      }
+    } else {
+      control_flag = 1;
+    }
+    if ((flags & 2) == 0) {
+      if ((audible_in_range == '\0') || (*(char *)(component + 0x1a) != '\0'))
+        flags = flags & 0xfffe;
+      else
+        flags = flags | 1;
+      *(unsigned short *)(component + 2) = flags;
+      if ((flags & 1) == 0) {
+        *(unsigned char *)(unit + 0x239) = 0;
+      } else {
+        *(unsigned char *)(unit + 0x239) = 3;
+        if (best_target == 0)
+          *(int *)(unit + 0x44c) = -1;
+        else
+          *(int *)(unit + 0x44c) = *(int *)(best_target + 0x18);
+      }
+    } else {
+      *(unsigned char *)(unit + 0x239) = ((unsigned char)flags & 1) << 2;
+    }
+    csmemset(control, 0, 0x40);
+    *(short *)(control + 4) = (short)0xffff;
+    *(short *)(control + 6) = (short)0xffff;
+    *(short *)(control + 8) = (short)0xffff;
+    *(int *)(control + 0x18) = 0;
+    control[0] = movement_type;
+    control[1] = use_facing;
+    if (has_direction == '\0') {
+      forward_default = *(char **)0x31fc38;
+      *(int *)(control + 0xc) = *(int *)forward_default;
+      *(int *)(control + 0x10) = *(int *)(forward_default + 4);
+      *(int *)(control + 0x14) = *(int *)(forward_default + 8);
+      *(float *)(control + 0x1c) = *(float *)(unit + 0x24);
+      *(float *)(control + 0x20) = *(float *)(unit + 0x28);
+      *(float *)(control + 0x24) = *(float *)(unit + 0x2c);
+    } else {
+      *(int *)(control + 0xc) = 0x3f800000;
+      *(int *)(control + 0x10) = 0;
+      *(int *)(control + 0x14) = 0;
+      *(float *)(control + 0x1c) = dir[0];
+      *(float *)(control + 0x20) = dir[1];
+      *(float *)(control + 0x24) = dir[2];
+    }
+    *(short *)(control + 2) = -(short)(control_flag != '\0') & 2;
+    *(float *)(control + 0x28) = *(float *)(control + 0x1c);
+    *(float *)(control + 0x2c) = *(float *)(control + 0x20);
+    *(float *)(control + 0x30) = *(float *)(control + 0x24);
+    *(float *)(control + 0x34) = *(float *)(control + 0x1c);
+    *(float *)(control + 0x38) = *(float *)(control + 0x20);
+    *(float *)(control + 0x3c) = *(float *)(control + 0x24);
+    unit_set_control(unit_handle, control);
+    i = i + 1;
+  } while ((short)i < *(short *)(swarm + 2));
+  return;
 }
 
 /* FUN_00039f30 (0x39f30) — actor action state-machine tick (active-cover
@@ -4615,6 +5542,41 @@ void actor_set_dormant(int actor_handle, char flag)
   actor_verify_activation(actor_handle);
 }
 
+/* 0x3cb50 — Register a new unit_index+swarm_component pair into the swarm
+ * record's unit table.
+ * Clears component+0x14 (existing unit reference), appends unit_index to
+ * swarm unit array at swarm+0x18[count] and swarm_component_handle to the
+ * component array at swarm+0x58[count], increments swarm+0x2 (unit_count),
+ * then calls actor_switch_props to link the unit/component.
+ * Asserts unit_count < 16 before insertion.
+ * Confirmed ABI: swarm_handle @<eax>, swarm_component_handle @<edi>,
+ *                unit_index @<ebx>.
+ */
+void FUN_0003cb50(int swarm_handle, int swarm_component_handle, int unit_index)
+{
+  char *swarm;
+  char *component;
+  short count;
+
+  swarm = (char *)datum_get(swarm_data, swarm_handle);
+  component = (char *)datum_get(swarm_component_data, swarm_component_handle);
+  *(int *)(component + 0x14) = -1;
+
+  if (*(short *)(swarm + 0x2) >= 16) {
+    display_assert("swarm->unit_count < MAXIMUM_NUMBER_OF_UNITS_PER_SWARM",
+                   "c:\\halo\\SOURCE\\ai\\actors.c", 0x4dc, 1);
+    system_exit(-1);
+  }
+
+  count = *(short *)(swarm + 0x2);
+  *(int *)(swarm + 0x18 + (int)count * 4) = unit_index;
+  count = *(short *)(swarm + 0x2);
+  *(int *)(swarm + 0x58 + (int)count * 4) = swarm_component_handle;
+  *(short *)(swarm + 0x2) = *(short *)(swarm + 0x2) + 1;
+
+  actor_switch_props(unit_index, swarm_component_handle);
+}
+
 /* actor_delete_props (0x3cbc0) — actor_clean_props
  *
  * Clean up all props associated with an actor. Iterates actor+0x50 linked list,
@@ -6310,6 +7272,90 @@ LAB_3e02c:
   *(int *)(actor + 0x1c4) = *(int *)(biped + 0xa4);
 }
 
+/* actors_handle_unit_effect (0x3e570) — propagate a unit effect (damage/sound)
+ * to nearby encounters. Builds a bitfield of audible BSP clusters, then
+ * iterates encounters checking if they can hear the effect via
+ * actor_audibility_at_point. If audible, finds a prop and dispatches
+ * actor_handle_unit_effect. */
+void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
+{
+  char *unit_obj;
+  char *node;
+  char *scenario;
+  char *prop;
+  int encounter_handle;
+  int prop_handle;
+  float position[3];
+  float sense_block[14];
+  int encounter_iter[8];
+  unsigned int cluster_bits[16];
+  int encounter_actor;
+  int local_c;
+  short sVar2;
+  int iVar3;
+  int i;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+  encounter_handle = *(int *)(unit_obj + 0x1a8);
+  node = unit_obj + 0x48;
+  if (encounter_handle == -1) {
+    encounter_handle = *(int *)(unit_obj + 0x1a4);
+  }
+  if (*(int *)(unit_obj + 0xcc) != -1) {
+    iVar3 = object_get_root_parent(unit_handle);
+    node = (char *)object_get_and_verify_type(iVar3, -1) + 0x48;
+  }
+  scenario = (char *)scenario_get();
+  csmemset(cluster_bits, 0, ((*(int *)(scenario + 0x134) + 0x1f) >> 5) << 2);
+  if (*(short *)(node + 4) != -1 && *(int *)(scenario + 0x134) > 0) {
+    i = 0;
+    do {
+      iVar3 = (int)(short)i;
+      sVar2 = structure_bsp_cluster_sound_encoding(scenario,
+                                                   *(short *)(node + 4), iVar3);
+      if ((char)sVar2 >= 0) {
+        local_c = (int)(sVar2 & 0x7f);
+        if ((float)local_c * *(float *)0x256148 < *(float *)0x257350) {
+          cluster_bits[iVar3 >> 5] =
+            cluster_bits[iVar3 >> 5] | (1 << (iVar3 & 0x1f));
+        }
+      }
+      i = i + 1;
+      iVar3 = (int)(short)i;
+    } while (iVar3 < *(int *)(scenario + 0x134));
+  }
+  object_get_world_position(unit_handle, (vector3_t *)position);
+  encounter_iterator_next(encounter_iter, 1);
+  iVar3 = FUN_00059b50(encounter_iter);
+  while (iVar3 != 0) {
+    encounter_actor = *(int *)((char *)encounter_iter + 0x14);
+    if (encounter_actor != encounter_handle) {
+      sVar2 = *(short *)(iVar3 + 0x148);
+      if (sVar2 != -1 &&
+          (cluster_bits[(int)sVar2 >> 5] & (1 << ((int)sVar2 & 0x1f))) != 0) {
+        actor_perception_find_sense_position(encounter_actor, position, -1,
+                                             sense_block);
+        sVar2 = actor_audibility_at_point(encounter_actor, sense_block,
+                                          position, node, param_3, 1.0f, 0);
+        if (sVar2 >= 2) {
+          prop_handle = FUN_00064b40(encounter_actor, unit_handle, 1, 1);
+          if (prop_handle != -1) {
+            prop = (char *)datum_get(prop_data, prop_handle);
+            sVar2 = actor_audibility_at_point(
+              encounter_actor, sense_block, (float *)(prop + 0xbc), prop + 0xfc,
+              param_3, 1.0f, *(short *)(prop + 0x38));
+            if (sVar2 >= 2) {
+              actor_handle_unit_effect(encounter_actor, prop_handle,
+                                       unit_effect);
+            }
+          }
+        }
+      }
+    }
+    iVar3 = FUN_00059b50(encounter_iter);
+  }
+}
+
 /* FUN_0003e7a0 (0x3e7a0) — actor_apply_control_data
  *
  * Applies a pre-computed AI control snapshot (actor+0x6d0..0x720 range) to the
@@ -7053,405 +8099,4 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
 
   actor_verify_activation(actor_index);
   return actor_index;
-}
-
-/*
- * FUN_00038370 (0x38370) — flood actor crouch evaluation.
- * Source: c:\halo\SOURCE\ai\actor_type_flood.c
- *
- * Decides whether a flood combat-form actor should crouch or stand.
- *
- * On first call (actor+0x362 == 0): uses the actv tag's base probability,
- * adjusted by ally crouch/stand counts, compares against a random roll,
- * and sets should_crouch (actor+0x363) accordingly.
- *
- * On subsequent calls (actor+0x362 != 0): manages a switching timer
- * (actor+0x366) and a change timer (actor+0x364). When both expire and
- * spatial conditions favour a change (based on dot-product classification
- * of nearby crouching allies relative to the target direction), the crouch
- * state is toggled and the change timer is reset via random_real_range,
- * floored by DAT_00256834, then written to actor+0x364. The switching timer
- * is reset to 30 (0x1e) ticks.
- *
- * Returns: actor+0x363 (should_crouch flag) on the path that updates state;
- *          1 if the actor is busy or has too little health (early exits);
- *          0 if ammunition or range conditions are not met.
- *
- * Confirmed callers: (none yet identified)
- */
-char FUN_00038370(int actor_handle)
-{
-    char *actor;
-    char *actv_tag;
-    char *firing_variant;
-    char *prop;
-    char *unit;
-    char *ally_actor;
-    int prop_handle;
-    short switching_timer;
-    short change_timer;
-    char should_crouch;
-    int iter[2]; /* 8-byte iterator state at EBP-0x18 */
-    float vec_result[3]; /* subtract result at EBP-0x24, EBP-0x20, EBP-0x1c */
-    int ahead_count;
-    int behind_count;
-    int lateral_count;
-    float base_prob;
-    int *seed;
-    float timer_f;
-    float dot;
-    int stand_count;
-    int crouching_count;
-    int ally;
-    char bVar10;
-    float fmin;
-    float fmax;
-    float rval;
-
-    actor          = (char *)datum_get(actor_data, actor_handle);
-    actv_tag       = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
-    firing_variant = actor_combat_get_firing_variant_definition(actor_handle);
-
-    /* Early exit: actor is busy or in flood-specific suppressed state */
-    if (unit_is_busy(*(int *)(actor + 0x18)) || FUN_0002a3d0(actor_handle)) {
-        *(char *)(actor + 0x362) = 0;
-        return 1;
-    }
-
-    /* Early exit: not enough health ticks */
-    if (*(short *)(actor + 0x6a) < 3) {
-        *(char *)(actor + 0x362) = 0;
-        return 1;
-    }
-
-    /* Early exit: not enough ammo */
-    if (*(short *)(actor + 0x6e) < 5) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-
-    unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
-
-    prop_handle = *(int *)(actor + 0x270);
-    if (prop_handle == -1) {
-        prop = 0;
-    } else {
-        prop = (char *)datum_get(prop_data, prop_handle);
-    }
-
-    /* Flood carrier/infection form check: weapon type 0x17 without burst state */
-    if (*(char *)(unit + 0x253) == 0x17 && *(char *)(actor + 0x378) == 0) {
-        *(char *)(actor + 0x362) = 0;
-        return 1;
-    }
-
-    /* Target range checks */
-    if (prop != 0 && *(float *)(firing_variant + 0x74) < *(float *)(prop + 0x11c)) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-    if (*(char *)(actor + 0x378) != 0 && prop != 0 &&
-        *(float *)(firing_variant + 0x16c) < *(float *)(prop + 0x11c)) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-
-    /* Weapon carry-flag check (bit 7 of unit+0xb6) */
-    if (*(char *)(unit + 0xb6) < 0) {
-        *(char *)(actor + 0x362) = 0;
-        return 1;
-    }
-
-    /* Ranged weapon / state / burst checks */
-    if (*(char *)(actor + 0x378) != 0) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-    if (*(short *)(actor + 0x6c) == 10 &&
-        (*(short *)(actor + 0xa0) == 2 || *(short *)(actor + 0xa0) == 3)) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-    if (!actor_has_ranged_weapon(actor_handle)) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-    if (*(char *)(actor + 0x15d) != 0) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-
-    /* actv tag crouch count == 0: skip entirely */
-    if (*(short *)(actv_tag + 0x4c) == 0) {
-        *(char *)(actor + 0x362) = 0;
-        return 0;
-    }
-    /* actv tag crouch count == 1: always reset and return "ok" */
-    if (*(short *)(actv_tag + 0x4c) == 1) {
-        *(char *)(actor + 0x362) = 0;
-        return 1;
-    }
-
-    /* Target max range check */
-    if (prop != 0 && *(float *)(prop + 0x11c) < *(float *)(firing_variant + 0xa0)) {
-        *(char *)(actor + 0x362) = 0;
-        return 1;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* State branch: not yet evaluated vs. already evaluated               */
-    /* ------------------------------------------------------------------ */
-    bVar10 = 0;
-    if (*(char *)(actor + 0x362) == 0) {
-        /* First evaluation: compute probability-adjusted base_prob */
-        base_prob = *(float *)(actv_tag + 0x50);
-
-        if (*(char *)(actor + 0x200) > 0) {
-            /* Count standing vs. crouching allies */
-            stand_count    = 0;
-            crouching_count = 0;
-            FUN_00064540(iter, actor_handle);
-            ally = FUN_00064570(iter);
-            while (ally != 0) {
-                /* Filter: prop type 2 or 3, not dead, not jinking, has actor */
-                if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
-                    *(char *)(ally + 0x60) == 0 && *(char *)(ally + 0x127) == 0 &&
-                    *(int *)(ally + 0x1c) != -1) {
-                    ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
-                    /* Same team (short at +0x4 matches) and sufficient ammo */
-                    if (*(short *)(ally_actor + 4) == *(short *)(actor + 4) &&
-                        *(short *)(ally_actor + 0x6e) > 4) {
-                        if (*(char *)(ally_actor + 0x358) == 0) {
-                            stand_count++;
-                        } else {
-                            crouching_count++;
-                        }
-                    }
-                }
-                ally = FUN_00064570(iter);
-            }
-            /* Adjust probability:
-             * base_prob -= ((-base_prob * stand) +
-             *              (DAT_2533c8 - base_prob) * crouch) * DAT_253398 */
-            base_prob = base_prob -
-                ((-base_prob * (float)stand_count) +
-                 (*(float *)0x002533c8 - base_prob) * (float)crouching_count)
-                * *(float *)0x00253398;
-        }
-
-        /* FCOMP [base_prob]: C0=1 if rval < base_prob → JP not taken → bVar10=1
-         * TEST AH,0x5 (C0|C2); JP fires when C0=0,C2=0 (rval > base_prob)
-         * → should_crouch=1 when random roll < adjusted probability           */
-        seed   = get_global_random_seed_address();
-        rval   = random_math_real((unsigned int *)seed);
-        bVar10 = (rval < base_prob) ? 1 : 0;
-        *(char *)(actor + 0x362) = 1;
-
-    } else {
-        /* Already evaluated: manage switching and change timers.
-         * switching_timer (actor+0x366) counts down before allowing
-         * a new re-evaluation.  change_timer (actor+0x364) counts down
-         * the remaining ticks in the current crouch/stand phase.         */
-        switching_timer = *(short *)(actor + 0x366);
-
-        if (switching_timer > 0) {
-            /* Decrement and fall through to the change_timer section */
-            *(short *)(actor + 0x366) = (short)(switching_timer - 1);
-        } else if ((*(char *)(actv_tag + 0) & 8) != 0 &&
-                   *(char *)(actor + 0x245) > 0) {
-            /* switching_timer == 0 AND ally-scan flag set AND has allies:
-             * reclassify nearby crouching allies to decide whether to toggle */
-            if (*(int *)(actor + 0x270) == -1) {
-                display_assert("actor->target.target_prop_index != NONE",
-                               "c:\\halo\\SOURCE\\ai\\actor_type_flood.c",
-                               0xc9, 1);
-                system_exit(-1);
-            }
-
-            prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
-
-            ahead_count   = 0;
-            behind_count  = 0;
-            lateral_count = 0;
-
-            FUN_00064540(iter, actor_handle);
-            ally = FUN_00064570(iter);
-            while (ally != 0) {
-                if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
-                    *(char *)(ally + 0x60) == 0 && *(char *)(ally + 0x127) == 0 &&
-                    *(float *)(ally + 0x11c) < *(float *)0x00254cc0 &&
-                    *(int *)(ally + 0x1c) != -1) {
-                    ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
-                    if (*(char *)(ally_actor + 0x362) != 0) {
-                        FUN_00012140((float *)(actor + 0x12c),
-                                     (float *)(ally_actor + 0x12c),
-                                     vec_result);
-                        dot = vec_result[0] * *(float *)(prop + 0xe0)
-                            + vec_result[1] * *(float *)(prop + 0xe4)
-                            + vec_result[2] * *(float *)(prop + 0xe8);
-                        if (dot > *(float *)0x00256870) {
-                            ahead_count++;
-                        } else if (dot >= *(float *)0x0025686c) {
-                            lateral_count++;
-                        } else {
-                            behind_count++;
-                        }
-                    }
-                }
-                ally = FUN_00064570(iter);
-            }
-
-            should_crouch = *(char *)(actor + 0x363);
-            if (should_crouch != 0) {
-                /* Currently crouching: stop if no lateral allies and
-                 * more ahead than behind                                 */
-                if (lateral_count == 0 && ahead_count > behind_count) {
-                    bVar10 = 0;
-                    goto update_state;
-                }
-                /* else fall through to keep_timer */
-            } else {
-                /* Currently standing: start crouching if all allies are
-                 * behind/lateral but not ahead                           */
-                if (ahead_count == 0 && lateral_count > behind_count) {
-                    bVar10 = 1;
-                    goto update_state;
-                }
-                /* else fall through to keep_timer */
-            }
-        }
-        /* keep_timer: manage the per-phase change_timer */
-        change_timer = *(short *)(actor + 0x364);
-        if (change_timer <= 0) {
-            display_assert("actor->emotions.crouch_switching_change_timer > 0",
-                           "c:\\halo\\SOURCE\\ai\\actor_type_flood.c",
-                           0x100, 1);
-            system_exit(-1);
-        }
-        *(short *)(actor + 0x364) = (short)(change_timer - 1);
-        if (*(short *)(actor + 0x364) != 0) {
-            goto return_current;
-        }
-        /* change_timer expired: toggle crouch state */
-        bVar10 = (*(char *)(actor + 0x363) == 0) ? 1 : 0;
-    }
-
-update_state:
-    *(char *)(actor + 0x363) = bVar10;
-
-    /* Select timer range from actv tag based on new crouch state */
-    if (bVar10 != 0) {
-        /* stand->crouch: use tag+0x54/0x58 range */
-        fmin = *(float *)(actv_tag + 0x54);
-        fmax = *(float *)(actv_tag + 0x58);
-    } else {
-        /* crouch->stand: use tag+0x5c/0x60 range */
-        fmin = *(float *)(actv_tag + 0x5c);
-        fmax = *(float *)(actv_tag + 0x60);
-    }
-
-    seed    = get_global_random_seed_address();
-    timer_f = random_real_range(seed, fmin, fmax);
-    timer_f = timer_f * *(float *)0x00253394;
-
-    /* Floor clamp: timer_f = max(timer_f, DAT_00256834) */
-    if (timer_f < *(float *)0x00256834) {
-        timer_f = *(float *)0x00256834;
-    }
-
-    *(short *)(actor + 0x364) = (short)timer_f;
-    *(short *)(actor + 0x366) = 0x1e;
-
-return_current:
-    return *(char *)(actor + 0x363);
-}
-
-/* 0x36890 — Post a movement directive to an actor's directive fields (actor+0x312..0x348).
- * Updates the actor's priority and position-pair directive only if the actor state
- * (actor+0x6a) is below 3 AND the incoming priority is >= the current stored priority.
- * position_a and position_b may independently be NULL; the corresponding valid flag
- * byte is cleared when NULL is passed.
- * Confirmed ABI: actor_handle @<eax>, position_a @<ecx> (float[3] or NULL),
- *                priority @<edx> (short), position_b @<ebx> (float[3] or NULL),
- *                plus 6 cdecl stack args.
- */
-void FUN_00036890(int actor_handle, int *position_a, short priority, int *position_b,
-                  int param5, int param6, int param7, int param8, int param9, char param10)
-{
-    int actor;
-    float *pa;
-    float *pb;
-
-    actor = (int)datum_get(actor_data, actor_handle);
-    if (*(short *)(actor + 0x6a) >= 3) {
-        return;
-    }
-    if (priority < *(short *)(actor + 0x312)) {
-        return;
-    }
-
-    *(short *)(actor + 0x312) = priority;
-
-    pa = (float *)position_a;
-    if (pa == (float *)0) {
-        *(char *)(actor + 0x314) = 0;
-    } else {
-        *(char *)(actor + 0x314) = 1;
-        *(float *)(actor + 0x318) = pa[0];
-        *(float *)(actor + 0x31c) = pa[1];
-        *(float *)(actor + 0x320) = pa[2];
-        *(int *)(actor + 0x324) = param5;
-        *(int *)(actor + 0x328) = param6;
-    }
-
-    pb = (float *)position_b;
-    if (pb == (float *)0) {
-        *(char *)(actor + 0x32c) = 0;
-    } else {
-        *(char *)(actor + 0x32c) = 1;
-        *(float *)(actor + 0x330) = pb[0];
-        *(float *)(actor + 0x334) = pb[1];
-        *(float *)(actor + 0x338) = pb[2];
-    }
-
-    *(int *)(actor + 0x33c) = param7;
-    *(int *)(actor + 0x340) = param8;
-    *(int *)(actor + 0x344) = param9;
-    *(char *)(actor + 0x348) = param10;
-}
-
-/* 0x3cb50 — Register a new unit_index+swarm_component pair into the swarm
- * record's unit table.
- * Clears component+0x14 (existing unit reference), appends unit_index to
- * swarm unit array at swarm+0x18[count] and swarm_component_handle to the
- * component array at swarm+0x58[count], increments swarm+0x2 (unit_count),
- * then calls actor_switch_props to link the unit/component.
- * Asserts unit_count < 16 before insertion.
- * Confirmed ABI: swarm_handle @<eax>, swarm_component_handle @<edi>,
- *                unit_index @<ebx>.
- */
-void FUN_0003cb50(int swarm_handle, int swarm_component_handle, int unit_index)
-{
-    char *swarm;
-    char *component;
-    short count;
-
-    swarm = (char *)datum_get(swarm_data, swarm_handle);
-    component = (char *)datum_get(swarm_component_data, swarm_component_handle);
-    *(int *)(component + 0x14) = -1;
-
-    if (*(short *)(swarm + 0x2) >= 16) {
-        display_assert(
-            "swarm->unit_count < MAXIMUM_NUMBER_OF_UNITS_PER_SWARM",
-            "c:\\halo\\SOURCE\\ai\\actors.c", 0x4dc, 1);
-        system_exit(-1);
-    }
-
-    count = *(short *)(swarm + 0x2);
-    *(int *)(swarm + 0x18 + (int)count * 4) = unit_index;
-    count = *(short *)(swarm + 0x2);
-    *(int *)(swarm + 0x58 + (int)count * 4) = swarm_component_handle;
-    *(short *)(swarm + 0x2) = *(short *)(swarm + 0x2) + 1;
-
-    actor_switch_props(unit_index, swarm_component_handle);
 }

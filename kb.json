@@ -2594,7 +2594,8 @@
         },
         {
           "addr": "0x38e60",
-          "decl": "void FUN_00038e60(void);"
+          "decl": "void FUN_00038e60(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x39c80",
@@ -3022,7 +3023,8 @@
         },
         {
           "addr": "0x3e570",
-          "decl": "void actors_handle_unit_effect(void);"
+          "decl": "void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x3e7a0",
@@ -25002,7 +25004,7 @@
         },
         {
           "addr": "0x1aa5c0",
-          "decl": "void unit_detach_from_parent(void);"
+          "decl": "void unit_detach_from_parent(int object_handle);"
         },
         {
           "addr": "0x1aa700",
