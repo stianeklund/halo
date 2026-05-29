@@ -7797,17 +7797,20 @@
         {
           "addr": "0xa83e0",
           "decl": "void game_engine_statistics_append(void);",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8400",
           "decl": "void game_engine_handle_client_message(void);",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8420",
           "decl": "void game_engine_handle_server_message(void);",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8440",
@@ -7816,7 +7819,9 @@
         },
         {
           "addr": "0xa8470",
-          "decl": "int FUN_000a8470(int param_1, int param_2);"
+          "decl": "int FUN_000a8470(int param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa84f0",
@@ -7995,19 +8000,27 @@
         },
         {
           "addr": "0xa9550",
-          "decl": "void FUN_000a9550(void);"
+          "decl": "char FUN_000a9550(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9570",
-          "decl": "void game_engine_infinite_grenades(void);"
+          "decl": "char FUN_000a9570(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa95a0",
-          "decl": "void game_engine_has_teams(void);"
+          "decl": "char FUN_000a95a0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa95c0",
-          "decl": "void game_engine_display_team_indicators(void);"
+          "decl": "char FUN_000a95c0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa95f0",
@@ -8066,15 +8079,21 @@
         },
         {
           "addr": "0xa9f90",
-          "decl": "void game_engine_hud_draw_motion_sensor(void);"
+          "decl": "char FUN_000a9f90(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9fd0",
-          "decl": "void game_engine_test_flag(void);"
+          "decl": "char FUN_000a9fd0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9ff0",
-          "decl": "void game_engine_test_trait(void);"
+          "decl": "char FUN_000a9ff0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa010",
@@ -8087,7 +8106,9 @@
         },
         {
           "addr": "0xaa120",
-          "decl": "void game_engine_playlist_next(void);"
+          "decl": "void game_engine_playlist_next(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa190",
@@ -8096,7 +8117,9 @@
         },
         {
           "addr": "0xaa220",
-          "decl": "void build_game_variant_slayer_pro(void);"
+          "decl": "void FUN_000aa220(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa2b0",
@@ -8105,19 +8128,27 @@
         },
         {
           "addr": "0xaa340",
-          "decl": "void build_game_variant_phantoms(void);"
+          "decl": "void FUN_000aa340(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa3d0",
-          "decl": "void build_game_variant_endurance(void);"
+          "decl": "void FUN_000aa3d0(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa460",
-          "decl": "void build_game_variant_rockets(void);"
+          "decl": "void FUN_000aa460(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa4f0",
-          "decl": "void build_game_variant_snipers(void);"
+          "decl": "void FUN_000aa4f0(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa580",
@@ -8136,7 +8167,9 @@
         },
         {
           "addr": "0xaa730",
-          "decl": "void build_game_variant_reverse_tag(void);"
+          "decl": "void FUN_000aa730(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa7c0",
@@ -8145,7 +8178,9 @@
         },
         {
           "addr": "0xaa860",
-          "decl": "void build_game_variant_juggernaut(void);"
+          "decl": "void FUN_000aa860(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa900",
@@ -8159,11 +8194,15 @@
         },
         {
           "addr": "0xaaa20",
-          "decl": "void build_game_variant_king_pro(void);"
+          "decl": "void FUN_000aaa20(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaaab0",
-          "decl": "void build_game_variant_crazy_king(void);"
+          "decl": "void FUN_000aaab0(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaab30",
@@ -8177,11 +8216,15 @@
         },
         {
           "addr": "0xaac50",
-          "decl": "void build_game_variant_ctf_pro(void);"
+          "decl": "void FUN_000aac50(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaace0",
-          "decl": "void build_game_variant_invasion(void);"
+          "decl": "void FUN_000aace0(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaad70",
@@ -8205,15 +8248,21 @@
         },
         {
           "addr": "0xaafb0",
-          "decl": "void build_game_variant_team_rally(void);"
+          "decl": "void FUN_000aafb0(int *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab040",
-          "decl": "void game_engine_override_map_name(void);"
+          "decl": "void FUN_000ab040(char *param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab070",
-          "decl": "void game_engine_override_game_variant(void);"
+          "decl": "void FUN_000ab070(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab090",
@@ -8221,11 +8270,15 @@
         },
         {
           "addr": "0xab230",
-          "decl": "void game_engine_hud_draw_messages(void);"
+          "decl": "int16_t FUN_000ab230(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab290",
-          "decl": "void game_engine_player_has_stealth_weapon(void);"
+          "decl": "int FUN_000ab290(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab310",
@@ -8242,7 +8295,9 @@
         },
         {
           "addr": "0xab510",
-          "decl": "void game_engine_flag_reset(void);"
+          "decl": "void FUN_000ab510(int param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab570",
@@ -8261,15 +8316,21 @@
         },
         {
           "addr": "0xab9a0",
-          "decl": "void game_engine_draw_object_in_motion_sensor(void);"
+          "decl": "char FUN_000ab9a0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab9c0",
-          "decl": "void game_engine_allow_dynamic_lighting(void);"
+          "decl": "char FUN_000ab9c0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab9e0",
-          "decl": "void game_engine_allow_integrated_lights(void);"
+          "decl": "char FUN_000ab9e0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaba00",

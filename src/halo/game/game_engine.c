@@ -3066,3 +3066,669 @@ void game_engine_score_reset(void)
   *(int *)0x456ddc = -1;
   *(int *)0x456de0 = 0x3c;
 }
+
+/* Dispatch to current game engine vtable slot 8 (0x20).
+ * Appends per-frame statistics for the active game type. */
+void game_engine_statistics_append(void)
+{
+  if (current_game_engine) {
+    void (**vtable)(void) = (void (**)(void))current_game_engine;
+    if (vtable[0x20 / 4])
+      vtable[0x20 / 4]();
+  }
+}
+
+/* Dispatch to current game engine vtable slot 9 (0x24).
+ * Handles an incoming client network message for the game type. */
+void game_engine_handle_client_message(void)
+{
+  if (current_game_engine) {
+    void (**vtable)(void) = (void (**)(void))current_game_engine;
+    if (vtable[0x24 / 4])
+      vtable[0x24 / 4]();
+  }
+}
+
+/* Dispatch to current game engine vtable slot 10 (0x28).
+ * Handles an incoming server network message for the game type. */
+void game_engine_handle_server_message(void)
+{
+  if (current_game_engine) {
+    void (**vtable)(void) = (void (**)(void))current_game_engine;
+    if (vtable[0x28 / 4])
+      vtable[0x28 / 4]();
+  }
+}
+
+/* Compare two statistic entries for qsort by multiple fields.
+ * Compares offsets +8, +0xc descending, then +0x10, +0x14 ascending.
+ * Returns -1 if param_1 is "better", 1 if param_2, 0 if equal. */
+int FUN_000a8470(int param_1, int param_2)
+{
+  if (*(int *)(param_2 + 8) < *(int *)(param_1 + 8))
+    return -1;
+  if (*(int *)(param_2 + 8) > *(int *)(param_1 + 8))
+    return 1;
+  if (*(int *)(param_2 + 0xc) < *(int *)(param_1 + 0xc))
+    return -1;
+  if (*(int *)(param_2 + 0xc) > *(int *)(param_1 + 0xc))
+    return 1;
+  if (*(int *)(param_1 + 0x10) < *(int *)(param_2 + 0x10))
+    return -1;
+  if (*(int *)(param_1 + 0x10) > *(int *)(param_2 + 0x10))
+    return 1;
+  if (*(int *)(param_2 + 0x14) < *(int *)(param_1 + 0x14))
+    return -1;
+  if (*(int *)(param_2 + 0x14) > *(int *)(param_1 + 0x14))
+    return 1;
+  return 0;
+}
+
+/* Return whether the game engine allows friendly fire.
+ * Returns bit 0 of game_engine_flags if complexity flag bit 2 is clear,
+ * otherwise returns the incoming AL (0). */
+char FUN_000a9550(void)
+{
+  if ((*(uint32_t *)0x5aa720 & 4) == 0)
+    return (char)(*(uint32_t *)0x456b18 >> 2) & 1;
+  return 0;
+}
+
+/* Return whether friendly fire is enabled for a specific player.
+ * Returns 0 if no engine, player is NONE, or complexity flag bit 2 set. */
+char FUN_000a9570(int param_1)
+{
+  if (current_game_engine && param_1 != -1 &&
+      (*(uint32_t *)0x5aa720 & 4) == 0)
+    return (char)(*(uint32_t *)0x456b18 >> 2) & 1;
+  return 0;
+}
+
+/* Return the game engine variant identifier byte.
+ * Returns 0 if no engine is active. */
+char FUN_000a95a0(void)
+{
+  if (current_game_engine)
+    return *(char *)0x456b14;
+  return 0;
+}
+
+/* Return whether the game engine has lives enabled and variant is nonzero. */
+char FUN_000a95c0(void)
+{
+  if (current_game_engine &&
+      (*(uint8_t *)0x456b18 & 2) != 0 &&
+      *(char *)0x456b14 != 0)
+    return 1;
+  return 0;
+}
+
+/* Return a combined spawn/respawn readiness flag.
+ * Checks engine active, server/client, game type 2 + flag, and flags byte. */
+char FUN_000a9f90(void)
+{
+  char result;
+  int is_client;
+
+  result = 1;
+  if (current_game_engine) {
+    is_client = *(int *)0x456b1c == 0;
+    if (*(int *)0x456b10 == 2 && *(char *)0x456b46 == 0)
+      is_client = 0;
+    result = (*(uint8_t *)0x456b18 & 1) | (char)is_client;
+  }
+  return result;
+}
+
+/* Dispatch to vtable slot 31 (0x7c).
+ * Checks a game-type-specific condition. */
+char FUN_000a9fd0(void)
+{
+  if (current_game_engine) {
+    char (*fn)(void) = ((char (**)(void))current_game_engine)[0x7c / 4];
+    if (fn)
+      return fn();
+  }
+  return 0;
+}
+
+/* Dispatch to vtable slot 32 (0x80).
+ * Checks a game-type-specific condition. */
+char FUN_000a9ff0(void)
+{
+  if (current_game_engine) {
+    char (*fn)(void) = ((char (**)(void))current_game_engine)[0x80 / 4];
+    if (fn)
+      return fn();
+  }
+  return 0;
+}
+
+/* Initialize the default map name and game variant for multiplayer. */
+void FUN_000aa120(void)
+{
+  char *map_name;
+  char local_6c[104];
+
+  csstrncpy((char *)0x5aa760, "levels\\test\\carousel\\carousel", 0x3f);
+  map_name = main_get_multiplayer_map_name();
+  if (map_name != NULL && *map_name != 0) {
+    csstrncpy((char *)0x5aa760, map_name, 0x3f);
+    *(char *)0x5aa79f = 0;
+  }
+  if (((char (*)(void *))player_ui_game_variant_specified)(local_6c))
+    csmemcpy((void *)0x5aa7a0, local_6c, 0x68);
+}
+
+/* Set the map name from an external source string. */
+void FUN_000ab040(char *param_1)
+{
+  if (param_1 != NULL && *param_1 != 0)
+    csstrncpy((char *)0x5aa760, param_1, 0x3f);
+}
+
+/* Copy game variant data from source to the global variant buffer. */
+void FUN_000ab070(int param_1)
+{
+  if (param_1 != 0)
+    csmemcpy((void *)0x5aa7a0, (void *)param_1, 0x68);
+}
+
+/* Check if a player's invincibility timer has expired.
+ * Returns 0 (not invincible) if the timer float is > 0, else 1. */
+int16_t FUN_000ab230(int param_1)
+{
+  int player;
+
+  if (current_game_engine && param_1 != -1) {
+    player = (int)datum_get(player_data, param_1);
+    if (*(int16_t *)(player + 2) != -1) {
+      if (*(float *)(0x5aa734 + *(int16_t *)(player + 2) * 4) > 0.0f)
+        return 0;
+    }
+  }
+  return 1;
+}
+
+/* Return whether the player's held weapon is a "power weapon" (bit 13 of
+ * weapon flags at tag offset +0x308). */
+int FUN_000ab290(int param_1)
+{
+  int player;
+  int biped;
+  int weapon_handle;
+  int weapon_obj;
+  int weapon_tag;
+
+  if (param_1 == -1)
+    return 0;
+  player = (int)datum_get(player_data, param_1);
+  if (*(int *)(player + 0x34) == -1)
+    return 0;
+  biped = (int)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+  if (*(int16_t *)(biped + 0x2a2) == -1)
+    return 0;
+  weapon_handle = *(int *)(biped + 0x2a8 + *(int16_t *)(biped + 0x2a2) * 4);
+  if (weapon_handle == -1)
+    return 0;
+  weapon_obj = (int)object_get_and_verify_type(weapon_handle, 4);
+  if (*(int *)weapon_obj == -1)
+    return 0;
+  weapon_tag = (int)tag_get(0x77656170, *(int *)weapon_obj);
+  return (*(uint32_t *)(weapon_tag + 0x308) >> 13) & 1;
+}
+
+/* Return 1 if the game engine is inactive (no engine), or bit 0 of flags. */
+char FUN_000ab9a0(void)
+{
+  if (current_game_engine)
+    return *(uint8_t *)0x456b18 & 1;
+  return 1;
+}
+
+/* Return 1 if no engine, or inverted bit 0 of the complexity word. */
+char FUN_000ab9c0(void)
+{
+  if (current_game_engine)
+    return ~(*(uint8_t *)0x5aa720) & 1;
+  return 1;
+}
+
+/* Return 1 if no engine, or inverted bit 1 of the complexity word. */
+char FUN_000ab9e0(void)
+{
+  if (current_game_engine)
+    return ~(*(uint8_t *)0x5aa720 >> 1) & 1;
+  return 1;
+}
+
+/* Initialize a CTF game variant with default settings. */
+void FUN_000aa220(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(int *)(buf + 0x14) = 2;
+  *(int *)(buf + 0x48) = 2;
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffe3) | 0x23;
+  *(char *)(buf + 0x4c) = 1;
+  *(char *)(buf + 0x4d) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x20) = 0;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x30) = 0;
+  *(int *)(buf + 0x2c) = 0;
+  *(int *)(buf + 0x40) = 0x19;
+  *(int *)(buf + 0x34) = 0x1c2;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 0;
+  *(char *)(buf + 0x4e) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize a Slayer game variant with default settings. */
+void FUN_000aa340(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffd2) | 0x12;
+  *(int *)(buf + 0x20) = 1;
+  *(char *)(buf + 0x4c) = 1;
+  *(char *)(buf + 0x4d) = 1;
+  *(char *)(buf + 0x4e) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x14) = 2;
+  *(int *)(buf + 0x48) = 2;
+  *(int *)(buf + 0x2c) = 0x96;
+  *(int *)(buf + 0x30) = 0x96;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x40) = 10;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize a King of the Hill game variant. */
+void FUN_000aa3d0(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffc3) | 3;
+  *(int *)(buf + 0x2c) = 300;
+  *(int *)(buf + 0x30) = 300;
+  *(int *)(buf + 0x14) = 2;
+  *(int *)(buf + 0x48) = 2;
+  *(char *)(buf + 0x28) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x20) = 0;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 5;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x40) = 10;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 0;
+  *(char *)(buf + 0x4c) = 0;
+  *(char *)(buf + 0x4d) = 0;
+  *(char *)(buf + 0x4e) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize an Oddball game variant. */
+void FUN_000aa460(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffe2) | 0x22;
+  *(int *)(buf + 0x20) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x14) = 2;
+  *(int *)(buf + 0x48) = 2;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x2c) = 0;
+  *(int *)(buf + 0x40) = 0x19;
+  *(int *)(buf + 0x30) = 300;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 6;
+  *(char *)(buf + 0x4c) = 0;
+  *(char *)(buf + 0x4d) = 0;
+  *(char *)(buf + 0x4e) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize an Oddball variant (alternate). */
+void FUN_000aa4f0(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffe2) | 0x22;
+  *(int *)(buf + 0x20) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x14) = 2;
+  *(int *)(buf + 0x48) = 2;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x2c) = 0x96;
+  *(int *)(buf + 0x40) = 0xf;
+  *(int *)(buf + 0x30) = 300;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 4;
+  *(char *)(buf + 0x4c) = 0;
+  *(char *)(buf + 0x4d) = 0;
+  *(char *)(buf + 0x4e) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize a Race game variant. */
+void FUN_000aa730(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffc2) | 2;
+  *(int *)(buf + 0x20) = 1;
+  *(int *)(buf + 0x48) = 1;
+  *(int *)(buf + 0x5c) = 1;
+  *(char *)(buf + 0x4d) = 1;
+  *(int *)(buf + 0x58) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x2c) = 0x96;
+  *(int *)(buf + 0x30) = 0x96;
+  *(int *)(buf + 0x14) = 3;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x40) = 2;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 0;
+  *(char *)(buf + 0x4c) = 0;
+  *(int *)(buf + 0x50) = 0;
+  *(int *)(buf + 0x54) = 0;
+  *(int *)(buf + 0x4f) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize a Race game variant (alternate). */
+void FUN_000aa860(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffc3) | 3;
+  *(int *)(buf + 0x2c) = 0x96;
+  *(int *)(buf + 0x30) = 0x96;
+  *(int *)(buf + 0x48) = 2;
+  *(int *)(buf + 0x50) = 2;
+  *(int *)(buf + 0x58) = 2;
+  *(int *)(buf + 0x20) = 1;
+  *(int *)(buf + 0x5c) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x14) = 3;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x40) = 10;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 0;
+  *(char *)(buf + 0x4d) = 0;
+  *(char *)(buf + 0x4c) = 0;
+  *(int *)(buf + 0x54) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize a CTF variant (team). */
+void FUN_000aaa20(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffe3) | 0x23;
+  *(int *)(buf + 0x40) = 2;
+  *(int *)(buf + 0x48) = 2;
+  *(int *)(buf + 0x20) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x14) = 4;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x2c) = 300;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x30) = 0x1c2;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 0;
+  *(char *)(buf + 0x4c) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize a CTF variant (no teams). */
+void FUN_000aaab0(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffc3) | 3;
+  *(int *)(buf + 0x20) = 1;
+  *(char *)(buf + 0x4c) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x40) = 2;
+  *(int *)(buf + 0x48) = 2;
+  *(int *)(buf + 0x14) = 4;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x2c) = 0;
+  *(int *)(buf + 0x30) = 0x96;
+  *(char *)(buf + 0x18) = 0;
+  *(int *)(buf + 0x44) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize an Assault game variant. */
+void FUN_000aac50(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(int *)(buf + 0x14) = 1;
+  *(int *)(buf + 0x20) = 1;
+  *(char *)(buf + 0x18) = 1;
+  *(char *)(buf + 0x4b) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffe3) | 0x23;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x2c) = 300;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x40) = 3;
+  *(int *)(buf + 0x30) = 0x1c2;
+  *(int *)(buf + 0x44) = 0;
+  *(int *)(buf + 0x48) = 2;
+  *(char *)(buf + 0x4c) = 0;
+  *(char *)(buf + 0x4e) = 0;
+  *(char *)(buf + 0x4d) = 0;
+  *(int *)(buf + 0x4f) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize an Assault game variant (alternate). */
+void FUN_000aace0(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(int *)(buf + 0x14) = 1;
+  *(int *)(buf + 0x20) = 1;
+  *(char *)(buf + 0x18) = 1;
+  *(char *)(buf + 0x4c) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffc3) | 3;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 5;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x2c) = 0;
+  *(int *)(buf + 0x40) = 3;
+  *(int *)(buf + 0x30) = 0x96;
+  *(int *)(buf + 0x44) = 0;
+  *(int *)(buf + 0x48) = 2;
+  *(char *)(buf + 0x4b) = 0;
+  *(char *)(buf + 0x4e) = 0;
+  *(char *)(buf + 0x4d) = 0;
+  *(int *)(buf + 0x4f) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Initialize a Race game variant (team). */
+void FUN_000aafb0(int *param_1)
+{
+  int i;
+  int *src;
+  char buf[0x68];
+
+  *(int16_t *)buf = 0;
+  csmemset(buf + 2, 0, 0x66);
+  *(uint32_t *)(buf + 0x1c) = (*(uint32_t *)(buf + 0x1c) & 0xffffffc3) | 3;
+  *(int *)(buf + 0x14) = 5;
+  *(int *)(buf + 0x40) = 5;
+  *(int *)(buf + 0x20) = 1;
+  *(char *)(buf + 0x18) = 1;
+  *(int16_t *)(buf + 0x64) = 1;
+  *(int *)(buf + 0x48) = 2;
+  *(int *)(buf + 0x4c) = 2;
+  *(int *)(buf + 0x3c) = 0x3f800000;
+  *(int *)(buf + 0x38) = 0;
+  *(char *)(buf + 0x28) = 0;
+  *(int *)(buf + 0x34) = 0;
+  *(int *)(buf + 0x2c) = 0;
+  *(int *)(buf + 0x30) = 300;
+  *(int *)(buf + 0x44) = 0;
+  *(int *)(buf + 0x50) = 0;
+  src = (int *)buf;
+  for (i = 0x1a; i != 0; i--) {
+    *param_1 = *src;
+    src++;
+    param_1++;
+  }
+}
+
+/* Set the weapon spawn configuration for a player. */
+void FUN_000ab510(int param_1, int param_2)
+{
+  int weapon;
+  int tag_handle;
+
+  if (param_1 != -1) {
+    weapon = (int)object_get_and_verify_type(param_1, 4);
+    object_set_position(param_1, (float *)param_2, *(float **)0x31fc3c, *(float **)0x31fc44);
+    object_reset(param_1);
+    *(uint32_t *)(weapon + 0x1dc) = *(uint32_t *)(weapon + 0x1dc) & 0xffffffdf;
+    tag_handle = game_time_get();
+    *(int *)(weapon + 0x1b4) = tag_handle;
+    *(int *)(weapon + 0x1b0) = -1;
+  }
+}
