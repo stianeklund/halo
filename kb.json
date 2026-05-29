@@ -2216,7 +2216,8 @@
         },
         {
           "addr": "0x1d420",
-          "decl": "void actor_action_try_to_enter_vehicle(void);"
+          "decl": "char actor_action_try_to_enter_vehicle(int actor_handle, int param_2, int param_3, int param_4, int16_t param_5, int16_t *param_6);",
+          "ported": true
         },
         {
           "addr": "0x1d4f0",
@@ -19146,7 +19147,7 @@
         },
         {
           "addr": "0x1b750",
-          "decl": "void FUN_0001b750(void);"
+          "decl": "char FUN_0001b750(int actor_handle, int param_2, int16_t seat_index, short *action_buf);"
         },
         {
           "addr": "0x109010",
@@ -25278,7 +25279,7 @@
         },
         {
           "addr": "0x1adfc0",
-          "decl": "void vehicle_scripting_find_available_seats(void);"
+          "decl": "int16_t vehicle_scripting_find_available_seats(int param_1, int param_2, int param_3, int16_t *seat_indices, int max_seats);"
         },
         {
           "addr": "0x1ae160",
@@ -25405,7 +25406,7 @@
         },
         {
           "addr": "0x1b0d00",
-          "decl": "void unit_has_animation_to_enter_seat(void);"
+          "decl": "char unit_has_animation_to_enter_seat(int unit_handle, int param_2, int16_t seat_index);"
         },
         {
           "addr": "0x1b0d90",
