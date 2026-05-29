@@ -7827,7 +7827,9 @@
         },
         {
           "addr": "0xa84f0",
-          "decl": "void FUN_000a84f0(int param_1, int param_2, int16_t row_index@<si>);"
+          "decl": "void FUN_000a84f0(int param_1, int param_2, int16_t row_index@<si>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8580",
