@@ -2000,10 +2000,11 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
   }
 }
 
-/* Tail-call thunk to rasterizer decal initialization (FUN_0015abe0). */
-void FUN_0017ca50(void)
+/* Tail-call thunk to rasterizer decal initialization (FUN_0015abe0).
+ * Inherits the caller's pushed args and forwards them unchanged (cdecl). */
+void FUN_0017ca50(short *p0, short *p1, float *color0, float *color1)
 {
-  FUN_0015abe0();
+  FUN_0015abe0(p0, p1, color0, color1);
 }
 
 /* Tail-call thunk to rasterizer decal initialization (FUN_0015acc0). */
@@ -2167,10 +2168,11 @@ void FUN_0017ccb0(void)
   FUN_00172a30();
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00172590). */
-void FUN_0017ccc0(void)
+/* Tail-call thunk to rasterizer decal rendering (FUN_00172590).
+ * Inherits the caller's pushed arg and forwards it unchanged (cdecl). */
+void FUN_0017ccc0(int param_1)
 {
-  FUN_00172590();
+  FUN_00172590(param_1);
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00172de0). */
