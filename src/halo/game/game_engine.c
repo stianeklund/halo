@@ -6351,7 +6351,8 @@ int FUN_000b1e90(int param_1, int param_2)
   int16_t i;
   int16_t idx;
 
-  rng = random_range((unsigned int *)get_global_random_seed_address(), 0, *(int16_t *)0x456d54);
+  { unsigned int *seed = (unsigned int *)get_global_random_seed_address();
+  rng = random_range(seed, 0, *(int16_t *)0x456d54); }
   i = 0;
   if (0 < *(int16_t *)0x456d54) {
     do {
@@ -6362,4 +6363,75 @@ int FUN_000b1e90(int param_1, int param_2)
     } while (i < *(int16_t *)0x456d54);
   }
   return param_1;
+}
+
+/* Find a spawn position for the oddball from netgame flags (b2d30). */
+void FUN_000b2d30(int *param_1, int param_2)
+{
+  int scenario;
+  int variant;
+  int *flag_block;
+  int flag_count;
+  int16_t i;
+  int elem;
+  int16_t rng_pick;
+  int local_14 = 0;
+  int local_10 = 0;
+  int local_c = 0;
+  int *flag_elem;
+
+  scenario = (int)global_scenario_get();
+  variant = (int)game_engine_get_variant();
+  if (*(char *)(variant + 0x4c) == 0) {
+    elem = find_netgame_flag(0, 0, 0, 2, param_2);
+    if (elem != -1) {
+      flag_elem = (int *)tag_block_get_element((int *)(scenario + 0x378), elem, 0x94);
+      local_14 = flag_elem[0];
+      local_10 = flag_elem[1];
+      local_c = flag_elem[2];
+      goto done;
+    }
+  }
+  flag_block = (int *)(scenario + 0x378);
+  flag_count = 0;
+  i = 0;
+  if (0 < *flag_block) {
+    do {
+      elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
+      if (*(int16_t *)(elem + 0x10) == 2)
+        flag_count++;
+      i++;
+    } while ((int)i < *flag_block);
+    if (flag_count != 0) {
+      { unsigned int *seed = (unsigned int *)get_global_random_seed_address();
+      rng_pick = random_range(seed, 0, (int16_t)flag_count); }
+      i = 0;
+      if (0 < *flag_block) {
+        do {
+          elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
+          if (*(int16_t *)(elem + 0x10) == 2) {
+            if (rng_pick == 0) {
+              flag_elem = (int *)tag_block_get_element((int *)(scenario + 0x378), (int)i, 0x94);
+              local_14 = flag_elem[0];
+              local_10 = flag_elem[1];
+              local_c = flag_elem[2];
+              goto done;
+            }
+            rng_pick--;
+          }
+          i++;
+        } while ((int)i < *flag_block);
+      }
+      goto output;
+    }
+  }
+  error(2, "### failed to find any suitable netgame flag to create the ball");
+  display_assert("0 && \"this map was not correctly setup for oddball\"",
+                 "c:\\halo\\SOURCE\\game\\game_engine_oddball.c", 0xac, 1);
+  system_exit(-1);
+done:
+output:
+  param_1[0] = local_14;
+  param_1[1] = local_10;
+  param_1[2] = local_c;
 }
