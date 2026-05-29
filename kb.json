@@ -8085,11 +8085,15 @@
         },
         {
           "addr": "0xa9af0",
-          "decl": "wchar_t *game_engine_place_to_string(int param_1);"
+          "decl": "wchar_t *game_engine_place_to_string(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9e20",
-          "decl": "int game_engine_get_place(int param_1, int param_2);"
+          "decl": "int game_engine_get_place(int param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9f90",

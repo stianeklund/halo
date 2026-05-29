@@ -5673,6 +5673,180 @@ void FUN_000acd00(int param_1)
   }
 }
 
+/* Return a wide string describing the player's placement. */
+wchar_t *game_engine_place_to_string(int param_1)
+{
+  wchar_t *places[68];
+  int lookup_index;
+
+  places[0] = L"first place";
+  places[1] = L"second place";
+  places[2] = L"third place";
+  places[3] = L"fourth place";
+  places[4] = L"fifth place";
+  places[5] = L"sixth place";
+  places[6] = L"seventh place";
+  places[7] = L"eighth place";
+  places[8] = L"9th place";
+  places[9] = L"10th place";
+  places[10] = L"11th place";
+  places[11] = L"12th place";
+  places[12] = L"13th place";
+  places[13] = L"14th place";
+  places[14] = L"15th place";
+  places[15] = L"16th place";
+  places[16] = L"17th place";
+  places[17] = L"18th place";
+  places[18] = L"19th place";
+  places[19] = L"20th place";
+  places[20] = L"21st place";
+  places[21] = L"22nd place";
+  places[22] = L"23rd place";
+  places[23] = L"24th place";
+  places[24] = L"25th place";
+  places[25] = L"26th place";
+  places[26] = L"27th place";
+  places[27] = L"28th place";
+  places[28] = L"29th place";
+  places[29] = L"30th place";
+  places[30] = L"31st place";
+  places[31] = L"32st place";
+  places[32] = L"tied for first place";
+  places[33] = L"tied for second place";
+  places[34] = L"tied for third place";
+  places[35] = L"tied for fourth place";
+  places[36] = L"tied for fifth place";
+  places[37] = L"tied for sixth place";
+  places[38] = L"tied for seventh place";
+  places[39] = L"tied for eighth place";
+  places[40] = L"tied for 9th place";
+  places[41] = L"tied for 10th place";
+  places[42] = L"tied for 11th place";
+  places[43] = L"tied for 12th place";
+  places[44] = L"tied for 13th place";
+  places[45] = L"tied for 14th place";
+  places[46] = L"tied for 15th place";
+  places[47] = L"tied for 16th place";
+  places[48] = L"tied for 17th place";
+  places[49] = L"tied for 18th place";
+  places[50] = L"tied for 19th place";
+  places[51] = L"tied for 20th place";
+  places[52] = L"tied for 21st place";
+  places[53] = L"tied for 22nd place";
+  places[54] = L"tied for 23rd place";
+  places[55] = L"tied for 24th place";
+  places[56] = L"tied for 25th place";
+  places[57] = L"tied for 26th place";
+  places[58] = L"tied for 27th place";
+  places[59] = L"tied for 28th place";
+  places[60] = L"tied for 29th place";
+  places[61] = L"tied for 30th place";
+  places[62] = L"tied for 31st place";
+  places[63] = L"tied for 32st place";
+  places[64] = L"even";
+  places[65] = L"winning";
+  places[66] = L"losing";
+  places[67] = L"tied";
+
+  if ((uint16_t)(param_1 >> 16) >= 0x20) {
+    display_assert("place.place < maximum_places",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x128f, 1);
+    system_exit(-1);
+  }
+  if ((param_1 & 4) != 0) {
+    if ((param_1 & 1) != 0)
+      return places[67];
+    if ((param_1 & 4) != 0) {
+      if ((uint16_t)(param_1 >> 16) == 0)
+        return places[65];
+      if ((param_1 & 4) != 0 && (uint16_t)(param_1 >> 16) == 1)
+        return places[66];
+    }
+  }
+  if ((param_1 & 2) != 0)
+    return places[64];
+  lookup_index = (int)(uint16_t)(param_1 >> 16);
+  if ((param_1 & 1) != 0)
+    lookup_index = lookup_index + 0x20;
+  if (lookup_index == -1) {
+    display_assert("NONE != lookup_index",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x12aa, 1);
+    system_exit(-1);
+  }
+  return places[lookup_index];
+}
+
+/* Get a player's placement status (rank, tied, winning/losing). */
+int game_engine_get_place(int param_1, int param_2)
+{
+  int player;
+  int other;
+  int group_count;
+  int result_score;
+  char all_tied;
+  char tied;
+  data_iter_t iter;
+  int16_t place_hi;
+  uint32_t team_mask;
+
+  player = (int)datum_get(player_data, param_1);
+  all_tied = 1;
+  tied = 0;
+  group_count = 1;
+  place_hi = 0;
+  if (((void (**)(void))current_game_engine)[0x48 / 4] != NULL) {
+    team_mask = 0;
+    result_score = ((int (*)(int, int))((int *)current_game_engine)[0x48 / 4])(param_1, param_2);
+    data_iterator_new(&iter, player_data);
+    other = (int)data_iterator_next(&iter);
+    if (other != 0) {
+      do {
+        char is_same;
+        int other_score;
+        if (param_2 == 1)
+          is_same = *(int *)(other + 0x20) == *(int *)(player + 0x20);
+        else
+          is_same = iter.datum_handle == param_1;
+        if (!is_same) {
+          if (param_2 == 1) {
+            uint32_t team_bit = 1u << ((uint8_t)*(int *)(other + 0x20) & 0x1f);
+            if ((team_bit & team_mask) != 0)
+              goto next;
+            team_mask |= team_bit;
+          }
+          other_score = ((int (*)(int, int))((int *)current_game_engine)[0x48 / 4])(iter.datum_handle, param_2);
+          group_count++;
+          if (other_score == result_score)
+            tied = 1;
+          else {
+            all_tied = 0;
+            if (result_score < other_score)
+              place_hi++;
+          }
+        }
+next:
+        other = (int)data_iterator_next(&iter);
+      } while (other != 0);
+      if (all_tied && !tied && group_count != 1) {
+        display_assert("(!all_tied || (tied)) || (1 == group_count)",
+                       "c:\\halo\\SOURCE\\game\\game_engine.c", 0x12ef, 1);
+        system_exit(-1);
+      }
+    }
+  }
+  {
+    int result;
+    result = (param_2 != 1) ? 0 : 8;
+    if (tied)
+      result |= 1;
+    if ((all_tied & tied) != 0)
+      result |= 2;
+    if (group_count == 2)
+      result |= 4;
+    return result | ((int)place_hi << 16);
+  }
+}
+
 /* Check whether a player should spawn this tick. */
 char game_engine_should_spawn_player(int param_1)
 {
