@@ -8300,6 +8300,48 @@ void FUN_000ab090(int text, char highlight, int row, int state)
   draw_string_set_tab_stops(0, 0);
 }
 
+/* Live score update: manage score fade-in/out per local player (afcb0). */
+void FUN_000afcb0(void)
+{
+  int local_idx;
+  int player_handle;
+  int player;
+  int gamepad;
+  float fade;
+
+  local_idx = (int)(int16_t)*(int *)0x506548;
+  player_handle = local_player_get_player_index(local_idx);
+  player = (int)datum_get(player_data, player_handle);
+  if (local_idx == -1) {
+    display_assert("NONE != local_player_index",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x6f2, 1);
+    system_exit(-1);
+  }
+  if (current_game_engine == 0) {
+    display_assert("NULL != game_engine",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x6f3, 1);
+    system_exit(-1);
+  }
+  if (player != 0)
+    FUN_000ac3e0(player_handle);
+  gamepad = (int)input_get_gamepad_state(local_idx);
+  if ((gamepad == 0 || *(char *)(gamepad + 0x1d) == 0) && *(int *)0x5aa730 != 1)
+    fade = *(float *)(0x5aa734 + local_idx * 4) - *(float *)0x253d48;
+  else
+    fade = *(float *)(0x5aa734 + local_idx * 4) + *(float *)0x253d48;
+  if (fade < 0.0f) {
+    *(float *)(0x5aa734 + local_idx * 4) = 0.0f;
+    return;
+  }
+  if (fade > 1.0f)
+    fade = 1.0f;
+  if (fade > 0.0f) {
+    float alpha = (float)game_globals_get_weapon(fade);
+    ((void (*)(int, float))FUN_000afa40)(player_handle, alpha);
+  }
+  *(float *)(0x5aa734 + local_idx * 4) = fade;
+}
+
 /* Validate netgame flag starting locations for a game type (aa0b0). BX = type. */
 void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_type)
 {
