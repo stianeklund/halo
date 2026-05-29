@@ -8672,7 +8672,9 @@
         },
         {
           "addr": "0xb0000",
-          "decl": "void FUN_000b0000(void);"
+          "decl": "void FUN_000b0000(int player_handle@<esi>, int team@<ebx>, int flag_weapon);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb00c0",

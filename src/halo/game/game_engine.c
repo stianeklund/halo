@@ -7220,6 +7220,34 @@ int FUN_000afe50(float *position)
   return handle;
 }
 
+/* CTF: score a flag capture for a player's team (b0000). Register-arg pass-through. */
+void FUN_000b0000(int player_handle, int team, int flag_weapon)
+{
+  int player;
+
+  player = (int)datum_get(player_data, player_handle);
+  if (!game_engine_can_score()) {
+    display_assert("game_engine_can_score()",
+                   "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x1af, 1);
+    system_exit(-1);
+  }
+  if (player_handle == -1) {
+    display_assert("NONE != player_index",
+                   "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x1b0, 1);
+    system_exit(-1);
+  }
+  if (team == -1) {
+    display_assert("NONE != team_index",
+                   "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x1b1, 1);
+    system_exit(-1);
+  }
+  *(int *)(0x456b84 + team * 4) = *(int *)(0x456b84 + team * 4) + 1;
+  *(int16_t *)(player + 0xc4) = *(int16_t *)(player + 0xc4) + 1;
+  { char event = (-(uint32_t)(*(int *)(player + 0x20) != 0) & 0xfffffffd) + 0xd;
+  game_engine_post_event(event); }
+  game_show_score_you_ally_enemy(player_handle, 0x1f, 0x20, 0x21);
+}
+
 /* Accumulate weighted float scores from a tag block into an integer sum.
  * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
  * float score at offset +0x20 from data base. */
