@@ -4374,3 +4374,201 @@ void FUN_000b3cf0(void)
     player = (int)data_iterator_next((data_iter_t *)iter);
   }
 }
+
+/* Check if a team has any living players (abb90). */
+int FUN_000abb90(int param_1)
+{
+  int player_count;
+  int player;
+  int p;
+  data_iter_t iter;
+
+  player_count = game_engine_player_count();
+  if (player_count < 2)
+    return 1;
+  data_iterator_new(&iter, player_data);
+  player = (int)data_iterator_next(&iter);
+  if (player == 0)
+    return 0;
+  while (*(char *)(player + 0xd1) != 0 ||
+         (*(int *)(player + 0x34) == -1 &&
+          (game_engine_is_player_leading(iter.datum_handle) ||
+           (0 < *(int *)0x456b30 &&
+            (p = (int)datum_get(player_data, iter.datum_handle),
+             *(int *)(p + 0x34) == -1) &&
+            *(int *)0x456b30 <= *(int16_t *)(p + 0xaa))))) {
+    player = (int)data_iterator_next(&iter);
+    if (player == 0)
+      return 0;
+  }
+  if (*(int *)(player + 0x20) == -1) {
+    display_assert("player->team_index != NONE",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x1f6, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(player + 0x20) != param_1)
+    return 0;
+  return 1;
+}
+
+/* CTF message formatter (b0210). */
+int FUN_000b0210(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5)
+{
+  int player;
+  int team;
+  uint32_t other_team;
+  wchar_t *msg;
+
+  player = (int)datum_get(player_data, param_1);
+  team = *(int *)(player + 0x20);
+  other_team = (team + 1) & 0x80000001;
+  if ((int)other_team < 0)
+    other_team = (other_team - 1 | 0xfffffffe) + 1;
+  switch (param_2) {
+  case 0x1e:
+    unicode_sprintf(param_4, param_5, L"Red Team %d Blue Team %d",
+                    *(int *)0x456b84, *(int *)0x456b88);
+    return 1;
+  case 0x1f:
+    unicode_sprintf(param_4, param_5, L"You scored %d to %d.",
+                    *(int *)(0x456b84 + team * 4),
+                    *(int *)(0x456b84 + other_team * 4));
+    return 1;
+  case 0x20:
+    unicode_sprintf(param_4, param_5, L"Enemy scored %d to %d.",
+                    *(int *)(0x456b84 + team * 4),
+                    *(int *)(0x456b84 + other_team * 4));
+    return 1;
+  case 0x21:
+    unicode_sprintf(param_4, param_5, L"Your ally scored %d to %d.",
+                    *(int *)(0x456b84 + team * 4),
+                    *(int *)(0x456b84 + other_team * 4));
+    return 1;
+  case 0x22:
+    unicode_sprintf(param_4, param_5, *(wchar_t **)0x26cdf0);
+    return 1;
+  case 0x23:
+    msg = L"You returned the flag.";
+    break;
+  case 0x24:
+  case 0x25:
+    unicode_sprintf(param_4, param_5, L"The enemy has your flag.");
+    return 1;
+  case 0x26:
+    unicode_sprintf(param_4, param_5, L"The enemy returned the flag.");
+    return 1;
+  case 0x27:
+    msg = L"Your ally has the flag.";
+    break;
+  case 0x28:
+    unicode_sprintf(param_4, param_5, L"Your ally returned the flag.");
+    return 1;
+  case 0x29:
+    unicode_sprintf(param_4, param_5, L"Your flag was returned.");
+    return 1;
+  case 0x2a:
+    msg = L"The enemy's flag was returned.";
+    break;
+  case 0x2b:
+    unicode_sprintf(param_4, param_5, L"Time expired.");
+    return 1;
+  case 0x2c:
+    unicode_sprintf(param_4, param_5, L"You are on offense.");
+    return 1;
+  case 0x2d:
+    msg = L"You are on defense.";
+    break;
+  default:
+    return 0;
+  }
+  unicode_sprintf(param_4, param_5, msg);
+  return 1;
+}
+
+/* Oddball message formatter (b2900). */
+char FUN_000b2900(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5)
+{
+  int player2;
+  int score;
+  wchar_t *msg;
+
+  datum_get(player_data, param_1);
+  switch (param_2 - 0x1e) {
+  case 0:
+    msg = L"You have the ball.";
+    break;
+  case 1:
+    unicode_sprintf(param_4, param_5, L"An ally has the ball.");
+    return 1;
+  case 2:
+    player2 = (int)datum_get(player_data, param_3);
+    unicode_sprintf(param_4, param_5, L"%s has the ball.", (wchar_t *)(player2 + 4));
+    return 1;
+  case 3:
+    unicode_sprintf(param_4, param_5, L"You are it!");
+    return 1;
+  case 4:
+    msg = L"Ally is it!";
+    break;
+  case 5:
+    player2 = (int)datum_get(player_data, param_3);
+    unicode_sprintf(param_4, param_5, L"%s is it.", (wchar_t *)(player2 + 4));
+    return 1;
+  case 7:
+  case 8:
+  case 9:
+    player2 = (int)datum_get(player_data, param_3);
+    score = *(int *)(0x456e0c + *(int *)(player2 + 0x20) * 4) / 30;
+    if (param_2 == 0x27) {
+      unicode_sprintf(param_4, param_5, L"%s (%d seconds)",
+                      (wchar_t *)game_engine_place_to_string(game_engine_get_place(param_1, 1)), score);
+      return 1;
+    }
+    if (param_2 == 0x26) {
+      unicode_sprintf(param_4, param_5, L"Ally %s has the ball (%d seconds)",
+                      (wchar_t *)(player2 + 4), score);
+      return 1;
+    }
+    if (param_2 == 0x25) {
+      unicode_sprintf(param_4, param_5, L"Enemy %s has the ball (%d seconds)",
+                      (wchar_t *)(player2 + 4), score);
+    }
+    return 1;
+  default:
+    return 0;
+  }
+  unicode_sprintf(param_4, param_5, msg);
+  return 1;
+}
+
+/* King of the Hill message formatter (b1940). */
+int FUN_000b1940(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5)
+{
+  int player2;
+  int score;
+
+  datum_get(player_data, param_1);
+  if (param_2 < 0x1e || param_2 > 0x20)
+    return 0;
+  player2 = (int)datum_get(player_data, param_3);
+  score = *(int *)(0x456ba8 + *(int *)(player2 + 0x20) * 4) / 30;
+  if (param_2 == 0x20) {
+    unicode_sprintf(param_4, param_5, L"%s (%d seconds)",
+                    (wchar_t *)game_engine_place_to_string(game_engine_get_place(param_1, 1)), score);
+    return 1;
+  }
+  if (param_2 == 0x1f) {
+    unicode_sprintf(param_4, param_5, L"Ally %s in on the hill (%d seconds)",
+                    (wchar_t *)(player2 + 4), score);
+    return 1;
+  }
+  if (param_2 == 0x1e) {
+    unicode_sprintf(param_4, param_5, L"Enemy %s in on the hill (%d seconds)",
+                    (wchar_t *)(player2 + 4), score);
+    return 1;
+  }
+  display_assert("!\"unreachable\"",
+                 "c:\\halo\\SOURCE\\game\\game_engine_king.c", 0x39a, 1);
+  system_exit(-1);
+  return 1;
+}
