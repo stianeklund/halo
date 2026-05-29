@@ -7664,6 +7664,80 @@ void FUN_000b0ac0(int param_1)
   }
 }
 
+/* Oddball: per-tick scoring and speed update (b3120). */
+int FUN_000b3120(int param_1)
+{
+  int player;
+  int variant;
+  int balls_held;
+  int i;
+  int biped;
+  int weapon_handle;
+  int weapon;
+  int score;
+  int count;
+
+  player = (int)datum_get(player_data, param_1);
+  game_engine_state_message(param_1, -1, -1);
+  FUN_000b3090(param_1);
+  balls_held = 0;
+  variant = (int)game_engine_get_variant();
+  i = 0;
+  if (0 < *(int *)(variant + 0x60)) {
+    do {
+      if (*(int *)(0x456ecc + i * 4) == (int)param_1)
+        balls_held++;
+      i++;
+    } while (i < *(int *)(variant + 0x60));
+  }
+  *(int *)(player + 0x6c) = 0x3f800000;
+  if (0 < balls_held) {
+    variant = (int)game_engine_get_variant();
+    if (*(int *)(variant + 0x54) != 1)
+      game_engine_player_depower_active_camo(param_1);
+    variant = (int)game_engine_get_variant();
+    if (*(int *)(variant + 0x50) == 1)
+      *(int *)(player + 0x6c) = 0x3f800000;
+    else if (*(int *)(variant + 0x50) == 2)
+      *(int *)(player + 0x6c) = 0x3fa00000;
+    else
+      *(int *)(player + 0x6c) = 0x3f400000;
+  }
+  if (game_engine_can_score()) {
+    variant = (int)game_engine_get_variant();
+    if (*(int *)(variant + 0x5c) != 2 && 0 < balls_held) {
+      count = balls_held;
+      do {
+        player = (int)datum_get(player_data, param_1);
+        variant = (int)game_engine_get_variant();
+        if (*(int *)(variant + 0x5c) == 0)
+          game_engine_state_message(param_1, 0x27, param_1);
+        *(int16_t *)(player + 0xc0) = *(int16_t *)(player + 0xc0) + 1;
+        FUN_000b2740(param_1);
+        count--;
+      } while (count != 0);
+    }
+  }
+  variant = (int)game_engine_get_variant();
+  if (0 < *(int *)(variant + 0x5c) && *(int *)(variant + 0x5c) < 3 && 0 < balls_held)
+    game_engine_state_message(param_1, 0x21, param_1);
+  biped = *(int *)(player + 0x34);
+  if (biped != -1) {
+    biped = (int)object_get_and_verify_type(biped, 3);
+    if (*(int16_t *)(biped + 0x2a2) != -1) {
+      weapon_handle = *(int *)(biped + 0x2a8 + *(int16_t *)(biped + 0x2a2) * 4);
+      if (weapon_handle != -1 && weapon_is_flag(weapon_handle)) {
+        score = *(int *)(0x456e4c + (param_1 & 0xffff) * 4);
+        weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+        if (0 < score && score % 0x96 == 0 && score < *(int *)0x456e08)
+          game_engine_post_event(0x2a);
+        *(int16_t *)(weapon + 0x260) = (int16_t)(score / 30);
+      }
+    }
+  }
+  return 0;
+}
+
 /* Oddball: update weapon tracking for a player (b3090). EDI = player_handle. */
 void FUN_000b3090(int player_handle)
 {
