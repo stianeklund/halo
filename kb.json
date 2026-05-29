@@ -8374,7 +8374,7 @@
         },
         {
           "addr": "0xabd20",
-          "decl": "void populate_statistic_buffer(void);"
+          "decl": "int FUN_000abd20(int *param_1, int param_2, char param_3);"
         },
         {
           "addr": "0xabf50",
@@ -8506,7 +8506,7 @@
         },
         {
           "addr": "0xadcf0",
-          "decl": "void game_engine_get_starting_location_rating(void);"
+          "decl": "float game_engine_get_starting_location_rating(int param_1, int param_2);"
         },
         {
           "addr": "0xadd50",
