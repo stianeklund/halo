@@ -6656,6 +6656,53 @@ void FUN_000b1600(int param_1)
   }
 }
 
+/* Oddball: increment score for a player holding the ball (b2740). */
+void FUN_000b2740(int player_handle)
+{
+  int player;
+  int target;
+  int current;
+  char event;
+
+  player = (int)datum_get(player_data, player_handle);
+  *(int *)(0x456e4c + (player_handle & 0xffff) * 4) =
+      *(int *)(0x456e4c + (player_handle & 0xffff) * 4) + 1;
+  *(int *)(0x456e0c + *(int *)(player + 0x20) * 4) =
+      *(int *)(0x456e0c + *(int *)(player + 0x20) * 4) + 1;
+  target = *(int *)0x456e08;
+  current = *(int *)(0x456e0c + *(int *)(player + 0x20) * 4);
+  if (target - current == 900) {
+    if (FUN_000a95a0() == 0)
+      event = 3;
+    else
+      event = (*(int *)(player + 0x20) != 0) * 2 + 5;
+    game_engine_post_event(event);
+  }
+  if (target - current == 0x708) {
+    if (FUN_000a95a0() == 0)
+      event = 2;
+    else
+      event = (*(int *)(player + 0x20) != 0) * 2 + 4;
+    game_engine_post_event(event);
+  }
+  if (target <= current)
+    game_engine_start_over();
+}
+
+/* Oddball: check return type based on variant mode (b2be0). */
+char FUN_000b2be0(int param_1)
+{
+  int variant;
+
+  if (param_1 == 1) {
+    variant = (int)game_engine_get_variant();
+    if (*(int *)(variant + 0x5c) - 2 == 0)
+      return 1;
+    return 0;
+  }
+  return 0;
+}
+
 /* King of the Hill: compute hill geometry from scenario flag positions (b1180). */
 void FUN_000b1180(void)
 {
