@@ -105,6 +105,7 @@
 	halo/rasterizer/xbox/rasterizer_xbox.c
 	halo/rasterizer/xbox/d3d_resource.c
 	halo/rasterizer/xbox/rasterizer_xbox_decals.c
+	halo/rasterizer/xbox/rasterizer_xbox_shadows.c
 	halo/render/render.c
 	halo/render/render_cameras.c
 	"halo/saved games/saved_game_files.c"
