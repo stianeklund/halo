@@ -100,7 +100,15 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **Golden Master Test Harness:** A specialized test harness intercepts the engine boot in `src/halo/shell_xbox.c`. It lets you run functions inside the engine context and verify their side-effects/return values against the exact Xbox ASM output. 
   - *Usage:* Add tests to `src/halo/test_harness.c`. Ensure your function is unmapped in `kb.json` (`"ported": false`), run `rtk python3 tools/verify/run_golden_tests.py` to capture the original FPU hex values. Then map your function (`"ported": true`) and press Enter to verify your C implementation.
   - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
-- **Live Memory Capture + State Replay:** For Unicorn equivalence that under-covers live engine paths, capture selected memory regions from a running xemu with QMP `pmemsave` or XBDM `getmem` via `tools/equivalence/state_snapshot.py` or `tools/equivalence/capture_snapshot_from_diff.py`, then replay them with `unicorn_diff.py --state-snapshot <path>`. Use memory-region captures only; do not use QEMU `savevm`/`loadvm` for oracle tests because those restore old loaded-XBE code pages.
+- **Live Memory Capture + State Replay:** For Unicorn equivalence that under-covers live engine paths, use `tools/equivalence/dump_xemu_memory.py` to capture full Xbox memory and build snapshots, then replay with `unicorn_diff.py --state-snapshot <path>`. Workflow:
+  1. Get into the desired game state in xemu (e.g. MP match with players).
+  2. Dump full memory: pause xemu, run `pmemsave 0 134217728 "G:\dev\halo\artifacts\xbox_full_memory.bin"` via QMP monitor.
+  3. Build a compact snapshot: `rtk python3 tools/equivalence/dump_xemu_memory.py snapshot --dump artifacts/xbox_full_memory.bin --target <func> --full -o artifacts/snapshot_<func>.json`
+  4. Add `--arg <name> <value>` to pin function arguments to real handles (e.g. `--arg dead_handle 0xec700000`).
+  5. Run equivalence: `rtk python3 tools/equivalence/unicorn_diff.py <target> --seeds 50 --allow-stubs --mem-trace --state-snapshot artifacts/snapshot_<func>.json`
+  - For real Xbox: `rtk python3 tools/equivalence/dump_xemu_memory.py dump --xbdm --xbox-ip <IP>` dumps via XBDM `getmem` (virtual memory, works on real hardware).
+  - The `--full` flag maps all non-zero pages (includes code segments callees need); without it, only targeted data regions are extracted.
+  - Do not use QEMU `savevm`/`loadvm` for oracle tests — those restore old loaded-XBE code pages.
 - **Dual-Oracle Runtime Harness:** For high-value stateful targets, prefer a same-process harness case over two separate emulator runs. Clone inputs, call the original implementation, restore inputs, call the candidate implementation, then compare return values, mutated buffers, selected globals, and structured debug records in one initialized engine state.
 - **RTK Build:** Use `rtk python3 tools/build/build.py -q --target halo` (warnings/errors only).
 - **Build error triage — undeclared/renamed symbols:** When the compiler reports `call to undeclared function 'FUN_XXXXXXXX'` or `wrong argument count`, do NOT read source files first. Use two shell commands:
@@ -161,7 +169,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - Need manual implementation: `/lift <target>`.
 - Need auto-lift candidate: `/auto-lift` to select + cache context, then `/lift <target>`.
 - Need validation, delink, hazards, or failure triage: `/verify <mode> ...`.
-- Need live-state equivalence: capture xemu/XBDM memory regions, then run `/verify equivalence <target> --state-snapshot <path>`.
+- Need live-state equivalence: dump memory with `rtk python3 tools/equivalence/dump_xemu_memory.py` (QMP or `--xbdm`), build snapshot with `snapshot --dump <path> --target <func> --full`, then run `/verify equivalence <target> --state-snapshot <path>`.
 - Need runtime oracle coverage: `/verify golden <target>` or `/verify dual-oracle <target>` when a same-process harness case exists.
 - Need real Xbox probing: `/deploy --xbe-only`, then `/xbdm <mode>`.
 - Need xemu build/load: `/build` or `/xemu build-load`.
@@ -185,7 +193,8 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **`tools/permuter/run.py`** — decomp-permuter wrapper for VC71/x86/MSVC. Last-mile match optimizer for functions in the 85–98% VC71 band. Random AST permutations + LCS scoring; reuse `tools/permuter/compile.sh` and `score.py` adapters. Upstream lives at `third_party/decomp-permuter/` (gitignored; clone per `docs/permuter-adapter.md`). **Always pass `-q`** to suppress diagnostic noise and the permuter's own progress stream — only the final summary and NEW BEST candidates are printed in that mode.
 - **`tools/equivalence/unicorn_diff.py`** — Unicorn-Engine differential tester. Runs MSVC-delinked oracle and clang-built candidate `.obj` in two emulators with seeded inputs; compares CPU/FPU state at RET. Three-phase testing: Phase 1 (random/corner seeds), automatic concolic Phase 2 (injects non-zero globals to reach untested branches when coverage < 60%), and memory-trace differential (compares all non-stack writes). Reports coverage %, confidence tier (high/moderate/weak), and persists both to `leaf_cache.json`. Key flags: `--allow-stubs` (non-leaf), `--float-tolerance N` (FPU), `--mem-trace` (write comparison), `--state-snapshot PATH` (inject real game state), `--no-concolic` (disable Phase 2).
 - **`tools/equivalence/concolic.py`** — Coverage-guided concolic feedback for unicorn_diff. Disassembles oracle code, finds untaken branches, determines what memory values would reach them, and generates injection overrides. Called automatically when Phase 1 coverage < 60%.
-- **`tools/equivalence/state_snapshot.py`** — State snapshot capture and replay. `load_snapshot(path)` loads JSON into memory overrides for Unicorn. `capture_from_xemu(addresses, path)` dumps memory from a running xemu via QMP `pmemsave`. Use for functions that depend on complex runtime state.
+- **`tools/equivalence/state_snapshot.py`** — State snapshot capture and replay. `load_snapshot(path)` loads JSON into memory overrides for Unicorn. Low-level building block; prefer `dump_xemu_memory.py` for full-memory workflows.
+- **`tools/equivalence/dump_xemu_memory.py`** — Full Xbox memory dump and snapshot builder. `dump` subcommand captures 128MB via xemu QMP (`pmemsave`, physical) or XBDM (`getmem`, virtual — works on real Xbox hardware). `snapshot --dump <path> --target <func>` extracts targeted regions; `--full` maps all non-zero pages (needed when callees aren't stubbed). `--arg <name> <value>` pins function arguments to real datum handles. Output is a `state_snapshot.json` compatible with `unicorn_diff.py --state-snapshot`.
 - **`tools/analysis/punpckhdq_import.py`** — Imports PDB-derived TU/symbol corpus from punpckhdq/halo (debug-build PDB) and proposes real names for our `FUN_<addr>` placeholders. `tools/analysis/apply_punpckhdq_renames.py` performs textual renames across kb.json/baseline/src after dry-run review.
 
 ## Architecture and Skills
