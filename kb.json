@@ -2329,7 +2329,8 @@
         },
         {
           "addr": "0x1f9a0",
-          "decl": "void actor_action_handle_exit_pursuit(int actor_handle);"
+          "decl": "char actor_action_handle_exit_pursuit(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x1fa60",
@@ -29550,15 +29551,15 @@
         },
         {
           "addr": "0x32b50",
-          "decl": "void actor_perception_tried_to_uncover(void);"
+          "decl": "void actor_perception_tried_to_uncover(int actor_handle, int prop_handle);"
         },
         {
           "addr": "0x32bb0",
-          "decl": "void actor_perception_tried_to_search(void);"
+          "decl": "void actor_perception_tried_to_search(int actor_handle, int prop_handle);"
         },
         {
           "addr": "0x32c10",
-          "decl": "void actor_perception_abandoned_search(void);"
+          "decl": "void actor_perception_abandoned_search(int actor_handle, int prop_handle);"
         },
         {
           "addr": "0x32cb0",
