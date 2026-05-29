@@ -3236,7 +3236,7 @@ void FUN_000ab070(int param_1)
 
 /* Check if a player's invincibility timer has expired.
  * Returns 0 (not invincible) if the timer float is > 0, else 1. */
-int16_t FUN_000ab230(int param_1)
+char FUN_000ab230(int param_1)
 {
   int player;
 
