@@ -6705,6 +6705,57 @@ void FUN_000aff20(int team)
   game_show_score_team(t1, 0x2c);
 }
 
+/* Validate a player handle for CTF purposes (aff70 already above). */
+
+/* Netgame flag position validation (ae400). */
+void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4)
+{
+  int16_t total_flags;
+  int flag_elem;
+  int count;
+  int i;
+
+  total_flags = ((int16_t (*)(void))player_get_starting_location_count)();
+  count = 0;
+  i = 0;
+  if (0 < total_flags) {
+    do {
+      flag_elem = ((int (*)(int))player_get_starting_location)(i);
+      if (match_game_type((int)param_1, 4, (int16_t *)(flag_elem + 0x14)))
+        count++;
+      i++;
+    } while ((int16_t)i < total_flags);
+  }
+  if (count < param_3)
+    error(2, (char *)param_4, count, (int)param_3);
+}
+
+/* Scenario starting location validation (ae460). DI = game type. */
+void FUN_000ae460(int param_1, int16_t game_type)
+{
+  int *flag_block;
+  int scenario;
+  int16_t i;
+  int elem;
+  int count;
+
+  i = 0;
+  count = 0;
+  scenario = (int)global_scenario_get();
+  flag_block = (int *)(scenario + 0x384);
+  if (0 < *flag_block) {
+    do {
+      elem = (int)tag_block_get_element(flag_block, (int)i, 0x90);
+      if (match_game_type((int)game_type, 4, (int16_t *)(elem + 4)))
+        count++;
+      i++;
+    } while ((int)i < *flag_block);
+    if (count != 0)
+      return;
+  }
+  error(2, (char *)param_1);
+}
+
 /* Oddball: weapon pickup handler (b3630). */
 char FUN_000b3630(int weapon_handle, int player_handle)
 {
