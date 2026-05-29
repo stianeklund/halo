@@ -38,7 +38,7 @@ int shell_initialize(void)
 
   success = 0;
   ((void (*)(void))0x8d830)();
-  result = ((char (*)(void))0x1911b0)();
+  result = (char)FUN_001911b0();
   if (result != '\0') {
     ((void (*)(void))0x8f370)();
     ((void (*)(void))0x1b98c0)();
@@ -127,6 +127,70 @@ void FUN_00191180(int param_1)
     *(char *)0x4d8a84 = (char)param_1;
     FUN_00191230(param_1);
   }
+}
+
+/* FUN_001911b0 (0x1911b0)  [inferred: shell demo-disc launch check]
+ *
+ * Checks whether the title was launched with XDEMOS launch data (i.e. booted
+ * from a demo disc / demo launcher). Queries the Xbox launch-data page via the
+ * XAPILIB import XGetLaunchInfo, passing the launch-data-type out-param and a
+ * 3072-byte (0x300 dwords) LAUNCH_DATA buffer. On success XGetLaunchInfo
+ * returns 0 and fills the buffer; the launch-data-type is also written to the
+ * out-param.
+ *
+ * If the call succeeds (ret == 0) AND the launch-data-type is 0, the leading
+ * bytes of the launch-data buffer are compared (csstrcmp) against "XDEMOS".
+ * On an exact match, "xdemo " (6 chars) is concatenated into the shell command
+ * string buffer at 0x4d8a88 (max_size 7 = 6 chars + NUL), and the byte at
+ * 0x4d8a8f (command-buffer base + 7) is cleared to 0. The command buffer base
+ * at 0x4d8a88 is the same buffer returned by shell_get_command_line (0x191240).
+ *
+ * XGetLaunchInfo is __stdcall (RET 0x8 at 0x1d257b); called via a typed
+ * stdcall function-pointer cast to match its callee-cleanup ABI, consistent
+ * with the XAPILIB import call style used in input_xbox.c. csstrcmp/csstrcat
+ * are cdecl and are called by their kb names.
+ *
+ * The function unconditionally returns 1 (MOV AL,0x1 on every path); the
+ * caller shell_initialize treats this as a success bool (TEST AL,AL; JZ).
+ *
+ * Disasm:
+ *   001911b0: PUSH EBP / MOV EBP,ESP / SUB ESP,0xc04
+ *   001911b9: LEA EAX,[EBP-0xc04]            ; &launch_data buffer (3072 bytes)
+ *   001911bf: PUSH EAX                        ; arg2 = pLaunchData
+ *   001911c0: LEA ECX,[EBP-0x4]              ; &launch_data_type
+ *   001911c3: PUSH ECX                        ; arg1 = pdwLaunchDataType
+ *   001911c4: CALL 0x1d2518                   ; XGetLaunchInfo (__stdcall)
+ *   001911c9: TEST EAX,EAX / JNZ 0x191207     ; skip if ret != 0
+ *   001911cd: MOV EAX,[EBP-0x4] / TEST / JNZ  ; skip if launch_data_type != 0
+ *   001911d4: LEA EDX,[EBP-0xc04]
+ *   001911da: PUSH 0x2b2550 ("XDEMOS")        ; arg2
+ *   001911df: PUSH EDX                         ; arg1 = buffer
+ *   001911e0: CALL 0x8dcb0                     ; csstrcmp (cdecl)
+ *   001911e5: ADD ESP,0x8
+ *   001911e8: TEST EAX,EAX / JNZ 0x191207      ; skip if not equal
+ *   001911ec: PUSH 0x7                          ; arg3 = max_size
+ *   001911ee: PUSH 0x2b2548 ("xdemo ")         ; arg2 = source
+ *   001911f3: PUSH 0x4d8a88                     ; arg1 = destination
+ *   001911f8: CALL 0x8dd30                      ; csstrcat (cdecl)
+ *   001911fd: ADD ESP,0xc
+ *   00191200: MOV byte ptr [0x4d8a8f],0x0       ; base+7 cleared
+ *   00191207: MOV AL,0x1
+ *   00191209: MOV ESP,EBP / POP EBP / RET
+ */
+int FUN_001911b0(void)
+{
+  int launch_data_type;
+  char launch_data[3072];
+
+  if ((((int(__stdcall *)(int *, void *))0x1d2518)(&launch_data_type,
+                                                   launch_data) == 0) &&
+      (launch_data_type == 0)) {
+    if (csstrcmp(launch_data, "XDEMOS") == 0) {
+      csstrcat((char *)0x4d8a88, "xdemo ", 7);
+      *(char *)0x4d8a8f = 0;
+    }
+  }
+  return 1;
 }
 
 /* shell_get_command_line (0x191240)
