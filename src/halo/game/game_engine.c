@@ -6914,6 +6914,48 @@ void FUN_000ae3c0(int param_1, int param_2, int16_t team)
   error(2, (char *)param_2, (int)team);
 }
 
+/* CTF: compute spawn rating based on distance to enemy flag (b1030). */
+float FUN_000b1030(int param_1, float *param_2)
+{
+  float *flag_pos;
+  int variant;
+  int player;
+  uint32_t other_team;
+  float dist_sq;
+  float rating;
+  int tick;
+
+  rating = 1.0f;
+  variant = (int)game_engine_get_variant();
+  if (*(char *)(variant + 0x4c) != 0) {
+    player = (int)datum_get(player_data, param_1);
+    other_team = (*(int *)(player + 0x20) + 1) & 0x80000001;
+    if ((int)other_team < 0)
+      other_team = (other_team - 1 | 0xfffffffe) + 1;
+    flag_pos = (float *)*(int *)(0x456b74 + other_team * 4);
+    dist_sq = (flag_pos[2] - param_2[2]) * (flag_pos[2] - param_2[2]) +
+              (flag_pos[1] - param_2[1]) * (flag_pos[1] - param_2[1]) +
+              (flag_pos[0] - param_2[0]) * (flag_pos[0] - param_2[0]);
+    if (*(float *)0x253398 <= dist_sq) {
+      if (*(float *)0x253f34 < dist_sq)
+        dist_sq = 10.0f;
+    } else {
+      dist_sq = 0.5f;
+    }
+    rating = 1.0f / dist_sq;
+    tick = game_time_get();
+    if (30 < tick) {
+      if (1.0f < dist_sq)
+        rating = (float)x87_fmod((double)rating, *(double *)0x26b678);
+      if (rating < *(float *)0x253398)
+        return *(float *)0x253398;
+      if (*(float *)0x253f40 < rating)
+        return *(float *)0x253f40;
+    }
+  }
+  return rating;
+}
+
 /* Race: check if a team has won (b3c60). EDI = team_index. */
 char FUN_000b3c60(int team)
 {
