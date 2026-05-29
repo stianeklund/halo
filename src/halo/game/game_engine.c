@@ -7565,6 +7565,61 @@ int FUN_000aca70(void)
   return -1;
 }
 
+/* CTF: handle a player picking up or returning a flag weapon (b0ed0). */
+int FUN_000b0ed0(int weapon_handle, int player_handle)
+{
+  int weapon;
+  int player;
+  int variant;
+  int16_t flag_team;
+
+  weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+  if (!weapon_is_flag(weapon_handle)) {
+    display_assert("weapon_is_flag(weapon_index)",
+                   "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x3a9, 1);
+    system_exit(-1);
+  }
+  if (player_handle != -1) {
+    player = (int)datum_get(player_data, player_handle);
+    flag_team = *(int16_t *)(weapon + 0x68);
+    if ((int)flag_team == *(int *)(player + 0x20)) {
+      variant = (int)game_engine_get_variant();
+      if (*(char *)(variant + 0x4e) == 0) {
+        if ((*(uint8_t *)(weapon + 0x1dc) & 0x40) != 0) {
+          if (game_engine_can_score()) {
+            *(char *)(0x456b90 + flag_team) = 0;
+            *(int *)(0x456b94 + flag_team * 4) = 0;
+            *(int16_t *)(player + 0xc2) = *(int16_t *)(player + 0xc2) + 1;
+            game_show_score_you_ally_enemy(player_handle, 0x23, 0x28, 0x26);
+            { char event = (-(uint32_t)(*(int *)(player + 0x20) != 0) & 0xfffffffd) + 0xc;
+            game_engine_post_event(event); }
+          }
+        }
+        FUN_000b0990(weapon_handle);
+        return 0;
+      }
+      if ((*(uint8_t *)(weapon + 0x1dc) & 0x40) != 0)
+        FUN_000b00c0(player_handle);
+      return 0;
+    }
+    if ((*(uint8_t *)(weapon + 0x1dc) & 0x40) == 0) {
+      if (game_engine_can_score()) {
+        *(int16_t *)(player + 0xc0) = *(int16_t *)(player + 0xc0) + 1;
+        variant = (int)game_engine_get_variant();
+        if (*(char *)(variant + 0x4c) == 0) {
+          { char event = (-(uint32_t)(*(int *)(player + 0x20) != 0) & 0xfffffffd) + 0xb;
+          game_engine_post_event(event); }
+          *(char *)(0x456b90 + flag_team) = 1;
+          *(int *)(0x456b94 + flag_team * 4) = 0;
+          game_show_score_you_ally_enemy(player_handle, -1, 0x27, 0x24);
+        }
+      }
+    }
+    *(uint32_t *)(weapon + 0x1dc) |= 0x40;
+  }
+  return 1;
+}
+
 /* CTF: per-tick flag carrier update — check if carrying player can score (b0ac0). */
 void FUN_000b0ac0(int param_1)
 {
