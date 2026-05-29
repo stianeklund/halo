@@ -6866,7 +6866,8 @@ float FUN_000adb20(int spawn_pos)
             (position[1] - pos[1]) * (position[1] - pos[1]) +
             (position[0] - pos[0]) * (position[0] - pos[0]) +
             (position[2] - pos[2]) * (position[2] - pos[2]);
-        dist = xbox_sqrtf(d2); }
+        dist = xbox_sqrtf(d2);
+        }
         if (1.0f <= dist && dist < *(float *)0x254640) {
           rating = (float)x87_fmod((double)dist, *(double *)0x26b678) + rating;
         }
@@ -7112,3 +7113,58 @@ void FUN_000b1180(void)
     *(float *)0x456d34 = (maxz + minz) * 0.5f;
   }
 }
+
+/* Accumulate weighted float scores from a tag block into an integer sum.
+ * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
+ * float score at offset +0x20 from data base. */
+int FUN_000a8970(int *scores)
+{
+  int count;
+  int result;
+  int i;
+  char *data;
+
+  count = scores[0];
+  data = (char *)scores[1];
+  result = 0;
+  i = 0;
+  if (count > 3) {
+    do {
+      result = (int)((float)result + *(float *)(data + i * 0x54 + 0x20));
+      result = (int)((float)result + *(float *)(data + (i + 1) * 0x54 + 0x20));
+      result = (int)((float)result + *(float *)(data + (i + 2) * 0x54 + 0x20));
+      result = (int)((float)result + *(float *)(data + (i + 3) * 0x54 + 0x20));
+      i += 4;
+    } while (i < count);
+  }
+  if (i < count) {
+    do {
+      result = (int)((float)result + *(float *)(data + i * 0x54 + 0x20));
+      i++;
+    } while (i < count);
+  }
+  return result;
+}
+
+/* CTF: notify flag return to offense/defense teams (aff20 already above). */
+
+/* CTF: per-tick flag status check for score popup (b00c0). ESI = player_handle. */
+void FUN_000b00c0(int player_handle)
+{
+  int tick;
+  int player;
+
+  tick = game_time_get();
+  if (*(int *)0x456ba0 < tick && player_handle != -1) {
+    player = (int)datum_get(player_data, player_handle);
+    if (*(int16_t *)(player + 2) != -1) {
+      game_engine_post_event(0x1c);
+      tick = game_time_get();
+      *(int *)0x456ba0 = tick + 0x78;
+    }
+  }
+}
+
+/* CTF: find player carrying enemy flag (b0100 already above). */
+
+/* Race: per-player validate (b3900 already above). */
