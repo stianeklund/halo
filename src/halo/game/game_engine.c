@@ -7565,6 +7565,50 @@ int FUN_000aca70(void)
   return -1;
 }
 
+/* CTF: per-tick flag carrier update — check if carrying player can score (b0ac0). */
+void FUN_000b0ac0(int param_1)
+{
+  int player;
+  int biped;
+  int weapon_handle;
+  int weapon;
+  int variant;
+
+  player = (int)datum_get(player_data, param_1);
+  if (game_engine_player_has_flag(param_1))
+    game_engine_player_depower_active_camo(param_1);
+  if (*(int *)(player + 0x34) != -1) {
+    biped = (int)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+    if (*(int16_t *)(biped + 0x2a2) != -1) {
+      weapon_handle = *(int *)(biped + 0x2a8 + *(int16_t *)(biped + 0x2a2) * 4);
+      if (weapon_handle != -1) {
+        weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+        if (game_engine_can_score() && weapon_is_flag(weapon_handle)) {
+          if ((int)*(int16_t *)(weapon + 0x68) == *(int *)(player + 0x20)) {
+            display_assert("weapon->object.owner_team_index != player->team_index",
+                           "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x20f, 1);
+            system_exit(-1);
+          }
+          if (FUN_000b0a70(*(int *)(player + 0x20), (float *)biped, 1.0f)) {
+            variant = (int)game_engine_get_variant();
+            if (*(char *)(variant + 0x4f) == 0 ||
+                (variant = (int)game_engine_get_variant(), *(int *)(variant + 0x50) != 0) ||
+                (weapon = (int)object_get_and_verify_type(
+                    *(int *)(0x456b7c + *(int *)(player + 0x20) * 4), 4),
+                 (~*(uint8_t *)(weapon + 0x1dc) >> 6 & 1) != 0)) {
+              FUN_000b0000(param_1, *(int *)(player + 0x20), weapon_handle);
+              FUN_000b09e0(param_1, weapon_handle);
+              game_engine_get_variant();
+              return;
+            }
+            FUN_000b00c0(param_1);
+          }
+        }
+      }
+    }
+  }
+}
+
 /* Oddball: update weapon tracking for a player (b3090). EDI = player_handle. */
 void FUN_000b3090(int player_handle)
 {
