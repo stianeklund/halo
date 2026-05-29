@@ -7202,6 +7202,24 @@ char FUN_000b3b30(int flag_index, int param_1)
   return 1;
 }
 
+/* CTF: create a flag object at a given position. EAX = position pointer. */
+int FUN_000afe50(float *position)
+{
+  int tag_idx;
+  char placement[0x88];
+  int handle;
+
+  tag_idx = get_flag_definition_index();
+  object_placement_data_new(placement, tag_idx, -1);
+  *(float *)(placement + 0x1c) = position[0];
+  *(float *)(placement + 0x20) = position[1];
+  *(float *)(placement + 0x24) = position[2];
+  handle = object_new(placement);
+  object_set_automatic_deactivation(handle, 0);
+  /* OutputDebugStringA("created a flag"); — debug only */
+  return handle;
+}
+
 /* Accumulate weighted float scores from a tag block into an integer sum.
  * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
  * float score at offset +0x20 from data base. */
