@@ -6842,6 +6842,33 @@ int FUN_000ae340(int team)
   return 0;
 }
 
+/* Compute the combined spawn location rating. EAX = player_handle. */
+float FUN_000adc40(int player_handle)
+{
+  int player;
+  float rating;
+
+  player = (int)datum_get(player_data, player_handle);
+  if (current_game_engine != 0 &&
+      ((char (**)(void))current_game_engine)[0x7c / 4] != NULL) {
+    if (((char (*)(int))((void **)current_game_engine)[0x7c / 4])(0)) {
+      if (*(int *)(player + 0x20) != *(int16_t *)(player_handle + 0x10))
+        return 0.0f;
+    }
+  }
+  rating = game_engine_get_distance_rating_for_spawn(player_handle, NULL);
+  if (current_game_engine != 0) {
+    if (0.0f < rating && *(char *)0x456b14 != 0) {
+      rating = FUN_000adb20(player_handle) * rating;
+    }
+    if (current_game_engine != 0 &&
+        ((float (**)(void))current_game_engine)[0x68 / 4] != NULL) {
+      rating = ((float (*)(void))((void **)current_game_engine)[0x68 / 4])() * rating;
+    }
+  }
+  return rating;
+}
+
 /* Race: check if a team has won (b3c60). EDI = team_index. */
 char FUN_000b3c60(int team)
 {

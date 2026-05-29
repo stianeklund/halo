@@ -8540,7 +8540,9 @@
         },
         {
           "addr": "0xadc40",
-          "decl": "float FUN_000adc40(int player_handle@<eax>);"
+          "decl": "float FUN_000adc40(int player_handle@<eax>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xadcf0",
