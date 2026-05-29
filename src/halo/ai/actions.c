@@ -1173,6 +1173,46 @@ char actor_action_handle_combat_failure(int actor_handle)
   return 0;
 }
 
+/* actor_action_handle_exit_pursuit (0x1f9a0) — Handles exit from pursuit-type
+ * actions (guard=5, vehicle_patrol=7, vehicle=8). For guard actions, checks
+ * offset 0x9d; for vehicle actions, checks 0x9c. If the flag is set and
+ * the timer at 0xa4 is zero, calls the appropriate perception notification
+ * (tried_to_uncover, tried_to_search, or abandoned_search) with the actor's
+ * prop handle (0x270). Then delegates to actor_action_handle_lost_contact
+ * to handle the actual transition. Returns 0 if no transition occurred. */
+char actor_action_handle_exit_pursuit(int actor_handle)
+{
+  char *actor;
+  short action_type;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  action_type = *(short *)(actor + 0x6c);
+
+  switch (action_type) {
+    case 5:
+      if (*(char *)(actor + 0x9d) == '\0')
+        return 0;
+      if (*(short *)(actor + 0xa4) == 0)
+        actor_perception_tried_to_uncover(actor_handle, *(int *)(actor + 0x270));
+      return actor_action_handle_lost_contact(actor_handle);
+    case 7:
+      if (*(char *)(actor + 0x9c) == '\0')
+        return 0;
+      if (*(short *)(actor + 0xa4) == 0) {
+        actor_perception_tried_to_search(actor_handle, *(int *)(actor + 0x270));
+        return actor_action_handle_lost_contact(actor_handle);
+      }
+      return actor_action_handle_lost_contact(actor_handle);
+    case 8:
+      if (*(char *)(actor + 0x9c) == '\0')
+        return 0;
+      actor_perception_abandoned_search(actor_handle, *(int *)(actor + 0x270));
+      return actor_action_handle_lost_contact(actor_handle);
+    default:
+      return 0;
+  }
+}
+
 /* actor_action_handle_berserk_transition (0x20470) — Handles berserk state
  * transition. If the actor's berserk timer (offset 0x310) has reached the
  * threshold and the actor is not already berserking (0x378), calls
