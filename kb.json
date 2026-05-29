@@ -30561,7 +30561,8 @@
         },
         {
           "addr": "0x57c70",
-          "decl": "void FUN_00057c70(void);"
+          "decl": "void FUN_00057c70(int encounter_handle, char param_2);",
+          "ported": true
         },
         {
           "addr": "0x57d00",
