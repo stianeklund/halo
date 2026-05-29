@@ -8756,7 +8756,9 @@
         },
         {
           "addr": "0xb1030",
-          "decl": "void FUN_000b1030(void);"
+          "decl": "float FUN_000b1030(int param_1, float *param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb1180",
