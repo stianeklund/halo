@@ -8437,11 +8437,15 @@
         },
         {
           "addr": "0xacf90",
-          "decl": "void game_show_score_team(int param_1, int param_2);"
+          "decl": "void game_show_score_team(int param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xacff0",
-          "decl": "void game_show_score_you_ally_enemy(void);"
+          "decl": "void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int param_4);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xad0c0",
