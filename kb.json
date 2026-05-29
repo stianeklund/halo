@@ -30674,7 +30674,8 @@
         },
         {
           "addr": "0x58860",
-          "decl": "void FUN_00058860(void);"
+          "decl": "void FUN_00058860(int encounter_handle, int team);",
+          "ported": true
         },
         {
           "addr": "0x588d0",
@@ -30819,7 +30820,9 @@
         },
         {
           "addr": "0x5a5a0",
-          "decl": "char encounter_link_activation(short encounter_index, int param_2);"
+          "decl": "char encounter_link_activation(int encounter_handle, short link_encounter_index);",
+          "name": "encounter_link_activation",
+          "ported": false
         },
         {
           "addr": "0x5a640",
