@@ -8561,7 +8561,9 @@
         },
         {
           "addr": "0xae340",
-          "decl": "int FUN_000ae340(int team@<esi>);"
+          "decl": "int FUN_000ae340(int team@<esi>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xae3c0",
