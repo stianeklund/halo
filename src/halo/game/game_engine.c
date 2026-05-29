@@ -7458,6 +7458,32 @@ void FUN_000b2e70(int16_t slot_index)
   object_set_automatic_deactivation(handle, 0);
 }
 
+/* CTF: drop flag and reset capture state (b09e0). EAX=player, EDI=weapon. */
+void FUN_000b09e0(int player_handle, int weapon_handle)
+{
+  int player;
+  int unit;
+  int weapon;
+  int16_t team;
+
+  player = (int)datum_get(player_data, player_handle);
+  unit = *(int *)(player + 0x34);
+  if (unit == -1) {
+    display_assert("NONE != unit_index",
+                   "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x1a2, 1);
+    system_exit(-1);
+  }
+  unit_set_in_vehicle(unit, 1);
+  weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+  team = *(int16_t *)(weapon + 0x68);
+  *(char *)(0x456b90 + team) = 0;
+  *(int *)(0x456b94 + team * 4) = 0;
+  if (*(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4) != 0) {
+    FUN_000ab510(weapon_handle, *(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4));
+    *(uint32_t *)(weapon + 0x1dc) &= 0xffffffbf;
+  }
+}
+
 /* CTF: reset flag to its home position (b0990). EDI = weapon_handle. */
 void FUN_000b0990(int weapon_handle)
 {
