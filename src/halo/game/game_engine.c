@@ -6343,3 +6343,23 @@ next_flag:
   FUN_000b1aa0();
   return 1;
 }
+
+/* Pick a random hill index different from param_2. ECX = default. */
+int FUN_000b1e90(int param_1, int param_2)
+{
+  int16_t rng;
+  int16_t i;
+  int16_t idx;
+
+  rng = random_range((unsigned int *)get_global_random_seed_address(), 0, *(int16_t *)0x456d54);
+  i = 0;
+  if (0 < *(int16_t *)0x456d54) {
+    do {
+      idx = (int16_t)(((int)i + (int)rng) % (int)*(int16_t *)0x456d54);
+      if (param_2 != (int16_t)*(int16_t *)(0x456d58 + idx * 2))
+        return (int)(int16_t)*(int16_t *)(0x456d58 + idx * 2);
+      i++;
+    } while (i < *(int16_t *)0x456d54);
+  }
+  return param_1;
+}
