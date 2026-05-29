@@ -8046,7 +8046,9 @@
         },
         {
           "addr": "0xa9770",
-          "decl": "int game_engine_remap_weapon(int tag_index);"
+          "decl": "int game_engine_remap_weapon(int tag_index);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9900",
