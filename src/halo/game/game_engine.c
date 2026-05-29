@@ -3885,3 +3885,193 @@ int FUN_000b0170(int param_1, int param_2)
   }
   return 1;
 }
+
+/* Reset a player's race timer field. */
+void FUN_000b3900(int param_1)
+{
+  int player;
+
+  player = (int)datum_get(player_data, param_1);
+  *(int *)(player + 0x88) = 0;
+}
+
+/* Return the score column header string ("Score" or "Time"). */
+wchar_t *FUN_000b2ca0(wchar_t *param_1)
+{
+  int variant;
+
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) == 2) {
+    usprintf(param_1, L"Score");
+    return param_1;
+  }
+  usprintf(param_1, L"Time");
+  return param_1;
+}
+
+/* Format an individual player's score as a number or time string. */
+wchar_t *FUN_000b2c50(int param_1, wchar_t *param_2)
+{
+  int score;
+  int variant;
+
+  score = *(int *)(0x456e4c + (param_1 & 0xffff) * 4);
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) == 2) {
+    usprintf(param_2, *(wchar_t **)0x26c118, score);
+    return param_2;
+  }
+  ticks_to_unicode_time_string(score, 0x100, param_2);
+  return param_2;
+}
+
+/* Format a team's score as a number or time string. */
+wchar_t *FUN_000b2ce0(int param_1, wchar_t *param_2)
+{
+  int score;
+  int variant;
+
+  score = *(int *)(0x456e0c + param_1 * 4);
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) == 2) {
+    usprintf(param_2, *(wchar_t **)0x26c118, score);
+    return param_2;
+  }
+  ticks_to_unicode_time_string(score, 0x100, param_2);
+  return param_2;
+}
+
+/* Check if a weapon type matches the oddball pickup condition. */
+char FUN_000b2c00(int param_1, int param_2)
+{
+  int variant;
+  int i;
+
+  if (param_2 == 0)
+    return 0;
+  variant = (int)game_engine_get_variant();
+  i = 0;
+  if (i < *(int *)(variant + 0x60)) {
+    do {
+      if (*(int *)(0x456ecc + i * 4) == param_1) {
+        variant = (int)game_engine_get_variant();
+        return param_2 == *(int *)(variant + 0x54);
+      }
+      i++;
+    } while (i < *(int *)(variant + 0x60));
+  }
+  variant = (int)game_engine_get_variant();
+  return param_2 == *(int *)(variant + 0x58);
+}
+
+/* Look up the weapon tag index for a given vehicle type from game globals. */
+int FUN_000b3770(int param_1)
+{
+  int game_globals;
+  int block;
+  int elem0;
+  int elem1;
+  int elem2;
+  int variant;
+
+  global_scenario_get();
+  game_globals = (int)game_globals_get();
+  block = (int)tag_block_get_element((int *)(game_globals + 0x164), 0, 0xa0);
+  block = block + 0x20;
+  elem0 = (int)tag_block_get_element((int *)block, 0, 0x10);
+  elem1 = (int)tag_block_get_element((int *)block, 1, 0x10);
+  elem2 = (int)tag_block_get_element((int *)block, 2, 0x10);
+  variant = (int)game_engine_get_variant();
+  switch (*(int *)(variant + 0x48)) {
+  case 0:
+    if (param_1 == 0)
+      return *(int *)(elem0 + 0xc);
+    if (param_1 == 1)
+      return *(int *)(elem2 + 0xc);
+    if (param_1 < 6)
+      return *(int *)(elem1 + 0xc);
+    break;
+  case 2:
+    if (param_1 < 4)
+      return *(int *)(elem0 + 0xc);
+    break;
+  case 3:
+    if (param_1 < 8)
+      return *(int *)(elem1 + 0xc);
+    break;
+  case 4:
+    if (param_1 < 4)
+      return *(int *)(elem2 + 0xc);
+    break;
+  }
+  return -1;
+}
+
+/* Collect all objects of type 2 (weapons) into a buffer and delete them. */
+void FUN_000b36f0(void)
+{
+  int count;
+  int handles[32];
+  char iter[8];
+  int handle;
+  int i;
+
+  count = 0;
+  object_iterator_new(iter, 2, 0);
+  handle = (int)object_iterator_next(iter);
+  while (handle != 0) {
+    if (count < 0x20) {
+      handles[count] = *(int *)(iter + 8);
+      count++;
+    }
+    handle = (int)object_iterator_next(iter);
+  }
+  i = 0;
+  if (0 < count) {
+    do {
+      object_delete(handles[i]);
+      i++;
+    } while (i < count);
+  }
+}
+
+/* Fix duplicate netgame flag sequence indices by reassigning conflicts. */
+void FUN_000b3860(void)
+{
+  int *flag_block;
+  int16_t i;
+  int elem;
+  int16_t seq;
+  uint32_t used_mask;
+  int j;
+  int scenario;
+
+  scenario = (int)global_scenario_get();
+  flag_block = (int *)(scenario + 0x378);
+  used_mask = 0;
+  i = 0;
+  if (0 < *flag_block) {
+    do {
+      elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
+      if (*(int16_t *)(elem + 0x10) == 3 &&
+          *(int16_t *)(elem + 0x12) >= 0 &&
+          *(int16_t *)(elem + 0x12) < 0x20) {
+        seq = *(int16_t *)(elem + 0x12);
+        if ((used_mask & (1u << ((uint8_t)seq & 0x1f))) == 0) {
+          used_mask |= (1u << ((uint8_t)seq & 0x1f));
+        } else {
+          for (j = 0; j < 0x20; j++) {
+            if ((used_mask & (1u << ((uint8_t)j & 0x1f))) == 0) {
+              used_mask |= (1u << ((uint8_t)seq & 0x1f));
+              *(int16_t *)(elem + 0x12) = (int16_t)j;
+              break;
+            }
+          }
+          if (j >= 0x20)
+            *(int16_t *)(elem + 0x12) = (int16_t)j;
+        }
+      }
+      i++;
+    } while ((int)i < *flag_block);
+  }
+}
