@@ -30679,7 +30679,8 @@
         },
         {
           "addr": "0x588d0",
-          "decl": "void FUN_000588d0(void);"
+          "decl": "void FUN_000588d0(int param_1, char param_2);",
+          "ported": true
         },
         {
           "addr": "0x58970",

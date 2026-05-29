@@ -1672,6 +1672,45 @@ void FUN_00058860(int encounter_handle, int team)
   ai_update_team_status();
 }
 
+/* 0x000588d0 — FUN_000588d0 (ai_allow_dormant).
+ *
+ * Sets whether dormant mode is allowed for all platoons in the encounter.
+ * Iterates platoons via FUN_000544a0/FUN_000545a0 and writes the inverse of
+ * param_2 into platoon datum offset +0x14.  Logs the command to the AI trace
+ * if DAT_005aca59 is set.
+ *
+ * Confirmed:
+ *   - param_1 = encounter handle (int).
+ *   - param_2 = allow_dormant flag (char/bool).
+ *   - DAT_005aca59 = AI trace flag.
+ *   - FUN_00054220 formats encounter name into buffer.
+ *   - hs_runtime_get_executing_thread_name returns current script thread name.
+ *   - error(2, fmt, ...) logs the trace message.
+ *   - FUN_000544a0/FUN_000545a0 = platoon iterator init/step.
+ *   - datum+0x14 receives !param_2 (dormant disabled when allowed, and vice versa).
+ */
+void FUN_000588d0(int param_1, char param_2)
+{
+  char local_118[256];
+  int local_18[5];
+  int iVar3;
+
+  if (*(char *)0x5aca59 != '\0') {
+    FUN_00054220(param_1, global_scenario_get(), local_118, 0x100);
+    error(2, "%s: ai_allow_dormant %s %s",
+          hs_runtime_get_executing_thread_name(), local_118,
+          param_2 ? (const char *)0x25cb44 : (const char *)0x25cb3c);
+  }
+  FUN_000544a0(param_1, local_18);
+  iVar3 = FUN_000545a0(local_18);
+  if (iVar3 != 0) {
+    do {
+      *(char *)(iVar3 + 0x14) = (param_2 == '\0');
+      iVar3 = FUN_000545a0(local_18);
+    } while (iVar3 != 0);
+  }
+}
+
 /* 0x00058970 — ai_magically_see_encounter (FUN_00058970).
  *
  * Makes all actors in param_1 encounter "magically see" the units/vehicles
