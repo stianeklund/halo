@@ -8630,7 +8630,9 @@
         },
         {
           "addr": "0xaff20",
-          "decl": "void FUN_000aff20(void);"
+          "decl": "void FUN_000aff20(int team@<eax>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaff70",
@@ -8955,7 +8957,9 @@
         },
         {
           "addr": "0xb3630",
-          "decl": "void FUN_000b3630(void);"
+          "decl": "char FUN_000b3630(int weapon_handle, int player_handle);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb36f0",
@@ -8991,7 +8995,7 @@
         },
         {
           "addr": "0xb3c60",
-          "decl": "void FUN_000b3c60(void);"
+          "decl": "char FUN_000b3c60(int team@<edi>);"
         },
         {
           "addr": "0xb3cf0",
