@@ -2286,7 +2286,8 @@
         },
         {
           "addr": "0x1dd40",
-          "decl": "void actor_action_handle_panic_transition(int actor_handle, short a, char b, short c);"
+          "decl": "char actor_action_handle_panic_transition(int actor_handle, short param_2, char param_3, short param_4);",
+          "ported": false
         },
         {
           "addr": "0x1dea0",
