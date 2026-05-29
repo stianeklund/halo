@@ -8342,6 +8342,95 @@ void FUN_000afcb0(void)
   *(float *)(0x5aa734 + local_idx * 4) = fade;
 }
 
+/* Post-game: render title string with lives/score info (ae920). */
+void FUN_000ae920(wchar_t *title_buf)
+{
+  int player;
+  int lives_remaining;
+  wchar_t lives_buf[40];
+  wchar_t *lives_text;
+
+  datum_get(player_data, 0);
+  if (title_buf == NULL) {
+    display_assert("title_string",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x363, 1);
+    system_exit(-1);
+  }
+  usprintf(lives_buf, *(wchar_t **)0x26cdf0);
+  if (0 < *(int *)0x456b30) {
+    player = (int)datum_get(player_data, 0);
+    lives_remaining = *(int *)0x456b30 - *(int16_t *)(player + 0xaa);
+    if (lives_remaining == 0)
+      lives_text = L"(no lives)";
+    else if (lives_remaining == 1)
+      lives_text = L"(1 life)";
+    else {
+      usprintf(lives_buf, L"(%d lives)", lives_remaining);
+      goto check_phase;
+    }
+    usprintf(lives_buf, lives_text);
+  }
+check_phase:
+  if (*(int *)0x5aa730 == 1) {
+    int won;
+    char has_teams;
+
+    won = game_engine_did_player_win();
+    has_teams = 0;
+    if (current_game_engine)
+      has_teams = *(char *)0x456b14;
+    if (won == -1) {
+      usprintf(title_buf, L"Game ends in a draw");
+      return;
+    }
+    if (won == 0) {
+      if (has_teams == 0)
+        usprintf(title_buf, L"You lost");
+      else
+        usprintf(title_buf, L"Your team lost");
+      return;
+    }
+    if (won == 1) {
+      if (has_teams == 0)
+        usprintf(title_buf, L"You won");
+      else
+        usprintf(title_buf, L"Your team won");
+      return;
+    }
+  } else {
+    if (current_game_engine && *(char *)0x456b14 != 0) {
+      char score_a[16];
+      char score_b[16];
+      ((void (*)(int, char *))((int *)current_game_engine)[0x54 / 4])(0, score_a);
+      ((void (*)(int, char *))((int *)current_game_engine)[0x54 / 4])(1, score_b);
+      { int team0_score = FUN_000a8130(0);
+      int team1_score = FUN_000a8130(1);
+      if (team1_score < team0_score) {
+        usprintf(title_buf, L"Red leads Blue %s to %s %s", score_a, score_b, lives_buf);
+        return;
+      }
+      if (team1_score <= team0_score) {
+        usprintf(title_buf, L"Teams tied at %s %s", score_b, lives_buf);
+        return;
+      }
+      usprintf(title_buf, L"Blue leads Red %s to %s %s", score_b, score_a, lives_buf);
+      return; }
+    }
+    { int local_stats[28];
+    FUN_000abf50(local_stats, 0);
+    ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x4c / 4])(0, (wchar_t *)lives_buf);
+    if ((*(uint32_t *)(local_stats + 6) & 0x80000000) != 0)
+      usprintf(title_buf, L"Tied for %s place with %s %s",
+               *(wchar_t **)(0x2efe28 + (*(uint32_t *)(local_stats + 6) & 0x7f) * 4),
+               lives_buf, lives_buf);
+    else
+      usprintf(title_buf, L"In %s place with %s %s",
+               *(wchar_t **)(0x2efe28 + (*(uint32_t *)(local_stats + 6) & 0x7f) * 4),
+               lives_buf, lives_buf);
+    }
+  }
+}
+
 /* Validate netgame flag starting locations for a game type (aa0b0). BX = type. */
 void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_type)
 {
