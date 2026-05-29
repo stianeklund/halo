@@ -4572,3 +4572,99 @@ int FUN_000b1940(int param_1, int param_2, int param_3, wchar_t *param_4, int pa
   system_exit(-1);
   return 1;
 }
+
+/* Get the player's change color (team or individual color). */
+float *game_engine_player_get_change_color(float *param_1, int param_2)
+{
+  int player;
+  int16_t color_index;
+  float *color;
+  float local_10[3];
+
+  player = (int)datum_get(player_data, param_2);
+  if (*(char *)0x456b14 == 0) {
+    color_index = *(int16_t *)(player + 0x60);
+    if (*(int *)0x2efe20 != -1)
+      color_index = *(int16_t *)0x2efe20;
+    color = (float *)((float *(*)(float *, int))FUN_001c0ee0)(local_10, (int)color_index);
+  } else if (*(int *)(player + 0x20) == 0) {
+    color = *(float **)0x2ee714;
+  } else {
+    color = *(float **)0x2ee71c;
+  }
+  param_1[0] = color[0];
+  param_1[1] = color[1];
+  param_1[2] = color[2];
+  return param_1;
+}
+
+/* Dispatch post-rasterize based on game state phase. */
+void FUN_000afdf0(void)
+{
+  if (current_game_engine) {
+    switch (*(int *)0x5aa730) {
+    case 0:
+    case 1:
+      FUN_000afcb0();
+      return;
+    case 2:
+    case 3:
+      game_engine_post_rasterize_post_game();
+      return;
+    default:
+      display_assert("!\"unreachable\"",
+                     "c:\\halo\\SOURCE\\game\\game_engine.c", 0x739, 1);
+      system_exit(-1);
+    }
+  }
+}
+
+/* Get the distance rating for a spawn point. */
+float game_engine_get_distance_rating_for_spawn(int param_1, float *param_2)
+{
+  int player;
+  int biped;
+  float dx;
+  float dy;
+  float dz;
+  float dist_sq;
+  float result;
+  char has_teams;
+  data_iter_t iter;
+
+  has_teams = current_game_engine == 0;
+  player = (int)datum_get(player_data, param_1);
+  result = 1.0f;
+  data_iterator_new(&iter, player_data);
+  biped = (int)data_iterator_next(&iter);
+  while (biped != 0) {
+    if (*(int *)(biped + 0x34) != -1) {
+      float pos[3];
+      object_get_world_position(*(int *)(biped + 0x34), (vector3_t *)pos);
+      dx = *param_2 - pos[0];
+      dy = param_2[1] - pos[1];
+      dz = param_2[2] - pos[2];
+      dist_sq = dx * dx + dy * dy + dz * dz;
+      if (((has_teams - 1) & *(uint8_t *)0x456b14) == 0 ||
+          *(int *)(biped + 0x20) != *(int *)(player + 0x20) ||
+          dist_sq <= *(float *)0x25337c) {
+        if (*(float *)0x25337c <= dist_sq) {
+          if (dist_sq < *(float *)0x2533c8)
+            result = result * *(float *)0x25496c;
+        } else {
+          result = 0.0f;
+        }
+        if (*(int *)(biped + 0x20) != *(int *)(player + 0x20)) {
+          if (*(float *)0x253f40 <= dist_sq) {
+            if (dist_sq <= *(float *)0x254cc4)
+              result = (dist_sq - *(float *)0x253f40) * result * *(float *)0x259ec0;
+          } else {
+            result = 0.0f;
+          }
+        }
+      }
+    }
+    biped = (int)data_iterator_next(&iter);
+  }
+  return result;
+}
