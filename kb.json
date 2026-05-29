@@ -6782,7 +6782,8 @@
         },
         {
           "addr": "0x8e5f0",
-          "decl": "void FUN_0008e5f0(void);"
+          "decl": "int FUN_0008e5f0(int param_1, int param_2);",
+          "ported": false
         },
         {
           "addr": "0x8e650",
@@ -6792,7 +6793,8 @@
         },
         {
           "addr": "0x8e680",
-          "decl": "void FUN_0008e680(void);"
+          "decl": "void FUN_0008e680(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x8e6d0",
@@ -6805,11 +6807,13 @@
         },
         {
           "addr": "0x8e720",
-          "decl": "void FUN_0008e720(void);"
+          "decl": "int FUN_0008e720(int param_1);",
+          "ported": true
         },
         {
           "addr": "0x8e750",
-          "decl": "int __cdecl FUN_0008e750(const void *a, const void *b);"
+          "decl": "int __cdecl FUN_0008e750(const void *a, const void *b);",
+          "ported": true
         },
         {
           "addr": "0x8e7d0",
@@ -6866,19 +6870,23 @@
         },
         {
           "addr": "0x8f200",
-          "decl": "void errors_output_to_debug_file(void);"
+          "decl": "void errors_output_to_debug_file(char param_1);",
+          "ported": true
         },
         {
           "addr": "0x8f210",
-          "decl": "void errors_overflow_suppression_enable(void);"
+          "decl": "void errors_overflow_suppression_enable(char param_1);",
+          "ported": true
         },
         {
           "addr": "0x8f220",
-          "decl": "void error_get(void);"
+          "decl": "void *error_get(void);",
+          "ported": true
         },
         {
           "addr": "0x8f370",
-          "decl": "void errors_initialize(void);"
+          "decl": "void errors_initialize(void);",
+          "ported": true
         },
         {
           "addr": "0x8f630",

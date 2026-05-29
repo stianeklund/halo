@@ -1838,7 +1838,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8f200": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f220": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8f230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f370": {
       "kind": "function",
       "status": "ported"
     },
