@@ -199,6 +199,23 @@ bool FUN_000567e0(int16_t param_1, int16_t param_2)
   return 0;
 }
 
+/* FUN_00056830 (0x56830) — Sort comparator for actor distance records.
+ * Sorts by "is_fleeing" flag first (non-fleeing before fleeing), then by
+ * distance ascending. Used as a qsort callback. */
+int FUN_00056830(int param_1, int param_2)
+{
+  if (*(char *)(param_1 + 8) != *(char *)(param_2 + 8)) {
+    return (*(char *)(param_1 + 8) != '\0') * 2 - 1;
+  }
+  if (*(float *)(param_1 + 4) < *(float *)(param_2 + 4)) {
+    return -1;
+  }
+  if (*(float *)(param_2 + 4) < *(float *)(param_1 + 4)) {
+    return 1;
+  }
+  return 0;
+}
+
 /*
  * FUN_00056880 — count actors in encounters with squad_type==9 and the
  * given actor handle. Iterates all encounters with flag=1, checks each
@@ -1534,6 +1551,18 @@ void FUN_000586a0(int param_1)
   ai_conversation_advance(param_1);
 }
 
+/* FUN_00058700 (0x58700) — Tail-call wrapper for FUN_000434c0. */
+void FUN_00058700(void)
+{
+  ai_conversation_line();
+}
+
+/* FUN_00058710 (0x58710) — Tail-call wrapper for FUN_000433b0. */
+void FUN_00058710(void)
+{
+  ai_conversation_status();
+}
+
 /* 0x00058720 — FUN_00058720 (ai_link_activation script command).
  *
  * Links two encounter activation states together. If the AI trace flag
@@ -1717,6 +1746,12 @@ void FUN_00058a40(int combined_handle)
 void encounters_dispose(void)
 {
   return;
+}
+
+/* FUN_00058ae0 (0x58ae0) — Tail-call wrapper for FUN_00055870. */
+void FUN_00058ae0(void)
+{
+  FUN_00055870();
 }
 
 /* 0x00058fb0 — encounters_dispose_from_old_map.
