@@ -6480,3 +6480,100 @@ set_goal:
   game_engine_set_goal_position(0, position, 0, "crown_blue", -1, -1, -1);
   FUN_000b1760();
 }
+
+/* King of the Hill: track contested/uncontested state (b1760). */
+void FUN_000b1760(void)
+{
+  int player;
+  int16_t on_hill_count;
+  int team0_count;
+  int team1_count;
+  int state;
+  uint32_t last_player;
+  data_iter_t iter;
+
+  if (FUN_000a95a0() == 0) {
+    on_hill_count = 0;
+    data_iterator_new(&iter, player_data);
+    player = (int)data_iterator_next(&iter);
+    if (player == 0) {
+      *(int *)0x456d40 = -1;
+      *(int *)0x456d38 = 0;
+      *(int *)0x456d3c = 0;
+      return;
+    }
+    do {
+      last_player = iter.datum_handle;
+      if (*(char *)(0x456c28 + (iter.datum_handle & 0xffff)) != 0) {
+        on_hill_count++;
+        last_player = iter.datum_handle;
+      }
+      player = (int)data_iterator_next(&iter);
+    } while (player != 0);
+    state = 1;
+    if (1 < on_hill_count) {
+      *(int *)0x456d38 = 4;
+      if (300 < *(int *)0x456d3c)
+        game_engine_post_event(0x27);
+      *(int *)0x456d3c = 0;
+      *(int *)0x456d40 = -1;
+      return;
+    }
+    if (on_hill_count == 0) {
+      *(int *)0x456d38 = 0;
+      *(int *)0x456d3c = 0;
+      *(int *)0x456d40 = -1;
+      return;
+    }
+    if (*(int *)0x456d38 != 1 || last_player != *(uint32_t *)0x456d40) {
+      *(int *)0x456d3c = 0;
+      *(uint32_t *)0x456d40 = last_player;
+      goto update;
+    }
+  } else {
+    team0_count = 0;
+    team1_count = 0;
+    data_iterator_new(&iter, player_data);
+    player = (int)data_iterator_next(&iter);
+    if (player == 0) {
+      *(int *)0x456d38 = 0;
+      *(int *)0x456d3c = 0;
+      return;
+    }
+    do {
+      if (*(char *)(0x456c28 + (iter.datum_handle & 0xffff)) != 0) {
+        if (*(int *)(player + 0x20) == 0)
+          team0_count++;
+        else
+          team1_count++;
+      }
+      player = (int)data_iterator_next(&iter);
+    } while (player != 0);
+    if (team1_count == 0) {
+      if (team0_count == 0) {
+        *(int *)0x456d38 = 0;
+        *(int *)0x456d3c = 0;
+        return;
+      }
+      state = 2;
+    } else {
+      if (team0_count != 0) {
+        *(int *)0x456d38 = 4;
+        if (300 < *(int *)0x456d3c)
+          game_engine_post_event(0x27);
+        *(int *)0x456d3c = 0;
+        return;
+      }
+      state = 3;
+    }
+    if (*(int *)0x456d38 != state) {
+      *(int *)0x456d3c = 0;
+      goto update;
+    }
+  }
+  *(int *)0x456d3c = *(int *)0x456d3c + 1;
+update:
+  *(int *)0x456d38 = state;
+  if (*(int *)0x456d3c == 300)
+    game_engine_post_event(0x28);
+}
