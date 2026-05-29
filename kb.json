@@ -8983,11 +8983,13 @@
         },
         {
           "addr": "0xb3020",
-          "decl": "void FUN_000b3020(void);"
+          "decl": "void FUN_000b3020(int weapon_handle@<edi>);"
         },
         {
           "addr": "0xb3090",
-          "decl": "void FUN_000b3090(void);"
+          "decl": "void FUN_000b3090(int player_handle@<edi>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb3120",
