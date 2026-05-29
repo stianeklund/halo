@@ -6578,6 +6578,84 @@ update:
     game_engine_post_event(0x28);
 }
 
+/* Check if a player's biped is within the current hill zone. EAX = player handle. */
+char FUN_000b1570(int player_handle)
+{
+  int player;
+  int biped;
+
+  if (player_handle != -1) {
+    player = (int)datum_get(player_data, player_handle);
+    if (*(int *)(player + 0x34) != -1) {
+      biped = (int)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+      if (*(float *)(0x456d48) <= *(float *)(biped + 0x58)) {
+        if (*(float *)(biped + 0x58) < *(float *)(0x456d44)) {
+          float pos[2];
+          pos[0] = *(float *)(biped + 0x50);
+          pos[1] = *(float *)(biped + 0x54);
+          return ((char (*)(int, float *, float *, int))FUN_00106200)(
+            *(int *)0x456c38, (float *)0x456ccc, pos, 0);
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+/* King of the Hill: per-player scoring update (b1600). */
+void FUN_000b1600(int param_1)
+{
+  int player;
+  int team_offset;
+  int tick;
+  int target_ticks;
+  int current_ticks;
+  int remaining;
+  int variant;
+  char event;
+
+  player = (int)datum_get(player_data, param_1);
+  game_engine_state_message(param_1, -1, -1);
+  *(char *)(0x456c28 + (param_1 & 0xffff)) = 0;
+  if (*(int *)(player + 0x34) != -1) {
+    object_get_and_verify_type(*(int *)(player + 0x34), 3);
+    if (game_engine_can_score() && FUN_000b1570(param_1)) {
+      *(char *)(0x456c28 + (param_1 & 0xffff)) = 1;
+      *(int16_t *)(player + 0xc0) = *(int16_t *)(player + 0xc0) + 1;
+      team_offset = *(int *)(player + 0x20) * 4;
+      tick = game_time_get();
+      if (*(int *)(0x456be8 + team_offset) < tick) {
+        *(int *)(0x456ba8 + team_offset) = *(int *)(0x456ba8 + team_offset) + 1;
+        *(int *)(0x456be8 + *(int *)(player + 0x20) * 4) = game_time_get();
+        variant = (int)game_engine_get_variant();
+        target_ticks = *(int *)(variant + 0x40) * 0x708;
+        current_ticks = *(int *)(0x456ba8 + *(int *)(player + 0x20) * 4);
+        remaining = target_ticks - current_ticks;
+        if (remaining == 900) {
+          if (FUN_000a95a0() == 0)
+            event = 3;
+          else
+            event = (*(int *)(player + 0x20) != 0) * 2 + 5;
+          game_engine_post_event(event);
+        }
+        if (remaining == 0x708) {
+          if (FUN_000a95a0() == 0)
+            event = 2;
+          else
+            event = (*(int *)(player + 0x20) != 0) * 2 + 4;
+          game_engine_post_event(event);
+        }
+        current_ticks = *(int *)(0x456ba8 + *(int *)(player + 0x20) * 4);
+        if (0 < current_ticks && current_ticks % 0x96 == 0 && current_ticks < target_ticks)
+          game_engine_post_event(0x2a);
+        if (target_ticks <= current_ticks)
+          game_engine_start_over();
+      }
+      game_engine_state_message(param_1, 0x20, param_1);
+    }
+  }
+}
+
 /* King of the Hill: compute hill geometry from scenario flag positions (b1180). */
 void FUN_000b1180(void)
 {
