@@ -3732,3 +3732,156 @@ void FUN_000ab510(int param_1, int param_2)
     *(int *)(weapon + 0x1b0) = -1;
   }
 }
+
+/* Wrapper: dispatch game_engine_player_event with killer=NONE. */
+void FUN_000ad140(int param_1, int param_2)
+{
+  game_engine_player_event(param_1, param_2, -1);
+}
+
+/* Dispatch to vtable slot 33 (0x84) or fall back to FUN_000ae250. */
+int game_engine_did_player_win(void)
+{
+  if (current_game_engine == 0)
+    return 0;
+  if (((int (**)(void))current_game_engine)[0x84 / 4])
+    return ((int (**)(void))current_game_engine)[0x84 / 4]();
+  FUN_000ae250();
+  return 0;
+}
+
+/* Initialize the game engine playlist. */
+void game_engine_playlist_initialize(void)
+{
+  FUN_000aa120();
+}
+
+/* FUN_000aceb0 has register args (EAX→ESI, ECX→EDI, EBX) — deferred */
+
+/* Validate a player handle (datum_get). */
+void FUN_000aff70(int param_1)
+{
+  datum_get(player_data, param_1);
+}
+
+/* Validate a player handle for post-spawn (datum_get). */
+void FUN_000b14e0(int param_1)
+{
+  datum_get(player_data, param_1);
+}
+
+/* Validate a player handle for oddball (datum_get). */
+void FUN_000b26b0(int param_1)
+{
+  datum_get(player_data, param_1);
+}
+
+/* Return whether the player is NOT on the hill (byte at 0x456c28[index]). */
+int FUN_000b1e70(int param_1)
+{
+  return *(char *)(0x456c28 + (param_1 & 0xffff)) == 0;
+}
+
+/* Initialize 4 team color vectors from the global default color pointer. */
+void FUN_000b1aa0(void)
+{
+  int *src;
+
+  src = *(int **)0x2ee708;
+  *(int *)0x5aa6e0 = src[0]; *(int *)0x5aa6e4 = src[1]; *(int *)0x5aa6e8 = src[2];
+  *(int *)0x5aa6ec = src[0]; *(int *)0x5aa6f0 = src[1]; *(int *)0x5aa6f4 = src[2];
+  *(int *)0x5aa6f8 = src[0]; *(int *)0x5aa6fc = src[1]; *(int *)0x5aa700 = src[2];
+  *(int *)0x5aa704 = src[0]; *(int *)0x5aa708 = src[1]; *(int *)0x5aa70c = src[2];
+  *(int *)0x5aa710 = 0; *(int *)0x5aa714 = 0; *(int *)0x5aa718 = 0; *(int *)0x5aa71c = 0;
+}
+
+/* Assert that a weapon is a flag. */
+void FUN_000b2b00(int param_1)
+{
+  if (!weapon_is_flag(param_1)) {
+    display_assert("weapon_is_flag(weapon_index)",
+                   "c:\\halo\\SOURCE\\game\\game_engine_oddball.c", 0x3b4, 1);
+    system_exit(-1);
+  }
+}
+
+/* Return the score for a player (team or individual mode). */
+int FUN_000b2b40(int param_1, int param_2)
+{
+  int player;
+
+  player = (int)datum_get(player_data, param_1);
+  if (param_2 == 1)
+    return *(int *)(0x456e0c + *(int *)(player + 0x20) * 4);
+  return *(int *)(0x456e4c + (param_1 & 0xffff) * 4);
+}
+
+/* Return 1 if the oddball game type is mode 2, else 0. */
+char FUN_000b2bc0(void)
+{
+  int variant;
+
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) - 2 == 0)
+    return 1;
+  return 0;
+}
+
+/* Check if a weapon type index is in the oddball equipment list. */
+int FUN_000b2890(int param_1)
+{
+  int variant;
+  int i;
+
+  variant = (int)game_engine_get_variant();
+  i = 0;
+  if (i < *(int *)(variant + 0x60)) {
+    while (*(int *)(0x456ecc + i * 4) != param_1) {
+      i++;
+      if (*(int *)(variant + 0x60) <= i)
+        return 0;
+    }
+    return 1;
+  }
+  return 0;
+}
+
+/* Check if any oddball equipment slot is empty and unassigned. */
+int FUN_000b28c0(void)
+{
+  int variant;
+  int i;
+
+  variant = (int)game_engine_get_variant();
+  i = 0;
+  if (i < *(int *)(variant + 0x60)) {
+    while (*(int *)(0x456e8c + i * 4) != 0 || *(int *)(0x456ecc + i * 4) != -1) {
+      i++;
+      if (*(int *)(variant + 0x60) <= i)
+        return 0;
+    }
+    return 1;
+  }
+  return 0;
+}
+
+/* Check if a weapon at param_2 belongs to the opposing team of param_1. */
+int FUN_000b0170(int param_1, int param_2)
+{
+  int seat_index;
+  int player;
+  int weapon;
+
+  seat_index = player_index_from_unit_index(param_1);
+  if (seat_index == -1 || param_2 == -1)
+    return 1;
+  player = (int)datum_get(player_data, seat_index);
+  weapon = (int)object_try_and_get_and_verify_type(param_2, 4);
+  if (weapon != 0) {
+    if (weapon_is_flag(param_2) &&
+        (*(uint8_t *)(weapon + 0x1dc) & 0x40) == 0 &&
+        (int)*(int16_t *)(weapon + 0x68) == *(int *)(player + 0x20))
+      return 0;
+  }
+  return 1;
+}
