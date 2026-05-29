@@ -8241,6 +8241,65 @@ void game_engine_rasterize_message(int text, float alpha)
   draw_string_set_tab_stops(0, 0);
 }
 
+/* Render a score row in the post-game scoreboard (ab090). EAX=row, ESI=state. */
+void FUN_000ab090(int text, char highlight, int row, int state)
+{
+  int16_t split;
+  int font_tag;
+  int tag_data;
+  int16_t char_height;
+  int16_t row_top;
+  int rect[2];
+  int16_t tab_stops_small[3];
+  int16_t tab_stops_large[3];
+  int16_t *tabs;
+
+  split = local_player_count();
+  font_tag = ((int (*)(void))hud_get_font_index)();
+  tab_stops_small[0] = 0x50;
+  tab_stops_small[1] = 0x7d;
+  tab_stops_small[2] = 0xc8;
+  tab_stops_large[0] = 0x82;
+  tab_stops_large[1] = 0xc3;
+  tab_stops_large[2] = 0x13b;
+  tabs = tab_stops_large;
+  if ((int)*(int16_t *)((char *)rect + 6) - (int)*(int16_t *)((char *)rect + 2) < 0x141)
+    tabs = tab_stops_small;
+  if (row == 0) {
+    draw_string_set_tab_stops(NULL, 0);
+    tabs = NULL;
+  } else {
+    draw_string_set_tab_stops(tabs, 3);
+  }
+  rect[0] = *(int *)0x506584;
+  rect[1] = *(int *)0x506588;
+  rect2d_offset((int16_t *)rect, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+  if (font_tag != -1) {
+    tag_data = (int)tag_get(0x666f6e74, font_tag);
+    char_height = *(int16_t *)(tag_data + 8);
+    if (split < 2)
+      char_height = char_height + *(int16_t *)(tag_data + 6);
+    char_height = char_height + *(int16_t *)(tag_data + 4);
+    if (highlight != 0) {
+      *(float *)(state + 4) = *(float *)(state + 4) + *(float *)0x253524;
+      *(float *)(state + 8) = *(float *)(state + 8) + *(float *)0x253524;
+      *(float *)(state + 0xc) = *(float *)(state + 0xc) + *(float *)0x253524;
+      if (1.0f < *(float *)(state + 4))
+        *(int *)(state + 4) = 0x3f800000;
+      if (1.0f < *(float *)(state + 8))
+        *(int *)(state + 8) = 0x3f800000;
+      if (1.0f < *(float *)(state + 0xc))
+        *(int *)(state + 0xc) = 0x3f800000;
+    }
+    row_top = (int16_t)(row + (split < 2 ? 4 : 0) + 4) * char_height;
+    *(int16_t *)rect = row_top;
+    *(int16_t *)((char *)rect + 4) = row_top + char_height;
+    draw_string_set_font(font_tag, -1, 0, 0, NULL);
+    rasterizer_draw_string((int16_t *)rect, 0, 0, 0, text);
+  }
+  draw_string_set_tab_stops(0, 0);
+}
+
 /* Validate netgame flag starting locations for a game type (aa0b0). BX = type. */
 void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_type)
 {
