@@ -7401,6 +7401,36 @@ int FUN_000ac220(int param_1)
   return best;
 }
 
+/* Oddball: per-tick weapon status update (b32e0). */
+void FUN_000b32e0(int weapon_handle, int weapon_obj)
+{
+  int tick;
+  float local_10[3];
+
+  if (!weapon_is_flag(weapon_handle)) {
+    display_assert("weapon_is_flag(weapon_index)",
+                   "c:\\halo\\SOURCE\\game\\game_engine_oddball.c", 0x252, 1);
+    system_exit(-1);
+  }
+  ((void (*)(int, float *))item_get_position_even_if_in_inventory)(weapon_handle, local_10);
+  game_engine_set_goal_position(
+      (int)*(int16_t *)(weapon_obj + 0x68), (int *)local_10, 0,
+      "ball_blue", -1, -1,
+      *(int *)(0x456ecc + *(int16_t *)(weapon_obj + 0x68) * 4));
+  tick = game_time_get();
+  if (0x4b0 < (unsigned int)(tick - *(int *)(weapon_obj + 0x1b4))) {
+    if (weapon_is_flag(weapon_handle) &&
+        (*(uint32_t *)(weapon_obj + 4) >> 11 & 1) != 0 &&
+        *(int *)(weapon_obj + 0xcc) == -1) {
+      if ((*(uint8_t *)(weapon_obj + 0x1dc) & 0x40) != 0)
+        FUN_000ad140(-1, 0x24);
+      FUN_000b3020();
+    }
+  }
+}
+
+/* Oddball: validate weapon and assert flag (b2b00 already above). */
+
 /* Accumulate weighted float scores from a tag block into an integer sum.
  * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
  * float score at offset +0x20 from data base. */
