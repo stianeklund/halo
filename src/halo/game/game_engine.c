@@ -6756,6 +6756,12 @@ void FUN_000ae460(int param_1, int16_t game_type)
   error(2, (char *)param_1);
 }
 
+/* Compute fmod of a float value against the double constant at 0x26b678 (~1.9). */
+float game_globals_get_weapon(float param_1)
+{
+  return (float)x87_fmod((double)param_1, *(double *)0x26b678);
+}
+
 /* Oddball: weapon pickup handler (b3630). */
 char FUN_000b3630(int weapon_handle, int player_handle)
 {
