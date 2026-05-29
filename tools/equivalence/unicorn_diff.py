@@ -396,27 +396,114 @@ def _seed_known_globals(uc, base: int, size: int):
             uc.mem_write(addr, data)
 
 
+_SYMBOL_ADDR_CACHE = None
+
+
+def _decl_identifier(decl: str):
+    """Extract the declared identifier from a C decl, e.g.
+    'data_t *actor_data;' -> 'actor_data', 'char buf[0x10];' -> 'buf'."""
+    import re
+    if not decl:
+        return None
+    head = re.split(r'[\[(;]', decl, 1)[0]
+    ids = re.findall(r'[A-Za-z_]\w*', head)
+    return ids[-1] if ids else None
+
+
+def _load_symbol_addrs() -> dict:
+    """Build {symbol_name: original_address} from kb.json by parsing decls.
+
+    Lets named globals (e.g. actor_data referenced as __imp__actor_data in the
+    candidate .obj) resolve to their XBE address so state-snapshot data can
+    seed their DIR32 slots."""
+    global _SYMBOL_ADDR_CACHE
+    if _SYMBOL_ADDR_CACHE is not None:
+        return _SYMBOL_ADDR_CACHE
+    name2addr = {}
+    try:
+        kb_path = Path(__file__).resolve().parent.parent.parent / "kb.json"
+        import json as _json
+        kb = _json.loads(kb_path.read_text(encoding="utf-8"))
+        for obj in kb.get("objects", []):
+            if not isinstance(obj, dict):
+                continue
+            for group in ("data", "functions"):
+                for sym in obj.get(group, []) or []:
+                    addr = sym.get("addr")
+                    ident = sym.get("name") or _decl_identifier(sym.get("decl") or "")
+                    if addr and ident:
+                        try:
+                            name2addr.setdefault(ident, int(addr, 16))
+                        except ValueError:
+                            pass
+    except Exception:
+        pass
+    _SYMBOL_ADDR_CACHE = name2addr
+    return name2addr
+
+
+def _normalize_global_symbol(sym_name: str) -> str:
+    """Strip MSVC/clang decoration to recover the bare C identifier:
+    '__imp__actor_data' -> 'actor_data', '_actor_data@8' -> 'actor_data'."""
+    name = sym_name
+    if name.startswith("__imp__"):
+        name = name[len("__imp__"):]
+    name = name.split("@", 1)[0]
+    return name.lstrip("_")
+
+
+def _snapshot_value_at(snapshot_overrides: dict, addr: int, n: int = 4):
+    """Read n bytes at addr from snapshot regions ({region_base: bytes}),
+    honoring regions that span addr (not just exact-key matches)."""
+    if not snapshot_overrides:
+        return None
+    for base, data in snapshot_overrides.items():
+        if base <= addr and addr + n <= base + len(data):
+            off = addr - base
+            return data[off:off + n]
+    return None
+
+
 def _build_globals_seeds(*slot_maps: dict,
                          snapshot_overrides: dict = None) -> dict:
     """Build {slot_address: bytes} from DIR32 slot mappings + _KNOWN_GLOBAL_BYTES
     + optional state-snapshot overrides.
 
     Each slot_map has symbol_name -> slot_address.  Symbol names like
-    DAT_002533c8 encode the original XBE address.  If that address is in
-    _KNOWN_GLOBAL_BYTES or in snapshot_overrides, the slot gets seeded.
+    DAT_002533c8 encode the original XBE address; named globals (actor_data,
+    __imp__swarm_data, ...) are resolved to their address via kb.json.  If that
+    address is in snapshot_overrides (live game state) or _KNOWN_GLOBAL_BYTES,
+    the slot gets seeded.  Snapshot data wins so the same real table backs both
+    the oracle (DAT_-named) and candidate (named) references to a global.
     """
-    import re
+    import re, struct as _struct
+    name2addr = _load_symbol_addrs()
     seeds = {}
     for smap in slot_maps:
         for sym_name, slot_addr in smap.items():
+            orig_addr = None
             m = re.match(r'(?:DAT|PTR|PTR_FUN|PTR_DAT|s)_([0-9a-fA-F]{4,})', sym_name)
-            if not m:
+            if m:
+                orig_addr = int(m.group(1), 16)
+            else:
+                orig_addr = name2addr.get(_normalize_global_symbol(sym_name))
+            if orig_addr is None:
                 continue
-            orig_addr = int(m.group(1), 16)
-            if snapshot_overrides and orig_addr in snapshot_overrides:
+            snap = _snapshot_value_at(snapshot_overrides, orig_addr, 4)
+            # dllimport globals (__imp__X) carry an EXTRA dereference at the use
+            # site:  mov eax,[slot]; mov eax,[eax]  — the slot holds &X and the
+            # real storage at &X holds the value.  kb.json HDATA globals are
+            # __declspec(dllimport), so BOTH the oracle and candidate reference
+            # them this way.  When a state snapshot maps the real global page,
+            # seed the slot with the global's real ADDRESS so the mapped page
+            # supplies the value through that extra deref.  Direct refs (DAT_X)
+            # are single-deref and keep value-seeding.
+            is_dllimport = sym_name.startswith("__imp_")
+            if is_dllimport and snap is not None:
+                seeds[slot_addr] = _struct.pack("<I", orig_addr)
+            elif snap is not None:
                 # Snapshot overrides take priority over hardcoded known globals
-                data = snapshot_overrides[orig_addr]
-                seeds[slot_addr] = data[:4]
+                seeds[slot_addr] = snap
             elif orig_addr in _KNOWN_GLOBAL_BYTES:
                 seeds[slot_addr] = _KNOWN_GLOBAL_BYTES[orig_addr]
     return seeds
@@ -553,12 +640,21 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     # pre-save callback at 0x001BF760).  Pre-mapping them prevents the
     # emulator from hitting the fetch_hook when memory-indirect calls like
     # `call dword ptr [globals_slot]` resolve to these addresses.
+    _override_ranges = []
+    if memory_overrides:
+        _override_ranges = [(a, a + len(d)) for a, d in memory_overrides.items()]
     if globals_seeds:
         for _slot_addr, _seed_data in globals_seeds.items():
             for _j in range(0, len(_seed_data) - 3, 4):
                 _ptr = struct.unpack_from('<I', _seed_data, _j)[0]
                 if 0x000100 <= _ptr <= 0x01FFFFFF and _ptr not in _known_targets:
                     if CODE_BASE <= _ptr < CODE_BASE + CODE_SIZE:
+                        continue
+                    # Skip pointers backed by snapshot memory: these are real
+                    # data addresses (e.g. an __imp__ slot holding &actor_data),
+                    # not code callbacks.  Writing a ret-stub here would clobber
+                    # the live global value the override just mapped.
+                    if any(lo <= _ptr < hi for lo, hi in _override_ranges):
                         continue
                     # Skip the page containing FAKE_RET_ADDR stack sentinel
                     _ptr_page = _ptr & ~0xFFFF
