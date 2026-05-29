@@ -6907,6 +6907,13 @@ float FUN_000adc40(int player_handle)
   return rating;
 }
 
+/* Post-game team announcement. SI = team index. */
+void FUN_000ae3c0(int param_1, int param_2, int16_t team)
+{
+  FUN_000ad140(0, param_1);
+  error(2, (char *)param_2, (int)team);
+}
+
 /* Race: check if a team has won (b3c60). EDI = team_index. */
 char FUN_000b3c60(int team)
 {
