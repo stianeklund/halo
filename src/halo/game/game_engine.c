@@ -7978,6 +7978,87 @@ void FUN_000b00c0(int player_handle)
 
 /* CTF: find player carrying enemy flag (b0100 already above). */
 
+/* CTF: per-tick flag weapon status update (b0c10). */
+void FUN_000b0c10(int weapon_handle, int weapon_obj)
+{
+  int16_t flag_team;
+  int flag_carrier;
+  int tick;
+  uint32_t team_idx;
+  float position[3];
+
+  if (!weapon_is_flag(weapon_handle)) {
+    display_assert("weapon_is_flag(weapon_index)",
+                   "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x25c, 1);
+    system_exit(-1);
+  }
+  { int variant = (int)game_engine_get_variant();
+  if (0 < *(int *)(variant + 0x50)) {
+    if (0 < *(int *)0x456b9c)
+      *(int *)0x456b9c = *(int *)0x456b9c - 1;
+    if (*(int *)0x456b9c == 0 && (*(uint8_t *)(weapon_obj + 0x1a4) & 1) == 0) {
+      FUN_000ad140(-1, 0x2b);
+      *(char *)0x456b90 = 0;
+      *(int *)0x456b94 = 0;
+      *(char *)0x456b91 = 0;
+      *(int *)0x456b98 = 0;
+      flag_team = *(int16_t *)(weapon_obj + 0x68);
+      *(int *)(0x456b7c + flag_team * 4) = -1;
+      game_engine_clear_goal_position(0);
+      game_engine_clear_goal_position(1);
+      team_idx = (int)flag_team + 1;
+      team_idx = team_idx & 0x80000001;
+      if ((int)team_idx < 0)
+        team_idx = (team_idx - 1 | 0xfffffffe) + 1;
+      *(int16_t *)(weapon_obj + 0x68) = (int16_t)team_idx;
+      game_engine_post_event(((int16_t)team_idx != 0) + 0x25);
+      FUN_000b0990(weapon_handle);
+      game_engine_clear_goal_position(2);
+      game_engine_clear_goal_position(3);
+      variant = (int)game_engine_get_variant();
+      *(int *)0x456b9c = *(int *)(variant + 0x50);
+      FUN_000aff20(team_idx);
+    }
+  } }
+  tick = game_time_get();
+  if (0x1fe < (unsigned int)(tick - *(int *)(weapon_obj + 0x1b4))) {
+    if (weapon_is_flag(weapon_handle) &&
+        (*(uint32_t *)(weapon_obj + 4) >> 11 & 1) != 0 &&
+        *(int *)(weapon_obj + 0xcc) == -1) {
+      flag_team = *(int16_t *)(weapon_obj + 0x68);
+      team_idx = (int)flag_team + 1;
+      team_idx = team_idx & 0x80000001;
+      if ((int)team_idx < 0)
+        team_idx = (team_idx - 1 | 0xfffffffe) + 1;
+      if ((*(uint8_t *)(weapon_obj + 0x1dc) & 0x40) != 0) {
+        game_engine_post_event((-(uint32_t)((int)flag_team != 0) & 0xfffffffd) + 0xc);
+        *(char *)(0x456b90 + flag_team) = 0;
+        *(int *)(0x456b94 + flag_team * 4) = 0;
+        game_show_score_team((int)flag_team, 0x29);
+        game_show_score_team(team_idx, 0x2a);
+      }
+      FUN_000b0990(weapon_handle);
+    }
+  }
+  flag_carrier = FUN_000b0100();
+  flag_team = *(int16_t *)(weapon_obj + 0x68);
+  team_idx = (int)flag_team + 1;
+  team_idx = team_idx & 0x80000001;
+  if ((int)team_idx < 0)
+    team_idx = (team_idx - 1 | 0xfffffffe) + 1;
+  ((void (*)(int, float *))item_get_position_even_if_in_inventory)(weapon_handle, position);
+  game_engine_set_goal_position((int)flag_team, (int *)position, 0, "flag_blue", -1, (int16_t)team_idx, flag_carrier);
+  if (flag_carrier != -1) {
+    float *flag_pos = (float *)*(int *)(0x456b74 + team_idx * 4);
+    position[0] = flag_pos[0];
+    position[2] = flag_pos[2];
+    position[1] = flag_pos[1] + *(float *)0x253398;
+    game_engine_set_goal_position((int)flag_team + 2, (int *)position, 0, "default", flag_carrier, -1, -1);
+  } else {
+    game_engine_clear_goal_position((int)flag_team + 2);
+  }
+}
+
 /* Validate netgame flag starting locations for a game type (aa0b0). BX = type. */
 void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_type)
 {
