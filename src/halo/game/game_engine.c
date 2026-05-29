@@ -7315,6 +7315,27 @@ void FUN_000b39a0(int player_handle)
   }
 }
 
+/* CTF: check if position is within radius of a team's flag. EAX = team_index. */
+char FUN_000b0a70(int team_index, float *position, float radius)
+{
+  float *flag_pos;
+  float dist_sq;
+  float radius_sq;
+
+  if (position == NULL)
+    return 0;
+  flag_pos = (float *)*(int *)(0x456b74 + team_index * 4);
+  if (flag_pos == NULL)
+    return 0;
+  dist_sq = (flag_pos[2] - position[2]) * (flag_pos[2] - position[2]) +
+            (flag_pos[1] - position[1]) * (flag_pos[1] - position[1]) +
+            (flag_pos[0] - position[0]) * (flag_pos[0] - position[0]);
+  radius_sq = radius * radius;
+  if (radius_sq >= dist_sq)
+    return 1;
+  return 0;
+}
+
 /* Accumulate weighted float scores from a tag block into an integer sum.
  * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
  * float score at offset +0x20 from data base. */
