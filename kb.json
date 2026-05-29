@@ -8441,7 +8441,9 @@
         },
         {
           "addr": "0xaca70",
-          "decl": "void FUN_000aca70(void);"
+          "decl": "int FUN_000aca70(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xacb10",
