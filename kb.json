@@ -7861,7 +7861,9 @@
         },
         {
           "addr": "0xa8970",
-          "decl": "void FUN_000a8970(int *scores@<eax>);"
+          "decl": "int FUN_000a8970(int *scores@<eax>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa8a20",
@@ -8666,7 +8668,9 @@
         },
         {
           "addr": "0xb00c0",
-          "decl": "void FUN_000b00c0(void);"
+          "decl": "void FUN_000b00c0(int player_handle@<esi>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb0100",
