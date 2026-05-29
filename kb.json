@@ -20869,7 +20869,8 @@
         },
         {
           "addr": "0x191180",
-          "decl": "void FUN_00191180(void);"
+          "decl": "void FUN_00191180(int param_1);",
+          "ported": true
         },
         {
           "addr": "0x1911b0",
@@ -20885,7 +20886,7 @@
         },
         {
           "addr": "0x191230",
-          "decl": "void FUN_00191230(void);"
+          "decl": "void FUN_00191230(int param_1);"
         }
       ],
       "name": "shell.obj",

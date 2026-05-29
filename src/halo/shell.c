@@ -99,6 +99,36 @@ bool shell_application_is_paused(void)
   return *(bool *)0x4d8a84;
 }
 
+/* FUN_00191180 (0x191180)  [inferred: shell_application_set_paused]
+ *
+ * Setter for the application-paused flag at 0x4d8a84 (the byte read by
+ * shell_application_is_paused at the adjacent 0x191170). Debounced: only the
+ * low byte of the argument is compared against the current flag value. If it
+ * is unchanged, the function returns immediately. If it differs, the global
+ * is updated and FUN_00191230 is notified with the full dword argument via a
+ * normal cdecl call. FUN_00191230 is a bare-RET stub in this build (single
+ * 0xC3 at 0x191230) that ignores its argument, but the call is preserved with
+ * its argument to match the original instruction sequence.
+ *
+ * Disasm:
+ *   00191180: PUSH EBP / MOV EBP,ESP
+ *   00191183: MOV  EAX,[EBP+0x8]          ; arg -> EAX
+ *   00191186: CMP  byte ptr [0x4d8a84],AL ; compare low byte vs flag
+ *   0019118c: JZ   0x19119c               ; unchanged -> return
+ *   0019118e: PUSH EAX                     ; forward full dword (cdecl arg)
+ *   0019118f: MOV  [0x4d8a84],AL          ; store low byte into flag
+ *   00191194: CALL 0x191230               ; notify (stub)
+ *   00191199: ADD  ESP,0x4                ; caller cleans 4 bytes (cdecl)
+ *   0019119c: POP  EBP / RET
+ */
+void FUN_00191180(int param_1)
+{
+  if (*(char *)0x4d8a84 != (char)param_1) {
+    *(char *)0x4d8a84 = (char)param_1;
+    FUN_00191230(param_1);
+  }
+}
+
 /* shell_get_command_line (0x191240)
  *
  * Returns a pointer to the static command-line string buffer at 0x4d8a88.
