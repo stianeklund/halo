@@ -8030,7 +8030,8 @@
         {
           "addr": "0xa9620",
           "decl": "int weapon_definition_index_to_list_index(int param_1);",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9680",
@@ -8039,7 +8040,9 @@
         },
         {
           "addr": "0xa96b0",
-          "decl": "int game_engine_remap_vehicle(int tag_index);"
+          "decl": "int game_engine_remap_vehicle(int tag_index);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9770",
@@ -8062,7 +8065,8 @@
         {
           "addr": "0xa9a30",
           "decl": "int game_engine_player_has_flag(int param_1);",
-          "ported": null
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9aa0",
@@ -8291,7 +8295,9 @@
         },
         {
           "addr": "0xab450",
-          "decl": "void ticks_to_unicode_time_string(int ticks, int buf_size, wchar_t *dst);"
+          "decl": "void ticks_to_unicode_time_string(int ticks, int buf_size, wchar_t *dst);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab510",
@@ -8409,7 +8415,9 @@
         },
         {
           "addr": "0xacd70",
-          "decl": "void game_engine_update_player_always_invis(void);"
+          "decl": "void game_engine_update_player_always_invis(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xacdd0",
@@ -8427,7 +8435,7 @@
         },
         {
           "addr": "0xacf90",
-          "decl": "void game_show_score_team(void);"
+          "decl": "void game_show_score_team(int param_1, int param_2);"
         },
         {
           "addr": "0xacff0",
@@ -8596,7 +8604,9 @@
         },
         {
           "addr": "0xb0100",
-          "decl": "void FUN_000b0100(void);"
+          "decl": "int FUN_000b0100(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb0170",
@@ -8915,7 +8925,9 @@
         },
         {
           "addr": "0xb3cf0",
-          "decl": "void FUN_000b3cf0(void);"
+          "decl": "void FUN_000b3cf0(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         }
       ],
       "name": "game_engine.obj",
