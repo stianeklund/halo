@@ -6435,3 +6435,48 @@ output:
   param_1[1] = local_10;
   param_1[2] = local_c;
 }
+
+/* King of the Hill: periodic hill rotation and update (b23b0). */
+void FUN_000b23b0(void)
+{
+  int variant;
+  int position[3];
+  char hill_zero;
+
+  if (!game_engine_can_score())
+    return;
+  variant = (int)game_engine_get_variant();
+  if (*(char *)(variant + 0x4c) == 0)
+    return;
+  *(int *)0x456d50 = *(int *)0x456d50 - 1;
+  if (*(int *)0x456d50 != 0)
+    goto check_hill;
+  *(int *)0x456d50 = 0x708;
+  *(int *)0x456d4c = FUN_000b1e90(*(int *)0x456d4c, *(int *)0x456d4c);
+  FUN_000b1180();
+  game_engine_post_event(0x1e);
+  hill_zero = *(int *)0x456c38 == 0;
+  if (!hill_zero)
+    goto set_goal;
+  do {
+    error(2, "failed to find hill #%d most likely bad point placement", *(int *)0x456d4c);
+    if (*(int *)0x456d4c == 0)
+      break;
+    *(int *)0x456d4c = FUN_000b1e90(*(int *)0x456d4c, *(int *)0x456d4c);
+    FUN_000b1180();
+    game_engine_post_event(0x1e);
+  } while (*(int *)0x456c38 == 0);
+check_hill:
+  hill_zero = *(int *)0x456c38 == 0;
+set_goal:
+  if (hill_zero || *(int *)0x456c38 < 0) {
+    console_printf(0, "FAILED TO FIND HILL");
+    FUN_000b1760();
+    return;
+  }
+  position[0] = *(int *)0x456d2c;
+  position[1] = *(int *)0x456d30;
+  position[2] = *(int *)0x456d34;
+  game_engine_set_goal_position(0, position, 0, "crown_blue", -1, -1, -1);
+  FUN_000b1760();
+}
