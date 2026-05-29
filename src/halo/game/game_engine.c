@@ -7146,6 +7146,20 @@ int FUN_000a8970(int *scores)
   return result;
 }
 
+/* Render a HUD text line at a row offset. SI = row index. */
+void FUN_000a84f0(int text, int color, int16_t row_index)
+{
+  int rect[2];
+
+  rect[0] = *(int *)0x506584;
+  rect[1] = *(int *)0x506588;
+  rect2d_offset((int16_t *)rect, -(*(int16_t *)0x50657e), -(*(int16_t *)0x50657c));
+  *(int16_t *)rect = row_index * 0x12;
+  *(int16_t *)((char *)rect + 4) = row_index * 0x12 + 0x1a;
+  draw_string_set_style_justify_flags(-1, (short)color, 0);
+  ((void (*)(int16_t *, int, int, int, int))rasterizer_draw_string)((int16_t *)rect, 0, 0, 0, text);
+}
+
 /* CTF: notify flag return to offense/defense teams (aff20 already above). */
 
 /* CTF: per-tick flag status check for score popup (b00c0). ESI = player_handle. */
