@@ -30552,7 +30552,8 @@
         },
         {
           "addr": "0x57bc0",
-          "decl": "short FUN_00057bc0(int param_1);"
+          "decl": "short FUN_00057bc0(int encounter_handle);",
+          "ported": true
         },
         {
           "addr": "0x57c60",
