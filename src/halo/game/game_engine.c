@@ -5610,4 +5610,65 @@ float game_engine_get_distance_rating_for_spawn(int param_1, float *param_2)
 
 }
 
-/* Functions below this point deferred — depend on register-arg callees */
+/* Get blink alpha for HUD animation. ECX = random seed input. */
+int FUN_000a8e80(int param_1)
+{
+  unsigned int val;
+  unsigned int remainder;
+
+  val = system_milliseconds();
+  remainder = val % 0xa8c;
+  (void)remainder;
+  return val / 0xa8c;
+}
+
+/* Check if a nearby vehicle exists for a player. ECX = player handle. */
+int FUN_000a8ec0(int param_1)
+{
+  int16_t count;
+  int16_t i;
+  int obj;
+  char local_c[8];
+  int local_4c[16];
+
+  datum_get(player_data, 0);
+  scenario_location_from_point(local_c, (void *)param_1);
+  { union { int i; float f; } u; u.i = 0x3dcccccd;
+  count = object_find_in_radius(0, 0x11f, local_c, (float *)param_1, u.f, local_4c, 0x10); }
+  i = 0;
+  if (0 < count) {
+    do {
+      obj = (int)object_get_and_verify_type(local_4c[i], -1);
+      if (obj == 0) {
+        display_assert("object", "c:\\halo\\SOURCE\\game\\game_engine.c", 0xe63, 1);
+        system_exit(-1);
+      }
+      if (*(int16_t *)(obj + 100) == 1) {
+        obj = (int)object_get_and_verify_type(local_4c[i], 2);
+        if (obj != 0)
+          return 1;
+        display_assert("vehicle", "c:\\halo\\SOURCE\\game\\game_engine.c", 0xe68, 1);
+        system_exit(-1);
+        return 0;
+      }
+      i++;
+    } while (i < count);
+  }
+  return 0;
+}
+
+/* Update player invisibility clear on spawn. EAX = player handle. */
+void FUN_000acd00(int param_1)
+{
+  int player;
+
+  if (current_game_engine && param_1 != -1 &&
+      (*(uint8_t *)0x456b18 & 8) == 0) {
+    player = (int)datum_get(player_data, 0);
+    if (*(int *)(player + 0x34) != -1) {
+      player = (int)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+      *(int *)(player + 0x94) = 0;
+      *(int *)(player + 0x8c) = 0;
+    }
+  }
+}
