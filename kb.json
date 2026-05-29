@@ -8302,7 +8302,9 @@
         },
         {
           "addr": "0xab090",
-          "decl": "void FUN_000ab090(int param_1, char param_2, int row@<eax>, int state@<esi>);"
+          "decl": "void FUN_000ab090(int text, char highlight, int row@<eax>, int state@<esi>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xab230",
