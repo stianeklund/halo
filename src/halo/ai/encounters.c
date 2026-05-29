@@ -1021,6 +1021,25 @@ void FUN_00057c60(void)
 {
 }
 
+/* FUN_00057c70 (0x57c70) — ai_playfight script command. Sets the playfight
+ * flag (encounter+0x60) for an encounter. Logs if AI trace is enabled. */
+void FUN_00057c70(int encounter_handle, char param_2)
+{
+  char *encounter;
+  char local_204[512];
+
+  if (*(char *)0x5aca59 != '\0') {
+    FUN_00054220(encounter_handle, (void *)global_scenario_get(), local_204, 0x200);
+    error(2, "%s: ai_playfight %s %s",
+          hs_runtime_get_executing_thread_name(), local_204,
+          param_2 != '\0' ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  if (encounter_handle != -1) {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle & 0xffff);
+    *(char *)(encounter + 0x60) = param_2;
+  }
+}
+
 /*
  * FUN_00057ef0 — find or create an enterable-vehicle entry for param_1.
  * Searches DAT_00632574+0x3b8 array (stride 0x28, count at +0x3b6) for
