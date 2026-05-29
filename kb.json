@@ -8374,7 +8374,8 @@
         },
         {
           "addr": "0xad0c0",
-          "decl": "void game_show_score_extended(void);"
+          "decl": "void game_engine_player_event(int dead_player_handle, int event_type, int killer_handle);",
+          "name": "game_engine_player_event"
         },
         {
           "addr": "0xad140",
@@ -8483,7 +8484,9 @@
         },
         {
           "addr": "0xaf660",
-          "decl": "void game_engine_player_killed(int param_1, int param_2, int param_3, int param_4);"
+          "decl": "void game_engine_player_killed(int killer_handle, int kill_object_handle, int dead_handle, int betrayal);",
+          "name": "game_engine_player_killed",
+          "ported": true
         },
         {
           "addr": "0xaf9a0",
