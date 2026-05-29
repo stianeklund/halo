@@ -2585,6 +2585,168 @@ void game_engine_update(void)
   }
 }
 
+/* game_engine_player_killed (0xaf660)
+ *
+ * Called when a player dies. Records time of death, notifies the active
+ * game engine vtable, computes and clamps the respawn countdown at
+ * player+0x2c, then broadcasts the appropriate kill/medal event via
+ * game_engine_player_event.
+ *
+ * killer_handle      - player who made the kill, NONE if environment/suicide
+ * kill_object_handle - the killing object handle, NONE if none
+ * dead_handle        - the player who died (must not be NONE)
+ * betrayal           - non-zero if this is a team-kill/betrayal
+ *
+ * Respawn timer layout (all in game-ticks, 30/sec):
+ *   player+0x2c = active respawn countdown (decremented each tick)
+ *   player+0x30 = accumulated penalty counter (grows each death, reset on kill)
+ *   0x456b28    = variant base respawn time
+ *   0x456b24    = per-death penalty increment (0 = disabled)
+ *   0x456b2c    = non-PvP / betrayal bonus ticks
+ *   Minimum clamp: 0x5a (90 ticks = 3 seconds) — hardcoded here.
+ */
+void game_engine_player_killed(int killer_handle, int kill_object_handle,
+                               int dead_handle, int betrayal)
+{
+  char *dead_player;
+  char *killer_player;
+  void (*vtable_fn)(int, int, int, int);
+  int is_pvp;
+  int penalty;
+  int respawn_ticks;
+  int kill_event_type;
+  data_iter_t iter;
+  void *obj_data;
+  short multi_kill;
+  short kill_streak;
+
+  dead_player = (char *)datum_get(player_data, dead_handle);
+
+  if (dead_handle == NONE) {
+    display_assert("dead_player_index != NONE",
+                   "c:\\halo\\SOURCE\\game\\game_engine.c", 0x9b3, 1);
+    system_exit(-1);
+  }
+
+  if (!current_game_engine)
+    return;
+
+  *(int *)(dead_player + 0x84) = game_time_get();
+
+  vtable_fn = ((void (**)(int, int, int, int))current_game_engine)[0x60 / 4];
+  if (vtable_fn)
+    vtable_fn(killer_handle, kill_object_handle, dead_handle, betrayal);
+
+  is_pvp = (killer_handle != NONE && dead_handle != NONE && !betrayal &&
+            killer_handle != dead_handle);
+
+  *(int *)(dead_player + 0x2c) =
+    *(int *)(dead_player + 0x30) + *(int *)0x456b28;
+
+  if (*(int *)0x456b24 >= 1) {
+    penalty = *(int *)(dead_player + 0x30) + *(int *)0x456b24;
+    *(int *)(dead_player + 0x30) = penalty;
+    if (penalty > *(int *)0x456b24 * 5)
+      penalty = *(int *)0x456b24 * 5;
+    *(int *)(dead_player + 0x30) = penalty;
+
+    if (is_pvp) {
+      if (killer_handle != NONE) {
+        killer_player = (char *)datum_get(player_data, killer_handle);
+        penalty = (int)(*(int *)(killer_player + 0x30) - *(int *)0x456b24);
+        *(int *)(killer_player + 0x30) = penalty;
+        *(int *)(killer_player + 0x30) = penalty < 1 ? 0 : penalty;
+      }
+      goto apply_clamp;
+    }
+  } else {
+    if (is_pvp)
+      goto apply_clamp;
+  }
+
+  *(int *)(dead_player + 0x2c) += *(int *)0x456b2c;
+
+apply_clamp:
+  respawn_ticks = *(int *)(dead_player + 0x2c);
+  if (respawn_ticks < 0x5b)
+    respawn_ticks = 0x5a;
+  *(int *)(dead_player + 0x2c) = respawn_ticks;
+
+  dead_player = (char *)datum_get(player_data, dead_handle);
+
+  if (*(char *)(dead_player + 0xd1) != 0) {
+    data_iterator_new(&iter, player_data);
+    while (data_iterator_next(&iter) != NULL) {
+      game_engine_hud_update_player(iter.datum_handle, dead_handle, 0x1c);
+    }
+    return;
+  }
+
+  if (killer_handle == NONE) {
+    if (kill_object_handle == NONE) {
+      kill_event_type = 1;
+    } else {
+      obj_data = object_get_and_verify_type(kill_object_handle, 0xffffffff);
+      object_try_and_get_and_verify_type(kill_object_handle, 3);
+      switch (*(short *)((char *)obj_data + 0x64)) {
+      case 0:
+        kill_event_type = 2;
+        break;
+      case 1:
+        kill_event_type = 3;
+        break;
+      default:
+        kill_event_type = 1;
+        break;
+      }
+    }
+  } else if (killer_handle == dead_handle) {
+    kill_event_type = 6;
+  } else {
+    kill_event_type = 4 + (betrayal != 0);
+  }
+
+  game_engine_player_event(dead_handle, kill_event_type, killer_handle);
+
+  if (kill_event_type == 5) {
+    if (killer_handle != NONE) {
+      game_engine_hud_update_player(killer_handle, dead_handle, 0xd);
+      return;
+    }
+    data_iterator_new(&iter, player_data);
+    while (data_iterator_next(&iter) != NULL) {
+      game_engine_hud_update_player(iter.datum_handle, dead_handle, 0xd);
+    }
+    return;
+  }
+
+  if (kill_event_type != 4)
+    return;
+
+  killer_player = (char *)datum_get(player_data, killer_handle);
+  multi_kill = *(short *)(killer_player + 0x94);
+
+  if (multi_kill > 3) {
+    game_engine_player_event(killer_handle, 10, dead_handle);
+    return;
+  }
+  if (multi_kill == 3) {
+    game_engine_player_event(killer_handle, 9, dead_handle);
+    return;
+  }
+  if (multi_kill == 2) {
+    game_engine_player_event(killer_handle, 7, dead_handle);
+    return;
+  }
+  kill_streak = *(short *)(killer_player + 0x92);
+  if (kill_streak == 5) {
+    game_engine_player_event(killer_handle, 0xb, dead_handle);
+    return;
+  }
+  game_engine_player_event(killer_handle, (kill_streak % 5 != 0) ? 8 : 12,
+                           dead_handle);
+}
+
 /* FUN_000af9a0 (0xaf9a0) — game_engine post-rasterize hook
  *
  * Called during post-rasterize. For game types 2 (post-game scoreboard)
