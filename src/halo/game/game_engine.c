@@ -6777,6 +6777,34 @@ float game_engine_get_starting_location_rating(int param_1, int param_2)
   return FUN_000adc40(param_1);
 }
 
+/* Get custom motion sensor positions for a player (a9210). */
+int16_t game_engine_player_get_custom_motion_sensor_positions(
+    int param_1, int param_2, int param_3, int16_t param_4)
+{
+  int16_t count;
+  int player;
+  char flag_idx;
+  int *flag_ptr;
+
+  count = 0;
+  if (current_game_engine && *(int *)0x456b1c == 0 && param_1 != -1) {
+    player = (int)datum_get(player_data, param_1);
+    flag_idx = 0;
+    flag_ptr = (int *)0x4566f8;
+    do {
+      if (FUN_000a9190(0, flag_idx, player) && count < param_4) {
+        *(char *)(param_3 + (int)count) = flag_idx;
+        *(int *)(param_2 + (int)count * 8) = *flag_ptr;
+        count++;
+        *(int *)(param_2 + 4 + (int)(count - 1) * 8) = flag_ptr[1];
+      }
+      flag_ptr += 8;
+      flag_idx++;
+    } while ((int)flag_ptr < 0x456af8);
+  }
+  return count;
+}
+
 /* Oddball: weapon pickup handler (b3630). */
 char FUN_000b3630(int weapon_handle, int player_handle)
 {
