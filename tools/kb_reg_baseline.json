@@ -15,6 +15,7 @@
     }
   },
   "functions": {
+    "0x14e90": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
     "0x15bb0": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
     "0x21130": "void actor_combat_get_weapon_vector(int actor_handle @<eax>, float *weapon_vector @<ebx>);",
