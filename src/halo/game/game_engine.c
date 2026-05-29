@@ -7429,6 +7429,35 @@ void FUN_000b32e0(int weapon_handle, int weapon_obj)
   }
 }
 
+/* Oddball: create a ball object at a random spawn position. DI = team/slot index. */
+void FUN_000b2e70(int16_t slot_index)
+{
+  int variant;
+  int ball_tag;
+  char placement[0x88];
+  int handle;
+  int weapon;
+  int local_10[3];
+
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x5c) >= 1 && *(int *)(variant + 0x5c) <= 2)
+    return;
+  ball_tag = get_ball_definition_index();
+  if (ball_tag == -1) {
+    error(2, "### failed to find the flag object");
+    return;
+  }
+  object_placement_data_new(placement, ball_tag, -1);
+  FUN_000b2d30(local_10, (int)slot_index);
+  *(int *)(placement + 0x1c) = local_10[0];
+  *(int *)(placement + 0x20) = local_10[1];
+  *(int *)(placement + 0x24) = local_10[2];
+  handle = object_new(placement);
+  weapon = (int)object_get_and_verify_type(handle, 4);
+  *(int16_t *)(weapon + 0x68) = slot_index;
+  object_set_automatic_deactivation(handle, 0);
+}
+
 /* Oddball: validate weapon and assert flag (b2b00 already above). */
 
 /* Accumulate weighted float scores from a tag block into an integer sum.
