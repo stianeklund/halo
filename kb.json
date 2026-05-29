@@ -8768,7 +8768,9 @@
         },
         {
           "addr": "0xb0c10",
-          "decl": "void FUN_000b0c10(void);"
+          "decl": "void FUN_000b0c10(int weapon_handle, int weapon_obj);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb0ed0",
