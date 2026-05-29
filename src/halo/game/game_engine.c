@@ -6821,6 +6821,27 @@ display:
   hud_print_message(screen_index, (wchar_t *)((char *)player - 0x804 + 0x808)); }
 }
 
+/* Check if the team won by finding a player on team ESI and dispatching. */
+int FUN_000ae340(int team)
+{
+  int player;
+  data_iter_t iter;
+
+  data_iterator_new(&iter, player_data);
+  player = (int)data_iterator_next(&iter);
+  while (player != 0) {
+    if (*(int *)(player + 0x20) == team) {
+      if (current_game_engine == 0)
+        return 0;
+      if (((int (**)(int))current_game_engine)[0x84 / 4])
+        return ((int (**)(int))current_game_engine)[0x84 / 4](iter.datum_handle);
+      return ((int (*)(int))FUN_000ae250)(iter.datum_handle);
+    }
+    player = (int)data_iterator_next(&iter);
+  }
+  return 0;
+}
+
 /* Race: check if a team has won (b3c60). EDI = team_index. */
 char FUN_000b3c60(int team)
 {
