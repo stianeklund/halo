@@ -8134,7 +8134,9 @@
         },
         {
           "addr": "0xaa0b0",
-          "decl": "void FUN_000aa0b0(int16_t param_1, int param_2, int16_t param_3, int16_t type@<bx>);"
+          "decl": "void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_type@<bx>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa120",
