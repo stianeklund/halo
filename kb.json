@@ -8294,7 +8294,7 @@
         },
         {
           "addr": "0xab230",
-          "decl": "int16_t FUN_000ab230(int param_1);",
+          "decl": "char FUN_000ab230(int param_1);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
