@@ -2202,11 +2202,13 @@
         },
         {
           "addr": "0x1d350",
-          "decl": "void actor_action_try_to_seek_cover(void);"
+          "decl": "char actor_action_try_to_seek_cover(int actor_handle, char param_2, char param_3);",
+          "ported": true
         },
         {
           "addr": "0x1d3c0",
-          "decl": "void FUN_0001d3c0(void);"
+          "decl": "char FUN_0001d3c0(int actor_handle, short param_2, int param_3, char param_4);",
+          "ported": true
         },
         {
           "addr": "0x1d420",
@@ -2227,7 +2229,8 @@
         },
         {
           "addr": "0x1d5f0",
-          "decl": "void actor_mode_name(void);"
+          "decl": "const char *actor_mode_name(int16_t param_1);",
+          "ported": true
         },
         {
           "addr": "0x1d620",
@@ -2245,7 +2248,8 @@
         },
         {
           "addr": "0x1d760",
-          "decl": "void set_real_vector2d(void);"
+          "decl": "void set_real_vector2d(float *out, float x, float y);",
+          "ported": true
         },
         {
           "addr": "0x1d780",
