@@ -2233,6 +2233,34 @@ __declspec(noinline) void encounter_iterator_next(void *iter, char flag)
   *(char *)(p + 0x11) = flag;
 }
 
+/* encounter_iterator_new (0x59990) — Initialize an encounter data iterator
+ * with filter flag at offset +0x14. */
+void encounter_iterator_new(int iter, char param_2)
+{
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    data_iterator_new((data_iter_t *)iter, *(data_t **)0x5ab270);
+    *(char *)(iter + 0x14) = param_2;
+  }
+}
+
+/* FUN_000599c0 (0x599c0) — Step encounter data iterator, skipping inactive
+ * encounters (datum+0xd == 0) when filter flag (iter+0x14) is set.
+ * Copies iter+0x8 to iter+0x10 after each step. Returns datum or NULL. */
+void *FUN_000599c0(int iter)
+{
+  void *result;
+
+  result = NULL;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    do {
+      result = data_iterator_next((data_iter_t *)iter);
+      if (result == NULL || *(char *)(iter + 0x14) == '\0') break;
+    } while (*(char *)((char *)result + 0xd) == '\0');
+    *(int *)(iter + 0x10) = *(int *)(iter + 0x8);
+  }
+  return result;
+}
+
 /* 0x00059b50 — actor_iterator_next (extended AI actor iterator advance).
  * Returns the next actor record pointer, or NULL when done.  Two-phase:
  *
