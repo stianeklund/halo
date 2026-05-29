@@ -7539,6 +7539,32 @@ void FUN_000ac3e0(int player_handle)
   }
 }
 
+/* Select a random item from the item collection tag (aca70). */
+int FUN_000aca70(void)
+{
+  int *tag;
+  int count;
+  int data;
+  int i;
+
+  tag = (int *)tag_get(0x69746d63, 0);
+  count = *tag;
+  { unsigned int *seed = (unsigned int *)get_global_random_seed_address();
+  int rng = random_range(seed, 0, FUN_000a8970(tag));
+  (void)rng; }
+  data = tag[1];
+  i = 0;
+  if (0 < count) {
+    do {
+      int weight = (int)((float)0 + *(float *)(data + i * 0x54 + 0x20));
+      if (weight < 0)
+        return *(int *)(i * 0x54 + 0x30 + data);
+      i++;
+    } while (i < count);
+  }
+  return -1;
+}
+
 /* Oddball: update weapon tracking for a player (b3090). EDI = player_handle. */
 void FUN_000b3090(int player_handle)
 {
