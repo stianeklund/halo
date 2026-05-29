@@ -7923,7 +7923,7 @@ void FUN_000a84f0(int text, int color, int16_t row_index)
   *(int16_t *)rect = row_index * 0x12;
   *(int16_t *)((char *)rect + 4) = row_index * 0x12 + 0x1a;
   draw_string_set_style_justify_flags(-1, (short)color, 0);
-  ((void (*)(int16_t *, int, int, int, int))rasterizer_draw_string)((int16_t *)rect, 0, 0, 0, text);
+  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, text);
 }
 
 /* Render nav points for the active game engine (a9480). */
@@ -8205,6 +8205,40 @@ int FUN_000b05c0(void)
     } while ((int16_t)loc_idx < loc_count);
   }
   return 1;
+}
+
+/* Render a score message on the HUD with color and positioning (a8fb0). */
+void game_engine_rasterize_message(int text, float alpha)
+{
+  int16_t split_count;
+  int font_tag;
+  int rect[2];
+  float color[4];
+  int16_t y_pos;
+
+  split_count = local_player_count();
+  if (split_count == 0)
+    font_tag = *(int *)(*(int *)0x46bd0c + 0x54);
+  else
+    font_tag = *(int *)(*(int *)0x46bd0c + 0x64);
+  rect[0] = *(int *)0x506584;
+  rect[1] = *(int *)0x506588;
+  { int hud_font = interface_get_tag_index(1);
+  draw_string_set_font(hud_font, -1, 0, 0, *(const void **)0x2ee6c4); }
+  color[0] = alpha;
+  color[1] = 0.459f;
+  color[2] = 0.729f;
+  color[3] = 1.0f;
+  rect2d_offset((int16_t *)rect, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+  { long long product = (long long)((int16_t)rect[0] * 5 + (int)(int16_t)rect[1]) * 0x2aaaaaab;
+  y_pos = ((int16_t)(product >> 32) + 9) - (int16_t)(product >> 63); }
+  *(int16_t *)((char *)rect + 4) = y_pos;
+  *(int16_t *)rect = y_pos - 0xf;
+  draw_string_set_font(font_tag, -1, 2, 8, (const void *)color);
+  draw_string_set_color(color);
+  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, text);
+  draw_string_set_style_justify_flags(-1, 0, 0);
+  draw_string_set_tab_stops(0, 0);
 }
 
 /* Validate netgame flag starting locations for a game type (aa0b0). BX = type. */
