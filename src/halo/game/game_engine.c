@@ -4668,3 +4668,4 @@ float game_engine_get_distance_rating_for_spawn(int param_1, float *param_2)
   }
   return result;
 }
+/* Functions below this point deferred — depend on register-arg callees */
