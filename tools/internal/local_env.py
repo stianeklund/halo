@@ -46,6 +46,15 @@ def to_windows_path(path: str) -> str:
         and path[6] == "/"
     ):
         return f"{path[5].upper()}:{path[6:]}"
+    if sys.platform.startswith("linux") and "WSL_INTEROP" in os.environ:
+        try:
+            result = subprocess.run(
+                ["wslpath", "-w", path],
+                capture_output=True, text=True, check=True,
+            )
+            return result.stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
     return path
 
 
