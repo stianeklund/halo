@@ -6842,6 +6842,43 @@ int FUN_000ae340(int team)
   return 0;
 }
 
+/* Compute team proximity rating for spawn points. ESI = position pointer. */
+float FUN_000adb20(int spawn_pos)
+{
+  int local_player;
+  int player;
+  float pos[3];
+  float dist;
+  float rating;
+  data_iter_t iter;
+
+  { float *position = (float *)spawn_pos;
+  local_player = (int)datum_get(player_data, 0);
+  rating = 0.0f;
+  data_iterator_new(&iter, player_data);
+  player = (int)data_iterator_next(&iter);
+  if (player != 0) {
+    do {
+      if (*(int *)(local_player + 0x20) == *(int *)(player + 0x20) &&
+          *(int *)(player + 0x34) != -1) {
+        object_get_world_position(*(int *)(player + 0x34), (vector3_t *)pos);
+        { float d2 =
+            (position[1] - pos[1]) * (position[1] - pos[1]) +
+            (position[0] - pos[0]) * (position[0] - pos[0]) +
+            (position[2] - pos[2]) * (position[2] - pos[2]);
+        dist = xbox_sqrtf(d2); }
+        if (1.0f <= dist && dist < *(float *)0x254640) {
+          rating = (float)x87_fmod((double)dist, *(double *)0x26b678) + rating;
+        }
+      }
+      player = (int)data_iterator_next(&iter);
+    } while (player != 0);
+    if (*(float *)0x254644 < rating)
+      rating = 3.0f;
+  }
+  return rating * *(float *)0x254644 + 1.0f; }
+}
+
 /* Compute the combined spawn location rating. EAX = player_handle. */
 float FUN_000adc40(int player_handle)
 {

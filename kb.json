@@ -8536,7 +8536,9 @@
         },
         {
           "addr": "0xadb20",
-          "decl": "float FUN_000adb20(int player_handle@<esi>);"
+          "decl": "float FUN_000adb20(int spawn_pos@<esi>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xadc40",
