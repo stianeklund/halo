@@ -8496,7 +8496,9 @@
         },
         {
           "addr": "0xad2b0",
-          "decl": "void FUN_000ad2b0(int param_1, int *param_2, int *param_3);"
+          "decl": "void FUN_000ad2b0(int param_1, int *param_2, int *param_3);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xad3e0",
