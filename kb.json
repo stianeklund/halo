@@ -7767,7 +7767,9 @@
       "functions": [
         {
           "addr": "0xa81a0",
-          "decl": "void game_globals_get_weapon(void);"
+          "decl": "float game_globals_get_weapon(float param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa81c0",
