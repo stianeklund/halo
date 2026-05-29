@@ -2323,7 +2323,9 @@
         },
         {
           "addr": "0x1f920",
-          "decl": "char actor_action_handle_combat_failure(int actor_handle);"
+          "decl": "char actor_action_handle_combat_failure(int actor_handle);",
+          "name": "actor_action_handle_combat_failure",
+          "ported": false
         },
         {
           "addr": "0x1f9a0",
@@ -2331,11 +2333,13 @@
         },
         {
           "addr": "0x1fa60",
-          "decl": "void actor_action_try_to_throw_grenade(void);"
+          "decl": "void actor_action_try_to_throw_grenade(int actor_handle, int flag);",
+          "name": "actor_action_try_to_throw_grenade"
         },
         {
           "addr": "0x1fb80",
-          "decl": "void actor_action_consider_grenade(int actor_handle);"
+          "decl": "char actor_action_consider_grenade(int actor_handle);",
+          "name": "actor_action_consider_grenade"
         },
         {
           "addr": "0x1fca0",
@@ -2355,15 +2359,21 @@
         },
         {
           "addr": "0x20470",
-          "decl": "void actor_action_handle_berserk_transition(int actor_handle, int type);"
+          "decl": "char actor_action_handle_berserk_transition(int actor_handle, short param_2);",
+          "name": "actor_action_handle_berserk_transition",
+          "ported": false
         },
         {
           "addr": "0x204f0",
-          "decl": "void actor_action_handle_combat_transition(int actor_handle);"
+          "decl": "char actor_action_handle_combat_transition(int actor_handle);",
+          "name": "actor_action_handle_combat_transition",
+          "ported": true
         },
         {
           "addr": "0x205a0",
-          "decl": "void actor_action_handle_grenade_throwing(int actor_handle);"
+          "decl": "char actor_action_handle_grenade_throwing(int actor_handle);",
+          "name": "actor_action_handle_grenade_throwing",
+          "ported": false
         },
         {
           "addr": "0x20670",
