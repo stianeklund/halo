@@ -5672,3 +5672,92 @@ void FUN_000acd00(int param_1)
     }
   }
 }
+
+/* Dispatch post-rasterize based on game phase (afdf0 already implemented above). */
+
+/* game_engine_player_event (ad0c0) — broadcast a score event to all players. */
+void game_engine_player_event(int param_1, int param_2, int param_3)
+{
+  data_iter_t iter;
+  int player;
+
+  if (param_1 == -1) {
+    data_iterator_new(&iter, player_data);
+    player = (int)data_iterator_next(&iter);
+    while (player != 0) {
+      if (param_2 != -1)
+        game_engine_hud_update_player(iter.datum_handle, param_2, param_3);
+      player = (int)data_iterator_next(&iter);
+    }
+  } else if (param_2 != -1) {
+    game_engine_hud_update_player(param_1, param_2, param_3);
+  }
+}
+
+/* Score display wrapper (ad140 already implemented above). */
+
+/* game_engine_postspawn_player_update (ad3e0) — set weapon/grenade counts for spawned player. */
+void game_engine_postspawn_player_update(int param_1)
+{
+  int player;
+  int biped;
+  int game_globals;
+  int16_t *frag_elem;
+  int16_t *plasma_elem;
+  int frag_count;
+  int plasma_count;
+
+  if (current_game_engine == 0)
+    return;
+  if (((void (**)(int))current_game_engine)[0x70 / 4] != NULL) {
+    ((void (**)(int))current_game_engine)[0x70 / 4](param_1);
+    return;
+  }
+  player = (int)datum_get(player_data, param_1);
+  biped = *(int *)(player + 0x34);
+  game_globals = (int)game_globals_get();
+  frag_elem = (int16_t *)tag_block_get_element((int *)(game_globals + 0x128), 0, 0x44);
+  game_globals = (int)game_globals_get();
+  plasma_elem = (int16_t *)tag_block_get_element((int *)(game_globals + 0x128), 1, 0x44);
+  plasma_count = (int)*plasma_elem;
+  frag_count = (int)*frag_elem;
+  if ((*(uint32_t *)0x5aa720 & 8) == 0) {
+    if ((*(uint32_t *)0x5aa720 & 4) != 0) {
+      frag_count = 2;
+      plasma_count = 2;
+    }
+  } else {
+    frag_count = 1;
+    plasma_count = 1;
+  }
+  {
+    int starting_frags = frag_count;
+    int starting_plasmas = 0;
+    if ((*(uint32_t *)0x456b18 & 0x20) == 0)
+      FUN_000ad2b0(biped, &starting_frags, &starting_plasmas);
+    if ((*(uint32_t *)0x5aa720 & 4) == 0 &&
+        ((*(uint32_t *)0x456b18 >> 2) & 1) != 0) {
+      starting_plasmas = plasma_count;
+      starting_frags = frag_count;
+    }
+    if (biped != -1) {
+      biped = (int)object_get_and_verify_type(biped, 3);
+      if (*(int *)0x456b3c == 3) {
+        starting_plasmas = starting_plasmas + starting_frags;
+        starting_frags = 0;
+      } else if (*(int *)0x456b3c == 9) {
+        starting_frags = starting_frags + starting_plasmas;
+        starting_plasmas = 0;
+      } else if (*(int *)0x456b3c == 10 && FUN_000a9550() == 0) {
+        starting_plasmas = 0;
+        starting_frags = 0;
+      }
+      if (frag_count < starting_frags)
+        starting_frags = frag_count;
+      if (plasma_count < starting_plasmas)
+        starting_plasmas = plasma_count;
+      *(char *)(biped + 0x2ce) = (char)starting_frags;
+      *(char *)(biped + 0x2cf) = (char)starting_plasmas;
+    }
+  }
+}

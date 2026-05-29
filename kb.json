@@ -8459,8 +8459,10 @@
         },
         {
           "addr": "0xad0c0",
-          "decl": "void game_engine_player_event(int dead_player_handle, int event_type, int killer_handle);",
-          "name": "game_engine_player_event"
+          "decl": "void game_engine_player_event(int param_1, int param_2, int param_3);",
+          "name": "game_engine_player_event",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xad140",
@@ -8480,11 +8482,13 @@
         },
         {
           "addr": "0xad2b0",
-          "decl": "void FUN_000ad2b0(void);"
+          "decl": "void FUN_000ad2b0(int param_1, int *param_2, int *param_3);"
         },
         {
           "addr": "0xad3e0",
-          "decl": "void game_engine_postspawn_player_update(void);"
+          "decl": "void game_engine_postspawn_player_update(int param_1);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xad530",
