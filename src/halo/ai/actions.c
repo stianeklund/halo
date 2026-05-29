@@ -1054,3 +1054,92 @@ do_action:
   *(short *)(actor + 0x90) = -1;
   return result;
 }
+
+/* actor_action_handle_panic_transition (0x1dd40) — Handles a panic-level
+ * transition for an actor. If the actor's current panic level (actor+0x308)
+ * meets or exceeds param_2 and the actor is not suppressed (actor+0x160),
+ * evaluates the transition. In guard action (0x6c==4) with positive shield
+ * value (actor+0xa8), clamps the shield to the panic level. Otherwise, if
+ * enough time has passed since actor+0x398, checks whether to play a sound
+ * event or attempt seek cover via FUN_0001d3c0. Clears panic level on exit.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1dd50.
+ * Confirmed: game_time_get() at 0x1ddd6.
+ * Confirmed: display_assert + system_exit pattern at 0x1de08-0x1de25.
+ * Confirmed: FUN_00046f10 sound event call at 0x1de43.
+ * Confirmed: FUN_0001d3c0 call at 0x1de74. */
+char actor_action_handle_panic_transition(int actor_handle, short param_2, char param_3, short param_4)
+{
+  char *actor;
+  short panic_level;
+  short shield_value;
+  int iVar5;
+  char bVar3;
+  volatile char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  panic_level = *(short *)(actor + 0x308);
+  result = 0;
+  if (param_2 <= panic_level && *(char *)(actor + 0x160) == '\0') {
+    if (*(short *)(actor + 0x6c) == 4 && (shield_value = *(short *)(actor + 0xa8), shield_value > 0)) {
+      if (panic_level < shield_value) {
+        *(short *)(actor + 0xa8) = shield_value;
+        *(short *)(actor + 0x308) = 0;
+        return result;
+      }
+      *(short *)(actor + 0xa8) = panic_level;
+      *(short *)(actor + 0x308) = 0;
+      return result;
+    }
+    if (*(int *)(actor + 0x398) != -1) {
+      iVar5 = game_time_get();
+      if (iVar5 <= *(int *)(actor + 0x398) + 7) {
+        goto done;
+      }
+    }
+    bVar3 = *(short *)(actor + 0x308) >= param_4;
+    if (*(int *)(actor + 0x30c) == 0) {
+      display_assert("actor->stimuli.panic_prop_index != 0x00000000",
+                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x295, 1);
+      system_exit(-1);
+    }
+    if (param_3 != '\0' && !bVar3) {
+      FUN_00046f10(0x22, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+      *(short *)(actor + 0x308) = 0;
+      return result;
+    }
+    result = FUN_0001d3c0(actor_handle, *(short *)(actor + 0x308),
+                          *(int *)(actor + 0x30c), bVar3);
+  }
+done:
+  *(short *)(actor + 0x308) = 0;
+  return result;
+}
+
+/* actor_action_handle_done_fleeing (0x1f6e0)
+ * Handles the transition when an actor finishes fleeing (action type 4).
+ * If the actor's current action is type 4 and the flag at actor+0xab is set,
+ * calls FUN_00016210 to build a new action buffer from actor+0x9c, then
+ * changes to action type 6. Asserts on FUN_00016210 failure. Returns 1 if
+ * the transition was performed, 0 otherwise. */
+char actor_action_handle_done_fleeing(int actor_handle)
+{
+  char *actor;
+  char cVar1;
+  short action_buf[66];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0x6c) != 4) {
+    return 0;
+  }
+  if (*(char *)(actor + 0xab) == '\0') {
+    return 0;
+  }
+  cVar1 = FUN_00016210(actor_handle, (int)(actor + 0x9c), action_buf);
+  if (cVar1 == '\0') {
+    display_assert("success", "c:\\halo\\SOURCE\\ai\\actions.c", 0xa79, 1);
+    system_exit(-1);
+  }
+  actor_action_change(actor_handle, 6, (int)action_buf);
+  return 1;
+}
