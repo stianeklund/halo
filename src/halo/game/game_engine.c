@@ -6276,3 +6276,70 @@ apply:
   if (*(float *)(biped + 0x32c) < *(float *)0x2533e8)
     *(float *)(biped + 0x32c) = *(float *)0x2533e8;
 }
+
+/* Set a nav point goal position (a93e0). */
+void game_engine_set_goal_position(int flag_index, int *position,
+                                   float height, char *name, int target,
+                                   int16_t team, int player)
+{
+  int idx;
+  int16_t icon;
+
+  idx = (int)flag_index;
+  *(int *)(0x456710 + idx * 0x20) = player;
+  icon = ((int16_t (*)(int))FUN_000d5ec0)((int)name);
+  *(int16_t *)(0x456714 + idx * 0x10) = icon;
+  *(char *)(0x456704 + idx * 0x20) = 1;
+  *(int *)(0x4566f8 + idx * 8) = position[0];
+  *(int *)(0x4566fc + idx * 8) = position[1];
+  *(int *)(0x456700 + idx * 0x20) = position[2];
+  *(int16_t *)(0x45670c + idx * 0x20) = team;
+  *(float *)(0x456700 + idx * 0x20) = height + *(float *)(0x456700 + idx * 0x20) + *(float *)0x26b814;
+  *(int *)(0x456708 + idx * 0x20) = target;
+}
+
+/* King of the Hill: initialization (b1f00). */
+int FUN_000b1f00(void)
+{
+  int scenario;
+  int16_t i;
+  int elem;
+  int16_t j;
+
+  scenario = (int)global_scenario_get();
+  csmemset((void *)0x456ba8, 0, 0x1ac);
+  *(int16_t *)0x456d54 = 0;
+  i = 0;
+  if (0 < *(int *)(scenario + 0x378)) {
+    do {
+      elem = (int)tag_block_get_element((int *)(scenario + 0x378), (int)i, 0x94);
+      if (*(int16_t *)(elem + 0x10) == 8) {
+        j = 0;
+        if (0 < *(int16_t *)0x456d54) {
+          do {
+            if (*(int16_t *)(0x456d58 + j * 2) == *(int16_t *)(elem + 0x12))
+              goto next_flag;
+            j++;
+          } while (j < *(int16_t *)0x456d54);
+        }
+        { int idx = (int)*(int16_t *)0x456d54;
+        *(int16_t *)0x456d54 = *(int16_t *)0x456d54 + 1;
+        *(int16_t *)(0x456d58 + idx * 2) = *(int16_t *)(elem + 0x12); }
+      }
+next_flag:
+      i++;
+    } while ((int)i < *(int *)(scenario + 0x378));
+  }
+  *(int *)0x456d4c = 0;
+  *(int *)0x456d50 = 0x708;
+  *(int *)0x456d40 = -1;
+  *(int *)0x456d38 = 0;
+  FUN_000b1180();
+  if (*(int *)0x456c38 == 0) {
+    display_assert("king_globals.hill_point_count != 0",
+                   "c:\\halo\\SOURCE\\game\\game_engine_king.c", 0x153, 1);
+    system_exit(-1);
+  }
+  FUN_000b1aa0();
+  return 1;
+}
