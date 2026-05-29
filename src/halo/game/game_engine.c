@@ -6233,3 +6233,46 @@ next_equip:
     }
   }
 }
+
+/* Apply weapon overheat decay when the weapon is fired (ab310). */
+void game_engine_weapon_fired(int param_1)
+{
+  int player;
+  int biped;
+  int biped2;
+  int weapon_handle;
+  int weapon;
+  int weapon_tag;
+  float decay;
+
+  if (current_game_engine == 0)
+    return;
+  if (param_1 == -1)
+    return;
+  player = (int)datum_get(player_data, param_1);
+  player = *(int *)(player + 0x34);
+  if (player == -1)
+    return;
+  biped = (int)object_get_and_verify_type(player, 3);
+  biped2 = (int)object_get_and_verify_type(player, 3);
+  weapon_handle = (int)unit_get_weapon(player, *(int16_t *)(biped2 + 0x2a2));
+  decay = 0.0f;
+  if (!FUN_000ab290(param_1)) {
+    if (weapon_handle != -1) {
+      weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+      weapon_tag = (int)tag_get(0x77656170, *(int *)weapon);
+      if (0.0f != *(float *)(weapon_tag + 0x4cc)) {
+        decay = *(float *)(weapon_tag + 0x4cc);
+        goto apply;
+      }
+    }
+    decay = 0.1f;
+  }
+apply:
+  if (*(float *)(biped + 0x32c) < *(float *)0x2533e8)
+    return;
+  *(float *)(biped + 0x32c) = *(float *)(biped + 0x32c) - decay;
+  *(int16_t *)(biped + 0x3d2) = 1;
+  if (*(float *)(biped + 0x32c) < *(float *)0x2533e8)
+    *(float *)(biped + 0x32c) = *(float *)0x2533e8;
+}
