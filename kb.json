@@ -2063,15 +2063,18 @@
         },
         {
           "addr": "0x1c030",
-          "decl": "void FUN_0001c030(void);"
+          "decl": "void FUN_0001c030(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x1c0e0",
-          "decl": "void FUN_0001c0e0(void);"
+          "decl": "char FUN_0001c0e0(int actor_handle, char param_2, int state_data);",
+          "ported": false
         },
         {
           "addr": "0x1c190",
-          "decl": "void FUN_0001c190(void);"
+          "decl": "void FUN_0001c190(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x1c270",
@@ -2189,7 +2192,8 @@
         },
         {
           "addr": "0x1cfa0",
-          "decl": "int actor_action_can_stop_conversing(int actor_handle, int flag);"
+          "decl": "int actor_action_can_stop_conversing(int actor_handle, int flag);",
+          "ported": false
         },
         {
           "addr": "0x1d030",

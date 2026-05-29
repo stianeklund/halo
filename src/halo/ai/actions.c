@@ -6,6 +6,95 @@
 
 #include "../../common.h"
 
+/* FUN_0001c030 (0x1c030) — Initialize actor guard state based on combat status.
+ * Sets guard mode (0x3e8) to 3/5/1 depending on whether the actor is a
+ * designated combatant, has a valid encounter with positive attack count,
+ * or is in a default state. Also sets 0x3fc=3 and clears flags at
+ * 0x424-0x428, 0x454. */
+void FUN_0001c030(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0x504) != '\0') {
+    *(int16_t *)(actor + 0x3e8) = 3;
+    *(int16_t *)(actor + 0x3ec) = 0;
+  } else if (*(char *)(actor + 0x1cc) == '\0' && *(int *)(actor + 0x1d0) != -1 &&
+             *(int16_t *)(actor + 0xa8) > 0) {
+    *(int16_t *)(actor + 0x3e8) = 5;
+    *(int16_t *)(actor + 0x3ec) = 1;
+    *(int *)(actor + 0x3f0) = *(int *)(actor + 0x1d0);
+  } else {
+    *(int16_t *)(actor + 0x3e8) = 1;
+  }
+  *(int16_t *)(actor + 0x3fc) = 3;
+  *(char *)(actor + 0x454) = 0;
+  *(char *)(actor + 0x426) = 0;
+  *(char *)(actor + 0x427) = 0;
+  *(char *)(actor + 0x428) = 0;
+  *(char *)(actor + 0x424) = 0;
+  *(char *)(actor + 0x425) = 0;
+}
+
+/* FUN_0001c0e0 (0x1c0e0) — Initialize a wait action state buffer.
+ * Clears 0x18 bytes at state_data, fills timing/mode fields, and returns 1
+ * unless the actor is in a vehicle (actor+0x160 != 0). */
+char FUN_0001c0e0(int actor_handle, char param_2, int state_data)
+{
+  char *actor;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  assert_halt(state_data != 0);
+  csmemset((void *)state_data, 0, 0x18);
+  if (*(char *)(actor + 0x160) != '\0') {
+    return 0;
+  }
+  *(char *)(state_data + 1) = *(char *)(actor + 0x1cc);
+  *(char *)(state_data + 2) = param_2;
+  *(int *)(state_data + 8) = game_time_get();
+  *(int16_t *)(state_data + 0xe) = 0;
+  *(int16_t *)(state_data + 0xc) = 0x78;
+  *(char *)(state_data + 3) = 1;
+  *(int16_t *)(state_data + 0x10) = random_range(
+      (unsigned int *)get_global_random_seed_address(), 300, 600);
+  return 1;
+}
+
+/* FUN_0001c190 (0x1c190) — Tick down actor wait/guard timers.
+ * Decrements actor+0xac, 0xaa, and 0xa8 counters, triggering sound events and
+ * state changes when they reach zero. */
+void FUN_0001c190(int actor_handle)
+{
+  char *actor;
+  int16_t sVar1;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int16_t *)(actor + 0xac) > 0) {
+    sVar1 = *(int16_t *)(actor + 0xac) - 1;
+    *(int16_t *)(actor + 0xac) = sVar1;
+    if (sVar1 == 0) {
+      if (*(int *)(actor + 0x18) != -1) {
+        FUN_00046f10(0x11, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+      }
+      *(int16_t *)(actor + 0xac) = random_range(
+          (unsigned int *)get_global_random_seed_address(), 300, 600);
+    }
+  }
+  if (*(int16_t *)(actor + 0xaa) > 0) {
+    sVar1 = *(int16_t *)(actor + 0xaa) - 1;
+    *(int16_t *)(actor + 0xaa) = sVar1;
+    if (sVar1 == 0) {
+      if (*(char *)(actor + 0x9d) != '\0' && *(int *)(actor + 0x18) != -1) {
+        FUN_00046f10(0x14, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+      }
+      *(char *)(actor + 0x9c) = 1;
+    }
+  }
+  if (*(char *)(actor + 0x9f) == '\0' && *(int16_t *)(actor + 0xa8) > 0) {
+    *(int16_t *)(actor + 0xa8) = *(int16_t *)(actor + 0xa8) - 1;
+  }
+}
+
 /* actor_action_perform (0x1c300) — actor_execute_current_action
  *
  * Dispatches the current action's execute handler via the action_definitions
@@ -650,6 +739,39 @@ char actor_action_can_stop_guarding(int actor_handle, short min_state,
     return 0;
   }
   return 1;
+}
+
+/* actor_action_can_stop_conversing (0x1cfa0) — Check whether an actor may stop
+ * its current conversation. Returns 1 if not in a conversation, or if the
+ * conversation's flags permit stopping based on the actor's state. */
+int actor_action_can_stop_conversing(int actor_handle, int flag)
+{
+  char *actor;
+  char *conv;
+  char *elem;
+  int16_t flags;
+
+  (void)flag;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0x1dc) == -1) {
+    return 1;
+  }
+  conv = (char *)datum_get(*(data_t **)0x6324ec, *(int *)(actor + 0x1dc));
+  elem = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x468,
+      (int)*(int16_t *)(conv + 2), 0x74);
+  flags = *(int16_t *)(elem + 0x20);
+  if ((flags & 2) != 0 && *(char *)(actor + 0x1f6) != '\0') {
+    return 1;
+  }
+  if ((flags & 4) != 0 && *(int16_t *)(actor + 0x268) > 8) {
+    return 1;
+  }
+  if ((flags & 8) != 0 && *(int16_t *)(actor + 0x268) > 5) {
+    return 1;
+  }
+  return 0;
 }
 
 /* actor_action_change (0x1d030) — actor_set_action
