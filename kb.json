@@ -34652,11 +34652,12 @@
         },
         {
           "addr": "0x1d7b37",
-          "decl": "void FUN_001d7b37(void);"
+          "decl": "int __stdcall FUN_001d7b37(void *handle, void *buf);"
         },
         {
           "addr": "0x1d7cb4",
-          "decl": "void FUN_001d7cb4(void);"
+          "decl": "int __stdcall FUN_001d7cb4(void *name);",
+          "ported": true
         },
         {
           "addr": "0x1d7d21",

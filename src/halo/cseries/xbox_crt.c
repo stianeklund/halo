@@ -55,6 +55,9 @@ extern NTSTATUS __stdcall NtQueryVolumeInformationFile(
 
 extern void __stdcall NtClose(HANDLE Handle);
 
+extern void __stdcall RtlInitAnsiString(XAPI_ANSI_STRING *DestinationString,
+                                        const char *SourceString);
+
 /*
  * FUN_001d7817  (XAPI case-insensitive string compare, 68 bytes)
  *
@@ -141,6 +144,64 @@ char *__stdcall FUN_001d789a(char *dst, const char *src, int count)
     return 0;
   }
   return dst;
+}
+
+/*
+ * FUN_001d7cb4  (XAPI open-file-and-read helper, 0x6b bytes)
+ *
+ * Opens a file by ANSI name and, on success, hands the open handle plus a
+ * 328-byte scratch buffer to FUN_001d7b37 (the actual reader), then closes
+ * the handle.  Returns FUN_001d7b37's result, or the NtOpenFile NTSTATUS on
+ * open failure.
+ *
+ * Confirmed (from delinked FUN_001d7cb4.obj disasm):
+ *   - __stdcall, RET 0x4, one pointer argument (filename ANSI_STRING*) at
+ *     [EBP+8].
+ *   - ESI saves the running NTSTATUS/result across the call chain.
+ *   - The [EBP+8] parameter slot is REUSED as NtOpenFile's FileHandle OUT
+ *     param: LEA EAX,[EBP+8]; PUSH EAX. After the call it holds the opened
+ *     HANDLE, which is then passed to FUN_001d7b37 and NtClose. We model this
+ *     by taking the address of the `name` parameter (&name) so the generated
+ *     LEA references [EBP+8], preserving the original stack shape.
+ *   - OBJECT_ATTRIBUTES (12 bytes, Xbox 3-field form): RootDirectory=0,
+ *     ObjectName=&ansi, Attributes=OBJ_CASE_INSENSITIVE(0x40).
+ *   - RtlInitAnsiString(&ansi, name); 2 args, __stdcall.
+ *   - NtOpenFile(&name, 0x110101, &oa, &iosb, 3, 0x4021); 6 args, __stdcall.
+ *   - FUN_001d7b37(handle, buf); 2 args; buffer is EBP-0x164 (0x148=328 bytes,
+ *     FUN_001d7b37 reads fields up to ~+0x40, well inside).
+ *   - NtClose(handle); 1 arg, __stdcall.
+ *
+ * Inferred:
+ *   - DesiredAccess 0x110101 = SYNCHRONIZE|FILE_READ_DATA|READ_CONTROL.
+ *   - OpenOptions 0x4021 = FILE_SYNCHRONOUS_IO_NONALERT|FILE_NON_DIRECTORY_FILE.
+ *   - ShareAccess 3 = FILE_SHARE_READ|FILE_SHARE_WRITE.
+ *
+ * Reuses the shared XAPI_ NT types/externs declared above (same set as
+ * FUN_001d7d21); only RtlInitAnsiString is added.  FUN_001d7b37 is the
+ * unported reader, called by its kb name with its real (handle, buf) decl.
+ */
+int __stdcall FUN_001d7cb4(void *name)
+{
+  XAPI_ANSI_STRING ansi;
+  XAPI_OBJECT_ATTRIBUTES oa;
+  XAPI_IO_STATUS_BLOCK iosb;
+  unsigned char buf[328];
+  NTSTATUS status;
+
+  RtlInitAnsiString(&ansi, (const char *)name);
+  oa.RootDirectory = 0;
+  oa.ObjectName = &ansi;
+  oa.Attributes = 0x40; /* OBJ_CASE_INSENSITIVE */
+
+  /* &name reuses the [EBP+8] parameter slot as the FileHandle OUT param,
+   * matching the original's LEA EAX,[EBP+8].  After the call `name` holds the
+   * opened HANDLE, reused for the read and close. */
+  status = NtOpenFile((HANDLE *)&name, 0x110101, &oa, &iosb, 3, 0x4021);
+  if (status >= 0) {
+    status = FUN_001d7b37(name, buf);
+    NtClose(name);
+  }
+  return status;
 }
 
 /*
