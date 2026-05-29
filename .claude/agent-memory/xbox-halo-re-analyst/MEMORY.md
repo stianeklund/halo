@@ -7,3 +7,4 @@
 - [Equivalence hardcoded-import artifact](feedback_equivalence_hardcoded_import.md) — non-leaf calling XAPILIB import via literal-address cast diverges 100% in Unicorn (huge INSN_count, ESP blowup); trust VC71 not equivalence
 - [Thunk signature propagation](feedback_thunk_signature_propagation.md) — correcting a callee decl arg count breaks JMP-forwarding tail-call thunks; fix thunk decl + forward the arg, grep all callers first
 - [NT-import wrapper VC71 ceiling](feedback_nt_import_wrapper_ceiling.md) — kernel-import wrappers cap ~45-65%; instruction diff (offsets/args/stores), not score, decides correctness; param-slot reuse lift technique
+- [short counter reg-width ceiling](feedback_short_counter_reg_width.md) — int16_t loop counters → 32-bit xorl/incl under VC71 vs original 16-bit; benign few-insn ceiling, don't churn source or permute
