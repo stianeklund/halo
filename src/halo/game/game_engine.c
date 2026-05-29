@@ -7248,6 +7248,73 @@ void FUN_000b0000(int player_handle, int team, int flag_weapon)
   game_show_score_you_ally_enemy(player_handle, 0x1f, 0x20, 0x21);
 }
 
+/* Race: score a lap completion for a player (b39a0). EAX = player_handle. */
+void FUN_000b39a0(int player_handle)
+{
+  int player;
+  int lap_time;
+  int laps;
+  int variant;
+  int other;
+  data_iter_t iter;
+
+  player = (int)datum_get(player_data, player_handle);
+  lap_time = game_time_get() - *(int *)(player + 0x88);
+  *(uint32_t *)(0x456f54 + (player_handle & 0xffff) * 4) = 0;
+  game_engine_post_event(0x2a);
+  *(int16_t *)(player + 0xc0) = (int16_t)lap_time;
+  game_engine_get_variant();
+  game_show_score_you_ally_enemy(player_handle, 0, 0, 0);
+  if (*(int16_t *)(player + 0xc2) == 0) {
+    *(int16_t *)(player + 0xc4) = (int16_t)lap_time;
+  } else if (lap_time < *(int16_t *)(player + 0xc4)) {
+    *(int16_t *)(player + 0xc4) = (int16_t)lap_time;
+    variant = (int)game_engine_get_variant();
+    if (*(int *)(variant + 0x4c) != 2)
+      game_engine_player_event(player_handle, 0, 0);
+  }
+  *(int16_t *)(player + 0xc2) = *(int16_t *)(player + 0xc2) + 1;
+  *(int *)(player + 0x88) = game_time_get();
+  laps = (int)*(int16_t *)(player + 0xc2);
+  data_iterator_new(&iter, player_data);
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x50) == 2)
+    laps = 0;
+  other = (int)data_iterator_next(&iter);
+  while (1) {
+    if (other == 0) {
+      if (*(int *)(0x456f98 + *(int *)(player + 0x20) * 4) < laps)
+        *(int *)(0x456f98 + *(int *)(player + 0x20) * 4) = laps;
+      variant = (int)game_engine_get_variant();
+      if (*(int *)(variant + 0x40) <= *(int *)(0x456f98 + *(int *)(player + 0x20) * 4))
+        game_engine_start_over();
+      return;
+    }
+    if (*(int *)(player + 0x20) == *(int *)(other + 0x20)) {
+      { int other_laps = (int)*(int16_t *)(other + 0xc2);
+      variant = (int)game_engine_get_variant();
+      switch (*(int *)(variant + 0x50)) {
+      case 0:
+        if (other_laps < laps)
+          laps = other_laps;
+        break;
+      case 1:
+        if (laps <= other_laps)
+          laps = other_laps;
+        break;
+      case 2:
+        laps = laps + other_laps;
+        break;
+      default:
+        display_assert("!\"unreachable\"",
+                       "c:\\halo\\SOURCE\\game\\game_engine_race.c", 0x247, 1);
+        system_exit(-1);
+      } }
+    }
+    other = (int)data_iterator_next(&iter);
+  }
+}
+
 /* Accumulate weighted float scores from a tag block into an integer sum.
  * EAX = pointer to {int count, void *data}. Entries at stride 0x54,
  * float score at offset +0x20 from data base. */
