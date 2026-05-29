@@ -8654,7 +8654,9 @@
         },
         {
           "addr": "0xafe50",
-          "decl": "void FUN_000afe50(void);"
+          "decl": "int FUN_000afe50(float *position@<eax>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaff20",
