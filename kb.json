@@ -8559,11 +8559,15 @@
         },
         {
           "addr": "0xae400",
-          "decl": "void FUN_000ae400(void);"
+          "decl": "void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xae460",
-          "decl": "void FUN_000ae460(void);"
+          "decl": "void FUN_000ae460(int param_1, int16_t game_type@<di>);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xae4d0",
