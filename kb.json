@@ -7993,7 +7993,9 @@
         },
         {
           "addr": "0xa93e0",
-          "decl": "void game_engine_set_goal_position(int flag_index, void *element, int param3, const char *name, int param5, int param6, int param7);"
+          "decl": "void game_engine_set_goal_position(int flag_index, int *position, float height, char *name, int target, int16_t team, int player);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xa9460",
@@ -8794,7 +8796,9 @@
         },
         {
           "addr": "0xb1f00",
-          "decl": "void FUN_000b1f00(void);"
+          "decl": "int FUN_000b1f00(void);",
+          "ported": true,
+          "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xb2010",
