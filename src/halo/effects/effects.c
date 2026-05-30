@@ -1878,6 +1878,137 @@ delete_effect:
   ((void (*)(int))0x9c750)(effect_index);
 }
 
+/* 0x9eb40 / effects.obj
+ * Create a new effect linked to an object. Allocates an effect datum via
+ * FUN_0009d2d0, stores object handle, marker indices, and optionally
+ * copies the default scale vector from **(float**)0x2ee708. Runs the
+ * marker-resolve callback and optionally the first-person weapon marker
+ * callback, then fires the initial effect_update tick. */
+int FUN_0009eb40(int definition_index, int object_index, short marker_index,
+                 short secondary_marker, short unknown)
+{
+  char *iVar4;
+  int iVar3;
+  float *default_scale;
+
+  if (object_index == -1) {
+    display_assert("object_index!=NONE",
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0xf9, 1);
+    system_exit(-1);
+  }
+
+  iVar3 = FUN_0009d2d0(definition_index, object_index, 1);
+  if (iVar3 != -1) {
+    iVar4 = (char *)datum_get(*(data_t **)0x5aa8b0, iVar3);
+    *(int *)(iVar4 + 0x3c) = object_index;
+    *(short *)(iVar4 + 0x4c) =
+      (short)first_person_weapon_get_local_index(object_index);
+    *(short *)(iVar4 + 0x8) = marker_index;
+    *(short *)(iVar4 + 0xa) = secondary_marker;
+    *(short *)(iVar4 + 0xc) = unknown;
+    *(int *)(iVar4 + 0x34) = 0;
+    *(int *)(iVar4 + 0x38) = 0;
+    if (unknown == -1) {
+      default_scale = *(float **)0x2ee708;
+      *(int *)(iVar4 + 0x18) = *(int *)default_scale;
+      *(int *)(iVar4 + 0x1c) = *(int *)((char *)default_scale + 4);
+      *(int *)(iVar4 + 0x20) = *(int *)((char *)default_scale + 8);
+    }
+    *(unsigned char *)(iVar4 + 2) = *(unsigned char *)(iVar4 + 2) | 2;
+    csmemset(iVar4 + 0x5c, -1, 0x80);
+    FUN_0009d4e0((int)iVar4, (void *)&object_get_markers_by_string_id);
+    if (*(short *)(iVar4 + 0x4c) != -1) {
+      FUN_0009d4e0((int)iVar4, (void *)0xdd190);
+    }
+    effect_update(iVar3, 0.0f);
+  }
+  return iVar3;
+}
+
+/* FUN_0009ec30 / effects.obj — create a scaled effect attached to an object.
+ * Validates that object_index is not NONE and that both scale values are in
+ * [0,1]. Allocates an effect datum, applies scale/colour via FUN_0009d430,
+ * stores the attached object handle and first-person-weapon index, optionally
+ * marks as "violent" (via FUN_0009c700), performs debug logging if enabled,
+ * memsets the per-event slot array, runs marker-resolve callbacks, and fires
+ * the initial effect_update tick. Returns the new datum index or NONE (-1). */
+int FUN_0009ec30(int param_1, int param_2, int param_3, short param_4,
+                 float param_5, float param_6, int param_7, int param_8)
+{
+  int iVar3;
+  char *iVar4;
+  short fpw_index;
+
+  if (param_3 == -1) {
+    display_assert("object_index!=NONE",
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x131, 1);
+    system_exit(-1);
+  }
+  if (param_5 < 0.0f || param_5 > 1.0f) {
+    csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)param_5);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x132, 1);
+    system_exit(-1);
+  }
+  if (param_6 < 0.0f || param_6 > 1.0f) {
+    csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)param_6);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x133, 1);
+    system_exit(-1);
+  }
+
+  iVar3 = FUN_0009d2d0(param_1, param_2, 1);
+  if (iVar3 != -1) {
+    iVar4 = (char *)datum_get(*(data_t **)0x5aa8b0, iVar3);
+    FUN_0009d430((int)iVar4, param_7, param_8, param_5, param_6);
+    *(int *)(iVar4 + 0x3c) = param_3;
+    fpw_index = (short)first_person_weapon_get_local_index(param_3);
+    *(short *)(iVar4 + 0x4c) = fpw_index;
+
+    if (*(char *)0x2eebe0 != '\0') {
+      if (FUN_0009c700(*(int *)(iVar4 + 0x3c))) {
+        *(unsigned short *)(iVar4 + 2) =
+          *(unsigned short *)(iVar4 + 2) | 0x40;
+      }
+    }
+
+    if (*(char *)0x4557e8 != '\0') {
+      int *obj_data;
+      const char *object_name;
+      const char *effect_name;
+      const char *violent_str;
+
+      obj_data = (int *)object_try_and_get_and_verify_type(param_3, -1);
+      if (obj_data == NULL) {
+        object_name = "<none>";
+      } else {
+        object_name = tag_name_strip_path(tag_get_name(*obj_data));
+      }
+
+      if (*(unsigned char *)(iVar4 + 2) & 0x40) {
+        violent_str = "non";
+      } else {
+        violent_str = "";
+      }
+
+      effect_name = tag_name_strip_path(tag_get_name(param_1));
+      error(2, "created %sviolent %s on %s", violent_str, effect_name,
+            object_name);
+    }
+
+    csmemset(iVar4 + 0x5c, -1, 0x80);
+    FUN_0009d4e0((int)iVar4, (void *)&object_get_markers_by_string_id);
+    if (*(short *)(iVar4 + 0x4c) != -1) {
+      FUN_0009d4e0((int)iVar4, (void *)0xdd190);
+    }
+    if (param_4 != -1) {
+      *(short *)(iVar4 + 0x4c) = param_4;
+    }
+    effect_update(iVar3, 0.0f);
+  }
+  return iVar3;
+}
+
 /* Create a new effect attached to a specific object marker (0x9ee40).
  * Validates inputs, allocates an effect datum via FUN_0009d2d0, fills colour/
  * scale from the caller, stores attached_object handle, then — if debug
