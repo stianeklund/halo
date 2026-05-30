@@ -505,14 +505,13 @@ void terminal_update(void)
  * Confirmed: strstr(text, "|t") sets flag at line+0xc.
  * Confirmed: CALL 0x130ab0 processes tab markers.
  */
-void terminal_output(void *color, const char *format, ...)
+void terminal_output(void *color, const char *format, const char *text)
 {
   float default_color[4];
   int line_handle;
   char *line;
   char *text_buf;
   int16_t result;
-  char *va_args = (char *)&format + sizeof(format);
 
   default_color[0] = 1.0f;
   default_color[1] = 0.7f;
@@ -545,7 +544,7 @@ void terminal_output(void *color, const char *format, ...)
   *(int *)(line + 0x11c) = *(int *)((char *)color + 12);
 
   text_buf = line + 0xd;
-  result = crt_vsnprintf(text_buf, 0xfe, format, va_args);
+  result = crt_vsnprintf(text_buf, 0xfe, format, (char *)&text);
 
   if ((int16_t)(result - 1) >= 0xff) {
     csprintf((char *)0x5ab100,

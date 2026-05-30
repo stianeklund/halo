@@ -437,7 +437,7 @@ void FUN_00014ba0(int actor_handle, int *param_2)
  *
  * Confirmed: datum_get(actor_data, actor_handle) → actor.
  * Confirmed: assert "!actor->meta.swarm" at action_flee.c line 0x265. */
-char FUN_00014e90(int param_1)
+char FUN_00014e90(int actor_handle, int param_1)
 {
   char *actor;
   short sVar1;
@@ -447,7 +447,7 @@ char FUN_00014e90(int param_1)
   float local_14[4];
   char local_5;
 
-  actor = (char *)datum_get(actor_data, param_1);
+  actor = (char *)datum_get(actor_data, actor_handle);
   local_5 = 0;
   if (*(char *)(actor + 6) != '\0') {
     display_assert("!actor->meta.swarm",
@@ -458,7 +458,8 @@ char FUN_00014e90(int param_1)
       *(unsigned int *)(actor + 0x34) != 0xffffffff &&
       *(short *)(param_1 + 8) != -1) {
     encounter_elem = (char *)tag_block_get_element(
-      (char *)global_scenario_get() + 0x42c, 0, 0);
+      (char *)global_scenario_get() + 0x42c,
+      *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
     prop = (char *)datum_get(*(data_t **)0x5ab23c,
                              *(int *)(param_1 + 0x1c));
     fp_elem = (char *)tag_block_get_element(

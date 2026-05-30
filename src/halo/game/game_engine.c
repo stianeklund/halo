@@ -2228,8 +2228,7 @@ void game_engine_validate_map_netgame_flags(void)
   int found_index;
   void (*validate_duplicate_flags)(short, const char *) =
     (void (*)(short, const char *))0xaa010;
-  void (*validate_flag_out_of_range)(short, short, const char *) =
-    (void (*)(short, short, const char *))0xaa0b0;
+  /* FUN_000aa0b0 has game_type@<bx> — must call by name, not raw cast */
   void (*validate_spawn_points)(short, int, short, const char *) =
     (void (*)(short, int, short, const char *))0xae400;
   int (*matches_game_type)(int, int, void *) =
@@ -2258,8 +2257,8 @@ void game_engine_validate_map_netgame_flags(void)
 
   validate_duplicate_flags(0,
                            "NETGAME MAP FAILURE: duplicate ctf flag [team %d]");
-  validate_flag_out_of_range(
-    0, 1, "NETGAME MAP FAILURE: ctf flag out of range [team %d]");
+  FUN_000aa0b0(
+    0, 1, (int)"NETGAME MAP FAILURE: ctf flag out of range [team %d]", 0);
 
   found_index = -1;
   find_netgame_flags(0, 0.0f, 0.0f, 8, 0, 1, &found_index);
@@ -3205,7 +3204,7 @@ char FUN_000a9ff0(void)
 }
 
 /* Initialize the default map name and game variant for multiplayer. */
-void FUN_000aa120(void)
+void game_engine_playlist_next(void)
 {
   char *map_name;
   char local_6c[104];
@@ -3303,10 +3302,11 @@ char FUN_000ab9e0(void)
 }
 
 /* Initialize a CTF game variant (slayer pro). */
-void FUN_000aa220(int *param_1)
+game_variant_t *FUN_000aa220(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3327,19 +3327,22 @@ void FUN_000aa220(int *param_1)
   *(char *)(buf + 0x1c) = 0;
   *(int *)(buf + 0x44) = 0;
   *(char *)(buf + 0x4e) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Slayer game variant. */
-void FUN_000aa340(int *param_1)
+game_variant_t *FUN_000aa340(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3360,19 +3363,22 @@ void FUN_000aa340(int *param_1)
   *(int *)(buf + 0x40) = 10;
   *(char *)(buf + 0x1c) = 0;
   *(int *)(buf + 0x44) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a King of the Hill game variant. */
-void FUN_000aa3d0(int *param_1)
+game_variant_t *FUN_000aa3d0(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3393,19 +3399,22 @@ void FUN_000aa3d0(int *param_1)
   *(char *)(buf + 0x4c) = 0;
   *(char *)(buf + 0x4d) = 0;
   *(char *)(buf + 0x4e) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Oddball game variant. */
-void FUN_000aa460(int *param_1)
+game_variant_t *FUN_000aa460(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3426,19 +3435,22 @@ void FUN_000aa460(int *param_1)
   *(char *)(buf + 0x4c) = 0;
   *(char *)(buf + 0x4d) = 0;
   *(char *)(buf + 0x4e) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Oddball variant (alt). */
-void FUN_000aa4f0(int *param_1)
+game_variant_t *FUN_000aa4f0(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3459,19 +3471,22 @@ void FUN_000aa4f0(int *param_1)
   *(char *)(buf + 0x4c) = 0;
   *(char *)(buf + 0x4d) = 0;
   *(char *)(buf + 0x4e) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Race game variant. */
-void FUN_000aa730(int *param_1)
+game_variant_t *FUN_000aa730(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3496,19 +3511,22 @@ void FUN_000aa730(int *param_1)
   *(int *)(buf + 0x54) = 0;
   *(int *)(buf + 0x58) = 0;
   *(int *)(buf + 0x50) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Race game variant (alt). */
-void FUN_000aa860(int *param_1)
+game_variant_t *FUN_000aa860(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3532,19 +3550,22 @@ void FUN_000aa860(int *param_1)
   *(char *)(buf + 0x4d) = 0;
   *(char *)(buf + 0x4c) = 0;
   *(int *)(buf + 0x58) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a CTF variant (team). */
-void FUN_000aaa20(int *param_1)
+game_variant_t *FUN_000aaa20(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3563,19 +3584,22 @@ void FUN_000aaa20(int *param_1)
   *(char *)(buf + 0x1c) = 0;
   *(int *)(buf + 0x44) = 0;
   *(char *)(buf + 0x4c) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a CTF variant (no teams). */
-void FUN_000aaab0(int *param_1)
+game_variant_t *FUN_000aaab0(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3594,19 +3618,22 @@ void FUN_000aaab0(int *param_1)
   *(int *)(buf + 0x34) = 150;
   *(char *)(buf + 0x1c) = 0;
   *(int *)(buf + 0x44) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Assault game variant. */
-void FUN_000aac50(int *param_1)
+game_variant_t *FUN_000aac50(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3629,19 +3656,22 @@ void FUN_000aac50(int *param_1)
   *(char *)(buf + 0x4e) = 0;
   *(char *)(buf + 0x4d) = 0;
   *(int *)(buf + 0x50) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Assault game variant (alt). */
-void FUN_000aace0(int *param_1)
+game_variant_t *FUN_000aace0(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3664,19 +3694,22 @@ void FUN_000aace0(int *param_1)
   *(char *)(buf + 0x4e) = 0;
   *(char *)(buf + 0x4d) = 0;
   *(int *)(buf + 0x50) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 /* Initialize a Race game variant (team). */
-void FUN_000aafb0(int *param_1)
+game_variant_t *FUN_000aafb0(game_variant_t *out)
 {
   int i;
   int *src;
+  int *dst;
   char buf[0x68];
 
   csmemset(buf, 0, 0x68);
@@ -3696,12 +3729,14 @@ void FUN_000aafb0(int *param_1)
   *(int *)(buf + 0x34) = 0x12c;
   *(int *)(buf + 0x44) = 0;
   *(int *)(buf + 0x50) = 0;
+  dst = (int *)out;
   src = (int *)buf;
   for (i = 0x1a; i != 0; i--) {
-    *param_1 = *src;
+    *dst = *src;
     src++;
-    param_1++;
+    dst++;
   }
+  return out;
 }
 
 
@@ -3780,7 +3815,7 @@ void game_engine_playlist_initialize(void)
 
 {
 
-  FUN_000aa120();
+  game_engine_playlist_next();
 
 }
 
@@ -6190,9 +6225,7 @@ int FUN_000ac030(int param_eax, int unused_arg1, void *out_buffer, int max_count
 
   total = FUN_000abd20((int *)buffer, param_eax, 0);
   is_version_45 = (*(int16_t *)0x3256ea == 0x45);
-  if (is_version_45) {
-    terminal_output(*(void **)0x2ee6c4, "player_count=%d, maxcount=%d", total, max_count);
-  }
+  (void)is_version_45;
 
   if (total > 0) {
     src = (int *)buffer;
@@ -6217,9 +6250,7 @@ int FUN_000ac030(int param_eax, int unused_arg1, void *out_buffer, int max_count
     do {
       player = datum_get(player_data, (uint32_t)*src);
       if (player != NULL && *(int16_t *)((char *)player + 2) != -1) {
-        if (is_version_45) {
-          terminal_output(*(void **)0x2ee6c4, "found local player");
-        }
+        (void)is_version_45;
         memcpy(dst, src, 0x1c);
         filtered++;
         dst = (int *)((char *)dst + 0x1c);
