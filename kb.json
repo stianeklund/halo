@@ -14295,7 +14295,7 @@
         {
           "decl": "void FUN_00085000(int param_1, const char *param_2);",
           "addr": "0x85000",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x850d0",
@@ -14469,7 +14469,7 @@
           "name": "FUN_00135f20",
           "addr": "0x135f20",
           "decl": "int FUN_00135f20(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x135f90",
@@ -14505,13 +14505,13 @@
           "name": "FUN_001363d0",
           "addr": "0x1363d0",
           "decl": "int FUN_001363d0(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "name": "FUN_001365d0",
           "addr": "0x1365d0",
           "decl": "void FUN_001365d0(int param_1, float *param_2, float *param_3);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1366b0",
@@ -14528,7 +14528,7 @@
           "name": "FUN_001397f0",
           "addr": "0x1397f0",
           "decl": "float FUN_001397f0(float param_1, float param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x139810",
@@ -14552,7 +14552,7 @@
           "name": "FUN_00139930",
           "addr": "0x139930",
           "decl": "int FUN_00139930(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x139990",
@@ -14638,13 +14638,13 @@
         {
           "addr": "0x13b150",
           "decl": "void FUN_0013b150(void);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
           "addr": "0x13b1b0",
           "decl": "int FUN_0013b1b0(int tag_index, int object_handle, short attachment_index, short marker_index, short secondary_marker_index);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
