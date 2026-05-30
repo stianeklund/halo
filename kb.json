@@ -29454,11 +29454,13 @@
         },
         {
           "addr": "0x2fb70",
-          "decl": "void actor_perception_forget_recent_damage(int actor_handle);"
+          "decl": "void actor_perception_forget_recent_damage(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x2fbc0",
-          "decl": "void actor_perception_retreat_successful(int actor_handle);"
+          "decl": "void actor_perception_retreat_successful(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x2fc20",
