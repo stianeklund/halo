@@ -34,7 +34,7 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
   float target_pos[3];
   float dir[3];
   int16_t collision_result[40];
-  int depth;
+  short depth;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (*(char *)(actor + 0x484)) {
@@ -51,9 +51,9 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
       "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x379, 1);
     system_exit(-1);
   }
-  depth = (int)*(volatile int16_t *)0x4761d8;
-  *(int16_t *)(0x5a8c80 + depth * 2) = 5;
-  *(volatile int16_t *)0x4761d8 += 1;
+  depth = *(volatile short *)0x4761d8;
+  *(int16_t *)(0x5a8c80 + (int)depth * 2) = 5;
+  *(volatile short *)0x4761d8 = (short)(depth + 1);
 
   dir[0] = source_pos[0] - target_pos[0];
   dir[1] = source_pos[1] - target_pos[1];
@@ -66,7 +66,10 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
       "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x381, 1);
     system_exit(-1);
   }
-  *(volatile int16_t *)0x4761d8 -= 1;
+  {
+    short d = *(volatile short *)0x4761d8;
+    *(volatile short *)0x4761d8 = (short)(d - 1);
+  }
   return 1;
 }
 
