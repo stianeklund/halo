@@ -44,7 +44,7 @@ MANIFEST_PATH = DELINKED_DIR / "manifest.json"
 TOOLS_DIR = REPO_ROOT / "tools"
 
 # Ghidra-live RPC endpoint
-GHIDRA_LIVE_RPC_URL = "http://127.0.0.1:18080/rpc"
+GHIDRA_LIVE_RPC_URL = "http://127.0.0.1:18081/rpc"
 GHIDRA_LIVE_SSE_URL = "http://127.0.0.1:8091/sse"
 
 # Headless defaults (inlined from deprecated export_delinked_object.py)
