@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /mnt/g/dev/halo && rtk python3 tools/audit/token_discipline_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",
             "timeout": 10,
             "statusMessage": "Token-discipline tracker"
           }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /mnt/g/dev/halo && python3 tools/retrieval/decompile_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/retrieval/decompile_hook.py",
             "timeout": 15,
             "statusMessage": "Retrieval: finding similar ported functions"
           }
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /mnt/g/dev/halo && rtk python3 tools/audit/token_discipline_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",
             "timeout": 10,
             "statusMessage": "Emit token-discipline summary"
           }
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /mnt/g/dev/halo && rtk python3 tools/audit/token_discipline_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",
             "timeout": 10,
             "statusMessage": "Emit token-discipline summary"
           }
