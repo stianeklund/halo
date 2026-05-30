@@ -296,7 +296,21 @@ class StubManager:
         if not candidates:
             candidates = list(self.delinked_dir.glob("*.obj"))
 
-        for try_sym in dict.fromkeys([symbol_name, symbol_name.lstrip("_")]):
+        # Delinked objects name functions FUN_<addr>, but a call site may use the
+        # real name (lifted/clang obj) or the FUN_ form (delinked oracle).  Both
+        # resolve to the same kb_entry — normalize to FUN_<addr> so the named
+        # call site also finds the real oracle body (else it stays a trampoline
+        # and diverges from the FUN_-named oracle side).
+        fun_syms = []
+        addr = kb_entry.get("addr", "")
+        if addr:
+            try:
+                a = int(addr, 16)
+                fun_syms = [f"FUN_{a:08x}", f"FUN_{a:08X}"]
+            except ValueError:
+                pass
+
+        for try_sym in dict.fromkeys([symbol_name, symbol_name.lstrip("_")] + fun_syms):
             for obj_path in candidates:
                 try:
                     fs = extract_function(str(obj_path), try_sym)
@@ -421,6 +435,19 @@ class StubManager:
                 bytes(patched), fs.relocs, defined,
                 code_base=sentinel_addr, symbol_sentinels=shared_sentinels,
                 include_defined=True)
+            # Raw E8/E9 calls with NO reloc: the delinker encodes intra-XBE
+            # calls as direct displacements to absolute VAs.  At the original
+            # base they resolve; relocated to a sentinel they point to garbage.
+            # Redirect them to sentinels too (target must be an EXACT known
+            # function address — a strong guard against E8 bytes that are really
+            # mid-instruction operands).
+            callee_base = int(kb_entry.get("addr", "0"), 16) if kb_entry else 0
+            if callee_base:
+                reloc_offs = {r.virtual_address for r in fs.relocs}
+                patched2, raw_map = self._redirect_raw_calls(
+                    bytes(patched2), callee_base, reloc_offs,
+                    sentinel_addr, shared_sentinels)
+                new_map.update(raw_map)
             stub.code = bytes(patched2)
             stub.has_real_code = True
             self._real_code_count += 1
@@ -431,6 +458,60 @@ class StubManager:
                 if new_sentinel not in self._stubs:
                     self._register_stub(new_sentinel, new_sym)
                 worklist.append((new_sentinel, new_sym, depth + 1))
+
+    def _kb_func_addrs(self) -> set:
+        """Set of all kb.json function entry addresses (ints), cached."""
+        cached = getattr(self, "_func_addr_set", None)
+        if cached is not None:
+            return cached
+        addrs = set()
+        for obj in self._load_kb().get("objects", []):
+            for fn in obj.get("functions", []):
+                a = fn.get("addr", "")
+                if a:
+                    try:
+                        addrs.add(int(a, 16))
+                    except ValueError:
+                        pass
+        self._func_addr_set = addrs
+        return addrs
+
+    def _redirect_raw_calls(self, code: bytes, callee_base: int,
+                            reloc_offsets: set, sentinel_addr: int,
+                            shared_sentinels: dict) -> tuple:
+        """Redirect unrelocated E8/E9 calls/jumps to sentinels.
+
+        Only redirects when the computed absolute target is an EXACT kb.json
+        function entry address, so a mid-instruction 0xE8/0xE9 byte (whose
+        "target" is essentially random) is left untouched.
+        Returns (patched_code, {sentinel_addr: symbol_name}).
+        """
+        func_addrs = self._kb_func_addrs()
+        patched = bytearray(code)
+        new_map = {}
+        next_idx = len(shared_sentinels)
+        i = 0
+        n = len(patched)
+        while i + 5 <= n:
+            op = patched[i]
+            if op in (0xE8, 0xE9) and (i + 1) not in reloc_offsets:
+                disp = int.from_bytes(patched[i + 1:i + 5], "little", signed=True)
+                target_va = (callee_base + i + 5 + disp) & 0xFFFFFFFF
+                if target_va in func_addrs:
+                    sym = f"FUN_{target_va:08x}"
+                    sym_key = sym.lstrip("_")
+                    sentinel = shared_sentinels.get(sym_key)
+                    if sentinel is None:
+                        sentinel = STUB_BASE + next_idx * STUB_SLOT
+                        shared_sentinels[sym_key] = sentinel
+                        next_idx += 1
+                    new_disp = sentinel - (sentinel_addr + i + 5)
+                    patched[i + 1:i + 5] = (new_disp & 0xFFFFFFFF).to_bytes(4, "little")
+                    new_map[sentinel] = sym
+                    i += 5
+                    continue
+            i += 1
+        return bytes(patched), new_map
 
     def has_stub(self, address: int) -> bool:
         return address in self._stub_names
