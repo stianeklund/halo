@@ -391,6 +391,81 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
-  }
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "FUN_001339a0": {
+      "addr": "0x1339a0",
+      "regs": [
+        "eax"
+      ]
+    },
+    "FUN_00133300": {
+      "addr": "0x133300",
+      "regs": [
+        "edi"
+      ]
+    },
+    "FUN_001330f0": {
+      "addr": "0x1330f0",
+      "regs": [
+        "eax"
+      ]
+    },
+    "FUN_001331d0": {
+      "addr": "0x1331d0",
+      "regs": [
+        "eax",
+        "ecx"
+      ]
+    },
+    "FUN_00134070": {
+      "addr": "0x134070",
+      "regs": [
+        "esi",
+        "edi"
+      ]
+    },
+    "FUN_001342a0": {
+      "addr": "0x1342a0",
+      "regs": [
+        "esi"
+      ]
+    },
+    "FUN_00134350": {
+      "addr": "0x134350",
+      "regs": [
+        "ebx"
+      ]
+    },
+    "FUN_001345b0": {
+      "addr": "0x1345b0",
+      "regs": [
+        "eax"
+      ]
+    },
+    "FUN_00134c40": {
+      "addr": "0x134c40",
+      "regs": [
+        "ebx"
+      ]
+    },
+    "FUN_00135420": {
+      "addr": "0x135420",
+      "regs": [
+        "ebx",
+        "esi",
+        "edi"
+      ]
+    },
+    "0x13e3f0": "int16_t object_find_region_permutations_available_with_variant(void *region_element@<eax>, int16_t variant, int16_t *output);",
+    "0x13e460": "int16_t object_determine_variant_number(int object_handle@<eax>, void *model_tag);",
+    "0x140a00": "char object_select_random_region_permutations_by_variant(int object_handle@<eax>, void *model_tag, int16_t variant);",
+    "0x139810": "void FUN_00139810(float *color@<ecx>, float scale);",
+    "0x13ef70": "void object_name_list_new(int object_handle@<edi>, int16_t name_index@<si>);",
+    "0x13f3b0": "void object_add_to_dump(int object_handle@<ebx>, void *stats@<esi>);",
+    "0x13f440": "void object_dump_write(void *stats@<esi>, void *file);",
+    "0x13a250": "void FUN_0013a250(int light_handle@<eax>, float *out_position@<edi>, float *out_radius@<ebx>, char param_1, char param_2, char param_3);",
+    "0x139350": "int16_t FUN_00139350(int light_handle@<eax>, int16_t *out_buffer@<ebx>, int16_t max_count@<di>);",
+    "0x139e50": "void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3, float param_4, float *color_ptr@<ebx>, float *output_ptr@<esi>, float *intensity_ptr@<edi>);"
+  },
+  "0x139e50": "void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3, float param_4, float *color_ptr@<ebx>, float *output_ptr@<esi>, float *intensity_ptr@<edi>);"
 }
