@@ -1430,7 +1430,6 @@ void FUN_0013bce0(int object_handle, float *lighting)
   uint16_t corner;
   char ok;
   float scale;
-  int i;
 
   obj = (int *)object_get_and_verify_type(object_handle, -1);
   flags = 0;
@@ -1450,47 +1449,60 @@ void FUN_0013bce0(int object_handle, float *lighting)
 
   csmemset(local_88, 0, sizeof(local_88));
 
-  ok =
-    ((char (*)(uint32_t, int *, float *))0x13ab20)(flags, obj + 0x14, lighting);
+  ok = FUN_0013ab20(flags, (int)(obj + 0x14), (int *)lighting);
 
   if ((obj[1] & 0x4000) != 0)
     return;
 
-  if (ok == '\0') {
+  if (ok != '\0') {
+    sample_count = 1;
+  } else {
     sample_count = 0;
     csmemset(lighting, 0, 0x74);
     *(uint16_t *)(lighting + 3) = 2;
-  } else {
-    sample_count = 1;
   }
 
   for (corner = 0; (int16_t)corner < 4; corner++) {
     float xoff;
     float yoff;
 
-    xoff = *(float *)0x29b5e0;
-    if (corner & 1)
+    if (corner & 1) {
       xoff = *(float *)0x254b50;
-    yoff = *(float *)0x29b5e0;
-    if (corner & 2)
-      yoff = *(float *)0x254b50;
-
+    } else {
+      xoff = *(float *)0x29b5e0;
+    }
     offset_pos[0] = xoff * *(float *)(obj + 0x17) + *(float *)(obj + 0x14);
+
+    if (corner & 2) {
+      yoff = *(float *)0x254b50;
+    } else {
+      yoff = *(float *)0x29b5e0;
+    }
     offset_pos[1] = yoff * *(float *)(obj + 0x17) + *(float *)(obj + 0x15);
     *(int *)(offset_pos + 2) = obj[0x16];
 
-    ok = ((char (*)(uint32_t, float *, float *))0x13ab20)(flags, offset_pos,
-                                                          local_88);
+    ok = FUN_0013ab20(flags, (int)offset_pos, (int *)local_88);
     if (ok != '\0') {
       sample_count++;
-      for (i = 0; i < 3; i++)
-        lighting[i] += local_88[i];
+      lighting[0] += local_88[0];
+      lighting[1] += local_88[1];
+      lighting[2] += local_88[2];
       lighting[0x13] += local_88[0x13];
       lighting[0x14] += local_88[0x14];
       lighting[0x15] += local_88[0x15];
       lighting[0x16] += local_88[0x16];
-      for (i = 4; i <= 0xf; i++)
-        lighting[i] += local_88[i];
+      lighting[4] += local_88[4];
+      lighting[5] += local_88[5];
+      lighting[6] += local_88[6];
+      lighting[7] += local_88[7];
+      lighting[8] += local_88[8];
+      lighting[9] += local_88[9];
+      lighting[0xa] += local_88[0xa];
+      lighting[0xb] += local_88[0xb];
+      lighting[0xc] += local_88[0xc];
+      lighting[0xd] += local_88[0xd];
+      lighting[0xe] += local_88[0xe];
+      lighting[0xf] += local_88[0xf];
       lighting[0x1a] += local_88[0x1a];
       lighting[0x1b] += local_88[0x1b];
       lighting[0x1c] += local_88[0x1c];
@@ -1502,17 +1514,20 @@ void FUN_0013bce0(int object_handle, float *lighting)
 
   if (sample_count > 1) {
     scale = *(float *)0x2533c8 / (float)(int)sample_count;
-    for (i = 0; i < 3; i++)
-      lighting[i] *= scale;
+    lighting[0] *= scale;
+    lighting[1] *= scale;
+    lighting[2] *= scale;
     lighting[0x13] *= scale;
     lighting[0x14] *= scale;
     lighting[0x15] *= scale;
     lighting[0x16] *= scale;
-    for (i = 4; i <= 6; i++)
-      lighting[i] *= scale;
+    lighting[4] *= scale;
+    lighting[5] *= scale;
+    lighting[6] *= scale;
     normalize3d(lighting + 7);
-    for (i = 10; i <= 12; i++)
-      lighting[i] *= scale;
+    lighting[0xa] *= scale;
+    lighting[0xb] *= scale;
+    lighting[0xc] *= scale;
     normalize3d(lighting + 0xd);
     lighting[0x1a] *= scale;
     lighting[0x1b] *= scale;
@@ -1522,8 +1537,7 @@ void FUN_0013bce0(int object_handle, float *lighting)
     lighting[0x19] *= scale;
     normalize3d(lighting + 0x17);
   } else if (sample_count == 0) {
-    for (i = 0; i < 29; i++)
-      lighting[i] = local_88[i];
+    csmemcpy(lighting, local_88, 29 * 4);
   }
 }
 
