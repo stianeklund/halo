@@ -9,6 +9,16 @@ Use this skill for the operational workflow of lifting a function from
 cachebeta.xbe or default.xbe. Doctrine and evidence rules live in
 `halo-xbox-re`; this skill covers the lift sequence and ABI specifics.
 
+## Worktree context (CRITICAL — read first)
+
+At the start of every lift session, determine the actual repo root:
+
+```bash
+rtk git rev-parse --show-toplevel
+```
+
+All file edits, `rtk git` commands, and tool invocations must target **that path**, not a hardcoded `/mnt/g/dev/halo`. When running as a subagent spawned from a worktree, the "Primary working directory" in your system prompt tells you where you are — trust it over any hardcoded path. Never commit or stage changes to a path outside your working directory.
+
 ## When to use
 
 - Lifting a function from the XBE
