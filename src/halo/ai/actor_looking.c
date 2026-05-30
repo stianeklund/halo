@@ -120,7 +120,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   }
   if ((short)action_type != 2) {
     if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
-        *(int16_t *)(actor + 0x6e) > 4 && !*(char *)(actor + 0x378)) {
+        *(int16_t *)(actor + 0x6e) >= 5 && !*(char *)(actor + 0x378)) {
       action_type = 1;
       *(int16_t *)(actor_state + 0x190) = 8;
     } else {
@@ -151,8 +151,8 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   encounter = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
 
   /* determine is_secondary (lunge vs normal melee) */
-  if (*(float *)(actor + 0x388) == *(float *)0x2533c0 ||
-      *(float *)(actor + 0x390) == *(float *)0x2533c0) {
+  if (*(float *)(actr_tag + 0x388) == *(float *)0x2533c0 ||
+      *(float *)(actr_tag + 0x390) == *(float *)0x2533c0) {
     *(char *)((char *)charge_state + 0xa) = 0;
     is_secondary = 0;
   } else if (*(char *)(encounter + 0x130) == 0 &&
