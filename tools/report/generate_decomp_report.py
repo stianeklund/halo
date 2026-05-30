@@ -970,13 +970,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             <div class="summary" id="summary-cards"></div>
 
-            <div class="charts-grid" id="charts-grid" style="margin-top:16px">
-                <div class="chart-container" id="charts-section-heading" style="height:220px">
-                    <div class="chart-title">Functions Ported Over Time</div>
-                    <canvas id="progressChart"></canvas>
-                </div>
-            </div>
-
             <h2>Verification Coverage</h2>
             <div class="verif-two-col">
                 <div class="card">
@@ -988,11 +981,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     <div class="tu-heatmap-grid" id="tu-heatmap"></div>
                     <div class="tu-legend" id="tu-legend"></div>
                 </div>
-            </div>
-            <div class="card" style="margin-bottom:16px">
-                <div class="chart-title">Binary Address Space &mdash; <span style="font-weight:400;text-transform:none;letter-spacing:0">every function plotted at its real address</span></div>
-                <div class="addr-strip-wrap"><canvas id="addrStripCanvas"></canvas></div>
-                <div class="addr-legend" id="addr-legend"></div>
             </div>
             <h2>Translation Units</h2>
             <div class="treemap-grid">
@@ -1031,6 +1019,19 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     </thead>
                     <tbody id="table-body"></tbody>
                 </table>
+            </div>
+
+            <div class="charts-grid" id="charts-grid" style="margin-top:16px">
+                <div class="chart-container" id="charts-section-heading" style="height:220px">
+                    <div class="chart-title">Functions Ported Over Time</div>
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+                <div class="chart-title">Binary Address Space &mdash; <span style="font-weight:400;text-transform:none;letter-spacing:0">every function plotted at its real address</span></div>
+                <div class="addr-strip-wrap"><canvas id="addrStripCanvas"></canvas></div>
+                <div class="addr-legend" id="addr-legend"></div>
             </div>
 
             <div class="meta" id="meta"></div>
@@ -1758,11 +1759,46 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
-                            titleColor: '#c9d1d9', bodyColor: '#c9d1d9',
-                            padding: 10, cornerRadius: 6,
-                            callbacks: {
-                                label: function(c) { return c.label + ': ' + fmtNum(c.raw) + ' bytes'; }
+                            enabled: false,
+                            external: function(ctx) {
+                                var tooltipEl = document.getElementById('chartjs-donut-tooltip');
+                                if (!tooltipEl) {
+                                    tooltipEl = document.createElement('div');
+                                    tooltipEl.id = 'chartjs-donut-tooltip';
+                                    tooltipEl.style.background = '#161b22';
+                                    tooltipEl.style.border = '1px solid #30363d';
+                                    tooltipEl.style.borderRadius = '6px';
+                                    tooltipEl.style.padding = '8px 12px';
+                                    tooltipEl.style.color = '#c9d1d9';
+                                    tooltipEl.style.fontSize = '0.82em';
+                                    tooltipEl.style.pointerEvents = 'none';
+                                    tooltipEl.style.position = 'fixed';
+                                    tooltipEl.style.zIndex = 1000;
+                                    tooltipEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                                    tooltipEl.style.whiteSpace = 'nowrap';
+                                    document.body.appendChild(tooltipEl);
+                                }
+                                var chart = ctx.chart;
+                                var tooltip = ctx.tooltip;
+                                if (tooltip.opacity === 0) {
+                                    tooltipEl.style.display = 'none';
+                                    return;
+                                }
+                                var dp = tooltip.dataPoints[0];
+                                tooltipEl.textContent = dp.label + ': ' + fmtNum(dp.raw) + ' bytes';
+                                tooltipEl.style.display = 'block';
+                                var canvasRect = chart.canvas.getBoundingClientRect();
+                                var x = canvasRect.left + tooltip.caretX + 16;
+                                var y = canvasRect.top + tooltip.caretY;
+                                var trect = tooltipEl.getBoundingClientRect();
+                                if (x + trect.width > window.innerWidth) {
+                                    x = canvasRect.left + tooltip.caretX - trect.width - 16;
+                                }
+                                if (y + trect.height > window.innerHeight) {
+                                    y = window.innerHeight - trect.height - 8;
+                                }
+                                tooltipEl.style.left = x + 'px';
+                                tooltipEl.style.top = y + 'px';
                             }
                         }
                     }
