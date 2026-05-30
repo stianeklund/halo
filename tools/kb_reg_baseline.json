@@ -1,5 +1,6 @@
 {
   "functions": {
+    "0x12ad0": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);",
     "0x13dd0": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
     "0x15bb0": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
