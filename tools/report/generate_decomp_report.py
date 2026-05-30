@@ -1362,7 +1362,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         // coverage to count. NOTE: even credible fails need triage (e.g. a fail at
         // ~100% byte-match is almost certainly a harness artifact, not a real bug).
         function isDivergent(f) {
-            return f.ported && f.equiv_status === 'fail' &&
+            // Only an actual behavioral divergence counts — emulation_error / timeout /
+            // *_extract_failed are harness failures, not lift bugs, so they stay "unknown".
+            return f.ported && f.equiv_status === 'fail' && f.equiv_reason === 'divergence' &&
                    (f.equiv_confidence === 'high' || f.equiv_confidence === 'moderate');
         }
 
