@@ -6901,7 +6901,7 @@ float game_engine_get_starting_location_rating(int param_1, int param_2)
     return 0.0f;
   if (FUN_000a8ec0(param_1))
     return 0.0f;
-  return FUN_000adc40(param_1);
+  return FUN_000adc40(param_2);
 }
 
 /* Check whether a nav point flag applies to a player. EAX=flag_index, EDI=player_handle. */
