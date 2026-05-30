@@ -8654,7 +8654,8 @@
         },
         {
           "addr": "0xafa40",
-          "decl": "void FUN_000afa40(void);"
+          "decl": "void FUN_000afa40(int param_1, float param_2);",
+          "ported": true
         },
         {
           "addr": "0xafcb0",
