@@ -2284,7 +2284,8 @@
         {
           "addr": "0x1db90",
           "decl": "char actor_action_handle_surprise(int actor_handle, short type);",
-          "ported": true
+          "ported": true,
+          "source_path": "src/halo/ai/actions.c"
         },
         {
           "addr": "0x1dd40",
@@ -29199,7 +29200,8 @@
         {
           "addr": "0x22390",
           "decl": "void FUN_00022390(int actor_handle);",
-          "ported": true
+          "ported": false,
+          "source_path": "src/halo/ai/actor_combat.c"
         },
         {
           "addr": "0x21010",
