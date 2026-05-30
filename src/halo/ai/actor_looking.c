@@ -30,15 +30,11 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
     target_pos[0] = *(float *)(actor + 0x120);
     target_pos[1] = *(float *)(actor + 0x124);
     target_pos[2] = *(float *)(actor + 0x128);
-  } else if (*(char *)(actor + 0x4a8)) {
-    unit_estimate_position(*(int *)(actor + 0x18), 1,
-                           (vector3_t *)(actor + 0x4ac),
-                           NULL, NULL,
-                           (vector3_t *)target_pos);
   } else {
-    return 0;
+    goto LAB_00013ebc;
   }
 
+LAB_00013e10:
   if (*(volatile int16_t *)0x4761d8 >= 0x20) {
     display_assert(
       "global_current_collision_user_depth < MAXIMUM_COLLISION_USER_STACK_DEPTH",
@@ -61,8 +57,16 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
     system_exit(-1);
   }
   *(volatile int16_t *)0x4761d8 -= 1;
-
   return 1;
+
+LAB_00013ebc:
+  if (!*(char *)(actor + 0x4a8))
+    return 0;
+  unit_estimate_position(*(int *)(actor + 0x18), 1,
+                         (vector3_t *)(actor + 0x4ac),
+                         NULL, NULL,
+                         (vector3_t *)target_pos);
+  goto LAB_00013e10;
 }
 
 /* FUN_000142a0 (0x142a0)
