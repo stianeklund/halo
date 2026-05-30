@@ -26,7 +26,7 @@ public class DelinkerControlPlugin extends ProgramPlugin implements ProgramPlugi
   protected void init() {
     super.init();
     DelinkerService service = new DelinkerService(this, lastStatus);
-    rpcServer = new DelinkerRpcServer(service, 18080);
+    rpcServer = new DelinkerRpcServer(service, 18081);
     rpcServer.start();
   }
 
