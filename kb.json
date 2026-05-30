@@ -29197,7 +29197,8 @@
         },
         {
           "addr": "0x22390",
-          "decl": "void FUN_00022390(int actor_handle);"
+          "decl": "void FUN_00022390(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x21010",
