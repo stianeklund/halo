@@ -9011,10 +9011,9 @@ void FUN_000b2010(void)
     } while (uVar8 != 0);
   }
   { double fVar9 = floor((double)(total_distance + *(float *)0x253398));
-  double div_result = *(double *)0x2573d8 / fVar9;
   t_accum = 0.0f;
-  t_per_distance = (float)div_result;
-  inv_t = (float)((double)*(float *)0x2533c8 / (div_result * (double)total_distance));
+  t_per_distance = (float)(*(double *)0x2573d8 / fVar9);
+  inv_t = (float)((double)*(float *)0x2533c8 / ((*(double *)0x2573d8 / fVar9) * (double)total_distance));
   total_distance = 0.0f; }
   if (0 < (int)point_count) {
     uVar8 = 1;
