@@ -8453,9 +8453,10 @@ void FUN_000afa40(int param_1, float param_2)
   uint32_t scoreboard[42];
   wchar_t local_f4[80];
   float local_54[4];
+  float color_teams[2][4];
   float color_a[4];
-  float color_b[4];
   char has_teams;
+  char is_self;
 
   has_teams = 0;
   if (current_game_engine)
@@ -8474,19 +8475,21 @@ void FUN_000afa40(int param_1, float param_2)
   color_a[0] = param_2;
   ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x50 / 4])(0, local_39c);
   usprintf(local_59c, L"\t%s\t%s\t%s", L"Place", L"Name", local_39c);
-  FUN_000ab090((int)local_59c, 0, 0, (int)color_a);
+  FUN_000ab090((int)local_59c, 0, 1, (int)color_a);
   i = 0;
   if (0 < player_count) {
     entry = scoreboard + 6;
     do {
+      float *sel_color;
+      int team;
       player_handle = entry[-6];
-      { char is_self = (param_1 == (int)player_handle);
+      is_self = (param_1 == (int)player_handle);
       if (datum_absolute_index_to_index(player_data, player_handle)) {
         hud_get_text_color((int *)local_54);
         color_a[0] = local_54[0]; color_a[1] = local_54[1]; color_a[2] = local_54[2]; color_a[3] = local_54[3];
         player = (int)datum_get(player_data, player_handle);
-        color_b[0] = param_2; color_b[4-4] = param_2;
-        color_b[1] = 0.6f; color_b[2] = 0.3f; color_b[3] = 0.3f;
+        color_teams[0][0] = param_2; color_teams[0][1] = 0.6f; color_teams[0][2] = 0.3f; color_teams[0][3] = 0.3f;
+        color_teams[1][0] = param_2; color_teams[1][1] = 0.3f; color_teams[1][2] = 0.3f; color_teams[1][3] = 0.6f;
         color_a[0] = param_2;
         ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x4c / 4])(player_handle, local_39c);
         if (*(int *)0x456b30 < 1 ||
@@ -8501,9 +8504,16 @@ void FUN_000afa40(int param_1, float param_2)
         usprintf(local_59c, L"\t%s\t%s\t%s",
                  *(wchar_t **)(0x2efe28 + (*entry & 0x7f) * 4),
                  (wchar_t *)(player + 4), status);
-        FUN_000ab090((int)local_59c, is_self, 0, (int)color_a);
-        (void)player_count;
-      } }
+        if (has_teams) {
+          team = *(int *)(player + 0x20);
+          if (team < 0) team = 0;
+          if (team > 1) team = 1;
+          sel_color = color_teams[team];
+        } else {
+          sel_color = color_a;
+        }
+        FUN_000ab090((int)local_59c, is_self, i + 2, (int)sel_color);
+      }
       i++;
       entry += 7;
     } while (i < player_count);
