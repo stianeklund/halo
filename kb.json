@@ -3060,7 +3060,8 @@
         },
         {
           "addr": "0x13ef0",
-          "decl": "void FUN_00013ef0(void);"
+          "decl": "char FUN_00013ef0(int actor_handle, int action_type, void *charge_state);",
+          "ported": true
         },
         {
           "addr": "0x142a0",
@@ -18927,7 +18928,7 @@
         },
         {
           "addr": "0x12ad0",
-          "decl": "void FUN_00012ad0(void);"
+          "decl": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);"
         },
         {
           "addr": "0x12be0",
@@ -24760,7 +24761,7 @@
         },
         {
           "addr": "0x1a83e0",
-          "decl": "void unit_get_melee_range_and_ticks(void);"
+          "decl": "char unit_get_melee_range_and_ticks(int unit_handle, int is_secondary, int *out_tick_count, float *out_attack_time, short *out_tick_short, float *out_damage_time);"
         },
         {
           "addr": "0x1a84c0",

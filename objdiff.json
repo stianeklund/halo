@@ -6550,6 +6550,14 @@
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
+    },
+    {
+      "name": "halo/actor_looking_FUN_00013ef0",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_00013ef0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
     }
   ]
 }

@@ -7,13 +7,13 @@
 
 #include "../../common.h"
 
-__declspec(noinline) static int s_actor_charge_estimate_target(char *actor, float *target_pos)
+__declspec(noinline) static int
+s_actor_charge_estimate_target(char *actor, float *target_pos)
 {
   if (!*(char *)(actor + 0x4a8))
     return 0;
   unit_estimate_position(*(int *)(actor + 0x18), 1,
-                         (vector3_t *)(actor + 0x4ac),
-                         NULL, NULL,
+                         (vector3_t *)(actor + 0x4ac), NULL, NULL,
                          (vector3_t *)target_pos);
   return 1;
 }
@@ -46,9 +46,9 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
   }
 
   if (*(volatile int16_t *)0x4761d8 >= 0x20) {
-    display_assert(
-      "global_current_collision_user_depth < MAXIMUM_COLLISION_USER_STACK_DEPTH",
-      "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x379, 1);
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x379, 1);
     system_exit(-1);
   }
   depth = *(volatile short *)0x4761d8;
@@ -60,10 +60,9 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
   dir[2] = source_pos[2] - target_pos[2];
   FUN_0014df70(0x33, target_pos, dir, -1, collision_result);
 
-  if (*(volatile int16_t *)0x4761d8 <= 1) {
-    display_assert(
-      "global_current_collision_user_depth > 1",
-      "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x381, 1);
+  if (*(volatile short *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x381, 1);
     system_exit(-1);
   }
   {
@@ -71,6 +70,158 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
     *(volatile short *)0x4761d8 = (short)(d - 1);
   }
   return 1;
+}
+
+/* FUN_00013ef0 (0x13ef0)
+ * Actor charge action initializer (action_charge.c, 0x2f).
+ * Validates charge preconditions, computes melee timing and speed, then arms
+ * actor_move_to_prop and tests the line-of-sight path via FUN_00013dd0.
+ * Returns 1 if the charge can proceed, 0 otherwise; sets actor_state+0x190
+ * to a fail-reason code (0=ok, 2–9 = specific block reasons).
+ * Confirmed: 3 cdecl stack args; actor_state = *(char**)0x331f58 + slot*0x657c;
+ * encounter = datum_get(*(data_t**)0x5ab23c, actor+0x270);
+ * FUN_00012ad0 @ebx=actor_handle @esi=action_type, stack=charge_state. */
+char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
+{
+  char *actor;
+  char *actor_state;
+  char *actr_tag;
+  char *encounter;
+  char return_flag;
+  char is_secondary;
+  int melee_tick_count;
+  float attack_time;
+  short tick_count_short;
+  float damage_time;
+  float speed;
+  float rand_val;
+  char *actv_tag;
+  float min_speed;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  return_flag = 1;
+  actor_state = *(char **)0x331f58 + (actor_handle & 0xffff) * 0x657c;
+  *(int *)(actor_state + 0x18c) = game_time_get();
+
+  if (!charge_state) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x2f,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(charge_state, 0, 0x38);
+  *(int *)charge_state = game_time_get();
+
+  if ((short)action_type == 5 || (short)action_type == 4) {
+    return_flag = (char)(*(int16_t *)(actor + 0x15e) > 1);
+    *(int16_t *)(actor_state + 0x190) =
+      (int16_t)(*(int16_t *)(actor + 0x15e) <= 1);
+    goto done;
+  }
+  if ((short)action_type != 2) {
+    if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
+        *(int16_t *)(actor + 0x6e) > 4 && !*(char *)(actor + 0x378)) {
+      action_type = 1;
+      *(int16_t *)(actor_state + 0x190) = 8;
+    } else {
+      *(int16_t *)(actor_state + 0x190) = 9;
+    }
+    goto done;
+  }
+
+  /* action_type == 2: melee charge */
+  if (*(char *)(actor + 0x6)) {
+    return_flag = 0;
+    *(int16_t *)(actor_state + 0x190) = 2;
+    goto done;
+  }
+  if (*(int8_t *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18),
+                                                     3) +
+                  0xb6) < 0) {
+    return_flag = 0;
+    *(int16_t *)(actor_state + 0x190) = 3;
+    goto done;
+  }
+  if (*(int *)(actor + 0x270) == -1) {
+    return_flag = 0;
+    *(int16_t *)(actor_state + 0x190) = 4;
+    goto done;
+  }
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+
+  /* determine is_secondary (lunge vs normal melee) */
+  if (*(float *)(actor + 0x388) == *(float *)0x2533c0 ||
+      *(float *)(actor + 0x390) == *(float *)0x2533c0) {
+    *(char *)((char *)charge_state + 0xa) = 0;
+    is_secondary = 0;
+  } else if (*(char *)(encounter + 0x130) == 0 &&
+             *(int16_t *)(encounter + 0x9c) < 1) {
+    rand_val =
+      random_math_real((unsigned int *)get_global_random_seed_address());
+    is_secondary = (char)(rand_val < *(float *)(actr_tag + 0x390));
+    *(char *)((char *)charge_state + 0xa) = is_secondary;
+    if (*(float *)(actr_tag + 0x384) <= *(float *)(encounter + 0x11c)) {
+      if (is_secondary)
+        action_type = 3;
+    } else {
+      is_secondary = 0;
+    }
+  } else {
+    *(char *)((char *)charge_state + 0xa) = 1;
+    is_secondary = 1;
+    action_type = 3;
+  }
+  *(char *)(actor_state + 0x198) = is_secondary;
+
+  if (!unit_get_melee_range_and_ticks(*(int *)(actor + 0x18), is_secondary,
+                                      &melee_tick_count, &attack_time,
+                                      &tick_count_short, &damage_time)) {
+    *(int16_t *)(actor_state + 0x190) = 5;
+    goto done;
+  }
+
+  if (*(int *)actr_tag & 0x8000000) {
+    /* dual-wield: use weapon tick count directly */
+    *(int16_t *)((char *)charge_state + 0x32) = tick_count_short;
+    *(int *)((char *)charge_state + 0x34) = 0;
+    *(char *)((char *)charge_state + 0x30) = 1;
+  } else {
+    if (!melee_tick_count) {
+      actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+      if (*(int *)(actv_tag + 0x8)) {
+        error(2, "actor %s melee animation has no damage keyframe",
+              *(int *)(actv_tag + 0x8));
+      }
+      melee_tick_count = (int16_t)tick_count_short / 2;
+      attack_time = damage_time * *(float *)0x253398;
+    }
+    *(int16_t *)((char *)charge_state + 0x32) = (int16_t)melee_tick_count;
+    *(float *)((char *)charge_state + 0x34) = damage_time - attack_time;
+  }
+
+  speed = FUN_00012ad0(actor_handle, action_type, charge_state);
+  *(float *)((char *)charge_state + 0x2c) = speed;
+
+  min_speed =
+    ((short)action_type == 3) ? *(float *)0x2533d8 : *(float *)0x2533ec;
+  if (speed < min_speed)
+    speed = min_speed;
+
+  if (actor_move_to_prop(actor_handle, *(int *)(actor + 0x270), speed)) {
+    FUN_0002a330(actor_handle);
+    if (FUN_00013dd0(actor_handle, (float *)(encounter + 0xc8))) {
+      return_flag = 1;
+      *(int16_t *)(actor_state + 0x190) = 7;
+      goto done;
+    }
+  }
+  *(int16_t *)(actor_state + 0x190) = 6;
+  *(float *)(actor_state + 0x194) = speed;
+
+done:
+  *(int16_t *)((char *)charge_state + 0x4) = (int16_t)action_type;
+  return return_flag;
 }
 
 /* FUN_000142a0 (0x142a0)
@@ -82,8 +233,8 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
  * byte@+5=0. Returns 1 always.
  *
  * Confirmed: first datum_get(actor_data, actor_handle) result is discarded.
- * Confirmed: FCOMP+TEST AH,0x44+JP at 0x1432f — JP taken when PF=1 (NOT equal/NaN)
- *   → speaker handle; fall-through (equal) → -1. */
+ * Confirmed: FCOMP+TEST AH,0x44+JP at 0x1432f — JP taken when PF=1 (NOT
+ * equal/NaN) → speaker handle; fall-through (equal) → -1. */
 char FUN_000142a0(int actor_handle, int action_handle, int *state_data)
 {
   char *action_ref;
@@ -776,8 +927,8 @@ char FUN_000159d0(int actor_handle, short *state_data)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (state_data == NULL) {
-    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_guard.c",
-                   0xac, 1);
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_guard.c", 0xac,
+                   1);
     system_exit(-1);
   }
   csmemset(state_data, 0, 0x44);
@@ -884,8 +1035,8 @@ void FUN_00015cf0(int actor_handle)
       *(char *)(actor + 0xaa) = 1;
     }
   }
-  if ((*(short *)(actor + 0x9e) > 0) &&
-      ((*(char *)(actor + 0xdc) == '\0') || (*(char *)(actor + 0x484) != '\0'))) {
+  if ((*(short *)(actor + 0x9e) > 0) && ((*(char *)(actor + 0xdc) == '\0') ||
+                                         (*(char *)(actor + 0x484) != '\0'))) {
     decval = *(short *)(actor + 0x9e) - 1;
     *(short *)(actor + 0x9e) = decval;
     if (decval == 0) {
@@ -974,6 +1125,43 @@ void actor_clear_flee_target(int actor_handle)
   }
 }
 
+/* FUN_00015f60 (0x15f60)
+ * Copy 16-byte look-target vector from one of three global pointers based
+ * on actor's look-suppress/phase flags (actor+0xa4, 0xa5, 0xa6).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x15f6c.
+ * Confirmed: PTR_DAT_002ee6f4=default, 002ee6e8=phase1, 002ee704=phase2. */
+void FUN_00015f60(int actor_handle, int *param_2)
+{
+  int *src;
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  src = *(int **)0x2ee700;
+  if (*(char *)(actor + 0xa4) != '\0') {
+    if (*(char *)(actor + 0xa6) != '\0') {
+      src = *(int **)0x2ee704;
+      param_2[0] = src[0];
+      param_2[1] = src[1];
+      param_2[2] = src[2];
+      param_2[3] = src[3];
+      return;
+    }
+    src = *(int **)0x2ee6f4;
+    if (*(char *)(actor + 0xa5) != '\0') {
+      src = *(int **)0x2ee6e8;
+      param_2[0] = src[0];
+      param_2[1] = src[1];
+      param_2[2] = src[2];
+      param_2[3] = src[3];
+      return;
+    }
+  }
+  param_2[0] = src[0];
+  param_2[1] = src[1];
+  param_2[2] = src[2];
+  param_2[3] = src[3];
+}
+
 /* actor_replace_prop_handle (0x16000)
  * Replace all references to old_handle in actor prop fields with new_handle.
  *
@@ -1002,39 +1190,6 @@ void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
       *(char *)(actor + 0xab) = 0;
     }
   }
-}
-
-/* FUN_00015f60 (0x15f60)
- * Copy 16-byte look-target vector from one of three global pointers based
- * on actor's look-suppress/phase flags (actor+0xa4, 0xa5, 0xa6).
- *
- * Confirmed: datum_get(actor_data, actor_handle) at 0x15f6c.
- * Confirmed: PTR_DAT_002ee6f4=default, 002ee6e8=phase1, 002ee704=phase2. */
-void FUN_00015f60(int actor_handle, int *param_2)
-{
-  int *src;
-  char *actor;
-  actor = (char *)datum_get(actor_data, actor_handle);
-  src = *(int **)0x2ee700;
-  if (*(char *)(actor + 0xa4) != '\0') {
-    if (*(char *)(actor + 0xa6) != '\0') {
-      src = *(int **)0x2ee704;
-      param_2[0] = src[0]; param_2[1] = src[1];
-      param_2[2] = src[2]; param_2[3] = src[3];
-      return;
-    }
-    src = *(int **)0x2ee6f4;
-    if (*(char *)(actor + 0xa5) != '\0') {
-      src = *(int **)0x2ee6e8;
-      param_2[0] = src[0]; param_2[1] = src[1];
-      param_2[2] = src[2]; param_2[3] = src[3];
-      return;
-    }
-  }
-  param_2[0] = src[0];
-  param_2[1] = src[1];
-  param_2[2] = src[2];
-  param_2[3] = src[3];
 }
 
 /* FUN_00016590 (0x16590)
@@ -1123,7 +1278,7 @@ void FUN_00016590(int actor_handle)
     }
     if (*(char *)(actor + 0x4a8) == '\0' ||
         distance_squared3d((float *)(actor + 0x4ac), (float *)(actor + 0x12c)) <
-        *(float *)0x2536cc) {
+          *(float *)0x2536cc) {
       bVar2 = 1;
     } else {
       bVar2 = 0;
@@ -1141,8 +1296,8 @@ void FUN_00016590(int actor_handle)
       *(char *)(actor + 0xab) = 0;
       *(int *)(actor + 0xac) = -1;
       FUN_000369c0(actor_handle, 2, 600);
-      FUN_00046f10(7, *(int *)(actor + 0x18), *(int *)(prop + 0x18),
-                   -1, -1, 2, 0);
+      FUN_00046f10(7, *(int *)(actor + 0x18), *(int *)(prop + 0x18), -1, -1, 2,
+                   0);
     }
     if (*(char *)(actor + 0xa1) != '\0') {
       FUN_00015bb0(actor_handle);
@@ -1158,9 +1313,12 @@ output:
     *(char *)(actor + 0x454) = 1;
     *(char *)(actor + 0x45d) = 1;
     fwd = *(float **)0x31fc44;
-    *(float *)(actor + 0x468) = fwd[2] * *(float *)0x2533e8 + *(float *)(actor + 0xcc);
-    *(float *)(actor + 0x464) = fwd[1] * *(float *)0x2533e8 + *(float *)(actor + 0xc8);
-    *(float *)(actor + 0x460) = fwd[0] * *(float *)0x2533e8 + *(float *)(actor + 0xc4);
+    *(float *)(actor + 0x468) =
+      fwd[2] * *(float *)0x2533e8 + *(float *)(actor + 0xcc);
+    *(float *)(actor + 0x464) =
+      fwd[1] * *(float *)0x2533e8 + *(float *)(actor + 0xc8);
+    *(float *)(actor + 0x460) =
+      fwd[0] * *(float *)0x2533e8 + *(float *)(actor + 0xc4);
   } else {
     prop_unit = *(int *)(actor + 0xd8);
     if (prop_unit != -1) {
@@ -1170,7 +1328,7 @@ output:
     } else if (*(char *)(actor + 0xb0) != '\0') {
       *(short *)(actor + 0x3ec) = 4;
       *(short *)(actor + 0x3e8) =
-          (short)(3 + (*(char *)(actor + 0xb1) != '\0') * 2);
+        (short)(3 + (*(char *)(actor + 0xb1) != '\0') * 2);
       *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb4);
       *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb8);
       *(int *)(actor + 0x3f8) = *(int *)(actor + 0xbc);
@@ -1182,43 +1340,7 @@ output:
       *(short *)(actor + 0x3e8) = 0;
     }
   }
-  *(short *)(actor + 0x3fc) =
-      (short)(2 + (*(short *)(actor + 0x6e) >= 4) * 2);
-}
-
-/* FUN_00016ff0 (0x16ff0)
- * Update actor scripted-look prop interest, or invalidate if out of range.
- *
- * Fetches actor record; prop_state = (short*)(actor+0x9c).  If the prop
- * index (*prop_state) is valid (>= 0) and within the scenario prop count
- * (*(int*)(scenario+0x438)), delegates to actor_look_compute_prop_interest
- * with reset=0, callback=FUN_00016c40, param_5=0.  Otherwise marks the
- * prop as invalid: *prop_state = -1, actor+0xa1 = 1, then calls
- * actor_action_change(actor_handle, 0, 0).
- *
- * Confirmed: cdecl, single stack arg (actor_handle).
- * Confirmed: datum_get(actor_data, actor_handle); ADD ESI,0x9c.
- * Confirmed: MOV CX,[ESI]; TEST CX,CX; JL else; MOV EDX,[EAX+0x438].
- * Confirmed: MOV word [ESI],0xffff; MOV byte [ESI+0x5],0x1 in else-branch.
- * Confirmed: CALL actor_action_change(actor_handle, 0, 0) in else-branch.
- * Inferred: actor+0x9c = scripted-look prop state (short index);
- *   actor+0xa1 = scripted-look valid flag; scenario+0x438 = prop count. */
-void FUN_00016ff0(int actor_handle)
-{
-  int scenario;
-  char *actor;
-  short *prop_state;
-  actor = (char *)datum_get(actor_data, actor_handle);
-  prop_state = (short *)(actor + 0x9c);
-  scenario = (int)global_scenario_get();
-  if ((*prop_state >= 0) && ((int)*prop_state < *(int *)(scenario + 0x438))) {
-    actor_look_compute_prop_interest(actor_handle, 0, prop_state,
-                                     (void (*)(void))FUN_00016c40, 0);
-    return;
-  }
-  *prop_state = -1;
-  *(char *)(actor + 0xa1) = 1;
-  actor_action_change(actor_handle, 0, 0);
+  *(short *)(actor + 0x3fc) = (short)(2 + (*(short *)(actor + 0x6e) >= 4) * 2);
 }
 
 /* FUN_00016960 (0x16960)
@@ -1275,21 +1397,6 @@ void FUN_00016cd0(int param_1, int param_2, int param_3, char *param_4)
   param_4[4] = (param_4[4] & (char)0xef) | 8;
 }
 
-/* actor_clear_aim_target (0x17060)
- * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
- * target handle (actor+0xdc) to the -1 sentinel.
- *
- * Confirmed: datum_get(DAT_006325a4, param_1) from decompile.
- * Confirmed: actor+0xcc flag check (char), actor+0xdc reset to 0xffffffff. */
-void actor_clear_aim_target(int actor_handle)
-{
-  char *actor;
-  actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(char *)(actor + 0xcc) != '\0') {
-    *(int *)(actor + 0xdc) = -1;
-  }
-}
-
 /* actor_look_compute_prop_interest (0x16d40)
  * Iterate an actor's prop list (or each swarm unit's list for swarm actors)
  * and invoke the callback for each active entry.
@@ -1304,8 +1411,8 @@ void actor_clear_aim_target(int actor_handle)
  * Confirmed: CALL 0x16d40 from FUN_00017090 at 0x170b2.
  * Confirmed: swarm_data=DAT_006325a0, swarm_component_data=DAT_0063259c. */
 void actor_look_compute_prop_interest(int actor_handle, int param_2,
-                                       short *param_3,
-                                       void (*callback)(void), int param_5)
+                                      short *param_3, void (*callback)(void),
+                                      int param_5)
 {
   char *actor;
   char *swarm;
@@ -1316,8 +1423,8 @@ void actor_look_compute_prop_interest(int actor_handle, int param_2,
   if (*(char *)(actor + 6) != '\0') {
     if (*(int *)(actor + 0x28) == -1) {
       display_assert(
-          "!actor->meta.swarm || (actor->meta.swarm_cache_index != NONE)",
-          "c:\\halo\\SOURCE\\ai\\action_obey.c", 0x611, 1);
+        "!actor->meta.swarm || (actor->meta.swarm_cache_index != NONE)",
+        "c:\\halo\\SOURCE\\ai\\action_obey.c", 0x611, 1);
       system_exit(-1);
     }
     swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
@@ -1325,24 +1432,74 @@ void actor_look_compute_prop_interest(int actor_handle, int param_2,
       return;
     }
     for (i = 0; i < *(short *)(swarm + 2); i++) {
-      component = (char *)datum_get(swarm_component_data,
-                                    *(int *)(swarm + 0x58 + i * 4));
+      component =
+        (char *)datum_get(swarm_component_data, *(int *)(swarm + 0x58 + i * 4));
       if (param_2 != 0) {
         csmemset(component + 0x1c, 0, 0x24);
         *(unsigned short *)(component + 2) =
-            (*(unsigned short *)(component + 2) & ~4u) | 8;
+          (*(unsigned short *)(component + 2) & ~4u) | 8;
       }
       if ((*(unsigned char *)(component + 2) & 8) != 0) {
         ((void (*)(int, int, int, char *, int, int))callback)(
-            actor_handle, *(int *)(swarm + 0x18 + i * 4), (int)*param_3,
-            component + 0x1c, 0, param_5);
+          actor_handle, *(int *)(swarm + 0x18 + i * 4), (int)*param_3,
+          component + 0x1c, 0, param_5);
       }
     }
     return;
   }
   ((void (*)(int, int, int, short *, short *, int))callback)(
-      actor_handle, *(int *)(actor + 0x18), (int)*param_3,
-      param_3 + 4, param_3 + 0x16, param_5);
+    actor_handle, *(int *)(actor + 0x18), (int)*param_3, param_3 + 4,
+    param_3 + 0x16, param_5);
+}
+
+/* FUN_00016ff0 (0x16ff0)
+ * Update actor scripted-look prop interest, or invalidate if out of range.
+ *
+ * Fetches actor record; prop_state = (short*)(actor+0x9c).  If the prop
+ * index (*prop_state) is valid (>= 0) and within the scenario prop count
+ * (*(int*)(scenario+0x438)), delegates to actor_look_compute_prop_interest
+ * with reset=0, callback=FUN_00016c40, param_5=0.  Otherwise marks the
+ * prop as invalid: *prop_state = -1, actor+0xa1 = 1, then calls
+ * actor_action_change(actor_handle, 0, 0).
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get(actor_data, actor_handle); ADD ESI,0x9c.
+ * Confirmed: MOV CX,[ESI]; TEST CX,CX; JL else; MOV EDX,[EAX+0x438].
+ * Confirmed: MOV word [ESI],0xffff; MOV byte [ESI+0x5],0x1 in else-branch.
+ * Confirmed: CALL actor_action_change(actor_handle, 0, 0) in else-branch.
+ * Inferred: actor+0x9c = scripted-look prop state (short index);
+ *   actor+0xa1 = scripted-look valid flag; scenario+0x438 = prop count. */
+void FUN_00016ff0(int actor_handle)
+{
+  int scenario;
+  char *actor;
+  short *prop_state;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  prop_state = (short *)(actor + 0x9c);
+  scenario = (int)global_scenario_get();
+  if ((*prop_state >= 0) && ((int)*prop_state < *(int *)(scenario + 0x438))) {
+    actor_look_compute_prop_interest(actor_handle, 0, prop_state,
+                                     (void (*)(void))FUN_00016c40, 0);
+    return;
+  }
+  *prop_state = -1;
+  *(char *)(actor + 0xa1) = 1;
+  actor_action_change(actor_handle, 0, 0);
+}
+
+/* actor_clear_aim_target (0x17060)
+ * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
+ * target handle (actor+0xdc) to the -1 sentinel.
+ *
+ * Confirmed: datum_get(DAT_006325a4, param_1) from decompile.
+ * Confirmed: actor+0xcc flag check (char), actor+0xdc reset to 0xffffffff. */
+void actor_clear_aim_target(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0xcc) != '\0') {
+    *(int *)(actor + 0xdc) = -1;
+  }
 }
 
 /* FUN_00017090 (0x17090)
@@ -1521,8 +1678,8 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (state_data == NULL) {
-    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_search.c",
-                   0x38, 1);
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_search.c", 0x38,
+                   1);
     system_exit(-1);
   }
   csmemset(state_data, 0, 0x2c);
@@ -1530,8 +1687,8 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
       (*(int *)(actor + 0x34) != -1)) {
     if (param_2 != -1) {
       enc = (char *)tag_block_get_element(
-          (char *)global_scenario_get() + 0x42c,
-          *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+        (char *)global_scenario_get() + 0x42c,
+        *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
       pos = (int *)tag_block_get_element(enc + 0x98, (int)param_2, 0x18);
       *(char *)(state_data + 4) = param_3;
       *(short *)(state_data + 10) = param_2;
@@ -1628,22 +1785,57 @@ skip_flag:
     if (*(int *)(actor + 0x18) != -1) {
       if (*(short *)(actor + 0xa4) == 0) {
         if ((*(char *)(actor + 0x3bd) == '\0') &&
-            (*(char *)(actor + 0x9c) != '\0' || (remain + 0x5a < *(int *)(actor + 0xbc)))) {
+            (*(char *)(actor + 0x9c) != '\0' ||
+             (remain + 0x5a < *(int *)(actor + 0xbc)))) {
           *(int *)(actor + 0x3bd) = 1;
           FUN_00046f10(0xd, *(int *)(actor + 0x18),
-                       actor_target_unit_index(actor_handle),
-                       -1, -1, -1, 0);
+                       actor_target_unit_index(actor_handle), -1, -1, -1, 0);
           *(char *)(actor + 0x3bd) = 1;
           return;
         }
       } else if (remain == 0) {
         FUN_00046f10(0x12, *(int *)(actor + 0x18),
-                     actor_target_unit_index(actor_handle),
-                     -1, -1, -1, 0);
+                     actor_target_unit_index(actor_handle), -1, -1, -1, 0);
         return;
       }
     }
   }
+}
+
+/* FUN_00019ac0 (0x19ac0)
+ * Mark actor look-state as interrupted (target type 1 path).
+ *
+ * If the look-target type word at actor+0xa4 equals 1, clears the
+ * target-acquired index at actor+0xa6 (set to 0xffff = none) and
+ * sets the look-state byte at actor+0x9c to 1.
+ *
+ * Confirmed: ADD EAX,0x9c after datum_get; CMP word [EAX+0x8],0x1;
+ *   MOV word [EAX+0xa],0xffff; MOV byte [EAX],0x1. */
+void FUN_00019ac0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(short *)(actor + 0xa4) == 1) {
+    *(short *)(actor + 0xa6) = (short)0xffff;
+    *(char *)(actor + 0x9c) = 1;
+  }
+}
+
+/* FUN_00019af0 (0x19af0)
+ * Reset actor look-target handles to invalid (-1).
+ *
+ * Unconditionally clears actor+0xa8 (int16_t) and actor+0xac (int32_t)
+ * to -1 (all-bits-set via OR ECX,0xffffffff).
+ *
+ * Confirmed: ADD EAX,0x9c after datum_get; OR ECX,0xffffffff;
+ *   MOV word [EAX+0xc],CX (actor+0xa8); MOV dword [EAX+0x10],ECX (actor+0xac).
+ */
+void FUN_00019af0(int actor_handle)
+{
+  char *actor;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  *(short *)(actor + 0xa8) = -1;
+  *(int *)(actor + 0xac) = -1;
 }
 
 /* FUN_00019b20 (0x19b20)
@@ -1704,42 +1896,6 @@ void FUN_00019b20(int actor_handle)
   *(char *)(actor + 0x428) = 0;
   *(char *)(actor + 0x424) = 0;
   *(char *)(actor + 0x425) = 1;
-}
-
-/* FUN_00019ac0 (0x19ac0)
- * Mark actor look-state as interrupted (target type 1 path).
- *
- * If the look-target type word at actor+0xa4 equals 1, clears the
- * target-acquired index at actor+0xa6 (set to 0xffff = none) and
- * sets the look-state byte at actor+0x9c to 1.
- *
- * Confirmed: ADD EAX,0x9c after datum_get; CMP word [EAX+0x8],0x1;
- *   MOV word [EAX+0xa],0xffff; MOV byte [EAX],0x1. */
-void FUN_00019ac0(int actor_handle)
-{
-  char *actor;
-  actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(short *)(actor + 0xa4) == 1) {
-    *(short *)(actor + 0xa6) = (short)0xffff;
-    *(char *)(actor + 0x9c) = 1;
-  }
-}
-
-/* FUN_00019af0 (0x19af0)
- * Reset actor look-target handles to invalid (-1).
- *
- * Unconditionally clears actor+0xa8 (int16_t) and actor+0xac (int32_t)
- * to -1 (all-bits-set via OR ECX,0xffffffff).
- *
- * Confirmed: ADD EAX,0x9c after datum_get; OR ECX,0xffffffff;
- *   MOV word [EAX+0xc],CX (actor+0xa8); MOV dword [EAX+0x10],ECX (actor+0xac).
- */
-void FUN_00019af0(int actor_handle)
-{
-  char *actor;
-  actor = (char *)datum_get(actor_data, actor_handle);
-  *(short *)(actor + 0xa8) = -1;
-  *(int *)(actor + 0xac) = -1;
 }
 
 /* FUN_0001a050 (0x1a050)
@@ -1808,8 +1964,8 @@ int FUN_0001a100(int actor_handle, short param_2, char *state_data)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (state_data == NULL) {
-    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_uncover.c",
-                   0x38, 1);
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_uncover.c", 0x38,
+                   1);
     system_exit(-1);
   }
   csmemset(state_data, 0, 0x34);
@@ -1817,8 +1973,8 @@ int FUN_0001a100(int actor_handle, short param_2, char *state_data)
       (*(unsigned int *)(actor + 0x34) != 0xffffffff)) {
     if (param_2 != -1) {
       enc = (char *)tag_block_get_element(
-          (char *)global_scenario_get() + 0x42c,
-          *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+        (char *)global_scenario_get() + 0x42c,
+        *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
       pos = (int *)tag_block_get_element(enc + 0x98, (int)param_2, 0x18);
       *(short *)(state_data + 10) = param_2;
       *(short *)(state_data + 8) = 1;
@@ -2012,7 +2168,8 @@ void FUN_0001abd0(int actor_handle)
  * Clears look-suppression flags; sets look-speed=4.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x1ac08.
- * Confirmed: CMP byte [EAX+0xc8],0; FUN_0002a3d0(actor_handle) for mount check. */
+ * Confirmed: CMP byte [EAX+0xc8],0; FUN_0002a3d0(actor_handle) for mount check.
+ */
 void FUN_0001ac00(int actor_handle)
 {
   char *actor;
@@ -2057,8 +2214,8 @@ void FUN_0001ac00(int actor_handle)
  * Confirmed: datum_get(actor_data, actor_handle) at 0x272e3.
  * Confirmed: assert on actor->meta.encounter_index != NONE at 0x27305.
  * Confirmed: FUN_0002d900 = attempt move to position. */
-short FUN_000272d0(int actor_handle, short param_2, short param_3,
-                   int param_4, unsigned int param_5, char param_6)
+short FUN_000272d0(int actor_handle, short param_2, short param_3, int param_4,
+                   unsigned int param_5, char param_6)
 {
   char *actor;
   char *prev_actor;
@@ -2070,19 +2227,19 @@ short FUN_000272d0(int actor_handle, short param_2, short param_3,
   } else {
     if (*(int *)(actor + 0x34) == -1) {
       display_assert("actor->meta.encounter_index != NONE",
-                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
-                     0x97b, 1);
+                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x97b, 1);
       system_exit(-1);
     }
-    if (*(short *)(actor + 0x3b8) != -1 && *(short *)(actor + 0x3b8) != param_2) {
+    if (*(short *)(actor + 0x3b8) != -1 &&
+        *(short *)(actor + 0x3b8) != param_2) {
       FUN_00024be0(actor_handle, *(short *)(actor + 0x3b8), 1);
     }
     if (param_4 != -1) {
       prev_actor = (char *)datum_get(actor_data, param_4);
       if (actor_handle == param_4) {
         display_assert("actor_index != previous_owner",
-                       "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
-                       0x988, 1);
+                       "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x988,
+                       1);
         system_exit(-1);
       }
       FUN_0002f1a0(param_4);
@@ -2092,8 +2249,9 @@ short FUN_000272d0(int actor_handle, short param_2, short param_3,
       *(short *)(actor + 0x3b8) = (short)param_2;
       *(char *)(actor + 0x3ba) = (char)(param_6 == '\0');
       *(char *)(actor + 0x3bb) = 0;
-      cancel = (char)actor_move_to_firing_position(actor_handle, param_2,
-                            (void *)(-(unsigned int)(param_6 != '\0') & param_5));
+      cancel = (char)actor_move_to_firing_position(
+        actor_handle, param_2,
+        (void *)(-(unsigned int)(param_6 != '\0') & param_5));
       if (cancel != '\0') {
         goto done;
       }
