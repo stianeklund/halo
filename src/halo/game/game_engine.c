@@ -8860,7 +8860,7 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   int iVar2;
   int iVar4;
   int iVar5;
-  int16_t *puVar3;
+  int16_t *ppoint_count;
   void *puVar6;
   char render_state[0xcc];
   float centroid[3];
@@ -8875,14 +8875,14 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
     return;
   }
   local_c = rasterizer_widget_draw_sprite3d(local_8);
-  puVar3 = (int16_t *)rasterizer_widget_begin(iVar2);
+  ppoint_count = (int16_t *)rasterizer_widget_begin(iVar2);
   FUN_00180d10(4, 4, local_c, 0x80, param_1, 0x110);
-  puVar3[0] = 0;
-  puVar3[1] = 1;
-  puVar3[2] = 2;
-  puVar3[3] = 2;
-  puVar3[4] = 3;
-  puVar3[5] = 0;
+  ppoint_count[0] = 0;
+  ppoint_count[1] = 1;
+  ppoint_count[2] = 2;
+  ppoint_count[3] = 2;
+  ppoint_count[4] = 3;
+  ppoint_count[5] = 0;
   rasterizer_widget_set_texture(iVar2);
   rasterizer_widget_end(local_8);
   iVar4 = (int)tag_get(0x73686472, param_2);
@@ -8949,11 +8949,14 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   *(int16_t *)0x325652 = 0;
 }
 
-/* Render race path 3D markers along waypoint segments (b2010). */
+/* Render race path 3D markers along waypoint segments (b2010).
+ * Buffer base is local_158 = EBP-0x154.
+ * Index: buf[(0x158-NN)/4] for Ghidra local_NN. */
+extern double floor(double);
 void FUN_000b2010(void)
 {
   int iVar4;
-  uint32_t uVar3;
+  uint32_t point_count;
   uint32_t uVar5;
   uint32_t uVar6;
   uint32_t uVar8;
@@ -8977,15 +8980,15 @@ void FUN_000b2010(void)
   global_scenario_get();
   iVar4 = (int)game_globals_get();
   iVar4 = (int)tag_block_get_element((int *)(iVar4 + 0x164), 0, 0xa0);
-  uVar3 = *(uint32_t *)0x456c38;
+  point_count = *(uint32_t *)0x456c38;
   total_distance = *(float *)0x2533c0;
   shader_tag = *(int *)(iVar4 + 0x38);
-  if (0 < (int)uVar3) {
+  if (0 < (int)point_count) {
     uVar6 = 1;
     pfVar7 = (float *)0x456c44;
-    uVar8 = uVar3;
+    uVar8 = point_count;
     do {
-      uVar5 = (uVar6 == uVar3) ? 0 : uVar6;
+      uVar5 = (uVar6 == point_count) ? 0 : uVar6;
       uVar6++;
       uVar8--;
       { float ddx = ((float *)0x456c3c)[uVar5 * 3] - pfVar7[-2];
@@ -8995,48 +8998,51 @@ void FUN_000b2010(void)
       pfVar7 += 3;
     } while (uVar8 != 0);
   }
-  { double floor_val = (double)(int)(total_distance + *(float *)0x253398);
+  { double floor_val = floor((double)(total_distance + *(float *)0x253398));
   t_accum = 0.0f;
   t_per_distance = (float)((double)*(float *)0x2573d8 / floor_val);
   total_distance = 0.0f;
-  inv_t = *(float *)0x2533c8 / (t_per_distance * total_distance);
-  (void)inv_t; }
-  if (0 < (int)uVar3) {
+  inv_t = *(float *)0x2533c8 / (t_per_distance * total_distance); }
+  if (0 < (int)point_count) {
     uVar8 = 1;
     inv_t = *(float *)0x2533c8 / t_per_distance;
     pfVar7 = (float *)0x456c3c;
-    loop_count = uVar3;
+    loop_count = point_count;
     do {
-      uVar6 = (uVar8 == uVar3) ? 0 : uVar8;
+      uVar6 = (uVar8 == point_count) ? 0 : uVar8;
       { float ddx = ((float *)0x456c3c)[uVar6 * 3] - pfVar7[0];
         float ddy = ((float *)0x456c40)[uVar6 * 3] - pfVar7[1];
         float ddz = ((float *)0x456c44)[uVar6 * 3] - pfVar7[2];
       total_distance += xbox_sqrtf(ddx * ddx + ddy * ddy + ddz * ddz); }
       t_value = total_distance / inv_t;
       csmemset(render_buf, 0, 0x110);
-      render_buf[0x16] = pfVar7[0];
-      render_buf[0x17] = pfVar7[1];
-      render_buf[0x18] = pfVar7[2] + *(float *)0x2533f0;
+      /* local_114/110/10c → buf[0x11/0x12/0x13]: current pos + z_offset */
+      render_buf[0x11] = pfVar7[0];
+      render_buf[0x12] = pfVar7[1];
+      render_buf[0x13] = pfVar7[2] + *(float *)0x2533f0;
+      /* local_158/154/150 → buf[0x00/0x01/0x02]: current pos raw */
       render_buf[0x00] = pfVar7[0];
       render_buf[0x01] = pfVar7[1];
       render_buf[0x02] = pfVar7[2];
       { float nx_x = ((float *)0x456c3c)[uVar6 * 3];
         float nx_y = ((float *)0x456c40)[uVar6 * 3];
         float nx_z = ((float *)0x456c44)[uVar6 * 3];
+      /* local_8c/88/84 → buf[0x33/0x34/0x35] */
+      render_buf[0x33] = nx_x;
+      render_buf[0x34] = nx_y;
+      render_buf[0x35] = nx_z;
+      /* local_d0/cc/c8 → buf[0x22/0x23/0x24]: next pos + z_offset */
       render_buf[0x22] = nx_x;
+      render_buf[0x24] = nx_z + *(float *)0x2533f0;
       render_buf[0x23] = nx_y;
-      render_buf[0x24] = nx_z;
-      render_buf[0x11] = nx_x;
-      render_buf[0x13] = nx_z + *(float *)0x2533f0;
-      render_buf[0x12] = nx_y;
-      dx = render_buf[0x11] - render_buf[0x16];
-      dy = render_buf[0x12] - render_buf[0x17];
-      cross_x = (render_buf[0x13] - render_buf[0x18]) * (render_buf[0x17] - render_buf[0x01]) -
-                dy * (render_buf[0x18] - render_buf[0x02]);
-      cross_y = dx * (render_buf[0x18] - render_buf[0x02]) -
-                (render_buf[0x13] - render_buf[0x18]) * (render_buf[0x16] - render_buf[0x00]);
-      cross_z = dy * (render_buf[0x16] - render_buf[0x00]) -
-                dx * (render_buf[0x17] - render_buf[0x01]); }
+      dx = render_buf[0x22] - render_buf[0x11];
+      dy = render_buf[0x23] - render_buf[0x12];
+      cross_x = (render_buf[0x24] - render_buf[0x13]) * (render_buf[0x12] - render_buf[0x01]) -
+                dy * (render_buf[0x13] - render_buf[0x02]);
+      cross_y = dx * (render_buf[0x13] - render_buf[0x02]) -
+                (render_buf[0x24] - render_buf[0x13]) * (render_buf[0x11] - render_buf[0x00]);
+      cross_z = dy * (render_buf[0x11] - render_buf[0x00]) -
+                dx * (render_buf[0x12] - render_buf[0x01]); }
       mag = xbox_sqrtf(cross_x * cross_x + cross_y * cross_y + cross_z * cross_z);
       if (*(float *)0x2533d0 <= (mag < 0 ? -mag : mag)) {
         fVar2 = *(float *)0x2533c8 / mag;
@@ -9044,29 +9050,36 @@ void FUN_000b2010(void)
         cross_y *= fVar2;
         cross_z *= fVar2;
       }
-      render_buf[0x0a] = t_accum * t_per_distance;
-      render_buf[0x1f] = cross_y;
-      render_buf[0x30] = cross_y;
-      render_buf[0x41] = cross_y;
-      render_buf[0x3a] = cross_y;
-      render_buf[0x28] = t_value * t_per_distance;
-      render_buf[0x20] = cross_x;
-      render_buf[0x31] = cross_x;
-      render_buf[0x42] = cross_x;
-      render_buf[0x3b] = cross_x;
-      render_buf[0x1e] = cross_z;
-      render_buf[0x2f] = cross_z;
-      render_buf[0x40] = cross_z;
-      render_buf[0x39] = cross_z;
+      /* local_128 → buf[0x0c]; local_a0 → buf[0x2e] */
+      render_buf[0x0c] = t_accum * t_per_distance;
+      /* cross_y → local_7c/c0/104/148 → buf[0x37/0x26/0x15/0x04] */
+      render_buf[0x37] = cross_y;
+      render_buf[0x26] = cross_y;
+      render_buf[0x15] = cross_y;
+      render_buf[0x04] = cross_y;
+      render_buf[0x2e] = t_value * t_per_distance;
+      /* cross_x → local_80/c4/108/14c → buf[0x36/0x25/0x14/0x03] */
+      render_buf[0x36] = cross_x;
+      render_buf[0x25] = cross_x;
+      render_buf[0x14] = cross_x;
+      render_buf[0x03] = cross_x;
+      /* cross_z → local_78/bc/100/144 → buf[0x38/0x27/0x16/0x05] */
+      render_buf[0x38] = cross_z;
+      render_buf[0x27] = cross_z;
+      render_buf[0x16] = cross_z;
+      render_buf[0x05] = cross_z;
       t_accum = t_value;
+      /* local_124 → buf[0x0d] = 1.0f */
       render_buf[0x0d] = 1.0f;
-      render_buf[0x38] = 0.2f;
-      render_buf[0x27] = 0.2f;
-      render_buf[0x16] = 1.0f;
-      render_buf[0x3c] = render_buf[0x28];
-      render_buf[0x3d] = render_buf[0x28];
+      /* local_e0 → buf[0x1e] = 0.2f; local_9c → buf[0x2f] = 0.2f */
+      render_buf[0x1e] = 0.2f;
+      render_buf[0x2f] = 0.2f;
+      /* local_58 → buf[0x40] = 1.0f */
       render_buf[0x40] = 1.0f;
-      FUN_000b1b30(render_buf, shader_tag, 0, 0, 0.0f, 0.0f);
+      /* local_e4 → buf[0x1d] = buf[0x0c]; local_5c → buf[0x3f] = buf[0x2e] */
+      render_buf[0x1d] = render_buf[0x0c];
+      render_buf[0x3f] = render_buf[0x2e];
+      FUN_000b1b30(render_buf, shader_tag, 0, 0, inv_t, 1.0f);
       pfVar7 += 3;
       uVar8++;
       loop_count--;
