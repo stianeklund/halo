@@ -23217,7 +23217,7 @@
         },
         {
           "addr": "0xe3a10",
-          "decl": "void terminal_output(void *color, const char *format, const char *text);",
+          "decl": "void terminal_output(void *color, const char *format, ...);",
           "ported": true
         },
         {
