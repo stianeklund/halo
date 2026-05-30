@@ -1,5 +1,6 @@
 {
   "functions": {
+    "0x13dd0": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
     "0x15bb0": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
     "0x21130": "void actor_combat_get_weapon_vector(int actor_handle @<eax>, float *weapon_vector @<ebx>);",
@@ -351,5 +352,6 @@
     }
   },
   "0x1194a0": "void datum_initialize(data_t *data@<esi>, void *datum@<edi>);",
-  "0x77720": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);"
+  "0x77720": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",
+  "0x13dd0": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);"
 }

@@ -7,6 +7,64 @@
 
 #include "../../common.h"
 
+/* FUN_00013dd0 (0x13dd0)
+ * Tests whether a clear collision path exists from source_pos to the actor's
+ * charge target. If actor->flag_0x484 is set, reads the target position from
+ * actor+0x120. If actor->flag_0x4a8 is set, estimates it via
+ * unit_estimate_position. Otherwise returns 0 (no target).
+ * Pushes collision user ID 5, fires a line test, then pops.
+ * Returns 1 always when a target exists; 0 when no valid target.
+ * Confirmed: @eax=actor_handle, @esi=source_pos (weapon_datum+0xc8 per call
+ * site at 0x141ec). PUSH EDX before call is an unused extra arg; callee never
+ * reads [EBP+8]. assert: c:\halo\SOURCE\ai\action_charge.c, 0x379/0x381. */
+int FUN_00013dd0(int actor_handle, float *source_pos)
+{
+  char *actor;
+  float target_pos[3];
+  float dir[3];
+  int16_t collision_result[40];
+  int depth;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0x484)) {
+    target_pos[0] = *(float *)(actor + 0x120);
+    target_pos[1] = *(float *)(actor + 0x124);
+    target_pos[2] = *(float *)(actor + 0x128);
+  } else if (*(char *)(actor + 0x4a8)) {
+    unit_estimate_position(*(int *)(actor + 0x18), 1,
+                           (vector3_t *)(actor + 0x4ac),
+                           NULL, NULL,
+                           (vector3_t *)target_pos);
+  } else {
+    return 0;
+  }
+
+  if (*(volatile int16_t *)0x4761d8 >= 0x20) {
+    display_assert(
+      "global_current_collision_user_depth < MAXIMUM_COLLISION_USER_STACK_DEPTH",
+      "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x379, 1);
+    system_exit(-1);
+  }
+  depth = (int)*(volatile int16_t *)0x4761d8;
+  *(int16_t *)(0x5a8c80 + depth * 2) = 5;
+  *(volatile int16_t *)0x4761d8 += 1;
+
+  dir[0] = source_pos[0] - target_pos[0];
+  dir[1] = source_pos[1] - target_pos[1];
+  dir[2] = source_pos[2] - target_pos[2];
+  FUN_0014df70(0x33, target_pos, dir, -1, collision_result);
+
+  if (*(volatile int16_t *)0x4761d8 <= 1) {
+    display_assert(
+      "global_current_collision_user_depth > 1",
+      "c:\\halo\\SOURCE\\ai\\action_charge.c", 0x381, 1);
+    system_exit(-1);
+  }
+  *(volatile int16_t *)0x4761d8 -= 1;
+
+  return 1;
+}
+
 /* FUN_000142a0 (0x142a0)
  * Conversation action initializer (action_converse.c, line 0x21).
  * Validates actor, looks up the conversation datum via 0x6324ec, fetches the
