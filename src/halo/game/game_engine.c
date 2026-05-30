@@ -6185,12 +6185,14 @@ int FUN_000ac030(int param_eax, int unused_arg1, void *out_buffer, int max_count
   int *src;
   int *dst;
   void *player;
-  char buffer[0x244];
-  char filtered_buf[0x1c8];
+  char buffer[0x1C0];
+  char filtered_buf[0x70];
 
   total = FUN_000abd20((int *)buffer, param_eax, 0);
   is_version_45 = (*(int16_t *)0x3256ea == 0x45);
-  (void)is_version_45;
+  if (is_version_45) {
+    terminal_output(*(void **)0x2ee6c4, "player_count=%d, maxcount=%d", total, max_count);
+  }
 
   if (total > 0) {
     src = (int *)buffer;
@@ -6215,8 +6217,10 @@ int FUN_000ac030(int param_eax, int unused_arg1, void *out_buffer, int max_count
     do {
       player = datum_get(player_data, (uint32_t)*src);
       if (player != NULL && *(int16_t *)((char *)player + 2) != -1) {
-        (void)is_version_45;
-        csmemcpy(dst, src, 0x1c);
+        if (is_version_45) {
+          terminal_output(*(void **)0x2ee6c4, "found local player");
+        }
+        memcpy(dst, src, 0x1c);
         filtered++;
         dst = (int *)((char *)dst + 0x1c);
       }
@@ -6248,7 +6252,7 @@ int FUN_000ac030(int param_eax, int unused_arg1, void *out_buffer, int max_count
         int shift_src_off = i * 0x1c;
         int shift_size = max_count * 0x1c - shift_src_off - 0x1c;
         csmemmove((char *)buffer + shift_src_off, (char *)buffer + shift_src_off + 0x1c, shift_size);
-        csmemcpy((int *)((char *)buffer + (max_count - 1) * 0x1c), dst, 0x1c);
+        memcpy((char *)buffer + (max_count - 1) * 0x1c, dst, 0x1c);
       }
     next_filtered:
       dst = (int *)((char *)dst + 0x1c);
@@ -9001,8 +9005,8 @@ void FUN_000b2010(void)
   { double floor_val = floor((double)(total_distance + *(float *)0x253398));
   t_accum = 0.0f;
   t_per_distance = (float)((double)*(float *)0x2573d8 / floor_val);
-  total_distance = 0.0f;
-  inv_t = *(float *)0x2533c8 / (t_per_distance * total_distance); }
+  inv_t = *(float *)0x2533c8 / (t_per_distance * total_distance);
+  total_distance = 0.0f; }
   if (0 < (int)point_count) {
     uVar8 = 1;
     inv_t = *(float *)0x2533c8 / t_per_distance;
