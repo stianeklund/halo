@@ -9000,7 +9000,7 @@ void FUN_000b2010(void)
     pfVar7 = (float *)0x456c44;
     uVar8 = point_count;
     do {
-      uVar5 = (uVar6 == point_count) ? 0 : uVar6;
+      uVar5 = ((uVar6 == point_count) - 1) & uVar6;
       uVar6++;
       uVar8--;
       { float ddx = ((float *)0x456c3c)[uVar5 * 3] - pfVar7[-2];
@@ -9010,10 +9010,11 @@ void FUN_000b2010(void)
       pfVar7 += 3;
     } while (uVar8 != 0);
   }
-  { double floor_val = floor((double)(total_distance + *(float *)0x253398));
+  { double fVar9 = floor((double)(total_distance + *(float *)0x253398));
+  double div_result = *(double *)0x2573d8 / fVar9;
   t_accum = 0.0f;
-  t_per_distance = (float)((double)*(float *)0x2573d8 / floor_val);
-  inv_t = *(float *)0x2533c8 / (t_per_distance * total_distance);
+  t_per_distance = (float)div_result;
+  inv_t = (float)((double)*(float *)0x2533c8 / (div_result * (double)total_distance));
   total_distance = 0.0f; }
   if (0 < (int)point_count) {
     uVar8 = 1;
@@ -9056,7 +9057,7 @@ void FUN_000b2010(void)
       cross_z = dy * (render_buf[0x11] - render_buf[0x00]) -
                 dx * (render_buf[0x12] - render_buf[0x01]); }
       mag = xbox_sqrtf(cross_x * cross_x + cross_y * cross_y + cross_z * cross_z);
-      if (*(float *)0x2533d0 <= (mag < 0 ? -mag : mag)) {
+      if (*(double *)0x2533d0 <= (mag < 0 ? -mag : mag)) {
         fVar2 = *(float *)0x2533c8 / mag;
         cross_x *= fVar2;
         cross_y *= fVar2;
