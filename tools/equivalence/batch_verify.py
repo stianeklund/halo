@@ -141,6 +141,39 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_targets(path: Path):
+    """Load an explicit target list restricting which candidates to verify.
+
+    Accepts a JSON array whose items are either strings (a function name or a
+    hex address like "0x1234") or objects with "addr"/"name" keys. Returns
+    (addr_rank, name_rank): maps from address-int / name to position in the
+    file, so candidates can be filtered to the list and run in its order
+    (used to drive low-VC71-first ordering).
+    """
+    raw = load_json(path)
+    items = raw.get("targets", raw) if isinstance(raw, dict) else raw
+    addr_rank: dict[int, int] = {}
+    name_rank: dict[str, int] = {}
+    for i, item in enumerate(items):
+        addr = name = None
+        if isinstance(item, str):
+            if item.lower().startswith("0x"):
+                addr = item
+            else:
+                name = item
+        elif isinstance(item, dict):
+            addr = item.get("addr")
+            name = item.get("name")
+        if addr:
+            try:
+                addr_rank.setdefault(int(addr, 16), i)
+            except ValueError:
+                pass
+        if name:
+            name_rank.setdefault(name, i)
+    return addr_rank, name_rank
+
+
 def load_allowlist(path: Path) -> dict[str, set[str]]:
     if not path:
         return {}
@@ -201,8 +234,14 @@ def summarize_by_object(rows: list[dict]) -> dict:
 
 
 def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
-               float_tolerance: int = 0, skip_esp: bool = False) -> dict:
-    """Run unicorn_diff on a single function. Returns structured result."""
+               float_tolerance: int = 0, skip_esp: bool = False,
+               update_leaf_cache: bool = False) -> dict:
+    """Run unicorn_diff on a single function. Returns structured result.
+
+    update_leaf_cache: when True, let unicorn_diff persist its class/confidence/
+    coverage to leaf_cache.json (the canonical store the dashboard reads). The
+    default keeps the regression-batch behavior of NOT touching the cache.
+    """
     result_json = output_dir / f"{name}.json"
     cmd = [
         sys.executable, str(ROOT / "tools" / "equivalence" / "unicorn_diff.py"),
@@ -212,8 +251,9 @@ def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
         "--allow-stubs",
         "--mem-trace",
         "--output-json", str(result_json),
-        "--no-leaf-cache",
     ]
+    if not update_leaf_cache:
+        cmd.append("--no-leaf-cache")
     if float_tolerance > 0:
         cmd.extend(["--float-tolerance", str(float_tolerance)])
     if skip_esp:
@@ -263,11 +303,36 @@ def main():
                         help="Skip functions that already have a result JSON in --output-dir")
     parser.add_argument("--discover", action="store_true",
                         help="Test all ported functions with delinked refs, not just leaf_cache entries")
+    parser.add_argument("--targets", type=Path, default=None,
+                        help="JSON list of function names/addresses to restrict to "
+                             "(runs in file order; implies --discover so uncached targets are included)")
+    parser.add_argument("--update-leaf-cache", action="store_true",
+                        help="Persist class/confidence/coverage to leaf_cache.json "
+                             "(the store the dashboard reads). Off by default.")
     args = parser.parse_args()
 
     classes = set(args.classes.split(","))
+    # An explicit target list may include uncached functions, so force discovery.
+    discover = args.discover or bool(args.targets)
     candidates = load_candidates(leaf_only=args.leaf_only, classes=classes,
-                                 discover=args.discover)
+                                 discover=discover)
+
+    if args.targets:
+        addr_rank, name_rank = load_targets(args.targets)
+
+        def _target_rank(c):
+            try:
+                ai = int(c["addr"], 16)
+            except ValueError:
+                ai = None
+            ranks = [r for r in (addr_rank.get(ai) if ai is not None else None,
+                                 name_rank.get(c["name"])) if r is not None]
+            return min(ranks) if ranks else None
+
+        # Keep only candidates named in the target list, in the list's order.
+        ranked = [(c, _target_rank(c)) for c in candidates]
+        candidates = [c for c, r in sorted(
+            (rc for rc in ranked if rc[1] is not None), key=lambda rc: rc[1])]
 
     if args.limit > 0:
         candidates = candidates[:args.limit]
@@ -383,7 +448,8 @@ def main():
 
             result = run_verify(name, output_dir, seeds=args.seeds, timeout=args.timeout,
                                 float_tolerance=args.float_tolerance,
-                                skip_esp=args.skip_esp)
+                                skip_esp=args.skip_esp,
+                                update_leaf_cache=args.update_leaf_cache)
             status = result.get("status", "error")
 
             if status == "pass":
