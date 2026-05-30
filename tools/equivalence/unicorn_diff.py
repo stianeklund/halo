@@ -1105,6 +1105,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              mem_trace: bool = False,
              state_snapshot: Optional[Path] = None,
              no_concolic: bool = False,
+             real_callees: bool = False,
              max_insn: int = None) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
@@ -1422,8 +1423,24 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         combined_stub_map.update(lft_stub_map)
         if combined_stub_map:
             stub_mgr = StubManager(KB_JSON, DELINKED_DIR)
-            n_prepared = stub_mgr.prepare_stubs(combined_stub_map)
+            # Allocate callee globals slots past the caller's own oracle+lifted
+            # slots so they never overlap.
+            callee_globals_base = lft_globals_base + len(lft_data_slots) * 256
+            n_prepared = stub_mgr.prepare_stubs(
+                combined_stub_map,
+                globals_base=callee_globals_base,
+                shared_sentinels=shared_stub_sentinels,
+                real_callees=real_callees)
             info(f"  stubs prepared: {n_prepared}/{len(combined_stub_map)}")
+            if real_callees and stub_mgr._callee_dir32_slots:
+                # Seed the globals the loaded callee code reads (DAT_ -> snapshot
+                # / known_globals), same path as the caller's own globals.
+                globals_seeds.update(_build_globals_seeds(
+                    stub_mgr._callee_dir32_slots,
+                    snapshot_overrides=snapshot_overrides))
+                globals_seeds.update(stub_mgr._extra_rdata_seeds)
+                info(f"  real callees: {stub_mgr._real_code_count} loaded, "
+                     f"{len(stub_mgr._callee_dir32_slots)} callee globals seeded")
             stub_manager = stub_mgr
             use_stubs = True
 
@@ -2061,7 +2078,12 @@ def main():
                         help="Load state snapshot JSON for memory initialization (replaces zero-fill)")
     parser.add_argument("--no-concolic", action="store_true",
                         help="Disable automatic concolic Phase 2 when coverage is low")
+    parser.add_argument("--real-callees", action="store_true",
+                        help="Run callees as native oracle code (loops iterate over "
+                             "snapshot data) instead of return-0 stubs. Implies --allow-stubs.")
     args = parser.parse_args()
+    if args.real_callees:
+        args.allow_stubs = True
 
     if args.batch_classify:
         sys.exit(_run_batch_classify())
@@ -2098,6 +2120,7 @@ def main():
         mem_trace=args.mem_trace,
         state_snapshot=args.state_snapshot,
         no_concolic=args.no_concolic,
+        real_callees=args.real_callees,
         max_insn=args.max_insn,
     ))
 
