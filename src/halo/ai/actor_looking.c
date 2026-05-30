@@ -161,11 +161,11 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
       random_math_real((unsigned int *)get_global_random_seed_address());
     is_secondary = (char)(rand_val < *(float *)(actr_tag + 0x390));
     *(char *)((char *)charge_state + 0xa) = is_secondary;
-    if (*(float *)(actr_tag + 0x384) <= *(float *)(encounter + 0x11c)) {
+    if (*(float *)(encounter + 0x11c) < *(float *)(actr_tag + 0x384)) {
+      is_secondary = 0;
+    } else {
       if (is_secondary)
         action_type = 3;
-    } else {
-      is_secondary = 0;
     }
   } else {
     *(char *)((char *)charge_state + 0xa) = 1;
