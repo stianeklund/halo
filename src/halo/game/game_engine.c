@@ -8016,7 +8016,7 @@ void FUN_000a84f0(int text, int color, int16_t row_index)
   *(int16_t *)rect = row_index * 0x12;
   *(int16_t *)((char *)rect + 4) = row_index * 0x12 + 0x1a;
   draw_string_set_style_justify_flags(-1, (short)color, 0);
-  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, text);
+  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
 }
 
 /* Render nav points for the active game engine (a9480). */
@@ -8329,7 +8329,7 @@ void game_engine_rasterize_message(int text, float alpha)
   *(int16_t *)rect = y_pos - 0xf;
   draw_string_set_font(font_tag, -1, 2, 8, (const void *)color);
   draw_string_set_color(color);
-  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, text);
+  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
   draw_string_set_style_justify_flags(-1, 0, 0);
   draw_string_set_tab_stops(0, 0);
 }
@@ -8388,7 +8388,7 @@ void FUN_000ab090(int text, char highlight, int row, int state)
     *(int16_t *)rect = row_top;
     *(int16_t *)((char *)rect + 4) = row_top + char_height;
     draw_string_set_font(font_tag, -1, 0, 0, NULL);
-    rasterizer_draw_string((int16_t *)rect, 0, 0, 0, text);
+    rasterizer_draw_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
   }
   draw_string_set_tab_stops(0, 0);
 }
@@ -8618,6 +8618,459 @@ void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3, int16_t game_ty
       }
       i++;
     } while ((int)i < *flag_block);
+  }
+}
+
+/* Post-game scoreboard renderer (aebd0). */
+void game_engine_post_rasterize_post_game(void)
+{
+  int iVar5;
+  int iVar6;
+  int player_count;
+  int row;
+  int team_idx;
+  int player;
+  uint32_t player_handle;
+  uint32_t *entry;
+  void *puVar9;
+  char local_670[24];
+  uint32_t local_658[106];
+  wchar_t local_4b0[256];
+  wchar_t local_2b0[256];
+  float local_b0[16];
+  int16_t tab_stops[6];
+  float color[4];
+  int16_t rect[4];
+  int16_t rect2[4];
+  int16_t team_tabs[6];
+  wchar_t *team_fmts[2];
+  int team_order[2];
+
+  if (*(int *)0x456b60 == 0)
+    return;
+
+  tab_stops[0] = 0x32;
+  tab_stops[1] = 0x7d;
+  tab_stops[2] = 0xfa;
+  tab_stops[3] = 0x15e;
+  tab_stops[4] = 0x19a;
+  tab_stops[5] = 500;
+  color[1] = 0.459f;
+  color[2] = 0.729f;
+  color[3] = 1.0f;
+  color[0] = 1.0f;
+  local_b0[9] = 1.0f;
+  local_b0[10] = 1.0f;
+  local_b0[11] = 0.0f;
+  local_b0[8] = 1.0f;
+  local_b0[13] = 0.98f;
+  local_b0[14] = 0.96f;
+  local_b0[15] = 0.96f;
+  local_b0[12] = 1.0f;
+  draw_string_set_font(*(int *)(*(int *)0x46bd0c + 0x54), -1, 2, 8, color);
+  draw_string_set_color(color);
+  draw_string_set_style_justify_flags(-1, 0, 0);
+  iVar5 = interface_get_tag_index(6);
+  iVar6 = (int)tag_get(0x68756467, iVar5);
+  rect[0] = 0;
+  rect[1] = 0;
+  rect[2] = 640;
+  rect[3] = 480;
+  iVar5 = (int)FUN_00076ff0(*(int *)(iVar6 + 0x3d4), 0);
+  if (iVar5 != 0) {
+    draw_bitmap_in_rect(FUN_00076ff0(*(int *)(iVar6 + 0x3d4), 0));
+  }
+  if (*(char *)0x456b14 != 0) {
+    team_tabs[0] = 0x32;
+    team_tabs[1] = 200;
+    team_tabs[2] = 0x12c;
+    team_tabs[3] = 0x15e;
+    team_tabs[4] = 0x19a;
+    team_tabs[5] = 500;
+    team_order[0] = 0;
+    team_order[1] = 1;
+    team_fmts[0] = L"\tRed Team\t%s";
+    team_fmts[1] = L"\tBlue Team\t%s";
+    iVar5 = FUN_000ae340(0);
+    if (iVar5 == 0) {
+      team_order[0] = 1;
+      team_order[1] = 0;
+    }
+    draw_string_set_tab_stops(team_tabs, 6);
+    team_idx = 0;
+    do {
+      { int idx = team_order[team_idx];
+      (*(void (**)(int, wchar_t *))(*(int *)0x456b60 + 0x54))(idx, local_4b0);
+      usprintf(local_2b0, team_fmts[idx], local_4b0);
+      FUN_000a84f0((int)local_2b0, 0, (int16_t)(team_idx + 4)); }
+      team_idx++;
+    } while (team_idx < 2);
+  }
+  (*(void (**)(wchar_t *))(*(int *)0x456b60 + 0x50))(local_4b0);
+  usprintf(local_2b0, L"\t%s\t%s\t%s\t%s\t%s\t%s", L"Place", L"Name", local_4b0,
+           L"Kills", L"Assists", L"Deaths");
+  draw_string_set_tab_stops(tab_stops, 6);
+  FUN_000a84f0((int)local_2b0, 0, 7);
+  player_count = FUN_000ac030(0, -1, local_670, 12);
+  if (0 < player_count) {
+    entry = local_658;
+    row = 8;
+    do {
+      player_handle = entry[-6];
+      player = (int)datum_get(player_data, player_handle);
+      if (*(int16_t *)(player + 2) == -1)
+        puVar9 = color;
+      else
+        puVar9 = &local_b0[8];
+      draw_string_set_color(puVar9);
+      draw_string_set_tab_stops(tab_stops, 6);
+      usprintf(local_2b0, L" \t%s", *(wchar_t **)(0x2efe28 + (*entry & 0x7f) * 4));
+      { int16_t sy = (int16_t)row * 0x12;
+        int16_t ey = (int16_t)row * 0x12 + 0x1a;
+      rect2[0] = *(int16_t *)0x506584;
+      rect2[1] = *(int16_t *)0x506586;
+      rect2[2] = *(int16_t *)0x506588;
+      rect2[3] = *(int16_t *)0x50658a;
+      rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+      rect2[0] = sy;
+      rect2[2] = ey;
+      draw_string_set_style_justify_flags(-1, 0, 0);
+      rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)local_2b0);
+      draw_string_set_color(color);
+
+      if (*(char *)0x456b14 != 0) {
+        iVar5 = *(int *)(player + 0x20);
+        local_b0[1] = 0.8f;
+        local_b0[2] = 0.4f;
+        local_b0[3] = 0.4f;
+        local_b0[0] = 1.0f;
+        local_b0[5] = 0.4f;
+        local_b0[6] = 0.4f;
+        local_b0[7] = 0.8f;
+        local_b0[4] = 1.0f;
+        if (iVar5 < 0)
+          iVar5 = 0;
+        else if (1 < iVar5)
+          iVar5 = 1;
+        draw_string_set_color(&local_b0[iVar5 * 4]);
+      }
+      usprintf(local_2b0, L" \t \t%s", (wchar_t *)(player + 4));
+      rect2[0] = *(int16_t *)0x506584;
+      rect2[1] = *(int16_t *)0x506586;
+      rect2[2] = *(int16_t *)0x506588;
+      rect2[3] = *(int16_t *)0x50658a;
+      rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+      rect2[0] = sy;
+      rect2[2] = ey;
+      draw_string_set_style_justify_flags(-1, 0, 0);
+      rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)local_2b0);
+      draw_string_set_color(color);
+
+      iVar5 = FUN_000abfd0(player_handle, 1, 0);
+      if (iVar5 == 0)
+        draw_string_set_color(&local_b0[12]);
+      (*(void (**)(uint32_t, wchar_t *))(*(int *)0x456b60 + 0x4c))(player_handle, local_4b0);
+      usprintf(local_2b0, L" \t \t \t%s", local_4b0);
+      rect2[0] = *(int16_t *)0x506584;
+      rect2[1] = *(int16_t *)0x506586;
+      rect2[2] = *(int16_t *)0x506588;
+      rect2[3] = *(int16_t *)0x50658a;
+      rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+      rect2[0] = sy;
+      rect2[2] = ey;
+      draw_string_set_style_justify_flags(-1, 0, 0);
+      rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)local_2b0);
+      draw_string_set_color(color);
+
+      iVar5 = FUN_000abfd0(player_handle, 2, 0);
+      if (iVar5 == 0)
+        draw_string_set_color(&local_b0[12]);
+      usprintf(local_2b0, L" \t \t \t \t%d", (int)*(int16_t *)(player + 0x98));
+      rect2[0] = *(int16_t *)0x506584;
+      rect2[1] = *(int16_t *)0x506586;
+      rect2[2] = *(int16_t *)0x506588;
+      rect2[3] = *(int16_t *)0x50658a;
+      rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+      rect2[0] = sy;
+      rect2[2] = ey;
+      draw_string_set_style_justify_flags(-1, 0, 0);
+      rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)local_2b0);
+      draw_string_set_color(color);
+
+      iVar5 = FUN_000abfd0(player_handle, 3, 0);
+      if (iVar5 == 0)
+        draw_string_set_color(&local_b0[12]);
+      usprintf(local_2b0, L" \t \t \t \t \t%d", (int)*(int16_t *)(player + 0xa0));
+      rect2[0] = *(int16_t *)0x506584;
+      rect2[1] = *(int16_t *)0x506586;
+      rect2[2] = *(int16_t *)0x506588;
+      rect2[3] = *(int16_t *)0x50658a;
+      rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+      rect2[0] = sy;
+      rect2[2] = ey;
+      draw_string_set_style_justify_flags(-1, 0, 0);
+      rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)local_2b0);
+      draw_string_set_color(color);
+
+      iVar5 = FUN_000abfd0(player_handle, 4, 0);
+      if (iVar5 == 0)
+        draw_string_set_color(&local_b0[12]);
+      usprintf(local_2b0, L" \t \t \t \t \t \t%d", (int)*(int16_t *)(player + 0xaa));
+      rect2[0] = *(int16_t *)0x506584;
+      rect2[1] = *(int16_t *)0x506586;
+      rect2[2] = *(int16_t *)0x506588;
+      rect2[3] = *(int16_t *)0x50658a;
+      rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+      rect2[0] = sy;
+      rect2[2] = ey;
+      draw_string_set_style_justify_flags(-1, 0, 0);
+      rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)local_2b0);
+      draw_string_set_tab_stops(tab_stops, 6); }
+      entry += 7;
+      player_count--;
+      row++;
+    } while (player_count != 0);
+  }
+  { float bottom_color[4];
+  bottom_color[3] = color[3];
+  bottom_color[2] = color[2];
+  bottom_color[1] = color[1];
+  bottom_color[0] = *(float *)0x5aa72c;
+  rect2[0] = *(int16_t *)0x506584;
+  rect2[1] = 0x19a;
+  rect2[2] = *(int16_t *)0x506588;
+  rect2[3] = 0x46;
+  rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+  draw_string_set_tab_stops(0, 0);
+  draw_string_set_color(bottom_color);
+  iVar5 = (int)network_game_server_get();
+  if (iVar5 != 0) {
+    rect2[2] = 0x17c;
+    draw_string_and_hack_in_icons(rect2, 0, 0, 0, L"\t%b-button =quit    %a-button =pick game", 0);
+    return;
+  }
+  rect2[2] = 0x208;
+  draw_string_and_hack_in_icons(rect2, 0, 0, 0, L"\t%b-button =quit", 0); }
+}
+
+/* Render a 3D nav marker sprite (b1b30). */
+void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
+                  float param_5, float param_6)
+{
+  int iVar2;
+  int iVar4;
+  int iVar5;
+  int16_t *puVar3;
+  void *puVar6;
+  char render_state[0xcc];
+  float centroid[3];
+  int local_c;
+  int local_8;
+
+  *(int16_t *)0x325652 = 9;
+  iVar2 = rasterizer_widget_submit(2);
+  local_8 = rasterizer_widget_set_zbuffer_enable(5, 4);
+  if (iVar2 == -1 || local_8 == -1) {
+    *(int16_t *)0x325652 = 0;
+    return;
+  }
+  local_c = rasterizer_widget_draw_sprite3d(local_8);
+  puVar3 = (int16_t *)rasterizer_widget_begin(iVar2);
+  FUN_00180d10(4, 4, local_c, 0x80, param_1, 0x110);
+  puVar3[0] = 0;
+  puVar3[1] = 1;
+  puVar3[2] = 2;
+  puVar3[3] = 2;
+  puVar3[4] = 3;
+  puVar3[5] = 0;
+  rasterizer_widget_set_texture(iVar2);
+  rasterizer_widget_end(local_8);
+  iVar4 = (int)tag_get(0x73686472, param_2);
+  centroid[0] = (param_1[0x33] + param_1[0x22] + param_1[0x11] + param_1[0]) * *(float *)0x25337c;
+  centroid[1] = (param_1[0x34] + param_1[0x23] + param_1[0x12] + param_1[1]) * *(float *)0x25337c;
+  centroid[2] = (param_1[0x35] + param_1[0x24] + param_1[0x13] + param_1[2]) * *(float *)0x25337c;
+  local_c = iVar4;
+  csmemset(render_state, 0, 0xcc);
+  *(int *)(render_state + 4) = 1;
+  *(int16_t *)(render_state + 0xc) = 1;
+  *(void **)(render_state + 8) = *(void **)0x31fc60;
+  if (param_3 == NULL) {
+    *(int *)(render_state + 0x10) = *(int *)(*(int *)0x2ee708);
+    *(int *)(render_state + 0x14) = *(int *)(*(int *)0x2ee708 + 4);
+    *(int *)(render_state + 0x18) = *(int *)(*(int *)0x2ee708 + 8);
+    *(int16_t *)(render_state + 0x1c) = 0;
+    *(int16_t *)(render_state + 0x50) = 0;
+    *(int *)(render_state + 0x5c) = *(int *)(*(int *)0x2ee6c4);
+    *(int *)(render_state + 0x60) = *(int *)(*(int *)0x2ee6c4 + 4);
+    *(int *)(render_state + 0x64) = *(int *)(*(int *)0x2ee6c4 + 8);
+    *(int *)(render_state + 0x68) = *(int *)(*(int *)0x2ee6c4 + 0xc);
+    *(int *)(render_state + 0x6c) = 0;
+    *(int *)(render_state + 0x70) = 0x3f800000;
+    *(int *)(render_state + 0x74) = 0;
+    *(int *)(render_state + 0x78) = *(int *)(*(int *)0x2ee710);
+    *(int *)(render_state + 0x7c) = *(int *)(*(int *)0x2ee710 + 4);
+    *(int *)(render_state + 0x80) = *(int *)(*(int *)0x2ee710 + 8);
+  } else {
+    puVar6 = render_state + 0x10;
+    iVar5 = 0x1d;
+    do {
+      *(int *)puVar6 = *(int *)param_3;
+      param_3 = (char *)param_3 + 4;
+      puVar6 = (char *)puVar6 + 4;
+      iVar5--;
+    } while (iVar5 != 0);
+    iVar4 = local_c;
+  }
+  if (param_4 == NULL) {
+    *(void **)(render_state + 0x84) = (void *)0x5aa6e0;
+    *(void **)(render_state + 0x88) = (void *)0x5aa710;
+  } else {
+    *(int *)(render_state + 0x84) = *(int *)param_4;
+    *(int *)(render_state + 0x88) = *((int *)param_4 + 1);
+  }
+  *(float *)(render_state + 0xb4) = centroid[0];
+  *(float *)(render_state + 0xb8) = centroid[1];
+  *(float *)(render_state + 0xbc) = centroid[2];
+  *(float *)(render_state + 0xc4) = param_5;
+  *(float *)(render_state + 0xc8) = param_6;
+  rasterizer_psuedo_dynamic_screen_quad_draw(0);
+  FUN_0017d1a0(0);
+  FUN_0017cbb0(render_state, 1);
+  { char is_transparent = shader_type_is_transparent(*(int16_t *)(iVar4 + 0x24));
+  if (is_transparent == 0)
+    FUN_0017cbc0(iVar4, 0, 0, iVar2, 2, 0, local_8);
+  else
+    FUN_0017cbd0(iVar4, 0, 0, iVar2, 2, 0, local_8, centroid, 0); }
+  FUN_0016b1c0();
+  FUN_0016b240();
+  rasterizer_psuedo_dynamic_screen_quad_draw(1);
+  rasterizer_widget_set_tint_factor(iVar2);
+  rasterizer_widget_submit_occlusion_test(local_8);
+  *(int16_t *)0x325652 = 0;
+}
+
+/* Render race path 3D markers along waypoint segments (b2010). */
+void FUN_000b2010(void)
+{
+  int iVar4;
+  uint32_t uVar3;
+  uint32_t uVar5;
+  uint32_t uVar6;
+  uint32_t uVar8;
+  float *pfVar7;
+  float fVar2;
+  float total_distance;
+  float t_per_distance;
+  float inv_t;
+  float t_accum;
+  float t_value;
+  float dx;
+  float dy;
+  float cross_x;
+  float cross_y;
+  float cross_z;
+  float mag;
+  int shader_tag;
+  float render_buf[0x44];
+  uint32_t loop_count;
+
+  global_scenario_get();
+  iVar4 = (int)game_globals_get();
+  iVar4 = (int)tag_block_get_element((int *)(iVar4 + 0x164), 0, 0xa0);
+  uVar3 = *(uint32_t *)0x456c38;
+  total_distance = *(float *)0x2533c0;
+  shader_tag = *(int *)(iVar4 + 0x38);
+  if (0 < (int)uVar3) {
+    uVar6 = 1;
+    pfVar7 = (float *)0x456c44;
+    uVar8 = uVar3;
+    do {
+      uVar5 = (uVar6 == uVar3) ? 0 : uVar6;
+      uVar6++;
+      uVar8--;
+      { float ddx = ((float *)0x456c3c)[uVar5 * 3] - pfVar7[-2];
+        float ddy = ((float *)0x456c40)[uVar5 * 3] - pfVar7[-1];
+        float ddz = ((float *)0x456c44)[uVar5 * 3] - *pfVar7;
+      total_distance += xbox_sqrtf(ddx * ddx + ddy * ddy + ddz * ddz); }
+      pfVar7 += 3;
+    } while (uVar8 != 0);
+  }
+  { double floor_val = (double)(int)(total_distance + *(float *)0x253398);
+  t_accum = 0.0f;
+  t_per_distance = (float)((double)*(float *)0x2573d8 / floor_val);
+  total_distance = 0.0f;
+  inv_t = *(float *)0x2533c8 / (t_per_distance * total_distance);
+  (void)inv_t; }
+  if (0 < (int)uVar3) {
+    uVar8 = 1;
+    inv_t = *(float *)0x2533c8 / t_per_distance;
+    pfVar7 = (float *)0x456c3c;
+    loop_count = uVar3;
+    do {
+      uVar6 = (uVar8 == uVar3) ? 0 : uVar8;
+      { float ddx = ((float *)0x456c3c)[uVar6 * 3] - pfVar7[0];
+        float ddy = ((float *)0x456c40)[uVar6 * 3] - pfVar7[1];
+        float ddz = ((float *)0x456c44)[uVar6 * 3] - pfVar7[2];
+      total_distance += xbox_sqrtf(ddx * ddx + ddy * ddy + ddz * ddz); }
+      t_value = total_distance / inv_t;
+      csmemset(render_buf, 0, 0x110);
+      render_buf[0x16] = pfVar7[0];
+      render_buf[0x17] = pfVar7[1];
+      render_buf[0x18] = pfVar7[2] + *(float *)0x2533f0;
+      render_buf[0x00] = pfVar7[0];
+      render_buf[0x01] = pfVar7[1];
+      render_buf[0x02] = pfVar7[2];
+      { float nx_x = ((float *)0x456c3c)[uVar6 * 3];
+        float nx_y = ((float *)0x456c40)[uVar6 * 3];
+        float nx_z = ((float *)0x456c44)[uVar6 * 3];
+      render_buf[0x22] = nx_x;
+      render_buf[0x23] = nx_y;
+      render_buf[0x24] = nx_z;
+      render_buf[0x11] = nx_x;
+      render_buf[0x13] = nx_z + *(float *)0x2533f0;
+      render_buf[0x12] = nx_y;
+      dx = render_buf[0x11] - render_buf[0x16];
+      dy = render_buf[0x12] - render_buf[0x17];
+      cross_x = (render_buf[0x13] - render_buf[0x18]) * (render_buf[0x17] - render_buf[0x01]) -
+                dy * (render_buf[0x18] - render_buf[0x02]);
+      cross_y = dx * (render_buf[0x18] - render_buf[0x02]) -
+                (render_buf[0x13] - render_buf[0x18]) * (render_buf[0x16] - render_buf[0x00]);
+      cross_z = dy * (render_buf[0x16] - render_buf[0x00]) -
+                dx * (render_buf[0x17] - render_buf[0x01]); }
+      mag = xbox_sqrtf(cross_x * cross_x + cross_y * cross_y + cross_z * cross_z);
+      if (*(float *)0x2533d0 <= (mag < 0 ? -mag : mag)) {
+        fVar2 = *(float *)0x2533c8 / mag;
+        cross_x *= fVar2;
+        cross_y *= fVar2;
+        cross_z *= fVar2;
+      }
+      render_buf[0x0a] = t_accum * t_per_distance;
+      render_buf[0x1f] = cross_y;
+      render_buf[0x30] = cross_y;
+      render_buf[0x41] = cross_y;
+      render_buf[0x3a] = cross_y;
+      render_buf[0x28] = t_value * t_per_distance;
+      render_buf[0x20] = cross_x;
+      render_buf[0x31] = cross_x;
+      render_buf[0x42] = cross_x;
+      render_buf[0x3b] = cross_x;
+      render_buf[0x1e] = cross_z;
+      render_buf[0x2f] = cross_z;
+      render_buf[0x40] = cross_z;
+      render_buf[0x39] = cross_z;
+      t_accum = t_value;
+      render_buf[0x0d] = 1.0f;
+      render_buf[0x38] = 0.2f;
+      render_buf[0x27] = 0.2f;
+      render_buf[0x16] = 1.0f;
+      render_buf[0x3c] = render_buf[0x28];
+      render_buf[0x3d] = render_buf[0x28];
+      render_buf[0x40] = 1.0f;
+      FUN_000b1b30(render_buf, shader_tag, 0, 0, 0.0f, 0.0f);
+      pfVar7 += 3;
+      uVar8++;
+      loop_count--;
+    } while (loop_count != 0);
   }
 }
 

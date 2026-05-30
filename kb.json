@@ -6136,17 +6136,17 @@
         },
         {
           "addr": "0x17cbb0",
-          "decl": "void FUN_0017cbb0(void);",
+          "decl": "void FUN_0017cbb0(void *param_1, int param_2);",
           "ported": true
         },
         {
           "addr": "0x17cbc0",
-          "decl": "void FUN_0017cbc0(void);",
+          "decl": "void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle);",
           "ported": true
         },
         {
           "addr": "0x17cbd0",
-          "decl": "void FUN_0017cbd0(void);",
+          "decl": "void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, int p9);",
           "ported": true
         },
         {
@@ -8635,7 +8635,8 @@
         },
         {
           "addr": "0xaebd0",
-          "decl": "void game_engine_post_rasterize_post_game(void);"
+          "decl": "void game_engine_post_rasterize_post_game(void);",
+          "ported": true
         },
         {
           "addr": "0xaf370",
@@ -8845,7 +8846,8 @@
         },
         {
           "addr": "0xb1b30",
-          "decl": "void FUN_000b1b30(void);"
+          "decl": "void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4, float param_5, float param_6);",
+          "ported": true
         },
         {
           "addr": "0xb1de0",
@@ -8882,7 +8884,8 @@
         },
         {
           "addr": "0xb2010",
-          "decl": "void FUN_000b2010(void);"
+          "decl": "void FUN_000b2010(void);",
+          "ported": true
         },
         {
           "addr": "0xb23b0",
@@ -18580,27 +18583,27 @@
         },
         {
           "addr": "0x17c960",
-          "decl": "void rasterizer_psuedo_dynamic_screen_quad_draw(void);"
+          "decl": "void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1);"
         },
         {
           "addr": "0x17c970",
-          "decl": "void rasterizer_widget_submit(void);"
+          "decl": "int rasterizer_widget_submit(int mode);"
         },
         {
           "addr": "0x17c980",
-          "decl": "void rasterizer_widget_begin(void);"
+          "decl": "void *rasterizer_widget_begin(int handle);"
         },
         {
           "addr": "0x17c990",
-          "decl": "void rasterizer_widget_set_texture(void);"
+          "decl": "void rasterizer_widget_set_texture(int handle);"
         },
         {
           "addr": "0x17c9a0",
-          "decl": "void rasterizer_widget_set_tint_factor(void);"
+          "decl": "void rasterizer_widget_set_tint_factor(int handle);"
         },
         {
           "addr": "0x17c9b0",
-          "decl": "void rasterizer_widget_set_zbuffer_enable(void);"
+          "decl": "int rasterizer_widget_set_zbuffer_enable(int param_1, int param_2);"
         },
         {
           "addr": "0x17c9c0",
@@ -18608,15 +18611,15 @@
         },
         {
           "addr": "0x17c9d0",
-          "decl": "void rasterizer_widget_draw_sprite3d(void);"
+          "decl": "int rasterizer_widget_draw_sprite3d(int zbuf_result);"
         },
         {
           "addr": "0x17c9e0",
-          "decl": "void rasterizer_widget_end(void);"
+          "decl": "void rasterizer_widget_end(int handle);"
         },
         {
           "addr": "0x17c9f0",
-          "decl": "void rasterizer_widget_submit_occlusion_test(void);"
+          "decl": "void rasterizer_widget_submit_occlusion_test(int handle);"
         },
         {
           "addr": "0x17ca00",
@@ -21069,7 +21072,7 @@
         },
         {
           "addr": "0x1909d0",
-          "decl": "void shader_type_is_transparent(void);"
+          "decl": "char shader_type_is_transparent(int16_t shader_type);"
         },
         {
           "addr": "0x1909f0",
@@ -23631,7 +23634,7 @@
         },
         {
           "addr": "0xe3e80",
-          "decl": "void draw_bitmap_in_rect(void);"
+          "decl": "void draw_bitmap_in_rect(void *bitmap_data);"
         },
         {
           "addr": "0xe4310",
@@ -23843,7 +23846,7 @@
         },
         {
           "addr": "0xe5de0",
-          "decl": "void draw_string_and_hack_in_icons(void);"
+          "decl": "void draw_string_and_hack_in_icons(void *rect, int param_2, int param_3, int param_4, wchar_t *text, int param_6);"
         },
         {
           "addr": "0xe6140",
@@ -26491,7 +26494,7 @@
         },
         {
           "addr": "0x180d10",
-          "decl": "void FUN_00180d10(void);"
+          "decl": "void FUN_00180d10(int p1, int p2, int p3, int p4, float *p5, int p6);"
         },
         {
           "addr": "0x181020",
@@ -26659,7 +26662,7 @@
         },
         {
           "addr": "0x184060",
-          "decl": "void rasterizer_draw_string(int16_t *rect, int p2, int p3, int p4, int text);"
+          "decl": "void rasterizer_draw_string(void *rect, int param_2, int param_3, int param_4, wchar_t *text);"
         },
         {
           "addr": "0x184260",
@@ -26996,7 +26999,7 @@
         },
         {
           "addr": "0x17d1a0",
-          "decl": "void FUN_0017d1a0(void);"
+          "decl": "void FUN_0017d1a0(int param_1);"
         },
         {
           "addr": "0x17d2b0",
