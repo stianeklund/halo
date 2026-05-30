@@ -6170,6 +6170,99 @@ int FUN_000abfd0(int param_1, int param_2, int param_3)
   return place;
 }
 
+/* Build sorted player list for scoreboard display (ac030).
+ * Fills out_buffer with up to max_count player entries (0x1c bytes each),
+ * sorted by score. Returns the actual count written. */
+int FUN_000ac030(int param_eax, int unused_arg1, void *out_buffer, int max_count)
+{
+  int total;
+  int filtered;
+  int remaining;
+  int i;
+  int j;
+  int result;
+  char is_version_45;
+  int *src;
+  int *dst;
+  void *player;
+  char buffer[0x244];
+  char filtered_buf[0x1c8];
+
+  total = FUN_000abd20((int *)buffer, param_eax, 0);
+  is_version_45 = (*(int16_t *)0x3256ea == 0x45);
+  (void)is_version_45;
+
+  if (total > 0) {
+    src = (int *)buffer;
+    i = total;
+    do {
+      datum_get(player_data, (uint32_t)*src);
+      src = (int *)((char *)src + 0x1c);
+      i--;
+    } while (i != 0);
+  }
+
+  if (max_count >= total) {
+    result = total;
+    goto copy_out;
+  }
+
+  filtered = 0;
+  if (max_count < total) {
+    src = (int *)((char *)buffer + max_count * 0x1c);
+    dst = (int *)filtered_buf;
+    remaining = total - max_count;
+    do {
+      player = datum_get(player_data, (uint32_t)*src);
+      if (player != NULL && *(int16_t *)((char *)player + 2) != -1) {
+        (void)is_version_45;
+        csmemcpy(dst, src, 0x1c);
+        filtered++;
+        dst = (int *)((char *)dst + 0x1c);
+      }
+      src = (int *)((char *)src + 0x1c);
+      remaining--;
+    } while (remaining != 0);
+  }
+
+  if (filtered > 0) {
+    j = max_count - 1;
+    dst = (int *)filtered_buf;
+    remaining = filtered;
+    do {
+      if (j >= 0) {
+        i = j;
+        src = (int *)((char *)buffer + j * 0x1c);
+        do {
+          player = datum_get(player_data, (uint32_t)*src);
+          if (*(int16_t *)((char *)player + 2) == -1)
+            goto found_insert;
+          i--;
+          src = (int *)((char *)src - 0x1c);
+        } while (i >= 0);
+      }
+      goto next_filtered;
+
+    found_insert:
+      {
+        int shift_src_off = i * 0x1c;
+        int shift_size = max_count * 0x1c - shift_src_off - 0x1c;
+        csmemmove((char *)buffer + shift_src_off, (char *)buffer + shift_src_off + 0x1c, shift_size);
+        csmemcpy((int *)((char *)buffer + (max_count - 1) * 0x1c), dst, 0x1c);
+      }
+    next_filtered:
+      dst = (int *)((char *)dst + 0x1c);
+      remaining--;
+    } while (remaining != 0);
+  }
+
+  result = (max_count > total) ? total : max_count;
+
+copy_out:
+  csmemcpy(out_buffer, buffer, result * 0x1c);
+  return (max_count > total) ? total : max_count;
+}
+
 /* Spawn weapon equipment at scenario netgame equipment locations (ad2b0). */
 void FUN_000ad2b0(int param_1, int *param_2, int *param_3)
 {
@@ -6192,7 +6285,7 @@ void FUN_000ad2b0(int param_1, int *param_2, int *param_3)
       flag = (int)tag_block_get_element(flag_block, i, 0xcc);
       variant_type = -1;
       if (current_game_engine)
-        variant_type = *(int *)(current_game_engine + 4);
+        variant_type = *(int *)((char *)current_game_engine + 4);
       if (match_game_type(variant_type, 4, (int16_t *)(flag + 4)))
         break;
       i++;
@@ -6769,7 +6862,7 @@ float game_engine_get_starting_location_rating(int param_1, int param_2)
 
   variant_type = -1;
   if (current_game_engine)
-    variant_type = *(int *)(current_game_engine + 4);
+    variant_type = *(int *)((char *)current_game_engine + 4);
   if (!match_game_type(variant_type, 4, (int16_t *)(param_2 + 0x14)))
     return 0.0f;
   if (FUN_000a8ec0(param_1))
@@ -8366,7 +8459,7 @@ void FUN_000afa40(int param_1, float param_2)
     has_teams = *(char *)0x456b14;
   (void)has_teams;
   FUN_000ae920(local_f4);
-  player_count = ((int (*)(int, char *, int))FUN_000ac030)(param_1, local_19c, 6);
+  player_count = FUN_000ac030(0, param_1, local_19c, 6);
   color_a[0] = param_2;
   color_a[1] = 0.7f;
   color_a[2] = 0.7f;
