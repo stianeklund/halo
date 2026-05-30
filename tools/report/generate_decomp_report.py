@@ -771,9 +771,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         .match-dot {
             width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
         }
-        /* VC71 byte-match is a DIAGNOSTIC, not a pass/fail verdict: it has known
-           structural ceilings (SEH ~55%, fastcall preamble, x87 fcompp/movswl).
-           Render it neutral; the only colored verdict lives in the Verified column. */
+        /* Byte-match color is a heat scale (how close to byte-identical), NOT a
+           correctness verdict — VC71 has structural ceilings (SEH ~55%, fastcall,
+           x87 ~15pp). The correctness verdict is the Verified column. */
         .match-dot.neutral { background: var(--text-secondary); }
         .match-dot.high { background: var(--accent-green); }
         .match-dot.ok { background: var(--accent-blue); }
@@ -1366,7 +1366,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<div class="stat-label">VC71 Byte-Match <span style="opacity:.6;font-weight:400">(diagnostic)</span></div>' +
                     '<div class="stat-value" style="color:' + matchColor(s.match.weighted) + '">' + s.match.weighted.toFixed(1) + '%</div>' +
                     '<div class="stat-label">Byte-weighted &middot; ' + fmtNum(s.match.scored_count) + ' of ' + fmtNum(s.functions.ported) + ' scored &middot; has structural ceilings</div>' +
-                    '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.match.weighted, 2) + '%;background:var(--text-secondary)"><span class="progress-text">' + s.match.weighted.toFixed(1) + '%</span></div></div>' +
+                    '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.match.weighted, 2) + '%;background:linear-gradient(90deg,var(--accent-green),#2ea043)"><span class="progress-text">' + s.match.weighted.toFixed(1) + '%</span></div></div>' +
                 '</div>' : '') +
                 '<div class="card" title="' + escHtml(verifiedTip) + '">' +
                     '<div class="stat-label">Verified</div>' +
@@ -1376,19 +1376,24 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 '</div>';
         }
 
-        // VC71 byte-match is a diagnostic measurement with structural ceilings, NOT
-        // a pass/fail verdict — a perfect SEH/fastcall/FPU lift can be permanently
-        // capped (~55% / ~15pp gap). So byte-match is rendered in a single neutral
-        // color regardless of value; correctness is judged only by the Verified
-        // column (behavioral evidence). Low byte-match + no evidence = "unknown",
-        // never red and never green.
+        // Color scale encodes how close the byte-match is to byte-identical — a
+        // useful at-a-glance heat scale. It is NOT a correctness verdict: VC71 has
+        // structural ceilings (SEH ~55%, fastcall preamble, x87 ~15pp), so a low
+        // byte-match can still be a perfect lift. Correctness lives in the Verified
+        // column (behavioral evidence), which is the separate colored verdict.
         function matchColor(pct) {
-            return 'var(--text)';
+            if (pct >= 95) return '#3fb950';
+            if (pct >= 85) return '#58a6ff';
+            if (pct >= 70) return '#d29922';
+            return '#da3633';
         }
 
         function matchBadge(pct) {
             if (pct === null || pct === undefined) return 'none';
-            return 'neutral';
+            if (pct >= 95) return 'high';
+            if (pct >= 85) return 'ok';
+            if (pct >= 70) return 'warn';
+            return 'low';
         }
 
         function statusBadge(ported) {
@@ -1927,10 +1932,11 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 var sc = s.match_avg;
                 if (sc !== null && sc !== undefined) {
                     var sw = s.match_weighted !== null && s.match_weighted !== undefined ? s.match_weighted : sc;
+                    var mClass = matchBadge(sw);
                     var tip = 'VC71 byte-match (diagnostic): compiled with MSVC 7.1, compared to the original binary.\\n';
                     tip += 'Average: ' + sc.toFixed(1) + '%  Byte-weighted: ' + sw.toFixed(1) + '%\\n';
                     tip += 'Has structural ceilings (SEH/fastcall/FPU); not a correctness verdict — see Verified.';
-                    matchHtml = '<span class="match-indicator" title="' + tip + '"><span class="match-dot neutral"></span>' + sw.toFixed(1) + '%</span>';
+                    matchHtml = '<span class="match-indicator" title="' + tip + '"><span class="match-dot ' + mClass + '"></span>' + sw.toFixed(1) + '%</span>';
                 } else {
                     matchHtml = '<span class="pct-none">\u2014</span>';
                 }
