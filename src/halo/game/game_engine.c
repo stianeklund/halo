@@ -8450,8 +8450,7 @@ void FUN_000afa40(int param_1, float param_2)
   wchar_t *status;
   wchar_t local_59c[256];
   wchar_t local_39c[256];
-  char local_19c[24];
-  uint32_t local_184[36];
+  uint32_t scoreboard[42];
   wchar_t local_f4[80];
   float local_54[4];
   float color_a[4];
@@ -8463,7 +8462,7 @@ void FUN_000afa40(int param_1, float param_2)
     has_teams = *(char *)0x456b14;
   (void)has_teams;
   FUN_000ae920(local_f4);
-  player_count = FUN_000ac030(0, param_1, local_19c, 6);
+  player_count = FUN_000ac030(0, param_1, scoreboard, 6);
   color_a[0] = param_2;
   color_a[1] = 0.7f;
   color_a[2] = 0.7f;
@@ -8478,7 +8477,7 @@ void FUN_000afa40(int param_1, float param_2)
   FUN_000ab090((int)local_59c, 0, 0, (int)color_a);
   i = 0;
   if (0 < player_count) {
-    entry = local_184;
+    entry = scoreboard + 6;
     do {
       player_handle = entry[-6];
       { char is_self = (param_1 == (int)player_handle);
@@ -8637,8 +8636,7 @@ void game_engine_post_rasterize_post_game(void)
   uint32_t player_handle;
   uint32_t *entry;
   void *puVar9;
-  char local_670[24];
-  uint32_t local_658[106];
+  uint32_t scoreboard_buf[84];
   wchar_t local_4b0[256];
   wchar_t local_2b0[256];
   float local_b0[16];
@@ -8715,9 +8713,9 @@ void game_engine_post_rasterize_post_game(void)
            L"Kills", L"Assists", L"Deaths");
   draw_string_set_tab_stops(tab_stops, 6);
   FUN_000a84f0((int)local_2b0, 0, 7);
-  player_count = FUN_000ac030(0, -1, local_670, 12);
+  player_count = FUN_000ac030(0, -1, scoreboard_buf, 12);
   if (0 < player_count) {
-    entry = local_658;
+    entry = scoreboard_buf + 6;
     row = 8;
     do {
       player_handle = entry[-6];
@@ -9054,35 +9052,29 @@ void FUN_000b2010(void)
         cross_y *= fVar2;
         cross_z *= fVar2;
       }
-      /* local_128 → buf[0x0c]; local_a0 → buf[0x2e] */
-      render_buf[0x0c] = t_accum * t_per_distance;
-      /* cross_y → local_7c/c0/104/148 → buf[0x37/0x26/0x15/0x04] */
+      { float u0 = t_accum * t_per_distance;
+        float u1 = t_value * t_per_distance;
+      render_buf[0x0c] = u0;
       render_buf[0x37] = cross_y;
       render_buf[0x26] = cross_y;
       render_buf[0x15] = cross_y;
       render_buf[0x04] = cross_y;
-      render_buf[0x2e] = t_value * t_per_distance;
-      /* cross_x → local_80/c4/108/14c → buf[0x36/0x25/0x14/0x03] */
+      render_buf[0x2e] = u1;
       render_buf[0x36] = cross_x;
       render_buf[0x25] = cross_x;
       render_buf[0x14] = cross_x;
       render_buf[0x03] = cross_x;
-      /* cross_z → local_78/bc/100/144 → buf[0x38/0x27/0x16/0x05] */
       render_buf[0x38] = cross_z;
       render_buf[0x27] = cross_z;
       render_buf[0x16] = cross_z;
       render_buf[0x05] = cross_z;
       t_accum = t_value;
-      /* local_124 → buf[0x0d] = 1.0f */
       render_buf[0x0d] = 1.0f;
-      /* local_e0 → buf[0x1e] = 0.2f; local_9c → buf[0x2f] = 0.2f */
       render_buf[0x1e] = 0.2f;
       render_buf[0x2f] = 0.2f;
-      /* local_58 → buf[0x40] = 1.0f */
       render_buf[0x40] = 1.0f;
-      /* local_e4 → buf[0x1d] = buf[0x0c]; local_5c → buf[0x3f] = buf[0x2e] */
-      render_buf[0x1d] = render_buf[0x0c];
-      render_buf[0x3f] = render_buf[0x2e];
+      render_buf[0x1d] = u0;
+      render_buf[0x3f] = u1; }
       FUN_000b1b30(render_buf, shader_tag, 0, 0, inv_t, 1.0f);
       pfVar7 += 3;
       uVar8++;
