@@ -531,7 +531,7 @@ void observer_compute_accelerations(int16_t local_player_index)
         *(int *)((char *)extra_ptr + off) = *(int *)((char *)result_ptr + off);
 
         if (comp == 0) {
-          float fv = *(float *)(observer + 0x44 + off) * *(float *)0x253394;
+          float fv = *(float *)(observer + 0x44 + off) * TICKS_PER_SECOND;
           *(float *)((char *)snap_ptr + off) -= f4 * fv * *(float *)0x254644;
           *(float *)((char *)jerk_ptr + off) += f3 * fv * *(float *)0x253f78;
           *(float *)((char *)accel_ptr + off) -= f2 * fv * *(float *)0x254640;
