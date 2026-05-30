@@ -3054,7 +3054,9 @@
       "functions": [
         {
           "addr": "0x13dd0",
-          "decl": "void FUN_00013dd0(void);"
+          "decl": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
+          "ported": true,
+          "delinked": "delinked/actor_looking_FUN_00013dd0.obj"
         },
         {
           "addr": "0x13ef0",
