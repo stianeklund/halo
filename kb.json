@@ -2283,7 +2283,8 @@
         },
         {
           "addr": "0x1db90",
-          "decl": "void actor_action_handle_surprise(int actor_handle, int type);"
+          "decl": "char actor_action_handle_surprise(int actor_handle, short type);",
+          "ported": true
         },
         {
           "addr": "0x1dd40",
@@ -29202,11 +29203,11 @@
         },
         {
           "addr": "0x21010",
-          "decl": "void actor_combat_fire_wildly(void);"
+          "decl": "void FUN_00021010(int actor_handle, int ticks);"
         },
         {
           "addr": "0x21040",
-          "decl": "void FUN_00021040(void);"
+          "decl": "void FUN_00021040(int actor_handle, int ticks);"
         },
         {
           "addr": "0x21350",
