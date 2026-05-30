@@ -83,7 +83,7 @@ def run_target(target, seed_override=None):
         if "RESULTS:" in output:
             for line in output.splitlines():
                 if "RESULTS:" in line:
-                    if "0 failed" in line and "0 errors" in line:
+                    if ", 0 failed," in line and ", 0 errors" in line:
                         return "pass", line.strip()
                     else:
                         return "fail", line.strip()

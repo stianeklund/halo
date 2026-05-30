@@ -372,6 +372,18 @@
       "score": 91.7,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_0001c030": {
+      "score": 100.0,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001c0e0": {
+      "score": 86.2,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001c190": {
+      "score": 100.0,
+      "source": "src/halo/ai/actions.c"
+    },
     "FUN_0001c270": {
       "score": 100.0,
       "source": "src/halo/common.c"
@@ -444,11 +456,31 @@
       "score": 94.7,
       "source": "src/halo/ai/actions.c"
     },
+    "FUN_0001cfa0": {
+      "score": 82.5,
+      "source": "src/halo/ai/actions.c"
+    },
     "FUN_0001d030": {
       "score": 96.2,
       "source": "src/halo/ai/actions.c"
     },
+    "FUN_0001d350": {
+      "score": 92.9,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001d3c0": {
+      "score": 92.1,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001d420": {
+      "score": 96.4,
+      "source": "src/halo/ai/actions.c"
+    },
     "FUN_0001d5c0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001d5f0": {
       "score": 100.0,
       "source": "src/halo/ai/actions.c"
     },
@@ -460,12 +492,44 @@
       "score": 84.6,
       "source": "src/halo/ai/actions.c"
     },
+    "FUN_0001d760": {
+      "score": 100.0,
+      "source": "src/halo/ai/actions.c"
+    },
     "FUN_0001dab0": {
       "score": 100.0,
       "source": "src/halo/ai/actions.c"
     },
     "FUN_0001daf0": {
       "score": 90.1,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001dd40": {
+      "score": 86.4,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001f6e0": {
+      "score": 90.3,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001f920": {
+      "score": 78.5,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_0001f9a0": {
+      "score": 92.2,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_00020470": {
+      "score": 76.2,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_000204f0": {
+      "score": 94.5,
+      "source": "src/halo/ai/actions.c"
+    },
+    "FUN_000205a0": {
+      "score": 75.9,
       "source": "src/halo/ai/actions.c"
     },
     "FUN_000210f0": {
@@ -1308,6 +1372,10 @@
       "score": 89.2,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00056830": {
+      "score": 95.4,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00056880": {
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
@@ -1381,7 +1449,7 @@
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_000576a0": {
-      "score": 92.4,
+      "score": 93.1,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00057770": {
@@ -1404,8 +1472,16 @@
       "score": 96.6,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00057bc0": {
+      "score": 94.5,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00057c60": {
       "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00057c70": {
+      "score": 91.1,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00057ef0": {
@@ -1476,6 +1552,14 @@
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00058700": {
+      "score": 40.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00058710": {
+      "score": 40.0,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00058720": {
       "score": 91.1,
       "source": "src/halo/ai/encounters.c"
@@ -1484,12 +1568,24 @@
       "score": 96.2,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00058860": {
+      "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_000588d0": {
+      "score": 92.9,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00058970": {
       "score": 90.9,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00058a40": {
       "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00058ae0": {
+      "score": 40.0,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00058fa0": {
@@ -1520,12 +1616,24 @@
       "score": 90.5,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00059990": {
+      "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_000599c0": {
+      "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00059a00": {
       "score": 94.7,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00059a50": {
       "score": 76.9,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00059a90": {
+      "score": 90.6,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00059b10": {
@@ -1560,6 +1668,10 @@
       "score": 87.0,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_0005a5a0": {
+      "score": 85.2,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_0005a640": {
       "score": 83.8,
       "source": "src/halo/ai/encounters.c"
@@ -1574,6 +1686,14 @@
     },
     "FUN_0005acf0": {
       "score": 93.8,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005ad60": {
+      "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005ad90": {
+      "score": 100.0,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_0005adc0": {
@@ -1594,6 +1714,14 @@
     },
     "FUN_0005b2a0": {
       "score": 88.6,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005ba70": {
+      "score": 75.9,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005baa0": {
+      "score": 75.9,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_0005c940": {
@@ -2184,8 +2312,24 @@
       "score": 100.0,
       "source": "src/halo/cseries/errors.c"
     },
+    "FUN_0008f200": {
+      "score": 100.0,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f210": {
+      "score": 100.0,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f220": {
+      "score": 100.0,
+      "source": "src/halo/cseries/errors.c"
+    },
     "FUN_0008f230": {
       "score": 91.6,
+      "source": "src/halo/cseries/errors.c"
+    },
+    "FUN_0008f370": {
+      "score": 100.0,
       "source": "src/halo/cseries/errors.c"
     },
     "FUN_0008f390": {

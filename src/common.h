@@ -53,6 +53,7 @@ double __cdecl sqrt(double);
 #define MAXIMUM_MEMSET_SIZE            0x10000000
 #define MAXIMUM_MEMCPY_MEMMOVE_SIZE    0x10000000
 #define PAGE_READWRITE                 0x04
+#define TICKS_PER_SECOND               (*(float *)0x253394) /* 30.0f */
 
 static const int _scenario_type_main_menu = 2;
 

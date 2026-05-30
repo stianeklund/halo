@@ -105,4 +105,19 @@ x87_fmod_loop:
   return r;
 }
 
+static __inline float x87_fptan(float val) {
+  float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fptan
+    fstp st(0)
+    fstp DWORD PTR [r]
+  }
+#else
+  __asm__ __volatile__("fptan\n\tfstp %%st(0)" : "=t"(r) : "0"(val));
+#endif
+  return r;
+}
+
 #endif /* X87_MATH_H */
