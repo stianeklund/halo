@@ -3684,8 +3684,8 @@ void actor_customize_unit(int actv_tag_index, int unit_index)
 
   if (*(float *)(actv_data + 0x200) > 0.0f ||
       *(float *)(actv_data + 0x204) > 0.0f) {
-    FUN_001365d0(unit_index, (int)(actv_data + 0x200),
-                 (int)(actv_data + 0x204));
+    FUN_001365d0(unit_index, (float *)(actv_data + 0x200),
+                 (float *)(actv_data + 0x204));
   }
 
   if (*(short *)(actv_data + 0x20c) != 0) {

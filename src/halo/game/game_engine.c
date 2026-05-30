@@ -3787,9 +3787,10 @@ void FUN_000ad140(int param_1, int param_2)
 
 
 
-/* Dispatch to vtable slot 33 (0x84) or fall back to FUN_000ae250. */
+/* Dispatch to vtable slot 33 (0x84) or fall back to FUN_000ae250.
+ * Tail-calls FUN_000ae250 which reads param_1 from the stack. */
 
-int game_engine_did_player_win(void)
+int game_engine_did_player_win(int param_1)
 
 {
 
@@ -3797,13 +3798,11 @@ int game_engine_did_player_win(void)
 
     return 0;
 
-  if (((int (**)(void))current_game_engine)[0x84 / 4])
+  if (((int (**)(int))current_game_engine)[0x84 / 4])
 
-    return ((int (**)(void))current_game_engine)[0x84 / 4]();
+    return ((int (**)(int))current_game_engine)[0x84 / 4](param_1);
 
-  FUN_000ae250();
-
-  return 0;
+  return FUN_000ae250(param_1);
 
 }
 
@@ -8584,7 +8583,7 @@ check_phase:
     int won;
     char has_teams;
 
-    won = game_engine_did_player_win();
+    won = game_engine_did_player_win(0);
     has_teams = 0;
     if (current_game_engine)
       has_teams = *(char *)0x456b14;
