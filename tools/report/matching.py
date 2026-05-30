@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """
-Matching percentage tracking using objdiff.
+Matching percentage tracking using objdiff (clang LCS).
 
-Integrates with objdiff CLI to get actual binary matching percentages
+NOTE: This computes a *clang*-build vs original mnemonic-LCS similarity. It is
+NOT the metric the dashboard displays. The dashboard's "Match Quality" is VC71
+byte-accuracy (MSVC 7.1 recompile vs the delinked reference), sourced from
+tools/verify/vc71_scores.json via generate_decomp_report.py. Clang LCS is
+systematically lower than MSVC byte-match and needs the same delinked reference
+VC71 needs, so it is never a fallback where VC71 isn't already possible. This
+module is retained for standalone analysis only; the Score button no longer uses it.
+
+Integrates with objdiff CLI to get clang-build matching percentages
 for ported functions, distinguishing between "ported" (exists in source)
 and "matching" (byte-accurate to original).
 

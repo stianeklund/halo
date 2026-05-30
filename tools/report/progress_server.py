@@ -193,7 +193,11 @@ class SSEHandler(SimpleHTTPRequestHandler):
         if verify_dir not in _sys.path:
             _sys.path.insert(0, verify_dir)
         try:
-            from vc71_regression import run_vc71_verify as _run_vc71_verify
+            from vc71_regression import (
+                run_vc71_verify as _run_vc71_verify,
+                load_baseline as _load_baseline,
+                save_baseline as _save_baseline,
+            )
         except ImportError as e:
             logging.error('Cannot import vc71_regression: %s', e)
             return None
@@ -214,15 +218,50 @@ class SSEHandler(SimpleHTTPRequestHandler):
             logging.warning('vc71_verify produced no results for unit %s', unit_name)
             return None
 
-        # Update matching unit in report with the vc71 scores.
+        # 1) Persist to vc71_scores.json — the SOURCE OF TRUTH the report generator
+        #    reads. Mirror the regression policy: raise an existing floor or add a new
+        #    entry, never silently lower (that would mask a regression). Without this
+        #    write the score is ephemeral: the next report regeneration would wipe it.
+        baseline = _load_baseline()
+        baseline_changed = False
+        for fn_name, info in vc71_results.items():
+            new_score = info['score']
+            old = baseline.get(fn_name)
+            if old is None or new_score > old.get('score', -1) + 0.1:
+                baseline[fn_name] = {'score': new_score, 'source': source_path_rel}
+                baseline_changed = True
+        if baseline_changed:
+            _save_baseline(baseline)
+
+        # 2) Mirror the now-persisted scores into the in-memory report. Join by name
+        #    first, then by the address-keyed FUN_<addr> alias (vc71_verify records
+        #    some functions under their delinked reference name) — identical to the
+        #    generator's join so a later regeneration produces the same numbers.
+        def _score_for(func):
+            addr = func.get('address')
+            addr_int = None
+            if isinstance(addr, str):
+                try:
+                    addr_int = int(addr, 16)
+                except ValueError:
+                    addr_int = None
+            candidates = [func.get('name')]
+            if addr_int is not None:
+                candidates += [f'FUN_{addr_int:08x}', f'FUN_{addr_int:08X}',
+                               f'thunk_FUN_{addr_int:08x}']
+            for key in candidates:
+                if key and key in vc71_results:
+                    return vc71_results[key]['score']
+            return None
+
         updated_funcs = {}
         for unit in report.get('units', []):
             if unit['name'] == unit_name:
                 for func in unit.get('functions', []):
-                    fname = func.get('name')
-                    if fname and fname in vc71_results:
-                        func['match_percent'] = round(vc71_results[fname]['score'], 2)
-                        updated_funcs[fname] = func['match_percent']
+                    score = _score_for(func)
+                    if score is not None:
+                        func['match_percent'] = round(score, 2)
+                        updated_funcs[func.get('name')] = func['match_percent']
                 break
 
         # Recompute unit summary and global summary.
