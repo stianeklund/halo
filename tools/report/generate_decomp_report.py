@@ -56,6 +56,45 @@ def _load_delinked_ref_map(root_dir: str) -> dict:
     return ref_map
 
 
+def _load_equiv_verdicts(root_dir: str) -> dict:
+    """Load equivalence pass/fail VERDICTS from batch_verify result JSONs.
+
+    Returns {name: {status, z3_proven, reason}} keyed by function name (the
+    target field). status is 'pass'/'fail'/'error'/'not_applicable'. This is
+    the correctness verdict — distinct from leaf_cache confidence/coverage,
+    which only measure how thoroughly the function was exercised (a divergent
+    function can have confidence=high). Scans recursively; latest run wins.
+    """
+    import glob as _glob
+    base = os.path.join(root_dir, 'artifacts', 'batch_verify')
+    if not os.path.isdir(base):
+        return {}
+    verdicts = {}
+    # Sort by mtime ascending so later (newer) results overwrite earlier ones.
+    paths = sorted(_glob.glob(os.path.join(base, '**', '*.json'), recursive=True),
+                   key=lambda p: os.path.getmtime(p))
+    for p in paths:
+        if os.path.basename(p) in ('summary.json', 'results.csv'):
+            continue
+        try:
+            with open(p) as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        target = data.get('target')
+        status = data.get('status')
+        if not target or not status:
+            continue
+        verdicts[target] = {
+            'status': status,
+            'z3_proven': bool(data.get('z3_proven')),
+            'reason': data.get('reason'),
+            'confidence': data.get('confidence'),
+            'coverage_pct': data.get('coverage_pct'),
+        }
+    return verdicts
+
+
 def _load_snapshot_data(results_path: str = None) -> dict:
     """Load snapshot verification results from game_state_verify.py output.
     Returns a dict keyed by function name: {passed, coverage, confidence, object}.
@@ -128,7 +167,8 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                        leaf_cache: dict = None,
                        snapshot_data: dict = None,
                        runtime_oracle_data: dict = None,
-                       delinked_ref_map: dict = None) -> list[dict]:
+                       delinked_ref_map: dict = None,
+                       equiv_verdicts: dict = None) -> list[dict]:
     """Compute per-unit statistics in decomp.dev format.
 
     delinked_ref_map: {source_path: bool} — whether a delinked reference object
@@ -142,6 +182,9 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
 
     if delinked_ref_map is None:
         delinked_ref_map = {}
+
+    if equiv_verdicts is None:
+        equiv_verdicts = {}
     
     if leaf_cache is None:
         leaf_cache = {}
@@ -236,12 +279,34 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 if score_entry is not None:
                     match_pct = score_entry.get('score')
 
-            # Look up equivalence data from leaf_cache
+            # Look up equivalence COVERAGE data from leaf_cache. NOTE: confidence
+            # and coverage describe how thoroughly the function was tested — they
+            # are NOT a pass/fail verdict. A divergent (buggy) function can have
+            # confidence=high. The actual verdict comes from equiv_verdicts below.
             eq = leaf_cache.get(addr_hex, {})
             equiv_class = eq.get('class')
             equiv_coverage = eq.get('coverage_pct')
             equiv_confidence = eq.get('confidence')
-            
+
+            # Look up equivalence VERDICT (pass/fail/error) from batch_verify
+            # results, joined by name then address-keyed FUN_<addr> alias.
+            ev = (equiv_verdicts.get(name)
+                  or equiv_verdicts.get(f'FUN_{addr:08x}')
+                  or equiv_verdicts.get(f'FUN_{addr:08X}')
+                  or equiv_verdicts.get(f'thunk_FUN_{addr:08x}')
+                  or equiv_verdicts.get(addr_hex))
+            equiv_status = ev.get('status') if ev else None
+            equiv_proven = bool(ev.get('z3_proven')) if ev else False
+            equiv_reason = ev.get('reason') if ev else None
+            # When a verdict exists, its confidence/coverage are paired with the
+            # status (same run) and are more accurate than the leaf_cache snapshot,
+            # so prefer them for the verified-gating decision and the display.
+            if ev:
+                if ev.get('confidence') is not None:
+                    equiv_confidence = ev.get('confidence')
+                if ev.get('coverage_pct') is not None:
+                    equiv_coverage = ev.get('coverage_pct')
+
             # Look up snapshot verification data
             snap = snapshot_data.get(name, {})
             snapshot_passed = snap.get('snapshot_passed', None)
@@ -271,6 +336,9 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'equiv_class': equiv_class,
                 'equiv_coverage': equiv_coverage,
                 'equiv_confidence': equiv_confidence,
+                'equiv_status': equiv_status,
+                'equiv_proven': equiv_proven,
+                'equiv_reason': equiv_reason,
                 'snapshot_passed': snapshot_passed,
                 'snapshot_coverage': snapshot_coverage,
                 'snapshot_confidence': snapshot_confidence,
@@ -458,10 +526,14 @@ def generate_report(output_path: str) -> dict:
     # to distinguish "scoreable, not yet run" from "no reference (VC71 impossible)".
     delinked_ref_map = _load_delinked_ref_map(root_dir)
 
+    # Load equivalence pass/fail verdicts (correctness, distinct from coverage)
+    equiv_verdicts = _load_equiv_verdicts(root_dir)
+
     # Compute unit stats
     units, drift, overall_match, overall_equiv, overall_snapshot, overall_runtime_oracle = compute_unit_stats(
         kb, store, function_cache, vc71_scores, leaf_cache, snapshot_data, runtime_oracle_data,
         delinked_ref_map=delinked_ref_map,
+        equiv_verdicts=equiv_verdicts,
     )
     
     # Compute overall stats
@@ -1283,31 +1355,55 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             renderMeta();
         }
 
+        // A CREDIBLE divergence = equivalence FAIL with real coverage (high/moderate
+        // confidence). It is never "verified" — it is a bug candidate to investigate.
+        // Low-coverage/weak fails are inconclusive (often harness artifacts), so they
+        // are treated as "unknown", not flagged — symmetric with how a pass needs
+        // coverage to count. NOTE: even credible fails need triage (e.g. a fail at
+        // ~100% byte-match is almost certainly a harness artifact, not a real bug).
+        function isDivergent(f) {
+            return f.ported && f.equiv_status === 'fail' &&
+                   (f.equiv_confidence === 'high' || f.equiv_confidence === 'moderate');
+        }
+
+        // Equivalence counts as verification only on a PASS with real coverage
+        // (high/moderate confidence) or a Z3 proof. Coverage/confidence ALONE is
+        // not a verdict — a divergent function can have confidence=high.
+        function equivVerified(f) {
+            if (f.equiv_proven) return true;
+            if (f.equiv_status === 'pass' &&
+                (f.equiv_confidence === 'high' || f.equiv_confidence === 'moderate')) return true;
+            return false;
+        }
+
         function countVerified() {
             var count = 0;
+            var divergent = 0;
             var byMethod = { vc71: 0, equiv: 0, snap: 0, oracle: 0 };
             for (var ui = 0; ui < REPORT.units.length; ui++) {
                 var funcs = REPORT.units[ui].functions || [];
                 for (var fi = 0; fi < funcs.length; fi++) {
                     var f = funcs[fi];
                     if (!f.ported) continue;
+                    if (isDivergent(f)) { divergent++; continue; }   // bug candidate, not verified
                     var verified = false;
-                    if (f.match_percent !== null && f.match_percent !== undefined && f.match_percent >= 90) { byMethod.vc71++; verified = true; }
-                    if (f.equiv_confidence === 'high') { byMethod.equiv++; verified = true; }
+                    if (equivVerified(f)) { byMethod.equiv++; verified = true; }
                     if (f.snapshot_passed === true) { byMethod.snap++; verified = true; }
                     if (f.runtime_oracle_passed === true) { byMethod.oracle++; verified = true; }
+                    if (f.match_percent !== null && f.match_percent !== undefined && f.match_percent >= 90) { byMethod.vc71++; verified = true; }
                     if (verified) count++;
                 }
             }
-            return { total: count, byMethod: byMethod };
+            return { total: count, divergent: divergent, byMethod: byMethod };
         }
 
         function isVerified(f) {
             if (!f.ported) return false;
-            if (f.match_percent !== null && f.match_percent !== undefined && f.match_percent >= 90) return true;
-            if (f.equiv_confidence === 'high') return true;
+            if (isDivergent(f)) return false;            // divergence overrides everything
+            if (equivVerified(f)) return true;
             if (f.snapshot_passed === true) return true;
             if (f.runtime_oracle_passed === true) return true;
+            if (f.match_percent !== null && f.match_percent !== undefined && f.match_percent >= 90) return true;
             return false;
         }
 
@@ -1321,11 +1417,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var completedPct = Math.round(completedUnits / totalUnits * 100);
 
             var verifiedPct = s.functions.ported > 0 ? (vData.total / s.functions.ported * 100).toFixed(1) : '0';
-            var verifiedTip = 'Verified by at least one method:\\n';
-            verifiedTip += 'VC71 \\u226590%: ' + vData.byMethod.vc71 + '\\n';
-            verifiedTip += 'Equiv high-conf: ' + vData.byMethod.equiv + '\\n';
+            var verifiedTip = 'Verified by at least one method (divergences excluded):\\n';
+            verifiedTip += 'Equiv pass (high/mod cov) or Z3-proven: ' + vData.byMethod.equiv + '\\n';
+            verifiedTip += 'Runtime oracle pass: ' + vData.byMethod.oracle + '\\n';
             verifiedTip += 'Snapshot pass: ' + vData.byMethod.snap + '\\n';
-            verifiedTip += 'Runtime oracle pass: ' + vData.byMethod.oracle;
+            verifiedTip += 'VC71 \\u226590%: ' + vData.byMethod.vc71 + '\\n';
+            if (vData.divergent > 0) verifiedTip += '\\n\\u2717 Divergent (equiv FAIL \\u2014 investigate): ' + vData.divergent;
 
             // Match-coverage buckets: a ported function is "scored" if it has a
             // VC71 match, "scoreable" if its unit has a delinked reference (could be
@@ -2141,12 +2238,19 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 }
 
                 var vStatus = '<span class="pct-none">—</span>';
-                if (isVerified(f)) {
+                if (isDivergent(f)) {
+                    // Equivalence FAIL — behaviorally differs from the original. A bug
+                    // CANDIDATE (some are harness artifacts), not a confirmed bug.
+                    var dtip = 'Equivalence divergence (' + (f.equiv_reason || 'diverged') + ') — investigate.\\n';
+                    dtip += 'Behaves differently from the original under differential testing.';
+                    vStatus = '<span class="func-status" style="background:#da363322;color:#f85149;border-color:#f85149" title="' + escHtml(dtip) + '">✗ Divergent</span>';
+                } else if (isVerified(f)) {
                     var reasons = [];
-                    if (f.match_percent != null && f.match_percent >= 90) reasons.push('VC71 ' + f.match_percent.toFixed(0) + '%');
-                    if (f.equiv_confidence === 'high') reasons.push('Equiv');
-                    if (f.snapshot_passed === true) reasons.push('Snap');
+                    if (f.equiv_proven) reasons.push('Z3-proven');
+                    else if (f.equiv_status === 'pass') reasons.push('Equiv');
                     if (f.runtime_oracle_passed === true) reasons.push('Oracle');
+                    if (f.snapshot_passed === true) reasons.push('Snap');
+                    if (f.match_percent != null && f.match_percent >= 90) reasons.push('VC71 ' + f.match_percent.toFixed(0) + '%');
                     vStatus = '<span class="func-status ported" title="' + escHtml(reasons.join(', ')) + '">✓ ' + reasons[0] + '</span>';
                 } else if (f.ported) {
                     vStatus = '<span class="func-status unported">pending</span>';
