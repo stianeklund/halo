@@ -7,6 +7,17 @@
 
 #include "../../common.h"
 
+__declspec(noinline) static int s_actor_charge_estimate_target(char *actor, float *target_pos)
+{
+  if (!*(char *)(actor + 0x4a8))
+    return 0;
+  unit_estimate_position(*(int *)(actor + 0x18), 1,
+                         (vector3_t *)(actor + 0x4ac),
+                         NULL, NULL,
+                         (vector3_t *)target_pos);
+  return 1;
+}
+
 /* FUN_00013dd0 (0x13dd0)
  * Tests whether a clear collision path exists from source_pos to the actor's
  * charge target. If actor->flag_0x484 is set, reads the target position from
@@ -30,11 +41,10 @@ int FUN_00013dd0(int actor_handle, float *source_pos)
     target_pos[0] = *(float *)(actor + 0x120);
     target_pos[1] = *(float *)(actor + 0x124);
     target_pos[2] = *(float *)(actor + 0x128);
-  } else {
-    goto LAB_00013ebc;
+  } else if (!s_actor_charge_estimate_target(actor, target_pos)) {
+    return 0;
   }
 
-LAB_00013e10:
   if (*(volatile int16_t *)0x4761d8 >= 0x20) {
     display_assert(
       "global_current_collision_user_depth < MAXIMUM_COLLISION_USER_STACK_DEPTH",
@@ -58,15 +68,6 @@ LAB_00013e10:
   }
   *(volatile int16_t *)0x4761d8 -= 1;
   return 1;
-
-LAB_00013ebc:
-  if (!*(char *)(actor + 0x4a8))
-    return 0;
-  unit_estimate_position(*(int *)(actor + 0x18), 1,
-                         (vector3_t *)(actor + 0x4ac),
-                         NULL, NULL,
-                         (vector3_t *)target_pos);
-  goto LAB_00013e10;
 }
 
 /* FUN_000142a0 (0x142a0)
