@@ -54,9 +54,6 @@ void FUN_0002f1a0(int actor_handle)
 void FUN_0002f230(int actor_handle)
 {
   char *actor;
-  unsigned int *src;
-  unsigned int *dst;
-  int k;
 
   actor = (char *)datum_get(actor_data, actor_handle);
 
@@ -71,11 +68,7 @@ void FUN_0002f230(int actor_handle)
 
   if (*(short *)(actor + 0x46c) != 1) {
     *(short *)(actor + 0x400) = 1;
-    src = (unsigned int *)(actor + 0x400);
-    dst = (unsigned int *)(actor + 0x46c);
-    for (k = 6; k != 0; k--) {
-      *dst++ = *src++;
-    }
+    memcpy(actor + 0x46c, actor + 0x400, 24);
   }
   actor_path_refresh(actor_handle, 1, NULL);
 }
@@ -323,6 +316,42 @@ int actor_get_best_damaging_prop(int actor_handle, char prefer_visible)
     return damaging_prop_index;
   }
   return damaging_prop_index;
+}
+
+/* actor_perception_forget_recent_damage (0x2fb70) — Clear the recent-damage
+ * tracking for all props visible to this actor. Resets field +0x74 to 0 and
+ * field +0x6c to -1 for each prop in the iterator. */
+__declspec(noinline) void actor_perception_forget_recent_damage(int actor_handle)
+{
+  int iter[2];
+  char *prop;
+
+  FUN_00064540(iter, actor_handle);
+  prop = (char *)FUN_00064570(iter);
+  while (prop != NULL) {
+    *(char *)(prop + 0x74) = 0;
+    *(int16_t *)(prop + 0x6c) = -1;
+    prop = (char *)FUN_00064570(iter);
+  }
+}
+
+/* actor_perception_retreat_successful (0x2fbc0) — Clear pursuit/retreat timers
+ * for all props tracked by this actor. Zeros fields +0xaa, +0xae, +0xac on
+ * each prop datum. */
+__declspec(noinline) void actor_perception_retreat_successful(int actor_handle)
+{
+  int iter[2];
+  char *prop;
+
+  datum_get(actor_data, actor_handle);
+  FUN_00064540(iter, actor_handle);
+  prop = (char *)FUN_00064570(iter);
+  while (prop != NULL) {
+    *(int16_t *)(prop + 0xaa) = 0;
+    *(int16_t *)(prop + 0xae) = 0;
+    *(int16_t *)(prop + 0xac) = 0;
+    prop = (char *)FUN_00064570(iter);
+  }
 }
 
 /* actor_get_perception_knowledge (0x2fc20)

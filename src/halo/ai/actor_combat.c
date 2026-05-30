@@ -196,3 +196,21 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
     return result >= 3;
   }
 }
+
+/* FUN_00022390 (0x22390) — Check and possibly clear the actor's fire-ok flag.
+ * If actor+0x604 is set, tests actor_combat_check_fire_target with the combat
+ * state's mode at +0x156. If the check fails, clears actor+0x604. */
+void FUN_00022390(int actor_handle)
+{
+  char *actor;
+  char *state;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  state = actor_combat_get_firing_variant_definition(actor_handle);
+  if (*(char *)(actor + 0x604) != '\0') {
+    if (actor_combat_check_fire_target(actor_handle,
+            *(int16_t *)(state + 0x156)) == 0) {
+      *(char *)(actor + 0x604) = 0;
+    }
+  }
+}

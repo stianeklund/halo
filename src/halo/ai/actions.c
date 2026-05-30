@@ -992,6 +992,150 @@ void set_real_vector2d(float *out, float x, float y)
   out[1] = y;
 }
 
+/* actor_action_set_default_state (0x1d7c0) — Transition an actor to a default
+ * action state. If state == -1 (0xffff), uses actor+0x60 or actor+0x62 as
+ * a fallback state index. Dispatches through a 12-entry switch:
+ *   cases 0,2-7: lookup table at 0x2542e8 maps state to an action type,
+ *     then calls FUN_00012000 to build action data and actor_action_change(2).
+ *   case 1: set actor+0x6a = 1, call actor_action_change(1, 0).
+ *   case 8: call FUN_00015880, then actor_action_change(6).
+ *   case 9: if already in action 6, set actor+0xaa = 1; else try FUN_00015900
+ *     and actor_action_change(6).
+ *   case 10: set panic state fields, try actor_action_handle_lost_contact,
+ *     fallback to FUN_00015880 + actor_action_change(6).
+ *   case 11: try FUN_00015040(0xd, ...), then FUN_00015880 fallback.
+ * Falls through to a final idle check: if action==0, try FUN_00012000(0, -1)
+ * and actor_action_change(2).
+ *
+ * Confirmed: jump table at 0x1da74. Confirmed: lookup table at 0x2542e8
+ * = {0, 0, 0, 1, 2, 3, 4, 5, 0, 0, 0, 0}.
+ * Confirmed: game_time_get() throttle with +0x2d cooldown at actor+0x64.
+ */
+char actor_action_set_default_state(int actor_handle, short state)
+{
+  char *actor;
+  int game_time;
+  int switch_val;
+  short local_88[66];
+  char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  game_time = game_time_get();
+  result = 0;
+
+  /* Throttle: if state == -1 and we have a valid timestamp, skip if within cooldown */
+  if (state == (short)-1 && *(int *)(actor + 0x64) != -1 &&
+      *(int *)(actor + 0x64) + 0x2d >= game_time) {
+    return 0;
+  }
+
+  *(int *)(actor + 0x64) = game_time;
+
+  if (state != (short)-1) {
+    /* state already specified, skip fallback resolution */
+  } else {
+    /* Resolve fallback state from actor fields */
+    if (*(unsigned short *)(actor + 0x60) != 0xffff) {
+      state = *(short *)(actor + 0x60);
+      *(short *)(actor + 0x60) = (short)0xffff;
+    } else {
+      if (*(unsigned short *)(actor + 0x62) == 0xffff)
+        state = 0;
+      else
+        state = *(short *)(actor + 0x62);
+    }
+  }
+
+  switch_val = (int)state;
+
+  switch (switch_val) {
+  case 0:
+  case 2:
+  case 3:
+  case 4:
+  case 5:
+  case 6:
+  case 7:
+    if (*(short *)(actor + 0x6c) == 2 &&
+        *(short *)(actor + 0x9c) ==
+            *(short *)(0x2542e8 + switch_val * 2))
+      break;
+    if (FUN_00012000(actor_handle,
+                     (int)*(short *)(0x2542e8 + switch_val * 2), -1,
+                     (int)local_88))
+      goto action_change_2;
+    break;
+  case 1:
+    if (*(short *)(actor + 0x6a) != 1) {
+      *(short *)(actor + 0x6a) = 1;
+      actor_action_change(actor_handle, 1, 0);
+      result = 1;
+      return result;
+    }
+    break;
+  case 8:
+    if ((*(short *)(actor + 0x6c) != 6 ||
+         *(short *)(actor + 0xc0) != 1) &&
+        FUN_00015880(actor_handle, (char *)local_88)) {
+      actor_action_change(actor_handle, 6, (int)local_88);
+      result = 1;
+      return result;
+    }
+    break;
+  case 9:
+    if (*(short *)(actor + 0x6c) == 6) {
+      if (*(short *)(actor + 0xc0) != 3)
+        *(char *)(actor + 0xaa) = 1;
+    } else {
+      if (FUN_00015900(actor_handle, 0, (char *)local_88)) {
+        actor_action_change(actor_handle, 6, (int)local_88);
+        result = 1;
+        return result;
+      }
+    }
+    break;
+  case 10:
+    if (actor_action_try_to_panic(actor_handle) != 3) {
+      *(short *)(actor + 0x6a) = 3;
+      *(short *)(actor + 0x72) = 2;
+      *(short *)(actor + 0x6e) = 2;
+      if (!actor_action_handle_lost_contact(actor_handle) &&
+          FUN_00015880(actor_handle, (char *)local_88)) {
+        actor_action_change(actor_handle, 6, (int)local_88);
+        result = 1;
+        return result;
+      }
+    }
+    break;
+  case 11:
+    if (*(short *)(actor + 0x6c) != 4) {
+      if (FUN_00015040(actor_handle, 0xd, -1, 1, 0, 0,
+                       (short *)local_88)) {
+        actor_action_change(actor_handle, 4, (int)local_88);
+        result = 1;
+        return result;
+      }
+      if (*(short *)(actor + 0x6c) != 6 &&
+          FUN_00015880(actor_handle, (char *)local_88)) {
+        actor_action_change(actor_handle, 6, (int)local_88);
+        result = 1;
+        return result;
+      }
+    }
+    break;
+  }
+
+  /* Final idle fallback: if actor is in action 0, try alert action */
+  if (*(short *)(actor + 0x6c) == 0 &&
+      FUN_00012000(actor_handle, 0, -1, (int)local_88)) {
+action_change_2:
+    actor_action_change(actor_handle, 2, (int)local_88);
+    result = 1;
+  }
+
+  return result;
+}
+
 /* actor_action_handle_initial_action (0x1dab0)
  * If the actor is in the idle action (0x6c == 0) and has a non-zero
  * default-state index (0x6a), runs actor_action_set_default_state to
