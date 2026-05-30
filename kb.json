@@ -3156,7 +3156,7 @@
         },
         {
           "addr": "0x14e90",
-          "decl": "char FUN_00014e90(int param_1);",
+          "decl": "char FUN_00014e90(int actor_handle@<ax>, int param_1);",
           "ported": true
         },
         {
@@ -8153,7 +8153,7 @@
         },
         {
           "addr": "0xaa220",
-          "decl": "void FUN_000aa220(int *param_1);",
+          "decl": "game_variant_t *FUN_000aa220(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8164,25 +8164,25 @@
         },
         {
           "addr": "0xaa340",
-          "decl": "void FUN_000aa340(int *param_1);",
+          "decl": "game_variant_t *FUN_000aa340(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa3d0",
-          "decl": "void FUN_000aa3d0(int *param_1);",
+          "decl": "game_variant_t *FUN_000aa3d0(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa460",
-          "decl": "void FUN_000aa460(int *param_1);",
+          "decl": "game_variant_t *FUN_000aa460(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaa4f0",
-          "decl": "void FUN_000aa4f0(int *param_1);",
+          "decl": "game_variant_t *FUN_000aa4f0(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8203,7 +8203,7 @@
         },
         {
           "addr": "0xaa730",
-          "decl": "void FUN_000aa730(int *param_1);",
+          "decl": "game_variant_t *FUN_000aa730(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8214,7 +8214,7 @@
         },
         {
           "addr": "0xaa860",
-          "decl": "void FUN_000aa860(int *param_1);",
+          "decl": "game_variant_t *FUN_000aa860(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8230,13 +8230,13 @@
         },
         {
           "addr": "0xaaa20",
-          "decl": "void FUN_000aaa20(int *param_1);",
+          "decl": "game_variant_t *FUN_000aaa20(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaaab0",
-          "decl": "void FUN_000aaab0(int *param_1);",
+          "decl": "game_variant_t *FUN_000aaab0(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8252,13 +8252,13 @@
         },
         {
           "addr": "0xaac50",
-          "decl": "void FUN_000aac50(int *param_1);",
+          "decl": "game_variant_t *FUN_000aac50(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
         {
           "addr": "0xaace0",
-          "decl": "void FUN_000aace0(int *param_1);",
+          "decl": "game_variant_t *FUN_000aace0(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8284,7 +8284,7 @@
         },
         {
           "addr": "0xaafb0",
-          "decl": "void FUN_000aafb0(int *param_1);",
+          "decl": "game_variant_t *FUN_000aafb0(game_variant_t *out);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8414,7 +8414,7 @@
         },
         {
           "addr": "0xabf50",
-          "decl": "void FUN_000abf50(int *param_1, int player_handle);",
+          "decl": "void FUN_000abf50(int *param_1, int player_handle@<bx>);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -23217,7 +23217,7 @@
         },
         {
           "addr": "0xe3a10",
-          "decl": "void terminal_output(void *color, const char *format, ...);",
+          "decl": "void terminal_output(void *color, const char *format, const char *text);",
           "ported": true
         },
         {
