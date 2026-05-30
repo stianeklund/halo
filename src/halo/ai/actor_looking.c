@@ -430,14 +430,19 @@ void FUN_00014ba0(int actor_handle, int *param_2)
 /* FUN_00014e90 (0x14e90)
  * Flee action: evaluate whether the actor should flee to a firing position.
  *
- * If the actor has a valid target, encounter, and firing position, estimates
- * the target position, tests line-of-sight, and optionally copies the target
- * position to state_data+0x24 if LOS blocked. Returns 1 if no timeslice and
- * the flee target is in LOS state [2,3], else returns 0.
+ * EAX = actor_handle (register arg), stack = state_data pointer.
+ * Original caller (FUN_00015520 at 0x15697): MOV EAX,[EBP+8]; PUSH ESI;
+ * CALL 0x14e90 — ESI = actor+0x9c (flee action state block).
  *
- * Confirmed: datum_get(actor_data, actor_handle) → actor.
+ * Reads state_data+0x1c (prop handle), state_data+0x8 (firing position idx).
+ * If valid target, encounter, and firing position, estimates target position,
+ * tests LOS, and copies target position to state_data+0x24 if LOS blocked.
+ * Returns 1 if flee target is in LOS state [2,3], else 0.
+ *
+ * Confirmed: PUSH EAX at 0x14e9f; CALL datum_get → EAX is actor_handle.
+ * Confirmed: MOV ESI,[EBP+0x8] at 0x14ed7 → stack param is state_data.
  * Confirmed: assert "!actor->meta.swarm" at action_flee.c line 0x265. */
-char FUN_00014e90(int actor_handle, int param_1)
+char FUN_00014e90(int actor_handle, char *state_data)
 {
   char *actor;
   short sVar1;
@@ -454,16 +459,16 @@ char FUN_00014e90(int actor_handle, int param_1)
                    "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x265, 1);
     system_exit(-1);
   }
-  if (*(int *)(param_1 + 0x1c) != -1 &&
+  if (*(int *)(state_data + 0x1c) != -1 &&
       *(unsigned int *)(actor + 0x34) != 0xffffffff &&
-      *(short *)(param_1 + 8) != -1) {
+      *(short *)(state_data + 8) != -1) {
     encounter_elem = (char *)tag_block_get_element(
       (char *)global_scenario_get() + 0x42c,
       *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
     prop = (char *)datum_get(*(data_t **)0x5ab23c,
-                             *(int *)(param_1 + 0x1c));
+                             *(int *)(state_data + 0x1c));
     fp_elem = (char *)tag_block_get_element(
-      encounter_elem + 0x98, (int)*(short *)(param_1 + 8), 0x18);
+      encounter_elem + 0x98, (int)*(short *)(state_data + 8), 0x18);
     unit_estimate_position(*(int *)(actor + 0x18), 2, (void *)fp_elem,
                            0, 0, (void *)local_14);
     sVar1 = ai_test_line_of_sight(
@@ -475,10 +480,10 @@ char FUN_00014e90(int actor_handle, int param_1)
       local_5 = sVar1 == 0;
     }
     if (sVar1 == 0 || sVar1 == 3) {
-      *(char *)(param_1 + 0x20) = 1;
-      *(int *)(param_1 + 0x24) = *(int *)(prop + 0xbc);
-      *(int *)(param_1 + 0x28) = *(int *)(prop + 0xc0);
-      *(int *)(param_1 + 0x2c) = *(int *)(prop + 0xc4);
+      *(char *)(state_data + 0x20) = 1;
+      *(int *)(state_data + 0x24) = *(int *)(prop + 0xbc);
+      *(int *)(state_data + 0x28) = *(int *)(prop + 0xc0);
+      *(int *)(state_data + 0x2c) = *(int *)(prop + 0xc4);
     }
     return local_5;
   }
@@ -2167,7 +2172,7 @@ void FUN_00019c70(int actor_handle)
     lo = *(float *)(tag + 0x34c);
   }
   ticks = (int)(random_real_range(get_global_random_seed_address(), lo, hi)
-                * *(float *)0x253394);
+                * TICKS_PER_SECOND);
   *(int *)(actor + 0xbc) = ticks;
   *(int *)(actor + 0xc0) = ticks;
 }
@@ -2436,7 +2441,7 @@ void FUN_0001a670(int actor_handle)
     }
   }
   random_val = random_real_range(get_global_random_seed_address(), lo, hi);
-  ticks = (int)(random_val * *(float *)0x253394);
+  ticks = (int)(random_val * TICKS_PER_SECOND);
   *(int *)(actor + 0xc4) = ticks;
   *(int *)(actor + 0xc8) = ticks;
   if (*(char *)0x5aca64 != '\0') {

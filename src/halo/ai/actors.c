@@ -425,7 +425,7 @@ void FUN_00036e50(int actor_handle)
       *(float *)(actor_tag + 0x334) > *(float *)0x2533c0) {
     *(char *)(actor + 0x358) = 0;
     *(short *)(actor + 0x35a) =
-      (short)(*(float *)(actor_tag + 0x334) * *(float *)0x253394);
+      (short)(*(float *)(actor_tag + 0x334) * TICKS_PER_SECOND);
     encounter_handle = *(int *)(actor + 0x270);
     if (encounter_handle != -1) {
       encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
@@ -2130,7 +2130,7 @@ int FUN_00038da0(short unit_effect /* @<eax> */)
     goto compute;
   }
 compute:
-  final_val = (short)(int)(timer_raw * *(float *)0x253394);
+  final_val = (short)(int)(timer_raw * TICKS_PER_SECOND);
   if (final_val > 0xff)
     return 0xff;
   return final_val;
@@ -2164,7 +2164,7 @@ int FUN_00038e00(short unit_effect /* @<eax> */)
     timer_raw = random_real_range(get_global_random_seed_address(), 0.6f, 1.8f);
   }
 scale:
-  final_val = (short)(int)(timer_raw * *(float *)0x253394);
+  final_val = (short)(int)(timer_raw * TICKS_PER_SECOND);
   if (final_val > 0xff)
     return 0xff;
   return final_val;
@@ -2261,7 +2261,7 @@ void FUN_00038e60(int actor_handle)
       icount = count;
       cooldown =
         random_real_range(get_global_random_seed_address(), 6.0f, 8.0f) /
-        icount * *(float *)0x253394;
+        icount * TICKS_PER_SECOND;
       if (cooldown <= *(float *)0x254640)
         cooldown = *(float *)0x254640;
       *(short *)(swarm + 8) = (short)(int)cooldown;

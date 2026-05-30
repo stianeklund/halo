@@ -464,11 +464,11 @@ void FUN_000a0180(float dt, int particle_system_handle)
     object_get_root_location(*(int *)(ps_datum + 0xc),
                              (float *)(ps_datum + 0x2c), (float *)0);
     *(float *)(ps_datum + 0x2c) =
-      *(float *)(ps_datum + 0x2c) * *(float *)0x253394;
+      *(float *)(ps_datum + 0x2c) * TICKS_PER_SECOND;
     *(float *)(ps_datum + 0x30) =
-      *(float *)(ps_datum + 0x30) * *(float *)0x253394;
+      *(float *)(ps_datum + 0x30) * TICKS_PER_SECOND;
     *(float *)(ps_datum + 0x34) =
-      *(float *)(ps_datum + 0x34) * *(float *)0x253394;
+      *(float *)(ps_datum + 0x34) * TICKS_PER_SECOND;
   }
 
   if (*(short *)(tag_def + 0x48) < 0 || *(short *)(tag_def + 0x48) >= 2) {
