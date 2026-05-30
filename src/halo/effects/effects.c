@@ -944,11 +944,11 @@ void FUN_0009d590(void *effect)
                   *(float *)(spawn_params + 0x20) = dir_world[1];
                   *(float *)(spawn_params + 0x24) = dir_world[2];
                   *(float *)(spawn_params + 0x28) =
-                    *(float *)(ef + 0x24) * *(float *)0x253394 + vel_world[0];
+                    *(float *)(ef + 0x24) * TICKS_PER_SECOND + vel_world[0];
                   *(float *)(spawn_params + 0x2c) =
-                    *(float *)(ef + 0x28) * *(float *)0x253394 + vel_world[1];
+                    *(float *)(ef + 0x28) * TICKS_PER_SECOND + vel_world[1];
                   *(float *)(spawn_params + 0x30) =
-                    *(float *)(ef + 0x2c) * *(float *)0x253394 + vel_world[2];
+                    *(float *)(ef + 0x2c) * TICKS_PER_SECOND + vel_world[2];
                   *(int *)(spawn_params + 0x04) = -1;
                 }
 
