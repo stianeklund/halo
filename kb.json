@@ -14994,7 +14994,7 @@
           "reg_args": {
             "region_element": "eax"
           },
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13e460",
@@ -15017,7 +15017,7 @@
         {
           "addr": "0x13e7b0",
           "decl": "void object_compute_function_values(int object_handle@<eax>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13eb30",
@@ -15038,7 +15038,7 @@
           "addr": "0x13ec00",
           "decl": "int object_markers_need_update(int object_handle);",
           "name": "object_markers_need_update",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
@@ -15268,7 +15268,7 @@
         {
           "addr": "0x140b80",
           "decl": "void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140bc0",
@@ -15402,7 +15402,7 @@
           "addr": "0x1444f0",
           "decl": "int object_update(int param_1);",
           "name": "object_update",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1446a0",
@@ -15423,7 +15423,7 @@
           "addr": "0x144940",
           "decl": "void object_new_by_name(short param_1);",
           "name": "object_new_by_name",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1449b0",
@@ -15434,7 +15434,7 @@
           "addr": "0x144ae0",
           "decl": "void objects_scripting_attach(int param_1, int param_2, int param_3, int param_4);",
           "name": "objects_scripting_attach",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x144b30",
@@ -15455,7 +15455,7 @@
         {
           "addr": "0x145490",
           "decl": "void FUN_00145490(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1a9520",
