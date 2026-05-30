@@ -1,6 +1,7 @@
 #if defined(_MSC_VER) && !defined(__clang__)
 #include <math.h>
 #else
+#include "../../x87_math.h"
 float sinf(float x);
 float cosf(float x);
 double atan2(double y, double x);
@@ -8516,9 +8517,9 @@ void FUN_000853c0(int param_1, unsigned short *param_2, unsigned int *param_3)
       fVar4 = *(float *)0x2ee5b4 + fVar4 * *(float *)(param_3 + 0xb);
       param_3[0x15] = 0;
       *(unsigned char *)(param_3 + 0x13) = 1;
-      fVar14 = sinf(fVar13);
+      fVar14 = x87_fsin(fVar13);
       *param_3 = *param_3 | 1;
-      fVar13 = cosf(fVar13);
+      fVar13 = x87_fcos(fVar13);
       *(float *)(param_3 + 4) = fVar14 * local_10 + local_14 * fVar13;
       *(float *)(param_3 + 5) = fVar14 * local_14 - fVar13 * local_10;
       *(float *)(param_3 + 6) = fVar4;

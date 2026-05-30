@@ -4752,7 +4752,7 @@ void game_show_score_team(int param_1, int param_2)
 
     if (*(int *)(player + 0x20) == param_1 && param_2 != -1)
 
-      game_engine_hud_update_player(iter.datum_handle, param_2, iter.datum_handle);
+      game_engine_hud_update_player(iter.datum_handle, -1, param_2);
 
     player = (int)data_iterator_next(&iter);
 
@@ -8556,6 +8556,7 @@ void FUN_000ae920(wchar_t *title_buf)
   int player;
   int lives_remaining;
   wchar_t lives_buf[40];
+  wchar_t score_buf[256];
   wchar_t *lives_text;
 
   datum_get(player_data, 0);
@@ -8626,15 +8627,15 @@ check_phase:
     }
     { int local_stats[28];
     FUN_000abf50(local_stats, 0);
-    ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x4c / 4])(0, (wchar_t *)lives_buf);
+    ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x4c / 4])(0, score_buf);
     if ((*(uint32_t *)(local_stats + 6) & 0x80000000) != 0)
       usprintf(title_buf, L"Tied for %s place with %s %s",
                *(wchar_t **)(0x2efe28 + (*(uint32_t *)(local_stats + 6) & 0x7f) * 4),
-               lives_buf, lives_buf);
+               score_buf, lives_buf);
     else
       usprintf(title_buf, L"In %s place with %s %s",
                *(wchar_t **)(0x2efe28 + (*(uint32_t *)(local_stats + 6) & 0x7f) * 4),
-               lives_buf, lives_buf);
+               score_buf, lives_buf);
     }
   }
 }
