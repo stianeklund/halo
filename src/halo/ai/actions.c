@@ -1308,3 +1308,85 @@ char actor_action_handle_grenade_throwing(int actor_handle)
   }
   return result;
 }
+
+/* actor_action_handle_surprise (0x1db90) — Process an actor's surprise reaction.
+ * If the actor is not dead (field_160 == 0) and the surprise level (field_2ee)
+ * is at least as large as the requested type, computes a flee direction, triggers
+ * a surprise animation impulse (type 4 = forward, type 5 = backward), fires
+ * a sound event (0x29), and optionally queues wild fire and a new combat target.
+ * Always clears the surprise level (field_2ee = 0) before returning. */
+char actor_action_handle_surprise(int actor_handle, short type)
+{
+  char *actor;
+  char *actv_tag;
+  char *prop;
+  float direction[2];
+  float dot;
+  int anim_type;
+  int weapon_trigger_index;
+  int weapon_state;
+  int prop_handle;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+
+  if (*(char *)(actor + 0x160) != '\0') {
+    *(short *)(actor + 0x2ee) = 0;
+    return 0;
+  }
+  if (*(short *)(actor + 0x2ee) < type) {
+    *(short *)(actor + 0x2ee) = 0;
+    return 0;
+  }
+
+  if (*(char *)(actor + 0x2f8) != '\0') {
+    direction[0] = *(float *)(actor + 0x2fc);
+    direction[1] = *(float *)(actor + 0x300);
+    magnitude3d(direction);
+    dot = direction[1] * *(float *)(actor + 0x5a8) +
+          direction[0] * *(float *)(actor + 0x5a4);
+    if (dot < 0.0f) {
+      direction[0] = -direction[0];
+      direction[1] = -direction[1];
+      anim_type = 5;
+    } else {
+      anim_type = 4;
+    }
+  } else {
+    direction[0] = *(float *)(actor + 0x174);
+    direction[1] = *(float *)(actor + 0x178);
+    magnitude3d(direction);
+    anim_type = 4;
+  }
+
+  actor_move_animation_impulse(actor_handle, (short)anim_type, (int *)direction);
+
+  prop_handle = *(int *)(actor + 0x2f4);
+  weapon_trigger_index = -1;
+  weapon_state = 0;
+  if (prop_handle != -1) {
+    prop = (char *)datum_get(prop_data, prop_handle);
+    weapon_trigger_index = *(int *)(prop + 0x18);
+    weapon_state = (*(char *)(prop + 0x60) != '\0') + 2;
+  }
+
+  FUN_00046f10(0x29, *(int *)(actor + 0x18), weapon_trigger_index, weapon_state, -1, -1, 0);
+
+  if (*(float *)(actv_tag + 0x90) > 0.0f) {
+    FUN_00021010(actor_handle, (int)(*(float *)(actv_tag + 0x90) * 30.0f));
+  }
+
+  if (*(float *)(actv_tag + 0x8c) > 0.0f) {
+    FUN_00021040(actor_handle, (int)(*(float *)(actv_tag + 0x8c) * 30.0f));
+  }
+
+  FUN_00036da0(actor_handle);
+
+  prop_handle = *(int *)(actor + 0x2f4);
+  if (prop_handle != -1) {
+    actor_situation_try_new_target(actor_handle, prop_handle);
+  }
+
+  *(short *)(actor + 0x2ee) = 0;
+  return 1;
+}
