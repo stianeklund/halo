@@ -7,6 +7,7 @@ float cosf(float x);
 double atan2(double y, double x);
 float sqrtf(float x);
 float fabsf(float x);
+double fabs(double x);
 double pow(double x, double y);
 #endif
 
@@ -24,7 +25,7 @@ double pow(double x, double y);
 #define CALL_FUN_0008aa80() XCALL(0x8aa80, void(*)(void))()
 #define CALL_FUN_00084a70(a,b) XCALL(0x84a70, char(*)(float*,float*))(a,b)
 #define CALL_FUN_00084a10(a) XCALL(0x84a10, char(*)(float*))(a)
-#define CALL_game_time_get_rate() XCALL(0xb59c0, float(*)(void))()
+#define CALL_game_time_get_rate() XCALL(0xb5cc0, float(*)(void))()
 #define CALL_FUN_000b5c30() XCALL(0xb5c30, char(*)(void))()
 #define CALL_FUN_000b5aa0() XCALL(0xb5aa0, int(*)(void))()
 #define CALL_FUN_0013d640(a,b) XCALL(0x13d640, int(*)(int,int))(a,b)
@@ -1244,22 +1245,18 @@ void FUN_0013a250(int light_handle /* @<eax> */,
 
   /* Compute position and radius based on shape type */
   if (*(float *)(tag + 0x14) >= *(float *)0x2568bc) {
-    /* Large shape_radius: use light position directly */
     out_position[0] = *(float *)(light + 0x30);
     out_position[1] = *(float *)(light + 0x34);
     out_position[2] = *(float *)(light + 0x38);
     *out_radius = radius;
-  } else if (*(float *)(tag + 0x14) >= *(float *)0x254a58) {
-    /* Medium shape_radius: scale by inner*outer ratio */
-    float inner_scale = radius * *(float *)(tag + 0x20);
-    *out_radius = radius * *(float *)(tag + 0x28);
-    out_position[0] = inner_scale * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
-    out_position[1] = inner_scale * *(float *)(light + 0x40) + *(float *)(light + 0x34);
-    out_position[2] = inner_scale * *(float *)(light + 0x44) + *(float *)(light + 0x38);
   } else {
-    /* Small shape_radius: divide by inner_radius */
-    radius = radius / *(float *)(tag + 0x20);
-    *out_radius = radius;
+    if (*(float *)(tag + 0x14) >= *(float *)0x254a58) {
+      *out_radius = radius * *(float *)(tag + 0x28);
+      radius = radius * *(float *)(tag + 0x20);
+    } else {
+      radius = radius / *(float *)(tag + 0x20);
+      *out_radius = radius;
+    }
     out_position[0] = radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
     out_position[1] = radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
     out_position[2] = radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
@@ -8368,51 +8365,51 @@ void FUN_00084ae0(int *param_1, unsigned short *param_2, unsigned char *param_3)
       *(float *)(param_3 + 0x48) = (float)(iVar3 * 10000);
       param_1[2] = param_1[2] + 1;
       if ((param_3[0] & 1) != 0) {
-        cVar2 = CALL_FUN_00084a70((float *)(param_3 + 0x24), (float *)(param_3 + 0x30));
+        cVar2 = CALL_FUN_00084a70((float *)(param_3 + 9), (float *)(param_3 + 0xc));
         if (cVar2 != '\0'
-            && (*(unsigned int *)(param_3 + 4) & 0x7f800000) != 0x7f800000
+            && (param_3[1] & 0x7f800000) != 0x7f800000
+            && *(float *)0x266e98 <= *(float *)(param_3 + 1)
+            && *(float *)(param_3 + 1) <= *(float *)0x266e94
+            && (param_3[2] & 0x7f800000) != 0x7f800000
+            && *(float *)0x266e98 <= *(float *)(param_3 + 2)
+            && *(float *)(param_3 + 2) <= *(float *)0x266e94
+            && (param_3[3] & 0x7f800000) != 0x7f800000
+            && *(float *)0x266e98 <= *(float *)(param_3 + 3)
+            && *(float *)(param_3 + 3) <= *(float *)0x266e94
+            && (param_3[4] & 0x7f800000) != 0x7f800000
             && *(float *)0x266e98 <= *(float *)(param_3 + 4)
             && *(float *)(param_3 + 4) <= *(float *)0x266e94
-            && (*(unsigned int *)(param_3 + 8) & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 8)
-            && *(float *)(param_3 + 8) <= *(float *)0x266e94
-            && (*(unsigned int *)(param_3 + 0xc) & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 0xc)
-            && *(float *)(param_3 + 0xc) <= *(float *)0x266e94
-            && (*(unsigned int *)(param_3 + 0x10) & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 0x10)
-            && *(float *)(param_3 + 0x10) <= *(float *)0x266e94
-            && (*(unsigned int *)(param_3 + 0x14) & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 0x14)
-            && *(float *)(param_3 + 0x14) <= *(float *)0x266e94
-            && (*(unsigned int *)(param_3 + 0x18) & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 0x18)
-            && *(float *)(param_3 + 0x18) <= *(float *)0x266e94) {
-          cVar2 = CALL_FUN_00084a10((float *)(param_3 + 0x3c));
+            && (param_3[5] & 0x7f800000) != 0x7f800000
+            && *(float *)0x266e98 <= *(float *)(param_3 + 5)
+            && *(float *)(param_3 + 5) <= *(float *)0x266e94
+            && (param_3[6] & 0x7f800000) != 0x7f800000
+            && *(float *)0x266e98 <= *(float *)(param_3 + 6)
+            && *(float *)(param_3 + 6) <= *(float *)0x266e94) {
+          cVar2 = CALL_FUN_00084a10((float *)(param_3 + 0xf));
           if (cVar2 != '\0'
-              && (*(unsigned int *)(param_3 + 0x1c) & 0x7f800000) != 0x7f800000
-              && *(float *)0x2533c0 <= *(float *)(param_3 + 0x1c)
-              && *(float *)(param_3 + 0x1c) <= *(float *)0x266e94
-              && (*(unsigned int *)(param_3 + 0x20) & 0x7f800000) != 0x7f800000
-              && *(float *)0x255ef8 <= *(float *)(param_3 + 0x20)
-              && *(float *)(param_3 + 0x20) <= *(float *)0x2568bc
-              && (*(unsigned int *)(param_3 + 0x48) & 0x7f800000) != 0x7f800000
-              && *(float *)0x2533c0 <= *(float *)(param_3 + 0x48)
-              && *(float *)(param_3 + 0x48) <= *(float *)0x266e90) {
+              && (param_3[7] & 0x7f800000) != 0x7f800000
+              && *(float *)0x2533c0 <= *(float *)(param_3 + 7)
+              && *(float *)(param_3 + 7) <= *(float *)0x266e94
+              && (param_3[8] & 0x7f800000) != 0x7f800000
+              && *(float *)0x255ef8 <= *(float *)(param_3 + 8)
+              && *(float *)(param_3 + 8) <= *(float *)0x2568bc
+              && (param_3[0x12] & 0x7f800000) != 0x7f800000
+              && *(float *)0x2533c0 <= *(float *)(param_3 + 0x12)
+              && *(float *)(param_3 + 0x12) <= *(float *)0x266e90) {
             return;
           }
         }
         uVar6 = (int)csprintf((char *)0x5ab100,
                  "Invalid camera command.\nF: (%f, %f, %f) U: (%f, %f, %f)\nP: (%f, %f, %f) O: (%f, %f, %f)\nD: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
-                 (double)*(float *)(param_3 + 0x24), (double)*(float *)(param_3 + 0x28),
-                 (double)*(float *)(param_3 + 0x2c), (double)*(float *)(param_3 + 0x30),
-                 (double)*(float *)(param_3 + 0x34), (double)*(float *)(param_3 + 0x38),
-                 (double)*(float *)(param_3 + 4), (double)*(float *)(param_3 + 8),
-                 (double)*(float *)(param_3 + 0xc), (double)*(float *)(param_3 + 0x10),
-                 (double)*(float *)(param_3 + 0x14), (double)*(float *)(param_3 + 0x18),
-                 (double)*(float *)(param_3 + 0x1c), (double)*(float *)(param_3 + 0x3c),
-                 (double)*(float *)(param_3 + 0x40), (double)*(float *)(param_3 + 0x44),
-                 (double)*(float *)(param_3 + 0x20), (double)*(float *)(param_3 + 0x48),
+                 (double)*(float *)(param_3 + 9), (double)*(float *)(param_3 + 0xa),
+                 (double)*(float *)(param_3 + 0xb), (double)*(float *)(param_3 + 0xc),
+                 (double)*(float *)(param_3 + 0xd), (double)*(float *)(param_3 + 0xe),
+                 (double)*(float *)(param_3 + 1), (double)*(float *)(param_3 + 2),
+                 (double)*(float *)(param_3 + 3), (double)*(float *)(param_3 + 4),
+                 (double)*(float *)(param_3 + 5), (double)*(float *)(param_3 + 6),
+                 (double)*(float *)(param_3 + 7), (double)*(float *)(param_3 + 0xf),
+                 (double)*(float *)(param_3 + 0x10), (double)*(float *)(param_3 + 0x11),
+                 (double)*(float *)(param_3 + 8), (double)*(float *)(param_3 + 0x12),
                  *(int *)param_3);
         display_assert((const char *)uVar6, "c:\\halo\\SOURCE\\camera\\bored_camera.c", 0x5f, 1);
         CALL_thunk_FUN_001029a0(-1);
@@ -8580,48 +8577,48 @@ void FUN_000853c0(int param_1, unsigned short *param_2, unsigned int *param_3)
     cVar5 = CALL_FUN_00084a70((float *)(param_3 + 9), (float *)(param_3 + 0xc));
     if (cVar5 == '\0'
         || (param_3[1] & 0x7f800000) == 0x7f800000
-        || (float)param_3[1] < *(float *)0x266e98
-        || (float)param_3[1] > *(float *)0x266e94
+        || *(float *)(param_3 + 1) < *(float *)0x266e98
+        || *(float *)(param_3 + 1) > *(float *)0x266e94
         || (param_3[2] & 0x7f800000) == 0x7f800000
-        || (float)param_3[2] < *(float *)0x266e98
-        || (float)param_3[2] > *(float *)0x266e94
+        || *(float *)(param_3 + 2) < *(float *)0x266e98
+        || *(float *)(param_3 + 2) > *(float *)0x266e94
         || (param_3[3] & 0x7f800000) == 0x7f800000
-        || (float)param_3[3] < *(float *)0x266e98
-        || (float)param_3[3] > *(float *)0x266e94
+        || *(float *)(param_3 + 3) < *(float *)0x266e98
+        || *(float *)(param_3 + 3) > *(float *)0x266e94
         || (param_3[4] & 0x7f800000) == 0x7f800000
-        || (float)param_3[4] < *(float *)0x266e98
-        || (float)param_3[4] > *(float *)0x266e94
+        || *(float *)(param_3 + 4) < *(float *)0x266e98
+        || *(float *)(param_3 + 4) > *(float *)0x266e94
         || (param_3[5] & 0x7f800000) == 0x7f800000
-        || (float)param_3[5] < *(float *)0x266e98
-        || (float)param_3[5] > *(float *)0x266e94
+        || *(float *)(param_3 + 5) < *(float *)0x266e98
+        || *(float *)(param_3 + 5) > *(float *)0x266e94
         || (param_3[6] & 0x7f800000) == 0x7f800000
-        || (float)param_3[6] < *(float *)0x266e98
-        || (float)param_3[6] > *(float *)0x266e94) {
+        || *(float *)(param_3 + 6) < *(float *)0x266e98
+        || *(float *)(param_3 + 6) > *(float *)0x266e94) {
       goto camera_invalid;
     }
     cVar5 = CALL_FUN_00084a10((float *)(param_3 + 0xf));
     if (cVar5 == '\0'
         || (param_3[7] & 0x7f800000) == 0x7f800000
-        || (float)param_3[7] < *(float *)0x2533c0
-        || (float)param_3[7] > *(float *)0x266e94
+        || *(float *)(param_3 + 7) < *(float *)0x2533c0
+        || *(float *)(param_3 + 7) > *(float *)0x266e94
         || (param_3[8] & 0x7f800000) == 0x7f800000
-        || (float)param_3[8] < *(float *)0x255ef8
-        || (float)param_3[8] > *(float *)0x2568bc
+        || *(float *)(param_3 + 8) < *(float *)0x255ef8
+        || *(float *)(param_3 + 8) > *(float *)0x2568bc
         || (param_3[0x12] & 0x7f800000) == 0x7f800000
-        || (float)param_3[0x12] < *(float *)0x2533c0
-        || (float)param_3[0x12] > *(float *)0x266e90) {
+        || *(float *)(param_3 + 0x12) < *(float *)0x2533c0
+        || *(float *)(param_3 + 0x12) > *(float *)0x266e90) {
 camera_invalid:
       uVar10 = (int)csprintf((char *)0x5ab100,
                "Invalid camera command.\nF: (%f, %f, %f) U: (%f, %f, %f)\nP: (%f, %f, %f) O: (%f, %f, %f)\nD: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
-               (double)(float)param_3[9], (double)(float)param_3[10],
-               (double)(float)param_3[0xb], (double)(float)param_3[0xc],
-               (double)(float)param_3[0xd], (double)(float)param_3[0xe],
-               (double)(float)param_3[1], (double)(float)param_3[2],
-               (double)(float)param_3[3], (double)(float)param_3[4],
-               (double)(float)param_3[5], (double)(float)param_3[6],
-               (double)(float)param_3[7], (double)(float)param_3[0xf],
-               (double)(float)param_3[0x10], (double)(float)param_3[0x11],
-               (double)(float)param_3[8], (double)(float)param_3[0x12], uVar12);
+               (double)*(float *)(param_3 + 9), (double)*(float *)(param_3 + 10),
+               (double)*(float *)(param_3 + 0xb), (double)*(float *)(param_3 + 0xc),
+               (double)*(float *)(param_3 + 0xd), (double)*(float *)(param_3 + 0xe),
+               (double)*(float *)(param_3 + 1), (double)*(float *)(param_3 + 2),
+               (double)*(float *)(param_3 + 3), (double)*(float *)(param_3 + 4),
+               (double)*(float *)(param_3 + 5), (double)*(float *)(param_3 + 6),
+               (double)*(float *)(param_3 + 7), (double)*(float *)(param_3 + 0xf),
+               (double)*(float *)(param_3 + 0x10), (double)*(float *)(param_3 + 0x11),
+               (double)*(float *)(param_3 + 8), (double)*(float *)(param_3 + 0x12), uVar12);
       display_assert((const char *)uVar10, "c:\\halo\\SOURCE\\camera\\camera_scripting.c", 0x16e, 1);
       CALL_thunk_FUN_001029a0(-1);
     }
@@ -8926,21 +8923,19 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
   float local_40 = 0;
   float local_3c = 0;
   float local_38 = 0;
-  int local_34 = 0;
-  int local_30 = 0;
-  float local_2c = 0;
-  float local_28 = 0;
-  float local_24 = 0;
+  int local_34;
+  int local_30;
+  float local_2c;
+  float local_28;
+  float local_24;
   short local_20[2];
   short local_1c[2];
-  short *local_18 = 0;
-  int local_14 = 0;
-  float local_10 = 0;
-  float local_c = 0;
+  short *local_18;
+  int local_14;
+  float local_10;
+  float local_c;
   char local_5;
 
-  local_20[0] = 0;
-  local_1c[0] = 0;
   local_5 = 0;
   iVar2 = (int)scenario_get();
   puVar9 = (int *)(iVar2 + 0x2c);
@@ -9491,7 +9486,7 @@ after_create:
     }
     fVar1 = local_20 * local_2c + local_24 * local_30 + local_28 * local_34;
     if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000)
-        || *(float *)0x2549d8 <= fabsf(fVar1)) {
+        || *(double *)0x2549d8 <= fabs((double)fVar1)) {
       csprintf((char *)0x5ab100,
                "%s had a forward (%f,%f,%f) not perpendicular to left (%f,%f,%f)",
                "&matrix", (double)local_34, (double)local_30, (double)local_2c,
@@ -9501,7 +9496,7 @@ after_create:
     }
     fVar1 = local_14 * local_20 + local_18 * local_24 + local_1c * local_28;
     if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000)
-        || *(float *)0x2549d8 <= fabsf(fVar1)) {
+        || *(double *)0x2549d8 <= fabs((double)fVar1)) {
       csprintf((char *)0x5ab100,
                "%s had a up (%f,%f,%f) not perpendicular to left (%f,%f,%f)",
                "&matrix", (double)local_1c, (double)local_18, (double)local_14,
@@ -9511,7 +9506,7 @@ after_create:
     }
     fVar1 = local_14 * local_2c + local_18 * local_30 + local_1c * local_34;
     if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000)
-        || *(float *)0x2549d8 <= fabsf(fVar1)) {
+        || *(double *)0x2549d8 <= fabs((double)fVar1)) {
       csprintf((char *)0x5ab100,
                "%s had a forward (%f,%f,%f) not perpendicular to up (%f,%f,%f)",
                "&matrix", (double)local_34, (double)local_30, (double)local_2c,
@@ -9532,7 +9527,7 @@ after_create:
     local_40 = *(int *)(param_2 + 6);
     local_3c = (float)puVar4[0x17] * *(float *)0x253398 + *(float *)(param_2 + 8);
   }
-  CALL_FUN_00143ae0();
+  object_set_position(param_1, (float *)local_10, &local_34, &local_1c);
   *(short *)((int)puVar4 + 0x6a) = param_2[1];
 LAB_0013d51f:
   if (param_2[1] != -1) {
