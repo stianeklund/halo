@@ -8426,7 +8426,8 @@
         },
         {
           "addr": "0xac030",
-          "decl": "void FUN_000ac030(void);"
+          "decl": "int FUN_000ac030(int param_eax@<eax>, int unused_arg1, void *out_buffer, int max_count);",
+          "ported": true
         },
         {
           "addr": "0xac220",
