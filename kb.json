@@ -19098,7 +19098,7 @@
         },
         {
           "addr": "0x21430",
-          "decl": "void FUN_00021430(void);"
+          "decl": "void FUN_00021430(float *target /* @<esi> */, float distance);"
         },
         {
           "addr": "0x21e50",
@@ -29200,7 +29200,7 @@
         {
           "addr": "0x22390",
           "decl": "void FUN_00022390(int actor_handle);",
-          "ported": false,
+          "ported": true,
           "source_path": "src/halo/ai/actor_combat.c"
         },
         {
