@@ -94,6 +94,30 @@ def _score_function_from_reference_unit(tracker, func):
     return scores.get(func['name'])
 
 
+def _recompute_summary_match(report: dict) -> None:
+    """Recompute report['summary']['match'] from all units' function scores in-place."""
+    total_sum = 0.0
+    weighted_sum = 0.0
+    weighted_bytes = 0
+    count = 0
+    for unit in report.get('units', []):
+        for func in unit.get('functions', []):
+            mp = func.get('match_percent')
+            if mp is None:
+                continue
+            size = func.get('size') or 0
+            total_sum += mp
+            weighted_sum += mp * size
+            weighted_bytes += size
+            count += 1
+    if count > 0:
+        report.setdefault('summary', {})['match'] = {
+            'average': round(total_sum / count, 1),
+            'weighted': round(weighted_sum / max(weighted_bytes, 1), 1),
+            'scored_count': count,
+        }
+
+
 class SSEHandler(SimpleHTTPRequestHandler):
     """HTTP handler that also serves an SSE endpoint at /events."""
 
@@ -225,6 +249,10 @@ class SSEHandler(SimpleHTTPRequestHandler):
                         func['match_percent'] = round(score, 2)
                         updated_funcs[fname] = func['match_percent']
                 break
+
+        # Recompute top-level summary.match from all units so the main page
+        # reflects the updated scores immediately.
+        _recompute_summary_match(report)
 
         try:
             with open(report_path, 'w') as f:
