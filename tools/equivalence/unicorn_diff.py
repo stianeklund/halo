@@ -502,10 +502,25 @@ def _build_globals_seeds(*slot_maps: dict,
             if is_dllimport and snap is not None:
                 seeds[slot_addr] = _struct.pack("<I", orig_addr)
             elif snap is not None:
-                # Snapshot overrides take priority over hardcoded known globals
-                seeds[slot_addr] = snap
+                # Direct value reference (DAT_X).  Seed up to 8 bytes so a
+                # constant read as an 8-byte double (e.g. `*(double*)0x2533d0`)
+                # is NOT truncated to its low dword.  DIR32 globals slots are
+                # 256 bytes apart, so over-seeding a 4-byte consumer is
+                # harmless — it only reads its own 4 bytes.  Snapshot overrides
+                # take priority over hardcoded known globals.
+                seeds[slot_addr] = _snapshot_value_at(snapshot_overrides,
+                                                      orig_addr, 8) or snap
             elif orig_addr in _KNOWN_GLOBAL_BYTES:
-                seeds[slot_addr] = _KNOWN_GLOBAL_BYTES[orig_addr]
+                # Static fallback: concatenate the adjacent dword when it was
+                # also extracted, so double reads get both halves even without
+                # a snapshot.  (Many epsilon doubles have an unreferenced high
+                # dword that the extractor never captured — those still need a
+                # snapshot; see memsave_snapshot.py.)
+                val = _KNOWN_GLOBAL_BYTES[orig_addr]
+                nxt = _KNOWN_GLOBAL_BYTES.get(orig_addr + 4)
+                if nxt is not None and len(val) == 4:
+                    val = val + nxt
+                seeds[slot_addr] = val
     return seeds
 
 
