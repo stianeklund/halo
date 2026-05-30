@@ -360,6 +360,32 @@
         "--allow-stubs"
       ],
       "reason": "auto: batch pass 40/40 seeds"
+    },
+    {
+      "addr": "0xa83a0",
+      "name": "game_engine_player_count",
+      "obj": "game_engine.obj",
+      "seeds": 20,
+      "flags": [
+        "--real-callees",
+        "--mem-trace",
+        "--state-snapshot",
+        "tools/equivalence/regression_snapshots/player_count.json"
+      ],
+      "reason": "real-callee + live snapshot: data_iterator loop executes over the 'players' data_array (73.4% weak -> 100% high)"
+    },
+    {
+      "addr": "0xa8220",
+      "name": "game_engine_evaluate_game_complexity",
+      "obj": "game_engine.obj",
+      "seeds": 20,
+      "flags": [
+        "--real-callees",
+        "--mem-trace",
+        "--state-snapshot",
+        "tools/equivalence/regression_snapshots/evaluate_game_complexity.json"
+      ],
+      "reason": "real-callee + live snapshot: player + vehicle-seat counting via data_iterator + global complexity-flag branches"
     }
   ]
 }
