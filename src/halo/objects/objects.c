@@ -1243,23 +1243,22 @@ void FUN_0013a250(int light_handle /* @<eax> */,
     return;
   }
 
-  /* Compute position and radius based on shape type */
-  if (*(float *)(tag + 0x14) >= *(float *)0x2568bc) {
-    out_position[0] = *(float *)(light + 0x30);
-    out_position[1] = *(float *)(light + 0x34);
-    out_position[2] = *(float *)(light + 0x38);
-    *out_radius = radius;
-  } else {
-    if (*(float *)(tag + 0x14) >= *(float *)0x254a58) {
-      *out_radius = radius * *(float *)(tag + 0x28);
-      radius = radius * *(float *)(tag + 0x20);
-    } else {
+  if (*(float *)(tag + 0x14) < *(float *)0x2568bc) {
+    if (*(float *)(tag + 0x14) < *(float *)0x254a58) {
       radius = radius / *(float *)(tag + 0x20);
       *out_radius = radius;
+    } else {
+      *out_radius = radius * *(float *)(tag + 0x28);
+      radius = radius * *(float *)(tag + 0x20);
     }
     out_position[0] = radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
     out_position[1] = radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
     out_position[2] = radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+  } else {
+    out_position[0] = *(float *)(light + 0x30);
+    out_position[1] = *(float *)(light + 0x34);
+    out_position[2] = *(float *)(light + 0x38);
+    *out_radius = radius;
   }
 }
 
@@ -1320,56 +1319,41 @@ void FUN_0013a420(void)
       is_specular = 0;
     }
 
-    /* Gather gel objects if not a specular light */
     gel_count = 0;
     if (is_specular == '\0') {
       gel_count = FUN_00139350(
           *(int *)(0x5a8d6c + (int)i * 4),
           gel_buffer, 0x200);
-      light = (char *)datum_get(*(data_t **)0x5a90bc,
-                                *(int *)(0x5a8d6c + (int)i * 4));
-    } else {
-      /* Re-fetch light datum for specular path */
-      light = (char *)datum_get(*(data_t **)0x5a90bc,
-                                *(int *)(0x5a8d6c + (int)i * 4));
     }
 
+    light = (char *)datum_get(*(data_t **)0x5a90bc,
+                              *(int *)(0x5a8d6c + (int)i * 4));
     tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
     radius = *(float *)(light + 0x54);
 
-    /* Compute position based on shape type */
-    if (*(float *)(tag_data + 0x14) >= *(float *)0x2568bc) {
-      /* Large shape_radius: use position directly */
+    if (*(float *)(tag_data + 0x14) < *(float *)0x2568bc) {
+      if (*(float *)(tag_data + 0x14) < *(float *)0x254a58) {
+        radius = radius / *(float *)(tag_data + 0x20);
+        position[0] = radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
+        position[1] = radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
+        position[2] = radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+      } else {
+        float inner_scale;
+        radius = radius * *(float *)(tag_data + 0x28);
+        inner_scale = *(float *)(light + 0x54) * *(float *)(tag_data + 0x20);
+        position[0] = inner_scale * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
+        position[1] = inner_scale * *(float *)(light + 0x40) + *(float *)(light + 0x34);
+        position[2] = inner_scale * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+      }
+    } else {
       position[0] = *(float *)(light + 0x30);
       position[1] = *(float *)(light + 0x34);
       position[2] = *(float *)(light + 0x38);
-    } else if (*(float *)(tag_data + 0x14) >= *(float *)0x254a58) {
-      /* Medium shape: scale by inner*outer */
-      float inner_scale = radius * *(float *)(tag_data + 0x20);
-      position[0] = inner_scale * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
-      position[1] = inner_scale * *(float *)(light + 0x40) + *(float *)(light + 0x34);
-      position[2] = inner_scale * *(float *)(light + 0x44) + *(float *)(light + 0x38);
-      radius = radius * *(float *)(tag_data + 0x28);
-    } else {
-      /* Small shape: divide by inner */
-      radius = radius / *(float *)(tag_data + 0x20);
-      position[0] = radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
-      position[1] = radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
-      position[2] = radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
     }
 
-    /* Dispatch to rasterizer */
-    {
-      int gel_buf_arg;
-      if (is_specular != '\0') {
-        gel_buf_arg = 0;
-      } else {
-        gel_buf_arg = (int)gel_buffer;
-      }
-      FUN_00196060(
-          *(int *)(light + 0x8), position, radius, gel_count,
-          gel_buf_arg);
-    }
+    FUN_00196060(
+        *(int *)(light + 0x8), position, radius, gel_count,
+        (int)((unsigned int)((is_specular != '\0') - 1) & (unsigned int)gel_buffer));
 
     loop_idx = saved_idx + 1;
   } while ((int16_t)loop_idx < *(int16_t *)0x5a8d68);
