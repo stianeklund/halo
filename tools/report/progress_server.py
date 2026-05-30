@@ -94,6 +94,28 @@ def _score_function_from_reference_unit(tracker, func):
     return scores.get(func['name'])
 
 
+def _recompute_unit_match(unit: dict) -> None:
+    """Recompute unit['summary'] match_avg/match_weighted from its function scores in-place."""
+    scores = []
+    weighted_sum = 0.0
+    weighted_bytes = 0
+    for func in unit.get('functions', []):
+        mp = func.get('match_percent')
+        if mp is None:
+            continue
+        size = func.get('size') or 0
+        scores.append(mp)
+        weighted_sum += mp * size
+        weighted_bytes += size
+    summary = unit.setdefault('summary', {})
+    if scores:
+        summary['match_avg'] = round(sum(scores) / len(scores), 1)
+        summary['match_weighted'] = round(weighted_sum / max(weighted_bytes, 1), 1)
+    else:
+        summary['match_avg'] = None
+        summary['match_weighted'] = None
+
+
 def _recompute_summary_match(report: dict) -> None:
     """Recompute report['summary']['match'] from all units' function scores in-place."""
     total_sum = 0.0
@@ -250,8 +272,12 @@ class SSEHandler(SimpleHTTPRequestHandler):
                         updated_funcs[fname] = func['match_percent']
                 break
 
-        # Recompute top-level summary.match from all units so the main page
-        # reflects the updated scores immediately.
+        # Recompute unit summary and global summary so both the unit detail
+        # and main page reflect the updated scores immediately.
+        for unit in report.get('units', []):
+            if unit['name'] == unit_name:
+                _recompute_unit_match(unit)
+                break
         _recompute_summary_match(report)
 
         try:
