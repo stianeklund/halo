@@ -1182,13 +1182,13 @@ int projectile_new(int projectile_handle)
   }
 
   /* Store 1.0 / (initial_speed * 30.0) if speed exceeds one-tick threshold. */
-  speed_factor = initial_speed * *(float *)0x253394;
+  speed_factor = initial_speed * TICKS_PER_SECOND;
   if (*(float *)0x2533c8 <= speed_factor) {
     *(float *)(proj + 0x1f4) = *(float *)0x2533c8 / speed_factor;
   }
   /* Compute per-tick range decay factor from max-range tag field (tag+0x1a4).
    */
-  range_factor = *(float *)(proj_tag + 0x1a4) * *(float *)0x253394;
+  range_factor = *(float *)(proj_tag + 0x1a4) * TICKS_PER_SECOND;
   if (*(float *)0x2533c8 <= range_factor) {
     *(float *)(proj + 0x1fc) = *(float *)0x2533c8 / range_factor;
   }
@@ -2027,7 +2027,7 @@ apply_speed_scale:
     }
     /* Compute spin rate scale if tag "attach on impact" flag (bit 2) set. */
     if ((*(uint8_t *)(proj_tag + 0x17c) & 0x4)) {
-      ftemp = *(float *)(proj_tag + 0x1c0) * *(float *)0x253394;
+      ftemp = *(float *)(proj_tag + 0x1c0) * TICKS_PER_SECOND;
       if (ftemp >= *(float *)0x2533c8) {
         *(float *)((char *)proj + 0x1f4) = *(float *)0x2533c8 / ftemp;
       }

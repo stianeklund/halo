@@ -93,9 +93,9 @@ int FUN_000a12e0(int particle_tag_index, int object_handle,
     *(int *)(datum + 0x28) = *(int *)(marker_buf + 0x68);
 
     object_get_root_location(object_handle, (float *)(datum + 0x2c), NULL);
-    *(float *)(datum + 0x2c) *= *(float *)0x253394;
-    *(float *)(datum + 0x30) *= *(float *)0x253394;
-    *(float *)(datum + 0x34) *= *(float *)0x253394;
+    *(float *)(datum + 0x2c) *= TICKS_PER_SECOND;
+    *(float *)(datum + 0x30) *= TICKS_PER_SECOND;
+    *(float *)(datum + 0x34) *= TICKS_PER_SECOND;
 
     {
       char *default_vel = *(char **)0x2ee708;

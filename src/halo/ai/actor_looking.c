@@ -2172,7 +2172,7 @@ void FUN_00019c70(int actor_handle)
     lo = *(float *)(tag + 0x34c);
   }
   ticks = (int)(random_real_range(get_global_random_seed_address(), lo, hi)
-                * *(float *)0x253394);
+                * TICKS_PER_SECOND);
   *(int *)(actor + 0xbc) = ticks;
   *(int *)(actor + 0xc0) = ticks;
 }
@@ -2441,7 +2441,7 @@ void FUN_0001a670(int actor_handle)
     }
   }
   random_val = random_real_range(get_global_random_seed_address(), lo, hi);
-  ticks = (int)(random_val * *(float *)0x253394);
+  ticks = (int)(random_val * TICKS_PER_SECOND);
   *(int *)(actor + 0xc4) = ticks;
   *(int *)(actor + 0xc8) = ticks;
   if (*(char *)0x5aca64 != '\0') {
