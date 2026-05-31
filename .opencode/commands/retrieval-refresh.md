@@ -1,6 +1,5 @@
 ---
 description: Refresh local retrieval/vector index (extract + embed + stats)
-model: sonnet
 subtask: false
 ---
 
