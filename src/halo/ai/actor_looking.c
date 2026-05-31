@@ -88,7 +88,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   char *actr_tag;
   char *encounter;
   char return_flag;
-  char is_secondary;
+  int is_secondary;
   int melee_tick_count;
   float attack_time;
   short tick_count_short;
@@ -119,6 +119,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     goto done;
   }
   if ((short)action_type != 2) {
+    return_flag = 0;
     if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
         *(int16_t *)(actor + 0x6e) >= 5 && !*(char *)(actor + 0x378)) {
       action_type = 1;
@@ -156,11 +157,13 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     *(char *)((char *)charge_state + 0xa) = 0;
     is_secondary = 0;
   } else if (*(char *)(encounter + 0x130) == 0 &&
-             *(int16_t *)(encounter + 0x9c) < 1) {
+             *(int16_t *)(encounter + 0x9c) <= 0) {
     rand_val =
       random_math_real((unsigned int *)get_global_random_seed_address());
-    is_secondary = (char)(rand_val < *(float *)(actr_tag + 0x390));
-    *(char *)((char *)charge_state + 0xa) = is_secondary;
+    is_secondary = 1;
+    if (rand_val >= *(float *)(actr_tag + 0x390))
+      is_secondary = 0;
+    *(char *)((char *)charge_state + 0xa) = (char)is_secondary;
     if (*(float *)(encounter + 0x11c) < *(float *)(actr_tag + 0x384)) {
       is_secondary = 0;
     } else {

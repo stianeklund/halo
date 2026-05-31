@@ -121,3 +121,11 @@ int strncmp(const char *s1, const char *s2, unsigned int n)
   }
   return 0;
 }
+
+/* fabs is used by valid_real_normal3d_perpendicular; not in XDK libm.
+ * VC71 inlines it as x87 FABS — this stub is only reached by the clang build. */
+double fabs(double x)
+{
+  __asm__ __volatile__("fabs" : "+t"(x));
+  return x;
+}
