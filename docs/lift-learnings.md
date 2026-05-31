@@ -186,3 +186,38 @@ actually expects. Compare against the C source line by line.
 - **ESI/EDI = float value (0x3Exxxxxx)** → parameter corruption, the
   register contains data from a wrong memory region
 - **EBP == ESP** → stack exhaustion (infinite recursion) or frame not set up
+
+---
+
+## 6. Float-as-Pointer Bit Smuggling
+
+**What happens:** Ghidra decompiles a float value stored through an integer
+register as a series of pointer casts: `local_18 = (short *)(int)(float_expr)`.
+Later, the value is passed to a function as `(float)(int)psVar3`. In C,
+`(int)` on a float does a **numeric truncation** (0.75 → 0), and `(float)`
+converts back (0 → 0.0). But the original code used `PUSH ESI` to put the
+raw IEEE 754 bits on the stack — no conversion at all. The bit pattern
+0x3F400000 means float 0.75, but as an integer it's 1,061,158,912, and
+`(float)1061158912` is a massive number.
+
+**Symptoms:** Persistent wrong colors (yellow/white tint on all objects),
+wrong scale factors, or lighting that doesn't respond to distance. The
+visual effect depends on which parameter gets the inflated value.
+
+**Example:** FUN_0013ab20 computed a distance scale as a float interpolation,
+stored it through `(short *)(int)`, then passed it as `(float)(int)psVar3`
+to FUN_00139e50's `param_4` (distance_scale). The value ~0.5 became
+~1 billion, making all lighting colors saturate to maximum — producing a
+uniform yellow tint on weapons and world geometry.
+
+**Prevention:**
+- When Ghidra shows a float expression cast through `(int)` and then a
+  pointer type, it's bit-smuggling. Use a proper `float` variable instead.
+- Search for the pattern: `(float)(int)` on any variable that was assigned
+  via `(type *)(int)(float_expr)`. Every instance is a potential bug.
+- `grep -n '(float)(int)' src/file.c` after lifting to catch these.
+- The underlying rule: **never use C casts to reinterpret float↔int bits**.
+  Use `memcpy(&dst, &src, 4)` or a union if you genuinely need bit-casting.
+
+**Detection at runtime:** No crash — just visually wrong output. Compare
+against the unpatched game at the same camera position.
