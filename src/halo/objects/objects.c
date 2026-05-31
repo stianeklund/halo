@@ -79,10 +79,9 @@ double pow(double x, double y);
 #define CALL_FUN_00089240(a,b) XCALL(0x89240, void(*)(int,void*))(a,b)
 #define CALL_FUN_00085b60(a,b,c) XCALL(0x85b60, void(*)(int,unsigned short,int))(a,b,c)
 #define CALL_FUN_00085c80(a,b,c) XCALL(0x85c80, void(*)(int,void*,void*))(a,b,c)
-#define CALL_FUN_00138fd0_6(a,b,c,d,e,f) XCALL(0x138fd0, void(*)(int,int,float,float,int,float*))(a,b,c,d,e,f)
+/* FUN_00138fd0 and FUN_00138f70 now in kb.json with proper declarations */
 #define CALL_FUN_00180570(a,b) XCALL(0x180570, void(*)(int,void*))(a,b)
 #define CALL_FUN_00180660(a,b) XCALL(0x180660, void(*)(int,void*))(a,b)
-#define CALL_FUN_00138f70(a,b) XCALL(0x138f70, void(*)(float,float))(a,b)
 #define CALL_FUN_00189150(a,b,c,d) XCALL(0x189150, void(*)(int,int,int,void*))(a,b,c,d)
 #define CALL_FUN_001906b0(a,b) XCALL(0x1906b0, int(*)(int,int))(a,b)
 #define CALL_FUN_007c490(a,b,c,d,e,f) XCALL(0x7c490, void(*)(int,int,void*,void*,void*,float))(a,b,c,d,e,f)
@@ -8827,7 +8826,7 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
       }
       iVar8 = CALL_FUN_001bf570(uVar7, 0, 0);
       if (iVar8 != 0) {
-        CALL_FUN_00138fd0_6(iVar5, uVar7, local_28[1], local_28[3], local_14, pfVar3);
+        FUN_00138fd0(iVar5, uVar7, (unsigned short *)(int)local_28[1], *(float *)&local_28[3], *(float *)&local_14, (int)pfVar3);
       }
     }
   }
@@ -8990,7 +8989,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
           && (iVar4 = CALL_FUN_00138ee0(iVar2), iVar4 != 0)
           && (iVar4 = CALL_FUN_00138ee0(local_14), iVar4 != 0)) {
         CALL_FUN_001390d0(iVar6, local_14, puVar5, local_c, local_10, (void *)local_88);
-        CALL_FUN_00138fd0_6(iVar6, iVar2, (float)(int)puVar5, local_c, local_10, &local_40);
+        FUN_00138fd0(iVar6, iVar2, puVar5, local_c, local_10, (int)&local_40);
         CALL_FUN_00180570((unsigned int)*puVar5 * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_64);
         CALL_FUN_00180570((unsigned int)puVar5[1] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_58);
         CALL_FUN_00180570((unsigned int)puVar5[2] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_4c);
@@ -9050,8 +9049,8 @@ void FUN_0013b380(void)
   char *puVar13;
   short sVar14;
   float fVar15;
-  char local_3e0[60];
-  char local_3a4[804];
+  char local_3e0[864]; /* local_3e0[60]+local_3a4[804] must be contiguous (MSVC stack alias) */
+  char *local_3a4 = local_3e0 + 60;
   int local_80;
   int local_7c;
   int local_78;
