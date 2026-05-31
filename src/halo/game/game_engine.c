@@ -5656,8 +5656,8 @@ int FUN_000a8e80(int param_1)
   return val / 0xa8c;
 }
 
-/* Check if a nearby vehicle exists for a player. ECX = player handle. */
-int FUN_000a8ec0(int param_1)
+/* Check if a nearby enemy exists at a location. ECX=location_ptr, EAX=player_handle. */
+int FUN_000a8ec0(int location_ptr, int player_handle)
 {
   int16_t count;
   int16_t i;
@@ -5665,10 +5665,10 @@ int FUN_000a8ec0(int param_1)
   char local_c[8];
   int local_4c[16];
 
-  datum_get(player_data, 0);
-  scenario_location_from_point(local_c, (void *)param_1);
+  datum_get(player_data, player_handle);
+  scenario_location_from_point(local_c, (void *)location_ptr);
   { union { int i; float f; } u; u.i = 0x3dcccccd;
-  count = object_find_in_radius(0, 0x11f, local_c, (float *)param_1, u.f, local_4c, 0x10); }
+  count = object_find_in_radius(0, 0x11f, local_c, (float *)location_ptr, u.f, local_4c, 0x10); }
   i = 0;
   if (0 < count) {
     do {
@@ -6899,9 +6899,9 @@ float game_engine_get_starting_location_rating(int param_1, int param_2)
     variant_type = *(int *)((char *)current_game_engine + 4);
   if (!match_game_type(variant_type, 4, (int16_t *)(param_2 + 0x14)))
     return 0.0f;
-  if (FUN_000a8ec0(param_1))
+  if (FUN_000a8ec0(param_2, param_1))
     return 0.0f;
-  return FUN_000adc40(param_2);
+  return FUN_000adc40(param_2, param_1);
 }
 
 /* Check whether a nav point flag applies to a player. EAX=flag_index, EDI=player_handle. */
@@ -7008,7 +7008,7 @@ float FUN_000adb20(int spawn_pos)
 }
 
 /* Compute the combined spawn location rating. EAX = player_handle. */
-float FUN_000adc40(int player_handle)
+float FUN_000adc40(int location_ptr, int player_handle)
 {
   int player;
   float rating;
@@ -7017,18 +7017,18 @@ float FUN_000adc40(int player_handle)
   if (current_game_engine != 0 &&
       ((char (**)(void))current_game_engine)[0x7c / 4] != NULL) {
     if (((char (*)(int))((void **)current_game_engine)[0x7c / 4])(0)) {
-      if (*(int *)(player + 0x20) != *(int16_t *)(player_handle + 0x10))
+      if (*(int *)(player + 0x20) != *(int16_t *)(location_ptr + 0x10))
         return 0.0f;
     }
   }
-  rating = game_engine_get_distance_rating_for_spawn(player_handle, NULL);
+  rating = game_engine_get_distance_rating_for_spawn(player_handle, (float *)location_ptr);
   if (current_game_engine != 0) {
     if (0.0f < rating && *(char *)0x456b14 != 0) {
       rating = FUN_000adb20(player_handle) * rating;
     }
     if (current_game_engine != 0 &&
         ((float (**)(void))current_game_engine)[0x68 / 4] != NULL) {
-      rating = ((float (*)(void))((void **)current_game_engine)[0x68 / 4])() * rating;
+      rating = ((float (*)(int, int))((void **)current_game_engine)[0x68 / 4])(player_handle, location_ptr) * rating;
     }
   }
   return rating;
