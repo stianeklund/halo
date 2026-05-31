@@ -753,12 +753,16 @@ bool cache_files_precache_map_begin(char *map_name, bool show_error)
 
     {
       int copy_handle;
+      int buffer;
       int16_t slot;
       int block;
+      int file;
+      int mapped;
 
       copy_handle = ((int (*)(bool))0x1ba250)(show_error);
-      *(int *)(path + 0x148) = ((int (*)(int))0x1bea30)(copy_handle);
-      slot = ((int16_t (*)(int))0x1bd210)(*(int *)(path + 0x148));
+      buffer = (int)xbox_texture_cache_steal_memory(copy_handle);
+      slot = FUN_001bd210(
+        *(int16_t *)(header_buf + 0x60), *(int *)(header_buf + 8));
 
       block = (int)FUN_001bc720(slot);
       csmemset((void *)(block + 0xc), 0, 0x800);
@@ -772,12 +776,9 @@ bool cache_files_precache_map_begin(char *map_name, bool show_error)
         path, "d:\\maps\\%s.map", canonical);
       error(2, "starting precaching of map '%s'", canonical);
 
-      {
-        (void)FUN_001bc7e0(slot);
-        int mapped = (int)FUN_001bc7a0(slot);
-        ((void (*)(int, int, int))0x1ba2f0)(
-          *(int *)(path + 0x148), copy_handle, mapped);
-      }
+      file = FUN_001bc7e0(slot);
+      mapped = (int)FUN_001bc7a0(slot);
+      FUN_001ba2f0(buffer, copy_handle, mapped, file, path);
     }
   }
 
