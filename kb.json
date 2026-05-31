@@ -14271,25 +14271,25 @@
         {
           "addr": "0x84a10",
           "decl": "int real_vector3d_valid(float *vector);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x84a70",
           "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c",
           "status": "ported"
         },
         {
           "addr": "0x84ae0",
           "decl": "void FUN_00084ae0(int *param_1, unsigned short *param_2, unsigned char *param_3);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
           "addr": "0x84fe0",
           "decl": "void FUN_00084fe0(unsigned char param_1);",
-          "ported": true,
+          "ported": false,
           "source_path": "camera/bored_camera.c"
         },
         {
@@ -14300,25 +14300,25 @@
         {
           "addr": "0x850d0",
           "decl": "void FUN_000850d0(int param_1);",
-          "ported": true,
+          "ported": false,
           "source_path": "camera/bored_camera.c"
         },
         {
           "addr": "0x85110",
           "decl": "void FUN_00085110(int param_1);",
-          "ported": true,
+          "ported": false,
           "source_path": "camera/bored_camera.c"
         },
         {
           "addr": "0x85150",
           "decl": "int FUN_00085150(int param_1);",
-          "ported": true,
+          "ported": false,
           "source_path": "camera/bored_camera.c"
         },
         {
           "addr": "0x85180",
           "decl": "void FUN_00085180(short param_1, short param_2, int param_3);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
@@ -14348,37 +14348,37 @@
         {
           "addr": "0x853c0",
           "decl": "void FUN_000853c0(int param_1, unsigned short *param_2, unsigned int *param_3);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
           "addr": "0x9eb40",
           "decl": "int FUN_0009eb40(int param_1, int param_2, short param_3, short param_4, short param_5);",
-          "ported": true,
+          "ported": false,
           "source_path": "effects/effects.c"
         },
         {
           "addr": "0x9ec30",
           "decl": "int FUN_0009ec30(int param_1, int param_2, int param_3, short param_4, float param_5, float param_6, int param_7, int param_8);",
-          "ported": true,
+          "ported": false,
           "src": "src/halo/effects/effects.c"
         },
         {
           "addr": "0xadf70",
           "decl": "int FUN_000adf70(int tag_index);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
           "addr": "0xae0a0",
           "decl": "int FUN_000ae0a0(int tag_index);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
           "addr": "0xae110",
           "decl": "int FUN_000ae110(int param_1, int param_2, int param_3);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c",
           "src": "src/halo/objects/objects.c"
         },
@@ -14416,12 +14416,12 @@
         {
           "addr": "0x134be0",
           "decl": "int FUN_00134be0(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x134c20",
           "decl": "void FUN_00134c20(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x134c40",
@@ -14447,12 +14447,12 @@
         {
           "addr": "0x1353b0",
           "decl": "int FUN_001353b0(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1353f0",
           "decl": "void FUN_001353f0(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x135420",
@@ -14462,7 +14462,7 @@
         {
           "addr": "0x135510",
           "decl": "void FUN_00135510(int *param_1, int param_2, int param_3, int *param_4);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
@@ -14474,32 +14474,32 @@
         {
           "addr": "0x135f90",
           "decl": "void FUN_00135f90(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x136040",
           "decl": "void FUN_00136040(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1360a0",
           "decl": "void FUN_001360a0(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x136100",
           "decl": "void FUN_00136100(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x136150",
           "decl": "void FUN_00136150(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1362d0",
           "decl": "void FUN_001362d0(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "name": "FUN_001363d0",
@@ -14522,7 +14522,7 @@
         {
           "addr": "0x1396e0",
           "decl": "void object_wake(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "name": "FUN_001397f0",
@@ -14533,7 +14533,7 @@
         {
           "addr": "0x139810",
           "decl": "void FUN_00139810(float *color@<ecx>, float scale);",
-          "ported": true,
+          "ported": false,
           "reg_args": {
             "color": "ecx"
           }
@@ -14541,12 +14541,12 @@
         {
           "addr": "0x1398b0",
           "decl": "void FUN_001398b0(int *param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1398d0",
           "decl": "void FUN_001398d0(int *param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "name": "FUN_00139930",
@@ -14557,7 +14557,7 @@
         {
           "addr": "0x139990",
           "decl": "int FUN_00139990(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_00139a30(int param_1);",
@@ -14578,7 +14578,7 @@
         {
           "addr": "0x139e50",
           "decl": "void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3, float param_4, float *color_ptr@<ebx>, float *output_ptr@<esi>, float *intensity_ptr@<edi>);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c",
           "reg_args": {
             "color_ptr": "ebx",
@@ -14594,7 +14594,7 @@
             "out_position": "edi",
             "out_radius": "ebx"
           },
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13a340",
@@ -14605,17 +14605,17 @@
         {
           "addr": "0x13a420",
           "decl": "void FUN_0013a420(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13a5f0",
           "decl": "void FUN_0013a5f0(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13a740",
           "decl": "void FUN_0013a740(int param_1, int param_2, float *param_3);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
@@ -14627,13 +14627,13 @@
         {
           "addr": "0x13ab20",
           "decl": "char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
           "addr": "0x13aed0",
           "decl": "void object_move_to_limbo(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13b150",
@@ -14650,18 +14650,18 @@
         {
           "addr": "0x13b290",
           "decl": "int FUN_0013b290(int tag_index, int object_handle, int16_t marker, float *position, float *forward, int unknown);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13b380",
           "decl": "void FUN_0013b380(void);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
           "addr": "0x13bce0",
           "decl": "void FUN_0013bce0(int object_handle, float *lighting);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c030",
@@ -14678,7 +14678,7 @@
         {
           "addr": "0x13c100",
           "decl": "void *FUN_0013c100(int16_t object_type);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
@@ -14690,7 +14690,7 @@
         {
           "addr": "0x13c250",
           "decl": "void *FUN_0013c250(int16_t param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void FUN_0013c2e0(void);",
@@ -14700,22 +14700,22 @@
         {
           "addr": "0x13c3a0",
           "decl": "void FUN_0013c3a0(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c3d0",
           "decl": "void FUN_0013c3d0(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c400",
           "decl": "void FUN_0013c400(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c430",
           "decl": "void FUN_0013c430(int param_1, void *param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "int FUN_0013c490(int param_1);",
@@ -14725,12 +14725,12 @@
         {
           "addr": "0x13c500",
           "decl": "void FUN_0013c500(int param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c560",
           "decl": "void FUN_0013c560(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "int FUN_0013c5c0(int param_1);",
@@ -14740,52 +14740,52 @@
         {
           "addr": "0x13c620",
           "decl": "void FUN_0013c620(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c680",
           "decl": "void FUN_0013c680(int param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c6e0",
           "decl": "void FUN_0013c6e0(int object_handle, int region_index, unsigned int flags);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c740",
           "decl": "char FUN_0013c740(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c7a0",
           "decl": "void FUN_0013c7a0(int param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c800",
           "decl": "void FUN_0013c800(int object_handle, void *block_data);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c860",
           "decl": "void FUN_0013c860(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c8c0",
           "decl": "void FUN_0013c8c0(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c920",
           "decl": "void FUN_0013c920(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c980",
           "decl": "void FUN_0013c980(int param_1, int param_2, int param_3);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13c9e0",
@@ -14796,12 +14796,12 @@
         {
           "addr": "0x13ca30",
           "decl": "int FUN_0013ca30(int param_1, int param_2, int *param_3);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13cab0",
           "decl": "int FUN_0013cab0(int param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13cb30",
@@ -14828,28 +14828,28 @@
         {
           "addr": "0x13cf50",
           "decl": "int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4, short param_5);",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
           "addr": "0x13d570",
           "decl": "void cluster_get_first_noncollideable_object(int *param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d590",
           "decl": "void cluster_get_next_noncollideable_object(int *param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d5b0",
           "decl": "int cluster_partition_object_iter_first(int *state, int16_t cluster_idx);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d5d0",
           "decl": "int cluster_partition_object_iter_next(int *state);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d5f0",
@@ -14860,38 +14860,38 @@
         {
           "addr": "0x13d640",
           "decl": "void *object_try_and_get_and_verify_type(int datum_handle, int type_mask);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d680",
           "decl": "void *object_get_and_verify_type(int datum_handle, int type_mask);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d6f0",
           "decl": "void object_iterator_new(void *iter, int type_mask, int flags);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d730",
           "decl": "void *object_iterator_next(void *iter);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d7f0",
           "decl": "int object_get_root_parent(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d870",
           "decl": "void FUN_0013d870(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13d880",
           "decl": "void object_name_list_set_handle(int16_t param_1, int param_2);",
           "name": "object_name_list_set_handle",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
@@ -14903,12 +14903,12 @@
         {
           "addr": "0x13d920",
           "decl": "void object_set_garbage_flag(int object_handle, int is_garbage);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13db50",
           "decl": "void garbage_collect_now(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13db60",
@@ -14919,7 +14919,7 @@
         {
           "addr": "0x13dbe0",
           "decl": "void FUN_0013dbe0(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13dc10",
@@ -14930,7 +14930,7 @@
         {
           "addr": "0x13dcb0",
           "decl": "void FUN_0013dcb0(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13dcc0",
@@ -14941,7 +14941,7 @@
         {
           "addr": "0x13dda0",
           "decl": "void object_definition_predict(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ddd0",
@@ -14952,17 +14952,17 @@
         {
           "addr": "0x13de80",
           "decl": "void object_beautify(int param_1, char param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ded0",
           "decl": "int object_header_new(data_t *data, int16_t datum_size, int type_hint@<eax>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13df70",
           "decl": "void object_postprocess_node_matrices(data_t *data, int object_handle@<ebx>);",
-          "ported": true,
+          "ported": false,
           "reg_args": {
             "object_handle": "ebx"
           }
@@ -14970,7 +14970,7 @@
         {
           "addr": "0x13dfc0",
           "decl": "void *object_header_block_reference_get(int object_handle, void *reference);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13e050",
@@ -14981,12 +14981,12 @@
         {
           "addr": "0x13e1a0",
           "decl": "void FUN_0013e1a0(int object_handle@<edi>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13e1f0",
           "decl": "void object_choose_random_change_colors(int object_handle@<eax>, void *color_data);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13e3f0",
@@ -15002,17 +15002,17 @@
           "reg_args": {
             "object_handle": "eax"
           },
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13e510",
           "decl": "void object_child_list_remove(void *list_head@<eax>, int object_handle@<ebx>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13e5d0",
           "decl": "void object_compute_change_colors(int object_handle@<eax>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13e7b0",
@@ -15022,17 +15022,17 @@
         {
           "addr": "0x13eb30",
           "decl": "void object_scripting_set_collideable(int param_1, char param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13eb70",
           "decl": "void object_reset_markers(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ebc0",
           "decl": "void object_marker_end(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ec00",
@@ -15044,7 +15044,7 @@
         {
           "addr": "0x13ec50",
           "decl": "int object_mark(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ecb0",
@@ -15055,12 +15055,12 @@
         {
           "addr": "0x13ee60",
           "decl": "void object_propagate_flag_to_children(int object_handle@<eax>, int param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ef70",
           "decl": "void object_name_list_new(int object_handle@<edi>, int16_t name_index@<si>);",
-          "ported": true,
+          "ported": false,
           "reg_args": {
             "object_handle": "edi",
             "name_index": "si"
@@ -15069,35 +15069,35 @@
         {
           "addr": "0x13eff0",
           "decl": "void object_remove_from_name_list(int object_handle@<edi>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13f060",
           "decl": "void objects_place(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13f080",
           "decl": "int FUN_0013f080(int param_1, char (*param_2)(int, int), int param_3, int param_4, int param_5, int *param_6);",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
           "addr": "0x13f120",
           "decl": "int find_objects_from_point_vector(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6);",
-          "ported": true,
+          "ported": false,
           "src": "src/halo/objects/objects.c",
           "name": "find_objects_from_point_vector"
         },
         {
           "addr": "0x13f380",
           "decl": "int sort_dumps(int param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13f3b0",
           "decl": "void object_add_to_dump(int object_handle@<ebx>, void *stats@<esi>);",
-          "ported": true,
+          "ported": false,
           "reg_args": {
             "object_handle": "ebx",
             "stats": "esi"
@@ -15106,7 +15106,7 @@
         {
           "addr": "0x13f440",
           "decl": "void object_dump_write(void *stats@<esi>, void *file);",
-          "ported": true,
+          "ported": false,
           "reg_args": {
             "stats": "esi"
           }
@@ -15115,53 +15115,53 @@
           "addr": "0x13f4b0",
           "decl": "void objects_dump_memory(void);",
           "name": "objects_dump_memory",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
           "addr": "0x13f810",
           "decl": "void objects_initialize(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13f950",
           "decl": "void objects_initialize_for_new_map(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13f9f0",
           "decl": "void objects_dispose_from_old_map(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fac0",
           "decl": "void objects_dispose(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fb30",
           "decl": "void object_activate(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fb80",
           "decl": "void object_deactivate(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fbc0",
           "decl": "void object_reset(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fc20",
           "decl": "void object_placement_data_new(void *placement, int tag_index, int parent_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fd00",
           "decl": "void object_disconnect_from_map(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fe10",
@@ -15172,68 +15172,68 @@
         {
           "addr": "0x13fe70",
           "decl": "void *object_get_node_matrices(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fea0",
           "decl": "void *object_get_child_marker_definition(int object_handle, int16_t marker_index);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13fef0",
           "decl": "bool object_has_node(int object_handle, int16_t node_index);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ff50",
           "decl": "void object_set_automatic_deactivation(int object_handle, char param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x13ffc0",
           "decl": "void object_set_garbage(int object_handle, int flag);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140070",
           "comment": "Walk the parent chain to the root object and copy its position/forward vector.",
           "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140130",
           "decl": "void object_get_location(int object_handle, void *location_out);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140160",
           "decl": "void object_set_region_count(int object_handle, int16_t region_count);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140230",
           "decl": "void object_adjust_interpolation_position(int object_handle, vector3_t *delta);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1402c0",
           "decl": "void object_permute_region(int object_handle, const char *marker_name, short region_index, char param_4);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1403a0",
           "decl": "bool object_get_function_value(int object_handle, short function_index, void *out_value);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140420",
           "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, int16_t *cluster_indices, int16_t max_count, int *out_handles);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140720",
           "decl": "int object_name_list_get_handle(int16_t index);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140750",
@@ -15245,12 +15245,12 @@
         {
           "addr": "0x1407e0",
           "decl": "int object_visible_to_any_player(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1409d0",
           "decl": "void object_pvs_activate(int param_1);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140a00",
@@ -15258,12 +15258,12 @@
           "reg_args": {
             "object_handle": "eax"
           },
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140ad0",
           "decl": "void object_choose_random_region_permutations(int object_handle@<edi>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140b80",
@@ -15273,52 +15273,52 @@
         {
           "addr": "0x140bc0",
           "decl": "void object_delete_internal(int object_handle, int delete_sibling);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140cc0",
           "decl": "void object_delete(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140ce0",
           "decl": "void object_connect_to_map(int object_handle, void *location);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140eb0",
           "decl": "void *object_get_node_matrix(int object_handle, int16_t node_index);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x140f10",
           "decl": "int16_t object_get_markers_by_string_id(int object_handle, void *marker_name, void *out_markers, int max_count);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x141020",
           "decl": "void object_compute_child_marker_position(void *object, void *child_marker, void *dest_matrix);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1411c0",
           "decl": "void object_detach_from_parent(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1412f0",
           "decl": "vector3_t *object_get_world_position(int object_handle, vector3_t *out_position);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x141360",
           "decl": "void object_get_orientation(int object_handle, float *out_forward, float *out_up);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x141480",
           "decl": "void *object_get_world_matrix(int object_handle, void *out_matrix);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1414e0",
@@ -15329,13 +15329,13 @@
         {
           "addr": "0x1415f0",
           "decl": "int16_t object_find_in_radius(int flags, unsigned int type_mask, void *cluster_info, float *position, float radius, int *out_handles, int16_t max_count);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1417c0",
           "decl": "void objects_reconnect_to_structure_bsp(void);",
           "name": "objects_reconnect_to_structure_bsp",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
@@ -15355,48 +15355,48 @@
         {
           "addr": "0x141b70",
           "decl": "void object_compute_node_matrices(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x143510",
           "decl": "void objects_scripting_detach(int param_1, int param_2);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x143550",
           "decl": "void FUN_00143550(int param_1);",
-          "ported": true,
+          "ported": false,
           "src": "src/halo/objects/objects.c"
         },
         {
           "addr": "0x143a00",
           "decl": "void attachments_delete(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x143ae0",
           "decl": "void object_set_position(int object_handle, float *position, float *forward, float *up);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x143be0",
           "decl": "void object_translate(int object_handle, float *position, void *location);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x143c80",
           "decl": "int object_new(void *placement);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x144240",
           "decl": "void object_attach_to_parent(int parent_handle, int child_handle, int parent_node_index);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1443f0",
           "decl": "bool object_try_place(int object_handle, float *position);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1444f0",
@@ -15407,17 +15407,17 @@
         {
           "addr": "0x1446a0",
           "decl": "void object_update_children_recursive(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "int object_new_from_scenario(void *placement_data, int palette_block);",
           "addr": "0x144770",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x144860",
           "decl": "void object_attach_to_marker(int parent_handle, void *marker_name, int child_handle, void *child_marker_name);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x144940",
@@ -15428,7 +15428,7 @@
         {
           "addr": "0x1449b0",
           "decl": "void object_delete_recursive(int object_handle, int delete_sibling);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x144ae0",
@@ -15439,18 +15439,18 @@
         {
           "addr": "0x144b30",
           "decl": "void objects_garbage_collection(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "decl": "void objects_garbage_collect_tick(void);",
           "addr": "0x144b50",
-          "ported": true,
+          "ported": false,
           "source_path": "objects/objects.c"
         },
         {
           "addr": "0x145170",
           "decl": "void objects_update(void);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x145490",
@@ -15460,7 +15460,7 @@
         {
           "addr": "0x1a9520",
           "decl": "void FUN_001a9520(int object_handle, float *out_position);",
-          "ported": true
+          "ported": false
         }
       ],
       "name": "objects.obj",
