@@ -3231,8 +3231,9 @@
         },
         {
           "addr": "0x153e0",
-          "decl": "void FUN_000153e0(void);",
-          "ported": false
+          "decl": "bool FUN_000153e0(int actor_handle);",
+          "ported": true,
+          "name": "FUN_000153e0"
         },
         {
           "addr": "0x15520",
