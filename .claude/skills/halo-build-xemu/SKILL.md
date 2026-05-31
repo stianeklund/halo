@@ -31,12 +31,14 @@ The real-hardware wrapper sets `XBOX_HOST` to `10.0.0.29` by default.
 ## xemu control notes
 
 - Default xemu host is `127.0.0.1` (override via `XBOX_HOST` or `--xbox`).
-- For monitor-only control, use `tools/xbox/xemu_qmp.py` subcommands:
-  `status`, `reset`, `stop`, `cont`, `eject`, `hmp`.
-- If monitor mode is relevant, remind the user that `tools/xbox/xemu-mon.py`
-  can run commands like `info registers`.
-- Use MCP xemu tools only if `tools/xbox/xemu_qmp.py` cannot do the required
-  action.
+- Use `mcp__xemu__*` tools directly for monitor control — they are the primary
+  interface (the daemon auto-starts via SessionStart hook):
+  - `mcp__xemu__xemu_status` — QMP connection and VM status
+  - `mcp__xemu__xemu_pause` / `mcp__xemu__xemu_resume` — pause/resume VM
+  - `mcp__xemu__xemu_screenshot` — capture screen
+  - `mcp__xemu__xemu_send_monitor_command("info registers")` — HMP passthrough
+  - `mcp__xemu__xemu_send_monitor_command("x /16xw 0x<addr>")` — examine memory
+- `tools/xbox/xemu_qmp.py` is a fallback only when the MCP daemon is unavailable.
 
 ## Report format
 

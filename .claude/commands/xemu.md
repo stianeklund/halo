@@ -24,6 +24,6 @@ Steps:
 
 Notes:
 - For real Xbox: `./tools/xbox/build_deploy_run_real_hw.sh -q`
-- `tools/xbox/xemu_qmp.py` remains available for monitor-only control (status,
-  reset, etc.).
-- MCP remains available as a fallback for unsupported operations.
+- Use `mcp__xemu__*` tools for monitor control (status, pause, resume, HMP
+  passthrough). The daemon auto-starts via SessionStart hook.
+- `tools/xbox/xemu_qmp.py` is a fallback only when the MCP daemon is unavailable.

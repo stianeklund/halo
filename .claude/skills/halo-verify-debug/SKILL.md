@@ -187,12 +187,12 @@ Useful probes (XBDM preferred):
 - `/xbdm mem <addr> <len>` — inspect memory at a suspect address
 - visual check on real hardware, or xemu screenshot when hardware is unavailable
 
-Useful xemu probes (fallback only):
+Useful xemu probes (fallback only, use `mcp__xemu__*` tools directly):
 
-- screenshot for visible state
-- serial output for assertions
-- `hmp "info registers"`
-- `hmp "x /Nx 0x<addr>"`
+- `mcp__xemu__xemu_screenshot()` — visible state
+- `mcp__xemu__xemu_read_serial()` — serial assertions
+- `mcp__xemu__xemu_send_monitor_command("info registers")` — register state
+- `mcp__xemu__xemu_send_monitor_command("x /16xw 0x<addr>")` — memory inspection
 
 ## Debugging guardrails
 
