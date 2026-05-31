@@ -1,6 +1,5 @@
 ---
 description: Goal-mode auto-lift — run until N functions committed at >=90% VC71 or queue exhausted
-model: sonnet
 subtask: false
 ---
 
@@ -96,7 +95,7 @@ rtk jq '[.. | objects | select(.addr? == "0xADDR")] | .[0]' kb.json
 ```
 Fetch decompilation via Ghidra MCP (`decompile_function`). Then spawn:
 ```
-Agent(subagent_type="xbox-halo-re-analyst", model="sonnet", prompt=<brief>)
+Agent(subagent_type="xbox-halo-re-analyst", prompt=<brief>)
 ```
 The prompt must include: target address, decompilation output, KB entry JSON,
 source file path, and these file-write instructions:
@@ -126,7 +125,7 @@ rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --veri
 | <65% | Assume lift bug — revert unless there is a clear, cheap fix |
 | No VC71 data | Treat as infra/build issue, not pass |
 
-**Max 3 total attempts per function** (including re-delink, permutation, Opus escalation). After 3 failures → revert and skip.
+**Max 3 total attempts per function** (including re-delink, permutation, or focused escalation). After 3 failures → revert and skip.
 
 ### Per-function delink fallback (boundary artifact suspicion only)
 
@@ -154,11 +153,11 @@ rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json
 rtk git status --short
 ```
 
-## Opus escalation
+## Escalation
 
 Escalate by re-running Phase 1 with `Agent(subagent_type="xbox-halo-re-analyst")`
-without the `model: "sonnet"` override — the agent's default model (Opus) kicks in.
-Revert the Sonnet attempt first: `rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json`
+using the same prompt and the analyst default model.
+Revert the failed attempt first: `rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json`
 
 Escalate when:
 - VC71 < 65% (control flow / structure wrong)

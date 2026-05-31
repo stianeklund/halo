@@ -1,7 +1,6 @@
 ---
 description: Run maintain.py and report the resulting changes
-agent: fast
-subtask: true
+subtask: false
 ---
 
 Run the maintain script and report any resulting worktree changes.

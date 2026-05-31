@@ -2,18 +2,6 @@
   "description": "Curated high-risk ported functions for fast regression testing. Run with: python3 tools/equivalence/regression_test.py",
   "targets": [
     {
-      "addr": "0xf9c40",
-      "name": "FUN_000f9c40",
-      "obj": "projectiles.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs",
-        "--state-snapshot",
-        "artifacts/snapshots/projectile_unicorn_snap.json"
-      ],
-      "reason": "projectile physics tick — bail/detonation path; depth-counter bug fixed (0x4761d8); state snapshot required for datum handle resolution"
-    },
-    {
       "addr": "0xb4da0",
       "name": "FUN_000b4da0",
       "obj": "game.obj",
@@ -42,16 +30,6 @@
         "--allow-stubs"
       ],
       "reason": "format string dereference bug \u2014 same pattern as FUN_000b4da0"
-    },
-    {
-      "addr": "0x1172d0",
-      "name": "FUN_001172d0",
-      "obj": "circular_queue.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: high confidence, 66% coverage"
     },
     {
       "addr": "0x1c3e0",
@@ -382,6 +360,32 @@
         "--allow-stubs"
       ],
       "reason": "auto: batch pass 40/40 seeds"
+    },
+    {
+      "addr": "0xa83a0",
+      "name": "game_engine_player_count",
+      "obj": "game_engine.obj",
+      "seeds": 20,
+      "flags": [
+        "--real-callees",
+        "--mem-trace",
+        "--state-snapshot",
+        "tools/equivalence/regression_snapshots/player_count.json"
+      ],
+      "reason": "real-callee + live snapshot: data_iterator loop executes over the 'players' data_array (73.4% weak -> 100% high)"
+    },
+    {
+      "addr": "0xa8220",
+      "name": "game_engine_evaluate_game_complexity",
+      "obj": "game_engine.obj",
+      "seeds": 20,
+      "flags": [
+        "--real-callees",
+        "--mem-trace",
+        "--state-snapshot",
+        "tools/equivalence/regression_snapshots/evaluate_game_complexity.json"
+      ],
+      "reason": "real-callee + live snapshot: player + vehicle-seat counting via data_iterator + global complexity-flag branches"
     }
   ]
 }

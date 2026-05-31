@@ -1,4 +1,3 @@
-void FUN_001365d0(int object_handle, int arg1, int arg2);
 
 /* Initialize a damage_params struct with a damage effect tag index (0x136750).
  * Zeroes 0x54 bytes, sets tag_index at +0x00, and initializes sentinel/default

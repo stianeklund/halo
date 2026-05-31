@@ -77,6 +77,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x16bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x16d40": {
       "kind": "function",
       "status": "ported"
@@ -239,6 +243,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2d900": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x2d9b0": {
       "kind": "function",
       "status": "ported"
@@ -256,6 +264,14 @@
       "status": "ported"
     },
     "0x2fa70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2fb70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x2fbc0": {
       "kind": "function",
       "status": "ported"
     },
@@ -1114,11 +1130,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x59990": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x59a00": {
       "kind": "function",
       "status": "ported"
     },
     "0x59a50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x59a90": {
       "kind": "function",
       "status": "ported"
     },
@@ -1146,11 +1170,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5a5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5aab0": {
       "kind": "function",
       "status": "ported"
     },
     "0x5acf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5ad60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5ad90": {
       "kind": "function",
       "status": "ported"
     },
@@ -1167,6 +1203,14 @@
       "status": "ported"
     },
     "0x5b2a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5ba70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5baa0": {
       "kind": "function",
       "status": "ported"
     },
@@ -1834,7 +1878,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8f200": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f220": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8f230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f370": {
       "kind": "function",
       "status": "ported"
     },
@@ -2763,6 +2823,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa81a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa81c0": {
       "kind": "function",
       "status": "ported"
@@ -2858,6 +2922,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa8c80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa8d80": {
       "kind": "function",
       "status": "ported"
@@ -2878,6 +2946,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa8fb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa90b0": {
       "kind": "function",
       "status": "ported",
@@ -2887,6 +2959,10 @@
       "uncertain": [
         "The disassembly shows param_2 (seat_object_handle) is passed to FUN_000fb0c0 (weapon_is_flag) which checks for CTF/oddball flags, not vehicle seats. The seat semantics may differ from what the name implies."
       ]
+    },
+    "0xa9210": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xa92b0": {
       "kind": "function",
@@ -2912,7 +2988,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa93e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa9460": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9480": {
       "kind": "function",
       "status": "ported"
     },
@@ -2920,7 +3004,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa9620": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa9680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa96b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9770": {
       "kind": "function",
       "status": "ported"
     },
@@ -2932,11 +3028,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa99a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9a30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa9aa0": {
       "kind": "function",
       "status": "ported"
     },
+    "0xa9af0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa9e20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xaa010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaa120": {
       "kind": "function",
       "status": "ported"
     },
@@ -3003,7 +3119,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xab310": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xab420": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xab450": {
       "kind": "function",
       "status": "ported"
     },
@@ -3050,6 +3174,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xacd70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xacdd0": {
       "kind": "function",
       "status": "ported",
@@ -3064,6 +3192,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xacf90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xacff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xad0c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xad160": {
       "kind": "function",
       "status": "ported"
@@ -3072,11 +3212,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xad3e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xad530": {
       "kind": "function",
       "status": "ported"
     },
     "0xad600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xad9b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xadcf0": {
       "kind": "function",
       "status": "ported"
     },
@@ -3091,7 +3243,15 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xae310": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xae4d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xae750": {
       "kind": "function",
       "status": "ported"
     },
@@ -3109,7 +3269,15 @@
         "The MOVSX/AND 0x80000001 sign-extension idiom in the networked team-assignment path exactly matches the original MSVC codegen but is unusual; verify against disassembly if team colors break in networked play."
       ]
     },
+    "0xaebd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xaf370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xaf660": {
       "kind": "function",
       "status": "ported"
     },

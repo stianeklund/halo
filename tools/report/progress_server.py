@@ -30,6 +30,54 @@ logging.basicConfig(
 )
 
 
+
+
+def _recompute_unit_match(unit: dict) -> None:
+    """Recompute unit['summary'] match_avg/match_weighted from its function scores in-place."""
+    scores = []
+    weighted_sum = 0.0
+    weighted_bytes = 0
+    for func in unit.get('functions', []):
+        mp = func.get('match_percent')
+        if mp is None:
+            continue
+        size = func.get('size') or 0
+        scores.append(mp)
+        weighted_sum += mp * size
+        weighted_bytes += size
+    summary = unit.setdefault('summary', {})
+    if scores:
+        summary['match_avg'] = round(sum(scores) / len(scores), 1)
+        summary['match_weighted'] = round(weighted_sum / max(weighted_bytes, 1), 1)
+    else:
+        summary['match_avg'] = None
+        summary['match_weighted'] = None
+
+
+def _recompute_summary_match(report: dict) -> None:
+    """Recompute report['summary']['match'] from all units' function scores in-place."""
+    total_sum = 0.0
+    weighted_sum = 0.0
+    weighted_bytes = 0
+    count = 0
+    for unit in report.get('units', []):
+        for func in unit.get('functions', []):
+            mp = func.get('match_percent')
+            if mp is None:
+                continue
+            size = func.get('size') or 0
+            total_sum += mp
+            weighted_sum += mp * size
+            weighted_bytes += size
+            count += 1
+    if count > 0:
+        report.setdefault('summary', {})['match'] = {
+            'average': round(total_sum / count, 1),
+            'weighted': round(weighted_sum / max(weighted_bytes, 1), 1),
+            'scored_count': count,
+        }
+
+
 class SSEHandler(SimpleHTTPRequestHandler):
     """HTTP handler that also serves an SSE endpoint at /events."""
 
@@ -95,57 +143,133 @@ class SSEHandler(SimpleHTTPRequestHandler):
         self._json_response(200, result)
 
     def _run_score(self, unit_name):
-        """Run objdiff scoring for unit_name, update report.json in-place, return scores dict."""
-        import sys as _sys
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        _sys.path.insert(0, script_dir)
-        from matching import MatchingTracker
+        """Run vc71_verify for unit_name, update report.json in-place, return scores dict.
 
-        # Collect ported function names from report so we only diff those
+        Uses MSVC 7.1 compilation (via vc71_regression.run_vc71_verify) so the score
+        matches the dashboard label: 'compiled with MSVC 7.1 vs original Xbox binary'.
+        """
         report_path = os.path.join(self.directory, 'report.json')
-        ported_symbols = None
         try:
             with open(report_path) as f:
                 report = json.load(f)
-            for unit in report.get('units', []):
-                if unit['name'] == unit_name:
-                    ported_symbols = [
-                        fn['name'] for fn in unit.get('functions', [])
-                        if fn.get('ported')
-                    ]
-                    break
-        except Exception:
-            report = None
-
-        tracker = MatchingTracker()
-        unit_data = tracker.check_unit(unit_name, force=True, symbols=ported_symbols)
-        if unit_data is None:
-            logging.warning('Scoring failed for unit %s (no reference or objdiff error)', unit_name)
+        except Exception as e:
+            logging.error('Cannot read report.json: %s', e)
             return None
 
-        tracker.save_cache()
-
-        if report is None:
-            logging.error('Cannot read report.json')
+        # Look up unit in objdiff.json to get the source file path and delinked ref.
+        try:
+            with open('objdiff.json') as f:
+                objdiff_config = json.load(f)
+        except Exception as e:
+            logging.error('Cannot read objdiff.json: %s', e)
             return None
 
-        # Build func-name → match_percent from objdiff results
-        func_scores = {}
-        for fn in unit_data.get('functions', []):
-            fname = fn.get('name')
-            if fname:
-                func_scores[fname] = fn.get('match', 0)
+        unit_config = None
+        for entry in objdiff_config.get('units', []):
+            if entry['name'] == unit_name or entry['name'].endswith(f'/{unit_name}'):
+                unit_config = entry
+                break
 
-        # Update matching unit in report
+        if not unit_config:
+            logging.warning('Unit %s not found in objdiff.json', unit_name)
+            return None
+
+        source_path_rel = unit_config.get('metadata', {}).get('source_path')
+        base_path = unit_config.get('base_path')
+
+        if not source_path_rel:
+            logging.warning('No source_path in objdiff.json metadata for unit %s', unit_name)
+            return None
+        if not base_path or not os.path.exists(base_path):
+            logging.warning('No delinked reference for unit %s (%s)', unit_name, base_path)
+            return None
+
+        # Import run_vc71_verify from tools/verify/vc71_regression.py
+        import sys as _sys
+        from pathlib import Path
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(script_dir, '../..'))
+        verify_dir = os.path.join(project_root, 'tools', 'verify')
+        if verify_dir not in _sys.path:
+            _sys.path.insert(0, verify_dir)
+        try:
+            from vc71_regression import (
+                run_vc71_verify as _run_vc71_verify,
+                load_baseline as _load_baseline,
+                save_baseline as _save_baseline,
+            )
+        except ImportError as e:
+            logging.error('Cannot import vc71_regression: %s', e)
+            return None
+
+        source_path = Path(project_root) / source_path_rel
+        if not source_path.exists():
+            logging.warning('Source file not found for unit %s: %s', unit_name, source_path)
+            return None
+
+        logging.info('Running vc71_verify for %s ...', source_path_rel)
+        try:
+            vc71_results = _run_vc71_verify(source_path)
+        except Exception as e:
+            logging.error('vc71_verify failed for unit %s: %s', unit_name, e)
+            return None
+
+        if not vc71_results:
+            logging.warning('vc71_verify produced no results for unit %s', unit_name)
+            return None
+
+        # 1) Persist to vc71_scores.json — the SOURCE OF TRUTH the report generator
+        #    reads. Mirror the regression policy: raise an existing floor or add a new
+        #    entry, never silently lower (that would mask a regression). Without this
+        #    write the score is ephemeral: the next report regeneration would wipe it.
+        baseline = _load_baseline()
+        baseline_changed = False
+        for fn_name, info in vc71_results.items():
+            new_score = info['score']
+            old = baseline.get(fn_name)
+            if old is None or new_score > old.get('score', -1) + 0.1:
+                baseline[fn_name] = {'score': new_score, 'source': source_path_rel}
+                baseline_changed = True
+        if baseline_changed:
+            _save_baseline(baseline)
+
+        # 2) Mirror the now-persisted scores into the in-memory report. Join by name
+        #    first, then by the address-keyed FUN_<addr> alias (vc71_verify records
+        #    some functions under their delinked reference name) — identical to the
+        #    generator's join so a later regeneration produces the same numbers.
+        def _score_for(func):
+            addr = func.get('address')
+            addr_int = None
+            if isinstance(addr, str):
+                try:
+                    addr_int = int(addr, 16)
+                except ValueError:
+                    addr_int = None
+            candidates = [func.get('name')]
+            if addr_int is not None:
+                candidates += [f'FUN_{addr_int:08x}', f'FUN_{addr_int:08X}',
+                               f'thunk_FUN_{addr_int:08x}']
+            for key in candidates:
+                if key and key in vc71_results:
+                    return vc71_results[key]['score']
+            return None
+
         updated_funcs = {}
         for unit in report.get('units', []):
             if unit['name'] == unit_name:
                 for func in unit.get('functions', []):
-                    fname = func.get('name')
-                    if fname in func_scores:
-                        func['match_percent'] = round(func_scores[fname], 2)
-                        updated_funcs[fname] = func['match_percent']
+                    score = _score_for(func)
+                    if score is not None:
+                        func['match_percent'] = round(score, 2)
+                        updated_funcs[func.get('name')] = func['match_percent']
                 break
+
+        # Recompute unit summary and global summary.
+        for unit in report.get('units', []):
+            if unit['name'] == unit_name:
+                _recompute_unit_match(unit)
+                break
+        _recompute_summary_match(report)
 
         try:
             with open(report_path, 'w') as f:
@@ -155,7 +279,7 @@ class SSEHandler(SimpleHTTPRequestHandler):
             logging.error('Cannot write report.json: %s', e)
             return None
 
-        logging.info('Scored unit %s: %d functions updated', unit_name, len(updated_funcs))
+        logging.info('VC71-scored unit %s: %d functions updated', unit_name, len(updated_funcs))
         return {'ok': True, 'unit': unit_name, 'scores': updated_funcs}
 
     def log_message(self, format, *args):

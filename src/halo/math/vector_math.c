@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* FUN_00012140 (0x12140) — Subtract two 3D vectors: result = b - a.
  * Confirmed: cdecl, 3 pointer args. Pure FPU leaf.
  * Confirmed: arg1=a [EBP+0x8], arg2=b [EBP+0xc], arg3=result [EBP+0x10].
@@ -250,19 +252,19 @@ void FUN_00013090(float *a, float *b, float *out)
 /* 0x21370 — Sine of a float (x87 FSIN). */
 float FUN_00021370(float x)
 {
-  return sinf(x);
+  return x87_fsin(x);
 }
 
 /* 0x21380 — Cosine of a float (x87 FCOS). */
 float FUN_00021380(float x)
 {
-  return cosf(x);
+  return x87_fcos(x);
 }
 
 /* 0x21390 — Tangent of a float (x87 FPTAN). */
 float FUN_00021390(float x)
 {
-  return sinf(x) / cosf(x);
+  return x87_fsin(x) / x87_fcos(x);
 }
 
 /* 0x213a0 — 2D cross product (z-component): a[0]*b[1] - a[1]*b[0]. */

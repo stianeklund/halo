@@ -2315,11 +2315,11 @@ void sound_update_music(void)
         /* Scale up-vector by 30.0 and subtract listener velocity
          * (listener+0x38..0x40). */
         location.up[0] =
-          location.up[0] * *(float *)0x253394 - *(float *)(listener + 0x38);
+          location.up[0] * TICKS_PER_SECOND - *(float *)(listener + 0x38);
         location.up[1] =
-          location.up[1] * *(float *)0x253394 - *(float *)(listener + 0x3c);
+          location.up[1] * TICKS_PER_SECOND - *(float *)(listener + 0x3c);
         location.up[2] =
-          location.up[2] * *(float *)0x253394 - *(float *)(listener + 0x40);
+          location.up[2] * TICKS_PER_SECOND - *(float *)(listener + 0x40);
 
         (*(void (**)(int, int, void *, int, int, int))(*(int *)0x4eaf48 +
                                                        0x30))(

@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /*
  * FUN_00098970 — consistency check for a doubly-linked decal entry.
  * Verifies that the decal's prev (0x30) and next (0x34) neighbors share the
@@ -1271,8 +1273,8 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
           (*(float *)0x26a810 <= decals_dot3(direction3, normal))) {
         float angle = decals_random_real(0.0f, 6.2831855f);
 
-        rotation_cos = cosf(angle);
-        rotation_sin = sinf(angle);
+        rotation_cos = x87_fcos(angle);
+        rotation_sin = x87_fsin(angle);
         perpendicular3d(normal, tangent);
         decals_cross3(bitangent, normal, tangent);
       } else {
@@ -1641,8 +1643,8 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                   }
 
                   angle = angle_between_normals3d(basis + 7, best_plane) * sign;
-                  sine = sinf(angle);
-                  cosine = cosf(angle);
+                  sine = x87_fsin(angle);
+                  cosine = x87_fcos(angle);
 
                   FUN_001092d0(rotation_matrix, axis, sine, cosine);
 
@@ -1998,10 +2000,11 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
   }
 }
 
-/* Tail-call thunk to rasterizer decal initialization (FUN_0015abe0). */
-void FUN_0017ca50(void)
+/* Tail-call thunk to rasterizer decal initialization (FUN_0015abe0).
+ * Inherits the caller's pushed args and forwards them unchanged (cdecl). */
+void FUN_0017ca50(short *p0, short *p1, float *color0, float *color1)
 {
-  FUN_0015abe0();
+  FUN_0015abe0(p0, p1, color0, color1);
 }
 
 /* Tail-call thunk to rasterizer decal initialization (FUN_0015acc0). */
@@ -2119,22 +2122,24 @@ void FUN_0017cb90(void)
 }
 
 /* Tail-call thunk to dynamic vertex geometry decal flush (FUN_0016bed0). */
-void FUN_0017cbb0(void)
+void FUN_0017cbb0(void *param_1, int param_2)
 {
+  (void)param_1;
+  (void)param_2;
   FUN_0016bed0();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0).
- */
-void FUN_0017cbc0(void)
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0). */
+void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle)
 {
+  (void)shader; (void)p2; (void)p3; (void)widget_handle; (void)p5; (void)p6; (void)zbuf_handle;
   FUN_0016c5a0();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090).
- */
-void FUN_0017cbd0(void)
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090). */
+void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, int p9)
 {
+  (void)shader; (void)p2; (void)p3; (void)widget_handle; (void)p5; (void)p6; (void)zbuf_handle; (void)position; (void)p9;
   FUN_0016c090();
 }
 
@@ -2165,10 +2170,11 @@ void FUN_0017ccb0(void)
   FUN_00172a30();
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00172590). */
-void FUN_0017ccc0(void)
+/* Tail-call thunk to rasterizer decal rendering (FUN_00172590).
+ * Inherits the caller's pushed arg and forwards it unchanged (cdecl). */
+void FUN_0017ccc0(int param_1)
 {
-  FUN_00172590();
+  FUN_00172590(param_1);
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00172de0). */

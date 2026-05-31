@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 void input_abstraction_dispose(void)
 {
   csmemset((void *)0x46b820, 0, 0xdc);
@@ -141,8 +143,8 @@ void input_abstraction_update(void)
       lang = (float)atan2((double)(int)*(int16_t *)(iVar10 + 0x22),
                           (double)(int)*(int16_t *)(iVar10 + 0x20));
       fVar1 = lang;
-      ldom = fabsf(sinf(lang));
-      fVar2 = fabsf(cosf(fVar1));
+      ldom = fabsf(x87_fsin(lang));
+      fVar2 = fabsf(x87_fcos(fVar1));
       if (ldom <= fVar2)
         ldom = fVar2;
       lx = (float)(int)*(int16_t *)(iVar10 + 0x20) * *(float *)0x280f80 *
@@ -160,8 +162,8 @@ void input_abstraction_update(void)
       rang = (float)atan2((double)(int)*(int16_t *)(iVar10 + 0x26),
                           (double)(int)*(int16_t *)(iVar10 + 0x24));
       fVar2 = rang;
-      rdom = fabsf(sinf(rang));
-      fVar1 = fabsf(cosf(fVar2));
+      rdom = fabsf(x87_fsin(rang));
+      fVar1 = fabsf(x87_fcos(fVar2));
       if (rdom <= fVar1)
         rdom = fVar1;
       rx = (float)(int)*(int16_t *)(iVar10 + 0x24) * *(float *)0x280f80 *

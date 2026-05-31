@@ -1,6 +1,6 @@
 ---
 description: Classify and name FUN_ functions; run before /frontier when <common> backlog is large
-subtask: true
+subtask: false
 ---
 
 Manage the FUN_ function naming pipeline. Reduces the unnamed `FUN_` backlog and improves `frontier.py` accuracy by moving `<common>` functions into proper objects and generating Ghidra-based name proposals.

@@ -26,24 +26,23 @@ int datum_absolute_index_to_index(data_t *data, int absolute_index)
   int16_t index;
   int16_t *datum;
 
-  if (absolute_index == NONE)
-    return 0;
+  if (absolute_index != NONE) {
+    assert_halt(data->valid);
 
-  assert_halt(data->valid);
+    identifier = (int16_t)(absolute_index >> 16);
+    if (identifier == 0 && data->identifier_zero_invalid) {
+      assert_halt_msg(0, "identifier || !data->identifier_zero_invalid");
+    }
 
-  identifier = (int16_t)(absolute_index >> 16);
-  if (identifier == 0 && data->identifier_zero_invalid) {
-    assert_halt_msg(0, "identifier || !data->identifier_zero_invalid");
-  }
-
-  index = (int16_t)absolute_index;
-  if (index >= 0 && index < data->current_count) {
-    datum = (int16_t *)((char *)data->data + data->size * index);
-    if (*datum != 0) {
-      if (identifier == 0)
-        return (int)datum;
-      if (*datum == identifier)
-        return (int)datum;
+    index = (int16_t)absolute_index;
+    if (index >= 0 && index < data->current_count) {
+      datum = (int16_t *)((char *)data->data + data->size * index);
+      if (*datum != 0) {
+        if (identifier == 0)
+          return (int)datum;
+        if (*datum == identifier)
+          return (int)datum;
+      }
     }
   }
   return 0;
@@ -83,16 +82,30 @@ void *datum_get(data_t *data, int datum_handle)
 
 void data_verify(data_t *data)
 {
-  assert_halt(data);
-  assert_halt(data->data);
-  assert_halt(data->magic == 0x64407440);
-  assert_halt(data->maximum_count >= 0);
-  assert_halt(data->current_count >= 0);
-  assert_halt(data->current_count <= data->maximum_count);
-  assert_halt(*(int16_t *)data->unk_44 >= 0);
-  assert_halt(*(int16_t *)data->unk_44 <= data->maximum_count);
-  assert_halt(data->unk_48 >= 0);
-  assert_halt(data->unk_48 <= data->current_count);
+  int16_t maximum_count;
+  int16_t current_count;
+
+  if (!data) {
+    display_assert("data", "c:\\halo\\SOURCE\\memory\\data.c", 0x1c9, 1);
+    system_exit(-1);
+  }
+  maximum_count = data->maximum_count;
+  current_count = data->current_count;
+  if (data->data == NULL ||
+      data->magic != 0x64407440 ||
+      maximum_count < 0 ||
+      current_count < 0 ||
+      current_count > maximum_count ||
+      *(int16_t *)data->unk_44 < 0 ||
+      *(int16_t *)data->unk_44 > maximum_count ||
+      data->unk_48 < 0 ||
+      data->unk_48 > current_count) {
+    display_assert(
+        csprintf(error_string_buffer,
+                 "%s data array @%p is bad or not allocated", data, data),
+        "c:\\halo\\SOURCE\\memory\\data.c", 0x1d6, 1);
+    system_exit(-1);
+  }
 }
 
 /*
@@ -150,18 +163,14 @@ int data_new_datum(data_t *data, int handle)
   assert_halt(data->valid);
 
   index = (int16_t)handle;
-  identifier = (int16_t)((uint32_t)handle >> 16);
+  identifier = (int16_t)(handle >> 16);
   if (index >= 0 && index < data->maximum_count && identifier != 0) {
     datum = (int16_t *)((char *)data->data + data->size * index);
     if (*datum == 0) {
       data->unk_48 = data->unk_48 + 1;
       if (data->current_count <= index)
         data->current_count = index + 1;
-      csmemset(datum, 0, data->size);
-      *datum = *(int16_t *)data->unk_50;
-      *(int16_t *)data->unk_50 = *(int16_t *)data->unk_50 + 1;
-      if (*(int16_t *)data->unk_50 == 0)
-        *(uint16_t *)data->unk_50 = 0x8000;
+      datum_initialize(data, datum);
       *datum = identifier;
       return (int)identifier << 16 | (int)index;
     }
@@ -254,43 +263,43 @@ void data_iterator_new(data_iter_t *iter, data_t *data)
 
 void *data_iterator_next(data_iter_t *iterator)
 {
-  int16_t index; // cx
-  void *result; // eax
-  int handle; // edx
-  size_t size; // [esp+14h] [ebp+8h]
+  data_t *data;
+  int16_t index;
+  int size;
+  void *result;
+  int handle;
 
-  assert_halt_msg(iterator->cookie == ((int)iterator->data->name ^ 0x69746572),
+  assert_halt_msg(iterator->cookie == ((unsigned int)iterator->data ^ 0x69746572),
                   "uninitialized iterator passed to iterator_next()");
   data_verify(iterator->data);
   assert_halt(iterator->data->valid);
 
-  index = iterator->index;
-  size = iterator->data->size;
-  result = (char *)iterator->data->data + iterator->data->size * index;
-  if (index >= iterator->data->current_count) {
+  data = iterator->data;
+  index = (int16_t)iterator->index;
+  size = (int)data->size;
+  result = (char *)data->data + size * index;
+  if (index >= data->current_count) {
     iterator->index = index;
-    return 0;
-  } else {
-    while (1) {
-      handle = index++ | (*(__int16 *)result << 16);
-      if (*(_WORD *)result)
-        break;
-      result = (char *)result + size;
-      if (index >= iterator->data->current_count) {
-        iterator->index = index;
-        return 0;
-      }
-    }
-    iterator->datum_handle = handle;
-    iterator->index = index;
+    return NULL;
   }
-  return result;
+  do {
+    handle = (int)*(int16_t *)result << 16 | (int)index;
+    index++;
+    if (*(int16_t *)result != 0) {
+      iterator->datum_handle = handle;
+      iterator->index = index;
+      return result;
+    }
+    result = (char *)result + size;
+  } while (index < iterator->data->current_count);
+  iterator->index = index;
+  return NULL;
 }
 
 int data_next_index(data_t *data, int prev_index)
 {
-  int16_t index;
   int16_t *datum;
+  int16_t index;
 
   index = (int16_t)(prev_index + 1);
   data_verify(data);
@@ -298,12 +307,12 @@ int data_next_index(data_t *data, int prev_index)
 
   if (index >= 0 && index < data->current_count) {
     datum = (int16_t *)((char *)data->data + data->size * index);
-    do {
+    while (index < data->current_count) {
       if (*datum != 0)
         return (int)*datum << 16 | (int)index;
       index++;
       datum = (int16_t *)((char *)datum + data->size);
-    } while (index < data->current_count);
+    }
   }
   return NONE;
 }

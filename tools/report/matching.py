@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """
-Matching percentage tracking using objdiff.
+Matching percentage tracking using objdiff (clang LCS).
 
-Integrates with objdiff CLI to get actual binary matching percentages
+NOTE: This computes a *clang*-build vs original mnemonic-LCS similarity. It is
+NOT the metric the dashboard displays. The dashboard's "Match Quality" is VC71
+byte-accuracy (MSVC 7.1 recompile vs the delinked reference), sourced from
+tools/verify/vc71_scores.json via generate_decomp_report.py. Clang LCS is
+systematically lower than MSVC byte-match and needs the same delinked reference
+VC71 needs, so it is never a fallback where VC71 isn't already possible. This
+module is retained for standalone analysis only; the Score button no longer uses it.
+
+Integrates with objdiff CLI to get clang-build matching percentages
 for ported functions, distinguishing between "ported" (exists in source)
 and "matching" (byte-accurate to original).
 
@@ -38,8 +46,11 @@ class MatchingTracker:
     def _load_cache(self) -> dict:
         """Load matching cache from disk."""
         if self.cache_path.exists():
-            with open(self.cache_path) as f:
-                return json.load(f)
+            try:
+                with open(self.cache_path) as f:
+                    return json.load(f)
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"Warning: ignoring invalid matching cache {self.cache_path}: {exc}")
         return {
             'version': '1.0.0',
             'last_updated': None,
@@ -69,8 +80,9 @@ class MatchingTracker:
         
         return None
     
-    def _run_objdiff_all(self, base_path: str, target_path: str) -> Optional[dict]:
-        """Run objdiff once for a unit, return {sym_name: match_pct} for all functions."""
+    def _run_objdiff_all(self, base_path: str, target_path: str,
+                         symbol_aliases: Optional[Dict[str, List[str]]] = None) -> Optional[dict]:
+        """Run objdiff once for a unit, return {sym_name: match_pct} for scored functions."""
         import tempfile, os as _os
         from difflib import SequenceMatcher
 
@@ -119,6 +131,27 @@ class MatchingTracker:
         left_seqs = extract_mnems('left', strip_prefix=False)
         right_seqs = extract_mnems('right', strip_prefix=True)
 
+        if symbol_aliases:
+            scores = {}
+            for name, aliases in symbol_aliases.items():
+                right = right_seqs.get(name)
+                if right is None:
+                    continue
+
+                left = None
+                for alias in aliases:
+                    left = left_seqs.get(alias)
+                    if left is not None:
+                        break
+                if left is None:
+                    continue
+
+                if not left and not right:
+                    scores[name] = 100.0
+                else:
+                    scores[name] = SequenceMatcher(None, left, right, autojunk=False).ratio() * 100.0
+            return scores
+
         scores = {}
         for name, left in left_seqs.items():
             right = right_seqs.get(name)
@@ -152,11 +185,14 @@ class MatchingTracker:
             return []
 
     def check_unit(self, unit_name: str, force: bool = False,
-                   symbols: Optional[List[str]] = None) -> Optional[dict]:
+                   symbols: Optional[List[str]] = None,
+                   symbol_aliases: Optional[Dict[str, List[str]]] = None) -> Optional[dict]:
         """Check matching percentage for functions in a single unit.
 
         symbols: if provided, only diff these names (e.g. the ported subset).
                  If None, extracts all function symbols from the delinked obj.
+        symbol_aliases: optional map of report/build symbol names to candidate
+                        delinked symbol aliases for renamed functions.
         """
         # Check cache first
         if not force and unit_name in self.cache['units']:
@@ -185,13 +221,13 @@ class MatchingTracker:
             print(f"Target (built) object not found: {target_path}")
             return None
 
-        all_scores = self._run_objdiff_all(base_path, target_path)
+        all_scores = self._run_objdiff_all(base_path, target_path, symbol_aliases=symbol_aliases)
         if all_scores is None:
             print(f"objdiff failed for unit {unit_name}")
             return None
 
         # Filter to requested symbols if provided
-        if symbols is not None:
+        if symbols is not None and symbol_aliases is None:
             symbol_set = set(symbols)
             all_scores = {k: v for k, v in all_scores.items() if k in symbol_set}
 

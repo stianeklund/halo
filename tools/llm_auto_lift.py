@@ -215,6 +215,51 @@ def _has_delinked_ref(source_path: str, units: dict[str, dict]) -> bool:
 
 _PDB_PROPOSALS_CACHE: Optional[set[str]] = None
 
+# ---------------------------------------------------------------------------
+# Source-implementation checker
+# ---------------------------------------------------------------------------
+
+_SOURCE_IMPL_CACHE: Optional[dict[str, str]] = None
+
+
+def _build_source_impl_cache() -> dict[str, str]:
+    """Scan src/ for FUN_<addr> function definitions.
+
+    Returns a dict mapping normalized address (e.g. '0x5a640') to the first
+    matching 'file:line' location.  Cached for the process lifetime.
+    """
+    global _SOURCE_IMPL_CACHE
+    if _SOURCE_IMPL_CACHE is not None:
+        return _SOURCE_IMPL_CACHE
+
+    cache: dict[str, str] = {}
+    fn_def_re = re.compile(
+        r'^[A-Za-z_][A-Za-z0-9_*\s]+\bFUN_([0-9a-fA-F]{8})\s*\('
+    )
+    src_dir = ROOT / "src"
+    for c_file in src_dir.rglob("*.c"):
+        try:
+            for lineno, line in enumerate(
+                c_file.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
+            ):
+                m = fn_def_re.match(line)
+                if m:
+                    addr_norm = "0x" + hex(int(m.group(1), 16))[2:]
+                    if addr_norm not in cache:
+                        rel = str(c_file.relative_to(ROOT))
+                        cache[addr_norm] = f"{rel}:{lineno}"
+        except OSError:
+            pass
+    _SOURCE_IMPL_CACHE = cache
+    return cache
+
+
+def _is_already_in_source(addr: str) -> Optional[str]:
+    """Return 'file:line' if addr has a definition in src/, else None."""
+    cache = _build_source_impl_cache()
+    normalized = "0x" + hex(int(addr.lower().removeprefix("0x"), 16))[2:]
+    return cache.get(normalized)
+
 
 def _load_pdb_proposal_addrs() -> set[str]:
     """Return the set of addresses (lowercase hex with 0x prefix) that have
@@ -425,6 +470,14 @@ class LiftabilityScorer:
                 if not name:
                     continue
                 if len(reg_args) > 2:
+                    continue
+
+                # Skip functions already implemented in source (kb.json drift).
+                # These have a FUN_<addr> definition in src/ but ported is not
+                # yet set to true — re-selecting them wastes a full lift attempt.
+                src_loc = _is_already_in_source(addr)
+                if src_loc:
+                    log.debug("skip %s (%s): implementation in %s", name, addr, src_loc)
                     continue
 
                 score = 0
