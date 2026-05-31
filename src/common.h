@@ -22,6 +22,7 @@ float __cdecl fabsf(float);
 double __cdecl sin(double);
 double __cdecl cos(double);
 double __cdecl sqrt(double);
+double __cdecl fabs(double);
 
 #include "types.h"
 #define XBOX_REPLACE_STANDARD_NAMES
