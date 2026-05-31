@@ -101,7 +101,7 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00014540": {
-      "score": 86.7,
+      "score": 95.6,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000145c0": {
@@ -409,7 +409,7 @@
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_0002a2b0": {
-      "score": 89.1,
+      "score": 91.3,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0002a360": {
@@ -7818,6 +7818,10 @@
     },
     "FUN_00017910": {
       "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00013ef0": {
+      "score": 64.0,
       "source": "src/halo/ai/actor_looking.c"
     }
   },

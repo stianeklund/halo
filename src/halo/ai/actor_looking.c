@@ -442,14 +442,14 @@ void FUN_00014540(int actor_handle)
   look_object = *(int *)(actor + 0x1e0);
 
   look_entry = prop_get_active_by_unit_index(actor_handle, look_object);
-  if (look_entry == -1) {
-    /* No existing look entry: use object's world position (type 3) */
-    look_buf[0] = 3;
-    unit_get_head_position(look_object, (float *)&look_buf[2]);
-  } else {
+  if (look_entry != -1) {
     /* Existing look entry found: use it as an object-handle target (type 1) */
     look_buf[0] = 1;
     *(int *)&look_buf[2] = look_entry;
+  } else {
+    /* No existing look entry: use object's world position (type 3) */
+    look_buf[0] = 3;
+    unit_get_head_position(look_object, (float *)&look_buf[2]);
   }
 
   FUN_00027a60(actor_handle, 8, 5, look_buf);
@@ -2330,7 +2330,7 @@ void FUN_0002a2b0(int actor_handle)
     if (!FUN_0002a3d0(actor_handle))
       *(short *)(actor + 0x3e8) = 0;
   }
-  if (*(short *)(actor + 0x3e8) > 2 && *look_spec != 0) {
+  if (*(short *)(actor + 0x3e8) >= 3 && *look_spec != 0) {
     if (FUN_00028660(actor_handle, look_spec, (float *)(actor + 0x524))) {
       actor[0x505] = 1;
       return;
