@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* Activate the pickup sound effect for an equipment item.
  * Looks up the equipment tag definition ('eqip') and plays the
  * pickup sound (tag field at +0x31c) at full volume (scale=1.0). */
@@ -175,8 +177,8 @@ void FUN_000f6b80(int item_handle)
       *(float *)(item_obj + 0x1d0) = inv_mag * z;
     }
 
-    *(float *)(item_obj + 0x1d4) = sinf(mag);
-    *(float *)(item_obj + 0x1d8) = cosf(mag);
+    *(float *)(item_obj + 0x1d4) = x87_fsin(mag);
+    *(float *)(item_obj + 0x1d8) = x87_fcos(mag);
   } else {
     *(uint32_t *)(item_obj + 0x1a4) = *(uint32_t *)(item_obj + 0x1a4) & ~4u;
     *(float *)(item_obj + 0x1d4) = 0.0f;

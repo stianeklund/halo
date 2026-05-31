@@ -249,7 +249,7 @@ void game_time_update(float param_1)
     game_time_globals->elapsed = 0;
     return;
   }
-  fVar2 = game_time_globals->speed * *(float *)0x253394;
+  fVar2 = game_time_globals->speed * TICKS_PER_SECOND;
   if (fVar2 <= *(float *)0x2533c0)
     goto LAB_end;
   conn = (int)(int16_t)game_connection();

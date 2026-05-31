@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* 0x20f80 — Check whether an actor meets conditions for a given combat mode.
  * mode 1: actor.field_60c==1 and field_268>=8
  * mode 2: actor.field_60c==0, field_268>=5, field_27c!=0, field_278>=0x4b
@@ -123,7 +125,7 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
   if (*(char *)(actor + 0x1ca) != 0)
     result *= *(float *)0x254970;
 
-  result *= 30.0f;
+  result *= TICKS_PER_SECOND;
   *(short *)(actor + 0x5f4) = (short)(int)result;
 }
 
@@ -158,7 +160,7 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
     float max_time = *(float *)((char *)timing_data + 0x84);
     int *seed = get_global_random_seed_address();
     float delay = random_real_range(seed, min_time, max_time);
-    *(short *)(actor + 0x5f4) = (short)(int)(delay * 30.0f);
+    *(short *)(actor + 0x5f4) = (short)(int)(delay * TICKS_PER_SECOND);
   }
 
   return 1;
@@ -194,5 +196,306 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
     short result = 0;
     FUN_00021ae0(actor_handle, 6.0f, 0, encounter + 0xbc, &result);
     return result >= 3;
+  }
+}
+
+/* FUN_00022390 (0x22390) — Update actor combat aiming state each tick.
+ * Checks/clears fire-ok flag, determines moving and in-combat status,
+ * computes fire timer from burst parameters, rate-of-fire modifier from
+ * weapon damage, applies encounter suppression, then calculates the aim
+ * error vectors (primary lateral + secondary elevation) using trig rotation
+ * of a perpendicular vector with random angular offsets. Dispatches a
+ * combat vocalization sound when the actor's rank is high enough. */
+void FUN_00022390(int actor_handle)
+{
+  char *actor;
+  char *actv;
+  char suppress_flag;
+  char is_moving;
+  void *burst_ref;
+  void *firing_ref;
+  float target_pos[3];
+  float perp[3];
+  float primary_err[3];
+  float secondary_err[3];
+  float error_primary, error_secondary;
+  float yaw_angle, combined_angle;
+  float cos_yaw_v, sin_yaw_v, cos_comb, sin_comb;
+  float delay, rate_of_fire, rof_modifier;
+  float projectile_damage, max_range, damage_per_second;
+  float cone_angle, cone_radius, extended_radius;
+  float dx, dy, dz;
+  float combat_prop, scaled_val;
+  float fvar;
+  int *seed;
+  uint16_t random_val;
+  short fire_timer;
+  int *vehicle_obj;
+  int weapon_handle;
+  int *weapon_obj;
+  char *encounter;
+  short enc_state;
+  char enc_flag;
+  int enc_handle;
+  int sound_type;
+
+  actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  actv = actor_combat_get_firing_variant_definition(actor_handle);
+  suppress_flag = 0;
+
+  if (*(char *)(actor + 0x604) != 0) {
+    if (actor_combat_check_fire_target(actor_handle,
+            *(int16_t *)(actv + 0x156)) == 0) {
+      *(char *)(actor + 0x604) = 0;
+    }
+  }
+  *(char *)(actor + 0x603) = *(char *)(actor + 0x604);
+  *(char *)(actor + 0x604) = 0;
+
+  if (*(int *)(actor + 0x158) != -1) {
+    vehicle_obj = (int *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    fvar = *(float *)((char *)vehicle_obj + 0x18);
+    dy = *(float *)((char *)vehicle_obj + 0x1c);
+    dz = *(float *)((char *)vehicle_obj + 0x20);
+    if (fvar * fvar + dy * dy + dz * dz > *(float *)0x2533c8) {
+      is_moving = 1;
+    } else {
+      is_moving = 0;
+    }
+  } else {
+    if (*(char *)(actor + 0x15c) != 0 || *(char *)(actor + 0x504) != 0) {
+      is_moving = 1;
+    } else {
+      is_moving = 0;
+    }
+  }
+  *(char *)(actor + 0x601) = is_moving;
+
+  combat_prop = FUN_000b55b0(0xd, (int)*(unsigned short *)(actor + 0x3e));
+  scaled_val = combat_prop * *(float *)(actv + 0x88) * TICKS_PER_SECOND;
+  *(char *)(actor + 0x600) =
+      (float)*(int *)(actor + 0x61c) < scaled_val ? 1 : 0;
+
+  actor_combat_get_burst_parameters(actor_handle, actv, &burst_ref, &firing_ref);
+
+  if (*(float *)(actor + 0x458) > *(float *)0x2533c0) {
+    delay = *(float *)(actor + 0x458);
+  } else {
+    {
+      float burst_min = *(float *)((char *)burst_ref + 0x14);
+      float burst_max = *(float *)((char *)burst_ref + 0x18);
+      seed = get_global_random_seed_address();
+      delay = random_real_range(seed, burst_min, burst_max);
+    }
+    if (firing_ref != NULL && *(float *)firing_ref != *(float *)0x2533c0) {
+      delay *= *(float *)firing_ref;
+    }
+  }
+  if (*(char *)(actor + 0x1ca) != 0) {
+    delay *= *(float *)0x253f3c;
+  }
+  delay *= TICKS_PER_SECOND;
+  *(short *)(actor + 0x5f4) = (short)(int)delay;
+
+  rate_of_fire =
+      FUN_000b55b0(0xb, (int)*(unsigned short *)(actor + 0x3e)) *
+      *(float *)(actv + 0x7c);
+  if (firing_ref != NULL &&
+      *(float *)((char *)firing_ref + 0xc) != *(float *)0x2533c0) {
+    rate_of_fire *= *(float *)((char *)firing_ref + 0xc);
+  }
+  if (*(char *)(actor + 0x1ca) != 0) {
+    rate_of_fire = rate_of_fire + rate_of_fire + *(float *)0x253d4c;
+  }
+  *(float *)(actor + 0x698) = rate_of_fire;
+  *(int *)(actor + 0x69c) = 0;
+
+  if (*(float *)(actv + 0xc4) > *(float *)0x2533c0) {
+    rof_modifier = *(float *)(actv + 0xc4);
+    *(float *)(actor + 0x69c) = rof_modifier;
+    if (*(char *)0x5aca5c != 0) {
+      console_printf(0, "%s: manual damage modifier %.2f",
+          tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
+          (double)rof_modifier);
+    }
+  } else if (*(float *)(actv + 0xc8) > *(float *)0x2533c0) {
+    weapon_handle = actor_attacking_target(actor_handle);
+    if (weapon_handle != -1) {
+      weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+      projectile_damage = FUN_000fac20(*weapon_obj, &max_range);
+      if (*(float *)(actv + 0x78) > *(float *)0x2533c0 &&
+          max_range > *(float *)(actv + 0x78)) {
+        max_range = *(float *)(actv + 0x78);
+      }
+      damage_per_second = max_range * projectile_damage;
+      if (damage_per_second > *(float *)0x2533c0) {
+        rof_modifier = *(float *)(actv + 0xc8) / damage_per_second;
+        *(float *)(actor + 0x69c) = rof_modifier;
+        if (*(char *)0x5aca5c != 0) {
+          console_printf(0,
+              "%s: proj %.1f rof %.1f dmg/s %.1f -> to get %.1f mod= %.2f",
+              tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
+              (double)projectile_damage, (double)max_range,
+              (double)damage_per_second, (double)*(float *)(actv + 0xc8),
+              (double)rof_modifier);
+        }
+      }
+    }
+  }
+
+  if (*(char *)(actor + 0x603) != 0 || *(char *)(actor + 0x602) != 0) {
+    if (*(float *)(actv + 0xf8) > *(float *)0x2533c0) {
+      *(float *)(actor + 0x69c) *= *(float *)(actv + 0xf8);
+    }
+    *(float *)(actor + 0x698) += *(float *)(actv + 0xfc);
+  }
+
+  if (*(float *)(actv + 0x14c) > *(float *)0x2533c0 &&
+      *(short *)(actor + 0x60c) == 1) {
+    encounter = (char *)datum_get(*(void **)0x5ab23c,
+                                  *(int *)(actor + 0x610));
+    enc_state = *(short *)(encounter + 0x24);
+    if (enc_state < 2 || enc_state > 3 || *(short *)(encounter + 0x32) == 0) {
+      suppress_flag = 1;
+    }
+  }
+
+  target_pos[0] = *(float *)(actor + 0x62c);
+  target_pos[1] = *(float *)(actor + 0x630);
+  target_pos[2] = *(float *)(actor + 0x634);
+
+  if (suppress_flag != 0) {
+    FUN_00021430(target_pos, *(float *)(actv + 0x14c));
+  }
+
+  dx = target_pos[0] - *(float *)(actor + 0x120);
+  dy = target_pos[1] - *(float *)(actor + 0x124);
+  dz = target_pos[2] - *(float *)(actor + 0x128);
+  perp[0] = dy - dz * 0.0f;
+  perp[1] = dz * 0.0f - dx;
+  perp[2] = dx * 0.0f - dy * 0.0f;
+  normalize3d(perp);
+
+  seed = get_global_random_seed_address();
+  random_val = random_seed_step((unsigned int *)seed);
+  if (random_val > 0x8000) {
+    perp[0] = -perp[0];
+    perp[1] = -perp[1];
+    perp[2] = -perp[2];
+  }
+
+  {
+    float yaw_max = *(float *)((char *)burst_ref + 4);
+    seed = get_global_random_seed_address();
+    yaw_angle = random_real_range(seed, -yaw_max, yaw_max);
+  }
+  {
+    float pitch_max = *(float *)((char *)burst_ref + 0x10);
+    seed = get_global_random_seed_address();
+    combined_angle = random_real_range(seed, -pitch_max, pitch_max) + yaw_angle;
+  }
+
+  error_primary = FUN_000b55b0(0xc, (int)*(unsigned short *)(actor + 0x3e)) *
+                  *(float *)burst_ref;
+  {
+    float sec_min = *(float *)((char *)burst_ref + 8);
+    float sec_max = *(float *)((char *)burst_ref + 0xc);
+    seed = get_global_random_seed_address();
+    error_secondary = FUN_000b55b0(0xc,
+        (int)*(unsigned short *)(actor + 0x3e)) *
+        random_real_range(seed, sec_min, sec_max);
+  }
+  if (*(char *)(actor + 0x1ca) != 0) {
+    error_primary = error_primary + error_primary;
+    error_secondary = error_secondary + error_secondary;
+  }
+
+  fire_timer = *(short *)(actor + 0x5f4);
+  if (fire_timer > 0 &&
+      *(float *)((char *)burst_ref + 0x24) > *(float *)0x2533c0) {
+    float fire_timer_f = (float)(int)fire_timer;
+    cone_angle = fire_timer_f * *(float *)((char *)burst_ref + 0x24) *
+                 *(float *)0x2546a4;
+    if (cone_angle > *(float *)0x254a58) {
+      cone_angle = *(float *)0x254a58;
+    }
+    cone_radius = x87_fptan(cone_angle) * *(float *)(actor + 0x638);
+    if (error_primary > cone_radius) {
+      extended_radius = cone_radius * *(float *)0x2533ec;
+      if (error_primary < extended_radius) {
+        *(short *)(actor + 0x5f4) =
+            (short)(int)(error_primary / cone_radius * fire_timer_f);
+        error_secondary = (extended_radius / error_primary) * error_secondary;
+        error_primary = extended_radius;
+      } else {
+        *(short *)(actor + 0x5f4) =
+            (short)(int)(fire_timer_f * *(float *)0x2533ec);
+        error_secondary = (extended_radius / error_primary) * error_secondary;
+        error_primary = extended_radius;
+      }
+    }
+  }
+
+  cos_yaw_v = x87_fcos(yaw_angle);
+  sin_yaw_v = x87_fsin(yaw_angle);
+  cos_comb = x87_fcos(combined_angle);
+  sin_comb = x87_fsin(combined_angle);
+
+  primary_err[0] =
+      (perp[0] * cos_yaw_v + 0.0f * sin_yaw_v) * error_primary;
+  primary_err[1] =
+      (perp[1] * cos_yaw_v + 0.0f * sin_yaw_v) * error_primary;
+  primary_err[2] =
+      (perp[2] * cos_yaw_v + sin_yaw_v) * error_primary;
+  secondary_err[0] =
+      -((perp[0] * cos_comb + sin_comb * 0.0f) * error_secondary);
+  secondary_err[1] =
+      -((perp[1] * cos_comb + sin_comb * 0.0f) * error_secondary);
+  secondary_err[2] =
+      -((perp[2] * cos_comb + sin_comb) * error_secondary);
+
+  fire_timer = *(short *)(actor + 0x5f4);
+  if (fire_timer > 0) {
+    fvar = *(float *)0x2533c8 / (float)(int)fire_timer;
+    secondary_err[0] *= fvar;
+    secondary_err[1] *= fvar;
+    secondary_err[2] *= fvar;
+  }
+
+  *(float *)(actor + 0x64c) = target_pos[0];
+  *(float *)(actor + 0x650) = target_pos[1];
+  *(float *)(actor + 0x654) = target_pos[2];
+  *(float *)(actor + 0x664) = primary_err[0];
+  *(float *)(actor + 0x668) = primary_err[1];
+  *(float *)(actor + 0x66c) = primary_err[2];
+  *(float *)(actor + 0x670) = secondary_err[0];
+  *(float *)(actor + 0x674) = secondary_err[1];
+  *(float *)(actor + 0x678) = secondary_err[2];
+  *(float *)(actor + 0x67c) =
+      *(float *)(actor + 0x64c) + *(float *)(actor + 0x664);
+  *(float *)(actor + 0x680) =
+      *(float *)(actor + 0x650) + *(float *)(actor + 0x668);
+  *(float *)(actor + 0x684) =
+      *(float *)(actor + 0x654) + *(float *)(actor + 0x66c);
+
+  if (*(short *)(actor + 0x6e) > 6) {
+    enc_flag = 0;
+    enc_handle = -1;
+    if (*(short *)(actor + 0x60c) == 1) {
+      encounter = (char *)datum_get(*(void **)0x5ab23c,
+                                    *(int *)(actor + 0x610));
+      enc_flag = *(char *)(encounter + 0x61);
+      enc_handle = *(int *)(encounter + 0x18);
+    }
+    if (*(char *)(actor + 0x378) != 0) {
+      sound_type = 0x1c;
+    } else if (enc_flag != 0) {
+      sound_type = 0x1e;
+    } else if (*(char *)(actor + 0x1f8) >= 5) {
+      sound_type = 0x1d;
+    } else {
+      sound_type = (*(char *)(actor + 0x161) != 0) ? 0x1b : 0x1a;
+    }
+    FUN_00046f10(sound_type, *(int *)(actor + 0x18), enc_handle, 3, -1, -1, 0);
   }
 }

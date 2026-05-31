@@ -9,8 +9,16 @@
 #undef sqrtf
 #undef fabsf
 
-float sinf(float x) { return __builtin_sinf(x); }
-float cosf(float x) { return __builtin_cosf(x); }
+float sinf(float x) {
+  float r;
+  __asm__ __volatile__("fsin" : "=t"(r) : "0"(x));
+  return r;
+}
+float cosf(float x) {
+  float r;
+  __asm__ __volatile__("fcos" : "=t"(r) : "0"(x));
+  return r;
+}
 float sqrtf(float x) { return __builtin_sqrtf(x); }
 float fabsf(float x) { return __builtin_fabsf(x); }
 
