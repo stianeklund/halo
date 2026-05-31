@@ -63,8 +63,9 @@ double pow(double x, double y);
 #define CALL_FUN_00143ae0() XCALL(0x143ae0, void(*)(void))()
 #define CALL_FUN_0013d880() XCALL(0x13d880, void(*)(void))()
 #define CALL_FUN_001d9e59(a,b) XCALL(0x1d9e59, void*(*)(const char*,const char*))(a,b)
-#define CALL_FUN_001d9260 XCALL(0x1d9260, int(*)(void*,const char*,...))
-#define CALL_FUN_0013f3b0(a,b) XCALL(0x13f3b0, void(*)(void*,int))(a,b)
+/* CALL_FUN_001d9260 was wrongly mapped to qsort (0x1d9260) as fprintf.
+ * Actual fprintf is crt_fprintf at 0x1d98ad. qsort is called separately. */
+/* object_add_to_dump (0x13f3b0) now called by name via @<ebx>/@<esi> thunk */
 #define CALL_FUN_001493b0(a) XCALL(0x1493b0, void(*)(int))(a)
 #define CALL_FUN_0018e3f0(a,b,c,d,e) XCALL(0x18e3f0, int(*)(int,int,int,int,void*))(a,b,c,d,e)
 #define CALL_FUN_0018f180(a,b) XCALL(0x18f180, void(*)(void*,void*))(a,b)
@@ -9560,18 +9561,17 @@ void objects_dump_memory(void)
   unsigned short uVar6;
   short *psVar7;
   unsigned int uVar8;
-  int dump_by_def[6144]; /* 1024 * 6 */
-  int local_6140;
-  short local_613c[12288]; /* 1024 * 12 */
+  int dump_by_def[6144]; /* 1024 entries of 24 bytes: int def_tag + 10 shorts stats */
   int local_140;
   short local_13c[128]; /* 12 entries * (4+8 shorts) + pad */
   short sVar9;
   unsigned short uVar10;
+  char obj_iter[12];
 
   uVar10 = 0;
   sVar9 = 0;
   csmemset(dump_by_def, 0, sizeof(dump_by_def));
-  csmemset(local_613c, 0, sizeof(local_613c));
+  csmemset(&local_140, 0, 0x120);
   sVar2 = 0;
   puVar5 = &local_140;
   do {
@@ -9580,61 +9580,84 @@ void objects_dump_memory(void)
     sVar2 = sVar2 + 1;
     puVar5 = puVar5 + 6;
   } while (sVar2 < 0xc);
-  CALL_FUN_001193f0(*(void **)0x5a8d50);
-  piVar3 = (int *)CALL_FUN_0013d730(0);
+  data_verify(*(void **)0x5a8d50);
+  *(int *)obj_iter = -1;
+  obj_iter[4] = 0;
+  *(short *)(obj_iter + 6) = 0;
+  *(int *)(obj_iter + 8) = -1;
+  piVar3 = (int *)object_iterator_next(obj_iter);
   do {
     if (piVar3 == (int *)0) {
-      /* Done iterating — output report */
-      stream = (void *)CALL_FUN_001d9e59("objects.txt", "wt");
+      /* Sort dump arrays by definition/type, then output report */
+      qsort(dump_by_def, (short)uVar10, 0x18,
+            (int (__cdecl *)(const void *, const void *))sort_dumps);
+      qsort(&local_140, 0xc, 0x18,
+            (int (__cdecl *)(const void *, const void *))sort_dumps);
+      stream = (void *)crt_fopen("objects.txt", "wt");
       if (stream != (void *)0) {
-        FUN_0013db60((short *)stream);
-        CALL_FUN_001d9260(stream, "#%d objects (#%d active) using %3.2f%% of available memory\n\n");
-        CALL_FUN_001d9260(stream, "OBJECTS BY TYPE\n");
-        CALL_FUN_001d9260(stream,
+        char stats_buf[8];
+        const char *name;
+        FUN_0013db60((short *)stats_buf);
+        crt_fprintf(stream, "#%d objects (#%d active) using %3.2f%% of available memory\n\n",
+                    (int)*(short *)stats_buf, (int)*(short *)(stats_buf + 2),
+                    (double)(*(float *)(stats_buf + 4) * *(float *)0x253f00));
+        crt_fprintf(stream, "OBJECTS BY TYPE\n");
+        crt_fprintf(stream,
                      "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
         psVar7 = local_13c;
         iVar4 = 0xc;
         do {
-          if (*(int *)(psVar7 - 2) == -1) {
-            if (*psVar7 != -1) {
-              FUN_0013c250(*psVar7);
-            }
+          if (*(int *)(psVar7 - 2) != -1) {
+            name = tag_get_name(*(int *)(psVar7 - 2));
+          } else if (*psVar7 != -1) {
+            name = FUN_0013c250(*psVar7);
           } else {
-            CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
+            name = (const char *)0x254608;
           }
-          CALL_FUN_001d9260(stream,
-                       "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
+          crt_fprintf(stream,
+                       "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
+                       (int)psVar7[4], (int)psVar7[5],
+                       (int)psVar7[6], (int)psVar7[7],
+                       (int)psVar7[8], (int)psVar7[9],
+                       (int)psVar7[1], *(int *)((char *)psVar7 + 4),
+                       name);
           psVar7 = psVar7 + 0xc;
           iVar4 = iVar4 - 1;
         } while (iVar4 != 0);
-        CALL_FUN_001d9260(stream, "\n");
-        CALL_FUN_001d9260(stream, "OBJECTS BY DEFINITION\n");
-        CALL_FUN_001d9260(stream,
+        crt_fprintf(stream, "\n");
+        crt_fprintf(stream, "OBJECTS BY DEFINITION\n");
+        crt_fprintf(stream,
                      "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
         if (0 < (short)uVar10) {
-          psVar7 = local_613c;
+          psVar7 = (short *)((char *)dump_by_def + 4);
           uVar8 = (unsigned int)uVar10;
           do {
-            if (*(int *)(psVar7 - 2) == -1) {
-              if (*psVar7 != -1) {
-                FUN_0013c250(*psVar7);
-              }
+            if (*(int *)(psVar7 - 2) != -1) {
+              name = tag_get_name(*(int *)(psVar7 - 2));
+            } else if (*psVar7 != -1) {
+              name = FUN_0013c250(*psVar7);
             } else {
-              CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
+              name = (const char *)0x254608;
             }
-            CALL_FUN_001d9260(stream,
-                         "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
+            crt_fprintf(stream,
+                         "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
+                         (int)psVar7[4], (int)psVar7[5],
+                         (int)psVar7[6], (int)psVar7[7],
+                         (int)psVar7[8], (int)psVar7[9],
+                         (int)psVar7[1], *(int *)((char *)psVar7 + 4),
+                         name);
             psVar7 = psVar7 + 0xc;
             uVar8 = uVar8 - 1;
           } while (uVar8 != 0);
         }
-        CALL_FUN_001d9260(stream, "\n");
+        crt_fprintf(stream, "\n");
         if (0 < sVar9) {
-          CALL_FUN_001d9260(stream,
-                       "WARNING: overflowed MAXIMUM_DUMPS (%d), this dump does not include %d objects that would not fit!\n");
+          crt_fprintf(stream,
+                       "WARNING: overflowed MAXIMUM_DUMPS (%d), this dump does not include %d objects that would not fit!\n",
+                       0x400, (int)sVar9);
         }
-        CALL_FUN_001d9260(stream, "\n");
-        CALL_FUN_001d9260(stream, 0); /* _fclose */
+        crt_fprintf(stream, "\n");
+        crt_fclose(stream);
       }
       return;
     }
@@ -9652,7 +9675,7 @@ void objects_dump_memory(void)
     }
     uVar6 = uVar1;
     if ((short)uVar10 < 0x400) {
-      local_613c[(short)uVar10 * 0xc] = -1;
+      *(short *)((char *)dump_by_def + (short)uVar10 * 24 + 4) = -1;
       dump_by_def[(short)uVar10 * 6] = *piVar3;
       uVar6 = uVar10;
       uVar10 = uVar10 + 1;
@@ -9660,17 +9683,19 @@ void objects_dump_memory(void)
       sVar9 = sVar9 + 1;
     }
 LAB_0013f5ad:
-    iVar4 = (int)datum_get(*(void **)0x5a8d50, 0);
+    iVar4 = (int)datum_get(*(void **)0x5a8d50, *(int *)(obj_iter + 8));
     if (uVar6 != 0xffff) {
-      CALL_FUN_0013f3b0((int *)((char *)dump_by_def + (short)uVar6 * 24), iVar4);
+      object_add_to_dump(*(int *)(obj_iter + 8),
+                         (void *)((char *)dump_by_def + (short)uVar6 * 24));
     }
     if (0xb < *(unsigned char *)(iVar4 + 3)) {
       display_assert("object->type < NUMBER_OF_OBJECT_TYPES",
                      "c:\\halo\\SOURCE\\objects\\objects.c", 0, 1);
       CALL_thunk_FUN_001029a0(-1);
     }
-    CALL_FUN_0013f3b0((int *)((char *)&local_140 + *(unsigned char *)(iVar4 + 3) * 24), iVar4);
-    piVar3 = (int *)CALL_FUN_0013d730(0);
+    object_add_to_dump(*(int *)(obj_iter + 8),
+                       (void *)((char *)&local_140 + *(unsigned char *)(iVar4 + 3) * 24));
+    piVar3 = (int *)object_iterator_next(obj_iter);
   } while (1);
 }
 #pragma clang diagnostic pop
@@ -9693,7 +9718,7 @@ void objects_reconnect_to_structure_bsp(void)
   int obj;
   char local_8[8];
 
-  CALL_FUN_001193f0(*(void **)0x5a8d50);
+  data_verify(*(void **)0x5a8d50);
   bx_val = -1;
   *(int *)(local_8 + 4) = -1;
   *(char *)local_8 = 0;
