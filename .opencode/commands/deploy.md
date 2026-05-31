@@ -1,7 +1,6 @@
 ---
 description: Build then deploy patched files to a real Xbox via xbcp
-agent: fast
-subtask: true
+subtask: false
 ---
 
 Use the `halo-deploy-xbdm` skill for the standard build-and-deploy workflow.

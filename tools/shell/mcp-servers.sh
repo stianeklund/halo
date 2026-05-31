@@ -15,6 +15,7 @@ REPO_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 BRIDGE_PY="$REPO_DIR/tools/ghidra/ghidra_mcp_bridge.py"
 LIVE_PY="$REPO_DIR/tools/ghidra_live_mcp/server.py"
 RETRIEVAL_PY="$REPO_DIR/tools/retrieval/server.py"
+XEMU_PY="$REPO_DIR/tools/xemu_mcp/server.py"
 
 BRIDGE_PY_WIN=""
 if command -v wslpath >/dev/null 2>&1; then
@@ -27,9 +28,10 @@ PYTHON_VENV="$REPO_DIR/.venv/bin/python3"
 PID_DIR="/tmp/mcp-servers"
 mkdir -p "$PID_DIR"
 
-PORTS=( "ghidra:8090" "live:8091" "retrieval:0" )
+PORTS=( "ghidra:8090" "live:8091" "retrieval:0" "xemu:4445" )
 GHIDRA_PORT=8090
 LIVE_PORT=8091
+XEMU_PORT=4445
 
 # ---------------------------------------------------------------------------
 # PID file helpers
@@ -121,10 +123,33 @@ start_retrieval() {
     echo "[mcp] retrieval started (pid=$!, log=/tmp/retrieval_server.log)"
 }
 
+start_xemu() {
+    if is_running xemu; then
+        echo "[mcp] xemu already running (pid=$(read_pid xemu))"
+        return 0
+    fi
+    echo "[mcp] Starting xemu MCP on :$XEMU_PORT ..."
+
+    kill_port "$XEMU_PORT"
+    sleep 0.5
+
+    # Sibling-module imports resolve because running the script by path puts its
+    # directory on sys.path[0] (same convention as the live/retrieval servers).
+    # xemu-facing env is overridable; defaults match this machine's layout. The
+    # daemon now owns these (it spawns xemu), since Claude no longer spawns the MCP.
+    XEMU_MCP_HTTP_PORT="$XEMU_PORT" \
+    XEMU_PATH="${XEMU_PATH:-/mnt/g/dev/xemu/build/qemu-system-i386}" \
+    XEMU_SCREENSHOT_DIR="${XEMU_SCREENSHOT_DIR:-/mnt/g/dev/halo/screenshots}" \
+        nohup "$PYTHON_VENV" "$XEMU_PY" > /tmp/mcp-xemu.log 2>&1 &
+    write_pid xemu $!
+    echo "[mcp] xemu MCP started (pid=$!, log=/tmp/mcp-xemu.log)"
+}
+
 start_all() {
     start_retrieval
     start_ghidra
     start_live
+    start_xemu
 }
 
 # ---------------------------------------------------------------------------
@@ -145,6 +170,7 @@ stop_server() {
         ghidra)    kill_port "$GHIDRA_PORT" ;;
         live)      kill_port "$LIVE_PORT" ;;
         retrieval) pkill -f "tools/retrieval/server.py" 2>/dev/null || true ;;
+        xemu)      kill_port "$XEMU_PORT" ;;
     esac
     echo "[mcp] $name stopped."
 }
@@ -153,6 +179,7 @@ stop_all() {
     stop_server ghidra
     stop_server live
     stop_server retrieval
+    stop_server xemu
 }
 
 # ---------------------------------------------------------------------------
@@ -207,6 +234,23 @@ status_all() {
         echo "  retrieval        DOWN"
     fi
     rm_pid retrieval 2>/dev/null || true  # stale pid cleanup
+
+    local xhealth
+    xhealth="$(curl -sf http://127.0.0.1:${XEMU_PORT}/health 2>/dev/null)" || true
+    if [ -n "$xhealth" ]; then
+        local xconn xrun
+        xconn="$(echo "$xhealth" | python3 -c "import sys,json; print(json.load(sys.stdin).get('connected','?'))" 2>/dev/null || echo '?')"
+        xrun="$(echo "$xhealth" | python3 -c "import sys,json; print(json.load(sys.stdin).get('xemu_running','?'))" 2>/dev/null || echo '?')"
+        echo "  xemu :$XEMU_PORT  UP  qmp_connected=$xconn  xemu_running=$xrun"
+    else
+        local xpid
+        xpid="$(read_pid xemu)"
+        if [ -n "$xpid" ] && kill -0 "$xpid" 2>/dev/null; then
+            echo "  xemu :$XEMU_PORT  STARTING (pid=$xpid, health not responding)"
+        else
+            echo "  xemu :$XEMU_PORT  DOWN"
+        fi
+    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -223,7 +267,7 @@ usage() {
     echo "  restart  Stop then start server(s)"
     echo "  status   Show server health"
     echo ""
-    echo "  Targets: ghidra (port 8090), live (port 8091), retrieval, all"
+    echo "  Targets: ghidra (port 8090), live (port 8091), retrieval, xemu (port 4445), all"
     exit 1
 }
 
@@ -233,6 +277,7 @@ case "$CMD" in
             ghidra)    start_ghidra ;;
             live)      start_live ;;
             retrieval) start_retrieval ;;
+            xemu)      start_xemu ;;
             all|"")    start_all ;;
             *)         usage ;;
         esac
@@ -242,6 +287,7 @@ case "$CMD" in
             ghidra)    stop_server ghidra ;;
             live)      stop_server live ;;
             retrieval) stop_server retrieval ;;
+            xemu)      stop_server xemu ;;
             all|"")    stop_all ;;
             *)         usage ;;
         esac
@@ -251,6 +297,7 @@ case "$CMD" in
             ghidra)    restart_server ghidra ;;
             live)      restart_server live ;;
             retrieval) restart_server retrieval ;;
+            xemu)      restart_server xemu ;;
             all|"")    restart_all ;;
             *)         usage ;;
         esac

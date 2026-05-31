@@ -1,7 +1,6 @@
 ---
 description: Build, deploy, and run on xemu or real Xbox
-agent: fast
-subtask: true
+subtask: false
 ---
 
 Use the `halo-build-xemu` skill for repo-specific build/deploy rules.

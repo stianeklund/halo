@@ -13,7 +13,7 @@ class GhidraLiveRpcError(RuntimeError):
 
 
 class GhidraLiveClient:
-    def __init__(self, url="http://127.0.0.1:18080/rpc"):
+    def __init__(self, url="http://127.0.0.1:18081/rpc"):
         self.url = url
 
     def call(self, method, params=None):

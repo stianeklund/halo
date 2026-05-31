@@ -575,7 +575,7 @@ def print_delinker_plan(results: list[CommonFunction], objects: list[dict]) -> N
 # Live delinker analysis
 # ---------------------------------------------------------------------------
 
-GHIDRA_RPC_URL = "http://127.0.0.1:18080/rpc"
+GHIDRA_RPC_URL = "http://127.0.0.1:18081/rpc"
 DELINKER_ARTIFACTS = Path("/mnt/g/dev/halo/artifacts/delinker")
 DELINKER_ARTIFACTS_WIN = "G:\\dev\\halo\\artifacts\\delinker"
 

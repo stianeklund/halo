@@ -27,7 +27,7 @@ The installed delinker extension exposes needed functionality as analyzers and e
 
 ### Prerequisites
 
-- Ghidra GUI session with `DelinkerControlPlugin` enabled (RPC on `127.0.0.1:18080`)
+- Ghidra GUI session with `DelinkerControlPlugin` enabled (RPC on `127.0.0.1:18081`)
 - MCP Python SDK installed in the server environment
 
 ---
