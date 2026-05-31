@@ -14,13 +14,12 @@
 int real_vector3d_valid(float *vector)
 {
   unsigned int *v = (unsigned int *)vector;
-  if ((v[0] & 0x7f800000) == 0x7f800000)
-    return 0;
-  if ((v[1] & 0x7f800000) == 0x7f800000)
-    return 0;
-  if ((v[2] & 0x7f800000) == 0x7f800000)
-    return 0;
-  return 1;
+  if ((v[0] & 0x7f800000) != 0x7f800000 &&
+      (v[1] & 0x7f800000) != 0x7f800000 &&
+      (v[2] & 0x7f800000) != 0x7f800000) {
+    return 1;
+  }
+  return 0;
 }
 
 /* 0x84a70 — valid_real_normal3d_perpendicular: check whether two 3D vectors
@@ -41,21 +40,16 @@ int real_vector3d_valid(float *vector)
 int valid_real_normal3d_perpendicular(float *a, float *b)
 {
   float dot;
-
-  if (!valid_real_normal3d(a)) {
-    return 0;
+  char ok;
+  ok = (char)valid_real_normal3d(a);
+  if (ok &&
+      (ok = (char)valid_real_normal3d(b), ok) &&
+      (dot = a[2] * b[2] + a[1] * b[1] + a[0] * b[0],
+       (*(unsigned int *)&dot & 0x7f800000) != 0x7f800000) &&
+      fabs(dot) < 0.001) {
+    return 1;
   }
-  if (!valid_real_normal3d(b)) {
-    return 0;
-  }
-
-  dot = a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
-
-  if ((*(unsigned int *)&dot & 0x7f800000) == 0x7f800000) {
-    return 0;
-  }
-
-  return fabsf(dot) < 0.001f;
+  return 0;
 }
 
 /* FUN_00085180 (0x85180) — Configure camera globals from a cutscene-camera
